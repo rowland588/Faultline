@@ -98,7 +98,8 @@ machine through the changeovers and is the first thing to read when a
 - [textbook] Levene, H. (1960), "Robust tests for equality of variances", in *Contributions to Probability and Statistics*, Stanford — the spread test used (from knowledge); the median-centred form is Brown–Forsythe (1974).
 
 ## In Faultline
-Not built (FC-093). When built it is a mode of the individuals chart
-(the variables chart) that reads each reading's product and nominal from the line's
-programs (`src/line`, *Products it runs*), runs Levene before pooling and
-says the result, and plots a changeover as a marked boundary.
+Built (W2, 24 October; FC-093). A mode of the Control chart that reads each
+reading's product and nominal: Levene's test before pooling — alike, the
+deviation from nominal chart; unalike, the standardised (Z-MR) chart — the
+choice said on the page, and a changeover plotted as a marked boundary.
+Proved by `control-chart.mjs`.

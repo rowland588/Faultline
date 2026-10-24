@@ -353,6 +353,22 @@ export const PAGES = (sd, cap) => [
   { name: 'Work sampling', path: `#/sampling/${sd.samplingId}`, must: [{ what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ }, { what: 'the round', sel: '.ws-round' },
     { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — what it costs among them', sel: '.ie-strip .ln-tile', n: 5 }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
   /* A RELIABILITY STUDY (21 October, docs/TOOLKIT.md tool 13): the watch and the event button, the lean tiles (MTBF first), what it means, the graphs — events against watched hours, the gaps, the MTBF day by day — what the stops were, the days, the commentary, the closing line */
+  /* A CONTROL CHART (24 October, W2, knowledge/specs/FC-086-charts.md): the tiles, the sentence and its signals in words, the limits set, the chart and the moving range with the CUSUM under it, the pad, the readings, the action plan, the closing line */
+  { name: 'Control chart', path: `#/chart/${sd.chartId}`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
+    { what: 'the band', sel: '.ln-band' },
+    { what: 'the six tiles — readings, centre, limits, signals, since, level (the verdict is the band’s)', sel: '.ie-strip .ln-tile', n: 6 },
+    { what: 'the sentence', sel: '.ie-say', text: /^Fill weight — 40 readings against limits .* set from readings 1–20: 2 beyond \(35, 38\)/ },
+    { what: 'each signal in words, with what it usually means', sel: '[data-signal]', n: 7 },
+    { what: 'the limits set, and Set them again', sel: '.ie-limits-act', text: /Limits set .* from readings 1–20/ },
+    { what: 'the chart, the moving range and the CUSUM', sel: '.ie-ch-pic svg', n: 3 },
+    { what: 'a point for each reading', sel: '.ie-ch [data-point]', n: 40 },
+    { what: 'the pad', sel: '.ie-pad .ie-key', n: 13 },
+    { what: 'a note on a reading — New reel', sel: '.ie-notes .chip', n: 3 },
+    { what: 'every reading, in order', sel: '.ie-rows li', n: 40 },
+    { what: 'the action plan', sel: '.ln-plan-p' },
+    { what: 'the closing line', sel: '.ln-close' },
+  ] },
   { name: 'Reliability study', path: `#/reliability/${sd.reliabilityId}`, must: [
     { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'the band', sel: '.ln-band' },

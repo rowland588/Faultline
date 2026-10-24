@@ -36,6 +36,8 @@ import { dur, flowFigures, share } from '../tools/valuestream/steps';
 import { changeoverFigures, changeoverSays, figuresOf, mins } from '../tools/changeover/changeover';
 import { samplingSays } from '../tools/sampling/sampling';
 import { plural, relAll, span, studyReliabilitySays } from '../tools/reliability/reliability';
+import { chartFigures, chartSays } from '../tools/chart/chart';
+import { overTime, overTimeSays } from '../tools/capability/overTime';
 import { firstCount, lossLine, windowWords } from '../tools/losses/losses';
 import type { StudyTool, ToolStudy } from '../lib/study';
 import type { Observation, Workspace } from '../types';
@@ -113,9 +115,21 @@ const RELIABILITY: ToolWords = {
   second: { label: 'Which machine?', placeholder: 'e.g. Filler 2' },
 };
 
+/* A CONTROL CHART (knowledge/specs/FC-086-charts.md, W2): readings in order against limits set from a
+   steady period and kept, the signals in words, the CUSUM saying since when. Stored as tool `chart`. */
+const CHART: ToolWords = {
+  title: 'Control chart',
+  one: 'Control chart',
+  lede: 'Readings in the order taken, against limits set from a steady period and kept — one at a time, or in subgroups — and what moved said in words: a point beyond a limit, a run on one side, and, for a drift too small for the limits, since when. Pre-control for approving a set-up. Use one on its own, then put it on a line or attach it to a project.',
+  add: 'New control chart',
+  placeholder: 'e.g. Fill weight 400 g',
+  none: 'No control charts yet. Say what is measured, take the first twenty to set the limits, then keep taking them — on the phone at the machine.',
+  second: { label: 'On which machine?', placeholder: 'e.g. Multihead weigher' },
+};
+
 const OWNER = canOf('owner');
 
-export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP, changeover: CHANGEOVER, sampling: SAMPLING, losses: LOSSES, reliability: RELIABILITY };
+export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP, changeover: CHANGEOVER, sampling: SAMPLING, losses: LOSSES, reliability: RELIABILITY, chart: CHART };
 
 export { studyHref } from '../lib/studyLinks';
 
@@ -132,6 +146,7 @@ export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; ton
     return { text: f.steps ? `lead time ${f.untimed ? 'at least ' : ''}${dur(f.leadSec)} · ${share(f.pce ?? 0)} adds value` : 'no steps yet', tone: 'n' };
   }
   if (s.tool === 'sampling') return { text: samplingSays(s.agreed?.sampling, s.facts.taps ?? []).verdict, tone: 'n' };
+  if (s.tool === 'chart') { const c = s.agreed?.chart; if (!c) return { text: 'not set up yet', tone: 'n' }; const said = chartSays(chartFigures(c, s.facts.readings ?? []), c); return { text: said.verdict, tone: said.tone }; }
   if (s.tool === 'reliability') { const said = studyReliabilitySays(s.agreed?.reliability, s.facts.watch, s.facts.events); return { text: said.verdict, tone: said.tone }; }
   if (s.tool === 'losses') {
     const c = s.facts.losses;
@@ -146,7 +161,7 @@ export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; ton
 }
 
 /** Each tool's list of every study, every line — "Every line" from one line's list. */
-const TOOL_HOME: Partial<Record<StudyTool, string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses', reliability: '/reliability' };
+const TOOL_HOME: Partial<Record<StudyTool, string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses', reliability: '/reliability', chart: '/chart' };
 
 export function StudiesScreen({ tool }: { tool: StudyTool }) {
   const w = TOOL_WORDS[tool] ?? CAPABILITY;
@@ -239,6 +254,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
           {mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>}
         </div>
       )}
+      {tool === 'capability' && <OverTimeTable studies={shownGroups.flatMap(([, rows]) => rows)} />}
       {shownGroups.map(([k, rows]) => (
         <section key={k} className="qsl-g">
           <div className="qsl-gh">
@@ -253,6 +269,40 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
       <NewStudy open={adding} tool={tool} onClose={() => setAdding(false)} onLine={onLine} project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
     </div>
   );
+}
+
+/** CAPABILITY ACROSS PRODUCTS AND OVER TIME (FC-101): the studies shown, side by side — a row each product, a column each month. */
+function OverTimeTable({ studies }: { studies: ToolStudy[] }) {
+  const t = useMemo(() => overTime(studies), [studies]);
+  if (!t) return null;
+  return (
+    <section className="ot" aria-label="Capability across products and over time">
+      <div className="qsl-gh"><h2>Capability over time</h2><span className="sub">{overTimeSays(t)}</span></div>
+      <div className="ot-wrap">
+        <table className="ot-t">
+          <thead><tr><th scope="col">Product or machine</th>{t.months.map(m => <th key={m.key} scope="col">{m.label}</th>)}<th scope="col">Latest</th></tr></thead>
+          <tbody>
+            {t.rows.map(r => (
+              <tr key={r.who} data-who={r.who}>
+                <th scope="row">{r.who}</th>
+                {t.months.map(m => { const c = r.cells[m.key]; return <td key={m.key} className={c ? 'is-' + c.tone : 'is-none'}>{c ? <button type="button" className="linkish" onClick={() => nav(`/capability/${c.id}`)}>{c.text}{c.studies > 1 ? ` ×${c.studies}` : ''}</button> : '—'}</td>; })}
+                <td className={'is-' + r.latest.tone}><b>{r.latest.verdict}</b></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/** A control chart on a list: readings (or subgroups) and the signals. */
+function chartWhere(s: ToolStudy): string {
+  const c = s.agreed?.chart;
+  if (!c) return 'not set up yet';
+  const f = chartFigures(c, s.facts.readings ?? []);
+  const n = c.kind === 'xbar' ? `${f.points.length} subgroup${f.points.length === 1 ? '' : 's'}` : `${f.n} reading${f.n === 1 ? '' : 's'}`;
+  return `${n}${f.signals.length ? ` · ${f.signals.length} signal${f.signals.length === 1 ? '' : 's'}` : ''}${f.provisional && f.n ? ' · limits provisional' : ''}`;
 }
 
 /** A reliability study on a list: watched time and events, and running now. */
@@ -286,6 +336,7 @@ function StudyRow({ s, ctx }: { s: ToolStudy; ctx?: StudyContext }) {
         <span className="lt-where">{s.tool === 'sampling' ? `${(s.agreed?.sampling?.who ?? []).length} watched · ${(s.facts.taps ?? []).filter(x => !x.struck).length} taps` : s.tool === 'map' ? `${steps} step${steps === 1 ? '' : 's'}${(s.facts.future ?? []).length ? ' · a future state' : ''}`
           : s.tool === 'changeover' ? `${(s.facts.sequence ?? []).length} element${(s.facts.sequence ?? []).length === 1 ? '' : 's'}${changeoverFigures(s.facts.sequence).enough ? ` · ${mins(changeoverFigures(s.facts.sequence).nowSec)}` : ''}`
           : s.tool === 'reliability' ? relWhere(s)
+          : s.tool === 'chart' ? chartWhere(s)
           : s.tool === 'losses' ? (lc ? `${windowWords(lc)} · ${new Date(lc.from).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}` : 'no shift picked yet')
             : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
       </button>

@@ -43,6 +43,8 @@ import { balance } from '../tools/linework/balance';
 import { agreedFor, balanceCost, costInputs, crewKept } from '../tools/linework/balanceLink';
 import { costWords, countTitle, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, studyReliabilitySays, type RelItem } from '../tools/reliability/reliability';
 import { relClosings, relTiles, relTrend } from '../tools/reliability/reliabilityLean';
+import { overTime, overTimeSays } from '../tools/capability/overTime';
+import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } from '../tools/chart/chart';
 import { neckOf } from './lineLoss';
 import { relChartBlock, relDaysBlocks, relKindsBlocks, relTogetherBlocks, remarksBlocks } from './report/reliabilityTable';
 
@@ -247,6 +249,88 @@ function barsBlock(bars: { v: number; out?: boolean; miss?: boolean; lo?: number
     },
   }], after: 'm' });
 }
+/* ================== THE CONTROL CHART (W2, knowledge/specs/FC-086-charts.md) ================== */
+/** The points in order against their lines — the chart as the page draws it: the limits dashed, the spec
+ *  limits and the centre, a point beyond a limit in red, a point in a signal in amber, the changeover
+ *  boundary marked. */
+function pointsBlock(f: ChartFigures, lines: { v: number; label: string; red?: boolean; dash?: boolean }[], fmt: (v: number) => string): Block {
+  const pts = f.points, HB = 130, slots = Math.max(pts.length, 20);
+  const ys = [...pts.map(p => p.y), ...lines.map(l => l.v)];
+  let lo = Math.min(...ys), hi = Math.max(...ys); const sp = Math.max(hi - lo, Math.abs(hi) * 0.002, 1e-9); lo -= sp * 0.1; hi += sp * 0.1;
+  return rows({ rows: [{
+    h: () => HB + 14,
+    draw: (fr: Frame, y: number) => {
+      const x0 = fr.x + 6, w = fr.w - 84, yy = (v: number) => y + 6 + (1 - (v - lo) / (hi - lo)) * (HB - 12), xx = (i: number) => x0 + (i / (slots - 1)) * w;
+      for (const l of lines) {
+        fr.doc.setDrawColor(l.red ? DANGER : INK2); fr.doc.setLineWidth(l.red ? 0.8 : 0.5);
+        if (l.dash) fr.doc.setLineDashPattern([2, 2], 0); else fr.doc.setLineDashPattern([], 0);
+        fr.doc.line(x0, yy(l.v), x0 + w, yy(l.v)); fr.doc.setLineDashPattern([], 0);
+        font(fr.doc, 6.5, 'normal', l.red ? DANGER : MUTED); fr.doc.text(`${l.label} ${fmt(l.v)}`, x0 + w + 4, yy(l.v) + 2);
+      }
+      for (const b of f.shortRun?.boundaries ?? []) { const bx = (xx(b - 2) + xx(b - 1)) / 2; fr.doc.setDrawColor(LINE); fr.doc.line(bx, y + 6, bx, y + HB - 6); font(fr.doc, 6, 'normal', MUTED); fr.doc.text(pts[b - 1]?.product ?? '', bx + 2, y + 10); }
+      pts.forEach((p, i) => {
+        fr.doc.setFillColor(p.state === 'beyond' ? DANGER : p.state === 'signal' ? AMBER : INK2); fr.doc.circle(xx(i), yy(p.y), p.state === 'in' ? 1.5 : 2.2, 'F');
+        if (pts.length <= 30) { font(fr.doc, 6, 'normal', MUTED); fr.doc.text(String(p.no), xx(i), y + HB + 8, { align: 'center' }); }
+      });
+      fr.doc.setDrawColor(LINE); fr.doc.line(x0, y + HB - 6, x0 + w, y + HB - 6);
+    },
+  }], after: 'm' });
+}
+function chartBlocks(s: ToolStudy): Block[] {
+  const a = s.agreed?.chart;
+  if (!a) return [];
+  const f = chartFigures(a, s.facts.readings ?? []), said = chartSays(f, a);
+  if (!f.n) return [];
+  const dp = f.dp + 1, u = a.unit ? ` ${a.unit}` : '';
+  const beyond = f.points.filter(p => p.state === 'beyond' && !p.short).length;
+  const out: Block[] = [cellsRow([
+    [a.kind === 'xbar' ? 'Subgroups' : 'Readings', a.kind === 'xbar' ? `${f.points.length} of ${f.m}` : String(f.n)],
+    ['Centre', f.centre !== undefined ? `${f.centre.toFixed(dp)}${f.shortRun ? '' : u}` : '—'],
+    ['Limits', f.lcl !== undefined && f.ucl !== undefined ? `${f.lcl.toFixed(dp)}–${f.ucl.toFixed(dp)}` : '—'],
+    ['Signals', String(f.signals.length), f.signals.length > 0],
+    ['Beyond', String(beyond), beyond > 0],
+    ['Verdict', said.verdict, said.tone === 'r'],
+  ])];
+  out.push(text({ text: said.text, size: 9, colour: said.tone === 'r' ? DANGER : INK2, after: 4 }));
+  if (f.pre) {
+    out.push(label('Set-up and the pairs'));
+    out.push(text({ text: `Set-up: ${f.pre.qualified ? `${f.pre.greens} greens in a row — qualified at reading ${f.pre.qualifiedAt}` : `${f.pre.greens} of the ${GREENS_PRE} greens needed`}.`, size: 8.5, colour: INK2, after: 2 }));
+    for (const pr of f.pre.pairs) out.push(text({ text: `Readings ${pr.nos[0]} and ${pr.nos[1]} — ${pr.say}.`, size: 8.5, style: pr.tone === 'g' ? 'normal' : 'bold', colour: pr.tone === 'r' ? DANGER : pr.tone === 'a' ? AMBER : INK2, after: 2 }));
+  }
+  if (said.signals.length) {
+    out.push(label('The signals, in words'));
+    for (const g of said.signals) out.push(text({ text: `${g.text} — ${g.means}.`, size: 8.5, style: 'bold', colour: g.tone === 'r' ? DANGER : AMBER, after: 2 }));
+  }
+  if (!f.pre && f.centre !== undefined && f.ucl !== undefined && f.lcl !== undefined) {
+    out.push(label(f.provisional ? 'The chart — limits provisional' : `The chart — limits set from ${a.kind === 'xbar' ? 'subgroups' : 'readings'} ${f.from?.from}–${f.from?.to}`));
+    const lines = [
+      ...(a.lower !== undefined && !f.shortRun ? [{ v: a.lower, label: 'spec', dash: true }] : []), ...(a.upper !== undefined && !f.shortRun ? [{ v: a.upper, label: 'spec', dash: true }] : []),
+      { v: f.ucl, label: 'UCL', red: true }, { v: f.lcl, label: 'LCL', red: true }, { v: f.centre, label: 'centre' },
+    ];
+    out.push(pointsBlock(f, lines, v => v.toFixed(dp)));
+    if (f.spreadUcl !== undefined && f.points.some(p => p.spread !== undefined)) {
+      out.push(label(a.kind === 'xmr' ? 'The moving range' : a.subgroup && a.subgroup > 10 ? 'The standard deviation in each subgroup' : 'The range in each subgroup'));
+      out.push(barsBlock(f.points.map(p => ({ v: p.spread ?? 0, ...(f.spreadUcl !== undefined && (p.spread ?? 0) > f.spreadUcl ? { out: true } : {}) })), [{ v: f.spreadUcl, label: 'UCL', red: true }], v => v.toFixed(dp)));
+    }
+  }
+  if (f.pre) out.push(pointsBlock(f, [{ v: f.pre.nominal + f.pre.t, label: 'red above', red: true }, { v: f.pre.nominal + f.pre.t / 2, label: 'green to', dash: true }, { v: f.pre.nominal - f.pre.t / 2, label: 'green from', dash: true }, { v: f.pre.nominal - f.pre.t, label: 'red below', red: true }], v => v.toFixed(dp)));
+  if (f.cusum) {
+    out.push(label('The CUSUM — since when'));
+    out.push(text({ text: f.cusum.signal !== undefined ? `${said.since ?? ''}. K ${f.cusum.k.toFixed(dp)}${u}, H ${f.cusum.h.toFixed(dp)}${u}.` : `No drift found against the target: K ${f.cusum.k.toFixed(dp)}${u}, H ${f.cusum.h.toFixed(dp)}${u}.`, size: 8.5, colour: INK2, after: 4 }));
+  }
+  if (f.shortRun && f.shortRun.products.length) {
+    out.push(label('By product'));
+    out.push(tableBlock(['Product', 'Nominal', 'Readings', 'Mean deviation', 'Spread (s)'], f.shortRun.products.map(p => [p.product, String(p.nominal), String(p.n), `${p.mean >= 0 ? '+' : '−'}${Math.abs(p.mean).toFixed(dp)}`, p.n >= 2 ? p.sd.toFixed(dp) : '—']), [0.34, 0.14, 0.14, 0.22, 0.16]));
+  }
+  if (a.frozenBefore?.length) out.push(text({ text: `Limits set before: ${a.frozenBefore.map(b => `${b.centre.toFixed(dp)} from ${b.n}${b.who ? ` by ${b.who}` : ''}`).join('; ')}.`, size: 8, colour: MUTED, after: 4 }));
+  out.push(label('Every reading, in the order taken'));
+  const byId = new Map(f.points.map(p => [p.id, p]));
+  const noted = (s.facts.readings ?? []).filter(r => r.note && !r.struck).map(r => `${(s.facts.readings ?? []).indexOf(r) + 1}: ${r.note}`);
+  out.push(readingsRows(s, r => (typeof r.value === 'number' ? `${r.value}${r.note ? '*' : ''}` : '—'), id => byId.get(id)?.state === 'beyond'));
+  if (noted.length) out.push(text({ text: `* ${noted.join(' · ')}`, size: 8, colour: MUTED, after: 2 }));
+  return out;
+}
+const GREENS_PRE = 5;
 function runsBlocks(r: RunsFigures, f: SampleFigures, a: AgreedReadings): Block[] {
   const said = sampleSays(f, a);
   const out: Block[] = [cellsRow([
@@ -366,6 +450,10 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     const a = s.agreed.readings, f = sample(a, s.facts.readings ?? []), said = sampleSays(f, a);
     eyebrow = 'Capability study'; verdict = { text: said.verdict, tone: said.tone }; tiles = sampleTiles(f, a, said); closing = sampleClosing(f, a, said);
     body = capabilityBlocks(s);
+  } else if (s.tool === 'chart' && s.agreed?.chart) {
+    const a = s.agreed.chart, f = chartFigures(a, s.facts.readings ?? []), said = chartSays(f, a);
+    eyebrow = 'Control chart'; verdict = { text: said.verdict, tone: said.tone }; tiles = chartTiles(f, a); closing = chartClosing(f, a, said);
+    body = chartBlocks(s);
   } else if (s.tool === 'sampling' && s.agreed?.sampling) {
     const a = s.agreed.sampling, taps = s.facts.taps ?? [], said = samplingSays(a, taps);
     const rate = personRate(p.ctx?.workspaces?.find(w => w.id === s.workspaceId));
@@ -464,6 +552,7 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
   if (s.uses.length) out.push(text({ text: `Used for: ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its project`, size: 8, colour: MUTED, after: 1 }));
   out.push(text({ text: e.line, size: 9.5, colour: e.tone === 'r' ? DANGER : INK2, after: 6 }));
   if (s.tool === 'capability') out.push(...capabilityBlocks(s));
+  if (s.tool === 'chart') out.push(...chartBlocks(s));
   if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
   if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
   if (e.losses) out.push(...lossBlocks(e.losses));
@@ -488,13 +577,21 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
 
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
-  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability', 'chart'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return smedLeanBlocks(p, p.items[0], d);
   const out: Block[] = [];
   out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
   out.push(text({ text: p.title, size: SIZE.title, style: 'bold', after: 4 }));
   out.push(text({ text: `Printed ${p.printed}`, colour: MUTED, after: gap(d, 'm') }));
   if (!p.items.length) out.push(text({ text: 'No studies here yet.', colour: MUTED }));
+  /* capability across products and over time (FC-101): the list's studies side by side, before each one's page */
+  const ot = overTime(p.items.map(i => i.s));
+  if (ot) {
+    out.push(label('Capability over time'));
+    out.push(text({ text: overTimeSays(ot), size: 8.5, colour: INK2, after: 3 }));
+    const share = [0.28, ...ot.months.map(() => 0.58 / ot.months.length), 0.14];
+    out.push(tableBlock(['Product or machine', ...ot.months.map(m => m.label), 'Latest'], ot.rows.map(r => [r.who, ...ot.months.map(m => (r.cells[m.key] ? `${r.cells[m.key].text}${r.cells[m.key].studies > 1 ? ` ×${r.cells[m.key].studies}` : ''}` : '—')), r.latest.verdict]), share, i => ot.rows[i].latest.tone === 'r'));
+  }
   p.items.forEach((item, i) => out.push(...studyBlocks(p, item, i)));
   return out;
 }

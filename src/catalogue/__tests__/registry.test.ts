@@ -27,8 +27,8 @@ describe('every tool says how its records behave', () => {
 });
 
 describe('the app\'s tools, from the catalogue', () => {
-  it('are the eleven a person can open, each built, available or partly, at an address the router answers', () => {
-    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Video study', 'Line Talk']);
+  it('are the twelve a person can open, each built, available or partly, at an address the router answers', () => {
+    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Control chart', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Video study', 'Line Talk']);
     for (const t of APP_TOOLS) {
       const e = ENTRIES.find(x => x.id === t.id)!;
       expect(['available', 'partial'], t.id).toContain(e.status);
@@ -44,12 +44,13 @@ describe('the app\'s tools, from the catalogue', () => {
     expect(toolByKey('changeover')?.to).toBe('/smed');
   });
 
-  it('give a line\'s page the ten it listed by hand before 23 October, and the video study since (Rowland, 23 October: "I add a tool to a line it doesn\'t go there")', () => {
+  it('give a line\'s page the ten it listed by hand before 23 October, and the video study and the control chart since (Rowland, 23 October: "I add a tool to a line it doesn\'t go there")', () => {
     expect(TOOLS.map(t => [t.key, t.label, t.to, t.study ?? (t.standard ? 'standard' : ''), t.what])).toEqual([
       ['linestandard', 'Line standard', '/standards', 'standard', 'who stands where, product by product'],
       ['linework', 'Line balance', '/linebalance', 'balance', 'what each person does, timed against takt, and what it costs'],
       ['linebalance', 'Line capacity', '/balances', 'standard', 'where the line is limited, and the V-curve'],
       ['capability', 'Capability', '/capability', 'capability', 'readings against the limits agreed'],
+      ['chart', 'Control chart', '/chart', 'chart', 'readings in order against limits, and what moved'],
       ['valuestream', 'Value stream', '/value-stream', 'map', 'every step, who does it, the waits'],
       ['changeover', 'SMED', '/smed', 'changeover', 'a changeover timed and cut down'],
       ['sampling', 'Work sampling', '/sampling', 'sampling', 'what people are doing, at random moments'],

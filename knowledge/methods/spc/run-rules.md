@@ -99,8 +99,9 @@ gives the same three values (test 7).
 - [textbook] Wheeler, D.J. and Chambers, D.S. (2010), *Understanding Statistical Process Control*, 3rd ed., SPC Press — the four detection rules and the case for using few.
 
 ## In Faultline
-Not built as a chart (FC-090). The capability study's steadiness check uses
-test 1 and a run of eight on one side (`src/tools/capability`,
-`knowledge/specs/FC-094-capability.md`). A chart of its own takes the four
-Western Electric rules by default, each named in words when it fires, and
-the others as options the study records.
+Built (W2, 24 October; FC-090). The chart reads Western Electric's four rules by
+default and Nelson's other four as options (`src/lib/ie/charts.ts` `nelson`),
+a firing merged per episode so a long run is one signal that goes on, each said
+in words with what it usually means — a signal is a reason to look, not a
+cause. The capability study's steadiness check keeps its own two rules.
+Proved by `control-chart.mjs`.

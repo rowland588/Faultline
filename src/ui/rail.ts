@@ -126,7 +126,7 @@ export function hereOf(route: Route): string {
     /* a line's own product — its map, its line balance (?at=work) or its
        Line capacity (?at=balance) — lights the tool it is, as the list does */
     case 'lineStandards': return route.query.get('at') === 'work' || route.query.get('view') === 'work' ? 'linework' : route.query.get('at') === 'balance' ? 'linebalance' : 'linestandard';
-    case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : route.view === 'reliability' ? 'reliability' : 'capability';
+    case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : route.view === 'reliability' ? 'reliability' : route.view === 'chart' ? 'chart' : 'capability';
     case 'projectDashboard': {
       const v = route.query.get('view');
       /* `next` is the board as a list; `snags` on a stage-gate job is sent to

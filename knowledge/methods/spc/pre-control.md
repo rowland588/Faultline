@@ -95,7 +95,9 @@ where a chart will follow, never as the record of capability.
 - [practice] Shainin, D. and Shainin, P. — pre-control as taught in the Shainin system (from knowledge; no single text read).
 
 ## In Faultline
-Not built (FC-092). If built it is a mode of the first-off check on a
-changeover, drawing the three zones from the tolerance the product already
-holds, counting the five greens and reading the pairs in words — and it
-says on its face that it is not a control chart and not capability.
+Built (W2, 24 October; FC-092) as a kind of the Control chart, not a log:
+the three zones drawn from the tolerance, five greens in a row to approve, an
+amber restarting the count, the pairs read by the rules, and on its face that
+it is not a control chart and not capability — safe only on a process already
+capable. First-off release as a signed record is not built. Proved by
+`control-chart.mjs`.

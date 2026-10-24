@@ -27,6 +27,7 @@
  */
 import { welchOneSidedP, SIGNIFICANCE_P } from './proof';
 import type { Direction } from './measures';
+import { mannKendall, runsAboutMedian } from './ie/charts';
 
 /** Both sides need this many readings before the difference between two means is
  *  worth reporting at all. Two either side is an anecdote. */
@@ -175,4 +176,38 @@ export function proofSentence(p: NumberProof, unit?: string): string {
 /** The short badge: what a reader sees before they read anything else. */
 export function verdictLabel(v: ProofVerdict): string {
   return v === 'proven' ? 'Proven' : v === 'better' ? 'Not yet proven' : v === 'flat' ? 'No change' : 'Worse';
+}
+
+/* ============ A NUMBER'S TREND — the runs about the median, Mann–Kendall and Sen's slope (FC-117, FC-201) ============
+ * A weekly number on a run chart (stats.time-series-trend): the points in order, the trend by Kendall's S
+ * (no shape assumed, robust to one bad week) with Sen's slope for the rate, and the runs about the median
+ * (a shift or a pattern the slope alone would miss). From 8 readings. Said in words with whether it is the
+ * right way for this measure — never a verdict on a change (that is `numberProof`). */
+export interface NumberTrend {
+  n: number; rising: boolean; slope: number; per: string; p: number; tau: number;
+  runs?: { runs: number; fewest: number; signal: boolean };
+  tone: 'g' | 'a' | 'r' | 'n'; text: string;
+}
+export const TREND_FROM = 8;
+const sig2 = (v: number): string => String(Number(v.toPrecision(2)));
+export function numberTrend(points: { at: string; value: number }[], direction: Direction, unit?: string): NumberTrend | null {
+  if (points.length < TREND_FROM) return null;
+  const values = points.map(p => p.value);
+  const mk = mannKendall(values);
+  if (!mk) return null;
+  const days = points.slice(1).map((p, i) => (Date.parse(p.at) - Date.parse(points[i].at)) / 86_400_000).filter(d => d > 0).sort((a, b) => a - b);
+  const gap = days.length ? days[Math.floor(days.length / 2)] : 0;
+  const per = gap >= 5 && gap <= 9 ? 'a week' : 'a reading';
+  const u = unit ? ` ${unit}` : '';
+  const significant = mk.p < 0.05, rising = mk.slope > 0;
+  const good = rising === (direction === 'up');
+  const r = runsAboutMedian(values);
+  const runs = r ? { runs: r.runs, fewest: r.fewest, signal: r.signal } : undefined;
+  const pText = mk.p < 0.001 ? '< 0.001' : mk.p.toFixed(mk.p < 0.01 ? 3 : 2);
+  const first = significant
+    ? `Trend over ${points.length} readings: ${rising ? 'rising' : 'falling'} about ${sig2(Math.abs(mk.slope))}${u} ${per} (Sen), Mann–Kendall p ${pText} — ${good ? 'the right way' : 'the wrong way'} for this measure.`
+    : `Trend over ${points.length} readings: no steady trend found (Mann–Kendall p ${pText}).`;
+  const second = runs ? ` Runs about the median: ${runs.runs} — ${runs.signal ? `a shift or pattern (fewer than ${runs.fewest} is one)` : runs.fewest <= 2 ? 'too few readings for the runs to say a pattern' : `no pattern (fewer than ${runs.fewest} would be)`}.` : '';
+  const tone: NumberTrend['tone'] = significant ? (good ? 'g' : 'r') : runs?.signal ? 'a' : 'n';
+  return { n: points.length, rising, slope: mk.slope, per, p: mk.p, tau: mk.tau, ...(runs ? { runs } : {}), tone, text: first + second };
 }

@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 65 |
+| Available (`available`) | 72 |
 | Partly (`partial`) | 30 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 120 |
+| Not built yet (`to-build`) | 113 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -24,7 +24,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Maintenance, reliability and TPM | 11 | 1 |  |  | 9 | 1 |  |
 | Changeovers | 5 | 1 | 2 |  | 2 |  |  |
 | Commissioning and operational readiness | 13 | 11 | 1 |  |  | 1 |  |
-| Statistical process control and capability | 17 | 9 |  |  | 8 |  |  |
+| Statistical process control and capability | 17 | 16 |  |  | 1 |  |  |
 | Statistical analysis | 15 |  | 4 |  | 10 | 1 |  |
 | Measurement systems | 6 |  |  |  | 6 |  |  |
 | Quality engineering and defects | 14 | 2 |  |  | 10 | 2 |  |
@@ -69,8 +69,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 73
-- a mode of another tool: 60
+- a tool of its own: 72
+- a mode of another tool: 61
 - a part several tools share: 47
 - a way through several tools: 8
 - a report or board: 34
@@ -105,12 +105,11 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 1. FC-059 Repair times — MTTR and availability (Not built yet) — Repair times on the reliability study — the other half of a machine’s reliability.
 2. FC-019 Stopwatch time study — rated, allowed, standard time (Partly) — Ask the rating on the line balance — the arithmetic is already there.
-3. FC-086 Individuals and moving range chart (XmR) (Not built yet) — The individuals chart on its own — every measured study already has the readings in order.
-4. FC-119 Type 1 gauge study — one reference measured again and again (Not built yet) — A type 1 gauge study for checkweighers — quick, and decides whether weights can be trusted.
-5. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
-6. FC-071 First-off release at changeover — line clearance and the first good pack (Not built yet) — First-off release at changeover — recall risk and hidden changeover time.
-7. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
-8. FC-207 NIOSH lifting equation (Partly) — Put the NIOSH arithmetic on a screen — built and proved, unreachable.
+3. FC-119 Type 1 gauge study — one reference measured again and again (Not built yet) — A type 1 gauge study for checkweighers — quick, and decides whether weights can be trusted.
+4. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
+5. FC-071 First-off release at changeover — line clearance and the first good pack (Not built yet) — First-off release at changeover — recall risk and hidden changeover time.
+6. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
+7. FC-207 NIOSH lifting equation (Partly) — Put the NIOSH arithmetic on a screen — built and proved, unreachable.
 
 ## Where related capabilities could be combined
 
@@ -119,8 +118,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - FC-001 Value stream map — current and future state — 6 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 4 modes inside it
 - FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 4 modes inside it
+- FC-086 Individuals and moving range chart (XmR) — 4 modes inside it
 - FC-058 Reliability — MTBF and failure rate, several things counted at once — 3 modes inside it
-- FC-086 Individuals and moving range chart (XmR) — 3 modes inside it
 - FC-098 Reject rate capability — rejects out of what was made — 3 modes inside it
 - FC-146 6M — a running line made to perform better — 3 modes inside it
 - FC-068 SMED — a changeover timed, separated and cut down — 2 modes inside it

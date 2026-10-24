@@ -127,8 +127,9 @@ over the hours before anyone sees it.
 - [standard] ISO 7870-4:2021 *Control charts — Part 4: Cumulative sum charts*; ISO 7870-6:2016 *Part 6: EWMA control charts* — named from knowledge; scope and edition to confirm, texts not read.
 
 ## In Faultline
-Not built (FC-091). When built it reads the capability study's readings in
-order (`src/tools/capability`), takes σ from the study's steady period as the
-individuals chart does, asks the shift worth catching in the product's unit,
-and says the change point and the level — on screen and on the study's
-paper. Its money line is the give-away rule's.
+Built (W2, 24 October; FC-091). On the Control chart: the tabular CUSUM with
+k = 0.5σ and h = 5σ against the target, the shift worth catching typed, saying
+the reading it began at (the last time the sum was at zero — an estimate, not
+a proof) and the level now; the EWMA with λ = 0.2 and L = 2.962 as the
+running level. σ comes from the frozen steady run. Not tunable. Proved by
+`control-chart.mjs`.
