@@ -607,6 +607,11 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   value stream costing and operations management's carrying cost): the
   labour on waste work a day at the line's rate; the product waiting, tied up
   at the cost a piece typed on the map and carried a day at the typed rate.
+- **The model for every tool, built and to come — `knowledge/MONEY.md`**
+  (24 October: "all tools made or that will be made will have cost in if
+  possible ... the cost is merely one of the outputs ... don't block
+  anything"): each catalogue entry's industry-standard causation, its
+  inputs, every one optional, and the sentence when one is missing.
 - **Missing — the next piece, tool by tool:** the line
   standard map (what the people placed cost a pack), the problems register
   (what each problem costs while it is open), a 6M countermeasure (what it

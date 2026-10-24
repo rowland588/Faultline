@@ -195,4 +195,12 @@ test and script names), and every limit left.
   never "the fix did it".
 - Unsuitable data said in words (not bell-shaped, not steady, too coarse,
   too few) — the tool never hides a warning in a colour alone.
-- Money from one model; a missing input named, never invented.
+- Money from one model; a missing input named, never invented. And since
+  24 October (Rowland: "all tools made or that will be made will have cost
+  in if possible if the costs calculations exist to the industry standards
+  ... the cost is merely one of the outputs ... don't block anything"):
+  every tool's finding is said in money by the causation `knowledge/MONEY.md`
+  gives its entry — an industry's own, with its source, or none where the
+  industry has none; the cost one output beside the tool's own units, never
+  its verdict; every money input optional, the missing one named in a
+  sentence of its own, and nothing withheld or blocked for its absence.

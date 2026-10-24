@@ -47,6 +47,20 @@ skill's step 2 reads its sources and brings it to full depth.
 - HSE's MAC, ART and RAPP scoring tables — to be copied from the HSE
   documents when those tools are built, not from memory.
 
+- **Rowland's three books, 24 October** (`knowledge/SOURCES.md`): Maskell
+  (1991) — structure, six areas and two chapters' measures confirmed in
+  listings and reviews; the chapter 2 characteristics' wording and count and
+  the other areas' example measures from knowledge. Pound, Bell & Spearman
+  (2014) — chapter list and the three key equations confirmed in the
+  publisher's description; the formulas confirmed against lecture material
+  from Hopp & Spearman, not against the 2014 text. **Clements (1991),
+  *Handbook of Statistical Methods in Manufacturing* — only its
+  bibliographic facts could be confirmed; no table of contents was found
+  online and nothing is attributed to it.** The web cannot be fetched from
+  this container (403 from the proxy on publishers, Google Books, Wikipedia,
+  archive.org), only searched; a copy to hand, or a session that can fetch,
+  closes these.
+
 ## Licensed or specialist methods
 
 - **MTM and MOST** (FC-023): their motion tables are licensed by their

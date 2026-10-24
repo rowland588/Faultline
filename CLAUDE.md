@@ -1019,6 +1019,29 @@ together) carries one cost line per tool, plainly labelled; it adds none of
 its own. Where money is still missing is listed in `docs/BLUEPRINT.md` §6
 (Money in every tool), and the next piece of work closes it tool by tool.
 
+And, 24 October, the rule for every tool there is and every tool to come:
+"all tools made or that will be made will have cost in if possible if the
+costs calculations exist to the industry standards and the methodologies
+that we are using. The cost is merely one of the outputs we have, it's not
+the main part of any tool, it's to express a cost where there is one. If you
+make a calculation but the user doesn't have that information then the app
+must handle it gracefully, don't block anything. It's merely a piece of the
+information that's missing ... you will look at all of the tools we have and
+what we will make ... start to build the correct calculations for all of the
+tools, then we will build every tool ... our industry is manufacturing, our
+domain is FMCG, fast moving consumer goods, with a primary food
+manufacturing." So **`knowledge/MONEY.md` is the money model**: every
+catalogue entry with the industry-standard cost causation its finding is
+said in (lean accounting's value stream costing, throughput accounting, the
+cost of quality's four buckets, inventory carrying cost, engineering
+economics — each with its source), the inputs it needs, every one optional,
+and the sentence said when one is missing. A tool's cost is one output
+among its own units, never its verdict; a missing input is named and nothing
+waits on it; no causation is invented where the industry has none, and the
+entry says so. A tool is specified with its money line (the spec's
+*Established · assumed · chosen*) and built with it, through the
+`faultline-tool` skill.
+
 A FIFTH CONCEPT IS ALMOST ALWAYS THE WRONG ANSWER. `src/lib/testing.ts` says it
 about tests and it holds everywhere: if something needs a new noun to explain
 it, look again — four of this app's five lists already carry dates, owners and

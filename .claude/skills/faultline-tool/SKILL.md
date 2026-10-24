@@ -62,6 +62,12 @@ node scripts/catalogue.mjs method <record id or bare name>   # each of the entry
   not a copy of another tool's page. Reuse the shared parts where they fit.
 - Ask the user every decision that is theirs (a threshold, a word on screen,
   scope); never guess one, never invent a formula, criterion or "standard".
+- Copy the entry's row from `knowledge/MONEY.md` §4 into the spec's
+  *Established · assumed · chosen*: the causation its finding is said in, the
+  inputs it asks for and where they live, the sentence when one is missing.
+  The cost is one output beside the tool's own units, never its verdict;
+  nothing waits on a missing input (CLAUDE.md, 24 October). An entry marked
+  — has no money of its own and the spec says so.
 - Validate every formula against its source with independent cases (a
   textbook example, a standard's table, published critical values, or SciPy
   in `scripts/knowledge/independent-cases.py`). If a validation shows the
