@@ -23,6 +23,10 @@ if (!OLD || !NEW) { console.error('node scripts/paper-parity.mjs OLD NEW'); proc
 
 /** A paper whose words a slice changed on purpose: its file name, and why. */
 const MEANT = {
+  /* MONEY ON THE 6M PROBLEM AND ITS COUNTERMEASURES (knowledge/specs/FC-146-sixm-money.md, 24 October): the problem's
+     hours a week in money by the line's cost model, and a countermeasure's worth from its typed share */
+  ...Object.fromEntries(['6m-tiny-client.pdf', '6m-tiny-client-status.pdf', '6m-tiny-line.pdf', '6m-tiny-line-status.pdf', '6m-huge-client.pdf', '6m-huge-client-status.pdf', '6m-huge-line.pdf', '6m-huge-line-status.pdf']
+    .map(f => [f, 'money on the 6M problem and its countermeasures (FC-146, 24 October)'])),
   /* pass or fail by a confidence level or an allowed loss (FC-100, 23 October: "we also want to be adding confidence as part of our
      language"): "that proves fewer than 32 in 100 would fail (95% sure)" is said "we can be 95% confident fewer than 32 in 100 would fail" */
   'ordinary-client.pdf': 'pass or fail said with its confidence (FC-100, 23 October); This week and next (docs/JOURNEY.md J3)',
@@ -42,6 +46,11 @@ const MEANT = {
   /* the huge job's first SMED timing made independent of the hour (src/dev/reportSeeds): the day paper's "N elements timed"
      counted across midnight before about 08:20 — the old run's count depends on when it ran */
   'huge-day.pdf': 'the seed’s SMED timing no longer moves with the clock (23 October)',
+  /* WHAT A RUN'S SHORTFALL IS WORTH (knowledge/specs/FC-076-run-money.md, 24 October): a product short on its rate gains a
+     line under its Short line — the packs short and their contribution, or the margin asked — and each climb what it has cost
+     so far; on the client report, the run's card, the test cards and the commissioning cards */
+  ...Object.fromEntries(['tiny-client.pdf', 'ordinary-client.pdf', 'huge-client.pdf', 'ordinary-run-card.pdf', 'huge-run-card.pdf', 'tiny-test-card.pdf', 'ordinary-test-card.pdf', 'huge-test-card.pdf',
+    'tiny-commissioning-cards.pdf', 'ordinary-commissioning-cards.pdf', 'huge-commissioning-cards.pdf'].map(f => [f, 'what a run’s shortfall is worth (FC-076/077, 24 October)'])),
 };
 
 const MONTHS = 'Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|June|July|August|September|October|November|December';

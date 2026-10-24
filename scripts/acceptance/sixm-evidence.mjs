@@ -296,6 +296,50 @@ const S6 = `#/project/${sd.pacedProjectId}`;
     `17 the 6M client report offers the one-page status first: ${pages} page, "${st.sentence.slice(0, 60)}…", why: ${st.tags.join(', ')}`);
 }
 
+/* ---- 19 · MONEY ON THE 6M (knowledge/specs/FC-146-sixm-money.md; CLAUDE.md, 24 October: "the cost is merely one of the
+   outputs ... don't block anything"): the problem's hours a week in money by its line's cost model, on its card; a
+   countermeasure asked how much of the problem it should remove, its worth on the fishbone and the report ---- */
+{
+  const MOD = '/src/lib/sixmMoney.ts';
+  const pick = await page.evaluate(async pid => {
+    const U = await import('/src/lib/useProblems.ts');
+    const views = U.viewsOf(await U.loadProblems(pid), pid);
+    /* the problem whose line has the whole cost model — the views come in the records' order, which the seed's ids do not fix */
+    const v = views.find(x => x.money && !x.money.missing.length && x.problem.source?.kind !== 'gap' && x.actions.length);
+    return v && { id: v.problem.id, line: v.problem.lineId, words: v.money.words, action: v.actions[0].uid ?? v.actions[0].ref };
+  }, j.projectId);
+  ok(!!pick && /£\d[\d,]* labour/.test(pick.words) && /contribution a week/.test(pick.words), `19 a problem with hours a week on a line with a cost model says its money — "${pick?.words}"`);
+  await go(`${P}/fishbone?line=${pick.line}&problem=${pick.id}`);
+  await page.locator('.fr-strip').first().waitFor({ timeout: 10000 }).catch(() => {});
+  await page.locator('.fr-strip').first().click(); await page.waitForTimeout(900);   /* the strip opens the card, as story 9 */
+  await page.locator('.pc-money').first().waitFor({ timeout: 10000 }).catch(() => {});
+  const onCard = await words('.pc-money');
+  ok(onCard === pick.words, `19b the problem card says the module's sentence — "${onCard.slice(0, 120)}…"`);
+  /* the countermeasure asked its share */
+  await go(`${P}/board?a=${encodeURIComponent(pick.action)}`);
+  const box = page.getByLabel('How much of the problem it should remove, in percent');
+  await box.waitFor({ timeout: 10000 });
+  await box.fill('40'); await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1200);
+  const saved = await page.evaluate(async ([pid, id]) => (await (await import('/src/db.ts')).listPaceTodos(pid)).find(t => t.id === id)?.expectPct, [j.projectId, pick.action]);
+  ok(saved === 40, `19c the share kept on the countermeasure (${saved})`);
+  const want = await page.evaluate(async ([pid, id, MOD]) => { const U = await import('/src/lib/useProblems.ts'); const M = await import(MOD);
+    const v = U.viewsOf(await U.loadProblems(pid), pid).find(x => x.problem.id === id); return M.counterWorth(40, v.money)?.words; }, [j.projectId, pick.id, MOD]);
+  await go(`${P}/fishbone?line=${pick.line}&problem=${pick.id}`);
+  await page.locator('.fr-strip').first().waitFor({ timeout: 10000 }).catch(() => {});
+  await page.locator('.fr-strip').first().click(); await page.waitForTimeout(900);
+  await page.locator('.cs-cm-worth').first().waitFor({ timeout: 10000 }).catch(() => {});
+  const worth = await words('.cs-cm-worth');
+  ok(!!want && worth === want && /^Should remove 40% of the problem: £/.test(worth), `19d the fix row says its worth — "${worth}"`);
+  /* the 6M report carries both */
+  await go(`#/pace-report?project=${j.projectId}`);
+  await page.getByRole('button', { name: 'Full report', exact: true }).click(); await page.waitForTimeout(400);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
+  const pdf = join(OUT, 'sixm-money.pdf'); await dl.saveAs(pdf);
+  const flat = x => x.replace(/[’']/g, '').replace(/[–—]/g, '-').replace(/\s+/g, '');
+  const text = flat(pdfText(pdf));
+  ok(text.includes(flat(pick.words).slice(0, 60)) && text.includes(flat(want).slice(0, 40)), '19e the 6M report carries the problem’s money and the countermeasure’s worth');
+}
+
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');
 await browser.close();
 console.log(failed ? `\n${failed} acceptance check(s) failed` : '\n2h accepted: a study holds on a running line');

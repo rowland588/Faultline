@@ -43,4 +43,4 @@ New line commissioning to a retailer's launch date.
 - [practice] docs/LEAN40.md — Faultline's design.
 
 ## In Faultline
-`src/lib/pace.ts`, `src/lib/rampUp.ts` (FC-077, FC-078).
+`src/lib/pace.ts`, `src/lib/rampUp.ts` (FC-077, FC-078). Since 24 October the climb says what its runs below the agreed rate have cost so far, in contribution (`src/lib/runMoney.ts` climbWorth, `knowledge/specs/FC-076-run-money.md`).

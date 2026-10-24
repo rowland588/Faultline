@@ -42,6 +42,7 @@ import { balance } from '../tools/linework/balance';
 import { agreedFor, balanceCost, costInputs, crewKept } from '../tools/linework/balanceLink';
 import { costWords, countTitle, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, studyReliabilitySays, type RelItem } from '../tools/reliability/reliability';
 import { relClosings, relTiles, relTrend } from '../tools/reliability/reliabilityLean';
+import { neckOf } from './lineLoss';
 import { relChartBlock, relDaysBlocks, relKindsBlocks, relTogetherBlocks, remarksBlocks } from './report/reliabilityTable';
 
 import { todayISO } from './weeks';
@@ -274,10 +275,11 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
        several, counted side by side and then each one's own section */
     const items = relAll(s.agreed.reliability, s.facts.watch, s.facts.events), said = studyReliabilitySays(s.agreed.reliability, s.facts.watch, s.facts.events);
     const line = p.ctx?.workspaces?.find(w => w.id === s.workspaceId) as Parameters<typeof relCost>[2] | undefined;
+    const where = { machine: s.machine, neck: neckOf(p.standards, s.workspaceId) };   /* its machine and the line's bottleneck (FC-058) */
     eyebrow = 'Reliability study'; verdict = { text: said.verdict, tone: said.tone };
-    if (items.length === 1) tiles = relTiles(items[0].c, items[0].f, relCost(items[0].f, items[0].c, line));
-    closing = relClosings(items, line);
-    body = reliabilityBlocks(s, items, line);
+    if (items.length === 1) tiles = relTiles(items[0].c, items[0].f, relCost(items[0].f, items[0].c, line, where));
+    closing = relClosings(items, line, where);
+    body = reliabilityBlocks(s, items, line, where);
   } else if (s.tool === 'map') {
     const list = s.facts.flow ?? [], f = flowFigures(list, s.agreed?.map);
     eyebrow = 'Value stream map'; verdict = { text: f.steps ? `${f.untimed ? '≥ ' : ''}${dur(f.leadSec)} lead time` : 'No steps yet', tone: f.longestCycle?.overTakt ? 'r' : 'n' };
@@ -321,14 +323,14 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
  *  one's — its tiles when there are several, what it means, its taps against
  *  watched hours, its MTBF day by day, what they were (a study set up before
  *  22 October), what it costs and its days; then the commentary. */
-function reliabilityBlocks(s: ToolStudy, items: RelItem[], line?: Parameters<typeof relCost>[2]): Block[] {
+function reliabilityBlocks(s: ToolStudy, items: RelItem[], line?: Parameters<typeof relCost>[2], where?: Parameters<typeof relCost>[3]): Block[] {
   const out: Block[] = [];
   const many = items.length > 1;
-  if (many) { out.push(leanHead('Counted side by side')); out.push(...relTogetherBlocks(relRows(items, line))); }
+  if (many) { out.push(leanHead('Counted side by side')); out.push(...relTogetherBlocks(relRows(items, line, where))); }
   for (const { c, f } of items) {
     if (many) {
       out.push(leanHead(countTitle(c)));
-      out.push(leanTiles(relTiles(c, f, relCost(f, c, line))));
+      out.push(leanTiles(relTiles(c, f, relCost(f, c, line, where))));
       out.push(text({ text: reliabilitySays(c, f).text, size: 9, colour: INK2, after: 4 }));
     }
     const ins = reliabilityInsights(c, f);
@@ -338,7 +340,7 @@ function reliabilityBlocks(s: ToolStudy, items: RelItem[], line?: Parameters<typ
     const trend = relTrend(c, f);
     if (trend) { out.push(leanHead(many ? `${countTitle(c)} — MTBF, day by day` : trend.title)); out.push(leanTrend(trend)); }
     if (f.kinds.length) { out.push(leanHead('What they were')); out.push(...relKindsBlocks(f)); }
-    const cost = relCost(f, c, line);
+    const cost = relCost(f, c, line, where);
     if (cost.downMinPerH !== undefined) out.push(text({ text: `What it costs: ${costWords(cost)}.`, size: 8.5, colour: INK2, after: 4 }));
     else if (f.rate !== undefined && cost.missing.length) out.push(text({ text: `What it costs is said once given: ${cost.missing.join('; ')}.`, size: 8, colour: MUTED, after: 4 }));
     if (f.days.length) { out.push(leanHead(many ? `${countTitle(c)} — day by day` : 'Day by day')); out.push(...relDaysBlocks(f, countTitle(c))); }

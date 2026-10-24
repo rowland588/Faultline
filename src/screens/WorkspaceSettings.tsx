@@ -91,7 +91,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
   const [toast, setToast] = useState<string | null>(null);
   // refinements stay visible for anyone already using them; hidden until asked otherwise
   const [showBurden, setShowBurden] = useState(!!workspace.labourBurden);
-  const [showOutput, setShowOutput] = useState(!!(workspace.packsPerMin || workspace.marginPerPack));
+  const [showOutput, setShowOutput] = useState(!!(workspace.packsPerMin || workspace.marginPerPack || workspace.materialsPerPack));
   const subs = workspace.subcategories ?? {};
 
   const save = async (patch: Parameters<typeof patchWorkspace>[0], msg = 'Saved') => { await patchWorkspace(patch); setToast(msg); };
@@ -279,12 +279,23 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
                     void save({ marginPerPack: raw && v > 0 ? v : undefined });
                   }} />
               </div>
+              <div className="ws-cost-box">
+                <label className="mini-label">£ materials / pack <span className="opt">what a reject throws away</span></label>
+                <input className="text-input" type="number" inputMode="decimal" min={0} step="0.001" aria-label="A pack’s materials, £"
+                  defaultValue={workspace.materialsPerPack ?? ''} placeholder="e.g. 0.12"
+                  onBlur={e => {
+                    const raw = e.target.value.trim(); const v = parseFloat(raw);
+                    if (raw && !(Number.isFinite(v) && v >= 0)) { setToast('Materials need a number, 0 or above (in £ — 12p is 0.12)'); return; }
+                    void save({ materialsPerPack: raw && v >= 0 ? v : undefined });
+                  }} />
+              </div>
             </div>
             <p className="sub" style={{ margin: '6px 0 0', fontSize: 'var(--t-label)' }}>
               The rated speed counts the packs never made while a stop stopped the line — on its bottleneck
               (from its Line capacity{neck ? `: ${neck.names.join(', ')}` : ', not counted yet — until it is, every stop is counted'}) or the whole line. A stop on
               another machine costs its labour only: the line runs round it. The packs are said beside the
-              labour, never added into its £. The margin a pack prices the packs in a shift’s loss count and in SMED.
+              labour, never added into its £. The margin a pack prices the packs in a shift’s loss count and in SMED. A pack’s
+              materials price what a problem on the register throws away as rejects, and the product it holds (money tied up).
             </p>
           </div>
         )}

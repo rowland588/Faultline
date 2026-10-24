@@ -475,8 +475,15 @@ let TRAY;
   } else ok(true, '12c (the bottleneck is a machine: one more person is said to add cost and no packs)');
   await page.getByRole('button', { name: /What if/ }).first().click(); await page.waitForTimeout(1200);
   ok(/^Labour: the same people, /.test((await page.locator('.cap-cost-more').last().innerText()).trim()), `12e a what-if says its labour: ${(await page.locator('.cap-cost-more').last().innerText()).trim()}`);
-  const card = await page.evaluate(async id => (await (await import('/src/tools/linebalance/ShiftCapacity.tsx')).shiftShortsFor([await (await import('/src/db.ts')).getStandard(id)]))[id], SID);
-  ok(new RegExp(` a bag in labour — ${m.more ? 9 : 8} people at £12\\.50 an hour$`).test(card ?? ''), `12f the card's line carries it: ${card}`);
+  /* the card's facts are the shift and the money (FC-006): the money line is tools/linestandard/standardMoney's
+     sentence, Line capacity's people and rate where it has them — so the card and Line capacity never disagree */
+  const card = await page.evaluate(async id => {
+    const D = await import('/src/db.ts'); const st = await D.getStandard(id);
+    const M = await import('/src/tools/linestandard/standardMoney.ts');
+    const facts = (await (await import('/src/tools/linebalance/ShiftCapacity.tsx')).shiftShortsFor([st]))[id];
+    return { money: facts?.money, want: M.standardMoneySays(M.standardMoney(st, st.workspaceId ? await D.getWorkspace(st.workspaceId) : undefined)) };
+  }, SID);
+  ok(!!card.money && card.money === card.want && card.money.startsWith(`${m.more ? 9 : 8} people as Line capacity has them: `) && / an hour at Line capacity’s rate — .* a bag at /.test(card.money), `12f the card's line carries it: ${card.money}`);
 }
 
 /* ---- 13 renamed and deleted where it sits ---- Rowland, 13 October: "cant

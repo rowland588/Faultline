@@ -810,6 +810,56 @@ const ids = await page.evaluate(async () => {
   await setLine(ws0);
 }
 
+/* ---- 20 THE REJECTS A PROBLEM CAUSES AND THE PRODUCT IT HOLDS (knowledge/specs/FC-154-problem-cost.md, part 2): two more
+   numbers typed — the rejects a day (at the line's materials a pack) and the packs on hold (money tied up, not lost); the
+   pack's materials named once while the line lacks it; the row, the closing line, the card and the report; the phone. ---- */
+{
+  const MOD = '/src/lib/problemCost.ts';
+  const said = async id => page.evaluate(async ([id, MOD]) => { const db = await import('/src/db.ts'); const M = await import(MOD); const { neckOf } = await import('/src/lib/lineLoss.ts');
+    const s = (await db.listAllSnags()).find(x => x.id === id); const ws = await db.getWorkspace(s.workspaceId);
+    const frames = s.assetId ? await db.listSnagAssets(s.workspaceId) : []; const machine = s.assetId ? frames.find(a => a.id === s.assetId)?.name : s.targetAsset;
+    return M.problemCost(s, machine, ws, neckOf(await db.listAllStandards(), s.workspaceId)); }, [id, MOD]);
+  const ws0 = await page.evaluate(async id => (await import('/src/db.ts')).getWorkspace(id), sd.wsId);
+  const setLine = async ws => { await page.evaluate(async ws => { const db = await import('/src/db.ts'); await db.updateWorkspace(ws); }, ws); await page.waitForTimeout(1500); };
+  const { materialsPerPack: _u, ...noMat } = ws0; void _u;
+  await setLine({ ...noMat, crew: 4, labourRatePerHour: 14.5, labourBurden: 1.3, packsPerMin: 100, marginPerPack: 0.04 });
+  const pid = await page.evaluate(async ws => { const db = await import('/src/db.ts'); const t = Date.now();
+    const a = { id: crypto.randomUUID(), workspaceId: ws, status: 'open', raisedAt: t - 3600_000, updatedAt: t, media: [], problem: 'Checkweigher rejects good packs after a film change', minutesPerDay: 20 };
+    await db.addSnag(a); return a.id; }, sd.wsId);
+  await go('#/snags');
+  const pe = await openUp('Checkweigher rejects good packs');
+  const rej = pe.getByLabel('Rejects a day because of it'), held = pe.getByLabel('Packs on hold because of it');
+  await rej.fill('300'); await rej.blur(); await page.waitForTimeout(600);
+  await held.fill('1200'); await held.blur(); await page.waitForTimeout(900);
+  let c = await said(pid), t = await words('.pe-cost', pe);
+  const rec = (await truth()).all.find(x => x.id === pid);
+  ok(rec?.rejectsPerDay === 300 && rec?.heldPacks === 1200 && !!c && t === c.words && /^20 min a day on the line: £25 labour · 2,000 packs lost · £80 contribution a day; 300 rejects a day and 1,200 packs on hold — give the line a pack’s materials \(Set up the line\) to say them in money\.$/.test(t),
+    `20 rejects and held packs typed and kept; the sentence is the module's, the minutes' part unchanged, the pack's materials named once — "${t}"`);
+  await setLine({ ...noMat, crew: 4, labourRatePerHour: 14.5, labourBurden: 1.3, packsPerMin: 100, marginPerPack: 0.04, materialsPerPack: 0.12 });
+  c = await said(pid); t = await words('.pe-cost', pe);
+  ok(t === c.words && t === '20 min a day on the line: £25 labour · 2,000 packs lost · £80 contribution a day; 300 rejects a day: £36 materials; 1,200 packs on hold: £144 tied up (not lost unless they go out of life).', `20b the line given 12p a pack’s materials: the rejects in materials a day, the hold as money tied up, without a reload — "${t}"`);
+  const short = await words('.qsl-cost', row('Checkweigher rejects good packs'));
+  ok(short === c.short && short === '£25 labour · 2,000 packs lost · £80 contribution a day · £36 materials a day · £144 tied up', `20c the row's short form — "${short}"`);
+  const closing = await words('.ln-close');
+  ok(/1 says its rejects: £36 materials a day; 1 holds £144 of product/.test(closing), `20d the closing line carries the register's materials a day and product held — "${closing.slice(-220)}"`);
+  const dir = mkdtempSync(join(tmpdir(), 'problems-rejects-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), pe.getByRole('button', { name: 'Report card (PDF)' }).click()]);
+  const card = join(dir, 'card.pdf'); await dl.saveAs(card);
+  const ct = execFileSync('pdftotext', ['-raw', card, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+  ok(/300 rejects a day: £36 materials; 1,200 packs on hold: £144 tied up/.test(ct), '20e its card carries the rejects and the hold');
+  page.locator('.pdfr-x').click().catch(() => {});
+  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Problems report')]);
+  const rep = join(dir, 'problems.pdf'); await dl2.saveAs(rep);
+  const txt = execFileSync('pdftotext', ['-raw', rep, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+  ok(/300 rejects a day: £36 materials; 1,200 packs on hold: £144 tied up/.test(txt), '20f the Problems report carries them');
+  page.locator('.pdfr-x').click().catch(() => {});
+  await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(700);
+  const peP = await openUp('Checkweigher rejects good packs');
+  ok(await peP.getByLabel('Rejects a day because of it').isVisible() && await peP.getByLabel('Packs on hold because of it').isVisible(), '20g on a phone the two boxes are in the editor');
+  await page.setViewportSize({ width: 1360, height: 900 }); await page.waitForTimeout(400);
+  await setLine(ws0);
+}
+
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
 await browser.close();
 console.log(failed ? `\nProblems NOT accepted: ${failed} failed` : '\nProblems accepted: the register — written, edited where it sits, assigned, its journey, marked, on paper, and a fresh start');

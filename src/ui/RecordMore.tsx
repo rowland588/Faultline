@@ -15,6 +15,7 @@ import { uid } from '../lib/ids';
 import { deliverBlob, deliverPdf, isStaleBuildError, loadPdfLib, reloadOntoNewBuild } from '../lib/savePdf';
 import { itemsOf, standingOfItem, wordsOf, type DocRef, type ItemKind, type Test, type TestItem } from '../lib/testing';
 import { trialCard } from '../lib/trialCard';
+import { useRunLine } from '../lib/useRunLine';
 import type { useTesting } from '../lib/useTesting';
 import { niceDay, todayISO } from '../lib/weeks';
 import type { MediaRef } from '../types';
@@ -41,6 +42,8 @@ export function CardPdf({ test, tt, project }: { test: Test; tt: TT; project: { 
   const [said, setSaid] = useState<string | null>(null);
   /* What a study says of it (lib/study) — printed on the card. */
   const studies = useJobStudies(test.projectId);
+  /* the run's line, for what a shortfall is worth on the card (lib/runMoney, FC-076) */
+  const line = useRunLine(test);
   const words = wordsOf(test);
   /* The 350KB of jsPDF is fetched when the record OPENS, not when the button
      is pressed — the rule savePdf.ts sets out. */
@@ -52,7 +55,7 @@ export function CardPdf({ test, tt, project }: { test: Test; tt: TT; project: { 
       const { jsPDF } = await loadPdfLib();
       const { drawTrialCard } = await import('../lib/trialCardPdf');
       const { shotsOf } = await import('../lib/testReport');
-      const c = trialCard(test, tt.tests, tt.items, tt.assets, studies);
+      const c = trialCard(test, tt.tests, tt.items, tt.assets, studies, line);
       const found = itemsOf(tt.items, test.id, 'found');
       const shots = await shotsOf([...(test.media ?? []), ...found.flatMap(i => i.media ?? [])]);
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });

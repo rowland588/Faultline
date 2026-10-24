@@ -101,7 +101,7 @@ Every one is optional; the tool names the one it lacks.
 | crew (people on the line), wage £/h, on-costs ratio | the line (Workspace) — else Line capacity's labour, else the line standard's head count | L, C, D, P, Q |
 | packs a minute (rated), the constraint | the line; Line capacity | T, D, C, S |
 | contribution a pack — price and materials a pack, else margin a pack | the line; the product | T, S, I |
-| cost a kilo; materials a pack; rework a pack; the target weight | the product (typed on the study until a product record carries it — FC-156) | M, Q |
+| cost a kilo; materials a pack; rework a pack; the target weight | the product (typed on the study until a product record carries it — FC-156); a pack's materials also as the line's typical figure (Workspace, *Set up the line*, 24 Oct) — the fallback where no product is named, as the register's rejects use it | M, Q, H |
 | cost a piece so far; carrying rate a year | the value stream map (FC-001); a stock record | H |
 | cost of a complaint, a claim, a withdrawal | the factory (typed when first needed) | Q (external), S |
 | a fitter's rate; spares used | the line's maintenance records (typed on the repair) | D |
@@ -201,7 +201,7 @@ own and names what it feeds.
 
 | Entry | Money today | Causation | Inputs | When missing |
 |---|---|---|---|---|
-| FC-058 Reliability (MTBF) | each failure's lost minutes → L + T; a count's £ a day | D (L, T) | wage; packs a minute; contribution | "Give the line a wage to say the failures in money" |
+| FC-058 Reliability (MTBF) | built 24 Oct to the model (`knowledge/specs/FC-058-reliability-money.md`) — each count's minutes stood an hour of running (rate × the minutes a failure stands the line): the crew's labour, and the packs and contribution only where the study's machine stops the line (the bottleneck Line capacity's, or not known yet — said); an hour of running and a day of the line's shifts; two parts never blended on the tile, the row, the closing line and the paper | D (L, T) | the minutes a failure stands the line (typed on the count); the line's wage, speed, margin; the study's machine | "the line’s crew and wage (Set up the line)", "the line’s rated speed", "the line’s margin a pack" |
 | FC-059 Repair times (MTTR) | repair hours × fitter's rate + spares; the line's L + T meanwhile | D | fitter's rate; spares | "Give a fitter's rate to say the repairs in money" |
 | FC-060 Weibull | the expected failures in a period × a failure's £ (D) — what a replacement interval saves | D, I | as FC-058; part cost | as FC-058 |
 | FC-061 Reliability growth | the failures a week's £ falling (D) as the line matures | D | as FC-058 | as FC-058 |
@@ -230,8 +230,8 @@ own and names what it feeds.
 | FC-073 The stage gate | built — what the slip costs: days moved × a day of the line's margin (T) | T | built | built |
 | FC-074 Acceptance tests | — of their own; a failed test's re-test day feeds the slip (FC-073) | — | | |
 | FC-075 Program proving | — of its own; feeds the slip | — | | |
-| FC-076 Performance run | packs short of the agreed rate × contribution — what the shortfall is worth a shift (T) | T | contribution | "Give a contribution a pack to say the shortfall in money" |
-| FC-077 The climb to rate | the packs below rate during the climb × contribution (T), week by week | T | contribution | as FC-076 |
+| FC-076 Performance run | built 24 Oct (`knowledge/specs/FC-076-run-money.md`) — a product short on its rate: the packs short over the run (the shortfall a minute × the minutes run) and a day of the line's shifts at that rate, each in contribution; on the run's row, the test's card and the client report; nothing on a pass | T | contribution a pack (the test's machine's line, else the project's one line); the line's shifts | "give the line a margin a pack (Set up the line) to say it in money" — the packs still said |
+| FC-077 The climb to rate | built 24 Oct (the same spec) — the packs below the agreed rate summed over the climb's measured runs, in contribution, under the climb's sentence on the run's page, the card and the client report; nothing once at the rate | T | as FC-076 | as FC-076 |
 | FC-078 The pace says when | the forecast slip's days × a day's margin (T) | T | built | built |
 | FC-079 Materials on site | a late part's days × a day's margin if it holds the gate (T) | T | built | built |
 | FC-080 Handover and sign-off | — | — | | |
@@ -329,7 +329,7 @@ own and names what it feeds.
 
 | Entry | Money today | Causation | Inputs | When missing |
 |---|---|---|---|---|
-| FC-146 6M | the problem's £ a week from the Pareto, the loss count or the study that made it the head of the fish; **the gap**: a countermeasure's worth = the share of that £ it should remove (BLUEPRINT §6) | the tool's; I | the tool's | "Measure the problem with its tool to say the countermeasure's worth" |
+| FC-146 6M | built 24 Oct — the problem's hours a week in money by its line's cost model (labour; packs and contribution where its scope stops the line): before, now, target, the saving so far; a countermeasure's worth = its typed share of the problem × that £; the board's sum (`knowledge/specs/FC-146-sixm-money.md`); a gap problem says no money | L, T | the share (typed on the countermeasure); the line's wage, speed, margin | the sheet's box asks the share; "give the line a wage", "a speed", "a margin a pack" |
 | FC-147 Fishbone with evidence | — of its own; each cause's evidence carries its tool's £ | the tool's | | |
 | FC-148 Five whys | — | — | | |
 | FC-149 Is / is not | — | — | | |
@@ -337,7 +337,7 @@ own and names what it feeds.
 | FC-151 A3 | the problem's £ on the left, the countermeasures' worth on the right — as FC-146 | the tool's | | |
 | FC-152 Fault tree | — of its own; the top event's cost (D) when known | D | | |
 | FC-153 Stratification | the worst stratum's gap × the measure's £ | the tool's | | |
-| FC-154 Problems register | built 24 Oct, the time part — the minutes a day typed on the problem: labour, and packs and contribution where it stops the line (the bottleneck Line capacity's); the row, the editor, the card, the report, the closing line's sum (`knowledge/specs/FC-154-problem-cost.md`); the rejects it causes (M) and product held (H) still to come | L, T (M, H to come) | the minutes a day (typed on the problem); the line's wage, speed, margin | the editor's box asks the minutes; "give the line a wage (Set up the line)", "a speed", "a margin a pack" |
+| FC-154 Problems register | built 24 Oct — the minutes a day typed on the problem: labour, and packs and contribution where it stops the line (the bottleneck Line capacity's); the rejects a day it causes at the line's materials a pack (M); the packs it holds as money tied up at their materials (H — said tied up, never a daily loss; no carrying rate asked here); the row, the editor, the card, the report, the closing line's sums (`knowledge/specs/FC-154-problem-cost.md`) | L, T, M, H | the minutes a day, the rejects a day, the packs on hold (typed on the problem); the line's wage, speed, margin, materials a pack | the editor's boxes ask; "give the line a wage (Set up the line)", "a speed", "a margin a pack", "a pack's materials" |
 | FC-155 Horizontal deployment | the proved fix's £ a week × the lines it is offered to | the tool's | | |
 
 ### Yield, give-away and materials
@@ -487,13 +487,15 @@ own and names what it feeds.
 
 1. **The gaps in what is built** (`docs/BLUEPRINT.md` §6): the line standard
    (FC-006 — the people placed, a pack: built 24 October), the problems
-   register (FC-154 — the time a problem costs the line: built 24 October;
-   its rejects and held product to come), the 6M countermeasure's worth
-   (FC-146). Each through the `faultline-tool` skill, one at a time.
+   register (FC-154 — the time a problem costs the line, the rejects it
+   causes and the product it holds: built 24 October), the 6M
+   countermeasure's worth (FC-146: built 24 October). Each through the `faultline-tool` skill, one at a time.
 2. **The built tools with money partly said**: Reliability (FC-058 — each
-   failure's lost minutes in money), the stops' pages where a figure is still
-   missing, the stage gate's performance run and climb (FC-076, FC-077 — the
-   shortfall in contribution).
+   failure's lost minutes in money: brought to the model 24 October — two
+   parts, contribution, output only where the machine stops the line), the
+   stops' pages where a figure is still missing, the stage gate's
+   performance run and climb (FC-076, FC-077 — the shortfall in
+   contribution: built 24 October).
 3. **Then every tool as it is built**, with its row — the backlog's order
    (`node scripts/catalogue.mjs next`), never a tool started for its money
    alone.

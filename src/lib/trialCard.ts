@@ -21,6 +21,7 @@
 import { climbsOf, climbsOn } from './rampUp';
 import { isRunTest, productFigures, productName, productRuns, readRuns, runsSay, type ProductFigures, type ProductState } from './run';
 import { recordProvedLine } from './studyLinks';
+import { climbWorth, runWorth, type RunLine } from './runMoney';
 import type { ToolStudy } from './study';
 import { actionOf, foundTally, isSettled, live, needsVerdict, outcomeWord, standingOfItem, testOfFix, type Asset, type Test, type TestItem, type TestKind } from './testing';
 
@@ -90,7 +91,7 @@ export interface TrialCard {
     open: boolean;
     /** THE CLIMB TO RATE (lib/rampUp) — this run's products on its machine,
      *  across every run of them on the job, a line each. */
-    climbs?: { text: string; tone: 'risk' | 'on' | 'none' }[];
+    climbs?: { text: string; tone: 'risk' | 'on' | 'none'; /** what the climb has cost so far (lib/runMoney, FC-077) */ worth?: string }[];
   };
   /** The product runs as kept — so the card's "no verdict yet" is asked the
    *  same way as the test's (lib/testing needsVerdict). */
@@ -123,6 +124,8 @@ export interface CardRunProduct extends ProductFigures {
   word: string;
   /** What fell short and by how much. */
   gap: string;
+  /** What the shortfall is worth (lib/runMoney runWorth, FC-076). */
+  worth?: string;
   /** Run again further down — history, not what counts. */
   rerun: boolean;
   /** The day its numbers went in. */
@@ -140,7 +143,7 @@ const DECISION: Record<string, string> = {
 /** One trial, read whole. `tests` and `items` are the project's, not the
  *  trial's: the loop and the links are only readable with the neighbours in
  *  hand. */
-export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: Asset[], studies: ToolStudy[] = []): TrialCard {
+export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: Asset[], studies: ToolStudy[] = [], line?: RunLine): TrialCard {
   const mine = live(items).filter(i => i.testId === test.id);
   const findings = mine.filter(i => i.kind === 'found').sort((a, b) => a.sort - b.sort);
   /* WHAT COMES NEXT IS A LIST OF RECORDS, NOT A LIST OF LINES. An agreed next
@@ -185,12 +188,14 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
 
     ...(rr && products.length ? { run: {
       products: products.map(p => ({ id: p.run.id, product: productName(p.run), state: p.state, word: p.word, gap: p.gap, rerun: p.rerun,
-        ...(p.run.ranOn ? { ranOn: p.run.ranOn } : {}), ...productFigures(p) })),
+        ...(p.run.ranOn ? { ranOn: p.run.ranOn } : {}), ...productFigures(p),
+        /* what the shortfall is worth (lib/runMoney, FC-076) */
+        ...((w => (w ? { worth: w.words } : {}))(runWorth(p, line))) })),
       say: runsSay(rr),
       agreed: products.length === 1 ? productFigures(products[0]).agreed : `each of the ${rr.total} products on its own agreed numbers`,
       ran: rr.ran > 0, open: rr.open,
       ...(rr.verdict !== 'planned' ? { meets: rr.verdict === 'passed' } : {}),
-      ...((cl => (cl.length ? { climbs: cl.map(c => ({ text: c.text, tone: c.tone })) } : {}))(climbsOn(climbsOf({ tests, assets }), test))),
+      ...((cl => (cl.length ? { climbs: cl.map(c => ({ text: c.text, tone: c.tone, ...((w => (w ? { worth: w.words } : {}))(climbWorth(c, line))) })) } : {}))(climbsOn(climbsOf({ tests, assets }), test))),
     } } : {}),
     ...(test.runs ? { runs: test.runs } : {}),
 

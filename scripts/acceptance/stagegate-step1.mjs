@@ -58,6 +58,7 @@ const go = async h => {
   await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2300);
   await page.waitForFunction(() => !/Loading…/.test(document.querySelector('main')?.innerText ?? ''), null, { timeout: 15000 }).catch(() => {});
 };
+const { more: pressMore } = await import('../lib/pageHeader.mjs');
 const words = async sel => ((await page.locator(sel).count()) ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : null);
 const pdfText = f => execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 const pdfPages = f => Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))[1]);
@@ -125,6 +126,50 @@ ok(tr.machines.every(m => lt.includes(m)), `4 labels: a label for each of ${tr.m
 await go(`${J}/report`);
 const status = await grab(async () => { await page.getByRole('button', { name: 'Status — 1 page', exact: true }).first().click(); await page.waitForTimeout(800); await page.getByRole('button', { name: 'Download', exact: true }).first().click(); }, 'status.pdf');
 ok(pdfText(status).includes('Scan for it now') && pdfPages(status) === 1, `4 the status report: its code back to the job, still ${pdfPages(status)} page`);
+
+/* ---- 5 · what the shortfall is worth (knowledge/specs/FC-076-run-money.md; CLAUDE.md, 24 October: the cost one of the
+   outputs, nothing blocked): a product short on its rate says the packs short and their contribution — the margin asked
+   while the line has none — and the climb what it has cost so far; the row, the card, the client report ---- */
+{
+  const money = () => page.evaluate(async pid => {
+    const t = await import('/src/db/testing.ts'), db = await import('/src/db.ts');
+    const R = await import('/src/lib/rampUp.ts'), M = await import('/src/lib/runMoney.ts'), { readRuns } = await import('/src/lib/run.ts');
+    const [tests, assets, lines, ws] = await Promise.all([t.listTests(pid), t.listAssets(pid), db.allPaceLines(), db.listWorkspaces()]);
+    const perf = tests.find(x => !x.deletedAt && x.fromTestId && x.title === 'Performance run at the agreed rate');
+    const line = M.runLineOf(perf, assets, lines, ws);
+    const worths = readRuns(perf).products.map(p => M.runWorth(p, line)?.words).filter(Boolean);
+    const climbs = R.climbsOn(R.climbsOf({ tests, assets }), perf).map(c => M.climbWorth(c, line)?.words).filter(Boolean);
+    return { lineId: line?.id, worths, climbs };
+  }, sd.projectId);
+  const ws0 = await page.evaluate(async id => (await import('/src/db.ts')).getWorkspace(id), (await money()).lineId);
+  ok(!!ws0, `5 the run's line found — ${ws0?.name}`);
+  const setLine = async ws => { await page.evaluate(async ws => { await (await import('/src/db.ts')).updateWorkspace(ws); }, ws); await page.waitForTimeout(600); };
+  const { marginPerPack: _m, ...bare } = ws0; void _m;
+  await setLine({ ...bare, shifts: [{ id: 'd', name: 'Days', start: '06:00', end: '14:00', breakMin: 30 }, { id: 'l', name: 'Lates', start: '14:00', end: '22:00', breakMin: 30 }] });
+  let m = await money();
+  await go(`${J}/testing/${tr.perfId}`);
+  await page.locator('.pr-worth').first().waitFor({ timeout: 10000 }).catch(() => {});
+  let seen = (await page.locator('.pr-worth').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
+  ok(m.worths.length >= 1 && JSON.stringify(seen) === JSON.stringify(m.worths) && seen.every(w => /ppm short: [\d,]+ packs over the \d+ min run — give the line a margin a pack \(Set up the line\) to say it in money\.$/.test(w)),
+    `5 a product short on its rate: the packs short, the margin asked while the line has none — ${JSON.stringify(seen)}`);
+  await setLine({ ...bare, marginPerPack: 0.04, shifts: [{ id: 'd', name: 'Days', start: '06:00', end: '14:00', breakMin: 30 }, { id: 'l', name: 'Lates', start: '14:00', end: '22:00', breakMin: 30 }] });
+  m = await money();
+  await page.waitForTimeout(900);
+  seen = (await page.locator('.pr-worth').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
+  ok(JSON.stringify(seen) === JSON.stringify(m.worths) && seen.every(w => /contribution; at this rate a day of the line’s shifts \(15 h\) is [\d,]+ packs, £[\d,]+\.$/.test(w)),
+    `5 the line given 4p a pack: the contribution over the run and a day of its shifts, without a reload — ${JSON.stringify(seen)}`);
+  const cl = (await page.locator('.cl-worth').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
+  ok(m.climbs.length === 1 && JSON.stringify(cl) === JSON.stringify(m.climbs) && /^The climb so far: [\d,]+ packs below the agreed 60 over \d runs — £[\d,]+ contribution\.$/.test(cl[0] ?? ''), `5 the climb says what it has cost so far — ${JSON.stringify(cl)}`);
+  const flat = x => x.replace(/[’']/g, '').replace(/\s+/g, ' ');
+  const card = await grab(() => pressMore(page, /card — PDF$/), 'run-card.pdf');
+  const ct = flat(pdfText(card));
+  ok(m.worths.every(w => ct.includes(flat(w).slice(0, 50))) && ct.includes(flat(m.climbs[0]).slice(0, 40)), '5 the test’s card carries the worth and the climb’s cost');
+  await go(`${J}/report`);
+  const full = await grab(async () => { await page.getByRole('button', { name: 'Full report', exact: true }).first().click(); await page.waitForTimeout(800); await page.getByRole('button', { name: 'Download', exact: true }).first().click(); }, 'full.pdf');
+  const ft = flat(pdfText(full));
+  ok(m.worths.every(w => ft.includes(flat(w).slice(0, 50))) && ft.includes(flat(m.climbs[0]).slice(0, 40)), '5 the client report carries the worth and the climb’s cost');
+  await setLine(ws0);
+}
 
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');
 await browser.close();

@@ -58,7 +58,8 @@
  *
  * Pure: nothing worked out here is stored. */
 import { labourPerHour, ratedPerMin } from '../../lib/cost';
-import { lineDay } from '../../lib/lineLoss';
+import { lineDay, stopsTheLine, type Neck } from '../../lib/lineLoss';
+import { contributionOf } from '../losses/losses';
 import type { AgreedReliability, RelEvent, WatchRun } from '../../lib/study';
 
 /** WHAT ONE COUNT IS AND WHAT IT SHOULD BE — the words its figures are said
@@ -328,60 +329,90 @@ export function reliability(a: Partial<RelSubject> | undefined, runs: readonly W
 
 /* ------------------------------------------------------------------ what it costs */
 
+/** WHAT THE FAILURES COST (knowledge/specs/FC-058-reliability-money.md; MONEY.md
+ *  causation D): the minutes the line stands an hour of running, priced the
+ *  loss count's way — the crew's labour wherever the machine is, and the packs
+ *  and contribution only where it stops the line (its machine the bottleneck
+ *  Line capacity found, the whole line, or the bottleneck not known yet);
+ *  two parts, never blended. Every input optional, the missing one named. */
 export interface RelCost {
   /** Minutes the line stands an hour of running, from the events. */
   downMinPerH?: number;
   labourPerH?: number;
   packsPerH?: number;
-  marginPerH?: number;
+  contributionPerH?: number;
   /** The same, a day of the line's shifts. */
   dayH?: number;
   labourPerDay?: number;
   packsPerDay?: number;
-  marginPerDay?: number;
+  contributionPerDay?: number;
+  /** Does the study's machine stop the line, and was the bottleneck known? */
+  stopsLine: boolean;
+  neckKnown: boolean;
+  machine?: string;
   /** What is not given, and where to give it. */
   missing: string[];
 }
 
 export type RelCostLine = Pick<Workspace, 'name' | 'crew' | 'labourRatePerHour' | 'labourBurden' | 'packsPerMin' | 'marginPerPack' | 'shifts'>;
+/** Where the study stands: its machine (ToolStudy.machine) and the line's bottleneck (lib/lineLoss neckOf). */
+export interface RelWhere { machine?: string; neck?: Neck }
 
-export function relCost(f: RelFigures, a: RelSubject | undefined, line?: RelCostLine): RelCost {
+export function relCost(f: RelFigures, a: RelSubject | undefined, line?: RelCostLine, where?: RelWhere): RelCost {
   const missing: string[] = [];
+  const machine = where?.machine?.trim() || undefined;
+  const stopsLine = stopsTheLine({ asset: machine ?? '' }, where?.neck);
   const down = a?.downMin && a.downMin > 0 ? a.downMin : undefined;
   if (down === undefined) missing.push(`the minutes the line stands for each ${plural(a?.event ?? 'event', 1)} (Change what was agreed)`);
   if (!line) missing.push('a line, for its crew, wage and speed');
   const lab = line ? labourPerHour(line) : 0;
   const speed = line ? ratedPerMin(line) : undefined;
-  if (line && !(lab > 0)) missing.push('the line’s crew and wage (Your factory)');
-  if (line && speed === undefined) missing.push('the line’s rated speed (Your factory)');
-  if (f.rate === undefined || down === undefined) return { missing };
+  const contrib = contributionOf(line);
+  if (line && !(lab > 0)) missing.push('the line’s crew and wage (Set up the line)');
+  if (line && stopsLine && speed === undefined) missing.push('the line’s rated speed (Set up the line)');
+  if (line && stopsLine && speed !== undefined && !contrib) missing.push('the line’s margin a pack (Set up the line)');
+  const base: RelCost = { stopsLine, neckKnown: !!where?.neck, ...(machine ? { machine } : {}), missing };
+  if (f.rate === undefined || down === undefined) return base;
   const downMinPerH = f.rate * down;
-  const out: RelCost = { downMinPerH, missing };
+  const out: RelCost = { ...base, downMinPerH };
   if (lab > 0) out.labourPerH = lab * (downMinPerH / 60);
-  if (speed !== undefined) {
+  if (stopsLine && speed !== undefined) {
     out.packsPerH = speed * downMinPerH;
-    if (line?.marginPerPack && line.marginPerPack > 0) out.marginPerH = out.packsPerH * line.marginPerPack;
+    if (contrib) out.contributionPerH = out.packsPerH * contrib.perPack;
   }
   const day = line ? lineDay({ name: line.name, packsPerMin: line.packsPerMin, marginPerPack: line.marginPerPack, shifts: line.shifts }).minutes : undefined;
   if (day && day > 0) {
     out.dayH = day / 60;
     if (out.labourPerH !== undefined) out.labourPerDay = out.labourPerH * out.dayH;
     if (out.packsPerH !== undefined) out.packsPerDay = out.packsPerH * out.dayH;
-    if (out.marginPerH !== undefined) out.marginPerDay = out.marginPerH * out.dayH;
+    if (out.contributionPerH !== undefined) out.contributionPerDay = out.contributionPerH * out.dayH;
   }
   return out;
 }
 
-/** "£4.20 of the crew’s time an hour of running · 140 packs not made where it stops the line (£28 margin)". */
+/** Where the packs are counted — the loss count's words (lib/lineLoss packsHow). */
+export function costWhere(c: Pick<RelCost, 'stopsLine' | 'neckKnown' | 'machine'>): string {
+  if (!c.machine) return 'where it stops the line';
+  if (!c.neckKnown) return `at ${c.machine} (counted as stopping the line — the bottleneck is not known until the line’s capacity is counted)`;
+  return c.stopsLine ? `at ${c.machine}, the bottleneck` : `${c.machine} is not the bottleneck, so the line runs round it`;
+}
+
+/** The two parts an hour, never blended — "£6.00 labour · £36 contribution"; empty with neither. */
+export function costParts(c: Pick<RelCost, 'labourPerH' | 'contributionPerH'>): string {
+  return [c.labourPerH !== undefined ? `${gbp(c.labourPerH)} labour` : '', c.contributionPerH !== undefined ? `${gbp(c.contributionPerH)} contribution` : ''].filter(Boolean).join(' · ');
+}
+
+/** "6 min stood an hour of running · £6.00 of the crew’s time · 360 packs not made at Labeller, the bottleneck (£36 contribution) — a day of its shifts (7.5 h): £45 labour · £270 contribution". */
 export function costWords(c: RelCost): string {
   if (c.downMinPerH === undefined) return '';
   const parts = [
     `${+c.downMinPerH.toFixed(1)} min stood an hour of running`,
     c.labourPerH !== undefined ? `${gbp(c.labourPerH)} of the crew’s time` : '',
-    c.packsPerH !== undefined ? `${Math.round(c.packsPerH).toLocaleString('en-GB')} packs not made where it stops the line${c.marginPerH !== undefined ? ` (${gbp(c.marginPerH)} margin)` : ''}` : '',
+    c.packsPerH !== undefined ? `${Math.round(c.packsPerH).toLocaleString('en-GB')} packs not made ${costWhere(c)}${c.contributionPerH !== undefined ? ` (${gbp(c.contributionPerH)} contribution)` : ''}` : '',
+    !c.stopsLine ? `no packs lost — ${costWhere(c)}` : '',
   ].filter(Boolean);
-  const day = c.dayH !== undefined && (c.labourPerDay !== undefined || c.marginPerDay !== undefined)
-    ? ` — a day of its shifts (${+c.dayH.toFixed(1)} h): ${[c.labourPerDay !== undefined ? `${gbp(c.labourPerDay)} labour` : '', c.marginPerDay !== undefined ? `${gbp(c.marginPerDay)} margin` : ''].filter(Boolean).join(' · ')}` : '';
+  const day = c.dayH !== undefined && (c.labourPerDay !== undefined || c.contributionPerDay !== undefined)
+    ? ` — a day of its shifts (${+c.dayH.toFixed(1)} h): ${[c.labourPerDay !== undefined ? `${gbp(c.labourPerDay)} labour` : '', c.contributionPerDay !== undefined ? `${gbp(c.contributionPerDay)} contribution` : ''].filter(Boolean).join(' · ')}` : '';
   return parts.join(' · ') + day;
 }
 
@@ -499,21 +530,21 @@ export function studyReliabilitySays(a: AgreedReliability | undefined, runs: rea
 }
 
 /** A COUNT IN A ROW — counted side by side, on the page and on paper. */
-export interface RelRow { id: string; title: string; n: number; mtbf: string; range: string; rate: string; against: string; tone: RelSays['tone']; costPerH?: number }
+export interface RelRow { id: string; title: string; n: number; mtbf: string; range: string; rate: string; against: string; tone: RelSays['tone']; /** the two parts an hour of running, never blended (costParts) */ cost?: string }
 
 const AGAINST: Record<RelVerdict, string> = { met: 'meets it', 'met-unsure': 'on it, not yet sure', 'short-unsure': 'below it, not yet sure', short: 'short of it' };
 
-export function relRows(items: readonly RelItem[], line?: RelCostLine): RelRow[] {
+export function relRows(items: readonly RelItem[], line?: RelCostLine, where?: RelWhere): RelRow[] {
   return items.map(({ c, f }) => {
-    const said = reliabilitySays(c, f), cost = relCost(f, c, line);
-    const per = cost.labourPerH !== undefined || cost.marginPerH !== undefined ? (cost.labourPerH ?? 0) + (cost.marginPerH ?? 0) : undefined;
+    const said = reliabilitySays(c, f), cost = relCost(f, c, line, where);
+    const per = costParts(cost) || undefined;
     return {
       id: c.id, title: countTitle(c), n: f.n,
       mtbf: f.mtbfH !== undefined ? span(f.mtbfH) : f.lo !== undefined ? `≥ ${span(f.lo)}` : '—',
       range: f.mtbfH !== undefined ? `${span(f.lo ?? 0)}–${span(f.hi ?? 0)}` : '—',
       rate: f.rate !== undefined ? perHour(f.rate) : '—',
       against: c.targetMin ? `${span(c.targetMin / 60)} wanted — ${f.verdict ? AGAINST[f.verdict] : 'not yet watched'}` : 'no target',
-      tone: said.tone, ...(per !== undefined ? { costPerH: per } : {}),
+      tone: said.tone, ...(per !== undefined ? { cost: per } : {}),
     };
   });
 }

@@ -5,6 +5,9 @@
  * closing line read it (lib/sixmLean); the one page reads it (lib/sixmStatus). Pure: nothing
  * stored, nothing drawn here. */
 
+import { scopeOf } from './fishbone';
+import { boardWorth, counterWorth, problemMoney } from './sixmMoney';
+import { neckOf } from './lineLoss';
 import type { WeekLine } from '../project/journey/journey';
 import type { Case } from '../types';
 import type { PaceTodoRow } from '../db/rows';
@@ -80,6 +83,8 @@ export interface CounterRep {
   /** The day in free words, when no date was given — as on the board. */
   words?: string;
   expect?: string;
+  /** What its share of the problem is worth a week (lib/sixmMoney counterWorth). */
+  worth?: string;
   /** What happened — the outcome written when it was done. Printed under
    *  Did it work, beside what it was expected to do. */
   happened?: string;
@@ -127,6 +132,8 @@ export interface ProblemRep {
   says: string;
   /** Before → now and target, in one sentence. */
   measure?: string;
+  /** The same in money — labour, and the packs and contribution lost where it stops the line (lib/sixmMoney, FC-146). */
+  money?: string;
   /** Where it came from: the Pareto bar, the gap, the constraint, something
    *  seen — and "opened for …" when a bar outside the vital few was opened. */
   from?: string;
@@ -150,6 +157,8 @@ export interface ProblemRep {
   /* ---- Fix ---- */
   counter: CounterRep[];
   counterSays: string;
+  /** What the countermeasures that say their shares should remove together, in money (lib/sixmMoney boardWorth). */
+  counterWorth?: string;
 
   /* ---- Did it work ---- */
   worked: {
@@ -377,6 +386,8 @@ export function sixmReport(o: SixMInput): SixMReport {
       [ms.before != null && ms.now != null ? `before ${say(ms.before, unit)} → now ${say(ms.now, unit)}` : ms.before != null ? `before ${say(ms.before, unit)}` : `now ${say(ms.now as number, unit)}`,
         ms.target != null ? `target ${say(ms.target, unit)}` : ''].filter(Boolean).join(' · '),
     ].join(' ') : undefined;
+    /* the same in money, by the line's cost model and its bottleneck (lib/sixmMoney, FC-146) */
+    const money = problemMoney(ms, scopeOf(p, data), data.workspaces.find(w => w.id === p.workspaceId), neckOf(data.standards, p.workspaceId));
     const src = p.source;
     const why = src?.why ? clean(src.why) : '';
     const bar = src?.kind === 'pareto' ? [src.category, src.subcategory, src.asset].filter(Boolean).join(' · ') : '';
@@ -413,6 +424,7 @@ export function sixmReport(o: SixMInput): SixMReport {
         owner: (t?.who ?? a.owner ?? '').trim(), tone: st.tone, when: st.when,
         ...('words' in st && st.words ? { words: st.words } : {}),
         ...(t?.expect?.trim() ? { expect: t.expect.trim() } : {}),
+        ...((() => { const w = counterWorth(t?.expectPct, money); return w ? { worth: w.words } : {}; })()),
         ...(t?.state === 'done' ? { happened: t.outcome?.trim() || 'not written up yet' } : {}),
         ...(ref ? { cause: ref.text } : {}),
         ...((() => { const pr = t ? provedLine(o.data.studies, t.id, 'action', studyCtx(o.data)) : undefined; return pr ? { proved: pr } : {}; })()),
@@ -469,6 +481,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       causeCount: causes.length,
       says: v.says && v.says !== p.title ? v.says : '',
       ...(measure ? { measure } : {}),
+      ...(money ? { money: money.words } : {}),
       ...(from ? { from } : {}),
       is: facts.is.filter(x => x.trim()), isNot: facts.isNot.filter(x => x.trim()),
       chains,
@@ -480,6 +493,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       ...(written ? { written } : {}),
       counter,
       counterSays: counter.length ? [`${open} open`, late ? `${late} late` : '', `${counter.length - open} done`].filter(Boolean).join(' · ') : '',
+      ...((() => { const b = boardWorth(v.actions.map(a => todoById.get(a.uid ?? a.ref)?.expectPct), money); return b ? { counterWorth: b.words } : {}; })()),
       worked: {
         says: verdict(), tone: v.phase === 'slipped' ? 'failed' : PHASE_TONE[v.phase],
         ...(number ? { number } : {}),

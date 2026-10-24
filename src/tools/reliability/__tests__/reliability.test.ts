@@ -158,19 +158,52 @@ describe('what it costs — the one cost model', () => {
   const f = reliability(a, [{ id: 'a', from: T0, to: T0 + 2 * H }], [ev(T0 + 30 * MIN), ev(T0 + 60 * MIN), ev(T0 + 90 * MIN), ev(T0 + 100 * MIN)], T0 + 3 * H);
   const line = { name: 'Line 7', crew: 4, labourRatePerHour: 12, labourBurden: 1.25, packsPerMin: 60, marginPerPack: 0.1,
     shifts: [{ id: 's1', name: 'Shift 1', start: '06:00', end: '14:00', breakMin: 30 }] };
-  it('the minutes stood an hour, the crew’s time, the packs and their margin', () => {
-    const c = relCost(f, a, line as never);
+  /* knowledge/specs/FC-058-reliability-money.md §6 — the independent cases, worked by hand (scripts/knowledge/independent-cases.py) */
+  const neck = { names: ['Labeller'] };
+  it('1 — at the bottleneck: the minutes stood an hour, the crew’s time, the packs and their contribution, and a day of its shifts', () => {
+    const c = relCost(f, a, line as never, { machine: 'Labeller', neck });
     expect(c.downMinPerH).toBeCloseTo(6, 6);
-    expect(c.labourPerH).toBeCloseTo(4 * 12 * 1.25 * (6 / 60), 6);
+    expect(c.labourPerH).toBeCloseTo(6, 6);
     expect(c.packsPerH).toBeCloseTo(360, 6);
-    expect(c.marginPerH).toBeCloseTo(36, 6);
-    expect(costWords(c)).toContain('6 min stood an hour of running');
+    expect(c.contributionPerH).toBeCloseTo(36, 6);
+    expect(c.dayH).toBeCloseTo(7.5, 6);
+    expect(c.labourPerDay).toBeCloseTo(45, 6); expect(c.packsPerDay).toBeCloseTo(2700, 6); expect(c.contributionPerDay).toBeCloseTo(270, 6);
+    expect(costWords(c)).toBe('6 min stood an hour of running · £6.00 of the crew’s time · 360 packs not made at Labeller, the bottleneck (£36.00 contribution) — a day of its shifts (7.5 h): £45.00 labour · £270 contribution');
   });
-  it('names what is missing, never guesses', () => {
+  it('2 — not the bottleneck: labour only, the line runs round it', () => {
+    const c = relCost(f, a, line as never, { machine: 'Wrapper', neck });
+    expect(c.stopsLine).toBe(false);
+    expect(c.labourPerH).toBeCloseTo(6, 6);
+    expect(c.packsPerH).toBeUndefined(); expect(c.contributionPerH).toBeUndefined();
+    expect(costWords(c)).toBe('6 min stood an hour of running · £6.00 of the crew’s time · no packs lost — Wrapper is not the bottleneck, so the line runs round it — a day of its shifts (7.5 h): £45.00 labour');
+  });
+  it('3 — the bottleneck not known: counted as stopping the line, and said so', () => {
+    const c = relCost(f, a, line as never, { machine: 'Wrapper' });
+    expect(c.stopsLine).toBe(true); expect(c.neckKnown).toBe(false);
+    expect(c.packsPerH).toBeCloseTo(360, 6);
+    expect(costWords(c)).toContain('360 packs not made at Wrapper (counted as stopping the line — the bottleneck is not known until the line’s capacity is counted) (£36.00 contribution)');
+  });
+  it('4 — the missing input named, the rest still said', () => {
+    const noWage = relCost(f, a, { name: 'Line 7', packsPerMin: 60, marginPerPack: 0.1 } as never, { machine: 'Labeller', neck });
+    expect(noWage.labourPerH).toBeUndefined(); expect(noWage.packsPerH).toBeCloseTo(360, 6);
+    expect(noWage.missing).toContain('the line’s crew and wage (Set up the line)');
+    const noSpeed = relCost(f, a, { name: 'Line 7', crew: 4, labourRatePerHour: 12 } as never, { machine: 'Labeller', neck });
+    expect(noSpeed.packsPerH).toBeUndefined(); expect(noSpeed.missing).toContain('the line’s rated speed (Set up the line)');
+    const noMargin = relCost(f, a, { name: 'Line 7', crew: 4, labourRatePerHour: 12, packsPerMin: 60 } as never, { machine: 'Labeller', neck });
+    expect(noMargin.packsPerH).toBeCloseTo(360, 6); expect(noMargin.contributionPerH).toBeUndefined(); expect(noMargin.missing).toContain('the line’s margin a pack (Set up the line)');
+    /* off the bottleneck the speed and margin are not asked — the packs are not counted there */
+    expect(relCost(f, a, { name: 'Line 7', crew: 4, labourRatePerHour: 12 } as never, { machine: 'Wrapper', neck }).missing).toEqual([]);
+  });
+  it('5 — no minutes stood: nothing in money, the minutes asked; no line: the line asked', () => {
     const c = relCost(f, { event: 'stop' });
     expect(c.downMinPerH).toBeUndefined();
     expect(c.missing.join(' ')).toContain('minutes the line stands for each stop');
     expect(c.missing.join(' ')).toContain('a line');
+  });
+  it('6 — the row says the two parts, never their sum', () => {
+    const rows = relRows([{ c: { id: 'e', event: 'stop', downMin: 3 }, f }], line as never, { machine: 'Labeller', neck });
+    expect(rows[0].cost).toBe('£6.00 labour · £36.00 contribution');
+    expect(JSON.stringify(rows[0])).not.toContain('42');
   });
 });
 

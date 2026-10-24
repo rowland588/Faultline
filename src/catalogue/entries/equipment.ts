@@ -14,8 +14,9 @@ export const EQUIPMENT: Entry[] = [
     complexity: 'L', value: 'high', valueWhy: 'A machine’s reliability measured by a person in minutes.',
     status: 'available', form: 'tool', kind: 'study',
     app: { key: 'reliability', label: 'Reliability', says: 'A machine watched running, a tap for each stop: MTBF and the failure rate, with their bounds', onLine: 'a machine watched running: MTBF and the failure rate', reads: 'reliability', icon: 'machine', order: 9 }, methods: ['maintenance.mtbf-failure-rate', 'stats.confidence-intervals'], scenarios: ['machine', 'new'], words: ['MTBF', 'stops per hour', 'failure rate', 'keeps stopping'],
-    built: { where: ['/reliability'], code: ['src/tools/reliability/reliability.ts', 'src/tools/reliability/ReliabilityScreen.tsx'], tests: ['src/tools/reliability/__tests__/reliability.test.ts'], acceptance: ['reliability.mjs'] },
-    limits: ['No repair times, so no MTTR or availability (FC-059).'],
+    spec: 'knowledge/specs/FC-058-reliability-money.md',
+    built: { where: ['/reliability'], code: ['src/tools/reliability/reliability.ts', 'src/tools/reliability/reliabilityLean.ts', 'src/tools/reliability/ReliabilityScreen.tsx'], tests: ['src/tools/reliability/__tests__/reliability.test.ts'], acceptance: ['reliability.mjs'] },
+    limits: ['No repair times, so no MTTR or availability (FC-059) — its money is the failures’ lost minutes (labour; packs and contribution where the machine stops the line), not their repair.'],
   },
   {
     id: 'FC-059', name: 'Repair times — MTTR and availability', discipline: 'maintenance', sub: 'repair',
@@ -241,7 +242,9 @@ export const EQUIPMENT: Entry[] = [
     depends: ['FC-077', 'FC-083'],
     complexity: 'M', value: 'high', valueWhy: 'The acceptance moment of the stage gate.',
     status: 'available', form: 'mode', partOf: 'FC-073', methods: ['commissioning.acceptance-tests'], scenarios: ['new'], words: ['run at rate', 'performance test'],
-    built: { where: [], code: ['src/lib/run.ts'], tests: ['src/lib/__tests__/run.test.ts'], acceptance: ['stagegate-step1.mjs'] },
+    spec: 'knowledge/specs/FC-076-run-money.md',
+    built: { where: [], code: ['src/lib/run.ts', 'src/lib/runMoney.ts'], tests: ['src/lib/__tests__/run.test.ts', 'src/lib/__tests__/runMoney.test.ts'], acceptance: ['stagegate-step1.mjs'] },
+    limits: ['Its money is the shortfall on the rate (packs short × contribution a pack); rejects over the allowance are a count, not priced here (the capability study prices rejects by their fates, FC-094).'],
   },
   {
     id: 'FC-077', name: 'The climb to rate — when the line will run at its agreed rate', discipline: 'commissioning', sub: 'ramp',
@@ -254,7 +257,9 @@ export const EQUIPMENT: Entry[] = [
     depends: ['FC-076', 'FC-061'],
     complexity: 'S', value: 'medium', valueWhy: 'The project forecasts itself.',
     status: 'available', form: 'mode', partOf: 'FC-073', methods: ['commissioning.ramp-up'], scenarios: ['new'],
-    built: { where: [], code: ['src/lib/rampUp.ts'], tests: ['src/lib/__tests__/rampUp.test.ts'], acceptance: ['stagegate-step1.mjs'] },
+    spec: 'knowledge/specs/FC-076-run-money.md',
+    built: { where: [], code: ['src/lib/rampUp.ts', 'src/lib/runMoney.ts'], tests: ['src/lib/__tests__/rampUp.test.ts', 'src/lib/__tests__/runMoney.test.ts'], acceptance: ['stagegate-step1.mjs'] },
+    limits: ['Its money is the packs below the agreed rate over the runs that know their minutes, in contribution; a run recorded before 24 October without its minutes is not counted.'],
   },
   {
     id: 'FC-078', name: 'The pace says when — the handover forecast', discipline: 'commissioning', sub: 'ramp',

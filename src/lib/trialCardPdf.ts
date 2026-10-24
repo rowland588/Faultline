@@ -230,8 +230,11 @@ function runRowLines(d: Doc, p: NonNullable<TrialCard['run']>['products'][number
   const verdict = d.splitTextToSize(san(p.rerun ? `${p.word} — run again below` : p.word), cols[6].w - 6) as string[];
   setFont(d, 7.5, 'normal', DANGER);
   const gap = p.state === 'short' && p.gap ? d.splitTextToSize(san(p.gap), cols[6].w - 6) as string[] : [];
-  const h = 6 + Math.max(product.length * 10, agreed.length * 9, rej.length * 10, len.length * 10, verdict.length * 10 + gap.length * 9, 10) + 4;
-  return { product, agreed, rej, len, verdict, gap, h };
+  /* what the shortfall is worth (lib/runMoney, FC-076) — under the gap, in ink */
+  setFont(d, 7.5, 'normal', INK2);
+  const worth = p.worth ? d.splitTextToSize(san(p.worth), cols[6].w - 6) as string[] : [];
+  const h = 6 + Math.max(product.length * 10, agreed.length * 9, rej.length * 10, len.length * 10, verdict.length * 10 + gap.length * 9 + worth.length * 9, 10) + 4;
+  return { product, agreed, rej, len, verdict, gap, worth, h };
 }
 
 function runStrip(d: Doc, c: TrialCard, x: number, y: number, w: number, bottom: number, newPage: () => number): number {
@@ -284,6 +287,7 @@ function runStrip(d: Doc, c: TrialCard, x: number, y: number, w: number, bottom:
       fig('', p.lengthTone, false); d.text(L.len, px, by, { lineHeightFactor: 10 / 8.5 }); px += cols[5].w;
       setFont(d, 8, 'bold', p.rerun ? MUTED : stateInk(p.state)); d.text(L.verdict, px, by, { lineHeightFactor: 10 / 8 });
       if (L.gap.length) { setFont(d, 7.5, 'normal', DANGER); d.text(L.gap, px, by + L.verdict.length * 10, { lineHeightFactor: 9 / 7.5 }); }
+      if (L.worth.length) { setFont(d, 7.5, 'normal', INK2); d.text(L.worth, px, by + L.verdict.length * 10 + L.gap.length * 9, { lineHeightFactor: 9 / 7.5 }); }
       cy += L.h;
     }
     i += n;
@@ -296,14 +300,18 @@ function runStrip(d: Doc, c: TrialCard, x: number, y: number, w: number, bottom:
   const climbs = c.run.climbs ?? [];
   if (climbs.length) {
     const ls = climbs.map(cl => { setFont(d, 8, cl.tone === 'risk' ? 'bold' : 'normal', INK2); return d.splitTextToSize(san(cl.text), w - 24) as string[]; });
-    const need = 14 + ls.reduce((n, l) => n + l.length * 10 + 3, 0);
+    /* what the climb has cost so far (lib/runMoney, FC-077), under its sentence */
+    const ws = climbs.map(cl => { if (!cl.worth) return [] as string[]; setFont(d, 7.5, 'normal', INK2); return d.splitTextToSize(san(cl.worth), w - 24) as string[]; });
+    const need = 14 + ls.reduce((n, l, k) => n + l.length * 10 + ws[k].length * 9 + 3, 0);
     if (y + need > bottom) y = newPage();
     setFont(d, 6.5, 'bold', ACCENT); d.text('THE CLIMB TO RATE', x + 12, y + 8);
     let cy = y + 20;
     climbs.forEach((cl, k) => {
       setFont(d, 8, cl.tone === 'risk' ? 'bold' : 'normal', cl.tone === 'risk' ? WARN : cl.tone === 'none' ? MUTED : INK2);
       d.text(ls[k], x + 12, cy, { lineHeightFactor: 10 / 8 });
-      cy += ls[k].length * 10 + 3;
+      cy += ls[k].length * 10;
+      if (ws[k].length) { setFont(d, 7.5, 'normal', INK2); d.text(ws[k], x + 12, cy, { lineHeightFactor: 9 / 7.5 }); cy += ws[k].length * 9; }
+      cy += 3;
     });
     y = cy + 6;
   }

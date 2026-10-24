@@ -47,6 +47,8 @@ export interface ClimbPoint {
   on: string;
   /** Good packs a minute over the run. */
   net: number;
+  /** The minutes it ran — for what the climb has cost so far (lib/runMoney, FC-077). */
+  minutes?: number;
   testId: string;
   runId: string;
 }
@@ -144,7 +146,7 @@ export function climbsOf(x: { tests: Test[]; assets?: Asset[] }): Climb[] {
       groups.set(g0, g);
       const rate = r.agreed.rate;
       if (typeof rate === 'number' && Number.isFinite(rate) && rate > 0 && (!g.agreed || (on ?? '') >= g.agreed.on)) g.agreed = { on: on ?? '', rate };
-      if (r.net != null && r.net > 0 && on) g.points.push({ on, net: r.net, testId: t.id, runId: p.id });
+      if (r.net != null && r.net > 0 && on) g.points.push({ on, net: r.net, ...(typeof r.day.minutes === 'number' && r.day.minutes > 0 ? { minutes: r.day.minutes } : {}), testId: t.id, runId: p.id });
     }
   }
   const machines = live(x.assets ?? []);

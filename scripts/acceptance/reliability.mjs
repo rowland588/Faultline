@@ -84,11 +84,13 @@ const truth = id => page.evaluate(async sid => {
   const db = await import('/src/db.ts'); const R = await import('/src/tools/reliability/reliability.ts'); const L = await import('/src/tools/reliability/reliabilityLean.ts');
   const s = await db.getStudy(sid); const a = s.agreed?.reliability;
   const line = (await db.listWorkspaces()).find(w => w.id === s.workspaceId);
+  const { neckOf } = await import('/src/lib/lineLoss.ts');
+  const where = { machine: s.machine, neck: neckOf(await db.listAllStandards(), s.workspaceId) };   /* its machine and the line's bottleneck (FC-058) */
   const items = R.relAll(a, s.facts.watch, s.facts.events, Date.now());
   const study = R.studyReliabilitySays(a, s.facts.watch, s.facts.events, Date.now());
-  return { name: s.name, study, closing: L.relClosings(items, line).text, rows: R.relRows(items, line).map(r => [r.title, String(r.n), r.mtbf]),
+  return { name: s.name, study, closing: L.relClosings(items, line, where).text, rows: R.relRows(items, line, where).map(r => [r.title, String(r.n), r.mtbf]), rowCosts: R.relRows(items, line, where).map(r => r.cost ?? '—'),
     counts: items.map(({ c, f }) => {
-      const said = R.reliabilitySays(c, f), cost = R.relCost(f, c, line);
+      const said = R.reliabilitySays(c, f), cost = R.relCost(f, c, line, where);
       return { id: c.id, name: c.event, n: f.n, hours: f.hours, days: f.days.length, said, tiles: L.relTiles(c, f, cost).map(t => [t.k, t.v]),
         insights: R.reliabilityInsights(c, f).map(x => x.text), costWords: R.costWords(cost), verdict: f.verdict };
     }),
@@ -332,6 +334,40 @@ ok(page.url().endsWith('#/tools') && /Reliability/.test(await page.locator('.et-
   }, sd.reliabilityId);
   ok(ended.to !== undefined && ended.to === ended.at, '10 stopped at its last tap — the night not counted as watched', JSON.stringify(ended));
   await p.close();
+}
+
+/* ---- 11 its money to the model (knowledge/specs/FC-058-reliability-money.md; MONEY.md causation D): the two parts never
+   blended, contribution not margin, the packs counted lost only where the study's machine stops the line ---- */
+{
+  const s0 = await page.evaluate(async id => (await import('/src/db.ts')).getStudy(id), RID);
+  const ws0 = await page.evaluate(async id => (await import('/src/db.ts')).getWorkspace(id), s0.workspaceId);
+  const setLine = async ws => { await page.evaluate(async ws => { await (await import('/src/db.ts')).updateWorkspace(ws); }, ws); };
+  const setMachine = async m => { await page.evaluate(async ([id, m]) => { await (await import('/src/db.ts')).patchStudy(id, { machine: m }); }, [RID, m]); };
+  const neck = await page.evaluate(async ws => { const db = await import('/src/db.ts'); const { neckOf } = await import('/src/lib/lineLoss.ts'); return neckOf(await db.listAllStandards(), ws); }, s0.workspaceId);
+  ok(!!neck?.names?.length, '11 the study’s line has a bottleneck from Line capacity', JSON.stringify(neck));
+  await setLine({ ...ws0, crew: 4, labourRatePerHour: 12, labourBurden: 1.25, packsPerMin: 60, marginPerPack: 0.1 });
+  /* a machine that is not the bottleneck: labour only, the line runs round it */
+  await setMachine('Kit shelf');
+  await go(`#/reliability/${RID}`);
+  let t = await truth(RID);
+  let cost = flat(await page.locator('.rl-cost').innerText());
+  ok(cost === `What it costs: ${t.counts[0].costWords}.` && /of the crew’s time · no packs lost — Kit shelf is not the bottleneck, so the line runs round it/.test(cost) && !/packs not made/.test(cost),
+    '11 off the bottleneck — the crew’s time, no packs lost, said why', cost);
+  ok(JSON.stringify(await screenTiles()) === JSON.stringify(t.counts[0].tiles) && /labour$/.test(t.counts[0].tiles[4][1]), '11 the What it costs tile — the labour, as the module says', JSON.stringify(t.counts[0].tiles[4]));
+  /* the machine the bottleneck's: the packs and their contribution, two parts never blended */
+  await setMachine(neck.names[0]);
+  await go(`#/reliability/${RID}`);
+  t = await truth(RID);
+  cost = flat(await page.locator('.rl-cost').innerText());
+  ok(cost === `What it costs: ${t.counts[0].costWords}.` && new RegExp(`packs not made at ${neck.names[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}, the bottleneck \\(£[\\d.,]+ contribution\\)`).test(cost),
+    '11 on the bottleneck — the packs not made and their contribution', cost);
+  const cells = await page.locator('.rl-together tbody tr .rl-cost-cell').evaluateAll(es => es.map(e => e.textContent.trim()));
+  /* a count with no minutes stood typed says no money ("—"); the ones that do say the two parts */
+  const priced = cells.filter(c => c !== '—');
+  ok(cells.length === t.rowCosts.length && cells.every((c, i) => c === t.rowCosts[i]) && priced.length >= 1 && priced.every(c => /^£[\d.,]+ labour · £[\d.,]+ contribution$/.test(c)), '11 the side-by-side rows — the two parts, never a sum', JSON.stringify(cells));
+  const text = await pdfText(() => pressPaper(page, / — on paper$/));
+  ok(text.includes(flat(t.counts[0].costWords).slice(0, 60)) && priced.every(c => text.includes(c)), '11 the paper carries the sentence and the two parts', text.slice(0, 200));
+  await setMachine(s0.machine); await setLine(ws0);
 }
 
 ok(errs.length === 0, 'no console error anywhere', errs.join(' | '));

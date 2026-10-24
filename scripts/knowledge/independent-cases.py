@@ -224,3 +224,32 @@ def open_cost(minutes, crew=4, wage=14.5, burden=1.3, per_min=100, margin=0.04, 
     return lab, packs, (packs * margin if packs is not None else None)
 print("  20 min at the bottleneck ->", open_cost(20)); print("  20 min off the bottleneck ->", open_cost(20, stops=False)); print("  7.5 min on the line ->", open_cost(7.5))
 print("  the register: 20 + 10 (off the bottleneck) ->", open_cost(20)[0] + open_cost(10, stops=False)[0], "labour;", open_cost(20)[2], "contribution")
+
+print("  part 2 — rejects x materials a pack = materials a day; held packs x materials = tied up (not a daily loss)")
+def reject_cost(rejects, held, materials=0.12): return rejects * materials, held * materials
+print("  300 rejects, 1,200 held at 12p ->", reject_cost(300, 1200), "; the register 300 + 300 rejects, 1,200 held ->", reject_cost(600, 1200))
+
+# --- what a machine's failures cost (knowledge/specs/FC-058-reliability-money.md, 24 October) ---
+print("\n# failures an hour x minutes stood each = minutes stood an hour; / 60 x crew x wage x burden = labour; where it stops the line, x packs a minute = packs, x contribution a pack")
+def failure_cost(n, hours, down_min, crew=4, wage=12, burden=1.25, per_min=60, contrib=0.10, day_h=7.5, stops=True):
+    m = n / hours * down_min; lab = m / 60 * crew * wage * burden; packs = m * per_min if stops else None
+    c = packs * contrib if packs is not None else None
+    return (m, lab, packs, c), (lab * day_h, packs * day_h if packs is not None else None, c * day_h if c is not None else None)
+print("  4 stops in 2 h, 3 min each, at the bottleneck ->", failure_cost(4, 2, 3)); print("  off the bottleneck ->", failure_cost(4, 2, 3, stops=False))
+
+# --- what a run's shortfall is worth (knowledge/specs/FC-076-run-money.md, 24 October) ---
+print("\n# (agreed - net) x minutes run = packs short; x contribution a pack; a day of the line's shifts at that rate")
+def run_worth(agreed, packs, rejects, minutes, k=0.04, day_min=900):
+    net = (packs - rejects) / minutes; s = agreed - net; p = s * minutes
+    return s, p, p * k, s * day_min, s * day_min * k
+print("  60 agreed, 3150 packs 30 rejects in 60 min, 4p, 15 h day ->", run_worth(60, 3150, 30, 60))
+print("  the climb: 52 and 56 against 60, 60 min each ->", (60-52)*60 + (60-56)*60, "packs;", ((60-52)*60 + (60-56)*60) * 0.04)
+
+# --- what a 6M problem costs a week and what a countermeasure should be worth (knowledge/specs/FC-146-sixm-money.md, 24 October) ---
+print("\n# hours a week lost x the crew's rate = labour; where it stops the line, hours x 60 x rated speed = packs, x contribution a pack")
+def hours_cost(h, crew=5, wage=14.8, burden=1.3, per_min=60, margin=0.06, stops=True):
+    lab = h * crew * wage * burden; packs = h * 60 * per_min if stops else None
+    return lab, packs, (packs * margin if packs is not None else None)
+b, n, t = hours_cost(3), hours_cost(1.5), hours_cost(1)
+print("  3 h on the line ->", b, "; now 1.5 h ->", n, "; saved ->", (b[0]-n[0], b[1]-n[1], b[2]-n[2]), "; target 1 h worth ->", (b[0]-t[0], b[1]-t[1], b[2]-t[2]))
+print("  a countermeasure at 40% of 3 h ->", tuple(x*0.4 for x in b), "; the board at 70% ->", tuple(x*0.7 for x in b))

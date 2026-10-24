@@ -20,11 +20,14 @@ import { fmtGBP, fmtPacks, labourPerHour, ratedPerMin } from './cost';
 import { stopsTheLine, type Neck } from './lineLoss';
 import { contributionOf } from '../tools/losses/losses';
 
-export type CostLine = Pick<Workspace, 'crew' | 'labourRatePerHour' | 'labourBurden' | 'packsPerMin' | 'marginPerPack'>;
+export type CostLine = Pick<Workspace, 'crew' | 'labourRatePerHour' | 'labourBurden' | 'packsPerMin' | 'marginPerPack' | 'materialsPerPack'>;
 
 export interface ProblemCost {
-  /** The minutes a day typed on the problem. */
-  minutes: number;
+  /** The minutes a day typed on the problem (part 1); absent when only its rejects or held packs are said. */
+  minutes?: number;
+  /** Part 2 (M, H): the rejects a day it causes, at the line's materials a pack; the packs it holds, the money tied up in them. */
+  rejects?: number; materials?: number;
+  held?: number; tiedUp?: number;
   /** The machine it is on, if one is named. */
   machine?: string;
   /** Does it stop the line — its machine the bottleneck, the whole line, or none named? */
@@ -37,28 +40,42 @@ export interface ProblemCost {
   packs?: number;
   contribution?: number;
   /** What is missing, in the order it is asked. */
-  missing: ('wage' | 'speed' | 'margin')[];
+  missing: ('wage' | 'speed' | 'margin' | 'materials')[];
   /** The whole sentence (the editor, the card, the report); the short form (the row). */
   words: string;
   short: string;
 }
 
 /** The cost, or nothing until the minutes are typed. */
-export function problemCost(s: { minutesPerDay?: number }, machine: string | undefined, line: CostLine | undefined, neck: Neck | undefined): ProblemCost | undefined {
-  const minutes = s.minutesPerDay;
-  if (minutes == null || !(minutes > 0)) return undefined;
+const given = (v: number | undefined): v is number => v != null && Number.isFinite(v) && v > 0;
+
+export function problemCost(s: { minutesPerDay?: number; rejectsPerDay?: number; heldPacks?: number }, machine: string | undefined, line: CostLine | undefined, neck: Neck | undefined): ProblemCost | undefined {
+  const minutes = given(s.minutesPerDay) ? s.minutesPerDay : undefined;
+  const rejects = given(s.rejectsPerDay) ? s.rejectsPerDay : undefined;
+  const held = given(s.heldPacks) ? s.heldPacks : undefined;
+  if (minutes === undefined && rejects === undefined && held === undefined) return undefined;
   const m = machine?.trim() || undefined;
   const stopsLine = stopsTheLine({ asset: m ?? '' }, neck);
-  const out: ProblemCost = { minutes, ...(m ? { machine: m } : {}), stopsLine, neckKnown: !!neck, missing: [], words: '', short: '' };
-  const lab = line ? labourPerHour(line) : 0;
-  if (lab > 0) out.labour = (minutes / 60) * lab; else out.missing.push('wage');
-  if (stopsLine) {
-    const rate = line ? ratedPerMin(line) : undefined;
-    if (rate !== undefined) {
-      out.packs = minutes * rate;
-      const c = contributionOf(line);
-      if (c) out.contribution = out.packs * c.perPack; else out.missing.push('margin');
-    } else out.missing.push('speed');
+  const out: ProblemCost = { ...(minutes !== undefined ? { minutes } : {}), ...(m ? { machine: m } : {}), stopsLine, neckKnown: !!neck, missing: [], words: '', short: '' };
+  if (minutes !== undefined) {
+    const lab = line ? labourPerHour(line) : 0;
+    if (lab > 0) out.labour = (minutes / 60) * lab; else out.missing.push('wage');
+    if (stopsLine) {
+      const rate = line ? ratedPerMin(line) : undefined;
+      if (rate !== undefined) {
+        out.packs = minutes * rate;
+        const c = contributionOf(line);
+        if (c) out.contribution = out.packs * c.perPack; else out.missing.push('margin');
+      } else out.missing.push('speed');
+    }
+  }
+  /* part 2 — a reject costs its materials; product held is money tied up at its materials (cost.inventory-carrying-cost: not a daily loss) */
+  if (rejects !== undefined || held !== undefined) {
+    const u = line?.materialsPerPack;
+    const priced = u != null && Number.isFinite(u) && u >= 0;
+    if (rejects !== undefined) { out.rejects = rejects; if (priced) out.materials = rejects * u; }
+    if (held !== undefined) { out.held = held; if (priced) out.tiedUp = held * u; }
+    if (!priced) out.missing.push('materials');
   }
   out.words = wordsOf(out);
   out.short = shortOf(out);
@@ -78,35 +95,83 @@ function whereOf(c: ProblemCost): string {
   return c.stopsLine ? `at ${c.machine}, the bottleneck` : `at ${c.machine} — not the bottleneck, so the line runs round it`;
 }
 
-function wordsOf(c: ProblemCost): string {
+/** The minutes' sentence, without its full stop (part 1 — unchanged since 24 October). */
+function timeWords(c: ProblemCost & { minutes: number }): string {
   const head = `${minWord(c.minutes)} ${whereOf(c)}`;
   const parts = partsOf(c);
-  if (c.missing.includes('wage') && !parts) return `${head} — give the line a wage (Set up the line) to say it in money.`;
+  if (c.missing.includes('wage') && !parts) return `${head} — give the line a wage (Set up the line) to say it in money`;
   const asks = [
     c.missing.includes('wage') ? 'give the line a wage to say the labour' : '',
     c.missing.includes('speed') ? 'give the line a speed to say the packs lost' : '',
     c.missing.includes('margin') ? 'give the line a margin a pack to say the contribution lost' : '',
   ].filter(Boolean);
-  return `${head}: ${parts} a day${asks.length ? `; ${asks.join('; ')}` : ''}.`;
+  return `${head}: ${parts} a day${asks.length ? `; ${asks.join('; ')}` : ''}`;
+}
+
+const HELD_NOTE = 'tied up (not lost unless they go out of life)';
+const count = (n: number) => Math.round(n).toLocaleString('en-GB');
+
+/** The rejects' and the held product's sentence (part 2), without its full stop. */
+function stockWords(c: ProblemCost): string[] {
+  if (c.rejects === undefined && c.held === undefined) return [];
+  if (c.missing.includes('materials')) {
+    const what = [c.rejects !== undefined ? `${count(c.rejects)} rejects a day` : '', c.held !== undefined ? `${fmtPacks(c.held)} on hold` : ''].filter(Boolean).join(' and ');
+    return [`${what} — give the line a pack’s materials (Set up the line) to say them in money`];
+  }
+  return [
+    c.rejects !== undefined && c.materials !== undefined ? `${count(c.rejects)} rejects a day: ${fmtGBP(c.materials)} materials` : '',
+    c.held !== undefined && c.tiedUp !== undefined ? `${fmtPacks(c.held)} on hold: ${fmtGBP(c.tiedUp)} ${HELD_NOTE}` : '',
+  ].filter(Boolean);
+}
+
+function wordsOf(c: ProblemCost): string {
+  const bits = [...(c.minutes !== undefined ? [timeWords(c as ProblemCost & { minutes: number })] : []), ...stockWords(c)];
+  return `${bits.join('; ')}.`;
 }
 
 function shortOf(c: ProblemCost): string {
-  const parts = partsOf(c);
-  return parts ? `${parts} a day` : `${minWord(c.minutes)} — give the line a wage`;
+  const bits: string[] = [];
+  if (c.minutes !== undefined) { const parts = partsOf(c); bits.push(parts ? `${parts} a day` : `${minWord(c.minutes)} — give the line a wage`); }
+  if (c.materials !== undefined) bits.push(`${fmtGBP(c.materials)} materials a day`);
+  if (c.tiedUp !== undefined) bits.push(`${fmtGBP(c.tiedUp)} tied up`);
+  if ((c.rejects !== undefined || c.held !== undefined) && c.missing.includes('materials')) bits.push('give the line a pack’s materials');
+  return bits.join(' · ');
 }
 
 /** THE REGISTER'S SUM — what the open problems that say their minutes cost a day, and how many say them. */
-export interface RegisterCost { open: number; said: number; labour: number; contribution: number; packs: number; words: string }
+export interface RegisterCost { open: number; said: number; labour: number; contribution: number; packs: number; /** part 2: the open problems' rejects in materials a day, and the product they hold */ materials: number; tiedUp: number; words: string }
 
 export function registerCost(rows: readonly { status: string; cost?: ProblemCost }[]): RegisterCost {
   const open = rows.filter(r => r.status !== 'closed');
   const said = open.filter(r => r.cost);
-  const labour = said.reduce((n, r) => n + (r.cost?.labour ?? 0), 0);
-  const contribution = said.reduce((n, r) => n + (r.cost?.contribution ?? 0), 0);
-  const packs = said.reduce((n, r) => n + (r.cost?.packs ?? 0), 0);
+  const timeSaid = said.filter(r => r.cost?.minutes !== undefined);
+  const labour = timeSaid.reduce((n, r) => n + (r.cost?.labour ?? 0), 0);
+  const contribution = timeSaid.reduce((n, r) => n + (r.cost?.contribution ?? 0), 0);
+  const packs = timeSaid.reduce((n, r) => n + (r.cost?.packs ?? 0), 0);
+  /* part 2 — the rejects in materials a day, the product held as money tied up */
+  const rej = said.filter(r => r.cost?.materials !== undefined), hold = said.filter(r => r.cost?.tiedUp !== undefined);
+  const materials = rej.reduce((n, r) => n + (r.cost?.materials ?? 0), 0);
+  const tiedUp = hold.reduce((n, r) => n + (r.cost?.tiedUp ?? 0), 0);
+  const askMaterials = said.some(r => r.cost?.missing.includes('materials'));
+  const anyStock = said.some(r => r.cost?.rejects !== undefined || r.cost?.held !== undefined);
+  const out: RegisterCost = { open: open.length, said: said.length, labour, contribution, packs, materials, tiedUp, words: '' };
+  if (!said.length) return out;
   const money = [labour > 0 ? `${fmtGBP(labour)} labour` : '', contribution > 0 ? `${fmtGBP(contribution)} contribution` : ''].filter(Boolean).join(' and ');
-  const words = !said.length ? '' : money
-    ? `The ${said.length} open ${said.length === 1 ? 'problem that says its' : 'problems that say their'} minutes cost the line ${money} a day${packs > 0 ? ` (${fmtPacks(packs)} not made)` : ''}${open.length > said.length ? ` — ${open.length - said.length} more say no minutes yet` : ''}.`
-    : `${said.length} open ${said.length === 1 ? 'problem says its' : 'problems say their'} minutes a day; give the line a wage (Set up the line) to say them in money.`;
-  return { open: open.length, said: said.length, labour, contribution, packs, words };
+  const one = timeSaid.length === 1;
+  const time = !timeSaid.length ? ''
+    : money ? `The ${timeSaid.length} open ${one ? 'problem that says its' : 'problems that say their'} minutes cost the line ${money} a day${packs > 0 ? ` (${fmtPacks(packs)} not made)` : ''}`
+    : `${timeSaid.length} open ${one ? 'problem says its' : 'problems say their'} minutes a day; give the line a wage (Set up the line) to say them in money`;
+  const stock = [
+    rej.length ? `${rej.length} ${rej.length === 1 ? 'says its' : 'say their'} rejects: ${fmtGBP(materials)} materials a day` : '',
+    hold.length ? `${hold.length} ${hold.length === 1 ? 'holds' : 'hold'} ${fmtGBP(tiedUp)} of product` : '',
+    askMaterials ? 'give the line a pack’s materials (Set up the line) to price the rejects and the product held' : '',
+  ].filter(Boolean);
+  const rest = open.length > said.length ? ` — ${open.length - said.length} more say no ${anyStock ? 'cost' : 'minutes'} yet` : '';
+  if (!time && !rej.length && !hold.length) {
+    /* only rejects or held product said, and the line cannot price them yet */
+    out.words = `${said.length} open ${said.length === 1 ? 'problem says its' : 'problems say their'} rejects or product held; give the line a pack’s materials (Set up the line) to price them${rest}.`;
+    return out;
+  }
+  out.words = `${time || 'Of the open problems'}${stock.length ? `; ${stock.join('; ')}` : ''}${rest}.`;
+  return out;
 }

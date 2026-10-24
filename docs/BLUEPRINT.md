@@ -621,8 +621,26 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   problem-cost.md`): the minutes a day a problem costs the line, typed in
   its editor, said in the loss count's two parts — labour, and packs and
   contribution where it stops the line — on the row, the card, the report
-  and the closing line's sum; the wage, speed or margin named when missing.
-- **Missing — the next piece, tool by tool:** the problems register's rejects and held product, then
+  and the closing line's sum; the wage, speed or margin named when missing;
+  and, the same day, the rejects a day it causes at the line's materials a
+  pack and the product it holds as money tied up (not lost unless it goes
+  out of life), the pack's materials typed once in *Set up the line*.
+  And the **Reliability study** (24 October, `knowledge/specs/FC-058-
+  reliability-money.md`): its money brought to the model — the two parts
+  never blended on the tile, the row and the closing line, contribution not
+  margin, and the packs counted lost only where the study's machine stops
+  the line (the bottleneck, or not known yet and said so).
+  And the **performance run and the climb** (24 October, `knowledge/specs/
+  FC-076-run-money.md`): a product short on its rate says the packs short
+  over the run and a day of the line's shifts at that rate, in contribution;
+  the climb what its runs below the rate have cost so far — on the run's
+  row, the test's card and the client report; the margin asked when missing.
+  And the **6M** (24 October, `knowledge/specs/FC-146-sixm-money.md`): the
+  problem's hours a week in money by its line's cost model — before, now,
+  the target's worth, the saving so far — on its card and the 6M report; a
+  countermeasure asked how much of the problem it should remove, its worth
+  on the fishbone, the board's sheet and the report.
+- **Missing — the next piece, tool by tool:** the problems register's rejects and held product, the 6M's lean tiles, then
   (what each problem costs while it is open), a 6M countermeasure (what it
   is worth — before → after in money).
 

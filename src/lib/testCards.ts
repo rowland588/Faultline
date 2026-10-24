@@ -11,7 +11,7 @@
  * line itself last, then by day — Commission's tests its latest attempts
  * (lib/testing latestAttempts, as the board and the client report count
  * them); each card numbers its own pages. */
-import { listAssets, listStudies, listTestItems, listTests } from '../db';
+import { allPaceLines, listAssets, listStudies, listTestItems, listTests, listWorkspaces } from '../db';
 import { gateOf, itemsOf, latestAttempts, type Asset, type StepGate, type Test } from './testing';
 
 /** Which board: Commission's tests, or one gate's steps. */
@@ -35,7 +35,8 @@ export async function saveBoardCards(projectId: string, project: { name: string;
   const { shotsOf } = await import('./testReport');
   const { pdfFileName } = await import('./fileName');
   const { todayISO } = await import('./weeks');
-  const [tests, items, assets, studies] = await Promise.all([listTests(projectId), listTestItems(projectId), listAssets(projectId), listStudies(projectId)]);
+  const [tests, items, assets, studies, paceLines, workspaces] = await Promise.all([listTests(projectId), listTestItems(projectId), listAssets(projectId), listStudies(projectId), allPaceLines(), listWorkspaces()]);
+  const { runLineOf } = await import('./runMoney');
   const list = boardOrder(tests, assets, board);
   if (!list.length) return 0;
   const { jsPDF } = await loadPdfLib();
@@ -44,7 +45,7 @@ export async function saveBoardCards(projectId: string, project: { name: string;
   for (let i = 0; i < list.length; i++) {
     const t = list[i];
     if (i > 0) doc.addPage('a4', 'landscape');
-    const c = trialCard(t, tests, items, assets, studies);
+    const c = trialCard(t, tests, items, assets, studies, runLineOf(t, assets, paceLines, workspaces));
     const shots = await shotsOf([...(t.media ?? []), ...itemsOf(items, t.id, 'found').flatMap(x => x.media ?? [])]);
     drawTrialCard(doc, c, { project: project.name, lead: project.lead, builtAt, shots });
   }

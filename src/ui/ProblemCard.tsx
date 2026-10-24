@@ -27,6 +27,7 @@
  * Say the whys under it) and its FIX (ChainFix — the same FixRows, + Add a
  * fix); the problem panel is this card with chainsOnFish, its chains left on
  * the fish. One set of words and controls, wherever they are drawn. */
+import { counterWorth } from '../lib/sixmMoney';
 import { useState, type ReactNode } from 'react';
 import type { Can } from '../lib/access';
 import type { ProblemView } from '../lib/problems';
@@ -270,6 +271,8 @@ export function ProblemPart({ view: v, facts, can, onRetitle }: ProblemCardProps
         </form>
       )}
       {v.measure && <p className="pc-num"><Measure m={v.measure} /></p>}
+      {/* the same in money — one output beside the number, never the headline (lib/sixmMoney, FC-146) */}
+      {v.money && <p className="ie-say ie-money pc-money">{v.money.words}</p>}
       {v.says && v.says !== v.problem.title && <p className="pc-says">{v.says}</p>}
       {src && (
         <p className="pc-src">
@@ -558,6 +561,7 @@ export function FixRows({ view: v, fixes, onOpenFix }: { view: ProblemView; fixe
               <span className="cs-cm-main">
                 <span className="cs-cm-t">{a.action || a.problem || 'An action with no words yet'}</span>
                 {a.expect && <span className="cs-cm-x">Should change: {a.expect}</span>}
+                {(() => { const w = counterWorth(a.expectPct, v.money); return w ? <span className="cs-cm-x cs-cm-worth">{w.words}</span> : null; })()}
                 <span className="cs-cm-s">
                   {[a.owner || a.who || 'No one named', a.due ? `due ${a.due}` : 'no date'].join(' · ')} · <span className={'cs-cm-st is-' + t}>{FIX_STATE[t]}</span>
                 </span>
@@ -619,6 +623,7 @@ export function WorkedPart({ view: v, can, steps, onClose, onReopen, onClosedOn,
         state={!open || v.phase === 'proving' ? PHASE_WORD[v.phase] : undefined} />
       <p className={'pc-moved is-' + w.tone}>
         {m && (m.before != null || m.now != null) && <Measure m={m} />}
+        {v.money && <span className="ie-say ie-money pc-money">{v.money.words}</span>}
         <b>{w.text}</b>
       </p>
       {told.length > 0 && (

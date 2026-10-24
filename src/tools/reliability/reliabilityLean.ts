@@ -6,7 +6,7 @@
  * amber not yet sure, red short; without one it is grey, the team's to judge. */
 import { niceDay } from '../../lib/weeks';
 import { since, type LeanTile, type LeanTone, type LeanTrend } from '../../lib/lean';
-import { countTitle, dayPoints, perHour, plural, relCost, reliabilitySays, span, worstTone, type RelCost, type RelCostLine, type RelFigures, type RelItem, type RelSays, type RelSubject } from './reliability';
+import { costParts, costWhere, countTitle, dayPoints, perHour, plural, relCost, reliabilitySays, span, worstTone, type RelCost, type RelCostLine, type RelFigures, type RelItem, type RelSays, type RelSubject, type RelWhere } from './reliability';
 
 const gbp = (n: number): string => `£${n >= 100 ? Math.round(n).toLocaleString('en-GB') : n.toFixed(2)}`;
 const TONE: Record<NonNullable<RelFigures['verdict']>, LeanTone> = { met: 'g', 'met-unsure': 'a', 'short-unsure': 'a', short: 'r' };
@@ -31,8 +31,10 @@ export function relTiles(a: RelSubject, f: RelFigures, c: RelCost): LeanTile[] {
     { k: 'Watched', v: span(f.hours), of: `${f.stretches} stretch${f.stretches === 1 ? '' : 'es'} of the watch over ${f.days.length} day${f.days.length === 1 ? '' : 's'}${f.runningSince ? ' · running now' : ''}` },
     { k: plural(ev, 2).replace(/^./, x => x.toUpperCase()), v: String(f.n), of: [`counted in watched time`, f.struck ? `${f.struck} struck` : '', f.outside ? `${f.outside} while the watch was stopped` : ''].filter(Boolean).join(' · '),
       ...(f.outside ? { tone: 'a' as LeanTone } : {}) },
-    c.labourPerH !== undefined || c.marginPerH !== undefined
-      ? { k: 'What it costs', v: gbp((c.labourPerH ?? 0) + (c.marginPerH ?? 0)), of: `an hour of running — ${[c.labourPerH !== undefined ? `${gbp(c.labourPerH)} of the crew’s time` : '', c.marginPerH !== undefined ? `${gbp(c.marginPerH)} margin where it stops the line` : ''].filter(Boolean).join(' + ')}, at ${a.downMin} min a ${ev}` }
+    /* the two parts, never blended: the labour the value (every machine stands the crew), the contribution beside it where the machine stops the line */
+    c.labourPerH !== undefined || c.contributionPerH !== undefined
+      ? { k: 'What it costs', v: c.labourPerH !== undefined ? `${gbp(c.labourPerH)} labour` : `${gbp(c.contributionPerH ?? 0)} contribution`,
+        of: `an hour of running${c.labourPerH !== undefined && c.contributionPerH !== undefined ? ` · ${gbp(c.contributionPerH)} contribution` : ''}${c.packsPerH !== undefined ? ` (${Math.round(c.packsPerH).toLocaleString('en-GB')} packs ${costWhere(c)})` : !c.stopsLine ? ` — ${costWhere(c)}` : ''}, at ${a.downMin} min a ${ev}` }
       : { k: 'What it costs', v: '—', of: f.rate === undefined ? 'said once there is a rate' : `give ${c.missing[0] ?? 'the line its cost'}` },
   ];
 }
@@ -50,18 +52,19 @@ export function relTrend(a: RelSubject, f: RelFigures): LeanTrend | undefined {
 export function relClosing(a: RelSubject, f: RelFigures, c: RelCost, said: RelSays): { text: string; tone: LeanTone } {
   if (f.mtbfH === undefined) return { text: said.text, tone: said.tone };
   const ev = a.event.trim() || 'event';
-  const money = c.labourPerH !== undefined || c.marginPerH !== undefined ? ` — ${gbp((c.labourPerH ?? 0) + (c.marginPerH ?? 0))} an hour of running` : '';
+  const parts = costParts(c);
+  const money = parts ? ` — ${parts} an hour of running` : '';
   const top = f.kinds.find(k => k.kind !== 'not said');
   return { text: `One ${ev} every ${span(f.mtbfH)} of running, ${perHour(f.rate ?? 0)}${money}${top ? `; the most, ${top.kind} (${top.n} of ${f.n})` : ''}.`, tone: said.tone };
 }
 
 /** THE CLOSING LINE OF THE STUDY — one count's, or each count's in turn, in
  *  the most abnormal count's tone. */
-export function relClosings(items: readonly RelItem[], line?: RelCostLine): { text: string; tone: LeanTone } {
+export function relClosings(items: readonly RelItem[], line?: RelCostLine, where?: RelWhere): { text: string; tone: LeanTone } {
   if (!items.length) return { text: 'Say what is counted, then start the watch at the machine.', tone: 'n' };
   const each = items.map(({ c, f }) => {
     const said = reliabilitySays(c, f);
-    return { ...relClosing(c, f, relCost(f, c, line), said), title: countTitle(c) };
+    return { ...relClosing(c, f, relCost(f, c, line, where), said), title: countTitle(c) };
   });
   if (each.length === 1) return { text: each[0].text, tone: each[0].tone };
   return { text: each.map(x => `${x.title}: ${x.text.charAt(0).toLowerCase()}${x.text.slice(1).replace(/\.$/, '')}`).join('; ') + '.', tone: worstTone(each.map(x => x.tone)) };

@@ -11,7 +11,7 @@
  * scope (what it is of, and the same limits), the latest on each side, and
  * enough readings on both. It says "the number moved", never "the fix did
  * it" — that is the fix's to say, and a person presses the button. */
-import type { ID, Observation } from '../types';
+import type { ID, Observation, Workspace } from '../types';
 import type { BalanceStep, ChangeoverStep, FlowStep, StudyUse, ToolStudy } from './study';
 import type { PaceTodoRow } from '../db/rows';
 import type { SixM } from './sixm';
@@ -34,7 +34,7 @@ const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 export interface StudyContext {
   observations?: Observation[];
   /** The lines — their cost model (lib/cost) is read for the pounds. */
-  workspaces?: ({ id: string } & CostModel)[];
+  workspaces?: ({ id: string } & CostModel & Partial<Pick<Workspace, 'name' | 'packsPerMin' | 'shifts'>>)[];
 }
 
 /** A loss count's figures from its facts and what the context holds of its line. */

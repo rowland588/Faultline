@@ -81,6 +81,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Problems — one open, its editor', path: `#/snags?open=${sd.snagId}`, must: [
     { what: 'the box — minutes a day it costs the line (24 October, FC-154)', sel: '[aria-label="Minutes a day it costs the line"]' },
+    { what: 'the boxes — rejects a day because of it, packs on hold because of it (FC-154 part 2)', sel: '[aria-label="Rejects a day because of it"], [aria-label="Packs on hold because of it"]', n: 2 },
     { what: 'what that is in money, or the ask', sel: '.pe-cost' },
   ] },
   { name: 'A stage-gate project — its front page', path: `#/project/${sd.projectId}`, must: [
@@ -167,6 +168,10 @@ export const PAGES = (sd, cap) => [
   { name: 'The client report — a 6M project', path: `#/pace-report?project=${sd.pacedProjectId}`, must: [
     { what: 'the page header — Download', sel: '.part-head .btn-primary', text: /^Download/ },
     { what: 'its two papers to choose', sel: '.cr-which .chip', n: 2 }] },
+  /* a problem read through (24 October, FC-146): its hours a week in money by the line's cost model on its card — or which input the line is missing */
+  { name: 'A 6M project — a problem read through', path: `#/project/${sd.pacedProjectId}/fishbone?line=${sd.pacedLineId}&problem=${sd.problemId}&view=read`, must: [
+    { what: 'the problem card — its number in money (or the missing input named)', sel: '.pc-money', text: /labour|wage|speed|margin/ },
+  ] },
   { name: 'A 6M project — its front page', path: `#/project/${sd.pacedProjectId}`, must: [
     /* this week and next (23 October, docs/JOURNEY.md): done · still to do · planned, opening the journey */
     { what: 'This week and next — opening the journey', sel: '.jn-week button', text: /^Open the journey/ },
