@@ -20,7 +20,7 @@ import { getWorkspace, listAllStudies, onDataChange } from '../db';
 import { nav } from '../state/useRoute';
 import { analyse, fmtMoney, labourCost, labourInputs, shiftCapacity, shiftsIn, type CapacityResult, type ChangeoverIn, type ShiftIn } from '../lib/capacity';
 import { fmtN, oneOf } from '../lib/capacityWords';
-import { changeoverIn } from '../lib/ie/changeover';
+import { changeoverIn } from '../tools/changeover/changeover';
 import { studyHref } from '../lib/studyLinks';
 import type { StandardChangeover, ToolStudy } from '../lib/study';
 import { headcount, type Standard } from '../lib/standard';

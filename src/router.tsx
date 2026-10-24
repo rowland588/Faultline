@@ -51,7 +51,7 @@ const LineToolsScreen = lazy(() => import('./screens/LineToolsScreen').then(m =>
 const StudiesScreen = lazy(() => import('./screens/StudiesScreen').then(m => ({ default: m.StudiesScreen })));
 const StudyScreen = lazy(() => import('./screens/StudyScreen').then(m => ({ default: m.StudyScreen })));
 const MapScreen = lazy(() => import('./screens/MapScreen').then(m => ({ default: m.MapScreen })));
-const ChangeoverScreen = lazy(() => import('./screens/ChangeoverScreen').then(m => ({ default: m.ChangeoverScreen })));
+const ChangeoverScreen = lazy(() => import('./tools/changeover/ChangeoverScreen').then(m => ({ default: m.ChangeoverScreen })));
 const ReliabilityScreen = lazy(() => import('./tools/reliability/ReliabilityScreen').then(m => ({ default: m.ReliabilityScreen })));
 /* the directory reads the whole catalogue — on its own, so it never weighs on the rest */
 const ToolsScreen = lazy(() => import('./screens/ToolsScreen').then(m => ({ default: m.ToolsScreen })));

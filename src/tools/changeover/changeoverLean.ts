@@ -11,9 +11,9 @@
  * runs; what the plan takes it to, against single-digit minutes; what the
  * changeovers stop the line a week (a year when its weeks are said) in packs
  * and pounds; and what the plan buys back. Missing, said: never a guess. */
-import { planOrder, type LeanAction, type LeanPage, type LeanTile, type LeanTone } from '../lean';
-import type { ChangeoverStep, StandardChangeover, ToolStudy } from '../study';
-import { niceDay, todayISO } from '../weeks';
+import { planOrder, type LeanAction, type LeanPage, type LeanTile, type LeanTone } from '../../lib/lean';
+import type { ChangeoverStep, StandardChangeover, ToolStudy } from '../../lib/study';
+import { niceDay, todayISO } from '../../lib/weeks';
 import {
   actionWords, changeoversPer, costOf, extrapolate, mins, onTarget, poundsOf, RUNG_WORD, runningOf, SMED_TARGET_SEC, span,
   type ChangeoverFigures, type ChangeoverSays, type Cost, type CostScale, type Ladder, type Rung, type SmedMoney,

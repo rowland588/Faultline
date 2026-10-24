@@ -41,7 +41,7 @@ import { boneOfStep, currentBalance, currentLosses, currentSampling, lossFigures
 import { boneOfActivity, samplingLine, samplingOffers, worstWords } from '../tools/sampling/sampling';
 import { idealWord, minWords, shiftWords, type LossBar } from '../tools/losses/losses';
 import { dur, flowFigures, stepAt, stepFigure, valueOf, waitOf, whereOf } from './ie/steps';
-import { figuresOf, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
+import { figuresOf, mins, stepFigure as changeoverStepFigure } from '../tools/changeover/changeover';
 import { stateOf as materialState, daysLate } from './materials';
 import { standingOf, stateOf as programState, daysOverdue } from './programs';
 import { bySort, lineSeries, say, seriesFor } from './measures';

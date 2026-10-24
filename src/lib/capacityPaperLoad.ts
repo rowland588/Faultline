@@ -11,7 +11,7 @@ import type { jsPDF } from 'jspdf';
 import { allProjects, listAllStudies, listWorkspaces } from '../db';
 import { analyse, labourInputs, shiftsIn } from './capacity';
 import { capacityPaper, type CapacityPaper } from './capacityPaper';
-import { changeoverIn } from './ie/changeover';
+import { changeoverIn } from '../tools/changeover/changeover';
 import { walkVerdict } from './ie/walk';
 import { balance, balanceSays } from './ie/balance';
 import { currentBalance } from './studyLinks';

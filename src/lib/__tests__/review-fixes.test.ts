@@ -6,7 +6,7 @@ import { analyse, screenCapacity, shiftCapacity, vCurve, type Capacity, type Sta
 import { readRun, runLine, runShort } from '../run';
 import { quarters } from '../measures';
 import { gantt } from '../gantt';
-import { actionWords, planWords } from '../ie/changeover';
+import { actionWords, planWords } from '../../tools/changeover/changeover';
 
 type ChangeoverStep = Parameters<typeof planWords>[0];
 

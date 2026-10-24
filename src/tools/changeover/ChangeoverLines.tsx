@@ -10,15 +10,15 @@
  * product, on its line and its job, and opens it. Only the abnormal — external
  * work still done with the line stopped — carries colour. */
 import { useCallback, useEffect, useState } from 'react';
-import { getStudy, listAllStudies, onDataChange, putStudy } from '../db';
-import { now, uid } from '../lib/ids';
-import { niceDay, isoDay } from '../lib/weeks';
-import { nav } from '../state/useRoute';
-import type { Standard } from '../lib/standard';
-import type { Can } from '../lib/access';
-import type { ToolStudy } from '../lib/study';
-import { standardLine } from '../lib/ie/changeover';
-import { changeoverLine, currentChangeover, studyHref } from '../lib/studyLinks';
+import { getStudy, listAllStudies, onDataChange, putStudy } from '../../db';
+import { now, uid } from '../../lib/ids';
+import { niceDay, isoDay } from '../../lib/weeks';
+import { nav } from '../../state/useRoute';
+import type { Standard } from '../../lib/standard';
+import type { Can } from '../../lib/access';
+import type { ToolStudy } from '../../lib/study';
+import { standardLine } from './changeover';
+import { changeoverLine, currentChangeover, studyHref } from '../../lib/studyLinks';
 
 const day = (ms: number) => niceDay(isoDay(ms));
 

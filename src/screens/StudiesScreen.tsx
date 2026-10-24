@@ -33,7 +33,7 @@ import { useAccess } from '../cloud/access';
 import { can as canOf } from '../lib/access';
 import { rateForCount } from '../ui/ShiftLosses';
 import { dur, flowFigures, share } from '../lib/ie/steps';
-import { changeoverFigures, changeoverSays, figuresOf, mins } from '../lib/ie/changeover';
+import { changeoverFigures, changeoverSays, figuresOf, mins } from '../tools/changeover/changeover';
 import { samplingSays } from '../tools/sampling/sampling';
 import { plural, relAll, span, studyReliabilitySays } from '../tools/reliability/reliability';
 import { firstCount, lossLine, windowWords } from '../tools/losses/losses';

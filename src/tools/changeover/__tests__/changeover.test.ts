@@ -36,7 +36,7 @@ import {
   countWord, extrapolate, extrapolationSays, figuresOf, functionSays, functionShares, intervalOf, intervalSays, ladderOf, ladderSays, mins, planWords, actionWords,
   runMinOf, runningOf, span, standardFrom, standardLine, stepFigure, SMED_TARGET_SEC, onTarget, runningWords, patternFromShifts, lineRateOf, rateFromWords, moneyOf, scaleRows, scaleSays,
 } from '../changeover';
-import type { ChangeoverProduct, ChangeoverStep } from '../../study';
+import type { ChangeoverProduct, ChangeoverStep } from '../../../lib/study';
 
 let n = 0;
 const st = (name: string, min: number, side: ChangeoverStep['side'] = 'internal', source: ChangeoverStep['source'] = 'timed'): ChangeoverStep =>

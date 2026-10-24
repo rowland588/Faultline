@@ -22,8 +22,8 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, font, gap, label, rows, text, wrap } from './report/blocks';
 import { streamBlocks } from './report/streamTable';
 import { changeoverBlocks } from './report/changeoverTable';
-import { agreedFor as agreedForChangeover, changeoverSays, extrapolationSays, figuresOf, ladderOf, moneyOf } from './ie/changeover';
-import { smedLean } from './ie/changeoverLean';
+import { agreedFor as agreedForChangeover, changeoverSays, extrapolationSays, figuresOf, ladderOf, moneyOf } from '../tools/changeover/changeover';
+import { smedLean } from '../tools/changeover/changeoverLean';
 import { sampleClosing, sampleTiles } from './ie/sampleLean';
 import { momentsAt, personRate, samplingClosing, samplingTiles } from '../tools/sampling/samplingLean';
 import { flowClosing, flowTiles } from './ie/flowLean';

@@ -87,7 +87,7 @@ const dialog = () => page.locator('[role="dialog"]').last();
    its line's cost settings, as the page reads them. */
 const truth = sid => page.evaluate(async sid => {
   const { getStudy, getStandard, getWorkspace } = await import('/src/db.ts');
-  const C = await import('/src/lib/ie/changeover.ts'); const L = await import('/src/lib/studyLinks.ts');
+  const C = await import('/src/tools/changeover/changeover.ts'); const L = await import('/src/lib/studyLinks.ts');
   const s = await getStudy(sid);
   if (!s) return null;
   const std = s.standardId ? await getStandard(s.standardId) : undefined;
@@ -355,7 +355,7 @@ await page.getByRole('button', { name: 'Close' }).last().click().catch(() => {})
   const san = s => s.replace(/→/g, 'to').replace(/[–—−]/g, '-').replace(/\s+/g, ' ');
   const has = s => san(txt).includes(san(s).slice(0, 60));
   const sheet = await page.evaluate(async ([sid, fid, pid, stdId]) => {
-    const { getStudy, listTests, getStandard, getWorkspace } = await import('/src/db.ts'); const C = await import('/src/lib/ie/changeover.ts');
+    const { getStudy, listTests, getStandard, getWorkspace } = await import('/src/db.ts'); const C = await import('/src/tools/changeover/changeover.ts');
     const s = await getStudy(sid); const fx = (await listTests(pid)).find(x => x.id === fid); const std = await getStandard(stdId);
     return C.changeoverSheet(s.facts, C.agreedFor(std?.capacity?.changeovers, s.facts.fromProduct), new Map(s.uses.filter(u => u.step).map(u => [u.step, fx?.title ?? ''])),
       C.moneyOf(s.workspaceId ? await getWorkspace(s.workspaceId) : undefined));

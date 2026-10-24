@@ -27,33 +27,33 @@
  * lib/ie/changeover on each render. A chip writes on its tap; a box writes
  * when it is left, never on a keystroke. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStudy, getWorkspace, listStandardsForLine, onDataChange, patchStudy, putStandard } from '../db';
-import { useAccess } from '../cloud/access';
-import { useSession } from '../cloud/session';
-import { displayName } from '../cloud/team';
-import { can as canAt, type Can } from '../lib/access';
-import { now, uid } from '../lib/ids';
-import { niceDay, isoDay } from '../lib/weeks';
-import { nav } from '../state/useRoute';
-import { peopleOf, type Standard } from '../lib/standard';
+import { getStudy, getWorkspace, listStandardsForLine, onDataChange, patchStudy, putStandard } from '../../db';
+import { useAccess } from '../../cloud/access';
+import { useSession } from '../../cloud/session';
+import { displayName } from '../../cloud/team';
+import { can as canAt, type Can } from '../../lib/access';
+import { now, uid } from '../../lib/ids';
+import { niceDay, isoDay } from '../../lib/weeks';
+import { nav } from '../../state/useRoute';
+import { peopleOf, type Standard } from '../../lib/standard';
 import {
   actionWords, agreedFor, availableOf, changeoversPer, changeoverSays, checklistOf, CONVERT_HOW, extrapolate, extrapolationSays, figuresOf, FN_WORD, FNS, functionSays,
   HOW_WORD, intervalOf, intervalSays, ladderOf, ladderSays, lineRateOf, mins, moneyOf, patternFromShifts, planWords, rateFromWords, runMinOf, runningOf, runningWords, span,
   SMED_TARGET_SEC, standardFrom, standardLine, STREAMLINE_HOW, whenIn, costOf, scaleRows, type CostScale, type Ladder, type CoLaneBy, type Rung, type SmedMoney,
-} from '../lib/ie/changeover';
-import { dur, parseDur } from '../lib/ie/steps';
-import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, SmedFunction, SmedHow, SmedPlan, SmedPlanKind, SmedRateFrom, StudyFacts, StudyUse, ToolStudy } from '../lib/study';
-import type { Workspace } from '../types';
-import { UsedFor, useBetter, WhereItSits } from '../ui/StudyPlace';
-import { StudyBand } from '../ui/StudyActs';
-import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
-import { smedLean } from '../lib/ie/changeoverLean';
-import { raisedFrom } from '../tools/losses/lossLean';
-import { recordHref } from '../lib/studyLinks';
-import { Sheet } from '../ui/Sheet';
-import { SmedGrid } from '../ui/SmedGrid';
-import { useLineRecords } from '../lib/useLineRecords';
-import { machinesOf } from '../lib/lineRecords';
+} from './changeover';
+import { dur, parseDur } from '../../lib/ie/steps';
+import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, SmedFunction, SmedHow, SmedPlan, SmedPlanKind, SmedRateFrom, StudyFacts, StudyUse, ToolStudy } from '../../lib/study';
+import type { Workspace } from '../../types';
+import { UsedFor, useBetter, WhereItSits } from '../../ui/StudyPlace';
+import { StudyBand } from '../../ui/StudyActs';
+import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
+import { smedLean } from './changeoverLean';
+import { raisedFrom } from '../losses/lossLean';
+import { recordHref } from '../../lib/studyLinks';
+import { Sheet } from '../../ui/Sheet';
+import { SmedGrid } from './SmedGrid';
+import { useLineRecords } from '../../lib/useLineRecords';
+import { machinesOf } from '../../lib/lineRecords';
 
 const OWNER = canAt('owner');
 const day = (ms: number) => niceDay(isoDay(ms));

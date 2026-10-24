@@ -49,7 +49,7 @@ import type { ToolStudy } from './study';
 import { constraintOfBars } from './lineRead';
 import { lossFiguresOf, provedLine, recordProvedLine, studyHref, studyLine, studyTitle, type StudyContext } from './studyLinks';
 import { streamRows } from './ie/steps';
-import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
+import { agreedFor, changeoverSheet, moneyOf } from '../tools/changeover/changeover';
 import { lossRows } from '../tools/losses/losses';
 import { samplingRows } from '../tools/sampling/sampling';
 

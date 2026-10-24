@@ -655,7 +655,7 @@ for (const size of SIXM_SIZES) {
          and what it says — and a value stream's steps as a table. */
       from = 'evidence';
       const { streamRows } = await import('/src/lib/ie/steps.ts');
-      const { changeoverSheet, agreedFor, moneyOf } = await import('/src/lib/ie/changeover.ts');
+      const { changeoverSheet, agreedFor, moneyOf } = await import('/src/tools/changeover/changeover.ts');
       const { lossRows } = await import('/src/tools/losses/losses.ts');
       const { samplingRows } = await import('/src/tools/sampling/sampling.ts');
       for (const st of loaded.data.studies.filter(x => !x.deletedAt && (!lineId || (x.workspaceId && ws.has(x.workspaceId))))) {
@@ -882,7 +882,7 @@ for (const size of SIZES) {
     const { san } = await import('/src/lib/reportKit.ts');
     await (await import('/src/lib/savePdf.ts')).loadPdfLib();
     const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
-    const { changeoverIn } = await import('/src/lib/ie/changeover.ts');
+    const { changeoverIn } = await import('/src/tools/changeover/changeover.ts');
     const { walkVerdict } = await import('/src/lib/ie/walk.ts');
     const B = await import('/src/lib/ie/balance.ts');
     const { currentBalance } = await import('/src/lib/studyLinks.ts');

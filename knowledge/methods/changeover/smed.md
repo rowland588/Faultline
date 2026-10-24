@@ -6,7 +6,7 @@ discipline: changeover
 kind: established
 evidence: textbook
 depth: full
-checked: 2026-10-22 — Shingo (1985) as the method's source; Faultline's version (a grid of who does what, the ladder, the cost) in docs/TOOLKIT.md tool 6 and CLAUDE.md "SMED is a tool"; proved by src/lib/ie/__tests__/changeover.test.ts and scripts/acceptance/changeover.mjs
+checked: 2026-10-22 — Shingo (1985) as the method's source; Faultline's version (a grid of who does what, the ladder, the cost) in docs/TOOLKIT.md tool 6 and CLAUDE.md "SMED is a tool"; proved by src/tools/changeover/__tests__/changeover.test.ts and scripts/acceptance/changeover.mjs
 needs: []
 next: [lean.heijunka-epei, changeover.sequencing, lean.standard-work]
 alternatives: []
@@ -53,4 +53,4 @@ dry); label and date-code changes; mould changes on chocolate lines.
 - [textbook] Shingo, S. (1985), *A Revolution in Manufacturing: The SMED System*, Productivity Press.
 
 ## In Faultline
-SMED (`src/lib/ie/changeover.ts`, `src/screens/ChangeoverScreen.tsx`), FC-068.
+SMED (`src/tools/changeover/changeover.ts`, `src/tools/changeover/ChangeoverScreen.tsx`), FC-068.

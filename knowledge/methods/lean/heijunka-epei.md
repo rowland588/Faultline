@@ -6,7 +6,7 @@ discipline: lean
 kind: established
 evidence: textbook
 depth: summary
-checked: 2026-10-22 — EPEI as Smalley (2004) and Rother & Shook define it, from knowledge; Faultline's SMED interval in src/lib/ie/changeover.ts (intervalOf)
+checked: 2026-10-22 — EPEI as Smalley (2004) and Rother & Shook define it, from knowledge; Faultline's SMED interval in src/tools/changeover/changeover.ts (intervalOf)
 needs: [changeover.smed]
 next: [lean.kanban-supermarket, planning.lot-sizing]
 alternatives: [planning.lot-sizing]
@@ -46,4 +46,4 @@ A pack-size wheel on a filling line; allergen order fixed within the wheel (`cha
 - [textbook] Rother, M. and Shook, J. (1999), *Learning to See*, LEI.
 
 ## In Faultline
-Partly: SMED gives the interval the changeovers allow (`src/lib/ie/changeover.ts`, FC-069); a levelled daily mix (heijunka box) is not built (FC-011).
+Partly: SMED gives the interval the changeovers allow (`src/tools/changeover/changeover.ts`, FC-069); a levelled daily mix (heijunka box) is not built (FC-011).

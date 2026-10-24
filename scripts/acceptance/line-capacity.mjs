@@ -192,7 +192,7 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
    lib/capacity shiftCapacity says it, on the screen and on the card. */
 {
   const shiftTruth = () => page.evaluate(async id => {
-    const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) }; const X = await import('/src/lib/ie/changeover.ts');
+    const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) }; const X = await import('/src/tools/changeover/changeover.ts');
     const st = await db.getStandard(id); const ws = await db.getWorkspace(st.workspaceId);
     const c = C.shiftCapacity(C.analyse(st.capacity), C.shiftsIn(ws?.shifts), X.changeoverIn(st.capacity.changeovers, await db.listAllStudies(), id));
     return c ? { sentence: c.sentence, short: c.short ?? null, rows: c.rows, day: c.day ?? null } : null;

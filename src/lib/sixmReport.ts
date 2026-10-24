@@ -30,7 +30,7 @@ import { lossRows } from '../tools/losses/losses';
 
 import { samplingRows } from '../tools/sampling/sampling';
 import { streamRows } from './ie/steps';
-import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
+import { agreedFor, changeoverSheet, moneyOf } from '../tools/changeover/changeover';
 
 
 import type { StudyUse } from './study';

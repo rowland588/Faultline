@@ -46,11 +46,11 @@
  *   does not     changeover is timed again; the interval is "at most this
  *   claim        often": the free time has nothing else in it; the lost
  *                contribution is lost only if the packs cannot be made up */
-import type { ChangeoverProduct, ChangeoverStep, RunningPattern, SmedFunction, SmedHow, SmedRateFrom, StandardChangeover, StudyFacts, ToolStudy } from '../study';
-import { lineSpeed, type Capacity, type ChangeoverIn } from '../capacity';
-import { labourPerHour } from '../cost';
-import type { Tone } from './sample';
-import { dur } from './steps';
+import type { ChangeoverProduct, ChangeoverStep, RunningPattern, SmedFunction, SmedHow, SmedRateFrom, StandardChangeover, StudyFacts, ToolStudy } from '../../lib/study';
+import { lineSpeed, type Capacity, type ChangeoverIn } from '../../lib/capacity';
+import { labourPerHour } from '../../lib/cost';
+import type { Tone } from '../../lib/ie/sample';
+import { dur } from '../../lib/ie/steps';
 
 /* --------------------------------------------------------------- basics */
 

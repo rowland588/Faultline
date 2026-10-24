@@ -9,7 +9,7 @@ import type { Standard } from './standard';
 import type { ToolStudy } from './study';
 import { analyse } from './capacity';
 import { lossFiguresOf } from './studyLinks';
-import { runningOf } from './ie/changeover';
+import { runningOf } from '../tools/changeover/changeover';
 import { stopsOfBar, type LossBar } from '../tools/losses/losses';
 import { constraintShare } from './intelligence';
 import {

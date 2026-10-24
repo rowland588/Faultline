@@ -21,8 +21,8 @@
  * time; tap a square and everything about the element opens (its sheet). On
  * a phone the grid scrolls in its box with the lanes pinned, as the map's does. */
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { arrange, coLanes, lanesOfElement, mins, type CoLaneBy, type Placed, type Rung } from '../lib/ie/changeover';
-import type { ChangeoverStep } from '../lib/study';
+import { arrange, coLanes, lanesOfElement, mins, type CoLaneBy, type Placed, type Rung } from './changeover';
+import type { ChangeoverStep } from '../../lib/study';
 
 /** A time in a square: as short as it can be and still be read. */
 const tiny = (sec: number): string => (sec <= 0 ? '' : sec < 60 ? `${+sec.toFixed(0)}s` : sec < 3600 ? `${+(sec / 60).toFixed(sec < 600 ? 1 : 0)}m` : `${+(sec / 3600).toFixed(1)}h`);

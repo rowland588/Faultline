@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { changeoverSays, extrapolationSays, figuresOf, ladderOf } from '../changeover';
 import { smedLean } from '../changeoverLean';
-import type { ChangeoverStep, ToolStudy } from '../../study';
+import type { ChangeoverStep, ToolStudy } from '../../../lib/study';
 
 const M = 60;
 const planned = (): ChangeoverStep[] => [
