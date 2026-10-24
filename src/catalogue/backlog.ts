@@ -12,7 +12,6 @@ export const BACKLOG: BacklogItem[] = [
   { id: 'FC-098', why: 'Part 2 of the capability study (part 1 built 22 October): reject rate capability — asked for by Rowland, 22 October.' },
   { id: 'FC-083', why: 'Part 2: held at a rate for a time — asked for by Rowland, 22 October.' },
   { id: 'FC-088', why: 'Part 2: the run chart a reject rate needs.' },
-  { id: 'FC-156', why: 'Give-away in money — the biggest missing money on a weighing line (BLUEPRINT §6).' },
   { id: 'FC-157', why: 'The lowest legal fill — turns a spread reduction into money; needs FC-156.' },
   { id: 'FC-059', why: 'Repair times on the reliability study — the other half of a machine’s reliability.' },
   { id: 'FC-124', why: 'Part 3: the defect tally, so rejects say what kind they are.' },

@@ -159,6 +159,131 @@ export interface TickFigures {
   proves: number;
   /** Checked, with this many failing, to show fewer than 1 in 100 (at `conf`). */
   toShow1: number;
+  /** The failed by what became of them — waste unless said (FC-156). */
+  fates: Record<Fate, number>;
+}
+
+/* ============================ MONEY ==========================================
+ * knowledge/specs/FC-156-capability-money.md. Rowland, 17 October: "everything
+ * must derive a cost in the entire app"; 24 October, a reject's three fates —
+ * "a reject that is reworked = cost to rework it putting it through the process
+ * again ... a reject but only because a machine missed it but a human then
+ * recovered it ... a reject that you cannot rework or human recover — it's
+ * pure waste" — and the costs typed on each study. Nothing here is a proof:
+ * the rejects' money is the sample's share at the packs a shift, said with
+ * the count it came from. */
+export type Fate = 'waste' | 'rework' | 'recovered';
+export const FATES: { k: Fate; word: string; eg: string }[] = [
+  { k: 'waste', word: 'Waste', eg: 'cannot be reworked or recovered' },
+  { k: 'rework', word: 'Reworked', eg: 'put through the process again' },
+  { k: 'recovered', word: 'Recovered by hand', eg: 'the machine missed it, a person put it in its box' },
+];
+export const fateOf = (r: Pick<StudyReading, 'fate'>): Fate => r.fate ?? 'waste';
+export const fateWord = (k: Fate): string => (k === 'waste' ? 'waste' : k === 'rework' ? 'reworked' : 'recovered by hand');
+/** A weight the money can be said in — grams or kilos, as typed on the study. */
+export const weightUnit = (unit?: string): 'g' | 'kg' | undefined => {
+  const u = (unit ?? '').trim().toLowerCase();
+  return u === 'g' || u === 'gram' || u === 'grams' ? 'g' : u === 'kg' || u === 'kilo' || u === 'kilos' ? 'kg' : undefined;
+};
+
+export interface Giveaway {
+  /** Over the nominal, a pack, in the study's unit (0 when the mean is not over it). */
+  perPack: number;
+  unit: string;
+  /** A shift and a week, when the packs a shift (and the shifts a week) are given and the unit is a weight. */
+  kgShift?: number; kgWeek?: number;
+  /** In money, when the cost a kilo is given too. */
+  gbpShift?: number; gbpWeek?: number;
+  /** What is missing to say it in money, in the words the tile shows. */
+  missing: string[];
+}
+export interface RejectsShift { failed: number; waste: number; rework: number; recovered: number; wasteGbp?: number; reworkGbp?: number; gbp?: number }
+export interface RejectsMoney {
+  /** The sample: failed of checked, and by fate. */
+  failed: number; n: number; fates: Record<Fate, number>;
+  /** Scaled to the packs a shift, by the sample's share. */
+  shift?: RejectsShift;
+  weekGbp?: number;
+  missing: string[];
+}
+export interface SampleMoney { giveaway?: Giveaway; rejects?: RejectsMoney }
+
+export const MISSING_PACKS = 'give the packs a shift to say it in money';
+export const MISSING_KG = 'give £ a kg to say it in money';
+export const MISSING_WEIGHT = 'in money needs a weight in g or kg';
+const missingCosts = (fates: Record<Fate, number>, a: AgreedReadings): string | undefined => {
+  const need = [fates.waste > 0 && a.materialsPerPack === undefined ? 'a pack’s materials' : '', fates.rework > 0 && a.reworkPerPack === undefined ? 'one rework’s cost' : ''].filter(Boolean);
+  return need.length ? `give ${need.join(' and ')} to say it in money` : undefined;
+};
+const positive = (v: number | undefined): v is number => v !== undefined && Number.isFinite(v) && v > 0;
+
+/** WHAT THE FINDING COSTS — give-away on a measured study with a nominal; the
+ *  rejects by fate on a pass-or-fail study. Absent where the study has neither. */
+export function sampleMoney(f: SampleFigures, a: AgreedReadings | undefined): SampleMoney {
+  if (!a || !f.n) return {};
+  const P = positive(a.packsPerShift) ? Math.round(a.packsPerShift as number) : undefined;
+  const W = positive(a.shiftsPerWeek) ? (a.shiftsPerWeek as number) : undefined;
+  if (a.kind === 'ticks') {
+    const t = f.ticks;
+    if (!t || !t.bad.length) return {};
+    const r: RejectsMoney = { failed: t.bad.length, n: f.n, fates: t.fates, missing: [] };
+    if (P === undefined) r.missing.push(MISSING_PACKS);
+    else {
+      const per = (k: number) => Math.round((P * k) / f.n);
+      const shift: RejectsShift = { failed: per(t.bad.length), waste: per(t.fates.waste), rework: per(t.fates.rework), recovered: per(t.fates.recovered) };
+      if (t.fates.waste > 0 && a.materialsPerPack !== undefined && a.materialsPerPack >= 0) shift.wasteGbp = shift.waste * a.materialsPerPack;
+      if (t.fates.rework > 0 && a.reworkPerPack !== undefined && a.reworkPerPack >= 0) shift.reworkGbp = shift.rework * a.reworkPerPack;
+      const need = missingCosts(t.fates, a);
+      if (need) r.missing.push(need);
+      else { shift.gbp = (shift.wasteGbp ?? 0) + (shift.reworkGbp ?? 0); if (W !== undefined) r.weekGbp = shift.gbp * W; }
+      r.shift = shift;
+    }
+    return { rejects: r };
+  }
+  if (a.nominal === undefined || f.mean === undefined) return {};
+  const g: Giveaway = { perPack: Math.max(0, f.mean - a.nominal), unit: a.unit ?? '', missing: [] };
+  const wu = weightUnit(a.unit);
+  if (!wu) g.missing.push(MISSING_WEIGHT);
+  else {
+    const kg = wu === 'g' ? g.perPack / 1000 : g.perPack;
+    if (P === undefined) g.missing.push(MISSING_PACKS);
+    else {
+      g.kgShift = kg * P;
+      if (W !== undefined) g.kgWeek = g.kgShift * W;
+      if (!positive(a.costPerKg)) g.missing.push(MISSING_KG);
+      else { g.gbpShift = g.kgShift * (a.costPerKg as number); if (W !== undefined) g.gbpWeek = g.kgShift * W * (a.costPerKg as number); }
+    }
+  }
+  return { giveaway: g };
+}
+
+const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+/** Kilos as a person says them: 41 kg, 0.4 kg, 2,050 kg. */
+export const kgWord = (kg: number): string => `${kg >= 100 ? Math.round(kg).toLocaleString('en-GB') : kg >= 10 ? kg.toFixed(1).replace(/\.0$/, '') : kg.toFixed(kg >= 1 ? 1 : 2).replace(/\.?0+$/, '')} kg`;
+/** Pounds as the loss count says them (lib/cost fmtGBP): £738, £3.7k. */
+export const gbpWord = (n: number): string => (n >= 1000 ? `£${(Math.round(n / 100) / 10).toFixed(1)}k` : `£${Math.round(n).toLocaleString('en-GB')}`);
+
+/** THE MONEY IN ONE SENTENCE, with its because — under what the study says. */
+export function moneySays(m: SampleMoney, f: SampleFigures, a: AgreedReadings): { text: string; tone: Tone } | undefined {
+  const unit = a.unit ? ` ${a.unit}` : '';
+  if (m.giveaway) {
+    const g = m.giveaway;
+    if (g.perPack <= 0) return { text: `No give-away: the mean (${fix(f.mean as number, f.dp)}${unit}) is not over the nominal.`, tone: 'n' };
+    const parts = [g.kgShift !== undefined ? `${kgWord(g.kgShift)} a shift` : '', g.gbpShift !== undefined ? `${gbpWord(g.gbpShift)} a shift` : '', g.gbpWeek !== undefined ? `${gbpWord(g.gbpWeek)} a week` : ''].filter(Boolean);
+    return { text: `Give-away ${fix(g.perPack, f.dp)}${unit} a pack${parts.length ? ` — ${parts.join(', ')}` : ''} — because the mean (${fix(f.mean as number, f.dp)}${unit}) sits ${fix(g.perPack, f.dp)}${unit} over the nominal.${g.missing.length ? ` ${cap(g.missing.join('; '))}.` : ''}`, tone: g.gbpShift !== undefined && g.gbpShift > 0 ? 'a' : 'n' };
+  }
+  if (m.rejects) {
+    const r = m.rejects, by = (['waste', 'rework', 'recovered'] as Fate[]).filter(k => r.fates[k] > 0);
+    const sample = `${big(r.failed)} of ${big(r.n)} failed — ${by.map(k => `${big(r.fates[k])} ${fateWord(k)}`).join(', ')}`;
+    if (!r.shift) return { text: `Rejects: ${sample}. ${r.missing.join('; ')}.`, tone: 'n' };
+    const s = r.shift;
+    const said = by.map(k => k === 'waste' ? `${big(s.waste)} to waste${s.wasteGbp !== undefined ? ` (${gbpWord(s.wasteGbp)})` : ''}`
+      : k === 'rework' ? `${big(s.rework)} reworked${s.reworkGbp !== undefined ? ` (${gbpWord(s.reworkGbp)})` : ''}`
+      : `${big(s.recovered)} recovered by hand, not priced`).join(', ');
+    const total = s.gbp !== undefined ? `, ${gbpWord(s.gbp)} a shift${r.weekGbp !== undefined ? `, ${gbpWord(r.weekGbp)} a week` : ''}` : '';
+    return { text: `Rejects: ${sample} — at ${big(Math.round(a.packsPerShift as number))} a shift that is ${said}${total}${r.missing.length ? `. ${r.missing.join('; ')}` : ''}.`, tone: s.gbp !== undefined && s.gbp > 0 ? 'a' : 'n' };
+  }
+  return undefined;
 }
 
 export interface SampleChecks {
@@ -220,8 +345,10 @@ export function sample(agreed: AgreedReadings | undefined, readings: StudyReadin
   if (agreed?.kind === 'ticks') {
     const t = kept.filter(r => typeof r.ok === 'boolean');
     const bad = t.filter(r => !r.ok).map(r => ({ id: r.id, no: r.no }));
+    const fates: Record<Fate, number> = { waste: 0, rework: 0, recovered: 0 };
+    for (const r of t) if (!r.ok) fates[fateOf(r)]++;
     return { n: t.length, count, enough: count > 0 && t.length >= count, outside: [], flagged: [], dp: 0,
-      ticks: { ok: t.length - bad.length, bad, allowFail: mayFailOf(agreed, count), judge: judgeOf(agreed), ...(judgeOf(agreed) !== 'count' && agreed.good !== undefined ? { good: agreed.good } : {}),
+      ticks: { ok: t.length - bad.length, bad, fates, allowFail: mayFailOf(agreed, count), judge: judgeOf(agreed), ...(judgeOf(agreed) !== 'count' && agreed.good !== undefined ? { good: agreed.good } : {}),
         conf: confOf(agreed), proves: binomUpper(bad.length, t.length, confOf(agreed)), toShow1: itemsToShow(0.01, confOf(agreed), bad.length) } };
   }
   const vs = kept.filter((r): r is typeof r & { value: number } => typeof r.value === 'number' && Number.isFinite(r.value));

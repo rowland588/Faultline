@@ -114,7 +114,7 @@ export const SPC: Entry[] = [
     status: 'partial', form: 'tool', kind: 'study',
     app: { key: 'capability', label: 'Capability', says: 'A measurement against one limit or two, or pass or fail: Ppk and how sure, the checks before it, and what a pass proves', onLine: 'readings against the limits agreed', reads: 'capability', icon: 'hash', order: 4 }, methods: ['spc.capability-measured', 'spc.normality-checks'], scenarios: ['quality', 'packing', 'new'], words: ['Cpk', 'Ppk', 'capability', 'process capability', 'spec limits'],
     built: CAPABILITY_BUILT, spec: SPEC,
-    limits: ['No money yet — give-away (FC-156) and rejects (FC-098) carry it.', 'Readings that are not bell-shaped are said so and their share read as measured; no fitted model yet (FC-096).', 'Readings are assumed independent — not tested (FC-115).'],
+    limits: ['In money since 24 October (FC-156): give-away, and the rejects by fate on a pass-or-fail study; reject-rate capability from counts (FC-098) is still planned.', 'Readings that are not bell-shaped are said so and their share read as measured; no fitted model yet (FC-096).', 'Readings are assumed independent — not tested (FC-115).'],
   },
   {
     id: 'FC-095', name: 'Capability against one limit — at least, or at most', discipline: 'spc', sub: 'capability',

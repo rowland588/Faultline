@@ -597,10 +597,12 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   its band and its one page — the lean page 5a), Your factory (a day of
   every line in margin, its page and its paper — 5b) and work
   sampling (what the biggest share not the work costs a shift — slice 6).
-- **Missing — the next piece, tool by tool:** the capability study (what
-  the rejects and give-away cost — catalogue FC-156 and FC-098; its part 1,
-  22 October, made it cover one limit, pass or fail and the checks before
-  capability on the same record, page and paper, and added no money), the value stream map (what the waits and
+  And, 24 October, **the capability study** (`knowledge/specs/FC-156-
+  capability-money.md` — Rowland's "Go" and his two decisions): give-away a
+  pack, a shift and a week from the cost a kilo typed on the study, and what
+  the rejects cost by what became of each — waste, reworked, recovered by
+  hand — at the packs a shift; a missing input named, never invented.
+- **Missing — the next piece, tool by tool:** the value stream map (what the waits and
   waste cost), the line
   standard map (what the people placed cost a pack), the problems register
   (what each problem costs while it is open), a 6M countermeasure (what it

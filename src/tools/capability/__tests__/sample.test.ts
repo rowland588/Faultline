@@ -1,7 +1,7 @@
 /* The measured test's arithmetic, proved by the worked example in
  * docs/LEAN40.md's appendix and the cases docs/BUILD.md 2c names. */
 import { describe, it, expect } from 'vitest';
-import { sample, sampleSays, compareSamples, tneFor, inWords, upperTail, capabilityWords, drifts, checksSay, passFailPlan, allowFailProblem, passFailPlanOf, mayFailOf, goodProblem, goodWord } from '../sample';
+import { sample, sampleSays, compareSamples, tneFor, inWords, upperTail, capabilityWords, drifts, checksSay, passFailPlan, allowFailProblem, passFailPlanOf, mayFailOf, goodProblem, goodWord, sampleMoney, moneySays, MISSING_KG, MISSING_PACKS, MISSING_WEIGHT } from '../sample';
 import type { AgreedReadings, StudyReading } from '../../../lib/study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -397,5 +397,58 @@ describe('Ppk from the overall spread, Cpk from the moving range', () => {
   it('the same readings shuffled into a steady run: no drift said', () => {
     const f = sample({ kind: 'limits', lower: 8, upper: 16, count: 5 }, r([10, 12, 11, 13, 12]));
     expect(drifts(f)).toBe(false);
+  });
+});
+
+/* MONEY — knowledge/specs/FC-156-capability-money.md §6, the six independent cases
+ * (scripts/knowledge/independent-cases.py, "money in the capability study"). */
+describe('money: give-away and what the rejects cost (FC-156)', () => {
+  const heavy = rs([404.1, 404.1, 404.1, 404.1]);
+  it('1 the record’s own case: 404.1 g on 400 g, 10,000 a shift, 5 a week, £18 a kg → 4.1 g, 41 kg and £738 a shift, 205 kg and £3,690 a week', () => {
+    const a: AgreedReadings = { kind: 'packers', unit: 'g', nominal: 400, count: 30, packsPerShift: 10000, shiftsPerWeek: 5, costPerKg: 18 };
+    const f = sample(a, heavy), g = sampleMoney(f, a).giveaway!;
+    expect(g.perPack.toFixed(1)).toBe('4.1');
+    expect(g.kgShift!.toFixed(1)).toBe('41.0'); expect(g.gbpShift!.toFixed(0)).toBe('738');
+    expect(g.kgWeek!.toFixed(0)).toBe('205'); expect(g.gbpWeek!.toFixed(0)).toBe('3690');
+    expect(g.missing).toEqual([]);
+    expect(moneySays(sampleMoney(f, a), f, a)).toEqual({ text: 'Give-away 4.1 g a pack — 41 kg a shift, £738 a shift, £3.7k a week — because the mean (404.1 g) sits 4.1 g over the nominal.', tone: 'a' });
+  });
+  it('2 a mean under the nominal gives none', () => {
+    const a: AgreedReadings = { kind: 'packers', unit: 'g', nominal: 400, count: 30, packsPerShift: 10000, costPerKg: 18 };
+    const f = sample(a, rs([399.6, 399.6])), g = sampleMoney(f, a).giveaway!;
+    expect(g.perPack).toBe(0); expect(g.gbpShift).toBe(0);
+    expect(moneySays(sampleMoney(f, a), f, a)!.text).toBe('No give-away: the mean (399.6 g) is not over the nominal.');
+  });
+  it('3 a unit that is not a weight says so and gives the give-away in the unit only', () => {
+    const a: AgreedReadings = { kind: 'limits', unit: 'mm', nominal: 12, lower: 11, upper: 13, count: 30, packsPerShift: 10000, costPerKg: 18 };
+    const f = sample(a, rs([12.4, 12.4])), g = sampleMoney(f, a).giveaway!;
+    expect(g.perPack.toFixed(1)).toBe('0.4'); expect(g.kgShift).toBeUndefined(); expect(g.missing).toEqual([MISSING_WEIGHT]);
+  });
+  it('4 pass or fail: 2 of 20 failed, one waste and one reworked, at 10,000 a shift, £0.25 materials, £0.12 a rework → 500 waste £125, 500 reworked £60, £185 a shift, £925 a week', () => {
+    const a: AgreedReadings = { kind: 'ticks', count: 20, allowFail: 2, packsPerShift: 10000, shiftsPerWeek: 5, materialsPerPack: 0.25, reworkPerPack: 0.12 };
+    const readings: StudyReading[] = Array.from({ length: 20 }, (_, i) => ({ id: `t${i}`, ok: i !== 4 && i !== 11, at: i, ...(i === 11 ? { fate: 'rework' as const } : {}) }));
+    const f = sample(a, readings), r = sampleMoney(f, a).rejects!;
+    expect(f.ticks!.fates).toEqual({ waste: 1, rework: 1, recovered: 0 });
+    expect(r.shift).toEqual({ failed: 1000, waste: 500, rework: 500, recovered: 0, wasteGbp: 125, reworkGbp: 60, gbp: 185 });
+    expect(r.weekGbp).toBe(925); expect(r.missing).toEqual([]);
+    expect(moneySays(sampleMoney(f, a), f, a)).toEqual({ text: 'Rejects: 2 of 20 failed — 1 waste, 1 reworked — at 10,000 a shift that is 500 to waste (£125), 500 reworked (£60), £185 a shift, £925 a week.', tone: 'a' });
+  });
+  it('5 one recovered by hand of 20: 500 recovered a shift, nothing priced, said so', () => {
+    const a: AgreedReadings = { kind: 'ticks', count: 20, allowFail: 1, packsPerShift: 10000, materialsPerPack: 0.25 };
+    const readings: StudyReading[] = Array.from({ length: 20 }, (_, i) => ({ id: `t${i}`, ok: i !== 7, at: i, ...(i === 7 ? { fate: 'recovered' as const } : {}) }));
+    const f = sample(a, readings), r = sampleMoney(f, a).rejects!;
+    expect(r.shift).toEqual({ failed: 500, waste: 0, rework: 0, recovered: 500, gbp: 0 });
+    expect(moneySays(sampleMoney(f, a), f, a)!.text).toBe('Rejects: 1 of 20 failed — 1 recovered by hand — at 10,000 a shift that is 500 recovered by hand, not priced, £0 a shift.');
+  });
+  it('6 no packs a shift: no money, the tile says what to give; a failed item with no fate reads as waste; a cost missing is named', () => {
+    const a: AgreedReadings = { kind: 'ticks', count: 20 };
+    const readings: StudyReading[] = Array.from({ length: 20 }, (_, i) => ({ id: `t${i}`, ok: i !== 7, at: i }));
+    const f = sample(a, readings), r = sampleMoney(f, a).rejects!;
+    expect(r.fates.waste).toBe(1); expect(r.shift).toBeUndefined(); expect(r.missing).toEqual([MISSING_PACKS]);
+    const b: AgreedReadings = { ...a, packsPerShift: 10000 };
+    expect(sampleMoney(sample(b, readings), b).rejects!.missing).toEqual(['give a pack’s materials to say it in money']);
+    const g: AgreedReadings = { kind: 'packers', unit: 'g', nominal: 400, count: 30, packsPerShift: 10000 };
+    expect(sampleMoney(sample(g, heavy), g).giveaway!.missing).toEqual([MISSING_KG]);
+    expect(sampleMoney(sample({ kind: 'ticks', count: 20 }, readings.map(r => ({ ...r, ok: true }))), { kind: 'ticks', count: 20 })).toEqual({});
   });
 });

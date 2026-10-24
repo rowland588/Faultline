@@ -303,6 +303,85 @@ const seal = await startStudy('Seal integrity — after the jaw fix', 'Ilapak fl
   await page.getByRole('button', { name: 'Keep what was agreed' }).click(); await page.waitForTimeout(300);
 }
 
+/* ---- 9 · in money (knowledge/specs/FC-156-capability-money.md — Rowland, 24 October: the costs typed on each study;
+   a reject reworked, recovered by hand, or pure waste) ---- */
+{
+  await page.setViewportSize({ width: 1360, height: 900 });
+  /* 9a · give-away on a sold-by-weight study: the boxes, the tile and the sentence as the module says them */
+  const heavy = await startStudy('Fill weight — 400 g bags, heavy', 'Ishida CCW-RV-214W multihead weigher');
+  await page.getByRole('radio', { name: /^Sold by weight/ }).click(); await page.waitForTimeout(200);
+  await page.getByLabel('Nominal (on the pack)').fill('400');
+  await page.getByLabel('Packs a shift').fill('10000'); await page.getByLabel('Shifts a week').fill('5');
+  ok((await page.getByLabel(/What the product costs you a kilo/).count()) === 1 && (await page.getByLabel(/A pack’s materials/).count()) === 0, '9a a measured study asks the cost a kilo, not a pack’s materials');
+  await page.getByLabel(/What the product costs you a kilo/).fill('18');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  await typeAll([404.1, 404.1, 404.1, 404.1]);
+  let t = await truth(heavy);
+  ok(t.a.packsPerShift === 10000 && t.a.shiftsPerWeek === 5 && t.a.costPerKg === 18, '9a the money kept on the agreement: 10,000 a shift, 5 a week, £18 a kg');
+  const money = await page.evaluate(async id => { const { getStudy } = await import('/src/db.ts'); const S = await import('/src/tools/capability/sample.ts');
+    const s = await getStudy(id); const a = s.agreed.readings; const f = S.sample(a, s.facts.readings ?? []); return S.moneySays(S.sampleMoney(f, a), f, a); }, heavy);
+  ok((await words('.ie-money')) === money.text && money.text === 'Give-away 4.1 g a pack — 41 kg a shift, £738 a shift, £3.7k a week — because the mean (404.1 g) sits 4.1 g over the nominal.',
+    `9a the money sentence with its because: "${await words('.ie-money')}"`);
+  const tiles = flat(await page.locator('.ie-strip').innerText());
+  ok(/Give-away\s*4\.1 g\s*a pack over the nominal — 41 kg a shift · £738 a shift · £3\.7k a week/i.test(tiles), `9a the Give-away tile: "${tiles.slice(tiles.toUpperCase().indexOf('GIVE-AWAY'), tiles.toUpperCase().indexOf('GIVE-AWAY') + 90)}"`);
+  /* 9b · with no cost a kilo the tile names what to give; a unit that is not a weight says so */
+  await page.getByRole('button', { name: 'Change what was agreed' }).click(); await page.waitForTimeout(300);
+  await page.getByLabel(/What the product costs you a kilo/).fill('');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(600);
+  ok(/Give-away\s*4\.1 g\s*a pack over the nominal — 41 kg a shift · give £ a kg to say it in money/i.test(flat(await page.locator('.ie-strip').innerText())) && /\. Give £ a kg to say it in money\.$/.test(await words('.ie-money')),
+    `9b no cost a kilo: the kilos said, the pounds named as missing: "${await words('.ie-money')}"`);
+  const mm = await startStudy('Bag length', 'Ilapak flow wrapper');
+  await page.getByLabel('Unit').fill('mm'); await page.getByLabel('Lower limit').fill('11'); await page.getByLabel('Upper limit').fill('13'); await page.getByLabel('Target').fill('12');
+  await page.getByLabel('Packs a shift').fill('10000'); await page.getByLabel(/What the product costs you a kilo/).fill('18');
+  ok((await words('.ie-money-agree .ie-note')) === 'Give-away in money needs a weight in g or kg.', '9b a unit that is not a weight — said while agreeing');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(600);
+  await typeAll([12.4, 12.4]);
+  ok(/Give-away\s*0\.4 mm\s*a pack over the nominal · in money needs a weight in g or kg/i.test(flat(await page.locator('.ie-strip').innerText())), '9b 0.4 mm a pack, no money — needs a weight');
+  void mm;
+  /* 9c · pass or fail: ✗ Failed shows the three fates, waste unless tapped; the rejects by fate at the packs a shift */
+  const rej = await startStudy('Seal check — after the jaw fix, costed', 'Ilapak flow wrapper');
+  await page.getByRole('radio', { name: /^Pass or fail/ }).click(); await page.waitForTimeout(200);
+  await page.getByLabel('How many may fail').fill('2');
+  await page.getByLabel('Packs a shift').fill('10000'); await page.getByLabel('Shifts a week').fill('5');
+  ok((await page.getByLabel(/A pack’s materials/).count()) === 1 && (await page.getByLabel(/To rework one pack/).count()) === 1 && (await page.getByLabel(/What the product costs you a kilo/).count()) === 0, '9c pass or fail asks a pack’s materials and one rework, not a cost a kilo');
+  await page.getByLabel(/A pack’s materials/).fill('0.25'); await page.getByLabel(/To rework one pack/).fill('0.12');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  const good = page.getByRole('button', { name: 'Good', exact: true }), bad = page.getByRole('button', { name: 'Failed', exact: true });
+  ok((await page.locator('.ie-fates').count()) === 0, '9c no fate asked while nothing has failed');
+  for (let i = 1; i <= 20; i++) { await (i === 5 || i === 12 ? bad : good).click(); await page.waitForTimeout(60); if (i === 12) { await page.waitForTimeout(300); await page.getByRole('radio', { name: 'Reworked' }).click(); await page.waitForTimeout(200); } }
+  await page.waitForTimeout(600);
+  const fates = page.locator('.ie-fates').first();
+  ok((await fates.getAttribute('aria-label')) === 'What became of no. 12?' && (await all('.ie-fates [role=radio]')).slice(0, 3).join(' · ') === 'Waste · Reworked · Recovered by hand'
+    && (await page.getByRole('radio', { name: 'Reworked' }).first().getAttribute('aria-checked')) === 'true', `9c the three fates under the last failed item, Reworked tapped: ${(await all('.ie-fates [role=radio]')).slice(0, 3).join(' · ')}`);
+  t = await truth(rej);
+  ok(JSON.stringify(t.ticks.fates) === JSON.stringify({ waste: 1, rework: 1, recovered: 0 }), `9c no. 5 waste unless said, no. 12 reworked: ${JSON.stringify(t.ticks.fates)}`);
+  const rm = await page.evaluate(async id => { const { getStudy } = await import('/src/db.ts'); const S = await import('/src/tools/capability/sample.ts');
+    const s = await getStudy(id); const a = s.agreed.readings; const f = S.sample(a, s.facts.readings ?? []); return S.moneySays(S.sampleMoney(f, a), f, a); }, rej);
+  ok((await words('.ie-money')) === rm.text && rm.text === 'Rejects: 2 of 20 failed — 1 waste, 1 reworked — at 10,000 a shift that is 500 to waste (£125), 500 reworked (£60), £185 a shift, £925 a week.',
+    `9c the rejects by fate, at the packs a shift: "${await words('.ie-money')}"`);
+  ok(/Rejects cost\s*£185\s*a shift — from 2 of 20: 500 waste £125 · 500 reworked £60 · £925 a week/i.test(flat(await page.locator('.ie-strip').innerText())), '9c the Rejects cost tile');
+  /* recovered by hand on the readings list — changed on its row, not priced */
+  await page.getByRole('button', { name: /^Every reading/ }).click(); await page.waitForTimeout(300);
+  await page.locator('.ie-rows .ie-fates').first().getByRole('radio', { name: 'Recovered by hand' }).click(); await page.waitForTimeout(500);
+  t = await truth(rej);
+  ok(JSON.stringify(t.ticks.fates) === JSON.stringify({ waste: 0, rework: 1, recovered: 1 }) && /500 recovered by hand, not priced/.test(await words('.ie-money')) && /£60 a shift/.test(await words('.ie-money')),
+    `9c no. 5 recovered by hand on its row — not priced: "${await words('.ie-money')}"`);
+  /* 9d · on paper: the tiles, the sentence, the inputs and each failed item's fate */
+  const p = await pdf('money.pdf');
+  ok(p.text.includes('Rejects: 2 of 20 failed') && p.text.includes('In money from: 10,000 a shift · 5 shifts a week · £0.25 a pack’s materials · £0.12 a rework') && /5 failed · recovered by hand/.test(p.text) && /12 failed · reworked/.test(p.text) && /REJECTS COST/i.test(p.text),
+    `9d on paper: the sentence, the inputs, each failed item by its fate, the tile (${p.pages} page${p.pages === 1 ? '' : 's'})`);
+  await go(`#/capability/${heavy}`);
+  const ph = await pdf('heavy.pdf');
+  ok(/GIVE-AWAY/i.test(ph.text) && ph.text.includes('Give-away 4.1 g a pack — 41 kg a shift — because the mean (404.1 g) sits 4.1 g over the nominal. Give £ a kg to say it in money.') && ph.text.includes('In money from: 10,000 a shift · 5 shifts a week.'),
+    `9d give-away on paper, the missing input said (${ph.pages} page${ph.pages === 1 ? '' : 's'})`);
+  /* 9f · the phone: the fate chips inside the screen, under the last reading */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(`#/capability/${rej}`);
+  const inside = await page.locator('.ie-cap-box .ie-fates .chip').evaluateAll(els => els.length === 3 && els.every(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= 390 && r.height >= 28; }));
+  ok(inside && (await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '9f the phone: the three chips under the last reading, inside the screen');
+  await page.setViewportSize({ width: 1360, height: 900 });
+}
+
 ok(!errors.length, `no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
 await browser.close();
 console.log(failed ? `\n${failed} FAILED` : '\nALL PASSED');

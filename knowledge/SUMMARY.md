@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 47 |
+| Available (`available`) | 48 |
 | Partly (`partial`) | 32 |
 | Planned (`specified`) | 8 |
-| Not built yet (`to-build`) | 128 |
+| Not built yet (`to-build`) | 127 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -30,7 +30,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Quality engineering and defects | 14 |  |  | 2 | 10 | 2 |  |
 | Six Sigma and DMAIC | 8 |  | 2 |  | 6 |  |  |
 | Root cause and problem solving | 10 | 4 | 2 |  | 4 |  |  |
-| Yield, give-away and materials | 6 |  |  |  | 6 |  |  |
+| Yield, give-away and materials | 6 | 1 |  |  | 5 |  |  |
 | Packaging, filling and weighing | 7 |  | 1 |  | 5 | 1 |  |
 | Food safety, hygiene and traceability | 11 |  |  |  | 9 | 2 |  |
 | Production planning and scheduling | 8 |  |  |  | 8 |  |  |
@@ -106,19 +106,18 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 1. FC-098 Reject rate capability — rejects out of what was made (Planned) — Part 2 of the capability study (part 1 built 22 October): reject rate capability — asked for by Rowland, 22 October.
 2. FC-083 Held at a rate for a time — run at rate, minute by minute (Planned) — Part 2: held at a rate for a time — asked for by Rowland, 22 October.
 3. FC-088 Reject rate chart — p, np and Laney p′ (Planned) — Part 2: the run chart a reject rate needs.
-4. FC-156 Give-away in money (Not built yet) — Give-away in money — the biggest missing money on a weighing line (BLUEPRINT §6).
-5. FC-157 The lowest legal fill — where the target can sit at this spread (Not built yet) — The lowest legal fill — turns a spread reduction into money; needs FC-156.
-6. FC-059 Repair times — MTTR and availability (Not built yet) — Repair times on the reliability study — the other half of a machine’s reliability.
-7. FC-124 Defect tally at the line — a check sheet by type (Planned) — Part 3: the defect tally, so rejects say what kind they are.
-8. FC-125 Defect Pareto — by type and by money (Planned) — Part 3: the defect Pareto by count and money.
-9. FC-099 Faults per item capability — defects per unit and per million (Planned) — Part 3: faults per item, the right denominator.
-10. FC-019 Stopwatch time study — rated, allowed, standard time (Partly) — Ask the rating on the line balance — the arithmetic is already there.
-11. FC-086 Individuals and moving range chart (XmR) (Not built yet) — The individuals chart on its own — every measured study already has the readings in order.
-12. FC-119 Type 1 gauge study — one reference measured again and again (Not built yet) — A type 1 gauge study for checkweighers — quick, and decides whether weights can be trusted.
-13. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
-14. FC-071 First-off release at changeover — line clearance and the first good pack (Not built yet) — First-off release at changeover — recall risk and hidden changeover time.
-15. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
-16. FC-207 NIOSH lifting equation (Partly) — Put the NIOSH arithmetic on a screen — built and proved, unreachable.
+4. FC-157 The lowest legal fill — where the target can sit at this spread (Not built yet) — The lowest legal fill — turns a spread reduction into money; needs FC-156.
+5. FC-059 Repair times — MTTR and availability (Not built yet) — Repair times on the reliability study — the other half of a machine’s reliability.
+6. FC-124 Defect tally at the line — a check sheet by type (Planned) — Part 3: the defect tally, so rejects say what kind they are.
+7. FC-125 Defect Pareto — by type and by money (Planned) — Part 3: the defect Pareto by count and money.
+8. FC-099 Faults per item capability — defects per unit and per million (Planned) — Part 3: faults per item, the right denominator.
+9. FC-019 Stopwatch time study — rated, allowed, standard time (Partly) — Ask the rating on the line balance — the arithmetic is already there.
+10. FC-086 Individuals and moving range chart (XmR) (Not built yet) — The individuals chart on its own — every measured study already has the readings in order.
+11. FC-119 Type 1 gauge study — one reference measured again and again (Not built yet) — A type 1 gauge study for checkweighers — quick, and decides whether weights can be trusted.
+12. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
+13. FC-071 First-off release at changeover — line clearance and the first good pack (Not built yet) — First-off release at changeover — recall risk and hidden changeover time.
+14. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
+15. FC-207 NIOSH lifting equation (Partly) — Put the NIOSH arithmetic on a screen — built and proved, unreachable.
 
 ## Where related capabilities could be combined
 

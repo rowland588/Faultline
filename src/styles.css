@@ -14270,3 +14270,14 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .jn-tool-tick { min-width: 0; }
   .jn-tool-what { min-width: 0; width: 100%; }
 }
+
+/* MONEY IN THE CAPABILITY STUDY (knowledge/specs/FC-156-capability-money.md): the optional boxes
+   on the agreement, and a failed item's fate — three chips under the last reading and on its row */
+.ie-money-agree { border: 1px solid var(--line); border-radius: var(--r-m); padding: 10px 12px 12px; margin: 10px 0 4px; }
+.ie-money-agree legend { padding: 0 6px; }
+.ie-money-agree .ie-note { margin: 8px 0 0; }
+.ie-fates { align-items: center; margin: 10px 0 2px; }
+.ie-fates .field-label { flex-basis: 100%; }
+.ie-fates.is-small { display: inline-flex; gap: 6px; margin: 0 0 0 8px; }
+.ie-fates.is-small .chip { padding: 2px 8px; font-size: var(--fs-xs); }
+.ie-fate { margin-left: 8px; }

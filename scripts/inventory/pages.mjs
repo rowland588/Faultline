@@ -450,5 +450,7 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'A capability study', path: `#/capability/${sd.studyId}`, must: [{ what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ }, { what: 'the readings, drawn', sel: 'svg.ie-dots' },
     { what: 'before capability — the three checks', sel: '.ie-checks .ie-check' }, { what: 'the histogram', sel: 'svg.ie-hist rect.ie-bar' },
-    { what: 'the band', sel: '.ln-band' }, { what: 'the tiles', sel: '.ie-strip .ln-tile' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
+    { what: 'the band', sel: '.ln-band' }, { what: 'the tiles', sel: '.ie-strip .ln-tile' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' },
+    /* IN MONEY (knowledge/specs/FC-156-capability-money.md, 24 October): the give-away tile and the sentence with its because, from the packs a shift and £ a kg typed on the study */
+    { what: 'the money — Give-away a pack, a shift and a week (FC-156)', sel: '.ie-strip .ln-tile', text: /^Give-away/ }, { what: 'the money sentence with its because', sel: '.ie-say.ie-money', text: /^Give-away .*because the mean/ }] },
 ];

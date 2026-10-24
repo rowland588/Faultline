@@ -15,7 +15,7 @@ import type { ToolStudy } from './study';
 import type { Standard } from '../tools/linestandard/standard';
 import type { StudyContext } from './studyLinks';
 import { studyEvidence } from './clientReport';
-import { checksSay, goodWord, pctWord, ruleWords, sample, sampleLines, sampleSays, CPK_FROM, type SampleFigures } from '../tools/capability/sample';
+import { checksSay, goodWord, pctWord, ruleWords, sample, sampleLines, sampleSays, CPK_FROM, type SampleFigures, fateOf, fateWord, moneySays, sampleMoney } from '../tools/capability/sample';
 import { fewerThan } from './ie/dist';
 import type { AgreedReadings } from './study';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
@@ -165,7 +165,8 @@ function capabilityBlocks(s: ToolStudy): Block[] {
         ['May fail', `${t.allowFail > 0 ? t.allowFail.toLocaleString('en-GB') : 'none'}${ruleWords(t).replace(/^ for /, ' — ')}`],
         [`${pctWord(t.conf)} confident`, t.proves >= 0.995 ? 'nothing yet' : t.judge === 'count' ? `${fewerThan(t.proves)} fail` : `at least ${goodWord(1 - t.proves)} good`]]),
       label('Each one, in the order checked'),
-      readingsRows(s, r => (r.ok === true ? 'good' : r.ok === false ? 'failed' : '—'), id => bad.has(id)),
+      /* a failed item by what became of it (FC-156) */
+      readingsRows(s, r => (r.ok === true ? 'good' : r.ok === false ? (r.struck ? 'failed' : `failed · ${fateWord(fateOf(r))}`) : '—'), id => bad.has(id)),
     ];
   }
   const unit = a.unit ? ` ${a.unit}` : '';
@@ -288,6 +289,15 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
   if (tiles.length) out.push(leanTiles(tiles));
   out.push(leanHead('What it says'));
   out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: gap(d, 's') }));
+  /* IN MONEY (knowledge/specs/FC-156-capability-money.md): the sentence the page says, with its because, and
+     the figures it was scaled by — the same module as the screen, nothing missing made up */
+  if (s.tool === 'capability' && s.agreed?.readings) {
+    const a = s.agreed.readings, f = sample(a, s.facts.readings ?? []), m = moneySays(sampleMoney(f, a), f, a);
+    if (m) out.push(text({ text: m.text, size: 9, style: m.tone === 'a' ? 'bold' : 'normal', colour: INK2, after: 2 }));
+    const given = [a.packsPerShift !== undefined ? `${a.packsPerShift.toLocaleString('en-GB')} a shift` : '', a.shiftsPerWeek !== undefined ? `${a.shiftsPerWeek} shifts a week` : '',
+      a.costPerKg !== undefined ? `£${a.costPerKg} a kg` : '', a.materialsPerPack !== undefined ? `£${a.materialsPerPack} a pack’s materials` : '', a.reworkPerPack !== undefined ? `£${a.reworkPerPack} a rework` : ''].filter(Boolean);
+    if (given.length) out.push(text({ text: `In money from: ${given.join(' · ')}.`, size: 8, colour: MUTED, after: gap(d, 's') }));
+  }
   out.push(...body);
   out.push(leanHead('Action plan'));
   out.push(...leanActions(raised, 'Nothing raised from it yet.'));

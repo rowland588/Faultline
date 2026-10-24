@@ -24,7 +24,7 @@ import { can as canAt } from '../../lib/access';
 import { now, uid } from '../../lib/ids';
 import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
-import { allowFailProblem, checksSay, confOf, judgeOf, passFailPlanOf, pctWord, sample, sampleLines, sampleSays, ticksAgreedWords, tneFor, CONFIDENCES, CPK_FROM, SURE, type Judge, type SampleFigures, type SampleSays } from './sample';
+import { allowFailProblem, checksSay, confOf, judgeOf, passFailPlanOf, pctWord, sample, sampleLines, sampleSays, ticksAgreedWords, tneFor, CONFIDENCES, CPK_FROM, SURE, type Judge, type SampleFigures, type SampleSays, FATES, fateOf, fateWord, moneySays, sampleMoney, weightUnit, type Fate } from './sample';
 import type { AgreedReadings, StudyReading, ToolStudy } from '../../lib/study';
 import { TOOL_WORDS } from '../../screens/StudiesScreen';
 import { StudyBand } from '../../ui/StudyActs';
@@ -76,6 +76,9 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
     write(cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), { id: uid(), at: now(), ...(me ? { who: me } : {}), ...r }] } }));
   const strike = (rid: string, struck: boolean) =>
     write(cur => ({ facts: { ...cur.facts, readings: (cur.facts.readings ?? []).map(r => (r.id === rid ? { ...r, struck: struck || undefined } : r)) } }));
+  /* a failed item's fate — waste, reworked, recovered by hand (FC-156; Rowland, 24 October) */
+  const setFate = (rid: string, fate: Fate) =>
+    write(cur => ({ facts: { ...cur.facts, readings: (cur.facts.readings ?? []).map(r => (r.id === rid ? { ...r, ...(fate === 'waste' ? { fate: undefined } : { fate }) } : r)) } }));
 
   return (
     <div className="wrap ie">
@@ -99,9 +102,9 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           <Says said={said} s={s} f={f} a={a} />
           <div className="ie-body">
             <div className="ie-pic">{a.kind === 'ticks' ? <Ticks readings={readings} /> : <><Dots f={f} a={a} readings={readings} said={said} /><Hist f={f} a={a} /></>}</div>
-            {!closed && can.edit && <Capture a={a} f={f} readings={readings} onAdd={add} onStrike={id => strike(id, true)} />}
+            {!closed && can.edit && <Capture a={a} f={f} readings={readings} onAdd={add} onStrike={id => strike(id, true)} onFate={setFate} />}
           </div>
-          <Readings readings={readings} f={f} a={a} canStrike={can.edit && !closed} onStrike={strike} />
+          <Readings readings={readings} f={f} a={a} canStrike={can.edit && !closed} onStrike={strike} onFate={setFate} />
           <p className="ie-agreed sub">
             Agreed: <b>{agreedWords(a)}</b>
             {can.agree && !closed && <button type="button" className="linkish" onClick={() => setAgreeing(true)}>Change what was agreed</button>}
@@ -177,6 +180,12 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const [judge, setJudge] = useState<Judge>(judgeOf(a));
   const [goodPct, setGoodPct] = useState((a?.good ?? 98).toString());
   const [conf, setConf] = useState<number>(confOf(a));
+  /* MONEY (knowledge/specs/FC-156-capability-money.md — Rowland, 24 October: typed on each study), every box optional */
+  const [packs, setPacks] = useState(a?.packsPerShift?.toString() ?? '');
+  const [shiftsWk, setShiftsWk] = useState(a?.shiftsPerWeek?.toString() ?? '');
+  const [costKg, setCostKg] = useState(a?.costPerKg?.toString() ?? '');
+  const [materials, setMaterials] = useState(a?.materialsPerPack?.toString() ?? '');
+  const [rework, setRework] = useState(a?.reworkPerPack?.toString() ?? '');
   const nom = numOr(nominal), lo = side === 'most' ? undefined : numOr(lower), hi = side === 'least' ? undefined : numOr(upper);
   const n = Math.round(Number(count)), k = Number(allow.trim() === '' ? '0' : allow);
   const tne = kind === 'packers' && nom !== undefined ? tneFor(nom, unit) : undefined;
@@ -199,7 +208,10 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
     : kind === 'limits' && lo !== undefined && hi !== undefined && lo >= hi ? 'The lower limit has to be below the upper.'
     : kind === 'packers' && nom === undefined ? 'The nominal — what the pack says.'
     : kind === 'packers' && tne === undefined ? 'The packers’ rules cover 5 g to 10 kg (or ml to l).'
+    : [packs, shiftsWk, costKg, materials, rework].some(t => t.trim() !== '' && !(Number.isFinite(Number(t)) && Number(t) >= 0)) ? 'The money boxes take numbers, zero or more.'
+    : packs.trim() !== '' && !(Number(packs) >= 1) ? 'Packs a shift — at least 1.'
     : '';
+  const moneyOf = (t: string) => (t.trim() === '' ? undefined : Number(t));
 
   const save = () => {
     if (problem || !canAgree) return;
@@ -210,7 +222,12 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       ...(kind === 'limits' && hi !== undefined ? { upper: hi } : {}),
       ...(ticks && judge === 'count' && k > 0 ? { allowFail: k } : {}),
       ...(ticks && judge !== 'count' ? { judge, good: g } : {}),
-      ...(ticks && conf !== SURE ? { conf } : {}) };
+      ...(ticks && conf !== SURE ? { conf } : {}),
+      ...(moneyOf(packs) !== undefined ? { packsPerShift: Math.round(moneyOf(packs) as number) } : {}),
+      ...(moneyOf(shiftsWk) ? { shiftsPerWeek: moneyOf(shiftsWk) } : {}),
+      ...(!ticks && moneyOf(costKg) ? { costPerKg: moneyOf(costKg) } : {}),
+      ...(ticks && moneyOf(materials) !== undefined ? { materialsPerPack: moneyOf(materials) } : {}),
+      ...(ticks && moneyOf(rework) !== undefined ? { reworkPerPack: moneyOf(rework) } : {}) };
     void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, readings: agreed } }));
     onDone();
   };
@@ -280,6 +297,24 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
           ))}
         </div>
       )}
+      {/* IN MONEY — what the finding costs, from figures typed here (FC-156); the tile names what is
+          missing, so nothing is required */}
+      <fieldset className="ie-money-agree">
+        <legend className="field-label">In money <i className="sub">optional — the study says what is missing</i></legend>
+        <div className="ie-agree-grid">
+          <label className="field"><span className="field-label">Packs a shift</span>
+            <input className="text-input" inputMode="numeric" value={packs} onChange={e => setPacks(e.target.value)} placeholder="10000" /></label>
+          <label className="field"><span className="field-label">Shifts a week</span>
+            <input className="text-input" inputMode="decimal" value={shiftsWk} onChange={e => setShiftsWk(e.target.value)} placeholder="5" /></label>
+          {!ticks && <label className="field"><span className="field-label">What the product costs you a kilo (£) <i className="sub">to make — not its price</i></span>
+            <input className="text-input" inputMode="decimal" value={costKg} onChange={e => setCostKg(e.target.value)} placeholder="18" /></label>}
+          {ticks && <label className="field"><span className="field-label">A pack’s materials (£) <i className="sub">what a pack to waste costs</i></span>
+            <input className="text-input" inputMode="decimal" value={materials} onChange={e => setMaterials(e.target.value)} placeholder="0.25" /></label>}
+          {ticks && <label className="field"><span className="field-label">To rework one pack (£) <i className="sub">through the process again</i></span>
+            <input className="text-input" inputMode="decimal" value={rework} onChange={e => setRework(e.target.value)} placeholder="0.12" /></label>}
+        </div>
+        {!ticks && nom !== undefined && !weightUnit(unit) && <p className="ie-note">Give-away in money needs a weight in g or kg.</p>}
+      </fieldset>
       {ticks && !problem && plan?.text && <p className="ie-note ie-plan">{plan.text}</p>}
       {problem && <p className="ie-problem">{problem}</p>}
       <div className="ie-agree-act">
@@ -304,10 +339,13 @@ function Says({ said, s, f, a }: { said: SampleSays; s: ToolStudy; f: SampleFigu
   /* BEFORE CAPABILITY — the three checks an index stands on (spc.normality-
      checks), quiet when they pass, amber when they do not */
   const checks = checksSay(f, a);
+  /* IN MONEY — give-away, or the rejects by fate, with its because (FC-156) */
+  const money = moneySays(sampleMoney(f, a), f, a);
   return (
     <div className="ie-says">
       <p className={'ie-say is-' + said.tone}>{said.text}</p>
       {said.capability && <p className={'ie-say ie-cap is-' + said.capability.tone}>{said.capability.text}</p>}
+      {money && <p className={'ie-say ie-money is-' + money.tone}>{money.text}</p>}
       {checks.length > 0 && (
         <div className="ie-checks" role="group" aria-label="Before capability">
           <span className="ie-checks-h">Before capability</span>
@@ -416,9 +454,9 @@ function Ticks({ readings }: { readings: StudyReading[] }) {
 /* ------------------------------------------------------------------ capture: the number pad */
 const KEYS = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '.', '0', '⌫'];
 
-function Capture({ a, f, readings, onAdd, onStrike }: {
+function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
   a: AgreedReadings; f: SampleFigures; readings: StudyReading[];
-  onAdd: (r: Omit<StudyReading, 'id' | 'at'>) => void; onStrike: (id: string) => void;
+  onAdd: (r: Omit<StudyReading, 'id' | 'at'>) => void; onStrike: (id: string) => void; onFate: (id: string, fate: Fate) => void;
 }) {
   const [typed, setTyped] = useState('');
   const press = useCallback((k: string) => {
@@ -447,6 +485,9 @@ function Capture({ a, f, readings, onAdd, onStrike }: {
   }, [a.kind, press, enter]);
 
   const last = readings.map((r, i) => ({ ...r, no: i + 1 })).filter(r => !r.struck).slice(-3).reverse();
+  /* the last failed item's fate — three chips under the pad, waste unless tapped, until another
+     fails (FC-156); every failed item's fate is on its row in the readings list too */
+  const lastBad = a.kind === 'ticks' ? readings.map((r, i) => ({ ...r, no: i + 1 })).reverse().find(r => !r.struck && r.ok === false) : undefined;
   return (
     <div className="ie-cap-box" aria-label="Take the readings">
       <div className="ie-count"><b>{f.n}</b> of {f.count} {a.kind === 'ticks' ? `checked${f.ticks?.bad.length ? ` · ${f.ticks.bad.length} failed` : ''}` : 'in'}{f.enough ? ' — all in' : ''}</div>
@@ -464,6 +505,7 @@ function Capture({ a, f, readings, onAdd, onStrike }: {
           </div>
         </>
       )}
+      {lastBad && <Fates r={lastBad} onFate={onFate} />}
       {last.length > 0 && (
         <ul className="ie-last" aria-label="The last readings">
           {last.map(r => (
@@ -480,7 +522,20 @@ function Capture({ a, f, readings, onAdd, onStrike }: {
 }
 
 /* ------------------------------------------------------------------ every reading */
-function Readings({ readings, f, a, canStrike, onStrike }: { readings: StudyReading[]; f: SampleFigures; a: AgreedReadings; canStrike: boolean; onStrike: (id: string, struck: boolean) => void }) {
+/** WHAT BECAME OF A FAILED ITEM — waste · reworked · recovered by hand (FC-156; Rowland, 24 October). */
+function Fates({ r, onFate, small }: { r: StudyReading & { no: number }; onFate: (id: string, fate: Fate) => void; small?: boolean }) {
+  const cur = fateOf(r);
+  return (
+    <div className={'ie-fates chip-row' + (small ? ' is-small' : '')} role="radiogroup" aria-label={`What became of no. ${r.no}?`}>
+      {!small && <span className="field-label">No. {r.no} failed — what became of it?</span>}
+      {FATES.map(x => (
+        <button key={x.k} type="button" role="radio" aria-checked={cur === x.k} className={'chip' + (cur === x.k ? ' on' : '')} title={x.eg} onClick={() => onFate(r.id, x.k)}>{x.word}</button>
+      ))}
+    </div>
+  );
+}
+
+function Readings({ readings, f, a, canStrike, onStrike, onFate }: { readings: StudyReading[]; f: SampleFigures; a: AgreedReadings; canStrike: boolean; onFate: (id: string, fate: Fate) => void; onStrike: (id: string, struck: boolean) => void }) {
   const [open, setOpen] = useState(false);
   if (!readings.length) return null;
   const out = new Set(f.outside.map(o => o.id)), flagged = new Set(f.flagged);
@@ -498,6 +553,7 @@ function Readings({ readings, f, a, canStrike, onStrike }: { readings: StudyRead
               <b>{typeof r.value === 'number' ? r.value.toFixed(Math.max(f.dp, 0)) + (a.unit ? ` ${a.unit}` : '') : r.ok ? '✓' : '✗'}</b>
               <span className="sub">{out.has(r.id) && !r.struck ? 'outside · ' : ''}{flagged.has(r.id) && !r.struck ? 'far from the rest · ' : ''}{r.who ? `${r.who} · ` : ''}{new Date(r.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
               {canStrike && <button type="button" className="linkish" onClick={() => onStrike(r.id, !r.struck)}>{r.struck ? 'Restore' : 'Strike'}</button>}
+              {r.ok === false && !r.struck && (canStrike ? <Fates r={{ ...r, no: i + 1 }} onFate={onFate} small /> : <span className="sub ie-fate">{fateWord(fateOf(r))}</span>)}
             </li>
           ))}
         </ol>

@@ -8,7 +8,7 @@
  * Money in every tool): no figure is made up for it. */
 import type { LeanTile, LeanTone } from '../../lib/lean';
 import type { AgreedReadings } from '../../lib/study';
-import { CPK_FROM, goodWord, pctWord, ruleWords, type SampleFigures, type SampleSays } from './sample';
+import { CPK_FROM, goodWord, pctWord, ruleWords, type SampleFigures, type SampleSays, sampleMoney, kgWord, gbpWord, fateWord, type Fate } from './sample';
 import { fewerThan } from '../../lib/ie/dist';
 
 const tone = (t: string): LeanTone | undefined => (t === 'r' || t === 'a' || t === 'g' ? t : undefined);
@@ -38,6 +38,7 @@ export function sampleTiles(f: SampleFigures, a: AgreedReadings, said: SampleSay
         : t.judge === 'count'
           ? { k: 'Confident', v: fewerThan(t.proves).replace('fewer than', '<'), of: `would fail — ${pc} confident${t.proves > 0.01 ? ` · 1 in 100 takes ${t.toShow1.toLocaleString('en-GB')}` : ''}` }
           : { k: 'Confident', v: `≥ ${goodWord(1 - t.proves)}`, of: `good — ${pc} confident` },
+      ...rejectsTile(f, a),
       { k: 'Verdict', v: said.verdict, of: said.text, ...(tone(said.tone) ? { tone: tone(said.tone) } : {}) }];
   }
   const ok = f.ppk !== undefined && Number.isFinite(f.ppk) && f.n >= CPK_FROM;
@@ -45,6 +46,7 @@ export function sampleTiles(f: SampleFigures, a: AgreedReadings, said: SampleSay
     ...tiles,
     { k: 'Mean', v: f.n ? `${fx(f.mean)}${unit}` : '—', of: f.n ? `${fx(f.min)}–${fx(f.max)} across the readings` : 'said once a reading is in' },
     { k: 'Outside', v: String(f.outside.length), of: `of ${limits}`, ...(f.outside.length ? { tone: 'r' as LeanTone } : f.n ? {} : { tone: 'n' as LeanTone }) },
+    ...giveawayTile(f, a),
     ok
       ? { k: 'Ppk', v: (f.ppk as number).toFixed(2), of: `${f.cpk !== undefined && Number.isFinite(f.cpk) ? `Cpk ${f.cpk.toFixed(2)} · ` : ''}from ${f.n} readings${f.ppkLow !== undefined ? ` · 95% sure at least ${f.ppkLow.toFixed(2)}` : ''}`, ...(cap && tone(cap.tone) ? { tone: tone(cap.tone) } : {}) }
       : { k: 'Ppk', v: '—', of: `said from ${CPK_FROM} readings · ${f.n} so far` },
@@ -66,4 +68,29 @@ export function sampleClosing(f: SampleFigures, a: AgreedReadings, said: SampleS
   }
   const ok = f.ppk !== undefined && Number.isFinite(f.ppk) && f.n >= CPK_FROM;
   return { text: `${said.verdict} — ${f.n} of ${f.count} readings in, ${f.outside.length} outside${ok ? `, Ppk ${(f.ppk as number).toFixed(2)}` : ''}.`, tone: t };
+}
+
+/* MONEY (knowledge/specs/FC-156-capability-money.md §7) — one tile each, in the
+ * study's own figures: give-away a pack with the shift and the week when they
+ * can be said; the rejects a shift by what became of them. A missing input is
+ * named on the tile, never a figure invented. */
+function giveawayTile(f: SampleFigures, a: AgreedReadings): LeanTile[] {
+  const g = sampleMoney(f, a).giveaway;
+  if (!g) return [];
+  const unit = a.unit ? ` ${a.unit}` : '';
+  if (g.perPack <= 0) return [{ k: 'Give-away', v: 'none', of: 'the mean is not over the nominal', tone: 'g' as LeanTone }];
+  const parts = [g.kgShift !== undefined ? `${kgWord(g.kgShift)} a shift` : '', g.gbpShift !== undefined ? `${gbpWord(g.gbpShift)} a shift` : '', g.gbpWeek !== undefined ? `${gbpWord(g.gbpWeek)} a week` : ''].filter(Boolean);
+  return [{ k: 'Give-away', v: `${g.perPack.toFixed(f.dp)}${unit}`, of: `a pack over the nominal${parts.length ? ` — ${parts.join(' · ')}` : ''}${g.missing.length ? ` · ${g.missing.join('; ')}` : ''}`, tone: (g.gbpShift !== undefined ? 'a' : 'n') as LeanTone }];
+}
+function rejectsTile(f: SampleFigures, a: AgreedReadings): LeanTile[] {
+  const r = sampleMoney(f, a).rejects;
+  if (!r) return [];
+  const n = (v: number) => v.toLocaleString('en-GB');
+  const by = (['waste', 'rework', 'recovered'] as Fate[]).filter(k => r.fates[k] > 0);
+  if (!r.shift) return [{ k: 'Rejects cost', v: '—', of: `${by.map(k => `${n(r.fates[k])} ${fateWord(k)}`).join(' · ')} · ${r.missing.join('; ')}`, tone: 'n' as LeanTone }];
+  const s = r.shift;
+  const said = by.map(k => k === 'waste' ? `${n(s.waste)} waste${s.wasteGbp !== undefined ? ` ${gbpWord(s.wasteGbp)}` : ''}`
+    : k === 'rework' ? `${n(s.rework)} reworked${s.reworkGbp !== undefined ? ` ${gbpWord(s.reworkGbp)}` : ''}`
+    : `${n(s.recovered)} recovered by hand, not priced`).join(' · ');
+  return [{ k: 'Rejects cost', v: s.gbp !== undefined ? gbpWord(s.gbp) : '—', of: `a shift — from ${n(r.failed)} of ${n(r.n)}: ${said}${r.weekGbp !== undefined ? ` · ${gbpWord(r.weekGbp)} a week` : ''}${r.missing.length ? ` · ${r.missing.join('; ')}` : ''}`, tone: (s.gbp !== undefined && s.gbp > 0 ? 'a' : 'n') as LeanTone }];
 }
