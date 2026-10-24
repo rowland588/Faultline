@@ -4,8 +4,8 @@
 import { describe, expect, it } from 'vitest';
 import { balance, balanceSays, suggest } from '../balance';
 import { agreedFor, atStation, balanceCost, balanceCostSays, capacityTaking, crewKept, stationsOf, studyBalance, taktFromTarget, targetOffer } from '../balanceLink';
-import type { BalanceCrew, BalanceStep } from '../../study';
-import type { Capacity, Station } from '../../../tools/linebalance/capacity';
+import type { BalanceCrew, BalanceStep } from '../../../lib/study';
+import type { Capacity, Station } from '../../linebalance/capacity';
 
 const typed = (id: string, who: string, sec: number, kind?: BalanceStep['kind']): BalanceStep => ({ id, order: Number(id.replace(/\D/g, '')) || 0, name: id, who, typedSec: sec, ...(kind ? { kind } : {}) });
 const st = (id: string, name: string, kind: Station['kind'], unit: string, contains: number, extra: Partial<Station> = {}): Station => ({ id, name, kind, unit, contains, ...extra });

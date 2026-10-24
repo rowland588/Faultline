@@ -13,7 +13,7 @@ import { analyse, labourInputs, shiftsIn } from './capacity';
 import { capacityPaper, type CapacityPaper } from './capacityPaper';
 import { changeoverIn } from '../changeover/changeover';
 import { walkVerdict } from '../../lib/ie/walk';
-import { balance, balanceSays } from '../../lib/ie/balance';
+import { balance, balanceSays } from '../linework/balance';
 import { currentBalance } from '../../lib/studyLinks';
 import { headcount, peopleOf, type Standard } from '../../lib/standard';
 

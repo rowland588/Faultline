@@ -36,7 +36,7 @@ import { analyse, type Capacity } from '../tools/linebalance/capacity';
 import { fmtN } from '../tools/linebalance/capacityWords';
 import { headcount } from './standard';
 import type { ToolStudy } from './study';
-import { secs } from './ie/balance';
+import { secs } from '../tools/linework/balance';
 import { boneOfStep, currentBalance, currentLosses, currentSampling, lossFiguresOf } from './studyLinks';
 import { boneOfActivity, samplingLine, samplingOffers, worstWords } from '../tools/sampling/sampling';
 import { idealWord, minWords, shiftWords, type LossBar } from '../tools/losses/losses';
@@ -45,7 +45,7 @@ import { figuresOf, mins, stepFigure as changeoverStepFigure } from '../tools/ch
 import { stateOf as materialState, daysLate } from './materials';
 import { standingOf, stateOf as programState, daysOverdue } from './programs';
 import { bySort, lineSeries, say, seriesFor } from './measures';
-import { studyBalance } from './ie/balanceLink';
+import { studyBalance } from '../tools/linework/balanceLink';
 
 const DAY = 86_400_000;
 const HOUR = 3_600_000;

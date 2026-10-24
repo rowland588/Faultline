@@ -14,7 +14,7 @@ export const CAPACITY: Entry[] = [
     complexity: 'L', value: 'high', valueWhy: 'The people side of the line, linked to its capacity and in money.',
     status: 'available', form: 'tool', kind: 'standard',
     app: { key: 'linework', label: 'Line balance', says: 'People’s work timed against takt', onLine: 'what each person does, timed against takt, and what it costs', reads: 'balance', icon: 'time', order: 2 }, methods: ['capacity.line-balancing', 'ie.time-study', 'lean.takt-time', 'lean.standard-work'], scenarios: ['people', 'running'], words: ['Yamazumi', 'work balance', 'operator balance'],
-    built: { where: ['/linebalance'], code: ['src/lib/ie/balance.ts', 'src/lib/ie/balanceLink.ts', 'src/ui/WorkBalance.tsx'], tests: ['src/lib/ie/__tests__/balance.test.ts', 'src/lib/ie/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts', 'src/tools/linework/balanceLink.ts', 'src/tools/linework/WorkBalance.tsx'], tests: ['src/tools/linework/__tests__/balance.test.ts', 'src/tools/linework/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
     limits: ['The rating is taken as 100 (FC-019).'],
   },
   {
@@ -28,7 +28,7 @@ export const CAPACITY: Entry[] = [
     depends: ['FC-032'],
     complexity: 'M', value: 'medium', valueWhy: 'Faster, defensible rebalancing.',
     status: 'partial', form: 'mode', partOf: 'FC-032', methods: ['capacity.line-balancing'], scenarios: ['people'],
-    built: { where: ['/linebalance'], code: ['src/lib/ie/balance.ts'], tests: ['src/lib/ie/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
     limits: ['The suggestion follows the flow order only; no precedence diagram and no ranked positional weight.'],
   },
   {

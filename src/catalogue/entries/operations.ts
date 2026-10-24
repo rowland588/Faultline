@@ -256,7 +256,7 @@ export const OPERATIONS: Entry[] = [
     depends: ['FC-032', 'FC-034', 'FC-187'],
     complexity: 'S', value: 'high', valueWhy: 'Rowland, 17 October: “the bottleneck is driving the cost per pack up”.',
     status: 'available', form: 'component', methods: ['cost.line-cost-model'], scenarios: ['money', 'people'],
-    built: { where: ['/linebalance', '/balances'], code: ['src/lib/ie/balanceLink.ts', 'src/tools/linebalance/capacity.ts'], tests: ['src/tools/linebalance/__tests__/capacity-bottleneck-cost.test.ts', 'src/lib/ie/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance', '/balances'], code: ['src/tools/linework/balanceLink.ts', 'src/tools/linebalance/capacity.ts'], tests: ['src/tools/linebalance/__tests__/capacity-bottleneck-cost.test.ts', 'src/tools/linework/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
   },
   {
     id: 'FC-189', name: 'Lost time in money — labour and lost contribution', discipline: 'cost', sub: 'loss',

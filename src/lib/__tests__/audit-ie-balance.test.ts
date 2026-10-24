@@ -2,7 +2,7 @@
  * an independent reference: Student's t by numeric integration, cycles
  * needed, basic and standard time, takt, fewest, efficiency, the suggestion. */
 import { describe, it, expect } from 'vitest';
-import { element, balance, suggest, cyclesNeeded, t95, MIN_CYCLES, type BalanceFigures } from '../ie/balance';
+import { element, balance, suggest, cyclesNeeded, t95, MIN_CYCLES, type BalanceFigures } from '../../tools/linework/balance';
 import type { BalanceStep } from '../study';
 import { tQuantile975, sd as refSd, mean as refMean, rng } from './audit-ie-ref';
 

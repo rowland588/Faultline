@@ -13,7 +13,7 @@ export const IE: Entry[] = [
     depends: ['FC-020', 'FC-025', 'FC-032', 'FC-024'],
     complexity: 'M', value: 'high', valueWhy: 'Every balance, staffing and labour cost stands on it.',
     status: 'partial', form: 'mode', partOf: 'FC-032', methods: ['ie.time-study', 'ie.allowances'], scenarios: ['people', 'running'], words: ['standard time', 'timing', 'stopwatch', 'rating'],
-    built: { where: ['/linebalance'], code: ['src/lib/ie/balance.ts'], tests: ['src/lib/ie/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
     limits: ['The rating is in the arithmetic but never asked on screen — every element is taken at 100.', 'The number of cycles needed for the precision wanted is not said (FC-020).'],
   },
   {
@@ -92,7 +92,7 @@ export const IE: Entry[] = [
     depends: ['FC-019'],
     complexity: 'S', value: 'medium', valueWhy: 'Makes standards sustainable and defensible.',
     status: 'partial', form: 'component', methods: ['ie.allowances'], scenarios: ['people'],
-    built: { where: ['/linebalance', '/balances'], code: ['src/lib/ie/balance.ts', 'src/tools/linebalance/capacity.ts'], tests: ['src/lib/ie/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs', 'line-capacity.mjs'] },
+    built: { where: ['/linebalance', '/balances'], code: ['src/tools/linework/balance.ts', 'src/tools/linebalance/capacity.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs', 'line-capacity.mjs'] },
     limits: ['One allowance is agreed per line balance, and Line capacity adds the ILO’s 9% rest to a person’s time; the factor tables are not offered.'],
   },
   {

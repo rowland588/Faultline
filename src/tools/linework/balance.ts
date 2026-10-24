@@ -40,8 +40,8 @@
  *   people decide    a far lap is flagged, never struck by the app; the
  *                    suggested balance is a suggestion, applied only when a
  *                    person says so */
-import type { AgreedBalance, BalanceCrew, BalanceStep, Lap, StepKind } from '../study';
-import type { Tone } from '../../tools/capability/sample';
+import type { AgreedBalance, BalanceCrew, BalanceStep, Lap, StepKind } from '../../lib/study';
+import type { Tone } from '../capability/sample';
 
 /** Laps that count: not an interruption, not struck. */
 export const keptLaps = (laps: Lap[] | undefined): Lap[] => (laps ?? []).filter(l => !l.foreign && !l.struck && Number.isFinite(l.sec) && l.sec > 0);

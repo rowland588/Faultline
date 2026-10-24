@@ -49,7 +49,7 @@ import { useMaterials } from '../lib/useMaterials';
 import { usePrograms } from '../lib/usePrograms';
 import { useStandards } from '../ui/StandardsCard';
 import { useJobStudies } from '../ui/StudyLinks';
-import { workOf } from '../ui/WorkBalance';
+import { workOf } from '../tools/linework/WorkBalance';
 import { lineStandardOf } from '../lib/fishbone';
 import { headcount } from '../lib/standard';
 import { samplingCardLine } from '../tools/sampling/sampling';

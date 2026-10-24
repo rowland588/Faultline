@@ -94,7 +94,7 @@ export const LEAN: Entry[] = [
     depends: ['FC-032', 'FC-026', 'FC-008'],
     complexity: 'M', value: 'medium', valueWhy: 'Completes the three standard-work forms for person-and-machine work.',
     status: 'partial', form: 'mode', partOf: 'FC-032', methods: ['lean.standard-work', 'ie.person-machine'], scenarios: ['people', 'running'],
-    built: { where: ['/linebalance'], code: ['src/lib/ie/balance.ts'], tests: ['src/lib/ie/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
     limits: ['The line balance stacks each person’s timed elements against takt; walking and machine time overlapping in one cycle are not drawn.'],
   },
   {
@@ -108,7 +108,7 @@ export const LEAN: Entry[] = [
     depends: ['FC-034', 'FC-032'],
     complexity: 'S', value: 'high', valueWhy: 'The yardstick every balance and capacity is read against.',
     status: 'available', form: 'component', methods: ['lean.takt-time'], scenarios: ['running', 'planning', 'people'],
-    built: { where: ['/linebalance'], code: ['src/lib/ie/balanceLink.ts'], tests: ['src/lib/ie/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balanceLink.ts'], tests: ['src/tools/linework/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
   },
   {
     id: 'FC-009', name: 'Kanban sizing', discipline: 'lean', sub: 'pull',

@@ -31,24 +31,24 @@
  * same elements again — a second study on the same product, the newest the
  * one the map reads, the earlier one still opening as itself (?study=). */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getWorkspace, listAllStudies, onDataChange, patchStudy, putStandard, putStudy } from '../db';
-import { useSession } from '../cloud/session';
-import { displayName } from '../cloud/team';
-import { now, uid } from '../lib/ids';
-import { niceDay, isoDay } from '../lib/weeks';
-import { currentBalance } from '../lib/studyLinks';
-import { useRoute, nav } from '../state/useRoute';
-import { UsedFor } from './StudyPlace';
-import { peopleOf, type Standard } from '../lib/standard';
-import { type Capacity } from '../tools/linebalance/capacity';
-import { fmtN } from '../tools/linebalance/capacityWords';
-import { aPiece, balance, balanceSays, elementSays, keptLaps, secs, suggest, type BalanceFigures, type PersonFigures } from '../lib/ie/balance';
-import { agreedFor, balanceCost, balanceCostSays, capacityTaking, costInputs, crewKept, stationsOf, taktFromTarget, targetOffer, type StationPick } from '../lib/ie/balanceLink';
-import type { Workspace } from '../types';
-import type { AgreedBalance, BalanceCrew, BalanceStep, Lap, StepKind, ToolStudy } from '../lib/study';
-import type { Can } from '../lib/access';
-import { balanceClosing, balanceTiles } from '../lib/ie/balanceLean';
-import { LeanClosing, LeanTiles } from './Lean';
+import { getWorkspace, listAllStudies, onDataChange, patchStudy, putStandard, putStudy } from '../../db';
+import { useSession } from '../../cloud/session';
+import { displayName } from '../../cloud/team';
+import { now, uid } from '../../lib/ids';
+import { niceDay, isoDay } from '../../lib/weeks';
+import { currentBalance } from '../../lib/studyLinks';
+import { useRoute, nav } from '../../state/useRoute';
+import { UsedFor } from '../../ui/StudyPlace';
+import { peopleOf, type Standard } from '../../lib/standard';
+import { type Capacity } from '../linebalance/capacity';
+import { fmtN } from '../linebalance/capacityWords';
+import { aPiece, balance, balanceSays, elementSays, keptLaps, secs, suggest, type BalanceFigures, type PersonFigures } from './balance';
+import { agreedFor, balanceCost, balanceCostSays, capacityTaking, costInputs, crewKept, stationsOf, taktFromTarget, targetOffer, type StationPick } from './balanceLink';
+import type { Workspace } from '../../types';
+import type { AgreedBalance, BalanceCrew, BalanceStep, Lap, StepKind, ToolStudy } from '../../lib/study';
+import type { Can } from '../../lib/access';
+import { balanceClosing, balanceTiles } from './balanceLean';
+import { LeanClosing, LeanTiles } from '../../ui/Lean';
 
 const RATINGS = [75, 90, 100, 110, 125];
 const KINDS: { kind: StepKind; word: string }[] = [{ kind: 'work', word: 'Work' }, { kind: 'walk', word: 'Walk' }, { kind: 'wait', word: 'Wait' }];

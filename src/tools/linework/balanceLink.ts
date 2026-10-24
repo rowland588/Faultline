@@ -21,10 +21,10 @@
  * that station's unit (a tray), so their takt is the line's × the packs in
  * a tray. Pure: the capacity and the balance in, what each should now hold
  * out; the balance's page writes it. */
-import { stepsFromEvents, taktOf } from '../../tools/video/study';
-import { chainFactor, fmtMoney as m, labourInputs, syncWhatIfs, type Capacity, type Station, type StationKind } from '../../tools/linebalance/capacity';
+import { stepsFromEvents, taktOf } from '../video/study';
+import { chainFactor, fmtMoney as m, labourInputs, syncWhatIfs, type Capacity, type Station, type StationKind } from '../linebalance/capacity';
 import type { Workspace } from '../../types';
-import type { AgreedBalance, BalanceCrew, ToolStudy } from '../study';
+import type { AgreedBalance, BalanceCrew, ToolStudy } from '../../lib/study';
 import { balance, type BalanceFigures } from './balance';
 
 /** A work balance's figures as every reader takes them — its elements, the

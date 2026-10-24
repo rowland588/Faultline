@@ -44,4 +44,4 @@ Cold rooms (low temperature factors), standing work, repetitive packing.
 - [textbook] Kanawaty, G. (ed.) (1992), *Introduction to Work Study*, 4th ed., ILO — relaxation allowances.
 
 ## In Faultline
-One allowance agreed per line balance (`src/lib/ie/balance.ts`); Line capacity adds the ILO's 9% rest to a person's time; the factor tables are not offered (FC-025, partly).
+One allowance agreed per line balance (`src/tools/linework/balance.ts`); Line capacity adds the ILO's 9% rest to a person's time; the factor tables are not offered (FC-025, partly).

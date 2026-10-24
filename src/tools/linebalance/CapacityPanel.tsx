@@ -31,7 +31,7 @@ import { offerUndo } from '../../ui/Undo';
 import { addMachineToLine, getWorkspace, listAllStudies, listPaceTodos, onDataChange, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../../db';
 import type { Workspace } from '../../types';
 import { currentBalance } from '../../lib/studyLinks';
-import { balance as balanceOf } from '../../lib/ie/balance';
+import { balance as balanceOf } from '../linework/balance';
 import { niceDay } from '../../lib/weeks';
 import { uid } from '../../lib/ids';
 import { chainOf as lineChain, lanesAlike, MAX_LINES, mergeAfterOf, reshape } from './capacityLines';

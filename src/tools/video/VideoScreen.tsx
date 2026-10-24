@@ -34,7 +34,7 @@ import { useProjects } from '../../lib/useProjects';
 import type { ToolStudy } from '../../lib/study';
 import { Sheet } from '../../ui/Sheet';
 import { offerUndo } from '../../ui/Undo';
-import { Legend, Stacks } from '../../ui/WorkBalance';
+import { Legend, Stacks } from '../linework/WorkBalance';
 import { WhereItSits } from '../../ui/StudyPlace';
 import { asked } from '../../lib/lines';
 import { useInProject } from '../../lib/useInProject';

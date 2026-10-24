@@ -48,4 +48,4 @@ Retailer order quantities per shift; seasonal peaks change takt by the week.
 - [textbook] Rother, M. and Harris, R. (2001), *Creating Continuous Flow*, LEI.
 
 ## In Faultline
-Line balance's takt (`src/lib/ie/balanceLink.ts`) follows Line capacity's target (60 ÷ the target a minute), or is agreed by hand.
+Line balance's takt (`src/tools/linework/balanceLink.ts`) follows Line capacity's target (60 ÷ the target a minute), or is agreed by hand.

@@ -6,7 +6,7 @@ discipline: capacity
 kind: established
 evidence: peer-reviewed
 depth: full
-checked: 2026-10-22 — balance efficiency and the heuristics as Salveson (1955), Helgeson & Birnie (1961), Scholl (1999); Faultline's version in src/lib/ie/balance.ts proved by balance.test.ts, balanceLink.test.ts and scripts/acceptance/work-balance.mjs
+checked: 2026-10-22 — balance efficiency and the heuristics as Salveson (1955), Helgeson & Birnie (1961), Scholl (1999); Faultline's version in src/tools/linework/balance.ts proved by balance.test.ts, balanceLink.test.ts and scripts/acceptance/work-balance.mjs
 needs: [ie.time-study, lean.takt-time]
 next: [lean.standard-work, ie.ecrs]
 alternatives: []
@@ -53,6 +53,6 @@ Sandwich and ready-meal assembly lines; hand-packing of mixed boxes.
 - [textbook] Scholl, A. (1999), *Balancing and Sequencing of Assembly Lines*, 2nd ed., Physica.
 
 ## In Faultline
-The Line balance (`src/lib/ie/balance.ts`, `src/lib/ie/balanceLink.ts`): the
+The Line balance (`src/tools/linework/balance.ts`, `src/tools/linework/balanceLink.ts`): the
 Yamazumi against takt, the suggestion in flow order, linked to Line capacity
 (FC-032; FC-033 partly — no precedence diagram).

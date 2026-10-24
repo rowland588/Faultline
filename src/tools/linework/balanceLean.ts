@@ -7,10 +7,10 @@
  * where it came from), the bottleneck person (their work against their takt),
  * labour a pack (as it runs, at takt), and what the bottleneck loses a minute
  * — or, within takt, how balanced the work is. */
-import { fmtMoney } from '../../tools/linebalance/capacity';
-import { fmtN } from '../../tools/linebalance/capacityWords';
-import type { LeanTile, LeanTone } from '../lean';
-import type { AgreedBalance } from '../study';
+import { fmtMoney } from '../linebalance/capacity';
+import { fmtN } from '../linebalance/capacityWords';
+import type { LeanTile, LeanTone } from '../../lib/lean';
+import type { AgreedBalance } from '../../lib/study';
 import { aPiece, secs, type BalanceFigures } from './balance';
 import type { BalanceCost } from './balanceLink';
 

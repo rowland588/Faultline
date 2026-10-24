@@ -884,7 +884,7 @@ for (const size of SIZES) {
     const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
     const { changeoverIn } = await import('/src/tools/changeover/changeover.ts');
     const { walkVerdict } = await import('/src/lib/ie/walk.ts');
-    const B = await import('/src/lib/ie/balance.ts');
+    const B = await import('/src/tools/linework/balance.ts');
     const { currentBalance } = await import('/src/lib/studyLinks.ts');
     const S = await import('/src/lib/standard.ts');
     const [all, wss, studies] = await Promise.all([db.listAllStandards(), db.listWorkspaces(), db.listAllStudies()]);

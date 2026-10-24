@@ -16,12 +16,12 @@ import type { BalanceStep, ChangeoverStep, FlowStep, StudyUse, ToolStudy } from 
 import type { PaceTodoRow } from '../db/rows';
 import type { SixM } from './sixm';
 import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from '../tools/capability/sample';
-import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/balance';
+import { balance, balanceLine, compareBalances, secs as secsOf } from '../tools/linework/balance';
 import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, share as shareOf, stepAt, stepFigure, whoOf } from '../tools/valuestream/steps';
 import { actionWords, availableOf, carrySequence, changeoverSays, compareChangeovers, figuresOf, intervalOf, intervalSays, ladderOf, ladderSays, mins, stepFigure as changeoverStepFigure } from '../tools/changeover/changeover';
 import { samplingSays, samplingWorst, worstWords } from '../tools/sampling/sampling';
 import { barExpect, barWords, compareLosses, findBar, inWindow, lossFigures, lossLine, lossSays, nextShift, type CostModel, type LossFigures } from '../tools/losses/losses';
-import { studyBalance } from './ie/balanceLink';
+import { studyBalance } from '../tools/linework/balanceLink';
 import { compareReliability, relAll, studyReliabilitySays, worstTone } from '../tools/reliability/reliability';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);

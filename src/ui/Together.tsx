@@ -12,7 +12,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { nav } from '../state/useRoute';
 import type { Standard } from '../lib/standard';
-import { CostBlock, Legend, PersonBar, Stacks, useBalanceFor, useLine, worksFor } from './WorkBalance';
+import { CostBlock, Legend, PersonBar, Stacks, useBalanceFor, useLine, worksFor } from '../tools/linework/WorkBalance';
 import { LeanClosing, LeanTiles } from './Lean';
 import { ReportMenu } from './parts';
 import { togetherClosing, togetherOf, togetherTiles } from '../lib/together';

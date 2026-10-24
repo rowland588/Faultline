@@ -11,7 +11,7 @@ import type { Standard } from './standard';
 import type { ToolStudy } from './study';
 import { togetherClosing, togetherOf, togetherTiles } from './together';
 import { leanBand, leanClosing, leanTiles } from './report/lean';
-import { balanceCost, costInputs } from './ie/balanceLink';
+import { balanceCost, costInputs } from '../tools/linework/balanceLink';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
 import { balanceBlocks } from './report/balanceTable';
@@ -114,7 +114,7 @@ export async function togetherPdf(s: Standard, study: ToolStudy | undefined, nam
   let card: string | undefined;
   const t = togetherOf(s, study);
   if (t.hasMap) {
-    const [{ cardPages }, { worksFor }] = await Promise.all([import('./standardCard'), import('../ui/WorkBalance')]);
+    const [{ cardPages }, { worksFor }] = await Promise.all([import('./standardCard'), import('../tools/linework/WorkBalance')]);
     card = (await cardPages(s, name, printed, (await worksFor([s]))[s.id]))[0];
   }
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });

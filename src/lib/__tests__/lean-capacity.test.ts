@@ -15,9 +15,9 @@ import { describe, expect, it } from 'vitest';
 import type { Capacity } from '../../tools/linebalance/capacity';
 import { capacityPaper } from '../../tools/linebalance/capacityPaper';
 import { capacityLean } from '../../tools/linebalance/capacityLean';
-import { balance } from '../ie/balance';
-import { balanceCost } from '../ie/balanceLink';
-import { balanceTiles } from '../ie/balanceLean';
+import { balance } from '../../tools/linework/balance';
+import { balanceCost } from '../../tools/linework/balanceLink';
+import { balanceTiles } from '../../tools/linework/balanceLean';
 import type { BalanceStep } from '../study';
 
 const line = (targetPerMin?: number): Capacity => ({ ...(targetPerMin != null ? { targetPerMin } : {}), stations: [

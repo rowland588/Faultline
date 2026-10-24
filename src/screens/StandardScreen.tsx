@@ -27,7 +27,7 @@ import { offerUndo } from '../ui/Undo';
 import { deleteMap, removeFromTool } from '../ui/StandardsCard';
 import { CapacityPanel } from '../tools/linebalance/CapacityPanel';
 import { balanceSays } from './LineToolsScreen';
-import { WorkView, useBalanceFor, workOf } from '../ui/WorkBalance';
+import { WorkView, useBalanceFor, workOf } from '../tools/linework/WorkBalance';
 import { capacitySays } from '../lib/together';
 import { Together } from '../ui/Together';
 import { ChangeoverLines } from '../tools/changeover/ChangeoverLines';
@@ -50,7 +50,7 @@ async function standardsPdf(list: Standard[], name: string) {
   const { drawStandards } = await import('../lib/standardPdf');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  const { worksFor } = await import('../ui/WorkBalance');
+  const { worksFor } = await import('../tools/linework/WorkBalance');
   const { shiftShortsFor } = await import('../tools/linebalance/ShiftCapacity');
   await drawStandards(doc, list, name, printedToday(), await worksFor(list), await shiftShortsFor(list));
   return doc;
@@ -73,7 +73,7 @@ function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; o
     void (async () => {
       try {
         const { cardPages } = await import('../lib/standardCard');
-        const { worksFor } = await import('../ui/WorkBalance');
+        const { worksFor } = await import('../tools/linework/WorkBalance');
         const { shiftShortsFor } = await import('../tools/linebalance/ShiftCapacity');
         const works = await worksFor(list), shifts = await shiftShortsFor(list);
         const out: { img: string; product: string; notes: boolean }[] = [];

@@ -1,7 +1,7 @@
 /* The work balance's arithmetic, proved by docs/TOOLKIT.md's worked examples. */
 import { describe, it, expect } from 'vitest';
 import { element, balance, balanceSays, suggest, cyclesNeeded, elementSays, keptLaps, compareBalances, balanceLine, t95, secs } from '../balance';
-import type { BalanceStep } from '../../study';
+import type { BalanceStep } from '../../../lib/study';
 
 const laps = (xs: number[]) => xs.map((sec, i) => ({ id: `l${i}`, sec, at: i }));
 

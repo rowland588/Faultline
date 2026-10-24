@@ -18,16 +18,16 @@ import { analyse, bottleneckCost, bottleneckCostSays, labourInputs, type Capacit
 import { fmtN } from '../tools/linebalance/capacityWords';
 import { shortSays } from '../tools/linebalance/capacitySays';
 import type { Workspace } from '../types';
-import { aPiece, balance, balanceSays, secs, type BalanceFigures, type PersonFigures } from './ie/balance';
-import { agreedFor, crewKept, stationsOf } from './ie/balanceLink';
+import { aPiece, balance, balanceSays, secs, type BalanceFigures, type PersonFigures } from '../tools/linework/balance';
+import { agreedFor, crewKept, stationsOf } from '../tools/linework/balanceLink';
 import { headcount, hasMap, type Standard } from './standard';
 import type { AgreedBalance, ToolStudy } from './study';
 import type { Tone } from '../tools/capability/sample';
 import type { LeanTile } from './lean';
 import { capacityPaper } from '../tools/linebalance/capacityPaper';
 import { capacityLean } from '../tools/linebalance/capacityLean';
-import { balanceTiles } from './ie/balanceLean';
-import { balanceCost, costInputs } from './ie/balanceLink';
+import { balanceTiles } from '../tools/linework/balanceLean';
+import { balanceCost, costInputs } from '../tools/linework/balanceLink';
 
 /** What a product's Line capacity says in a line: "Bagger limits at 58
  *  bags/min · 2 short of 60", and whether it is short — the only part that

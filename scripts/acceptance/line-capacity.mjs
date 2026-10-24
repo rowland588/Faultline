@@ -157,7 +157,7 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
   await page.evaluate(async id => { const db = await import('/src/db.ts'); const st = await db.getStandard(id);
     await db.putStandard({ ...st, capacity: { ...st.capacity, stations: st.capacity.stations.map(x => (x.kind === 'people' ? { ...x, name: 'Op 2', source: 'estimate' } : x)) } }); }, SID);
   await go(CAP);
-  const want = await page.evaluate(async id => { const db = await import('/src/db.ts'); const L = await import('/src/lib/studyLinks.ts'); const B = await import('/src/lib/ie/balance.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
+  const want = await page.evaluate(async id => { const db = await import('/src/db.ts'); const L = await import('/src/lib/studyLinks.ts'); const B = await import('/src/tools/linework/balance.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
     const b = L.currentBalance(await db.listAllStudies(), id); const f = B.balance(b.facts.steps, b.agreed?.balance); const w = f.people.find(p => p.who === 'Op 2')?.work ?? 0;
     const x = C.analyse((await db.getStandard(id)).capacity).ok.find(s => s.station.name === 'Op 2'); return Math.round(w * (x?.factor ?? 1) * 100) / 100; }, SID);
   const offer = await words('.cap-sheet-use');

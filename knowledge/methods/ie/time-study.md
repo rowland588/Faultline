@@ -6,7 +6,7 @@ discipline: ie
 kind: established
 evidence: standard
 depth: full
-checked: 2026-10-22 — the ILO's Introduction to Work Study (Kanawaty 1992) and BS 3138 (glossary, the 0–100 rating scale) from knowledge; the cycles-needed formula as Freivalds & Niebel give it; Faultline's arithmetic in src/lib/ie/balance.ts proved by src/lib/ie/__tests__/balance.test.ts
+checked: 2026-10-22 — the ILO's Introduction to Work Study (Kanawaty 1992) and BS 3138 (glossary, the 0–100 rating scale) from knowledge; the cycles-needed formula as Freivalds & Niebel give it; Faultline's arithmetic in src/tools/linework/balance.ts proved by src/tools/linework/__tests__/balance.test.ts
 needs: []
 next: [capacity.line-balancing, lean.standard-work, ie.standard-data]
 alternatives: [ie.pmts, ie.work-sampling, ie.video-time-study]
@@ -64,7 +64,7 @@ Hand-packing elements, tray loading, case erecting, sandwich assembly stations.
 - [textbook] Freivalds, A. and Niebel, B.W., *Niebel's Methods, Standards, and Work Design*, McGraw-Hill (13th ed., 2014).
 
 ## In Faultline
-The Line balance times elements on the phone (`src/lib/ie/balance.ts`:
+The Line balance times elements on the phone (`src/tools/linework/balance.ts`:
 basic = observed × rating ÷ 100, standard = basic × (1 + allowance)); the
 rating exists in the arithmetic but is never asked on screen (all 100), and
 the cycles needed are not said (FC-019, FC-020).

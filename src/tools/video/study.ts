@@ -12,7 +12,7 @@
  * its waiting another, so the stacks, the takt, the fewest people and the
  * efficiency are worked out by the module every line balance uses. */
 import type { BalanceStep } from '../../lib/study';
-import { balance, cyclesNeeded, MIN_CYCLES, t95, type BalanceFigures } from '../../lib/ie/balance';
+import { balance, cyclesNeeded, MIN_CYCLES, t95, type BalanceFigures } from '../linework/balance';
 import type { VideoEvent, VideoSource, VideoZone } from './record';
 
 export type Basis = 'verified' | 'provisional';
