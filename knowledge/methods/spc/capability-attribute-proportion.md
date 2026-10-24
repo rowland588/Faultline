@@ -104,6 +104,9 @@ output (`cost.line-cost-model`).
 - [paper] Laney, D.B. (2002), "Improved control charts for attributes", *Quality Engineering* 14(4), 531–537 — via secondary sources, 22 Oct 2026.
 
 ## In Faultline
-Specified as part 2 of the capability study (`knowledge/specs/FC-094-capability.md`),
-not built yet. The loss count already counts rejects in a shift
-(`src/tools/losses/losses.ts`) as time lost, not as a capability.
+Built 24 October as the capability study's *Rejects out of what was made* (FC-098, W1 —
+`src/tools/capability/modes.ts` runsFigures/runsSays, `src/lib/ie/dist.ts` binomUpper/binomLower,
+pLimits, laneySigmaZ, processZ): each run's made and rejected typed, the pooled rate with its 95%
+bounds from three runs, the p-chart with Laney's limits from five, Z and the Ppk it compares with (a
+comparison only), the verdict against the maximum agreed, the money from a pack's materials; on paper
+with the runs' table. Proved by `scripts/acceptance/capability-kinds.mjs` step 10 and `sample.test.ts`.

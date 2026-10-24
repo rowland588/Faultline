@@ -3,6 +3,10 @@
  * (src/catalogue/types.ts). */
 import type { Entry } from '../types';
 
+const SPEC = 'knowledge/specs/FC-094-capability.md';
+/* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
+const MODES_BUILT = { where: ['/capability'], code: ['src/tools/capability/modes.ts', 'src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/ModeParts.tsx', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts'], acceptance: ['capability-kinds.mjs'] };
+
 export const OPERATIONS: Entry[] = [
   {
     id: 'FC-168', name: 'HACCP plan', discipline: 'foodsafety', sub: 'haccp',
@@ -26,7 +30,9 @@ export const OPERATIONS: Entry[] = [
     food: 'Cooking core temperature; chilling; pasteurisation.',
     depends: ['FC-095', 'FC-122', 'FC-176'],
     complexity: 'M', value: 'high', valueWhy: 'Sees a CCP failing before it fails.',
-    status: 'to-build', form: 'mode', partOf: 'FC-094', methods: ['foodsafety.ccp-monitoring'], scenarios: ['safety', 'quality'], words: ['CCP', 'core temperature', 'critical limit'],
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['foodsafety.ccp-monitoring'], scenarios: ['safety', 'quality'], words: ['CCP', 'core temperature', 'critical limit'],
+    built: MODES_BUILT, spec: SPEC,
+    limits: ['The readings against the limit with the probe’s bias as a guard band and a deviation said; compliance (checks done of due), the time and who, and the product held are not recorded yet.'],
   },
   {
     id: 'FC-170', name: 'Metal detection and X-ray verification', discipline: 'foodsafety', sub: 'foreign',

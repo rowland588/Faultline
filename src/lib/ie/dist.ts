@@ -265,3 +265,144 @@ export function fewerThan(p: number): string {
   const k = Math.max(1, Math.ceil(p * d - 1e-9));
   return `fewer than ${k.toLocaleString('en-GB')} in ${d.toLocaleString('en-GB')}`;
 }
+
+/* ======================= W1 — THE CAPABILITY STUDY'S MODES ===================
+ * knowledge/specs/FC-094-capability.md parts 2–4 (24 October): rejects out of
+ * what was made (the binomial), faults found on each item (the Poisson), the
+ * attribute charts' limits and Laney's correction, the equivalent Z, machine
+ * capability and the lowest legal fill. Independent cases:
+ * scripts/knowledge/cases-w1.py. */
+
+/** P(X ≤ k) for a Poisson count with mean λ, the terms summed in logs. */
+export function poissonCdf(k: number, lambda: number): number {
+  if (lambda <= 0) return 1;
+  let sum = 0;
+  for (let i = 0; i <= Math.floor(k); i++) sum += Math.exp(i * Math.log(lambda) - lambda - lnGamma(i + 1));
+  return Math.min(1, sum);
+}
+
+/** The exact one-sided upper bound on a Poisson rate per unit: the λ with P(X ≤ c) = 1 − conf,
+ *  divided by the units N — χ²(conf; 2c + 2) / 2N. With c = 0 it is −ln(1 − conf)/N. */
+export function poissonUpper(c: number, N: number, conf = 0.95): number {
+  if (N <= 0) return NaN;
+  if (c <= 0) return -Math.log(1 - conf) / N;
+  let lo = c, hi = c + 10 * Math.sqrt(c) + 10;
+  for (let i = 0; i < 80; i++) { const mid = (lo + hi) / 2; if (poissonCdf(c, mid) > 1 - conf) lo = mid; else hi = mid; }
+  return (lo + hi) / 2 / N;
+}
+
+/** The exact one-sided lower bound on a Poisson rate per unit: the λ with P(X ≥ c) = 1 − conf —
+ *  χ²(1 − conf; 2c) / 2N; 0 when c = 0. */
+export function poissonLower(c: number, N: number, conf = 0.95): number {
+  if (N <= 0) return NaN;
+  if (c <= 0) return 0;
+  let lo = 0, hi = c;
+  for (let i = 0; i < 80; i++) { const mid = (lo + hi) / 2; if (1 - poissonCdf(c - 1, mid) < 1 - conf) lo = mid; else hi = mid; }
+  return (lo + hi) / 2 / N;
+}
+
+/** A p-chart's limits for one run of nᵢ around the pooled p̄ (the lower cut at 0); the u-chart's
+ *  are the same shape with ū/nᵢ under the root (`uLimits`). */
+export const pLimits = (pBar: number, n: number): { lcl: number; ucl: number } => {
+  const s = Math.sqrt(Math.max(0, pBar * (1 - pBar)) / n);
+  return { lcl: Math.max(0, pBar - 3 * s), ucl: Math.min(1, pBar + 3 * s) };
+};
+export const uLimits = (uBar: number, n: number): { lcl: number; ucl: number } => {
+  const s = Math.sqrt(Math.max(0, uBar) / n);
+  return { lcl: Math.max(0, uBar - 3 * s), ucl: uBar + 3 * s };
+};
+
+/** Laney's σz: each run's z against the plain limits, the moving range of the z's ÷ 1.128. Near 1
+ *  the plain chart is right; well above it the runs vary more than the count alone says and the
+ *  limits are widened by σz (Laney 2002 — via secondary summaries, knowledge/GAPS.md). */
+export function laneySigmaZ(rates: number[], sizes: number[], bar: number, kind: 'p' | 'u' = 'p'): number | undefined {
+  if (rates.length < 3) return undefined;
+  const z = rates.map((r, i) => {
+    const s = Math.sqrt((kind === 'p' ? bar * (1 - bar) : bar) / sizes[i]);
+    return s > 0 ? (r - bar) / s : 0;
+  });
+  let mr = 0;
+  for (let i = 1; i < z.length; i++) mr += Math.abs(z[i] - z[i - 1]);
+  return mr / (z.length - 1) / 1.128;
+}
+/** Laney is applied when σz is outside this band — a choice of the specification, said on screen. */
+export const LANEY_BAND: readonly [number, number] = [0.8, 1.25];
+
+/** The equivalent Z of a share failing (Φ⁻¹(1 − p)), the Ppk it compares with (Z/3) and the
+ *  "sigma level" by the 1.5-shift convention — a comparison only, never a verdict. */
+export function processZ(p: number): { z: number; ppkEq: number; sigma: number } | undefined {
+  if (!(p > 0) || !(p < 1)) return undefined;
+  const z = normalQuantile(1 - p);
+  return { z, ppkEq: z / 3, sigma: z + 1.5 };
+}
+
+/** Machine capability on consecutive parts (ISO 22514-3's Cm, Cmk — scope confirmed, text unread):
+ *  Cm = (U − L)/6s, Cmk from the nearer limit; one limit gives Cmk alone. */
+export function cmCmk(mean: number, sd: number, lower?: number, upper?: number): { cm?: number; cmk?: number } {
+  if (!(sd > 0)) return {};
+  const cm = lower !== undefined && upper !== undefined ? (upper - lower) / (6 * sd) : undefined;
+  const sides = [upper !== undefined ? (upper - mean) / (3 * sd) : undefined, lower !== undefined ? (mean - lower) / (3 * sd) : undefined].filter((x): x is number => x !== undefined);
+  return { ...(cm !== undefined ? { cm } : {}), ...(sides.length ? { cmk: Math.min(...sides) } : {}) };
+}
+
+/** The lowest legal fill (FC-157): the mean each of the packers' three rules needs at this spread —
+ *  rule 1 the nominal; rule 2 at most 2.5% below nominal − TNE; rule 3 none below nominal − 2·TNE,
+ *  read as at most 1 in 10,000 (the specification's reading, said) — and the largest of them. */
+export function fillTargets(nominal: number, sd: number, tne: number): { rule1: number; rule2: number; rule3: number; lowest: number; binds: 1 | 2 | 3 } {
+  const rule1 = nominal;
+  const rule2 = nominal - tne + normalQuantile(0.975) * sd;
+  const rule3 = nominal - 2 * tne + normalQuantile(0.9999) * sd;
+  const lowest = Math.max(rule1, rule2, rule3);
+  const binds = lowest === rule1 ? 1 : lowest === rule2 ? 2 : 3;
+  return { rule1, rule2, rule3, lowest, binds };
+}
+
+/* ======================= W1, PART 4 — THE HEADS AND THE F TEST =================== */
+
+/** The regularised incomplete beta I_x(a, b) by the continued fraction (Numerical Recipes betacf),
+ *  enough for the F distribution's tail at the sizes a study has. */
+export function betaInc(a: number, b: number, x: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const bt = Math.exp(lnGamma(a + b) - lnGamma(a) - lnGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+  const cf = (a: number, b: number, x: number): number => {
+    const TINY = 1e-300, EPS = 3e-14;
+    const qab = a + b, qap = a + 1, qam = a - 1;
+    let c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < TINY) d = TINY;
+    d = 1 / d;
+    let h = d;
+    for (let m = 1; m <= 300; m++) {
+      const m2 = 2 * m;
+      let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < TINY) d = TINY; c = 1 + aa / c; if (Math.abs(c) < TINY) c = TINY; d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < TINY) d = TINY; c = 1 + aa / c; if (Math.abs(c) < TINY) c = TINY; d = 1 / d;
+      const del = d * c; h *= del;
+      if (Math.abs(del - 1) < EPS) break;
+    }
+    return h;
+  };
+  return x < (a + 1) / (a + b + 2) ? bt * cf(a, b, x) / a : 1 - bt * cf(b, a, 1 - x) / b;
+}
+
+/** P(F ≤ f) on d1 and d2 degrees of freedom. */
+export function fCdf(f: number, d1: number, d2: number): number {
+  if (f <= 0) return 0;
+  return betaInc(d1 / 2, d2 / 2, d1 * f / (d1 * f + d2));
+}
+
+/** ONE-WAY ANOVA across groups (`stats.anova`): F, its p, the degrees of freedom — undefined with
+ *  fewer than two groups of two, or no spread within the groups. Checked against SciPy's f_oneway
+ *  (cases-w1.py: four heads F 283.858, p 4.4e-14; three agreeing heads F 0.141, p 0.870). */
+export function anovaOneWay(groups: number[][]): { f: number; p: number; df1: number; df2: number } | undefined {
+  const g = groups.filter(x => x.length >= 2);
+  if (g.length < 2) return undefined;
+  const all = g.flat(), N = all.length, grand = all.reduce((a, b) => a + b, 0) / N;
+  const ssb = g.reduce((s, x) => { const m = x.reduce((a, b) => a + b, 0) / x.length; return s + x.length * (m - grand) ** 2; }, 0);
+  const ssw = g.reduce((s, x) => { const m = x.reduce((a, b) => a + b, 0) / x.length; return s + x.reduce((t, v) => t + (v - m) ** 2, 0); }, 0);
+  const df1 = g.length - 1, df2 = N - g.length;
+  if (!(ssw > 0) || df2 < 1) return undefined;
+  const f = (ssb / df1) / (ssw / df2);
+  return { f, p: 1 - fCdf(f, df1, df2), df1, df2 };
+}

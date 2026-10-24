@@ -102,7 +102,8 @@ shift report; a case packer's rate after a changeover.
 - [standard] EN 415-11:2021 — efficiency and availability of packaging lines: the acceptance run's time states (scope confirmed online 22 Oct 2026; text not read).
 
 ## In Faultline
-Specified as part 2 of the capability study (`knowledge/specs/FC-094-capability.md`);
-not built. The performance run (`src/project`) already records a
-run's rate and its shortfall in packs and money (`src/lib/runMoney.ts`); held
-at rate adds the interval counts and the three figures above to that record.
+Built 24 October as the capability study's *Held at a rate for a time* (FC-083, W1 —
+`src/tools/capability/modes.ts` rateFigures/rateSays): the floor or ceiling a minute, the interval and
+how many, each interval's count typed on the pad, met and missed bars, the longest stretch, made against
+expected, the one-sided Ppk on the rates, held / held with gaps (from the share agreed) / not held; on
+paper with the misses by minute. Proved by `capability-kinds.mjs` step 12 and `sample.test.ts`.

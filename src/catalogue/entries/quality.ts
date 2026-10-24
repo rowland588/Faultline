@@ -2,6 +2,8 @@
 import type { Entry } from '../types';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
+/* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
+const MODES_BUILT = { where: ['/capability'], code: ['src/tools/capability/modes.ts', 'src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/ModeParts.tsx', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts'], acceptance: ['capability-kinds.mjs'] };
 
 export const QUALITY: Entry[] = [
   {
@@ -14,7 +16,9 @@ export const QUALITY: Entry[] = [
     food: 'Leakers, mislabels, crushed packs, foreign-matter finds.',
     depends: ['FC-125', 'FC-099', 'FC-098'],
     complexity: 'S', value: 'high', valueWhy: 'Honest counts at source.',
-    status: 'specified', form: 'mode', partOf: 'FC-098', methods: ['quality.check-sheet'], scenarios: ['quality'], words: ['tally', 'defect types', 'reject reasons'], spec: SPEC,
+    status: 'available', form: 'mode', partOf: 'FC-098', methods: ['quality.check-sheet'], scenarios: ['quality'], words: ['tally', 'defect types', 'reject reasons'], spec: SPEC,
+    built: MODES_BUILT,
+    limits: ['The kinds are typed once on the study (up to twelve) and tapped on each inspection; Other is always offered. A tally on its own, off a study, is not a page.'],
   },
   {
     id: 'FC-125', name: 'Defect Pareto — by type and by money', discipline: 'quality', sub: 'defects',
@@ -26,7 +30,9 @@ export const QUALITY: Entry[] = [
     food: 'Seal faults vs label faults on a tray line.',
     depends: ['FC-124', 'FC-146'],
     complexity: 'S', value: 'high', valueWhy: 'Where a reject problem starts.',
-    status: 'specified', form: 'mode', partOf: 'FC-098', methods: ['quality.pareto'], scenarios: ['quality', 'money'], spec: SPEC,
+    status: 'available', form: 'mode', partOf: 'FC-098', methods: ['quality.pareto'], scenarios: ['quality', 'money'], spec: SPEC,
+    built: MODES_BUILT,
+    limits: ['By money needs a pack’s materials typed (FC-156): each fault counted as one pack lost — a kind’s own cost (a relabel) is not typed yet.'],
   },
   {
     id: 'FC-126', name: 'Where on the pack — the defect concentration diagram', discipline: 'quality', sub: 'defects',
@@ -431,7 +437,9 @@ export const QUALITY: Entry[] = [
     food: 'Setting a weigher’s target on a 400 g bag.',
     depends: ['FC-156', 'FC-162'],
     complexity: 'S', value: 'high', valueWhy: 'Turns a spread reduction into money.',
-    status: 'to-build', form: 'mode', partOf: 'FC-094', methods: ['yield.giveaway', 'packaging.average-quantity-system'], scenarios: ['packing', 'money'], words: ['target weight', 'fill setting'],
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['yield.giveaway', 'packaging.average-quantity-system'], scenarios: ['packing', 'money'], words: ['target weight', 'fill setting'],
+    built: MODES_BUILT, spec: SPEC,
+    limits: ['From 25 readings on a sold-by-weight study; the third rule read as 1 in 10,000 at this spread (a choice, said in the spec); money by the £/kg typed.'],
   },
   {
     id: 'FC-158', name: 'Multihead weigher performance', discipline: 'yield', sub: 'giveaway',
@@ -443,7 +451,9 @@ export const QUALITY: Entry[] = [
     food: 'Snacks, salad, frozen vegetables.',
     depends: ['FC-156', 'FC-107', 'FC-097'],
     complexity: 'M', value: 'medium', valueWhy: 'Combination weighers are common and misread.',
-    status: 'to-build', form: 'mode', partOf: 'FC-094', methods: ['yield.multihead-weigher'], scenarios: ['packing'],
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['yield.multihead-weigher'], scenarios: ['packing'],
+    built: MODES_BUILT, spec: SPEC,
+    limits: ['The heads compared on a measurement study with the head typed per reading (one-way ANOVA across heads); the combination’s own shape and the idealised search are the record’s, not drawn.'],
   },
   {
     id: 'FC-159', name: 'Yield and mass balance by stage', discipline: 'yield', sub: 'yield',
@@ -491,9 +501,10 @@ export const QUALITY: Entry[] = [
     food: 'Every ℮-marked pack.',
     depends: ['FC-094', 'FC-157', 'FC-164'],
     complexity: 'S', value: 'high', valueWhy: 'The law, applied plainly.',
-    status: 'partial', form: 'mode', partOf: 'FC-094', methods: ['packaging.average-quantity-system'], scenarios: ['packing', 'quality'], words: ['e mark', 'short weight', 'TNE', 'average system', 'weights and measures'],
-    built: { where: ['/capability'], code: ['src/tools/capability/sample.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts'], acceptance: [] },
-    limits: ['Not driven by an acceptance script.', 'The inspector’s reference test on a batch is not implemented (FC-232).'],
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['packaging.average-quantity-system'], scenarios: ['packing', 'quality'], words: ['e mark', 'short weight', 'TNE', 'average system', 'weights and measures'],
+    built: MODES_BUILT,
+    spec: SPEC,
+    limits: ['The inspector’s reference test on a batch is not implemented (FC-232).'],
   },
   {
     id: 'FC-163', name: 'Volume packs checked by weight — the density', discipline: 'packaging', sub: 'weight',
@@ -505,7 +516,9 @@ export const QUALITY: Entry[] = [
     food: 'Sauces, drinks, oils.',
     depends: ['FC-162'],
     complexity: 'S', value: 'medium', valueWhy: 'Common for liquid fillers.',
-    status: 'to-build', form: 'mode', partOf: 'FC-094', methods: ['packaging.average-quantity-system'], scenarios: ['packing'],
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['packaging.average-quantity-system'], scenarios: ['packing'],
+    built: MODES_BUILT, spec: SPEC,
+    limits: ['The density is typed at packing temperature — not looked up; the TNE is the volume table’s at the nominal in ml, converted.'],
   },
   {
     id: 'FC-164', name: 'Checkweigher verification — test weights and the reject', discipline: 'packaging', sub: 'weight',
@@ -529,7 +542,9 @@ export const QUALITY: Entry[] = [
     food: 'Tray sealers, flow wrappers, MAP packs.',
     depends: ['FC-095', 'FC-100', 'FC-098', 'FC-111'],
     complexity: 'M', value: 'high', valueWhy: 'Seal failures are a top food complaint.',
-    status: 'to-build', form: 'mode', partOf: 'FC-094', methods: ['packaging.seal-integrity'], scenarios: ['packing', 'quality'], words: ['leakers', 'seal failures', 'dye test', 'peel strength'],
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['packaging.seal-integrity'], scenarios: ['packing', 'quality'], words: ['leakers', 'seal failures', 'dye test', 'peel strength'],
+    built: MODES_BUILT, spec: SPEC,
+    limits: ['Strength as a one-sided measurement with its question’s words; leaks are a pass-or-fail study (FC-100) — the two are not yet one page.'],
   },
   {
     id: 'FC-166', name: 'Code and label verification', discipline: 'packaging', sub: 'code',
@@ -553,6 +568,8 @@ export const QUALITY: Entry[] = [
     food: 'Meat, cheese and salad MAP packs.',
     depends: ['FC-095', 'FC-096'],
     complexity: 'S', value: 'medium', valueWhy: 'Shelf life depends on it.',
-    status: 'to-build', form: 'mode', partOf: 'FC-094', methods: ['packaging.map-residual-oxygen'], scenarios: ['packing', 'quality'], words: ['MAP', 'oxygen', 'gas flush'],
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['packaging.map-residual-oxygen'], scenarios: ['packing', 'quality'], words: ['MAP', 'oxygen', 'gas flush'],
+    built: MODES_BUILT, spec: SPEC,
+    limits: ['The share outside is read as measured on a leaning set; the fitted model is W3’s (FC-096); the leak-test hand-off is said, not linked.'],
   },
 ];

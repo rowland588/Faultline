@@ -193,3 +193,82 @@ describe('a share said the way a person would — never flattering', () => {
     expect(fewerThan(0.0002)).toBe('fewer than 2 in 10,000');
   });
 });
+
+/* W1 — THE CAPABILITY STUDY'S MODES (knowledge/specs/FC-094-capability.md parts 2–4, criterion 22):
+   every number from scripts/knowledge/cases-w1.py (SciPy), run 24 October. */
+import { poissonCdf, poissonUpper, poissonLower, pLimits, uLimits, laneySigmaZ, processZ, cmCmk, fillTargets, LANEY_BAND, fCdf, anovaOneWay } from '../dist';
+describe('parts 2–4 — rejects, faults, Laney, Z, Cm/Cmk and the lowest legal fill', () => {
+  const RUNS = [[4800, 24], [5100, 31], [4650, 19], [5000, 28], [4900, 41], [5200, 22]] as const;
+  const N = RUNS.reduce((s, r) => s + r[0], 0), D = RUNS.reduce((s, r) => s + r[1], 0), pBar = D / N;
+  it('rejects: the pooled rate and its exact bounds', () => {
+    expect(N).toBe(29650); expect(D).toBe(165); expect(pBar).toBeCloseTo(0.00556, 5);
+    expect(binomLower(D, N, 0.975)).toBeCloseTo(0.00475, 5);
+    expect(binomUpper(D, N, 0.975)).toBeCloseTo(0.00648, 5);
+    expect(binomUpper(D, N, 0.95)).toBeCloseTo(0.00633, 5);
+    expect(binomUpper(0, 2000, 0.95)).toBeCloseTo(0.00150, 5);
+  });
+  it('the p-chart limits per run, and run 5 inside the plain limits', () => {
+    const l = pLimits(pBar, 4900);
+    expect(l.lcl).toBeCloseTo(0.00238, 5); expect(l.ucl).toBeCloseTo(0.00875, 5);
+    expect(41 / 4900).toBeLessThan(l.ucl);
+    expect(pLimits(pBar, 4800).lcl).toBeCloseTo(0.00234, 5);
+  });
+  it('Laney’s σz on the six runs is 1.91 — outside the band, so the limits widen', () => {
+    const sz = laneySigmaZ(RUNS.map(r => r[1] / r[0]), RUNS.map(r => r[0]), pBar, 'p');
+    expect(sz).toBeCloseTo(1.913, 2);
+    expect(sz! > LANEY_BAND[1]).toBe(true);
+    expect(laneySigmaZ([0.01, 0.02], [100, 100], 0.015)).toBeUndefined();
+  });
+  it('the equivalent Z, Ppk and sigma level — a comparison only', () => {
+    const z = processZ(pBar)!;
+    expect(z.z).toBeCloseTo(2.54, 2); expect(z.ppkEq).toBeCloseTo(0.85, 2); expect(z.sigma).toBeCloseTo(4.04, 2);
+    expect(processZ(0)).toBeUndefined(); expect(processZ(1)).toBeUndefined();
+  });
+  it('faults: DPU, the exact Poisson bounds, the u and c limits', () => {
+    const C = 57, Nn = 1150;
+    expect(C / Nn).toBeCloseTo(0.0496, 4);
+    expect(poissonLower(C, Nn, 0.975)).toBeCloseTo(0.0375, 4);
+    expect(poissonUpper(C, Nn, 0.975)).toBeCloseTo(0.0642, 4);
+    expect(poissonUpper(C, Nn, 0.95)).toBeCloseTo(0.0618, 4);
+    expect(poissonUpper(0, 300, 0.95)).toBeCloseTo(0.00999, 5);
+    expect(poissonLower(0, 300)).toBe(0);
+    expect(1 - Math.exp(-C / Nn)).toBeCloseTo(0.0484, 4);
+    const u = uLimits(C / Nn, 200); expect(u.lcl).toBeCloseTo(0.0023, 4); expect(u.ucl).toBeCloseTo(0.0968, 4);
+    const cBar = (9 + 14 + 6) / 3; expect(uLimits(cBar, 1).lcl).toBeCloseTo(0.34, 2); expect(uLimits(cBar, 1).ucl).toBeCloseTo(18.99, 2);
+    expect(poissonCdf(2, 1.5)).toBeCloseTo(0.8088, 4);
+  });
+  it('DPMO with 6 opportunities and its Z', () => {
+    const dpo = 57 / (1150 * 6);
+    expect(Math.round(dpo * 1e6)).toBe(8261);
+    expect(processZ(dpo)!.z).toBeCloseTo(2.40, 2); expect(processZ(dpo)!.sigma).toBeCloseTo(3.90, 2);
+  });
+  it('machine capability on consecutive parts', () => {
+    const r = cmCmk(400.29, 0.773, 398, 403);
+    expect(r.cm).toBeCloseTo(1.08, 2); expect(r.cmk).toBeCloseTo(0.99, 2);
+    expect(cmCmk(400.29, 0.773, 398).cm).toBeUndefined(); expect(cmCmk(400.29, 0.773, 398).cmk).toBeCloseTo(0.99, 2);
+    expect(cmCmk(400, 0)).toEqual({});
+  });
+  it('the lowest legal fill — rule 1 binds at s 2.1 g, and still at 6 g', () => {
+    const f = fillTargets(400, 2.1, 12);
+    expect(f.rule1).toBe(400); expect(f.rule2).toBeCloseTo(392.12, 2); expect(f.rule3).toBeCloseTo(383.81, 2);
+    expect(f.lowest).toBe(400); expect(f.binds).toBe(1);
+    expect(fillTargets(400, 6, 12).rule2).toBeCloseTo(399.76, 2); expect(fillTargets(400, 6, 12).binds).toBe(1);
+    expect(fillTargets(400, 7, 12).binds).toBe(3);
+  });
+});
+
+describe('part 4 — the heads and the F test (cases-w1.py)', () => {
+  it('F cdf agrees with SciPy', () => {
+    expect(fCdf(2.5, 3, 16)).toBeCloseTo(0.903463, 5);
+    expect(fCdf(5.0, 2, 12)).toBeCloseTo(0.973664, 5);
+  });
+  it('one-way ANOVA finds the heavy head and lets agreeing heads agree', () => {
+    const heads = [[37.2, 37.9, 37.4, 38.1, 36.8], [37.6, 37.1, 38.0, 37.3, 37.7], [43.1, 43.8, 43.4, 43.9, 43.3], [37.5, 36.9, 37.8, 37.2, 37.6]];
+    const a = anovaOneWay(heads) as { f: number; p: number; df1: number; df2: number };
+    expect(a.f).toBeCloseTo(283.858, 2); expect(a.p).toBeLessThan(1e-10); expect(a.df1).toBe(3); expect(a.df2).toBe(16);
+    const b = anovaOneWay([heads[0], heads[1], heads[3]]) as { f: number; p: number };
+    expect(b.f).toBeCloseTo(0.141, 2); expect(b.p).toBeCloseTo(0.870, 2);
+    expect(anovaOneWay([[1, 2], [3]])).toBeUndefined();
+    expect(anovaOneWay([[1, 1], [2, 2]])).toBeUndefined();
+  });
+});

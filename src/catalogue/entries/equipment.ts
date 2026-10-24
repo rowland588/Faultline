@@ -1,6 +1,10 @@
 /* THE CATALOGUE — maintenance and reliability, changeovers, commissioning (src/catalogue/types.ts). */
 import type { Entry } from '../types';
 
+const SPEC = 'knowledge/specs/FC-094-capability.md';
+/* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
+const MODES_BUILT = { where: ['/capability'], code: ['src/tools/capability/modes.ts', 'src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/ModeParts.tsx', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts'], acceptance: ['capability-kinds.mjs'] };
+
 export const EQUIPMENT: Entry[] = [
   {
     id: 'FC-058', name: 'Reliability — MTBF and failure rate, several things counted at once', discipline: 'maintenance', sub: 'reliability',
@@ -337,8 +341,10 @@ export const EQUIPMENT: Entry[] = [
     food: 'Acceptance of a flow wrapper at 75 a minute; an oven held in a band for an hour.',
     depends: ['FC-094', 'FC-095', 'FC-076'],
     complexity: 'M', value: 'high', valueWhy: 'Asked for by Rowland, 22 October; the proof of a program’s speed.',
-    status: 'specified', form: 'mode', partOf: 'FC-094', methods: ['spc.held-at-rate', 'spc.capability-measured'], scenarios: ['new', 'machine'], words: ['run at rate', 'sustained speed', 'hold speed'],
-    spec: 'knowledge/specs/FC-094-capability.md',
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['spc.held-at-rate', 'spc.capability-measured'], scenarios: ['new', 'machine'], words: ['run at rate', 'sustained speed', 'hold speed'],
+    spec: SPEC,
+    built: MODES_BUILT,
+    limits: ['Each interval is one count typed; the time it must hold is count × interval; held with gaps from the share agreed (90% by default) and the mean on the right side.'],
   },
   {
     id: 'FC-084', name: 'Machine capability for acceptance (Cm, Cmk)', discipline: 'commissioning', sub: 'acceptance',
@@ -350,7 +356,9 @@ export const EQUIPMENT: Entry[] = [
     food: 'FAT/SAT of a weigher or a tray sealer’s seal strength.',
     depends: ['FC-094', 'FC-074', 'FC-119'],
     complexity: 'S', value: 'medium', valueWhy: 'Capability evidence at acceptance.',
-    status: 'to-build', form: 'mode', partOf: 'FC-094', methods: ['spc.machine-capability'], scenarios: ['new'],
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['spc.machine-capability'], scenarios: ['new'],
+    built: MODES_BUILT, spec: SPEC,
+    limits: ['Cm/Cmk on the overall spread of the consecutive parts typed (one machine, nothing else varying is the person’s word); accepted from 25 parts against the Cmk agreed (1.67 by default, the OEM’s).'],
   },
   {
     id: 'FC-085', name: 'Line acceptance on the EN 415-11 time model', discipline: 'commissioning', sub: 'acceptance',

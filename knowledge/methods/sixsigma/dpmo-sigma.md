@@ -48,4 +48,7 @@ Comparing a reject rate with a weight capability in one report.
 - [textbook] Wheeler, D.J. (2004), *The Six Sigma Practitioner's Guide to Data Analysis*, SPC Press.
 
 ## In Faultline
-Specified as part of the capability study's counted kinds (FC-102).
+Built 24 October inside the capability study's faults mode (FC-102, W1 — `src/lib/ie/dist.ts` processZ,
+`src/tools/capability/modes.ts` faultsSays): defects per million opportunities once the opportunities an
+item are typed, Z and the sigma level with the 1.5-shift convention named; the rejects mode says Z and the
+Ppk it compares with, as a comparison only. Proved by `capability-kinds.mjs` step 11 and `sample.test.ts`.

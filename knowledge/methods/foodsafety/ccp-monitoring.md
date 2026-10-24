@@ -110,9 +110,9 @@ the fryer's oil quality — every line's CCP sheet, as readings.
 - [guide] Campden BRI, *HACCP: A Practical Guide*, 5th ed., 2015 (from knowledge).
 
 ## In Faultline
-Not built (FC-169): a capability study against an "at least" limit
-already holds readings and says the margin (`src/tools/capability`).
-FC-169 adds the CCP's schedule (due, done, missed), each reading with
-its time and who, the probe's guard band from its record, a deviation
-opening the product-at-risk hold and the corrective action, and the
-margin's chart on the line's page.
+Built 24 October as a question on the capability study's measurement — *A CCP's limit* (FC-169, W1 —
+`src/tools/capability/modes.ts` questionFigures/questionSays): where the limit comes from and the probe's
+bias at it typed; the margin at the worst reading, the reading a check must show to be sure of the limit,
+how many readings sit inside that guard band (not shown safe, red), a deviation holding the product since
+the last good check. Proved by `capability-kinds.mjs` step 13b and `sample.test.ts`. Still to add: the
+schedule (due, done, missed), each reading's time and who, the hold and the corrective action as records.

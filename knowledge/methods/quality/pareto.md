@@ -47,4 +47,7 @@ Downtime reasons; reject types; complaint categories; give-away by product.
 - [textbook] Ishikawa, K. (1982), *Guide to Quality Control*, Asian Productivity Organization.
 
 ## In Faultline
-The line's Pareto from the stops log (FC-052); a defect Pareto is specified (FC-125).
+The line's Pareto from the stops log (FC-052); the defect Pareto built 24 October inside the capability
+study's faults mode (FC-125, W1 — `src/tools/capability/ModeParts.tsx` Pareto): the kinds by count with
+the cumulative line, by money when a pack's materials are typed (each fault one pack lost), the top kinds
+said in a sentence; the tally and its shares on paper. Proved by `capability-kinds.mjs` step 11.

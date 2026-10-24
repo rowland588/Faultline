@@ -3,6 +3,8 @@ import type { Entry } from '../types';
 
 const CAPABILITY_BUILT = { where: ['/capability'], code: ['src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/sampleLean.ts', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts', 'src/lib/__tests__/audit-ie-sample.test.ts'], acceptance: ['ecosystem-capability.mjs', 'capability-kinds.mjs'] };
 const SPEC = 'knowledge/specs/FC-094-capability.md';
+/* W1 (24 October): the study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
+const MODES_BUILT = { where: ['/capability'], code: ['src/tools/capability/modes.ts', 'src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/ModeParts.tsx', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts'], acceptance: ['capability-kinds.mjs'] };
 
 export const SPC: Entry[] = [
   {
@@ -39,7 +41,9 @@ export const SPC: Entry[] = [
     food: 'Checkweigher rejects a shift; leakers per dunk test.',
     depends: ['FC-098', 'FC-125'],
     complexity: 'M', value: 'high', valueWhy: 'Separates a bad run from a bad process.',
-    status: 'specified', form: 'mode', partOf: 'FC-098', methods: ['spc.control-charts-attribute'], scenarios: ['quality'], spec: SPEC,
+    status: 'available', form: 'mode', partOf: 'FC-098', methods: ['spc.control-charts-attribute'], scenarios: ['quality'], spec: SPEC,
+    built: MODES_BUILT,
+    limits: ['A mode of the rejects study, not a chart on its own: p limits a run, Laney’s p′ when σz is outside 0.8–1.25; np not drawn (the runs differ in size).'],
   },
   {
     id: 'FC-089', name: 'Faults per item chart — c, u and Laney u′', discipline: 'spc', sub: 'charts',
@@ -51,7 +55,9 @@ export const SPC: Entry[] = [
     food: 'Print faults per reel; marks per tray of bakes.',
     depends: ['FC-099'],
     complexity: 'S', value: 'medium', valueWhy: 'The stability check for faults counted.',
-    status: 'specified', form: 'mode', partOf: 'FC-099', methods: ['spc.control-charts-attribute'], scenarios: ['quality'], spec: SPEC,
+    status: 'available', form: 'mode', partOf: 'FC-099', methods: ['spc.control-charts-attribute'], scenarios: ['quality'], spec: SPEC,
+    built: MODES_BUILT,
+    limits: ['A mode of the faults study: u limits an inspection, the c-chart when every inspection is the same size, Laney’s u′ when σz is outside 0.8–1.25.'],
   },
   {
     id: 'FC-090', name: 'Signals on a chart — Western Electric and Nelson rules', discipline: 'spc', sub: 'signals',
@@ -111,10 +117,10 @@ export const SPC: Entry[] = [
     food: 'Fill weight against give-away and legal limits; slice thickness; label position.',
     depends: ['FC-097', 'FC-086', 'FC-119', 'FC-156'],
     complexity: 'L', value: 'high', valueWhy: 'The measured test — the proof of most fixes and acceptance tests.',
-    status: 'partial', form: 'tool', kind: 'study',
+    status: 'available', form: 'tool', kind: 'study',
     app: { key: 'capability', label: 'Capability', says: 'A measurement against one limit or two, or pass or fail: Ppk and how sure, the checks before it, and what a pass proves', onLine: 'readings against the limits agreed', reads: 'capability', icon: 'hash', order: 4 }, methods: ['spc.capability-measured', 'spc.normality-checks'], scenarios: ['quality', 'packing', 'new'], words: ['Cpk', 'Ppk', 'capability', 'process capability', 'spec limits'],
     built: CAPABILITY_BUILT, spec: SPEC,
-    limits: ['In money since 24 October (FC-156): give-away, and the rejects by fate on a pass-or-fail study; reject-rate capability from counts (FC-098) is still planned.', 'Readings that are not bell-shaped are said so and their share read as measured; no fitted model yet (FC-096).', 'Readings are assumed independent — not tested (FC-115).'],
+    limits: ['In money since 24 October (FC-156): give-away, the rejects by fate, and the rejects mode’s materials.', 'Readings that are not bell-shaped are said so and their share read as measured; the fitted model (FC-096) is W3’s, with distribution fitting.', 'Readings are assumed independent — not tested (FC-115).'],
   },
   {
     id: 'FC-095', name: 'Capability against one limit — at least, or at most', discipline: 'spc', sub: 'capability',
@@ -141,6 +147,7 @@ export const SPC: Entry[] = [
     depends: ['FC-097', 'FC-114'],
     complexity: 'L', value: 'medium', valueWhy: 'Honest capability where the bell does not fit.',
     status: 'to-build', form: 'mode', partOf: 'FC-094', methods: ['spc.capability-nonnormal', 'stats.distribution-fitting'], scenarios: ['quality'],
+    limits: ['Planned for W3 with distribution fitting (FC-109) — the capability study already says a leaning set is read as measured (docs/TOOLS-BUILD.md).'],
   },
   {
     id: 'FC-097', name: 'Before capability — is it bell-shaped, steady and fine enough', discipline: 'spc', sub: 'checks',
@@ -166,7 +173,9 @@ export const SPC: Entry[] = [
     food: 'Checkweigher, metal detector and vision rejects; leakers.',
     depends: ['FC-088', 'FC-125', 'FC-102', 'FC-189'],
     complexity: 'M', value: 'high', valueWhy: 'The most common question on a food line — asked for by Rowland, 22 October.',
-    status: 'specified', form: 'mode', partOf: 'FC-094', methods: ['spc.capability-attribute-proportion', 'stats.confidence-intervals'], scenarios: ['quality', 'machine', 'money'], words: ['reject rate', 'rejects', 'pass rate', 'yield', 'defective'], spec: SPEC,
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['spc.capability-attribute-proportion', 'stats.confidence-intervals'], scenarios: ['quality', 'machine', 'money'], words: ['reject rate', 'rejects', 'pass rate', 'yield', 'defective'], spec: SPEC,
+    built: MODES_BUILT,
+    limits: ['Each run is one count of made and rejected; a run’s own cause is not typed (a stop or a reason) — raise it as a problem.', 'The chart’s limits are drawn from 5 runs; Laney’s σz from the z-scores’ moving range.'],
   },
   {
     id: 'FC-099', name: 'Faults per item capability — defects per unit and per million', discipline: 'spc', sub: 'attribute',
@@ -178,7 +187,9 @@ export const SPC: Entry[] = [
     food: 'Print faults per reel; marks per tray.',
     depends: ['FC-089', 'FC-124', 'FC-102'],
     complexity: 'M', value: 'medium', valueWhy: 'Right denominator for multi-fault items.',
-    status: 'specified', form: 'mode', partOf: 'FC-094', methods: ['spc.capability-attribute-defects'], scenarios: ['quality'], words: ['DPU', 'DPMO', 'defects'], spec: SPEC,
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['spc.capability-attribute-defects'], scenarios: ['quality'], words: ['DPU', 'DPMO', 'defects'], spec: SPEC,
+    built: MODES_BUILT,
+    limits: ['Each inspection is one count of items and faults by kind; an item with several faults counts each fault once (DPU), and the share of items with any fault is the Poisson approximation 1 − e^−DPU.', 'DPMO needs the opportunities an item typed — none assumed.'],
   },
   {
     id: 'FC-100', name: 'Pass or fail, one at a time — what a run of good items proves', discipline: 'spc', sub: 'attribute',
@@ -216,7 +227,9 @@ export const SPC: Entry[] = [
     food: 'Comparing a reject rate with a weight capability.',
     depends: ['FC-098', 'FC-099'],
     complexity: 'S', value: 'low', valueWhy: 'A comparison, not a verdict.',
-    status: 'specified', form: 'component', methods: ['sixsigma.dpmo-sigma'], scenarios: ['quality'], words: ['sigma level', 'PPM', 'DPMO'], spec: SPEC,
+    status: 'available', form: 'component', methods: ['sixsigma.dpmo-sigma'], scenarios: ['quality'], words: ['sigma level', 'PPM', 'DPMO'], spec: SPEC,
+    built: MODES_BUILT,
+    limits: ['A component of the faults mode: the sigma level is said with the 1.5-shift convention named, never as a quality on its own.'],
   },
   {
     id: 'FC-103', name: 'Describing readings — centre, spread, shape and the histogram', discipline: 'stats', sub: 'describe',

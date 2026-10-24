@@ -70,5 +70,7 @@ Built 24 October as part of the capability study (FC-156, a mode of the study it
 in g or kg says give-away a pack, and — from the packs a shift, the shifts a
 week and the product's cost a kilo typed on the study (Rowland, 24 October) —
 a shift and a week in kg and £, with its because; a missing input is named on
-the tile. The lowest legal fill and what a lower spread saves are FC-157, not
-built.
+the tile. The lowest legal fill (FC-157, W1, the same day — `src/tools/capability/modes.ts`
+fillFigures/fillSays, `src/lib/ie/dist.ts` fillTargets): from 25 readings on a sold-by-weight study the
+lowest target that keeps the three rules at this spread, which rule binds, and what the present mean
+gives away above it in grams and £ a 100 packs. Proved by `capability-kinds.mjs` step 14.

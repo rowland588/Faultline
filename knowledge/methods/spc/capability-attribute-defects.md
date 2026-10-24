@@ -75,4 +75,8 @@ assembly faults per 100; label faults per pallet.
 - [textbook] Breyfogle, F.W., *Implementing Six Sigma*, 2nd ed., Wiley, 2003 — DPU, DPMO and opportunities (from knowledge; edition to confirm).
 
 ## In Faultline
-Specified as part 3 of the capability study (`knowledge/specs/FC-094-capability.md`); not built.
+Built 24 October as the capability study's *Faults found on each item* (FC-099, W1 —
+`src/tools/capability/modes.ts` faultsFigures/faultsSays, `src/lib/ie/dist.ts` poissonUpper/poissonLower,
+uLimits): items and faults by kind typed an inspection, DPU with its bounds, the share of items with
+any fault (1 − e^−DPU), the u- or c-chart with Laney's limits, DPMO once the opportunities are typed;
+on paper with the tally and the inspections. Proved by `capability-kinds.mjs` step 11 and `sample.test.ts`.

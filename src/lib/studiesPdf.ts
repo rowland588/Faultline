@@ -15,7 +15,8 @@ import type { ToolStudy } from './study';
 import type { Standard } from '../tools/linestandard/standard';
 import type { StudyContext } from './studyLinks';
 import { studyEvidence } from './clientReport';
-import { checksSay, goodWord, pctWord, ruleWords, sample, sampleLines, sampleSays, CPK_FROM, type SampleFigures, fateOf, fateWord, moneySays, sampleMoney } from '../tools/capability/sample';
+import { checksSay, goodWord, pctWord, ruleWords, sample, sampleLines, sampleSays, CPK_FROM, type SampleFigures, fateOf, fateWord, moneySays, sampleMoney, modeNotes } from '../tools/capability/sample';
+import { shareWords, type RunsFigures, type FaultsFigures, type RateFigures } from '../tools/capability/modes';
 import { fewerThan } from './ie/dist';
 import type { AgreedReadings } from './study';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
@@ -170,6 +171,11 @@ function capabilityBlocks(s: ToolStudy): Block[] {
       readingsRows(s, r => (r.ok === true ? 'good' : r.ok === false ? (r.struck ? 'failed' : `failed · ${fateWord(fateOf(r))}`) : '—'), id => bad.has(id)),
     ];
   }
+  /* W1 — the modes (knowledge/specs/FC-094-capability.md parts 2–4): rejects, faults, a rate — the cells,
+     the runs' table, the chart, the tally */
+  if (a.kind === 'rejects' && f.runs) return runsBlocks(f.runs, f, a);
+  if (a.kind === 'faults' && f.faults) return faultsBlocks(f.faults, f, a);
+  if (a.kind === 'rate' && f.rate) return rateBlocks(f.rate, f, a);
   const unit = a.unit ? ` ${a.unit}` : '';
   const fx = (v?: number) => (v === undefined ? '—' : v.toFixed(f.dp));
   const enough = f.n >= CPK_FROM;
@@ -186,12 +192,108 @@ function capabilityBlocks(s: ToolStudy): Block[] {
     out.push(label('Before capability'));
     checks.forEach((c, i) => out.push(text({ text: c.text, size: 8.5, style: c.tone === 'a' ? 'bold' : 'normal', colour: c.tone === 'a' ? AMBER : INK2, after: i === checks.length - 1 ? 8 : 2 })));
   }
+  /* W1 — machine capability and the lowest legal fill, beside the checks */
+  for (const nt of modeNotes(f, a)) out.push(text({ text: nt.text, size: 8.5, style: nt.tone === 'r' || nt.tone === 'a' ? 'bold' : 'normal', colour: nt.tone === 'r' ? DANGER : nt.tone === 'a' ? AMBER : INK2, after: 6 }));
+  /* a weigher's heads (FC-158): each head's readings, mean and spread, and how far from the others */
+  if (f.weigher && f.weigher.heads.length >= 2) {
+    const w = f.weigher, u = a.unit ? ` ${a.unit}` : '';
+    out.push(label('By head'));
+    out.push(tableBlock(['Head', 'Readings', 'Mean', 'Spread (s)', 'Against the others'], w.heads.map(h => {
+      const rest = w.heads.filter(o => o !== h), others = rest.reduce((t, o) => t + o.mean, 0) / rest.length, d = h.mean - others;
+      return [String(h.head), String(h.n), `${h.mean.toFixed(f.dp)}${u}`, h.n >= 2 ? h.sd.toFixed(f.dp + 1) : '—', `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(f.dp)}${u}`];
+    }), [0.12, 0.16, 0.22, 0.22, 0.28], i => w.far?.head === w.heads[i].head && (w.anova?.p ?? 1) < 0.05));
+  }
   const hist = histBlock(f, a);
   if (hist) { out.push(label('How the readings spread')); out.push(hist); }
   /* every reading, in the order taken — outside in red, struck said */
   const outsideIds = new Set(f.outside.map(o => o.id));
   out.push(label('The readings, in the order taken'));
-  out.push(readingsRows(s, r => (typeof r.value === 'number' ? r.value.toFixed(f.dp) : '—'), id => outsideIds.has(id)));
+  out.push(readingsRows(s, r => (typeof r.value === 'number' ? `${r.value.toFixed(f.dp)}${a.question === 'weigher' && r.head !== undefined ? ` H${r.head}` : ''}` : '—'), id => outsideIds.has(id)));
+  return out;
+}
+
+/* ---- W1: the modes on paper (tools/capability/modes) ---- */
+const num = (v: number) => v.toLocaleString('en-GB');
+/** A small table: a header row and one row per entry, the columns' widths as shares of the frame. */
+function tableBlock(header: string[], body: string[][], shares: number[], redRow?: (i: number) => boolean): Block {
+  const row = (cells: string[], bold: boolean, red = false): Parameters<typeof rows>[0]['rows'][number] => ({
+    h: () => 13,
+    draw: (fr: Frame, y: number) => {
+      let x = fr.x;
+      cells.forEach((c, i) => { font(fr.doc, 7.5, bold ? 'bold' : 'normal', bold ? MUTED : red ? DANGER : INK2); fr.doc.text(c, x, y + 9); x += fr.w * shares[i]; });
+      if (bold) { fr.doc.setDrawColor(LINE); fr.doc.setLineWidth(0.4); fr.doc.line(fr.x, y + 12, fr.x + fr.w, y + 12); }
+    },
+  });
+  return rows({ header: row(header, true), rows: body.map((b, i) => row(b, false, redRow?.(i) ?? false)), after: 'm' });
+}
+/** Bars against limits — a run, an inspection or an interval a bar; a line for the centre and one for the maximum. */
+function barsBlock(bars: { v: number; out?: boolean; miss?: boolean; lo?: number; hi?: number }[], lines: { v: number; label: string; red?: boolean }[], fmt: (v: number) => string): Block {
+  const top = Math.max(...bars.map(b => Math.max(b.v, b.hi ?? 0)), ...lines.map(l => l.v), 1e-9) * 1.12, HB = 110;
+  return rows({ rows: [{
+    h: () => HB + 14,
+    draw: (fr: Frame, y: number) => {
+      const x0 = fr.x + 40, w = fr.w - 40, bw = w / Math.max(bars.length, 1);
+      const yy = (v: number) => y + 6 + (1 - v / top) * (HB - 12);
+      bars.forEach((b, i) => {
+        fr.doc.setFillColor(b.out ? DANGER : b.miss ? AMBER : BRAND); fr.doc.rect(x0 + i * bw + 1, yy(b.v), Math.max(1, bw - 2), y + 6 + HB - 12 - yy(b.v), 'F');
+        if (b.hi !== undefined) { fr.doc.setDrawColor(INK2); fr.doc.setLineWidth(0.5); fr.doc.line(x0 + i * bw + 1, yy(b.hi), x0 + (i + 1) * bw - 1, yy(b.hi)); }
+        if (bars.length <= 30) { font(fr.doc, 6, 'normal', MUTED); fr.doc.text(String(i + 1), x0 + i * bw + bw / 2, y + HB + 8, { align: 'center' }); }
+      });
+      for (const l of lines) {
+        fr.doc.setDrawColor(l.red ? DANGER : INK2); fr.doc.setLineWidth(l.red ? 0.8 : 0.5); fr.doc.line(x0, yy(l.v), fr.x + fr.w, yy(l.v));
+        font(fr.doc, 6.5, 'normal', l.red ? DANGER : MUTED); fr.doc.text(`${l.label} ${fmt(l.v)}`, fr.x, yy(l.v) + 2);
+      }
+      fr.doc.setDrawColor(LINE); fr.doc.line(x0, y + 6 + HB - 12, fr.x + fr.w, y + 6 + HB - 12);
+    },
+  }], after: 'm' });
+}
+function runsBlocks(r: RunsFigures, f: SampleFigures, a: AgreedReadings): Block[] {
+  const said = sampleSays(f, a);
+  const out: Block[] = [cellsRow([
+    ['Made', num(r.made)], ['Rejected', num(r.rejected), r.verdict === 'notMet'], ['Rate', r.made ? `${(r.p * 100).toFixed(2)}%` : '—'],
+    ['95% between', f.n >= 3 ? `${(r.lo * 100).toFixed(2)}–${(r.hi * 100).toFixed(2)}%` : 'from 3 runs'],
+    ['Agreed at most', r.max !== undefined ? shareWords(r.max) : '—'], ['Verdict', said.verdict, said.tone === 'r'],
+  ])];
+  if (r.runs.length) {
+    out.push(label('The runs, in the order counted'));
+    out.push(tableBlock(['Run', 'Made', 'Rejected', 'Rate', 'Chart limits'], r.runs.map(x => [String(x.no), num(x.made), num(x.rejected), `${(x.p * 100).toFixed(2)}%`, r.runs.length >= 5 ? `${(x.lcl * 100).toFixed(2)}–${(x.ucl * 100).toFixed(2)}%${x.out ? ' outside' : ''}` : '—']), [0.1, 0.2, 0.2, 0.2, 0.3], i => r.runs[i].out));
+    out.push(label(r.laney ? 'The p-chart — Laney’s limits' : 'The p-chart'));
+    out.push(barsBlock(r.runs.map(x => ({ v: x.p, out: x.out, ...(r.runs.length >= 5 ? { hi: x.ucl } : {}) })), [{ v: r.p, label: 'pooled' }, ...(r.max !== undefined ? [{ v: r.max, label: 'at most', red: true }] : [])], v => `${(v * 100).toFixed(2)}%`));
+  }
+  return out;
+}
+function faultsBlocks(q: FaultsFigures, f: SampleFigures, a: AgreedReadings): Block[] {
+  const said = sampleSays(f, a);
+  const out: Block[] = [cellsRow([
+    ['Items', num(q.items)], ['Faults', num(q.faults), q.verdict === 'notMet'], ['Per item', q.items ? q.dpu.toFixed(3) : '—'],
+    ['95% between', f.n >= 3 ? `${q.lo.toFixed(3)}–${q.hi.toFixed(3)}` : 'from 3'],
+    ['Agreed at most', q.max !== undefined ? `${(q.max * 100).toFixed(1)} per 100` : '—'], ['Verdict', said.verdict, said.tone === 'r'],
+  ])];
+  if (q.tally.length) {
+    out.push(label('Faults by kind — the tally and its Pareto'));
+    out.push(tableBlock(['Kind', 'Count', 'Share', 'Cumulative', q.tally.some(t => t.gbp !== undefined) ? 'Money' : ''], q.tally.map(t => [t.kind, num(t.count), `${Math.round(t.share * 100)}%`, `${Math.round(t.cum * 100)}%`, t.gbp !== undefined ? `£${t.gbp.toFixed(2)}` : '']), [0.34, 0.14, 0.14, 0.18, 0.2]));
+  }
+  if (q.insp.length) {
+    out.push(label('The inspections, in the order made'));
+    out.push(tableBlock(['No.', 'Items', 'Faults', 'Per item', 'Chart limits'], q.insp.map(x => [String(x.no), num(x.inspected), num(x.faults), x.u.toFixed(3), q.insp.length >= 5 ? `${x.lcl.toFixed(3)}–${x.ucl.toFixed(3)}${x.out ? ' outside' : ''}` : '—']), [0.1, 0.2, 0.2, 0.2, 0.3], i => q.insp[i].out));
+    out.push(label(q.laney ? 'The u-chart — Laney’s limits' : q.equal ? 'The c-chart' : 'The u-chart'));
+    out.push(barsBlock(q.insp.map(x => ({ v: x.u, out: x.out, ...(q.insp.length >= 5 ? { hi: x.ucl } : {}) })), [{ v: q.dpu, label: 'pooled' }, ...(q.max !== undefined ? [{ v: q.max, label: 'at most', red: true }] : [])], v => v.toFixed(3)));
+  }
+  return out;
+}
+function rateBlocks(r: RateFigures, f: SampleFigures, a: AgreedReadings): Block[] {
+  const said = sampleSays(f, a), u = a.unit ? ` ${a.unit}` : '';
+  const out: Block[] = [cellsRow([
+    ['Intervals met', f.n ? `${r.met} of ${f.n}` : '—', r.held === 'not'], ['Longest stretch', f.n ? `${r.stretchMin} min` : '—'],
+    ['Made', f.n ? `${num(r.made)} of ${num(Math.round(r.expected))}` : '—', f.n > 0 && r.ratio < 1],
+    ['Ppk on rates', r.ppk !== undefined ? r.ppk.toFixed(2) : `from ${25}`], ['Agreed', `${r.side === 'least' ? 'at least' : 'at most'} ${r.limit}${u}/min`], ['Verdict', said.verdict, said.tone === 'r'],
+  ])];
+  if (r.intervals.length) {
+    out.push(label(`The intervals — ${r.intervalMin} minute${r.intervalMin === 1 ? '' : 's'} each, the missed ones in amber`));
+    out.push(barsBlock(r.intervals.map(i => ({ v: i.rate, miss: !i.met })), [{ v: r.limit, label: r.side === 'least' ? 'at least' : 'at most', red: true }], v => `${Math.round(v * 10) / 10}`));
+    const misses = r.intervals.filter(i => !i.met);
+    if (misses.length) out.push(text({ text: `Missed: ${misses.map(i => `minute ${i.no} (${Math.round(i.rate * 10) / 10}${u})`).join(', ')}.`, size: 8.5, colour: AMBER, after: 6 }));
+  }
   return out;
 }
 

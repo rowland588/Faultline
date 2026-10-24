@@ -34,6 +34,7 @@
  * (spc.normality-checks); how sure a Ppk is (Bissell's bound); and
  * the histogram. The distributions are lib/ie/dist, proved against SciPy. */
 import type { AgreedReadings, StudyReading } from '../../lib/study';
+import { runsFigures, faultsFigures, rateFigures, machineFigures, fillFigures, questionFigures, weigherFigures, runsSays, faultsSays, rateSays, machineSays, fillSays, questionSays, weigherSays, densitySays, type RunsFigures, type FaultsFigures, type RateFigures, type MachineFigures, type FillFigures, type QuestionFigures, type WeigherFigures } from './modes';
 import { binomUpper, dagostinoPearson, fewerThan, histogram, individualsLimits, itemsToShow, mostMayFail, ppkLowerBound, runOnOneSide, skewness, upperTail } from '../../lib/ie/dist';
 
 export { upperTail };
@@ -141,6 +142,17 @@ export interface SampleFigures {
   ppkLow?: number;
   /** The histogram's bars, each saying whether a reading in it is outside. */
   hist?: { edges: number[]; counts: number[]; width: number; out: boolean[] };
+  /* W1 — the modes (knowledge/specs/FC-094-capability.md parts 2–4; ./modes): rejects out of what was
+     made, faults found on each item, held at a rate; and on a measurement, machine capability and the
+     lowest legal fill. */
+  runs?: RunsFigures;
+  faults?: FaultsFigures;
+  rate?: RateFigures;
+  machine?: MachineFigures;
+  fill?: FillFigures;
+  /** part 4 — oxygen, a seal or a CCP against its limit (the guard band); a weigher's heads */
+  question?: QuestionFigures;
+  weigher?: WeigherFigures;
 }
 
 /** PASS OR FAIL, ONE AT A TIME — the count, how many may fail, and what the
@@ -206,7 +218,10 @@ export interface RejectsMoney {
   weekGbp?: number;
   missing: string[];
 }
-export interface SampleMoney { giveaway?: Giveaway; rejects?: RejectsMoney }
+export interface SampleMoney { giveaway?: Giveaway; rejects?: RejectsMoney; runs?: RunsMoney }
+/** REJECTS OUT OF WHAT WAS MADE in money (W1, by FC-156's rule): the pooled share at the packs a shift
+ *  × a pack's materials — every reject pure waste unless the fates are typed on a pass-or-fail study. */
+export interface RunsMoney { p: number; rejectsShift?: number; gbpShift?: number; gbpWeek?: number; missing: string[] }
 
 export const MISSING_PACKS = 'give the packs a shift to say it in money';
 export const MISSING_KG = 'give £ a kg to say it in money';
@@ -220,6 +235,15 @@ const positive = (v: number | undefined): v is number => v !== undefined && Numb
 /** WHAT THE FINDING COSTS — give-away on a measured study with a nominal; the
  *  rejects by fate on a pass-or-fail study. Absent where the study has neither. */
 export function sampleMoney(f: SampleFigures, a: AgreedReadings | undefined): SampleMoney {
+  if (a?.kind === 'rejects' && f.runs && f.runs.made > 0) {
+    const r = f.runs, missing: string[] = [];
+    if (a.packsPerShift === undefined) missing.push(MISSING_PACKS);
+    if (a.materialsPerPack === undefined) missing.push('give a pack’s materials to say it in money');
+    const rejectsShift = a.packsPerShift !== undefined ? r.p * a.packsPerShift : undefined;
+    const gbpShift = rejectsShift !== undefined && a.materialsPerPack !== undefined ? rejectsShift * a.materialsPerPack : undefined;
+    const gbpWeek = gbpShift !== undefined && a.shiftsPerWeek ? gbpShift * a.shiftsPerWeek : undefined;
+    return { runs: { p: r.p, ...(rejectsShift !== undefined ? { rejectsShift } : {}), ...(gbpShift !== undefined ? { gbpShift } : {}), ...(gbpWeek !== undefined ? { gbpWeek } : {}), missing } };
+  }
   if (!a || !f.n) return {};
   const P = positive(a.packsPerShift) ? Math.round(a.packsPerShift as number) : undefined;
   const W = positive(a.shiftsPerWeek) ? (a.shiftsPerWeek as number) : undefined;
@@ -265,6 +289,11 @@ export const gbpWord = (n: number): string => (n >= 1000 ? `£${(Math.round(n / 
 
 /** THE MONEY IN ONE SENTENCE, with its because — under what the study says. */
 export function moneySays(m: SampleMoney, f: SampleFigures, a: AgreedReadings): { text: string; tone: Tone } | undefined {
+  if (m.runs) {
+    const r = m.runs;
+    if (r.gbpShift === undefined) return { text: `In money: ${r.missing.join('; ')}.`, tone: 'n' };
+    return { text: `At ${(r.p * 100).toFixed(2)}% rejected, a shift of ${big(a.packsPerShift as number)} loses about ${big(Math.round(r.rejectsShift as number))} packs — ${gbpWord(r.gbpShift)} of materials${r.gbpWeek !== undefined ? `, ${gbpWord(r.gbpWeek)} a week` : ''} — because of the rejects.`, tone: 'a' };
+  }
   const unit = a.unit ? ` ${a.unit}` : '';
   if (m.giveaway) {
     const g = m.giveaway;
@@ -351,6 +380,19 @@ export function sample(agreed: AgreedReadings | undefined, readings: StudyReadin
       ticks: { ok: t.length - bad.length, bad, fates, allowFail: mayFailOf(agreed, count), judge: judgeOf(agreed), ...(judgeOf(agreed) !== 'count' && agreed.good !== undefined ? { good: agreed.good } : {}),
         conf: confOf(agreed), proves: binomUpper(bad.length, t.length, confOf(agreed)), toShow1: itemsToShow(0.01, confOf(agreed), bad.length) } };
   }
+  /* W1 — the counted modes: a run, an inspection or an interval a reading */
+  if (agreed?.kind === 'rejects') {
+    const runs = runsFigures(agreed, readings) as RunsFigures;
+    return { n: runs.runs.length, count, enough: count > 0 && runs.runs.length >= count, outside: [], flagged: [], dp: 0, runs };
+  }
+  if (agreed?.kind === 'faults') {
+    const faults = faultsFigures(agreed, readings) as FaultsFigures;
+    return { n: faults.insp.length, count, enough: count > 0 && faults.insp.length >= count, outside: [], flagged: [], dp: 0, faults };
+  }
+  if (agreed?.kind === 'rate') {
+    const rate = rateFigures(agreed, readings) as RateFigures;
+    return { n: rate.intervals.length, count, enough: count > 0 && rate.intervals.length >= count, outside: [], flagged: [], dp: 1, rate };
+  }
   const vs = kept.filter((r): r is typeof r & { value: number } => typeof r.value === 'number' && Number.isFinite(r.value));
   const xs = vs.map(r => r.value);
   const dp = xs.reduce((d, x) => Math.max(d, dpOf(x)), 0);
@@ -362,7 +404,7 @@ export function sample(agreed: AgreedReadings | undefined, readings: StudyReadin
   /* Packers: the limit is the nominal less the TNE, said by the three rules. */
   let lower = agreed?.lower, upper = agreed?.upper;
   if (agreed?.kind === 'packers' && agreed.nominal !== undefined) {
-    const tne = tneFor(agreed.nominal, agreed.unit);
+    const tne = packersTne(agreed);
     if (tne !== undefined) {
       const nom = agreed.nominal;
       const shortTne = xs.filter(x => x < nom - tne).length, short2Tne = xs.filter(x => x < nom - 2 * tne).length;
@@ -422,7 +464,26 @@ export function sample(agreed: AgreedReadings | undefined, readings: StudyReadin
     for (const r of vs) if (outIds.has(r.id)) out[Math.min(h.counts.length - 1, Math.max(0, Math.floor((r.value - h.edges[0]) / h.width + 1e-9)))] = true;
     f.hist = { edges: h.edges, counts: h.counts, width: h.width, out };
   }
+  /* W1 — machine capability on one machine's consecutive parts (FC-084); the lowest legal fill on a
+     sold-by-weight study (FC-157) */
+  if (agreed) {
+    const machine = machineFigures(agreed, m, s, xs.length, lower, upper);
+    if (machine) f.machine = machine;
+    const fill = fillFigures(agreed, m, s, xs.length, f.packers?.tne);
+    if (fill) f.fill = fill;
+    const q = questionFigures(agreed, xs, lower, upper);
+    if (q) f.question = q;
+    const w = weigherFigures(agreed, vs);
+    if (w) f.weigher = w;
+  }
   return f;
+}
+
+/** THE TNE A PACKERS STUDY RUNS ON: the weight table's for a weight; for a volume pack checked by weight
+ *  (FC-163) the volume table's at the nominal in millilitres, converted by the density. */
+export function packersTne(a: Pick<AgreedReadings, 'nominal' | 'unit' | 'nominalMl' | 'density'>): number | undefined {
+  if (a.nominalMl !== undefined && a.density !== undefined && a.density > 0) { const t = tneFor(a.nominalMl, 'ml'); return t === undefined ? undefined : t * a.density; }
+  return a.nominal === undefined ? undefined : tneFor(a.nominal, a.unit);
 }
 
 /** THE LINES A PICTURE DRAWS — the limits and the target, for the readings
@@ -481,6 +542,10 @@ export interface SampleSays {
 /** What the figures say, in the order a person would say it. */
 export function sampleSays(f: SampleFigures, a: AgreedReadings | undefined): SampleSays {
   if (!a) return { text: 'Agree the limits and how many readings, then take them.', tone: 'n', verdict: 'Not agreed' };
+  /* W1 — the counted modes say themselves (./modes), their own empty words included */
+  if (a.kind === 'rejects' && f.runs) return runsSays(f.runs, f.count);
+  if (a.kind === 'faults' && f.faults) return faultsSays(f.faults, f.count);
+  if (a.kind === 'rate' && f.rate) return rateSays(f.rate, f.count, a.unit);
   if (!f.n) return { text: `Nothing measured yet — ${f.count} readings to take.`, tone: 'n', verdict: 'Not measured' };
   const of = `${f.n} of ${f.count} in`;
 
@@ -574,6 +639,22 @@ function provesWords(t: TickFigures, n: number, enough: boolean): { text: string
   const short = shown ? '' : !enough ? `; ${good}% is not shown yet`
     : t.judge === 'loss' ? `; ${good}% itself is not shown at this confidence — the count passed it` : ` — short of the ${good}% agreed`;
   return { text: `${lead} can be ${pc} confident at least ${goodWord(low)} would be good${short}.`, tone: 'n' };
+}
+
+/** W1 — THE NOTES A MEASUREMENT CARRIES BESIDE ITS SENTENCES: machine capability on one machine's
+ *  consecutive parts (FC-084) and the lowest legal fill on a sold-by-weight study (FC-157), each from
+ *  ./modes, on screen and on paper alike. */
+export type ModeNoteKind = 'machine' | 'fill' | 'question' | 'weigher' | 'density';
+export function modeNotes(f: SampleFigures, a: AgreedReadings | undefined): { k: ModeNoteKind; text: string; tone: Tone }[] {
+  if (!a) return [];
+  const out: { k: ModeNoteKind; text: string; tone: Tone }[] = [];
+  if (f.question) out.push({ k: 'question', ...questionSays(f.question, f.dp, a.unit, a.limitSource) });
+  if (f.weigher) out.push({ k: 'weigher', ...weigherSays(f.weigher, f.dp, a.unit) });
+  if (f.machine) out.push({ k: 'machine', ...machineSays(f.machine) });
+  if (f.fill && f.mean !== undefined) out.push({ k: 'fill', ...fillSays(f.fill, f.mean, f.dp, a.unit) });
+  const d = densitySays(a, a.nominalMl !== undefined ? tneFor(a.nominalMl, 'ml') : undefined);
+  if (d) out.push({ k: 'density', ...d });
+  return out;
 }
 
 /** WHAT A PASS-OR-FAIL TEST WOULD PROVE, said while it is being agreed — a number that may fail:

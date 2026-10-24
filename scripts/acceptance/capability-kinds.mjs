@@ -28,6 +28,12 @@
  *   8  pass or fail judged by a confidence level or a loss allowed (part 1b, 23 October): the three ways
  *      and the confidence, the plan said while agreeing, a count too small refused with the count it
  *      takes, tapped to a fail at once, the tiles, the paper, the phone
+ *   9  in money (FC-156): give-away and the rejects by fate
+ *  10–15  W1, parts 2–4 (24 October): rejects out of what was made — six runs, the rate, its bounds, the chart with Laney
+ *      said, the verdict against 1% and 0.5%, the money; faults found on each item — the kinds as chips, the tally and
+ *      its Pareto by count and by money, DPMO once the opportunities are typed; held at a rate — 25 minutes against
+ *      60, met and missed bars, held with gaps at 70%, not held at 90%; a measurement's question row — one machine's
+ *      parts say Cm/Cmk; the lowest legal fill on a sold-by-weight study; each on paper, and the phone
  *
  * Fails on any console error.
  *
@@ -110,7 +116,8 @@ await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeT
 const speed = await startStudy('Wrapper speed — Finest 2kg', 'Ilapak flow wrapper');
 {
   const kinds = await page.getByRole('radiogroup', { name: 'What are you measuring?' }).getByRole('radio').allInnerTexts();
-  ok(kinds.length === 3 && /^A measurement/.test(flat(kinds[0])) && /^Sold by weight/.test(flat(kinds[1])) && /^Pass or fail/.test(flat(kinds[2])) && kinds.every(k => flat(k).split(' ').length > 3),
+  /* six kinds since W1 (parts 2–4): the three of part 1 first, then rejects, faults and a rate */
+  ok(kinds.length === 6 && /^A measurement/.test(flat(kinds[0])) && /^Sold by weight/.test(flat(kinds[1])) && /^Pass or fail/.test(flat(kinds[2])) && /^Rejects out of what was made/.test(flat(kinds[3])) && /^Faults found on each item/.test(flat(kinds[4])) && /^Held at a rate/.test(flat(kinds[5])) && kinds.every(k => flat(k).split(' ').length > 3),
     `1 the question first: ${kinds.map(k => `"${flat(k).split(/ (?=[a-z])/)[0]}"`).join(', ')}, each with its example`);
   ok(!(await page.getByText('Ticks', { exact: true }).count()), '1 no "Ticks" anywhere on the set-up');
   ok((await page.getByLabel('Lower limit').count()) === 1 && (await page.getByLabel('Upper limit').count()) === 1, '1 a measurement starts between two limits — the lower and the upper asked');
@@ -379,6 +386,225 @@ const seal = await startStudy('Seal integrity — after the jaw fix', 'Ilapak fl
   await go(`#/capability/${rej}`);
   const inside = await page.locator('.ie-cap-box .ie-fates .chip').evaluateAll(els => els.length === 3 && els.every(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= 390 && r.height >= 28; }));
   ok(inside && (await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '9f the phone: the three chips under the last reading, inside the screen');
+  await page.setViewportSize({ width: 1360, height: 900 });
+}
+
+/* ---- 10 · W1: rejects out of what was made (FC-098, FC-088, FC-102) ---- */
+const addRun = async (made, rejected) => { await page.getByRole('textbox', { name: 'Made' }).fill(String(made)); await page.getByRole('textbox', { name: 'Rejected' }).fill(String(rejected)); await page.getByRole('button', { name: 'Add the run' }).click(); await page.waitForTimeout(250); };
+const RUNS = [[4800, 24], [5100, 31], [4650, 19], [5000, 28], [4900, 41], [5200, 22]];
+const truthMode = id => page.evaluate(async id => {
+  const { getStudy } = await import('/src/db.ts'); const S = await import('/src/tools/capability/sample.ts'); const SL = await import('/src/tools/capability/sampleLean.ts');
+  const s = await getStudy(id); const a = s.agreed?.readings; const f = S.sample(a, s.facts.readings ?? []); const said = S.sampleSays(f, a);
+  return { a, n: f.n, said, runs: f.runs, faults: f.faults, rate: f.rate, machine: f.machine, fill: f.fill, question: f.question, weigher: f.weigher, notes: S.modeNotes(f, a), money: S.moneySays(S.sampleMoney(f, a), f, a), tiles: SL.sampleTiles(f, a, said), closing: SL.sampleClosing(f, a, said).text };
+}, id);
+const sameMode = async (t, tag) => {
+  const say = await words('.ie-say'), cap = await words('.ie-cap');
+  const tiles = flat(await page.locator('.ie-strip').innerText());
+  const tilesOk = t.tiles.every(x => tiles.includes(flat(String(x.v))));
+  ok(say === t.said.text && cap === (t.said.capability?.text ?? null) && tilesOk && (await words('.ln-close'))?.includes(t.closing.slice(0, 30)), `${tag}: "${say}" — the second sentence, the tiles and the closing line as the module says`);
+};
+const rejects = await startStudy('Rejects — Finest 2kg, nights', 'Ilapak flow wrapper');
+{
+  await page.getByRole('radio', { name: /^Rejects out of what was made/ }).click(); await page.waitForTimeout(200);
+  ok((await page.getByLabel(/At most what % rejected/).count()) === 1 && (await page.getByLabel('How many runs').inputValue()) === '10' && (await page.getByLabel('Unit').count()) === 0 && (await page.getByLabel(/A pack’s materials/).count()) === 1,
+    '10 rejects asks the maximum agreed and how many runs (10 by default), a pack’s materials for the money — no unit, no limits');
+  await page.getByLabel(/At most what % rejected/).fill('1'); await page.getByLabel('How many runs').fill('6');
+  await page.getByLabel('Packs a shift').fill('20000'); await page.getByLabel(/A pack’s materials/).fill('0.25'); await page.getByLabel('Shifts a week').fill('10');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  ok((await words('.ie-agreed b')) === 'rejects out of what was made, 6 runs — at most 1% rejected', `10 agreed: "${await words('.ie-agreed b')}"`);
+  ok((await page.getByRole('button', { name: 'Add the run' }).isDisabled()), '10 Add the run waits for both counts');
+  await page.getByRole('textbox', { name: 'Made' }).fill('100'); await page.getByRole('textbox', { name: 'Rejected' }).fill('200');
+  ok((await words('.ie-problem')) === 'Rejected cannot be more than made.', '10 more rejected than made — refused, said why');
+  for (const [m, r] of RUNS.slice(0, 2)) await addRun(m, r);
+  let t = await truthMode(rejects);
+  ok(t.n === 2 && t.said.text.endsWith('the bounds are said from 3 runs — 2 so far.') && (await words('.ie-say')) === t.said.text, `10 two runs in: "${t.said.text}"`);
+  for (const [m, r] of RUNS.slice(2)) await addRun(m, r);
+  t = await truthMode(rejects);
+  ok(t.runs.made === 29650 && t.runs.rejected === 165 && t.said.verdict === 'Met' && t.runs.laney === true, `10 six runs: 165 of 29,650, Laney applied (σz ${t.runs.sigmaZ.toFixed(2)}), Met against 1%`);
+  await sameMode(t, '10 six runs in');
+  ok(/Laney’s limits are drawn/.test(await words('.ie-cap')) && /Compared with a measurement: Z 2\.54, about Ppk 0\.85/.test(await words('.ie-cap')), `10 the chart's reading, Laney said, the comparison: "${(await words('.ie-cap')).slice(0, 120)}…"`);
+  const bars = await page.locator('svg.ie-modebars rect.ie-bar').count();
+  ok(bars === 6 && (await page.locator('svg.ie-modebars rect.ie-bar.is-out').count()) === 0 && (await page.locator('svg.ie-modebars line.ie-ucl').count()) >= 6 && /at most 1\.00%/.test(flat(await page.locator('svg.ie-modebars').textContent())),
+    `10 the p-chart: ${bars} bars with their limits, none outside, the maximum drawn`);
+  ok((await words('.ie-money')) === t.money.text && /loses about 111 packs — £28 of materials, £278 a week — because of the rejects\.$/.test(t.money.text), `10 the money: "${t.money.text}"`);
+  await page.getByRole('button', { name: /^Every reading/ }).click(); await page.waitForTimeout(300);
+  ok((await all('.ie-rows li b'))[4] === '41 of 4,900', `10 each run on its row as made and rejected: "${(await all('.ie-rows li b'))[4]}"`);
+  /* the maximum changed to 0.5%: not met, said why */
+  await page.getByRole('button', { name: 'Change what was agreed' }).click(); await page.waitForTimeout(300);
+  await page.getByLabel(/At most what % rejected/).fill('0.5'); await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  t = await truthMode(rejects);
+  ok(t.said.verdict === 'Not met' && (await words('.ie-say')) === t.said.text && /— Not met: 0\.56% is above it\.$/.test(t.said.text) && (await page.locator('.ie-say.is-r').count()) === 1, `10 at most 0.5%: "${t.said.text.slice(-60)}"`);
+}
+
+/* ---- 11 · W1: faults found on each item (FC-099, FC-089, FC-124, FC-125) ---- */
+const faults = await startStudy('Pack inspection — seal, label, print', 'Tray sealer');
+{
+  await page.getByRole('radio', { name: /^Faults found on each item/ }).click(); await page.waitForTimeout(200);
+  ok((await page.getByLabel(/At most how many faults per 100 items/).count()) === 1 && (await page.getByLabel(/Opportunities an item/).count()) === 1 && (await page.getByLabel(/The kinds of fault/).count()) === 1, '11 faults asks the maximum per 100, the opportunities (optional) and the kinds');
+  await page.getByLabel(/At most how many faults per 100 items/).fill('2'); await page.getByLabel('How many inspections').fill('5');
+  await page.getByLabel(/The kinds of fault/).fill('Open seal, Light pack, Mis-label, Crushed, Wrong date');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  ok((await words('.ie-agreed b')) === 'faults found on each item, 5 inspections — at most 2 per 100 items', `11 agreed: "${await words('.ie-agreed b')}"`);
+  const chips = await page.getByRole('group', { name: 'Faults found, by kind' }).getByRole('button', { name: /^One more/ }).allInnerTexts();
+  ok(chips.length === 5 && flat(chips[0]) === 'Open seal' && (await page.getByPlaceholder('Other').count()) === 1, `11 the five kinds as chips, Other typed: ${chips.map(flat).join(' · ')}`);
+  const INSP = [[200, { 'Open seal': 4, 'Light pack': 5 }], [200, { 'Open seal': 6, 'Light pack': 7, 'Mis-label': 1 }], [250, { 'Open seal': 5, 'Light pack': 6 }], [200, { 'Light pack': 4, 'Crushed': 2 }], [300, { 'Open seal': 8, 'Light pack': 9 }]];
+  for (const [items, kinds] of INSP) {
+    await page.getByLabel('Items inspected').fill(String(items));
+    for (const [k, c] of Object.entries(kinds)) for (let i = 0; i < c; i++) await page.getByRole('button', { name: `One more ${k}` }).click();
+    await page.getByRole('button', { name: /^Add the inspection/ }).click(); await page.waitForTimeout(250);
+  }
+  let t = await truthMode(faults);
+  ok(t.faults.items === 1150 && t.faults.faults === 57 && t.said.verdict === 'Not met', `11 five inspections: 57 faults on 1,150 items — ${t.said.verdict}`);
+  await sameMode(t, '11 five inspections in');
+  ok(/^Light pack and open seal are 95% of the faults\./.test(await words('.ie-cap')), `11 the Pareto line: "${(await words('.ie-cap')).slice(0, 60)}"`);
+  const pareto = await page.locator('.ie-pareto svg rect.ie-bar').count();
+  ok(pareto === 4 && (await page.locator('.ie-pareto polyline.ie-cum').count()) === 1 && (await page.locator('.ie-pareto').getByRole('button', { name: 'By money' }).count()) === 0,
+    `11 the Pareto: ${pareto} kinds and the cumulative line; no money toggle without a pack's materials`);
+  /* the opportunities typed: DPMO and the sigma level appear */
+  await page.getByRole('button', { name: 'Change what was agreed' }).click(); await page.waitForTimeout(300);
+  await page.getByLabel(/Opportunities an item/).fill('6'); await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  t = await truthMode(faults);
+  ok(/8,261 per million opportunities \(6 an item\) — Z 2\.4, a 3\.9-sigma process by the 1\.5-shift convention\./.test(await words('.ie-cap')) && t.faults.dpmo.opportunities === 6, '11 DPMO once the opportunities are typed, the convention named');
+  const u = await page.locator('svg.ie-modebars rect.ie-bar').count();
+  ok(u === 5 && (await page.locator('svg.ie-modebars rect.ie-bar.is-out').count()) === 0, `11 the u-chart: ${u} inspections as bars, none outside`);
+}
+
+/* ---- 12 · W1: held at a rate for a time (FC-083) ---- */
+const MINUTES = [60, 58, 61, 63, 65, 62, 60, 55, 54, 67, 63, 58, 59, 67, 63, 57, 62, 59, 60, 61, 60, 64, 62, 60, 63];
+const rate = await startStudy('Wrapper held at 60 — the trial', 'Ilapak flow wrapper');
+{
+  await page.getByRole('radio', { name: /^Held at a rate/ }).click(); await page.waitForTimeout(200);
+  const sides = await page.getByRole('radiogroup', { name: 'Judged against' }).getByRole('radio').allInnerTexts();
+  ok(sides.length === 2 && /^At least/.test(flat(sides[0])) && (await page.getByLabel('At least, a minute').count()) === 1 && (await page.getByLabel('Minutes in an interval').inputValue()) === '1' && (await page.getByLabel(/Held with gaps from what %/).inputValue()) === '90',
+    '12 a rate is at least or at most, a minute; the interval 1 minute and held with gaps from 90% by default');
+  ok((await words('.ie-problem')) === 'The rate — at least or at most what, a minute?', '12 no rate typed — refused, said why');
+  await page.getByLabel('Unit').fill('packs'); await page.getByLabel('At least, a minute').fill('60'); await page.getByLabel('How many intervals').fill('25');
+  ok((await words('.ie-note')) === '25 intervals of 1 — the rate must hold for 25 minutes.', `12 the time it must hold, said while agreeing: "${await words('.ie-note')}"`);
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  ok((await words('.ie-agreed b')) === 'at least 60 packs a minute for 25 minutes (25 intervals of 1)', `12 agreed: "${await words('.ie-agreed b')}"`);
+  await typeAll(MINUTES);
+  let t = await truthMode(rate);
+  ok(t.rate.met === 18 && t.rate.stretchMin === 7 && t.rate.made === 1523 && t.said.verdict === 'Not held', `12 twenty-five minutes: met 18, the stretch 7, 1,523 made — ${t.said.verdict}`);
+  await sameMode(t, '12 the trial in');
+  ok(/^One-sided Ppk on the rates 0\.10/.test(await words('.ie-cap')) && (await page.locator('.ie-cap.is-a').count()) === 1, `12 the Ppk on the rates, amber: "${(await words('.ie-cap')).slice(0, 70)}"`);
+  ok((await page.locator('svg.ie-modebars rect.ie-bar.is-met').count()) === 18 && (await page.locator('svg.ie-modebars rect.ie-bar.is-miss').count()) === 7 && (await page.locator('svg.ie-modebars line.ie-lim').count()) === 1,
+    '12 the bars: 18 met in teal, 7 missed in amber, the floor drawn');
+  /* held with gaps at 70% */
+  await page.getByRole('button', { name: 'Change what was agreed' }).click(); await page.waitForTimeout(300);
+  await page.getByLabel(/Held with gaps from what %/).fill('70'); await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  t = await truthMode(rate);
+  ok(t.said.verdict === 'Held with gaps' && (await words('.ie-say')) === t.said.text && /a dip to 55, 54, 58, 59 at minutes/.test(t.said.text) === false && /7 intervals missed\.$/.test(t.said.text), `12 at 70%: "${t.said.text.slice(-70)}"`);
+}
+
+/* ---- 13 · W1: a measurement's question — one machine's parts (FC-084), a weigher's heads ---- */
+const machine = await startStudy('Slicer thickness — FAT, 50 parts', 'Weber slicer');
+{
+  const qs = await page.getByRole('radiogroup', { name: 'Which question?' }).getByRole('radio').allInnerTexts();
+  ok(qs.length === 6 && /^A measurement/.test(flat(qs[0])) && /^One machine’s parts/.test(flat(qs[5])) && (await page.getByLabel('Cmk agreed for acceptance').count()) === 0, `13 the question row on a measurement: ${qs.map(q => `"${flat(q).split(/ (?=[a-z])/)[0]}"`).join(', ')}`);
+  await page.getByRole('radio', { name: /^One machine’s parts/ }).click(); await page.waitForTimeout(200);
+  ok((await page.getByLabel('Cmk agreed for acceptance').inputValue()) === '1.67', '13 one machine’s parts asks the Cmk agreed — 1.67 by default');
+  await page.getByLabel('Unit').fill('mm'); await page.getByLabel('Lower limit').fill('398'); await page.getByLabel('Upper limit').fill('403'); await page.getByLabel('How many readings').fill('50');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  const PARTS = Array.from({ length: 50 }, (_, i) => Math.round((400.29 + 0.773 * Math.sin(i * 1.7) * 1.4) * 100) / 100);
+  await typeAll(PARTS);
+  const t = await truthMode(machine);
+  const note = await words('[data-note=machine]');
+  ok(t.machine && t.machine.accepted === false && note === t.notes.find(n => n.k === 'machine').text && /^Cm \d\.\d\d, Cmk \d\.\d\d on 50 consecutive parts against 1\.67 agreed — Not accepted/.test(note) && (await page.locator('[data-note=machine].is-r').count()) === 1,
+    `13 machine capability beside the measurement, red: "${note}"`);
+}
+/* 13b · a CCP's limit with the probe's guard band (FC-169), where the limit comes from said */
+const ccp = await startStudy('Cook CCP — core temperature, line 7', 'Spiral oven');
+{
+  await page.getByRole('radio', { name: /^A CCP’s/ }).click(); await page.waitForTimeout(200);
+  ok((await page.getByLabel(/Where the limit comes from/).count()) === 1 && (await page.getByLabel(/The probe reads high at the limit by/).count()) === 1, '13b a CCP asks where the limit comes from and the probe’s bias at it');
+  await page.getByRole('radiogroup', { name: 'Judged against' }).getByRole('radio', { name: /^At least/ }).click(); await page.waitForTimeout(150);
+  await page.getByLabel('Unit').fill('°C'); await page.getByLabel('At least', { exact: true }).fill('75'); await page.getByLabel('How many readings').fill('10');
+  await page.getByLabel(/Where the limit comes from/).fill('the HACCP plan'); await page.getByLabel(/The probe reads high at the limit by/).fill('0.14');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  await typeAll([75.7, 76.9, 78.2, 77.4, 75.1, 79.0, 76.3, 75.08, 77.7, 74.8]);
+  const t = await truthMode(ccp);
+  const note = await words('[data-note=question]');
+  ok(t.question && t.question.over === 1 && t.question.guard === 2 && note === t.notes.find(n => n.k === 'question').text && note === 'CCP: the critical limit is at least 75.00 °C (the HACCP plan); 1 deviation — the product since the last good check is held. With the probe reading +0.14 °C at the limit, a check must read 75.14 °C to be sure of 75.00 °C — 2 readings sit inside that guard band, not shown safe.' && (await page.locator('[data-note=question].is-r').count()) === 1,
+    `13b the CCP's note, red: "${note}"`);
+}
+/* 13c · a weigher's heads (FC-158): the head typed with each reading, the heavy head found by the ANOVA */
+const weigher = await startStudy('Multihead — 150 g, heads compared', 'Ishida CCW-RV-214W multihead weigher');
+{
+  await page.getByRole('radio', { name: /^A weigher’s heads/ }).click(); await page.waitForTimeout(200);
+  await page.getByLabel('Unit').fill('g'); await page.getByLabel('Lower limit').fill('30'); await page.getByLabel('Upper limit').fill('50'); await page.getByLabel('How many readings').fill('20');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  ok((await page.getByLabel('Head').count()) === 1, '13c the pad carries a Head box');
+  const HEADS = { 1: [37.2, 37.9, 37.4, 38.1, 36.8], 2: [37.6, 37.1, 38.0, 37.3, 37.7], 3: [43.1, 43.8, 43.4, 43.9, 43.3], 4: [37.5, 36.9, 37.8, 37.2, 37.6] };
+  for (const [h, xs] of Object.entries(HEADS)) { await page.getByLabel('Head').fill(h); await page.getByLabel('Head').blur(); await page.waitForTimeout(100); await typeAll(xs); }
+  const t = await truthMode(weigher);
+  const note = await words('[data-note=weigher]');
+  ok(t.weigher && t.weigher.far.head === 3 && t.weigher.anova.p < 0.001 && note === t.notes.find(n => n.k === 'weigher').text && note === 'Heads: 4 heads read (5 each); head 3 runs 6.0 g heavy (43.5 against 37.5 on the others) — the heads differ (ANOVA p < 0.001) — the fix is that head’s feeder, not the target.' && (await page.locator('[data-note=weigher].is-a').count()) === 1,
+    `13c the heads compared, the heavy one found: "${note}"`);
+  ok((await all('.ie-last li b'))[0] === '37.6 g · head 4', `13c the last reading says its head: "${(await all('.ie-last li b'))[0]}"`);
+}
+
+/* ---- 14 · W1: the lowest legal fill on a sold-by-weight study (FC-157) ---- */
+const fill = await startStudy('Fill weight — 400 g bags, the lowest legal target', 'Ishida CCW-RV-214W multihead weigher');
+{
+  await page.getByRole('radio', { name: /^Sold by weight/ }).click(); await page.waitForTimeout(200);
+  await page.getByLabel('Nominal (on the pack)').fill('400'); await page.getByLabel(/What the product costs you a kilo/).fill('18');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  await typeAll([404.1, 404.1, 404.1, 404.1]);
+  const t = await truthMode(fill);
+  ok(t.fill === undefined && (await page.locator('[data-note=fill]').count()) === 0, '14 four readings: the fill note waits for 25');
+  await typeAll(Array.from({ length: 26 }, (_, i) => Math.round((402.5 + 2.1 * Math.sin(i * 2.3)) * 10) / 10));
+  const u = await truthMode(fill);
+  const note = await words('[data-note=fill]');
+  ok(u.fill && u.fill.binds === 1 && note === u.notes.find(n => n.k === 'fill').text && /^At this spread the lowest target that keeps the three rules is 400\.0 g \(the average rule binds\); the mean of \d+\.\d gives \d\.\d g a pack away( — £\d+\.\d\d a 100 packs)?\.$/.test(note),
+    `14 the lowest legal fill: "${note}"`);
+}
+/* 14b · a volume pack checked by weight (FC-163): the millilitres and the density make the nominal in grams */
+const volume = await startStudy('Juice 400 ml — checked by weight', 'Rotary filler');
+{
+  await page.getByRole('radio', { name: /^Sold by weight/ }).click(); await page.waitForTimeout(200);
+  await page.getByLabel(/Sold by volume — the nominal in ml/).fill('400');
+  ok((await page.getByLabel('Nominal (on the pack)').count()) === 0 && (await words('.ie-problem')) === 'The density in g/ml — the product’s, at the temperature it is packed.', '14b with millilitres typed the nominal in grams is not asked and the density is');
+  await page.getByLabel(/Density, g\/ml/).fill('1.03');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  await typeAll([412.5, 411.9, 413.1, 412.2, 410.8]);
+  const t = await truthMode(volume);
+  const note = await words('[data-note=density]');
+  ok(t.a.nominal === 412 && t.a.nominalMl === 400 && t.a.density === 1.03 && note === t.notes.find(n => n.k === 'density').text && note.startsWith('Sold by volume, checked by weight: 400 ml at 1.03 g/ml is 412.0 g; the tolerable negative error 12 ml is 12.36 g — the three rules run in grams (T1 399.64 g, T2 387.28 g).'),
+    `14b the nominal kept in grams and the rules said in grams: "${note.slice(0, 120)}…"`);
+}
+
+/* ---- 15 · W1 on paper and on the phone ---- */
+{
+  await go(`#/capability/${rejects}`);
+  let p = await pdf('rejects.pdf');
+  ok(/MADE/i.test(p.text) && /REJECTED/i.test(p.text) && /AGREED AT MOST/i.test(p.text) && /The runs, in the order counted/i.test(p.text) && p.text.includes('41') && /Laney’s limits/.test(p.text) && /Not met: 0.56% is above it/.test(p.text),
+    `15 rejects on paper: the cells, the runs' table, the chart with Laney's limits, the verdict (${p.pages} page${p.pages === 1 ? '' : 's'})`);
+  await go(`#/capability/${faults}`);
+  p = await pdf('faults.pdf');
+  ok(/PER ITEM/i.test(p.text) && /Faults by kind — the tally and its Pareto/i.test(p.text) && /Light pack 31 54% 54%/.test(p.text) && /8,261 per million opportunities/.test(p.text) && /The inspections, in the order made/i.test(p.text),
+    `15 faults on paper: the tally with shares, DPMO, the inspections (${p.pages} page${p.pages === 1 ? '' : 's'})`);
+  await go(`#/capability/${rate}`);
+  p = await pdf('rate.pdf');
+  ok(/INTERVALS MET/i.test(p.text) && /LONGEST STRETCH/i.test(p.text) && /Missed: minute 2 \(58 packs\)/.test(p.text) && /Held with gaps/.test(p.text), `15 the rate on paper: met, the stretch, the misses by minute (${p.pages} page${p.pages === 1 ? '' : 's'})`);
+  await go(`#/capability/${machine}`);
+  p = await pdf('machine.pdf');
+  ok(/Cm \d\.\d\d, Cmk \d\.\d\d on 50 consecutive parts against 1\.67 agreed/.test(p.text), '15 machine capability on paper, beside the checks');
+  await go(`#/capability/${ccp}`);
+  p = await pdf('ccp.pdf');
+  ok(/CCP: the critical limit is at least 75.00 °C \(the HACCP plan\); 1 deviation/.test(p.text) && /a check must read 75.14 °C/.test(p.text), '15 the CCP’s guard band on paper');
+  await go(`#/capability/${weigher}`);
+  p = await pdf('weigher.pdf');
+  ok(/Heads: 4 heads read \(5 each\); head 3 runs 6.0 g heavy/.test(p.text) && /BY HEAD/i.test(p.text) && /Head Readings Mean Spread \(s\) Against the others/.test(p.text) && /3 5 43\.5 g 0\.3\d \+6\.0 g/.test(p.text) && /36\.8 H1/.test(p.text),
+    `15 the weigher on paper: the heads' table and each reading's head (${p.pages} page${p.pages === 1 ? '' : 's'})`);
+  /* the phone: the six cards and the two-box capture inside the screen */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(`#/capability/${rejects}`);
+  await page.getByRole('button', { name: 'Change what was agreed' }).click(); await page.waitForTimeout(400);
+  const inside = await page.locator('.ie-kind').evaluateAll(els => els.length === 6 && els.every(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= 390; }));
+  ok(inside && (await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '15 the phone: the six cards inside the screen');
+  await page.getByRole('button', { name: 'Keep what was agreed' }).click(); await page.waitForTimeout(300);
+  const cap = await page.locator('.ie-runs-cap .text-input').evaluateAll(els => els.length === 2 && els.every(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= 390 && r.height >= 36; }));
+  ok(cap && (await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '15 the phone: the two boxes of a run fit, big enough for a thumb');
   await page.setViewportSize({ width: 1360, height: 900 });
 }
 

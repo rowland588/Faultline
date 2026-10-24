@@ -103,9 +103,8 @@ repaired or rebuilt head before it goes back on the line.
 - [practice] VDA Volume 4 and customer-specific requirements — Cmk ≥ 1.67 at acceptance (from knowledge; to confirm).
 
 ## In Faultline
-Not built (FC-084). The commissioning tests record a pass or fail against
-what was agreed (`src/project`); the capability study's arithmetic
-(`src/tools/capability`, Ppk, Bissell's bound, the steadiness and shape
-checks) already does the sums — a machine study is that study run in
-acceptance with the 50-piece design, the index named Cmk, and the contract's
-threshold as the agreed figure.
+Built 24 October as a question on the capability study's measurement — *One machine's parts*
+(FC-084, W1 — `src/tools/capability/modes.ts` machineFigures/machineSays, `src/lib/ie/dist.ts` cmCmk):
+Cm and Cmk on the consecutive parts typed against the Cmk agreed (1.67 by default, said as the OEM's),
+accepted or not from 25 parts, the spread it would need; on screen as a note under what it says and on
+paper beside the checks. Proved by `capability-kinds.mjs` step 13 and `sample.test.ts`.
