@@ -1,7 +1,8 @@
 {
- "measured": "2026-10-22",
- "by": "docs/structure/journeys-stage-a.mjs",
- "on": "main c00f7b4, the smoke seed (src/dev/seed.ts), clock 15 Oct 2026 10:00 London",
+ "measured": "2026-10-24",
+ "by": "scripts/journeys.mjs (gate 55)",
+ "on": "main 68f2be8 (B7d), the smoke seed (src/dev/seed.ts), clock 15 Oct 2026 10:00 London",
+ "before": "docs/structure/journeys-baseline-2026-10-22.json — the 22 October baseline, kept as it was",
  "desk": "1360x900",
  "phone": "390x844",
  "walks": [
@@ -14,54 +15,54 @@
    "hunts": 3,
    "orient": [
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Factory",
+     "said": "Factory › Overview",
      "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Your factory",
-     "right": false
-    },
-    {
-     "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Factory › Line 7 › Overview",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Overview",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Fishbone",
      "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Your factory",
-     "right": false
+     "said": "Factory › Line 7 › Overview",
+     "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Tools",
-     "right": false
+     "said": "Factory › Line 7 › Tools › Line capacity",
+     "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Line 7 pace",
-     "right": false
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Tools › Line capacity",
+     "right": true
     },
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Factory",
+     "said": "Factory › Overview",
      "right": true
     }
    ],
    "steps": [
-    "rail: Line 7",
+    "Your factory: Line 7",
     "↓ Projects on this line: Line 7 pace",
-    "rail: Fishbone",
-    "rail: Line 7",
+    "tab: Fishbone",
+    "the bar: on Line 7",
     "↓ Tools on this line: Line capacity",
     "↓ Maris Piper 2kg",
-    "rail: Control room"
+    "rail: Factory"
    ],
    "ok": true,
    "note": ""
@@ -69,62 +70,61 @@
   {
    "name": "J1 across factory, line and project",
    "device": "phone",
-   "taps": 9,
+   "taps": 8,
    "entries": 0,
    "screens": 7,
-   "hunts": 3,
+   "hunts": 4,
    "orient": [
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Factory",
+     "said": "Factory",
      "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Your factory",
-     "right": false
-    },
-    {
-     "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Factory › Line 7",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Projects › Line 7 pace",
      "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Your factory",
-     "right": false
+     "said": "Factory › Line 7",
+     "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Tools",
-     "right": false
+     "said": "Factory › Line 7",
+     "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line capacity",
      "right": false
     },
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Factory",
+     "said": "Factory",
      "right": true
     }
    ],
    "steps": [
-    "bar: More",
-    "More: Line 7",
+    "↓ Your factory: Line 7",
     "↓ Projects on this line: Line 7 pace",
-    "bar: Fishbone",
-    "bar: More",
-    "More: Line 7",
+    "tab: Fishbone",
+    "the switcher",
+    "switcher: Line 7",
     "↓ Tools on this line: Line capacity",
     "↓ Maris Piper 2kg",
-    "bar: Control room"
+    "bar: Factory"
    ],
    "ok": true,
    "note": ""
@@ -138,23 +138,23 @@
    "hunts": 2,
    "orient": [
     {
-     "expected": "Home",
-     "said": "Home",
+     "expected": "Factory",
+     "said": "Factory",
      "right": true
     },
     {
      "expected": "Capability",
-     "said": "Tools",
-     "right": false
+     "said": "Factory › Capability",
+     "right": true
     },
     {
      "expected": "Capability",
-     "said": "Tools",
-     "right": false
+     "said": "Factory › Capability",
+     "right": true
     }
    ],
    "steps": [
-    "↓ Home: Capability",
+    "↓ Factory: Use a tool — Capability",
     "New capability study",
     "⌨ What is it of?",
     "⌨ On which machine?",
@@ -174,50 +174,50 @@
    "device": "desk",
    "taps": 6,
    "entries": 3,
-   "screens": 5,
-   "hunts": 3,
+   "screens": 6,
+   "hunts": 1,
    "orient": [
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Overview",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Tools",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Tools › SMED",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Tools › SMED",
      "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Your factory",
-     "right": false
+     "said": "Factory › Line 7 › Overview",
+     "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Tools",
-     "right": false
+     "said": "Factory › Line 7 › Tools › SMED",
+     "right": true
     }
    ],
    "steps": [
-    "↓ rail: SMED",
-    "New SMED",
+    "tab: Tools",
+    "Tools: New — SMED",
     "⌨ Which line? Line 7",
     "⌨ From which product?",
     "⌨ To which product?",
     "Start it",
-    "↓ rail: SMED",
+    "the bar: SMED",
     "[on the project's SMED list]",
-    "rail: Line 7",
+    "the bar: on Line 7",
     "↓ Tools on this line: SMED",
     "[on Line 7's SMED list]"
    ],
@@ -227,55 +227,53 @@
   {
    "name": "J3 a tool in context",
    "device": "phone",
-   "taps": 9,
+   "taps": 7,
    "entries": 3,
-   "screens": 5,
-   "hunts": 3,
+   "screens": 6,
+   "hunts": 1,
    "orient": [
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › SMED",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace",
      "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Your factory",
-     "right": false
+     "said": "Factory › Line 7",
+     "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Tools",
-     "right": false
+     "said": "Factory › Line 7",
+     "right": true
     }
    ],
    "steps": [
-    "bar: More",
-    "↓ More: SMED",
-    "New SMED",
+    "tab: Tools",
+    "Tools: New — SMED",
     "⌨ Which line? Line 7",
     "⌨ From which product?",
     "⌨ To which product?",
     "Start it",
-    "bar: More",
-    "↓ More: SMED",
+    "the bar: SMED",
     "[on the project's SMED list]",
-    "bar: More",
-    "More: Line 7",
+    "the switcher",
+    "switcher: Line 7",
     "↓ Tools on this line: SMED",
     "[on Line 7's SMED list]"
    ],
@@ -285,35 +283,35 @@
   {
    "name": "J4 stage gate: a failed re-test to a fix",
    "device": "phone",
-   "taps": 11,
+   "taps": 10,
    "entries": 1,
    "screens": 8,
-   "hunts": 1,
+   "hunts": 2,
    "orient": [
     {
-     "expected": "Home",
-     "said": "Home",
+     "expected": "Factory",
+     "said": "Factory",
      "right": true
     },
     {
      "expected": "Line 2 commissioning",
-     "said": "Line 2 commissioning",
+     "said": "Projects › Line 2 commissioning",
      "right": true
     },
     {
      "expected": "Line 2 commissioning",
-     "said": "Line 2 commissioning",
+     "said": "Projects › Line 2 commissioning",
      "right": true
     },
     {
      "expected": "Line 2 commissioning",
-     "said": "Line 2 commissioning",
+     "said": "Projects › Line 2 commissioning",
      "right": true
     }
    ],
    "steps": [
-    "Under way: Line 2 commissioning",
-    "bar: Plan",
+    "↓ the row: Line 2 commissioning",
+    "tab: Plan",
     "tab: Commission",
     "↓ the re-test",
     "Didn’t pass",
@@ -323,8 +321,7 @@
     "Make it a fix",
     "[fix made — who and when on it next]",
     "close the drawer",
-    "bar: More",
-    "More: Actions",
+    "tab: Actions",
     "[the fix is on Actions]"
    ],
    "ok": true,
@@ -336,26 +333,26 @@
    "taps": 9,
    "entries": 3,
    "screens": 4,
-   "hunts": 0,
+   "hunts": 1,
    "orient": [
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Overview",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Fishbone",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Actions",
      "right": true
     }
    ],
    "steps": [
-    "rail: Fishbone",
+    "tab: Fishbone",
     "Breakdown: Find the root cause",
     "the suggested cause: Breakdown — Mechanical on the Basketer",
     "Confirmed",
@@ -365,8 +362,8 @@
     "⌨ What has to be done",
     "⌨ Who",
     "⌨ Due",
-    "Add it",
-    "rail: Actions",
+    "↓ Add it",
+    "tab: Actions",
     "[the countermeasure is on Actions]"
    ],
    "ok": true,
@@ -378,34 +375,34 @@
    "taps": 5,
    "entries": 2,
    "screens": 3,
-   "hunts": 1,
+   "hunts": 2,
    "orient": [
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Factory",
+     "said": "Factory › Overview",
      "right": true
     },
     {
      "expected": "Line 2B to 60 ppm",
-     "said": "Line 2B to 60 ppm",
+     "said": "Projects › Line 2B to 60 ppm › Overview",
      "right": true
     },
     {
      "expected": "Line 2B to 60 ppm",
-     "said": "Line 2B to 60 ppm",
+     "said": "Projects › Line 2B to 60 ppm › Tree",
      "right": true
     },
     {
      "expected": "Line 2B to 60 ppm",
-     "said": "Line 2B to 60 ppm",
+     "said": "Projects › Line 2B to 60 ppm › Results",
      "right": true
     }
    ],
    "steps": [
-    "rail: Line 2B to 60 ppm",
-    "rail: Tree",
+    "↓ the row: Line 2B to 60 ppm",
+    "tab: Tree",
     "[read on the tree: the condition behind target, its action, Engineering owes it, late]",
-    "rail: Numbers",
+    "tab: Results",
     "↓ Record a reading",
     "⌨ On (the day)",
     "⌨ Packs per minute",
@@ -419,38 +416,33 @@
    "device": "phone",
    "taps": 5,
    "entries": 1,
-   "screens": 3,
-   "hunts": 1,
+   "screens": 2,
+   "hunts": 0,
    "orient": [
     {
-     "expected": "Home",
-     "said": "Home",
-     "right": true
-    },
-    {
-     "expected": "Your factory",
-     "said": "Your factory",
+     "expected": "Factory",
+     "said": "Factory",
      "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Your factory",
-     "right": false
+     "said": "Factory › Line 7",
+     "right": true
     },
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Line 7",
+     "said": "Factory › Line 7",
      "right": true
     }
    ],
    "steps": [
-    "bar: Lines",
-    "↓ Line 7",
+    "the switcher",
+    "switcher: Line 7",
     "Problem",
-    "[the sheet's line: ?]",
+    "[the sheet's line: Line 7]",
     "⌨ What’s wrong",
     "Save",
-    "bar: Problems",
+    "tab: Problems",
     "[on the register, on Line 7]"
    ],
    "ok": true,
@@ -465,30 +457,29 @@
    "hunts": 0,
    "orient": [
     {
-     "expected": "Home",
-     "said": "Home",
+     "expected": "Factory",
+     "said": "Factory › Overview",
      "right": true
     },
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Actions",
+     "said": "Factory › Actions",
      "right": true
     },
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Actions",
+     "said": "Factory › Actions",
      "right": true
     }
    ],
    "steps": [
-    "rail: Every action",
+    "rail: Actions",
     "Late",
     "the late test: Changeover 2kg → 1.25kg",
-    "[NOTHING OPENED — the address took ?open= but no drawer is drawn on Every action]"
+    "[its record opened]"
    ],
    "ok": true,
-   "note": "",
-   "defect": "Every action: a row does not open its record"
+   "note": ""
   },
   {
    "name": "J7c a line problem moved into a project (desk)",
@@ -499,18 +490,18 @@
    "hunts": 1,
    "orient": [
     {
-     "expected": "Home",
-     "said": "Home",
+     "expected": "Factory",
+     "said": "Factory › Overview",
      "right": true
     },
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Problems",
+     "said": "Factory › Problems",
      "right": true
     }
    ],
    "steps": [
-    "rail: Control room problems",
+    "rail: Problems",
     "the problem on Line 7 — smoke test",
     "⌨ Project: Line 7 pace",
     "↓ Save",
@@ -524,52 +515,52 @@
    "device": "desk",
    "taps": 13,
    "entries": 0,
-   "screens": 8,
-   "hunts": 0,
+   "screens": 6,
+   "hunts": 1,
    "orient": [
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Factory",
+     "said": "Factory › Overview",
      "right": true
     },
     {
      "expected": "Line 2 commissioning",
-     "said": "Line 2 commissioning",
+     "said": "Projects › Line 2 commissioning › Overview",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Overview",
      "right": true
     },
     {
      "expected": "Line 7",
-     "said": "Your factory",
-     "right": false
+     "said": "Factory › Line 7 › Overview",
+     "right": true
     },
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Factory",
+     "said": "Factory › Overview",
      "right": true
     }
    ],
    "steps": [
-    "rail: Line 2 commissioning",
-    "Status report — 1 page",
-    "PDF",
+    "↓ the row: Line 2 commissioning",
+    "Report ▾",
+    "Report ▾: /^Status report/",
     "[file: Line-2-commissioning-status-report-2026-10-15.pdf]",
-    "rail: Control room",
-    "rail: Line 7 pace",
-    "rail: Reports",
-    "Client report",
-    "PDF",
+    "the switcher",
+    "switcher: Line 7 pace",
+    "Report ▾",
+    "Report ▾: /^Status report/",
     "[file: Line-7-pace-status-report-2026-10-15.pdf]",
-    "rail: Control room",
-    "rail: Line 7",
-    "Line report",
+    "the bar: on Line 7",
+    "Report ▾",
+    "Report ▾: /^Line report/",
     "[file: Line-7-line-report-2026-10-15.pdf]",
-    "rail: Control room",
-    "Control room report — 1 page",
+    "rail: Factory",
+    "Report ▾",
+    "Report ▾: /^Control room report/",
     "[file: Control-room-report-2026-10-15.pdf]"
    ],
    "ok": true,
@@ -584,18 +575,18 @@
    "hunts": 3,
    "orient": [
     {
-     "expected": "Control room",
-     "said": "Control room",
+     "expected": "Factory",
+     "said": "Factory › Overview",
      "right": true
     },
     {
      "expected": "Line 2 commissioning",
-     "said": "Line 2 commissioning",
+     "said": "Projects › Line 2 commissioning › Reports",
      "right": true
     },
     {
      "expected": "Line 7 pace",
-     "said": "Line 7 pace",
+     "said": "Projects › Line 7 pace › Line 2A — capacity › Line 7 › Reports",
      "right": true
     }
    ],
@@ -605,14 +596,14 @@
     "[file: Control-room-report-2026-10-15.pdf]",
     "rail: Reports",
     "↓ Line 2 commissioning: Client report",
-    "PDF",
+    "Download",
     "[file: Line-2-commissioning-status-report-2026-10-15.pdf]",
-    "rail: Control room",
+    "rail: Factory",
     "rail: Reports",
     "↓ Line 7 pace: Client report",
-    "PDF",
+    "Download",
     "[file: Line-7-pace-status-report-2026-10-15.pdf]",
-    "rail: Control room",
+    "rail: Factory",
     "rail: Reports",
     "↓ One-page report — Line 7",
     "[no file]",

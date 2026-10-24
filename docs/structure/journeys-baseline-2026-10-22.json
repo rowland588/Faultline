@@ -1,0 +1,625 @@
+{
+ "measured": "2026-10-22",
+ "by": "docs/structure/journeys-stage-a.mjs",
+ "on": "main c00f7b4, the smoke seed (src/dev/seed.ts), clock 15 Oct 2026 10:00 London",
+ "desk": "1360x900",
+ "phone": "390x844",
+ "walks": [
+  {
+   "name": "J1 across factory, line and project",
+   "device": "desk",
+   "taps": 7,
+   "entries": 0,
+   "screens": 7,
+   "hunts": 3,
+   "orient": [
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    },
+    {
+     "expected": "Line 7",
+     "said": "Your factory",
+     "right": false
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7",
+     "said": "Your factory",
+     "right": false
+    },
+    {
+     "expected": "Line 7",
+     "said": "Tools",
+     "right": false
+    },
+    {
+     "expected": "Line 7",
+     "said": "Line 7 pace",
+     "right": false
+    },
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    }
+   ],
+   "steps": [
+    "rail: Line 7",
+    "↓ Projects on this line: Line 7 pace",
+    "rail: Fishbone",
+    "rail: Line 7",
+    "↓ Tools on this line: Line capacity",
+    "↓ Maris Piper 2kg",
+    "rail: Control room"
+   ],
+   "ok": true,
+   "note": ""
+  },
+  {
+   "name": "J1 across factory, line and project",
+   "device": "phone",
+   "taps": 9,
+   "entries": 0,
+   "screens": 7,
+   "hunts": 3,
+   "orient": [
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    },
+    {
+     "expected": "Line 7",
+     "said": "Your factory",
+     "right": false
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7",
+     "said": "Your factory",
+     "right": false
+    },
+    {
+     "expected": "Line 7",
+     "said": "Tools",
+     "right": false
+    },
+    {
+     "expected": "Line 7",
+     "said": "Line 7 pace",
+     "right": false
+    },
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    }
+   ],
+   "steps": [
+    "bar: More",
+    "More: Line 7",
+    "↓ Projects on this line: Line 7 pace",
+    "bar: Fishbone",
+    "bar: More",
+    "More: Line 7",
+    "↓ Tools on this line: Line capacity",
+    "↓ Maris Piper 2kg",
+    "bar: Control room"
+   ],
+   "ok": true,
+   "note": ""
+  },
+  {
+   "name": "J2 a tool on its own",
+   "device": "phone",
+   "taps": 4,
+   "entries": 8,
+   "screens": 2,
+   "hunts": 2,
+   "orient": [
+    {
+     "expected": "Home",
+     "said": "Home",
+     "right": true
+    },
+    {
+     "expected": "Capability",
+     "said": "Tools",
+     "right": false
+    },
+    {
+     "expected": "Capability",
+     "said": "Tools",
+     "right": false
+    }
+   ],
+   "steps": [
+    "↓ Home: Capability",
+    "New capability study",
+    "⌨ What is it of?",
+    "⌨ On which machine?",
+    "Start it",
+    "⌨ Unit",
+    "⌨ Lower limit",
+    "⌨ Upper limit",
+    "↓ Agree these",
+    "⌨ three readings",
+    "[it says: 3 of 30 in — all within 400.0–404.0 g so far.]"
+   ],
+   "ok": true,
+   "note": ""
+  },
+  {
+   "name": "J3 a tool in context",
+   "device": "desk",
+   "taps": 6,
+   "entries": 3,
+   "screens": 5,
+   "hunts": 3,
+   "orient": [
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7",
+     "said": "Your factory",
+     "right": false
+    },
+    {
+     "expected": "Line 7",
+     "said": "Tools",
+     "right": false
+    }
+   ],
+   "steps": [
+    "↓ rail: SMED",
+    "New SMED",
+    "⌨ Which line? Line 7",
+    "⌨ From which product?",
+    "⌨ To which product?",
+    "Start it",
+    "↓ rail: SMED",
+    "[on the project's SMED list]",
+    "rail: Line 7",
+    "↓ Tools on this line: SMED",
+    "[on Line 7's SMED list]"
+   ],
+   "ok": true,
+   "note": ""
+  },
+  {
+   "name": "J3 a tool in context",
+   "device": "phone",
+   "taps": 9,
+   "entries": 3,
+   "screens": 5,
+   "hunts": 3,
+   "orient": [
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7",
+     "said": "Your factory",
+     "right": false
+    },
+    {
+     "expected": "Line 7",
+     "said": "Tools",
+     "right": false
+    }
+   ],
+   "steps": [
+    "bar: More",
+    "↓ More: SMED",
+    "New SMED",
+    "⌨ Which line? Line 7",
+    "⌨ From which product?",
+    "⌨ To which product?",
+    "Start it",
+    "bar: More",
+    "↓ More: SMED",
+    "[on the project's SMED list]",
+    "bar: More",
+    "More: Line 7",
+    "↓ Tools on this line: SMED",
+    "[on Line 7's SMED list]"
+   ],
+   "ok": true,
+   "note": ""
+  },
+  {
+   "name": "J4 stage gate: a failed re-test to a fix",
+   "device": "phone",
+   "taps": 11,
+   "entries": 1,
+   "screens": 8,
+   "hunts": 1,
+   "orient": [
+    {
+     "expected": "Home",
+     "said": "Home",
+     "right": true
+    },
+    {
+     "expected": "Line 2 commissioning",
+     "said": "Line 2 commissioning",
+     "right": true
+    },
+    {
+     "expected": "Line 2 commissioning",
+     "said": "Line 2 commissioning",
+     "right": true
+    },
+    {
+     "expected": "Line 2 commissioning",
+     "said": "Line 2 commissioning",
+     "right": true
+    }
+   ],
+   "steps": [
+    "Under way: Line 2 commissioning",
+    "bar: Plan",
+    "tab: Commission",
+    "↓ the re-test",
+    "Didn’t pass",
+    "Hit a problem",
+    "⌨ what went wrong",
+    "Save the problem",
+    "Make it a fix",
+    "[fix made — who and when on it next]",
+    "close the drawer",
+    "bar: More",
+    "More: Actions",
+    "[the fix is on Actions]"
+   ],
+   "ok": true,
+   "note": ""
+  },
+  {
+   "name": "J5 6M: loss to cause to countermeasure",
+   "device": "desk",
+   "taps": 9,
+   "entries": 3,
+   "screens": 4,
+   "hunts": 0,
+   "orient": [
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    }
+   ],
+   "steps": [
+    "rail: Fishbone",
+    "Breakdown: Find the root cause",
+    "the suggested cause: Breakdown — Mechanical on the Basketer",
+    "Confirmed",
+    "Add to the fishbone",
+    "the cause, now on the fishbone",
+    "+ Add a fix",
+    "⌨ What has to be done",
+    "⌨ Who",
+    "⌨ Due",
+    "Add it",
+    "rail: Actions",
+    "[the countermeasure is on Actions]"
+   ],
+   "ok": true,
+   "note": ""
+  },
+  {
+   "name": "J6 lever tree: what is off track",
+   "device": "desk",
+   "taps": 5,
+   "entries": 2,
+   "screens": 3,
+   "hunts": 1,
+   "orient": [
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    },
+    {
+     "expected": "Line 2B to 60 ppm",
+     "said": "Line 2B to 60 ppm",
+     "right": true
+    },
+    {
+     "expected": "Line 2B to 60 ppm",
+     "said": "Line 2B to 60 ppm",
+     "right": true
+    },
+    {
+     "expected": "Line 2B to 60 ppm",
+     "said": "Line 2B to 60 ppm",
+     "right": true
+    }
+   ],
+   "steps": [
+    "rail: Line 2B to 60 ppm",
+    "rail: Tree",
+    "[read on the tree: the condition behind target, its action, Engineering owes it, late]",
+    "rail: Numbers",
+    "↓ Record a reading",
+    "⌨ On (the day)",
+    "⌨ Packs per minute",
+    "Add reading"
+   ],
+   "ok": true,
+   "note": ""
+  },
+  {
+   "name": "J7a a problem on Line 7, on the phone",
+   "device": "phone",
+   "taps": 5,
+   "entries": 1,
+   "screens": 3,
+   "hunts": 1,
+   "orient": [
+    {
+     "expected": "Home",
+     "said": "Home",
+     "right": true
+    },
+    {
+     "expected": "Your factory",
+     "said": "Your factory",
+     "right": true
+    },
+    {
+     "expected": "Line 7",
+     "said": "Your factory",
+     "right": false
+    },
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    }
+   ],
+   "steps": [
+    "bar: Lines",
+    "↓ Line 7",
+    "Problem",
+    "[the sheet's line: ?]",
+    "⌨ What’s wrong",
+    "Save",
+    "bar: Problems",
+    "[on the register, on Line 7]"
+   ],
+   "ok": true,
+   "note": ""
+  },
+  {
+   "name": "J7b every late action, by person (desk)",
+   "device": "desk",
+   "taps": 3,
+   "entries": 0,
+   "screens": 2,
+   "hunts": 0,
+   "orient": [
+    {
+     "expected": "Home",
+     "said": "Home",
+     "right": true
+    },
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    },
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    }
+   ],
+   "steps": [
+    "rail: Every action",
+    "Late",
+    "the late test: Changeover 2kg → 1.25kg",
+    "[NOTHING OPENED — the address took ?open= but no drawer is drawn on Every action]"
+   ],
+   "ok": true,
+   "note": "",
+   "defect": "Every action: a row does not open its record"
+  },
+  {
+   "name": "J7c a line problem moved into a project (desk)",
+   "device": "desk",
+   "taps": 3,
+   "entries": 1,
+   "screens": 1,
+   "hunts": 1,
+   "orient": [
+    {
+     "expected": "Home",
+     "said": "Home",
+     "right": true
+    },
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    }
+   ],
+   "steps": [
+    "rail: Control room problems",
+    "the problem on Line 7 — smoke test",
+    "⌨ Project: Line 7 pace",
+    "↓ Save",
+    "[shown for Line 7 pace]"
+   ],
+   "ok": true,
+   "note": ""
+  },
+  {
+   "name": "J8 the Monday pack",
+   "device": "desk",
+   "taps": 13,
+   "entries": 0,
+   "screens": 8,
+   "hunts": 0,
+   "orient": [
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    },
+    {
+     "expected": "Line 2 commissioning",
+     "said": "Line 2 commissioning",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    },
+    {
+     "expected": "Line 7",
+     "said": "Your factory",
+     "right": false
+    },
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    }
+   ],
+   "steps": [
+    "rail: Line 2 commissioning",
+    "Status report — 1 page",
+    "PDF",
+    "[file: Line-2-commissioning-status-report-2026-10-15.pdf]",
+    "rail: Control room",
+    "rail: Line 7 pace",
+    "rail: Reports",
+    "Client report",
+    "PDF",
+    "[file: Line-7-pace-status-report-2026-10-15.pdf]",
+    "rail: Control room",
+    "rail: Line 7",
+    "Line report",
+    "[file: Line-7-line-report-2026-10-15.pdf]",
+    "rail: Control room",
+    "Control room report — 1 page",
+    "[file: Control-room-report-2026-10-15.pdf]"
+   ],
+   "ok": true,
+   "note": ""
+  },
+  {
+   "name": "J8b the Monday pack, from All reports",
+   "device": "desk",
+   "taps": 13,
+   "entries": 0,
+   "screens": 5,
+   "hunts": 3,
+   "orient": [
+    {
+     "expected": "Control room",
+     "said": "Control room",
+     "right": true
+    },
+    {
+     "expected": "Line 2 commissioning",
+     "said": "Line 2 commissioning",
+     "right": true
+    },
+    {
+     "expected": "Line 7 pace",
+     "said": "Line 7 pace",
+     "right": true
+    }
+   ],
+   "steps": [
+    "rail: Reports",
+    "Control room report — 1 page",
+    "[file: Control-room-report-2026-10-15.pdf]",
+    "rail: Reports",
+    "↓ Line 2 commissioning: Client report",
+    "PDF",
+    "[file: Line-2-commissioning-status-report-2026-10-15.pdf]",
+    "rail: Control room",
+    "rail: Reports",
+    "↓ Line 7 pace: Client report",
+    "PDF",
+    "[file: Line-7-pace-status-report-2026-10-15.pdf]",
+    "rail: Control room",
+    "rail: Reports",
+    "↓ One-page report — Line 7",
+    "[no file]",
+    "Print / save PDF"
+   ],
+   "ok": true,
+   "note": ""
+  }
+ ]
+}
