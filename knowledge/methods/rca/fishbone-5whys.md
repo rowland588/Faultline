@@ -56,3 +56,7 @@ Seal failures, give-away, line stops, complaints.
 
 ## In Faultline
 The 6M (`src/lib/sixm.ts`, the fishbone `src/lib/fishbone.ts`), FC-146 to FC-148.
+Since 24 October the head of the fish says its hours a week in money by the
+line's cost model, and a countermeasure its worth from the share of the
+problem it should remove (`knowledge/specs/FC-146-sixm-money.md`,
+`src/lib/sixmMoney.ts`).

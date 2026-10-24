@@ -12021,6 +12021,8 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .ie-says { padding: 8px 0 4px; }
 .ie-say { margin: 0 0 4px; font-size: var(--t-body); line-height: 1.45; color: var(--ink); max-width: 72ch; }
 .ie-say.is-r { color: var(--st-r); font-weight: 700; }
+/* the problem card’s money, a line of its own under the number (lib/sixmMoney, FC-146) */
+.pc-money { display: block; }
 .ie-cap { font-size: var(--t-detail); color: var(--ink-2); }
 .ie-cap.is-a { color: var(--st-a); font-weight: 700; }
 .ie-cap.is-g { color: var(--st-g); }

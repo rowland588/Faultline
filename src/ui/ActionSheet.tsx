@@ -162,6 +162,11 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
           <label className="cw-f cw-f-wide"><span>WHAT IT SHOULD CHANGE</span>
             <input value={s.expect ?? ''} placeholder="e.g. changeover 48 → 30 min"
               onChange={e => set({ expect: e.target.value })} /></label>
+          {/* HOW MUCH OF THE PROBLEM it should remove — the A3's expected effect, one number; its worth in money is
+              the problem's £ a week × this (lib/sixmMoney, FC-146; CLAUDE.md, 24 October: one output, never blocking) */}
+          <label className="cw-f"><span>HOW MUCH OF THE PROBLEM IT SHOULD REMOVE <i className="cw-f-opt">%, optional</i></span>
+            <input value={s.expectPct != null ? String(s.expectPct) : ''} placeholder="e.g. 40" inputMode="decimal" aria-label="How much of the problem it should remove, in percent"
+              onChange={e => { const v = e.target.value.trim(); const n = Number(v.replace(',', '.')); set({ expectPct: v && Number.isFinite(n) && n >= 0 && n <= 100 ? n : undefined }); }} /></label>
           <label className="cw-f cw-f-wide"><span>WHERE <i className="cw-f-opt">optional</i></span>
             <input value={s.where} placeholder="e.g. the infeed" onChange={e => set({ where: e.target.value })} /></label>
         </fieldset>

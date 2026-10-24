@@ -329,7 +329,7 @@ own and names what it feeds.
 
 | Entry | Money today | Causation | Inputs | When missing |
 |---|---|---|---|---|
-| FC-146 6M | the problem's £ a week from the Pareto, the loss count or the study that made it the head of the fish; **the gap**: a countermeasure's worth = the share of that £ it should remove (BLUEPRINT §6) | the tool's; I | the tool's | "Measure the problem with its tool to say the countermeasure's worth" |
+| FC-146 6M | built 24 Oct — the problem's hours a week in money by its line's cost model (labour; packs and contribution where its scope stops the line): before, now, target, the saving so far; a countermeasure's worth = its typed share of the problem × that £; the board's sum (`knowledge/specs/FC-146-sixm-money.md`); a gap problem says no money | L, T | the share (typed on the countermeasure); the line's wage, speed, margin | the sheet's box asks the share; "give the line a wage", "a speed", "a margin a pack" |
 | FC-147 Fishbone with evidence | — of its own; each cause's evidence carries its tool's £ | the tool's | | |
 | FC-148 Five whys | — | — | | |
 | FC-149 Is / is not | — | — | | |
@@ -489,7 +489,7 @@ own and names what it feeds.
    (FC-006 — the people placed, a pack: built 24 October), the problems
    register (FC-154 — the time a problem costs the line: built 24 October;
    its rejects and held product to come), the 6M countermeasure's worth
-   (FC-146). Each through the `faultline-tool` skill, one at a time.
+   (FC-146: built 24 October). Each through the `faultline-tool` skill, one at a time.
 2. **The built tools with money partly said**: Reliability (FC-058 — each
    failure's lost minutes in money), the stops' pages where a figure is still
    missing, the stage gate's performance run and climb (FC-076, FC-077 — the

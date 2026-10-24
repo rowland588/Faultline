@@ -28,7 +28,7 @@ export { PROBLEMS, BACKLOG };
 export const AVAILABLE_BEFORE_STANDARD: readonly string[] = [
   'FC-008', 'FC-022', 'FC-031', 'FC-032', 'FC-034', 'FC-035', 'FC-036', 'FC-037', 'FC-038',
   'FC-040', 'FC-049', 'FC-051', 'FC-052', 'FC-053', 'FC-054', 'FC-058', 'FC-068', 'FC-073', 'FC-074', 'FC-075',
-  'FC-076', 'FC-077', 'FC-078', 'FC-079', 'FC-080', 'FC-081', 'FC-146', 'FC-147', 'FC-148', 'FC-187',
+  'FC-076', 'FC-077', 'FC-078', 'FC-079', 'FC-080', 'FC-081', 'FC-147', 'FC-148', 'FC-187',
   'FC-188', 'FC-189', 'FC-190', 'FC-193', 'FC-194', 'FC-195', 'FC-202', 'FC-204', 'FC-205', 'FC-206', 'FC-214',
 ];
 

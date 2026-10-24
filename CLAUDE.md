@@ -547,7 +547,10 @@ job's example; a study attached to a job taking its line, its Use it for
 machine by machine with its own first; the fishbone offering no other
 line's materials or programs; the Reports sheet's two papers with each
 line's folded, the spreadsheet worded for the job, and the client report's
-one-page status first. `value-stream.mjs` is
+one-page status first. Then money on the 6M (24 October, FC-146): a problem's
+hours a week in money on its card as the module says, a countermeasure asked
+its share on the board's sheet and its worth on the fishbone, both on the 6M
+report. `value-stream.mjs` is
 B: a line's value stream map — lanes by who and by where, walked on the
 phone, a fix raised from a waste step, the line walked again, before → after
 on the fix, the stream as a table on the client report, and the fishbone

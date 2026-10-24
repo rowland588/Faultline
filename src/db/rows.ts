@@ -32,6 +32,9 @@ export interface PaceTodoRow {
   /** What it should change, said before it is done — the prediction it is
    *  checked against ("changeover 48 → 30 min"). */
   expect?: string;
+  /** How much of its problem this countermeasure should remove, 0–100 — said before it is done, the
+   *  A3's expected effect (SIXM_MONEY.sql; lib/sixmMoney says it in money by the problem's £ a week). */
+  expectPct?: number;
   /** The day it is due, YYYY-MM-DD — what makes it late. `when` stays the free
    *  words ("before the Tesco launch"); this is the date the board counts. */
   due?: string;

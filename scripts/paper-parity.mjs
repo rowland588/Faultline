@@ -23,6 +23,10 @@ if (!OLD || !NEW) { console.error('node scripts/paper-parity.mjs OLD NEW'); proc
 
 /** A paper whose words a slice changed on purpose: its file name, and why. */
 const MEANT = {
+  /* MONEY ON THE 6M PROBLEM AND ITS COUNTERMEASURES (knowledge/specs/FC-146-sixm-money.md, 24 October): the problem's
+     hours a week in money by the line's cost model, and a countermeasure's worth from its typed share */
+  ...Object.fromEntries(['6m-tiny-client.pdf', '6m-tiny-client-status.pdf', '6m-tiny-line.pdf', '6m-tiny-line-status.pdf', '6m-huge-client.pdf', '6m-huge-client-status.pdf', '6m-huge-line.pdf', '6m-huge-line-status.pdf']
+    .map(f => [f, 'money on the 6M problem and its countermeasures (FC-146, 24 October)'])),
   /* pass or fail by a confidence level or an allowed loss (FC-100, 23 October: "we also want to be adding confidence as part of our
      language"): "that proves fewer than 32 in 100 would fail (95% sure)" is said "we can be 95% confident fewer than 32 in 100 would fail" */
   'ordinary-client.pdf': 'pass or fail said with its confidence (FC-100, 23 October); This week and next (docs/JOURNEY.md J3)',

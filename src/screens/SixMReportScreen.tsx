@@ -232,6 +232,7 @@ function ProblemParts({ p }: { p: SixMReport['problems'][number] }) {
         <p className="cr-part-h">Problem</p>
         {p.says && <span className="cr-part-lead">{p.says}</span>}
         {p.measure && <span>{p.measure}</span>}
+        {p.money && <span className="sub">{p.money}</span>}
         {p.from && <span>Where it came from: {p.from}</span>}
         {p.is.length > 0 && <span>Is: {p.is.join(' · ')}</span>}
         {p.isNot.length > 0 && <span>Is not: {p.isNot.join(' · ')}</span>}
@@ -257,13 +258,14 @@ function ProblemParts({ p }: { p: SixMReport['problems'][number] }) {
       </div>
       <div className="cr-part">
         <p className="cr-part-h">Fix{p.counterSays && <small> · {p.counterSays}</small>}</p>
+        {p.counterWorth && <p className="sub">{p.counterWorth}</p>}
         {p.counter.length === 0 && <span className="sub">No fix on the board for it yet.</span>}
         {/* Each fix as the paper prints it: what, bone and owner, its state
             and day — and the day in words when it has no date. */}
         {p.counter.map((c, i) => (
           <span key={i} className="cr-cm">
             {c.what} · {c.bone} · {c.owner || 'No owner'} · <span className={'cr-said-st ' + stateClass(c.tone)}>{c.when}</span>
-            {c.words ? ` · When: ${c.words}` : ''}{c.cause ? ` · For: ${c.cause}` : ''}{c.expect && c.tone !== 'done' ? ` · Should change: ${c.expect}` : ''}
+            {c.words ? ` · When: ${c.words}` : ''}{c.cause ? ` · For: ${c.cause}` : ''}{c.expect && c.tone !== 'done' ? ` · Should change: ${c.expect}` : ''}{c.worth ? ` · ${c.worth}` : ''}
           </span>
         ))}
       </div>

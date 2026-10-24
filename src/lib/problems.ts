@@ -5,6 +5,7 @@
  * (lib/useProblems.ts), the interactive fishbone (ui/Fishbone.tsx,
  * ui/CauseSheet.tsx), the screens and the client report can be built side by
  * side and meet in the middle. Nothing here computes anything. */
+import type { ProblemMoney } from './sixmMoney';
 import type { Case } from '../types';
 import type { PaceAction } from './actionShapes';
 import type { Cause, CauseSource, Grade, SixM } from './sixm';
@@ -75,6 +76,8 @@ export interface ProblemView {
   /** All six, in SIXM order, even when empty — an empty bone says "looked, nothing found". */
   bones: Bone[];
   measure: ProblemMeasure | null;
+  /** Its measure in money, when it is hours a week on a line with a cost model (lib/sixmMoney, FC-146). */
+  money?: ProblemMoney;
   /** The countermeasures — actions whose causeRef points at one of its causes (or caseId at it). */
   actions: PaceAction[];
   /** Causes confirmed and drilled to a root. */

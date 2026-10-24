@@ -501,6 +501,7 @@ function problemBlocks(p: ProblemRep, d: Density, out: Block[]): void {
   add(part('Problem'));
   if (p.says) add(text({ text: p.says, size: SIZE.body, style: 'bold', after: 3 }));
   if (p.measure) add(text({ text: p.measure, size: SIZE.body, colour: INK2, after: 3 }));
+  if (p.money) add(text({ text: p.money, size: SIZE.small, colour: INK2, after: 3 }));
   if (p.from) add(text({ text: `Where it came from: ${p.from}`, size: SIZE.small, colour: INK2, after: 3 }));
   /* Where it is and is not, from the stops — printed only when there is something to say. */
   if (p.is.length) add(text({ text: `Is: ${p.is.join(' · ')}`, size: SIZE.small, colour: INK2, after: 2 }));
@@ -538,6 +539,7 @@ function problemBlocks(p: ProblemRep, d: Density, out: Block[]): void {
 
   /* --------------------------------- Fix --------------------------------- */
   add(part('Fix', p.counterSays));
+  if (p.counterWorth) add(text({ text: p.counterWorth, size: SIZE.small, colour: INK2, after: 3 }));
   if (p.counter.length) add(counterRows(p.counter));
   else add(text({ text: 'No fix on the board for it yet.', size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
 
@@ -789,6 +791,7 @@ function counterRows(list: CounterRep[]): Block {
       what: wrap(f.doc, c.what, w, SIZE.body - 0.5, c.tone === 'done' ? 'normal' : 'bold'),
       cause: c.cause ? wrap(f.doc, `For: ${c.cause}`, w, SIZE.small) : [],
       exp: c.expect && c.tone !== 'done' ? wrap(f.doc, `Should change: ${c.expect}`, w, SIZE.small) : [],
+      worth: c.worth ? wrap(f.doc, c.worth, w, SIZE.small) : [],
       words: c.words ? wrap(f.doc, `When: ${c.words}`, w, SIZE.small) : [],
       proved: c.proved ? wrap(f.doc, c.proved, w, SIZE.small) : [],
       side: wrap(f.doc, [c.bone, c.owner || 'No owner'].join(' · '), sideW - 8, SIZE.small),
@@ -798,7 +801,7 @@ function counterRows(list: CounterRep[]): Block {
     rows: list.map(c => ({
       h: f => {
         const p = parts(f, c);
-        return 8 + Math.max(p.what.length * 11.5 + (p.cause.length + p.exp.length + p.words.length + p.proved.length) * 10.5, p.side.length * 10.5, 14) + 5;
+        return 8 + Math.max(p.what.length * 11.5 + (p.cause.length + p.exp.length + p.worth.length + p.words.length + p.proved.length) * 10.5, p.side.length * 10.5, 14) + 5;
       },
       draw: (f, y) => {
         const p = parts(f, c);
@@ -808,6 +811,7 @@ function counterRows(list: CounterRep[]): Block {
         font(f.doc, SIZE.body - 0.5, done ? 'normal' : 'bold', done ? MUTED : INK); f.doc.text(p.what, f.x, ty); ty += p.what.length * 11.5;
         if (p.cause.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.cause, f.x, ty - 1); ty += p.cause.length * 10.5; }
         if (p.exp.length) { font(f.doc, SIZE.small, 'normal', INK2); f.doc.text(p.exp, f.x, ty - 1); ty += p.exp.length * 10.5; }
+        if (p.worth.length) { font(f.doc, SIZE.small, 'normal', INK2); f.doc.text(p.worth, f.x, ty - 1); ty += p.worth.length * 10.5; }
         if (p.words.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.words, f.x, ty - 1); ty += p.words.length * 10.5; }
         if (p.proved.length) { font(f.doc, SIZE.small, 'bold', INK2); f.doc.text(p.proved, f.x, ty - 1); }
         font(f.doc, SIZE.small, 'normal', done ? MUTED : INK2); f.doc.text(p.side, f.x + f.w - sideW - stateW, y + 12);

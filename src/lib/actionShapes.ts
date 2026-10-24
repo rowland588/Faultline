@@ -42,6 +42,8 @@ export interface PaceAction {
   causeRef?: string;
   /** What it should change, said before it is done — its prediction. */
   expect?: string;
+  /** How much of its problem it should remove, 0–100 (PaceTodoRow.expectPct; lib/sixmMoney). */
+  expectPct?: number;
   /** The day it is due, YYYY-MM-DD — `due` is that day as words. What the
    *  board sorts by and "due soon" is judged from. */
   dueISO?: string;

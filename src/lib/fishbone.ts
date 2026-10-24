@@ -19,6 +19,8 @@
  * miraculous improvement. Evidence for a suggestion (which stops, how many)
  * includes the current week too, so something timed this morning is seen.
  */
+import { problemMoney } from './sixmMoney';
+import { neckOf } from './lineLoss';
 import type { Case, DrillPath, Observation, Workspace } from '../types';
 import type { PaceLineRow } from '../db/rows';
 import type { PaceAction } from './actionShapes';
@@ -957,11 +959,14 @@ export function buildView(problem: Case, data: FishboneData, today = Date.now())
   }));
   const measure = measureOf(problem, data, today);
   const actions = countermeasuresOf(problem, data.actions);
+  /* the number in money, by the line's cost model and its bottleneck (lib/sixmMoney, FC-146) */
+  const money = problemMoney(measure, scopeOf(problem, data), data.workspaces.find(w => w.id === problem.workspaceId), neckOf(data.standards, problem.workspaceId));
   return {
     problem,
     phase: phaseOf(problem, data.actions, measure, today),
     bones,
     measure,
+    ...(money ? { money } : {}),
     actions,
     roots: rootsOf(problem),
     says: saysOf(problem, data, measure, today),

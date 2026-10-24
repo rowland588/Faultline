@@ -622,7 +622,12 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   its editor, said in the loss count's two parts — labour, and packs and
   contribution where it stops the line — on the row, the card, the report
   and the closing line's sum; the wage, speed or margin named when missing.
-- **Missing — the next piece, tool by tool:** the problems register's rejects and held product, then
+  And the **6M** (24 October, `knowledge/specs/FC-146-sixm-money.md`): the
+  problem's hours a week in money by its line's cost model — before, now,
+  the target's worth, the saving so far — on its card and the 6M report; a
+  countermeasure asked how much of the problem it should remove, its worth
+  on the fishbone, the board's sheet and the report.
+- **Missing — the next piece, tool by tool:** the problems register's rejects and held product, the 6M's lean tiles, then
   (what each problem costs while it is open), a 6M countermeasure (what it
   is worth — before → after in money).
 

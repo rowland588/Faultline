@@ -34,6 +34,7 @@ export function countermeasureOf(s: PaceTodoRow, lines: PaceLineRow[], today = t
     ...stepAction(s, lines, today),
     ...(s.causeRef ? { causeRef: s.causeRef } : {}),
     ...(s.expect ? { expect: s.expect } : {}),
+    ...(s.expectPct != null ? { expectPct: s.expectPct } : {}),
     ...(s.doneOn ? { doneOn: s.doneOn } : {}),
   };
 }

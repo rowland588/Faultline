@@ -224,3 +224,12 @@ def open_cost(minutes, crew=4, wage=14.5, burden=1.3, per_min=100, margin=0.04, 
     return lab, packs, (packs * margin if packs is not None else None)
 print("  20 min at the bottleneck ->", open_cost(20)); print("  20 min off the bottleneck ->", open_cost(20, stops=False)); print("  7.5 min on the line ->", open_cost(7.5))
 print("  the register: 20 + 10 (off the bottleneck) ->", open_cost(20)[0] + open_cost(10, stops=False)[0], "labour;", open_cost(20)[2], "contribution")
+
+# --- what a 6M problem costs a week and what a countermeasure should be worth (knowledge/specs/FC-146-sixm-money.md, 24 October) ---
+print("\n# hours a week lost x the crew's rate = labour; where it stops the line, hours x 60 x rated speed = packs, x contribution a pack")
+def hours_cost(h, crew=5, wage=14.8, burden=1.3, per_min=60, margin=0.06, stops=True):
+    lab = h * crew * wage * burden; packs = h * 60 * per_min if stops else None
+    return lab, packs, (packs * margin if packs is not None else None)
+b, n, t = hours_cost(3), hours_cost(1.5), hours_cost(1)
+print("  3 h on the line ->", b, "; now 1.5 h ->", n, "; saved ->", (b[0]-n[0], b[1]-n[1], b[2]-n[2]), "; target 1 h worth ->", (b[0]-t[0], b[1]-t[1], b[2]-t[2]))
+print("  a countermeasure at 40% of 3 h ->", tuple(x*0.4 for x in b), "; the board at 70% ->", tuple(x*0.7 for x in b))
