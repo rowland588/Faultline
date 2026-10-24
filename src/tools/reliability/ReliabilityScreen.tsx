@@ -41,7 +41,7 @@ import { relClosings, relTiles, relTrend } from './reliabilityLean';
 import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
-import { raisedFrom } from '../../lib/ie/lossLean';
+import { raisedFrom } from '../losses/lossLean';
 import { useFactoryLines } from '../../lib/useFactoryLines';
 import { StudyBand } from '../../ui/StudyActs';
 

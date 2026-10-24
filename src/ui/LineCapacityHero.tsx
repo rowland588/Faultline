@@ -16,7 +16,7 @@ import { useAccess } from '../cloud/access';
 import { can as canOf } from '../lib/access';
 import { DraftNumber } from './Draft';
 import { offerUndo } from './Undo';
-import { stopsOfBar } from '../lib/ie/losses';
+import { stopsOfBar } from '../tools/losses/losses';
 import {
   ASK_EXAMPLES, askLine, constraintShare, confidenceOf, figure, heatOf, leversOf, onConstraint, parseDemand, reasonOf, WEEK,
   type Answer,

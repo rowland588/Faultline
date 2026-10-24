@@ -239,7 +239,7 @@ export const CAPACITY: Entry[] = [
     complexity: 'L', value: 'high', valueWhy: 'A shift’s losses in money, without sensors.',
     status: 'available', form: 'tool', kind: 'study', starts: 'line',
     app: { key: 'losses', label: 'Loss count', says: 'Where a shift’s time went at the bottleneck’s speed, in packs and pounds', onLine: 'a shift’s losses, in minutes and pounds', reads: 'losses', icon: 'time', order: 8 }, methods: ['equipment.time-model-losses', 'cost.line-cost-model'], scenarios: ['running', 'money', 'machine'], words: ['losses', 'downtime', 'efficiency', 'where did the time go'],
-    built: { where: ['/losses'], code: ['src/lib/ie/losses.ts', 'src/screens/LossesScreen.tsx', 'src/lib/ie/lossLean.ts'], tests: ['src/lib/ie/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
+    built: { where: ['/losses'], code: ['src/tools/losses/losses.ts', 'src/tools/losses/LossesScreen.tsx', 'src/tools/losses/lossLean.ts'], tests: ['src/tools/losses/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
   },
   {
     id: 'FC-050', name: 'OEE, OOE and TEEP as figures', discipline: 'equipment', sub: 'time',
@@ -331,7 +331,7 @@ export const CAPACITY: Entry[] = [
     depends: ['FC-049'],
     complexity: 'S', value: 'medium', valueWhy: 'Splits the gap people otherwise argue about.',
     status: 'partial', form: 'mode', partOf: 'FC-049', methods: ['equipment.short-stops-speed'], scenarios: ['machine', 'running'],
-    built: { where: ['/losses'], code: ['src/lib/ie/losses.ts'], tests: ['src/lib/ie/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
+    built: { where: ['/losses'], code: ['src/tools/losses/losses.ts'], tests: ['src/tools/losses/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
     limits: ['Split only once a running speed is timed; otherwise said as slow running and short stops together.'],
   },
   {

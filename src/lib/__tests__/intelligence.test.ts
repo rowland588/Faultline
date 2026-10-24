@@ -129,7 +129,7 @@ describe('what the line can make', () => {
 });
 
 import { leversOf, periodWaterfall } from '../intelligence';
-import type { LossFigures } from '../ie/losses';
+import type { LossFigures } from '../../tools/losses/losses';
 
 describe('recovery levers — the mirage kept', () => {
   const figs = (bars: Partial<LossFigures['bars'][number]>[]): LossFigures => ({ enough: true, missing: [], plannedMin: 450, rate: 60, made: 21_000, rejects: 0, split: true, logged: 0, stopsN: 0, stopsMin: 0, byCause: [], changeoverMin: 0, changeoverN: 0,

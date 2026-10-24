@@ -48,7 +48,7 @@ import { UsedFor, useBetter, WhereItSits } from '../ui/StudyPlace';
 import { StudyBand } from '../ui/StudyActs';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
 import { smedLean } from '../lib/ie/changeoverLean';
-import { raisedFrom } from '../lib/ie/lossLean';
+import { raisedFrom } from '../tools/losses/lossLean';
 import { recordHref } from '../lib/studyLinks';
 import { Sheet } from '../ui/Sheet';
 import { SmedGrid } from '../ui/SmedGrid';

@@ -84,7 +84,7 @@ const san = s => s.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/[‘
 /* What the modules say of a count as it stands — its line's stops and cost model read as the screen reads them. */
 const truth = id => page.evaluate(async id => {
   const db = await import('/src/db.ts');
-  const L = await import('/src/lib/studyLinks.ts'); const X = await import('/src/lib/ie/losses.ts');
+  const L = await import('/src/lib/studyLinks.ts'); const X = await import('/src/tools/losses/losses.ts');
   const s = await db.getStudy(id);
   if (!s) return null;
   const ctx = { observations: s.workspaceId ? await db.listObservations(s.workspaceId) : [], workspaces: s.workspaceId ? [await db.getWorkspace(s.workspaceId)].filter(Boolean) : [] };
@@ -255,7 +255,7 @@ let tp = await truth(proofId);
    lib/ie/lossLean reads them; and the same on paper ---- */
 const lean = id => page.evaluate(async id => {
   const db = await import('/src/db.ts'); const L = await import('/src/lib/studyLinks.ts');
-  const X = await import('/src/lib/ie/losses.ts'); const N = await import('/src/lib/ie/lossLean.ts');
+  const X = await import('/src/tools/losses/losses.ts'); const N = await import('/src/tools/losses/lossLean.ts');
   const s = await db.getStudy(id);
   const w = await db.getWorkspace(s.workspaceId);
   const ctx = { observations: await db.listObservations(s.workspaceId), workspaces: [w] };

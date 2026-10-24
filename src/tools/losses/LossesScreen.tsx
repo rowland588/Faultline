@@ -21,27 +21,27 @@
  * lib/ie/losses on every render, from the count and the line's stops in the
  * window; only at close are they written down, as a receipt. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStandard, getStudy, getWorkspace, listObservations, listStandardsForLine, listStudiesForLine, onDataChange, patchStudy } from '../db';
-import { useAccess } from '../cloud/access';
-import { useSession } from '../cloud/session';
-import { displayName } from '../cloud/team';
-import { can as canAt, type Can } from '../lib/access';
-import { now, uid } from '../lib/ids';
-import { niceDay, todayISO } from '../lib/weeks';
-import { shiftWindow } from '../lib/shifts';
-import { nav } from '../state/useRoute';
-import { gbp, isRest, lossSays, paceWords, rateOf, minWords, packs, plannedOf, rateKnown, rateWords, runningOf, splitWords, stopsOfBar, windowWords, type LossBar, type LossFigures, type LossSays, type RateOf } from '../lib/ie/losses';
-import { sixmLabel } from '../lib/sixm';
-import { Sheet } from '../ui/Sheet';
-import { lossFiguresOf, recordHref, ROLE_WORD, type StudyContext } from '../lib/studyLinks';
-import type { LossCount, RunTiming, ToolStudy } from '../lib/study';
-import type { Observation, Workspace } from '../types';
-import { UsedFor, WhereItSits, useBetter } from '../ui/StudyPlace';
-import { StudyBand } from '../ui/StudyActs';
-import { capacityForCount } from '../ui/ShiftLosses';
-import { constraintShare, lineConstraint, type ConstraintShare, type LineConstraint } from '../lib/intelligence';
-import { lossLean, lossPart, raisedFrom } from '../lib/ie/lossLean';
-import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../ui/Lean';
+import { getStandard, getStudy, getWorkspace, listObservations, listStandardsForLine, listStudiesForLine, onDataChange, patchStudy } from '../../db';
+import { useAccess } from '../../cloud/access';
+import { useSession } from '../../cloud/session';
+import { displayName } from '../../cloud/team';
+import { can as canAt, type Can } from '../../lib/access';
+import { now, uid } from '../../lib/ids';
+import { niceDay, todayISO } from '../../lib/weeks';
+import { shiftWindow } from '../../lib/shifts';
+import { nav } from '../../state/useRoute';
+import { gbp, isRest, lossSays, paceWords, rateOf, minWords, packs, plannedOf, rateKnown, rateWords, runningOf, splitWords, stopsOfBar, windowWords, type LossBar, type LossFigures, type LossSays, type RateOf } from './losses';
+import { sixmLabel } from '../../lib/sixm';
+import { Sheet } from '../../ui/Sheet';
+import { lossFiguresOf, recordHref, ROLE_WORD, type StudyContext } from '../../lib/studyLinks';
+import type { LossCount, RunTiming, ToolStudy } from '../../lib/study';
+import type { Observation, Workspace } from '../../types';
+import { UsedFor, WhereItSits, useBetter } from '../../ui/StudyPlace';
+import { StudyBand } from '../../ui/StudyActs';
+import { capacityForCount } from '../../ui/ShiftLosses';
+import { constraintShare, lineConstraint, type ConstraintShare, type LineConstraint } from '../../lib/intelligence';
+import { lossLean, lossPart, raisedFrom } from './lossLean';
+import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../../ui/Lean';
 
 const OWNER = canAt('owner');
 

@@ -32,7 +32,7 @@ import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
 import { bandPage } from '../lib/lean';
 import { sampleClosing, sampleTiles } from '../lib/ie/sampleLean';
-import { raisedFrom } from '../lib/ie/lossLean';
+import { raisedFrom } from '../tools/losses/lossLean';
 import { DraftText } from '../ui/Draft';
 import { useMachinesOf } from '../lib/useLineRecords';
 

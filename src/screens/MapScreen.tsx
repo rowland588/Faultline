@@ -36,7 +36,7 @@ import { StudyBand } from '../ui/StudyActs';
 import { LeanActions, LeanClosing, LeanPanel } from '../ui/Lean';
 import { bandPage } from '../lib/lean';
 import { flowClosing } from '../lib/ie/flowLean';
-import { raisedFrom } from '../lib/ie/lossLean';
+import { raisedFrom } from '../tools/losses/lossLean';
 import { recordHref, ROLE_WORD } from '../lib/studyLinks';
 import { Sheet } from '../ui/Sheet';
 

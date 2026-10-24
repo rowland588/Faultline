@@ -23,7 +23,7 @@ import { type PillarKey } from '../lib/pillars';
 import { boneOfStop, sixmLabel } from '../lib/sixm';
 import { BoneChips } from '../ui/ActionSheet';
 import { useAccess } from '../cloud/access';
-import { lossContext } from '../lib/lossContext';
+import { lossContext } from '../tools/losses/lossContext';
 import type { DrillPath } from '../types';
 import { Icon } from '../ui/Icon';
 

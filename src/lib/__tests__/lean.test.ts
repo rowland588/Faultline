@@ -19,8 +19,8 @@
  *     £23.88 + contribution 1,900 × £0.04 = £76 → £99.88 → "£100". */
 import { describe, expect, it } from 'vitest';
 import { actionOf, fixOf, planOrder, since } from '../lean';
-import { lossFigures, lossSays } from '../ie/losses';
-import { lossLean, lossPart, raisedFrom } from '../ie/lossLean';
+import { lossFigures, lossSays } from '../../tools/losses/losses';
+import { lossLean, lossPart, raisedFrom } from '../../tools/losses/lossLean';
 import type { LossCount, ToolStudy } from '../study';
 import type { Observation } from '../../types';
 

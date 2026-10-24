@@ -10,7 +10,7 @@ import type { ToolStudy } from './study';
 import { analyse } from './capacity';
 import { lossFiguresOf } from './studyLinks';
 import { runningOf } from './ie/changeover';
-import { stopsOfBar, type LossBar } from './ie/losses';
+import { stopsOfBar, type LossBar } from '../tools/losses/losses';
 import { constraintShare } from './intelligence';
 import {
   changesThisWeek, constraintTrend, heatOf, lineConstraint, lineRates, loadVsDemand, periodWaterfall, weeklyBrief, WEEK,

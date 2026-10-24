@@ -25,7 +25,7 @@ import { PHASE_ORDER, bonesSaid, pacedOwed, problemsSaid, saidText, sixmProblemO
 import { fixTag, fixesOf } from '../ui/fishbone/layout';
 import { constraintOfBars } from './lineRead';
 import { lossFiguresOf, provedLine, ROLE_WORD, studyLine, studyTitle, type StudyContext } from './studyLinks';
-import { lossRows } from './ie/losses';
+import { lossRows } from '../tools/losses/losses';
 
 
 import { samplingRows } from './ie/sampling';

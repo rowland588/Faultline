@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { allPaceLines, chainForWorkspace, getWorkspace, listObservations, listStandardsForLine, listStudiesForLine, onDataChange, putStudy } from '../db';
 import { currentLosses, lossCardLine, studyHref, type StudyContext } from '../lib/studyLinks';
-import { firstCount, rateOf, type RateOf } from '../lib/ie/losses';
+import { firstCount, rateOf, type RateOf } from '../tools/losses/losses';
 import type { Capacity } from '../lib/capacity';
 import type { Standard } from '../lib/standard';
 import { now, uid } from '../lib/ids';

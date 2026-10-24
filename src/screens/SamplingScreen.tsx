@@ -36,7 +36,7 @@ import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
 import { bandPage } from '../lib/lean';
 import { momentsAt, personRate, samplingClosing, samplingTiles } from '../lib/ie/samplingLean';
-import { raisedFrom } from '../lib/ie/lossLean';
+import { raisedFrom } from '../tools/losses/lossLean';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { StudyBand } from '../ui/StudyActs';
 

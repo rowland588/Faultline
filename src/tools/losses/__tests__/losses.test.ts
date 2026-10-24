@@ -49,9 +49,9 @@ import {
   lossFigures, lossSays, compareLosses, nextShift, lossLine, lossRows, barWords, barExpect, inWindow, isChangeover, dayWords, rateWords,
   stopsOfBar, shiftWords, firstCount, idealOf, rateOf, plannedOf, runningOf, contributionOf, findBar, moneyWords, paceWords, countedRate,
 } from '../losses';
-import { shiftWindow } from '../../shifts';
-import type { Station } from '../../capacity';
-import type { LossCount, RunTiming } from '../../study';
+import { shiftWindow } from '../../../lib/shifts';
+import type { Station } from '../../../lib/capacity';
+import type { LossCount, RunTiming } from '../../../lib/study';
 import type { Observation } from '../../../types';
 
 const H = 3_600_000, MIN = 60_000;

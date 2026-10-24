@@ -13,7 +13,7 @@
  * pages, never inside one, the header drawn again overleaf.
  *
  * The words are worked out in lib/ie/losses (lossRows); this only draws. */
-import { minWords, packs, type LossFigures, type LossRow } from '../ie/losses';
+import { minWords, packs, type LossFigures, type LossRow } from '../../tools/losses/losses';
 import { INK, INK2, LINE, MUTED } from '../reportKit';
 import { font, rows, text, wrap, SIZE, type Row } from './blocks';
 import type { Block, Frame } from './flow';

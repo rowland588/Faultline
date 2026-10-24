@@ -7,11 +7,11 @@
  * time and the trend. Nothing is worked out here that the module does not
  * already work out but a share and a percentage. The screen
  * (screens/LossesScreen) and the paper (lib/studiesPdf) both draw this. */
-import { actionOf, fixOf, planOrder, since, type LeanAction, type LeanPage, type LeanPoint, type LeanTile, type LeanTone, type ActionLike, type FixLike } from '../lean';
-import type { ToolStudy } from '../study';
-import { niceDay, todayISO } from '../weeks';
+import { actionOf, fixOf, planOrder, since, type LeanAction, type LeanPage, type LeanPoint, type LeanTile, type LeanTone, type ActionLike, type FixLike } from '../../lib/lean';
+import type { ToolStudy } from '../../lib/study';
+import { niceDay, todayISO } from '../../lib/weeks';
 import { compareLosses, findBar, gbp, minWords, packs, rateWords, shiftWords, windowWords, type LossFigures, type LossSays } from './losses';
-import type { Tone } from './sample';
+import type { Tone } from '../../lib/ie/sample';
 
 const tone = (t: Tone): LeanTone => (t === 'w' ? 'n' : t);
 const pct = (a: number, b: number): number => (b > 0 ? Math.round((a / b) * 1000) / 10 : 0);

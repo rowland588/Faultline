@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { analyse, labourCost, lineSpeed, shiftCapacity, shiftsIn, type Station } from '../capacity';
 import { changeoverIn } from '../ie/changeover';
-import { idealOf } from '../ie/losses';
+import { idealOf } from '../../tools/losses/losses';
 import type { ToolStudy } from '../study';
 
 const st = (p: Partial<Station>): Station => ({ id: 's', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 100, ratePer: 'min', source: 'plate', ...p });

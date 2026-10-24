@@ -50,7 +50,7 @@ import { constraintOfBars } from './lineRead';
 import { lossFiguresOf, provedLine, recordProvedLine, studyHref, studyLine, studyTitle, type StudyContext } from './studyLinks';
 import { streamRows } from './ie/steps';
 import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
-import { lossRows } from './ie/losses';
+import { lossRows } from '../tools/losses/losses';
 import { samplingRows } from './ie/sampling';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */

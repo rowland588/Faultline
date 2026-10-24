@@ -39,7 +39,7 @@ import type { ToolStudy } from './study';
 import { secs } from './ie/balance';
 import { boneOfStep, currentBalance, currentLosses, currentSampling, lossFiguresOf } from './studyLinks';
 import { boneOfActivity, samplingLine, samplingOffers, worstWords } from './ie/sampling';
-import { idealWord, minWords, shiftWords, type LossBar } from './ie/losses';
+import { idealWord, minWords, shiftWords, type LossBar } from '../tools/losses/losses';
 import { dur, flowFigures, stepAt, stepFigure, valueOf, waitOf, whereOf } from './ie/steps';
 import { figuresOf, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
 import { stateOf as materialState, daysLate } from './materials';

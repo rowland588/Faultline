@@ -6,8 +6,8 @@
  * weeks: "Changeover · Bagger — 3.2 h lost in the last 4 weeks, 41% of this
  * line's lost time (18 stops)". It is written once, when the action is
  * raised, so it is also the "before" the action is later judged against. */
-import type { DrillPath, Observation } from '../types';
-import { applyDrill } from '../engine/drill';
+import type { DrillPath, Observation } from '../../types';
+import { applyDrill } from '../../engine/drill';
 
 const DAY = 86_400_000;
 export const CONTEXT_DAYS = 28;

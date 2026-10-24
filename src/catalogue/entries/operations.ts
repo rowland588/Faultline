@@ -282,7 +282,7 @@ export const OPERATIONS: Entry[] = [
     depends: ['FC-189'],
     complexity: 'S', value: 'high', valueWhy: 'One figure every tool uses.',
     status: 'available', form: 'component', methods: ['cost.line-cost-model'], scenarios: ['money'],
-    built: { where: ['/losses'], code: ['src/lib/ie/losses.ts'], tests: ['src/lib/ie/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
+    built: { where: ['/losses'], code: ['src/tools/losses/losses.ts'], tests: ['src/tools/losses/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
   },
   {
     id: 'FC-191', name: 'What an improvement is worth — payback and NPV', discipline: 'cost', sub: 'invest',

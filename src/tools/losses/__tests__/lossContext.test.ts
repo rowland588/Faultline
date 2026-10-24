@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { lossContext } from '../lossContext';
-import type { Observation } from '../../types';
+import type { Observation } from '../../../types';
 
 const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 9, 1, 12);

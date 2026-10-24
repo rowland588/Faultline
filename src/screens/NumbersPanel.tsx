@@ -19,7 +19,7 @@ import { MeasureChart } from '../charts/MeasureChart';
 import { useMeasures, type MeasuresState } from '../lib/useMeasures';
 import { lineSeries, perMinuteMeasure, seriesFor, say, todayISO, type Measure, type Reading } from '../lib/measures';
 import { useLineCapacity } from '../lib/useLineCapacity';
-import { countedRate } from '../lib/ie/losses';
+import { countedRate } from '../tools/losses/losses';
 import type { PaceLineRow } from '../db';
 import { Icon } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';

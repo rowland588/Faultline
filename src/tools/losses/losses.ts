@@ -57,14 +57,14 @@
  *   people decide  the biggest bars are offered to the fishbone as
  *                  suggestions; the rest only once it is told apart */
 import type { Observation, Shift, Workspace } from '../../types';
-import type { LossCount, RunTiming } from '../study';
-import type { SixM } from '../sixm';
-import { boneOfStop } from '../sixm';
-import { labourPerHour } from '../cost';
-import { analyse, lineSpeed, type Capacity, type Station } from '../capacity';
-import { shiftWindow } from '../shifts';
-import { niceDay, todayISO } from '../weeks';
-import type { Tone } from './sample';
+import type { LossCount, RunTiming } from '../../lib/study';
+import type { SixM } from '../../lib/sixm';
+import { boneOfStop } from '../../lib/sixm';
+import { labourPerHour } from '../../lib/cost';
+import { analyse, lineSpeed, type Capacity, type Station } from '../../lib/capacity';
+import { shiftWindow } from '../../lib/shifts';
+import { niceDay, todayISO } from '../../lib/weeks';
+import type { Tone } from '../../lib/ie/sample';
 
 const DAY = 86_400_000;
 

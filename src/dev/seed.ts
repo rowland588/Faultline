@@ -23,7 +23,7 @@ import {
   addMachineToLine, addLineProgram, putProgram,
   listObservations, snagsForWorkspace, listTests, listAssets,
 } from '../db';
-import { barExpect, barWords, lossFigures } from '../lib/ie/losses';
+import { barExpect, barWords, lossFigures } from '../tools/losses/losses';
 import { shiftWindow } from '../lib/shifts';
 import { studyTitle } from '../lib/studyLinks';
 import type { LossCount, ToolStudy } from '../lib/study';
