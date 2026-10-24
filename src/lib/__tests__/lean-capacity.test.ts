@@ -12,9 +12,9 @@
  *     lost a minute; labour 16.3p a bag as it runs, 15p at takt, 1.25p because
  *     of Op 1; 5.77p a minute paid for bags not made; 11.5p contribution. */
 import { describe, expect, it } from 'vitest';
-import type { Capacity } from '../capacity';
-import { capacityPaper } from '../capacityPaper';
-import { capacityLean } from '../capacityLean';
+import type { Capacity } from '../../tools/linebalance/capacity';
+import { capacityPaper } from '../../tools/linebalance/capacityPaper';
+import { capacityLean } from '../../tools/linebalance/capacityLean';
 import { balance } from '../ie/balance';
 import { balanceCost } from '../ie/balanceLink';
 import { balanceTiles } from '../ie/balanceLean';

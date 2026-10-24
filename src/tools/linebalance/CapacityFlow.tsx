@@ -7,7 +7,7 @@
  * dashed and says "no speed yet". A tap opens the station. Drawn at the width
  * it has, so its words stay their size on a phone. Reads lib/capacityFlow. */
 import { useEffect, useRef, useState } from 'react';
-import { perMinWords, type FlowModel, type FlowNode } from '../lib/capacityFlow';
+import { perMinWords, type FlowModel, type FlowNode } from './capacityFlow';
 
 const NH = 46, VG = 18, HEAD = 22, PAD = 8;
 

@@ -16,7 +16,7 @@ import { factsOf, lineCapacityOf, therefore } from './fishbone';
 import { gapOf, lineSeries, say } from './measures';
 import { paretoFromLog } from './paretoFromLog';
 import { paretoView } from './paretoView';
-import { analyse } from './capacity';
+import { analyse } from '../tools/linebalance/capacity';
 import { niceDay, todayISO } from './weeks';
 
 import { PHASE_ORDER, bonesSaid, pacedOwed, problemsSaid, saidText, sixmProblemOf, type Said } from './portfolio';

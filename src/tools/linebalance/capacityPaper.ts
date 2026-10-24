@@ -26,7 +26,7 @@
 import { allowanceOf, analyse, bottleneckCost, bottleneckCostSays, changedWords, compareSays, fmtMoney, labourCost, oneMorePerson, shiftCapacity, screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations, type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station } from './capacity';
 import { cycleWords, fmtBig, fmtN, oneOf } from './capacityWords';
 import { shortSays } from './capacitySays';
-import type { WalkVerdict } from './ie/walk';
+import type { WalkVerdict } from '../../lib/ie/walk';
 import { planToTarget } from './capacityPlan';
 
 export type Tone = 'r' | 'a' | 'n';

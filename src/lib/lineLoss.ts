@@ -16,7 +16,7 @@
  * packs are, never silently. Nothing here is stored. */
 import type { Observation, Workspace } from '../types';
 import type { Standard } from './standard';
-import { analyse, shiftsIn } from './capacity';
+import { analyse, shiftsIn } from '../tools/linebalance/capacity';
 import { inCapacityTool } from './standard';
 import { isWholeLine, machineKey } from './lineRecords';
 import { fmtGBP, fmtPacks, labourPerHour, ratedPerMin } from './cost';

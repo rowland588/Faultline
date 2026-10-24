@@ -16,7 +16,7 @@ import { describe, it, expect } from 'vitest';
 import { analyse, blankStation, capacityPlan, capacityReport, CAP_REPORT_ROWS, crossCheck, isChangeoverStop, isWaiting, lineIfRaised, perMinute, stopStats, suggestRunning, type Capacity, type Station } from '../capacity';
 import { fmtN } from '../capacityWords';
 import { shortSays } from '../capacitySays';
-import type { Observation } from '../../types';
+import type { Observation } from '../../../types';
 
 let n = 0;
 const st = (o: Partial<Station> & { name: string; unit: string }): Station =>

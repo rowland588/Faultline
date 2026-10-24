@@ -17,7 +17,7 @@
  * imports this, so it is not in the bundle. */
 import { putStandard, putStudy, updateWorkspace } from '../db';
 import { addLineToFactory } from '../lib/lines';
-import { withWhatIfStations, type Capacity, type Station, type WhatIf } from '../lib/capacity';
+import { withWhatIfStations, type Capacity, type Station, type WhatIf } from '../tools/linebalance/capacity';
 import type { Standard, StandardMark } from '../lib/standard';
 import type { Shift } from '../types';
 import { uid } from '../lib/ids';

@@ -8,14 +8,14 @@
  * the latest bottleneck walk (lib/ie/walk) and the latest work balance
  * (lib/ie/balance) on the standard. Loaded here, never typed twice. */
 import type { jsPDF } from 'jspdf';
-import { allProjects, listAllStudies, listWorkspaces } from '../db';
+import { allProjects, listAllStudies, listWorkspaces } from '../../db';
 import { analyse, labourInputs, shiftsIn } from './capacity';
 import { capacityPaper, type CapacityPaper } from './capacityPaper';
-import { changeoverIn } from '../tools/changeover/changeover';
-import { walkVerdict } from './ie/walk';
-import { balance, balanceSays } from './ie/balance';
-import { currentBalance } from './studyLinks';
-import { headcount, peopleOf, type Standard } from './standard';
+import { changeoverIn } from '../changeover/changeover';
+import { walkVerdict } from '../../lib/ie/walk';
+import { balance, balanceSays } from '../../lib/ie/balance';
+import { currentBalance } from '../../lib/studyLinks';
+import { headcount, peopleOf, type Standard } from '../../lib/standard';
 
 /** The day printed on the paper: "13 October 2026". */
 export const printedOn = (d = new Date()): string => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -58,7 +58,7 @@ export async function capacityPapersFor(list: Standard[], printed = printedOn())
 async function weeksFor(list: Standard[]): Promise<{ brief: string[] }[]> {
   const ids = [...new Set(list.map(s => s.workspaceId).filter((x): x is string => !!x))];
   if (!ids.length) return [];
-  const [{ readLine }, studies, ws, { listObservations, listStandardsForLine }] = await Promise.all([import('./lineRead'), listAllStudies(), listWorkspaces(), import('../db')]);
+  const [{ readLine }, studies, ws, { listObservations, listStandardsForLine }] = await Promise.all([import('../../lib/lineRead'), listAllStudies(), listWorkspaces(), import('../../db')]);
   const now = Date.now();
   return Promise.all(ids.map(async id => {
     const w = ws.find(x => x.id === id);
@@ -73,7 +73,7 @@ async function weeksFor(list: Standard[]): Promise<{ brief: string[] }[]> {
 }
 
 export async function capacityPdf(list: Standard[], o: { scope?: string } = {}): Promise<jsPDF> {
-  const { loadPdfLib, titlePdf } = await import('./savePdf');
+  const { loadPdfLib, titlePdf } = await import('../../lib/savePdf');
   const { drawCapacityPaper } = await import('./capacityPaperPdf');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
@@ -87,9 +87,9 @@ export async function capacityPdf(list: Standard[], o: { scope?: string } = {}):
 
 /** Made and handed over: saved to the device, the bar offering Open and Send. */
 export async function saveCapacityPdf(list: Standard[], o: { scope?: string; name: string }): Promise<void> {
-  const { deliverPdf } = await import('./savePdf');
-  const { pdfFileName } = await import('./fileName');
-  const { todayISO } = await import('./weeks');
+  const { deliverPdf } = await import('../../lib/savePdf');
+  const { pdfFileName } = await import('../../lib/fileName');
+  const { todayISO } = await import('../../lib/weeks');
   const doc = await capacityPdf(list, o);
   await deliverPdf(doc, pdfFileName(o.name, list.length === 1 && !o.scope ? `line capacity ${list[0].product}` : 'line capacity', todayISO()));
 }

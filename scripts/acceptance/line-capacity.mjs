@@ -103,7 +103,7 @@ const SID = sd.lineStandardId;
 const CAP = `#/w/${sd.wsId}/standards/${SID}?at=balance`;
 /* What the modules say of the standard's capacity as it stands. */
 const truth = () => page.evaluate(async id => {
-  const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
+  const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
   const st = await db.getStandard(id); const r = C.analyse(st.capacity); const v = C.vCurve(r, st.capacity.vMarginPct);
   return { n: r.ok.length, limit: r.limit?.station.name, says: v.sentence, under: v.under.map(p => p.name), margin: st.capacity.vMarginPct, stations: st.capacity.stations };
 }, SID);
@@ -157,7 +157,7 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
   await page.evaluate(async id => { const db = await import('/src/db.ts'); const st = await db.getStandard(id);
     await db.putStandard({ ...st, capacity: { ...st.capacity, stations: st.capacity.stations.map(x => (x.kind === 'people' ? { ...x, name: 'Op 2', source: 'estimate' } : x)) } }); }, SID);
   await go(CAP);
-  const want = await page.evaluate(async id => { const db = await import('/src/db.ts'); const L = await import('/src/lib/studyLinks.ts'); const B = await import('/src/lib/ie/balance.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
+  const want = await page.evaluate(async id => { const db = await import('/src/db.ts'); const L = await import('/src/lib/studyLinks.ts'); const B = await import('/src/lib/ie/balance.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
     const b = L.currentBalance(await db.listAllStudies(), id); const f = B.balance(b.facts.steps, b.agreed?.balance); const w = f.people.find(p => p.who === 'Op 2')?.work ?? 0;
     const x = C.analyse((await db.getStandard(id)).capacity).ok.find(s => s.station.name === 'Op 2'); return Math.round(w * (x?.factor ?? 1) * 100) / 100; }, SID);
   const offer = await words('.cap-sheet-use');
@@ -180,7 +180,7 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
   await page.evaluate(async ([id, names]) => { const db = await import('/src/db.ts'); const t = Date.now();
     await db.patchStudy(id, cur => ({ facts: { ...cur.facts, taps: [...(cur.facts.taps ?? []), ...[1, 2, 3, 4, 5].flatMap(k => names.map((who, j) => ({ id: `a${k}${j}`, at: t - k * 1_800_000, who, activity: j === names.length - 1 ? 'working' : k % 2 ? 'blocked' : 'working' })))] } }));
   }, [id, names]); await page.waitForTimeout(1200);
-  const want = await page.evaluate(async ([id, sid]) => { const db = await import('/src/db.ts'); const W = await import('/src/lib/ie/walk.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
+  const want = await page.evaluate(async ([id, sid]) => { const db = await import('/src/db.ts'); const W = await import('/src/lib/ie/walk.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
     const s = await db.getStudy(id); const r = C.analyse((await db.getStandard(sid)).capacity); return W.walkVerdict(s.agreed.sampling.who, s.facts.taps, r.limit?.station.name).sentence; }, [id, SID]);
   ok((await words('.ie-says')).includes(want), `6 the walk says where the arrows meet, against the sums: ${want}`);
   await go(CAP);
@@ -192,7 +192,7 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
    lib/capacity shiftCapacity says it, on the screen and on the card. */
 {
   const shiftTruth = () => page.evaluate(async id => {
-    const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) }; const X = await import('/src/tools/changeover/changeover.ts');
+    const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) }; const X = await import('/src/tools/changeover/changeover.ts');
     const st = await db.getStandard(id); const ws = await db.getWorkspace(st.workspaceId);
     const c = C.shiftCapacity(C.analyse(st.capacity), C.shiftsIn(ws?.shifts), X.changeoverIn(st.capacity.changeovers, await db.listAllStudies(), id));
     return c ? { sentence: c.sentence, short: c.short ?? null, rows: c.rows, day: c.day ?? null } : null;
@@ -276,7 +276,7 @@ let TRAY;
   ok(/how many units make one tray/.test(flat(await card.locator('.cap-why').innerText())), '8 a person after the bagger is asked how many units make one tray — never taken as one');
   await card.getByLabel('How many of the one before make one of these').fill('8'); await card.getByLabel('How many of the one before make one of these').press('Enter'); await page.waitForTimeout(600);
   const said = () => page.evaluate(async id => {
-    const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
+    const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
     const st = await db.getStandard(id); const r = C.analyse(st.capacity); const p = st.capacity.stations[1];
     return { ...C.paceSays(r, p), line: r.line, crew: p.crew, perCycle: p.perCycle, cycleSec: p.cycleSec, contains: p.contains };
   }, TRAY);
@@ -311,7 +311,7 @@ let TRAY;
   await card.getByRole('group', { name: 'Timed per' }).getByRole('button', { name: 'tray' }).click(); await page.waitForTimeout(400);
   await card.getByLabel('Seconds each time').fill('6'); await card.getByLabel('Seconds each time').press('Enter'); await page.waitForTimeout(800);
   const pal = () => page.evaluate(async id => {
-    const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
+    const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
     const st = await db.getStandard(id); const r = C.analyse(st.capacity); const [, k, p] = st.capacity.stations;
     return { ...C.paceSays(r, p, k.unit, k), speedIn: p.speedIn, cycleSec: p.cycleSec, perMin: C.perMinute(p), limit: r.limit?.station.name };
   }, TRAY);
@@ -340,7 +340,7 @@ let TRAY;
   await card.getByRole('button', { name: 'How many in a time' }).click(); await page.waitForTimeout(300);
   await card.getByLabel('Speed', { exact: true }).fill('4'); await card.getByLabel('Speed', { exact: true }).press('Enter'); await page.waitForTimeout(800);
   const asked = () => page.evaluate(async id => {
-    const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
+    const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
     const st = await db.getStandard(id); const r = C.analyse(st.capacity); const [, k, p] = st.capacity.stations;
     return { q: C.rateAsTime(r, p, k.unit) ?? null, say: C.paceSays(r, p, k.unit, k), p };
   }, TRAY);
@@ -415,7 +415,7 @@ let TRAY;
   await box.getByLabel('People on the line').fill('8'); await box.getByLabel('People on the line').press('Enter');
   await box.getByLabel('Pounds an hour each').fill('12.50'); await box.getByLabel('Pounds an hour each').press('Enter'); await page.waitForTimeout(900);
   const m = await page.evaluate(async id => {
-    const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
+    const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
     const st = await db.getStandard(id); const r = C.analyse(st.capacity);
     const c = C.labourCost(r, st.capacity.labour?.people, st.capacity.labour?.ratePerHour);
     const more = C.oneMorePerson(st.capacity, r, st.capacity.labour?.people, st.capacity.labour?.ratePerHour);
@@ -425,7 +425,7 @@ let TRAY;
   ok(m.labour?.people === 8 && m.labour?.ratePerHour === 12.5 && said.startsWith(`${m.perPack} a ${m.unit}`), `12b typed and kept: ${said}`);
   {
     const want = await page.evaluate(async id => {
-      const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
+      const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
       const st = await db.getStandard(id); const r = C.analyse(st.capacity); const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
       const li = C.labourInputs(st.capacity, undefined, ws);
       const k = C.bottleneckCost(r, st.capacity.labour?.people ?? li.people, st.capacity.labour?.ratePerHour ?? li.rate, ws?.marginPerPack);
@@ -439,8 +439,8 @@ let TRAY;
      the closing line as lib/capacityLean reads them, and the same on paper */
   {
     const want = await page.evaluate(async id => {
-      const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) }; const S = await import('/src/lib/standard.ts');
-      const P = await import('/src/lib/capacityPaper.ts'); const L = await import('/src/lib/capacityLean.ts'); const T = await import('/src/lib/together.ts');
+      const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) }; const S = await import('/src/lib/standard.ts');
+      const P = await import('/src/tools/linebalance/capacityPaper.ts'); const L = await import('/src/tools/linebalance/capacityLean.ts'); const T = await import('/src/lib/together.ts');
       const st = await db.getStandard(id); const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
       const lean = L.capacityLean(P.capacityPaper({ product: st.product, line: ws?.name ?? '', printed: '', capacity: st.capacity,
         labour: C.labourInputs(st.capacity, S.headcount(st) || undefined, ws), ...(ws?.marginPerPack != null ? { margin: ws.marginPerPack } : {}) }));
@@ -464,7 +464,7 @@ let TRAY;
     ok((await box.locator('.cap-cost-more').first().innerText()).replace(/\s+/g, ' ').startsWith(m.more), `12c one more person at the bottleneck, as the module says: ${m.more}`);
     await box.getByRole('button', { name: new RegExp(`^Make it ${m.crew + 1} at`) }).click(); await page.waitForTimeout(900);
     const after = await page.evaluate(async ([id, nm]) => {
-      const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
+      const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
       const st = await (await import('/src/db.ts')).getStandard(id); const r = C.analyse(st.capacity);
       const c = C.labourCost(r, st.capacity.labour?.people, st.capacity.labour?.ratePerHour);
       return { crew: st.capacity.stations.find(x => x.name === nm)?.crew, people: st.capacity.labour?.people, perPack: c ? C.fmtMoney(c.perPack) : null };
@@ -475,7 +475,7 @@ let TRAY;
   } else ok(true, '12c (the bottleneck is a machine: one more person is said to add cost and no packs)');
   await page.getByRole('button', { name: /What if/ }).first().click(); await page.waitForTimeout(1200);
   ok(/^Labour: the same people, /.test((await page.locator('.cap-cost-more').last().innerText()).trim()), `12e a what-if says its labour: ${(await page.locator('.cap-cost-more').last().innerText()).trim()}`);
-  const card = await page.evaluate(async id => (await (await import('/src/ui/ShiftCapacity.tsx')).shiftShortsFor([await (await import('/src/db.ts')).getStandard(id)]))[id], SID);
+  const card = await page.evaluate(async id => (await (await import('/src/tools/linebalance/ShiftCapacity.tsx')).shiftShortsFor([await (await import('/src/db.ts')).getStandard(id)]))[id], SID);
   ok(new RegExp(` a bag in labour — ${m.more ? 9 : 8} people at £12\\.50 an hour$`).test(card ?? ''), `12f the card's line carries it: ${card}`);
 }
 
@@ -534,7 +534,7 @@ let TRAY;
   const before = await page.evaluate(async id => (await import('/src/db.ts')).getStandard(id), SID);
   await page.evaluate(async ([id, cap]) => { const db = await import('/src/db.ts'); const st = await db.getStandard(id); await db.putStandard({ ...st, capacity: cap }); }, [SID, HIS]);
   await go(CAP);
-  const mod = await page.evaluate(async cap => { const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) }; return C.screenCapacity(cap, C.analyse(cap)); }, HIS);
+  const mod = await page.evaluate(async cap => { const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) }; return C.screenCapacity(cap, C.analyse(cap)); }, HIS);
   const items = (await page.locator('.cap-screen-t').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim());
   ok(mod.length === 3 && items.length === 3 && items.every((t, i) => t === mod[i].text) && /33% of the 150 target/.test(items[0]) && /bagger 319% · P160 Pick & Place 279% · palletiser 273%/.test(items[1]),
     `14 his line screened: the bottleneck a third of the target, the 319% · 279% · 273% said against it, the rest counted twice — as the module says them (${items.length})`);
@@ -597,7 +597,7 @@ let TRAY;
     '15c lines alike: one group and one V for them, then where they merge');
   await page.getByRole('button', { name: 'Make the lines different' }).click(); await page.waitForTimeout(600);
   ok(await page.locator('.cap-grp.has-lanes').count() === 3, '15c2 made different: a group a line, then where they merge');
-  const t1 = await page.evaluate(async cap => { const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) }; const r = C.analyse(cap); return { says: r.sentence, line: r.line, sends: r.lanes.sends }; }, c);
+  const t1 = await page.evaluate(async cap => { const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) }; const r = C.analyse(cap); return { says: r.sentence, line: r.line, sends: r.lanes.sends }; }, c);
   ok(await says() === t1.says && Math.abs(t1.line - 50.09) < 0.1 && Math.abs(t1.sends - 136.5) < 0.01,
     `15d the sentence is the module's: ${t1.says}`);
 
@@ -608,7 +608,7 @@ let TRAY;
   const nm = page.getByLabel('Name of Line C'); await nm.fill('Packing 3'); await nm.press('Tab'); await page.waitForTimeout(800);
   c = await cap();
   ok(c.lanes[2].name === 'Packing 3' && /Line A, Line B and Packing 3/.test(await says()), '15f a line named — the sentence says its name');
-  const t3 = await page.evaluate(async cap => { const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) }; return C.analyse(cap).lanes.sends; }, c);
+  const t3 = await page.evaluate(async cap => { const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) }; return C.analyse(cap).lanes.sends; }, c);
   ok(Math.abs(t3 - 204.75) < 0.01, `15g what three lines send is what the place takes (${t3})`);
 
   /* a station moved inside its own line only */
@@ -633,7 +633,7 @@ let TRAY;
 
   /* the checks, in the module's words, with the lines named */
   c = await cap();
-  const chk = await page.evaluate(async cap => { const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) }; return C.screenCapacity(cap, C.analyse(cap)).map(x => x.text); }, c);
+  const chk = await page.evaluate(async cap => { const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) }; return C.screenCapacity(cap, C.analyse(cap)).map(x => x.text); }, c);
   const shown = (await page.locator('.cap-screen-t').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim());
   ok(chk.length >= 2 && shown.length === chk.length && shown.every((t, i) => t === chk[i]) && /^Pallet wrapper holds Line A and Line B/.test(chk[0]) && /Line A: bagger/.test(chk.join(" ")),
     `15l checked as several lines: ${chk.length} things, the wrapper against both lines and each V along its own line (${shown.length} shown${shown.length === chk.length ? '' : `: ${shown.map(t => t.slice(0, 40)).join(' | ')} / module: ${chk.map(t => t.slice(0, 40)).join(' | ')}`})`);
@@ -666,14 +666,14 @@ let TRAY;
      you're doing makes no sense"): a column a line, each station and its
      speed as lib/capacityFlow has it, the lines meeting with what arrives,
      the shared wrapper the bottleneck, what the line makes against the target */
-  const fm = await page.evaluate(async cap => { const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) }; const F = await import('/src/lib/capacityFlow.ts'); const L = await import('/src/lib/capacityLines.ts'); return F.flowModel(cap, C.analyse(cap), L.lanesAlike(cap)); }, c);
+  const fm = await page.evaluate(async cap => { const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) }; const F = await import('/src/tools/linebalance/capacityFlow.ts'); const L = await import('/src/tools/linebalance/capacityLines.ts'); return F.flowModel(cap, C.analyse(cap), L.lanesAlike(cap)); }, c);
   const lanesDrawn = await page.locator('.capx-live .cxf-lane').evaluateAll(g => g.map(x => (x.textContent ?? '').trim()));
   const nodesDrawn = (await page.locator('.capx-live .cxf-node').evaluateAll(g => g.map(x => x.getAttribute('aria-label'))));
   const meet = ((await page.locator('.capx-live .cxf-merge').first().textContent()) ?? '').replace(/\s+/g, ' ').trim();
   ok(JSON.stringify(lanesDrawn) === JSON.stringify(fm.columns.map(x => x.name)) && nodesDrawn.length === fm.columns.reduce((n, x) => n + x.nodes.length, 0) + fm.shared.length
     && /The lines meet — 137 units\/min arrive/.test(meet) && nodesDrawn.some(t => /^Pallet wrapper: .*the bottleneck$/.test(t ?? '')),
     `16c the line drawn beside the stations: a column a line, every station with its speed, the lines meeting with what arrives, the wrapper the bottleneck (${lanesDrawn.join(', ')} · ${nodesDrawn.length} stations · ${meet})`);
-  const mine = await page.evaluate(async cap => { const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) }; const r = C.analyse(cap); const f = r.lanes.merged.ok.find(x => x.station.id !== '__merge__'); const prev = cap.stations.filter(s => s.lane === cap.lanes[0].id).slice(-1)[0]; const say = C.paceSays(r, f.station, prev.unit, prev); return [say.arrive, say.verdict].filter(Boolean).join(' '); }, c);
+  const mine = await page.evaluate(async cap => { const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) }; const r = C.analyse(cap); const f = r.lanes.merged.ok.find(x => x.station.id !== '__merge__'); const prev = cap.stations.filter(s => s.lane === cap.lanes[0].id).slice(-1)[0]; const say = C.paceSays(r, f.station, prev.unit, prev); return [say.arrive, say.verdict].filter(Boolean).join(' '); }, c);
   ok(mine && (await words('.capx-live .cap-map-say')) === mine.replace(/\s+/g, ' '), '16d the merge said in the shared station\'s own cycle times — what reaches it, how long it takes, how many people it needs');
   const sel = page.getByLabel('Where the lines merge');
   await sel.selectOption('2'); await page.waitForTimeout(1200);
@@ -685,7 +685,7 @@ let TRAY;
   ok(c.stations.filter(st => !st.lane).map(st => st.name).join() === 'Pallet wrapper' && c.stations.filter(st => st.lane === c.lanes[1].id).length === 3, '16f and back to after the palletiser');
 
   /* the way to the target: worked out, on the page, on the paper, and made so */
-  const plan = await page.evaluate(async cap => (await import('/src/lib/capacityPlan.ts')).planToTarget(cap), c);
+  const plan = await page.evaluate(async cap => (await import('/src/tools/linebalance/capacityPlan.ts')).planToTarget(cap), c);
   ok(plan.reached && plan.people === 4 && (await words('.cap-plan-says')) === plan.sentence.replace(/\s+/g, ' ')
     && (await page.locator('.cap-plan-steps li').count()) === plan.steps.length, `16g the way to 150: ${plan.sentence.slice(0, 90)}…`);
   const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, /^Line capacity — /)]);
@@ -695,7 +695,7 @@ let TRAY;
   await page.getByRole('button', { name: /^Make it so — put these crews in/ }).click(); await page.waitForTimeout(1500);
   c = await cap();
   const crew = n => c.stations.filter(st => st.name === n).map(st => st.crew).join();
-  const after = await page.evaluate(async cap => (await import('/src/lib/capacity.ts')).analyse(cap).line, c);
+  const after = await page.evaluate(async cap => (await import('/src/tools/linebalance/capacity.ts')).analyse(cap).line, c);
   ok(crew('Pallet wrapper') === '3' && crew('palletiser') === '2,2' && after >= 150 && c.labour.people === 12 && await page.locator('.cap-plan').count() === 0,
     `16i made so: 3 at the wrapper, 2 on each palletiser, the line makes ${after.toFixed(1)}, the labour 8 → 12 people, the plan gone`);
   await page.getByRole('group', { name: 'Lines feeding in' }).getByRole('button', { name: '3', exact: true }).click(); await page.waitForTimeout(1200);

@@ -52,5 +52,5 @@ Bottling and canning lines; flow-wrap lines with case packers and palletisers.
 - [practice] docs/CAPACITY.md §4 — Faultline's record of the practice.
 
 ## In Faultline
-Line capacity's V (`src/lib/capacity.ts` shareColours, the margin and the
+Line capacity's V (`src/tools/linebalance/capacity.ts` shareColours, the margin and the
 guide); accumulation is noted but not driven by an acceptance check (FC-046).

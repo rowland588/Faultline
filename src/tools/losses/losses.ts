@@ -61,7 +61,7 @@ import type { LossCount, RunTiming } from '../../lib/study';
 import type { SixM } from '../../lib/sixm';
 import { boneOfStop } from '../../lib/sixm';
 import { labourPerHour } from '../../lib/cost';
-import { analyse, lineSpeed, type Capacity, type Station } from '../../lib/capacity';
+import { analyse, lineSpeed, type Capacity, type Station } from '../linebalance/capacity';
 import { shiftWindow } from '../../lib/shifts';
 import { niceDay, todayISO } from '../../lib/weeks';
 import type { Tone } from '../capability/sample';

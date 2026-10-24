@@ -8,8 +8,8 @@
  * V's (lib/capacity shareColours): the bottleneck graphite, the rest lighter the
  * more they have to spare — every figure in words beside its bar. A tap
  * opens the station. Reads lib/capacityFlow. */
-import { shareColours } from '../lib/capacity';
-import { barGroups, perMinWords, type FlowModel } from '../lib/capacityFlow';
+import { shareColours } from './capacity';
+import { barGroups, perMinWords, type FlowModel } from './capacityFlow';
 
 export function CapacityBars({ m, onPick }: { m: FlowModel; onPick?: (index: number) => void }) {
   const groups = barGroups(m);

@@ -22,7 +22,7 @@
  * a tray. Pure: the capacity and the balance in, what each should now hold
  * out; the balance's page writes it. */
 import { stepsFromEvents, taktOf } from '../../tools/video/study';
-import { chainFactor, fmtMoney as m, labourInputs, syncWhatIfs, type Capacity, type Station, type StationKind } from '../capacity';
+import { chainFactor, fmtMoney as m, labourInputs, syncWhatIfs, type Capacity, type Station, type StationKind } from '../../tools/linebalance/capacity';
 import type { Workspace } from '../../types';
 import type { AgreedBalance, BalanceCrew, ToolStudy } from '../study';
 import { balance, type BalanceFigures } from './balance';

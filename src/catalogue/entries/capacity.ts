@@ -43,7 +43,7 @@ export const CAPACITY: Entry[] = [
     complexity: 'XL', value: 'high', valueWhy: 'The line’s own numbers that every other tool reads.',
     status: 'available', form: 'tool', kind: 'standard',
     app: { key: 'linebalance', label: 'Line capacity', says: 'What each station can make, which one limits the line, and what a pack costs in labour', onLine: 'where the line is limited, and the V-curve', reads: 'standard', icon: 'chart', order: 3 }, methods: ['capacity.line-capacity', 'capacity.v-curve', 'capacity.theory-of-constraints', 'lean.standard-work'], scenarios: ['running', 'new', 'money'], words: ['bottleneck', 'rated speed', 'plate speed', 'too slow', 'V curve'],
-    built: { where: ['/balances'], code: ['src/lib/capacity.ts', 'src/lib/capacityWords.ts', 'src/lib/capacitySays.ts', 'src/screens/CapacityPanel.tsx'], tests: ['src/lib/__tests__/capacity.test.ts'], acceptance: ['line-capacity.mjs', 'list-paper.mjs'] },
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacity.ts', 'src/tools/linebalance/capacityWords.ts', 'src/tools/linebalance/capacitySays.ts', 'src/tools/linebalance/CapacityPanel.tsx'], tests: ['src/tools/linebalance/__tests__/capacity.test.ts'], acceptance: ['line-capacity.mjs', 'list-paper.mjs'] },
     limits: ['Accumulation between machines is not driven by an acceptance check (FC-046).'],
   },
   {
@@ -57,7 +57,7 @@ export const CAPACITY: Entry[] = [
     depends: ['FC-034'],
     complexity: 'L', value: 'high', valueWhy: 'Common on packing halls and easy to get wrong by hand.',
     status: 'available', form: 'mode', partOf: 'FC-034', methods: ['capacity.line-capacity'], scenarios: ['running', 'new'],
-    built: { where: ['/balances'], code: ['src/lib/capacityLines.ts'], tests: ['src/lib/__tests__/capacityLanes.test.ts'], acceptance: ['line-capacity.mjs'] },
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacityLines.ts'], tests: ['src/tools/linebalance/__tests__/capacityLanes.test.ts'], acceptance: ['line-capacity.mjs'] },
   },
   {
     id: 'FC-036', name: 'What-ifs and the way to the target', discipline: 'capacity', sub: 'line',
@@ -70,7 +70,7 @@ export const CAPACITY: Entry[] = [
     depends: ['FC-034'],
     complexity: 'M', value: 'high', valueWhy: 'Decisions on people and equipment with their effect worked out.',
     status: 'available', form: 'mode', partOf: 'FC-034', methods: ['capacity.line-capacity', 'capacity.theory-of-constraints'], scenarios: ['running', 'money', 'new'],
-    built: { where: ['/balances'], code: ['src/lib/capacityPlan.ts'], tests: ['src/lib/__tests__/capacityPlan.test.ts'], acceptance: ['line-capacity.mjs'] },
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacityPlan.ts'], tests: ['src/tools/linebalance/__tests__/capacityPlan.test.ts'], acceptance: ['line-capacity.mjs'] },
   },
   {
     id: 'FC-037', name: 'The bottleneck walk — where the work is waiting', discipline: 'capacity', sub: 'constraint',
@@ -200,7 +200,7 @@ export const CAPACITY: Entry[] = [
     depends: ['FC-034', 'FC-047'],
     complexity: 'S', value: 'medium', valueWhy: 'Shows whether the V protects the critical machine.',
     status: 'partial', form: 'mode', partOf: 'FC-034', methods: ['capacity.accumulation-buffer', 'capacity.v-curve'], scenarios: ['running', 'new'],
-    built: { where: ['/balances'], code: ['src/lib/capacity.ts'], tests: [], acceptance: [] },
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacity.ts'], tests: [], acceptance: [] },
     limits: ['Noted in Line capacity; not driven by an acceptance check.'],
   },
   {

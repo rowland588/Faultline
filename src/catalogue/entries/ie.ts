@@ -92,7 +92,7 @@ export const IE: Entry[] = [
     depends: ['FC-019'],
     complexity: 'S', value: 'medium', valueWhy: 'Makes standards sustainable and defensible.',
     status: 'partial', form: 'component', methods: ['ie.allowances'], scenarios: ['people'],
-    built: { where: ['/linebalance', '/balances'], code: ['src/lib/ie/balance.ts', 'src/lib/capacity.ts'], tests: ['src/lib/ie/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs', 'line-capacity.mjs'] },
+    built: { where: ['/linebalance', '/balances'], code: ['src/lib/ie/balance.ts', 'src/tools/linebalance/capacity.ts'], tests: ['src/lib/ie/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs', 'line-capacity.mjs'] },
     limits: ['One allowance is agreed per line balance, and Line capacity adds the ILO’s 9% rest to a person’s time; the factor tables are not offered.'],
   },
   {
@@ -166,6 +166,6 @@ export const IE: Entry[] = [
     depends: ['FC-034', 'FC-019'],
     complexity: 'S', value: 'high', valueWhy: 'Crewing decisions said in numbers.',
     status: 'available', form: 'component', partOf: 'FC-034', methods: ['capacity.line-capacity'], scenarios: ['people'],
-    built: { where: ['/balances'], code: ['src/lib/capacity.ts', 'src/lib/capacitySays.ts'], tests: ['src/lib/__tests__/capacity-people.test.ts'], acceptance: ['line-capacity.mjs'] },
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacity.ts', 'src/tools/linebalance/capacitySays.ts'], tests: ['src/tools/linebalance/__tests__/capacity-people.test.ts'], acceptance: ['line-capacity.mjs'] },
   },
 ];

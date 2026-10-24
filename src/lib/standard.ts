@@ -17,7 +17,7 @@
  * the line. Headcount is counted off the people on the map, never typed.
  */
 import type { ID } from '../types';
-import type { Capacity } from './capacity';
+import type { Capacity } from '../tools/linebalance/capacity';
 
 /* THE ICONS — food manufacturing, in four groups. Rowland: "we need more
    icons available. Go full food manufacturing." Every glyph is a 24-unit SVG

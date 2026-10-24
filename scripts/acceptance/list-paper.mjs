@@ -82,7 +82,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
   await go(`#/w/${sd.line7WsId}/standards/${L7}?at=balance`);
   await page.locator('.cap-says').first().waitFor({ timeout: 10000 }).catch(() => {});
   const truth = await page.evaluate(async id => {
-    const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
+    const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
     const st = await db.getStandard(id); const r = C.analyse(st.capacity);
     return { product: st.product, short: C.shortSays(r), sentence: r.sentence, v: C.vCurve(r, st.capacity.vMarginPct).sentence, stations: r.ok.map(x => x.station.name) };
   }, L7);

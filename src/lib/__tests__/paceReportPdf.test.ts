@@ -26,7 +26,7 @@ import {
 import type { Owes, Party } from '../owes';
 import { layBoard } from '../paceReportPdf';
 import { PILLARS, boardSheets, runHeight, boardScale, BOARD_AVAIL } from '../pillars';
-import { capacityReport, type Capacity } from '../capacity';
+import { capacityReport, type Capacity } from '../../tools/linebalance/capacity';
 
 /* The installation sheet's block — `n` machines, six steps each, one late. */
 const installation = (n: number): NonNullable<PaceReportData['installation']> => ({

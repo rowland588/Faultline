@@ -131,7 +131,7 @@ async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF>
     /* The plan page grouped the way this device's plan is drawn. */
     planBy: ganttBy(),
     standards: withStandards && r.standards.length
-      ? async d => { const { drawStandards } = await import('../lib/standardPdf'); const { worksFor } = await import('../ui/WorkBalance'); const { shiftShortsFor } = await import('../ui/ShiftCapacity'); await drawStandards(d, r.standards, r.name, r.printed, await worksFor(r.standards), await shiftShortsFor(r.standards)); }
+      ? async d => { const { drawStandards } = await import('../lib/standardPdf'); const { worksFor } = await import('../ui/WorkBalance'); const { shiftShortsFor } = await import('../tools/linebalance/ShiftCapacity'); await drawStandards(d, r.standards, r.name, r.printed, await worksFor(r.standards), await shiftShortsFor(r.standards)); }
       : undefined,
   });
   return doc;

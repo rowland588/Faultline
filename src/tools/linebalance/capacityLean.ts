@@ -10,7 +10,7 @@
  * record, changed where it sits — its alternatives are its what-ifs, not its
  * history. The action plan is the way to the target, worked out — each step
  * with nobody against it yet, so a step nobody owns is seen to be one. */
-import type { LeanAction, LeanInsight, LeanPage, LeanTile, LeanTone } from './lean';
+import type { LeanAction, LeanInsight, LeanPage, LeanTile, LeanTone } from '../../lib/lean';
 import { fmtMoney } from './capacity';
 import { fmtN, oneOf } from './capacityWords';
 import type { CapacityPaper } from './capacityPaper';

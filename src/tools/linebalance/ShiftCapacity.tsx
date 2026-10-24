@@ -16,14 +16,14 @@
  * is said so and left out of the sum. Neutral throughout — a changeover is
  * planned, not abnormal; the SMED's own page carries what it costs. */
 import { useEffect, useState } from 'react';
-import { getWorkspace, listAllStudies, onDataChange } from '../db';
-import { nav } from '../state/useRoute';
-import { analyse, fmtMoney, labourCost, labourInputs, shiftCapacity, shiftsIn, type CapacityResult, type ChangeoverIn, type ShiftIn } from '../lib/capacity';
-import { fmtN, oneOf } from '../lib/capacityWords';
-import { changeoverIn } from '../tools/changeover/changeover';
-import { studyHref } from '../lib/studyLinks';
-import type { StandardChangeover, ToolStudy } from '../lib/study';
-import { headcount, type Standard } from '../lib/standard';
+import { getWorkspace, listAllStudies, onDataChange } from '../../db';
+import { nav } from '../../state/useRoute';
+import { analyse, fmtMoney, labourCost, labourInputs, shiftCapacity, shiftsIn, type CapacityResult, type ChangeoverIn, type ShiftIn } from './capacity';
+import { fmtN, oneOf } from './capacityWords';
+import { changeoverIn } from '../changeover/changeover';
+import { studyHref } from '../../lib/studyLinks';
+import type { StandardChangeover, ToolStudy } from '../../lib/study';
+import { headcount, type Standard } from '../../lib/standard';
 
 export interface ShiftInputs { shifts?: ShiftIn[]; co?: ChangeoverIn; smed?: ToolStudy }
 

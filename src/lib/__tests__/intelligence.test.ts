@@ -3,7 +3,7 @@
  * non-constraint machine, overlapping events. */
 import { describe, expect, it } from 'vitest';
 import type { Observation } from '../../types';
-import type { Capacity, Station } from '../capacity';
+import type { Capacity, Station } from '../../tools/linebalance/capacity';
 import { changesThisWeek, confidenceOf, constraintTrend, honest, lineConstraint, lineRates, onConstraint, percentile, stopMinutes, weekStart, WEEK } from '../intelligence';
 
 const MIN = 60_000;

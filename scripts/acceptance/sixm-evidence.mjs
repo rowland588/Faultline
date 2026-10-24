@@ -177,7 +177,7 @@ const S6 = `#/project/${sd.pacedProjectId}`;
 /* ---- 8 · the gap counted: the constraint, what the line can make, a count as a reading, no OEE ---- */
 {
   const t8 = await page.evaluate(async ([pid, l7]) => {
-    const db = await import('/src/db.ts'); const F = await import('/src/lib/fishbone.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
+    const db = await import('/src/db.ts'); const F = await import('/src/lib/fishbone.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
     const Lo = await import('/src/tools/losses/losses.ts'); const M = await import('/src/lib/measures.ts');
     const line = (await db.loadPaceLines(pid)).find(l => l.id === l7);
     const standards = [...await db.listStandards(pid), ...await db.listStandardsForLine(line.workspaceId)];

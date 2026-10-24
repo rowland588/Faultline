@@ -13,7 +13,7 @@ import type { jsPDF } from 'jspdf';
 import type { Standard } from '../../lib/standard';
 import type { StudyContext } from '../../lib/studyLinks';
 import type { ProgramsReading } from '../../lib/programsReport';
-import type { CapacityPaper } from '../../lib/capacityPaper';
+import type { CapacityPaper } from '../../tools/linebalance/capacityPaper';
 import type { LineReading } from '../../lib/lineLean';
 import { lineClosing, lineTiles } from '../../lib/lineLean';
 import type { LineBundle, LinePart } from './lineBundle';
@@ -24,7 +24,7 @@ import { bandPage, type LeanTone } from '../../lib/lean';
 import { listRows } from '../../lib/lineReportPdf';
 import { programsBlocks } from '../../lib/programsReportPdf';
 import { studyBlocks, type StudiesPaper } from '../../lib/studiesPdf';
-import { productLeanBlocks } from '../../lib/capacityPaperPdf';
+import { productLeanBlocks } from '../../tools/linebalance/capacityPaperPdf';
 import { PRIORITY_WORD } from '../../lib/snagsReport';
 import { headcount } from '../../lib/standard';
 

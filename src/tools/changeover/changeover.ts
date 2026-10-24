@@ -47,7 +47,7 @@
  *   claim        often": the free time has nothing else in it; the lost
  *                contribution is lost only if the packs cannot be made up */
 import type { ChangeoverProduct, ChangeoverStep, RunningPattern, SmedFunction, SmedHow, SmedRateFrom, StandardChangeover, StudyFacts, ToolStudy } from '../../lib/study';
-import { lineSpeed, type Capacity, type ChangeoverIn } from '../../lib/capacity';
+import { lineSpeed, type Capacity, type ChangeoverIn } from '../linebalance/capacity';
 import { labourPerHour } from '../../lib/cost';
 import type { Tone } from '../capability/sample';
 import { dur } from '../valuestream/steps';

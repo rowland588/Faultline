@@ -25,7 +25,7 @@ export async function saveStandardCards(groups: { name: string; list: Standard[]
   const { pdfFileName } = await import('../lib/fileName');
   const { todayISO } = await import('../lib/weeks');
   const { worksFor } = await import('./WorkBalance');
-  const { shiftShortsFor } = await import('./ShiftCapacity');
+  const { shiftShortsFor } = await import('../tools/linebalance/ShiftCapacity');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const all = groups.flatMap(g => g.list);

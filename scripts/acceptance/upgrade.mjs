@@ -144,7 +144,7 @@ for (const [p, what] of [[`#/balances?line=${hall}`, 'the capacity panel'], [`#/
 await page.setViewportSize({ width: 1360, height: 900 });
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(1500);
 const b64 = await page.evaluate(async h => {
-  const db = await import('/src/db.ts'); const m = await import('/src/lib/capacityPaperLoad.ts');
+  const db = await import('/src/db.ts'); const m = await import('/src/tools/linebalance/capacityPaperLoad.ts');
   const list = (await db.listStandardsForLine(h)).filter(s => !s.deletedAt && s.capacity?.stations.length);
   const doc = await m.capacityPdf(list, { scope: 'the line' });
   const u = new Uint8Array(doc.output('arraybuffer')); let s = ''; for (const x of u) s += String.fromCharCode(x); return btoa(s);

@@ -12,9 +12,9 @@
  * Four people at £12.50 = £50 an hour over 3,722.4 bags an hour = 1.34p a bag.
  * Days: 480 min less 30 of breaks = 450 min × 62.04 = 27,918 bags. */
 import { describe, it, expect } from 'vitest';
-import { capacityPaper, capacityPapersSay, howWords, speedWords } from '../capacityPaper';
+import { capacityPaper, capacityPapersSay, howWords, speedWords } from '../../tools/linebalance/capacityPaper';
 import { materialsReading, whenSaid } from '../materialsReport';
-import type { Capacity, Station } from '../capacity';
+import type { Capacity, Station } from '../../tools/linebalance/capacity';
 import type { Material } from '../materials';
 import type { TestItem } from '../testing';
 

@@ -7,7 +7,7 @@
 import type { Observation, Workspace } from '../types';
 import type { Standard } from './standard';
 import type { ToolStudy } from './study';
-import { analyse } from './capacity';
+import { analyse } from '../tools/linebalance/capacity';
 import { lossFiguresOf } from './studyLinks';
 import { runningOf } from '../tools/changeover/changeover';
 import { stopsOfBar, type LossBar } from '../tools/losses/losses';

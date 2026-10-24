@@ -4,9 +4,9 @@
  * owner's margin); a buffer must hold the typical minor stop × the critical
  * machine's rate; 2–5 minutes of production is the rule of thumb. */
 import { describe, expect, it } from 'vitest';
-import { accumulation, analyse, lineIfRaised, ownSpeed, shareColours, vCurve, type Capacity, type Station, type StopStats } from '../capacity';
-import { fmtDur, fmtN } from '../capacityWords';
-import { perMinWords } from '../capacityFlow';
+import { accumulation, analyse, lineIfRaised, ownSpeed, shareColours, vCurve, type Capacity, type Station, type StopStats } from '../../tools/linebalance/capacity';
+import { fmtDur, fmtN } from '../../tools/linebalance/capacityWords';
+import { perMinWords } from '../../tools/linebalance/capacityFlow';
 
 let n = 0;
 const m = (name: string, unit: string, contains: number, speed: Partial<Station>, x: Partial<Station> = {}): Station => ({ id: `s${++n}`, name, kind: 'machine', unit, contains, ...speed, source: 'plate', ...x });

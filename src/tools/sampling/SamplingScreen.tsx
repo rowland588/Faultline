@@ -31,7 +31,7 @@ import {
 import type { AgreedSampling, Tap, ToolStudy } from '../../lib/study';
 import { TOOL_WORDS } from '../../screens/StudiesScreen';
 import { walkVerdict } from '../../lib/ie/walk';
-import { analyse } from '../../lib/capacity';
+import { analyse } from '../linebalance/capacity';
 import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';

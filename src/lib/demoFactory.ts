@@ -14,7 +14,7 @@
  *   Demo — Punnet Line    six weeks of stops and counts; the filler holds it
  *   Demo — Bakery Wrap    one week only — thin data, said as a range */
 import type { Observation, Workspace } from '../types';
-import type { Capacity, Station } from './capacity';
+import type { Capacity, Station } from '../tools/linebalance/capacity';
 import type { LossCount } from './study';
 import { addObservation, createWorkspace, putStandard, putStudy, updateWorkspace } from '../db';
 import { uid } from './ids';

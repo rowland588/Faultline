@@ -15,13 +15,13 @@
 import type { jsPDF } from 'jspdf';
 import type { CapacityPaper, CapacityPaperRow, CapacityPaperShift, Tone } from './capacityPaper';
 import { capacityPapersSay } from './capacityPaper';
-import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
-import { SIZE, box, font, gap, heading, label, lead, rows, space, text, wrap, type Row } from './report/blocks';
-import { san, paperBand } from './reportKit';
+import { chooseDensity, pour, type Block, type Density, type Frame } from '../../lib/report/flow';
+import { SIZE, box, font, gap, heading, label, lead, rows, space, text, wrap, type Row } from '../../lib/report/blocks';
+import { san, paperBand } from '../../lib/reportKit';
 import { shareColours } from './capacity';
 import { fmtN, oneOf } from './capacityWords';
 import { capacityLean } from './capacityLean';
-import { leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles } from './report/lean';
+import { leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles } from '../../lib/report/lean';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', SURF = '#eef2f8';

@@ -34,8 +34,8 @@
  *  5. People are stations. A person is a speed like any other — typed as a rate
  *     or as "this many every this many seconds" — and the pace to type is the
  *     one they can sustain, not their best lap. */
-import type { Observation } from '../types';
-import type { StandardChangeover } from './study';
+import type { Observation } from '../../types';
+import type { StandardChangeover } from '../../lib/study';
 import { cycleWords, everyWords, fmtBig, fmtN, oneOf } from './capacityWords';
 
 export type StationKind = 'machine' | 'people';

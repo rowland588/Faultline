@@ -25,7 +25,7 @@ import { useStandards } from '../ui/StandardsCard';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { deleteMap, removeFromTool } from '../ui/StandardsCard';
-import { CapacityPanel } from './CapacityPanel';
+import { CapacityPanel } from '../tools/linebalance/CapacityPanel';
 import { balanceSays } from './LineToolsScreen';
 import { WorkView, useBalanceFor, workOf } from '../ui/WorkBalance';
 import { capacitySays } from '../lib/together';
@@ -51,7 +51,7 @@ async function standardsPdf(list: Standard[], name: string) {
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const { worksFor } = await import('../ui/WorkBalance');
-  const { shiftShortsFor } = await import('../ui/ShiftCapacity');
+  const { shiftShortsFor } = await import('../tools/linebalance/ShiftCapacity');
   await drawStandards(doc, list, name, printedToday(), await worksFor(list), await shiftShortsFor(list));
   return doc;
 }
@@ -74,7 +74,7 @@ function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; o
       try {
         const { cardPages } = await import('../lib/standardCard');
         const { worksFor } = await import('../ui/WorkBalance');
-        const { shiftShortsFor } = await import('../ui/ShiftCapacity');
+        const { shiftShortsFor } = await import('../tools/linebalance/ShiftCapacity');
         const works = await worksFor(list), shifts = await shiftShortsFor(list);
         const out: { img: string; product: string; notes: boolean }[] = [];
         for (const st of list) (await cardPages(st, name, printedToday(), works[st.id], shifts[st.id])).forEach((img, k) => out.push({ img, product: st.product, notes: k > 0 }));
@@ -642,7 +642,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         <div className="ls-head-actions">
           <MoreMenu items={can.remove ? [{ label: 'Delete this capacity', danger: true, run: () => void removeTool('balance') }] : []} />
           <ReportMenu papers={[{ label: `Line capacity — ${s.product}`, for: 'One page: what limits it, the V, every station, a shift, the cost a pack', make: async () => {
-            try { await (await import('../lib/capacityPaperLoad')).saveCapacityPdf([s], { name: home.name }); }
+            try { await (await import('../tools/linebalance/capacityPaperLoad')).saveCapacityPdf([s], { name: home.name }); }
             catch (e) { console.error('line capacity PDF failed', e); window.alert('Sorry — the PDF could not be made. Please try again.'); }
           } }]} />
         </div>

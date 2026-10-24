@@ -16,7 +16,7 @@ import { describe, it, expect } from 'vitest';
 import { lostParts, lostWords, neckOf, packsForMs, packsHow, perHourWords, stopsTheLine } from '../lineLoss';
 import { fmtPacks, labourPerMs } from '../cost';
 import { weeklyLoss, headline } from '../stats';
-import type { Capacity, Station } from '../capacity';
+import type { Capacity, Station } from '../../tools/linebalance/capacity';
 import type { Standard } from '../standard';
 import type { Observation, Workspace } from '../../types';
 
