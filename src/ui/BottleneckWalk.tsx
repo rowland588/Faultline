@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { listAllStudies, onDataChange, putStudy } from '../db';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
-import { schedulePrompts } from '../lib/ie/sampling';
+import { schedulePrompts } from '../tools/sampling/sampling';
 import { WALK_STATES, walkVerdict } from '../lib/ie/walk';
 import type { ToolStudy } from '../lib/study';
 

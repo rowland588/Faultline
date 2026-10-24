@@ -51,7 +51,7 @@ import { lossFiguresOf, provedLine, recordProvedLine, studyHref, studyLine, stud
 import { streamRows } from './ie/steps';
 import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
 import { lossRows } from '../tools/losses/losses';
-import { samplingRows } from './ie/sampling';
+import { samplingRows } from '../tools/sampling/sampling';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
 /** `booked` is a step with a day, still ahead (indigo); `ahead` one with no

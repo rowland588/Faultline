@@ -60,7 +60,7 @@ const words = async sel => ((await page.locator(sel).count()) ? (await page.loca
 /* What the modules say of a study as it stands. */
 const truth = id => page.evaluate(async id => {
   const { getStudy } = await import('/src/db.ts');
-  const W = await import('/src/lib/ie/sampling.ts');
+  const W = await import('/src/tools/sampling/sampling.ts');
   const L = await import('/src/lib/studyLinks.ts');
   const s = await getStudy(id);
   if (!s) return null;
@@ -167,7 +167,7 @@ await go(STUDY);
     return id;
   }, [sd.samplingId, sd.line7WsId, sd.pacedProjectId]);
   const want = await page.evaluate(async ([sid, pid, cid]) => {
-    const db = await import('/src/db.ts'); const W = await import('/src/lib/ie/sampling.ts');
+    const db = await import('/src/db.ts'); const W = await import('/src/tools/sampling/sampling.ts');
     const { loadProblems } = await import('/src/lib/useProblems.ts'); const F = await import('/src/lib/fishbone.ts');
     const s = await db.getStudy(sid); const a = s.agreed.sampling, taps = s.facts.taps ?? [];
     const loaded = await loadProblems(pid); const c = loaded.cases.find(x => x.id === cid);

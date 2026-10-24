@@ -8,9 +8,9 @@
  * it. Grey throughout, as the module says: what is too much waiting is the
  * team's to say on its fishbone. Nothing is worked out here but the share ×
  * the hours × the rate. */
-import { burdenOf } from '../cost';
-import type { LeanTile, LeanTone } from '../lean';
-import type { AgreedSampling, Tap } from '../study';
+import { burdenOf } from '../../lib/cost';
+import type { LeanTile, LeanTone } from '../../lib/lean';
+import type { AgreedSampling, Tap } from '../../lib/study';
 import { missedPrompts, nextPrompt, roundsDone, samplingWorst, tapsOf, TOO_FEW_TAPS, worstWords } from './sampling';
 
 const pct = (f: number): string => `${Math.round(f * 100)}%`;

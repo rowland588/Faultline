@@ -14,7 +14,7 @@
  * needed for a margin E at a share p = z² p(1 − p) ÷ E²; how many more.
  * Proved by: p 0.30, E 0.05 → 323 taps (the TOOLKIT's own example). */
 
-import type { AgreedSampling, Tap } from '../study';
+import type { AgreedSampling, Tap } from '../../lib/study';
 export type { Tap };
 
 export interface SamplingFacts {

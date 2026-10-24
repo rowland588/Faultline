@@ -15,30 +15,30 @@
  * Agreed before measured: who is watched, the activities and the shift come
  * first. Nothing worked out is stored; lib/ie/sampling makes every figure. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getStandard, getStudy, onDataChange, patchStudy } from '../db';
-import { useAccess } from '../cloud/access';
-import { useSession } from '../cloud/session';
-import { displayName } from '../cloud/team';
-import { can as canAt } from '../lib/access';
-import { now, uid } from '../lib/ids';
-import { niceDay, isoDay } from '../lib/weeks';
-import { nav } from '../state/useRoute';
-import { peopleOf } from '../lib/standard';
+import { getStandard, getStudy, onDataChange, patchStudy } from '../../db';
+import { useAccess } from '../../cloud/access';
+import { useSession } from '../../cloud/session';
+import { displayName } from '../../cloud/team';
+import { can as canAt } from '../../lib/access';
+import { now, uid } from '../../lib/ids';
+import { niceDay, isoDay } from '../../lib/weeks';
+import { nav } from '../../state/useRoute';
+import { peopleOf } from '../../lib/standard';
 import {
   DEFAULT_ACTIVITIES, TOO_FEW_TAPS, dueRound, nextPrompt, samplingEnough, samplingReading, samplingSays,
   schedulePrompts, shares, tapsNeeded, tapsOf,
-} from '../lib/ie/sampling';
-import type { AgreedSampling, Tap, ToolStudy } from '../lib/study';
-import { TOOL_WORDS } from './StudiesScreen';
-import { walkVerdict } from '../lib/ie/walk';
-import { analyse } from '../lib/capacity';
-import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
-import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
-import { bandPage } from '../lib/lean';
-import { momentsAt, personRate, samplingClosing, samplingTiles } from '../lib/ie/samplingLean';
-import { raisedFrom } from '../tools/losses/lossLean';
-import { useFactoryLines } from '../lib/useFactoryLines';
-import { StudyBand } from '../ui/StudyActs';
+} from './sampling';
+import type { AgreedSampling, Tap, ToolStudy } from '../../lib/study';
+import { TOOL_WORDS } from '../../screens/StudiesScreen';
+import { walkVerdict } from '../../lib/ie/walk';
+import { analyse } from '../../lib/capacity';
+import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
+import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
+import { bandPage } from '../../lib/lean';
+import { momentsAt, personRate, samplingClosing, samplingTiles } from './samplingLean';
+import { raisedFrom } from '../losses/lossLean';
+import { useFactoryLines } from '../../lib/useFactoryLines';
+import { StudyBand } from '../../ui/StudyActs';
 
 const OWNER = canAt('owner');
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });

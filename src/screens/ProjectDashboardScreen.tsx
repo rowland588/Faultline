@@ -52,7 +52,7 @@ import { useJobStudies } from '../ui/StudyLinks';
 import { workOf } from '../ui/WorkBalance';
 import { lineStandardOf } from '../lib/fishbone';
 import { headcount } from '../lib/standard';
-import { samplingCardLine } from '../lib/ie/sampling';
+import { samplingCardLine } from '../tools/sampling/sampling';
 import { changeoverLine, currentBalance, currentChangeover, currentLosses, currentMap, currentSampling, flowLine, lossCardLine, studyHref } from '../lib/studyLinks';
 import { useStudyContext } from '../ui/ShiftLosses';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';

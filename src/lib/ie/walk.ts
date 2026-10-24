@@ -14,7 +14,7 @@
  * the calculated one is the proof; disagreeing says the speeds typed are
  * wrong, or stops — not speed — hold the line. */
 import type { Tap } from '../study';
-import { tapsOf } from './sampling';
+import { tapsOf } from '../../tools/sampling/sampling';
 
 export const WALK_STATES = ['working', 'starved', 'blocked', 'down'] as const;
 /** Under this many walks the bottleneck is not yet said. */

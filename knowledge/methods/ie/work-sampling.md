@@ -6,7 +6,7 @@ discipline: ie
 kind: established
 evidence: textbook
 depth: full
-checked: 2026-10-22 — Tippett's snap-reading method (1935) and the ILO's treatment; margins by the normal approximation to the binomial; Faultline's arithmetic proved by src/lib/ie/__tests__/sampling.test.ts and scripts/acceptance/work-sampling.mjs
+checked: 2026-10-22 — Tippett's snap-reading method (1935) and the ILO's treatment; margins by the normal approximation to the binomial; Faultline's arithmetic proved by src/tools/sampling/__tests__/sampling.test.ts and scripts/acceptance/work-sampling.mjs
 needs: []
 next: [rca.fishbone-5whys, capacity.line-balancing]
 alternatives: [ie.time-study]
@@ -52,5 +52,5 @@ Packing hall crews; hygiene teams; line-side logistics.
 - [textbook] Kanawaty, G. (ed.) (1992), *Introduction to Work Study*, 4th ed., ILO — work sampling.
 
 ## In Faultline
-`src/screens/SamplingScreen.tsx` with `src/lib/ie/sampling.ts` and the
+`src/tools/sampling/SamplingScreen.tsx` with `src/tools/sampling/sampling.ts` and the
 bottleneck walk (`src/lib/ie/walk.ts`); acceptance `scripts/acceptance/work-sampling.mjs` (FC-022, FC-037).

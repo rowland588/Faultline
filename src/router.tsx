@@ -57,7 +57,7 @@ const ReliabilityScreen = lazy(() => import('./tools/reliability/ReliabilityScre
 const ToolsScreen = lazy(() => import('./screens/ToolsScreen').then(m => ({ default: m.ToolsScreen })));
 const ProjectToolsScreen = lazy(() => import('./screens/ProjectToolsScreen').then(m => ({ default: m.ProjectToolsScreen })));
 const PartsScreen = lazy(() => import('./screens/PartsScreen').then(m => ({ default: m.PartsScreen })));
-const SamplingScreen = lazy(() => import('./screens/SamplingScreen').then(m => ({ default: m.SamplingScreen })));
+const SamplingScreen = lazy(() => import('./tools/sampling/SamplingScreen').then(m => ({ default: m.SamplingScreen })));
 const LossesScreen = lazy(() => import('./tools/losses/LossesScreen').then(m => ({ default: m.LossesScreen })));
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
 const VideosScreen = lazy(() => import('./tools/video/VideoScreen').then(m => ({ default: m.VideosScreen })));

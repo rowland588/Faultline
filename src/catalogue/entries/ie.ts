@@ -55,7 +55,7 @@ export const IE: Entry[] = [
     complexity: 'M', value: 'high', valueWhy: 'Cheap evidence about people’s time, with honest margins.',
     status: 'available', form: 'tool', kind: 'study',
     app: { key: 'sampling', label: 'Work sampling', says: 'What people are doing at random moments, with margins', onLine: 'what people are doing, at random moments', reads: 'sampling', icon: 'people', order: 7 }, methods: ['ie.work-sampling', 'stats.confidence-intervals'], scenarios: ['people', 'running'], words: ['activity sampling', 'idle', 'waiting'],
-    built: { where: ['/sampling'], code: ['src/screens/SamplingScreen.tsx', 'src/lib/ie/sampling.ts'], tests: ['src/lib/ie/__tests__/sampling.test.ts'], acceptance: ['work-sampling.mjs'] },
+    built: { where: ['/sampling'], code: ['src/tools/sampling/SamplingScreen.tsx', 'src/tools/sampling/sampling.ts'], tests: ['src/tools/sampling/__tests__/sampling.test.ts'], acceptance: ['work-sampling.mjs'] },
   },
   {
     id: 'FC-023', name: 'Predetermined motion times — MTM and MOST', discipline: 'ie', sub: 'pmts',

@@ -28,7 +28,7 @@ import { lossFiguresOf, provedLine, ROLE_WORD, studyLine, studyTitle, type Study
 import { lossRows } from '../tools/losses/losses';
 
 
-import { samplingRows } from './ie/sampling';
+import { samplingRows } from '../tools/sampling/sampling';
 import { streamRows } from './ie/steps';
 import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
 

@@ -657,7 +657,7 @@ for (const size of SIXM_SIZES) {
       const { streamRows } = await import('/src/lib/ie/steps.ts');
       const { changeoverSheet, agreedFor, moneyOf } = await import('/src/lib/ie/changeover.ts');
       const { lossRows } = await import('/src/tools/losses/losses.ts');
-      const { samplingRows } = await import('/src/lib/ie/sampling.ts');
+      const { samplingRows } = await import('/src/tools/sampling/sampling.ts');
       for (const st of loaded.data.studies.filter(x => !x.deletedAt && (!lineId || (x.workspaceId && ws.has(x.workspaceId))))) {
         add(SL.studyTitle(st), SL.studyLine(st, ctx).text);
         if (st.tool === 'map') { const t = streamRows(st.facts.flow, st.agreed?.map); for (const x of t.rows) add(x.what, x.who, x.where); add(t.total.lead); }
