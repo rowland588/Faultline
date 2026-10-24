@@ -59,4 +59,4 @@ Micro-stops on a labeller, film breaks on a wrapper, weigher blockages.
 - [practice] NIST/SEMATECH *e-Handbook of Statistical Methods*, chapter 8 (reliability).
 
 ## In Faultline
-The Reliability study (`src/tools/reliability/reliability.ts`, `src/tools/reliability/ReliabilityScreen.tsx`), FC-058.
+The Reliability study (`src/tools/reliability/reliability.ts`, `src/tools/reliability/ReliabilityScreen.tsx`), FC-058. Its money (24 October, `knowledge/specs/FC-058-reliability-money.md`) is the loss count's: a count's minutes stood an hour of running priced as the crew's labour everywhere and as packs and contribution only where the study's machine stops the line (`lib/lineLoss` stopsTheLine, the bottleneck Line capacity's), the two parts never blended.

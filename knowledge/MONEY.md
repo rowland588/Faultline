@@ -201,7 +201,7 @@ own and names what it feeds.
 
 | Entry | Money today | Causation | Inputs | When missing |
 |---|---|---|---|---|
-| FC-058 Reliability (MTBF) | each failure's lost minutes → L + T; a count's £ a day | D (L, T) | wage; packs a minute; contribution | "Give the line a wage to say the failures in money" |
+| FC-058 Reliability (MTBF) | built 24 Oct to the model (`knowledge/specs/FC-058-reliability-money.md`) — each count's minutes stood an hour of running (rate × the minutes a failure stands the line): the crew's labour, and the packs and contribution only where the study's machine stops the line (the bottleneck Line capacity's, or not known yet — said); an hour of running and a day of the line's shifts; two parts never blended on the tile, the row, the closing line and the paper | D (L, T) | the minutes a failure stands the line (typed on the count); the line's wage, speed, margin; the study's machine | "the line’s crew and wage (Set up the line)", "the line’s rated speed", "the line’s margin a pack" |
 | FC-059 Repair times (MTTR) | repair hours × fitter's rate + spares; the line's L + T meanwhile | D | fitter's rate; spares | "Give a fitter's rate to say the repairs in money" |
 | FC-060 Weibull | the expected failures in a period × a failure's £ (D) — what a replacement interval saves | D, I | as FC-058; part cost | as FC-058 |
 | FC-061 Reliability growth | the failures a week's £ falling (D) as the line matures | D | as FC-058 | as FC-058 |
@@ -491,9 +491,11 @@ own and names what it feeds.
    causes and the product it holds: built 24 October), the 6M
    countermeasure's worth (FC-146: built 24 October). Each through the `faultline-tool` skill, one at a time.
 2. **The built tools with money partly said**: Reliability (FC-058 — each
-   failure's lost minutes in money), the stops' pages where a figure is still
-   missing, the stage gate's performance run and climb (FC-076, FC-077 — the
-   shortfall in contribution).
+   failure's lost minutes in money: brought to the model 24 October — two
+   parts, contribution, output only where the machine stops the line), the
+   stops' pages where a figure is still missing, the stage gate's
+   performance run and climb (FC-076, FC-077 — the shortfall in
+   contribution).
 3. **Then every tool as it is built**, with its row — the backlog's order
    (`node scripts/catalogue.mjs next`), never a tool started for its money
    alone.

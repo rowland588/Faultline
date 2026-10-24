@@ -106,7 +106,6 @@ export function remarksBlocks(remarks: readonly Remark[] = []): Block[] {
 }
 
 const RED = '#c4281c', AMBER = '#b45309', GREEN = '#15803d';
-const fmt = (n: number): string => `£${n >= 100 ? Math.round(n).toLocaleString('en-GB') : n.toFixed(2)}`;
 
 /** EVERY THING COUNTED SIDE BY SIDE — a row each: its taps, MTBF and range,
  *  its rate, against its target (in its colour, with its words) and what it
@@ -114,9 +113,10 @@ const fmt = (n: number): string => `£${n >= 100 ? Math.round(n).toLocaleString(
 export function relTogetherBlocks(rs: readonly RelRow[]): Block[] {
   if (!rs.length) return [];
   const heads = ['COUNTED', 'TAPS', 'MTBF', '90% SURE', 'AN HOUR', 'AGAINST', '£ AN HOUR'];
-  const cols = (w: number) => [0, w * 0.2, w * 0.28, w * 0.39, w * 0.52, w * 0.64, w * 0.9].map((x, i) => ({ x, right: i > 0 && i !== 5 }));
+  /* the last column carries the two parts an hour ("£6.00 labour · £36 contribution"), so it is wide (FC-058) */
+  const cols = (w: number) => [0, w * 0.17, w * 0.24, w * 0.34, w * 0.45, w * 0.55, w * 0.74].map((x, i) => ({ x, right: i > 0 && i !== 5 }));
   const at = (w: number, i: number) => { const c = cols(w); const next = i + 1 < c.length ? c[i + 1].x : w; return c[i].right ? next - 4 : c[i].x; };
-  const againstLines = (fr: Parameters<Row['draw']>[0], r: RelRow) => wrap(fr.doc, r.against, fr.w * 0.25 - 6, T);
+  const againstLines = (fr: Parameters<Row['draw']>[0], r: RelRow) => wrap(fr.doc, r.against, fr.w * 0.19 - 6, T);
   const header: Row = {
     h: () => 16,
     draw: (fr, y) => {
@@ -129,7 +129,7 @@ export function relTogetherBlocks(rs: readonly RelRow[]): Block[] {
     h: fr => 5 + Math.max(1, againstLines(fr, r).length) * LH + 2,
     draw: (fr, y) => {
       const ty = y + 4 + T * 0.92;
-      const vals = [r.title, String(r.n), r.mtbf, r.range, r.rate, '', r.costPerH !== undefined ? fmt(r.costPerH) : '—'];
+      const vals = [r.title, String(r.n), r.mtbf, r.range, r.rate, '', r.cost ?? '—'];
       vals.forEach((v, i) => {
         if (i === 5) return;
         font(fr.doc, T, i === 0 || i === 2 ? 'bold' : 'normal', i === 0 || i === 2 ? INK : INK2);

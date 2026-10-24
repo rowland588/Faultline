@@ -229,6 +229,14 @@ print("  part 2 — rejects x materials a pack = materials a day; held packs x m
 def reject_cost(rejects, held, materials=0.12): return rejects * materials, held * materials
 print("  300 rejects, 1,200 held at 12p ->", reject_cost(300, 1200), "; the register 300 + 300 rejects, 1,200 held ->", reject_cost(600, 1200))
 
+# --- what a machine's failures cost (knowledge/specs/FC-058-reliability-money.md, 24 October) ---
+print("\n# failures an hour x minutes stood each = minutes stood an hour; / 60 x crew x wage x burden = labour; where it stops the line, x packs a minute = packs, x contribution a pack")
+def failure_cost(n, hours, down_min, crew=4, wage=12, burden=1.25, per_min=60, contrib=0.10, day_h=7.5, stops=True):
+    m = n / hours * down_min; lab = m / 60 * crew * wage * burden; packs = m * per_min if stops else None
+    c = packs * contrib if packs is not None else None
+    return (m, lab, packs, c), (lab * day_h, packs * day_h if packs is not None else None, c * day_h if c is not None else None)
+print("  4 stops in 2 h, 3 min each, at the bottleneck ->", failure_cost(4, 2, 3)); print("  off the bottleneck ->", failure_cost(4, 2, 3, stops=False))
+
 # --- what a 6M problem costs a week and what a countermeasure should be worth (knowledge/specs/FC-146-sixm-money.md, 24 October) ---
 print("\n# hours a week lost x the crew's rate = labour; where it stops the line, hours x 60 x rated speed = packs, x contribution a pack")
 def hours_cost(h, crew=5, wage=14.8, burden=1.3, per_min=60, margin=0.06, stops=True):

@@ -625,6 +625,11 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   and, the same day, the rejects a day it causes at the line's materials a
   pack and the product it holds as money tied up (not lost unless it goes
   out of life), the pack's materials typed once in *Set up the line*.
+  And the **Reliability study** (24 October, `knowledge/specs/FC-058-
+  reliability-money.md`): its money brought to the model — the two parts
+  never blended on the tile, the row and the closing line, contribution not
+  margin, and the packs counted lost only where the study's machine stops
+  the line (the bottleneck, or not known yet and said so).
   And the **6M** (24 October, `knowledge/specs/FC-146-sixm-money.md`): the
   problem's hours a week in money by its line's cost model — before, now,
   the target's worth, the saving so far — on its card and the 6M report; a

@@ -24,7 +24,9 @@
  * the closing line. Nothing worked out is stored; the module makes every
  * figure, the same one its paper (lib/studiesPdf) reads. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStudy, onDataChange, patchStudy } from '../../db';
+import { getStudy, listAllStandards, onDataChange, patchStudy } from '../../db';
+import { neckOf } from '../../lib/lineLoss';
+import type { Standard } from '../linestandard/standard';
 import { useAccess } from '../../cloud/access';
 import { useSession } from '../../cloud/session';
 import { displayName } from '../../cloud/team';
@@ -56,7 +58,6 @@ const clock = (ms: number) => {
 const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
 /** The words a set-up offers for what is counted — the floor's own added beside them. */
 const OFFERED = ['stop', 'failure', 'jam', 'pick', 'reject', 'alarm'];
-const gbp = (n: number): string => `£${n >= 100 ? Math.round(n).toLocaleString('en-GB') : n.toFixed(2)}`;
 
 export function ReliabilityScreen({ id }: { id: string }) {
   const [s, setS] = useState<ToolStudy | null | undefined>(undefined);
@@ -97,6 +98,10 @@ function Reliability({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canA
   const item = items.find(i => i.c.id === seen) ?? items[0];
   const said = studyReliabilitySays(a, runs, events, t);
   const line = useFactoryLines(s.workspaceId).find(x => x.id === s.workspaceId);
+  /* where the study stands for its money (FC-058): its machine, and the line's bottleneck from Line capacity (lib/lineLoss neckOf) */
+  const [standards, setStandards] = useState<Standard[]>([]);
+  useEffect(() => { const load = () => { void listAllStandards().then(setStandards); }; load(); return onDataChange(load); }, []);
+  const where = useMemo(() => ({ machine: s.machine, neck: neckOf(standards, s.workspaceId) }), [standards, s.machine, s.workspaceId]);
   const { steps, tests } = useBetter(s, me);
 
   return (
@@ -115,8 +120,8 @@ function Reliability({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canA
       ) : (
         <>
           {!closed && can.edit && <Watch s={s} counters={items.map(i => i.c)} runs={runs} events={events} t={t} me={me} />}
-          {items.length > 1 && <Together items={items} line={line} seen={item.c.id} onSeen={setSeen} />}
-          {item && <Counted item={item} items={items} line={line} one={items.length === 1} />}
+          {items.length > 1 && <Together items={items} line={line} where={where} seen={item.c.id} onSeen={setSeen} />}
+          {item && <Counted item={item} items={items} line={line} where={where} one={items.length === 1} />}
           <EveryEvent counters={countersOf(a, true)} events={events} canStrike={can.edit && !closed} sid={s.id} />
           <EveryStretch runs={runs} canStrike={can.edit && !closed} sid={s.id} t={t} />
           <p className="ie-agreed sub">
@@ -319,8 +324,8 @@ function Watch({ s, counters, runs, events, t, me }: { s: ToolStudy; counters: R
 /* ------------------------------------------------------------------ counted side by side, and each one's own */
 /** EVERY THING COUNTED SIDE BY SIDE — a row each, its MTBF, range, rate,
  *  against its target and what it costs; a chip each to see its own. */
-function Together({ items, line, seen, onSeen }: { items: RelItem[]; line?: Parameters<typeof relRows>[1]; seen: string; onSeen: (id: string) => void }) {
-  const rows = relRows(items, line);
+function Together({ items, line, where, seen, onSeen }: { items: RelItem[]; line?: Parameters<typeof relRows>[1]; where?: Parameters<typeof relRows>[2]; seen: string; onSeen: (id: string) => void }) {
+  const rows = relRows(items, line, where);
   return (
     <LeanPanel title="Counted side by side" className="ln-solo rl-together-p">
       <div className="rl-together-w">
@@ -330,7 +335,7 @@ function Together({ items, line, seen, onSeen }: { items: RelItem[]; line?: Para
             {rows.map(r => (
               <tr key={r.id} className={(r.id === seen ? 'is-seen ' : '') + 'is-' + r.tone} data-count={r.id} onClick={() => onSeen(r.id)}>
                 <td data-label="Counted"><b>{r.title}</b></td><td data-label="Taps">{r.n}</td><td data-label="MTBF"><b>{r.mtbf}</b></td><td data-label="90% sure">{r.range}</td><td data-label="An hour">{r.rate}</td>
-                <td data-label="Against" className="rl-against">{r.against}</td><td data-label="£ an hour">{r.costPerH !== undefined ? gbp(r.costPerH) : '—'}</td>
+                <td data-label="Against" className="rl-against">{r.against}</td><td data-label="£ an hour" className="rl-cost-cell">{r.cost ?? '—'}</td>
               </tr>
             ))}
           </tbody>
@@ -345,9 +350,9 @@ function Together({ items, line, seen, onSeen }: { items: RelItem[]; line?: Para
 
 /** ONE THING COUNTED, IN FULL — its tiles, sentence, what it means, its
  *  graphs, what it costs and its days. */
-function Counted({ item, items, line, one }: { item: RelItem; items: RelItem[]; line?: Parameters<typeof relCost>[2]; one: boolean }) {
+function Counted({ item, items, line, where, one }: { item: RelItem; items: RelItem[]; line?: Parameters<typeof relCost>[2]; where?: Parameters<typeof relCost>[3]; one: boolean }) {
   const { c, f } = item;
-  const cost = relCost(f, c, line);
+  const cost = relCost(f, c, line, where);
   const said = reliabilitySays(c, f);
   const trend = relTrend(c, f);
   return (
