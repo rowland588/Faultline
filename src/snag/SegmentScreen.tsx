@@ -9,7 +9,7 @@ import { useBlobSource } from './useBlobUrl';
 import { captureFrame } from './frame';
 import { createSegmentFromVideo } from './addSegment';
 import { sectionLabel } from './labels';
-import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
+import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
 import { useSyncedAt } from '../cloud/session';
 import type { Segment, SnagAsset } from './types';
 import { Icon } from '../ui/Icon';

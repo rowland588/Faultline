@@ -13,7 +13,7 @@
  *
  * It never refuses: footage that does not suit can still be kept and marked
  * by hand, and its figures and paper say it did not suit. Pure. */
-import { MIN_CYCLES } from '../ie/balance';
+import { MIN_CYCLES } from '../../lib/ie/balance';
 import { CLAIM_WORD, METHODS, OBJECTIVES, READINESS_WORD, VIEWPOINTS, type Claim, type Viewpoint } from './objectives';
 import { steadySummary, steadyWindows, type SteadyMark } from './steady';
 import { KIND_WORD, type EventFlag, type FootageScan, type ReadingQuality, type VideoEvent, type VideoFacts, type VideoStudyKind, type VideoZone } from './record';

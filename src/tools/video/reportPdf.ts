@@ -13,11 +13,11 @@
  * events by lib/video/study — the same figures the screen shows. Laid out by
  * the report engine (src/lib/report/), never by a hand-kept y. */
 import type { jsPDF } from 'jspdf';
-import { chooseDensity, pour, type Block, type Density, type Frame } from '../report/flow';
-import { box, font, gap, rows, text, wrap } from '../report/blocks';
-import { leanBand, leanClosing, leanHead, leanTiles } from '../report/lean';
-import { DANGER, INK2, LINE, MUTED, OK, WARN, BLUE } from '../reportKit';
-import type { LeanPage } from '../lean';
+import { chooseDensity, pour, type Block, type Density, type Frame } from '../../lib/report/flow';
+import { box, font, gap, rows, text, wrap } from '../../lib/report/blocks';
+import { leanBand, leanClosing, leanHead, leanTiles } from '../../lib/report/lean';
+import { DANGER, INK2, LINE, MUTED, OK, WARN, BLUE } from '../../lib/reportKit';
+import type { LeanPage } from '../../lib/lean';
 import { BASIS_WORD, EVENT_WORD, FLAG_WORD, KIND_WORD, type VideoEvent, type VideoSource } from './record';
 import { clock, FINDING_WORD, findings, sec1, standing, type VideoStudyFigures } from './study';
 import { assessFootage, type Assessment, type CheckStatus } from './assess';

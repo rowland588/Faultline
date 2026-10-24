@@ -11,7 +11,7 @@
  * overwritten, and a candidate that repeats one a person already accepted is
  * not added again. */
 import { deleteBlobs, getBlob, getStudy, patchStudy, putBlob } from '../../db';
-import type { ToolStudy } from '../study';
+import type { ToolStudy } from '../../lib/study';
 import { footageGone } from './footage';
 import { detectEvents, type Signal } from './detect';
 import { fingerprint, readSignal, stillAt } from './extract';

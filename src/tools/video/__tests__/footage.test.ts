@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { footageGone, footageKeys, forTheCloud, goneKeys, withoutFootage } from '../footage';
 import { MAPS } from '../../../cloud/mappers';
 import { mergeRows } from '../../../cloud/sync';
-import type { StudyFacts, ToolStudy } from '../../study';
+import type { StudyFacts, ToolStudy } from '../../../lib/study';
 import type { VideoSource } from '../record';
 
 const video = (over: Partial<VideoSource> = {}): VideoSource => ({

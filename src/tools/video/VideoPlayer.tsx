@@ -9,10 +9,10 @@
  * all — it "works", it just never paints. The tell is videoWidth staying 0 once
  * metadata has loaded, which is what we check for. */
 import { useCallback, useEffect, useState, type VideoHTMLAttributes } from 'react';
-import { useBlobSource } from '../lib/useBlobUrl';
-import { getBlob } from '../db';
-import { sniffVideoCodec, browserCanPlay } from '../lib/mime';
-import { Icon } from './Icon';
+import { useBlobSource } from '../../lib/useBlobUrl';
+import { getBlob } from '../../db';
+import { sniffVideoCodec, browserCanPlay } from '../../lib/mime';
+import { Icon } from '../../ui/Icon';
 
 type Fail = null | 'undecodable' | 'video-track';
 

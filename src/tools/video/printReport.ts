@@ -3,7 +3,7 @@
  * many accepted and still to review), so a report made again after a
  * correction never loses the one before. */
 import { allProjects, getStudy, listWorkspaces, patchStudy } from '../../db';
-import { todayISO } from '../weeks';
+import { todayISO } from '../../lib/weeks';
 import type { VideoSource } from './record';
 import { videoFigures } from './study';
 import { footageGone } from './footage';
@@ -16,9 +16,9 @@ export async function printVideoReport(id: string, who?: string): Promise<string
   const f = videoFigures(v, events, 'verified');
   const [lines, projects] = await Promise.all([listWorkspaces(), allProjects()]);
   const today = todayISO();
-  const { loadPdfLib, deliverPdf, titlePdf } = await import('../savePdf');
+  const { loadPdfLib, deliverPdf, titlePdf } = await import('../../lib/savePdf');
   const { drawVideoReport } = await import('./reportPdf');
-  const { pdfFileName } = await import('../fileName');
+  const { pdfFileName } = await import('../../lib/fileName');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const name = s.name || v.facts.fileName;

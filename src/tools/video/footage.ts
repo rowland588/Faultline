@@ -17,7 +17,7 @@
  * it, and its deletion with it. A fact of its own nobody else writes always
  * survives the merge, and the study never names its footage to the cloud
  * again once it carries one (forTheCloud). */
-import type { StudyFacts } from '../study';
+import type { StudyFacts } from '../../lib/study';
 import type { VideoSource } from './record';
 
 /** The recording no longer named: no file, no poster. */

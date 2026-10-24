@@ -1090,8 +1090,8 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      movement, most accepted, one corrected, one rejected, two still to review,
      the demand given for takt. Every number is worked out from these. */
   const videoStudyId = await (async () => {
-    const { newJob } = await import('../lib/video/job');
-    const { READING_VERSION } = await import('../lib/video/record');
+    const { newJob } = await import('../tools/video/job');
+    const { READING_VERSION } = await import('../tools/video/record');
     const t = Date.now();
     const zones = [0, 1, 2].map(i => ({ id: `s${i + 1}`, label: `Workstation ${i + 1}`, track: `Operator ${'ABC'[i]}`, x0: i / 3, x1: (i + 1) / 3, y0: 0, y1: 1 }));
     const config = { sampleSec: 0.1, readWidth: 160, zones, sensitivity: 4, joinGapSec: 0.5, minEventSec: 0.6, version: READING_VERSION };

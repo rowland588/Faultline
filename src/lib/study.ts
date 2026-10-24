@@ -22,8 +22,8 @@
  * Never called "a study" on screen on its own — "Line study" already names a
  * line. It always carries its tool's name: "Capability study — Weight
  * accuracy 400 g". */
-import type { VideoEvent, VideoSource } from './video/record';
-import type { FootageGone } from './video/footage';
+import type { VideoEvent, VideoSource } from '../tools/video/record';
+import type { FootageGone } from '../tools/video/footage';
 import type { ID } from '../types';
 import type { TalkTurn } from '../tools/talk/talk';
 

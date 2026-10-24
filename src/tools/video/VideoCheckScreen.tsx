@@ -8,11 +8,11 @@
  * and says what it found a line an ability, with the figures to copy and send.
  * It is reached from Video studies; it reads no record and writes none. */
 import { useEffect, useRef, useState } from 'react';
-import { nav } from '../state/useRoute';
-import { pickMimeType } from '../ui/VideoRecorder';
-import { clock, lasting, offersSay, phoneSays, phoneText, type PhoneOffers, type PhoneRun } from '../lib/video/phoneCheck';
-import { PhoneTest, phoneOffers, type PhoneLive } from '../lib/video/phoneRun';
-import type { VideoZone } from '../lib/video/record';
+import { nav } from '../../state/useRoute';
+import { pickMimeType } from './VideoRecorder';
+import { clock, lasting, offersSay, phoneSays, phoneText, type PhoneOffers, type PhoneRun } from './phoneCheck';
+import { PhoneTest, phoneOffers, type PhoneLive } from './phoneRun';
+import type { VideoZone } from './record';
 
 /** The picture in thirds, read as three stations are. */
 const THIRDS: VideoZone[] = [0, 1, 2].map(i => ({ id: `s${i + 1}`, label: ['Left', 'Middle', 'Right'][i], track: '', x0: i / 3, x1: (i + 1) / 3, y0: 0, y1: 1 }));

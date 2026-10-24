@@ -7,7 +7,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { Sheet } from '../ui/Sheet';
 import { useBlobUrl } from './useBlobUrl';
 import { createSegmentFromVideo } from './addSegment';
-import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
+import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
 import { ConvertBanner } from './ConvertBanner';
 import { useSyncedAt } from '../cloud/session';
 import { backedUp } from '../cloud/sync';

@@ -13,7 +13,7 @@
  * kept on the record so the reading picks up where it stopped. A worker with
  * FFmpeg for long or large footage is the next step (docs/VIDEO.md); it
  * would write the same signal and the same job states. */
-import { sniffMime, sniffVideoCodec } from '../mime';
+import { sniffMime, sniffVideoCodec } from '../../lib/mime';
 import { readVideoMeta } from '../../snag/frame';
 import type { FootageScan, VideoFacts, VideoZone } from './record';
 import type { Signal } from './detect';

@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { MediaRef } from '../types';
 import { EvidenceThumb } from './Evidence';
-import { VideoRecorder, videoCaptureSupported } from './VideoRecorder';
+import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
 import { captureMedia, pickExistingMedia, saveVideoBlob } from '../lib/media';
 import { overCloudLimit, CLOUD_FILE_LIMIT } from '../cloud/sync';
 import { Icon } from './Icon';

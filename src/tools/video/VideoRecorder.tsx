@@ -5,7 +5,7 @@
  * so the tap silently does nothing. Recording straight from a live getUserMedia
  * stream keeps you on this screen, so the next clip is one more tap away. */
 import { useEffect, useRef, useState } from 'react';
-import { Icon } from './Icon';
+import { Icon } from '../../ui/Icon';
 
 export function videoCaptureSupported(): boolean {
   return typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined';

@@ -136,7 +136,7 @@ ok(/^Is this footage fit for the study\? .*This footage suits line balance, with
   '2a1 fit for it, read on every frame: the camera steady, the review still to do; when work starts and stops measured, whether a gap is waiting only interpreted', fitRead.slice(0, 900));
 const ev = await page.evaluate(async ({ id, truth }) => {
   const db = await import('/src/db.ts');
-  const { evaluate } = await import('/src/lib/video/evaluate.ts');
+  const { evaluate } = await import('/src/tools/video/evaluate.ts');
   const s = await db.getStudy(id);
   const found = (s.facts.vevents ?? []).map(e => ({ zone: e.zone, start: e.start, end: e.end }));
   return { e: evaluate(truth, found), n: found.length, sample: s.facts.video.job.config.sampleSec };

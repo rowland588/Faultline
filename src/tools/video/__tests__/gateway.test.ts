@@ -27,7 +27,7 @@ describe('the gateway’s copies', () => {
   it('are the app’s own files, word for word, with the .ts Deno asks for', () => {
     const root = process.cwd();
     for (const f of ['record', 'visionCore', 'gatewayUsage']) {
-      const src = readFileSync(join(root, 'src/lib/video', `${f}.ts`), 'utf8');
+      const src = readFileSync(join(root, 'src/tools/video', `${f}.ts`), 'utf8');
       const copy = readFileSync(join(root, 'supabase/functions/assist/video', `${f}.ts`), 'utf8');
       const back = copy.split('\n').slice(1).join('\n').replace(/from '\.\/([A-Za-z]+)\.ts'/g, "from './$1'");
       expect(back, `video/${f}.ts differs from its copy — run node scripts/sync-assist.mjs`).toBe(src);

@@ -60,11 +60,11 @@ const PartsScreen = lazy(() => import('./screens/PartsScreen').then(m => ({ defa
 const SamplingScreen = lazy(() => import('./screens/SamplingScreen').then(m => ({ default: m.SamplingScreen })));
 const LossesScreen = lazy(() => import('./screens/LossesScreen').then(m => ({ default: m.LossesScreen })));
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
-const VideosScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideosScreen })));
-const VideoStudyScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideoStudyScreen })));
+const VideosScreen = lazy(() => import('./tools/video/VideoScreen').then(m => ({ default: m.VideosScreen })));
+const VideoStudyScreen = lazy(() => import('./tools/video/VideoScreen').then(m => ({ default: m.VideoStudyScreen })));
 const TalksScreen = lazy(() => import('./tools/talk/TalkScreen').then(m => ({ default: m.TalksScreen })));
 const TalkScreen = lazy(() => import('./tools/talk/TalkScreen').then(m => ({ default: m.TalkScreen })));
-const VideoCheckScreen = lazy(() => import('./screens/VideoCheckScreen').then(m => ({ default: m.VideoCheckScreen })));
+const VideoCheckScreen = lazy(() => import('./tools/video/VideoCheckScreen').then(m => ({ default: m.VideoCheckScreen })));
 import { RequireModel } from './ui/RequireModel';
 import { RecordDrawerHost } from './ui/RecordDrawer';
 import { Frame } from './ui/Frame';

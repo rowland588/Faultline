@@ -45,20 +45,20 @@ for (const c of CONDITIONS) {
   const r = await page.evaluate(async c => {
     const { makeLineVideo } = await import('/src/dev/videoSynth.ts');
     const db = await import('/src/db.ts');
-    const { runJob } = await import('/src/lib/video/runner.ts');
-    const { evaluate } = await import('/src/lib/video/evaluate.ts');
-    const { probe } = await import('/src/lib/video/extract.ts');
-    const { bands } = await import('/src/screens/VideoScreen.tsx');
-    const { sampleInterval } = await import('/src/lib/video/detect.ts');
-    const { newJob } = await import('/src/lib/video/job.ts');
-    const { assessFootage } = await import('/src/lib/video/assess.ts');
+    const { runJob } = await import('/src/tools/video/runner.ts');
+    const { evaluate } = await import('/src/tools/video/evaluate.ts');
+    const { probe } = await import('/src/tools/video/extract.ts');
+    const { bands } = await import('/src/tools/video/VideoScreen.tsx');
+    const { sampleInterval } = await import('/src/tools/video/detect.ts');
+    const { newJob } = await import('/src/tools/video/job.ts');
+    const { assessFootage } = await import('/src/tools/video/assess.ts');
     const made = await makeLineVideo({ ...c.o, fps: 25, seed: 5 });
     const p = await probe(made.blob, 'eval.webm');
     const key = `video-eval-${Math.random().toString(36).slice(2)}`;
     await db.putBlob(key, made.blob);
     const t = Date.now(), id = `eval-${Math.random().toString(36).slice(2)}`;
     const zones = bands(c.o.stations.length);
-    const { READING_VERSION } = await import('/src/lib/video/record.ts');
+    const { READING_VERSION } = await import('/src/tools/video/record.ts');
     const config = { sampleSec: sampleInterval(p.facts.durationSec, p.facts.fps, 2400), readWidth: 160, zones, sensitivity: 4, joinGapSec: 0.5, minEventSec: 0.6, version: READING_VERSION };
     await db.putStudy({ id, tool: 'balance', name: c.name, facts: { video: { media: { id: key, blobKey: key, mime: 'video/webm', capturedAt: t }, facts: p.facts, job: newJob(config, t) }, vevents: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t });
     const t0 = performance.now();

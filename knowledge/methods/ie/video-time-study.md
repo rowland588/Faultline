@@ -43,4 +43,4 @@ Packing stations, case packing, tray loading.
 - [textbook] Kanawaty, G. (ed.) (1992), *Introduction to Work Study*, 4th ed., ILO.
 
 ## In Faultline
-`src/screens/VideoScreen.tsx` with `scripts/acceptance/video-study.mjs`; accuracy measured by `scripts/video-eval.mjs` (FC-021, partly).
+`src/tools/video/VideoScreen.tsx` with `scripts/acceptance/video-study.mjs`; accuracy measured by `scripts/video-eval.mjs` (FC-021, partly).

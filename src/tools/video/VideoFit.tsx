@@ -6,8 +6,8 @@
  * footage unfit red — each with what was found and what it means, in words. Then,
  * measure by measure, how each would be known from this footage: measured,
  * worked out, only interpreted, or not from footage — and why. */
-import type { CapturePlan } from '../lib/video/capture';
-import type { Assessment, CheckStatus } from '../lib/video/assess';
+import type { CapturePlan } from './capture';
+import type { Assessment, CheckStatus } from './assess';
 
 const STATUS_WORD: Record<CheckStatus, string> = { ok: 'Fine', caution: 'Watch', fail: 'Not fit', unknown: 'Not known yet' };
 const STATUS_TONE: Record<CheckStatus, 'g' | 'a' | 'r' | 'n'> = { ok: 'g', caution: 'a', fail: 'r', unknown: 'n' };
