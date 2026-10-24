@@ -271,3 +271,97 @@ export function parseDur(text: string, bare: 's' | 'min' = 's'): number | undefi
   if (!u) return n * (bare === 'min' ? 60 : 1);
   return per[u] !== undefined ? n * per[u] : undefined;
 }
+
+/* ============================== MONEY =========================================
+ * knowledge/specs/FC-001-value-stream-money.md; knowledge/methods/cost/
+ * inventory-carrying-cost.md. Rowland, 24 October: "only assign money to already
+ * industry standard tools ... ensure they are flexible, not all costs are
+ * available to me in a factory". Two costs, never blended: the LABOUR on
+ * non-value-adding work a day (lean accounting's value stream costing — the
+ * hours at the stream's rate, the line's one cost model) and the PRODUCT
+ * WAITING between steps — tied up at what a piece has cost so far, carried at
+ * the business's annual rate (operations management's carrying cost), the
+ * pieces counted or, by Little's law, from the wait and the demand. */
+export interface LineRate { labourRatePerHour?: number; labourBurden?: number }
+export interface WasteLabour { steps: number; untimed: number; personSecPerPiece: number; secPerDay?: number; gbpPerDay?: number }
+export interface WaitHeld { step: FlowStep; pieces: number; from: 'queue' | 'little'; gbp?: number }
+export interface FlowMoney {
+  waste?: WasteLabour;
+  waits: WaitHeld[];
+  /** Waits that could not be counted — no queue, and no wait time or no demand to work it out. */
+  unpriced: number;
+  tiedUp?: number;
+  carryPerDay?: number;
+  ratePerHour?: number;
+  missing: { labour?: string; waits?: string; carry?: string };
+}
+export const MISSING_WAGE = 'give the line’s wage on its page to say the labour';
+export const MISSING_DEMAND = 'agree the demand a day to say it';
+export const MISSING_PIECE = 'give what a piece has cost to say what is tied up';
+export const MISSING_RATE = 'give the carrying rate a year to say what carrying it costs';
+
+export function flowMoney(flow: FlowStep[] | undefined, a: AgreedMap | undefined, line?: LineRate): FlowMoney {
+  const list = (flow ?? []).slice().sort((x, y) => x.order - y.order);
+  const out: FlowMoney = { waits: [], unpriced: 0, missing: {} };
+  if (!list.length) return out;
+  const D = a?.demandPerDay && a.demandPerDay > 0 ? a.demandPerDay : undefined;
+  const A = a?.availableSecPerDay && a.availableSecPerDay > 0 ? a.availableSecPerDay : undefined;
+  const rate = line?.labourRatePerHour && line.labourRatePerHour > 0 ? line.labourRatePerHour * (line.labourBurden && line.labourBurden > 0 ? line.labourBurden : 1) : undefined;
+  /* the labour on waste work */
+  /* waste WORK — a wait or a store is product waiting, priced below, never labour */
+  const waste = list.filter(st => valueOf(st) === 'waste' && st.kind !== 'wait' && st.kind !== 'store');
+  if (waste.length) {
+    const timed = waste.filter(st => st.cycleSec !== undefined && st.cycleSec > 0);
+    const perPiece = timed.reduce((t, st) => t + (st.cycleSec as number) / (st.batch && st.batch > 1 ? st.batch : 1) * (st.people && st.people > 0 ? st.people : 1), 0);
+    const w: WasteLabour = { steps: waste.length, untimed: waste.length - timed.length, personSecPerPiece: perPiece };
+    if (D !== undefined) { w.secPerDay = perPiece * D; if (rate !== undefined) w.gbpPerDay = (w.secPerDay / 3600) * rate; }
+    out.waste = w;
+    if (rate === undefined) out.missing.labour = MISSING_WAGE; else if (D === undefined) out.missing.labour = MISSING_DEMAND;
+    if (rate !== undefined) out.ratePerHour = rate;
+  }
+  /* the product waiting */
+  const K = a?.pieceCost && a.pieceCost > 0 ? a.pieceCost : undefined;
+  for (const st of list) {
+    const wt = waitOf(st, a);
+    if (st.queue && st.queue > 0) out.waits.push({ step: st, pieces: st.queue, from: 'queue' });
+    else if (st.waitSec && st.waitSec > 0 && wt.from !== 'queue') {
+      if (D !== undefined && A !== undefined) out.waits.push({ step: st, pieces: Math.round((D * st.waitSec) / A), from: 'little' });
+      else out.unpriced++;
+    }
+  }
+  if (out.waits.length || out.unpriced) {
+    if (K === undefined) out.missing.waits = MISSING_PIECE;
+    else {
+      for (const w of out.waits) w.gbp = w.pieces * K;
+      out.tiedUp = out.waits.reduce((t, w) => t + (w.gbp ?? 0), 0);
+      const r = a?.carryingRatePerYear;
+      if (r !== undefined && r > 0) out.carryPerDay = (out.tiedUp * (r / 100)) / 365; else out.missing.carry = MISSING_RATE;
+    }
+    if (out.unpriced && out.waits.length === 0 && D === undefined && K !== undefined) out.missing.waits = MISSING_DEMAND;
+  }
+  return out;
+}
+
+const gbp = (n: number): string => (n >= 1000 ? `£${(Math.round(n / 100) / 10).toFixed(1)}k` : `£${Math.round(n).toLocaleString('en-GB')}`);
+const hoursWord = (sec: number): string => `${(Math.round((sec / 3600) * 10) / 10).toString()} h`;
+
+/** THE MONEY IN ONE SENTENCE, with its because, and what is missing named. */
+export function flowMoneySays(m: FlowMoney, a?: AgreedMap): { text: string; tone: 'a' | 'n' } | undefined {
+  const parts: string[] = [];
+  if (m.waste) {
+    const w = m.waste, n = w.steps === 1 ? '1 non-value-adding step' : `${w.steps} non-value-adding steps`;
+    if (w.gbpPerDay !== undefined && w.secPerDay !== undefined && m.ratePerHour !== undefined)
+      parts.push(`Waste work costs ${gbp(w.gbpPerDay)} a day in labour (${n}${w.untimed ? `, ${w.untimed} not timed yet` : ''} — ${hoursWord(w.secPerDay)} a day at £${m.ratePerHour.toFixed(2)} an hour).`);
+    else parts.push(`Waste work: ${n}${w.untimed ? `, ${w.untimed} not timed yet` : ''} — ${m.missing.labour ?? MISSING_WAGE}.`);
+  }
+  if (m.waits.length || m.unpriced) {
+    if (m.tiedUp !== undefined) {
+      const top = m.waits.slice().sort((x, y) => (y.gbp ?? 0) - (x.gbp ?? 0))[0];
+      const where = top && m.waits.length > 1 ? ` — ${gbp(top.gbp ?? 0)} of it at ${top.step.name.trim() || 'a step'}` : top ? ` — at ${top.step.name.trim() || 'a step'}` : '';
+      const carry = m.carryPerDay !== undefined ? `, which costs about ${gbp(m.carryPerDay)} a day to carry at ${a?.carryingRatePerYear}% a year` : `; ${m.missing.carry ?? MISSING_RATE}`;
+      parts.push(`${gbp(m.tiedUp)} of product is waiting between steps${where} (at £${(a?.pieceCost ?? 0).toFixed(2)} a piece)${carry}.${m.unpriced ? ` ${m.unpriced} wait${m.unpriced === 1 ? '' : 's'} not counted.` : ''}`);
+    } else parts.push(`Product waits at ${m.waits.length + m.unpriced} step${m.waits.length + m.unpriced === 1 ? '' : 's'} — ${m.missing.waits ?? MISSING_PIECE}.`);
+  }
+  if (!parts.length) return undefined;
+  return { text: parts.join(' '), tone: (m.waste?.gbpPerDay ?? 0) > 0 || (m.carryPerDay ?? 0) > 0 ? 'a' : 'n' };
+}

@@ -244,7 +244,9 @@ export const PAGES = (sd, cap) => [
     { what: 'words up a tall, narrow shape', sel: '.ls-shape-t.is-up' },
   ] }] : []),
   { name: 'A value stream map', path: `#/value-stream/${sd.lineMapId}`, must: [{ what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ }, { what: 'the grid', sel: '.vs-grid' },
-    { what: 'the band', sel: '.ln-band' }, { what: 'its seven cards', sel: '.vs-cards .vs-card2' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
+    { what: 'the band', sel: '.ln-band' }, { what: 'its seven cards', sel: '.vs-cards .vs-card2' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' },
+    /* IN MONEY (knowledge/specs/FC-001-value-stream-money.md, 24 October): the waste work's labour a day and the product waiting, among the cards; the sentence with what is missing named */
+    { what: 'the money cards — Waste work a day, Waiting product tied up (FC-001)', sel: '.vs-cards .vs-card2.is-money', n: 2 }, { what: 'the money sentence — the labour said, or the line’s wage named as missing', sel: '.ie-say.ie-money', text: /^Waste work/ }] },
   { name: 'A SMED', path: `#/smed/${sd.changeoverId}`, must: [{ what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ }, { what: 'the grid', sel: '.vs-grid' }, { what: 'what it says', sel: '.ie-says' },
     /* the lean page (17 October, slice 6; lib/ie/changeoverLean): the band, five tiles in the strip's place, the action plan, the closing line */
     { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — now, inside the stop, planned to, stopped in packs and £, bought back', sel: '.ie-strip .ln-tile', n: 5 },

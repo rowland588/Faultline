@@ -1,4 +1,4 @@
-// COPIED FROM src/lib/video by scripts/sync-assist.mjs — edit the source, then run it.
+// COPIED FROM src/tools/video by scripts/sync-assist.mjs — edit the source, then run it.
 /* WHAT THE ASSISTANT IS ASKED ABOUT THE FRAMES, AND WHAT IS KEPT OF ITS
  * ANSWER (docs/VIDEO.md, AI analysis) — shared word for word with the
  * gateway (scripts/sync-assist.mjs copies it into supabase/functions/assist).

@@ -1,6 +1,6 @@
 /* The value stream's arithmetic — one line end to end, the departments that touch it included. */
 import { describe, it, expect } from 'vitest';
-import { flowFigures, flowSays, compareFlows, waitOf, valueOf, dur, parseDur, lanesOf, lanesOfStep, whoOf, whereOf, laneByDefault, stepWorth, stepFigure, compareStep, carryFlow, streamRows } from '../steps';
+import { flowFigures, flowSays, compareFlows, waitOf, valueOf, dur, parseDur, lanesOf, lanesOfStep, whoOf, whereOf, laneByDefault, stepWorth, stepFigure, compareStep, carryFlow, streamRows, flowMoney, flowMoneySays, MISSING_WAGE, MISSING_RATE, MISSING_PIECE, MISSING_DEMAND } from '../steps';
 import type { FlowStep } from '../../../lib/study';
 
 const D = 86_400;
@@ -168,5 +168,54 @@ describe('the stream, worked by hand', () => {
   it('nothing timed at all: no value-added ratio is claimed', () => {
     const f = flowFigures([{ id: 'x', order: 0, name: 'x', lane: 'x', kind: 'operation', value: 'adds' }], a);
     expect([f.leadSec, f.pce, f.untimed]).toEqual([0, undefined, 1]);
+  });
+});
+
+/* MONEY — knowledge/specs/FC-001-value-stream-money.md §6, the five independent cases
+ * (scripts/knowledge/independent-cases.py, "money on the value stream"). */
+describe('money on the value stream (FC-001)', () => {
+  const H = 3600;
+  const line = (): FlowStep[] => { n = 0; return [
+    st({ name: 'Issue the film and cases', lane: 'Stores', kind: 'move', value: 'waste', cycleSec: 900, batch: 9600, people: 2, waitSec: 4 * H }),
+    st({ name: 'Bag and seal', lane: 'Machine', kind: 'operation', value: 'adds', cycleSec: 1.2 }),
+    st({ name: 'Clear a jam', lane: 'Op 1', kind: 'operation', value: 'waste', cycleSec: 90, batch: 500, people: 2 }),
+    st({ name: 'Reset the sealing jaw', lane: 'Maintenance', kind: 'operation', value: 'waste', cycleSec: 600, batch: 4800, people: 2 }),
+    st({ name: 'Walk to fetch flat cases', lane: 'Op 2', kind: 'move', value: 'waste', cycleSec: 60, batch: 120 }),
+    st({ name: 'Pallet waits for QA release', lane: 'Quality', kind: 'wait', waitSec: 6 * H }),
+  ]; };
+  const a = { demandPerDay: 9600, availableSecPerDay: 16 * H, pieceCost: 0.8, carryingRatePerYear: 25 };
+  const rate = { labourRatePerHour: 15, labourBurden: 1.3 };
+  it('1 labour on waste work a day: 1.2975 person-seconds a piece, 12,456 s a day, £67.47 at £19.50 an hour', () => {
+    const m = flowMoney(line(), a, rate);
+    expect(m.waste!.personSecPerPiece.toFixed(4)).toBe('1.2975'); expect(m.waste!.secPerDay).toBeCloseTo(12456, 6); expect(m.waste!.gbpPerDay!.toFixed(2)).toBe('67.47');
+    expect(m.ratePerHour).toBeCloseTo(19.5);
+  });
+  it('2 the QA hold by Little’s law: 3,600 pieces, £2,880 tied up, £1.97 a day at 25%; the 4 h wait after the film too', () => {
+    const m = flowMoney(line(), a, rate);
+    const qa = m.waits.find(w => w.step.name.startsWith('Pallet'))!;
+    expect([qa.pieces, qa.from, qa.gbp]).toEqual([3600, 'little', 2880]);
+    const film = m.waits.find(w => w.step.name.startsWith('Issue'))!;
+    expect([film.pieces, film.gbp]).toEqual([2400, 1920]);
+    expect(m.tiedUp).toBe(4800); expect(m.carryPerDay!.toFixed(2)).toBe('3.29'); expect(m.missing).toEqual({});
+    expect(flowMoneySays(m, a)).toEqual({ text: 'Waste work costs £67 a day in labour (4 non-value-adding steps — 3.5 h a day at £19.50 an hour). £4.8k of product is waiting between steps — £2.9k of it at Pallet waits for QA release (at £0.80 a piece), which costs about £3 a day to carry at 25% a year.', tone: 'a' });
+  });
+  it('3 a counted queue: 19,200 at £0.80 → £15,360 tied up; no rate — carrying unsaid, the rate named', () => {
+    n = 0; const flow = [st({ name: 'Pallet waits for the lorry', lane: 'Despatch', kind: 'store', queue: 19_200 })];
+    const m = flowMoney(flow, { demandPerDay: 9600, availableSecPerDay: 16 * H, pieceCost: 0.8 }, rate);
+    expect(m.waits[0]).toMatchObject({ pieces: 19200, from: 'queue', gbp: 15360 }); expect(m.tiedUp).toBe(15360); expect(m.carryPerDay).toBeUndefined(); expect(m.missing.carry).toBe(MISSING_RATE);
+    expect(m.waste).toBeUndefined();
+    expect(flowMoneySays(m, { pieceCost: 0.8 })!.text).toBe('£15.4k of product is waiting between steps — at Pallet waits for the lorry (at £0.80 a piece); give the carrying rate a year to say what carrying it costs.');
+  });
+  it('4 no wage on the line: the labour unsaid and the wage named; the waits still priced', () => {
+    const m = flowMoney(line(), a, {});
+    expect(m.waste!.gbpPerDay).toBeUndefined(); expect(m.waste!.secPerDay).toBeCloseTo(12456, 6); expect(m.missing.labour).toBe(MISSING_WAGE); expect(m.tiedUp).toBe(4800);
+    expect(flowMoneySays(m, a)!.text.startsWith('Waste work: 4 non-value-adding steps — give the line’s wage on its page to say the labour.')).toBe(true);
+  });
+  it('5 no demand: the labour and the Little’s-law waits unsaid; a counted queue still priced; no cost a piece names it', () => {
+    const m = flowMoney(line(), { pieceCost: 0.8, carryingRatePerYear: 25 }, rate);
+    expect(m.waste!.gbpPerDay).toBeUndefined(); expect(m.missing.labour).toBe(MISSING_DEMAND); expect(m.waits).toEqual([]); expect(m.unpriced).toBe(2); expect(m.missing.waits).toBe(MISSING_DEMAND);
+    const k = flowMoney(line(), { demandPerDay: 9600, availableSecPerDay: 16 * H }, rate);
+    expect(k.tiedUp).toBeUndefined(); expect(k.missing.waits).toBe(MISSING_PIECE);
+    expect(flowMoney([], a, rate)).toEqual({ waits: [], unpriced: 0, missing: {} });
   });
 });

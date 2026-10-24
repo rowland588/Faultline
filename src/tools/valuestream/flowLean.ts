@@ -2,11 +2,13 @@
  * line, read from lib/ie/steps (flowFigures). The map's seven cards are its
  * tiles already, coloured as the method colours value (VA green, NE amber,
  * NV red, with the words — Rowland's exception, 11 October), so they stay;
- * the band, the action plan and this line join them. What the waits cost is
- * not said yet (BLUEPRINT §6, Money in every tool): no figure is made up. */
+ * the band, the action plan and this line join them. Since 24 October the
+ * money joins them too (FC-001's money, lib/tools/valuestream/steps flowMoney):
+ * the labour on waste work a day, and the product waiting — tied up and
+ * carried; a missing input named, never a figure made up. */
 import type { LeanTile, LeanTone } from '../../lib/lean';
 import type { AgreedMap, FlowStep } from '../../lib/study';
-import { dur, share, whereOf, whoOf, type FlowFigures } from './steps';
+import { dur, share, whereOf, whoOf, type FlowFigures, type FlowMoney } from './steps';
 
 /** THE CLOSING LINE — the lead time and its value-added share, and where to
  *  start: the biggest wait; a cycle over takt said in red, where the stream
@@ -33,4 +35,21 @@ export function flowTiles(f: FlowFigures, list: readonly FlowStep[]): LeanTile[]
     { k: 'Non-value adding', v: dur(f.wasteSec), of: 'wasteful work and every wait', ...(f.wasteSec > 0 ? { tone: 'r' as LeanTone } : {}) },
     { k: 'Cycle time', v: dur(cycle), of: f.taktSec ? `takt ${dur(f.taktSec)}` : 'no takt agreed yet' },
   ];
+}
+
+/* MONEY — two tiles beside the method's cards (knowledge/specs/FC-001-value-stream-money.md §7) */
+const gbp = (n: number): string => (n >= 1000 ? `£${(Math.round(n / 100) / 10).toFixed(1)}k` : `£${Math.round(n).toLocaleString('en-GB')}`);
+export function flowMoneyTiles(m: FlowMoney, a?: AgreedMap): LeanTile[] {
+  const out: LeanTile[] = [];
+  if (m.waste) {
+    const w = m.waste, n = `${w.steps} non-value-adding step${w.steps === 1 ? '' : 's'}${w.untimed ? `, ${w.untimed} not timed` : ''}`;
+    out.push(w.gbpPerDay !== undefined ? { k: 'Waste work', v: `${gbp(w.gbpPerDay)} a day`, of: `labour on ${n}`, tone: w.gbpPerDay > 0 ? 'a' : 'n' }
+      : { k: 'Waste work', v: '—', of: `${n} · ${m.missing.labour ?? ''}`.replace(/ · $/, ''), tone: 'n' });
+  }
+  if (m.waits.length || m.unpriced) {
+    out.push(m.tiedUp !== undefined
+      ? { k: 'Waiting product', v: gbp(m.tiedUp), of: `tied up${m.carryPerDay !== undefined ? ` · ${gbp(m.carryPerDay)} a day to carry at ${a?.carryingRatePerYear}%` : ` · ${m.missing.carry ?? ''}`}${m.unpriced ? ` · ${m.unpriced} wait${m.unpriced === 1 ? '' : 's'} not counted` : ''}`, tone: (m.carryPerDay ?? 0) > 0 ? 'a' : 'n' }
+      : { k: 'Waiting product', v: '—', of: `${m.waits.length + m.unpriced} wait${m.waits.length + m.unpriced === 1 ? '' : 's'} · ${m.missing.waits ?? ''}`, tone: 'n' });
+  }
+  return out;
 }

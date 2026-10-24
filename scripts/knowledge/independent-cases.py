@@ -197,3 +197,13 @@ def rejects(n, waste, rework, recovered, packs, m, r, shifts_week):
     return dict(failed=packs * (waste + rework + recovered) / n, waste=pw, waste_gbp=pw * m, rework=pr, rework_gbp=pr * r, recovered=ph, shift_gbp=pw * m + pr * r, week_gbp=(pw * m + pr * r) * shifts_week)
 print("  20 checked, 1 waste + 1 reworked, 10000 a shift, M 0.25, R 0.12, 5 a week ->", rejects(20, 1, 1, 0, 10000, 0.25, 0.12, 5))
 print("  20 checked, 1 recovered ->", rejects(20, 0, 0, 1, 10000, 0.25, 0.12, 5))
+
+# --- money on the value stream (knowledge/specs/FC-001-value-stream-money.md, 24 October) ---
+print("\n# labour on waste work a day: sum(cycle/batch x people) x demand x rate/3600; the seeded line map, GBP 15 x 1.3")
+steps = [(900, 9600, 2), (90, 500, 2), (600, 4800, 2), (60, 120, 1)]
+pp = sum(c / b * p for c, b, p in steps); sec = pp * 9600
+print(f"  person-s a piece {pp:.4f}; a day {sec:.0f} s = {sec/3600:.2f} h; GBP {sec/3600*19.5:.2f}")
+print("\n# waiting product: Little's law pieces = demand x wait/available; tied up x cost a piece; carried x rate/365")
+qa = 9600 * (6 * 3600) / (16 * 3600); film = 9600 * (4 * 3600) / (16 * 3600)
+print(f"  QA hold {qa:.0f} pieces, GBP {qa*0.8:.0f}; film wait {film:.0f}, GBP {film*0.8:.0f}; tied up {(qa+film)*0.8:.0f}; carry a day at 25% {(qa+film)*0.8*0.25/365:.2f}")
+print(f"  counted queue 19200 x 0.8 = {19200*0.8:.0f}")

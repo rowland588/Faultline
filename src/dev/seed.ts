@@ -965,7 +965,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const qaStep = uid(), mapFixId = uid(), mapProofId = uid();
   await putStudy({ id: lineMapId, tool: 'map', name: 'Run released to pallet away — Maris Piper 2kg', product: 'Maris Piper 2kg',
     workspaceId: ws.id, standardId: lineOnly, projectId: proj.id,
-    agreed: { map: { scope: 'line', supplier: 'Run released', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H } },
+    agreed: { map: { scope: 'line', supplier: 'Run released', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H, pieceCost: 0.8, carryingRatePerYear: 25 } },
     facts: { flow: [
       fs(0, 'Release the run to the line', 'Planning', 'operation', { who: ['Planning'], where: 'Office', value: 'needed', cycleSec: 600, batch: 9600, waitSec: 1 * DY, info: 'paper' }),
       fs(1, 'Issue the film and cases', 'Stores', 'move', { who: ['Stores', 'Forklift driver'], where: 'Stores', value: 'waste', cycleSec: 900, batch: 9600, waitSec: 4 * H }),

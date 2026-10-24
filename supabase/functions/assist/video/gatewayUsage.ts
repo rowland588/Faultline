@@ -1,4 +1,4 @@
-// COPIED FROM src/lib/video by scripts/sync-assist.mjs — edit the source, then run it.
+// COPIED FROM src/tools/video by scripts/sync-assist.mjs — edit the source, then run it.
 /* WHAT NAMING THE WORK COSTS, AND A PERSON'S DAY — the one cost control on
  * the camera's AI (docs/VIDEO.md; docs/DIRECTION.md: the only AI is the voice
  * and the camera). The gateway (supabase/functions/assist, task `video-label`)

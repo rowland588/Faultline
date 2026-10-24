@@ -1,4 +1,4 @@
-// COPIED FROM src/lib/video by scripts/sync-assist.mjs — edit the source, then run it.
+// COPIED FROM src/tools/video by scripts/sync-assist.mjs — edit the source, then run it.
 /* VIDEO STUDY — THE RECORD (docs/VIDEO.md).
  *
  * Rowland, 18 October: "upload a production video, describe the analysis they

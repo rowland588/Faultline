@@ -36,6 +36,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { paper as pressPaper } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
@@ -229,6 +230,55 @@ await page.locator('.vs-grid, .vs-sq').first().waitFor({ timeout: 10000 }).catch
   ok((await page.locator('.vs-sq').count()) > 0 && doors.length === 0 && inSheet === 0, `a client reads the map and changes nothing${doors.length || inSheet ? ` — found: ${doors.join(', ')} and ${inSheet} in the step's sheet` : ''}`);
 }
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
+
+/* ---- 9 · in money (knowledge/specs/FC-001-value-stream-money.md — Rowland, 24 October: "industry standard ...
+   flexible, not all costs are available"): the waste work's labour a day at the line's rate, the product waiting
+   tied up and carried at the cost a piece and rate typed on the map; a missing input named, never a figure invented */
+{
+  await go(MAP);
+  const moneyTruth = () => page.evaluate(async id => {
+    const { getStudy, getWorkspace } = await import('/src/db.ts'); const S = await import('/src/tools/valuestream/steps.ts'); const L = await import('/src/tools/valuestream/flowLean.ts');
+    const s = await getStudy(id); const w = s.workspaceId ? await getWorkspace(s.workspaceId) : undefined;
+    const m = S.flowMoney(s.facts.flow, s.agreed?.map, w ? { labourRatePerHour: w.labourRatePerHour, labourBurden: w.labourBurden } : undefined);
+    return { m, said: S.flowMoneySays(m, s.agreed?.map), tiles: L.flowMoneyTiles(m, s.agreed?.map) };
+  }, sd.lineMapId);
+  let mt = await moneyTruth();
+  const cards = () => page.locator('.vs-cards .vs-card2.is-money');
+  ok((await cards().count()) === 2, '9 two money cards among the method’s cards');
+  const cardText = async i => (await cards().nth(i).innerText()).replace(/\s+/g, ' ').trim().toLowerCase();
+  const sameCards = async () => (await cardText(0)) === `${mt.tiles[0].k} ${mt.tiles[0].v} ${mt.tiles[0].of}`.toLowerCase() && (await cardText(1)) === `${mt.tiles[1].k} ${mt.tiles[1].v} ${mt.tiles[1].of}`.toLowerCase();
+  /* the seeded map's line has no wage yet: the labour unsaid and the wage named; the waiting product priced from the map's own inputs */
+  ok(await sameCards() && mt.m.waste.gbpPerDay === undefined && /give the line’s wage on its page/.test(await cardText(0)) && mt.m.tiedUp > 0 && mt.m.carryPerDay > 0,
+    `9 no wage on the line: the cards as the module says them — "${await cardText(0)}" · "${await cardText(1)}"`);
+  ok((await words('.ie-money')) === mt.said.text && /^Waste work: 4 non-value-adding steps — give the line’s wage on its page to say the labour\. £[\d.]+k of product is waiting between steps — £[\d.]+k of it at Release the run to the line \(at £0\.80 a piece\), which costs about £\d+ a day to carry at 25% a year\.$/.test(mt.said.text),
+    `9 the sentence names the wage as missing: "${await words('.ie-money')}"`);
+  /* the line given its wage on its page (here through the record, as the line's Set up does): £14.50 × 1.3 on-costs */
+  await page.evaluate(async id => { const db = await import('/src/db.ts'); const s = await db.getStudy(id); const w = await db.getWorkspace(s.workspaceId); await db.updateWorkspace({ ...w, labourRatePerHour: 14.5, labourBurden: 1.3 }); }, sd.lineMapId);
+  await go(MAP);
+  mt = await moneyTruth();
+  ok(await sameCards() && mt.m.waste.gbpPerDay > 0 && /^Waste work costs £\d+ a day in labour \(4 non-value-adding steps — [\d.]+ h a day at £18\.85 an hour\)\. £[\d.]+k of product is waiting between steps — £[\d.]+k of it at Release the run to the line \(at £0\.80 a piece\), which costs about £\d+ a day to carry at 25% a year\.$/.test(mt.said.text)
+    && (await words('.ie-money')) === mt.said.text, `9 with the wage: the sentence with its because at £18.85 an hour — page "${await words('.ie-money')}" · module ${JSON.stringify({ rate: mt.m.ratePerHour, gbp: mt.m.waste.gbpPerDay, text: mt.said.text })}`);
+  /* no rate: tied up still said, the rate named as missing */
+  await page.getByRole('button', { name: 'Change what it is held against' }).click(); await page.waitForTimeout(300);
+  ok((await page.getByLabel(/Carrying rate, a year/).inputValue()) === '25' && (await page.getByLabel(/What a piece has cost/).inputValue()) === '0.8', '9 the two boxes carry what was agreed');
+  await page.getByLabel(/Carrying rate, a year/).fill('');
+  await page.getByRole('button', { name: 'Agree it' }).click(); await page.waitForTimeout(600);
+  mt = await moneyTruth();
+  ok(mt.m.carryPerDay === undefined && /give the carrying rate a year to say what carrying it costs/.test(await cardText(1)) && (await words('.ie-money')) === mt.said.text && /; give the carrying rate a year/.test(mt.said.text),
+    `9 no rate: tied up said, the rate named — card "${await cardText(1)}" · page "${await words('.ie-money')}" · module ${JSON.stringify({ carry: mt.m.carryPerDay, text: mt.said.text })}`);
+  await page.getByRole('button', { name: 'Change what it is held against' }).click(); await page.waitForTimeout(300);
+  await page.getByLabel(/Carrying rate, a year/).fill('150');
+  ok((await words('.ie-problem')) === 'The carrying rate — a percentage a year, up to 100.', '9 a rate over 100 refused');
+  await page.getByLabel(/Carrying rate, a year/).fill('25');
+  await page.getByRole('button', { name: 'Agree it' }).click(); await page.waitForTimeout(600);
+  /* the map's own paper: the tiles, the sentence, the inputs */
+  const [dl9] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, / — on paper$/)]);
+  const f9 = join(OUT, 'map-money.pdf'); await dl9.saveAs(f9);
+  const t9 = pdfText(f9);
+  mt = await moneyTruth();
+  ok(/WASTE WORK/i.test(t9) && /WAITING PRODUCT/i.test(t9) && t9.includes(mt.said.text.slice(0, 50)) && t9.includes('In money from: £18.85 an hour (the line) · £0.80 a piece · 25% a year, 365 days.'),
+    `9 on paper: the two tiles, the sentence and the inputs`);
+}
 
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');
 await browser.close();

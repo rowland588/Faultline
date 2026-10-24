@@ -2,7 +2,7 @@
 
 Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write` — never typed. The catalogue test fails when this file is stale.
 
-**234 entries** across 23 disciplines, behind them **176 method records** (`knowledge/methods/`) and **22 problem routes**.
+**234 entries** across 23 disciplines, behind them **177 method records** (`knowledge/methods/`) and **22 problem routes**.
 
 | Status | Entries |
 |---|---|

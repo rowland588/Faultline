@@ -14281,3 +14281,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ie-fates.is-small { display: inline-flex; gap: 6px; margin: 0 0 0 8px; }
 .ie-fates.is-small .chip { padding: 2px 8px; font-size: var(--fs-xs); }
 .ie-fate { margin-left: 8px; }
+
+/* the value stream's money cards (FC-001): the of-line under the figure, the missing input in it */
+.vs-card2.is-money small { color: var(--muted); font-size: var(--fs-xs); line-height: 1.3; }
+.vs-card2.is-money.is-none b { color: var(--muted); }
