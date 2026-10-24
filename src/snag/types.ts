@@ -76,6 +76,9 @@ export interface Snag {
    *  workaround (PROBLEM_COST.sql; lib/problemCost says it in money by the line's cost model).
    *  Absent when nobody has said; 0 to 1440. */
   minutesPerDay?: number;
+  /** The rejects a day it causes (packs thrown away) and the packs it holds now — priced at the line's materials a pack (lib/problemCost, FC-154 part 2). */
+  rejectsPerDay?: number;
+  heldPacks?: number;
   proposedSolution?: string;
   status: SnagStatus;
   owner?: string;            // assignee name (free text)

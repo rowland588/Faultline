@@ -63,4 +63,42 @@ describe('what a problem costs the line (FC-154)', () => {
     const noWage = registerCost([{ status: 'open', cost: problemCost({ minutesPerDay: 20 }, 'Bagger', { crew: 4 }, neck) }]);
     expect(noWage.words).toBe('1 open problem says its minutes a day; give the line a wage (Set up the line) to say them in money.');
   });
+  /* part 2 — the rejects it causes at the line's materials a pack; the product it holds as money tied up */
+  const priced = { ...line7, materialsPerPack: 0.12 };
+  it('9 — 300 rejects a day at 12p: £36 materials a day; with no minutes that is the whole sentence', () => {
+    const c = problemCost({ rejectsPerDay: 300 }, 'Bagger', priced, neck);
+    expect(c?.minutes).toBeUndefined(); expect(c?.labour).toBeUndefined();
+    expect(c?.materials).toBeCloseTo(36, 6);
+    expect(c?.words).toBe('300 rejects a day: £36 materials.');
+    expect(c?.short).toBe('£36 materials a day');
+  });
+  it('10 — 1,200 packs on hold: £144 tied up, said as tied up and not lost', () => {
+    const c = problemCost({ heldPacks: 1200 }, undefined, priced, neck);
+    expect(c?.tiedUp).toBeCloseTo(144, 6);
+    expect(c?.words).toBe('1,200 packs on hold: £144 tied up (not lost unless they go out of life).');
+    expect(c?.short).toBe('£144 tied up');
+  });
+  it('11 — minutes, rejects and held together: case 1’s sentence, then the rejects, then the hold', () => {
+    const c = problemCost({ minutesPerDay: 20, rejectsPerDay: 300, heldPacks: 1200 }, 'Bagger', priced, neck);
+    expect(c?.words).toBe('20 min a day at Bagger, the bottleneck: £25 labour · 2,000 packs lost · £80 contribution a day; 300 rejects a day: £36 materials; 1,200 packs on hold: £144 tied up (not lost unless they go out of life).');
+    expect(c?.short).toBe('£25 labour · 2,000 packs lost · £80 contribution a day · £36 materials a day · £144 tied up');
+  });
+  it('12 — no materials on the line: the pack’s materials asked once, the minutes’ part unchanged beside it', () => {
+    const c = problemCost({ minutesPerDay: 20, rejectsPerDay: 300, heldPacks: 1200 }, 'Bagger', line7, neck);
+    expect(c?.materials).toBeUndefined(); expect(c?.tiedUp).toBeUndefined(); expect(c?.missing).toEqual(['materials']);
+    expect(c?.words).toBe('20 min a day at Bagger, the bottleneck: £25 labour · 2,000 packs lost · £80 contribution a day; 300 rejects a day and 1,200 packs on hold — give the line a pack’s materials (Set up the line) to say them in money.');
+    expect(c?.short).toBe('£25 labour · 2,000 packs lost · £80 contribution a day · give the line a pack’s materials');
+    expect(problemCost({ rejectsPerDay: 300 }, 'Bagger', line7, neck)?.words).toBe('300 rejects a day — give the line a pack’s materials (Set up the line) to say them in money.');
+    expect(problemCost({ rejectsPerDay: 0, heldPacks: 0 }, 'Bagger', priced, neck)).toBeUndefined();
+  });
+  it('13 — the register: materials a day and product held summed over the open ones, the closing line saying all three', () => {
+    const a = problemCost({ minutesPerDay: 20, rejectsPerDay: 300, heldPacks: 1200 }, 'Bagger', priced, neck);
+    const b = problemCost({ rejectsPerDay: 300 }, 'Former', priced, neck);
+    const r = registerCost([{ status: 'open', cost: a }, { status: 'open', cost: b }, { status: 'closed', cost: b }, { status: 'open' }]);
+    expect(r.materials).toBeCloseTo(72, 6); expect(r.tiedUp).toBeCloseTo(144, 6);
+    expect(r.labour).toBeCloseTo(25.1333, 3);
+    expect(r.words).toBe('The 1 open problem that says its minutes cost the line £25 labour and £80 contribution a day (2,000 packs not made); 2 say their rejects: £72 materials a day; 1 holds £144 of product — 1 more say no cost yet.');
+    const unpriced = registerCost([{ status: 'open', cost: problemCost({ rejectsPerDay: 300 }, 'Former', line7, neck) }]);
+    expect(unpriced.words).toBe('1 open problem says its rejects or product held; give the line a pack’s materials (Set up the line) to price them.');
+  });
 });

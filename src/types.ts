@@ -36,6 +36,7 @@ export interface Workspace {
   // Optional lost-output refinement: contribution of the packs never made.
   packsPerMin?: number; // rated line speed
   marginPerPack?: number; // £ contribution per pack
+  materialsPerPack?: number; // £ a pack's materials — the line's typical figure, for what a reject or product held costs (knowledge/MONEY.md §3)
 
   // Sticky capture defaults so a repeat event is one tap (START).
   lastCategory?: string;

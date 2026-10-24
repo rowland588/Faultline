@@ -301,6 +301,7 @@ button { font-family: inherit; }
 .row-end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 .row-inline { display: flex; gap: 8px; align-items: center; }
 .row-inline .text-input { margin-top: 0; }
+.row-inline .ws-cost-box { flex: 1; }   /* a box of the line's cost model (Set up the line) */
 .create-card { margin-bottom: 16px; }
 
 /* ---------- chips ---------- */

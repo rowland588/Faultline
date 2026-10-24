@@ -621,7 +621,10 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   problem-cost.md`): the minutes a day a problem costs the line, typed in
   its editor, said in the loss count's two parts — labour, and packs and
   contribution where it stops the line — on the row, the card, the report
-  and the closing line's sum; the wage, speed or margin named when missing.
+  and the closing line's sum; the wage, speed or margin named when missing;
+  and, the same day, the rejects a day it causes at the line's materials a
+  pack and the product it holds as money tied up (not lost unless it goes
+  out of life), the pack's materials typed once in *Set up the line*.
   And the **6M** (24 October, `knowledge/specs/FC-146-sixm-money.md`): the
   problem's hours a week in money by its line's cost model — before, now,
   the target's worth, the saving so far — on its card and the 6M report; a

@@ -27,7 +27,7 @@ What does a pack cost in labour? What does a stop, a minute at the bottleneck,
 a changeover, a reject cost?
 
 ## Inputs and minimum conditions
-Crew, wage, on-costs; price and materials or margin a pack; the line's rate and constraint.
+Crew, wage, on-costs; price and materials or margin a pack; the line's rate and constraint. Since 24 October the line also carries a pack's materials as its typical figure (`Workspace.materialsPerPack`, *Set up the line*) — what a reject throws away and what product held is worth at least — the fallback where no product's own figure is named (`knowledge/MONEY.md` §3).
 
 ## Procedure and calculation
 - Labour £ an hour = crew × wage × on-costs.

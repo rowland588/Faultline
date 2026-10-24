@@ -919,8 +919,17 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
           named, nothing blocked (CLAUDE.md, 24 October; knowledge/specs/FC-154-problem-cost.md) */}
       <label className="pe-f pe-wide"><span className="pe-k">MINUTES A DAY IT COSTS THE LINE <i className="cw-f-opt">a stop, slow running, a workaround — while it is open</i></span>
         <DraftText value={s.minutesPerDay != null ? String(s.minutesPerDay) : ''} placeholder="e.g. 20" className="text-input pe-cost-in" max={6} ariaLabel="Minutes a day it costs the line"
-          onSave={v => { const n = Number(v.trim().replace(',', '.')); put({ minutesPerDay: v.trim() && Number.isFinite(n) && n >= 0 && n <= 1440 ? n : undefined }); }} />
-        <p className="pe-cost">{cost ? cost.words : 'Say the minutes to see what it costs the line a day — labour for the minutes, and the packs and contribution lost where it stops the line.'}</p></label>
+          onSave={v => { const n = Number(v.trim().replace(',', '.')); put({ minutesPerDay: v.trim() && Number.isFinite(n) && n >= 0 && n <= 1440 ? n : undefined }); }} /></label>
+      {/* part 2 — the rejects it causes (at the line's materials a pack) and the product it holds (money tied up) */}
+      <div className="pe-row">
+        <label className="pe-f"><span className="pe-k">REJECTS A DAY BECAUSE OF IT <i className="cw-f-opt">packs thrown away</i></span>
+          <DraftText value={s.rejectsPerDay != null ? String(s.rejectsPerDay) : ''} placeholder="e.g. 300" className="text-input pe-cost-in" max={9} ariaLabel="Rejects a day because of it"
+            onSave={v => { const n = Number(v.trim().replace(/,/g, '')); put({ rejectsPerDay: v.trim() && Number.isFinite(n) && n >= 0 && n <= 10_000_000 ? n : undefined }); }} /></label>
+        <label className="pe-f"><span className="pe-k">PACKS ON HOLD BECAUSE OF IT <i className="cw-f-opt">now</i></span>
+          <DraftText value={s.heldPacks != null ? String(s.heldPacks) : ''} placeholder="e.g. 1200" className="text-input pe-cost-in" max={10} ariaLabel="Packs on hold because of it"
+            onSave={v => { const n = Number(v.trim().replace(/,/g, '')); put({ heldPacks: v.trim() && Number.isFinite(n) && n >= 0 && n <= 100_000_000 ? n : undefined }); }} /></label>
+      </div>
+      <p className="pe-cost">{cost ? cost.words : 'Say the minutes, the rejects or the packs on hold to see what it costs — labour for the minutes, and the packs and contribution lost where it stops the line; the rejects at the line’s materials a pack; the product held as money tied up.'}</p>
 
       <Journey s={s} put={put} />
 

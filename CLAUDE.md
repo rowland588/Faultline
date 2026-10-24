@@ -611,7 +611,10 @@ open (24 October, FC-154): the minutes a day typed and kept, the sentence the
 module's — the wage named when the line lacks it, then labour, packs and
 contribution without a reload, a machine off the bottleneck labour only and
 said why — the row's short form, the closing line's sum, the card, the
-report, the phone.
+report, the phone; then the rejects it causes and the product it holds (part
+2): typed and kept, the pack's materials named once while the line has none,
+then at 12p a pack the rejects as materials a day and the hold as money tied
+up (not lost) — the row, the closing line, the card, the report, the phone.
 `programs.mjs` is a program's status with commentary (Rowland, 12 October:
 "we need option not tested, and no program, and allow commentary"): the five
 statuses offered, not tested kept with what was seen and the program not

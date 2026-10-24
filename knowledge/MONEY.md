@@ -101,7 +101,7 @@ Every one is optional; the tool names the one it lacks.
 | crew (people on the line), wage £/h, on-costs ratio | the line (Workspace) — else Line capacity's labour, else the line standard's head count | L, C, D, P, Q |
 | packs a minute (rated), the constraint | the line; Line capacity | T, D, C, S |
 | contribution a pack — price and materials a pack, else margin a pack | the line; the product | T, S, I |
-| cost a kilo; materials a pack; rework a pack; the target weight | the product (typed on the study until a product record carries it — FC-156) | M, Q |
+| cost a kilo; materials a pack; rework a pack; the target weight | the product (typed on the study until a product record carries it — FC-156); a pack's materials also as the line's typical figure (Workspace, *Set up the line*, 24 Oct) — the fallback where no product is named, as the register's rejects use it | M, Q, H |
 | cost a piece so far; carrying rate a year | the value stream map (FC-001); a stock record | H |
 | cost of a complaint, a claim, a withdrawal | the factory (typed when first needed) | Q (external), S |
 | a fitter's rate; spares used | the line's maintenance records (typed on the repair) | D |
@@ -337,7 +337,7 @@ own and names what it feeds.
 | FC-151 A3 | the problem's £ on the left, the countermeasures' worth on the right — as FC-146 | the tool's | | |
 | FC-152 Fault tree | — of its own; the top event's cost (D) when known | D | | |
 | FC-153 Stratification | the worst stratum's gap × the measure's £ | the tool's | | |
-| FC-154 Problems register | built 24 Oct, the time part — the minutes a day typed on the problem: labour, and packs and contribution where it stops the line (the bottleneck Line capacity's); the row, the editor, the card, the report, the closing line's sum (`knowledge/specs/FC-154-problem-cost.md`); the rejects it causes (M) and product held (H) still to come | L, T (M, H to come) | the minutes a day (typed on the problem); the line's wage, speed, margin | the editor's box asks the minutes; "give the line a wage (Set up the line)", "a speed", "a margin a pack" |
+| FC-154 Problems register | built 24 Oct — the minutes a day typed on the problem: labour, and packs and contribution where it stops the line (the bottleneck Line capacity's); the rejects a day it causes at the line's materials a pack (M); the packs it holds as money tied up at their materials (H — said tied up, never a daily loss; no carrying rate asked here); the row, the editor, the card, the report, the closing line's sums (`knowledge/specs/FC-154-problem-cost.md`) | L, T, M, H | the minutes a day, the rejects a day, the packs on hold (typed on the problem); the line's wage, speed, margin, materials a pack | the editor's boxes ask; "give the line a wage (Set up the line)", "a speed", "a margin a pack", "a pack's materials" |
 | FC-155 Horizontal deployment | the proved fix's £ a week × the lines it is offered to | the tool's | | |
 
 ### Yield, give-away and materials
@@ -487,9 +487,9 @@ own and names what it feeds.
 
 1. **The gaps in what is built** (`docs/BLUEPRINT.md` §6): the line standard
    (FC-006 — the people placed, a pack: built 24 October), the problems
-   register (FC-154 — the time a problem costs the line: built 24 October;
-   its rejects and held product to come), the 6M countermeasure's worth
-   (FC-146: built 24 October). Each through the `faultline-tool` skill, one at a time.
+   register (FC-154 — the time a problem costs the line, the rejects it
+   causes and the product it holds: built 24 October), the 6M
+   countermeasure's worth (FC-146: built 24 October). Each through the `faultline-tool` skill, one at a time.
 2. **The built tools with money partly said**: Reliability (FC-058 — each
    failure's lost minutes in money), the stops' pages where a figure is still
    missing, the stage gate's performance run and climb (FC-076, FC-077 — the

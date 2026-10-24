@@ -225,6 +225,10 @@ def open_cost(minutes, crew=4, wage=14.5, burden=1.3, per_min=100, margin=0.04, 
 print("  20 min at the bottleneck ->", open_cost(20)); print("  20 min off the bottleneck ->", open_cost(20, stops=False)); print("  7.5 min on the line ->", open_cost(7.5))
 print("  the register: 20 + 10 (off the bottleneck) ->", open_cost(20)[0] + open_cost(10, stops=False)[0], "labour;", open_cost(20)[2], "contribution")
 
+print("  part 2 — rejects x materials a pack = materials a day; held packs x materials = tied up (not a daily loss)")
+def reject_cost(rejects, held, materials=0.12): return rejects * materials, held * materials
+print("  300 rejects, 1,200 held at 12p ->", reject_cost(300, 1200), "; the register 300 + 300 rejects, 1,200 held ->", reject_cost(600, 1200))
+
 # --- what a 6M problem costs a week and what a countermeasure should be worth (knowledge/specs/FC-146-sixm-money.md, 24 October) ---
 print("\n# hours a week lost x the crew's rate = labour; where it stops the line, hours x 60 x rated speed = packs, x contribution a pack")
 def hours_cost(h, crew=5, wage=14.8, burden=1.3, per_min=60, margin=0.06, stops=True):

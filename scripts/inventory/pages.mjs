@@ -81,6 +81,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Problems — one open, its editor', path: `#/snags?open=${sd.snagId}`, must: [
     { what: 'the box — minutes a day it costs the line (24 October, FC-154)', sel: '[aria-label="Minutes a day it costs the line"]' },
+    { what: 'the boxes — rejects a day because of it, packs on hold because of it (FC-154 part 2)', sel: '[aria-label="Rejects a day because of it"], [aria-label="Packs on hold because of it"]', n: 2 },
     { what: 'what that is in money, or the ask', sel: '.pe-cost' },
   ] },
   { name: 'A stage-gate project — its front page', path: `#/project/${sd.projectId}`, must: [

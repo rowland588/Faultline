@@ -11,6 +11,8 @@ and **H** left for a later part). **Asked for:** Rowland, 17 October —
 — "the problems register (a problem's open cost)"; 24 October — the rule for
 every tool. **Status:** specified and built 24 October under the 24 October
 rule; the one new question (the minutes a day) is asked, never assumed.
+Part 2 (the rejects it causes, M; the product it holds, H) specified and
+built the same day, below.
 
 ## 1. Purpose
 The register says what is open, how urgent, whose and by when; it has never
@@ -26,16 +28,22 @@ its closing line: *"20 min a day at the Bagger, the bottleneck: £25 labour ·
 contribution a day"*. The sentence it lets one side say to the other: this
 problem is worth fixing before that one, in pounds.
 
-**Scope.** The time a problem costs, on the register's own problems (a
-`Snag` on a line): one typed number, the minutes a day, said in money by the
-line's cost model in the loss count's two parts; summed over the open ones
-that say it in the closing line; on the row, the editor, the card and the
-report. Left out, each its own part or entry: the rejects a problem causes
-(M — materials a pack live on the capability study, not the line, FC-156)
-and product it holds (H); a project's own problems (`TestItem`, a different
-record on the job's board); a problem's cost over its age (minutes × days
-open — a figure that invites a guess at the start day); money in the
-priority (RAG stays Rowland's words, the cost sits beside it).
+**Scope.** What a problem costs, on the register's own problems (a `Snag`
+on a line): three typed numbers, each optional — the minutes a day it costs
+the line (part 1, said in money by the line's cost model in the loss count's
+two parts), the rejects a day it causes (part 2, M — at the line's materials
+a pack), and the packs it holds (part 2, H — the money tied up in them at
+their materials, said as tied up, never as a daily loss); summed over the
+open ones that say any of them in the closing line; on the row, the editor,
+the card and the report. Left out, each its own part or entry: a project's
+own problems (`TestItem`, a different record on the job's board); a
+problem's cost over its age (minutes × days open — a figure that invites a
+guess at the start day); money in the priority (RAG stays Rowland's words,
+the cost sits beside it); a carrying cost on the held product (the carrying
+rate is the business's own — asked on the value stream map, FC-001 — and a
+problem is not the place to ask it again); rework (a reject reworked costs
+one rework, typed on the capability study where the fates are counted,
+FC-094 — the register counts rejects thrown away).
 
 ## 2. Users and scenarios
 The team leader writing a problem on the phone and adding "about 20 minutes
@@ -75,12 +83,35 @@ arithmetic a stop's minutes go through on the loss count.
 - *Chosen:* one module, `lib/problemCost`, read by the row, the editor, the
   card, the report and the closing line through the register's reading
   (`lib/snagsReport` SnagRow.cost, SnagsReading.cost).
+- *Established (part 2):* a pack thrown away costs its materials
+  (`knowledge/methods/cost/line-cost-model.md`; the capability study's
+  reject fates price waste at the pack's materials, FC-094 — the same
+  figure, the same word); product on hold is money tied up — pieces × what
+  each has cost so far, at least its materials
+  (`knowledge/methods/cost/inventory-carrying-cost.md`: "tied up is working
+  capital, not a daily loss; only the carrying cost is") — so the register
+  says *tied up*, and that it is not lost unless the product goes out of
+  life, and prices no carrying (the rate is asked on the map, not here).
+- *Chosen (part 2):* the materials a pack is the line's typical figure,
+  typed once in *Set up the line* beside the margin a pack
+  (`Workspace.materialsPerPack`) — the one cost model gains one input,
+  `knowledge/MONEY.md` §3; a product's own figure stays on its capability
+  study, and when a product record carries it (FC-156) the line's is the
+  fallback. Missing, it is named like the wage: "give the line a pack's
+  materials (Set up the line)".
+- *Chosen (part 2):* the rejects are a day's count, like the minutes; the
+  held packs a count now (not a day — a hold is a stock, not a flow).
 
 ## 4. Inputs
 One new, on the problem (`Snag.minutesPerDay`, 0–1440, optional —
 `supabase/PROBLEM_COST.sql`, applied 24 October and read back): **How many
 minutes a day it costs the line** — a stop, slow running, a workaround —
-typed in its editor. Read: the problem's machine (the walk's frame, else the
+typed in its editor. Part 2 adds two more on the problem, each optional
+(`Snag.rejectsPerDay` ≥ 0, `Snag.heldPacks` ≥ 0 — `supabase/PROBLEM_REJECTS.sql`,
+applied 24 October and read back): **Rejects a day because of it** (packs
+thrown away) and **Packs on hold because of it**; and one on the line
+(`Workspace.materialsPerPack` ≥ 0, the same file): **£ a pack's materials**,
+typed in *Set up the line* beside the margin a pack. Read: the problem's machine (the walk's frame, else the
 one named); the line's crew, wage, on-costs, rated speed, margin (`Workspace`,
 *Set up the line*); the line's standards for its bottleneck. Access and
 sync unchanged: the field is one nullable column on `snags`, in the mapper
@@ -104,6 +135,13 @@ the bottleneck unknown), else 0.
   speed asked; P known and no k → C absent, the margin asked.
 - Formatting: `fmtGBP` (whole pounds), `fmtPacks`; minutes to one decimal
   under 10.
+- Part 2 — r rejects a day, h packs held, u materials a pack: materials a
+  day M = r × u; tied up H = h × u. The register: ΣM over open problems
+  saying rejects, ΣH over open problems saying held packs. Missing u → M and
+  H absent, the materials asked (once, however many of the two are typed).
+  A problem saying none of m, r, h says nothing about money; one saying any
+  of them says that part, and the sentence's parts are joined "; " in the
+  order minutes · rejects · held, each only when typed.
 
 **Independent cases** (`scripts/knowledge/independent-cases.py`, "what a
 problem costs the line"; `src/lib/__tests__/problemCost.test.ts`), on a line
@@ -122,6 +160,21 @@ Bagger:
    Bagger + 10 at the Former, open; one open with no minutes; one closed →
    £37.70 labour, £80 contribution, 2,000 packs, "2 say … 1 more say no
    minutes yet".
+Part 2, the line's materials 12p a pack:
+9. 300 rejects a day → £36 materials a day; "300 rejects a day: £36
+   materials" — with no minutes typed, the whole sentence is that and the
+   short form "£36 materials a day".
+10. 1,200 packs on hold → £144 tied up; "1,200 packs on hold: £144 tied up
+   (not lost unless they go out of life)".
+11. 20 min at the Bagger + 300 rejects + 1,200 held → case 1's sentence,
+   then "; 300 rejects a day: £36 materials; 1,200 packs on hold: £144 tied
+   up (not lost unless they go out of life)."
+12. No materials on the line → "300 rejects a day and 1,200 packs on hold —
+   give the line a pack’s materials (Set up the line) to say them in
+   money"; the minutes' part unchanged beside it.
+13. The register: case 11 open + 300 rejects only open + one closed with
+   rejects → labour and contribution as case 8's first row, £72 materials
+   a day, £144 held; the closing line says all three.
 
 ## 7. Outputs
 On the register: the cost's short form on the row's second line ("£25
@@ -135,7 +188,10 @@ problem's plan; the problem's card prints it under what we will do.
 gains one line a problem, the sentence, after *Plan:*; `lib/snagCardPdf`
 gains one line under the plan; the register's closing line on paper carries
 the sum as the page does. Nothing else on paper changes; the papers of
-problems with no minutes are as before.
+problems with no minutes are as before. Part 2 changes no paper code: the
+sentence a problem prints is the module's whole sentence, so a problem's
+rejects and held product reach the report, the card and the closing line
+through the same lines; a problem typing none of the three prints as before.
 
 ## 8. Manufacturing usability
 One number typed on the phone, in the editor where the problem is worked;
@@ -170,6 +226,19 @@ Chromium on the seeded line and reads the report and the card back.
 3. The Problems report's text carries the sentence; the problem's card too.
 4. On a phone the box and the sentence are visible in the editor.
 5. No console errors. The line is put back as it was.
+Part 2, story 20 of the same script:
+6. 300 typed in *Rejects a day because of it* and 1,200 in *Packs on hold
+   because of it* on a problem with its minutes, the line without materials:
+   both kept on the record; the sentence under the boxes equals the module's
+   and names the pack's materials once, the minutes' part unchanged.
+7. The line given 12p a pack's materials (the record, as story 19 gives the
+   wage — the box in *Set up the line* writes the same field): the sentence
+   says the materials a day and the money tied up, the row's short form
+   carries them, the closing line carries the register's materials a day
+   and the product held — without a reload.
+8. The Problems report's text and the problem's card carry the sentence.
+9. On a phone the two boxes are visible in the editor.
+10. No console errors. The line is put back as it was.
 Proved by: `node scripts/acceptance/snags.mjs` (in the gate), `npx vitest run
 src/lib/__tests__/problemCost.test.ts`, the sync schema test.
 
@@ -178,5 +247,5 @@ One module, `src/lib/problemCost.ts` (`problemCost`, `registerCost`), read
 through `lib/snagsReport`; the arithmetic is `lib/cost`, `lib/lineLoss` and
 `tools/losses` contributionOf, so a change to the cost model changes the
 register with the loss count. `knowledge/MONEY.md` §4 FC-154 says built for
-L and T, with M and H still to come; the catalogue entry names the spec, the
-module and the tests.
+L, T, M and H (M and H at the line's materials a pack, H as tied up); the
+catalogue entry names the spec, the module and the tests.

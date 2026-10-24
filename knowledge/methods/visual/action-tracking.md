@@ -46,5 +46,8 @@ Every improvement meeting.
 Actions (`src/lib/projectActions.ts`), the problems register, Every action (FC-154, FC-194).
 Since 24 October a problem on the register says what it costs the line a day
 while it is open — its typed minutes by the line's cost model, labour and,
-where it stops the line, packs and contribution; the register's closing line
-sums them (`knowledge/specs/FC-154-problem-cost.md`, `src/lib/problemCost.ts`).
+where it stops the line, packs and contribution; and the rejects a day it
+causes (at the line's materials a pack) and the product it holds (money tied
+up at its materials, said as tied up — `cost.inventory-carrying-cost`); the
+register's closing line sums them (`knowledge/specs/FC-154-problem-cost.md`,
+`src/lib/problemCost.ts`).
