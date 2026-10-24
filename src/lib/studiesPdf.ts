@@ -228,6 +228,20 @@ function tableBlock(header: string[], body: string[][], shares: number[], redRow
   });
   return rows({ header: row(header, true), rows: body.map((b, i) => row(b, false, redRow?.(i) ?? false)), after: 'm' });
 }
+/** A table whose cells wrap inside their columns, a row as tall as its longest cell — for names and words that are not short. */
+function wrapTable(header: string[], body: string[][], shares: number[], redRow?: (i: number) => boolean): Block {
+  const LH = 9;
+  const lines = (f: Frame, cells: string[], bold: boolean) => cells.map((c, i) => { font(f.doc, 7.5, bold ? 'bold' : 'normal', INK2); return wrap(f.doc, c, f.w * shares[i] - 6, 7.5); });
+  const row = (cells: string[], bold: boolean, red = false): Parameters<typeof rows>[0]['rows'][number] => ({
+    h: (f: Frame) => Math.max(...lines(f, cells, bold).map(l => l.length)) * LH + 4,
+    draw: (fr: Frame, y: number) => {
+      let x = fr.x;
+      lines(fr, cells, bold).forEach((ls, i) => { font(fr.doc, 7.5, bold ? 'bold' : 'normal', bold ? MUTED : red ? DANGER : INK2); ls.forEach((l, k) => fr.doc.text(l, x, y + 8 + k * LH)); x += fr.w * shares[i]; });
+      if (bold) { fr.doc.setDrawColor(LINE); fr.doc.setLineWidth(0.4); const h = Math.max(...lines(fr, cells, bold).map(l => l.length)) * LH + 2; fr.doc.line(fr.x, y + h, fr.x + fr.w, y + h); }
+    },
+  });
+  return rows({ header: row(header, true), rows: body.map((b, i) => row(b, false, redRow?.(i) ?? false)), after: 'm' });
+}
 /** Bars against limits — a run, an inspection or an interval a bar; a line for the centre and one for the maximum. */
 function barsBlock(bars: { v: number; out?: boolean; miss?: boolean; lo?: number; hi?: number }[], lines: { v: number; label: string; red?: boolean }[], fmt: (v: number) => string): Block {
   const top = Math.max(...bars.map(b => Math.max(b.v, b.hi ?? 0)), ...lines.map(l => l.v), 1e-9) * 1.12, HB = 110;
@@ -590,7 +604,7 @@ function blocksOf(p: StudiesPaper, d: Density): Block[] {
     out.push(label('Capability over time'));
     out.push(text({ text: overTimeSays(ot), size: 8.5, colour: INK2, after: 3 }));
     const share = [0.28, ...ot.months.map(() => 0.58 / ot.months.length), 0.14];
-    out.push(tableBlock(['Product or machine', ...ot.months.map(m => m.label), 'Latest'], ot.rows.map(r => [r.who, ...ot.months.map(m => (r.cells[m.key] ? `${r.cells[m.key].text}${r.cells[m.key].studies > 1 ? ` ×${r.cells[m.key].studies}` : ''}` : '—')), r.latest.verdict]), share, i => ot.rows[i].latest.tone === 'r'));
+    out.push(wrapTable(['Product or machine', ...ot.months.map(m => m.label), 'Latest'], ot.rows.map(r => [r.who, ...ot.months.map(m => (r.cells[m.key] ? `${r.cells[m.key].text}${r.cells[m.key].studies > 1 ? ` ×${r.cells[m.key].studies}` : ''}` : '—')), r.latest.verdict]), share, i => ot.rows[i].latest.tone === 'r'));
   }
   p.items.forEach((item, i) => out.push(...studyBlocks(p, item, i)));
   return out;

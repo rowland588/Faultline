@@ -33,6 +33,8 @@ const MEANT = {
     .map(f => [f, 'money on the 6M problem and its countermeasures (FC-146, 24 October)'])),
   /* pass or fail by a confidence level or an allowed loss (FC-100, 23 October: "we also want to be adding confidence as part of our
      language"): "that proves fewer than 32 in 100 would fail (95% sure)" is said "we can be 95% confident fewer than 32 in 100 would fail" */
+  /* CAPABILITY OVER TIME (FC-101, W2, 24 October): the list's table of products by month before each study's page */
+  'huge-studies-capability.pdf': 'Capability over time table (FC-101, W2, 24 October)',
   'ordinary-client.pdf': 'pass or fail said with its confidence (FC-100, 23 October); This week and next (docs/JOURNEY.md J3)',
   'ordinary-commissioning.pdf': 'pass or fail said with its confidence (FC-100, 23 October)',
   /* THIS WEEK AND NEXT (docs/JOURNEY.md, J3): one line — done · still to do (late) · planned — on the stage-gate status and
