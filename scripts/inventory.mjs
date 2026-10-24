@@ -3,7 +3,7 @@
  * on the screen with a size. Fails the gate when one is missing.
  *
  *   node scripts/inventory.mjs                      (SMOKE_BASE, as smoke)
- *   node scripts/inventory.mjs --shots DIR          and a picture of each page
+ *   node scripts/inventory.mjs --shots DIR          and a picture of each page (--phone or --desk: that viewport only)
  *   node scripts/inventory.mjs --compare OLD NEW    what changed between two sets of pictures
  *
  * --compare is the look before shipping (CLAUDE.md, The memory): the pictures
@@ -49,12 +49,16 @@ if (args[0] === '--compare') {
 }
 
 const SHOTS = args[0] === '--shots' ? args[1] : undefined;
+/* --shots DIR --phone (or --desk): one viewport only — a phone-only set in half the time when only the phone moved,
+   or when a server fell over part-way through the first (24 October: a dev server's dynamic import failed on the
+   56th phone page and every page after it was the error page). */
+const VIEWS = args.includes('--phone') ? ['phone'] : args.includes('--desk') ? ['desk'] : ['desk', 'phone'];
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
   user: { id: '11111111-1111-1111-1111-111111111111', aud: 'authenticated', role: 'authenticated', email: 'smoke@example.com', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } };
 let fail = 0, checked = 0;
 const errors = [];
-for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone', { width: 390, height: 844 }]]) {
+for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone', { width: 390, height: 844 }]].filter(([t]) => VIEWS.includes(t))) {
   const ctx = await browser.newContext({ serviceWorkers: 'block', viewport, locale: 'en-GB', timezoneId: 'Europe/London' });
   await ctx.route(`https://${REF}.supabase.co/**`, r => r.abort());
   await ctx.addInitScript(([k, s]) => { localStorage.setItem(k, JSON.stringify(s)); }, [`sb-${REF}-auth-token`, SESSION]);
