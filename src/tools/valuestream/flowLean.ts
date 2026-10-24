@@ -4,8 +4,8 @@
  * NV red, with the words — Rowland's exception, 11 October), so they stay;
  * the band, the action plan and this line join them. What the waits cost is
  * not said yet (BLUEPRINT §6, Money in every tool): no figure is made up. */
-import type { LeanTile, LeanTone } from '../lean';
-import type { AgreedMap, FlowStep } from '../study';
+import type { LeanTile, LeanTone } from '../../lib/lean';
+import type { AgreedMap, FlowStep } from '../../lib/study';
 import { dur, share, whereOf, whoOf, type FlowFigures } from './steps';
 
 /** THE CLOSING LINE — the lead time and its value-added share, and where to

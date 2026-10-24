@@ -11,7 +11,7 @@
  * never inside one, the header drawn again overleaf (blocks.rows).
  *
  * The words are worked out in lib/ie/steps (streamRows); this only draws. */
-import type { StreamRow } from '../ie/steps';
+import type { StreamRow } from '../../tools/valuestream/steps';
 import { INK, INK2, LINE, MUTED } from '../reportKit';
 import { font, rows, text, wrap, SIZE, type Row } from './blocks';
 import type { Block, Frame } from './flow';

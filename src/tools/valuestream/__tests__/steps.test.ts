@@ -1,7 +1,7 @@
 /* The value stream's arithmetic — one line end to end, the departments that touch it included. */
 import { describe, it, expect } from 'vitest';
 import { flowFigures, flowSays, compareFlows, waitOf, valueOf, dur, parseDur, lanesOf, lanesOfStep, whoOf, whereOf, laneByDefault, stepWorth, stepFigure, compareStep, carryFlow, streamRows } from '../steps';
-import type { FlowStep } from '../../study';
+import type { FlowStep } from '../../../lib/study';
 
 const D = 86_400;
 let n = 0;

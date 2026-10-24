@@ -50,7 +50,7 @@ import type { ChangeoverProduct, ChangeoverStep, RunningPattern, SmedFunction, S
 import { lineSpeed, type Capacity, type ChangeoverIn } from '../../lib/capacity';
 import { labourPerHour } from '../../lib/cost';
 import type { Tone } from '../../lib/ie/sample';
-import { dur } from '../../lib/ie/steps';
+import { dur } from '../valuestream/steps';
 
 /* --------------------------------------------------------------- basics */
 

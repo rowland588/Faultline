@@ -21,7 +21,7 @@
  *
  * THE GRID: lanes down the side (who), the journey across (the steps in
  * order), each card filled by its value (ui/ValueStream). */
-import type { AgreedMap, FlowStep } from '../study';
+import type { AgreedMap, FlowStep } from '../../lib/study';
 
 const DAY = 86_400;
 

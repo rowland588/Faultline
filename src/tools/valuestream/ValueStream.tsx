@@ -28,8 +28,8 @@
  * Fixed-size squares; on a phone the grid scrolls sideways inside its box,
  * the lanes pinned; the page never does. */
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { dur, lanesOf, lanesOfStep, share, valueOf, waitOf, whereOf, whoOf, type FlowFigures, type LaneBy } from '../lib/ie/steps';
-import type { AgreedMap, FlowKind, FlowStep, FlowValue } from '../lib/study';
+import { dur, lanesOf, lanesOfStep, share, valueOf, waitOf, whereOf, whoOf, type FlowFigures, type LaneBy } from './steps';
+import type { AgreedMap, FlowKind, FlowStep, FlowValue } from '../../lib/study';
 
 export const KIND_WORD: Record<FlowKind, string> = { operation: 'Operation', move: 'Move', check: 'Check', wait: 'Wait', store: 'Store' };
 export const VALUE_WORD: Record<FlowValue, string> = { adds: 'adds value', needed: 'necessary', waste: 'non-value adding' };

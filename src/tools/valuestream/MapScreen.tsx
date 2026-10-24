@@ -19,26 +19,26 @@
  * the future state, copied from today and changed, before → after said; and
  * what it is used for on its job. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStandard, getStudy, getWorkspace, onDataChange, patchStudy } from '../db';
-import { peopleOf } from '../lib/standard';
-import { useAccess } from '../cloud/access';
-import { useSession } from '../cloud/session';
-import { displayName } from '../cloud/team';
-import { can as canAt, type Can } from '../lib/access';
-import { uid } from '../lib/ids';
-import { niceDay, isoDay } from '../lib/weeks';
-import { nav } from '../state/useRoute';
-import { compareFlows, dur, flowFigures, flowSays, laneByDefault, parseDur, share, stepWorth, valueOf, whereOf, whoOf, type LaneBy } from '../lib/ie/steps';
-import type { AgreedMap, FlowKind, FlowStep, FlowValue, StudyUse, ToolStudy } from '../lib/study';
-import { KIND_WORD, StepFacts, VALUE_WORD, ValueStreamGrid, WalkIt } from '../ui/ValueStream';
-import { UsedFor, useBetter, WhereItSits } from '../ui/StudyPlace';
-import { StudyBand } from '../ui/StudyActs';
-import { LeanActions, LeanClosing, LeanPanel } from '../ui/Lean';
-import { bandPage } from '../lib/lean';
-import { flowClosing } from '../lib/ie/flowLean';
-import { raisedFrom } from '../tools/losses/lossLean';
-import { recordHref, ROLE_WORD } from '../lib/studyLinks';
-import { Sheet } from '../ui/Sheet';
+import { getStandard, getStudy, getWorkspace, onDataChange, patchStudy } from '../../db';
+import { peopleOf } from '../../lib/standard';
+import { useAccess } from '../../cloud/access';
+import { useSession } from '../../cloud/session';
+import { displayName } from '../../cloud/team';
+import { can as canAt, type Can } from '../../lib/access';
+import { uid } from '../../lib/ids';
+import { niceDay, isoDay } from '../../lib/weeks';
+import { nav } from '../../state/useRoute';
+import { compareFlows, dur, flowFigures, flowSays, laneByDefault, parseDur, share, stepWorth, valueOf, whereOf, whoOf, type LaneBy } from './steps';
+import type { AgreedMap, FlowKind, FlowStep, FlowValue, StudyUse, ToolStudy } from '../../lib/study';
+import { KIND_WORD, StepFacts, VALUE_WORD, ValueStreamGrid, WalkIt } from './ValueStream';
+import { UsedFor, useBetter, WhereItSits } from '../../ui/StudyPlace';
+import { StudyBand } from '../../ui/StudyActs';
+import { LeanActions, LeanClosing, LeanPanel } from '../../ui/Lean';
+import { bandPage } from '../../lib/lean';
+import { flowClosing } from './flowLean';
+import { raisedFrom } from '../losses/lossLean';
+import { recordHref, ROLE_WORD } from '../../lib/studyLinks';
+import { Sheet } from '../../ui/Sheet';
 
 const OWNER = canAt('owner');
 type Which = 'flow' | 'future';

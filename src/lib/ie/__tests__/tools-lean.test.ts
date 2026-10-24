@@ -6,10 +6,10 @@
 import { describe, expect, it } from 'vitest';
 import { personRate, samplingClosing, samplingTiles, worstCost } from '../../../tools/sampling/samplingLean';
 import { sampleClosing, sampleTiles } from '../sampleLean';
-import { flowClosing, flowTiles } from '../flowLean';
+import { flowClosing, flowTiles } from '../../../tools/valuestream/flowLean';
 import { samplingSays } from '../../../tools/sampling/sampling';
 import { sample, sampleSays } from '../sample';
-import { flowFigures } from '../steps';
+import { flowFigures } from '../../../tools/valuestream/steps';
 import type { AgreedReadings, AgreedSampling, FlowStep, Tap } from '../../study';
 
 const H = 3_600_000;

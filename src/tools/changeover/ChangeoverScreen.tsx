@@ -41,7 +41,7 @@ import {
   HOW_WORD, intervalOf, intervalSays, ladderOf, ladderSays, lineRateOf, mins, moneyOf, patternFromShifts, planWords, rateFromWords, runMinOf, runningOf, runningWords, span,
   SMED_TARGET_SEC, standardFrom, standardLine, STREAMLINE_HOW, whenIn, costOf, scaleRows, type CostScale, type Ladder, type CoLaneBy, type Rung, type SmedMoney,
 } from './changeover';
-import { dur, parseDur } from '../../lib/ie/steps';
+import { dur, parseDur } from '../valuestream/steps';
 import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, SmedFunction, SmedHow, SmedPlan, SmedPlanKind, SmedRateFrom, StudyFacts, StudyUse, ToolStudy } from '../../lib/study';
 import type { Workspace } from '../../types';
 import { UsedFor, useBetter, WhereItSits } from '../../ui/StudyPlace';

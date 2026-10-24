@@ -32,7 +32,7 @@ import { removeStudy, StudyRowName } from '../ui/StudyActs';
 import { useAccess } from '../cloud/access';
 import { can as canOf } from '../lib/access';
 import { rateForCount } from '../ui/ShiftLosses';
-import { dur, flowFigures, share } from '../lib/ie/steps';
+import { dur, flowFigures, share } from '../tools/valuestream/steps';
 import { changeoverFigures, changeoverSays, figuresOf, mins } from '../tools/changeover/changeover';
 import { samplingSays } from '../tools/sampling/sampling';
 import { plural, relAll, span, studyReliabilitySays } from '../tools/reliability/reliability';

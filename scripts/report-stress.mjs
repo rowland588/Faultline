@@ -654,7 +654,7 @@ for (const size of SIXM_SIZES) {
       /* Every study on the job (on the line, for a line's deck) — its title
          and what it says — and a value stream's steps as a table. */
       from = 'evidence';
-      const { streamRows } = await import('/src/lib/ie/steps.ts');
+      const { streamRows } = await import('/src/tools/valuestream/steps.ts');
       const { changeoverSheet, agreedFor, moneyOf } = await import('/src/tools/changeover/changeover.ts');
       const { lossRows } = await import('/src/tools/losses/losses.ts');
       const { samplingRows } = await import('/src/tools/sampling/sampling.ts');

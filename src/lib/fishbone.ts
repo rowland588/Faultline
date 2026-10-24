@@ -40,7 +40,7 @@ import { secs } from './ie/balance';
 import { boneOfStep, currentBalance, currentLosses, currentSampling, lossFiguresOf } from './studyLinks';
 import { boneOfActivity, samplingLine, samplingOffers, worstWords } from '../tools/sampling/sampling';
 import { idealWord, minWords, shiftWords, type LossBar } from '../tools/losses/losses';
-import { dur, flowFigures, stepAt, stepFigure, valueOf, waitOf, whereOf } from './ie/steps';
+import { dur, flowFigures, stepAt, stepFigure, valueOf, waitOf, whereOf } from '../tools/valuestream/steps';
 import { figuresOf, mins, stepFigure as changeoverStepFigure } from '../tools/changeover/changeover';
 import { stateOf as materialState, daysLate } from './materials';
 import { standingOf, stateOf as programState, daysOverdue } from './programs';

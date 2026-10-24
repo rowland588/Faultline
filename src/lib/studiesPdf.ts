@@ -26,9 +26,9 @@ import { agreedFor as agreedForChangeover, changeoverSays, extrapolationSays, fi
 import { smedLean } from '../tools/changeover/changeoverLean';
 import { sampleClosing, sampleTiles } from './ie/sampleLean';
 import { momentsAt, personRate, samplingClosing, samplingTiles } from '../tools/sampling/samplingLean';
-import { flowClosing, flowTiles } from './ie/flowLean';
+import { flowClosing, flowTiles } from '../tools/valuestream/flowLean';
 import { samplingSays } from '../tools/sampling/sampling';
-import { dur, flowFigures } from './ie/steps';
+import { dur, flowFigures } from '../tools/valuestream/steps';
 import { bandPage, type LeanTile, type LeanTone } from './lean';
 import { lossBlocks, lossFallBlock } from './report/lossTable';
 import { boxed, leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles, leanTrend, pair, stack } from './report/lean';

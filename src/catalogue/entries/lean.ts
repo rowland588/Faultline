@@ -15,7 +15,7 @@ export const LEAN: Entry[] = [
     status: 'available', form: 'tool', kind: 'study', starts: 'line',
     app: { key: 'valuestream', label: 'Value stream', says: 'The line’s steps, waits and value, walked', onLine: 'every step, who does it, the waits', reads: 'map', icon: 'route', order: 5 }, methods: ['lean.value-stream-mapping', 'lean.takt-time'],
     scenarios: ['running', 'project'], words: ['VSM', 'lead time', 'flow', 'waits', 'waiting time'],
-    built: { where: ['/value-stream'], code: ['src/screens/MapScreen.tsx', 'src/lib/ie/steps.ts'], tests: ['src/lib/ie/__tests__/steps.test.ts'], acceptance: ['value-stream.mjs'] },
+    built: { where: ['/value-stream'], code: ['src/tools/valuestream/MapScreen.tsx', 'src/tools/valuestream/steps.ts'], tests: ['src/tools/valuestream/__tests__/steps.test.ts'], acceptance: ['value-stream.mjs'] },
     limits: ['Inventory counts are not converted to days (Little’s law, FC-044).', 'No supermarket, kanban or pitch on the future state.'],
   },
   {

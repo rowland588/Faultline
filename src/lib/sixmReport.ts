@@ -29,7 +29,7 @@ import { lossRows } from '../tools/losses/losses';
 
 
 import { samplingRows } from '../tools/sampling/sampling';
-import { streamRows } from './ie/steps';
+import { streamRows } from '../tools/valuestream/steps';
 import { agreedFor, changeoverSheet, moneyOf } from '../tools/changeover/changeover';
 
 
