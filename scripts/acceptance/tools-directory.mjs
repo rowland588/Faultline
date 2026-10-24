@@ -8,8 +8,8 @@
  *      exactly those tools, each saying its status in words
  *   3  the problem in the floor's words — "we're rejecting too many": where to
  *      start (the rejects route first), the tools in the module's order, the
- *      reject rate (FC-098) among the first five, Planned, opened — its
- *      problem, and "not built yet", no Open it
+ *      reject rate (FC-098) among the first five, available since W1, opened — its
+ *      problem, what it does not do yet, Open it landing on the capability study
  *   4  a number — "FC-95": the one tool; opened, Open it lands on the
  *      capability study
  *   5  a route's tool opened from the route; a discipline chosen — its tools
@@ -97,8 +97,12 @@ ok((await page.locator('.et-route-b').count()) >= 20 && (await rows()).length ==
   ok(shown.slice(0, 5).includes('FC-098') && (await page.locator('.et-row[data-id="FC-098"] .et-st').innerText()) === e.status, `3 the reject rate among the first five, "${e.status}"`);
   await page.locator('.et-row[data-id="FC-098"] .et-row-h').click(); await page.waitForTimeout(300);
   const body = flat(await page.locator('.et-row[data-id="FC-098"] .et-body').innerText());
-  ok(body.includes(e.problem) && /Planned — specified, not built yet\./.test(body) && (await page.locator('.et-row[data-id="FC-098"]').getByRole('button', { name: 'Open it' }).count()) === 0,
-    '3 opened: its problem, "Planned — specified, not built yet.", no Open it');
+  /* since W1 (24 October) the reject rate is built: available, its limits said under "What it does not do yet", Open it landing on the capability study */
+  ok(body.includes(e.problem) && /^Available$/.test(e.status) && /What it does not do yet/.test(body) && /Each run is one count of made and rejected/.test(body) && (await page.locator('.et-row[data-id="FC-098"]').getByRole('button', { name: 'Open it' }).count()) === 1,
+    `3 opened: its problem, "${e.status}", what it does not do yet, Open it`);
+  await page.locator('.et-row[data-id="FC-098"]').getByRole('button', { name: 'Open it' }).click(); await page.waitForTimeout(1500);
+  ok(/#\/capability$/.test(page.url()), `3 Open it lands on the capability study (${page.url().split('#')[1]})`);
+  await page.goto(`${BASE}/#/tools`); await page.waitForTimeout(1500);
 }
 
 /* ---- 4 · a number ---- */

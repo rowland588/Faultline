@@ -10,6 +10,7 @@ import type { LeanTile, LeanTone } from '../../lib/lean';
 import type { AgreedReadings } from '../../lib/study';
 import { CPK_FROM, goodWord, pctWord, ruleWords, type SampleFigures, type SampleSays, sampleMoney, kgWord, gbpWord, fateWord, type Fate } from './sample';
 import { fewerThan } from '../../lib/ie/dist';
+import { shareWords } from './modes';
 
 const tone = (t: string): LeanTone | undefined => (t === 'r' || t === 'a' || t === 'g' ? t : undefined);
 
@@ -21,8 +22,42 @@ export function sampleTiles(f: SampleFigures, a: AgreedReadings, said: SampleSay
     : a.lower !== undefined && a.upper !== undefined ? `${a.lower}–${a.upper}${unit}`
     : a.lower !== undefined ? `at least ${a.lower}${unit}` : a.upper !== undefined ? `at most ${a.upper}${unit}` : 'the limits';
   const tiles: LeanTile[] = [
-    { k: a.kind === 'ticks' ? 'Checked' : 'Readings', v: String(f.n), of: `of ${f.count} agreed${f.n < f.count ? ` · ${f.count - f.n} still to take` : ''}`, ...(f.n ? {} : { tone: 'n' as LeanTone }) },
+    { k: a.kind === 'ticks' ? 'Checked' : a.kind === 'rejects' ? 'Runs' : a.kind === 'faults' ? 'Inspections' : a.kind === 'rate' ? 'Intervals' : 'Readings', v: String(f.n), of: `of ${f.count} agreed${f.n < f.count ? ` · ${f.count - f.n} still to take` : ''}`, ...(f.n ? {} : { tone: 'n' as LeanTone }) },
   ];
+  const verdictTile: LeanTile = { k: 'Verdict', v: said.verdict, of: said.text, ...(tone(said.tone) ? { tone: tone(said.tone) } : {}) };
+  /* W1 — REJECTS OUT OF WHAT WAS MADE: made, rejected, the rate of the maximum, how sure, the money */
+  if (a.kind === 'rejects' && f.runs) {
+    const r = f.runs, n = (v: number) => v.toLocaleString('en-GB');
+    const m = sampleMoney(f, a).runs;
+    return [...tiles,
+      { k: 'Made', v: n(r.made), of: `across ${f.n} run${f.n === 1 ? '' : 's'}`, ...(f.n ? {} : { tone: 'n' as LeanTone }) },
+      { k: 'Rejected', v: n(r.rejected), of: r.made ? `${(r.p * 100).toFixed(2)}% · ${n(Math.round(r.perMillion))} per million` : 'none counted', ...(r.verdict === 'notMet' ? { tone: 'r' as LeanTone } : r.made ? {} : { tone: 'n' as LeanTone }) },
+      { k: 'Confident', v: r.made && f.n >= 3 ? `≤ ${shareWords(r.upper)}` : '—', of: r.made && f.n >= 3 ? `95% confident · between ${(r.lo * 100).toFixed(2)}% and ${(r.hi * 100).toFixed(2)}%${r.max !== undefined ? ` · at most ${shareWords(r.max)} agreed` : ''}` : 'said from 3 runs', ...(r.made && f.n >= 3 ? {} : { tone: 'n' as LeanTone }) },
+      ...(m ? [{ k: 'Rejects cost', v: m.gbpShift !== undefined ? gbpWord(m.gbpShift) : '—', of: m.gbpShift !== undefined ? `a shift — about ${n(Math.round(m.rejectsShift as number))} packs${m.gbpWeek !== undefined ? ` · ${gbpWord(m.gbpWeek)} a week` : ''}` : m.missing.join('; '), tone: (m.gbpShift !== undefined ? 'a' : 'n') as LeanTone }] : []),
+      verdictTile];
+  }
+  /* W1 — FAULTS FOUND ON EACH ITEM: items, faults, per item, the top kind */
+  if (a.kind === 'faults' && f.faults) {
+    const q = f.faults, n = (v: number) => v.toLocaleString('en-GB'), top = q.tally[0];
+    return [...tiles,
+      { k: 'Items', v: n(q.items), of: `across ${f.n} inspection${f.n === 1 ? '' : 's'}`, ...(f.n ? {} : { tone: 'n' as LeanTone }) },
+      { k: 'Faults', v: n(q.faults), of: q.items ? `${q.dpu.toFixed(3)} an item · ${(q.shareAny * 100).toFixed(1)}% of items carry one` : 'none counted', ...(q.verdict === 'notMet' ? { tone: 'r' as LeanTone } : q.items ? {} : { tone: 'n' as LeanTone }) },
+      { k: 'Per 100', v: q.items && f.n >= 3 ? (q.dpu * 100).toFixed(1) : '—', of: q.items && f.n >= 3 ? `95% confident ${(q.lo * 100).toFixed(1)}–${(q.hi * 100).toFixed(1)}${q.max !== undefined ? ` · at most ${(q.max * 100).toFixed(1)} agreed` : ''}` : 'said from 3 inspections', ...(q.items && f.n >= 3 ? {} : { tone: 'n' as LeanTone }) },
+      { k: 'Top kind', v: top ? top.kind : '—', of: top ? `${n(top.count)} of ${n(q.faults)} — ${Math.round(top.share * 100)}%${top.gbp !== undefined ? ` · ${gbpWord(top.gbp)}` : ''}` : 'no faults by kind yet', ...(top ? {} : { tone: 'n' as LeanTone }) },
+      verdictTile];
+  }
+  /* W1 — HELD AT A RATE: intervals met, the stretch, made of expected */
+  if (a.kind === 'rate' && f.rate) {
+    const r = f.rate, n = (v: number) => v.toLocaleString('en-GB');
+    return [...tiles,
+      { k: 'Met', v: f.n ? `${r.met} of ${f.n}` : '—', of: f.n ? `${Math.round(r.share * 100)}% of intervals${r.held === 'gaps' || r.held === 'not' ? ` · ${r.heldShare}% needed for held with gaps` : ''}` : 'said once an interval is in', ...(r.held === 'not' ? { tone: 'r' as LeanTone } : f.n ? {} : { tone: 'n' as LeanTone }) },
+      { k: 'Longest stretch', v: f.n ? `${r.stretchMin} min` : '—', of: f.n ? `met in a row · intervals of ${r.intervalMin}` : '' , ...(f.n ? {} : { tone: 'n' as LeanTone }) },
+      { k: 'Made', v: f.n ? n(r.made) : '—', of: f.n ? `of ${n(Math.round(r.expected))} expected at ${r.limit}${unit} a minute (${r.ratio.toFixed(3)})` : '', ...(f.n && r.ratio < 1 ? { tone: 'a' as LeanTone } : f.n ? {} : { tone: 'n' as LeanTone }) },
+      r.ppk !== undefined
+        ? { k: 'Ppk on rates', v: r.ppk.toFixed(2), of: `one-sided · from ${f.n} intervals${r.ppkLow !== undefined ? ` · 95% sure at least ${r.ppkLow.toFixed(2)}` : ''}`, ...(r.ppk < 1 ? { tone: 'a' as LeanTone } : {}) }
+        : { k: 'Ppk on rates', v: '—', of: `said from 25 intervals · ${f.n} so far`, tone: 'n' as LeanTone },
+      verdictTile];
+  }
   /* pass or fail: how many failed of how many may, and what the count
      proves (knowledge/specs/FC-094-capability.md §7) */
   if (a.kind === 'ticks' && f.ticks) {
@@ -59,6 +94,9 @@ export function sampleTiles(f: SampleFigures, a: AgreedReadings, said: SampleSay
 export function sampleClosing(f: SampleFigures, a: AgreedReadings, said: SampleSays): { text: string; tone: LeanTone } {
   const tones = [said.tone, said.capability?.tone];
   const t: LeanTone = tones.includes('r') ? 'r' : tones.includes('a') ? 'a' : said.tone === 'g' ? 'g' : 'n';
+  if (a.kind === 'rejects' && f.runs) return { text: f.n ? `${said.verdict} — ${f.runs.rejected.toLocaleString('en-GB')} rejected of ${f.runs.made.toLocaleString('en-GB')} made over ${f.n} of ${f.count} runs (${(f.runs.p * 100).toFixed(2)}%).` : `${said.verdict} — ${f.count} runs agreed, none in yet.`, tone: f.n ? t : 'n' };
+  if (a.kind === 'faults' && f.faults) return { text: f.n ? `${said.verdict} — ${f.faults.faults.toLocaleString('en-GB')} faults on ${f.faults.items.toLocaleString('en-GB')} items over ${f.n} of ${f.count} inspections (${f.faults.dpu.toFixed(3)} an item).` : `${said.verdict} — ${f.count} inspections agreed, none in yet.`, tone: f.n ? t : 'n' };
+  if (a.kind === 'rate' && f.rate) return { text: f.n ? `${said.verdict} — ${f.rate.met} of ${f.n} intervals met, the longest stretch ${f.rate.stretchMin} minutes, ${f.rate.made.toLocaleString('en-GB')} made.` : `${said.verdict} — ${f.count} intervals agreed, none counted yet.`, tone: f.n ? t : 'n' };
   if (!f.n) return { text: `${said.verdict} — ${f.count} readings agreed, none in yet.`, tone: 'n' };
   if (a.kind === 'ticks') {
     const failed = f.ticks?.bad.length ?? 0, allowed = f.ticks?.allowFail ?? 0;

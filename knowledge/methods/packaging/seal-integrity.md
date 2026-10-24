@@ -114,8 +114,8 @@ and the window.
 - [textbook] Robertson, G.L., *Food Packaging: Principles and Practice*, 3rd ed., 2012 — heat sealing and seal testing (from knowledge).
 
 ## In Faultline
-Not built as its own tool (FC-165): a capability study can hold seal
-strength on a one-sided limit or pass/fail leak tests and says what the
-count proves (`src/tools/capability`, parts 1 and 4 of the capability study); FC-165 adds
-the seal's conditions logged with each sample, the two tests side by
-side on the line's program, and the leak claim's n said before the test.
+Built 24 October as a question on the capability study's measurement — *A seal* (FC-165, W1 —
+`src/tools/capability/modes.ts` questionFigures/questionSays): strength against its minimum with where
+the limit comes from said, the weakest and the margin, how many under; leaks are a pass-or-fail study
+(the study's own *Pass or fail* kind) and the note says so with what none leaking in n shows. Not yet one page for the two tests, nor
+the seal's conditions logged a sample (`sample.test.ts` "oxygen, a seal and a CCP").

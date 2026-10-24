@@ -40,7 +40,36 @@ export interface AgreedReadings {
   /** a measurement against one limit or two · sold by weight (the packers'
    *  three rules from the nominal) · pass or fail, one at a time ("ticks" is
    *  the stored word, kept so every study reads as before) */
-  kind: 'limits' | 'packers' | 'ticks';
+  kind: 'limits' | 'packers' | 'ticks' | 'rejects' | 'faults' | 'rate';
+  /** W1 (knowledge/specs/FC-094-capability.md, parts 2–4 — 24 October). A measurement's
+   *  question, which only changes the words and the one box each needs: a plain measurement
+   *  (absent), residual oxygen in a pack, a seal's strength, a CCP's limit, a weigher's heads,
+   *  one machine's consecutive parts (Cm/Cmk, FC-084). */
+  question?: 'oxygen' | 'seal' | 'ccp' | 'weigher' | 'machine';
+  /** Rejects out of what was made (FC-098) · faults found on each item (FC-099): the maximum agreed,
+   *  in % — "at most 1% rejected", "at most 2 faults per 100 items". */
+  maxShare?: number;
+  /** Faults: the opportunities for a fault on one item, for DPMO (FC-102) — typed once, kept fixed. */
+  opportunities?: number;
+  /** Faults: the kinds the tally counts (FC-124), up to twelve words; "Other" is always offered. */
+  faultKinds?: string[];
+  /** Held at a rate (FC-083): the minutes in one interval (default 1); `count` is the intervals the
+   *  rate must hold for; `lower` the floor or `upper` the ceiling, in the line's unit a minute. */
+  intervalMin?: number;
+  /** Held at a rate: the share of intervals that must be met to call it held with gaps, in % (default 90). */
+  heldShare?: number;
+  /** Machine capability (FC-084): the Cmk agreed for acceptance (default 1.67, said as the OEM's). */
+  cmkAgreed?: number;
+  /** Oxygen, seal, CCP (FC-167, FC-165, FC-169): where the limit comes from — the spec, the HACCP plan, the
+   *  distribution trial — said beside it. */
+  limitSource?: string;
+  /** A CCP (FC-169): the probe's bias at the limit, in the unit — reads high when positive — applied as a
+   *  guard band (`foodsafety.ccp-monitoring`). */
+  probeBias?: number;
+  /** Sold by volume, checked by weight (FC-163): the nominal in millilitres and the density in g/ml; `nominal`
+   *  then holds their product in grams, and the TNE is the volume table's, converted. */
+  nominalMl?: number;
+  density?: number;
   unit?: string;
   nominal?: number;
   lower?: number;
@@ -78,6 +107,16 @@ export interface StudyReading {
   value?: number;
   /** ticks */
   ok?: boolean;
+  /** rejects (FC-098): one run — how many were made and how many of them rejected. */
+  made?: number;
+  rejected?: number;
+  /** faults (FC-099): one inspection — how many items looked at, how many faults found, and the
+   *  faults by kind (FC-124), the counts summing to `faults`; a kind not on the list is "Other". */
+  inspected?: number;
+  faults?: number;
+  kinds?: Record<string, number>;
+  /** a weigher's reading (FC-158): the head it came from, 1-based. */
+  head?: number;
   /** A failed item: what became of it (Rowland, 24 October — reworked, recovered by hand, or pure
    *  waste). Absent on every reading before: waste. */
   fate?: 'waste' | 'rework' | 'recovered';

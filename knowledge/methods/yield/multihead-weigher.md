@@ -113,8 +113,9 @@ settled by the head means and the shape.
 - [textbook] Beckett, S.T. (ed.), *Industrial Chocolate Manufacture and Use* and general packaging-engineering texts — combination weighers (from knowledge).
 
 ## In Faultline
-Not built (FC-158). The capability study already reads a leaning set
-honestly and says give-away in money (`src/tools/capability`);
-FC-158 adds the head weights by head, the ANOVA across heads with the
-heavy or light head named, the unders' count, and the resolution
-argument for the portion setting.
+Built 24 October as a question on the capability study's measurement — *A weigher's heads* (FC-158,
+W1 — `src/tools/capability/modes.ts` weigherFigures/weigherSays, `src/lib/ie/dist.ts` anovaOneWay):
+the head typed with each reading on the pad, each head's readings, mean and spread, the head furthest
+from the others and by how much, the one-way ANOVA across heads saying whether they differ (its fix the
+feeder, not the target); a table by head on paper. Proved by `capability-kinds.mjs` step 13c and
+`sample.test.ts`. The combination's shape and the resolution argument are read here, not drawn.

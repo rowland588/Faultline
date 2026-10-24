@@ -1,7 +1,7 @@
 /* The measured test's arithmetic, proved by the worked example in
  * docs/LEAN40.md's appendix and the cases docs/BUILD.md 2c names. */
 import { describe, it, expect } from 'vitest';
-import { sample, sampleSays, compareSamples, tneFor, inWords, upperTail, capabilityWords, drifts, checksSay, passFailPlan, allowFailProblem, passFailPlanOf, mayFailOf, goodProblem, goodWord, sampleMoney, moneySays, MISSING_KG, MISSING_PACKS, MISSING_WEIGHT } from '../sample';
+import { sample, sampleSays, compareSamples, tneFor, inWords, upperTail, capabilityWords, drifts, checksSay, passFailPlan, allowFailProblem, passFailPlanOf, mayFailOf, goodProblem, goodWord, sampleMoney, moneySays, MISSING_KG, MISSING_PACKS, MISSING_WEIGHT, modeNotes, packersTne } from '../sample';
 import type { AgreedReadings, StudyReading } from '../../../lib/study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -450,5 +450,223 @@ describe('money: give-away and what the rejects cost (FC-156)', () => {
     const g: AgreedReadings = { kind: 'packers', unit: 'g', nominal: 400, count: 30, packsPerShift: 10000 };
     expect(sampleMoney(sample(g, heavy), g).giveaway!.missing).toEqual([MISSING_KG]);
     expect(sampleMoney(sample({ kind: 'ticks', count: 20 }, readings.map(r => ({ ...r, ok: true }))), { kind: 'ticks', count: 20 })).toEqual({});
+  });
+});
+
+/* W1 — THE MODES (knowledge/specs/FC-094-capability.md parts 2–4, criteria 23–27): every number from
+   scripts/knowledge/cases-w1.py and cases-spc.py (SciPy), run 24 October. */
+import { modeAgreedWords, modeProblem, RUNS_FROM } from '../modes';
+const RUNS: [number, number][] = [[4800, 24], [5100, 31], [4650, 19], [5000, 28], [4900, 41], [5200, 22]];
+const runRs = (rows: [number, number][]): StudyReading[] => rows.map(([made, rejected], i) => ({ id: `n${i + 1}`, made, rejected, at: i }));
+describe('rejects out of what was made (FC-098, FC-088, FC-102)', () => {
+  const A: AgreedReadings = { kind: 'rejects', count: 6, maxShare: 1 };
+  const f = sample(A, runRs(RUNS));
+  it('the pooled rate, its bounds, per million, Z — and met against 1%', () => {
+    const r = f.runs!;
+    expect([r.made, r.rejected]).toEqual([29650, 165]);
+    expect(r.p).toBeCloseTo(0.00556, 5);
+    expect(r.lo).toBeCloseTo(0.00475, 5); expect(r.hi).toBeCloseTo(0.00648, 5); expect(r.upper).toBeCloseTo(0.00633, 5);
+    expect(Math.round(r.perMillion)).toBe(5565);
+    expect(r.z!.z).toBeCloseTo(2.54, 2); expect(r.z!.ppkEq).toBeCloseTo(0.85, 2); expect(r.z!.sigma).toBeCloseTo(4.04, 2);
+    expect(r.verdict).toBe('met');
+    expect(r.runs.filter(x => x.out)).toEqual([]);
+    expect(r.sigmaZ).toBeCloseTo(1.913, 2); expect(r.laney).toBe(true);
+  });
+  it('the sentences as the module says them', () => {
+    const s = sampleSays(f, A);
+    expect(s.text).toBe('165 rejected of 29,650 made — 0.56% (5,565 per million), 95% confident between 0.48% and 0.65%; at most 1% agreed — Met.');
+    expect([s.tone, s.verdict]).toEqual(['g', 'Met']);
+    expect(s.capability!.text).toBe('Every run inside the chart’s limits — one process, run to run. Runs this large vary more than the count alone says (σz 1.9): Laney’s limits are drawn. Compared with a measurement: Z 2.54, about Ppk 0.85 (a comparison only).');
+  });
+  it('against 0.5% not met; against 0.6% not shown yet with about how many more', () => {
+    const s = sampleSays(sample({ ...A, maxShare: 0.5 }, runRs(RUNS)), { ...A, maxShare: 0.5 });
+    expect(s.verdict).toBe('Not met'); expect(s.text).toContain('at most 5.0 in 1,000 agreed — Not met: 0.56% is above it.');
+    const g = sample({ ...A, maxShare: 0.6 }, runRs(RUNS));
+    expect(g.runs!.verdict).toBe('notShown'); expect(g.runs!.moreToShow).toBeGreaterThan(0);
+    expect(sampleSays(g, { ...A, maxShare: 0.6 }).text).toContain('Not shown yet: the bound is 0.63%');
+  });
+  it('fewer than three runs: the bounds wait; none: nothing counted', () => {
+    expect(sampleSays(sample(A, runRs(RUNS.slice(0, 2))), A).text).toBe(`55 rejected of 9,900 made — 0.56% (5,556 per million); the bounds are said from ${RUNS_FROM} runs — 2 so far.`);
+    expect(sampleSays(sample(A, []), A)).toMatchObject({ verdict: 'Not counted', tone: 'n' });
+  });
+  it('zero rejected in 2,000: the bound 0.15%; a struck run counts for nothing', () => {
+    const f0 = sample(A, runRs([[1000, 0], [500, 0], [500, 0]]));
+    expect(f0.runs!.upper).toBeCloseTo(0.00150, 5); expect(f0.runs!.z).toBeUndefined();
+    const list = runRs(RUNS); list[4].struck = true;
+    expect(sample(A, list).runs!.made).toBe(29650 - 4900);
+  });
+  it('money by the pooled share at the packs a shift', () => {
+    const m = sampleMoney(f, { ...A, packsPerShift: 20000, materialsPerPack: 0.25, shiftsPerWeek: 10 }).runs!;
+    expect(Math.round(m.rejectsShift!)).toBe(111); expect(m.gbpShift).toBeCloseTo(27.82, 1); expect(m.gbpWeek).toBeCloseTo(278.2, 0);
+    expect(sampleMoney(f, A).runs!.missing.length).toBe(2);
+  });
+  it('agreed words and the problems', () => {
+    expect(modeAgreedWords(A)).toBe('rejects out of what was made, 6 runs — at most 1% rejected');
+    expect(modeProblem({ kind: 'rejects', count: 0 })).toBe('How many runs — at least 1.');
+    expect(modeProblem({ kind: 'rejects', count: 6, maxShare: 100 })).toContain('below 100');
+  });
+});
+
+const INSP: [number, number, Record<string, number>][] = [[200, 9, { 'Open seal': 4, 'Light pack': 5 }], [200, 14, { 'Open seal': 6, 'Light pack': 7, 'Mis-label': 1 }], [250, 11, { 'Open seal': 5, 'Light pack': 6 }], [200, 6, { 'Light pack': 4, Crushed: 2 }], [300, 17, { 'Open seal': 8, 'Light pack': 9 }]];
+const inspRs = (rows: [number, number, Record<string, number>][]): StudyReading[] => rows.map(([inspected, faults, kinds], i) => ({ id: `i${i + 1}`, inspected, faults, kinds, at: i }));
+describe('faults found on each item (FC-099, FC-089, FC-124, FC-125)', () => {
+  const A: AgreedReadings = { kind: 'faults', count: 5, maxShare: 2, faultKinds: ['Open seal', 'Light pack', 'Mis-label', 'Crushed', 'Wrong date'] };
+  const f = sample(A, inspRs(INSP));
+  it('DPU, its bounds, the share with a fault, the chart, the tally', () => {
+    const q = f.faults!;
+    expect([q.items, q.faults]).toEqual([1150, 57]);
+    expect(q.dpu).toBeCloseTo(0.0496, 4); expect(q.lo).toBeCloseTo(0.0375, 4); expect(q.hi).toBeCloseTo(0.0642, 4); expect(q.upper).toBeCloseTo(0.0618, 4);
+    expect(q.shareAny).toBeCloseTo(0.0484, 4);
+    /* σz 1.31 on these five — outside the band, so Laney widens the limits (cases-w1.py) */
+    expect(q.sigmaZ).toBeCloseTo(1.31, 2); expect(q.laney).toBe(true);
+    expect(q.insp[0].lcl).toBe(0); expect(q.insp[0].ucl).toBeCloseTo(0.0496 + 3 * Math.sqrt(0.0496 / 200) * q.sigmaZ!, 3);
+    expect(q.insp.filter(x => x.out)).toEqual([]); expect(q.equal).toBe(false);
+    expect(q.tally.map(t => [t.kind, t.count])).toEqual([['Light pack', 31], ['Open seal', 23], ['Crushed', 2], ['Mis-label', 1]]);
+    expect(q.tally[1].cum).toBeCloseTo(54 / 57, 4);
+    expect(q.verdict).toBe('notMet');
+  });
+  it('DPMO with 6 opportunities, none without', () => {
+    expect(f.faults!.dpmo).toBeUndefined();
+    const g = sample({ ...A, opportunities: 6 }, inspRs(INSP)).faults!.dpmo!;
+    expect(Math.round(g.dpmo)).toBe(8261); expect(g.z!.z).toBeCloseTo(2.40, 2); expect(g.z!.sigma).toBeCloseTo(3.90, 2);
+  });
+  it('the sentences', () => {
+    const s = sampleSays(f, A);
+    expect(s.text).toBe('57 faults on 1,150 items — 0.050 an item (5.0 per 100), 95% confident 0.038–0.064; about 4.8% of items carry a fault; at most 2 per 100 agreed — Not met: 5.0 per 100 is above it.');
+    expect(s.verdict).toBe('Not met');
+    expect(s.capability!.text).toBe('Light pack and open seal are 95% of the faults. Inspections this large vary more than the count alone says (σz 1.3): Laney’s limits are drawn.');
+    const g = sampleSays(sample({ ...A, opportunities: 6 }, inspRs(INSP)), { ...A, opportunities: 6 });
+    expect(g.capability!.text).toContain('8,261 per million opportunities (6 an item) — Z 2.4, a 3.9-sigma process by the 1.5-shift convention.');
+  });
+  it('faults not tallied by kind fall to Other; equal inspections are the c-chart’s case', () => {
+    const g = sample(A, inspRs([[200, 9, { 'Open seal': 4 }], [200, 14, {}], [200, 6, { Crushed: 2 }]])).faults!;
+    expect(g.tally.find(t => t.kind === 'Other')!.count).toBe(23); expect(g.equal).toBe(true);
+    expect(sampleSays(sample(A, []), A)).toMatchObject({ verdict: 'Not counted' });
+  });
+});
+
+const MINUTES = [60, 58, 61, 63, 65, 62, 60, 55, 54, 67, 63, 58, 59, 67, 63, 57, 62, 59, 60, 61, 60, 64, 62, 60, 63];
+describe('held at a rate for a time (FC-083)', () => {
+  const A: AgreedReadings = { kind: 'rate', count: 25, lower: 60, unit: 'packs', intervalMin: 1 };
+  const f = sample(A, rs(MINUTES));
+  it('met 18 of 25, the stretch 7, made 1,523 of 1,500, Ppk 0.10 — held with gaps', () => {
+    const r = f.rate!;
+    expect([r.met, r.stretchMin, r.made, r.expected]).toEqual([18, 7, 1523, 1500]);
+    expect(r.share).toBeCloseTo(0.72, 2); expect(r.ratio).toBeCloseTo(1.015, 3);
+    expect(r.mean).toBeCloseTo(60.92, 2); expect(r.ppk).toBeCloseTo(0.10, 2);
+    expect(r.held).toBe('not');
+  });
+  it('the sentence: 72% met is under the 90% agreed, so not held; the dip named', () => {
+    const s = sampleSays(f, A);
+    expect(s.text).toBe('At least 60 packs a minute for 25 minutes: met 18 of 25 (72%), the longest stretch 7 minutes, 1,523 made against 1,500 — Not held: only 72% met, under the 90% agreed; 7 intervals missed.');
+    expect(s.capability!.text).toContain('One-sided Ppk on the rates 0.10');
+    expect(s.capability!.tone).toBe('a');
+  });
+  it('held with gaps at a 70% rule; held when every minute meets; a ceiling the other way', () => {
+    expect(sampleSays(sample({ ...A, heldShare: 70 }, rs(MINUTES)), { ...A, heldShare: 70 }).verdict).toBe('Held with gaps');
+    const all = rs(MINUTES.map(v => Math.max(v, 60)));
+    expect(sampleSays(sample(A, all), A).verdict).toBe('Held');
+    const C: AgreedReadings = { kind: 'rate', count: 25, upper: 62, unit: 'packs' };
+    const g = sample(C, rs(MINUTES)).rate!;
+    expect(g.side).toBe('most'); expect(g.met).toBe(MINUTES.filter(v => v <= 62).length);
+  });
+  it('two-minute intervals double the time; fewer intervals than agreed say so; words and problems', () => {
+    const B: AgreedReadings = { kind: 'rate', count: 10, lower: 120, intervalMin: 2 };
+    const g = sample(B, rs([250, 230, 260, 240, 245]));
+    expect(g.rate!.intervals[0].rate).toBe(125); expect(g.rate!.held).toBe('none');
+    expect(sampleSays(g, B).verdict).toBe('5 of 10 intervals');
+    expect(modeAgreedWords(B)).toBe('at least 120 a minute for 20 minutes (10 intervals of 2)');
+    expect(modeProblem({ kind: 'rate', count: 10 })).toBe('The rate — at least or at most what, a minute?');
+  });
+});
+
+describe('machine capability (FC-084) and the lowest legal fill (FC-157)', () => {
+  it('Cm and Cmk on consecutive parts against 1.67 — not accepted', () => {
+    const vals = Array.from({ length: 50 }, (_, i) => 400.29 + 0.773 * Math.sin(i * 1.7) * 1.4);
+    const A: AgreedReadings = { kind: 'limits', unit: 'g', lower: 398, upper: 403, count: 50, question: 'machine' };
+    const f = sample(A, rs(vals));
+    expect(f.machine).toBeDefined(); expect(f.machine!.agreed).toBe(1.67); expect(f.machine!.accepted).toBe(false);
+    const note = modeNotes(f, A).find(n => n.k === 'machine')!;
+    expect(note.text).toMatch(/^Cm \d\.\d\d, Cmk \d\.\d\d on 50 consecutive parts against 1.67 agreed — Not accepted/);
+    expect(sample({ ...A, question: undefined }, rs(vals)).machine).toBeUndefined();
+  });
+  it('the fill: rule 1 binds at this spread, the give-away above the nominal, in money by £/kg', () => {
+    const vals = THIRTY.map(v => Math.round((v + 1.3) * 10) / 10);
+    const A: AgreedReadings = { kind: 'packers', unit: 'g', nominal: 400, count: 30, costPerKg: 3.4 };
+    const f = sample(A, rs(vals));
+    expect(f.fill).toBeDefined(); expect(f.fill!.binds).toBe(1); expect(f.fill!.lowest).toBe(400);
+    expect(f.fill!.giveaway).toBeCloseTo(f.mean! - 400, 6);
+    expect(f.fill!.gbpPer100).toBeCloseTo((f.mean! - 400) / 1000 * 3.4 * 100, 6);
+    const note = modeNotes(f, A).find(n => n.k === 'fill')!;
+    expect(note.text).toContain('the lowest target that keeps the three rules is 400.0 g (the average rule binds)');
+  });
+});
+
+/* ---- W1 part 4: the questions that are a measurement with a limit (cases-w1.py) ---- */
+describe('oxygen, a seal and a CCP against their limits (FC-167, FC-165, FC-169)', () => {
+  it('residual oxygen: the highest pack, how many over, read as measured', () => {
+    const f = sample({ kind: 'limits', question: 'oxygen', unit: '%', upper: 2, count: 30, limitSource: 'the MAP spec' }, rs(OXYGEN.slice(0, 30)));
+    expect(f.question).toMatchObject({ q: 'oxygen', side: 'most', limit: 2, worst: 1.41, over: 0, n: 30 });
+    const note = modeNotes(f, { kind: 'limits', question: 'oxygen', unit: '%', upper: 2, count: 30, limitSource: 'the MAP spec' }).find(n => n.k === 'question')!;
+    expect(note.text).toBe('Residual oxygen: the highest pack 1.41 % against at most 2.00 % (the MAP spec) — all 30 under it. The set leans high by design, so the share outside is read as measured, never from a bell; a high pack goes to the leak test.');
+    expect(note.tone).toBe('n');
+    const g = sample({ kind: 'limits', question: 'oxygen', unit: '%', upper: 0.6, count: 30 }, rs(OXYGEN.slice(0, 30)));
+    expect(g.question!.over).toBe(4);
+    expect(modeNotes(g, { kind: 'limits', question: 'oxygen', unit: '%', upper: 0.6, count: 30 })[0]).toMatchObject({ k: 'question', tone: 'r' });
+  });
+  it('seal strength: the weakest against the minimum, leaks a study of their own', () => {
+    const A: AgreedReadings = { kind: 'limits', question: 'seal', unit: 'N', lower: 12, count: 30, limitSource: 'the distribution trial' };
+    const f = sample(A, rs(SEAL.slice(0, 30)));
+    expect(f.question).toMatchObject({ q: 'seal', side: 'least', limit: 12, worst: Math.min(...SEAL.slice(0, 30)), over: 0 });
+    const note = modeNotes(f, A).find(n => n.k === 'question')!;
+    expect(note.text).toMatch(/^Seal strength: the weakest \d+\.\d N against at least 12\.0 N \(the distribution trial\) — a margin of \d\.\d N at the weakest\. Leaks are counted pass or fail in a study of their own: none leaking in n packs shows at most about 3 ÷ n, 95% confident\.$/);
+  });
+  it('a CCP: the margin, the probe’s guard band, a deviation — as cases-w1.py says', () => {
+    const CCP = [75.7, 76.9, 78.2, 77.4, 75.1, 79.0, 76.3, 75.08, 77.7, 74.8];
+    const A: AgreedReadings = { kind: 'limits', question: 'ccp', unit: '°C', lower: 75, count: 40, probeBias: 0.14, limitSource: 'the HACCP plan' };
+    const f = sample(A, rs(CCP));
+    expect(f.question).toMatchObject({ q: 'ccp', side: 'least', limit: 75, worst: 74.8, over: 1, bias: 0.14, guard: 2 });
+    expect(f.question!.margin).toBeCloseTo(-0.2, 6); expect(f.question!.trueMargin).toBeCloseTo(-0.34, 6); expect(f.question!.mustRead).toBeCloseTo(75.14, 6);
+    const note = modeNotes(f, A).find(n => n.k === 'question')!;
+    expect(note.text).toBe('CCP: the critical limit is at least 75.00 °C (the HACCP plan); 1 deviation — the product since the last good check is held. With the probe reading +0.14 °C at the limit, a check must read 75.14 °C to be sure of 75.00 °C — 2 readings sit inside that guard band, not shown safe.');
+    expect(note.tone).toBe('r');
+    /* no deviation as read — but the lowest, 75.08, is truly 74.94 once the probe's bias is taken off: red, the true margin said */
+    const g = sample(A, rs(CCP.filter(x => x >= 75)));
+    const n2 = modeNotes(g, A).find(n => n.k === 'question')!;
+    expect(n2.tone).toBe('r');
+    /* the same readings with a probe reading 0.05 high: the lowest is truly 75.03 — nothing inside the guard band, met */
+    expect(modeNotes(sample({ ...A, probeBias: 0.05 }, rs(CCP.filter(x => x >= 75))), { ...A, probeBias: 0.05 }).find(n => n.k === 'question')).toMatchObject({ tone: 'n', text: 'CCP: the critical limit is at least 75.00 °C (the HACCP plan); the lowest reading 75.08 °C sits 0.08 °C above it. With the probe reading +0.05 °C at the limit, a check must read 75.05 °C to be sure of 75.00 °C; the true margin is 0.03 °C.' });
+    expect(n2.text).toBe('CCP: the critical limit is at least 75.00 °C (the HACCP plan); the lowest reading 75.08 °C sits 0.08 °C above it. With the probe reading +0.14 °C at the limit, a check must read 75.14 °C to be sure of 75.00 °C; the true margin is -0.06 °C — 2 readings sit inside that guard band, not shown safe.');
+  });
+});
+
+describe('a weigher’s heads (FC-158) and a volume pack checked by weight (FC-163)', () => {
+  const HEADS: Record<number, number[]> = { 1: [37.2, 37.9, 37.4, 38.1, 36.8], 2: [37.6, 37.1, 38.0, 37.3, 37.7], 3: [43.1, 43.8, 43.4, 43.9, 43.3], 4: [37.5, 36.9, 37.8, 37.2, 37.6] };
+  const headRs = (hs: Record<number, number[]>): StudyReading[] => Object.entries(hs).flatMap(([h, xs]) => xs.map((value, i) => ({ id: `h${h}-${i}`, value, head: Number(h), at: i })));
+  const A: AgreedReadings = { kind: 'limits', question: 'weigher', unit: 'g', lower: 30, upper: 50, count: 20 };
+  it('the head means, the far head and the ANOVA as SciPy says them', () => {
+    const f = sample(A, headRs(HEADS));
+    const w = f.weigher!;
+    expect(w.heads.map(h => h.head)).toEqual([1, 2, 3, 4]);
+    expect(w.far!.head).toBe(3); expect(w.far!.diff).toBeCloseTo(6.03, 2); expect(w.far!.others).toBeCloseTo(37.47, 2);
+    expect(w.anova!.f).toBeCloseTo(283.858, 1); expect(w.anova!.p).toBeLessThan(0.001);
+    expect(modeNotes(f, A).find(n => n.k === 'weigher')).toEqual({ k: 'weigher', tone: 'a', text: 'Heads: 4 heads read (5 each); head 3 runs 6.0 g heavy (43.5 against 37.5 on the others) — the heads differ (ANOVA p < 0.001) — the fix is that head’s feeder, not the target.' });
+  });
+  it('agreeing heads agree; a reading with no head is said; one head alone asks for the heads', () => {
+    const g = sample(A, [...headRs({ 1: HEADS[1], 2: HEADS[2], 4: HEADS[4] }), { id: 'x', value: 37.5, at: 99 }]);
+    const n = modeNotes(g, A).find(x => x.k === 'weigher')!;
+    expect(n.tone).toBe('n');
+    expect(n.text).toMatch(/^Heads: 3 heads read \(5 each\), 1 reading with no head; head \d runs \d\.\d g (heavy|light) \(\d+\.\d against \d+\.\d on the others\) — the heads agree \(ANOVA p 0\.87\)\.$/);
+    const one = sample(A, headRs({ 2: HEADS[2] }));
+    expect(modeNotes(one, A).find(x => x.k === 'weigher')!.text).toBe('Heads: only head 2 has readings — type the head with each reading to compare them.');
+  });
+  it('400 ml at 1.03 g/ml: the nominal and the TNE in grams, the rules in grams', () => {
+    const P: AgreedReadings = { kind: 'packers', unit: 'g', nominal: 412, nominalMl: 400, density: 1.03, count: 30 };
+    const f = sample(P, rs([412.5, 411.9, 413.1, 412.2, 410.8]));
+    expect(f.packers!.tne).toBeCloseTo(12.36, 6);
+    expect(packersTne(P)).toBeCloseTo(12.36, 6);
+    expect(packersTne({ nominal: 528, unit: 'g', nominalMl: 480, density: 1.1 })).toBeCloseTo(15.84, 6);   // the volume table's band, not the weight's (15 g)
+    expect(packersTne({ nominal: 528, unit: 'g' })).toBe(15);
+    expect(modeNotes(f, P).find(n => n.k === 'density')!.text).toBe('Sold by volume, checked by weight: 400 ml at 1.03 g/ml is 412.0 g; the tolerable negative error 12 ml is 12.36 g — the three rules run in grams (T1 399.64 g, T2 387.28 g). The density is the product’s at the temperature it is packed.');
   });
 });

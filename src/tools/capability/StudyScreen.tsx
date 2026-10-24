@@ -24,7 +24,7 @@ import { can as canAt } from '../../lib/access';
 import { now, uid } from '../../lib/ids';
 import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
-import { allowFailProblem, checksSay, confOf, judgeOf, passFailPlanOf, pctWord, sample, sampleLines, sampleSays, ticksAgreedWords, tneFor, CONFIDENCES, CPK_FROM, SURE, type Judge, type SampleFigures, type SampleSays, FATES, fateOf, fateWord, moneySays, sampleMoney, weightUnit, type Fate } from './sample';
+import { allowFailProblem, checksSay, confOf, judgeOf, passFailPlanOf, pctWord, sample, sampleLines, sampleSays, ticksAgreedWords, CONFIDENCES, CPK_FROM, SURE, type Judge, type SampleFigures, type SampleSays, FATES, fateOf, fateWord, moneySays, sampleMoney, weightUnit, type Fate } from './sample';
 import type { AgreedReadings, StudyReading, ToolStudy } from '../../lib/study';
 import { TOOL_WORDS } from '../../screens/StudiesScreen';
 import { StudyBand } from '../../ui/StudyActs';
@@ -32,6 +32,9 @@ import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { sampleClosing, sampleTiles } from './sampleLean';
+import { modeNotes, packersTne } from './sample';
+import { modeAgreedWords, modeProblem } from './modes';
+import { RunsChart, UChart, Pareto, RateBars, RunsCapture, FaultsCapture, modeReadingWord } from './ModeParts';
 import { raisedFrom } from '../losses/lossLean';
 import { DraftText } from '../../ui/Draft';
 import { useMachinesOf } from '../../lib/useLineRecords';
@@ -101,8 +104,14 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           <LeanTiles tiles={sampleTiles(f, a, said)} className="ie-strip" />
           <Says said={said} s={s} f={f} a={a} />
           <div className="ie-body">
-            <div className="ie-pic">{a.kind === 'ticks' ? <Ticks readings={readings} /> : <><Dots f={f} a={a} readings={readings} said={said} /><Hist f={f} a={a} /></>}</div>
-            {!closed && can.edit && <Capture a={a} f={f} readings={readings} onAdd={add} onStrike={id => strike(id, true)} onFate={setFate} />}
+            {/* W1 — the modes' pictures (./ModeParts): a run or an inspection a bar against its limits, the faults' Pareto, a rate's intervals */}
+            <div className="ie-pic">{a.kind === 'ticks' ? <Ticks readings={readings} />
+              : a.kind === 'rejects' && f.runs ? <RunsChart r={f.runs} />
+              : a.kind === 'faults' && f.faults ? <><UChart q={f.faults} /><Pareto q={f.faults} /></>
+              : a.kind === 'rate' && f.rate ? <RateBars r={f.rate} unit={a.unit} />
+              : <><Dots f={f} a={a} readings={readings} said={said} /><Hist f={f} a={a} /></>}</div>
+            {!closed && can.edit && (a.kind === 'rejects' ? <RunsCapture f={f} onAdd={add} /> : a.kind === 'faults' ? <FaultsCapture a={a} f={f} onAdd={add} />
+              : <Capture a={a} f={f} readings={readings} onAdd={add} onStrike={id => strike(id, true)} onFate={setFate} />)}
           </div>
           <Readings readings={readings} f={f} a={a} canStrike={can.edit && !closed} onStrike={strike} onFate={setFate} />
           <p className="ie-agreed sub">
@@ -150,6 +159,19 @@ const KINDS: { k: AgreedReadings['kind']; word: string; eg: string }[] = [
   { k: 'limits', word: 'A measurement', eg: 'a weight, a length, a temperature, a speed' },
   { k: 'packers', word: 'Sold by weight (℮)', eg: 'the nominal on the pack — the packers’ three rules follow from it' },
   { k: 'ticks', word: 'Pass or fail', eg: 'one at a time — a seal re-test, the metal detector’s test packs' },
+  /* W1 (knowledge/specs/FC-094-capability.md parts 2–4) */
+  { k: 'rejects', word: 'Rejects out of what was made', eg: 'a run’s rejects against the packs made — the reject rate' },
+  { k: 'faults', word: 'Faults found on each item', eg: 'a pack inspected for seal, label, print — faults an item, by kind' },
+  { k: 'rate', word: 'Held at a rate for a time', eg: 'at least 75 a minute for 30 minutes — counted an interval at a time' },
+];
+/* A MEASUREMENT'S QUESTION (W1) — only the words and the one box each needs change */
+const QUESTIONS: { k: NonNullable<AgreedReadings['question']> | 'plain'; word: string; eg: string }[] = [
+  { k: 'plain', word: 'A measurement', eg: 'a weight, a length, a temperature, a speed' },
+  { k: 'oxygen', word: 'Oxygen in a pack', eg: 'residual oxygen, at most — the readings lean' },
+  { k: 'seal', word: 'A seal', eg: 'seal strength, at least' },
+  { k: 'ccp', word: 'A CCP’s limit', eg: 'a cook or a chill against its critical limit' },
+  { k: 'weigher', word: 'A weigher’s heads', eg: 'each reading from a head' },
+  { k: 'machine', word: 'One machine’s parts', eg: 'consecutive parts — Cm and Cmk for acceptance' },
 ];
 /* PASS OR FAIL, HOW IT IS JUDGED (knowledge/specs/FC-094-capability.md, part 1b — Rowland, 23 October:
    "Am I doing a confidence level, or am I doing the other level?") */
@@ -180,26 +202,55 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const [judge, setJudge] = useState<Judge>(judgeOf(a));
   const [goodPct, setGoodPct] = useState((a?.good ?? 98).toString());
   const [conf, setConf] = useState<number>(confOf(a));
+  /* W1 — the modes' own boxes */
+  const [maxShare, setMaxShare] = useState(a?.maxShare?.toString() ?? '');
+  const [opps, setOpps] = useState(a?.opportunities?.toString() ?? '');
+  const [kindsText, setKindsText] = useState((a?.faultKinds ?? []).join(', '));
+  const [intervalMin, setIntervalMin] = useState((a?.intervalMin ?? 1).toString());
+  const [heldShare, setHeldShare] = useState((a?.heldShare ?? 90).toString());
+  const [question, setQuestion] = useState<NonNullable<AgreedReadings['question']> | 'plain'>(a?.question ?? 'plain');
+  const [cmkAgreed, setCmkAgreed] = useState((a?.cmkAgreed ?? 1.67).toString());
+  /* part 4 — where the limit comes from, a CCP's probe bias, a volume pack's millilitres and density */
+  const [limitSource, setLimitSource] = useState(a?.limitSource ?? '');
+  const [probeBias, setProbeBias] = useState(a?.probeBias?.toString() ?? '');
+  const [nominalMl, setNominalMl] = useState(a?.nominalMl?.toString() ?? '');
+  const [density, setDensity] = useState(a?.density?.toString() ?? '');
+  const ml = numOr(nominalMl), dens = numOr(density), byVolume = kind === 'packers' && (nominalMl.trim() !== '' || density.trim() !== '');
+  const counted = kind === 'rejects' || kind === 'faults' || kind === 'rate';
+  const faultKinds = kindsText.split(/[,\n]/).map(x => x.trim()).filter(Boolean).slice(0, 12);
   /* MONEY (knowledge/specs/FC-156-capability-money.md — Rowland, 24 October: typed on each study), every box optional */
   const [packs, setPacks] = useState(a?.packsPerShift?.toString() ?? '');
   const [shiftsWk, setShiftsWk] = useState(a?.shiftsPerWeek?.toString() ?? '');
   const [costKg, setCostKg] = useState(a?.costPerKg?.toString() ?? '');
   const [materials, setMaterials] = useState(a?.materialsPerPack?.toString() ?? '');
   const [rework, setRework] = useState(a?.reworkPerPack?.toString() ?? '');
-  const nom = numOr(nominal), lo = side === 'most' ? undefined : numOr(lower), hi = side === 'least' ? undefined : numOr(upper);
+  const nomTyped = numOr(nominal), lo = side === 'most' ? undefined : numOr(lower), hi = side === 'least' ? undefined : numOr(upper);
+  /* a volume pack checked by weight: the nominal in grams is the millilitres × the density (FC-163) */
+  const nom = byVolume ? (ml !== undefined && dens !== undefined && dens > 0 ? Math.round(ml * dens * 100) / 100 : undefined) : nomTyped;
   const n = Math.round(Number(count)), k = Number(allow.trim() === '' ? '0' : allow);
-  const tne = kind === 'packers' && nom !== undefined ? tneFor(nom, unit) : undefined;
+  const tne = kind === 'packers' && nom !== undefined ? packersTne({ nominal: nom, unit, ...(byVolume ? { nominalMl: ml, density: dens } : {}) }) : undefined;
   const ticks = kind === 'ticks';
   const g = Number(goodPct.trim());
+  const modeAgreed = { kind, count: n, ...(maxShare.trim() !== '' ? { maxShare: Number(maxShare) } : {}), ...(opps.trim() !== '' ? { opportunities: Number(opps) } : {}),
+    ...(kind === 'rate' ? { intervalMin: Number(intervalMin), heldShare: Number(heldShare), ...(side === 'most' ? { upper: hi } : { lower: lo }) } : {}) };
   /* what the way chosen would mean, or why it cannot be agreed (lib/ie/sample passFailPlanOf) */
   const plan = ticks && n >= 1 ? passFailPlanOf({ count: n, judge, allowFail: k, good: g, conf }) : undefined;
   /* a new study's count follows the question: 30 readings, 20 to check */
+  const DEFAULT_COUNT: Record<AgreedReadings['kind'], string> = { limits: '30', packers: '30', ticks: '20', rejects: '10', faults: '10', rate: '30' };
   const pick = (to: AgreedReadings['kind']) => {
-    if (!a && (to === 'ticks') !== ticks && count === (ticks ? '20' : '30')) setCount(to === 'ticks' ? '20' : '30');
+    if (!a && count === DEFAULT_COUNT[kind]) setCount(DEFAULT_COUNT[to]);
+    if (to === 'rate' && side === 'both') setSide('least');
     setKind(to);
   };
   const problem =
-    !(n >= 1) ? (ticks ? 'How many to check — at least 1.' : 'How many readings — at least 1.')
+    counted && modeProblem(modeAgreed) ? modeProblem(modeAgreed)
+    : counted && [maxShare, opps, intervalMin, heldShare].some(t => t.trim() !== '' && !Number.isFinite(Number(t))) ? 'Numbers only in the boxes.'
+    : kind === 'rate' && (side === 'most' ? hi === undefined : lo === undefined) ? 'The rate — at least or at most what, a minute?'
+    : kind === 'limits' && question === 'machine' && !(Number(cmkAgreed) > 0) ? 'The Cmk agreed for acceptance — a number above 0 (the usual is 1.67).'
+    : kind === 'limits' && question === 'ccp' && probeBias.trim() !== '' && !Number.isFinite(Number(probeBias)) ? 'The probe’s bias — a number, in the unit (0.14 reads high; −0.1 reads low).'
+    : byVolume && (ml === undefined || !(ml > 0)) ? 'The nominal in millilitres — what the pack says.'
+    : byVolume && (dens === undefined || !(dens > 0)) ? 'The density in g/ml — the product’s, at the temperature it is packed.'
+    : !(n >= 1) ? (ticks ? 'How many to check — at least 1.' : 'How many readings — at least 1.')
     : ticks ? (judge === 'count' ? allowFailProblem(n, k) : plan?.problem ?? '')
     : [nom, lo, hi].some(x => x !== undefined && !Number.isFinite(x)) ? 'Numbers only in the limits.'
     : kind === 'limits' && side === 'least' && lo === undefined ? 'Type the limit — at least what?'
@@ -218,8 +269,19 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
     const agreed: AgreedReadings = { kind, count: n,
       ...(!ticks && unit.trim() ? { unit: unit.trim() } : {}),
       ...(!ticks && nom !== undefined ? { nominal: nom } : {}),
-      ...(kind === 'limits' && lo !== undefined ? { lower: lo } : {}),
-      ...(kind === 'limits' && hi !== undefined ? { upper: hi } : {}),
+      ...((kind === 'limits' || kind === 'rate') && lo !== undefined ? { lower: lo } : {}),
+      ...((kind === 'limits' || kind === 'rate') && hi !== undefined ? { upper: hi } : {}),
+      /* W1 — the modes' fields, only the ones the kind uses */
+      ...((kind === 'rejects' || kind === 'faults') && maxShare.trim() !== '' ? { maxShare: Number(maxShare) } : {}),
+      ...(kind === 'faults' && opps.trim() !== '' ? { opportunities: Math.round(Number(opps)) } : {}),
+      ...(kind === 'faults' && faultKinds.length ? { faultKinds } : {}),
+      ...(kind === 'rate' ? { intervalMin: Number(intervalMin), ...(Number(heldShare) !== 90 ? { heldShare: Number(heldShare) } : {}) } : {}),
+      ...(kind === 'limits' && question !== 'plain' ? { question } : {}),
+      ...(kind === 'limits' && question === 'machine' && Number(cmkAgreed) !== 1.67 ? { cmkAgreed: Number(cmkAgreed) } : {}),
+      ...(kind === 'limits' && (question === 'oxygen' || question === 'seal' || question === 'ccp') && limitSource.trim() ? { limitSource: limitSource.trim().slice(0, 80) } : {}),
+      ...(kind === 'limits' && question === 'ccp' && probeBias.trim() !== '' && Number(probeBias) !== 0 ? { probeBias: Number(probeBias) } : {}),
+      ...(byVolume && ml !== undefined && dens !== undefined ? { nominalMl: ml, density: dens } : {}),
+      ...(kind === 'rejects' && moneyOf(materials) !== undefined ? { materialsPerPack: moneyOf(materials) } : {}),
       ...(ticks && judge === 'count' && k > 0 ? { allowFail: k } : {}),
       ...(ticks && judge !== 'count' ? { judge, good: g } : {}),
       ...(ticks && conf !== SURE ? { conf } : {}),
@@ -250,6 +312,16 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
           </button>
         ))}
       </div>
+      {kind === 'limits' && (
+        <div className="ie-kinds ie-sides ie-questions" role="radiogroup" aria-label="Which question?">
+          <span className="field-label">Which question?</span>
+          {QUESTIONS.map(x => (
+            <button key={x.k} type="button" role="radio" aria-checked={question === x.k} className={'ie-kind' + (question === x.k ? ' on' : '')} onClick={() => setQuestion(x.k)}>
+              <b>{x.word}</b><small>{x.eg}</small>
+            </button>
+          ))}
+        </div>
+      )}
       {ticks && (
         <div className="ie-kinds ie-sides" role="radiogroup" aria-label="How is it judged?">
           <span className="field-label">How is it judged?</span>
@@ -260,10 +332,10 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
           ))}
         </div>
       )}
-      {kind === 'limits' && (
+      {(kind === 'limits' || kind === 'rate') && (
         <div className="ie-kinds ie-sides" role="radiogroup" aria-label="Judged against">
           <span className="field-label">Judged against</span>
-          {SIDES.map(x => (
+          {SIDES.filter(x => kind === 'limits' || x.k !== 'both').map(x => (
             <button key={x.k} type="button" role="radio" aria-checked={side === x.k} className={'ie-kind' + (side === x.k ? ' on' : '')} onClick={() => setSide(x.k)}>
               <b>{x.word}</b><small>{x.eg}</small>
             </button>
@@ -271,21 +343,44 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
         </div>
       )}
       <div className="ie-agree-grid">
-        {!ticks && <label className="field"><span className="field-label">Unit</span>
-          <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder="g" /></label>}
-        {kind === 'limits' && side !== 'most' && <label className="field"><span className="field-label">{side === 'least' ? 'At least' : 'Lower limit'}</span>
+        {(kind === 'limits' || kind === 'packers' || kind === 'rate') && <label className="field"><span className="field-label">Unit</span>
+          <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder={kind === 'rate' ? 'packs' : 'g'} /></label>}
+        {(kind === 'limits' || kind === 'rate') && side !== 'most' && <label className="field"><span className="field-label">{side === 'least' ? (kind === 'rate' ? 'At least, a minute' : 'At least') : 'Lower limit'}</span>
           <input className="text-input" inputMode="decimal" value={lower} onChange={e => setLower(e.target.value)} placeholder={side === 'least' ? '75' : '400'} /></label>}
-        {kind === 'limits' && side !== 'least' && <label className="field"><span className="field-label">{side === 'most' ? 'At most' : 'Upper limit'}</span>
+        {(kind === 'limits' || kind === 'rate') && side !== 'least' && <label className="field"><span className="field-label">{side === 'most' ? (kind === 'rate' ? 'At most, a minute' : 'At most') : 'Upper limit'}</span>
           <input className="text-input" inputMode="decimal" value={upper} onChange={e => setUpper(e.target.value)} placeholder={side === 'most' ? '2' : '404'} /></label>}
-        {!ticks && <label className="field"><span className="field-label">{kind === 'packers' ? 'Nominal (on the pack)' : 'Target'} {kind === 'limits' && <i className="sub">if there is one</i>}</span>
+        {(kind === 'limits' || (kind === 'packers' && !byVolume)) && <label className="field"><span className="field-label">{kind === 'packers' ? 'Nominal (on the pack)' : 'Target'} {kind === 'limits' && <i className="sub">if there is one</i>}</span>
           <input className="text-input" inputMode="decimal" value={nominal} onChange={e => setNominal(e.target.value)} placeholder="400" /></label>}
-        <label className="field"><span className="field-label">{ticks ? 'How many to check' : 'How many readings'}</span>
+        {kind === 'limits' && question === 'machine' && <label className="field"><span className="field-label">Cmk agreed for acceptance</span>
+          <input className="text-input" inputMode="decimal" value={cmkAgreed} onChange={e => setCmkAgreed(e.target.value)} placeholder="1.67" /></label>}
+        {kind === 'limits' && (question === 'oxygen' || question === 'seal' || question === 'ccp') && <label className="field"><span className="field-label">Where the limit comes from <i className="sub">optional</i></span>
+          <input className="text-input" value={limitSource} maxLength={80} onChange={e => setLimitSource(e.target.value)} placeholder={question === 'ccp' ? 'the HACCP plan' : question === 'seal' ? 'the distribution trial' : 'the product spec'} /></label>}
+        {kind === 'limits' && question === 'ccp' && <label className="field"><span className="field-label">The probe reads high at the limit by <i className="sub">its calibration record</i></span>
+          <input className="text-input" inputMode="decimal" value={probeBias} onChange={e => setProbeBias(e.target.value)} placeholder="0.14" /></label>}
+        {kind === 'packers' && <label className="field"><span className="field-label">Sold by volume — the nominal in ml <i className="sub">checked by weight</i></span>
+          <input className="text-input" inputMode="decimal" value={nominalMl} onChange={e => setNominalMl(e.target.value)} placeholder="400" /></label>}
+        {kind === 'packers' && <label className="field"><span className="field-label">Density, g/ml <i className="sub">at packing temperature</i></span>
+          <input className="text-input" inputMode="decimal" value={density} onChange={e => setDensity(e.target.value)} placeholder="1.03" /></label>}
+        {(kind === 'rejects' || kind === 'faults') && <label className="field"><span className="field-label">{kind === 'rejects' ? 'At most what % rejected' : 'At most how many faults per 100 items'} <i className="sub">agreed</i></span>
+          <input className="text-input" inputMode="decimal" value={maxShare} onChange={e => setMaxShare(e.target.value)} placeholder={kind === 'rejects' ? '1' : '2'} /></label>}
+        {kind === 'faults' && <label className="field"><span className="field-label">Opportunities an item <i className="sub">for per million — optional</i></span>
+          <input className="text-input" inputMode="numeric" value={opps} onChange={e => setOpps(e.target.value)} placeholder="6" /></label>}
+        {kind === 'rate' && <label className="field"><span className="field-label">Minutes in an interval</span>
+          <input className="text-input" inputMode="decimal" value={intervalMin} onChange={e => setIntervalMin(e.target.value)} placeholder="1" /></label>}
+        {kind === 'rate' && <label className="field"><span className="field-label">Held with gaps from what % of intervals</span>
+          <input className="text-input" inputMode="decimal" value={heldShare} onChange={e => setHeldShare(e.target.value)} placeholder="90" /></label>}
+        <label className="field"><span className="field-label">{ticks ? 'How many to check' : kind === 'rejects' ? 'How many runs' : kind === 'faults' ? 'How many inspections' : kind === 'rate' ? 'How many intervals' : 'How many readings'}</span>
           <input className="text-input" inputMode="numeric" value={count} onChange={e => setCount(e.target.value)} /></label>
         {ticks && judge === 'count' && <label className="field"><span className="field-label">How many may fail</span>
           <input className="text-input" inputMode="numeric" value={allow} onChange={e => setAllow(e.target.value)} placeholder="0" /></label>}
         {ticks && judge !== 'count' && <label className="field"><span className="field-label">At least what % good</span>
           <input className="text-input" inputMode="decimal" value={goodPct} onChange={e => setGoodPct(e.target.value)} placeholder="98" /></label>}
       </div>
+      {kind === 'faults' && (
+        <label className="field ie-kinds-text"><span className="field-label">The kinds of fault <i className="sub">up to twelve, a comma between — Other is always offered</i></span>
+          <input className="text-input" value={kindsText} onChange={e => setKindsText(e.target.value)} placeholder="Open seal, Light pack, Mis-label, Crushed, Wrong date" /></label>
+      )}
+      {kind === 'rate' && n >= 1 && Number(intervalMin) > 0 && <p className="ie-note">{n} intervals of {intervalMin} — the rate must hold for {+(n * Number(intervalMin)).toFixed(1)} minutes.</p>}
       {tne !== undefined && nom !== undefined && (
         <p className="ie-note">℮ {nom} {unit}: the tolerable negative error is {+tne.toFixed(3)} {unit}. The average at least {nom}; fewer than 1 in 40 more than {+tne.toFixed(3)} {unit} short; none more than {+(2 * tne).toFixed(3)} {unit} short.</p>
       )}
@@ -306,14 +401,14 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
             <input className="text-input" inputMode="numeric" value={packs} onChange={e => setPacks(e.target.value)} placeholder="10000" /></label>
           <label className="field"><span className="field-label">Shifts a week</span>
             <input className="text-input" inputMode="decimal" value={shiftsWk} onChange={e => setShiftsWk(e.target.value)} placeholder="5" /></label>
-          {!ticks && <label className="field"><span className="field-label">What the product costs you a kilo (£) <i className="sub">to make — not its price</i></span>
+          {(kind === 'limits' || kind === 'packers') && <label className="field"><span className="field-label">What the product costs you a kilo (£) <i className="sub">to make — not its price</i></span>
             <input className="text-input" inputMode="decimal" value={costKg} onChange={e => setCostKg(e.target.value)} placeholder="18" /></label>}
-          {ticks && <label className="field"><span className="field-label">A pack’s materials (£) <i className="sub">what a pack to waste costs</i></span>
+          {(ticks || kind === 'rejects') && <label className="field"><span className="field-label">A pack’s materials (£) <i className="sub">what a pack to waste costs</i></span>
             <input className="text-input" inputMode="decimal" value={materials} onChange={e => setMaterials(e.target.value)} placeholder="0.25" /></label>}
           {ticks && <label className="field"><span className="field-label">To rework one pack (£) <i className="sub">through the process again</i></span>
             <input className="text-input" inputMode="decimal" value={rework} onChange={e => setRework(e.target.value)} placeholder="0.12" /></label>}
         </div>
-        {!ticks && nom !== undefined && !weightUnit(unit) && <p className="ie-note">Give-away in money needs a weight in g or kg.</p>}
+        {(kind === 'limits' || kind === 'packers') && nom !== undefined && !weightUnit(unit) && <p className="ie-note">Give-away in money needs a weight in g or kg.</p>}
       </fieldset>
       {ticks && !problem && plan?.text && <p className="ie-note ie-plan">{plan.text}</p>}
       {problem && <p className="ie-problem">{problem}</p>}
@@ -328,6 +423,8 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
 export function agreedWords(a: AgreedReadings): string {
   const u = a.unit ? ` ${a.unit}` : '';
   if (a.kind === 'ticks') return ticksAgreedWords(a);
+  const mode = modeAgreedWords(a);
+  if (mode) return mode;
   const what = a.kind === 'packers' ? `sold by weight, ℮ ${a.nominal}${u}`
     : a.lower !== undefined && a.upper !== undefined ? `${a.lower}–${a.upper}${u}`
     : a.lower !== undefined ? `at least ${a.lower}${u}` : `at most ${a.upper}${u}`;
@@ -346,6 +443,8 @@ function Says({ said, s, f, a }: { said: SampleSays; s: ToolStudy; f: SampleFigu
       <p className={'ie-say is-' + said.tone}>{said.text}</p>
       {said.capability && <p className={'ie-say ie-cap is-' + said.capability.tone}>{said.capability.text}</p>}
       {money && <p className={'ie-say ie-money is-' + money.tone}>{money.text}</p>}
+      {/* W1 — machine capability and the lowest legal fill beside a measurement's sentences */}
+      {modeNotes(f, a).map(nt => <p key={nt.k} className={'ie-say ie-note-' + nt.k + ' is-' + nt.tone} data-note={nt.k}>{nt.text}</p>)}
       {checks.length > 0 && (
         <div className="ie-checks" role="group" aria-label="Before capability">
           <span className="ie-checks-h">Before capability</span>
@@ -459,6 +558,9 @@ function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
   onAdd: (r: Omit<StudyReading, 'id' | 'at'>) => void; onStrike: (id: string) => void; onFate: (id: string, fate: Fate) => void;
 }) {
   const [typed, setTyped] = useState('');
+  /* a weigher's reading carries its head (FC-158) — typed once, kept for the next */
+  const [head, setHead] = useState('');
+  const weigher = a.kind === 'limits' && a.question === 'weigher';
   const press = useCallback((k: string) => {
     setTyped(t => (k === '⌫' ? t.slice(0, -1) : k === '.' ? (t.includes('.') ? t : (t || '0') + '.') : k === '-' ? (t.startsWith('-') ? t.slice(1) : '-' + t) : (t + k).slice(0, 12)));
   }, []);
@@ -467,9 +569,10 @@ function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
   const enter = useCallback(() => {
     const v = Number(typed);
     if (typed.trim() === '' || typed === '-' || !Number.isFinite(v)) return;
-    onAdd({ value: v });
+    const h = Math.round(Number(head));
+    onAdd({ value: v, ...(weigher && head.trim() !== '' && h >= 1 ? { head: h } : {}) });
     setTyped('');
-  }, [typed, onAdd]);
+  }, [typed, head, weigher, onAdd]);
   /* A keyboard types into the pad too, unless a box has the focus. */
   useEffect(() => {
     if (a.kind === 'ticks') return;
@@ -490,7 +593,11 @@ function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
   const lastBad = a.kind === 'ticks' ? readings.map((r, i) => ({ ...r, no: i + 1 })).reverse().find(r => !r.struck && r.ok === false) : undefined;
   return (
     <div className="ie-cap-box" aria-label="Take the readings">
-      <div className="ie-count"><b>{f.n}</b> of {f.count} {a.kind === 'ticks' ? `checked${f.ticks?.bad.length ? ` · ${f.ticks.bad.length} failed` : ''}` : 'in'}{f.enough ? ' — all in' : ''}</div>
+      <div className="ie-count"><b>{f.n}</b> of {f.count} {a.kind === 'ticks' ? `checked${f.ticks?.bad.length ? ` · ${f.ticks.bad.length} failed` : ''}` : a.kind === 'rate' ? 'intervals counted' : 'in'}{f.enough ? ' — all in' : ''}</div>
+      {a.kind === 'rate' && <p className="sub ie-pad-hint">The packs counted in the interval, then ↵.</p>}
+      {weigher && <label className="field ie-head-box"><span className="field-label">Head</span>
+        <input className="text-input" inputMode="numeric" value={head} onChange={e => setHead(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))} placeholder="1" aria-describedby="ie-head-hint" />
+        <small id="ie-head-hint" className="sub">the head this reading came from — kept for the next</small></label>}
       {a.kind === 'ticks' ? (
         <div className="ie-tick-keys">
           <button type="button" className="btn ie-key ie-ok" onClick={() => onAdd({ ok: true })} aria-label="Good">✓ <span>Good</span></button>
@@ -511,7 +618,7 @@ function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
           {last.map(r => (
             <li key={r.id}>
               <span className="ie-no">{r.no}</span>
-              <b>{typeof r.value === 'number' ? r.value : r.ok ? '✓' : '✗'}</b>
+              <b>{modeReadingWord(a, r) ?? (typeof r.value === 'number' ? r.value : r.ok ? '✓' : '✗')}</b>
               <button type="button" className="linkish" onClick={() => onStrike(r.id)} aria-label={`Strike reading ${r.no}`}>Strike</button>
             </li>
           ))}
@@ -550,7 +657,7 @@ function Readings({ readings, f, a, canStrike, onStrike, onFate }: { readings: S
           {readings.map((r, i) => (
             <li key={r.id} className={r.struck ? 'is-struck' : out.has(r.id) ? 'is-out' : ''}>
               <span className="ie-no">{i + 1}</span>
-              <b>{typeof r.value === 'number' ? r.value.toFixed(Math.max(f.dp, 0)) + (a.unit ? ` ${a.unit}` : '') : r.ok ? '✓' : '✗'}</b>
+              <b>{modeReadingWord(a, r) ?? (typeof r.value === 'number' ? r.value.toFixed(Math.max(f.dp, 0)) + (a.unit ? ` ${a.unit}` : '') : r.ok ? '✓' : '✗')}</b>
               <span className="sub">{out.has(r.id) && !r.struck ? 'outside · ' : ''}{flagged.has(r.id) && !r.struck ? 'far from the rest · ' : ''}{r.who ? `${r.who} · ` : ''}{new Date(r.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
               {canStrike && <button type="button" className="linkish" onClick={() => onStrike(r.id, !r.struck)}>{r.struck ? 'Restore' : 'Strike'}</button>}
               {r.ok === false && !r.struck && (canStrike ? <Fates r={{ ...r, no: i + 1 }} onFate={onFate} small /> : <span className="sub ie-fate">{fateWord(fateOf(r))}</span>)}

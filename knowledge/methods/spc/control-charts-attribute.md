@@ -56,5 +56,9 @@ metal detector rejects per hour.
 - [paper] Laney, D.B. (2002), *Quality Engineering* 14(4), 531–537.
 
 ## In Faultline
-Specified as the run chart of parts 2 and 3 of the capability study
-(`knowledge/specs/FC-094-capability.md`); not built.
+Built 24 October inside the capability study's rejects and faults modes (FC-088, FC-089, W1 —
+`src/tools/capability/ModeParts.tsx` RunsChart/UChart, `src/lib/ie/dist.ts` pLimits/uLimits/laneySigmaZ):
+the p-chart a run and the u-chart an inspection (the c-chart when every inspection is the same size),
+limits from five, Laney's σz from the z-scores' moving range and its limits drawn when σz is outside
+0.8–1.25, a point outside marked and named; the same chart on paper. Proved by `capability-kinds.mjs`
+steps 10, 11 and 15.

@@ -92,10 +92,8 @@ by kind — the kinds decided with the people who will tally.
 - [textbook] Montgomery, D.C., *Introduction to Statistical Quality Control*, 8th ed., 2019, ch. 5 — the check sheet and the "magnificent seven" (from knowledge).
 
 ## In Faultline
-Specified with part 3 of the capability study (FC-124,
-`knowledge/specs/FC-094-capability.md`); the reliability study already
-taps events by kind over watched time (`src/tools/reliability`) and the
-loss count tallies stops by reason (`src/tools/losses`) — the same tally
-with a different denominator. A check sheet of its own: the kinds typed
-once per line, a button each on the phone, the amount inspected typed,
-the rates with their bounds, straight into the Pareto.
+Built 24 October as the faults mode's tally (FC-124, W1 — `src/tools/capability/ModeParts.tsx`
+FaultsCapture, `modes.ts` faultsFigures tally): the kinds typed once on the study (up to twelve), a
+button each on the phone tapped as the faults are found, Other typed, the tally with its shares and
+cumulative on screen and on paper. Proved by `capability-kinds.mjs` step 11. The reliability study and
+the loss count keep their own tallies (events, stops).

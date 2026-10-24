@@ -108,8 +108,8 @@ with a gas flush and a headspace analyser on the bench.
 - [standard] ISO 22514-2:2017 — the percentile capability for non-normal data (scope checked online 22 Oct 2026; text not read).
 
 ## In Faultline
-Not built as its own tool (FC-167): a capability study can hold the
-readings with an upper limit and already refuses the normal verdict on a
-leaning set, saying the share outside as measured
-(`src/tools/capability`); the fitted tail (`spc.capability-nonnormal`,
-the non-normal fit) and the leak-test hand-off are the pieces to add.
+Built 24 October as a question on the capability study's measurement — *Oxygen in a pack* (FC-167, W1 —
+`src/tools/capability/modes.ts` questionFigures/questionSays): the highest pack against the maximum with
+where the limit comes from, how many over, the set said to lean high by design with its share outside
+read as measured, a high pack sent to the leak test; the fitted tail is W3's (`spc.capability-nonnormal`). Proved by
+`sample.test.ts` ("oxygen, a seal and a CCP").

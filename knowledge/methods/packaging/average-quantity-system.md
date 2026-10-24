@@ -53,4 +53,8 @@ Every pre-packed product marked ℮ (or sold by quantity in the UK).
 - [standard] OIML R 87:2016, *Quantity of product in prepackages* — from knowledge.
 
 ## In Faultline
-The capability study's *Sold by weight* (`src/tools/capability/sample.ts`, FC-162).
+The capability study's *Sold by weight* (`src/tools/capability/sample.ts`, FC-162 — the three rules,
+proved by `capability-kinds.mjs` steps 3 and 14); since 24 October a volume pack checked by weight
+(FC-163, W1 — `sample.ts` packersTne, `modes.ts` densitySays): the nominal in millilitres and the density
+typed, the nominal kept in grams, the TNE the volume table's at the nominal in ml converted by the density,
+the rules said in grams (`capability-kinds.mjs` step 14b).

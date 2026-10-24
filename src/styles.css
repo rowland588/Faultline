@@ -14303,3 +14303,26 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* B7 — DENSITY BY DEVICE (docs/STRUCTURE.md §7): a desk control is 36 px; the floor keeps its 52 px touch
    target on a phone (under 720) and on any touch screen (R7: structure.mjs asserts 44 px and more on a phone). */
 @media (max-width: 719px), (pointer: coarse) { :root { --tap: 52px; } }
+
+/* W1 — THE CAPABILITY STUDY'S MODES (knowledge/specs/FC-094-capability.md parts 2–4; tools/capability/ModeParts) */
+.ie-modebars .ie-bar { fill: var(--brand); opacity: 0.55; }
+.ie-modebars .ie-bar.is-out { fill: var(--st-r); opacity: 1; }
+.ie-modebars .ie-bar.is-met { fill: var(--brand); opacity: 0.6; }
+.ie-modebars .ie-bar.is-miss { fill: var(--st-a); opacity: 0.9; }
+.ie-modebars .ie-ucl { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.ie-lim { stroke: var(--st-r); stroke-width: 1.5; }
+.ie-cum { fill: none; stroke: var(--ink-2); stroke-width: 2; }
+.ie-pareto { margin-top: 10px; }
+.ie-pareto-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.ie-pareto .ie-bar.is-kind { fill: var(--line-2); }
+.ie-pareto .ie-bar.is-top { fill: var(--brand); opacity: 0.7; }
+.ie-kind-taps { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ie-kind-taps .field-label { flex-basis: 100%; }
+.ie-kind-tap { display: inline-flex; align-items: center; gap: 4px; }
+.ie-kind-other { gap: 6px; }
+.ie-kind-other .text-input { width: 9em; }
+.ie-runs-cap .ie-agree-grid, .ie-faults-cap .field { margin: 0; }
+.ie-pad-hint { margin: -4px 0 0; }
+/* W1 part 4 — a weigher's reading carries its head: one small box above the pad */
+.ie-head-box { max-width: 220px; }
+.ie-head-box .text-input { max-width: 90px; }
