@@ -55,8 +55,8 @@ const STATIONS = [
    every clipSec; the signal checkpointed every checkpointSec. */
 const LIVE = async ({ durationSec, sampleSec = 0.2, readWidth = 160, record = false, clipSec = 0, overlap = false, checkpointSec = 0, bitrate = 1_000_000, perMinute = false, view = null, steady = false }) => {
   const { lineScene } = await import('/src/dev/videoSynth.ts');
-  const { changeByZone } = await import('/src/lib/video/extract.ts');
-  const { bands } = await import('/src/screens/VideoScreen.tsx');
+  const { changeByZone } = await import('/src/tools/video/extract.ts');
+  const { bands } = await import('/src/tools/video/VideoScreen.tsx');
   const stationsOf = (n, seed) => Array.from({ length: n }, (_, i) => ({ label: `Workstation ${i + 1}`, firstSec: 1.5 + ((i * 1.3 + seed) % 3), workSec: [4, 6, 3, 5, 2.5][i % 5], cycleSec: 8, jitterSec: 0.3 }));
   /* THE CAMERA'S SET-UP (probe F): one scene seen side-on, or two stacked as
      a view from above (six stations in a grid); the picture then shaken,
@@ -104,7 +104,7 @@ const LIVE = async ({ durationSec, sampleSec = 0.2, readWidth = 160, record = fa
   /* THE STEADY CHECK (probe G) is the app's own (lib/video/steady): each
      sample's place against the first frame; optionally each frame is then
      drawn back to where the first one was before it is read. */
-  const { SteadyCheck } = await import('/src/lib/video/steady.ts');
+  const { SteadyCheck } = await import('/src/tools/video/steady.ts');
   const scene = setUp(view, durationSec + 5);
   const zones = scene.zones;
   const stream = scene.canvas.captureStream(25);
@@ -281,9 +281,9 @@ await page.evaluate(([live, plays]) => { window.__live = eval(`(${live})`); wind
 if (want('A')) {
   say('A  live reading — 120 s, a sample every 0.2 s, recorded alongside…');
   out.A = await page.evaluate(async () => {
-    const { detectEvents } = await import('/src/lib/video/detect.ts');
-    const { evaluate } = await import('/src/lib/video/evaluate.ts');
-    const { readSignal } = await import('/src/lib/video/extract.ts');
+    const { detectEvents } = await import('/src/tools/video/detect.ts');
+    const { evaluate } = await import('/src/tools/video/evaluate.ts');
+    const { readSignal } = await import('/src/tools/video/extract.ts');
     const r = await window.__live({ durationSec: 120, record: true });
     const config = { sampleSec: 0.2, readWidth: 160, zones: r.zones, sensitivity: 4, joinGapSec: 0.5, minEventSec: 0.6, version: 'motion-1' };
     const ev = s => detectEvents(s, config).map(e => ({ zone: e.zone, start: e.start, end: e.end }));
@@ -349,8 +349,8 @@ if (want('D')) {
   await cp.goto(`${BASE}/#/video`); await cp.waitForTimeout(2500);
   await cp.evaluate(([plays]) => { window.__plays = eval(`(${plays})`); }, [PLAYS.toString()]);
   out.D = await cp.evaluate(async () => {
-    const { changeByZone } = await import('/src/lib/video/extract.ts');
-    const { bands } = await import('/src/screens/VideoScreen.tsx');
+    const { changeByZone } = await import('/src/tools/video/extract.ts');
+    const { bands } = await import('/src/tools/video/VideoScreen.tsx');
     const types = ['video/webm;codecs=vp8', 'video/webm;codecs=vp9', 'video/webm;codecs=h264', 'video/mp4', 'video/mp4;codecs=avc1', 'video/mp4;codecs=hvc1'];
     const offers = {
       recorderTypes: types.filter(t => MediaRecorder.isTypeSupported(t)),
@@ -435,8 +435,8 @@ if (want('F')) {
   out.F = [];
   for (const [name, view] of CONDS) {
     const r = await page.evaluate(async ([view]) => {
-      const { detectEvents } = await import('/src/lib/video/detect.ts');
-      const { evaluate } = await import('/src/lib/video/evaluate.ts');
+      const { detectEvents } = await import('/src/tools/video/detect.ts');
+      const { evaluate } = await import('/src/tools/video/evaluate.ts');
       const readWidth = view.readWidth ?? 160;
       const x = await window.__live({ durationSec: 60, view: { ...view }, readWidth });
       const config = { sampleSec: 0.2, readWidth, zones: x.zones, sensitivity: 4, joinGapSec: 0.5, minEventSec: 0.6, version: 'motion-1' };
@@ -483,9 +483,9 @@ if (want('G')) {
   for (const [i, [name, view]] of CONDS.entries()) {
     if (only && !only.includes(i + 1)) continue;
     const r = await page.evaluate(async ([view, dur]) => {
-      const { detectEvents } = await import('/src/lib/video/detect.ts');
-      const { evaluate } = await import('/src/lib/video/evaluate.ts');
-      const { STEADY, steadySummary, steadyWindows } = await import('/src/lib/video/steady.ts');
+      const { detectEvents } = await import('/src/tools/video/detect.ts');
+      const { evaluate } = await import('/src/tools/video/evaluate.ts');
+      const { STEADY, steadySummary, steadyWindows } = await import('/src/tools/video/steady.ts');
       const x = await window.__live({ durationSec: dur, view: { ...view }, steady: true });
       const config = { sampleSec: 0.2, readWidth: 160, zones: x.zones, sensitivity: 4, joinGapSec: 0.5, minEventSec: 0.6, version: 'motion-1' };
       const ev = sg => detectEvents(sg, config).map(e => ({ zone: e.zone, start: e.start, end: e.end }));
@@ -514,15 +514,15 @@ if (want('G')) {
 if (want('C')) {
   say(`C  a long run — ${LONG_MIN} min read live with the steady check, clips every 30 s, the signal checkpointed every 10 s…`);
   out.C = await page.evaluate(async ([min]) => {
-    const { detectEvents } = await import('/src/lib/video/detect.ts');
-    const { evaluate } = await import('/src/lib/video/evaluate.ts');
+    const { detectEvents } = await import('/src/tools/video/detect.ts');
+    const { evaluate } = await import('/src/tools/video/evaluate.ts');
     /* as the long study would run: the reading, the steady check, clips and the reading saved as it goes */
     const r = await window.__live({ durationSec: min * 60, clipSec: 30, checkpointSec: 10, perMinute: true, steady: true });
     const config = { sampleSec: 0.2, readWidth: 160, zones: r.zones, sensitivity: 4, joinGapSec: 0.5, minEventSec: 0.6, version: 'motion-1' };
     const t = performance.now();
     const found = detectEvents(r.sig, config).map(e => ({ zone: e.zone, start: e.start, end: e.end }));
     const detectMs = performance.now() - t;
-    const { steadySummary } = await import('/src/lib/video/steady.ts');
+    const { steadySummary } = await import('/src/tools/video/steady.ts');
     const st = steadySummary(r.marks);
     return { minutes: r.minutes, stats: r.stats, detectMs: +detectMs.toFixed(0), e: evaluate(r.truth, found), clips: r.clips.length, clipBytes: r.clips.reduce((s, c) => s + c.bytes, 0), clipsPlaying: r.clips.filter(c => c.bytes > 0).length, checkpointMaxMs: +Math.max(...r.cpMs).toFixed(1), steadyMs: r.steadyMeanMs, steady: { windows: st.windows, shaking: st.shaking, moved: st.moved, shakeMax: +st.shakeMax.toFixed(3) } };
   }, [LONG_MIN]);

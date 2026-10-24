@@ -1,7 +1,7 @@
 /* THE CATALOGUE — SPC and capability, statistics, measurement systems (src/catalogue/types.ts). */
 import type { Entry } from '../types';
 
-const CAPABILITY_BUILT = { where: ['/capability'], code: ['src/lib/ie/sample.ts', 'src/lib/ie/dist.ts', 'src/lib/ie/sampleLean.ts', 'src/screens/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/lib/ie/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts', 'src/lib/__tests__/audit-ie-sample.test.ts'], acceptance: ['ecosystem-capability.mjs', 'capability-kinds.mjs'] };
+const CAPABILITY_BUILT = { where: ['/capability'], code: ['src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/sampleLean.ts', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts', 'src/lib/__tests__/audit-ie-sample.test.ts'], acceptance: ['ecosystem-capability.mjs', 'capability-kinds.mjs'] };
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 
 export const SPC: Entry[] = [
@@ -114,7 +114,7 @@ export const SPC: Entry[] = [
     status: 'partial', form: 'tool', kind: 'study',
     app: { key: 'capability', label: 'Capability', says: 'A measurement against one limit or two, or pass or fail: Ppk and how sure, the checks before it, and what a pass proves', onLine: 'readings against the limits agreed', reads: 'capability', icon: 'hash', order: 4 }, methods: ['spc.capability-measured', 'spc.normality-checks'], scenarios: ['quality', 'packing', 'new'], words: ['Cpk', 'Ppk', 'capability', 'process capability', 'spec limits'],
     built: CAPABILITY_BUILT, spec: SPEC,
-    limits: ['No money yet — give-away (FC-156) and rejects (FC-098) carry it.', 'Readings that are not bell-shaped are said so and their share read as measured; no fitted model yet (FC-096).', 'Readings are assumed independent — not tested (FC-115).'],
+    limits: ['In money since 24 October (FC-156): give-away, and the rejects by fate on a pass-or-fail study; reject-rate capability from counts (FC-098) is still planned.', 'Readings that are not bell-shaped are said so and their share read as measured; no fitted model yet (FC-096).', 'Readings are assumed independent — not tested (FC-115).'],
   },
   {
     id: 'FC-095', name: 'Capability against one limit — at least, or at most', discipline: 'spc', sub: 'capability',
@@ -243,7 +243,7 @@ export const SPC: Entry[] = [
     depends: ['FC-098', 'FC-058', 'FC-022'],
     complexity: 'S', value: 'high', valueWhy: 'Honesty about thin data, everywhere.',
     status: 'partial', form: 'component', methods: ['stats.confidence-intervals'], scenarios: ['quality'],
-    built: { where: [], code: ['src/tools/reliability/reliability.ts', 'src/lib/ie/sampling.ts'], tests: ['src/tools/reliability/__tests__/reliability.test.ts', 'src/lib/ie/__tests__/sampling.test.ts'], acceptance: ['reliability.mjs', 'work-sampling.mjs'] },
+    built: { where: [], code: ['src/tools/reliability/reliability.ts', 'src/tools/sampling/sampling.ts'], tests: ['src/tools/reliability/__tests__/reliability.test.ts', 'src/tools/sampling/__tests__/sampling.test.ts'], acceptance: ['reliability.mjs', 'work-sampling.mjs'] },
     limits: ['Bounds exist for MTBF and sampling shares; none yet for a proportion of rejects or a mean.'],
   },
   {

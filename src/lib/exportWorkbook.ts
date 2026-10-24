@@ -25,7 +25,7 @@ import type { Material } from './materials';
 import type { Program } from './programs';
 import { stateOf as programState } from './programs';
 import type { Asset, Test, TestItem } from './testing';
-import { liveStandards, peopleOf, type Standard } from './standard';
+import { liveStandards, peopleOf, type Standard } from '../tools/linestandard/standard';
 import { gateOf, rootTestOf, testOfFix } from './testing';
 import { GATE_WORD } from './install';
 import { planModel } from './planModel';

@@ -9,7 +9,7 @@
  * product by product; products that disagree are said so. A stop is on the
  * constraint when its machine is the constraint's station by name. Pure. */
 import type { Observation } from '../../types';
-import { analyse, type Capacity } from '../capacity';
+import { analyse, type Capacity } from '../../tools/linebalance/capacity';
 import { between, norm, stopMinutes, weekStart, WEEK } from './stops';
 
 export interface LineConstraint {

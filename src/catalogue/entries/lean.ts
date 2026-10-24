@@ -15,7 +15,7 @@ export const LEAN: Entry[] = [
     status: 'available', form: 'tool', kind: 'study', starts: 'line',
     app: { key: 'valuestream', label: 'Value stream', says: 'The line’s steps, waits and value, walked', onLine: 'every step, who does it, the waits', reads: 'map', icon: 'route', order: 5 }, methods: ['lean.value-stream-mapping', 'lean.takt-time'],
     scenarios: ['running', 'project'], words: ['VSM', 'lead time', 'flow', 'waits', 'waiting time'],
-    built: { where: ['/value-stream'], code: ['src/screens/MapScreen.tsx', 'src/lib/ie/steps.ts'], tests: ['src/lib/ie/__tests__/steps.test.ts'], acceptance: ['value-stream.mjs'] },
+    built: { where: ['/value-stream'], code: ['src/tools/valuestream/MapScreen.tsx', 'src/tools/valuestream/steps.ts'], tests: ['src/tools/valuestream/__tests__/steps.test.ts'], acceptance: ['value-stream.mjs'] },
     limits: ['Inventory counts are not converted to days (Little’s law, FC-044).', 'No supermarket, kanban or pitch on the future state.'],
   },
   {
@@ -80,7 +80,7 @@ export const LEAN: Entry[] = [
     complexity: 'L', value: 'high', valueWhy: 'The shared picture of the line every other tool hangs off.',
     status: 'available', form: 'tool', kind: 'standard',
     app: { key: 'linestandard', label: 'Line standard', says: 'Who does what where on the line, drawn as the line looks', onLine: 'who stands where, product by product', reads: 'standard', icon: 'people', order: 1 }, methods: ['lean.standard-work'], scenarios: ['running', 'people', 'new'], words: ['standard work', 'layout', 'who does what'],
-    built: { where: ['/standards'], code: ['src/screens/StandardScreen.tsx', 'src/lib/standard.ts'], tests: ['src/lib/__tests__/standard.test.ts'], acceptance: ['line-standard.mjs'] },
+    built: { where: ['/standards'], code: ['src/tools/linestandard/StandardScreen.tsx', 'src/tools/linestandard/standard.ts'], tests: ['src/tools/linestandard/__tests__/standard.test.ts'], acceptance: ['line-standard.mjs'] },
     limits: ['No walking distances (FC-004).'],
   },
   {
@@ -94,7 +94,7 @@ export const LEAN: Entry[] = [
     depends: ['FC-032', 'FC-026', 'FC-008'],
     complexity: 'M', value: 'medium', valueWhy: 'Completes the three standard-work forms for person-and-machine work.',
     status: 'partial', form: 'mode', partOf: 'FC-032', methods: ['lean.standard-work', 'ie.person-machine'], scenarios: ['people', 'running'],
-    built: { where: ['/linebalance'], code: ['src/lib/ie/balance.ts'], tests: ['src/lib/ie/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
     limits: ['The line balance stacks each person’s timed elements against takt; walking and machine time overlapping in one cycle are not drawn.'],
   },
   {
@@ -108,7 +108,7 @@ export const LEAN: Entry[] = [
     depends: ['FC-034', 'FC-032'],
     complexity: 'S', value: 'high', valueWhy: 'The yardstick every balance and capacity is read against.',
     status: 'available', form: 'component', methods: ['lean.takt-time'], scenarios: ['running', 'planning', 'people'],
-    built: { where: ['/linebalance'], code: ['src/lib/ie/balanceLink.ts'], tests: ['src/lib/ie/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balanceLink.ts'], tests: ['src/tools/linework/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
   },
   {
     id: 'FC-009', name: 'Kanban sizing', discipline: 'lean', sub: 'pull',

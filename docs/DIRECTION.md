@@ -93,7 +93,7 @@ builder was never used; nothing stored is lost.
 | AI in the app | Decision |
 |---|---|
 | Voice — the voice note in typed boxes (`api/voice`) | **kept** — on Gemini, which hears it and fills the boxes |
-| Line Talk hearing what is said | **the phone's own speech recognition** since 20 October ("Use the phone's own speech recognition instead of Gemini"; `lib/hearing`, docs/LINE-TALK.md *How it hears*) — no AI service, no key; since 21 October it writes into the box, as a chat's dictation does, and nothing is recorded ("I see my words come up on the interface. I simply press send"; docs/LINE-TALK.md *The box, like a chat*) |
+| Line Talk hearing what is said | **the phone's own speech recognition** since 20 October ("Use the phone's own speech recognition instead of Gemini"; `tools/talk/hearing`, docs/LINE-TALK.md *How it hears*) — no AI service, no key; since 21 October it writes into the box, as a chat's dictation does, and nothing is recorded ("I see my words come up on the interface. I simply press send"; docs/LINE-TALK.md *The box, like a chat*) |
 | The camera — the video study's *Name the work from the frames* (`assist` gateway, task `video-label`) | **kept**, shown again (it was parked) |
 | Line Talk (docs/LINE-TALK.md), its slices as designed | **kept** — its answers and documents (slice 2) on Claude through the `assist` gateway, task `talk` |
 | The method builder — *Describe what you need*, the design studio, the assistant's proposals and *Ask about it*, Methods of one's own and Faultline's library of methods, the method engine and a project on a method | **deleted** |

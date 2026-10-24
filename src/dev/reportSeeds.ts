@@ -327,7 +327,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
      study still short proving the longest test. The Evidence appendix lists
      all three. */
   if (size === 'huge' && openFixId) {
-    const agreed = { readings: { kind: 'limits' as const, unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30 } };
+    const agreed = { readings: { kind: 'limits' as const, unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30, packsPerShift: 10000, shiftsPerWeek: 5, costPerKg: 18 } };
     const at = (k: number) => t - k * 60_000;
     const scope = { tool: 'capability' as const, name: 'Weight accuracy 400 g', projectId: proj.id, machine: machines[1].name, assetId: machines[1].id, agreed };
     await putStudy({ id: uid(), ...scope, facts: { readings: THIRTY.map((value, k) => ({ id: uid(), value, at: at(90 - k), who: 'K. Ahmed' })) },
@@ -962,7 +962,7 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
      the board's action, the cause's panel and the report's countermeasure. */
   const calib = counter.find(a => a.causeRef === ref(p3, c3[0]));
   if (huge && calib) {
-    const agreed = { readings: { kind: 'limits' as const, unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30 } };
+    const agreed = { readings: { kind: 'limits' as const, unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30, packsPerShift: 10000, shiftsPerWeek: 5, costPerKg: 18 } };
     const scope = { tool: 'capability' as const, name: 'Weight accuracy 400 g', projectId: proj.id, machine: 'Checkweigher', agreed };
     await putStudy({ id: uid(), ...scope, facts: { readings: THIRTY.map((value, k) => ({ id: uid(), value, at: t - (90 - k) * 60_000, who: 'Agnieszka Szczęsna' })) },
       uses: [{ id: uid(), kind: 'cause', ref: ref(p3, c3[0]), role: 'evidence', at: t - 60 * 60_000 }, { id: uid(), kind: 'action', ref: calib.id, role: 'evidence', at: t - 60 * 60_000 }],

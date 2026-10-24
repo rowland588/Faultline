@@ -6,7 +6,7 @@ discipline: lean
 kind: established
 evidence: textbook
 depth: full
-checked: 2026-10-22 — Rother & Shook (1999) as the method's source; Faultline's version (a line's stream as a swimlane grid of who and where) in docs/LEAN40.md and docs/TOOLKIT.md tool 2; arithmetic proved in src/lib/ie/__tests__/steps.test.ts
+checked: 2026-10-22 — Rother & Shook (1999) as the method's source; Faultline's version (a line's stream as a swimlane grid of who and where) in docs/LEAN40.md and docs/TOOLKIT.md tool 2; arithmetic proved in src/tools/valuestream/__tests__/steps.test.ts
 needs: [lean.takt-time]
 next: [lean.kanban-supermarket, lean.heijunka-epei, lean.kaizen-event, capacity.littles-law]
 alternatives: [lean.process-flow-chart, sixsigma.sipoc]
@@ -64,7 +64,7 @@ waits); positive release and QA holds; a bakery's mix–prove–bake–cool–pa
 - [textbook] Rother, M. and Harris, R. (2001), *Creating Continuous Flow*, Lean Enterprise Institute.
 
 ## In Faultline
-`src/screens/MapScreen.tsx` with `src/lib/ie/steps.ts`: a line's stream as
+`src/tools/valuestream/MapScreen.tsx` with `src/tools/valuestream/steps.ts`: a line's stream as
 a swimlane grid by who and where, walked on the phone, its future state copied
 and changed, before → after, on paper; acceptance `scripts/acceptance/value-stream.mjs`.
 Not built: inventory counts converted to days, supermarkets, kanban, pitch.

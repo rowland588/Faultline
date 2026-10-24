@@ -75,13 +75,13 @@ const person = who => page.locator('.wb-person').filter({ has: page.locator('h3'
    the standard (or the one named), its figures and sentences. */
 const truth = (standardId, studyId) => page.evaluate(async ([sid, id]) => {
   const { listAllStudies, getStandard } = await import('/src/db.ts');
-  const B = await import('/src/lib/ie/balance.ts'); const L = await import('/src/lib/studyLinks.ts');
-  const { peopleOf } = await import('/src/lib/standard.ts');
+  const B = await import('/src/tools/linework/balance.ts'); const L = await import('/src/lib/studyLinks.ts');
+  const { peopleOf } = await import('/src/tools/linestandard/standard.ts');
   const all = await listAllStudies();
   const s = id ? all.find(x => x.id === id) : L.currentBalance(all, sid);
   const st = await getStandard(sid);
   if (!s || !st) return null;
-  const f = (await import('/src/lib/ie/balanceLink.ts')).studyBalance(s);
+  const f = (await import('/src/tools/linework/balanceLink.ts')).studyBalance(s);
   const onMap = peopleOf(st).length || undefined;
   const said = B.balanceSays(f, onMap);
   return {
@@ -163,8 +163,8 @@ await page.locator('.ls-balance-line').nth(1).waitFor({ timeout: 10000 }).catch(
 {
   const wantWork = await page.evaluate(async sid => {
     const { listAllStudies, getStandard } = await import('/src/db.ts');
-    const { workOf } = await import('/src/ui/WorkBalance.tsx'); const L = await import('/src/lib/studyLinks.ts');
-    const { peopleOf } = await import('/src/lib/standard.ts');
+    const { workOf } = await import('/src/tools/linework/WorkBalance.tsx'); const L = await import('/src/lib/studyLinks.ts');
+    const { peopleOf } = await import('/src/tools/linestandard/standard.ts');
     const st = await getStandard(sid);
     return workOf(L.currentBalance(await listAllStudies(), sid), peopleOf(st).length || undefined)?.text;
   }, SID);
@@ -254,7 +254,7 @@ ok(has('Before') && has(want.slice(0, 50)), '9 the client report: the fix carrie
   const opts = await page.getByLabel('Where Op 2 works').locator('option').allInnerTexts();
   await page.getByLabel('Where Op 2 works').selectOption({ label: opts.find(o => /^Packer/.test(o)) ?? '' }); await page.waitForTimeout(1800);
   const L = await page.evaluate(async id => {
-    const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); const K = await import('/src/lib/ie/balanceLink.ts'); const B = await import('/src/lib/ie/balance.ts');
+    const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); const K = await import('/src/tools/linework/balanceLink.ts'); const B = await import('/src/tools/linework/balance.ts');
     const st = await db.getStandard(id); const b = S.currentBalance(await db.listAllStudies(), id); const f = K.studyBalance(b);
     const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
     const op2 = f.people.find(p => p.who === 'Op 2'); const k = K.balanceCost(f, K.costInputs(st.capacity, ws));
@@ -271,8 +271,8 @@ ok(has('Before') && has(want.slice(0, 50)), '9 the client report: the fix carrie
      as lib/ie/balanceLean reads them — and the closing line */
   {
     const want = await page.evaluate(async id => {
-      const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); const K = await import('/src/lib/ie/balanceLink.ts');
-      const N = await import('/src/lib/ie/balanceLean.ts'); const D = await import('/src/lib/standard.ts');
+      const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); const K = await import('/src/tools/linework/balanceLink.ts');
+      const N = await import('/src/tools/linework/balanceLean.ts'); const D = await import('/src/tools/linestandard/standard.ts');
       const st = await db.getStandard(id); const b = S.currentBalance(await db.listAllStudies(), id); const f = K.studyBalance(b);
       const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
       const a = K.agreedFor(b.agreed?.balance, st.capacity, !!b.closedAt);

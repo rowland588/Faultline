@@ -3,7 +3,7 @@
  * the rest, Nakajima's split, the pounds in two parts — on the two worked
  * examples and on random shifts, every identity reconciled exactly. */
 import { describe, it, expect } from 'vitest';
-import { lossFigures, plannedOf, runningOf, countedRate, inWindow, lossSays, type CostModel } from '../ie/losses';
+import { lossFigures, plannedOf, runningOf, countedRate, inWindow, lossSays, type CostModel } from '../../tools/losses/losses';
 import type { LossCount, RunTiming } from '../study';
 import type { Observation } from '../../types';
 import { rng } from './audit-ie-ref';

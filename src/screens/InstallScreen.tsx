@@ -32,7 +32,7 @@ import { offerUndo } from '../ui/Undo';
 import { Fold } from '../ui/Fold';
 import { PaceSnags } from './PaceSnags';
 import { framesForProject, getPaceWorkspaceId, onDataChange } from '../db';
-import { StandardsCard } from '../ui/StandardsCard';
+import { StandardsCard } from '../tools/linestandard/StandardsCard';
 import { nav } from '../state/useRoute';
 import { InstallGrid, stageWord } from '../ui/InstallGrid';
 import { Icon } from '../ui/Icon';

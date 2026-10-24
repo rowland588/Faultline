@@ -5,16 +5,16 @@
 import { loadPdfLib, deliverPdf, titlePdf, type Delivered } from './savePdf';
 import { pdfFileName } from './fileName';
 import { todayISO } from './weeks';
-import { shrinkPicture, type Picture } from './talkPictures';
-import type { TalkDoc } from './talkAssist';
-import type { TalkTurn } from './talk';
+import { shrinkPicture, type Picture } from '../tools/talk/talkPictures';
+import type { TalkDoc } from '../tools/talk/talkAssist';
+import type { TalkTurn } from '../tools/talk/talk';
 
 /* a photo printed a column wide: 1,400 px keeps it sharp and the file small */
 const EDGE = 1400, QUALITY = 0.82;
 
 export async function saveTalkDoc(doc: TalkDoc, o: { talk: string; line?: string; by?: string; photos: Map<string, TalkTurn> }): Promise<Delivered> {
   const { jsPDF } = await loadPdfLib();
-  const { drawTalkDoc } = await import('./talkDocPdf');
+  const { drawTalkDoc } = await import('../tools/talk/talkDocPdf');
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   titlePdf(pdf, doc.title);
   const used = [...new Set(doc.sections.flatMap(s => s.photos.map(p => p.photo)))];

@@ -10,7 +10,7 @@
  * between pages, never inside one, the header drawn again overleaf.
  *
  * The words are worked out in lib/ie/sampling (samplingRows); this only draws. */
-import type { SamplingRow } from '../ie/sampling';
+import type { SamplingRow } from '../../tools/sampling/sampling';
 import { INK, INK2, LINE, MUTED } from '../reportKit';
 import { font, rows, text, wrap, SIZE, type Row } from './blocks';
 import type { Block, Frame } from './flow';

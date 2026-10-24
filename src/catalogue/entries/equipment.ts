@@ -137,7 +137,7 @@ export const EQUIPMENT: Entry[] = [
     complexity: 'L', value: 'high', valueWhy: 'Changeovers are often the biggest planned loss.',
     status: 'available', form: 'tool', kind: 'study',
     app: { key: 'changeover', label: 'SMED', says: 'A changeover timed element by element, internal and external', onLine: 'a changeover timed and cut down', reads: 'changeover', icon: 'time', order: 6 }, methods: ['changeover.smed', 'ie.ecrs'], scenarios: ['changeover', 'running', 'money'], words: ['changeover', 'set up', 'quick changeover'],
-    built: { where: ['/smed'], code: ['src/lib/ie/changeover.ts', 'src/screens/ChangeoverScreen.tsx'], tests: ['src/lib/ie/__tests__/changeover.test.ts'], acceptance: ['changeover.mjs'] },
+    built: { where: ['/smed'], code: ['src/tools/changeover/changeover.ts', 'src/tools/changeover/ChangeoverScreen.tsx'], tests: ['src/tools/changeover/__tests__/changeover.test.ts'], acceptance: ['changeover.mjs'] },
   },
   {
     id: 'FC-069', name: 'Changeover interval — every product every interval (EPEI)', discipline: 'changeover', sub: 'sequence',
@@ -150,7 +150,7 @@ export const EQUIPMENT: Entry[] = [
     depends: ['FC-068', 'FC-011', 'FC-182'],
     complexity: 'S', value: 'medium', valueWhy: 'Banks SMED’s saving as less stock.',
     status: 'partial', form: 'mode', partOf: 'FC-068', methods: ['lean.heijunka-epei', 'changeover.smed'], scenarios: ['changeover', 'planning'],
-    built: { where: ['/smed'], code: ['src/lib/ie/changeover.ts'], tests: ['src/lib/ie/__tests__/changeover.test.ts'], acceptance: [] },
+    built: { where: ['/smed'], code: ['src/tools/changeover/changeover.ts'], tests: ['src/tools/changeover/__tests__/changeover.test.ts'], acceptance: [] },
     limits: ['Worked out inside SMED; not driven by an acceptance check, and not tied to a schedule.'],
   },
   {
@@ -188,7 +188,7 @@ export const EQUIPMENT: Entry[] = [
     depends: ['FC-068', 'FC-171'],
     complexity: 'S', value: 'medium', valueWhy: 'Long cleans are often the biggest changeover.',
     status: 'partial', form: 'mode', partOf: 'FC-068', methods: ['changeover.smed', 'foodsafety.allergen-changeover'], scenarios: ['changeover', 'safety'],
-    built: { where: ['/smed'], code: ['src/lib/ie/changeover.ts'], tests: ['src/lib/ie/__tests__/changeover.test.ts'], acceptance: ['changeover.mjs'] },
+    built: { where: ['/smed'], code: ['src/tools/changeover/changeover.ts'], tests: ['src/tools/changeover/__tests__/changeover.test.ts'], acceptance: ['changeover.mjs'] },
     limits: ['SMED times any changeover; the swab result’s wait and the release are not part of it.'],
   },
   {

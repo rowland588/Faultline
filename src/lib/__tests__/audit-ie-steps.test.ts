@@ -2,7 +2,7 @@
  * adds-value, PCE, takt, Little's law, the longest cycle a piece; and the
  * duration words round-tripping through parseDur. */
 import { describe, it, expect } from 'vitest';
-import { flowFigures, dur, parseDur, waitOf, share, compareFlows, streamRows } from '../ie/steps';
+import { flowFigures, dur, parseDur, waitOf, share, compareFlows, streamRows } from '../../tools/valuestream/steps';
 import type { FlowStep, AgreedMap } from '../study';
 import { rng } from './audit-ie-ref';
 

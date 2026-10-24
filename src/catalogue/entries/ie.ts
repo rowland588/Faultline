@@ -13,7 +13,7 @@ export const IE: Entry[] = [
     depends: ['FC-020', 'FC-025', 'FC-032', 'FC-024'],
     complexity: 'M', value: 'high', valueWhy: 'Every balance, staffing and labour cost stands on it.',
     status: 'partial', form: 'mode', partOf: 'FC-032', methods: ['ie.time-study', 'ie.allowances'], scenarios: ['people', 'running'], words: ['standard time', 'timing', 'stopwatch', 'rating'],
-    built: { where: ['/linebalance'], code: ['src/lib/ie/balance.ts'], tests: ['src/lib/ie/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
     limits: ['The rating is in the arithmetic but never asked on screen — every element is taken at 100.', 'The number of cycles needed for the precision wanted is not said (FC-020).'],
   },
   {
@@ -40,7 +40,7 @@ export const IE: Entry[] = [
     complexity: 'XL', value: 'high', valueWhy: 'Evidence that can be reviewed; many cycles at once.',
     status: 'partial', form: 'tool', kind: 'study',
     app: { key: 'video', label: 'Video study', says: 'Film the line: the work at each station read from the footage, reviewed, worked out as a line balance', onLine: 'the line filmed, the work at each station read from the footage', reads: 'video', icon: 'camera', order: 10 }, methods: ['ie.video-time-study'], scenarios: ['people', 'running'], words: ['film', 'camera', 'footage'],
-    built: { where: ['/video'], code: ['src/screens/VideoScreen.tsx', 'src/lib/video/extract.ts'], tests: [], acceptance: ['video-study.mjs', 'video-fit.mjs', 'video-check.mjs'] },
+    built: { where: ['/video'], code: ['src/tools/video/VideoScreen.tsx', 'src/tools/video/extract.ts'], tests: [], acceptance: ['video-study.mjs', 'video-fit.mjs', 'video-check.mjs'] },
     limits: ['Accuracy depends on the footage and is measured, not guaranteed (docs/VIDEO.md).', 'Changeovers are not measured from footage yet.'],
   },
   {
@@ -55,7 +55,7 @@ export const IE: Entry[] = [
     complexity: 'M', value: 'high', valueWhy: 'Cheap evidence about people’s time, with honest margins.',
     status: 'available', form: 'tool', kind: 'study',
     app: { key: 'sampling', label: 'Work sampling', says: 'What people are doing at random moments, with margins', onLine: 'what people are doing, at random moments', reads: 'sampling', icon: 'people', order: 7 }, methods: ['ie.work-sampling', 'stats.confidence-intervals'], scenarios: ['people', 'running'], words: ['activity sampling', 'idle', 'waiting'],
-    built: { where: ['/sampling'], code: ['src/screens/SamplingScreen.tsx', 'src/lib/ie/sampling.ts'], tests: ['src/lib/ie/__tests__/sampling.test.ts'], acceptance: ['work-sampling.mjs'] },
+    built: { where: ['/sampling'], code: ['src/tools/sampling/SamplingScreen.tsx', 'src/tools/sampling/sampling.ts'], tests: ['src/tools/sampling/__tests__/sampling.test.ts'], acceptance: ['work-sampling.mjs'] },
   },
   {
     id: 'FC-023', name: 'Predetermined motion times — MTM and MOST', discipline: 'ie', sub: 'pmts',
@@ -92,7 +92,7 @@ export const IE: Entry[] = [
     depends: ['FC-019'],
     complexity: 'S', value: 'medium', valueWhy: 'Makes standards sustainable and defensible.',
     status: 'partial', form: 'component', methods: ['ie.allowances'], scenarios: ['people'],
-    built: { where: ['/linebalance', '/balances'], code: ['src/lib/ie/balance.ts', 'src/lib/capacity.ts'], tests: ['src/lib/ie/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs', 'line-capacity.mjs'] },
+    built: { where: ['/linebalance', '/balances'], code: ['src/tools/linework/balance.ts', 'src/tools/linebalance/capacity.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs', 'line-capacity.mjs'] },
     limits: ['One allowance is agreed per line balance, and Line capacity adds the ILO’s 9% rest to a person’s time; the factor tables are not offered.'],
   },
   {
@@ -166,6 +166,6 @@ export const IE: Entry[] = [
     depends: ['FC-034', 'FC-019'],
     complexity: 'S', value: 'high', valueWhy: 'Crewing decisions said in numbers.',
     status: 'available', form: 'component', partOf: 'FC-034', methods: ['capacity.line-capacity'], scenarios: ['people'],
-    built: { where: ['/balances'], code: ['src/lib/capacity.ts', 'src/lib/capacitySays.ts'], tests: ['src/lib/__tests__/capacity-people.test.ts'], acceptance: ['line-capacity.mjs'] },
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacity.ts', 'src/tools/linebalance/capacitySays.ts'], tests: ['src/tools/linebalance/__tests__/capacity-people.test.ts'], acceptance: ['line-capacity.mjs'] },
   },
 ];

@@ -39,7 +39,7 @@ import { useProblems } from '../lib/useProblems';
 import { useLineStops } from '../lib/useLineStops';
 import { useLineWorkspace } from '../lib/usePaceWorkspace';
 import { lineSeries, say } from '../lib/measures';
-import { analyse } from '../lib/capacity';
+import { analyse } from '../tools/linebalance/capacity';
 import { PHASE_WORD, type ProblemView, type ProblemsApi } from '../lib/problems';
 import { SIXM, type Cause, type CauseSource, type SixM } from '../lib/sixm';
 import type { Suggestion } from '../lib/problems';

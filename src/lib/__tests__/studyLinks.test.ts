@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { studyMachineOf, usedForGroups, linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays, squareWord, linkOf, currentMap, flowLine, currentChangeover, changeoverLine, betterExpect, compareChangeoverStep, currentLosses, lossCardLine } from '../studyLinks';
-import { carryFlow } from '../ie/steps';
+import { carryFlow } from '../../tools/valuestream/steps';
 import type { ToolStudy } from '../study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,

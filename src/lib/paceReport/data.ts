@@ -5,7 +5,7 @@ import type { PillarKey } from '../pillars';
 import type { PlanAxis, PlanLane } from '../plan';
 import type { Shot } from '../testReport';
 import type { Owes } from '../owes';
-import type { CapacityReport } from '../capacity';
+import type { CapacityReport } from '../../tools/linebalance/capacity';
 import type { LineSeries } from '../measures';
 
 export interface PaceReportData {

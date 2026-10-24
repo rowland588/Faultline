@@ -16,7 +16,7 @@ import { listStandards, listStudies, onDataChange } from '../db';
 import { useProject } from '../lib/useProjects';
 import { useAccess } from '../cloud/access';
 import { inProject } from '../lib/inProject';
-import { inCapacityTool, inMapTool, type Standard } from '../lib/standard';
+import { inCapacityTool, inMapTool, type Standard } from '../tools/linestandard/standard';
 import type { ToolStudy } from '../lib/study';
 import { nav } from '../state/useRoute';
 import { APP_TOOLS, type AppTool } from '../catalogue/registry';

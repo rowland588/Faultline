@@ -5,7 +5,7 @@
  * running and short stops — summed across the shifts; good output at the foot.
  * Every band keeps the shifts it came from, so it opens to them, and they to
  * their stops. Pure: the shifts' figures in, the period out. */
-import type { LossBar, LossFigures } from '../ie/losses';
+import type { LossBar, LossFigures } from '../../tools/losses/losses';
 import { onConstraint, type LineConstraint } from './constraint';
 
 export interface PeriodBand {

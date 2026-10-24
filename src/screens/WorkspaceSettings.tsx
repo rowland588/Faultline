@@ -16,7 +16,7 @@ import { TAXONOMIES, type LossTaxonomy } from '../lib/taxonomy';
 import type { Shift } from '../types';
 import { shiftWindow } from '../lib/shifts';
 import { todayISO } from '../lib/weeks';
-import { plannedOf } from '../lib/ie/losses';
+import { plannedOf } from '../tools/losses/losses';
 import { Icon } from '../ui/Icon';
 
 function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete, onMove }: {

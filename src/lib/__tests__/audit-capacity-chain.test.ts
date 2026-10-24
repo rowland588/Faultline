@@ -10,7 +10,7 @@
  *   line  = min_i E_i ; bottleneck = argmin ; goodOut = line × Π_all good_j
  *   arrivals_i = min_{j<i} E_j × up_i ÷ F_i       (in i's own unit) */
 import { describe, expect, it } from 'vitest';
-import { analyse, lineIfRaised, ownSpeed, planPerMinute, perMinute, type Capacity, type Station } from '../capacity';
+import { analyse, lineIfRaised, ownSpeed, planPerMinute, perMinute, type Capacity, type Station } from '../../tools/linebalance/capacity';
 
 /* ------------------------------ reference ------------------------------ */
 interface Ref { factor: number[]; up: number[]; own: number[]; L: number[]; E: number[]; line: number; limit: number; goodOut: number; arrivals: (number | undefined)[] }

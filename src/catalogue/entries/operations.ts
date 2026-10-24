@@ -243,7 +243,7 @@ export const OPERATIONS: Entry[] = [
     depends: ['FC-034', 'FC-188'],
     complexity: 'S', value: 'high', valueWhy: 'Every staffing decision in money.',
     status: 'available', form: 'component', methods: ['cost.line-cost-model'], scenarios: ['money', 'people'], words: ['cost per pack', 'labour cost'],
-    built: { where: ['/balances'], code: ['src/lib/capacity.ts', 'src/lib/cost.ts'], tests: ['src/lib/__tests__/capacity-bottleneck-cost.test.ts'], acceptance: ['line-capacity.mjs'] },
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacity.ts', 'src/lib/cost.ts'], tests: ['src/tools/linebalance/__tests__/capacity-bottleneck-cost.test.ts'], acceptance: ['line-capacity.mjs'] },
   },
   {
     id: 'FC-188', name: 'What the bottleneck costs — a pack and a minute', discipline: 'cost', sub: 'loss',
@@ -256,7 +256,7 @@ export const OPERATIONS: Entry[] = [
     depends: ['FC-032', 'FC-034', 'FC-187'],
     complexity: 'S', value: 'high', valueWhy: 'Rowland, 17 October: “the bottleneck is driving the cost per pack up”.',
     status: 'available', form: 'component', methods: ['cost.line-cost-model'], scenarios: ['money', 'people'],
-    built: { where: ['/linebalance', '/balances'], code: ['src/lib/ie/balanceLink.ts', 'src/lib/capacity.ts'], tests: ['src/lib/__tests__/capacity-bottleneck-cost.test.ts', 'src/lib/ie/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance', '/balances'], code: ['src/tools/linework/balanceLink.ts', 'src/tools/linebalance/capacity.ts'], tests: ['src/tools/linebalance/__tests__/capacity-bottleneck-cost.test.ts', 'src/tools/linework/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
   },
   {
     id: 'FC-189', name: 'Lost time in money — labour and lost contribution', discipline: 'cost', sub: 'loss',
@@ -282,7 +282,7 @@ export const OPERATIONS: Entry[] = [
     depends: ['FC-189'],
     complexity: 'S', value: 'high', valueWhy: 'One figure every tool uses.',
     status: 'available', form: 'component', methods: ['cost.line-cost-model'], scenarios: ['money'],
-    built: { where: ['/losses'], code: ['src/lib/ie/losses.ts'], tests: ['src/lib/ie/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
+    built: { where: ['/losses'], code: ['src/tools/losses/losses.ts'], tests: ['src/tools/losses/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
   },
   {
     id: 'FC-191', name: 'What an improvement is worth — payback and NPV', discipline: 'cost', sub: 'invest',
@@ -438,7 +438,7 @@ export const OPERATIONS: Entry[] = [
     complexity: 'XL', value: 'high', valueWhy: 'The only AI tool, by decision.',
     status: 'available', form: 'tool', kind: 'document',
     app: { key: 'talk', label: 'Line Talk', says: 'Talk or type on the line — your words come up as you speak — add photos, ask questions and ask for reports', onLine: 'talk or type on the line, as in a chat — it answers and writes the reports', reads: 'talk', icon: 'mic', order: 11 }, methods: ['visual.line-talk'], scenarios: ['daily'], words: ['voice', 'talk', 'report', 'AI'],
-    built: { where: ['/talk'], code: ['src/screens/TalkScreen.tsx', 'src/lib/talk.ts'], tests: ['src/lib/__tests__/talk.test.ts', 'src/lib/__tests__/talkAssist.test.ts'], acceptance: ['line-talk.mjs', 'line-talk-assistant.mjs'] },
+    built: { where: ['/talk'], code: ['src/tools/talk/TalkScreen.tsx', 'src/tools/talk/talk.ts'], tests: ['src/tools/talk/__tests__/talk.test.ts', 'src/tools/talk/__tests__/talkAssist.test.ts'], acceptance: ['line-talk.mjs', 'line-talk-assistant.mjs'] },
     limits: ['Never works out a figure, saves a record or passes a gate — by design.', 'Hearing in floor noise not yet tested on a real phone.'],
   },
   {
@@ -715,7 +715,7 @@ export const OPERATIONS: Entry[] = [
     depends: ['FC-202', 'FC-223'],
     complexity: 'S', value: 'medium', valueWhy: 'Line Talk writes one on request.',
     status: 'partial', form: 'report', methods: ['people.one-point-lesson'], scenarios: ['people', 'daily'], words: ['OPL'],
-    built: { where: ['/talk'], code: ['src/screens/TalkScreen.tsx'], tests: [], acceptance: ['line-talk-assistant.mjs'] },
+    built: { where: ['/talk'], code: ['src/tools/talk/TalkScreen.tsx'], tests: [], acceptance: ['line-talk-assistant.mjs'] },
     limits: ['Written by Line Talk on request; there is no one-point lesson of its own with a sign-off.'],
   },
   {

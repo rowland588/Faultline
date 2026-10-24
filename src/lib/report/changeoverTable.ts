@@ -17,7 +17,7 @@
  *
  * The words are worked out in lib/ie/changeover (changeoverSheet); this only
  * draws. No colour: the side is said by its letter, as the screen's fill is. */
-import type { ChangeoverSheet } from '../ie/changeover';
+import type { ChangeoverSheet } from '../../tools/changeover/changeover';
 import { INK, INK2, LINE, MUTED } from '../reportKit';
 import { font, rows, text, wrap, SIZE, type Row } from './blocks';
 import type { Block, Frame } from './flow';

@@ -7,8 +7,8 @@
  * (lib/studiesPdf) and by All together's (lib/togetherPdf), so the two
  * never part. Colours: red only for over takt; the three kinds of time by
  * fill, never by a state colour (docs: Visual management). */
-import { aPiece, secs, type BalanceFigures, type PersonFigures } from '../ie/balance';
-import { balanceCostSays, type BalanceCost } from '../ie/balanceLink';
+import { aPiece, secs, type BalanceFigures, type PersonFigures } from '../../tools/linework/balance';
+import { balanceCostSays, type BalanceCost } from '../../tools/linework/balanceLink';
 import type { Block, Frame } from './flow';
 import { SIZE, font, label, rows, text, wrap } from './blocks';
 

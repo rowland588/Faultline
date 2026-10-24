@@ -26,7 +26,7 @@ import { supabase, cloudConfigured } from './client';
 import { MAPS, SYNC_KINDS, type MediaKey } from './mappers';
 import { withUsableMime } from '../lib/mime';
 import { CLOUD_FILE_LIMIT } from '../lib/transcode';
-import { goneKeys } from '../lib/video/footage';
+import { goneKeys } from '../tools/video/footage';
 import type { StudyFacts } from '../lib/study';
 import type { SyncKind } from '../db';
 import {

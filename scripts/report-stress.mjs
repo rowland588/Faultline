@@ -654,10 +654,10 @@ for (const size of SIXM_SIZES) {
       /* Every study on the job (on the line, for a line's deck) — its title
          and what it says — and a value stream's steps as a table. */
       from = 'evidence';
-      const { streamRows } = await import('/src/lib/ie/steps.ts');
-      const { changeoverSheet, agreedFor, moneyOf } = await import('/src/lib/ie/changeover.ts');
-      const { lossRows } = await import('/src/lib/ie/losses.ts');
-      const { samplingRows } = await import('/src/lib/ie/sampling.ts');
+      const { streamRows } = await import('/src/tools/valuestream/steps.ts');
+      const { changeoverSheet, agreedFor, moneyOf } = await import('/src/tools/changeover/changeover.ts');
+      const { lossRows } = await import('/src/tools/losses/losses.ts');
+      const { samplingRows } = await import('/src/tools/sampling/sampling.ts');
       for (const st of loaded.data.studies.filter(x => !x.deletedAt && (!lineId || (x.workspaceId && ws.has(x.workspaceId))))) {
         add(SL.studyTitle(st), SL.studyLine(st, ctx).text);
         if (st.tool === 'map') { const t = streamRows(st.facts.flow, st.agreed?.map); for (const x of t.rows) add(x.what, x.who, x.where); add(t.total.lead); }
@@ -881,12 +881,12 @@ for (const size of SIZES) {
   const capMust = ids => page.evaluate(async ids => {
     const { san } = await import('/src/lib/reportKit.ts');
     await (await import('/src/lib/savePdf.ts')).loadPdfLib();
-    const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
-    const { changeoverIn } = await import('/src/lib/ie/changeover.ts');
+    const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
+    const { changeoverIn } = await import('/src/tools/changeover/changeover.ts');
     const { walkVerdict } = await import('/src/lib/ie/walk.ts');
-    const B = await import('/src/lib/ie/balance.ts');
+    const B = await import('/src/tools/linework/balance.ts');
     const { currentBalance } = await import('/src/lib/studyLinks.ts');
-    const S = await import('/src/lib/standard.ts');
+    const S = await import('/src/tools/linestandard/standard.ts');
     const [all, wss, studies] = await Promise.all([db.listAllStandards(), db.listWorkspaces(), db.listAllStudies()]);
     const list = ids ?? all.filter(s => !s.deletedAt && S.inCapacityTool(s)).map(s => s.id);
     const out = []; let from = '';
@@ -961,7 +961,7 @@ for (const size of SIZES) {
         const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1]);
         /* a card a product — and after a card that had to cut what was written, its notes page(s) (lib/standardCard cardPages) */
         const want = await page.evaluate(async () => {
-          const db = await import('/src/db.ts'); const C = await import('/src/lib/standardCard.ts'); const S = await import('/src/lib/standard.ts');
+          const db = await import('/src/db.ts'); const C = await import('/src/tools/linestandard/standardCard.ts'); const S = await import('/src/tools/linestandard/standard.ts');
           const list = (await db.listAllStandards()).filter(x => !x.deletedAt && S.inMapTool(x));
           let n = 0; for (const x of list) n += (await C.cardPages(x, 'x', 'today')).length;
           return { n, cards: list.length };

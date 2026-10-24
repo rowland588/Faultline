@@ -5,12 +5,12 @@
  * Line capacity and its newest SMED's running pattern, through the tested
  * functions of lib/intelligence. Pure. */
 import type { Observation, Workspace } from '../types';
-import type { Standard } from './standard';
+import type { Standard } from '../tools/linestandard/standard';
 import type { ToolStudy } from './study';
-import { analyse } from './capacity';
+import { analyse } from '../tools/linebalance/capacity';
 import { lossFiguresOf } from './studyLinks';
-import { runningOf } from './ie/changeover';
-import { stopsOfBar, type LossBar } from './ie/losses';
+import { runningOf } from '../tools/changeover/changeover';
+import { stopsOfBar, type LossBar } from '../tools/losses/losses';
 import { constraintShare } from './intelligence';
 import {
   changesThisWeek, constraintTrend, heatOf, lineConstraint, lineRates, loadVsDemand, periodWaterfall, weeklyBrief, WEEK,

@@ -82,7 +82,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
   await page.goto(`${BASE}/#/capability/${sd.studyId}`); await page.waitForTimeout(2500);
   const m = await page.evaluate(async id => {
     const s = (await (await import('/src/db.ts')).listAllStudies()).find(x => x.id === id);
-    const S = await import('/src/lib/ie/sample.ts'); const L = await import('/src/lib/studyLinks.ts');
+    const S = await import('/src/tools/capability/sample.ts'); const L = await import('/src/lib/studyLinks.ts');
     const f = S.sample(s.agreed.readings, s.facts.readings);
     return { ppk: f.ppk.toFixed(2), cpk: f.cpk.toFixed(2), n: f.n, line: L.studyLine(s).text, values: s.facts.readings.slice(0, 3).map(r => r.value.toFixed(f.dp)) };
   }, sd.studyId);

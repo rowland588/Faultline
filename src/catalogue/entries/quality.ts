@@ -410,7 +410,12 @@ export const QUALITY: Entry[] = [
     food: 'Bagged produce on combination weighers; meat and cheese portions.',
     depends: ['FC-094', 'FC-157', 'FC-162'],
     complexity: 'S', value: 'high', valueWhy: 'Often the biggest money on a weighing line (BLUEPRINT §6, money missing).',
-    status: 'to-build', form: 'mode', partOf: 'FC-094', methods: ['yield.giveaway'], scenarios: ['packing', 'money'], words: ['giveaway', 'give-away', 'overfill', 'overweight'],
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['yield.giveaway'], scenarios: ['packing', 'money'], words: ['giveaway', 'give-away', 'overfill', 'overweight'],
+    spec: 'knowledge/specs/FC-156-capability-money.md',
+    built: { where: ['/capability'], code: ['src/tools/capability/sample.ts', 'src/tools/capability/sampleLean.ts', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'],
+      tests: ['src/tools/capability/__tests__/sample.test.ts'], acceptance: ['capability-kinds.mjs'] },
+    limits: ['A shift and a week from figures typed on the study; no year until a study has a running pattern.', 'The lowest legal fill and what a lower spread would save are FC-157.',
+      'With it, what the rejects cost on a pass-or-fail study — each failed item waste, reworked or recovered by hand (Rowland, 24 October); reject-rate capability from counts stays FC-098.'],
   },
   {
     id: 'FC-157', name: 'The lowest legal fill — where the target can sit at this spread', discipline: 'yield', sub: 'giveaway',
@@ -483,7 +488,7 @@ export const QUALITY: Entry[] = [
     depends: ['FC-094', 'FC-157', 'FC-164'],
     complexity: 'S', value: 'high', valueWhy: 'The law, applied plainly.',
     status: 'partial', form: 'mode', partOf: 'FC-094', methods: ['packaging.average-quantity-system'], scenarios: ['packing', 'quality'], words: ['e mark', 'short weight', 'TNE', 'average system', 'weights and measures'],
-    built: { where: ['/capability'], code: ['src/lib/ie/sample.ts'], tests: ['src/lib/ie/__tests__/sample.test.ts'], acceptance: [] },
+    built: { where: ['/capability'], code: ['src/tools/capability/sample.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts'], acceptance: [] },
     limits: ['Not driven by an acceptance script.', 'The inspector’s reference test on a batch is not implemented (FC-232).'],
   },
   {

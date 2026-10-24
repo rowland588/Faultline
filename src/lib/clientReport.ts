@@ -36,7 +36,7 @@ import type { Snag } from '../snag/types';
 import { PRIORITY_RANK } from './snagsReport';
 import { filesSaid, live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import type { Material } from './materials';
-import type { Standard } from './standard';
+import type { Standard } from '../tools/linestandard/standard';
 import { niceDay, todayISO } from './weeks';
 import { dayLength, daysWord, hoursTally, hoursWord } from './hoursLost';
 import { notedProblems, partsOf, partWords, resultNow, type Noted } from './noted';
@@ -48,10 +48,10 @@ import { climbsOf } from './rampUp';
 import type { ToolStudy } from './study';
 import { constraintOfBars } from './lineRead';
 import { lossFiguresOf, provedLine, recordProvedLine, studyHref, studyLine, studyTitle, type StudyContext } from './studyLinks';
-import { streamRows } from './ie/steps';
-import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
-import { lossRows } from './ie/losses';
-import { samplingRows } from './ie/sampling';
+import { streamRows } from '../tools/valuestream/steps';
+import { agreedFor, changeoverSheet, moneyOf } from '../tools/changeover/changeover';
+import { lossRows } from '../tools/losses/losses';
+import { samplingRows } from '../tools/sampling/sampling';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
 /** `booked` is a step with a day, still ahead (indigo); `ahead` one with no

@@ -6,7 +6,7 @@ discipline: equipment
 kind: established
 evidence: standard
 depth: full
-checked: 2026-10-22 — the six big losses (Nakajima 1988); the time model of packaging lines EN 415-11:2021 (scope checked online; content not read) and DIN 8743:2014 (withdrawn); Faultline's model in docs/CAPACITY.md §5–6, src/lib/ie/losses.ts, proved by losses.test.ts and scripts/acceptance/shift-losses.mjs
+checked: 2026-10-22 — the six big losses (Nakajima 1988); the time model of packaging lines EN 415-11:2021 (scope checked online; content not read) and DIN 8743:2014 (withdrawn); Faultline's model in docs/CAPACITY.md §5–6, src/tools/losses/losses.ts, proved by losses.test.ts and scripts/acceptance/shift-losses.mjs
 needs: [capacity.line-capacity]
 next: [quality.pareto, rca.fishbone-5whys, cost.line-cost-model]
 alternatives: [equipment.oee]
@@ -68,5 +68,5 @@ person is the constraint.
 - [practice] docs/CAPACITY.md §5–6.
 
 ## In Faultline
-The Loss count (`src/lib/ie/losses.ts`, `src/screens/LossesScreen.tsx`,
-`src/lib/ie/lossLean.ts`), FC-049.
+The Loss count (`src/tools/losses/losses.ts`, `src/tools/losses/LossesScreen.tsx`,
+`src/tools/losses/lossLean.ts`), FC-049.

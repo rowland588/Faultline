@@ -5,7 +5,7 @@
  * 450 min − 126 = 324 × 100 = 32,400; 148,000 ÷ 201,600 = 73.4%;
  * £0.40 × 80 = £32 a constraint minute). */
 import { describe, expect, it } from 'vitest';
-import { analyse, labourCost, oneMorePerson, shiftCapacity, shiftsIn, lineSpeed, ownSpeed, type Capacity, type Station } from '../capacity';
+import { analyse, labourCost, oneMorePerson, shiftCapacity, shiftsIn, lineSpeed, ownSpeed, type Capacity, type Station } from '../../tools/linebalance/capacity';
 import { burdenOf, labourPerHour, labourPerMs, ratedPerMin } from '../cost';
 import { lostParts, neckOf, packsForMs, stopsTheLine } from '../lineLoss';
 import { mix, threeNumbers } from '../ie/mix';

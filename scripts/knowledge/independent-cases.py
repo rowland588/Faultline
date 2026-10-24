@@ -183,3 +183,17 @@ for c in [0.90, 0.95, 0.99]:
     print(f"  upper(90 of 4500, C={c}) = {stats.beta.ppf(c, 91, 4410):.8f}")
 print(f"  upper(70 of 4500, C=0.95) = {stats.beta.ppf(0.95, 71, 4430):.8f}")
 print(f"  upper(2 of 50, C=0.90) = {stats.beta.ppf(0.90, 3, 48):.8f}; upper(2 of 50, C=0.99) = {stats.beta.ppf(0.99, 3, 48):.8f}")
+
+# --- money in the capability study (knowledge/specs/FC-156-capability-money.md, 24 October) ---
+print("\n# give-away: (mean - nominal) x packs x GBP a kg; the record's own case")
+def giveaway(mean, nominal, packs, shifts_week, gbp_kg, unit='g'):
+    g = max(0.0, mean - nominal); kg = g / 1000 if unit == 'g' else g
+    shift_kg = kg * packs; return g, shift_kg, shift_kg * gbp_kg, shift_kg * shifts_week, shift_kg * shifts_week * gbp_kg
+print("  404.1 on 400, 10000 a shift, 5 a week, GBP 18/kg ->", giveaway(404.1, 400, 10000, 5, 18))
+print("  399.6 on 400 ->", giveaway(399.6, 400, 10000, 5, 18))
+print("\n# rejects by fate: the sample's share scaled to the packs a shift, each fate at its own cost")
+def rejects(n, waste, rework, recovered, packs, m, r, shifts_week):
+    pw, pr, ph = packs * waste / n, packs * rework / n, packs * recovered / n
+    return dict(failed=packs * (waste + rework + recovered) / n, waste=pw, waste_gbp=pw * m, rework=pr, rework_gbp=pr * r, recovered=ph, shift_gbp=pw * m + pr * r, week_gbp=(pw * m + pr * r) * shifts_week)
+print("  20 checked, 1 waste + 1 reworked, 10000 a shift, M 0.25, R 0.12, 5 a week ->", rejects(20, 1, 1, 0, 10000, 0.25, 0.12, 5))
+print("  20 checked, 1 recovered ->", rejects(20, 0, 0, 1, 10000, 0.25, 0.12, 5))

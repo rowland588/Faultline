@@ -6,7 +6,7 @@ discipline: capacity
 kind: established
 evidence: textbook
 depth: full
-checked: 2026-10-22 — Toyota's process capacity sheet (Lean Lexicon) and the constraint (Goldratt); plate speed and a person's standard time as docs/CAPACITY.md §1–3 sets them; proved by src/lib/__tests__/capacity.test.ts and scripts/acceptance/line-capacity.mjs
+checked: 2026-10-22 — Toyota's process capacity sheet (Lean Lexicon) and the constraint (Goldratt); plate speed and a person's standard time as docs/CAPACITY.md §1–3 sets them; proved by src/tools/linebalance/__tests__/capacity.test.ts and scripts/acceptance/line-capacity.mjs
 needs: [ie.time-study]
 next: [capacity.theory-of-constraints, capacity.v-curve, cost.line-cost-model]
 alternatives: [capacity.simulation]
@@ -62,6 +62,6 @@ hand-pack stations feeding a case packer.
 - [textbook] Hopp, W.J. and Spearman, M.L. (2008), *Factory Physics*, 3rd ed., McGraw-Hill.
 
 ## In Faultline
-Line capacity (`src/lib/capacity.ts`, `src/screens/CapacityPanel.tsx`),
+Line capacity (`src/tools/linebalance/capacity.ts`, `src/tools/linebalance/CapacityPanel.tsx`),
 proved by the capacity tests and `scripts/acceptance/line-capacity.mjs`; the
 knowledge behind it `docs/CAPACITY.md`.

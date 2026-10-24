@@ -93,7 +93,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
     if (!bundle || !line || busy || picks === null) return;
     setBusy(true); setSaid(null);
     try {
-      const [{ loadPdfLib, deliverPdf, titlePdf }, { drawLineBundle }, { capacityPapersFor }, { pdfFileName }] = await Promise.all([import('../../lib/savePdf'), import('./lineBundlePdf'), import('../../lib/capacityPaperLoad'), import('../../lib/fileName')]);
+      const [{ loadPdfLib, deliverPdf, titlePdf }, { drawLineBundle }, { capacityPapersFor }, { pdfFileName }] = await Promise.all([import('../../lib/savePdf'), import('./lineBundlePdf'), import('../../tools/linebalance/capacityPaperLoad'), import('../../lib/fileName')]);
       const { jsPDF } = await loadPdfLib();
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       titlePdf(doc, `${line.name} — the line report, everything on the line`);

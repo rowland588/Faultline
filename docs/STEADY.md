@@ -69,7 +69,7 @@ It is done after J3 (`docs/JOURNEY.md`) and before anything new is built.
 |---|---|---|
 | S1 — **built 23 October** (§5) | the *one number* check (`scripts/acceptance/one-number.mjs`): on the seeded stage-gate and 6M projects, late · open · done · critical read from the front page's band, Needs you, Actions' tiles, the Journey's tiles, the status report, the client report and the control room's row — all equal | it passes on today's code, or it finds a real disagreement, which is fixed first |
 | S2 — **built 23 October** (§6) | each project kind as one module (`project/stagegate`, `project/sixm`, `project/tree`): what it is made of, its reader, its owed and done rows, its papers; `useJobInputs` reads them; the 37 branches replaced by one ask | S1, every acceptance script, paper parity |
-| S3 — **begun 23 October** (§7) | tools into their folders (one at a time, newest first), then the scopes; the catalogue entry names the folder | paper parity, the page inventory, `journeys.mjs` against its baseline, the full gate once at the end |
+| S3 — **built 23–24 October** (§7) | tools into their folders (one at a time, newest first), then the scopes; the catalogue entry names the folder | paper parity, the page inventory, `journeys.mjs` against its baseline, the full gate once at the end |
 | S4 — **built 23 October** (§8) | the four biggest files split along the seams they already have (a paper's sections; a page's panels; capacity's sums apart from its words) | the same |
 
 Nothing new is built during S1–S4. Each slice is small enough to revert on
@@ -161,9 +161,20 @@ band can count them too.
   the catalogue's `built` paths and the knowledge records moved with it.
   A new tool is built in its own folder from the start; an older one is
   moved when it is next worked on, with this tool.
-- **Not moved yet**: the other ten tools (`src/lib/ie/*`, their pages in
-  `src/screens/`), the stage gate's and the 6M's own pages, the factory's.
-  Each moves with the same tool and the same proof, one at a time.
+- **24 October — the ten tools moved**, a commit each, at Rowland's go:
+  `talk` (the assistant's core, its hearing, its screens; the gateway's sync
+  and its test read the core from the tool's folder), `video` (the whole of
+  `lib/video` with its screens and players), `losses`, `sampling`,
+  `changeover`, `valuestream`, `capability`, `linebalance` (Line capacity —
+  its sums, words, sentences, lanes, plan, paper, panel, V and bars),
+  `linework` (the line balance) and `linestandard`. What stays shared stays
+  in `lib`: `ie/dist` (the statistics every study uses), `ie/ergo`, `ie/mix`,
+  `ie/walk`, `studiesPdf` (every study list on paper), `db/*`, the report
+  engine and the frame. Each move was proved by tsc and every unit test, the
+  batch by the lint ceiling, the build and the full gate.
+- **Not moved yet**: the stage gate's, the 6M's and the lever tree's own
+  pages (`src/project/<kind>/`), the factory's. Each moves with the same
+  proof when next worked on.
 
 ## 8. S4 — the four biggest files split at their seams, 23 October
 
@@ -187,13 +198,13 @@ paper parity against what is live.
 - **The 6M report** (`lib/sixmReportPdf`, 1,200 → 914): its model in
   `lib/sixmReport` (the types, `sixmReport()`, everything owed, the week
   line), the paper left in `sixmReportPdf`.
-- **Line capacity** (`lib/capacity`, 1,944 → 1,752): the sums stay; how a
-  figure is written is `lib/capacityWords` (`fmtN`, `fmtBig`, `oneOf`,
+- **Line capacity** (`tools/linebalance/capacity`, 1,944 → 1,752): the sums stay; how a
+  figure is written is `tools/linebalance/capacityWords` (`fmtN`, `fmtBig`, `oneOf`,
   `fmtSec`, `fmtDur`, `everyWords`, `cycleWords` — imports nothing) and
-  what the result says is `lib/capacitySays` (`rateAsTime`, `paceSays`,
+  what the result says is `tools/linebalance/capacitySays` (`rateAsTime`, `paceSays`,
   `shortSays`, `canMakeWords`), so no file imports a file that imports it.
 
-What is still big and why it is left: `lib/capacity` (the sums of one tool,
+What is still big and why it is left: `tools/linebalance/capacity` (the sums of one tool,
 one seam each — the lanes, the screening, the shift — and each already
 tested on its own), `cloud/sync` (one engine, the cycle in `CLAUDE.md`'s
 *Things that will bite* — not to be split without the sync harness run

@@ -23,7 +23,7 @@ import {
   addMachineToLine, addLineProgram, putProgram,
   listObservations, snagsForWorkspace, listTests, listAssets,
 } from '../db';
-import { barExpect, barWords, lossFigures } from '../lib/ie/losses';
+import { barExpect, barWords, lossFigures } from '../tools/losses/losses';
 import { shiftWindow } from '../lib/shifts';
 import { studyTitle } from '../lib/studyLinks';
 import type { LossCount, ToolStudy } from '../lib/study';
@@ -1052,7 +1052,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     401.0, 401.9, 400.8, 401.9, 401.1, 401.2, 401.6, 401.3, 400.7, 401.3, 400.4, 401.1, 401.5, 401.9, 400.8];
   const studyId = uid();
   await putStudy({ id: studyId, tool: 'capability', name: 'Weight accuracy 400 g', machine: 'Ishida CCW-RV-214W multihead weigher',
-    agreed: { readings: { kind: 'limits', unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30 } },
+    agreed: { readings: { kind: 'limits', unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30, packsPerShift: 10000, shiftsPerWeek: 5, costPerKg: 18 } },
     facts: { readings: thirty.map((value, i) => ({ id: uid(), value, at: t - (30 - i) * 60_000, who: 'K. Ahmed' })) },
     uses: [], startedAt: t - 31 * 60_000, createdAt: t, updatedAt: t });
 
@@ -1060,7 +1060,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      its twenty in — Needs you says "12 of 20 readings still to take" under
      the re-test's own row, its day and Ilapak's name (lib/portfolio). */
   await putStudy({ id: uid(), tool: 'capability', name: 'Seal integrity — Finest Red 2kg — re-test', projectId: proj.id, machine: 'Ilapak flow wrapper',
-    agreed: { readings: { kind: 'ticks', count: 20 } },
+    agreed: { readings: { kind: 'ticks', count: 20, packsPerShift: 10000, materialsPerPack: 0.25, reworkPerPack: 0.12 } },
     facts: { readings: Array.from({ length: 8 }, (_, i) => ({ id: uid(), ok: true, at: t - (20 - i) * 60_000, who: 'Dave' })) },
     uses: [{ id: uid(), kind: 'test', ref: retest.id, role: 'proof', at: t - 1_200_000 }], startedAt: t - 1_300_000, createdAt: t, updatedAt: t });
 
@@ -1090,8 +1090,8 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      movement, most accepted, one corrected, one rejected, two still to review,
      the demand given for takt. Every number is worked out from these. */
   const videoStudyId = await (async () => {
-    const { newJob } = await import('../lib/video/job');
-    const { READING_VERSION } = await import('../lib/video/record');
+    const { newJob } = await import('../tools/video/job');
+    const { READING_VERSION } = await import('../tools/video/record');
     const t = Date.now();
     const zones = [0, 1, 2].map(i => ({ id: `s${i + 1}`, label: `Workstation ${i + 1}`, track: `Operator ${'ABC'[i]}`, x0: i / 3, x1: (i + 1) / 3, y0: 0, y1: 1 }));
     const config = { sampleSec: 0.1, readWidth: 160, zones, sensitivity: 4, joinGapSec: 0.5, minEventSec: 0.6, version: READING_VERSION };

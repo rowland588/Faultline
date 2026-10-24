@@ -16,7 +16,7 @@ import { factsOf, lineCapacityOf, therefore } from './fishbone';
 import { gapOf, lineSeries, say } from './measures';
 import { paretoFromLog } from './paretoFromLog';
 import { paretoView } from './paretoView';
-import { analyse } from './capacity';
+import { analyse } from '../tools/linebalance/capacity';
 import { niceDay, todayISO } from './weeks';
 
 import { PHASE_ORDER, bonesSaid, pacedOwed, problemsSaid, saidText, sixmProblemOf, type Said } from './portfolio';
@@ -25,12 +25,12 @@ import { PHASE_ORDER, bonesSaid, pacedOwed, problemsSaid, saidText, sixmProblemO
 import { fixTag, fixesOf } from '../ui/fishbone/layout';
 import { constraintOfBars } from './lineRead';
 import { lossFiguresOf, provedLine, ROLE_WORD, studyLine, studyTitle, type StudyContext } from './studyLinks';
-import { lossRows } from './ie/losses';
+import { lossRows } from '../tools/losses/losses';
 
 
-import { samplingRows } from './ie/sampling';
-import { streamRows } from './ie/steps';
-import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
+import { samplingRows } from '../tools/sampling/sampling';
+import { streamRows } from '../tools/valuestream/steps';
+import { agreedFor, changeoverSheet, moneyOf } from '../tools/changeover/changeover';
 
 
 import type { StudyUse } from './study';

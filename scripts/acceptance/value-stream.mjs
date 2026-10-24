@@ -69,7 +69,7 @@ const square = name => page.locator(`.vs-step[aria-label*="${name}"]`);
 /* What the modules say of a map as it stands. */
 const truth = id => page.evaluate(async id => {
   const { getStudy } = await import('/src/db.ts');
-  const S = await import('/src/lib/ie/steps.ts');
+  const S = await import('/src/tools/valuestream/steps.ts');
   const s = await getStudy(id);
   if (!s) return null;
   const a = s.agreed?.map;

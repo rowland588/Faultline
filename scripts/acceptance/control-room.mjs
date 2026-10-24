@@ -162,7 +162,7 @@ await shot('10-line');
 ok(flat(await page.locator('.pl .pace-head .pl-says').innerText()) === '1 problem open · 1 critical · 1 late', `10a the line's head says what its card says: "${flat(await page.locator('.pl .pace-head .pl-says').innerText())}"`);
 const tiles = await page.locator('.pl-tool').evaluateAll(els => Object.fromEntries(els.map(e => [e.querySelector('b')?.textContent, { says: e.querySelector('.pl-tool-says')?.textContent ?? '', n: e.querySelector('.sub')?.textContent ?? '' }])));
 const truth = await page.evaluate(async ws => {
-  const [db, studies, tools, links, std] = await Promise.all([import('/src/db.ts'), import('/src/screens/StudiesScreen.tsx'), import('/src/screens/LineToolsScreen.tsx'), import('/src/lib/studyLinks.ts'), import('/src/lib/standard.ts')]);
+  const [db, studies, tools, links, std] = await Promise.all([import('/src/db.ts'), import('/src/screens/StudiesScreen.tsx'), import('/src/screens/LineToolsScreen.tsx'), import('/src/lib/studyLinks.ts'), import('/src/tools/linestandard/standard.ts')]);
   const [line, ss, obs, stds] = await Promise.all([db.getWorkspace(ws), db.listStudiesForLine(ws), db.listObservations(ws), db.listStandardsForLine(ws)]);
   const loss = links.currentLosses(ss.filter(s => !s.deletedAt), ws);
   const cap = stds.filter(std.inCapacityTool).sort((a, b) => b.updatedAt - a.updatedAt)[0];

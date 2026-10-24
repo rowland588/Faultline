@@ -11,7 +11,7 @@
  * Nothing here reads a machine: every shift is a count a person made (a loss
  * count, lib/ie/losses). Pure. */
 import type { LossCount } from '../study';
-import { countedRate } from '../ie/losses';
+import { countedRate } from '../../tools/losses/losses';
 import { confidenceOf, percentile, type Confidence } from './confidence';
 
 export interface ShiftRate { id: string; from: number; perMin: number; made: number; plannedMin: number; ideal?: number }

@@ -14,20 +14,20 @@
  * (lib/togetherPdf) both read this, so the two never part. Nothing is worked
  * out here that a tool does not already work out: the capacity is
  * lib/capacity's, the people lib/ie/balance's, the link lib/ie/balanceLink's. */
-import { analyse, bottleneckCost, bottleneckCostSays, labourInputs, type Capacity, type CapacityResult, type StationResult } from './capacity';
-import { fmtN } from './capacityWords';
-import { shortSays } from './capacitySays';
+import { analyse, bottleneckCost, bottleneckCostSays, labourInputs, type Capacity, type CapacityResult, type StationResult } from '../tools/linebalance/capacity';
+import { fmtN } from '../tools/linebalance/capacityWords';
+import { shortSays } from '../tools/linebalance/capacitySays';
 import type { Workspace } from '../types';
-import { aPiece, balance, balanceSays, secs, type BalanceFigures, type PersonFigures } from './ie/balance';
-import { agreedFor, crewKept, stationsOf } from './ie/balanceLink';
-import { headcount, hasMap, type Standard } from './standard';
+import { aPiece, balance, balanceSays, secs, type BalanceFigures, type PersonFigures } from '../tools/linework/balance';
+import { agreedFor, crewKept, stationsOf } from '../tools/linework/balanceLink';
+import { headcount, hasMap, type Standard } from '../tools/linestandard/standard';
 import type { AgreedBalance, ToolStudy } from './study';
-import type { Tone } from './ie/sample';
+import type { Tone } from '../tools/capability/sample';
 import type { LeanTile } from './lean';
-import { capacityPaper } from './capacityPaper';
-import { capacityLean } from './capacityLean';
-import { balanceTiles } from './ie/balanceLean';
-import { balanceCost, costInputs } from './ie/balanceLink';
+import { capacityPaper } from '../tools/linebalance/capacityPaper';
+import { capacityLean } from '../tools/linebalance/capacityLean';
+import { balanceTiles } from '../tools/linework/balanceLean';
+import { balanceCost, costInputs } from '../tools/linework/balanceLink';
 
 /** What a product's Line capacity says in a line: "Bagger limits at 58
  *  bags/min · 2 short of 60", and whether it is short — the only part that

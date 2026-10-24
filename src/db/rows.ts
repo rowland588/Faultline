@@ -7,7 +7,7 @@
 import type { ID, MediaRef } from '../types';
 import type { WinProof } from '../lib/measureProof';
 import type { TrackerBind } from '../lib/treeBind';
-import type { Capacity } from '../lib/capacity';
+import type { Capacity } from '../tools/linebalance/capacity';
 
 export interface PaceTodoRow {
   id: string;

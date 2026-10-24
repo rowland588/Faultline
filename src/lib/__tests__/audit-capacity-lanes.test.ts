@@ -5,11 +5,11 @@
  * make ÷ the good fraction of what feeds it; N identical lines send exactly
  * N × one. Rowland's two lines (capacitySeeds lanes2) are the fixture. */
 import { describe, expect, it } from 'vitest';
-import { analyse, capacityReport, screenCapacity, shiftCapacity, vCurve, type Capacity, type Station } from '../capacity';
-import { fmtN } from '../capacityWords';
-import { chainOf, lanesAlike, mergeAfterOf, reshape } from '../capacityLines';
-import { planToTarget } from '../capacityPlan';
-import { barGroups, flowModel } from '../capacityFlow';
+import { analyse, capacityReport, screenCapacity, shiftCapacity, vCurve, type Capacity, type Station } from '../../tools/linebalance/capacity';
+import { fmtN } from '../../tools/linebalance/capacityWords';
+import { chainOf, lanesAlike, mergeAfterOf, reshape } from '../../tools/linebalance/capacityLines';
+import { planToTarget } from '../../tools/linebalance/capacityPlan';
+import { barGroups, flowModel } from '../../tools/linebalance/capacityFlow';
 
 let n = 0;
 const uid = () => `u${++n}`;

@@ -6,7 +6,7 @@ discipline: cost
 kind: faultline
 evidence: decision
 depth: full
-checked: 2026-10-22 — Faultline's one cost model (CLAUDE.md "Everything derives a cost"; docs/CAPACITY.md §6): src/lib/cost.ts, src/lib/lineLoss.ts, src/lib/capacity.ts (labourCost, bottleneckCost), src/lib/ie/balanceLink.ts (balanceCost), src/lib/ie/losses.ts (contributionOf); proved by their tests
+checked: 2026-10-22 — Faultline's one cost model (CLAUDE.md "Everything derives a cost"; docs/CAPACITY.md §6): src/lib/cost.ts, src/lib/lineLoss.ts, src/tools/linebalance/capacity.ts (labourCost, bottleneckCost), src/tools/linework/balanceLink.ts (balanceCost), src/tools/losses/losses.ts (contributionOf); proved by their tests
 needs: []
 next: [cost.investment-appraisal]
 alternatives: []

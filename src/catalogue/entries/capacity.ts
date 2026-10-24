@@ -14,7 +14,7 @@ export const CAPACITY: Entry[] = [
     complexity: 'L', value: 'high', valueWhy: 'The people side of the line, linked to its capacity and in money.',
     status: 'available', form: 'tool', kind: 'standard',
     app: { key: 'linework', label: 'Line balance', says: 'People’s work timed against takt', onLine: 'what each person does, timed against takt, and what it costs', reads: 'balance', icon: 'time', order: 2 }, methods: ['capacity.line-balancing', 'ie.time-study', 'lean.takt-time', 'lean.standard-work'], scenarios: ['people', 'running'], words: ['Yamazumi', 'work balance', 'operator balance'],
-    built: { where: ['/linebalance'], code: ['src/lib/ie/balance.ts', 'src/lib/ie/balanceLink.ts', 'src/ui/WorkBalance.tsx'], tests: ['src/lib/ie/__tests__/balance.test.ts', 'src/lib/ie/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts', 'src/tools/linework/balanceLink.ts', 'src/tools/linework/WorkBalance.tsx'], tests: ['src/tools/linework/__tests__/balance.test.ts', 'src/tools/linework/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
     limits: ['The rating is taken as 100 (FC-019).'],
   },
   {
@@ -28,7 +28,7 @@ export const CAPACITY: Entry[] = [
     depends: ['FC-032'],
     complexity: 'M', value: 'medium', valueWhy: 'Faster, defensible rebalancing.',
     status: 'partial', form: 'mode', partOf: 'FC-032', methods: ['capacity.line-balancing'], scenarios: ['people'],
-    built: { where: ['/linebalance'], code: ['src/lib/ie/balance.ts'], tests: ['src/lib/ie/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
     limits: ['The suggestion follows the flow order only; no precedence diagram and no ranked positional weight.'],
   },
   {
@@ -43,7 +43,7 @@ export const CAPACITY: Entry[] = [
     complexity: 'XL', value: 'high', valueWhy: 'The line’s own numbers that every other tool reads.',
     status: 'available', form: 'tool', kind: 'standard',
     app: { key: 'linebalance', label: 'Line capacity', says: 'What each station can make, which one limits the line, and what a pack costs in labour', onLine: 'where the line is limited, and the V-curve', reads: 'standard', icon: 'chart', order: 3 }, methods: ['capacity.line-capacity', 'capacity.v-curve', 'capacity.theory-of-constraints', 'lean.standard-work'], scenarios: ['running', 'new', 'money'], words: ['bottleneck', 'rated speed', 'plate speed', 'too slow', 'V curve'],
-    built: { where: ['/balances'], code: ['src/lib/capacity.ts', 'src/lib/capacityWords.ts', 'src/lib/capacitySays.ts', 'src/screens/CapacityPanel.tsx'], tests: ['src/lib/__tests__/capacity.test.ts'], acceptance: ['line-capacity.mjs', 'list-paper.mjs'] },
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacity.ts', 'src/tools/linebalance/capacityWords.ts', 'src/tools/linebalance/capacitySays.ts', 'src/tools/linebalance/CapacityPanel.tsx'], tests: ['src/tools/linebalance/__tests__/capacity.test.ts'], acceptance: ['line-capacity.mjs', 'list-paper.mjs'] },
     limits: ['Accumulation between machines is not driven by an acceptance check (FC-046).'],
   },
   {
@@ -57,7 +57,7 @@ export const CAPACITY: Entry[] = [
     depends: ['FC-034'],
     complexity: 'L', value: 'high', valueWhy: 'Common on packing halls and easy to get wrong by hand.',
     status: 'available', form: 'mode', partOf: 'FC-034', methods: ['capacity.line-capacity'], scenarios: ['running', 'new'],
-    built: { where: ['/balances'], code: ['src/lib/capacityLines.ts'], tests: ['src/lib/__tests__/capacityLanes.test.ts'], acceptance: ['line-capacity.mjs'] },
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacityLines.ts'], tests: ['src/tools/linebalance/__tests__/capacityLanes.test.ts'], acceptance: ['line-capacity.mjs'] },
   },
   {
     id: 'FC-036', name: 'What-ifs and the way to the target', discipline: 'capacity', sub: 'line',
@@ -70,7 +70,7 @@ export const CAPACITY: Entry[] = [
     depends: ['FC-034'],
     complexity: 'M', value: 'high', valueWhy: 'Decisions on people and equipment with their effect worked out.',
     status: 'available', form: 'mode', partOf: 'FC-034', methods: ['capacity.line-capacity', 'capacity.theory-of-constraints'], scenarios: ['running', 'money', 'new'],
-    built: { where: ['/balances'], code: ['src/lib/capacityPlan.ts'], tests: ['src/lib/__tests__/capacityPlan.test.ts'], acceptance: ['line-capacity.mjs'] },
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacityPlan.ts'], tests: ['src/tools/linebalance/__tests__/capacityPlan.test.ts'], acceptance: ['line-capacity.mjs'] },
   },
   {
     id: 'FC-037', name: 'The bottleneck walk — where the work is waiting', discipline: 'capacity', sub: 'constraint',
@@ -200,7 +200,7 @@ export const CAPACITY: Entry[] = [
     depends: ['FC-034', 'FC-047'],
     complexity: 'S', value: 'medium', valueWhy: 'Shows whether the V protects the critical machine.',
     status: 'partial', form: 'mode', partOf: 'FC-034', methods: ['capacity.accumulation-buffer', 'capacity.v-curve'], scenarios: ['running', 'new'],
-    built: { where: ['/balances'], code: ['src/lib/capacity.ts'], tests: [], acceptance: [] },
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacity.ts'], tests: [], acceptance: [] },
     limits: ['Noted in Line capacity; not driven by an acceptance check.'],
   },
   {
@@ -239,7 +239,7 @@ export const CAPACITY: Entry[] = [
     complexity: 'L', value: 'high', valueWhy: 'A shift’s losses in money, without sensors.',
     status: 'available', form: 'tool', kind: 'study', starts: 'line',
     app: { key: 'losses', label: 'Loss count', says: 'Where a shift’s time went at the bottleneck’s speed, in packs and pounds', onLine: 'a shift’s losses, in minutes and pounds', reads: 'losses', icon: 'time', order: 8 }, methods: ['equipment.time-model-losses', 'cost.line-cost-model'], scenarios: ['running', 'money', 'machine'], words: ['losses', 'downtime', 'efficiency', 'where did the time go'],
-    built: { where: ['/losses'], code: ['src/lib/ie/losses.ts', 'src/screens/LossesScreen.tsx', 'src/lib/ie/lossLean.ts'], tests: ['src/lib/ie/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
+    built: { where: ['/losses'], code: ['src/tools/losses/losses.ts', 'src/tools/losses/LossesScreen.tsx', 'src/tools/losses/lossLean.ts'], tests: ['src/tools/losses/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
   },
   {
     id: 'FC-050', name: 'OEE, OOE and TEEP as figures', discipline: 'equipment', sub: 'time',
@@ -331,7 +331,7 @@ export const CAPACITY: Entry[] = [
     depends: ['FC-049'],
     complexity: 'S', value: 'medium', valueWhy: 'Splits the gap people otherwise argue about.',
     status: 'partial', form: 'mode', partOf: 'FC-049', methods: ['equipment.short-stops-speed'], scenarios: ['machine', 'running'],
-    built: { where: ['/losses'], code: ['src/lib/ie/losses.ts'], tests: ['src/lib/ie/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
+    built: { where: ['/losses'], code: ['src/tools/losses/losses.ts'], tests: ['src/tools/losses/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
     limits: ['Split only once a running speed is timed; otherwise said as slow running and short stops together.'],
   },
   {

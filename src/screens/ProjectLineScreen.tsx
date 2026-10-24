@@ -52,21 +52,21 @@ import { useActions, WHOLE_PROJECT } from '../lib/actions';
 import { useLineWorkspace } from '../lib/usePaceWorkspace';
 import { planModel } from '../lib/planModel';
 import { useLinePackCounts } from '../lib/useLinePack';
-import { CapacityPanel } from './CapacityPanel';
+import { CapacityPanel } from '../tools/linebalance/CapacityPanel';
 import { FishboneJourney } from './FishboneScreen';
 import { SawSheet } from '../ui/SawSheet';
 import { AccessNote } from '../ui/AccessNote';
 import { useProblems } from '../lib/useProblems';
 import { PHASE_WORD, type Phase } from '../lib/problems';
-import { analyse } from '../lib/capacity';
-import { shortSays } from '../lib/capacitySays';
+import { analyse } from '../tools/linebalance/capacity';
+import { shortSays } from '../tools/linebalance/capacitySays';
 import { useTesting } from '../lib/useTesting';
 import { usePrograms } from '../lib/usePrograms';
 import { journeyOf, machineAt, machinesWhere } from '../lib/install';
 import { live } from '../lib/testing';
 import { todayISO } from '../lib/weeks';
 import { useLineRecords } from '../lib/useLineRecords';
-import { inCapacityTool } from '../lib/standard';
+import { inCapacityTool } from '../tools/linestandard/standard';
 
 /* THE SECTIONS, by the name each had as a tab. 'overview' is the top of the
    page: an old ?view=overview link lands there. */

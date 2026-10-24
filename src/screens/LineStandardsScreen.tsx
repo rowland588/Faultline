@@ -13,9 +13,9 @@
  * tools, as anybody on it raises its snags. */
 import { useCallback, useEffect, useState } from 'react';
 import { getWorkspace, listStandardsForLine, onDataChange } from '../db';
-import type { Standard } from '../lib/standard';
+import type { Standard } from '../tools/linestandard/standard';
 import { can as canOf } from '../lib/access';
-import { StandardsAt, type StdHome } from './StandardScreen';
+import { StandardsAt, type StdHome } from '../tools/linestandard/StandardScreen';
 
 export function LineStandardsScreen({ wsId, standardId }: { wsId: string; standardId?: string }) {
   const [list, setList] = useState<Standard[] | null>(null);

@@ -1,6 +1,6 @@
 /* The line standard — one map per product. See lib/standard.ts. */
 import type { ID } from '../types';
-import type { Standard } from '../lib/standard';
+import type { Standard } from '../tools/linestandard/standard';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones, restoreRows, type Restore } from './sync';

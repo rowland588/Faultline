@@ -28,7 +28,7 @@ import { dualOf, lineFacts, lineTypesOffered, linesSaid, productionLines } from 
 import { WorkspaceProvider } from '../state/WorkspaceProvider';
 import { StudySetupSheet } from '../ui/StudySetupSheet';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone } from '../lib/snagsReport';
-import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../lib/standard';
+import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../tools/linestandard/standard';
 import { lineProblems, lineProblemsSaid } from '../lib/lineWork';
 import { lineClosing, lineTiles, type LineReading } from '../lib/lineLean';
 import { lineDay } from '../lib/lineLoss';
@@ -54,7 +54,7 @@ import { offerUndo } from '../ui/Undo';
 import type { LineMachine } from '../lib/lineRecords';
 import type { Program } from '../lib/programs';
 import type { Snag, SnagAsset } from '../snag/types';
-import { talkSaid, turnsOf } from '../lib/talk';
+import { talkSaid, turnsOf } from '../tools/talk/talk';
 
 const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
 /* PRIORITY, RAG (Rowland, 12 October) — always with its word. */

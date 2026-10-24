@@ -4,9 +4,9 @@
  * 450 min; 3 changeovers of 42 min take 126; 324 min making × 100 bags a
  * minute = 32,400 bags — 45,000 if it never changed over. */
 import { describe, it, expect } from 'vitest';
-import { analyse, labourCost, lineSpeed, shiftCapacity, shiftsIn, type Station } from '../capacity';
-import { changeoverIn } from '../ie/changeover';
-import { idealOf } from '../ie/losses';
+import { analyse, labourCost, lineSpeed, shiftCapacity, shiftsIn, type Station } from '../../tools/linebalance/capacity';
+import { changeoverIn } from '../../tools/changeover/changeover';
+import { idealOf } from '../../tools/losses/losses';
 import type { ToolStudy } from '../study';
 
 const st = (p: Partial<Station>): Station => ({ id: 's', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 100, ratePer: 'min', source: 'plate', ...p });

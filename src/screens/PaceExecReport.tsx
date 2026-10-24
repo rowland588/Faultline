@@ -43,7 +43,7 @@ import type { BoardSheetDrawn, FilePages, PaceReportData } from '../lib/paceRepo
 import type { Shot } from '../lib/testReport';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/measureProof';
 import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
-import { capacityPlan, capacityReport, type CapacityReport } from '../lib/capacity';
+import { capacityPlan, capacityReport, type CapacityReport } from '../tools/linebalance/capacity';
 import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
 import { coveredIn, daysLate, isHere, landsIn, todayISO } from '../lib/materials';

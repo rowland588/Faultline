@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import type { Case, Observation, Workspace } from '../../types';
 import type { PaceLineRow } from '../../db/rows';
 import type { Cause } from '../sixm';
-import type { Standard } from '../standard';
+import type { Standard } from '../../tools/linestandard/standard';
 import type { ToolStudy } from '../study';
 import type { Material } from '../materials';
 import type { Program } from '../programs';

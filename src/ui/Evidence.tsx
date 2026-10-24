@@ -2,7 +2,7 @@ import type { MediaPin, MediaRef } from '../types';
 import type { Test, TestItem } from '../lib/testing';
 import { useBlobUrl, useBlobSource } from '../lib/useBlobUrl';
 import { uid } from '../lib/ids';
-import { VideoPlayer } from './VideoPlayer';
+import { VideoPlayer } from '../tools/video/VideoPlayer';
 import { Icon } from './Icon';
 import { useEffect, useState } from 'react';
 import { ShareSheet } from './ShareLink';

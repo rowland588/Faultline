@@ -22,10 +22,10 @@
  * Never called "a study" on screen on its own — "Line study" already names a
  * line. It always carries its tool's name: "Capability study — Weight
  * accuracy 400 g". */
-import type { VideoEvent, VideoSource } from './video/record';
-import type { FootageGone } from './video/footage';
+import type { VideoEvent, VideoSource } from '../tools/video/record';
+import type { FootageGone } from '../tools/video/footage';
 import type { ID } from '../types';
-import type { TalkTurn } from './talk';
+import type { TalkTurn } from '../tools/talk/talk';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
@@ -59,6 +59,16 @@ export interface AgreedReadings {
   good?: number;
   /** Pass or fail: how confident what the count proves is said — 0.9, 0.95 (absent) or 0.99. */
   conf?: number;
+  /** MONEY (knowledge/specs/FC-156-capability-money.md — Rowland, 24 October: typed on each
+   *  study, never read off the line): the packs a shift and the shifts a week the finding is scaled
+   *  to; what the product costs a kilo (give-away, a measured study with a nominal in g or kg); a
+   *  pack's materials and one rework (a failed item by its fate). Every one optional — the study
+   *  says what is missing, and invents nothing. */
+  packsPerShift?: number;
+  shiftsPerWeek?: number;
+  costPerKg?: number;
+  materialsPerPack?: number;
+  reworkPerPack?: number;
 }
 
 /** One reading, as taken. Struck, never erased: a mistype keeps its place. */
@@ -68,6 +78,9 @@ export interface StudyReading {
   value?: number;
   /** ticks */
   ok?: boolean;
+  /** A failed item: what became of it (Rowland, 24 October — reworked, recovered by hand, or pure
+   *  waste). Absent on every reading before: waste. */
+  fate?: 'waste' | 'rework' | 'recovered';
   at: number;
   who?: string;
   note?: string;

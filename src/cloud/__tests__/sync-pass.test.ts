@@ -234,7 +234,7 @@ describe('a video study’s footage', () => {
 
   it('goes up with the study; deleted, it is forgotten here and taken out of the cloud', async () => {
     const { db, sync } = await boot();
-    const { withoutFootage } = await import('../../lib/video/footage');
+    const { withoutFootage } = await import('../../tools/video/footage');
     await db.putBlob('video-1', new Blob(['film'], { type: 'video/mp4' }));
     await db.putStudy(S);
     await sync.syncNow();
@@ -257,7 +257,7 @@ describe('a video study’s footage', () => {
 
   it('deleted on the laptop while the phone wrote the video later: the cloud never names it again', async () => {
     const { db, sync } = await boot();
-    const { withoutFootage } = await import('../../lib/video/footage');
+    const { withoutFootage } = await import('../../tools/video/footage');
     await db.putBlob('video-1', new Blob(['film'], { type: 'video/mp4' }));
     await db.putStudy(S);
     await sync.syncNow();

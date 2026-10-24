@@ -4,12 +4,12 @@
  * own module. Work sampling's money: the biggest share not the work × the
  * shift's hours × one person's rate (the line's wage × on-costs). */
 import { describe, expect, it } from 'vitest';
-import { personRate, samplingClosing, samplingTiles, worstCost } from '../samplingLean';
-import { sampleClosing, sampleTiles } from '../sampleLean';
-import { flowClosing, flowTiles } from '../flowLean';
-import { samplingSays } from '../sampling';
-import { sample, sampleSays } from '../sample';
-import { flowFigures } from '../steps';
+import { personRate, samplingClosing, samplingTiles, worstCost } from '../../../tools/sampling/samplingLean';
+import { sampleClosing, sampleTiles } from '../../../tools/capability/sampleLean';
+import { flowClosing, flowTiles } from '../../../tools/valuestream/flowLean';
+import { samplingSays } from '../../../tools/sampling/sampling';
+import { sample, sampleSays } from '../../../tools/capability/sample';
+import { flowFigures } from '../../../tools/valuestream/steps';
 import type { AgreedReadings, AgreedSampling, FlowStep, Tap } from '../../study';
 
 const H = 3_600_000;

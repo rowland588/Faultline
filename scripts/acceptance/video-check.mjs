@@ -60,9 +60,9 @@ ok(/#\/video-check$/.test(page.url()) && (await text('h1')) === 'Can this phone 
 /* 2 — what the phone offers, as the module says it */
 await page.waitForSelector('.vck-offers .vck-line', { timeout: 8000 });
 const offered = await page.evaluate(async src => {
-  const { phoneOffers } = await import('/src/lib/video/phoneRun.ts');
-  const { offersSay } = await import('/src/lib/video/phoneCheck.ts');
-  const { pickMimeType } = await import('/src/ui/VideoRecorder.tsx');
+  const { phoneOffers } = await import('/src/tools/video/phoneRun.ts');
+  const { offersSay } = await import('/src/tools/video/phoneCheck.ts');
+  const { pickMimeType } = await import('/src/tools/video/VideoRecorder.tsx');
   const o = await phoneOffers(pickMimeType());
   return { want: offersSay(o).map(l => `${l.what} | ${l.says}`), got: (eval(src))('.vck-offers .vck-line') };
 }, LINES.toString());
@@ -108,7 +108,7 @@ const copied = await page.evaluate(() => navigator.clipboard.readText());
 const json = (() => { try { return JSON.parse(copied.slice(copied.indexOf('\n{') + 1)); } catch { return null; } })();
 ok(!!json, '8 Copy results: the words, then every figure', copied.slice(0, 300));
 const said = await page.evaluate(async ([j, src]) => {
-  const { phoneSays } = await import('/src/lib/video/phoneCheck.ts');
+  const { phoneSays } = await import('/src/tools/video/phoneCheck.ts');
   const s = phoneSays(j.offers, { ...j.run, marks: [] }, j.steady);
   return {
     want: { headline: s.headline, ran: s.ran, lines: s.lines.map(l => `${l.what} | ${l.says}`), tones: s.lines.map(l => l.tone), next: s.next ?? '' },

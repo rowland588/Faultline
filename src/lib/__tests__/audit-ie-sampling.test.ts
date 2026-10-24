@@ -1,7 +1,7 @@
 /* AUDIT (16 Oct) — work sampling, lib/ie/sampling, against the reference:
  * p ± z√(p(1−p)/n), N = Z²p(1−p)/E², the share whose margin is widest. */
 import { describe, it, expect } from 'vitest';
-import { marginOf, tapsNeeded, shares, moreNeeded, samplingReading, samplingLine, samplingRows, samplingSays, Z95, TOO_FEW_TAPS, type Tap } from '../ie/sampling';
+import { marginOf, tapsNeeded, shares, moreNeeded, samplingReading, samplingLine, samplingRows, samplingSays, Z95, TOO_FEW_TAPS, type Tap } from '../../tools/sampling/sampling';
 import { rng, wilson } from './audit-ie-ref';
 
 const tap = (i: number, who: string, activity: string): Tap => ({ id: `t${i}`, at: i * 1000, who, activity });

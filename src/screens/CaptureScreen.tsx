@@ -14,7 +14,7 @@ import { shiftAtTime } from '../lib/shifts';
 import { useSyncedAt } from '../cloud/session';
 import { uid, now } from '../lib/ids';
 import { captureMedia, saveVideoBlob, pickExistingMedia } from '../lib/media';
-import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
+import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
 import { fmtDuration, fmtDurationWords, fmtRelative, plural } from '../lib/format';
 import { ChipPicker } from '../ui/Chip';
 import { Stopwatch, CostTicker } from '../ui/Stopwatch';

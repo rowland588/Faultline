@@ -106,4 +106,4 @@ output (`cost.line-cost-model`).
 ## In Faultline
 Specified as part 2 of the capability study (`knowledge/specs/FC-094-capability.md`),
 not built yet. The loss count already counts rejects in a shift
-(`src/lib/ie/losses.ts`) as time lost, not as a capability.
+(`src/tools/losses/losses.ts`) as time lost, not as a capability.

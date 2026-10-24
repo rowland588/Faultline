@@ -15,7 +15,7 @@ import { uid, now } from '../lib/ids';
 import { Sheet } from '../ui/Sheet';
 import { Chip } from '../ui/Chip';
 import { useBlobUrl } from './useBlobUrl';
-import { VideoPlayer } from '../ui/VideoPlayer';
+import { VideoPlayer } from '../tools/video/VideoPlayer';
 import { useTeam } from '../cloud/team';
 import { useSyncedAt } from '../cloud/session';
 import PinImage, { type Pin } from './PinImage';

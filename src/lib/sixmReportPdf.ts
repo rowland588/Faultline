@@ -36,7 +36,7 @@ import {          type SixM } from './sixm';
 import {   say } from './measures';
 
 
-import { fmtN } from './capacityWords';
+import { fmtN } from '../tools/linebalance/capacityWords';
 
 import { san, paperBand } from './reportKit';
 

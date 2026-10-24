@@ -3,7 +3,7 @@
  * ladder, the running pattern, the cost per shift → day → week → year in two
  * parts, and EPEI — on the two worked examples and on random sequences. */
 import { describe, it, expect } from 'vitest';
-import { arrange, ladderOf, changeoverFigures, runningOf, changeoversPer, extrapolate, intervalOf, onTarget, SMED_TARGET_SEC, mins, span, moneyOf, standardFrom, type Rung, RUNGS } from '../ie/changeover';
+import { arrange, ladderOf, changeoverFigures, runningOf, changeoversPer, extrapolate, intervalOf, onTarget, SMED_TARGET_SEC, mins, span, moneyOf, standardFrom, type Rung, RUNGS } from '../../tools/changeover/changeover';
 import type { ChangeoverStep, RunningPattern } from '../study';
 import { rng } from './audit-ie-ref';
 

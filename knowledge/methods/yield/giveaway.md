@@ -6,7 +6,7 @@ discipline: yield
 kind: established
 evidence: law
 depth: full
-checked: 2026-10-22 — the average system's rules (Weights and Measures (Packaged Goods) Regulations 2006, Schedule 2 — TNE table as implemented in src/lib/ie/sample.ts tneFor, from the Regulations); give-away arithmetic and the target fill from the normal model (from knowledge); the deleted method engine had give-away and fill blocks (docs/CAPABILITY-CHECK.md, E)
+checked: 2026-10-22 — the average system's rules (Weights and Measures (Packaged Goods) Regulations 2006, Schedule 2 — TNE table as implemented in src/tools/capability/sample.ts tneFor, from the Regulations); give-away arithmetic and the target fill from the normal model (from knowledge); the deleted method engine had give-away and fill blocks (docs/CAPABILITY-CHECK.md, E)
 needs: [packaging.average-quantity-system, spc.capability-measured]
 next: [yield.multihead-weigher, stats.doe-factorial]
 alternatives: []
@@ -65,6 +65,10 @@ sauces and drinks by volume (`packaging.average-quantity-system`, density).
 - [standard] OIML R 87:2016, *Quantity of product in prepackages* — from knowledge.
 
 ## In Faultline
-Not built (FC-156, FC-157). The capability study's *Sold by weight* applies
-the three rules (`src/lib/ie/sample.ts`); give-away in money is listed missing
-in docs/BLUEPRINT.md §6.
+Built 24 October as part of the capability study (FC-156, a mode of the study itself;
+`knowledge/specs/FC-156-capability-money.md`): a measured study with a nominal
+in g or kg says give-away a pack, and — from the packs a shift, the shifts a
+week and the product's cost a kilo typed on the study (Rowland, 24 October) —
+a shift and a week in kg and £, with its because; a missing input is named on
+the tile. The lowest legal fill and what a lower spread saves are FC-157, not
+built.

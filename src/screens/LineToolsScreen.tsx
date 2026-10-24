@@ -27,14 +27,14 @@ import type { ToolStudy } from '../lib/study';
 import { changeoverLine, currentBalance, currentChangeover, studyHref, studyLine } from '../lib/studyLinks';
 import { offerUndo } from '../ui/Undo';
 import { useProjects } from '../lib/useProjects';
-import { headcount, inCapacityTool, inMapTool, removingSays, thingsOf, type Standard } from '../lib/standard';
-import { removeFromTool } from '../ui/StandardsCard';
+import { headcount, inCapacityTool, inMapTool, removingSays, thingsOf, type Standard } from '../tools/linestandard/standard';
+import { removeFromTool } from '../tools/linestandard/StandardsCard';
 import { useAccess } from '../cloud/access';
 import { can as canOf } from '../lib/access';
 import { productsOnLine, programsOnLine } from '../lib/lineRecords';
 import { useLineRecords } from '../lib/useLineRecords';
-import { analyse } from '../lib/capacity';
-import { shortSays } from '../lib/capacitySays';
+import { analyse } from '../tools/linebalance/capacity';
+import { shortSays } from '../tools/linebalance/capacitySays';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Sheet } from '../ui/Sheet';
@@ -160,7 +160,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
         const observations = (await Promise.all(wsIds.map(id => listObservations(id)))).flat();
         await saveStudiesPdf({ title: name, printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), items, standards: list ?? [], ctx: { observations, workspaces: lines } }, name);
       } else if (tool === 'balance') {
-        const { saveCapacityPdf } = await import('../lib/capacityPaperLoad');
+        const { saveCapacityPdf } = await import('../tools/linebalance/capacityPaperLoad');
         await saveCapacityPdf(shown.flatMap(([, rows]) => rows), { scope: lineF === 'all' ? 'every product shown' : groupName(lineF), name });
       } else {
         const { saveStandardCards } = await import('../ui/ToolPapers');

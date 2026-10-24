@@ -11,7 +11,7 @@ import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { useMaterials } from '../lib/useMaterials';
 import { usePrograms } from '../lib/usePrograms';
-import { useStandards } from '../ui/StandardsCard';
+import { useStandards } from '../tools/linestandard/StandardsCard';
 import { statusReport } from '../lib/statusReport';
 import { clientReport, machinesSay, type ClientReport } from '../lib/clientReport';
 import { handoverReport, type HandoverReport } from '../lib/handoverReport';
@@ -131,7 +131,7 @@ async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF>
     /* The plan page grouped the way this device's plan is drawn. */
     planBy: ganttBy(),
     standards: withStandards && r.standards.length
-      ? async d => { const { drawStandards } = await import('../lib/standardPdf'); const { worksFor } = await import('../ui/WorkBalance'); const { shiftShortsFor } = await import('../ui/ShiftCapacity'); await drawStandards(d, r.standards, r.name, r.printed, await worksFor(r.standards), await shiftShortsFor(r.standards)); }
+      ? async d => { const { drawStandards } = await import('../tools/linestandard/standardPdf'); const { worksFor } = await import('../tools/linework/WorkBalance'); const { shiftShortsFor } = await import('../tools/linebalance/ShiftCapacity'); await drawStandards(d, r.standards, r.name, r.printed, await worksFor(r.standards), await shiftShortsFor(r.standards)); }
       : undefined,
   });
   return doc;

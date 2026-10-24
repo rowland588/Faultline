@@ -10,10 +10,10 @@
  * tool's own paper does not draw: the sections are theirs, the order is the
  * line's. */
 import type { jsPDF } from 'jspdf';
-import type { Standard } from '../../lib/standard';
+import type { Standard } from '../../tools/linestandard/standard';
 import type { StudyContext } from '../../lib/studyLinks';
 import type { ProgramsReading } from '../../lib/programsReport';
-import type { CapacityPaper } from '../../lib/capacityPaper';
+import type { CapacityPaper } from '../../tools/linebalance/capacityPaper';
 import type { LineReading } from '../../lib/lineLean';
 import { lineClosing, lineTiles } from '../../lib/lineLean';
 import type { LineBundle, LinePart } from './lineBundle';
@@ -24,9 +24,9 @@ import { bandPage, type LeanTone } from '../../lib/lean';
 import { listRows } from '../../lib/lineReportPdf';
 import { programsBlocks } from '../../lib/programsReportPdf';
 import { studyBlocks, type StudiesPaper } from '../../lib/studiesPdf';
-import { productLeanBlocks } from '../../lib/capacityPaperPdf';
+import { productLeanBlocks } from '../../tools/linebalance/capacityPaperPdf';
 import { PRIORITY_WORD } from '../../lib/snagsReport';
-import { headcount } from '../../lib/standard';
+import { headcount } from '../../tools/linestandard/standard';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';

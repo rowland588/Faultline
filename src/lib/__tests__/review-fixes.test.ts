@@ -2,11 +2,11 @@
  * Each test here is a defect the review of 16 October found in the upgrade's
  * own waves, with the figure it should have said. */
 import { describe, expect, it } from 'vitest';
-import { analyse, screenCapacity, shiftCapacity, vCurve, type Capacity, type Station } from '../capacity';
+import { analyse, screenCapacity, shiftCapacity, vCurve, type Capacity, type Station } from '../../tools/linebalance/capacity';
 import { readRun, runLine, runShort } from '../run';
 import { quarters } from '../measures';
 import { gantt } from '../gantt';
-import { actionWords, planWords } from '../ie/changeover';
+import { actionWords, planWords } from '../../tools/changeover/changeover';
 
 type ChangeoverStep = Parameters<typeof planWords>[0];
 

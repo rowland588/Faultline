@@ -8,7 +8,7 @@
  * frame rate asked, so it is a real WebM the app reads like any other. The
  * schedule is the truth the reading is scored against (lib/video/evaluate).
  * It is a dev aid: no factory footage is invented for a person to read. */
-import type { Timed } from '../lib/video/evaluate';
+import type { Timed } from '../tools/video/evaluate';
 
 export interface SynthStation { label: string; firstSec: number; workSec: number; cycleSec: number; jitterSec?: number }
 

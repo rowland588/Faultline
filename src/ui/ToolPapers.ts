@@ -12,8 +12,8 @@
  * picture the screen previews), each printed under the name of the place it
  * sits — its line, or the job a map made inside a job belongs to — in the
  * order the list shows them. */
-import { drawStandards } from '../lib/standardPdf';
-import type { Standard } from '../lib/standard';
+import { drawStandards } from '../tools/linestandard/standardPdf';
+import type { Standard } from '../tools/linestandard/standard';
 
 /** As the card is printed from its own page: "13 Oct 2026". */
 const printedOn = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -24,8 +24,8 @@ export async function saveStandardCards(groups: { name: string; list: Standard[]
   const { loadPdfLib, deliverPdf, titlePdf } = await import('../lib/savePdf');
   const { pdfFileName } = await import('../lib/fileName');
   const { todayISO } = await import('../lib/weeks');
-  const { worksFor } = await import('./WorkBalance');
-  const { shiftShortsFor } = await import('./ShiftCapacity');
+  const { worksFor } = await import('../tools/linework/WorkBalance');
+  const { shiftShortsFor } = await import('../tools/linebalance/ShiftCapacity');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const all = groups.flatMap(g => g.list);
