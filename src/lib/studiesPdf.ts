@@ -15,7 +15,7 @@ import type { ToolStudy } from './study';
 import type { Standard } from '../tools/linestandard/standard';
 import type { StudyContext } from './studyLinks';
 import { studyEvidence } from './clientReport';
-import { checksSay, goodWord, pctWord, ruleWords, sample, sampleLines, sampleSays, CPK_FROM, type SampleFigures, fateOf, fateWord, moneySays, sampleMoney, modeNotes } from '../tools/capability/sample';
+import { checksSay, goodWord, pctWord, ruleWords, sample, sampleLines, sampleSays, CPK_FROM, type SampleFigures, fateOf, fateWord, moneySays, sampleMoney, modeNotes, spreadSays } from '../tools/capability/sample';
 import { shareWords, type RunsFigures, type FaultsFigures, type RateFigures } from '../tools/capability/modes';
 import { fewerThan } from './ie/dist';
 import type { AgreedReadings } from './study';
@@ -44,6 +44,7 @@ import { agreedFor, balanceCost, costInputs, crewKept } from '../tools/linework/
 import { costWords, countTitle, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, studyReliabilitySays, type RelItem } from '../tools/reliability/reliability';
 import { relClosings, relTiles, relTrend } from '../tools/reliability/reliabilityLean';
 import { overTime, overTimeSays } from '../tools/capability/overTime';
+import { analysisClosing, analysisFigures, analysisPicture, analysisSays, analysisTiles, confidenceOf, pctWord as anPct, type PicRow } from '../tools/analysis/analysis';
 import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } from '../tools/chart/chart';
 import { neckOf } from './lineLoss';
 import { relChartBlock, relDaysBlocks, relKindsBlocks, relTogetherBlocks, remarksBlocks } from './report/reliabilityTable';
@@ -92,15 +93,15 @@ function cellsRow(cells: [string, string, boolean?][]): Block {
 
 /** Every reading in the order taken, ten to a row: its number, and what it
  *  was — a value, or good / failed — the abnormal in red, struck said. */
-function readingsRows(s: ToolStudy, word: (r: NonNullable<ToolStudy['facts']['readings']>[number]) => string, red: (id: string, r: NonNullable<ToolStudy['facts']['readings']>[number]) => boolean): Block {
+function readingsRows(s: ToolStudy, word: (r: NonNullable<ToolStudy['facts']['readings']>[number]) => string, red: (id: string, r: NonNullable<ToolStudy['facts']['readings']>[number]) => boolean, per = 10): Block {
   const all = (s.facts.readings ?? []).map((r, i) => ({ no: i + 1, r }));
   const out10: typeof all[] = [];
-  for (let i = 0; i < all.length; i += 10) out10.push(all.slice(i, i + 10));
+  for (let i = 0; i < all.length; i += per) out10.push(all.slice(i, i + per));
   return rows({
     rows: out10.map(row => ({
       h: () => 15,
       draw: (fr: Frame, y: number) => {
-        const cw = fr.w / 10;
+        const cw = fr.w / per;
         row.forEach(({ no, r }, i) => {
           const v = word(r), struck = !!r.struck, isRed = !struck && red(r.id, r);
           font(fr.doc, 6.5, 'normal', MUTED); fr.doc.text(String(no), fr.x + i * cw, y + 10);
@@ -206,7 +207,7 @@ function capabilityBlocks(s: ToolStudy): Block[] {
     }), [0.12, 0.16, 0.22, 0.22, 0.28], i => w.far?.head === w.heads[i].head && (w.anova?.p ?? 1) < 0.05));
   }
   const hist = histBlock(f, a);
-  if (hist) { out.push(label('How the readings spread')); out.push(hist); }
+  if (hist) { out.push(label('How the readings spread')); out.push(hist); const sp = spreadSays(f, a.unit); if (sp) out.push(text({ text: sp, size: 8, colour: MUTED, after: 4 })); }
   /* every reading, in the order taken — outside in red, struck said */
   const outsideIds = new Set(f.outside.map(o => o.id));
   out.push(label('The readings, in the order taken'));
@@ -345,6 +346,55 @@ function chartBlocks(s: ToolStudy): Block[] {
   return out;
 }
 const GREENS_PRE = 5;
+/* ================== THE ANALYSIS (W3a, knowledge/specs/FC-105-analysis.md) ================== */
+/** The picture's lanes as the page draws them (tools/analysis analysisPicture): bars or dots, a point with its interval, a zero line. */
+function analysisPicBlock(picRows: PicRow[]): Block {
+  const LH = 40, HH = 70, hs = picRows.map(r => (r.hist ? HH : LH)), total = hs.reduce((a, b) => a + b, 0) + 6;
+  return rows({ rows: [{
+    h: () => total,
+    draw: (fr: Frame, y: number) => {
+      const LAB = 70, RT = 118; let top = y + 2;
+      picRows.forEach((r, i) => {
+        const h = hs[i], xs = (v: number) => fr.x + LAB + ((v - r.axis[0]) / (r.axis[1] - r.axis[0])) * (fr.w - LAB - RT), base = r.hist ? top + h - 8 : top + h / 2;
+        font(fr.doc, 7.5, 'bold', MUTED); fr.doc.text(r.label.length > 14 ? r.label.slice(0, 13) + '…' : r.label, fr.x, base + 2);
+        fr.doc.setDrawColor(LINE); fr.doc.setLineWidth(0.5); fr.doc.line(fr.x + LAB, base, fr.x + fr.w - RT, base);
+        if (r.zero) { fr.doc.setDrawColor(INK2); fr.doc.setLineDashPattern([2, 2], 0); fr.doc.line(xs(0), top + 2, xs(0), top + h - 2); fr.doc.setLineDashPattern([], 0); }
+        const colour = r.tone === 'g' ? '#15803d' : r.tone === 'r' ? DANGER : r.tone === 'a' ? AMBER : BRAND, wash = r.tone === 'g' ? '#b9dcc5' : r.tone === 'r' ? '#eeb7b2' : r.tone === 'a' ? '#ebd0b0' : '#a8d2db';
+        if (r.hist) {
+          const topC = Math.max(...r.hist.counts, 1);
+          const ed = r.hist.edges; r.hist.counts.forEach((c, k) => { if (c > 0) { const x0 = xs(ed[k]) + 0.6, w = Math.max(0.6, xs(ed[k + 1]) - xs(ed[k]) - 1.2), bh = (c / topC) * (h - 20); fr.doc.setFillColor(BAR); fr.doc.rect(x0, base - bh, w, bh, 'F'); } });
+        }
+        if (r.dots) { fr.doc.setFillColor(INK2); r.dots.forEach((d, k) => fr.doc.circle(xs(d), base - 8 + ((k * 37) % 13) - 6 + 6, 1.4, 'F')); }
+        if (r.band) { fr.doc.setFillColor(wash); fr.doc.rect(xs(r.band.lo), base - 6, Math.max(1.5, xs(r.band.hi) - xs(r.band.lo)), 12, 'F'); }
+        if (r.point) { fr.doc.setDrawColor(colour); fr.doc.setLineWidth(1.6); fr.doc.line(xs(r.point.v), base - 9, xs(r.point.v), base + 9); fr.doc.setLineWidth(0.5); font(fr.doc, 7.5, 'bold', INK2); fr.doc.text(r.point.text, fr.x + fr.w - RT + 6, base - 1); }
+        if (r.band) { font(fr.doc, 6.5, 'normal', MUTED); fr.doc.text(r.band.text, fr.x + fr.w - RT + 6, base + 8); }
+        top += h;
+      });
+    },
+  }], after: 'm' });
+}
+function analysisBlocks(s: ToolStudy): Block[] {
+  const a = s.agreed?.analysis;
+  if (!a) return [];
+  const f = analysisFigures(a, s.facts.readings ?? []), said = analysisSays(f, a);
+  const tiles = analysisTiles(f, a);
+  const out: Block[] = [cellsRow([...tiles.slice(0, 5).map(t => [t.k, t.of ? `${t.v}` : t.v, t.tone === 'r'] as [string, string, boolean]), ['Verdict', said.verdict, said.tone === 'r']].slice(0, 6) as [string, string, boolean?][])];
+  out.push(text({ text: said.text, size: 9, colour: said.tone === 'r' ? DANGER : INK2, after: 3 }));
+  for (const m of said.more) out.push(text({ text: m, size: 8.5, colour: INK2, after: 2 }));
+  if (said.notClaimed) out.push(text({ text: `What this does not say. ${said.notClaimed}`, size: 8, colour: MUTED, after: 4 }));
+  const pic = analysisPicture(f, a);
+  if (pic.length) { out.push(label('The picture')); out.push(analysisPicBlock(pic)); }
+  if (f.checks.length) { out.push(label('Checks on the readings')); for (const c of f.checks) out.push(text({ text: c.say, size: 8.5, colour: c.tone === 'a' ? AMBER : INK2, after: 2 })); }
+  out.push(text({ text: `Agreed: ${a.name} — ${a.kind === 'sure' ? 'how sure' : a.kind === 'change' ? 'did it change' : a.kind === 'paired' ? 'do two ways agree' : 'how many readings'}${a.unit ? ` in ${a.unit}` : ''}, ${anPct(confidenceOf(a))} confidence.`, size: 8, colour: MUTED, before: 2, after: 3 }));
+  const rs = s.facts.readings ?? [];
+  if (rs.length) {
+    out.push(label(a.kind === 'paired' ? 'Every pair, in the order taken' : (a.kind === 'sure' && a.of !== 'mean') || (a.kind === 'change' && a.data === 'counted') ? 'Every run, in the order taken' : 'Every reading, in the order taken'));
+    out.push(readingsRows(s, r => `${typeof r.with === 'number' ? `${r.value} / ${r.with}` : typeof r.made === 'number' ? `${r.rejected}/${r.made}` : typeof r.value === 'number' ? String(r.value) : '—'}${r.arm ? ` ${r.arm[0].toUpperCase()}` : ''}`, () => false, a.kind === 'paired' ? 5 : 10));
+    if (a.kind === 'change') out.push(text({ text: 'B = before, A = after.', size: 8, colour: MUTED, after: 2 }));
+    if (a.kind === 'paired') out.push(text({ text: `Each pair: ${a.firstName || 'the first way'} / ${a.secondName || 'the second way'}.`, size: 8, colour: MUTED, after: 2 }));
+  }
+  return out;
+}
 function runsBlocks(r: RunsFigures, f: SampleFigures, a: AgreedReadings): Block[] {
   const said = sampleSays(f, a);
   const out: Block[] = [cellsRow([
@@ -464,6 +514,10 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     const a = s.agreed.readings, f = sample(a, s.facts.readings ?? []), said = sampleSays(f, a);
     eyebrow = 'Capability study'; verdict = { text: said.verdict, tone: said.tone }; tiles = sampleTiles(f, a, said); closing = sampleClosing(f, a, said);
     body = capabilityBlocks(s);
+  } else if (s.tool === 'analysis' && s.agreed?.analysis) {
+    const a = s.agreed.analysis, f = analysisFigures(a, s.facts.readings ?? []), said = analysisSays(f, a);
+    eyebrow = 'Analysis'; verdict = { text: said.verdict, tone: said.tone }; tiles = analysisTiles(f, a); closing = analysisClosing(f, a, said);
+    body = analysisBlocks(s);
   } else if (s.tool === 'chart' && s.agreed?.chart) {
     const a = s.agreed.chart, f = chartFigures(a, s.facts.readings ?? []), said = chartSays(f, a);
     eyebrow = 'Control chart'; verdict = { text: said.verdict, tone: said.tone }; tiles = chartTiles(f, a); closing = chartClosing(f, a, said);
@@ -567,6 +621,7 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
   out.push(text({ text: e.line, size: 9.5, colour: e.tone === 'r' ? DANGER : INK2, after: 6 }));
   if (s.tool === 'capability') out.push(...capabilityBlocks(s));
   if (s.tool === 'chart') out.push(...chartBlocks(s));
+  if (s.tool === 'analysis') out.push(...analysisBlocks(s));
   if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
   if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
   if (e.losses) out.push(...lossBlocks(e.losses));
@@ -591,7 +646,7 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
 
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
-  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability', 'chart'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return smedLeanBlocks(p, p.items[0], d);
   const out: Block[] = [];
   out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));

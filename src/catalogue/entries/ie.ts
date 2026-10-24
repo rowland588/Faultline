@@ -26,7 +26,9 @@ export const IE: Entry[] = [
     food: 'Sandwich assembly elements with variable products.',
     depends: ['FC-019', 'FC-113'],
     complexity: 'S', value: 'medium', valueWhy: 'Ends arguments about whether a standard was timed properly.',
-    status: 'to-build', form: 'component', methods: ['ie.time-study', 'stats.sample-size-power'], scenarios: ['people'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['ie.time-study', 'stats.sample-size-power'], scenarios: ['people'],
+    built: { where: ['/analysis'], code: ['src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx', 'src/lib/ie/stats.ts'], tests: ['src/lib/ie/__tests__/stats.test.ts', 'src/tools/analysis/__tests__/analysis.test.ts'], acceptance: ['analysis.mjs'] }, spec: 'knowledge/specs/FC-105-analysis.md',
+    limits: ['The cycles are typed or pasted into the analysis as readings; they are not yet read from a stopwatch time study’s elements.', 'Student’s t leads; the normal’s count is shown beside it.'],
   },
   {
     id: 'FC-021', name: 'Video time study — the work read from footage', discipline: 'ie', sub: 'time',

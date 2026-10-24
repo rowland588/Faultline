@@ -29,7 +29,7 @@ import type { TalkTurn } from '../tools/talk/talk';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
-export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk', 'reliability', 'chart'] as const;
+export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk', 'reliability', 'chart', 'analysis'] as const;
 export type StudyTool = typeof STUDY_TOOLS[number];
 
 export const isStudyTool = (v: unknown): v is StudyTool => (STUDY_TOOLS as readonly unknown[]).includes(v);
@@ -122,6 +122,11 @@ export interface StudyReading {
   product?: string;
   nominal?: number;
   group?: number;
+  /** an analysis's reading (W3a): the arm it belongs to — "before", "after" — and, for a pair, the second way's
+   *  value (`value` is the first); a counted run reuses `made` and `rejected` (a rate: `rejected` the count, `made`
+   *  the hours) */
+  arm?: string;
+  with?: number;
   /** A failed item: what became of it (Rowland, 24 October — reworked, recovered by hand, or pure
    *  waste). Absent on every reading before: waste. */
   fate?: 'waste' | 'rework' | 'recovered';
@@ -474,10 +479,59 @@ export interface StudyAgreed {
   readings?: AgreedReadings;
   /** W2 — a control chart's agreement (knowledge/specs/FC-086-charts.md). */
   chart?: AgreedChart;
+  /** W3a — an analysis's agreement (knowledge/specs/FC-105-analysis.md). */
+  analysis?: AgreedAnalysis;
   balance?: AgreedBalance;
   map?: AgreedMap;
   sampling?: AgreedSampling;
   reliability?: AgreedReliability;
+}
+
+/** AN ANALYSIS (W3a, knowledge/specs/FC-105-analysis.md — 24 October): one question asked first — how sure am I of
+ *  this figure, did it change, do two ways of measuring agree, how many readings do I need — and the readings or
+ *  counts that answer it. W3b adds the groups, the counts in a table and the relations as more kinds. */
+export interface AgreedAnalysis {
+  kind: 'sure' | 'change' | 'paired' | 'plan';
+  /** what is measured — "Fill weight", "Reject rate" */
+  name: string;
+  unit?: string;
+  /** 0.9, 0.95 (default) or 0.99 */
+  confidence?: 0.9 | 0.95 | 0.99;
+  /** how sure: a mean from readings, a share counted, a rate counted */
+  of?: 'mean' | 'share' | 'rate';
+  /** did it change: measured readings or counted runs */
+  data?: 'measured' | 'counted';
+  /** which way is better — used for the words and the tone, never to halve a p-value */
+  better?: 'lower' | 'higher' | 'either';
+  /** paired: the names of the two ways, and the largest difference that does not matter (in the unit) */
+  firstName?: string;
+  secondName?: string;
+  within?: number;
+  /** how many readings: what is asked and what is known */
+  plan?: AnalysisPlan;
+}
+export interface AnalysisPlan {
+  ask: 'mean' | 'difference' | 'share' | 'twoShares' | 'zero' | 'cycles';
+  /** a guess of the spread; absent: taken from the readings (a pilot of 8 or more) */
+  sd?: number;
+  /** the precision wanted (± e, in the unit; for a share, in points as a fraction: 0.02) */
+  e?: number;
+  /** the difference that matters, in the unit */
+  delta?: number;
+  /** the share expected (absent: 0.5, the worst case); two shares: before and after */
+  p?: number;
+  p1?: number;
+  p2?: number;
+  /** 0.8 (default) or 0.9 */
+  power?: 0.8 | 0.9;
+  /** a finite population (one batch) */
+  population?: number;
+  /** zero failures: the share allowed to be bad */
+  p0?: number;
+  /** cycles: the precision as a share of the mean (0.05 is ±5%) */
+  k?: number;
+  /** seconds one reading takes — to say what the study costs, when the line has a rate */
+  seconds?: number;
 }
 
 /** A CONTROL CHART (W2, knowledge/specs/FC-086-charts.md — 24 October): readings in order against limits

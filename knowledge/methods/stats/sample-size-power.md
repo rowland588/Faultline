@@ -98,8 +98,10 @@ a changeover is signed off; lots to test to show a supplier's rate.
 - [textbook] Cohen, J., *Statistical Power Analysis for the Behavioral Sciences*, 2nd ed., Erlbaum, 1988 — the power conventions (from knowledge).
 
 ## In Faultline
-Not built as a tool (FC-113). Work sampling already says its margins and
-the moments more it needs (`src/tools/sampling`); the capability study says
-what a count proves (`src/tools/capability`, the pass-or-fail design).
-FC-113 is the same question asked before any study starts: "how many?",
-answered in the floor's unit with the time it takes.
+Built (W3a, 24 October; FC-113, and FC-020 for cycles). The Analysis tool's How many readings: a mean
+within ±e (Student's t leads — 38 where the normal's z says 35), two means differing by δ at 80% or
+90% power from the noncentral t (52 a group for 0.5 g at s 0.9), a share, two shares, the
+zero-failure count, a finite population, and the cycles to time (6, one more, from five timed); said
+with what fewer readings could see, and the study's time and cost where the seconds a reading are
+typed and the line has a rate. Power after the fact from an observed difference is refused — it is
+circular. Proved by `scripts/acceptance/analysis.mjs`.

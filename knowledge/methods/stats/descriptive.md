@@ -94,7 +94,9 @@ limits is the picture on the capability study's page.
 - [textbook] Joanes, D.N. and Gill, C.A. (1998), "Comparing measures of sample skewness and kurtosis", *The Statistician* 47(1), 183–189 — G1 and G2 (from knowledge).
 
 ## In Faultline
-Partly built: the capability study gives mean, s, range, the histogram
-with its limits, the skewness check and the mean's interval
-(`src/tools/capability`, `knowledge/specs/FC-094-capability.md`). FC-103 is
-the same description on any set of readings in the app.
+Built (W3a, 24 October; FC-103). `src/lib/ie/describe.ts` works out the mean, median, s, range,
+quartiles by linear interpolation, the bias-corrected lean and peakedness, the coefficient of
+variation and the fences, every figure SciPy's (`scripts/knowledge/cases-w3a.py`); the Analysis
+page says them with the histogram, and the capability study carries one line under its histogram
+(median · middle half · lean), on screen and on paper. A reading beyond the fences is flagged for a
+look and never removed. Proved by `scripts/acceptance/analysis.mjs`.

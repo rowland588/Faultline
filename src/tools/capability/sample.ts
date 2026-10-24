@@ -35,6 +35,8 @@
  * the histogram. The distributions are lib/ie/dist, proved against SciPy. */
 import type { AgreedReadings, StudyReading } from '../../lib/study';
 import { runsFigures, faultsFigures, rateFigures, machineFigures, fillFigures, questionFigures, weigherFigures, runsSays, faultsSays, rateSays, machineSays, fillSays, questionSays, weigherSays, densitySays, type RunsFigures, type FaultsFigures, type RateFigures, type MachineFigures, type FillFigures, type QuestionFigures, type WeigherFigures } from './modes';
+import { describe, describeSays, orderSays, type Described } from '../../lib/ie/describe';
+import { autocorrelation, type Autocorrelation } from '../../lib/ie/stats';
 import { binomUpper, dagostinoPearson, fewerThan, histogram, individualsLimits, itemsToShow, mostMayFail, ppkLowerBound, runOnOneSide, skewness, upperTail } from '../../lib/ie/dist';
 
 export { upperTail };
@@ -142,6 +144,9 @@ export interface SampleFigures {
   ppkLow?: number;
   /** The histogram's bars, each saying whether a reading in it is outside. */
   hist?: { edges: number[]; counts: number[]; width: number; out: boolean[] };
+  /** W3a — the readings described (FC-103) and checked for dependence on the one before (FC-115), in the order taken. */
+  desc?: Described;
+  order?: Autocorrelation;
   /* W1 — the modes (knowledge/specs/FC-094-capability.md parts 2–4; ./modes): rejects out of what was
      made, faults found on each item, held at a rate; and on a measurement, machine capability and the
      lowest legal fill. */
@@ -464,6 +469,8 @@ export function sample(agreed: AgreedReadings | undefined, readings: StudyReadin
     for (const r of vs) if (outIds.has(r.id)) out[Math.min(h.counts.length - 1, Math.max(0, Math.floor((r.value - h.edges[0]) / h.width + 1e-9)))] = true;
     f.hist = { edges: h.edges, counts: h.counts, width: h.width, out };
   }
+  f.desc = describe(xs);
+  f.order = autocorrelation(vs.map(r => r.value));
   /* W1 — machine capability on one machine's consecutive parts (FC-084); the lowest legal fill on a
      sold-by-weight study (FC-157) */
   if (agreed) {
@@ -644,7 +651,9 @@ function provesWords(t: TickFigures, n: number, enough: boolean): { text: string
 /** W1 — THE NOTES A MEASUREMENT CARRIES BESIDE ITS SENTENCES: machine capability on one machine's
  *  consecutive parts (FC-084) and the lowest legal fill on a sold-by-weight study (FC-157), each from
  *  ./modes, on screen and on paper alike. */
-export type ModeNoteKind = 'machine' | 'fill' | 'question' | 'weigher' | 'density';
+export type ModeNoteKind = 'machine' | 'fill' | 'question' | 'weigher' | 'density' | 'order';
+/** The middle of the readings, said under the histogram — median, middle half, lean (FC-103). */
+export const spreadSays = (f: SampleFigures, unit?: string): string => (f.desc ? describeSays(f.desc, f.dp + 1, unit) : '');
 export function modeNotes(f: SampleFigures, a: AgreedReadings | undefined): { k: ModeNoteKind; text: string; tone: Tone }[] {
   if (!a) return [];
   const out: { k: ModeNoteKind; text: string; tone: Tone }[] = [];
@@ -652,6 +661,8 @@ export function modeNotes(f: SampleFigures, a: AgreedReadings | undefined): { k:
   if (f.weigher) out.push({ k: 'weigher', ...weigherSays(f.weigher, f.dp, a.unit) });
   if (f.machine) out.push({ k: 'machine', ...machineSays(f.machine) });
   if (f.fill && f.mean !== undefined) out.push({ k: 'fill', ...fillSays(f.fill, f.mean, f.dp, a.unit) });
+  const od = orderSays(f.order);
+  if (od) out.push({ k: 'order', text: od, tone: 'a' });
   const d = densitySays(a, a.nominalMl !== undefined ? tneFor(a.nominalMl, 'ml') : undefined);
   if (d) out.push({ k: 'density', ...d });
   return out;
