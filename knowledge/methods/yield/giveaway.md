@@ -6,7 +6,7 @@ discipline: yield
 kind: established
 evidence: law
 depth: full
-checked: 2026-10-22 — the average system's rules (Weights and Measures (Packaged Goods) Regulations 2006, Schedule 2 — TNE table as implemented in src/lib/ie/sample.ts tneFor, from the Regulations); give-away arithmetic and the target fill from the normal model (from knowledge); the deleted method engine had give-away and fill blocks (docs/CAPABILITY-CHECK.md, E)
+checked: 2026-10-22 — the average system's rules (Weights and Measures (Packaged Goods) Regulations 2006, Schedule 2 — TNE table as implemented in src/tools/capability/sample.ts tneFor, from the Regulations); give-away arithmetic and the target fill from the normal model (from knowledge); the deleted method engine had give-away and fill blocks (docs/CAPABILITY-CHECK.md, E)
 needs: [packaging.average-quantity-system, spc.capability-measured]
 next: [yield.multihead-weigher, stats.doe-factorial]
 alternatives: []
@@ -66,5 +66,5 @@ sauces and drinks by volume (`packaging.average-quantity-system`, density).
 
 ## In Faultline
 Not built (FC-156, FC-157). The capability study's *Sold by weight* applies
-the three rules (`src/lib/ie/sample.ts`); give-away in money is listed missing
+the three rules (`src/tools/capability/sample.ts`); give-away in money is listed missing
 in docs/BLUEPRINT.md §6.

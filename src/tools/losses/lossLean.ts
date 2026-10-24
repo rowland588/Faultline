@@ -11,7 +11,7 @@ import { actionOf, fixOf, planOrder, since, type LeanAction, type LeanPage, type
 import type { ToolStudy } from '../../lib/study';
 import { niceDay, todayISO } from '../../lib/weeks';
 import { compareLosses, findBar, gbp, minWords, packs, rateWords, shiftWords, windowWords, type LossFigures, type LossSays } from './losses';
-import type { Tone } from '../../lib/ie/sample';
+import type { Tone } from '../capability/sample';
 
 const tone = (t: Tone): LeanTone => (t === 'w' ? 'n' : t);
 const pct = (a: number, b: number): number => (b > 0 ? Math.round((a / b) * 1000) / 10 : 0);

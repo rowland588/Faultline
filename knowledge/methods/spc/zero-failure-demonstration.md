@@ -78,7 +78,7 @@ allergen swab kits after a cleandown.
 
 ## In Faultline
 Built 22 October (`knowledge/specs/FC-094-capability.md`, part 1, FC-100):
-the capability study's *Pass or fail* (`src/lib/ie/sample.ts`, stored kind
+the capability study's *Pass or fail* (`src/tools/capability/sample.ts`, stored kind
 `ticks` so older studies read as before) takes how many may fail
 (`allowFail`, none unless agreed); the agreed verdict stays the verdict, and
 under it what the count proves — the exact one-sided bound (`binomUpper` in

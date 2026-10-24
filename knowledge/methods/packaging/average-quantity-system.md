@@ -6,7 +6,7 @@ discipline: packaging
 kind: established
 evidence: law
 depth: full
-checked: 2026-10-22 — the Weights and Measures (Packaged Goods) Regulations 2006 (SI 2006/659) Schedule 2, as implemented in src/lib/ie/sample.ts (tneFor) and proved by src/lib/ie/__tests__/sample.test.ts; Directive 76/211/EEC; OIML R 87:2016 from knowledge; the inspector's reference test sampling plans not implemented (knowledge/GAPS.md)
+checked: 2026-10-22 — the Weights and Measures (Packaged Goods) Regulations 2006 (SI 2006/659) Schedule 2, as implemented in src/tools/capability/sample.ts (tneFor) and proved by src/tools/capability/__tests__/sample.test.ts; Directive 76/211/EEC; OIML R 87:2016 from knowledge; the inspector's reference test sampling plans not implemented (knowledge/GAPS.md)
 needs: []
 next: [yield.giveaway, spc.capability-measured]
 alternatives: []
@@ -53,4 +53,4 @@ Every pre-packed product marked ℮ (or sold by quantity in the UK).
 - [standard] OIML R 87:2016, *Quantity of product in prepackages* — from knowledge.
 
 ## In Faultline
-The capability study's *Sold by weight* (`src/lib/ie/sample.ts`, FC-162).
+The capability study's *Sold by weight* (`src/tools/capability/sample.ts`, FC-162).

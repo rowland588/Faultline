@@ -1,7 +1,7 @@
 /* THE CATALOGUE — SPC and capability, statistics, measurement systems (src/catalogue/types.ts). */
 import type { Entry } from '../types';
 
-const CAPABILITY_BUILT = { where: ['/capability'], code: ['src/lib/ie/sample.ts', 'src/lib/ie/dist.ts', 'src/lib/ie/sampleLean.ts', 'src/screens/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/lib/ie/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts', 'src/lib/__tests__/audit-ie-sample.test.ts'], acceptance: ['ecosystem-capability.mjs', 'capability-kinds.mjs'] };
+const CAPABILITY_BUILT = { where: ['/capability'], code: ['src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/sampleLean.ts', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts', 'src/lib/__tests__/audit-ie-sample.test.ts'], acceptance: ['ecosystem-capability.mjs', 'capability-kinds.mjs'] };
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 
 export const SPC: Entry[] = [

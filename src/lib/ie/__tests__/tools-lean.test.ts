@@ -5,10 +5,10 @@
  * shift's hours × one person's rate (the line's wage × on-costs). */
 import { describe, expect, it } from 'vitest';
 import { personRate, samplingClosing, samplingTiles, worstCost } from '../../../tools/sampling/samplingLean';
-import { sampleClosing, sampleTiles } from '../sampleLean';
+import { sampleClosing, sampleTiles } from '../../../tools/capability/sampleLean';
 import { flowClosing, flowTiles } from '../../../tools/valuestream/flowLean';
 import { samplingSays } from '../../../tools/sampling/sampling';
-import { sample, sampleSays } from '../sample';
+import { sample, sampleSays } from '../../../tools/capability/sample';
 import { flowFigures } from '../../../tools/valuestream/steps';
 import type { AgreedReadings, AgreedSampling, FlowStep, Tap } from '../../study';
 

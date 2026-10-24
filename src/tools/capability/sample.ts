@@ -33,8 +33,8 @@
  * whole-number readings do not throw), steady, read finely enough
  * (spc.normality-checks); how sure a Ppk is (Bissell's bound); and
  * the histogram. The distributions are lib/ie/dist, proved against SciPy. */
-import type { AgreedReadings, StudyReading } from '../study';
-import { binomUpper, dagostinoPearson, fewerThan, histogram, individualsLimits, itemsToShow, mostMayFail, ppkLowerBound, runOnOneSide, skewness, upperTail } from './dist';
+import type { AgreedReadings, StudyReading } from '../../lib/study';
+import { binomUpper, dagostinoPearson, fewerThan, histogram, individualsLimits, itemsToShow, mostMayFail, ppkLowerBound, runOnOneSide, skewness, upperTail } from '../../lib/ie/dist';
 
 export { upperTail };
 

@@ -6,10 +6,10 @@
  * pass or fail, how many failed of how many may and what the count proves. Nothing is worked out
  * here. What the readings outside would cost is not said yet (BLUEPRINT §6,
  * Money in every tool): no figure is made up for it. */
-import type { LeanTile, LeanTone } from '../lean';
-import type { AgreedReadings } from '../study';
+import type { LeanTile, LeanTone } from '../../lib/lean';
+import type { AgreedReadings } from '../../lib/study';
 import { CPK_FROM, goodWord, pctWord, ruleWords, type SampleFigures, type SampleSays } from './sample';
-import { fewerThan } from './dist';
+import { fewerThan } from '../../lib/ie/dist';
 
 const tone = (t: string): LeanTone | undefined => (t === 'r' || t === 'a' || t === 'g' ? t : undefined);
 

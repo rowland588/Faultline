@@ -2,7 +2,7 @@
  * docs/LEAN40.md's appendix and the cases docs/BUILD.md 2c names. */
 import { describe, it, expect } from 'vitest';
 import { sample, sampleSays, compareSamples, tneFor, inWords, upperTail, capabilityWords, drifts, checksSay, passFailPlan, allowFailProblem, passFailPlanOf, mayFailOf, goodProblem, goodWord } from '../sample';
-import type { AgreedReadings, StudyReading } from '../../study';
+import type { AgreedReadings, StudyReading } from '../../../lib/study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
   401.0, 401.9, 400.8, 401.9, 401.1, 401.2, 401.6, 401.3, 400.7, 401.3, 400.4, 401.1, 401.5, 401.9, 400.8];

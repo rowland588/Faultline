@@ -26,7 +26,7 @@ import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { PageHeader } from '../ui/parts';
 import { Sheet } from '../ui/Sheet';
-import { sample, sampleSays } from '../lib/ie/sample';
+import { sample, sampleSays } from '../tools/capability/sample';
 import { lossFiguresOf, studyHref, type StudyContext } from '../lib/studyLinks';
 import { removeStudy, StudyRowName } from '../ui/StudyActs';
 import { useAccess } from '../cloud/access';

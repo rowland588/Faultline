@@ -64,7 +64,7 @@ import { labourPerHour } from '../../lib/cost';
 import { analyse, lineSpeed, type Capacity, type Station } from '../../lib/capacity';
 import { shiftWindow } from '../../lib/shifts';
 import { niceDay, todayISO } from '../../lib/weeks';
-import type { Tone } from '../../lib/ie/sample';
+import type { Tone } from '../capability/sample';
 
 const DAY = 86_400_000;
 

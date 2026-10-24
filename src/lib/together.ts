@@ -22,7 +22,7 @@ import { aPiece, balance, balanceSays, secs, type BalanceFigures, type PersonFig
 import { agreedFor, crewKept, stationsOf } from './ie/balanceLink';
 import { headcount, hasMap, type Standard } from './standard';
 import type { AgreedBalance, ToolStudy } from './study';
-import type { Tone } from './ie/sample';
+import type { Tone } from '../tools/capability/sample';
 import type { LeanTile } from './lean';
 import { capacityPaper } from './capacityPaper';
 import { capacityLean } from './capacityLean';

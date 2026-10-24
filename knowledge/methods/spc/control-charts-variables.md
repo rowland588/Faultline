@@ -74,6 +74,6 @@ concentration, slice thickness.
 
 ## In Faultline
 Not built as a chart. The capability page draws the readings in order
-(`src/screens/StudyScreen.tsx` Dots) with the specification limits; the
+(`src/tools/capability/StudyScreen.tsx` Dots) with the specification limits; the
 pilot adds the individuals chart's limits as the steadiness check
 (`knowledge/specs/FC-094-capability.md`). A chart of its own is FC-086.

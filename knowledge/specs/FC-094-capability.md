@@ -185,7 +185,7 @@ Agreed before the readings (`can.agree`), on the existing `AgreedReadings`:
 - Independence is assumed and not tested in part 1 (FC-115 later).
 
 ## 6. Calculations
-Measured (unchanged, `src/lib/ie/sample.ts`): s (n − 1), MR̄/1.128,
+Measured (unchanged, `src/tools/capability/sample.ts`): s (n − 1), MR̄/1.128,
 Pp, Ppk, Cp, Cpk, normal tails (`upperTail`). New in `src/lib/ie/dist.ts`:
 - Φ⁻¹ (Acklam's rational approximation with one Newton step, ≈1e-9).
 - D'Agostino–Pearson K² = Zs² + Zk² (the skewness test, D'Agostino 1970;
@@ -347,7 +347,7 @@ and the histogram), every reading, act, action plan, closing line.
 
 ## 11. Verification
 - Unit: `src/lib/ie/__tests__/dist.test.ts` (the independent cases above);
-  `src/lib/ie/__tests__/sample.test.ts` extended (one-sided, the checks on
+  `src/tools/capability/__tests__/sample.test.ts` extended (one-sided, the checks on
   skewed, drifting and coarse readings, pass or fail with failures allowed,
   old studies unchanged).
 - Acceptance: `scripts/acceptance/capability-kinds.mjs` — a speed study at

@@ -120,7 +120,7 @@ narrow tolerance (too coarse).
 Built 22 October as *Before capability* (FC-097,
 `knowledge/specs/FC-094-capability.md`): `dagostinoPearson`,
 `individualsLimits` and `runOnOneSide` in `src/lib/ie/dist.ts`, read by
-`src/lib/ie/sample.ts` (`checksSay`) from 20 readings, said under the
+`src/tools/capability/sample.ts` (`checksSay`) from 20 readings, said under the
 capability sentence on the study's page and its paper. A capable index on
 readings that are not steady, or not bell-shaped, is never green; when they
 are not bell-shaped the share outside is the count as measured. A run that

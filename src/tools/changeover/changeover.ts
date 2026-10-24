@@ -49,7 +49,7 @@
 import type { ChangeoverProduct, ChangeoverStep, RunningPattern, SmedFunction, SmedHow, SmedRateFrom, StandardChangeover, StudyFacts, ToolStudy } from '../../lib/study';
 import { lineSpeed, type Capacity, type ChangeoverIn } from '../../lib/capacity';
 import { labourPerHour } from '../../lib/cost';
-import type { Tone } from '../../lib/ie/sample';
+import type { Tone } from '../capability/sample';
 import { dur } from '../valuestream/steps';
 
 /* --------------------------------------------------------------- basics */

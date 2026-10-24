@@ -49,7 +49,7 @@ const FactoryScreen = lazy(() => import('./screens/FactoryScreen').then(m => ({ 
 const LineProgramsScreen = lazy(() => import('./screens/LineProgramsScreen').then(m => ({ default: m.LineProgramsScreen })));
 const LineToolsScreen = lazy(() => import('./screens/LineToolsScreen').then(m => ({ default: m.LineToolsScreen })));
 const StudiesScreen = lazy(() => import('./screens/StudiesScreen').then(m => ({ default: m.StudiesScreen })));
-const StudyScreen = lazy(() => import('./screens/StudyScreen').then(m => ({ default: m.StudyScreen })));
+const StudyScreen = lazy(() => import('./tools/capability/StudyScreen').then(m => ({ default: m.StudyScreen })));
 const MapScreen = lazy(() => import('./tools/valuestream/MapScreen').then(m => ({ default: m.MapScreen })));
 const ChangeoverScreen = lazy(() => import('./tools/changeover/ChangeoverScreen').then(m => ({ default: m.ChangeoverScreen })));
 const ReliabilityScreen = lazy(() => import('./tools/reliability/ReliabilityScreen').then(m => ({ default: m.ReliabilityScreen })));

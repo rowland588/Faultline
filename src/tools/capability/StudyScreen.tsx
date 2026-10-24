@@ -15,26 +15,26 @@
  * lib/ie/sample on every render; only at close are they written down, as a
  * receipt, so next month's edits cannot rewrite this month's claim. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStudy, onDataChange, patchStudy } from '../db';
-import { machineOntoLine } from '../lib/lines';
-import { useAccess } from '../cloud/access';
-import { useSession } from '../cloud/session';
-import { displayName } from '../cloud/team';
-import { can as canAt } from '../lib/access';
-import { now, uid } from '../lib/ids';
-import { niceDay, isoDay } from '../lib/weeks';
-import { nav } from '../state/useRoute';
-import { allowFailProblem, checksSay, confOf, judgeOf, passFailPlanOf, pctWord, sample, sampleLines, sampleSays, ticksAgreedWords, tneFor, CONFIDENCES, CPK_FROM, SURE, type Judge, type SampleFigures, type SampleSays } from '../lib/ie/sample';
-import type { AgreedReadings, StudyReading, ToolStudy } from '../lib/study';
-import { TOOL_WORDS } from './StudiesScreen';
-import { StudyBand } from '../ui/StudyActs';
-import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
-import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
-import { bandPage } from '../lib/lean';
-import { sampleClosing, sampleTiles } from '../lib/ie/sampleLean';
-import { raisedFrom } from '../tools/losses/lossLean';
-import { DraftText } from '../ui/Draft';
-import { useMachinesOf } from '../lib/useLineRecords';
+import { getStudy, onDataChange, patchStudy } from '../../db';
+import { machineOntoLine } from '../../lib/lines';
+import { useAccess } from '../../cloud/access';
+import { useSession } from '../../cloud/session';
+import { displayName } from '../../cloud/team';
+import { can as canAt } from '../../lib/access';
+import { now, uid } from '../../lib/ids';
+import { niceDay, isoDay } from '../../lib/weeks';
+import { nav } from '../../state/useRoute';
+import { allowFailProblem, checksSay, confOf, judgeOf, passFailPlanOf, pctWord, sample, sampleLines, sampleSays, ticksAgreedWords, tneFor, CONFIDENCES, CPK_FROM, SURE, type Judge, type SampleFigures, type SampleSays } from './sample';
+import type { AgreedReadings, StudyReading, ToolStudy } from '../../lib/study';
+import { TOOL_WORDS } from '../../screens/StudiesScreen';
+import { StudyBand } from '../../ui/StudyActs';
+import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
+import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
+import { bandPage } from '../../lib/lean';
+import { sampleClosing, sampleTiles } from './sampleLean';
+import { raisedFrom } from '../losses/lossLean';
+import { DraftText } from '../../ui/Draft';
+import { useMachinesOf } from '../../lib/useLineRecords';
 
 const OWNER = canAt('owner');
 

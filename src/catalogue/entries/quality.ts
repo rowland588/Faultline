@@ -483,7 +483,7 @@ export const QUALITY: Entry[] = [
     depends: ['FC-094', 'FC-157', 'FC-164'],
     complexity: 'S', value: 'high', valueWhy: 'The law, applied plainly.',
     status: 'partial', form: 'mode', partOf: 'FC-094', methods: ['packaging.average-quantity-system'], scenarios: ['packing', 'quality'], words: ['e mark', 'short weight', 'TNE', 'average system', 'weights and measures'],
-    built: { where: ['/capability'], code: ['src/lib/ie/sample.ts'], tests: ['src/lib/ie/__tests__/sample.test.ts'], acceptance: [] },
+    built: { where: ['/capability'], code: ['src/tools/capability/sample.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts'], acceptance: [] },
     limits: ['Not driven by an acceptance script.', 'The inspector’s reference test on a batch is not implemented (FC-232).'],
   },
   {

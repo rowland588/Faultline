@@ -6,7 +6,7 @@ discipline: spc
 kind: established
 evidence: standard
 depth: full
-checked: 2026-10-22 — ISO 22514-2:2017 scope read online (continuous characteristics only, eight distribution models, under revision); formulas as the AIAG SPC manual and Montgomery give them; the confidence bound is Bissell (1990); Faultline's arithmetic proved in src/lib/ie/__tests__/sample.test.ts and src/lib/__tests__/audit-ie-sample.test.ts
+checked: 2026-10-22 — ISO 22514-2:2017 scope read online (continuous characteristics only, eight distribution models, under revision); formulas as the AIAG SPC manual and Montgomery give them; the confidence bound is Bissell (1990); Faultline's arithmetic proved in src/tools/capability/__tests__/sample.test.ts and src/lib/__tests__/audit-ie-sample.test.ts
 needs: [spc.normality-checks, spc.control-charts-variables, msa.type1-gauge]
 next: [quality.control-plan, stats.doe-factorial, spc.control-charts-variables]
 alternatives: [spc.capability-nonnormal, spc.capability-attribute-proportion, spc.capability-attribute-defects, spc.machine-capability, packaging.average-quantity-system]
@@ -137,11 +137,11 @@ at or above target), so check the shape before trusting the tail.
 - [practice] NIST/SEMATECH *e-Handbook of Statistical Methods*, §6.1.6, process capability.
 
 ## In Faultline
-`src/lib/ie/sample.ts` works out Pp/Ppk from the overall spread and Cp/Cpk
+`src/tools/capability/sample.ts` works out Pp/Ppk from the overall spread and Cp/Cpk
 from MR̄ ÷ 1.128, the share outside from the normal tails (`upperTail`),
 says the drift when Cpk − Ppk ≥ 0.2, gives indices from 25 readings, and
 calls 1.33 capable and 1.00 just capable; the page is
-`src/screens/StudyScreen.tsx`, the paper `src/lib/studiesPdf.ts`. Since 22
+`src/tools/capability/StudyScreen.tsx`, the paper `src/lib/studiesPdf.ts`. Since 22
 October (`knowledge/specs/FC-094-capability.md`, part 1): one limit is
 offered in words (*At least*, *At most*); Bissell's 95% lower bound is said
 beside Ppk (`ppkLowerBound` in `src/lib/ie/dist.ts`); the checks before

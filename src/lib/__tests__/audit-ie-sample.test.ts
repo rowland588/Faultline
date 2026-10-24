@@ -3,7 +3,7 @@
  * Cpk/Cp from the mean moving range ÷ 1.128, the share outside from the
  * normal tails, the packers' rules and the TNE table, enough and flagged. */
 import { describe, it, expect } from 'vitest';
-import { sample, sampleSays, capabilityWords, inWords, upperTail, tneFor, sdWithinOf, CPK_FROM, drifts } from '../ie/sample';
+import { sample, sampleSays, capabilityWords, inWords, upperTail, tneFor, sdWithinOf, CPK_FROM, drifts } from '../../tools/capability/sample';
 import type { AgreedReadings, StudyReading } from '../study';
 import { normalUpperTail, sd as refSd, mean as refMean, rng, gauss } from './audit-ie-ref';
 import { normalQuantile } from '../ie/dist';

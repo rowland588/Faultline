@@ -80,7 +80,7 @@ const pdf = async name => {
 };
 /* WHAT THE MODULE SAYS on the same record — every sentence on the page is checked against it */
 const truth = id => page.evaluate(async id => {
-  const { getStudy } = await import('/src/db.ts'); const S = await import('/src/lib/ie/sample.ts'); const SL = await import('/src/lib/ie/sampleLean.ts');
+  const { getStudy } = await import('/src/db.ts'); const S = await import('/src/tools/capability/sample.ts'); const SL = await import('/src/tools/capability/sampleLean.ts');
   const s = await getStudy(id); const a = s.agreed?.readings;
   const f = S.sample(a, s.facts.readings ?? []); const said = S.sampleSays(f, a);
   return { a, n: f.n, said, checks: S.checksSay(f, a).map(c => ({ text: c.text, tone: c.tone })), bars: f.hist?.counts.length ?? 0, outBars: f.hist?.out.filter(Boolean).length ?? 0,
@@ -185,12 +185,12 @@ const seal = await startStudy('Seal integrity — after the jaw fix', 'Ilapak fl
 {
   await page.getByRole('radio', { name: /^Pass or fail/ }).click(); await page.waitForTimeout(200);
   ok((await page.getByLabel('How many to check').inputValue()) === '20' && (await page.getByLabel('Unit').count()) === 0, '4 pass or fail: 20 to check by default, no unit or limits asked');
-  const plan0 = await page.evaluate(async () => (await import('/src/lib/ie/sample.ts')).passFailPlan(20, 0));
+  const plan0 = await page.evaluate(async () => (await import('/src/tools/capability/sample.ts')).passFailPlan(20, 0));
   ok((await words('.ie-plan')) === plan0, `4 what it would prove, said while agreeing: "${await words('.ie-plan')}"`);
   await page.getByLabel('How many may fail').fill('20'); await page.waitForTimeout(150);
   ok(flat(await page.locator('.ie-problem').innerText()) === 'At most 19 of 20 may fail.' && await page.getByRole('button', { name: 'Agree these' }).isDisabled(), '4 twenty of twenty allowed to fail — refused');
   await page.getByLabel('How many may fail').fill('1'); await page.waitForTimeout(150);
-  const plan1 = await page.evaluate(async () => (await import('/src/lib/ie/sample.ts')).passFailPlan(20, 1));
+  const plan1 = await page.evaluate(async () => (await import('/src/tools/capability/sample.ts')).passFailPlan(20, 1));
   ok((await words('.ie-plan')) === plan1 && /473/.test(plan1), `4 one allowed: "${plan1}"`);
   await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
   ok((await words('.ie-agreed b')) === 'pass or fail each, 20 — at most 1 may fail', `4 agreed: "${await words('.ie-agreed b')}"`);
@@ -256,7 +256,7 @@ const seal = await startStudy('Seal integrity — after the jaw fix', 'Ilapak fl
   ok(ways.length === 3 && /^How many may fail/.test(ways[0]) && /^A loss allowed/.test(ways[1]) && /^A confidence level/.test(ways[2]) && JSON.stringify(confs) === '["90%","95%","99%"]'
     && (await page.getByRole('radio', { name: '95%', exact: true }).getAttribute('aria-checked')) === 'true' && (await page.getByRole('radio', { name: /^How many may fail/ }).getAttribute('aria-checked')) === 'true',
     `8 how it is judged asked — ${ways.map(w => `"${w.split(' ').slice(0, 4).join(' ')}"`).join(', ')} — and the confidence, 95% to begin with`);
-  const planOf = a => page.evaluate(async a => (await import('/src/lib/ie/sample.ts')).passFailPlanOf(a), a);
+  const planOf = a => page.evaluate(async a => (await import('/src/tools/capability/sample.ts')).passFailPlanOf(a), a);
   await page.getByRole('radio', { name: /^A confidence level/ }).click(); await page.waitForTimeout(250);
   const p20 = await planOf({ count: 20, judge: 'confidence', good: 98, conf: 0.95 });
   ok((await page.getByLabel('At least what % good').inputValue()) === '98' && flat(await page.locator('.ie-problem').innerText()) === p20.problem && /check at least 149/.test(p20.problem) && await page.getByRole('button', { name: 'Agree these' }).isDisabled(),

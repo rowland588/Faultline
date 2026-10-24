@@ -15,7 +15,7 @@ import type { ID, Observation } from '../types';
 import type { BalanceStep, ChangeoverStep, FlowStep, StudyUse, ToolStudy } from './study';
 import type { PaceTodoRow } from '../db/rows';
 import type { SixM } from './sixm';
-import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from './ie/sample';
+import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from '../tools/capability/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/balance';
 import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, share as shareOf, stepAt, stepFigure, whoOf } from '../tools/valuestream/steps';
 import { actionWords, availableOf, carrySequence, changeoverSays, compareChangeovers, figuresOf, intervalOf, intervalSays, ladderOf, ladderSays, mins, stepFigure as changeoverStepFigure } from '../tools/changeover/changeover';
