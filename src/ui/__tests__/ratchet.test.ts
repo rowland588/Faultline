@@ -40,7 +40,7 @@ export function measure() {
 }
 
 /** The ceilings — only ever lowered. */
-const CEILING = { fontSizes: 52, hex: 109, rgba: 125, radii: 27, breakpoints: 4, inline: 515 };   // breakpoints 28 → 4 at B7 (24 October): 719/720 and 1099/1100, the two edges of phone · tablet · desk
+const CEILING = { fontSizes: 4, hex: 109, rgba: 125, radii: 27, breakpoints: 4, inline: 515 };   // B7 (24 October): breakpoints 28 → 4 (719/720 and 1099/1100, the two edges of phone · tablet · desk); fontSizes 52 → 4 (the six type tokens and --t-mark; the four em sizes that size against their parent stay)
 
 describe('the ratchet: raw style values only come down', () => {
   const now = measure();
