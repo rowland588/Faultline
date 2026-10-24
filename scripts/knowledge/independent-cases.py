@@ -207,3 +207,12 @@ print("\n# waiting product: Little's law pieces = demand x wait/available; tied 
 qa = 9600 * (6 * 3600) / (16 * 3600); film = 9600 * (4 * 3600) / (16 * 3600)
 print(f"  QA hold {qa:.0f} pieces, GBP {qa*0.8:.0f}; film wait {film:.0f}, GBP {film*0.8:.0f}; tied up {(qa+film)*0.8:.0f}; carry a day at 25% {(qa+film)*0.8*0.25/365:.2f}")
 print(f"  counted queue 19200 x 0.8 = {19200*0.8:.0f}")
+
+# --- money on the line standard (knowledge/specs/FC-006-line-standard-money.md, 24 October) ---
+print("\n# the people placed x one's rate (wage x on-costs) = GBP an hour; over the packs an hour = a pack")
+def placed(n, wage=14.5, burden=1.3, per_min=100):
+    h = n * wage * burden; return h, h / (per_min * 60) * 100  # GBP an hour, pence a pack
+print("  1 person, 14.50 x 1.3, 100 a minute ->", placed(1))
+print("  12 people ->", placed(12))
+print("  4 people, Line capacity 120 cases a minute ->", placed(4, per_min=120))
+print("  6 people typed on Line capacity at GBP 20, 120 a minute ->", placed(6, wage=20, burden=1, per_min=120))

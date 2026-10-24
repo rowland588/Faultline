@@ -114,8 +114,9 @@ export async function togetherPdf(s: Standard, study: ToolStudy | undefined, nam
   let card: string | undefined;
   const t = togetherOf(s, study);
   if (t.hasMap) {
-    const [{ cardPages }, { worksFor }] = await Promise.all([import('../tools/linestandard/standardCard'), import('../tools/linework/WorkBalance')]);
-    card = (await cardPages(s, name, printed, (await worksFor([s]))[s.id]))[0];
+    const [{ cardPages }, { worksFor }, { standardMoney, standardMoneySays }] = await Promise.all([import('../tools/linestandard/standardCard'), import('../tools/linework/WorkBalance'), import('../tools/linestandard/standardMoney')]);
+    /* the card's foot carries what the people placed cost, as every card does (FC-006) */
+    card = (await cardPages(s, name, printed, (await worksFor([s]))[s.id], { money: standardMoneySays(standardMoney(s, line)) }))[0];
   }
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   await drawTogether(doc, { s, ...(study ? { study } : {}), name, printed, ...(card ? { card } : {}), line });

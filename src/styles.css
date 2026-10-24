@@ -7858,6 +7858,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .ls-count b { font-family: var(--display); font-size: var(--t-num); line-height: 1; color: var(--ink); }
 .ls-count span { font-size: var(--t-detail); color: var(--muted); }
 .ls-things { margin: 0; }
+.ls-money { margin: 2px 0 8px; font-size: var(--t-detail); color: var(--ink-2, var(--ink)); }
 .ls-side-h { margin: 6px 0 0; font-size: var(--t-label); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .ls-person { display: grid; grid-template-columns: 22px 1fr; gap: 4px 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
 .ls-role { font: inherit; font-weight: 700; font-size: var(--t-detail); padding: 3px 6px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--ink); min-width: 0; }

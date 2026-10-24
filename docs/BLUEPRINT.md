@@ -612,8 +612,12 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   possible ... the cost is merely one of the outputs ... don't block
   anything"): each catalogue entry's industry-standard causation, its
   inputs, every one optional, and the sentence when one is missing.
-- **Missing — the next piece, tool by tool:** the line
-  standard map (what the people placed cost a pack), the problems register
+  And the **line standard** (24 October, `knowledge/specs/FC-006-line-
+  standard-money.md`): what the people placed cost — £ an hour at the
+  line's rate and a pack at Line capacity's speed or the line's rated one —
+  one sentence under the count on the map's page and in its card's foot,
+  the wage or the speed named when missing.
+- **Missing — the next piece, tool by tool:** the problems register
   (what each problem costs while it is open), a 6M countermeasure (what it
   is worth — before → after in money).
 

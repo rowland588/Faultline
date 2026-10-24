@@ -57,3 +57,7 @@ The chart is the Line standard (`src/tools/linestandard/StandardScreen.tsx`,
 `scripts/acceptance/line-standard.mjs`); the combination table is approached
 by the Line balance (FC-032, elements against takt) without walking and
 machine time drawn (FC-007, partly); the capacity sheet is Line capacity (FC-034).
+Since 24 October the chart says what the people placed cost — £ an hour at the
+line's rate and a pack at Line capacity's speed or the line's rated one, every
+input optional and the missing one named (`knowledge/specs/FC-006-line-standard-money.md`,
+`src/tools/linestandard/standardMoney.ts`).

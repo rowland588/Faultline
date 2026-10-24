@@ -370,7 +370,42 @@ const crowd = await page.evaluate(async ([ws, shape]) => {
   ok(short === 1, `14l a map with nothing long is one page (${short})`);
 }
 
+/* 15 — WHAT THE PEOPLE PLACED COST (knowledge/specs/FC-006-line-standard-money.md; CLAUDE.md, 24
+   October: "the cost is merely one of the outputs ... don't block anything"): the page's sentence is
+   the module's for the record and its line; the wage taken off names itself and gives no figure, and
+   comes back without a reload; with a Line capacity the speed is its; the card's foot the same; the phone. */
+{
+  const MOD = '/src/tools/linestandard/standardMoney.ts';
+  const said = async id => page.evaluate(async ([id, MOD]) => { const db = await import('/src/db.ts'); const m = await import(MOD); const st = (await db.listAllStandards()).find(s => s.id === id); const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined; return m.standardMoneySays(m.standardMoney(st, ws)); }, [id, MOD]);
+  const onPage = () => page.locator('.ls-money').innerText();
+  const ws0 = await page.evaluate(async id => (await import('/src/db.ts')).getWorkspace(id), sd.wsId);
+  const setLine = async ws => { await page.evaluate(async ws => { const db = await import('/src/db.ts'); await db.updateWorkspace(ws); }, ws); await page.waitForTimeout(1500); };
+  await setLine({ ...ws0, labourRatePerHour: 14.5, labourBurden: 1.3, packsPerMin: 100 });
+  await page.goto(`${BASE}/#/w/${sd.wsId}/standards/${blankId}`); await page.waitForTimeout(2500);
+  let t = await onPage();
+  /* the board carries the people the stories above placed on it; the figure is theirs × £18.85 */
+  const nb = (await rec()).marks.filter(m => m.kind === 'person').length;
+  ok(t === await said(blankId) && new RegExp(`^${nb} (person|people) placed: £${(nb * 18.85).toFixed(2).replace('.', '\\.')} an hour at the line’s rate — [\\d.]+p a pack at 100 packs a minute \\(the line’s rated speed\\)\\.$`).test(t), `15 ${nb} on the board, the line at £14.50 × 1.3 and 100 a minute: the page's sentence is the module's — "${t}"`);
+  const { labourRatePerHour: _w, ...noWage } = { ...ws0, labourBurden: 1.3, packsPerMin: 100 }; void _w;
+  await setLine(noWage);
+  t = await onPage();
+  ok(/^\d+ (person|people) placed — give the line a wage \(Set up the line\)/.test(t) && !/£/.test(t), `15b the wage taken off: the sentence names it and gives no figure, without a reload — "${t}"`);
+  await setLine({ ...ws0, labourRatePerHour: 14.5, labourBurden: 1.3, packsPerMin: 100 });
+  t = await onPage();
+  ok(t === await said(blankId) && /placed: £[\d.]+ an hour/.test(t), '15c the wage back: the sentence as before, without a reload');
+  await page.goto(`${BASE}/#/w/${sd.wsId}/standards/${sd.lineStandardId}`); await page.waitForTimeout(2500);
+  t = await onPage();
+  ok(t === await said(sd.lineStandardId) && /\(Line capacity\)\.$/.test(t), `15d the seeded product with a Line capacity: its speed, in its unit — "${t}"`);
+  const foot = await page.evaluate(async id => { const db = await import('/src/db.ts'); const S = await import('/src/tools/linebalance/ShiftCapacity.tsx'); const st = (await db.listAllStandards()).find(s => s.id === id); return (await S.shiftShortsFor([st]))[id]?.money; }, sd.lineStandardId);
+  ok(foot === t, '15e the card’s foot carries the same sentence (shiftShortsFor)');
+  await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(800);
+  const vis = await page.locator('.ls-money').isVisible(), box = await page.locator('.ls-money').boundingBox();
+  ok(vis && box && box.x >= 0 && box.x + box.width <= 390, `15f on a phone the sentence sits under the count, nothing off the side (${box ? Math.round(box.x + box.width) : '-'} of 390)`);
+  await page.setViewportSize({ width: 1360, height: 900 }); await page.waitForTimeout(400);
+  await setLine(ws0);
+}
+
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();
-console.log(fail ? `\nLine standard board NOT accepted: ${fail} failed` : '\nLine standard board accepted: the page scrolls off the board, a tap places, a drag moves, people in their colours, a tall board and full screen, the bottleneck said, names short — on the screen and the card');
+console.log(fail ? `\nLine standard board NOT accepted: ${fail} failed` : '\nLine standard board accepted: the page scrolls off the board, a tap places, a drag moves, people in their colours, a tall board and full screen, the bottleneck said, names short — on the screen and the card; what the people placed cost, on the page and the card');
 process.exit(fail ? 1 : 0);

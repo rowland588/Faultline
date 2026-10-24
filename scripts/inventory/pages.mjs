@@ -237,6 +237,7 @@ export const PAGES = (sd, cap) => [
   { name: 'Line standard — a map', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}`, must: [
     { what: 'the tool shell — More ▾ and Report ▾', sel: '.ls-head .part-menu-b', n: 2 },
     { what: 'the board', sel: '.ls-board' }, { what: 'who does what', sel: '.ls-side' },
+    { what: 'what the people placed cost — one sentence under the count (24 October, FC-006)', sel: '.ls-money', text: /placed|as Line capacity has them/ },
   ] },
   ...(cap ? [{ name: 'Line standard — long notes, tall shapes', path: `#/w/${cap.wsId}/standards/${cap.lanesId}`, must: [
     { what: 'the board', sel: '.ls-board' },

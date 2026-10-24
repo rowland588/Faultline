@@ -127,7 +127,7 @@ own and names what it feeds.
 | FC-003 Process flow chart | the delays and storages as H, the transports and inspections as L — the same model as the map | L, H | as FC-001 | as FC-001 |
 | FC-004 Spaghetti diagram | walking minutes a shift × rate: the walking is labour | L | wage | "Give the line a wage to say the walking in money" |
 | FC-005 Waste walk | each waste seen, costed by its kind: waiting and motion L, inventory H, defects M, overproduction H + M, transport L | L, H, M | wage; cost a piece; materials a pack | per waste, the input its kind needs |
-| FC-006 Line standard | **the gap** (BLUEPRINT §6): the people placed → labour a pack at the standard's rate; the bottleneck person's packs lost (T) | L, T | wage; packs a minute; contribution | "Give the line a wage to say what the people cost a pack" |
+| FC-006 Line standard | built 24 Oct — the people placed: £ an hour at the line's rate and a pack at Line capacity's speed or the line's rated one, on the page and the card (`knowledge/specs/FC-006-line-standard-money.md`); the bottleneck person's packs lost are Line capacity's (FC-188) | L | wage; speed (Line capacity or rated) | "give the line a wage (Set up the line)"; "give the line a speed, or map its Line capacity" |
 | FC-007 Standard work combination table | the waiting inside a cycle (person waits machine) as L a pack | L | wage | as above |
 | FC-008 Takt time | — (feeds every balance) | — | | |
 | FC-009 Kanban sizing | the kanban's stock as H; a stock-out as S | H, S | cost a piece; carrying rate; contribution | "Give a cost a piece to say the kanban's stock in money" |
@@ -485,10 +485,10 @@ own and names what it feeds.
 
 ## 6. The order
 
-1. **The three gaps in what is built** (`docs/BLUEPRINT.md` §6): the line
-   standard (FC-006 — the people placed, a pack), the problems register
-   (FC-154 — a problem's open cost), the 6M countermeasure's worth (FC-146).
-   Each through the `faultline-tool` skill, one at a time.
+1. **The gaps in what is built** (`docs/BLUEPRINT.md` §6): the line standard
+   (FC-006 — the people placed, a pack: built 24 October), the problems
+   register (FC-154 — a problem's open cost), the 6M countermeasure's worth
+   (FC-146). Each through the `faultline-tool` skill, one at a time.
 2. **The built tools with money partly said**: Reliability (FC-058 — each
    failure's lost minutes in money), the stops' pages where a figure is still
    missing, the stage gate's performance run and climb (FC-076, FC-077 — the

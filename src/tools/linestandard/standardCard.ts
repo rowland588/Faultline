@@ -236,7 +236,10 @@ function shapeWordsBox(ctx: CanvasRenderingContext2D, m: StandardMark, ix: numbe
  *  and its sentence — printed beside each person and in the footer. */
 export interface CardWork { taktSec: number; people: { who: string; work: number; over: boolean; untimed?: boolean; takt?: number; piece?: string }[]; text: string; short?: string }
 
-/** `shift`: capacity a shift, short (ui/ShiftCapacity shiftShortsFor) — "32,400 bags a shift — 126 of 450 min changing over". */
+/** The card's foot facts (tools/linebalance/ShiftCapacity shiftShortsFor): `shift` — capacity a
+ *  shift, short ("32,400 bags a shift — 126 of 450 min changing over"); `money` — what the people
+ *  placed cost, the map page's own sentence (tools/linestandard/standardMoney). */
+export interface CardFacts { shift?: string; money?: string }
 /** WORDS PRINTED WHOLE (Rowland, 15 October: "I've done bottleneck and
  *  there's a large amount of context in there, but when I print it, the
  *  context is not there ... if we have to put the context onto another page,
@@ -246,11 +249,11 @@ export interface CardWork { taktSec: number; people: { who: string; work: number
  *  the card, under the same number as on the map. */
 export interface CardNote { ref: string; title: string; text: string; colour: string; bottleneck?: boolean; person?: boolean }
 
-export async function renderCard(s: Standard, projectName: string, printed: string, work?: CardWork, shift?: string): Promise<HTMLCanvasElement> {
-  return (await renderCardWithNotes(s, projectName, printed, work, shift)).canvas;
+export async function renderCard(s: Standard, projectName: string, printed: string, work?: CardWork, facts?: CardFacts): Promise<HTMLCanvasElement> {
+  return (await renderCardWithNotes(s, projectName, printed, work, facts)).canvas;
 }
 
-async function renderCardWithNotes(s: Standard, projectName: string, printed: string, work?: CardWork, shift?: string): Promise<{ canvas: HTMLCanvasElement; notes: CardNote[] }> {
+async function renderCardWithNotes(s: Standard, projectName: string, printed: string, work?: CardWork, facts?: CardFacts): Promise<{ canvas: HTMLCanvasElement; notes: CardNote[] }> {
   const notes: CardNote[] = [];
   /* The photo first: nothing below waits on anything once drawing starts. A
      canvas draws in whatever face is loaded at that instant, so the app's own
@@ -296,10 +299,14 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
      own; and the work, timed, when it has been. Three facts take the foot a
      line deeper — never one cut short at "…". */
   const capR = s.capacity?.stations.length ? analyse(s.capacity) : undefined;
+  const shift = facts?.shift;
+  /* and what the people placed cost — the map page's sentence, on every card
+     (knowledge/specs/FC-006-line-standard-money.md), Line capacity or not */
   const said = [
     !capR ? '' : shift ? shortSays(capR) ?? capR.sentence : capR.sentence,
     capR && shift ? `Makes ${shift}` : '',
     work ? `Work: ${work.short ?? work.text}` : '',
+    facts?.money ?? '',
   ].filter(Boolean);
 
   /* ---------------- the map ----------------
@@ -309,7 +316,13 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
      the photo's — as tall as the page allows; Who does what takes the room
      left beside it (two columns of people beside a tall board), so nothing
      is squeezed into the middle of a frame drawn for wide. */
-  const top = bandH + 40, footH = said.length > 2 ? 136 : 112, gap = 36;
+  /* the foot's rows: a line a fact; the money sentence, last and long, may take two rows at its
+     smallest type rather than be cut short (FC-006) — the foot grows a row for each */
+  const footTw = CARD_W - M - 170 - (M + 880);
+  ctx.font = `600 16px ${FONT}`;
+  const moneyRows = facts?.money && said.length > 1 && ctx.measureText(facts.money).width > footTw ? 2 : 1;
+  const footRows = said.length + moneyRows - 1;
+  const top = bandH + 40, footH = 112 + Math.max(0, footRows - 2) * 24, gap = 36;
   const mapH = CARD_H - top - footH - 28;
   const shape = img ? { w: img.width, h: img.height } : BOARDS[boardOf(s)];
   const mapX = M, mapW = Math.min(CARD_W - 2 * M - 520 - gap, Math.round(mapH * shape.w / shape.h));
@@ -573,6 +586,12 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
       wrap(ctx, said[0], tw, 2).forEach((l, i) => ctx.fillText(l, M + 880, fy + 56 + i * 24));
     } else {
       said.forEach((t, i) => {
+        if (facts?.money && t === facts.money && moneyRows === 2) {
+          /* the money sentence whole, on two rows */
+          ctx.font = `600 16px ${FONT}`;
+          wrap(ctx, t, tw, 2).forEach((l, k) => ctx.fillText(l, M + 880, fy + 56 + (i + k) * 24));
+          return;
+        }
         let px = 20;
         ctx.font = `600 ${px}px ${FONT}`;
         while (px > 14 && ctx.measureText(t).width > tw) { px -= 1; ctx.font = `600 ${px}px ${FONT}`; }
@@ -669,12 +688,12 @@ function notesPages(s: Standard, projectName: string, printed: string, notes: Ca
 
 /** The card and, when it had to cut anything, its notes page(s) — every
  *  page as a JPEG, for the screen and the PDF alike. */
-export async function cardPages(s: Standard, projectName: string, printed: string, work?: CardWork, shift?: string): Promise<string[]> {
-  const { canvas, notes } = await renderCardWithNotes(s, projectName, printed, work, shift);
+export async function cardPages(s: Standard, projectName: string, printed: string, work?: CardWork, facts?: CardFacts): Promise<string[]> {
+  const { canvas, notes } = await renderCardWithNotes(s, projectName, printed, work, facts);
   return [canvas, ...(notes.length ? notesPages(s, projectName, printed, notes) : [])].map(c => c.toDataURL('image/jpeg', 0.9));
 }
 
 /** The card as a JPEG, for the screen and the PDF alike. */
-export async function cardImage(s: Standard, projectName: string, printed: string, work?: CardWork, shift?: string): Promise<string> {
-  return (await renderCard(s, projectName, printed, work, shift)).toDataURL('image/jpeg', 0.9);
+export async function cardImage(s: Standard, projectName: string, printed: string, work?: CardWork, facts?: CardFacts): Promise<string> {
+  return (await renderCard(s, projectName, printed, work, facts)).toDataURL('image/jpeg', 0.9);
 }
