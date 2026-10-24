@@ -103,7 +103,7 @@ pack from the crew and the rate.
 
 ## In Faultline
 Built as the lever tree, one of the three kinds of change
-(`src/lib/planModel.ts`, FC-147): the outcome and its levers with
+(`src/lib/planModel.ts`, FC-213): the outcome and its levers with
 targets and actuals, actions on each. The arithmetic check (children to
 parent), the gap's allocation by branch and each lever's money from the
 one cost model are the pieces to add when it is next worked on.

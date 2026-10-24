@@ -123,7 +123,7 @@ chill — the plan is where the change meets the law.
 ## In Faultline
 Not built as a record (FC-168): sites keep HACCP in their quality
 system. Faultline's pieces are the CCP checks on the line
-(`foodsafety.ccp-monitoring`, FC-169), the detector and checkweigher
+(`foodsafety.ccp-monitoring`), the detector and checkweigher
 verifications, and the readiness item "HACCP amended and validated"
 on a stage-gate project — each connecting the plan to the line's work
 without duplicating the plan.

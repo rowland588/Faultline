@@ -111,7 +111,7 @@ bad week.
 - [code] `src/lib/intelligence/ask.ts` — askLine and ASK_EXAMPLES.
 
 ## In Faultline
-Built (FC-142): `src/lib/intelligence/ask.ts` on the line's page, the
+Built (FC-206): `src/lib/intelligence/ask.ts` on the line's page, the
 five shapes, the figures used, the outside-its-shapes answer; proved by
 `scripts/acceptance/upgrade.mjs`. A sixth shape is a new matched pattern
 answered by a tested function — never a model.

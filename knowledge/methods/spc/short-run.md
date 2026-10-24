@@ -99,6 +99,6 @@ machine through the changeovers and is the first thing to read when a
 
 ## In Faultline
 Not built (FC-093). When built it is a mode of the individuals chart
-(FC-086) that reads each reading's product and nominal from the line's
+(the variables chart) that reads each reading's product and nominal from the line's
 programs (`src/line`, *Products it runs*), runs Levene before pooling and
 says the result, and plots a changeover as a marked boundary.

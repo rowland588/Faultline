@@ -113,6 +113,6 @@ safety, holds, output and waste.
 Partly: the day's paper and the huddle (`src/lib/day.ts`,
 `src/lib/huddle.ts`) say what is due today and what moved, and the
 control room's lean page carries the tiles and the action plan. The
-hour-by-hour board (FC-144) and the SQDCP tier board with its escalation
-(FC-145) are not built; both would read the loss count, the register
+hour-by-hour board and the SQDCP tier board with its escalation
+(FC-203) are not built; both would read the loss count, the register
 and the actions rather than ask for a second entry.

@@ -136,4 +136,4 @@ Research first (FC-065): the decision logic is a guided record per
 failure mode on a critical machine (consequence · warning and P–F ·
 wear-out · hidden · task · interval · reason), reading the Weibull and
 the reliability study, and writing the tasks into the planned schedule
-(FC-063). It is specified when FC-063 exists to receive its output.
+(FC-065). It is specified when the planned-maintenance log is built to receive its output.

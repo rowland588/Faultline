@@ -99,7 +99,7 @@ pack to the first.
 - [textbook] George, M.L. et al. (2005), *The Lean Six Sigma Pocket Toolbook*, McGraw-Hill (from knowledge).
 
 ## In Faultline
-Not built (FC-161). A project names its lines and a line its machines
+Not built (FC-139). A project names its lines and a line its machines
 in flow order (`src/project`, `src/line`); the SIPOC's process column is
 that order, and its customers and suppliers are two columns the app
 does not hold. A small addition to a project's front page if Rowland

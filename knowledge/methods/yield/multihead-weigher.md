@@ -114,7 +114,7 @@ settled by the head means and the shape.
 
 ## In Faultline
 Not built (FC-158). The capability study already reads a leaning set
-honestly and says give-away in money (`src/tools/capability`, FC-156);
+honestly and says give-away in money (`src/tools/capability`);
 FC-158 adds the head weights by head, the ANOVA across heads with the
 heavy or light head named, the unders' count, and the resolution
 argument for the portion setting.

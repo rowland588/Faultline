@@ -112,4 +112,4 @@ Not built as its own tool (FC-167): a capability study can hold the
 readings with an upper limit and already refuses the normal verdict on a
 leaning set, saying the share outside as measured
 (`src/tools/capability`); the fitted tail (`spc.capability-nonnormal`,
-FC-096) and the leak-test hand-off are the pieces to add.
+the non-normal fit) and the leak-test hand-off are the pieces to add.

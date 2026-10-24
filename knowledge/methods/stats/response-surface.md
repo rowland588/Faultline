@@ -105,7 +105,7 @@ The classic trade: the fastest speed at which quality still holds.
 - [paper] Derringer, G. and Suich, R. (1980), "Simultaneous optimization of several response variables", *Journal of Quality Technology* 12(4), 214–219 — desirability (from knowledge).
 
 ## In Faultline
-Research first (FC-112): the factorial (FC-111) comes first, and the one-
+Research first (FC-112): the factorial comes first, and the one-
 factor curve (a quadratic on a setting already typed against readings) is
 the part that could be built early as a mode of `stats.correlation-regression`,
 with the stationary point said and extrapolation refused on screen.

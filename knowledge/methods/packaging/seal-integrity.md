@@ -116,6 +116,6 @@ and the window.
 ## In Faultline
 Not built as its own tool (FC-165): a capability study can hold seal
 strength on a one-sided limit or pass/fail leak tests and says what the
-count proves (`src/tools/capability`, FC-094 parts 1 and 4); FC-165 adds
+count proves (`src/tools/capability`, parts 1 and 4 of the capability study); FC-165 adds
 the seal's conditions logged with each sample, the two tests side by
 side on the line's program, and the leak claim's n said before the test.

@@ -101,5 +101,5 @@ Built: a project's Actions (`#/project/:id/actions`,
 `src/lib/projectActions.ts`) read every thing owed — by who, when and
 where, the tiles and the closing line, paper for the meeting and each
 person; Every action under the control room (`#/actions`); the register's
-problems with their journey (`src/lib/snagsReport.ts`, `src/snag`). FC-148
+problems with their journey (`src/lib/snagsReport.ts`, `src/snag`). FC-154
 is this entry.

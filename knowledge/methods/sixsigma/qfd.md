@@ -108,7 +108,7 @@ weighed against taste, shelf life and cost.
 - [textbook] Cohen, L. (1995), *Quality Function Deployment: How to Make QFD Work for You*, Addison-Wesley (from knowledge).
 
 ## In Faultline
-Not built and not planned (FC-163, research): a new-product method
+Not built and not planned (FC-145, research): a new-product method
 outside the running-line and stage-gate work. Its one lesson in
 Faultline is the CTQ with its limit on a capability study
 (`src/tools/capability`): the question first, then the measure.

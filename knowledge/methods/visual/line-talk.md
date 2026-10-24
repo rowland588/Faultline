@@ -101,7 +101,7 @@ explanation; the morning's summary for the manager who was not there.
 - [code] `src/tools/talk`, `src/tools/talk/hearing.ts`, `supabase/functions/assist` (task `talk`), `scripts/sync-assist.mjs`.
 
 ## In Faultline
-Built (FC-143): Line Talk on a line and in a project
+Built (FC-203): Line Talk on a line and in a project
 (`src/tools/talk`), hearing with the phone's own recogniser
 (`src/tools/talk/hearing.ts`), the assistant through the `assist` gateway, the
 documents and their PDF; proved by `scripts/acceptance/line-talk.mjs`

@@ -104,8 +104,8 @@ ideas; choosing a pack format or a supplier on several criteria.
 - [practice] The PICK chart (Possible, Implement, Challenge, Kill) — Six Sigma practice (from knowledge).
 
 ## In Faultline
-Not built (FC-162). A 6M's countermeasures are raised with their
-expected effect (`src/lib/sixm.ts`); FC-162 would score several
+Not built (FC-144). A 6M's countermeasures are raised with their
+expected effect (`src/lib/sixm.ts`); FC-144 would score several
 countermeasures for one cause on agreed criteria, place them on
 impact–effort with the impact taken from the cause's size in money, and
 turn the quick wins into actions.

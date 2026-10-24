@@ -115,5 +115,5 @@ Built: commissioning tests and programs with their attempts, pass/fail,
 what was seen and the journey (`src/lib/testing.ts`, `src/lib/programRun.ts`,
 `src/lib/run.ts`, FC-074 to FC-076); since 24 October a run says what its
 shortfall is worth (`src/lib/runMoney.ts`, FC-076/077). Not yet: the
-interval-by-interval "held" reading (FC-094 part 2) and the EN 415-11
+interval-by-interval "held" reading (the capability study, part 2) and the EN 415-11
 time model for acceptance (FC-085, research).

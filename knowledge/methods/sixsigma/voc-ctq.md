@@ -112,6 +112,6 @@ and taste through the panel.
 ## In Faultline
 Partly: the capability study asks the question first — a measurement
 with its limits, sold by weight, pass or fail — and holds the limit
-(`src/tools/capability`, FC-094); the CTQ tree from the customer's words
-to that limit is not built (FC-160), and would hand each CTQ to its
+(`src/tools/capability`); the CTQ tree from the customer's words
+to that limit is not built (FC-141), and would hand each CTQ to its
 study and its control plan row.

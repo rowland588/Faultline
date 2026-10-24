@@ -110,5 +110,5 @@ Built: the lean page (`src/lib/lean.ts`, `src/ui/Lean.tsx`, `src/lib/report/lean
 on every tool's page and paper; the engine (`src/lib/report/`); Report ▾
 on every page header (`src/ui/parts.tsx`); the stress, the fuzz and parity in
 the gate (`scripts/report-stress.mjs`, `scripts/paper-parity.mjs`).
-FC-141 is this entry; the 6M report and Problems were the last pages to
+FC-205 is this entry; the 6M report and Problems were the last pages to
 take the pattern.

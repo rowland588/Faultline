@@ -106,7 +106,7 @@ material found off-spec.
 
 ## In Faultline
 Not built (FC-135). The register already holds a problem's held packs
-and their money (`src/lib/problemCost.ts`, FC-154 part 2); FC-135 makes
+and their money (`src/lib/problemCost.ts`, the register's money); FC-135 makes
 the hold a record of its own on the line — raised from a failed check or
 a problem, segregated by label number, its days and its tied-up money on
 the line's page and the control room, its disposition chosen with the

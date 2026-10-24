@@ -103,6 +103,6 @@ shift report; a case packer's rate after a changeover.
 
 ## In Faultline
 Specified as part 2 of the capability study (`knowledge/specs/FC-094-capability.md`);
-not built. The performance run (`src/project`, FC-076) already records a
+not built. The performance run (`src/project`) already records a
 run's rate and its shortfall in packs and money (`src/lib/runMoney.ts`); held
 at rate adds the interval counts and the three figures above to that record.

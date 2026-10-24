@@ -5,21 +5,32 @@ incomplete. Maintain a visible list of research gaps and areas requiring
 expert verification."* This is that list. It is kept by hand; when an item
 is closed, say how and when, and move what was learned into the record.
 
-## Where the library stands — 22 October
+## Where the library stands — 24 October
 
-176 method records across 23 disciplines; **33 at full depth** (the methods
-behind every tool Faultline has built, and the capability family the pilot
-uses), **143 summaries** (the method, its core formula, its limits and its
-food use, enough to specify from — not enough to build from without reading
-the sources). By the strongest evidence behind them: standard 29, law 3,
-textbook 68, peer-reviewed 9, practice 62, Faultline decision 5. **128
-records were written from knowledge and say so** in their `checked` line;
-13 had their main standard confirmed online on 22 October (scope and
-edition only — the texts are paywalled). 69 reference lines say *"from
-knowledge"* or *"edition to confirm"*.
+**179 method records across 23 disciplines, every one at full depth** —
+brought there on 24 October at Rowland's word ("research all of the tools
+that are within our entire knowledge base right now … so when we build the
+tool, everything's already functional"), from 39 that morning. Full depth
+means: the formulas and constants written out, a worked case whose every
+number was computed independently in `scripts/knowledge/cases-*.py`
+(SciPy/NumPy — one script a discipline), the verdict rules, the money hook
+by `knowledge/MONEY.md`, and a `checked` line that says what was read and
+what is from knowledge. By the strongest evidence behind them: standard 29,
+law 3, textbook 71, peer-reviewed 9, practice 62, Faultline decision 5.
 
-A summary record is a starting point: before its tool is specified, the
-skill's step 2 reads its sources and brings it to full depth.
+**What full depth is not.** The texts were not read: 152 of the 179
+records say *from knowledge* in their `checked` line, because this
+container cannot fetch publishers, Wikipedia or archive.org (403 from the
+proxy) and only the three books' listings and a few standards' scopes were
+confirmed online. So a record is a specification of the method as a
+competent engineer remembers it, with its arithmetic proved by computation
+— not a transcription of its source. Where a record quotes a number that
+belongs to a text (a clause, a table, a threshold, a factor), it says so and
+the item is in the lists below; the faultline-tool skill's step 2 reads the
+source before that number reaches a screen.
+
+Where it stood on 22 October: 176 records, 33 full, 143 summaries, 128 from
+knowledge.
 
 ## Standards whose text has not been read (scope and edition confirmed only)
 
@@ -46,6 +57,36 @@ skill's step 2 reads its sources and brings it to full depth.
   ≥ 1.33) — VDA Volume 5 to confirm.
 - HSE's MAC, ART and RAPP scoring tables — to be copied from the HSE
   documents when those tools are built, not from memory.
+- **Added 24 October, with the depth pass** — each said in its record's
+  `checked` line and marked *to confirm*:
+  - ART's exposure bands (low 0–11, medium 12–21, high 22+) and HSE L23's
+    quick guideline forces for pushing and pulling (about 200/150 N to
+    start, 100/70 N to keep moving, men/women) —
+    `ergonomics.hse-mac-art`, `ergonomics.push-pull`.
+  - RULA's and REBA's action levels — `ergonomics.rula-reba`; their scoring
+    tables are the papers' and are not reproduced.
+  - BRCGS Food Issue 9 grading bands (AA/A/B/C/D by majors and minors) and
+    the clause numbers for cleaning verification, environmental monitoring,
+    allergen management, training and foreign-body detection —
+    `foodsafety.audits`, `foodsafety.cleaning-verification-atp`,
+    `foodsafety.environmental-monitoring`, `foodsafety.allergen-changeover`,
+    `people.skills-matrix`, `foodsafety.metal-detection-verification`.
+  - The FMEA Action Priority table (AIAG–VDA 2019) — reconstructed from
+    memory in `quality.fmea`; to confirm against the handbook before any
+    verdict uses it.
+  - VDA's 8D volume edition; EHEDG Document 8's and EN 1672-2's editions —
+    `rca.eight-d`, `foodsafety.hygienic-design`.
+  - Emission factors (about 0.207 kg CO₂e/kWh electricity, 0.183 gas) —
+    illustrative in `sustainability.carbon`; the year's DESNZ set governs.
+  - Leak flow by hole size (about 1.2 l/s at 1 mm and 7 bar) and
+    compressors' specific energy (0.1–0.12 kWh/m³) —
+    `sustainability.compressed-air-leaks`.
+  - Cooling time-to-temperature limits vary by product and authority; the
+    site's validated plan decides — `foodsafety.cooling-curves`.
+  - The Shingo model's and other maturity models' licensing —
+    `lean.maturity-assessment`.
+  - MTM-1's walking element (W-FT 5.3 TMU a foot ≈ 1.6 m/s) —
+    `lean.spaghetti`, from knowledge of the data card.
 
 - **Rowland's three books, 24 October** (`knowledge/SOURCES.md`): Maskell
   (1991) — structure, six areas and two chapters' measures confirmed in

@@ -107,7 +107,7 @@ schedule — each with its number before and after and its holding chart.
 - [textbook] Moen, R.D. and Norman, C.L. (2010), "Circling back: clearing up myths about the Deming cycle", *Quality Progress*, November — PDCA and PDSA's history (from knowledge).
 
 ## In Faultline
-Built as the shape of a countermeasure (FC-156 and the 6M): raised with
+Built as the shape of a countermeasure (FC-146 and the 6M): raised with
 its expected effect, before → after on the same number, and holding —
 in the 6M project (`src/lib/sixm.ts`, `docs/SIXM.md`) and a
 fix's proof on a study. The after period's own control limits as the
