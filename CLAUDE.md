@@ -144,6 +144,21 @@ including even programs ... but still allow the flexibility to do single
 reports."* `scripts/acceptance/dual-lines.mjs` and `line-report.mjs` prove
 them.
 
+## Every planned tool is built, by wave — 24 October
+
+Rowland, 24 October: *"I would like to build every tool that we have planned
+for … once we've made the tools … put together toolkits for specific reasons
+… there's my toolkit, and I can run these analysis using the toolkits."*
+**Read `docs/TOOLS-BUILD.md`**: the 167 entries not yet available are built in
+eleven waves by shared mechanism (W1 the capability study's modes, W2 charts,
+W3 statistics, W4 the gauge, W5 reliability and maintenance, W6 checks, W7
+people and work, W8 flow and planning, W9 the quality system, W10 research,
+W11 toolkits by reason) — one specification, one acceptance script and one
+gate per wave, each tool held to `knowledge/STANDARD.md` through the
+`faultline-tool` skill, the catalogue kept truthful, §4 of that document
+saying what each wave shipped. A toolkit is a reason with its tools in order
+(`src/catalogue/toolkits.ts` when built), never a second list of tools.
+
 ## The structure — approved 23 October
 
 **Read `docs/STRUCTURE.md`.** Rowland, 23 October: *"I agree do them all"* —

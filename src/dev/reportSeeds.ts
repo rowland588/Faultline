@@ -51,6 +51,11 @@ const DRAWINGS = [
 ];
 const DAY = 86_400_000;
 const iso = (days: number) => new Date(Date.now() + days * DAY).toISOString().slice(0, 10);
+/* HOURS BACK FROM 23:59 YESTERDAY — a stamp `now − h hours` changes its day as the afternoon passes, and the papers
+   that count things by day moved a line between one run and the next (paper parity, gates 55 and 56: the huge
+   journey's "25 recorded" one run, "24 recorded" the next). Anchored to yesterday's end, the day a stamp falls on
+   is the same whatever the hour the papers are made. */
+const hoursBack = (t: number, h: number) => new Date(t).setHours(23, 59, 0, 0) - DAY - h * 3_600_000;
 
 /* A fixed sequence, so a failure is the same failure on the next run. */
 let r = 7;
@@ -490,7 +495,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     items.push({
       id: uid(), projectId: proj.id, testId: on.id, kind: 'found',
       what: i % 4 ? pick(['Guard bracket the wrong size', 'Film tracking off to the left after a splice', 'E-stop label peeling', 'Regulator missing from the kit', 'No guard on the infeed shelf']) : LONG[i % LONG.length],
-      owner: pick(WHO), sort: i, createdAt: t - (60 - i) * 3_600_000, updatedAt: t,
+      owner: pick(WHO), sort: i, createdAt: hoursBack(t, 60 - i), updatedAt: t,
       /* Hours lost on some (lib/hoursLost) — so the plan's paper carries them. */
       ...(i % 3 === 0 ? { hoursLost: [0.5, 2, 1.5, 5, 3][i % 5] } : {}),
     });
@@ -621,7 +626,7 @@ export async function seedRandomJob(seed: number): Promise<ReportJob> {
   for (const x of tests) await putTest(x);
   const items: TestItem[] = [];
   for (let i = 0; i < many(80); i++) {
-    items.push({ id: uid(), projectId: proj.id, testId: pick(tests).id, kind: 'found', what: say() || 'Something seen', owner: rand() < 0.6 ? pick([...WHO, ...AWKWARD]) : undefined, sort: i, createdAt: t - i * 3_600_000, updatedAt: t,
+    items.push({ id: uid(), projectId: proj.id, testId: pick(tests).id, kind: 'found', what: say() || 'Something seen', owner: rand() < 0.6 ? pick([...WHO, ...AWKWARD]) : undefined, sort: i, createdAt: hoursBack(t, i), updatedAt: t,
       ...(i % 4 === 1 ? { hoursLost: [0.5, 1, 2, 3.5, 12.25][i % 5] } : {}),
       /* Now and then critical (lib/critical), with or without its story. */
       ...(i % 11 === 5 ? { risk: true, ...(rand() < 0.6 ? { couldLose: [4, 16, 100, 2.5][i % 4] } : {}), ...(rand() < 0.5 ? { impact: say() || 'Launch could slip' } : {}) } : {}),
@@ -768,7 +773,7 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
   for (let i = 0; i < 200; i++) {
     const [category, subcategory, asset, note] = CATS[Math.floor(Math.pow(rand(), 1.6) * CATS.length)];
     const ws = [wsA, wsA, wsA, wsB, wsC][i % 5];
-    const at = t - Math.floor(rand() * 27) * DAY - Math.floor(rand() * 20) * 3_600_000;
+    const at = hoursBack(t, Math.floor(rand() * 27) * 24 + Math.floor(rand() * 20));
     const mins = category === 'Breakdown' ? 20 + rand() * 60 : category === 'Changeover' ? 30 + rand() * 30 : 1 + rand() * 8;
     const o: Observation = {
       id: uid(), workspaceId: ws.id, category, subcategory, asset, shift: rand() < 0.6 ? 'Nights' : 'Days',
@@ -1130,7 +1135,7 @@ export async function seedRandomSixMJob(seed: number): Promise<SixMJob & { lineI
       await putReadings(Array.from({ length: n }, (_, k) => ({ id: uid(), projectId: proj.id, lineId: l.id, measureId: m.id, at: iso(-7 * (n - k)), value: Math.round((m === ppm ? 40 + rand() * 25 : 1 + rand() * 3) * 10) / 10, createdAt: t, updatedAt: t })));
     }
     for (let k = 0; k < many(80); k++) {
-      const at = t - Math.floor(rand() * 27) * DAY - Math.floor(rand() * 20) * 3_600_000, mins = 1 + rand() * 50;
+      const at = hoursBack(t, Math.floor(rand() * 27) * 24 + Math.floor(rand() * 20)), mins = 1 + rand() * 50;
       await addObservation({
         id: uid(), workspaceId: l.workspaceId as string, category: rand() < 0.1 ? pick(AWKWARD).trim() || 'Minor stop' : pick(['Minor stop', 'Breakdown', 'Changeover', 'Waiting', 'Quality']),
         subcategory: words(2), asset: pick(['Bagger', 'Weigher', 'Checkweigher']), shift: rand() < 0.5 ? 'Nights' : 'Days',

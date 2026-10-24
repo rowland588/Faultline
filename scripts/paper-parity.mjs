@@ -23,6 +23,10 @@ if (!OLD || !NEW) { console.error('node scripts/paper-parity.mjs OLD NEW'); proc
 
 /** A paper whose words a slice changed on purpose: its file name, and why. */
 const MEANT = {
+  /* W0 (docs/TOOLS-BUILD.md §4, 24 October): the seed's hour-based stamps anchored to 23:59 yesterday (reportSeeds
+     hoursBack), so the journey's day lines no longer move with the hour the papers are made — gates 55 and 56 each saw
+     one line move; the lines sit on their days once and stay */
+  'huge-journey.pdf': 'the seed’s hour-based stamps anchored to yesterday’s end (W0, 24 October)',
   /* MONEY ON THE 6M PROBLEM AND ITS COUNTERMEASURES (knowledge/specs/FC-146-sixm-money.md, 24 October): the problem's
      hours a week in money by the line's cost model, and a countermeasure's worth from its typed share */
   ...Object.fromEntries(['6m-tiny-client.pdf', '6m-tiny-client-status.pdf', '6m-tiny-line.pdf', '6m-tiny-line-status.pdf', '6m-huge-client.pdf', '6m-huge-client-status.pdf', '6m-huge-line.pdf', '6m-huge-line-status.pdf']
