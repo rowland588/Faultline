@@ -429,8 +429,8 @@ export const OPERATIONS: Entry[] = [
     depends: ['FC-117', 'FC-105'],
     complexity: 'S', value: 'medium', valueWhy: 'Proof on the team’s own measure.',
     status: 'partial', form: 'report', methods: ['stats.time-series-trend', 'stats.two-sample-tests'], scenarios: ['daily', 'project'],
-    built: { where: [], code: ['src/lib/measureProof.ts', 'src/lib/impact.ts'], tests: ['src/lib/__tests__/measures.test.ts', 'src/lib/__tests__/impact.test.ts'], acceptance: [] },
-    limits: ['Not driven by an acceptance script.'],
+    built: { where: [], code: ['src/lib/measureProof.ts', 'src/lib/impact.ts'], tests: ['src/lib/__tests__/measures.test.ts', 'src/lib/__tests__/impact.test.ts'], acceptance: ['weekly-number.mjs'] },
+    limits: ['The trend on each number is on the screen; its paper is not yet carried.'],
   },
   {
     id: 'FC-202', name: 'Line Talk — talk on the line, it writes the reports', discipline: 'visual', sub: 'talk',

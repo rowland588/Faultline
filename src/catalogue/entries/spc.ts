@@ -3,6 +3,9 @@ import type { Entry } from '../types';
 
 const CAPABILITY_BUILT = { where: ['/capability'], code: ['src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/sampleLean.ts', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts', 'src/lib/__tests__/audit-ie-sample.test.ts'], acceptance: ['ecosystem-capability.mjs', 'capability-kinds.mjs'] };
 const SPEC = 'knowledge/specs/FC-094-capability.md';
+/* W2 (24 October): the control chart and what it shares — proved by control-chart.mjs, weekly-number.mjs for the trend */
+const CHART_SPEC = 'knowledge/specs/FC-086-charts.md';
+const CHART_BUILT = { where: ['/chart'], code: ['src/tools/chart/chart.ts', 'src/tools/chart/ChartScreen.tsx', 'src/lib/ie/charts.ts', 'src/lib/ie/dist.ts', 'src/lib/studiesPdf.ts'], tests: ['src/tools/chart/__tests__/chart.test.ts', 'src/lib/ie/__tests__/charts.test.ts'], acceptance: ['control-chart.mjs'] };
 /* W1 (24 October): the study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
 const MODES_BUILT = { where: ['/capability'], code: ['src/tools/capability/modes.ts', 'src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/ModeParts.tsx', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts'], acceptance: ['capability-kinds.mjs'] };
 
@@ -17,7 +20,11 @@ export const SPC: Entry[] = [
     food: 'Fill weights from a checkweigher’s sample; oven temperature.',
     depends: ['FC-090', 'FC-094', 'FC-119'],
     complexity: 'M', value: 'high', valueWhy: 'The base chart for one reading at a time — most food lines.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['spc.control-charts-variables'], scenarios: ['quality', 'running'], words: ['SPC', 'control chart', 'I-MR'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['spc.control-charts-variables'], scenarios: ['quality', 'running'], words: ['SPC', 'control chart', 'I-MR'],
+    app: { key: 'chart', label: 'Control chart', says: 'Readings in order against limits set from a steady period: what moved, since when', onLine: 'readings in order against limits, and what moved', reads: 'chart', icon: 'chart', order: 4.5 },
+    built: CHART_BUILT,
+    spec: CHART_SPEC,
+    limits: ['Registered as a study under Tools, not a log under Logs: no scope lists a log-kind tool yet (the 17 log entries are planned) — it moves with a one-line change when they are built.', 'Readings are assumed independent — not tested (FC-115).', 'Limits are set from a frozen run (20 readings or more) and kept; a change of mean or spread is a new run, never an edit.', 'Out-of-control action plans (OCAP) per rule are not built.'],
   },
   {
     id: 'FC-087', name: 'X̄-R and X̄-S charts for subgroups', discipline: 'spc', sub: 'charts',
@@ -29,7 +36,9 @@ export const SPC: Entry[] = [
     food: 'QA weight checks every 15 minutes; seal strength tests per hour.',
     depends: ['FC-086', 'FC-090'],
     complexity: 'M', value: 'medium', valueWhy: 'For sites already sampling in subgroups.',
-    status: 'to-build', form: 'mode', partOf: 'FC-086', methods: ['spc.control-charts-variables'], scenarios: ['quality'],
+    status: 'available', form: 'mode', partOf: 'FC-086', methods: ['spc.control-charts-variables'], scenarios: ['quality'],
+    built: CHART_BUILT, spec: CHART_SPEC,
+    limits: ['Subgroups taken in order; X̄-R for 2 to 10, X̄-S above 10 — the constants are the textbook’s (ASTM/Montgomery), checked against independent cases.', 'Within-group variation only: a subgroup is read as one moment.'],
   },
   {
     id: 'FC-088', name: 'Reject rate chart — p, np and Laney p′', discipline: 'spc', sub: 'charts',
@@ -69,7 +78,9 @@ export const SPC: Entry[] = [
     food: 'A filler creeping heavy as the hopper empties.',
     depends: ['FC-086'],
     complexity: 'S', value: 'medium', valueWhy: 'Catches shifts sooner.',
-    status: 'to-build', form: 'component', methods: ['spc.run-rules'], scenarios: ['quality'],
+    status: 'available', form: 'component', methods: ['spc.run-rules'], scenarios: ['quality'],
+    built: CHART_BUILT, spec: CHART_SPEC,
+    limits: ['The eight Nelson rules; the zone rules need a frozen run’s σ. Rules are offered per chart, not tuned to a risk level.', 'A signal is a reason to look, not a cause.'],
   },
   {
     id: 'FC-091', name: 'CUSUM and EWMA — small, persistent drifts', discipline: 'spc', sub: 'signals',
@@ -81,7 +92,9 @@ export const SPC: Entry[] = [
     food: 'Give-away creeping on a filler; seal strength falling as jaws wear.',
     depends: ['FC-086', 'FC-156'],
     complexity: 'M', value: 'medium', valueWhy: 'Give-away is money lost a gram at a time.',
-    status: 'to-build', form: 'mode', partOf: 'FC-086', methods: ['spc.cusum-ewma'], scenarios: ['quality', 'packing'],
+    status: 'available', form: 'mode', partOf: 'FC-086', methods: ['spc.cusum-ewma'], scenarios: ['quality', 'packing'],
+    built: CHART_BUILT, spec: CHART_SPEC,
+    limits: ['Tabular CUSUM with k = 0.5σ, h = 5σ and EWMA with λ = 0.2, L = 2.962 — fixed, not tunable; both need σ from a steady run.', 'Reports when the drift began as the last time the sum was at zero — an estimate, not a proof.'],
   },
   {
     id: 'FC-092', name: 'Pre-control for set-up approval', discipline: 'spc', sub: 'signals',
@@ -93,7 +106,9 @@ export const SPC: Entry[] = [
     food: 'First-off weights after a changeover.',
     depends: ['FC-071', 'FC-094'],
     complexity: 'S', value: 'medium', valueWhy: 'A floor rule for start-ups — safe only on a capable process.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['spc.pre-control'], scenarios: ['changeover', 'quality'],
+    status: 'available', form: 'mode', partOf: 'FC-086', methods: ['spc.pre-control'], scenarios: ['changeover', 'quality'],
+    built: CHART_BUILT, spec: CHART_SPEC,
+    limits: ['Safe only on a process already capable (Cpk 1.33 or more) — said on the page; five greens in a row to approve.', 'First-off release as a record (line clearance, who signed) is FC-071, not built.'],
   },
   {
     id: 'FC-093', name: 'Short-run charts — many products, few readings each', discipline: 'spc', sub: 'charts',
@@ -105,7 +120,9 @@ export const SPC: Entry[] = [
     food: 'A packing line running many pack sizes a day.',
     depends: ['FC-086'],
     complexity: 'M', value: 'medium', valueWhy: 'Most food lines run many products.',
-    status: 'to-build', form: 'mode', partOf: 'FC-086', methods: ['spc.short-run'], scenarios: ['quality', 'packing'],
+    status: 'available', form: 'mode', partOf: 'FC-086', methods: ['spc.short-run'], scenarios: ['quality', 'packing'],
+    built: CHART_BUILT, spec: CHART_SPEC,
+    limits: ['Deviation from nominal when the products spread alike (Levene), standardised (Z) otherwise; the choice is said on the page. At least two readings a product for Z.', 'Needs each reading’s product and its nominal.'],
   },
   {
     id: 'FC-094', name: 'Capability of measured data — between two limits', discipline: 'spc', sub: 'capability',
@@ -215,7 +232,9 @@ export const SPC: Entry[] = [
     food: 'Weight capability across a bagging line’s pack sizes.',
     depends: ['FC-094', 'FC-098'],
     complexity: 'M', value: 'medium', valueWhy: 'Where to aim the next study.',
-    status: 'to-build', form: 'report', methods: ['spc.capability-measured'], scenarios: ['quality'],
+    status: 'available', form: 'report', methods: ['spc.capability-measured'], scenarios: ['quality'],
+    built: { where: ['/capability'], code: ['src/tools/capability/overTime.ts', 'src/screens/StudiesScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/overTime.test.ts'], acceptance: ['control-chart.mjs'] }, spec: CHART_SPEC,
+    limits: ['Ppk by month for each product or machine, from two capability studies or more; a month with two studies shows the later. Rate and reject studies are not in the table.'],
   },
   {
     id: 'FC-102', name: 'Defects per million and the sigma level', discipline: 'spc', sub: 'attribute',
@@ -416,8 +435,8 @@ export const SPC: Entry[] = [
     depends: ['FC-105', 'FC-201'],
     complexity: 'S', value: 'medium', valueWhy: 'Progress shown on the team’s own measure.',
     status: 'partial', form: 'report', methods: ['stats.time-series-trend'], scenarios: ['daily', 'project'],
-    built: { where: [], code: ['src/lib/measures.ts'], tests: ['src/lib/__tests__/measures.test.ts'], acceptance: [] },
-    limits: ['Not driven by an acceptance script.'],
+    built: { where: [], code: ['src/lib/measures.ts', 'src/lib/measureProof.ts', 'src/screens/NumbersPanel.tsx'], tests: ['src/lib/__tests__/measures.test.ts', 'src/lib/__tests__/numberTrend.test.ts'], acceptance: ['weekly-number.mjs'] },
+    limits: ['The trend (Sen slope, Mann–Kendall, runs about the median) reads on the screen from 8 weeks; it is not yet on the client report’s paper.'],
   },
   {
     id: 'FC-118', name: 'Gauge R&R — repeatability and reproducibility', discipline: 'msa', sub: 'gauge',

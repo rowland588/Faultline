@@ -42,6 +42,7 @@ import type { Snag } from '../snag/types';
 import type { BoardSheetDrawn, FilePages, PaceReportData } from '../lib/paceReportPdf';
 import type { Shot } from '../lib/testReport';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/measureProof';
+import { TrendLine } from './NumbersPanel';
 import { paretoView, moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
 import { capacityPlan, capacityReport, type CapacityReport } from '../tools/linebalance/capacity';
 import { useMeasures } from '../lib/useMeasures';
@@ -1100,8 +1101,8 @@ function PaceExecReportA3() {
               {reportLines.map(l => {
                 const ser = seriesByLine.get(l.id);
                 return ser
-                  ? <MeasureChart key={l.key} series={ser}
-                      who={{ name: l.name, owner: l.owner, sponsor: l.sponsor, variant: l.variant }} />
+                  ? <div key={l.key} className="exec-chart-one"><MeasureChart series={ser}
+                      who={{ name: l.name, owner: l.owner, sponsor: l.sponsor, variant: l.variant }} /><TrendLine series={ser} /></div>
                   : null;
               })}
             </div>

@@ -121,6 +121,10 @@ export interface Seeded {
    *  wanted, 3 min stood each) and its failures (three, 12 min stood each,
    *  no target); two remarks. */
   reliabilityId: string;
+  /** A CONTROL CHART on Line 7's wrapper (W2): forty fill weights against a 400 g target, the limits set
+   *  from the first twenty, a +0.8 g shift from reading 21 — two points beyond and a run above the centre,
+   *  the CUSUM saying since when; a note on the new reel. */
+  chartId: string;
   /** The paced job's Line 7 — its own workspace, with shifts, a cost model
    *  and stops timed through the last two days' shifts (tool 7). */
   line7WsId: string;
@@ -1037,6 +1041,20 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       }, uses: [], startedAt: y0, createdAt: t, updatedAt: t });
   }
 
+  /* A CONTROL CHART (W2, knowledge/specs/FC-086-charts.md): the CUSUM case's forty readings — steady for
+     twenty, then 1 g higher — the limits set from the first twenty and kept. */
+  const chartId = uid();
+  {
+    const M = 60_000, w0 = t - 14 * 3_600_000;
+    const W = [400.0, 400.2, 399.8, 399.3, 399.6, 399.2, 400.0, 401.1, 399.6, 399.5, 400.4, 400.3, 400.1, 399.3, 400.0, 400.6, 398.9, 399.6, 398.5, 399.0, 399.5, 400.8, 400.0, 401.2, 401.1, 400.9, 399.0, 400.6, 401.0, 401.1, 399.8, 400.6, 400.2, 400.4, 401.8, 400.4, 401.0, 401.7, 400.5, 400.9];
+    const st = W.slice(0, 20), mc = st.reduce((a, b) => a + b, 0) / 20, mr = st.slice(1).reduce((a, v, i) => a + Math.abs(v - st[i]), 0) / 19;
+    await putStudy({ id: chartId, tool: 'chart', name: 'Fill weight 400 g', machine: 'Ishida checkweigher', workspaceId: ws.id,
+      agreed: { chart: { kind: 'xmr', name: 'Fill weight', unit: 'g', target: 400, lower: 396, upper: 404, cusum: { shift: 0.8 }, ewma: true,
+        frozen: { from: 1, to: 20, centre: mc, spread: mr, sigma: mr / 1.128, n: 20, at: w0 + 6 * 3_600_000, who: 'Sam Patel' } } },
+      facts: { readings: W.map((value, i) => ({ id: uid(), value, at: w0 + i * 20 * M, who: 'Sam Patel', ...(i === 20 ? { note: 'New reel' } : {}) })) },
+      uses: [], startedAt: w0, createdAt: t, updatedAt: t });
+  }
+
   /* THE MAP INSIDE A CHANGE (B3): a fix raised from the QA wait on the line's
      map — its words the step's figures — and the line walked again as its
      proof, the wait typed shorter, the rest still carried from before. The
@@ -1182,7 +1200,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId,
     line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }

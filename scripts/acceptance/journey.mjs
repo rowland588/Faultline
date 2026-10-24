@@ -142,8 +142,10 @@ ok(flat(await page.locator('.jn-day.is-today h2').innerText()).endsWith('today')
 }
 
 /* ---- 3 the tools we will use ---- */
+/* every tool the catalogue registers is offered — counted from it, so a tool built later never breaks the count */
+const NTOOLS = await page.evaluate(async () => (await import('/src/catalogue/registry.ts')).APP_TOOLS.length);
 const toolRow = label => page.locator('.jn-tool', { has: page.locator('.jn-tool-tick b', { hasText: new RegExp(`^${label}$`) }) });
-ok((await page.locator('.jn-tool').count()) === 11 && (await page.locator('.jn-tool.is-on').count()) === 0, '3 every tool offered, none ticked yet');
+ok((await page.locator('.jn-tool').count()) === NTOOLS && (await page.locator('.jn-tool.is-on').count()) === 0, `3 every tool offered (${NTOOLS}), none ticked yet`);
 const usedRow = Object.entries(t.studiesBy).find(([, n]) => n > 0);
 const usedLabel = { capability: 'Capability', balance: 'Line balance', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count', reliability: 'Reliability', video: 'Video study' }[usedRow?.[0]];
 ok(usedRow && flat(await toolRow(usedLabel).locator('.jn-tool-used').innerText()) === `${usedRow[1]} ${usedRow[1] === 1 ? 'record' : 'records'} so far`, `3 a tool used already says its records: ${usedLabel} — ${usedRow?.[1]}`);
@@ -157,7 +159,7 @@ for (const [label, words, when] of picks) {
 }
 t = await truth('thisAndNext');
 ok(same(t.plans, [['linebalance', 'Line capacity', picks[1][1], t.range.to], ['changeover', 'SMED', picks[0][1], day5], ['losses', 'Loss count', picks[2][1], '']]), '3 three tools ticked, each a plan with what for and when, in the catalogue’s order (Line capacity before SMED)', JSON.stringify(t.plans));
-ok((await page.locator('.jn-tool.is-on').count()) === 3 && flat(await page.locator('.jn-tools .qsl-gh .sub').innerText()) === '3 of 11 ticked', '3 the list says 3 of 11 ticked');
+ok((await page.locator('.jn-tool.is-on').count()) === 3 && flat(await page.locator('.jn-tools .qsl-gh .sub').innerText()) === `3 of ${NTOOLS} ticked`, `3 the list says 3 of ${NTOOLS} ticked`);
 s = await shown();
 const smedDay = s.lines.find(d => d.date === day5);
 ok(smedDay?.texts.includes(`SMED: ${picks[0][1]}.`) && sameDays(t, s), `3 the plan on the journey’s day, in the tool’s word: "SMED: ${picks[0][1]}."`, JSON.stringify(smedDay?.texts));
@@ -246,7 +248,7 @@ await go(`#/project/${PID}/report`);
 
 /* ---- the 6M project has the tab too ---- */
 await go(`#/project/${sd.pacedProjectId}/journey`);
-ok((await page.locator('.jn-day').count()) > 0 && (await page.locator('.jn-tool').count()) === 11, `a 6M project’s journey: ${await page.locator('.jn-day').count()} days with something`);
+ok((await page.locator('.jn-day').count()) > 0 && (await page.locator('.jn-tool').count()) === NTOOLS, `a 6M project’s journey: ${await page.locator('.jn-day').count()} days with something`);
 {
   const text = await pdfText(() => paper(page, /^Journey report — /));
   ok(/THE JOURNEY/.test(text) && text.includes('still to do'), '9 a 6M project’s journey report', text.slice(0, 160));
@@ -277,7 +279,7 @@ ok(wide, '8 the phone: nothing off the side', await p2.evaluate(() => document.d
 const onPhone = await p2.locator('.jn-tool:visible').count();
 ok(onPhone === 3 && await p2.locator('.jn-every').isVisible(), `8 the tick list folded to the ticked (${onPhone}) with Every tool under it`);
 await p2.locator('.jn-every').click(); await p2.waitForTimeout(300);
-ok((await p2.locator('.jn-tool:visible').count()) === 11, '8 Every tool unfolds them');
+ok((await p2.locator('.jn-tool:visible').count()) === NTOOLS, '8 Every tool unfolds them');
 ok((await p2.locator('.jn-day').count()) > 3 && (await p2.locator('.jn-tiles .ln-tile').count()) === 4, '8 the days and the four tiles on the phone');
 await ctx2.close();
 

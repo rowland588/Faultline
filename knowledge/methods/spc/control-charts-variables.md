@@ -73,7 +73,12 @@ concentration, slice thickness.
 - [textbook] Shewhart, W.A. (1931), *Economic Control of Quality of Manufactured Product*, Van Nostrand.
 
 ## In Faultline
-Not built as a chart. The capability page draws the readings in order
-(`src/tools/capability/StudyScreen.tsx` Dots) with the specification limits; the
-pilot adds the individuals chart's limits as the steadiness check
-(`knowledge/specs/FC-094-capability.md`). A chart of its own is FC-086.
+Built (W2, 24 October; FC-086, FC-087; `knowledge/specs/FC-086-charts.md`). The
+Control chart is a study on a line or project (`src/tools/chart`,
+`src/lib/ie/charts.ts`): the individuals and moving range chart with limits
+x̄ ± 2.66·MR̄ and 3.267·MR̄, set from a steady run of 20 readings or more and
+frozen with the day and who set them, set again as a new run, never edited;
+subgroups of 2 to 10 on X̄-R and above 10 on X̄-S with the textbook constants,
+checked against independent cases (`scripts/knowledge/cases-w2.py`). Readings
+are assumed independent — not tested. Proved by
+`scripts/acceptance/control-chart.mjs`.

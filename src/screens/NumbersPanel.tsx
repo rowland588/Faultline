@@ -17,6 +17,7 @@ import { nav } from '../state/useRoute';
 import { readNumber } from '../lib/format';
 import { MeasureChart } from '../charts/MeasureChart';
 import { useMeasures, type MeasuresState } from '../lib/useMeasures';
+import { numberTrend } from '../lib/measureProof';
 import { lineSeries, perMinuteMeasure, seriesFor, say, todayISO, type Measure, type Reading } from '../lib/measures';
 import { useLineCapacity } from '../lib/useLineCapacity';
 import { countedRate } from '../tools/losses/losses';
@@ -189,6 +190,12 @@ function NoMeasures({ projectId, agree }: { projectId: string; agree: boolean })
 
 /* ================================ one line ================================ */
 
+/** A number's trend in words, from 8 readings (lib/measureProof numberTrend; FC-117, FC-201). */
+export function TrendLine({ series }: { series: NonNullable<ReturnType<typeof lineSeries>> }) {
+  const t = numberTrend(series.points, series.measure.direction, series.measure.unit);
+  return t ? <p className={'nm-trend is-' + t.tone} data-trend>{t.text}</p> : null;
+}
+
 export function LineNumbers({ projectId, line }: { projectId: string; line: PaceLineRow }) {
   const state = useMeasures(projectId);
   // A client reads the numbers; the team records them; deleting one is the owner's.
@@ -205,6 +212,7 @@ export function LineNumbers({ projectId, line }: { projectId: string; line: Pace
         return (
           <div key={m.id} className="nm-measure">
             {series && <MeasureChart series={series} who={{ name: line.name, owner: line.owner, sponsor: line.sponsor, variant: line.variant }} />}
+            {series && <TrendLine series={series} />}
             {can.edit && <AddFold label="Record a reading" start={rows.length === 0}>
               <AddReading measure={m}
                 onAdd={(at, v, note) => state.addReading(line.id, m.id, at, v, note)} />

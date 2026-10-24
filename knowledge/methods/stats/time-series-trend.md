@@ -100,8 +100,10 @@ its weeks (the proof that a change held).
 - [practice] Perla, R.J., Provost, L.P. and Murray, S.K. (2011), "The run chart: a simple analytical tool for learning from variation", *BMJ Quality & Safety* 20(1), 46–51 — the run chart rules as taught in improvement work (from knowledge).
 
 ## In Faultline
-Partly built: a project's measures week by week and its before → after
-proof (`src/lib/measures.ts`, `src/lib/measureProof.ts`; FC-117, no
-acceptance script yet). The lean page's trend tile is this chart in
-miniature. The runs rule, the slope with its p and Mann–Kendall are not
-yet said on screen.
+Built on the screen (W2, 24 October; FC-117, FC-201 stay partial). A project's
+measures week by week and its before → after proof (`src/lib/measures.ts`,
+`src/lib/measureProof.ts`); from 8 weeks each number says its trend in one
+sentence — the Sen slope a week, Mann–Kendall's p, and the runs about the
+median (`numberTrend`; validated against SciPy, `cases-w2.py`) — on the line
+page's Numbers panel. The client report's paper does not carry it yet. Proved
+by `scripts/acceptance/weekly-number.mjs`.

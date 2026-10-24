@@ -29,7 +29,7 @@ import type { TalkTurn } from '../tools/talk/talk';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
-export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk', 'reliability'] as const;
+export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk', 'reliability', 'chart'] as const;
 export type StudyTool = typeof STUDY_TOOLS[number];
 
 export const isStudyTool = (v: unknown): v is StudyTool => (STUDY_TOOLS as readonly unknown[]).includes(v);
@@ -117,6 +117,11 @@ export interface StudyReading {
   kinds?: Record<string, number>;
   /** a weigher's reading (FC-158): the head it came from, 1-based. */
   head?: number;
+  /** a control chart's reading (W2): its product and that product's nominal on a short-run chart; its
+   *  subgroup on an X̄ chart (1-based); what was done at it goes in `note` — "Adjusted", "New reel" */
+  product?: string;
+  nominal?: number;
+  group?: number;
   /** A failed item: what became of it (Rowland, 24 October — reworked, recovered by hand, or pure
    *  waste). Absent on every reading before: waste. */
   fate?: 'waste' | 'rework' | 'recovered';
@@ -467,10 +472,45 @@ export interface RunTiming { id: string; at: number; by?: string; packs: number;
  *  adds one and changes none. */
 export interface StudyAgreed {
   readings?: AgreedReadings;
+  /** W2 — a control chart's agreement (knowledge/specs/FC-086-charts.md). */
+  chart?: AgreedChart;
   balance?: AgreedBalance;
   map?: AgreedMap;
   sampling?: AgreedSampling;
   reliability?: AgreedReliability;
+}
+
+/** A CONTROL CHART (W2, knowledge/specs/FC-086-charts.md — 24 October): readings in order against limits
+ *  set from a steady period and frozen, the signals said in words, the CUSUM saying since when. One
+ *  record, three kinds: the individuals and moving range chart (FC-086), subgroups as X̄-R or X̄-S
+ *  (FC-087), pre-control for a set-up (FC-092); the modes as fields — the CUSUM and EWMA (FC-091),
+ *  short-run by product (FC-093). The readings are `facts.readings`, each a `StudyReading` with its
+ *  value, and for a short-run chart its product and nominal. */
+export interface AgreedChart {
+  kind: 'xmr' | 'xbar' | 'precontrol';
+  /** what is measured — "Fill weight", "Seal temperature" */
+  name: string;
+  unit?: string;
+  /** the target the CUSUM and EWMA judge against (the nominal); absent: the frozen centre */
+  target?: number;
+  /** the specification limits — drawn faint, never the chart's limits; both needed for pre-control */
+  lower?: number;
+  upper?: number;
+  /** xbar: the readings in each subgroup (2–25) */
+  subgroup?: number;
+  /** the run rules on — Western Electric's four by default (lib/ie/charts WESTERN_ELECTRIC) */
+  rules?: ('beyond' | 'run' | 'trend' | 'alternate' | '2of3' | '4of5' | 'inside' | 'outside')[];
+  /** the limits set from a steady period and kept: the readings it spans (1-based, inclusive), the centre,
+   *  the mean moving range (or the mean range / s of the subgroups), σ, how many it was set from, when and who */
+  frozen?: { from: number; to: number; centre: number; spread: number; sigma: number; n: number; at?: number; who?: string };
+  /** the limits set before, kept for the paper (re-set only by a tap that says so) */
+  frozenBefore?: { from: number; to: number; centre: number; spread: number; sigma: number; n: number; at?: number; who?: string }[];
+  /** CUSUM: the shift worth catching, in the unit (K = half of it, H = 5σ); a head start after an adjustment */
+  cusum?: { shift: number; headStart?: boolean };
+  /** the EWMA drawn as the running level (λ 0.2, L 2.962) */
+  ewma?: boolean;
+  /** short-run: each reading carries its product and nominal — deviation from nominal, Z-MR when the spreads differ */
+  products?: boolean;
 }
 
 /** ONE THING COUNTED on a reliability study — a stop, a failure, a pick, or

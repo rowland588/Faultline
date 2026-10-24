@@ -132,6 +132,11 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'reliability') {
     return segs[1] ? { name: 'study', view: 'reliability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'reliability', query };
   }
+  /* /chart is every control chart; /chart/:id one of them (knowledge/specs/FC-086-charts.md, W2 —
+     readings in order against limits set from a steady period, the signals in words). */
+  if (segs[0] === 'chart') {
+    return segs[1] ? { name: 'study', view: 'chart', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'chart', query };
+  }
   if (segs[0] === 'capability') {
     return segs[1] ? { name: 'study', view: 'capability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'capability', query };
   }

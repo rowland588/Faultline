@@ -14326,3 +14326,41 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* W1 part 4 — a weigher's reading carries its head: one small box above the pad */
 .ie-head-box { max-width: 220px; }
 .ie-head-box .text-input { max-width: 90px; }
+
+/* W2 — the control chart (knowledge/specs/FC-086-charts.md): signals, the limits line, the spread and CUSUM panels, pre-control's zones */
+.ie-signals { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ie-signal { font-size: var(--t-detail); color: var(--ink-2); }
+.ie-signal.is-r b { color: var(--st-r); }
+.ie-signal.is-a b { color: var(--st-a); }
+.ie-limits-act { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.ie-ch-pic { display: flex; flex-direction: column; gap: 8px; }
+.ie-ch .ie-ucl, .ie-ch-spread .ie-ucl { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.ie-ch .ie-ucl.is-prov { stroke: var(--muted); }
+.ie-ch .ie-bound { stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 2 4; }
+.ie-ch .ie-ewma { stroke: var(--brand); stroke-width: 2; opacity: 0.8; }
+.ie-ch .ie-dot.is-short { fill: var(--muted); }
+.ie-ch .z-green { fill: var(--st-g); opacity: 0.16; } .ie-ch .z-amber { fill: var(--st-a); opacity: 0.16; } .ie-ch .z-red { fill: var(--st-r); opacity: 0.16; }
+.ie-ch .ie-dot.z-green { fill: var(--st-g); opacity: 1; } .ie-ch .ie-dot.z-amber { fill: var(--st-a); opacity: 1; } .ie-ch .ie-dot.z-red { fill: var(--st-r); opacity: 1; }
+.ie-ch-spread .ie-bar { fill: var(--brand); opacity: 0.75; } .ie-ch-spread .ie-bar.is-out { fill: var(--st-r); opacity: 1; }
+.ie-ch-cusum .ie-cum { stroke: var(--brand); stroke-width: 2; } .ie-ch-cusum .ie-cum.is-low { stroke: var(--ink-2); stroke-dasharray: 4 3; }
+.ie-ch-cusum .ie-lim { stroke: var(--st-r); stroke-width: 1.5; }
+.ie-rules { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px; }
+.ie-rules legend { padding: 0 4px; }
+.ie-rule { display: flex; align-items: center; gap: 8px; font-size: var(--t-body); }
+.ie-notes { align-items: center; margin-top: 6px; }
+.ie-note-in { max-width: 180px; }
+.ie-products { margin-bottom: 6px; }
+.ie-readings > summary { cursor: pointer; font-weight: 600; margin: 10px 0 6px; }
+.ie-rows li.is-flag b { color: var(--st-a); }
+
+/* W2 — capability across products and over time (FC-101): a row each product, a column each month */
+.ot { margin: 14px 0 6px; }
+.ot-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.ot-t { border-collapse: collapse; width: 100%; font-size: var(--t-detail); }
+.ot-t th, .ot-t td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ot-t thead th { font-size: var(--t-label); color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.ot-t tbody tr:last-child th, .ot-t tbody tr:last-child td { border-bottom: 0; }
+.ot-t td.is-r b, .ot-t td.is-r button { color: var(--st-r); } .ot-t td.is-a b, .ot-t td.is-a button { color: var(--st-a); } .ot-t td.is-none { color: var(--muted); }
+.nm-trend { margin: 4px 0 10px; font-size: var(--t-detail); color: var(--ink-2); }
+.nm-trend.is-r { color: var(--st-r); } .nm-trend.is-a { color: var(--st-a); }
+.exec-chart-one { min-width: 0; }
