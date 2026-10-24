@@ -7,11 +7,11 @@
  * record, or Line Talk's assessment), in words so it survives a black-and-
  * white print — and its photos whole, each with its label and caption. */
 import type { jsPDF } from 'jspdf';
-import { chooseDensity, pour, type Block, type Frame } from './report/flow';
-import { SIZE, box, font, gap, heading, rows, text, wrap } from './report/blocks';
-import { leanBand } from './report/lean';
-import { bandPage } from './lean';
-import { INK, INK2, LINE, MUTED } from './reportKit';
+import { chooseDensity, pour, type Block, type Frame } from '../../lib/report/flow';
+import { SIZE, box, font, gap, heading, rows, text, wrap } from '../../lib/report/blocks';
+import { leanBand } from '../../lib/report/lean';
+import { bandPage } from '../../lib/lean';
+import { INK, INK2, LINE, MUTED } from '../../lib/reportKit';
 import { BASIS_WORD, DOC_KIND_WORD, type TalkBasis, type TalkDoc } from './talkAssist';
 import type { Picture } from './talkPictures';
 

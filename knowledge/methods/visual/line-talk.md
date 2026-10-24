@@ -45,4 +45,4 @@ Shift handovers, OEM punch lists, one-point lessons.
 - [decision] Rowland, 20 October: "the only AI is the voice and the camera video system" — docs/DIRECTION.md.
 
 ## In Faultline
-`src/screens/TalkScreen.tsx` (FC-202).
+`src/tools/talk/TalkScreen.tsx` (FC-202).

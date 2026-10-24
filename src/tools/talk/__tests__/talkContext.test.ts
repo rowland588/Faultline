@@ -3,7 +3,7 @@
  * said in a line. */
 import { describe, expect, it } from 'vitest';
 import { contextSaid, talkContext, type TalkContextIn } from '../talkContext';
-import type { SnagRow } from '../snagsReport';
+import type { SnagRow } from '../../../lib/snagsReport';
 
 const row = (n: number, extra: Partial<SnagRow> = {}): SnagRow => ({
   id: `s${n}`, workspaceId: 'w', line: 'Line 7', what: `Problem ${n}`, from: '', status: 'open', priority: 'high',

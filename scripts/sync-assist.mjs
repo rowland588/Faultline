@@ -27,6 +27,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   for (const f of VIDEO_SHARED) writeFileSync(join(vout, `${f}.ts`), forDeno(readFileSync(join(root, 'src/lib/video', `${f}.ts`), 'utf8'), 'src/lib/video'));
   const tout = join(root, 'supabase/functions/assist/talk');
   mkdirSync(tout, { recursive: true });
-  for (const f of TALK_SHARED) writeFileSync(join(tout, `${f}.ts`), forDeno(readFileSync(join(root, 'src/lib', `${f}.ts`), 'utf8'), 'src/lib'));
+  for (const f of TALK_SHARED) writeFileSync(join(tout, `${f}.ts`), forDeno(readFileSync(join(root, 'src/tools/talk', `${f}.ts`), 'utf8'), 'src/tools/talk'));
   console.log(`copied ${VIDEO_SHARED.length} files to supabase/functions/assist/video and ${TALK_SHARED.length} to supabase/functions/assist/talk`);
 }

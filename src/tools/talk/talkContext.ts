@@ -17,7 +17,7 @@
  * size, and says in a line what went in.
  *
  * Pure: the same on every screen and in every test. */
-import { PRIORITY_WORD, type SnagRow } from './snagsReport';
+import { PRIORITY_WORD, type SnagRow } from '../../lib/snagsReport';
 
 export interface TalkContextProgram { what: string; machine: string; word: string; test?: string; late: boolean; job?: string }
 export interface TalkContextJob { name: string; method: string; verdict?: string }

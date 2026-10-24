@@ -17,8 +17,8 @@
  * not write down then says why, the words typed over it.
  *
  * Pure: read the same on every screen and in every test. */
-import { niceDay } from './weeks';
-import type { StudyFacts } from './study';
+import { niceDay } from '../../lib/weeks';
+import type { StudyFacts } from '../../lib/study';
 import { docAsText, type TalkAskTurn, type TalkDoc } from './talkAssist';
 
 /** A file a turn keeps — on this device (db putBlob), and in the cloud while

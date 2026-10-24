@@ -1,4 +1,4 @@
-// COPIED FROM src/lib by scripts/sync-assist.mjs — edit the source, then run it.
+// COPIED FROM src/tools/talk by scripts/sync-assist.mjs — edit the source, then run it.
 /* LINE TALK'S ASSISTANT — what it is told, the shape of its answer, the
  * conversation in the model's terms, and what is checked before an answer is
  * kept (docs/LINE-TALK.md, slice 2: ask it).

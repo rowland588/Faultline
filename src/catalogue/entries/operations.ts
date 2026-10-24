@@ -438,7 +438,7 @@ export const OPERATIONS: Entry[] = [
     complexity: 'XL', value: 'high', valueWhy: 'The only AI tool, by decision.',
     status: 'available', form: 'tool', kind: 'document',
     app: { key: 'talk', label: 'Line Talk', says: 'Talk or type on the line — your words come up as you speak — add photos, ask questions and ask for reports', onLine: 'talk or type on the line, as in a chat — it answers and writes the reports', reads: 'talk', icon: 'mic', order: 11 }, methods: ['visual.line-talk'], scenarios: ['daily'], words: ['voice', 'talk', 'report', 'AI'],
-    built: { where: ['/talk'], code: ['src/screens/TalkScreen.tsx', 'src/lib/talk.ts'], tests: ['src/lib/__tests__/talk.test.ts', 'src/lib/__tests__/talkAssist.test.ts'], acceptance: ['line-talk.mjs', 'line-talk-assistant.mjs'] },
+    built: { where: ['/talk'], code: ['src/tools/talk/TalkScreen.tsx', 'src/tools/talk/talk.ts'], tests: ['src/tools/talk/__tests__/talk.test.ts', 'src/tools/talk/__tests__/talkAssist.test.ts'], acceptance: ['line-talk.mjs', 'line-talk-assistant.mjs'] },
     limits: ['Never works out a figure, saves a record or passes a gate — by design.', 'Hearing in floor noise not yet tested on a real phone.'],
   },
   {
@@ -715,7 +715,7 @@ export const OPERATIONS: Entry[] = [
     depends: ['FC-202', 'FC-223'],
     complexity: 'S', value: 'medium', valueWhy: 'Line Talk writes one on request.',
     status: 'partial', form: 'report', methods: ['people.one-point-lesson'], scenarios: ['people', 'daily'], words: ['OPL'],
-    built: { where: ['/talk'], code: ['src/screens/TalkScreen.tsx'], tests: [], acceptance: ['line-talk-assistant.mjs'] },
+    built: { where: ['/talk'], code: ['src/tools/talk/TalkScreen.tsx'], tests: [], acceptance: ['line-talk-assistant.mjs'] },
     limits: ['Written by Line Talk on request; there is no one-point lesson of its own with a sign-off.'],
   },
   {

@@ -12,7 +12,7 @@ import type { Standard, StandardMark } from '../lib/standard';
 import { factsOf, listById, type StudyUse, type ToolStudy } from '../lib/study';
 import { footageKeys, forTheCloud } from '../lib/video/footage';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
-import { talkMediaKeys } from '../lib/talk';
+import { talkMediaKeys } from '../tools/talk/talk';
 
 type Row = Record<string, unknown>;
 

@@ -54,7 +54,7 @@ import { offerUndo } from '../ui/Undo';
 import type { LineMachine } from '../lib/lineRecords';
 import type { Program } from '../lib/programs';
 import type { Snag, SnagAsset } from '../snag/types';
-import { talkSaid, turnsOf } from '../lib/talk';
+import { talkSaid, turnsOf } from '../tools/talk/talk';
 
 const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
 /* PRIORITY, RAG (Rowland, 12 October) — always with its word. */

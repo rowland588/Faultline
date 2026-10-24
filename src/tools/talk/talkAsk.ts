@@ -12,7 +12,7 @@
  * events) and the caller shows it growing; the finished answer comes last
  * and is read exactly as a whole one is. A gateway that answers whole is
  * read as before. */
-import { supabase } from '../cloud/client';
+import { supabase } from '../../cloud/client';
 import { checkTalkAnswer, type TalkAnswer, type TalkAsk } from './talkAssist';
 
 export type Asked =

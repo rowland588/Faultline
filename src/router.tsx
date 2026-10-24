@@ -62,8 +62,8 @@ const LossesScreen = lazy(() => import('./screens/LossesScreen').then(m => ({ de
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
 const VideosScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideosScreen })));
 const VideoStudyScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideoStudyScreen })));
-const TalksScreen = lazy(() => import('./screens/TalkScreen').then(m => ({ default: m.TalksScreen })));
-const TalkScreen = lazy(() => import('./screens/TalkScreen').then(m => ({ default: m.TalkScreen })));
+const TalksScreen = lazy(() => import('./tools/talk/TalkScreen').then(m => ({ default: m.TalksScreen })));
+const TalkScreen = lazy(() => import('./tools/talk/TalkScreen').then(m => ({ default: m.TalkScreen })));
 const VideoCheckScreen = lazy(() => import('./screens/VideoCheckScreen').then(m => ({ default: m.VideoCheckScreen })));
 import { RequireModel } from './ui/RequireModel';
 import { RecordDrawerHost } from './ui/RecordDrawer';

@@ -25,7 +25,7 @@
 import type { VideoEvent, VideoSource } from './video/record';
 import type { FootageGone } from './video/footage';
 import type { ID } from '../types';
-import type { TalkTurn } from './talk';
+import type { TalkTurn } from '../tools/talk/talk';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */

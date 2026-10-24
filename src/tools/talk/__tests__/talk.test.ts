@@ -3,7 +3,7 @@
  * line, and the files it names for the cloud. */
 import { describe, expect, it } from 'vitest';
 import { askTurnsOf, notWritten, pendingReply, photoLabels, photosToSend, talkMediaKeys, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from '../talk';
-import { factsOf } from '../study';
+import { factsOf } from '../../../lib/study';
 
 const said = (id: string, at: number, heard?: string, extra: Partial<TalkTurn> = {}): TalkTurn =>
   ({ id, at, kind: 'said', media: { blobKey: `b-${id}`, mime: 'audio/webm', capturedAt: at, durationS: 42 }, ...(heard ? { heard } : { hearing: 'waiting' }), ...extra });

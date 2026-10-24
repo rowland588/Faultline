@@ -32,11 +32,11 @@ describe('the gateway’s copies', () => {
       const back = copy.split('\n').slice(1).join('\n').replace(/from '\.\/([A-Za-z]+)\.ts'/g, "from './$1'");
       expect(back, `video/${f}.ts differs from its copy — run node scripts/sync-assist.mjs`).toBe(src);
     }
-    /* Line Talk's assistant (lib/talkAssist): the same rules on both sides */
-    const src = readFileSync(join(root, 'src/lib', 'talkAssist.ts'), 'utf8');
+    /* Line Talk's assistant (tools/talk/talkAssist): the same rules on both sides */
+    const src = readFileSync(join(root, 'src/tools/talk', 'talkAssist.ts'), 'utf8');
     const copy = readFileSync(join(root, 'supabase/functions/assist/talk', 'talkAssist.ts'), 'utf8');
     expect(copy.split('\n').slice(1).join('\n'), 'talkAssist.ts differs from its copy — run node scripts/sync-assist.mjs').toBe(src);
-    expect(copy.split('\n')[0]).toBe('// COPIED FROM src/lib by scripts/sync-assist.mjs — edit the source, then run it.');
+    expect(copy.split('\n')[0]).toBe('// COPIED FROM src/tools/talk by scripts/sync-assist.mjs — edit the source, then run it.');
   });
 
   it('a task’s refusal is said in its own words', () => {

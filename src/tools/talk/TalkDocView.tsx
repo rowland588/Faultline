@@ -14,12 +14,12 @@
  * the answer's card in the talk, here, and on paper (lib/talkDocPdf through
  * lib/saveTalkDoc, the report engine and the house look). */
 import { useEffect, useRef, useState } from 'react';
-import { useBlobUrl } from '../lib/useBlobUrl';
-import { BASIS_WORD, DOC_KIND_WORD, figuresIn, type TalkBasis, type TalkDoc, type TalkDocKind } from '../lib/talkAssist';
-import type { TalkTurn } from '../lib/talk';
-import type { ToolStudy } from '../lib/study';
-import type { can as canAt } from '../lib/access';
-import { offerUndo } from '../ui/Undo';
+import { useBlobUrl } from '../../lib/useBlobUrl';
+import { BASIS_WORD, DOC_KIND_WORD, figuresIn, type TalkBasis, type TalkDoc, type TalkDocKind } from './talkAssist';
+import type { TalkTurn } from './talk';
+import type { ToolStudy } from '../../lib/study';
+import type { can as canAt } from '../../lib/access';
+import { offerUndo } from '../../ui/Undo';
 
 const KINDS = Object.keys(DOC_KIND_WORD) as TalkDocKind[];
 const BASES = Object.keys(BASIS_WORD) as TalkBasis[];
@@ -62,7 +62,7 @@ export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onBa
     setBusy(true);
     try {
       await flush();
-      const { saveTalkDoc } = await import('../lib/saveTalkDoc');
+      const { saveTalkDoc } = await import('../../lib/saveTalkDoc');
       await saveTalkDoc(d, { talk: s.name, ...(lineName ? { line: lineName } : {}), ...(me ? { by: me } : {}), photos });
     } catch (e) {
       console.error('talk document pdf failed', e);

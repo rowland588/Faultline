@@ -3,7 +3,7 @@
  * and in the cloud while the talk names it — supabase/LINE_TALK.sql); a copy
  * is drawn smaller as the reports draw their thumbnails (lib/buildSnagsReport
  * small), and the original is never touched. */
-import { getBlob } from '../db';
+import { getBlob } from '../../db';
 
 export interface Picture { dataUrl: string; w: number; h: number }
 
