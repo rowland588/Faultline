@@ -31,7 +31,7 @@ Line Talk's answers are **Claude's, through the `assist` gateway only** (task
 `talk`, the key server-side, an allowance a person a day, the core shared with
 the app by `scripts/sync-assist.mjs` — Rowland, 20 October: "Claude only ... Do
 not use Gemini or introduce another AI provider"); its hearing is the phone's
-own speech recognition (`lib/hearing` — "Use the phone's own speech
+own speech recognition (`tools/talk/hearing` — "Use the phone's own speech
 recognition instead of Gemini", the same evening), live and free, writing
 into the message box as a chat's dictation does, then Send — nothing recorded
 (21 October: "I see my words come up on the interface. I simply press send";
@@ -51,7 +51,7 @@ stability in the app ... make a design that ensures it all works."* After
 J3 (`docs/JOURNEY.md`) and before anything new: `docs/STEADY.md` — one
 reader per scope, one number everywhere (a gate check), one place per thing
 in the code, one answer per project kind — in four slices that change
-nothing a person sees. S1 is built (§5 of the doc: what it found); S2 is built (§6: `src/project/projectRead` the one reader, `src/project/projectKind` the one answer per kind — read a project through them, never twice). S3 is begun (§7): **the code in its places** — `src/project/` (the reader, the kinds, `journey/`), `src/line/report/`, `src/tools/<key>/` (a tool by its catalogue key, `reliability/` first); a new tool is built in its own folder, an older one moved when next worked on, with `scripts/moves.mjs` (moves files, keeps every import true) and proved by tsc, the tests, the catalogue's test and the gate. S4 is built (§8): the four biggest files split at their own seams — the stage-gate paper a sheet a file (`lib/paceReport/`), the A3's pages and the 6M report's screen apart (`screens/paceReportPages`, `screens/SixMReportScreen`), the 6M report's model apart from its paper (`lib/sixmReport`), capacity's sums apart from how a figure is written (`lib/capacityWords`) and what the result says (`lib/capacitySays`); the old file re-exports what left it, so every import stands.
+nothing a person sees. S1 is built (§5 of the doc: what it found); S2 is built (§6: `src/project/projectRead` the one reader, `src/project/projectKind` the one answer per kind — read a project through them, never twice). S3 is built (§7, 23–24 October — the ten tools moved on 24 October, a commit each): **the code in its places** — `src/project/` (the reader, the kinds, `journey/`), `src/line/report/`, `src/tools/<key>/` (a tool by its catalogue key, `reliability/` first); a new tool is built in its own folder, an older one moved when next worked on, with `scripts/moves.mjs` (moves files, keeps every import true) and proved by tsc, the tests, the catalogue's test and the gate. S4 is built (§8): the four biggest files split at their own seams — the stage-gate paper a sheet a file (`lib/paceReport/`), the A3's pages and the 6M report's screen apart (`screens/paceReportPages`, `screens/SixMReportScreen`), the 6M report's model apart from its paper (`lib/sixmReport`), capacity's sums apart from how a figure is written (`tools/linebalance/capacityWords`) and what the result says (`tools/linebalance/capacitySays`); the old file re-exports what left it, so every import stands.
 
 ## The project is the workspace — 21 October
 
@@ -298,7 +298,7 @@ Line capacity's and the takt follows it; a person is put at a station and
 that people station's speed is their timed cycle; what the bottleneck costs
 a pack and a minute is said for the client; and **All together** reads the
 three on one page, editing none (`docs/BUILD.md`, The line balance, its own
-tool; `lib/ie/balanceLink`). Toyota's three forms: Line standard the chart,
+tool; `tools/linework/balanceLink`). Toyota's three forms: Line standard the chart,
 Line balance the combination table, Line capacity the capacity sheet. Never
 call it *the time study* or *the work balance* on a screen.
 
@@ -420,7 +420,14 @@ failure, `summary.txt` the one answer:
   `main` regardless**, so what the quick gate gives up (a layout bug on odd
   data; a sync race — both found only there, 11 October and gate 14) is
   caught within the day, never silently. A full gate red on `main` is the
-  first job of the next session.
+  first job of the next session. **The daily run is a scheduled task since
+  24 October** (Rowland: "Go" — *Faultline daily full gate*, 05:46
+  Europe/London, a fresh session each day that checks out `origin/main`,
+  starts one dev server on 5191 and runs `scripts/gate.sh full` with the
+  checkout as both sides, then reports — the commit, "N passed, F failed",
+  every failure's quoted line, and whether the paper comparison ran; it
+  changes nothing and pushes nothing). Its report arrives as a push and an
+  e-mail; a red one is read before any other work.
 
 Never edit the checkout while its gate runs: the dev server reloads under
 the tests and the failures that follow are not the change's (gate 37, 23
@@ -527,7 +534,7 @@ after and the client report. `work-balance.mjs` is the line balance
 the full-screen timer (Undo, Skip), stacked against takt, made better on a
 job and proved by timing it again; then Op 2 put at the Packer and Line
 capacity's Packer taking their timed cycle, the takt taken from the target,
-what the bottleneck costs a pack and a minute as `lib/ie/balanceLink` says,
+what the bottleneck costs a pack and a minute as `tools/linework/balanceLink` says,
 All together and its PDF, the Line balance list and its PDF, and the phone. `sixm-evidence.mjs` is 2h: a study on a
 running line — a cause's evidence, a countermeasure on the board, before →
 after on it and the 6M report; then the 6M loop walked (the flow audit, 13
@@ -568,13 +575,13 @@ phone from the line's board beside the Pareto at the bottleneck's ideal
 speed (a machine's plate speed; a person's standard time when a person is
 slowest), its planned minutes the shift less its breaks
 (changed for the day only with a reason), the sentence and the waterfall as
-`lib/ie/losses` says them from the count and the stops in its window, the
+`tools/losses/losses` says them from the count and the stops in its window, the
 rest named slow running and short stops and told apart by the running speed
 timed, the pounds in two parts (idle labour · lost contribution), the line's
 settings carrying each shift's breaks, a countermeasure raised from a bar in
 its own figures, the next shift counted as its proof, before → after on it,
 the line's card, the control room and the fishbone carrying the count, and
-the waterfall as a table on the 6M report and the stage-gate client report; then the count as the lean page (4b, `docs/LEAN-PAGE.md`) — the five tiles as `lib/ie/lossLean` reads them, each since the count before ("1,100 more than 16 Oct"), the band and its verdict, the trend over the line's counts, the countermeasure in the action plan with its owner and day, the closing line, and the same on the count's own paper. `snags.mjs` is Problems, the register (Rowland, 12 October: "Every single
+the waterfall as a table on the 6M report and the stage-gate client report; then the count as the lean page (4b, `docs/LEAN-PAGE.md`) — the five tiles as `tools/losses/lossLean` reads them, each since the count before ("1,100 more than 16 Oct"), the band and its verdict, the trend over the line's counts, the countermeasure in the action plan with its owner and day, the closing line, and the same on the count's own paper. `snags.mjs` is Problems, the register (Rowland, 12 October: "Every single
 problem allows me to put in what the problem is ... a journey of improvement
 ... assign the problems to where they're going to be. I want a fresh start.
 Don't erase anything."; and "everything should still stay in the control
@@ -715,7 +722,7 @@ on the map crossing another or covering a person, every person named in
 Who does what, the note and the kit below the people, an area's
 BOTTLENECK tag clear of its own words. Then words printed whole (Rowland, 15 October: "I've done bottleneck and there's a large amount of context in there, but when I print it, the context is not there"; "it only goes across, it doesn't let me go upwards"; "I can't stretch anything from a side") — a tall, narrow shape's words up it, the bottleneck summed up by its head, the person's box as tall as their words, the card and its notes page (two pages in the preview and the PDF), every word written on paper with "(notes, 2)" where the card cuts, a shape stretched from its right side and its top with the opposite side kept, Upwards chosen and kept, and a map with nothing long one page.
 `line-capacity.mjs` is Line capacity: the views named for what they
-are, the V-curve and the capacity sheet as `lib/capacity` says, a machine
+are, the V-curve and the capacity sheet as `tools/linebalance/capacity` says, a machine
 not on its plate speed said so, the owner's V margin and the guide, a
 person's standard time from the time study used with a tap, and the
 bottleneck walked against the sums; then a person as the floor says them
@@ -737,7 +744,7 @@ own page and its rail on no job; and the phone — the V on its side, the
 sheet a card a station; then what a pack costs in labour (Rowland, 13
 October: "provide an hourly rate ... If I put two people there ... is my
 cost per pack higher or lower?") — the people standing in from the line
-standard, the rate typed and kept, the cost a pack as `lib/capacity` says,
+standard, the rate typed and kept, the cost a pack as `tools/linebalance/capacity` says,
 one more person at the bottleneck lower or higher as the module says, Make
 it so, a what-if's labour, and the card's line carrying the cost a pack;
 then renamed and deleted where it sits (13 October: "cant delete a line
@@ -772,7 +779,7 @@ is on the other device within seconds, by itself; readings added to one study
 on two devices at once are all kept, and a strike holds; a video study's
 footage filmed on the phone plays on the laptop, and deleted on the laptop is
 named nowhere, taken out of the cloud and forgotten by the phone
-(`supabase/VIDEO_MEDIA.sql`, `lib/video/footage`). It cannot prove real
+(`supabase/VIDEO_MEDIA.sql`, `tools/video/footage`). It cannot prove real
 RLS, real signal or iOS Safari. Run it on its own, not beside the fuzz: its
 timing checks fail under that load.
 
@@ -1004,8 +1011,8 @@ pack and £ a minute (a shift, a week where that is how the floor reads it),
 "because of" the thing that causes it — from ONE cost model, never a second:
 the people (Line capacity's labour, else the line standard's head count,
 else the line's crew), one person's rate (Line capacity's, else the line's
-wage × on-costs), and the line's margin a pack (`lib/capacity` labourCost,
-bottleneckCost; `lib/ie/balanceLink` balanceCost; `lib/ie/losses`
+wage × on-costs), and the line's margin a pack (`tools/linebalance/capacity` labourCost,
+bottleneckCost; `tools/linework/balanceLink` balanceCost; `tools/losses/losses`
 contributionOf). Where an input is missing the tool says which and where to
 give it — never a blank, never an invented figure. The merged view (All
 together) carries one cost line per tool, plainly labelled; it adds none of
@@ -1074,7 +1081,7 @@ what by when?
    station runs to the bottleneck — the bottleneck in the house's graphite,
    the rest in the brand's teal, lighter the more they have to spare — on its
    columns, the phone's bars, the capacity sheet and its paper
-   (`lib/capacity` `shareColours`); amber still only under the agreed V, red
+   (`tools/linebalance/capacity` `shareColours`); amber still only under the agreed V, red
    only a target the bottleneck cannot meet, and every figure in words
    beside its colour.** The PDFs use the same
    five values. Set 4 October: a step with a day booked is still ahead
@@ -1105,11 +1112,11 @@ a pale fill with the teal edge), the tiles (a few counted figures, each *of* wha
 should be and *since the record before*, never OEE), the trend, the tool's
 own picture, the top causes, what it means, the action plan (action · owner
 · due) and the closing line — the three questions drawn as a board is
-drawn. One model (`lib/lean`), one builder a tool (`lib/ie/lossLean` for the
+drawn. One model (`lib/lean`), one builder a tool (`tools/losses/lossLean` for the
 loss count), drawn on screen by `ui/Lean` and on paper by `lib/report/lean`,
 so the two never part. What is typed stays on the page under the eight.
 Built slice by slice (the doc's table): the loss count, then Line capacity,
-the line balance and All together (`lib/capacityLean`, `lib/ie/balanceLean`,
+the line balance and All together (`tools/linebalance/capacityLean`, `tools/linework/balanceLean`,
 `lib/together` togetherTiles), then a stage-gate job's front page, one-page
 status and full report (`lib/stageGateLean`), then the stage gate's own
 pages and papers (`lib/stageGatePages`: Commission, the gates, Problems,
