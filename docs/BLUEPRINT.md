@@ -617,7 +617,12 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   line's rate and a pack at Line capacity's speed or the line's rated one —
   one sentence under the count on the map's page and in its card's foot,
   the wage or the speed named when missing.
-- **Missing — the next piece, tool by tool:** the problems register
+  And the **problems register** (24 October, `knowledge/specs/FC-154-
+  problem-cost.md`): the minutes a day a problem costs the line, typed in
+  its editor, said in the loss count's two parts — labour, and packs and
+  contribution where it stops the line — on the row, the card, the report
+  and the closing line's sum; the wage, speed or margin named when missing.
+- **Missing — the next piece, tool by tool:** the problems register's rejects and held product, then
   (what each problem costs while it is open), a 6M countermeasure (what it
   is worth — before → after in money).
 

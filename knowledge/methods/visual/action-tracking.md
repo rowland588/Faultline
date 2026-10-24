@@ -44,3 +44,7 @@ Every improvement meeting.
 
 ## In Faultline
 Actions (`src/lib/projectActions.ts`), the problems register, Every action (FC-154, FC-194).
+Since 24 October a problem on the register says what it costs the line a day
+while it is open — its typed minutes by the line's cost model, labour and,
+where it stops the line, packs and contribution; the register's closing line
+sums them (`knowledge/specs/FC-154-problem-cost.md`, `src/lib/problemCost.ts`).

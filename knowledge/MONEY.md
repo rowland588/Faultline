@@ -337,7 +337,7 @@ own and names what it feeds.
 | FC-151 A3 | the problem's £ on the left, the countermeasures' worth on the right — as FC-146 | the tool's | | |
 | FC-152 Fault tree | — of its own; the top event's cost (D) when known | D | | |
 | FC-153 Stratification | the worst stratum's gap × the measure's £ | the tool's | | |
-| FC-154 Problems register | **the gap**: a problem's open cost — a stop or slow running it causes (L + T a day, from the loss count or typed minutes), rejects it causes (M), product held (H); summed by line and priority, said beside the priority never as it | L, T, M, H | the problem's minutes a day or packs a day (typed on the problem); the line's model | "Say how many minutes a day this problem costs the line to say it in money" |
+| FC-154 Problems register | built 24 Oct, the time part — the minutes a day typed on the problem: labour, and packs and contribution where it stops the line (the bottleneck Line capacity's); the row, the editor, the card, the report, the closing line's sum (`knowledge/specs/FC-154-problem-cost.md`); the rejects it causes (M) and product held (H) still to come | L, T (M, H to come) | the minutes a day (typed on the problem); the line's wage, speed, margin | the editor's box asks the minutes; "give the line a wage (Set up the line)", "a speed", "a margin a pack" |
 | FC-155 Horizontal deployment | the proved fix's £ a week × the lines it is offered to | the tool's | | |
 
 ### Yield, give-away and materials
@@ -487,7 +487,8 @@ own and names what it feeds.
 
 1. **The gaps in what is built** (`docs/BLUEPRINT.md` §6): the line standard
    (FC-006 — the people placed, a pack: built 24 October), the problems
-   register (FC-154 — a problem's open cost), the 6M countermeasure's worth
+   register (FC-154 — the time a problem costs the line: built 24 October;
+   its rejects and held product to come), the 6M countermeasure's worth
    (FC-146). Each through the `faultline-tool` skill, one at a time.
 2. **The built tools with money partly said**: Reliability (FC-058 — each
    failure's lost minutes in money), the stops' pages where a figure is still

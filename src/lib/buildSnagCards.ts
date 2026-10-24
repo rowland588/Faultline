@@ -77,7 +77,7 @@ async function photoFrom(key: string | undefined, pin?: { xPct?: number; yPct?: 
   }
 }
 
-export interface SnagCardRow { snag: Snag; asset?: SnagAsset; assetName: string }
+export interface SnagCardRow { snag: Snag; asset?: SnagAsset; assetName: string; /** lib/problemCost words, when its minutes are typed (FC-154) */ cost?: string }
 
 /** Everything the drawer needs for a set of snags, photographs and all.
  *  Sequential on purpose: decoding several full-size frames at once is how you
@@ -88,7 +88,7 @@ export async function buildSnagCards(
   filterNote?: string,
 ): Promise<SnagCardSet> {
   const snags: SnagCardData[] = [];
-  for (const { snag, asset, assetName } of rows) {
+  for (const { snag, asset, assetName, cost } of rows) {
     const still = await photoFrom(asset?.stillKey, { xPct: snag.xPct, yPct: snag.yPct });
     /* A quick snag keeps its pictures in `media` (snag/quick): its first photo
        is the close-up when it has no close-up of its own — with its marks. */
@@ -97,6 +97,7 @@ export async function buildSnagCards(
     snags.push({
       problem: snag.problem || 'Evidence',
       proposedSolution: snag.proposedSolution || undefined,
+      ...(cost ? { cost } : {}),
       status: snag.status,
       statusLabel: SNAG_STATUS_META[snag.status].label,
       owner: snag.owner || '',

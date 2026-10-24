@@ -603,7 +603,12 @@ group and a project's group on paper as a report and as a card each, and
 the project's own page's
 report and cards; Start fresh putting every
 problem away with none deleted, the page saying so, and one then all
-brought back; and the phone.
+brought back; and the phone. Then what a problem costs the line while it is
+open (24 October, FC-154): the minutes a day typed and kept, the sentence the
+module's — the wage named when the line lacks it, then labour, packs and
+contribution without a reload, a machine off the bottleneck labour only and
+said why — the row's short form, the closing line's sum, the card, the
+report, the phone.
 `programs.mjs` is a program's status with commentary (Rowland, 12 October:
 "we need option not tested, and no program, and allow commentary"): the five
 statuses offered, not tested kept with what was seen and the program not

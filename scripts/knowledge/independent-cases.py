@@ -216,3 +216,11 @@ print("  1 person, 14.50 x 1.3, 100 a minute ->", placed(1))
 print("  12 people ->", placed(12))
 print("  4 people, Line capacity 120 cases a minute ->", placed(4, per_min=120))
 print("  6 people typed on Line capacity at GBP 20, 120 a minute ->", placed(6, wage=20, burden=1, per_min=120))
+
+# --- what a problem costs the line while it is open (knowledge/specs/FC-154-problem-cost.md, 24 October) ---
+print("\n# minutes a day x the crew's rate = labour; where it stops the line, minutes x rated speed = packs, x contribution a pack")
+def open_cost(minutes, crew=4, wage=14.5, burden=1.3, per_min=100, margin=0.04, stops=True):
+    lab = minutes / 60 * crew * wage * burden; packs = minutes * per_min if stops else None
+    return lab, packs, (packs * margin if packs is not None else None)
+print("  20 min at the bottleneck ->", open_cost(20)); print("  20 min off the bottleneck ->", open_cost(20, stops=False)); print("  7.5 min on the line ->", open_cost(7.5))
+print("  the register: 20 + 10 (off the bottleneck) ->", open_cost(20)[0] + open_cost(10, stops=False)[0], "labour;", open_cost(20)[2], "contribution")

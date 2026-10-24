@@ -79,6 +79,10 @@ export const PAGES = (sd, cap) => [
     { what: 'the page header — Problem, and Report ▾', sel: '.qsl .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 4; lib/problemsLean): its chips are its tiles, each a filter; the closing line names the worst open problem */
     { what: 'the closing line', sel: '.ln-close' }] },
+  { name: 'Problems — one open, its editor', path: `#/snags?open=${sd.snagId}`, must: [
+    { what: 'the box — minutes a day it costs the line (24 October, FC-154)', sel: '[aria-label="Minutes a day it costs the line"]' },
+    { what: 'what that is in money, or the ask', sel: '.pe-cost' },
+  ] },
   { name: 'A stage-gate project — its front page', path: `#/project/${sd.projectId}`, must: [
     /* this week and next (23 October, docs/JOURNEY.md): done · still to do · planned, opening the journey */
     { what: 'This week and next — opening the journey', sel: '.jn-week button', text: /^Open the journey/ },

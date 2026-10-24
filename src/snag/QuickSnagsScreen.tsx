@@ -22,7 +22,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
 import { addLineToFactory, asked, byFloor, liveProductionLines } from '../lib/lines';
-import { addSnag, allPaceLines, deleteSnag, inArchivedProject, listAllSnags, projectWalkIds, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, patchSnag, setSnagsStatus, type PaceLineRow, type PaceTodoRow } from '../db';
+import { addSnag, allPaceLines, deleteSnag, inArchivedProject, listAllSnags, listAllStandards, projectWalkIds, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, patchSnag, setSnagsStatus, type PaceLineRow, type PaceTodoRow } from '../db';
+import { problemCost, type ProblemCost } from '../lib/problemCost';
+import { neckOf } from '../lib/lineLoss';
+import type { Standard } from '../tools/linestandard/standard';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
@@ -81,6 +84,8 @@ export function QuickSnagsScreen() {
   const { projects, archived: archivedJobs } = useProjects();
   const [snags, setSnags] = useState<Snag[] | null>(null);
   const [lines, setLines] = useState<Workspace[]>([]);
+  /* the lines' standards, for each line's bottleneck — what a problem's minutes cost (lib/problemCost, FC-154) */
+  const [standards, setStandards] = useState<Standard[]>([]);
   const [frames, setFrames] = useState<Map<string, SnagAsset>>(new Map());
   /* the machines each problem's picker offers — its line's, never another's (lib/lineRecords machinesOf; flow audit #14) */
   const rec = useLineRecords();
@@ -115,6 +120,13 @@ export function QuickSnagsScreen() {
   const [search, setSearch] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [opened, setOpened] = useState<Set<string>>(() => new Set(asked('open') ? [asked('open') as string] : []));
+  /* a problem asked for in the address while the page is already open — a line's page or an action tapped
+     without a reload — opens too (the first was read once at mount; the inventory's #/snags?open= found it shut) */
+  useEffect(() => {
+    const on = () => { const id = asked('open'); if (id) { setOpened(p => (p.has(id) ? p : new Set([...p, id]))); setToShow(id); } };
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
   const [setting, setSetting] = useState(false);
   const [showAway, setShowAway] = useState(false);
   const [busy, setBusy] = useState<'' | 'report' | 'cards'>('');
@@ -130,7 +142,8 @@ export function QuickSnagsScreen() {
   const sixmKey = liveJobs.filter(p => planModel(p) === 'board').map(p => p.id).join(',');
 
   const load = useCallback(async () => {
-    const [every, ws] = await Promise.all([listAllSnags(), listWorkspaces()]);
+    const [every, ws, stds] = await Promise.all([listAllSnags(), listWorkspaces(), listAllStandards()]);
+    setStandards(stds);
     /* the demo line's made-up problems are never here */
     const all = withoutDemo(every, ws).filter(s => !s.deletedAt);
     setSnags(all.sort((a, b) => b.raisedAt - a.raisedAt)); setLines(withoutDemo(ws.map(w => ({ ...w, workspaceId: w.id })), ws).sort(byFloor));   /* offered in floor order (Your factory) */
@@ -211,11 +224,17 @@ export function QuickSnagsScreen() {
       && (!words || `${r.what} ${r.where} ${r.fixWhat ?? ''} ${r.who ?? ''}`.toLowerCase().includes(words)));
     return rows.length ? [{ ...g, rows }] : [];
   })), [jobData, jobLines, liveJobs, lineF, jobF, whoF, words, snags, lineName]);
+  /* WHAT A PROBLEM COSTS THE LINE A DAY while it is open (lib/problemCost; knowledge/specs/FC-154-problem-cost.md):
+     its typed minutes, by its line's cost model and the line's bottleneck (Line capacity's) — one source for the
+     row, the editor, the card, the report and the closing line */
+  const costOf = useCallback((s: Snag): ProblemCost | undefined => problemCost(s, s.assetId ? frames.get(s.assetId)?.name : s.targetAsset,
+    lines.find(w => w.id === s.workspaceId) ?? shelved.find(w => w.id === s.workspaceId), neckOf(standards, s.workspaceId)), [frames, lines, shelved, standards]);
   const reading = useMemo(() => snagsReading({
     snags: narrowed.map(s => (goneLines.has(s.workspaceId) ? { ...s, workspaceId: NO_LINE } : s)), lineName, jobName: liveJobName, became: new Map(), register: true, jobs: jobGroups,
     assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined),
     stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined),
-  }), [narrowed, lineName, liveJobName, frames, jobGroups, goneLines]);
+    costOf,
+  }), [narrowed, lineName, liveJobName, frames, jobGroups, goneLines, costOf]);
   const c = reading.counts;
 
   /* What the chosen count shows. */
@@ -353,7 +372,7 @@ export function QuickSnagsScreen() {
       window.alert('Sorry — the PDF could not be made. Please try again.');
     } finally { setBusy(''); }
   };
-  const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: frameName(s) ?? s.targetAsset ?? 'No machine named' });
+  const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: frameName(s) ?? s.targetAsset ?? 'No machine named', ...(costOf(s) ? { cost: costOf(s)?.words } : {}) });
   const cards = async (list: Snag[]) => {
     if (busy || !list.length) return;
     setBusy('cards');
@@ -515,6 +534,7 @@ export function QuickSnagsScreen() {
                       <span className="qsl-body">
                         <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
                         <span className="qsl-meta">{[group === 'who' ? r.line : '', r.machine ?? '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>
+                        {r.cost && <span className="qsl-meta qsl-cost">{r.cost.short}</span>}
                         {last
                           ? <span className="qsl-meta preg-last">{r.journey.length} step{r.journey.length === 1 ? '' : 's'} — {last.day}: {last.did}{last.result ? ` → ${last.result}` : ''}</span>
                           : r.plan ? <span className="qsl-meta preg-last">Plan: {r.plan}</span> : null}
@@ -525,7 +545,7 @@ export function QuickSnagsScreen() {
                         {r.due && <span className={'qsl-dueword ' + TONE_CLASS[r.dueTone ?? 'n']}>{r.due}</span>}
                       </span>
                     </button>
-                    {isOpen && <ProblemEditor s={s} lines={factory} projects={liveJobs}
+                    {isOpen && <ProblemEditor s={s} lines={factory} projects={liveJobs} cost={costOf(s)}
                       saved={savedOn?.id === s.id && Date.now() - savedOn.at < 4000} lineName={lineName} jobName={jobName}
                       onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId, s.projectId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
@@ -778,8 +798,10 @@ function JobEditor({ r, data, job, lines, busy, onCard, onOpen, onToLine, onDone
   );
 }
 
-function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave, lineName, jobName, sixm, onRoot, rootOf, onStart }: {
+function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave, lineName, jobName, sixm, onRoot, rootOf, onStart, cost }: {
   s: Snag; lines: Workspace[]; projects: Project[]; machines: string[]; frame?: SnagAsset;
+  /** What it costs the line a day while it is open, from its minutes (lib/problemCost, FC-154). */
+  cost?: ProblemCost;
   /** The 6M jobs on its line, and whether this person may open a problem on each (lib/access). */
   sixm: (RootOn & { canEdit: boolean })[]; onRoot: (j: RootOn) => void; onStart: () => void;
   /** Where it went, when it was taken to 6M. */
@@ -893,6 +915,12 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
 
       <label className="pe-f pe-wide"><span className="pe-k">WHAT WE WILL DO</span>
         <DraftArea value={s.proposedSolution ?? ''} rows={2} placeholder="The plan — what will put it right" className="text-input" ariaLabel="What we will do" onSave={v => put({ proposedSolution: v || undefined })} /></label>
+      {/* WHAT IT COSTS THE LINE while it is open — one number asked, the money one output beside it; a missing line input
+          named, nothing blocked (CLAUDE.md, 24 October; knowledge/specs/FC-154-problem-cost.md) */}
+      <label className="pe-f pe-wide"><span className="pe-k">MINUTES A DAY IT COSTS THE LINE <i className="cw-f-opt">a stop, slow running, a workaround — while it is open</i></span>
+        <DraftText value={s.minutesPerDay != null ? String(s.minutesPerDay) : ''} placeholder="e.g. 20" className="text-input pe-cost-in" max={6} ariaLabel="Minutes a day it costs the line"
+          onSave={v => { const n = Number(v.trim().replace(',', '.')); put({ minutesPerDay: v.trim() && Number.isFinite(n) && n >= 0 && n <= 1440 ? n : undefined }); }} />
+        <p className="pe-cost">{cost ? cost.words : 'Say the minutes to see what it costs the line a day — labour for the minutes, and the packs and contribution lost where it stops the line.'}</p></label>
 
       <Journey s={s} put={put} />
 
