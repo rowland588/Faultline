@@ -886,7 +886,7 @@ for (const size of SIZES) {
     const { walkVerdict } = await import('/src/lib/ie/walk.ts');
     const B = await import('/src/tools/linework/balance.ts');
     const { currentBalance } = await import('/src/lib/studyLinks.ts');
-    const S = await import('/src/lib/standard.ts');
+    const S = await import('/src/tools/linestandard/standard.ts');
     const [all, wss, studies] = await Promise.all([db.listAllStandards(), db.listWorkspaces(), db.listAllStudies()]);
     const list = ids ?? all.filter(s => !s.deletedAt && S.inCapacityTool(s)).map(s => s.id);
     const out = []; let from = '';
@@ -961,7 +961,7 @@ for (const size of SIZES) {
         const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1]);
         /* a card a product — and after a card that had to cut what was written, its notes page(s) (lib/standardCard cardPages) */
         const want = await page.evaluate(async () => {
-          const db = await import('/src/db.ts'); const C = await import('/src/lib/standardCard.ts'); const S = await import('/src/lib/standard.ts');
+          const db = await import('/src/db.ts'); const C = await import('/src/tools/linestandard/standardCard.ts'); const S = await import('/src/tools/linestandard/standard.ts');
           const list = (await db.listAllStandards()).filter(x => !x.deletedAt && S.inMapTool(x));
           let n = 0; for (const x of list) n += (await C.cardPages(x, 'x', 'today')).length;
           return { n, cards: list.length };

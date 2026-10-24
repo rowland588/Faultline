@@ -10,34 +10,34 @@
  * per product (lib/standardPdf), the same picture, the same icons, the same
  * roles, with the headcount counted off the people. */
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
-import type { Project } from '../types';
-import { framesForProject, getProject, getWorkspace, listSnagAssets, putBlob, putStandard, followStandard } from '../db';
-import { nav, useRoute } from '../state/useRoute';
-import { uid, now } from '../lib/ids';
-import { pdfFileName } from '../lib/fileName';
-import { todayISO } from '../lib/weeks';
-import { useBlobUrl } from '../lib/useBlobUrl';
-import { usePrograms } from '../lib/usePrograms';
-import { planModel } from '../lib/planModel';
+import type { Project } from '../../types';
+import { framesForProject, getProject, getWorkspace, listSnagAssets, putBlob, putStandard, followStandard } from '../../db';
+import { nav, useRoute } from '../../state/useRoute';
+import { uid, now } from '../../lib/ids';
+import { pdfFileName } from '../../lib/fileName';
+import { todayISO } from '../../lib/weeks';
+import { useBlobUrl } from '../../lib/useBlobUrl';
+import { usePrograms } from '../../lib/usePrograms';
+import { planModel } from '../../lib/planModel';
 import { bottlenecksOf, dashOf, FADED_ALPHA, FILLS, LABEL_KEY, LABEL_MODES, labelModeHere, LINES, mapLabel, weightOf, WORD_DIRS, wordsUp, type LabelMode, type ShapeFill, type ShapeLine,
-  BOARDS, boardOf, colourOf, copyFor, hasMap, removingSays, type ProductTool, inMapTool, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
-import { useStandards } from '../ui/StandardsCard';
-import { Sheet } from '../ui/Sheet';
-import { offerUndo } from '../ui/Undo';
-import { deleteMap, removeFromTool } from '../ui/StandardsCard';
-import { CapacityPanel } from '../tools/linebalance/CapacityPanel';
-import { balanceSays } from './LineToolsScreen';
-import { WorkView, useBalanceFor, workOf } from '../tools/linework/WorkBalance';
-import { capacitySays } from '../lib/together';
-import { Together } from '../ui/Together';
-import { ChangeoverLines } from '../tools/changeover/ChangeoverLines';
-import { mins } from '../tools/changeover/changeover';
-import { useProjects } from '../lib/useProjects';
-import type { SnagAsset } from '../snag/types';
-import { Icon } from '../ui/Icon';
-import { useAccess } from '../cloud/access';
-import type { Can } from '../lib/access';
-import { BelongsTo as Belongs, MoreMenu, PageHeader, ReportMenu, ViewTabs, type View } from '../ui/parts';
+  BOARDS, boardOf, colourOf, copyFor, hasMap, removingSays, type ProductTool, inMapTool, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from './standard';
+import { useStandards } from './StandardsCard';
+import { Sheet } from '../../ui/Sheet';
+import { offerUndo } from '../../ui/Undo';
+import { deleteMap, removeFromTool } from './StandardsCard';
+import { CapacityPanel } from '../linebalance/CapacityPanel';
+import { balanceSays } from '../../screens/LineToolsScreen';
+import { WorkView, useBalanceFor, workOf } from '../linework/WorkBalance';
+import { capacitySays } from '../../lib/together';
+import { Together } from '../../ui/Together';
+import { ChangeoverLines } from '../changeover/ChangeoverLines';
+import { mins } from '../changeover/changeover';
+import { useProjects } from '../../lib/useProjects';
+import type { SnagAsset } from '../../snag/types';
+import { Icon } from '../../ui/Icon';
+import { useAccess } from '../../cloud/access';
+import type { Can } from '../../lib/access';
+import { BelongsTo as Belongs, MoreMenu, PageHeader, ReportMenu, ViewTabs, type View } from '../../ui/parts';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -46,12 +46,12 @@ const pdfName = (list: Standard[], name: string) =>
   pdfFileName(name, list.length === 1 ? `line standard ${list[0].product}` : 'line standard', todayISO());
 
 async function standardsPdf(list: Standard[], name: string) {
-  const { loadPdfLib } = await import('../lib/savePdf');
-  const { drawStandards } = await import('../lib/standardPdf');
+  const { loadPdfLib } = await import('../../lib/savePdf');
+  const { drawStandards } = await import('./standardPdf');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  const { worksFor } = await import('../tools/linework/WorkBalance');
-  const { shiftShortsFor } = await import('../tools/linebalance/ShiftCapacity');
+  const { worksFor } = await import('../linework/WorkBalance');
+  const { shiftShortsFor } = await import('../linebalance/ShiftCapacity');
   await drawStandards(doc, list, name, printedToday(), await worksFor(list), await shiftShortsFor(list));
   return doc;
 }
@@ -72,9 +72,9 @@ function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; o
     let live = true;
     void (async () => {
       try {
-        const { cardPages } = await import('../lib/standardCard');
-        const { worksFor } = await import('../tools/linework/WorkBalance');
-        const { shiftShortsFor } = await import('../tools/linebalance/ShiftCapacity');
+        const { cardPages } = await import('./standardCard');
+        const { worksFor } = await import('../linework/WorkBalance');
+        const { shiftShortsFor } = await import('../linebalance/ShiftCapacity');
         const works = await worksFor(list), shifts = await shiftShortsFor(list);
         const out: { img: string; product: string; notes: boolean }[] = [];
         for (const st of list) (await cardPages(st, name, printedToday(), works[st.id], shifts[st.id])).forEach((img, k) => out.push({ img, product: st.product, notes: k > 0 }));
@@ -94,10 +94,10 @@ function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; o
       if (how === 'print') {
         const url = URL.createObjectURL(doc.output('blob') as Blob);
         const w = window.open(url, '_blank');
-        if (!w) { const { deliverPdf } = await import('../lib/savePdf'); await deliverPdf(doc, pdfName(list, name), { brand: false }); /* the sheet is a picture edge to edge, with its own heading */ }
+        if (!w) { const { deliverPdf } = await import('../../lib/savePdf'); await deliverPdf(doc, pdfName(list, name), { brand: false }); /* the sheet is a picture edge to edge, with its own heading */ }
         setTimeout(() => URL.revokeObjectURL(url), 120_000);
       } else {
-        const { deliverPdf } = await import('../lib/savePdf');
+        const { deliverPdf } = await import('../../lib/savePdf');
         await deliverPdf(doc, pdfName(list, name), { brand: false }); /* the sheet is a picture edge to edge, with its own heading */
       }
     } catch (e) {
@@ -642,7 +642,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         <div className="ls-head-actions">
           <MoreMenu items={can.remove ? [{ label: 'Delete this capacity', danger: true, run: () => void removeTool('balance') }] : []} />
           <ReportMenu papers={[{ label: `Line capacity — ${s.product}`, for: 'One page: what limits it, the V, every station, a shift, the cost a pack', make: async () => {
-            try { await (await import('../tools/linebalance/capacityPaperLoad')).saveCapacityPdf([s], { name: home.name }); }
+            try { await (await import('../linebalance/capacityPaperLoad')).saveCapacityPdf([s], { name: home.name }); }
             catch (e) { console.error('line capacity PDF failed', e); window.alert('Sorry — the PDF could not be made. Please try again.'); }
           } }]} />
         </div>

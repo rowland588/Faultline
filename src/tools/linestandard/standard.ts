@@ -16,8 +16,8 @@
  * the line runs to: People. It prints as one page per product, to put up at
  * the line. Headcount is counted off the people on the map, never typed.
  */
-import type { ID } from '../types';
-import type { Capacity } from '../tools/linebalance/capacity';
+import type { ID } from '../../types';
+import type { Capacity } from '../linebalance/capacity';
 
 /* THE ICONS — food manufacturing, in four groups. Rowland: "we need more
    icons available. Go full food manufacturing." Every glyph is a 24-unit SVG

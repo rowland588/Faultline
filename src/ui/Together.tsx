@@ -11,7 +11,7 @@
  * Its paper is the same page (lib/togetherPdf). */
 import { useEffect, useState, type ReactNode } from 'react';
 import { nav } from '../state/useRoute';
-import type { Standard } from '../lib/standard';
+import type { Standard } from '../tools/linestandard/standard';
 import { CostBlock, Legend, PersonBar, Stacks, useBalanceFor, useLine, worksFor } from '../tools/linework/WorkBalance';
 import { LeanClosing, LeanTiles } from './Lean';
 import { ReportMenu } from './parts';
@@ -28,7 +28,7 @@ export function Together({ s, name, here, views }: { s: Standard; name: string; 
     if (!t.hasMap) { setCard(null); return; }
     void (async () => {
       try {
-        const [{ cardPages }, works] = await Promise.all([import('../lib/standardCard'), worksFor([s])]);
+        const [{ cardPages }, works] = await Promise.all([import('../tools/linestandard/standardCard'), worksFor([s])]);
         const pages = await cardPages(s, name, new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), works[s.id]);
         if (live) setCard(pages[0] ?? null);
       } catch (e) { console.error('together card failed', e); if (live) setCard(null); }

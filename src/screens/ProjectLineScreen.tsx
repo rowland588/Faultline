@@ -66,7 +66,7 @@ import { journeyOf, machineAt, machinesWhere } from '../lib/install';
 import { live } from '../lib/testing';
 import { todayISO } from '../lib/weeks';
 import { useLineRecords } from '../lib/useLineRecords';
-import { inCapacityTool } from '../lib/standard';
+import { inCapacityTool } from '../tools/linestandard/standard';
 
 /* THE SECTIONS, by the name each had as a tab. 'overview' is the top of the
    page: an old ?view=overview link lands there. */

@@ -1,11 +1,11 @@
 /* The line standard's maps, small — what Hand over shows. The screen itself
  * (screens/StandardScreen) loads on first use. */
 import { useCallback, useEffect, useState } from 'react';
-import { deleteStandard, listStandards, onDataChange, putStandard } from '../db';
-import { offerUndo } from './Undo';
-import { nav } from '../state/useRoute';
-import { afterRemoving, headcount, removingSays, type ProductTool, type Standard } from '../lib/standard';
-import { can as canOf, type Can } from '../lib/access';
+import { deleteStandard, listStandards, onDataChange, putStandard } from '../../db';
+import { offerUndo } from '../../ui/Undo';
+import { nav } from '../../state/useRoute';
+import { afterRemoving, headcount, removingSays, type ProductTool, type Standard } from './standard';
+import { can as canOf, type Can } from '../../lib/access';
 
 /** DELETE A MAP — from wherever the maps are listed, with Undo. Rowland, 6
  *  October, in Hand over: "can't delete a line standard — not acceptable."

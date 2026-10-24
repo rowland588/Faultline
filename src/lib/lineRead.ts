@@ -5,7 +5,7 @@
  * Line capacity and its newest SMED's running pattern, through the tested
  * functions of lib/intelligence. Pure. */
 import type { Observation, Workspace } from '../types';
-import type { Standard } from './standard';
+import type { Standard } from '../tools/linestandard/standard';
 import type { ToolStudy } from './study';
 import { analyse } from '../tools/linebalance/capacity';
 import { lossFiguresOf } from './studyLinks';

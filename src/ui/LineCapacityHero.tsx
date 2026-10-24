@@ -9,7 +9,7 @@
  * (observations), its products' Line capacity (standards). Writes nothing. */
 import { useEffect, useMemo, useState } from 'react';
 import type { Observation, Workspace } from '../types';
-import type { Standard } from '../lib/standard';
+import type { Standard } from '../tools/linestandard/standard';
 import type { ToolStudy } from '../lib/study';
 import { listAllStudies, listObservations, getWorkspace, onDataChange, putStandard } from '../db';
 import { useAccess } from '../cloud/access';

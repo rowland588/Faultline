@@ -23,7 +23,7 @@ import { can as canAt } from '../../lib/access';
 import { now, uid } from '../../lib/ids';
 import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
-import { peopleOf } from '../../lib/standard';
+import { peopleOf } from '../linestandard/standard';
 import {
   DEFAULT_ACTIVITIES, TOO_FEW_TAPS, dueRound, nextPrompt, samplingEnough, samplingReading, samplingSays,
   schedulePrompts, shares, tapsNeeded, tapsOf,

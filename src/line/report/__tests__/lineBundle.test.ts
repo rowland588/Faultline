@@ -7,7 +7,7 @@ import type { Workspace } from '../../../types';
 import type { Snag } from '../../../snag/types';
 import type { Program } from '../../../lib/programs';
 import type { ToolStudy } from '../../../lib/study';
-import type { Standard } from '../../../lib/standard';
+import type { Standard } from '../../../tools/linestandard/standard';
 import type { Asset } from '../../../lib/testing';
 
 const TODAY = '2026-10-23';

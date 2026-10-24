@@ -17,7 +17,7 @@ import { lostParts, lostWords, neckOf, packsForMs, packsHow, perHourWords, stops
 import { fmtPacks, labourPerMs } from '../cost';
 import { weeklyLoss, headline } from '../stats';
 import type { Capacity, Station } from '../../tools/linebalance/capacity';
-import type { Standard } from '../standard';
+import type { Standard } from '../../tools/linestandard/standard';
 import type { Observation, Workspace } from '../../types';
 
 const st = (o: Partial<Station> & { id: string; name: string; unit: string }): Station => ({ kind: 'machine', contains: 1, ratePer: 'min', ...o });

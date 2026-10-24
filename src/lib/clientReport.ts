@@ -36,7 +36,7 @@ import type { Snag } from '../snag/types';
 import { PRIORITY_RANK } from './snagsReport';
 import { filesSaid, live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import type { Material } from './materials';
-import type { Standard } from './standard';
+import type { Standard } from '../tools/linestandard/standard';
 import { niceDay, todayISO } from './weeks';
 import { dayLength, daysWord, hoursTally, hoursWord } from './hoursLost';
 import { notedProblems, partsOf, partWords, resultNow, type Noted } from './noted';

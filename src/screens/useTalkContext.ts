@@ -21,7 +21,7 @@ import { methodOf } from '../lib/planModel';
 import { STATE_WORD, isProved, standingOf, stateOf } from '../lib/programs';
 import { niceDay, todayISO } from '../lib/weeks';
 import { contextSaid, talkContext, type TalkContextIn } from '../tools/talk/talkContext';
-import type { Standard } from '../lib/standard';
+import type { Standard } from '../tools/linestandard/standard';
 import type { ToolStudy } from '../lib/study';
 import type { Observation, Workspace } from '../types';
 import type { Snag, SnagAsset } from '../snag/types';

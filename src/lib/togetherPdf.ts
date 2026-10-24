@@ -7,7 +7,7 @@
  * picture (lib/standardCard), so it is exactly the card at the line. */
 import type { jsPDF } from 'jspdf';
 import { getWorkspace } from '../db';
-import type { Standard } from './standard';
+import type { Standard } from '../tools/linestandard/standard';
 import type { ToolStudy } from './study';
 import { togetherClosing, togetherOf, togetherTiles } from './together';
 import { leanBand, leanClosing, leanTiles } from './report/lean';
@@ -114,7 +114,7 @@ export async function togetherPdf(s: Standard, study: ToolStudy | undefined, nam
   let card: string | undefined;
   const t = togetherOf(s, study);
   if (t.hasMap) {
-    const [{ cardPages }, { worksFor }] = await Promise.all([import('./standardCard'), import('../tools/linework/WorkBalance')]);
+    const [{ cardPages }, { worksFor }] = await Promise.all([import('../tools/linestandard/standardCard'), import('../tools/linework/WorkBalance')]);
     card = (await cardPages(s, name, printed, (await worksFor([s]))[s.id]))[0];
   }
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });

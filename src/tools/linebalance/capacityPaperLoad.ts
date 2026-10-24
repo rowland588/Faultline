@@ -15,7 +15,7 @@ import { changeoverIn } from '../changeover/changeover';
 import { walkVerdict } from '../../lib/ie/walk';
 import { balance, balanceSays } from '../linework/balance';
 import { currentBalance } from '../../lib/studyLinks';
-import { headcount, peopleOf, type Standard } from '../../lib/standard';
+import { headcount, peopleOf, type Standard } from '../linestandard/standard';
 
 /** The day printed on the paper: "13 October 2026". */
 export const printedOn = (d = new Date()): string => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });

@@ -20,7 +20,7 @@ import { shortSays } from '../tools/linebalance/capacitySays';
 import type { Workspace } from '../types';
 import { aPiece, balance, balanceSays, secs, type BalanceFigures, type PersonFigures } from '../tools/linework/balance';
 import { agreedFor, crewKept, stationsOf } from '../tools/linework/balanceLink';
-import { headcount, hasMap, type Standard } from './standard';
+import { headcount, hasMap, type Standard } from '../tools/linestandard/standard';
 import type { AgreedBalance, ToolStudy } from './study';
 import type { Tone } from '../tools/capability/sample';
 import type { LeanTile } from './lean';

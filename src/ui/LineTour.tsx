@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Observation, Workspace } from '../types';
 import type { Snag } from '../snag/types';
-import type { Standard } from '../lib/standard';
+import type { Standard } from '../tools/linestandard/standard';
 import type { SnagRow } from '../lib/snagsReport';
 import { getBlob } from '../db';
 import { hasLabour, labourPerMs, fmtGBP } from '../lib/cost';

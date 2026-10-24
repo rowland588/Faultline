@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import type { Project, Workspace } from '../types';
 import type { Asset, Test } from './testing';
 import type { Program } from './programs';
-import type { Standard } from './standard';
+import type { Standard } from '../tools/linestandard/standard';
 import type { JobLine } from './lineRecords';
 import type { ToolStudy } from './study';
 import { allPaceLines, allProjects, getWorkspace, listAllAssets, listAllPrograms, listAllStandards, listAllStudies, listProvingTests, listWorkspaces, onDataChange } from '../db';

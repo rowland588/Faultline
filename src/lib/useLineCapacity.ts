@@ -15,7 +15,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listPrograms, listStandards, listStandardsForLine, listStudiesForLine, onDataChange, type PaceLineRow } from '../db';
 import { lineCapacityOf, type LineCapacity } from './fishbone';
-import type { Standard } from './standard';
+import type { Standard } from '../tools/linestandard/standard';
 import type { Program } from './programs';
 import type { ToolStudy } from './study';
 

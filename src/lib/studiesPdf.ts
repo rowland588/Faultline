@@ -12,7 +12,7 @@
  * Laid out by the report engine (src/lib/report/, docs/REPORTS.md). */
 import type { jsPDF } from 'jspdf';
 import type { ToolStudy } from './study';
-import type { Standard } from './standard';
+import type { Standard } from '../tools/linestandard/standard';
 import type { StudyContext } from './studyLinks';
 import { studyEvidence } from './clientReport';
 import { checksSay, goodWord, pctWord, ruleWords, sample, sampleLines, sampleSays, CPK_FROM, type SampleFigures } from '../tools/capability/sample';

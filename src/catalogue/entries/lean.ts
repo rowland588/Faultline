@@ -80,7 +80,7 @@ export const LEAN: Entry[] = [
     complexity: 'L', value: 'high', valueWhy: 'The shared picture of the line every other tool hangs off.',
     status: 'available', form: 'tool', kind: 'standard',
     app: { key: 'linestandard', label: 'Line standard', says: 'Who does what where on the line, drawn as the line looks', onLine: 'who stands where, product by product', reads: 'standard', icon: 'people', order: 1 }, methods: ['lean.standard-work'], scenarios: ['running', 'people', 'new'], words: ['standard work', 'layout', 'who does what'],
-    built: { where: ['/standards'], code: ['src/screens/StandardScreen.tsx', 'src/lib/standard.ts'], tests: ['src/lib/__tests__/standard.test.ts'], acceptance: ['line-standard.mjs'] },
+    built: { where: ['/standards'], code: ['src/tools/linestandard/StandardScreen.tsx', 'src/tools/linestandard/standard.ts'], tests: ['src/tools/linestandard/__tests__/standard.test.ts'], acceptance: ['line-standard.mjs'] },
     limits: ['No walking distances (FC-004).'],
   },
   {

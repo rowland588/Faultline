@@ -39,7 +39,7 @@ import { niceDay, isoDay } from '../../lib/weeks';
 import { currentBalance } from '../../lib/studyLinks';
 import { useRoute, nav } from '../../state/useRoute';
 import { UsedFor } from '../../ui/StudyPlace';
-import { peopleOf, type Standard } from '../../lib/standard';
+import { peopleOf, type Standard } from '../linestandard/standard';
 import { type Capacity } from '../linebalance/capacity';
 import { fmtN } from '../linebalance/capacityWords';
 import { aPiece, balance, balanceSays, elementSays, keptLaps, secs, suggest, type BalanceFigures, type PersonFigures } from './balance';

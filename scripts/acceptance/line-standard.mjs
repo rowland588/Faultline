@@ -128,7 +128,7 @@ const paper = await page.evaluate(async id => {
   P.fillText = function (t, x, ...a) { if (String(t).startsWith('W H O')) heads.push(x); return fillText.call(this, t, x, ...a); };
   try {
     const s = (await (await import('/src/db.ts')).listAllStandards()).find(x => x.id === id);
-    await (await import('/src/lib/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026');
+    await (await import('/src/tools/linestandard/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026');
   } finally { P.fill = fill; P.fillRect = fillRect; P.fillText = fillText; }
   return { purple: fills.includes('#7c3aed'), board: rects[0], side: heads[0] };
 }, blankId);
@@ -207,9 +207,9 @@ const card11 = await page.evaluate(async id => {
   P.fill = function (...a) { alphas.push(this.globalAlpha); return fill.apply(this, a); };
   try {
     const s = (await (await import('/src/db.ts')).listAllStandards()).find(x => x.id === id);
-    await (await import('/src/lib/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026');
+    await (await import('/src/tools/linestandard/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026');
   } finally { P.fillText = ft; P.fill = fill; }
-  const { shortLabel } = await import('/src/lib/standard.ts');
+  const { shortLabel } = await import('/src/tools/linestandard/standard.ts');
   return { tags: texts.filter(t => t === 'BOTTLENECK').length, short: texts.includes(shortLabel('Line lead — runs the bagger and clears every jam')), area: texts.some(t => t.includes('The Basket station')), faded: alphas.some(a => a > 0.2 && a < 0.5) };
 }, blankId);
 ok(card11.tags >= 3 && card11.short && card11.area && card11.faded, `11 the card: the bottleneck tagged on the map and summed up, the area faded, the name short (${JSON.stringify(card11)})`);
@@ -236,7 +236,7 @@ ok(bag12.bottleneck === true && (await page.locator('.ls-bn-words').allInnerText
    sit below the people; an area's tag is outside it, not on its words. */
 for (const shape of ['wide', 'tall']) {
 const crowd = await page.evaluate(async ([ws, shape]) => {
-  const db = await import('/src/db.ts'); const L = await import('/src/lib/standard.ts');
+  const db = await import('/src/db.ts'); const L = await import('/src/tools/linestandard/standard.ts');
   const id = `std-crowd-${shape}-${Date.now()}`, t = Date.now();
   const names = ['Line lead — runs the bagger', 'Op 2 film loader', 'Op 3 tray packer', 'Op 4 tray packer', 'QA — weights and seals', 'Op 6 case erector', 'Op 7 palletiser', 'Fitter', 'Op 9 relief', 'Team leader'];
   const wide = [
@@ -252,7 +252,7 @@ const crowd = await page.evaluate(async ([ws, shape]) => {
   const P = CanvasRenderingContext2D.prototype, ft = P.fillText, arc = P.arc;
   P.fillText = function (txt, x, y, ...a) { texts.push({ t: String(txt), x, y, w: this.measureText(String(txt)).width, font: this.font, align: this.textAlign, base: this.textBaseline }); return ft.call(this, txt, x, y, ...a); };
   P.arc = function (x, y, r, ...a) { arcs.push({ x, y, r }); return arc.call(this, x, y, r, ...a); };
-  try { await (await import('/src/lib/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026'); } finally { P.fillText = ft; P.arc = arc; }
+  try { await (await import('/src/tools/linestandard/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026'); } finally { P.fillText = ft; P.arc = arc; }
   return { texts, arcs, names };
 }, [sd.wsId, shape]);
 {
@@ -316,7 +316,7 @@ const crowd = await page.evaluate(async ([ws, shape]) => {
   ok(rows >= 10, `14c the wrapper's box as tall as what is written (${rows} lines), not two`);
 
   /* the card cuts and says where; the notes page prints it whole */
-  const pages = await page.evaluate(async id => { const db = await import('/src/db.ts'); const C = await import('/src/lib/standardCard.ts'); const st = (await db.listAllStandards()).find(s => s.id === id); return (await C.cardPages(st, 'Line 2', '15 Oct 2026')).length; }, longId);
+  const pages = await page.evaluate(async id => { const db = await import('/src/db.ts'); const C = await import('/src/tools/linestandard/standardCard.ts'); const st = (await db.listAllStandards()).find(s => s.id === id); return (await C.cardPages(st, 'Line 2', '15 Oct 2026')).length; }, longId);
   ok(pages === 2, `14d the card and one notes page (${pages} pages)`);
   await pressPaper(page, /^Line standard card/); await page.waitForTimeout(2500); /* Report ▾ (B4) */
   ok(/2 pages — the card, then its notes in full/.test(await page.locator('.ls-print-acts').innerText()), '14e the preview says it: the card, then its notes');
@@ -332,7 +332,7 @@ const crowd = await page.evaluate(async ([ws, shape]) => {
     const written = [];
     const orig = CanvasRenderingContext2D.prototype.fillText;
     CanvasRenderingContext2D.prototype.fillText = function (t, ...a) { written.push(String(t)); return orig.call(this, t, ...a); };
-    try { const db = await import('/src/db.ts'); const C = await import('/src/lib/standardCard.ts'); const st = (await db.listAllStandards()).find(s => s.id === id); await C.cardPages(st, 'Line 2', '15 Oct 2026'); }
+    try { const db = await import('/src/db.ts'); const C = await import('/src/tools/linestandard/standardCard.ts'); const st = (await db.listAllStandards()).find(s => s.id === id); await C.cardPages(st, 'Line 2', '15 Oct 2026'); }
     finally { CanvasRenderingContext2D.prototype.fillText = orig; }
     return written.join(' ').replace(/\s+/g, ' ');
   }, longId);
@@ -366,7 +366,7 @@ const crowd = await page.evaluate(async ([ws, shape]) => {
   ok((await recL()).marks.find(m => m.id === 's-grade').dir === 'up' && await page.locator('.ls-shape-t.is-up', { hasText: 'Grading' }).count() === 1, '14k Upwards chosen on a wide shape: kept, and written up it');
 
   /* a map with nothing long prints one page, as before */
-  const short = await page.evaluate(async id => { const db = await import('/src/db.ts'); const C = await import('/src/lib/standardCard.ts'); const st = (await db.listAllStandards()).find(s => s.id === id); return (await C.cardPages(st, 'Line 2', '15 Oct 2026')).length; }, blankId);
+  const short = await page.evaluate(async id => { const db = await import('/src/db.ts'); const C = await import('/src/tools/linestandard/standardCard.ts'); const st = (await db.listAllStandards()).find(s => s.id === id); return (await C.cardPages(st, 'Line 2', '15 Oct 2026')).length; }, blankId);
   ok(short === 1, `14l a map with nothing long is one page (${short})`);
 }
 

@@ -35,7 +35,7 @@ import { can as canAt, type Can } from '../../lib/access';
 import { now, uid } from '../../lib/ids';
 import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
-import { peopleOf, type Standard } from '../../lib/standard';
+import { peopleOf, type Standard } from '../linestandard/standard';
 import {
   actionWords, agreedFor, availableOf, changeoversPer, changeoverSays, checklistOf, CONVERT_HOW, extrapolate, extrapolationSays, figuresOf, FN_WORD, FNS, functionSays,
   HOW_WORD, intervalOf, intervalSays, ladderOf, ladderSays, lineRateOf, mins, moneyOf, patternFromShifts, planWords, rateFromWords, runMinOf, runningOf, runningWords, span,

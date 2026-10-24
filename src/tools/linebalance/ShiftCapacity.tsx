@@ -23,7 +23,7 @@ import { fmtN, oneOf } from './capacityWords';
 import { changeoverIn } from '../changeover/changeover';
 import { studyHref } from '../../lib/studyLinks';
 import type { StandardChangeover, ToolStudy } from '../../lib/study';
-import { headcount, type Standard } from '../../lib/standard';
+import { headcount, type Standard } from '../linestandard/standard';
 
 export interface ShiftInputs { shifts?: ShiftIn[]; co?: ChangeoverIn; smed?: ToolStudy }
 

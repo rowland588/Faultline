@@ -53,7 +53,7 @@ Packing-line roles; a sandwich assembly line's stations; hygiene's cleandown sta
 - [textbook] Ohno, T. (1988), *Toyota Production System*, Productivity Press.
 
 ## In Faultline
-The chart is the Line standard (`src/screens/StandardScreen.tsx`,
+The chart is the Line standard (`src/tools/linestandard/StandardScreen.tsx`,
 `scripts/acceptance/line-standard.mjs`); the combination table is approached
 by the Line balance (FC-032, elements against takt) without walking and
 machine time drawn (FC-007, partly); the capacity sheet is Line capacity (FC-034).

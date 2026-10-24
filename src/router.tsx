@@ -38,7 +38,7 @@ const Landing = lazy(() => import('./screens/Landing').then(m => ({ default: m.L
 const LeverTree = lazy(() => import('./screens/LeverTree').then(m => ({ default: m.LeverTree })));
 const BoardScreen = lazy(() => import('./screens/BoardScreen').then(m => ({ default: m.BoardScreen })));
 const ParetoScreen = lazy(() => import('./screens/ParetoScreen').then(m => ({ default: m.ParetoScreen })));
-const StandardScreen = lazy(() => import('./screens/StandardScreen').then(m => ({ default: m.StandardScreen })));
+const StandardScreen = lazy(() => import('./tools/linestandard/StandardScreen').then(m => ({ default: m.StandardScreen })));
 const NotesScreen = lazy(() => import('./screens/NotesScreen').then(m => ({ default: m.NotesScreen })));
 const ClientReportScreen = lazy(() => import('./screens/ClientReportScreen').then(m => ({ default: m.ClientReportScreen })));
 const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => ({ default: m.PaceExecReport })));

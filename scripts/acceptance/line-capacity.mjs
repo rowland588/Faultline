@@ -439,7 +439,7 @@ let TRAY;
      the closing line as lib/capacityLean reads them, and the same on paper */
   {
     const want = await page.evaluate(async id => {
-      const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) }; const S = await import('/src/lib/standard.ts');
+      const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) }; const S = await import('/src/tools/linestandard/standard.ts');
       const P = await import('/src/tools/linebalance/capacityPaper.ts'); const L = await import('/src/tools/linebalance/capacityLean.ts'); const T = await import('/src/lib/together.ts');
       const st = await db.getStandard(id); const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
       const lean = L.capacityLean(P.capacityPaper({ product: st.product, line: ws?.name ?? '', printed: '', capacity: st.capacity,

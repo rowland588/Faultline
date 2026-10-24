@@ -4,7 +4,7 @@
    attached." */
 import { describe, expect, it } from 'vitest';
 import { MAPS } from '../mappers';
-import type { Standard } from '../../lib/standard';
+import type { Standard } from '../../tools/linestandard/standard';
 
 const s: Standard = {
   id: 'st1', projectId: '', workspaceId: '11111111-1111-1111-1111-111111111111', product: 'Maris Piper 2kg', marks: [],

@@ -16,7 +16,7 @@ import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
 import type { Material } from '../lib/materials';
 import type { Program } from '../lib/programs';
-import type { Standard } from '../lib/standard';
+import type { Standard } from '../tools/linestandard/standard';
 import type { ToolStudy } from '../lib/study';
 import type {
   Tombstone, PaceSnapshotRow, PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow,

@@ -19,7 +19,7 @@ import { allPaceLines, chainForWorkspace, getWorkspace, listObservations, listSt
 import { currentLosses, lossCardLine, studyHref, type StudyContext } from '../lib/studyLinks';
 import { firstCount, rateOf, type RateOf } from '../tools/losses/losses';
 import type { Capacity } from '../tools/linebalance/capacity';
-import type { Standard } from '../lib/standard';
+import type { Standard } from '../tools/linestandard/standard';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import type { ToolStudy } from '../lib/study';

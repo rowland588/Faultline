@@ -28,7 +28,7 @@ import { dualOf, lineFacts, lineTypesOffered, linesSaid, productionLines } from 
 import { WorkspaceProvider } from '../state/WorkspaceProvider';
 import { StudySetupSheet } from '../ui/StudySetupSheet';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone } from '../lib/snagsReport';
-import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../lib/standard';
+import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../tools/linestandard/standard';
 import { lineProblems, lineProblemsSaid } from '../lib/lineWork';
 import { lineClosing, lineTiles, type LineReading } from '../lib/lineLean';
 import { lineDay } from '../lib/lineLoss';

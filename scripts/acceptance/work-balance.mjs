@@ -76,7 +76,7 @@ const person = who => page.locator('.wb-person').filter({ has: page.locator('h3'
 const truth = (standardId, studyId) => page.evaluate(async ([sid, id]) => {
   const { listAllStudies, getStandard } = await import('/src/db.ts');
   const B = await import('/src/tools/linework/balance.ts'); const L = await import('/src/lib/studyLinks.ts');
-  const { peopleOf } = await import('/src/lib/standard.ts');
+  const { peopleOf } = await import('/src/tools/linestandard/standard.ts');
   const all = await listAllStudies();
   const s = id ? all.find(x => x.id === id) : L.currentBalance(all, sid);
   const st = await getStandard(sid);
@@ -164,7 +164,7 @@ await page.locator('.ls-balance-line').nth(1).waitFor({ timeout: 10000 }).catch(
   const wantWork = await page.evaluate(async sid => {
     const { listAllStudies, getStandard } = await import('/src/db.ts');
     const { workOf } = await import('/src/tools/linework/WorkBalance.tsx'); const L = await import('/src/lib/studyLinks.ts');
-    const { peopleOf } = await import('/src/lib/standard.ts');
+    const { peopleOf } = await import('/src/tools/linestandard/standard.ts');
     const st = await getStandard(sid);
     return workOf(L.currentBalance(await listAllStudies(), sid), peopleOf(st).length || undefined)?.text;
   }, SID);
@@ -272,7 +272,7 @@ ok(has('Before') && has(want.slice(0, 50)), '9 the client report: the fix carrie
   {
     const want = await page.evaluate(async id => {
       const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); const K = await import('/src/tools/linework/balanceLink.ts');
-      const N = await import('/src/tools/linework/balanceLean.ts'); const D = await import('/src/lib/standard.ts');
+      const N = await import('/src/tools/linework/balanceLean.ts'); const D = await import('/src/tools/linestandard/standard.ts');
       const st = await db.getStandard(id); const b = S.currentBalance(await db.listAllStudies(), id); const f = K.studyBalance(b);
       const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
       const a = K.agreedFor(b.agreed?.balance, st.capacity, !!b.closedAt);

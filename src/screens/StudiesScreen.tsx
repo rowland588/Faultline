@@ -19,7 +19,7 @@ import { useInProject } from '../lib/useInProject';
 import { inScope, startLine, type ProjectScope } from '../lib/inProject';
 import { ProjectScopeChips } from '../ui/ProjectScope';
 import { useArchivedPlaces } from '../lib/useFactoryLines';
-import type { Standard } from '../lib/standard';
+import type { Standard } from '../tools/linestandard/standard';
 import { useProjects } from '../lib/useProjects';
 import { useMachinesOf } from '../lib/useLineRecords';
 import { now, uid } from '../lib/ids';

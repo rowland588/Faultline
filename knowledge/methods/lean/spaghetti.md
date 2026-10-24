@@ -45,4 +45,4 @@ Packers fetching film reels and cases; hygiene staff between stations.
 - [textbook] Kanawaty, G. (ed.) (1992), *Introduction to Work Study*, 4th ed., ILO — string diagram.
 
 ## In Faultline
-Not built (FC-004); the line standard draws where people stand (`src/screens/StandardScreen.tsx`).
+Not built (FC-004); the line standard draws where people stand (`src/tools/linestandard/StandardScreen.tsx`).

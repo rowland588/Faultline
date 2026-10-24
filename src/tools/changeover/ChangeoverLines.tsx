@@ -14,7 +14,7 @@ import { getStudy, listAllStudies, onDataChange, putStudy } from '../../db';
 import { now, uid } from '../../lib/ids';
 import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
-import type { Standard } from '../../lib/standard';
+import type { Standard } from '../linestandard/standard';
 import type { Can } from '../../lib/access';
 import type { ToolStudy } from '../../lib/study';
 import { standardLine } from './changeover';

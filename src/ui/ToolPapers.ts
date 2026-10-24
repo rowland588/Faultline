@@ -12,8 +12,8 @@
  * picture the screen previews), each printed under the name of the place it
  * sits — its line, or the job a map made inside a job belongs to — in the
  * order the list shows them. */
-import { drawStandards } from '../lib/standardPdf';
-import type { Standard } from '../lib/standard';
+import { drawStandards } from '../tools/linestandard/standardPdf';
+import type { Standard } from '../tools/linestandard/standard';
 
 /** As the card is printed from its own page: "13 Oct 2026". */
 const printedOn = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

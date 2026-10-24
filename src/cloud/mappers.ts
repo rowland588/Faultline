@@ -8,7 +8,7 @@ import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
 import type { Material } from '../lib/materials';
 import type { Program, ProgramState } from '../lib/programs';
-import type { Standard, StandardMark } from '../lib/standard';
+import type { Standard, StandardMark } from '../tools/linestandard/standard';
 import { factsOf, listById, type StudyUse, type ToolStudy } from '../lib/study';
 import { footageKeys, forTheCloud } from '../tools/video/footage';
 import type { Segment, SnagAsset, Snag } from '../snag/types';

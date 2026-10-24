@@ -20,7 +20,7 @@
  * what it is used for on its job. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getStandard, getStudy, getWorkspace, onDataChange, patchStudy } from '../../db';
-import { peopleOf } from '../../lib/standard';
+import { peopleOf } from '../linestandard/standard';
 import { useAccess } from '../../cloud/access';
 import { useSession } from '../../cloud/session';
 import { displayName } from '../../cloud/team';
