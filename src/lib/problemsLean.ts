@@ -7,9 +7,9 @@
  * High amber, Low green, always with the word (Rowland's own RAG exception,
  * 12 October, CLAUDE.md) — what is late, and what is done. On the page they
  * are its chips, each a filter, so the page grows no second row; the paper
- * prints them as tiles. No money yet: what a problem costs while it is open
- * is not asked anywhere (docs/BLUEPRINT.md §6, Money in every tool), and a
- * tile with an invented figure would be worse than none.
+ * prints them as tiles. Money since 24 October (FC-154): the closing line
+ * carries what the open problems that say their minutes cost the line a day
+ * (lib/problemCost registerCost) — never a tile with an invented figure.
  *
  * The closing line names the worst open problem — the first critical, else
  * the first late — and where it is: what one side can say to the other. */
@@ -42,8 +42,10 @@ export function registerClosing(r: SnagsReading): { text: string; tone: LeanTone
   if (!open) return { text: c.closed + c.jobDone ? `No problem open — ${c.closed + c.jobDone} put right.` : 'No problems written down yet.', tone: c.closed + c.jobDone ? 'g' : 'n' };
   const w = worst(r);
   const lead = `${open} ${plural(open, 'problem')} open${c.critical ? ` — ${c.critical} critical` : ''}${late ? `${c.critical ? ',' : ' —'} ${late} late` : ''}`;
+  /* what the open ones that say their minutes cost the line a day (lib/problemCost, FC-154) — one output after the worst, never the lead */
+  const money = r.cost?.words ? ` ${r.cost.words}` : '';
   return {
-    text: w ? `${lead}; the first to put right: “${w.what}” on ${w.where}${w.late ? ', past its day' : ''}.` : `${lead}, none critical or late.`,
+    text: (w ? `${lead}; the first to put right: “${w.what}” on ${w.where}${w.late ? ', past its day' : ''}.` : `${lead}, none critical or late.`) + money,
     tone: c.critical || late ? 'r' : c.high ? 'a' : 'n',
   };
 }

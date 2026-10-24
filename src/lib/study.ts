@@ -222,6 +222,11 @@ export interface AgreedMap {
   /** The customer and the supplier — the two ends of the stream. */
   customer?: string;
   supplier?: string;
+  /** MONEY (knowledge/specs/FC-001-value-stream-money.md, 24 October — every cost optional, the
+   *  missing one named): what a piece has cost by the time it waits (£), and the business's
+   *  carrying rate a year (%) — capital, storage, service and risk; no default. */
+  pieceCost?: number;
+  carryingRatePerYear?: number;
 }
 
 /** SMED (docs/TOOLKIT.md, tool 6 — stored as `changeover`): one ELEMENT of

@@ -11,7 +11,8 @@
  * roles, with the headcount counted off the people. */
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import type { Project } from '../../types';
-import { framesForProject, getProject, getWorkspace, listSnagAssets, putBlob, putStandard, followStandard } from '../../db';
+import { framesForProject, getProject, getWorkspace, listSnagAssets, onDataChange, putBlob, putStandard, followStandard } from '../../db';
+import { standardMoney, standardMoneySays, type LineCost } from './standardMoney';
 import { nav, useRoute } from '../../state/useRoute';
 import { uid, now } from '../../lib/ids';
 import { pdfFileName } from '../../lib/fileName';
@@ -361,6 +362,16 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
   const url = useBlobUrl(s.photoKey);
   const [tool, setTool] = useState<Tool>({ t: 'icon', kind: 'person' });
   const [marks, setMarks] = useState<StandardMark[]>(s.marks);
+  /* WHAT THE PEOPLE PLACED COST (knowledge/specs/FC-006-line-standard-money.md): the line's wage,
+     on-costs and rated speed, read live — a wage given on Set up the line while the map is open
+     reaches the sentence, as the value stream's does */
+  const [lineCost, setLineCost] = useState<LineCost | undefined>(undefined);
+  useEffect(() => {
+    if (!s.workspaceId) { setLineCost(undefined); return; }
+    const read = () => { void getWorkspace(s.workspaceId as string).then(w => setLineCost(w ? { crew: w.crew, labourRatePerHour: w.labourRatePerHour, labourBurden: w.labourBurden, packsPerMin: w.packsPerMin } : undefined)); };
+    read();
+    return onDataChange(read);
+  }, [s.workspaceId]);
   /* NAMES ON THE MAP — short, full or numbers; how this device shows the map,
      not a fact about it, so it is kept here, never on the record */
   const [labels, setLabelsState] = useState<LabelMode>(labelModeHere);
@@ -802,6 +813,8 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
 
         <aside className="ls-side">
           <div className="ls-count"><b>{people.length}</b><span>{people.length === 1 ? 'person on this product' : 'people on this product'}</span></div>
+          {/* what they cost — one output beside the count, never the headline (FC-006; CLAUDE.md, 24 October) */}
+          <p className="ie-say ie-money ls-money">{standardMoneySays(standardMoney({ marks, ...(s.capacity ? { capacity: s.capacity } : {}) }, lineCost))}</p>
           {/* THE BOTTLENECK, in words, first (13 October: "a little summary
               there saying ... bottleneck ... this area is this person's") */}
           {bottlenecksOf({ marks }).length > 0 && (

@@ -32,6 +32,9 @@ node scripts/catalogue.mjs check                       # the catalogue's and the
 ```
 
 Or grep: every record is plain Markdown with the same ten headings.
+`knowledge/SOURCES.md` is the shelf — the books Rowland has given, what each
+was checked against and which records it feeds; `knowledge/MONEY.md` is the
+money model: the cost causation every catalogue tool says its finding in.
 
 ## A method record
 

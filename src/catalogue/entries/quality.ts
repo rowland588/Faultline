@@ -386,7 +386,9 @@ export const QUALITY: Entry[] = [
     depends: ['FC-081', 'FC-194'],
     complexity: 'L', value: 'high', valueWhy: 'The page Rowland reports from.',
     status: 'available', form: 'tool', kind: 'register', methods: ['visual.action-tracking'], scenarios: ['daily', 'running', 'new'], words: ['problems', 'issues', 'snags', 'register'],
-    built: { where: ['/snags'], code: ['src/snag/QuickSnagsScreen.tsx', 'src/lib/snagsReport.ts'], tests: ['src/lib/__tests__/snagsReport.test.ts'], acceptance: ['snags.mjs'] },
+    spec: 'knowledge/specs/FC-154-problem-cost.md',
+    built: { where: ['/snags'], code: ['src/snag/QuickSnagsScreen.tsx', 'src/lib/snagsReport.ts', 'src/lib/problemCost.ts'], tests: ['src/lib/__tests__/snagsReport.test.ts', 'src/lib/__tests__/problemCost.test.ts'], acceptance: ['snags.mjs'] },
+    limits: ['Its money is the time a problem costs the line (labour; packs and contribution where it stops the line); the rejects it causes and the product it holds are not priced yet (knowledge/MONEY.md, FC-154).', 'A project’s own problems (on its board) say no money yet.'],
   },
   {
     id: 'FC-155', name: 'Horizontal deployment — a proved fix offered to every line with the same machine', discipline: 'rca', sub: 'spread',

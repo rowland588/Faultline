@@ -18,12 +18,14 @@
 import { useEffect, useState } from 'react';
 import { getWorkspace, listAllStudies, onDataChange } from '../../db';
 import { nav } from '../../state/useRoute';
-import { analyse, fmtMoney, labourCost, labourInputs, shiftCapacity, shiftsIn, type CapacityResult, type ChangeoverIn, type ShiftIn } from './capacity';
-import { fmtN, oneOf } from './capacityWords';
+import { analyse, shiftCapacity, shiftsIn, type CapacityResult, type ChangeoverIn, type ShiftIn } from './capacity';
+import { fmtN } from './capacityWords';
 import { changeoverIn } from '../changeover/changeover';
 import { studyHref } from '../../lib/studyLinks';
 import type { StandardChangeover, ToolStudy } from '../../lib/study';
-import { headcount, type Standard } from '../linestandard/standard';
+import type { Standard } from '../linestandard/standard';
+import { standardMoney, standardMoneySays } from '../linestandard/standardMoney';
+import type { CardFacts } from '../linestandard/standardCard';
 
 export interface ShiftInputs { shifts?: ShiftIn[]; co?: ChangeoverIn; smed?: ToolStudy }
 
@@ -94,21 +96,23 @@ export function ShiftCapacityView({ r, inputs }: { r: CapacityResult; inputs: Sh
 }
 
 /** The card at the line's one line for each standard (lib/standardCard) —
- *  capacity a shift, short — read once for the paper, beside worksFor. */
-export async function shiftShortsFor(list: Pick<Standard, 'id' | 'workspaceId' | 'capacity' | 'marks'>[]): Promise<Record<string, string | undefined>> {
+ *  capacity a shift, short, and what the people placed cost (one module,
+ *  tools/linestandard/standardMoney — the same sentence the map's page says;
+ *  knowledge/specs/FC-006-line-standard-money.md) — read once for the paper,
+ *  beside worksFor. The money is said for every standard, Line capacity or
+ *  not; the shift only where the product's capacity can be counted. */
+export async function shiftShortsFor(list: Pick<Standard, 'id' | 'workspaceId' | 'capacity' | 'marks'>[]): Promise<Record<string, CardFacts | undefined>> {
   const all = await listAllStudies();
-  const out: Record<string, string | undefined> = {};
+  const out: Record<string, CardFacts | undefined> = {};
   for (const s of list) {
-    if (!s.capacity?.stations.length) continue;
-    const r = analyse(s.capacity);
-    if (!r.limit) continue;
     const ws = s.workspaceId ? await getWorkspace(s.workspaceId) : undefined;
-    const shift = shiftCapacity(r, shiftsIn(ws?.shifts), changeoverIn(s.capacity.changeovers, all, s.id))?.short;
-    /* WHAT A PACK COSTS IN LABOUR, on the same line of the card (lib/capacity labourCost) */
-    const li = labourInputs(s.capacity, headcount(s), ws);
-    const lc = labourCost(r, li.people, li.rate);
-    const cost = lc ? `${fmtMoney(lc.perPack)} a ${oneOf(r.unit)} in labour — ${lc.people} ${lc.people === 1 ? 'person' : 'people'} at ${fmtMoney(li.rate ?? 0)} an hour` : undefined;
-    out[s.id] = [shift, cost].filter(Boolean).join(' · ') || undefined;
+    const money = standardMoneySays(standardMoney(s, ws));
+    let shift: string | undefined;
+    if (s.capacity?.stations.length) {
+      const r = analyse(s.capacity);
+      if (r.limit) shift = shiftCapacity(r, shiftsIn(ws?.shifts), changeoverIn(s.capacity.changeovers, all, s.id))?.short;
+    }
+    out[s.id] = { ...(shift ? { shift } : {}), money };
   }
   return out;
 }

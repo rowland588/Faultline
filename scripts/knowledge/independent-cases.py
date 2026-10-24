@@ -197,3 +197,30 @@ def rejects(n, waste, rework, recovered, packs, m, r, shifts_week):
     return dict(failed=packs * (waste + rework + recovered) / n, waste=pw, waste_gbp=pw * m, rework=pr, rework_gbp=pr * r, recovered=ph, shift_gbp=pw * m + pr * r, week_gbp=(pw * m + pr * r) * shifts_week)
 print("  20 checked, 1 waste + 1 reworked, 10000 a shift, M 0.25, R 0.12, 5 a week ->", rejects(20, 1, 1, 0, 10000, 0.25, 0.12, 5))
 print("  20 checked, 1 recovered ->", rejects(20, 0, 0, 1, 10000, 0.25, 0.12, 5))
+
+# --- money on the value stream (knowledge/specs/FC-001-value-stream-money.md, 24 October) ---
+print("\n# labour on waste work a day: sum(cycle/batch x people) x demand x rate/3600; the seeded line map, GBP 15 x 1.3")
+steps = [(900, 9600, 2), (90, 500, 2), (600, 4800, 2), (60, 120, 1)]
+pp = sum(c / b * p for c, b, p in steps); sec = pp * 9600
+print(f"  person-s a piece {pp:.4f}; a day {sec:.0f} s = {sec/3600:.2f} h; GBP {sec/3600*19.5:.2f}")
+print("\n# waiting product: Little's law pieces = demand x wait/available; tied up x cost a piece; carried x rate/365")
+qa = 9600 * (6 * 3600) / (16 * 3600); film = 9600 * (4 * 3600) / (16 * 3600)
+print(f"  QA hold {qa:.0f} pieces, GBP {qa*0.8:.0f}; film wait {film:.0f}, GBP {film*0.8:.0f}; tied up {(qa+film)*0.8:.0f}; carry a day at 25% {(qa+film)*0.8*0.25/365:.2f}")
+print(f"  counted queue 19200 x 0.8 = {19200*0.8:.0f}")
+
+# --- money on the line standard (knowledge/specs/FC-006-line-standard-money.md, 24 October) ---
+print("\n# the people placed x one's rate (wage x on-costs) = GBP an hour; over the packs an hour = a pack")
+def placed(n, wage=14.5, burden=1.3, per_min=100):
+    h = n * wage * burden; return h, h / (per_min * 60) * 100  # GBP an hour, pence a pack
+print("  1 person, 14.50 x 1.3, 100 a minute ->", placed(1))
+print("  12 people ->", placed(12))
+print("  4 people, Line capacity 120 cases a minute ->", placed(4, per_min=120))
+print("  6 people typed on Line capacity at GBP 20, 120 a minute ->", placed(6, wage=20, burden=1, per_min=120))
+
+# --- what a problem costs the line while it is open (knowledge/specs/FC-154-problem-cost.md, 24 October) ---
+print("\n# minutes a day x the crew's rate = labour; where it stops the line, minutes x rated speed = packs, x contribution a pack")
+def open_cost(minutes, crew=4, wage=14.5, burden=1.3, per_min=100, margin=0.04, stops=True):
+    lab = minutes / 60 * crew * wage * burden; packs = minutes * per_min if stops else None
+    return lab, packs, (packs * margin if packs is not None else None)
+print("  20 min at the bottleneck ->", open_cost(20)); print("  20 min off the bottleneck ->", open_cost(20, stops=False)); print("  7.5 min on the line ->", open_cost(7.5))
+print("  the register: 20 + 10 (off the bottleneck) ->", open_cost(20)[0] + open_cost(10, stops=False)[0], "labour;", open_cost(20)[2], "contribution")

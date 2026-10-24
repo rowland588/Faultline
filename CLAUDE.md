@@ -448,12 +448,12 @@ node scripts/acceptance/stagegate-walk.mjs    # the stage gate walked: five site
 node scripts/acceptance/ecosystem-capability.mjs  # release 2: a study, a line, a job, a fix, before → after, the report
 node scripts/acceptance/work-balance.mjs  # the line balance: its own page, timed on the phone (Undo, Skip, the whole screen), stacked against takt, on a job, before → after; linked to Line capacity (a station takes its person's time, the takt from the target), what the bottleneck costs, All together and its paper, the list and its paper
 node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a cause's evidence, a countermeasure, before → after, the 6M report; and the 6M loop's ends (flow audit): a missed check chased, a shift counted as a reading, the constraint from Line capacity, Use it for by machine, suggestions about the problem, the status page first
-node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
+node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone; in money (24 October, FC-001): the waste steps' labour a day from the line's rate, the product waiting tied up and carried at the typed cost a piece and rate, a missing input named
 node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own; Lap with who, Shingo's stages on the grid, the plate speed, what the changeovers cost, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix, the 6M line's card, the fishbone, the 6M report
 node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers; the lean page — the band, the tiles since the count before, the trend, the action plan, the closing line, and its one page of paper
 node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked; a person as the floor says them (what reaches them, keeping up, people needed); each tool its own products; the phone; what a pack costs in labour and one more person at the bottleneck; renamed and deleted where it sits, its map kept
-node scripts/acceptance/line-standard.mjs  # the line standard's board: the page scrolls off it, a tap places, a drag moves, people's colours, a tall board, full screen; the bottleneck said (a person, an area faded), names short with the words on the right — screen and card; a tall board's card a frame of its own shape; a crowded line on paper, wide and tall — no name crossing another or covering a person, everyone named, the note and kit below them, an area's tag clear of its words
+node scripts/acceptance/line-standard.mjs  # the line standard's board: the page scrolls off it, a tap places, a drag moves, people's colours, a tall board, full screen; the bottleneck said (a person, an area faded), names short with the words on the right — screen and card; a tall board's card a frame of its own shape; a crowded line on paper, wide and tall — no name crossing another or covering a person, everyone named, the note and kit below them, an area's tag clear of its words; what the people placed cost (24 October, FC-006) — the page's sentence the module's, the wage taken off and back without a reload, a Line capacity's speed in its unit, the card's foot the same, the phone
 node scripts/acceptance/program-delete.mjs  # a deleted test forgotten by its program (no day, no link, no proof), a deleted program taking its booked tests with it and one Undo, a line's own program changed and deleted on the job's Programs and still gone after a reload
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
 node scripts/acceptance/snags.mjs  # Problems: the register — every problem written and edited where it sits, assigned not moved, its journey, a photo marked, on paper (a card for every problem among it), a fresh start
@@ -603,7 +603,12 @@ group and a project's group on paper as a report and as a card each, and
 the project's own page's
 report and cards; Start fresh putting every
 problem away with none deleted, the page saying so, and one then all
-brought back; and the phone.
+brought back; and the phone. Then what a problem costs the line while it is
+open (24 October, FC-154): the minutes a day typed and kept, the sentence the
+module's — the wage named when the line lacks it, then labour, packs and
+contribution without a reload, a machine off the bottleneck labour only and
+said why — the row's short form, the closing line's sum, the card, the
+report, the phone.
 `programs.mjs` is a program's status with commentary (Rowland, 12 October:
 "we need option not tested, and no program, and allow commentary"): the five
 statuses offered, not tested kept with what was seen and the program not
@@ -1018,6 +1023,29 @@ give it — never a blank, never an invented figure. The merged view (All
 together) carries one cost line per tool, plainly labelled; it adds none of
 its own. Where money is still missing is listed in `docs/BLUEPRINT.md` §6
 (Money in every tool), and the next piece of work closes it tool by tool.
+
+And, 24 October, the rule for every tool there is and every tool to come:
+"all tools made or that will be made will have cost in if possible if the
+costs calculations exist to the industry standards and the methodologies
+that we are using. The cost is merely one of the outputs we have, it's not
+the main part of any tool, it's to express a cost where there is one. If you
+make a calculation but the user doesn't have that information then the app
+must handle it gracefully, don't block anything. It's merely a piece of the
+information that's missing ... you will look at all of the tools we have and
+what we will make ... start to build the correct calculations for all of the
+tools, then we will build every tool ... our industry is manufacturing, our
+domain is FMCG, fast moving consumer goods, with a primary food
+manufacturing." So **`knowledge/MONEY.md` is the money model**: every
+catalogue entry with the industry-standard cost causation its finding is
+said in (lean accounting's value stream costing, throughput accounting, the
+cost of quality's four buckets, inventory carrying cost, engineering
+economics — each with its source), the inputs it needs, every one optional,
+and the sentence said when one is missing. A tool's cost is one output
+among its own units, never its verdict; a missing input is named and nothing
+waits on it; no causation is invented where the industry has none, and the
+entry says so. A tool is specified with its money line (the spec's
+*Established · assumed · chosen*) and built with it, through the
+`faultline-tool` skill.
 
 A FIFTH CONCEPT IS ALMOST ALWAYS THE WRONG ANSWER. `src/lib/testing.ts` says it
 about tests and it holds everywhere: if something needs a new noun to explain

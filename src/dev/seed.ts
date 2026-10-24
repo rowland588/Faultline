@@ -41,6 +41,8 @@ const uid = () => crypto.randomUUID();
 
 export interface Seeded {
   wsId: string;
+  /** The open problem pinned on the walk (the register's editor opens it: #/snags?open=). */
+  snagId: string;
   projectId: string;
   lineId: string;
   caseId: string;
@@ -181,6 +183,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const asset: SnagAsset = { id: uid(), workspaceId: ws.id, segmentId: seg.id, name: 'Former roller', code: 'FR-1', timestampS: 12, stillKey: `seed-still-${uid()}`, createdAt: t, updatedAt: t };
   await addSnagAsset(asset);
 
+  let snagId = '';
   for (let i = 0; i < 3; i++) {
     const s: Snag = {
       id: uid(), workspaceId: ws.id, assetId: asset.id,
@@ -189,6 +192,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       raisedAt: t - i * 86_400_000, xPct: 40, yPct: 50, owner: 'Dave',
       linkedObsIds: [], updatedAt: t,
     };
+    if (i === 0) snagId = s.id;
     await addSnag(s);
   }
 
@@ -965,7 +969,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const qaStep = uid(), mapFixId = uid(), mapProofId = uid();
   await putStudy({ id: lineMapId, tool: 'map', name: 'Run released to pallet away — Maris Piper 2kg', product: 'Maris Piper 2kg',
     workspaceId: ws.id, standardId: lineOnly, projectId: proj.id,
-    agreed: { map: { scope: 'line', supplier: 'Run released', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H } },
+    agreed: { map: { scope: 'line', supplier: 'Run released', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H, pieceCost: 0.8, carryingRatePerYear: 25 } },
     facts: { flow: [
       fs(0, 'Release the run to the line', 'Planning', 'operation', { who: ['Planning'], where: 'Office', value: 'needed', cycleSec: 600, batch: 9600, waitSec: 1 * DY, info: 'paper' }),
       fs(1, 'Issue the film and cases', 'Stores', 'move', { who: ['Stores', 'Forklift driver'], where: 'Stores', value: 'waste', cycleSec: 900, batch: 9600, waitSec: 4 * H }),
@@ -1164,7 +1168,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   return {
     videoStudyId,
     talkId,
-    wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
+    wsId: ws.id, snagId, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
     observations: (await listObservations(ws.id)).length,
     snags: (await snagsForWorkspace(ws.id)).length,

@@ -28,14 +28,14 @@ import { can as canAt, type Can } from '../../lib/access';
 import { uid } from '../../lib/ids';
 import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
-import { compareFlows, dur, flowFigures, flowSays, laneByDefault, parseDur, share, stepWorth, valueOf, whereOf, whoOf, type LaneBy } from './steps';
+import { compareFlows, dur, flowFigures, flowMoney, flowMoneySays, flowSays, laneByDefault, parseDur, share, stepWorth, valueOf, whereOf, whoOf, type LaneBy, type LineRate } from './steps';
 import type { AgreedMap, FlowKind, FlowStep, FlowValue, StudyUse, ToolStudy } from '../../lib/study';
 import { KIND_WORD, StepFacts, VALUE_WORD, ValueStreamGrid, WalkIt } from './ValueStream';
 import { UsedFor, useBetter, WhereItSits } from '../../ui/StudyPlace';
 import { StudyBand } from '../../ui/StudyActs';
 import { LeanActions, LeanClosing, LeanPanel } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
-import { flowClosing } from './flowLean';
+import { flowClosing, flowMoneyTiles } from './flowLean';
 import { raisedFrom } from '../losses/lossLean';
 import { recordHref, ROLE_WORD } from '../../lib/studyLinks';
 import { Sheet } from '../../ui/Sheet';
@@ -98,7 +98,17 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   const compare = useMemo(() => (shown === 'future' ? new Map((s.facts.flow ?? []).map(x => [x.id, x])) : undefined), [shown, s.facts.flow]);
   const lanesKnown = useLanes(s);
   const [lineName, setLineName] = useState<string | undefined>(undefined);
-  useEffect(() => { if (s.workspaceId) void getWorkspace(s.workspaceId).then(w => setLineName(w?.name)); }, [s.workspaceId]);
+  /* the line's rate — the one cost model (FC-001's money): read, never typed on the map */
+  const [lineRate, setLineRate] = useState<LineRate | undefined>(undefined);
+  useEffect(() => {
+    if (!s.workspaceId) return;
+    const read = () => void getWorkspace(s.workspaceId as string).then(w => { setLineName(w?.name); setLineRate(w ? { labourRatePerHour: w.labourRatePerHour, labourBurden: w.labourBurden } : undefined); });
+    read();
+    /* the line's wage given on its page while the map is open reaches the money here */
+    return onDataChange(read);
+  }, [s.workspaceId]);
+  const money = useMemo(() => flowMoney(list, a, lineRate), [list, a, lineRate]);
+  const moneySaid = useMemo(() => flowMoneySays(money, a), [money, a]);
   /* MULTI-DIMENSIONAL: the lanes are who does each step, or where it is done;
      either, one tap. A map opens by who (one saved as door-to-door before it
      was removed opens by where, the lanes it was made with). */
@@ -135,9 +145,15 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
         <div className="vs-card2"><span>Cycle time</span><b>{dur(cycleTotal(list))}</b></div>
         <div className="vs-card2 is-lead"><span>Lead time</span><b>{f.untimed ? '≥ ' : ''}{dur(f.leadSec)}</b></div>
         {f.taktSec ? <div className="vs-card2"><span>Takt</span><b>{dur(f.taktSec)}</b></div> : null}
+        {/* IN MONEY (knowledge/specs/FC-001-value-stream-money.md): the labour on waste work a day, and
+            the product waiting — tied up and carried; a missing input named on the card */}
+        {flowMoneyTiles(money, a).map(t => (
+          <div key={t.k} className={'vs-card2 is-money' + (t.v === '—' ? ' is-none' : '')} title={t.of}><span>{t.k}</span><b>{t.v}</b><small>{t.of}</small></div>
+        ))}
       </div>
       <div className="ie-says">
         <p className="ie-say">{said.text}</p>
+        {moneySaid && <p className={'ie-say ie-money is-' + moneySaid.tone}>{moneySaid.text}</p>}
         {shown === 'future' && <p className="ie-say vs-compare"><b>Today → the future:</b> {compareFlows(today, f)}</p>}
         {said.lines.map(l => <p key={l} className="ie-say ie-cap is-n">{l}</p>)}
       </div>
@@ -371,12 +387,18 @@ function Agree({ s, onDone }: { s: ToolStudy; onDone: () => void }) {
   const [customer, setCustomer] = useState(a?.customer ?? '');
   const [demand, setDemand] = useState(a?.demandPerDay ? String(a.demandPerDay) : '');
   const [hours, setHours] = useState(a?.availableSecPerDay ? String(+(a.availableSecPerDay / 3600).toFixed(2)) : '');
-  const d = Number(demand), h = Number(hours);
+  /* MONEY, optional (FC-001; Rowland, 24 October: flexible — not every cost is to hand) */
+  const [pieceCost, setPieceCost] = useState(a?.pieceCost !== undefined ? String(a.pieceCost) : '');
+  const [carryRate, setCarryRate] = useState(a?.carryingRatePerYear !== undefined ? String(a.carryingRatePerYear) : '');
+  const d = Number(demand), h = Number(hours), pc = Number(pieceCost), cr = Number(carryRate);
+  const moneyProblem = (pieceCost.trim() && !(pc > 0)) ? 'What a piece has cost — a number above zero.' : (carryRate.trim() && !(cr > 0 && cr <= 100)) ? 'The carrying rate — a percentage a year, up to 100.' : '';
   const save = () => {
+    if (moneyProblem) return;
     const next: AgreedMap = {
       ...(a?.scope ? { scope: a.scope } : {}),
       ...(supplier.trim() ? { supplier: supplier.trim() } : {}), ...(customer.trim() ? { customer: customer.trim() } : {}),
       ...(demand.trim() && d > 0 ? { demandPerDay: d } : {}), ...(hours.trim() && h > 0 ? { availableSecPerDay: h * 3600 } : {}),
+      ...(pieceCost.trim() && pc > 0 ? { pieceCost: pc } : {}), ...(carryRate.trim() && cr > 0 && cr <= 100 ? { carryingRatePerYear: cr } : {}),
     };
     void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, map: next } }));
     onDone();
@@ -396,6 +418,16 @@ function Agree({ s, onDone }: { s: ToolStudy; onDone: () => void }) {
           <input className="text-input" value={hours} inputMode="decimal" placeholder="e.g. 16" onChange={e => setHours(e.target.value)} /></label>
       </div>
       {d > 0 && h > 0 && <p className="sub">Takt: <b>{dur((h * 3600) / d)}</b> a piece.</p>}
+      <fieldset className="ie-money-agree">
+        <legend className="field-label">In money <i className="sub">optional — the map says what is missing; the labour rate is the line’s own</i></legend>
+        <div className="vs-step-times">
+          <label className="field"><span className="field-label">What a piece has cost by the time it waits (£) <i className="sub">materials at least</i></span>
+            <input className="text-input" value={pieceCost} inputMode="decimal" placeholder="e.g. 0.80" onChange={e => setPieceCost(e.target.value)} /></label>
+          <label className="field"><span className="field-label">Carrying rate, a year (%) <i className="sub">capital, storage, insurance, risk — many sit between 15 and 35</i></span>
+            <input className="text-input" value={carryRate} inputMode="decimal" placeholder="e.g. 25" onChange={e => setCarryRate(e.target.value)} /></label>
+        </div>
+        {moneyProblem && <p className="ie-problem">{moneyProblem}</p>}
+      </fieldset>
       <div className="vs-step-acts">
         <button type="submit" className="btn btn-primary">Agree it</button>
         <button type="button" className="btn btn-ghost" onClick={onDone}>Cancel</button>

@@ -62,6 +62,8 @@ function snagParts(f: Frame, r: SnagRow): Parts {
     /* what we will do, then the journey — on a day, what we did and what came of it */
     note: [
       ...(r.plan ? wrap(f.doc, san(`Plan: ${r.plan}`), tw, 8.5) : []),
+      /* what it costs the line a day while it is open (lib/problemCost, FC-154) */
+      ...(r.cost ? wrap(f.doc, san(r.cost.words), tw, 8.5) : []),
       ...r.journey.flatMap(j => wrap(f.doc, san(`${j.day} — ${j.did}${j.result ? ` — ${j.result}` : ''}`), tw, 8.5)),
       ...(r.update ? wrap(f.doc, san(`Latest: ${r.update}`), tw, 8.5) : []),
     ],

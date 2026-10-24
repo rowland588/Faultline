@@ -755,6 +755,61 @@ const ids = await page.evaluate(async () => {
   await page.setViewportSize({ width: 1360, height: 900 });
 }
 
+/* ---- 19 WHAT A PROBLEM COSTS THE LINE while it is open (knowledge/specs/FC-154-problem-cost.md; CLAUDE.md, 24 October:
+   "the cost is merely one of the outputs ... don't block anything"): one number typed — the minutes a day — said in money
+   by the line's cost model in the loss count's two parts; the wage, speed and margin named when the line lacks them;
+   on the row, the editor, the closing line, the card and the report; the phone. ---- */
+{
+  const MOD = '/src/lib/problemCost.ts';
+  const said = async id => page.evaluate(async ([id, MOD]) => { const db = await import('/src/db.ts'); const M = await import(MOD); const { neckOf } = await import('/src/lib/lineLoss.ts');
+    const s = (await db.listAllSnags()).find(x => x.id === id); const ws = await db.getWorkspace(s.workspaceId);
+    const frames = s.assetId ? await db.listSnagAssets(s.workspaceId) : []; const machine = s.assetId ? frames.find(a => a.id === s.assetId)?.name : s.targetAsset;
+    return M.problemCost(s, machine, ws, neckOf(await db.listAllStandards(), s.workspaceId)); }, [id, MOD]);
+  const ws0 = await page.evaluate(async id => (await import('/src/db.ts')).getWorkspace(id), sd.wsId);
+  const setLine = async ws => { await page.evaluate(async ws => { const db = await import('/src/db.ts'); await db.updateWorkspace(ws); }, ws); await page.waitForTimeout(1500); };
+  const { crew: _c, labourRatePerHour: _w, labourBurden: _b, packsPerMin: _p, marginPerPack: _m, ...bare } = ws0; void [_c, _w, _b, _p, _m];
+  await setLine(bare);
+  /* two problems of the line's own: one on no machine (it stops the line), one at the Bagger — not the bottleneck (the Packer is, Line capacity's) */
+  const two = await page.evaluate(async ws => { const db = await import('/src/db.ts'); const t = Date.now();
+    const mk = p => ({ id: crypto.randomUUID(), workspaceId: ws, status: 'open', raisedAt: t - 3600_000, updatedAt: t, media: [], ...p });
+    const a = mk({ problem: 'Guard switch drops the line out twice a shift' }), b = mk({ problem: 'Bagger film splice by hand', targetAsset: 'Bagger' });
+    await db.addSnag(a); await db.addSnag(b); return { a: a.id, b: b.id }; }, sd.wsId);
+  await go('#/snags');
+  const peA = await openUp('Guard switch drops the line out');
+  const box = peA.getByLabel('Minutes a day it costs the line');
+  await box.fill('20'); await box.blur(); await page.waitForTimeout(900);
+  let c = await said(two.a), t = await words('.pe-cost', peA);
+  const sA = (await truth()).all.find(x => x.id === two.a);
+  ok(sA?.minutesPerDay === 20 && !!c && t === c.words && /^20 min a day on the line — give the line a wage \(Set up the line\)/.test(t), `19 20 minutes typed and kept; the sentence under the box is the module's, naming the wage the line has not got — "${t}"`);
+  await setLine({ ...bare, crew: 4, labourRatePerHour: 14.5, labourBurden: 1.3, packsPerMin: 100, marginPerPack: 0.04 });
+  c = await said(two.a); t = await words('.pe-cost', peA);
+  ok(t === c.words && t === '20 min a day on the line: £25 labour · 2,000 packs lost · £80 contribution a day.', `19b the line given its crew, wage, speed and margin: labour, packs and contribution, without a reload — "${t}"`);
+  const short = await words('.qsl-cost', row('Guard switch drops the line out'));
+  ok(short === c.short && short === '£25 labour · 2,000 packs lost · £80 contribution a day', `19c the row carries the short form — "${short}"`);
+  const peB = await openUp('Bagger film splice by hand');
+  await peB.getByLabel('Minutes a day it costs the line').fill('10'); await peB.getByLabel('Minutes a day it costs the line').blur(); await page.waitForTimeout(900);
+  const cB = await said(two.b), tB = await words('.pe-cost', peB);
+  ok(tB === cB.words && /at Bagger — not the bottleneck, so the line runs round it: £13 labour a day\.$/.test(tB), `19d at a machine that is not the bottleneck: labour only, said why — "${tB}"`);
+  const closing = await words('.ln-close');
+  ok(/cost the line £38 labour and £80 contribution a day \(2,000 packs not made\)/.test(closing), `19e the closing line carries the register's sum — "${closing.slice(-200)}"`);
+  const dir = mkdtempSync(join(tmpdir(), 'problems-cost-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), peA.getByRole('button', { name: 'Report card (PDF)' }).click()]);
+  const card = join(dir, 'card.pdf'); await dl.saveAs(card);
+  const ct = execFileSync('pdftotext', ['-raw', card, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+  ok(/20 min a day on the line: £25 labour · 2,000 packs lost · £80 contribution a day/.test(ct), '19f its card carries the sentence');
+  page.locator('.pdfr-x').click().catch(() => {});
+  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Problems report')]);
+  const rep = join(dir, 'problems.pdf'); await dl2.saveAs(rep);
+  const txt = execFileSync('pdftotext', ['-raw', rep, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+  ok(/20 min a day on the line: £25 labour · 2,000 packs lost · £80 contribution a day/.test(txt) && /not the bottleneck, so the line runs round it: £13 labour a day/.test(txt), '19g the Problems report carries both sentences');
+  page.locator('.pdfr-x').click().catch(() => {});
+  await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(700);
+  const peP = await openUp('Guard switch drops the line out');
+  ok(await peP.getByLabel('Minutes a day it costs the line').isVisible() && await peP.locator('.pe-cost').isVisible(), '19h on a phone the box and the sentence are in the editor');
+  await page.setViewportSize({ width: 1360, height: 900 }); await page.waitForTimeout(400);
+  await setLine(ws0);
+}
+
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
 await browser.close();
 console.log(failed ? `\nProblems NOT accepted: ${failed} failed` : '\nProblems accepted: the register — written, edited where it sits, assigned, its journey, marked, on paper, and a fresh start');

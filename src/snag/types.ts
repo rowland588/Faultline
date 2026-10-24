@@ -72,6 +72,10 @@ export interface Snag {
   journey?: JourneyStep[];
   /** Put away by a fresh start — kept, never deleted, brought back with a tap. */
   archivedAt?: number;
+  /** How many minutes a day this costs the line while it is open — a stop, slow running, a
+   *  workaround (PROBLEM_COST.sql; lib/problemCost says it in money by the line's cost model).
+   *  Absent when nobody has said; 0 to 1440. */
+  minutesPerDay?: number;
   proposedSolution?: string;
   status: SnagStatus;
   owner?: string;            // assignee name (free text)

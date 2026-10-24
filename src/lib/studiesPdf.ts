@@ -26,9 +26,9 @@ import { agreedFor as agreedForChangeover, changeoverSays, extrapolationSays, fi
 import { smedLean } from '../tools/changeover/changeoverLean';
 import { sampleClosing, sampleTiles } from '../tools/capability/sampleLean';
 import { momentsAt, personRate, samplingClosing, samplingTiles } from '../tools/sampling/samplingLean';
-import { flowClosing, flowTiles } from '../tools/valuestream/flowLean';
+import { flowClosing, flowMoneyTiles, flowTiles } from '../tools/valuestream/flowLean';
 import { samplingSays } from '../tools/sampling/sampling';
-import { dur, flowFigures } from '../tools/valuestream/steps';
+import { dur, flowFigures, flowMoney, flowMoneySays } from '../tools/valuestream/steps';
 import { bandPage, type LeanTile, type LeanTone } from './lean';
 import { lossBlocks, lossFallBlock } from './report/lossTable';
 import { boxed, leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles, leanTrend, pair, stack } from './report/lean';
@@ -281,7 +281,10 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
   } else if (s.tool === 'map') {
     const list = s.facts.flow ?? [], f = flowFigures(list, s.agreed?.map);
     eyebrow = 'Value stream map'; verdict = { text: f.steps ? `${f.untimed ? '≥ ' : ''}${dur(f.leadSec)} lead time` : 'No steps yet', tone: f.longestCycle?.overTakt ? 'r' : 'n' };
-    tiles = flowTiles(f, list); closing = flowClosing(f, s.agreed?.map);
+    /* the money among the tiles (FC-001): the line's rate from the paper's context, the rest from the map */
+    const lineW = p.ctx?.workspaces?.find(w => w.id === s.workspaceId);
+    const money = flowMoney(list, s.agreed?.map, lineW ? { labourRatePerHour: lineW.labourRatePerHour, labourBurden: lineW.labourBurden } : undefined);
+    tiles = [...flowTiles(f, list), ...flowMoneyTiles(money, s.agreed?.map)]; closing = flowClosing(f, s.agreed?.map);
     body = e.stream ? streamBlocks(e.stream.rows, e.stream.total) : [];
   }
   const out: Block[] = [leanBand(bandPage(eyebrow, s, verdict?.text, verdict?.tone), p.printed)];
@@ -296,6 +299,13 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     if (m) out.push(text({ text: m.text, size: 9, style: m.tone === 'a' ? 'bold' : 'normal', colour: INK2, after: 2 }));
     const given = [a.packsPerShift !== undefined ? `${a.packsPerShift.toLocaleString('en-GB')} a shift` : '', a.shiftsPerWeek !== undefined ? `${a.shiftsPerWeek} shifts a week` : '',
       a.costPerKg !== undefined ? `£${a.costPerKg} a kg` : '', a.materialsPerPack !== undefined ? `£${a.materialsPerPack} a pack’s materials` : '', a.reworkPerPack !== undefined ? `£${a.reworkPerPack} a rework` : ''].filter(Boolean);
+    if (given.length) out.push(text({ text: `In money from: ${given.join(' · ')}.`, size: 8, colour: MUTED, after: gap(d, 's') }));
+  }
+  if (s.tool === 'map') {
+    const a = s.agreed?.map, lineW = p.ctx?.workspaces?.find(w => w.id === s.workspaceId);
+    const m = flowMoney(s.facts.flow, a, lineW ? { labourRatePerHour: lineW.labourRatePerHour, labourBurden: lineW.labourBurden } : undefined), said = flowMoneySays(m, a);
+    if (said) out.push(text({ text: said.text, size: 9, style: said.tone === 'a' ? 'bold' : 'normal', colour: INK2, after: 2 }));
+    const given = [m.ratePerHour !== undefined ? `£${m.ratePerHour.toFixed(2)} an hour (the line)` : '', a?.pieceCost !== undefined ? `£${a.pieceCost.toFixed(2)} a piece` : '', a?.carryingRatePerYear !== undefined ? `${a.carryingRatePerYear}% a year, 365 days` : ''].filter(Boolean);
     if (given.length) out.push(text({ text: `In money from: ${given.join(' · ')}.`, size: 8, colour: MUTED, after: gap(d, 's') }));
   }
   out.push(...body);

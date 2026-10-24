@@ -602,9 +602,27 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   pack, a shift and a week from the cost a kilo typed on the study, and what
   the rejects cost by what became of each — waste, reworked, recovered by
   hand — at the packs a shift; a missing input named, never invented.
-- **Missing — the next piece, tool by tool:** the value stream map (what the waits and
-  waste cost), the line
-  standard map (what the people placed cost a pack), the problems register
+  And the **value stream map** (24 October, `knowledge/specs/FC-001-value-
+  stream-money.md`, by the industry's own cost causation — lean accounting's
+  value stream costing and operations management's carrying cost): the
+  labour on waste work a day at the line's rate; the product waiting, tied up
+  at the cost a piece typed on the map and carried a day at the typed rate.
+- **The model for every tool, built and to come — `knowledge/MONEY.md`**
+  (24 October: "all tools made or that will be made will have cost in if
+  possible ... the cost is merely one of the outputs ... don't block
+  anything"): each catalogue entry's industry-standard causation, its
+  inputs, every one optional, and the sentence when one is missing.
+  And the **line standard** (24 October, `knowledge/specs/FC-006-line-
+  standard-money.md`): what the people placed cost — £ an hour at the
+  line's rate and a pack at Line capacity's speed or the line's rated one —
+  one sentence under the count on the map's page and in its card's foot,
+  the wage or the speed named when missing.
+  And the **problems register** (24 October, `knowledge/specs/FC-154-
+  problem-cost.md`): the minutes a day a problem costs the line, typed in
+  its editor, said in the loss count's two parts — labour, and packs and
+  contribution where it stops the line — on the row, the card, the report
+  and the closing line's sum; the wage, speed or margin named when missing.
+- **Missing — the next piece, tool by tool:** the problems register's rejects and held product, then
   (what each problem costs while it is open), a 6M countermeasure (what it
   is worth — before → after in money).
 

@@ -20,6 +20,7 @@
  * (who, by when). Colour only on the abnormal: late is red; due within the
  * week amber; an open snag wears the snag's own red, in progress indigo,
  * closed the quiet green (snag/types SNAG_STATUS_META). */
+import { registerCost, type ProblemCost, type RegisterCost } from './problemCost';
 import { SNAG_STATUS_META, actionTarget, ageDays, dueInDays, isDueSoon, isOverdue, isQuickSnag, type Snag, type SnagStatus } from '../snag/types';
 import { fixTone } from './fixTone';
 import { isOverdue as fixOverdue, isSettled, live, testOfFix, type Asset, type Test, type TestItem } from './testing';
@@ -102,6 +103,8 @@ export const priorityOf = (x: { priority?: Priority } | { flag?: 'critical' | 'r
 /** One snag still on its line. */
 export interface SnagRow {
   id: string; workspaceId: string; line: string;
+  /** What it costs the line a day while it is open, when its minutes are typed (lib/problemCost, FC-154). */
+  cost?: ProblemCost;
   what: string; from: string;
   status: SnagStatus;
   priority: Priority;
@@ -150,11 +153,13 @@ export interface SnagsReading {
   jobs: JobGroup[];
   /** A moved snag whose record is no longer on its job, or is on a job this device cannot open. */
   moved: { projectId?: string; job: string; rows: MovedRow[] }[];
+  /** What the open problems that say their minutes cost the line a day (lib/problemCost registerCost, FC-154). */
+  cost?: RegisterCost;
 }
 
 const RANK: Record<SnagStatus, number> = { open: 0, in_progress: 1, closed: 2 };
 
-export function snagRow(s: Snag, line: string, assetName?: string, jobName?: string, ref = Date.now(), still?: string): SnagRow {
+export function snagRow(s: Snag, line: string, assetName?: string, jobName?: string, ref = Date.now(), still?: string, cost?: ProblemCost): SnagRow {
   const late = isOverdue(s, ref), d = dueInDays(s, ref);
   const age = ageDays(s.raisedAt, ref);
   /* made a fix on its project: said so, never a bare "Closed" (13 October audit) — the fix itself is under its project */
@@ -181,6 +186,7 @@ export function snagRow(s: Snag, line: string, assetName?: string, jobName?: str
     ...(photo ? { photo } : {}),
     ...(s.proposedSolution?.trim() ? { plan: s.proposedSolution.trim() } : {}),
     ...((assetName ?? s.targetAsset)?.trim() ? { machine: (assetName ?? s.targetAsset ?? '').trim() } : {}),
+    ...(cost ? { cost } : {}),
     journey: [...(s.journey ?? [])].filter(j => j.did?.trim()).sort((a, b) => a.at - b.at)
       .map(j => ({ id: j.id, day: nice(j.at), did: j.did.trim(), ...(j.result?.trim() ? { result: j.result.trim() } : {}) })),
   };
@@ -350,6 +356,8 @@ export interface SnagsInput {
   assetName?: (s: Snag) => string | undefined;
   /** The frame a walk snag was pinned on — its picture when it has none of its own. */
   stillOf?: (s: Snag) => string | undefined;
+  /** What a problem costs the line a day while it is open, from its typed minutes and the line's cost model (lib/problemCost). */
+  costOf?: (s: Snag) => ProblemCost | undefined;
   jobName: (projectId?: string) => string | undefined;
   became: Map<string, Became>;
   /** Each job's problems and fixes (jobGroup), when the page reads the jobs too. */
@@ -367,7 +375,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 export function snagsReading(x: SnagsInput): SnagsReading {
   const ref = x.today ?? Date.now();
   const all = x.snags.filter(s => !s.deletedAt);
-  const here = all.filter(s => x.register || !isMoved(s)).map(s => snagRow(s, x.lineName(s.workspaceId), x.assetName?.(s), x.jobName(s.projectId), ref, x.stillOf?.(s)));
+  const here = all.filter(s => x.register || !isMoved(s)).map(s => snagRow(s, x.lineName(s.workspaceId), x.assetName?.(s), x.jobName(s.projectId), ref, x.stillOf?.(s), x.costOf?.(s)));
   const byLine = new Map<string, SnagRow[]>();
   for (const r of here) byLine.set(r.workspaceId, [...(byLine.get(r.workspaceId) ?? []), r]);
   /* still open first, in order of priority — late first within each — then closed */
@@ -429,5 +437,5 @@ export function snagsReading(x: SnagsInput): SnagsReading {
   } else if (counts.closed + counts.jobDone) parts.push(`no problem open — ${counts.closed + counts.jobDone} done`);
   if (moved.length) parts.push(`${plural(moved.length, 'problem')} moved to a project and no longer there`);
   const says = parts.length ? `${parts.map((p, i) => (i ? p.charAt(0).toUpperCase() + p.slice(1) : p.charAt(0).toUpperCase() + p.slice(1))).join('. ')}.` : 'No problems.';
-  return { counts, says, lines, jobs, moved: movedGroups };
+  return { counts, says, lines, jobs, moved: movedGroups, cost: registerCost(here) };
 }
