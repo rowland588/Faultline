@@ -304,7 +304,8 @@ const S6 = `#/project/${sd.pacedProjectId}`;
   const pick = await page.evaluate(async pid => {
     const U = await import('/src/lib/useProblems.ts');
     const views = U.viewsOf(await U.loadProblems(pid), pid);
-    const v = views.find(x => x.money && x.problem.source?.kind !== 'gap' && x.actions.length);
+    /* the problem whose line has the whole cost model — the views come in the records' order, which the seed's ids do not fix */
+    const v = views.find(x => x.money && !x.money.missing.length && x.problem.source?.kind !== 'gap' && x.actions.length);
     return v && { id: v.problem.id, line: v.problem.lineId, words: v.money.words, action: v.actions[0].uid ?? v.actions[0].ref };
   }, j.projectId);
   ok(!!pick && /£\d[\d,]* labour/.test(pick.words) && /contribution a week/.test(pick.words), `19 a problem with hours a week on a line with a cost model says its money — "${pick?.words}"`);
