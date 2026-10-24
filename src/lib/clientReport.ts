@@ -23,14 +23,14 @@
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import { isRunTest, productFigures, productName, readRuns, runsLine } from './run';
 import type { WeekLine } from '../project/journey/journey';
-import type { MediaPin, Project } from '../types';
+import type { MediaPin, Project, Workspace } from '../types';
 import { answerOf, GATE_WORD, gateGaps, installGrid, jobJourney, lateOrProblemSays, handedOverWith, machineAt, machineNow, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
 import { isProgramsStage, type Program } from './programs';
 import { programsOpenOn, programsReading, type ProgramsReading } from './programsReport';
-import { jobLineReadings, machineKey, type JobLinePrograms } from './lineRecords';
+import { jobLineReadings, machineKey, type JobLine, type JobLinePrograms } from './lineRecords';
 import { assetStateOf } from './testing';
 import type { Snag } from '../snag/types';
 import { PRIORITY_RANK } from './snagsReport';
@@ -45,6 +45,7 @@ import type { JobFigures } from './stageGateLean';
 import { linesDay, type DayFacts } from './lineLoss';
 import type { WalkSnag } from './walkSnags';
 import { climbsOf } from './rampUp';
+import { climbWorth, runLineOf, runWorth, type RunLine } from './runMoney';
 import type { ToolStudy } from './study';
 import { constraintOfBars } from './lineRead';
 import { lossFiguresOf, provedLine, recordProvedLine, studyHref, studyLine, studyTitle, type StudyContext } from './studyLinks';
@@ -123,7 +124,7 @@ export interface GateSection {
   runs?: RunRow[];
   /** Commission only: THE CLIMB TO RATE (lib/rampUp) — each product's runs on
    *  a machine read as the climb they are, said once each, under the runs. */
-  climbs?: { text: string; tone: 'risk' | 'on' | 'none' }[];
+  climbs?: { text: string; tone: 'risk' | 'on' | 'none'; /** what the climb has cost so far (lib/runMoney, FC-077) */ worth?: string }[];
 }
 
 /** One product of a performance run, as the client reads it (lib/run). */
@@ -139,6 +140,8 @@ export interface RunRow {
   /** Net rate met · short · nothing agreed to judge it on. */
   netTone: 'met' | 'short' | '';
   rejectsTone: 'met' | 'short' | '';
+  /** What the shortfall is worth (lib/runMoney runWorth, FC-076) — on a product short on its rate. */
+  worth?: string;
   /** The product's verdict, from its numbers: "Passed" · "Didn't pass" ·
    *  "To run" · "Numbers going in" · "Ran — no rate agreed"; "… — run again"
    *  on a row run again further down. */
@@ -325,6 +328,9 @@ export interface ClientReportInput {
    *  model (lib/studyLinks StudyContext). Absent: a count says its loss, and
    *  not where it went. */
   studyContext?: StudyContext;
+  /** The project's lines and the factory's line records — for what a run's shortfall is worth (lib/runMoney runLineOf). */
+  paceLines?: JobLine[];
+  workspaces?: Workspace[];
   /** The studies that can show a program proved — the job's and its lines'
    *  (ToolStudy.programId): a program proved by a study on its line says so,
    *  as the line's Programs page does, never "signed off by hand". */
@@ -389,6 +395,8 @@ export function wentWithAlso(a: Asset, progs: ProgramsReading | undefined, progr
 }
 
 export function clientReport(x: ClientReportInput): ClientReport {
+  /* the lines a run's shortfall is priced by (lib/runMoney runLineOf): the factory's records, else the study context's */
+  const wsList: ({ id: string } & RunLine)[] = x.workspaces ?? x.studyContext?.workspaces ?? [];
   const { project, today } = x;
   const tests = live(x.tests), items = live(x.items), assets = live(x.assets).sort((a, b) => a.sort - b.sort);
   const programs = live(x.programs);
@@ -587,6 +595,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
          day has gone). */
       const runs = now.filter(t => isRunTest(t, answerOf(t, project))).flatMap(t => {
         const testTone: RunRow['tone'] = (endOf(t) ?? '\uffff') < today ? 'late' : t.plannedFor ? 'booked' : 'ahead';
+        const line = runLineOf(t, assets, x.paceLines ?? [], wsList);
         return readRuns(t).products.map((p): RunRow => {
           const f = productFigures(p);
           const tone: RunRow['tone'] = p.rerun ? 'ahead' : p.state === 'met' ? 'done' : p.state === 'short' ? 'failed'
@@ -599,6 +608,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
             netTone: f.netTone, rejectsTone: f.rejectsTone,
             outcome: p.rerun ? `${p.word}, re-run` : p.state === 'toRun' && testTone === 'late' ? 'Not run — late' : p.word,
             tone, say: p.gap, ...(p.r.meets != null ? { meets: p.r.meets } : {}), ...(p.rerun ? { rerun: true } : {}),
+            ...((w => (w ? { worth: w.words } : {}))(runWorth(p, line))),
           };
         });
       });
@@ -607,7 +617,8 @@ export function clientReport(x: ClientReportInput): ClientReport {
     ...(() => {
       /* Every run of a product on a machine, every attempt — the climb is
          the attempts in order (lib/rampUp), so it reads all of them. */
-      const climbs = climbsOf({ tests, assets }).map(c => ({ text: c.machine ? `${c.machine} — ${c.text}` : c.text, tone: c.tone }));
+      const climbs = climbsOf({ tests, assets }).map(c => ({ text: c.machine ? `${c.machine} — ${c.text}` : c.text, tone: c.tone,
+        ...((w => (w ? { worth: w.words } : {}))(climbWorth(c, runLineOf({ projectId: project.id, ...(c.machineId ? { assetId: c.machineId } : {}) }, assets, x.paceLines ?? [], wsList)))) }));
       return climbs.length ? { climbs } : {};
     })(),
   };

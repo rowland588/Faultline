@@ -30,6 +30,8 @@
  * is plain ink. */
 import type { Climb } from '../lib/rampUp';
 import { Climbs } from './Climb';
+import { runWorth } from '../lib/runMoney';
+import { useRunLine } from '../lib/useRunLine';
 import { useRef, useState } from 'react';
 import type { Test, TestItem } from '../lib/testing';
 import { OUTCOME_WORD } from '../lib/testing';
@@ -70,6 +72,8 @@ export function RunProducts({ t, can, patch, compact, onProblem, problemsOf, onO
   onOpenProblem?: (id: string) => void;
 }) {
   const rr = readRuns(t);
+  /* the run's line, for what a shortfall is worth (lib/runMoney, FC-076) */
+  const line = useRunLine(t);
   /* THE BOXES STAY OUT on a row that was still to run when the run was
      opened, or was added since — the last number typed must not fold them
      away under the fingers. */
@@ -117,7 +121,7 @@ export function RunProducts({ t, can, patch, compact, onProblem, problemsOf, onO
       {rr.products.length > 0 && (
         <ol className="pr-list">
           {rr.products.map(p => (
-            <ProductRow key={p.run.id} p={p} can={can} compact={compact} programsHref={`/project/${t.projectId}/programs`}
+            <ProductRow key={p.run.id} p={p} can={can} compact={compact} programsHref={`/project/${t.projectId}/programs`} worth={runWorth(p, line)?.words}
               problems={problemsOf?.(p.run.id) ?? []} onProblem={onProblem && !p.rerun ? () => onProblem(p.run) : undefined} onOpenProblem={onOpenProblem}
               boxes={can.edit && (boxes.has(p.run.id) || p.state === 'toRun' || p.state === 'partial')}
               changing={changing?.id === p.run.id ? changing : null}
@@ -129,7 +133,7 @@ export function RunProducts({ t, can, patch, compact, onProblem, problemsOf, onO
           ))}
         </ol>
       )}
-      {climbs && <Climbs cs={climbs} />}
+      {climbs && <Climbs cs={climbs} line={line} />}
       {can.edit && (adding
         ? <AddProduct before={productRuns(t)[productRuns(t).length - 1]} first={rr.products.length === 0}
             onSave={(product, agreed) => {
@@ -145,8 +149,10 @@ export function RunProducts({ t, can, patch, compact, onProblem, problemsOf, onO
 }
 
 /** ONE PRODUCT — what it is judged on, the numbers, what they say. */
-function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan, onRemove, onAgain, programsHref, problems = [], onProblem, onOpenProblem }: {
+function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan, onRemove, onAgain, programsHref, problems = [], onProblem, onOpenProblem, worth }: {
   p: ProductReading; can: Can; compact?: boolean; boxes: boolean;
+  /** What its shortfall is worth (lib/runMoney runWorth) — on a product short on its rate. */
+  worth?: string;
   /** Where its program is, when it was planned from one. */
   programsHref?: string;
   problems?: TestItem[];
@@ -195,6 +201,8 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
         <span className={'pr-word is-' + (p.rerun ? 'rerun' : state)}>{p.rerun ? `${p.word} — run again below` : p.word}</span>
       </div>
       <p className="pr-agreed">{f.agreed ? <>Judged on {f.agreed}</> : 'Nothing agreed to judge it on yet'}{run.ranOn ? ` · ran ${niceDay(run.ranOn)}` : ''}</p>
+      {/* what the shortfall is worth — one output beside the gap, never the verdict (knowledge/specs/FC-076-run-money.md) */}
+      {worth && <p className="pr-worth">{worth}</p>}
 
       {changing && (
         <div className="pr-plan">

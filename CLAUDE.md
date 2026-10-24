@@ -443,7 +443,7 @@ npx vite build
 node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BASE
 node scripts/report-stress.mjs        # every report at tiny, ordinary and huge — same server
 node scripts/report-stress.mjs /tmp/fuzz --fuzz 40   # forty random jobs, every fact reconciled
-node scripts/acceptance/stagegate-step1.mjs   # release 1's four stories, driven — same server
+node scripts/acceptance/stagegate-step1.mjs   # release 1's four stories, driven — same server; and the run's money (24 October, FC-076/077): a product short on its rate says the packs short and their contribution, the margin asked while the line has none, the climb what it has cost so far — the row, the card, the client report
 node scripts/acceptance/stagegate-walk.mjs    # the stage gate walked: five site-lead journeys end to end, taps within a ceiling, no dead end, every place a change reaches in step
 node scripts/acceptance/ecosystem-capability.mjs  # release 2: a study, a line, a job, a fix, before → after, the report
 node scripts/acceptance/work-balance.mjs  # the line balance: its own page, timed on the phone (Undo, Skip, the whole screen), stacked against takt, on a job, before → after; linked to Line capacity (a station takes its person's time, the takt from the target), what the bottleneck costs, All together and its paper, the list and its paper

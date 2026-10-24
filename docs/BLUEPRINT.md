@@ -630,6 +630,11 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   never blended on the tile, the row and the closing line, contribution not
   margin, and the packs counted lost only where the study's machine stops
   the line (the bottleneck, or not known yet and said so).
+  And the **performance run and the climb** (24 October, `knowledge/specs/
+  FC-076-run-money.md`): a product short on its rate says the packs short
+  over the run and a day of the line's shifts at that rate, in contribution;
+  the climb what its runs below the rate have cost so far — on the run's
+  row, the test's card and the client report; the margin asked when missing.
   And the **6M** (24 October, `knowledge/specs/FC-146-sixm-money.md`): the
   problem's hours a week in money by its line's cost model — before, now,
   the target's worth, the saving so far — on its card and the 6M report; a

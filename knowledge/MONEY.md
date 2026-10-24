@@ -230,8 +230,8 @@ own and names what it feeds.
 | FC-073 The stage gate | built — what the slip costs: days moved × a day of the line's margin (T) | T | built | built |
 | FC-074 Acceptance tests | — of their own; a failed test's re-test day feeds the slip (FC-073) | — | | |
 | FC-075 Program proving | — of its own; feeds the slip | — | | |
-| FC-076 Performance run | packs short of the agreed rate × contribution — what the shortfall is worth a shift (T) | T | contribution | "Give a contribution a pack to say the shortfall in money" |
-| FC-077 The climb to rate | the packs below rate during the climb × contribution (T), week by week | T | contribution | as FC-076 |
+| FC-076 Performance run | built 24 Oct (`knowledge/specs/FC-076-run-money.md`) — a product short on its rate: the packs short over the run (the shortfall a minute × the minutes run) and a day of the line's shifts at that rate, each in contribution; on the run's row, the test's card and the client report; nothing on a pass | T | contribution a pack (the test's machine's line, else the project's one line); the line's shifts | "give the line a margin a pack (Set up the line) to say it in money" — the packs still said |
+| FC-077 The climb to rate | built 24 Oct (the same spec) — the packs below the agreed rate summed over the climb's measured runs, in contribution, under the climb's sentence on the run's page, the card and the client report; nothing once at the rate | T | as FC-076 | as FC-076 |
 | FC-078 The pace says when | the forecast slip's days × a day's margin (T) | T | built | built |
 | FC-079 Materials on site | a late part's days × a day's margin if it holds the gate (T) | T | built | built |
 | FC-080 Handover and sign-off | — | — | | |
@@ -495,7 +495,7 @@ own and names what it feeds.
    parts, contribution, output only where the machine stops the line), the
    stops' pages where a figure is still missing, the stage gate's
    performance run and climb (FC-076, FC-077 — the shortfall in
-   contribution).
+   contribution: built 24 October).
 3. **Then every tool as it is built**, with its row — the backlog's order
    (`node scripts/catalogue.mjs next`), never a tool started for its money
    alone.

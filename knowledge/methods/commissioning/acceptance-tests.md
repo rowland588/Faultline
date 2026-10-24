@@ -45,4 +45,4 @@ OEM FATs at the supplier, SATs on site with the factory's own product and film.
 - [practice] docs/STAGEGATE.md.
 
 ## In Faultline
-Commissioning tests and programs (`src/lib/testing.ts`, `src/lib/programRun.ts`, `src/lib/run.ts`), FC-074 to FC-076; the EN 415-11 time model for acceptance is research (FC-085).
+Commissioning tests and programs (`src/lib/testing.ts`, `src/lib/programRun.ts`, `src/lib/run.ts`), FC-074 to FC-076; the EN 415-11 time model for acceptance is research (FC-085). Since 24 October a product short on its agreed rate says what the shortfall is worth — the packs short over the run and a day of the line's shifts at that rate, in contribution a pack (`src/lib/runMoney.ts`, `knowledge/specs/FC-076-run-money.md`).

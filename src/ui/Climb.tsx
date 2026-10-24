@@ -9,6 +9,7 @@
  * it is not climbing (CLAUDE.md, visual management 1 and 4). */
 import type { Climb } from '../lib/rampUp';
 import { num } from '../lib/run';
+import { climbWorth, type RunLine } from '../lib/runMoney';
 
 const W = 240, H = 64, PAD = { l: 6, r: 44, t: 8, b: 10 };
 
@@ -33,22 +34,27 @@ function ClimbPicture({ c }: { c: Climb }) {
 }
 
 /** One climb: the picture, and the sentence with its tone in words. */
-export function ClimbLine({ c, machine }: { c: Climb; machine?: boolean }) {
+export function ClimbLine({ c, machine, line }: { c: Climb; machine?: boolean; line?: RunLine }) {
+  const worth = climbWorth(c, line);
   return (
     <div className={'cl is-' + c.tone}>
       <ClimbPicture c={c} />
-      <p className="cl-say">{machine && c.machine ? <b>{c.machine} · </b> : null}{c.text}</p>
+      <div>
+        <p className="cl-say">{machine && c.machine ? <b>{c.machine} · </b> : null}{c.text}</p>
+        {/* what the climb has cost so far (lib/runMoney, FC-077) */}
+        {worth && <p className="cl-worth">{worth.words}</p>}
+      </div>
     </div>
   );
 }
 
 /** Every climb given, under one small heading — the run's own, or a machine's. */
-export function Climbs({ cs, machine }: { cs: Climb[]; machine?: boolean }) {
+export function Climbs({ cs, machine, line }: { cs: Climb[]; machine?: boolean; line?: RunLine }) {
   if (!cs.length) return null;
   return (
     <div className="cl-list">
       <small className="cl-h">The climb to rate</small>
-      {cs.map(c => <ClimbLine key={`${c.machineId ?? ''}|${c.product}`} c={c} machine={machine} />)}
+      {cs.map(c => <ClimbLine key={`${c.machineId ?? ''}|${c.product}`} c={c} machine={machine} line={line} />)}
     </div>
   );
 }

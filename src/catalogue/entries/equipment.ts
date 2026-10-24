@@ -242,7 +242,9 @@ export const EQUIPMENT: Entry[] = [
     depends: ['FC-077', 'FC-083'],
     complexity: 'M', value: 'high', valueWhy: 'The acceptance moment of the stage gate.',
     status: 'available', form: 'mode', partOf: 'FC-073', methods: ['commissioning.acceptance-tests'], scenarios: ['new'], words: ['run at rate', 'performance test'],
-    built: { where: [], code: ['src/lib/run.ts'], tests: ['src/lib/__tests__/run.test.ts'], acceptance: ['stagegate-step1.mjs'] },
+    spec: 'knowledge/specs/FC-076-run-money.md',
+    built: { where: [], code: ['src/lib/run.ts', 'src/lib/runMoney.ts'], tests: ['src/lib/__tests__/run.test.ts', 'src/lib/__tests__/runMoney.test.ts'], acceptance: ['stagegate-step1.mjs'] },
+    limits: ['Its money is the shortfall on the rate (packs short × contribution a pack); rejects over the allowance are a count, not priced here (the capability study prices rejects by their fates, FC-094).'],
   },
   {
     id: 'FC-077', name: 'The climb to rate — when the line will run at its agreed rate', discipline: 'commissioning', sub: 'ramp',
@@ -255,7 +257,9 @@ export const EQUIPMENT: Entry[] = [
     depends: ['FC-076', 'FC-061'],
     complexity: 'S', value: 'medium', valueWhy: 'The project forecasts itself.',
     status: 'available', form: 'mode', partOf: 'FC-073', methods: ['commissioning.ramp-up'], scenarios: ['new'],
-    built: { where: [], code: ['src/lib/rampUp.ts'], tests: ['src/lib/__tests__/rampUp.test.ts'], acceptance: ['stagegate-step1.mjs'] },
+    spec: 'knowledge/specs/FC-076-run-money.md',
+    built: { where: [], code: ['src/lib/rampUp.ts', 'src/lib/runMoney.ts'], tests: ['src/lib/__tests__/rampUp.test.ts', 'src/lib/__tests__/runMoney.test.ts'], acceptance: ['stagegate-step1.mjs'] },
+    limits: ['Its money is the packs below the agreed rate over the runs that know their minutes, in contribution; a run recorded before 24 October without its minutes is not counted.'],
   },
   {
     id: 'FC-078', name: 'The pace says when — the handover forecast', discipline: 'commissioning', sub: 'ramp',

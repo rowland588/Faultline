@@ -33,7 +33,9 @@ import { nav } from '../state/useRoute';
 import { useLineRecords } from '../lib/useLineRecords';
 import { jobFactoryLines, jobLinePrograms } from '../lib/lineRecords';
 import { moneyTile } from '../lib/stageGateLean';
-import { listAllSnags, onDataChange } from '../db';
+import { listAllSnags, listWorkspaces, onDataChange } from '../db';
+import type { Workspace } from '../types';
+import { usePaceLines } from '../lib/usePaceLines';
 import { withoutDemo } from '../lib/demo';
 import { openQuickSnag } from '../snag/QuickSnag';
 import type { Snag } from '../snag/types';
@@ -154,6 +156,10 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const studies = useJobStudies(projectId);
   /* a loss count reads its line's stops and cost model (lib/studyLinks) */
   const studyContext = useStudyContext(studies);
+  /* the project's lines and the factory's records — a run's shortfall priced by its line (lib/runMoney, FC-076) */
+  const pl = usePaceLines(projectId);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  useEffect(() => { const load = () => { void listWorkspaces().then(setWorkspaces); }; load(); return onDataChange(load); }, []);
   const mats = useMaterials(projectId);
   const progs = usePrograms(projectId);
   const standards = useStandards(projectId);
@@ -209,9 +215,9 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const ready = !loading && !tt.loading && !mats.loading && !progs.loading && standards != null && walk != null && !rec.loading && snags != null && !!project;
   const report = useMemo(() => (ready && project ? clientReport({
     project, projects, assets: tt.assets, tests: tt.tests, items: tt.items,
-    materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], studies, studyContext, today: todayISO(),
+    materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], studies, studyContext, paceLines: pl.lines, workspaces, today: todayISO(),
     proofStudies: rec.studies, provingTests: rec.provingTests, ...lineFacts, ...(week ? { week } : {}),
-  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies, studyContext, rec.studies, rec.provingTests, lineFacts, week]);
+  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies, studyContext, pl.lines, workspaces, rec.studies, rec.provingTests, lineFacts, week]);
 
   const handover = useMemo(() => (ready && project ? handoverReport({
     project, assets: tt.assets, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, studies, today: todayISO(),

@@ -480,6 +480,8 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
         sub: wrap(f.doc, [r.machine, r.title, r.when].filter(Boolean).join(' · '), nameW - 8, 8),
         agreed: wrap(f.doc, `Agreed: ${r.agreed}`, f.w - nameW - verdictW - 6, 8),
         say: r.say ? wrap(f.doc, `Short: ${r.say}`, f.w - nameW - verdictW - 6, 8, 'bold') : [],
+        /* what the shortfall is worth (lib/runMoney, FC-076) */
+        worth: r.worth ? wrap(f.doc, r.worth, f.w - nameW - verdictW - 6, 8) : [],
       });
       out.push(rows({
         /* The column heads go with the rows onto a second page. */
@@ -492,7 +494,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
           ...s.runs.map(r => ({
             h: (f: Frame) => {
               const p = runParts(f, r);
-              return 8 + Math.max(p.name.length * 11 + p.sub.length * 10, 28 + p.agreed.length * 10 + p.say.length * 10) + 6;
+              return 8 + Math.max(p.name.length * 11 + p.sub.length * 10, 28 + p.agreed.length * 10 + p.say.length * 10 + p.worth.length * 10) + 6;
             },
             draw: (f: Frame, y: number) => {
               const p = runParts(f, r);
@@ -510,7 +512,8 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
               });
               let ty = y + 15 + 13;
               font(f.doc, 8, 'normal', MUTED); f.doc.text(p.agreed, f.x + nameW, ty); ty += p.agreed.length * 10;
-              if (p.say.length) { font(f.doc, 8, 'bold', DANGER); f.doc.text(p.say, f.x + nameW, ty); }
+              if (p.say.length) { font(f.doc, 8, 'bold', DANGER); f.doc.text(p.say, f.x + nameW, ty); ty += p.say.length * 10; }
+              if (p.worth.length) { font(f.doc, 8, 'normal', INK2); f.doc.text(p.worth, f.x + nameW, ty); }
               const tc = r.tone === 'done' ? 'done' : r.tone === 'failed' || r.tone === 'late' ? 'late' : r.tone === 'booked' ? 'going' : 'ahead';
               pillPath(f.doc, f.x + f.w - verdictW + 4, y + 5, verdictW - 4, 12, tc, r.outcome);
             },
@@ -522,7 +525,10 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
        bold only when a product is not climbing. */
     if (s.climbs && s.climbs.length) {
       out.push(label('The climb to rate'));
-      for (const c of s.climbs) out.push(text({ text: c.text, size: 8.5, style: c.tone === 'risk' ? 'bold' : 'normal', colour: c.tone === 'risk' ? AMBER : c.tone === 'none' ? MUTED : INK2, after: 3 }));
+      for (const c of s.climbs) {
+        out.push(text({ text: c.text, size: 8.5, style: c.tone === 'risk' ? 'bold' : 'normal', colour: c.tone === 'risk' ? AMBER : c.tone === 'none' ? MUTED : INK2, after: c.worth ? 1 : 3 }));
+        if (c.worth) out.push(text({ text: c.worth, size: 8, colour: INK2, after: 3 }));   /* what the climb has cost so far (FC-077) */
+      }
       out.push(space('s'));
     }
 
@@ -926,17 +932,19 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
         head: wrap(f.doc, `${r.product}${r.machine ? ` — ${r.machine}` : ''}`, f.w - 92, 9, 'bold'),
         figs: wrap(f.doc, `Net ${r.net} · ran at ${r.speed} · rejects ${r.rejects} · ran for ${r.length} — agreed: ${r.agreed}`, f.w - 92, 8.5),
         say: r.say ? wrap(f.doc, `Short: ${r.say}`, f.w - 92, 8.5, 'bold') : [],
+        worth: r.worth ? wrap(f.doc, r.worth, f.w - 92, 8.5) : [],
       });
       out.push(rows({
         rows: s.runs.map(r => ({
-          h: (f: Frame) => { const p = runParts(f, r); return 6 + p.head.length * 11 + p.figs.length * 10.5 + p.say.length * 10.5 + 6; },
+          h: (f: Frame) => { const p = runParts(f, r); return 6 + p.head.length * 11 + p.figs.length * 10.5 + p.say.length * 10.5 + p.worth.length * 10.5 + 6; },
           draw: (f: Frame, y: number) => {
             const p = runParts(f, r);
             f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
             font(f.doc, 9, 'bold', INK2); f.doc.text(p.head, f.x, y + 13);
             let ty = y + 13 + p.head.length * 11;
             font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.figs, f.x, ty); ty += p.figs.length * 10.5;
-            if (p.say.length) { font(f.doc, 8.5, 'bold', DANGER); f.doc.text(p.say, f.x, ty); }
+            if (p.say.length) { font(f.doc, 8.5, 'bold', DANGER); f.doc.text(p.say, f.x, ty); ty += p.say.length * 10.5; }
+            if (p.worth.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.worth, f.x, ty); }
             const tc = r.tone === 'done' ? 'done' : r.tone === 'failed' || r.tone === 'late' ? 'late' : r.tone === 'booked' ? 'going' : 'ahead';
             pillPath(f.doc, f.x + f.w - 84, y + 5, 84, 12, tc, r.outcome);
           },
