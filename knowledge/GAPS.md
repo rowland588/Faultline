@@ -38,7 +38,8 @@ knowledge.
 |---|---|---|
 | ISO 22514-5:2019 — capability for attributive characteristics | FC-098, FC-099 (capability of counted data) | its indices and their definitions, before calling Faultline's attribute verdict "per ISO 22514-5" — until then it is said as the AIAG/Montgomery method |
 | ISO 22514-2:2017 — time-dependent process models (under revision) | FC-094, FC-096 | the eight distribution models and the percentile index's exact form |
-| EN 415-11:2021 — efficiency and availability of packaging lines | FC-085, the loss count's time model (`docs/CAPACITY.md`) | the time states, the output model and the acceptance minimum points |
+| EN 415-11:2021 — efficiency and availability of packaging lines | FC-085, the loss count's time model (`docs/CAPACITY.md`) | **Researched 25 Oct 2026, still unread (paid, about 410 USD for the BS adoption).** Seen in excerpts: structure, the technical key figures' rule, a 2 to 8 hour acceptance period, Annex C. Still to read: the time states and their definitions, the output model, E_S, R_S and the delivery efficiency formulas, Annex C, and whether "availability" changed meaning from DIN 8743 — `commissioning.acceptance-tests` says what can be built meanwhile |
+| SAE JA1011 (2009; revised November 2024) and JA1012:2011 — RCM | FC-065 | paid (about 115 EUR for JA1011); only the seven questions and consequence classes seen in excerpts. The free NASA RCM Guide (2008) and Nowlan and Heap (1978) carry the decision logic and are not paid, but their tree was not read: read NASA's Logic Tree (Figure 3-2) and task-selection chapters before specifying — `maintenance.rcm` |
 | ISO 7870-2:2023 — Shewhart control charts | FC-086 to FC-090 | any change from the 2013 edition's constants or rules |
 | ISO 22400-2:2014 — manufacturing KPIs | FC-050 (left out) | only if OEE is ever reconsidered |
 | ISO 2859-1 and ISO 3951-1:2022 — acceptance sampling | FC-129, FC-130 | their tables are copyright: how plans can be offered honestly (computed OC curves, or a licence) |
@@ -84,7 +85,11 @@ knowledge.
   - Cooling time-to-temperature limits vary by product and authority; the
     site's validated plan decides — `foodsafety.cooling-curves`.
   - The Shingo model's and other maturity models' licensing —
-    `lean.maturity-assessment`.
+    `lean.maturity-assessment`. **25 Oct 2026:** the Shingo principles are
+    described openly but no licence wording was found; MIT's LESAT is free to
+    copy with other rights reserved; none is bundled (the build is a frame
+    the person fills in). Ask the Institute, LEI or MIT only if a model is
+    ever to ship in the app.
   - MTM-1's walking element (W-FT 5.3 TMU a foot ≈ 1.6 m/s) —
     `lean.spaghetti`, from knowledge of the data card.
 
@@ -106,10 +111,33 @@ knowledge.
 
 - **MTM and MOST** (FC-023): their motion tables are licensed by their
   associations; analysts are certified. Not buildable without a licence.
+  **Researched 25 Oct 2026:** the TMU (0.036 s) and the sequence shapes are
+  public, the tables and the licence terms are not; the MTM Association's and
+  H.B. Maynard's terms for software or for typing table values were not
+  found — ask them if ever needed. Verdict: leave out; a synthetic-time
+  ledger of an analyst's own typed times is the only honest reopening
+  (`ie.pmts`).
 - **Shelf life** (FC-175), **hygienic design** (FC-178), **carbon** (FC-229):
   microbiology, EHEDG guidance and emission factors need specialist sources.
 - **Simulation** (FC-047): needs measured repair times first (FC-059).
-- **Lean maturity** (FC-018): no single standard model.
+- **Lean maturity** (FC-018): no single standard model. Researched 25 Oct
+  2026 — a frame the person fills in, no model bundled (`lean.maturity-assessment`).
+- **Reliability-centred maintenance** (FC-065): researched 25 Oct 2026 —
+  the logic is public through NASA and Nowlan and Heap; the standard is
+  paid; not to be built before its dependencies and one read of the NASA
+  tree (`maintenance.rcm`).
+- **Line acceptance on EN 415-11** (FC-085): researched 25 Oct 2026 — cannot
+  be built as the standard's tool without the text (`commissioning.acceptance-tests`).
+
+**The research pass of 25 October (FC-065, 085, 023, 018) was done without
+being able to open any page.** This container's fetch tool fails on every
+host (DNS) and the proxy refuses publishers, standards bodies, Wikipedia and
+NASA; only web search worked, and it returns a summary of the results, not
+the pages. So every "confirmed" in those four records means *a search
+excerpt or summary said so*, not that the builder read the source. A session
+that can open pages should read, in this order: the NASA RCM Guide's Logic
+Tree; the Shingo Model booklet and the LESAT guide's copyright page; the
+MTM Association's licence page; and, if bought, EN 415-11.
 
 ## Disciplines not yet researched at all
 
