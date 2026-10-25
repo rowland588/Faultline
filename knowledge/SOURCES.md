@@ -125,6 +125,37 @@ gives the causation of waiting: a queue is the inventory buffer the line
 chose by running a variable station near full, and it costs what inventory
 costs (`knowledge/MONEY.md` §2, C4).
 
+## Public sources for four "research" entries, 25 October 2026
+
+Not books: public law and public guidance, for FC-232, FC-175, FC-178 and
+FC-229 (`knowledge/GAPS.md`, *Research 1*). **None could be opened** — the
+container refused legislation.gov.uk, gov.uk, ghgprotocol.org, ehedg.org,
+eur-lex.europa.eu, the Food Standards Scotland, Campden BRI and Chilled Food
+Association sites and the BSI/ISO stores (a DNS failure from the fetch tool, a
+403 from the proxy). Everything below was confirmed from the excerpts a web
+search returns, never from a page; a figure carries "seen in excerpts" until a
+session that can fetch has read it. Public law and government guidance are not
+copied; the records give the numbers the law states (facts) and say where the
+text is.
+
+| Source | Edition | What the records take | Checked how |
+|---|---|---|---|
+| Weights and Measures (Packaged Goods) Regulations 2006, SI 2006/659 — Schedule 2 (reference test), Schedule 3 (TNE) — legislation.gov.uk | as made 2006, with later versions; current consolidated text to read | the plans and the TNE table in `packaging.average-quantity-system` | several excerpts of the schedule pages and a third-party copy; constants recomputed |
+| Council Directive 76/211/EEC, Annex II (EUR-Lex) | consolidated text exists (2019 version listed) | the method the UK Schedule follows | listed, not read |
+| WELMEC 6.3 (2024) Part 4; WSTA *A guide for importers* (2025); Business Companion *Packaged goods: average quantity* | 2024 / 2025 / current | the inspector's reference test described; the TNE table agreed | excerpts |
+| Food Standards Scotland, *Shelf-life guidance* | January 2025, v1.2 March 2025 | validation and verification, reasonably foreseeable conditions | excerpts |
+| FSAI, *Guidance Note 18: Validation of product shelf-life* | Revision 5, 4 November 2022 | study steps; durability against challenge | excerpts |
+| Chilled Food Association, *Shelf life of ready to eat food in relation to L. monocytogenes* | v1.1.1, 23 March 2010; new guidance 2026 | the 100 cfu/g and "not detected in 25 g" logic, worked examples, the 10-day rule | excerpts |
+| EURL *Lm* technical guidance; DG SANTE *Listeria* guidance | v4, 1 July 2021 (amendment 1, 2026 per a listing) | challenge tests, three batches, durability studies verify | excerpts |
+| Campden BRI, *Evaluation of product shelf-life for chilled foods* (Betts, Brown, Everis) | 2004; 2nd ed. 2019 *Evaluation of microbiological shelf-life of foods* | the trial approach | excerpts; paid |
+| Regulation (EC) 2073/2005 and (EU) 2024/2895 | 2024/2895 applying from 1 July 2026 in the EU | the *Listeria* criterion 1.2 | secondary; GB position unsettled |
+| EHEDG Guideline 8, *Hygienic design principles* | fourth edition, December 2025 (free); third edition March 2018 | the principles to be written in our own words | listings and announcements only |
+| EHEDG Guideline 58, *Hygienic design risk management* | 2025 | the method named | listing only; sold |
+| BS EN 1672-2:2020; EN ISO 14159:2008 | 2020 (published 31 January 2021); 2008 | scope; the three areas; nothing quoted | store listings and a preview excerpt; paid |
+| GHG Protocol Corporate Standard (2004) and Scope 2 Guidance (2015) | revised edition; revision under way | scopes; location- and market-based | excerpts and secondary guides |
+| DESNZ, *Greenhouse gas reporting: conversion factors* with methodology and major-changes reports | 2024, 2025 (10 June 2025), 2026 (11 June 2026) | the factors and how to use them | secondary guides quoting the workbooks |
+| UK *Environmental reporting guidelines including SECR* | March 2019; 2026 review | scope 1 and 2 and an intensity ratio required | excerpts |
+
 ## Adding a book
 
 Record it here (edition, what was confirmed and how, what was not), write or
