@@ -113,9 +113,10 @@ hygienic design meet there (`foodsafety.hygienic-design`).
 - [textbook] Shirose, K. (ed.), *TPM for Workshop Leaders*, Productivity Press, 1992 (from knowledge).
 
 ## In Faultline
-Not built (FC-062). The register already takes a problem with a photo on
-a line and a machine (`src/snag`), which is a tag; FC-062 adds the check
-sheet per machine done by tap on the phone, the tags as problems of a
-kind with their age and repeats, the step audits, and the checks'
-minutes against the short stops they prevent, in money, on the line's
-page.
+Built 25 October (FC-062 with FC-234, `knowledge/specs/FC-062-cilt-checks.md`) as two check logs on the shared shape
+(FC-236, `defs/cilt.ts`, `defs/condition-route.ts`): a CILT round per machine by shift, day and week done by tap, an
+abnormality tag raised from a check (red high, white low) as a problem on the register, its age and whether it is
+closed read from the register, a place tagged again within 28 days flagged; and a condition route of readings typed
+by a person against limits the team gives, nearing a limit within 15% of the band, a trend from eight readings
+(Mann-Kendall, Sen's slope). The seven steps and their step audits, and the minutes the checks take against the short
+stops they prevent, are not built. Proved by `log-shape.mjs`.

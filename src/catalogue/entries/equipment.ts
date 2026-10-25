@@ -1,5 +1,6 @@
 /* THE CATALOGUE — maintenance and reliability, changeovers, commissioning (src/catalogue/types.ts). */
 import type { Entry } from '../types';
+import { logBuilt } from '../../tools/checks/built';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -68,7 +69,14 @@ export const EQUIPMENT: Entry[] = [
     food: 'Seal jaws, knives, belt tracking — joined to the hygiene clean.',
     depends: ['FC-063', 'FC-154', 'FC-234'],
     complexity: 'M', value: 'medium', valueWhy: 'Stops the slow decay that causes breakdowns.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['maintenance.autonomous-maintenance'], scenarios: ['machine', 'daily'], words: ['CILT', 'operator care', 'TPM'],
+    status: 'available', form: 'tool', kind: 'log', methods: ['maintenance.autonomous-maintenance'], scenarios: ['machine', 'daily'], words: ['CILT', 'operator care', 'TPM'],
+    spec: 'knowledge/specs/FC-062-cilt-checks.md',
+    built: logBuilt('cilt'),
+    limits: [
+      'A tag is a problem on the register (red high, white low): its age and whether it is closed are the register’s; a repeat abnormality is the same check tagged again within 28 days.',
+      'The seven steps and their step audits are not built, and the minutes the checks take are not set against the short stops they prevent.',
+      'The hygiene clean is a different standard with its own verification; planned maintenance by the fitters (FC-063) is another log, not built yet.',
+    ],
   },
   {
     id: 'FC-063', name: 'Planned maintenance — due, done on time, and backlog', discipline: 'maintenance', sub: 'strategy',

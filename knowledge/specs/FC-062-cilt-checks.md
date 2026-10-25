@@ -99,8 +99,8 @@ becomes a problem on the machine, the tag figures, a value's trend on the page a
    Low, linked to the check; the tag counts open until the problem is closed — `log-shape.mjs` S3.
 4. A reading with no limit set is recorded and said not to be judged; the starter sets no limit — `defs.test.ts`;
    `log-shape.mjs` S3, S9.
-5. The paper carries the checks, compliance, the tags and the value pictures — `log-shape.mjs` S5.
-6. Phone, edit, delete with Undo, client read-only — `log-shape.mjs` S6, S8.
+5. The paper carries the checks, compliance, the tags and the value pictures — `log-shape.mjs` S3.
+6. Phone, edit, delete with Undo, client read-only — `log-shape.mjs` S3.
 *Not proved:* the minutes the checks take against the stops they prevent; real machine limits.
 
 ## 12. Maintainability

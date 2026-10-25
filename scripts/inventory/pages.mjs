@@ -429,6 +429,55 @@ export const PAGES = (sd, cap) => [
     { what: 'the commentary — each remark kept', sel: '.rl-rem li[data-remark]', n: 2 },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
+  /* CHECK LOGS (25 October, knowledge/specs/FC-236-check-logs.md — the shape; FC-170, FC-177 with FC-013, FC-062 with FC-234 its first tools): the hub, a kind's list, a log's round, the line's Logs, the project's Logs */
+  { name: 'Check logs — the hub', path: '#/logs', must: [
+    { what: 'the page’s name and what it says — how many logs, how many overdue or failed', sel: '[data-hub-says]', text: /check logs here/ },
+    { what: 'every kind of log as a row, grouped, each saying what it is for and its FC number', sel: '.lt-li .lt-what', n: 5 },
+    { what: 'New on a row', sel: 'button[aria-label^="New — "]', n: 5 },
+    { what: 'the kinds’ group headings', sel: '.part-sec-h h2', n: 3 },
+  ] },
+  { name: 'Check logs — one kind’s list', path: '#/log/metal-detection', must: [
+    { what: 'the kind’s name and what it is for', sel: 'h1', text: /^Metal detection checks$/ },
+    { what: 'New, named for the kind', sel: 'button', text: /^New metal detector check log$/ },
+    { what: 'what the list rests on and what is still to confirm', sel: '.lg-rests summary' },
+    { what: 'its logs, the most urgent first, each saying where it stands', sel: '.lt-li[data-study]', n: 1 },
+  ] },
+  { name: 'A check log — the round', path: `#/log/metal-detection/${sd.checkLogs['metal-detection']}`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾ in the band', sel: '.ln-band .part-menu-b', n: 2 },
+    { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
+    { what: 'the band with its verdict', sel: '.ln-band' },
+    { what: 'the tiles — done on time, missed, failed, product held — each of the plan and since the 7 days before', sel: '.lg-tiles .ln-tile', n: 4 },
+    { what: 'the sentence — what is due, failed or overdue, and the compliance', sel: '[data-says]', text: /Metal detection checks:/ },
+    { what: 'the Round, History and The checks as views of one log', sel: '[role="tab"]', n: 3 },
+    { what: 'a card for each check, in the state it is in', sel: 'li.lg-card[data-state]', n: 6 },
+    { what: 'a failed check stays red until it passes', sel: 'li.lg-card[data-state="failed"]' },
+    { what: 'a pass and a fail a tap each, on the card', sel: 'li.lg-card .lg-pass', n: 1 },
+    { what: 'the checks that wait for an event, apart', sel: 'section[aria-label="When it happens"] li.lg-card', n: 3 },
+    { what: 'the action plan — the problem the failure raised', sel: '.lg-plan' },
+    { what: 'the closing line', sel: '.ln-close' },
+  ] },
+  { name: 'A check log — a scored audit', path: `#/log/five-s/${sd.checkLogs['five-s']}`, must: [
+    { what: 'the latest score and the audit before it', sel: '.lg-tiles .ln-tile', text: /Latest score/ },
+    { what: 'what it means — the weakest heading, the findings that came back', sel: '.lg-ins li', n: 1 },
+    { what: 'Start the audit on the card', sel: 'li.lg-card button', text: /Start the audit/ },
+  ] },
+  { name: 'A check log — a value route', path: `#/log/condition-route/${sd.checkLogs['condition-route']}`, must: [
+    { what: 'a reading to type on the card', sel: 'li.lg-card .lg-rec, li.lg-card input' },
+    { what: 'what it means — how near the limit, which way it is going', sel: '.lg-ins li', text: /of the band from the upper limit/ },
+  ] },
+  { name: 'A check log — CILT checks', path: `#/log/cilt/${sd.checkLogs.cilt}`, must: [
+    { what: 'Tag it on a card — an abnormality, red or white', sel: 'li.lg-card button', text: /Tag it/ },
+    { what: 'a card for each check', sel: 'li.lg-card[data-state]', n: 1 },
+  ] },
+  { name: 'A line — its logs', path: `#/lines/${sd.wsId}?view=logs`, must: [
+    { what: 'Stops timed, the line’s first log', sel: '[data-section="logs"] .pl-tool.is-stops' },
+    { what: 'what the line’s check logs say — how many, how many overdue or failed', sel: '[data-line-logs-says]', text: /check logs/ },
+    { what: 'a row for each check log, saying where it stands', sel: '[data-log-row]', n: 5 },
+  ] },
+  { name: 'A project — its logs', path: `#/logs?project=${sd.projectId}`, must: [
+    { what: 'what the project’s own check logs say', sel: '[data-hub-says]', text: /check log here/ },
+    { what: 'the project’s, its lines’, all lines — whose', sel: '.ip-scope .chip', n: 2 },
+  ] },
   /* PROJECTS LISTS THE PROJECTS (docs/STRUCTURE.md §5.6, B5) — the kinds as counts, a row a project */
   { name: 'Projects', path: '#/projects', must: [
     { what: 'the kinds as chips that are the counts — All first', sel: '.proj-list .part-filters .chip', text: /^\d+All$/ },

@@ -34,6 +34,8 @@ const SESSION = {
 const IGNORE = /Supabase|net::ERR|Failed to fetch|ERR_FAILED|aborted|WebSocket|tunnel|Download the React DevTools/i;
 const OUT = mkdtempSync(join(tmpdir(), 'log-shape-'));
 const SHOTS = process.env.SHOTS;
+/* SKIP=S1,S2,S3,S3b,S4 runs only the rest — while a section is being written; the gate runs all of them */
+const SKIP = new Set((process.env.SKIP ?? '').split(',').filter(Boolean));
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
 const errors = [];
@@ -118,7 +120,7 @@ const sameAsModule = async (page, id, tag) => {
 
 /* =============================================================================================== S1 · the hubs */
 console.log('\n--- S1 · the Logs hubs ---');
-{
+if (!SKIP.has('S1')) {
   await desk.go('#/logs');
   ok(/^Check logs$/.test(flat(await dp.locator('h1').first().innerText())), 'S1 the hub’s name');
   const crumbs = flat(await dp.locator('.nv-top .nv-ctx').innerText());
@@ -177,7 +179,7 @@ console.log('\n--- S1 · the Logs hubs ---');
 
 /* =============================================================================================== S2 · one kind's list */
 console.log('\n--- S2 · one kind’s list ---');
-for (const key of KEYS) {
+for (const key of SKIP.has('S2') ? [] : KEYS) {
   await desk.go(`#/log/${key}`);
   const t = await dp.evaluate(async k => { const R = await import('/src/tools/checks/registry.ts'); const d = R.defOf(k); return { title: d.title, rests: d.standard.rests, confirm: d.standard.confirm, n: d.starterChecks.length }; }, key);
   ok(flat(await dp.locator('h1').first().innerText()) === t.title, `S2 ${key}: the list’s name`);
@@ -232,7 +234,7 @@ async function audit(page, key, id, checkName, levels, tag) {
   return { final: flat(await page.locator('[data-final]').innerText()), save: () => page.locator('.lg-save').click(), count: await page.locator('.lg-find li').count() };
 }
 
-for (const key of KEYS) {
+for (const key of SKIP.has('S3') ? [] : KEYS) {
   console.log(`\n--- S3 · ${key}, on a phone ---`);
   const def = await pp.evaluate(async k => { const d = (await import('/src/tools/checks/registry.ts')).defOf(k); return { title: d.title, noun: d.noun, kinds: d.kinds, whereLabel: d.whereLabel, holds: d.holds, priority: d.priority, tags: !!d.tags, starters: d.starterChecks.map(c => ({ name: c.name, kind: c.kind, when: c.when, priority: c.priority, where: c.where })), rests: d.standard.rests, confirm: d.standard.confirm, limits: d.limits, scale: d.scale, ex: d.examples[0] }; }, key);
   const where = def.whereLabel === 'Detector' ? 'Metal detector' : def.whereLabel === 'Machine' ? 'Wrapper' : 'Packing hall';
@@ -439,7 +441,7 @@ async function patchProblemClosed(snagId) {
 }
 
 /* =============================================================================================== S3b · read as a client */
-{
+if (!SKIP.has('S3b')) {
   const cl = await device(1360, 'client');
   await cl.go('#/room');
   const sd2 = await cl.page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
@@ -455,6 +457,185 @@ async function patchProblemClosed(snagId) {
   await cl.go(`#/logs?project=${sd2.projectId}`);
   ok(await cl.page.getByRole('button', { name: /^New — / }).count() === 0, 'S3 a client’s Logs in the project offers no New');
   await cl.ctx.close();
+}
+
+/* =============================================================================================== S4 · the worked examples */
+console.log('\n--- S4 · the worked examples, on the page ---');
+if (!SKIP.has('S4')) {
+  const EX = await dp.evaluate(async () => {
+    const R = await import('/src/tools/checks/registry.ts');
+    return R.LOG_DEFS.flatMap(d => d.examples.map((ex, i) => ({ key: d.key, i, name: ex.name, nowMin: ex.nowMin, expect: ex.expect, scored: !!d.scale, pick: ex.checks ?? d.starterChecks.map((_, k) => k) })));
+  });
+  ok(EX.length >= KEYS.length, `S4 ${EX.length} worked examples across ${KEYS.length} definitions — every definition has at least one`);
+  for (const e of EX) {
+    const tag = `S4 ${e.key} · ${e.name}`;
+    const made = await dp.evaluate(async ([key, i, line, pick]) => {
+      const db = await import('/src/db.ts'), R = await import('/src/tools/checks/registry.ts'), X = await import('/src/tools/checks/example.ts');
+      const def = R.defOf(key), ex = def.examples[i];
+      const s = X.exampleStudy(def, ex, Date.now(), { line, where: def.whereLabel === 'Detector' ? 'Metal detector' : 'Packing hall' });
+      const id = crypto.randomUUID();
+      await db.putStudy({ ...s, id, name: `${def.title} — example ${i + 1}`, createdAt: Date.now(), updatedAt: Date.now() });
+      return { id, ids: Object.fromEntries(pick.map((k, j) => [k, s.agreed.log.checks[j].id])) };
+    }, [e.key, e.i, CLEAN, e.pick]);
+    await desk.go(`#/log/${e.key}/${made.id}`);
+    const x = e.expect, inWeek = e.nowMin <= 7 * 1440;
+    const tiles = Object.fromEntries((await tilesOnPage(dp)).map(t => [t[0], t[1]]));
+    const says = flat(await dp.locator('[data-says]').innerText());
+    if (inWeek && x.expected !== undefined) ok(tiles['done on time'] === `${x.onTime} of ${x.expected}`, `${tag}: "Done on time" is ${x.onTime} of ${x.expected} as hand-worked`, tiles['done on time']);
+    if (inWeek && x.missed !== undefined) ok(tiles['missed'] === String(x.missed), `${tag}: ${x.missed} missed`, tiles['missed']);
+    if (inWeek && x.failed !== undefined) ok(tiles['failed'] === String(x.failed), `${tag}: ${x.failed} failed`, tiles['failed']);
+    if (x.packsHeld !== undefined) ok(tiles['product held'] === `${x.packsHeld.toLocaleString('en-GB')} packs`, `${tag}: ${x.packsHeld.toLocaleString('en-GB')} packs held (the rated speed × the minutes since the last good check)`, tiles['product held']);
+    if (inWeek && x.pct !== undefined && !e.scored) ok(says.includes(`(${Math.round(x.pct)}%)`), `${tag}: compliance ${Math.round(x.pct)}% said`, says);
+    for (const [k, st] of Object.entries(x.states ?? {})) {
+      const got = await dp.locator(`li.lg-card[data-check="${made.ids[k]}"]`).getAttribute('data-state');
+      ok(got === st, `${tag}: check ${k} is ${st}`, got);
+    }
+    const ins = flat(await dp.locator('.lg-ins').innerText().catch(() => ''));
+    if (e.scored && x.pct !== undefined) {
+      ok(tiles['latest score'] === `${Math.round(x.pct)}%`, `${tag}: the latest score ${Math.round(x.pct)}%`, tiles['latest score']);
+      if (x.weakest) ok(ins.includes(`${x.weakest} is the weakest at`), `${tag}: ${x.weakest} is the weakest`, ins);
+      if (x.repeats) ok(new RegExp(`${x.repeats} findings? of ${x.findings} findings? came back`).test(ins), `${tag}: ${x.repeats} of ${x.findings} findings came back from the audit before`, ins);
+      ok(x.falls >= 2 ? /fallen \d+ audits running/.test(ins) : !/fallen/.test(ins), `${tag}: ${x.falls ?? 0} falls in a row — said only from two`);
+      await tab(dp, 'History');
+      if (x.findings !== undefined) ok(await dp.locator('ul[aria-label="Findings"] li').count() === x.findings, `${tag}: ${x.findings} findings listed, each with the question`);
+      if (x.repeats !== undefined) ok(await dp.locator('ul[aria-label="Findings"] .lg-again').count() === x.repeats, `${tag}: ${x.repeats} marked “came back”`);
+      if (x.weakest) ok(flat(await dp.locator('.lg-tbl tr.is-weak th').first().innerText()).startsWith(x.weakest), `${tag}: the heading table marks ${x.weakest} weakest`);
+    }
+    if (x.nearing) {
+      ok(new RegExp(`${Math.round(x.headroomPct)}% of the band from the ${x.nearing === 'hi' ? 'upper' : 'lower'} limit`).test(ins) && (x.going === 'up' ? /rising/.test(ins) : x.going === 'down' ? /falling/.test(ins) : !/rising|falling/.test(ins)), `${tag}: ${Math.round(x.headroomPct)}% of the band from the ${x.nearing === 'hi' ? 'upper' : 'lower'} limit, going ${x.going}`, ins);
+    }
+    if (x.tags !== undefined) {
+      await tab(dp, 'History');
+      const h = flat(await dp.locator('[data-tab="history"]').innerText());
+      ok(new RegExp(`${x.tags} tags raised`).test(h) && (!x.repeatTags || /tagged \d+ times in the last 28 days/.test(h)), `${tag}: ${x.tags} tags raised, ${x.repeatTags ?? 0} place tagged again`, h.slice(0, 200));
+    }
+  }
+}
+
+/* =============================================================================================== S7 · the wiring */
+console.log('\n--- S7 · where a log shows ---');
+if (!SKIP.has('S7')) {
+  const truthOf = ws => dp.evaluate(async w => {
+    const db = await import('/src/db.ts'), O = await import('/src/tools/checks/owed.ts');
+    const logs = (await db.listStudiesForLine(w)).filter(s => s.tool === 'log'), now = Date.now();
+    return { c: O.scopeCounts(logs, now), owed: O.logOwed(logs, now).map(o => ({ what: o.what, kind: o.kind, log: o.log, studyId: o.studyId, logKey: o.logKey })) };
+  }, ws);
+  const before = await truthOf(sd.wsId);
+  ok(before.c.overdue + before.c.failed > 0 && before.owed.length >= 2, `S7 the seeded line owes ${before.owed.length} checks: ${before.c.overdue} overdue, ${before.c.failed} failed, ${before.c.due} due now`);
+  /* the line's page: a tile, and the closing line */
+  await desk.go(`#/lines/${sd.wsId}`);
+  const tilesL = await dp.locator('.ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim(), v: e.querySelector('.ln-v')?.textContent?.trim(), of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })));
+  const ck = tilesL.find(t => t.k === 'Checks');
+  ok(ck?.v === String(before.c.overdue + before.c.failed) && (!before.c.overdue || ck.of.includes(`${before.c.overdue} overdue`)) && (!before.c.failed || ck.of.includes(`${before.c.failed} failed`)), `S7 the line’s page: a Checks tile saying ${ck?.v} — "${ck?.of}"`);
+  const closeL = flat(await dp.locator('.pl > .ln-close').innerText());
+  ok(closeL.includes(`${before.c.overdue + before.c.failed} checks overdue or failed`), `S7 and its closing line says it: "${closeL.slice(-90)}"`);
+  /* the line's one-page paper: the tile and the closing line, as the page says them */
+  const [dl] = await Promise.all([dp.waitForEvent('download', { timeout: 120000 }), pressPaper(dp, /^Line report/)]);
+  const f = join(OUT, 'line-report.pdf'); await dl.saveAs(f);
+  const ptext = flat(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }));
+  ok(/CHECKS/i.test(ptext) && nospace(ptext).includes(nospace(`${before.c.overdue} overdue · ${before.c.failed} failed`)), 'S7 the line’s one-page paper carries the Checks tile');
+  ok(nospace(ptext).includes(nospace(`${before.c.overdue + before.c.failed} checks overdue or failed`)), 'S7 and the closing line with the checks in it');
+  /* the line report (?tools=): who owes what by when — every check owed, on the screen and on its paper */
+  await desk.go(`#/lines/${sd.wsId}/report`);
+  const plan = flat(await dp.locator('.nv-main').innerText());
+  const missingS = before.owed.filter(o => !nospace(plan).includes(nospace(o.what)));
+  ok(missingS.length === 0, `S7 the line report’s “Who owes what by when” lists every check owed (${before.owed.length})`, missingS.map(m => m.what).join(' | '));
+  ok(before.owed.every(o => (o.kind === 'failed' ? /check again/i : o.kind === 'overdue' ? /overdue/i : /due now/i).test(plan)) && plan.includes('FAILED') && plan.includes('OVERDUE'), 'S7 each as failed (check again) or overdue, in the state’s word');
+  ok(plan.includes(`${before.c.overdue + before.c.failed} checks overdue or failed`), 'S7 and its closing line says it, as the line’s page does');
+  const [dl2] = await Promise.all([dp.waitForEvent('download', { timeout: 120000 }), dp.getByRole('button', { name: 'Download' }).click()]);
+  const f2 = join(OUT, 'line-report-owed.pdf'); await dl2.saveAs(f2);
+  const ptext2 = flat(execFileSync('pdftotext', ['-raw', f2, '-'], { encoding: 'utf8' }));
+  const missingP = before.owed.filter(o => !nospace(ptext2).includes(nospace(o.what)));
+  ok(missingP.length === 0 && /CHECKS/i.test(ptext2), 'S7 and on its paper: the Checks tile and every check owed', missingP.map(m => m.what).join(' | '));
+  /* a project's Needs you: the failed check as a row, opening its log inside the project */
+  await desk.go(`#/project/${sd.projectId}`);
+  const row = dp.locator('.fp-needs li', { hasText: /Stainless steel test piece/ }).first();
+  const rowText = flat(await row.innerText());
+  ok(/Metal detection checks/.test(rowText) && /not yet checked again|Failed/.test(rowText), `S7 the project’s Needs you owes the failed check: "${rowText.slice(0, 120)}"`);
+  ok(/late/.test(rowText), 'S7 and it is marked late');
+  await row.click(); await dp.waitForTimeout(1200);
+  ok(new RegExp(`#/log/metal-detection/${logs['metal-detection']}`).test(dp.url()) && dp.url().includes(`project=${sd.projectId}`), `S7 the row opens the log, inside the project: ${dp.url().split('#')[1]}`);
+  /* …and the project’s Actions, and Every action under the control room, read the same row */
+  const owedRow = page => page.locator('li', { hasText: /Stainless steel test piece · Metal detector/ }).filter({ hasText: /not yet checked again/ });
+  await desk.go(`#/project/${sd.projectId}/actions`);
+  ok(await owedRow(dp).count() >= 1, 'S7 the project’s Actions lists the failed check, late, among what is owed');
+  await desk.go('#/actions');
+  ok(await owedRow(dp).count() >= 1, 'S7 and Every action, under the control room, lists it with its project');
+  /* a pass clears the failed check, and every tile, closing line and row moves with it */
+  await dp.evaluate(async ws => {
+    const db = await import('/src/db.ts'), O = await import('/src/tools/checks/owed.ts'), R = await import('/src/tools/checks/registry.ts');
+    for (const s of (await db.listStudiesForLine(ws)).filter(x => x.tool === 'log')) {
+      const def = R.defOf(s.agreed.log.key), now = Date.now();
+      const results = [...(s.facts.results ?? [])];
+      for (const o of O.logOwed([s], now)) {
+        const c = s.agreed.log.checks.find(x => x.id === o.check.check.id);
+        const at = now, id = `acc-${results.length}-${at}`;
+        if (c.kind === 'passfail') results.push({ id, checkId: c.id, at, outcome: 'pass' });
+        else if (c.kind === 'value') results.push({ id, checkId: c.id, at, outcome: 'value', value: ((c.lo ?? 0) + (c.hi ?? 100)) / 2 });
+        else if (c.kind === 'scored') results.push({ id, checkId: c.id, at, outcome: 'score', answers: (c.items ?? []).map(it => ({ id: it.id, name: it.name, ...(it.group ? { group: it.group } : {}), level: def.scale.levels[def.scale.levels.length - 1].v })) });
+        else results.push({ id, checkId: c.id, at, outcome: 'count', count: c.target ?? 1 });
+      }
+      await db.putStudy({ ...s, facts: { ...s.facts, results }, updatedAt: now + 1 });
+    }
+  }, sd.wsId);
+  const after = await truthOf(sd.wsId);
+  ok(after.c.overdue === 0 && after.c.failed === 0, `S7 after a good check each: ${after.c.overdue} overdue, ${after.c.failed} failed`);
+  await desk.go(`#/lines/${sd.wsId}`);
+  const ck2 = (await dp.locator('.ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim(), v: e.querySelector('.ln-v')?.textContent?.trim(), of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })))).find(t => t.k === 'Checks');
+  ok(ck2?.v === '0' && /every check up to date/.test(ck2.of), `S7 the line’s Checks tile is back to 0 — "${ck2?.of}"`);
+  ok(!/checks? overdue or failed/.test(flat(await dp.locator('.pl > .ln-close').innerText())), 'S7 and the closing line no longer says it');
+  await desk.go(`#/project/${sd.projectId}`);
+  ok(await dp.locator('.fp-needs li', { hasText: /Stainless steel test piece/ }).count() === 0, 'S7 and the project’s Needs you no longer owes it');
+  await desk.go(`#/project/${sd.projectId}/actions`);
+  ok(await owedRow(dp).count() === 0, 'S7 nor its Actions');
+  await desk.go('#/logs');
+  const hs = flat(await dp.locator('[data-hub-says]').innerText());
+  /* the seeded line's checks are all done; what the hub still counts is the other logs on the device (S4's examples), as the module counts them */
+  const totS = await dp.evaluate(async () => { const db = await import('/src/db.ts'), O = await import('/src/tools/checks/owed.ts'); return O.scopeCounts((await db.listAllStudies()).filter(x => x.tool === 'log'), Date.now()); });
+  ok(hs.startsWith(`${totS.logs} check logs here`) && (totS.overdue ? hs.includes(`${totS.overdue} overdue`) : !/overdue/.test(hs)) && (totS.failed ? hs.includes(`${totS.failed} failed`) : !/failed/.test(hs)), `S7 the hub agrees with the module: "${hs}"`);
+  const lineHs = await truthOf(sd.wsId);
+  ok(lineHs.c.overdue === 0 && lineHs.c.failed === 0, 'S7 and the seeded line itself owes nothing');
+}
+
+/* =============================================================================================== S9 · empty and invalid */
+console.log('\n--- S9 · the empty and the invalid ---');
+if (!SKIP.has('S9')) {
+  await desk.go('#/log/no-such-kind');
+  ok(/No such kind of log/.test(flat(await dp.locator('h1').first().innerText())) && await dp.getByRole('button', { name: 'Every check log' }).count() === 1, 'S9 a kind that does not exist says so, with the way back');
+  await desk.go('#/log/metal-detection/not-a-record');
+  ok(/isn’t on this device/.test(flat(await dp.locator('h1').first().innerText())) && await dp.getByRole('button', { name: 'Every check log' }).count() === 1, 'S9 a log that is not here says so (deleted or not synced), with the way back');
+  const odd = await dp.evaluate(async ([ws, key]) => {
+    const db = await import('/src/db.ts'), R = await import('/src/tools/checks/registry.ts'), X = await import('/src/tools/checks/example.ts');
+    const def = R.defOf(key), now = Date.now();
+    const s = X.exampleStudy(def, def.examples[0], now, { line: ws, where: 'Packing hall' });
+    const future = crypto.randomUUID(), empty = crypto.randomUUID();
+    await db.putStudy({ ...s, id: future, name: 'A log of a later kind', agreed: { log: { ...s.agreed.log, key: 'a-kind-from-the-future' } }, createdAt: now, updatedAt: now });
+    await db.putStudy({ ...s, id: empty, name: 'A log with every check taken off', agreed: { log: { ...s.agreed.log, checks: s.agreed.log.checks.map(c => ({ ...c, removed: true })) } }, createdAt: now, updatedAt: now });
+    return { future, empty };
+  }, [CLEAN, KEYS[0]]);
+  await desk.go(`#/log/${KEYS[0]}/${odd.future}`);
+  ok(/does not have/.test(flat(await dp.locator('.lg .sub').first().innerText())) && /A log of a later kind/.test(flat(await dp.locator('h1').first().innerText())), 'S9 a log of a kind this version does not have: named, kept as it is, told to update — not a crash');
+  await desk.go(`#/log/${KEYS[0]}/${odd.empty}`);
+  ok(/Nothing is on the list to check yet/.test(flat(await dp.locator('[data-says]').innerText())) && await dp.locator('[data-none-checks]').count() === 1, 'S9 a log with every check taken off says nothing is on the list, and points to The checks');
+  ok(/Put the checks on the list/.test(flat(await dp.locator('.ln-close').innerText())), 'S9 and its closing line says what to do');
+  await desk.go(`#/lines/${CLEAN}?view=logs`);
+  ok(await dp.locator('[data-log-row]', { hasText: 'A log of a later kind' }).count() === 1 && await dp.locator('[data-log-row]', { hasText: 'A log with every check taken off' }).count() === 1, 'S9 the line lists both odd logs (the future kind by its stored name) without a crash');
+  /* a fresh device: nothing started anywhere */
+  const empty = await device(1360);
+  await empty.go('#/room');
+  const lineE = await makeClean(empty.page);
+  await empty.go('#/logs');
+  const sE = flat(await empty.page.locator('[data-hub-says]').innerText());
+  ok(/^No check log is started here yet/.test(sE), `S9 an empty device: "${sE}"`);
+  ok(await empty.page.locator('.lt-li', { hasText: 'None here yet' }).count() === KEYS.length, `S9 every kind says "None here yet" (${KEYS.length})`);
+  await empty.go(`#/lines/${lineE}?view=logs`);
+  ok(/^No check log on this line yet/.test(flat(await empty.page.locator('[data-line-logs-says]').innerText())), 'S9 a line with none says so');
+  await empty.go(`#/lines/${lineE}`);
+  ok(!(await empty.page.locator('.ln-tile .ln-k').allInnerTexts()).some(t => /Checks/.test(t)) && !/overdue or failed/.test(flat(await empty.page.locator('.pl > .ln-close').innerText())), 'S9 and the line’s page has no Checks tile until it has a log');
+  await empty.go(`#/log/${KEYS[0]}`);
+  ok(await empty.page.locator('.lt-li').count() === 0 || /None|no log/i.test(flat(await empty.page.locator('.wrap').innerText())), 'S9 a kind with no log yet has its list empty and New offered');
+  ok(await empty.page.getByRole('button', { name: /^New / }).count() >= 1, 'S9 and New is offered');
+  await empty.ctx.close();
 }
 
 /* ==TRAILER== */

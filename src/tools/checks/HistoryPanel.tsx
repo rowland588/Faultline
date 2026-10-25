@@ -9,8 +9,8 @@ import { plural } from '../../lib/format';
 import { offerUndo } from '../../ui/Undo';
 import { LeanPanel } from '../../ui/Lean';
 import type { LogDef } from './def';
-import { freqWords, valueSays, verdictOf, when, MIN } from './checks';
-import { checkRow, type LogFigures } from './figures';
+import { freqWords, logOf, valueSays, verdictOf, when, MIN } from './checks';
+import { checkRow, findingRows, type LogFigures } from './figures';
 import { failureLine, resultWords } from './says';
 import { strikeResult } from './store';
 import { ScorePic, ValuePic } from './Pics';
@@ -18,7 +18,7 @@ import { ScorePic, ValuePic } from './Pics';
 const pct0 = (n: number | undefined) => (n === undefined ? '—' : `${Math.round(n)}%`);
 
 export function HistoryPanel({ s, def, f, can }: { s: ToolStudy; def: LogDef; f: LogFigures; can: Can }) {
-  const log = s.agreed!.log!;
+  const log = logOf(s);
   const checks = log.checks.filter(c => !c.removed);
   const byId = new Map(log.checks.map(c => [c.id, c]));
   const results = [...(s.facts.results ?? [])].sort((a, b) => b.at - a.at).slice(0, 200);
@@ -83,8 +83,8 @@ export function HistoryPanel({ s, def, f, can }: { s: ToolStudy; def: LogDef; f:
                   )}
                   {sc.latest.findings.length > 0 && (
                     <ul className="lg-finds" aria-label="Findings">
-                      {sc.latest.result.answers?.filter(a => sc.latest!.findings.includes(a.id)).map(a => (
-                        <li key={a.id}><b>{a.group ? `${a.group} — ` : ''}{a.name}</b> <i className="sub">scored {a.level}</i>{sc.latest!.repeats.includes(a.id) && <em className="lg-again"> came back</em>}</li>
+                      {findingRows(sc.latest).map(({ a, again }) => (
+                        <li key={a.id}><b>{a.group ? `${a.group} — ` : ''}{a.name}</b> <i className="sub">scored {a.level}</i>{again && <em className="lg-again"> came back</em>}</li>
                       ))}
                     </ul>
                   )}

@@ -11,7 +11,7 @@ import { LeanPanel } from '../../ui/Lean';
 import { Sheet } from '../../ui/Sheet';
 import { offerUndo } from '../../ui/Undo';
 import type { LogDef } from './def';
-import { checkProblem, freqWords, FREQ_UNITS, DEFAULT_SHIFT_HOURS } from './checks';
+import { checkProblem, logOf, freqWords, FREQ_UNITS, DEFAULT_SHIFT_HOURS } from './checks';
 import { judgedBy } from './RoundParts';
 import { setChecks } from './store';
 import { starterLog } from './start';
@@ -45,7 +45,7 @@ export const itemsText = (items: readonly LogItem[] = []): string => {
 };
 
 export function ChecksPanel({ s, def, can }: { s: ToolStudy; def: LogDef; can: Can }) {
-  const log = s.agreed!.log!;
+  const log = logOf(s);
   const [editing, setEditing] = useState<LogCheck | 'new' | null>(null);
   const live = log.checks.filter(c => !c.removed), off = log.checks.filter(c => c.removed);
   const takeOff = async (c: LogCheck) => {

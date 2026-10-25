@@ -106,11 +106,11 @@ hold in packs and pounds; the seam) and `checks.test.ts` (the clean bound agains
 3. The failure raises one Critical problem on "Metal detector" with the packs held and the note; a second failure
    in a row adds a journey step — `log-shape.mjs` S3.
 4. The starter list is six checks and sets no test-piece size; the standard note lists three things TO CONFIRM
-   and quotes no clause number — `defs.test.ts`; the page and paper — `log-shape.mjs` S1, S5.
-5. The paper carries the checks as agreed, compliance, the failure and its hold, the limits — `log-shape.mjs` S5.
+   and quotes no clause number — `defs.test.ts`; the page and paper — `log-shape.mjs` S1, S3.
+5. The paper carries the checks as agreed, compliance, the failure and its hold, the limits — `log-shape.mjs` S3.
 6. The wording states the team's rules and never decides a release (the limit is on the page and the paper) —
-   `log-shape.mjs` S5.
-7. Phone, edit, delete with Undo, client read-only — `log-shape.mjs` S6, S8 (the table).
+   `log-shape.mjs` S3.
+7. Phone, edit, delete with Undo, client read-only — `log-shape.mjs` S3 (the table).
 *Not proved:* a real detector's signal; the retailer's frequency; two phones on one detector.
 
 ## 12. Maintainability

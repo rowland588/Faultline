@@ -23,6 +23,13 @@ import type { LogDef } from './def';
 import { findingBelowOf, scoreOf } from './scoring';
 
 export const MIN = 60_000, HOUR = 3_600_000, DAY = 86_400_000;
+
+/** The check log a record holds. A page, a paper or a write that works on one has already looked; this says so in one place instead of asserting it. */
+export function logOf(s: { agreed?: { log?: AgreedLog } }): AgreedLog {
+  const l = s.agreed?.log;
+  if (!l) throw new Error('This record is not a check log.');
+  return l;
+}
 export const DEFAULT_SHIFT_HOURS = 8;
 
 /** The gap between two due moments, in ms; undefined for a check done when something happens. */

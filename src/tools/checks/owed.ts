@@ -10,7 +10,7 @@ import type { JobItem } from '../../lib/portfolio';
 import type { LeanAction } from '../../lib/lean';
 import { isoDay, niceDay } from '../../lib/weeks';
 import { defOf } from './registry';
-import { roundOf, when, type CheckState, type Tone } from './checks';
+import { logOf, roundOf, when, type CheckState, type Tone } from './checks';
 
 export const isLog = (s: ToolStudy): boolean => s.tool === 'log' && !s.deletedAt && !!s.agreed?.log;
 
@@ -67,7 +67,7 @@ export interface LogOwed {
 export function logOwed(studies: readonly ToolStudy[], now: number): LogOwed[] {
   const out: LogOwed[] = [];
   for (const s of studies.filter(isLog)) {
-    const log = s.agreed!.log!;
+    const log = logOf(s);
     const round = roundOf(log, s.facts.results, now, defOf(log.key));
     for (const st of round.now) {
       if (st.key !== 'overdue' && st.key !== 'failed' && st.key !== 'due') continue;

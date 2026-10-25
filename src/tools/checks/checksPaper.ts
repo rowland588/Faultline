@@ -13,8 +13,8 @@ import type { Density } from '../../lib/report/flow';
 import type { LogCheck, ToolStudy } from '../../lib/study';
 import type { Snag } from '../../snag/types';
 import type { LogDef } from './def';
-import { freqWords, valueSays, verdictOf, when, MIN, type ValueTrend } from './checks';
-import { checkRow, logFigures, type LogFigures, type ScoreSeries } from './figures';
+import { freqWords, logOf, valueSays, verdictOf, when, MIN, type ValueTrend } from './checks';
+import { checkRow, findingRows, logFigures, type LogFigures, type ScoreSeries } from './figures';
 import { failureLine, logActions, logClosing, logInsights, logSays, logTiles, resultWords } from './says';
 import type { LogCtx } from './hold';
 import { judgedBy } from './RoundParts';
@@ -83,7 +83,7 @@ export interface LogPaperInput { s: ToolStudy; def: LogDef; f: LogFigures; snags
 /** Everything between the tiles and the action plan. */
 export function logBodyBlocks(i: LogPaperInput): Block[] {
   const { s, def, f } = i;
-  const log = s.agreed!.log!;
+  const log = logOf(s);
   const out: Block[] = [];
   const checks = log.checks.filter(c => !c.removed);
   const byId = new Map(log.checks.map(c => [c.id, c]));
@@ -117,10 +117,10 @@ export function logBodyBlocks(i: LogPaperInput): Block[] {
     if (sc.latest) {
       out.push(text({ text: `Latest: ${pct0(sc.latest.figures.pct)} — ${sc.latest.figures.points} of ${sc.latest.figures.max} on ${when(sc.latest.result.at, f.now)}${sc.latest.result.by ? ` by ${sc.latest.result.by}` : ''}.${sc.falling ? ` Fallen ${sc.falls} audits running.` : ''}`, size: 8.5, colour: INK2, after: 3 }));
       if (sc.latest.figures.groups.length) out.push(table(['Heading', 'Score', 'Share'], sc.latest.figures.groups.map(g => [`${g.name}${sc.weakest?.name === g.name ? ' (weakest)' : ''}`, `${g.points} of ${g.max}`, pct0(g.pct)]), [0.5, 0.25, 0.25]));
-      const finds = sc.latest.result.answers?.filter(a => sc.latest!.findings.includes(a.id)) ?? [];
+      const finds = findingRows(sc.latest);
       if (finds.length) {
         out.push(label('Findings'));
-        out.push(table(['Question', 'Scored', ''], finds.map(a => [`${a.group ? `${a.group} — ` : ''}${a.name}`, String(a.level), sc.latest!.repeats.includes(a.id) ? 'came back' : '']), [0.7, 0.12, 0.18], idx => sc.latest!.repeats.includes(finds[idx].id)));
+        out.push(table(['Question', 'Scored', ''], finds.map(({ a, again }) => [`${a.group ? `${a.group} — ` : ''}${a.name}`, String(a.level), again ? 'came back' : '']), [0.7, 0.12, 0.18], idx => !!finds[idx]?.again));
       }
     }
   }

@@ -2,10 +2,10 @@
  * so they cannot disagree (CLAUDE.md rule 2). Pure: a study, its definition, the moment and the line's cost model in;
  * the round, the compliance of the period and the one before it, every failure with what it held, each scored
  * check's series, each value's trend and the tags out. Nothing is stored. */
-import type { LogCheck, LogResult, ToolStudy } from '../../lib/study';
+import type { LogAnswer, LogCheck, LogResult, ToolStudy } from '../../lib/study';
 import type { Snag } from '../../snag/types';
 import type { LogDef, ScoreFigures } from './def';
-import { complianceOf, failuresOf, logCompliance, resultsOf, roundOf, valueTrend, cleanBound, verdictOf, DAY, type Compliance, type Failure, type Round, type ValueTrend } from './checks';
+import { complianceOf, logOf, failuresOf, logCompliance, resultsOf, roundOf, valueTrend, cleanBound, verdictOf, DAY, type Compliance, type Failure, type Round, type ValueTrend } from './checks';
 import { holdOf, type Hold, type LogCtx } from './hold';
 import { fallsInARow, findingBelowOf, repeatsOf, scoreOf, weakest, FALLING_FROM } from './scoring';
 
@@ -150,7 +150,10 @@ export function logFigures(i: LogInputs): LogFigures | undefined {
 }
 
 /** The compliance of one check over the period — the row of a table. */
-export const checkRow = (s: ToolStudy, c: LogCheck, f: LogFigures): Compliance => complianceOf(c, s.agreed!.log!, s.facts.results, f.period.from, f.period.to);
+/** An audit's findings with the answers that made them, each saying whether it came back from the audit before. */
+export const findingRows = (latest: AuditRow): { a: LogAnswer; again: boolean }[] => (latest.result.answers ?? []).filter(a => latest.findings.includes(a.id)).map(a => ({ a, again: latest.repeats.includes(a.id) }));
+
+export const checkRow = (s: ToolStudy, c: LogCheck, f: LogFigures): Compliance => complianceOf(c, logOf(s), s.facts.results, f.period.from, f.period.to);
 
 /** A result is good, bad or not judged — for a history row. */
 export const resultVerdict = (def: LogDef, c: LogCheck | undefined, r: LogResult) => (c ? verdictOf(c, r, def) : 'info');

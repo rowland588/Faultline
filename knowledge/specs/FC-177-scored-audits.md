@@ -110,8 +110,8 @@ the module's, the finding problems on the register, the trend after a second aud
    `log-shape.mjs` S3, S4.
 5. The questions are a starting point and no pass score is set; the standard note quotes no clause and lists the
    BRCGS bands and texts as TO CONFIRM — `defs.test.ts`; the page — `log-shape.mjs` S1.
-6. The paper carries the audits in order with the score by heading, findings and repeats — `log-shape.mjs` S5.
-7. Phone, edit (reword a question, re-add one), delete with Undo, client read-only — `log-shape.mjs` S6, S8.
+6. The paper carries the audits in order with the score by heading, findings and repeats — `log-shape.mjs` S3.
+7. Phone, edit (reword a question, re-add one), delete with Undo, client read-only — `log-shape.mjs` S3.
 *Not proved:* two auditors on one area; a customer's checklist.
 
 ## 12. Maintainability

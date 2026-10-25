@@ -243,11 +243,11 @@ then drives each definition's worked examples and compares the page with the num
    standard and examples that pass — `defs.test.ts`, `figures.test.ts`.
 9. The three Logs pages count what the module counts — the factory's hub, a line's, a project's — S1, S2.
 10. The round on a phone (390 px): a pass is one tap, a fail three, a value and an audit work; nothing off the side;
-    the buttons are at least 44 px — S3, S8.
+    the buttons are at least 44 px — S3.
 11. The paper, downloaded and read back with `pdftotext`, carries the checks as agreed, compliance by check, the
-    failures with what each held, the standard and what is TO CONFIRM, the limits — S5.
+    failures with what each held, the standard and what is TO CONFIRM, the limits — S3.
 12. Rename, edit a check, take one off, delete with Undo; a client sees the page and no control that writes —
-    S6.
+    S3.
 13. The line's page lists the log with its state; the line report carries its section and its owed checks;
     Needs you / the project's Actions carry an overdue or failed check as a row that opens the log — S7.
 14. Empty, too-few and invalid states say what to do and block nothing that is valid — S9.
@@ -260,7 +260,7 @@ at unit level); iOS Safari; a log of thousands of results.
 **Where the code lives:** `src/tools/checks/` — `def.ts` (the type a definition fills), `defs/*.ts` (one file a
 log, found by `registry.ts`), `checks.ts` (the schedule, states, compliance, failures, value trend), `scoring.ts`,
 `hold.ts` (the hold, the money and the seam for FC-135), `figures.ts` (all of a log worked out), `says.ts`
-(sentences, tiles, closing, plan), `start.ts` (a log from its starter list), `raise.ts` (problems), `owed.ts`
+(sentences, tiles, closing, plan), `start.ts` (a log from its starter list), `store.ts` (a result written, its problem raised on the register), `owed.ts`
 (what is owed), the screens and `checksPaper.ts`. **How to add a log** (the next twenty): a file in `defs/` exporting
 `def: LogDef`; a spec from the template naming the standard and what is TO CONFIRM; its examples hand-worked with a
 named source; a catalogue entry with `built.where: ['/log/<key>']` and `kind: 'log'` and **no** app face (the

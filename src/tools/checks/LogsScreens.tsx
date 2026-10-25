@@ -30,7 +30,7 @@ import type { LogDef } from './def';
 import { defGroups, defOf, logHref, LOG_DEFS } from './registry';
 import { isLog, scopeCounts, statusOf, type LogStatus } from './owed';
 import { newLogStudy, starterLog } from './start';
-import { freqWords } from './checks';
+import { freqWords, logOf } from './checks';
 import { useLogStudies, useNow } from './useLogData';
 
 const OWNER = canAt('owner');
@@ -61,7 +61,7 @@ export function LogsHubScreen() {
   /* inside a project, New is for whoever may change its work — a client reads (lib/access) */
   const pCan = useAccess(sc.inP.id ?? '');
   const canNew = sc.inP.project ? pCan.edit : mayStart;
-  const rows = sc.shown ?? [];
+  const rows = useMemo(() => sc.shown ?? [], [sc.shown]);
   const total = useMemo(() => scopeCounts(rows, now), [rows, now]);
   const where = sc.lineName ? `ON ${sc.lineName.toUpperCase()}` : sc.inP.project ? `IN ${sc.inP.project.name.toUpperCase()}` : 'FACTORY';
   const says = !sc.shown ? 'Reading the logs…'
@@ -114,10 +114,10 @@ export function LogListScreen({ logKey }: { logKey: string }) {
     const A = statusOf(a, now), B = statusOf(b, now);
     return (B.overdue + B.failed) - (A.overdue + A.failed) || B.due - A.due || b.updatedAt - a.updatedAt;
   }), [mine, now]);
+  const pCan = useAccess(sc.inP.id ?? '');
   if (!def) return (
     <div className="wrap qsl"><h1>No such kind of log</h1><p className="sub">“{logKey}” is not a check log this version of Faultline has.</p><button type="button" className="btn" onClick={() => nav('/logs')}>Every check log</button></div>
   );
-  const pCan = useAccess(sc.inP.id ?? '');
   const canNew = sc.inP.project ? pCan.edit : mayStart;
   const total = scopeCounts(mine, now);
   return (
@@ -162,7 +162,7 @@ export function LogRow({ s, def, now, line, project }: { s: ToolStudy; def?: Log
   if (naming) return <li className="lt-li is-naming" data-study={s.id}><StudyRowName s={s} onDone={() => setNaming(false)} /></li>;
   return (
     <li className="lt-li" data-study={s.id}>
-      <button type="button" className="lt-row" onClick={() => nav(project ? inProject(logHref(s.agreed!.log!.key, s.id), project) : logHref(s.agreed!.log!.key, s.id))}>
+      <button type="button" className="lt-row" onClick={() => nav(project ? inProject(logHref(logOf(s).key, s.id), project) : logHref(logOf(s).key, s.id))}>
         <b className="lt-what">{s.name || 'Not named'}{line ? <span className="ie-li-m"> · {line}</span> : null}</b>
         <span className={'lt-says ie-tone is-' + toneOf(st)}>{st.words}</span>
         <span className="lt-where">{d ? `${d.title} · ` : ''}{plural(st.checks, 'check')} · {plural(st.results, 'result')}{s.closedAt ? ' · closed' : ''}</span>
@@ -259,7 +259,7 @@ export function LinesLogs({ wsId, studies, stops, may, view }: { wsId: string; s
           const st = statusOf(s, now);
           return (
             <li key={s.id}>
-              <button type="button" className="pl-tool" data-log-row={s.id} onClick={() => nav(logHref(s.agreed!.log!.key, s.id))}>
+              <button type="button" className="pl-tool" data-log-row={s.id} onClick={() => nav(logHref(logOf(s).key, s.id))}>
                 <b>{s.name}</b>
                 <span className={'pl-tool-says ie-tone is-' + st.tone}>{st.words}</span>
                 <span className="sub">{defOf(s.agreed?.log?.key)?.title ?? 'A check log'} · {plural(st.checks, 'check')}</span>

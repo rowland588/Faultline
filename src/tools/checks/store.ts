@@ -13,7 +13,7 @@ import type { Snag } from '../../snag/types';
 import type { LogAnswer, LogCheck, LogResult, LogTag, ToolStudy } from '../../lib/study';
 import type { LogDef } from './def';
 import { failedWords } from './hold';
-import { failuresOf, resultsOf, verdictOf } from './checks';
+import { failuresOf, logOf, resultsOf, verdictOf } from './checks';
 import { previewFailure, type Hold, type LogCtx } from './hold';
 import { findingBelowOf } from './scoring';
 
@@ -33,7 +33,7 @@ export const editResult = (id: string, resultId: string, change: Partial<Pick<Lo
 
 /** The list of checks as agreed, changed in one write. */
 export const setChecks = (id: string, change: (checks: LogCheck[]) => LogCheck[]): Promise<void> =>
-  patchStudy(id, cur => ({ agreed: { ...cur.agreed, log: { ...(cur.agreed!.log!), checks: change(cur.agreed!.log!.checks) } } }));
+  patchStudy(id, cur => { const log = logOf(cur); return { agreed: { ...cur.agreed, log: { ...log, checks: change(log.checks) } } }; });
 
 export const newResult = (c: LogCheck, by: string | undefined, o: Partial<LogResult> & Pick<LogResult, 'outcome'>): LogResult =>
   ({ id: uid(), checkId: c.id, at: clock(), ...(by ? { by } : {}), ...o });
@@ -55,7 +55,7 @@ export function failureProblem(s: ToolStudy, c: LogCheck, r: LogResult, hold: Ho
  *  second problem, a step on the first one's journey. Returns the problem's id when one was raised. */
 export async function recordFailure(s: ToolStudy, c: LogCheck, def: LogDef, by: string | undefined, o: { note?: string; made?: number; value?: number; count?: number }, ctx: LogCtx): Promise<{ result: LogResult; problemId?: string }> {
   const base = newResult(c, by, { outcome: c.kind === 'value' ? 'value' : c.kind === 'count' ? 'count' : 'fail', ...(typeof o.value === 'number' ? { value: o.value } : {}), ...(typeof o.count === 'number' ? { count: o.count } : {}), ...(o.note?.trim() ? { note: o.note.trim() } : {}), ...(typeof o.made === 'number' ? { made: o.made } : {}) });
-  const log = s.agreed!.log!;
+  const log = logOf(s);
   const mine = resultsOf(s.facts.results, c.id);
   const last = mine[mine.length - 1];
   if (last && verdictOf(c, last, def) === 'bad') {

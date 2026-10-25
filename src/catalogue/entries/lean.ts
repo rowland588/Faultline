@@ -1,5 +1,6 @@
 /* THE CATALOGUE — Lean manufacturing and waste (src/catalogue/types.ts). */
 import type { Entry } from '../types';
+import { logBuilt } from '../../tools/checks/built';
 
 export const LEAN: Entry[] = [
   {
@@ -170,7 +171,13 @@ export const LEAN: Entry[] = [
     food: 'Shadow boards for colour-coded cleaning tools; places for knives and blades.',
     depends: ['FC-177', 'FC-154'],
     complexity: 'M', value: 'medium', valueWhy: 'Keeps the base of standard work visible.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['lean.five-s'], scenarios: ['daily'],
+    status: 'available', form: 'tool', kind: 'log', methods: ['lean.five-s'], scenarios: ['daily'],
+    spec: 'knowledge/specs/FC-177-scored-audits.md',
+    built: logBuilt('five-s'),
+    limits: [
+      'An area is compared with itself over time, never with another: a tidy office and a busy line are not a league table.',
+      'The evidence that earns each level is written into the question’s wording, not held per question; two auditors’ agreement is not measured (FC-121); a photograph goes on the problem a finding raises, not beside the question.',
+    ],
   },
   {
     id: 'FC-014', name: 'Mistake-proofing register and the daily device checks', discipline: 'lean', sub: 'poka',

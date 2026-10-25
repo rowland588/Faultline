@@ -14,7 +14,7 @@ import type { LogAnswer, ToolStudy } from '../../lib/study';
 import { Sheet } from '../../ui/Sheet';
 import { offerUndo } from '../../ui/Undo';
 import type { LogDef } from './def';
-import { freqWords, verdictOf, valueTrend, valueSays, when, type CheckState } from './checks';
+import { freqWords, logOf, verdictOf, valueTrend, valueSays, when, type CheckState } from './checks';
 import { previewFailure, type LogCtx } from './hold';
 import { blankAnswers, findingBelowOf, repeatsOf, shareOfMax } from './scoring';
 import { scoredSeries } from './figures';
@@ -114,7 +114,7 @@ export function FailSheet({ s, st, p, value, count, onClose }: { s: ToolStudy; s
   const [note, setNote] = useState('');
   const [made, setMade] = useState('');
   const [busy, setBusy] = useState(false);
-  const log = s.agreed!.log!;
+  const log = logOf(s);
   const typedMade = readNumber(made);
   const madeBad = made.trim() !== '' && (typedMade === undefined || typedMade < 0);
   const at = useMemo(() => clock(), []);
@@ -166,7 +166,8 @@ export function FailSheet({ s, st, p, value, count, onClose }: { s: ToolStudy; s
 export function AuditSheet({ s, st, p, onClose }: { s: ToolStudy; st: CheckState; p: RoundProps; onClose: () => void }) {
   const { def, me } = p;
   const c = st.check;
-  const scale = def.scale!;
+  /* an audit sheet is opened only for a scored check, whose log has a scale; the empty one is never drawn */
+  const scale = def.scale ?? { levels: [], findingBelow: 0 };
   const below = findingBelowOf(c, scale);
   const [answers, setAnswers] = useState<LogAnswer[]>(() => blankAnswers(c));
   const [touched, setTouched] = useState<Set<string>>(new Set());

@@ -2,14 +2,14 @@
 
 Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write` — never typed. The catalogue test fails when this file is stale.
 
-**234 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
+**235 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 83 |
-| Partly (`partial`) | 27 |
+| Available (`available`) | 88 |
+| Partly (`partial`) | 28 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 105 |
+| Not built yet (`to-build`) | 100 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -17,11 +17,11 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
-| Lean manufacturing and waste | 18 | 3 | 3 |  | 11 | 1 |  |
+| Lean manufacturing and waste | 18 | 4 | 3 |  | 10 | 1 |  |
 | Industrial engineering and work measurement | 14 | 3 | 3 |  | 7 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 7 | 5 |  | 4 | 1 |  |
 | Equipment performance and losses | 10 | 5 | 2 |  | 1 |  | 2 |
-| Maintenance, reliability and TPM | 11 | 1 |  |  | 9 | 1 |  |
+| Maintenance, reliability and TPM | 11 | 3 |  |  | 7 | 1 |  |
 | Changeovers | 5 | 1 | 2 |  | 2 |  |  |
 | Commissioning and operational readiness | 13 | 11 | 1 |  |  | 1 |  |
 | Statistical process control and capability | 17 | 16 |  |  | 1 |  |  |
@@ -32,10 +32,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Root cause and problem solving | 10 | 4 | 2 |  | 4 |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 4 |  |  | 2 | 1 |  |
-| Food safety, hygiene and traceability | 11 | 1 |  |  | 8 | 2 |  |
+| Food safety, hygiene and traceability | 11 | 3 |  |  | 6 | 2 |  |
 | Production planning and scheduling | 8 |  |  |  | 8 |  |  |
 | Cost and operational performance | 6 | 4 |  |  | 1 |  | 1 |
-| Visual and daily management | 14 | 7 | 3 |  | 4 |  |  |
+| Visual and daily management | 15 | 7 | 4 |  | 4 |  |  |
 | Ergonomics, layout and automation | 6 |  | 1 |  | 5 |  |  |
 | Projects and continuous improvement | 10 | 1 | 1 |  | 4 |  | 4 |
 | Skills and training | 4 |  | 1 |  | 3 |  |  |
@@ -61,7 +61,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - **Food safety, hygiene and traceability** — HACCP and CCPs 2 · Foreign bodies 1 · Allergens 1 · Cleaning and hygiene 3 · Traceability 1 · Shelf life and temperature 2 · Audits 1
 - **Production planning and scheduling** — Scheduling 3 · Batches and stock 2 · Crewing and shifts 1 · Plan and attainment 2
 - **Cost and operational performance** — Cost a pack 2 · Losses in money 2 · Investment and payback 2
-- **Visual and daily management** — Am I in control 2 · Daily management 4 · Gemba 2 · Measures and KPIs 2 · Talk and reports 4
+- **Visual and daily management** — Am I in control 2 · Daily management 5 · Gemba 2 · Measures and KPIs 2 · Talk and reports 4
 - **Ergonomics, layout and automation** — Manual handling 3 · Posture and repetition 2 · Layout and material flow 1
 - **Projects and continuous improvement** — The three kinds of change 1 · Running a project 5 · The improvement programme 4
 - **Skills and training** — Skills 1 · Instruction 3
@@ -69,7 +69,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 72
+- a tool of its own: 73
 - a mode of another tool: 68
 - a part several tools share: 40
 - a way through several tools: 8

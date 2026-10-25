@@ -101,9 +101,9 @@ afternoon.
 - [standard] ISO 22000:2018, clause 9.2 — internal audit (from knowledge).
 
 ## In Faultline
-Not built (FC-177). The project's Actions and the factory's Every action
-already hold owned, dated rows (`src/project`, `lib/projectActions`);
-FC-177 adds the audit as a source of actions — each finding with its
-clause and severity, its closure evidence, and the repeat mark against
-the previous audit — with the closure and repeat rates on the factory's
-page.
+Built 25 October (FC-177, `knowledge/specs/FC-177-scored-audits.md`) as a check log on the shared shape (FC-236,
+`defs/scored-audit.ts`): a daily GMP walk and a weekly hygiene audit, each question answered Not met, Partly met or Met
+(0 to 2) with a running score, the score overall and by heading, each answer below Met a finding, each one ticked at
+the end of the audit raised as its own problem (High when it came back from the audit before), the repeats marked against the audit before, the audits in
+order with the falls in a row. The standard's grading bands are not built (to confirm). The closure and repeat rates
+across the factory are not drawn yet. Proved by `log-shape.mjs`.
