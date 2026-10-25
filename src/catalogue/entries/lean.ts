@@ -1,5 +1,6 @@
 /* THE CATALOGUE — Lean manufacturing and waste (src/catalogue/types.ts). */
 import type { Entry } from '../types';
+import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 
 export const LEAN: Entry[] = [
   {
@@ -122,7 +123,10 @@ export const LEAN: Entry[] = [
     food: 'Film reels, cases and trays at a packing line; pre-weighs to mixers.',
     depends: ['FC-010', 'FC-183'],
     complexity: 'S', value: 'medium', valueWhy: 'Stops line-side shortages without piling stock.',
-    status: 'to-build', form: 'tool', kind: 'standard', methods: ['lean.kanban-supermarket'], scenarios: ['planning'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['lean.kanban-supermarket'], scenarios: ['planning'], words: ['kanban', 'supermarket', 'pull', 'two-bin', 'reorder'],
+    built: { where: ['/calc/kanban'], code: [...CALC_CODE, 'src/tools/calc/defs/kanban.ts', 'src/lib/ie/pull.ts'], tests: [...CALC_TESTS, 'src/lib/ie/__tests__/pull.test.ts'], acceptance: ['calc-shape.mjs'] },
+    spec: 'knowledge/specs/FC-009-kanban.md',
+    limits: ['Sizes one loop from usage, the refill time, the container and a safety factor (Monden); it does not run the loop — the cards against the count, the shelf’s fill, a lost card are not tracked (FC-010).', 'The safety factor is a choice, said so on the page; Safety stock (FC-183) works a margin from the spread instead.', 'No stock-out cost: the stock held and its holding cost are said in money when a unit cost and a holding rate are given (knowledge/MONEY.md).'],
   },
   {
     id: 'FC-010', name: 'Supermarkets and FIFO lanes — sizing pull between processes', discipline: 'lean', sub: 'pull',

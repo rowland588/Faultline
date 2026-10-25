@@ -53,6 +53,7 @@ const StudyScreen = lazy(() => import('./tools/capability/StudyScreen').then(m =
 const MapScreen = lazy(() => import('./tools/valuestream/MapScreen').then(m => ({ default: m.MapScreen })));
 const ChangeoverScreen = lazy(() => import('./tools/changeover/ChangeoverScreen').then(m => ({ default: m.ChangeoverScreen })));
 const AnalysisScreen = lazy(() => import('./tools/analysis/AnalysisScreen').then(m => ({ default: m.AnalysisScreen })));
+const CalcScreen = lazy(() => import('./tools/calc/CalcScreen').then(m => ({ default: m.CalcScreen })));
 const ChartScreen = lazy(() => import('./tools/chart/ChartScreen').then(m => ({ default: m.ChartScreen })));
 const ReliabilityScreen = lazy(() => import('./tools/reliability/ReliabilityScreen').then(m => ({ default: m.ReliabilityScreen })));
 /* the directory reads the whole catalogue — on its own, so it never weighs on the rest */
@@ -177,6 +178,8 @@ function app(route: Route) {
   /* ?line= opens it on one line — keyed on it, so a second line starts afresh */
   if (route.name === 'linePrograms') return <LineProgramsScreen key={route.query.get('line') ?? ''} />;
   if (route.name === 'lineTools') return <LineToolsScreen key={`${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} tool={route.view === 'balance' ? 'balance' : route.view === 'work' ? 'work' : 'map'} />;
+  /* a calculator (knowledge/specs/FC-235-calculators.md): the hub, one calculator's saved ones, one saved calculation */
+  if ((route.name === 'studies' || (route.name === 'study' && route.id)) && route.view === 'calc') return <CalcScreen key={`${route.key ?? ''}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} calcKey={route.key} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
   if (route.name === 'studies') return <StudiesScreen key={`${route.view ?? 'capability'}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} tool={route.view === 'map' ? 'map' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : route.view === 'reliability' ? 'reliability' : route.view === 'chart' ? 'chart' : route.view === 'analysis' ? 'analysis' : 'capability'} />;
   if (route.name === 'study' && route.id) {
     if (route.view === 'map') return <MapScreen key={route.id} id={route.id} />;

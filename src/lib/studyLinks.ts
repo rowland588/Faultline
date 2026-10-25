@@ -24,6 +24,7 @@ import { barExpect, barWords, compareLosses, findBar, inWindow, lossFigures, los
 import { studyBalance } from '../tools/linework/balanceLink';
 import { chartFigures, chartSays } from '../tools/chart/chart';
 import { analysisFigures, analysisSays } from '../tools/analysis/analysis';
+import { calcSays, calcTitle } from '../tools/calc/calc';
 import { compareReliability, relAll, studyReliabilitySays, worstTone } from '../tools/reliability/reliability';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
@@ -80,6 +81,8 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
   if (s.tool === 'reliability') return studyReliabilitySays(s.agreed?.reliability, s.facts.watch, s.facts.events);
   /* an analysis (W3a): the sentence, the verdict and the tone from its module */
   if (s.tool === 'analysis') { const c = s.agreed?.analysis; if (!c) return { text: 'not set up yet', tone: 'n', verdict: 'Not set up' }; const said = analysisSays(analysisFigures(c, s.facts.readings ?? []), c); return { text: said.text, tone: said.tone, verdict: said.verdict }; }
+  /* a calculator (FC-235): the sentence, the verdict and the tone from its definition */
+  if (s.tool === 'calc') return calcSays(s);
   /* a control chart (W2): the sentence, the verdict and the tone from its module */
   if (s.tool === 'chart') { const c = s.agreed?.chart; if (!c) return { text: 'not set up yet', tone: 'n', verdict: 'Not set up' }; const said = chartSays(chartFigures(c, s.facts.readings ?? []), c); return { text: said.text, tone: said.tone, verdict: said.verdict }; }
   if (s.tool === 'losses') {
@@ -93,14 +96,14 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
 /** Each tool's name, as a study of it is called on screen and on paper. */
 export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Line balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count', talk: 'Line Talk', chart: 'Control chart', analysis: 'Analysis', reliability: 'Reliability study' };
 
-/** "Capability study — Weight accuracy 400 g · Weigher 2". */
-export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): string =>
-  `${TOOL_NAME[s.tool] ?? 'Study'} — ${s.name}${s.machine ? ` · ${s.machine}` : ''}`;
+/** "Capability study — Weight accuracy 400 g · Weigher 2"; a calculator by its own title: "Kanban sizing — Trays to the packer". */
+export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'> & Partial<Pick<ToolStudy, 'agreed'>>): string =>
+  `${s.tool === 'calc' ? calcTitle(s) : TOOL_NAME[s.tool] ?? 'Study'} — ${s.name}${s.machine ? ` · ${s.machine}` : ''}`;
 
 /** Where a study opens. A work balance lives on its product's line standard —
  *  the job's when it is attached, else the line's — at the People view, and
  *  names itself so an earlier timing opens as itself. */
-export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'projectId' | 'workspaceId'> & { facts?: Pick<ToolStudy['facts'], 'video'> }): string {
+export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'projectId' | 'workspaceId'> & { facts?: Pick<ToolStudy['facts'], 'video'> } & Partial<Pick<ToolStudy, 'agreed'>>): string {
   /* a line balance read from footage opens on its footage (docs/VIDEO.md) */
   if (s.facts?.video) return `/video/${s.id}`;
   if (s.tool === 'balance' && s.standardId) {
@@ -109,6 +112,8 @@ export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'pro
     if (s.workspaceId) return `/w/${s.workspaceId}/standards/${s.standardId}${at}`;
   }
   if (s.tool === 'map') return `/value-stream/${s.id}`;
+  /* a calculator is /calc/<which>/<id> (FC-235) */
+  if (s.tool === 'calc') return `/calc/${encodeURIComponent(s.agreed?.calc?.key ?? '')}/${s.id}`;
   /* SMED, stored as a changeover */
   if (s.tool === 'changeover') return `/smed/${s.id}`;
   return `/${s.tool}/${s.id}`;
@@ -548,20 +553,22 @@ export function worthBetter(s: ToolStudy): boolean {
   if (s.tool === 'analysis') return said.tone === 'r';
   /* a signal on the chart — a point beyond a limit or a run */
   if (s.tool === 'chart') return said.tone === 'r' || said.tone === 'a';
+  /* a calculator that says something is wrong or to check — a risk above the usual, a wait longer than the product keeps */
+  if (s.tool === 'calc') return said.tone === 'r' || said.tone === 'a';
   return said.tone === 'r' || said.capability?.tone === 'a';
 }
 
 /** A study's tool as said mid-sentence: "the capability study", "the SMED". */
 const TOOL_SAID: Partial<Record<ToolStudy['tool'], string>> = {
-  capability: 'capability study', balance: 'line balance', map: 'value stream map', changeover: 'SMED', sampling: 'work sampling study', losses: 'loss count', reliability: 'reliability study', chart: 'control chart', analysis: 'analysis',
+  capability: 'capability study', balance: 'line balance', map: 'value stream map', changeover: 'SMED', sampling: 'work sampling study', losses: 'loss count', reliability: 'reliability study', chart: 'control chart', analysis: 'analysis', calc: 'calculation',
 };
 
 /** Each tool's own page — the list of every study made with it — and, for a
  *  study on a line, that list opened on its line. Where a study's page goes
  *  once it is deleted. */
 const TOOL_PAGE: Partial<Record<ToolStudy['tool'], string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses', talk: '/talk', reliability: '/reliability', chart: '/chart', analysis: '/analysis' };
-export function toolListHref(s: Pick<ToolStudy, 'tool' | 'workspaceId'>): string {
-  const page = TOOL_PAGE[s.tool] ?? '/capability';
+export function toolListHref(s: Pick<ToolStudy, 'tool' | 'workspaceId'> & Partial<Pick<ToolStudy, 'agreed'>>): string {
+  const page = s.tool === 'calc' ? `/calc${s.agreed?.calc?.key ? `/${encodeURIComponent(s.agreed.calc.key)}` : ''}` : TOOL_PAGE[s.tool] ?? '/capability';
   return s.workspaceId ? `${page}?line=${encodeURIComponent(s.workspaceId)}` : page;
 }
 
@@ -578,7 +585,7 @@ const KIND_SAID: Record<StudyUse['kind'], [string, string]> = {
  *  job stays, and loses only this study's figures as its evidence or proof
  *  (the link lives on the study, so nothing else is rewritten). Undo puts the
  *  study back whole, the links with it. */
-export function studyRemovingSays(s: Pick<ToolStudy, 'tool' | 'name' | 'facts' | 'uses'>): { ask: string; done: string } {
+export function studyRemovingSays(s: Pick<ToolStudy, 'tool' | 'name' | 'facts' | 'uses'> & Partial<Pick<ToolStudy, 'agreed'>>): { ask: string; done: string } {
   const what = TOOL_SAID[s.tool] ?? 'study';
   const name = s.name.trim() || 'Not named';
   const f = s.facts;
@@ -592,6 +599,7 @@ export function studyRemovingSays(s: Pick<ToolStudy, 'tool' | 'name' | 'facts' |
     : s.tool === 'changeover' && (f.sequence ?? []).length ? its((f.sequence ?? []).length, 'element')
     : s.tool === 'sampling' && live(f.taps) ? its(live(f.taps), 'tap')
     : s.tool === 'losses' && (f.losses?.made !== undefined || f.losses?.rejects !== undefined) ? 'The count goes'
+    : s.tool === 'calc' && Object.keys(s.agreed?.calc?.inputs ?? {}).length ? `Its ${n(Object.keys(s.agreed?.calc?.inputs ?? {}).length, 'figure')}${s.agreed?.calc?.before ? ' and the saved before' : ''} ${Object.keys(s.agreed?.calc?.inputs ?? {}).length === 1 && !s.agreed?.calc?.before ? 'goes' : 'go'}`
     : '';
   /* what it serves, by what it is to each — evidence, then proof */
   const said = (role: StudyUse['role']) => {

@@ -57,7 +57,7 @@ if (bootErrors.length) console.log('errors during boot/seed:', bootErrors);
 
 const ROUTES = [
   ['home', '#/room'], ['the front door at home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
-  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['control charts', '#/chart'], ['analyses', '#/analysis'], ['value stream maps', '#/value-stream'], ['SMED', '#/smed'], ['SMED, an old link', '#/changeover'], ['work sampling', '#/sampling'], ['reliability studies', '#/reliability'], ['pace report', '#/pace-report'],
+  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['control charts', '#/chart'], ['analyses', '#/analysis'], ['calculators', '#/calc'], ['kanban sizing, saved ones', '#/calc/kanban'], ['value stream maps', '#/value-stream'], ['SMED', '#/smed'], ['SMED, an old link', '#/changeover'], ['work sampling', '#/sampling'], ['reliability studies', '#/reliability'], ['pace report', '#/pace-report'],
   ['project dashboard', `#/project/${seeded.projectId}`],
   /* THE FRONT DOOR: what you need, what is under way, the three kinds of change, the tools */
   ['the front door', '#/start'],
@@ -99,6 +99,7 @@ const ROUTES = [
   ['the line walked again — a map proving a fix raised from one of its steps', `#/value-stream/${seeded.mapProofId}`],
   ['work sampling — two people watched through the shift, a moment due now', `#/sampling/${seeded.samplingId}`],
   ['a reliability study — the wrapper watched two days, the watch running now, a stop struck, two remarks', `#/reliability/${seeded.reliabilityId}`],
+  ['a calculation — kanbans for trays with its saved before: 8 now, 16 before', `#/calc/kanban/${seeded.calcKanbanId}`], ['a calculation — what a 125/3 plan protects, with its curve', `#/calc/oc-curve/${seeded.calcOcId}`], ['a calculation — trays in a chiller, 3 hours', `#/calc/littles-law/${seeded.calcLittleId}`],
   ['an analysis — twelve fill times before and after a re-calibration: it fell by 0.5 s, the right way', `#/analysis/${seeded.analysisId}`],
   ['an analysis — three shifts’ give-away: B the worst', `#/analysis/${seeded.analysisGroupsId}`], ['an analysis — rejects by lane and fault type, linked', `#/analysis/${seeded.analysisTableId}`], ['an analysis — seal strength against jaw temperature, the line too straight', `#/analysis/${seeded.analysisRelateId}`],
   ['a control chart — forty fill weights, the limits set from twenty, two beyond and a run, the CUSUM since reading 28', `#/chart/${seeded.chartId}`],

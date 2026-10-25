@@ -1,5 +1,6 @@
 /* THE CATALOGUE — capacity, throughput and bottlenecks; equipment losses (src/catalogue/types.ts). */
 import type { Entry } from '../types';
+import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 
 export const CAPACITY: Entry[] = [
   {
@@ -175,7 +176,10 @@ export const CAPACITY: Entry[] = [
     food: 'Cooked product in chillers before packing.',
     depends: ['FC-001', 'FC-045'],
     complexity: 'S', value: 'medium', valueWhy: 'Lead time without a stopwatch on every item.',
-    status: 'to-build', form: 'mode', partOf: 'FC-001', methods: ['capacity.littles-law'], scenarios: ['running', 'planning'], words: ['WIP', 'work in progress', 'lead time'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['capacity.littles-law'], scenarios: ['running', 'planning'], words: ['WIP', 'work in progress', 'lead time', 'chiller', 'waiting'],
+    built: { where: ['/calc/littles-law'], code: [...CALC_CODE, 'src/tools/calc/defs/littles-law.ts', 'src/lib/ie/pull.ts'], tests: [...CALC_TESTS, 'src/lib/ie/__tests__/pull.test.ts'], acceptance: ['calc-shape.mjs'] },
+    spec: 'knowledge/specs/FC-044-littles-law.md',
+    limits: ['One boundary at a time — a chiller, a rack, a line: lead time per buffer and in total is each counted separately; the value stream map’s own wait (FC-001) is not yet fed from it.', 'A law of averages in a steady system: the page asks whether the pile grew or shrank and says so when it did.', 'It says how long product waits, not why — the queue at a busy station (FC-045) is not built.'],
   },
   {
     id: 'FC-045', name: 'Utilisation and variability — why queues explode', discipline: 'capacity', sub: 'queue',

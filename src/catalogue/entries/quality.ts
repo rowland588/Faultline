@@ -1,5 +1,6 @@
 /* THE CATALOGUE — quality, Six Sigma, root cause (src/catalogue/types.ts). */
 import type { Entry } from '../types';
+import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -104,7 +105,10 @@ export const QUALITY: Entry[] = [
     food: 'A goods-in check of 50 with 1 allowed.',
     depends: ['FC-129', 'FC-100'],
     complexity: 'S', value: 'medium', valueWhy: 'Shows what an inspection is really worth.',
-    status: 'to-build', form: 'component', methods: ['quality.acceptance-sampling-attributes'], scenarios: ['quality'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['quality.acceptance-sampling-attributes'], scenarios: ['quality'], words: ['AQL', 'sampling plan', 'goods in', 'accept reject', 'producer risk', 'consumer risk'],
+    built: { where: ['/calc/oc-curve'], code: [...CALC_CODE, 'src/tools/calc/defs/oc-curve.ts', 'src/lib/ie/oc.ts'], tests: [...CALC_TESTS, 'src/lib/ie/__tests__/pull.test.ts'], acceptance: ['calc-shape.mjs'] },
+    spec: 'knowledge/specs/FC-131-oc-curve.md',
+    limits: ['Reads a typed plan (n and c) and says what it protects; it does not choose a plan — designing one from the AQL, limiting quality and risks is FC-129 (not built), and no table of ISO 2859-1 or ANSI/ASQ Z1.4 is held or implied.', 'Binomial for a lot from a steady stream, hypergeometric (whole bad units) for one lot of known size; assumes bad units are scattered at random through the lot.', 'No average outgoing quality or total inspection (rectifying inspection); the only money is the labour of inspecting a lot.'],
   },
   {
     id: 'FC-132', name: 'Process FMEA with action priority', discipline: 'quality', sub: 'risk',

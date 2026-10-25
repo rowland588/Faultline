@@ -130,6 +130,10 @@ export interface Seeded {
   analysisGroupsId: string;
   analysisTableId: string;
   analysisRelateId: string;
+  /** CALCULATORS (FC-235): a kanban sizing on Line 7 with a saved before, an OC curve on no line, and Little's law on Line 7 (src/tools/calc/defs examples). */
+  calcKanbanId: string;
+  calcOcId: string;
+  calcLittleId: string;
   /** The paced job's Line 7 — its own workspace, with shifts, a cost model
    *  and stops timed through the last two days' shifts (tool 7). */
   line7WsId: string;
@@ -1074,6 +1078,17 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       facts: { readings: X.map((x, i) => ({ id: uid(), xs: [x], value: Y[i], at: w0 + i * M, who: 'Sam Patel' })) }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
   }
 
+  /* CALCULATORS (FC-235, knowledge/specs/FC-235-calculators.md): the first three definitions' worked examples as saved records — the kanban
+     loop for trays on Line 7 (with the refill time as it was, saved as the before), what a 125/3 plan protects (a quick session), and trays
+     in a chiller on Line 7. Their figures are the independent cases' (scripts/knowledge/cases-calc.py). */
+  const calcKanbanId = uid(), calcOcId = uid(), calcLittleId = uid();
+  {
+    const k = { thing: 'trays', usage: 1500, usageHours: 7.5, leadMin: 120, container: 60, safety: 15, unitCost: 0.85, carrying: 25 };
+    await putStudy({ id: calcKanbanId, tool: 'calc', name: 'Trays to the packer', workspaceId: ws.id, agreed: { calc: { key: 'kanban', inputs: k, before: { at: t - 3 * 86_400_000, by: 'Sam Patel', inputs: { ...k, leadMin: 240 } } } }, facts: {}, uses: [], startedAt: t - 3 * 86_400_000, createdAt: t, updatedAt: t });
+    await putStudy({ id: calcOcId, tool: 'calc', name: 'Goods-in film check', agreed: { calc: { key: 'oc-curve', inputs: { n: 125, c: 3, aql: 1, lq: 6, inspectSec: 30, rate: 14.7 } } }, facts: {}, uses: [], startedAt: t - 86_400_000, createdAt: t, updatedAt: t });
+    await putStudy({ id: calcLittleId, tool: 'calc', name: 'Cooked trays in the chiller', workspaceId: ws.id, agreed: { calc: { key: 'littles-law', inputs: { solve: 'leadTime', thing: 'trays', wip: 1800, perHour: 600, steady: 'steady', life: 48, unitCost: 0.85, carrying: 25 } } }, facts: {}, uses: [], startedAt: t - 7_200_000, createdAt: t, updatedAt: t });
+  }
+
   /* A CONTROL CHART (W2, knowledge/specs/FC-086-charts.md): the CUSUM case's forty readings — steady for
      twenty, then 1 g higher — the limits set from the first twenty and kept. */
   const chartId = uid();
@@ -1233,7 +1248,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, calcKanbanId, calcOcId, calcLittleId,
     line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }

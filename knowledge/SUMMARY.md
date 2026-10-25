@@ -2,14 +2,14 @@
 
 Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write` — never typed. The catalogue test fails when this file is stale.
 
-**234 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
+**235 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 83 |
+| Available (`available`) | 88 |
 | Partly (`partial`) | 27 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 105 |
+| Not built yet (`to-build`) | 101 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -17,9 +17,9 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
-| Lean manufacturing and waste | 18 | 3 | 3 |  | 11 | 1 |  |
+| Lean manufacturing and waste | 19 | 5 | 3 |  | 10 | 1 |  |
 | Industrial engineering and work measurement | 14 | 3 | 3 |  | 7 | 1 |  |
-| Capacity, throughput and bottlenecks | 17 | 7 | 5 |  | 4 | 1 |  |
+| Capacity, throughput and bottlenecks | 17 | 8 | 5 |  | 3 | 1 |  |
 | Equipment performance and losses | 10 | 5 | 2 |  | 1 |  | 2 |
 | Maintenance, reliability and TPM | 11 | 1 |  |  | 9 | 1 |  |
 | Changeovers | 5 | 1 | 2 |  | 2 |  |  |
@@ -27,13 +27,13 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Statistical process control and capability | 17 | 16 |  |  | 1 |  |  |
 | Statistical analysis | 15 | 10 | 1 |  | 3 | 1 |  |
 | Measurement systems | 6 |  |  |  | 6 |  |  |
-| Quality engineering and defects | 14 | 2 |  |  | 10 | 2 |  |
+| Quality engineering and defects | 14 | 3 |  |  | 9 | 2 |  |
 | Six Sigma and DMAIC | 8 |  | 2 |  | 6 |  |  |
 | Root cause and problem solving | 10 | 4 | 2 |  | 4 |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 4 |  |  | 2 | 1 |  |
 | Food safety, hygiene and traceability | 11 | 1 |  |  | 8 | 2 |  |
-| Production planning and scheduling | 8 |  |  |  | 8 |  |  |
+| Production planning and scheduling | 8 | 1 |  |  | 7 |  |  |
 | Cost and operational performance | 6 | 4 |  |  | 1 |  | 1 |
 | Visual and daily management | 14 | 7 | 3 |  | 4 |  |  |
 | Ergonomics, layout and automation | 6 |  | 1 |  | 5 |  |  |
@@ -43,7 +43,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By subdiscipline
 
-- **Lean manufacturing and waste** — Value stream and flow 4 · Waste 2 · Standard work 2 · Pull and levelling 4 · 5S and the visual workplace 1 · Mistake-proofing 2 · Improvement events and kata 3
+- **Lean manufacturing and waste** — Value stream and flow 5 · Waste 2 · Standard work 2 · Pull and levelling 4 · 5S and the visual workplace 1 · Mistake-proofing 2 · Improvement events and kata 3
 - **Industrial engineering and work measurement** — Time study 3 · Predetermined motion times 1 · Work sampling 1 · Labour standards and allowances 3 · Method study 3 · Labour productivity 3
 - **Capacity, throughput and bottlenecks** — Line capacity 4 · Line balance 2 · Constraints (TOC) 5 · Queues, WIP and buffers 4 · Load against demand 2
 - **Equipment performance and losses** — The time model and losses 2 · Stops and downtime 5 · Speed and short stops 2 · Losses in money 1
@@ -69,9 +69,9 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 72
-- a mode of another tool: 68
-- a part several tools share: 40
+- a tool of its own: 76
+- a mode of another tool: 67
+- a part several tools share: 38
 - a way through several tools: 8
 - a report or board: 34
 - decided after research: 12
@@ -116,7 +116,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
 - FC-073 The stage gate — new equipment to handover — 9 modes inside it
 - FC-105 Before and after — did it move, for a reason — 7 modes inside it
-- FC-001 Value stream map — current and future state — 6 modes inside it
+- FC-001 Value stream map — current and future state — 5 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 4 modes inside it
 - FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 4 modes inside it
 - FC-086 Individuals and moving range chart (XmR) — 4 modes inside it

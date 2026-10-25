@@ -38,6 +38,7 @@ import { samplingSays } from '../tools/sampling/sampling';
 import { plural, relAll, span, studyReliabilitySays } from '../tools/reliability/reliability';
 import { chartFigures, chartSays } from '../tools/chart/chart';
 import { analysisFigures, analysisSays } from '../tools/analysis/analysis';
+import { calcSays } from '../tools/calc/calc';
 import { overTime, overTimeSays } from '../tools/capability/overTime';
 import { firstCount, lossLine, windowWords } from '../tools/losses/losses';
 import type { StudyTool, ToolStudy } from '../lib/study';
@@ -160,6 +161,7 @@ export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; ton
   }
   if (s.tool === 'sampling') return { text: samplingSays(s.agreed?.sampling, s.facts.taps ?? []).verdict, tone: 'n' };
   if (s.tool === 'analysis') { const c = s.agreed?.analysis; if (!c) return { text: 'not set up yet', tone: 'n' }; const said = analysisSays(analysisFigures(c, s.facts.readings ?? []), c); return { text: said.verdict, tone: said.tone }; }
+  if (s.tool === 'calc') { const said = calcSays(s); return { text: said.verdict, tone: said.tone }; }
   if (s.tool === 'chart') { const c = s.agreed?.chart; if (!c) return { text: 'not set up yet', tone: 'n' }; const said = chartSays(chartFigures(c, s.facts.readings ?? []), c); return { text: said.verdict, tone: said.tone }; }
   if (s.tool === 'reliability') { const said = studyReliabilitySays(s.agreed?.reliability, s.facts.watch, s.facts.events); return { text: said.verdict, tone: said.tone }; }
   if (s.tool === 'losses') {
