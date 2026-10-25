@@ -36,7 +36,7 @@ import { useRef, useState } from 'react';
 import type { Test, TestItem } from '../lib/testing';
 import { OUTCOME_WORD } from '../lib/testing';
 import {
-  agreedWords, cleanRun, productFigures, productName, productRuns, patchRuns, readRuns, runAgain, runsSay, withDay,
+  agreedWords, cleanRun, num, productFigures, productName, productRuns, patchRuns, readRuns, runAgain, runsSay, withDay,
   type ProductReading, type ProductRun, type RunAgreed, type RunDay,
 } from '../lib/run';
 import { mayWriteAgreement, type Can } from '../lib/access';
@@ -211,8 +211,15 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
           {lockAgreed ? (
             <p className="sub tw-note pr-f-wide">What it is judged on is agreed — only the owner changes it.</p>
           ) : <>
-            <label className="cw-f"><span>Net rate <span className="cw-f-opt">ppm</span></span>
-              <DraftNumber className="text-input" value={run.agreed?.rate} placeholder="e.g. 60" label="Agreed net rate, packs a minute" onSave={setAgreed('rate')} /></label>
+            {run.agreed?.of === 'speed' ? <>
+              <label className="cw-f"><span>Run at <span className="cw-f-opt">ppm</span></span>
+                <DraftNumber className="text-input" value={run.agreed?.rate} placeholder="e.g. 75" label="Speed to run at, packs a minute" onSave={setAgreed('rate')} /></label>
+              <label className="cw-f"><span>Net rate to achieve <span className="cw-f-opt">ppm, optional</span></span>
+                <DraftNumber className="text-input" value={run.agreed?.net} placeholder="e.g. 60" label="Agreed net rate, packs a minute" onSave={setAgreed('net')} /></label>
+            </> : (
+              <label className="cw-f"><span>Net rate <span className="cw-f-opt">ppm</span></span>
+                <DraftNumber className="text-input" value={run.agreed?.rate} placeholder="e.g. 60" label="Agreed net rate, packs a minute" onSave={setAgreed('rate')} /></label>
+            )}
             <label className="cw-f"><span>For <span className="cw-f-opt">min</span></span>
               <DraftNumber className="text-input" value={run.agreed?.minutes} placeholder="e.g. 60" label="Agreed run length, minutes" onSave={setAgreed('minutes')} /></label>
             <label className="cw-f"><span>Rejects at most <span className="cw-f-opt">%</span></span>
@@ -228,7 +235,7 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
         </div>
         {DAY_BOXES.map(b => {
           const v = r.day[b.k];
-          const t = b.k === 'rejects' ? f.rejectsTone : b.k === 'minutes' ? f.lengthTone : '';
+          const t = b.k === 'rejects' ? f.rejectsTone : b.k === 'minutes' ? f.lengthTone : b.k === 'speed' ? f.speedTone : '';
           return open && can.edit ? (
             <label key={b.k} className={'pr-fig is-box' + tone(t)}>
               <span className="pr-l">{b.label}{b.unit && <span className="cw-f-opt"> {b.unit}</span>}</span>
@@ -261,6 +268,8 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
           ))}
         </ul>
       )}
+      {/* A PROGRAM'S TEST AIMS AT A SPEED: the net is a fact beside it — what stops, slow running and rejects took off the speed — not a shortfall */}
+      {r.belowSpeed != null && <p className="pr-below">Netted {f.net} — {num(r.belowSpeed)} ppm below the {num(r.day.speed as number)} ppm it ran at (stops, slow running and rejects)</p>}
       {state === 'short' && p.gap && <p className="pr-gap">Short: {p.gap}</p>}
       {state === 'partial' && p.missing.length > 0 && <p className="pr-missing">Put in the {p.missing.join(' and ')} and it is judged.</p>}
       {state === 'unjudged' && <p className="pr-missing">No rate agreed, so the numbers cannot judge it{can.agree ? ' — Change to agree one' : ''}.</p>}

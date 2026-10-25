@@ -102,7 +102,7 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
     /* The aim carries from the attempt before — changed here when this one
        aims higher (Rowland: "it can change between attempts"). */
     const a = test ? runOf(test).agreed : undefined, d = test && !ran ? runOf(test).day : undefined;
-    setF({ rate: str(a?.rate), mins: str(a?.minutes), speed: str(d?.speed), ran: str(d?.minutes), packs: str(d?.packs), rejects: str(d?.rejects) });
+    setF({ rate: str(a?.rate), mins: str(a?.minutes), net: str(a?.net), speed: str(d?.speed), ran: str(d?.minutes), packs: str(d?.packs), rejects: str(d?.rejects) });
     setOpen(true);
   };
 
@@ -156,7 +156,7 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
       .catch(e => { console.error('program status not saved', e); setOpen(true); })
       .finally(() => { busy.current = false; });
   };
-  const aimOf = (): Test['runAgreed'] => tidy({ rate: n(f.rate), minutes: n(f.mins) });
+  const aimOf = (): Test['runAgreed'] => tidy({ rate: n(f.rate), minutes: n(f.mins), net: n(f.net) });
   const dayOf = (): Test['run'] => tidy({ speed: n(f.speed), minutes: n(f.ran), packs: n(f.packs), rejects: n(f.rejects) });
   const save = () => {
     const words = seen.trim();
@@ -237,7 +237,9 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
             <span className="ptx-nums">
               {box2('rate', 'Aiming for', 'ppm')}
               {box2('mins', 'Aiming to run', 'min')}
+              {box2('net', 'Net to achieve', 'ppm, optional')}
             </span>
+            <small className="sub ptx-aimnote">Aiming for is the speed the machine is set to run at. Net to achieve is a second, optional aim — the test is judged on it only when you give one.</small>
             {how && (
               <span className="ptx-nums">
                 {box2('speed', 'Set at', 'ppm')}
@@ -272,8 +274,8 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
   );
 }
 
-interface Nums { rate: string; mins: string; speed: string; ran: string; packs: string; rejects: string }
-const EMPTY: Nums = { rate: '', mins: '', speed: '', ran: '', packs: '', rejects: '' };
+interface Nums { rate: string; mins: string; net: string; speed: string; ran: string; packs: string; rejects: string }
+const EMPTY: Nums = { rate: '', mins: '', net: '', speed: '', ran: '', packs: '', rejects: '' };
 const str = (v?: number) => (v == null ? '' : String(v));
 /** A typed number, or nothing — "50", "50.5", "1,480". */
 const n = (s: string): number | undefined => {

@@ -93,7 +93,7 @@ export function attemptsOf(p: Pick<Program, 'id' | 'testId'>, tests: Test[]): Te
 export function programJourney(p: Pick<Program, 'id' | 'testId'>, tests: Test[], today: string): Journey {
   const attempts: Attempt[] = attemptsOf(p, tests).map((t, i) => {
     const { agreed: a, day: d } = runOf(t);
-    const aim = [num(a?.rate) != null && `aiming ${fmt(a?.rate as number)} ppm`, num(a?.minutes) != null && `for ${fmt(a?.minutes as number)} min`].filter(Boolean).join(' ') || undefined;
+    const aim = [num(a?.rate) != null && `aiming ${fmt(a?.rate as number)} ppm`, num(a?.minutes) != null && `for ${fmt(a?.minutes as number)} min`, num(a?.net) != null && `· net ${fmt(a?.net as number)} ppm`].filter(Boolean).join(' ') || undefined;
     const net = nettedOf(t);
     const did = [num(d?.speed) != null && `set at ${fmt(d?.speed as number)} ppm`, num(d?.minutes) != null && `ran ${fmt(d?.minutes as number)} min`,
       num(d?.packs) != null && `${fmt(d?.packs as number)} packs`, num(d?.rejects) != null && `${fmt(d?.rejects as number)} rejects`,

@@ -48,8 +48,10 @@ const hours = (min: number) => `${Number((min / 60).toFixed(1))} h`;
 export function runWorth(p: Pick<ProductReading, 'r' | 'state'>, line?: RunLine): RunWorth | undefined {
   const { r } = p;
   const rate = r.checks.find(c => c.what === 'rate');
-  if (p.state !== 'short' || !rate || rate.ok || r.net == null || typeof r.agreed.rate !== 'number' || typeof r.day.minutes !== 'number' || !(r.day.minutes > 0)) return undefined;
-  const shortPpm = r.agreed.rate - r.net;
+  /* a program's test aims at a speed — only a net rate it was given is a shortfall worth pricing */
+  const aim = r.agreed.of === 'speed' ? r.agreed.net : r.agreed.rate;
+  if (p.state !== 'short' || !rate || rate.ok || r.net == null || typeof aim !== 'number' || typeof r.day.minutes !== 'number' || !(r.day.minutes > 0)) return undefined;
+  const shortPpm = aim - r.net;
   if (!(shortPpm > 0)) return undefined;
   const minutes = r.day.minutes;
   const packs = shortPpm * minutes;
