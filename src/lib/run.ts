@@ -37,8 +37,15 @@
 import type { Outcome, Test } from './testing';
 
 export interface RunAgreed {
-  /** Packs a minute it must net. */
+  /** Packs a minute it must net — on a program's test (`of: 'speed'`), the speed the machine is to be set to run at. */
   rate?: number;
+  /** A NET rate to achieve, as well — only on a program's test, where `rate` is the speed and a net rate is a second,
+   *  optional aim (Rowland, 25 October: "the machine needs to run at x speed … and the budget net speed is x amount …
+   *  they can be both the target"). Judged only when given. */
+  net?: number;
+  /** DERIVED, never kept: what `rate` means. A program's test (its `programId`) aims at a SPEED; every other run at a
+   *  NET rate (lib/run productRuns says which). */
+  of?: 'speed';
   /** How long it must run, in minutes. */
   minutes?: number;
   /** The most rejects allowed, as a % of packs made. */
@@ -60,7 +67,7 @@ export interface RunDay {
 
 /** One agreed number against what the day did. */
 export interface RunCheck {
-  what: 'rate' | 'rejects' | 'length';
+  what: 'rate' | 'speed' | 'rejects' | 'length';
   /** "Net rate" · "Rejects" · "Run length". */
   label: string;
   /** "58.4 ppm" · "0.3%" · "60 min". */
@@ -79,6 +86,8 @@ export interface RunReading {
   good?: number;
   /** Good packs a minute, over the whole run. */
   net?: number;
+  /** On a run that aims at a speed: how far the net fell below the speed it ran at — what stops, slow running and rejects took. */
+  belowSpeed?: number;
   /** Rejects as a % of packs made. */
   rejectPct?: number;
   /** Each agreed number that the day can be judged against. */
@@ -125,17 +134,27 @@ const ok = (n: unknown): n is number => typeof n === 'number' && Number.isFinite
 
 export function readRun(t: Pick<Test, 'run' | 'runAgreed'>): RunReading {
   const agreed = t.runAgreed ?? {}, day = t.run ?? {};
+  /* A PROGRAM'S TEST AIMS AT A SPEED (agreed.of): the speed the machine is set to run at, and — only if one is given —
+     a net rate as well. Every other run aims at a net rate. */
+  const speedAim = agreed.of === 'speed';
+  const netAim = speedAim ? agreed.net : agreed.rate;
   const good = ok(day.packs) ? Math.max(0, day.packs - (ok(day.rejects) ? day.rejects : 0)) : undefined;
   const net = good != null && ok(day.minutes) && day.minutes > 0 ? good / day.minutes : undefined;
   const rejectPct = ok(day.packs) && day.packs > 0 && ok(day.rejects) ? (day.rejects / day.packs) * 100 : undefined;
   const checks: RunCheck[] = [];
-  if (ok(agreed.rate) && net != null) {
-    const met = net + 1e-9 >= agreed.rate;
+  if (speedAim && ok(agreed.rate) && ok(day.speed)) {
+    const met = day.speed + 1e-9 >= agreed.rate;
+    const f = met ? num : apart(day.speed, agreed.rate, [num, num2, num3]);
+    checks.push({ what: 'speed', label: 'Speed it ran at', got: `${f(day.speed)} ppm`, agreed: `${num(agreed.rate)} ppm to run at`, ok: met,
+      ...(met ? {} : { gap: `${f(agreed.rate - day.speed)} ppm slower` }) });
+  }
+  if (ok(netAim) && net != null) {
+    const met = net + 1e-9 >= netAim;
     /* a miss the rounding would hide — 59.96 against 60 read "60 against 60
        — 0 short" in red — is said to one more place (docs/UPGRADE-AUDIT.md M12) */
-    const f = met ? num : apart(net, agreed.rate, [num, num2, num3]);
-    checks.push({ what: 'rate', label: 'Net rate', got: `${f(net)} ppm`, agreed: `${num(agreed.rate)} ppm agreed`, ok: met,
-      ...(met ? {} : { gap: `${f(agreed.rate - net)} ppm short` }) });
+    const f = met ? num : apart(net, netAim, [num, num2, num3]);
+    checks.push({ what: 'rate', label: 'Net rate', got: `${f(net)} ppm`, agreed: `${num(netAim)} ppm agreed`, ok: met,
+      ...(met ? {} : { gap: `${f(netAim - net)} ppm short` }) });
   }
   if (ok(agreed.rejectsMax) && rejectPct != null) {
     const met = rejectPct <= agreed.rejectsMax + 1e-9;
@@ -148,27 +167,33 @@ export function readRun(t: Pick<Test, 'run' | 'runAgreed'>): RunReading {
     checks.push({ what: 'length', label: 'Run length', got: `${num(day.minutes)} min`, agreed: `${num(agreed.minutes)} min agreed`, ok: met,
       ...(met ? {} : { gap: `${num(agreed.minutes - day.minutes)} min short` }) });
   }
-  /* JUDGED ONCE EVERY AGREED NUMBER CAN BE: the rate has to be one of them —
-     a run is accepted on its rate — and nothing agreed may still be waiting
+  /* JUDGED ONCE EVERY AGREED NUMBER CAN BE: a rate has to be one of them —
+     a run is accepted on its rate (a speed, on a program's test, or its net
+     rate when one is given) — and nothing agreed may still be waiting
      on a box. Judged the moment the packs went in, before the rejects, it
      said "passed" for a breath and then "didn't" — and the test's own
      verdict follows this (patchRuns), so it must not flicker. */
-  const complete = net != null && (!ok(agreed.rejectsMax) || rejectPct != null) && (!ok(agreed.minutes) || ok(day.minutes));
-  const meets = ok(agreed.rate) && complete ? checks.every(c => c.ok) : undefined;
+  const aimed = speedAim ? ok(agreed.rate) || ok(agreed.net) : ok(agreed.rate);
+  const complete = (speedAim ? (!ok(agreed.rate) || ok(day.speed)) && (!ok(agreed.net) || net != null) : net != null)
+    && (!ok(agreed.rejectsMax) || rejectPct != null) && (!ok(agreed.minutes) || ok(day.minutes));
+  const meets = aimed && complete ? checks.every(c => c.ok) : undefined;
+  const belowSpeed = speedAim && ok(day.speed) && net != null && day.speed > net ? day.speed - net : undefined;
   return {
     agreed, day, checks, ran: hasNumbers(day),
     ...(good != null ? { good } : {}), ...(net != null ? { net } : {}), ...(rejectPct != null ? { rejectPct } : {}),
+    ...(belowSpeed != null ? { belowSpeed } : {}),
     ...(meets != null ? { meets } : {}),
   };
 }
 
 /** WHAT WAS AGREED, in one line — "60 ppm net for 60 min, rejects 1% at most". */
 export function agreedWords(a: RunAgreed): string {
-  if (!ok(a.rate) && !ok(a.minutes) && !ok(a.rejectsMax)) return '';
+  if (!ok(a.rate) && !ok(a.minutes) && !ok(a.rejectsMax) && !ok(a.net)) return '';
+  const speed = a.of === 'speed';
   return [
-    ok(a.rate) ? `${num(a.rate)} ppm net` : 'Run',
+    ok(a.rate) ? (speed ? `run at ${num(a.rate)} ppm` : `${num(a.rate)} ppm net`) : 'Run',
     ok(a.minutes) ? `for ${num(a.minutes)} min` : '',
-  ].filter(Boolean).join(' ') + (ok(a.rejectsMax) ? `, rejects ${pct(a.rejectsMax)} at most` : '');
+  ].filter(Boolean).join(' ') + (speed && ok(a.net) ? `, net ${num(a.net)} ppm` : '') + (ok(a.rejectsMax) ? `, rejects ${pct(a.rejectsMax)} at most` : '');
 }
 
 /** HOW IT RAN, in one line — the line the square, the drawer, the lists and
@@ -179,14 +204,17 @@ export function runLine(t: Pick<Test, 'run' | 'runAgreed' | 'product' | 'planned
   const r = readRun(t);
   if (!r.ran) return '';
   const rate = r.checks.find(c => c.what === 'rate');
+  const speedCheck = r.checks.find(c => c.what === 'speed');
+  const netAim = r.agreed.of === 'speed' ? r.agreed.net : r.agreed.rate;
   /* the net as the check says it — to one more place when the rounding would
      hide a miss (docs/UPGRADE-AUDIT.md M12) */
   const head = r.net != null
-    ? `Netted ${rate ? rate.got : `${num(r.net)} ppm`}${ok(r.agreed.rate) ? ` against ${num(r.agreed.rate)} agreed${rate && !rate.ok ? ` — ${rate.gap}` : ''}` : ''}`
+    ? `Netted ${rate ? rate.got : `${num(r.net)} ppm`}${ok(netAim) ? ` against ${num(netAim)} agreed${rate && !rate.ok ? ` — ${rate.gap}` : ''}` : ''}`
     : '';
   const bits = [
     head,
-    ok(r.day.speed) ? `ran at ${num(r.day.speed)} ppm` : '',
+    ok(r.day.speed) ? `ran at ${num(r.day.speed)} ppm${speedCheck && !speedCheck.ok ? ` — ${speedCheck.gap} than the ${num(r.agreed.rate as number)} aimed at` : ''}` : '',
+    r.belowSpeed != null ? `${num(r.belowSpeed)} ppm below the speed it ran at` : '',
     ok(r.day.rejects) ? `${num(r.day.rejects)} reject${r.day.rejects === 1 ? '' : 's'}${r.rejectPct != null ? ` (${pct(r.rejectPct)})` : ''}` : '',
     !ok(r.day.rejects) && ok(r.day.packs) ? `${num(r.day.packs)} packs` : '',
     ok(r.day.minutes) ? `${num(r.day.minutes)} min` : '',
@@ -202,7 +230,8 @@ export function runShort(t: Pick<Test, 'run' | 'runAgreed'>): string {
   if (r.net == null) return '';
   /* the square says the rate the line says — 59.96, never "60 of 60" in red (M12) */
   const rate = r.checks.find(c => c.what === 'rate');
-  return ok(r.agreed.rate) ? `${rate ? rate.got.replace(/ ppm$/, '') : num(r.net)} of ${num(r.agreed.rate)} ppm` : `${num(r.net)} ppm net`;
+  const netAim = r.agreed.of === 'speed' ? r.agreed.net : r.agreed.rate;
+  return ok(netAim) ? `${rate ? rate.got.replace(/ ppm$/, '') : num(r.net)} of ${num(netAim)} ppm` : `${num(r.net)} ppm net`;
 }
 
 /** Only the numbers given — blanks dropped, so an emptied box clears. */
@@ -239,7 +268,7 @@ export interface ProductRun {
   note?: string;
 }
 
-type RunHolder = Pick<Test, 'id'> & Partial<Pick<Test, 'runs' | 'run' | 'runAgreed' | 'product' | 'planned' | 'ranOn'>>;
+type RunHolder = Pick<Test, 'id'> & Partial<Pick<Test, 'runs' | 'run' | 'runAgreed' | 'product' | 'planned' | 'ranOn' | 'programId'>>;
 
 /** The id the one run of an older test takes in the list — the same on every
  *  device, so two devices writing the list for the first time agree on it,
@@ -250,11 +279,13 @@ export const firstRunId = (testId: string): string => `${testId}-r1`;
 /** THE PRODUCT RUNS — the list when there is one, else the one run an older
  *  test kept, as the list's first product. An emptied list stays empty. */
 export function productRuns(t: RunHolder): ProductRun[] {
-  if (Array.isArray(t.runs)) return t.runs;
+  /* A PROGRAM'S TEST AIMS AT A SPEED, not a net rate — said once, here, so every reader of a run reads it so (never kept) */
+  const aimed = (a?: RunAgreed): RunAgreed | undefined => (a && t.programId ? { ...a, of: 'speed' } : a);
+  if (Array.isArray(t.runs)) return t.programId ? t.runs.map(p => (p.agreed ? { ...p, agreed: aimed(p.agreed) } : p)) : t.runs;
   if (!hasNumbers(t.run) && !hasNumbers(t.runAgreed)) return [];
   return [{
     id: firstRunId(t.id), product: t.product ?? t.planned ?? '',
-    ...(t.runAgreed ? { agreed: t.runAgreed } : {}), ...(t.run ? { day: t.run } : {}),
+    ...(t.runAgreed ? { agreed: aimed(t.runAgreed) } : {}), ...(t.run ? { day: t.run } : {}),
     ...(t.ranOn && hasNumbers(t.run) ? { ranOn: t.ranOn } : {}),
   }];
 }
@@ -307,15 +338,19 @@ export const productName = (p: Pick<ProductRun, 'product'>): string => p.product
 
 function missingOf(r: RunReading): string[] {
   const a = r.agreed, d = r.day, out: string[] = [];
-  if ((ok(a.rate) || ok(a.minutes)) && !ok(d.minutes)) out.push('minutes run');
-  if ((ok(a.rate) || ok(a.rejectsMax)) && !ok(d.packs)) out.push('packs made');
+  const speed = a.of === 'speed';
+  /* what a run is judged on: its net rate — or, on a program's test, the speed it ran at and any net rate given */
+  const onNet = speed ? ok(a.net) : ok(a.rate);
+  if ((onNet || ok(a.minutes)) && !ok(d.minutes)) out.push('minutes run');
+  if (speed && ok(a.rate) && !ok(d.speed)) out.push('speed it ran at');
+  if ((onNet || ok(a.rejectsMax)) && !ok(d.packs)) out.push('packs made');
   if (ok(a.rejectsMax) && !ok(d.rejects)) out.push('rejects');
   return out;
 }
 
 export function readProduct(p: ProductRun, rerun = false): ProductReading {
   const r = readRun({ run: p.day, runAgreed: p.agreed });
-  const state: ProductState = !r.ran ? 'toRun' : r.meets === true ? 'met' : r.meets === false ? 'short' : ok(r.agreed.rate) ? 'partial' : 'unjudged';
+  const state: ProductState = !r.ran ? 'toRun' : r.meets === true ? 'met' : r.meets === false ? 'short' : ok(r.agreed.rate) || ok(r.agreed.net) ? 'partial' : 'unjudged';
   const gap = r.checks.filter(c => !c.ok).map(c => `${c.label.toLowerCase()} ${c.gap}`).join(', ');
   const word = state === 'met' ? 'Passed' : state === 'short' ? 'Didn’t pass' : state === 'toRun' ? 'To run'
     : state === 'partial' ? 'Numbers going in' : 'Ran — no rate agreed';
@@ -422,7 +457,7 @@ export const runsBoardWords = (t: RunHolder): string => { const b = runsBoard(t)
  *  "14 (0.38%)", "—" where nothing is in. */
 export interface ProductFigures {
   net: string; speed: string; packs: string; rejects: string; length: string;
-  netTone: RunTone; rejectsTone: RunTone; lengthTone: RunTone;
+  netTone: RunTone; speedTone: RunTone; rejectsTone: RunTone; lengthTone: RunTone;
   /** "60 ppm net for 60 min, rejects 1% at most", or '' when nothing is agreed. */
   agreed: string;
 }
@@ -436,7 +471,7 @@ export function productFigures(p: ProductReading): ProductFigures {
     packs: ok(r.day.packs) ? num(r.day.packs) : dash,
     rejects: ok(r.day.rejects) ? `${num(r.day.rejects)}${r.rejectPct != null ? ` (${pct(r.rejectPct)})` : ''}` : dash,
     length: ok(r.day.minutes) ? `${num(r.day.minutes)} min${ok(r.day.stops) && r.day.stops > 0 ? `, stood ${num(r.day.stops)}` : ''}` : dash,
-    netTone: tone('rate'), rejectsTone: tone('rejects'), lengthTone: tone('length'),
+    netTone: tone('rate'), speedTone: tone('speed'), rejectsTone: tone('rejects'), lengthTone: tone('length'),
     agreed: agreedWords(r.agreed),
   };
 }
