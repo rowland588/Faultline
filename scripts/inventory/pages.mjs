@@ -414,7 +414,7 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'A calculation — what a sampling plan protects, with its curve', path: `#/calc/oc-curve/${sd.calcOcId}`, must: [
     { what: 'the band with both risks', sel: '.ln-band', text: /Risks 3\.7% and 5\.4%/ },
-    { what: 'the curve drawn, with its guides and dots', sel: '.calc-pic-svg polyline', n: 1 }, { what: 'the AQL and limiting-quality guides', sel: '.calc-pic-guide', n: 4 },
+    { what: 'the curve drawn, with its guides and dots', sel: '.calc-pic-svg polyline', n: 1 }, { what: 'the guides’ words — AQL, LQ, 95 in 100, 10 in 100', sel: '.calc-pic-lab', n: 4 },
     { what: 'what it does not say — the licence caveat', sel: '.calc-caveats li', text: /does not hold the tables of ISO 2859-1/ },
     { what: 'the line’s wage offered or typed', sel: '[data-field=rate] input', n: 1 },
   ] },

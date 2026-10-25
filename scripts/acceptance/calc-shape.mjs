@@ -228,6 +228,31 @@ for (const d of defs) {
   ok(!!back && back.agreed.calc.key === d.key && !!back.agreed.calc.before && Object.keys(back.agreed.calc.inputs).length > 0, `${tag} g Undo: back whole — its figures and its saved before`);
 }
 
+/* ---- the line's own figure offered: said where to give it when the line has none, one tap when it has, its source on the paper ---- */
+{
+  await go(`#/calc/littles-law/${sd.calcLittleId}`);
+  if (!(await page.locator('.calc-money').evaluate(e => e.open))) await page.locator('.calc-money > summary').click();
+  await page.locator('[data-field-input=unitCost]').fill(''); await page.waitForTimeout(700);
+  const lineName = flat(await page.locator('.ie-place .part-belongs-a').first().innerText());
+  const miss = await words('[data-offer-missing=unitCost]');
+  ok(/^Give .* a pack’s materials on its set-up to have this offered/.test(miss ?? ''), `O the line has no materials figure: it says where to give it — "${miss}"`);
+  await page.evaluate(async id => { const D = await import('/src/db.ts'); await D.patchWorkspaceRecord(id, { materialsPerPack: 0.85 }); }, sd.wsId);
+  await page.waitForTimeout(800);
+  const btn = page.locator('[data-offer=unitCost]');
+  ok((await btn.count()) === 1 && /£0\.85/.test(flat(await btn.innerText())), `O the line has it now: one button — "${flat(await btn.innerText().catch(() => ''))}"`);
+  await btn.click(); await page.waitForTimeout(900);
+  ok((await page.locator('[data-field-input=unitCost]').inputValue()) === '0.85' && /^From .*set-up\.$/.test((await words('[data-field=unitCost] .calc-from')) ?? ''), `O taken: the box holds 0.85 and says where it came from — "${await words('[data-field=unitCost] .calc-from')}"`);
+  const kept = await page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id)).agreed.calc, sd.calcLittleId);
+  ok(kept.inputs.unitCost === 0.85 && /set-up/.test(kept.src?.unitCost ?? ''), 'O kept on the record: the figure, and its source');
+  const p = await pdf('offer.pdf', / — on paper$/);
+  ok(/materials|What one unit has cost by now/.test(p.text) && /from .*set-up/.test(p.text), 'O the paper’s Where it came from says "from … set-up"');
+  await page.locator('[data-field-input=unitCost]').fill('0.9'); await page.waitForTimeout(900);
+  const typed = await page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id)).agreed.calc, sd.calcLittleId);
+  ok(typed.inputs.unitCost === 0.9 && !typed.src?.unitCost, 'O typed over: the figure is the typed one and its source forgotten');
+  await page.evaluate(async ([ws, id]) => { const D = await import('/src/db.ts'); await D.patchWorkspaceRecord(ws, { materialsPerPack: undefined }); await D.patchStudy(id, cur => ({ agreed: { ...cur.agreed, calc: { ...cur.agreed.calc, inputs: { ...cur.agreed.calc.inputs, unitCost: 0.85 } } } })); }, [sd.wsId, sd.calcLittleId]);
+  void lineName;
+}
+
 /* ---- the line: its Tools page, its report ---- */
 await go(`#/lines/${sd.wsId}?view=tools`);
 const row = flat(await page.locator('.pl-tools li', { has: page.locator('b', { hasText: /^Calculators$/ }) }).first().innerText());
@@ -246,6 +271,18 @@ const lf = join(OUT, 'line.pdf'); await dl.saveAs(lf);
 const lt = flat(execFileSync('pdftotext', ['-raw', lf, '-'], { encoding: 'utf8' }));
 ok(nows(lt).includes(nows('Kanban sizing — Trays to the packer')) && nows(lt).includes(nows('8 kanbans of 60 trays')) && nows(lt).includes(nows('Little')) || nows(lt).includes(nows('WIP and lead time — Cooked trays in the chiller')), 'L the line’s paper has each calculation’s section under its calculator’s name, with its sentence');
 ok(/Before → after|Before to after/.test(lt) && /How it is worked out/.test(lt), 'L …and the kanban’s saved before and its working');
+
+/* ---- inside a project: the project's Tools lists Calculators, and one made there is the project's, on its line ---- */
+await go(`#/project/${sd.projectId}/tools`);
+const pTool = page.locator('.nv-main').getByText('Calculators', { exact: true }).first();
+ok((await pTool.count()) === 1, 'P a project’s Tools lists Calculators (one entry, from the catalogue’s registry)');
+await go(`#/calc/littles-law?project=${sd.projectId}`);
+ok((await page.locator('.ip-scope .chip').count()) >= 2, 'P opened in a project: the scope chips say whose — the project’s own, its line, every line');
+await page.getByRole('button', { name: 'New calculation' }).first().click(); await page.waitForTimeout(400);
+ok(/^For .+ — it is the project’s/.test((await words('[data-for-project]')) ?? ''), `P New says it is for the project: "${await words('[data-for-project]')}"`);
+await page.getByLabel('What is it of?').fill('Project chiller'); await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500);
+const made = await page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id)), recordId());
+ok(made?.projectId === sd.projectId && made.tool === 'calc' && made.agreed.calc.key === 'littles-law', 'P the calculation made there is the project’s');
 
 /* ---- a client reads a project’s calculation, read-only, and takes its paper ---- */
 const cl = await device(1360, 'client');
