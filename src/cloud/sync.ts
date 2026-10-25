@@ -337,7 +337,20 @@ const QUIET_KEY = 'quietMissing';
 const quiet = new Set<string>();
 let quietLoad: Promise<void> | null = null;
 const loadQuiet = (): Promise<void> =>
-  (quietLoad ??= keySet(QUIET_KEY).then(ks => { for (const k of ks) quiet.add(k); }));
+  (quietLoad ??= Promise.all([
+    keySet(QUIET_KEY).then(ks => { for (const k of ks) quiet.add(k); }),
+    /* when each missing file was first found missing, kept across sessions
+       ("key@ms") — so a file missing for days is not given the ten minutes of
+       fast retries again every time the app opens (askLater, below) */
+    keySet(ABSENT_KEY).then(ks => {
+      for (const s of ks) {
+        const i = s.lastIndexOf('@'), at = Number(s.slice(i + 1));
+        if (i > 0 && Number.isFinite(at) && !absentSince.has(s.slice(0, i))) absentSince.set(s.slice(0, i), at);
+      }
+    }),
+  ]).then(() => undefined));
+const ABSENT_KEY = 'absentSince';
+const saveAbsentSince = () => keySetPut(ABSENT_KEY, new Set([...absentSince].map(([k, at]) => `${k}@${at}`)));
 
 function countDown(q: Map<string, DownEntry>) {
   const gone = [...q.keys()].filter(k => absent.has(k));
@@ -430,10 +443,16 @@ async function retryFresh(uid: string): Promise<void> {
   retryAbsentSoon(uid, gotAny);
 }
 /** One file, with the queue and the counts kept true either way. */
-async function getFile(uid: string, key: string, e?: DownEntry): Promise<'got' | 'absent' | 'failed'> {
-  const r = await downloadShared(uid, key, e?.owner, e?.mime ?? mimes.get(key));
-  if (r === 'got') { absent.delete(key); absentSince.delete(key); await noteFromCloud(key); }
-  else if (r === 'absent') { absent.add(key); if (!absentSince.has(key)) absentSince.set(key, Date.now()); }
+async function getFile(uid: string, key: string, e?: DownEntry, wait = SLOW_MS): Promise<'got' | 'absent' | 'failed'> {
+  const r = await downloadShared(uid, key, e?.owner, e?.mime ?? mimes.get(key), wait);
+  if (r === 'got') {
+    absent.delete(key);
+    if (absentSince.delete(key)) await saveAbsentSince();
+    await noteFromCloud(key);
+  } else if (r === 'absent') {
+    absent.add(key);
+    if (!absentSince.has(key)) { absentSince.set(key, Date.now()); await saveAbsentSince(); }
+  }
   await withQueue(q => { if (r === 'got') q.delete(key); countDown(q); });
   return r;
 }
@@ -441,9 +460,41 @@ async function getFile(uid: string, key: string, e?: DownEntry): Promise<'got' |
 /* One fetch per file at a time — the screen asking for it and the queue
    reaching it share the one download, so a film never comes down twice. */
 const fetching = new Map<string, Promise<'got' | 'absent' | 'failed'>>();
-function downloadShared(uid: string, key: string, owner?: string, mime?: string): Promise<'got' | 'absent' | 'failed'> {
+/* A FILE LONG MISSING IS ASKED FOR NOW AND THEN, NOT ON EVERY PASS.
+   Walkthrough, 25 October: five photos that never left the phone that took
+   them were asked for about 200 times a day each, from every browser, each
+   ask up to three storage paths — every pass and every screen showing them
+   asked again, and every answer was "not there". Past its first ten minutes
+   (FRESH_MS, the fast retries above) a missing file is asked for at most once
+   every SLOW_MS in the background, and AT ONCE whenever someone is likely to be
+   waiting for it (Rowland, 25 October: "I don't know why it'd take 10 to 15
+   minutes for my photo to get to one device to another"): the window gaining
+   focus or showing again, the device coming back online (askAgainNow), and a
+   screen showing the picture asking for it (fetchBlobNow, at most every
+   EAGER_MS). The count and the words about it are unchanged. */
+const SLOW_MS = 3 * 60_000;
+const EAGER_MS = 10_000;
+const lastAsked = new Map<string, number>();
+/** Whether to skip asking for this file now — exported for its test. `wait` is
+ *  how long to leave it since it was last asked (SLOW_MS in the background,
+ *  EAGER_MS for a screen that is showing it). */
+export function askLater(key: string, now: number, a: { absent: ReadonlySet<string>; since: ReadonlyMap<string, number>; asked: ReadonlyMap<string, number> }, wait = SLOW_MS): boolean {
+  if (!a.absent.has(key)) return false;
+  const since = a.since.get(key);
+  if (since == null || now - since < FRESH_MS) return false;
+  const last = a.asked.get(key);
+  return last != null && now - last < wait;
+}
+/** Someone is likely to be waiting for a missing file — the window came back, the
+ *  device came online: the next pass asks for each once, whatever its age. */
+export function askAgainNow(): void { lastAsked.clear(); }
+function downloadShared(uid: string, key: string, owner?: string, mime?: string, wait = SLOW_MS): Promise<'got' | 'absent' | 'failed'> {
   let p = fetching.get(key);
-  if (!p) { p = downloadOne(uid, key, owner, mime).finally(() => fetching.delete(key)); fetching.set(key, p); }
+  if (p) return p;
+  if (askLater(key, Date.now(), { absent, since: absentSince, asked: lastAsked }, wait)) return Promise.resolve('absent');
+  lastAsked.set(key, Date.now());
+  p = downloadOne(uid, key, owner, mime).finally(() => fetching.delete(key));
+  fetching.set(key, p);
   return p;
 }
 
@@ -457,7 +508,7 @@ export async function fetchBlobNow(key: string): Promise<'got' | 'absent' | 'fai
      after the first pass fetches it, and the screen shows it as it lands. */
   const uid = lastUid;
   if (!uid) return 'failed';
-  const r = await getFile(uid, key, await withQueue(q => q.get(key)));
+  const r = await getFile(uid, key, await withQueue(q => q.get(key)), EAGER_MS);   // a screen is showing it: ask again soon, not in minutes
   if (r === 'absent') retryAbsentSoon(uid, false);
   return r;
 }
@@ -1272,7 +1323,8 @@ export async function fullResync(): Promise<void> {
   await metaPut('pendingUploads', { keys: [] });
   await metaPut('pendingDownloads', { keys: [] });
   await metaPut(TOO_BIG_KEY, {});      // the limit may have been raised: try them once more
-  absent.clear(); absentSince.clear();
+  absent.clear(); absentSince.clear(); lastAsked.clear();
+  await metaPut(ABSENT_KEY, { keys: [] });   // repair asks for every missing file afresh
   set({ state: 'syncing', error: undefined });
   // Let the in-flight pass finish — but never wait for ever. The flag is cleared
   // in that pass's finally, so this normally ends in well under a second; the
@@ -1311,11 +1363,13 @@ export function startSync() {
   // Fallbacks, not the mechanism: focus/online/interval catch anything missed
   // while the tab was frozen or offline.
   const kick = () => { void syncNow(); };
-  window.addEventListener('online', kick);
-  window.addEventListener('focus', kick);
+  /* someone is back at the screen: files long missing are asked for once at once (askAgainNow) */
+  const back = () => { askAgainNow(); kick(); };
+  window.addEventListener('online', back);
+  window.addEventListener('focus', back);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { hurryUntil = Date.now() + 3000; requestSync(150); }
-    else kick();
+    else back();
   });
   timer = window.setInterval(kick, 30_000);
   kick();

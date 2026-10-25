@@ -20,11 +20,12 @@ import { fmtGBP } from './cost';
 import type { LeanTile, LeanTone } from './lean';
 import type { LinesDay } from './lineLoss';
 import type { JobView, Portfolio } from './portfolio';
+import { daysLate } from './standing';
 
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);
 const and = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0] ?? '');
 
-type Job = Pick<JobView, 'id' | 'name' | 'handedOver' | 'slipDays' | 'onTarget'> & Partial<Pick<JobView, 'method'>>;
+type Job = Pick<JobView, 'id' | 'name' | 'handedOver' | 'slipDays' | 'onTarget'> & Partial<Pick<JobView, 'method' | 'daysToGo'>>;
 export type Room = { jobs: readonly Job[]; totals: Pick<Portfolio['totals'], 'jobs' | 'handedOver' | 'late' | 'lineLate' | 'critical' | 'week'> };
 
 export interface RoomMoney {
@@ -41,9 +42,11 @@ export interface RoomMoney {
 /** WHAT THE SLIPS COST — undefined while the jobs' lines are still being read. */
 export function roomMoney(jobs: readonly Job[], days: ReadonlyMap<string, LinesDay> | undefined): RoomMoney | undefined {
   if (!days) return undefined;
-  const slipping = jobs.filter(j => isGate(j) && !j.handedOver && (j.slipDays ?? 0) > 0)
+  /* Late is late whether or not the day was re-forecast (lib/standing daysLate):
+     a job past its expected handover counts every day since. */
+  const slipping = jobs.filter(j => isGate(j) && !j.handedOver && daysLate(j) > 0)
     .map(j => {
-      const d = days.get(j.id), n = j.slipDays as number;
+      const d = days.get(j.id), n = daysLate(j);
       return { name: j.name, days: n, ...(d?.margin != null ? { cost: n * d.margin } : {}), give: !d || !d.lines.length ? `${j.name}: its line` : d.margin == null ? and(d.missing) : '' };
     })
     .sort((a, b) => b.days - a.days);

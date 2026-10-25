@@ -12,7 +12,7 @@
  *
  * A part draws; it decides nothing. What a control may do is the page's to say (lib/access
  * can.edit, can.agree, can.remove) — a part given no action draws none. */
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 import { LeanTiles } from './Lean';
 
@@ -41,6 +41,16 @@ function useMenu() {
     document.addEventListener('keydown', key, true);
     box.current?.querySelector<HTMLButtonElement>('[role=menuitem]:not(:disabled)')?.focus();
     return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', key, true); };
+  }, [open]);
+  /* KEPT ON THE SCREEN. The list hangs from its button's right edge; a Report ▾
+     at the left of a page (Overview, Lines, Programs) pushed most of it off
+     the left of the window (walkthrough, 25 October). Measured as it opens:
+     past the left edge, it hangs from the button's left edge instead. */
+  useLayoutEffect(() => {
+    const list = box.current?.querySelector<HTMLElement>('.part-menu-list');
+    if (!open || !list) return;
+    list.classList.remove('is-left');
+    if (getComputedStyle(list).position === 'absolute' && list.getBoundingClientRect().left < 8) list.classList.add('is-left');
   }, [open]);
   return { open, setOpen, box, button };
 }

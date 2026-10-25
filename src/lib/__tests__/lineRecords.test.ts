@@ -168,6 +168,15 @@ describe('a project\'s stage-only programs on its line', () => {
     expect([r?.total, r?.doneAll, r?.open]).toEqual([3, 2, 1]);
     expect(r?.lines.find(l => l.what === 'Back up the programs')?.proving).toMatch(/not on a Programs list yet$/);
   });
+  it('a program its job\'s Set up failed counts as failed on the line too — one program, one count (walkthrough, 25 October)', () => {
+    const p9 = { id: 'p9', projectId: 'job-one', workspaceId: 'ws-7', what: 'Program 9 Finest', state: 'onMachine', testOn: '2026-10-26', sort: 1, updatedAt: 0, assetId: 'mc-ws-7-wrapper' } as Program;
+    const plain = lineProgramsReading([{ id: 'ws-7', name: 'Line 7', machines, programs: [...own, p9] }], T);
+    expect([plain?.failed, plain?.open]).toEqual([0, 1]);
+    const r = lineProgramsReading([{ id: 'ws-7', name: 'Line 7', machines, programs: [...own, p9] }], T,
+      { floor: new Map([['p9', { word: 'Failed · closed 22 Oct', tone: 'r' as const, bucket: 'failed' as const, note: 'Poor quality material' }]]), jobName: new Map([['job-one', 'Line 2 A']]) });
+    expect([r?.total, r?.doneAll, r?.failed, r?.open, r?.says]).toEqual([2, 1, 1, 0, '2 programs · 1 done — 1 passed · 1 failed']);
+    expect(r?.lines.find(l => l.programId === 'p9')).toMatchObject({ bucket: 'failed', tone: 'r', proving: 'On Line 2 A\'s Set up: Failed · closed 22 Oct — Poor quality material' });
+  });
   it('a line with nothing but them still has a reading — never "no programs"', () => {
     const r = lineProgramsReading([{ id: 'ws-7', name: 'Line 7', machines, programs: [] }], T, { stageOnly: new Map([['ws-7', [stage('Load the new recipes', 'Wrapper', 'open', 'to do')]]]) });
     expect([r?.total, r?.says]).toEqual([1, '1 program · 0 done · 1 to do']);

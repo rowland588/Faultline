@@ -452,7 +452,7 @@ The whole of it is what CI runs, plus the two things CI cannot:
 
 ```
 npx tsc --noEmit
-npx eslint src --max-warnings 64      # a ratchet, not a target — see below
+npx eslint src --max-warnings 61      # a ratchet, not a target — see below
 npx vitest run
 npx vite build
 node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BASE

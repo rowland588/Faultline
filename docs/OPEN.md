@@ -65,3 +65,20 @@ tools still wait for his word.
 - `TOOLS-BUILD.md` intro still counts 167 entries not available (now 132).
 - `AUDIT.md` 3.7 says the line report is "Open, planned" (built 23 October). `BUILD.md` says shifts have no breaks (they do). `BLUEPRINT.md` §10 is a 13 October snapshot.
 - `PROJECTS.md` "the front door opens the project you were last in" is moot — Home has "Carry on where you were".
+
+## 5. The live walkthrough — 25 October
+
+A walk of the live app (the Claude Chrome extension, with Rowland) found these; each is fixed with a test beside it. The extension could not push, so the fixes were re-made by hand from its patch (its hash `f143d73` is not in this repository) and the one change Rowland questioned was reworked.
+
+- **The slips cost £0 over a project 16 days past handover** — the money counted only the expected day's move from an agreed one; a project with no agreed day kept apart was never "slipping". `lib/standing daysLate` (moved + every day since the expected day passed) is now what `lib/roomLean roomMoney` and `lib/stageGateLean moneyTile` count.
+- **The factory's programs said "none failed" while the project's status report said "1 failed"** over the same programs — the floor's verdict was shown beside the line's row but not counted. `lib/useJobFloor` carries the job reading's bucket; `lib/lineRecords lineProgramsReading` counts it and says the totals again.
+- **A project's band and papers said "Critical 0 — none open" over five open problems filed to it** — the register's problems for the job (`assignedToJob`) now count on the Critical tile: critical ones in the number, the rest said beneath (`lib/stageGateLean criticalTile`, `lib/useAssignedProblems`, `lib/clientReport` figures).
+- **Five photos only on a phone were asked for ~200 times a day each, from every browser.** Past its first ten minutes (the fast retries) a missing file is asked for at most every 3 minutes in the background (`cloud/sync askLater`, `SLOW_MS`), and when it was first missing is kept across sessions (`absentSince`). The extension's own version said every 15 minutes; Rowland: *"I don't know why it'd take 10 to 15 minutes for my photo to get to one device to another. That needs shortening."* So a file long missing is asked for **at once** whenever someone is likely to be waiting — the window gaining focus or showing again, the device coming online (`askAgainNow`), and a screen showing the picture (`fetchBlobNow`, at most every 10 seconds). A photo that lands in the first ten minutes still arrives in seconds, as before.
+- **Report ▾ at the left of a page opened off the screen** — the list hangs from the button's left edge when it would (`ui/parts useMenu`, `.part-menu-list.is-left`).
+- **The bar for a file just made rode over forms for half an hour** — the page keeps room for it, and a change of page puts away one more than five minutes old (`ui/PdfReady`).
+- **A project's Client report lit the Notes tab** (`ui/rail scopeTabs`).
+- **Capability: 10 readings could be agreed with no word that Ppk needs 25** — said under the box.
+- **"0s lost last week"** on the one-page report reads "0 min".
+- Database: four functions given a fixed `search_path` (`supabase/FUNCTION_SEARCH_PATH.sql`, applied 25 October and read back by this session: all four carry `search_path=public`). Lint ceiling lowered to 61.
+
+Not changed, on purpose: the "give … in Your factory" wording (the house phrasing in six places); the control room's one page naming "and N more" (its limits are a choice); a machine typed on a new problem being added to its line (a machine is always on a line). Still open: the five photos must be sent from the phone that took them — open Faultline on it, on wifi.

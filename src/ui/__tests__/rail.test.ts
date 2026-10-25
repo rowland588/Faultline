@@ -238,6 +238,9 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
     expect(scopeTabs(lineGroups('w1', 'logs')).filter(l => l.on).map(l => l.label)).toEqual(['Tools']);
     expect(scopeTabs(lineGroups('w1', 'projects')).filter(l => l.on).map(l => l.label)).toEqual(['Overview']);
   });
+  it('a project\'s Reports lights no tab — it lit Notes (walkthrough, 25 October)', () => {
+    expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'reports', counts: {}, late: 0, machines: [] })).filter(l => l.on).map(l => l.label)).toEqual([]);
+  });
   it('the factory: Overview · Lines · Programs, on those three pages only', () => {
     expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Overview', '/room', false], ['Lines', '/factory', true], ['Programs', '/programs', false]]);
     expect([...FACTORY_PAGES]).toEqual(['home', 'factory', 'lineprograms']);

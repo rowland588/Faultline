@@ -133,13 +133,13 @@ export function ParetoChart({
           const fTop = yShare(s.freqShare);
           const op = s.isVitalFew ? 1 : 0.26;
           const hit = !!(onDrill && canDrill) && !s.aggregate;
-          const activate = hit ? () => onDrill!(s.key) : undefined;
+          const activate = hit && onDrill ? () => onDrill(s.key) : undefined;
           const label = s.aggregate ? `${s.key} categories`
             : `${s.key}: ${s.timeLabel} lost${s.costLabel ? ` (${s.costLabel} labour)` : ''}, ${s.freqLabel}${s.tag ? ` — ${TAG_TEXT[s.tag]}` : ''}${hit ? ' — activate to drill in' : ''}`;
           return (
             <g key={'b' + s.key} className={'pk-col' + (hit ? ' tap' : '')}
               onClick={activate} role={hit ? 'button' : undefined} tabIndex={hit ? 0 : undefined} aria-label={label}
-              onKeyDown={hit ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate!(); } }) : undefined}>
+              onKeyDown={activate ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } }) : undefined}>
               <title>{label}</title>
               {hit && <rect x={cx(i) - colW / 2} y={padT - 30} width={colW} height={plotH + 32} fill="transparent" />}
               {(show !== 'freq') && (

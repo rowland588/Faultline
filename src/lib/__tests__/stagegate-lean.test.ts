@@ -43,6 +43,17 @@ describe('a stage-gate job’s tiles', () => {
     expect(stageGateTiles({ ...base, daysToGo: 20, outstanding: 3, slipDays: 8, day: linesDay([line7]) })[4])
       .toEqual({ k: 'The slip costs', v: '£25.2k', of: '8 days × £3.2k — a day of Line 7 not making, in margin', tone: 'r' });
   });
+  it('past its expected handover with no agreed day apart: every day since is the slip (walkthrough, 25 October)', () => {
+    expect(stageGateTiles({ ...base, daysToGo: -16, outstanding: 13, day: linesDay([line7]) })[4])
+      .toEqual({ k: 'The slip costs', v: '£50.4k', of: '16 days × £3.2k — a day of Line 7 not making, in margin', tone: 'r' });
+    expect(stageGateTiles({ ...base, daysToGo: -2, slipDays: 3, day: linesDay([line7]) })[4].of).toBe('5 days × £3.2k — a day of Line 7 not making, in margin');
+  });
+  it('the register\'s problems for the job count on the Critical tile — never "none open" over five open (walkthrough, 25 October)', () => {
+    expect(stageGateTiles({ ...base, assigned: { open: 5, critical: 0 } })[2]).toEqual({ k: 'Critical', v: '0', of: '5 more problems open for it', tone: 'a' });
+    expect(stageGateTiles({ ...base, critical: 1, risks: 2, assigned: { open: 3, critical: 1 } })[2]).toEqual({ k: 'Critical', v: '2', of: '2 high risks as well · 2 more problems open for it', tone: 'r' });
+    expect(stageGateTiles({ ...base, assigned: { open: 1, critical: 1 } })[2]).toEqual({ k: 'Critical', v: '1', of: 'problems that stop the project', tone: 'r' });
+    expect(stageGateTiles({ ...base, assigned: { open: 0, critical: 0 } })[2]).toEqual({ k: 'Critical', v: '0', of: 'none open' });
+  });
   it('the money asks for what it needs: no line on the job, or a line with nothing said', () => {
     expect(stageGateTiles({ ...base, day: linesDay([]) })[4]).toEqual({ k: 'A day late', v: '—', of: 'no line from Your factory on the project yet' });
     expect(stageGateTiles({ ...base, day: linesDay([{ name: 'Line 3', packsPerMin: 40 }]) })[4]).toEqual({ k: 'A day late', v: '—', of: 'give Line 3: its shifts and its margin a pack in Your factory' });

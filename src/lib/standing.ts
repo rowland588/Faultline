@@ -119,6 +119,20 @@ export interface LateThing { what: string; was?: string; hours?: number; id?: st
  *  Lives here rather than in the card that first drew it, because the client
  *  report says the same thing on its own sheet and two copies of a sentence is
  *  how the screen and the page start disagreeing about a job. */
+/** DAYS LATE, FOR A JOB NOT YET HANDED OVER — what the money is counted on.
+ *  The expected day's move from the agreed one (slipDays) is only half of it:
+ *  a job whose expected day has come and gone without a handover is late by
+ *  every day since, re-forecast or not. Walkthrough, 25 October: Line 2 A was
+ *  16 days past its handover with no agreed day kept apart from the expected
+ *  one, so slipDays was absent and the control room said "£0 — every
+ *  stage-gate project on its agreed handover" in green. The handover can be
+ *  no earlier than today, so the late days are (the expected day, or today if
+ *  that has passed) less the agreed day, never below nothing. */
+export function daysLate(x: { slipDays?: number; daysToGo?: number }): number {
+  const overdue = x.daysToGo != null && x.daysToGo < 0 ? -x.daysToGo : 0;
+  return Math.max(0, (x.slipDays ?? 0) + overdue);
+}
+
 export function slipWords(slipDays?: number): string | undefined {
   if (slipDays == null || slipDays === 0) return undefined;
   const n = Math.abs(slipDays);

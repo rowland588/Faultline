@@ -13,10 +13,23 @@ import { useEffect, useState } from 'react';
 import { canSend, dropReady, onReady, readyNow, sendReady, type Ready } from '../lib/savePdf';
 import { Icon } from './Icon';
 
+/** How long the bar for a file just made outlives a change of page. */
+const STALE_MS = 5 * 60_000;
+
 export function PdfReadyHost() {
   const [r, setR] = useState<Ready | null>(readyNow());
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => onReady(() => { setR(readyNow()); setNote(null); }), []);
+  /* NOT FOR EVER. It stays up while it is new — the screen that made it may
+     not be the screen you are on — but a bar from a paper made long ago was
+     still riding over every page (walkthrough, 25 October: a factory report's
+     bar over a problem's form, half an hour on). Moving page once it is
+     STALE_MS old puts it away; the file is in the downloads all the same. */
+  useEffect(() => {
+    const on = () => { const now = readyNow(); if (now && Date.now() - now.at > STALE_MS) dropReady(); };
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
   if (!r) return null;
   const isPdf = r.file.type === 'application/pdf';
   return (

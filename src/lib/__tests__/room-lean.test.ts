@@ -31,6 +31,19 @@ describe('what the slips cost', () => {
     expect(roomMoney(room.jobs, undefined)).toBeUndefined();
     expect(roomMoney([job('x', 'Job X', { slipDays: 2 })], new Map())?.missing).toEqual(['Job X: its line']);
   });
+  it('a job past its expected handover is late every day since, re-forecast or not (walkthrough, 25 October: Line 2 A, 16 days over, read "£0 — on its agreed handover")', () => {
+    const over = job('p', 'Line 2 A', { daysToGo: -16, onTarget: behind });
+    expect(roomMoney([over], new Map([['p', day(1000)]]))).toEqual({ slipping: [{ name: 'Line 2 A', days: 16, cost: 16000 }], cost: 16000, days: 16, missing: [] });
+    // moved 3 days and then 2 days past even that: 5 days late
+    expect(roomMoney([job('q', 'Q', { slipDays: 3, daysToGo: -2 })], new Map([['q', day(100)]]))?.days).toBe(5);
+    // brought forward 10 days, then 4 past the new day: still 6 inside the agreed one
+    expect(roomMoney([job('s', 'S', { slipDays: -10, daysToGo: -4 })], new Map([['s', day(100)]]))?.slipping).toEqual([]);
+    // still ahead of its day and never moved: nothing slipping
+    expect(roomMoney([job('r', 'R', { daysToGo: 4 })], new Map([['r', day(100)]]))?.slipping).toEqual([]);
+    // its line not priced: named, never £0 in green
+    const one: Room = { jobs: [over], totals: { ...totals, jobs: 1, handedOver: 0 } };
+    expect(roomTiles(one, roomMoney([over], new Map()))[4]).toEqual({ k: 'The slips cost', v: '—', of: 'give Line 2 A: its line in Your factory' });
+  });
 });
 
 describe('the control room’s tiles', () => {

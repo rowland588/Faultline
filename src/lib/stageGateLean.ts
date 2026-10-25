@@ -16,6 +16,7 @@ import type { OnTarget } from './onTarget';
 import { niceDay } from './weeks';
 import { fmtGBP } from './cost';
 import type { LinesDay } from './lineLoss';
+import { daysLate } from './standing';
 
 export interface JobFigures {
   daysToGo?: number;
@@ -34,9 +35,30 @@ export interface JobFigures {
   /** A day of the job's lines not making (lib/lineLoss linesDay); absent
    *  when the job's lines were not read. */
   day?: LinesDay;
+  /** THE REGISTER'S PROBLEMS FOR THE JOB, NOT ON IT YET (lib/clientReport
+   *  assignedToJob) — open ones, how many critical. Walkthrough, 25 October:
+   *  Line 2 A had five open problems filed to it (four high) and its band and
+   *  both papers said "Critical 0 — none open" and "Fixes open 0", with no word
+   *  of them. A critical one is counted with the critical; the rest are said
+   *  under it. Absent when the register was not read. */
+  assigned?: { open: number; critical: number };
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);
+
+/** The Critical tile: the job's own critical problems with the register's
+ *  critical ones for it; the high risks, and the register's other open
+ *  problems for it, said beneath. */
+function criticalTile(x: JobFigures): LeanTile {
+  const crit = x.critical + (x.assigned?.critical ?? 0);
+  const others = x.assigned ? x.assigned.open - x.assigned.critical : 0;
+  const under = [
+    x.risks ? `${x.risks} high ${plural(x.risks, 'risk')} as well` : '',
+    others > 0 ? `${others} more ${plural(others, 'problem')} open for it` : '',
+  ].filter(Boolean).join(' · ');
+  return { k: 'Critical', v: String(crit), of: under || (crit ? 'problems that stop the project' : 'none open'),
+    ...(crit ? { tone: 'r' as LeanTone } : x.risks || others > 0 ? { tone: 'a' as LeanTone } : {}) };
+}
 
 export function stageGateTiles(x: JobFigures): LeanTile[] {
   const day = x.handoverOn ? niceDay(x.handoverOn) : '';
@@ -51,8 +73,7 @@ export function stageGateTiles(x: JobFigures): LeanTile[] {
     handover,
     { k: 'Late', v: String(x.late), of: x.outstanding ? `of ${x.outstanding} still to do${x.late ? ' — past their day' : ', none past its day'}` : 'nothing left to do',
       ...(x.late ? { tone: 'r' as LeanTone } : x.outstanding ? { tone: 'n' as LeanTone } : { tone: 'g' as LeanTone }) },
-    { k: 'Critical', v: String(x.critical), of: x.risks ? `${x.risks} high ${plural(x.risks, 'risk')} as well` : x.critical ? 'problems that stop the project' : 'none open',
-      ...(x.critical ? { tone: 'r' as LeanTone } : x.risks ? { tone: 'a' as LeanTone } : {}) },
+    criticalTile(x),
     { k: 'Fixes open', v: String(x.fixesOpen), of: x.fixesLate ? `${x.fixesLate} late` : x.fixesOpen ? 'none late' : 'none open', ...(x.fixesLate ? { tone: 'r' as LeanTone } : {}) },
     moneyTile(x),
   ];
@@ -61,8 +82,9 @@ export function stageGateTiles(x: JobFigures): LeanTile[] {
 const and = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0] ?? '');
 
 /** The days late the money is counted on: handed over, the day against the
- *  day agreed; not yet, how far the expected day has moved. */
-const lateBy = (x: JobFigures): number => Math.max(0, (x.handedOver ? x.handedVs : x.slipDays) ?? 0);
+ *  day agreed; not yet, how far the expected day has moved plus every day
+ *  since it passed (lib/standing daysLate). */
+const lateBy = (x: JobFigures): number => (x.handedOver ? Math.max(0, x.handedVs ?? 0) : daysLate(x));
 
 /** THE MONEY — what the slip costs, from the factory's own figures. */
 export function moneyTile(x: JobFigures): LeanTile {

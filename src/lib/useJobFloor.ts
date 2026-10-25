@@ -7,7 +7,7 @@
  * says it beside the record's own state. Nothing is stored. */
 import { useEffect, useState } from 'react';
 import { getProject, listAssets, listPrograms, listTestItems, listTests, onDataChange } from '../db';
-import { programsReading, type ProgTone, type ProgramLine } from './programsReport';
+import { programsReading, type ProgBucket, type ProgTone, type ProgramLine } from './programsReport';
 import { lineOfMachine, onlyLineOf, type JobLine } from './lineRecords';
 import type { Asset } from './testing';
 import { todayISO } from './weeks';
@@ -16,6 +16,11 @@ export interface FloorWord {
   /** "Failed · closed 13 Oct", "baseline achieved — done 13 Oct". */
   word: string;
   tone: ProgTone;
+  /** What the job's reading counts it as — failed, done, open… — so the
+   *  line's totals count it the same (walkthrough, 25 October: the factory's
+   *  programs said "none failed" while the job's status report, over the same
+   *  six programs, said "1 failed"). */
+  bucket?: ProgBucket;
   /** What was seen, with the status it stands on. */
   note?: string;
 }
@@ -47,7 +52,7 @@ export function useJobFloor(jobIds: readonly string[]): Map<string, FloorWord> &
         /* Only where the floor's status leads the row — the newer fact; one
            proved since the floor last spoke reads as proved, as it does here. */
         if (!l.programId || !l.partId || !l.record) continue;
-        m.set(l.programId, { word: l.word, tone: l.tone, ...(l.note ? { note: l.note } : {}) });
+        m.set(l.programId, { word: l.word, tone: l.tone, bucket: l.bucket, ...(l.note ? { note: l.note } : {}) });
       }
       setGot(m);
     });

@@ -370,7 +370,12 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
         {kind === 'rate' && <label className="field"><span className="field-label">Held with gaps from what % of intervals</span>
           <input className="text-input" inputMode="decimal" value={heldShare} onChange={e => setHeldShare(e.target.value)} placeholder="90" /></label>}
         <label className="field"><span className="field-label">{ticks ? 'How many to check' : kind === 'rejects' ? 'How many runs' : kind === 'faults' ? 'How many inspections' : kind === 'rate' ? 'How many intervals' : 'How many readings'}</span>
-          <input className="text-input" inputMode="numeric" value={count} onChange={e => setCount(e.target.value)} /></label>
+          <input className="text-input" inputMode="numeric" value={count} onChange={e => setCount(e.target.value)} />
+          {/* SAID BEFORE IT IS AGREED (walkthrough, 25 October: 10 readings agreed, then "Ppk — said from 25
+              readings" with no way to reach it): fewer than CPK_FROM gives a pass or fail, never a Ppk. */}
+          {(kind === 'limits' || kind === 'packers') && n >= 1 && n < CPK_FROM && (
+            <span className="sub">{n} gives a pass or fail; Ppk, and how sure it is, is said from {CPK_FROM} readings.</span>
+          )}</label>
         {ticks && judge === 'count' && <label className="field"><span className="field-label">How many may fail</span>
           <input className="text-input" inputMode="numeric" value={allow} onChange={e => setAllow(e.target.value)} placeholder="0" /></label>}
         {ticks && judge !== 'count' && <label className="field"><span className="field-label">At least what % good</span>

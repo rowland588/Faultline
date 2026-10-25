@@ -181,7 +181,7 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
   /** What each job's floor said of its programs (lib/useJobFloor), and the
    *  jobs' names: said under the program on paper, as on the screen (flow
    *  audit #3: one program, one answer). */
-  o: { floor?: ReadonlyMap<string, { word: string; note?: string }>; jobName?: ReadonlyMap<string, string>;
+  o: { floor?: ReadonlyMap<string, { word: string; note?: string; tone?: ProgramLine['tone']; bucket?: ProgramLine['bucket'] }>; jobName?: ReadonlyMap<string, string>;
     /** The tests that prove programs, on whichever job (Test.programId), and
      *  the studies naming them: how each proved one was proved (flow audit
      *  #21). Without the tests, a program naming one says "Proved by its
@@ -235,10 +235,17 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
     const f = l.programId ? o.floor?.get(l.programId) : undefined;
     const job = p ? o.jobName?.get(p.projectId) : undefined;
     const proof = p ? proofOf(p, o.tests, o.studies) : undefined;
-    return { ...l, ...(f ? { proving: `On ${job ?? 'its project'}'s Set up: ${f.word}${f.note ? ` — ${f.note}` : ''}` } : {}), ...(proof ? { proof } : {}) };
+    /* THE FLOOR'S STATUS COUNTS HERE AS IT DOES ON ITS JOB (walkthrough, 25
+       October: Program 9 failed on Line 2 A's Set up — the job's status report
+       said "1 failed", the factory's programs report over the same programs
+       "none failed"). The floor's word is only carried where it is the newer
+       fact (lib/useJobFloor), so it is what the job's reading counted: the
+       line counts it the same, in its colour, and the totals are said again. */
+    const counted = f?.bucket && f.bucket !== l.bucket ? { bucket: f.bucket, ...(f.tone ? { tone: f.tone } : {}) } : {};
+    return { ...l, ...counted, ...(f ? { proving: `On ${job ?? 'its project'}'s Set up: ${f.word}${f.note ? ` — ${f.note}` : ''}` } : {}), ...(proof ? { proof } : {}) };
   };
   const machines = r.machines.map(m => ({ ...m, lines: m.lines.map(withFloor) }));
-  return { ...r, machines, lines: machines.flatMap(m => m.lines) };
+  return readingOf(machines) ?? { ...r, machines, lines: machines.flatMap(m => m.lines) };
 }
 
 /** A JOB'S LINES' OWN PROGRAMS — each line the job is on (its job lines),

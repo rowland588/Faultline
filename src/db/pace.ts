@@ -300,8 +300,7 @@ export async function projectForWorkspace(wsId: ID): Promise<string | null> {
 export async function projectWorkspaceIds(projectId: string): Promise<ID[]> {
   const walk = await getPaceWorkspaceId(projectId);
   const lines = (await (await getDB()).getAll('pace_ppm'))
-    .filter(l => l.projectId === projectId && !l.deletedAt && l.workspaceId)
-    .map(l => l.workspaceId!);
+    .flatMap(l => (l.projectId === projectId && !l.deletedAt && l.workspaceId ? [l.workspaceId] : []));
   return [...new Set([...(walk ? [walk] : []), ...lines])];
 }
 

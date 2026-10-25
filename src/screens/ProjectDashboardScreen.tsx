@@ -39,6 +39,7 @@ import { usePaceLines } from '../lib/usePaceLines';
 import { useJobFactoryLines } from '../lib/useFactoryLines';
 import { linesDay } from '../lib/lineLoss';
 import { stageGateTiles } from '../lib/stageGateLean';
+import { useAssignedProblems } from '../lib/useAssignedProblems';
 import { sixmTiles, type SixMFigures } from '../lib/sixmLean';
 import type { FishboneData } from '../lib/fishbone';
 import type { ProblemView } from '../lib/problems';
@@ -628,6 +629,8 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
   const seenAt = useSeenAt(projectId);
   /* THE JOB'S LINES AS YOUR FACTORY HOLDS THEM — what a day late costs (the money tile) */
   const factory = useJobFactoryLines(projectId);
+  /* THE REGISTER'S PROBLEMS FOR IT, NOT ON IT YET — counted on the band as on its papers */
+  const assigned = useAssignedProblems(projectId);
   if (tt.loading || all.loading || mats.loading || progs.loading || factory.loading) return <p className="sub">Loading…</p>;
 
   const today = todayISO();
@@ -694,6 +697,7 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
                   fixesOpen: fixes.filter(x => x !== 'done').length, fixesLate: fixes.filter(x => x === 'late').length };
               })(),
               day: linesDay(factory.lines),
+              ...(assigned ? { assigned } : {}),
             })} />
           {/* WHAT CHANGED SINCE YOU LAST LOOKED — under the answer; nothing when
               nothing did (lib/since). */}

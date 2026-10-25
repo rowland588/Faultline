@@ -91,7 +91,8 @@ export function ReportScreen() {
 
         <div className="report-stats">
           <div className="rstat">
-            <b>{fmtDurationWords(kpi.lastWeekMs) || '0 min'}</b><span>lost last week</span>
+            {/* nothing lost reads "0 min" — fmtDurationWords(0) is "0s", so the fallback never showed */}
+            <b>{kpi.lastWeekMs > 0 ? fmtDurationWords(kpi.lastWeekMs) : '0 min'}</b><span>lost last week</span>
             {kpi.deltaPct != null && <em className={kpi.deltaPct <= 0 ? 'good' : 'bad'}>{kpi.deltaPct <= 0 ? '▼' : '▲'} {Math.abs(kpi.deltaPct)}% vs 4-wk avg</em>}
           </div>
           {kpi.costable && (

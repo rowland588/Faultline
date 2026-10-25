@@ -83,3 +83,39 @@ describe('the drain', () => {
     expect(sync.syncStatus()).toMatchObject({ pendingDown: 0, missingDown: 0 });
   });
 });
+
+/* A FILE LONG MISSING IS ASKED FOR NOW AND THEN — AND AT ONCE WHEN SOMEONE IS WAITING
+   (walkthrough, 25 October: five photos that never left a phone were asked for ~200
+   times a day each; Rowland: "I don't know why it'd take 10 to 15 minutes for my photo
+   to get to one device to another"). */
+describe('asking again for a file the cloud does not have', async () => {
+  const { askLater } = await import('../sync');
+  const MIN = 60_000, now = 1_000 * MIN;
+  const at = (since?: number, asked?: number) => ({
+    absent: new Set(['k']),
+    since: new Map(since == null ? [] : [['k', since]]),
+    asked: new Map(asked == null ? [] : [['k', asked]]),
+  });
+  it('asks at once for a file not known to be missing, or missing under ten minutes', () => {
+    expect(askLater('other', now, at(now - 60 * MIN, now - MIN))).toBe(false);
+    expect(askLater('k', now, at(now - 5 * MIN, now - 10_000))).toBe(false);
+  });
+  it('past ten minutes missing, the background asks at most every three minutes', () => {
+    expect(askLater('k', now, at(now - 60 * MIN, now - 1 * MIN))).toBe(true);
+    expect(askLater('k', now, at(now - 60 * MIN, now - 2 * MIN))).toBe(true);
+    expect(askLater('k', now, at(now - 60 * MIN, now - 4 * MIN))).toBe(false);
+    expect(askLater('k', now, at(now - 60 * MIN))).toBe(false);   // never asked this session: ask
+  });
+  it('a screen showing the picture asks again after ten seconds, not minutes', () => {
+    expect(askLater('k', now, at(now - 60 * MIN, now - 5_000), 10_000)).toBe(true);
+    expect(askLater('k', now, at(now - 60 * MIN, now - 15_000), 10_000)).toBe(false);
+  });
+  it('remembers when a file was first missing across sessions, and asks again at once when someone is back', () => {
+    expect(src).toMatch(/keySet\(ABSENT_KEY\)/);
+    expect(src).toMatch(/saveAbsentSince\(\)/);
+    expect(src).toMatch(/fetchBlobNow[\s\S]*?EAGER_MS/);
+    expect(src).toMatch(/const back = \(\) => \{ askAgainNow\(\); kick\(\); \}/);
+    expect(src).toMatch(/addEventListener\('focus', back\)/);
+    expect(src).toMatch(/addEventListener\('online', back\)/);
+  });
+});

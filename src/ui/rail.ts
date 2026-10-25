@@ -299,7 +299,9 @@ export function scopeTabs(groups: RailGroup[]): RailLine[] {
   /* a page folded under a tab lights it: a machine its Plan, a project's line its Lines, the line's
      logs its Tools, the line's projects its Overview */
   const under = lines.find(l => l.on && !kept(l) && l.key !== 'up');
-  const lit = !under ? undefined : under.key === 'logs' ? 'tools' : under.key === 'projects' ? 'overview'
+  /* Reports is under no tab — it lit the one before it, Notes, on the project's
+     Client report (walkthrough, 25 October); the crumb says where you are. */
+  const lit = !under || under.key === 'reports' ? undefined : under.key === 'logs' ? 'tools' : under.key === 'projects' ? 'overview'
     : [...lines.slice(0, lines.indexOf(under))].reverse().find(kept)?.key;
   return lines.filter(kept).map(l => (lit && l.key === lit ? { ...l, on: true } : l));
 }

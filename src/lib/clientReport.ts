@@ -663,6 +663,8 @@ export function clientReport(x: ClientReportInput): ClientReport {
       critical: criticalProblems(tests, items, assets).open.length, risks: riskProblems(tests, items, assets).open.length,
       fixesOpen: fixes.filter(f => f.tone !== 'done').length, fixesLate: fixes.filter(f => f.tone === 'late').length,
       ...(st.slipDays != null ? { slipDays: st.slipDays } : {}), ...(x.factoryLines ? { day: linesDay(x.factoryLines) } : {}),
+      /* the register's problems for the job, not on it yet — counted on the tiles (lib/stageGateLean criticalTile) */
+      ...(x.assigned ? { assigned: { open: assignedSnags.length, critical: assignedSnags.filter(sn => sn.priority === 'critical').length } } : {}),
     },
     onTarget: stageGateOnTarget({ project, tests, items, assets, materials: x.materials, programs, today }, st),
     dates: when ? `Handover ${moved ? 'expected' : ''} ${niceDay(when, { year: true })}${moved ? ` · agreed ${niceDay(project.plannedAt, { year: true })}` : ''}`.replace('  ', ' ') : undefined,
