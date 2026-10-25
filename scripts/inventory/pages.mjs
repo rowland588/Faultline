@@ -388,6 +388,36 @@ export const PAGES = (sd, cap) => [
     { what: 'the action plan', sel: '.ln-plan-p' },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
+  /* THE CALCULATORS (25 October, FC-235, knowledge/specs/FC-235-calculators.md): the hub with every calculator as a card and the saved ones; one calculator's list; a saved calculation — figures left, the answer right, the saved before, the what-if */
+  { name: 'Calculators — the hub', path: '#/calc', must: [
+    { what: 'the page named Calculators with Report ▾', sel: '.part-head .pace-title', text: /^Calculators$/ }, { what: 'a card each calculator, with what it is for', sel: '.calc-card', n: 4 },
+    { what: 'the kanban card counting its saved one', sel: '[data-calc-card=kanban] .calc-card-n', text: /1 saved/i },
+    { what: 'the saved calculations, a row each with its calculator and verdict', sel: '.lt-rows .lt-li', n: 3 },
+  ] },
+  { name: 'One calculator — Kanban sizing', path: '#/calc/kanban', must: [
+    { what: 'the page named for the calculator, with New calculation', sel: '.part-head .pace-title', text: /^Kanban sizing$/ }, { what: 'New calculation', sel: '.pace-head-actions .btn-primary', text: /^New calculation$/ },
+    { what: 'its saved ones, a row each with Rename and Delete', sel: '.lt-li .lt-acts', n: 1 },
+    { what: 'the calculators that carry on from it', sel: '.calc-see .linkish', n: 2 },
+  ] },
+  { name: 'A calculation — kanbans for trays, with its saved before', path: `#/calc/kanban/${sd.calcKanbanId}`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
+    { what: 'the band with its verdict', sel: '.ln-band', text: /8 kanbans/ },
+    { what: 'the figures, each with its box', sel: '.calc-field input', n: 7 }, { what: 'the safety factor saying it is a choice', sel: '[data-chosen=safety]', text: /^A choice, not a measurement\./ },
+    { what: 'the money figures folded under In money — all optional', sel: '.calc-money > summary', text: /^In money — all optional$/ },
+    { what: 'the five tiles, each with what moved since the saved before', sel: '.calc-tiles .ln-tile', n: 5 }, { what: 'a change since the saved before', sel: '.calc-tiles .ln-ch', text: /fewer than the saved before/ },
+    { what: 'the sentence, in the floor’s words', sel: '[data-calc=sentence]', text: /^8 kanbans of 60 trays — a supermarket of at most 480 trays\. The loop carries 400 trays before safety because a refill takes 2 hours; halve that and it carries 200\./ },
+    { what: 'how it is worked out', sel: '.calc-working-t tr', n: 6 }, { what: 'the money, said with its because', sel: '[data-calc=money]', text: /^A full shelf is £408\.00 of trays/ },
+    { what: 'what this does not say', sel: '.calc-caveats li', n: 4 },
+    { what: 'Before → after, the before’s own sentence', sel: '[data-calc=before]', text: /^Before: 16 kanbans of 60 trays/ },
+    { what: 'What if…', sel: '.calc-whatif h2', text: /^What if/ },
+    { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' },
+  ] },
+  { name: 'A calculation — what a sampling plan protects, with its curve', path: `#/calc/oc-curve/${sd.calcOcId}`, must: [
+    { what: 'the band with both risks', sel: '.ln-band', text: /Risks 3\.7% and 5\.4%/ },
+    { what: 'the curve drawn, with its guides and dots', sel: '.calc-pic-svg polyline', n: 1 }, { what: 'the guides’ words — AQL, LQ, 95 in 100, 10 in 100', sel: '.calc-pic-lab', n: 4 },
+    { what: 'what it does not say — the licence caveat', sel: '.calc-caveats li', text: /does not hold the tables of ISO 2859-1/ },
+    { what: 'the line’s wage offered or typed', sel: '[data-field=rate] input', n: 1 },
+  ] },
   /* THE ANALYSIS, PART TWO (24 October, W3b, knowledge/specs/FC-107-groups-tables-relations.md): three shifts, a table of counts, a relation — each page says its answer in "we can be 95% confident" and draws what it is about */
   { name: 'Analysis — do groups differ', path: `#/analysis/${sd.analysisGroupsId}`, must: [
     { what: 'the band’s verdict — the worst shift, amber', sel: '.ln-band', text: /B is the worst/ },

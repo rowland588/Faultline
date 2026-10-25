@@ -53,6 +53,7 @@ import { overTime, overTimeSays } from '../tools/capability/overTime';
 import { analysisClosing, analysisFigures, analysisPicture, analysisPlot, analysisSays, analysisTiles, confidenceOf, KIND_WORDS, pSay as anP, pctWord as anPct, type Plot, type PicRow } from '../tools/analysis/analysis';
 import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } from '../tools/chart/chart';
 import { neckOf } from './lineLoss';
+import { calcPaperParts } from './report/calcPaper';
 import { relChartBlock, relDaysBlocks, relKindsBlocks, relTogetherBlocks, remarksBlocks } from './report/reliabilityTable';
 
 import { todayISO } from './weeks';
@@ -569,6 +570,10 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     const a = s.agreed.analysis, f = analysisFigures(a, s.facts.readings ?? []), said = analysisSays(f, a);
     eyebrow = 'Analysis'; verdict = { text: said.verdict, tone: said.tone }; tiles = analysisTiles(f, a); closing = analysisClosing(f, a, said);
     body = analysisBlocks(s);
+  } else if (s.tool === 'calc') {
+    /* a calculation (FC-235): one generic page from the definition's own result — the same the screen draws */
+    const c = calcPaperParts(s);
+    if (c) { eyebrow = c.eyebrow; verdict = c.verdict; tiles = c.tiles; closing = c.closing; body = c.body; }
   } else if (s.tool === 'chart' && s.agreed?.chart) {
     const a = s.agreed.chart, f = chartFigures(a, s.facts.readings ?? []), said = chartSays(f, a);
     eyebrow = 'Control chart'; verdict = { text: said.verdict, tone: said.tone }; tiles = chartTiles(f, a); closing = chartClosing(f, a, said);
@@ -683,6 +688,7 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
   if (s.tool === 'capability') out.push(...capabilityBlocks(s));
   if (s.tool === 'chart') out.push(...chartBlocks(s));
   if (s.tool === 'analysis') out.push(...analysisBlocks(s));
+  if (s.tool === 'calc') out.push(...(calcPaperParts(s)?.body ?? []));
   if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
   if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
   if (e.losses) out.push(...lossBlocks(e.losses));
@@ -707,7 +713,7 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
 
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
-  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis', 'calc'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return smedLeanBlocks(p, p.items[0], d);
   const out: Block[] = [];
   out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));

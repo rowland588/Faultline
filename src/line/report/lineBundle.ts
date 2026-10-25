@@ -39,6 +39,7 @@ import { byFloor } from '../../lib/lines';
 import type { LeanAction, LeanTone } from '../../lib/lean';
 import { APP_TOOLS } from '../../catalogue/registry';
 import { niceDay } from '../../lib/weeks';
+import { calcTitle } from '../../tools/calc/calc';
 
 /** One thing that can go in: a study, a product's Line capacity or line standard. */
 export interface BundleItem {
@@ -114,7 +115,7 @@ export function itemsOn(line: Pick<Workspace, 'id'>, r: Pick<BundleRecords, 'sta
     if (s.deletedAt || s.workspaceId !== line.id) continue;
     const l = studyLine(s, r.ctx);
     /* the tool's name once — the heading says "SMED — Finest Red 2kg → Express 1.25 kg · Bagger", never "SMED — SMED — …" */
-    out.push({ key: `study:${s.id}`, tool: toolLabel(s.tool), name: `${s.name.trim() || studyTitle(s)}${s.machine ? ` · ${s.machine}` : ''}`, says: l.text, tone: toneOf(l.tone), at: s.updatedAt ?? s.startedAt, ...(s.machine ? { machine: s.machine } : {}), study: s });
+    out.push({ key: `study:${s.id}`, tool: s.tool === 'calc' ? calcTitle(s) : toolLabel(s.tool), name: `${s.name.trim() || studyTitle(s)}${s.machine ? ` · ${s.machine}` : ''}`, says: l.text, tone: toneOf(l.tone), at: s.updatedAt ?? s.startedAt, ...(s.machine ? { machine: s.machine } : {}), study: s });
   }
   for (const st of r.standards) {
     if (st.deletedAt || st.workspaceId !== line.id) continue;
@@ -173,7 +174,9 @@ export function whereFor(part: LinePart, picks: ReadonlySet<string>, today = tod
  *  all of their records are ticked in (not only the newest), the rest left out. */
 export function picksForTools(b: LineBundle, labels: readonly string[]): Set<string> {
   const want = new Set(labels);
-  return new Set(b.parts.flatMap(p => p.items.filter(it => want.has(it.tool)).map(it => it.key)));
+  /* the hub's tick, Calculators, takes every saved calculation — each is listed under its own calculator's title */
+  const hub = want.has(TOOL_LABEL.calc ?? 'Calculators');
+  return new Set(b.parts.flatMap(p => p.items.filter(it => want.has(it.tool) || (hub && it.study?.tool === 'calc')).map(it => it.key)));
 }
 
 /** WHO OWES WHAT BY WHEN — every open problem and every program to prove, the late first. */

@@ -485,10 +485,24 @@ export interface StudyAgreed {
   chart?: AgreedChart;
   /** W3a — an analysis's agreement (knowledge/specs/FC-105-analysis.md). */
   analysis?: AgreedAnalysis;
+  /** FC-235 — a calculator's inputs (knowledge/specs/FC-235-calculators.md): which calculator, and what was put in. */
+  calc?: AgreedCalc;
   balance?: AgreedBalance;
   map?: AgreedMap;
   sampling?: AgreedSampling;
   reliability?: AgreedReliability;
+}
+
+/** A CALCULATOR (src/tools/calc; knowledge/specs/FC-235-calculators.md — 25 October): which one it is (`key`, the name of its
+ *  definition file in src/tools/calc/defs) and what was put into it. The result is worked out from these on every render by the
+ *  definition and never stored. `before` is a copy of the inputs taken by "Save as before", so a change made after it reads
+ *  as a before → after; its own result is worked out from it, not kept. */
+export interface AgreedCalc {
+  key: string;
+  inputs: Record<string, number | string>;
+  /** Where an offered figure came from — field id → "Line 7’s set-up" — for the paper's Source column. Cleared when the box is typed over. */
+  src?: Record<string, string>;
+  before?: { at: number; by?: string; inputs: Record<string, number | string>; src?: Record<string, string> };
 }
 
 /** AN ANALYSIS (W3a, knowledge/specs/FC-105-analysis.md — 24 October): one question asked first — how sure am I of

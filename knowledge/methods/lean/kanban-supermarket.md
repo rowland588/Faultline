@@ -112,8 +112,9 @@ lane between an oven and a cooler, sized by the product's safe wait.
 - [textbook] Hopp, W.J. and Spearman, M.L. (2008), *Factory Physics*, 3rd ed. — CONWIP and the WIP–throughput relation (from knowledge).
 
 ## In Faultline
-Not built (FC-009 the sizing as a line's standard, FC-010 the loop
-running on the value stream). The value stream map carries the stock
-between steps (`src/tools/valuestream`); FC-009 would size each loop
-from the map's demand and lead time and say the supermarket's maximum,
-FC-010 count the cards and the fill against it.
+**Built 25 October 2026 (FC-009):** the sizing is a calculator — Kanban sizing at `#/calc/kanban` (`src/tools/calc/defs/kanban.ts`,
+`src/lib/ie/pull.ts` `kanbanLoop`): usage over hours, the refill time, the container and a safety factor said to be a choice; the
+supermarket's maximum, the stock before safety (Little's law), the cover, and the stock held and its holding cost when a unit cost
+and a rate are given. Worked cases in `scripts/knowledge/cases-calc.py` K1–K4. Not built: FC-010 — the loop running (cards against
+the count, the shelf's fill, the FIFO lane's maximum). The value stream map carries the stock between steps
+(`src/tools/valuestream`); feeding a loop's size from it is left.

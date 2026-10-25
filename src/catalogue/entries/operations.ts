@@ -2,6 +2,7 @@
  * projects, people, sustainability, and what was left out on purpose
  * (src/catalogue/types.ts). */
 import type { Entry } from '../types';
+import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -200,7 +201,10 @@ export const OPERATIONS: Entry[] = [
     food: 'Packaging materials and long-lead ingredients.',
     depends: ['FC-009'],
     complexity: 'S', value: 'medium', valueWhy: 'Fewer shortage stops.',
-    status: 'to-build', form: 'component', methods: ['planning.safety-stock'], scenarios: ['planning'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['planning.safety-stock'], scenarios: ['planning'], words: ['reorder point', 'service level', 'run out', 'buffer stock', 'stock cover'],
+    built: { where: ['/calc/safety-stock'], code: [...CALC_CODE, 'src/tools/calc/defs/safety-stock.ts', 'src/lib/ie/pull.ts'], tests: [...CALC_TESTS, 'src/lib/ie/__tests__/pull.test.ts'], acceptance: ['calc-shape.mjs'] },
+    spec: 'knowledge/specs/FC-183-safety-stock.md',
+    limits: ['One item, reordered when stock falls to the reorder point (continuous review), with a bell-shaped demand over the lead time — slow or lumpy items are understated and the page says so.', 'The service level is the chance an order arrives before the stock runs out (cycle service), not the fill rate; the fill-rate frontier is not drawn.', 'No order quantity is chosen: it says nothing of how big the order should be.'],
   },
   {
     id: 'FC-184', name: 'Crewing a shift — heads, absence and cover', discipline: 'planning', sub: 'crew',

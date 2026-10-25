@@ -10,10 +10,11 @@ import { EQUIPMENT } from './entries/equipment';
 import { SPC } from './entries/spc';
 import { QUALITY } from './entries/quality';
 import { OPERATIONS } from './entries/operations';
+import { CALC } from './entries/calc';
 import { PROBLEMS } from './problems';
 import { BACKLOG } from './backlog';
 
-export const ENTRIES: Entry[] = [...LEAN, ...IE, ...CAPACITY, ...EQUIPMENT, ...SPC, ...QUALITY, ...OPERATIONS]
+export const ENTRIES: Entry[] = [...LEAN, ...IE, ...CAPACITY, ...EQUIPMENT, ...SPC, ...QUALITY, ...OPERATIONS, ...CALC]
   .sort((a, b) => a.id.localeCompare(b.id));
 
 export { PROBLEMS, BACKLOG };

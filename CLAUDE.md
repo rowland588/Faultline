@@ -511,6 +511,7 @@ node scripts/acceptance/line-talk-assistant.mjs  # Line Talk, slice 2 — ask it
 node scripts/video-eval.mjs [out.json]  # not a pass/fail: the video reading measured condition by condition on footage with known times (docs/VIDEO.md, measured accuracy)
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
+node scripts/acceptance/calc-shape.mjs  # the calculator shape (knowledge/specs/FC-235-calculators.md), table-driven over EVERY calculator in src/tools/calc/defs (a new one needs no change to it): the hub and each calculator's card, its list and New; every worked example typed through the real boxes — sentence, verdict, tiles, money, warnings and the closing line equal the independent literals and the definition's own sums; every refused input; the figures kept after a reload; Save as before then another example's figures (each tile saying what moved), a what-if (the answer as the definition works it, nothing kept until Make it so); the paper downloaded and read back; the phone; rename, delete and Undo; a line's Calculators row and its report; a client reading a project's calculation read-only
 ```
 
 `scripts/report-stress.mjs` builds a job just started, the ordinary seed and a

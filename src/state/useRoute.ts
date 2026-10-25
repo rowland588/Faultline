@@ -18,6 +18,8 @@ export interface Route {
   wsId?: ID;
   id?: string;          // sub-entity id (segment/:id, asset/:id, project/:id)
   lineId?: string;      // the line within a project (project/:id/line/:lineId)
+  /** A calculator's key (calc/:key, calc/:key/:id) — knowledge/specs/FC-235-calculators.md. */
+  key?: string;
   /** Which face of a screen that has several. Commissioning has four — the
    *  answer, one machine, the materials, the programs grid — and they are path
    *  segments rather than tabs in component state so that the phone's back
@@ -136,6 +138,14 @@ export function parseRoute(hash: string): Route {
      change, do two ways agree, how many readings). */
   if (segs[0] === 'analysis') {
     return segs[1] ? { name: 'study', view: 'analysis', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'analysis', query };
+  }
+  /* /calc is every calculator (the hub); /calc/:key one calculator's saved ones; /calc/:key/:id one saved calculation
+     (knowledge/specs/FC-235-calculators.md — a sum for one situation, its sentence, its money and its paper). All of them are
+     studies of tool `calc`, so a scope, a rail and a context bar treat them as any tool's list and record. */
+  if (segs[0] === 'calc') {
+    const key = segs[1] ? decodeURIComponent(segs[1]) : undefined;
+    if (key && segs[2]) return { name: 'study', view: 'calc', key, id: decodeURIComponent(segs[2]), query };
+    return { name: 'studies', view: 'calc', ...(key ? { key } : {}), query };
   }
   /* /chart is every control chart; /chart/:id one of them (knowledge/specs/FC-086-charts.md, W2 —
      readings in order against limits set from a steady period, the signals in words). */
