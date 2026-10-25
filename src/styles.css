@@ -14485,6 +14485,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .rl-open { padding: 10px; }
   .rl-open-acts .btn { min-width: 0; }
   .rl-life-form { flex-direction: column; align-items: stretch; }
+}
+
 /* FC-235 — the calculators (knowledge/specs/FC-235-calculators.md): the hub's cards, a record's figures beside its answer, the what-if, the saved before, the picture */
 .calc-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
 .calc-card { position: relative; display: flex; flex-direction: column; gap: 3px; width: 100%; height: 100%; text-align: left; padding: 12px 36px 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; touch-action: manipulation; }
