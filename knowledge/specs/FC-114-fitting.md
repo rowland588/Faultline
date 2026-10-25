@@ -182,7 +182,7 @@ note, step 16, with every earlier step unchanged); the inventory and the compare
 4. The capability study (`capability-kinds.mjs` step 16): the oxygen readings against 2% carry the note, on screen as the module
    says it, with the study's other sentences, tiles and tones exactly as before; bell-shaped readings carry no note; a study with
    no limit carries none.
-5. Persistence and where it shows: reload keeps it; the question is on the picker (ten questions); the list row says what was
+5. Persistence and where it shows: reload keeps it; the question is on the picker (nine questions); the list row says what was
    typed (`analysis-shape.mjs`).
 6. The paper for the Analysis question and the capability paper with the note, downloaded and read back — the sentence, the table,
    the plot, the note — and the list paper (`analysis-shape.mjs`, `capability-kinds.mjs`, `report-stress.mjs`).

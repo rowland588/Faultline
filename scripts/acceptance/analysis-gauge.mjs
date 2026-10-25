@@ -13,7 +13,7 @@
  *      scatter with the line and its band, the sentence, the true value at the limit that matters
  *   4  one reference checked day after day: 25 checks — the chart with its limits, "from check 19", the trend; limits from a
  *      baseline that was not steady said
- *   5  kept after a reload; the list's rows; the ten questions
+ *   5  kept after a reload; the list's rows; the nine questions
  *   6  on paper: the sentence, the figures, the references table, the checks, the agreement, every reading
  *   7  the phone
  *
@@ -119,7 +119,7 @@ let good, worn, off, lowS;
   good = await start('Bench scale, 500 g test weight');
   await page.waitForSelector('.ie-kind'); await page.waitForTimeout(300);
   const kinds = await all('[role=radiogroup][aria-label="What do you want to know?"] .ie-kind');
-  ok(kinds.length === 10 && /^Is this gauge fit for what it judges/.test(kinds[7]) && /^Which shape do these readings follow/.test(kinds[8]), `1 the two new questions offered after the seven: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
+  ok(kinds.length === 9 && /^Is this gauge fit for what it judges/.test(kinds[7]) && /^Which shape do these readings follow/.test(kinds[8]), `1 the two new questions offered after the seven: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
   await page.getByRole('radio', { name: /Is this gauge fit/ }).click();
   const modes = await all('[role=radiogroup][aria-label="How is it checked?"] .ie-kind');
   ok(modes.length === 3 && /^One reference, read again and again/.test(modes[0]) && /^References across its range/.test(modes[1]) && /^One reference, checked day after day/.test(modes[2]), `1 three ways of checking offered: ${modes.map(m => m.split(' — ')[0].slice(0, 40)).join(' | ')}`);

@@ -118,7 +118,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
 }
 
 /* ----------------------------------------------------------------- agreeing */
-const ORDER: AgreedAnalysis['kind'][] = ['sure', 'change', 'paired', 'groups', 'table', 'relate', 'plan', 'gauge', 'shape', 'learn'];
+const ORDER: AgreedAnalysis['kind'][] = ['sure', 'change', 'paired', 'groups', 'table', 'relate', 'plan', 'gauge', 'shape'];
 const GMODES: { k: AgreedGauge['mode']; word: string; eg: string }[] = [
   { k: 'repeat', word: 'One reference, read again and again', eg: 'a 500 g test weight weighed 25 to 50 times — the Type 1 study' },
   { k: 'range', word: 'References across its range', eg: 'a probe at 0, 20, 40, 60 and 80 °C, ten readings each — bias and linearity' },
@@ -152,7 +152,6 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const [gRef, setGRef] = useState(txt(gg?.reference)), [lowerT, setLowerT] = useState(txt(gg?.lower ?? a?.shape?.lower)), [upperT, setUpperT] = useState(txt(gg?.upper ?? a?.shape?.upper));
   const [targetT, setTargetT] = useState(txt(gg?.target)), [limitT, setLimitT] = useState(txt(gg?.limit)), [sliceT, setSliceT] = useState(gg?.slice !== undefined ? String(Math.round(gg.slice * 1000) / 10) : '');
   const [needT, setNeedT] = useState(txt(gg?.need)), [resT, setResT] = useState(txt(gg?.resolution)), [baseT, setBaseT] = useState(txt(gg?.baseline));
-  const [standardT, setStandardT] = useState(txt(a?.standard)), [perRunT, setPerRunT] = useState(txt(a?.perRun));
   const [packsT, setPacksT] = useState(txt(gg?.packsPerShift)), [weeksT, setWeeksT] = useState(txt(gg?.shiftsPerWeek)), [kgT, setKgT] = useState(txt(gg?.costPerKg));
   if (!canAgree) return <div className="ie-agree is-wait"><h2>Waiting for it to be agreed</h2><p className="sub">What is asked and how sure it has to be is agreed by the project’s owner first.</p></div>;
   const nn = num;
@@ -160,14 +159,13 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
     ...(nn(targetT) !== undefined ? { target: nn(targetT) } : {}), ...(gMode === 'range' && nn(limitT) !== undefined ? { limit: nn(limitT) } : {}), ...(nn(sliceT) !== undefined ? { slice: (nn(sliceT) as number) / 100 } : {}),
     ...(nn(needT) !== undefined ? { need: nn(needT) } : {}), ...(nn(resT) !== undefined ? { resolution: nn(resT) } : {}), ...(gMode === 'drift' && nn(baseT) !== undefined ? { baseline: nn(baseT) } : {}),
     ...(nn(packsT) !== undefined ? { packsPerShift: Math.round(nn(packsT) as number) } : {}), ...(nn(weeksT) !== undefined ? { shiftsPerWeek: nn(weeksT) } : {}), ...(nn(kgT) !== undefined ? { costPerKg: nn(kgT) } : {}) };
-  const boxes = kind === 'gauge' ? [gRef, lowerT, upperT, targetT, limitT, sliceT, needT, resT, baseT, packsT, weeksT, kgT] : kind === 'shape' ? [lowerT, upperT] : kind === 'learn' ? [standardT, perRunT] : [];
+  const boxes = kind === 'gauge' ? [gRef, lowerT, upperT, targetT, limitT, sliceT, needT, resT, baseT, packsT, weeksT, kgT] : kind === 'shape' ? [lowerT, upperT] : [];
   const draft: AgreedAnalysis = { kind, name: name.trim(), ...(unit.trim() && kind !== 'table' ? { unit: unit.trim() } : {}), confidence: conf,
     ...(kind === 'sure' ? { of } : {}), ...(kind === 'change' ? { data, better } : {}),
     ...(kind === 'groups' ? { better, ...(first.trim() ? { firstName: first.trim() } : {}) } : {}),
     ...(kind === 'table' ? { rows: names(rowsT), cols: names(colsT), ...(first.trim() ? { firstName: first.trim() } : {}), ...(second.trim() ? { secondName: second.trim() } : {}) } : {}),
     ...(kind === 'relate' ? { drivers: drivers(driversT) } : {}),
     ...(kind === 'gauge' ? { gauge: gaugeDraft } : {}),
-    ...(kind === 'learn' ? { ...(num(standardT) !== undefined ? { standard: num(standardT) } : {}), ...(num(perRunT) !== undefined ? { perRun: num(perRunT) } : {}), ...(first.trim() ? { firstName: first.trim() } : {}) } : {}),
     ...(kind === 'shape' ? { shape: { ...(num(lowerT) !== undefined ? { lower: num(lowerT) } : {}), ...(num(upperT) !== undefined ? { upper: num(upperT) } : {}) } } : {}),
     ...(kind === 'paired' ? { ...(first.trim() ? { firstName: first.trim() } : {}), ...(second.trim() ? { secondName: second.trim() } : {}), ...(num(within) !== undefined ? { within: num(within) } : {}) } : {}),
     ...(kind === 'plan' ? { plan: a?.plan ?? { ask: 'mean' as const } } : {}) };
@@ -220,7 +218,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       </div>
       <div className="ie-agree-grid">
         <label className="field"><span className="field-label">What is measured</span>
-          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : kind === 'gauge' ? 'Bench scale' : kind === 'shape' ? 'Residual oxygen' : kind === 'learn' ? 'Seconds a pack, new starter' : 'Fill weight'} /></label>
+          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : kind === 'gauge' ? 'Bench scale' : kind === 'shape' ? 'Residual oxygen' : 'Fill weight'} /></label>
         {kind !== 'table' && <label className="field"><span className="field-label">Unit {kind === 'sure' && of === 'rate' ? <i className="sub">what the time is counted in — hours</i> : kind === 'change' && data === 'counted' ? <i className="sub">optional</i> : null}</span>
           <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder={of === 'rate' && kind === 'sure' ? 'hours' : 'g'} /></label>}
         {kind === 'groups' && <label className="field"><span className="field-label">What the groups are <i className="sub">optional — a word for the words</i></span>
@@ -265,14 +263,6 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
             </div>
           </details>
         </>}
-        {kind === 'learn' && <>
-          <label className="field"><span className="field-label">The standard it is heading for <i className="sub">the time to be met, in the unit</i></span>
-            <input className="text-input" inputMode="decimal" value={standardT} onChange={e => setStandardT(e.target.value)} placeholder="40" aria-label="Standard" /></label>
-          <label className="field"><span className="field-label">What each reading is <i className="sub">one word — a run, a day, a pack</i></span>
-            <input className="text-input" value={first} maxLength={20} onChange={e => setFirst(e.target.value)} placeholder="run" aria-label="What each reading is" /></label>
-          <label className="field"><span className="field-label">Units of work in a run <i className="sub">optional — to say the learning in money</i></span>
-            <input className="text-input" inputMode="numeric" value={perRunT} onChange={e => setPerRunT(e.target.value)} placeholder="1" aria-label="Units in a run" /></label>
-        </>}
         {kind === 'shape' && <>
           <label className="field"><span className="field-label">A lower limit that matters <i className="sub">optional</i></span>
             <input className="text-input" inputMode="decimal" value={lowerT} onChange={e => setLowerT(e.target.value)} placeholder="10" aria-label="Lower limit" /></label>
@@ -310,7 +300,6 @@ export function agreedWords(a: AgreedAnalysis): string {
     case 'relate': return `${a.name}${u ? ` in${u}` : ''} against ${driversText(a.drivers) || 'its drivers'} · ${c}`;
     case 'gauge': { const g = a.gauge, lim = g && g.lower !== undefined && g.upper !== undefined ? ` judging ${g.lower}–${g.upper}${u}` : g && (g.lower ?? g.upper) !== undefined ? ` judging a limit of ${g.lower ?? g.upper}${u}` : '';
       return g?.mode === 'range' ? `${a.name} — bias across its range${u ? ` in${u}` : ''}${g.limit !== undefined ? `, read at ${g.limit}${u}` : ''}${lim} · ${c}` : g?.mode === 'drift' ? `${a.name} — ${g.reference !== undefined ? `the reference ${g.reference}${u}` : 'a reference'} checked day after day${lim} · ${c}` : `${a.name} — one reference${g?.reference !== undefined ? ` (${g.reference}${u})` : ''} read again and again${lim} · ${c}`; }
-    case 'learn': return `${a.name}${u ? ` in${u}` : ''} — how fast it is learning${a.standard !== undefined ? `, to a standard of ${a.standard}${u}` : ''}${(a.perRun ?? 1) > 1 ? ` · ${a.perRun} units a ${(a.firstName || 'run').toLowerCase()}` : ''} · ${c}`;
     case 'shape': { const s = a.shape; return `${a.name}${u ? ` in${u}` : ''} — which shape fits${s?.lower !== undefined ? `, a lower limit of ${s.lower}${u}` : ''}${s?.upper !== undefined ? `, an upper limit of ${s.upper}${u}` : ''} · ${c}`; }
     case 'plan': return `${a.name} — how many readings · ${c}`;
   }
@@ -541,7 +530,7 @@ function SimpleEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: Stud
       </div>
     );
   }
-  const note = a.kind === 'plan' ? (a.plan?.ask === 'cycles' ? 'The timed cycles, in seconds' : 'Readings to take the spread from — optional') : a.kind === 'learn' ? `One ${(a.firstName || 'run').toLowerCase()} at a time, in the order timed — the first is ${(a.firstName || 'run').toLowerCase()} 1` : a.kind === 'gauge' && a.gauge?.mode === 'drift' ? 'One check at a time, in the order taken' : a.kind === 'gauge' ? `The reference read again — ${a.gauge?.reference ?? ''}${a.unit ? ` ${a.unit}` : ''}` : undefined;
+  const note = a.kind === 'plan' ? (a.plan?.ask === 'cycles' ? 'The timed cycles, in seconds' : 'Readings to take the spread from — optional') : a.kind === 'gauge' && a.gauge?.mode === 'drift' ? 'One check at a time, in the order taken' : a.kind === 'gauge' ? `The reference read again — ${a.gauge?.reference ?? ''}${a.unit ? ` ${a.unit}` : ''}` : undefined;
   return (
     <div className="ie-cap-box" aria-label="Take the readings">
       {armChips}
@@ -680,8 +669,6 @@ function PlotView({ plot, said }: { plot: Plot; said: string }) {
       {tick(plot.xAxis[0], plot.xAxis[1]).map(v => <text key={'x' + v} x={x(v)} y={SH - SB + 14} textAnchor="middle" className="ie-an-sub">{f(v)}</text>)}
       {tick(plot.yAxis[0], plot.yAxis[1]).map(v => <text key={'y' + v} x={SL - 6} y={y(v) + 3} textAnchor="end" className="ie-an-sub">{f(v)}</text>)}
       {band && <polygon points={band} className="ie-an-band is-n" />}
-      {plot.hline && <g><line x1={SL} x2={SW - SR} y1={y(plot.hline.y)} y2={y(plot.hline.y)} className="ie-an-fit is-equal" /><text x={SW - SR - 4} y={y(plot.hline.y) - 4} textAnchor="end" className="ie-an-sub">{plot.hline.label}</text></g>}
-      {plot.curve && <polyline className="ie-an-fit" points={plot.curve.map(p => `${x(p[0])},${y(p[1])}`).join(' ')} />}
       {plot.line && <line x1={x(plot.line[0][0])} y1={y(plot.line[0][1])} x2={x(plot.line[1][0])} y2={y(plot.line[1][1])} className={'ie-an-fit' + (plot.equal ? ' is-equal' : '')} />}
       {plot.pts.map((p, i) => <circle key={i} cx={x(p[0])} cy={y(p[1])} r={3.2} className="ie-an-dot" />)}
       <text x={(SL + SW - SR) / 2} y={SH - 6} textAnchor="middle" className="ie-an-lab">{plot.xName}{plot.xUnit ? ` (${plot.xUnit})` : ''}</text>

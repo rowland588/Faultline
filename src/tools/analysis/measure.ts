@@ -5,7 +5,6 @@
  * (scripts/knowledge/cases-w3c.py). Called from ./analysis (analysisFigures and the rest dispatch on `kind`); imports only the TYPES of
  * ./analysis, so there is no cycle. */
 import type { AgreedAnalysis, AgreedGauge, StudyReading } from '../../lib/study';
-import { learningCurve, LEARN_FAR, LEARN_FROM, type Learning } from '../../lib/ie/learn';
 import type { LeanTile } from '../../lib/lean';
 import { binomUpper, fewerThan, individualsLimits, runOnOneSide } from '../../lib/ie/dist';
 import { describe, type Described } from '../../lib/ie/describe';
@@ -442,81 +441,4 @@ export function shapeGrids(f: ShapeFigures): Grid[] {
   });
   return [{ label: 'Every shape tried', head: ['Shape', 'Fit', 'A–D p', 'AIC', 'Median', '99.865th', 'Beyond', 'Ppk'], rows,
     mark: f.set.candidates.map((c, i) => (f.set?.leads === c.model.id ? i : -1)).filter(i => i >= 0), widths: [0.15, 0.17, 0.12, 0.1, 0.11, 0.12, 0.13, 0.1] }];
-}
-
-/* ================================================================== HOW FAST IS IT LEARNING */
-export interface LearnFigures extends Base {
-  kind: 'learn'; n: number; enough: boolean; xs: number[]; l?: Learning; standard?: number; noun: string; perRun: number; problem: string;
-  /** the labour of learning: the time over the standard, summed to the run it arrives at, in hours, and in pounds at the line's rate */
-  hours?: number; gbp?: number; moneyMissing?: string;
-}
-export function learnProblem(name: string, standard?: number, perRun?: number): string {
-  if (!name.trim()) return 'What is timed — a name, "Seconds a pack, new starter".';
-  if (standard !== undefined && !(Number.isFinite(standard) && standard > 0)) return 'The standard it is heading for — a time above 0, in the unit, or leave it blank.';
-  if (perRun !== undefined && !(Number.isInteger(perRun) && perRun >= 1)) return 'Units in a run — a whole number, 1 or more, or leave it blank.';
-  return '';
-}
-const secondsOf = (unit?: string): number | undefined => { const u = (unit ?? '').trim().toLowerCase(); return u === 's' || u === 'sec' || u === 'secs' || u === 'second' || u === 'seconds' ? 1 : u === 'min' || u === 'mins' || u === 'minute' || u === 'minutes' ? 60 : undefined; };
-export function learnFigures(a: AgreedAnalysis, readings: StudyReading[], base: Base, rate?: number): LearnFigures {
-  const xs = values(readings), noun = (a.firstName ?? '').trim().toLowerCase() || 'run', perRun = a.perRun ?? 1;
-  const f: LearnFigures = { ...base, kind: 'learn', n: xs.length, enough: xs.length >= LEARN_FROM, xs, standard: a.standard, noun, perRun, problem: learnProblem(a.name, a.standard, a.perRun) };
-  f.dp = placesOf(xs);
-  if (f.problem || !f.enough) return f;
-  f.l = learningCurve(xs, f.conf, a.standard);
-  const l = f.l;
-  if (!l) { f.checks.push({ what: 'Fit', say: `Fit: no curve can be fitted — every ${noun} the same time, or a time of zero or less.`, tone: 'a' }); return f; }
-  if (l.r2 < 0.7) f.checks.push({ what: 'Fit', say: `Fit: R² ${fx(l.r2, 2)} — the ${noun}s do not fall steadily; learning in steps, or a change of method or person mid-series, makes one curve a poor description. A new curve starts when the method changes.`, tone: 'a' });
-  if (xs.length < 8) f.checks.push({ what: 'Size', say: `Size: ${xs.length} ${noun}s — a curve is read from ${LEARN_FROM}, firm from about 8 spanning three doublings; projecting far beyond the ${noun}s timed is a guess.`, tone: 'n' });
-  if (l.extra !== undefined) {
-    const sec = secondsOf(a.unit);
-    if (sec === undefined) f.moneyMissing = 'the labour of learning in money needs the time in seconds or minutes';
-    else if (a.perRun === undefined) f.moneyMissing = `give the units of work in a ${noun} to say the learning in money`;
-    else {
-      f.hours = (l.extra * sec * perRun) / 3600;
-      if (rate !== undefined && rate > 0) f.gbp = f.hours * rate; else f.moneyMissing = 'give the line a wage to say the learning in money';
-    }
-  }
-  return f;
-}
-export function learnSays(f: LearnFigures, a: AgreedAnalysis): AnalysisSays {
-  const u = a.unit ? ` ${a.unit}` : '', name = a.name.trim() || 'The time', dp = Math.max(f.dp, 0) + 1, noun = f.noun, c = f.conf, S = f.standard;
-  const none = (text: string, verdict = 'Not started'): AnalysisSays => ({ text, tone: 'n', verdict, more: [], notClaimed: '' });
-  if (f.problem) return none(f.problem);
-  if (!f.n) return none(`Type or paste the time of each ${noun} in the order timed — ${LEARN_FROM} at least, spanning a doubling or two.`);
-  if (!f.enough) return none(`${f.n} ${noun}${f.n === 1 ? '' : 's'} — a curve is fitted from ${LEARN_FROM}, spanning a doubling or two.`, 'Too few');
-  const l = f.l; if (!l) return none(`No curve can be fitted to these ${noun}s.`, 'Nothing to fit');
-  const rate = (x: number): string => `${fx(x * 100, 1)}%`;
-  const head = `${name}: learning at ${rate(l.rate)} a doubling (${sure(c)} between ${rate(l.rateLo)} and ${rate(l.rateHi)}; R² ${fx(l.r2, 3)}) — each time the ${noun}s double, the time falls to ${rate(l.rate)} of itself.`;
-  const plan = ` Plan the first ${f.n} ${noun}s at about ${fx(l.cumAvg, dp)}${u}, the average so far${S !== undefined ? `, not at the standard` : ''}.`;
-  const more: string[] = [`The curve: time at ${noun} n = ${fx(l.t1, dp)}${u} × n^${fx(l.b, 3)} (Wright’s unit-time form, fitted to ln time against ln ${noun}). At ${noun} ${2 * f.n} it gives ${fx(l.at(2 * f.n), dp)}${u}, at ${4 * f.n} ${fx(l.at(4 * f.n), dp)}${u} — beyond the ${noun}s timed it is a projection, not a measurement.`];
-  if (f.hours !== undefined) {
-    const h = f.hours < 1 ? `${Math.max(1, Math.round(f.hours * 60))} minutes` : `${f.hours >= 10 ? Math.round(f.hours) : +f.hours.toFixed(1)} hours`;
-    more.push(f.gbp !== undefined ? `In money: learning to the standard takes about ${h} of extra time over the ${l.nStar} ${noun}s — ${gbpWord(f.gbp)} of labour at the line’s rate, because of the time over the standard.` : `In money: learning to the standard takes about ${h} of extra time over the ${l.nStar} ${noun}s — ${f.moneyMissing}.`);
-  } else if (f.moneyMissing) more.push(`In money: ${f.moneyMissing}.`);
-  const atRun = (k: number): string => (k > 9999 ? `a ${noun} beyond 10,000` : `${noun} ${k}`);
-  const notClaimed = 'The curve describes these runs; it does not say the person or product will keep learning at this rate, or that the standard is right — a plateau, a change of method or a break in production changes it.';
-  if (l.plateau) return { text: `${head} But the last four ${noun}s have stopped falling (slope ${fx(l.plateau.slope, 2)} against ${fx(l.b, 2)} overall) while still above the ${S}${u} standard: the method or the station limits it, not the person — redesign, not more practice.${plan}`, tone: 'a', verdict: 'Flattening above the standard', more, notClaimed };
-  if (S === undefined) return { text: `${head}${plan}`, tone: 'n', verdict: `Learning at ${rate(l.rate)}`, more, notClaimed };
-  if (l.reached !== undefined && f.xs[f.n - 1] <= S) return { text: `${head} The ${S}${u} standard was first met at ${noun} ${l.reached}.${plan}`, tone: 'g', verdict: `Standard met at ${noun} ${l.reached}`, more, notClaimed };
-  if (l.nStar === undefined) return { text: `${head} The time is not falling toward the ${S}${u} standard, so learning alone will not reach it.${plan}`, tone: 'a', verdict: 'Not reaching the standard', more, notClaimed };
-  if (l.far) return { text: `${head} The ${S}${u} standard would arrive at ${atRun(l.nStar)} — more than ${LEARN_FAR} times the ${f.n} ${noun}s timed, a guess and not a forecast.${plan}`, tone: 'a', verdict: l.nStar > 9999 ? 'Standard far off' : `Standard far off (${noun} ${l.nStar})`, more, notClaimed };
-  return { text: `${head} The ${S}${u} standard arrives at ${noun} ${l.nStar}${l.reached !== undefined ? ` (first met at ${noun} ${l.reached})` : ''}.${plan}`, tone: 'n', verdict: `Standard at ${noun} ${l.nStar}`, more, notClaimed };
-}
-export function learnTiles(f: LearnFigures, a: AgreedAnalysis): LeanTile[] {
-  const u = a.unit ? ` ${a.unit}` : '', dp = Math.max(f.dp, 0) + 1, conf = pctWord(f.conf), l = f.l, S = f.standard;
-  const t = (k: string, v: string, of?: string, tone?: Tone): LeanTile => ({ k, v, ...(of ? { of } : {}), ...(tone && tone !== 'n' ? { tone } : {}) });
-  const rate = (x: number): string => `${fx(x * 100, 1)}%`;
-  return [t(cap(`${f.noun}s`), big(f.n), f.n < LEARN_FROM ? `at least ${LEARN_FROM}` : undefined, f.n < LEARN_FROM ? 'a' : 'n'),
-    t('Learning rate', l ? rate(l.rate) : '—', l ? `${conf}: ${rate(l.rateLo)}–${rate(l.rateHi)} · R² ${fx(l.r2, 3)}` : undefined),
-    t('Standard arrives', l && S !== undefined ? (l.reached !== undefined && l.nStar === undefined ? `${f.noun} ${l.reached}` : l.nStar !== undefined ? (l.nStar > 9999 ? 'beyond 10,000' : `${f.noun} ${l.nStar}`) : 'not by learning') : '—', S !== undefined ? `standard ${S}${u}` : undefined, l?.plateau || (l && S !== undefined && l.nStar === undefined && l.reached === undefined) || l?.far ? 'a' : 'n'),
-    t('Plan at', l ? `${fx(l.cumAvg, dp)}${u}` : '—', l ? `the average of the ${f.n} so far` : undefined),
-    t('In money', f.gbp !== undefined ? gbpWord(f.gbp) : '—', f.gbp !== undefined ? 'labour of learning to the standard' : S === undefined ? 'name a standard' : f.moneyMissing)];
-}
-export function learnPlot(f: LearnFigures, a: AgreedAnalysis): Plot | undefined {
-  const l = f.l; if (!l) return undefined;
-  const last = Math.max(f.n, l.nStar !== undefined && !l.far ? Math.ceil(l.nStar * 1.2) : 2 * f.n), steps = 40;
-  const curve = Array.from({ length: steps + 1 }, (_, i) => { const k = 1 + (last - 1) * i / steps; return [k, l.at(k)] as [number, number]; });
-  const ys = [...f.xs, ...curve.map(p => p[1]), ...(f.standard !== undefined ? [f.standard] : [])];
-  return { kind: 'scatter', xName: cap(f.noun), yName: a.name || 'Time', xUnit: '', yUnit: a.unit ?? '', pts: f.xs.map((v, i) => [i + 1, v] as [number, number]), xAxis: [0.5, last + 0.5], yAxis: padded(ys),
-    curve, ...(f.standard !== undefined ? { hline: { y: f.standard, label: `standard ${f.standard}${a.unit ? ` ${a.unit}` : ''}` } } : {}) };
 }

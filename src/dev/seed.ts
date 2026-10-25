@@ -134,7 +134,6 @@ export interface Seeded {
   analysisRangeId: string;
   analysisDriftId: string;
   analysisShapeId: string;
-  analysisLearnId: string;
   /** The paced job's Line 7 — its own workspace, with shifts, a cost model
    *  and stops timed through the last two days' shifts (tool 7). */
   line7WsId: string;
@@ -1082,7 +1081,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   /* THE GAUGE STUDIES AND THE SHAPE (W3c, knowledge/specs/FC-119-gauge.md and FC-114-fitting.md): a bench scale read fifty times on its 500.0 g
      test weight, a probe at five references, the daily check weight over 25 days, and the minutes between short stops — the specifications'
      independent cases (cases-w3c.py). Quick sessions, no line. */
-  const analysisGaugeId = uid(), analysisRangeId = uid(), analysisDriftId = uid(), analysisShapeId = uid(), analysisLearnId = uid();
+  const analysisGaugeId = uid(), analysisRangeId = uid(), analysisDriftId = uid(), analysisShapeId = uid();
   {
     const M = 60_000, w0 = t - 30 * 3_600_000;
     const scale = [500.09, 500.14, 500.17, 500.04, 500.18, 500.14, 500.18, 500.14, 500.21, 500.04, 500.26, 500.22, 500.07, 500.17, 500.16, 499.98, 500.17, 500.07, 500.1, 500.07, 500.09, 500.13, 500.13, 500.0, 500.1, 500.01, 500.02, 500.09, 500.19, 500.17, 500.07, 500.06, 500.05, 500.13, 500.19, 500.12, 500.18, 500.15, 500.24, 499.96, 499.95, 500.1, 500.17, 500.09, 500.15, 500.03, 500.02, 500.06, 500.19, 500.18];
@@ -1097,9 +1096,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     const stops = [18.4, 78.4, 15.1, 14.5, 23.6, 17.3, 42.7, 10.8, 66.7, 60.8, 1.0, 34.2, 10.2, 18.8, 27.2, 29.2, 30.0, 73.1, 18.8, 15.0, 42.7, 78.3, 72.0, 64.0, 7.4, 75.4, 41.2, 62.7, 26.7, 16.7, 53.1, 42.1, 51.7, 15.7, 11.9, 50.3, 3.5, 78.0, 12.0, 37.9];
     await putStudy({ id: analysisShapeId, tool: 'analysis', name: 'Minutes between short stops', machine: 'Wrapper', agreed: { analysis: { kind: 'shape', name: 'Minutes between stops', unit: 'min', shape: { lower: 10 }, confidence: 0.95 } },
       facts: { readings: stops.map((value, i) => ({ id: uid(), value, at: w0 + i * M, who: 'Sam Patel' })) }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
-    /* FC-027: a new starter's first eight runs on the tray pack, 68 → 43 s a pack, a 40 s standard (the record's case, cases-w3c.py) */
-    await putStudy({ id: analysisLearnId, tool: 'analysis', name: 'New starter on the tray pack', machine: 'Hand-pack station', agreed: { analysis: { kind: 'learn', name: 'Seconds a pack, new starter', unit: 's', standard: 40, firstName: 'run', confidence: 0.95 } },
-      facts: { readings: [68, 58, 53, 49, 47, 45, 44, 43].map((value, i) => ({ id: uid(), value, at: w0 + i * 24 * 3_600_000, who: 'Sam Patel' })) }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
   }
 
   /* A CONTROL CHART (W2, knowledge/specs/FC-086-charts.md): the CUSUM case's forty readings — steady for
@@ -1261,7 +1257,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, analysisGaugeId, analysisRangeId, analysisDriftId, analysisShapeId, analysisLearnId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, analysisGaugeId, analysisRangeId, analysisDriftId, analysisShapeId,
     line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }

@@ -111,7 +111,7 @@ let groups;
 {
   groups = await start('Give-away by shift');
   const kinds = await all('[role=radiogroup][aria-label="What do you want to know?"] .ie-kind');
-  ok(kinds.length === 10 && /^Do these groups really differ/.test(kinds[3]) && /^Is one thing linked to the other/.test(kinds[4]) && /^Does one thing move with another/.test(kinds[5]), `1 the three new questions offered with the four: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
+  ok(kinds.length === 9 && /^Do these groups really differ/.test(kinds[3]) && /^Is one thing linked to the other/.test(kinds[4]) && /^Does one thing move with another/.test(kinds[5]), `1 the three new questions offered with the four: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
   await page.getByRole('radio', { name: /Do these groups really differ/ }).click();
   await page.getByLabel('What is measured').fill('Give-away'); await page.getByLabel('Unit', { exact: false }).first().fill('g');
   await page.getByLabel(/^What the groups are/).fill('shift'); await page.getByRole('radio', { name: /Lower is better/ }).click();

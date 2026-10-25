@@ -119,10 +119,7 @@ export const IE: Entry[] = [
     food: 'Seasonal agency staff on hand-pack lines.',
     depends: ['FC-019', 'FC-077', 'FC-222'],
     complexity: 'S', value: 'low', valueWhy: 'Better planning of peaks and launches.',
-    status: 'available', form: 'component', methods: ['ie.learning-curve'], scenarios: ['people', 'planning'],
-    built: { where: ['/analysis'], code: ['src/lib/ie/learn.ts', 'src/tools/analysis/measure.ts', 'src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/lib/ie/__tests__/learn.test.ts', 'src/tools/analysis/__tests__/analysisLearn.test.ts'], acceptance: ['analysis-learning.mjs'] },
-    spec: 'knowledge/specs/FC-027-learning.md',
-    limits: ['Wright’s unit-time form only (fitted to ln time against ln run); not the cumulative-average form, and nothing for forgetting after a break.', 'The times are typed or pasted in the order timed, one a run — not read from the line balance or the video study; one person or crew on one method per curve.', 'The thresholds (a curve from 6 runs, firm from 8; a standard beyond 4 times the runs timed is a guess; flattened when the last four runs fall by under a quarter of the overall rate) are the builder’s, not yet put to Rowland. Money is the labour of the time over the standard, needing the units in a run and the line’s wage.'],
+    status: 'to-build', form: 'component', methods: ['ie.learning-curve'], scenarios: ['people', 'planning'],
   },
   {
     id: 'FC-028', name: 'ECRS on the elements — eliminate, combine, rearrange, simplify', discipline: 'ie', sub: 'method',

@@ -143,17 +143,18 @@ say("stability", {"x": daily.tolist(), "centre": c0, "mrBar": mr, "lcl": c0 - 2.
                    "sen_slope": float(stats.theilslopes(daily, np.arange(25))[0])})
 
 # ------------------------------------------------------------------ the learning curve (FC-027)
-# Wright's unit-time form on the record's eight runs (ie.learning-curve): 68, 58, 53, 49, 47, 45, 44, 43 s; the standard 40 s
-T8 = np.array([68, 58, 53, 49, 47, 45, 44, 43], dtype=float); n8 = np.arange(1, 9, dtype=float)
-lw = stats.linregress(np.log(n8), np.log(T8)); b8 = lw.slope; t1 = math.exp(lw.intercept); tc6 = stats.t.ppf(0.975, 6)
-nstar = (40.0 / t1) ** (1 / b8)
-P12 = np.array([68, 58, 53, 49, 47, 46, 46, 46, 46, 46, 46, 46], dtype=float); n12 = np.arange(1, 13, dtype=float)
-lp = stats.linregress(np.log(n12), np.log(P12))
-say("learning", {"runs": T8.tolist(), "b": b8, "t1": t1, "rate": 2 ** b8, "r2": lw.rvalue ** 2, "bse": lw.stderr, "bLo": b8 - tc6 * lw.stderr, "bHi": b8 + tc6 * lw.stderr,
-                  "rateLo": 2 ** (b8 - tc6 * lw.stderr), "rateHi": 2 ** (b8 + tc6 * lw.stderr), "at11": t1 * 11 ** b8, "at16": t1 * 16 ** b8, "at32": t1 * 32 ** b8,
-                  "nstar_raw": nstar, "nstar": math.ceil(nstar), "cumAvg": float(T8.mean()), "last4_slope": float(stats.linregress(np.log(n8[-4:]), np.log(T8[-4:])).slope),
-                  "extra_seconds_to_nstar": sum(max(0.0, t1 * k ** b8 - 40.0) for k in range(1, math.ceil(nstar) + 1)),
-                  "plateau": {"runs": P12.tolist(), "b": lp.slope, "r2": lp.rvalue ** 2, "last4_slope": float(stats.linregress(np.log(n12[-4:]), np.log(P12[-4:])).slope)}})
+# Wright: T_x = T_1 x^b; the log-log line over the units; learning rate 2^b. A new starter on a hand-pack station: seconds per pack, 12 weeks' mean per day-batch
+units = np.array([1, 2, 4, 8, 16, 32, 64, 128], dtype=float)
+secs = np.array([92.0, 83.5, 77.0, 69.5, 63.8, 57.9, 52.7, 47.9])
+lx, ly = np.log(units), np.log(secs); lw = stats.linregress(lx, ly)
+b = lw.slope; rate = 2 ** b
+tc = stats.t.ppf(0.975, len(units) - 2)
+say("learning", {"units": units.tolist(), "secs": secs.tolist(), "b": b, "t1": math.exp(lw.intercept), "rate": rate, "r2": lw.rvalue ** 2,
+                  "bLo": b - tc * lw.stderr, "bHi": b + tc * lw.stderr, "rateLo": 2 ** (b - tc * lw.stderr), "rateHi": 2 ** (b + tc * lw.stderr),
+                  # units to reach a standard of 40 s: x = (40 / T1) ** (1 / b)
+                  "unitsTo40": (40 / math.exp(lw.intercept)) ** (1 / b),
+                  # the cumulative extra time over the standard for the first 200 units, Σ (T_1 x^b − 40) while above 40
+                  "extra200": float(sum(max(0.0, math.exp(lw.intercept) * x ** b - 40.0) for x in range(1, 201)))})
 
 # ------------------------------------------------------------------ the stack-up (FC-116)
 # the record's ready meal (stats.tolerance-stackup): four deposits, independent; and what the packers' three rules need of the pack at that spread

@@ -201,7 +201,7 @@ paper back; the inventory and the compare; the gate line.
    75; *one reference checked day after day* — 25 checks, the chart with its limits, "from check 19", the trend.
 4. Money (`analysis-gauge.mjs`): a low-reading scale with packs a shift and £ a kilo said in pounds with its because; a
    missing input named; a high-reading scale says short weight and no pounds.
-5. Persistence and where it shows: reload keeps every way; the question is on the picker (ten questions); the list
+5. Persistence and where it shows: reload keeps every way; the question is on the picker (nine questions); the list
    row says what was typed (`analysis-gauge.mjs`).
 6. The paper for each way downloaded and read back — the sentence, the figures, the references table, the checks, the
    agreement, every reading — and the list paper (`analysis-gauge.mjs`, `report-stress.mjs`).
@@ -209,7 +209,7 @@ paper back; the inventory and the compare; the gate line.
 8. The directory and the catalogue: FC-119 and FC-120 *available* — `catalogue.test.ts`.
 9. `docs/PAGES.md` has the new question on the Analysis page; the inventory is green; `--compare` against live shows
    nothing moved elsewhere.
-10. Existing behaviour unchanged: `analysis.mjs` and `analysis-relations.mjs` still pass with the picker at ten.
+10. Existing behaviour unchanged: `analysis.mjs` and `analysis-relations.mjs` still pass with the picker at nine.
 11. The gate.
 
 *Not yet proved:* use at a real bench with a real test weight; the defaults chosen in §3 have not been put to Rowland

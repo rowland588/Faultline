@@ -498,7 +498,7 @@ export interface StudyAgreed {
  *  this figure, did it change, do two ways of measuring agree, how many readings do I need — and the readings or
  *  counts that answer it. W3b adds the groups, the counts in a table and the relations as more kinds. */
 export interface AgreedAnalysis {
-  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'gauge' | 'shape' | 'learn';
+  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'gauge' | 'shape';
   /** what is measured — "Fill weight", "Reject rate" */
   name: string;
   unit?: string;
@@ -525,9 +525,6 @@ export interface AgreedAnalysis {
   gauge?: AgreedGauge;
   /** which shape fits (W3c, FC-114): the limits that matter, optional */
   shape?: { lower?: number; upper?: number };
-  /** the learning curve (W3c, FC-027): the standard the time is heading for, in the unit; the units of work in one run (for the labour of learning). `firstName` is what a run is called. */
-  standard?: number;
-  perRun?: number;
 }
 /** IS THE GAUGE FIT (W3c, knowledge/specs/FC-119-gauge.md). `repeat`: one reference read again and again (Type 1); `range`: references
  *  across the range, each reading carrying its reference in `with` (bias and linearity); `drift`: one reference checked day after day
