@@ -92,11 +92,11 @@ export function gaugeFigures(a: AgreedAnalysis, readings: StudyReading[], base: 
     f.range = rangeStudy(f.pts, f.conf, g.limit);
     f.enough = f.range.refs.length >= 1; f.firm = f.range.refs.length >= REFS_FIRM && f.range.refs.every(r => r.n >= REF_READINGS_FIRM);
     const rg = f.range;
-    if (rg.left.length) f.checks.push({ what: 'Too few', say: `Too few: ${rg.left.map(l => `${fx(l.ref, f.dp)} (${l.n})`).join(', ')} ${rg.left.length === 1 ? 'has' : 'have'} fewer than ${REF_READINGS_FROM} readings, so ${rg.left.length === 1 ? 'it is' : 'they are'} left out until there are more.`, tone: 'a' });
+    if (rg.left.length) f.checks.push({ what: 'Too few', say: `Too few: ${rg.left.map(l => `${l.ref} (${l.n})`).join(', ')} ${rg.left.length === 1 ? 'has' : 'have'} fewer than ${REF_READINGS_FROM} readings, so ${rg.left.length === 1 ? 'it is' : 'they are'} left out until there are more.`, tone: 'a' });
     if (rg.refs.length >= 1 && (rg.refs.length < REFS_FIRM || rg.refs.some(r => r.n < REF_READINGS_FIRM))) {
       f.checks.push({ what: 'Size', say: `Size: ${rg.refs.length} reference${rg.refs.length === 1 ? '' : 's'}${rg.refs.length ? ` of ${rg.refs.map(r => r.n).join(', ')} readings` : ''} — the record asks for ${REFS_FIRM} references of ${REF_READINGS_FIRM} readings each; a line of bias from fewer is a hint.`, tone: 'a' });
     }
-    if (g.limit !== undefined && rg.line && rg.at && !rg.at.inside) f.checks.push({ what: 'Limit', say: `Limit: ${fx(g.limit, f.dp)}${unit ? ` ${unit}` : ''} is outside the references measured (${fx(rg.line.xRange[0], f.dp)}–${fx(rg.line.xRange[1], f.dp)}) — the line is not read there; add a reference at the limit.`, tone: 'a' });
+    if (g.limit !== undefined && rg.line && rg.at && !rg.at.inside) f.checks.push({ what: 'Limit', say: `Limit: ${g.limit}${unit ? ` ${unit}` : ''} is outside the references measured (${rg.line.xRange[0]}–${rg.line.xRange[1]}) — the line is not read there; add a reference at the limit.`, tone: 'a' });
     if (g.limit === undefined && rg.line) f.checks.push({ what: 'Limit', say: 'Limit: no limit that matters was agreed, so the bias is not read off the line anywhere — change what was agreed to name one.', tone: 'n' });
     return f;
   }
