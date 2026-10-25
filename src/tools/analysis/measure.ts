@@ -59,7 +59,7 @@ export function gaugeProblem(name: string, g: AgreedGauge | undefined): string {
   if (g.slice !== undefined && !(g.slice > 0 && g.slice <= 1)) return 'The share of the tolerance it may use — above 0% and up to 100%.';
   if (g.need !== undefined && !(g.need > 0)) return 'The Cg wanted — a number above 0; 1.33 is usual.';
   if (g.resolution !== undefined && !(g.resolution > 0)) return 'The least count — a number above 0, or leave it blank.';
-  if (g.baseline !== undefined && !(Number.isInteger(g.baseline) && g.baseline >= BASE_MIN)) return `The limits come from at least ${BASE_MIN} first checks — a whole number.`;
+  if (g.mode === 'drift' && g.baseline !== undefined && !(Number.isInteger(g.baseline) && g.baseline >= BASE_MIN)) return `The limits come from at least ${BASE_MIN} first checks — a whole number.`;
   if ([g.packsPerShift, g.shiftsPerWeek, g.costPerKg].some(v => v !== undefined && !(v > 0))) return 'Packs a shift, shifts a week and £ a kilo are numbers above 0, or blank.';
   return '';
 }

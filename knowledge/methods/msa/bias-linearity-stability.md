@@ -106,7 +106,11 @@ daily check weight on a checkweigher (stability).
 - [guide] Campden BRI and the UK Food Standards Agency — probe-thermometer checks at 0 °C (ice point) and 100 °C (boiling point) as common food practice (from knowledge; no single text).
 
 ## In Faultline
-Not built (FC-120). When built: each gauge's references and readings held
-on its record, the bias said at the limit the gauge serves, the guard band
-offered to the CCP check and the capability study, and the stability chart
-drawn from the daily check the line already does.
+Built 25 October 2026 (FC-120, builder F3) with the Type 1 study as the other two ways of the Analysis tool's *Is the
+gauge fit*: references across the range (bias at each reference with its t test, the line of bias on the reference fitted
+to each reference's mean as this record does, the bias and the true value at the limit that matters) and one reference
+checked day after day (an individuals chart with limits from the first N checks, the Western Electric signals, the first
+check that signals, Kendall's τ and Sen's slope). `knowledge/specs/FC-119-gauge.md`; the probe and the daily check weight
+above are unit tests (`gauge.test.ts`) and steps of `analysis-gauge.mjs`. **Not built:** a guard band offered to the CCP
+check and the capability study (the page says the true value a reading means; the team applies any guard band), and the
+register that would hold a gauge's references and due dates (the calibration register).

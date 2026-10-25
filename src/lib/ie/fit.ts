@@ -28,6 +28,8 @@ export const AIC_ABOUT_EQUAL = 2;
 export const FIT_FROM = 20;
 /** …and called firm from this many. */
 export const FIT_FIRM = 50;
+/** A set of readings shows a shape only with at least this many different values. */
+export const FIT_DISTINCT = 5;
 
 const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
 const sdOf = (xs: number[]): number => { const m = mean(xs); return Math.sqrt(xs.reduce((a, x) => a + (x - m) ** 2, 0) / (xs.length - 1)); };
@@ -178,6 +180,8 @@ export function goodness(m: Model, xs: number[]): Goodness | undefined {
 export function fitAll(xs: number[]): FitSet {
   const n = xs.length, candidates: Candidate[] = [], excluded: Excluded[] = [];
   const distinct = new Set(xs).size;
+  /* readings that show fewer than five different values hold no shape — a constant set would fit an exponential of its mean */
+  if (distinct < FIT_DISTINCT) return { n, distinct, candidates, excluded: MODEL_IDS.map(id => ({ id, why: distinct <= 1 ? 'every reading is the same' : `only ${distinct} different values were read` })), alsoFit: [] };
   for (const id of MODEL_IDS) {
     const m = fitModel(id, xs);
     if ('why' in m) { excluded.push({ id, why: m.why }); continue; }

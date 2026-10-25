@@ -68,6 +68,15 @@ describe('Anderson–Darling: A², and the p', () => {
   });
 });
 
+describe('a set that shows no shape', () => {
+  it('every reading the same, or fewer than five different values: nothing is fitted, each shape said not tried', () => {
+    const a = fitAll(Array(25).fill(5));
+    expect(a.candidates).toEqual([]); expect(a.excluded.map(x => x.why)).toEqual(Array(4).fill('every reading is the same')); expect(a.leads).toBeUndefined();
+    const b = fitAll([1, 2, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3]);
+    expect(b.candidates).toEqual([]); expect(b.excluded[0].why).toBe('only 3 different values were read');
+  });
+});
+
 describe('the tail: percentiles, the share beyond a limit and the percentile index', () => {
   it('oxygen at most 2%: the 99.865th percentile by the normal and by the lognormal (the record’s 1.16 and 1.34, here 1.38 by the unbiased spread)', () => {
     const n = tailOf(m('normal', OXYGEN), undefined, 2), l = tailOf(m('lognormal', OXYGEN), undefined, 2), w = tailOf(m('weibull', OXYGEN), undefined, 2), e = tailOf(m('exponential', OXYGEN), undefined, 2);

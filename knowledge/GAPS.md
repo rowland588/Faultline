@@ -34,6 +34,15 @@ source before that number reaches a screen.
 Where it stood on 22 October: 176 records, 33 full, 143 summaries, 128 from
 knowledge.
 
+## Added 25 October 2026, builder F3 (the gauge studies, the shape of the data)
+
+- **VDA volume 5's Type 1 constants** — the 20% slice, the 10% bias share, Cg and Cgk at 1.33, the 5% least count — are built as *defaults the agreement can change*
+  (`knowledge/specs/FC-119-gauge.md`); the text of VDA 5 and Bosch booklet 10 was not read. The page says "the automotive practice's constants (VDA volume 5, not read here)".
+- **The Weibull's and the exponential's Anderson–Darling p** are interpolated in Stephens' published points (SciPy's `anderson(..., method='interpolate')` holds them) and *held at the table's ends* — the page says "p at least 0.25 / at most 0.01"; the Weibull's p for the two-parameter case rests on the extreme-value form on ln x (Stephens 1977), not on a Monte Carlo of the fitted case. The lognormal's and normal's p are D'Agostino and Stephens' formula. **SciPy's `weibull_min.fit` is about 1e-5 short of the likelihood root** — `scripts/knowledge/cases-w3c.py` solves the equation itself.
+- **ISO 22514-2's text** (the percentile index's exact form) is still unread; the build uses Clements' (1989) form, which the record gives, and says "the form of ISO 22514-2".
+- **The line of bias on the reference** is fitted to each reference's mean bias, as `msa.bias-linearity-stability` does; the AIAG MSA text (ch. III) was not read, and its regression on every reading (p 8.3e-8 on the record's probe, against 0.0074 for the means) is not offered.
+- **Not built, said on the page:** a three-parameter shape (a lower end that is not zero), gamma, Johnson and Box–Cox transforms, a shape's parameters with confidence intervals; the gauge's own record carried to the studies that name it (needs a gauge noun — `docs/BLUEPRINT.md` §2 first); gauge R&R and attribute agreement (the designed-run wave).
+
 ## Standards whose text has not been read (scope and edition confirmed only)
 
 | Standard | What depends on it | What to check |

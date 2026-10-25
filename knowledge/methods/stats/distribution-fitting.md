@@ -105,7 +105,12 @@ limit on one side needs its tail read from the shape it has.
 - [standard] ISO 22514-2:2017 — the eight distribution models and the percentile index (scope checked online 22 Oct 2026; text not read).
 
 ## In Faultline
-Not built (FC-114). The capability study already runs the normality check
-and says "leaning" with the share outside as measured
-(`src/tools/capability`); FC-114 adds the candidates, the plots, the fitted
-percentiles and the honest tail, feeding `spc.capability-nonnormal`.
+Built 25 October 2026 (FC-114, builder F3): the Analysis tool's *Which shape fits* and the same fit inside the capability
+study (`src/lib/ie/fit.ts`; `knowledge/specs/FC-114-fitting.md`; proved against SciPy by `scripts/knowledge/cases-w3c.py` →
+`fit.test.ts`; driven by `analysis-shape.mjs` and `capability-kinds.mjs` step 16). Four shapes — normal, lognormal,
+two-parameter Weibull, exponential — fitted from 20 readings, each judged by Anderson–Darling and compared by AIC, the
+probability plot of the leader, the 0.135%, median and 99.865% points, the share beyond a limit beside the count as measured.
+**Found in building:** SciPy's `weibull_min.fit(floc=0)` stops about 1e-5 short of the likelihood equation's root (oxygen: β
+1.620614 against the root 1.620601, the lower log-likelihood) — the independent cases use the root. The worked case above
+holds: every shape is rejected on the oxygen set (the lognormal nearest, A² 1.50, p 0.0006) — the page says so and sends the
+reader to the count. Not built: a three-parameter shape, gamma, Johnson, Box–Cox, a fitted parameter's confidence interval.
