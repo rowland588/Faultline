@@ -44,10 +44,10 @@ export function useJobInputs(projects: Project[]): JobInputs | null {
       })));
       const factoryName = new Map((await listWorkspaces()).map(w => [w.id, w.name]));
       const paced = await Promise.all(pacedProjects.map(async (project): Promise<PacedInput> => {
-        const [steps, rawLines, targets, readings, items, materials, programs] = await Promise.all([
+        const [steps, rawLines, targets, readings, items, materials, programs, studies] = await Promise.all([
           listPaceTodos(project.id), loadPaceLines(project.id), listTargets(project.id), listReadings(project.id), listTestItems(project.id),
           /* What it waits on — late here is late on the job (lib/portfolio pacedOwed). */
-          listMaterials(project.id), listPrograms(project.id),
+          listMaterials(project.id), listPrograms(project.id), listStudies(project.id),
         ]);
         /* a line of Your factory is said by the factory's name here as the rail
            says it — never the job's copy of it (docs/UPGRADE-AUDIT.md C9) */
@@ -86,7 +86,7 @@ export function useJobInputs(projects: Project[]): JobInputs | null {
           }) : [];
         }
         return {
-          project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree, problems, gaps, losses, materials, programs,
+          project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree, problems, gaps, losses, materials, programs, studies,
           atTarget: series.filter(x => x?.meeting === true).length,
           judged: series.filter(x => x?.meeting != null).length,
           /* Are its lines on target? — the answer its front page leads with. */

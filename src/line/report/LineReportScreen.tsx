@@ -23,6 +23,7 @@ import { lineProgramsReading } from '../../lib/lineRecords';
 import { bundleSays, defaultPicks, lineBundle, picksForTools, whereFor, type LineBundle } from './lineBundle';
 import { toolByKey } from '../../catalogue/registry';
 import type { LineReading } from '../../lib/lineLean';
+import { scopeCounts } from '../../tools/checks/owed';
 import { lineClosing, lineTiles } from '../../lib/lineLean';
 import { lineDay } from '../../lib/lineLoss';
 import { dualOf, linesSaid, productionLines } from '../../lib/lines';
@@ -83,14 +84,17 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
   const programs = useMemo(() => new Map((bundle?.parts ?? []).map(p => [p.line.id, lineProgramsReading([{ id: p.line.id, name: p.line.name, machines: p.kit.machines, programs: p.kit.programs }], today,
     { floor, jobName: jobNames, tests: rec.provingTests, studies: rec.studies, stageOnly: new Map([[p.line.id, (stageOnly.get(p.line.id) ?? []).map(x => x.line)]]) })] as const)), [bundle, today, floor, jobNames, rec.provingTests, rec.studies, stageOnly]);
 
+  const checkCounts = useMemo(() => new Map((bundle?.parts ?? []).map(p => [p.line.id, scopeCounts(rec.studies.filter(x => !x.deletedAt && x.workspaceId === p.line.id), Date.now())] as const)), [bundle, rec.studies]);
   /* EACH PART AS THE ONE-PAGE LINE REPORT READS IT (lib/lineLean) — the same tiles and closing line */
   const readings = useMemo(() => new Map((bundle?.parts ?? []).map(p => {
     const s = stopsOf(obs.get(p.line.id) ?? []);
     const r: LineReading = { name: p.line.name, problems: { open: p.problems.open, late: p.problems.late, critical: p.problems.critical },
       programs: { n: p.kit.programs.length, proved: p.kit.proved, late: p.kit.late, onStage: (stageOnly.get(p.line.id) ?? []).length },
-      stops: { n: s.n, minutes: s.minutes, ...(s.worst ? { worst: s.worst } : {}) }, day: lineDay(p.line), jobs: jobsOn.get(p.line.id) ?? 0 };
+      stops: { n: s.n, minutes: s.minutes, ...(s.worst ? { worst: s.worst } : {}) }, day: lineDay(p.line), jobs: jobsOn.get(p.line.id) ?? 0,
+      /* the line's check logs (src/tools/checks): the tile and the closing line the line's page says */
+      ...(checkCounts.get(p.line.id)?.logs ? { checks: checkCounts.get(p.line.id) } : {}) };
     return [p.line.id, r] as const;
-  })), [bundle, obs, stageOnly, jobsOn]);
+  })), [bundle, obs, stageOnly, jobsOn, checkCounts]);
 
   const dualWords = useMemo<[string, string] | undefined>(() => {
     const dual = line ? dualOf(line, productionLines(all)) : { madeOf: [], partOf: [] };

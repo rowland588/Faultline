@@ -56,6 +56,10 @@ const AnalysisScreen = lazy(() => import('./tools/analysis/AnalysisScreen').then
 const CalcScreen = lazy(() => import('./tools/calc/CalcScreen').then(m => ({ default: m.CalcScreen })));
 const ChartScreen = lazy(() => import('./tools/chart/ChartScreen').then(m => ({ default: m.ChartScreen })));
 const ReliabilityScreen = lazy(() => import('./tools/reliability/ReliabilityScreen').then(m => ({ default: m.ReliabilityScreen })));
+/* the check logs (knowledge/specs/FC-236-check-logs.md): the Logs hub, one kind's list, and a log */
+const LogsHubScreen = lazy(() => import('./tools/checks/LogsScreens').then(m => ({ default: m.LogsHubScreen })));
+const LogListScreen = lazy(() => import('./tools/checks/LogsScreens').then(m => ({ default: m.LogListScreen })));
+const LogScreen = lazy(() => import('./tools/checks/LogScreen').then(m => ({ default: m.LogScreen })));
 /* the directory reads the whole catalogue — on its own, so it never weighs on the rest */
 const ToolsScreen = lazy(() => import('./screens/ToolsScreen').then(m => ({ default: m.ToolsScreen })));
 const ProjectToolsScreen = lazy(() => import('./screens/ProjectToolsScreen').then(m => ({ default: m.ProjectToolsScreen })));
@@ -160,7 +164,7 @@ function app(route: Route) {
   if (route.name === 'lineReport' && route.wsId) return <LineReportScreen key={route.wsId} wsId={route.wsId} />;
   if (route.name === 'lineHome' && route.wsId) {
     const v = route.query.get('view');
-    return <ProductionLineScreen key={route.wsId} wsId={route.wsId} view={v === 'tools' || v === 'projects' || v === 'setup' ? v : 'overview'} />;
+    return <ProductionLineScreen key={route.wsId} wsId={route.wsId} view={v === 'tools' || v === 'projects' || v === 'setup' || v === 'logs' ? v : 'overview'} />;
   }
   if (route.name === 'factory') return <FactoryScreen />;
   if (route.name === 'allActions') return <EveryActionScreen />;
@@ -180,6 +184,10 @@ function app(route: Route) {
   if (route.name === 'lineTools') return <LineToolsScreen key={`${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} tool={route.view === 'balance' ? 'balance' : route.view === 'work' ? 'work' : 'map'} />;
   /* a calculator (knowledge/specs/FC-235-calculators.md): the hub, one calculator's saved ones, one saved calculation */
   if ((route.name === 'studies' || (route.name === 'study' && route.id)) && route.view === 'calc') return <CalcScreen key={`${route.key ?? ''}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} calcKey={route.key} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
+  /* the check logs: the scopes' Logs (#/logs, ?line=, ?project=), one kind's list and a log */
+  if (route.name === 'studies' && route.view === 'logs') return <LogsHubScreen key={`${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} />;
+  if (route.name === 'studies' && route.view === 'log' && route.key) return <LogListScreen key={`${route.key}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} logKey={route.key} />;
+  if (route.name === 'study' && route.view === 'log' && route.id) return <LogScreen key={route.id} id={route.id} />;
   if (route.name === 'studies') return <StudiesScreen key={`${route.view ?? 'capability'}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} tool={route.view === 'map' ? 'map' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : route.view === 'reliability' ? 'reliability' : route.view === 'chart' ? 'chart' : route.view === 'analysis' ? 'analysis' : 'capability'} />;
   if (route.name === 'study' && route.id) {
     if (route.view === 'map') return <MapScreen key={route.id} id={route.id} />;

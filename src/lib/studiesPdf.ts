@@ -55,6 +55,10 @@ import { analysisClosing, analysisFigures, analysisPicture, analysisPlot, analys
 import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } from '../tools/chart/chart';
 import { neckOf } from './lineLoss';
 import { calcPaperParts } from './report/calcPaper';
+import { logBodyBlocks, logPaperBlocks, paperInput } from '../tools/checks/checksPaper';
+import { ctxFrom } from '../tools/checks/ctx';
+import { defOf } from '../tools/checks/registry';
+import type { Snag } from '../snag/types';
 import { relChartBlock, relDaysBlocks, relKindsBlocks, relTogetherBlocks, remarksBlocks } from './report/reliabilityTable';
 
 import { todayISO } from './weeks';
@@ -81,6 +85,8 @@ export interface StudiesPaper {
   /** Printed from the count's own page — a list's PDF keeps its list form. */
   lean?: boolean;
   history?: ToolStudy[];
+  /** The register's problems — a check log's action plan and its problems' state (src/tools/checks). */
+  snags?: Snag[];
   records?: { actions: ({ id: string; deletedAt?: number } & ActionLike)[]; fixes: ({ id: string; deletedAt?: number } & FixLike)[] };
 }
 
@@ -677,6 +683,15 @@ function reliabilityBlocks(s: ToolStudy, items: RelItem[], line?: Parameters<typ
   return out;
 }
 
+/** A check log's paper input, read from what the paper has: the line's cost model, its Line capacity, the register. */
+function logInputOf(p: StudiesPaper, { s, where }: StudyPaperItem) {
+  const def = defOf(s.agreed?.log?.key);
+  if (!def) return undefined;
+  const line = p.ctx?.workspaces?.find(w => w.id === s.workspaceId);
+  const name = (line as { name?: string } | undefined)?.name;
+  return paperInput(s, def, ctxFrom(line, p.standards, s.workspaceId), p.snags ?? [], where, name);
+}
+
 /** ONE STUDY'S BLOCKS as its own paper prints them — its title, where it sits,
  *  its sentence, then its table and figures by tool. The combined line report
  *  (lib/lineBundlePdf) prints each tool's section with these, so the two
@@ -692,6 +707,8 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
   if (s.tool === 'chart') out.push(...chartBlocks(s));
   if (s.tool === 'analysis') out.push(...analysisBlocks(s));
   if (s.tool === 'calc') out.push(...(calcPaperParts(s)?.body ?? []));
+  /* a check log's parts — the line report prints them as the log's own paper does */
+  if (s.tool === 'log') { const li = logInputOf(p, { s, where }); if (li) out.push(...logBodyBlocks(li)); }
   if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
   if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
   if (e.losses) out.push(...lossBlocks(e.losses));
@@ -719,6 +736,7 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
 }
 
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
+  if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'log') { const li = logInputOf(p, p.items[0]); if (li) return logPaperBlocks(li, p.printed, d); }
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
   if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis', 'calc'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return smedLeanBlocks(p, p.items[0], d);

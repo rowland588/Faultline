@@ -65,7 +65,7 @@ area is also the auditable one.
 **Worked case** (`cases-lean.py`): five S × four questions, 0–4 each,
 maximum 80. Line 3 scored 52 — 65%: Sort 88%, Set in order 69%,
 Shine 44%, Standardise 69%, Sustain 56%. The previous four audits read
-81, 78, 75, 72 — five falls in a row, and shine the weakest: the
+81, 78, 75, 72 — four falls in a row (81 to 65), and shine the weakest: the
 cleaning standard is not being followed, which in a food factory is a
 hygiene finding before it is a lean one. Two auditors on the same area:
 65% against 61%, exact agreement on 75% of the questions and within one
@@ -108,7 +108,10 @@ hall's film and case stations; the engineering workshop.
 - [textbook] Liker, J.K. (2004), *The Toyota Way*, McGraw-Hill — 5S as a foundation of visual control, not an end (from knowledge).
 
 ## In Faultline
-Not built (FC-013). The register takes a finding as a problem on a line
-with a photo (`src/snag`); FC-013 adds the area's checklist, each audit's
-scores by S, the trend, the auditors' agreement and each finding as an
-action with its photograph of right beside it.
+Built 25 October (FC-013, on the scored-audit specification `knowledge/specs/FC-177-scored-audits.md`) as a check
+log on the shared shape (FC-236, `defs/five-s.ts`): twenty questions under the five S's, each scored 0 to 4, the
+score the share of the maximum overall and by S, the weakest S named, every answer below 3 a finding, each one ticked at the
+end of the audit raised as its own problem (High when it was below 3 in the audit before too), the falls in a row counted back from the newest, the
+trend over the audits. Worked case reproduced: 52 of 80 = 65%, Shine the weakest at 44%, nine findings, four of them
+repeats. Two auditors' agreement and a photograph of right beside each question are not built. Proved by
+`log-shape.mjs` and `src/tools/checks/__tests__/figures.test.ts`.

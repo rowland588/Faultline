@@ -68,6 +68,8 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
   page.on('pageerror', e => errors.push(`${tag}: ${e.message}`));
   await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
   const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
+  /* the check logs (src/tools/checks): one of each kind on the seeded line, metal detection in the seeded project */
+  sd.checkLogs = await page.evaluate(async ([ws, pj]) => (await import('/src/dev/seed.ts')).seedChecksForTest(ws, pj), [sd.wsId, sd.projectId]);
   const cap = await page.evaluate(async () => {
     const s = await (await import('/src/dev/capacitySeeds.ts')).seedCapacityFor('huge');
     const db = await import('/src/db.ts');

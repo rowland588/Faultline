@@ -1289,3 +1289,20 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }
+
+/** CHECK LOGS (knowledge/specs/FC-236-check-logs.md): each definition's first worked example, made into a log on the line —
+ *  for the smoke, the inventory and the acceptance script. Kept apart from seedForSmokeTest so a line with no log reads as it
+ *  always did (its tiles, its paper). Returns each log's id by its definition's key. */
+export async function seedChecksForTest(wsId: string, projectId?: string): Promise<Record<string, string>> {
+  const { LOG_DEFS } = await import('../tools/checks/registry');
+  const { exampleStudy } = await import('../tools/checks/example');
+  const ids: Record<string, string> = {};
+  const t = Date.now();
+  for (const def of LOG_DEFS) {
+    const s = exampleStudy(def, def.examples[0], t, { line: wsId, where: def.whereLabel === 'Detector' ? 'Metal detector' : 'Packing hall' });
+    const id = uid();
+    ids[def.key] = id;
+    await putStudy({ ...s, id, name: `${def.title} — seeded`, ...(projectId && def.key === 'metal-detection' ? { projectId } : {}), createdAt: t, updatedAt: t });
+  }
+  return ids;
+}

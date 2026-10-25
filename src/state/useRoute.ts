@@ -18,7 +18,7 @@ export interface Route {
   wsId?: ID;
   id?: string;          // sub-entity id (segment/:id, asset/:id, project/:id)
   lineId?: string;      // the line within a project (project/:id/line/:lineId)
-  /** A calculator's key (calc/:key, calc/:key/:id) — knowledge/specs/FC-235-calculators.md. */
+  /** A calculator's key (calc/:key, calc/:key/:id — FC-235) or a check log's kind (log/:key, log/:key/:id — FC-236). */
   key?: string;
   /** Which face of a screen that has several. Commissioning has four — the
    *  answer, one machine, the materials, the programs grid — and they are path
@@ -151,6 +151,13 @@ export function parseRoute(hash: string): Route {
      readings in order against limits set from a steady period, the signals in words). */
   if (segs[0] === 'chart') {
     return segs[1] ? { name: 'study', view: 'chart', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'chart', query };
+  }
+  /* CHECK LOGS (knowledge/specs/FC-236-check-logs.md): /logs is every kind, in the scope the address carries (?line=, ?project=);
+     /log/:key one kind's logs; /log/:key/:id one log — a study of tool `log`. The scopes' Logs pages. */
+  if (segs[0] === 'logs') return { name: 'studies', view: 'logs', query };
+  if (segs[0] === 'log' && segs[1]) {
+    const key = decodeURIComponent(segs[1]);
+    return segs[2] ? { name: 'study', view: 'log', key, id: decodeURIComponent(segs[2]), query } : { name: 'studies', view: 'log', key, query };
   }
   if (segs[0] === 'capability') {
     return segs[1] ? { name: 'study', view: 'capability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'capability', query };

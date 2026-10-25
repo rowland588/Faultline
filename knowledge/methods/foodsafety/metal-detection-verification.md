@@ -113,8 +113,11 @@ the HACCP plan.
 - [guide] Campden BRI, Guideline 60, *Guidelines for the use of metal detectors in the food industry* (from knowledge).
 
 ## In Faultline
-Not built (FC-170). The line's programs record a test and its day
-(`src/line`); FC-170 adds the detector's check schedule per run, each
-piece's detect-and-reject result tapped with the time, a failure
-opening the product-at-risk count and the hold, and the clean record's
-bound said in words.
+Built 25 October (FC-170, `knowledge/specs/FC-170-metal-detection.md`) as a check log on the shared shape (FC-236,
+`src/tools/checks`, `defs/metal-detection.ts`): the three pieces and the start-up, changeover and end-of-run checks
+as a starter list the site edits, each check a tap — pass (detected and rejected) or fail; done, missed and failed
+worked out from the schedule; a failure raises one problem on the register and says before it is recorded what it
+holds — the minutes since the last good check at Line capacity's speed (else the line's rated speed, else the packs
+typed), priced at the line's materials a pack; the re-test failing again holds nothing more; the clean record's bound
+in words. Clause numbers are not quoted (listed to confirm). The product-on-hold record is not built yet.
+Proved by `log-shape.mjs` and `src/tools/checks/__tests__`.

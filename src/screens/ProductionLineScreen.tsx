@@ -19,6 +19,8 @@ import { APP_TOOLS } from '../catalogue/registry';
 import { MoreMenu, PageHeader } from '../ui/parts';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { LineTour } from '../ui/LineTour';
+import { LinesLogs } from '../tools/checks/LogsScreens';
+import { scopeCounts } from '../tools/checks/owed';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { StartTogether } from '../line/StartTogether';
@@ -118,8 +120,8 @@ export function stopsOf(obs: Observation[]): { n: number; minutes: number; worst
 
 /** A LINE'S PAGES (docs/STRUCTURE.md §5.1, B2): its overview — everything, as before — and, on
  *  ?view=, one of its pages alone: the tools used on it, its projects, its set-up. */
-export type LineView = 'overview' | 'tools' | 'projects' | 'setup';
-export const LINE_VIEWS: readonly LineView[] = ['overview', 'tools', 'projects', 'setup'];
+export type LineView = 'overview' | 'tools' | 'logs' | 'projects' | 'setup';
+export const LINE_VIEWS: readonly LineView[] = ['overview', 'tools', 'logs', 'projects', 'setup'];
 
 export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string; view?: LineView }) {
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
@@ -194,9 +196,12 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   const onStage = useMemo(() => (line ? stageOnlyByLine(floor.stageOnly ?? [], rec.machines, rec.jobLines).get(line.id) ?? [] : []), [line, floor, rec.machines, rec.jobLines]);
   /* THE LINE AS A LEAN PAGE (lib/lineLean) — the tiles and the closing line
      its page and its report both say */
+  const checkCounts = useMemo(() => scopeCounts(studies, Date.now()), [studies]);
   const reading: LineReading | undefined = line ? {
     name: line.name, problems: probs, programs: { n: kit?.programs.length ?? 0, proved: kit?.proved ?? 0, late: kit?.late ?? 0, onStage: onStage.length },
     stops: { n: stops.n, minutes: stops.minutes, ...(stops.worst ? { worst: stops.worst } : {}) }, day: lineDay(line), jobs: jobIds.length,
+    /* the line's check logs (src/tools/checks): a tile once it has one */
+    ...(checkCounts.logs ? { checks: checkCounts } : {}),
   } : undefined;
   const [mName, setMName] = useState('');
   const [mOem, setMOem] = useState('');
@@ -280,6 +285,17 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
     window.setTimeout(() => setSaved(null), 2600);
   };
 
+  /* Stops timed — the line's first log; in Tools as before, and first under Logs */
+  const stopsRow = (
+    <li>
+      <button type="button" className="pl-tool is-stops" onClick={() => nav(`/w/${wsId}/${stops.n ? 'analyse' : 'capture'}`)}>
+        <b>Stops timed</b>
+        {stops.says && <span className={'pl-tool-says ie-tone is-' + stops.tone}>{stops.says}</span>}
+        <span className="sub">{stops.n ? `The last four weeks — where the time goes, ranked by ${line.packsPerMin ? 'what it costs' : 'minutes lost'}` : 'None yet — the stopwatch, and the Pareto of what the stops cost'}</span>
+        <span className="pl-tool-go" aria-hidden>›</span>
+      </button>
+    </li>
+  );
   /* the overview is the whole page; a page of the line shows its own part alone */
   const show = (k: LineView) => view === 'overview' || view === k;
 
@@ -470,14 +486,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               from the line's stops as the tour reads them (lib/intelligence
               stops): the last four weeks, the machine that stopped the most.
               With stops it opens the ranking; with none, the stopwatch. */}
-          <li>
-            <button type="button" className="pl-tool is-stops" onClick={() => nav(`/w/${wsId}/${stops.n ? 'analyse' : 'capture'}`)}>
-              <b>Stops timed</b>
-              {stops.says && <span className={'pl-tool-says ie-tone is-' + stops.tone}>{stops.says}</span>}
-              <span className="sub">{stops.n ? `The last four weeks — where the time goes, ranked by ${line.packsPerMin ? 'what it costs' : 'minutes lost'}` : 'None yet — the stopwatch, and the Pareto of what the stops cost'}</span>
-              <span className="pl-tool-go" aria-hidden>›</span>
-            </button>
-          </li>
+          {stopsRow}
           {TOOLS.map(t => {
             const { n, says, tone } = toolSays(t);
             return (
@@ -518,6 +527,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           );
         })()}
       </section>)}
+
+      {/* LOGS (knowledge/specs/FC-236-check-logs.md): Stops timed, the line's first log, and every check log on the line */}
+      {show('logs') && <LinesLogs wsId={wsId} studies={studies} stops={view === 'logs' ? stopsRow : null} may={may} view={view === 'logs'} />}
 
 
       {/* THE JOBS ON THIS LINE (13 October: "assign everything to a

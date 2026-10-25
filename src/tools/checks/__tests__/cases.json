@@ -1,0 +1,1277 @@
+{
+ "compliance": [
+  {
+   "since": 0,
+   "interval": 60,
+   "results": [
+    5,
+    63,
+    121,
+    250
+   ],
+   "frm": 0,
+   "to": 300,
+   "expect": {
+    "expected": 5,
+    "onTime": 4,
+    "missed": 1
+   }
+  },
+  {
+   "since": 189,
+   "interval": 1440,
+   "results": [
+    2800,
+    4550,
+    5212,
+    5394,
+    8516,
+    10101,
+    11632,
+    11754,
+    12140,
+    12677,
+    14694
+   ],
+   "frm": 189,
+   "to": 17859,
+   "expect": {
+    "expected": 16,
+    "onTime": 11,
+    "missed": 5
+   }
+  },
+  {
+   "since": 73,
+   "interval": 30,
+   "results": [
+    276
+   ],
+   "frm": 73,
+   "to": 365,
+   "expect": {
+    "expected": 10,
+    "onTime": 1,
+    "missed": 9
+   }
+  },
+  {
+   "since": 49,
+   "interval": 10,
+   "results": [
+    75
+   ],
+   "frm": 49,
+   "to": 146,
+   "expect": {
+    "expected": 10,
+    "onTime": 1,
+    "missed": 9
+   }
+  },
+  {
+   "since": 140,
+   "interval": 120,
+   "results": [
+    151,
+    310,
+    390,
+    606,
+    953
+   ],
+   "frm": 140,
+   "to": 1023,
+   "expect": {
+    "expected": 9,
+    "onTime": 5,
+    "missed": 4
+   }
+  },
+  {
+   "since": 251,
+   "interval": 1440,
+   "results": [
+    2944,
+    3241,
+    3466,
+    3596,
+    4131,
+    4497,
+    6017,
+    6792
+   ],
+   "frm": 251,
+   "to": 7311,
+   "expect": {
+    "expected": 10,
+    "onTime": 8,
+    "missed": 2
+   }
+  },
+  {
+   "since": 29,
+   "interval": 10,
+   "results": [
+    31,
+    37,
+    45,
+    47,
+    69,
+    73,
+    74,
+    76,
+    79,
+    82
+   ],
+   "frm": 47,
+   "to": 83,
+   "expect": {
+    "expected": 8,
+    "onTime": 7,
+    "missed": 1
+   }
+  },
+  {
+   "since": 291,
+   "interval": 120,
+   "results": [],
+   "frm": 565,
+   "to": 1114,
+   "expect": {
+    "expected": 4,
+    "onTime": 0,
+    "missed": 4
+   }
+  },
+  {
+   "since": 92,
+   "interval": 120,
+   "results": [
+    1336
+   ],
+   "frm": 92,
+   "to": 1724,
+   "expect": {
+    "expected": 14,
+    "onTime": 1,
+    "missed": 13
+   }
+  },
+  {
+   "since": 241,
+   "interval": 120,
+   "results": [
+    379,
+    457,
+    890,
+    930,
+    1016,
+    1147,
+    1167,
+    1443,
+    1658
+   ],
+   "frm": 241,
+   "to": 1833,
+   "expect": {
+    "expected": 17,
+    "onTime": 9,
+    "missed": 8
+   }
+  },
+  {
+   "since": 284,
+   "interval": 1440,
+   "results": [
+    303,
+    803,
+    1141,
+    1151,
+    1412,
+    1683,
+    1866,
+    1876,
+    3124
+   ],
+   "frm": 284,
+   "to": 3981,
+   "expect": {
+    "expected": 9,
+    "onTime": 9,
+    "missed": 0
+   }
+  },
+  {
+   "since": 195,
+   "interval": 1440,
+   "results": [
+    1457,
+    1834,
+    5500
+   ],
+   "frm": 195,
+   "to": 7088,
+   "expect": {
+    "expected": 6,
+    "onTime": 3,
+    "missed": 3
+   }
+  },
+  {
+   "since": 0,
+   "interval": 10,
+   "results": [
+    7,
+    28,
+    32,
+    66,
+    87,
+    97,
+    107
+   ],
+   "frm": 39,
+   "to": 118,
+   "expect": {
+    "expected": 7,
+    "onTime": 4,
+    "missed": 3
+   }
+  },
+  {
+   "since": 110,
+   "interval": 1440,
+   "results": [
+    620,
+    2852,
+    4415,
+    6665,
+    8766,
+    9644,
+    10522,
+    13752,
+    14349
+   ],
+   "frm": 4942,
+   "to": 14608,
+   "expect": {
+    "expected": 9,
+    "onTime": 6,
+    "missed": 3
+   }
+  },
+  {
+   "since": 111,
+   "interval": 120,
+   "results": [
+    207,
+    240,
+    346,
+    463,
+    600,
+    866,
+    880,
+    1103,
+    1121
+   ],
+   "frm": 111,
+   "to": 1130,
+   "expect": {
+    "expected": 12,
+    "onTime": 9,
+    "missed": 3
+   }
+  },
+  {
+   "since": 68,
+   "interval": 480,
+   "results": [
+    226,
+    471,
+    1750,
+    2780
+   ],
+   "frm": 68,
+   "to": 6585,
+   "expect": {
+    "expected": 15,
+    "onTime": 4,
+    "missed": 11
+   }
+  },
+  {
+   "since": 65,
+   "interval": 30,
+   "results": [
+    135,
+    348,
+    426
+   ],
+   "frm": 195,
+   "to": 457,
+   "expect": {
+    "expected": 9,
+    "onTime": 2,
+    "missed": 7
+   }
+  },
+  {
+   "since": 100,
+   "interval": 1440,
+   "results": [
+    158,
+    320,
+    525,
+    825,
+    1175,
+    1305,
+    1359,
+    1403,
+    1487,
+    1517,
+    1969,
+    2475
+   ],
+   "frm": 968,
+   "to": 2706,
+   "expect": {
+    "expected": 8,
+    "onTime": 8,
+    "missed": 0
+   }
+  },
+  {
+   "since": 245,
+   "interval": 60,
+   "results": [
+    264,
+    265,
+    267,
+    276,
+    278,
+    320,
+    321,
+    383,
+    423,
+    428,
+    440,
+    442
+   ],
+   "frm": 329,
+   "to": 499,
+   "expect": {
+    "expected": 5,
+    "onTime": 5,
+    "missed": 0
+   }
+  },
+  {
+   "since": 54,
+   "interval": 60,
+   "results": [
+    56,
+    58,
+    73,
+    86,
+    87,
+    89,
+    90
+   ],
+   "frm": 75,
+   "to": 119,
+   "expect": {
+    "expected": 4,
+    "onTime": 4,
+    "missed": 0
+   }
+  },
+  {
+   "since": 250,
+   "interval": 1440,
+   "results": [],
+   "frm": 2489,
+   "to": 6968,
+   "expect": {
+    "expected": 3,
+    "onTime": 0,
+    "missed": 3
+   }
+  },
+  {
+   "since": 253,
+   "interval": 480,
+   "results": [
+    913,
+    1141,
+    1182,
+    1717,
+    2185
+   ],
+   "frm": 937,
+   "to": 2306,
+   "expect": {
+    "expected": 4,
+    "onTime": 4,
+    "missed": 0
+   }
+  },
+  {
+   "since": 278,
+   "interval": 120,
+   "results": [
+    295
+   ],
+   "frm": 278,
+   "to": 531,
+   "expect": {
+    "expected": 2,
+    "onTime": 1,
+    "missed": 1
+   }
+  },
+  {
+   "since": 6,
+   "interval": 60,
+   "results": [
+    31,
+    75,
+    76,
+    78,
+    87,
+    94,
+    102,
+    109,
+    110,
+    134,
+    137,
+    140
+   ],
+   "frm": 51,
+   "to": 143,
+   "expect": {
+    "expected": 11,
+    "onTime": 11,
+    "missed": 0
+   }
+  },
+  {
+   "since": 255,
+   "interval": 480,
+   "results": [
+    668,
+    1258,
+    2674,
+    2796,
+    2952
+   ],
+   "frm": 255,
+   "to": 4033,
+   "expect": {
+    "expected": 10,
+    "onTime": 5,
+    "missed": 5
+   }
+  },
+  {
+   "since": 266,
+   "interval": 10,
+   "results": [
+    275,
+    279,
+    288,
+    291,
+    292,
+    298,
+    305,
+    312,
+    328,
+    337
+   ],
+   "frm": 297,
+   "to": 359,
+   "expect": {
+    "expected": 7,
+    "onTime": 5,
+    "missed": 2
+   }
+  },
+  {
+   "since": 56,
+   "interval": 1440,
+   "results": [
+    3672,
+    5035,
+    6688,
+    8569,
+    9057
+   ],
+   "frm": 56,
+   "to": 9851,
+   "expect": {
+    "expected": 9,
+    "onTime": 5,
+    "missed": 4
+   }
+  },
+  {
+   "since": 186,
+   "interval": 120,
+   "results": [
+    218,
+    290,
+    381,
+    402,
+    407,
+    466,
+    481,
+    572,
+    625,
+    769,
+    792
+   ],
+   "frm": 442,
+   "to": 955,
+   "expect": {
+    "expected": 7,
+    "onTime": 6,
+    "missed": 1
+   }
+  },
+  {
+   "since": 8,
+   "interval": 120,
+   "results": [
+    12,
+    19,
+    26,
+    102,
+    109,
+    120,
+    123,
+    131
+   ],
+   "frm": 49,
+   "to": 131,
+   "expect": {
+    "expected": 5,
+    "onTime": 5,
+    "missed": 0
+   }
+  },
+  {
+   "since": 38,
+   "interval": 10,
+   "results": [
+    47,
+    55,
+    59,
+    64,
+    77,
+    80,
+    87,
+    89,
+    95
+   ],
+   "frm": 57,
+   "to": 97,
+   "expect": {
+    "expected": 7,
+    "onTime": 7,
+    "missed": 0
+   }
+  },
+  {
+   "since": 144,
+   "interval": 30,
+   "results": [
+    181,
+    183,
+    185,
+    197,
+    242,
+    249,
+    300,
+    347,
+    352,
+    356,
+    458,
+    461
+   ],
+   "frm": 257,
+   "to": 485,
+   "expect": {
+    "expected": 11,
+    "onTime": 6,
+    "missed": 5
+   }
+  },
+  {
+   "since": 67,
+   "interval": 30,
+   "results": [
+    75,
+    129,
+    163,
+    220,
+    268,
+    279,
+    297,
+    298,
+    324
+   ],
+   "frm": 67,
+   "to": 331,
+   "expect": {
+    "expected": 13,
+    "onTime": 9,
+    "missed": 4
+   }
+  },
+  {
+   "since": 276,
+   "interval": 1440,
+   "results": [
+    683,
+    799,
+    880,
+    1226,
+    1476,
+    2200,
+    2215
+   ],
+   "frm": 276,
+   "to": 3615,
+   "expect": {
+    "expected": 8,
+    "onTime": 7,
+    "missed": 1
+   }
+  },
+  {
+   "since": 192,
+   "interval": 30,
+   "results": [
+    204,
+    208,
+    252,
+    304,
+    323,
+    335,
+    342
+   ],
+   "frm": 192,
+   "to": 344,
+   "expect": {
+    "expected": 10,
+    "onTime": 7,
+    "missed": 3
+   }
+  },
+  {
+   "since": 90,
+   "interval": 120,
+   "results": [
+    111,
+    132,
+    158,
+    178,
+    262,
+    301,
+    331,
+    387,
+    490
+   ],
+   "frm": 246,
+   "to": 560,
+   "expect": {
+    "expected": 5,
+    "onTime": 5,
+    "missed": 0
+   }
+  },
+  {
+   "since": 287,
+   "interval": 60,
+   "results": [
+    308,
+    373,
+    504,
+    575,
+    576,
+    642,
+    679,
+    769,
+    813,
+    881
+   ],
+   "frm": 499,
+   "to": 923,
+   "expect": {
+    "expected": 9,
+    "onTime": 8,
+    "missed": 1
+   }
+  },
+  {
+   "since": 191,
+   "interval": 30,
+   "results": [
+    242
+   ],
+   "frm": 191,
+   "to": 373,
+   "expect": {
+    "expected": 7,
+    "onTime": 1,
+    "missed": 6
+   }
+  },
+  {
+   "since": 251,
+   "interval": 30,
+   "results": [
+    269,
+    319,
+    353,
+    354,
+    433,
+    503,
+    505,
+    568
+   ],
+   "frm": 378,
+   "to": 633,
+   "expect": {
+    "expected": 10,
+    "onTime": 4,
+    "missed": 6
+   }
+  },
+  {
+   "since": 83,
+   "interval": 120,
+   "results": [
+    286,
+    357,
+    402,
+    655
+   ],
+   "frm": 83,
+   "to": 780,
+   "expect": {
+    "expected": 7,
+    "onTime": 4,
+    "missed": 3
+   }
+  },
+  {
+   "since": 90,
+   "interval": 30,
+   "results": [
+    139,
+    200
+   ],
+   "frm": 143,
+   "to": 251,
+   "expect": {
+    "expected": 3,
+    "onTime": 1,
+    "missed": 2
+   }
+  },
+  {
+   "since": 26,
+   "interval": 480,
+   "results": [
+    449,
+    997,
+    1804,
+    1902,
+    2442,
+    2549,
+    2675,
+    2692,
+    2704,
+    2718,
+    2810
+   ],
+   "frm": 26,
+   "to": 2989,
+   "expect": {
+    "expected": 13,
+    "onTime": 11,
+    "missed": 2
+   }
+  }
+ ],
+ "states": [
+  {
+   "since": 0,
+   "interval": 60,
+   "last": null,
+   "now": 0,
+   "bad": false,
+   "expect": "due"
+  },
+  {
+   "since": 0,
+   "interval": 60,
+   "last": null,
+   "now": 10,
+   "bad": false,
+   "expect": "due"
+  },
+  {
+   "since": 0,
+   "interval": 60,
+   "last": null,
+   "now": 40,
+   "bad": false,
+   "expect": "overdue"
+  },
+  {
+   "since": 0,
+   "interval": 60,
+   "last": 0,
+   "now": 30,
+   "bad": false,
+   "expect": "done"
+  },
+  {
+   "since": 0,
+   "interval": 60,
+   "last": 0,
+   "now": 44,
+   "bad": false,
+   "expect": "done"
+  },
+  {
+   "since": 0,
+   "interval": 60,
+   "last": 0,
+   "now": 45,
+   "bad": false,
+   "expect": "soon"
+  },
+  {
+   "since": 0,
+   "interval": 60,
+   "last": 0,
+   "now": 60,
+   "bad": false,
+   "expect": "due"
+  },
+  {
+   "since": 0,
+   "interval": 60,
+   "last": 0,
+   "now": 75,
+   "bad": false,
+   "expect": "due"
+  },
+  {
+   "since": 0,
+   "interval": 60,
+   "last": 0,
+   "now": 76,
+   "bad": false,
+   "expect": "overdue"
+  },
+  {
+   "since": 0,
+   "interval": 60,
+   "last": 0,
+   "now": 30,
+   "bad": true,
+   "expect": "failed"
+  },
+  {
+   "since": 0,
+   "interval": 480,
+   "last": 0,
+   "now": 90,
+   "bad": false,
+   "expect": "done"
+  },
+  {
+   "since": 0,
+   "interval": 480,
+   "last": 0,
+   "now": 361,
+   "bad": false,
+   "expect": "soon"
+  },
+  {
+   "since": 0,
+   "interval": 480,
+   "last": 0,
+   "now": 480,
+   "bad": false,
+   "expect": "due"
+  },
+  {
+   "since": 0,
+   "interval": 480,
+   "last": 0,
+   "now": 600,
+   "bad": false,
+   "expect": "due"
+  },
+  {
+   "since": 0,
+   "interval": 480,
+   "last": 0,
+   "now": 601,
+   "bad": false,
+   "expect": "overdue"
+  },
+  {
+   "since": 0,
+   "interval": 10080,
+   "last": 0,
+   "now": 9359,
+   "bad": false,
+   "expect": "done"
+  },
+  {
+   "since": 0,
+   "interval": 10080,
+   "last": 0,
+   "now": 10080,
+   "bad": false,
+   "expect": "due"
+  },
+  {
+   "since": 0,
+   "interval": 10080,
+   "last": 0,
+   "now": 10801,
+   "bad": false,
+   "expect": "overdue"
+  },
+  {
+   "since": 0,
+   "interval": 10,
+   "last": 0,
+   "now": 7,
+   "bad": false,
+   "expect": "soon"
+  },
+  {
+   "since": 0,
+   "interval": 10,
+   "last": 0,
+   "now": 11,
+   "bad": false,
+   "expect": "due"
+  },
+  {
+   "since": 0,
+   "interval": 10,
+   "last": 0,
+   "now": 16,
+   "bad": false,
+   "expect": "overdue"
+  }
+ ],
+ "hold": {
+  "lastGood": 600,
+  "failedAt": 660,
+  "ratePerMin": 110,
+  "windowMin": 60,
+  "packs": 6600
+ },
+ "runs": {
+  "seq": [
+   [
+    "good",
+    0
+   ],
+   [
+    "good",
+    60
+   ],
+   [
+    "fail",
+    120
+   ],
+   [
+    "fail",
+    135
+   ],
+   [
+    "good",
+    150
+   ],
+   [
+    "fail",
+    215
+   ]
+  ],
+  "runs": [
+   {
+    "at": 120,
+    "from_": 60,
+    "windowMin": 60
+   },
+   {
+    "at": 135,
+    "from_": null,
+    "windowMin": 0
+   },
+   {
+    "at": 215,
+    "from_": 150,
+    "windowMin": 65
+   }
+  ]
+ },
+ "zero": [
+  {
+   "n": 1,
+   "conf": 0.95,
+   "bound": 0.95
+  },
+  {
+   "n": 10,
+   "conf": 0.95,
+   "bound": 0.2588655508930522
+  },
+  {
+   "n": 59,
+   "conf": 0.95,
+   "bound": 0.04950760988822693
+  },
+  {
+   "n": 100,
+   "conf": 0.95,
+   "bound": 0.029513049607039925
+  },
+  {
+   "n": 200,
+   "conf": 0.95,
+   "bound": 0.014867039231272054
+  },
+  {
+   "n": 300,
+   "conf": 0.95,
+   "bound": 0.009936081944457708
+  }
+ ],
+ "fiveS": {
+  "scores": {
+   "Sort": [
+    4,
+    3,
+    4,
+    3
+   ],
+   "Set in order": [
+    3,
+    3,
+    2,
+    3
+   ],
+   "Shine": [
+    2,
+    1,
+    2,
+    2
+   ],
+   "Standardise": [
+    3,
+    2,
+    3,
+    3
+   ],
+   "Sustain": [
+    2,
+    2,
+    3,
+    2
+   ]
+  },
+  "points": 52,
+  "max": 80,
+  "pct": 65.0,
+  "groups": {
+   "Sort": {
+    "points": 14,
+    "max": 16,
+    "pct": 87.5
+   },
+   "Set in order": {
+    "points": 11,
+    "max": 16,
+    "pct": 68.75
+   },
+   "Shine": {
+    "points": 7,
+    "max": 16,
+    "pct": 43.75
+   },
+   "Standardise": {
+    "points": 11,
+    "max": 16,
+    "pct": 68.75
+   },
+   "Sustain": {
+    "points": 9,
+    "max": 16,
+    "pct": 56.25
+   }
+  },
+  "prev": [
+   81,
+   78,
+   75,
+   72
+  ],
+  "weakest": "Shine",
+  "fallsInARow": 4
+ },
+ "fiveSna": {
+  "scores": {
+   "Sort": [
+    4,
+    3,
+    null,
+    3
+   ],
+   "Set in order": [
+    3,
+    3,
+    2,
+    3
+   ],
+   "Shine": [
+    2,
+    1,
+    2,
+    2
+   ],
+   "Standardise": [
+    3,
+    2,
+    3,
+    3
+   ],
+   "Sustain": [
+    2,
+    2,
+    3,
+    null
+   ]
+  },
+  "points": 46,
+  "max": 72,
+  "pct": 63.888888888888886
+ },
+ "fiveSfindings": {
+  "below": 3,
+  "items": {
+   "Sort": [],
+   "Set in order": [
+    2
+   ],
+   "Shine": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "Standardise": [
+    1
+   ],
+   "Sustain": [
+    0,
+    1,
+    3
+   ]
+  },
+  "count": 9
+ },
+ "fiveSrepeats": {
+  "prev": {
+   "Sort": [
+    4,
+    3,
+    4,
+    3
+   ],
+   "Set in order": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "Shine": [
+    2,
+    2,
+    2,
+    3
+   ],
+   "Standardise": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "Sustain": [
+    3,
+    2,
+    3,
+    3
+   ]
+  },
+  "repeats": {
+   "Sort": [],
+   "Set in order": [],
+   "Shine": [
+    0,
+    1,
+    2
+   ],
+   "Standardise": [],
+   "Sustain": [
+    1
+   ]
+  },
+  "count": 4
+ },
+ "fiveSseries": {
+  "pcts": [
+   72.5,
+   65.0
+  ],
+  "prevPoints": 58,
+  "falls": 1,
+  "repeats": 4
+ },
+ "gmp": {
+  "points": 36,
+  "max": 40,
+  "pct": 90.0,
+  "findings": 3,
+  "weakest": "Cleaning and hygiene",
+  "weakestPct": 62.5
+ },
+ "trend": {
+  "values": [
+   61,
+   62,
+   62,
+   64,
+   65,
+   67,
+   68,
+   70
+  ],
+  "S": 27,
+  "sen": 1.3095238095238095,
+  "tau": 0.9819805060619656,
+  "p": 0.0007619896395304238,
+  "lo": 40,
+  "hi": 75,
+  "headroomPct": 14.285714285714285
+ }
+}

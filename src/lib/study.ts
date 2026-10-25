@@ -504,6 +504,95 @@ export interface LossCount {
  *  from short stops. Each with when and who; struck, never erased. */
 export interface RunTiming { id: string; at: number; by?: string; packs: number; sec: number; struck?: boolean }
 
+/* ------------------------------------------------------------------------------------------------
+   A CHECK LOG (knowledge/specs/FC-236-check-logs.md; 25 October 2026) — a list of checks, each on a schedule or
+   a trigger, and the results added to it as they are done. Which log it is — metal detection, a 5S audit, a CILT
+   round — is `agreed.log.key`, a definition in src/tools/checks/defs; the study holds what is agreed (the checks
+   and their limits) and what was done (the results). What is due, done, missed or failed, and what a failure
+   holds, is worked out each time (src/tools/checks/checks), never stored.
+   ------------------------------------------------------------------------------------------------ */
+
+/** How often a check is done: every so many minutes, hours, shifts, days or weeks — or when something happens. */
+export type LogFreq =
+  | { every: number; unit: 'min' | 'hour' | 'shift' | 'day' | 'week' }
+  | { when: 'startup' | 'changeover' | 'trigger'; note?: string };
+
+/** What a check is: pass or fail · a number against a limit, trended · a scored checklist · a count in a slot. */
+export type LogCheckKind = 'passfail' | 'value' | 'scored' | 'count';
+
+/** One question of a scored checklist, under a heading ("Sort" in a 5S audit). */
+export interface LogItem { id: string; name: string; group?: string }
+
+/** One check on a log's list — agreed before it is done (the owner's, can.agree). */
+export interface LogCheck {
+  id: string;
+  /** In the floor's words: "Ferrous test piece", "Packing hall — 5S". */
+  name: string;
+  /** A line, a machine or a place, typed: "Metal detector". */
+  where?: string;
+  /** Who does it, as typed: "Team leader". */
+  who?: string;
+  when: LogFreq;
+  kind: LogCheckKind;
+  /** Pass or fail: what passes, in words. */
+  criterion?: string;
+  /** A value: the limits, either may be absent, and the unit. */
+  lo?: number; hi?: number; unit?: string;
+  /** A scored checklist: its questions, the score it must reach (in %) and the level below which an answer is a finding. */
+  items?: LogItem[];
+  passPct?: number;
+  findingBelow?: number;
+  /** A count in a slot: the number a slot should reach. */
+  target?: number;
+  /** What to do if it fails, in words. */
+  reaction?: string;
+  /** The priority of the problem a failure raises. */
+  priority?: 'critical' | 'high' | 'low';
+  /** A failure holds the product made since the last good check. */
+  holds?: boolean;
+  /** When it began to be due; absent: when the log began. */
+  addedAt?: number;
+  /** Taken off the list: no longer due, its results kept. */
+  removed?: boolean;
+}
+
+export interface AgreedLog {
+  /** The definition: a file in src/tools/checks/defs. */
+  key: string;
+  checks: LogCheck[];
+  /** When the schedule began — the first check is due then. */
+  since: number;
+  /** Hours in a shift, for a check "every shift" (absent: 8). */
+  shiftHours?: number;
+}
+
+/** One answer of a scored checklist as it was asked — name and group kept, so editing the list later never re-scores it. */
+export interface LogAnswer { id: string; name: string; group?: string; level: number | null }
+
+/** One check done, at the moment it was done. Struck, never erased. */
+export interface LogResult {
+  id: string;
+  checkId: string;
+  at: number;
+  by?: string;
+  /** pass · fail · value (a number) · score (a checklist) · count (a number in a slot). */
+  outcome: 'pass' | 'fail' | 'value' | 'score' | 'count';
+  value?: number;
+  answers?: LogAnswer[];
+  count?: number;
+  slot?: string;
+  note?: string;
+  /** A failure: the packs made since the last good check, if it is known (otherwise worked out from a rate). */
+  made?: number;
+  /** The problem raised on the register for it (or for each finding of an audit). */
+  problemId?: string;
+  problemIds?: string[];
+  struck?: boolean;
+}
+
+/** An abnormality tag raised from a CILT check: red needs the fitter, white the operator fixes. */
+export interface LogTag { id: string; checkId: string; at: number; by?: string; colour: 'red' | 'white'; what: string; problemId?: string; struck?: boolean }
+
 /** What it is judged against, by tool — each tool its own key, so a new tool
  *  adds one and changes none. */
 export interface StudyAgreed {
@@ -518,6 +607,8 @@ export interface StudyAgreed {
   map?: AgreedMap;
   sampling?: AgreedSampling;
   reliability?: AgreedReliability;
+  /** A CHECK LOG's agreement (knowledge/specs/FC-236-check-logs.md): which log, and the checks on its list. */
+  log?: AgreedLog;
 }
 
 /** A CALCULATOR (src/tools/calc; knowledge/specs/FC-235-calculators.md — 25 October): which one it is (`key`, the name of its
@@ -785,6 +876,10 @@ export interface StudyFacts {
   /** The footage deleted — its own fact, so it is never undone by a device
    *  still writing the video (lib/video/footage). */
   videoGone?: FootageGone;
+  /** A CHECK LOG's results (src/tools/checks): one per check done, added on several phones — a list merged by id, struck and never erased. */
+  results?: LogResult[];
+  /** A CILT log's abnormality tags (src/tools/checks, FC-062): each a problem on the register, raised from a check. */
+  tags?: LogTag[];
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -886,5 +981,7 @@ export function factsOf(v: unknown): StudyFacts {
     ...(o.lives !== undefined ? { lives: listById<RelLife>(o.lives) } : {}),
     ...(o.timings !== undefined ? { timings: listById<RunTiming>(o.timings) } : {}),
     ...(o.vevents !== undefined ? { vevents: listById<VideoEvent>(o.vevents) } : {}),
+    ...(o.results !== undefined ? { results: listById<LogResult>(o.results) } : {}),
+    ...(o.tags !== undefined ? { tags: listById<LogTag>(o.tags) } : {}),
     ...(o.turns !== undefined ? { turns: listById<TalkTurn>(o.turns) } : {}) };
 }

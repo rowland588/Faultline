@@ -3,6 +3,7 @@
  * (src/catalogue/types.ts). */
 import type { Entry } from '../types';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
+import { LOG_ACCEPTANCE, LOG_CODE, LOG_TESTS, logBuilt } from '../../tools/checks/built';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -45,7 +46,15 @@ export const OPERATIONS: Entry[] = [
     food: 'Every metal detector and X-ray unit.',
     depends: ['FC-100', 'FC-135'],
     complexity: 'S', value: 'high', valueWhy: 'A CCP on most lines.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['foodsafety.metal-detection-verification'], scenarios: ['safety'], words: ['metal detector', 'test pieces', 'x-ray'],
+    status: 'available', form: 'tool', kind: 'log', methods: ['foodsafety.metal-detection-verification'], scenarios: ['safety'], words: ['metal detector', 'test pieces', 'x-ray'],
+    spec: 'knowledge/specs/FC-170-metal-detection.md',
+    built: logBuilt('metal-detection'),
+    limits: [
+      'It records the checks and states the team’s rules; it never decides a release — whether product is held, re-run, released or scrapped is the site’s call.',
+      'The test-piece sizes, positions and frequency are the site’s validated plan; the starter list sets none of the sizes, and the standard’s clause numbers are listed TO CONFIRM, not quoted.',
+      'The signal strength on each piece is not recorded, so a drift toward the threshold is not seen before a miss; checks done on an event (start-up, a changeover, the end of the run) are counted, not scheduled.',
+      'A failure works out the product held (the packs since the last good check, at Line capacity’s or the rated speed, priced at the line’s materials a pack) and raises a problem; the product-on-hold record (FC-135) is not built yet — its facts are ready (holdFor).',
+    ],
   },
   {
     id: 'FC-171', name: 'Allergen changeover validation', discipline: 'foodsafety', sub: 'allergen',
@@ -129,7 +138,14 @@ export const OPERATIONS: Entry[] = [
     food: 'Daily GMP walks; weekly hygiene audits.',
     depends: ['FC-013', 'FC-154'],
     complexity: 'M', value: 'medium', valueWhy: 'Turns audits into actions.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['foodsafety.audits'], scenarios: ['safety', 'daily'], words: ['GMP', 'audit', 'LPA'],
+    status: 'available', form: 'tool', kind: 'log', methods: ['foodsafety.audits'], scenarios: ['safety', 'daily'], words: ['GMP', 'audit', 'LPA'],
+    spec: 'knowledge/specs/FC-177-scored-audits.md',
+    built: logBuilt('scored-audit'),
+    limits: [
+      'It scores the site’s own walk and audit — a share of the maximum overall and by heading, the findings below Met, the repeats against the audit before. It does not grade a certification audit: the standard’s grading bands are not built and are TO CONFIRM against its text.',
+      'A finding’s severity is the priority the auditor gives the problem it raises; Faultline does not classify it. A repeat is the same question below the line twice running, not the same fault asked another way.',
+      'The questions are a starting point: the site’s GMP rules and the customers’ audits decide what is asked. Closure and repeat rates across the factory are not drawn yet.',
+    ],
   },
   {
     id: 'FC-178', name: 'Hygienic design review of new equipment', discipline: 'foodsafety', sub: 'hygiene',
@@ -848,6 +864,34 @@ export const OPERATIONS: Entry[] = [
     food: 'Motor and bearing temperatures on conveyors; belt wear.',
     depends: ['FC-062', 'FC-095'],
     complexity: 'M', value: 'medium', valueWhy: 'Condition monitoring without sensors.',
-    status: 'to-build', form: 'mode', partOf: 'FC-062', methods: ['maintenance.autonomous-maintenance'], scenarios: ['machine'], words: ['condition monitoring', 'inspection route'],
+    status: 'available', form: 'mode', partOf: 'FC-062', methods: ['maintenance.autonomous-maintenance'], scenarios: ['machine'], words: ['condition monitoring', 'inspection route'],
+    spec: 'knowledge/specs/FC-062-cilt-checks.md',
+    built: logBuilt('condition-route'),
+    limits: [
+      'No limit is given: set each from the machine maker’s data before the first round, or the reading is recorded and trended but not judged.',
+      'A reading nearing its limit is within 15% of the band between the limits; a trend is said from eight readings (Mann–Kendall, Sen’s slope) and is a reason to look, not a prediction of a date.',
+      'Every number is read by a person and typed — nothing is read from a sensor; it does not plan the fitters’ work (FC-063) or rank machines (FC-064).',
+    ],
+  },
+  {
+    id: 'FC-236', name: 'Check logs — a check on a schedule, its results, and what a failure holds', discipline: 'visual', sub: 'daily',
+    problem: 'Checks are done on paper, missed without anyone knowing, and a failure is found days later with nobody sure what was made in between.',
+    questions: ['What is due now?', 'Was every check done when it was due?', 'What failed, and what did the failure hold?'],
+    method: 'A check on a schedule or a trigger with a result a person taps: due, done, missed and failed worked out from the schedule; a failure holds the product made since the last good check; compliance for a period.',
+    inputs: 'The checks (what, where, who, how often, what passes, the limit, what to do if it fails) and each result as it is done.',
+    outputs: 'The round (what is due now); compliance; the failures with the packs they held and the problem raised; the trend of a value or a score.',
+    food: 'Metal detector test pieces; 5S and GMP audits; operator care rounds; cleaning verification, label and code checks — each a definition on this shape.',
+    depends: ['FC-154', 'FC-135'],
+    complexity: 'L', value: 'high', valueWhy: 'Twenty catalogue entries are this one mechanism; built once, each is a list and its words.',
+    status: 'partial', form: 'tool', kind: 'log', methods: ['foodsafety.metal-detection-verification', 'foodsafety.audits', 'lean.five-s', 'maintenance.autonomous-maintenance'], scenarios: ['safety', 'daily', 'machine'], words: ['check', 'checklist', 'round', 'audit', 'log', 'due', 'missed'],
+    app: { key: 'logs', label: 'Check logs', says: 'Checks on a schedule — what is due, what was missed, what failed and what it held', reads: 'log', icon: 'list', order: 20 },
+    spec: 'knowledge/specs/FC-236-check-logs.md',
+    built: { where: ['/logs'], code: LOG_CODE, tests: LOG_TESTS, acceptance: [LOG_ACCEPTANCE] },
+    limits: [
+      'A kind of check with no definition yet is not offered: each log (metal detection, 5S, scored audits, CILT, condition routes) is one file in src/tools/checks/defs; the other fifteen entries on this shape are not built.',
+      'The count kind (an hour-by-hour board, FC-196) is built and tested in code but no definition uses it, so no browser script drives it.',
+      'A result’s photo is not held on the result: a photograph goes on the problem a failure or a finding raises, where the register already holds it. The product-on-hold record (FC-135) is not built; the hold’s facts are ready for it.',
+      'Two devices working one log at once are proved at the merge (every result kept, a strike holds), not by the two-device run; iOS Safari and a log of thousands of results are not tried.',
+    ],
   },
 ];

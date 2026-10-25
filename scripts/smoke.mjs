@@ -49,8 +49,10 @@ await page.goto(`${BASE}/#/room`, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(3000);
 
 const seeded = await page.evaluate(async () => {
-  const { seedForSmokeTest } = await import('/src/dev/seed.ts');
-  return seedForSmokeTest();
+  const { seedForSmokeTest, seedChecksForTest } = await import('/src/dev/seed.ts');
+  const sd = await seedForSmokeTest();
+  /* the check logs (FC-236): each definition's worked example, made into a log on the line */
+  return { ...sd, logs: await seedChecksForTest(sd.wsId, sd.projectId) };
 });
 console.log('seeded:', JSON.stringify(seeded));
 if (bootErrors.length) console.log('errors during boot/seed:', bootErrors);
@@ -103,6 +105,13 @@ const ROUTES = [
   ['an analysis — twelve fill times before and after a re-calibration: it fell by 0.5 s, the right way', `#/analysis/${seeded.analysisId}`],
   ['an analysis — three shifts’ give-away: B the worst', `#/analysis/${seeded.analysisGroupsId}`], ['an analysis — rejects by lane and fault type, linked', `#/analysis/${seeded.analysisTableId}`], ['an analysis — seal strength against jaw temperature, the line too straight', `#/analysis/${seeded.analysisRelateId}`],
   ['a control chart — forty fill weights, the limits set from twenty, two beyond and a run, the CUSUM since reading 28', `#/chart/${seeded.chartId}`],
+  /* THE CHECK LOGS (FC-236): the Logs hub, one kind's list, a line's Logs, and a log of each kind */
+  ['the check logs — every kind, the factory\'s Logs', '#/logs'], ['the check logs — on one line', `#/logs?line=${seeded.wsId}`], ['the check logs — in a project', `#/logs?project=${seeded.projectId}`],
+  ['a kind of check log — its logs and New', '#/log/metal-detection'], ['a kind of check log, on one line', `#/log/metal-detection?line=${seeded.wsId}`],
+  ['a line\'s Logs — Stops timed and its check logs', `#/lines/${seeded.wsId}?view=logs`],
+  ...Object.entries(seeded.logs).map(([k, id]) => [`a check log — ${k}`, `#/log/${k}/${id}`]),
+  ...Object.entries(seeded.logs).map(([k, id]) => [`a check log — ${k}, its history`, `#/log/${k}/${id}?tab=history`]),
+  ...Object.entries(seeded.logs).map(([k, id]) => [`a check log — ${k}, its checks`, `#/log/${k}/${id}?tab=checks`]),
   ['fixes — a fix raised from a value stream step, before → after', `#/project/${seeded.projectId}/fixes?open=${seeded.mapFixId}`],
   /* A SHIFT'S LOSSES (tool 7): every loss count; Shift 1 on Line 7 — the
      worked example, 9 min of slow running and short stops, the stops read
