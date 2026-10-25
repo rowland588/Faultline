@@ -95,7 +95,12 @@ by material; downtime events by shift and by machine. The table that turns
 - [paper] Cramér, H. (1946), *Mathematical Methods of Statistics*, Princeton — V (from knowledge).
 
 ## In Faultline
-Not built (FC-108). The register and the loss count already hold counts by
-line, machine, shift, product and cause (`src/snag`, `src/tools/losses`);
-FC-108 reads any two of those as a table, says whether the link is real and
-names the cells, with their money.
+Built (W3b, 24 October; FC-108). The Analysis tool's *Are two things linked*: a table of counts (rows by
+columns, named as the floor names them — lanes by fault types), Pearson's χ² of association with its
+expected counts, Cramér's V worded by Cohen's sizes, the standardised residuals with every cell beyond ±2
+named and marked; a 2 × 2 gets Yates' correction and Fisher's exact test beside it, Fisher leading when any
+expected count is under 5; a larger table that fails the 80%-expect-5 and none-under-1 rule is said not to be
+trusted (amber, the p only an approximation) rather than given a verdict. Counts are typed by cell or pasted
+as a block and accumulate like runs. The register and the loss count still hold counts of their own
+(`src/snag`, `src/tools/losses`); reading them straight into a table is not built. Proved by
+`scripts/acceptance/analysis-relations.mjs`.

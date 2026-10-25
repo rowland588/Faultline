@@ -121,7 +121,7 @@ const RELIABILITY: ToolWords = {
 const ANALYSIS: ToolWords = {
   title: 'Analysis',
   one: 'Analysis',
-  lede: 'Is a figure sure enough to act on, did it really change, do two ways of measuring agree, how many readings does it take? Ask one question, type or paste the readings, and read the answer in words — “we can be 95% confident” — with the margin and what it does not say.',
+  lede: 'Is a figure sure enough to act on, did it really change, do two ways of measuring agree, do groups differ, are two things linked, what moves with what, how many readings does it take? Ask one question, type or paste the readings, and read the answer in words — “we can be 95% confident” — with the margin and what it does not say.',
   add: 'New analysis',
   placeholder: 'e.g. Fill weight before and after the re-calibration',
   none: 'No analyses yet. Say what you want to know, then type or paste the readings — on the phone at the machine, or at a desk.',
@@ -315,8 +315,10 @@ function analysisWhere(s: ToolStudy): string {
   const c = s.agreed?.analysis;
   if (!c) return 'not set up yet';
   const n = (s.facts.readings ?? []).filter(r => !r.struck).length;
-  const ask = { sure: 'how sure', change: 'did it change', paired: 'two ways', plan: 'how many readings' }[c.kind];
-  return c.kind === 'plan' && !n ? ask : `${ask} · ${n} ${c.kind === 'paired' ? 'pair' : (c.kind === 'sure' && c.of !== 'mean') || (c.kind === 'change' && c.data === 'counted') ? 'run' : 'reading'}${n === 1 ? '' : 's'}`;
+  const ask = { sure: 'how sure', change: 'did it change', paired: 'two ways', groups: 'do groups differ', table: 'counts in a table', relate: 'what moves with what', plan: 'how many readings' }[c.kind];
+  const counts = c.kind === 'table' ? (s.facts.readings ?? []).filter(r => !r.struck && typeof r.made === 'number').reduce((t, r) => t + (r.made as number), 0) : n;
+  const noun = c.kind === 'paired' || (c.kind === 'relate' && (c.drivers ?? []).length === 1) ? 'pair' : c.kind === 'relate' ? 'row' : c.kind === 'table' ? 'counted' : (c.kind === 'sure' && c.of !== 'mean') || (c.kind === 'change' && c.data === 'counted') ? 'run' : 'reading';
+  return c.kind === 'plan' && !n ? ask : c.kind === 'table' ? `${ask} · ${counts.toLocaleString('en-GB')} counted` : `${ask} · ${n} ${noun}${n === 1 ? '' : 's'}`;
 }
 
 /** A control chart on a list: readings (or subgroups) and the signals. */

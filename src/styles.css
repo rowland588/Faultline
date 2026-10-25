@@ -14382,3 +14382,24 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ie-paste textarea { font-variant-numeric: tabular-nums; resize: vertical; }
 .ie-plan { margin-top: 8px; }
 .ie-hist-says { margin: 2px 0 0; }
+
+/* W3b — a table of counts, a scatter, the prediction box and a row of boxes (knowledge/specs/FC-107-groups-tables-relations.md) */
+.ie-tbl-wrap { overflow-x: auto; max-width: 100%; }
+.ie-tbl { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.ie-tbl th, .ie-tbl td { border: 1px solid var(--line); padding: 6px 10px; text-align: right; background: var(--surface); }
+.ie-tbl thead th { font-size: var(--t-detail); color: var(--muted); font-weight: 700; }
+.ie-tbl thead .ie-tbl-corner { text-align: left; }
+.ie-tbl tbody th { text-align: left; font-weight: 700; color: var(--ink-2); }
+.ie-tbl td b { display: block; font-size: var(--t-body); color: var(--ink); }
+.ie-tbl td small { display: block; color: var(--muted); font-size: var(--t-mark); }
+.ie-tbl td em { display: block; font-style: normal; font-size: var(--t-mark); font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); }
+.ie-tbl td.is-more { background: var(--surface-2); outline: 2px solid var(--ink-2); outline-offset: -2px; }
+.ie-tbl td.is-fewer { background: var(--surface-2); outline: 2px dashed var(--muted); outline-offset: -2px; }
+.ie-tbl .ie-tbl-tot { background: transparent; color: var(--muted); }
+.ie-an-scatter { width: 100%; height: auto; display: block; }
+.ie-an-fit { stroke: var(--ink); stroke-width: 2; fill: none; }
+.ie-an-fit.is-equal { stroke: var(--muted); stroke-dasharray: 5 4; stroke-width: 1.5; }
+.ie-predict { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-width: 36em; }
+.ie-agree-grid .ie-wide { grid-column: 1 / -1; }
+.ie-relrow { grid-template-columns: repeat(auto-fit, minmax(9em, 1fr)); }
+.ie-pic > .ie-pad-hint { margin-top: 8px; }

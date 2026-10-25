@@ -127,6 +127,10 @@ export interface StudyReading {
    *  the hours) */
   arm?: string;
   with?: number;
+  /** an analysis's reading (W3b): a table's count — `arm` is its row, `col` its column, `made` the count — and a
+   *  relation's row — `xs` the drivers in the order agreed, `value` the result */
+  col?: string;
+  xs?: number[];
   /** A failed item: what became of it (Rowland, 24 October — reworked, recovered by hand, or pure
    *  waste). Absent on every reading before: waste. */
   fate?: 'waste' | 'rework' | 'recovered';
@@ -491,7 +495,7 @@ export interface StudyAgreed {
  *  this figure, did it change, do two ways of measuring agree, how many readings do I need — and the readings or
  *  counts that answer it. W3b adds the groups, the counts in a table and the relations as more kinds. */
 export interface AgreedAnalysis {
-  kind: 'sure' | 'change' | 'paired' | 'plan';
+  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate';
   /** what is measured — "Fill weight", "Reject rate" */
   name: string;
   unit?: string;
@@ -509,6 +513,11 @@ export interface AgreedAnalysis {
   within?: number;
   /** how many readings: what is asked and what is known */
   plan?: AnalysisPlan;
+  /** a table (W3b): the names down the side and across the top — `firstName` is what the rows are ("Lane"), `secondName` what the
+   *  columns are ("Fault type"); groups: `firstName` is what the groups are ("Shift"). A relation: one to five drivers, in the order typed. */
+  rows?: string[];
+  cols?: string[];
+  drivers?: { name: string; unit?: string }[];
 }
 export interface AnalysisPlan {
   ask: 'mean' | 'difference' | 'share' | 'twoShares' | 'zero' | 'cycles';

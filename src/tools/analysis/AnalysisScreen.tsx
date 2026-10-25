@@ -24,7 +24,7 @@ import { bandPage } from '../../lib/lean';
 import { useLine } from '../linework/WorkBalance';
 import { raisedFrom } from '../losses/lossLean';
 import { CONFIDENCES } from '../../lib/ie/stats';
-import { analysisClosing, analysisFigures, analysisPicture, analysisProblem, analysisSays, analysisTiles, confidenceOf, KIND_WORDS, parsePasted, pctWord, planProblem, type PicRow } from './analysis';
+import { analysisClosing, analysisFigures, analysisPicture, analysisPlot, analysisProblem, analysisSays, analysisTiles, confidenceOf, KIND_WORDS, MAX_DRIVERS, parsePasted, parseRows, pctWord, planProblem, predictionSays, type PicRow, type Plot, type RelateFigures } from './analysis';
 
 const OWNER = canAt('owner');
 
@@ -56,6 +56,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
   const rate = line?.labourRatePerHour && line.labourRatePerHour > 0 ? labourPerHour({ crew: 1, labourRatePerHour: line.labourRatePerHour, labourBurden: line.labourBurden }) : undefined;
   const f = useMemo(() => (a ? analysisFigures(a, readings, { rate }) : undefined), [a, readings, rate]);
   const said = useMemo(() => (a && f ? analysisSays(f, a) : undefined), [a, f]);
+  const plot = useMemo(() => (a && f ? analysisPlot(f, a) : undefined), [a, f]);
   const closed = !!s.closedAt;
   const [agreeing, setAgreeing] = useState(false);
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
@@ -86,7 +87,11 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
           </div>
           {a.kind === 'plan' && <PlanBox a={a} canAgree={can.agree && !closed} onPlan={setPlan} />}
           <div className="ie-body">
-            <div className="ie-pic"><Pic rows={analysisPicture(f, a)} said={said.text} /></div>
+            <div className="ie-pic">
+              {plot ? <PlotView plot={plot} said={said.text} /> : <Pic rows={analysisPicture(f, a)} said={said.text} />}
+              {f.kind === 'relate' && f.line && <Predict f={f} a={a} />}
+              {plot?.kind === 'table' && <p className="sub ie-pad-hint">Each cell: the count, then what chance alone would give. A cell more than 2 standard residuals from that is marked <b>more</b> or <b>fewer</b>.</p>}
+            </div>
             {!closed && can.edit && <Entry a={a} readings={readings} onAdd={add} />}
           </div>
           {f.checks.length > 0 && (
@@ -112,7 +117,11 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
 }
 
 /* ----------------------------------------------------------------- agreeing */
-const ORDER: AgreedAnalysis['kind'][] = ['sure', 'change', 'paired', 'plan'];
+const ORDER: AgreedAnalysis['kind'][] = ['sure', 'change', 'paired', 'groups', 'table', 'relate', 'plan'];
+const names = (t: string): string[] => t.split(/[,;\n]/).map(x => x.trim()).filter(Boolean);
+/** "Jaw temperature (°C), Dwell (s)" → the drivers, each with its unit if one is in brackets. */
+const drivers = (t: string): { name: string; unit?: string }[] => names(t).map(x => { const m = /^(.*?)\s*\(([^)]*)\)$/.exec(x); return m && m[1].trim() ? { name: m[1].trim(), ...(m[2].trim() ? { unit: m[2].trim() } : {}) } : { name: x }; });
+const driversText = (ds?: { name: string; unit?: string }[]): string => (ds ?? []).map(d => (d.unit ? `${d.name} (${d.unit})` : d.name)).join(', ');
 const OFS: { k: NonNullable<AgreedAnalysis['of']>; word: string }[] = [{ k: 'mean', word: 'A mean — measured readings' }, { k: 'share', word: 'A share — counted, out of what was made' }, { k: 'rate', word: 'A rate — counted over time' }];
 const BETTER: { k: NonNullable<AgreedAnalysis['better']>; word: string }[] = [{ k: 'lower', word: 'Lower is better' }, { k: 'higher', word: 'Higher is better' }, { k: 'either', word: 'No view' }];
 
@@ -128,9 +137,15 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const [first, setFirst] = useState(a?.firstName ?? '');
   const [second, setSecond] = useState(a?.secondName ?? '');
   const [within, setWithin] = useState(a?.within?.toString() ?? '');
+  const [rowsT, setRowsT] = useState((a?.rows ?? []).join(', '));
+  const [colsT, setColsT] = useState((a?.cols ?? []).join(', '));
+  const [driversT, setDriversT] = useState(driversText(a?.drivers));
   if (!canAgree) return <div className="ie-agree is-wait"><h2>Waiting for it to be agreed</h2><p className="sub">What is asked and how sure it has to be is agreed by the project’s owner first.</p></div>;
-  const draft: AgreedAnalysis = { kind, name: name.trim(), ...(unit.trim() ? { unit: unit.trim() } : {}), confidence: conf,
+  const draft: AgreedAnalysis = { kind, name: name.trim(), ...(unit.trim() && kind !== 'table' ? { unit: unit.trim() } : {}), confidence: conf,
     ...(kind === 'sure' ? { of } : {}), ...(kind === 'change' ? { data, better } : {}),
+    ...(kind === 'groups' ? { better, ...(first.trim() ? { firstName: first.trim() } : {}) } : {}),
+    ...(kind === 'table' ? { rows: names(rowsT), cols: names(colsT), ...(first.trim() ? { firstName: first.trim() } : {}), ...(second.trim() ? { secondName: second.trim() } : {}) } : {}),
+    ...(kind === 'relate' ? { drivers: drivers(driversT) } : {}),
     ...(kind === 'paired' ? { ...(first.trim() ? { firstName: first.trim() } : {}), ...(second.trim() ? { secondName: second.trim() } : {}), ...(num(within) !== undefined ? { within: num(within) } : {}) } : {}),
     ...(kind === 'plan' ? { plan: a?.plan ?? { ask: 'mean' as const } } : {}) };
   const problem = within.trim() !== '' && num(within) === undefined ? 'Numbers only in the boxes.' : analysisProblem(draft);
@@ -157,13 +172,13 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
           {OFS.map(x => <button key={x.k} type="button" role="radio" aria-checked={of === x.k} className={'ie-kind' + (of === x.k ? ' on' : '')} onClick={() => setOf(x.k)}><b>{x.word}</b></button>)}
         </div>
       )}
-      {kind === 'change' && (
+      {(kind === 'change' || kind === 'groups') && (
         <>
-          <div className="ie-kinds" role="radiogroup" aria-label="How was it taken?">
+          {kind === 'change' && <div className="ie-kinds" role="radiogroup" aria-label="How was it taken?">
             <span className="field-label">How was it taken?</span>
             <button type="button" role="radio" aria-checked={data === 'measured'} className={'ie-kind' + (data === 'measured' ? ' on' : '')} onClick={() => setData('measured')}><b>Measured</b><small>weights, temperatures, times</small></button>
             <button type="button" role="radio" aria-checked={data === 'counted'} className={'ie-kind' + (data === 'counted' ? ' on' : '')} onClick={() => setData('counted')}><b>Counted</b><small>rejected out of made, a run each side</small></button>
-          </div>
+          </div>}
           <div className="ie-kinds" role="radiogroup" aria-label="Which way is better?">
             <span className="field-label">Which way is better? <i className="sub">for the words — it never changes the test</i></span>
             {BETTER.map(x => <button key={x.k} type="button" role="radio" aria-checked={better === x.k} className={'ie-kind' + (better === x.k ? ' on' : '')} onClick={() => setBetter(x.k)}><b>{x.word}</b></button>)}
@@ -176,9 +191,23 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       </div>
       <div className="ie-agree-grid">
         <label className="field"><span className="field-label">What is measured</span>
-          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : 'Fill weight'} /></label>
-        <label className="field"><span className="field-label">Unit {kind === 'sure' && of === 'rate' ? <i className="sub">what the time is counted in — hours</i> : kind === 'change' && data === 'counted' ? <i className="sub">optional</i> : null}</span>
-          <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder={of === 'rate' && kind === 'sure' ? 'hours' : 'g'} /></label>
+          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : 'Fill weight'} /></label>
+        {kind !== 'table' && <label className="field"><span className="field-label">Unit {kind === 'sure' && of === 'rate' ? <i className="sub">what the time is counted in — hours</i> : kind === 'change' && data === 'counted' ? <i className="sub">optional</i> : null}</span>
+          <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder={of === 'rate' && kind === 'sure' ? 'hours' : 'g'} /></label>}
+        {kind === 'groups' && <label className="field"><span className="field-label">What the groups are <i className="sub">optional — a word for the words</i></span>
+          <input className="text-input" value={first} maxLength={30} onChange={e => setFirst(e.target.value)} placeholder="shift" /></label>}
+        {kind === 'table' && <>
+          <label className="field"><span className="field-label">What the rows are <i className="sub">one word</i></span>
+            <input className="text-input" value={first} maxLength={30} onChange={e => setFirst(e.target.value)} placeholder="Lane" /></label>
+          <label className="field"><span className="field-label">The rows <i className="sub">down the side, separated by commas</i></span>
+            <input className="text-input" value={rowsT} onChange={e => setRowsT(e.target.value)} placeholder="Lane 1, Lane 2, Lane 3" aria-label="The rows" /></label>
+          <label className="field"><span className="field-label">What the columns are <i className="sub">one word</i></span>
+            <input className="text-input" value={second} maxLength={30} onChange={e => setSecond(e.target.value)} placeholder="Fault type" /></label>
+          <label className="field"><span className="field-label">The columns <i className="sub">across the top, separated by commas</i></span>
+            <input className="text-input" value={colsT} onChange={e => setColsT(e.target.value)} placeholder="Underweight, Leaker, Misprint" aria-label="The columns" /></label>
+        </>}
+        {kind === 'relate' && <label className="field ie-wide"><span className="field-label">The drivers <i className="sub">one to {MAX_DRIVERS}, each with its unit in brackets, separated by commas — the result is what is measured above</i></span>
+          <input className="text-input" value={driversT} onChange={e => setDriversT(e.target.value)} placeholder="Jaw temperature (°C), Dwell (s)" aria-label="The drivers" /></label>}
         {kind === 'paired' && <>
           <label className="field"><span className="field-label">The first way</span>
             <input className="text-input" value={first} maxLength={40} onChange={e => setFirst(e.target.value)} placeholder="Checkweigher 1" /></label>
@@ -203,6 +232,9 @@ export function agreedWords(a: AgreedAnalysis): string {
     case 'sure': return `${a.name} — how sure, ${a.of === 'share' ? 'a share counted' : a.of === 'rate' ? 'a rate counted' : 'a mean measured'} · ${c}`;
     case 'change': return `${a.name} — did it change, ${a.data === 'counted' ? 'counted' : 'measured'}${a.better && a.better !== 'either' ? ` · ${a.better} is better` : ''} · ${c}`;
     case 'paired': return `${a.name} — ${a.firstName || 'the first way'} against ${a.secondName || 'the second way'}${a.within !== undefined ? ` · ${a.within}${u} does not matter` : ''} · ${c}`;
+    case 'groups': return `${a.name} — do the ${a.firstName || 'group'}s differ${a.better && a.better !== 'either' ? ` · ${a.better} is better` : ''}${u ? ` · in${u}` : ''} · ${c}`;
+    case 'table': return `${a.name} — ${(a.rows ?? []).length} ${(a.firstName || 'row').toLowerCase()}s by ${(a.cols ?? []).length} ${(a.secondName || 'column').toLowerCase()}s, counted · ${c}`;
+    case 'relate': return `${a.name}${u ? ` in${u}` : ''} against ${driversText(a.drivers) || 'its drivers'} · ${c}`;
     case 'plan': return `${a.name} — how many readings · ${c}`;
   }
 }
@@ -253,6 +285,105 @@ function Paste({ cols, label, onAdd }: { cols: 1 | 2; label: string; onAdd: (p: 
 }
 
 function Entry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReading[]; onAdd: (rs: Omit<StudyReading, 'id' | 'at'>[]) => void }) {
+  if (a.kind === 'groups') return <GroupEntry a={a} readings={readings} onAdd={onAdd} />;
+  if (a.kind === 'table') return <TableEntry a={a} readings={readings} onAdd={onAdd} />;
+  if (a.kind === 'relate') return <RelateEntry a={a} onAdd={onAdd} />;
+  return <SimpleEntry a={a} readings={readings} onAdd={onAdd} />;
+}
+
+type OnAdd = (rs: Omit<StudyReading, 'id' | 'at'>[]) => void;
+/** Groups: a chip a group, a new one by name, the pad and a pasted column into the chosen group. */
+function GroupEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReading[]; onAdd: OnAdd }) {
+  const noun = (a.firstName || 'group').toLowerCase();
+  const seen = useMemo(() => { const out: string[] = []; for (const r of readings) if (r.arm && typeof r.value === 'number' && !out.includes(r.arm)) out.push(r.arm); return out; }, [readings]);
+  const [extra, setExtra] = useState<string[]>([]), [cur, setCur] = useState(''), [fresh, setFresh] = useState('');
+  const all = [...seen, ...extra.filter(x => !seen.includes(x))], sel = all.includes(cur) ? cur : all[0] ?? '';
+  const n = (g: string) => readings.filter(r => !r.struck && r.arm === g && typeof r.value === 'number').length;
+  const addGroup = () => { const g = fresh.trim(); if (!g) return; if (!all.some(x => x.toLowerCase() === g.toLowerCase())) setExtra(e => [...e, g]); setCur(all.find(x => x.toLowerCase() === g.toLowerCase()) ?? g); setFresh(''); };
+  return (
+    <div className="ie-cap-box" aria-label="Take the readings">
+      <div className="chip-row" role="radiogroup" aria-label={`Which ${noun}?`}>
+        {all.map(g => <button key={g} type="button" role="radio" aria-checked={sel === g} className={'chip' + (sel === g ? ' on' : '')} onClick={() => setCur(g)}>{g} · {n(g)}</button>)}
+      </div>
+      <div className="ie-kind-taps">
+        <label className="field"><span className="field-label">{all.length ? `Another ${noun}` : `Name the first ${noun}`}</span>
+          <input className="text-input" value={fresh} maxLength={30} onChange={e => setFresh(e.target.value)} placeholder={noun === 'shift' ? 'Nights' : 'Head 1'} aria-label={`New ${noun}`}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addGroup(); } }} /></label>
+        <button type="button" className="btn" disabled={!fresh.trim()} onClick={addGroup}>Add the {noun}</button>
+      </div>
+      {sel ? <>
+        <p className="sub ie-pad-hint">Readings for <b>{sel}</b>, then Enter</p>
+        <Pad key={sel} unit={a.unit} label="The reading" onEnter={v => onAdd([{ value: v, arm: sel }])} />
+        <Paste cols={1} label={`Or paste ${sel}’s readings — a number to a line, or spaced`} onAdd={p => onAdd(p.values.map(value => ({ value, arm: sel })))} />
+      </> : null}
+    </div>
+  );
+}
+
+/** A table: a row, a column, a count — or the whole table pasted. */
+function TableEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReading[]; onAdd: OnAdd }) {
+  const rows = a.rows ?? [], cols = a.cols ?? [], rowN = (a.firstName || 'row').toLowerCase(), colN = (a.secondName || 'column').toLowerCase();
+  const [row, setRow] = useState(rows[0] ?? ''), [col, setCol] = useState(cols[0] ?? ''), [n, setN] = useState(''), [text, setText] = useState(''), [skipped, setSkipped] = useState<string[]>([]);
+  const live = readings.filter(r => !r.struck && typeof r.made === 'number');
+  const tot = (f: (r: StudyReading) => boolean) => live.filter(f).reduce((t, r) => t + (r.made as number), 0);
+  const count = num(n), ok = count !== undefined && Number.isInteger(count) && count >= 0 && rows.includes(row) && cols.includes(col);
+  const add = () => { if (!ok) return; onAdd([{ arm: row, col, made: count as number }]); setN(''); };
+  return (
+    <div className="ie-cap-box" aria-label="Count into the table">
+      <div className="chip-row" role="radiogroup" aria-label={`Which ${rowN}?`}>
+        {rows.map(r => <button key={r} type="button" role="radio" aria-checked={row === r} className={'chip' + (row === r ? ' on' : '')} onClick={() => setRow(r)}>{r} · {tot(x => x.arm === r)}</button>)}
+      </div>
+      <div className="chip-row" role="radiogroup" aria-label={`Which ${colN}?`}>
+        {cols.map(c => <button key={c} type="button" role="radio" aria-checked={col === c} className={'chip' + (col === c ? ' on' : '')} onClick={() => setCol(c)}>{c} · {tot(x => x.col === c)}</button>)}
+      </div>
+      <div className="ie-agree-grid">
+        <label className="field"><span className="field-label">How many — {row} / {col}</span>
+          <input className="text-input" inputMode="numeric" value={n} onChange={e => setN(e.target.value)} placeholder="3" aria-label="How many" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} /></label>
+      </div>
+      <button type="button" className="btn btn-primary" disabled={!ok} onClick={add}>Add to the count</button>
+      <div className="ie-paste">
+        <label className="field"><span className="field-label">Or paste the whole table — {rows.length} lines of {cols.length} counts, in the order above</span>
+          <textarea className="text-input" rows={Math.min(rows.length + 1, 6)} value={text} onChange={e => setText(e.target.value)} aria-label="Paste the table" placeholder={rows.map((_, i) => cols.map((_c, j) => (i + j) % 4 + 2).join(' ')).join('\n')} /></label>
+        <button type="button" className="btn" disabled={!text.trim()} onClick={() => {
+          const p = parseRows(text, cols.length), out: Omit<StudyReading, 'id' | 'at'>[] = [], bad = [...p.skipped];
+          p.rows.forEach((vals, i) => { if (i >= rows.length) { bad.push(vals.join(' ')); return; } vals.forEach((v, j) => { if (Number.isInteger(v) && v > 0) out.push({ arm: rows[i], col: cols[j], made: v }); else if (!Number.isInteger(v) || v < 0) bad.push(String(v)); }); });
+          if (out.length) onAdd(out); setSkipped(bad); setText('');
+        }}>Add these counts</button>
+        {skipped.length > 0 && <p className="ie-problem" role="status">Left out — not whole counts in place: {skipped.slice(0, 6).join(', ')}{skipped.length > 6 ? `, and ${skipped.length - 6} more` : ''}.</p>}
+      </div>
+    </div>
+  );
+}
+
+/** A relation: a box a driver and one for the result, Enter moving on; or rows pasted. */
+function RelateEntry({ a, onAdd }: { a: AgreedAnalysis; onAdd: OnAdd }) {
+  const ds = a.drivers ?? [], width = ds.length + 1;
+  const [vals, setVals] = useState<string[]>(() => Array(width).fill(''));
+  const [text, setText] = useState(''), [skipped, setSkipped] = useState<string[]>([]);
+  const nums = vals.map(num), ok = nums.length === width && nums.every(v => v !== undefined);
+  const add = () => { if (!ok) return; onAdd([{ xs: nums.slice(0, ds.length) as number[], value: nums[ds.length] as number }]); setVals(Array(width).fill('')); (document.querySelector('.ie-relrow input') as HTMLInputElement | null)?.focus(); };
+  const labels = [...ds.map(d => `${d.name}${d.unit ? ` (${d.unit})` : ''}`), `${a.name}${a.unit ? ` (${a.unit})` : ''}`];
+  return (
+    <div className="ie-cap-box" aria-label={ds.length === 1 ? 'Take the pairs' : 'Take the rows'}>
+      <div className="ie-agree-grid ie-relrow">
+        {labels.map((l, i) => (
+          <label key={l + i} className="field"><span className="field-label">{l}</span>
+            <input className="text-input" inputMode="decimal" value={vals[i] ?? ''} aria-label={l} onChange={e => setVals(v => v.map((x, k) => (k === i ? e.target.value : x)))}
+              onKeyDown={e => { if (e.key !== 'Enter') return; e.preventDefault(); if (i < width - 1) ((e.currentTarget.closest('.ie-relrow')?.querySelectorAll('input')[i + 1]) as HTMLInputElement | undefined)?.focus(); else add(); }} /></label>
+        ))}
+      </div>
+      <button type="button" className="btn btn-primary" disabled={!ok} onClick={add}>{ds.length === 1 ? 'Add the pair' : 'Add the row'}</button>
+      <div className="ie-paste">
+        <label className="field"><span className="field-label">Or paste rows — {width} numbers to a line: {labels.map(l => l.replace(/ \(.*\)$/, '')).join(', ')}</span>
+          <textarea className="text-input" rows={3} value={text} onChange={e => setText(e.target.value)} aria-label="Paste rows" placeholder={Array.from({ length: 2 }, (_, r) => Array.from({ length: width }, (_c, c) => (r * 5 + c * 3 + 10)).join(' ')).join('\n')} /></label>
+        <button type="button" className="btn" disabled={!text.trim()} onClick={() => { const p = parseRows(text, width); if (p.rows.length) onAdd(p.rows.map(r => ({ xs: r.slice(0, ds.length), value: r[ds.length] }))); setSkipped(p.skipped); setText(''); }}>Add these rows</button>
+        {skipped.length > 0 && <p className="ie-problem" role="status">Left out — not {width} numbers: {skipped.slice(0, 4).join(' | ')}{skipped.length > 4 ? `, and ${skipped.length - 4} more` : ''}.</p>}
+      </div>
+    </div>
+  );
+}
+
+function SimpleEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReading[]; onAdd: OnAdd }) {
   const unit = a.unit;
   const live = readings.filter(r => !r.struck);
   const [arm, setArm] = useState<'before' | 'after'>('before');
@@ -347,7 +478,7 @@ function PlanBox({ a, canAgree, onPlan }: { a: AgreedAnalysis; canAgree: boolean
 function Rows({ a, readings, canStrike, onStrike }: { a: AgreedAnalysis; readings: StudyReading[]; canStrike: boolean; onStrike: (id: string, struck: boolean) => void }) {
   if (!readings.length) return null;
   const u = a.unit ? ` ${a.unit}` : '';
-  const word = (r: StudyReading): string => (typeof r.with === 'number' ? `${r.value}${u} → ${r.with}${u}` : typeof r.made === 'number' ? `${r.rejected} of ${r.made}${a.kind === 'sure' && a.of === 'rate' ? ` over ${r.made}${u}`.replace(/^ of.*/, '') : ''}` : typeof r.value === 'number' ? `${r.value}${u}` : '—');
+  const word = (r: StudyReading): string => (r.col !== undefined && typeof r.made === 'number' ? `${r.arm} × ${r.col}: ${r.made}` : Array.isArray(r.xs) && typeof r.value === 'number' ? `${r.xs.join(', ')} → ${r.value}${u}` : typeof r.with === 'number' ? `${r.value}${u} → ${r.with}${u}` : typeof r.made === 'number' ? `${r.rejected} of ${r.made}${a.kind === 'sure' && a.of === 'rate' ? ` over ${r.made}${u}`.replace(/^ of.*/, '') : ''}` : typeof r.value === 'number' ? `${r.value}${u}` : '—');
   return (
     <details className="ie-readings">
       <summary>Every reading, in the order taken ({readings.length})</summary>
@@ -355,7 +486,7 @@ function Rows({ a, readings, canStrike, onStrike }: { a: AgreedAnalysis; reading
         {readings.map((r, i) => (
           <li key={r.id} className={r.struck ? 'is-struck' : ''}>
             <span className="ie-no">{i + 1}</span>
-            <b>{word(r)}{r.arm ? ` · ${r.arm}` : ''}</b>
+            <b>{word(r)}{r.arm && r.col === undefined ? ` · ${r.arm}` : ''}</b>
             {canStrike && <button type="button" className="linkish" onClick={() => onStrike(r.id, !r.struck)} aria-label={`${r.struck ? 'Restore' : 'Strike'} reading ${i + 1}`}>{r.struck ? 'Restore' : 'Strike'}</button>}
           </li>
         ))}
@@ -393,5 +524,60 @@ function Pic({ rows, said }: { rows: PicRow[]; said: string }) {
       })}
       <text x={LAB} y={H - 6} className="ie-an-sub">{rows[0].unit && !rows[0].unit.startsWith('per') ? rows[0].unit : ''}</text>
     </svg>
+  );
+}
+
+/* ----------------------------------------------------------------- a table and a scatter */
+const SW = 640, SH = 300, SL = 58, SR = 14, ST = 12, SB = 40;
+function PlotView({ plot, said }: { plot: Plot; said: string }) {
+  if (plot.kind === 'table') {
+    const { rows, cols, counts, expected, residuals } = plot;
+    return (
+      <div className="ie-tbl-wrap" role="img" aria-label={said}>
+        <table className="ie-tbl">
+          <thead><tr><th scope="col" className="ie-tbl-corner">{plot.rowName} \ {plot.colName}</th>{cols.map(c => <th key={c} scope="col">{c}</th>)}<th scope="col">All</th></tr></thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={r}><th scope="row">{r}</th>
+                {cols.map((c, j) => {
+                  const z = residuals[i][j], flag = Math.abs(z) > 2 ? (z > 0 ? 'more' : 'fewer') : '';
+                  return <td key={c} className={flag ? `is-${flag}` : ''}><b>{counts[i][j]}</b><small>{expected[i][j].toFixed(1)}</small>{flag && <em>{flag}</em>}</td>;
+                })}
+                <td className="ie-tbl-tot">{plot.rowTotals[i]}</td></tr>
+            ))}
+            <tr><th scope="row">All</th>{cols.map((c, j) => <td key={c} className="ie-tbl-tot">{plot.colTotals[j]}</td>)}<td className="ie-tbl-tot"><b>{plot.total}</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+  const x = (v: number) => SL + ((v - plot.xAxis[0]) / (plot.xAxis[1] - plot.xAxis[0])) * (SW - SL - SR), y = (v: number) => ST + (1 - (v - plot.yAxis[0]) / (plot.yAxis[1] - plot.yAxis[0])) * (SH - ST - SB);
+  const band = plot.band ? `${plot.band.map(b => `${x(b.x)},${y(b.hi)}`).join(' ')} ${[...plot.band].reverse().map(b => `${x(b.x)},${y(b.lo)}`).join(' ')}` : '';
+  const tick = (lo: number, hi: number) => [0, 1, 2, 3, 4].map(i => lo + ((hi - lo) * i) / 4);
+  const f = (v: number) => Number(v.toPrecision(3)).toString();
+  return (
+    <svg className="ie-svg ie-an-scatter" viewBox={`0 0 ${SW} ${SH}`} role="img" aria-label={said}>
+      <line x1={SL} x2={SW - SR} y1={SH - SB} y2={SH - SB} className="ie-an-axis" /><line x1={SL} x2={SL} y1={ST} y2={SH - SB} className="ie-an-axis" />
+      {tick(plot.xAxis[0], plot.xAxis[1]).map(v => <text key={'x' + v} x={x(v)} y={SH - SB + 14} textAnchor="middle" className="ie-an-sub">{f(v)}</text>)}
+      {tick(plot.yAxis[0], plot.yAxis[1]).map(v => <text key={'y' + v} x={SL - 6} y={y(v) + 3} textAnchor="end" className="ie-an-sub">{f(v)}</text>)}
+      {band && <polygon points={band} className="ie-an-band is-n" />}
+      {plot.line && <line x1={x(plot.line[0][0])} y1={y(plot.line[0][1])} x2={x(plot.line[1][0])} y2={y(plot.line[1][1])} className={'ie-an-fit' + (plot.equal ? ' is-equal' : '')} />}
+      {plot.pts.map((p, i) => <circle key={i} cx={x(p[0])} cy={y(p[1])} r={3.2} className="ie-an-dot" />)}
+      <text x={(SL + SW - SR) / 2} y={SH - 6} textAnchor="middle" className="ie-an-lab">{plot.xName}{plot.xUnit ? ` (${plot.xUnit})` : ''}</text>
+      <text transform={`translate(12 ${(ST + SH - SB) / 2}) rotate(-90)`} textAnchor="middle" className="ie-an-lab">{plot.yName}{plot.yUnit ? ` (${plot.yUnit})` : ''}</text>
+    </svg>
+  );
+}
+
+/** What the line gives at a typed driver — inside the readings with its two intervals, beyond them said to be a guess. */
+function Predict({ f, a }: { f: RelateFigures; a: AgreedAnalysis }) {
+  const [t, setT] = useState('');
+  const d = f.drivers[0], x0 = num(t), say = x0 !== undefined ? predictionSays(f, a, x0) : undefined;
+  return (
+    <div className="ie-predict">
+      <label className="field"><span className="field-label">What does the line give at … <i className="sub">{d.name}{d.unit ? ` (${d.unit})` : ''}</i></span>
+        <input className="text-input" inputMode="decimal" value={t} onChange={e => setT(e.target.value)} placeholder={f.line ? String(Math.round((f.line.xRange[0] + f.line.xRange[1]) / 2)) : ''} aria-label="Predict at" /></label>
+      {say && <p className={'ie-check' + (say.inside ? ' is-n' : ' is-a')} role="status">{say.text}</p>}
+    </div>
   );
 }

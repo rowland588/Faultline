@@ -127,6 +127,9 @@ export interface Seeded {
   chartId: string;
   /** AN ANALYSIS on Line 7's weigher (W3a): twelve fill weights before a re-calibration and twelve after — did it change? */
   analysisId: string;
+  analysisGroupsId: string;
+  analysisTableId: string;
+  analysisRelateId: string;
   /** The paced job's Line 7 — its own workspace, with shifts, a cost model
    *  and stops timed through the last two days' shifts (tool 7). */
   line7WsId: string;
@@ -1055,6 +1058,22 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       uses: [], startedAt: w0, createdAt: t, updatedAt: t });
   }
 
+  /* THE ANALYSIS, PART TWO (W3b, knowledge/specs/FC-107-groups-tables-relations.md): three shifts' give-away, rejects by lane and fault type,
+     and seal strength against jaw temperature — quick sessions (no line), the specification's independent cases (cases-w3b.py). */
+  const analysisGroupsId = uid(), analysisTableId = uid(), analysisRelateId = uid();
+  {
+    const M = 60_000, w0 = t - 40 * 3_600_000;
+    const shifts: [string, number[]][] = [['A', [1.2, 0.9, 1.4, 1.1, 1.0, 1.3, 0.8, 1.2]], ['B', [1.6, 1.9, 1.4, 1.8, 2.1, 1.5, 1.7, 1.6]], ['C', [1.1, 1.3, 0.9, 1.2, 1.4, 1.0, 1.2, 1.1]]];
+    await putStudy({ id: analysisGroupsId, tool: 'analysis', name: 'Give-away by shift', agreed: { analysis: { kind: 'groups', name: 'Give-away', unit: 'g', firstName: 'shift', better: 'lower', confidence: 0.95 } },
+      facts: { readings: shifts.flatMap(([arm, vs], k) => vs.map((value, i) => ({ id: uid(), value, arm, at: w0 + (k * 10 + i) * M, who: 'Sam Patel' }))) }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
+    const lanes = ['Lane 1', 'Lane 2', 'Lane 3'], faults = ['Underweight', 'Leaker', 'Misprint'], T = [[18, 7, 5], [9, 14, 4], [6, 5, 12]];
+    await putStudy({ id: analysisTableId, tool: 'analysis', name: 'Rejects by lane and fault type', agreed: { analysis: { kind: 'table', name: 'Rejects', firstName: 'Lane', secondName: 'Fault type', rows: lanes, cols: faults, confidence: 0.95 } },
+      facts: { readings: T.flatMap((r, i) => r.map((made, j) => ({ id: uid(), arm: lanes[i], col: faults[j], made, at: w0 + (i * 3 + j) * M, who: 'Sam Patel' }))) }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
+    const X = [150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205], Y = [9.1, 10.2, 11.0, 12.4, 12.9, 13.8, 14.6, 15.1, 15.9, 16.2, 16.8, 17.0];
+    await putStudy({ id: analysisRelateId, tool: 'analysis', name: 'Seal strength against jaw temperature', agreed: { analysis: { kind: 'relate', name: 'Seal strength', unit: 'N', drivers: [{ name: 'Jaw temperature', unit: '°C' }], confidence: 0.95 } },
+      facts: { readings: X.map((x, i) => ({ id: uid(), xs: [x], value: Y[i], at: w0 + i * M, who: 'Sam Patel' })) }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
+  }
+
   /* A CONTROL CHART (W2, knowledge/specs/FC-086-charts.md): the CUSUM case's forty readings — steady for
      twenty, then 1 g higher — the limits set from the first twenty and kept. */
   const chartId = uid();
@@ -1214,7 +1233,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId, analysisId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId,
     line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }

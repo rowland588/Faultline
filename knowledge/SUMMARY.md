@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 79 |
+| Available (`available`) | 83 |
 | Partly (`partial`) | 27 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 109 |
+| Not built yet (`to-build`) | 105 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -25,7 +25,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Changeovers | 5 | 1 | 2 |  | 2 |  |  |
 | Commissioning and operational readiness | 13 | 11 | 1 |  |  | 1 |  |
 | Statistical process control and capability | 17 | 16 |  |  | 1 |  |  |
-| Statistical analysis | 15 | 6 | 1 |  | 7 | 1 |  |
+| Statistical analysis | 15 | 10 | 1 |  | 3 | 1 |  |
 | Measurement systems | 6 |  |  |  | 6 |  |  |
 | Quality engineering and defects | 14 | 2 |  |  | 10 | 2 |  |
 | Six Sigma and DMAIC | 8 |  | 2 |  | 6 |  |  |
@@ -69,9 +69,9 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 73
-- a mode of another tool: 64
-- a part several tools share: 43
+- a tool of its own: 72
+- a mode of another tool: 68
+- a part several tools share: 40
 - a way through several tools: 8
 - a report or board: 34
 - decided after research: 12
@@ -115,11 +115,11 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
 - FC-073 The stage gate — new equipment to handover — 9 modes inside it
+- FC-105 Before and after — did it move, for a reason — 7 modes inside it
 - FC-001 Value stream map — current and future state — 6 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 4 modes inside it
 - FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 4 modes inside it
 - FC-086 Individuals and moving range chart (XmR) — 4 modes inside it
-- FC-105 Before and after — did it move, for a reason — 3 modes inside it
 - FC-058 Reliability — MTBF and failure rate, several things counted at once — 3 modes inside it
 - FC-098 Reject rate capability — rejects out of what was made — 3 modes inside it
 - FC-146 6M — a running line made to perform better — 3 modes inside it

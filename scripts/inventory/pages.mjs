@@ -385,6 +385,28 @@ export const PAGES = (sd, cap) => [
     { what: 'the action plan', sel: '.ln-plan-p' },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
+  /* THE ANALYSIS, PART TWO (24 October, W3b, knowledge/specs/FC-107-groups-tables-relations.md): three shifts, a table of counts, a relation — each page says its answer in "we can be 95% confident" and draws what it is about */
+  { name: 'Analysis — do groups differ', path: `#/analysis/${sd.analysisGroupsId}`, must: [
+    { what: 'the band’s verdict — the worst shift, amber', sel: '.ln-band', text: /B is the worst/ },
+    { what: 'five tiles — shifts, readings, the widest gap, p, the share between', sel: '.ie-strip .ln-tile', n: 5 },
+    { what: 'the sentence, with each pair’s interval', sel: '.ie-say', text: /B is above A by 0\.59 g \(between 0\.34 and 0\.84 g\).*A and C are not shown to differ/ },
+    { what: 'a lane a shift with its interval', sel: '.ie-an-pic g', n: 3 }, { what: 'a chip a shift', sel: '.chip-row .chip', n: 3 },
+    { what: 'a new shift by name, and the pad', sel: '.ie-pad .ie-key', n: 13 }, { what: 'Levene’s check on the spreads', sel: '.ie-check', text: /Levene/ },
+  ] },
+  { name: 'Analysis — counts in a table', path: `#/analysis/${sd.analysisTableId}`, must: [
+    { what: 'the band’s verdict', sel: '.ln-band', text: /Linked/ },
+    { what: 'five tiles — counted, χ², p, Cramér’s V, how sure', sel: '.ie-strip .ln-tile', n: 5 },
+    { what: 'the sentence, naming the cell beyond ±2', sel: '.ie-say', text: /Lane 3 has more Misprint than chance would give \(12 against 6\.0\)/ },
+    { what: 'the table drawn — nine cells, one marked more', sel: '.ie-tbl td.is-more', n: 1 }, { what: 'a row chip and a column chip for each name', sel: '.chip-row .chip', n: 6 },
+    { what: 'the whole table pasted', sel: '.ie-paste textarea' },
+  ] },
+  { name: 'Analysis — what moves with what', path: `#/analysis/${sd.analysisRelateId}`, must: [
+    { what: 'the band’s verdict — linked, not straight, amber', sel: '.ln-band', text: /Linked, not straight/ },
+    { what: 'five tiles — pairs, the link, per unit, explained, the shape', sel: '.ie-strip .ln-tile', n: 5 },
+    { what: 'the sentence, in the floor’s units', sel: '.ie-say', text: /Seal strength rises 0\.145 N for every extra 1 °C of jaw temperature/ },
+    { what: 'the scatter — twelve points, the line and its band', sel: '.ie-an-scatter .ie-an-dot', n: 12 }, { what: 'the prediction box', sel: '.ie-predict input' },
+    { what: 'a box a driver and one for the result, and rows pasted', sel: '.ie-relrow input', n: 2 }, { what: 'the shape check', sel: '.ie-check', text: /too straight/ },
+  ] },
   { name: 'Reliability study', path: `#/reliability/${sd.reliabilityId}`, must: [
     { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'the band', sel: '.ln-band' },
