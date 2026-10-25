@@ -36,6 +36,8 @@ Or grep: every record is plain Markdown with the same ten headings.
 was checked against and which records it feeds; `knowledge/MONEY.md` is the
 money model: the cost causation every catalogue tool says its finding in.
 
+`knowledge/research/` holds the independent-case scripts written while a method was *researched* before any tool exists (Research 2, 25 October 2026: acceptance sampling, line simulation, response surface — `python3 -I knowledge/research/cases-research-2-<name>.py`); they run on SciPy and NumPy alone and assert their own claims. A tool built later ports their cases.
+
 ## A method record
 
 `knowledge/methods/<discipline>/<slug>.md`, id `<discipline>.<slug>`. Front
