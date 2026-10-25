@@ -211,16 +211,19 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
           {lockAgreed ? (
             <p className="sub tw-note pr-f-wide">What it is judged on is agreed — only the owner changes it.</p>
           ) : <>
+            {/* THE TARGETS, apart from what it did (Rowland, 25 October: "we have 2 net rates … is one a set target?") —
+                the net rate typed here is a target set; the one in the figures below is worked out from the day */}
+            <p className="pr-h">What it is aiming at — you set these</p>
             {run.agreed?.of === 'speed' ? <>
-              <label className="cw-f"><span>Run at <span className="cw-f-opt">ppm</span></span>
+              <label className="cw-f"><span>Speed to run at <span className="cw-f-opt">ppm</span></span>
                 <DraftNumber className="text-input" value={run.agreed?.rate} placeholder="e.g. 75" label="Speed to run at, packs a minute" onSave={setAgreed('rate')} /></label>
-              <label className="cw-f"><span>Net rate to achieve <span className="cw-f-opt">ppm, optional</span></span>
+              <label className="cw-f"><span>Net rate target <span className="cw-f-opt">ppm, optional</span></span>
                 <DraftNumber className="text-input" value={run.agreed?.net} placeholder="e.g. 60" label="Agreed net rate, packs a minute" onSave={setAgreed('net')} /></label>
             </> : (
-              <label className="cw-f"><span>Net rate <span className="cw-f-opt">ppm</span></span>
+              <label className="cw-f"><span>Net rate target <span className="cw-f-opt">ppm</span></span>
                 <DraftNumber className="text-input" value={run.agreed?.rate} placeholder="e.g. 60" label="Agreed net rate, packs a minute" onSave={setAgreed('rate')} /></label>
             )}
-            <label className="cw-f"><span>For <span className="cw-f-opt">min</span></span>
+            <label className="cw-f"><span>Run for <span className="cw-f-opt">min</span></span>
               <DraftNumber className="text-input" value={run.agreed?.minutes} placeholder="e.g. 60" label="Agreed run length, minutes" onSave={setAgreed('minutes')} /></label>
             <label className="cw-f"><span>Rejects at most <span className="cw-f-opt">%</span></span>
               <DraftNumber className="text-input" value={run.agreed?.rejectsMax} placeholder="e.g. 1" label="Most rejects allowed, per cent" onSave={setAgreed('rejectsMax')} /></label>
@@ -228,9 +231,10 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
         </div>
       )}
 
+      {open && can.edit && <p className="pr-h">What it did — you type these; the net rate is worked out from them</p>}
       <div className={'pr-figs' + (compact ? ' is-compact' : '')}>
         <div className={'pr-fig is-net' + tone(f.netTone)}>
-          <span className="pr-l">Net rate</span>
+          <span className="pr-l">{run.agreed?.of === 'speed' ? 'Netted' : 'Net rate'} <span className="cw-f-opt">worked out</span></span>
           <b className="pr-v">{f.net}</b>
         </div>
         {DAY_BOXES.map(b => {

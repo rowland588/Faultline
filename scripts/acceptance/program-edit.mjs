@@ -64,7 +64,7 @@ const arguments_ = { 'Aiming for': '75', 'Aiming to run': '60', 'Set at': '75', 
 await page.getByRole('button', { name: /^Test it$/ }).first().click(); await page.waitForTimeout(500);
 await page.getByRole('button', { name: 'Passed', exact: true }).first().click();
 for (const [k, v] of Object.entries(arguments_)) await page.locator(`input[aria-label^="${k}"]`).first().fill(v);
-ok(await page.locator('input[aria-label^="Net to achieve"]').count() === 1 && /judged on it only when you give one/.test(flat(await page.locator('.ptx-panel').first().innerText())), '1a the form says what Aiming for is (the speed it is set to) and offers Net to achieve as a second, optional aim');
+ok(await page.locator('input[aria-label^="Net rate target"]').count() === 1 && /judged on it only when you give one/.test(flat(await page.locator('.ptx-panel').first().innerText())), '1a the form says what Aiming for is (the speed it is set to) and offers Net rate target as a second, optional aim');
 await page.getByRole('button', { name: 'Save', exact: true }).first().click(); await page.waitForTimeout(3500);
 const stepLoc = page.locator('.ptx-step', { hasText: 'aiming 75 ppm' });
 const row = page.locator('li.pgr', { has: stepLoc }).first();
@@ -84,6 +84,7 @@ const ran = page.locator('input[aria-label*="Ran for"]').first();
 await ran.fill('60'); await ran.blur(); await page.waitForTimeout(1200);
 const rej = page.locator('input[aria-label*="Rejects"]').first();
 await rej.fill('30'); await rej.blur(); await page.waitForTimeout(1500);
+if (process.env.SHOTS) { await page.locator('input[aria-label*="Stood"]').first().fill('10'); await page.waitForTimeout(800); await page.evaluate(() => document.querySelector('.pr')?.scrollIntoView({ block: 'start' })); await page.waitForTimeout(300); await page.screenshot({ path: `${process.env.SHOTS}-a.png` }); await page.evaluate(() => window.scrollBy(0, 520)); await page.waitForTimeout(300); await page.screenshot({ path: `${process.env.SHOTS}-b.png` }); }
 const t3 = await said();
 ok(/Net rate 59\.5 ppm/.test(t3) || /59\.5 ppm/.test(t3), `2a net (3,600 − 30) ÷ 60 = 59.5 ppm, as the record says it: "${t3.slice(0, 200)}"`);
 ok(/15\.5 ppm below the 75 ppm it ran at/.test(t3) && !/Short:/.test(t3) && !/net rate 15\.5/i.test(t3), '2b a fact beside the speed — 15.5 ppm below the 75 it ran at — never "net rate 15.5 ppm short"');
@@ -104,7 +105,7 @@ ok(/for 60 min/.test(best) && !/180/.test(best), `2g the best pass follows it �
 
 /* ---- 3 Go again carries the aim as it stands ---- */
 await row.getByRole('button', { name: 'Go again' }).first().click(); await page.waitForTimeout(500);
-ok(await row.locator('input[aria-label^="Aiming to run"]').first().inputValue() === '60' && await row.locator('input[aria-label^="Aiming for"]').first().inputValue() === '75' && await row.locator('input[aria-label^="Net to achieve"]').first().inputValue() === '59',
+ok(await row.locator('input[aria-label^="Aiming to run"]').first().inputValue() === '60' && await row.locator('input[aria-label^="Aiming for"]').first().inputValue() === '75' && await row.locator('input[aria-label^="Net rate target"]').first().inputValue() === '59',
   '3 Go again starts from the aim as it now stands — 75 ppm for 60 min, net 59');
 
 /* ---- 4e nothing off the side ---- */

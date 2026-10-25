@@ -237,9 +237,9 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
             <span className="ptx-nums">
               {box2('rate', 'Aiming for', 'ppm')}
               {box2('mins', 'Aiming to run', 'min')}
-              {box2('net', 'Net to achieve', 'ppm, optional')}
+              {box2('net', 'Net rate target', 'ppm, optional')}
             </span>
-            <small className="sub ptx-aimnote">Aiming for is the speed the machine is set to run at. Net to achieve is a second, optional aim — the test is judged on it only when you give one.</small>
+            <small className="sub ptx-aimnote">Aiming for is the speed the machine is set to run at. Net rate target is a second, optional aim you set — the test is judged on it only when you give one. The net rate it actually made is worked out afterwards from packs, rejects and minutes.</small>
             {how && (
               <span className="ptx-nums">
                 {box2('speed', 'Set at', 'ppm')}

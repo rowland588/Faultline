@@ -11571,6 +11571,7 @@ button.gt-fixlab small { font-size: var(--t-label); }
 .pr-remove { color: var(--st-r); }
 .pr-plan, .pr-add { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
 .pr-plan .cw-f, .pr-add .cw-f { flex: 1 1 110px; }
+.pr-h { flex-basis: 100%; margin: 4px 0 0; font-size: var(--t-label); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .pr-f-wide { flex: 1 1 100% !important; }
 .pr-add { padding: 10px 12px; border: 1px dashed var(--line); border-radius: var(--radius-sm); }
 .pr-add-h { flex: 1 1 100%; font-weight: 700; font-size: var(--t-body); }
