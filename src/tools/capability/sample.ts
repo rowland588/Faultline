@@ -34,7 +34,7 @@
  * (spc.normality-checks); how sure a Ppk is (Bissell's bound); and
  * the histogram. The distributions are lib/ie/dist, proved against SciPy. */
 import type { AgreedReadings, StudyReading } from '../../lib/study';
-import { fittedFigures, fittedSays, type FittedFigures } from './modes';
+import { fittedFigures, fittedSays, stackFigures, stackSays, type FittedFigures } from './modes';
 import { runsFigures, faultsFigures, rateFigures, machineFigures, fillFigures, questionFigures, weigherFigures, runsSays, faultsSays, rateSays, machineSays, fillSays, questionSays, weigherSays, densitySays, type RunsFigures, type FaultsFigures, type RateFigures, type MachineFigures, type FillFigures, type QuestionFigures, type WeigherFigures } from './modes';
 import { describe, describeSays, orderSays, type Described } from '../../lib/ie/describe';
 import { autocorrelation, type Autocorrelation } from '../../lib/ie/stats';
@@ -658,7 +658,7 @@ function provesWords(t: TickFigures, n: number, enough: boolean): { text: string
 /** W1 — THE NOTES A MEASUREMENT CARRIES BESIDE ITS SENTENCES: machine capability on one machine's
  *  consecutive parts (FC-084) and the lowest legal fill on a sold-by-weight study (FC-157), each from
  *  ./modes, on screen and on paper alike. */
-export type ModeNoteKind = 'machine' | 'fill' | 'question' | 'weigher' | 'density' | 'order' | 'fitted';
+export type ModeNoteKind = 'machine' | 'fill' | 'question' | 'weigher' | 'density' | 'order' | 'fitted' | 'stack';
 /** The middle of the readings, said under the histogram — median, middle half, lean (FC-103). */
 export const spreadSays = (f: SampleFigures, unit?: string): string => (f.desc ? describeSays(f.desc, f.dp + 1, unit) : '');
 export function modeNotes(f: SampleFigures, a: AgreedReadings | undefined): { k: ModeNoteKind; text: string; tone: Tone }[] {
@@ -669,6 +669,8 @@ export function modeNotes(f: SampleFigures, a: AgreedReadings | undefined): { k:
   if (f.machine) out.push({ k: 'machine', ...machineSays(f.machine) });
   if (f.fill && f.mean !== undefined) out.push({ k: 'fill', ...fillSays(f.fill, f.mean, f.dp, a.unit) });
   if (f.fitted) out.push({ k: 'fitted', ...fittedSays(f.fitted, a.unit) });
+  const st = stackFigures(a, packersTne(a), f.sd, f.n);
+  if (st) out.push({ k: 'stack', ...stackSays(st, f.dp, a.unit, { packs: MISSING_PACKS, kg: MISSING_KG }) });
   const od = orderSays(f.order);
   if (od) out.push({ k: 'order', text: od, tone: 'a' });
   const d = densitySays(a, a.nominalMl !== undefined ? tneFor(a.nominalMl, 'ml') : undefined);

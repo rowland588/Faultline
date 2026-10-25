@@ -11,6 +11,7 @@
  *      kinds, each with its example), the side chosen, only its box shown;
  *      thirty readings; the sentence, how sure the Ppk is, the three checks
  *      before capability, the histogram, the tiles — as lib/ie/sample says
+ *  17  (W3c, FC-116) several deposits in one pack: the root sum of squares, the target the rules need, the deposit worth tightening, the money, beside the pack's own spread
  *  16  (W3c, FC-096) readings that are not bell-shaped: the four shapes fitted and the tail said beside the count — the stops, the oxygen, a bell-shaped set with none
  *   2  residual oxygen, AT MOST 2% — skewed: "Not bell-shaped — they lean
  *      high", the one reading beyond the chart's limits, capable never green;
@@ -650,6 +651,52 @@ const bell = await startStudy('Fill weights — a steady filler', 'Filler');
   const inside = await page.locator('[data-note=fitted]').evaluateAll(els => els.length === 1 && els.every(e => { const r = e.getBoundingClientRect(); return r.left >= -1 && r.right <= 391; }));
   ok(inside && (await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '16 the phone: the fitted note inside the screen');
   await page.setViewportSize({ width: 1360, height: 900 });
+}
+
+/* ---- 17 · W3c: several deposits in one pack (FC-116, knowledge/specs/FC-116-stackup.md) ---- */
+const MEAL = 'Rice, 120, 3.0\nSauce, 80, 2.5\nVegetables, 60, 2.0\nGarnish, 40, 1.5';
+const meal = await startStudy('Chicken and rice meal, 300 g', 'Ready-meal line');
+{
+  await page.getByRole('radio', { name: /^Sold by weight/ }).click(); await page.waitForTimeout(200);
+  await page.getByLabel('Nominal (on the pack)').fill('300');
+  await page.getByLabel('The deposits', { exact: true }).fill('Rice, 120\nSauce, 80, 2.5');
+  ok(/^A deposit is a line — its name, its mean and its spread/.test((await words('.ie-problem')) ?? '') && (await page.getByRole('button', { name: 'Agree these' }).isDisabled()), '17 a deposit with no spread: said at the box, Agree held');
+  await page.getByLabel('The deposits', { exact: true }).fill('Rice, 120, 3.0');
+  ok((await words('.ie-problem')) === 'Two deposits at least — a pack of one is the study itself.', '17 one deposit: refused');
+  await page.getByLabel('The deposits', { exact: true }).fill(MEAL);
+  await page.getByLabel('Packs a shift').fill('5000'); await page.getByLabel(/What the product costs you a kilo/).fill('18');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  let t = await truthMode(meal);
+  let note = await words('[data-note=stack]');
+  const want = '4 deposits make 300.0 g: the pack’s spread is 4.64 g — the deposits’ spreads add as squares, not as a sum (the worst case, every deposit at its 3σ at once, 27.0 g, almost never happens). At that spread the lowest target that keeps the three rules is 300.1 g (the 1-in-40 rule binds); the deposits average 300.0 g, 0.1 g short of it — raise a deposit or tighten them. Rice holds 42% of the spread; halving its spread brings the pack’s to 3.84 g and the target to 300.0 g — 0.1 g a pack saved — about 0.4 kg and £7.92 a shift because of the give-away.';
+  ok(note === t.notes.find(n => n.k === 'stack').text && note === want && (await page.locator('[data-note=stack].is-a').count()) === 1, `17 the four deposits, before any pack is weighed: "${note?.slice(0, 120)}…" (NumPy: spread 4.63681, rice 41.9%, 300.0880 → 300.0, £7.92)`);
+  await typeAll(Array.from({ length: 30 }, (_, i) => Math.round((300 + 12 * Math.sin(i * 2.1)) * 10) / 10));
+  t = await truthMode(meal);
+  note = await words('[data-note=stack]');
+  ok(note === t.notes.find(n => n.k === 'stack').text && /The 30 pack readings spread \d+\.\d+ g, wider than the deposits give — they may move together, or something else adds; the pack’s own spread is the final word\.$/.test(note), '17 thirty pack readings: their own spread beside the deposits’, the last word to the readings');
+  const p = await pdf('meal.pdf');
+  ok(p.text.includes('4 deposits make 300.0 g: the pack’s spread is 4.64 g') && p.text.includes('Rice holds 42% of the spread'), '17 the same note on the capability paper');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(`#/capability/${meal}`);
+  ok(await page.locator('[data-note=stack]').evaluateAll(els => els.length === 1 && els.every(e => { const r = e.getBoundingClientRect(); return r.left >= -1 && r.right <= 391; })) && (await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '17 the phone: the note inside the screen');
+  await page.setViewportSize({ width: 1360, height: 900 });
+}
+const floorS = await startStudy('Meal minimum 290 g, kept to 1 in 1,000', 'Ready-meal line');
+{
+  await page.getByRole('radio', { name: /^At least/ }).click(); await page.waitForTimeout(200);
+  await page.getByLabel('Unit').fill('g'); await page.getByLabel('At least', { exact: true }).fill('290');
+  await page.getByLabel('The deposits', { exact: true }).fill(MEAL);
+  await page.getByLabel('Packs a shift').fill('5000'); await page.getByLabel('Shifts a week').fill('10'); await page.getByLabel(/What the product costs you a kilo/).fill('18');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  const t = await truthMode(floorS);
+  const note = await words('[data-note=stack]');
+  ok(note === t.notes.find(n => n.k === 'stack').text && note.includes('the pack must average 304.3 g (the floor plus 3.09 × the spread)') && note.includes('2.5 g a pack saved — about 12 kg and £221 a shift, £2,214 a week because of the give-away.'),
+    `17 a floor of 290 g kept to 1 in 1,000: "${note?.slice(190, 420)}…" (NumPy: 304.3288 → 301.8683, 2.4606 g, £221.45, £2,214.5)`);
+  await go('#/capability'); await go(`#/capability/${floorS}`);
+  await page.getByRole('button', { name: 'Change what was agreed' }).click(); await page.waitForTimeout(300);
+  await page.getByRole('radio', { name: /^At most/ }).click(); await page.waitForTimeout(200);
+  ok((await page.getByLabel('The deposits', { exact: true }).count()) === 0, '17 an “at most” study is not offered the deposits');
+  await page.getByRole('button', { name: 'Keep what was agreed' }).click(); await page.waitForTimeout(300);
 }
 
 ok(!errors.length, `no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);

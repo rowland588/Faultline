@@ -70,6 +70,9 @@ export interface AgreedReadings {
    *  then holds their product in grams, and the TNE is the volume table's, converted. */
   nominalMl?: number;
   density?: number;
+  /** Several deposits in one pack (FC-116, knowledge/specs/FC-116-stackup.md): each deposit's mean and spread, in the study's unit — the pack's
+   *  spread is their root sum of squares. On a sold-by-weight study, or a measurement with a lower limit. */
+  deposits?: { name: string; mean: number; sd: number }[];
   unit?: string;
   nominal?: number;
   lower?: number;

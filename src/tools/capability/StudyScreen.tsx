@@ -33,6 +33,7 @@ import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { sampleClosing, sampleTiles } from './sampleLean';
 import { modeNotes, packersTne, spreadSays } from './sample';
+import { depositsProblem, depositsText, parseDeposits } from './modes';
 import { modeAgreedWords, modeProblem } from './modes';
 import { RunsChart, UChart, Pareto, RateBars, RunsCapture, FaultsCapture, modeReadingWord } from './ModeParts';
 import { raisedFrom } from '../losses/lossLean';
@@ -215,6 +216,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const [probeBias, setProbeBias] = useState(a?.probeBias?.toString() ?? '');
   const [nominalMl, setNominalMl] = useState(a?.nominalMl?.toString() ?? '');
   const [density, setDensity] = useState(a?.density?.toString() ?? '');
+  const [depositsT, setDepositsT] = useState(depositsText(a?.deposits));
   const ml = numOr(nominalMl), dens = numOr(density), byVolume = kind === 'packers' && (nominalMl.trim() !== '' || density.trim() !== '');
   const counted = kind === 'rejects' || kind === 'faults' || kind === 'rate';
   const faultKinds = kindsText.split(/[,\n]/).map(x => x.trim()).filter(Boolean).slice(0, 12);
@@ -261,6 +263,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
     : kind === 'packers' && tne === undefined ? 'The packers’ rules cover 5 g to 10 kg (or ml to l).'
     : [packs, shiftsWk, costKg, materials, rework].some(t => t.trim() !== '' && !(Number.isFinite(Number(t)) && Number(t) >= 0)) ? 'The money boxes take numbers, zero or more.'
     : packs.trim() !== '' && !(Number(packs) >= 1) ? 'Packs a shift — at least 1.'
+    : (kind === 'packers' || (kind === 'limits' && side !== 'most')) && depositsProblem(depositsT) ? depositsProblem(depositsT)
     : '';
   const moneyOf = (t: string) => (t.trim() === '' ? undefined : Number(t));
 
@@ -281,6 +284,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       ...(kind === 'limits' && (question === 'oxygen' || question === 'seal' || question === 'ccp') && limitSource.trim() ? { limitSource: limitSource.trim().slice(0, 80) } : {}),
       ...(kind === 'limits' && question === 'ccp' && probeBias.trim() !== '' && Number(probeBias) !== 0 ? { probeBias: Number(probeBias) } : {}),
       ...(byVolume && ml !== undefined && dens !== undefined ? { nominalMl: ml, density: dens } : {}),
+      ...((kind === 'packers' || (kind === 'limits' && side !== 'most')) && depositsT.trim() ? { deposits: parseDeposits(depositsT).deposits } : {}),
       ...(kind === 'rejects' && moneyOf(materials) !== undefined ? { materialsPerPack: moneyOf(materials) } : {}),
       ...(ticks && judge === 'count' && k > 0 ? { allowFail: k } : {}),
       ...(ticks && judge !== 'count' ? { judge, good: g } : {}),
@@ -381,6 +385,10 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
         {ticks && judge !== 'count' && <label className="field"><span className="field-label">At least what % good</span>
           <input className="text-input" inputMode="decimal" value={goodPct} onChange={e => setGoodPct(e.target.value)} placeholder="98" /></label>}
       </div>
+      {(kind === 'packers' || (kind === 'limits' && side !== 'most')) && (
+        <label className="field ie-kinds-text"><span className="field-label">Several deposits in one pack <i className="sub">optional — a line each: name, mean, spread ("Rice, 120, 3.0"); the pack’s spread is worked out from them</i></span>
+          <textarea className="text-input" rows={3} value={depositsT} onChange={e => setDepositsT(e.target.value)} aria-label="The deposits" placeholder={'Rice, 120, 3.0\nSauce, 80, 2.5\nVegetables, 60, 2.0'} /></label>
+      )}
       {kind === 'faults' && (
         <label className="field ie-kinds-text"><span className="field-label">The kinds of fault <i className="sub">up to twelve, a comma between — Other is always offered</i></span>
           <input className="text-input" value={kindsText} onChange={e => setKindsText(e.target.value)} placeholder="Open seal, Light pack, Mis-label, Crushed, Wrong date" /></label>

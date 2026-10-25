@@ -93,7 +93,11 @@ sauce made from several dosed ingredients (Brix as a stack-up of doses).
 - [guide] UK Weights and Measures (Packaged Goods) Regulations 2006 — the three rules the target must meet (`packaging.average-quantity-system`; from knowledge).
 
 ## In Faultline
-Not built (FC-116). The capability study holds each deposit's readings
-and the pack's; FC-116 reads the deposits' means and spreads from their
-studies, says the stack-up, the target it needs and the deposit worth
-tightening, with the give-away in money.
+Built 25 October 2026 (FC-116, builder F3) as a note in the capability study (`src/tools/capability/modes.ts` stackFigures, stackSays;
+`knowledge/specs/FC-116-stackup.md`; proved against NumPy by `scripts/knowledge/cases-w3c.py` → `stackup.test.ts`; driven by
+`capability-kinds.mjs` step 17). The deposits' means and spreads are **typed** (a line each) on a sold-by-weight study or a measurement with a
+lower limit — not yet read from each deposit's own study; the note says the pack's mean and root-sum-of-squares spread, the target the packers'
+three rules (or a floor kept to 1 in 1,000) need at that spread, the deposit that holds the spread, what halving it buys in grams, kilos and pounds,
+and — from 25 pack readings — the pack's own spread beside. **Found in building:** on a sold-by-weight pack the average rule usually binds, so
+halving a deposit often buys nothing legal (the record's 14 g give-away is for a customer floor kept to 1 in 1,000, not the packers' rules) —
+the note says which it is. Not built: correlated deposits, a product of factors, a deposit read from its own study.

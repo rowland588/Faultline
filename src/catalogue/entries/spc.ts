@@ -454,7 +454,10 @@ export const SPC: Entry[] = [
     food: 'Ready meals, sandwiches, pizza toppings.',
     depends: ['FC-156', 'FC-162'],
     complexity: 'S', value: 'medium', valueWhy: 'Give-away on multi-component products.',
-    status: 'to-build', form: 'component', methods: ['stats.tolerance-stackup'], scenarios: ['packing'],
+    status: 'available', form: 'component', methods: ['stats.tolerance-stackup'], scenarios: ['packing'],
+    built: { where: ['/capability'], code: ['src/tools/capability/modes.ts', 'src/tools/capability/sample.ts', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/stackup.test.ts'], acceptance: ['capability-kinds.mjs'] },
+    spec: 'knowledge/specs/FC-116-stackup.md',
+    limits: ['The deposits are typed (name, mean, spread) — not read from each deposit’s own study; independence is assumed and said, the pack’s own spread from 25 readings has the last word.', 'On a sold-by-weight study the target is the packers’ three rules’ — often the average rule binds and a tighter spread buys nothing legal, which the note says; on a measurement with a lower limit the floor is kept to 1 in 1,000 (a Faultline choice, said).', 'Correlated deposits and a product of factors are not worked out; money only for a weight in g or kg, from packs a shift and £ a kilo.'],
   },
   {
     id: 'FC-117', name: 'The team’s own weekly number, trended', discipline: 'stats', sub: 'describe',

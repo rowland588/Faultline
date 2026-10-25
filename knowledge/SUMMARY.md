@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 87 |
+| Available (`available`) | 88 |
 | Partly (`partial`) | 27 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 101 |
+| Not built yet (`to-build`) | 100 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -25,7 +25,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Changeovers | 5 | 1 | 2 |  | 2 |  |  |
 | Commissioning and operational readiness | 13 | 11 | 1 |  |  | 1 |  |
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
-| Statistical analysis | 15 | 11 | 1 |  | 2 | 1 |  |
+| Statistical analysis | 15 | 12 | 1 |  | 1 | 1 |  |
 | Measurement systems | 6 | 2 |  |  | 4 |  |  |
 | Quality engineering and defects | 14 | 2 |  |  | 10 | 2 |  |
 | Six Sigma and DMAIC | 8 |  | 2 |  | 6 |  |  |

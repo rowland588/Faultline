@@ -157,9 +157,21 @@ say("learning", {"units": units.tolist(), "secs": secs.tolist(), "b": b, "t1": m
                   "extra200": float(sum(max(0.0, math.exp(lw.intercept) * x ** b - 40.0) for x in range(1, 201)))})
 
 # ------------------------------------------------------------------ the stack-up (FC-116)
-dep = [(120.0, 2.1), (80.0, 1.4), (45.0, 0.9)]  # mean g, sd g — a ready meal: rice, sauce, vegetables; independent deposits
-mu = sum(d[0] for d in dep); sg = math.sqrt(sum(d[1] ** 2 for d in dep))
-say("stackup", {"deposits": dep, "mean": mu, "sd": sg, "plus_tray": {"mean": mu + 20.0, "sd": math.sqrt(sg ** 2 + 0.3 ** 2)}})
+# the record's ready meal (stats.tolerance-stackup): four deposits, independent; and what the packers' three rules need of the pack at that spread
+def three_rules(nominal, sd, tne):
+    r1 = nominal; r2 = nominal - tne + stats.norm.ppf(0.975) * sd; r3 = nominal - 2 * tne + stats.norm.ppf(0.9999) * sd
+    return {"rule1": r1, "rule2": r2, "rule3": r3, "lowest": max(r1, r2, r3)}
+dep = [("Rice", 120.0, 3.0), ("Sauce", 80.0, 2.5), ("Vegetables", 60.0, 2.0), ("Garnish", 40.0, 1.5)]
+mu = sum(d[1] for d in dep); var = sum(d[2] ** 2 for d in dep); sg = math.sqrt(var)
+shares = [d[2] ** 2 / var for d in dep]
+halved_var = var - dep[0][2] ** 2 + (dep[0][2] / 2) ** 2; sg2 = math.sqrt(halved_var)
+tne300 = 9.0  # 300 g sits in the 200-300 band: 9 g (Schedule 3, as sample.ts tneFor holds it; the Schedule not read from here)
+before, after = three_rules(300.0, sg, tne300), three_rules(300.0, sg2, tne300)
+say("stackup", {"deposits": dep, "mean": mu, "sd": sg, "worstCase3sigma": sum(3 * d[2] for d in dep), "rss3sigma": 3 * sg, "shares": shares, "halvedSd": sg2,
+                 "before": before, "after": after, "saved": before["lowest"] - after["lowest"],
+                 "record_generic_1in1000_target_for_290": 290 + stats.norm.ppf(0.999) * sg, "record_share_under_290_at_300": float(stats.norm.cdf((290 - 300) / sg)),
+                 "pounds_a_shift_at_5000_packs_and_18_a_kg": (before["lowest"] - after["lowest"]) / 1000 * 5000 * 18,
+                 "floor290": {"before": 290 + stats.norm.ppf(0.999) * sg, "after": 290 + stats.norm.ppf(0.999) * sg2, "saved": stats.norm.ppf(0.999) * (sg - sg2), "kg_shift_5000": stats.norm.ppf(0.999) * (sg - sg2) * 5, "gbp_shift_5000_18": stats.norm.ppf(0.999) * (sg - sg2) * 5 * 18, "gbp_week_x10": stats.norm.ppf(0.999) * (sg - sg2) * 5 * 18 * 10}})
 
 if "--json" in sys.argv:
     print(json.dumps(OUT))
