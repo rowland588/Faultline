@@ -44,7 +44,7 @@ import { agreedFor, balanceCost, costInputs, crewKept } from '../tools/linework/
 import { costWords, countTitle, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, studyReliabilitySays, type RelItem } from '../tools/reliability/reliability';
 import { relClosings, relTiles, relTrend } from '../tools/reliability/reliabilityLean';
 import { overTime, overTimeSays } from '../tools/capability/overTime';
-import { analysisClosing, analysisFigures, analysisPicture, analysisSays, analysisTiles, confidenceOf, pctWord as anPct, type PicRow } from '../tools/analysis/analysis';
+import { analysisClosing, analysisFigures, analysisPicture, analysisPlot, analysisSays, analysisTiles, confidenceOf, KIND_WORDS, pSay as anP, pctWord as anPct, type Plot, type PicRow } from '../tools/analysis/analysis';
 import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } from '../tools/chart/chart';
 import { neckOf } from './lineLoss';
 import { relChartBlock, relDaysBlocks, relKindsBlocks, relTogetherBlocks, remarksBlocks } from './report/reliabilityTable';
@@ -373,6 +373,35 @@ function analysisPicBlock(picRows: PicRow[]): Block {
     },
   }], after: 'm' });
 }
+/** A table of counts and a scatter, as the page draws them (tools/analysis analysisPlot): the counts with what chance would give and the
+ *  cells beyond ±2 said in words; the points, the line and the band of the line’s own interval. */
+function analysisPlotBlock(plot: Plot): Block {
+  if (plot.kind === 'table') {
+    const w = 0.72 / (plot.cols.length + 1);
+    const flag = (z: number) => (Math.abs(z) > 2 ? (z > 0 ? ' MORE' : ' FEWER') : '');
+    return wrapTable([`${plot.rowName} \\ ${plot.colName}`, ...plot.cols, 'All'],
+      [...plot.rows.map((r, i) => [r, ...plot.cols.map((_c, j) => `${plot.counts[i][j]} (${plot.expected[i][j].toFixed(1)})${flag(plot.residuals[i][j])}`), String(plot.rowTotals[i])]), ['All', ...plot.colTotals.map(String), String(plot.total)]],
+      [0.28, ...plot.cols.map(() => w), w]);
+  }
+  const HB = 150;
+  return rows({ rows: [{
+    h: () => HB + 30,
+    draw: (fr: Frame, y: number) => {
+      const L = 38, B = 22, w = fr.w - L - 6, h = HB - B - 6;
+      const xs = (v: number) => fr.x + L + ((v - plot.xAxis[0]) / (plot.xAxis[1] - plot.xAxis[0])) * w, ys = (v: number) => y + 4 + (1 - (v - plot.yAxis[0]) / (plot.yAxis[1] - plot.yAxis[0])) * h;
+      fr.doc.setDrawColor(LINE); fr.doc.setLineWidth(0.5); fr.doc.line(fr.x + L, y + 4 + h, fr.x + L + w, y + 4 + h); fr.doc.line(fr.x + L, y + 4, fr.x + L, y + 4 + h);
+      const tk = (lo: number, hi: number) => [0, 1, 2, 3, 4].map(i => lo + ((hi - lo) * i) / 4), fm = (v: number) => String(Number(v.toPrecision(3)));
+      font(fr.doc, 6.5, 'normal', MUTED);
+      tk(plot.xAxis[0], plot.xAxis[1]).forEach(v => fr.doc.text(fm(v), xs(v), y + 4 + h + 9, { align: 'center' }));
+      tk(plot.yAxis[0], plot.yAxis[1]).forEach(v => fr.doc.text(fm(v), fr.x + L - 3, ys(v) + 2, { align: 'right' }));
+      if (plot.band) { fr.doc.setFillColor('#a8d2db'); for (let i = 0; i + 1 < plot.band.length; i++) { const a = plot.band[i], b = plot.band[i + 1]; fr.doc.triangle(xs(a.x), ys(a.hi), xs(b.x), ys(b.hi), xs(a.x), ys(a.lo), 'F'); fr.doc.triangle(xs(b.x), ys(b.hi), xs(b.x), ys(b.lo), xs(a.x), ys(a.lo), 'F'); } }
+      if (plot.line) { fr.doc.setDrawColor(INK2); fr.doc.setLineWidth(plot.equal ? 0.6 : 1.1); if (plot.equal) fr.doc.setLineDashPattern([3, 3], 0); fr.doc.line(xs(plot.line[0][0]), ys(plot.line[0][1]), xs(plot.line[1][0]), ys(plot.line[1][1])); fr.doc.setLineDashPattern([], 0); }
+      fr.doc.setFillColor(INK2); plot.pts.forEach(p => fr.doc.circle(xs(p[0]), ys(p[1]), 1.5, 'F'));
+      font(fr.doc, 7, 'bold', MUTED); fr.doc.text(`${plot.xName}${plot.xUnit ? ` (${plot.xUnit})` : ''}`, fr.x + L + w / 2, y + HB + 10, { align: 'center' });
+      fr.doc.text(`${plot.yName}${plot.yUnit ? ` (${plot.yUnit})` : ''}`, fr.x, y + 2);
+    },
+  }], after: 'm' });
+}
 function analysisBlocks(s: ToolStudy): Block[] {
   const a = s.agreed?.analysis;
   if (!a) return [];
@@ -382,15 +411,31 @@ function analysisBlocks(s: ToolStudy): Block[] {
   out.push(text({ text: said.text, size: 9, colour: said.tone === 'r' ? DANGER : INK2, after: 3 }));
   for (const m of said.more) out.push(text({ text: m, size: 8.5, colour: INK2, after: 2 }));
   if (said.notClaimed) out.push(text({ text: `What this does not say. ${said.notClaimed}`, size: 8, colour: MUTED, after: 4 }));
-  const pic = analysisPicture(f, a);
-  if (pic.length) { out.push(label('The picture')); out.push(analysisPicBlock(pic)); }
+  const pic = analysisPicture(f, a), plot = analysisPlot(f, a);
+  if (plot) { out.push(label(plot.kind === 'table' ? 'The counts — each with what chance would give in brackets' : f.kind === 'relate' && f.multi ? 'The fit against what was read' : 'The picture')); out.push(analysisPlotBlock(plot)); }
+  else if (pic.length) { out.push(label('The picture')); out.push(analysisPicBlock(pic)); }
+  if (f.kind === 'groups' && f.res) {
+    const r = f.res, dp = f.dp + 1;
+    out.push(label(`Every pair — Tukey’s HSD, ${anPct(f.conf)} intervals`));
+    out.push(wrapTable(['Pair', 'Difference', `${anPct(f.conf)} interval`, 'p'], r.pairs.map(x => [`${x.a} − ${x.b}`, x.diff.toFixed(dp), `${x.lo.toFixed(dp)} to ${x.hi.toFixed(dp)}`, anP(x.p)]), [0.34, 0.2, 0.3, 0.16], i => r.pairs[i].p < f.alpha));
+  }
+  if (f.kind === 'relate' && f.multi) {
+    const m = f.multi, g = (v: number) => String(Number(v.toPrecision(3)));
+    out.push(label(`Each driver, per unit, the others held — ${anPct(f.conf)} intervals`));
+    out.push(wrapTable(['Driver', 'Per unit', `${anPct(f.conf)} interval`, 'p', 'VIF'], [...m.drivers.map(d => [d.name, g(d.b), `${g(d.lo)} to ${g(d.hi)}`, anP(d.p), (d.vif ?? 1).toFixed(1)]), ['Intercept', g(m.intercept.b), `${g(m.intercept.lo)} to ${g(m.intercept.hi)}`, anP(m.intercept.p), '']], [0.3, 0.16, 0.3, 0.14, 0.1]));
+  }
   if (f.checks.length) { out.push(label('Checks on the readings')); for (const c of f.checks) out.push(text({ text: c.say, size: 8.5, colour: c.tone === 'a' ? AMBER : INK2, after: 2 })); }
-  out.push(text({ text: `Agreed: ${a.name} — ${a.kind === 'sure' ? 'how sure' : a.kind === 'change' ? 'did it change' : a.kind === 'paired' ? 'do two ways agree' : 'how many readings'}${a.unit ? ` in ${a.unit}` : ''}, ${anPct(confidenceOf(a))} confidence.`, size: 8, colour: MUTED, before: 2, after: 3 }));
+  out.push(text({ text: `Agreed: ${a.name} — ${KIND_WORDS[a.kind].name.toLowerCase()}${a.unit && a.kind !== 'table' ? ` in ${a.unit}` : ''}${a.kind === 'relate' ? `, against ${(a.drivers ?? []).map(d => (d.unit ? `${d.name} (${d.unit})` : d.name)).join(', ')}` : ''}${a.kind === 'table' ? `, ${(a.rows ?? []).join(', ')} by ${(a.cols ?? []).join(', ')}` : ''}, ${anPct(confidenceOf(a))} confidence.`, size: 8, colour: MUTED, before: 2, after: 3 }));
   const rs = s.facts.readings ?? [];
-  if (rs.length) {
-    out.push(label(a.kind === 'paired' ? 'Every pair, in the order taken' : (a.kind === 'sure' && a.of !== 'mean') || (a.kind === 'change' && a.data === 'counted') ? 'Every run, in the order taken' : 'Every reading, in the order taken'));
-    out.push(readingsRows(s, r => `${typeof r.with === 'number' ? `${r.value} / ${r.with}` : typeof r.made === 'number' ? `${r.rejected}/${r.made}` : typeof r.value === 'number' ? String(r.value) : '—'}${r.arm ? ` ${r.arm[0].toUpperCase()}` : ''}`, () => false, a.kind === 'paired' ? 5 : 10));
+  if (rs.length && a.kind === 'table') {
+    out.push(label('Every count, in the order taken'));
+    out.push(readingsRows(s, r => (r.col !== undefined && typeof r.made === 'number' ? `${(r.arm ?? '').slice(0, 8)}/${r.col.slice(0, 8)} ${r.made}` : '—'), () => false, 4));
+  } else if (rs.length) {
+    out.push(label(a.kind === 'paired' || (a.kind === 'relate' && (a.drivers ?? []).length === 1) ? 'Every pair, in the order taken' : a.kind === 'relate' ? 'Every row, in the order taken' : (a.kind === 'sure' && a.of !== 'mean') || (a.kind === 'change' && a.data === 'counted') ? 'Every run, in the order taken' : 'Every reading, in the order taken'));
+    out.push(readingsRows(s, r => `${Array.isArray(r.xs) ? `${r.xs.join(', ')} → ${r.value}` : typeof r.with === 'number' ? `${r.value} / ${r.with}` : typeof r.made === 'number' ? `${r.rejected}/${r.made}` : typeof r.value === 'number' ? String(r.value) : '—'}${r.arm ? ` ${a.kind === 'groups' ? r.arm.slice(0, 6) : r.arm[0].toUpperCase()}` : ''}`, () => false, a.kind === 'paired' ? 5 : a.kind === 'relate' ? (a.drivers ?? []).length > 1 ? 3 : 5 : a.kind === 'groups' ? 6 : 10));
     if (a.kind === 'change') out.push(text({ text: 'B = before, A = after.', size: 8, colour: MUTED, after: 2 }));
+    if (a.kind === 'groups') out.push(text({ text: 'Each reading is followed by the first six letters of its group.', size: 8, colour: MUTED, after: 2 }));
+    if (a.kind === 'relate') out.push(text({ text: `Each row: ${(a.drivers ?? []).map(d => d.name).join(', ')} → ${a.name}.`, size: 8, colour: MUTED, after: 2 }));
     if (a.kind === 'paired') out.push(text({ text: `Each pair: ${a.firstName || 'the first way'} / ${a.secondName || 'the second way'}.`, size: 8, colour: MUTED, after: 2 }));
   }
   return out;

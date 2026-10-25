@@ -11,8 +11,10 @@ import type { AgreedAnalysis, AnalysisPlan, StudyReading } from '../../lib/study
 import type { LeanTile } from '../../lib/lean';
 import { dagostinoPearson, histogram } from '../../lib/ie/dist';
 import { describe, orderSays, type Described } from '../../lib/ie/describe';
+import { compareGroups, type GroupsResult } from '../../lib/ie/groups';
+import { predictAt, regress, relate, tableTest, VIF_SERIOUS, type Line, type Multiple, type TableResult } from '../../lib/ie/relate';
 import {
-  autocorrelation, cyclesNeeded, differenceSeen, finiteN, mannWhitney, mean, meanInterval, nForMean, nForShare, nForTwoMeans, nForTwoShares, nZeroFailures,
+  acf, autocorrelation, cyclesNeeded, differenceSeen, finiteN, mannWhitney, mean, meanInterval, nForMean, nForShare, nForTwoMeans, nForTwoShares, nZeroFailures,
   pairedT, rateInterval, sd, shareExact, shareWilson, spreadInterval, twoShares, welch, wilcoxon,
   type Autocorrelation, type Confidence, type CyclesNeeded, type Interval, type MannWhitneyResult, type PairedResult, type TwoShares, type WelchResult, type WilcoxonResult,
 } from '../../lib/ie/stats';
@@ -25,12 +27,24 @@ export const COMPARE_FROM = 3;
 export const WEAK_UNDER = 8;
 /** Bell-shapedness is checked from this many in a set. */
 export const NORMAL_FROM = 20;
+/** A relation: a line is fitted from this many pairs (said weak under LINE_FROM), a prediction is rough under PREDICT_WEAK; several drivers need 5 a driver + 5 rows. */
+export const RELATE_FROM = 4;
+export const LINE_FROM = 10;
+export const PREDICT_WEAK = 20;
+export const MAX_DRIVERS = 5;
+export const MAX_NAMES = 8;
+/** The order of a relation's residuals is judged from this many rows (as a series of readings is: 30). */
+const AUTOCORR_FROM_PAIRS = 30;
+export const rowsFor = (k: number): number => (k <= 1 ? RELATE_FROM : 5 * k + 5);
 export const DEFAULT_CONFIDENCE: Confidence = 0.95;
 
 export const KIND_WORDS: Record<AgreedAnalysis['kind'], { name: string; ask: string; example: string }> = {
   sure: { name: 'How sure', ask: 'How sure am I of this figure?', example: 'thirty packs weighed; 7 rejected out of 600; 12 stops in 40 hours' },
   change: { name: 'Did it change', ask: 'Did it really change?', example: 'fill weights before and after a re-calibration; rejects before and after new film' },
   paired: { name: 'Do two ways agree', ask: 'Do two ways of measuring agree?', example: 'two checkweighers on the same packs; the scale and the lab' },
+  groups: { name: 'Do groups differ', ask: 'Do these groups really differ?', example: 'give-away by shift; fill weight by head; seal strength by supplier' },
+  table: { name: 'Are two things linked', ask: 'Is one thing linked to the other?', example: 'fault type by lane, counted off the reject bin; rejects by shift and product' },
+  relate: { name: 'What moves with what', ask: 'Does one thing move with another — and by how much?', example: 'seal strength against jaw temperature; give-away against speed and product temperature' },
   plan: { name: 'How many readings', ask: 'How many readings do I need?', example: 'to know a mean to ±0.3 g; to see a 0.5 g difference between shifts' },
 };
 export const confidenceOf = (a: Pick<AgreedAnalysis, 'confidence'>): Confidence => a.confidence ?? DEFAULT_CONFIDENCE;
@@ -86,7 +100,22 @@ export interface PlanFigures extends Base {
   need?: number; alt?: { label: string; n: number }[]; sdUsed?: number; sdFrom?: 'typed' | 'readings'; have: number;
   cycles?: CyclesNeeded; seen?: { n: number; diff: number }[]; seconds?: number; minutes?: number; /** one person’s time at the line’s rate, when it has one */ pounds?: number;
 }
-export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures;
+export interface GroupsFigures extends Base {
+  kind: 'groups'; better: 'lower' | 'higher' | 'either'; noun: string; enough: boolean; weak: boolean;
+  /** every group named, in the order first seen, with its readings and what they look like */
+  groups: { name: string; values: number[]; desc?: Described }[]; /** groups with too few readings to compare, left out */ left: string[];
+  res?: GroupsResult; leads: 'anova' | 'kruskal'; nonNormal: boolean; unalike: boolean; p?: number; significant: boolean;
+}
+export interface TableFigures extends Base {
+  kind: 'table'; rowName: string; colName: string; rows: string[]; cols: string[]; counts: number[][]; total: number; enough: boolean;
+  res?: TableResult; /** which test leads: the χ², Fisher's exact for a 2 × 2 with an expected count under 5, or the χ² only as an approximation */ lead: 'chi2' | 'fisher' | 'approx';
+  p?: number; significant: boolean; /** counts typed under a row or column name no longer agreed */ orphans: number; /** rows or columns with nothing counted in them */ empty: string[];
+}
+export interface RelateFigures extends Base {
+  kind: 'relate'; k: number; n: number; need: number; enough: boolean; weak: boolean; drivers: { name: string; unit?: string }[]; xs: number[][]; y: number[];
+  line?: Line; multi?: Multiple; /** perfectly collinear drivers, or a constant one — nothing is fitted */ refusal?: string; p?: number; significant: boolean;
+}
+export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures | GroupsFigures | TableFigures | RelateFigures;
 
 const normalCheck = (what: string, xs: number[]): { check?: Check; non: boolean } => {
   if (xs.length < NORMAL_FROM) return { non: false };
@@ -182,6 +211,77 @@ export function analysisFigures(a: AgreedAnalysis, readings: StudyReading[], opt
     }
     return f;
   }
+  if (a.kind === 'groups') {
+    const better = a.better ?? 'either', noun = a.firstName?.trim() || 'group';
+    const names: string[] = []; for (const r of readings) if (typeof r.value === 'number' && r.arm && !names.includes(r.arm)) names.push(r.arm);
+    const groups = names.map(n => { const values = armValues(readings, n); return { name: n, values, desc: describe(values) }; });
+    const used = groups.filter(g => g.values.length >= COMPARE_FROM), left = groups.filter(g => g.values.length < COMPARE_FROM).map(g => g.name);
+    const f: GroupsFigures = { ...base(placesOf(groups.flatMap(g => g.values))), kind: 'groups', better, noun, groups, left, enough: used.length >= 2, weak: false, leads: 'anova', nonNormal: false, unalike: false, significant: false };
+    if (f.enough) {
+      const res = compareGroups(used.map(g => ({ name: g.name, values: g.values })), conf); f.res = res;
+      const norms = used.map(g => normalCheck(g.name, g.values)); f.nonNormal = norms.some(n => n.non);
+      f.unalike = !!res?.levene && res.levene.p < 0.05;
+      f.leads = (f.nonNormal || f.unalike) && res ? 'kruskal' : 'anova';
+      if (res) { f.p = f.leads === 'kruskal' ? res.kruskal.p : res.p; f.significant = f.p < alpha; }
+      f.checks = norms.map(n => n.check).filter((c): c is Check => !!c);
+      if (!norms.some(n => n.check)) f.checks.push({ what: 'Shape', say: `Shape: fewer than ${NORMAL_FROM} in a group, so bell-shapedness is not checked — the F leads and Kruskal–Wallis is shown beside it.`, tone: 'n' });
+      if (res?.levene) f.checks.push({ what: 'Spreads', say: f.unalike ? `Spreads: Levene’s test ${pSay(res.levene.p)} — the spreads differ between the ${noun}s, so Kruskal–Wallis leads and Tukey’s intervals are indicative.` : `Spreads: Levene’s test ${pSay(res.levene.p)} — the spreads are alike enough to pool.`, tone: f.unalike ? 'a' : 'n' });
+      for (const g of used) { const oc = outlierCheck(g.name, g.desc); if (oc) f.checks.push(oc); }
+      if (used.some(g => g.values.length < WEAK_UNDER)) f.checks.push({ what: 'Size', say: `Size: fewer than ${WEAK_UNDER} in a ${noun} — a weak test; read it as a hint.`, tone: 'a' });
+    }
+    if (left.length) f.checks.push({ what: 'Too few', say: `Too few: ${left.join(', ')} ${left.length === 1 ? 'has' : 'have'} fewer than ${COMPARE_FROM} readings, so ${left.length === 1 ? 'it is' : 'they are'} left out of the comparison until there are more.`, tone: 'a' });
+    f.weak = used.some(g => g.values.length < WEAK_UNDER);
+    return f;
+  }
+  if (a.kind === 'table') {
+    const rows = a.rows ?? [], cols = a.cols ?? [], known = live(readings).filter(r => typeof r.made === 'number' && r.col !== undefined && r.arm !== undefined);
+    const counts = rows.map(r => cols.map(c => known.filter(x => x.arm === r && x.col === c).reduce((t, x) => t + (x.made as number), 0)));
+    const total = counts.flat().reduce((x, y) => x + y, 0), orphans = known.filter(x => !rows.includes(x.arm as string) || !cols.includes(x.col as string)).length;
+    const empty = [...rows.filter((_, i) => counts[i].every(v => v === 0)).map(r => r), ...cols.filter((_, j) => counts.every(row => row[j] === 0))];
+    const f: TableFigures = { ...base(0), kind: 'table', rowName: a.firstName?.trim() || 'row', colName: a.secondName?.trim() || 'column', rows, cols, counts, total, enough: false, lead: 'chi2', significant: false, orphans, empty };
+    if (rows.length >= 2 && cols.length >= 2 && total > 0) {
+      const res = tableTest(counts);
+      if (res) {
+        f.res = res; f.enough = true; f.lead = res.two ? res.two.leads : res.trusted ? 'chi2' : 'approx';
+        f.p = f.lead === 'fisher' && res.two ? res.two.pFisher : res.p; f.significant = f.p < alpha;
+        if (res.two) f.checks.push({ what: 'Test', say: res.two.leads === 'fisher' ? `Test: the smallest expected count is ${fx(res.minExpected, 1)}, under 5 — Fisher’s exact test leads (χ² gives ${pSay(res.p)}, with Yates’ correction ${pSay(res.two.pYates)}).` : `Test: every expected count is 5 or more — the χ² leads (with Yates’ correction ${pSay(res.two.pYates)}; Fisher’s exact ${pSay(res.two.pFisher)}).`, tone: 'n' });
+        else if (res.trusted) f.checks.push({ what: 'Test', say: `Test: ${Math.round(res.shareFive * 100)}% of the cells expect 5 or more and none expects under 1 — the χ² can be trusted (smallest expected ${fx(res.minExpected, 1)}).`, tone: 'n' });
+        else f.checks.push({ what: 'Counts too small', say: `Counts too small: ${Math.round((1 - res.shareFive) * 100)}% of the cells expect fewer than 5 (the smallest ${fx(res.minExpected, 1)}) — the χ² is only an approximation here and its ${pSay(res.p)} is not to be trusted. Merge categories that mean the same, or count more.`, tone: 'a' });
+      }
+    }
+    if (orphans) f.checks.push({ what: 'Names', say: `Names: ${orphans} count${orphans === 1 ? '' : 's'} typed under a name no longer agreed ${orphans === 1 ? 'is' : 'are'} left out — change what was agreed to bring ${orphans === 1 ? 'it' : 'them'} back.`, tone: 'a' });
+    return f;
+  }
+  if (a.kind === 'relate') {
+    const drivers = a.drivers ?? [], k = drivers.length, need = rowsFor(k);
+    const rs = live(readings).filter(r => typeof r.value === 'number' && Array.isArray(r.xs) && r.xs.length === k && r.xs.every(Number.isFinite));
+    const y = rs.map(r => r.value as number), xs = drivers.map((_, j) => rs.map(r => (r.xs as number[])[j]));
+    const f: RelateFigures = { ...base(placesOf(y)), kind: 'relate', k, n: rs.length, need, enough: rs.length >= need && k >= 1, weak: k === 1 && rs.length < LINE_FROM, drivers, xs, y, significant: false };
+    if (!f.enough) return f;
+    if (k === 1) {
+      const l = relate(xs[0], y, conf); if (!l) { f.refusal = 'Either the driver or the result is the same in every row, so there is no line to fit.'; return f; }
+      f.line = l; f.p = l.pR; f.significant = l.pR < alpha;
+      if (f.weak) f.checks.push({ what: 'Size', say: `Size: fewer than ${LINE_FROM} pairs — a line from so few is a hint; read it as one.`, tone: 'a' });
+      if (l.runs) f.checks.push({ what: 'Shape', say: l.runs.p < 0.05 ? `Shape: the points fall above and below the line in ${l.runs.runs} stretches where about ${fx(l.runs.expected, 0)} are expected (${pSay(l.runs.p)}) — the line is too straight; the relation bends, so do not trust it at the ends.` : `Shape: the points fall above and below the line in ${l.runs.runs} stretches, about as many as expected (${fx(l.runs.expected, 0)}) — no sign that the line is the wrong shape.`, tone: l.runs.p < 0.05 ? 'a' : 'n' });
+      if (rs.length >= AUTOCORR_FROM_PAIRS) { const band = 2 / Math.sqrt(rs.length); f.checks.push({ what: 'Order', say: Math.abs(l.lag1) > band ? `Order: each point’s distance from the line follows the last one’s (r₁ ${fx(l.lag1, 2)}, outside ±${fx(band, 2)}) — the pairs are not independent, so the intervals are too narrow.` : `Order: each point’s distance from the line is independent enough of the last (r₁ ${fx(l.lag1, 2)}, inside ±${fx(band, 2)}).`, tone: Math.abs(l.lag1) > band ? 'a' : 'n' }); }
+      if (Math.abs(l.r - l.rho) > 0.2) f.checks.push({ what: 'Outlier', say: `Outlier: Pearson’s r (${fx(l.r, 2)}) and Spearman’s ρ (${fx(l.rho, 2)}) disagree — one or two points, or a curve, are pulling the line. Look at the points; none is removed.`, tone: 'a' });
+      const wild = l.residuals.map((v, i) => [v, i] as const).filter(([v]) => Math.abs(v) > 3 * l.se);
+      if (wild.length) f.checks.push({ what: 'Residuals', say: `Residuals: ${wild.length} point${wild.length === 1 ? '' : 's'} lie more than three standard errors from the line (row${wild.length === 1 ? '' : 's'} ${wild.slice(0, 4).map(([, i]) => i + 1).join(', ')}) — look at ${wild.length === 1 ? 'it' : 'them'}.`, tone: 'a' });
+      return f;
+    }
+    const m = regress(xs, y, drivers.map(d => d.name), conf);
+    if ('collinear' in m) {
+      f.refusal = m.constant !== undefined ? `${drivers[m.constant].name} is the same in every row, so it cannot be told apart from the intercept — take it out, or vary it.`
+        : m.collinear ? `${drivers[m.collinear[0]].name} and ${drivers[m.collinear[1]].name} move exactly together, so their separate effects cannot be told apart — keep one.` : 'The rows cannot be fitted — check the readings.';
+      return f;
+    }
+    f.multi = m; f.p = m.pF; f.significant = m.pF < alpha;
+    const vifs = m.drivers.map(d => `${d.name} ${fx(d.vif ?? 1, 1)}`).join(', ');
+    f.checks.push(m.serious ? { what: 'Drivers move together', say: `Drivers move together: variance inflation ${vifs} — above ${VIF_SERIOUS}. Their separate effects cannot be read apart; keep one of them, or read the drivers only together.`, tone: 'a' }
+      : { what: 'Drivers move together', say: `Drivers: variance inflation ${vifs} — below ${VIF_SERIOUS}, the drivers do not move together enough to blur each other’s effect.`, tone: 'n' });
+    if (rs.length >= AUTOCORR_FROM_PAIRS) { const l1 = acf(m.residuals, 1), band = 2 / Math.sqrt(rs.length); f.checks.push({ what: 'Order', say: Math.abs(l1) > band ? `Order: each row’s distance from the fit follows the last one’s (r₁ ${fx(l1, 2)}, outside ±${fx(band, 2)}) — the rows are not independent, so the intervals are too narrow.` : `Order: each row’s distance from the fit is independent enough of the last (r₁ ${fx(l1, 2)}, inside ±${fx(band, 2)}).`, tone: Math.abs(l1) > band ? 'a' : 'n' }); }
+    return f;
+  }
   /* the plan: how many readings */
   const p = a.plan ?? { ask: 'mean' as const }, conf2 = conf, power = p.power ?? 0.8;
   const pilot = noArm(readings), sdUsed = p.sd !== undefined && p.sd > 0 ? p.sd : pilot.length >= MEAN_FROM && sd(pilot) > 0 ? sd(pilot) : undefined;
@@ -237,8 +337,19 @@ export function planProblem(p: AnalysisPlan, pilotN = 0): string {
 }
 
 /** What cannot be agreed, said while agreeing. */
-export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'>): string {
+export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'> & Partial<Pick<AgreedAnalysis, 'rows' | 'cols' | 'drivers'>>): string {
   if (!a.name.trim()) return 'What is measured — a name, "Fill weight".';
+  if (a.kind === 'table') {
+    const dup = (xs: string[]) => new Set(xs.map(x => x.toLowerCase())).size !== xs.length;
+    if ((a.rows ?? []).length < 2 || (a.rows ?? []).length > MAX_NAMES) return `The rows — two to ${MAX_NAMES} names, separated by commas ("Lane 1, Lane 2, Lane 3").`;
+    if ((a.cols ?? []).length < 2 || (a.cols ?? []).length > MAX_NAMES) return `The columns — two to ${MAX_NAMES} names, separated by commas ("Underweight, Leaker, Misprint").`;
+    if (dup(a.rows ?? []) || dup(a.cols ?? [])) return 'Two rows or two columns have the same name.';
+  }
+  if (a.kind === 'relate') {
+    const ds = a.drivers ?? [];
+    if (ds.length < 1 || ds.length > MAX_DRIVERS) return `The drivers — one to ${MAX_DRIVERS} names, each with its unit in brackets, separated by commas ("Jaw temperature (°C)").`;
+    if (new Set(ds.map(d => d.name.toLowerCase())).size !== ds.length) return 'Two drivers have the same name.';
+  }
   if (a.within !== undefined && !(a.within > 0)) return 'The largest difference that does not matter — a number above 0, in the unit.';
   return '';
 }
@@ -312,6 +423,9 @@ export function analysisSays(f: AnalysisFigures, a: AgreedAnalysis): AnalysisSay
     }
     return { text: `The two ways differ by ${fx(Math.abs(t.mean), dp)}${u} on average, but ${sure(f.conf)} only that it is between ${fx(t.lo, dp)} and ${fx(t.hi, dp)}${u} (${pSay(p)}) — these pairs cannot tell a difference from chance.`, tone: 'n', verdict: 'No difference shown', more, notClaimed: 'Not finding a difference is not showing they agree — say how big a difference matters and the page will judge it.' };
   }
+  if (f.kind === 'groups') return groupsSays(f, name, u);
+  if (f.kind === 'table') return tableSays(f);
+  if (f.kind === 'relate') return relateSays(f, name, u);
   /* plan */
   const power = pctWord(f.power), conf = pctWord(f.conf), p = a.plan;
   if (!f.ok || f.need === undefined || !p) return { text: f.why ?? 'Say what to size.', tone: 'n', verdict: 'Not enough to size', more: [], notClaimed: '' };
@@ -329,6 +443,91 @@ export function analysisSays(f: AnalysisFigures, a: AgreedAnalysis): AnalysisSay
     }
   }
 }
+/* ------------------------------------------- the three kinds of W3b: groups, a table, a relation -------- */
+/** Significant digits, not decimals — a slope may be 0.145 or 0.00014 a unit. The minus is the true minus. */
+const sg = (v: number, d = 3): string => (v === 0 ? '0' : Number(v.toPrecision(d)).toLocaleString('en-GB', { maximumSignificantDigits: d })).replace('-', '−');
+const dfs = (n: number): string => `${n} degree${n === 1 ? '' : 's'} of freedom`;
+const share0 = (x: number): string => `${Math.round(x * 100)}%`;
+/** Cramér's V in words by Cohen's (1988) effect sizes, w = 0.1, 0.3, 0.5 scaled by √(min(rows, cols) − 1). */
+export function cramersWord(v: number, rows: number, cols: number): string {
+  const s = Math.sqrt(Math.max(1, Math.min(rows, cols) - 1));
+  return v >= 0.5 / s ? 'large' : v >= 0.3 / s ? 'medium' : v >= 0.1 / s ? 'small' : 'negligible';
+}
+const orientPair = (p: { a: string; b: string; diff: number; lo: number; hi: number }) => (p.diff >= 0 ? { hi: p.a, lo: p.b, d: p.diff, from: p.lo, to: p.hi } : { hi: p.b, lo: p.a, d: -p.diff, from: -p.hi, to: -p.lo });
+
+function groupsSays(f: GroupsFigures, name: string, u: string): AnalysisSays {
+  const noun = f.noun, nouns = `${noun}s`, dp = f.dp + 1;
+  if (!f.enough) {
+    const have = f.groups.filter(g => g.values.length >= COMPARE_FROM).length;
+    return { text: f.groups.length ? `${f.groups.length} ${f.groups.length === 1 ? noun : nouns} so far, ${have} with ${COMPARE_FROM} or more readings — at least two ${nouns} of ${COMPARE_FROM} readings each are needed to compare.` : `No readings yet. Name a ${noun}, then type or paste its readings.`, tone: 'n', verdict: f.groups.length ? 'Too few' : 'Not started', more: [], notClaimed: '' };
+  }
+  const r = f.res;
+  if (!r) return { text: `Every reading within a ${noun} is the same, so there is no spread to test against — the readings cannot say whether the ${nouns} differ.`, tone: 'n', verdict: 'Nothing to test', more: [], notClaimed: '' };
+  const p = f.p as number, lead = f.leads === 'kruskal' ? `Kruskal–Wallis H ${fx(r.kruskal.h, 1)} on ${dfs(r.kruskal.df)}` : `F ${fx(r.f, 1)} on ${r.df1} and ${r.df2} degrees of freedom`;
+  const effect = `η² ${fx(r.eta2, 2)} — ${share0(r.eta2)} of the variation is between the ${nouns}`;
+  const sigPairs = [...r.pairs].filter(x => x.p < f.alpha).sort((x, y) => Math.abs(y.diff) - Math.abs(x.diff)), quiet = r.pairs.filter(x => x.p >= f.alpha);
+  const said = sigPairs.slice(0, 4).map(x => { const o = orientPair(x); return `${o.hi} is above ${o.lo} by ${fx(o.d, dp)}${u} (between ${fx(o.from, dp)} and ${fx(o.to, dp)}${u})`; }).join('; ') + (sigPairs.length > 4 ? `; and ${sigPairs.length - 4} more pairs` : '');
+  const nots = quiet.length === 0 ? '' : quiet.length <= 3 ? `${quiet.map(x => `${x.a} and ${x.b}`).join('; ')} ${quiet.length === 1 ? 'are' : 'are each'} not shown to differ.` : `${quiet.length} pairs are not shown to differ.`;
+  const means = r.groups.map(g => `${g.name} ${fx(g.mean, dp)}${u} (n ${g.n}, s ${fx(g.sd, dp)})`).join(' · ');
+  const more = [`${means}.`,
+    f.leads === 'kruskal' ? `One-way ANOVA, beside: F ${fx(r.f, 1)}, ${pSay(r.p)}.` : `Kruskal–Wallis, beside: H ${fx(r.kruskal.h, 1)}, ${pSay(r.kruskal.p)}.`,
+    `Pairs by Tukey’s HSD${r.groups.some(g => g.n !== r.groups[0].n) ? ' (Tukey–Kramer, the sizes differ)' : ''}: ${pctWord(f.conf)} intervals that hold together across all ${r.pairs.length} pair${r.pairs.length === 1 ? '' : 's'}${f.leads === 'kruskal' ? '; indicative — Tukey assumes bell shapes and alike spreads' : ''}.`];
+  const notClaimed = `This says the ${nouns} differ, not why — and a ${noun} not shown to differ is not shown to be the same.`;
+  if (!f.significant) return { text: `${name} by ${noun}: ${sure(f.conf)} only that these readings cannot tell the ${nouns} apart from chance (${lead}, ${pSay(p)}; ${effect}).${nots && quiet.length > 3 ? '' : ''}`, tone: 'n', verdict: 'No difference shown', more, notClaimed };
+  let text = `${name} by ${noun}: ${sure(f.conf)} the ${nouns} differ (${lead}, ${pSay(p)}); ${effect}. ${said ? `${said}. ` : 'Tukey’s test could not single out which pair. '}${nots}`.trim();
+  let tone: Tone = 'n', verdict = `The ${nouns} differ`;
+  if (f.better !== 'either' && sigPairs.length) {
+    const worst = [...r.groups].sort((x, y) => (f.better === 'lower' ? y.mean - x.mean : x.mean - y.mean))[0];
+    if (sigPairs.some(x => { const o = orientPair(x); return f.better === 'lower' ? o.hi === worst.name : o.lo === worst.name; })) { tone = 'a'; verdict = `${worst.name} is the worst`; text += ` ${worst.name} is the wrong way for this measure.`; }
+  }
+  return { text, tone, verdict, more, notClaimed };
+}
+
+function tableSays(f: TableFigures): AnalysisSays {
+  const row = f.rowName.toLowerCase(), col = f.colName.toLowerCase();
+  if (!f.enough || !f.res) {
+    return { text: f.total === 0 ? `Nothing counted yet. Pick a ${row} and a ${col}, then type how many.` : f.rows.length < 2 || f.cols.length < 2 ? 'Name at least two rows and two columns.' : `Nothing counted yet in ${f.empty.join(', ')} — every ${row} and every ${col} needs at least one count before the table can be tested.`, tone: 'n', verdict: f.total ? 'Too few' : 'Not started', more: [], notClaimed: '' };
+  }
+  const r = f.res, p = f.p as number, word = cramersWord(r.cramersV, r.rows, r.cols);
+  const test = f.lead === 'fisher' ? 'Fisher’s exact test' : `χ² ${fx(r.chi2, 1)} on ${dfs(r.df)}`;
+  const stand = r.residuals.flatMap((rs, i) => rs.map((v, j) => ({ v, i, j }))).filter(c => Math.abs(c.v) > 2).sort((x, y) => Math.abs(y.v) - Math.abs(x.v)).slice(0, 4)
+    .map(c => `${f.rows[c.i]} has ${c.v > 0 ? 'more' : 'fewer'} ${f.cols[c.j]} than chance would give (${f.counts[c.i][c.j]} against ${fx(r.expected[c.i][c.j], 1)})`);
+  const standing = stand.length ? ` The cells that stand out: ${stand.join('; ')}.` : r.rows * r.cols > 4 ? ' No single cell stands out beyond ±2.' : '';
+  const more = [`Cramér’s V ${fx(r.cramersV, 2)} — a ${word} link (Cohen’s sizes, scaled to the table).`,
+    r.two ? `2 × 2: χ² ${fx(r.chi2, 2)} (${pSay(r.p)}), with Yates’ correction ${fx(r.two.yates, 2)} (${pSay(r.two.pYates)}), Fisher’s exact ${pSay(r.two.pFisher)}.` : `Smallest expected count ${fx(r.minExpected, 1)}; ${Math.round(r.shareFive * 100)}% of the cells expect 5 or more.`,
+    `Counted ${big(r.total)} in ${r.rows * r.cols} cells; each cell’s count, what chance would give and its standardised residual are in the table.`];
+  const notClaimed = 'A link is not a cause. This says the counts are not spread the way chance alone would spread them — not why.';
+  if (f.lead === 'approx') return { text: `The counts are too small for the χ² to be trusted: ${Math.round((1 - r.shareFive) * 100)}% of the cells expect fewer than 5 (the smallest ${fx(r.minExpected, 1)}). It gives ${pSay(r.p)}, but that is only an approximation — merge categories that mean the same, or count more before reading anything into it.`, tone: 'a', verdict: 'Counts too small', more, notClaimed };
+  const head = `${cap(f.colName)} and ${row}`;
+  if (!f.significant) return { text: `${head} are not shown to be linked: ${sure(f.conf)} only that these counts cannot tell the pattern of ${col}s in one ${row} from another’s (${test}, ${pSay(p)}; Cramér’s V ${fx(r.cramersV, 2)}).`, tone: 'n', verdict: 'No link shown', more, notClaimed };
+  return { text: `${head} are linked: ${sure(f.conf)} the pattern of ${col}s is not the same in every ${row} (${test}, ${pSay(p)}; Cramér’s V ${fx(r.cramersV, 2)}, a ${word} link).${standing}`, tone: 'n', verdict: 'Linked', more, notClaimed };
+}
+
+function relateSays(f: RelateFigures, name: string, u: string): AnalysisSays {
+  const lc = name.toLowerCase();
+  if (!f.enough) return { text: f.k < 1 ? 'Name at least one driver.' : f.n === 0 ? `No rows yet. Type a ${f.k === 1 ? 'pair' : 'row'} — ${f.drivers.map(d => d.name).join(', ')}, then ${name}.` : `${f.n} row${f.n === 1 ? '' : 's'} — at least ${f.need} are needed${f.k > 1 ? ` for ${f.k} drivers (5 for each, and 5 more)` : ' to fit a line'}.`, tone: 'n', verdict: f.n ? 'Too few' : 'Not started', more: [], notClaimed: '' };
+  if (f.refusal) return { text: f.refusal, tone: 'n', verdict: 'Nothing to fit', more: [], notClaimed: '' };
+  const notClaimed = `A link is not a cause. This says ${f.k === 1 ? 'the two move' : 'they move'} together in these readings — not that ${f.k === 1 ? 'one makes the other' : 'the drivers make it'} move, and not beyond the range measured.`;
+  if (f.line) {
+    const l = f.line, d = f.drivers[0], dn = d.name.toLowerCase(), per = `${sg(Math.abs(l.slope))}${u} for every extra 1${d.unit ? ` ${d.unit}` : ''} of ${dn}`;
+    const more = [`Pearson’s r ${fx(l.r, 3)} (${pctWord(f.conf)}: ${fx(l.rLo, 3)} to ${fx(l.rHi, 3)}, ${pSay(l.pR)}); Spearman’s ρ ${fx(l.rho, 3)} (${pSay(l.pRho)}), the rank version that an outlier cannot bend.`,
+      `The line: ${lc} = ${sg(l.intercept)} ${l.slope < 0 ? '−' : '+'} ${sg(Math.abs(l.slope))} × ${dn}; the slope’s standard error ${sg(l.seSlope)}; a typical point lies ${sg(l.se)}${u} from it.`,
+      `Type a ${dn} inside ${sg(l.xRange[0])}–${sg(l.xRange[1])}${d.unit ? ` ${d.unit}` : ''} to see what the line gives there, and how far a new reading could stray.`];
+    const bent = !!l.runs && l.runs.p < 0.05, tail = bent ? ` But the line is too straight for these points: they fall above and below it in ${l.runs?.runs} stretches where about ${fx(l.runs?.expected ?? 0, 0)} are expected — the relation bends, so do not trust the straight line at the ends.` : '';
+    if (!f.significant) return { text: `${name} does not move with ${dn} that these readings can show: ${sure(f.conf)} only that the slope is between ${sg(l.slopeLo)} and ${sg(l.slopeHi)}${u} per ${d.unit ?? 'unit'}, which includes no change at all (r ${fx(l.r, 2)}, ${pSay(l.pR)}).`, tone: 'n', verdict: 'No link shown', more, notClaimed };
+    return { text: `${name} ${l.slope >= 0 ? 'rises' : 'falls'} ${per} — ${sure(f.conf)} the true change for each is between ${sg(Math.abs(l.slope >= 0 ? l.slopeLo : l.slopeHi))} and ${sg(Math.abs(l.slope >= 0 ? l.slopeHi : l.slopeLo))}${u}. ${share0(l.r2)} of the variation in ${lc} goes with ${dn} (r ${fx(l.r, 2)}, R² ${fx(l.r2, 2)}, ${pSay(l.pR)}).${tail}`,
+      tone: bent ? 'a' : 'n', verdict: bent ? 'Linked, not straight' : 'Linked', more, notClaimed };
+  }
+  const m = f.multi as Multiple, words = m.drivers.map(d => `${d.name} ${d.b >= 0 ? '+' : '−'}${sg(Math.abs(d.b))}${u} (${sg(d.lo)} to ${sg(d.hi)}, ${pSay(d.p)})`);
+  const quiet = m.drivers.filter(d => d.p >= f.alpha).map(d => d.name);
+  const more = [`Together the ${m.k} drivers explain ${share0(m.r2)} of the variation in ${lc} (adjusted ${share0(m.adjR2)}); F ${fx(m.f, 2)} on ${m.df1} and ${m.df2} degrees of freedom, ${pSay(m.pF)}; a typical row lies ${sg(m.se)}${u} from the fit.`,
+    `The intercept is ${sg(m.intercept.b)}${u} (${sg(m.intercept.lo)} to ${sg(m.intercept.hi)}) — what the fit gives with every driver at zero, which may lie far outside the readings.`,
+    quiet.length ? `${quiet.join(' and ')} ${quiet.length === 1 ? 'is' : 'are'} not shown to matter once the others are in.` : 'Each driver is shown to matter with the others held.'];
+  if (!f.significant) return { text: `${name} does not move with these ${m.k} drivers that the readings can show: ${sure(f.conf)} only that together they explain ${share0(m.r2)} of the variation, which is no more than chance would give (F ${fx(m.f, 2)}, ${pSay(m.pF)}).`, tone: 'n', verdict: 'No link shown', more, notClaimed };
+  return { text: `${name} goes with the drivers — ${sure(f.conf)} they move it together (F ${fx(m.f, 2)}, ${pSay(m.pF)}; R² ${fx(m.r2, 2)}). Per unit of each, the others held: ${words.join('; ')}.${m.serious ? ' The drivers move together, so these separate effects cannot be read apart.' : ''}`,
+    tone: m.serious ? 'a' : 'n', verdict: m.serious ? 'Drivers move together' : 'Drivers found', more, notClaimed };
+}
+
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 const notFix = 'The test says the number moved — not why. What moved it is the fix’s to say.';
 const better = (f: { better: 'lower' | 'higher' | 'either' }, diff: number): { says: string; tone: Tone; verdict: string } => {
@@ -366,6 +565,32 @@ export function analysisTiles(f: AnalysisFigures, a: AgreedAnalysis): LeanTile[]
       t(`${conf} sure`, r ? `${fx(r.lo, dp)} to ${fx(r.hi, dp)}` : '—'), t('p', f.p !== undefined ? fmtP(f.p) : '—', f.p !== undefined ? (f.leads === 'wilcoxon' ? 'Wilcoxon' : 'paired t') : undefined),
       t('Higher', r ? `${r.higher} of ${f.pairs}` : '—', r ? `${f.second} reads higher` : undefined)];
   }
+  if (f.kind === 'groups') {
+    const r = f.res, used = f.groups.filter(g => g.values.length >= COMPARE_FROM), top = r ? [...r.groups].sort((x, y) => y.mean - x.mean) : [];
+    const gap = top.length > 1 ? top[0].mean - top[top.length - 1].mean : undefined;
+    const worst = f.significant && f.better !== 'either' && !!r && f.res?.pairs.some(x => x.p < f.alpha);
+    return [t(`${f.noun[0].toUpperCase()}${f.noun.slice(1)}s`, big(used.length), f.left.length ? `${f.left.length} with too few` : undefined), t('Readings', big(f.groups.reduce((n, g) => n + g.values.length, 0))),
+      t('Widest gap', gap !== undefined ? `${fx(gap, dp)}${u}` : '—', top.length > 1 ? `${top[0].name} − ${top[top.length - 1].name}` : undefined),
+      t('p', f.p !== undefined ? fmtP(f.p) : '—', f.p !== undefined ? (f.leads === 'kruskal' ? 'Kruskal–Wallis' : 'one-way ANOVA') : undefined, worst && f.significant ? 'a' : 'n'),
+      t('Between the groups', r ? share0(r.eta2) : '—', r ? 'η², the share of the variation' : undefined)];
+  }
+  if (f.kind === 'table') {
+    const r = f.res;
+    return [t('Counted', big(f.total), r ? `${r.rows} × ${r.cols} cells` : undefined), t(f.lead === 'fisher' ? 'Fisher’s exact' : 'χ²', r ? (f.lead === 'fisher' ? '—' : fx(r.chi2, 1)) : '—', r && f.lead !== 'fisher' ? dfs(r.df) : undefined),
+      t('p', f.p !== undefined ? fmtP(f.p) : '—', f.lead === 'approx' ? 'approximate — counts too small' : undefined, f.lead === 'approx' ? 'a' : 'n'), t('Cramér’s V', r ? fx(r.cramersV, 2) : '—', r ? `${cramersWord(r.cramersV, r.rows, r.cols)} link` : undefined), t('Sure', f.enough ? conf : '—')];
+  }
+  if (f.kind === 'relate') {
+    if (f.k === 1) {
+      const l = f.line, d = f.drivers[0];
+      return [t('Pairs', big(f.n), f.n < f.need ? `at least ${f.need} for a line` : f.weak ? `at least ${LINE_FROM} for a firm line` : undefined, f.weak ? 'a' : 'n'), t('Link', l ? `r ${fx(l.r, 2)}` : '—', l ? `ρ ${fx(l.rho, 2)} · ${pSay(l.pR)}` : undefined),
+        t('Per unit', l ? `${l.slope >= 0 ? '+' : '−'}${sg(Math.abs(l.slope))}${u}` : '—', l ? `${conf}: ${sg(l.slopeLo)} to ${sg(l.slopeHi)} per ${d.unit ?? 'unit'}` : undefined), t('Explained', l ? share0(l.r2) : '—', l ? 'R²' : undefined),
+        t('Shape', l?.runs ? (l.runs.p < 0.05 ? 'Bends' : 'Straight enough') : '—', l?.runs ? `${l.runs.runs} stretches · ${fx(l.runs.expected, 0)} expected` : undefined, l?.runs && l.runs.p < 0.05 ? 'a' : 'n')];
+    }
+    const m = f.multi;
+    const strong = m ? [...m.drivers].sort((x, y) => x.p - y.p)[0] : undefined;
+    return [t('Rows', big(f.n), f.n < f.need ? `at least ${f.need} for ${f.k} drivers` : undefined, f.n < f.need ? 'a' : 'n'), t('Explained', m ? share0(m.r2) : '—', m ? `adjusted ${share0(m.adjR2)}` : undefined), t('p', f.p !== undefined ? fmtP(f.p) : '—', m ? `F ${fx(m.f, 1)}` : undefined),
+      t('Strongest', strong ? strong.name : '—', strong ? pSay(strong.p) : undefined), t('Worst VIF', m ? fx(m.maxVif, 1) : '—', m ? (m.serious ? 'drivers move together' : 'drivers apart enough') : undefined, m?.serious ? 'a' : 'n')];
+  }
   const mins = f.minutes !== undefined ? `${big(f.minutes)} min` : undefined;
   if (f.ask === 'cycles' && f.cycles) return [t('Timed', big(f.cycles.have)), t('Needed', big(f.cycles.n), `±${pct(a.plan?.k ?? 0)} at ${conf}`), t('Still to time', big(Math.max(0, f.cycles.n - f.cycles.have)), undefined, f.cycles.n > f.cycles.have ? 'a' : 'g'), t('Margin now', `± ${fx(f.cycles.marginPct, 1)}%`, `± ${fx(f.cycles.marginNow, 2)}${u}`)];
   return [t('Needed', f.ok && f.need !== undefined ? big(f.need) : '—', f.ask === 'difference' || f.ask === 'twoShares' ? 'a group' : undefined), t('Confidence', conf), ...(f.ask === 'difference' || f.ask === 'twoShares' ? [t('Power', pctWord(f.power))] : []), ...(mins ? [t('Time', mins, f.pounds !== undefined ? `£${big(f.pounds)} · ${f.seconds} s a reading` : `${f.seconds} s a reading`)] : [])];
@@ -377,6 +602,7 @@ export function analysisClosing(f: AnalysisFigures, a: AgreedAnalysis, said: Ana
   const what = a.name.trim() || 'The figure';
   if (f.kind === 'sure') return { text: `${said.verdict} — ${what}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'change') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
+  if (f.kind === 'groups' || f.kind === 'table' || f.kind === 'relate') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'paired') return { text: `${said.verdict} — ${f.pairs} pair${f.pairs === 1 ? '' : 's'}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}.`, tone: said.tone };
   return { text: `${said.verdict}.`, tone: said.tone };
 }
@@ -419,11 +645,59 @@ export function analysisPicture(f: AnalysisFigures, a: AgreedAnalysis): PicRow[]
     }
     return [];
   }
+  if (f.kind === 'groups' && f.res) {
+    const used = f.groups.filter(g => g.values.length >= COMPARE_FROM), cis = used.map(g => { const d = g.desc; return d ? meanInterval(d.n, d.mean, d.sd, f.conf) : undefined; });
+    const axis = span([...used.flatMap(g => g.values), ...cis.flatMap(i => (i ? [i.lo, i.hi] : []))]);
+    return used.map((g, i) => ({ label: `${g.name} · ${g.values.length}`, axis, unit: u, dots: g.values, ...(g.desc && cis[i] ? { point: { v: g.desc.mean, text: fx(g.desc.mean, dp) }, band: { lo: (cis[i] as Interval).lo, hi: (cis[i] as Interval).hi, text: `${c}: ${fx((cis[i] as Interval).lo, dp)}–${fx((cis[i] as Interval).hi, dp)}` } } : {}) }));
+  }
   if (f.kind === 'paired' && f.t) {
     const t = f.t;
     return [{ label: `${f.second} − ${f.first}`, axis: sym([...f.diffs, t.lo, t.hi]), unit: u, zero: true, dots: f.diffs, tone: f.significant ? 'a' : 'n', point: { v: t.mean, text: fx(t.mean, dp) }, band: { lo: t.lo, hi: t.hi, text: `${c}: ${fx(t.lo, dp)} to ${fx(t.hi, dp)}` } }];
   }
   return [];
+}
+
+/* ------------------------------------------- the picture of a table and of a relation ------------------- */
+/** What the page draws as a grid and a scatter and the paper as a table and a plot — one definition for both. */
+export type Plot =
+  | { kind: 'table'; rowName: string; colName: string; rows: string[]; cols: string[]; counts: number[][]; expected: number[][]; residuals: number[][]; rowTotals: number[]; colTotals: number[]; total: number }
+  | { kind: 'scatter'; xName: string; yName: string; xUnit: string; yUnit: string; pts: [number, number][]; xAxis: [number, number]; yAxis: [number, number];
+      line?: [[number, number], [number, number]]; band?: { x: number; lo: number; hi: number }[]; /** the fit against what was read: a line of equal values */ equal?: boolean };
+const padded = (vs: number[]): [number, number] => { const lo = Math.min(...vs), hi = Math.max(...vs), p = Math.max((hi - lo) * 0.06, Math.abs(hi) * 0.0005, 1e-9); return [lo - p, hi + p]; };
+export function analysisPlot(f: AnalysisFigures, a: AgreedAnalysis): Plot | undefined {
+  if (f.kind === 'table' && f.res) {
+    return { kind: 'table', rowName: f.rowName, colName: f.colName, rows: f.rows, cols: f.cols, counts: f.counts, expected: f.res.expected, residuals: f.res.residuals, rowTotals: f.res.rowTotals, colTotals: f.res.colTotals, total: f.res.total };
+  }
+  if (f.kind === 'relate' && f.line) {
+    const l = f.line, d = f.drivers[0], xs = f.xs[0], xAxis = padded(xs), steps = 24;
+    const band = Array.from({ length: steps + 1 }, (_, i) => { const x = l.xRange[0] + (l.xRange[1] - l.xRange[0]) * i / steps, p = predictAt(l, x, f.conf); return { x, lo: p.y - p.meanHalf, hi: p.y + p.meanHalf }; });
+    const yAxis = padded([...f.y, ...band.flatMap(b => [b.lo, b.hi])]);
+    return { kind: 'scatter', xName: d.name, yName: a.name, xUnit: d.unit ?? '', yUnit: a.unit ?? '', pts: xs.map((x, i) => [x, f.y[i]] as [number, number]), xAxis, yAxis,
+      line: [[l.xRange[0], l.intercept + l.slope * l.xRange[0]], [l.xRange[1], l.intercept + l.slope * l.xRange[1]]], band };
+  }
+  if (f.kind === 'relate' && f.multi) {
+    const m = f.multi, ax = padded([...f.y, ...m.fitted]);
+    return { kind: 'scatter', xName: 'Fitted', yName: a.name, xUnit: a.unit ?? '', yUnit: a.unit ?? '', pts: m.fitted.map((x, i) => [x, f.y[i]] as [number, number]), xAxis: ax, yAxis: ax, line: [[ax[0], ax[0]], [ax[1], ax[1]]], equal: true };
+  }
+  return undefined;
+}
+/** The line's reading at a typed driver — inside the range measured, and beyond it said to be a guess. */
+export function predictionSays(f: RelateFigures, a: AgreedAnalysis, x0: number): { text: string; inside: boolean } | undefined {
+  if (!f.line) return undefined;
+  const l = f.line, d = f.drivers[0], p = predictAt(l, x0, f.conf), u = a.unit ? ` ${a.unit}` : '', dp = f.dp + 1;
+  if (!p.inside) return { text: `${sg(x0)}${d.unit ? ` ${d.unit}` : ''} is outside the ${sg(l.xRange[0])}–${sg(l.xRange[1])} measured — beyond the readings the line is a guess, so no interval is given.`, inside: false };
+  return { text: `At ${sg(x0)}${d.unit ? ` ${d.unit}` : ''} the line gives ${fx(p.y, dp)}${u}: ${sure(f.conf)} the average there is between ${fx(p.y - p.meanHalf, dp)} and ${fx(p.y + p.meanHalf, dp)}${u}, and a single new reading would fall between ${fx(p.y - p.newHalf, dp)} and ${fx(p.y + p.newHalf, dp)}${u}.${f.n < PREDICT_WEAK ? ` With fewer than ${PREDICT_WEAK} pairs this is rough.` : ''}`, inside: true };
+}
+
+/** Rows of numbers pasted — `width` numbers to a line; whatever is not a row of exactly that many numbers is listed in `skipped`, never silently dropped. */
+export function parseRows(text: string, width: number): { rows: number[][]; skipped: string[] } {
+  const out = { rows: [] as number[][], skipped: [] as string[] };
+  for (const line of text.split(/\r?\n/)) {
+    const toks = line.split(/[\s,;]+/).filter(Boolean); if (!toks.length) continue;
+    const nums = toks.map(t => (/^[+-]?(\d+\.?\d*|\.\d+)$/.test(t) ? Number(t) : NaN));
+    if (nums.length === width && nums.every(Number.isFinite)) out.rows.push(nums); else out.skipped.push(line.trim());
+  }
+  return out;
 }
 
 /* ------------------------------------------- pasted readings ------------------------------------------- */

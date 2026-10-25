@@ -98,8 +98,12 @@ nights" is said.
 - [paper] Kruskal, W.H. and Wallis, W.A. (1952), "Use of ranks in one-criterion variance analysis", *JASA* 47(260), 583–621 (from knowledge).
 
 ## In Faultline
-Not built (FC-107). It was a worked-out figure in the method engine deleted
-on 20 October (`docs/DIRECTION.md`); when rebuilt it is a view on any set
-of readings the app holds that carries a group (shift, head, line, product
-— the records already carry them), answering in words with the pairs that
-differ and the money of the difference.
+Built (W3b, 24 October; FC-107). The Analysis tool's *Do groups differ*: readings by group (a shift, a head,
+a supplier — named as they are added), the one-way F with its p and η², Levene's test on the medians for the
+spreads, Kruskal–Wallis (with the tie correction) beside it and leading when a group of 20 or more is not
+bell-shaped or the spreads differ, and Tukey's HSD (Tukey–Kramer for unequal sizes) for which pairs differ,
+each with its difference and its interval at the confidence picked — from the studentised range integrated
+in `lib/ie/groups`, proved against SciPy's `studentized_range` and `tukey_hsd`. A group not shown to differ is
+never called the same; which way is better makes the worst group amber and nothing red. The money of a
+difference is the capability study's give-away line, not priced here. Proved by
+`scripts/acceptance/analysis-relations.mjs`.

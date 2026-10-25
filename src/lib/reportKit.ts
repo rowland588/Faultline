@@ -60,6 +60,9 @@ const PLAIN: Record<string, string> = { 'Ł': 'L', 'ł': 'l', 'Đ': 'D', 'đ': '
 const SPELT: Record<string, string> = {
   '\u2264': '<=', '\u2265': '>=', '\u2260': '!=', '\u2248': '~', '\u03BC': '\u00B5',
   '\u2032': "'", '\u2033': '"', '\u2717': 'x', '\u2718': 'x', '\u0162': '\u021A', '\u0163': '\u021B',
+  /* the Greek the statistics say — χ² for the table, η² for the share, ρ for the rank, σ and Δ — and the subscript 1 of r₁: spelt, not dropped */
+  '\u03C7': 'chi', '\u03B7': 'eta', '\u03C1': 'rho', '\u03C3': 'sigma', '\u0394': 'Delta', '\u03B1': 'alpha', '\u03B2': 'beta',
+  '\u2080': '0', '\u2081': '1', '\u2082': '2', '\u2083': '3',
 };
 
 /** jsPDF's built-in fonts are WinAnsi-encoded, which has no arrows and no
@@ -94,7 +97,7 @@ export function san(t: string): string {
     .replace(/\u00AD/g, '')
     /* A sign with no glyph is spelt out, never dropped: "≤ 0.5 mm" losing its
        ≤ printed a limit as a target. Greek mu is the micro sign people meant. */
-    .replace(/[\u2264\u2265\u2260\u2248\u03BC\u2032\u2033\u2717\u2718\u0162\u0163]/gu, c => SPELT[c])
+    .replace(/[\u2264\u2265\u2260\u2248\u03BC\u2032\u2033\u2717\u2718\u0162\u0163\u03C7\u03B7\u03C1\u03C3\u0394\u03B1\u03B2\u2080-\u2083]/gu, c => SPELT[c])
     /* Then drop everything the fonts cannot draw — INCLUDING the C0 and C1
        control characters, which this used to keep. The old range started at
        \u0000, so a NUL, a BEL or an ESC out of an Excel cell went straight into

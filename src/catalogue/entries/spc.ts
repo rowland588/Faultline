@@ -9,6 +9,8 @@ const CHART_SPEC = 'knowledge/specs/FC-086-charts.md';
 const ANALYSIS_SPEC = 'knowledge/specs/FC-105-analysis.md';
 const ANALYSIS_BUILT = { where: ['/analysis'], code: ['src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx', 'src/lib/ie/stats.ts', 'src/lib/ie/describe.ts', 'src/lib/studiesPdf.ts'], tests: ['src/lib/ie/__tests__/stats.test.ts', 'src/tools/analysis/__tests__/analysis.test.ts'], acceptance: ['analysis.mjs'] };
 /* FC-103 and FC-115 also change the capability study (its histogram caption and its notes) */
+const GROUPS_SPEC = 'knowledge/specs/FC-107-groups-tables-relations.md';
+const GROUPS_BUILT = { where: ['/analysis'], code: ['src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx', 'src/lib/ie/groups.ts', 'src/lib/ie/relate.ts', 'src/lib/studiesPdf.ts'], tests: ['src/lib/ie/__tests__/groups.test.ts', 'src/lib/ie/__tests__/relate.test.ts', 'src/tools/analysis/__tests__/analysisMore.test.ts'], acceptance: ['analysis-relations.mjs'] };
 const ANALYSIS_BUILT_WITH = { ...ANALYSIS_BUILT, where: ['/analysis', '/capability'], code: [...ANALYSIS_BUILT.code, 'src/tools/capability/sample.ts', 'src/tools/capability/StudyScreen.tsx'], acceptance: ['analysis.mjs'] };
 const CHART_BUILT = { where: ['/chart'], code: ['src/tools/chart/chart.ts', 'src/tools/chart/ChartScreen.tsx', 'src/lib/ie/charts.ts', 'src/lib/ie/dist.ts', 'src/lib/studiesPdf.ts'], tests: ['src/tools/chart/__tests__/chart.test.ts', 'src/lib/ie/__tests__/charts.test.ts'], acceptance: ['control-chart.mjs'] };
 /* W1 (24 October): the study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -169,7 +171,7 @@ export const SPC: Entry[] = [
     depends: ['FC-097', 'FC-114'],
     complexity: 'L', value: 'medium', valueWhy: 'Honest capability where the bell does not fit.',
     status: 'to-build', form: 'mode', partOf: 'FC-094', methods: ['spc.capability-nonnormal', 'stats.distribution-fitting'], scenarios: ['quality'],
-    limits: ['Planned for W3 with distribution fitting (FC-109) — the capability study already says a leaning set is read as measured (docs/TOOLS-BUILD.md).'],
+    limits: ['Planned for W3c with distribution fitting (FC-114) — the capability study already says a leaning set is read as measured (docs/TOOLS-BUILD.md).'],
   },
   {
     id: 'FC-097', name: 'Before capability — is it bell-shaped, steady and fine enough', discipline: 'spc', sub: 'checks',
@@ -296,7 +298,7 @@ export const SPC: Entry[] = [
     status: 'available', form: 'tool', kind: 'study', methods: ['stats.two-sample-tests'], scenarios: ['project', 'quality'], words: ['did it work', 'significance', 't test'],
     app: { key: 'analysis', label: 'Analysis', says: 'How sure a figure is, whether it changed, whether two ways agree, how many readings it takes', onLine: 'is it sure, did it change, do two ways agree', reads: 'analysis', icon: 'hash', order: 4.6 },
     built: ANALYSIS_BUILT_WITH, spec: ANALYSIS_SPEC,
-    limits: ['Two-sided tests always: which way is better is asked and used for the words, never to halve a p-value.', 'The studies’ own before → after line still says the number moved without a test; the test is made here.', 'Several groups, counts in a table and relations are W3b (FC-107, FC-108, FC-109, FC-110).'],
+    limits: ['Two-sided tests always: which way is better is asked and used for the words, never to halve a p-value.', 'The studies’ own before → after line still says the number moved without a test; the test is made here.', 'Several groups, counts in a table and relations are the same tool’s other questions (FC-107, FC-108, FC-109, FC-110).'],
   },
   {
     id: 'FC-106', name: 'Paired comparison — the same items measured two ways', discipline: 'stats', sub: 'compare',
@@ -322,7 +324,9 @@ export const SPC: Entry[] = [
     food: 'Multihead weigher heads; filler nozzles; oven zones.',
     depends: ['FC-153', 'FC-158'],
     complexity: 'M', value: 'medium', valueWhy: 'Finds the head or lane making the problem.',
-    status: 'to-build', form: 'component', methods: ['stats.anova'], scenarios: ['quality', 'packing'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['stats.anova'], scenarios: ['quality', 'packing'],
+    built: GROUPS_BUILT, spec: GROUPS_SPEC,
+    limits: ['Tukey’s HSD from the studentised range, Kruskal–Wallis beside it and leading when a group of 20 or more is not bell-shaped or the spreads differ; Welch’s ANOVA and a two-way model are not built (the factorial is FC-111).', 'A group not shown to differ is never called the same; the money of a difference is the capability study’s give-away line, not priced here.'],
   },
   {
     id: 'FC-108', name: 'Are two things linked — counts by group (chi-square)', discipline: 'stats', sub: 'compare',
@@ -334,7 +338,9 @@ export const SPC: Entry[] = [
     food: 'Seal failures by lane and jaw.',
     depends: ['FC-124', 'FC-153'],
     complexity: 'S', value: 'medium', valueWhy: 'Tests a hunch with counts already kept.',
-    status: 'to-build', form: 'component', methods: ['stats.chi-square-association'], scenarios: ['quality'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['stats.chi-square-association'], scenarios: ['quality'],
+    built: GROUPS_BUILT, spec: GROUPS_SPEC,
+    limits: ['Pearson’s χ² with Cramér’s V and the standardised residuals; Yates and Fisher’s exact for a 2 × 2. A larger table that fails the expected-count rule is said not to be trusted — no exact r × c test is built.', 'Counts are typed or pasted into the table; reading the register’s or the loss count’s counts straight into one is not built.'],
   },
   {
     id: 'FC-109', name: 'Correlation and the scatter', discipline: 'stats', sub: 'relate',
@@ -344,9 +350,11 @@ export const SPC: Entry[] = [
     inputs: 'Paired readings.',
     outputs: 'The scatter, r, the fitted line.',
     food: 'Jaw temperature vs seal strength.',
-    depends: ['FC-110'],
+    depends: [],
     complexity: 'S', value: 'medium', valueWhy: 'The first look at a relationship.',
-    status: 'to-build', form: 'component', methods: ['stats.correlation-regression'], scenarios: ['quality'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['stats.correlation-regression'], scenarios: ['quality'],
+    built: GROUPS_BUILT, spec: GROUPS_SPEC,
+    limits: ['The straight line only: a bending relation is said (the residuals’ runs), not fitted — no curved term or transform. A prediction is inside the range measured only.', 'A link is not a cause, and the page says so.'],
   },
   {
     id: 'FC-110', name: 'What drives it — regression', discipline: 'stats', sub: 'relate',
@@ -356,9 +364,11 @@ export const SPC: Entry[] = [
     inputs: 'The result and its candidate drivers, recorded together.',
     outputs: 'The effect of each driver with its interval; R².',
     food: 'Product temperature and line speed against weight loss.',
-    depends: ['FC-109', 'FC-111'],
+    depends: ['FC-109'],
     complexity: 'M', value: 'medium', valueWhy: 'Ranks drivers from data already kept — not proof of cause.',
-    status: 'to-build', form: 'tool', kind: 'study', methods: ['stats.correlation-regression'], scenarios: ['quality', 'project'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['stats.correlation-regression'], scenarios: ['quality', 'project'],
+    built: GROUPS_BUILT, spec: GROUPS_SPEC,
+    limits: ['Up to five drivers named by a person, never selected by the tool; from 5 a driver and 5 more rows; exactly collinear or constant drivers refused; the VIF warned above 10.', 'No interactions, curved terms or stepwise selection.'],
   },
   {
     id: 'FC-111', name: 'Designed experiments — two-level factorials', discipline: 'stats', sub: 'doe',

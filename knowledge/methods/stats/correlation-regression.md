@@ -100,10 +100,13 @@ line speed; cycle time vs pack weight; Brix vs refractometer temperature.
 - [textbook] Draper, N.R. and Smith, H., *Applied Regression Analysis*, 3rd ed., Wiley, 1998 (from knowledge).
 
 ## In Faultline
-Not built (FC-109 simple, FC-110 multiple). *What drives it* was a
-worked-out figure in the method engine deleted on 20 October
-(`docs/DIRECTION.md`). When rebuilt it reads two measures the app already
-holds on the same records (a study's readings against a setting typed with
-them), draws the scatter with the line and its band, says the slope in the
-floor's units with its interval, warns on the residuals, and never
-extrapolates on screen beyond the x range.
+Built (W3b, 24 October; FC-109 one driver, FC-110 several). The Analysis tool's *What moves with what*: pairs
+or rows of drivers then the result, typed box by box or pasted. One driver: the scatter with the line and the
+band of its own interval, Pearson's r with Fisher's z interval, Spearman's ρ, the slope in the floor's units
+with its interval, R², the residual checks (the signs of the residuals in the order of x run in too few
+stretches = the line is too straight; lag-1 in the order taken; Pearson against Spearman for an outlier), and
+a prediction at a typed x with the average's interval and a new reading's — inside the range measured only,
+beyond it said to be a guess. Several drivers (up to five, from 5 a driver + 5 rows): each coefficient per unit
+with the others held, its interval and p, R², adjusted R², F and the variance inflation factor, warned above
+10; exactly collinear or constant drivers are refused in words. A link is not a cause. Proved by
+`scripts/acceptance/analysis-relations.mjs`.

@@ -100,6 +100,7 @@ const ROUTES = [
   ['work sampling — two people watched through the shift, a moment due now', `#/sampling/${seeded.samplingId}`],
   ['a reliability study — the wrapper watched two days, the watch running now, a stop struck, two remarks', `#/reliability/${seeded.reliabilityId}`],
   ['an analysis — twelve fill times before and after a re-calibration: it fell by 0.5 s, the right way', `#/analysis/${seeded.analysisId}`],
+  ['an analysis — three shifts’ give-away: B the worst', `#/analysis/${seeded.analysisGroupsId}`], ['an analysis — rejects by lane and fault type, linked', `#/analysis/${seeded.analysisTableId}`], ['an analysis — seal strength against jaw temperature, the line too straight', `#/analysis/${seeded.analysisRelateId}`],
   ['a control chart — forty fill weights, the limits set from twenty, two beyond and a run, the CUSUM since reading 28', `#/chart/${seeded.chartId}`],
   ['fixes — a fix raised from a value stream step, before → after', `#/project/${seeded.projectId}/fixes?open=${seeded.mapFixId}`],
   /* A SHIFT'S LOSSES (tool 7): every loss count; Shift 1 on Line 7 — the
