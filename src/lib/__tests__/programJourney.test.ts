@@ -5,7 +5,7 @@
  * at 50, short of the hour; 60 minutes at 50, passed; 60 at 55, didn't
  * pass; a fourth booked. */
 import { describe, expect, it } from 'vitest';
-import { attemptsOf, nettedOf, programJourney } from '../programJourney';
+import { attemptsOf, nettedOf, programJourney, runOf } from '../programJourney';
 import { programAfterTest, type Program } from '../programs';
 import { latestAttempts, type Test } from '../testing';
 
@@ -52,6 +52,21 @@ describe('a program’s journey', () => {
     expect(latestAttempts([t1, t2, t3, t4]).map(t => t.id)).toEqual(['t4']);
     /* with no pass before it, a test that did not pass stands as it is */
     expect(latestAttempts([t1]).map(t => t.id)).toEqual(['t1']);
+  });
+  /* Rowland, 25 October: Test 3 — aiming 75 ppm for 60 min, set at 75, ran 180 min, 3,600 packs, "netted 20 ppm" — changed
+     "ran for" to 60 in the test's record and the row still said 20. The record writes the list of runs (ui/RunPanel);
+     the row read the single-run fields it was first made with. */
+  it('a test edited in its record is read as edited: 3,600 packs in 60 min nets 60 ppm, not the 20 it did in 180', () => {
+    const first = { outcome: 'passed' as const, ranOn: '2026-10-22', runAgreed: { rate: 75, minutes: 60 }, run: { speed: 75, minutes: 180, packs: 3600 } };
+    const asMade = test('x', first);
+    expect(programJourney(p, [asMade], '2026-10-25').attempts[0]?.text)
+      .toBe('Test 1 · 22 Oct · aiming 75 ppm for 60 min · set at 75 ppm · ran 180 min · 3,600 packs · netted 20 ppm — passed');
+    /* the record's edit: the list, the single-run fields left as first written */
+    const edited = test('x', { ...first, runs: [{ id: 'r1', product: '', agreed: { rate: 75, minutes: 60 }, day: { speed: 75, minutes: 60, packs: 3600 }, ranOn: '2026-10-22' }] });
+    expect(nettedOf(edited)).toBe(60);
+    expect(programJourney(p, [edited], '2026-10-25').attempts[0]?.text)
+      .toBe('Test 1 · 22 Oct · aiming 75 ppm for 60 min · set at 75 ppm · ran 60 min · 3,600 packs · netted 60 ppm — passed');
+    expect(runOf(edited).day?.minutes).toBe(60);
   });
   it('no tests, no journey', () => {
     expect(programJourney(p, [], '2026-10-14')).toEqual({ attempts: [] });

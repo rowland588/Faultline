@@ -52,9 +52,19 @@ export interface Journey {
 const num = (n?: number) => (n == null || !Number.isFinite(n) ? undefined : n);
 const fmt = (n: number) => (Number.isInteger(n) ? n.toLocaleString('en-GB') : n.toLocaleString('en-GB', { maximumFractionDigits: 1 }));
 
+/** What an attempt aimed at and what it did, as it stands NOW. A test's numbers are edited in its record
+ *  (ui/RunPanel), which writes the product-run list (`runs`) and leaves the single-run fields (`run`,
+ *  `runAgreed`) as they were first written — so a test is read through the list when it has one, and
+ *  through the old fields only when it has not (lib/run productRuns). Rowland, 25 October: "I changed
+ *  ran for to 60 min … it still says netted 20 ppm". */
+export function runOf(t: Pick<Test, 'run' | 'runAgreed' | 'runs'>): { agreed: Test['runAgreed']; day: Test['run'] } {
+  const first = Array.isArray(t.runs) ? t.runs[0] : undefined;
+  return Array.isArray(t.runs) ? { agreed: first?.agreed, day: first?.day } : { agreed: t.runAgreed, day: t.run };
+}
+
 /** The speed it netted, packs a minute: good packs over the minutes run. */
-export function nettedOf(t: Pick<Test, 'run'>): number | undefined {
-  const r = t.run;
+export function nettedOf(t: Pick<Test, 'run' | 'runAgreed' | 'runs'>): number | undefined {
+  const r = runOf(t).day;
   const packs = num(r?.packs), mins = num(r?.minutes);
   if (packs == null || !mins) return undefined;
   return Math.max(0, packs - (num(r?.rejects) ?? 0)) / mins;
@@ -82,7 +92,7 @@ export function attemptsOf(p: Pick<Program, 'id' | 'testId'>, tests: Test[]): Te
 
 export function programJourney(p: Pick<Program, 'id' | 'testId'>, tests: Test[], today: string): Journey {
   const attempts: Attempt[] = attemptsOf(p, tests).map((t, i) => {
-    const a = t.runAgreed, d = t.run;
+    const { agreed: a, day: d } = runOf(t);
     const aim = [num(a?.rate) != null && `aiming ${fmt(a?.rate as number)} ppm`, num(a?.minutes) != null && `for ${fmt(a?.minutes as number)} min`].filter(Boolean).join(' ') || undefined;
     const net = nettedOf(t);
     const did = [num(d?.speed) != null && `set at ${fmt(d?.speed as number)} ppm`, num(d?.minutes) != null && `ran ${fmt(d?.minutes as number)} min`,
@@ -98,11 +108,11 @@ export function programJourney(p: Pick<Program, 'id' | 'testId'>, tests: Test[],
   });
   if (!attempts.length) return { attempts };
   /* The fastest pass — the speed it ran at, else what it netted, else what it aimed at. */
-  const speedOf = (t: Test) => num(t.run?.speed) ?? nettedOf(t) ?? num(t.runAgreed?.rate);
+  const speedOf = (t: Test) => num(runOf(t).day?.speed) ?? nettedOf(t) ?? num(runOf(t).agreed?.rate);
   const passes = attempts.filter(a => a.test.outcome === 'passed');
   const top = passes.slice().sort((x, y) => (speedOf(y.test) ?? -1) - (speedOf(x.test) ?? -1))[0];
   const best = top ? [`Passed${speedOf(top.test) != null ? ` at ${fmt(speedOf(top.test) as number)} ppm` : ''}`,
-    num(top.test.run?.minutes) != null ? `for ${fmt(top.test.run?.minutes as number)} min` : '',
+    num(runOf(top.test).day?.minutes) != null ? `for ${fmt(runOf(top.test).day?.minutes as number)} min` : '',
     top.test.ranOn ? `on ${niceDay(top.test.ranOn)}` : '', `(test ${top.n})`].filter(Boolean).join(' ') : undefined;
   const n = (o: Test['outcome']) => attempts.filter(a => a.test.outcome === o).length;
   const says = [`${attempts.length} test${attempts.length === 1 ? '' : 's'}`, n('passed') && `${n('passed')} passed`,

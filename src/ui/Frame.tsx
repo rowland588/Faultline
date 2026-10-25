@@ -38,6 +38,7 @@ import { todayISO } from '../lib/weeks';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
 import { ReportsSheet } from './ReportsSheet';
+import { ScopeTabs } from './ScopeTabs';
 import { ControlRoomReports } from './ControlRoomReports';
 import { QuickSnagHost, openQuickSnag, useCanTakeProblem } from '../snag/QuickSnag';
 import { ContextBar } from './ContextBar';
@@ -385,13 +386,7 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage 
         <RailList groups={bar ? [] : menu} go={go} />
       </aside>
       {tabs.length > 0 && (
-        <nav className="nv-tabs" aria-label={`${kind === 'line' ? line?.name ?? 'This line' : kind === 'project' ? project?.name ?? 'This project' : 'The factory'} — its pages`}>
-          {tabs.map(l => (
-            <button key={l.key} type="button" className={'nv-tab' + (l.on ? ' is-on' : '')} onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
-              <span className="nv-tab-l">{l.label}</span>{!!l.n && <span className="nv-tab-n">{l.n}{!!l.late && <i> · {l.late} late</i>}{!!l.failed && <i> · {l.failed} failed</i>}</span>}
-            </button>
-          ))}
-        </nav>
+        <ScopeTabs label={`${kind === 'line' ? line?.name ?? 'This line' : kind === 'project' ? project?.name ?? 'This project' : 'The factory'} — its pages`} tabs={tabs} go={go} />
       )}
       <nav className="nv-bar" aria-label="Menu">
         {five.map(l => (
