@@ -14186,6 +14186,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .nv-tab.is-on { color: var(--ink); font-weight: 700; border-bottom-color: var(--brand); }
 .nv-tab-n { font-size: var(--t-label); color: var(--muted); font-weight: 400; }
 .nv-tab-n i { font-style: normal; color: var(--danger); }
+/* more tabs past an edge — the strip fades there (ui/ScopeTabs); only the alpha of the mask matters */
+.nv-tabs.has-r { -webkit-mask-image: linear-gradient(to right, var(--ink) calc(100% - 36px), transparent); mask-image: linear-gradient(to right, var(--ink) calc(100% - 36px), transparent); }
+.nv-tabs.has-l { -webkit-mask-image: linear-gradient(to right, transparent, var(--ink) 36px); mask-image: linear-gradient(to right, transparent, var(--ink) 36px); }
+.nv-tabs.has-l.has-r { -webkit-mask-image: linear-gradient(to right, transparent, var(--ink) 36px, var(--ink) calc(100% - 36px), transparent); mask-image: linear-gradient(to right, transparent, var(--ink) 36px, var(--ink) calc(100% - 36px), transparent); }
+@media (max-width: 719px) {
+  .nv-tabs { padding: 0 6px; } .nv-tab { padding: 0 10px; gap: 4px; }
+  /* on a phone the work scrolls under the top bar: opaque, so nothing reads through it (25 October: "difficult to see … screen") */
+  .nv-top { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
 @media (min-width: 1100px) { .nv-tabs { margin-left: var(--nv-rail); padding: 0 20px; } }
 .nv:has(.nv-tabs) .nv-main .fr { height: calc(100dvh - var(--nv-top) - var(--nv-tabs)); }
 @media (max-width: 1099px) {

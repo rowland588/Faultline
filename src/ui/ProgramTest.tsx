@@ -23,7 +23,7 @@ import type { Program } from '../lib/programs';
 import { isProved, provingTitle } from '../lib/programs';
 import type { Outcome, PartResultIs, Test } from '../lib/testing';
 import { provingTestOf } from '../lib/commission';
-import { programJourney } from '../lib/programJourney';
+import { programJourney, runOf } from '../lib/programJourney';
 import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
 import { niceDay, todayISO } from '../lib/weeks';
@@ -101,7 +101,7 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
     setDay(test && !ran && test.plannedFor && test.plannedFor <= today ? test.plannedFor : today);
     /* The aim carries from the attempt before — changed here when this one
        aims higher (Rowland: "it can change between attempts"). */
-    const a = test?.runAgreed, d = test && !ran ? test.run : undefined;
+    const a = test ? runOf(test).agreed : undefined, d = test && !ran ? runOf(test).day : undefined;
     setF({ rate: str(a?.rate), mins: str(a?.minutes), speed: str(d?.speed), ran: str(d?.minutes), packs: str(d?.packs), rejects: str(d?.rejects) });
     setOpen(true);
   };
