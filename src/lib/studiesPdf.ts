@@ -44,7 +44,7 @@ import { agreedFor, balanceCost, costInputs, crewKept } from '../tools/linework/
 import { costWords, countTitle, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, studyReliabilitySays, type RelItem } from '../tools/reliability/reliability';
 import { relClosings, relTiles, relTrend } from '../tools/reliability/reliabilityLean';
 import { overTime, overTimeSays } from '../tools/capability/overTime';
-import { analysisClosing, analysisFigures, analysisPicture, analysisPlot, analysisSays, analysisTiles, confidenceOf, KIND_WORDS, pSay as anP, pctWord as anPct, type Plot, type PicRow } from '../tools/analysis/analysis';
+import { analysisClosing, analysisFigures, analysisGrids, analysisPicture, analysisPlot, analysisSays, analysisTiles, confidenceOf, KIND_WORDS, pSay as anP, pctWord as anPct, type Plot, type PicRow } from '../tools/analysis/analysis';
 import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } from '../tools/chart/chart';
 import { neckOf } from './lineLoss';
 import { relChartBlock, relDaysBlocks, relKindsBlocks, relTogetherBlocks, remarksBlocks } from './report/reliabilityTable';
@@ -402,6 +402,18 @@ function analysisPlotBlock(plot: Plot): Block {
     },
   }], after: 'm' });
 }
+/** The gauge's agreement in words for the line under the paper's picture (the tolerance, the reference, the slice and the need). */
+function gaugeAgreedWords(a: NonNullable<ToolStudy['agreed']>['analysis'] & object): string {
+  const g = a.gauge, u = a.unit ? ` ${a.unit}` : '';
+  if (!g) return '';
+  const parts = [g.mode === 'range' ? 'references across its range' : g.mode === 'drift' ? 'one reference checked day after day' : 'one reference read again and again'];
+  if (g.reference !== undefined) parts.push(`reference ${g.reference}${u}`);
+  if (g.lower !== undefined && g.upper !== undefined) parts.push(`judging ${g.lower}–${g.upper}${u}`); else if ((g.lower ?? g.upper) !== undefined) parts.push(`one limit ${g.lower ?? g.upper}${u}${g.target !== undefined ? ` from the target ${g.target}${u}` : ''}`);
+  if (g.limit !== undefined) parts.push(`read at ${g.limit}${u}`);
+  parts.push(`its 6s may use ${Math.round((g.slice ?? 0.2) * 1000) / 10}% of the tolerance, Cg and Cgk wanted at ${g.need ?? 1.33}`);
+  if (g.mode === 'drift') parts.push(`limits from the first ${g.baseline ?? 20} checks`);
+  return `, ${parts.join(', ')}`;
+}
 function analysisBlocks(s: ToolStudy): Block[] {
   const a = s.agreed?.analysis;
   if (!a) return [];
@@ -414,6 +426,7 @@ function analysisBlocks(s: ToolStudy): Block[] {
   const pic = analysisPicture(f, a), plot = analysisPlot(f, a);
   if (plot) { out.push(label(plot.kind === 'table' ? 'The counts — each with what chance would give in brackets' : f.kind === 'relate' && f.multi ? 'The fit against what was read' : 'The picture')); out.push(analysisPlotBlock(plot)); }
   else if (pic.length) { out.push(label('The picture')); out.push(analysisPicBlock(pic)); }
+  for (const g of analysisGrids(f, a)) { out.push(label(g.label)); out.push(wrapTable(g.head, g.rows, g.widths)); }
   if (f.kind === 'groups' && f.res) {
     const r = f.res, dp = f.dp + 1;
     out.push(label(`Every pair — Tukey’s HSD, ${anPct(f.conf)} intervals`));
@@ -425,18 +438,19 @@ function analysisBlocks(s: ToolStudy): Block[] {
     out.push(wrapTable(['Driver', 'Per unit', `${anPct(f.conf)} interval`, 'p', 'VIF'], [...m.drivers.map(d => [d.name, g(d.b), `${g(d.lo)} to ${g(d.hi)}`, anP(d.p), (d.vif ?? 1).toFixed(1)]), ['Intercept', g(m.intercept.b), `${g(m.intercept.lo)} to ${g(m.intercept.hi)}`, anP(m.intercept.p), '']], [0.3, 0.16, 0.3, 0.14, 0.1]));
   }
   if (f.checks.length) { out.push(label('Checks on the readings')); for (const c of f.checks) out.push(text({ text: c.say, size: 8.5, colour: c.tone === 'a' ? AMBER : INK2, after: 2 })); }
-  out.push(text({ text: `Agreed: ${a.name} — ${KIND_WORDS[a.kind].name.toLowerCase()}${a.unit && a.kind !== 'table' ? ` in ${a.unit}` : ''}${a.kind === 'relate' ? `, against ${(a.drivers ?? []).map(d => (d.unit ? `${d.name} (${d.unit})` : d.name)).join(', ')}` : ''}${a.kind === 'table' ? `, ${(a.rows ?? []).join(', ')} by ${(a.cols ?? []).join(', ')}` : ''}, ${anPct(confidenceOf(a))} confidence.`, size: 8, colour: MUTED, before: 2, after: 3 }));
+  out.push(text({ text: `Agreed: ${a.name} — ${KIND_WORDS[a.kind].name.toLowerCase()}${a.unit && a.kind !== 'table' ? ` in ${a.unit}` : ''}${a.kind === 'relate' ? `, against ${(a.drivers ?? []).map(d => (d.unit ? `${d.name} (${d.unit})` : d.name)).join(', ')}` : ''}${a.kind === 'table' ? `, ${(a.rows ?? []).join(', ')} by ${(a.cols ?? []).join(', ')}` : ''}${a.kind === 'gauge' && a.gauge ? gaugeAgreedWords(a) : ''}${a.kind === 'shape' && a.shape ? `${a.shape.lower !== undefined ? `, a lower limit of ${a.shape.lower}` : ''}${a.shape.upper !== undefined ? `, an upper limit of ${a.shape.upper}` : ''}` : ''}, ${anPct(confidenceOf(a))} confidence.`, size: 8, colour: MUTED, before: 2, after: 3 }));
   const rs = s.facts.readings ?? [];
   if (rs.length && a.kind === 'table') {
     out.push(label('Every count, in the order taken'));
     out.push(readingsRows(s, r => (r.col !== undefined && typeof r.made === 'number' ? `${(r.arm ?? '').slice(0, 8)}/${r.col.slice(0, 8)} ${r.made}` : '—'), () => false, 4));
   } else if (rs.length) {
     out.push(label(a.kind === 'paired' || (a.kind === 'relate' && (a.drivers ?? []).length === 1) ? 'Every pair, in the order taken' : a.kind === 'relate' ? 'Every row, in the order taken' : (a.kind === 'sure' && a.of !== 'mean') || (a.kind === 'change' && a.data === 'counted') ? 'Every run, in the order taken' : 'Every reading, in the order taken'));
-    out.push(readingsRows(s, r => `${Array.isArray(r.xs) ? `${r.xs.join(', ')} → ${r.value}` : typeof r.with === 'number' ? `${r.value} / ${r.with}` : typeof r.made === 'number' ? `${r.rejected}/${r.made}` : typeof r.value === 'number' ? String(r.value) : '—'}${r.arm ? ` ${a.kind === 'groups' ? r.arm.slice(0, 6) : r.arm[0].toUpperCase()}` : ''}`, () => false, a.kind === 'paired' ? 5 : a.kind === 'relate' ? (a.drivers ?? []).length > 1 ? 3 : 5 : a.kind === 'groups' ? 6 : 10));
+    out.push(readingsRows(s, r => `${Array.isArray(r.xs) ? `${r.xs.join(', ')} → ${r.value}` : typeof r.with === 'number' ? (a.kind === 'gauge' ? `${r.value} @${r.with}` : `${r.value} / ${r.with}`) : typeof r.made === 'number' ? `${r.rejected}/${r.made}` : typeof r.value === 'number' ? String(r.value) : '—'}${r.arm ? ` ${a.kind === 'groups' ? r.arm.slice(0, 6) : r.arm[0].toUpperCase()}` : ''}`, () => false, a.kind === 'paired' ? 5 : a.kind === 'relate' ? (a.drivers ?? []).length > 1 ? 3 : 5 : a.kind === 'groups' ? 6 : 10));
     if (a.kind === 'change') out.push(text({ text: 'B = before, A = after.', size: 8, colour: MUTED, after: 2 }));
     if (a.kind === 'groups') out.push(text({ text: 'Each reading is followed by the first six letters of its group.', size: 8, colour: MUTED, after: 2 }));
     if (a.kind === 'relate') out.push(text({ text: `Each row: ${(a.drivers ?? []).map(d => d.name).join(', ')} → ${a.name}.`, size: 8, colour: MUTED, after: 2 }));
     if (a.kind === 'paired') out.push(text({ text: `Each pair: ${a.firstName || 'the first way'} / ${a.secondName || 'the second way'}.`, size: 8, colour: MUTED, after: 2 }));
+    if (a.kind === 'gauge' && a.gauge?.mode === 'range') out.push(text({ text: 'Each reading is followed by @ and the reference it was read against.', size: 8, colour: MUTED, after: 2 }));
   }
   return out;
 }

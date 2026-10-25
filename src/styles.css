@@ -14423,3 +14423,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .lr-all { display: inline-flex; gap: 12px; margin-left: 12px; font-weight: 400; }
 /* on a phone the ticked bar stays in reach above the phone's own bar, however far down the list was ticked */
 @media (max-width: 719px) { .pl-pick { position: sticky; bottom: 84px; z-index: 5; box-shadow: var(--shadow-lift); } }
+
+/* The gauge studies and the shape fitted (W3c, FC-119 / FC-120 / FC-114): the small tables beside the picture, the more-details fold of the agreement */
+.ie-grid { margin-top: 10px; }
+.ie-grid-label { margin: 0 0 4px; }
+.ie-tbl tr.is-lead th, .ie-tbl tr.is-lead td { font-weight: 800; color: var(--ink); }
+.ie-agree-more > summary { cursor: pointer; font-weight: 700; color: var(--ink-2); padding: 6px 0; }
+.ie-agree-more[open] > summary { margin-bottom: 8px; }

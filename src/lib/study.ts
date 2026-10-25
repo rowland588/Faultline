@@ -495,7 +495,7 @@ export interface StudyAgreed {
  *  this figure, did it change, do two ways of measuring agree, how many readings do I need — and the readings or
  *  counts that answer it. W3b adds the groups, the counts in a table and the relations as more kinds. */
 export interface AgreedAnalysis {
-  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate';
+  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'gauge' | 'shape';
   /** what is measured — "Fill weight", "Reject rate" */
   name: string;
   unit?: string;
@@ -518,6 +518,34 @@ export interface AgreedAnalysis {
   rows?: string[];
   cols?: string[];
   drivers?: { name: string; unit?: string }[];
+  /** the gauge studies (W3c, FC-119/120): how the gauge is checked and what it judges */
+  gauge?: AgreedGauge;
+  /** which shape fits (W3c, FC-114): the limits that matter, optional */
+  shape?: { lower?: number; upper?: number };
+}
+/** IS THE GAUGE FIT (W3c, knowledge/specs/FC-119-gauge.md). `repeat`: one reference read again and again (Type 1); `range`: references
+ *  across the range, each reading carrying its reference in `with` (bias and linearity); `drift`: one reference checked day after day
+ *  (stability). The tolerance is what the gauge judges — both limits, or one limit and the target it is measured from. */
+export interface AgreedGauge {
+  mode: 'repeat' | 'range' | 'drift';
+  /** repeat and drift: the reference's true value */
+  reference?: number;
+  lower?: number;
+  upper?: number;
+  target?: number;
+  /** range: the limit that matters, where the bias is read off the line */
+  limit?: number;
+  /** the share of the tolerance the gauge's 6s may use (0.2 by default) and the Cg and Cgk wanted (1.33 by default) */
+  slice?: number;
+  need?: number;
+  /** the gauge's least count; absent: the smallest step the readings show */
+  resolution?: number;
+  /** drift: how many first readings the chart's limits come from (20 by default) */
+  baseline?: number;
+  /** the money of a bias on a weight gauge — as the capability study asks it */
+  packsPerShift?: number;
+  shiftsPerWeek?: number;
+  costPerKg?: number;
 }
 export interface AnalysisPlan {
   ask: 'mean' | 'difference' | 'share' | 'twoShares' | 'zero' | 'cycles';
