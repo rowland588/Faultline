@@ -71,4 +71,7 @@ Packaging materials, ingredients with long lead times.
 - [textbook] Hopp, W.J. and Spearman, M.L. (2008), *Factory Physics*, 3rd ed., ch. 2 (inventory control) and ch. 17 — the (Q, r) model and the inventory–service frontier. From knowledge.
 
 ## In Faultline
-Not built (FC-183).
+**Built 25 October 2026 (FC-183):** the reorder point and the safety stock are a calculator — Safety stock and reorder point at
+`#/calc/safety-stock` (`src/tools/calc/defs/safety-stock.ts`, `src/lib/ie/pull.ts` `reorderPoint`): z from the service level (a said
+choice), the spread over the lead time, the share of it that is the supplier's, the holding cost a year and the stock-outs a year with
+what they cost. Worked cases `scripts/knowledge/cases-calc.py` S1–S6. Not built: the fill-rate frontier, periodic review, lumpy demand.

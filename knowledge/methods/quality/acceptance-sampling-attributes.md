@@ -182,6 +182,12 @@ rework lot before it goes out.
 - [paper] Cameron, J.M. (1952), "Tables for constructing and for computing the operating characteristics of single-sampling plans", *Industrial Quality Control* 9(1), 37–39 (from knowledge; to confirm) — the usual source of table-made two-point plans.
 
 ## In Faultline
+**Built 25 October 2026 (FC-131):** the OC curve of a typed plan is a calculator — What a sampling plan protects at `#/calc/oc-curve`
+(`src/tools/calc/defs/oc-curve.ts`, `src/lib/ie/oc.ts`): the binomial, or the hypergeometric with whole bad units for one lot of known size;
+the producer's and consumer's risk at the AQL and limiting quality typed; where it accepts 95 and 10 in 100; the curve drawn on screen and
+on paper; the labour of inspecting a lot. Worked cases `scripts/knowledge/cases-calc.py` O1–O11. **FC-129 (designing a plan) is not built**
+and is the next step on the same module.
+
 **Verdict, 25 October 2026: CAN BE BUILT — as "design a plan", not "quote the
 ISO plan".** FC-129's entry still says *ISO 2859-1 single sampling plans by
 AQL and inspection level, inputs lot size, AQL, inspection level*; that

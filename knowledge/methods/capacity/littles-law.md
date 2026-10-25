@@ -61,7 +61,9 @@ Product waiting in chillers between cooking and packing — shelf life spent wai
 - [textbook] Pound, E.S., Bell, J.H. and Spearman, M.L. (2014), *Factory Physics for Managers*, McGraw-Hill Education — Little's law as the first of its three key equations. Confirmed in the publisher's description, 24 October 2026; text not read.
 
 ## In Faultline
-Not built as a tool of its own (FC-044). Used since 24 October inside the
-value stream map's money: a wait on the map with no counted queue is turned
-into pieces waiting by demand a day × the wait's share of the day
-(`knowledge/specs/FC-001-value-stream-money.md`).
+**Built 25 October 2026 (FC-044):** a calculator of its own — WIP and lead time at `#/calc/littles-law`
+(`src/tools/calc/defs/littles-law.ts`, `src/lib/ie/pull.ts` `littlesLaw`): the lead time, the WIP or the flow from the other two, a
+pile that grew or shrank said as rough, the share of a shelf life spent waiting, the stock in progress in money. Worked cases
+`scripts/knowledge/cases-calc.py` L1–L7. Also used since 24 October inside the value stream map's money: a wait on the map with no
+counted queue is turned into pieces waiting by demand a day × the wait's share of the day (`knowledge/specs/FC-001-value-stream-money.md`).
+Not built: why the queue is long (Kingman's formula, `capacity.kingman-vut`); feeding the map's waits from a count.
