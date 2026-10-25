@@ -194,7 +194,10 @@ export const LEAN: Entry[] = [
     food: 'Packers calling an engineer to a jam; QA called for a weight check.',
     depends: ['FC-059', 'FC-146'],
     complexity: 'M', value: 'medium', valueWhy: 'Response time is often more of the stop than the repair.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['lean.andon'], scenarios: ['machine', 'daily'], words: ['call for help', 'waiting for engineer'],
+    status: 'available', form: 'mode', partOf: 'FC-058', methods: ['lean.andon'], scenarios: ['machine', 'daily'], words: ['call for help', 'waiting for engineer'],
+    spec: 'knowledge/specs/FC-015-andon-calls.md',
+    built: { where: ['/reliability'], code: ['src/tools/reliability/reliability.ts', 'src/tools/reliability/repair.ts', 'src/tools/reliability/growth.ts', 'src/tools/reliability/weibull.ts', 'src/tools/reliability/wear.ts', 'src/tools/reliability/reliabilityLean.ts', 'src/tools/reliability/ReliabilityScreen.tsx', 'src/tools/reliability/RepairPanel.tsx', 'src/tools/reliability/GrowthPanel.tsx', 'src/tools/reliability/WearPanel.tsx', 'src/lib/report/reliabilityMore.ts'], tests: ['src/tools/reliability/__tests__/reliability.test.ts', 'src/tools/reliability/__tests__/repair.test.ts', 'src/tools/reliability/__tests__/growth.test.ts', 'src/tools/reliability/__tests__/weibull.test.ts'], acceptance: ['reliability.mjs'] },
+    limits: ['Calls are counted by reason and by shift, never by person — a decision left to the owner if people are ever to be compared.', 'One response (called to help arrived) and one clearing: the escalation chain’s legs are not separated; a call takes the machine out of running as a stop does.', 'Whether calling is being discouraged is not judged (a falling count is shown by day, the questioning is the team’s).'],
   },
   {
     id: 'FC-016', name: 'Kaizen event — a focused week with its 30-day check', discipline: 'lean', sub: 'kaizen',

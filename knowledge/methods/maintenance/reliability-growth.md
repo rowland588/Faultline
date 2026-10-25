@@ -111,9 +111,13 @@ sites.
 - [paper] Duane, J.T. (1964), "Learning curve approach to reliability monitoring", *IEEE Trans. Aerospace* 2(2), 563–566 (from knowledge).
 
 ## In Faultline
-Not built (FC-061). The reliability study already records failures
-against watched time and says the Laplace trend in words
-(`src/tools/reliability`); FC-061 adds the power-law fit on a study
-carried across days, the instantaneous MTBF beside the cumulative, the
-growth rate, the projection as an "if", and the plot — on the study and
-on the stage-gate project's commissioning paper.
+Built (FC-061, 25 October) as a mode of the Reliability study: a count ticked
+*Track growth* is fitted from 8 failures on the running time (the watch less
+timed stops): β̂ with its exact 90% interval (2β Σ ln(T/tᵢ) is χ² on 2n degrees
+of freedom — derived and simulated in `scripts/knowledge/cases-w5.py`, coverage
+90.6%), the unbiased β, the cumulative MTBF and the MTBF now (T ÷ nβ̂), the growth
+rate, the projection as an "if" (only when the improvement is beyond doubt),
+the picture, on the page and paper (`src/tools/reliability/growth.ts`, spec
+`knowledge/specs/FC-061-reliability-growth.md`). Not run: the Cramér–von Mises
+fit test (the handbook's critical values are not read — GAPS); no bound on the
+MTBF now; not on the stage-gate project's commissioning paper.

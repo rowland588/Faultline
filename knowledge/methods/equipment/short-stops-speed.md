@@ -109,9 +109,11 @@ speed loss bought with a stop reduction and should be measured as both.
 - [design] `docs/CAPACITY.md` §5–6 — Faultline's time model and the timed running speed.
 
 ## In Faultline
-Partly built: the loss count splits the speed loss once a running speed
-is timed (`src/tools/losses`, FC-055); the reliability study counts
-short stops by a tap with MTBF and no durations (`src/tools/reliability`,
-FC-056). Not yet: the two read together on one page — the frequency and
-mean length from the study beside the minutes from the count — and the
-verdict in words.
+The reliability study counts short stops by a tap with MTBF (`src/tools/
+reliability`), and since 25 October times each one — a chip ("30 s"), a time
+said, or help arrived and running again (FC-055 available; spec
+`knowledge/specs/FC-059-repair-times.md`) — giving the minutes lost an hour of
+running and availability. The loss count splits the speed loss once a running
+speed is timed (`src/tools/losses`, FC-056, partial). Not yet: the two read
+together on one page — the frequency and mean length from the study beside the
+minutes from the count.

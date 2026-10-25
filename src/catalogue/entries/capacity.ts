@@ -316,9 +316,10 @@ export const CAPACITY: Entry[] = [
     food: 'Labeller jams; film tracking stops.',
     depends: ['FC-058', 'FC-049'],
     complexity: 'S', value: 'high', valueWhy: 'Makes the hidden loss a number.',
-    status: 'partial', form: 'mode', partOf: 'FC-058', methods: ['equipment.short-stops-speed', 'maintenance.mtbf-failure-rate'], scenarios: ['machine'], words: ['micro stops', 'minor stops'],
-    built: { where: ['/reliability'], code: ['src/tools/reliability/reliability.ts'], tests: ['src/tools/reliability/__tests__/reliability.test.ts'], acceptance: ['reliability.mjs'] },
-    limits: ['The reliability study counts them (frequency, MTBF); their durations are not timed (FC-059).'],
+    status: 'available', form: 'mode', partOf: 'FC-058', methods: ['equipment.short-stops-speed', 'maintenance.mtbf-failure-rate'], scenarios: ['machine'], words: ['micro stops', 'minor stops'],
+    built: { where: ['/reliability'], code: ['src/tools/reliability/reliability.ts', 'src/tools/reliability/repair.ts', 'src/tools/reliability/growth.ts', 'src/tools/reliability/weibull.ts', 'src/tools/reliability/wear.ts', 'src/tools/reliability/reliabilityLean.ts', 'src/tools/reliability/ReliabilityScreen.tsx', 'src/tools/reliability/RepairPanel.tsx', 'src/tools/reliability/GrowthPanel.tsx', 'src/tools/reliability/WearPanel.tsx', 'src/lib/report/reliabilityMore.ts'], tests: ['src/tools/reliability/__tests__/reliability.test.ts', 'src/tools/reliability/__tests__/repair.test.ts', 'src/tools/reliability/__tests__/growth.test.ts', 'src/tools/reliability/__tests__/weibull.test.ts'], acceptance: ['reliability.mjs'] },
+    spec: 'knowledge/specs/FC-059-repair-times.md',
+    limits: ['How long they are comes from timing each one (a chip, a time said, or help arrived and running again) — counted but never timed stops are taken as long as the timed ones, and the page says how many.', 'Not yet read beside the loss count’s slow running on one page.'],
   },
   {
     id: 'FC-056', name: 'Speed loss — running against ideal speed', discipline: 'equipment', sub: 'speed',

@@ -123,9 +123,15 @@ goes" and could replace on an age.
 - [paper] Barlow, R.E. and Hunter, L.C. (1960), "Optimum preventive maintenance policies", *Operations Research* 8(1), 90–100 — the age-replacement cost rate (from knowledge).
 
 ## In Faultline
-Not built (FC-060). The reliability study already records each event
-with its time and kind (`src/tools/reliability`); FC-060 adds the age of
-the part at each failure and the ages still running, draws the plot,
-says β in words (wears out · random · fails young), the B10 and the
-conditional chance, and the replacement age with its saving — and hands
-the interval to the planned-maintenance schedule.
+Built (FC-060, 25 October) as a mode of the Reliability study: a count ticked
+*A part that wears* takes the lives typed on the page (age, failed or still
+running, struck and restored) and, if asked, the study's own gaps as lives; the
+Weibull is fitted by maximum likelihood with the still-running parts counted,
+β with its 90% likelihood-ratio interval, B10 with its interval, B50, mean
+life, the plot with the rank-regression line beside it, the chance a part of an
+age fails in the next stretch, and — only when wear-out is beyond doubt and both
+costs are typed — the age-replacement interval and what it saves
+(`src/tools/reliability/weibull.ts`, spec `knowledge/specs/FC-060-weibull.md`,
+cases `scripts/knowledge/cases-w5.py`). Not built: separating modes, a schedule
+made from the interval (planned maintenance), bounds on the interval. IEC 61649's text has
+still not been read.

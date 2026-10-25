@@ -104,9 +104,11 @@ the help chain across a packing hall with one engineer for six lines.
 - [textbook] Liker, J.K. (2004), *The Toyota Way*, McGraw-Hill — principle 5, build a culture of stopping to fix problems (from knowledge).
 
 ## In Faultline
-Not built (FC-015). The register takes a problem on a line with a time
-(`src/snag`) and the loss count holds the stops' minutes
-(`src/tools/losses`); FC-015 adds the call tapped with its reason and
-the two times after it, the response and resolution by reason and
-shift, the help-chain standard and its misses, and the waiting's
-packs and money — and feeds the reasons to the fishbone.
+Built (FC-015, 25 October) as a mode of the Reliability study: a count set up
+as *A call for help* with the team's reasons (up to eight) and the response
+wanted; each call tapped, its reason picked, *Help arrived*, *Running again*;
+response and resolution by the median and the slow end (from 10), the share
+within the response wanted, the reasons ranked by the minutes waited, by the
+line's shifts, the waiting and clearing in money — and never by person
+(`src/tools/reliability/repair.ts`, spec `knowledge/specs/FC-015-andon-calls.md`).
+Not built: the escalation chain's legs, a view of calling being discouraged.

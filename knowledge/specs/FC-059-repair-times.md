@@ -213,8 +213,9 @@ untouched).
    rate to say the repairs in money" — `repair.test.ts`, story 12.
 7. The phone (390 px): nothing off the side; the open row's buttons at least 44 px
    — story 12.
-8. A client sees figures and no stamp buttons — story 12 (access with `can.edit`
-   false is checked in the module test of the visible controls).
+8. A closed study takes no stamps and no times: the open panel, Help arrived and
+   Time it are gone — story 12. (A client — read only — is given none of them by the
+   same `can.edit` test that hides them here; no client account is driven.)
 9. No console error — every story.
 
 ## 12. Maintainability

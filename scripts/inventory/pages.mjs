@@ -410,6 +410,21 @@ export const PAGES = (sd, cap) => [
     { what: 'the scatter — twelve points, the line and its band', sel: '.ie-an-scatter .ie-an-dot', n: 12 }, { what: 'the prediction box', sel: '.ie-predict input' },
     { what: 'a box a driver and one for the result, and rows pasted', sel: '.ie-relrow input', n: 2 }, { what: 'the shape check', sel: '.ie-check', text: /too straight/ },
   ] },
+  /* A RELIABILITY STUDY WITH THE W5 PARTS (25 October — FC-059 repair times, FC-055 short stops, FC-061 growth, FC-060 Weibull, FC-015 calls): the stops timed — their repair time and availability tiles, the sentence, a bar for each stop, the reasons, a fitter's time — the growth with its picture and what was not run, the count's own chips; the calls and the part that wears a chip away */
+  { name: 'Reliability study — repairs, growth, calls and a part that wears', path: `#/reliability/${sd.reliabilityFamilyId}`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 },
+    { what: 'a count a chip — stops, calls, the part that wears', sel: '.rl-seen .chip', n: 3 },
+    { what: 'the Repair time and Available tiles beside the study’s own', sel: '.ie-strip .ln-tile .ln-k', text: /^Repair time$/ },
+    { what: 'the MTBF now tile — the growth', sel: '.ie-strip .ln-tile .ln-k', text: /^MTBF now$/ },
+    { what: 'the repair sentence — typically how long, availability, halving it', sel: '[data-repair]', text: /timed: typically .+ to clear .+Available \d+%/ },
+    { what: 'a bar for each stop — waiting and fixing', sel: '.rl-stopbars rect.rl-bar-fix', n: 6 },
+    { what: 'what the stops were — the reasons', sel: '.rl-reasons li', n: 2 },
+    { what: 'a fitter’s time in money', sel: '[data-fitter]', text: /a repair/ },
+    { what: 'the growth — its sentence, the picture, what was not run', sel: '.rl-growth-p [data-growth]' },
+    { what: 'the growth picture — the fitted curve', sel: '.rl-growthfig path.rl-fit' },
+    { what: 'what the growth did not run', sel: '.rl-caveats li', text: /fit test is not run here/ },
+    { what: 'the closing line', sel: '.ln-close' },
+  ] },
   { name: 'Reliability study', path: `#/reliability/${sd.reliabilityId}`, must: [
     { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'the band', sel: '.ln-band' },

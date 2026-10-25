@@ -263,3 +263,24 @@ The catalogue's statuses are checked against the code by
 assessed from the acceptance scripts' coverage (`knowledge/TOOLSET-AUDIT.md`):
 an entry with no acceptance script of its own is *Partly*, whatever its
 quality.
+
+## W5 — the reliability family (25 October 2026)
+
+- **Reliability growth's goodness-of-fit** (FC-061): the Cramér–von Mises
+  statistic needs the handbook's critical values (MIL-HDBK-189C), which have not
+  been read; the page does not run the test and says so. A bound on the
+  instantaneous MTBF needs the handbook's tables or the Fisher matrix; not given.
+- **Weibull** (FC-060): IEC 61649's text has not been read — the page does not
+  claim to follow it. A bound on the replacement interval is not given; a schedule
+  made from the interval waits for planned maintenance (FC-063).
+- **Thresholds the builder chose, to be agreed or changed by the owner** (each
+  printed where its result is read, each in its spec under *chosen*): rough under
+  5 timed, the 90th percentile from 10, the median's interval from 5, measured
+  minutes replacing typed ones from 3, a stop asked about after 4 hours (FC-059);
+  eight reasons at most, the share within the response wanted counting only
+  answered calls (FC-015); growth fitted from 8 and rough under 20, a projection
+  not given beyond 20 times the running so far (FC-061); Weibull fitted from 6 and
+  a first guess under 20, the two fits said to differ at a fifth (FC-060).
+- **Calls by person** (FC-015) is deliberately not built: the tap's `by` is kept
+  but never shown, grouped or ranked for a call. Whether people may ever be
+  compared is the owner's decision.

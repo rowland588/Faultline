@@ -47,4 +47,13 @@ Engineer response to a jammed weigher; film change times.
 - [textbook] Ebeling, C.E. (2010), *An Introduction to Reliability and Maintainability Engineering*, 2nd ed., Waveland — from knowledge.
 
 ## In Faultline
-Not built (FC-059): the reliability study taps events but not their ends.
+Built (FC-059, 25 October): on the Reliability study a count set up as timed
+takes *Help arrived* and *Running again* after each tap (or a time said — a
+chip, "90 s", "1:30"); the page and paper say the median with its exact 90%
+interval, the mean, the 90th percentile from 10 timed, waiting and fixing apart
+(from the stops with a help stamp), availability = MTBF ÷ (MTBF + MTTR) with
+the MTBF's range, what halving the repair time gives, and a fitter's time in
+money; the stops' minutes come off the running time (`src/tools/reliability/
+repair.ts`, spec `knowledge/specs/FC-059-repair-times.md`, cases
+`scripts/knowledge/cases-w5.py`). Not built: finding the fault apart from
+fixing it (a third stamp), spares used, a distribution fitted to the times.
