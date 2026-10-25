@@ -14744,3 +14744,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .lg-li { flex-direction: column; }
   .lg-sheet-act .btn { flex: 1 1 0; }
 }
+/* The gauge studies and the shape fitted (W3c, FC-119 / FC-120 / FC-114): the small tables beside the picture, the more-details fold of the agreement */
+.ie-grid { margin-top: 10px; }
+.ie-grid-label { margin: 0 0 4px; }
+.ie-tbl tr.is-lead th, .ie-tbl tr.is-lead td { font-weight: 800; color: var(--ink); }
+.ie-agree-more > summary { cursor: pointer; font-weight: 700; color: var(--ink-2); padding: 6px 0; }
+.ie-agree-more[open] > summary { margin-bottom: 8px; }

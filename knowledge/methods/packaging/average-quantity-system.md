@@ -171,6 +171,8 @@ the rules said in grams (`capability-kinds.mjs` step 14b).
 up to the next tenth (150 g gives 6.75, the Schedule says 6.8). For pack sizes to 10 kg the difference
 is a tenth of a gram on the 4.5% and 3% bands. To correct, with a test, when FC-232 is built.
 
+**25 October 2026, builder F3 (step zero of the capability batch):** the legislation was tried again and could not be read — legislation.gov.uk (the Schedule page, `data.htm`, the made text, the PDF), vlex and the web archive are all refused from this container (the proxy answers 403 to CONNECT; the fetch tool cannot resolve the hosts). A web search gave only a council's summary of the table (the same nine bands) and, for the rounding, the 1973 EU annex's wording (percentage values rounded up to the nearest tenth of a gram or millilitre) — not the UK Schedule. Nothing was changed in `tneFor`, and FC-232 was not built. Whoever has a session that can fetch the Schedules does the fix and the build together: the Schedule 3 reference, the bands to 15 kg and over, the round-up, the nominal-on-the-edge rule, and the tests.
+
 **FC-232 — CAN BE BUILT.** It rests on public law, after one reading of the whole of Schedule 2 and
 Schedule 3 on legislation.gov.uk by a session that can fetch it (this one could not). A minimal build, as a
 mode of the sold-by-weight study rather than a tool of its own: *Run the inspector's test.* Asked: the batch

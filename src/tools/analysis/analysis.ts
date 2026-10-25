@@ -11,7 +11,7 @@ import type { AgreedAnalysis, AnalysisPlan, StudyReading } from '../../lib/study
 import type { LeanTile } from '../../lib/lean';
 import { learnFigures, learnPlot, learnProblem, learnSays, learnTiles, type LearnFigures } from './learn';
 import { dagostinoPearson, histogram } from '../../lib/ie/dist';
-import { describe, orderSays, type Described } from '../../lib/ie/describe';
+import { describe, type Described } from '../../lib/ie/describe';
 import { compareGroups, type GroupsResult } from '../../lib/ie/groups';
 import { predictAt, regress, relate, tableTest, VIF_SERIOUS, type Line, type Multiple, type TableResult } from '../../lib/ie/relate';
 import {
@@ -19,6 +19,10 @@ import {
   pairedT, rateInterval, sd, shareExact, shareWilson, spreadInterval, twoShares, welch, wilcoxon,
   type Autocorrelation, type Confidence, type CyclesNeeded, type Interval, type MannWhitneyResult, type PairedResult, type TwoShares, type WelchResult, type WilcoxonResult,
 } from '../../lib/ie/stats';
+
+import { big, cap, fmtP, fx, pct, pctWord, pSay, placesOf } from './format';
+import { independenceCheck, outlierCheck } from './checks';
+import { gaugeFigures, gaugeGrids, gaugePicture, gaugePlot, gaugeProblem, gaugeSays, gaugeTiles, shapeFigures, shapeGrids, shapePlot, shapeProblem, shapeSays, shapeTiles, type GaugeFigures, type Grid, type ShapeFigures } from './measure';
 
 export type Tone = 'g' | 'a' | 'r' | 'n';
 /** Intervals on a mean need this many readings; a paired test this many pairs; a comparison this many a side (said weak under 8). */
@@ -47,24 +51,17 @@ export const KIND_WORDS: Record<AgreedAnalysis['kind'], { name: string; ask: str
   table: { name: 'Are two things linked', ask: 'Is one thing linked to the other?', example: 'fault type by lane, counted off the reject bin; rejects by shift and product' },
   relate: { name: 'What moves with what', ask: 'Does one thing move with another — and by how much?', example: 'seal strength against jaw temperature; give-away against speed and product temperature' },
   learn: { name: 'How fast it is learned', ask: 'How fast is a new job being learned?', example: 'a new starter packing; a new product’s first runs; seasonal staff in their first week' },
+  gauge: { name: 'Is the gauge fit', ask: 'Is this gauge fit for what it judges?', example: 'a bench scale against a 500 g test weight; a probe at five temperatures; the daily check weight' },
+  shape: { name: 'Which shape fits', ask: 'Which shape do these readings follow?', example: 'residual oxygen; minutes between short stops; seal strength with a hard floor' },
   plan: { name: 'How many readings', ask: 'How many readings do I need?', example: 'to know a mean to ±0.3 g; to see a 0.5 g difference between shifts' },
 };
 export const confidenceOf = (a: Pick<AgreedAnalysis, 'confidence'>): Confidence => a.confidence ?? DEFAULT_CONFIDENCE;
-export const pctWord = (c: number): string => `${Math.round(c * 100)}%`;
+export { pctWord, placesOf, fmtP, pSay } from './format';
 
 /* ------------------------------------------- reading the record --------------------------------------- */
 const live = (rs: StudyReading[]): StudyReading[] => rs.filter(r => !r.struck);
 const armValues = (rs: StudyReading[], arm: string): number[] => live(rs).filter(r => r.arm === arm && typeof r.value === 'number').map(r => r.value as number);
 const noArm = (rs: StudyReading[]): number[] => live(rs).filter(r => !r.arm && typeof r.value === 'number').map(r => r.value as number);
-const decimalsOf = (v: number): number => { const s = String(v); const i = s.indexOf('.'); return i < 0 ? 0 : Math.min(4, s.length - i - 1); };
-/** Decimals the person typed — the most any reading has (never more than four). */
-export const placesOf = (vs: number[]): number => vs.reduce((m, v) => Math.max(m, decimalsOf(v)), 0);
-const fx = (v: number, dp: number): string => v.toFixed(Math.max(0, dp)).replace('-', '−');
-const big = (n: number): string => Math.round(n).toLocaleString('en-GB');
-export const fmtP = (p: number): string => (p < 0.0001 ? '< 0.0001' : p >= 0.1 ? p.toFixed(2) : p >= 0.01 ? p.toFixed(3) : p.toFixed(4));
-/** "p = 0.0006" — or "p < 0.0001" when it is smaller than is worth the digits. */
-export const pSay = (p: number): string => (p < 0.0001 ? 'p < 0.0001' : `p = ${fmtP(p)}`);
-const pct = (x: number): string => `${(x * 100).toFixed(x * 100 < 1 ? 2 : 1)}%`;
 const pctPoints = (x: number): string => `${(Math.abs(x) * 100).toFixed(Math.abs(x) * 100 < 1 ? 2 : 1)} points`;
 const unitOf = (a: AgreedAnalysis): string => (a.unit ? ` ${a.unit}` : '');
 const singular = (u: string): string => u.replace(/s$/, '');
@@ -117,7 +114,7 @@ export interface RelateFigures extends Base {
   kind: 'relate'; k: number; n: number; need: number; enough: boolean; weak: boolean; drivers: { name: string; unit?: string }[]; xs: number[][]; y: number[];
   line?: Line; multi?: Multiple; /** perfectly collinear drivers, or a constant one — nothing is fitted */ refusal?: string; p?: number; significant: boolean;
 }
-export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures | GroupsFigures | TableFigures | RelateFigures | LearnFigures;
+export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures | GroupsFigures | TableFigures | RelateFigures | LearnFigures | GaugeFigures | ShapeFigures;
 
 const normalCheck = (what: string, xs: number[]): { check?: Check; non: boolean } => {
   if (xs.length < NORMAL_FROM) return { non: false };
@@ -125,18 +122,12 @@ const normalCheck = (what: string, xs: number[]): { check?: Check; non: boolean 
   const non = dp.p < 0.05;
   return { non, check: { what, say: non ? `${what}: not bell-shaped (D’Agostino–Pearson ${pSay(dp.p)}) — the rank test leads.` : `${what}: bell-shaped enough for the t (D’Agostino–Pearson ${pSay(dp.p)}).`, tone: non ? 'a' : 'n' } };
 };
-const outlierCheck = (what: string, d?: Described): Check | undefined => (d && d.outliers.length
-  ? { what, say: `${what}: ${d.outliers.length} reading${d.outliers.length === 1 ? '' : 's'} beyond the fences (${d.outliers.slice(0, 4).map(o => `${o.value} at reading ${o.at + 1}`).join(', ')}${d.outliers.length > 4 ? ', …' : ''}) — look at ${d.outliers.length === 1 ? 'it' : 'them'}; none is removed.`, tone: 'a' } : undefined);
-const independenceCheck = (what: string, ac?: Autocorrelation): Check | undefined => {
-  if (!ac) return undefined;
-  if (!ac.enough) return { what, say: `${what}: ${ac.n} readings in order — fewer than 30, too few to judge whether each depends on the last.`, tone: 'n' };
-  if (!ac.dependent) return { what, say: `${what}: each reading is independent enough of the last (r₁ ${fx(ac.r1, 2)}, inside ±${fx(ac.band, 2)}).`, tone: 'n' };
-  return { what, say: orderSays(ac, 'Readings'), tone: 'a' };
-};
 
 export function analysisFigures(a: AgreedAnalysis, readings: StudyReading[], opts: { rate?: number } = {}): AnalysisFigures {
   const conf = confidenceOf(a), alpha = 1 - conf, unit = a.unit ?? '';
   const base = (dp: number): Base => ({ conf, alpha, dp, unit, checks: [] });
+  if (a.kind === 'gauge') return gaugeFigures(a, readings, base(0));
+  if (a.kind === 'shape') return shapeFigures(a, readings, base(0));
   if (a.kind === 'sure') {
     const of = a.of ?? 'mean';
     if (of === 'share') {
@@ -340,7 +331,9 @@ export function planProblem(p: AnalysisPlan, pilotN = 0): string {
 }
 
 /** What cannot be agreed, said while agreeing. */
-export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'> & Partial<Pick<AgreedAnalysis, 'rows' | 'cols' | 'drivers' | 'learn'>>): string {
+export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'> & Partial<Pick<AgreedAnalysis, 'rows' | 'cols' | 'drivers' | 'learn' | 'gauge' | 'shape'>>): string {
+  if (a.kind === 'gauge') return gaugeProblem(a.name, a.gauge);
+  if (a.kind === 'shape') return shapeProblem(a.name, a.shape);
   if (!a.name.trim()) return 'What is measured — a name, "Fill weight".';
   if (a.kind === 'table') {
     const dup = (xs: string[]) => new Set(xs.map(x => x.toLowerCase())).size !== xs.length;
@@ -431,6 +424,8 @@ export function analysisSays(f: AnalysisFigures, a: AgreedAnalysis): AnalysisSay
   if (f.kind === 'table') return tableSays(f);
   if (f.kind === 'relate') return relateSays(f, name, u);
   if (f.kind === 'learn') return learnSays(f, a);
+  if (f.kind === 'gauge') return gaugeSays(f, a);
+  if (f.kind === 'shape') return shapeSays(f, a);
   /* plan */
   const power = pctWord(f.power), conf = pctWord(f.conf), p = a.plan;
   if (!f.ok || f.need === undefined || !p) return { text: f.why ?? 'Say what to size.', tone: 'n', verdict: 'Not enough to size', more: [], notClaimed: '' };
@@ -533,7 +528,6 @@ function relateSays(f: RelateFigures, name: string, u: string): AnalysisSays {
     tone: m.serious ? 'a' : 'n', verdict: m.serious ? 'Drivers move together' : 'Drivers found', more, notClaimed };
 }
 
-const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 const notFix = 'The test says the number moved — not why. What moved it is the fix’s to say.';
 const better = (f: { better: 'lower' | 'higher' | 'either' }, diff: number): { says: string; tone: Tone; verdict: string } => {
   if (f.better === 'either') return { says: '', tone: 'n', verdict: 'Changed' };
@@ -584,6 +578,8 @@ export function analysisTiles(f: AnalysisFigures, a: AgreedAnalysis): LeanTile[]
     return [t('Counted', big(f.total), r ? `${r.rows} × ${r.cols} cells` : undefined), t(f.lead === 'fisher' ? 'Fisher’s exact' : 'χ²', r ? (f.lead === 'fisher' ? '—' : fx(r.chi2, 1)) : '—', r && f.lead !== 'fisher' ? dfs(r.df) : undefined),
       t('p', f.p !== undefined ? fmtP(f.p) : '—', f.lead === 'approx' ? 'approximate — counts too small' : undefined, f.lead === 'approx' ? 'a' : 'n'), t('Cramér’s V', r ? fx(r.cramersV, 2) : '—', r ? `${cramersWord(r.cramersV, r.rows, r.cols)} link` : undefined), t('Sure', f.enough ? conf : '—')];
   }
+  if (f.kind === 'gauge') return gaugeTiles(f, a);
+  if (f.kind === 'shape') return shapeTiles(f, a);
   if (f.kind === 'relate') {
     if (f.k === 1) {
       const l = f.line, d = f.drivers[0];
@@ -609,6 +605,7 @@ export function analysisClosing(f: AnalysisFigures, a: AgreedAnalysis, said: Ana
   if (f.kind === 'sure') return { text: `${said.verdict} — ${what}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'change') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'learn') return { text: `${said.verdict} — ${what}${f.reach && !f.reach.already ? `, the standard at about run ${f.reach.run}` : ''}.`, tone: said.tone };
+  if (f.kind === 'gauge' || f.kind === 'shape') return { text: `${said.verdict} — ${what}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'groups' || f.kind === 'table' || f.kind === 'relate') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'paired') return { text: `${said.verdict} — ${f.pairs} pair${f.pairs === 1 ? '' : 's'}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}.`, tone: said.tone };
   return { text: `${said.verdict}.`, tone: said.tone };
@@ -626,6 +623,7 @@ const span = (vs: number[]): [number, number] => { const lo = Math.min(...vs), h
 const sym = (vs: number[]): [number, number] => { const m = Math.max(...vs.map(Math.abs), 1e-9) * 1.15; return [-m, m]; };
 
 export function analysisPicture(f: AnalysisFigures, a: AgreedAnalysis): PicRow[] {
+  if (f.kind === 'gauge') return gaugePicture(f, a);
   const u = a.unit ?? '', dp = f.dp + 1, c = pctWord(f.conf);
   if (f.kind === 'sure') {
     if (f.of === 'share' && f.share) { const s = f.share; return [{ label: 'Share', axis: [0, Math.min(1, Math.max(s.exact.hi * 1.2, 0.02))], unit: '%', point: { v: s.p, text: pct(s.p) }, band: { lo: s.exact.lo, hi: s.exact.hi, text: `${c}: ${pct(s.exact.lo)}–${pct(s.exact.hi)}` } }]; }
@@ -674,6 +672,8 @@ export type Plot =
 const padded = (vs: number[]): [number, number] => { const lo = Math.min(...vs), hi = Math.max(...vs), p = Math.max((hi - lo) * 0.06, Math.abs(hi) * 0.0005, 1e-9); return [lo - p, hi + p]; };
 export function analysisPlot(f: AnalysisFigures, a: AgreedAnalysis): Plot | undefined {
   if (f.kind === 'learn') return learnPlot(f, a);
+  if (f.kind === 'gauge') return gaugePlot(f, a);
+  if (f.kind === 'shape') return shapePlot(f, a);
   if (f.kind === 'table' && f.res) {
     return { kind: 'table', rowName: f.rowName, colName: f.colName, rows: f.rows, cols: f.cols, counts: f.counts, expected: f.res.expected, residuals: f.res.residuals, rowTotals: f.res.rowTotals, colTotals: f.res.colTotals, total: f.res.total };
   }
@@ -690,6 +690,13 @@ export function analysisPlot(f: AnalysisFigures, a: AgreedAnalysis): Plot | unde
   }
   return undefined;
 }
+/** The small tables beside the picture — the references of a gauge study, the shapes tried — drawn by the page as tables and by the paper as tables. */
+export function analysisGrids(f: AnalysisFigures, _a?: AgreedAnalysis): Grid[] {
+  if (f.kind === 'gauge') return gaugeGrids(f);
+  if (f.kind === 'shape') return shapeGrids(f);
+  return [];
+}
+export type { Grid } from './measure';
 /** The line's reading at a typed driver — inside the range measured, and beyond it said to be a guess. */
 export function predictionSays(f: RelateFigures, a: AgreedAnalysis, x0: number): { text: string; inside: boolean } | undefined {
   if (!f.line) return undefined;

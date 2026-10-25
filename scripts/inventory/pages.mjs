@@ -479,6 +479,34 @@ export const PAGES = (sd, cap) => [
     { what: 'what the growth did not run', sel: '.rl-caveats li', text: /fit test is not run here/ },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
+  /* IS THE GAUGE FIT, AND WHICH SHAPE FITS (25 October, W3c, knowledge/specs/FC-119-gauge.md and FC-114-fitting.md) */
+  { name: 'Analysis — is the gauge fit (Type 1)', path: `#/analysis/${sd.analysisGaugeId}`, must: [
+    { what: 'the band’s verdict — fit', sel: '.ln-band', text: /Fit/ },
+    { what: 'six tiles — readings, bias, Cg, Cgk, the share of the tolerance, money', sel: '.ie-strip .ln-tile', n: 6 },
+    { what: 'the sentence, with Cg and Cgk against the need and the share of the tolerance', sel: '.ie-say', text: /Cg 4\.54 and Cgk 4\.03 against 1\.33 — fit for a 10 g tolerance.*uses 4\.4% of it.*reads 0\.112 g high/ },
+    { what: 'three lanes — each reading from the reference, its 6s, the slice it may use', sel: '.ie-an-pic g', n: 3 }, { what: 'the least count against the tolerance', sel: '.ie-check', text: /Least count: 0\.01 g/ },
+    { what: 'the pad and a pasted column', sel: '.ie-pad .ie-key', n: 13 }, { what: 'where the constants come from', sel: '.ie-more', text: /automotive practice/ },
+  ] },
+  { name: 'Analysis — is the gauge fit (bias and linearity)', path: `#/analysis/${sd.analysisRangeId}`, must: [
+    { what: 'the band’s verdict — the bias changes with size, amber', sel: '.ln-band', text: /The bias changes with size/ },
+    { what: 'five tiles — references, worst bias, real at, changes with size, at the limit', sel: '.ie-strip .ln-tile', n: 5 },
+    { what: 'the sentence, with the true value at the limit that matters', sel: '.ie-say', text: /reads 0\.159 °C low at 0 and 0\.156 °C high at 80.*a reading of 75 means product at 74\.865 °C/ },
+    { what: 'a table row for each reference', sel: '.ie-grid tbody tr', n: 5 }, { what: 'the scatter — fifty readings, the line and its band', sel: '.ie-an-scatter .ie-an-dot', n: 50 },
+    { what: 'a chip a reference', sel: '.chip-row .chip', n: 5 }, { what: 'a new reference by its value', sel: 'input[aria-label="New reference"]' },
+  ] },
+  { name: 'Analysis — is the gauge fit (stability)', path: `#/analysis/${sd.analysisDriftId}`, must: [
+    { what: 'the band’s verdict — drifted, red', sel: '.ln-band', text: /Drifted from check 19/ },
+    { what: 'five tiles — checks, limits, centre, signals from, trend', sel: '.ie-strip .ln-tile', n: 5 },
+    { what: 'the sentence, with the limits from the baseline and the first check that signals', sel: '.ie-say', text: /drifted up.*first 18 checks put the limits at 59\.905 to 60\.268 g.*From check 19/ },
+    { what: 'the chart — twenty-five checks, the centre and the limits as a band', sel: '.ie-an-scatter .ie-an-dot', n: 25 }, { what: 'the trend', sel: '.ie-more', text: /Sen’s slope/ },
+  ] },
+  { name: 'Analysis — which shape fits', path: `#/analysis/${sd.analysisShapeId}`, must: [
+    { what: 'the band’s verdict — follows a Weibull', sel: '.ln-band', text: /Follows a Weibull/ },
+    { what: 'five tiles — readings, shape, fit, the 99.865th point, beyond the limit', sel: '.ie-strip .ln-tile', n: 5 },
+    { what: 'the sentence, with each shape judged and the share beyond the limit beside the count', sel: '.ie-say', text: /a Weibull fits \(Anderson–Darling p = 0\.15.*normal.*lognormal.*exponential.*do not.*3 of 40/ },
+    { what: 'a table row for each shape tried, the leader marked', sel: '.ie-grid tbody tr', n: 4 }, { what: 'the probability plot — forty readings on a line of equal values', sel: '.ie-an-scatter .ie-an-dot', n: 40 },
+    { what: 'the percentile Ppk beside the bell’s', sel: '.ie-more', text: /Percentile Ppk 0\.69/ }, { what: 'the size said', sel: '.ie-check', text: /Size: 40 readings/ },
+  ] },
   { name: 'Reliability study', path: `#/reliability/${sd.reliabilityId}`, must: [
     { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'the band', sel: '.ln-band' },

@@ -102,8 +102,14 @@ for.
 - [manual] AIAG, *Measurement Systems Analysis*, 4th ed., 2010 — bias and repeatability on a reference (from knowledge).
 
 ## In Faultline
-Not built (FC-119). When built: a short study a gauge, its reference and
-tolerance typed, 25–50 readings tapped in, Cg/Cgk and the share of the
-tolerance said in words, the bias flagged with its correction, and the
-gauge's record carried to every study that names it so a capability study
-says "measured with a gauge that uses 4% of the tolerance".
+Built 25 October 2026 (FC-119, builder F3) as a question of the Analysis tool — *Is the gauge fit*, one
+reference read again and again (`src/lib/ie/gauge.ts` type1, `src/tools/analysis/measure.ts`;
+`knowledge/specs/FC-119-gauge.md`; proved by `scripts/knowledge/cases-w3c.py` → `gauge.test.ts`, and driven by
+`scripts/acceptance/analysis-gauge.mjs`). The reference, the tolerance it judges and the readings are typed, Cg and Cgk
+and the share of the tolerance said in words with the bias, its interval and its t test, the least count against the
+tolerance, the slice (20%), the wanted index (1.33) and the least count agreeable — the constants are the record's
+automotive defaults and are said on the page as such; a bias on a weight gauge is said in money (give-away when it
+reads low, short weight and never priced when it reads high). The worked case above is a unit test and a step of the
+acceptance script (Cg 4.54, Cgk 4.03, 6s = 4.4% of T, bias +0.112, t 10.83). **Not built:** the gauge's record carried
+to every study that names it ("measured with a gauge that uses 4% of the tolerance") — there is no gauge noun, and
+BLUEPRINT §2 would change first; the VDA 5 text was not read.

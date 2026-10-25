@@ -70,6 +70,9 @@ export interface AgreedReadings {
    *  then holds their product in grams, and the TNE is the volume table's, converted. */
   nominalMl?: number;
   density?: number;
+  /** Several deposits in one pack (FC-116, knowledge/specs/FC-116-stackup.md): each deposit's mean and spread, in the study's unit — the pack's
+   *  spread is their root sum of squares. On a sold-by-weight study, or a measurement with a lower limit. */
+  deposits?: { name: string; mean: number; sd: number }[];
   unit?: string;
   nominal?: number;
   lower?: number;
@@ -627,7 +630,7 @@ export interface AgreedCalc {
  *  this figure, did it change, do two ways of measuring agree, how many readings do I need — and the readings or
  *  counts that answer it. W3b adds the groups, the counts in a table and the relations as more kinds. */
 export interface AgreedAnalysis {
-  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'learn';
+  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'learn' | 'gauge' | 'shape';
   /** what is measured — "Fill weight", "Reject rate" */
   name: string;
   unit?: string;
@@ -653,6 +656,34 @@ export interface AgreedAnalysis {
   /** a learning curve (FC-027): the time each run took, in the order made; the standard the job is heading for (in the unit) and how many units each
    *  reading stands for — both optional, the second only to say what learning costs in money */
   learn?: { standard?: number; perRun?: number };
+  /** the gauge studies (W3c, FC-119/120): how the gauge is checked and what it judges */
+  gauge?: AgreedGauge;
+  /** which shape fits (W3c, FC-114): the limits that matter, optional */
+  shape?: { lower?: number; upper?: number };
+}
+/** IS THE GAUGE FIT (W3c, knowledge/specs/FC-119-gauge.md). `repeat`: one reference read again and again (Type 1); `range`: references
+ *  across the range, each reading carrying its reference in `with` (bias and linearity); `drift`: one reference checked day after day
+ *  (stability). The tolerance is what the gauge judges — both limits, or one limit and the target it is measured from. */
+export interface AgreedGauge {
+  mode: 'repeat' | 'range' | 'drift';
+  /** repeat and drift: the reference's true value */
+  reference?: number;
+  lower?: number;
+  upper?: number;
+  target?: number;
+  /** range: the limit that matters, where the bias is read off the line */
+  limit?: number;
+  /** the share of the tolerance the gauge's 6s may use (0.2 by default) and the Cg and Cgk wanted (1.33 by default) */
+  slice?: number;
+  need?: number;
+  /** the gauge's least count; absent: the smallest step the readings show */
+  resolution?: number;
+  /** drift: how many first readings the chart's limits come from (20 by default) */
+  baseline?: number;
+  /** the money of a bias on a weight gauge — as the capability study asks it */
+  packsPerShift?: number;
+  shiftsPerWeek?: number;
+  costPerKg?: number;
 }
 export interface AnalysisPlan {
   ask: 'mean' | 'difference' | 'share' | 'twoShares' | 'zero' | 'cycles';

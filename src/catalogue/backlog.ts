@@ -9,7 +9,6 @@
 import type { BacklogItem } from './types';
 
 export const BACKLOG: BacklogItem[] = [
-  { id: 'FC-119', why: 'A type 1 gauge study for checkweighers — quick, and decides whether weights can be trusted.' },
   { id: 'FC-155', why: 'Horizontal deployment — the factory already knows every line’s machines.' },
   { id: 'FC-071', why: 'First-off release at changeover — recall risk and hidden changeover time.' },
   { id: 'FC-070', why: 'Changeover sequence with allergen rules — food’s changeover saving.' },

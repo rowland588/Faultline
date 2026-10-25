@@ -11,6 +11,8 @@
  *      kinds, each with its example), the side chosen, only its box shown;
  *      thirty readings; the sentence, how sure the Ppk is, the three checks
  *      before capability, the histogram, the tiles — as lib/ie/sample says
+ *  17  (W3c, FC-116) several deposits in one pack: the root sum of squares, the target the rules need, the deposit worth tightening, the money, beside the pack's own spread
+ *  16  (W3c, FC-096) readings that are not bell-shaped: the four shapes fitted and the tail said beside the count — the stops, the oxygen, a bell-shaped set with none
  *   2  residual oxygen, AT MOST 2% — skewed: "Not bell-shaped — they lean
  *      high", the one reading beyond the chart's limits, capable never green;
  *      the agreement changed to at most 0.6 — the share outside as measured,
@@ -606,6 +608,95 @@ const volume = await startStudy('Juice 400 ml — checked by weight', 'Rotary fi
   const cap = await page.locator('.ie-runs-cap .text-input').evaluateAll(els => els.length === 2 && els.every(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= 390 && r.height >= 36; }));
   ok(cap && (await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '15 the phone: the two boxes of a run fit, big enough for a thumb');
   await page.setViewportSize({ width: 1360, height: 900 });
+}
+
+/* ---- 16 · W3c: readings that are not bell-shaped — the tail fitted beside the count (FC-096, knowledge/specs/FC-114-fitting.md) ---- */
+const STOPS = [18.4, 78.4, 15.1, 14.5, 23.6, 17.3, 42.7, 10.8, 66.7, 60.8, 1.0, 34.2, 10.2, 18.8, 27.2, 29.2, 30.0, 73.1, 18.8, 15.0, 42.7, 78.3, 72.0, 64.0, 7.4, 75.4, 41.2, 62.7, 26.7, 16.7, 53.1, 42.1, 51.7, 15.7, 11.9, 50.3, 3.5, 78.0, 12.0, 37.9];
+const FILLS = [249.0, 248.4, 249.7, 250.5, 251.4, 250.1, 249.3, 249.1, 250.9, 252.0, 250.3, 248.5, 248.9, 251.9, 250.2, 247.9, 249.9, 248.6, 249.2, 249.4, 249.1, 250.7, 249.9, 249.3, 250.5, 251.0, 248.0, 249.7, 248.8, 249.8, 248.5, 250.0, 250.0, 249.6, 248.7, 249.5, 248.7, 248.4, 250.3, 248.7];
+const stops = await startStudy('Minutes between short stops', 'Wrapper');
+{
+  await page.getByRole('radio', { name: /^At least/ }).click(); await page.waitForTimeout(200);
+  await page.getByLabel('Unit').fill('min'); await page.getByLabel('At least', { exact: true }).fill('10');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  await typeAll(STOPS.slice(0, 15));
+  ok((await page.locator('[data-note=fitted]').count()) === 0, '16 fifteen readings: the fitted note waits for 20');
+  await typeAll(STOPS.slice(15));
+  const t = await truthMode(stops);
+  const note = await words('[data-note=fitted]');
+  ok(t.notes.some(n => n.k === 'fitted') && note === t.notes.find(n => n.k === 'fitted').text && note === 'Not bell-shaped, so the tail is fitted: a Weibull fits (Anderson–Darling p = 0.15) — 12.0% would be under 10 min, Ppk 0.69 by the percentile method; as counted, 3 of 40 are under 10 min. The Weibull’s tail from 40 readings is a model’s reach, not a measurement.',
+    `16 stops at least 10 minutes: "${note}" (SciPy: Weibull β 1.4851, η 39.973, A* 0.5864, p 0.1462; share under 10: 0.1199; percentile Ppk 0.6901)`);
+  ok((await page.locator('[data-note=fitted].is-a').count()) === 1 && (await page.locator('[data-note=fitted].is-g').count()) === 0, '16 …amber, never green');
+  ok((await words('.ie-cap'))?.startsWith('Not capable: Ppk 0.36') && (await words('.ie-cap')) === t.said.capability?.text, `16 the study’s own sentences are unchanged beside it: "${await words('.ie-cap')}"`);
+  const p = await pdf('stops.pdf');
+  ok(p.text.includes('Not bell-shaped, so the tail is fitted: a Weibull fits (Anderson–Darling p = 0.15)') && p.text.includes('as counted, 3 of 40 are under 10 min'), '16 the same note on the capability paper');
+}
+{
+  /* oxygen, now agreed at most 0.6: no shape fits */
+  await go(`#/capability/${oxygen}`);
+  const t = await truthMode(oxygen);
+  const note = await words('[data-note=fitted]');
+  ok(t.notes.some(n => n.k === 'fitted') && note === t.notes.find(n => n.k === 'fitted').text && note === 'Not bell-shaped, and no shape tried fits (the lognormal is nearest, Anderson–Darling p = 0.00057) — the share outside is the count as measured: 4 of 30 are over 0.6 %.',
+    `16 oxygen at most 0.6%: "${note}" (SciPy: every shape rejected; lognormal A² 1.5004)`);
+  ok((await words('.ie-cap')) === 'Not capable: Ppk 0.30 from 30 — as measured, 4 of 30 are outside.', '16 …and the study’s sentence is exactly as it was');
+}
+const bell = await startStudy('Fill weights — a steady filler', 'Filler');
+{
+  await page.getByLabel('Lower limit').fill('247'); await page.getByLabel('Upper limit').fill('253'); await page.getByLabel('Unit').fill('g');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  await typeAll(FILLS);
+  const t = await truthMode(bell);
+  ok(t.notes.every(n => n.k !== 'fitted') && (await page.locator('[data-note=fitted]').count()) === 0, '16 bell-shaped readings carry no fitted note');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(`#/capability/${stops}`);
+  const inside = await page.locator('[data-note=fitted]').evaluateAll(els => els.length === 1 && els.every(e => { const r = e.getBoundingClientRect(); return r.left >= -1 && r.right <= 391; }));
+  ok(inside && (await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '16 the phone: the fitted note inside the screen');
+  await page.setViewportSize({ width: 1360, height: 900 });
+}
+
+/* ---- 17 · W3c: several deposits in one pack (FC-116, knowledge/specs/FC-116-stackup.md) ---- */
+const MEAL = 'Rice, 120, 3.0\nSauce, 80, 2.5\nVegetables, 60, 2.0\nGarnish, 40, 1.5';
+const meal = await startStudy('Chicken and rice meal, 300 g', 'Ready-meal line');
+{
+  await page.getByRole('radio', { name: /^Sold by weight/ }).click(); await page.waitForTimeout(200);
+  await page.getByLabel('Nominal (on the pack)').fill('300');
+  await page.getByLabel('The deposits', { exact: true }).fill('Rice, 120\nSauce, 80, 2.5');
+  ok(/^A deposit is a line — its name, its mean and its spread/.test((await words('.ie-problem')) ?? '') && (await page.getByRole('button', { name: 'Agree these' }).isDisabled()), '17 a deposit with no spread: said at the box, Agree held');
+  await page.getByLabel('The deposits', { exact: true }).fill('Rice, 120, 3.0');
+  ok((await words('.ie-problem')) === 'Two deposits at least — a pack of one is the study itself.', '17 one deposit: refused');
+  await page.getByLabel('The deposits', { exact: true }).fill(MEAL);
+  await page.getByLabel('Packs a shift').fill('5000'); await page.getByLabel(/What the product costs you a kilo/).fill('18');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  let t = await truthMode(meal);
+  let note = await words('[data-note=stack]');
+  const want = '4 deposits make 300.0 g: the pack’s spread is 4.64 g — the deposits’ spreads add as squares, not as a sum (the worst case, every deposit at its 3σ at once, 27.0 g, almost never happens). At that spread the lowest target that keeps the three rules is 300.1 g (the 1-in-40 rule binds); the deposits average 300.0 g, 0.1 g short of it — raise a deposit or tighten them. Rice holds 42% of the spread; halving its spread brings the pack’s to 3.84 g and the target to 300.0 g — 0.1 g a pack saved — about 0.4 kg and £7.92 a shift because of the give-away.';
+  ok(note === t.notes.find(n => n.k === 'stack').text && note === want && (await page.locator('[data-note=stack].is-a').count()) === 1, `17 the four deposits, before any pack is weighed: "${note?.slice(0, 120)}…" (NumPy: spread 4.63681, rice 41.9%, 300.0880 → 300.0, £7.92)`);
+  await typeAll(Array.from({ length: 30 }, (_, i) => Math.round((300 + 12 * Math.sin(i * 2.1)) * 10) / 10));
+  t = await truthMode(meal);
+  note = await words('[data-note=stack]');
+  ok(note === t.notes.find(n => n.k === 'stack').text && /The 30 pack readings spread \d+\.\d+ g, wider than the deposits give — they may move together, or something else adds; the pack’s own spread is the final word\.$/.test(note), '17 thirty pack readings: their own spread beside the deposits’, the last word to the readings');
+  const p = await pdf('meal.pdf');
+  ok(p.text.includes('4 deposits make 300.0 g: the pack’s spread is 4.64 g') && p.text.includes('Rice holds 42% of the spread'), '17 the same note on the capability paper');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(`#/capability/${meal}`);
+  ok(await page.locator('[data-note=stack]').evaluateAll(els => els.length === 1 && els.every(e => { const r = e.getBoundingClientRect(); return r.left >= -1 && r.right <= 391; })) && (await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '17 the phone: the note inside the screen');
+  await page.setViewportSize({ width: 1360, height: 900 });
+}
+const floorS = await startStudy('Meal minimum 290 g, kept to 1 in 1,000', 'Ready-meal line');
+{
+  await page.getByRole('radio', { name: /^At least/ }).click(); await page.waitForTimeout(200);
+  await page.getByLabel('Unit').fill('g'); await page.getByLabel('At least', { exact: true }).fill('290');
+  await page.getByLabel('The deposits', { exact: true }).fill(MEAL);
+  await page.getByLabel('Packs a shift').fill('5000'); await page.getByLabel('Shifts a week').fill('10'); await page.getByLabel(/What the product costs you a kilo/).fill('18');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  const t = await truthMode(floorS);
+  const note = await words('[data-note=stack]');
+  ok(note === t.notes.find(n => n.k === 'stack').text && note.includes('the pack must average 304.3 g (the floor plus 3.09 × the spread)') && note.includes('2.5 g a pack saved — about 12 kg and £221 a shift, £2,214 a week because of the give-away.'),
+    `17 a floor of 290 g kept to 1 in 1,000: "${note?.slice(190, 420)}…" (NumPy: 304.3288 → 301.8683, 2.4606 g, £221.45, £2,214.5)`);
+  await go('#/capability'); await go(`#/capability/${floorS}`);
+  await page.getByRole('button', { name: 'Change what was agreed' }).click(); await page.waitForTimeout(300);
+  await page.getByRole('radio', { name: /^At most/ }).click(); await page.waitForTimeout(200);
+  ok((await page.getByLabel('The deposits', { exact: true }).count()) === 0, '17 an “at most” study is not offered the deposits');
+  await page.getByRole('button', { name: 'Keep what was agreed' }).click(); await page.waitForTimeout(300);
 }
 
 ok(!errors.length, `no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);

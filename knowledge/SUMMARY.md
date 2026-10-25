@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 104 |
+| Available (`available`) | 109 |
 | Partly (`partial`) | 25 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 88 |
+| Not built yet (`to-build`) | 83 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -24,9 +24,9 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Maintenance, reliability and TPM | 11 | 6 |  |  | 4 | 1 |  |
 | Changeovers | 5 | 1 | 2 |  | 2 |  |  |
 | Commissioning and operational readiness | 13 | 11 | 1 |  |  | 1 |  |
-| Statistical process control and capability | 17 | 16 |  |  | 1 |  |  |
-| Statistical analysis | 15 | 10 | 1 |  | 3 | 1 |  |
-| Measurement systems | 6 |  |  |  | 6 |  |  |
+| Statistical process control and capability | 17 | 17 |  |  |  |  |  |
+| Statistical analysis | 15 | 12 | 1 |  | 1 | 1 |  |
+| Measurement systems | 6 | 2 |  |  | 4 |  |  |
 | Quality engineering and defects | 14 | 3 |  |  | 9 | 2 |  |
 | Six Sigma and DMAIC | 8 |  | 2 |  | 6 |  |  |
 | Root cause and problem solving | 10 | 4 | 2 |  | 4 |  |  |
@@ -69,8 +69,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 74
-- a mode of another tool: 71
+- a tool of its own: 73
+- a mode of another tool: 72
 - a part several tools share: 37
 - a way through several tools: 8
 - a report or board: 34
@@ -103,17 +103,16 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## The backlog — what to build first (`src/catalogue/backlog.ts`)
 
-1. FC-119 Type 1 gauge study — one reference measured again and again (Not built yet) — A type 1 gauge study for checkweighers — quick, and decides whether weights can be trusted.
-2. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
-3. FC-071 First-off release at changeover — line clearance and the first good pack (Not built yet) — First-off release at changeover — recall risk and hidden changeover time.
-4. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
-5. FC-207 NIOSH lifting equation (Partly) — Put the NIOSH arithmetic on a screen — built and proved, unreachable.
+1. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
+2. FC-071 First-off release at changeover — line clearance and the first good pack (Not built yet) — First-off release at changeover — recall risk and hidden changeover time.
+3. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
+4. FC-207 NIOSH lifting equation (Partly) — Put the NIOSH arithmetic on a screen — built and proved, unreachable.
 
 ## Where related capabilities could be combined
 
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
+- FC-105 Before and after — did it move, for a reason — 9 modes inside it
 - FC-073 The stage gate — new equipment to handover — 9 modes inside it
-- FC-105 Before and after — did it move, for a reason — 8 modes inside it
 - FC-001 Value stream map — current and future state — 5 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 5 modes inside it
 - FC-058 Reliability — MTBF and failure rate, several things counted at once — 5 modes inside it

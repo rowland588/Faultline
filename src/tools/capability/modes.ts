@@ -13,6 +13,7 @@
  * (SciPy) in __tests__/sample.test.ts; the words are the only words the
  * screen and the paper say. */
 import type { AgreedReadings, StudyReading } from '../../lib/study';
+import { candidateOf, fitAll, FIT_FROM, MODEL_WORDS, tailOf, type ModelId } from '../../lib/ie/fit';
 import { binomUpper, binomLower, poissonUpper, poissonLower, pLimits, uLimits, laneySigmaZ, LANEY_BAND, processZ, cmCmk, fillTargets, individualsLimits, ppkLowerBound, normalQuantile, anovaOneWay } from '../../lib/ie/dist';
 
 export type ModeTone = 'r' | 'a' | 'w' | 'g' | 'n';
@@ -447,4 +448,116 @@ export function densitySays(a: AgreedReadings, tneMl: number | undefined): { tex
   if (a.kind !== 'packers' || a.nominalMl === undefined || a.density === undefined || tneMl === undefined) return undefined;
   const g = a.nominalMl * a.density, tneG = tneMl * a.density;
   return { text: `Sold by volume, checked by weight: ${big(a.nominalMl)} ml at ${a.density} g/ml is ${g.toFixed(1)} g; the tolerable negative error ${+tneMl.toFixed(2)} ml is ${tneG.toFixed(2)} g — the three rules run in grams (T1 ${(g - tneG).toFixed(2)} g, T2 ${(g - 2 * tneG).toFixed(2)} g). The density is the product’s at the temperature it is packed.`, tone: 'n' };
+}
+
+/** READINGS THAT ARE NOT BELL-SHAPED (FC-096; knowledge/specs/FC-114-fitting.md): the four shapes fitted to the study's readings and limits —
+ *  the share outside from the shape that fits and the percentile Ppk, beside the count as measured, which the study's own sentences keep. */
+export interface FittedFigures {
+  n: number; counted: number; lower?: number; upper?: number;
+  leads?: ModelId; closest?: ModelId; p?: number; edge?: 'above' | 'below'; nearestP?: number;
+  out?: number; ppk?: number; side?: 'low' | 'high'; alsoFit: ModelId[]; ppkLow: boolean;
+}
+export function fittedFigures(xs: number[], lower: number | undefined, upper: number | undefined, counted: number, capable: number): FittedFigures | undefined {
+  if (xs.length < FIT_FROM || (lower === undefined && upper === undefined)) return undefined;
+  const set = fitAll(xs);
+  if (!set.candidates.length) return undefined;
+  const f: FittedFigures = { n: xs.length, counted, lower, upper, alsoFit: set.alsoFit, ppkLow: false };
+  const id = set.leads ?? set.closest, c = candidateOf(set, id);
+  if (!c) return undefined;
+  if (set.leads) f.leads = set.leads; else f.closest = set.closest;
+  if (c.ad) { if (set.leads) { f.p = c.ad.p; if (c.ad.edge) f.edge = c.ad.edge; } else f.nearestP = c.ad.p; }
+  const t = tailOf(c.model, lower, upper);
+  if (t.out !== undefined) f.out = t.out;
+  if (t.ppk !== undefined) { f.ppk = t.ppk; f.side = t.side; f.ppkLow = t.ppk < capable; }
+  return f;
+}
+export function fittedSays(f: FittedFigures, unit?: string): { text: string; tone: ModeTone } {
+  const u = unit ? ` ${unit}` : '', pw = (p: number, edge?: 'above' | 'below') => `p ${edge === 'above' ? 'at least ' : edge === 'below' ? 'at most ' : '= '}${Number(p.toPrecision(2))}`;
+  const side = f.lower !== undefined && f.upper !== undefined ? `outside ${f.lower}–${f.upper}${u}` : f.upper !== undefined ? `over ${f.upper}${u}` : `under ${f.lower}${u}`;
+  const counted = `${f.counted} of ${f.n} ${f.counted === 1 ? 'is' : 'are'} ${side}`;
+  if (!f.leads) return { text: `Not bell-shaped, and no shape tried fits (the ${MODEL_WORDS[f.closest as ModelId].name} is nearest, Anderson–Darling ${pw(f.nearestP as number)}) — the share outside is the count as measured: ${counted}.`, tone: 'a' };
+  if (f.leads === 'normal') return { text: `The bell check says not bell-shaped, but a normal still passes Anderson–Darling (${pw(f.p as number, f.edge)}) — the two tests disagree, so the share outside is read as counted: ${counted}.`, tone: 'a' };
+  const name = MODEL_WORDS[f.leads].name;
+  return { text: `Not bell-shaped, so the tail is fitted: ${MODEL_WORDS[f.leads].article} fits (Anderson–Darling ${pw(f.p as number, f.edge)}) — ${f.out !== undefined ? `${shareWords(f.out)} would be ${side}` : 'the share outside is not worked out'}${f.ppk !== undefined ? `, Ppk ${f.ppk.toFixed(2)} by the percentile method` : ''}; as counted, ${counted}. The ${name}’s tail from ${f.n} readings is a model’s reach, not a measurement.`, tone: f.ppkLow ? 'a' : 'n' };
+}
+
+/** SEVERAL DEPOSITS IN ONE PACK (FC-116; knowledge/methods/stats/tolerance-stackup.md, knowledge/specs/FC-116-stackup.md): the pack's mean is the sum of the
+ *  deposits' means and its spread their root sum of squares (independent deposits); the target the legal rules — or a floor, to 1 in 1,000 — need at that
+ *  spread, which deposit holds the spread, and what halving it buys. The pack's own readings, when there are enough, have the last word. */
+export interface Deposit { name: string; mean: number; sd: number }
+/** 1 in 1,000 above a floor: z = 3.0902 (the record's example) — Faultline's choice for a floor that is not the packers' rules. */
+export const FLOOR_Z = normalQuantile(0.999);
+export const MAX_DEPOSITS = 12;
+/** "Rice, 120, 3.0" a line — the name, the mean, the spread. What is not a deposit is listed, never silently dropped. */
+export function parseDeposits(text: string): { deposits: Deposit[]; bad: string[] } {
+  const out = { deposits: [] as Deposit[], bad: [] as string[] };
+  for (const line of text.split(/\r?\n/)) {
+    const t = line.trim(); if (!t) continue;
+    const parts = t.split(/[,;\t]+/).map(x => x.trim());
+    const n = parts.length === 3 ? Number(parts[1]) : NaN, sd = parts.length === 3 ? Number(parts[2]) : NaN;
+    if (parts.length === 3 && parts[0] && Number.isFinite(n) && Number.isFinite(sd) && parts[1] !== '' && parts[2] !== '' && n > 0 && sd > 0) out.deposits.push({ name: parts[0].slice(0, 30), mean: n, sd });
+    else out.bad.push(t);
+  }
+  return out;
+}
+export const depositsText = (ds?: Deposit[]): string => (ds ?? []).map(d => `${d.name}, ${d.mean}, ${d.sd}`).join('\n');
+/** What cannot be agreed, said while agreeing — empty when the deposits are fine or none were typed. */
+export function depositsProblem(text: string): string {
+  if (!text.trim()) return '';
+  const p = parseDeposits(text);
+  if (p.bad.length) return `A deposit is a line — its name, its mean and its spread, with a comma between ("Rice, 120, 3.0"), both numbers above 0: “${p.bad[0].slice(0, 40)}” is not.`;
+  if (p.deposits.length < 2) return 'Two deposits at least — a pack of one is the study itself.';
+  if (p.deposits.length > MAX_DEPOSITS) return `Up to ${MAX_DEPOSITS} deposits.`;
+  if (new Set(p.deposits.map(d => d.name.toLowerCase())).size !== p.deposits.length) return 'Two deposits have the same name.';
+  return '';
+}
+export interface StackFigures {
+  deposits: (Deposit & { share: number })[]; mean: number; sd: number; worst: number;
+  /** the target at the pack's spread, and how it is worked out: the three rules of a sold-by-weight pack, or a floor kept to 1 in 1,000 */
+  basis: 'rules' | 'floor'; floor?: number; lowest: number; binds?: 1 | 2 | 3; gap: number;
+  biggest: { name: string; share: number }; halvedSd: number; halvedLowest: number; saves: number;
+  /** money, when the unit is a weight and the packs a shift and £ a kilo are typed */
+  kgShift?: number; gbpShift?: number; gbpWeek?: number; weight: boolean;
+  /** the pack readings' own spread (from 25) and how many */
+  measuredSd?: number; n?: number;
+}
+export function stackFigures(a: AgreedReadings, tne: number | undefined, measuredSd?: number, n?: number): StackFigures | undefined {
+  const ds = a.deposits;
+  if (!ds || ds.length < 2 || ds.some(d => !(d.mean > 0 && d.sd > 0))) return undefined;
+  const mean = ds.reduce((t, d) => t + d.mean, 0), varSum = ds.reduce((t, d) => t + d.sd * d.sd, 0), sd = Math.sqrt(varSum);
+  const rules = a.kind === 'packers' && a.nominal !== undefined && tne !== undefined, floor = a.kind === 'limits' && a.lower !== undefined ? a.lower : undefined;
+  if (!rules && floor === undefined) return undefined;
+  const target = (s: number): { lowest: number; binds?: 1 | 2 | 3 } => (rules ? fillTargets(a.nominal as number, s, tne as number) : { lowest: (floor as number) + FLOOR_Z * s });
+  const big = [...ds].sort((x, y) => y.sd - x.sd)[0], halved = Math.sqrt(varSum - big.sd * big.sd + (big.sd / 2) ** 2);
+  const before = target(sd), after = target(halved), saves = Math.max(0, before.lowest - after.lowest);
+  const f: StackFigures = { deposits: ds.map(d => ({ ...d, share: (d.sd * d.sd) / varSum })), mean, sd, worst: ds.reduce((t, d) => t + 3 * d.sd, 0), basis: rules ? 'rules' : 'floor', ...(floor !== undefined ? { floor } : {}),
+    lowest: before.lowest, ...(before.binds ? { binds: before.binds } : {}), gap: mean - before.lowest, biggest: { name: big.name, share: (big.sd * big.sd) / varSum }, halvedSd: halved, halvedLowest: after.lowest, saves, weight: false };
+  const kg = a.unit === 'kg' ? 1 : a.unit === 'g' ? 0.001 : undefined;
+  if (kg !== undefined) {
+    f.weight = true;
+    if (a.packsPerShift !== undefined && a.packsPerShift > 0) {
+      f.kgShift = saves * kg * a.packsPerShift;
+      if (a.costPerKg !== undefined && a.costPerKg > 0) { f.gbpShift = f.kgShift * a.costPerKg; if (a.shiftsPerWeek) f.gbpWeek = f.gbpShift * a.shiftsPerWeek; }
+    }
+  }
+  if (measuredSd !== undefined && n !== undefined && n >= RATE_PPK_FROM && measuredSd > 0) { f.measuredSd = measuredSd; f.n = n; }
+  return f;
+}
+export function stackSays(f: StackFigures, places: number, unit: string | undefined, say: { packs: string; kg: string }): { text: string; tone: ModeTone } {
+  const dp = Math.max(places, 1), u = unit ? ` ${unit}` : '', r = (v: number, d = dp) => v.toFixed(d), sdp = dp + 1;
+  const names = f.deposits.length;
+  const head = `${names} deposits make ${r(f.mean)}${u}: the pack’s spread is ${r(f.sd, sdp)}${u} — the deposits’ spreads add as squares, not as a sum (the worst case, every deposit at its 3σ at once, ${r(f.worst, 1)}${u}, almost never happens).`;
+  const rule = f.basis === 'rules'
+    ? `At that spread the lowest target that keeps the three rules is ${r(f.lowest)}${u} (${f.binds === 1 ? 'the average rule binds' : f.binds === 2 ? 'the 1-in-40 rule binds' : 'the none-below-twice rule binds'}); the deposits average ${r(f.mean)}${u}${f.gap >= 0 ? `, ${r(f.gap)}${u} above it` : `, ${r(-f.gap)}${u} short of it — raise a deposit or tighten them`}.`
+    : `To keep 999 in 1,000 over ${f.floor}${u} the pack must average ${r(f.lowest)}${u} (the floor plus 3.09 × the spread); the deposits average ${r(f.mean)}${u}${f.gap >= 0 ? `, ${r(f.gap)}${u} above it` : `, ${r(-f.gap)}${u} short of it`}.`;
+  const money = f.gbpShift !== undefined ? ` — about ${f.kgShift !== undefined ? `${f.kgShift >= 10 ? Math.round(f.kgShift) : f.kgShift.toFixed(1)} kg and ` : ''}£${f.gbpShift >= 100 ? Math.round(f.gbpShift).toLocaleString('en-GB') : f.gbpShift.toFixed(2)} a shift${f.gbpWeek !== undefined ? `, £${Math.round(f.gbpWeek).toLocaleString('en-GB')} a week` : ''} because of the give-away`
+    : f.weight && f.saves > 0.0005 ? ` — ${f.kgShift === undefined ? say.packs : say.kg}` : '';
+  const where = f.saves > 0.0005
+    ? ` ${f.biggest.name} holds ${Math.round(f.biggest.share * 100)}% of the spread; halving its spread brings the pack’s to ${r(f.halvedSd, sdp)}${u} and the target to ${r(f.halvedLowest)}${u} — ${r(f.saves)}${u} a pack saved${money}.`
+    : ` ${f.biggest.name} holds ${Math.round(f.biggest.share * 100)}% of the spread; halving it brings the pack’s to ${r(f.halvedSd, sdp)}${u}, which lowers the target by nothing — ${f.binds === 1 ? 'the average rule binds, so a tighter spread does not lower the legal target' : 'the rule that binds does not move'}.`;
+  const own = f.measuredSd !== undefined
+    ? f.measuredSd > f.sd * 1.25 ? ` The ${f.n} pack readings spread ${r(f.measuredSd, sdp)}${u}, wider than the deposits give — they may move together, or something else adds; the pack’s own spread is the final word.`
+      : f.measuredSd < f.sd * 0.8 ? ` The ${f.n} pack readings spread ${r(f.measuredSd, sdp)}${u}, tighter than the deposits give — their spreads may be overstated; the pack’s own spread is the final word.`
+      : ` The ${f.n} pack readings spread ${r(f.measuredSd, sdp)}${u}, about what the deposits give.` : '';
+  return { text: `${head} ${rule}${where}${own}`, tone: f.gap < 0 ? 'a' : 'n' };
 }
