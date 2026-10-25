@@ -21,6 +21,8 @@ import { savingAt } from '../lib/useSaveOnArrival';
 import { LineTour } from '../ui/LineTour';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
+import { StartTogether } from '../line/StartTogether';
+import { canStartTogether } from '../lib/startStudy';
 import { getWorkspace, listAllSnags, listObservations, listSnagAssets, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
 import { methodOf } from '../lib/planModel';
 import { useCanStartProjects } from '../cloud/access';
@@ -138,6 +140,10 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   /* the factory is changed by someone invited to the app, as on Your factory */
   const may = useCanStartProjects();
   const [settingUp, setSettingUp] = useState(false);
+  /* TOOLS TICKED on the Tools page: a line report from them, or those that start with a name started together */
+  const [ticked, setTicked] = useState<Set<string>>(new Set());
+  const [together, setTogether] = useState(false);
+  const [togetherSaid, setTogetherSaid] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [w, every, std, ss, ws, on, o, wa] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId), listWorkspaces(), projectsOnWorkspace(wsId), listObservations(wsId), listSnagAssets(wsId)]);
@@ -475,7 +481,11 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           {TOOLS.map(t => {
             const { n, says, tone } = toolSays(t);
             return (
-              <li key={t.key}>
+              <li key={t.key} className={view === 'tools' ? 'pl-tool-li has-tick' : undefined}>
+                {view === 'tools' && (
+                  <label className="pl-tick"><input type="checkbox" checked={ticked.has(t.key)} aria-label={`Tick ${t.label}`}
+                    onChange={() => setTicked(s => { const n2 = new Set(s); if (n2.has(t.key)) n2.delete(t.key); else n2.add(t.key); return n2; })} /></label>
+                )}
                 <button type="button" className="pl-tool" onClick={() => nav(`${t.to}?line=${encodeURIComponent(wsId)}`)}>
                   <b>{t.label}</b>
                   {/* what its latest found — the abnormal part alone in its colour */}
@@ -487,6 +497,26 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
             );
           })}
         </ul>
+        {view === 'tools' && (() => {
+          const chosen = TOOLS.filter(x => ticked.has(x.key));
+          const startable = chosen.filter(x => canStartTogether(x.study as string | undefined)).map(x => ({ tool: x.study as StudyTool, label: x.label }));
+          return (
+            <>
+              {togetherSaid && <p className="tc-ok" role="status">{togetherSaid}</p>}
+              {chosen.length > 0 && (
+                <div className="pl-pick" role="group" aria-label="Ticked tools">
+                  <span className="pl-says"><b>{chosen.length}</b> tool{chosen.length === 1 ? '' : 's'} ticked — {chosen.map(x => x.label).join(', ')}</span>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={() => nav(`/lines/${wsId}/report?tools=${chosen.map(x => x.key).join(',')}`)}>Line report from these ›</button>
+                  {may && startable.length > 0 && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setTogether(true)}>Start {startable.length === 1 ? startable[0].label : `these ${startable.length}`} here ›</button>}
+                  <button type="button" className="cw-link" onClick={() => setTicked(new Set())}>Clear</button>
+                  {may && chosen.length > startable.length && <span className="sub">{chosen.filter(x => !canStartTogether(x.study as string | undefined)).map(x => x.label).join(', ')} {chosen.length - startable.length === 1 ? 'starts' : 'start'} from {chosen.length - startable.length === 1 ? 'its' : 'their'} own row — it asks more first.</span>}
+                </div>
+              )}
+              {chosen.length === 0 && <p className="sub pl-pick-hint">Tick tools to read them together in one line report{may ? ', or to start several here at once' : ''}.</p>}
+              <StartTogether open={together} onClose={() => setTogether(false)} line={wsId} lineName={line.name} tools={startable} onDone={said => { setTogetherSaid(said); setTicked(new Set()); }} />
+            </>
+          );
+        })()}
       </section>)}
 
 

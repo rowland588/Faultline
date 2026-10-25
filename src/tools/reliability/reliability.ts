@@ -421,7 +421,7 @@ export function costWords(c: RelCost): string {
 export interface RelSays { verdict: string; text: string; tone: 'r' | 'a' | 'g' | 'n' }
 
 const VERDICT_WORD: Record<RelVerdict, string> = {
-  met: 'meets the MTBF wanted', 'met-unsure': 'on the MTBF wanted, not yet sure', 'short-unsure': 'below the MTBF wanted, not yet sure', short: 'short of the MTBF wanted',
+  met: 'at or above the MTBF wanted', 'met-unsure': 'at or above the MTBF wanted, not yet sure', 'short-unsure': 'below the MTBF wanted, not yet sure', short: 'short of the MTBF wanted',
 };
 const VERDICT_TONE: Record<RelVerdict, RelSays['tone']> = { met: 'g', 'met-unsure': 'a', 'short-unsure': 'a', short: 'r' };
 
@@ -438,7 +438,7 @@ export function reliabilitySays(a: RelSubject | undefined, f: RelFigures): RelSa
   }
   const rough = f.enough === 'rough' ? ` — rough: ${f.n} ${plural(ev, f.n)} so far, ${ROUGH_UNDER} before it is said firmly` : '';
   const text = `${f.n} ${plural(ev, f.n)} in ${span(f.hours)} of watched running: one every ${span(f.mtbfH ?? 0)} (MTBF; 90% sure ${span(f.lo ?? 0)}–${span(f.hi ?? 0)}), ${perHour(f.rate ?? 0)}${rough}.`
-    + (want && v ? ` Against ${span(want)} wanted, it ${VERDICT_WORD[v]}.` : '');
+    + (want && v ? ` Against ${span(want)} wanted, it is ${VERDICT_WORD[v]}.` : '');
   return { verdict: `MTBF ${span(f.mtbfH ?? 0)}${v ? ` · ${VERDICT_WORD[v]}` : ''}`, text, tone: v ? VERDICT_TONE[v] : 'n' };
 }
 

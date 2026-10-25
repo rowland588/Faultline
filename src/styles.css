@@ -14403,3 +14403,17 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ie-agree-grid .ie-wide { grid-column: 1 / -1; }
 .ie-relrow { grid-template-columns: repeat(auto-fit, minmax(9em, 1fr)); }
 .ie-pic > .ie-pad-hint { margin-top: 8px; }
+
+/* A line's Tools page — tick tools, read them in one line report or start several here (A line — its tools) */
+.pl-tool-li.has-tick { position: relative; }
+.pl-tool-li.has-tick .pl-tool { padding-right: 44px; height: 100%; }
+.pl-tick { position: absolute; top: 4px; right: 4px; z-index: 1; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; cursor: pointer; }
+.pl-tick input { width: 20px; height: 20px; }
+.pl-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
+.pl-pick .pl-says { flex: 1 1 100%; }
+.pl-pick-hint { margin-top: 8px; }
+.st-together .st-t { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 12px 4px; margin: 0 0 12px; }
+.st-together legend { font-weight: 700; padding: 0 4px; }
+.lr-all { display: inline-flex; gap: 12px; margin-left: 12px; font-weight: 400; }
+/* on a phone the ticked bar stays in reach above the phone's own bar, however far down the list was ticked */
+@media (max-width: 719px) { .pl-pick { position: sticky; bottom: 84px; z-index: 5; box-shadow: var(--shadow-lift); } }

@@ -50,6 +50,7 @@ export const PAGES = (sd, cap) => [
     { what: 'a part — the line', sel: '.lr-part' },
     { what: 'the one-page report\'s tiles on it', sel: '.lr-part .ln-tile', n: 4 },
     { what: 'what goes in — a tick a tool record', sel: '.lr-tick input[type=checkbox]' },
+    { what: 'Tick all and Tick none beside what goes in (25 October)', sel: '.lr-all .cw-link', n: 2 },
     { what: 'who owes what by when', sel: '.lr-h', text: /^Who owes what by when/ },
     { what: 'the closing line', sel: '.lr .ln-close' },
   ] },
@@ -325,6 +326,8 @@ export const PAGES = (sd, cap) => [
   { name: 'A line — its tools', path: `#/lines/${sd.line7WsId}?view=tools`, must: [
     { what: 'the tools on this line', sel: '.pl-tools .pl-tool', n: 4 },
     { what: 'New ▾ — a tool started here is the line’s', sel: '.pl-sec-h .part-menu-b' },
+    { what: 'a tick beside each tool — to read them together or start several here (25 October)', sel: '.pl-tick input[type=checkbox]', n: 9 },
+    { what: 'what ticking does, said until a tool is ticked', sel: '.pl-pick-hint', text: /Tick tools to read them together in one line report/ },
     { what: 'the line’s tabs, Tools on', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools/ }] },
   /* STOPS TIMED — the line study, the line's first log (docs/STRUCTURE.md D8, B6): named, its four views
      tabs on its page at a desk as on a phone; no screen of it on the rail */

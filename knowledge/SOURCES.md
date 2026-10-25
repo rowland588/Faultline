@@ -125,6 +125,121 @@ gives the causation of waiting: a queue is the inventory buffer the line
 chose by running a variable station near full, and it costs what inventory
 costs (`knowledge/MONEY.md` §2, C4).
 
+## Public sources for four "research" entries, 25 October 2026
+
+Not books: public law and public guidance, for FC-232, FC-175, FC-178 and
+FC-229 (`knowledge/GAPS.md`, *Research 1*). **None could be opened** — the
+container refused legislation.gov.uk, gov.uk, ghgprotocol.org, ehedg.org,
+eur-lex.europa.eu, the Food Standards Scotland, Campden BRI and Chilled Food
+Association sites and the BSI/ISO stores (a DNS failure from the fetch tool, a
+403 from the proxy). Everything below was confirmed from the excerpts a web
+search returns, never from a page; a figure carries "seen in excerpts" until a
+session that can fetch has read it. Public law and government guidance are not
+copied; the records give the numbers the law states (facts) and say where the
+text is.
+
+| Source | Edition | What the records take | Checked how |
+|---|---|---|---|
+| Weights and Measures (Packaged Goods) Regulations 2006, SI 2006/659 — Schedule 2 (reference test), Schedule 3 (TNE) — legislation.gov.uk | as made 2006, with later versions; current consolidated text to read | the plans and the TNE table in `packaging.average-quantity-system` | several excerpts of the schedule pages and a third-party copy; constants recomputed |
+| Council Directive 76/211/EEC, Annex II (EUR-Lex) | consolidated text exists (2019 version listed) | the method the UK Schedule follows | listed, not read |
+| WELMEC 6.3 (2024) Part 4; WSTA *A guide for importers* (2025); Business Companion *Packaged goods: average quantity* | 2024 / 2025 / current | the inspector's reference test described; the TNE table agreed | excerpts |
+| Food Standards Scotland, *Shelf-life guidance* | January 2025, v1.2 March 2025 | validation and verification, reasonably foreseeable conditions | excerpts |
+| FSAI, *Guidance Note 18: Validation of product shelf-life* | Revision 5, 4 November 2022 | study steps; durability against challenge | excerpts |
+| Chilled Food Association, *Shelf life of ready to eat food in relation to L. monocytogenes* | v1.1.1, 23 March 2010; new guidance 2026 | the 100 cfu/g and "not detected in 25 g" logic, worked examples, the 10-day rule | excerpts |
+| EURL *Lm* technical guidance; DG SANTE *Listeria* guidance | v4, 1 July 2021 (amendment 1, 2026 per a listing) | challenge tests, three batches, durability studies verify | excerpts |
+| Campden BRI, *Evaluation of product shelf-life for chilled foods* (Betts, Brown, Everis) | 2004; 2nd ed. 2019 *Evaluation of microbiological shelf-life of foods* | the trial approach | excerpts; paid |
+| Regulation (EC) 2073/2005 and (EU) 2024/2895 | 2024/2895 applying from 1 July 2026 in the EU | the *Listeria* criterion 1.2 | secondary; GB position unsettled |
+| EHEDG Guideline 8, *Hygienic design principles* | fourth edition, December 2025 (free); third edition March 2018 | the principles to be written in our own words | listings and announcements only |
+| EHEDG Guideline 58, *Hygienic design risk management* | 2025 | the method named | listing only; sold |
+| BS EN 1672-2:2020; EN ISO 14159:2008 | 2020 (published 31 January 2021); 2008 | scope; the three areas; nothing quoted | store listings and a preview excerpt; paid |
+| GHG Protocol Corporate Standard (2004) and Scope 2 Guidance (2015) | revised edition; revision under way | scopes; location- and market-based | excerpts and secondary guides |
+| DESNZ, *Greenhouse gas reporting: conversion factors* with methodology and major-changes reports | 2024, 2025 (10 June 2025), 2026 (11 June 2026) | the factors and how to use them | secondary guides quoting the workbooks |
+| UK *Environmental reporting guidelines including SECR* | March 2019; 2026 review | scope 1 and 2 and an intensity ratio required | excerpts |
+
+## Public sources searched for Research 2, 25 October 2026
+
+Fetching is still refused (25 October: WebFetch "name not found" for
+itl.nist.gov, bookdown.org and the others; curl 403 from the proxy for
+nist.gov, Wikipedia, arXiv, ocw.mit.edu, Springer, JSTOR, archive.org, SciPy's
+docs and university sites). Web *search* returns excerpts, so each source below
+is **read as an excerpt the search tool returned, not as a page**; what an
+excerpt did not carry is said as not read. Which statement came from which
+page is the search tool's attribution. Search-result pages that are
+calculators, forums or vendors are named as such and never used as authority.
+
+**Acceptance sampling (FC-129, FC-130) —** records `quality.acceptance-sampling-attributes`, `quality.acceptance-sampling-variables`
+
+| Source (URL as listed in the results) | What the excerpt carried | Standing |
+|---|---|---|
+| NIST Dataplot reference, single-sample acceptance plan — https://itl.nist.gov/div898/software/dataplot/refman1/auxillar/singsamp.htm | α producer's risk, β consumer's risk; OC as acceptance probability against percent defective; binomial and hypergeometric variants | NIST, public; excerpt only |
+| NIST/SEMATECH e-Handbook, lot acceptance sampling chapter (itl.nist.gov/div898/handbook) | the search tool named it but returned no page text | **not read** |
+| ISO 2859-1:1999 — https://webstore.ansi.org/standards/iso/iso28591999 (and iteh.es, globalspec listings) | scope (AQL-indexed system, lot-by-lot), purpose statement, switching rules, OC curves for each plan, ISO 2859-2 for isolated lots; DIN and Indian adoptions | listing only; tables copyright, not read |
+| ISO 3951-1:2022 — https://webstore.ansi.org/preview-pages/ISO/preview_ISO+3951-1-2022.pdf, https://www.evs.ee/en/iso-3951-1-2022, https://scc-ccn.ca/standardsdb/standards/8178618, AFNOR and iteh listings | third edition, 2022-08-18, replaces 2013; ISO/TC 69/SC 5; single sampling, lot-by-lot, AQL; one continuous characteristic, process in control and about normal; limits L, U or both, combined control under one AQL | listings and a preview page's scope text; tables not read |
+| MIL-STD-105E notices 1–3 — https://everyspec.com/MIL-STD/MIL-STD-0100-0299/MIL-STD-105E_NOTICE-3_11673/ (also _NOTICE-2_11674, _NOTICE-1_11679) | cancelled 1995 (refer to ANSI/ASQC Z1.4-1993); 2001 cancelled without replacement (MIL-STD-1916); 2008 allows MIL-STD-1916 or ANSI/ASQ Z1.4 | US Government notices as hosted by a document site; tables not read |
+| Quality Magazine, "Third revision of ISO 2859-1" — https://www.qualitymag.com/articles/99511-third-revision-of-iso-2859-1, and its digital edition column (Aug 2024) | a third edition to replace the 1999 edition; final draft approved December 2025 and errors to correct before publication (as the search tool summarised) | trade press; publication status unconfirmed |
+| Nimonik, "Whatever happened to MIL-STD-105" — https://nimonik.com/blog/whatever-happened-to-mil-std-105/ ; an Elsmar Cove forum thread | the MIL-STD-105E → Z1.4 → ISO 2859-1 lineage and a remark that the 1999 ISO revision changed some accept/reject pairs | secondary; a forum is not authority |
+| Lawson, *An Introduction to Acceptance Sampling and SPC with R* ch. 3 — https://bookdown.org/lawson/an_introduction_to_acceptance_sampling_and_spc_with_r26/variables-sampling-plans.html | the k-method; α at the AQL and β at the RQL; with σ estimated, t quantiles and an iterative n (an example 63 against 172 attribute, 21 σ-known) | open textbook; excerpt only |
+| CRAN AQLSchemes manual (CRAN mirrors); a Wikipedia "Variables sampling plan" mirror at reference.org; MetricGate acceptance-sampling pages | MIL-STD-414 / 105E → ANSI and ISO families; the known-σ formulas for n and k and the (1 + k²/2) form | package manual, mirror and calculator: cross-checks only |
+
+**Line simulation (FC-047) —** record `capacity.simulation`
+
+| Source | What the excerpt carried | Standing |
+|---|---|---|
+| MIT OCW 2.852 *Manufacturing Systems Analysis* — https://ocw.mit.edu/courses/2-852-manufacturing-systems-analysis-spring-2010/pages/lecture-notes/ and the calendar page; a course-note PDF mirror (mitocw.ups.edu.ec, MIT2_852S10_transfer_lines.pdf) | lectures 6–9: transfer lines, two-machine, deterministic, exponential and continuous lines; the no-buffer closed form P = 1/(1 + Σ pᵢ/rᵢ); the course text is Gershwin's *Manufacturing Systems Engineering* | university course; excerpt only |
+| Hu and Meerkov (2006) — https://ideas.repec.org/a/hin/jnlmpe/017105.html ; Jia et al. (2016); Lee, Li and Horst (2012) | lean buffering with Bernoulli machines, closed form and recursion; finite-run serial lines | abstracts via RePEc and publisher listings |
+| Conway, Maxwell, McClain and Thomas (1988) — https://ideas.repec.org/a/inm/oropre/v36y1988i2p229-241.html | citation, scope (buffered serial lines, WIP distribution) | bibliographic record; findings not read |
+| Savsar (1992) survey excerpt; Kouikoglou event-driven models (TUC repository); Heshmat et al. (2017) | the list of authors who solved two-stage lines; event-driven versus piece-by-piece simulators; fitting uptime/downtime to a year of breakdowns | abstracts |
+
+**Response surface (FC-112) —** record `stats.response-surface`
+
+| Source | What the excerpt carried | Standing |
+|---|---|---|
+| NIST/SEMATECH e-Handbook, central composite designs — https://itl.nist.gov/div898/handbook/pri/section3/pri3361.htm | CCC, CCI, CCF; α = ±1 for face-centred; CCC and CCI rotatable, CCF not; CCC the largest region, CCI the smallest; CCF needs three levels | NIST, public; excerpt only |
+| NIST/SEMATECH e-Handbook, Box-Behnken designs — https://itl.nist.gov/div898/handbook/pri/section3/pri3362.htm (and pri3363.htm) | edge midpoints and centre; three levels; no embedded factorial; rotatable or nearly; fewer runs than a CCD for three factors | NIST; excerpt only |
+| NIST handbook page on canonical analysis of quadratic responses — https://itl.nist.gov/div898/handbook/pri/section5/pri5314.htm ; NIST slide deck https://www.nist.gov/document/optdesgn-1pdf | the B matrix decides maximum, minimum or saddle; A-form when the stationary point is outside the region, B-form inside; follow a rising ridge | NIST; excerpts |
+| pyDOE documentation (https://pythonhosted.org/pyDOE/rsm.html), DoE.wrapper (R), Stat-Ease and Minitab design pages, an Altair HyperStudy page, calculators | run counts, centre-point defaults, α = (2ᵏ)^(1/4) | software documentation; cross-checks only — the α is proved in `knowledge/research/cases-research-2-rsm.py` |
+
+**Not found / not read, plainly:** the NIST e-Handbook's pages on acceptance
+sampling; any table, clause or example of ISO 2859-1, ANSI/ASQ Z1.4,
+MIL-STD-105E, MIL-STD-414, ANSI/ASQ Z1.9 or ISO 3951-1; the bodies of Buzacott
+(1967), Wijngaard (1979), Hu and Meerkov (2006), Conway et al. (1988),
+Lieberman and Resnikoff (1955), Owen (1968), Box and Behnken (1960), Derringer
+and Suich (1980). Nothing from them is quoted; what the records use is
+mathematics proved by computation (`knowledge/research/`), cited to the book or
+paper it is understood to come from "from knowledge".
+
+## The research pass of 25 October 2026 — four entries marked *research first*
+
+FC-065, FC-085, FC-023 and FC-018. **Method and its limit:** web search only
+(its results are summaries with links); every fetch of a page failed — the
+fetch tool could not resolve any host and the proxy refuses the publishers
+and standards bodies — so **no source below was opened.** "Confirmed" means a
+search result said it; each record's `checked` line says the same. What each
+source is, whether it is free, and where it landed:
+
+| Source | Free? | What the search showed | Where |
+|---|---|---|---|
+| SAE JA1011 (1999, 2009, Nov 2024) and JA1012 (2011) | paid (JA1011 about 115 EUR with VAT at one reseller; ANSI webstore, SAE Mobilus list it) | the seven questions, four consequence classes, "a process missing any criterion is not RCM", default actions | `maintenance.rcm` |
+| NASA, *RCM Guide for Facilities and Collateral Equipment* (Sept 2008), nasa.gov; WBDG copy; NPR 8831.2 ch. 7 | free (a federal agency's own guide) | 472 pp., Logic Tree (Fig. 3-2), time-directed / condition-directed / failure-finding tasks, run to failure a deliberate choice | `maintenance.rcm` |
+| Nowlan and Heap (1978), DTIC AD-A066579; DAU catalogue entry | free (Department of Defense report) | decision diagram, four task types, four consequences, default strategy; 476 pp. | `maintenance.rcm` |
+| NAVAIR 00-25-403 (2005), EverySpec listing | free listing | existence; decision logic not seen | `maintenance.rcm` |
+| EN 415-11:2021 (CEN; DIN EN, BS EN, SS-EN, NEN-EN, I.S. EN adoptions) | paid (about 410 USD for the BS copy) | time model, output model, general and technical key figures, system-acceptance method, Annex C, acceptance period 2 to 8 h, replaces DIN 8743:2014 | `commissioning.acceptance-tests`, `equipment.time-model-losses` |
+| DIN 8743:2014 and VDMA's note on it | paid; the note free | machine quality output, efficiency, availability; "availability" redefined | `commissioning.acceptance-tests` |
+| ISO 22400-2:2014 (Amd 1 2017) | paid | scope; KPI names from a third party | `commissioning.acceptance-tests` |
+| OMAC PackML, ISA-TR88.00.02 | the technical report is paid | states (Execute, Held, Suspended …) fed by a controller — not Faultline's model | `commissioning.acceptance-tests` |
+| MTM Association data cards, training platform, seal of approval | cards licensed and restricted | copyright notice, authorised access, TMU unit | `ie.pmts` |
+| Zandin, *MOST Work Measurement Systems*, 3rd ed.; H.B. Maynard | book and licence paid | BasicMOST models and index-sum rule from trade pages | `ie.pmts` |
+| Shingo Institute, *The Shingo Model* and Challenge (shingo.org) | description free; assessment the Institute's | ten principles, three or four dimensions, 1,000-point scoring | `lean.maturity-assessment` |
+| MIT LAI, LESAT 1.0 (2001) and 2.0 (2012), DSpace | free to copy, other rights reserved | 54 practices, five levels | `lean.maturity-assessment` |
+| NIST, Baldrige Excellence Framework and Builder | Builder and a sample free; manufacturing edition sold | process and results scoring | `lean.maturity-assessment` |
+| Rother, *Toyota Kata*; Lean Enterprise Institute's Lean Transformation Framework | books and courses paid; some practice materials free | a routine and five questions, not a scale | `lean.maturity-assessment` |
+
+**Pirated copies.** Search turned up uploaded copies of paid standards
+(JA1011 and JA1012, EN 415-11) and of Moubray's and Zandin's books on
+document-sharing sites. They were not opened, quoted or relied on: a copy of
+a paid text is not a licence to build on it, and the records say what is
+public and what is not.
+
 ## Adding a book
 
 Record it here (edition, what was confirmed and how, what was not), write or
