@@ -101,15 +101,18 @@ const truth = () => page.evaluate(async ws => {
   const F = await import('/src/lib/useJobFloor.ts');
   const R = await import('/src/lib/programsReport.ts');
   const jobs = (await db.allProjects()).filter(j => !j.deletedAt && !j.archivedAt);
-  const stage = [];
+  const stage = [], floor = new Map();
   for (const pid of new Set(F.projectsOnLines([ws], jobLines, id => jobs.some(j => j.id === id)))) {
     const [tests, items, pa, pp] = await Promise.all([db.listTests(pid), db.listTestItems(pid), db.listAssets(pid), db.listPrograms(pid)]);
     const name = jobs.find(j => j.id === pid)?.name ?? 'its project';
-    for (const l of R.programsReading({ tests, items, assets: pa, programs: pp, holder: jobs.find(j => j.id === pid) })?.lines ?? [])
+    for (const l of R.programsReading({ tests, items, assets: pa, programs: pp, holder: jobs.find(j => j.id === pid) })?.lines ?? []) {
       if (l.partId && !l.programId) stage.push({ projectId: pid, projectName: name, ...(l.assetId ? { assetId: l.assetId } : {}), line: l });
+      /* the floor's word on a program on a Programs list, counted on the line as on its job (25 October, lib/useJobFloor) */
+      if (l.programId && l.partId && l.record) floor.set(l.programId, { word: l.word, tone: l.tone, bucket: l.bucket, ...(l.note ? { note: l.note } : {}) });
+    }
   }
   const onStage = F.stageOnlyByLine(stage, assets, jobLines).get(ws) ?? [];
-  const r = L.lineProgramsReading([{ id: w.id, name: w.name, machines: kit.machines, programs: kit.programs }], undefined, { stageOnly: new Map([[ws, onStage.map(x => x.line)]]) });
+  const r = L.lineProgramsReading([{ id: w.id, name: w.name, machines: kit.machines, programs: kit.programs }], undefined, { floor, jobName: new Map(jobs.map(j => [j.id, j.name])), stageOnly: new Map([[ws, onStage.map(x => x.line)]]) });
   return {
     name: w.name, list: w.assets, kit: { says: kit.says, flow: kit.flow, late: kit.late, proved: kit.proved, n: kit.programs.length },
     machines: kit.machines.map(m => ({ name: m.name, oem: m.record?.oem, id: m.record?.id, job: m.jobId })),
