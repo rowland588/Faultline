@@ -438,6 +438,13 @@ export const PAGES = (sd, cap) => [
     { what: 'a table row for each shape tried, the leader marked', sel: '.ie-grid tbody tr', n: 4 }, { what: 'the probability plot — forty readings on a line of equal values', sel: '.ie-an-scatter .ie-an-dot', n: 40 },
     { what: 'the percentile Ppk beside the bell’s', sel: '.ie-more', text: /Percentile Ppk 0\.69/ }, { what: 'the size said', sel: '.ie-check', text: /Size: 40 readings/ },
   ] },
+  { name: 'Analysis — how fast is a job being learned', path: `#/analysis/${sd.analysisLearnId}`, must: [
+    { what: 'the band’s verdict — the standard at run 11', sel: '.ln-band', text: /Standard at run 11/ },
+    { what: 'five tiles — runs, learning rate, when the standard arrives, plan at, in money', sel: '.ie-strip .ln-tile', n: 5 },
+    { what: 'the sentence, with the rate and its interval and what to plan the first runs at', sel: '.ie-say', text: /learning at 85\.6% a doubling.*between 85\.0% and 86\.3%.*The 40 s standard arrives at run 11\. Plan the first 8 runs at about 50\.9 s/ },
+    { what: 'the picture — eight runs, the fitted curve and the standard as a level', sel: '.ie-an-scatter .ie-an-dot', n: 8 }, { what: 'the curve in words, with its projections', sel: '.ie-more', text: /time at run n = 67\.7 s/ },
+    { what: 'money named as missing — the units in a run', sel: '.ie-more', text: /give the units of work in a run/ },
+  ] },
   { name: 'Reliability study', path: `#/reliability/${sd.reliabilityId}`, must: [
     { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'the band', sel: '.ln-band' },

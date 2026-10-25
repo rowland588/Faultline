@@ -130,7 +130,7 @@ let mean;
   mean = await start('Thirty packs');
   ok(mean.length > 8, `2 started from the list: ${mean.slice(0, 8)}…`);
   const kinds = await all('[role=radiogroup][aria-label="What do you want to know?"] .ie-kind');
-  ok(kinds.length === 9 && /^How sure am I of this figure/.test(kinds[0]) && /^Did it really change/.test(kinds[1]) && /^Do two ways of measuring agree/.test(kinds[2]) && /^Do these groups really differ/.test(kinds[3]) && /^Is one thing linked to the other/.test(kinds[4]) && /^Does one thing move with another/.test(kinds[5]) && /^How many readings/.test(kinds[6]), `2 the nine questions offered, the first seven as before (W3b added three, W3c two more): ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
+  ok(kinds.length === 10 && /^How sure am I of this figure/.test(kinds[0]) && /^Did it really change/.test(kinds[1]) && /^Do two ways of measuring agree/.test(kinds[2]) && /^Do these groups really differ/.test(kinds[3]) && /^Is one thing linked to the other/.test(kinds[4]) && /^Does one thing move with another/.test(kinds[5]) && /^How many readings/.test(kinds[6]), `2 the ten questions offered, the first seven as before (W3b added three, W3c three more): ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
   ok((await page.getByRole('radio', { name: '95%', exact: true, checked: true }).count()) === 1, '2 95% is the confidence unless another is picked');
   await page.getByLabel('What is measured').fill(''); await page.getByRole('button', { name: 'Agree these' }).click({ force: true }).catch(() => {});
   ok(/^What is measured/.test((await words('.ie-problem')) ?? ''), `2 no name — refused, said why: "${await words('.ie-problem')}"`);

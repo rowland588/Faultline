@@ -21,7 +21,7 @@ import {
 
 import { big, cap, fmtP, fx, pct, pctWord, pSay, placesOf } from './format';
 import { independenceCheck, outlierCheck } from './checks';
-import { gaugeFigures, gaugeGrids, gaugePicture, gaugePlot, gaugeProblem, gaugeSays, gaugeTiles, shapeFigures, shapeGrids, shapePlot, shapeProblem, shapeSays, shapeTiles, type GaugeFigures, type Grid, type ShapeFigures } from './measure';
+import { gaugeFigures, gaugeGrids, gaugePicture, gaugePlot, gaugeProblem, gaugeSays, gaugeTiles, learnFigures, learnPlot, learnProblem, learnSays, learnTiles, shapeFigures, shapeGrids, shapePlot, shapeProblem, shapeSays, shapeTiles, type GaugeFigures, type Grid, type LearnFigures, type ShapeFigures } from './measure';
 
 export type Tone = 'g' | 'a' | 'r' | 'n';
 /** Intervals on a mean need this many readings; a paired test this many pairs; a comparison this many a side (said weak under 8). */
@@ -50,6 +50,7 @@ export const KIND_WORDS: Record<AgreedAnalysis['kind'], { name: string; ask: str
   table: { name: 'Are two things linked', ask: 'Is one thing linked to the other?', example: 'fault type by lane, counted off the reject bin; rejects by shift and product' },
   relate: { name: 'What moves with what', ask: 'Does one thing move with another — and by how much?', example: 'seal strength against jaw temperature; give-away against speed and product temperature' },
   gauge: { name: 'Is the gauge fit', ask: 'Is this gauge fit for what it judges?', example: 'a bench scale against a 500 g test weight; a probe at five temperatures; the daily check weight' },
+  learn: { name: 'How fast it is learning', ask: 'How fast is a new job being learned?', example: 'seconds a pack for a new starter or a new product, run after run; when the standard will be met' },
   shape: { name: 'Which shape fits', ask: 'Which shape do these readings follow?', example: 'residual oxygen; minutes between short stops; seal strength with a hard floor' },
   plan: { name: 'How many readings', ask: 'How many readings do I need?', example: 'to know a mean to ±0.3 g; to see a 0.5 g difference between shifts' },
 };
@@ -112,7 +113,7 @@ export interface RelateFigures extends Base {
   kind: 'relate'; k: number; n: number; need: number; enough: boolean; weak: boolean; drivers: { name: string; unit?: string }[]; xs: number[][]; y: number[];
   line?: Line; multi?: Multiple; /** perfectly collinear drivers, or a constant one — nothing is fitted */ refusal?: string; p?: number; significant: boolean;
 }
-export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures | GroupsFigures | TableFigures | RelateFigures | GaugeFigures | ShapeFigures;
+export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures | GroupsFigures | TableFigures | RelateFigures | GaugeFigures | ShapeFigures | LearnFigures;
 
 const normalCheck = (what: string, xs: number[]): { check?: Check; non: boolean } => {
   if (xs.length < NORMAL_FROM) return { non: false };
@@ -126,6 +127,7 @@ export function analysisFigures(a: AgreedAnalysis, readings: StudyReading[], opt
   const base = (dp: number): Base => ({ conf, alpha, dp, unit, checks: [] });
   if (a.kind === 'gauge') return gaugeFigures(a, readings, base(0));
   if (a.kind === 'shape') return shapeFigures(a, readings, base(0));
+  if (a.kind === 'learn') return learnFigures(a, readings, base(0), opts.rate);
   if (a.kind === 'sure') {
     const of = a.of ?? 'mean';
     if (of === 'share') {
@@ -328,9 +330,10 @@ export function planProblem(p: AnalysisPlan, pilotN = 0): string {
 }
 
 /** What cannot be agreed, said while agreeing. */
-export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'> & Partial<Pick<AgreedAnalysis, 'rows' | 'cols' | 'drivers' | 'gauge' | 'shape'>>): string {
+export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'> & Partial<Pick<AgreedAnalysis, 'rows' | 'cols' | 'drivers' | 'gauge' | 'shape' | 'standard' | 'perRun'>>): string {
   if (a.kind === 'gauge') return gaugeProblem(a.name, a.gauge);
   if (a.kind === 'shape') return shapeProblem(a.name, a.shape);
+  if (a.kind === 'learn') return learnProblem(a.name, a.standard, a.perRun);
   if (!a.name.trim()) return 'What is measured — a name, "Fill weight".';
   if (a.kind === 'table') {
     const dup = (xs: string[]) => new Set(xs.map(x => x.toLowerCase())).size !== xs.length;
@@ -421,6 +424,7 @@ export function analysisSays(f: AnalysisFigures, a: AgreedAnalysis): AnalysisSay
   if (f.kind === 'relate') return relateSays(f, name, u);
   if (f.kind === 'gauge') return gaugeSays(f, a);
   if (f.kind === 'shape') return shapeSays(f, a);
+  if (f.kind === 'learn') return learnSays(f, a);
   /* plan */
   const power = pctWord(f.power), conf = pctWord(f.conf), p = a.plan;
   if (!f.ok || f.need === undefined || !p) return { text: f.why ?? 'Say what to size.', tone: 'n', verdict: 'Not enough to size', more: [], notClaimed: '' };
@@ -575,6 +579,7 @@ export function analysisTiles(f: AnalysisFigures, a: AgreedAnalysis): LeanTile[]
   }
   if (f.kind === 'gauge') return gaugeTiles(f, a);
   if (f.kind === 'shape') return shapeTiles(f, a);
+  if (f.kind === 'learn') return learnTiles(f, a);
   if (f.kind === 'relate') {
     if (f.k === 1) {
       const l = f.line, d = f.drivers[0];
@@ -598,7 +603,7 @@ export function analysisClosing(f: AnalysisFigures, a: AgreedAnalysis, said: Ana
   const what = a.name.trim() || 'The figure';
   if (f.kind === 'sure') return { text: `${said.verdict} — ${what}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'change') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
-  if (f.kind === 'gauge' || f.kind === 'shape') return { text: `${said.verdict} — ${what}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
+  if (f.kind === 'gauge' || f.kind === 'shape' || f.kind === 'learn') return { text: `${said.verdict} — ${what}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'groups' || f.kind === 'table' || f.kind === 'relate') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'paired') return { text: `${said.verdict} — ${f.pairs} pair${f.pairs === 1 ? '' : 's'}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}.`, tone: said.tone };
   return { text: `${said.verdict}.`, tone: said.tone };
@@ -660,11 +665,13 @@ export function analysisPicture(f: AnalysisFigures, a: AgreedAnalysis): PicRow[]
 export type Plot =
   | { kind: 'table'; rowName: string; colName: string; rows: string[]; cols: string[]; counts: number[][]; expected: number[][]; residuals: number[][]; rowTotals: number[]; colTotals: number[]; total: number }
   | { kind: 'scatter'; xName: string; yName: string; xUnit: string; yUnit: string; pts: [number, number][]; xAxis: [number, number]; yAxis: [number, number];
-      line?: [[number, number], [number, number]]; band?: { x: number; lo: number; hi: number }[]; /** the fit against what was read: a line of equal values */ equal?: boolean };
+      line?: [[number, number], [number, number]]; band?: { x: number; lo: number; hi: number }[]; /** the fit against what was read: a line of equal values */ equal?: boolean;
+      /** a fitted curve drawn through the points, and a level drawn across (a standard) — the learning curve */ curve?: [number, number][]; hline?: { y: number; label: string } };
 const padded = (vs: number[]): [number, number] => { const lo = Math.min(...vs), hi = Math.max(...vs), p = Math.max((hi - lo) * 0.06, Math.abs(hi) * 0.0005, 1e-9); return [lo - p, hi + p]; };
 export function analysisPlot(f: AnalysisFigures, a: AgreedAnalysis): Plot | undefined {
   if (f.kind === 'gauge') return gaugePlot(f, a);
   if (f.kind === 'shape') return shapePlot(f, a);
+  if (f.kind === 'learn') return learnPlot(f, a);
   if (f.kind === 'table' && f.res) {
     return { kind: 'table', rowName: f.rowName, colName: f.colName, rows: f.rows, cols: f.cols, counts: f.counts, expected: f.res.expected, residuals: f.res.residuals, rowTotals: f.res.rowTotals, colTotals: f.res.colTotals, total: f.res.total };
   }

@@ -104,8 +104,14 @@ commissioning — the weeks when the standard is a target, not a measure.
 - [paper] Yelle, L.E. (1979), "The learning curve: historical review and comprehensive survey", *Decision Sciences* 10(2), 302–328 (from knowledge).
 
 ## In Faultline
-Not built (FC-027). The line balance's timed cycles and the video study's
-readings carry a date and a run (`src/tools/linework`, `src/tools/video`);
-FC-027 reads a station's cycle time by run, fits the curve, says the rate
-and the run the standard arrives, and plans the first weeks' output in
-packs and money.
+Built 25 October 2026 (FC-027, `knowledge/specs/FC-027-learning.md`) as one more question of the Analysis tool, *How fast is a new job being learned*:
+the time of each run typed or pasted in the order timed, Wright's unit-time form fitted by least squares on ln time against ln run (`src/lib/ie/learn.ts`,
+proved against SciPy in `scripts/knowledge/cases-w3c.py`: the eight runs above give 85.62% a doubling, 84.97% to 86.28%, R² 0.99759, the 40 s standard at run
+11, the first eight planned at 50.9 s), the sentence, the curve and the standard drawn, and the labour of the time over the standard in money when the units
+in a run and the line's wage are given (each missing one named). A curve that has stopped falling above the standard is said to be the method or the station,
+not the person. Acceptance: `scripts/acceptance/analysis-learning.mjs`.
+
+**Not built:** the cumulative-average form (the one above); forgetting after a break; reading a station's cycle time by run from the line balance
+(`src/tools/linework`) or the video study (`src/tools/video`) — the times are typed or pasted; several people on one chart; the first weeks' output in packs
+a week. The thresholds (a curve from 6 runs; a standard beyond 4 times the runs timed called a guess; flattened when the last four runs fall by under a
+quarter of the overall rate) are the builder's choices and are said on the page.
