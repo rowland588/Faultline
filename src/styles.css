@@ -14424,7 +14424,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* on a phone the ticked bar stays in reach above the phone's own bar, however far down the list was ticked */
 @media (max-width: 719px) { .pl-pick { position: sticky; bottom: 84px; z-index: 5; box-shadow: var(--shadow-lift); } }
 
-/* ===================== RELIABILITY FAMILY (W5): repair times, calls, growth, Weibull =====================
+/* ===================== RELIABILITY FAMILY (W5): repair times, calls, growth, Weibull ==============
    knowledge/specs/FC-059-repair-times.md, FC-015-andon-calls.md, FC-061-reliability-growth.md, FC-060-weibull.md.
    Tokens only: waiting is amber (waiting on somebody), everything else the ink and the brand's own. */
 .rl-open { margin: 12px 0; padding: 12px 14px; border: 2px solid var(--brand); border-radius: var(--radius); background: var(--accent-soft); }
@@ -14555,3 +14555,96 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 @media (max-width: 719px) {
   .calc-body { grid-template-columns: 1fr; }
 }
+/* ===================== THE LINE BALANCE'S LENSES (FC-019 · 024 · 025 · 007 · 026 · 028 · 033; knowledge/specs/FC-032-line-balance.md) ===================== */
+.wb-lens { display: grid; gap: 14px; margin-top: 10px; min-width: 0; }
+.wb-lens h3 { margin: 0 0 6px; font-size: var(--t-body); }
+.wb-lede { max-width: 760px; margin: 0; }
+.wb-lens .is-a { color: var(--st-a); }
+.wb-lens .is-r { color: var(--st-r); }
+.wb-lens .wb-kind-w { margin-left: 6px; }
+/* a table that is a card a row on a phone */
+.wb-tbl { width: 100%; border-collapse: collapse; font-size: var(--t-detail); font-variant-numeric: tabular-nums; }
+.wb-tbl th, .wb-tbl td { padding: 7px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.wb-tbl thead th { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.wb-tbl tbody th { font-weight: 700; color: var(--ink); }
+.wb-tbl small { display: block; color: var(--muted); font-size: var(--t-label); font-weight: 400; }
+.wb-tbl tr.is-pick { background: var(--surface-2); }
+.wb-tbl tr.is-r th, .wb-tbl tr.is-r td { color: var(--st-r); font-weight: 700; }
+.wb-pace { display: grid; gap: 2px; }
+.wb-pace .text-input { width: 5.5em; min-height: 34px; padding: 4px 8px; }
+.wb-task { margin: 6px 0 0; }
+.wb-allow, .wb-lib, .wb-tend, .wb-prop, .wb-im-says, .wb-rate, .wb-parts, .wb-empty { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 12px; display: grid; gap: 8px; }
+.wb-allow p, .wb-lib p, .wb-tend p, .wb-prop p, .wb-empty p { margin: 0; }
+.wb-allow-s, .wb-lib-s, .wb-tend-s { font-weight: 700; }
+.wb-allow .btn, .wb-prop .btn, .wb-empty .btn { justify-self: start; }
+.wb-lib-q { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.wb-lib-q .text-input[type=search] { flex: 1 1 220px; min-width: 0; }
+.wb-lib-l { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.wb-lib-r { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 6px 8px; border-radius: var(--radius-sm); background: var(--surface-2); }
+.wb-lib-t { font-size: var(--t-detail); color: var(--ink-2); }
+/* the combination table and the person–machine chart */
+.wb-cs-p { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 12px; display: grid; gap: 6px; }
+.wb-cs-svg { width: 100%; height: auto; display: block; }
+.wb-cs { stroke: var(--ink); stroke-width: 1.4; }
+.wb-cs.is-work { fill: var(--line-2); }
+.wb-cs.is-walk { fill: url(#wb-cs-h); }
+.wb-cs.is-wait { fill: var(--surface); stroke-dasharray: 4 3; }
+.wb-cs.is-machine { fill: var(--surface-2); stroke-dasharray: 1.5 3; stroke-width: 2; }
+.wb-cs-t { fill: var(--ink); font-size: var(--t-label); font-weight: 700; pointer-events: none; }
+.wb-ax { stroke: var(--line-2); stroke-width: 1; }
+.wb-key.is-machine { background: var(--surface-2); border: 2px dotted var(--ink-2); }
+.wb-key-l { margin: 0; }
+.wb-cs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: var(--t-detail); }
+.wb-cs-says { margin: 0; font-weight: 700; }
+.wb-cs-says.is-r { color: var(--st-r); }
+.wb-cs-says.is-a { color: var(--st-a); }
+.wb-cs-money { margin: 0; }
+.wb-tend-in { display: flex; flex-wrap: wrap; gap: 10px; }
+.wb-tend-in .field { flex: 1 1 200px; }
+/* the order of the work */
+.wb-ord { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.wb-ord-r { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); padding: 8px 10px; display: grid; gap: 4px; }
+.wb-ord-f { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
+.wb-ord-c .chip[disabled] { opacity: 0.45; }
+.wb-prop-s { font-weight: 700; }
+.wb-prop-s.is-r { color: var(--st-r); }
+.wb-prop-s.is-a { color: var(--st-a); }
+.wb-prop-s.is-g { color: var(--ink); }
+/* improve: the five questions asked of each step */
+.wb-q { border: 1px dashed var(--line-2); border-radius: var(--radius-sm); padding: 8px 12px; }
+.wb-q summary { cursor: pointer; font-weight: 700; }
+.wb-q ol { margin: 8px 0 4px 18px; padding: 0; display: grid; gap: 4px; }
+.wb-im-says p { margin: 0; }
+.wb-im-says.is-r { border-color: color-mix(in srgb, var(--st-r) 45%, var(--line)); }
+.wb-im-money { font-weight: 700; }
+.wb-im-p { display: grid; gap: 6px; }
+.wb-im-l { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.wb-im-r { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); padding: 8px 10px; display: grid; gap: 6px; }
+.wb-im-r.is-decided { border-color: var(--ink-2); }
+.wb-im-fs { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: end; }
+.wb-im-f { display: grid; gap: 2px; min-width: 0; }
+.wb-im-f .text-input { min-height: 34px; padding: 4px 8px; max-width: 14em; }
+.wb-im-wide { width: 100%; }
+.wb-im-wide .text-input { max-width: none; }
+/* the pace, asked where the timing ends; the allowance in parts; a machine's hint */
+.wb-rate { border-color: var(--ink-2); }
+.wb-rate p { margin: 0; }
+.wb-rate-r { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.wb-rate-n { font-weight: 700; min-width: 8em; }
+.wb-parts { margin-top: 8px; }
+.wb-part { display: grid; grid-template-columns: minmax(0, 1fr) 6em auto; gap: 8px; align-items: center; }
+.wb-mhint { flex-basis: 100%; }
+@media (max-width: 719px) {
+  .wb-tbl thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .wb-tbl, .wb-tbl tbody, .wb-tbl tr, .wb-tbl th, .wb-tbl td { display: block; }
+  .wb-tbl tr { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 8px; margin-bottom: 6px; background: var(--surface); }
+  .wb-tbl th, .wb-tbl td { border: 0; padding: 2px 0; }
+  .wb-tbl td::before { content: attr(data-label) ' '; color: var(--muted); font-size: var(--t-label); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 6px; }
+  .wb-tbl tbody th { font-size: var(--t-body); }
+  .wb-lib-r { grid-template-columns: 1fr; }
+  .wb-part { grid-template-columns: minmax(0, 1fr) 5em; }
+  .wb-part .linkish { grid-column: 1 / -1; justify-self: start; }
+}
+
+/* the learning curve (FC-027): the standard it is heading for, a dashed line across the scatter */
+.ie-an-ref { stroke: var(--ink-2); stroke-width: 1.2; stroke-dasharray: 5 4; }

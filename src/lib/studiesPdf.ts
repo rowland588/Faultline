@@ -39,6 +39,7 @@ import { lossLean, lossPart, raisedFrom } from '../tools/losses/lossLean';
 import type { ActionLike, FixLike } from './lean';
 import { samplingBlocks } from './report/samplingTable';
 import { balanceBlocks } from './report/balanceTable';
+import { lineworkBlocks } from './report/timeTable';
 import { balance } from '../tools/linework/balance';
 import { agreedFor, balanceCost, costInputs, crewKept } from '../tools/linework/balanceLink';
 import { costWords, countTitle, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, studyReliabilitySays, waitCost, waitWords, type RelItem } from '../tools/reliability/reliability';
@@ -402,6 +403,8 @@ function analysisPlotBlock(plot: Plot): Block {
       tk(plot.xAxis[0], plot.xAxis[1]).forEach(v => fr.doc.text(fm(v), xs(v), y + 4 + h + 9, { align: 'center' }));
       tk(plot.yAxis[0], plot.yAxis[1]).forEach(v => fr.doc.text(fm(v), fr.x + L - 3, ys(v) + 2, { align: 'right' }));
       if (plot.band) { fr.doc.setFillColor('#a8d2db'); for (let i = 0; i + 1 < plot.band.length; i++) { const a = plot.band[i], b = plot.band[i + 1]; fr.doc.triangle(xs(a.x), ys(a.hi), xs(b.x), ys(b.hi), xs(a.x), ys(a.lo), 'F'); fr.doc.triangle(xs(b.x), ys(b.hi), xs(b.x), ys(b.lo), xs(a.x), ys(a.lo), 'F'); } }
+      if (plot.ref) { fr.doc.setDrawColor(INK2); fr.doc.setLineWidth(0.6); fr.doc.setLineDashPattern([3, 3], 0); fr.doc.line(fr.x + L, ys(plot.ref.y), fr.x + L + w, ys(plot.ref.y)); fr.doc.setLineDashPattern([], 0); font(fr.doc, 6.5, 'normal', MUTED); fr.doc.text(plot.ref.label, fr.x + L + w, ys(plot.ref.y) - 2, { align: 'right' }); }
+      if (plot.curve) { fr.doc.setDrawColor(INK2); fr.doc.setLineWidth(1.1); for (let i = 0; i + 1 < plot.curve.length; i++) fr.doc.line(xs(plot.curve[i][0]), ys(plot.curve[i][1]), xs(plot.curve[i + 1][0]), ys(plot.curve[i + 1][1])); }
       if (plot.line) { fr.doc.setDrawColor(INK2); fr.doc.setLineWidth(plot.equal ? 0.6 : 1.1); if (plot.equal) fr.doc.setLineDashPattern([3, 3], 0); fr.doc.line(xs(plot.line[0][0]), ys(plot.line[0][1]), xs(plot.line[1][0]), ys(plot.line[1][1])); fr.doc.setLineDashPattern([], 0); }
       fr.doc.setFillColor(INK2); plot.pts.forEach(p => fr.doc.circle(xs(p[0]), ys(p[1]), 1.5, 'F'));
       font(fr.doc, 7, 'bold', MUTED); fr.doc.text(`${plot.xName}${plot.xUnit ? ` (${plot.xUnit})` : ''}`, fr.x + L + w / 2, y + HB + 10, { align: 'center' });
@@ -438,7 +441,7 @@ function analysisBlocks(s: ToolStudy): Block[] {
     out.push(label('Every count, in the order taken'));
     out.push(readingsRows(s, r => (r.col !== undefined && typeof r.made === 'number' ? `${(r.arm ?? '').slice(0, 8)}/${r.col.slice(0, 8)} ${r.made}` : '—'), () => false, 4));
   } else if (rs.length) {
-    out.push(label(a.kind === 'paired' || (a.kind === 'relate' && (a.drivers ?? []).length === 1) ? 'Every pair, in the order taken' : a.kind === 'relate' ? 'Every row, in the order taken' : (a.kind === 'sure' && a.of !== 'mean') || (a.kind === 'change' && a.data === 'counted') ? 'Every run, in the order taken' : 'Every reading, in the order taken'));
+    out.push(label(a.kind === 'paired' || (a.kind === 'relate' && (a.drivers ?? []).length === 1) ? 'Every pair, in the order taken' : a.kind === 'relate' ? 'Every row, in the order taken' : (a.kind === 'sure' && a.of !== 'mean') || (a.kind === 'change' && a.data === 'counted') || a.kind === 'learn' ? 'Every run, in the order taken' : 'Every reading, in the order taken'));
     out.push(readingsRows(s, r => `${Array.isArray(r.xs) ? `${r.xs.join(', ')} → ${r.value}` : typeof r.with === 'number' ? `${r.value} / ${r.with}` : typeof r.made === 'number' ? `${r.rejected}/${r.made}` : typeof r.value === 'number' ? String(r.value) : '—'}${r.arm ? ` ${a.kind === 'groups' ? r.arm.slice(0, 6) : r.arm[0].toUpperCase()}` : ''}`, () => false, a.kind === 'paired' ? 5 : a.kind === 'relate' ? (a.drivers ?? []).length > 1 ? 3 : 5 : a.kind === 'groups' ? 6 : 10));
     if (a.kind === 'change') out.push(text({ text: 'B = before, A = after.', size: 8, colour: MUTED, after: 2 }));
     if (a.kind === 'groups') out.push(text({ text: 'Each reading is followed by the first six letters of its group.', size: 8, colour: MUTED, after: 2 }));
@@ -706,6 +709,10 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
     const cost = balanceCost(f, costInputs(cap, line));
     const unit = cap?.stations[0]?.unit.trim() || undefined;
     out.push(...balanceBlocks(f, { ...(cost ? { cost } : {}), ...(unit ? { unit } : {}) }));
+    /* the time study, the combination table, the order of the work and the questions asked of each step (FC-019 … FC-033) */
+    const inputs = costInputs(cap, line);
+    out.push(...lineworkBlocks(s.facts.steps ?? [], agreedFor(s.agreed?.balance, cap, !!s.closedAt), crewKept(s.facts.crew ?? [], cap), s.facts.tend,
+      { ...(inputs.ratePerHour ? { rate: inputs.ratePerHour } : {}), ...(inputs.contributionPerPack ? { contribution: inputs.contributionPerPack } : {}) }));
   }
   if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
   return out;

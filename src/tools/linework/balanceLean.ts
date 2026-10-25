@@ -21,7 +21,7 @@ export function balanceTiles(f: BalanceFigures, a: AgreedBalance | undefined, k:
   return [
     { k: 'People', v: String(f.people.length), of: a && f.fewest != null ? `the work needs ${f.fewest} at this takt${onMap != null ? ` · ${onMap} on the map` : ''}` : f.people.length ? 'no takt yet to read them against' : 'nobody listed yet',
       ...(a && f.fewest != null && f.fewest > f.people.length ? { tone: 'a' as LeanTone } : {}) },
-    a ? { k: 'Takt', v: secs(a.taktSec), of: `${aPiece({ unit: u }).trim()} · ${a.from === 'target' ? 'Line capacity’s target' : 'agreed here'}${a.allowance ? ` · +${Math.round(a.allowance * 100)}% allowance` : ''}` }
+    a ? { k: 'Takt', v: secs(a.taktSec), of: `${aPiece({ unit: u }).trim()} · ${a.from === 'target' ? 'Line capacity’s target' : 'agreed here'}${a.allowance ? ` · +${+(a.allowance * 100).toFixed(1)}% allowance` : ''}` }
       : { k: 'Takt', v: '—', of: 'give Line capacity a target, or agree one here' },
     c && a ? { k: 'The bottleneck', v: c.who, of: `${secs(c.work)} of ${secs(c.takt ?? a.taktSec)}${aPiece(c)} takt${over ? ` — over by ${secs(c.overBy)}` : ' — the longest'}`, ...(over ? { tone: 'r' as LeanTone } : {}) }
       : { k: 'The bottleneck', v: '—', of: f.untimed ? `${f.untimed} element${f.untimed === 1 ? '' : 's'} still to time` : 'said once there is a takt' },

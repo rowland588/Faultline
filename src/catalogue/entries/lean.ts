@@ -96,9 +96,9 @@ export const LEAN: Entry[] = [
     food: 'An operator loading a tray sealer and walking to the case erector.',
     depends: ['FC-032', 'FC-026', 'FC-008'],
     complexity: 'M', value: 'medium', valueWhy: 'Completes the three standard-work forms for person-and-machine work.',
-    status: 'partial', form: 'mode', partOf: 'FC-032', methods: ['lean.standard-work', 'ie.person-machine'], scenarios: ['people', 'running'],
-    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
-    limits: ['The line balance stacks each person’s timed elements against takt; walking and machine time overlapping in one cycle are not drawn.'],
+    status: 'available', form: 'mode', partOf: 'FC-032', methods: ['lean.standard-work', 'ie.person-machine'], scenarios: ['people', 'running'],
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts', 'src/tools/linework/WorkLenses.tsx', 'src/tools/linework/timeline.ts', 'src/tools/linework/order.ts', 'src/tools/linework/improve.ts', 'src/tools/linework/allowance.ts', 'src/tools/linework/standardData.ts', 'src/lib/report/timeTable.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts', 'src/tools/linework/__tests__/method.test.ts'], acceptance: ['work-balance.mjs', 'time-study.mjs'] }, spec: 'knowledge/specs/FC-032-line-balance.md',
+    limits: ['One machine’s run beside one person; two people sharing one machine are not drawn.', 'A step’s time is its standard (allowance included for a person’s step, none for a machine’s).'],
   },
   {
     id: 'FC-008', name: 'Takt time and the planned cycle time', discipline: 'lean', sub: 'flow',

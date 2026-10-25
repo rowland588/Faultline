@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 93 |
-| Partly (`partial`) | 26 |
+| Available (`available`) | 99 |
+| Partly (`partial`) | 24 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 97 |
+| Not built yet (`to-build`) | 93 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -17,9 +17,9 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
-| Lean manufacturing and waste | 19 | 6 | 3 |  | 9 | 1 |  |
-| Industrial engineering and work measurement | 14 | 3 | 3 |  | 7 | 1 |  |
-| Capacity, throughput and bottlenecks | 17 | 8 | 5 |  | 3 | 1 |  |
+| Lean manufacturing and waste | 19 | 7 | 2 |  | 9 | 1 |  |
+| Industrial engineering and work measurement | 14 | 7 | 3 |  | 3 | 1 |  |
+| Capacity, throughput and bottlenecks | 17 | 9 | 4 |  | 3 | 1 |  |
 | Equipment performance and losses | 10 | 6 | 1 |  | 1 |  | 2 |
 | Maintenance, reliability and TPM | 11 | 4 |  |  | 6 | 1 |  |
 | Changeovers | 5 | 1 | 2 |  | 2 |  |  |
@@ -69,9 +69,9 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 74
-- a mode of another tool: 69
-- a part several tools share: 38
+- a tool of its own: 73
+- a mode of another tool: 71
+- a part several tools share: 37
 - a way through several tools: 8
 - a report or board: 34
 - decided after research: 12
@@ -103,21 +103,20 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## The backlog — what to build first (`src/catalogue/backlog.ts`)
 
-1. FC-019 Stopwatch time study — rated, allowed, standard time (Partly) — Ask the rating on the line balance — the arithmetic is already there.
-2. FC-119 Type 1 gauge study — one reference measured again and again (Not built yet) — A type 1 gauge study for checkweighers — quick, and decides whether weights can be trusted.
-3. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
-4. FC-071 First-off release at changeover — line clearance and the first good pack (Not built yet) — First-off release at changeover — recall risk and hidden changeover time.
-5. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
-6. FC-207 NIOSH lifting equation (Partly) — Put the NIOSH arithmetic on a screen — built and proved, unreachable.
+1. FC-119 Type 1 gauge study — one reference measured again and again (Not built yet) — A type 1 gauge study for checkweighers — quick, and decides whether weights can be trusted.
+2. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
+3. FC-071 First-off release at changeover — line clearance and the first good pack (Not built yet) — First-off release at changeover — recall risk and hidden changeover time.
+4. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
+5. FC-207 NIOSH lifting equation (Partly) — Put the NIOSH arithmetic on a screen — built and proved, unreachable.
 
 ## Where related capabilities could be combined
 
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
 - FC-073 The stage gate — new equipment to handover — 9 modes inside it
-- FC-105 Before and after — did it move, for a reason — 7 modes inside it
+- FC-105 Before and after — did it move, for a reason — 8 modes inside it
 - FC-001 Value stream map — current and future state — 5 modes inside it
+- FC-032 Line balance — each person’s work against takt (Yamazumi) — 5 modes inside it
 - FC-058 Reliability — MTBF and failure rate, several things counted at once — 5 modes inside it
-- FC-032 Line balance — each person’s work against takt (Yamazumi) — 4 modes inside it
 - FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 4 modes inside it
 - FC-086 Individuals and moving range chart (XmR) — 4 modes inside it
 - FC-098 Reject rate capability — rejects out of what was made — 3 modes inside it

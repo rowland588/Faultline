@@ -53,11 +53,8 @@ Packing-line roles; a sandwich assembly line's stations; hygiene's cleandown sta
 - [textbook] Ohno, T. (1988), *Toyota Production System*, Productivity Press.
 
 ## In Faultline
-The chart is the Line standard (`src/tools/linestandard/StandardScreen.tsx`,
-`scripts/acceptance/line-standard.mjs`); the combination table is approached
-by the Line balance (FC-032, elements against takt) without walking and
-machine time drawn (FC-007, partly); the capacity sheet is Line capacity (FC-034).
-Since 24 October the chart says what the people placed cost — £ an hour at the
-line's rate and a pack at Line capacity's speed or the line's rated one, every
-input optional and the missing one named (`knowledge/specs/FC-006-line-standard-money.md`,
-`src/tools/linestandard/standardMoney.ts`).
+The chart is the Line standard (`src/tools/linestandard/StandardScreen.tsx`); the capacity sheet is Line capacity
+(FC-034); the combination table is the Line balance's **Person and machine** lens since 25 October (FC-007): manual,
+walking and the machine's run against takt, the person's wait for the machine and the machine's for the person
+(`knowledge/specs/FC-032-line-balance.md`). The line standard's money (FC-006) is unchanged
+(`knowledge/specs/FC-006-line-standard-money.md`).

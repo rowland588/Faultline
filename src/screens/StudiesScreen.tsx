@@ -317,9 +317,9 @@ function analysisWhere(s: ToolStudy): string {
   const c = s.agreed?.analysis;
   if (!c) return 'not set up yet';
   const n = (s.facts.readings ?? []).filter(r => !r.struck).length;
-  const ask = { sure: 'how sure', change: 'did it change', paired: 'two ways', groups: 'do groups differ', table: 'counts in a table', relate: 'what moves with what', plan: 'how many readings' }[c.kind];
+  const ask = { sure: 'how sure', change: 'did it change', paired: 'two ways', groups: 'do groups differ', table: 'counts in a table', relate: 'what moves with what', learn: 'how fast it is learned', plan: 'how many readings' }[c.kind];
   const counts = c.kind === 'table' ? (s.facts.readings ?? []).filter(r => !r.struck && typeof r.made === 'number').reduce((t, r) => t + (r.made as number), 0) : n;
-  const noun = c.kind === 'paired' || (c.kind === 'relate' && (c.drivers ?? []).length === 1) ? 'pair' : c.kind === 'relate' ? 'row' : c.kind === 'table' ? 'counted' : (c.kind === 'sure' && c.of !== 'mean') || (c.kind === 'change' && c.data === 'counted') ? 'run' : 'reading';
+  const noun = c.kind === 'paired' || (c.kind === 'relate' && (c.drivers ?? []).length === 1) ? 'pair' : c.kind === 'relate' ? 'row' : c.kind === 'table' ? 'counted' : (c.kind === 'sure' && c.of !== 'mean') || (c.kind === 'change' && c.data === 'counted') || c.kind === 'learn' ? 'run' : 'reading';
   return c.kind === 'plan' && !n ? ask : c.kind === 'table' ? `${ask} · ${counts.toLocaleString('en-GB')} counted` : `${ask} · ${n} ${noun}${n === 1 ? '' : 's'}`;
 }
 

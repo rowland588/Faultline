@@ -111,8 +111,9 @@ person loads and the machine then runs on its own.
 - [textbook] Kanawaty, G. (ed.), *Introduction to Work Study*, 4th ed., ILO, 1992 — the multiple activity chart (from knowledge).
 
 ## In Faultline
-Not built (FC-026). The line balance times a person's elements and the
-line standard places people at stations (`src/tools/linework`,
-`src/tools/linestandard`); FC-026 draws the chart from a person's l, w
-and a machine's m, says N′ and both choices' waits, output and cost per
-cycle, and hands the chosen crewing to the line standard.
+Built (25 October, FC-026 and FC-007, `knowledge/specs/FC-032-line-balance.md`): a step of kind **Machine** on the
+Line balance, and the **Person and machine** lens — each person's steps and the machine's run on one time scale against
+takt, who waits for whom and what the waiting costs, and for a person with a load, a run and a walk, N′ = (l + m) ÷
+(l + w), the rows for each number of machines (cycle, an hour, idle, each machine's wait, the cost a machine-cycle with
+the operator's rate and the machine's typed rate) and the sentence for the integers either side. Synchronous servicing
+only; random stops are said not to be in it.

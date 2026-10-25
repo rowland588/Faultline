@@ -102,9 +102,7 @@ new line from its method.
 - [textbook] Freivalds, A. and Niebel, B., *Niebel's Methods, Standards, and Work Design*, 13th ed., 2014, ch. 12 — standard data (from knowledge).
 
 ## In Faultline
-Not built (FC-024). The line balance and the video study already hold
-timed, rated elements with their product and station
-(`src/tools/linework`, `src/tools/video`); FC-024 collects them into a
-library per element (the mean, spread, count and conditions; a formula
-where the element varies), builds a new product's standard from a list
-of elements, and checks it against the first study once the job runs.
+Built in part (25 October, FC-024): in the Line balance's **Times** lens, a step timed on another product of the same
+line is offered with its basic time, its cycles and its product; used, it takes this balance's allowance, is marked
+reused wherever its time is read, and gives way to a timing made here. Not built: elements that scale with the pack (a
+regression element) and conditions beyond the step's name.

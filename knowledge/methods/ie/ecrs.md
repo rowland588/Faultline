@@ -99,8 +99,8 @@ belt — the floor's everyday method study.
 - [textbook] Barnes, R.M., *Motion and Time Study: Design and Measurement of Work*, 7th ed., Wiley, 1980 (from knowledge).
 
 ## In Faultline
-Not built as a mode of the Line balance (FC-028). The balance holds the
-elements and their times and raises a fix from a station
-(`src/tools/linework`); FC-028 asks the five questions per element,
-records E/C/R/S with the expected time, redraws the balance after, and
-costs the change against the seconds saved.
+Built (25 October, FC-028): the Line balance's **Improve** lens asks the five questions of each step and records
+Eliminate, Combine, Rearrange or Simplify with the expected time; the balance is read again from those expected times,
+and the saving is said in seconds, in the cycle against takt, in people and in money with the payback of a typed one-off
+cost — expected until the work is timed again, and an Eliminate with no written reason is flagged. A step that sounds like
+a check carries the ask-quality-and-food-safety note.

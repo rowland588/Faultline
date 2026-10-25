@@ -284,3 +284,11 @@ quality.
 - **Calls by person** (FC-015) is deliberately not built: the tap's `by` is kept
   but never shown, grouped or ranked for a call. Whether people may ever be
   compared is the owner's decision.
+
+## The line balance family — 25 October (build-time)
+
+- **The ILO relaxation-allowance table** (`ie.allowances`, FC-025): its percentages are from knowledge, and a search on 25 October found no authoritative copy to check them against, so none is built in or pre-filled — the person types their site's agreed figure for each named cause. To close it: read Kanawaty (1992) ch. 23 and its appendix table, check every row (and its men and women columns), then add the table as a preset of the parts (`src/tools/linework/allowance.ts` CAUSES).
+- **Rating anchors** (BS 3138, `ie.time-study`): the scale is said (100 is standard pace); the descriptive anchors (what 75 or 125 look like) are not built in — the observer rates on the scale they were trained on. Not checked: the edition and the exact wording.
+- **Synchronous servicing assumes identical machines and a fixed cycle** (`ie.person-machine`): random servicing (machines that stop at random) is not worked out — a queueing or simulation problem (FC-047, owner's decision).
+- **Ranked positional weight is a heuristic** (`capacity.line-balancing`): a good balance the order allows, not a proof that none is better; the page says so. No zoning or station-fit rules.
+- **The learning curve** (`ie.learning-curve`, FC-027): the unit-time form only; the run reaching a standard is given with the interval of the slope alone (T1 held). The cumulative-average form, forgetting after a break and a plateau model are not built.

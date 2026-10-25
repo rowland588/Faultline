@@ -23,6 +23,10 @@ if (!OLD || !NEW) { console.error('node scripts/paper-parity.mjs OLD NEW'); proc
 
 /** A paper whose words a slice changed on purpose: its file name, and why. */
 const MEANT = {
+  /* THE LINE BALANCE'S TIMES (FC-019 and the modes of knowledge/specs/FC-032-line-balance.md, 25 October): each balance's paper gains
+     its Times table (observed, pace, basic, standard, ± at 95%), the allowance, and — only where the record has them — the combination
+     table, the machines one person can tend, the order of the work and the method questions */
+  ...Object.fromEntries(['tiny', 'ordinary', 'huge'].map(z => [`${z}-studies-balance.pdf`, 'the Line balance’s Times table and its modes (FC-019, 25 October)'])),
   /* W0 (docs/TOOLS-BUILD.md §4, 24 October): the seed's hour-based stamps anchored to 23:59 yesterday (reportSeeds
      hoursBack), so the journey's day lines no longer move with the hour the papers are made — gates 55 and 56 each saw
      one line move; the lines sit on their days once and stay */

@@ -53,6 +53,7 @@ Sandwich and ready-meal assembly lines; hand-packing of mixed boxes.
 - [textbook] Scholl, A. (1999), *Balancing and Sequencing of Assembly Lines*, 2nd ed., Physica.
 
 ## In Faultline
-The Line balance (`src/tools/linework/balance.ts`, `src/tools/linework/balanceLink.ts`): the
-Yamazumi against takt, the suggestion in flow order, linked to Line capacity
-(FC-032; FC-033 partly — no precedence diagram).
+The Line balance (`src/tools/linework/`, FC-032 with the modes of `knowledge/specs/FC-032-line-balance.md`): the
+Yamazumi against takt, linked to Line capacity; since 25 October the **Order of work** lens — what each step must follow,
+its positional weight, loops refused, and ranked positional weight proposing the balance that keeps the order with the
+fewest-people floor ⌈work ÷ takt⌉ beside it (FC-033). A heuristic, said so.

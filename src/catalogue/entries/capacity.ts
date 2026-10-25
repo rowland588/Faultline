@@ -15,8 +15,8 @@ export const CAPACITY: Entry[] = [
     complexity: 'L', value: 'high', valueWhy: 'The people side of the line, linked to its capacity and in money.',
     status: 'available', form: 'tool', kind: 'standard',
     app: { key: 'linework', label: 'Line balance', says: 'People’s work timed against takt', onLine: 'what each person does, timed against takt, and what it costs', reads: 'balance', icon: 'time', order: 2 }, methods: ['capacity.line-balancing', 'ie.time-study', 'lean.takt-time', 'lean.standard-work'], scenarios: ['people', 'running'], words: ['Yamazumi', 'work balance', 'operator balance'],
-    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts', 'src/tools/linework/balanceLink.ts', 'src/tools/linework/WorkBalance.tsx'], tests: ['src/tools/linework/__tests__/balance.test.ts', 'src/tools/linework/__tests__/balanceLink.test.ts'], acceptance: ['work-balance.mjs'] },
-    limits: ['The rating is taken as 100 (FC-019).'],
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts', 'src/tools/linework/WorkLenses.tsx', 'src/tools/linework/timeline.ts', 'src/tools/linework/order.ts', 'src/tools/linework/improve.ts', 'src/tools/linework/allowance.ts', 'src/tools/linework/standardData.ts', 'src/lib/report/timeTable.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts', 'src/tools/linework/__tests__/method.test.ts'], acceptance: ['work-balance.mjs', 'time-study.mjs'] }, spec: 'knowledge/specs/FC-032-line-balance.md',
+    limits: ['Predetermined motion times (FC-023) and random servicing of machines (FC-047) are not built; the ILO’s allowance table and a scale of rating descriptions are not built in (FC-025, FC-019).'],
   },
   {
     id: 'FC-033', name: 'A balance proposed with the order the work must follow', discipline: 'capacity', sub: 'balance',
@@ -28,9 +28,9 @@ export const CAPACITY: Entry[] = [
     food: 'Assembly lines where the base must go before the filling.',
     depends: ['FC-032'],
     complexity: 'M', value: 'medium', valueWhy: 'Faster, defensible rebalancing.',
-    status: 'partial', form: 'mode', partOf: 'FC-032', methods: ['capacity.line-balancing'], scenarios: ['people'],
-    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts'], acceptance: ['work-balance.mjs'] },
-    limits: ['The suggestion follows the flow order only; no precedence diagram and no ranked positional weight.'],
+    status: 'available', form: 'mode', partOf: 'FC-032', methods: ['capacity.line-balancing'], scenarios: ['people'],
+    built: { where: ['/linebalance'], code: ['src/tools/linework/balance.ts', 'src/tools/linework/WorkLenses.tsx', 'src/tools/linework/timeline.ts', 'src/tools/linework/order.ts', 'src/tools/linework/improve.ts', 'src/tools/linework/allowance.ts', 'src/tools/linework/standardData.ts', 'src/lib/report/timeTable.ts'], tests: ['src/tools/linework/__tests__/balance.test.ts', 'src/tools/linework/__tests__/method.test.ts'], acceptance: ['work-balance.mjs', 'time-study.mjs'] }, spec: 'knowledge/specs/FC-032-line-balance.md',
+    limits: ['Ranked positional weight is a heuristic — a good balance the order allows, never a proof that none is better.', 'The order is a list of what must follow what, not a drawn precedence diagram; no zoning or station-fit rules beyond takt.'],
   },
   {
     id: 'FC-034', name: 'Line capacity — the capacity sheet, the V-curve and the bottleneck', discipline: 'capacity', sub: 'line',

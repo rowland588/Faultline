@@ -40,8 +40,11 @@
  *   people decide    a far lap is flagged, never struck by the app; the
  *                    suggested balance is a suggestion, applied only when a
  *                    person says so */
-import type { AgreedBalance, BalanceCrew, BalanceStep, Lap, StepKind } from '../../lib/study';
+import type { AgreedBalance, BalanceCrew, BalanceStep, Lap, ReusedTime, StepKind } from '../../lib/study';
 import type { Tone } from '../capability/sample';
+import { runTimeline } from './timeline';
+import { rankedPositional } from './order';
+import { allowanceOf } from './allowance';
 
 /** Laps that count: not an interruption, not struck. */
 export const keptLaps = (laps: Lap[] | undefined): Lap[] => (laps ?? []).filter(l => !l.foreign && !l.struck && Number.isFinite(l.sec) && l.sec > 0);
@@ -78,10 +81,20 @@ export interface ElementFigures {
   id: string;
   name: string;
   who: string;
-  source: 'timed' | 'typed' | 'none';
+  /** timed at the line · typed · reused from another product's timing (standard data) · nothing yet */
+  source: 'timed' | 'typed' | 'library' | 'none';
   n: number;
   observed?: number;
   rating: number;
+  /** Whether a pace was ever given: an element timed and never rated is taken at 100, and says so. A
+   *  machine's run is never rated. */
+  rated: boolean;
+  /** How far the mean may be from the truth, a fraction, 95% two-sided: t·s ÷ (√n·x̄). Two laps or more. */
+  margin?: number;
+  /** The steps (ids) that must come before this one (FC-033). */
+  after: string[];
+  /** Where a reused time came from (FC-024). */
+  reuse?: ReusedTime;
   basic?: number;
   /** The standard time, seconds: basic plus the allowance — or typed. */
   standard?: number;
@@ -97,10 +110,18 @@ export interface ElementFigures {
  *  basic × (1 + allowance); or the typed time, said "typed". */
 export function element(st: BalanceStep, allowance = 0): ElementFigures {
   const laps = keptLaps(st.laps), xs = laps.map(l => l.sec);
-  const rating = st.rating && st.rating > 0 ? st.rating : 100;
-  const base = { id: st.id, name: st.name, who: st.who, rating, n: xs.length, kind: st.kind ?? 'work' as StepKind };
+  /* A MACHINE'S RUN is paced by the machine: never rated, no allowance (ie.time-study, ie.allowances). */
+  const machine = st.kind === 'machine';
+  const rated = !machine && !!(st.rating && st.rating > 0);
+  const rating = machine ? 100 : st.rating && st.rating > 0 ? st.rating : 100;
+  const al = machine ? 0 : allowance;
+  const base = { id: st.id, name: st.name, who: st.who, rating, rated, n: xs.length, kind: st.kind ?? 'work' as StepKind, after: st.after ?? [] };
   if (!xs.length) {
     const typed = st.typedSec && st.typedSec > 0 ? st.typedSec : undefined;
+    if (!typed && st.reuse && st.reuse.basicSec > 0) {
+      /* STANDARD DATA: another product's basic time, this balance's allowance */
+      return { ...base, source: 'library', reuse: st.reuse, basic: st.reuse.basicSec, standard: st.reuse.basicSec * (1 + al), needed: 0, enough: st.reuse.enough, far: [] };
+    }
     return { ...base, source: typed ? 'typed' : 'none', ...(typed ? { standard: typed } : {}), needed: 0, enough: false, far: [] };
   }
   const m = mean(xs), s = sd(xs, m);
@@ -110,7 +131,8 @@ export function element(st: BalanceStep, allowance = 0): ElementFigures {
     const others = xs.filter((_, j) => j !== i), om = mean(others), os = sd(others, om);
     return os > 0 && Math.abs(l.sec - om) > 3 * os;
   }).map(l => l.id) : [];
-  return { ...base, source: 'timed', observed: m, basic, standard: basic * (1 + allowance), needed, enough: xs.length >= needed, far };
+  const margin = xs.length >= 2 && m > 0 ? (t95(xs.length - 1) * s) / (Math.sqrt(xs.length) * m) : undefined;
+  return { ...base, source: 'timed', observed: m, basic, standard: basic * (1 + al), needed, enough: xs.length >= needed, far, ...(margin !== undefined ? { margin } : {}) };
 }
 
 export interface PersonFigures {
@@ -122,7 +144,13 @@ export interface PersonFigures {
   wait: number;
   elements: ElementFigures[];
   /** The weakest source under the stack. */
-  source: 'timed' | 'typed' | 'none';
+  source: 'timed' | 'typed' | 'library' | 'none';
+  /** Their cycle laid out as it is drawn: every step but a machine's run, then the time they wait for
+   *  the machine — the same list as `elements` for a person with no machine. */
+  parts: ElementFigures[];
+  /** The machine's own run in a cycle (FC-007), and what of the cycle they wait for it. */
+  machine: number;
+  machineWait: number;
   overBy: number;
   spare: number;
   /** THEIR OWN TAKT, seconds a piece of theirs: the line's takt × the line's
@@ -159,15 +187,22 @@ export interface BalanceFigures {
  *  as before. */
 export function balance(steps: BalanceStep[] | undefined, a: AgreedBalance | undefined, crew?: readonly BalanceCrew[]): BalanceFigures {
   const list = [...(steps ?? [])].sort((x, y) => x.order - y.order);
-  const els = list.map(st => element(st, a?.allowance ?? 0));
+  const els = list.map(st => element(st, allowanceOf(a)));
   const order: string[] = [];
   for (const e of els) if (!order.includes(e.who)) order.push(e.who);
   const takt = a?.taktSec && a.taktSec > 0 ? a.taktSec : undefined;
   const people = order.map((who): PersonFigures => {
     const mine = els.filter(e => e.who === who);
-    const sum = (k?: StepKind) => mine.filter(e => !k || e.kind === k).reduce((t, e) => t + (e.standard ?? 0), 0);
-    const work = sum();
-    const source: PersonFigures['source'] = mine.some(e => e.source === 'none') ? 'none' : mine.some(e => e.source === 'typed') ? 'typed' : 'timed';
+    /* a machine's run goes alongside the person's steps, so it is not a sum of theirs: with one, the
+       cycle is the longer of the person's end and the machine's (lib timeline) */
+    const sum = (k?: StepKind) => mine.filter(e => (k ? e.kind === k : e.kind !== 'machine')).reduce((t, e) => t + (e.standard ?? 0), 0);
+    const machine = sum('machine');
+    const tl = mine.some(e => e.kind === 'machine') ? runTimeline(mine) : undefined;
+    const work = tl ? tl.cycle : sum();
+    const source: PersonFigures['source'] = mine.some(e => e.source === 'none') ? 'none' : mine.some(e => e.source === 'typed') ? 'typed' : mine.some(e => e.source === 'library') ? 'library' : 'timed';
+    const parts = tl ? [...mine.filter(e => e.kind !== 'machine'),
+      ...(tl.personWaits > 1e-9 ? [{ id: `machine-wait-${who}`, name: 'Waits for the machine', who, source: 'timed' as const, n: 0, rating: 100, rated: false, after: [], kind: 'wait' as StepKind, standard: tl.personWaits, needed: 0, enough: true, far: [] }] : [])]
+      : mine;
     const c = crew?.find(x => x.who === who);
     /* a station's unit counts only against a takt whose unit is known — Line
        capacity's target, a minute in the line's unit — or none yet. A takt
@@ -176,7 +211,7 @@ export function balance(steps: BalanceStep[] | undefined, a: AgreedBalance | und
        as 144 s (found walking it, 17 October). */
     const per = c?.per && c.per > 0 && (!a || a.from === 'target') ? c.per : 1;
     const t = takt ? takt * per : undefined;
-    return { who, work, walk: sum('walk'), wait: sum('wait'), elements: mine, source, per,
+    return { who, work, walk: sum('walk'), wait: sum('wait') + (tl?.personWaits ?? 0), elements: mine, parts, machine, machineWait: tl?.personWaits ?? 0, source, per,
       ...(c?.unit?.trim() && per !== 1 ? { unit: c.unit.trim() } : {}), ...(c?.station?.trim() ? { station: c.station.trim() } : {}),
       ...(t ? { takt: t } : {}), overBy: t ? Math.max(0, work - t) : 0, spare: t ? Math.max(0, t - work) : 0 };
   });
@@ -215,7 +250,14 @@ export const aPiece = (p: Pick<PersonFigures, 'unit'>): string => {
 export function suggest(f: BalanceFigures): { who: string; ids: string[]; work: number }[] | undefined {
   /* only on one unit: elements timed per tray and per pack do not pile */
   if (!f.taktSec || !f.fewest || f.untimed || f.people.some(p => p.per !== 1)) return undefined;
+  /* a machine-paced balance is not shared out by this: the machine's run is not a person's to move */
+  if (f.elements.some(e => e.kind === 'machine')) return undefined;
   const takt = f.taktSec;
+  /* AN ORDER GIVEN (FC-033): ranked positional weight over what must follow what; none given, as it was */
+  if (f.elements.some(e => e.after.length)) {
+    const r = rankedPositional(f.elements.filter(e => e.kind !== 'wait').map(e => ({ id: e.id, name: e.name, t: e.standard ?? 0, after: e.after })), takt);
+    return 'loop' in r ? undefined : r.stations.map((st, i) => ({ who: `Op ${i + 1}`, ids: st.ids, work: st.work }));
+  }
   const out: { who: string; ids: string[]; work: number }[] = [];
   /* The next element joins the person before only while their stack stays
      within takt; else the next person starts. Kept in order, this needs the
@@ -283,12 +325,16 @@ export function balanceSays(f: BalanceFigures, onMap?: number): BalanceSays {
   return { text: `${head}${who}${room}`, tone: over.length ? 'r' : f.untimed || f.short ? 'a' : 'g', lines };
 }
 
+/** "reused from Maris Piper 1kg — 12.3 s basic from 15 cycles, enough; not timed here" — one reused step in words. */
+export const reuseSays = (r: ReusedTime): string => `reused from ${r.product} — ${r.basicSec.toFixed(1)} s basic from ${r.n} cycle${r.n === 1 ? '' : 's'}${r.enough ? ', enough' : ', short of enough'}; not timed here`;
+
 /** One element's reading: "Wrap and seal: 31.6 s standard (25.2 observed at
  *  110, +14%) — from 15 cycles, enough." */
 export function elementSays(e: ElementFigures, allowance = 0): { text: string; tone: Tone } {
   if (e.source === 'none') return { text: 'Not timed yet.', tone: 'n' };
+  if (e.source === 'library' && e.reuse) return { text: `${secs(e.standard ?? 0)} standard — ${reuseSays(e.reuse)}.`, tone: e.enough ? 'n' : 'a' };
   if (e.source === 'typed') return { text: `${secs(e.standard ?? 0)} — typed, not timed.`, tone: 'n' };
-  const pct = allowance ? `, +${Math.round(allowance * 100)}%` : '';
+  const pct = allowance ? `, +${+(allowance * 100).toFixed(1)}%` : '';
   const enough = e.enough ? 'enough' : `${e.n} of ${e.needed} cycles`;
   return { text: `${secs(e.standard ?? 0)} standard (${secs(e.observed ?? 0)} observed at ${e.rating}${pct}) — from ${e.n} cycle${e.n === 1 ? '' : 's'}, ${enough}.`, tone: e.enough ? 'g' : 'a' };
 }

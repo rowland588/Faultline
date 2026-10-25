@@ -62,6 +62,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // the entry chunk passed 2 MiB with the calculators and the reliability family (25 Oct); it is precached whole so the app opens offline — splitting the tools' papers out is the real fix (docs/OPEN.md)
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2,ttf}'],   // ttf: the PDFs' typeface, so a report prints in it offline too
         // the guide's screenshots and the social share card are first-visit
         // assets, not floor tools — don't make every install download them

@@ -82,3 +82,7 @@ A walk of the live app (the Claude Chrome extension, with Rowland) found these; 
 - Database: four functions given a fixed `search_path` (`supabase/FUNCTION_SEARCH_PATH.sql`, applied 25 October and read back by this session: all four carry `search_path=public`). Lint ceiling lowered to 61.
 
 Not changed, on purpose: the "give … in Your factory" wording (the house phrasing in six places); the control room's one page naming "and N more" (its limits are a choice); a machine typed on a new problem being added to its line (a machine is always on a line). Still open: the five photos must be sent from the phone that took them — open Faultline on it, on wifi.
+
+## 6. The entry chunk is over 2 MiB (25 October, tool build)
+
+With the calculator shape and the reliability family the app's entry chunk passed the PWA's 2 MiB precache default (2.11 MB); the limit was raised to 4 MiB in `vite.config.ts` so the build passes. Every tool built from here adds to it. The real fix is to load the tools' papers (`lib/studiesPdf` and the `lib/report/*` blocks) and the catalogue's long texts only when a paper is made or the directory opened — measure the entry chunk before and after, and lower the limit again.
