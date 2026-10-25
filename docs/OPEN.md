@@ -44,6 +44,7 @@ tools still wait for his word.
 | A 6M hold's "standard updated" is a tick, not a link to the line standard or SMED; the 6M status page does not carry what the project waits on | `ProblemCard.tsx:650` | `SIXM.md` Next |
 | The capability study's rate Ppk still says "95% sure" while pass-or-fail says "95% confident" (trivial) | `tools/capability/{sample,sampleLean,modes}.ts` | `GAPS.md` |
 | Content-Security-Policy is report-only | `vercel.json` | `UPGRADE-AUDIT.md` S9 |
+| **Possible defect in a live tool:** the sold-by-weight allowed-shortfall lookup `tneFor` (`tools/capability/sample.ts`) cites Schedule 2 where the table is Schedule 3, stops at 10 kg though the table continues to 15 kg and over, and does not round a percentage allowance up to a tenth of a gram (150 g gives 6.75; the Schedule says 6.8). Found 25 Oct from search excerpts of SI 2006/659 — **to be confirmed against the legislation itself before any change** | `tools/capability/sample.ts`; `knowledge/methods/packaging/average-quantity-system.md` | Research 1, `knowledge/GAPS.md` |
 | The lean page is not on: the video study's screen, Line Talk, the line standard page (band verdict only), the lever-tree board, the tools directory, the Projects list | — | not planned anywhere |
 | Value-stream cells and the verdict needing a timed-or-typed mark (parked); the old walk screen deletes a video with no Undo (parked) | — | `UPGRADE-AUDIT.md` C12, `AUDIT.md` 2.12 |
 
