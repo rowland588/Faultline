@@ -50,6 +50,7 @@ import { couldWords, criticalParts, criticalProblems, criticalState, riskProblem
 import type { ToolStudy } from './study';
 import { linkedTo, owedOf } from './studyLinks';
 import { lineItems, LINE_COLOR, type LineInput } from './lineWork';
+import { logJobItems } from '../tools/checks/owed';
 
 export interface JobInput {
   project: Project;
@@ -69,6 +70,8 @@ export interface JobInput {
  *  board only, and a job on the other two methods did not appear on it. */
 export interface PacedInput {
   project: Project;
+  /** Its studies — a check log's overdue and failed checks are owed (src/tools/checks/owed). */
+  studies?: ToolStudy[];
   /** The board's actions — the project's next steps (lib/actions). */
   steps: PaceTodoRow[];
   lines: PaceLineRow[];
@@ -403,6 +406,8 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
       on: a.onSiteOn ? undefined : a.dueOn, late: !!a.dueOn && a.dueOn < today && !a.onSiteOn,
     });
   }
+  /* the project's check logs (src/tools/checks): a check overdue, failed or due now is owed like any other row */
+  out.push(...logJobItems(p, j.studies, today));
   return out;
 }
 
@@ -484,7 +489,7 @@ export function checksOwed(j: Pick<PacedInput, 'project' | 'problems'>, today: s
 export function pacedOwed(j: PacedInput, today: string): JobItem[] {
   return [
     ...pacedItems(j, today),
-    ...jobItems({ project: j.project, tests: [], items: [], materials: j.materials ?? [], programs: j.programs ?? [], assets: [] }, today),
+    ...jobItems({ project: j.project, tests: [], items: [], materials: j.materials ?? [], programs: j.programs ?? [], assets: [], ...(j.studies ? { studies: j.studies } : {}) }, today),
     ...checksOwed(j, today),
   ];
 }

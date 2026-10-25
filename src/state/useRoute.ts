@@ -23,6 +23,8 @@ export interface Route {
    *  segments rather than tabs in component state so that the phone's back
    *  button walks back out of a machine instead of leaving the app. */
   view?: string;
+  /** A check log's kind (src/tools/checks/defs): #/log/:key and #/log/:key/:id. */
+  key?: string;
   query: URLSearchParams;
 }
 
@@ -141,6 +143,13 @@ export function parseRoute(hash: string): Route {
      readings in order against limits set from a steady period, the signals in words). */
   if (segs[0] === 'chart') {
     return segs[1] ? { name: 'study', view: 'chart', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'chart', query };
+  }
+  /* CHECK LOGS (knowledge/specs/FC-236-check-logs.md): /logs is every kind, in the scope the address carries (?line=, ?project=);
+     /log/:key one kind's logs; /log/:key/:id one log — a study of tool `log`. The scopes' Logs pages. */
+  if (segs[0] === 'logs') return { name: 'studies', view: 'logs', query };
+  if (segs[0] === 'log' && segs[1]) {
+    const key = decodeURIComponent(segs[1]);
+    return segs[2] ? { name: 'study', view: 'log', key, id: decodeURIComponent(segs[2]), query } : { name: 'studies', view: 'log', key, query };
   }
   if (segs[0] === 'capability') {
     return segs[1] ? { name: 'study', view: 'capability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'capability', query };

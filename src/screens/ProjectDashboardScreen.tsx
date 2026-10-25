@@ -870,7 +870,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
      same number, and is what its Needs you lists (docs/CONTROLROOM.md). */
   /* …and a 6M job's checks that keep the gain, once one is owed (lib/sixm holdDue). */
   const sixmProblems = probs.problems.map(sixmProblemOf);
-  const owedNow = project ? pacedOwed({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged, materials: mats.materials, programs: progs.programs, problems: sixmProblems }, todayISO()) : [];
+  const owedNow = project ? pacedOwed({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged, materials: mats.materials, programs: progs.programs, problems: sixmProblems, studies }, todayISO()) : [];
   const owedLate = owedNow.filter(x => x.late).length;
   const verdict: Standing = {
     // The same sentence the Home control room says of this job — about its board.
@@ -1006,7 +1006,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         /* Everything owed on the job, one row each: the board's open actions
            (the control room reads the same, lib/portfolio pacedItems), and
            the materials and programs not in yet (jobItems). */
-        const owed = pacedOwed({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged, materials: mats.materials, programs: progs.programs, problems: sixmProblems }, today);
+        const owed = pacedOwed({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged, materials: mats.materials, programs: progs.programs, problems: sixmProblems, studies }, today);
         return (
           <>
             <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'}

@@ -126,7 +126,7 @@ export function hereOf(route: Route): string {
     /* a line's own product — its map, its line balance (?at=work) or its
        Line capacity (?at=balance) — lights the tool it is, as the list does */
     case 'lineStandards': return route.query.get('at') === 'work' || route.query.get('view') === 'work' ? 'linework' : route.query.get('at') === 'balance' ? 'linebalance' : 'linestandard';
-    case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : route.view === 'reliability' ? 'reliability' : route.view === 'chart' ? 'chart' : route.view === 'analysis' ? 'analysis' : 'capability';
+    case 'studies': case 'study': return route.view === 'log' || route.view === 'logs' ? 'logs' : route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : route.view === 'reliability' ? 'reliability' : route.view === 'chart' ? 'chart' : route.view === 'analysis' ? 'analysis' : 'capability';
     case 'projectDashboard': {
       const v = route.query.get('view');
       /* `next` is the board as a list; `snags` on a stage-gate job is sent to
@@ -345,7 +345,7 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
       counted('problems', 'Problems', `/snags?line=${encodeURIComponent(wsId)}`, here, { problems: counts.problems }, ['problems'], 'flag'),
       counted('programs', 'Programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
       plain('tools', 'Tools', lineHref(wsId, 'tools'), here, 'chart'),
-      plain('logs', 'Logs', `/w/${encodeURIComponent(wsId)}/capture`, here, 'time'),
+      plain('logs', 'Logs', lineHref(wsId, 'logs'), here, 'time'),
       { ...plain('projects', 'Projects', lineHref(wsId, 'projects'), here, 'board'), n: counts.projects || undefined },
     ] },
     { foot: true, lines: [
@@ -425,10 +425,11 @@ export const plusLine = (): RailLine => ({ key: 'plus', label: 'Problem', on: fa
 export function hereIn(route: Route, scope: 'home' | 'factory' | 'line' | 'project'): string {
   const tool = ['lineTools', 'studies', 'study', 'videos', 'videoStudy', 'talks', 'talk'].includes(route.name);
   if (scope === 'line') {
-    if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['tools', 'projects', 'setup'].includes(v) ? v : 'overview'; }
+    if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['tools', 'projects', 'setup', 'logs'].includes(v) ? v : 'overview'; }
     if (route.name === 'lineReport') return 'overview';
     if (route.name === 'quickSnags') return 'problems';
     if (route.name === 'linePrograms') return 'programs';
+    if (route.view === 'log' || route.view === 'logs') return 'logs';
     if (tool || route.name === 'lineStandards') return 'tools';
     if (route.wsId) return 'logs';
     return '';

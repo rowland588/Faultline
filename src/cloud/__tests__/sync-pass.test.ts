@@ -336,6 +336,21 @@ describe('mergeRows — a study’s facts, one level down (docs/BUILD.md, 2b)', 
       expect(out.lost).toEqual([]);
     }
   });
+  it('a check log’s results from two phones are all kept, a strike holds, and the tags beside them (FC-236)', async () => {
+    const { mergeRows } = await import('../sync');
+    const res = (id: string, outcome: string, struck?: boolean) => ({ id, checkId: 'c1', at: 1, outcome, ...(struck ? { struck } : {}) });
+    const base = { id: 's', agreed: { log: { key: 'metal-detection' } }, facts: { results: [res('a', 'pass'), res('b', 'pass')] } };
+    const mine = { ...base, facts: { results: [res('a', 'pass'), res('b', 'pass'), res('c', 'fail')], tags: [{ id: 't1' }] } };
+    const theirs = { ...base, facts: { results: [res('a', 'pass', true), res('b', 'pass'), res('d', 'pass')] } };
+    for (const mineNewer of [true, false]) {
+      const out = mergeRows(base, mine, theirs, mineNewer, ['facts']);
+      const facts = out.row.facts as { results: { id: string; struck?: boolean }[]; tags: { id: string }[] };
+      expect(facts.results.map(x => x.id).sort()).toEqual(['a', 'b', 'c', 'd']);
+      expect(facts.results.find(x => x.id === 'a')?.struck).toBe(true);
+      expect(facts.tags).toEqual([{ id: 't1' }]);
+      expect(out.lost).toEqual([]);
+    }
+  });
   it('a list one side started and the other never had is kept, beside the other’s', async () => {
     const { mergeRows } = await import('../sync');
     const out = mergeRows({ facts: {} }, { facts: { laps: [{ id: 'l1' }] } }, { facts: { readings: [{ id: 'r1' }] } }, false, ['facts']);

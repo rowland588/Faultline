@@ -36,6 +36,7 @@
  * verdict card says "the date has moved 8 days"; this is those 8 days at the
  * scale of the job, which is the difference between a number and an argument.
  */
+import { logItemHref } from '../tools/checks/owed';
 import { recordHref } from './install';
 import type { PlanMark } from './standing';
 
@@ -406,7 +407,8 @@ export function planHref(projectId: string, m: { kind: PlanMark['kind'] | 'probl
   const one = m.id && !m.count ? m.id : undefined;
   if (one && m.kind === 'action') return `${base}/board?a=${encodeURIComponent(one)}`;
   /* a check that keeps the gain opens its problem on the fishbone */
-  if (one && m.kind === 'check') return `${base}/fishbone?problem=${encodeURIComponent(one)}`;
+  /* a check log's check (src/tools/checks/owed logItemId) opens its log; a check that keeps a gain, its problem on the fishbone */
+  if (one && m.kind === 'check') return logItemHref(projectId, one) ?? `${base}/fishbone?problem=${encodeURIComponent(one)}`;
   if (one && (m.kind === 'test' || m.kind === 'fix' || m.kind === 'install' || m.kind === 'setup' || m.kind === 'handover')) {
     return recordHref(projectId, one, m.kind);
   }

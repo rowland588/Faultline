@@ -39,6 +39,7 @@ import { byFloor } from '../../lib/lines';
 import type { LeanAction, LeanTone } from '../../lib/lean';
 import { APP_TOOLS } from '../../catalogue/registry';
 import { niceDay } from '../../lib/weeks';
+import { owedActions } from '../../tools/checks/owed';
 
 /** One thing that can go in: a study, a product's Line capacity or line standard. */
 export interface BundleItem {
@@ -177,8 +178,8 @@ export function picksForTools(b: LineBundle, labels: readonly string[]): Set<str
 }
 
 /** WHO OWES WHAT BY WHEN — every open problem and every program to prove, the late first. */
-export function actionsOn(kit: LineKit, problems: readonly SnagRow[], today = todayISO()): LeanAction[] {
-  const out: LeanAction[] = [];
+export function actionsOn(kit: LineKit, problems: readonly SnagRow[], today = todayISO(), checks: readonly LeanAction[] = []): LeanAction[] {
+  const out: LeanAction[] = [...checks];
   for (const p of problems) out.push({ what: p.what, ...(p.owner ? { who: p.owner } : {}), ...(p.due ? { due: p.due } : {}), state: p.late ? 'Late' : p.status === 'in_progress' ? 'In hand' : 'Open', tone: p.late || p.priority === 'critical' ? 'r' : p.priority === 'high' ? 'a' : 'n', from: 'Problem' });
   for (const p of kit.programs) {
     if (isProved(p)) continue;
@@ -194,7 +195,9 @@ function partFor(line: Workspace, title: string, r: BundleRecords): LinePart {
   const kit = lineKit(line, r.machines, r.programs, r.jobLines, today);
   const problems = lineProblems(r.snags, { id: line.id, name: line.name }, { ...(r.ref ? { ref: r.ref } : {}), ...(r.jobName ? { jobName: r.jobName } : {}), assetName: s => s.targetAsset?.trim() || undefined });
   const items = itemsOn(line, r);
-  return { line, title, kit, problems, items, where: whereOnLine(kit, problems.rows, items, today), actions: actionsOn(kit, problems.rows, today) };
+  /* the line's check logs: a check overdue, failed or due now is owed (src/tools/checks/owed) */
+  const checks = owedActions(r.studies.filter(s => !s.deletedAt && s.workspaceId === line.id), r.ref ?? Date.now());
+  return { line, title, kit, problems, items, where: whereOnLine(kit, problems.rows, items, today), actions: actionsOn(kit, problems.rows, today, checks) };
 }
 
 /** THE REPORT'S SHAPE for a line: one part; for a dual line, each line it is

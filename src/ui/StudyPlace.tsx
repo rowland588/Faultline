@@ -48,19 +48,19 @@ export function useStudyPaper(s: ToolStudy): () => Promise<void> {
   const where = `${line ? `On ${line.name}` : 'On no line'} · ${job ? `attached to ${job.name}` : 'on no project'}`;
   return async () => {
     try {
-      const [{ saveStudiesPdf }, { listAllStandards, listWorkspaces, listObservations, listStudiesForLine, listPaceTodos, listTests }, { studyTitle }] = await Promise.all([
+      const [{ saveStudiesPdf }, { listAllStandards, listWorkspaces, listObservations, listStudiesForLine, listPaceTodos, listTests, listAllSnags }, { studyTitle }] = await Promise.all([
         import('../lib/studiesPdf'), import('../db'), import('../lib/studyLinks')]);
       const [standards, workspaces, observations] = await Promise.all([listAllStandards(), listWorkspaces(), s.workspaceId ? listObservations(s.workspaceId) : Promise.resolve([])]);
       /* a loss count prints as the lean page: its line's other counts and what was raised from it */
       /* and SMED (slice 6): what was raised from its elements, its plan and its money */
-      const lean = s.tool === 'losses' || s.tool === 'changeover' || s.tool === 'capability' || s.tool === 'sampling' || s.tool === 'map' || s.tool === 'reliability' || s.tool === 'chart' || s.tool === 'analysis';
+      const lean = s.tool === 'losses' || s.tool === 'changeover' || s.tool === 'capability' || s.tool === 'sampling' || s.tool === 'map' || s.tool === 'reliability' || s.tool === 'chart' || s.tool === 'analysis' || s.tool === 'log';
       const [history, actions, fixes] = await Promise.all([
         s.tool === 'losses' && s.workspaceId ? listStudiesForLine(s.workspaceId) : Promise.resolve([]),
         lean && s.projectId ? listPaceTodos(s.projectId) : Promise.resolve([]),
         lean && s.projectId ? listTests(s.projectId) : Promise.resolve([]),
       ]);
       await saveStudiesPdf({ title: studyTitle(s), printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-        items: [{ s, where }], standards, ctx: { observations, workspaces },
+        items: [{ s, where }], standards, ctx: { observations, workspaces }, ...(s.tool === 'log' ? { snags: await listAllSnags() } : {}),
         ...(lean ? { lean: true, history, records: { actions, fixes }, ...(line ? { lineName: line.name } : {}) } : {}) }, studyTitle(s));
     } catch (e) {
       console.error('study pdf failed', e);

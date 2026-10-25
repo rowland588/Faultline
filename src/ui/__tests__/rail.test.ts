@@ -136,11 +136,11 @@ describe('a line\'s rail: the way up, then the line\'s own pages', () => {
   const g = lineGroups('w1', 'overview', { problems: { n: 3, late: 1 }, projects: 2 });
   it('↑ Factory · Overview · Problems · Programs · Tools · Logs · Projects, then Reports and Set up — eight and the way up (Products off, 23 October: "the program is the product")', () => {
     expect(said(g)).toEqual(['Factory', 'Overview', 'Problems', 'Programs', 'Tools', 'Logs', 'Projects', 'Reports', 'Set up']);
-    expect(all(g).map(l => l.to)).toEqual(['/room', '/lines/w1', '/snags?line=w1', '/programs?line=w1', '/lines/w1?view=tools', '/w/w1/capture', '/lines/w1?view=projects', undefined, '/lines/w1?view=setup']);
+    expect(all(g).map(l => l.to)).toEqual(['/room', '/lines/w1', '/snags?line=w1', '/programs?line=w1', '/lines/w1?view=tools', '/lines/w1?view=logs', '/lines/w1?view=projects', undefined, '/lines/w1?view=setup']);
     expect(all(g).find(l => l.key === 'problems')).toMatchObject({ n: 3, late: 1, state: 'r' });
   });
   it('lights the page you are on — the line\'s lists and its tools\' pages narrowed to it', () => {
-    for (const [hash, label] of [['#/lines/w1', 'Overview'], ['#/lines/w1?view=tools', 'Tools'], ['#/snags?line=w1', 'Problems'], ['#/programs?line=w1', 'Programs'], ['#/standards?line=w1', 'Tools'], ['#/w/w1/standards/s1', 'Tools'], ['#/capability?line=w1', 'Tools'], ['#/w/w1/capture', 'Logs']] as const)
+    for (const [hash, label] of [['#/lines/w1', 'Overview'], ['#/lines/w1?view=tools', 'Tools'], ['#/snags?line=w1', 'Problems'], ['#/programs?line=w1', 'Programs'], ['#/standards?line=w1', 'Tools'], ['#/w/w1/standards/s1', 'Tools'], ['#/capability?line=w1', 'Tools'], ['#/w/w1/capture', 'Logs'], ['#/lines/w1?view=logs', 'Logs'], ['#/log/metal-detection?line=w1', 'Logs'], ['#/log/metal-detection/abc', 'Logs']] as const)
       expect(all(lineGroups('w1', hereIn(parseRoute(hash), 'line'))).filter(l => l.on).map(l => l.label), hash).toEqual([label]);
   });
 });
@@ -255,8 +255,8 @@ describe('the lines a project points at, by the factory\'s name (docs/FLOW-AUDIT
 });
 
 describe('the tools, from the catalogue (src/catalogue/registry)', () => {
-  it('are the thirteen a person can open, each opening its list — in a project, on the project', () => {
-    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line balance', '/linebalance'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Control chart', '/chart'], ['Analysis', '/analysis'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses'], ['Reliability', '/reliability'], ['Video study', '/video'], ['Line Talk', '/talk']]);
+  it('are the fourteen a person can open, each opening its list — in a project, on the project', () => {
+    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line balance', '/linebalance'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Control chart', '/chart'], ['Analysis', '/analysis'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses'], ['Reliability', '/reliability'], ['Video study', '/video'], ['Line Talk', '/talk'], ['Check logs', '/logs']]);
     expect(toolPlaces('', P).every(l => l.to?.includes(`project=${P}`))).toBe(true);
   });
 });
