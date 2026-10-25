@@ -13,6 +13,7 @@
  * (SciPy) in __tests__/sample.test.ts; the words are the only words the
  * screen and the paper say. */
 import type { AgreedReadings, StudyReading } from '../../lib/study';
+import { candidateOf, fitAll, FIT_FROM, MODEL_WORDS, tailOf, type ModelId } from '../../lib/ie/fit';
 import { binomUpper, binomLower, poissonUpper, poissonLower, pLimits, uLimits, laneySigmaZ, LANEY_BAND, processZ, cmCmk, fillTargets, individualsLimits, ppkLowerBound, normalQuantile, anovaOneWay } from '../../lib/ie/dist';
 
 export type ModeTone = 'r' | 'a' | 'w' | 'g' | 'n';
@@ -447,4 +448,35 @@ export function densitySays(a: AgreedReadings, tneMl: number | undefined): { tex
   if (a.kind !== 'packers' || a.nominalMl === undefined || a.density === undefined || tneMl === undefined) return undefined;
   const g = a.nominalMl * a.density, tneG = tneMl * a.density;
   return { text: `Sold by volume, checked by weight: ${big(a.nominalMl)} ml at ${a.density} g/ml is ${g.toFixed(1)} g; the tolerable negative error ${+tneMl.toFixed(2)} ml is ${tneG.toFixed(2)} g — the three rules run in grams (T1 ${(g - tneG).toFixed(2)} g, T2 ${(g - 2 * tneG).toFixed(2)} g). The density is the product’s at the temperature it is packed.`, tone: 'n' };
+}
+
+/** READINGS THAT ARE NOT BELL-SHAPED (FC-096; knowledge/specs/FC-114-fitting.md): the four shapes fitted to the study's readings and limits —
+ *  the share outside from the shape that fits and the percentile Ppk, beside the count as measured, which the study's own sentences keep. */
+export interface FittedFigures {
+  n: number; counted: number; lower?: number; upper?: number;
+  leads?: ModelId; closest?: ModelId; p?: number; edge?: 'above' | 'below'; nearestP?: number;
+  out?: number; ppk?: number; side?: 'low' | 'high'; alsoFit: ModelId[]; ppkLow: boolean;
+}
+export function fittedFigures(xs: number[], lower: number | undefined, upper: number | undefined, counted: number, capable: number): FittedFigures | undefined {
+  if (xs.length < FIT_FROM || (lower === undefined && upper === undefined)) return undefined;
+  const set = fitAll(xs);
+  if (!set.candidates.length) return undefined;
+  const f: FittedFigures = { n: xs.length, counted, lower, upper, alsoFit: set.alsoFit, ppkLow: false };
+  const id = set.leads ?? set.closest, c = candidateOf(set, id);
+  if (!c) return undefined;
+  if (set.leads) f.leads = set.leads; else f.closest = set.closest;
+  if (c.ad) { if (set.leads) { f.p = c.ad.p; if (c.ad.edge) f.edge = c.ad.edge; } else f.nearestP = c.ad.p; }
+  const t = tailOf(c.model, lower, upper);
+  if (t.out !== undefined) f.out = t.out;
+  if (t.ppk !== undefined) { f.ppk = t.ppk; f.side = t.side; f.ppkLow = t.ppk < capable; }
+  return f;
+}
+export function fittedSays(f: FittedFigures, unit?: string): { text: string; tone: ModeTone } {
+  const u = unit ? ` ${unit}` : '', pw = (p: number, edge?: 'above' | 'below') => `p ${edge === 'above' ? 'at least ' : edge === 'below' ? 'at most ' : '= '}${Number(p.toPrecision(2))}`;
+  const side = f.lower !== undefined && f.upper !== undefined ? `outside ${f.lower}–${f.upper}${u}` : f.upper !== undefined ? `over ${f.upper}${u}` : `under ${f.lower}${u}`;
+  const counted = `${f.counted} of ${f.n} ${f.counted === 1 ? 'is' : 'are'} ${side}`;
+  if (!f.leads) return { text: `Not bell-shaped, and no shape tried fits (the ${MODEL_WORDS[f.closest as ModelId].name} is nearest, Anderson–Darling ${pw(f.nearestP as number)}) — the share outside is the count as measured: ${counted}.`, tone: 'a' };
+  if (f.leads === 'normal') return { text: `The bell check says not bell-shaped, but a normal still passes Anderson–Darling (${pw(f.p as number, f.edge)}) — the two tests disagree, so the share outside is read as counted: ${counted}.`, tone: 'a' };
+  const name = MODEL_WORDS[f.leads].name;
+  return { text: `Not bell-shaped, so the tail is fitted: ${MODEL_WORDS[f.leads].article} fits (Anderson–Darling ${pw(f.p as number, f.edge)}) — ${f.out !== undefined ? `${shareWords(f.out)} would be ${side}` : 'the share outside is not worked out'}${f.ppk !== undefined ? `, Ppk ${f.ppk.toFixed(2)} by the percentile method` : ''}; as counted, ${counted}. The ${name}’s tail from ${f.n} readings is a model’s reach, not a measurement.`, tone: f.ppkLow ? 'a' : 'n' };
 }

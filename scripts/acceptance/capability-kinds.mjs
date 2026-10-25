@@ -11,6 +11,7 @@
  *      kinds, each with its example), the side chosen, only its box shown;
  *      thirty readings; the sentence, how sure the Ppk is, the three checks
  *      before capability, the histogram, the tiles — as lib/ie/sample says
+ *  16  (W3c, FC-096) readings that are not bell-shaped: the four shapes fitted and the tail said beside the count — the stops, the oxygen, a bell-shaped set with none
  *   2  residual oxygen, AT MOST 2% — skewed: "Not bell-shaped — they lean
  *      high", the one reading beyond the chart's limits, capable never green;
  *      the agreement changed to at most 0.6 — the share outside as measured,
@@ -605,6 +606,49 @@ const volume = await startStudy('Juice 400 ml — checked by weight', 'Rotary fi
   await page.getByRole('button', { name: 'Keep what was agreed' }).click(); await page.waitForTimeout(300);
   const cap = await page.locator('.ie-runs-cap .text-input').evaluateAll(els => els.length === 2 && els.every(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= 390 && r.height >= 36; }));
   ok(cap && (await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '15 the phone: the two boxes of a run fit, big enough for a thumb');
+  await page.setViewportSize({ width: 1360, height: 900 });
+}
+
+/* ---- 16 · W3c: readings that are not bell-shaped — the tail fitted beside the count (FC-096, knowledge/specs/FC-114-fitting.md) ---- */
+const STOPS = [18.4, 78.4, 15.1, 14.5, 23.6, 17.3, 42.7, 10.8, 66.7, 60.8, 1.0, 34.2, 10.2, 18.8, 27.2, 29.2, 30.0, 73.1, 18.8, 15.0, 42.7, 78.3, 72.0, 64.0, 7.4, 75.4, 41.2, 62.7, 26.7, 16.7, 53.1, 42.1, 51.7, 15.7, 11.9, 50.3, 3.5, 78.0, 12.0, 37.9];
+const FILLS = [249.0, 248.4, 249.7, 250.5, 251.4, 250.1, 249.3, 249.1, 250.9, 252.0, 250.3, 248.5, 248.9, 251.9, 250.2, 247.9, 249.9, 248.6, 249.2, 249.4, 249.1, 250.7, 249.9, 249.3, 250.5, 251.0, 248.0, 249.7, 248.8, 249.8, 248.5, 250.0, 250.0, 249.6, 248.7, 249.5, 248.7, 248.4, 250.3, 248.7];
+const stops = await startStudy('Minutes between short stops', 'Wrapper');
+{
+  await page.getByRole('radio', { name: /^At least/ }).click(); await page.waitForTimeout(200);
+  await page.getByLabel('Unit').fill('min'); await page.getByLabel('At least', { exact: true }).fill('10');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  await typeAll(STOPS.slice(0, 15));
+  ok((await page.locator('[data-note=fitted]').count()) === 0, '16 fifteen readings: the fitted note waits for 20');
+  await typeAll(STOPS.slice(15));
+  const t = await truthMode(stops);
+  const note = await words('[data-note=fitted]');
+  ok(t.notes.some(n => n.k === 'fitted') && note === t.notes.find(n => n.k === 'fitted').text && note === 'Not bell-shaped, so the tail is fitted: a Weibull fits (Anderson–Darling p = 0.15) — 12.0% would be under 10 min, Ppk 0.69 by the percentile method; as counted, 3 of 40 are under 10 min. The Weibull’s tail from 40 readings is a model’s reach, not a measurement.',
+    `16 stops at least 10 minutes: "${note}" (SciPy: Weibull β 1.4851, η 39.973, A* 0.5864, p 0.1462; share under 10: 0.1199; percentile Ppk 0.6901)`);
+  ok((await page.locator('[data-note=fitted].is-a').count()) === 1 && (await page.locator('[data-note=fitted].is-g').count()) === 0, '16 …amber, never green');
+  ok((await words('.ie-cap'))?.startsWith('Not capable: Ppk 0.36') && (await words('.ie-cap')) === t.said.capability?.text, `16 the study’s own sentences are unchanged beside it: "${await words('.ie-cap')}"`);
+  const p = await pdf('stops.pdf');
+  ok(p.text.includes('Not bell-shaped, so the tail is fitted: a Weibull fits (Anderson–Darling p = 0.15)') && p.text.includes('as counted, 3 of 40 are under 10 min'), '16 the same note on the capability paper');
+}
+{
+  /* oxygen, now agreed at most 0.6: no shape fits */
+  await go(`#/capability/${oxygen}`);
+  const t = await truthMode(oxygen);
+  const note = await words('[data-note=fitted]');
+  ok(t.notes.some(n => n.k === 'fitted') && note === t.notes.find(n => n.k === 'fitted').text && note === 'Not bell-shaped, and no shape tried fits (the lognormal is nearest, Anderson–Darling p = 0.00057) — the share outside is the count as measured: 4 of 30 are over 0.6 %.',
+    `16 oxygen at most 0.6%: "${note}" (SciPy: every shape rejected; lognormal A² 1.5004)`);
+  ok((await words('.ie-cap')) === 'Not capable: Ppk 0.30 from 30 — as measured, 4 of 30 are outside.', '16 …and the study’s sentence is exactly as it was');
+}
+const bell = await startStudy('Fill weights — a steady filler', 'Filler');
+{
+  await page.getByLabel('Lower limit').fill('247'); await page.getByLabel('Upper limit').fill('253'); await page.getByLabel('Unit').fill('g');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  await typeAll(FILLS);
+  const t = await truthMode(bell);
+  ok(t.notes.every(n => n.k !== 'fitted') && (await page.locator('[data-note=fitted]').count()) === 0, '16 bell-shaped readings carry no fitted note');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(`#/capability/${stops}`);
+  const inside = await page.locator('[data-note=fitted]').evaluateAll(els => els.length === 1 && els.every(e => { const r = e.getBoundingClientRect(); return r.left >= -1 && r.right <= 391; }));
+  ok(inside && (await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '16 the phone: the fitted note inside the screen');
   await page.setViewportSize({ width: 1360, height: 900 });
 }
 
