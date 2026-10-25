@@ -208,6 +208,38 @@ and Suich (1980). Nothing from them is quoted; what the records use is
 mathematics proved by computation (`knowledge/research/`), cited to the book or
 paper it is understood to come from "from knowledge".
 
+## The research pass of 25 October 2026 — four entries marked *research first*
+
+FC-065, FC-085, FC-023 and FC-018. **Method and its limit:** web search only
+(its results are summaries with links); every fetch of a page failed — the
+fetch tool could not resolve any host and the proxy refuses the publishers
+and standards bodies — so **no source below was opened.** "Confirmed" means a
+search result said it; each record's `checked` line says the same. What each
+source is, whether it is free, and where it landed:
+
+| Source | Free? | What the search showed | Where |
+|---|---|---|---|
+| SAE JA1011 (1999, 2009, Nov 2024) and JA1012 (2011) | paid (JA1011 about 115 EUR with VAT at one reseller; ANSI webstore, SAE Mobilus list it) | the seven questions, four consequence classes, "a process missing any criterion is not RCM", default actions | `maintenance.rcm` |
+| NASA, *RCM Guide for Facilities and Collateral Equipment* (Sept 2008), nasa.gov; WBDG copy; NPR 8831.2 ch. 7 | free (a federal agency's own guide) | 472 pp., Logic Tree (Fig. 3-2), time-directed / condition-directed / failure-finding tasks, run to failure a deliberate choice | `maintenance.rcm` |
+| Nowlan and Heap (1978), DTIC AD-A066579; DAU catalogue entry | free (Department of Defense report) | decision diagram, four task types, four consequences, default strategy; 476 pp. | `maintenance.rcm` |
+| NAVAIR 00-25-403 (2005), EverySpec listing | free listing | existence; decision logic not seen | `maintenance.rcm` |
+| EN 415-11:2021 (CEN; DIN EN, BS EN, SS-EN, NEN-EN, I.S. EN adoptions) | paid (about 410 USD for the BS copy) | time model, output model, general and technical key figures, system-acceptance method, Annex C, acceptance period 2 to 8 h, replaces DIN 8743:2014 | `commissioning.acceptance-tests`, `equipment.time-model-losses` |
+| DIN 8743:2014 and VDMA's note on it | paid; the note free | machine quality output, efficiency, availability; "availability" redefined | `commissioning.acceptance-tests` |
+| ISO 22400-2:2014 (Amd 1 2017) | paid | scope; KPI names from a third party | `commissioning.acceptance-tests` |
+| OMAC PackML, ISA-TR88.00.02 | the technical report is paid | states (Execute, Held, Suspended …) fed by a controller — not Faultline's model | `commissioning.acceptance-tests` |
+| MTM Association data cards, training platform, seal of approval | cards licensed and restricted | copyright notice, authorised access, TMU unit | `ie.pmts` |
+| Zandin, *MOST Work Measurement Systems*, 3rd ed.; H.B. Maynard | book and licence paid | BasicMOST models and index-sum rule from trade pages | `ie.pmts` |
+| Shingo Institute, *The Shingo Model* and Challenge (shingo.org) | description free; assessment the Institute's | ten principles, three or four dimensions, 1,000-point scoring | `lean.maturity-assessment` |
+| MIT LAI, LESAT 1.0 (2001) and 2.0 (2012), DSpace | free to copy, other rights reserved | 54 practices, five levels | `lean.maturity-assessment` |
+| NIST, Baldrige Excellence Framework and Builder | Builder and a sample free; manufacturing edition sold | process and results scoring | `lean.maturity-assessment` |
+| Rother, *Toyota Kata*; Lean Enterprise Institute's Lean Transformation Framework | books and courses paid; some practice materials free | a routine and five questions, not a scale | `lean.maturity-assessment` |
+
+**Pirated copies.** Search turned up uploaded copies of paid standards
+(JA1011 and JA1012, EN 415-11) and of Moubray's and Zandin's books on
+document-sharing sites. They were not opened, quoted or relied on: a copy of
+a paid text is not a licence to build on it, and the records say what is
+public and what is not.
+
 ## Adding a book
 
 Record it here (edition, what was confirmed and how, what was not), write or

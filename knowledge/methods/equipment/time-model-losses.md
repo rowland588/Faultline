@@ -6,7 +6,7 @@ discipline: equipment
 kind: established
 evidence: standard
 depth: full
-checked: 2026-10-22 — the six big losses (Nakajima 1988); the time model of packaging lines EN 415-11:2021 (scope checked online; content not read) and DIN 8743:2014 (withdrawn); Faultline's model in docs/CAPACITY.md §5–6, src/tools/losses/losses.ts, proved by losses.test.ts and scripts/acceptance/shift-losses.mjs
+checked: 2026-10-25 — the six big losses (Nakajima 1988); the time model of packaging lines EN 415-11:2021 (structure and scope seen again in search excerpts on 25 October, FC-085 research; the time states and formulas are paid and not read) and DIN 8743:2014 (withdrawn); Faultline's model in docs/CAPACITY.md §5–6, src/tools/losses/losses.ts, proved by losses.test.ts and scripts/acceptance/shift-losses.mjs
 needs: [capacity.line-capacity]
 next: [quality.pareto, rca.fishbone-5whys, cost.line-cost-model]
 alternatives: [equipment.oee]
@@ -70,3 +70,13 @@ person is the constraint.
 ## In Faultline
 The Loss count (`src/tools/losses/losses.ts`, `src/tools/losses/LossesScreen.tsx`,
 `src/tools/losses/lossLean.ts`), FC-049.
+
+**What this model is not (25 October 2026, FC-085 research).** It is the
+six-big-losses model of Nakajima and `docs/CAPACITY.md` §5, by hand at the
+constraint's ideal speed. It is *not* EN 415-11's time model: that standard's
+time states and key figures (technical efficiency E_S, technical
+availability R_S, a delivery efficiency) are paid and unread, count only
+losses attributable to the machine system, and were reported to have swapped
+the meaning of "availability" between DIN 8743 editions. So the Loss count's
+words must not be called the standard's, and no figure here is "per EN
+415-11". The acceptance side is in `commissioning.acceptance-tests`.
