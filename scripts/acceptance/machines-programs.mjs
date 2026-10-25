@@ -723,6 +723,34 @@ await page.setViewportSize({ width: 1360, height: 900 });
   await page.keyboard.press('Escape');
 }
 
+/* ---- 15 · A PRESS ALWAYS GOES SOMEWHERE (25 October — Rowland: "I press to open it and it doesn't") ----
+   A line's own program opens its form on the row; a project's program, which has no form on a line's page, goes to
+   that project's Programs — it used to light up and show nothing. */
+{
+  await go('#/programs');
+  const rows = page.locator('li.pgr[data-program]');
+  const n = await rows.count();
+  let own = -1, job = -1;
+  for (let i = 0; i < n && (own < 0 || job < 0); i++) {
+    const hasJob = (await rows.nth(i).locator('.lp-job').count()) > 0;
+    if (hasJob && job < 0) job = i; if (!hasJob && own < 0) own = i;
+  }
+  ok(own >= 0 && job >= 0, `15 the Programs page has a line's own program and a project's (${n} rows)`);
+  if (job >= 0) {
+    const label = await rows.nth(job).locator('.pgr-main').getAttribute('aria-label');
+    ok(/open it on .*’s Programs/.test(label ?? '') && !/tap to change it/.test(label ?? ''), `15 a project's program says where a press goes: "${label}"`);
+    ok((await rows.nth(job).locator('.pgr-main').getAttribute('aria-expanded')) === null, '15 …and does not claim to expand');
+    await rows.nth(job).locator('.pgr-main').click(); await page.waitForTimeout(1500);
+    ok(/#\/project\/[^/]+\/programs/.test(page.url()), `15 pressed, it opens that project's Programs (${page.url().split('#')[1]})`);
+  }
+  if (own >= 0) {
+    await go('#/programs');
+    const r = page.locator('li.pgr[data-program]').nth(own);
+    await r.locator('.pgr-main').click(); await page.waitForTimeout(600);
+    ok((await r.locator('.pgr-form').count()) === 1 && (await r.locator('.pgr-main').getAttribute('aria-expanded')) === 'true', "15 a line's own program, pressed, opens its form on the row");
+  }
+}
+
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
 await browser.close();
 console.log(failed ? `\nMachines and programs NOT accepted: ${failed} failed` : '\nMachines and programs accepted: planned on a line with no job, from the control room; the line\'s machines in flow order; a job seeing and proving them; the factory and the paper');

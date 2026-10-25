@@ -251,7 +251,12 @@ function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: 
     <ProgramRowShell className={'lp-row is-pg-' + where} dataProgram={p.id} what={p.what} word={word} tone={tone}
       meta={[p.runs && `runs ${p.runs}`, p.from && `whose: ${p.from}`].filter(Boolean).join(' · ') || undefined}
       {...(p.note ? { note: p.note } : {})}
-      open={open} onToggle={() => { setOpen(!open); setProving(false); }}
+      /* A JOB'S PROGRAM HAS NO FORM HERE (it is the job's to change, where it is set up and proved) — pressing it goes
+         to the job's Programs, where it opens. It used to light up and show nothing (25 October, Rowland: "I press to
+         open it and it doesn't"). Where there is neither a form nor a job (a client's view of a line's own), a press
+         does nothing and the row does not say it does. */
+      open={open} onToggle={() => { if (edit) { setOpen(!open); setProving(false); } else if (job) nav(`/project/${job.id}/programs`); }}
+      {...(edit ? {} : { tap: job ? `open it on ${job.name}’s Programs` : '' })}
       after={(job || (isProved(p) && proof)) ? <>
         {job && (
           <div className="mt-facts lp-job">on <button type="button" className="cw-link" onClick={() => nav(`/project/${job.id}/programs`)}>{job.name} ›</button>{job.archivedAt ? ' (archived)' : ''}</div>

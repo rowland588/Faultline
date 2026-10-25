@@ -52,7 +52,7 @@ type TT = ReturnType<typeof useTesting>;
 
 /* ============================== the row itself ============================= */
 
-export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, problems = 0, action, after, open, onToggle, panel, dataProgram, className }: {
+export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, problems = 0, action, after, open, onToggle, panel, tap, dataProgram, className }: {
   what: string;
   /** "Line 7's own" — whose record it is, when not the job's. */
   tag?: string;
@@ -72,11 +72,16 @@ export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, prob
   className?: string;
   open: boolean; onToggle: () => void;
   panel?: ReactNode;
+  /** What a press does when it is not "open the form here" — the row's word for it ("open it on its project's
+   *  Programs"), or '' when it does nothing. Absent: it opens its form, and says so. (25 October, Rowland: "I press to
+   *  open it and it doesn't" — a project's program has no form on a line's page; the press went nowhere.) */
+  tap?: string;
   dataProgram?: string;
 }) {
   return (
     <li className={'pgr' + (open ? ' is-open' : '') + (className ? ` ${className}` : '')} data-program={dataProgram}>
-      <button type="button" className="pgr-main" aria-expanded={open} onClick={onToggle} aria-label={`${what} — ${word}${open ? '' : ', tap to change it'}`}>
+      <button type="button" className="pgr-main" {...(tap === undefined ? { 'aria-expanded': open } : {})} onClick={onToggle}
+        aria-label={`${what} — ${word}${tap === undefined ? (open ? '' : ', tap to change it') : tap ? `, ${tap}` : ''}`}>
         <span className="pgr-top">
           {tag && <span className="pp-line-tag">{tag}</span>}
           <span className="pgr-name">{what}</span>
