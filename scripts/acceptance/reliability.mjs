@@ -312,7 +312,7 @@ await go(`#/lines/${sd.wsId}`);
 {
   const tile = page.locator('.pl-tool', { has: page.locator('b', { hasText: /^Reliability$/ }) });
   const said = flat(await tile.innerText());
-  ok(/3 on this line/.test(said) && said.includes('Capper stops'), '9 the line’s page — Reliability with its latest and how many (the seeded two and this one)', said);
+  ok(/5 on this line/.test(said) && said.includes('Capper stops'), '9 the line’s page — Reliability with its latest and how many (the seeded two, the seeded line watch’s two and this one)', said);
 }
 /* the front door that listed the tools is gone (23 October, one home): the library is Tools in the menu */
 await go('#/');
