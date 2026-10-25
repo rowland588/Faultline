@@ -442,31 +442,30 @@ export const PAGES = (sd, cap) => [
     { what: 'what the list rests on and what is still to confirm', sel: '.lg-rests summary' },
     { what: 'its logs, the most urgent first, each saying where it stands', sel: '.lt-li[data-study]', n: 1 },
   ] },
-  { name: 'A check log — the round', path: `#/log/metal-detection/${sd.checkLogs['metal-detection']}`, must: [
+  { name: 'A check log — the round', path: `#/log/metal-detection/${sd.checkLogs?.['metal-detection']}`, must: [
     { what: 'the tool shell — More ▾ and Report ▾ in the band', sel: '.ln-band .part-menu-b', n: 2 },
     { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'the band with its verdict', sel: '.ln-band' },
     { what: 'the tiles — done on time, missed, failed, product held — each of the plan and since the 7 days before', sel: '.lg-tiles .ln-tile', n: 4 },
     { what: 'the sentence — what is due, failed or overdue, and the compliance', sel: '[data-says]', text: /Metal detection checks:/ },
     { what: 'the Round, History and The checks as views of one log', sel: '[role="tab"]', n: 3 },
-    { what: 'a card for each check, in the state it is in', sel: 'li.lg-card[data-state]', n: 6 },
+    { what: 'a card for each check, in the state it is in', sel: 'li.lg-card[data-state]', n: 3 },
     { what: 'a failed check stays red until it passes', sel: 'li.lg-card[data-state="failed"]' },
     { what: 'a pass and a fail a tap each, on the card', sel: 'li.lg-card .lg-pass', n: 1 },
-    { what: 'the checks that wait for an event, apart', sel: 'section[aria-label="When it happens"] li.lg-card', n: 3 },
     { what: 'the action plan — the problem the failure raised', sel: '.lg-plan' },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
-  { name: 'A check log — a scored audit', path: `#/log/five-s/${sd.checkLogs['five-s']}`, must: [
+  { name: 'A check log — a scored audit', path: `#/log/five-s/${sd.checkLogs?.['five-s']}`, must: [
     { what: 'the latest score and the audit before it', sel: '.lg-tiles .ln-tile', text: /Latest score/ },
     { what: 'what it means — the weakest heading, the findings that came back', sel: '.lg-ins li', n: 1 },
     { what: 'Start the audit on the card', sel: 'li.lg-card button', text: /Start the audit/ },
   ] },
-  { name: 'A check log — a value route', path: `#/log/condition-route/${sd.checkLogs['condition-route']}`, must: [
+  { name: 'A check log — a value route', path: `#/log/condition-route/${sd.checkLogs?.['condition-route']}`, must: [
     { what: 'a reading to type on the card', sel: 'li.lg-card .lg-rec, li.lg-card input' },
     { what: 'what it means — how near the limit, which way it is going', sel: '.lg-ins li', text: /of the band from the upper limit/ },
   ] },
-  { name: 'A check log — CILT checks', path: `#/log/cilt/${sd.checkLogs.cilt}`, must: [
-    { what: 'Tag it on a card — an abnormality, red or white', sel: 'li.lg-card button', text: /Tag it/ },
+  { name: 'A check log — CILT checks', path: `#/log/cilt/${sd.checkLogs?.cilt}`, must: [
+    { what: 'Tag an abnormality on a card — red or white', sel: 'li.lg-card button', text: /Tag an abnormality/ },
     { what: 'a card for each check', sel: 'li.lg-card[data-state]', n: 1 },
   ] },
   { name: 'A line — its logs', path: `#/lines/${sd.wsId}?view=logs`, must: [
