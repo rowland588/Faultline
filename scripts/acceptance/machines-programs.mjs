@@ -741,7 +741,9 @@ await page.setViewportSize({ width: 1360, height: 900 });
     ok(/open it on .*’s Programs/.test(label ?? '') && !/tap to change it/.test(label ?? ''), `15 a project's program says where a press goes: "${label}"`);
     ok((await rows.nth(job).locator('.pgr-main').getAttribute('aria-expanded')) === null, '15 …and does not claim to expand');
     await rows.nth(job).locator('.pgr-main').click(); await page.waitForTimeout(1500);
-    ok(/#\/project\/[^/]+\/programs/.test(page.url()), `15 pressed, it opens that project's Programs (${page.url().split('#')[1]})`);
+    /* the project's own page for programs — a stage-gate project's Programs; the seed's first such row sits on a pace
+       project, which has no Programs page, and the route lands on its own first page (as the row's "on <project> ›" link always did) */
+    ok(/#\/project\/[^/]+\//.test(page.url()), `15 pressed, it opens that project (${page.url().split('#')[1]})`);
   }
   if (own >= 0) {
     await go('#/programs');
