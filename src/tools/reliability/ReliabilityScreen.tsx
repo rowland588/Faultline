@@ -40,6 +40,12 @@ import {
   studyReliabilitySays, watchedSpans, type RelCounter, type RelFigures, type RelItem,
 } from './reliability';
 import { relClosings, relTiles, relTrend } from './reliabilityLean';
+import { CallsPanel, OpenStops, RepairPanel, TapTimes } from './RepairPanel';
+import { GrowthPanel } from './GrowthPanel';
+import { WearPanel } from './WearPanel';
+import { wearOf } from './wear';
+import { MAX_REASONS } from './repair';
+import { lineDay } from '../../lib/lineLoss';
 import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
@@ -57,7 +63,7 @@ const clock = (ms: number) => {
 };
 const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
 /** The words a set-up offers for what is counted — the floor's own added beside them. */
-const OFFERED = ['stop', 'failure', 'jam', 'pick', 'reject', 'alarm'];
+const OFFERED = ['stop', 'failure', 'jam', 'pick', 'reject', 'alarm', 'short stop', 'call'];
 
 export function ReliabilityScreen({ id }: { id: string }) {
   const [s, setS] = useState<ToolStudy | null | undefined>(undefined);
@@ -120,8 +126,9 @@ function Reliability({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canA
       ) : (
         <>
           {!closed && can.edit && <Watch s={s} counters={items.map(i => i.c)} runs={runs} events={events} t={t} me={me} />}
+          {!closed && can.edit && <OpenStops sid={s.id} items={items} t={t} />}
           {items.length > 1 && <Together items={items} line={line} where={where} seen={item.c.id} onSeen={setSeen} />}
-          {item && <Counted item={item} items={items} line={line} where={where} one={items.length === 1} />}
+          {item && <Counted item={item} items={items} line={line} where={where} one={items.length === 1} study={s} canEdit={can.edit && !closed} />}
           <EveryEvent counters={countersOf(a, true)} events={events} canStrike={can.edit && !closed} sid={s.id} />
           <EveryStretch runs={runs} canStrike={can.edit && !closed} sid={s.id} t={t} />
           <p className="ie-agreed sub">
@@ -154,19 +161,37 @@ function useWakeLock(on: boolean) {
 }
 
 export function agreedWords(a: AgreedReliability): string {
-  return countersOf(a).map(c => [c.event, c.targetMin ? `MTBF wanted ${span(c.targetMin / 60)}` : 'no target', c.downMin ? `${c.downMin} min stood each` : ''].filter(Boolean).join(', ')).join(' · ');
+  return countersOf(a).map(c => [c.event, c.targetMin ? `MTBF wanted ${span(c.targetMin / 60)}` : 'no target', c.downMin ? `${c.downMin} min stood each` : '',
+    c.timed === 'stop' ? 'each timed' : c.timed === 'call' ? `a call for help${c.respondMin ? `, help within ${c.respondMin} min` : ''}` : '', c.reasons?.length ? `reasons: ${c.reasons.join(', ')}` : '',
+    c.fitterRate ? `a fitter £${c.fitterRate} an hour` : '', c.growth ? 'growth tracked' : '', c.wear ? 'a part that wears' : ''].filter(Boolean).join(', ')).join(' · ');
 }
 
 /* ------------------------------------------------------------------ set up: what is counted */
-interface Row { id: string; name: string; target: string; down: string; removed?: boolean }
-const rowOf = (c: RelCounter): Row => ({ id: c.id, name: c.event, target: c.targetMin ? String(c.targetMin) : '', down: c.downMin ? String(c.downMin) : '', ...(c.removed ? { removed: true } : {}) });
+interface Row {
+  id: string; name: string; target: string; down: string; removed?: boolean;
+  /** FC-059 / FC-015: counted only, timed as a stop, or a call for help. */
+  timed: '' | 'stop' | 'call'; reasons: string; respond: string; fitter: string;
+  /** FC-061 */
+  growth: boolean;
+  /** FC-060 */
+  wear: boolean; wearUnit: string; wearGaps: boolean; wearNew: boolean; swap: string; fail: string;
+}
+const rowOf = (c: RelCounter): Row => ({ id: c.id, name: c.event, target: c.targetMin ? String(c.targetMin) : '', down: c.downMin ? String(c.downMin) : '', ...(c.removed ? { removed: true } : {}),
+  timed: c.timed ?? '', reasons: (c.reasons ?? []).join(', '), respond: c.respondMin ? String(c.respondMin) : '', fitter: c.fitterRate ? String(c.fitterRate) : '', growth: !!c.growth,
+  wear: !!c.wear, wearUnit: c.wear?.unit ?? '', wearGaps: !!c.wear?.fromWatch, wearNew: !!c.wear?.newAtStart, swap: c.wear?.swapCost !== undefined ? String(c.wear.swapCost) : '', fail: c.wear?.failCost !== undefined ? String(c.wear.failCost) : '' });
+const newRow = (name: string): Row => ({ id: uid(), name, target: '', down: '', timed: '', reasons: '', respond: '', fitter: '', growth: false, wear: false, wearUnit: '', wearGaps: false, wearNew: false, swap: '', fail: '' });
+/** The reasons typed, as a list: split on commas and new lines, trimmed, none twice. */
+export const reasonsOf = (text: string): string[] => {
+  const seen = new Set<string>();
+  return text.split(/[,\n]/).map(x => x.trim()).filter(x => { const k = x.toLowerCase(); if (!x || seen.has(k)) return false; seen.add(k); return true; });
+};
 
 function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree: boolean; events: RelEvent[]; onDone: () => void; cancel?: () => void }) {
   const a = s.agreed?.reliability;
   /* what was agreed, a row each — a study set up before 22 October as its one count, keeping its id so its taps stay its own */
   const [rows, setRows] = useState<Row[]>(() => {
     const had = countersOf(a, true).map(rowOf);
-    return had.length ? had : [{ id: uid(), name: 'stop', target: '', down: '' }];
+    return had.length ? had : [newRow('stop')];
   });
   const [own, setOwn] = useState('');
   const live = rows.filter(r => !r.removed), off = rows.filter(r => r.removed);
@@ -180,7 +205,7 @@ function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree
     if (!v) return;
     const was = has(v);
     if (was) { if (was.removed) set(was.id, { removed: undefined }); return; }
-    setRows(rs => [...rs, { id: uid(), name: v, target: '', down: '' }]);
+    setRows(rs => [...rs, newRow(v)]);
   };
   const num = (v: string) => (v.trim() ? Number(v) : undefined);
   const names = live.map(r => r.name.trim().toLowerCase());
@@ -188,12 +213,19 @@ function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree
     : live.some(r => !r.name.trim()) ? 'Every thing counted needs a name.'
     : new Set(names).size !== names.length ? 'Two things counted have the same name.'
     : live.some(r => { const x = num(r.target); return x !== undefined && !(x > 0 && x <= 100_000); }) ? 'An MTBF wanted is minutes, more than 0 — or leave it empty.'
-    : live.some(r => { const x = num(r.down); return x !== undefined && !(x > 0 && x <= 1440); }) ? 'The minutes the line stands is more than 0 — or leave it empty.' : '';
+    : live.some(r => { const x = num(r.down); return x !== undefined && !(x > 0 && x <= 1440); }) ? 'The minutes the line stands is more than 0 — or leave it empty.'
+    : live.some(r => reasonsOf(r.reasons).length > MAX_REASONS) ? `A short list of reasons — ${MAX_REASONS} at most; five to eight is what works.`
+    : live.some(r => { const x = num(r.respond); return x !== undefined && !(x > 0 && x <= 1440); }) ? 'Help should arrive within minutes — more than 0, or leave it empty.'
+    : live.some(r => { const x = num(r.fitter); return x !== undefined && !(x > 0 && x <= 10_000); }) ? 'A fitter’s rate is pounds an hour, more than 0 — or leave it empty.'
+    : live.some(r => r.wear && [r.swap, r.fail].some(v => { const x = num(v); return x !== undefined && !(x >= 0 && x <= 100_000_000); })) ? 'What a failure or a planned change costs is pounds, 0 or more — or leave it empty.' : '';
   const save = () => {
     if (problem || !canAgree) return;
     const counts: RelCount[] = rows.map(r => {
-      const tg = num(r.target), dn = num(r.down);
-      return { id: r.id, name: r.name.trim().toLowerCase(), ...(tg !== undefined ? { targetMin: tg } : {}), ...(dn !== undefined ? { downMin: dn } : {}), ...(r.removed ? { removed: true } : {}) };
+      const tg = num(r.target), dn = num(r.down), rs = reasonsOf(r.reasons), rp = num(r.respond), ft = num(r.fitter), sw = num(r.swap), fl = num(r.fail);
+      return { id: r.id, name: r.name.trim().toLowerCase(), ...(tg !== undefined ? { targetMin: tg } : {}), ...(dn !== undefined ? { downMin: dn } : {}), ...(r.removed ? { removed: true } : {}),
+        ...(r.timed ? { timed: r.timed } : {}), ...(r.timed && rs.length ? { reasons: rs } : {}), ...(r.timed === 'call' && rp !== undefined ? { respondMin: rp } : {}), ...(r.timed === 'stop' && ft !== undefined ? { fitterRate: ft } : {}),
+        ...(r.growth ? { growth: true } : {}),
+        ...(r.wear ? { wear: { ...(r.wearUnit.trim() && !r.wearGaps ? { unit: r.wearUnit.trim() } : {}), ...(r.wearGaps ? { fromWatch: true } : {}), ...(r.wearGaps && r.wearNew ? { newAtStart: true } : {}), ...(sw !== undefined ? { swapCost: sw } : {}), ...(fl !== undefined ? { failCost: fl } : {}) } } : {}) };
     });
     void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, reliability: { counts } } }));
     onDone();
@@ -216,13 +248,60 @@ function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree
               <input className="text-input" inputMode="decimal" value={r.target} placeholder="no target" aria-label={`MTBF wanted for ${r.name || 'it'}, minutes`} onChange={e => set(r.id, { target: e.target.value })} />
             </label>
             <label className="field"><span className="field-label">Minutes the line stands each time</span>
-              <input className="text-input" inputMode="decimal" value={r.down} placeholder="not known" aria-label={`Minutes the line stands for each ${r.name || 'one'}`} onChange={e => set(r.id, { down: e.target.value })} />
+              <input className="text-input" inputMode="decimal" value={r.down} placeholder={r.timed ? 'timed instead' : 'not known'} aria-label={`Minutes the line stands for each ${r.name || 'one'}`} onChange={e => set(r.id, { down: e.target.value })} />
             </label>
             <button type="button" className="cw-link sp-rm rl-count-off" aria-label={`Take ${r.name || 'it'} off`} onClick={() => (taps(r.id) || a ? set(r.id, { removed: true }) : setRows(rs => rs.filter(x => x.id !== r.id)))}>Take off</button>
+            <details className="rl-more" open={!!(r.timed || r.growth || r.wear)}>
+              <summary>More about {r.name || 'it'} — time each one, calls for help, growth, a part that wears</summary>
+              <div className="rl-more-in">
+                <label className="field"><span className="field-label">Timing</span>
+                  <select className="text-input" value={r.timed} aria-label={`Timing for ${r.name || 'it'}`} onChange={e => set(r.id, { timed: e.target.value as Row['timed'] })}>
+                    <option value="">Count only</option>
+                    <option value="stop">Time each one — a stop (help arrived, running again)</option>
+                    <option value="call">A call for help — response and clearing (andon)</option>
+                  </select>
+                </label>
+                {r.timed && (
+                  <>
+                    <p className="sub rl-more-help">A timed one takes the machine out of running: its minutes come off the watched time, so the MTBF is of running time. Do not time something that does not stop the machine.</p>
+                    <label className="field"><span className="field-label">Reasons — a short list, commas between{r.timed === 'call' ? ' (five to eight)' : ''}</span>
+                      <input className="text-input" value={r.reasons} aria-label={`Reasons for ${r.name || 'it'}`} placeholder={r.timed === 'call' ? 'film change, jam, QA check, label, material short' : 'jam, film break, sensor'} onChange={e => set(r.id, { reasons: e.target.value })} />
+                    </label>
+                    {r.timed === 'call' && (
+                      <label className="field"><span className="field-label">Help should arrive within, minutes</span>
+                        <input className="text-input" inputMode="decimal" value={r.respond} placeholder="no standard" aria-label={`Help should arrive within, minutes, for ${r.name || 'it'}`} onChange={e => set(r.id, { respond: e.target.value })} />
+                      </label>
+                    )}
+                    {r.timed === 'stop' && (
+                      <label className="field"><span className="field-label">A fitter costs, £ an hour</span>
+                        <input className="text-input" inputMode="decimal" value={r.fitter} placeholder="to say the repairs in money" aria-label={`A fitter costs, pounds an hour, for ${r.name || 'it'}`} onChange={e => set(r.id, { fitter: e.target.value })} />
+                      </label>
+                    )}
+                  </>
+                )}
+                <label className="rl-tick"><input type="checkbox" checked={r.growth} aria-label={`Track growth for ${r.name || 'it'}`} onChange={e => set(r.id, { growth: e.target.checked })} /> <span>Track growth — a new machine bedding in: is it getting better, and when will it reach its MTBF? (from 8 failures)</span></label>
+                <label className="rl-tick"><input type="checkbox" checked={r.wear} aria-label={`A part that wears: ${r.name || 'it'}`} onChange={e => set(r.id, { wear: e.target.checked })} /> <span>A part that wears — replaced when it fails (a belt, a knife, a heater): does it wear out, and when to change it? (from 6 failures)</span></label>
+                {r.wear && (
+                  <>
+                    <label className="field"><span className="field-label">Its age is counted in</span>
+                      <input className="text-input" value={r.wearGaps ? 'hours' : r.wearUnit} disabled={r.wearGaps} placeholder="hours" aria-label={`The unit the part’s age is in, for ${r.name || 'it'}`} onChange={e => set(r.id, { wearUnit: e.target.value })} />
+                    </label>
+                    <label className="rl-tick"><input type="checkbox" checked={r.wearGaps} aria-label={`Use the gaps between ${r.name || 'its'} events as lives`} onChange={e => set(r.id, { wearGaps: e.target.checked })} /> <span>Use this study’s gaps between one {r.name || 'event'} and the next as the parts’ lives (the part is replaced at each; ages are hours of running)</span></label>
+                    {r.wearGaps && <label className="rl-tick"><input type="checkbox" checked={r.wearNew} aria-label="The part was new when watching began" onChange={e => set(r.id, { wearNew: e.target.checked })} /> <span>The part was new when the watching began</span></label>}
+                    <label className="field"><span className="field-label">A planned change costs, £</span>
+                      <input className="text-input" inputMode="decimal" value={r.swap} placeholder="to say when to change it" aria-label={`What a planned change costs, pounds, for ${r.name || 'it'}`} onChange={e => set(r.id, { swap: e.target.value })} />
+                    </label>
+                    <label className="field"><span className="field-label">A failure costs, £ (the part, the labour, the line’s lost time)</span>
+                      <input className="text-input" inputMode="decimal" value={r.fail} placeholder="to say what changing it saves" aria-label={`What a failure costs, pounds, for ${r.name || 'it'}`} onChange={e => set(r.id, { fail: e.target.value })} />
+                    </label>
+                  </>
+                )}
+              </div>
+            </details>
           </li>
         ))}
       </ul>
-      <p className="sub rl-count-help"><b>MTBF wanted</b> — the running time you want between one and the next; leave it empty if you have no target. <b>Minutes the line stands each time</b> — how long the line is stopped when one happens; it prices them; leave it empty if it does not stop the line or you do not know.</p>
+      <p className="sub rl-count-help"><b>MTBF wanted</b> — the running time you want between one and the next; leave it empty if you have no target. <b>Minutes the line stands each time</b> — how long the line is stopped when one happens; it prices them; leave it empty if it does not stop the line or you do not know — or time each one, and the timed minutes replace it.</p>
       <div className="field"><span className="field-label">Add something to count</span>
         <span className="chip-row" role="group" aria-label="Offered">
           {OFFERED.filter(x => !live.some(r => r.name.trim().toLowerCase() === x)).map(x => <button key={x} type="button" className="chip" onClick={() => add(x)}>+ {x}</button>)}
@@ -350,15 +429,17 @@ function Together({ items, line, where, seen, onSeen }: { items: RelItem[]; line
 
 /** ONE THING COUNTED, IN FULL — its tiles, sentence, what it means, its
  *  graphs, what it costs and its days. */
-function Counted({ item, items, line, where, one }: { item: RelItem; items: RelItem[]; line?: Parameters<typeof relCost>[2]; where?: Parameters<typeof relCost>[3]; one: boolean }) {
+function Counted({ item, items, line, where, one, study, canEdit }: { item: RelItem; items: RelItem[]; line?: Parameters<typeof relCost>[2]; where?: Parameters<typeof relCost>[3]; one: boolean; study: ToolStudy; canEdit: boolean }) {
   const { c, f } = item;
   const cost = relCost(f, c, line, where);
   const said = reliabilitySays(c, f);
   const trend = relTrend(c, f);
+  const wear = wearOf(c, f, study.facts.lives);
+  const dayMin = line ? lineDay({ name: line.name, packsPerMin: line.packsPerMin, marginPerPack: line.marginPerPack, shifts: line.shifts }).minutes : undefined;
   return (
     <section className="rl-counted" data-count={c.id} aria-label={countTitle(c)}>
       {!one && <h2 className="rl-counted-h">{countTitle(c)}</h2>}
-      <LeanTiles tiles={relTiles(c, f, cost)} className="ie-strip" />
+      <LeanTiles tiles={relTiles(c, f, cost, { r: item.r, k: item.k, g: item.g })} className="ie-strip" />
       <div className="ie-says"><p className={'ie-say is-' + said.tone}>{said.text}</p></div>
       <LeanInsights insights={reliabilityInsights(c, f)} />
       {/* the graphs side by side on a desk, one under the other on a phone */}
@@ -376,6 +457,10 @@ function Counted({ item, items, line, where, one }: { item: RelItem; items: RelI
         {trend && <LeanPanel title={trend.title} className="ln-solo"><LeanTrend trend={trend} /></LeanPanel>}
       </div>
       {f.kinds.length > 0 && <Kinds f={f} event={c.event} />}
+      {item.r && <RepairPanel item={item} f={f} />}
+      {item.k && <CallsPanel item={item} f={f} line={line} where={where} shifts={line?.shifts} />}
+      {item.g && <GrowthPanel g={item.g} points={f.points} event={c.event} />}
+      {wear && <WearPanel sid={study.id} c={c} v={wear} canEdit={canEdit} line={dayMin ? { dayHours: dayMin / 60 } : undefined} />}
       {cost.downMinPerH !== undefined && <p className="sub rl-cost">What it costs: {costWords(cost)}.</p>}
       {f.days.length > 0 && <Days f={f} title={countTitle(c)} />}
     </section>
@@ -497,6 +582,8 @@ function Days({ f, title }: { f: RelFigures; title: string }) {
 /* ------------------------------------------------------------------ every event, every stretch */
 function EveryEvent({ counters, events, canStrike, sid }: { counters: RelCounter[]; events: RelEvent[]; canStrike: boolean; sid: string }) {
   const name = (e: RelEvent) => counters.find(c => c.id === (e.count ?? counters[0]?.id))?.event ?? 'tap';
+  /* a tap of a timed count carries its times (FC-059); a call is never listed by who made it (FC-015) */
+  const timedOf = (e: RelEvent) => counters.find(c => c.id === (e.count ?? counters[0]?.id))?.timed;
   const [open, setOpen] = useState(false);
   if (!events.length) return null;
   const struck = events.filter(x => x.struck).length;
@@ -513,7 +600,8 @@ function EveryEvent({ counters, events, canStrike, sid }: { counters: RelCounter
             <li key={x.id} className={x.struck ? 'is-struck' : ''}>
               <span className="ie-no">{niceDay(isoDay(x.at))} {hms(x.at)}</span>
               <b>{cap(name(x))}{x.kind ? ` — ${x.kind}` : ''}</b>
-              <span className="sub">{[x.note, x.by ? `by ${x.by}` : ''].filter(Boolean).join(' · ')}</span>
+              <span className="sub">{[x.note, x.by && timedOf(x) !== 'call' ? `by ${x.by}` : ''].filter(Boolean).join(' · ')}</span>
+              {timedOf(x) && <TapTimes sid={sid} e={x} call={timedOf(x) === 'call'} canEdit={canStrike} />}
               {canStrike && <button type="button" className="linkish" onClick={() => set(x.id, !x.struck)}>{x.struck ? 'Restore' : 'Strike'}</button>}
             </li>
           ))}

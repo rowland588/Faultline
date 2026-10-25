@@ -121,6 +121,10 @@ export interface Seeded {
    *  wanted, 3 min stood each) and its failures (three, 12 min stood each,
    *  no target); two remarks. */
   reliabilityId: string;
+  /** A RELIABILITY STUDY with every W5 part (FC-059, FC-015, FC-061, FC-060): the wrapper watched six hours, its stops timed
+   *  (help arrived, running again; reasons; a fitter's rate) and growing better, its calls for help (reasons, help wanted
+   *  within 3 min) and a belt that wears (eight lives, two still running, two costs). */
+  reliabilityFamilyId: string;
   /** A CONTROL CHART on Line 7's wrapper (W2): forty fill weights against a 400 g target, the limits set
    *  from the first twenty, a +0.8 g shift from reading 21 — two points beyond and a run above the centre,
    *  the CUSUM saying since when; a note on the new reel. */
@@ -1046,6 +1050,39 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       }, uses: [], startedAt: y0, createdAt: t, updatedAt: t });
   }
 
+  /* A RELIABILITY STUDY with the W5 parts: stops timed and getting better, calls for help, a belt that wears */
+  const reliabilityFamilyId = uid();
+  {
+    const M = 60_000, w0 = t - 30 * 3_600_000;
+    const stop = uid(), call = uid(), belt = uid();
+    /* twelve stops, further apart as the watch goes on: [minute tapped, minutes to help, minutes to running again, reason] */
+    const stops: [number, number | undefined, number, string][] = [
+      [5, 1, 4, 'jam'], [9, 2, 5, 'film break'], [15, 1, 3, 'jam'], [23, 1.5, 6, 'sensor'], [34, 1, 3, 'jam'], [49, 3, 8, 'film break'], [70, 1, 4, 'jam'],
+      [98, 2, 5, 'jam'], [138, 1, 3, 'sensor'], [190, 6, 12, 'film break'], [250, 1, 3, 'jam'], [320, undefined, 2, 'jam'],
+    ];
+    /* eleven calls for help — reasons from the team's short list — over the same watch */
+    const calls: [number, number, number, string][] = [
+      [12, 1, 6, 'film change'], [30, 2, 7, 'film change'], [58, 0.5, 2, 'jam'], [80, 5, 9, 'QA check'], [118, 1.5, 8, 'film change'], [160, 4, 6, 'jam'],
+      [205, 11, 14, 'QA check'], [250, 2.5, 6.5, 'label'], [290, 1, 5, 'film change'], [320, 9, 19, 'material short'], [345, 3.5, 8, 'label'],
+    ];
+    const wearAge = (age: number, failed: boolean) => ({ id: uid(), count: belt, age, failed, at: w0 + 6 * 3_600_000, by: 'Sam Patel' });
+    await putStudy({ id: reliabilityFamilyId, tool: 'reliability', name: 'Wrapper — repairs, calls and bedding in', machine: 'Ilapak flow wrapper', workspaceId: ws.id,
+      agreed: { reliability: { counts: [
+        { id: stop, name: 'stop', targetMin: 30, timed: 'stop', reasons: ['jam', 'film break', 'sensor'], fitterRate: 30, growth: true },
+        { id: call, name: 'call', timed: 'call', reasons: ['film change', 'jam', 'QA check', 'label', 'material short'], respondMin: 3 },
+        { id: belt, name: 'belt break', wear: { unit: 'hours', swapCost: 20, failCost: 120 } },
+      ] } },
+      facts: {
+        watch: [{ id: uid(), from: w0, to: w0 + 360 * M, by: 'Sam Patel' }],
+        events: [
+          ...stops.map(([m, help, fix, reason]) => ({ id: uid(), at: w0 + m * M, by: 'Sam Patel', count: stop, ...(help !== undefined ? { arrivedAt: w0 + (m + help) * M } : {}), fixedAt: w0 + (m + fix) * M, reason, ...(help === undefined ? { est: true } : {}) })),
+          ...calls.map(([m, help, fix, reason]) => ({ id: uid(), at: w0 + m * M, by: 'Sam Patel', count: call, arrivedAt: w0 + (m + help) * M, fixedAt: w0 + (m + fix) * M, reason })),
+        ],
+        lives: [...[210, 320, 380, 450, 520, 610, 700].map(a => wearAge(a, true)), wearAge(150, false), wearAge(330, false)],
+        remarks: [{ id: uid(), at: w0 + 200 * M, text: 'Film breaks all on the new reel; QA check waits for the technician from line 3.', by: 'Sam Patel' }],
+      }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
+  }
+
   const analysisId = uid();
   /* AN ANALYSIS (W3a, knowledge/specs/FC-105-analysis.md): fill weights before and after a re-calibration, lower is better —
      the figures are the specification's independent case (cases-w3a.py): Welch p 0.0006, the difference −0.50 g. */
@@ -1233,7 +1270,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, reliabilityFamilyId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId,
     line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }

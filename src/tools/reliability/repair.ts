@@ -183,10 +183,15 @@ export function repairFigures(stops: readonly TimedStop[], f: RelBasis, t: numbe
     if (out.lostMinPerH !== undefined) out.halfBackMinPerH = out.lostMinPerH / 2;
   }
 
-  out.bars = done.map(s => s.arrivedAt !== undefined
+  out.bars = barsOf(done);
+  return out;
+}
+
+/** A bar for each cleared stop, in the order they came: waiting then fixing, or the whole time with no help stamp. */
+export function barsOf(done: readonly TimedStop[]): StopBar[] {
+  return done.filter(s => s.fixedAt !== undefined).map(s => s.arrivedAt !== undefined
     ? { at: s.at, waitMin: (s.arrivedAt - s.at) / MIN, fixMin: ((s.fixedAt as number) - s.arrivedAt) / MIN, est: !!s.est }
     : { at: s.at, fixMin: ((s.fixedAt as number) - s.at) / MIN, est: !!s.est });
-  return out;
 }
 
 /* ------------------------------------------------------------------ the sentences */
@@ -215,7 +220,6 @@ export function repairSays(ev: string, f: Pick<RelBasis, 'n' | 'mtbfH'>, r: Repa
 /** What it means: waiting or fixing, the long ones, what was said not clocked, the open. */
 export function repairInsights(ev: string, f: Pick<RelBasis, 'n'>, r: RepairFigures): Said[] {
   const out: Said[] = [];
-  const evs = plural(ev);
   if (r.timed && r.helped >= MIN_HELPED && r.waitShare !== undefined) {
     const lead = r.waitShare >= 0.5 ? ' Most of the time is waiting — look at who is called and how fast.' : r.waitShare <= 0.2 ? ' It is mostly fixing — look at the repair itself.' : '';
     out.push({ text: `Waiting for help is ${pct(r.waitShare)} of the time (typically ${mins(r.waitMedianMin ?? 0)}, from ${r.helped} ${plural(ev, r.helped)} with a help stamp); fixing is the rest (typically ${mins(r.fixMedianMin ?? 0)}, which includes finding the fault).${lead}`, tone: 'n' });
@@ -225,12 +229,11 @@ export function repairInsights(ev: string, f: Pick<RelBasis, 'n'>, r: RepairFigu
   if (r.timed >= ROUGH_TIMED && r.meanMin !== undefined && r.medianMin !== undefined && r.meanMin >= 1.25 * r.medianMin) {
     out.push({ text: `A few long ones pull the mean (${mins(r.meanMin)}) above the typical (${mins(r.medianMin)}) — read the typical, and look at the longest, ${mins(r.maxMin ?? 0)}.`, tone: 'n' });
   }
-  if (r.typed) out.push({ text: `${r.typed} of the ${r.timed} times were said, not clocked.`, tone: 'n' });
+  if (r.typed) out.push({ text: `${r.typed} of the ${r.timed} times ${r.typed === 1 ? 'was' : 'were'} said, not clocked.`, tone: 'n' });
   const untimed = f.n - r.timed - r.open;
   if (r.timed && untimed > 0) out.push({ text: `${untimed} ${plural(ev, untimed)} counted but never timed — the figures take them as long as the ${r.timed} timed.`, tone: 'n' });
   if (r.stale) out.push({ text: `${r.stale} ${plural(ev, r.stale)} open for more than ${OPEN_STALE_H} hours — say how long it took, or strike it; it is counted as down until then.`, tone: 'a' });
   else if (r.open && r.timed) out.push({ text: `${r.open} ${plural(ev, r.open)} not yet cleared, counted as down until they are.`, tone: 'n' });
-  void evs;
   return out;
 }
 
@@ -279,6 +282,7 @@ export interface CallFigures {
   reasons: ReasonRow[];
   topWaiting?: ReasonRow; mostFrequent?: ReasonRow;
   stale: number;
+  bars: StopBar[];
 }
 
 export function callFigures(stops: readonly TimedStop[], wantedMin: number | undefined, t: number): CallFigures {
@@ -286,7 +290,7 @@ export function callFigures(stops: readonly TimedStop[], wantedMin: number | und
   const resp = answered.map(s => ((s.arrivedAt as number) - s.at) / MIN), res = cleared.map(s => ((s.fixedAt as number) - s.at) / MIN);
   const out: CallFigures = { calls: stops.length, answered: answered.length, cleared: cleared.length, open: stops.length - cleared.length, typed: cleared.filter(s => s.est).length,
     waitTotalMin: resp.reduce((a, b) => a + b, 0), clearTotalMin: res.reduce((a, b) => a + b, 0), reasons: reasonRows(stops, 'wait'),
-    stale: stops.filter(s => s.open && (t - s.at) / HOUR > OPEN_STALE_H).length };
+    stale: stops.filter(s => s.open && (t - s.at) / HOUR > OPEN_STALE_H).length, bars: barsOf(cleared) };
   if (wantedMin && wantedMin > 0) out.wantedMin = wantedMin;
   if (resp.length) {
     const s = sortedAsc(resp);
@@ -333,7 +337,7 @@ export function callInsights(ev: string, k: CallFigures, listed: boolean): Said[
   }
   if (!listed) out.push({ text: `List the reasons (five to eight) in Change what was agreed to see what the ${evs} are for.`, tone: 'n' });
   if (k.topWaiting && k.topWaiting.n >= 3) out.push({ text: `${k.topWaiting.reason} keeps coming — a recurring reason is a cause to take on: Make it better raises it from here.`, tone: 'n' });
-  if (k.typed) out.push({ text: `${k.typed} of the ${k.cleared} times were said, not clocked.`, tone: 'n' });
+  if (k.typed) out.push({ text: `${k.typed} of the ${k.cleared} times ${k.typed === 1 ? 'was' : 'were'} said, not clocked.`, tone: 'n' });
   if (k.stale) out.push({ text: `${k.stale} ${plural(ev, k.stale)} open for more than ${OPEN_STALE_H} hours — say how long it took, or strike it.`, tone: 'a' });
   out.push({ text: 'Calls are counted by reason and by shift, never by person.', tone: 'n' });
   return out;

@@ -41,7 +41,13 @@ import { samplingBlocks } from './report/samplingTable';
 import { balanceBlocks } from './report/balanceTable';
 import { balance } from '../tools/linework/balance';
 import { agreedFor, balanceCost, costInputs, crewKept } from '../tools/linework/balanceLink';
-import { costWords, countTitle, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, studyReliabilitySays, type RelItem } from '../tools/reliability/reliability';
+import { costWords, countTitle, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, studyReliabilitySays, waitCost, waitWords, type RelItem } from '../tools/reliability/reliability';
+import { callsByShift, fitterCost } from '../tools/reliability/repair';
+import { wearOf } from '../tools/reliability/wear';
+import { weibullTiles } from '../tools/reliability/weibull';
+import { gbp as relGbp } from '../tools/reliability/words';
+import { lineDay } from './lineLoss';
+import { callBlocks, growthBlocks, repairBlocks, wearBlocks } from './report/reliabilityMore';
 import { relClosings, relTiles, relTrend } from '../tools/reliability/reliabilityLean';
 import { overTime, overTimeSays } from '../tools/capability/overTime';
 import { analysisClosing, analysisFigures, analysisPicture, analysisPlot, analysisSays, analysisTiles, confidenceOf, KIND_WORDS, pSay as anP, pctWord as anPct, type Plot, type PicRow } from '../tools/analysis/analysis';
@@ -580,7 +586,7 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     const line = p.ctx?.workspaces?.find(w => w.id === s.workspaceId) as Parameters<typeof relCost>[2] | undefined;
     const where = { machine: s.machine, neck: neckOf(p.standards, s.workspaceId) };   /* its machine and the line's bottleneck (FC-058) */
     eyebrow = 'Reliability study'; verdict = { text: said.verdict, tone: said.tone };
-    if (items.length === 1) tiles = relTiles(items[0].c, items[0].f, relCost(items[0].f, items[0].c, line, where));
+    if (items.length === 1) tiles = relTiles(items[0].c, items[0].f, relCost(items[0].f, items[0].c, line, where), { r: items[0].r, k: items[0].k, g: items[0].g });
     closing = relClosings(items, line, where);
     body = reliabilityBlocks(s, items, line, where);
   } else if (s.tool === 'map') {
@@ -630,10 +636,10 @@ function reliabilityBlocks(s: ToolStudy, items: RelItem[], line?: Parameters<typ
   const out: Block[] = [];
   const many = items.length > 1;
   if (many) { out.push(leanHead('Counted side by side')); out.push(...relTogetherBlocks(relRows(items, line, where))); }
-  for (const { c, f } of items) {
+  for (const { c, f, r, k, g, stops } of items) {
     if (many) {
       out.push(leanHead(countTitle(c)));
-      out.push(leanTiles(relTiles(c, f, relCost(f, c, line, where))));
+      out.push(leanTiles(relTiles(c, f, relCost(f, c, line, where), { r, k, g })));
       out.push(text({ text: reliabilitySays(c, f).text, size: 9, colour: INK2, after: 4 }));
     }
     const ins = reliabilityInsights(c, f);
@@ -646,6 +652,16 @@ function reliabilityBlocks(s: ToolStudy, items: RelItem[], line?: Parameters<typ
     const cost = relCost(f, c, line, where);
     if (cost.downMinPerH !== undefined) out.push(text({ text: `What it costs: ${costWords(cost)}.`, size: 8.5, colour: INK2, after: 4 }));
     else if (f.rate !== undefined && cost.missing.length) out.push(text({ text: `What it costs is said once given: ${cost.missing.join('; ')}.`, size: 8, colour: MUTED, after: 4 }));
+    /* what the count was set up for beyond counting (FC-059, FC-015, FC-061, FC-060) — the page's panels, from the same modules */
+    if (r) out.push(...repairBlocks(c.event, f, r, fitterCost(r, f.rate, c.fitterRate)));
+    if (k) out.push(...callBlocks(c.event, k, !!c.reasons?.length, callsByShift(stops ?? [], line?.shifts), k.bars, waitWords(waitCost(k, f, c, line, where))));
+    if (g) out.push(...growthBlocks(c.event, g, f.points));
+    const wv = wearOf(c, f, s.facts.lives);
+    if (wv) {
+      const dayMin = line ? lineDay({ name: line.name, packsPerMin: line.packsPerMin, marginPerPack: line.marginPerPack, shifts: line.shifts }).minutes : undefined;
+      out.push(...wearBlocks(wv.unit, wv.fit, wv.hasRunning, weibullTiles(wv.unit, wv.fit, wv.rep), { ...(wv.cp !== undefined ? { cp: wv.cp } : {}), ...(wv.cf !== undefined ? { cf: wv.cf } : {}), gbp: relGbp,
+        ...(wv.unit === 'hours' && dayMin ? { dayUnits: dayMin / 60 } : {}), ...(wv.age !== undefined ? { age: wv.age } : {}), ...(wv.ahead !== undefined ? { ahead: wv.ahead } : {}) }));
+    }
     if (f.days.length) { out.push(leanHead(many ? `${countTitle(c)} — day by day` : 'Day by day')); out.push(...relDaysBlocks(f, countTitle(c))); }
   }
   out.push(leanHead('Commentary'));

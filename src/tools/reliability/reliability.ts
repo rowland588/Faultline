@@ -416,6 +416,16 @@ export function costWords(c: RelCost): string {
   return parts.join(' · ') + day;
 }
 
+/** WHAT THE WAITING FOR HELP COST (FC-015): the minutes spent waiting an hour
+ *  of running, priced as a stop is — the crew's labour, and the packs only
+ *  where the machine stops the line. Absent with no call answered. */
+export function waitCost(k: CallFigures, f: RelFigures, a: RelSubject, line?: RelCostLine, where?: RelWhere): RelCost | undefined {
+  if (!k.answered || !(f.hours > 0) || !(k.waitTotalMin > 0)) return undefined;
+  const c = relCost({ ...f, rate: k.waitTotalMin / f.hours }, { event: a.event, downMin: 1 }, line, where);
+  return c.downMinPerH !== undefined ? c : undefined;
+}
+export const waitWords = (c: RelCost | undefined): string => (c ? `Waiting for help alone: ${costWords(c)}.` : '');
+
 /* ------------------------------------------------------------------ what it says */
 
 export interface RelSays { verdict: string; text: string; tone: 'r' | 'a' | 'g' | 'n' }
