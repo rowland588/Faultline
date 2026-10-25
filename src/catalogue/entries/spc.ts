@@ -12,6 +12,13 @@ const ANALYSIS_BUILT = { where: ['/analysis'], code: ['src/tools/analysis/analys
 const GROUPS_SPEC = 'knowledge/specs/FC-107-groups-tables-relations.md';
 const GROUPS_BUILT = { where: ['/analysis'], code: ['src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx', 'src/lib/ie/groups.ts', 'src/lib/ie/relate.ts', 'src/lib/studiesPdf.ts'], tests: ['src/lib/ie/__tests__/groups.test.ts', 'src/lib/ie/__tests__/relate.test.ts', 'src/tools/analysis/__tests__/analysisMore.test.ts'], acceptance: ['analysis-relations.mjs'] };
 const ANALYSIS_BUILT_WITH = { ...ANALYSIS_BUILT, where: ['/analysis', '/capability'], code: [...ANALYSIS_BUILT.code, 'src/tools/capability/sample.ts', 'src/tools/capability/StudyScreen.tsx'], acceptance: ['analysis.mjs'] };
+/* W3c (25 October, builder F3): the shape of the data, the gauge studies, the tail fitted in the capability study — proved by analysis-shape.mjs,
+   analysis-gauge.mjs and capability-kinds.mjs step 16 */
+const FIT_SPEC = 'knowledge/specs/FC-114-fitting.md';
+const GAUGE_SPEC = 'knowledge/specs/FC-119-gauge.md';
+const SHAPE_BUILT = { where: ['/analysis'], code: ['src/lib/ie/fit.ts', 'src/tools/analysis/measure.ts', 'src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/lib/ie/__tests__/fit.test.ts', 'src/tools/analysis/__tests__/analysisShape.test.ts'], acceptance: ['analysis-shape.mjs'] };
+const GAUGE_BUILT = { where: ['/analysis'], code: ['src/lib/ie/gauge.ts', 'src/tools/analysis/measure.ts', 'src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/lib/ie/__tests__/gauge.test.ts', 'src/tools/analysis/__tests__/analysisGauge.test.ts'], acceptance: ['analysis-gauge.mjs'] };
+const FITTED_BUILT = { where: ['/capability'], code: ['src/lib/ie/fit.ts', 'src/tools/capability/modes.ts', 'src/tools/capability/sample.ts', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/lib/ie/__tests__/fit.test.ts', 'src/tools/capability/__tests__/sampleFitted.test.ts'], acceptance: ['capability-kinds.mjs'] };
 const CHART_BUILT = { where: ['/chart'], code: ['src/tools/chart/chart.ts', 'src/tools/chart/ChartScreen.tsx', 'src/lib/ie/charts.ts', 'src/lib/ie/dist.ts', 'src/lib/studiesPdf.ts'], tests: ['src/tools/chart/__tests__/chart.test.ts', 'src/lib/ie/__tests__/charts.test.ts'], acceptance: ['control-chart.mjs'] };
 /* W1 (24 October): the study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
 const MODES_BUILT = { where: ['/capability'], code: ['src/tools/capability/modes.ts', 'src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/ModeParts.tsx', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts'], acceptance: ['capability-kinds.mjs'] };
@@ -170,8 +177,9 @@ export const SPC: Entry[] = [
     food: 'Residual oxygen; leak rates; combination-weigher fills.',
     depends: ['FC-097', 'FC-114'],
     complexity: 'L', value: 'medium', valueWhy: 'Honest capability where the bell does not fit.',
-    status: 'to-build', form: 'mode', partOf: 'FC-094', methods: ['spc.capability-nonnormal', 'stats.distribution-fitting'], scenarios: ['quality'],
-    limits: ['Planned for W3c with distribution fitting (FC-114) — the capability study already says a leaning set is read as measured (docs/TOOLS-BUILD.md).'],
+    status: 'available', form: 'mode', partOf: 'FC-094', methods: ['spc.capability-nonnormal', 'stats.distribution-fitting'], scenarios: ['quality'],
+    built: FITTED_BUILT, spec: FIT_SPEC,
+    limits: ['Four shapes only — normal, lognormal, two-parameter Weibull, exponential; no Box–Cox, Johnson, gamma or a lower end that is not zero.', 'Fitted from 20 readings on a measured study with a limit; not on a sold-by-weight study, whose rules are counts. The study’s own Ppk, share and sentences are unchanged; the fitted share is a note beside them.', 'The tail from 30 readings is a model’s reach, said on the note; no money of its own — the study’s give-away is unchanged.'],
   },
   {
     id: 'FC-097', name: 'Before capability — is it bell-shaped, steady and fine enough', discipline: 'spc', sub: 'checks',
@@ -418,7 +426,9 @@ export const SPC: Entry[] = [
     food: 'Residual oxygen; repair times.',
     depends: ['FC-096', 'FC-060'],
     complexity: 'M', value: 'low', valueWhy: 'A part for non-normal capability and Weibull.',
-    status: 'to-build', form: 'component', methods: ['stats.distribution-fitting'], scenarios: ['quality'],
+    status: 'available', form: 'component', methods: ['stats.distribution-fitting'], scenarios: ['quality'],
+    built: SHAPE_BUILT, spec: FIT_SPEC,
+    limits: ['Four shapes (normal, lognormal, two-parameter Weibull, exponential), each judged by Anderson–Darling (the Weibull’s and exponential’s p interpolated in Stephens’ tables and held at the table’s ends, said) and compared by AIC; no three-parameter shape, gamma, Johnson or mixture.', 'A shape is fitted from 20 readings, read as a hint under 30 and told from its neighbours from 50; rounded readings throw the goodness test — said.', 'ISO 22514-2’s text was not read; the percentile index is its form from the scope and Clements (1989). No money of its own.'],
   },
   {
     id: 'FC-115', name: 'Readings taken too close together — autocorrelation', discipline: 'stats', sub: 'plan',
@@ -482,7 +492,9 @@ export const SPC: Entry[] = [
     food: 'Checkweighers with certified test weights.',
     depends: ['FC-164', 'FC-118'],
     complexity: 'S', value: 'high', valueWhy: 'Quick, and it decides whether weights can be trusted.',
-    status: 'to-build', form: 'tool', kind: 'study', methods: ['msa.type1-gauge'], scenarios: ['quality', 'packing'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['msa.type1-gauge'], scenarios: ['quality', 'packing'],
+    built: GAUGE_BUILT, spec: GAUGE_SPEC,
+    limits: ['One reference, one operator, one day — the repeatability and reproducibility of several operators on several parts is gauge R&R (FC-118), not built.', 'The 20% slice, the 1.33 wanted and the 5% least count are the automotive practice’s, Faultline’s defaults and changeable; VDA volume 5’s text was not read (knowledge/GAPS.md).', 'The gauge’s record is not carried to the studies that name it (no gauge noun — BLUEPRINT §2 first); a bias is money only for a weight in g or kg: give-away when it reads low, short weight (never priced) when it reads high.'],
   },
   {
     id: 'FC-120', name: 'Bias, linearity and stability of a gauge', discipline: 'msa', sub: 'gauge',
@@ -494,7 +506,9 @@ export const SPC: Entry[] = [
     food: 'Intake platform scales.',
     depends: ['FC-122', 'FC-086'],
     complexity: 'M', value: 'low', valueWhy: 'After a type 1 study raises a question.',
-    status: 'to-build', form: 'mode', partOf: 'FC-119', methods: ['msa.bias-linearity-stability'], scenarios: ['quality'],
+    status: 'available', form: 'mode', partOf: 'FC-119', methods: ['msa.bias-linearity-stability'], scenarios: ['quality'],
+    built: GAUGE_BUILT, spec: GAUGE_SPEC,
+    limits: ['The line of bias is fitted to each reference’s mean bias, as the record does (four references at least, five usual); the AIAG form on every reading is not offered.', 'Stability is an individuals chart with the four Western Electric tests, limits from the first N checks agreed; no guard band is applied to a CCP check or the capability study — the page says the true value, the team applies it.', 'No calibration register or due dates (FC-122).'],
   },
   {
     id: 'FC-121', name: 'Inspectors agreeing — attribute agreement (kappa)', discipline: 'msa', sub: 'attribute',

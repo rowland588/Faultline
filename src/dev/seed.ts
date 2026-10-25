@@ -130,6 +130,10 @@ export interface Seeded {
   analysisGroupsId: string;
   analysisTableId: string;
   analysisRelateId: string;
+  analysisGaugeId: string;
+  analysisRangeId: string;
+  analysisDriftId: string;
+  analysisShapeId: string;
   /** The paced job's Line 7 — its own workspace, with shifts, a cost model
    *  and stops timed through the last two days' shifts (tool 7). */
   line7WsId: string;
@@ -1074,6 +1078,26 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       facts: { readings: X.map((x, i) => ({ id: uid(), xs: [x], value: Y[i], at: w0 + i * M, who: 'Sam Patel' })) }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
   }
 
+  /* THE GAUGE STUDIES AND THE SHAPE (W3c, knowledge/specs/FC-119-gauge.md and FC-114-fitting.md): a bench scale read fifty times on its 500.0 g
+     test weight, a probe at five references, the daily check weight over 25 days, and the minutes between short stops — the specifications'
+     independent cases (cases-w3c.py). Quick sessions, no line. */
+  const analysisGaugeId = uid(), analysisRangeId = uid(), analysisDriftId = uid(), analysisShapeId = uid();
+  {
+    const M = 60_000, w0 = t - 30 * 3_600_000;
+    const scale = [500.09, 500.14, 500.17, 500.04, 500.18, 500.14, 500.18, 500.14, 500.21, 500.04, 500.26, 500.22, 500.07, 500.17, 500.16, 499.98, 500.17, 500.07, 500.1, 500.07, 500.09, 500.13, 500.13, 500.0, 500.1, 500.01, 500.02, 500.09, 500.19, 500.17, 500.07, 500.06, 500.05, 500.13, 500.19, 500.12, 500.18, 500.15, 500.24, 499.96, 499.95, 500.1, 500.17, 500.09, 500.15, 500.03, 500.02, 500.06, 500.19, 500.18];
+    await putStudy({ id: analysisGaugeId, tool: 'analysis', name: 'Bench scale against its 500 g test weight', machine: 'Bench scale', agreed: { analysis: { kind: 'gauge', name: 'Bench scale', unit: 'g', gauge: { mode: 'repeat', reference: 500, lower: 495, upper: 505 }, confidence: 0.95 } },
+      facts: { readings: scale.map((value, i) => ({ id: uid(), value, at: w0 + i * M, who: 'Sam Patel' })) }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
+    const probe: Record<number, number[]> = { 0: [-0.22, -0.28, -0.02, -0.29, -0.36, -0.07, -0.05, -0.26, -0.22, 0.18], 20: [19.81, 19.87, 20.07, 20.02, 20.12, 20.03, 19.88, 19.94, 19.86, 20.03], 40: [40.07, 39.86, 40.07, 39.91, 40.02, 39.96, 40.04, 39.7, 40.06, 39.84], 60: [60.23, 59.95, 60.03, 60.0, 60.12, 60.22, 60.12, 60.09, 60.11, 60.08], 80: [80.18, 80.08, 80.15, 80.35, 80.3, 79.97, 80.14, 80.19, 80.11, 80.09] };
+    await putStudy({ id: analysisRangeId, tool: 'analysis', name: 'Cook probe at five references', machine: 'Cook-chill', agreed: { analysis: { kind: 'gauge', name: 'Probe', unit: '°C', gauge: { mode: 'range', limit: 75 }, confidence: 0.95 } },
+      facts: { readings: Object.entries(probe).flatMap(([ref, vs], k) => vs.map((value, i) => ({ id: uid(), value, with: Number(ref), at: w0 + (k * 10 + i) * M, who: 'Sam Patel' }))) }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
+    const daily = [60.09, 60.14, 60.08, 60.08, 60.14, 60.14, 60.12, 59.95, 60.03, 60.06, 60.16, 60.09, 60.05, 60.13, 60.12, 59.98, 60.14, 60.05, 60.41, 60.44, 60.29, 60.51, 60.29, 60.48, 60.45];
+    await putStudy({ id: analysisDriftId, tool: 'analysis', name: 'Daily check weight, 60 g', machine: 'Checkweigher 2', agreed: { analysis: { kind: 'gauge', name: 'Check weight', unit: 'g', gauge: { mode: 'drift', reference: 60, baseline: 18 }, confidence: 0.95 } },
+      facts: { readings: daily.map((value, i) => ({ id: uid(), value, at: w0 + i * 24 * 3_600_000 / 24, who: 'Sam Patel' })) }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
+    const stops = [18.4, 78.4, 15.1, 14.5, 23.6, 17.3, 42.7, 10.8, 66.7, 60.8, 1.0, 34.2, 10.2, 18.8, 27.2, 29.2, 30.0, 73.1, 18.8, 15.0, 42.7, 78.3, 72.0, 64.0, 7.4, 75.4, 41.2, 62.7, 26.7, 16.7, 53.1, 42.1, 51.7, 15.7, 11.9, 50.3, 3.5, 78.0, 12.0, 37.9];
+    await putStudy({ id: analysisShapeId, tool: 'analysis', name: 'Minutes between short stops', machine: 'Wrapper', agreed: { analysis: { kind: 'shape', name: 'Minutes between stops', unit: 'min', shape: { lower: 10 }, confidence: 0.95 } },
+      facts: { readings: stops.map((value, i) => ({ id: uid(), value, at: w0 + i * M, who: 'Sam Patel' })) }, uses: [], startedAt: w0, createdAt: t, updatedAt: t });
+  }
+
   /* A CONTROL CHART (W2, knowledge/specs/FC-086-charts.md): the CUSUM case's forty readings — steady for
      twenty, then 1 g higher — the limits set from the first twenty and kept. */
   const chartId = uid();
@@ -1233,7 +1257,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, analysisGaugeId, analysisRangeId, analysisDriftId, analysisShapeId,
     line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }

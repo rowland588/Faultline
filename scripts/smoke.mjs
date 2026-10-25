@@ -101,6 +101,7 @@ const ROUTES = [
   ['a reliability study — the wrapper watched two days, the watch running now, a stop struck, two remarks', `#/reliability/${seeded.reliabilityId}`],
   ['an analysis — twelve fill times before and after a re-calibration: it fell by 0.5 s, the right way', `#/analysis/${seeded.analysisId}`],
   ['an analysis — three shifts’ give-away: B the worst', `#/analysis/${seeded.analysisGroupsId}`], ['an analysis — rejects by lane and fault type, linked', `#/analysis/${seeded.analysisTableId}`], ['an analysis — seal strength against jaw temperature, the line too straight', `#/analysis/${seeded.analysisRelateId}`],
+  ['an analysis — a bench scale on its test weight: fit, reads 0.11 g high', `#/analysis/${seeded.analysisGaugeId}`], ['an analysis — a probe at five references: the bias changes with size', `#/analysis/${seeded.analysisRangeId}`], ['an analysis — the daily check weight: drifted from check 19', `#/analysis/${seeded.analysisDriftId}`], ['an analysis — minutes between short stops: a Weibull', `#/analysis/${seeded.analysisShapeId}`],
   ['a control chart — forty fill weights, the limits set from twenty, two beyond and a run, the CUSUM since reading 28', `#/chart/${seeded.chartId}`],
   ['fixes — a fix raised from a value stream step, before → after', `#/project/${seeded.projectId}/fixes?open=${seeded.mapFixId}`],
   /* A SHIFT'S LOSSES (tool 7): every loss count; Shift 1 on Line 7 — the
