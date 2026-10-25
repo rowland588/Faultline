@@ -55,13 +55,13 @@ const LINE = sd.line7WsId;
 /* what the module says of a line, from its own records */
 const expected = id => page.evaluate(async id => {
   const db = await import('/src/db.ts');
-  const { lineBundle, defaultPicks } = await import('/src/line/report/lineBundle.ts');
+  const { lineBundle, defaultPicks, whereFor } = await import('/src/line/report/lineBundle.ts');
   const { san } = await import('/src/lib/reportKit.ts');   /* the paper's own sanitising — "→" is written "to" */
   const [lines, machines, programs, jobLines, snags, standards, studies, projects] = await Promise.all([db.listWorkspaces(), db.listAllAssets(), db.listAllPrograms(), db.allPaceLines(), db.listAllSnags(), db.listAllStandards(), db.listAllStudies(), db.allProjects()]);
   const line = lines.find(w => w.id === id);
   const obs = (await Promise.all([id, ...(line.madeOf ?? [])].map(x => db.listObservations(x)))).flat();
   const b = lineBundle(line, { lines, machines, programs, jobLines, snags, standards: standards.filter(s => !s.deletedAt), studies, jobName: pid => projects.find(p => p.id === pid)?.name, ctx: { observations: obs, workspaces: lines } });
-  return { dual: b.dual, parts: b.parts.map(p => ({ title: p.title, items: p.items.map(i => ({ key: i.key, tool: i.tool, name: i.name, paper: san(`${i.tool} — ${i.name}`), says: i.says })), picks: [...defaultPicks(p.items)], where: p.where.map(w => ({ machine: w.machine, n: w.findings.length })), actions: p.actions.length, open: p.problems.open })) };
+  return { dual: b.dual, parts: b.parts.map(p => ({ title: p.title, items: p.items.map(i => ({ key: i.key, tool: i.tool, name: i.name, paper: san(`${i.tool} — ${i.name}`), says: i.says })), picks: [...defaultPicks(p.items)], where: whereFor(p, defaultPicks(p.items)).map(w => ({ machine: w.machine, n: w.findings.length })), actions: p.actions.length, open: p.problems.open })) };
 }, id);
 
 /* 1 · from Report ▾, made on arrival */

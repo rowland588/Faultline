@@ -2,7 +2,7 @@
  * a line's parts, where on the line a finding points, what goes in by
  * default, who owes what; a dual line as its lines then both together. */
 import { describe, expect, it } from 'vitest';
-import { actionsOn, bundleSays, defaultPicks, itemsOn, lineBundle, whereOnLine } from '../lineBundle';
+import { actionsOn, bundleSays, defaultPicks, itemsOn, lineBundle, picksForTools, whereFor, whereOnLine } from '../lineBundle';
 import type { Workspace } from '../../../types';
 import type { Snag } from '../../../snag/types';
 import type { Program } from '../../../lib/programs';
@@ -55,6 +55,20 @@ describe('everything on the line', () => {
     expect(w[0].findings.map(f => f.from)).toEqual(['Problem', 'Program', 'Capability', 'Reliability']);
     expect(w[0].findings[0]).toMatchObject({ says: expect.stringContaining('Miss picks at the pick and place'), tone: 'r' });
     expect(w[0].findings[1]).toMatchObject({ says: 'Program 10 not proved — test was 20 Oct', tone: 'r' });
+  });
+  it('where on the line follows the ticks: a record left out leaves its finding out, the problems and programs stay (25 October)', () => {
+    const part = lineBundle(A, records).parts[0];
+    const all = new Set(part.items.map(i => i.key));
+    expect(whereFor(part, all, TODAY)[0].findings.map(f => f.from)).toEqual(['Problem', 'Program', 'Capability', 'Reliability']);
+    const noRel = new Set([...all].filter(k => k !== 'study:r1'));
+    expect(whereFor(part, noRel, TODAY)[0].findings.map(f => f.from)).toEqual(['Problem', 'Program', 'Capability']);
+    expect(whereFor(part, new Set(), TODAY)[0].findings.map(f => f.from)).toEqual(['Problem', 'Program']);
+  });
+  it('tools ticked on the Tools page: every record of those tools is in — not only the newest — and nothing else', () => {
+    const b = lineBundle(A, records);
+    expect([...picksForTools(b, ['Capability', 'Reliability'])].sort()).toEqual(['study:c1', 'study:c2', 'study:r1']);
+    expect([...picksForTools(b, ['Line capacity'])]).toEqual(['capacity:st1']);
+    expect([...picksForTools(b, ['SMED'])]).toEqual([]);
   });
   it('who owes what by when — every open problem and every program to prove, the late first', () => {
     const b = lineBundle(A, records);

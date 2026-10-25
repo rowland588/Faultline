@@ -146,6 +146,14 @@ describe('against the MTBF wanted', () => {
     expect(reliability({ event: 'stop', targetMin: 55 }, runs, twenty, T0 + 21 * H).verdict).toBe('met-unsure');
     expect(reliability({ event: 'stop', targetMin: 70 }, runs, twenty, T0 + 21 * H).verdict).toBe('short-unsure');
   });
+  it('the sentence is a sentence: “Against … wanted, it is …” for each verdict (25 October — “it on the MTBF wanted” read broken on the line report)', () => {
+    const say = (m: number) => { const a = { event: 'stop', targetMin: m }; return reliabilitySays(a, reliability(a, runs, twenty, T0 + 21 * H)).text; };
+    expect(say(30)).toMatch(/Against 30 min wanted, it is at or above the MTBF wanted\./);
+    expect(say(55)).toMatch(/Against 55 min wanted, it is at or above the MTBF wanted, not yet sure\./);
+    expect(say(70)).toMatch(/Against 70 min wanted, it is below the MTBF wanted, not yet sure\./);
+    expect(say(120)).toMatch(/Against 2 h wanted, it is short of the MTBF wanted\./);
+    for (const m of [30, 55, 70, 120]) expect(say(m)).not.toMatch(/it (on|below|short|meets) /);
+  });
   it('short when the upper bound is under it, said red', () => {
     const f = reliability({ event: 'stop', targetMin: 120 }, runs, twenty, T0 + 21 * H);
     expect(f.verdict).toBe('short');

@@ -16,7 +16,7 @@ import type { ProgramsReading } from '../../lib/programsReport';
 import type { CapacityPaper } from '../../tools/linebalance/capacityPaper';
 import type { LineReading } from '../../lib/lineLean';
 import { lineClosing, lineTiles } from '../../lib/lineLean';
-import type { LineBundle, LinePart } from './lineBundle';
+import { whereFor, type LineBundle, type LinePart, type WhereRow } from './lineBundle';
 import { chooseDensity, pour, type Block, type Density, type Frame } from '../../lib/report/flow';
 import { font, gap, rows, text, wrap } from '../../lib/report/blocks';
 import { leanActions, leanBand, leanClosing, leanHead, leanTiles } from '../../lib/report/lean';
@@ -51,10 +51,10 @@ export interface LineBundlePaper {
 }
 
 /** WHERE ON THE LINE — a row a machine, every finding under it in its own colour. */
-function whereBlocks(part: LinePart): Block[] {
+function whereBlocks(rowsOf: WhereRow[]): Block[] {
   const nameW = 130;
   return [rows({
-    rows: part.where.map(w => ({
+    rows: rowsOf.map(w => ({
       h: (f: Frame) => 8 + Math.max(12, w.findings.reduce((n, x) => n + wrap(f.doc, `${x.from}: ${x.says}`, f.w - nameW - 8, 8.5).length * 10.5, 0)),
       draw: (f: Frame, top: number) => {
         f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, top, f.x + f.w, top);
@@ -93,7 +93,8 @@ function partBlocks(p: LineBundlePaper, part: LinePart, d: Density): Block[] {
   else out.push(...programsBlocks(pr, d));
 
   /* WHERE ON THE LINE — only where a finding points at a machine */
-  if (part.where.length) { out.push(leanHead('Where on the line', `${part.where.length} machine${part.where.length === 1 ? '' : 's'} with findings`)); out.push(...whereBlocks(part)); }
+  const where = whereFor(part, p.picks);
+  if (where.length) { out.push(leanHead('Where on the line', `${where.length} machine${where.length === 1 ? '' : 's'} with findings`)); out.push(...whereBlocks(where)); }
 
   /* EACH TOOL TICKED IN — its own paper's blocks */
   const picked = part.items.filter(it => p.picks.has(it.key));

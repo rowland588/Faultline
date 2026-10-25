@@ -20,7 +20,8 @@ import { getWorkspace, listAllSnags, listObservations, listWorkspaces, onDataCha
 import { useLineRecords } from '../../lib/useLineRecords';
 import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../../lib/useJobFloor';
 import { lineProgramsReading } from '../../lib/lineRecords';
-import { bundleSays, defaultPicks, lineBundle, type LineBundle } from './lineBundle';
+import { bundleSays, defaultPicks, lineBundle, picksForTools, whereFor, type LineBundle } from './lineBundle';
+import { toolByKey } from '../../catalogue/registry';
 import type { LineReading } from '../../lib/lineLean';
 import { lineClosing, lineTiles } from '../../lib/lineLean';
 import { lineDay } from '../../lib/lineLoss';
@@ -63,7 +64,14 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
   /* WHAT GOES IN — the newest of each tool by default; a tick adds or takes one off */
   const [picks, setPicks] = useState<Set<string> | null>(null);
   const keys = useMemo(() => (bundle ? bundle.parts.flatMap(p => p.items.map(i => i.key)).join('|') : ''), [bundle]);
-  useEffect(() => { if (bundle && picks === null && keys) setPicks(new Set(bundle.parts.flatMap(p => [...defaultPicks(p.items)]))); }, [bundle, keys, picks]);
+  /* ?tools=capability,reliability — the line's Tools page asked for these tools: every record of theirs is in, the rest left out */
+  const asked = useMemo(() => {
+    const m = /[?&]tools=([^&]*)/.exec(window.location.hash);
+    return m ? decodeURIComponent(m[1]).split(',').map(k => toolByKey(k)?.label).filter((l): l is string => !!l) : [];
+  }, []);
+  useEffect(() => {
+    if (bundle && picks === null && keys) setPicks(asked.length ? picksForTools(bundle, asked) : new Set(bundle.parts.flatMap(p => [...defaultPicks(p.items)])));
+  }, [bundle, keys, picks, asked]);
   const on = picks ?? new Set<string>();
   const toggle = (k: string) => setPicks(s => { const n = new Set(s ?? on); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
@@ -118,7 +126,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
       <PageHeader
         eyebrow={<span className="pl-eyebrow">PRODUCTION LINE · THE LINE REPORT</span>}
         title={`${line.name} — everything on the line`}
-        says={<span className="pl-says">{bundleSays(bundle, on)}{dualWords ? ` · ${dualWords[0].toLowerCase()} ${dualWords[1]}` : ''}. Tick what goes in; the newest of each tool is in already. Each tool's own report stays where it was.</span>}
+        says={<span className="pl-says">{bundleSays(bundle, on)}{dualWords ? ` · ${dualWords[0].toLowerCase()} ${dualWords[1]}` : ''}. Tick what goes in; {asked.length ? `every record of ${asked.join(', ')} is in already` : 'the newest of each tool is in already'}. Each tool's own report stays where it was.</span>}
         primary={{ label: 'Download', disabled: busy || picks === null, run: () => void make() }}
       />
       {said && <p className="tc-ok lr-said" role="status">{said}</p>}
@@ -129,7 +137,12 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
           <section key={part.line.id} className="lr-part" aria-label={part.title}>
             <h2>{part.title}{part.title === 'Both lines together' ? <span className="sub"> · what was run on {line.name} itself</span> : null}</h2>
             {reading && <LeanTiles tiles={lineTiles(reading)} className="sg-tiles" />}
-            <h3 className="lr-h">What goes in</h3>
+            <h3 className="lr-h">What goes in{part.items.length > 1 && (
+              <span className="lr-all">
+                <button type="button" className="cw-link" onClick={() => setPicks(new Set([...on, ...part.items.map(i => i.key)]))}>Tick all</button>
+                <button type="button" className="cw-link" onClick={() => setPicks(new Set([...on].filter(k => !part.items.some(i => i.key === k))))}>Tick none</button>
+              </span>
+            )}</h3>
             {part.items.length === 0
               ? <p className="sub">No tool used on this line yet — its problems and programs still go in.</p>
               : (
@@ -146,10 +159,10 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
               )}
             <h3 className="lr-h">Problems and programs</h3>
             <p className="sub">{part.problems.open ? `${part.problems.open} problem${part.problems.open === 1 ? '' : 's'} open${part.problems.late ? ` · ${part.problems.late} late` : ''}` : 'No problem open'} · {pr?.says ?? 'no program planned'}</p>
-            {part.where.length > 0 && (<>
+            {whereFor(part, on).length > 0 && (<>
               <h3 className="lr-h">Where on the line</h3>
               <div className="lr-where" role="table" aria-label={`Where on ${part.title}`}>
-                {part.where.map(w => (
+                {whereFor(part, on).map(w => (
                   <div key={w.machine} className="lr-where-row" role="row">
                     <b role="rowheader">{w.machine}</b>
                     <span role="cell">{w.findings.map((f, i) => <span key={i} className={'lr-find is-' + f.tone}><i>{f.from}: </i>{f.says}</span>)}</span>

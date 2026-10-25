@@ -163,6 +163,19 @@ export function whereOnLine(kit: LineKit, problems: readonly SnagRow[], items: r
   return order.flatMap(k => { const r = rows.get(k); return r && r.findings.length > 0 ? [r] : []; });
 }
 
+/** WHERE ON THE LINE for what is ticked in — the report's page and its paper show the same machines,
+ *  so a record left out of the report is left out of Where on the line as well. */
+export function whereFor(part: LinePart, picks: ReadonlySet<string>, today = todayISO()): WhereRow[] {
+  return whereOnLine(part.kit, part.problems.rows, part.items.filter(it => picks.has(it.key)), today);
+}
+
+/** EVERY RECORD OF THE TOOLS NAMED — what the line's Tools page asks for when tools are ticked there:
+ *  all of their records are ticked in (not only the newest), the rest left out. */
+export function picksForTools(b: LineBundle, labels: readonly string[]): Set<string> {
+  const want = new Set(labels);
+  return new Set(b.parts.flatMap(p => p.items.filter(it => want.has(it.tool)).map(it => it.key)));
+}
+
 /** WHO OWES WHAT BY WHEN — every open problem and every program to prove, the late first. */
 export function actionsOn(kit: LineKit, problems: readonly SnagRow[], today = todayISO()): LeanAction[] {
   const out: LeanAction[] = [];
