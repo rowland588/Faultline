@@ -234,6 +234,30 @@ export const PAGES = (sd, cap) => [
     { what: 'the band', sel: '.ls-head.is-band' }, { what: 'the tiles — people, takt, the bottleneck person, labour a pack, lost a minute', sel: '.wb-strip .ln-tile', n: 5 },
     { what: 'the closing line', sel: '.wb .ln-close' },
   ] },
+  /* THE LINE BALANCE'S LENSES (25 October — knowledge/specs/FC-032-line-balance.md): the one record seen as the time study,
+     the combination table and person–machine chart, the order the work must follow, and the five questions asked of each step */
+  { name: 'Line balance — Times', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=balance&view=work&lens=times`, must: [
+    { what: 'its five lenses as tabs, Times on', sel: '.wb .part-views .part-view.on', text: /^Times$/ },
+    { what: 'each step: its cycles, observed, pace, basic, standard and how sure', sel: '.wb-times .wb-tr', n: 3 },
+    { what: 'each person’s task and its planned rate', sel: '.wb-times .wb-task', n: 3 },
+    { what: 'the allowance and what it is in money, or what it needs', sel: '.wb-allow' },
+    { what: 'standard data — steps timed on other products', sel: '.wb-lib' },
+  ] },
+  { name: 'Line balance — Person and machine', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=balance&view=work&lens=machine`, must: [
+    { what: 'its five lenses as tabs, Person and machine on', sel: '.wb .part-views .part-view.on', text: /^Person and machine$/ },
+    { what: 'the combination table, or how to add a machine step', sel: '.wb-machine .wb-cs-p, .wb-machine .wb-empty' },
+  ] },
+  { name: 'Line balance — Order of work', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=balance&view=work&lens=order`, must: [
+    { what: 'its five lenses as tabs, Order of work on', sel: '.wb .part-views .part-view.on', text: /^Order of work$/ },
+    { what: 'each step with what it must follow', sel: '.wb-order .wb-ord-r', n: 3 },
+    { what: 'the balance that keeps the order', sel: '.wb-prop' },
+  ] },
+  { name: 'Line balance — Improve', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=balance&view=work&lens=improve`, must: [
+    { what: 'its five lenses as tabs, Improve on', sel: '.wb .part-views .part-view.on', text: /^Improve$/ },
+    { what: 'the five questions to ask of each step', sel: '.wb-improve .wb-q' },
+    { what: 'each step with its four decisions', sel: '.wb-improve .wb-im-r', n: 3 },
+    { what: 'what the decisions say, expected until timed again', sel: '.wb-im-says' },
+  ] },
   { name: 'Line balance — every product', path: `#/linebalance?line=${sd.wsId}`, must: [{ what: 'each product with its balance said', sel: '.lt-row .lt-says' }] },
   { name: 'All together — one product', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=all`, must: [
     { what: 'the tool shell — Report ▾', sel: '.ls-head .part-menu-b', text: /^Report/ }, { what: 'the product’s views as tabs — All together on', sel: '.part-views .part-view.on', text: /^All together$/ },

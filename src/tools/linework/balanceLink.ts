@@ -102,7 +102,7 @@ export function taktFromTarget(cap?: Capacity): { taktSec: number; perMin: numbe
 export function agreedFor(agreed: AgreedBalance | undefined, cap: Capacity | undefined, closed = false): AgreedBalance | undefined {
   if (closed || (agreed && agreed.from !== 'target')) return agreed;
   const t = taktFromTarget(cap);
-  if (t) return { taktSec: t.taktSec, from: 'target', ...(agreed?.allowance ? { allowance: agreed.allowance } : {}) };
+  if (t) return { taktSec: t.taktSec, from: 'target', ...(agreed?.allowance ? { allowance: agreed.allowance } : {}), ...(agreed?.parts?.length ? { parts: agreed.parts } : {}) };
   return agreed;
 }
 

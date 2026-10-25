@@ -39,6 +39,7 @@ import { lossLean, lossPart, raisedFrom } from '../tools/losses/lossLean';
 import type { ActionLike, FixLike } from './lean';
 import { samplingBlocks } from './report/samplingTable';
 import { balanceBlocks } from './report/balanceTable';
+import { lineworkBlocks } from './report/timeTable';
 import { balance } from '../tools/linework/balance';
 import { agreedFor, balanceCost, costInputs, crewKept } from '../tools/linework/balanceLink';
 import { costWords, countTitle, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, studyReliabilitySays, type RelItem } from '../tools/reliability/reliability';
@@ -684,6 +685,10 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
     const cost = balanceCost(f, costInputs(cap, line));
     const unit = cap?.stations[0]?.unit.trim() || undefined;
     out.push(...balanceBlocks(f, { ...(cost ? { cost } : {}), ...(unit ? { unit } : {}) }));
+    /* the time study, the combination table, the order of the work and the questions asked of each step (FC-019 … FC-033) */
+    const inputs = costInputs(cap, line);
+    out.push(...lineworkBlocks(s.facts.steps ?? [], agreedFor(s.agreed?.balance, cap, !!s.closedAt), crewKept(s.facts.crew ?? [], cap), s.facts.tend,
+      { ...(inputs.ratePerHour ? { rate: inputs.ratePerHour } : {}), ...(inputs.contributionPerPack ? { contribution: inputs.contributionPerPack } : {}) }));
   }
   if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
   return out;

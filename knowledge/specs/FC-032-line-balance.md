@@ -34,8 +34,7 @@ fill scale: 49 s becomes 30 s, 75% of takt, expected until it is timed again."*
 **Scope.** The tool is the page `#/w/:ws/standards/:id?at=balance&view=work`
 (Line balance — one product), its list and its paper. Five *lenses* on the one
 record, as ViewTabs (`?lens=`): **Against takt** (as before; its element tools
-gain a fourth kind of time, *Machine*, a *Must follow* choice, and the pace asked
-after timing), **Times** (FC-019, FC-025, FC-024), **Person and machine**
+gain a fourth kind of time, *Machine*, and the pace is asked after timing), **Times** (FC-019, FC-025, FC-024), **Person and machine**
 (FC-007, FC-026), **Order of work** (FC-033), **Improve** (FC-028). One record
 (`tool: 'balance'`), no new noun, no migration: the new fields live in the
 study's own `facts` and `agreed` JSON. Left out, each with its entry:
@@ -158,7 +157,7 @@ target, or agreed here), the allowance. **New:**
 | Field | Unit / type | Required | Validation | Where |
 |---|---|---|---|---|
 | Kind of time: Work · Walk · Wait · **Machine** | choice | no (Work) | machine steps are not rated, carry no allowance | element tools |
-| Must follow (predecessors) | steps of this balance | no | not itself; no loop (refused, said) | element tools; Order of work |
+| Must follow (predecessors) | steps of this balance | no | not itself; no loop (refused, said) | Order of work |
 | The pace seen | 50–150, 100 standard | no (100, said) | a number | after timing; Times |
 | Allowance as parts: name + % | text, 0–99 | no | each ≥ 0, sum < 100 | Agree (owner: `can.agree`) |
 | ECRS decision: E / C / R / S, expected seconds, joins, to, why, one-off £ | choice, seconds ≥ 0, £ ≥ 0 | no | Combine and Rearrange name their target; Eliminate wants a reason (flagged, not refused) | Improve |
@@ -244,8 +243,7 @@ each becoming a unit test in `src/tools/linework/__tests__/method.test.ts`):
 Screen: the existing tiles, sentence and cost (unchanged), then the lens.
 
 - **Against takt** — as before. Element tools: *Kind* gains **Machine** ("the
-  machine's own run, from where the step before ends"); **Must follow** chooses
-  steps; a reused step says *reused from Maris Piper 1kg*. After a timing, **Rate the
+  machine's own run, from where the step before ends"); a reused step says *reused from Maris Piper 1kg*. After a timing, **Rate the
   pace** lists what was just timed with the chips and *Leave at 100*.
 - **Times** — a row a step: name · whose · cycles ("6 of 5") · observed · pace
   ("110", or "not rated — 100") · basic · standard · ±% at 95% (with the amber words

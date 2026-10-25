@@ -39,18 +39,23 @@ import { niceDay, isoDay } from '../../lib/weeks';
 import { currentBalance } from '../../lib/studyLinks';
 import { useRoute, nav } from '../../state/useRoute';
 import { UsedFor } from '../../ui/StudyPlace';
+import { ViewTabs, type View } from '../../ui/parts';
 import { peopleOf, type Standard } from '../linestandard/standard';
 import { type Capacity } from '../linebalance/capacity';
 import { fmtN } from '../linebalance/capacityWords';
 import { aPiece, balance, balanceSays, elementSays, keptLaps, secs, suggest, type BalanceFigures, type PersonFigures } from './balance';
+import { ImproveLens, MachineLens, OrderLens, TimesLens, type LensCtx } from './WorkLenses';
+import { allowanceOf, partsProblem, CAUSES } from './allowance';
+import { libraryFrom, type LibraryRow } from './standardData';
 import { agreedFor, balanceCost, balanceCostSays, capacityTaking, costInputs, crewKept, stationsOf, taktFromTarget, targetOffer, type StationPick } from './balanceLink';
 import type { Workspace } from '../../types';
-import type { AgreedBalance, BalanceCrew, BalanceStep, Lap, StepKind, ToolStudy } from '../../lib/study';
+import type { AgreedBalance, AllowancePart, BalanceCrew, BalanceStep, Lap, StepKind, ToolStudy } from '../../lib/study';
 import type { Can } from '../../lib/access';
 import { balanceClosing, balanceTiles } from './balanceLean';
 import { LeanClosing, LeanTiles } from '../../ui/Lean';
 
 const RATINGS = [75, 90, 100, 110, 125];
+const LENSES: View[] = [{ key: 'takt', label: 'Against takt' }, { key: 'times', label: 'Times' }, { key: 'machine', label: 'Person and machine' }, { key: 'order', label: 'Order of work' }, { key: 'improve', label: 'Improve' }];
 const KINDS: { kind: StepKind; word: string }[] = [{ kind: 'work', word: 'Work' }, { kind: 'walk', word: 'Walk' }, { kind: 'wait', word: 'Wait' }, { kind: 'machine', word: 'Machine' }];
 const KIND_WORD: Record<StepKind, string> = { work: 'work', walk: 'walking', wait: 'waiting', machine: 'machine' };
 /** What an element carries when it is dragged to another person. */
@@ -116,6 +121,19 @@ export function useLine(wsId?: string): Workspace | undefined {
     return onDataChange(load);
   }, [wsId]);
   return w;
+}
+
+/** STANDARD DATA: the steps timed on the line's other products (FC-024), kept current. */
+function useLibrary(study: ToolStudy, s: Standard): LibraryRow[] {
+  const [rows, setRows] = useState<LibraryRow[]>([]);
+  useEffect(() => {
+    let live = true;
+    const load = () => void listAllStudies().then(all => { if (live) setRows(libraryFrom(all, { studyId: study.id, standardId: s.id, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}) })); });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [study.id, s.id, s.workspaceId]);
+  return rows;
 }
 
 /** WHAT THE BOTTLENECK COSTS (lib/ie/balanceLink balanceCost) — a pack and
@@ -209,8 +227,22 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
   const [timing, setTiming] = useState<string | null>(null);
   const [agreeing, setAgreeing] = useState(false);
   const [dropOn, setDropOn] = useState<string | null>(null);
+  /* THE PACE, ASKED WHERE THE TIMING ENDS (FC-019): the steps just timed that were never rated */
+  const [rating, setRating] = useState<string[]>([]);
+  /* FIVE LENSES ON THE ONE RECORD (?lens=) — against takt, times, person and machine, order, improve */
+  const route = useRoute();
+  const lensQ = route.query.get('lens');
+  const lens = LENSES.some(l => l.key === lensQ) ? (lensQ as string) : 'takt';
+  const goLens = (k: string) => { const q = new URLSearchParams(route.query); if (k === 'takt') q.delete('lens'); else q.set('lens', k); const qs = q.toString(); nav(qs ? `${herePath()}?${qs}` : herePath()); };
+  const library = useLibrary(study, s);
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(study.id, p);
   const setSteps = (fn: (cur: BalanceStep[]) => BalanceStep[]) => write(cur => ({ facts: { ...cur.facts, steps: fn(cur.facts.steps ?? []) } }));
+  const setStep = (id: string, patch: Partial<BalanceStep>) => setSteps(cur => cur.map(x => {
+    if (x.id !== id) return x;
+    const next = { ...x, ...patch };
+    for (const k of Object.keys(patch) as (keyof BalanceStep)[]) if (patch[k] === undefined) delete next[k];
+    return next;
+  }));
   const setCrew = (fn: (cur: BalanceCrew[]) => BalanceCrew[]) => write(cur => ({ facts: { ...cur.facts, crew: fn(cur.facts.crew ?? []) } }));
   const who = [...new Set([...f.people.map(p => p.who), ...peopleOf(s).map((p, i) => p.label?.trim() || `Op ${i + 1}`)])];
 
@@ -243,7 +275,7 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
     return <Timer who={timing} steps={mine} {...(p?.takt ? { takt: p.takt } : {})} piece={p ? aPiece(p) : ''} product={s.product} me={me}
       onLap={(id, lap) => setSteps(cur => cur.map(x => (x.id === id ? { ...x, laps: [...(x.laps ?? []), lap] } : x)))}
       onUndo={(id, lapId) => setSteps(cur => cur.map(x => (x.id === id ? { ...x, laps: (x.laps ?? []).filter(l => l.id !== lapId) } : x)))}
-      onDone={() => setTiming(null)} />;
+      onDone={() => { const mine = steps.filter(x => x.who === timing && x.kind !== 'machine' && !(x.rating && x.rating > 0) && keptLaps(x.laps).length > 0).map(x => x.id); setRating(mine); setTiming(null); }} />;
   }
 
   const capHref = `${herePath()}?at=balance`;
@@ -267,6 +299,11 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
   const addStep = (name: string, whom: string, kind?: StepKind) =>
     setSteps(cur => [...cur, { id: uid(), order: Math.max(-1, ...cur.map(x => x.order)) + 1, name, who: whom, ...(kind && kind !== 'work' ? { kind } : {}) }]);
 
+  const ctx: LensCtx = { study, f, ...(a ? { a } : {}), steps, people, can, editable, library, crewCount: crew.length,
+    ...(costInputs(s.capacity, line).ratePerHour ? { rate: costInputs(s.capacity, line).ratePerHour } : {}),
+    ...(costInputs(s.capacity, line).contributionPerPack ? { contribution: costInputs(s.capacity, line).contributionPerPack } : {}),
+    ...(lineUnit ? { lineUnit } : {}), setSteps, setStep, onAgree: () => setAgreeing(true), goLens };
+
   return (
     <div className="wb">
       {/* THE TILES (docs/LEAN-PAGE.md) — the people and what the work needs,
@@ -287,7 +324,7 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
       )}
       {offer && a && (
         <p className="wb-offer sub">Agreed here by hand: {secs(a.taktSec)}. Line capacity’s target of {fmtN(offer.perMin)} {offer.unit} a minute makes it {secs(offer.taktSec)}{aPiece({ unit: offer.unit })}.
-          {can.agree && <> <button type="button" className="linkish" onClick={() => write(cur => ({ agreed: { ...cur.agreed, balance: { taktSec: offer.taktSec, from: 'target', ...(cur.agreed?.balance?.allowance ? { allowance: cur.agreed.balance.allowance } : {}) } } }))}>Take the takt from Line capacity</button></>}</p>
+          {can.agree && <> <button type="button" className="linkish" onClick={() => write(cur => ({ agreed: { ...cur.agreed, balance: { taktSec: offer.taktSec, from: 'target', ...(cur.agreed?.balance?.allowance ? { allowance: cur.agreed.balance.allowance } : {}), ...(cur.agreed?.balance?.parts?.length ? { parts: cur.agreed.balance.parts } : {}) } } }))}>Take the takt from Line capacity</button></>}</p>
       )}
       {agreeing && <Agree study={study} can={can} cap={s.capacity} onDone={() => setAgreeing(false)} cancel={() => setAgreeing(false)} />}
 
@@ -299,45 +336,53 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
 
       {/* WHAT IT COSTS — the bottleneck a pack and a minute, for the client (17 October) */}
       <CostBlock f={f} cap={s.capacity} wsId={s.workspaceId} lineUnit={lineUnit} capHref={capHref} />
-      {a && f.people.length > 0 && (
+      {rating.length > 0 && editable && (
+        <RateSheet steps={steps.filter(x => rating.includes(x.id))} onRate={(id, v) => setStep(id, { rating: v })} onDone={() => setRating([])} />
+      )}
+      <ViewTabs views={LENSES} value={lens} label={`${s.product} — its balance, seen five ways`} onChange={goLens} />
+      {lens === 'takt' ? (
         <>
-          <div className="ie-pic"><Stacks f={f} ghost={showGhost ? ghost : undefined} /></div>
-          <Legend f={f} />
-        </>
-      )}
-      <div className="wb-acts">
-        {ghost && <button type="button" className="btn" aria-pressed={showGhost} onClick={() => setShowGhost(g => !g)}>{showGhost ? 'Hide the suggestion' : 'Suggest a balance'}</button>}
-        {showGhost && ghost && editable && (
-          <button type="button" className="btn btn-primary" onClick={() => {
-            const to = new Map(ghost.flatMap(g => g.ids.map(id => [id, g.who] as const)));
-            setSteps(cur => cur.map(x => ({ ...x, who: to.get(x.id) ?? x.who })));
-            setShowGhost(false);
-          }}>Use it</button>
+        {a && f.people.length > 0 && (
+          <>
+            <div className="ie-pic"><Stacks f={f} ghost={showGhost ? ghost : undefined} /></div>
+            <Legend f={f} />
+          </>
         )}
-      </div>
+        <div className="wb-acts">
+          {ghost && <button type="button" className="btn" aria-pressed={showGhost} onClick={() => setShowGhost(g => !g)}>{showGhost ? 'Hide the suggestion' : 'Suggest a balance'}</button>}
+          {showGhost && ghost && editable && (
+            <button type="button" className="btn btn-primary" onClick={() => {
+              const to = new Map(ghost.flatMap(g => g.ids.map(id => [id, g.who] as const)));
+              setSteps(cur => cur.map(x => ({ ...x, who: to.get(x.id) ?? x.who })));
+              setShowGhost(false);
+            }}>Use it</button>
+          )}
+        </div>
 
-      {/* THE CLOSING LINE — the one sentence: what the bottleneck costs, or what the balance says */}
-      {f.people.length > 0 && <LeanClosing closing={balanceClosing(f, cost, said, lineUnit)} />}
+        {/* THE CLOSING LINE — the one sentence: what the bottleneck costs, or what the balance says */}
+        {f.people.length > 0 && <LeanClosing closing={balanceClosing(f, cost, said, lineUnit)} />}
 
-      {editable && picks.length > 0 && crew.every(c => !c.stationId) && f.people.length > 0 && (
-        <p className="wb-hint sub">Put each person at their station of Line capacity — their time is then in that station’s unit, held to its own takt, and Line capacity takes it.</p>
-      )}
-      {people.map(p => (
-        <Person key={p.who} p={p} crew={crew.find(c => c.who === p.who)} picks={picks} lineUnit={lineUnit} editable={editable}
-          steps={steps.filter(x => x.who === p.who).sort((x, y) => x.order - y.order)} who={who} drop={dropOn === p.who}
-          canRemove={can.remove || !study.projectId}
-          onDrop={setDropOn} onTime={() => setTiming(p.who)} onPlace={id => placeOf(p.who, id)}
-          onRename={to => rename(p.who, to)} onRemove={() => takeOff(p.who)} onAdd={name => addStep(name, p.who)}
-          onMove={id => setSteps(cur => cur.map(x => (x.id === id && x.who !== p.who ? { ...x, who: p.who } : x)))}
-          onChange={(id, patch) => setSteps(cur => cur.map(x => (x.id === id ? { ...x, ...patch } : x)))}
-          onTakeStep={id => setSteps(cur => cur.filter(x => x.id !== id))}
-          allowance={a?.allowance ?? 0} />
-      ))}
-      {editable && <AddPerson who={who} taken={f.people.map(p => p.who)} picks={picks} lineUnit={lineUnit}
-        onAdd={(name, what, stationId) => { addStep(what, name); if (stationId) placeOf(name, stationId); }} />}
+        {editable && picks.length > 0 && crew.every(c => !c.stationId) && f.people.length > 0 && (
+          <p className="wb-hint sub">Put each person at their station of Line capacity — their time is then in that station’s unit, held to its own takt, and Line capacity takes it.</p>
+        )}
+        {people.map(p => (
+          <Person key={p.who} p={p} crew={crew.find(c => c.who === p.who)} picks={picks} lineUnit={lineUnit} editable={editable}
+            steps={steps.filter(x => x.who === p.who).sort((x, y) => x.order - y.order)} who={who} drop={dropOn === p.who}
+            canRemove={can.remove || !study.projectId}
+            onDrop={setDropOn} onTime={() => setTiming(p.who)} onPlace={id => placeOf(p.who, id)}
+            onRename={to => rename(p.who, to)} onRemove={() => takeOff(p.who)} onAdd={name => addStep(name, p.who)}
+            onMove={id => setSteps(cur => cur.map(x => (x.id === id && x.who !== p.who ? { ...x, who: p.who } : x)))}
+            onChange={(id, patch) => setSteps(cur => cur.map(x => (x.id === id ? { ...x, ...patch } : x)))}
+            onTakeStep={id => setSteps(cur => cur.filter(x => x.id !== id))}
+            allowance={allowanceOf(a)} />
+        ))}
+        {editable && <AddPerson who={who} taken={f.people.map(p => p.who)} picks={picks} lineUnit={lineUnit}
+          onAdd={(name, what, stationId) => { addStep(what, name); if (stationId) placeOf(name, stationId); }} />}
+        </>
+      ) : lens === 'times' ? <TimesLens {...ctx} /> : lens === 'machine' ? <MachineLens {...ctx} /> : lens === 'order' ? <OrderLens {...ctx} /> : <ImproveLens {...ctx} />}
 
       <p className="ie-agreed sub">{a
-        ? <>Takt <b>{secs(a.taktSec)}{aPiece({ unit: lineUnit })}</b> — {a.from === 'target' ? 'from Line capacity’s target' : 'agreed here'}{a.allowance ? `, +${Math.round(a.allowance * 100)}% allowance` : ', no allowance'}</>
+        ? <>Takt <b>{secs(a.taktSec)}{aPiece({ unit: lineUnit })}</b> — {a.from === 'target' ? 'from Line capacity’s target' : 'agreed here'}{a.allowance ? `, +${+(a.allowance * 100).toFixed(1)}% allowance` : ', no allowance'}</>
         : 'No takt yet'}
         {can.agree && !closed && a && <button type="button" className="linkish" onClick={() => setAgreeing(true)}>Change what was agreed</button>}</p>
       <div className="ie-act">
@@ -357,6 +402,27 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
         )}
       </div>
       <UsedFor s={study} can={can} me={me} />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ the pace, asked */
+/** WHERE THE TIMING ENDS THE PACE IS ASKED (FC-019): the steps just timed and never rated, one tap each. 100 is
+ *  the standard pace (BS 3138); a step left alone is taken at 100 and the page says "not rated". Rating is a
+ *  trained observer's judgement — no scale of anchors is supplied. */
+function RateSheet({ steps, onRate, onDone }: { steps: BalanceStep[]; onRate: (id: string, v: number) => void; onDone: () => void }) {
+  return (
+    <div className="wb-rate" role="group" aria-label="Rate the pace you saw">
+      <p><b>How was the pace?</b> Rate what you just timed — 100 is the standard pace (BS 3138). Leave a step and it is taken at 100, and says so.</p>
+      {steps.map(st => (
+        <div key={st.id} className="wb-rate-r">
+          <span className="wb-rate-n">{st.name}</span>
+          <span className="chip-row" role="radiogroup" aria-label={`Pace seen — ${st.name}`}>
+            {RATINGS.map(r => <button key={r} type="button" role="radio" aria-checked={st.rating === r} className={'chip' + (st.rating === r ? ' on' : '')} onClick={() => onRate(st.id, r)}>{r}</button>)}
+          </span>
+        </div>
+      ))}
+      <button type="button" className="btn" onClick={onDone}>{steps.every(x => x.rating) ? 'Done' : 'Leave the rest at 100'}</button>
     </div>
   );
 }
@@ -431,7 +497,7 @@ function Person({ p, crew, picks, lineUnit, editable, steps, who, drop, canRemov
 export function PersonBar({ p }: { p: PersonFigures }) {
   const span = Math.max(p.work, p.takt ?? 0) * 1.06 || 1;
   const pct = (v: number) => `${(v / span) * 100}%`;
-  const parts = p.elements.filter(e => (e.standard ?? 0) > 0);
+  const parts = p.parts.filter(e => (e.standard ?? 0) > 0);
   return (
     <div className="wb-bar" role="img" aria-label={`${p.who}: ${parts.map(e => `${e.name} ${secs(e.standard ?? 0)}${e.kind !== 'work' ? ` ${KIND_WORD[e.kind]}` : ''}`).join(', ')}${p.takt ? ` — against ${secs(p.takt)} takt` : ''}`}>
       <div className="wb-bar-track">
@@ -466,15 +532,20 @@ function Agree({ study, can, cap, onDone, cancel }: { study: ToolStudy; can: Can
   const [takt, setTakt] = useState(a?.taktSec?.toString() ?? '');
   const [demand, setDemand] = useState('');
   const [mins, setMins] = useState('');
-  const [allow, setAllow] = useState(a?.allowance ? String(Math.round(a.allowance * 100)) : '');
+  const [allow, setAllow] = useState(a?.allowance ? String(+(a.allowance * 100).toFixed(2)) : '');
+  /* THE ALLOWANCE AS ITS PARTS (FC-025) — each cause named with the figure the site agreed; none supplied */
+  const [byParts, setByParts] = useState(!!a?.parts?.length);
+  const [parts, setParts] = useState<AllowancePart[]>(a?.parts?.length ? a.parts : []);
   const fromDemand = Number(demand) > 0 && Number(mins) > 0 ? (Number(mins) * 60) / Number(demand) : undefined;
   const t = fromTarget ? fromTarget.taktSec : takt.trim() ? Number(takt) : fromDemand;
-  const al = allow.trim() ? Number(allow) / 100 : 0;
-  const problem = !(t && t > 0) ? 'The takt — seconds a piece, or what is needed in the time there is.' : !(al >= 0 && al < 1) ? 'The allowance as a percentage, under 100.' : '';
+  const al = byParts ? allowanceOf({ parts }) : allow.trim() ? Number(allow) / 100 : 0;
+  const problem = !(t && t > 0) ? 'The takt — seconds a piece, or what is needed in the time there is.' : byParts ? partsProblem(parts) : !(al >= 0 && al < 1) ? 'The allowance as a percentage, under 100.' : '';
+  const setPart = (id: string, patch: Partial<AllowancePart>) => setParts(cur => cur.map(x => (x.id === id ? { ...x, ...patch } : x)));
   if (!can.agree) return <div className="ie-agree is-wait"><p><b>The takt isn’t agreed yet.</b> The project’s owner agrees the pace the line must keep, or Line capacity’s target sets it.</p></div>;
   return (
     <form className="ie-agree" onSubmit={e => { e.preventDefault(); if (problem || !t) return;
-      const agreed: AgreedBalance = { taktSec: +t.toFixed(3), ...(fromTarget ? { from: 'target' as const } : {}), ...(al ? { allowance: al } : {}) };
+      const kept = byParts ? parts.filter(x => x.name.trim() || x.pct > 0).map(x => ({ ...x, name: x.name.trim() })) : [];
+      const agreed: AgreedBalance = { taktSec: +t.toFixed(3), ...(fromTarget ? { from: 'target' as const } : {}), ...(al ? { allowance: +al.toFixed(6) } : {}), ...(kept.length ? { parts: kept } : {}) };
       void patchStudy(study.id, cur => ({ agreed: { ...cur.agreed, balance: agreed } })); onDone(); }}>
       <h2>{fromTarget ? 'The allowance' : 'Agree the takt'}</h2>
       {fromTarget
@@ -489,9 +560,30 @@ function Agree({ study, can, cap, onDone, cancel }: { study: ToolStudy; can: Can
           <label className="field"><span className="field-label">in minutes available</span>
             <input className="text-input" inputMode="numeric" value={mins} onChange={e => setMins(e.target.value)} placeholder="420" /></label>
         </>}
-        <label className="field"><span className="field-label">Allowance, % <i className="sub">rest and contingency</i></span>
-          <input className="text-input" inputMode="decimal" value={allow} onChange={e => setAllow(e.target.value)} placeholder="0" /></label>
+        <div className="field ie-wide">
+          <span className="field-label">Allowance <i className="sub">rest and contingency, a share of the basic time</i></span>
+          <span className="chip-row" role="radiogroup" aria-label="How the allowance is given">
+            <button type="button" role="radio" aria-checked={!byParts} className={'chip' + (!byParts ? ' on' : '')} onClick={() => setByParts(false)}>One figure</button>
+            <button type="button" role="radio" aria-checked={byParts} className={'chip' + (byParts ? ' on' : '')} onClick={() => { setByParts(true); if (!parts.length) setParts(allow.trim() && Number(allow) > 0 ? [{ id: uid(), name: 'Allowance', pct: Number(allow) }] : [{ id: uid(), name: CAUSES[0], pct: 0 }]); }}>Built from parts</button>
+          </span>
+          {!byParts && <input className="text-input" inputMode="decimal" value={allow} onChange={e => setAllow(e.target.value)} placeholder="0" aria-label="Allowance, per cent" />}
+        </div>
       </div>
+      {byParts && (
+        <div className="wb-parts">
+          <p className="sub">Name each cause and type the figure your site agreed for it, as a per cent of the basic time. The ILO’s table of percentages is not built in — its figures could not be checked against the book here — so none is offered.</p>
+          <datalist id="wb-causes">{CAUSES.map(c => <option key={c} value={c} />)}</datalist>
+          {parts.map(x => (
+            <div key={x.id} className="wb-part">
+              <input className="text-input" list="wb-causes" value={x.name} aria-label="What the allowance is for" onChange={e => setPart(x.id, { name: e.target.value })} />
+              <input className="text-input" inputMode="decimal" value={x.pct || ''} aria-label={`Per cent — ${x.name || 'part'}`} placeholder="%" onChange={e => setPart(x.id, { pct: Number(e.target.value) || 0 })} />
+              <button type="button" className="linkish" aria-label={`Take ${x.name || 'this part'} off`} onClick={() => setParts(cur => cur.filter(y => y.id !== x.id))}>Take off</button>
+            </div>
+          ))}
+          <button type="button" className="btn btn-sm" onClick={() => setParts(cur => [...cur, { id: uid(), name: '', pct: 0 }])}>Add a part</button>
+          <p className="ie-note">Together {+(al * 100).toFixed(2)}%.</p>
+        </div>
+      )}
       {fromDemand && !takt.trim() && !fromTarget && <p className="ie-note">{demand} a shift in {mins} minutes is a takt of {fromDemand.toFixed(1)} s.</p>}
       {problem && <p className="ie-problem">{problem}</p>}
       <div className="ie-agree-act">
@@ -530,7 +622,7 @@ export function Stacks({ f, ghost }: { f: BalanceFigures; ghost?: { who: string;
         let acc = 0;
         return (
           <g key={p.who}>
-            {p.elements.map(e => {
+            {p.parts.map(e => {
               const t = (e.standard ?? 0) / p.per; if (t <= 0) return null;
               const y0 = y(acc), y1 = y(acc + t); acc += t;
               const h = y0 - y1;
@@ -628,7 +720,8 @@ function Element({ st, e, allowance, who, editable, canRemove, onChange, onRemov
               <option value="__new">Someone else…</option>
             </select>
           </label>
-          {laps.length > 0 && (
+          {kind === 'machine' && <span className="sub wb-mhint">The machine’s own run — it starts when the step before ends and goes on while the person carries on. Not rated; no allowance.</span>}
+          {laps.length > 0 && kind !== 'machine' && (
             <span className="chip-row" role="radiogroup" aria-label="The pace seen">
               <span className="sub">the pace seen</span>
               {RATINGS.map(r => <button key={r} type="button" role="radio" aria-checked={(st.rating ?? 100) === r} className={'chip' + ((st.rating ?? 100) === r ? ' on' : '')} onClick={() => onChange({ rating: r })}>{r}</button>)}

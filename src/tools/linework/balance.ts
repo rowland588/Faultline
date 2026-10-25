@@ -325,12 +325,16 @@ export function balanceSays(f: BalanceFigures, onMap?: number): BalanceSays {
   return { text: `${head}${who}${room}`, tone: over.length ? 'r' : f.untimed || f.short ? 'a' : 'g', lines };
 }
 
+/** "reused from Maris Piper 1kg — 12.3 s basic from 15 cycles, enough; not timed here" — one reused step in words. */
+export const reuseSays = (r: ReusedTime): string => `reused from ${r.product} — ${r.basicSec.toFixed(1)} s basic from ${r.n} cycle${r.n === 1 ? '' : 's'}${r.enough ? ', enough' : ', short of enough'}; not timed here`;
+
 /** One element's reading: "Wrap and seal: 31.6 s standard (25.2 observed at
  *  110, +14%) — from 15 cycles, enough." */
 export function elementSays(e: ElementFigures, allowance = 0): { text: string; tone: Tone } {
   if (e.source === 'none') return { text: 'Not timed yet.', tone: 'n' };
+  if (e.source === 'library' && e.reuse) return { text: `${secs(e.standard ?? 0)} standard — ${reuseSays(e.reuse)}.`, tone: e.enough ? 'n' : 'a' };
   if (e.source === 'typed') return { text: `${secs(e.standard ?? 0)} — typed, not timed.`, tone: 'n' };
-  const pct = allowance ? `, +${Math.round(allowance * 100)}%` : '';
+  const pct = allowance ? `, +${+(allowance * 100).toFixed(1)}%` : '';
   const enough = e.enough ? 'enough' : `${e.n} of ${e.needed} cycles`;
   return { text: `${secs(e.standard ?? 0)} standard (${secs(e.observed ?? 0)} observed at ${e.rating}${pct}) — from ${e.n} cycle${e.n === 1 ? '' : 's'}, ${enough}.`, tone: e.enough ? 'g' : 'a' };
 }

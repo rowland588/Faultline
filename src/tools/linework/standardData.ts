@@ -9,6 +9,7 @@
  * Pure: the studies in, the rows out. */
 import type { ReusedTime, ToolStudy } from '../../lib/study';
 import { balance, type BalanceFigures } from './balance';
+export { reuseSays } from './balance';
 
 export interface LibraryRow {
   key: string;
@@ -76,6 +77,3 @@ export function reusedSays(f: BalanceFigures): { text: string; share: number } |
   const s = (v: number) => `${v.toFixed(1)} s`;
   return { text: `${lib.length} of ${els.length} step${els.length === 1 ? ' is' : 's are'} reused from other products’ timings — ${Math.round(share * 100)}% of the work (${s(part)} of ${s(total)}); time them here to replace them.`, share };
 }
-
-/** "Maris Piper 1kg: 12.3 s basic from 15 cycles, enough" — one reused step in words. */
-export const reuseSays = (r: ReusedTime): string => `reused from ${r.product} — ${r.basicSec.toFixed(1)} s basic from ${r.n} cycle${r.n === 1 ? '' : 's'}${r.enough ? ', enough' : ', short of enough'}; not timed here`;

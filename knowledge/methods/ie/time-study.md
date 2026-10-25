@@ -64,7 +64,8 @@ Hand-packing elements, tray loading, case erecting, sandwich assembly stations.
 - [textbook] Freivalds, A. and Niebel, B.W., *Niebel's Methods, Standards, and Work Design*, McGraw-Hill (13th ed., 2014).
 
 ## In Faultline
-The Line balance times elements on the phone (`src/tools/linework/balance.ts`:
-basic = observed × rating ÷ 100, standard = basic × (1 + allowance)); the
-rating exists in the arithmetic but is never asked on screen (all 100), and
-the cycles needed are not said (FC-019, FC-020).
+Built (25 October, `knowledge/specs/FC-032-line-balance.md`): the Line balance's **Times** lens reads each step as
+observed, pace, basic, standard and how sure (± at 95% from the laps themselves), the cycles it still wants, each
+person's task and planned rate; the pace is asked where the timing ends (one tap; left alone it is taken at 100 and
+the page says "not rated"); a machine's run is never rated (FC-019). The same table is on the balance's paper. What is
+not built in: a scale of rating descriptions — the observer rates on the scale they were trained on.

@@ -265,6 +265,15 @@ describe('questioning each element (FC-028)', () => {
   });
 });
 
+describe('a machine sets the cycle (FC-028 on FC-007)', () => {
+  it('saving the person’s own steps while they wait for the machine leaves the cycle where it was, and says so', () => {
+    const steps = [st('a', 'Load', 'Op 1', { typedSec: 10 }, 0), st('b', 'Runs', 'Op 1', { kind: 'machine', typedSec: 30 }, 1), st('c', 'Inspect', 'Op 1', { typedSec: 12, ecrs: { how: 'S', afterSec: 9 } }, 2)];
+    const r = improve(steps, { taktSec: 45 });
+    expect([r.beforeSec, r.afterSec, r.savedSec]).toEqual([40, 40, 0]);
+    expect(improveSays(r).lines.join(' ')).toMatch(/Op 1 waits for the machine, so the machine sets the cycle/);
+  });
+});
+
 describe('standard data (FC-024)', () => {
   const study = (id: string, standardId: string, name: string, steps: BalanceStep[], allowance = 0.1, startedAt = 1): ToolStudy =>
     ({ id, tool: 'balance', name, standardId, workspaceId: 'ws', agreed: { balance: { taktSec: 12, allowance } }, facts: { steps }, uses: [], startedAt, createdAt: 1, updatedAt: 1 } as unknown as ToolStudy);

@@ -28,7 +28,7 @@ function drawBar(fr: Frame, p: PersonFigures, x: number, y: number, w: number): 
   const span = Math.max(p.work, p.takt ?? 0) * 1.06 || 1;
   let at = x;
   d.setLineWidth(0.6);
-  for (const e of p.elements) {
+  for (const e of p.parts) {
     const t = e.standard ?? 0;
     if (t <= 0) continue;
     const sw = (t / span) * w;

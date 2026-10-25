@@ -124,6 +124,8 @@ export function improveSays(r: Improve): { text: string; tone: Tone; lines: stri
   }
   if (r.before.fewest != null && r.after.fewest != null && r.after.fewest !== r.before.fewest)
     lines.push(`The work would need ${r.after.fewest} ${r.after.fewest === 1 ? 'person' : 'people'} instead of ${r.before.fewest}.`);
+  const waiting = r.before.people.filter(p => p.machineWait > 0.05);
+  if (waiting.length && r.savedSec <= 0.0005) lines.push(`${waiting.map(p => p.who).join(' and ')} wait${waiting.length === 1 ? 's' : ''} for the machine, so the machine sets the cycle: what is saved on their own steps shows as less waiting, not a shorter cycle.`);
   const text = `${secs(r.beforeSec)} of work → ${secs(r.afterSec)} expected${r.savedSec > 0.0005 ? ` (${pcLess(r.beforeSec, r.afterSec)}% less)` : ''}${takt && r.before.people.length ? `, ${Math.round((r.beforeSec / r.before.people.length / takt) * 100)}% → ${Math.round((r.afterSec / Math.max(1, r.after.people.length) / takt) * 100)}% of takt a person${r.before.people.length > 1 ? ' on average' : ''}` : ''}. Expected, until the work is timed again.`;
   return { text, tone: r.flags.length ? 'a' : r.savedSec > 0.0005 ? 'g' : 'n', lines: [...lines, ...r.flags] };
 }

@@ -119,10 +119,9 @@ planned rate sets the line's people capacity and the bottleneck walk.
 - [guide] HSE — manual handling and the MAC tool, for the limits the allowance must not paper over (from knowledge).
 
 ## In Faultline
-One allowance agreed per line balance (`src/tools/linework/balance.ts`);
-Line capacity adds the ILO's 9% rest to a person's time
-(`docs/CAPACITY.md` §1) and checks rest is not counted twice; the factor
-tables are not offered (FC-025, partly). The piece to build: the
-conditions ticked per station, the allowance built from the table with
-each factor named, and the standard's planned rate carried into Line
-capacity in place of the flat 9%.
+Built in part (25 October, FC-025): the allowance is agreed on the Line balance as **named parts** — the person types
+the figure their site agreed for each cause and the tool adds them, says what it is in money (as rest, not waste, from
+the one cost model), and puts it on every standard time but a machine's run. **The ILO's table of percentages is not
+built in**: the figures above are marked "from knowledge" and could not be checked against the text, so none is
+offered or pre-filled. When they are checked, they become a preset of the parts and nothing else changes. Line capacity
+still adds its 9% to a person at a station (`docs/CAPACITY.md` §1).
