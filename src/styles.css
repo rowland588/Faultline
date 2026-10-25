@@ -14760,3 +14760,24 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ie-tbl tr.is-lead th, .ie-tbl tr.is-lead td { font-weight: 800; color: var(--ink); }
 .ie-agree-more > summary { cursor: pointer; font-weight: 700; color: var(--ink-2); padding: 6px 0; }
 .ie-agree-more[open] > summary { margin-bottom: 8px; }
+
+/* ===================== A LINE WATCH (reliability; every machine of a line on one clock) =====================
+   Rowland, 25 October: "start one clock for the entire line and I can click through the UI on each individual
+   asset". The row is the machine; the state is in its words and tone (one colour, one meaning). */
+.rl-line { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.rl-line h2 { margin: 0 0 2px; font-size: var(--t-h); }
+.rl-line-rows { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.rl-line-row { display: grid; gap: 2px; width: 100%; min-height: 64px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; }
+.rl-line-row b { font-size: var(--t-body); }
+.rl-line-n, .rl-line-v { font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; }
+.rl-line-row.is-here { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); background: var(--accent-soft); }
+.rl-line-row.is-r { border-left: 4px solid var(--st-r); }
+.rl-line-row.is-a { border-left: 4px solid var(--st-a); }
+.rl-line-row.is-g { border-left: 4px solid var(--st-g); }
+.rl-linesetup-rows { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 10px; }
+.rl-linesetup-row { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.rl-linesetup-on { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: var(--t-body); }
+.rl-linesetup-on input { width: 22px; height: 22px; }
+.rl-linesetup-in { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-top: 6px; }
+.rl-linesetup-go { display: flex; gap: 10px; justify-content: space-between; position: sticky; bottom: 0; padding: 8px 0; background: var(--surface); }
+@media (max-width: 719px) { .rl-linesetup-in { grid-template-columns: minmax(0, 1fr); } .rl-line-rows { grid-template-columns: minmax(0, 1fr); } }

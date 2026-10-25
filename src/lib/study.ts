@@ -803,6 +803,10 @@ export interface AgreedReliability {
   kinds?: string[];
   targetMin?: number;
   downMin?: number;
+  /** A LINE WATCH (Rowland, 25 October: "start one clock for the entire line and I can click through
+   *  the UI on each individual asset"): the machines watched together are one study each, sharing this
+   *  id — one clock starts and stops them all (src/tools/reliability/lineWatch). */
+  group?: string;
 }
 
 /** One stretch the watch ran at the machine: started, and stopped — absent

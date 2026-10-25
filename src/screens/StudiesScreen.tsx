@@ -21,7 +21,8 @@ import { ProjectScopeChips } from '../ui/ProjectScope';
 import { useArchivedPlaces } from '../lib/useFactoryLines';
 import type { Standard } from '../tools/linestandard/standard';
 import { useProjects } from '../lib/useProjects';
-import { useMachinesOf } from '../lib/useLineRecords';
+import { useMachinesOf, useProjectMachines } from '../lib/useLineRecords';
+import { countsFor, setupProblem } from '../tools/reliability/lineWatch';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { PageHeader } from '../ui/parts';
@@ -417,10 +418,41 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
   /* A study of a machine started on a line offers the line's machines —
      the one list every "which machine" reads (lib/lineRecords machinesOf;
      flow audit #14: "A study's machine is typed"). */
-  const lineMachines = useMachinesOf(!isLine && !isChange ? lineId || undefined : undefined);
-  const ready = (!named || !!name.trim()) && !busy && (!isLine || !!lineId) && (!isChange || !!machine.trim());
+  const onLineMachines = useMachinesOf(!isLine && !isChange ? lineId || undefined : undefined, project?.id);
+  const ofProject = useProjectMachines(!isLine && !isChange ? project?.id : undefined);
+  const lineMachines = useMemo(() => { const seen = new Set<string>(); return [...onLineMachines, ...ofProject].filter(m => { const k = m.trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; }); }, [onLineMachines, ofProject]);
+  /* A RELIABILITY study picks its machine from a list (a real one, with the project's own machines in it), or
+     the WHOLE LINE — the next screen is every machine, set up one by one and watched on one clock. */
+  const WHOLE = '::whole-line', OTHER = '::other-machine';
+  const [pick, setPick] = useState('');
+  const [step, setStep] = useState<'one' | 'line'>('one');
+  const [setup, setSetup] = useState<{ machine: string; on: boolean; counting: string; target: string }[]>([]);
+  const lineName = lines.find(l => l.id === lineId)?.name ?? project?.name ?? 'the line';
+  const wholeLine = isRel && pick === WHOLE;
+  useEffect(() => { if (!open) { setStep('one'); setPick(''); } }, [open]);
+  const ready = (!named || !!name.trim() || wholeLine) && !busy && (!isLine || !!lineId) && (!isChange || !!machine.trim()) && (!wholeLine || lineMachines.length > 0);
+  const toSetup = () => { setSetup(lineMachines.map(m => ({ machine: m, on: true, counting: 'stop', target: '' }))); setStep('line'); };
+  const num = (v: string) => (v.trim() ? Number(v) : undefined);
+  const lineProblem = setupProblem(setup.map(r => ({ machine: r.machine, on: r.on, counting: r.counting, targetMin: num(r.target) })));
+  /* every machine ticked becomes a reliability study of its own, all sharing one group — one clock for them all */
+  const makeLine = async () => {
+    if (lineProblem || busy) return;
+    setBusy(true);
+    try {
+      const t = now(), group = uid();
+      const picked = setup.filter(r => r.on);
+      const made: ToolStudy[] = picked.map((r, i) => ({ id: uid(), tool: 'reliability' as const, name: name.trim() || `${lineName} — every machine`, machine: r.machine,
+        ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}),
+        agreed: { reliability: { group, counts: countsFor(r.counting, num(r.target), uid) } }, facts: {}, uses: [], startedAt: t, createdAt: t + i, updatedAt: t + i }));
+      for (const m of made) await putStudy(m);
+      if (lineId) for (const m of made) if (m.machine) await machineOntoLine(lineId, m.machine);
+      setName(''); setMachine(''); setPick(''); setStep('one'); onClose();
+      nav(studyHref(made[0]));
+    } finally { setBusy(false); }
+  };
   const make = async () => {
     if (!ready) return;
+    if (wholeLine) { toSetup(); return; }
     setBusy(true);
     try {
       const t = now();
@@ -456,6 +488,33 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
   };
   return (
     <Sheet open={open} onClose={onClose} title={w.add}>
+      {step === 'line' ? (
+        <form className="lt-new rl-linesetup" onSubmit={e => { e.preventDefault(); void makeLine(); }}>
+          <p className="sub">Every machine on <b>{lineName}</b>. Tick the ones you will watch and say what is counted at each — a stop, a jam, a pick, your own word (commas for more than one). One watch starts them all; you open each machine to tap its buttons.</p>
+          <ul className="rl-linesetup-rows">
+            {setup.map((r, i) => (
+              <li key={r.machine} className="rl-linesetup-row" data-machine={r.machine}>
+                <label className="rl-linesetup-on"><input type="checkbox" checked={r.on} aria-label={`Watch ${r.machine}`} onChange={e => setSetup(xs => xs.map((x, j) => (j === i ? { ...x, on: e.target.checked } : x)))} /> <b>{r.machine}</b></label>
+                {r.on && (
+                  <div className="rl-linesetup-in">
+                    <label className="field"><span className="field-label">Counting</span>
+                      <input className="text-input" value={r.counting} maxLength={60} aria-label={`What is counted at ${r.machine}`} onChange={e => setSetup(xs => xs.map((x, j) => (j === i ? { ...x, counting: e.target.value } : x)))} />
+                    </label>
+                    <label className="field"><span className="field-label">MTBF wanted, minutes</span>
+                      <input className="text-input" inputMode="decimal" value={r.target} placeholder="no target" aria-label={`MTBF wanted at ${r.machine}, minutes`} onChange={e => setSetup(xs => xs.map((x, j) => (j === i ? { ...x, target: e.target.value } : x)))} />
+                    </label>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+          {lineProblem && <p className="ie-note" role="status">{lineProblem}</p>}
+          <div className="rl-linesetup-go">
+            <button type="button" className="btn" onClick={() => setStep('one')}>Back</button>
+            <button type="submit" className="btn btn-primary" disabled={!!lineProblem || busy}>Start the line watch — {setup.filter(r => r.on).length} machine{setup.filter(r => r.on).length === 1 ? '' : 's'}</button>
+          </div>
+        </form>
+      ) : (
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
         {project && <p className="sub ie-for" data-for-project={project.id}>For <b>{project.name}</b> — it is the project’s, with everything else in it.</p>}
         {(isChange || isRel) && (
@@ -480,15 +539,26 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
             <input className="text-input" value={name} maxLength={120} placeholder={w.placeholder} list={isChange ? 'new-co-products' : undefined} onChange={e => setName(e.target.value)} autoFocus />
           </label>
         )}
-        <label className="field"><span className="field-label">{w.second.label} {!isChange && <i className="sub">{isRel ? 'leave empty if you watch more than one' : 'optional'}</i>}</span>
+        {isRel && lineMachines.length > 0 && (
+          <label className="field"><span className="field-label">{w.second.label} <i className="sub">one machine, or the whole line to watch every machine on one clock</i></span>
+            <select className="text-input" value={pick} aria-label="Which machine" onChange={e => { const v = e.target.value; setPick(v); setMachine(v === WHOLE || v === OTHER ? '' : v); }}>
+              <option value="">Pick a machine…</option>
+              {lineMachines.map(m => <option key={m} value={m}>{m}</option>)}
+              {lineMachines.length > 1 && <option value={WHOLE}>The whole line — all {lineMachines.length} machines</option>}
+              <option value={OTHER}>Another machine — I’ll type it</option>
+            </select>
+          </label>
+        )}
+        {!(isRel && lineMachines.length > 0 && pick !== OTHER) && <label className="field"><span className="field-label">{w.second.label} {!isChange && <i className="sub">{isRel ? 'leave empty if you watch more than one' : 'optional'}</i>}</span>
           <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} list={isLine ? 'new-map-products' : isChange ? 'new-co-products' : lineMachines.length ? 'new-study-machines' : undefined} onChange={e => setMachine(e.target.value)} />
           {!isLine && !isChange && lineMachines.length > 0 && <datalist id="new-study-machines">{lineMachines.map(m => <option key={m} value={m} />)}</datalist>}
           {(isLine || isChange) && <datalist id={isLine ? 'new-map-products' : 'new-co-products'}>{standards.filter(x => !x.deletedAt).map(x => <option key={x.id} value={x.product} />)}</datalist>}
           {isLine && standards.length > 0 && <span className="sub">{tool === 'map' ? 'A product with a line standard brings its people as the lanes.' : tool === 'losses' ? 'A product with a line standard brings its pace: the plate speed of its slowest machine, or a person’s standard time.' : 'A product with a line standard brings its people to watch.'}</span>}
           {isChange && standards.length > 0 && <span className="sub">A product with a line standard is where Set as the standard writes the agreed sequence.</span>}
-        </label>
-        <button type="submit" className="btn btn-primary" disabled={!ready}>Start it</button>
+        </label>}
+        <button type="submit" className="btn btn-primary" disabled={!ready}>{wholeLine ? 'Next — the machines' : 'Start it'}</button>
       </form>
+      )}
     </Sheet>
   );
 }

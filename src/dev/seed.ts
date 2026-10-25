@@ -121,6 +121,8 @@ export interface Seeded {
    *  wanted, 3 min stood each) and its failures (three, 12 min stood each,
    *  no target); two remarks. */
   reliabilityId: string;
+  /** A LINE WATCH (25 October): two machines watched on one clock — the first study's id, the second's after it. */
+  reliabilityLineIds: string[];
   /** A RELIABILITY STUDY with every W5 part (FC-059, FC-015, FC-061, FC-060): the wrapper watched six hours, its stops timed
    *  (help arrived, running again; reasons; a fitter's rate) and growing better, its calls for help (reasons, help wanted
    *  within 3 min) and a belt that wears (eight lives, two still running, two costs). */
@@ -1058,6 +1060,20 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       }, uses: [], startedAt: y0, createdAt: t, updatedAt: t });
   }
 
+  /* A LINE WATCH (Rowland, 25 October): the line's two machines watched on one clock — one study each sharing a
+     group, one stretch written on both, stopped; the wrapper's stops and the checkweigher's jams tapped. */
+  const reliabilityLineIds = [uid(), uid()];
+  {
+    const M = 60_000, g = uid(), from = t - 5 * 3_600_000, to = from + 90 * M;
+    const c1 = uid(), c2 = uid();
+    const at = (mins: number[], count: string) => mins.map(m => ({ id: uid(), at: from + m * M, by: 'Sam Patel', count }));
+    const one = (id: string, machine: string, count: string, cname: string, taps: number[], created: number) => putStudy({ id, tool: 'reliability', name: 'Line 7 — every machine', machine, workspaceId: ws.id,
+      agreed: { reliability: { group: g, counts: [{ id: count, name: cname, targetMin: 20 }] } },
+      facts: { watch: [{ id: uid(), from, to, by: 'Sam Patel' }], events: at(taps, count) }, uses: [], startedAt: from, createdAt: created, updatedAt: created });
+    await one(reliabilityLineIds[0], 'Ilapak flow wrapper', c1, 'stop', [14, 37, 61, 80], t - 2);
+    await one(reliabilityLineIds[1], 'Ishida checkweigher', c2, 'jam', [43], t - 1);
+  }
+
   /* A RELIABILITY STUDY with the W5 parts: stops timed and getting better, calls for help, a belt that wears */
   const reliabilityFamilyId = uid();
   {
@@ -1308,7 +1324,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, reliabilityFamilyId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, analysisGaugeId, analysisRangeId, analysisDriftId, analysisShapeId, calcKanbanId, calcOcId, calcLittleId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, reliabilityLineIds, reliabilityFamilyId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, analysisGaugeId, analysisRangeId, analysisDriftId, analysisShapeId, calcKanbanId, calcOcId, calcLittleId,
     line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }

@@ -11,7 +11,7 @@ import type { Standard } from '../tools/linestandard/standard';
 import type { JobLine } from './lineRecords';
 import type { ToolStudy } from './study';
 import { allPaceLines, allProjects, getWorkspace, listAllAssets, listAllPrograms, listAllStandards, listAllStudies, listProvingTests, listWorkspaces, onDataChange } from '../db';
-import { machinesOf } from './lineRecords';
+import { machineKey, machinesOf } from './lineRecords';
 import { liveProductionLines } from './lines';
 
 export interface LineRecords {
@@ -51,6 +51,27 @@ export function useMachinesOf(wsId: string | undefined, jobId?: string): string[
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, [wsId, jobId]);
+  return names;
+}
+
+/** A PROJECT'S OWN MACHINES (the assets it was made with, on a line or not), by name in the order set — for a
+ *  picker made inside a project, beside the line's (Rowland, 25 October: "I have 2 machines in the project
+ *  but I can't pick them in any drop down"). */
+export function useProjectMachines(projectId: string | undefined): string[] {
+  const [names, setNames] = useState<string[]>([]);
+  useEffect(() => {
+    let live = true;
+    if (!projectId) { setNames([]); return; }
+    const load = () => void listAllAssets().then(assets => {
+      if (!live) return;
+      const seen = new Set<string>();
+      setNames(assets.filter(a => !a.deletedAt && a.projectId === projectId).slice().sort((x, y) => x.sort - y.sort)
+        .filter(a => { const k = machineKey(a.name); if (!k || seen.has(k)) return false; seen.add(k); return true; }).map(a => a.name.trim()));
+    });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [projectId]);
   return names;
 }
 

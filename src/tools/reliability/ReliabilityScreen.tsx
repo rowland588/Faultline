@@ -24,7 +24,7 @@
  * the closing line. Nothing worked out is stored; the module makes every
  * figure, the same one its paper (lib/studiesPdf) reads. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStudy, listAllStandards, onDataChange, patchStudy } from '../../db';
+import { getStudy, listAllStandards, listAllStudies, onDataChange, patchStudy } from '../../db';
 import { neckOf } from '../../lib/lineLoss';
 import type { Standard } from '../linestandard/standard';
 import { useAccess } from '../../cloud/access';
@@ -52,6 +52,8 @@ import { bandPage } from '../../lib/lean';
 import { raisedFrom } from '../losses/lossLean';
 import { useFactoryLines } from '../../lib/useFactoryLines';
 import { StudyBand } from '../../ui/StudyActs';
+import { studyHref } from '../../lib/studyLinks';
+import { groupOf, lineRows, lineWords, started, stopped } from './lineWatch';
 
 const OWNER = canAt('owner');
 const hms = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -109,6 +111,11 @@ function Reliability({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canA
   useEffect(() => { const load = () => { void listAllStandards().then(setStandards); }; load(); return onDataChange(load); }, []);
   const where = useMemo(() => ({ machine: s.machine, neck: neckOf(standards, s.workspaceId) }), [standards, s.machine, s.workspaceId]);
   const { steps, tests } = useBetter(s, me);
+  /* A LINE WATCH: the machines watched on this one's clock (agreed.reliability.group) */
+  const grouped = !!a?.group;
+  const [everyStudy, setEveryStudy] = useState<ToolStudy[]>([]);
+  useEffect(() => { if (!grouped) return; const load = () => { void listAllStudies().then(setEveryStudy); }; load(); return onDataChange(load); }, [grouped]);
+  const sibs = useMemo(() => (grouped ? groupOf(everyStudy, s) : []), [grouped, everyStudy, s]);
 
   return (
     <div className="wrap ie rl">
@@ -125,7 +132,8 @@ function Reliability({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canA
         <SetUp s={s} canAgree={can.agree && !closed} events={events} onDone={() => setSetting(false)} cancel={a && items.length ? () => setSetting(false) : undefined} />
       ) : (
         <>
-          {!closed && can.edit && <Watch s={s} counters={items.map(i => i.c)} runs={runs} events={events} t={t} me={me} />}
+          {sibs.length > 1 && <LineWatch sibs={sibs} here={s.id} t={t} line={line?.name} />}
+          {!closed && can.edit && <Watch s={s} counters={items.map(i => i.c)} runs={runs} events={events} t={t} me={me} together={sibs.length > 1 ? sibs.length : 0} />}
           {!closed && can.edit && <OpenStops sid={s.id} items={items} t={t} />}
           {items.length > 1 && <Together items={items} line={line} where={where} seen={item.c.id} onSeen={setSeen} />}
           {item && <Counted item={item} items={items} line={line} where={where} one={items.length === 1} study={s} canEdit={can.edit && !closed} />}
@@ -326,22 +334,43 @@ function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree
   );
 }
 
+/** THE LINE WATCH — every machine on the one clock, a row each with what it has counted and what it says;
+ *  a tap on a row opens that machine's own page, its buttons and figures in full. The clock itself is the
+ *  Watch below: one press starts or stops them all. */
+function LineWatch({ sibs, here, t, line }: { sibs: ToolStudy[]; here: string; t: number; line?: string }) {
+  const rows = lineRows(sibs, t);
+  return (
+    <section className="rl-line" aria-label="The machines on this line watch" data-line-watch>
+      <h2>{line ? `${line} — every machine on one clock` : 'Every machine on one clock'}</h2>
+      <p className="sub">{lineWords(rows)}. Open a machine to tap its buttons and see its own figures; the watch below starts and stops them all.</p>
+      <ul className="rl-line-rows">
+        {rows.map((r, i) => (
+          <li key={r.id}>
+            <button type="button" className={'rl-line-row is-' + r.tone + (r.id === here ? ' is-here' : '')} aria-current={r.id === here ? 'page' : undefined} data-machine={r.machine}
+              onClick={() => { if (r.id !== here) nav(studyHref(sibs[i])); }}>
+              <b>{r.machine}</b>
+              <span className="rl-line-n">{r.taps} counted{r.counts.length > 1 ? ` — ${r.counts.map(c => c.words).join(' · ')}` : ''}</span>
+              <span className="rl-line-v">{r.running ? 'watching · ' : ''}{r.verdict}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /* ------------------------------------------------------------------ the watch and a button for each thing counted */
-function Watch({ s, counters, runs, events, t, me }: { s: ToolStudy; counters: RelCounter[]; runs: WatchRun[]; events: RelEvent[]; t: number; me?: string }) {
+function Watch({ s, counters, runs, events, t, me, together = 0 }: { s: ToolStudy; counters: RelCounter[]; runs: WatchRun[]; events: RelEvent[]; t: number; me?: string; /** machines on this one clock (0: this one alone) */ together?: number }) {
   const run = runningRun(runs);
   const spans = watchedSpans(runs, t);
   const watched = spans.reduce((n, [x, y]) => n + (y - x), 0);
   const by = me ? { by: me } : {};
   const [noting, setNoting] = useState('');
   const first = countersOf(s.agreed?.reliability, true)[0]?.id ?? FIRST_COUNT;
-  const start = () => void patchStudy(s.id, cur => ({ facts: { ...cur.facts, watch: [...(cur.facts.watch ?? []), { id: uid(), from: now(), ...by }] } }));
-  const stop = (when?: number) => {
-    const at = when ?? now();
-    void patchStudy(s.id, cur => {
-      const open = runningRun(cur.facts.watch ?? []);
-      return { facts: { ...cur.facts, watch: (cur.facts.watch ?? []).map(r => (open && r.id === open.id ? { ...r, to: at } : r)) } };
-    });
-  };
+  /* one press starts or stops every machine of a line watch at the same moment; a study on its own, itself */
+  const everyOne = async () => (s.agreed?.reliability?.group ? groupOf(await listAllStudies(), s) : []).map(x => x.id).concat(s.agreed?.reliability?.group ? [] : [s.id]);
+  const start = () => { const at = now(); void everyOne().then(ids => Promise.all(ids.map(id => patchStudy(id, cur => ({ facts: { ...cur.facts, watch: started(cur.facts.watch, at, uid(), me) } }))))); };
+  const stop = (when?: number) => { const at = when ?? now(); void everyOne().then(ids => Promise.all(ids.map(id => patchStudy(id, cur => ({ facts: { ...cur.facts, watch: stopped(cur.facts.watch, at) } }))))); };
   const tap = (count: string) => {
     if (!run) return;
     const e: RelEvent = { id: uid(), at: now(), ...by, count };
@@ -364,10 +393,10 @@ function Watch({ s, counters, runs, events, t, me }: { s: ToolStudy; counters: R
   return (
     <div className={'rl-watch' + (run ? ' is-on' : '')} role="group" aria-label="The watch and a button for each thing counted">
       <div className="rl-clock">
-        <span className="rl-k">{run ? 'Watching' : 'The watch is stopped'}</span>
+        <span className="rl-k">{together ? (run ? `Watching the line — ${together} machines` : 'The line’s watch is stopped') : run ? 'Watching' : 'The watch is stopped'}</span>
         <b className="rl-time" aria-live="off">{clock(watched)}</b>
         <span className="sub">{run ? `this stretch ${clock(t - run.from)} · since ${hm(run.from)}` : runs.length ? 'Start it when you are watching the machine run' : 'Start it when you begin watching the machine run'}</span>
-        <button type="button" className={'btn rl-go' + (run ? '' : ' btn-primary')} onClick={run ? () => stop() : start}>{run ? 'Stop the watch' : runs.length ? 'Start the watch again' : 'Start the watch'}</button>
+        <button type="button" className={'btn rl-go' + (run ? '' : ' btn-primary')} onClick={run ? () => stop() : start}>{together ? (run ? 'Stop the line’s watch' : runs.length ? 'Start the line’s watch again' : 'Start the line’s watch') : run ? 'Stop the watch' : runs.length ? 'Start the watch again' : 'Start the watch'}</button>
         {leftOn && run && (
           <p className="rl-lefton" role="status">
             <b>Running {clock(t - run.from)} without a stop — left on?</b>{' '}

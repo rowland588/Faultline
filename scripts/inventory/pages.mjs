@@ -507,6 +507,12 @@ export const PAGES = (sd, cap) => [
     { what: 'a table row for each shape tried, the leader marked', sel: '.ie-grid tbody tr', n: 4 }, { what: 'the probability plot — forty readings on a line of equal values', sel: '.ie-an-scatter .ie-an-dot', n: 40 },
     { what: 'the percentile Ppk beside the bell’s', sel: '.ie-more', text: /Percentile Ppk 0\.69/ }, { what: 'the size said', sel: '.ie-check', text: /Size: 40 readings/ },
   ] },
+  { name: 'Reliability study — a line watch (every machine on one clock)', path: `#/reliability/${sd.reliabilityLineIds[0]}`, must: [
+    { what: 'the strip of every machine on the line — a row each, the open one marked, what each has counted', sel: '[data-line-watch] .rl-line-row', n: 2 },
+    { what: 'the line is said in words — how many machines on one clock', sel: '[data-line-watch]', text: /2 machines on one clock — the watch is stopped/ },
+    { what: 'the one watch, the line’s — Start the line’s watch', sel: '.rl-watch .rl-go', text: /^Start the line.s watch again$/ },
+    { what: 'a button for each thing counted at this machine', sel: '.rl-buttons .rl-event', n: 1 },
+  ] },
   { name: 'Reliability study', path: `#/reliability/${sd.reliabilityId}`, must: [
     { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'the band', sel: '.ln-band' },

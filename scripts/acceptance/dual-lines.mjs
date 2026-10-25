@@ -119,7 +119,7 @@ await go(`#/reliability?line=${encodeURIComponent(D.id)}`, 3000);
 await page.getByRole('button', { name: 'New reliability study' }).first().click(); await page.waitForTimeout(600);
 if (await form.getByLabel('Which line').count()) await form.getByLabel('Which line').selectOption({ label: '2a 2b' });
 await page.waitForTimeout(600);
-const offered = await page.locator('#new-study-machines option').evaluateAll(os => os.map(o => o.value));
+const offered = await page.locator('select[aria-label="Which machine"] option').evaluateAll(os => os.map(o => o.value).filter(v => v && !v.startsWith('::')));
 const want = await page.evaluate(async id => { const { machinesOf } = await import('/src/lib/lineRecords.ts'); const db = await import('/src/db.ts'); const all = await db.listWorkspaces(); return machinesOf(all.find(w => w.id === id), await db.listAllAssets(), await db.allPaceLines(), undefined, all); }, D.id);
 ok(offered.includes('Pick and Place') && offered.includes('Bagger') && JSON.stringify(offered) === JSON.stringify(want), `4b on 2a 2b the Machine box offers both lines' machines as lib/lineRecords machinesOf says (${offered.join(' · ')})`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(400);

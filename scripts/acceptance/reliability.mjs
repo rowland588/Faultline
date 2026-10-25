@@ -129,11 +129,12 @@ ok(/^Reliability$/.test(flat(await page.locator('h1').first().innerText())), '1 
 await page.getByRole('button', { name: 'New reliability study' }).first().click();
 await page.locator('select[aria-label="Which line"]').selectOption(sd.wsId);
 await page.waitForTimeout(500);
-const offered = await page.locator('#new-study-machines option').evaluateAll(os => os.map(o => o.value));
+const offered = await page.locator('select[aria-label="Which machine"] option').evaluateAll(os => os.map(o => o.value).filter(v => v && !v.startsWith('::')));
 ok(offered.length > 0, '2 the line’s machines offered for which machine', offered.join(', '));
 ok(!/optional/i.test(flat(await page.locator('.lt-new').innerText())), '2 the new study asks in plain words — no "optional"', flat(await page.locator('.lt-new').innerText()));
 await page.locator('.lt-new input.text-input').first().fill('Capper stops');
-await page.locator('.lt-new input[list="new-study-machines"], .lt-new input.text-input').nth(1).fill('Capper');
+await page.locator('select[aria-label="Which machine"]').selectOption({ label: 'Another machine — I’ll type it' });
+await page.locator('.lt-new input.text-input').nth(1).fill('Capper');
 await page.getByRole('button', { name: 'Start it' }).click();
 await page.waitForURL(/#\/reliability\/[^/?]+/, { timeout: 10000 });
 const RID = decodeURIComponent(page.url().split('#/reliability/')[1].split('?')[0]);
@@ -409,7 +410,8 @@ const newStudy = async (name, machine) => {
   await page.locator('select[aria-label="Which line"]').selectOption(sd.wsId);
   await page.waitForTimeout(500);
   await page.locator('.lt-new input.text-input').first().fill(name);
-  await page.locator('.lt-new input[list="new-study-machines"], .lt-new input.text-input').nth(1).fill(machine);
+  await page.locator('select[aria-label="Which machine"]').selectOption({ label: 'Another machine — I’ll type it' });
+  await page.locator('.lt-new input.text-input').nth(1).fill(machine);
   await page.getByRole('button', { name: 'Start it' }).click();
   await page.waitForURL(/#\/reliability\/[^/?]+/, { timeout: 10000 });
   await page.locator('.ie-agree').waitFor();
