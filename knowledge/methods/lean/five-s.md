@@ -65,7 +65,7 @@ area is also the auditable one.
 **Worked case** (`cases-lean.py`): five S × four questions, 0–4 each,
 maximum 80. Line 3 scored 52 — 65%: Sort 88%, Set in order 69%,
 Shine 44%, Standardise 69%, Sustain 56%. The previous four audits read
-81, 78, 75, 72 — five falls in a row, and shine the weakest: the
+81, 78, 75, 72 — four falls in a row (81 to 65), and shine the weakest: the
 cleaning standard is not being followed, which in a food factory is a
 hygiene finding before it is a lean one. Two auditors on the same area:
 65% against 61%, exact agreement on 75% of the questions and within one
