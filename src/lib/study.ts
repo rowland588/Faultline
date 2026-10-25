@@ -590,7 +590,39 @@ export interface RelCount {
    *  for what they cost. */
   downMin?: number;
   removed?: boolean;
+  /** FC-059 / FC-015: how each one is timed. Absent: counted only. `stop` —
+   *  each one is timed (help arrived, running again) and takes the machine out
+   *  of running; `call` — a call for help (andon), the same two stamps, its
+   *  reason and the response wanted. */
+  timed?: 'stop' | 'call';
+  /** FC-015 (and any timed count): the short list a stop or call is picked from. */
+  reasons?: string[];
+  /** FC-015: help should arrive within this many minutes. */
+  respondMin?: number;
+  /** FC-059: what a fitter costs the business an hour — prices the repairs. */
+  fitterRate?: number;
+  /** FC-061: fit the reliability growth (Crow–AMSAA) — a machine bedding in. */
+  growth?: boolean;
+  /** FC-060: the thing counted is a part that wears and is replaced — its lives. */
+  wear?: RelWear;
 }
+
+/** FC-060: a part's life, the unit its age is in, what the lives are taken
+ *  from and the two costs the age-replacement interval rests on. */
+export interface RelWear {
+  unit?: string;
+  /** Use this study's gaps between events as lives (the part replaced at each). */
+  fromWatch?: boolean;
+  /** The part was new when the watching began — the first gap is a life. */
+  newAtStart?: boolean;
+  /** £ a planned change; £ a failure. */
+  swapCost?: number;
+  failCost?: number;
+}
+
+/** One life of a part for the Weibull: how old it was when it failed, or how
+ *  old it is and still running. Struck, never erased. */
+export interface RelLife { id: string; count: string; age: number; failed: boolean; note?: string; by?: string; at?: number; struck?: boolean }
 
 /** A RELIABILITY STUDY's agreement (lib/ie/reliability): what is counted —
  *  one thing or several at once, all on the one watch (Rowland, 22 October:
@@ -621,6 +653,13 @@ export interface RelEvent {
   count?: string;
   /** What one was, on a study set up before 22 October. */
   kind?: string;
+  /** FC-059: when help arrived, and when the machine ran again (ms) — on a
+   *  timed count. `est`: the time was said ("took 40 s"), not clocked. */
+  arrivedAt?: number;
+  fixedAt?: number;
+  est?: boolean;
+  /** FC-015 / FC-059: the reason, from the count's list. */
+  reason?: string;
 }
 
 /** A REMARK — commentary kept on a study, for its page and its paper. Taken
@@ -679,6 +718,8 @@ export interface StudyFacts {
   watch?: WatchRun[];
   events?: RelEvent[];
   remarks?: Remark[];
+  /** FC-060: the lives of a part that wears, each its own entry (merged by id). */
+  lives?: RelLife[];
   /** A shift's losses: the end-of-shift count (tool 7). The stops are the
    *  line's log in its window, never copied in. */
   losses?: LossCount;
@@ -795,6 +836,7 @@ export function factsOf(v: unknown): StudyFacts {
     ...(o.watch !== undefined ? { watch: listById<WatchRun>(o.watch) } : {}),
     ...(o.events !== undefined ? { events: listById<RelEvent>(o.events) } : {}),
     ...(o.remarks !== undefined ? { remarks: listById<Remark>(o.remarks) } : {}),
+    ...(o.lives !== undefined ? { lives: listById<RelLife>(o.lives) } : {}),
     ...(o.timings !== undefined ? { timings: listById<RunTiming>(o.timings) } : {}),
     ...(o.vevents !== undefined ? { vevents: listById<VideoEvent>(o.vevents) } : {}),
     ...(o.turns !== undefined ? { turns: listById<TalkTurn>(o.turns) } : {}) };

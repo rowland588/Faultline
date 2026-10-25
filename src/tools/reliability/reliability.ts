@@ -60,13 +60,27 @@
 import { labourPerHour, ratedPerMin } from '../../lib/cost';
 import { lineDay, stopsTheLine, type Neck } from '../../lib/lineLoss';
 import { contributionOf } from '../losses/losses';
-import type { AgreedReliability, RelEvent, WatchRun } from '../../lib/study';
+import type { AgreedReliability, RelEvent, RelWear, WatchRun } from '../../lib/study';
+import { gbp, pct, perHour, plural, span } from './words';
+import { callFigures, downSpans, MIN_TIMED_FOR_MONEY, repairFigures, stopsOf, type CallFigures, type RepairFigures, type TimedStop } from './repair';
+import { growth, type GrowthFigures } from './growth';
 
 /** WHAT ONE COUNT IS AND WHAT IT SHOULD BE — the words its figures are said
  *  in: "stop", the MTBF wanted, the minutes the line stands each time. */
-export interface RelSubject { event: string; targetMin?: number; downMin?: number }
+export interface RelSubject {
+  event: string; targetMin?: number; downMin?: number;
+  /** The mean minutes a timed stop stood the line, measured (FC-059): from
+   *  MIN_TIMED_FOR_MONEY timed it replaces the typed minutes in the money. */
+  measuredMin?: number;
+  /** How many were timed for it. */
+  measuredN?: number;
+}
 /** One count of a study, as the page and the paper read it. */
-export interface RelCounter extends RelSubject { id: string; removed?: boolean }
+export interface RelCounter extends RelSubject {
+  id: string; removed?: boolean;
+  /** FC-059 / FC-015 / FC-061 / FC-060: what was agreed beyond counting. */
+  timed?: 'stop' | 'call'; reasons?: string[]; respondMin?: number; fitterRate?: number; growth?: boolean; wear?: RelWear;
+}
 
 /** The id the one thing counted before 22 October reads as. */
 export const FIRST_COUNT = 'e';
@@ -77,7 +91,9 @@ export function countersOf(a: AgreedReliability | undefined, all = false): RelCo
   if (!a) return [];
   if (a.counts?.length) {
     return a.counts.filter(c => all || !c.removed).map(c => ({ id: c.id, event: c.name.trim() || 'event',
-      ...(c.targetMin && c.targetMin > 0 ? { targetMin: c.targetMin } : {}), ...(c.downMin && c.downMin > 0 ? { downMin: c.downMin } : {}), ...(c.removed ? { removed: true } : {}) }));
+      ...(c.targetMin && c.targetMin > 0 ? { targetMin: c.targetMin } : {}), ...(c.downMin && c.downMin > 0 ? { downMin: c.downMin } : {}), ...(c.removed ? { removed: true } : {}),
+      ...(c.timed ? { timed: c.timed } : {}), ...(c.reasons?.length ? { reasons: c.reasons } : {}), ...(c.respondMin && c.respondMin > 0 ? { respondMin: c.respondMin } : {}),
+      ...(c.fitterRate && c.fitterRate > 0 ? { fitterRate: c.fitterRate } : {}), ...(c.growth ? { growth: true } : {}), ...(c.wear ? { wear: c.wear } : {}) }));
   }
   if (a.event?.trim()) {
     return [{ id: FIRST_COUNT, event: a.event.trim(), ...(a.targetMin && a.targetMin > 0 ? { targetMin: a.targetMin } : {}), ...(a.downMin && a.downMin > 0 ? { downMin: a.downMin } : {}) }];
@@ -96,69 +112,14 @@ const HOUR = 3_600_000;
 
 /* ------------------------------------------------------------------ words */
 
-/** One event, more than one: "stop" → "stops", "pick" → "picks", "batch" → "batches". */
-export function plural(word: string, n = 2): string {
-  const w = word.trim() || 'event';
-  if (n === 1) return w;
-  if (/[^aeiou]y$/i.test(w)) return `${w.slice(0, -1)}ies`;
-  if (/(s|x|z|ch|sh)$/i.test(w)) return `${w}es`;
-  return `${w}s`;
-}
-
-/** "an hour of running", in the time a person says it: 40 s, 47 min, 3.2 h. */
-export function span(h: number): string {
-  if (!Number.isFinite(h)) return '—';
-  const min = h * 60;
-  if (min < 1) return `${Math.round(min * 60)} s`;
-  if (min < 120) return `${min < 10 ? +min.toFixed(1) : Math.round(min)} min`;
-  return `${+h.toFixed(h < 10 ? 1 : 0)} h`;
-}
-
-/** A rate an hour, said: "1.3 an hour", "0.05 an hour". */
-export function perHour(r: number): string {
-  if (!Number.isFinite(r)) return '—';
-  const v = r >= 10 ? Math.round(r) : r >= 1 ? +r.toFixed(1) : +r.toPrecision(2);
-  return `${v} an hour`;
-}
-
-const gbp = (n: number): string => `£${n >= 100 ? Math.round(n).toLocaleString('en-GB') : n.toFixed(2)}`;
-const pct = (f: number): string => `${Math.round(f * 100)}%`;
+/* plural, span, perHour, pct and gbp live in ./words (so the repair, growth and
+   Weibull modules can say figures without importing this one); re-exported. */
+export { plural, span, perHour } from './words';
 
 /* ------------------------------------------------------------------ the chi-square bounds */
 
-/** ln Γ(x) — Lanczos, for the Poisson terms. */
-function lnGamma(x: number): number {
-  const g = 7;
-  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
-    12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
-  if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lnGamma(1 - x);
-  x -= 1;
-  let a = c[0];
-  const t = x + g + 0.5;
-  for (let i = 1; i < g + 2; i++) a += c[i] / (x + i);
-  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
-}
-
-/** P(χ² ≤ x) with an even number of degrees of freedom k = 2m — one less
- *  the Poisson chance of fewer than m events at mean x/2. Exact. */
-export function chi2Even(x: number, k: number): number {
-  if (x <= 0) return 0;
-  const m = k / 2, lam = x / 2;
-  let sum = 0;
-  for (let j = 0; j < m; j++) sum += Math.exp(-lam + j * Math.log(lam) - lnGamma(j + 1));
-  return Math.min(1, Math.max(0, 1 - sum));
-}
-
-/** The p quantile of χ² with k (even) degrees of freedom, by halving. */
-export function chi2Quantile(p: number, k: number): number {
-  let lo = 0, hi = Math.max(10, k * 4);
-  while (chi2Even(hi, k) < p) hi *= 2;
-  for (let i = 0; i < 100; i++) {
-    const mid = (lo + hi) / 2;
-    if (chi2Even(mid, k) < p) lo = mid; else hi = mid;
-  }
-  return (lo + hi) / 2;
-}
+import { chi2Quantile } from './chi2';
+export { chi2Even, chi2Quantile } from './chi2';
 
 /* ------------------------------------------------------------------ the watch */
 
@@ -209,8 +170,12 @@ export interface RelTrend { u: number; says: 'worse' | 'better' | 'steady' }
 export type RelVerdict = 'met' | 'met-unsure' | 'short-unsure' | 'short';
 
 export interface RelFigures {
-  /** Watched hours, and in how many stretches over how many days. */
+  /** Watched hours — the running time: with timed stops (FC-059) the watch less
+   *  their minutes — and in how many stretches over how many days. */
   hours: number;
+  /** With timed stops: the watch itself, and the hours of it the machine stood. */
+  watchedH?: number;
+  downH?: number;
   stretches: number;
   days: RelDay[];
   /** The watch is running now, since — and for how many hours. */
@@ -246,9 +211,36 @@ const isoDayOf = (ms: number): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export function reliability(a: Partial<RelSubject> | undefined, runs: readonly WatchRun[] = [], events: readonly RelEvent[] = [], t = Date.now()): RelFigures {
+/** The watched stretches less the minutes the machine stood — a timed stop
+ *  takes itself out of the running (FC-059). With none, the spans as they are. */
+export function runningSpans(spans: readonly [number, number][], downs: readonly [number, number][]): [number, number][] {
+  if (!downs.length) return spans.map(x => [x[0], x[1]] as [number, number]);
+  const merged: [number, number][] = [];
+  for (const [a, b] of [...downs].filter(([a, b]) => b > a).sort((p, q) => p[0] - q[0])) {
+    const last = merged[merged.length - 1];
+    if (last && a <= last[1]) last[1] = Math.max(last[1], b); else merged.push([a, b]);
+  }
+  const out: [number, number][] = [];
+  for (const [x, y] of spans) {
+    let from = x;
+    for (const [a, b] of merged) {
+      if (b <= from) continue;
+      if (a >= y) break;
+      if (a > from) out.push([from, a]);
+      from = Math.max(from, b);
+      if (from >= y) break;
+    }
+    if (from < y) out.push([from, y]);
+  }
+  return out;
+}
+
+export function reliability(a: Partial<RelSubject> | undefined, runs: readonly WatchRun[] = [], events: readonly RelEvent[] = [], t = Date.now(), downs: readonly [number, number][] = []): RelFigures {
   const spans = watchedSpans(runs, t);
-  const ms = spans.reduce((s, [x, y]) => s + (y - x), 0);
+  /* the running time: the watch less the stops' own minutes (FC-059) — the events still count by the watch itself */
+  const runSp = runningSpans(spans, downs);
+  const watchedMs = spans.reduce((s, [x, y]) => s + (y - x), 0);
+  const ms = runSp.reduce((s, [x, y]) => s + (y - x), 0);
   const hours = ms / HOUR;
   const live = countedEvents(events, spans);
   const n = live.length;
@@ -260,14 +252,15 @@ export function reliability(a: Partial<RelSubject> | undefined, runs: readonly W
   const byDay = new Map<string, { ms: number; n: number }>();
   for (const [x, y] of spans) {
     const k = isoDayOf(x), d = byDay.get(k) ?? { ms: 0, n: 0 };
-    d.ms += y - x;
+    d.ms += runningSpans([[x, y]], downs).reduce((m, [p, q]) => m + (q - p), 0);
     d.n += live.filter(e => e.at >= x && e.at <= y).length;
     byDay.set(k, d);
   }
   const days: RelDay[] = [...byDay.entries()].sort(([p], [q]) => p.localeCompare(q))
     .map(([day, d]) => ({ day, hours: d.ms / HOUR, n: d.n, ...(d.n ? { mtbfH: d.ms / HOUR / d.n } : {}) }));
 
-  const out: RelFigures = { hours, stretches: spans.length, days, ...(run ? { runningSince: run.from, runningH: Math.max(0, t - run.from) / HOUR } : {}), n, struck, outside,
+  const out: RelFigures = { hours, stretches: spans.length, days, ...(downs.length ? { watchedH: watchedMs / HOUR, downH: (watchedMs - ms) / HOUR } : {}),
+    ...(run ? { runningSince: run.from, runningH: Math.max(0, t - run.from) / HOUR } : {}), n, struck, outside,
     enough: n === 0 ? 'none' : n < ROUGH_UNDER ? 'rough' : 'enough', kinds: [], points: [] };
   if (hours <= 0) return out;
 
@@ -287,7 +280,7 @@ export function reliability(a: Partial<RelSubject> | undefined, runs: readonly W
   }
 
   /* where each event sits on the watched clock */
-  const at = live.map(e => clockAt(spans, e.at) / HOUR);
+  const at = live.map(e => clockAt(runSp, e.at) / HOUR);
   out.points = at.map((h, i) => ({ h, n: i + 1 }));
 
   const gaps = at.slice(1).map((h, i) => h - at[i]);
@@ -346,6 +339,10 @@ export interface RelCost {
   labourPerDay?: number;
   packsPerDay?: number;
   contributionPerDay?: number;
+  /** The minutes each one stood the line, and whether they were timed (FC-059) or typed. */
+  downEachMin?: number;
+  basis?: 'measured' | 'typed';
+  measuredN?: number;
   /** Does the study's machine stop the line, and was the bottleneck known? */
   stopsLine: boolean;
   neckKnown: boolean;
@@ -362,7 +359,10 @@ export function relCost(f: RelFigures, a: RelSubject | undefined, line?: RelCost
   const missing: string[] = [];
   const machine = where?.machine?.trim() || undefined;
   const stopsLine = stopsTheLine({ asset: machine ?? '' }, where?.neck);
-  const down = a?.downMin && a.downMin > 0 ? a.downMin : undefined;
+  const typed = a?.downMin && a.downMin > 0 ? a.downMin : undefined;
+  /* timed stops (FC-059) say it better than a typed figure: their mean, from MIN_TIMED_FOR_MONEY timed */
+  const measured = a?.measuredMin && a.measuredMin > 0 && (a.measuredN ?? 0) >= MIN_TIMED_FOR_MONEY ? a.measuredMin : undefined;
+  const down = measured ?? typed;
   if (down === undefined) missing.push(`the minutes the line stands for each ${plural(a?.event ?? 'event', 1)} (Change what was agreed)`);
   if (!line) missing.push('a line, for its crew, wage and speed');
   const lab = line ? labourPerHour(line) : 0;
@@ -374,7 +374,7 @@ export function relCost(f: RelFigures, a: RelSubject | undefined, line?: RelCost
   const base: RelCost = { stopsLine, neckKnown: !!where?.neck, ...(machine ? { machine } : {}), missing };
   if (f.rate === undefined || down === undefined) return base;
   const downMinPerH = f.rate * down;
-  const out: RelCost = { ...base, downMinPerH };
+  const out: RelCost = { ...base, downMinPerH, downEachMin: down, basis: measured !== undefined ? 'measured' : 'typed', ...(measured !== undefined ? { measuredN: a?.measuredN } : {}) };
   if (lab > 0) out.labourPerH = lab * (downMinPerH / 60);
   if (stopsLine && speed !== undefined) {
     out.packsPerH = speed * downMinPerH;
@@ -406,7 +406,7 @@ export function costParts(c: Pick<RelCost, 'labourPerH' | 'contributionPerH'>): 
 export function costWords(c: RelCost): string {
   if (c.downMinPerH === undefined) return '';
   const parts = [
-    `${+c.downMinPerH.toFixed(1)} min stood an hour of running`,
+    `${+c.downMinPerH.toFixed(1)} min stood an hour of running${c.basis === 'measured' ? ` (${+(c.downEachMin ?? 0).toFixed(1)} min each, the mean of the ${c.measuredN} timed)` : ''}`,
     c.labourPerH !== undefined ? `${gbp(c.labourPerH)} of the crew’s time` : '',
     c.packsPerH !== undefined ? `${Math.round(c.packsPerH).toLocaleString('en-GB')} packs not made ${costWhere(c)}${c.contributionPerH !== undefined ? ` (${gbp(c.contributionPerH)} contribution)` : ''}` : '',
     !c.stopsLine ? `no packs lost — ${costWhere(c)}` : '',
@@ -497,13 +497,40 @@ export function compareReliability(fb: RelFigures, fa: RelFigures, event = 'even
 
 /* ------------------------------------------------------------------ the study, every count */
 
-/** One count and its figures. */
-export interface RelItem { c: RelCounter; f: RelFigures }
+/** One count and its figures — and, where it was set up for them, its repair
+ *  times (a timed stop), its calls (an andon count) and its growth (FC-059,
+ *  FC-015, FC-061). `c` carries the measured minutes a stop stood the line
+ *  once they are timed (RelSubject.measuredMin), which the money reads. */
+export interface RelItem { c: RelCounter; f: RelFigures; r?: RepairFigures; k?: CallFigures; g?: GrowthFigures; stops?: TimedStop[] }
 
-/** EVERY COUNT'S FIGURES, on the one watch — each count from its own taps. */
+/** EVERY COUNT'S FIGURES, on the one watch — each count from its own taps.
+ *  A timed count's stops take themselves out of the running time (for every
+ *  count: the machine stood), so the MTBF is of running time. */
 export function relAll(a: AgreedReliability | undefined, runs: readonly WatchRun[] = [], events: readonly RelEvent[] = [], t = Date.now()): RelItem[] {
   const first = countersOf(a, true)[0]?.id;
-  return countersOf(a).map(c => ({ c, f: reliability(c, runs, eventsOf(events, c.id, first), t) }));
+  const counters = countersOf(a);
+  const spans = watchedSpans(runs, t);
+  const stopsBy = new Map<string, TimedStop[]>();
+  const downs: [number, number][] = [];
+  for (const c of counters) {
+    if (!c.timed) continue;
+    const st = stopsOf(countedEvents(eventsOf(events, c.id, first), spans));
+    stopsBy.set(c.id, st);
+    downs.push(...downSpans(st, t));
+  }
+  return counters.map(c => {
+    const f = reliability(c, runs, eventsOf(events, c.id, first), t, downs);
+    const st = stopsBy.get(c.id);
+    if (!st) {
+      const g = c.growth ? growth(f.points.map(p => p.h), f.hours, c.targetMin && c.targetMin > 0 ? c.targetMin / 60 : undefined) : undefined;
+      return { c, f, ...(g ? { g } : {}) };
+    }
+    const r = c.timed === 'stop' ? repairFigures(st, f, t) : undefined;
+    const k = c.timed === 'call' ? callFigures(st, c.respondMin, t) : undefined;
+    const measured = r?.meanMin !== undefined ? { measuredMin: r.meanMin, measuredN: r.timed } : k?.resMeanMin !== undefined ? { measuredMin: k.resMeanMin, measuredN: k.cleared } : {};
+    const g = c.growth ? growth(f.points.map(p => p.h), f.hours, c.targetMin && c.targetMin > 0 ? c.targetMin / 60 : undefined) : undefined;
+    return { c: { ...c, ...measured }, f, stops: st, ...(r ? { r } : {}), ...(k ? { k } : {}), ...(g ? { g } : {}) };
+  });
 }
 
 const TONE_RANK: Record<RelSays['tone'], number> = { r: 3, a: 2, g: 1, n: 0 };
