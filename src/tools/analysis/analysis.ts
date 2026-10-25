@@ -9,6 +9,7 @@
  * confident". */
 import type { AgreedAnalysis, AnalysisPlan, StudyReading } from '../../lib/study';
 import type { LeanTile } from '../../lib/lean';
+import { learnFigures, learnPlot, learnProblem, learnSays, learnTiles, type LearnFigures } from './learn';
 import { dagostinoPearson, histogram } from '../../lib/ie/dist';
 import { describe, orderSays, type Described } from '../../lib/ie/describe';
 import { compareGroups, type GroupsResult } from '../../lib/ie/groups';
@@ -45,6 +46,7 @@ export const KIND_WORDS: Record<AgreedAnalysis['kind'], { name: string; ask: str
   groups: { name: 'Do groups differ', ask: 'Do these groups really differ?', example: 'give-away by shift; fill weight by head; seal strength by supplier' },
   table: { name: 'Are two things linked', ask: 'Is one thing linked to the other?', example: 'fault type by lane, counted off the reject bin; rejects by shift and product' },
   relate: { name: 'What moves with what', ask: 'Does one thing move with another — and by how much?', example: 'seal strength against jaw temperature; give-away against speed and product temperature' },
+  learn: { name: 'How fast it is learned', ask: 'How fast is a new job being learned?', example: 'a new starter packing; a new product’s first runs; seasonal staff in their first week' },
   plan: { name: 'How many readings', ask: 'How many readings do I need?', example: 'to know a mean to ±0.3 g; to see a 0.5 g difference between shifts' },
 };
 export const confidenceOf = (a: Pick<AgreedAnalysis, 'confidence'>): Confidence => a.confidence ?? DEFAULT_CONFIDENCE;
@@ -74,7 +76,7 @@ const runs = (rs: StudyReading[], arm?: string): Run => live(rs).filter(r => typ
 
 /* ------------------------------------------- the figures ---------------------------------------------- */
 export interface Check { what: string; say: string; tone: Tone }
-interface Base { conf: Confidence; alpha: number; dp: number; unit: string; checks: Check[] }
+export interface Base { conf: Confidence; alpha: number; dp: number; unit: string; checks: Check[] }
 export interface SureFigures extends Base {
   kind: 'sure'; of: 'mean' | 'share' | 'rate'; n: number; enough: boolean;
   d?: Described; mean?: Interval & { half: number }; spread?: Interval; ac?: Autocorrelation; hist?: ReturnType<typeof histogram>;
@@ -115,7 +117,7 @@ export interface RelateFigures extends Base {
   kind: 'relate'; k: number; n: number; need: number; enough: boolean; weak: boolean; drivers: { name: string; unit?: string }[]; xs: number[][]; y: number[];
   line?: Line; multi?: Multiple; /** perfectly collinear drivers, or a constant one — nothing is fitted */ refusal?: string; p?: number; significant: boolean;
 }
-export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures | GroupsFigures | TableFigures | RelateFigures;
+export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures | GroupsFigures | TableFigures | RelateFigures | LearnFigures;
 
 const normalCheck = (what: string, xs: number[]): { check?: Check; non: boolean } => {
   if (xs.length < NORMAL_FROM) return { non: false };
@@ -282,6 +284,7 @@ export function analysisFigures(a: AgreedAnalysis, readings: StudyReading[], opt
     if (rs.length >= AUTOCORR_FROM_PAIRS) { const l1 = acf(m.residuals, 1), band = 2 / Math.sqrt(rs.length); f.checks.push({ what: 'Order', say: Math.abs(l1) > band ? `Order: each row’s distance from the fit follows the last one’s (r₁ ${fx(l1, 2)}, outside ±${fx(band, 2)}) — the rows are not independent, so the intervals are too narrow.` : `Order: each row’s distance from the fit is independent enough of the last (r₁ ${fx(l1, 2)}, inside ±${fx(band, 2)}).`, tone: Math.abs(l1) > band ? 'a' : 'n' }); }
     return f;
   }
+  if (a.kind === 'learn') return learnFigures(a, readings, base(placesOf(noArm(readings))), opts);
   /* the plan: how many readings */
   const p = a.plan ?? { ask: 'mean' as const }, conf2 = conf, power = p.power ?? 0.8;
   const pilot = noArm(readings), sdUsed = p.sd !== undefined && p.sd > 0 ? p.sd : pilot.length >= MEAN_FROM && sd(pilot) > 0 ? sd(pilot) : undefined;
@@ -337,7 +340,7 @@ export function planProblem(p: AnalysisPlan, pilotN = 0): string {
 }
 
 /** What cannot be agreed, said while agreeing. */
-export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'> & Partial<Pick<AgreedAnalysis, 'rows' | 'cols' | 'drivers'>>): string {
+export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'> & Partial<Pick<AgreedAnalysis, 'rows' | 'cols' | 'drivers' | 'learn'>>): string {
   if (!a.name.trim()) return 'What is measured — a name, "Fill weight".';
   if (a.kind === 'table') {
     const dup = (xs: string[]) => new Set(xs.map(x => x.toLowerCase())).size !== xs.length;
@@ -350,6 +353,7 @@ export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'withi
     if (ds.length < 1 || ds.length > MAX_DRIVERS) return `The drivers — one to ${MAX_DRIVERS} names, each with its unit in brackets, separated by commas ("Jaw temperature (°C)").`;
     if (new Set(ds.map(d => d.name.toLowerCase())).size !== ds.length) return 'Two drivers have the same name.';
   }
+  if (a.kind === 'learn') { const w = learnProblem(a); if (w) return w; }
   if (a.within !== undefined && !(a.within > 0)) return 'The largest difference that does not matter — a number above 0, in the unit.';
   return '';
 }
@@ -426,6 +430,7 @@ export function analysisSays(f: AnalysisFigures, a: AgreedAnalysis): AnalysisSay
   if (f.kind === 'groups') return groupsSays(f, name, u);
   if (f.kind === 'table') return tableSays(f);
   if (f.kind === 'relate') return relateSays(f, name, u);
+  if (f.kind === 'learn') return learnSays(f, a);
   /* plan */
   const power = pctWord(f.power), conf = pctWord(f.conf), p = a.plan;
   if (!f.ok || f.need === undefined || !p) return { text: f.why ?? 'Say what to size.', tone: 'n', verdict: 'Not enough to size', more: [], notClaimed: '' };
@@ -591,6 +596,7 @@ export function analysisTiles(f: AnalysisFigures, a: AgreedAnalysis): LeanTile[]
     return [t('Rows', big(f.n), f.n < f.need ? `at least ${f.need} for ${f.k} drivers` : undefined, f.n < f.need ? 'a' : 'n'), t('Explained', m ? share0(m.r2) : '—', m ? `adjusted ${share0(m.adjR2)}` : undefined), t('p', f.p !== undefined ? fmtP(f.p) : '—', m ? `F ${fx(m.f, 1)}` : undefined),
       t('Strongest', strong ? strong.name : '—', strong ? pSay(strong.p) : undefined), t('Worst VIF', m ? fx(m.maxVif, 1) : '—', m ? (m.serious ? 'drivers move together' : 'drivers apart enough') : undefined, m?.serious ? 'a' : 'n')];
   }
+  if (f.kind === 'learn') return learnTiles(f, a);
   const mins = f.minutes !== undefined ? `${big(f.minutes)} min` : undefined;
   if (f.ask === 'cycles' && f.cycles) return [t('Timed', big(f.cycles.have)), t('Needed', big(f.cycles.n), `±${pct(a.plan?.k ?? 0)} at ${conf}`), t('Still to time', big(Math.max(0, f.cycles.n - f.cycles.have)), undefined, f.cycles.n > f.cycles.have ? 'a' : 'g'), t('Margin now', `± ${fx(f.cycles.marginPct, 1)}%`, `± ${fx(f.cycles.marginNow, 2)}${u}`)];
   return [t('Needed', f.ok && f.need !== undefined ? big(f.need) : '—', f.ask === 'difference' || f.ask === 'twoShares' ? 'a group' : undefined), t('Confidence', conf), ...(f.ask === 'difference' || f.ask === 'twoShares' ? [t('Power', pctWord(f.power))] : []), ...(mins ? [t('Time', mins, f.pounds !== undefined ? `£${big(f.pounds)} · ${f.seconds} s a reading` : `${f.seconds} s a reading`)] : [])];
@@ -602,6 +608,7 @@ export function analysisClosing(f: AnalysisFigures, a: AgreedAnalysis, said: Ana
   const what = a.name.trim() || 'The figure';
   if (f.kind === 'sure') return { text: `${said.verdict} — ${what}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'change') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
+  if (f.kind === 'learn') return { text: `${said.verdict} — ${what}${f.reach && !f.reach.already ? `, the standard at about run ${f.reach.run}` : ''}.`, tone: said.tone };
   if (f.kind === 'groups' || f.kind === 'table' || f.kind === 'relate') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'paired') return { text: `${said.verdict} — ${f.pairs} pair${f.pairs === 1 ? '' : 's'}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}.`, tone: said.tone };
   return { text: `${said.verdict}.`, tone: said.tone };
@@ -662,9 +669,11 @@ export function analysisPicture(f: AnalysisFigures, a: AgreedAnalysis): PicRow[]
 export type Plot =
   | { kind: 'table'; rowName: string; colName: string; rows: string[]; cols: string[]; counts: number[][]; expected: number[][]; residuals: number[][]; rowTotals: number[]; colTotals: number[]; total: number }
   | { kind: 'scatter'; xName: string; yName: string; xUnit: string; yUnit: string; pts: [number, number][]; xAxis: [number, number]; yAxis: [number, number];
-      line?: [[number, number], [number, number]]; band?: { x: number; lo: number; hi: number }[]; /** the fit against what was read: a line of equal values */ equal?: boolean };
+      line?: [[number, number], [number, number]]; band?: { x: number; lo: number; hi: number }[]; /** the fit against what was read: a line of equal values */ equal?: boolean;
+      /** a fitted curve, point by point (the learning curve), and a reference line across (its standard) */ curve?: [number, number][]; ref?: { y: number; label: string } };
 const padded = (vs: number[]): [number, number] => { const lo = Math.min(...vs), hi = Math.max(...vs), p = Math.max((hi - lo) * 0.06, Math.abs(hi) * 0.0005, 1e-9); return [lo - p, hi + p]; };
 export function analysisPlot(f: AnalysisFigures, a: AgreedAnalysis): Plot | undefined {
+  if (f.kind === 'learn') return learnPlot(f, a);
   if (f.kind === 'table' && f.res) {
     return { kind: 'table', rowName: f.rowName, colName: f.colName, rows: f.rows, cols: f.cols, counts: f.counts, expected: f.res.expected, residuals: f.res.residuals, rowTotals: f.res.rowTotals, colTotals: f.res.colTotals, total: f.res.total };
   }

@@ -104,8 +104,8 @@ commissioning — the weeks when the standard is a target, not a measure.
 - [paper] Yelle, L.E. (1979), "The learning curve: historical review and comprehensive survey", *Decision Sciences* 10(2), 302–328 (from knowledge).
 
 ## In Faultline
-Not built (FC-027). The line balance's timed cycles and the video study's
-readings carry a date and a run (`src/tools/linework`, `src/tools/video`);
-FC-027 reads a station's cycle time by run, fits the curve, says the rate
-and the run the standard arrives, and plans the first weeks' output in
-packs and money.
+Built (25 October, FC-027, `knowledge/specs/FC-027-learning-curve.md`): a question of the Analysis tool — *How fast is a
+new job being learned?* The time each run took, in order, is fitted by ln T on ln n (Wright's unit-time form); the page says
+the learning rate with its interval, the run at which a standard is reached (with the interval the slope allows), what to plan
+the early runs at, and the cost of learning in money once the wage and the units a reading stands for are given. Not built:
+the cumulative-average form, forgetting after a break, a skills matrix.

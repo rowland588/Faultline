@@ -139,3 +139,16 @@ ci = stats.t.ppf(0.975, 6) * lr.stderr
 print(f"  95% interval for b: {b_-ci:.4f} to {b_+ci:.4f} -> rate {2**(b_-ci):.4f} to {2**(b_+ci):.4f}")
 bb = math.log2(0.8); T80 = 100 * runs ** bb
 l80 = stats.linregress(np.log(runs), np.log(T80)); print(f"  an exact 80% curve: slope {l80.slope:.6f} (log2 0.8 = {bb:.6f}), rate {2**l80.slope:.6f}")
+
+print("\n# 8b · the learning curve — the standard's run and its interval, the plan, what learning costs (the same eight runs, standard 40 s)")
+S = 40.0
+need = lambda bb: math.ceil((S / T1) ** (1 / bb) - 1e-9)
+b_lo, b_hi = b_ - ci, b_ + ci
+print(f"  run reaching {S:.0f} s: {need(b_)}; by the slope's interval run {need(b_hi)} to run {need(b_lo)}; the first run read at or under it: {int(np.argmax(Tn <= S)) + 1 if (Tn <= S).any() else 'none yet'}")
+nstar = need(b_)
+avg_nstar = sum(T1 * k ** b_ for k in range(1, nstar + 1)) / nstar
+extra = sum(max(0.0, T1 * k ** b_ - S) for k in range(1, nstar + 1))
+print(f"  the first {nstar} runs average {avg_nstar:.3f} s on the curve (the eight read averaged {Tn.mean():.3f}); the extra over the standard to run {nstar}: {extra:.3f} s a unit")
+print(f"  with 1,200 units a reading at £15/h: {extra*1200/3600:.2f} hours, £{extra*1200*15/3600:.2f}")
+print(f"  run {2*8} {T1*16**b_:.3f}, run {4*8} {T1*32**b_:.3f}")
+print(f"  the runs test on the residuals of the fit: see scipy-free count — residual signs {''.join('+' if r > 0 else '-' for r in (np.log(Tn) - (lr.intercept + lr.slope * np.log(runs))))}")

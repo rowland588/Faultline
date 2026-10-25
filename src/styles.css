@@ -14514,3 +14514,6 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .wb-part { grid-template-columns: minmax(0, 1fr) 5em; }
   .wb-part .linkish { grid-column: 1 / -1; justify-self: start; }
 }
+
+/* the learning curve (FC-027): the standard it is heading for, a dashed line across the scatter */
+.ie-an-ref { stroke: var(--ink-2); stroke-width: 1.2; stroke-dasharray: 5 4; }

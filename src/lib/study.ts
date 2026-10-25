@@ -522,7 +522,7 @@ export interface StudyAgreed {
  *  this figure, did it change, do two ways of measuring agree, how many readings do I need — and the readings or
  *  counts that answer it. W3b adds the groups, the counts in a table and the relations as more kinds. */
 export interface AgreedAnalysis {
-  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate';
+  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'learn';
   /** what is measured — "Fill weight", "Reject rate" */
   name: string;
   unit?: string;
@@ -545,6 +545,9 @@ export interface AgreedAnalysis {
   rows?: string[];
   cols?: string[];
   drivers?: { name: string; unit?: string }[];
+  /** a learning curve (FC-027): the time each run took, in the order made; the standard the job is heading for (in the unit) and how many units each
+   *  reading stands for — both optional, the second only to say what learning costs in money */
+  learn?: { standard?: number; perRun?: number };
 }
 export interface AnalysisPlan {
   ask: 'mean' | 'difference' | 'share' | 'twoShares' | 'zero' | 'cycles';

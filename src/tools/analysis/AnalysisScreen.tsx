@@ -117,7 +117,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
 }
 
 /* ----------------------------------------------------------------- agreeing */
-const ORDER: AgreedAnalysis['kind'][] = ['sure', 'change', 'paired', 'groups', 'table', 'relate', 'plan'];
+const ORDER: AgreedAnalysis['kind'][] = ['sure', 'change', 'paired', 'groups', 'table', 'relate', 'learn', 'plan'];
 const names = (t: string): string[] => t.split(/[,;\n]/).map(x => x.trim()).filter(Boolean);
 /** "Jaw temperature (°C), Dwell (s)" → the drivers, each with its unit if one is in brackets. */
 const drivers = (t: string): { name: string; unit?: string }[] => names(t).map(x => { const m = /^(.*?)\s*\(([^)]*)\)$/.exec(x); return m && m[1].trim() ? { name: m[1].trim(), ...(m[2].trim() ? { unit: m[2].trim() } : {}) } : { name: x }; });
@@ -140,15 +140,18 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const [rowsT, setRowsT] = useState((a?.rows ?? []).join(', '));
   const [colsT, setColsT] = useState((a?.cols ?? []).join(', '));
   const [driversT, setDriversT] = useState(driversText(a?.drivers));
+  const [standardT, setStandardT] = useState(a?.learn?.standard?.toString() ?? '');
+  const [perRunT, setPerRunT] = useState(a?.learn?.perRun?.toString() ?? '');
   if (!canAgree) return <div className="ie-agree is-wait"><h2>Waiting for it to be agreed</h2><p className="sub">What is asked and how sure it has to be is agreed by the project’s owner first.</p></div>;
   const draft: AgreedAnalysis = { kind, name: name.trim(), ...(unit.trim() && kind !== 'table' ? { unit: unit.trim() } : {}), confidence: conf,
     ...(kind === 'sure' ? { of } : {}), ...(kind === 'change' ? { data, better } : {}),
     ...(kind === 'groups' ? { better, ...(first.trim() ? { firstName: first.trim() } : {}) } : {}),
     ...(kind === 'table' ? { rows: names(rowsT), cols: names(colsT), ...(first.trim() ? { firstName: first.trim() } : {}), ...(second.trim() ? { secondName: second.trim() } : {}) } : {}),
     ...(kind === 'relate' ? { drivers: drivers(driversT) } : {}),
+    ...(kind === 'learn' && (standardT.trim() || perRunT.trim()) ? { learn: { ...(num(standardT) !== undefined ? { standard: num(standardT) } : {}), ...(num(perRunT) !== undefined ? { perRun: num(perRunT) } : {}) } } : {}),
     ...(kind === 'paired' ? { ...(first.trim() ? { firstName: first.trim() } : {}), ...(second.trim() ? { secondName: second.trim() } : {}), ...(num(within) !== undefined ? { within: num(within) } : {}) } : {}),
     ...(kind === 'plan' ? { plan: a?.plan ?? { ask: 'mean' as const } } : {}) };
-  const problem = within.trim() !== '' && num(within) === undefined ? 'Numbers only in the boxes.' : analysisProblem(draft);
+  const problem = (within.trim() !== '' && num(within) === undefined) || (standardT.trim() !== '' && num(standardT) === undefined) || (perRunT.trim() !== '' && num(perRunT) === undefined) ? 'Numbers only in the boxes.' : analysisProblem(draft);
   const save = () => {
     if (problem) return;
     void patchStudy(s.id, cur => ({ name: cur.name || draft.name, agreed: { ...cur.agreed, analysis: draft } }));
@@ -161,7 +164,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       <div className="ie-kinds" role="radiogroup" aria-label="What do you want to know?">
         <span className="field-label">The question</span>
         {ORDER.map(k => (
-          <button key={k} type="button" role="radio" aria-checked={kind === k} className={'ie-kind' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>
+          <button key={k} type="button" role="radio" aria-checked={kind === k} className={'ie-kind' + (kind === k ? ' on' : '')} onClick={() => { setKind(k); if (k === 'learn' && unit === 'g') setUnit('s'); }}>
             <b>{KIND_WORDS[k].ask}</b><small>{KIND_WORDS[k].example}</small>
           </button>
         ))}
@@ -191,9 +194,15 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       </div>
       <div className="ie-agree-grid">
         <label className="field"><span className="field-label">What is measured</span>
-          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : 'Fill weight'} /></label>
+          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : kind === 'learn' ? 'Time to pack a case' : 'Fill weight'} /></label>
         {kind !== 'table' && <label className="field"><span className="field-label">Unit {kind === 'sure' && of === 'rate' ? <i className="sub">what the time is counted in — hours</i> : kind === 'change' && data === 'counted' ? <i className="sub">optional</i> : null}</span>
-          <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder={of === 'rate' && kind === 'sure' ? 'hours' : 'g'} /></label>}
+          <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder={of === 'rate' && kind === 'sure' ? 'hours' : kind === 'learn' ? 's' : 'g'} /></label>}
+        {kind === 'learn' && <>
+          <label className="field"><span className="field-label">The standard it is heading for <i className="sub">optional, in the unit — a time a unit</i></span>
+            <input className="text-input" inputMode="decimal" value={standardT} onChange={e => setStandardT(e.target.value)} placeholder="40" aria-label="The standard" /></label>
+          <label className="field"><span className="field-label">Units each reading stands for <i className="sub">optional — only to say what learning costs in money</i></span>
+            <input className="text-input" inputMode="numeric" value={perRunT} onChange={e => setPerRunT(e.target.value)} placeholder="1,200" aria-label="Units each reading stands for" /></label>
+        </>}
         {kind === 'groups' && <label className="field"><span className="field-label">What the groups are <i className="sub">optional — a word for the words</i></span>
           <input className="text-input" value={first} maxLength={30} onChange={e => setFirst(e.target.value)} placeholder="shift" /></label>}
         {kind === 'table' && <>
@@ -235,6 +244,7 @@ export function agreedWords(a: AgreedAnalysis): string {
     case 'groups': return `${a.name} — do the ${a.firstName || 'group'}s differ${a.better && a.better !== 'either' ? ` · ${a.better} is better` : ''}${u ? ` · in${u}` : ''} · ${c}`;
     case 'table': return `${a.name} — ${(a.rows ?? []).length} ${(a.firstName || 'row').toLowerCase()}s by ${(a.cols ?? []).length} ${(a.secondName || 'column').toLowerCase()}s, counted · ${c}`;
     case 'relate': return `${a.name}${u ? ` in${u}` : ''} against ${driversText(a.drivers) || 'its drivers'} · ${c}`;
+    case 'learn': return `${a.name}${u ? ` in${u}` : ''} — how fast it is learned${a.learn?.standard ? ` · heading for ${a.learn.standard}${u}` : ''} · ${c}`;
     case 'plan': return `${a.name} — how many readings · ${c}`;
   }
 }
@@ -422,7 +432,7 @@ function SimpleEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: Stud
       </div>
     );
   }
-  const note = a.kind === 'plan' ? (a.plan?.ask === 'cycles' ? 'The timed cycles, in seconds' : 'Readings to take the spread from — optional') : undefined;
+  const note = a.kind === 'plan' ? (a.plan?.ask === 'cycles' ? 'The timed cycles, in seconds' : 'Readings to take the spread from — optional') : a.kind === 'learn' ? `The time each run took${unit ? `, in ${unit}` : ''}, in the order made — run 1 first. A run struck keeps its place.` : undefined;
   return (
     <div className="ie-cap-box" aria-label="Take the readings">
       {armChips}
@@ -561,6 +571,8 @@ function PlotView({ plot, said }: { plot: Plot; said: string }) {
       {tick(plot.xAxis[0], plot.xAxis[1]).map(v => <text key={'x' + v} x={x(v)} y={SH - SB + 14} textAnchor="middle" className="ie-an-sub">{f(v)}</text>)}
       {tick(plot.yAxis[0], plot.yAxis[1]).map(v => <text key={'y' + v} x={SL - 6} y={y(v) + 3} textAnchor="end" className="ie-an-sub">{f(v)}</text>)}
       {band && <polygon points={band} className="ie-an-band is-n" />}
+      {plot.ref && <g><line x1={SL} x2={SW - SR} y1={y(plot.ref.y)} y2={y(plot.ref.y)} className="ie-an-ref" /><text x={SW - SR} y={y(plot.ref.y) - 4} textAnchor="end" className="ie-an-sub">{plot.ref.label}</text></g>}
+      {plot.curve && <polyline points={plot.curve.map(p => `${x(p[0])},${y(p[1])}`).join(' ')} className="ie-an-fit" fill="none" />}
       {plot.line && <line x1={x(plot.line[0][0])} y1={y(plot.line[0][1])} x2={x(plot.line[1][0])} y2={y(plot.line[1][1])} className={'ie-an-fit' + (plot.equal ? ' is-equal' : '')} />}
       {plot.pts.map((p, i) => <circle key={i} cx={x(p[0])} cy={y(p[1])} r={3.2} className="ie-an-dot" />)}
       <text x={(SL + SW - SR) / 2} y={SH - 6} textAnchor="middle" className="ie-an-lab">{plot.xName}{plot.xUnit ? ` (${plot.xUnit})` : ''}</text>

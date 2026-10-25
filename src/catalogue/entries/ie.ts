@@ -123,7 +123,9 @@ export const IE: Entry[] = [
     food: 'Seasonal agency staff on hand-pack lines.',
     depends: ['FC-019', 'FC-077', 'FC-222'],
     complexity: 'S', value: 'low', valueWhy: 'Better planning of peaks and launches.',
-    status: 'to-build', form: 'component', methods: ['ie.learning-curve'], scenarios: ['people', 'planning'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['ie.learning-curve'], scenarios: ['people', 'planning'],
+    built: { where: ['/analysis'], code: ['src/tools/analysis/learn.ts', 'src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx'], tests: ['src/tools/analysis/__tests__/learn.test.ts'], acceptance: ['learning-curve.mjs'] }, spec: 'knowledge/specs/FC-027-learning-curve.md',
+    limits: ['Wright’s unit-time form only — the cumulative-average form and a forgetting after a break are not built (a break is a new curve).', 'One person or crew on one job; who has reached standard across people is the skills matrix (FC-222, staff data — the owner’s decision).'],
   },
   {
     id: 'FC-028', name: 'ECRS on the elements — eliminate, combine, rearrange, simplify', discipline: 'ie', sub: 'method',

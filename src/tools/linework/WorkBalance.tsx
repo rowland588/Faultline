@@ -290,7 +290,9 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
   const rename = (from: string, to: string) => {
     write(cur => ({ facts: { ...cur.facts,
       steps: (cur.facts.steps ?? []).map(x => (x.who === from ? { ...x, who: to } : x)),
-      crew: (cur.facts.crew ?? []).map(c => (c.who === from ? { ...c, who: to } : c)) } }));
+      crew: (cur.facts.crew ?? []).map(c => (c.who === from ? { ...c, who: to } : c)),
+      /* what a person's machines cost goes with their name */
+      ...(cur.facts.tend?.[from] ? { tend: Object.fromEntries(Object.entries(cur.facts.tend).map(([k, v]) => [k === from ? to : k, v])) } : {}) } }));
   };
   const takeOff = (whom: string) => {
     if (!window.confirm(`Take ${whom} off the line balance, with every step of theirs?`)) return;

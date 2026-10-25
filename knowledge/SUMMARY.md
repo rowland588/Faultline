@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 88 |
+| Available (`available`) | 89 |
 | Partly (`partial`) | 25 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 102 |
+| Not built yet (`to-build`) | 101 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -18,7 +18,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
 | Lean manufacturing and waste | 18 | 4 | 2 |  | 11 | 1 |  |
-| Industrial engineering and work measurement | 14 | 6 | 3 |  | 4 | 1 |  |
+| Industrial engineering and work measurement | 14 | 7 | 3 |  | 3 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 8 | 4 |  | 4 | 1 |  |
 | Equipment performance and losses | 10 | 5 | 2 |  | 1 |  | 2 |
 | Maintenance, reliability and TPM | 11 | 1 |  |  | 9 | 1 |  |
@@ -70,8 +70,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 ## By the shape it takes
 
 - a tool of its own: 71
-- a mode of another tool: 69
-- a part several tools share: 40
+- a mode of another tool: 70
+- a part several tools share: 39
 - a way through several tools: 8
 - a report or board: 34
 - decided after research: 12
@@ -114,7 +114,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
 - FC-073 The stage gate — new equipment to handover — 9 modes inside it
-- FC-105 Before and after — did it move, for a reason — 7 modes inside it
+- FC-105 Before and after — did it move, for a reason — 8 modes inside it
 - FC-001 Value stream map — current and future state — 6 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 5 modes inside it
 - FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 4 modes inside it
