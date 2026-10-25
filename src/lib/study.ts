@@ -153,7 +153,14 @@ export interface AgreedBalance {
   from?: 'target';
   /** Relaxation and contingency together, as a fraction: 0.14 is 14%. */
   allowance?: number;
+  /** THE ALLOWANCE AS ITS PARTS (FC-025, knowledge/specs/FC-032-line-balance.md): each cause named
+   *  with the percentage the site agreed for it — typed, never supplied (the ILO's table is not
+   *  built in). When there are parts, `allowance` is their sum, kept so every reader still has it. */
+  parts?: AllowancePart[];
 }
+
+/** One named part of an allowance — "Standing", 2 (per cent). */
+export interface AllowancePart { id: string; name: string; pct: number }
 
 /** One lap of a stopwatch on one element: what it took, when, who timed it.
  *  Foreign (an interruption) or struck (a mistake) are kept and count for
@@ -179,9 +186,29 @@ export interface BalanceStep {
    *  Absent: work. Walking and waiting are told apart by fill and word,
    *  never by a state colour; waiting is time a person could take work in. */
   kind?: StepKind;
+  /** THE ORDER OF THE WORK (FC-033): the steps (ids) that must come before this one. */
+  after?: string[];
+  /** THE FIVE QUESTIONS ASKED OF IT (FC-028): what is proposed, and what it is expected to take. */
+  ecrs?: EcrsDecision;
+  /** STANDARD DATA (FC-024): this step's basic time taken from the same step timed on another product. */
+  reuse?: ReusedTime;
 }
 
-export type StepKind = 'work' | 'walk' | 'wait';
+/** Walking and waiting by fill and word; **machine** is the machine's own run — it starts when the step
+ *  before it ends and goes on alongside the person's next steps (the combination table, FC-007). */
+export type StepKind = 'work' | 'walk' | 'wait' | 'machine';
+
+/** Eliminate · Combine · Rearrange · Simplify — the ILO's critical examination, in its order. */
+export type EcrsHow = 'E' | 'C' | 'R' | 'S';
+
+/** What is proposed for one step and what it is EXPECTED to take (a standard time, seconds) — expected,
+ *  until the work is timed again. `into`: the step a combined one joins (it gains `afterSec`); `to`: the
+ *  person a rearranged one goes to ('' = off the line). */
+export interface EcrsDecision { how: EcrsHow; afterSec?: number; into?: string; to?: string; why?: string; oneOff?: number }
+
+/** A basic time borrowed from another product's timing of the same step: what it was, from how many
+ *  cycles, and where it came from. */
+export interface ReusedTime { basicSec: number; n: number; enough: boolean; product: string; studyId: string; stepId: string; at: number }
 
 /** A PERSON IN THE LINE BALANCE, AND WHERE THEY ARE ON THE LINE — the
  *  station of the product's Line capacity they work at (Rowland, 17 October:
@@ -639,6 +666,9 @@ export interface StudyFacts {
   steps?: BalanceStep[];
   /** A work balance's people and where each is on the line. */
   crew?: BalanceCrew[];
+  /** MACHINES ONE PERSON TENDS (FC-026): by person, what the machine costs an hour and what one cycle of
+   *  it makes — both optional, both the business's own figures. */
+  tend?: Record<string, { machineRate?: number; packsPerCycle?: number }>;
   /** A value stream's steps as it runs today, end to end. */
   flow?: FlowStep[];
   /** The same stream as it could run — copied from the flow, then struck,

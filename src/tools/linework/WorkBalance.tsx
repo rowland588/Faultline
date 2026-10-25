@@ -51,8 +51,8 @@ import { balanceClosing, balanceTiles } from './balanceLean';
 import { LeanClosing, LeanTiles } from '../../ui/Lean';
 
 const RATINGS = [75, 90, 100, 110, 125];
-const KINDS: { kind: StepKind; word: string }[] = [{ kind: 'work', word: 'Work' }, { kind: 'walk', word: 'Walk' }, { kind: 'wait', word: 'Wait' }];
-const KIND_WORD: Record<StepKind, string> = { work: 'work', walk: 'walking', wait: 'waiting' };
+const KINDS: { kind: StepKind; word: string }[] = [{ kind: 'work', word: 'Work' }, { kind: 'walk', word: 'Walk' }, { kind: 'wait', word: 'Wait' }, { kind: 'machine', word: 'Machine' }];
+const KIND_WORD: Record<StepKind, string> = { work: 'work', walk: 'walking', wait: 'waiting', machine: 'machine' };
 /** What an element carries when it is dragged to another person. */
 const DRAG = 'application/x-faultline-element';
 /** The address of this product's page, without its query. */
