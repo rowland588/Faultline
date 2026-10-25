@@ -42,7 +42,8 @@ knowledge.
 | ISO 7870-2:2023 — Shewhart control charts | FC-086 to FC-090 | any change from the 2013 edition's constants or rules |
 | ISO 22400-2:2014 — manufacturing KPIs | FC-050 (left out) | only if OEE is ever reconsidered |
 | ISO 2859-1 and ISO 3951-1:2022 — acceptance sampling | FC-129, FC-130 | their tables are copyright: how plans can be offered honestly (computed OC curves, or a licence) |
-| ISO 4120 (triangle test), ISO 22514-3 (machine capability), IEC 60605-4, IEC 61649, IEC 61025, EN 15341, EN 1672-2, OIML R 51, OIML R 87 | their entries | edition and the formula or limit each record quotes |
+| ISO 4120 (triangle test), ISO 22514-3 (machine capability), IEC 60605-4, IEC 61649, IEC 61025, EN 15341, OIML R 51, OIML R 87 | their entries | edition and the formula or limit each record quotes |
+| EN 1672-2:2020 (edition and scope confirmed 25 October; the text is paid and was not read); EN ISO 14159:2008 (scope confirmed; text paid) | FC-178 | nothing is quoted from either; the review is against EHEDG Guideline 8 (free), not these |
 
 ## Facts quoted from secondary sources
 
@@ -74,10 +75,13 @@ knowledge.
   - The FMEA Action Priority table (AIAG–VDA 2019) — reconstructed from
     memory in `quality.fmea`; to confirm against the handbook before any
     verdict uses it.
-  - VDA's 8D volume edition; EHEDG Document 8's and EN 1672-2's editions —
-    `rca.eight-d`, `foodsafety.hygienic-design`.
-  - Emission factors (about 0.207 kg CO₂e/kWh electricity, 0.183 gas) —
-    illustrative in `sustainability.carbon`; the year's DESNZ set governs.
+  - VDA's 8D volume edition — `rca.eight-d`. (EHEDG Document 8's and EN
+    1672-2's editions were closed on 25 October: Guideline 8 is now the fourth
+    edition, December 2025; EN 1672-2:2020 — see *Research 1* below.)
+  - Emission factors — closed in part on 25 October: the 0.207 / 0.183 this
+    list carried were the 2024 DESNZ set; the 2025 and 2026 sets are in
+    `sustainability.carbon` from secondary sources and still to be read from
+    the workbook (*Research 1* below).
   - Leak flow by hole size (about 1.2 l/s at 1 mm and 7 bar) and
     compressors' specific energy (0.1–0.12 kWh/m³) —
     `sustainability.compressed-air-leaks`.
@@ -106,10 +110,30 @@ knowledge.
 
 - **MTM and MOST** (FC-023): their motion tables are licensed by their
   associations; analysts are certified. Not buildable without a licence.
-- **Shelf life** (FC-175), **hygienic design** (FC-178), **carbon** (FC-229):
-  microbiology, EHEDG guidance and emission factors need specialist sources.
+- **Shelf life** (FC-175), **hygienic design** (FC-178), **carbon** (FC-229),
+  **the inspector's reference test** (FC-232): researched on 25 October —
+  see *Research 1* below; each is buildable in a narrow, honest form, none
+  needs a licence, and each needs one reading of a document this container
+  could not open.
 - **Simulation** (FC-047): needs measured repair times first (FC-059).
 - **Lean maturity** (FC-018): no single standard model.
+
+## Research 1 — 25 October 2026: four entries marked "research"
+
+Done with web search only: **every site the research needed — legislation.gov.uk,
+gov.uk and assets.publishing.service.gov.uk, ghgprotocol.org, ehedg.org,
+eur-lex.europa.eu, foodstandards.gov.scot, campdenbri.co.uk, chilledfood.org,
+the BSI and ISO stores — refused the connection (DNS or the proxy's 403), so no
+primary source was opened.** What each record now says came from search-result
+excerpts of those pages, and every number is marked as such. The records were
+changed; the catalogue statuses are the builder's to change. Verdicts:
+
+| Entry | Verdict | What is public | What is still to read or decide |
+|---|---|---|---|
+| **FC-232** reference test on a batch (`packaging.average-quantity-system`) | **CAN BE BUILT** | SI 2006/659 Schedule 2 (the reference test) and Schedule 3 (the TNE table) are public law: single non-destructive plan 50/3/4, 80/5/6, 125/7/8 for batches 100–500, 501–3,200, 3,201 and over; destructive 20/1/2; the average check x̄ ≥ Qn − c·s with c = t(0.995; n−1)/√n (0.503, 0.379, 0.295; 0.640 destructive — reproduced by computation); the TNE table to 15 kg and over, rounded up to a tenth | A session that can fetch legislation.gov.uk reads the whole of Schedule 2 and 3: the double plan (one band seen), the rule for batches under 100 (an excerpt says 5%, which sits oddly with 2.5%), what an inadequate pack in a sample does, the measuring error rule (one fifth of the TNE), which version is current. **Finding against built code:** `tneFor` cites Schedule 2 (it is Schedule 3), stops at 10 kg, and does not round up a percentage TNE to a tenth (150 g gives 6.75, not 6.8) |
+| **FC-175** shelf-life studies (`foodsafety.shelf-life`) | **CAN BE BUILT, narrowly** — a results ledger with an observed-life verdict; **CANNOT** work out or validate a life | Guidance is free to read, not to copy: Food Standards Scotland Shelf-life guidance 2025, FSAI Guidance Note 18 Rev 5, the CFA's *Listeria* shelf-life guidance (2010; new 2026), the EURL Lm technical guidance, Campden BRI's guideline (paid) | The protocol, pathogen criteria, challenge tests, predictive models and sign-off are a microbiologist's. **Not found in any source: the 20–30% margin and the 8 °C abuse temperature this record used to carry — removed as defaults.** Unresolved: whether EU Regulation 2024/2895 (criterion 1.2b, from 1 July 2026) applies in Great Britain; Campden's guideline number for the 2019 second edition |
+| **FC-178** hygienic design review (`foodsafety.hygienic-design`) | **CAN BE BUILT** as a checklist and findings register; **CANNOT** be offered as EN 1672-2, EN ISO 14159 or EHEDG compliance or assessment | EHEDG Guideline 8 fourth edition (December 2025) is a **free download**; EN 1672-2:2020 and EN ISO 14159:2008 are paid (scope and contents list only; the three areas — food, splash, non-food — are named in EN 1672-2's contents) | Someone reads Guideline 8 and writes the checklist in Faultline's words with section numbers; EHEDG's reuse licence is read. The critical / major / minor grades and the gate rule are **Faultline's**, not EHEDG's — say so on the screen. No roughness or radius figure was found in a source of record; none is used. Guideline 58 (risk management) is sold and unread |
+| **FC-229** carbon a pack (`sustainability.carbon`) | **CAN BE BUILT** for the site's scope 1 and 2 intensity; **CANNOT** answer a product carbon footprint or scope 3 | GHG Protocol scopes and the two scope 2 methods (free documents); the UK Government's annual conversion factors (gov.uk; reuse normally under the Open Government Licence); SECR's intensity-ratio rule | The builder opens the DESNZ 2025 and 2026 workbooks and replaces every factor (electricity 0.17700 or 0.17889 for 2025? 0.13096 for 2026; gas 0.18296 and 0.18231; diesel and refrigerant not seen); the gas-bill calorific basis; whether the 2026 flat-file reissue (31 July) changed a value used |
 
 ## Disciplines not yet researched at all
 
