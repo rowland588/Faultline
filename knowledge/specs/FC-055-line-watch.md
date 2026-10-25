@@ -28,7 +28,7 @@ As the reliability study: the figures firm up with taps and watched time, and sa
 None new. `lineWatch.ts`: `started`/`stopped` write and close a stretch; `groupOf` finds the studies of a group; `lineRows` reads each machine's counts, taps, running and verdict from `relAll` and `studyReliabilitySays`. Independent case: two machines watched 15 minutes, 2 and 1 stops → MTBF 7.5 and 15 minutes (`lineWatch.test.ts`, `reliability-line.mjs` §5).
 
 ## 7. Outputs
-Screen: the strip (`[data-line-watch]`) — a row a machine (*3 counted — 2 stops · 1 jam*, watching, its verdict, its tone on the edge) and the line in words (*2 machines on one clock — all watching*); the watch reads *Watching the line — 2 machines* and *Stop the line's watch*. Paper: each machine's own report is unchanged; the line watch has no paper of its own yet (said in Scope). Money: each machine's cost as FC-058 gives it.
+**The report.** Screen: the strip (`[data-line-watch]`) — a row a machine (*3 counted — 2 stops · 1 jam*, watching, its verdict, its tone on the edge) and the line in words (*2 machines on one clock — all watching*); the watch reads *Watching the line — 2 machines* and *Stop the line's watch*. Paper: each machine's own report is unchanged; the line watch has no paper of its own yet (said in Scope). Money: each machine's cost as FC-058 gives it.
 
 ## 8. Manufacturing usability
 Big targets (a strip row 44 px or more, the checkboxes 22 px), the phone's one column, nothing off the side; a row opens the machine in one tap; the clock survives a reload because it is data.
