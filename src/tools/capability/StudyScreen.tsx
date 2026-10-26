@@ -574,6 +574,13 @@ function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
   onAdd: (r: Omit<StudyReading, 'id' | 'at'>) => void; onStrike: (id: string) => void; onFate: (id: string, fate: Fate) => void;
 }) {
   const [typed, setTyped] = useState('');
+  /* WHAT BECOMES OF THE NEXT FAILED ITEM — chosen first and kept until changed, so ✗ Failed never moves it (Rowland,
+     26 October: "it keeps flipping from one thing to the next … when I click a failed it jumps to the incorrect highlighted
+     one"). It starts as the last failed item's fate, so a reload keeps it too. */
+  const [nextFate, setNextFate] = useState<Fate>(() => {
+    const bad = readings.filter(r => !r.struck && r.ok === false).pop();
+    return bad ? fateOf(bad) : 'waste';
+  });
   /* a weigher's reading carries its head (FC-158) — typed once, kept for the next */
   const [head, setHead] = useState('');
   const weigher = a.kind === 'limits' && a.question === 'weigher';
@@ -604,9 +611,7 @@ function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
   }, [a.kind, press, enter]);
 
   const last = readings.map((r, i) => ({ ...r, no: i + 1 })).filter(r => !r.struck).slice(-3).reverse();
-  /* the last failed item's fate — three chips under the pad, waste unless tapped, until another
-     fails (FC-156); every failed item's fate is on its row in the readings list too */
-  const lastBad = a.kind === 'ticks' ? readings.map((r, i) => ({ ...r, no: i + 1 })).reverse().find(r => !r.struck && r.ok === false) : undefined;
+  /* each failed item shows its own fate on its own line, changed there (FC-156) — and on its row in the readings list */
   return (
     <div className="ie-cap-box" aria-label="Take the readings">
       <div className="ie-count"><b>{f.n}</b> of {f.count} {a.kind === 'ticks' ? `checked${f.ticks?.bad.length ? ` · ${f.ticks.bad.length} failed` : ''}` : a.kind === 'rate' ? 'intervals counted' : 'in'}{f.enough ? ' — all in' : ''}</div>
@@ -614,10 +619,11 @@ function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
       {weigher && <label className="field ie-head-box"><span className="field-label">Head</span>
         <input className="text-input" inputMode="numeric" value={head} onChange={e => setHead(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))} placeholder="1" aria-describedby="ie-head-hint" />
         <small id="ie-head-hint" className="sub">the head this reading came from — kept for the next</small></label>}
+      {a.kind === 'ticks' && <NextFate fate={nextFate} onPick={setNextFate} />}
       {a.kind === 'ticks' ? (
         <div className="ie-tick-keys">
           <button type="button" className="btn ie-key ie-ok" onClick={() => onAdd({ ok: true })} aria-label="Good">✓ <span>Good</span></button>
-          <button type="button" className="btn ie-key ie-bad" onClick={() => onAdd({ ok: false })} aria-label="Failed">✗ <span>Failed</span></button>
+          <button type="button" className="btn ie-key ie-bad" onClick={() => onAdd({ ok: false, ...(nextFate === 'waste' ? {} : { fate: nextFate }) })} aria-label="Failed">✗ <span>Failed</span></button>
         </div>
       ) : (
         <>
@@ -628,7 +634,6 @@ function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
           </div>
         </>
       )}
-      {lastBad && <Fates r={lastBad} onFate={onFate} />}
       {last.length > 0 && (
         <ul className="ie-last" aria-label="The last readings">
           {last.map(r => (
@@ -636,6 +641,7 @@ function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
               <span className="ie-no">{r.no}</span>
               <b>{modeReadingWord(a, r) ?? (typeof r.value === 'number' ? r.value : r.ok ? '✓' : '✗')}</b>
               <button type="button" className="linkish" onClick={() => onStrike(r.id)} aria-label={`Strike reading ${r.no}`}>Strike</button>
+              {a.kind === 'ticks' && r.ok === false && <Fates r={r} onFate={onFate} small />}
             </li>
           ))}
         </ul>
@@ -646,6 +652,18 @@ function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
 
 /* ------------------------------------------------------------------ every reading */
 /** WHAT BECAME OF A FAILED ITEM — waste · reworked · recovered by hand (FC-156; Rowland, 24 October). */
+/** What becomes of the NEXT failed item — three chips above ✓ / ✗, one on, kept until another is tapped. */
+function NextFate({ fate, onPick }: { fate: Fate; onPick: (f: Fate) => void }) {
+  return (
+    <div className="ie-fates ie-nextfate chip-row" role="radiogroup" aria-label="What becomes of a failed item?">
+      <span className="field-label">If one fails, it is…</span>
+      {FATES.map(x => (
+        <button key={x.k} type="button" role="radio" aria-checked={fate === x.k} className={'chip' + (fate === x.k ? ' on' : '')} title={x.eg} onClick={() => onPick(x.k)}>{x.word}</button>
+      ))}
+    </div>
+  );
+}
+
 function Fates({ r, onFate, small }: { r: StudyReading & { no: number }; onFate: (id: string, fate: Fate) => void; small?: boolean }) {
   const cur = fateOf(r);
   return (

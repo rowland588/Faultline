@@ -347,7 +347,7 @@ const seal = await startStudy('Seal integrity — after the jaw fix', 'Ilapak fl
   await typeAll([12.4, 12.4]);
   ok(/Give-away\s*0\.4 mm\s*a pack over the nominal · in money needs a weight in g or kg/i.test(flat(await page.locator('.ie-strip').innerText())), '9b 0.4 mm a pack, no money — needs a weight');
   void mm;
-  /* 9c · pass or fail: ✗ Failed shows the three fates, waste unless tapped; the rejects by fate at the packs a shift */
+  /* 9c · pass or fail: the three fates chosen before ✗ Failed and kept (waste unless tapped), each failed item's own line changing it; the rejects by fate at the packs a shift */
   const rej = await startStudy('Seal check — after the jaw fix, costed', 'Ilapak flow wrapper');
   await page.getByRole('radio', { name: /^Pass or fail/ }).click(); await page.waitForTimeout(200);
   await page.getByLabel('How many may fail').fill('2');
@@ -356,12 +356,27 @@ const seal = await startStudy('Seal integrity — after the jaw fix', 'Ilapak fl
   await page.getByLabel(/A pack’s materials/).fill('0.25'); await page.getByLabel(/To rework one pack/).fill('0.12');
   await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
   const good = page.getByRole('button', { name: 'Good', exact: true }), bad = page.getByRole('button', { name: 'Failed', exact: true });
-  ok((await page.locator('.ie-fates').count()) === 0, '9c no fate asked while nothing has failed');
-  for (let i = 1; i <= 20; i++) { await (i === 5 || i === 12 ? bad : good).click(); await page.waitForTimeout(60); if (i === 12) { await page.waitForTimeout(300); await page.getByRole('radio', { name: 'Reworked' }).click(); await page.waitForTimeout(200); } }
+  /* 26 October (Rowland: "it keeps flipping from one thing to the next … when I click a failed it jumps to the incorrect highlighted one"):
+     what becomes of a failed item is chosen BEFORE ✗ Failed, kept until changed, and never moved by pressing Failed. */
+  const nf = page.locator('.ie-nextfate');
+  ok((await nf.count()) === 1 && (await nf.getAttribute('aria-label')) === 'What becomes of a failed item?' && (await all('.ie-nextfate [role=radio]')).join(' · ') === 'Waste · Reworked · Recovered by hand'
+    && (await nf.getByRole('radio', { name: 'Waste' }).getAttribute('aria-checked')) === 'true', '9c the choice is asked before anything fails: Waste, Reworked, Recovered by hand — Waste on');
+  for (let i = 1; i <= 20; i++) {
+    if (i === 12) { await nf.getByRole('radio', { name: 'Reworked' }).click(); await page.waitForTimeout(150); }
+    await (i === 5 || i === 12 ? bad : good).click(); await page.waitForTimeout(60);
+    if (i === 12) {     /* the choice stays on Reworked after Failed, and no. 12's own line says reworked */
+      await page.waitForTimeout(300);
+      ok((await nf.getByRole('radio', { name: 'Reworked' }).getAttribute('aria-checked')) === 'true' && (await nf.getByRole('radio', { name: 'Waste' }).getAttribute('aria-checked')) === 'false'
+        && (await page.locator('.ie-last .ie-fates').first().getAttribute('aria-label')) === 'What became of no. 12?'
+        && (await page.locator('.ie-last .ie-fates').first().getByRole('radio', { name: 'Reworked' }).getAttribute('aria-checked')) === 'true', '9c Reworked chosen for no. 12 stays chosen after Failed; no. 12’s own line says reworked');
+    }
+    if (i === 5) {      /* pressing Failed leaves the choice where it was, and no. 5's own line says waste */
+      await page.waitForTimeout(300);
+      ok((await nf.getByRole('radio', { name: 'Waste' }).getAttribute('aria-checked')) === 'true' && (await page.locator('.ie-last .ie-fates').first().getAttribute('aria-label')) === 'What became of no. 5?'
+        && (await page.locator('.ie-last .ie-fates').first().getByRole('radio', { name: 'Waste' }).getAttribute('aria-checked')) === 'true', '9c Failed leaves the choice on Waste; the failed item’s own line says waste');
+    }
+  }
   await page.waitForTimeout(600);
-  const fates = page.locator('.ie-fates').first();
-  ok((await fates.getAttribute('aria-label')) === 'What became of no. 12?' && (await all('.ie-fates [role=radio]')).slice(0, 3).join(' · ') === 'Waste · Reworked · Recovered by hand'
-    && (await page.getByRole('radio', { name: 'Reworked' }).first().getAttribute('aria-checked')) === 'true', `9c the three fates under the last failed item, Reworked tapped: ${(await all('.ie-fates [role=radio]')).slice(0, 3).join(' · ')}`);
   t = await truth(rej);
   ok(JSON.stringify(t.ticks.fates) === JSON.stringify({ waste: 1, rework: 1, recovered: 0 }), `9c no. 5 waste unless said, no. 12 reworked: ${JSON.stringify(t.ticks.fates)}`);
   const rm = await page.evaluate(async id => { const { getStudy } = await import('/src/db.ts'); const S = await import('/src/tools/capability/sample.ts');
