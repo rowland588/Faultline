@@ -233,3 +233,168 @@ agreement — check logs already have intervals); decided then, not now.
    page** — yes, in that order?
 7. **Fix the rename gap now (T−1)**, whether or not the centre goes ahead?
 8. **Clients** — read the centre as an appendix only, or not at all?
+
+---
+
+# Part 2 — The trial: run it, change it, run it again (26 October, later)
+
+Rowland, the same day, after the Programs report: *"when you're in this testing
+phase, it's rather complex, especially if you're bringing in multiple tools …
+I've done a test, okay, let me now make a change, run the same test again, and
+the change is documented. There's none of that. All it stipulates now is some
+testing, some numbers and fails … we need a more advanced system to run tests
+… one home … and we hold a whole testing system … the technicality involved and
+the expectations from businesses to understand what you ran, how it went, you
+made a change, you reran it."* **A hypothesis, not a build** (`docs/DIRECTION.md`).
+
+## 11. What the app already has — and the one thing it lacks
+
+Read from the code, 26 October:
+
+| Piece | Where | What it does |
+|---|---|---|
+| **The loop, in one function** | `lib/testing nextFrom` — *"the only thing in the app that creates work from work"* | A re-test follows a test (`fromTestId`) and carries the **expectation** (`passesIf`), the **aims** (`runAgreed`) and, for many products, the ones that did not pass |
+| **Found → next → the next test** | `TestItem` kinds *found · next*, `becameTestId`, `fromItemId` | An observation becomes an action with an owner and a day, which becomes the next test or a fix |
+| **A fix** | a `Test` of kind *fix* hanging off the test (`testOfFix`), a 6M countermeasure, a register problem's *journey* (what we did · what came of it) | **This is the "change"** — it has what, who, when |
+| **Before → after** | `studyLinks beforeAfter` — a fix's *evidence* study against its *proof* study | Compares two runs of a tool, **only if `sameScope`**: same tool, same name, **the same agreed limits** |
+| **A program's ladder** | `lib/programJourney` | Every attempt, its aim, what it did, how it went; the fastest pass |
+| **A frozen record** | a closed study's receipt, *Reopen* with a reason | The figures stand as they were |
+| **The trial card** | `lib/trialCardPdf` | One day on the line, whole, on a page |
+
+**What is missing is the join.** Three facts, each checked:
+
+1. **A re-test follows the *test*, not the *fix*.** `nextFrom` gives a fix and a
+   re-test the same parent (`fromTestId: t.id`) — they are *siblings*. Nothing says
+   "this run is the proof of that change". For studies that link exists
+   (`uses` role *proof*, kind *fix*); for a program's test it does not.
+2. **A re-run does not carry the measurements.** The expectation is cloned; the
+   *studies* that measured it (their tool, question and limits) are not. So the
+   second run starts by lining the tools up again, and `sameScope` is only as
+   good as how carefully they were typed.
+3. **Nothing records what was set.** *"Running 32 ppm at baseline settings"* is
+   free text. The temperature changed from 160 to 170 is nowhere a number a
+   comparison can read.
+
+So today the app can say *"3 of 20 failed"* and *"before → after"*, but not *"Run 1
+failed at 160 °C; we raised it to 170 °C (Dave, 27 Oct, because the seal was weak);
+Run 2 passed — and nothing else changed."* **That sentence is the product.**
+
+## 12. What a business expects of a test (the technical bar)
+
+The disciplines that do this properly — equipment trials and factory/site
+acceptance, validation (IQ/OQ/PQ), PDCA, A/B and one-factor-at-a-time
+experiments — ask the same eight things. They are the acceptance criteria for
+any "testing system" we call serious (`knowledge/STANDARD.md`'s bar, applied):
+
+1. **A protocol agreed *before* the run** — what is tested, by which tool, on what
+   machine, product and program; the pass criterion; how many readings and why.
+2. **The conditions actually run** — planned against actual (the Test model already
+   keeps these apart on purpose) — including the **settings**.
+3. **The result against the criterion**, with how sure it is and what it cannot claim.
+4. **A controlled change** — what was changed (setting, before → after), why, by
+   whom, when, who agreed it, what it is expected to do. **One change at a time,
+   or the package said to be one.**
+5. **The re-run on the same protocol** — same tool, same question, same limits —
+   with the comparison made by the app: the difference, whether it is more than
+   chance, whether it now meets the criterion, and whether anything else moved.
+6. **Nothing moved after the fact** — a closed run is frozen; the **criterion
+   changing between runs is shown, with who and why** (moving the goalposts is
+   the classic failure; the agreed fields are already the owner's alone).
+7. **A lineage** — Run 1 → change → Run 2 → change → Run 3 — and its end: the
+   setting accepted, and what it was set as (the line standard, the program proved).
+8. **The evidence pack** — one paper: what we ran, how it went, what we changed,
+   what we re-ran, the result, the money — the thing handed to the client or the OEM.
+
+## 13. The design: the trial is the unit the test centre is built round
+
+Part 1 listed rows. The right unit is the **trial**: a *series* of runs of one
+protocol at one place, with the changes between them. The test centre's page then
+reads **queue → trial → run → measurements**, not a flat list.
+
+```
+TRIAL  "Seal strength — Program 5, Express 125, Packer"        (a lens, never a record)
+ ├─ RUN 1   27 Oct  FAILED   Cpk 0.90 · 3 of 20 rejects · £212/shift        [measurements: capability · pass/fail · reliability]
+ ├─ CHANGE  Jaw temperature 160 → 170 °C — Dave, 27 Oct, "seal weak"; expected: rejects < 1 in 20
+ ├─ RUN 2   27 Oct  PASSED   Cpk 1.42 · 0 of 20 · —                          Δ Cpk +0.52 (more than chance, n = 25 / 25)
+ └─ ACCEPTED  set as the program's setting 170 °C  → Program 5 proved
+```
+
+### 13.1 Without a fifth noun
+
+| The thing | Is the existing… | Needs |
+|---|---|---|
+| **Protocol** | the `Test`'s `passesIf` + `runAgreed` + its studies' `agreed` | nothing new |
+| **Run** | a `Test` attempt in the `fromTestId` chain, with its studies (`uses` role *proof*) | the run's **settings** (below) |
+| **Change** | a `Test` of kind *fix* (what · who · when · why) | **a link from the run that follows it**: one optional field, *the fix this run proves* — the same idea as the study's `uses`, which already exists for studies |
+| **Settings** | — | a list on the run (name · value · unit), **carried forward from the run before** so the floor types only what moved; the diff *is* the change in data |
+| **Criterion** | `passesIf` | a snapshot per run, so a change of criterion is visible |
+| **Comparison** | `beforeAfter`/`sameScope` + the Analysis tool's *did it change* | `sameScope` extended to settings and criteria; says *not comparable, because …* |
+| **Lineage, series, accepted** | derived (`rootTestOf`, the chain) | nothing stored |
+
+The single real addition is **settings on a run** (and one link, *fix → run*). Both
+live on the test's own record; no new table. Whether `settings` rides an existing
+JSON column or needs a migration is settled at build, with `sync-schema.test.ts`.
+
+### 13.2 What "Run again" must do
+
+*Run again* — from any run, on a trial — in one tap:
+
+1. makes the next attempt on the **same protocol** (the expectation and the
+   aims, as `nextFrom` already does);
+2. **lines up each measurement again with the same tool, question and limits**
+   (new study, empty readings, linked to the new run) — so the comparison is
+   *by construction* the same, not by care;
+3. **carries the settings forward** and asks *"what did you change?"* — the
+   fields that differ become the change, with *why* and *who agreed it*;
+4. opens the first measurement to take.
+
+Then the trial's page says the comparison in a sentence, per tool, from the
+modules that already produce them (`studyLine`, `beforeAfter`, the Analysis
+tool's *did it change*), and **never claims more than the sample allows**.
+
+### 13.3 The honesty rules (the intelligence is in what it refuses to say)
+
+- **Not comparable** is a first-class answer: *"Run 2's limits differ from Run 1's
+  (criterion changed 27 Oct by Rowland)"* — shown, not hidden.
+- **More than one thing changed** → *"2 settings changed between Run 1 and Run 2 —
+  the result cannot say which one."* (A package is allowed when it is *said* to be one.)
+- **A small sample** is said as such (the existing *enough?* rules), not dressed as proof.
+- **Money** is one plain line from the one cost model, per run — never summed.
+- **No sensors, no OEE** (`docs/DIRECTION.md`): every setting and reading is typed or
+  counted by a person.
+- **Not claimed:** design-of-experiments (a later wave, *designed-run tools*), e-signatures
+  to a regulator's standard, a laboratory information system.
+
+### 13.4 Where it sits
+
+The **Test centre** (Part 1) is the *home*: its scope pages list trials; a
+machine's, a program's and a line's page show the trials under them. The
+**Programs report** and the **commissioning report** become trial readings:
+each program's row is its trial's *latest run, the change before it, and the
+result* — which is what the pill and the ladder were reaching for. The
+**trial report** is the paper (§12.8): one page a trial, built from the same
+blocks the screen draws.
+
+### 13.5 Slices (each live alone; none built until Rowland says go)
+
+| | What | Proved by |
+|---|---|---|
+| **T−1** | carry `ToolStudy.machine` through a machine rename (§3.1) | unit + `lines.mjs` |
+| **T0** | `place` + `testRows` + **series** (the chain of runs and the fix before each) | unit on every kind; reconciliation tests |
+| **R1** | *Run again*: the same protocol, the measurements lined up again, the next run linked to the fix | `trial.mjs` end to end: run → fail → change → run again → comparison on screen and paper |
+| **R2** | **Settings** on a run, carried forward, the diff as the change; one-change-at-a-time warning | unit on the diff and the warning; the acceptance step |
+| **R3** | the criterion snapshot and *not comparable because …*; the Analysis tool's sentence in the comparison | unit; paper read back |
+| **R4** | the trial report, the program row and the commissioning report reading trials | paper parity named as intended |
+| **T1–T2** | the test centre's pages (Part 1 §8) | as Part 1 |
+
+### 13.6 Decisions for Rowland (added to §10)
+
+9. **Is the unit a "trial"** — a series of runs of one protocol with the changes
+   between them? (The word is yours to choose: trial · test series · experiment.)
+10. **Settings**: typed per run and carried forward — or only a note? (The design
+    says typed, because a number can be compared and a note cannot.)
+11. **One change at a time** — a warning when two settings moved, or a hard rule?
+12. **Who agrees a change** — anyone who can edit, or the owner (as the agreed
+    fields are today)?
+13. **Does a failed run need a documented change before it can be run again**
+    — or may a run simply be repeated (noise, a bad sample) and said to be a repeat?
