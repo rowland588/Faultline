@@ -246,3 +246,41 @@ policies already hold them.
    report?
 9. **Go** on S1 (the truth) — it changes no page you work on, and makes every paper
    agree.
+
+---
+
+## 12. The interface — what you see and touch (26 October, later)
+
+Rowland, the same day: *"You're missing a vital part … user interface. I don't see any design
+plan for user interface and user experience … How it's going to be more simplified and
+streamlined?"* The screens are drawn on the design canvas **"Stage gate — the new interface"**
+(claude.ai/artifact/NfqFt599eX2Rd5aVZXewQE): the plan and its rules, the fail → fix → retest
+loop today against the new design, *Where we are* and a program's page at a desk, the Machines
+board, the Timeline, and three phone screens (*Where we are*, a program, *How it went*). The
+data on them is illustrative, from the seeded project. What they fix:
+
+**Seven rules every stage-gate screen follows**
+1. **One place per thing** — a machine, a program, a problem each have one page; lists only point to it.
+2. **Act where you are** — every action expands in place; never a window that opens another; at most one sheet deep.
+3. **One form for a result** — *How it went*, identical on the program, the board, Actions and the Timeline.
+4. **The state first** — every row leads with the pill: one word, one of the five state colours.
+5. **The story under the state** — the loop line: *failed 25 Oct → fix … done 26 Oct → retest booked 29 Oct*.
+6. **Few taps** — design targets: any program's state in 2 taps from the front; a result recorded in 4 on a phone (＋ · the program · Passed · Save); a retest after a fix in 3. Measured by `scripts/journeys.mjs` against today's baseline; none may be longer.
+7. **The same on paper** — every page has its paper from the same reading; *Where we are* is the status report.
+
+**Navigation.** The rail goes from 16 places to 11 (§4). The phone has one bar for the whole
+project — **Where we are · Machines · ＋ · Actions · More** — and ＋ records what happens on the
+floor where you are: *How it went*, a problem, a photo.
+
+**The parts kit** (built once, used on every screen and drawn the same on paper): the **state
+pill**; the **loop line**; the **ladder** (a run, its measurements, its problem, the fix under it,
+the run after the fix); the **inline action row** (teal is what you press, one primary a place);
+the **How it went** sheet (on a phone a bottom sheet, 48 px answers, numeric keypads, Save says
+what it will record — *"Save — Program 5 passed"*); the **board cell** (done is a quiet green
+wash, late a heavy red border, a problem solid red, under way violet, ahead grey — each with its
+word); the **gate chips** (the four gate pages as filters, each saying its count).
+
+**Taken out of the interface**: the four gate tabs, The day page, the Journey page, the plan's
+Timeline tab, three Needs you strips, the test's own page, the programs-stage list of programs,
+the Programs row's own form, the trip to a fix's drawer, and *Use its verdict* in another window —
+each replaced as §4 says, and none removed until its replacement has been used and proved.
