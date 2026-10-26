@@ -444,7 +444,7 @@ const lineCost = { crew: 4, labourRatePerHour: 12, labourBurden: 1.25, packsPerM
 
   await page.getByRole('button', { name: 'Start the watch' }).click();
   await page.locator('.rl-watch.is-on').waitFor();
-  const stopBtn = () => countBtn('stop');
+  const stopBtn = () => page.locator('.rl-reasons .rl-reason:not([disabled])').first();   /* a timed stop is begun by pressing its reason (26 October) */
   const rowOf = n => page.locator('.rl-open-row').nth(n);
   /* 1 — clocked: help after 1 min, running again 3 min later */
   await later(10 * MIN); await stopBtn().click(); await page.locator('.rl-open-row').first().waitFor();
@@ -468,8 +468,8 @@ const lineCost = { crew: 4, labourRatePerHour: 12, labourBurden: 1.25, packsPerM
   /* 4 — clocked again: help after 2, running after 3 more; a reason picked */
   await later(10 * MIN); await stopBtn().click(); await page.locator('.rl-open-row').first().waitFor();
   await later(2 * MIN); await rowOf(0).getByRole('button', { name: 'Help arrived' }).click();
-  await rowOf(0).getByRole('button', { name: 'jam', exact: true }).click(); await page.waitForTimeout(200);
-  ok(await rowOf(0).getByRole('button', { name: 'jam', exact: true }).getAttribute('aria-pressed') === 'true', '12 a reason picked from the count’s own list');
+  /* the stop was begun by pressing a reason (jam), so the row already says it */
+  ok(await rowOf(0).getByRole('button', { name: 'jam', exact: true }).getAttribute('aria-pressed') === 'true', '12 a reason pressed on the watch is the stop’s reason, kept on its row');
   await later(3 * MIN); await rowOf(0).getByRole('button', { name: 'Running again' }).click(); await page.waitForTimeout(300);
   /* 5 — left open: after four hours it is asked about, with its row marked */
   await later(10 * MIN); await stopBtn().click(); await page.locator('.rl-open-row').first().waitFor();

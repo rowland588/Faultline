@@ -36,15 +36,15 @@ import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
 import type { AgreedReliability, RelCount, RelEvent, Remark, ToolStudy, WatchRun } from '../../lib/study';
 import {
-  costWords, countersOf, countTitle, FIRST_COUNT, LEFT_ON_H, perHour, plural, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, runningRun, span,
+  costWords, countersOf, runningSpans, countTitle, FIRST_COUNT, LEFT_ON_H, perHour, plural, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, runningRun, span,
   studyReliabilitySays, watchedSpans, type RelCounter, type RelFigures, type RelItem,
 } from './reliability';
 import { relClosings, relTiles, relTrend } from './reliabilityLean';
-import { CallsPanel, OpenStops, RepairPanel, TapTimes } from './RepairPanel';
+import { CallsPanel, editEvent, OpenStops, RepairPanel, TapTimes, withTook } from './RepairPanel';
 import { GrowthPanel } from './GrowthPanel';
 import { WearPanel } from './WearPanel';
 import { wearOf } from './wear';
-import { DEFAULT_CALL_REASONS, DEFAULT_STOP_REASONS, MAX_REASONS } from './repair';
+import { DEFAULT_CALL_REASONS, DEFAULT_STOP_REASONS, downSpans, MAX_REASONS, stopsOf } from './repair';
 import { lineDay } from '../../lib/lineLoss';
 import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../../ui/Lean';
@@ -339,6 +339,17 @@ function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree
   );
 }
 
+/** ANOTHER REASON, typed — it is pressed at once and joins the list. */
+function OwnReason({ disabled, press }: { disabled: boolean; press: (r: string) => void }) {
+  const [v, setV] = useState('');
+  return (
+    <form className="rl-own" onSubmit={e => { e.preventDefault(); const r = v.trim().toLowerCase(); if (r && !disabled) { press(r); setV(''); } }}>
+      <input className="text-input" value={v} maxLength={30} placeholder="Another reason" aria-label="Another reason" disabled={disabled} onChange={e => setV(e.target.value)} />
+      <button type="submit" className="btn" disabled={disabled || !v.trim()}>Stop</button>
+    </form>
+  );
+}
+
 /** THE LINE WATCH — every machine on the one clock, a row each with what it has counted and what it says;
  *  a tap on a row opens that machine's own page, its buttons and figures in full. The clock itself is the
  *  Watch below: one press starts or stops them all. */
@@ -376,9 +387,9 @@ function Watch({ s, counters, runs, events, t, me, together = 0 }: { s: ToolStud
   const everyOne = async () => (s.agreed?.reliability?.group ? groupOf(await listAllStudies(), s) : []).map(x => x.id).concat(s.agreed?.reliability?.group ? [] : [s.id]);
   const start = () => { const at = now(); void everyOne().then(ids => Promise.all(ids.map(id => patchStudy(id, cur => ({ facts: { ...cur.facts, watch: started(cur.facts.watch, at, uid(), me) } }))))); };
   const stop = (when?: number) => { const at = when ?? now(); void everyOne().then(ids => Promise.all(ids.map(id => patchStudy(id, cur => ({ facts: { ...cur.facts, watch: stopped(cur.facts.watch, at) } }))))); };
-  const tap = (count: string) => {
+  const tap = (count: string, reason?: string) => {
     if (!run) return;
-    const e: RelEvent = { id: uid(), at: now(), ...by, count };
+    const e: RelEvent = { id: uid(), at: now(), ...by, count, ...(reason ? { reason } : {}) };
     try { navigator.vibrate?.(60); } catch { /* not every phone can */ }
     setNoting('');
     void patchStudy(s.id, cur => ({ facts: { ...cur.facts, events: [...(cur.facts.events ?? []), e] } }));
@@ -387,6 +398,17 @@ function Watch({ s, counters, runs, events, t, me, together = 0 }: { s: ToolStud
   const inWatch = (e: RelEvent) => !e.struck && spans.some(([x, y]) => e.at >= x && e.at <= y);
   const countOf = (e: RelEvent) => e.count ?? first;
   const counted = (id: string) => events.filter(e => countOf(e) === id && inWatch(e)).length;
+  /* THE STOPS TIMED: a reason pressed is a stop that starts timing at once, and the running clock waits for it */
+  const timedCs = counters.filter(c => c.timed);
+  const stopsOfC = (c: RelCounter) => stopsOf(events.filter(e => !e.struck && countOf(e) === c.id));
+  const openNow = timedCs.flatMap(c => stopsOfC(c).filter(st => st.open).map(st => ({ st, c }))).sort((x, y) => x.st.at - y.st.at);
+  const runningMs = runningSpans(spans, downSpans(timedCs.flatMap(stopsOfC), t)).reduce((n, [x, y]) => n + (y - x), 0);
+  const running = (st: { id: string; at: number }) => editEvent(s.id, st.id, e => withTook(e, Math.max(now(), st.at + 1000), false));
+  /* a reason typed that is not on the list joins it, up to the short list the record asks for */
+  const addReason = (c: RelCounter, r: string) => {
+    if ((c.reasons ?? []).some(x => x.toLowerCase() === r.toLowerCase()) || (c.reasons ?? []).length >= MAX_REASONS) return;
+    void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, reliability: { ...cur.agreed?.reliability, counts: (cur.agreed?.reliability?.counts ?? []).map(k => (k.id === c.id ? { ...k, reasons: [...(k.reasons ?? []), r] } : k)) } } }));
+  };
   const last = [...events].sort((x, y) => y.at - x.at)[0];
   const fresh = last && !last.struck && t - last.at < 10 * 60_000 ? last : undefined;
   const freshC = fresh ? counters.find(c => c.id === countOf(fresh)) : undefined;
@@ -399,8 +421,8 @@ function Watch({ s, counters, runs, events, t, me, together = 0 }: { s: ToolStud
     <div className={'rl-watch' + (run ? ' is-on' : '')} role="group" aria-label="The watch and a button for each thing counted">
       <div className="rl-clock">
         <span className="rl-k">{together ? (run ? `Watching the line — ${together} machines` : 'The line’s watch is stopped') : run ? 'Watching' : 'The watch is stopped'}</span>
-        <b className="rl-time" aria-live="off">{clock(watched)}</b>
-        <span className="sub">{run ? `this stretch ${clock(t - run.from)} · since ${hm(run.from)}` : runs.length ? 'Start it when you are watching the machine run' : 'Start it when you begin watching the machine run'}</span>
+        <b className="rl-time" aria-live="off">{clock(timedCs.length ? runningMs : watched)}</b>
+        <span className="sub">{run && openNow.length ? `running time — paused while it is stopped` : run ? `this stretch ${clock(t - run.from)} · since ${hm(run.from)}` : runs.length ? 'Start it when you are watching the machine run' : 'Start it when you begin watching the machine run'}</span>
         <button type="button" className={'btn rl-go' + (run ? '' : ' btn-primary')} onClick={run ? () => stop() : start}>{together ? (run ? 'Stop the line’s watch' : runs.length ? 'Start the line’s watch again' : 'Start the line’s watch') : run ? 'Stop the watch' : runs.length ? 'Start the watch again' : 'Start the watch'}</button>
         {leftOn && run && (
           <p className="rl-lefton" role="status">
@@ -410,14 +432,42 @@ function Watch({ s, counters, runs, events, t, me, together = 0 }: { s: ToolStud
         )}
       </div>
       <div className="rl-tap">
+        {openNow.length > 0 && (
+          <div className="rl-stopped" role="group" aria-label="Stopped now — timing it">
+            {openNow.map(({ st, c }) => (
+              <div key={st.id} className="rl-stopped-row" data-stop={st.id}>
+                <span className="rl-stopped-k">{c.timed === 'call' ? 'Called' : 'Stopped'}{st.reason ? ` — ${st.reason}` : ''}</span>
+                <b className="rl-stopped-t" aria-live="off">{clock(t - st.at)}</b>
+                <button type="button" className="btn btn-primary rl-stopped-done" onClick={() => running(st)}>Running again</button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className={'rl-buttons' + (counters.length > 1 ? ' is-many' : '')}>
-          {counters.map(c => (
+          {counters.filter(c => !(c.timed && (c.reasons?.length ?? 0) > 0)).map(c => (
             <button key={c.id} type="button" className="rl-event" data-count={c.id} disabled={!run} onClick={() => tap(c.id)} aria-label={`Tap a ${c.event}`}>
               <b>{cap(c.event)}</b>
               <span>{run ? `${counted(c.id)} so far` : 'start the watch first'}</span>
             </button>
           ))}
         </div>
+        {counters.filter(c => c.timed && (c.reasons?.length ?? 0) > 0).map(c => {
+          const busy = openNow.some(x => x.c.id === c.id);
+          return (
+            <div key={c.id} className="rl-reasons-box" data-count={c.id}>
+              <p className="rl-reasons-h"><b>{cap(c.event)}</b> — press the reason: it starts timing at once{busy ? ' (one is open — press Running again first)' : ''}</p>
+              <div className="rl-reasons" role="group" aria-label={`Press the reason for the ${c.event}`}>
+                {(c.reasons ?? []).map(r => (
+                  <button key={r} type="button" className="rl-event rl-reason" data-count={c.id} data-reason={r} disabled={!run || busy} onClick={() => tap(c.id, r)} aria-label={`${cap(c.event)}: ${r}`}>
+                    <b>{cap(r)}</b>
+                    <span>{run ? `${events.filter(e => countOf(e) === c.id && e.reason === r && inWatch(e)).length} so far` : 'start the watch first'}</span>
+                  </button>
+                ))}
+                <OwnReason disabled={!run || busy} press={r => { addReason(c, r); tap(c.id, r); }} />
+              </div>
+            </div>
+          );
+        })}
         {!run && <p className="sub rl-tap-why">A tap counts only while the watch runs — the MTBF is the watched running time over the taps.</p>}
         {fresh && freshC && (
           <div className="rl-last" aria-live="polite">

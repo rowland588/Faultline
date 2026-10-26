@@ -26,7 +26,7 @@ const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
 const TOOK: [string, number][] = [['10 s', 10_000], ['30 s', 30_000], ['1 min', MIN], ['2 min', 2 * MIN], ['5 min', 5 * MIN]];
 
 /** Stamp or change one tap of a study. */
-function editEvent(sid: string, id: string, p: (e: RelEvent) => RelEvent) {
+export function editEvent(sid: string, id: string, p: (e: RelEvent) => RelEvent) {
   void patchStudy(sid, cur => ({ facts: { ...cur.facts, events: (cur.facts.events ?? []).map(x => (x.id === id ? p(x) : x)) } }));
 }
 

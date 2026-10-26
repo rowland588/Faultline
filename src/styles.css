@@ -14783,3 +14783,17 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 @media (max-width: 719px) { .rl-linesetup-in { grid-template-columns: minmax(0, 1fr); } .rl-line-rows { grid-template-columns: minmax(0, 1fr); } }
 .rl-linesetup-in > :nth-child(n+3) { grid-column: 1 / -1; }
 .rl-usual { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* THE STOPWATCH WITH ITS REASONS (reliability, 26 October — Rowland: "when I've got the stopwatch in front of me, these reasons need
+   to be available ... as I press it, the clock stops and starts timing that issue"). Amber is waiting on somebody; red is the stop. */
+.rl-stopped { display: grid; gap: 8px; margin-bottom: 10px; }
+.rl-stopped-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border: 2px solid var(--st-r); border-radius: var(--radius); background: var(--surface); }
+.rl-stopped-k { flex: 1 1 140px; font-weight: 800; color: var(--st-r); }
+.rl-stopped-t { font-family: var(--display); font-size: var(--t-num); font-variant-numeric: tabular-nums; color: var(--ink); }
+.rl-stopped-done { min-height: 52px; min-width: 150px; }
+.rl-reasons-box { margin-top: 10px; }
+.rl-reasons-h { margin: 0 0 6px; font-size: var(--t-detail); color: var(--ink-2); }
+.rl-reasons { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.rl-reason { min-height: 64px; }
+.rl-own { display: flex; gap: 6px; align-items: stretch; grid-column: 1 / -1; }
+.rl-own .text-input { flex: 1 1 auto; min-width: 0; }
