@@ -14781,3 +14781,5 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .rl-linesetup-in { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-top: 6px; }
 .rl-linesetup-go { display: flex; gap: 10px; justify-content: space-between; position: sticky; bottom: 0; padding: 8px 0; background: var(--surface); }
 @media (max-width: 719px) { .rl-linesetup-in { grid-template-columns: minmax(0, 1fr); } .rl-line-rows { grid-template-columns: minmax(0, 1fr); } }
+.rl-linesetup-in > :nth-child(n+3) { grid-column: 1 / -1; }
+.rl-usual { display: flex; flex-wrap: wrap; gap: 6px; }

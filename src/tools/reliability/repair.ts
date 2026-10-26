@@ -42,6 +42,14 @@ export const MIN_TIMED_FOR_MONEY = 3;
 export const OPEN_STALE_H = 4;
 /** The reasons a count may list (the record: five to eight). */
 export const MAX_REASONS = 8;
+/** The reasons a timed stop starts with — a person adds their own and takes any off (Rowland, 26 October: "before there
+ *  were some default and I could then add ... I press these reasons during the tests"). A starting list, the builder's
+ *  choice for a packing line, never a standard: eight at most, the floor's words. */
+export const DEFAULT_STOP_REASONS = ['jam', 'film break', 'sensor', 'material short', 'changeover', 'waiting for operator', 'quality check', 'no product'];
+/** And a call for help (andon) — the record's five. */
+export const DEFAULT_CALL_REASONS = ['film change', 'jam', 'QA check', 'label', 'material short'];
+/** The counts that are stoppages — what a stop timed with its reason is offered for. */
+export const isStoppage = (name: string): boolean => /^(stop|jam|failure|short stop|breakdown|stoppage)s?$/i.test(name.trim());
 /** Help-stamped stops needed before waiting and fixing are said apart. */
 export const MIN_HELPED = 3;
 

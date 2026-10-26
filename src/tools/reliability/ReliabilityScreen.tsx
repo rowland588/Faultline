@@ -44,7 +44,7 @@ import { CallsPanel, OpenStops, RepairPanel, TapTimes } from './RepairPanel';
 import { GrowthPanel } from './GrowthPanel';
 import { WearPanel } from './WearPanel';
 import { wearOf } from './wear';
-import { MAX_REASONS } from './repair';
+import { DEFAULT_CALL_REASONS, DEFAULT_STOP_REASONS, MAX_REASONS } from './repair';
 import { lineDay } from '../../lib/lineLoss';
 import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../../ui/Lean';
@@ -263,7 +263,7 @@ function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree
               <summary>More about {r.name || 'it'} — time each one, calls for help, growth, a part that wears</summary>
               <div className="rl-more-in">
                 <label className="field"><span className="field-label">Timing</span>
-                  <select className="text-input" value={r.timed} aria-label={`Timing for ${r.name || 'it'}`} onChange={e => set(r.id, { timed: e.target.value as Row['timed'] })}>
+                  <select className="text-input" value={r.timed} aria-label={`Timing for ${r.name || 'it'}`} onChange={e => { const v = e.target.value as Row['timed']; set(r.id, { timed: v, ...(v && !reasonsOf(r.reasons).length ? { reasons: (v === 'call' ? DEFAULT_CALL_REASONS : DEFAULT_STOP_REASONS).join(', ') } : {}) }); }}>
                     <option value="">Count only</option>
                     <option value="stop">Time each one — a stop (help arrived, running again)</option>
                     <option value="call">A call for help — response and clearing (andon)</option>
@@ -275,6 +275,11 @@ function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree
                     <label className="field"><span className="field-label">Reasons — a short list, commas between{r.timed === 'call' ? ' (five to eight)' : ''}</span>
                       <input className="text-input" value={r.reasons} aria-label={`Reasons for ${r.name || 'it'}`} placeholder={r.timed === 'call' ? 'film change, jam, QA check, label, material short' : 'jam, film break, sensor'} onChange={e => set(r.id, { reasons: e.target.value })} />
                     </label>
+                    <span className="chip-row rl-usual" role="group" aria-label={`Usual reasons for ${r.name || 'it'}`}>
+                      {(r.timed === 'call' ? DEFAULT_CALL_REASONS : DEFAULT_STOP_REASONS).filter(x => !reasonsOf(r.reasons).some(y => y.toLowerCase() === x)).map(x => (
+                        <button key={x} type="button" className="chip" onClick={() => set(r.id, { reasons: [...reasonsOf(r.reasons), x].join(', ') })}>+ {x}</button>
+                      ))}
+                    </span>
                     {r.timed === 'call' && (
                       <label className="field"><span className="field-label">Help should arrive within, minutes</span>
                         <input className="text-input" inputMode="decimal" value={r.respond} placeholder="no standard" aria-label={`Help should arrive within, minutes, for ${r.name || 'it'}`} onChange={e => set(r.id, { respond: e.target.value })} />

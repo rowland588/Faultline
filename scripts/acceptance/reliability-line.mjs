@@ -81,6 +81,18 @@ await page.waitForURL(/#\/reliability\/[^/?]+/, { timeout: 10000 });
   ok(one?.machine === 'Infeed belt' && !one.agreed?.reliability?.group, '1 one machine picked makes the study of that machine, on no line watch', JSON.stringify(one && { m: one.machine, a: one.agreed }));
 }
 
+/* a study of one machine: choosing to time each stop brings the usual reasons, editable, with the rest a press away */
+{
+  await page.locator('.ie-agree').waitFor();
+  await page.locator('details.rl-more > summary').first().click();
+  await page.getByLabel('Timing for stop').selectOption('stop');
+  const v = await page.getByLabel('Reasons for stop', { exact: true }).inputValue();
+  ok(v === 'jam, film break, sensor, material short, changeover, waiting for operator, quality check, no product', '1 timing each stop brings the usual reasons, to press at the machine and add to', v);
+  await page.getByLabel('Reasons for stop', { exact: true }).fill('jam, film break');
+  await page.getByRole('group', { name: 'Usual reasons for stop' }).getByRole('button', { name: '+ sensor' }).click();
+  ok(await page.getByLabel('Reasons for stop', { exact: true }).inputValue() === 'jam, film break, sensor', '1 one press adds a usual reason');
+}
+
 /* ---- 2 the whole line, the next screen ---- */
 await go(`#/reliability?project=${ids.project}`);
 await page.getByRole('button', { name: 'New reliability study' }).first().click();
@@ -95,6 +107,15 @@ const rows = await page.locator('.rl-linesetup-row').evaluateAll(els => els.map(
 ok(rows.length === 2 && rows.every(r => r.on && r.counting === 'stop') && rows.map(r => r.m).join() === 'Infeed belt,Wrapper 2', '2 the next screen lists both machines, ticked, counting a stop each', JSON.stringify(rows));
 await page.getByLabel('What is counted at Infeed belt').fill('stop, jam');
 await page.getByLabel('MTBF wanted at Infeed belt, minutes').fill('20');
+/* every machine starts timing its stops, with the usual reasons ready to press and add to */
+{
+  const usual = await page.getByLabel('Reasons for a stop at Infeed belt').inputValue();
+  ok(await page.getByLabel('Time each stop at Infeed belt and press its reason').isChecked() && usual === 'jam, film break, sensor, material short, changeover, waiting for operator, quality check, no product', '2 each machine times its stops with the usual reasons ready, editable', usual);
+  await page.getByLabel('Reasons for a stop at Infeed belt').fill('jam, film break');
+  await page.getByRole('group', { name: 'Usual reasons at Infeed belt' }).getByRole('button', { name: '+ sensor' }).click();
+  ok(await page.getByLabel('Reasons for a stop at Infeed belt').inputValue() === 'jam, film break, sensor', '2 a usual reason is added with one press, the list kept as typed');
+  await page.getByLabel('Time each stop at Wrapper 2 and press its reason').uncheck();   /* the second machine counts only: its figures stay the plain MTBF */
+}
 await page.getByLabel('Watch Wrapper 2').uncheck();
 await page.getByLabel('Watch Infeed belt').uncheck();
 ok(/Tick at least one machine/.test(flat(await page.locator('.rl-linesetup').innerText())) && await page.getByRole('button', { name: /Start the line watch/ }).isDisabled(), '2 none ticked is refused in words');
@@ -103,6 +124,8 @@ await page.getByLabel('Watch Wrapper 2').check();
 await page.getByRole('button', { name: 'Back', exact: true }).click();
 ok(await page.locator(MACHINE).inputValue() === '::whole-line', '2 Back returns to the first screen with the whole line still picked');
 await page.getByRole('button', { name: 'Next — the machines' }).click();
+await page.getByLabel('Reasons for a stop at Infeed belt').fill('jam, film break, sensor');
+await page.getByLabel('Time each stop at Wrapper 2 and press its reason').uncheck();
 await page.getByLabel('What is counted at Infeed belt').fill('stop, jam');
 await page.getByLabel('MTBF wanted at Infeed belt, minutes').fill('20');
 ok(/Start the line watch — 2 machines/.test(flat(await page.locator('.rl-linesetup-go').innerText())), '2 the button says how many machines');
@@ -116,7 +139,8 @@ const sib = made.filter(s => s.agreed?.reliability?.group);
 ok(sib.length === 2 && new Set(sib.map(s => s.agreed.reliability.group)).size === 1 && sib.map(s => s.machine).sort().join() === 'Infeed belt,Wrapper 2' && sib.every(s => s.workspaceId === ids.ws && s.projectId === ids.project),
   '3 one study a machine, sharing one group, on the line and in the project', JSON.stringify(sib.map(s => [s.name, s.machine, s.agreed?.reliability?.group])));
 const first = sib.find(s => s.machine === 'Infeed belt'), second = sib.find(s => s.machine === 'Wrapper 2');
-ok(first.agreed.reliability.counts.map(c => c.name).join() === 'stop,jam' && first.agreed.reliability.counts[0].targetMin === 20 && second.agreed.reliability.counts.map(c => c.name).join() === 'stop',
+ok(first.agreed.reliability.counts.map(c => c.name).join() === 'stop,jam' && first.agreed.reliability.counts[0].targetMin === 20 && second.agreed.reliability.counts.map(c => c.name).join() === 'stop'
+    && first.agreed.reliability.counts.every(c => c.timed === 'stop' && c.reasons.join() === 'jam,film break,sensor') && !second.agreed.reliability.counts[0].timed,
   '3 what was set up at each machine is what each counts, the MTBF wanted on the first', JSON.stringify([first.agreed, second.agreed]));
 ok(page.url().includes(first.id), '3 it opens on the first machine');
 const strip = async () => flat(await page.locator('[data-line-watch]').innerText());
@@ -127,6 +151,7 @@ ok(await page.locator('.rl-watch .rl-k').textContent() === 'The line’s watch i
 await page.getByRole('button', { name: /Start the line.s watch/ }).click();
 await page.waitForTimeout(500);
 await later(10 * MIN);
+let WATCHED_H = 0;
 const runs = async () => page.evaluate(async ids => { const db = await import('/src/db.ts'); return Promise.all(ids.map(async id => (await db.getStudy(id)).facts.watch ?? [])); }, [first.id, second.id]);
 {
   const [a, c] = await runs();
@@ -139,6 +164,21 @@ await page.locator('.rl-buttons').getByRole('button', { name: 'Tap a stop', exac
 await page.locator('.rl-buttons').getByRole('button', { name: 'Tap a jam', exact: true }).click();
 await page.waitForTimeout(300);
 ok(/3 counted — 2 stops · 1 jam/.test(await strip()), '4 the strip counts what was tapped on this machine', await strip());
+/* each stop timed: the reasons are there to press, one pressed, every stop closed */
+{
+  const open = page.locator('.rl-open-row');
+  ok(await open.count() === 3, '4 each stop tapped is open — not yet running again', await open.count());
+  const chips = await open.first().locator('.rl-open-reasons .chip').allInnerTexts();
+  ok(chips.join() === 'jam,film break,sensor', '4 the reasons are on the open stop to press', chips.join());
+  await open.first().locator('.rl-open-reasons .chip', { hasText: 'film break' }).click();
+  await page.waitForTimeout(300);
+  ok(await open.first().locator('.rl-open-reasons .chip.on').innerText() === 'film break', '4 the reason pressed is kept on the stop');
+  await later(30_000);
+  for (let k = 0; k < 3; k++) await page.locator('.rl-open-row .rl-open-done').first().click();
+  await page.waitForTimeout(400);
+  const got = await page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id)).facts.events.filter(e => e.reason).map(e => e.reason), first.id);
+  ok(got.join() === 'film break' && await open.count() === 0, '4 the stops closed, the reason kept', got.join());
+}
 /* click through to the other machine */
 await page.locator('[data-line-watch] [data-machine="Wrapper 2"]').click();
 await page.waitForURL(new RegExp(second.id));
@@ -155,7 +195,8 @@ await page.waitForTimeout(600);
   const [a, c] = await runs();
   ok(a.length === 1 && c.length === 1 && a[0].to && a[0].to === c[0].to && a[0].from === c[0].from, '4 one press stopped both machines at the same moment', JSON.stringify([a, c]));
   const watched = a[0].to - a[0].from;
-  ok(Math.abs(watched - 15 * MIN) < 5000, `4 the line was watched 15 minutes (${Math.round(watched / MIN)})`, watched);
+  WATCHED_H = watched / 3_600_000;
+  ok(Math.abs(watched - 15.5 * MIN) < 15_000, `4 the line was watched about 15 and a half minutes (${(watched / MIN).toFixed(1)})`, watched);
 }
 ok(/the watch is stopped/.test(await strip()), '4 the strip says it is stopped', await strip());
 
@@ -167,10 +208,10 @@ const truth = id => page.evaluate(async sid => {
 }, id);
 {
   const ta = await truth(first.id), tb = await truth(second.id);
-  ok(ta[0].n === 2 && ta[1].n === 1 && tb[0].n === 1 && Math.abs(ta[0].hours - 0.25) < 0.002 && Math.abs(tb[0].hours - 0.25) < 0.002, '5 the same watched quarter hour on both; their own taps (2 stops + 1 jam, 1 stop)', JSON.stringify([ta, tb]));
-  ok(Math.abs(ta[0].mtbf - 0.125) < 0.002 && Math.abs(tb[0].mtbf - 0.25) < 0.002, '5 each MTBF is the watched time over its own taps (7.5 min, 15 min)', JSON.stringify([ta[0].mtbf, tb[0].mtbf]));
+  ok(ta[0].n === 2 && ta[1].n === 1 && tb[0].n === 1 && ta[0].hours <= WATCHED_H + 1e-9 && Math.abs(tb[0].hours - WATCHED_H) < 1e-6, '5 the same watched time (less the timed stops on the first); their own taps (2 stops + 1 jam, 1 stop)', JSON.stringify([ta, tb]));
+  ok(Math.abs(ta[0].mtbf * ta[0].n - ta[0].hours) < 0.001 && ta[0].hours <= WATCHED_H + 1e-9 && Math.abs(tb[0].mtbf - WATCHED_H) < 1e-6, '5 each MTBF is the running time over its own taps (the timed stops’ minutes come off the first; the whole watch on the second)', JSON.stringify([ta[0], tb[0].mtbf]));
   const text = flat(await page.locator('.rl-counted').first().innerText());
-  ok(/15 min/.test(text) || /0\.25 h|15\.0 min|15 min/.test(text), '5 the open machine’s page says its MTBF', text.slice(0, 300));
+  ok(/MTBF 1[56] min/.test(text), '5 the open machine’s page says its MTBF', text.slice(0, 300));
 }
 
 /* ---- 6 the list, the phone ---- */

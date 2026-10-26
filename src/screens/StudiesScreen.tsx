@@ -22,7 +22,8 @@ import { useArchivedPlaces } from '../lib/useFactoryLines';
 import type { Standard } from '../tools/linestandard/standard';
 import { useProjects } from '../lib/useProjects';
 import { useMachinesOf, useProjectMachines } from '../lib/useLineRecords';
-import { countsFor, setupProblem } from '../tools/reliability/lineWatch';
+import { countsFor, reasonList, setupProblem, startingReasons } from '../tools/reliability/lineWatch';
+import { DEFAULT_STOP_REASONS } from '../tools/reliability/repair';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { PageHeader } from '../ui/parts';
@@ -426,14 +427,14 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
   const WHOLE = '::whole-line', OTHER = '::other-machine';
   const [pick, setPick] = useState('');
   const [step, setStep] = useState<'one' | 'line'>('one');
-  const [setup, setSetup] = useState<{ machine: string; on: boolean; counting: string; target: string }[]>([]);
+  const [setup, setSetup] = useState<{ machine: string; on: boolean; counting: string; target: string; timed: boolean; reasons: string }[]>([]);
   const lineName = lines.find(l => l.id === lineId)?.name ?? project?.name ?? 'the line';
   const wholeLine = isRel && pick === WHOLE;
   useEffect(() => { if (!open) { setStep('one'); setPick(''); } }, [open]);
   const ready = (!named || !!name.trim() || wholeLine) && !busy && (!isLine || !!lineId) && (!isChange || !!machine.trim()) && (!wholeLine || lineMachines.length > 0);
-  const toSetup = () => { setSetup(lineMachines.map(m => ({ machine: m, on: true, counting: 'stop', target: '' }))); setStep('line'); };
+  const toSetup = () => { setSetup(lineMachines.map(m => ({ machine: m, on: true, counting: 'stop', target: '', timed: true, reasons: DEFAULT_STOP_REASONS.join(', ') }))); setStep('line'); };
   const num = (v: string) => (v.trim() ? Number(v) : undefined);
-  const lineProblem = setupProblem(setup.map(r => ({ machine: r.machine, on: r.on, counting: r.counting, targetMin: num(r.target) })));
+  const lineProblem = setupProblem(setup.map(r => ({ machine: r.machine, on: r.on, counting: r.counting, targetMin: num(r.target), timed: r.timed, reasons: r.reasons })));
   /* every machine ticked becomes a reliability study of its own, all sharing one group — one clock for them all */
   const makeLine = async () => {
     if (lineProblem || busy) return;
@@ -443,7 +444,7 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
       const picked = setup.filter(r => r.on);
       const made: ToolStudy[] = picked.map((r, i) => ({ id: uid(), tool: 'reliability' as const, name: name.trim() || `${lineName} — every machine`, machine: r.machine,
         ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}),
-        agreed: { reliability: { group, counts: countsFor(r.counting, num(r.target), uid) } }, facts: {}, uses: [], startedAt: t, createdAt: t + i, updatedAt: t + i }));
+        agreed: { reliability: { group, counts: countsFor(r.counting, num(r.target), uid, r.timed ? { reasons: startingReasons(r.reasons) } : undefined) } }, facts: {}, uses: [], startedAt: t, createdAt: t + i, updatedAt: t + i }));
       for (const m of made) await putStudy(m);
       if (lineId) for (const m of made) if (m.machine) await machineOntoLine(lineId, m.machine);
       setName(''); setMachine(''); setPick(''); setStep('one'); onClose();
@@ -503,6 +504,19 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
                     <label className="field"><span className="field-label">MTBF wanted, minutes</span>
                       <input className="text-input" inputMode="decimal" value={r.target} placeholder="no target" aria-label={`MTBF wanted at ${r.machine}, minutes`} onChange={e => setSetup(xs => xs.map((x, j) => (j === i ? { ...x, target: e.target.value } : x)))} />
                     </label>
+                    <label className="rl-tick rl-linesetup-timed"><input type="checkbox" checked={r.timed} aria-label={`Time each stop at ${r.machine} and press its reason`} onChange={e => setSetup(xs => xs.map((x, j) => (j === i ? { ...x, timed: e.target.checked } : x)))} /> <span>Time each stop and press its reason — help arrived, running again; the reason from the list</span></label>
+                    {r.timed && (
+                      <>
+                        <label className="field"><span className="field-label">Reasons for a stop — commas between, add your own</span>
+                          <input className="text-input" value={r.reasons} aria-label={`Reasons for a stop at ${r.machine}`} onChange={e => setSetup(xs => xs.map((x, j) => (j === i ? { ...x, reasons: e.target.value } : x)))} />
+                        </label>
+                        <span className="chip-row rl-usual" role="group" aria-label={`Usual reasons at ${r.machine}`}>
+                          {DEFAULT_STOP_REASONS.filter(x => !reasonList(r.reasons).some(y => y.toLowerCase() === x)).map(x => (
+                            <button key={x} type="button" className="chip" onClick={() => setSetup(xs => xs.map((y, j) => (j === i ? { ...y, reasons: [...reasonList(y.reasons), x].join(', ') } : y)))}>+ {x}</button>
+                          ))}
+                        </span>
+                      </>
+                    )}
                   </div>
                 )}
               </li>

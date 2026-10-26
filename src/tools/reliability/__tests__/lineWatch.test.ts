@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ToolStudy } from '../../../lib/study';
-import { countsFor, groupOf, lineRows, lineWords, setupProblem, started, stopped } from '../lineWatch';
+import { countsFor, groupOf, lineRows, lineWords, reasonList, setupProblem, startingReasons, started, stopped } from '../lineWatch';
+import { DEFAULT_STOP_REASONS, isStoppage } from '../repair';
 
 const study = (id: string, machine: string, over: Partial<ToolStudy> = {}): ToolStudy => ({
   id, tool: 'reliability', name: 'Line 2a stops', machine, facts: {}, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1,
@@ -53,5 +54,21 @@ describe('a line watch — the studies watched on one clock', () => {
     expect(setupProblem([{ machine: 'A', counting: 'stop', on: false }])).toMatch(/at least one machine/);
     expect(setupProblem([{ machine: 'A', counting: 'stop', on: true, targetMin: -5 }])).toMatch(/A: an MTBF wanted is minutes/);
     expect(setupProblem([{ machine: 'A', counting: 'stop', on: true, targetMin: 30 }, { machine: 'B', counting: 'jam', on: false }])).toBeUndefined();
+  });
+
+  it('times a stoppage with its reasons — the usual eight to start, the typed ones when typed, never a count that is not a stoppage', () => {
+    let n = 0;
+    const id = () => 'k' + ++n;
+    const cs = countsFor('stop, pick', undefined, id, { reasons: startingReasons('') });
+    expect(cs[0]).toMatchObject({ name: 'stop', timed: 'stop', reasons: DEFAULT_STOP_REASONS });
+    expect(cs[1]).toEqual({ id: 'k2', name: 'pick' });
+    expect(startingReasons(' jam, Film break ,jam')).toEqual(['jam', 'Film break']);
+    expect(DEFAULT_STOP_REASONS.length).toBeLessThanOrEqual(8);
+    expect(['stop', 'Jams', 'short stop', 'failure'].every(isStoppage) && !isStoppage('pick')).toBe(true);
+    expect(reasonList('a,\nb, A')).toEqual(['a', 'b']);
+  });
+
+  it('refuses more reasons than a short list holds', () => {
+    expect(setupProblem([{ machine: 'A', counting: 'stop', on: true, timed: true, reasons: 'a,b,c,d,e,f,g,h,i' }])).toMatch(/A: a short list of reasons — 8 at most/);
   });
 });

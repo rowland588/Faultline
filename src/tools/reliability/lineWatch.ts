@@ -9,6 +9,7 @@
  * each of them, so every machine's watched time is the line's, and one press starts or stops them all.
  * Nothing worked out is stored; this module is the pure part (the page is ReliabilityScreen). */
 import type { RelCount, ToolStudy, WatchRun } from '../../lib/study';
+import { DEFAULT_STOP_REASONS, isStoppage, MAX_REASONS } from './repair';
 import { plural, relAll, runningRun, studyReliabilitySays } from './reliability';
 
 /** The studies watched with this one — itself included — in the order they were made. None for a study on its own. */
@@ -55,18 +56,31 @@ export function lineWords(rows: readonly LineRow[]): string {
 }
 
 /** What each machine of a new line watch is set up with: the things counted, in the floor's words. */
-export interface MachineSetup { machine: string; counting: string; targetMin?: number }
+export interface MachineSetup { machine: string; counting: string; targetMin?: number; /** time each stop and press its reason */ timed?: boolean; /** the reasons typed, commas between */ reasons?: string }
+
+/** The reasons typed as a list — commas or lines, none twice. */
+export const reasonList = (text: string | undefined): string[] => {
+  const seen = new Set<string>();
+  return (text ?? '').split(/[,\n]/).map(x => x.trim()).filter(x => { const k = x.toLowerCase(); if (!x || seen.has(k)) return false; seen.add(k); return true; });
+};
 
 /** The counts a machine's set-up makes — one thing, or several split by commas, a name once. */
-export function countsFor(counting: string, targetMin: number | undefined, newId: () => string): RelCount[] {
+export function countsFor(counting: string, targetMin: number | undefined, newId: () => string, timing?: { reasons: string[] }): RelCount[] {
   const names = [...new Set(counting.split(/[,;]+/).map(x => x.trim().toLowerCase()).filter(Boolean))].slice(0, 6);
-  return (names.length ? names : ['stop']).map((name, i) => ({ id: newId(), name, ...(i === 0 && targetMin ? { targetMin } : {}) }));
+  return (names.length ? names : ['stop']).map((name, i) => ({ id: newId(), name, ...(i === 0 && targetMin ? { targetMin } : {}),
+    /* a stoppage, timed: help arrived, running again — and the reason pressed from the list */
+    ...(timing && isStoppage(name) ? { timed: 'stop' as const, ...(timing.reasons.length ? { reasons: timing.reasons } : {}) } : {}) }));
 }
+
+/** The reasons a machine starts with: the typed list, else the usual one. */
+export const startingReasons = (typed: string | undefined): string[] => { const l = reasonList(typed); return l.length ? l : [...DEFAULT_STOP_REASONS]; };
 
 /** Is a set-up fit to start with? Says what is missing in words, or nothing. */
 export function setupProblem(rows: readonly (MachineSetup & { on: boolean })[]): string | undefined {
   const on = rows.filter(r => r.on);
   if (!on.length) return 'Tick at least one machine to watch.';
+  const long = on.find(r => r.timed && reasonList(r.reasons).length > MAX_REASONS);
+  if (long) return `${long.machine}: a short list of reasons — ${MAX_REASONS} at most.`;
   const bad = on.find(r => r.targetMin !== undefined && !(r.targetMin > 0 && r.targetMin <= 100_000));
   return bad ? `${bad.machine}: an MTBF wanted is minutes, more than 0 — or leave it empty.` : undefined;
 }
