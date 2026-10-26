@@ -25,7 +25,8 @@ const sanLine = (l: ProgramLine): ProgramLine => ({
   ...l, machine: san(l.machine), what: san(l.what), word: san(l.word), earlier: l.earlier.map(san),
   ...(l.runs ? { runs: san(l.runs) } : {}), ...(l.who ? { who: san(l.who) } : {}),
   ...(l.note ? { note: san(l.note) } : {}), ...(l.proving ? { proving: san(l.proving) } : {}),
-  ...(l.run ? { run: san(l.run) } : {}), ...(l.proof ? { proof: { ...l.proof, word: san(l.proof.word) } } : {}),
+  ...(l.run ? { run: san(l.run) } : {}),
+  ...(l.tests ? { tests: l.tests.map(t => ({ ...t, text: san(t.text), studies: t.studies.map(san) })) } : {}), ...(l.proof ? { proof: { ...l.proof, word: san(l.proof.word) } } : {}),
 });
 
 /** Each machine's programs, a row each: the program and its state on one
@@ -43,10 +44,12 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
     /* how a proved one was proved (flow audit #21) — its colour only when abnormal */
     proof: l.proof ? wrap(f.doc, l.proof.word, f.w - 12, 8) : [],
     run: l.run ? wrap(f.doc, `In Commission: ${l.run}`, f.w - 12, 8.5, 'bold') : [],
+    /* every test of it, first to last, each with the studies lined up for it */
+    tests: (l.tests ?? []).map(t => ({ tone: t.tone, lines: wrap(f.doc, t.text, f.w - 12, 8), studies: t.studies.flatMap(x => wrap(f.doc, `Study: ${x}`, f.w - 24, 7.5)) })),
   });
   const height = (f: Frame, l: ProgramLine) => {
     const p = parts(f, l);
-    return 6 + Math.max(p.head.length * 12 + p.who.length * 10, p.word.length * 11) + p.note.length * 11 + p.run.length * 11 + (p.earlier.length + p.proving.length + p.proof.length) * 10 + 6;
+    return 6 + Math.max(p.head.length * 12 + p.who.length * 10, p.word.length * 11) + p.note.length * 11 + p.run.length * 11 + (p.earlier.length + p.proving.length + p.proof.length) * 10 + p.tests.reduce((n, t) => n + t.lines.length * 10 + t.studies.length * 9, 0) + 6;
   };
   for (const g of reading.machines.map(m => ({ ...m, name: san(m.name), lines: m.lines.map(sanLine) }))) {
     /* The machine's name as it is written — a capitalised label lost it to
@@ -69,6 +72,12 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
           if (p.proving.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.proving, f.x + 12, ty); ty += p.proving.length * 10; }
           /* Its run at speed — the colour only when it fell short or passed. */
           if (p.run.length) { font(f.doc, 8.5, 'bold', l.runTone ? TONE[l.runTone] : INK2); f.doc.text(p.run, f.x + 12, ty); ty += p.run.length * 11; }
+          if (p.tests.length) {
+            for (const t of p.tests) {
+              font(f.doc, 8, t.tone === 'r' || t.tone === 'a' ? 'bold' : 'normal', t.tone === 'r' || t.tone === 'a' ? TONE[t.tone] : INK2); f.doc.text(t.lines, f.x + 12, ty); ty += t.lines.length * 10;
+              if (t.studies.length) { font(f.doc, 7.5, 'normal', MUTED); f.doc.text(t.studies, f.x + 24, ty); ty += t.studies.length * 9; }
+            }
+          }
           if (p.earlier.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.earlier, f.x + 12, ty); }
         },
       })),

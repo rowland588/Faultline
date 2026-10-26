@@ -7,6 +7,11 @@
  *   and no console error.
  *   node scripts/acceptance/program-studies.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { paper } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -16,7 +21,8 @@ const IGNORE = /Supabase|net::ERR|Failed to fetch|ERR_FAILED|aborted|Download th
 let fail = 0;
 const ok = (c, what, detail) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${what}${!c && detail ? ` — ${String(detail).slice(0, 600)}` : ''}`); if (!c) fail++; };
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-const ctx = await b.newContext({ viewport: { width: 1360, height: 900 } });
+const dir = mkdtempSync(join(tmpdir(), 'fl-pstudies-'));
+const ctx = await b.newContext({ viewport: { width: 1360, height: 900 }, acceptDownloads: true });
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, [`sb-${REF}-auth-token`, SESSION]);
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 const page = await ctx.newPage();
@@ -57,6 +63,35 @@ ok(chips.includes('60 ppm') && chips.includes('75 ppm'), '3 the program’s row 
 await page.locator('.ptx-studies .chip', { hasText: '75 ppm' }).first().click();
 await page.waitForURL(/#\/capability\//, { timeout: 8000 });
 ok(true, '3 a study listed on the program opens');
+/* 4  the tool is the person's to pick: a control chart lined up beside the capability studies, named for what it is */
+await go(`#/project/${sd.projectId}/programs?open=${encodeURIComponent(test.id)}`);
+await page.locator('.sl').first().waitFor({ timeout: 8000 });
+const kinds = await page.getByLabel('Which tool proves it').locator('option').allInnerTexts();
+ok(['Capability study', 'Control chart', 'Analysis', 'Reliability study'].every(k => kinds.includes(k)), '4 the tool to line up is offered: capability, control chart, analysis, reliability', kinds.join('|'));
+await page.getByLabel('Which tool proves it').selectOption({ label: 'Control chart' });
+await page.getByLabel('Name for the readings').fill('Run chart 60');
+await page.getByRole('button', { name: 'Line it up' }).click();
+await page.waitForTimeout(600);
+const tools = await page.evaluate(async ([pid, tid]) => (await (await import('/src/db.ts')).listStudies(pid)).filter(s => !s.deletedAt && (s.uses ?? []).some(u => u.kind === 'test' && u.ref === tid && u.role === 'proof')).map(s => `${s.tool}:${s.name}`), [sd.projectId, test.id]);
+ok(tools.includes('chart:Run chart 60') && tools.includes('capability:60 ppm'), '4 the study made is a control chart, the others stay capability studies', tools.join('|'));
+await go(`#/project/${sd.projectId}/programs`);
+const chips2 = await page.locator('.ptx-studies .chip').allInnerTexts();
+ok(chips2.includes('Control chart: Run chart 60') && chips2.includes('60 ppm'), '4 the program’s row names the tool of a study that is not a capability study', chips2.join(' | '));
+/* 5  the Programs report: every test of the program, and each study lined up for it, as the row says them */
+const row = await page.evaluate(async ([pid, tid]) => {
+  const db = await import('/src/db.ts'); const j = await import('/src/lib/programJourney.ts');
+  const tests = await db.listTests(pid); const progs = await db.listPrograms(pid); const t = tests.find(x => x.id === tid);
+  const p = progs.find(x => x.id === t.programId);
+  return j.programJourney(p, tests, new Date().toISOString().slice(0, 10)).attempts.map(a => a.text);
+}, [sd.projectId, test.id]);
+const flat = x => x.replace(/\s+/g, ' ');
+const pdf = flat(await (async () => {
+  const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
+  const f = join(dir, `${Date.now()}.pdf`); await d.saveAs(f);
+  return execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' });
+})());
+ok(row.length > 0 && row.every(x => pdf.includes(flat(x).slice(0, 40))), '5 the report prints every test of the program (aim, what was done, how it went)', row.join(' || ').slice(0, 300));
+ok(/Study: capability study “60 ppm”/.test(pdf) && /Study: capability study “75 ppm”/.test(pdf) && /Study: control chart “Run chart 60”/.test(pdf), '5 the report prints each study lined up under its test, named for its tool', pdf.slice(0, 200));
 ok(errs.length === 0, 'no console error', errs.join(' | '));
 await b.close();
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');

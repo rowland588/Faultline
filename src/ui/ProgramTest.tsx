@@ -31,7 +31,7 @@ import { openRecord } from './RecordDrawer';
 import { offerUndo } from './Undo';
 import { Icon } from './Icon';
 import { useJobStudies } from './StudyLinks';
-import { linkedTo, studyHref } from '../lib/studyLinks';
+import { TOOL_NAME, linkedTo, studyHref } from '../lib/studyLinks';
 import { nav } from '../state/useRoute';
 
 type Ran = Extract<Outcome, 'passed' | 'failed' | 'notRun'>;
@@ -215,7 +215,7 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
                   <span className="ptx-studies" aria-label={`Studies for test ${a.n}`}>
                     <span className="sub">Studies:</span>
                     {linkedTo(jobStudies, 'test', a.test.id, 'proof').map(st => (
-                      <button key={st.id} type="button" className="chip" onClick={() => nav(studyHref(st))}>{st.name}</button>
+                      <button key={st.id} type="button" className="chip" title={`${TOOL_NAME[st.tool] ?? 'Study'} “${st.name}”`} onClick={() => nav(studyHref(st))}>{st.tool === 'capability' ? st.name : `${TOOL_NAME[st.tool] ?? 'Study'}: ${st.name}`}</button>
                     ))}
                   </span>
                 )}

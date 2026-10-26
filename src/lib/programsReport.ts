@@ -25,7 +25,8 @@ import { partStatus, partsOf, resultNow, resultWords } from './noted';
 import { niceDay, todayISO } from './weeks';
 import { answerOf, type AnswerHolder } from './install';
 import type { ToolStudy } from './study';
-import { TOOL_NAME, studyLine } from './studyLinks';
+import { TOOL_NAME, linkedTo, studyLine } from './studyLinks';
+import { programJourney } from './programJourney';
 
 /** The house colours: green done, red failed or late, indigo under way,
  *  amber waiting on a verdict, grey not started. */
@@ -73,6 +74,11 @@ export interface ProgramLine {
    *  45 ppm net", "run short — net rate 1.5 ppm short", "run planned". */
   run?: string;
   runTone?: ProgTone;
+  /** EVERY TEST OF IT, first to last — what was aimed at, what was done, how it went, and the studies
+   *  lined up for or proving that test (Rowland, 26 October: "check that the programs report will show all
+   *  test information clearly and correctly"). The same words as the program's row and the commissioning
+   *  sheet (lib/programJourney). */
+  tests?: { text: string; tone: ProgTone; studies: string[] }[];
 }
 
 export interface ProgramsReading {
@@ -208,6 +214,17 @@ function partWordsOf(i: TestItem, today: string): Pick<ProgramLine, 'word' | 'to
     ...(st.said && (st.said.is === 'notTested' || st.said.is === 'noProgram') && !st.done ? { said: st.said.is } : {}) };
 }
 
+/** The tests of a program in words, each with the studies lined up for it — "Capability study “60 ppm” — …". */
+function testsOfProgram(p: Program | undefined, tests: Test[], studies: readonly ToolStudy[] | undefined, today: string): ProgramLine['tests'] {
+  if (!p) return undefined;
+  const out = programJourney(p, tests, today).attempts.map(a => ({
+    text: a.text,
+    tone: (a.result.tone === 'a' ? 'a' : a.result.tone) as ProgTone,
+    studies: linkedTo([...(studies ?? [])], 'test', a.test.id, 'proof').map(st => `${studyWords(st)} — ${studyLine(st).text}`),
+  }));
+  return out.length ? out : undefined;
+}
+
 export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: Asset[]; programs: Program[]; today?: string;
   /** The job, so a stage the owner made the programs stage is one (lib/install answerOf). */
   holder?: AnswerHolder;
@@ -254,6 +271,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
           ...(proved ? { word: proved.word, tone: proved.tone, bucket: proved.bucket, ...(said.note ? { note: said.note } : {}) } : said),
           ...(p && proved ? (pf => (pf ? { proof: pf } : {}))(proofOf(p, tests, x.studies)) : {}),
           earlier,
+          ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tests, x.studies, today)),
           ...(proved && now ? { proving: `on the floor: ${said.word}` } : {}),
           /* THE FLOOR'S STATUS LEADS: the program record's own state beside
              it, so the line's answer is on the job's row too (flow audit #3). */
@@ -267,6 +285,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
         ...(run ? { run: run.word, runTone: run.tone } : {}),
         machine, programId: p.id, ...(m ? { assetId: m } : {}), what: p.what.trim(), ...(p.runs ? { runs: p.runs } : {}), ...(p.from ? { who: p.from } : {}),
         ...programWords(p, tests, today), ...(p.note?.trim() ? { note: p.note.trim() } : {}), earlier: [],
+        ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tests, x.studies, today)),
         ...(pf => (pf ? { proof: pf } : {}))(proofOf(p, tests, x.studies)),
       });
     }

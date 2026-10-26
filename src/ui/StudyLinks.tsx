@@ -19,7 +19,7 @@ import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
-import { linkedTo, studyLine, studySays, owedOf, beforeAfter, proveItFrom, readingsFor, studyHref, studyTitle, type FixKind, type StudyContext } from '../lib/studyLinks';
+import { linkedTo, TOOL_NAME, studyLine, studySays, owedOf, beforeAfter, proveItFrom, readingsFor, studyHref, studyTitle, type FixKind, type StudyContext } from '../lib/studyLinks';
 import { useStudyContext } from './ShiftLosses';
 import type { Test } from '../lib/testing';
 import type { ToolStudy } from '../lib/study';
@@ -45,6 +45,9 @@ function StudyRow({ s, ctx }: { s: ToolStudy; ctx?: StudyContext }) {
   );
 }
 
+/** The tools that can prove a test — each a study of its own, named for what it is. */
+const PROOF_TOOLS: ToolStudy['tool'][] = ['capability', 'chart', 'analysis', 'reliability', 'sampling', 'losses'];
+
 export function StudyLinks({ t, machine, can, onVerdict }: {
   t: Test; machine?: string; can: Can;
   /** Make the test's verdict the study's — pressed by a person. */
@@ -57,12 +60,14 @@ export function StudyLinks({ t, machine, can, onVerdict }: {
   const kind = t.kind ?? 'test';
   /* the readings can be named for what they are — "60 ppm" — not only for the program's title (Rowland, 26 October) */
   const [readingName, setReadingName] = useState('');
+  /* …and by the tool that proves it: not only a capability study (Rowland, 26 October) */
+  const [readingTool, setReadingTool] = useState<ToolStudy['tool']>('capability');
   const start = async (s: ToolStudy) => { await putStudy(s); nav(href(s)); };
   /* one study of the test: named as typed; with others already, never the same name twice */
   const made = (): ToolStudy => {
     const base = readingsFor(t, machine, { at: now(), by: me, id: uid(), useId: uid() });
     const n = linkedTo(studies, 'test', t.id, 'proof').length;
-    return { ...base, name: readingName.trim() || (n ? `${t.title} — study ${n + 1}` : t.title) };
+    return { ...base, tool: readingTool, name: readingName.trim() || (n ? `${t.title} — study ${n + 1}` : t.title) };
   };
 
   if (kind === 'test') {
@@ -78,6 +83,9 @@ export function StudyLinks({ t, machine, can, onVerdict }: {
         <div className="rd-acts">
           {can.edit && (
             <span className="sl-name">
+              <select className="text-input sl-tool" value={readingTool} aria-label="Which tool proves it" onChange={e => setReadingTool(e.target.value as ToolStudy['tool'])}>
+                {PROOF_TOOLS.map(k => <option key={k} value={k}>{TOOL_NAME[k]}</option>)}
+              </select>
               <input className="text-input" value={readingName} maxLength={120} aria-label="Name for the readings"
                 placeholder={proofs.length ? 'Name the next study — e.g. 75 ppm' : `Name it — e.g. 60 ppm (else ${t.title})`} onChange={e => setReadingName(e.target.value)} />
               {/* AS MANY STUDIES AS THE PROGRAM NEEDS (Rowland, 26 October: "I can't then put another study ready to go ... as many studies as I want ... quickly get them ready, go through the list"): line one up and stay, or open it now */}

@@ -8,6 +8,7 @@ import { clientReport } from '../clientReport';
 import type { Asset, Test, TestItem } from '../testing';
 import type { Program } from '../programs';
 import type { Project } from '../../types';
+import type { ToolStudy } from '../study';
 
 const T = '2026-10-08';
 const at = Date.parse(`${T}T10:00:00`);
@@ -161,5 +162,34 @@ describe('one program, one answer', () => {
     /* a part with no program record of its name has nothing beside it */
     const alone = programsReading({ tests, items, assets, programs: [], today: T });
     expect(alone?.lines.every(l => !l.record)).toBe(true);
+  });
+});
+
+/* EVERY TEST OF A PROGRAM, WITH THE STUDIES LINED UP FOR IT (Rowland, 26 October: "check that programs report
+ * will show all test information clearly and correctly"). */
+describe('a program’s tests and their studies on the report', () => {
+  const ptest = (id: string, o: Partial<Test> = {}) => ({ id, projectId: 'p', title: 'Prove program PR-12', kind: 'test', outcome: 'planned', programId: 'p12', sort: 1, createdAt: 1, updatedAt: 1, ...o }) as Test;
+  const t1 = ptest('t1', { outcome: 'failed', ranOn: '2026-10-07', runAgreed: { rate: 60, minutes: 60 }, run: { speed: 60, minutes: 30, packs: 1700, rejects: 20 }, result: 'Seal jaws cold' });
+  const t2 = ptest('t2', { fromTestId: 't1', createdAt: 2, outcome: 'passed', ranOn: '2026-10-08', runAgreed: { rate: 60, minutes: 60 }, run: { speed: 60, minutes: 60, packs: 3600, rejects: 0 } });
+  const study = (id: string, tool: ToolStudy['tool'], name: string, testId: string) =>
+    ({ id, tool, name, projectId: 'p', uses: [{ id: `u${id}`, kind: 'test', ref: testId, role: 'proof', at: 1, by: 'x' }], agreed: {}, facts: {}, startedAt: 1, createdAt: 1, updatedAt: 1 }) as unknown as ToolStudy;
+  const studies = [study('c1', 'capability', '60 ppm', 't2'), study('k1', 'chart', '60 ppm run', 't2'), study('c0', 'capability', 'first look', 't1')];
+  const r = programsReading({ tests: [...tests, t1, t2], items, assets, programs: [programs[0]!], today: T, studies });
+  const line = r?.lines.find(l => /PR-12/.test(l.what));
+
+  it('lists every test first to last, each in the words of the program’s row', () => {
+    expect(line?.tests?.map(t => t.text.slice(0, 23))).toEqual(['Test 1 · 7 Oct · aiming', 'Test 2 · 8 Oct · aiming']);
+    expect(line?.tests?.map(t => t.tone)).toEqual(['r', 'g']);
+    expect(line?.tests?.[0]?.text).toContain('Seal jaws cold');
+  });
+  it('puts each study under the test it was lined up for, of whatever tool', () => {
+    expect(line?.tests?.[0]?.studies).toHaveLength(1);
+    expect(line?.tests?.[0]?.studies[0]).toContain('capability study “first look”');
+    const two = line?.tests?.[1]?.studies.join(' | ') ?? '';
+    expect(two).toContain('capability study “60 ppm”');
+    expect(two).toContain('control chart “60 ppm run”');
+  });
+  it('a program with no test of its own carries none', () => {
+    expect(r?.lines.find(l => /PR-99/.test(l.what))?.tests).toBeUndefined();
   });
 });
