@@ -189,7 +189,66 @@ second list.
   "one part of the factory to another", CLAUDE.md, *It is an internal
   tool*).
 
-## 5. What the research does not settle — for Rowland
+## 5. One record of the machine — the plan (Rowland liked it, 26 October)
+
+*"i like the idea of one record of the machine this makes sense to me."*
+Not yet a go to build; this is what it would take.
+
+### 5.1 How a machine is held today (read from the code and the live database)
+
+- **The line's list is names only.** `Workspace.assets` is the line's
+  machines in flow order, as words.
+- **The record is made by a project.** A machine's record
+  (`commission_assets`, `Asset`) carries `projectId` (the project that
+  brought it) and `workspaceId` (its line). The two are joined **by name**
+  (`lib/lineRecords` machinesOnLine — "the line's own record first, then a
+  job's, for a name both carry").
+- **Some things point at the record, some at the name.** By record: tests,
+  programs, problems (`assetId`). By name only: a study's machine, a stop
+  timed, a Line capacity station, a reliability count, a check log, Line
+  Talk's context. So a rename moves the first group and leaves the second
+  behind; two projects on one line could each make a record of the same
+  machine.
+- **Live, 26 October:** 2 machine records (both made by the project), 3
+  names in the lines' lists, no name held twice; 40 tests, 3 programs, all
+  on a record; 6 studies, 16 problems, 3 lines, 1 project. Small — the
+  move is cheap now and gets dearer with every project.
+
+### 5.2 The rule
+
+**A machine is one record, on its line, from the day it is named.** Its
+name, maker, place in the flow, arrival (due and in), documents. A project
+never makes a machine; it **takes one on** (a new machine is added to the
+line first, by the same form, then taken on). Everything done to a
+machine points at the record — never its name — so a rename carries
+everything, and a machine's page can show everything ever done to it.
+
+### 5.3 The slices (each shipped on its own, nothing removed until proved)
+
+1. **Every name on a line becomes a record**, the line's own; a project's
+   record for a name its line already holds is merged into the line's (the
+   references moved, the other kept as `mergedInto` for Undo) — on the
+   database by a migration with a copy kept, and on each device by the
+   same rule on its next start. The line's list keeps working, read from
+   the records.
+2. **Everything named points at the record too**: studies, stops,
+   stations, reliability counts, check logs get the machine's id beside
+   the name they keep; a rename carries them (the defect T−1 closed).
+3. **A project takes machines on**: its machines are the line's records
+   it is working on (a list on the project's line link); Install's *Add a
+   machine* adds to the line and takes it on in one step.
+4. **One machine page**: the same page from the line (everything ever
+   done) and from a project (this project's gates and runs first) — the
+   spine of the remap in §4.
+5. **Handover passes it to the line**: the gate's last step says the
+   machine is the line's from that day.
+
+Each slice proved by the gate, the sync harness (two devices, one
+offline making a machine under the old rule), paper parity, and the
+acceptance scripts that touch machines (factory, lines, line-hub,
+machines-programs, stagegate-walk).
+
+## 6. What the research does not settle — for Rowland
 
 1. **Gate names.** The industry's L1–L5 (FAT, delivered, start-up,
    functional, integrated) or Faultline's own (on site, installed, set up,
