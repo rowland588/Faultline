@@ -186,6 +186,7 @@ const desk = await device(1360);
 {
   const W = desk; const P = W.page; const J = `#/project/${W.sd.projectId}`;
   await W.go(J);
+  await P.locator('main').filter({ hasText: /\d+ done · \d+ to go/ }).waitFor({ timeout: 20000 }).catch(() => {});
   const doneBefore = Number((/(\d+) done · \d+ to go/.exec(flat(await P.locator('main').innerText())) ?? [])[1]);
   /* the plan is the Machines tab since 26 October */
   await W.tap('Machines (its tab)', W.btn(/^Machines\d/));
@@ -193,6 +194,7 @@ const desk = await device(1360);
   await W.tap('the item booked 23 Oct', P.locator('.ig-cell').filter({ hasText: '23 Oct' }).first());
   await W.tap('Done today', P.locator('.rd').last().getByRole('button', { name: /Done today/ }).first());
   await W.go(J);
+  await P.locator('main').filter({ hasText: /\d+ done · \d+ to go/ }).waitFor({ timeout: 20000 }).catch(() => {});
   const doneAfter = Number((/(\d+) done · \d+ to go/.exec(flat(await P.locator('main').innerText())) ?? [])[1]);
   ok(doneAfter === doneBefore + 1, `5a the front page counts it — ${doneBefore} → ${doneAfter} done`);
   journey('5', W, 4, 'a hand-over item done from Machines');

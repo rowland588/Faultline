@@ -59,6 +59,8 @@ async function read(pid, kind) {
   const r = {};
   /* the front page's band */
   await go(`#/project/${pid}`);
+  /* a stage gate's front page is Now (26 October), drawn once its reader has the project — wait for the band and the owed */
+  if (kind === 'gate') { await page.locator('.vd-tile').first().waitFor({ timeout: 20000 }).catch(() => {}); await page.locator('.now-owe').waitFor({ timeout: 20000 }).catch(() => {}); }
   const bandLate = await tile('.vd-tile', kind === 'gate' ? 'Late' : 'Countermeasures');
   r.band = kind === 'gate'
     ? { late: bandLate.v, open: num(bandLate.of, /of (\d+) still to do/) ?? (/nothing left/.test(bandLate.of) ? 0 : null) }
