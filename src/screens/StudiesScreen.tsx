@@ -22,8 +22,9 @@ import { useArchivedPlaces } from '../lib/useFactoryLines';
 import type { Standard } from '../tools/linestandard/standard';
 import { useProjects } from '../lib/useProjects';
 import { useMachinesOf, useProjectMachines } from '../lib/useLineRecords';
-import { countsFor, reasonList, setupProblem, startingReasons } from '../tools/reliability/lineWatch';
+import { countsFor, setupProblem, startingReasons } from '../tools/reliability/lineWatch';
 import { DEFAULT_STOP_REASONS } from '../tools/reliability/repair';
+import { ReasonsEditor } from '../tools/reliability/ReasonsEditor';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { PageHeader } from '../ui/parts';
@@ -507,14 +508,9 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
                     <label className="rl-tick rl-linesetup-timed"><input type="checkbox" checked={r.timed} aria-label={`Time each stop at ${r.machine} and press its reason`} onChange={e => setSetup(xs => xs.map((x, j) => (j === i ? { ...x, timed: e.target.checked } : x)))} /> <span>Time each stop and press its reason — help arrived, running again; the reason from the list</span></label>
                     {r.timed && (
                       <>
-                        <label className="field"><span className="field-label">Reasons for a stop — commas between, add your own</span>
-                          <input className="text-input" value={r.reasons} aria-label={`Reasons for a stop at ${r.machine}`} onChange={e => setSetup(xs => xs.map((x, j) => (j === i ? { ...x, reasons: e.target.value } : x)))} />
-                        </label>
-                        <span className="chip-row rl-usual" role="group" aria-label={`Usual reasons at ${r.machine}`}>
-                          {DEFAULT_STOP_REASONS.filter(x => !reasonList(r.reasons).some(y => y.toLowerCase() === x)).map(x => (
-                            <button key={x} type="button" className="chip" onClick={() => setSetup(xs => xs.map((y, j) => (j === i ? { ...y, reasons: [...reasonList(y.reasons), x].join(', ') } : y)))}>+ {x}</button>
-                          ))}
-                        </span>
+                        <div className="field"><span className="field-label">Reasons for a stop — add each one; they become the buttons on the stopwatch</span>
+                          <ReasonsEditor value={r.reasons} onChange={v => setSetup(xs => xs.map((x, j) => (j === i ? { ...x, reasons: v } : x)))} usual={DEFAULT_STOP_REASONS} label={`a stop at ${r.machine}`} />
+                        </div>
                       </>
                     )}
                   </div>

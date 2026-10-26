@@ -45,6 +45,15 @@ page.on('pageerror', e => errs.push(e.message));
 const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); };
 const SHOTS = process.env.SHOTS;
 const shot = async name => { if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true }); };
+/* the reasons editor (26 October): chips taken off with ×, one box and Add, the usual ones a press away */
+const chipsOf = label => page.locator(`[aria-label="The reasons for ${label}"] .rl-rchip`).evaluateAll(els => els.map(e => e.childNodes[0].textContent.trim()));
+const addOne = async (label, text) => {
+  /* the page's clock is the script's (Playwright's fake one): an element that has to scroll into view never settles, so it is scrolled first */
+  await page.evaluate(l => document.querySelector(`input[aria-label="Add a reason for ${l}"]`).scrollIntoView({ block: 'center' }), label);
+  await page.waitForTimeout(150);
+  await page.getByLabel(`Add a reason for ${label}`, { exact: true }).fill(text);
+  await page.getByLabel(`Add a reason for ${label}`, { exact: true }).locator('xpath=following-sibling::button').first().click();
+};
 const later = async ms => { await page.clock.fastForward(ms); await page.waitForTimeout(250); };
 
 await go('#/room');
@@ -86,11 +95,14 @@ await page.waitForURL(/#\/reliability\/[^/?]+/, { timeout: 10000 });
   await page.locator('.ie-agree').waitFor();
   await page.locator('details.rl-more > summary').first().click();
   await page.getByLabel('Timing for stop').selectOption('stop');
-  const v = await page.getByLabel('Reasons for stop', { exact: true }).inputValue();
-  ok(v === 'jam, film break, sensor, material short, changeover, waiting for operator, quality check, no product', '1 timing each stop brings the usual reasons, to press at the machine and add to', v);
-  await page.getByLabel('Reasons for stop', { exact: true }).fill('jam, film break');
+  const v = (await chipsOf('stop')).join();
+  ok(v === 'jam,film break,sensor,material short,changeover,waiting for operator,quality check,no product', '1 timing each stop brings the usual reasons as chips, to press at the machine and add to', v);
+  await addOne('stop', 'bottle down');
+  await addOne('stop', 'no film, label roll out');
+  ok((await chipsOf('stop')).slice(-3).join() === 'bottle down,no film,label roll out', '1 add, add, add — a reason a time (a comma list adds each)', (await chipsOf('stop')).join());
+  await page.getByRole('button', { name: 'Take sensor off', exact: true }).click();
+  ok(!(await chipsOf('stop')).includes('sensor') && await page.getByRole('group', { name: 'Usual reasons for stop' }).getByRole('button', { name: '+ sensor' }).count() === 1, '1 one taken off with its ×, and offered back with a press');
   await page.getByRole('group', { name: 'Usual reasons for stop' }).getByRole('button', { name: '+ sensor' }).click();
-  ok(await page.getByLabel('Reasons for stop', { exact: true }).inputValue() === 'jam, film break, sensor', '1 one press adds a usual reason');
 }
 
 /* ---- 2 the whole line, the next screen ---- */
@@ -109,11 +121,10 @@ await page.getByLabel('What is counted at Infeed belt').fill('stop');
 await page.getByLabel('MTBF wanted at Infeed belt, minutes').fill('20');
 /* every machine starts timing its stops, with the usual reasons ready to press and add to */
 {
-  const usual = await page.getByLabel('Reasons for a stop at Infeed belt').inputValue();
-  ok(await page.getByLabel('Time each stop at Infeed belt and press its reason').isChecked() && usual === 'jam, film break, sensor, material short, changeover, waiting for operator, quality check, no product', '2 each machine times its stops with the usual reasons ready, editable', usual);
-  await page.getByLabel('Reasons for a stop at Infeed belt').fill('jam, film break');
-  await page.getByRole('group', { name: 'Usual reasons at Infeed belt' }).getByRole('button', { name: '+ sensor' }).click();
-  ok(await page.getByLabel('Reasons for a stop at Infeed belt').inputValue() === 'jam, film break, sensor', '2 a usual reason is added with one press, the list kept as typed');
+  const usual = (await chipsOf('a stop at Infeed belt')).join();
+  ok(await page.getByLabel('Time each stop at Infeed belt and press its reason').isChecked() && usual === 'jam,film break,sensor,material short,changeover,waiting for operator,quality check,no product', '2 each machine times its stops with the usual reasons ready, editable', usual);
+  for (const r of ['changeover', 'waiting for operator', 'quality check', 'no product', 'material short']) await page.getByRole('button', { name: `Take ${r} off`, exact: true }).first().click();
+  ok((await chipsOf('a stop at Infeed belt')).join() === 'jam,film break,sensor', '2 the list is edited with ×, the Add box beside it');
   await page.getByLabel('Time each stop at Wrapper 2 and press its reason').uncheck();   /* the second machine counts only: its figures stay the plain MTBF */
 }
 await page.getByLabel('Watch Wrapper 2').uncheck();
@@ -124,7 +135,7 @@ await page.getByLabel('Watch Wrapper 2').check();
 await page.getByRole('button', { name: 'Back', exact: true }).click();
 ok(await page.locator(MACHINE).inputValue() === '::whole-line', '2 Back returns to the first screen with the whole line still picked');
 await page.getByRole('button', { name: 'Next — the machines' }).click();
-await page.getByLabel('Reasons for a stop at Infeed belt').fill('jam, film break, sensor');
+for (const r of ['changeover', 'waiting for operator', 'quality check', 'no product', 'material short']) await page.getByRole('button', { name: `Take ${r} off`, exact: true }).first().click();
 await page.getByLabel('Time each stop at Wrapper 2 and press its reason').uncheck();
 await page.getByLabel('What is counted at Infeed belt').fill('stop');
 await page.getByLabel('MTBF wanted at Infeed belt, minutes').fill('20');
@@ -182,9 +193,20 @@ ok(/Watching the line — 2 machines/.test(await page.locator('.rl-watch .rl-k')
   ok(await page.locator('.rl-stopped-row').count() === 0 && await reason('film break').isEnabled(), '4 Running again closed it and the reasons are back');
   await later(1 * MIN);
   await reason('film break').click(); await later(30_000); await page.locator('.rl-stopped-done').click();
-  await page.getByLabel('Another reason').fill('Bottle down'); await page.getByRole('button', { name: 'Stop', exact: true }).last().click();
+  /* a reason met mid-test: added on the stopwatch itself, never stopping anything by itself — or added and pressed */
+  await page.getByLabel('Add a reason for the stop').fill('no film'); await page.locator('.rl-own').getByRole('button', { name: 'Add', exact: true }).click();
   await page.waitForTimeout(300);
-  ok(await reason('bottle down').count() === 1, '4 a reason typed once is pressed at once and joins the buttons');
+  ok(await reason('no film').count() === 1 && await page.locator('.rl-stopped-row').count() === 0, '4 Add puts a reason on the buttons and stops nothing');
+  await page.getByLabel('Add a reason for the stop').fill('Bottle down'); await page.locator('.rl-own').getByRole('button', { name: 'Add and stop' }).click();
+  await page.waitForTimeout(300);
+  ok(await reason('bottle down').count() === 1 && await page.locator('.rl-stopped-row').count() === 1, '4 Add and stop adds it to the buttons and presses it');
+  /* …and while that stop is open, one more can still be added, and appears on the open stop to change it to */
+  await page.getByLabel('Add a reason for the stop').fill('guard open'); await page.locator('.rl-own').getByRole('button', { name: 'Add', exact: true }).click();
+  await page.waitForTimeout(300);
+  ok(await page.locator('.rl-open-reasons .chip', { hasText: 'guard open' }).count() === 1, '4 with a stop open, a new reason is still added — and offered on the open stop');
+  await page.locator('.rl-own-off > summary').click(); await page.getByRole('button', { name: 'Take guard open off the list' }).click();
+  await page.waitForTimeout(300);
+  ok(await reason('guard open').count() === 0, '4 and taken off again from the stopwatch');
   await later(30_000); await page.locator('.rl-stopped-done').click();
   await page.waitForTimeout(400);
   const got = await page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id)).facts.events.filter(e => e.reason).map(e => [e.reason, !!e.fixedAt]), first.id);

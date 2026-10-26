@@ -85,6 +85,14 @@ const pdfText = async click => {
   const f = join(dir, `${Date.now()}.pdf`); await d.saveAs(f);
   return flat(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }));
 };
+/* the reasons editor (26 October): chips taken off with ×, one box and Add, the usual ones a press away */
+const chipsOf = label => page.locator(`[aria-label="The reasons for ${label}"] .rl-rchip`).evaluateAll(els => els.map(e => e.childNodes[0].textContent.trim()));
+const setReasons = async (label, list) => {
+  for (let n = (await chipsOf(label)).length; n > 0; n--) await page.locator(`[aria-label="The reasons for ${label}"] .rl-rx`).first().click();
+  await page.getByLabel(`Add a reason for ${label}`, { exact: true }).fill(list.join(', '));
+  await page.getByLabel(`Add a reason for ${label}`, { exact: true }).locator('xpath=following-sibling::button').click();
+};
+
 const later = async ms => { await page.clock.fastForward(ms); await page.waitForTimeout(250); };
 
 await go('#/room');
@@ -427,12 +435,12 @@ const lineCost = { crew: 4, labourRatePerHour: 12, labourBurden: 1.25, packsPerM
   const opts = await page.locator('select[aria-label="Timing for stop"] option').allInnerTexts();
   ok(opts.length === 3 && /^Count only/.test(opts[0]) && /Time each one/.test(opts[1]) && /A call for help/.test(opts[2]), '12 set-up offers timing: count only, time each one, a call for help', opts.join(' | '));
   await page.locator('select[aria-label="Timing for stop"]').selectOption('stop');
-  await page.locator('input[aria-label="Reasons for stop"]').fill('jam, film break, jam');
+  await setReasons('stop', ['jam', 'film break', 'jam']);
   await page.locator('input[aria-label="A fitter costs, pounds an hour, for stop"]').fill('30');
   await page.locator('input[aria-label="MTBF wanted for stop, minutes"]').fill('30');
-  await page.locator('input[aria-label="Reasons for stop"]').fill('1,2,3,4,5,6,7,8,9');
-  ok(/at most/.test(await page.locator('.ie-problem').innerText()) && await page.getByRole('button', { name: 'Set it up' }).isDisabled(), '12 more than eight reasons refused, Set it up held', await page.locator('.ie-problem').innerText().catch(() => ''));
-  await page.locator('input[aria-label="Reasons for stop"]').fill('jam, film break, jam');
+  await setReasons('stop', ['1','2','3','4','5','6','7','8','9','10','11','12','13','14']);
+  ok((await chipsOf('stop')).length === 12 && await page.getByLabel('Add a reason for stop', { exact: true }).isDisabled(), '12 a long list stops at twelve: the box says so and is held', await page.locator('.ie-problem').innerText().catch(() => ''));
+  await setReasons('stop', ['jam', 'film break', 'jam']);
   await page.getByRole('button', { name: 'Set it up' }).click();
   await page.locator('.rl-watch').waitFor();
   {
@@ -549,7 +557,7 @@ const lineCost = { crew: 4, labourRatePerHour: 12, labourBurden: 1.25, packsPerM
   await more();
   await page.locator('select[aria-label="Timing for call"]').selectOption('call');
   ok(await page.locator('input[aria-label="Help should arrive within, minutes, for call"]').count() === 1 && await page.locator('input[aria-label^="A fitter costs"]').count() === 0, '13 a call asks the response wanted, not a fitter’s rate');
-  await page.locator('input[aria-label="Reasons for call"]').fill('film change, jam, QA check, label, material short');
+  await setReasons('call', ['film change', 'jam', 'QA check', 'label', 'material short']);
   await page.locator('input[aria-label="Help should arrive within, minutes, for call"]').fill('3');
   await page.getByRole('button', { name: 'Set it up' }).click();
   await page.locator('.rl-watch').waitFor();

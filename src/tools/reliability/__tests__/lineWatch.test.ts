@@ -63,12 +63,12 @@ describe('a line watch — the studies watched on one clock', () => {
     expect(cs[0]).toMatchObject({ name: 'stop', timed: 'stop', reasons: DEFAULT_STOP_REASONS });
     expect(cs[1]).toEqual({ id: 'k2', name: 'pick' });
     expect(startingReasons(' jam, Film break ,jam')).toEqual(['jam', 'Film break']);
-    expect(DEFAULT_STOP_REASONS.length).toBeLessThanOrEqual(8);
+    expect(DEFAULT_STOP_REASONS.length).toBeLessThanOrEqual(12);
     expect(['stop', 'Jams', 'short stop', 'failure'].every(isStoppage) && !isStoppage('pick')).toBe(true);
     expect(reasonList('a,\nb, A')).toEqual(['a', 'b']);
   });
 
   it('refuses more reasons than a short list holds', () => {
-    expect(setupProblem([{ machine: 'A', counting: 'stop', on: true, timed: true, reasons: 'a,b,c,d,e,f,g,h,i' }])).toMatch(/A: a short list of reasons — 8 at most/);
+    expect(setupProblem([{ machine: 'A', counting: 'stop', on: true, timed: true, reasons: 'a,b,c,d,e,f,g,h,i,j,k,l,m' }])).toMatch(/A: a short list of reasons — 12 at most/);
   });
 });

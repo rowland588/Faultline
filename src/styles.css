@@ -14797,3 +14797,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .rl-reason { min-height: 64px; }
 .rl-own { display: flex; gap: 6px; align-items: stretch; grid-column: 1 / -1; }
 .rl-own .text-input { flex: 1 1 auto; min-width: 0; }
+.rl-reasons-ed { display: grid; gap: 8px; }
+.rl-rlist { display: flex; flex-wrap: wrap; gap: 6px; }
+.rl-rchip { display: inline-flex; align-items: center; gap: 6px; }
+.rl-rx { border: 0; background: transparent; color: var(--ink-2); font-size: var(--t-body); line-height: 1; min-width: 28px; min-height: 28px; cursor: pointer; }
+.rl-radd, .rl-own { display: flex; gap: 6px; align-items: stretch; }
+.rl-radd .text-input, .rl-own .text-input { flex: 1 1 auto; min-width: 0; }
+.rl-own-box { margin-top: 8px; display: grid; gap: 6px; }
+.rl-own-off summary { cursor: pointer; font-size: var(--t-detail); color: var(--ink-2); }

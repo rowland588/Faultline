@@ -40,11 +40,11 @@ export const MEDIAN_CI_FROM = 5;
 export const MIN_TIMED_FOR_MONEY = 3;
 /** A stop open this long is asked about. */
 export const OPEN_STALE_H = 4;
-/** The reasons a count may list (the record: five to eight). */
-export const MAX_REASONS = 8;
+/** The reasons a count may list — twelve buttons fit a phone; the record says five to eight work best (Rowland, 26 October: "I might not know everything before I start"). */
+export const MAX_REASONS = 12;
 /** The reasons a timed stop starts with — a person adds their own and takes any off (Rowland, 26 October: "before there
  *  were some default and I could then add ... I press these reasons during the tests"). A starting list, the builder's
- *  choice for a packing line, never a standard: eight at most, the floor's words. */
+ *  choice for a packing line, never a standard: the floor's words, added to and taken off by the person. */
 export const DEFAULT_STOP_REASONS = ['jam', 'film break', 'sensor', 'material short', 'changeover', 'waiting for operator', 'quality check', 'no product'];
 /** And a call for help (andon) — the record's five. */
 export const DEFAULT_CALL_REASONS = ['film change', 'jam', 'QA check', 'label', 'material short'];

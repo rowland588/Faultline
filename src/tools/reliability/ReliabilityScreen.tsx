@@ -44,6 +44,7 @@ import { CallsPanel, editEvent, OpenStops, RepairPanel, TapTimes, withTook } fro
 import { GrowthPanel } from './GrowthPanel';
 import { WearPanel } from './WearPanel';
 import { wearOf } from './wear';
+import { ReasonsEditor } from './ReasonsEditor';
 import { DEFAULT_CALL_REASONS, DEFAULT_STOP_REASONS, downSpans, MAX_REASONS, stopsOf } from './repair';
 import { lineDay } from '../../lib/lineLoss';
 import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
@@ -222,7 +223,7 @@ function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree
     : new Set(names).size !== names.length ? 'Two things counted have the same name.'
     : live.some(r => { const x = num(r.target); return x !== undefined && !(x > 0 && x <= 100_000); }) ? 'An MTBF wanted is minutes, more than 0 — or leave it empty.'
     : live.some(r => { const x = num(r.down); return x !== undefined && !(x > 0 && x <= 1440); }) ? 'The minutes the line stands is more than 0 — or leave it empty.'
-    : live.some(r => reasonsOf(r.reasons).length > MAX_REASONS) ? `A short list of reasons — ${MAX_REASONS} at most; five to eight is what works.`
+    : live.some(r => reasonsOf(r.reasons).length > MAX_REASONS) ? `A short list of reasons — ${MAX_REASONS} at most.`
     : live.some(r => { const x = num(r.respond); return x !== undefined && !(x > 0 && x <= 1440); }) ? 'Help should arrive within minutes — more than 0, or leave it empty.'
     : live.some(r => { const x = num(r.fitter); return x !== undefined && !(x > 0 && x <= 10_000); }) ? 'A fitter’s rate is pounds an hour, more than 0 — or leave it empty.'
     : live.some(r => r.wear && [r.swap, r.fail].some(v => { const x = num(v); return x !== undefined && !(x >= 0 && x <= 100_000_000); })) ? 'What a failure or a planned change costs is pounds, 0 or more — or leave it empty.' : '';
@@ -272,14 +273,9 @@ function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree
                 {r.timed && (
                   <>
                     <p className="sub rl-more-help">A timed one takes the machine out of running: its minutes come off the watched time, so the MTBF is of running time. Do not time something that does not stop the machine.</p>
-                    <label className="field"><span className="field-label">Reasons — a short list, commas between{r.timed === 'call' ? ' (five to eight)' : ''}</span>
-                      <input className="text-input" value={r.reasons} aria-label={`Reasons for ${r.name || 'it'}`} placeholder={r.timed === 'call' ? 'film change, jam, QA check, label, material short' : 'jam, film break, sensor'} onChange={e => set(r.id, { reasons: e.target.value })} />
-                    </label>
-                    <span className="chip-row rl-usual" role="group" aria-label={`Usual reasons for ${r.name || 'it'}`}>
-                      {(r.timed === 'call' ? DEFAULT_CALL_REASONS : DEFAULT_STOP_REASONS).filter(x => !reasonsOf(r.reasons).some(y => y.toLowerCase() === x)).map(x => (
-                        <button key={x} type="button" className="chip" onClick={() => set(r.id, { reasons: [...reasonsOf(r.reasons), x].join(', ') })}>+ {x}</button>
-                      ))}
-                    </span>
+                    <div className="field"><span className="field-label">Reasons — add each one; they become the buttons on the stopwatch{r.timed === 'call' ? ' (five to eight work best)' : ''}</span>
+                      <ReasonsEditor value={r.reasons} onChange={v => set(r.id, { reasons: v })} usual={r.timed === 'call' ? DEFAULT_CALL_REASONS : DEFAULT_STOP_REASONS} label={r.name || 'it'} />
+                    </div>
                     {r.timed === 'call' && (
                       <label className="field"><span className="field-label">Help should arrive within, minutes</span>
                         <input className="text-input" inputMode="decimal" value={r.respond} placeholder="no standard" aria-label={`Help should arrive within, minutes, for ${r.name || 'it'}`} onChange={e => set(r.id, { respond: e.target.value })} />
@@ -339,14 +335,27 @@ function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree
   );
 }
 
-/** ANOTHER REASON, typed — it is pressed at once and joins the list. */
-function OwnReason({ disabled, press }: { disabled: boolean; press: (r: string) => void }) {
+/** ADD A REASON ON THE STOPWATCH — always there, stopped or running, a stop open or not: a reason met mid-test is added where it is met
+ *  (Rowland, 26 October: "when I open the stopwatch, I need the ability to add a reason in there as well ... I might not know everything
+ *  before I start"). Add puts a button on the list; Add and stop does that and presses it. Any can be taken off. */
+function ReasonsOnWatch({ c, canStop, add, remove, stopWith }: { c: RelCounter; canStop: boolean; add: (rs: string[]) => void; remove: (r: string) => void; stopWith: (r: string) => void }) {
   const [v, setV] = useState('');
+  const full = (c.reasons?.length ?? 0) >= MAX_REASONS;
+  const words = () => reasonsOf(v.toLowerCase());
   return (
-    <form className="rl-own" onSubmit={e => { e.preventDefault(); const r = v.trim().toLowerCase(); if (r && !disabled) { press(r); setV(''); } }}>
-      <input className="text-input" value={v} maxLength={30} placeholder="Another reason" aria-label="Another reason" disabled={disabled} onChange={e => setV(e.target.value)} />
-      <button type="submit" className="btn" disabled={disabled || !v.trim()}>Stop</button>
-    </form>
+    <div className="rl-own-box">
+      <form className="rl-own" onSubmit={e => { e.preventDefault(); if (words().length) { add(words()); setV(''); } }}>
+        <input className="text-input" value={v} maxLength={60} placeholder={full ? `${MAX_REASONS} is the most` : 'Add a reason'} aria-label={`Add a reason for the ${c.event}`} disabled={full} onChange={e => setV(e.target.value)} />
+        <button type="submit" className="btn" disabled={full || !words().length}>Add</button>
+        <button type="button" className="btn" disabled={full || words().length !== 1 || !canStop} onClick={() => { stopWith(words()[0]); setV(''); }}>Add and stop</button>
+      </form>
+      {(c.reasons?.length ?? 0) > 0 && (
+        <details className="rl-own-off">
+          <summary>Take a reason off</summary>
+          <span className="chip-row">{(c.reasons ?? []).map(r => <span key={r} className="chip rl-rchip">{r}<button type="button" className="rl-rx" aria-label={`Take ${r} off the list`} onClick={() => remove(r)}>×</button></span>)}</span>
+        </details>
+      )}
+    </div>
   );
 }
 
@@ -405,10 +414,9 @@ function Watch({ s, counters, runs, events, t, me, together = 0 }: { s: ToolStud
   const runningMs = runningSpans(spans, downSpans(timedCs.flatMap(stopsOfC), t)).reduce((n, [x, y]) => n + (y - x), 0);
   const running = (st: { id: string; at: number }) => editEvent(s.id, st.id, e => withTook(e, Math.max(now(), st.at + 1000), false));
   /* a reason typed that is not on the list joins it, up to the short list the record asks for */
-  const addReason = (c: RelCounter, r: string) => {
-    if ((c.reasons ?? []).some(x => x.toLowerCase() === r.toLowerCase()) || (c.reasons ?? []).length >= MAX_REASONS) return;
-    void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, reliability: { ...cur.agreed?.reliability, counts: (cur.agreed?.reliability?.counts ?? []).map(k => (k.id === c.id ? { ...k, reasons: [...(k.reasons ?? []), r] } : k)) } } }));
-  };
+  const setReasons = (c: RelCounter, f: (now: string[]) => string[]) => void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, reliability: { ...cur.agreed?.reliability, counts: (cur.agreed?.reliability?.counts ?? []).map(k => (k.id === c.id ? { ...k, reasons: f(k.reasons ?? []).slice(0, MAX_REASONS) } : k)) } } }));
+  const addReasons = (c: RelCounter, rs: string[]) => setReasons(c, now => [...now, ...rs.filter(r => !now.some(x => x.toLowerCase() === r.toLowerCase()))]);
+  const removeReason = (c: RelCounter, r: string) => setReasons(c, now => now.filter(x => x !== r));
   const last = [...events].sort((x, y) => y.at - x.at)[0];
   const fresh = last && !last.struck && t - last.at < 10 * 60_000 ? last : undefined;
   const freshC = fresh ? counters.find(c => c.id === countOf(fresh)) : undefined;
@@ -451,20 +459,23 @@ function Watch({ s, counters, runs, events, t, me, together = 0 }: { s: ToolStud
             </button>
           ))}
         </div>
-        {counters.filter(c => c.timed && (c.reasons?.length ?? 0) > 0).map(c => {
+        {counters.filter(c => c.timed).map(c => {
           const busy = openNow.some(x => x.c.id === c.id);
+          const has = (c.reasons?.length ?? 0) > 0;
           return (
             <div key={c.id} className="rl-reasons-box" data-count={c.id}>
-              <p className="rl-reasons-h"><b>{cap(c.event)}</b> — press the reason: it starts timing at once{busy ? ' (one is open — press Running again first)' : ''}</p>
-              <div className="rl-reasons" role="group" aria-label={`Press the reason for the ${c.event}`}>
-                {(c.reasons ?? []).map(r => (
-                  <button key={r} type="button" className="rl-event rl-reason" data-count={c.id} data-reason={r} disabled={!run || busy} onClick={() => tap(c.id, r)} aria-label={`${cap(c.event)}: ${r}`}>
-                    <b>{cap(r)}</b>
-                    <span>{run ? `${events.filter(e => countOf(e) === c.id && e.reason === r && inWatch(e)).length} so far` : 'start the watch first'}</span>
-                  </button>
-                ))}
-                <OwnReason disabled={!run || busy} press={r => { addReason(c, r); tap(c.id, r); }} />
-              </div>
+              {has && <p className="rl-reasons-h"><b>{cap(c.event)}</b> — press the reason: it starts timing at once{busy ? ' (one is open — press Running again first)' : ''}</p>}
+              {has && (
+                <div className="rl-reasons" role="group" aria-label={`Press the reason for the ${c.event}`}>
+                  {(c.reasons ?? []).map(r => (
+                    <button key={r} type="button" className="rl-event rl-reason" data-count={c.id} data-reason={r} disabled={!run || busy} onClick={() => tap(c.id, r)} aria-label={`${cap(c.event)}: ${r}`}>
+                      <b>{cap(r)}</b>
+                      <span>{run ? `${events.filter(e => countOf(e) === c.id && e.reason === r && inWatch(e)).length} so far` : 'start the watch first'}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <ReasonsOnWatch c={c} canStop={!!run && !busy} add={rs => addReasons(c, rs)} remove={r => removeReason(c, r)} stopWith={r => { addReasons(c, [r]); tap(c.id, r); }} />
             </div>
           );
         })}
