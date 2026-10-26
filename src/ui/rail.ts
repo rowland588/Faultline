@@ -143,6 +143,7 @@ export function hereOf(route: Route): string {
     case 'materials': return 'materials';
     case 'actions': return 'actions';
     case 'journey': return 'journey';
+    case 'now': return 'now';
     case 'allActions': return 'allactions';
     case 'day': return 'day';
     case 'notes': return 'notes';
@@ -377,6 +378,8 @@ export function projectGroups(o: {
       /* past six, one line — the plan lists them, machine by machine */
       : [{ key: 'machines', label: `Machines (${machines.length})`, to: `${p}/plan`, on: o.here.startsWith('machine:'), state: machines.some(m => m.state === 'r') ? 'r' : 'w', sub: true, late: machines.reduce((n, m) => n + (m.late ?? 0), 0) || undefined, icon: 'machine' as const }];
     own = [
+      /* NOW — where the project is on one page (docs/STAGEGATE-RESEARCH.md §4, 26 October) */
+      plain('now', 'Now', `${p}/now`, o.here, 'time'),
       { ...plan, on: o.here === 'plan' || (GATE_KEYS as readonly string[]).includes(o.here) },
       ...each,
       counted('programs', 'Programs', `${p}/programs`, o.here, o.counts, ['programs'], 'list'),

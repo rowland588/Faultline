@@ -39,6 +39,7 @@ import { usePaceLines } from '../lib/usePaceLines';
 import { useJobFactoryLines } from '../lib/useFactoryLines';
 import { linesDay } from '../lib/lineLoss';
 import { stageGateTiles } from '../lib/stageGateLean';
+import { jobFiguresOf } from '../project/now/now';
 import { useAssignedProblems } from '../lib/useAssignedProblems';
 import { sixmTiles, type SixMFigures } from '../lib/sixmLean';
 import type { FishboneData } from '../lib/fishbone';
@@ -62,7 +63,7 @@ import { DUE_SOON_DAYS, useActions } from '../lib/actions';
 import { KIND_WORD, criticalItems, riskItems, jobItems, kindWord, lateWhen, needsYou, pacedOwed, pacedSays, sixmProblemOf, type JobItem, type Urgency } from '../lib/portfolio';
 import { openRecord } from '../ui/RecordDrawer';
 import { CriticalTag } from '../ui/CriticalFields';
-import { criticalCount, criticalProblems, riskProblems } from '../lib/critical';
+import { criticalCount } from '../lib/critical';
 import { linesOnTarget, stageGateOnTarget } from '../lib/onTarget';
 import { planCount, planFor } from '../lib/huddle';
 import type { TestItem } from '../lib/testing';
@@ -83,7 +84,6 @@ import type { Project } from '../types';
 import { methodOf, planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
-import { fixTone } from '../lib/fixTone';
 import { Verdict } from '../ui/Verdict';
 import { SinceLine, useSeenAt } from '../ui/SinceLine';
 import { sinceOf } from '../lib/since';
@@ -686,19 +686,7 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
           {/* ARE WE ON TARGET? leads the band (lib/onTarget). */}
           <Verdict st={st} brief
             onTarget={stageGateOnTarget({ project, tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs, today }, st)}
-            tiles={stageGateTiles({
-              /* the same five the one-page status and the full report count (lib/stageGateLean) */
-              ...(st.daysToGo != null ? { daysToGo: st.daysToGo } : {}), ...(st.handedOver ? { handedOver: true } : {}), ...(st.handedVs != null ? { handedVs: st.handedVs } : {}),
-              ...(st.slipDays != null ? { slipDays: st.slipDays } : {}), outstanding: st.outstanding, late: st.late,
-              ...(project.expectedAt ?? project.plannedAt ? { handoverOn: (project.expectedAt ?? project.plannedAt) as string } : {}),
-              ...(() => {
-                const alive = tt.tests.filter(t => !t.deletedAt), fixes = alive.filter(t => t.kind === 'fix').map(t => fixTone(t, today).tone);
-                return { critical: criticalProblems(alive, tt.items, tt.assets).open.length, risks: riskProblems(alive, tt.items, tt.assets).open.length,
-                  fixesOpen: fixes.filter(x => x !== 'done').length, fixesLate: fixes.filter(x => x === 'late').length };
-              })(),
-              day: linesDay(factory.lines),
-              ...(assigned ? { assigned } : {}),
-            })} />
+            tiles={stageGateTiles(jobFiguresOf(st, project, tt.tests, tt.items, tt.assets, linesDay(factory.lines), assigned, today))} />
           {/* WHAT CHANGED SINCE YOU LAST LOOKED — under the answer; nothing when
               nothing did (lib/since). */}
           <SinceLine projectId={projectId} since={sinceOf({ tests: tt.tests, items: tt.items, assets: tt.assets, seenAt })} />

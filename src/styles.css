@@ -14808,3 +14808,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .sl-name { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; flex: 1 1 260px; }
 .sl-name .text-input { flex: 1 1 180px; min-width: 0; }
 .ptx-studies { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0 0 4px; }
+
+/* NOW — a stage-gate project's current state on one page (project/now/NowScreen) */
+.now .qsl-g { margin-top: 18px; }
+.now-gate { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: #fff; background: var(--st-n-ink); vertical-align: 1px; }
+.now-gate.is-r { background: var(--st-r); }
+.now-gate.is-a { background: var(--st-a); }
+.now-gate.is-w { background: var(--st-w); }
+.now-gate.is-g { background: var(--st-g); }
+.now-day { margin-top: 10px; }
+.now-dh { font-size: 13px; font-weight: 700; color: var(--ink-2, #323d43); margin: 0 0 4px; }
+.now-day.is-today .now-dh { color: var(--brand); }
+.now-more { margin-top: 6px; }

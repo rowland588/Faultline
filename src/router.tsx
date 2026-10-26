@@ -20,6 +20,7 @@ import { TestsScreen } from './screens/TestsScreen';
 import { FixesScreen } from './screens/FixesScreen';
 import { ActionsScreen, EveryActionScreen } from './screens/ActionsScreen';
 import { JourneyScreen } from './project/journey/JourneyScreen';
+import { NowScreen } from './project/now/NowScreen';
 import { InstallScreen } from './screens/InstallScreen';
 import { DayScreen } from './screens/DayScreen';
 import { PlanScreen } from './screens/PlanScreen';
@@ -244,6 +245,8 @@ function app(route: Route) {
   if (route.name === 'actions' && route.id) return <ActionsScreen projectId={route.id} />;
   /* the journey — any range of dates, day by day (docs/JOURNEY.md, J2) */
   if (route.name === 'journey' && route.id) return <JourneyScreen projectId={route.id} />;
+  /* now — where a stage-gate project is, on one page (docs/STAGEGATE-RESEARCH.md §4) */
+  if (route.name === 'now' && route.id) return gate(route.id, <NowScreen projectId={route.id} />);
   if (route.name === 'programs' && route.id) return <ProgramsDoor projectId={route.id} />;
   if (route.name === 'machine' && route.id && route.lineId) return gate(route.id, <MachineScreen key={route.lineId} projectId={route.id} assetId={route.lineId} />);
   if (route.name === 'clientReport' && route.id) return gate(route.id, <ClientReportScreen projectId={route.id} />);

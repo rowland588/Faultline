@@ -309,6 +309,15 @@ export const PAGES = (sd, cap) => [
     { what: 'the tools we will use, folded — Every tool', sel: '.jn-tools .jn-every', text: /^Every tool/, phone: true },
     { what: 'the days in order', sel: '.jn-day' }, { what: 'a day’s lines, each a record’s own', sel: '.jn-day .jn-li' },
     { what: 'today marked', sel: '.jn-day.is-today' }, { what: 'the closing line', sel: '.ln-close' }] },
+  /* Now — where a stage-gate project is, on one page (26 October, docs/STAGEGATE-RESEARCH.md §4) */
+  { name: 'Now — a stage-gate project', path: `#/project/${sd.projectId}/now`, must: [
+    { what: 'the page header — Now and its sentence', sel: '.now .part-head .now-says', text: /machine/ },
+    { what: 'the band — are we on target, the five tiles', sel: '.now .vd-tile', n: 5, desk: true },
+    { what: 'blocking handover — the critical problems', sel: '.now-block .now-crit' },
+    { what: 'the machines — a row each with its gate', sel: '.now-machines .now-m .now-gate', n: 3 },
+    { what: 'today and the next two weeks — the days', sel: '.now-ahead .now-day .jn-li' },
+    { what: 'what you owe — late first', sel: '.now-owe .act-li' },
+    { what: 'the closing line', sel: '.now .ln-close' }] },
   { name: 'Journey — a 6M project', path: `#/project/${sd.pacedProjectId}/journey`, must: [
     { what: 'the range', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the four tiles', sel: '.jn-tiles .ln-tile', n: 4 },
     { what: 'the tools we will use', sel: '.jn-tools .jn-tool', n: 11, desk: true }, { what: 'the days', sel: '.jn-day .jn-li' }, { what: 'the closing line', sel: '.ln-close' }] },

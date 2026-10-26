@@ -92,6 +92,8 @@ const RECORD_ROUTES = new Set<RouteName>([
   /* A project's Actions and the control room's Every action: a row set
      ?open= and nothing opened (docs/STRUCTURE.md §17, found 22 October). */
   'actions', 'allActions',
+  /* Now and the Journey: a row set ?open= and nothing opened (found 26 October, scripts/acceptance/now.mjs) */
+  'now', 'journey',
 ]);
 
 const split = (): [string, URLSearchParams] => {

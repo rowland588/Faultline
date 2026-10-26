@@ -9,7 +9,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
-  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
+  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms'
   | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'tools' | 'parts' | 'projectTools' | 'lineReport';
 
@@ -194,6 +194,8 @@ export function parseRoute(hash: string): Route {
     if (segs[2] === 'actions') return { name: 'actions', id, query };
     // The journey — the project between two dates, day by day (docs/JOURNEY.md). ?from=&to= the range.
     if (segs[2] === 'journey') return { name: 'journey', id, query };
+    // Now — where a stage-gate project is, on one page (docs/STAGEGATE-RESEARCH.md §4).
+    if (segs[2] === 'now') return { name: 'now', id, query };
     if (segs[2] === 'programs') return { name: 'programs', id, query };
     /* its tools — every use of a tool in the project, by kind (docs/STRUCTURE.md §5.1, B2) */
     if (segs[2] === 'tools') return { name: 'projectTools', id, query };
