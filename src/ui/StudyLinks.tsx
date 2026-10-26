@@ -55,6 +55,8 @@ export function StudyLinks({ t, machine, can, onVerdict }: {
   const { session } = useSession();
   const me = displayName(session?.user.email) || undefined;
   const kind = t.kind ?? 'test';
+  /* the readings can be named for what they are — "60 ppm" — not only for the program's title (Rowland, 26 October) */
+  const [readingName, setReadingName] = useState('');
   const start = async (s: ToolStudy) => { await putStudy(s); nav(href(s)); };
 
   if (kind === 'test') {
@@ -69,7 +71,10 @@ export function StudyLinks({ t, machine, can, onVerdict }: {
         {proofs.map(s => <StudyRow key={s.id} s={s} ctx={ctx} />)}
         <div className="rd-acts">
           {can.edit && !proofs.length && (
-            <button type="button" className="btn" onClick={() => void start(readingsFor(t, machine, { at: now(), by: me, id: uid(), useId: uid() }))}>Take the readings</button>
+            <span className="sl-name">
+              <input className="text-input" value={readingName} maxLength={120} placeholder={`Name it — e.g. 60 ppm (else ${t.title})`} aria-label="Name for the readings" onChange={e => setReadingName(e.target.value)} />
+              <button type="button" className="btn" onClick={() => void start({ ...readingsFor(t, machine, { at: now(), by: me, id: uid(), useId: uid() }), ...(readingName.trim() ? { name: readingName.trim() } : {}) })}>Take the readings</button>
+            </span>
           )}
           {can.edit && as && t.outcome !== as && (
             <button type="button" className="btn" onClick={() => onVerdict(as)}>Use its verdict — {verdict}</button>

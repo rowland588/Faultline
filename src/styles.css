@@ -14805,3 +14805,5 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .rl-radd .text-input, .rl-own .text-input { flex: 1 1 auto; min-width: 0; }
 .rl-own-box { margin-top: 8px; display: grid; gap: 6px; }
 .rl-own-off summary { cursor: pointer; font-size: var(--t-detail); color: var(--ink-2); }
+.sl-name { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; flex: 1 1 260px; }
+.sl-name .text-input { flex: 1 1 180px; min-width: 0; }
