@@ -398,3 +398,141 @@ blocks the screen draws.
     fields are today)?
 13. **Does a failed run need a documented change before it can be run again**
     — or may a run simply be repeated (noise, a bad sample) and said to be a repeat?
+
+---
+
+# Part 3 — Every way in: the screens that ask "did it pass?", read from the code
+
+Rowland, 26 October: *"I go to programs, I go to testing, then in testing I'm what?
+Managing all of this? … there's other sections as well that ask you, when you've done
+a test, to go to a different section. If I click on the actual main program, it asks me
+was it a pass, was it a fail … You're not thinking about these things technically
+enough. You're not wrapping every single user interface up in our current process
+streams. And you need to."* He is right: Parts 1–2 designed a destination and a loop
+without first listing the doors. This is that list, read from the code, 26 October.
+
+## 14. The doors — every screen that records or asks a result
+
+| # | Door (route · where it is opened from) | What it asks | What it writes |
+|---|---|---|---|
+| 1 | **Programs page** — a program's row · `#/project/:id/programs`, the rail's *Programs*, Commission's *Test it*, Needs you's *Test it* (`?test=`) · `ui/ProgramTest` | *Test it · Say how it went · Go again*: Passed · Baseline achieved · Didn't pass · Didn't run · Not tested · No program, a day, aim and what it did (speed, minutes, packs, rejects), what was seen | **Two records at once**: the test's `outcome` + `runAgreed`/`run` (made if there is none), **and** the floor's status on the line of the programs stage (`FLOOR_OF`), and then the program's `state` (`followTest`/`followPart`) |
+| 2 | **A line's Programs** · `#/lines/:ws?…`, `#/programs` · `LineProgramsScreen` | the same row; a *proved on* date; `ProveProgram` | the program's `state: 'proved'` **with no test**, or a test as in 1 |
+| 3 | **The record drawer** — a test, from the Gantt, Commission grid, Install, the Day, the machine page, the journey, Notes… (13 files open it) · `ui/RecordDrawer` | *Passed · Didn't pass · Back to planned*, a *No verdict yet* question, the run panel (`RunPanel`: products, aim, did) | the test's `outcome`, and its `runs` list |
+| 4 | **The test's own page** · `#/project/:id/testing/:testId` · `TestScreen` | the same *Verdict* | the test's `outcome` |
+| 5 | **A stage drawer's parts** — e.g. *Programs loaded* · `StageParts` | a status per part: Baseline · Passed · Failed · Not tested · No program, with commentary | the **part's** result only — **no test** — and then the program drops back if it failed (`followPart`) |
+| 6 | **Commission** — the testing board · `#/project/:id/testing` · `TestsScreen` + `NeedsYou` | *Test it on Programs ›*, *Open the test ›* — **it sends you to door 1** | nothing itself |
+| 7 | **The Day** · `#/project/:id/day` · `DayPlan` | tick a stage done; a test that ran with no verdict is asked | `doneTodayPatch` → **`outcome: 'passed'`** |
+| 8 | **Install / Set up / Hand over** and Needs you's *Done today* | the same tick | the same `doneTodayPatch` |
+| 9 | **Problems** (stage gate) and Quick problems · `FixesScreen`, `QuickSnagsScreen` | *Verdicts* — the question the app owes (for fixes); *Fixed* | a fix's `outcome: 'passed'` |
+| 10 | **Moving a date** · `WhyMoved` | why | can write `outcome: 'failed'` |
+| 11 | **A tool** — a capability study, a check log, a reliability watch · its own page · `StudyScreen` and the others | its own verdict (Cpk, pass-or-fail, MTBF), *Close* | the **study's** verdict and receipt — **it reaches the test only if you open the drawer and press *Use its verdict — …*** (`StudyLinks`) |
+| 12 | **The 6M board** — a countermeasure · `PaceNextSteps` | *Prove it* | links a before and an after **study** to the action (`beforeAfter`) — there is **no test** in a 6M job at all |
+
+The streams they belong to: **the stage gate** (doors 1–10, 12 for the paced ones),
+**a running line's own programs** (2), **the 6M** (12), **tools on their own** (11);
+the **lever tree** has no test door at all.
+
+## 15. What this does to one fact
+
+*"Program 5 passed"* can be written in **four places that must agree**: the test's
+`outcome` (doors 1, 3, 4, 7), the **part's result** on the programs stage (1, 5), the
+**program's** `state`/`provedOn` (1, 2, followTest), and a **study's** verdict (11).
+The app keeps them level with "the newer wins" rules (`followTest`, `followPart`,
+`programAfterFloor`). That is why today's report said *"to do"* over a program that
+had a test: the headline came from the stage part and the test sat under it. It was
+**fixed as a symptom** (the Programs report now reads the tests when the floor said
+nothing); the cause is that there are **twelve doors and four records for one answer**.
+
+Four more places this shows, all in the code:
+
+1. **Two forms for one test's numbers.** The Programs row writes `run`/`runAgreed`;
+   the drawer's `RunPanel` writes `runs`. `programJourney.runOf` has to choose which to
+   read (a 25 October bug: *"I changed ran for to 60 min … it still says netted 20 ppm"*).
+2. **The same question, twice, in different words** — *Passed · Didn't pass* (a test) and
+   *Passed · Failed* (a part), plus three floor-only answers that are a *status*, not a
+   result (*Baseline · Not tested · No program*).
+3. **A study's verdict never reaches its test by itself.** You must leave the tool, open
+   the drawer, find *Proved by*, and press the button.
+4. **Commission cannot answer a test; it sends you to Programs.** Hence "it asks me to go
+   to a different section".
+
+## 16. What "wrapping every door" means for the design
+
+Three rules, in this order:
+
+### 16.1 One way to answer — the result sheet
+A single sheet — `RunSheet` — is **the** form that records a run, and **every door
+opens it**: the Programs row, the drawer, the test page, Commission's and Needs you's
+*Test it*, the Day, a fix. It holds, top to bottom:
+
+1. **How it went** — *Passed · Didn't pass · Didn't run* (the three results of a
+   test; *Baseline · Not tested · No program* offered only where the program is a
+   part on a programs stage, as the floor's *status*, said apart);
+2. **What it ran** — the day, what was set (the **settings**, carried forward), what
+   it did (speed, minutes, packs, rejects) — one place, one record;
+3. **The measurements** — the tools lined up for this run, each with *Take the readings*
+   **inline** (no trip to another section) and each one's verdict offered *as the
+   run's* with one tap;
+4. **What was seen**, with photos;
+5. **If this follows a run: what changed** (the diff of the settings, why, who agreed).
+
+It is the existing drawer's test body, extended — *"one drawer per record"* (redesign
+slice 2) already says the drawer is the record's one home. **The Programs row stops
+being a second form** and becomes a launcher of the sheet with its context (the
+program, the machine, the products) filled in.
+
+### 16.2 One way to write — `recordRun(...)`
+One module performs **all** the writes of an answer **in one place**: the test's
+`outcome` and `runs`; the floor's status on the programs-stage part when one exists;
+the program's `state`/`provedOn`; and links the run's studies. It replaces today's
+orchestration spread over `ProgramTest.answer`, `followTest`, `followPart`, the drawer's
+`setOutcome` and `doneTodayPatch`. The "newer wins" rules move into it and into **one
+reader** (`lib/place`/`testRows`, Part 1 §4). The result: *no door can write one record
+and leave another saying something else.*
+
+### 16.3 One way to look — the test centre, reached from every door
+Every door gets the same two things back: **a link into the trial it belongs to** (the
+series, the change before this run, the comparison after it), and **the node's reading**
+on its own page — a machine's page, a program's row, the line, the project (Part 1 §6).
+*Commission* stops sending you to Programs: its *Test it* **opens the sheet where you
+are**, on the board.
+
+## 17. The loop in each stream — one shape, three implementations today
+
+| Stream | Run | Change | Run again | Today |
+|---|---|---|---|---|
+| **Stage gate** | a `Test` | a *fix* (`Test` of kind *fix*) | a re-test (`fromTestId`) | the fix and the re-test are **siblings** (§11) |
+| **A program** | an attempt (a `Test` with `programId`) | *nothing recorded* | *Go again* | the aim moves; **why** is not said |
+| **6M** | a study (evidence) | a countermeasure (`pace_todos`) | a study (proof) → `beforeAfter` | no `Test` anywhere; the link is on the study |
+| **A tool alone** | a study | — | another study | nothing joins them |
+
+The trial (Part 2 §13) is **the one shape over all four**: *run → change → run again →
+comparison*, whichever record carries it. The sheet and `recordRun` are how each
+stream stays in its own records and still reads as one.
+
+## 18. What changes in the slices (replaces Part 2 §13.5's order)
+
+The doors come **first**, because everything else stands on them and they fix defects
+that exist today whether or not the centre is ever built.
+
+| | What | Why first |
+|---|---|---|
+| **D0** | The audit above kept as a **test**: a list of the doors, each proved to write through one path (a unit test over `recordRun`'s outputs, a script that drives each door and reads every record back) | so a new door cannot be added that writes a fifth place |
+| **D1** | `recordRun` — one write path; doors 1, 3, 4, 7, 8 call it. No screen changes yet | the four-records problem ends; the Programs report and every paper agree by construction |
+| **D2** | `RunSheet` — one form; the Programs row and the drawer and Commission open it; the `run`/`runs` split ends | "it asks me to go elsewhere" ends; one place for the numbers |
+| **D3** | A study's verdict offered on the sheet **inline**, and *Take the readings* on the sheet | the tool ↔ test trip ends |
+| **T−1, T0** | the rename fix, the readers (Part 1) | the page needs them |
+| **R1–R4, T1–T2** | Run again, settings, comparison, the trial report, the centre's pages | as Part 2 |
+
+## 19. Decisions for Rowland (added)
+
+14. **One result sheet for every door** — and the Programs row only opens it?
+15. **Programs: Baseline · Not tested · No program** — keep them as the floor's *status*
+    on a programs-stage part (said apart from Passed / Didn't pass), or fold them into
+    the result?
+16. **Commission answers in place** (the sheet opens on the board) — instead of sending
+    you to Programs?
+17. **A hand proof** (*proved on* a date, no test) — keep it, but as a run said to be
+    *signed off by hand* with a reason?
+18. **The 6M and the lever tree**: should a 6M countermeasure's before/after be a trial
+    in the same centre (it is the same loop), and does the lever tree need a test door?
