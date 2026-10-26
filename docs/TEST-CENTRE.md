@@ -536,3 +536,147 @@ that exist today whether or not the centre is ever built.
     *signed off by hand* with a reason?
 18. **The 6M and the lever tree**: should a 6M countermeasure's before/after be a trial
     in the same centre (it is the same loop), and does the lever tree need a test door?
+
+---
+
+# Part 4 — Stage gate only: the program is the unit
+
+Rowland, 26 October, after running the app live for a whole day: *"I'm only talking
+about stage gate … stage gate offers program, pass, fail, run a fix on it, which then
+opens up another window, which then opens up another door. I can run a test, but I
+can't then say I'm retesting because of the same thing — we've done this change …
+when it came back to being able to understand the current state, report back to the
+business of this is where we are, I couldn't easily do that … it's all about the
+program … then being able to pick a tool … we have another user interface for
+another user interface for another."* Parts 1–3 are the wider context (lines, 6M,
+tools). **This part is the design for a stage-gate project's programs, and it is
+the one to decide first.** Nothing is built until Rowland says go.
+
+## 20. The path today, counted from the code
+
+A program fails, is fixed, and is tested again — the screens it goes through:
+
+| # | Screen | What you do there |
+|---|---|---|
+| 1 | **Programs page**, the program's row (`ProgramTest`) | *Test it* → *Didn't pass* → Save (writes the test **and** the stage part's status) |
+| 2 | **The stage's drawer**, opened by *Hit a problem* (`openRecordAt` → `RecordDrawer`) | write the problem (a *found* item on the programs stage's part) |
+| 3 | **The problem's page** (`ProblemRecord`) | *Make it a fix* — the fix is a `Test` of kind *fix* |
+| 4 | **The fix's drawer** | who, the day agreed |
+| 5 | **Problems** (`FixesScreen`) or the fix's drawer | *Fixed* → the fix's outcome `passed` |
+| 6 | **Back on the Programs row** | *Go again* — a re-test of the **test**, **not linked to the fix** |
+| 7 | **The test's drawer → *Proved by*** (`StudyLinks`) → **the tool's own page** → back | pick a tool, take the readings, press *Use its verdict* |
+| 8 | **A report** (Programs, commissioning, status) | the state — *FAILED* or *PASSED* — without the story |
+
+**Eight places, three kinds of window (row, drawer, page), and nothing between 5 and 6
+says "this retest is because of that change".** That is the day Rowland had.
+
+## 21. What the business needs to be told
+
+Not *FAILED / PASSED* — **where the program is in the loop**. Derived from records that
+exist (no new status stored):
+
+| The program is… | Because |
+|---|---|
+| **To test** | no test, or one booked and not yet run |
+| **Ran — no verdict** | a test ran and nobody has said how it went |
+| **Passed** | the newest attempt passed (and no newer floor failure) |
+| **Failed — no fix yet** | the newest attempt didn't pass; no fix raised for it |
+| **Fix under way** | a fix for that failure is open, with its owner and day |
+| **Fixed — retest not booked** | the fix is done; no later attempt booked |
+| **Retest booked** | a later attempt is booked, after the fix |
+
+The sentence a manager reads: **"7 programs · 3 passed · 1 retest booked after a fix ·
+1 fix under way · 1 failed with no fix yet · 1 to test."** And each row: **"Program 5 —
+failed 25 Oct (seal jaws cold) → fix: raise jaw temperature, Dave, done 26 Oct →
+retest booked 29 Oct."** That one line is *the report back to the business.*
+
+## 22. The page: a program is a place
+
+A program gets its own page, **the way a machine already has one** (`MachineScreen`,
+`#/project/:id/machine/:assetId`): `#/project/:id/program/:programId`. Everything about
+that program is on it, and **every action is inline** — it expands where you are; nothing
+opens a second window.
+
+```
+PROGRAM 5 — Express 1.25 kg           Ilapak flow wrapper · led by Ilapak UK        ┃ FIX UNDER WAY ┃
+Aim 60 ppm for 60 min · runs Tesco Express 1.25 kg                       Failed 25 Oct → fix done 26 Oct → retest booked 29 Oct
+
+ 1   25 Oct   DIDN'T PASS    set 60 ppm · ran 30 min · 1,700 packs · 20 rejects · netted 56.3 ppm
+          seen: seal jaws cold, film creasing
+          measured with:  capability "60 ppm" ✗ Cpk 0.90 · pass or fail ✗ 3 of 20            [+ a tool ▾]
+          ┗ PROBLEM  seal jaws not reaching temperature — High — Dave
+              ┗ FIX   raise jaw temperature 160 → 170 °C — Dave · agreed 26 Oct · DONE ✓ 26 Oct
+ 2   29 Oct   RETEST — after the fix above      BOOKED
+          [ Say how it went ]   [ Take the readings ▾ ]
+
+ [ Hit a problem ]   [ Book a retest ]   [ Prove by hand ]                                  Report ▾
+```
+
+- **One ladder, top to bottom** — attempt, what was found, the fix under it, the retest
+  that follows *the fix*, in order. The `programJourney` ladder already is the attempts;
+  the problem and the fix hang off the attempt that found them; the retest hangs off the
+  fix. **This is the join Part 2 §11 found missing.**
+- **Inline, in this order, no windows:** *Say how it went* (the one result form, Part 3
+  §16.1, expanding in place) · *Hit a problem* (one line, then *Make it a fix* as a
+  second line **on the same page** — who and by when) · *Book a retest* (the next
+  attempt, the aim carried over, the **fix it follows** picked from the program's open or
+  done fixes) · *Take the readings* / *a tool ▾* (the tools worth using on a program,
+  each lined up with this attempt's name and limits).
+- **The state pill is the loop state** (§21), top right, in its colour.
+- A **tool** is a measurement *of this attempt* — it lists under the attempt, shows its
+  verdict, and one tap offers it as the attempt's result.
+
+## 23. Every existing door, and what it becomes (nothing removed first)
+
+| Today | Becomes |
+|---|---|
+| Programs page row's *Test it* (`ProgramTest`) | the same form, **opened from the program page** (and still on the row for speed, as a launcher of that form) |
+| *Hit a problem* → stage drawer | the inline problem on the program page; the stage drawer keeps working for stages that are not programs |
+| *Make it a fix* page | one more inline line under the problem |
+| Problems page's *Fixed* | still the fix's own place, **and** *Fixed* on the program page's fix line — the same write |
+| *Go again* | *Book a retest*, with *which fix it follows* |
+| Drawer's *Proved by* + the tool's page | *a tool ▾* on the attempt; the tool's page still opens for the readings |
+| **Commission** (`TestsScreen`) — *Test it on Programs ›* | its program cell **opens the program page**; the board stays the machine × stage view |
+| **Needs you** — *Test it*, *Say how it went* | opens the program page at the right line |
+| **The machine page** | lists its programs, each with its pill and the loop sentence |
+| **The Day** | *Retest Program 5 — after the fix* |
+| **Reports** — Programs, commissioning, status, client, handover | read the loop state and the line of story from the same reading |
+
+Per CLAUDE.md rule 1, **no door is removed until the program page has been used and its
+replacement is proved**; each is first *pointed at* the page.
+
+## 24. What it needs on the records
+
+- **Read (no change):** `Program`, its `Test` chain (`fromTestId`), the problem (`TestItem`
+  *found*, `fromItemId` the part), the fix (`Test` *fix*, `becameTestId`), `ToolStudy`
+  (`programId`, `uses` role *proof* kind *test*).
+- **One link to add:** the retest **follows a fix** — one optional field on the test (the
+  fix it follows). Everything else is derived. (Part 2's *settings on a run* is optional
+  and later.)
+- **One reader** (`lib/programLoop`): the attempts, each with its problem, its fix, its
+  retest and its studies, and the §21 state — pure, tested against the seeded job and
+  built with the existing `programJourney`, `rootTestOf`/`testOfFix`, `studyLine`.
+
+## 25. Slices — each live alone, none removing a door
+
+| | What | Proved by |
+|---|---|---|
+| **P1** | `programLoop` + the **program page**, read-only: the ladder with problems, fixes, retests and tools in order, the loop state, a one-line story; reached from the Programs row, Commission and the machine page | unit on the reader against every case in §21; `program-page.mjs` reads it back; the report sentence |
+| **P2** | The **loop state on the Programs page and every report** — the pill (`badgeOf`) says *Fix under way / Retest booked*, the closing sentence counts them | the report's paper read back; reconciliation with the old counts |
+| **P3** | **Inline actions** on the page: *Hit a problem* → *Make it a fix* → *Book a retest (after this fix)* → *a tool ▾*, each calling the existing writes; the retest's *follows the fix* link | `program-loop.mjs`: fail → problem → fix → fixed → retest → pass, all on one page; the old doors still reach the same records |
+| **P4** | *Say how it went* on the page = the one result form (Part 3 §16.1) and `recordRun`'s single write path | the four-records check |
+| **P5** | The doors **point at** the page (Commission, Needs you, the Day, the machine page); the old forms retire once used | the structure's journeys: none longer |
+
+## 26. Decisions for Rowland (stage gate)
+
+19. **A program gets its own page** (as a machine has) — or should it be a bigger drawer
+    over the Programs list?
+20. **The loop states in §21** — are they the words the business wants (To test · Ran, no
+    verdict · Passed · Failed, no fix · Fix under way · Fixed, retest not booked · Retest
+    booked)?
+21. **A retest must name the fix it follows** — required after a failure, or optional
+    (a repeat for noise or a bad sample, said to be one)?
+22. **Which tools** belong on a program's *a tool ▾* by default (capability · pass or fail
+    · reliability · control chart · analysis)?
+23. **Where the business reads it** — the Programs report as it is now with the loop line
+    under each program, or a new one-page *Program progress* paper for the client?
