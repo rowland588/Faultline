@@ -541,6 +541,10 @@ that exist today whether or not the centre is ever built.
 
 # Part 4 — Stage gate only: the program is the unit
 
+> **Superseded 26 October by `docs/STAGEGATE-REBUILD.md`** — the stage gate rebuilt round its
+> real things, with every connection (the Day, the Journey, the plan, the gates, Needs you,
+> Actions, the reports). This part is kept as the step that led there.
+
 Rowland, 26 October, after running the app live for a whole day: *"I'm only talking
 about stage gate … stage gate offers program, pass, fail, run a fix on it, which then
 opens up another window, which then opens up another door. I can run a test, but I
