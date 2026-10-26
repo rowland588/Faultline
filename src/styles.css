@@ -14807,3 +14807,4 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .rl-own-off summary { cursor: pointer; font-size: var(--t-detail); color: var(--ink-2); }
 .sl-name { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; flex: 1 1 260px; }
 .sl-name .text-input { flex: 1 1 180px; min-width: 0; }
+.ptx-studies { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0 0 4px; }

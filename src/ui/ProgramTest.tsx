@@ -30,6 +30,9 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { openRecord } from './RecordDrawer';
 import { offerUndo } from './Undo';
 import { Icon } from './Icon';
+import { useJobStudies } from './StudyLinks';
+import { linkedTo, studyHref } from '../lib/studyLinks';
+import { nav } from '../state/useRoute';
 
 type Ran = Extract<Outcome, 'passed' | 'failed' | 'notRun'>;
 /** How it went — a test's three outcomes, and, where the program is a line on
@@ -95,6 +98,7 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => { if (openAtStart && box.current) box.current.scrollIntoView({ block: 'center' }); }, [openAtStart]);
 
+  const jobStudies = useJobStudies(projectId);
   const ran = test && test.outcome !== 'planned';
   const start = () => {
     setHow(null); setSeen('');
@@ -206,6 +210,15 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
                   <span className={'cg-pstate is-' + a.result.tone}>{a.result.word}</span>
                   {a.seen && <span className="ptx-seen">{a.seen}</span>}
                 </button>
+                {/* THE STUDIES LINED UP FOR THIS TEST, all on the program (Rowland, 26 October) — each opens */}
+                {linkedTo(jobStudies, 'test', a.test.id, 'proof').length > 0 && (
+                  <span className="ptx-studies" aria-label={`Studies for test ${a.n}`}>
+                    <span className="sub">Studies:</span>
+                    {linkedTo(jobStudies, 'test', a.test.id, 'proof').map(st => (
+                      <button key={st.id} type="button" className="chip" onClick={() => nav(studyHref(st))}>{st.name}</button>
+                    ))}
+                  </span>
+                )}
                 {/* EVERY TEST CAN BE TAKEN OFF, WHERE IT SITS, WITH UNDO (Rowland, 23 October: "I can't delete
                     the test ... absolutely stupid") — its program forgets it (db/testing deleteTest) */}
                 {can.remove && (

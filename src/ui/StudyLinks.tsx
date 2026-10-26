@@ -58,6 +58,12 @@ export function StudyLinks({ t, machine, can, onVerdict }: {
   /* the readings can be named for what they are — "60 ppm" — not only for the program's title (Rowland, 26 October) */
   const [readingName, setReadingName] = useState('');
   const start = async (s: ToolStudy) => { await putStudy(s); nav(href(s)); };
+  /* one study of the test: named as typed; with others already, never the same name twice */
+  const made = (): ToolStudy => {
+    const base = readingsFor(t, machine, { at: now(), by: me, id: uid(), useId: uid() });
+    const n = linkedTo(studies, 'test', t.id, 'proof').length;
+    return { ...base, name: readingName.trim() || (n ? `${t.title} — study ${n + 1}` : t.title) };
+  };
 
   if (kind === 'test') {
     const proofs = linkedTo(studies, 'test', t.id, 'proof');
@@ -70,10 +76,13 @@ export function StudyLinks({ t, machine, can, onVerdict }: {
         <small>Proved by</small>
         {proofs.map(s => <StudyRow key={s.id} s={s} ctx={ctx} />)}
         <div className="rd-acts">
-          {can.edit && !proofs.length && (
+          {can.edit && (
             <span className="sl-name">
-              <input className="text-input" value={readingName} maxLength={120} placeholder={`Name it — e.g. 60 ppm (else ${t.title})`} aria-label="Name for the readings" onChange={e => setReadingName(e.target.value)} />
-              <button type="button" className="btn" onClick={() => void start({ ...readingsFor(t, machine, { at: now(), by: me, id: uid(), useId: uid() }), ...(readingName.trim() ? { name: readingName.trim() } : {}) })}>Take the readings</button>
+              <input className="text-input" value={readingName} maxLength={120} aria-label="Name for the readings"
+                placeholder={proofs.length ? 'Name the next study — e.g. 75 ppm' : `Name it — e.g. 60 ppm (else ${t.title})`} onChange={e => setReadingName(e.target.value)} />
+              {/* AS MANY STUDIES AS THE PROGRAM NEEDS (Rowland, 26 October: "I can't then put another study ready to go ... as many studies as I want ... quickly get them ready, go through the list"): line one up and stay, or open it now */}
+              <button type="button" className="btn" onClick={() => { void putStudy(made()); setReadingName(''); }}>Line it up</button>
+              <button type="button" className="btn btn-primary" onClick={() => void start(made())}>{proofs.length ? 'Take the readings now' : 'Take the readings'}</button>
             </span>
           )}
           {can.edit && as && t.outcome !== as && (
