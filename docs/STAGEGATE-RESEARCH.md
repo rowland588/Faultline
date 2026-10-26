@@ -161,6 +161,34 @@ look-ahead; the journey is Reports over a range; the plan is the Gantt view
 of Machines; the four gates are the tag on each machine; Needs you is
 Now's "what you owe".
 
+### 4.1 The factory, its lines, its machines — the spine already exists
+
+Rowland, the same day: *"but we have factory, lines, machines ??"* Yes —
+and that is the research's own pattern (Omega365's project → system →
+subsystem → tag; one asset register). So the project does **not** get
+machines of its own. The spine is the app's, and it is shared:
+
+**Factory → Line → Machine** — the real things, one home each (Your
+factory, the line's page, the machine's page). A **project** is a change
+made *across* some of those machines. Its *Machines* board is **the
+factory's machines that this project is changing** — a view, never a
+second list.
+
+- **One machine, one record, on its line.** Today a machine is half the
+  line's (a name in its flow-order list) and half the project's (the
+  `Asset` the project made), joined by name (`lib/lineRecords`) — which is
+  why a rename can leave a study behind. The remap: the record belongs to
+  the line; a project points at it.
+- **One machine page, reached two ways.** From the line: everything ever
+  done on it — every project's gates, the line's own programs, its
+  studies, its problems. From inside a project: the same page, this
+  project's gates and runs first.
+- **Handover is the machine passing from the project to the line.** Its
+  gate tag ends in *handed over*, and from then on it is the line's — in
+  production, its programs and problems the line's own (the factory's
+  "one part of the factory to another", CLAUDE.md, *It is an internal
+  tool*).
+
 ## 5. What the research does not settle — for Rowland
 
 1. **Gate names.** The industry's L1–L5 (FAT, delivered, start-up,
