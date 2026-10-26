@@ -2,7 +2,7 @@
  * October: "on programs they are missing from the reports — need its own
  * report, and added to the main report." */
 import { describe, expect, it } from 'vitest';
-import { programsReading } from '../programsReport';
+import { badgeOf, programsReading } from '../programsReport';
 import { statusReport } from '../statusReport';
 import { clientReport } from '../clientReport';
 import type { Asset, Test, TestItem } from '../testing';
@@ -191,5 +191,39 @@ describe('a program’s tests and their studies on the report', () => {
   });
   it('a program with no test of its own carries none', () => {
     expect(r?.lines.find(l => /PR-99/.test(l.what))?.tests).toBeUndefined();
+  });
+});
+
+/* THE TEST IS THE HEADLINE WHEN THE FLOOR SAID NOTHING (Rowland, 26 October: "program 5 says to do — I just did it";
+ * "can't really see passed or failed"). */
+describe('a tested program does not read "to do"', () => {
+  const x = asset('x', 'Seal station', 1);
+  const stg = stage('sx', 'x');
+  const prt = part('pe', 'sx', 'Program 5 Express 125');                       // no status said on the floor
+  const p5 = prog('p5', 'Program 5 Express 125', { assetId: 'x' });
+  const ptest = (o: Partial<Test>) => ({ id: 'tp', projectId: 'p', title: 'Prove program 5', kind: 'test', outcome: 'planned', programId: 'p5', sort: 1, createdAt: 1, updatedAt: 1, ...o }) as Test;
+  const lineOf = (t?: Test) => programsReading({ tests: [stg, ...(t ? [t] : [])], items: [prt], assets: [x], programs: [p5], today: T })?.lines[0];
+
+  it('a test that did not pass is FAILED, in red, not to do and not late', () => {
+    const l = lineOf(ptest({ outcome: 'failed', ranOn: T, result: 'Seal jaws cold' }));
+    expect(l).toMatchObject({ tone: 'r', bucket: 'failed' });
+    expect(l?.word).toMatch(/didn’t pass/);
+    expect(badgeOf(l!)).toBe('FAILED');
+  });
+  it('a test booked is BOOKED with its day; with none it is TO DO', () => {
+    expect(badgeOf(lineOf(ptest({ outcome: 'planned', plannedFor: '2026-10-12' }))!)).toBe('BOOKED');
+    expect(badgeOf(lineOf()!)).toBe('TO DO');
+  });
+  it('one that ran and awaits its verdict says so, not to do', () => {
+    const l = lineOf(ptest({ outcome: 'planned', ranOn: T, plannedFor: T, run: { speed: 60, minutes: 60, packs: 3600, rejects: 0 } }));
+    expect(l?.word).not.toMatch(/to do/);
+  });
+  it('proved reads PASSED; the failures are counted as failed, not late', () => {
+    const proved = programsReading({ tests: [stg], items: [prt], assets: [x], programs: [{ ...p5, state: 'proved', provedOn: T }], today: T })?.lines[0];
+    expect(badgeOf(proved!)).toBe('PASSED');
+    /* a ticked task is DONE, never PASSED */
+    expect(badgeOf({ bucket: 'done', word: 'done 23 Oct', tone: 'g' })).toBe('DONE');
+    const r = programsReading({ tests: [stg, ptest({ outcome: 'failed', ranOn: T })], items: [prt], assets: [x], programs: [p5], today: T });
+    expect([r?.failed, r?.late, r?.open]).toEqual([1, 0, 0]);
   });
 });

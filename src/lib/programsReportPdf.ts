@@ -9,7 +9,7 @@
  * way, grey not started), what was seen, and the statuses said before it.
  * Poured by the report engine (lib/report, docs/REPORTS.md), never placed. */
 import type { jsPDF } from 'jspdf';
-import type { ProgramLine, ProgramsReading, ProgTone } from './programsReport';
+import { badgeOf, type ProgramLine, type ProgramsReading, type ProgTone } from './programsReport';
 import { san, OK, DANGER, BLUE } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { leanClosing } from './report/lean';
@@ -26,30 +26,31 @@ const sanLine = (l: ProgramLine): ProgramLine => ({
   ...(l.runs ? { runs: san(l.runs) } : {}), ...(l.who ? { who: san(l.who) } : {}),
   ...(l.note ? { note: san(l.note) } : {}), ...(l.proving ? { proving: san(l.proving) } : {}),
   ...(l.run ? { run: san(l.run) } : {}),
-  ...(l.tests ? { tests: l.tests.map(t => ({ ...t, text: san(t.text), studies: t.studies.map(san) })) } : {}), ...(l.proof ? { proof: { ...l.proof, word: san(l.proof.word) } } : {}),
+  ...(l.tests ? { tests: l.tests.map(t => ({ ...t, badge: san(t.badge), text: san(t.text), studies: t.studies.map(san) })) } : {}), ...(l.proof ? { proof: { ...l.proof, word: san(l.proof.word) } } : {}),
 });
 
 /** Each machine's programs, a row each: the program and its state on one
  *  line, what was seen and what was said before under it. */
 export function programsBlocks(reading: ProgramsReading, d: Density, o: { machineLabels?: boolean } = {}): Block[] {
   const out: Block[] = [];
-  const stateW = 150;
+  /* the state pill leads the row, big and in its colour; the program after it; the day and what was seen at the right */
+  const pillW = 62, stateW = 128, indent = pillW + 12;
   const parts = (f: Frame, l: ProgramLine) => ({
-    head: wrap(f.doc, `${l.what}${l.runs ? ` — runs ${l.runs}` : ''}`, f.w - stateW - 10, 9.5, 'bold'),
-    who: l.who ? wrap(f.doc, l.who, f.w - stateW - 10, 8) : [],
-    word: wrap(f.doc, l.word, stateW, 8.5, 'bold'),
-    note: l.note ? wrap(f.doc, l.note, f.w - 12, 8.5) : [],
-    earlier: l.earlier.flatMap(e => wrap(f.doc, `Before: ${e}`, f.w - 12, 8)),
-    proving: l.proving ? wrap(f.doc, l.proving, f.w - 12, 8) : [],
+    head: wrap(f.doc, `${l.what}${l.runs ? ` — runs ${l.runs}` : ''}`, f.w - indent - stateW - 10, 10, 'bold'),
+    who: l.who ? wrap(f.doc, l.who, f.w - indent - stateW - 10, 8) : [],
+    word: wrap(f.doc, l.word, stateW, 8, 'bold'),
+    note: l.note ? wrap(f.doc, l.note, f.w - indent, 8.5) : [],
+    earlier: l.earlier.flatMap(e => wrap(f.doc, `Before: ${e}`, f.w - indent, 8)),
+    proving: l.proving ? wrap(f.doc, l.proving, f.w - indent, 8) : [],
     /* how a proved one was proved (flow audit #21) — its colour only when abnormal */
-    proof: l.proof ? wrap(f.doc, l.proof.word, f.w - 12, 8) : [],
-    run: l.run ? wrap(f.doc, `In Commission: ${l.run}`, f.w - 12, 8.5, 'bold') : [],
+    proof: l.proof ? wrap(f.doc, l.proof.word, f.w - indent, 8) : [],
+    run: l.run ? wrap(f.doc, `In Commission: ${l.run}`, f.w - indent, 8.5, 'bold') : [],
     /* every test of it, first to last, each with the studies lined up for it */
-    tests: (l.tests ?? []).map(t => ({ tone: t.tone, lines: wrap(f.doc, t.text, f.w - 12, 8), studies: t.studies.flatMap(x => wrap(f.doc, `Study: ${x}`, f.w - 24, 7.5)) })),
+    tests: (l.tests ?? []).map(t => ({ tone: t.tone, badge: t.badge, lines: wrap(f.doc, t.text, f.w - indent - 4, 8), studies: t.studies.flatMap(x => wrap(f.doc, `Study: ${x}`, f.w - indent - 16, 7.5)) })),
   });
   const height = (f: Frame, l: ProgramLine) => {
     const p = parts(f, l);
-    return 6 + Math.max(p.head.length * 12 + p.who.length * 10, p.word.length * 11) + p.note.length * 11 + p.run.length * 11 + (p.earlier.length + p.proving.length + p.proof.length) * 10 + p.tests.reduce((n, t) => n + t.lines.length * 10 + t.studies.length * 9, 0) + 6;
+    return 8 + Math.max(p.head.length * 13 + p.who.length * 10, p.word.length * 10, 16) + p.note.length * 11 + p.run.length * 11 + (p.earlier.length + p.proving.length + p.proof.length) * 10 + p.tests.reduce((n, t) => n + 9 + t.lines.length * 10 + t.studies.length * 9, 0) + 6;
   };
   for (const g of reading.machines.map(m => ({ ...m, name: san(m.name), lines: m.lines.map(sanLine) }))) {
     /* The machine's name as it is written — a capitalised label lost it to
@@ -61,24 +62,33 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
         draw: (f: Frame, y: number) => {
           const p = parts(f, l);
           f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
-          font(f.doc, 9.5, 'bold', INK2); f.doc.text(p.head, f.x, y + 13);
-          let ty = y + 13 + p.head.length * 12;
-          if (p.who.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.who, f.x, ty - 2); ty += p.who.length * 10; }
-          /* Its state in words, in its colour — never the colour alone. */
-          font(f.doc, 8.5, 'bold', TONE[l.tone]); f.doc.text(p.word, f.x + f.w - stateW, y + 13);
-          ty = Math.max(ty, y + 13 + p.word.length * 11);
-          if (p.proof.length) { font(f.doc, 8, l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? 'bold' : 'normal', l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? TONE[l.proof.tone] : MUTED); f.doc.text(p.proof, f.x + 12, ty); ty += p.proof.length * 10; }
-          if (p.note.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.note, f.x + 12, ty); ty += p.note.length * 11; }
-          if (p.proving.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.proving, f.x + 12, ty); ty += p.proving.length * 10; }
+          const h = height(f, l);
+          /* The abnormal stands out: a heavy edge on a row that failed or is late. */
+          if (l.bucket === 'failed' || l.bucket === 'late') { f.doc.setFillColor(DANGER); f.doc.rect(f.x - 5, y + 3, 2.5, h - 5, 'F'); }
+          /* THE STATE, FIRST AND BIG: a pill in its colour with its word — the one white-on-colour the house allows. */
+          const badge = badgeOf(l);
+          f.doc.setFillColor(TONE[l.tone]); f.doc.roundedRect(f.x, y + 5, pillW, 15, 3, 3, 'F');
+          font(f.doc, badge.length > 8 ? 6.5 : 7.5, 'bold', '#ffffff'); f.doc.text(badge, f.x + pillW / 2, y + 15.2, { align: 'center' });
+          font(f.doc, 10, 'bold', INK2); f.doc.text(p.head, f.x + indent, y + 16);
+          let ty = y + 16 + p.head.length * 13 - 3;
+          if (p.who.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.who, f.x + indent, ty - 2); ty += p.who.length * 10; }
+          /* The day and what it rests on, at the right, in its colour — never the colour alone. */
+          font(f.doc, 8, 'bold', TONE[l.tone]); f.doc.text(p.word, f.x + f.w - stateW, y + 15);
+          ty = Math.max(ty, y + 16 + p.word.length * 10);
+          if (p.proof.length) { font(f.doc, 8, l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? 'bold' : 'normal', l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? TONE[l.proof.tone] : MUTED); f.doc.text(p.proof, f.x + indent, ty); ty += p.proof.length * 10; }
+          if (p.note.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.note, f.x + indent, ty); ty += p.note.length * 11; }
+          if (p.proving.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.proving, f.x + indent, ty); ty += p.proving.length * 10; }
           /* Its run at speed — the colour only when it fell short or passed. */
-          if (p.run.length) { font(f.doc, 8.5, 'bold', l.runTone ? TONE[l.runTone] : INK2); f.doc.text(p.run, f.x + 12, ty); ty += p.run.length * 11; }
+          if (p.run.length) { font(f.doc, 8.5, 'bold', l.runTone ? TONE[l.runTone] : INK2); f.doc.text(p.run, f.x + indent, ty); ty += p.run.length * 11; }
           if (p.tests.length) {
             for (const t of p.tests) {
-              font(f.doc, 8, t.tone === 'r' || t.tone === 'a' ? 'bold' : 'normal', t.tone === 'r' || t.tone === 'a' ? TONE[t.tone] : INK2); f.doc.text(t.lines, f.x + 12, ty); ty += t.lines.length * 10;
-              if (t.studies.length) { font(f.doc, 7.5, 'normal', MUTED); f.doc.text(t.studies, f.x + 24, ty); ty += t.studies.length * 9; }
+              /* each test: its own result in its colour first, then what it aimed at and did */
+              font(f.doc, 7, 'bold', TONE[t.tone]); f.doc.text(t.badge.slice(0, 14), f.x + indent, ty);
+              font(f.doc, 8, 'normal', INK2); f.doc.text(t.lines, f.x + indent + 0, ty + 9); ty += 9 + t.lines.length * 10;
+              if (t.studies.length) { font(f.doc, 7.5, 'normal', MUTED); f.doc.text(t.studies, f.x + indent + 12, ty); ty += t.studies.length * 9; }
             }
           }
-          if (p.earlier.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.earlier, f.x + 12, ty); }
+          if (p.earlier.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.earlier, f.x + indent, ty); }
         },
       })),
       after: 'm',

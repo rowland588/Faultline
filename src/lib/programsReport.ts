@@ -78,7 +78,7 @@ export interface ProgramLine {
    *  lined up for or proving that test (Rowland, 26 October: "check that the programs report will show all
    *  test information clearly and correctly"). The same words as the program's row and the commissioning
    *  sheet (lib/programJourney). */
-  tests?: { text: string; tone: ProgTone; studies: string[] }[];
+  tests?: { badge: string; text: string; tone: ProgTone; studies: string[] }[];
 }
 
 export interface ProgramsReading {
@@ -190,7 +190,8 @@ function programWords(p: Program, tests: Test[], today: string, failedOn?: strin
   if (failedOn && (!t || t.outcome === 'passed')) return { word: `${state} · failed ${niceDay(failedOn)} — to prove again`, tone: 'r', bucket: 'failed' };
   if (t) {
     const c = testCell(t, today);
-    return { word: `${state} · test ${c.word}`, tone: c.tone as ProgTone, bucket: c.tone === 'r' ? 'late' : 'open' };
+    /* a test that did not pass, or did not run, is a FAILED program on paper — only a day gone by is late */
+    return { word: `${state} · test ${c.word}`, tone: c.tone as ProgTone, bucket: t.outcome === 'failed' || t.outcome === 'notRun' ? 'failed' : c.tone === 'r' ? 'late' : 'open' };
   }
   /* No test in Commission — a line's program, planned with no job, or a
      job's not yet put to a test: its own test day says when, and a day gone
@@ -214,10 +215,26 @@ function partWordsOf(i: TestItem, today: string): Pick<ProgramLine, 'word' | 'to
     ...(st.said && (st.said.is === 'notTested' || st.said.is === 'noProgram') && !st.done ? { said: st.said.is } : {}) };
 }
 
+/** THE ONE WORD A PROGRAM'S ROW LEADS WITH — big, in its state's colour, on screen and on paper (Rowland, 26 October:
+ *  "can't really see passed or failed"). It is the bucket said in a word; the line's longer words (the day, what was
+ *  seen) sit beside it. */
+export function badgeOf(l: Pick<ProgramLine, 'bucket' | 'said' | 'word' | 'tone'>): string {
+  if (l.bucket === 'done') return /pass|prov/i.test(l.word) ? 'PASSED' : 'DONE';
+  if (l.bucket === 'baseline') return 'BASELINE';
+  if (l.bucket === 'failed') return 'FAILED';
+  if (l.bucket === 'late') return 'LATE';
+  if (l.said === 'notTested') return 'NOT TESTED';
+  if (l.said === 'noProgram') return 'NO PROGRAM';
+  if (/passed\?/.test(l.word)) return 'VERDICT?';
+  if (/booked|under way/.test(l.word)) return 'BOOKED';
+  return 'TO DO';
+}
+
 /** The tests of a program in words, each with the studies lined up for it — "Capability study “60 ppm” — …". */
 function testsOfProgram(p: Program | undefined, tests: Test[], studies: readonly ToolStudy[] | undefined, today: string): ProgramLine['tests'] {
   if (!p) return undefined;
   const out = programJourney(p, tests, today).attempts.map(a => ({
+    badge: /^booked/.test(a.result.word) ? 'BOOKED' : /passed\?/.test(a.result.word) ? 'VERDICT?' : a.result.word.toUpperCase(),
     text: a.text,
     tone: (a.result.tone === 'a' ? 'a' : a.result.tone) as ProgTone,
     studies: linkedTo([...(studies ?? [])], 'test', a.test.id, 'proof').map(st => `${studyWords(st)} — ${studyLine(st).text}`),
@@ -258,6 +275,12 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
            it since, which is the newer fact (a pass that later failed). */
         const provedFirst = !!p && isProved(p) && !(now && p.provedOn && now.on > p.provedOn);
         const proved = p && provedFirst ? programWords(p, tests, today) : undefined;
+        /* THE FLOOR SAID NOTHING, THE PROGRAM WAS TESTED (Rowland, 26 October: "program 5 says to do — I just did
+           it"): the line's headline was the part's "to do" while its own test sat under it as a small note. When the
+           floor has said no status and the program has tests, the TEST is the headline — passed, didn't pass,
+           booked, ran and awaiting a verdict. A status the floor said still leads, as the flow audit decided. */
+        const own = p && !provedFirst && !now && !part.doneAt && programJourney(p, tests, today).attempts.length
+          ? programWords(p, tests, today, floorFailedOn(p, tests, x.items, x.holder)) : undefined;
         const earlier = (part.results ?? []).filter(r => r !== now).reverse()
           .map(r => `${resultWords(r)}${r.note ? ` — ${r.note}` : ''}`);
         const run = programRunSays(runsOfProgram(part, m || undefined, tests, [...productsOf(p?.runs), p?.what ?? '']));
@@ -268,14 +291,15 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
           ...(part.owner?.trim() ? { who: part.owner.trim() } : p?.from ? { who: p.from } : {}),
           /* Proved in Commission is the stronger word; the floor's status
              and what was seen stay beside it. */
-          ...(proved ? { word: proved.word, tone: proved.tone, bucket: proved.bucket, ...(said.note ? { note: said.note } : {}) } : said),
+          ...(proved ? { word: proved.word, tone: proved.tone, bucket: proved.bucket, ...(said.note ? { note: said.note } : {}) }
+            : own ? { word: own.word, tone: own.tone, bucket: own.bucket, ...(said.note ? { note: said.note } : {}) } : said),
           ...(p && proved ? (pf => (pf ? { proof: pf } : {}))(proofOf(p, tests, x.studies)) : {}),
           earlier,
           ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tests, x.studies, today)),
           ...(proved && now ? { proving: `on the floor: ${said.word}` } : {}),
           /* THE FLOOR'S STATUS LEADS: the program record's own state beside
              it, so the line's answer is on the job's row too (flow audit #3). */
-          ...(p && !proved ? (r => ({ record: { word: r.word, tone: r.tone }, proving: `On the line: ${r.word}` }))(programWords(p, tests, today, floorFailedOn(p, tests, x.items, x.holder))) : {}),
+          ...(p && !proved && !own ? (r => ({ record: { word: r.word, tone: r.tone }, proving: `On the line: ${r.word}` }))(programWords(p, tests, today, floorFailedOn(p, tests, x.items, x.holder))) : {}),
         });
       }
     }
