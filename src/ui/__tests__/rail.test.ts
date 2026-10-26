@@ -99,7 +99,7 @@ describe('the square beside a line says its state, and the count stays the work'
 
   it('a place that is not a list carries no square — grey would say "not started"', () => {
     expect(controlRoom('job').bare).toBe(true);
-    const foot = projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'job', counts: {}, late: 0 }).find(g => g.foot)!;
+    const foot = projectGroups({ projectId: P, name: 'Line 2', model: 'board', here: 'job', counts: {}, late: 0 }).find(g => g.foot)!;
     expect(foot.lines.every(l => l.bare)).toBe(true);
     /* A list keeps its square even when it is empty: grey is true of it. */
     const sg = projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'job', counts: {}, late: 0 }).flatMap(g => g.lines);
@@ -151,9 +151,9 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
     testing: { n: 2, late: 1, done: 0 }, handover: { n: 0, late: 0, done: 2 }, fixes: { n: 4, late: 0, done: 1 },
   };
   const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const, open: 3, late: 1 }, { id: 'm2', name: 'Coder', state: 'w' as const }];
-  it('a stage gate: Overview · Now · Plan · its machines · Programs · Materials · The day · Journey · Actions · Problems · Tools · Notes · Reports · Details', () => {
+  it('a stage gate (26 October, four tabs and More): Now and what is under it · Machines, its machines and Programs · Problems · Reports · More and what is in it', () => {
     const g = projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'setup', counts, late: 3, machines });
-    expect(said(g)).toEqual(['Factory', 'Overview', 'Now', 'Plan', 'Wrapper', 'Coder', 'Programs', 'Materials', 'The day', 'Journey', 'Actions', 'Problems', 'Tools', 'Notes', 'Reports', 'Details']);
+    expect(said(g)).toEqual(['Factory', 'Now', 'Now', 'The day', 'Journey', 'Actions', 'Machines', 'Wrapper', 'Coder', 'Programs', 'Problems', 'Reports', 'More', 'Materials', 'Tools', 'Notes', 'Details']);
     const plan = all(g).find(l => l.key === 'plan')!;
     expect([plan.on, plan.n, plan.late, plan.state, plan.to]).toEqual([true, 5, 3, 'r', `/project/${P}/install`]);
     expect(all(g).find(l => l.key === 'machine:m1')).toMatchObject({ n: 3, late: 1, state: 'r', sub: true });
@@ -161,7 +161,7 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
   it('a stage gate past six machines folds them into one line', () => {
     const many = Array.from({ length: 12 }, (_, i) => ({ id: `m${i}`, name: `Machine ${i}`, state: 'w' as const }));
     const g = projectGroups({ projectId: P, name: 'Big', model: 'commissioning', here: 'job', counts, late: 0, machines: many });
-    expect(said(g).filter(l => l.startsWith('Machine'))).toEqual(['Machines (12)']);
+    expect(said(g).filter(l => l.startsWith('Machine'))).toEqual(['Machines', 'Machines (12)']);
     /* a project's no more than 18 with its machines folded (docs/STRUCTURE.md §19, 4) */
     expect(said(g).filter(l => l !== 'Factory').length).toBeLessThanOrEqual(18);
   });
@@ -230,16 +230,24 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
   it('a project: its pages without its machines folded under them', () => {
     const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const }];
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'job', counts: {}, late: 0, machines })).map(l => l.label))
-      .toEqual(['Overview', 'Now', 'Plan', 'Programs', 'Materials', 'The day', 'Journey', 'Actions', 'Problems', 'Tools', 'Notes', 'Details']);
+      .toEqual(['Now', 'Machines', 'Problems', 'Reports', 'More']);
   });
-  it('a page folded under a tab lights it: a machine its Plan, the line\'s logs its Tools', () => {
+  it('a page folded under a tab lights it: a machine and Programs its Machines, the day and the journey Now, Materials More, the line\'s logs its Tools', () => {
     const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const }];
-    expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'machine:m1', counts: {}, late: 0, machines })).filter(l => l.on).map(l => l.label)).toEqual(['Plan']);
+    const lit = (here: string) => scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here, counts: {}, late: 0, machines })).filter(l => l.on).map(l => l.label);
+    expect(lit('machine:m1')).toEqual(['Machines']);
+    expect(lit('programs')).toEqual(['Machines']);
+    expect(lit('day')).toEqual(['Now']);
+    expect(lit('journey')).toEqual(['Now']);
+    expect(lit('actions')).toEqual(['Now']);
+    expect(lit('materials')).toEqual(['More']);
+    expect(lit('details')).toEqual(['More']);
     expect(scopeTabs(lineGroups('w1', 'logs')).filter(l => l.on).map(l => l.label)).toEqual(['Tools']);
     expect(scopeTabs(lineGroups('w1', 'projects')).filter(l => l.on).map(l => l.label)).toEqual(['Overview']);
   });
-  it('a project\'s Reports lights no tab — it lit Notes (walkthrough, 25 October)', () => {
-    expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'reports', counts: {}, late: 0, machines: [] })).filter(l => l.on).map(l => l.label)).toEqual([]);
+  it('a project\'s Reports lights no tab but its own — it lit Notes (walkthrough, 25 October); a stage gate has Reports as a tab', () => {
+    expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'reports', counts: {}, late: 0, machines: [] })).filter(l => l.on).map(l => l.label)).toEqual(['Reports']);
+    expect(scopeTabs(projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'reports', counts: {}, late: 0 })).filter(l => l.on).map(l => l.label)).toEqual([]);
   });
   it('the factory: Overview · Lines · Programs, on those three pages only', () => {
     expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Overview', '/room', false], ['Lines', '/factory', true], ['Programs', '/programs', false]]);

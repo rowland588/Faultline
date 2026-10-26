@@ -24,11 +24,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { kindFacts } from '../project/projectKind';
 import { ThisWeekLine } from '../project/journey/JourneyScreen';
-import { Journey } from '../ui/Journey';
 import { openFold } from '../ui/Fold';
-import { live } from '../lib/testing';
-import { machineAt, machinesWhere, journeyOf } from '../lib/install';
-import { planHref, planSays } from '../lib/plan';
+import { planHref } from '../lib/plan';
 import { nav, navReplace, useRoute } from '../state/useRoute';
 import { ReportMenu, ViewTabs, type Paper } from '../ui/parts';
 import { savingAt } from '../lib/useSaveOnArrival';
@@ -36,11 +33,7 @@ import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
-import { useJobFactoryLines } from '../lib/useFactoryLines';
-import { linesDay } from '../lib/lineLoss';
-import { stageGateTiles } from '../lib/stageGateLean';
-import { jobFiguresOf } from '../project/now/now';
-import { useAssignedProblems } from '../lib/useAssignedProblems';
+import { NowBody } from '../project/now/NowScreen';
 import { sixmTiles, type SixMFigures } from '../lib/sixmLean';
 import type { FishboneData } from '../lib/fishbone';
 import type { ProblemView } from '../lib/problems';
@@ -60,13 +53,11 @@ import { useStudyContext } from '../ui/ShiftLosses';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
-import { KIND_WORD, criticalItems, riskItems, jobItems, kindWord, lateWhen, needsYou, pacedOwed, pacedSays, sixmProblemOf, type JobItem, type Urgency } from '../lib/portfolio';
+import { KIND_WORD, kindWord, lateWhen, needsYou, pacedOwed, pacedSays, sixmProblemOf, type JobItem, type Urgency } from '../lib/portfolio';
 import { openRecord } from '../ui/RecordDrawer';
 import { CriticalTag } from '../ui/CriticalFields';
 import { criticalCount } from '../lib/critical';
-import { linesOnTarget, stageGateOnTarget } from '../lib/onTarget';
-import { planCount, planFor } from '../lib/huddle';
-import type { TestItem } from '../lib/testing';
+import { linesOnTarget } from '../lib/onTarget';
 import { useImpacts } from '../lib/useImpacts';
 import { addDays, niceDay } from '../lib/weeks';
 import { IMPACT_WORD } from '../lib/impact';
@@ -601,19 +592,13 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'data',     label: 'Numbers',    sub: 'readings against target' },
 ];
 
-/** Today's huddle plan, in words — "plan for today: 1 of 3 done". */
-function todaysPlan(items: TestItem[], today: string, job?: Parameters<typeof planFor>[2]): string {
-  const plan = planFor(items, today, job);
-  return plan.length ? `plan for today: ${planCount(plan)}` : 'nothing planned for today yet';
-}
 
 
 /* ("Meeting notes · 3", the header button, is the rail's Meeting notes line
    now, with the same count — ui/Frame useOpenNotes.) */
 
-function TestingOverview({ projectId, project, edit, remove = false }: { projectId: string; project: Project; edit: boolean; remove?: boolean }) {
+function TestingOverview({ projectId, edit, remove = false }: { projectId: string; edit: boolean; remove?: boolean }) {
   const tt = useTesting(projectId);
-  const studies = useJobStudies(projectId);
   /* THE WHOLE JOB, not just the testing. See lib/standing.ts — this page used
      to form its own opinion from the trials alone, which meant it could say
      "nothing outstanding" while four materials were late and two programs were
@@ -627,32 +612,13 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
   /* SINCE YOU LAST LOOKED (lib/since) — the visit this page counts from, kept
      on this device; opening the page starts a new one. */
   const seenAt = useSeenAt(projectId);
-  /* THE JOB'S LINES AS YOUR FACTORY HOLDS THEM — what a day late costs (the money tile) */
-  const factory = useJobFactoryLines(projectId);
-  /* THE REGISTER'S PROBLEMS FOR IT, NOT ON IT YET — counted on the band as on its papers */
-  const assigned = useAssignedProblems(projectId);
-  if (tt.loading || all.loading || mats.loading || progs.loading || factory.loading) return <p className="sub">Loading…</p>;
+  if (tt.loading || all.loading || mats.loading || progs.loading) return <p className="sub">Loading…</p>;
 
-  const today = todayISO();
   const st = all.standing;
   /* EMPTY MEANS NOTHING ON ANY LIST — not "no tests and no machines". A job
      with only materials said "Nothing planned on this line yet" over a
      material three days late, with no verdict, no alarm and no plan. */
   const empty = tt.tests.length === 0 && tt.assets.length === 0 && st.outstanding === 0 && st.plan.length === 0;
-
-  const machines = live(tt.assets);
-  /* "due on site" for a machine not here yet, never "at Install" (machineAt). */
-  const wheres = machines.map(a => machineAt(a, journeyOf(a, tt.tests, tt.items, today, progs.programs)));
-  const whereSays = machines.length === 1 ? wheres[0].says : machinesWhere(wheres.map(w => w.short));
-  /* Every thing owed on the job, one row each — the control room's week reads
-     the same list (lib/portfolio jobItems), by the rules the band counts by. */
-  const owed = [
-    /* An open critical problem leads Needs you (lib/portfolio criticalItems). */
-    ...criticalItems({ project, tests: tt.tests, items: tt.items, assets: tt.assets }),
-    /* Then each high risk, amber — not happened yet (lib/critical). */
-    ...riskItems({ project, tests: tt.tests, items: tt.items, assets: tt.assets }),
-    ...jobItems({ project, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, assets: tt.assets, studies }, today),
-  ];
 
   return (
     <section className="pace-sec">
@@ -683,10 +649,6 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
               material late, a program past its test) are rows on "Needs you"
               with their day. The plan — the longest thing on the page — is a
               page of its own (/plan), one line and a door here. */}
-          {/* ARE WE ON TARGET? leads the band (lib/onTarget). */}
-          <Verdict st={st} brief
-            onTarget={stageGateOnTarget({ project, tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs, today }, st)}
-            tiles={stageGateTiles(jobFiguresOf(st, project, tt.tests, tt.items, tt.assets, linesDay(factory.lines), assigned, today))} />
           {/* WHAT CHANGED SINCE YOU LAST LOOKED — under the answer; nothing when
               nothing did (lib/since). */}
           <SinceLine projectId={projectId} since={sinceOf({ tests: tt.tests, items: tt.items, assets: tt.assets, seenAt })} />
@@ -697,28 +659,10 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
           {st.handedOver && st.outstanding === 0 && remove && (
             <p className="fp-foot">Handed over, with nothing still open. <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/setup`)}>Archive it from Details ›</button></p>
           )}
-          <div className="fp-grid">
-            <NeedsYouPanel items={owed} today={today} door={{ label: 'The plan', to: `/project/${projectId}/plan` }} />
-            <div className="fp-col">
-              {machines.length > 0 && (
-                <Panel title="Where each machine is" says={whereSays} className="fp-where">
-                  <Journey projectId={projectId} assets={tt.assets} tests={tt.tests} items={tt.items} bare />
-                </Panel>
-              )}
-              {/* TWO DOORS, NOT TWO PARAGRAPHS. The day's headline and the
-                  plan's sentence repeated the band and Needs you (critical,
-                  late, gates done); each door says only what is not already
-                  on this page — today's huddle plan, and how many dates. */}
-              <span className="fp-doors">
-                <button className="fp-door" onClick={() => nav(`/project/${projectId}/day`)}>
-                  <b>The day ›</b><span className="sub">{todaysPlan(tt.items, today, tt)}</span>
-                </button>
-                <button className="fp-door" onClick={() => nav(`/project/${projectId}/plan`)}>
-                  <b>The plan ›</b><span className="sub">{planSays(st.plan, today)}</span>
-                </button>
-              </span>
-            </div>
-          </div>
+          {/* NOW (26 October, docs/STAGEGATE-RESEARCH.md §4): the band, what blocks handover, the machines,
+              the next two weeks and what you owe — where the band, Needs you, where each machine is and the
+              doors to the day and the plan were (project/now). The day and the journey are its doors. */}
+          <NowBody projectId={projectId} />
         </>
       )}
     </section>
@@ -966,7 +910,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       </header>
       {(lens === 'overview' || model === 'commissioning') && <AccessNote can={can} owner={project.lead} />}
       {/* THIS WEEK AND NEXT (docs/JOURNEY.md): done · still to do · planned, read by lib/journey, opening the journey on that range */}
-      {lens === 'overview' && <ThisWeekLine projectId={projectId} project={project} />}
+      {/* a stage gate's next two weeks are on Now, below — said once */}
+      {lens === 'overview' && model !== 'commissioning' && <ThisWeekLine projectId={projectId} project={project} />}
 
 
       {/* THE OVERVIEW OF A COMMISSIONING JOB IS THE COMMISSIONING JOB.
@@ -975,7 +920,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           None of it belongs to a handover, and every one of them was the first
           thing somebody saw on opening the project. */}
       {lens === 'overview' && model === 'commissioning' && (
-        <TestingOverview projectId={projectId} project={project} edit={can.edit} remove={can.remove} />
+        <TestingOverview projectId={projectId} edit={can.edit} remove={can.remove} />
       )}
 
       {/* THE SAME SHAPE AS A STAGE-GATE JOB'S FRONT PAGE, and one screen

@@ -85,18 +85,24 @@ export const PAGES = (sd, cap) => [
     { what: 'the boxes — rejects a day because of it, packs on hold because of it (FC-154 part 2)', sel: '[aria-label="Rejects a day because of it"], [aria-label="Packs on hold because of it"]', n: 2 },
     { what: 'what that is in money, or the ask', sel: '.pe-cost' },
   ] },
-  { name: 'A stage-gate project — its front page', path: `#/project/${sd.projectId}`, must: [
-    /* this week and next (23 October, docs/JOURNEY.md): done · still to do · planned, opening the journey */
-    { what: 'This week and next — opening the journey', sel: '.jn-week button', text: /^Open the journey/ },
+  /* a stage-gate project's front page is Now since 26 October (docs/STAGEGATE-RESEARCH.md §4 — Rowland: "9 are still to many
+     tabs"): Needs you, where each machine is and the week line were here; Now says them — What you owe and Blocking handover
+     the owed rows, The machines each machine and its page, Today and the next two weeks the week */
+  { name: 'A stage-gate project — its front page, Now', path: `#/project/${sd.projectId}`, must: [
     /* B3: the status report and the client report in the header's Report ▾ (the verdict's link moved here) */
     { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
-    { what: 'the verdict', sel: '.vd' }, { what: 'Needs you', sel: 'h2, h3', text: /Needs you/ }, { what: 'where each machine is', sel: '.fp-grid' },
+    { what: 'its tabs — Now · Machines · Problems · Reports · More', sel: '.nv-tabs .nv-tab', n: 5 },
+    { what: 'its own pages as tabs — Now on', sel: '.nv-tabs .nv-tab.is-on', text: /^Now/ },
+    { what: 'Now’s sentence — the machines, what blocks handover, what is late', sel: '.now .now-says', text: /machine/ },
+    { what: 'the verdict', sel: '.vd' },
     /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
-    /* on a phone the band is the answer and the status report (the phone pass, 5 October): its tiles are the desk's */
     { what: 'the band’s tiles — handover, late of what is still to do, critical, fixes open, what the slip costs', sel: '.vd .vd-tile', n: 5, desk: true },
-    /* the job's places, its machines each a page (16 October, docs/STAGEGATE-UX.md) — one tap from Where each machine is (23 October: off the menu, which never changes) */
-    { what: 'its machines, each a page, from where each machine is', sel: '.fp-where .jr-row.is-door', n: 3 },
-    { what: 'its own pages as tabs — Overview on', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview/ },
+    { what: 'Blocking handover — the critical problems', sel: '.now-block .now-crit' },
+    { what: 'The machines — a row each with its gate, each opening its page', sel: '.now-machines .now-m .now-gate', n: 3 },
+    { what: 'Today and the next two weeks — the days, the day and any dates one tap away', sel: '.now-ahead .now-day .jn-li' },
+    { what: 'the day — today’s update, a door from Now', sel: '.now-ahead .now-today' },
+    { what: 'What you owe — late first, All actions ›', sel: '.now-owe .act-li' },
+    { what: 'the closing line', sel: '.now .ln-close' },
   ] },
   { name: 'A machine — its own page', path: `#/project/${sd.projectId}/machine/${sd.machineId}`, must: [
     { what: 'its four gates in a row', sel: '.mpg-steps .mpg-step', n: 4 },
@@ -309,15 +315,6 @@ export const PAGES = (sd, cap) => [
     { what: 'the tools we will use, folded — Every tool', sel: '.jn-tools .jn-every', text: /^Every tool/, phone: true },
     { what: 'the days in order', sel: '.jn-day' }, { what: 'a day’s lines, each a record’s own', sel: '.jn-day .jn-li' },
     { what: 'today marked', sel: '.jn-day.is-today' }, { what: 'the closing line', sel: '.ln-close' }] },
-  /* Now — where a stage-gate project is, on one page (26 October, docs/STAGEGATE-RESEARCH.md §4) */
-  { name: 'Now — a stage-gate project', path: `#/project/${sd.projectId}/now`, must: [
-    { what: 'the page header — Now and its sentence', sel: '.now .part-head .now-says', text: /machine/ },
-    { what: 'the band — are we on target, the five tiles', sel: '.now .vd-tile', n: 5, desk: true },
-    { what: 'blocking handover — the critical problems', sel: '.now-block .now-crit' },
-    { what: 'the machines — a row each with its gate', sel: '.now-machines .now-m .now-gate', n: 3 },
-    { what: 'today and the next two weeks — the days', sel: '.now-ahead .now-day .jn-li' },
-    { what: 'what you owe — late first', sel: '.now-owe .act-li' },
-    { what: 'the closing line', sel: '.now .ln-close' }] },
   { name: 'Journey — a 6M project', path: `#/project/${sd.pacedProjectId}/journey`, must: [
     { what: 'the range', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the four tiles', sel: '.jn-tiles .ln-tile', n: 4 },
     { what: 'the tools we will use', sel: '.jn-tools .jn-tool', n: 11, desk: true }, { what: 'the days', sel: '.jn-day .jn-li' }, { what: 'the closing line', sel: '.ln-close' }] },
@@ -368,8 +365,8 @@ export const PAGES = (sd, cap) => [
     { what: 'its name, Stops timed, and the line', sel: '.study-log b', text: /^Stops timed$/ },
     { what: 'its four views as tabs, Capture lit', sel: '.study-views [role=tab]', n: 4 },
     { what: 'Capture the view shown', sel: '.study-views [role=tab][aria-selected=true]', text: /^Capture$/ },
-    /* the seeded study is a stage-gate project's own walk, filmed from Install: the Plan lit */
-    { what: 'where it sits, its tab on — the Plan', sel: '.nv-tabs .nv-tab.is-on', text: /^Plan/ }] },
+    /* the seeded study is a stage-gate project's own walk, filmed from Install: Machines lit (the plan, 26 October) */
+    { what: 'where it sits, its tab on — Machines', sel: '.nv-tabs .nv-tab.is-on', text: /^Machines/ }] },
   { name: 'Actions — the factory', path: '#/actions', must: [
     { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },

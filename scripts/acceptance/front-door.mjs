@@ -72,10 +72,11 @@ const projectAt = page.url().match(/#\/project\/[^/?]+/)[0];
 await go(projectAt);
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Projects', '2 inside it, the same menu with Projects lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
 const ptabs = await tabs();
-ok(ptabs[0] === 'Overview' && ptabs.some(t => /^Plan/.test(t)) && ptabs.includes('Actions') && ptabs.includes('Tools') && await tabOn() === 'Overview', '2 its own pages as tabs, Overview on', `${ptabs.join(' · ')} [${await tabOn()}] ${page.url()}`);
+/* a stage gate's own pages are four tabs and More since 26 October (docs/STAGEGATE-RESEARCH.md §4) */
+ok(ptabs.map(t => t.replace(/\d.*$/, '').trim()).join(' · ') === 'Now · Machines · Problems · Reports · More' && await tabOn() === 'Now', '2 its own pages as tabs — Now · Machines · Problems · Reports · More, Now on', `${ptabs.join(' · ')} [${await tabOn()}] ${page.url()}`);
 ok(/^Projects › Line 4 new case packer/.test(await bar()), '2 the bar starts with the way back: ‹ Projects', await bar());
-await page.locator('.nv-tabs .nv-tab', { hasText: 'Tools' }).click(); await page.waitForTimeout(900);
-ok(await tabOn() === 'Tools' && (await lit()).join() === 'Projects', '2 a tab opens its page, the menu unmoved', `${await tabOn()} | ${(await lit()).join()}`);
+await page.locator('.nv-tabs .nv-tab', { hasText: 'Problems' }).click(); await page.waitForTimeout(900);
+ok(/^Problems/.test(await tabOn()) && (await lit()).join() === 'Projects', '2 a tab opens its page, the menu unmoved', `${await tabOn()} | ${(await lit()).join()}`);
 await page.getByRole('button', { name: 'Back to Projects' }).click(); await page.waitForTimeout(900);
 ok(/#\/projects$/.test(page.url()) && /Line 4 new case packer/.test(await page.locator('.nv-main').innerText()), '2 ‹ Projects lands on Projects, listing it', page.url());
 

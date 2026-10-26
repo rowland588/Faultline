@@ -47,13 +47,13 @@ await page.goto(`${BASE}/#/project/${sd.projectId}/programs`); await page.waitFo
     const top = getComputedStyle(document.querySelector('.nv-top'));
     return { more: n.scrollWidth > n.clientWidth + 8, cls: n.className, onIn: !!on && on.left >= box.left - 1 && on.right <= box.right + 1, last: [...n.querySelectorAll('.nv-tab')].at(-1)?.innerText, n: n.querySelectorAll('.nv-tab').length, topBg: top.backgroundColor, blur: top.backdropFilter };
   });
-  ok(!!t && t.more && /has-r/.test(t.cls) && t.n >= 8, `4 the project's ${t?.n} tabs are more than fit and the strip says so — an edge fades where more wait (${t?.cls})`);
-  ok(!!t && t.onIn, '4b the page you are on (Programs) is in view, whole');
+  /* four tabs and More since 26 October (Rowland, 25 October: "Programs mobile ui difficult to see all tabs"; 26 October: "9 are
+     still to many tabs") — the strip fits a phone, nothing to scroll for; Programs is the Machines tab's view, Machines lit */
+  ok(!!t && !t.more && !/has-r/.test(t.cls) && t.n === 5, `4 the project's ${t?.n} tabs fit a phone whole — nothing waits off the side (${t?.cls})`);
+  ok(!!t && t.onIn, '4b the tab you are under (Machines, for Programs) is in view, whole');
   ok(!!t && /^rgb\(/.test(t.topBg) && (t.blur === 'none' || !t.blur), `4c the top bar is opaque on a phone — ${t?.topBg}, blur ${t?.blur}`);
-  await page.evaluate(() => { const n = document.querySelector('.nv-tabs'); n.scrollLeft = n.scrollWidth; });
-  await page.waitForTimeout(300);
-  const end = await page.evaluate(() => { const n = document.querySelector('.nv-tabs'); const l = [...n.querySelectorAll('.nv-tab')].at(-1).getBoundingClientRect(), b = n.getBoundingClientRect(); return { cls: n.className, lastIn: l.right <= b.right + 1 }; });
-  ok(end.lastIn && /has-l/.test(end.cls) && !/has-r/.test(end.cls), `4d scrolled to the end, the last tab is whole and the fade moves to the other side (${end.cls})`);
+  const end = await page.evaluate(() => { const n = document.querySelector('.nv-tabs'); const l = [...n.querySelectorAll('.nv-tab')].at(-1).getBoundingClientRect(), b = n.getBoundingClientRect(); return { cls: n.className, lastIn: l.right <= b.right + 1, last: [...n.querySelectorAll('.nv-tab')].at(-1).innerText.trim() }; });
+  ok(end.lastIn && end.last === 'More' && !/has-l|has-r/.test(end.cls), `4d the last tab, More, whole with nothing scrolled and no fade (${end.cls})`);
 }
 
 /* ---- 1 a program tested, its row ---- */

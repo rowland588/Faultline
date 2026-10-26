@@ -6,7 +6,7 @@
  * tiles), what blocks handover, where each machine is, what is coming in the next two weeks, what
  * you owe. Every word from the module that already says it (project/now/now). A row opens its
  * record where it is kept. */
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useProject } from '../../lib/useProjects';
 import { useProjectRead } from '../projectRead';
 import { projectActions, PRIORITY_WORD, type ProjectAction } from '../../lib/projectActions';
@@ -20,14 +20,14 @@ import { stageGateClosing, stageGateTiles } from '../../lib/stageGateLean';
 import { linesDay } from '../../lib/lineLoss';
 import { live } from '../../lib/testing';
 import { niceDay } from '../../lib/weeks';
+import { planCount, planFor } from '../../lib/huddle';
 import { useJobFactoryLines } from '../../lib/useFactoryLines';
 import { useAssignedProblems } from '../../lib/useAssignedProblems';
 import { Verdict } from '../../ui/Verdict';
 import { LeanClosing } from '../../ui/Lean';
-import { PageHeader } from '../../ui/parts';
 import { openRecord } from '../../ui/RecordDrawer';
 import { planHref } from '../../lib/plan';
-import { nav } from '../../state/useRoute';
+import { nav, navReplace } from '../../state/useRoute';
 import { blockers, jobFiguresOf, lookAhead, nowMachine, nowSays, owedFirst, type NowMachine } from './now';
 
 /* what opens in the record's drawer, as on Needs you and Actions */
@@ -43,8 +43,17 @@ function openAction(a: ProjectAction) {
   else nav(planHref(x.jobId, x));
 }
 
-/** NOW (docs/STAGEGATE-RESEARCH.md §4). */
+/** #/project/:id/now — an old link: Now is the project's front page since 26 October (four tabs). */
 export function NowScreen({ projectId }: { projectId: string }) {
+  useEffect(() => { navReplace(`/project/${projectId}`); }, [projectId]);
+  return null;
+}
+
+/** NOW (docs/STAGEGATE-RESEARCH.md §4) — the body of a stage-gate project's front page (screens/
+ *  ProjectDashboardScreen TestingOverview): the band, what blocks handover, the machines, the next two
+ *  weeks, what you owe. Rowland, 26 October: "9 are still to many tabs" — the day, the journey and the
+ *  actions are doors from here, not tabs. */
+export function NowBody({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
   const read = useProjectRead(project);
   const factory = useJobFactoryLines(projectId);
@@ -67,14 +76,17 @@ export function NowScreen({ projectId }: { projectId: string }) {
     const block = blockers(rows);
     const owe = owedFirst(rows);
     const ahead = daysOf(read.journey, lookAhead(today), today);
-    return { st, onTarget, figures, machines, block, owe, rows, ahead, today };
+    /* the day's plan, counted the way the day counts it (lib/huddle) — on its door, as the front page's door said it */
+    const plan = planFor(items, today, { tests, assets });
+    const dayWord = plan.length ? `plan for today: ${planCount(plan)}` : 'today’s update';
+    return { st, onTarget, figures, machines, block, owe, rows, ahead, today, dayWord };
   }, [read, factory.lines, assigned, projectId]);
 
   if (loading || (project && !read) || factory.loading) return <p className="sub wrap">Reading where the project is…</p>;
   if (!project || !read) return <p className="sub wrap">That project is not on this device.</p>;
   if (!page) return <p className="sub wrap">Now is a stage-gate project’s page — this project runs another method.</p>;
 
-  const { st, onTarget, figures, machines, block, owe, rows, ahead } = page;
+  const { st, onTarget, figures, machines, block, owe, rows, ahead, dayWord } = page;
   const openLine = (l: JourneyLine) => {
     if (l.snagId) { nav(`/snags?open=${encodeURIComponent(l.snagId)}`); return; }
     if (l.stepId) { nav(`/project/${projectId}/actions`); return; }
@@ -84,12 +96,8 @@ export function NowScreen({ projectId }: { projectId: string }) {
   };
 
   return (
-    <div className="wrap now">
-      <PageHeader
-        eyebrow={<span className="pl-eyebrow">NOW · WHERE WE ARE</span>}
-        title="Now"
-        says={<span className="sub now-says">{nowSays(machines, block, rows)}</span>}
-      />
+    <div className="now">
+      <p className="sub now-says">{nowSays(machines, block, rows)}</p>
 
       {/* 1 · ARE WE ON TARGET — the front page's band and tiles, the same figures */}
       <Verdict st={st} brief onTarget={onTarget} tiles={stageGateTiles(figures)} />
@@ -145,6 +153,7 @@ export function NowScreen({ projectId }: { projectId: string }) {
         <div className="qsl-gh">
           <h2>Today and the next two weeks</h2>
           <span className="sub">{ahead.days.length ? `${ahead.days.reduce((n, d) => n + d.lines.length, 0)} things on ${ahead.days.length} day${ahead.days.length === 1 ? '' : 's'}` : 'Nothing dated in the next two weeks'}</span>
+          <button type="button" className="cw-link now-today" onClick={() => nav(`/project/${projectId}/day`)}>The day — {dayWord} ›</button>
           <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/journey`)}>Any dates ›</button>
         </div>
         {ahead.days.map(d => (

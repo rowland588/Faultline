@@ -364,17 +364,21 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage 
   const tabs = bar ? [] : kind === 'factory' ? (FACTORY_PAGES.has(onKey) ? factoryTabs(onKey) : []) : scopeTabs(groups);
   const [more, setMore] = useState(false);
   const [reports, setReports] = useState(false);
+  /* a stage-gate project's More tab — the pages that are not tabs of their own (ui/rail commissioningGroups) */
+  const [scopeMore, setScopeMore] = useState(false);
+  const moreLines = all.filter(l => l.inMore).map(l => ({ ...l, sub: false }));
   /* Both close when the page under them changes — a sheet left open over a
      new screen is the old screen's. */
   const hash = useHash();
-  useEffect(() => { setMore(false); setReports(false); }, [hash]);
+  useEffect(() => { setMore(false); setReports(false); setScopeMore(false); }, [hash]);
   /* told again when the page changes or the lines it is on arrive (a project's lines are read after it) */
   const onSaid = all.filter(l => l.on || (l.sub && l.to?.startsWith('/lines/'))).map(l => `${l.key}:${l.label}:${l.on}`).join(',');
   useEffect(() => { onPage?.(groups); }, [onSaid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const go = (l: RailLine) => {
-    setMore(false);
-    if (l.key === 'reports') { setReports(true); return; }
+    setMore(false); setScopeMore(false);
+    if (l.key === 'reports' || l.key === 'preports') { setReports(true); return; }
+    if (l.key === 'pmore') { setScopeMore(true); return; }
     if (l.key === 'more') { setMore(true); return; }
     if (l.key === 'plus') { openQuickSnag(); return; }
     if (l.to) nav(l.to);
@@ -398,6 +402,11 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage 
           </button>
         ))}
       </nav>
+      {scopeMore && (
+        <Sheet open onClose={() => setScopeMore(false)} title="More">
+          <div className="nv-sheet nv-scope-more"><RailList groups={[{ lines: moreLines }]} go={go} /></div>
+        </Sheet>
+      )}
       {more && (
         <Sheet open onClose={() => setMore(false)} title="Menu">
           <div className="nv-sheet"><RailList groups={menu} go={go} /></div>

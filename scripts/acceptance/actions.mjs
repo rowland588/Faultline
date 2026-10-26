@@ -4,7 +4,7 @@
  *
  * On the seeded stage-gate project and the 6M project:
  *
- *   1  Actions on the project's rail, beside Problems, lit on its page
+ *   1  Actions a door from the project's Now (All actions ›), Now lit on its page
  *   2  every row as the records say — every thing owed, read the way Needs
  *      you reads it (lib/portfolio), and the register's problems taken for
  *      the project (lib/projectActions): the rows, the tiles (open, late),
@@ -79,13 +79,14 @@ const truth = () => page.evaluate(async pid => {
   };
 }, PID);
 
-/* ---- 1 one of the project's tabs (its pages, across the top since 23 October) ---- */
+/* ---- 1 a door from Now — a stage gate's tabs are four and More since 26 October (docs/STAGEGATE-RESEARCH.md §4):
+   What you owe's All actions ›, the page lighting Now ---- */
 await go(`#/project/${PID}`);
 const t = await truth();
-const actionsTab = page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: /^Actions$/ }) });
-await actionsTab.click(); await page.waitForTimeout(2000);
-ok(page.url().endsWith(`#/project/${PID}/actions`), `1 Actions from ${t.name}'s tabs`, page.url());
-ok(await actionsTab.getAttribute('aria-current') === 'page', '1 its tab on, on its page');
+await page.locator('.now-owe .qsl-gh button', { hasText: 'All actions' }).click(); await page.waitForTimeout(2000);
+ok(page.url().endsWith(`#/project/${PID}/actions`), `1 Actions from ${t.name}'s Now — All actions ›`, page.url());
+const nowTab = page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: /^Now$/ }) });
+ok(await nowTab.getAttribute('aria-current') === 'page', '1 Now on, on its page');
 
 /* ---- 2 every row as the records say ---- */
 const whats = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);

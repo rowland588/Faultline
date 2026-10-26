@@ -115,12 +115,13 @@ const shown = async () => ({
 /* the page's days are the module's, plus today empty when it is in the range and had nothing */
 const sameDays = (t, s) => same(s.lines.filter(d => d.texts.length || d.notes.length || d.date !== t.today).map(d => [d.date, d.texts]), t.lines.map(d => [d.date, d.texts]));
 
-/* ---- 1 one of the project's tabs; this week and next by default; the range on the address ---- */
+/* ---- 1 a door from Now (a stage gate's tabs are four and More since 26 October — Any dates ›), Now lit; this week and
+   next by default; the range on the address ---- */
 await go(`#/project/${PID}`);
-const tab = page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: /^Journey$/ }) });
-await tab.click(); await page.waitForTimeout(2500);
-ok(page.url().includes(`#/project/${PID}/journey`), '1 Journey from the project’s tabs', page.url());
-ok(await tab.getAttribute('aria-current') === 'page', '1 its tab on, on its page');
+await page.locator('.now-ahead .qsl-gh button', { hasText: 'Any dates' }).click(); await page.waitForTimeout(2500);
+ok(page.url().includes(`#/project/${PID}/journey`), '1 Journey from Now — Any dates ›', page.url());
+const tab = page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: /^Now$/ }) });
+ok(await tab.getAttribute('aria-current') === 'page', '1 Now on, on its page');
 let t = await truth('thisAndNext');
 let s = await shown();
 ok(s.label === t.label && s.url.includes(`from=${t.range.from}&to=${t.range.to}`), `1 this week and next by default — ${t.label} — on the address`, `${s.label} · ${s.url}`);
@@ -219,15 +220,14 @@ await go(`#/project/${PID}/journey?from=${iso(from)}&to=${iso(to)}`);
 t = await truth('dates', { from: iso(from), to: iso(to) }); s = await shown();
 ok(s.label === t.label && sameDays(t, s), `6 a link to a range opens on it: ${t.label}`, s.label);
 
-/* ---- 7 the front page's line ---- */
+/* ---- 7 the front page's line — on a stage gate since 26 October, Now's Today and the next two weeks says the week once (the
+   line above the band went: docs/PAGES.md); Any dates › opens the journey on this week and next ---- */
 await go(`#/project/${PID}`);
 t = await truth('thisAndNext');
-const week = flat(await page.locator('.jn-week').innerText());
-const c = t.counts;
-const want = `This week and next · ${c.done} done · ${c.toDo ? `${c.toDo} still to do${c.late ? ` (${c.late} late)` : ''}` : 'nothing still to do'} · ${c.planned} planned · Open the journey ›`;
-ok(week === want, `7 the front page: "${want}"`, week);
-await page.locator('.jn-week button').click(); await page.waitForTimeout(1500);
-ok(page.url().includes(`/journey?from=${t.range.from}&to=${t.range.to}`), '7 Open the journey lands on this week and next');
+await page.locator('.now-ahead').waitFor({ timeout: 15000 });
+ok(await page.locator('.jn-week').count() === 0 && await page.locator('.now-ahead .now-day').count() > 0, '7 the front page says the weeks ahead once — Now’s next two weeks, no second week line');
+await page.locator('.now-ahead .qsl-gh button', { hasText: 'Any dates' }).click(); await page.waitForTimeout(1500);
+ok(page.url().includes(`/journey?from=${t.range.from}&to=${t.range.to}`), '7 Any dates › lands on this week and next');
 /* ---- 9 from the front page's Report ▾, from Reports, and this week and next on the status report ---- */
 await go(`#/project/${PID}`);
 {

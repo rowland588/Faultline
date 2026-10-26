@@ -547,13 +547,15 @@ if (!SKIP.has('S7')) {
   const ptext2 = flat(execFileSync('pdftotext', ['-raw', f2, '-'], { encoding: 'utf8' }));
   const missingP = before.owed.filter(o => !nospace(ptext2).includes(nospace(o.what)));
   ok(missingP.length === 0 && /CHECKS/i.test(ptext2), 'S7 and on its paper: the Checks tile and every check owed', missingP.map(m => m.what).join(' | '));
-  /* a project's Needs you: the failed check as a row, opening its log inside the project */
-  await desk.go(`#/project/${sd.projectId}`);
-  const row = dp.locator('.fp-needs li', { hasText: /Stainless steel test piece/ }).first();
+  /* what a project owes: the failed check as a row, opening its log inside the project — on its Actions, where every owed row
+     is (Now, the stage gate's front page since 26 October, shows the six most pressing of them and is a door to Actions; Needs
+     you was here before it) */
+  await desk.go(`#/project/${sd.projectId}/actions`);
+  const row = dp.locator('li.act-li', { hasText: /Stainless steel test piece/ }).first();
   const rowText = flat(await row.innerText());
-  ok(/Metal detection checks/.test(rowText) && /not yet checked again|Failed/.test(rowText), `S7 the project’s Needs you owes the failed check: "${rowText.slice(0, 120)}"`);
+  ok(/Metal detection checks|Metal detector/.test(rowText) && /not yet checked again|Failed/.test(rowText), `S7 the project owes the failed check: "${rowText.slice(0, 120)}"`);
   ok(/late/.test(rowText), 'S7 and it is marked late');
-  await row.click(); await dp.waitForTimeout(1200);
+  await row.locator('button').first().click(); await dp.waitForTimeout(1200);
   ok(new RegExp(`#/log/metal-detection/${logs['metal-detection']}`).test(dp.url()) && dp.url().includes(`project=${sd.projectId}`), `S7 the row opens the log, inside the project: ${dp.url().split('#')[1]}`);
   /* …and the project’s Actions, and Every action under the control room, read the same row */
   const owedRow = page => page.locator('li', { hasText: /Stainless steel test piece · Metal detector/ }).filter({ hasText: /not yet checked again/ });
@@ -585,7 +587,7 @@ if (!SKIP.has('S7')) {
   ok(ck2?.v === '0' && /every check up to date/.test(ck2.of), `S7 the line’s Checks tile is back to 0 — "${ck2?.of}"`);
   ok(!/checks? overdue or failed/.test(flat(await dp.locator('.pl > .ln-close').innerText())), 'S7 and the closing line no longer says it');
   await desk.go(`#/project/${sd.projectId}`);
-  ok(await dp.locator('.fp-needs li', { hasText: /Stainless steel test piece/ }).count() === 0, 'S7 and the project’s Needs you no longer owes it');
+  ok(await dp.locator('li.act-li', { hasText: /Stainless steel test piece/ }).count() === 0, 'S7 and the project no longer owes it');
   await desk.go(`#/project/${sd.projectId}/actions`);
   ok(await owedRow(dp).count() === 0, 'S7 nor its Actions');
   await desk.go('#/logs');

@@ -32,7 +32,7 @@ export function ScopeTabs({ label, tabs, go }: { label: string; tabs: RailLine[]
     <nav ref={nav} className={'nv-tabs' + (edge.l ? ' has-l' : '') + (edge.r ? ' has-r' : '')} aria-label={label} onScroll={read}>
       {tabs.map(l => (
         <button key={l.key} type="button" className={'nv-tab' + (l.on ? ' is-on' : '')} onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
-          <span className="nv-tab-l">{l.label}</span>{!!l.n && <span className="nv-tab-n">{l.n}{!!l.late && <i> · {l.late} late</i>}{!!l.failed && <i> · {l.failed} failed</i>}</span>}
+          <span className="nv-tab-l">{l.label}</span>{!!l.n && <span className="nv-tab-n"><span className="nv-tab-total">{l.n}</span>{!!l.late && <i><span className="nv-tab-dot"> · </span>{l.late} late</i>}{!!l.failed && <i><span className="nv-tab-dot"> · </span>{l.failed} failed</i>}</span>}
         </button>
       ))}
     </nav>

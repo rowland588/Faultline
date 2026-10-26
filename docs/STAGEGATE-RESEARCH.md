@@ -161,6 +161,16 @@ look-ahead; the journey is Reports over a range; the plan is the Gantt view
 of Machines; the four gates are the tag on each machine; Needs you is
 Now's "what you owe".
 
+**Built 26 October — the tabs** (Rowland: "9 are still to many tabs review",
+then "do it"). A stage-gate project's tabs are **Now · Machines · Problems ·
+Reports · More**. Now is the front page (the old `/now` lands on it); the
+day, the journey and Actions are reached from Now and light it. Machines is
+the plan — its gates, the timeline and Programs are its views. Problems is
+the project's fixes and problems. Reports opens the reports. More holds
+Materials, Tools, Notes and Details. Every page and address is kept; only
+the tabs moved. The one machine record (§5) and the problems' run → fix →
+retest (§2.5) are not built yet.
+
 ### 4.1 The factory, its lines, its machines — the spine already exists
 
 Rowland, the same day: *"but we have factory, lines, machines ??"* Yes —

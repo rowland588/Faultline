@@ -6,7 +6,7 @@
  * shows them, and any two that differ fail:
  *
  *   the front page's band (the Late tile and its "of N still to do")
- *   Needs you (its rows, the late ones in red)
+ *   Needs you (its rows, the late ones in red) — on a stage gate, Now's What you owe (26 October)
  *   Actions (the Open and Late tiles)
  *   the Journey (the Late tile — today's, on this week and next)
  *   the status report on paper (LATE n of N still to do)
@@ -65,7 +65,10 @@ async function read(pid, kind) {
     : { late: num(bandLate.of, /(\d+) late/) ?? (/none late|none open/.test(bandLate.of) ? 0 : null), open: bandLate.v };
   /* Needs you */
   /* Needs you is the most urgent rows, the rest a count — its late ones are the red rows (a critical problem is its own row) */
-  r.needs = { open: null, late: await page.locator('.fp-needs .fp-row.is-r').count() };
+  r.needs = kind === 'gate'
+    /* a stage gate's Now (26 October — it is where Needs you was): What you owe says its late, the critical apart under Blocking handover */
+    ? { open: null, late: await page.locator('.now-owe .qsl-gh .sub').first().innerText().then(t => num(flat(t), /(\d+) late/) ?? (/Nothing owed/.test(t) ? 0 : null)).catch(() => null) }
+    : { open: null, late: await page.locator('.fp-needs .fp-row.is-r').count() };
   /* a 6M project's own page says its late in the header — everything owed past its day (lib/portfolio pacedOwed) */
   if (kind !== 'gate') r.band.late = num(flat(await page.locator('.cw-handover .in-late').innerText().catch(() => '')), /(\d+) late/) ?? 0;
   /* Actions */

@@ -3,8 +3,9 @@
  *
  * On the seeded stage-gate project:
  *
- *   1  Now on the project's rail, lit on its page; the front page is where it was
- *   2  the band and its tiles are the front page's, word for word
+ *   1  the project's tabs are four and More — Now · Machines · Problems · Reports · More (26 October: "9 are
+ *      still to many tabs"); Now is the front page, lit there, and an old /now link lands on it
+ *   2  the band and its five tiles, the one-page status's figures; Report ▾ with the status report
  *   3  blocking handover is the Actions page's critical rows, and only those
  *   4  the machines — a row each for the rail's machines, each at a gate, the wrapper's programs
  *      counted as the Programs page counts them; a row opens its machine's page
@@ -13,6 +14,9 @@
  *   6  what you owe — late first, none critical (they are the blockers), All actions › opening Actions
  *   7  a blocking row opens its record
  *   8  the phone: nothing off the side, the five parts there
+ *   9  More holds Materials, Tools, Notes and Details, each lighting More; Reports opens the reports; Machines
+ *      the plan, its views the gates, the timeline and Programs — Programs lighting Machines; the day, the
+ *      journey and the actions doors from Now, lighting it
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/now.mjs      (SMOKE_BASE, as smoke) */
@@ -36,28 +40,27 @@ const page = await ctx.newPage();
 const errs = [];
 page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text()); });
 page.on('pageerror', e => errs.push(e.message));
-const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1800); };
+const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1800); if (/#\/project\/[^/]+$/.test(hash)) await page.locator('.now-machines').waitFor({ timeout: 15000 }).catch(() => {}); };
 
 await go('#/room');
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const PID = sd.projectId;
-const NOW = `#/project/${PID}/now`;
+const NOW = `#/project/${PID}`;
 
-/* 1 · the rail */
-await go(`#/project/${PID}`);
-const front = flat(await page.locator('.vd').first().innerText());
-/* the project's own pages are its tabs across the top (23 October) — Now beside Overview */
-const railNow = page.locator('.nv-tabs .nv-tab').filter({ hasText: /^Now$/ });
-ok(await railNow.count() > 0, '1 Now among the project’s own pages');
-await railNow.first().click();
-await page.locator('.now').waitFor({ timeout: 15000 }); await page.waitForTimeout(1200);
-ok(page.url().endsWith('/now'), '1 the rail’s Now opens the page', page.url());
-ok(await page.locator('.nv-tabs .nv-tab[aria-current="page"]').filter({ hasText: /^Now$/ }).count() > 0, '1 Now lit on its page');
+/* 1 · four tabs and More, Now the front page */
+const tabsSaid = async () => (await page.locator('.nv-tabs .nv-tab .nv-tab-l').allInnerTexts()).map(flat);
+const lit = async () => (await page.locator('.nv-tabs .nv-tab[aria-current="page"] .nv-tab-l').allInnerTexts()).map(flat);
+await go(`#/project/${PID}/now`);
+ok(page.url().endsWith(`#/project/${PID}`), '1 an old /now link lands on the front page', page.url());
+await page.locator('.now').waitFor({ timeout: 15000 }); await page.waitForTimeout(800);
+ok(JSON.stringify(await tabsSaid()) === JSON.stringify(['Now', 'Machines', 'Problems', 'Reports', 'More']), '1 the tabs: Now · Machines · Problems · Reports · More', await tabsSaid());
+ok(JSON.stringify(await lit()) === JSON.stringify(['Now']), '1 Now lit on the front page', await lit());
 ok(/machine/.test(flat(await page.locator('.now-says').innerText())), '1 the sentence says the machines', await page.locator('.now-says').innerText());
+ok(await page.locator('.jn-week').count() === 0, '1 the week said once — the next two weeks on Now, not "This week and next" above it');
 
-/* 2 · the band is the front page's */
-const band = flat(await page.locator('.now .vd').first().innerText());
-ok(band === front, '2 the band and its tiles are the front page’s, word for word', `${band}\n≠\n${front}`);
+/* 2 · the band */
+ok(await page.locator('.now .vd .vd-tile').count() === 5, '2 the band and its five tiles');
+ok(await page.locator('.part-head .part-menu-b', { hasText: /^Report/ }).count() > 0, '2 Report ▾ on the page header');
 
 /* 3 · blocking handover = the Actions page's critical rows */
 const blocking = (await page.locator('.now-block .now-crit .lt-what').allInnerTexts()).map(flat);
@@ -69,6 +72,7 @@ ok(blocking.length > 0 && JSON.stringify([...new Set(crit)].sort()) === JSON.str
 /* 4 · the machines */
 await go(NOW);
 const rows = page.locator('.now-machines .now-m');
+await rows.first().waitFor({ timeout: 15000 });
 const names = [];
 for (const r of await rows.all()) names.push(flat((await r.locator('.lt-what').innerText()).replace(/\s(Install|Set up|Commission|Hand over|Handed over|Due on site)$/, '')));
 const held = await page.evaluate(async pid => (await (await import('/src/db/testing.ts')).listAssets(pid)).filter(a => !a.deletedAt).map(a => a.name.trim()), PID);
@@ -118,6 +122,31 @@ ok(page.url().endsWith('/actions'), '6 All actions › opens Actions', page.url(
 await go(NOW);
 await page.locator('.now-block .now-crit button').first().click(); await page.waitForTimeout(1200);
 ok(/[?&]open=/.test(page.url()) && await page.locator('.rd-title').first().isVisible(), '7 a blocking row opens its record in the drawer', page.url());
+
+/* 9 · More, Reports, Machines and the doors */
+await page.setViewportSize({ width: 1360, height: 900 });
+await go(NOW);
+await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^More$/ }) }).click(); await page.waitForTimeout(600);
+const inMore = (await page.locator('.nv-scope-more .nv-ri-l').allInnerTexts()).map(flat);
+ok(JSON.stringify(inMore) === JSON.stringify(['Materials', 'Tools', 'Notes', 'Details']), '9 More holds Materials, Tools, Notes and Details', inMore);
+await page.locator('.nv-scope-more .nv-ri', { has: page.locator('.nv-ri-l', { hasText: /^Materials$/ }) }).click(); await page.waitForTimeout(1200);
+ok(page.url().includes('/materials') && JSON.stringify(await lit()) === JSON.stringify(['More']), '9 Materials opens, lighting More', `${page.url()} ${await lit()}`);
+await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Reports$/ }) }).click(); await page.waitForTimeout(800);
+ok(await page.locator('.sheet, [role=dialog]').filter({ hasText: /report/i }).count() > 0, '9 Reports opens the reports');
+await page.keyboard.press('Escape'); await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(500);
+await go(NOW);
+await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Machines$/ }) }).click(); await page.waitForTimeout(1200);
+const views = (await page.locator('.plt .plt-t').allInnerTexts()).map(t => flat(t).split(' ')[0]);
+ok(await page.locator('.plt-h').innerText().then(flat) === 'MACHINES' || /Machines/i.test(await page.locator('.plt-h').innerText()), '9 Machines opens the plan, its views headed Machines');
+ok(views.includes('Programs') && views.includes('Timeline') && views.includes('Commission'), '9 its views: the gates, the timeline and Programs', views);
+await page.locator('.plt .plt-t', { hasText: /^Programs/ }).click(); await page.waitForTimeout(1200);
+ok(page.url().includes('/programs') && JSON.stringify(await lit()) === JSON.stringify(['Machines']), '9 Programs opens, lighting Machines', `${page.url()} ${await lit()}`);
+await go(NOW);
+await page.locator('.now-ahead .now-today').click(); await page.waitForTimeout(1200);
+ok(page.url().includes('/day') && JSON.stringify(await lit()) === JSON.stringify(['Now']), '9 the day a door from Now, lighting it', `${page.url()} ${await lit()}`);
+await go(NOW);
+await page.locator('.now-owe .qsl-gh button', { hasText: 'All actions' }).click(); await page.waitForTimeout(1200);
+ok(page.url().endsWith('/actions') && JSON.stringify(await lit()) === JSON.stringify(['Now']), '9 the actions a door from Now, lighting it', `${page.url()} ${await lit()}`);
 
 /* 8 · the phone — the same device, narrowed */
 await page.setViewportSize({ width: 390, height: 844 });

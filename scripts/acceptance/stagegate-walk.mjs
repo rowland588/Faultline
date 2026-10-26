@@ -133,10 +133,12 @@ const journey = (n, W, max, says) => {
   await P.keyboard.press('Escape'); await P.waitForTimeout(1000);
   ok(flat(await io.innerText()).includes('done'), '2e a stage done in its drawer reads done on the day\'s plan');
   await W.go(J);
-  const needs = (await P.locator('.fp-needs .fp-row').allInnerTexts()).map(flat);
-  ok(!needs.some(x => x.includes('Change parts fitted')) && !needs.some(x => x.includes('Sensors and controls checked')), '2f Today\'s Needs you no longer lists either stage');
-  const day = flat(await P.locator('.fp-panel, a, button').filter({ hasText: /plan for today/ }).first().innerText().catch(() => ''));
-  ok(/plan for today: (\d+) of (\d+) done|all \d+ done/.test(day), `2g the front page counts the day's plan the way the day does — "${day.replace(/^The day ›\s*/, '')}"`);
+  /* Now is the front page since 26 October: what it owes and what blocks handover are where Needs you was */
+  await P.locator('.now-owe').waitFor({ timeout: 15000 }).catch(() => {});
+  const needs = (await P.locator('.now-owe .act-li, .now-block .act-li').allInnerTexts()).map(flat);
+  ok(!needs.some(x => x.includes('Change parts fitted')) && !needs.some(x => x.includes('Sensors and controls checked')), '2f Now no longer owes either stage');
+  const day = flat(await P.locator('.now-ahead .now-today').first().innerText().catch(() => ''));
+  ok(/plan for today: (\d+) of (\d+) done|all \d+ done/.test(day), `2g the front page counts the day's plan the way the day does — "${day}"`);
   journey('2', W, 7, 'a stage done from the day\'s plan, another from its drawer');
   await W.close();
 }
@@ -185,14 +187,15 @@ const desk = await device(1360);
   const W = desk; const P = W.page; const J = `#/project/${W.sd.projectId}`;
   await W.go(J);
   const doneBefore = Number((/(\d+) done · \d+ to go/.exec(flat(await P.locator('main').innerText())) ?? [])[1]);
-  await W.tap('Plan (the rail)', W.btn(/^Plan\d/));
+  /* the plan is the Machines tab since 26 October */
+  await W.tap('Machines (its tab)', W.btn(/^Machines\d/));
   await W.tap('Hand over (its tab)', W.btn(/^Hand over/));
   await W.tap('the item booked 23 Oct', P.locator('.ig-cell').filter({ hasText: '23 Oct' }).first());
   await W.tap('Done today', P.locator('.rd').last().getByRole('button', { name: /Done today/ }).first());
   await W.go(J);
   const doneAfter = Number((/(\d+) done · \d+ to go/.exec(flat(await P.locator('main').innerText())) ?? [])[1]);
   ok(doneAfter === doneBefore + 1, `5a the front page counts it — ${doneBefore} → ${doneAfter} done`);
-  journey('5', W, 4, 'a hand-over item done from the Plan');
+  journey('5', W, 4, 'a hand-over item done from Machines');
   await desk.close();
 }
 
@@ -200,8 +203,9 @@ const desk = await device(1360);
 {
   const W = await device(390); const P = W.page; const J = `#/project/${W.sd.projectId}`;
   await W.go(J);
-  /* a project's pages are tabs across the top since 23 October — Programs one of them */
-  await W.tap('Programs (its tab)', P.locator('.nv-tabs .nv-tab').filter({ has: P.locator('.nv-tab-l', { hasText: /^Programs$/ }) }));
+  /* a project's pages are tabs across the top since 23 October; Programs is one of the Machines tab's views since 26 October */
+  await W.tap('Machines (its tab)', P.locator('.nv-tabs .nv-tab').filter({ has: P.locator('.nv-tab-l', { hasText: /^Machines$/ }) }));
+  await W.tap('Programs (its view)', P.locator('main a.plt-t').filter({ hasText: /^Programs/ }).first());
   const row = P.locator('.pgr').filter({ hasText: 'PR-07 Baking Potatoes' }).first();
   const box = async name => row.getByRole('button', { name }).first().boundingBox();
   const [rb, tb] = [await row.boundingBox(), await box(/Test it/)];

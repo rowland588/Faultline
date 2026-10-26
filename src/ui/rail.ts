@@ -80,6 +80,9 @@ export interface RailLine {
    *  It has no state of its own, so it is drawn with no square: a grey one
    *  would say "not started", which is not true of the control room. */
   bare?: boolean;
+  /** Kept under the scope's More tab, not a tab of its own (a stage-gate project's
+   *  Materials, Tools, Notes and Details — docs/STAGEGATE-RESEARCH.md §4, 26 October). */
+  inMore?: boolean;
   /** The phone's bar icon, when this line can be one of its five. */
   icon?: 'home' | 'route' | 'machine' | 'flag' | 'board' | 'grip' | 'chart' | 'list' | 'time' | 'camera' | 'people' | 'hash' | 'mic' | 'arrowUp' | 'plus';
 }
@@ -356,6 +359,40 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
   ];
 }
 
+/** A STAGE-GATE PROJECT'S PAGES — four tabs and More (projectGroups). */
+function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, job: RailLine): RailGroup[] {
+  const at = GATE_KEYS.find(k => (o.counts[k]?.n ?? 0) > 0);
+  const plan = counted('plan', 'Machines', at ? `${p}/${GATE_PATH[at]}` : `${p}/plan`, o.here, o.counts, [...GATE_KEYS], 'machine');
+  const under = (l: RailLine): RailLine => ({ ...l, sub: true });
+  const more = (l: RailLine): RailLine => ({ ...l, sub: true, inMore: true });
+  const ms = o.machines ?? [];
+  /* past six, one line — the plan lists them, machine by machine */
+  const machines: RailLine[] = ms.length <= 6
+    ? ms.map(m => ({ key: `machine:${m.id}`, label: m.name, to: `${p}/machine/${encodeURIComponent(m.id)}`, on: o.here === `machine:${m.id}`, state: m.state, sub: true, ...(m.open ? { n: m.open } : {}), ...(m.late ? { late: m.late } : {}), icon: 'machine' as const }))
+    : [{ key: 'machines', label: `Machines (${ms.length})`, to: `${p}/plan`, on: o.here.startsWith('machine:'), state: ms.some(m => m.state === 'r') ? 'r' : 'w', sub: true, late: ms.reduce((n, m) => n + (m.late ?? 0), 0) || undefined, icon: 'machine' as const }];
+  const inMore = ['materials', 'tools', 'notes', 'details'];
+  return [
+    { lines: [upLine()] },
+    { label: o.name, lines: [
+      { ...job, label: 'Now', icon: 'home' as const, on: o.here === 'job' },
+      under(plain('now', 'Now', `${p}/now`, o.here, 'home')),
+      under(plain('day', 'The day', `${p}/day`, o.here, 'time')),
+      under(plain('journey', 'Journey', `${p}/journey`, o.here, 'time')),
+      under(plain('actions', 'Actions', `${p}/actions`, o.here, 'list')),
+      { ...plan, on: o.here === 'plan' || (GATE_KEYS as readonly string[]).includes(o.here) },
+      ...machines,
+      under(counted('programs', 'Programs', `${p}/programs`, o.here, o.counts, ['programs'], 'list')),
+      counted('fixes', 'Problems', `${p}/fixes`, o.here, o.counts, ['fixes'], 'flag'),
+      { key: 'preports', label: 'Reports', on: o.here === 'reports', state: 'n', bare: true, icon: 'list' },
+      { key: 'pmore', label: 'More', on: inMore.includes(o.here), state: 'n', bare: true, icon: 'grip' },
+      more(counted('materials', 'Materials', `${p}/materials`, o.here, o.counts, ['materials'], 'list')),
+      more(plain('tools', 'Tools', `${p}/tools`, o.here, 'chart')),
+      more({ key: 'notes', label: 'Notes', to: `${p}/notes`, on: o.here === 'notes', state: 'n', bare: true, n: o.notes || undefined }),
+      more(plain('details', 'Details', `${p}/setup`, o.here)),
+    ] },
+  ];
+}
+
 /** A PROJECT'S PAGES — its overview, its type's own pages (lib/planModel), then
  *  what every project has: Actions, Problems, Tools; Notes, Reports, Details at
  *  the foot. A stage gate's machines fold under Machines past six. */
@@ -370,23 +407,14 @@ export function projectGroups(o: {
   const job: RailLine = { ...jobLine(o.projectId, 'Overview', o.here, o.late, o.problem ?? 0), icon: 'home' };
   let own: RailLine[];
   if (o.model === 'commissioning') {
-    const at = GATE_KEYS.find(k => (o.counts[k]?.n ?? 0) > 0);
-    const plan = counted('plan', 'Plan', at ? `${p}/${GATE_PATH[at]}` : `${p}/plan`, o.here, o.counts, [...GATE_KEYS], 'machine');
-    const machines = o.machines ?? [];
-    const each: RailLine[] = machines.length <= 6
-      ? machines.map(m => ({ key: `machine:${m.id}`, label: m.name, to: `${p}/machine/${encodeURIComponent(m.id)}`, on: o.here === `machine:${m.id}`, state: m.state, sub: true, ...(m.open ? { n: m.open } : {}), ...(m.late ? { late: m.late } : {}), icon: 'machine' as const }))
-      /* past six, one line — the plan lists them, machine by machine */
-      : [{ key: 'machines', label: `Machines (${machines.length})`, to: `${p}/plan`, on: o.here.startsWith('machine:'), state: machines.some(m => m.state === 'r') ? 'r' : 'w', sub: true, late: machines.reduce((n, m) => n + (m.late ?? 0), 0) || undefined, icon: 'machine' as const }];
-    own = [
-      /* NOW — where the project is on one page (docs/STAGEGATE-RESEARCH.md §4, 26 October) */
-      plain('now', 'Now', `${p}/now`, o.here, 'time'),
-      { ...plan, on: o.here === 'plan' || (GATE_KEYS as readonly string[]).includes(o.here) },
-      ...each,
-      counted('programs', 'Programs', `${p}/programs`, o.here, o.counts, ['programs'], 'list'),
-      counted('materials', 'Materials', `${p}/materials`, o.here, o.counts, ['materials'], 'list'),
-      plain('day', 'The day', `${p}/day`, o.here, 'time'),
-    ];
-  } else {
+    /* A STAGE GATE IN FOUR TABS AND MORE (Rowland, 26 October: "9 are still to many tabs" — the remap,
+       docs/STAGEGATE-RESEARCH.md §4): Now · Machines · Problems · Reports · More. Every page is kept; a
+       page that is not a tab is drawn under the one it belongs to (`sub`, lighting it) — the day, the
+       journey and the actions under Now, the machines and Programs under Machines, Materials, Tools,
+       Notes and Details in More. */
+    return commissioningGroups(o, p, job);
+  }
+  {
     const t = o.tools ?? {};
     own = [
       ...(o.model === 'board' ? [plain('fishbone', 'Fishbone', `${p}/fishbone`, o.here, 'route')] : []),
@@ -408,7 +436,7 @@ export function projectGroups(o: {
       /* the journey — what we did and what we are doing next, between two dates (docs/JOURNEY.md) */
       plain('journey', 'Journey', `${p}/journey`, o.here, 'time'),
       plain('actions', 'Actions', `${p}/actions`, o.here, 'list'),
-      ...(o.model === 'commissioning' ? [counted('fixes', 'Problems', `${p}/fixes`, o.here, o.counts, ['fixes'], 'flag')] : [plain('problems', 'Problems', `/snags?project=${encodeURIComponent(o.projectId)}`, o.here, 'flag')]),
+      plain('problems', 'Problems', `/snags?project=${encodeURIComponent(o.projectId)}`, o.here, 'flag'),
       plain('tools', 'Tools', `${p}/tools`, o.here, 'chart'),
     ] },
     { foot: true, lines: [

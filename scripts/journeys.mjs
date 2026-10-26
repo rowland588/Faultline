@@ -208,11 +208,12 @@ async function J3(D, J) {
 await run('J3 a tool in context', 1360, async (D, J) => { await J3(D, J); });
 
 await run('J3 a tool in context', 390, async (D, J) => { await J3(D, J); });
-/* J4 — a stage gate's day (phone): on Line 2 commissioning, the seal re-test fails; its problem; its fix with who and when; seen on Actions. */
+/* J4 — a stage gate's day (phone): on Line 2 commissioning, the seal re-test fails; its problem; its fix with who and when; seen on Problems
+   (26 October, four tabs: the Plan is the Machines tab, and a stage gate's Actions are a door from Now — the fix is a row of its Problems). */
 await run('J4 stage gate: a failed re-test to a fix', 390, async (D, J) => {
   await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
   await press(D, J, 'the row: Line 2 commissioning', projectRow(D, 'Line 2 commissioning')); await orient(D, J, 'Line 2 commissioning');
-  await nav(D, J, 'Plan'); await orient(D, J, 'Line 2 commissioning');
+  await nav(D, J, 'Machines'); await orient(D, J, 'Line 2 commissioning');
   await press(D, J, 'tab: Commission', D.page.locator('main a.plt-t').filter({ hasText: /^Commission/ }).first());
   const R = () => D.page.locator('.rd').last();
   await press(D, J, 'the re-test', btn(D, /Seal integrity — Finest Red 2kg — re-test/));
@@ -224,9 +225,9 @@ await run('J4 stage gate: a failed re-test to a fix', 390, async (D, J) => {
   await R().getByText(/back to Seal jaw too cold/i).first().waitFor({ timeout: 10000 }).catch(() => {});
   J.steps.push('[fix made — who and when on it next]');
   await press(D, J, 'close the drawer', D.page.locator('.rd').last().getByRole('button', { name: /^Close|×/ }).first());
-  await nav(D, J, 'Actions'); await orient(D, J, 'Line 2 commissioning');
+  await nav(D, J, 'Problems'); await orient(D, J, 'Line 2 commissioning');
   await D.page.locator('main').getByText('Seal jaw too cold', { exact: false }).first().waitFor({ timeout: 8000 });
-  J.steps.push('[the fix is on Actions]');
+  J.steps.push('[the fix is on Problems]');
 });
 
 /* J5 — a 6M week (desk): on Line 7 pace, the biggest loss to its problem on the fishbone, a cause, a countermeasure with who and when, seen on Actions. */

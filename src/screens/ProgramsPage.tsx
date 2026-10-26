@@ -36,6 +36,7 @@
  * The eight tiles are the chips worth showing: a zero is not a filter
  * anyone needs, and the sentence above them still says every count. */
 import { PageHeader } from '../ui/parts';
+import { PlanTabs } from '../ui/PlanTabs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTesting } from '../lib/useTesting';
 import { usePrograms } from '../lib/usePrograms';
@@ -162,6 +163,8 @@ export function ProgramsPage({ projectId, only }: {
   }
   return (
     <div className="wrap pace pp">
+      {/* one of the Machines tab's views (ui/PlanTabs) — on a stage-gate project's own Programs, never the line's */}
+      {!only && <PlanTabs projectId={projectId} on="programs" />}
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): where the programs are, in words; the report in Report ▾ (it
           was "Programs report — PDF") */}
       <PageHeader title="Programs" says={<span className="pp-says">{reading ? reading.says : 'No programs yet.'}</span>}
