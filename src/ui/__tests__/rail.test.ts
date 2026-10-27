@@ -126,17 +126,17 @@ describe('the factory\'s rail: its pages, nothing else', () => {
 });
 
 describe('still small as it grows (docs/STRUCTURE.md §19, 4)', () => {
-  it('the factory\'s rail is 8 lines with 50 projects; a line\'s 9 and the way up, whatever is on it', () => {
+  it('the factory\'s rail is 8 lines with 50 projects; a line\'s 9 and the way up, whatever is on it (Machines its own since 27 October)', () => {
     expect(all(factoryGroups('home', 50))).toHaveLength(8);
-    expect(all(lineGroups('w1', 'overview', { problems: { n: 300, late: 40 }, projects: 50 })).filter(l => l.key !== 'up')).toHaveLength(8);
+    expect(all(lineGroups('w1', 'overview', { problems: { n: 300, late: 40 }, projects: 50 })).filter(l => l.key !== 'up')).toHaveLength(9);
   });
 });
 
 describe('a line\'s rail: the way up, then the line\'s own pages', () => {
   const g = lineGroups('w1', 'overview', { problems: { n: 3, late: 1 }, projects: 2 });
-  it('↑ Factory · Overview · Problems · Programs · Tools · Logs · Projects, then Reports and Set up — eight and the way up (Products off, 23 October: "the program is the product")', () => {
-    expect(said(g)).toEqual(['Factory', 'Overview', 'Problems', 'Programs', 'Tools', 'Logs', 'Projects', 'Reports', 'Set up']);
-    expect(all(g).map(l => l.to)).toEqual(['/room', '/lines/w1', '/snags?line=w1', '/programs?line=w1', '/lines/w1?view=tools', '/lines/w1?view=logs', '/lines/w1?view=projects', undefined, '/lines/w1?view=setup']);
+  it('↑ Factory · Overview · Machines · Problems · Programs · Tools · Logs · Projects, then Reports and Set up — nine and the way up (Products off, 23 October: "the program is the product"; Machines, 27 October: "I don\'t see your machine page")', () => {
+    expect(said(g)).toEqual(['Factory', 'Overview', 'Machines', 'Problems', 'Programs', 'Tools', 'Logs', 'Projects', 'Reports', 'Set up']);
+    expect(all(g).map(l => l.to)).toEqual(['/room', '/lines/w1', '/lines/w1?view=machines', '/snags?line=w1', '/programs?line=w1', '/lines/w1?view=tools', '/lines/w1?view=logs', '/lines/w1?view=projects', undefined, '/lines/w1?view=setup']);
     expect(all(g).find(l => l.key === 'problems')).toMatchObject({ n: 3, late: 1, state: 'r' });
   });
   it('lights the page you are on — the line\'s lists and its tools\' pages narrowed to it', () => {
@@ -207,6 +207,21 @@ describe('the menu is the same on every page', () => {
     for (const [here, label] of [['home', 'Factory'], ['factory', 'Factory'], ['lineprograms', 'Factory'], ['projects', 'Projects'], ['quicksnags', 'Problems'], ['allactions', 'Actions'], ['tools', 'Tools']] as const)
       expect(lit(here, 'factory'), here).toEqual([label]);
   });
+  it('the place you are in named under Factory or Projects, and lit in their stead (27 October: "Where am I?")', () => {
+    const line = menuGroups('overview', 'line', 0, { name: 'Line 2a', to: '/lines/w1' });
+    expect(said(line)).toEqual(['Factory', 'Line 2a', 'Projects', 'Problems', 'Actions', 'Tools', 'Reports']);
+    expect(all(line).filter(l => l.on).map(l => l.label)).toEqual(['Line 2a']);
+    expect(all(line).find(l => l.key === 'place')).toMatchObject({ to: '/lines/w1', sub: true, under: 'home' });
+    const job = menuGroups('job', 'project', 0, { name: 'Line 2 commissioning', to: '/project/p1' });
+    expect(said(job)).toEqual(['Factory', 'Projects', 'Line 2 commissioning', 'Problems', 'Actions', 'Tools', 'Reports']);
+    expect(all(job).filter(l => l.on).map(l => l.label)).toEqual(['Line 2 commissioning']);
+    /* the factory names nothing under it */
+    expect(said(menuGroups('home', 'factory', 0, { name: 'x', to: '/x' }))).toEqual(['Factory', 'Projects', 'Problems', 'Actions', 'Tools', 'Reports']);
+    /* the phone's bar lights the line it sits under, never More */
+    const bar = menuBar(line);
+    expect(bar.filter(l => l.on).map(l => l.label)).toEqual(['Factory']);
+    expect(menuBar(job).filter(l => l.on).map(l => l.label)).toEqual(['Projects']);
+  });
   it('the factory\'s projects counted on it; none said inside a line or a project', () => {
     expect(all(menuGroups('home', 'factory', 4)).find(l => l.key === 'projects')?.n).toBe(4);
     expect(all(menuGroups('home', 'factory')).find(l => l.key === 'projects')?.n).toBeUndefined();
@@ -224,8 +239,8 @@ describe('the phone\'s bar is the menu: Factory · Projects · ＋ · Problems �
 });
 
 describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => {
-  it('a line: Overview · Problems · Programs · Tools · Set up — no way up, no Logs, Projects or Reports (on its Overview, its Tools and Report ▾)', () => {
-    expect(scopeTabs(lineGroups('w1', 'tools')).map(l => [l.label, l.on])).toEqual([['Overview', false], ['Problems', false], ['Programs', false], ['Tools', true], ['Set up', false]]);
+  it('a line: Overview · Machines · Problems · Programs · Tools · Set up — no way up, no Logs, Projects or Reports (on its Overview, its Tools and Report ▾)', () => {
+    expect(scopeTabs(lineGroups('w1', 'tools')).map(l => [l.label, l.on])).toEqual([['Overview', false], ['Machines', false], ['Problems', false], ['Programs', false], ['Tools', true], ['Set up', false]]);
   });
   it('a project: its pages without its machines folded under them', () => {
     const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const }];

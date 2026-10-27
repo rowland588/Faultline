@@ -40,7 +40,9 @@ page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) er
 page.on('pageerror', e => errs.push(e.message));
 const flat = s => (s ?? '').replace(/\s+/g, ' ').trim();
 const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main h1').first().waitFor({ timeout: 15000 }).catch(() => {}); await page.waitForTimeout(700); };
-const menu = async () => (await page.locator('.nv-rail .nv-ri').allInnerTexts()).map(flat);
+/* the menu, the same everywhere; the place you are in (a line under Factory, a project under Projects — 27 October) is `place` */
+const menu = async () => (await page.locator('.nv-rail .nv-ri:not(.is-place)').allInnerTexts()).map(flat);
+const place = async () => (await page.locator('.nv-rail .nv-ri.is-place').allInnerTexts()).map(flat);
 const lit = async () => (await page.locator('.nv-rail .nv-ri.is-on').allInnerTexts()).map(flat);
 const tabs = async () => (await page.locator('.nv-tabs .nv-tab').allInnerTexts()).map(flat);
 const tabOn = async () => flat(await page.locator('.nv-tabs .nv-tab.is-on').innerText().catch(() => ''));
@@ -70,13 +72,13 @@ await page.getByRole('button', { name: 'Create and add the machines' }).click();
 ok(/#\/project\/[^/]+/.test(page.url()), '2 the project made and opened', page.url());
 const projectAt = page.url().match(/#\/project\/[^/?]+/)[0];
 await go(projectAt);
-ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Projects', '2 inside it, the same menu with Projects lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
+ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Line 4 new case packer' && (await place()).join() === 'Line 4 new case packer', '2 inside it, the same menu, the project named under Projects and lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
 const ptabs = await tabs();
 /* a stage gate's own pages are four tabs and More since 26 October (docs/STAGEGATE-RESEARCH.md §4) */
 ok(ptabs.map(t => t.replace(/\d.*$/, '').trim()).join(' · ') === 'Now · Machines · Problems · Reports · More' && await tabOn() === 'Now', '2 its own pages as tabs — Now · Machines · Problems · Reports · More, Now on', `${ptabs.join(' · ')} [${await tabOn()}] ${page.url()}`);
 ok(/^Projects › Line 4 new case packer/.test(await bar()), '2 the bar starts with the way back: ‹ Projects', await bar());
 await page.locator('.nv-tabs .nv-tab', { hasText: 'Problems' }).click(); await page.waitForTimeout(900);
-ok(/^Problems/.test(await tabOn()) && (await lit()).join() === 'Projects', '2 a tab opens its page, the menu unmoved', `${await tabOn()} | ${(await lit()).join()}`);
+ok(/^Problems/.test(await tabOn()) && (await lit()).join() === 'Line 4 new case packer', '2 a tab opens its page, the menu unmoved', `${await tabOn()} | ${(await lit()).join()}`);
 await page.getByRole('button', { name: 'Back to Projects' }).click(); await page.waitForTimeout(900);
 ok(/#\/projects$/.test(page.url()) && /Line 4 new case packer/.test(await page.locator('.nv-main').innerText()), '2 ‹ Projects lands on Projects, listing it', page.url());
 
@@ -90,11 +92,11 @@ await go('#/factory');
 await page.locator('li.fac-line[data-line="Line 9"]').getByRole('button', { name: 'Open ›' }).click(); await page.waitForTimeout(1200);
 ok(/#\/lines\//.test(page.url()), '3 a line opened from Lines', page.url());
 const ltabs = await tabs();
-ok(ltabs.join(' · ') === 'Overview · Problems · Programs · Tools · Set up' && await tabOn() === 'Overview', '3 its own pages as tabs, Overview on', ltabs.join(' · '));
-ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Factory', '3 the same menu, Factory lit', (await lit()).join());
+ok(ltabs.join(' · ') === 'Overview · Machines · Problems · Programs · Tools · Set up' && await tabOn() === 'Overview', '3 its own pages as tabs, Overview on (Machines its own, 27 October)', ltabs.join(' · '));
+ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Line 9', '3 the same menu, the line named under Factory and lit', (await lit()).join());
 ok(/^Factory › Line 9/.test(await bar()), '3 the bar starts with the way back: ‹ Factory', await bar());
 await page.locator('.nv-tabs .nv-tab', { hasText: 'Programs' }).click(); await page.waitForTimeout(900);
-ok(await tabOn() === 'Programs' && /line=/.test(page.url()) && (await lit()).join() === 'Factory', '3 its Programs tab, still in the line', `${await tabOn()} | ${page.url()}`);
+ok(await tabOn() === 'Programs' && /line=/.test(page.url()) && (await lit()).join() === 'Line 9', '3 its Programs tab, still in the line', `${await tabOn()} | ${page.url()}`);
 await page.getByRole('button', { name: 'Back to the factory' }).click(); await page.waitForTimeout(900);
 ok(await h1() === 'Factory' && (await lit()).join() === 'Factory', '3 ‹ Factory lands on the Factory page', await h1());
 
@@ -102,7 +104,7 @@ ok(await h1() === 'Factory' && (await lit()).join() === 'Factory', '3 ‹ Factor
 const places = (await page.locator('.fd-places li').allInnerTexts()).map(flat);
 ok(places.some(p => /Line 4 new case packer/.test(p)) && places.some(p => /^Line 9/.test(p)), '4 the Factory page carries the project and the line you were in', places.join(' | '));
 await page.locator('.fd-places li', { hasText: 'Line 4 new case packer' }).locator('button').click(); await page.waitForTimeout(1000);
-ok(/#\/project\//.test(page.url()) && (await lit()).join() === 'Projects', '4 one tap back into the project', page.url());
+ok(/#\/project\//.test(page.url()) && (await lit()).join() === 'Line 4 new case packer', '4 one tap back into the project', page.url());
 
 /* 5 — old links land on the Factory page */
 for (const old of ['#/start', '#/methods', '#/methods/some-method', '#/design?say=Line%202%20keeps%20stopping']) {

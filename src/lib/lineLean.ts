@@ -52,7 +52,7 @@ export function lineTiles(r: LineReading): LeanTile[] {
       : { k: 'Stops timed', v: '0', of: 'none the last four weeks' },
     r.day.margin != null
       ? { k: 'A day of the line', v: fmtGBP(r.day.margin), of: `of margin — its speed × its shifts × its margin a pack${r.jobs ? ` · ${r.jobs} ${plural(r.jobs, 'project')} on it` : ''}` }
-      : { k: 'A day of the line', v: '—', of: `give ${and(r.day.missing ?? [])} in Your factory` },
+      : { k: 'A day of the line', v: '—', of: `give ${and(r.day.missing ?? [])} on the Factory’s Lines page` },
     ...checkTile,
   ];
 }

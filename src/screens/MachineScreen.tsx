@@ -27,6 +27,8 @@ import { ProgramsPage } from './ProgramsPage';
 import { useJobMoney } from '../lib/useJobMoney';
 import { MONEY_WAIT, machineClosing, machineCounts, machineTiles } from '../lib/stageGatePages';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
+import { useLineRecords } from '../lib/useLineRecords';
+import { lineOfMachine } from '../lib/lineRecords';
 
 /* The house's five colours, one meaning each (CLAUDE.md). */
 const GATE_SQ: Record<MachineGate['tone'], 'r' | 'a' | 'w' | 'g' | 'n'> = { done: 'g', going: 'w', late: 'r', problem: 'a', failed: 'r', ahead: 'n', none: 'n' };
@@ -38,6 +40,9 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
   const can = useAccess(projectId);
   /* the job's money — what the slip costs, or what a day late would (lib/useJobMoney) */
   const money = useJobMoney(projectId);
+  /* ITS LINE — the machine's page there reads everything ever done to it, every project's (one record of a
+     machine, docs/STAGEGATE-RESEARCH.md §5 slice 4): one tap from here, where a project looks for it */
+  const rec = useLineRecords();
 
   if (tt.loading || progs.loading || !project) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   const asset = live(tt.assets).find(a => a.id === assetId);
@@ -61,6 +66,17 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
           {m.oem && <span className="sub">{m.oem}</span>}
           <span className={'sub' + (m.arrivalLate ? ' in-late' : '')}>On site: {m.arrival}</span>
         </p>
+        {(() => {
+          const wsId = lineOfMachine(asset, rec.jobLines);
+          const line = wsId ? rec.all.find(w => w.id === wsId) : undefined;
+          return line ? (
+            <p className="mpg-line">
+              <button type="button" className="cw-link" onClick={() => nav(`/lines/${encodeURIComponent(line.id)}/machine/${encodeURIComponent(asset.name.trim())}`)}>
+                Everything on {line.name} — every project’s work on it ›
+              </button>
+            </p>
+          ) : null;
+        })()}
       </PageHeader>
       <AccessNote can={can} owner={project.lead} />
       {/* THE LEAN PAGE (lib/stageGatePages): its gates through, what is late,

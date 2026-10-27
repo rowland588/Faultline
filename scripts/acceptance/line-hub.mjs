@@ -69,7 +69,9 @@ ok(!/product/i.test(flat(await page.locator('.pl > .ln-close').innerText())), 't
 const tabs = (await page.locator('.nv-tabs .nv-tab-l, .nv-rail a, .nv-rail button').allInnerTexts()).map(flat);
 ok(!tabs.includes('Products'), `the line's pages have no Products (${[...new Set(tabs)].filter(Boolean).join(' · ')})`);
 const order = await page.evaluate(() => [...document.querySelectorAll('.pl > .pl-sec')].map(s => s.getAttribute('aria-label')));
-ok(!order.includes('Products on this line') && order.indexOf('Machines on this line') < order.indexOf('Programs on this line'), `the page — machines, then programs (${order.join(' · ')})`);
+/* the machines are their own tab since 27 October ("I don't see your machine page"); the Overview has them machine by machine, then programs */
+ok(!order.includes('Products on this line') && !order.includes('Machines on this line') && order.includes('The line, machine by machine') && order.indexOf('The line, machine by machine') < order.indexOf('Programs on this line'), `the page — the line machine by machine, then programs (${order.join(' · ')})`);
+ok(tabs.includes('Machines'), 'the line has a Machines tab');
 await go(`#/lines/${LINE}?view=products`, 2500);
 ok(await page.locator('.pl-tiles .ln-tile').count() === 4, 'an old link to the line\'s Products lands on its Overview');
 

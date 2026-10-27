@@ -89,8 +89,8 @@ const lateBy = (x: JobFigures): number => (x.handedOver ? Math.max(0, x.handedVs
 /** THE MONEY — what the slip costs, from the factory's own figures. */
 export function moneyTile(x: JobFigures): LeanTile {
   const d = x.day;
-  if (!d || !d.lines.length) return { k: 'A day late', v: '—', of: 'no line from Your factory on the project yet' };
-  if (d.margin == null) return { k: 'A day late', v: '—', of: `give ${and(d.missing)} in Your factory` };
+  if (!d || !d.lines.length) return { k: 'A day late', v: '—', of: 'no line from the Factory on the project yet' };
+  if (d.margin == null) return { k: 'A day late', v: '—', of: `give ${and(d.missing)} on the Factory’s Lines page` };
   const names = and(d.priced), late = lateBy(x);
   const rest = d.missing.length ? ` · ${and(d.missing.map(m => m.split(':')[0]))} not priced yet` : '';
   return late > 0

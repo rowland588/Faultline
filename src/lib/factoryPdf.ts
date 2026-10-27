@@ -20,8 +20,8 @@ const pad = (f: Frame) => (f.density === 'compact' ? 4 : 7);
 
 function blocksOf(r: FactoryReading, d: Density): Block[] {
   const out: Block[] = [];
-  out.push(text({ text: 'YOUR FACTORY · EVERY LINE', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
-  out.push(text({ text: 'Your factory', size: SIZE.title, style: 'bold', after: 4 }));
+  out.push(text({ text: 'FACTORY · EVERY LINE', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+  out.push(text({ text: 'The factory’s lines', size: SIZE.title, style: 'bold', after: 4 }));
   out.push(text({ text: `Printed ${r.printed}`, colour: MUTED, after: gap(d, 'm') }));
 
   /* THE FACTORY IN ONE SENTENCE — and under it the lean page's tiles
@@ -77,7 +77,7 @@ export async function drawFactoryReport(doc: jsPDF, r: FactoryReading): Promise<
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     font(doc, 7.5, 'normal', MUTED);
-    doc.text(`Your factory  ·  ${r.printed}  ·  each line's own report has its problems`, M, H - 18);
+    doc.text(`Factory report  ·  ${r.printed}  ·  each line's own report has its problems`, M, H - 18);
     doc.text(`${i} of ${pages}`, W - M, H - 18, { align: 'right' });
   }
 }

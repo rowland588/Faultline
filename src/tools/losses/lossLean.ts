@@ -86,7 +86,7 @@ export function lossLean(i: { s: ToolStudy; f: LossFigures; said: LossSays; line
     money !== undefined
       ? { k: 'What it cost', v: gbp(money), of: [f.labour !== undefined ? `${gbp(f.labour)} idle labour` : '', f.contribution !== undefined ? `${gbp(f.contribution)} contribution` : ''].filter(Boolean).join(' · '),
         ...(moneyBefore !== undefined ? { change: since(money, moneyBefore, { fmt: gbp, higher: false, against, same: 0.5 }) } : {}) }
-      : { k: 'What it cost', v: '—', of: 'give the line its crew, wage and margin in Your factory to see it' },
+      : { k: 'What it cost', v: '—', of: 'give the line its crew, wage and margin on the Factory’s Lines page to see it' },
   ] : [
     { k: 'Good packs', v: '—', of: 'not counted yet' },
     { k: 'Lost', v: '—', of: planned ? `of ${minWords(planned)} planned` : 'the planned minutes still to put in' },

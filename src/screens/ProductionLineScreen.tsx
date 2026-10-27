@@ -120,8 +120,8 @@ export function stopsOf(obs: Observation[]): { n: number; minutes: number; worst
 
 /** A LINE'S PAGES (docs/STRUCTURE.md §5.1, B2): its overview — everything, as before — and, on
  *  ?view=, one of its pages alone: the tools used on it, its projects, its set-up. */
-export type LineView = 'overview' | 'tools' | 'logs' | 'projects' | 'setup';
-export const LINE_VIEWS: readonly LineView[] = ['overview', 'tools', 'logs', 'projects', 'setup'];
+export type LineView = 'overview' | 'machines' | 'tools' | 'logs' | 'projects' | 'setup';
+export const LINE_VIEWS: readonly LineView[] = ['overview', 'machines', 'tools', 'logs', 'projects', 'setup'];
 
 export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string; view?: LineView }) {
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
@@ -272,7 +272,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
      edit control"), the same two boxes as Your factory; the Rename prompt it
      replaces asked only the name, in a box over the page. */
   const archive = async () => {
-    if (!window.confirm(`Archive “${line.name}”?\n\nIt leaves the factory and loses nothing — its problems, captures, the walk and the evidence all stay. Your factory's archive restores it whenever you like.\n\nUndo brings it back now.`)) return;
+    if (!window.confirm(`Archive “${line.name}”?\n\nIt leaves the factory and loses nothing — its problems, captures, the walk and the evidence all stay. The factory’s Lines page restores it whenever you like.\n\nUndo brings it back now.`)) return;
     await archiveWorkspace(line.id);
     nav('/factory');
     offerUndo(`${line.name} archived`, async () => { await restoreWorkspace(line.id); });
@@ -409,8 +409,10 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       {/* ITS MACHINES, IN FLOW ORDER (Stage 2) — the line's list, the one every
           picker reads (the stopwatch, the walk, a problem), each with who made it
           and its programs; a machine a job brought in says which job. Named here
-          or in Set up the line, where the order and the names are changed. */}
-      {(show('overview') || view === 'setup') && (<section className="pl-sec" aria-label="Machines on this line">
+          or in Set up the line, where the order and the names are changed. Its own tab since 27 October
+          (Rowland: "I don't see your machine page") — each name opens the machine's page; the Overview's
+          machine cards open it too. */}
+      {(view === 'machines' || view === 'setup') && (<section className="pl-sec" aria-label="Machines on this line">
         <div className="pl-sec-h">
           <h2>Machines</h2>
           {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingUp(true)}>Order and names ›</button>}
@@ -627,7 +629,7 @@ function MachineRow({ line, m, may, programs, job }: { line: Workspace; m: LineM
   return (
     <li className="pl-machine" data-machine={m.name}>
       {/* ITS OWN PAGE — everything ever done to it, every project's (slice 4, line/LineMachineScreen) */}
-      <a className="pl-machine-name" href={`#/lines/${encodeURIComponent(line.id)}/machine/${encodeURIComponent(m.name)}`}><b>{m.name}</b></a>
+      <a className="pl-machine-name" href={`#/lines/${encodeURIComponent(line.id)}/machine/${encodeURIComponent(m.name)}`} aria-label={`${m.name} — its page`}><b>{m.name}</b> ›</a>
       {may
         ? <input className="text-input pl-oem" defaultValue={m.record?.oem ?? ''} key={m.record?.oem ?? ''} maxLength={80} placeholder="Who made it" aria-label={`Who made the ${m.name}`}
             onBlur={e => { const v = e.target.value.trim(); if (v !== (m.record?.oem ?? '')) void setMachineFacts(line.id, m.name, { oem: v }); }}

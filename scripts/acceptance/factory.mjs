@@ -73,8 +73,8 @@ const saidSaved = async () => (await page.locator('.fac-saved').innerText().catc
 /* 1 — empty: the factory first */
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3500);
 const t1 = await txt();
-ok(/Your factory/.test(t1) && /Set up your factory first/.test(t1), '1 control room: Your factory, none yet — set it up first');
-ok(/YOUR FACTORY Set up your factory/i.test(await rail()), '1b the rail: Your factory › Set up your factory');
+ok(/Lines/.test(t1) && /Set up your factory first/.test(t1), '1 control room: Lines, none yet — set it up first');
+ok(/LINES Set up your factory/i.test(await rail()), '1b the page: Lines › Set up your factory');
 
 /* 2 — three lines, one after another, the type kept for the next */
 await page.locator('.nv-main').getByRole('button', { name: 'Set up your factory', exact: true }).click(); await page.waitForTimeout(1200);
@@ -118,7 +118,7 @@ const cards = await page.locator('.fac-card').evaluateAll(els => els.map(el => `
 ok(cards.join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `6 the control room's Your factory, in floor order: ${cards.join(' / ')}`);
 ok(/3 lines · 2 Packing · 1 Filling/.test(await txt()), '6b the control room says the factory');
 const firstSec = await page.locator('.nv-main section').first().getAttribute('aria-label');
-ok(firstSec === 'Your factory', `6c Your factory is the first thing on the control room (${firstSec})`);
+ok(firstSec === 'Lines', `6c the factory's Lines are the first thing on the control room (${firstSec})`);
 /* the rail is the factory's own pages since B2 (docs/STRUCTURE.md §5.2), its lines one tap away in the context bar's switcher — in floor order */
 await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(600);
 const swLines = await page.locator('.nv-sw .nv-sw-g').nth(1).locator('.nv-sw-i b').allInnerTexts();
@@ -231,7 +231,7 @@ const [fd] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }
 const ff = join(dir, 'factory.pdf'); await fd.saveAs(ff);
 const fpaper = execFileSync('pdftotext', ['-raw', ff, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 const fpages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [ff], { encoding: 'utf8' }))?.[1]);
-ok(fpages === 1 && /Your factory/.test(fpaper) && /5 lines · 3 Packing · 1 Palletising · 1 not typed yet/.test(fpaper), `21 Your factory on paper, one page, the factory in words (${fpages} page)`);
+ok(fpages === 1 && /The factory’s lines/.test(fpaper) && /5 lines · 3 Packing · 1 Palletising · 1 not typed yet/.test(fpaper), `21 Your factory on paper, one page, the factory in words (${fpages} page)`);
 const at = n => fpaper.indexOf(n);
 ok(at('Line 1 — Packing') >= 0 && at('Line 1 — Packing') < at('Line 3B — Packing') && at('Line 3B — Packing') < at('Line 2A — Packing') && at('Line 4 — Palletising') < at('Line 9'), '21b every line in floor order, with its type');
 ok(/On: Line 1 performance/.test(fpaper) && /1 open/.test(fpaper), '21c the jobs on each line, and what is open on it');

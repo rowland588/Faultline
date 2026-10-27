@@ -42,7 +42,7 @@ describe('what the slips cost', () => {
     expect(roomMoney([job('r', 'R', { daysToGo: 4 })], new Map([['r', day(100)]]))?.slipping).toEqual([]);
     // its line not priced: named, never £0 in green
     const one: Room = { jobs: [over], totals: { ...totals, jobs: 1, handedOver: 0 } };
-    expect(roomTiles(one, roomMoney([over], new Map()))[4]).toEqual({ k: 'The slips cost', v: '—', of: 'give Line 2 A: its line in Your factory' });
+    expect(roomTiles(one, roomMoney([over], new Map()))[4]).toEqual({ k: 'The slips cost', v: '—', of: 'give Line 2 A: its line on the Factory’s Lines page' });
   });
 });
 
@@ -63,7 +63,7 @@ describe('the control room’s tiles', () => {
     const t = roomTiles(quiet, roomMoney(quiet.jobs, new Map()));
     expect(t.map(x => x.k)).toEqual(['Projects running', 'Late', 'This week', 'The slips cost']);
     expect(t[3]).toEqual({ k: 'The slips cost', v: '£0', of: 'every stage-gate project on its agreed handover', tone: 'g' });
-    expect(roomTiles(room, roomMoney(room.jobs, new Map()))[4]).toEqual({ k: 'The slips cost', v: '—', of: 'give Line 2 commissioning: its line and Line 2B to 60 ppm: its line in Your factory' });
+    expect(roomTiles(room, roomMoney(room.jobs, new Map()))[4]).toEqual({ k: 'The slips cost', v: '—', of: 'give Line 2 commissioning: its line and Line 2B to 60 ppm: its line on the Factory’s Lines page' });
     expect(roomTiles(room, undefined)[4].v).toBe('…');
   });
 });

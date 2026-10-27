@@ -4,8 +4,9 @@
  * and nothing else, said "Your factory" on every line's page and "Tools" on every tool's (16 of 59
  * screens did not name the place, docs/STRUCTURE.md §15). Now the bar says the scope and the page:
  * Factory › Control room; Factory › Line 7 › Tools; Factory › Line 2 commissioning › Plan. The
- * scope's name is its switcher — every line and every project, found by typing — and Factory is the
- * way up. The mark is Home. */
+ * scope's name opens its first page and Factory is the way up; the switcher — every line and every
+ * project, found by typing — is its own button, Go to ▾ (27 October: the name was the switcher, and a
+ * tap meant to go to the line opened a list instead). The mark is Home. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
 import type { Project, Workspace } from '../types';
@@ -36,6 +37,8 @@ export function ContextBar({ scope, page, tool, toolTo, projects, lines, project
   const name = scope.kind === 'home' || scope.kind === 'factory' ? 'Factory'
     : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name ?? 'A line'
       : projects.find(p => p.id === scope.projectId)?.name ?? 'A project';
+  /* where the place's name goes — its own first page */
+  const home = scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/room';
   const [open, setOpen] = useState(false);
   const under = scope.kind === 'line' || scope.kind === 'project';
   return (
@@ -47,9 +50,10 @@ export function ContextBar({ scope, page, tool, toolTo, projects, lines, project
       <nav className="nv-ctx" aria-label="You are in">
         {/* THE WAY BACK, ALWAYS SAID (23 October): ‹ Factory from a line, ‹ Projects from a project */}
         {under && <><button type="button" className="nv-crumb nv-up" onClick={() => nav(scope.kind === 'project' ? '/projects' : '/room')} aria-label={scope.kind === 'project' ? 'Back to Projects' : 'Back to the factory'}><Icon name="chevronLeft" size={14} /><span className="nv-up-l">{scope.kind === 'project' ? 'Projects' : 'Factory'}</span></button><span className="nv-sep" aria-hidden>›</span></>}
-        <button type="button" className="nv-job" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)} aria-label={`${name} — switch to another line or project`}>
+        {/* THE PLACE, A CRUMB YOU CAN TAP (Rowland, 27 October: "Where is factory? Pick a line. I didn't pick a
+            line") — its name opens its first page; picking another line or project is Go to ▾, said so */}
+        <button type="button" className="nv-here" onClick={() => nav(home)} aria-label={`${name} — its first page`}>
           <span className="nv-job-l">{name}</span>
-          <Icon name="chevronDown" size={14} />
         </button>
         {onLines && onLines.length > 0 && onLines.length <= 2 && (
           <span className="nv-on">on {onLines.map((l, i) => <span key={l.to}>{i > 0 && ', '}<button type="button" className="nv-crumb nv-on-line" onClick={() => nav(l.to)} aria-label={`${l.label} — the line this project is on`}>{l.label}</button></span>)}</span>
@@ -59,6 +63,10 @@ export function ContextBar({ scope, page, tool, toolTo, projects, lines, project
           ? <button type="button" className="nv-crumb nv-page is-last" onClick={() => nav(toolTo)} aria-label={`${tool} — every one here`}>{tool}</button>
           : <span className="nv-crumb nv-page is-last">{tool}</span>}</>}
       </nav>
+      <button type="button" className="nv-job nv-goto" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)} aria-label="Go to another line or project">
+        <span className="nv-goto-l">Go to</span>
+        <Icon name="chevronDown" size={14} />
+      </button>
       <span className="nv-gap" aria-hidden />
       <JumpTo />
       <QuickSnagButton projectId={projectId} />

@@ -335,7 +335,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
               where its problems, programs and tools on it are, this job among
               its jobs */}
           {onFactory && (
-            <p className="pl-eyebrow">ON {project.name.toUpperCase()} · <a href={`#/lines/${onFactory.id}`} className="pl-fac">The line in Your factory ›</a></p>
+            <p className="pl-eyebrow">ON {project.name.toUpperCase()} · <a href={`#/lines/${onFactory.id}`} className="pl-fac">The line in the Factory ›</a></p>
           )}
           <h1 className="pace-title">{name}</h1>
           {/* Who is on it, as the one line under the name. (The lede that said

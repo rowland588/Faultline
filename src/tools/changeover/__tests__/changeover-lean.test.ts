@@ -55,7 +55,7 @@ describe('SMED’s tiles, plan and closing line', () => {
     ]);
     expect(p.closing.text).toBe('42 min now — 32 min from single digits; what they cost needs how the line runs.');
     const noMoney = read(full);
-    expect(noMoney.tiles[3].of).toBe('8,467,200 packs · give the line its crew, rate and margin in Your factory for the pounds');
+    expect(noMoney.tiles[3].of).toBe('8,467,200 packs · give the line its crew, rate and margin on the Factory’s Lines page for the pounds');
   });
   it('nothing timed: the sentence that says what to do, and no figures', () => {
     const p = read(study({ sequence: [] }));

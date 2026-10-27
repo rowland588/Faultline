@@ -243,7 +243,7 @@ function AddLine({ state }: { state: ReturnType<typeof usePaceLines> }) {
       <label className="proj-field pset-from">
         <span className="field-label">From your factory</span>
         <select className="text-input" value={pick} aria-label="Which line of your factory" onChange={e => choose(e.target.value)}>
-          <option value="">{offered.length ? 'Pick a line…' : factory.length ? 'Every line of your factory is on this project' : 'Your factory has no lines yet'}</option>
+          <option value="">{offered.length ? 'Pick a line…' : factory.length ? 'Every line of your factory is on this project' : 'The factory has no lines yet'}</option>
           {offered.map(w => <option key={w.id} value={w.id}>{w.name}{w.lineType ? ` · ${w.lineType}` : ''}</option>)}
           <option value={NEW}>A line not in the factory yet…</option>
         </select>

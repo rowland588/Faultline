@@ -123,7 +123,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
   useSaveOnArrival(!!bundle && picks !== null && !rec.loading, make);
 
   if (line === undefined || rec.loading) return <div className="wrap pl"><p className="sub">Opening…</p></div>;
-  if (line === null || !bundle) return <div className="wrap pl"><p>This line is not here. <button type="button" className="cw-link" onClick={() => nav('/factory')}>Your factory ›</button></p></div>;
+  if (line === null || !bundle) return <div className="wrap pl"><p>This line is not here. <button type="button" className="cw-link" onClick={() => nav('/factory')}>The factory’s lines ›</button></p></div>;
 
   return (
     <div className="wrap pl lr">

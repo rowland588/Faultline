@@ -48,7 +48,7 @@ export function samplingTiles(a: AgreedSampling, taps: Tap[], at: { done: number
       : { k: 'Biggest share not the work', v: '—', of: `said once ${TOO_FEW_TAPS} taps a person are in` },
     a.walk ? { k: 'Next moment', v: at.next ?? '—', of: at.next ? 'the phone asks then' : at.over ? 'the shift is over' : 'no moments left' }
       : c?.cost !== undefined ? { k: 'What it costs', v: gbp(c.cost), of: `a shift — ${c.who} ${c.activity} ${pct(c.share)} of ${+c.hours.toFixed(2)} h at ${gbp(rate as number)} an hour` }
-      : { k: 'What it costs', v: '—', of: c ? 'give the line its wage and on-costs in Your factory' : 'said once the biggest share is' },
+      : { k: 'What it costs', v: '—', of: c ? 'give the line its wage and on-costs on the Factory’s Lines page' : 'said once the biggest share is' },
     a.walk ? { k: 'Missed', v: String(at.missed), of: at.missed ? 'moments gone with no tap' : 'none', ...(at.missed ? { tone: 'a' as LeanTone } : {}) }
       : { k: 'Next moment', v: at.next ?? '—', of: at.next ? 'the phone asks then' : at.over ? 'the shift is over' : 'no moments left' },
   ];

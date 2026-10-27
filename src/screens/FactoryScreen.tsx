@@ -163,13 +163,13 @@ export function FactoryScreen() {
       const { pdfFileName } = await import('../lib/fileName');
       const { jsPDF } = await loadPdfLib();
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      titlePdf(doc, 'Your factory');
+      titlePdf(doc, 'Factory report');
       const names = new Map(projects.map(p => [p.id, p.name]));
       const jobsOn = new Map([...on.entries()].map(([id, ids]) => [id, ids.map(x => names.get(x)).filter((n): n is string => !!n)]));
       const today = todayISO();
       const kit = new Map(lines.map(w => { const k = kitOf(w); return [w.id, [k.says, k.late ? `${k.late} program${k.late === 1 ? '' : 's'} late` : ''].filter(Boolean).join(' · ')]; }));
       await drawFactoryReport(doc, factoryReading(lines, snags, jobsOn, new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), Date.now(), kit));
-      await deliverPdf(doc, pdfFileName('Your factory', 'report', today));
+      await deliverPdf(doc, pdfFileName('Factory', 'report', today));
     } catch (e) {
       console.error('factory pdf failed', e);
       window.alert('Sorry — the PDF could not be made. Please try again.');
@@ -187,8 +187,8 @@ export function FactoryScreen() {
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): what the page is, as a line's page says PRODUCTION
           LINE (it said THE BACKBONE, a word of the build's — FLOW-AUDIT #20); the way up is the bar's. */}
       <PageHeader
-        eyebrow={<span className="pl-eyebrow">PRODUCTION LINES</span>}
-        title="Your factory"
+        eyebrow={<span className="pl-eyebrow">FACTORY</span>}
+        title="Lines"
         says={<span className="pl-says">{factorySays(lines)}</span>}
         primary={may && !adding ? { label: 'Add lines', run: () => { setAdding(true); setAdded([]); } } : undefined}
         papers={[{ label: 'Factory report — 1 page', for: lines.length ? 'every line in floor order, with its type, its projects and what is open' : 'no line in the factory yet', disabled: !lines.length || printing, make: printFactory }]}

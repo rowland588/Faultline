@@ -4,8 +4,12 @@
  * in flow order, each a card: its picture (its newest problem's photo), the
  * problems open on it by priority with whose they are, what its stops cost a
  * week (idle labour; and at the constraint, output too), and the constraint
- * said where it is. One sentence over all of it. Every card opens its
- * problems on the register. Reads only; writes nothing. */
+ * said where it is. One sentence over all of it. Every card opens the
+ * machine's own page (line/LineMachineScreen) — its problems there, each one
+ * tap to the register, with its programs, studies and stops (Rowland, 27
+ * October: "I don't see your machine page"); until then a card opened its
+ * problems alone, as a machine not on the line's list still does. Reads only;
+ * writes nothing. */
 import { useEffect, useMemo, useState } from 'react';
 import type { Observation, Workspace } from '../types';
 import type { Snag } from '../snag/types';
@@ -66,6 +70,8 @@ export function LineTour({ line, machines, rows, snags, obs, standards }: {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` by the render
   }, [names, rows, snags, obs, constraint]);
+  /* a machine on the line's list has a page of its own; one only a stop, a station or a problem names opens its problems */
+  const listed = new Set(machines.map(machineKey));
   if (!names.length) return null;
   const open = rows.length, crit = rows.filter(r => r.priority === 'critical').length, late = rows.filter(r => r.late).length;
   const worst = [...cards].sort((a, b) => b.mine.length - a.mine.length || b.minWeek - a.minWeek)[0];
@@ -85,9 +91,11 @@ export function LineTour({ line, machines, rows, snags, obs, standards }: {
       <p className="tour-says">{says}</p>
       <ol className="tour-strip">
         {cards.map((c, i) => (
-          <li key={c.name} className={'tour-card' + (c.on ? ' is-on' : '') + (c.mine.some(r => r.priority === 'critical' || r.late) ? ' is-r' : '')}>
-            <button type="button" className="tour-b" onClick={() => nav(`/snags?line=${encodeURIComponent(line.id)}${c.mine[0] ? `&open=${encodeURIComponent(c.mine[0].id)}` : ''}`)}
-              aria-label={`${i + 1}. ${c.name}${c.on ? ', the constraint' : ''}: ${c.mine.length} problem${c.mine.length === 1 ? '' : 's'} open`}>
+          <li key={c.name} data-listed={listed.has(machineKey(c.name)) ? '1' : undefined} className={'tour-card' + (c.on ? ' is-on' : '') + (c.mine.some(r => r.priority === 'critical' || r.late) ? ' is-r' : '')}>
+            <button type="button" className="tour-b" onClick={() => nav(listed.has(machineKey(c.name))
+              ? `/lines/${encodeURIComponent(line.id)}/machine/${encodeURIComponent(c.name)}`
+              : `/snags?line=${encodeURIComponent(line.id)}${c.mine[0] ? `&open=${encodeURIComponent(c.mine[0].id)}` : ''}`)}
+              aria-label={`${i + 1}. ${c.name}${c.on ? ', the constraint' : ''}: ${c.mine.length} problem${c.mine.length === 1 ? '' : 's'} open${listed.has(machineKey(c.name)) ? ' — open its page' : ''}`}>
               <Thumb blobKey={c.photo} alt={`${c.name} — its newest problem`} />
               <span className="tour-n"><b>{i + 1}</b> {c.name}{c.on && <em className="lch-tag">constraint</em>}</span>
               <span className="tour-p">

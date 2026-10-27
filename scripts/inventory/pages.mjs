@@ -30,7 +30,9 @@ export const PAGES = (sd, cap) => [
     { what: 'carry on the latest Line Talk', sel: '.home-talk .fd-talk-on', text: /^Carry on: / },
     /* the page header since B3: the band's two report buttons are its Report ▾ */
     { what: 'the page header — Report ▾ with the control room report and every report', sel: '.home > .part-head .part-menu-b', text: /^Report/ },
-    { what: 'Your factory — every line', sel: '.fac-floor' },
+    /* one name, Factory (27 October — Rowland: "Where is factory? ... I didn't pick a line"): the lines headed Lines, each card saying Open */
+    { what: 'Lines — every line', sel: '.fac-home .home-sec-title', text: /^Lines$/ },
+    { what: 'every line, each card saying Open <line> ›', sel: '.fac-floor .fac-card-go', text: /^Open .* ›$/ },
     { what: 'this week, across every line and project', sel: '.jb-week' },
     { what: 'the projects on one timeline', sel: '.jb-gantt', desk: true },
     /* the lean page (17 October, slice 5; lib/roomLean): each number in the band says what it is of, the money is the slips' cost, and the board closes on one line */
@@ -38,7 +40,8 @@ export const PAGES = (sd, cap) => [
     { what: 'what the slips cost', sel: '.jb-stat.is-money' },
     { what: 'the closing line', sel: '.jb > .ln-close' },
   ] },
-  { name: 'Your factory', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' },
+  { name: 'Lines — the factory\'s', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' },
+    { what: 'titled Lines (27 October — it was Your factory, a second name for the Factory)', sel: '.fac .part-head h1', text: /^Lines$/ },
     /* the page header since B3: its paper in Report ▾ */
     { what: 'the page header — Report ▾ with the factory report', sel: '.fac .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 5b; lib/factoryLean): the tiles — lines, problems open, late, a day of the factory in margin — and the closing line */
@@ -54,6 +57,13 @@ export const PAGES = (sd, cap) => [
     { what: 'who owes what by when', sel: '.lr-h', text: /^Who owes what by when/ },
     { what: 'the closing line', sel: '.lr .ln-close' },
   ] },
+  /* A LINE'S MACHINES — a tab of their own (27 October — Rowland: "I don't see your machine page"), each name opening its page */
+  { name: 'A line — its machines', path: `#/lines/${sd.wsId}?view=machines`, must: [
+    { what: 'Machines on, among the line\'s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Machines/ },
+    { what: 'the machines in flow order, each with who made it and its programs', sel: '.pl-machines > li', n: 2 },
+    { what: 'each name opening the machine\'s page', sel: '.pl-machine-name', text: /›$/ },
+    { what: 'a machine named on the line', sel: '.pl-new input' },
+  ] },
   /* A MACHINE ON ITS LINE — everything ever done to it (27 October, docs/STAGEGATE-RESEARCH.md §5 slice 4, line/LineMachineScreen) */
   { name: 'A machine on its line — everything done to it', path: `#/lines/${sd.wsId}/machine/${encodeURIComponent('Ilapak flow wrapper')}`, must: [
     { what: 'its name, the page header', sel: '.lmc .part-head h1', text: /Ilapak flow wrapper/ },
@@ -65,6 +75,11 @@ export const PAGES = (sd, cap) => [
     { what: 'its stops', sel: '.lmc-stops h2' },
   ] },
   { name: 'A line — its own page', path: `#/lines/${sd.line7WsId}`, must: [
+    /* WHERE AM I (27 October — Rowland: "Where am I? Overview? ... I do not see a machine page"): the menu names the line under
+       Factory and lights it; the bar is Factory › the line, a crumb, beside Go to ▾; the line's tabs have Machines */
+    { what: 'the menu names the line under Factory, lit', sel: '.nv-rail .nv-ri.is-place.is-on', desk: true },
+    { what: 'the bar — the line a crumb, and Go to ▾ the picker', sel: '.nv-top .nv-goto', text: /^Go to/ },
+    { what: 'its tabs — Overview · Machines · Problems · Programs · Tools · Set up', sel: '.nv-tabs .nv-tab', n: 6 },
     { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
     { what: 'a card a machine', sel: '.tour-card', n: 2 },
     /* the floor's two acts first, and the stopwatch among the tools (16 October, docs/UPGRADE-AUDIT.md F1) */
@@ -116,6 +131,8 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'A machine — its own page', path: `#/project/${sd.projectId}/machine/${sd.machineId}`, must: [
     { what: 'its four gates in a row', sel: '.mpg-steps .mpg-step', n: 4 },
+    /* the same machine on its line, every project's work on it (27 October — Rowland: "press machines ... I do not see a machine page") */
+    { what: 'Everything on its line — the same machine there', sel: '.mpg-line .cw-link', text: /^Everything on .* — every project’s work on it ›$/ },
     { what: 'its stages and tests, gate by gate', sel: '.mpg-main .mp-gate' },
     { what: 'its programs', sel: '.mpg-side .pp-m' },
     /* the lean page (17 October; lib/stageGatePages machineTiles): gates through, late, fixes, no fix yet, the job's money — and the closing line */

@@ -29,7 +29,7 @@ describe('work sampling’s tiles — the biggest share not the work, in money',
     expect(samplingClosing(a, taps, samplingSays(a, taps), rate).text).toMatch(/^Op 1 is waiting 25% of the time \(±\d+ points, from 40 taps\) — £37\.70 of their time a shift\.$/);
   });
   it('no wage on the line: what to give; a bottleneck walk: no labour figure', () => {
-    expect(samplingTiles(a, taps, at)[3]).toEqual({ k: 'What it costs', v: '—', of: 'give the line its wage and on-costs in Your factory' });
+    expect(samplingTiles(a, taps, at)[3]).toEqual({ k: 'What it costs', v: '—', of: 'give the line its wage and on-costs on the Factory’s Lines page' });
     expect(samplingTiles({ ...a, walk: true }, taps, at).map(x => x.k)).toEqual(['Taps', 'Stations', 'Biggest share not the work', 'Next moment', 'Missed']);
   });
 });

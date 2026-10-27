@@ -264,14 +264,14 @@ export function WorkspaceHome() {
   const narrow = useNarrow();
 
   const factory = (
-    <section className="home-spaces fac-home" aria-label="Your factory">
+    <section className="home-spaces fac-home" aria-label="Lines">
       <div className="home-sec-head">
-        <h2 className="home-sec-title">Your factory</h2>
+        <h2 className="home-sec-title">Lines</h2>
         {prodLines.length > 0 && (
           <span className="pl-sec-acts">
             {/* every line's programs, planned and proved, no job needed (Stage 2) */}
             <button className="btn" onClick={() => nav('/programs')}>Programs</button>
-            <button className="btn" onClick={() => nav('/factory')}>Edit your factory</button>
+            <button className="btn" onClick={() => nav('/factory')}>Edit the lines</button>
           </span>
         )}
       </div>
@@ -300,6 +300,8 @@ export function WorkspaceHome() {
                       return <>
                         {todo > 0 && <span className="fac-card-meta">{todo} program{todo === 1 ? '' : 's'} to prove{k.late ? <> · <b className="is-r">{k.late} late</b></> : null}</span>}
                       </>; })()}
+                    {/* what a tap does, said (27 October: "I didn't pick a line") */}
+                    <span className="fac-card-go">Open {w.name} ›</span>
                   </button>
                 </li>
               );

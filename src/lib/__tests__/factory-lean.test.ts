@@ -29,7 +29,7 @@ describe('Your factory’s tiles', () => {
   });
   it('nothing priced: what to give, two named then how many more; nothing open: in green', () => {
     const r = reading([row(1, 'Line 1'), row(2, 'Line 2'), row(3, 'Line 3', { missing: ['its speed'] })]);
-    expect(factoryTiles(r).slice(-1)[0]).toEqual({ k: 'A day of the factory', v: '—', of: 'give Line 1: its speed, its shifts and its margin a pack, Line 2: its speed, its shifts and its margin a pack and 1 more in Your factory' });
+    expect(factoryTiles(r).slice(-1)[0]).toEqual({ k: 'A day of the factory', v: '—', of: 'give Line 1: its speed, its shifts and its margin a pack, Line 2: its speed, its shifts and its margin a pack and 1 more on the Factory’s Lines page' });
     expect(factoryTiles(r).map(t => t.k)).not.toContain('Critical');
     expect(factoryClosing(r)).toEqual({ text: '3 lines, no problem open.', tone: 'g' });
     expect(factoryClosing(reading([]))).toEqual({ text: 'No lines yet — add your production lines, each with its name and its type.', tone: 'n' });

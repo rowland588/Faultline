@@ -45,7 +45,7 @@ const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('conso
 let fail = 0; const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail++; };
 const txt = async () => (await page.locator('.nv-main').innerText()).replace(/\s+/g, ' ');
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3500);
-ok(/Your factory/.test(await txt()) && /Set up your factory first/.test(await txt()), '1 control room: Your factory, none yet — set it up first');
+ok(/Lines/.test(await txt()) && /Set up your factory first/.test(await txt()), '1 control room: Lines, none yet — set it up first');
 /* a line is made in Your factory (13 October), by a name — and opened from there */
 await page.locator('.nv-main').getByRole('button', { name: 'Set up your factory', exact: true }).click(); await page.waitForTimeout(1200);
 await page.getByLabel("The new line's name").fill('Line 2B');
@@ -58,9 +58,9 @@ if (OUT) await page.screenshot({ path: `${OUT}/l-1-line.png` });
    a line — and the line's own pages are tabs across the top; the bar starts with the way back, ‹ Factory */
 const rail = (await page.locator('.nv-rail').innerText()).replace(/\s+/g, ' ');
 const tabs = (await page.locator('.nv-tabs .nv-tab-l').allInnerTexts()).join(' · ');
-const lit = (await page.locator('.nv-rail .nv-ri.is-on').allInnerTexts()).join();
+const lit = (await page.locator('.nv-rail .nv-ri.is-on').allInnerTexts()).join();   /* the line named under Factory, lit (27 October) */
 const said = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();
-ok(rail === 'Factory Projects Problems Actions Tools Reports' && lit === 'Factory' && tabs === 'Overview · Problems · Programs · Tools · Set up' && /^Factory › Line 2B › Overview$/.test(said),
+ok(rail === 'Factory Line 2B Projects Problems Actions Tools Reports' && lit === 'Line 2B' && tabs === 'Overview · Machines · Problems · Programs · Tools · Set up' && /^Factory › Line 2B › Overview Go to$/.test(said + (await page.locator('.nv-top .nv-goto').innerText()).replace(/^/, ' ').trimEnd()),
   `3 the menu with Factory lit (${rail} | ${lit}), the line's tabs (${tabs}), the bar saying ${said}`);
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
 // THE STOPWATCH FROM THE LINE (docs/UPGRADE-AUDIT.md F1): Time a stop first in the header; Stops timed first among the tools, none yet

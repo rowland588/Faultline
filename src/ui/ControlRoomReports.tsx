@@ -56,7 +56,7 @@ export function ControlRoomReports({ projects, onClose }: {
           says={busy ? 'Making it…' : pf ? 'For the business — every project and every line on one page: where each is, why, and who owes what.' : 'Reading every project…'}
           onClick={() => void controlRoom()} />
         {said && <p className="sub" role="status">{said}</p>}
-        <Door title="Your factory" says="Every line in floor order, with its type, its projects and what is open — one page. Print it from Your factory." onClick={() => go('/factory')} />
+        <Door title="Factory report" says="Every line in floor order, with its type, its projects and what is open — one page. Print it from the Factory’s Lines page." onClick={() => go('/factory')} />
         <Door title="Problems" says="Every problem on every line and project, in priority order — the Problems report, and a card for every problem. Print them from the page." onClick={() => go('/snags')} />
         <Door title="Programs" says="Every line's programs, machine by machine, planned and proved — the programs report, from the page." onClick={() => go('/programs')} />
         <Door title="Line capacity" says="Every product's capacity, a page each, with a front saying them all — Report ▾ on the list." onClick={() => go('/balances')} />

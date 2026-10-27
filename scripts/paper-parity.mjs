@@ -23,6 +23,10 @@ if (!OLD || !NEW) { console.error('node scripts/paper-parity.mjs OLD NEW'); proc
 
 /** A paper whose words a slice changed on purpose: its file name, and why. */
 const MEANT = {
+  /* WHERE AM I (27 October — Rowland: "Where is factory? ... There is no clear way for me to understand ... where I am"): one name,
+     Factory — "give … in Your factory" says "give … on the Factory’s Lines page", "no line from Your factory" "no line from the Factory" */
+  ...Object.fromEntries(['control-room-ordinary.pdf', 'tiny-commissioning.pdf', 'tiny-day.pdf', 'tiny-handover.pdf']
+    .map(f => [f, 'one name, Factory — the factory’s lines on its Lines page, never Your factory (27 October)'])),
   /* THE LINE BALANCE'S TIMES (FC-019 and the modes of knowledge/specs/FC-032-line-balance.md, 25 October): each balance's paper gains
      its Times table (observed, pace, basic, standard, ± at 95%), the allowance, and — only where the record has them — the combination
      table, the machines one person can tend, the order of the work and the method questions */

@@ -10614,6 +10614,14 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
   .nv-up { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap); min-height: var(--tap); padding: 0; }
   .nv-ctx .nv-page.is-last { max-width: 38vw; }
 }
+/* the place's name, a crumb (27 October) — the switcher beside it is Go to ▾ */
+.nv-here {
+  min-width: 0; display: inline-flex; align-items: center; flex-shrink: 1;
+  padding: 6px 10px; border-radius: var(--radius); cursor: pointer; color: var(--ink); background: none; border: 0;
+  font-family: var(--display); font-size: var(--t-body); font-weight: 700;
+}
+.nv-here:hover { background: var(--surface-2); }
+.nv-goto { flex: none; font-family: inherit; font-size: var(--t-detail); font-weight: 600; color: var(--ink-2); border: 1px solid var(--line); padding: 5px 10px; }
 .nv-job:hover { background: var(--surface-2); }
 .nv-job:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 45%, transparent); }
 .nv-job-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -10638,6 +10646,7 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 @media (hover: hover) { .nv-ri:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); color: var(--ink); } }
 .nv-ri.is-on { background: var(--surface-2); color: var(--ink); font-weight: 700; }
 .nv-ri.is-sub { padding-left: 30px; font-size: var(--t-detail); }
+.nv-ri.is-sub.is-place { font-size: inherit; }
 .nv-ri-l { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nv-sq {
   flex: none; width: 10px; height: 10px; border-radius: var(--radius-xs);
@@ -10735,7 +10744,9 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
   .nv-name, .nv-gap { display: none; }
   /* The page scrolls clear of the bar at the foot, home indicator and all. */
   .nv-main { padding-bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); }
-  .nv-job { flex: 1; font-size: var(--t-body); padding: 6px 8px; }
+  .nv-ctx { flex: 1; }
+  .nv-here { padding: 6px 8px; }
+  .nv-goto { padding: 5px 8px; }
   .nv-main .fr { height: calc(100vh - var(--nv-top) - var(--nv-bar) - env(safe-area-inset-bottom)); height: calc(100dvh - var(--nv-top) - var(--nv-bar) - env(safe-area-inset-bottom)); }
   .nv-main .meet-rail, .pdfr, .autoconv, .upd { bottom: calc(var(--nv-bar) + 10px + env(safe-area-inset-bottom)); }
   .toast { bottom: calc(var(--nv-bar) + 70px + env(safe-area-inset-bottom)); }
@@ -14833,3 +14844,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* A machine on its line (line/LineMachineScreen) — gone from the line */
 .lmc-gone .sub { margin-top: var(--space-5); }
 .lmc-gone .btn { margin-top: var(--space-3); }
+.lp-up { margin: var(--space-1) 0 var(--space-2); }
+/* where am I (27 October) — a machine's name opens its page; a project's machine opens it on its line; a line's card says Open */
+.pl-machine-name { color: var(--brand); text-decoration: none; }
+.pl-machine-name:hover b { text-decoration: underline; }
+.mpg-line { margin: var(--space-1) 0 0; }
+.fac-card-go { margin-top: var(--space-1); color: var(--brand); font-weight: 600; font-size: var(--t-detail); }

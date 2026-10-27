@@ -55,8 +55,8 @@ describe('a stage-gate job’s tiles', () => {
     expect(stageGateTiles({ ...base, assigned: { open: 0, critical: 0 } })[2]).toEqual({ k: 'Critical', v: '0', of: 'none open' });
   });
   it('the money asks for what it needs: no line on the job, or a line with nothing said', () => {
-    expect(stageGateTiles({ ...base, day: linesDay([]) })[4]).toEqual({ k: 'A day late', v: '—', of: 'no line from Your factory on the project yet' });
-    expect(stageGateTiles({ ...base, day: linesDay([{ name: 'Line 3', packsPerMin: 40 }]) })[4]).toEqual({ k: 'A day late', v: '—', of: 'give Line 3: its shifts and its margin a pack in Your factory' });
+    expect(stageGateTiles({ ...base, day: linesDay([]) })[4]).toEqual({ k: 'A day late', v: '—', of: 'no line from the Factory on the project yet' });
+    expect(stageGateTiles({ ...base, day: linesDay([{ name: 'Line 3', packsPerMin: 40 }]) })[4]).toEqual({ k: 'A day late', v: '—', of: 'give Line 3: its shifts and its margin a pack on the Factory’s Lines page' });
   });
   it('past the handover in red; handed over three days late in red, a day early in green; nothing late of what is to do grey; nothing to do in green', () => {
     expect(stageGateTiles({ ...base, daysToGo: -3, outstanding: 2 })[0]).toEqual({ k: 'Handover', v: '3', of: 'days past handover', tone: 'r' });

@@ -49,7 +49,7 @@ import { toolByKey } from '../catalogue/registry';
 import { listAllSnags, allPaceLines } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import {
-  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, scopeTabs, factoryTabs, FACTORY_PAGES, STUDY_SCREENS,
+  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, scopeTabs, factoryTabs, FACTORY_PAGES, STUDY_SCREENS, lineHref,
   type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState, type Count,
 } from './rail';
 
@@ -359,7 +359,9 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage 
   /* ONE MENU, NEVER CHANGING (23 October) — the scope's own pages are tabs across the top */
   const all = groups.flatMap(g => g.lines);
   const onKey = all.find(l => l.on && l.key !== 'up')?.key ?? '';
-  const menu = menuGroups(onKey, kind, kind === 'factory' ? all.find(l => l.key === 'projects')?.n ?? 0 : 0);
+  /* the place you are in, named in the menu under Factory or Projects (27 October: "Where am I?") */
+  const place = kind === 'line' && line ? { name: line.name, to: lineHref(line.id) } : kind === 'project' && project ? { name: project.name, to: `/project/${project.id}` } : undefined;
+  const menu = menuGroups(onKey, kind, kind === 'factory' ? all.find(l => l.key === 'projects')?.n ?? 0 : 0, place);
   const five = bar ?? menuBar(menu, may);
   const tabs = bar ? [] : kind === 'factory' ? (FACTORY_PAGES.has(onKey) ? factoryTabs(onKey) : []) : scopeTabs(groups);
   const [more, setMore] = useState(false);
@@ -429,7 +431,7 @@ function RailList({ groups, go }: { groups: RailGroup[]; go: (l: RailLine) => vo
         <div key={g.label ?? i} className={'nv-grp' + (g.foot ? ' is-foot' : '')}>
           {g.label && <p className="nv-grp-l">{g.label}</p>}
           {g.lines.map(l => (
-            <button key={l.key} type="button" className={'nv-ri' + (l.on ? ' is-on' : '') + (l.sub ? ' is-sub' : '') + (l.problem || (l.late && l.failed) ? ' is-wrap' : '')}
+            <button key={l.key} type="button" className={'nv-ri' + (l.on ? ' is-on' : '') + (l.sub ? ' is-sub' : '') + (l.key === 'place' ? ' is-place' : '') + (l.problem || (l.late && l.failed) ? ' is-wrap' : '')}
               onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
               <span className={'nv-sq is-' + l.state + (l.bare ? ' is-bare' : '')} aria-hidden />
               <span className="nv-ri-l">{l.label}</span>

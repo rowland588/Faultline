@@ -219,7 +219,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
 
 /* ---- 5 the line's page ---- */
 {
-  await go(`#/lines/${WS}`);
+  await go(`#/lines/${WS}?view=machines`);   /* its Machines tab (27 October) */
   const t = await truth();
   const names = await main.locator('.pl-machine b').allInnerTexts();
   ok(JSON.stringify(names) === JSON.stringify(t.machines.map(m => m.name)), `5 its machines in flow order (${names.join(' → ')})`);
@@ -235,12 +235,14 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   ok(t2.machines.find(m => m.name === 'Labeller')?.oem === 'Herma', '5d who made one, typed where it is');
   const lab = flat(await main.locator('.pl-machine', { hasText: 'Labeller' }).innerText());
   ok(lab.includes('1 program, 1 proved'), `5e each machine's programs (${lab})`);
+  await go(`#/lines/${WS}`);   /* its Programs on the Overview */
   const says = flat(await main.locator('section[aria-label="Programs on this line"] .pl-says').innerText());
   ok(says === `${t2.kit.n} programs · ${t2.kit.proved} proved${t2.kit.late ? ` · ${t2.kit.late} late` : ''}` && (t2.kit.late ? await main.locator('section[aria-label="Programs on this line"] .pl-says b.is-r').count() === 1 : true), `5f its Programs, the late in red (${says})`);
 }
 
 /* ---- 6 a machine renamed in Set up the line ---- */
 {
+  await go(`#/lines/${WS}?view=machines`);
   await main.getByRole('button', { name: 'Order and names ›' }).click(); await page.waitForTimeout(1500);
   const chip = page.locator('.chip-editor', { hasText: 'Machines on the line' }).locator('.chip-label', { hasText: /^Labeller$/ });
   await chip.click(); await page.waitForTimeout(200);

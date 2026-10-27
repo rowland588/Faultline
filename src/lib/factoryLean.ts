@@ -32,7 +32,7 @@ export function factoryTiles(r: FactoryReading): LeanTile[] {
     ...(critical ? [{ k: 'Critical', v: String(critical), of: 'open — stopping a line', tone: 'r' as LeanTone }] : []),
     priced.length
       ? { k: 'A day of the factory', v: fmtGBP(margin), of: `of margin — every line’s speed × its shifts × its margin a pack${missing.length ? ` · ${named(missing.map(x => x.split(':')[0]))} not priced yet` : ''}` }
-      : { k: 'A day of the factory', v: '—', of: n ? `give ${named(missing)} in Your factory` : 'no line yet' },
+      : { k: 'A day of the factory', v: '—', of: n ? `give ${named(missing)} on the Factory’s Lines page` : 'no line yet' },
   ];
 }
 

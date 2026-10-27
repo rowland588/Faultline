@@ -63,7 +63,11 @@ function when(p: Program, today: string): string {
 
 export function LineProgramsScreen() {
   const rec = useLineRecords();
-  const [lineF, setLineF] = useState(() => asked('line') ?? 'all');
+  /* OPENED ON A LINE (?line=, the line's own Programs tab) the page is that line's and stays on it — no other
+     line's chip to wander off by (Rowland, 27 October: "Programs, all lines. No, that sent me to all lines");
+     every line's programs are the Factory's Programs, one tap up */
+  const inLine = asked('line');
+  const [lineF, setLineF] = useState(() => inLine ?? 'all');
   const adding = asked('add') === '1';
   const may = useCanStartProjects();
   const [busy, setBusy] = useState(false);
@@ -98,8 +102,8 @@ export function LineProgramsScreen() {
       const { jsPDF } = await loadPdfLib();
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       const name = one ? (one.lineType ? `${one.name} (${one.lineType})` : one.name) : 'Every line';
-      await drawProgramsReport(doc, { name, printed: niceDay(today, { year: true }), reading, eyebrow: one ? 'PROGRAMS · PRODUCTION LINE' : 'PROGRAMS · YOUR FACTORY' });
-      const how = await deliverPdf(doc, pdfFileName(one?.name ?? 'Your factory', 'programs', today));
+      await drawProgramsReport(doc, { name, printed: niceDay(today, { year: true }), reading, eyebrow: one ? 'PROGRAMS · PRODUCTION LINE' : 'PROGRAMS · THE FACTORY' });
+      const how = await deliverPdf(doc, pdfFileName(one?.name ?? 'Factory', 'programs', today));
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('line programs report failed', e);
@@ -111,8 +115,10 @@ export function LineProgramsScreen() {
     <div className="wrap pace lp">
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): where the programs are, in words; the report in Report ▾. The way
           up is the bar's (it said Your factory › here) */}
-      <PageHeader eyebrow={<span className="pl-eyebrow">YOUR FACTORY · PROGRAMS</span>} title="Programs"
-        says="Every line’s programs, machine by machine — planned and proved. No project needed: plan one on a line here. A project’s own programs on the line show beside them."
+      <PageHeader eyebrow={<span className="pl-eyebrow">{inLine && one ? `${one.name.toUpperCase()} · PROGRAMS` : 'FACTORY · PROGRAMS'}</span>} title="Programs"
+        says={inLine && one
+          ? `${one.name}’s programs, machine by machine — planned and proved. No project needed: plan one here. A project’s own programs on the line show beside them.`
+          : 'Every line’s programs, machine by machine — planned and proved. No project needed: plan one on a line here. A project’s own programs on the line show beside them.'}
         papers={[{ label: 'Programs report', for: reading ? 'every program machine by machine, how each was proved' : 'no programs yet', disabled: !reading || busy, make: download }]}>
         {/* where they are, in words — only the late carry colour */}
         <p className="pl-says lp-says">{!reading ? 'No programs yet.' : <>
@@ -130,7 +136,10 @@ export function LineProgramsScreen() {
         </div>
       ) : (
         <>
-          {rec.lines.length > 1 && (
+          {inLine && rec.lines.length > 1 && (
+            <p className="lp-up"><button type="button" className="cw-link" onClick={() => nav('/programs')}>Every line’s programs — in the Factory ›</button></p>
+          )}
+          {!inLine && rec.lines.length > 1 && (
             <div className="chip-row lp-lines" role="group" aria-label="Which line">
               <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} aria-pressed={lineF === 'all'} onClick={() => setLineF('all')}>All lines</button>
               {rec.lines.map(w => (

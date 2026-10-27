@@ -12,7 +12,7 @@ export const TOOL_PLACES: Place[] = [
   { kind: 'page', label: 'Home', sub: 'start a project or use a tool', href: '#/' },
   { kind: 'page', label: 'Control room', href: '#/room' },
   { kind: 'page', label: 'Problems — every line and project', href: '#/snags' },
-  { kind: 'page', label: 'Your factory', href: '#/factory' },
+  { kind: 'page', label: 'Lines — the factory’s', href: '#/factory' },
   { kind: 'page', label: 'Programs', href: '#/programs' },
   /* the app's tools, from the catalogue (src/catalogue/registry) — one list, not a fourth copy */
   ...APP_TOOLS.map(t => ({ kind: 'tool' as const, label: t.label, sub: t.onLine ?? t.says, href: `#${t.to}` })),

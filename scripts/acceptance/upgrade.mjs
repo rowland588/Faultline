@@ -114,9 +114,12 @@ ok(tour.startsWith(`${name}:`) && /machines/.test(tour), `7 the tour's sentence:
 const cards = await page.locator('.tour-card').count();
 ok(cards >= 8, `7 a card a machine (${cards})`);
 ok(await page.locator('.tour-card.is-on').count() === 1 && /constraint/.test(await page.locator('.tour-card.is-on').innerText()), '7 the constraint tagged on its card');
-const withProblem = page.locator('.tour-card', { has: page.locator('.qsl-prio') }).first();
+const withProblem = page.locator('.tour-card[data-listed="1"]', { has: page.locator('.qsl-prio') }).first();
 await withProblem.locator('.tour-b').click(); await page.waitForTimeout(2000);
-ok(/#\/snags\?line=/.test(page.url()) && /open=/.test(page.url()), '7 a tap opens its problems on the register');
+/* a card opens the machine's own page (27 October), its problems there each opening the register */
+ok(/#\/lines\/[^/]+\/machine\//.test(page.url()) && await page.locator('.lmc-problems li').count() >= 1, `7 a tap opens the machine's page, its problems on it (${page.url().split('#')[1]})`);
+await page.locator('.lmc-problems li .cw-link').first().click(); await page.waitForTimeout(2000);
+ok(/#\/snags\?line=/.test(page.url()) && /open=/.test(page.url()), '7 its problem opens on the register');
 if (OUT) { await page.goto(`${BASE}/#/lines/${hall}`); await page.waitForTimeout(2500); await page.locator('.tour').screenshot({ path: `${OUT}/up-tour.png` }); }
 
 /* 8 — Jump to */

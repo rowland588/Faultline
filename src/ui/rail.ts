@@ -83,6 +83,10 @@ export interface RailLine {
   /** Kept under the scope's More tab, not a tab of its own (a stage-gate project's
    *  Materials, Tools, Notes and Details — docs/STAGEGATE-RESEARCH.md §4, 26 October). */
   inMore?: boolean;
+  /** THE PLACE YOU ARE IN, BY NAME — the line or the project, drawn under the menu line it belongs to
+   *  (Factory, Projects) and lit in its place (Rowland, 27 October: "Where am I? Overview? ... There is no
+   *  clear way for me to understand ... where I am"). The key of the menu line it sits under. */
+  under?: string;
   /** The phone's bar icon, when this line can be one of its five. */
   icon?: 'home' | 'route' | 'machine' | 'flag' | 'board' | 'grip' | 'chart' | 'list' | 'time' | 'camera' | 'people' | 'hash' | 'mic' | 'arrowUp' | 'plus';
 }
@@ -273,12 +277,19 @@ export const upLine = (): RailLine => ({ key: 'up', label: 'Factory', to: '/room
  *  project Projects; the line's or the project's own pages are tabs across the top of the page
  *  (ui/Frame ScopeTabs, from lineGroups and projectGroups). Home and the control room are one page,
  *  Factory. */
-export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', projects = 0): RailGroup[] {
+export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', projects = 0,
+  /** The line or the project you are in — named under Factory or Projects and lit, so the menu says where you are. */
+  place?: { name: string; to: string }): RailGroup[] {
   const f = kind === 'factory';
+  const named = !f && !!place;
+  const placed = (under: string): RailLine[] => (named && place && kind === (under === 'home' ? 'line' : 'project')
+    ? [{ key: 'place', label: place.name, to: place.to, on: true, state: 'n', bare: true, sub: true, under, icon: under === 'home' ? 'machine' : 'board' }] : []);
   return [{
     lines: [
-      { key: 'home', label: 'Factory', to: '/room', on: (f && (here === 'home' || here === 'factory' || here === 'lineprograms')) || kind === 'line', state: 'n', bare: true, icon: 'home' },
-      { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || kind === 'project', n: projects || undefined },
+      { key: 'home', label: 'Factory', to: '/room', on: (f && (here === 'home' || here === 'factory' || here === 'lineprograms')) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
+      ...placed('home'),
+      { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
+      ...placed('projects'),
       { key: 'quicksnags', label: 'Problems', to: '/snags', on: f && here === 'quicksnags', state: 'n', bare: true, icon: 'flag' },
       { ...plain('allactions', 'Actions', '/actions', here, 'list'), on: f && here === 'allactions' },
       { ...plain('tools', 'Tools', '/tools', here, 'chart'), on: f && here === 'tools' },
@@ -289,9 +300,11 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
 /** The phone's bar, the same on every page: Factory · Projects · ＋ · Problems · More. */
 export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
   const all = groups.flatMap(g => g.lines);
-  const by = (k: string) => all.find(l => l.key === k);
+  /* the place you are in lights the bar's line it sits under — Factory for a line, Projects for a project */
+  const lit = all.find(l => l.key === 'place' && l.on)?.under;
+  const by = (k: string) => { const l = all.find(x => x.key === k); return l && lit === k ? { ...l, on: true } : l; };
   const five = [by('home'), by('projects'), ...(plus ? [plusLine()] : []), by('quicksnags')].filter((l): l is RailLine => !!l);
-  return [...five, { key: 'more', label: 'More', on: !five.some(l => l.on) && all.some(l => l.on), state: 'n', icon: 'grip' }];
+  return [...five, { key: 'more', label: 'More', on: !five.some(l => l.on) && all.some(l => l.on && l.key !== 'place'), state: 'n', icon: 'grip' }];
 }
 
 /** A LINE'S OR A PROJECT'S OWN PAGES, as tabs across the top: its pages without the way up, the
@@ -346,6 +359,8 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
     { lines: [upLine()] },
     { lines: [
       plain('overview', 'Overview', lineHref(wsId), here, 'home'),
+      /* ITS MACHINES — a tab of their own, each opening its page (Rowland, 27 October: "I don't see your machine page") */
+      plain('machines', 'Machines', lineHref(wsId, 'machines'), here, 'machine'),
       counted('problems', 'Problems', `/snags?line=${encodeURIComponent(wsId)}`, here, { problems: counts.problems }, ['problems'], 'flag'),
       counted('programs', 'Programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
       plain('tools', 'Tools', lineHref(wsId, 'tools'), here, 'chart'),
@@ -456,8 +471,10 @@ export const plusLine = (): RailLine => ({ key: 'plus', label: 'Problem', on: fa
 export function hereIn(route: Route, scope: 'home' | 'factory' | 'line' | 'project'): string {
   const tool = ['lineTools', 'studies', 'study', 'videos', 'videoStudy', 'talks', 'talk'].includes(route.name);
   if (scope === 'line') {
-    if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['tools', 'projects', 'setup', 'logs'].includes(v) ? v : 'overview'; }
-    if (route.name === 'lineReport' || route.name === 'lineMachine') return 'overview';
+    if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['machines', 'tools', 'projects', 'setup', 'logs'].includes(v) ? v : 'overview'; }
+    /* a machine's own page sits under the line's Machines (27 October: "I do not see a machine page") */
+    if (route.name === 'lineMachine') return 'machines';
+    if (route.name === 'lineReport') return 'overview';
     if (route.name === 'quickSnags') return 'problems';
     if (route.name === 'linePrograms') return 'programs';
     if (route.view === 'log' || route.view === 'logs') return 'logs';

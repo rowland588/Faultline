@@ -56,7 +56,7 @@ const records = () => page.evaluate(async ([ws, k]) => {
 const live = rs => rs.filter(a => !a.deletedAt);
 
 /* 1 · named on the line */
-await go(`#/lines/${WS}`);
+await go(`#/lines/${WS}?view=machines`);   /* its Machines tab (27 October) */
 await page.getByLabel("The machine's name").fill(NAME);
 await page.getByLabel('Who made the new machine').fill('Domino UK');
 await page.getByRole('button', { name: 'Add the machine' }).click();
@@ -80,7 +80,7 @@ const onInstall = (await page.locator('main').innerText()).split(NAME).length - 
 ok(onInstall >= 1, '2 the project lists it', onInstall);
 
 /* 3 · the line's page shows it once, saying the project */
-await go(`#/lines/${WS}`);
+await go(`#/lines/${WS}?view=machines`);   /* its Machines tab (27 October) */
 const rows = page.locator('.pl-machines > li', { hasText: NAME });
 ok(await rows.count() === 1, "3 the line's page shows it once", await rows.count());
 
@@ -111,8 +111,9 @@ ok(moved.prog === lineId, '4 its program follows it', moved.prog);
 ok(moved.note === `asset:${lineId}`, '4 its note follows it', moved.note);
 
 /* 5 · the line's page */
-await go(`#/lines/${WS}`);
+await go(`#/lines/${WS}?view=machines`);   /* its Machines tab (27 October) */
 ok(await page.locator('.pl-machines > li', { hasText: NAME }).count() === 1, "5 the line's page still shows it once");
+await go(`#/lines/${WS}`);   /* its programs on the Overview */
 const progs = flat(await page.locator('section[aria-label="Programs on this line"]').innerText().catch(() => ''));
 ok(/Date code layout B/.test(progs), "5 its program on the line's page", progs.slice(0, 300));
 
@@ -131,7 +132,7 @@ await page.locator('.nv-main').waitFor({ timeout: 15000 });
 await page.waitForTimeout(2500);
 const pointed = await page.evaluate(async () => (await (await import('/src/db/core.ts')).getDB()).get('studies', 'zz-rel'));
 ok(pointed?.assetId === lineId, '6 a study on the line naming it points at its record on the next start', JSON.stringify({ assetId: pointed?.assetId, lineId }));
-await go(`#/lines/${WS}`);
+await go(`#/lines/${WS}?view=machines`);   /* its Machines tab (27 October) */
 await page.getByRole('button', { name: `Rename ${NAME}` }).click();
 const box = page.locator('.lt-name input').first();
 await box.fill('Date coder X2');
@@ -150,7 +151,7 @@ ok(rs.length === 1 && rs[0].id === lineId && rs[0].name === 'Date coder X2', '6 
 
 /* 7 · slice 3 — taken on from Install with a tap */
 const TAKE = 'Labeller Z9';
-await go(`#/lines/${WS}`);
+await go(`#/lines/${WS}?view=machines`);   /* its Machines tab (27 October) */
 await page.getByLabel("The machine's name").fill(TAKE);
 await page.getByLabel('Who made the new machine').fill('Herma');
 await page.getByRole('button', { name: 'Add the machine' }).click();
@@ -169,14 +170,14 @@ ok(took.length === 1 && took[0].id === takeId && took[0].projectId === PID && to
 ok(!flat(await page.locator('.cw-addf-line').innerText().catch(() => '')).includes(TAKE), '7 and it is offered no more');
 
 /* 8 · slice 4 — the machine's own page, from the line */
-await go(`#/lines/${WS}`);
+await go(`#/lines/${WS}?view=machines`);   /* its Machines tab (27 October) */
 await page.locator('.pl-machine-name', { hasText: 'Date coder X2' }).click();
 await page.locator('.lmc').waitFor({ timeout: 15000 });
 await page.waitForTimeout(800);
 ok(/#\/lines\/[^/]+\/machine\/Date%20coder%20X2$/.test(page.url()), "8 its name on the line's page opens its own page", page.url());
 ok(flat(await page.locator('.lmc .part-head h1').innerText()).startsWith('Date coder X2'), '8 the page is the machine');
 const bar8 = flat(await page.locator('.nv-ctx').innerText());
-ok(/^Factory/.test(bar8) && !/Projects/.test(bar8) && await page.locator('.nv-tab[aria-current="page"]', { hasText: 'Overview' }).count() === 1, "8 it sits on its line — the line's frame and tabs, never a project's", bar8);
+ok(/^Factory/.test(bar8) && !/Projects/.test(bar8) && await page.locator('.nv-tab[aria-current="page"]', { hasText: 'Machines' }).count() === 1, "8 it sits on its line — the line's frame, under its Machines tab, never a project's", bar8);
 const says = flat(await page.locator('.lmc-says').innerText());
 ok(/^With .+ · worked on by 1 project · 1 program · no problem open/.test(says), '8 what it is in a sentence — whose, the project, its programs', says);
 ok(/Domino UK/.test(flat(await page.locator('.lmc .part-head').innerText())), '8 who made it');

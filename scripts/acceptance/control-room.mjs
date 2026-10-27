@@ -273,7 +273,7 @@ ok(phoneCrit.over.every(x => x <= 1) && phoneCrit.out <= 0 && phoneCrit.whens.in
   await pressPaper(page, 'Every report'); await page.waitForTimeout(1200);
   const doors = (await page.locator('.meet-report b').allInnerTexts()).map(flat);
   const jobs = (await page.locator('.cr-job-papers > .meet-line-n').allInnerTexts()).map(flat);
-  ok(['Control room report — 1 page', 'Your factory', 'Problems', 'Programs', 'Line capacity', 'Line standard'].every(d => doors.includes(d))
+  ok(['Control room report — 1 page', 'Factory report', 'Problems', 'Programs', 'Line capacity', 'Line standard'].every(d => doors.includes(d))
     && ['Client report', 'Handover report', 'Machine labels', 'The plan'].every(d => doors.includes(d)) && jobs.includes('Line 2 commissioning'),
     `12a Report ▾ › Every report: the control room's papers, each line's and each job's own (${doors.length} doors; jobs ${jobs.join(', ')})`);
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.locator('.meet-report', { hasText: 'Control room report — 1 page' }).first().click()]);

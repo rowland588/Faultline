@@ -168,7 +168,7 @@ function app(route: Route) {
   if (route.name === 'lineMachine' && route.wsId && route.id) return <LineMachineScreen key={`${route.wsId}:${route.id}`} wsId={route.wsId} name={route.id} />;
   if (route.name === 'lineHome' && route.wsId) {
     const v = route.query.get('view');
-    return <ProductionLineScreen key={route.wsId} wsId={route.wsId} view={v === 'tools' || v === 'projects' || v === 'setup' || v === 'logs' ? v : 'overview'} />;
+    return <ProductionLineScreen key={route.wsId} wsId={route.wsId} view={v === 'machines' || v === 'tools' || v === 'projects' || v === 'setup' || v === 'logs' ? v : 'overview'} />;
   }
   if (route.name === 'factory') return <FactoryScreen />;
   if (route.name === 'allActions') return <EveryActionScreen />;

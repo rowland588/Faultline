@@ -267,7 +267,7 @@ export function ProjectsScreen() {
               <div className="proj-field proj-lines" role="group" aria-label="Which lines it is on">
                 <span className="field-label">Which line{factory.length === 1 ? '' : 's'} is it on? <span className="cw-f-opt">from your factory</span></span>
                 {factory.length === 0
-                  ? <span className="chip-hint">Your factory has no lines yet. <a href="#/factory?add=1">Set up your factory ›</a> — or start now and add the lines later.</span>
+                  ? <span className="chip-hint">The factory has no lines yet. <a href="#/factory?add=1">Set up your factory ›</a> — or start now and add the lines later.</span>
                   : (
                     <span className="proj-lines-chips">
                       {factory.map(w => {

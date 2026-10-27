@@ -219,7 +219,7 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
 {
   const L = `#/lines/${sd.wsId}`;
   const ws = () => db((D, id) => D.getWorkspace(id), sd.wsId);
-  await go(L);
+  await go(`${L}?view=machines`);   /* its Machines tab (27 October) */
   const w0 = await ws();
   const first = w0.assets.find(a => a !== 'Whole line') ?? w0.assets[0];
   const row = main().locator(`.pl-machine[data-machine="${first}"]`);

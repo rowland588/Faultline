@@ -70,7 +70,7 @@ const WAIT: LeanTile = { k: 'The slips cost', v: '…', of: 'reading the project
 function moneyTile(m: RoomMoney | undefined): LeanTile | undefined {
   if (!m) return WAIT;
   if (!m.slipping.length) return { k: 'The slips cost', v: '£0', of: 'every stage-gate project on its agreed handover', tone: 'g' };
-  if (m.cost == null) return { k: 'The slips cost', v: '—', of: `give ${named(m.missing)} in Your factory` };
+  if (m.cost == null) return { k: 'The slips cost', v: '—', of: `give ${named(m.missing)} on the Factory’s Lines page` };
   const n = m.slipping.filter(s => s.cost != null).length;
   const rest = m.missing.length ? ` · ${named(m.missing.map(x => x.split(':')[0]))} not priced yet` : '';
   return { k: 'The slips cost', v: fmtGBP(m.cost), of: `${m.days} ${plural(m.days, 'day')} late on ${n} ${plural(n, 'project')} × a day of their lines not making, in margin${rest}`, tone: 'r' };

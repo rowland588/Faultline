@@ -57,7 +57,7 @@ export function smedTiles(i: { f: ChangeoverFigures; l: Ladder; scale?: CostScal
       ? { k: 'Planned to', v: mins(best), of: `${rungs}${onTarget(best) ? ' — single digits' : ` — ${mins(Math.max(1, best - SMED_TARGET_SEC))} still to find`}`, ...(onTarget(best) ? { tone: 'g' as LeanTone } : {}) }
       : { k: 'Planned to', v: '—', of: f.enough ? `no plan yet — SMED's target is under ${mins(SMED_TARGET_SEC)}` : `SMED's target: under ${mins(SMED_TARGET_SEC)}` },
     stopped
-      ? { k: scale?.year ? 'A year stopped' : 'A week stopped', v: span(stopped.sec), of: `${costOf(stopped) || 'give the line its speed for the packs'}${pounds ? '' : ' · give the line its crew, rate and margin in Your factory for the pounds'}` }
+      ? { k: scale?.year ? 'A year stopped' : 'A week stopped', v: span(stopped.sec), of: `${costOf(stopped) || 'give the line its speed for the packs'}${pounds ? '' : ' · give the line its crew, rate and margin on the Factory’s Lines page for the pounds'}` }
       : { k: 'A week stopped', v: '—', of: i.costText ? i.costText.replace(/^What the changeovers cost needs how the line runs — /, 'say ').replace(/\.$/, '') : 'said once an element is timed' },
     back
       ? { k: back.rung === 'separated' ? 'Separating buys back' : 'The plan buys back', v: span(back.cost.sec), of: `a week${costOf(back.cost) ? ` — ${costOf(back.cost)}` : ''}${back.rung === 'separated' ? '' : ', if the plan holds'}` }

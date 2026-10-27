@@ -109,6 +109,7 @@ export function QuickSnagsScreen() {
   const [filter, setFilter] = useState<Filter>('open');
   const [group, setGroup] = useState<Group>('line');
   /* opened from a line's own page: on that line, the problem tapped there open */
+  const onLineTab = !!asked('line');
   const [lineF, setLineF] = useState(() => asked('line') ?? 'all');
   /* the line this page was opened from — the way back to it (FLOW-AUDIT #22) */
   const [fromLine] = useState(() => asked('line'));
@@ -460,7 +461,9 @@ export function QuickSnagsScreen() {
           {chip('done', c.closed + c.jobDone, 'Done')}
         </div>
         <div className="qsl-tools">
-          {onLines.length > 1 && (
+          {/* on a line's own Problems tab the page stays on that line (27 October: "Where am I?") — every line's
+              problems are the Factory's Problems */}
+          {!onLineTab && onLines.length > 1 && (
             <select className="text-input qsl-sel" value={lineF} onChange={e => setLineF(e.target.value)} aria-label="Which line">
               <option value="all">All lines</option>
               {onLines.map(id => <option key={id} value={id}>{lineName(id)}</option>)}

@@ -123,7 +123,7 @@ for (const width of [1360, 390]) {
       return {
         scope: document.querySelector('.nv-top .nv-ctx .nv-job-l')?.textContent?.trim() ?? '',
         said: [...document.querySelectorAll('.nv-top .nv-ctx .nv-job-l, .nv-top .nv-ctx .nv-crumb')].filter(vis).map(e => e.textContent.trim()).join(' › '),
-        rail: [...document.querySelectorAll('.nv-rail .nv-ri')].map(e => ({ l: e.querySelector('.nv-ri-l')?.textContent?.trim(), sub: e.classList.contains('is-sub') })),
+        rail: [...document.querySelectorAll('.nv-rail .nv-ri')].map(e => ({ l: e.querySelector('.nv-ri-l')?.textContent?.trim(), sub: e.classList.contains('is-sub'), place: e.classList.contains('is-place') })),
         tabs: [...document.querySelectorAll('.nv-tabs .nv-tab .nv-tab-l')].map(e => e.textContent.trim()),
         bar: [...document.querySelectorAll('.nv-bar .nv-bi .nv-bi-l')].filter(vis).map(e => e.textContent.trim()).join(' · '),
       };
@@ -131,8 +131,12 @@ for (const width of [1360, 390]) {
     const kind = scopeOf(got.scope);
     if (!kind) { unnamed.push(`${pg.name}: "${got.said}"`); continue; }
     if (kind === 'home') continue;
-    const menu = got.rail.map(l => l.l).join(' · ');
-    if (width > 900 && (menu !== MENU || got.tabs.length > LIMIT[kind])) over.push(`${pg.name} (${kind}): menu ${menu}; tabs ${got.tabs.length} — ${got.tabs.join(', ')}`);
+    /* the menu is the same everywhere; inside a line or a project it also names the place, under Factory or Projects
+       (27 October — "Where am I?"), and only there */
+    const menu = got.rail.filter(l => !l.place).map(l => l.l).join(' · ');
+    const place = got.rail.filter(l => l.place).map(l => l.l);
+    const placeOk = kind === 'line' || kind === 'project' ? place.length === 1 && place[0] === got.scope : place.length === 0;
+    if (width > 900 && (menu !== MENU || !placeOk || got.tabs.length > LIMIT[kind])) over.push(`${pg.name} (${kind}): menu ${menu}; place ${place.join() || 'none'}; tabs ${got.tabs.length} — ${got.tabs.join(', ')}`);
     if (width < 900) {
       (bars.all ??= new Set()).add(got.bar);
       if (got.bar !== ONE_BAR) offBar.push(`${pg.name}: ${got.bar}`);
@@ -140,7 +144,7 @@ for (const width of [1360, 390]) {
   }
   const tag = width > 900 ? 'desk' : 'phone';
   ok(!unnamed.length, `B2 1 ${tag}: every page in PAGES.md names its place — Home, the factory, a line or a project`, unnamed.join(' | '));
-  if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page, a scope’s own pages its tabs within their size (factory 3, line 8, project 18)', over.join(' | '));
+  if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page and naming the line or project you are in, a scope’s own pages its tabs within their size (factory 3, line 8, project 18)', over.join(' | '));
   else ok(!offBar.length && bars.all?.size === 1, `B2 1 phone: the bar the same five on every page — ${[...(bars.all ?? [])].join(' / ')}`, offBar.join(' | '));
   await ctx.close();
 }
