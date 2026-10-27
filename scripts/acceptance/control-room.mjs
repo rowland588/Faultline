@@ -238,20 +238,21 @@ const pos = await page.evaluate(() => {
 ok(pos.says > pos.frame && pos.says - pos.frame < 244 && pos.tilesBottom < 844 && pos.fac > pos.says && !pos.fabOverHeadline && pos.wide <= 1,
   `11a the answer first: headline at ${Math.round(pos.says)}px (${Math.round(pos.says - pos.frame)}px under the frame), the four numbers end at ${Math.round(pos.tilesBottom)}px, the factory after (${Math.round(pos.fac)}px), the bar’s ＋ off it`);
 const bar = await page.locator('.nv-bar .nv-bi .nv-bi-l').allInnerTexts();
-/* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Problems · More */
-ok(bar.join(' · ') === 'Factory · Projects · Problem · Problems · More', `11b the bar: ${bar.join(' · ')}`);
-await page.locator('.nv-bar .nv-bi', { hasText: /^Problems$/ }).click(); await page.waitForTimeout(1200);
-const toRegister = /#\/snags/.test(page.url());
+/* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Tools · More (27 October) */
+ok(bar.join(' · ') === 'Factory · Projects · Problem · Tools · More', `11b the bar: ${bar.join(' · ')}`);
+/* Problems is each line's since 27 October; Tools opens the library, Factory then its Set up tab the lines */
+await page.locator('.nv-bar .nv-bi', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1200);
+const toTools = /#\/tools/.test(page.url());
 await page.locator('.nv-bar .nv-bi', { hasText: /^Factory$/ }).click(); await page.waitForTimeout(1200);
-await page.locator('.nv-tabs .nv-tab', { hasText: /^Lines$/ }).click(); await page.waitForTimeout(1200);
-ok(toRegister && page.url().endsWith('#/factory'), `11c Problems opens the register; Factory, then its Lines tab, Your factory (${page.url().split('#')[1]})`);
+await page.locator('.nv-tabs .nv-tab', { hasText: /^Set up$/ }).click(); await page.waitForTimeout(1200);
+ok(toTools && page.url().endsWith('#/factory'), `11c Tools opens the library; Factory, then its Set up tab, the lines (${page.url().split('#')[1]})`);
 await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
 const more = flat(await page.locator('.nv-sheet').innerText());
 await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 /* every project one tap away in the context bar's switcher (the scope's name), and the menu in More */
 await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(700);
 const underProjects = flat(await page.locator('.nv-sw').innerText().catch(() => ''));
-ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Factory/.test(more) && /Actions/.test(more) && /Tools/.test(more), '11d every project in the switcher, and the menu in More', `${underProjects} | ${more}`);
+ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Factory/.test(more) && /Projects/.test(more) && /Tools/.test(more), '11d every project in the switcher, and the menu in More', `${underProjects} | ${more}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 await board();
 await page.locator('.jb-stat.is-crit').click(); await page.waitForTimeout(700);

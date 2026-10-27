@@ -123,7 +123,7 @@ ok(firstSec === 'Lines', `6c the factory's Lines are the first thing on the cont
 await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(600);
 const swLines = await page.locator('.nv-sw .nv-sw-g').nth(1).locator('.nv-sw-i b').allInnerTexts();
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
-ok(/Lines/.test(await rail()) && /Programs/.test(await rail()) && swLines.join(' / ') === 'Line 1 / Line 3 / Line 2A', `6d the rail: Lines and Programs; the switcher, the lines in floor order (${swLines.join(' / ')})`);
+ok(/Projects/.test(await rail()) && /Tools/.test(await rail()) && swLines.join(' / ') === 'Line 1 / Line 3 / Line 2A', `6d the rail: Projects and Tools (the lines on the board and Set up, 27 October); the switcher, the lines in floor order (${swLines.join(' / ')})`);
 if (OUT) await page.screenshot({ path: `${OUT}/f-2-control.png` });
 
 /* 7 — a line's own page: its type; edited there */
@@ -222,7 +222,7 @@ if (OUT) await page.screenshot({ path: `${OUT}/f-8-line-jobs.png` });
 const jobsSec = (await page.getByRole('region', { name: 'Projects on this line' }).innerText()).replace(/\s+/g, ' ');
 ok(/Line 1 performance 6M/.test(jobsSec), `19 Line 1's page: its job — ${jobsSec}`);
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
-ok(/on Line 1 performance/.test(await page.locator('.fac-card', { hasText: 'Line 1' }).first().innerText()), '20 the control room\'s card: on Line 1 performance');
+ok(/Projects: Line 1 performance/.test(await page.locator('.fac-card', { hasText: 'Line 1' }).first().innerText()), '20 the Factory board\'s card: Projects: Line 1 performance');
 if (OUT) await page.screenshot({ path: `${OUT}/f-5-control-jobs.png` });
 
 /* 21-23 — the factory on paper; the tools pick from it (slice 3) */

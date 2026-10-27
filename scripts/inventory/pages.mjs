@@ -164,7 +164,8 @@ export const PAGES = (sd, cap) => [
   ] },
   /* EVERY MACHINE IN THE FACTORY (27 October — Rowland: "Why don't I see machines?") */
   { name: 'The factory’s machines', path: '#/machines', must: [
-    { what: 'Machines on, among the Factory’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Machines/ },
+    /* off the Factory's tabs since 27 October — the address kept for old links and the Every report sheet, the Factory lit */
+    { what: 'the Factory lit — its address kept', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
     { what: 'every machine in a sentence', sel: '.fmc-says', text: /machines? on/ },
     { what: 'each line in floor order, its machines in flow order', sel: '.fmc-line .fmc-m', n: 4 },
     /* 27 October — "factory machines tells you nothing": a project's machine says what its project says of it */

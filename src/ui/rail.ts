@@ -333,6 +333,7 @@ export function scopeTabs(groups: RailGroup[]): RailLine[] {
  *  line's page; the pages that listed them all (#/machines, #/programs, #/snags, #/actions) keep their addresses for
  *  old links and the Every report sheet, and light the Factory. */
 export const FACTORY_PAGES = new Set(['home', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
+const OFF_THE_MENU = new Set(['allmachines', 'lineprograms', 'quicksnags', 'allactions']);
 export const factoryTabs = (here: string): RailLine[] => [
   plain('home', 'Overview', '/room', here, 'home'),
   plain('factory', 'Set up', '/factory', here, 'machine'),
@@ -342,7 +343,9 @@ export const factoryTabs = (here: string): RailLine[] => [
 export function factoryGroups(here: string, projects = 0): RailGroup[] {
   return [{
     lines: [
-      { ...controlRoom(here), label: 'Overview', icon: 'list' },
+      /* the old lists of every machine, program, problem and action light the Factory's Overview: the menu says where
+         you are though no door here leads to them */
+      { ...controlRoom(here), label: 'Overview', icon: 'list', ...(OFF_THE_MENU.has(here) ? { on: true } : {}) },
       { ...plain('projects', 'Projects', '/projects', here, 'board'), n: projects || undefined },
       plain('factory', 'Set up', '/factory', here, 'machine'),
       plain('tools', 'Tools', '/tools', here, 'chart'),

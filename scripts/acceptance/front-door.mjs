@@ -114,7 +114,7 @@ for (const old of ['#/start', '#/methods', '#/methods/some-method', '#/design?sa
 
 /* 6 — the phone */
 await page.setViewportSize({ width: 390, height: 800 });
-const BAR = 'Factory · Projects · Problem · Problems · More';
+const BAR = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
 for (const h of ['#/', '#/projects', '#/factory', projectAt]) {
   await go(h);
   const five = (await page.locator('.nv-bar .nv-bi').allInnerTexts()).map(flat).join(' · ');
