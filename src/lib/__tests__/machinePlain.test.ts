@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { attemptFromLine, itemDetail, runWords, statusWord, whenWords } from '../machinePlain';
 import type { TestItem } from '../testing';
 
-/* The machine report in plain words (28 October — "nobody can make a mistake when reading this"). */
+/* The machine report in plain words (27 October — "nobody can make a mistake when reading this"). */
 describe('the machine report in plain words', () => {
   it('a run said in whole words', () => {
     expect(runWords('aiming 60 ppm for 60 min · net 52 ppm')).toBe('aimed for 60 packs a minute for 60 minutes, at least 52 good packs a minute');

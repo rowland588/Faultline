@@ -1,4 +1,4 @@
-/* THE MACHINE REPORT IN PLAIN WORDS (28 October — Rowland: "it's difficult to read ... it must be easy to read plain
+/* THE MACHINE REPORT IN PLAIN WORDS (27 October — Rowland: "it's difficult to read ... it must be easy to read plain
  * English, and nobody can make a mistake when reading this").
  *
  * The machine report (lib/machineDetail) carries the words the modules already say — lib/machineRecord's "late — was

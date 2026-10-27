@@ -1,7 +1,7 @@
 /* MACHINES ON PAPER — the one drawer for every machine paper (lib/machinePaper): the machine report, the project's
  * Machines report and the factory's machines.
  *
- * MADE EASY TO READ, 28 October (Rowland: "Each section needs sectioning off, and each of its own section needs to
+ * MADE EASY TO READ, 27 October (Rowland: "Each section needs sectioning off, and each of its own section needs to
  * have clear headers. At the moment, for example, tests, they're all grayed out ... it must be easy to read plain
  * English, and nobody can make a mistake when reading this"). A machine's pages open with how to read them (the five
  * colours, each with its words) and what is in them (a numbered list of its parts); then each part under a band of its
@@ -29,7 +29,7 @@ const TONE: Record<PaperTone, string> = { r: '#c4281c', a: '#b45309', w: '#6d28d
 
 const pad = (f: Frame) => (f.density === 'compact' ? 4 : 6);
 
-/* ---- the parts of a machine's pages (28 October) ---- */
+/* ---- the parts of a machine's pages (27 October) ---- */
 
 /** A status as a label: its word in capitals on its colour (white words on a state's colour — the one exception,
  *  CLAUDE.md); grey, too pale for white words, is drawn as an outline with its grey words. */

@@ -139,7 +139,7 @@ const proj = want.projects[PID];
   ok(each === proj.rows.length && said(/What is open on it, and who has it/g, /Nothing open on it — no stage/g) === proj.rows.length
     && said(/Its tests — every attempt/g, /No tests on it yet/g) === proj.rows.length && said(/Its programs — every test of each/g, /No programs on it\./g) === proj.rows.length,
     `P5 each machine in full: where it is up to, what is open and who has it, every test and attempt, every program and its tests (${each})`);
-  /* EASY TO READ (28 October — "Each section needs sectioning off ... clear headers ... nobody can make a mistake when
+  /* EASY TO READ (27 October — "Each section needs sectioning off ... clear headers ... nobody can make a mistake when
      reading this"): each machine says how to read it — the five colours with their words — and what is in it */
   ok((t.match(/How to read this report/gi) ?? []).length === proj.rows.length && (t.match(/What is in it/gi) ?? []).length === proj.rows.length
     && ['its day has gone, it failed, or it is critical', 'finished, passed or fixed', 'not started, and no day given yet'].every(w => t.includes(w)),

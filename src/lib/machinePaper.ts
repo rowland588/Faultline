@@ -9,7 +9,7 @@
  *  ahead, green done, grey not started. */
 export type PaperTone = 'r' | 'a' | 'w' | 'g' | 'n';
 
-/** One labelled line of a row's detail (28 October — Rowland: "it's difficult to read ... it must be easy to read
+/** One labelled line of a row's detail (27 October — Rowland: "it's difficult to read ... it must be easy to read
  *  plain English, and nobody can make a mistake when reading this"): what it is on the left ("Has to show",
  *  "Attempt 2 · 26 Oct", "Problem found 27 Oct"), the words on the right — a result, when there is one, first and in
  *  its colour ("DIDN'T PASS"), and a second line under them when the line has more to say (what it aimed at and did). */

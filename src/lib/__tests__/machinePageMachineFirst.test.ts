@@ -60,7 +60,7 @@ describe('a machine in full — every attempt, what was seen, what was found, th
     expect(p.tiles?.map(t => t.label)).toEqual(['Tests passed', 'Programs proved', 'Open on it', 'Late or failed', 'Critical']);
     expect(p.closing).toMatch(/^Wrapper is on site and up to .* in Line 2 commissioning: \d+ of \d+ tests passed, 1 of 1 programs proved/);
   });
-  /* 28 October — "difficult to read ... nobody can make a mistake when reading this": the same facts, each labelled,
+  /* 27 October — "difficult to read ... nobody can make a mistake when reading this": the same facts, each labelled,
      its result one word in its colour, a run's figures in whole words (lib/machinePlain) */
   it('a test with every attempt — what it had to show, what each aimed at and did, how it went, what was seen, what was found on it', () => {
     const row = sec(/^Its tests/)?.rows.find(r => r.what.startsWith('Seal integrity'));
