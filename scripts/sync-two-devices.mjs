@@ -60,6 +60,9 @@
  *     it plays on the laptop, each saying it is in the cloud; deleted on the
  *     laptop, the study names it nowhere, the cloud's copy is taken out, and
  *     the phone forgets its own and says it was deleted
+ *  12 one record of a machine (lib/machineMerge): the laptop offline and the
+ *     phone each make a record of one machine on one line; one is kept on
+ *     both and in the cloud, the other put away into it, its program follows
  *
  * WHAT IT CANNOT PROVE. The fake cloud is not Postgres: no real RLS beyond the
  * media rule, no column list (check-live-schema.mjs does that), no latency or
@@ -1163,14 +1166,51 @@ await run(11, 'a video study’s footage: phone to laptop, then deleted everywhe
     'the phone says the footage was deleted, and shows none');
 });
 
+await run(12, 'one record of a machine: two devices each make one, one is kept everywhere', async () => {
+  /* docs/STAGEGATE-RESEARCH.md §5, slice 1 (lib/machineMerge). The laptop,
+     offline, names a machine on a line the phone has just named it on too —
+     two records of one machine, as two devices leave it before they sync. On
+     both, as the other's arrives, one is kept (the smaller id — the same
+     answer on each), the other put away into it with merged_into, and the
+     program on it follows. */
+  const p = phone.page, l = laptop.page;
+  const ws = await p.evaluate(async () => (await (await import('/src/db.ts')).createWorkspace('Line 12 — one record')).id);
+  await settle(phone);
+  check(await waitFor(async () => !!(await idbGet(l, 'workspaces', ws)), 30_000, 250), 'the line is on both devices');
+  const put = (page, id, prog) => page.evaluate(async ([ws, id, prog]) => {
+    const db = await import('/src/db.ts');
+    const t = Date.now();
+    await db.putAsset({ id, projectId: '', workspaceId: ws, name: 'Labeller', state: 'running', sort: 10, updatedAt: t, ...(prog ? { note: 'from the phone' } : {}) });
+    if (prog) await db.putProgram({ id: prog, projectId: '', workspaceId: ws, assetId: id, what: 'Label layout C', state: 'needed', sort: 10, createdAt: t, updatedAt: t });
+  }, [ws, id, prog]);
+  await laptop.ctx.setOffline(true);
+  await put(p, 'm-b-phone', 'p-labeller');
+  await put(l, 'm-a-laptop');
+  await settle(phone);
+  await laptop.ctx.setOffline(false);
+  await settle(laptop);
+  await syncViaUI(phone);
+  await settle(laptop);
+  const liveOn = rows => rows.filter(r => !(r.deletedAt ?? r.deleted_at) && (r.workspaceId ?? r.workspace_id) === ws && r.name === 'Labeller').map(r => r.id).sort().join(',');
+  const one = await waitFor(async () => [cloud.rows('commission_assets'), await idb(p, 'commission_assets'), await idb(l, 'commission_assets')].every(rs => liveOn(rs) === 'm-a-laptop'), 30_000, 500);
+  check(one, 'one record of it, the same one, in the cloud and on both devices',
+    `cloud ${liveOn(cloud.rows('commission_assets'))} · phone ${liveOn(await idb(p, 'commission_assets'))} · laptop ${liveOn(await idb(l, 'commission_assets'))}`);
+  const gone = cloud.rows('commission_assets').find(r => r.id === 'm-b-phone');
+  check(!!gone?.deleted_at && gone?.merged_into === 'm-a-laptop', 'the other kept in the cloud, put away into it — nothing deleted', JSON.stringify(gone ?? null));
+  const prog = await waitFor(async () => [cloud.rows('programs').find(r => r.id === 'p-labeller')?.asset_id, (await idbGet(p, 'programs', 'p-labeller'))?.assetId, (await idbGet(l, 'programs', 'p-labeller'))?.assetId].every(x => x === 'm-a-laptop'), 30_000, 500);
+  check(prog, 'the program on it follows it, everywhere');
+  const note = await waitFor(async () => (await idbGet(p, 'commission_assets', 'm-a-laptop'))?.note === 'from the phone', 20_000, 500);
+  check(note, 'what the other knew is taken — the kept one carries its note on the phone too');
+});
+
 /* ======================================================================= */
 scn = 0;
 check(appErrors.length === 0, 'no error thrown by the app on either device', appErrors.slice(0, 5).join(' | '));
 
 const names = { 1: 'phone builds a job → laptop shows all', 2: 'laptop edits → phone', 3: 'offline phone, back online', 4: 'conflict while offline',
-  5: 'large film, uploads fail mid-way', 6: 'one refused row', 7: 'speed, untouched laptop', 8: 'file over 50 MB', 9: 'file lands after its record', 10: 'two devices, one study', 11: 'video footage, sent and deleted', 0: 'app health' };
+  5: 'large film, uploads fail mid-way', 6: 'one refused row', 7: 'speed, untouched laptop', 8: 'file over 50 MB', 9: 'file lands after its record', 10: 'two devices, one study', 11: 'video footage, sent and deleted', 12: 'one record of a machine', 0: 'app health' };
 console.log('\n================ SYNC — TWO DEVICES ================');
-for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0]) {
+for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0]) {
   const rs = results.filter(r => r.scn === n);
   if (!rs.length) continue;
   const bad = rs.filter(r => !r.ok);

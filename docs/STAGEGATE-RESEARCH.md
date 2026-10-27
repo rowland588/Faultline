@@ -233,6 +233,41 @@ line first, by the same form, then taken on). Everything done to a
 machine points at the record — never its name — so a rename carries
 everything, and a machine's page can show everything ever done to it.
 
+### 5.2a Slice 1 as built (27 October — "Do one record per machine")
+
+What the live database showed changed the first slice. Its "lines"
+include the projects' walk and demo workspaces, whose lists are the
+template names (*Flow wrapper … Palletiser*) and places (*People*, *NVA*,
+*Whole line*). Making a record of every name would have made fake
+machines of them. So a record is still made the first time more than the
+name is said — but **through one door, so a line never holds two of one
+machine**:
+
+- **A project adding a machine its line already holds takes the line's
+  record on** (`db/lineRecords` addProjectMachine — Install's *Add a
+  machine* and Programs' typed machine): same id, its maker and history
+  kept, the project's now. A project's record that the line names later is
+  the one the line uses (`machineRecordFor`, as before).
+- **Two records of one machine on one line are merged** (`lib/machineMerge`,
+  run by each device on start and after every sync): a project's record is
+  kept before the line's own, then the smallest id — the same answer on
+  every device. The other is put away (`deleted_at`) with `mergedInto`
+  naming the kept one — nothing deleted — and its tests, fixes, programs,
+  studies and notes point at the kept one; what it knew (maker, note,
+  dates, documents) the kept one takes.
+- **Only the line's own records are put away.** Deleting a project's record
+  is its owner's (`ACCESS_LEVELS.sql`), so a project holding two records of
+  one machine — or two projects one each — is left and listed (`held`)
+  for slice 3.
+- **The database**: `commission_assets.merged_into` (`ONE_MACHINE_RECORD.sql`,
+  applied and read back: no line held one machine twice; nothing moved).
+- **Proved**: `lib/__tests__/machineMerge.test.ts`,
+  `scripts/acceptance/one-machine.mjs`, and the sync harness's scenario 12
+  (two devices, one offline, each making the record; one kept everywhere).
+
+Not in slice 1: a record for every name on a list; studies, stops,
+stations and counts pointing at the record (slice 2).
+
 ### 5.3 The slices (each shipped on its own, nothing removed until proved)
 
 1. **Every name on a line becomes a record**, the line's own; a project's

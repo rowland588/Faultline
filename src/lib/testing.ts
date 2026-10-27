@@ -129,6 +129,11 @@ export interface Asset {
   installedOn?: string;
   runningOn?: string;
 
+  /** ONE RECORD OF A MACHINE (lib/machineMerge): a second record of a machine
+   *  its line already held, put away into the one kept — its id. Kept, never
+   *  deleted, so a merge can be read back and undone. */
+  mergedInto?: ID;
+
   sort: number;
   updatedAt: number;
   deletedAt?: number;

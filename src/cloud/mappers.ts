@@ -388,6 +388,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         due_on: a.dueOn ?? null, on_site_on: a.onSiteOn ?? null,
         installed_on: a.installedOn ?? null, running_on: a.runningOn ?? null,
         docs: a.docs ?? null, note: a.note ?? null, sort: a.sort,
+        merged_into: a.mergedInto ?? null,
         updated_at: a.updatedAt, deleted_at: a.deletedAt ?? null,
       };
     },
@@ -402,6 +403,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       runningOn: (r.running_on as string) ?? undefined,
       docs: (r.docs as Asset['docs']) ?? undefined,
       note: (r.note as string) ?? undefined,
+      ...(r.merged_into ? { mergedInto: r.merged_into as string } : {}),
       sort: Number(r.sort) || 0,
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     } satisfies Asset),

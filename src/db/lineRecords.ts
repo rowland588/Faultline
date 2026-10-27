@@ -145,6 +145,33 @@ export async function lineForJobRecord(projectId: string, jobLineId?: string): P
   return named ?? onlyLineOf(projectId, jobLines);
 }
 
+/** A MACHINE A PROJECT BRINGS IN (Install's Add a machine, Programs' typed
+ *  machine) — one record of it on its line (lib/machineMerge,
+ *  docs/STAGEGATE-RESEARCH.md §5): when the line already holds a record of
+ *  that name of its own, the project takes that one on, its history kept,
+ *  rather than making a second; when the project has one already, that one.
+ *  Otherwise a new record, on the project's line, its name on the line's list.
+ *  Returns the record's id. */
+export async function addProjectMachine(projectId: ID, name: string, more: Pick<Asset, 'state' | 'sort'> & { oem?: string }): Promise<string> {
+  const n = name.trim();
+  const workspaceId = await lineForJobRecord(projectId);
+  if (workspaceId) {
+    const [assets, jobLines] = await Promise.all([listAllAssets(), allPaceLines()]);
+    const onLine = assets.filter(a => !a.mergedInto && lineOfMachine(a, jobLines) === workspaceId && machineKey(a.name) === machineKey(n));
+    const mine = onLine.find(a => a.projectId === projectId);
+    if (mine) return mine.id;
+    const lines = onLine.find(a => !a.projectId);
+    if (lines) {
+      await putAsset({ ...lines, projectId, workspaceId, state: more.state, sort: more.sort, ...(!lines.oem && more.oem?.trim() ? { oem: more.oem.trim() } : {}) });
+      return lines.id;
+    }
+  }
+  const id = uid();
+  await putAsset({ id, projectId, ...(workspaceId ? { workspaceId } : {}), name: n, oem: more.oem?.trim() || undefined, state: more.state, sort: more.sort, updatedAt: now() });
+  await machineJoinsLine({ workspaceId, name: n });
+  return id;
+}
+
 export async function machineJoinsLine(a: Pick<Asset, 'workspaceId' | 'name'>): Promise<void> {
   if (a.workspaceId) await onTheList(a.workspaceId, a.name);
 }

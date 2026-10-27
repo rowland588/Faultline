@@ -14,6 +14,10 @@ import './styles.css';
 // is restored — the app is fully usable offline with neither.
 startSync();
 
+// One record of a machine on its line (lib/machineMerge) — settled on this
+// device when it starts, whether or not it syncs.
+void import('./db/machineMerge').then(m => m.oneRecordPerMachine()).catch(() => { /* tried again on the next start */ });
+
 // Fetch a newer build in the BACKGROUND so the next time the app is opened it's
 // current. We deliberately do NOT force a reload mid-session — that yanks you off
 // whatever screen you're on. The update simply applies on the next fresh open.

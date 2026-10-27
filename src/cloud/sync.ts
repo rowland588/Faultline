@@ -27,6 +27,7 @@ import { MAPS, SYNC_KINDS, type MediaKey } from './mappers';
 import { withUsableMime } from '../lib/mime';
 import { CLOUD_FILE_LIMIT } from '../lib/transcode';
 import { goneKeys } from '../tools/video/footage';
+import { oneRecordPerMachine } from '../db/machineMerge';
 import type { StudyFacts } from '../lib/study';
 import type { SyncKind } from '../db';
 import {
@@ -1225,6 +1226,11 @@ export async function syncNow(): Promise<void> {
     });
 
     await forgetGoneFootage();
+
+    /* ONE RECORD OF A MACHINE (lib/machineMerge): a record another device made
+       of a machine this line already holds is put away into the one kept, as
+       soon as it arrives. Writes nothing when there is nothing to merge. */
+    try { await oneRecordPerMachine(); } catch { /* tried again next pass */ }
 
     if (overwritten.length !== overwrittenBefore) await metaPut(OVERWRITTEN_KEY, { rows: overwritten.slice(-20) });
     const over = overwritten.slice(-20);
