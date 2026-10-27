@@ -67,6 +67,8 @@ export const PAGES = (sd, cap) => [
   /* A MACHINE ON ITS LINE — everything ever done to it (27 October, docs/STAGEGATE-RESEARCH.md §5 slice 4, line/LineMachineScreen) */
   { name: 'A machine on its line — everything done to it', path: `#/lines/${sd.wsId}/machine/${encodeURIComponent('Ilapak flow wrapper')}`, must: [
     { what: 'its name, the page header', sel: '.lmc .part-head h1', text: /Ilapak flow wrapper/ },
+    /* its paper (27 October — Rowland: "still no report abilities") */
+    { what: 'Report ▾ with its machine report', sel: '.lmc .part-head .part-menu-b', text: /^Report/ },
     { what: 'what it is in a sentence — whose, projects, programs, problems, stops', sel: '.lmc-says', text: /With .* · worked on by/ },
     { what: 'the projects on it, each opening its page there', sel: '.lmc-projects .lmc-proj .cw-link', text: /^Its page in / },
     { what: 'its programs', sel: '.lmc-programs h2' },
@@ -136,13 +138,18 @@ export const PAGES = (sd, cap) => [
   { name: 'A stage-gate project — its machines', path: `#/project/${sd.projectId}/machines`, must: [
     { what: 'Machines on, among the project’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Machines/ },
     { what: 'a row a machine, its status in plain words', sel: '.pms .now-m .pms-status', n: 3 },
-    { what: 'where each is up to in the project, what it owes, what is next', sel: '.pms .now-m .lt-says', n: 3 },
+    { what: 'where each is up to in the project, what it owes, what is next', sel: '.pms .now-m .lt-says', n: 3, text: /^In .*: (at |due on site|handed over)/ },
+    /* its paper (27 October — Rowland: "still no report abilities"): the Machines report and the commissioning report */
+    { what: 'the page header — Report ▾ with the Machines report', sel: '.pms .part-head .part-menu-b', text: /^Report/ },
   ] },
   /* EVERY MACHINE IN THE FACTORY (27 October — Rowland: "Why don't I see machines?") */
   { name: 'The factory’s machines', path: '#/machines', must: [
     { what: 'Machines on, among the Factory’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Machines/ },
     { what: 'every machine in a sentence', sel: '.fmc-says', text: /machines? on/ },
     { what: 'each line in floor order, its machines in flow order', sel: '.fmc-line .fmc-m', n: 4 },
+    /* 27 October — "factory machines tells you nothing": a project's machine says what its project says of it */
+    { what: 'a machine a project is working on — its status, where it is up to there', sel: '.fmc-m .pms-status' },
+    { what: 'each machine’s words and what is next', sel: '.fmc-m .lt-says', n: 4 },
     { what: 'the page header — Report ▾ with the factory’s machines', sel: '.part-head .part-menu-b', text: /^Report/ },
   ] },
   /* A MACHINE, MACHINE FIRST (27 October — Rowland: "If I go to machine, I want to be able to see everything associated to
@@ -151,6 +158,7 @@ export const PAGES = (sd, cap) => [
     { what: 'its status in plain words, first', sel: '.cw-handover .mpg-at', text: /^(Not here yet|On site|Installed|Running|Handed over)$/ },
     { what: 'the project it is going through, and where it is up to', sel: '.mpg-in', text: /^Going through .* — a stage-gate project — / },
     { what: 'its four gates in a row', sel: '.mpg-steps .mpg-step', n: 4 },
+    { what: 'Report ▾ with its machine report', sel: '.mpg .part-head .part-menu-b', text: /^Report/ },
     /* the same machine on its line, every project's work on it (27 October — Rowland: "press machines ... I do not see a machine page") */
     { what: 'Everything on its line — the same machine there', sel: '.mpg-line .cw-link', text: /^Everything on .* — every project’s work on it ›$/ },
     { what: 'what is open on it, most pressing first', sel: '.mpg-open h2' },

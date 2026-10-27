@@ -12,16 +12,12 @@ import { useProjectRead } from '../projectRead';
 import { projectActions, PRIORITY_WORD, type ProjectAction } from '../../lib/projectActions';
 import { whenWord } from '../../lib/projectActionsPdf';
 import { journeyOf as daysOf, type JourneyLine } from '../journey/journey';
-import { journeyOf as gatesOf, machineAt } from '../../lib/install';
 import { programsReading } from '../../lib/programsReport';
 import { standing } from '../../lib/standing';
 import { stageGateOnTarget } from '../../lib/onTarget';
 import { stageGateClosing, stageGateTiles } from '../../lib/stageGateLean';
 import { linesDay } from '../../lib/lineLoss';
-import { live, type Asset, type Test, type TestItem } from '../../lib/testing';
-import type { Program } from '../../lib/programs';
-import type { ProgramsReading } from '../../lib/programsReport';
-import type { JobItem } from '../../lib/portfolio';
+import { live } from '../../lib/testing';
 import { niceDay } from '../../lib/weeks';
 import { planCount, planFor } from '../../lib/huddle';
 import { useJobFactoryLines } from '../../lib/useFactoryLines';
@@ -31,7 +27,7 @@ import { LeanClosing } from '../../ui/Lean';
 import { openRecord } from '../../ui/RecordDrawer';
 import { planHref } from '../../lib/plan';
 import { nav, navReplace } from '../../state/useRoute';
-import { blockers, jobFiguresOf, lookAhead, nowMachine, nowSays, owedFirst, type NowMachine } from './now';
+import { blockers, jobFiguresOf, lookAhead, machinesOf, nowSays, owedFirst, type NowMachine } from './now';
 
 /* what opens in the record's drawer, as on Needs you and Actions */
 const IN_DRAWER = new Set(['test', 'fix', 'install', 'setup', 'handover']);
@@ -44,16 +40,6 @@ function openAction(a: ProjectAction) {
   if (!x) return;
   if (x.id && (x.critical || IN_DRAWER.has(x.kind))) openRecord(x.jobId, x.id);
   else nav(planHref(x.jobId, x));
-}
-
-/** A stage-gate project's machines, a row each, as Now reads them (project/now nowMachine) — on Now and on the
- *  Machines tab's own list (27 October). */
-export function machinesOf(assets: readonly Asset[], tests: Test[], items: TestItem[], programs: readonly Program[],
-  reading: ProgramsReading | undefined, owed: readonly JobItem[], today: string): NowMachine[] {
-  return [...assets].sort((a, b) => a.sort - b.sort).map(a => {
-    const j = gatesOf(a, tests, items, today, programs);
-    return nowMachine(a, machineAt(a, j), j, reading, owed, tests);
-  });
 }
 
 /** A ROW A MACHINE — its name and who made it, the gate it is at, its programs, what it owes, what is next; a tap

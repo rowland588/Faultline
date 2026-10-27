@@ -8,6 +8,8 @@
  * what blocks handover, where each machine is, what is coming, what you owe. Nothing here is a
  * second answer: every word comes from the module that already says it. */
 import type { Asset, Test, TestItem } from '../../lib/testing';
+import type { Program } from '../../lib/programs';
+import { journeyOf as gatesOf, machineAt } from '../../lib/install';
 import type { JobItem } from '../../lib/portfolio';
 import type { ProgramsReading, ProgramLine } from '../../lib/programsReport';
 import { badgeOf } from '../../lib/programsReport';
@@ -80,6 +82,16 @@ export function nowMachine(a: Pick<Asset, 'id' | 'name'> & { oem?: string }, at:
     critical: mine.filter(x => x.critical && !x.critical.risk).length,
     ...(next ? { next: { what: next.what, on: next.on as string, late: next.late } } : {}),
   };
+}
+
+/** A stage-gate project's machines, a row each, as Now reads them (project/now nowMachine) — on Now and on the
+ *  Machines tab's own list (27 October). */
+export function machinesOf(assets: readonly Asset[], tests: Test[], items: TestItem[], programs: readonly Program[],
+  reading: ProgramsReading | undefined, owed: readonly JobItem[], today: string): NowMachine[] {
+  return [...assets].sort((a, b) => a.sort - b.sort).map(a => {
+    const j = gatesOf(a, tests, items, today, programs);
+    return nowMachine(a, machineAt(a, j), j, reading, owed, tests);
+  });
 }
 
 /** WHAT BLOCKS HANDOVER — the open critical problems, the project's own and the register's taken for

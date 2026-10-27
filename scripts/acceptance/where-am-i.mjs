@@ -16,8 +16,8 @@
  *   F  the bar: Factory › the place › the page, the place's name opening its first page; Go to ▾ the picker of lines
  *      and projects
  *   G  the Factory has a Machines tab (Rowland, 27 October: "Why don't I see machines?") — every line in floor order,
- *      its machines in flow order, each with who made it, its project, its programs and what is open, as
- *      lib/factoryMachines reads them; a row opens the machine's page on its line; its paper says the same
+ *      its machines in flow order, each as lib/factoryMachines reads it — a project's machine saying where it is up
+ *      to there, opening its page in the project; its paper says the same (every word: machine-reports.mjs)
  *   H  a project's Machines tab opens on its machines, a row each, as Now reads them — the gates, the timeline and
  *      Programs the tabs beside it; a row opens the machine's page in the project
  *   and on a phone nothing off the side, and no console error anywhere.
@@ -178,17 +178,18 @@ const names = await page.evaluate(async ([ws, pid]) => {
   ok(says === want.says, `G2 the sentence as lib/factoryMachines says it (${says})`, want.says);
   const rows = await main().locator('.fmc-line').evaluateAll(els => els.flatMap(el => [...el.querySelectorAll('.fmc-m')].map(m => `${el.querySelector('h2')?.firstChild?.textContent?.trim()}|${m.getAttribute('data-machine')}`)));
   ok(rows.length > 0 && JSON.stringify(rows) === JSON.stringify(want.rows), `G3 every line's machines, in floor and flow order (${rows.length})`, `${rows.join(', ')} ≠ ${want.rows.join(', ')}`);
+  /* a machine a project is working on says what that project's Machines tab says (27 October — "factory machines tells you nothing"; machine-reports.mjs proves every word) */
   const ilapak = flat(await main().locator('.fmc-m[data-machine="Ilapak flow wrapper"]').innerText());
-  ok(/Ilapak UK/.test(ilapak) && /With Line 2 commissioning/.test(ilapak) && /programs? proved/.test(ilapak), `G4 a row says who made it, its project and its programs (${ilapak})`);
-  await main().locator('.fmc-m[data-machine="Ilapak flow wrapper"] .lt-row').click(); await page.locator('.lmc').waitFor({ timeout: 15000 }); await page.waitForTimeout(600);
-  ok(/#\/lines\/[^/]+\/machine\/Ilapak%20flow%20wrapper$/.test(page.url()), `G5 a row opens the machine's page on its line (${page.url().split('#')[1]})`);
+  ok(/Ilapak UK/.test(ilapak) && /In Line 2 commissioning: (at |due on site|handed over)/.test(ilapak) && /Programs: /.test(ilapak), `G4 a row says who made it, its project and where it is up to, its programs (${ilapak})`);
+  await main().locator('.fmc-m[data-machine="Ilapak flow wrapper"] .lt-row').click(); await page.locator('.mpg').waitFor({ timeout: 15000 }); await page.waitForTimeout(600);
+  ok(new RegExp(`#/project/${PID}/machine/`).test(page.url()), `G5 a row opens the machine's page in its project (${page.url().split('#')[1]})`);
   /* its paper, read back */
   await go('#/machines');
   await page.locator('.part-head .part-menu-b', { hasText: /^Report/ }).click(); await page.waitForTimeout(300);
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('menuitem', { name: /The factory’s machines/ }).or(page.locator('.part-menu-i', { hasText: /The factory’s machines/ })).first().click()]);
   const f = join(mkdtempSync(join(tmpdir(), 'wai-')), 'machines.pdf'); await dl.saveAs(f);
   const paper = execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
-  ok(paper.includes(want.says) && want.rows.every(r => paper.includes(r.split('|')[1])) && /With Line 2 commissioning/.test(paper), 'G6 its paper: the sentence and every machine, as the screen says them', paper.slice(0, 300));
+  ok(paper.includes(want.says) && want.rows.every(r => paper.includes(r.split('|')[1])) && /In Line 2 commissioning:/.test(paper), 'G6 its paper: the sentence and every machine, as the screen says them', paper.slice(0, 300));
 }
 
 /* ---- H · a project's machines, simply; a machine first ---- */

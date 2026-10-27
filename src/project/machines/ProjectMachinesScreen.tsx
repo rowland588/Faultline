@@ -3,71 +3,80 @@
  * Rowland, 27 October: "Projects, I go in, I go to machines ... I see machines, install, setup, commissioning,
  * handover, timeline, programs. I don't understand why I don't see machines, simply enough." So Machines opens on
  * the machines: a row each — its name and who made it, its status (Not here yet · On site · Installed · Running ·
- * Handed over), where it is up to in the project, its programs, what it owes and what is next — read as Now reads
- * them (project/now machinesOf), each opening its own page. The project's gates, timeline and Programs are the
- * project's own views, from its front page (27 October: "If I go to projects ... my project status ... If I go to
- * machine ... everything associated to my machine"). A machine is added here as at Install (the same Add a machine,
- * the line's own machines offered first). Nothing here decides a word. */
-import { useMemo } from 'react';
+ * Handed over), where it is up to in the project, its programs, what it owes and what is next — read by
+ * project/machines (Now's reading), each opening its own page. The project's gates, timeline and Programs are the
+ * project's own views, from its front page. A machine is added here as at Install (the same Add a machine, the
+ * line's own machines offered first).
+ *
+ * Its paper (the same day: "projects, machines shows the page I have been wanting .. but still no report
+ * abilities"): Report ▾ — the Machines report (these rows, then a page a machine as its own page says it) and the
+ * commissioning report. Nothing here decides a word. */
+import { useMemo, useState } from 'react';
 import { useProject } from '../../lib/useProjects';
 import { useProjectRead } from '../projectRead';
-import { programsReading } from '../../lib/programsReport';
-import { live, assetStateOf, ASSET_STATE_WORD } from '../../lib/testing';
 import { niceDay } from '../../lib/weeks';
 import { useTesting } from '../../lib/useTesting';
-import { useMachinesToTakeOn } from '../../lib/useLineRecords';
+import { useLineRecords, useMachinesToTakeOn } from '../../lib/useLineRecords';
+import { lineOfMachine } from '../../lib/lineRecords';
+import { live } from '../../lib/testing';
 import { useAccess } from '../../cloud/access';
 import { PageHeader } from '../../ui/parts';
 import { AddAsset } from '../../screens/TestsScreen';
 import { nav } from '../../state/useRoute';
-import { machinesOf } from '../now/NowScreen';
+import { projectMachineRows, projectMachinesPaper, projectMachinesSays, rowSays } from './machines';
 
 export function ProjectMachinesScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
   const read = useProjectRead(project);
   const tt = useTesting(projectId);
   const takeOn = useMachinesToTakeOn(projectId);
+  const rec = useLineRecords();
   const can = useAccess(projectId);
+  const [said, setSaid] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const machines = useMemo(() => {
-    if (!read?.gate) return null;
-    const g = read.gate;
-    const tests = live(g.tests), items = live(g.items);
-    const reading = programsReading({ tests, items, assets: live(g.assets), programs: g.programs, today: read.today, holder: g.project, studies: read.studies });
-    const assets = live(g.assets);
-    /* its status in plain words — handed over, else where the machine itself is (lib/testing assetStateOf) */
-    return machinesOf(assets, tests, items, g.programs, reading, read.owed, read.today).map(m => {
-      const a = assets.find(x => x.id === m.id);
-      return { ...m, status: m.gate === 'Handed over' ? 'Handed over' : a ? ASSET_STATE_WORD[assetStateOf(a)] : '' };
-    });
-  }, [read]);
+  const machines = useMemo(() => (read?.gate ? projectMachineRows(read.gate, read.owed, read.today) : null), [read]);
 
   if (loading || (project && !read)) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
-  if (!project || !machines) return <div className="wrap pace"><p className="sub">That project is not on this device.</p></div>;
+  if (!project || !machines || !read?.gate) return <div className="wrap pace"><p className="sub">That project is not on this device.</p></div>;
+  const gate = read.gate;
 
-  const handed = machines.filter(m => m.gate === 'Handed over').length;
-  const late = machines.filter(m => m.late || m.critical).length;
-  const says = machines.length
-    ? [`${machines.length} machine${machines.length === 1 ? '' : 's'}`, handed ? `${handed} handed over` : '', late ? `${late} with something late or critical` : 'nothing late'].filter(Boolean).join(' · ')
-    : 'No machines on the project yet.';
+  /* THE MACHINES REPORT — these rows, then a page a machine (lib/machinePaperPdf) */
+  const print = async () => {
+    if (busy) return;
+    setBusy(true); setSaid(null);
+    try {
+      const lineName = (assetId: string) => {
+        const a = live(gate.assets).find(x => x.id === assetId);
+        const ws = a ? lineOfMachine(a, rec.jobLines) : undefined;
+        return ws ? rec.all.find(w => w.id === ws)?.name : undefined;
+      };
+      const { saveMachinesPaper } = await import('../../lib/machinePaperPdf');
+      const how = await saveMachinesPaper(projectMachinesPaper(gate, read.owed, read.today, lineName), [project.name, 'machines report']);
+      setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
+    } catch (e) {
+      console.error('machines report failed', e);
+      setSaid('The paper could not be made — try again.');
+    } finally { setBusy(false); }
+  };
 
   return (
     <div className="wrap pace pms">
       <PageHeader eyebrow={<span className="pl-eyebrow">MACHINES · {project.name}</span>} title="Machines"
-        says={says}
-        papers={[{ label: 'Commissioning report', for: 'where each machine has got to, and a card a machine', make: () => nav(`/project/${projectId}/report?doc=commissioning`) }]} />
+        says={projectMachinesSays(machines)}
+        papers={[
+          { label: 'Machines report', for: machines.length ? 'every machine as this page says it, then a page a machine — its gates, what is open, its tests, its programs' : 'no machines yet', disabled: !machines.length || busy, make: print },
+          { label: 'Commissioning report', for: 'where each machine has got to, and a card a machine', make: () => nav(`/project/${projectId}/report?doc=commissioning`) },
+        ]} />
+      {said && <p className="tc-ok" role="status">{said}</p>}
       {machines.length > 0
         ? (
           <ul className="lt-rows">
             {machines.map(m => (
               <li key={m.id} className={'lt-li now-m' + (m.critical || m.late ? ' is-late' : '')} data-now-machine={m.name}>
                 <button type="button" className="lt-row" onClick={() => nav(`/project/${projectId}/machine/${encodeURIComponent(m.id)}`)}>
-                  <b className="lt-what">{m.name}{m.oem && <span className="sub now-oem"> · {m.oem}</span>} <span className={'pms-status is-' + (m.status === 'Handed over' ? 'g' : m.status === 'Not here yet' ? 'n' : 'w')}>{m.status}</span></b>
-                  <span className="lt-says">
-                    {[m.status === 'Handed over' ? '' : `In ${project.name}: ${m.gate === 'Due on site' ? 'due on site' : `at ${m.gate}`}`,
-                      m.programs ? `Programs: ${m.programs}` : '',
-                      m.open ? `${m.open} open${m.late ? `, ${m.late} late` : ''}${m.critical ? `, ${m.critical} critical` : ''}` : 'nothing owed'].filter(Boolean).join(' · ')}
-                  </span>
+                  <b className="lt-what">{m.name}{m.oem && <span className="sub now-oem"> · {m.oem}</span>} <span className={'pms-status is-' + m.statusTone}>{m.status}</span></b>
+                  <span className="lt-says">{rowSays(m, project.name)}</span>
                   <span className="lt-where">{m.next ? <>{m.next.late ? 'Late' : 'Next'}: {m.next.what} · <span className={m.next.late ? 'act-late' : ''}>{niceDay(m.next.on)}</span></> : 'nothing dated'}</span>
                 </button>
               </li>

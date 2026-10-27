@@ -3,7 +3,8 @@
  * #/lines/:ws/machine/:name — the line's page for one machine, reached from the line's machines. What it
  * is and who is working on it, every project that did anything to it (each opening its page in that
  * project), its programs, its problems, the studies of it and its stops. Read by lib/lineMachine; nothing
- * here decides a word. */
+ * here decides a word. Report ▾ prints this page (27 October — Rowland: "still no report abilities"):
+ * lib/machinePaper lineMachinePaper, drawn by lib/machinePaperPdf. */
 import { useEffect, useMemo, useState } from 'react';
 import type { Observation, Workspace } from '../types';
 import type { Snag } from '../snag/types';
@@ -14,6 +15,7 @@ import { projectsOnLines, useJobFloor } from '../lib/useJobFloor';
 import { lineMachineView, STOP_DAYS } from '../lib/lineMachine';
 import { todayISO } from '../lib/weeks';
 import { PageHeader } from '../ui/parts';
+import { lineMachinePaper } from '../lib/machinePaper';
 import { nav } from '../state/useRoute';
 
 export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }) {
@@ -22,6 +24,8 @@ export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }
   const [tests, setTests] = useState<Test[]>([]);
   const [snags, setSnags] = useState<Snag[]>([]);
   const [stops, setStops] = useState<Observation[]>([]);
+  const [said, setSaid] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   useEffect(() => {
     let live = true;
     const load = () => void Promise.all([getWorkspace(wsId), listAllTests(), listAllSnags(), listObservations(wsId)]).then(([w, t, s, o]) => {
@@ -50,13 +54,28 @@ export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }
     );
   }
   const openProblems = v.problems.filter(p => p.open).length;
+  const print = async () => {
+    if (busy) return;
+    setBusy(true); setSaid(null);
+    try {
+      const m = lineMachinePaper(line.name, v);
+      const { saveMachinesPaper } = await import('../lib/machinePaperPdf');
+      const how = await saveMachinesPaper({ eyebrow: m.eyebrow, title: m.name, says: '', groups: [], machines: [m], foot: `${m.name} — ${line.name}` }, [line.name, `${v.name} machine report`]);
+      setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
+    } catch (e) {
+      console.error('machine report failed', e);
+      setSaid('The paper could not be made — try again.');
+    } finally { setBusy(false); }
+  };
 
   return (
     <div className="wrap pace lmc">
-      <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {line.name}</span>} title={v.name}>
+      <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {line.name}</span>} title={v.name}
+        papers={[{ label: 'Machine report', for: 'this page on paper — every project’s work on it, its programs, its problems, the studies of it, its stops', disabled: busy, make: print }]}>
         <p className="sub lmc-says">{v.says}</p>
         {v.oem && <p className="sub">Made by <b>{v.oem}</b></p>}
       </PageHeader>
+      {said && <p className="tc-ok" role="status">{said}</p>}
 
       <section className="pl-sec lmc-projects" aria-label="The projects on it">
         <div className="pl-sec-h"><h2>The projects on it</h2><span className="sub">{v.projects.length || 'none'}</span></div>
