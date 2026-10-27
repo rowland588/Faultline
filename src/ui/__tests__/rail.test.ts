@@ -156,14 +156,14 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
   const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const, open: 3, late: 1 }, { id: 'm2', name: 'Coder', state: 'w' as const }];
   it('a stage gate (26 October, four tabs and More; 27 October, the gates the project\'s): Now and what is under it — the gates and Programs among them · Machines, its machines · Problems · Reports · More and what is in it', () => {
     const g = projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'setup', counts, late: 3, machines });
-    expect(said(g)).toEqual(['Factory', 'Now', 'Now', 'Journey', 'Actions', 'The gates', 'Programs', 'Machines', 'Wrapper', 'Coder', 'Problems', 'Reports', 'More', 'Materials', 'Tools', 'Notes', 'Details']);
-    /* the gates are the project's own, under Now, opening on the first with work; Machines is the machines (27 October:
-       "If I go to projects ... my project status ... If I go to machine ... everything associated to my machine") */
+    expect(said(g)).toEqual(['Factory', 'Now', 'Now', 'Journey', 'Actions', 'Plan', 'Programs', 'Machines', 'Wrapper', 'Coder', 'Problems', 'Reports', 'More', 'Materials', 'Tools', 'Notes', 'Details']);
+    /* the gates are the project's own Plan tab (27 October: the second row of tabs went), opening on the first with
+       work; Machines is the machines ("If I go to machine ... everything associated to my machine") */
     const plan = all(g).find(l => l.key === 'plan')!;
-    expect([plan.on, plan.sub, plan.to]).toEqual([true, true, `/project/${P}/install`]);
+    expect([plan.on, !!plan.sub, plan.to]).toEqual([true, false, `/project/${P}/install`]);
     const tab = all(g).find(l => l.key === 'machines')!;
     expect([tab.on, tab.n, tab.late, tab.state, tab.to]).toEqual([false, 5, 3, 'r', `/project/${P}/machines`]);
-    expect(scopeTabs(g).filter(l => l.on).map(l => l.label)).toEqual(['Now']);
+    expect(scopeTabs(g).filter(l => l.on).map(l => l.label)).toEqual(['Plan']);
     expect(all(g).find(l => l.key === 'machine:m1')).toMatchObject({ n: 3, late: 1, state: 'r', sub: true });
   });
   it('a stage gate past six machines folds them into one line', () => {
@@ -254,7 +254,7 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
   it('a project: its pages without its machines folded under them', () => {
     const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const }];
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'job', counts: {}, late: 0, machines })).map(l => l.label))
-      .toEqual(['Now', 'Machines', 'Problems', 'Reports', 'More']);
+      .toEqual(['Now', 'Plan', 'Machines', 'Problems', 'Reports', 'More']);
   });
   it('a page folded under a tab lights it: a machine its Machines, the gates and Programs Now, the day and the journey Now, Materials More, the line\'s logs its Tools', () => {
     const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const }];
@@ -262,8 +262,9 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
     expect(lit('machine:m1')).toEqual(['Machines']);
     expect(lit('machines')).toEqual(['Machines']);
     /* the project's own views — its gates and Programs — light Now (27 October) */
-    expect(lit('programs')).toEqual(['Now']);
-    expect(lit('install')).toEqual(['Now']);
+    /* the gates and Programs light Plan since 27 October (Rowland: the second row of tabs "should not be there") */
+    expect(lit('programs')).toEqual(['Plan']);
+    expect(lit('install')).toEqual(['Plan']);
     expect(lit('journey')).toEqual(['Now']);
     expect(lit('actions')).toEqual(['Now']);
     expect(lit('materials')).toEqual(['More']);

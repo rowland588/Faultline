@@ -154,6 +154,7 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
   return (
     <div className="wrap jn">
       <PageHeader
+        back={{ label: 'Now', to: `/project/${projectId}` }}
         eyebrow={<span className="pl-eyebrow">THE JOURNEY · WHAT WE DID, WHAT WE ARE DOING NEXT</span>}
         title="Journey"
         says={<span className="sub">Between two dates, day by day: what got done, what did not go to plan, what is due, and your own commentary — every line read from the records. Pick the range; the page follows it.</span>}

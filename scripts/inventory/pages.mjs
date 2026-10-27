@@ -73,6 +73,10 @@ export const PAGES = (sd, cap) => [
      project/machines/MachineInProject; the project's address for it opens this page) */
   { name: 'A machine — its one page, on its line', path: `#/project/${sd.projectId}/machine/${sd.machineId}`, must: [
     { what: 'its name, the page header', sel: '.lmc .part-head h1', text: /\S/ },
+    /* reached from a project it stays in the project (27 October — "I can't actually go back"): ‹ Machines back to the
+       project's machines, its line named and one tap to the line's own page of it */
+    { what: '‹ Machines — back to the project’s machines', sel: '.lmc .part-back', text: /^Machines$/ },
+    { what: 'its line named, one tap to the line’s page of it', sel: '.lmc .pl-eyebrow-a', text: /^on / },
     /* its paper (27 October — Rowland: "still no report abilities"; "all you've done is headlines") */
     { what: 'Report ▾ with its machine report', sel: '.lmc .part-head .part-menu-b', text: /^Report/ },
     { what: 'what it is in a sentence — whose, projects, programs, problems, stops', sel: '.lmc-says', text: /With .* · worked on by/ },
@@ -120,8 +124,9 @@ export const PAGES = (sd, cap) => [
   { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }, { what: 'a row a program (16 October: one row, its boxes a tap away)', sel: '.mt-list .pgr' },
     /* the page header since B3: the programs report in Report ▾ */
     { what: 'the page header — Report ▾ with the programs report', sel: '.lp .part-head .part-menu-b', text: /^Report/ },
-    /* 23 October: a project's programs typed only on its Commission, on its line */
-    { what: 'a project\'s programs typed only on its Commission, under it', sel: '.lp-stage [data-stage-program]' }] },
+    /* 23 October: a project's programs on its line; since 27 October in place under their machine — the project's own
+       rows, tested there ("clicking a program lands on a different page") — never a list of their own to leave by */
+    { what: 'a project\'s programs on its line, in place — Being proved in …', sel: '.lp-m-job .pp-mh h2', text: /^Being proved in / }] },
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' },
     /* the page header since B3 (docs/STRUCTURE.md §5.4): Problem the one primary, its two papers in Report ▾ */
     { what: 'the page header — Problem, and Report ▾', sel: '.qsl .part-head .part-menu-b', text: /^Report/ },
@@ -138,11 +143,11 @@ export const PAGES = (sd, cap) => [
   { name: 'A stage-gate project — its front page, Now', path: `#/project/${sd.projectId}`, must: [
     /* B3: the status report and the client report in the header's Report ▾ (the verdict's link moved here) */
     { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
-    { what: 'its tabs — Now · Machines · Problems · Reports · More', sel: '.nv-tabs .nv-tab', n: 5 },
+    { what: 'its tabs — Now · Plan · Machines · Problems · Reports · More', sel: '.nv-tabs .nv-tab', n: 6 },
     { what: 'its own pages as tabs — Now on', sel: '.nv-tabs .nv-tab.is-on', text: /^Now/ },
-    /* the project's own views — its gates, the timeline and Programs — from its front page (27 October: the project is the
-       project's status; the machines are the Machines tab's) */
-    { what: 'the project’s own views — Now · Install · Set up · Commission · Hand over · Timeline · Programs', sel: '.plt .plt-t', n: 7 },
+    /* the second row of views that was here — Now · the gates · Timeline · Programs — is taken off (27 October, Rowland:
+       "None of that should be there ... it's a mess"): the gates, the timeline and Programs are the Plan tab's, their row
+       on Plan's own pages (Commission, Install … below) */
     { what: 'Now’s sentence — the machines, what blocks handover, what is late', sel: '.now .now-says', text: /machine/ },
     { what: 'the verdict', sel: '.vd' },
     /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
@@ -428,8 +433,8 @@ export const PAGES = (sd, cap) => [
     { what: 'its name, Stops timed, and the line', sel: '.study-log b', text: /^Stops timed$/ },
     { what: 'its four views as tabs, Capture lit', sel: '.study-views [role=tab]', n: 4 },
     { what: 'Capture the view shown', sel: '.study-views [role=tab][aria-selected=true]', text: /^Capture$/ },
-    /* the seeded study is a stage-gate project's own walk, filmed from Install: Now lit — the gates are the project's own (27 October) */
-    { what: 'where it sits, its tab on — Now', sel: '.nv-tabs .nv-tab.is-on', text: /^Now/ }] },
+    /* the seeded study is a stage-gate project's own walk, filmed from Install: Plan lit — the gates are the Plan tab's (27 October) */
+    { what: 'where it sits, its tab on — Plan', sel: '.nv-tabs .nv-tab.is-on', text: /^Plan/ }] },
   { name: 'Actions — the factory', path: '#/actions', must: [
     { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },

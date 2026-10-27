@@ -5,7 +5,9 @@
  * stage-gate project is working on it, the project's part comes first (project/machines/MachineInProject — where it
  * is up to, its four gates, what is open, its tests, its programs, the machine itself); then every project that did
  * anything to it, the line's own programs on it, its problems, the studies of it and its stops. The project's address
- * for it (#/project/:id/machine/:asset) opens this page. Read by lib/lineMachine; nothing here decides a word. Report ▾ prints this machine in full (27 October — Rowland: "still no report
+ * for it (#/project/:id/machine/:asset) draws this same page inside the project (27 October — Rowland chose
+ * "all of it": a machine opened from a project stays in the project, "‹ Machines" back to the project's machines,
+ * its line one tap away); reached from the line, it is the line's. Read by lib/lineMachine; nothing here decides a word. Report ▾ prints this machine in full (27 October — Rowland: "still no report
  * abilities"; "all you've done is headlines"): lib/machineDossier, drawn by lib/machinePaperPdf. */
 import { useEffect, useMemo, useState } from 'react';
 import type { Observation, Workspace } from '../types';
@@ -21,7 +23,9 @@ import { nav } from '../state/useRoute';
 import { planModel } from '../lib/planModel';
 import { MachineInProject } from '../project/machines/MachineInProject';
 
-export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }) {
+export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; name: string;
+  /** The project the address came from — the page is drawn inside it, its way back the project's Machines. */
+  inProject?: string }) {
   const rec = useLineRecords();
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
   const [tests, setTests] = useState<Test[]>([]);
@@ -82,7 +86,9 @@ export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }
 
   return (
     <div className="wrap pace lmc">
-      <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {line.name}</span>} title={v.name}
+      <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {inProject
+          ? <a className="pl-eyebrow-a" href={`#/lines/${encodeURIComponent(wsId)}/machine/${encodeURIComponent(name)}`}>on {line.name} ›</a> : line.name}</span>} title={v.name}
+        back={inProject ? { label: 'Machines', to: `/project/${inProject}/machines` } : { label: 'Machines', to: `/lines/${encodeURIComponent(wsId)}?view=machines` }}
         papers={[
           { label: 'Machine report', for: 'this machine in full — where it is up to, what is open and who has it, every test and every attempt, its programs and their tests, every step, its problems and what was done, the studies and what they found, its stops', disabled: busy, make: print },
           ...(job ? [{ label: 'Commissioning report', for: `every machine in ${job.name}, a card each`, make: () => nav(`/project/${job.id}/report?doc=commissioning`) }] : []),

@@ -44,7 +44,7 @@ export function ActionsScreen({ projectId }: { projectId: string }) {
   const read = useProjectActions(project);
   if (loading || (project && !read)) return <p className="sub wrap">Reading the project’s actions…</p>;
   if (!project || !read) return <p className="sub wrap">That project is not on this device.</p>;
-  return <ActionsPage read={read} name={project.name} />;
+  return <ActionsPage read={read} name={project.name} projectId={projectId} />;
 }
 
 /** EVERY PROJECT'S ACTIONS AND EVERY LINE'S OWN PROBLEMS — the control room's
@@ -57,7 +57,7 @@ export function EveryActionScreen() {
   return <ActionsPage read={read} />;
 }
 
-function ActionsPage({ read, name }: { read: ProjectActionsRead; name?: string }) {
+function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name?: string; projectId?: string }) {
   const every = !name;
   const [view, setView] = useState<View>('person');
   const [only, setOnly] = useState<Only>('all');
@@ -86,6 +86,7 @@ function ActionsPage({ read, name }: { read: ProjectActionsRead; name?: string }
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): its paper in Report ▾, named for what it is — it was a
           button saying PDF */}
       <PageHeader
+        {...(projectId ? { back: { label: 'Now', to: `/project/${projectId}` } } : {})}
         eyebrow={<span className="pl-eyebrow">{every ? 'CONTROL ROOM · EVERY PROJECT AND LINE' : 'ACTIONS · WHO IS DOING WHAT'}</span>}
         title="Actions"
         says={<span className="sub">{every ? 'Everything every project owes, and every problem on a line with no project — what, why, where, who and by when. Tap one to change it where it is kept.' : 'Everything the project owes, from wherever it was raised — what, why, where, who and by when. Tap one to change it where it is kept.'}</span>}

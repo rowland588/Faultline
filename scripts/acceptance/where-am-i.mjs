@@ -7,19 +7,21 @@
  *   A  the menu names the place: inside a line its name under Factory, lit, and Factory not; inside a project its
  *      name under Projects; the factory's own pages light Factory and name nothing under it
  *   B  a line's Programs is that line's — named in its band, no other line's chip to wander off by, every line's
- *      programs one tap up in the Factory, where the chips still narrow the list; a line's Problems has no line picker
+ *      programs at their own address in the Factory (no door off the line to them since 27 October), where the chips
+ *      still narrow the list; a line's Problems has no line picker
  *   C  a line has a Machines tab, each name opening the machine's page, that page lighting Machines; the Overview's
  *      machine cards open the same page
  *   D  one name, Factory: its Overview's line cards under Lines, each saying Open; the Lines page titled Lines; no
  *      "Your factory" on any of them
- *   E  a project's machine page goes to the same machine on its line — every project's work on it
+ *   E  a project's machine page is the same machine's one page, staying in the project (27 October), its line named
+ *      and one tap away — every project's work on it
  *   F  the bar: Factory › the place › the page, the place's name opening its first page; Go to ▾ the picker of lines
  *      and projects
  *   G  the Factory has a Machines tab (Rowland, 27 October: "Why don't I see machines?") — every line in floor order,
  *      its machines in flow order, each as lib/factoryMachines reads it — a project's machine saying where it is up
  *      to there, opening its page in the project; its paper says the same (every word: machine-reports.mjs)
  *   H  a project's Machines tab opens on its machines, a row each, as Now reads them — the gates, the timeline and
- *      Programs the tabs beside it; a row opens the machine's page in the project
+ *      Programs under Plan, their own row on Plan's pages only; a row opens the machine's page in the project
  *   and on a phone nothing off the side, and no console error anywhere.
  *
  *   node scripts/acceptance/where-am-i.mjs      (SMOKE_BASE, as smoke) */
@@ -90,10 +92,13 @@ const names = await page.evaluate(async ([ws, pid]) => {
   const eyebrow = flat(await main().locator('.pl-eyebrow').first().innerText());
   ok(eyebrow === `${names.line.toUpperCase()} · PROGRAMS` && await tabOn() === 'Programs', `B1 the line's Programs names the line and lights its tab (${eyebrow})`);
   ok(await main().getByRole('group', { name: 'Which line' }).count() === 0 && !/All lines/.test(await main().innerText()), 'B2 no other line to wander off to — no Which line, no All lines');
-  ok(flat(await main().locator('section.lp-line h2').allInnerTexts()) === names.line, 'B3 only this line\'s programs');
-  await main().getByRole('button', { name: /Every line’s programs — in the Factory/ }).click(); await page.waitForTimeout(1800);
-  ok(/#\/programs$/.test(page.url()) && (await menu()).lit.join() === 'Factory' && flat(await main().locator('.pl-eyebrow').first().innerText()) === 'FACTORY · PROGRAMS',
-    `B4 every line's programs one tap up, in the Factory (${page.url().split('#')[1]})`);
+  ok(flat(await main().locator('section.lp-line .lp-line-a').allInnerTexts()) === names.line, 'B3 only this line\'s programs');
+  /* 27 October (docs/MAP.md, "You stay where you pressed"): a line's Programs keeps you on the line — no door off it
+     into every line's programs; the factory's list is still its own address */
+  ok(await main().getByRole('button', { name: /Every line’s programs/ }).count() === 0, 'B4 no door off the line into every line\'s programs');
+  await go('#/programs');
+  ok((await menu()).lit.join() === 'Factory' && flat(await main().locator('.pl-eyebrow').first().innerText()) === 'FACTORY · PROGRAMS',
+    `B4 every line's programs still at their own address, in the Factory (${page.url().split('#')[1]})`);
   ok(await main().getByRole('group', { name: 'Which line' }).getByRole('button', { name: 'All lines' }).count() === 1, 'B5 in the Factory the lines still narrow the list');
   await go(`#/snags?line=${WS}`);
   const tab = await tabOn();
@@ -138,9 +143,12 @@ const names = await page.evaluate(async ([ws, pid]) => {
 {
   await go(`#/project/${PID}/machine/${names.asset}`);
   await page.locator('.lmc').waitFor({ timeout: 15000 }).catch(() => {}); await page.waitForTimeout(800);
-  ok(/#\/lines\/[^/]+\/machine\//.test(page.url()), `E1 the project's address for it opens its one page, on ${names.line}`, page.url());
-  ok(flat(await page.locator('.lmc .part-head h1').innerText()).startsWith(names.machine) && (await menu()).lit.join() === names.line,
-    `E2 the same machine on its line, the line named and lit (${page.url().split('#')[1]})`);
+  /* a machine opened from a project stays in the project (27 October — "I can't actually go back ... I have to click
+     factory"): the same one page, in the project's frame, its line named in the eyebrow and one tap to it */
+  ok(new RegExp(`#/project/${PID}/machine/`).test(page.url()), `E1 the project's address for it opens its one page, staying in the project`, page.url());
+  ok(flat(await page.locator('.lmc .part-head h1').innerText()).startsWith(names.machine) && (await menu()).lit.join() === names.job && /^Machines/.test(await tabOn()),
+    `E2 the same machine, the project lit and its Machines tab (${page.url().split('#')[1]})`, `${(await menu()).lit.join()} · ${await tabOn()}`);
+  ok(await main().locator('.pl-eyebrow-a', { hasText: names.line }).count() === 1, `E2 its line named — on ${names.line} › — one tap to the line's own page of it`);
   ok(await main().locator('.lmc-proj', { hasText: names.job }).count() === 1 && flat(await main().locator('.mpg-in').innerText()).includes(names.job), 'E3 its page names the project — its part on it first, one tap back');
 }
 
@@ -207,12 +215,14 @@ const names = await page.evaluate(async ([ws, pid]) => {
   ok(rows.length > 0 && JSON.stringify(rows) === JSON.stringify(want), `H2 a row a machine, in its order (${rows.join(', ')})`, want.join(', '));
   const st = (await main().locator('.pms .now-m .pms-status').allInnerTexts()).map(flat);
   ok(st.length === rows.length && st.every(w => ['Not here yet', 'On site', 'Installed', 'Running', 'Handed over'].includes(w)), `H3 each says its status in plain words (${st.join(', ')})`);
-  /* the gates are the project's, from its front page */
+  /* the gates are the project's Plan (27 October: one row of tabs — the gates, the timeline and Programs under Plan) */
   await go(`#/project/${PID}`);
+  ok(await page.locator('.plt').count() === 0, 'H4 no second row of tabs on the project\'s front page');
+  await go(`#/project/${PID}/testing`);
   const views = (await page.locator('.plt .plt-t').allInnerTexts()).map(t => flat(t).split(' ')[0]);
-  ok(views[0] === 'Now' && ['Install', 'Set', 'Commission', 'Hand', 'Timeline', 'Programs'].every(v => views.includes(v)), `H4 the project's own views on its front page (${views.join(' · ')})`);
+  ok(!views.includes('Now') && ['Install', 'Set', 'Commission', 'Hand', 'Timeline', 'Programs'].every(v => views.includes(v)), `H4 Plan's own views on its pages (${views.join(' · ')})`);
   await page.locator('.plt .plt-t', { hasText: /^Install/ }).click(); await page.waitForTimeout(1500);
-  ok(/\/install$/.test(page.url()) && await tabOn() === 'Now', `H5 a gate opens lighting Now — the project's (${await tabOn()})`);
+  ok(/\/install$/.test(page.url()) && await tabOn() === 'Plan', `H5 a gate opens lighting Plan — the project's (${await tabOn()})`);
   /* a machine's page — the machine first: its status, the project it is going through and where it is up to, what is open, its tests, its programs */
   await go(`#/project/${PID}/machines`);
   await main().locator('.pms .now-m .lt-row').first().click(); await page.locator('.mpg').waitFor({ timeout: 15000 }); await page.waitForTimeout(800);

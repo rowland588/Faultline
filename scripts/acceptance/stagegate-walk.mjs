@@ -189,7 +189,8 @@ const desk = await device(1360);
   await W.go(J);
   await P.locator('main').filter({ hasText: /\d+ done · \d+ to go/ }).waitFor({ timeout: 20000 }).catch(() => {});
   const doneBefore = Number((/(\d+) done · \d+ to go/.exec(flat(await P.locator('main').innerText())) ?? [])[1]);
-  /* the gates are the project's own views from Now since 27 October (ui/PlanTabs; the Machines tab is the machines) */
+  /* the gates are the project's Plan tab since 27 October — one row of tabs, Plan's own views on its pages (ui/PlanTabs) */
+  await W.tap('Plan (its tab)', P.locator('.nv-tabs .nv-tab', { has: P.locator('.nv-tab-l', { hasText: /^Plan$/ }) }).first());
   await W.tap('Hand over (its view)', P.locator('main a.plt-t').filter({ hasText: /^Hand over/ }).first());
   await W.tap('the item booked 23 Oct', P.locator('.ig-cell').filter({ hasText: '23 Oct' }).first());
   await W.tap('Done today', P.locator('.rd').last().getByRole('button', { name: /Done today/ }).first());
@@ -205,7 +206,8 @@ const desk = await device(1360);
 {
   const W = await device(390); const P = W.page; const J = `#/project/${W.sd.projectId}`;
   await W.go(J);
-  /* Programs is one of the project's own views from Now since 27 October (ui/PlanTabs) */
+  /* Programs is one of the Plan tab's views since 27 October (ui/PlanTabs) */
+  await W.tap('Plan (its tab)', P.locator('.nv-tabs .nv-tab', { has: P.locator('.nv-tab-l', { hasText: /^Plan$/ }) }).first());
   await W.tap('Programs (its view)', P.locator('main a.plt-t').filter({ hasText: /^Programs/ }).first());
   const row = P.locator('.pgr').filter({ hasText: 'PR-07 Baking Potatoes' }).first();
   const box = async name => row.getByRole('button', { name }).first().boundingBox();

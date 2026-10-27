@@ -14,6 +14,21 @@ The yardstick: you always know where you are; a page has one name; one obvious
 way to each place; opening something never takes you out of the project without
 meaning to; nothing said twice; plain words.
 
+## Done since (27 October, the navigation batch — Rowland: "All of it")
+
+- **N2 done:** the project's tabs are Now · Plan · Machines · Problems · Reports · More; Plan holds Install, Set up,
+  Commission, Hand over, the timeline and Programs, their row only on Plan's pages; Now has no second row and lights
+  only on the front page and the doors from it (Today, Journey, Actions).
+- **N1 in part:** one row of tabs on Now; Plan's own row stays on its pages.
+- **N3 done:** a machine opened from a project is the one machine page in the project's frame, *‹ Machines* back to
+  the project's, *on Line 7 ›* to the line's.
+- **Every page below a tab says ‹ Back to it:** a machine (‹ Machines), a test (‹ Commission), a fix (‹ Problems),
+  the Journey and Actions (‹ Now).
+- **A program opens where you press it:** a line's Programs shows a stage-gate project's programs in place under
+  their machine (*Being proved in …*), tested there; the line's link to every line's programs is gone.
+- **The context bar names the factory's old lists for what they are** (Factory › Problems, never "Overview").
+- Still open: N4–N10 and the screens' findings below.
+
 ## Navigation
 
 | # | | Finding | Fix |

@@ -49,7 +49,7 @@ import { toolByKey } from '../catalogue/registry';
 import { listAllSnags, allPaceLines } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import {
-  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, scopeTabs, factoryTabs, FACTORY_PAGES, STUDY_SCREENS, lineHref,
+  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, scopeTabs, factoryTabs, FACTORY_PAGES, OFF_THE_MENU_NAME, STUDY_SCREENS, lineHref,
   type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState, type Count,
 } from './rail';
 
@@ -147,14 +147,16 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, w
   };
   /* WHERE YOU WERE (lib/recentPlaces, B5): a project's or a line's page, noted on this device for Home */
   const scopeName = scope.kind === 'project' ? project?.name : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name : undefined;
-  const placePage = toolName ?? page;
+  /* the factory's old lists light the Overview in the menu but are named for what they are in the bar */
+  const shown = (scope.kind === 'factory' ? OFF_THE_MENU_NAME[here] : undefined) ?? page;
+  const placePage = toolName ?? shown;
   useEffect(() => {
     if (reading || !scopeName || (scope.kind !== 'project' && scope.kind !== 'line')) return;
     notePlace({ to: window.location.hash.slice(1) || '/', scope: scopeName, ...(placePage ? { page: placePage } : {}), kind: scope.kind, at: Date.now() });
   }, [reading, scopeName, placePage, scope.kind]);
   return (
     <>
-      <ContextBar scope={scope} page={page} tool={toolName && toolName !== page ? toolName : undefined} toolTo={toolTo} projects={all} lines={lines} projectId={project?.id}
+      <ContextBar scope={scope} page={shown} tool={toolName && toolName !== shown ? toolName : undefined} toolTo={toolTo} projects={all} lines={lines} projectId={project?.id}
         onLines={scope.kind === 'project' ? onLines : undefined} />
       {reading ? <NavChrome groups={[]} bar={[]} />
         : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={said} />

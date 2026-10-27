@@ -47,10 +47,11 @@ await page.goto(`${BASE}/#/project/${sd.projectId}/programs`); await page.waitFo
     const top = getComputedStyle(document.querySelector('.nv-top'));
     return { more: n.scrollWidth > n.clientWidth + 8, cls: n.className, onIn: !!on && on.left >= box.left - 1 && on.right <= box.right + 1, last: [...n.querySelectorAll('.nv-tab')].at(-1)?.innerText, n: n.querySelectorAll('.nv-tab').length, topBg: top.backgroundColor, blur: top.backdropFilter };
   });
-  /* four tabs and More since 26 October (Rowland, 25 October: "Programs mobile ui difficult to see all tabs"; 26 October: "9 are
-     still to many tabs") — the strip fits a phone, nothing to scroll for; Programs is the Machines tab's view, Machines lit */
-  ok(!!t && !t.more && !/has-r/.test(t.cls) && t.n === 5, `4 the project's ${t?.n} tabs fit a phone whole — nothing waits off the side (${t?.cls})`);
-  ok(!!t && t.onIn, '4b the tab you are under (Machines, for Programs) is in view, whole');
+  /* Now · Plan · Machines · Problems · Reports · More since 27 October (Rowland, 25 October: "Programs mobile ui difficult to
+     see all tabs"; 26 October: "9 are still to many tabs"; 27 October, the second row under them "a mess" — the gates, the
+     timeline and Programs one Plan tab) — the strip fits a phone, nothing to scroll for; Programs is Plan's view, Plan lit */
+  ok(!!t && !t.more && !/has-r/.test(t.cls) && t.n === 6, `4 the project's ${t?.n} tabs fit a phone whole — nothing waits off the side (${t?.cls})`);
+  ok(!!t && t.onIn, '4b the tab you are under (Plan, for Programs) is in view, whole');
   ok(!!t && /^rgb\(/.test(t.topBg) && (t.blur === 'none' || !t.blur), `4c the top bar is opaque on a phone — ${t?.topBg}, blur ${t?.blur}`);
   const end = await page.evaluate(() => { const n = document.querySelector('.nv-tabs'); const l = [...n.querySelectorAll('.nv-tab')].at(-1).getBoundingClientRect(), b = n.getBoundingClientRect(); return { cls: n.className, lastIn: l.right <= b.right + 1, last: [...n.querySelectorAll('.nv-tab')].at(-1).innerText.trim() }; });
   ok(end.lastIn && end.last === 'More' && !/has-l|has-r/.test(end.cls), `4d the last tab, More, whole with nothing scrolled and no fade (${end.cls})`);

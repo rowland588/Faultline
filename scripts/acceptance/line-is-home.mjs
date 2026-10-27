@@ -5,12 +5,14 @@
  *  H1  the Factory's line card opens the line; its machine strip is the line's machines and only them — every card a
  *      machine of lib/lineRecords machinesOnLine, a Line capacity station that is not a machine never a card
  *  H2  a strip card opens the machine's one page, on its line — Factory › line › machine in two taps
- *  H3  a project's address for the machine opens that same page (the line's frame, its Machines tab lit), the project's
- *      part on it: its status, "Going through <project>", its four gates, what is open, its tests, its programs
+ *  H3  a project's address for the machine opens that same page and stays in the project (27 October — "a machine
+ *      opened from a project stays in the project": the project's frame, its Machines tab lit, ‹ Machines back to the
+ *      project's), the project's part on it: its status, "Going through <project>", its four gates, what is open, its
+ *      tests, its programs; the eyebrow names its line and opens the line's own page of it
  *  H4  a test on it opens in the drawer over that page, and the project's address with ?open= keeps the drawer
  *  H5  the project on it opens the project itself, never a second page of the machine
  *  H6  a stage-gate project's line (its pace line's address) opens the line's own page
- *  H7  the project's Machines rows open the one page
+ *  H7  the project's Machines rows open the one page, in the project
  *  Ph  the phone: the one page with nothing off the side
  */
 import pkg from 'playwright';
@@ -80,14 +82,18 @@ ok(hash() === `/lines/${WS}/machine/${facts.asset.name}`, `H2 Factory › ${fact
 
 /* ---- H3 · the project's address for it opens the same page, with the project's part ---- */
 await go(`#/project/${PID}/machine/${facts.asset.id}`);
-ok(hash() === `/lines/${WS}/machine/${facts.asset.name}`, "H3 the project's address opens the machine's one page, on its line", hash());
+ok(hash() === `/project/${PID}/machine/${facts.asset.id}`, "H3 the project's address opens the machine's one page and stays in the project", hash());
 const proj = await page.evaluate(async pid => (await (await import('/src/db.ts')).getProject(pid))?.name, PID);
 const part = main().locator('.mpg-in-project');
 ok(await part.count() === 1 && flat(await part.locator('.mpg-in').innerText()).startsWith(`Going through ${proj}`), `H3 the project's part first: "Going through ${proj} …"`);
 ok(await part.locator('.mpg-step').count() === 4 && await part.locator('.mpg-at').count() === 1, 'H3 its status and its four gates');
 ok(await part.locator('.mpg-open').count() === 1 && await part.locator('.mpg-tests').count() === 1 && await part.locator('.mpg-side').count() === 1, 'H3 what is open on it, its tests, its programs');
 ok(await main().locator('.lmc-studies').count() === 1 && await main().locator('.lmc-stops').count() === 1, 'H3 then the line\'s: the studies of it, its stops');
-ok(await page.locator('.nv-tab[aria-current="page"]', { hasText: 'Machines' }).count() === 1, "H3 the line's frame, its Machines tab lit — never a second frame of the machine");
+ok(await page.locator('.nv-tab[aria-current="page"]', { hasText: 'Machines' }).count() === 1, "H3 the project's frame, its Machines tab lit");
+const back = main().locator('.part-back').first();
+ok(await back.count() === 1 && flat(await back.innerText()) === 'Machines' && (await back.getAttribute('href')) === `#/project/${PID}/machines`, "H3 ‹ Machines goes back to the project's machines", await back.getAttribute('href').catch(() => ''));
+const onLine = main().locator('.pl-eyebrow-a', { hasText: facts.line }).first();
+ok(await onLine.count() === 1 && (await onLine.getAttribute('href')) === `#/lines/${WS}/machine/${encodeURIComponent(facts.asset.name)}`, `H3 "on ${facts.line}" opens the line's own page of it`, await onLine.getAttribute('href').catch(() => ''));
 ok(await main().getByRole('button', { name: /Everything on .* every project.s work on it/ }).count() === 0, 'H3 no link to a second page of the same machine');
 
 /* ---- H4 · a test opens in the drawer over the page ---- */
@@ -95,11 +101,11 @@ const testRow = part.locator('.mpg-tests .lt-row').first();
 if (await testRow.count()) {
   const title = flat(await testRow.locator('.lt-what').innerText());
   await testRow.click(); await page.waitForTimeout(1200);
-  ok(await page.locator('.rd').count() >= 1 && flat(await page.locator('.rd .rd-title').last().innerText()).length > 0 && hash().startsWith(`/lines/${WS}/machine/`),
+  ok(await page.locator('.rd').count() >= 1 && flat(await page.locator('.rd .rd-title').last().innerText()).length > 0 && hash().startsWith(`/project/${PID}/machine/`),
     `H4 a test (${title}) opens in the drawer over the one page`, hash());
   const openId = new URLSearchParams(hash().split('?')[1] ?? '').get('open');
   await go(`#/project/${PID}/machine/${facts.asset.id}?open=${openId}`);
-  ok(hash().startsWith(`/lines/${WS}/machine/`) && await page.locator('.rd').count() >= 1, "H4 the project's address with a record asked for keeps the drawer", hash());
+  ok(hash().startsWith(`/project/${PID}/machine/`) && await page.locator('.rd').count() >= 1, "H4 the project's address with a record asked for keeps the drawer", hash());
 } else ok(false, 'H4 the seeded machine has a test');
 
 /* ---- H5 · the project on it opens the project ---- */
@@ -115,7 +121,7 @@ ok(hash() === `/lines/${WS}`, `H6 the project's ${facts.line} opens the line's o
 /* ---- H7 · the project's Machines rows open the one page ---- */
 await go(`#/project/${PID}/machines`);
 await main().locator('.pms .now-m', { hasText: facts.asset.name }).first().locator('.lt-row').click(); await settle();
-ok(hash() === `/lines/${WS}/machine/${facts.asset.name}`, "H7 the project's Machines row opens the machine's one page", hash());
+ok(hash() === `/project/${PID}/machine/${facts.asset.id}`, "H7 the project's Machines row opens the machine's one page, in the project", hash());
 
 /* ---- Ph · the phone ---- */
 const pp = await ctx.newPage();

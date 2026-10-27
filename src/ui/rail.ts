@@ -334,6 +334,9 @@ export function scopeTabs(groups: RailGroup[]): RailLine[] {
  *  old links and the Every report sheet, and light the Factory. */
 export const FACTORY_PAGES = new Set(['home', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
 const OFF_THE_MENU = new Set(['allmachines', 'lineprograms', 'quicksnags', 'allactions']);
+/** What the context bar calls those pages — lit as the Overview in the menu, but never named "Overview" in the bar,
+ *  a word that is not true there (Factory › Problems, Factory › Programs …). */
+export const OFF_THE_MENU_NAME: Record<string, string> = { allmachines: 'Machines', lineprograms: 'Programs', quicksnags: 'Problems', allactions: 'Actions' };
 export const factoryTabs = (here: string): RailLine[] => [
   plain('home', 'Overview', '/room', here, 'home'),
   plain('factory', 'Set up', '/factory', here, 'machine'),
@@ -389,7 +392,10 @@ function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, 
      Machines opened on the first gate with work. */
   const machinesTab = counted('machines', 'Machines', `${p}/machines`, o.here, o.counts, [...GATE_KEYS], 'machine');
   const at = GATE_KEYS.find(k => (o.counts[k]?.n ?? 0) > 0);
-  const plan: RailLine = { ...plain('plan', 'The gates', at ? `${p}/${GATE_PATH[at]}` : `${p}/plan`, o.here, 'route'), on: o.here === 'plan' || (GATE_KEYS as readonly string[]).includes(o.here) };
+  /* THE PLAN TAB (27 October — Rowland: "None of that should be there ... it's a mess", of the second row of tabs under
+     the project's own): the gates, the timeline and Programs are one tab, opening on the first gate with work; its own
+     switcher (ui/PlanTabs) moves between them. It was "The gates", a line under Now that lit Now. */
+  const plan: RailLine = { ...plain('plan', 'Plan', at ? `${p}/${GATE_PATH[at]}` : `${p}/plan`, o.here, 'route'), on: o.here === 'plan' || (GATE_KEYS as readonly string[]).includes(o.here) };
   const under = (l: RailLine): RailLine => ({ ...l, sub: true });
   const more = (l: RailLine): RailLine => ({ ...l, sub: true, inMore: true });
   const ms = o.machines ?? [];
@@ -405,7 +411,7 @@ function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, 
       under(plain('now', 'Now', `${p}/now`, o.here, 'home')),
       under(plain('journey', 'Journey', `${p}/journey`, o.here, 'time')),
       under(plain('actions', 'Actions', `${p}/actions`, o.here, 'list')),
-      under(plan),
+      plan,
       under(counted('programs', 'Programs', `${p}/programs`, o.here, o.counts, ['programs'], 'list')),
       machinesTab,
       ...machines,

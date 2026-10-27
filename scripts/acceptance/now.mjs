@@ -3,8 +3,9 @@
  *
  * On the seeded stage-gate project:
  *
- *   1  the project's tabs are four and More — Now · Machines · Problems · Reports · More (26 October: "9 are
- *      still to many tabs"); Now is the front page, lit there, and an old /now link lands on it
+ *   1  the project's tabs — Now · Plan · Machines · Problems · Reports · More (26 October: "9 are still to many
+ *      tabs"; 27 October, the second row under them "a mess": the gates, the timeline and Programs one Plan tab);
+ *      Now is the front page, lit there, with no second row of tabs, and an old /now link lands on it
  *   2  the band and its five tiles, the one-page status's figures; Report ▾ with the status report
  *   3  blocking handover is the Actions page's critical rows, and only those
  *   4  the machines — a row each for the rail's machines, each at a gate, the wrapper's programs
@@ -15,8 +16,8 @@
  *   7  a blocking row opens its record
  *   8  the phone: nothing off the side, the five parts there
  *   9  More holds Materials, Tools, Notes and Details, each lighting More; Reports opens the reports; Machines
- *      the plan, its views the gates, the timeline and Programs — Programs lighting Machines; the day, the
- *      journey and the actions doors from Now, lighting it
+ *      the machines; Plan the gates, its own row the gates, the timeline and Programs — each lighting Plan; the
+ *      day, the journey and the actions doors from Now, lighting it
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/now.mjs      (SMOKE_BASE, as smoke) */
@@ -53,7 +54,8 @@ const lit = async () => (await page.locator('.nv-tabs .nv-tab[aria-current="page
 await go(`#/project/${PID}/now`);
 ok(page.url().endsWith(`#/project/${PID}`), '1 an old /now link lands on the front page', page.url());
 await page.locator('.now').waitFor({ timeout: 15000 }); await page.waitForTimeout(800);
-ok(JSON.stringify(await tabsSaid()) === JSON.stringify(['Now', 'Machines', 'Problems', 'Reports', 'More']), '1 the tabs: Now · Machines · Problems · Reports · More', await tabsSaid());
+ok(JSON.stringify(await tabsSaid()) === JSON.stringify(['Now', 'Plan', 'Machines', 'Problems', 'Reports', 'More']), '1 the tabs: Now · Plan · Machines · Problems · Reports · More', await tabsSaid());
+ok(await page.locator('.plt').count() === 0, '1 no second row of tabs on Now');
 ok(JSON.stringify(await lit()) === JSON.stringify(['Now']), '1 Now lit on the front page', await lit());
 ok(/machine/.test(flat(await page.locator('.now-says').innerText())), '1 the sentence says the machines', await page.locator('.now-says').innerText());
 ok(await page.locator('.jn-week').count() === 0, '1 the week said once — the next two weeks on Now, not "This week and next" above it');
@@ -142,10 +144,12 @@ await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasTex
 ok(page.url().endsWith('/machines') && await page.locator('.pms .now-m').count() >= 1 && await page.locator('.plt').count() === 0,
   '9 Machines opens on the machines, a row each — no gates over them', page.url());
 await go(NOW);
+await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Plan$/ }) }).click(); await page.waitForTimeout(1200);
+ok(page.url().endsWith('/install') && JSON.stringify(await lit()) === JSON.stringify(['Plan']), '9 Plan opens on the gates, lighting Plan', `${page.url()} ${await lit()}`);
 const views = (await page.locator('.plt .plt-t').allInnerTexts()).map(t => flat(t).split(' ')[0]);
-ok(views[0] === 'Now' && views.includes('Programs') && views.includes('Timeline') && views.includes('Commission'), '9 the project\'s own views from its front page: Now, the gates, the timeline and Programs', views);
+ok(!views.includes('Now') && views.includes('Programs') && views.includes('Timeline') && views.includes('Commission'), '9 Plan\'s own row: the gates, the timeline and Programs — no Now in it', views);
 await page.locator('.plt .plt-t', { hasText: /^Programs/ }).click(); await page.waitForTimeout(1200);
-ok(page.url().includes('/programs') && JSON.stringify(await lit()) === JSON.stringify(['Now']), '9 Programs opens, lighting Now', `${page.url()} ${await lit()}`);
+ok(page.url().includes('/programs') && JSON.stringify(await lit()) === JSON.stringify(['Plan']), '9 Programs opens, lighting Plan', `${page.url()} ${await lit()}`);
 await go(NOW);
 await page.locator('.now-ahead .now-today').click(); await page.waitForTimeout(1200);
 /* The day folded into the Journey (27 October, "fold it"): Today opens the Journey on today */

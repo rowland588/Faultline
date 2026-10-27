@@ -9,7 +9,7 @@
  *      is lit; each line's card says its programs to prove, the late in red
  *   2  Programs on one line: the sentence as lib/lineRecords reads it; the
  *      machines in flow order, each with its programs; a job's program on
- *      the line says which job and is changed there, not here
+ *      the line says which job — "Being proved in <job>", its own row, in place (27 October)
  *   3  a program planned on the line with no job, on a machine not listed
  *      yet — kept on no job, on the line; the machine joins the line's list
  *      (where the stopwatch and a problem find it), its record made
@@ -139,17 +139,19 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
 }
 
 /* ---- 1c a project's programs typed only on its Commission, on its line (23 October: "programs on the line in my
-   factory, it's like you don't have any programs") — listed under the project, counted, one tap to its Programs ---- */
+   factory, it's like you don't have any programs") — since 27 October in place under their machine, the project's own
+   rows, tested there on the line ("I hate the program page ... clicking a program lands on a different page") ---- */
 {
   const t = await truth();
   await go(`#/programs?line=${WS}`);
-  const rows = (await main.locator('[data-stage-program]').evaluateAll(els => els.map(e => e.getAttribute('data-stage-program'))));
-  const head = flat(await main.locator('.lp-stage .lp-mh').first().innerText().catch(() => ''));
-  ok(t.onStage.length > 0 && rows.join('|') === t.onStage.map(x => x.what).join('|') && head.startsWith(`On ${t.onStage[0].project}’s Commission`),
-    `1c the line's Programs lists the ${t.onStage.length} typed only on ${t.onStage[0]?.project}'s Commission, under it`, `${rows.join(' | ')} — ${head}`);
+  const box = main.locator('.lp-m-job').filter({ has: page.locator('.pp-mh h2', { hasText: `Being proved in ${t.onStage[0]?.project}` }) }).first();
+  const names = (await box.locator('.pgr .pgr-name').allInnerTexts()).map(flat);
+  ok(t.onStage.length > 0 && t.onStage.every(x => names.includes(flat(x.what))) && await main.locator('.lp-stage').count() === 0,
+    `1c the line's Programs shows the ${t.onStage.length} typed only on ${t.onStage[0]?.project}'s Commission in place, under "Being proved in ${t.onStage[0]?.project}"`, names.join(' | '));
   ok(flat(await main.locator('.lp-says').innerText()).startsWith(`${t.reading.total} programs`), `1c and counts them with the line's own: ${t.reading.says}`);
-  await main.locator('[data-stage-program] button').first().click(); await page.waitForTimeout(1500);
-  ok(/#\/project\/[^/]+\/programs/.test(page.url()), '1c one tap to its project\'s Programs, where it is tested', page.url());
+  const row = box.locator('.pgr', { has: page.locator('.pgr-name', { hasText: t.onStage[0].what }) }).first();
+  await row.getByRole('button', { name: /^Test it$/ }).click(); await page.waitForTimeout(1200);
+  ok(page.url().includes(`#/programs?line=${WS}`) && await row.locator('input').count() > 0, '1c Test it opens on its row, on the line — no other page', page.url());
   await go(`#/lines/${WS}`);
   const tile = flat(await main.locator('.pl-tiles .ln-tile', { hasText: 'Programs proved' }).innerText().catch(() => ''));
   ok(tile.includes(`${t.onStage.length} more on a project’s Commission`), `1c the line's page says them beside its own: "${tile}"`);
@@ -165,8 +167,11 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   const heads = await main.locator('.lp-mh').allInnerTexts();
   const flow = t.machines.map(m => m.name).filter(n => heads.some(h => h.startsWith(n)));
   ok(flow.length >= 2 && heads.findIndex(h => h.startsWith(flow[0])) < heads.findIndex(h => h.startsWith(flow[1])), `2b the machines in flow order (${heads.map(h => h.split(' · ')[0]).join(' → ')})`);
-  const jobRow = main.locator('.lp-row', { hasText: 'PR-12 Express 1.25 kg' });
-  ok(await jobRow.locator('.lp-job', { hasText: 'Line 2 commissioning' }).count() === 1 && await jobRow.locator('select').count() === 0, "2c a job's program says its job, and is changed there");
+  /* since 27 October a job's program sits in place under its machine, "Being proved in <job>" — the job's own row,
+     tested and changed there on the line, never a door to another page */
+  const jobBox = main.locator('.lp-m-job').filter({ has: page.locator('.pp-mh h2', { hasText: 'Being proved in Line 2 commissioning' }) });
+  ok(await jobBox.locator('.pgr .pgr-name', { hasText: 'PR-12 Express 1.25 kg' }).count() === 1 && await main.locator('.lp-row', { hasText: 'PR-12 Express 1.25 kg' }).count() === 0,
+    "2c a job's program says its job — under \"Being proved in Line 2 commissioning\", its own row, in place");
 }
 
 /* ---- 3 a program planned on the line, no job ---- */
@@ -503,9 +508,11 @@ await page.setViewportSize({ width: 1360, height: 900 });
   ok(!p04.provedOn && p04.state === 'onMachine' && /^Failed/.test(l04.word),
     `12 PR-04, failed on the floor the day after its test passed, is back on the machine — not "Proved" (${l04.word})`);
   await go(`#/programs?line=${WS}`);
-  let row = main.locator(`[data-program="${p04.id}"]`);
-  ok(flat(await row.locator('.spp-pill').first().innerText()).startsWith('on the machine') && flat(await row.locator('.lp-floor').innerText()).includes(`On its Set up: ${l04.word}`),
-    `12b the line's Programs says the record's state and, beside it, what the job's floor said (${flat(await row.locator('.lp-floor').innerText()).slice(0, 60)})`);
+  /* since 27 October the line shows the job's own row in place (Being proved in …): one status, the floor's — the same
+     answer the job's Programs gives, the line's record only when it says something worse */
+  let row = main.locator(`.lp-m-job [data-program="${p04.id}"]`);
+  ok(flat(await row.locator('.pgr-top .spp-pill').first().innerText()) === l04.word && await row.locator('.lp-floor').count() === 0,
+    `12b the line's Programs says the job's one answer, in place (${flat(await row.locator('.pgr-top .spp-pill').first().innerText())})`);
   await go(`#/project/${sd.projectId}/programs`);
   /* ONE STATUS A ROW (16 October): the record's word only when it says
      something worse than the floor's — here it does not */
@@ -546,9 +553,10 @@ await page.setViewportSize({ width: 1360, height: 900 });
   ok(!after12.provedOn && after12.state === 'onMachine' && part12?.results?.at(-1)?.is === 'failed' && /^on the machine · (failed .* to prove again|test didn’t pass)$/.test(j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record?.word ?? ''),
     `12f didn't pass in the one form: the floor says failed, and the program drops back to on the machine (${j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record?.word})`);
   await go(`#/programs?line=${WS}`);
-  row = main.locator(`[data-program="${p12.id}"]`);
-  ok(!/is-pg-proved/.test(await row.getAttribute('class')) && flat(await row.locator('.spp-pill').first().innerText()).startsWith('on the machine') && flat(await row.locator('.lp-floor').innerText()).includes('Failed'),
-    '12g and the line\'s Programs says the same — on the machine, its floor\'s failure beside it');
+  row = main.locator(`.lp-m-job [data-program="${p12.id}"]`);
+  const w12 = flat(await row.locator('.pgr-top .spp-pill').first().innerText());
+  ok(w12 === j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').word && /^Failed/.test(w12) && !/proved/i.test(w12),
+    `12g and the line's Programs says the same — its failure, never proved (${w12})`);
   /* on paper: the job's programs report says the record beside the floor's, and counts no failure as done */
   await go(`#/project/${sd.projectId}/programs`);
   const dir = mkdtempSync(join(tmpdir(), 'jprogs-'));

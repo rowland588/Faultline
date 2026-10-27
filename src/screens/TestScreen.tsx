@@ -209,6 +209,9 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
     <div className="wrap pace cm-screen tc-screen">
       <header className="pace-head">
         <div className="pace-head-main">
+          {/* THE WAY BACK (27 October): a test sits under its gate on Plan */}
+          <a className="part-back" href={`#/project/${projectId}/${test.kind === 'fix' ? 'fixes' : 'testing'}`}>
+            <Icon name="chevronLeft" size={14} />{test.kind === 'fix' ? 'Problems' : 'Commission'}</a>
           <h1 className="pace-title">{test.title}</h1>
           <p className="cw-handover">
             <b>{outcomeWord(test)}</b>

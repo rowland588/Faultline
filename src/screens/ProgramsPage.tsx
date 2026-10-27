@@ -79,8 +79,10 @@ const TILE_TONE: Record<Exclude<Filter, 'all'>, string> = { done: 'g', baseline:
 const isSaid = (f: Filter): f is Said => f === 'notTested' || f === 'noProgram';
 type LineRow = PickRow & { line: string; lineId: string };
 
-export function ProgramsPage({ projectId, only }: {
+export function ProgramsPage({ projectId, only, title }: {
   projectId: string;
+  /** The heading of the one-machine view, when it is not "Its programs" — on a line's Programs, the project's name. */
+  title?: string;
   /** One machine's programs, on its own page (screens/MachineScreen): the
    *  same rows and the same form, under "Its programs" — no page head. */
   only?: string;
@@ -221,7 +223,7 @@ export function ProgramsPage({ projectId, only }: {
           <section key={m.id || 'line'} className="pp-m" aria-label={m.name}>
             <div className="pp-mh">
               {/* The machine's name opens the machine (docs/FLOW.md item 2). */}
-              <h2>{only != null ? 'Its programs' : m.id ? <MachineName name={m.name} onOpen={() => openMachine(projectId, m.id)} /> : m.name}</h2>
+              <h2>{only != null ? title ?? 'Its programs' : m.id ? <MachineName name={m.name} onOpen={() => openMachine(projectId, m.id)} /> : m.name}</h2>
               <span className="sub">{n ? `${n} program${n === 1 ? '' : 's'} · ${done} done` : theirs.length ? `${theirs.length} of its line’s own` : 'No programs yet'}{bad ? <> · <b className="in-late">{bad} failed or late</b></> : null}</span>
             </div>
             {(kept.length > 0 || theirs.length > 0) && (

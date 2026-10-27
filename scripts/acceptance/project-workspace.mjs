@@ -202,8 +202,8 @@ let made;
   await go(`#/smed?project=${PID}`);
   const bar = (await page.locator('.nv-bar .nv-bi-l').allInnerTexts()).map(flat);
   const lit = await page.locator('.nv-bar .nv-bi', { hasText: 'Projects' }).getAttribute('aria-current');
-  /* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Problems · More — Projects lit inside one */
-  ok(bar.join(' · ') === 'Factory · Projects · Problem · Problems · More' && lit === 'page' && await railLine('Tools').getAttribute('aria-current') === 'page', `7 the phone: the menu's bar — ${bar.join(' · ')}, Projects lit, the project's Tools tab on`);
+  /* the menu's bar, the same on every page: Factory · Projects · ＋ · Tools · More (Problems each line's since 27 October) — Projects lit inside one */
+  ok(bar.join(' · ') === 'Factory · Projects · Problem · Tools · More' && lit === 'page' && await railLine('Tools').getAttribute('aria-current') === 'page', `7 the phone: the menu's bar — ${bar.join(' · ')}, Projects lit, the project's Tools tab on`);
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(wide <= 1 && await page.locator('.ip-scope .chip').count() === 3, `7 nothing off the side (${wide}px), the three chips on it`);
 }

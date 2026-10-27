@@ -74,8 +74,9 @@ const projectAt = page.url().match(/#\/project\/[^/?]+/)[0];
 await go(projectAt);
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Line 4 new case packer' && (await place()).join() === 'Line 4 new case packer', '2 inside it, the same menu, the project named under Projects and lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
 const ptabs = await tabs();
-/* a stage gate's own pages are four tabs and More since 26 October (docs/STAGEGATE-RESEARCH.md §4) */
-ok(ptabs.map(t => t.replace(/\d.*$/, '').trim()).join(' · ') === 'Now · Machines · Problems · Reports · More' && await tabOn() === 'Now', '2 its own pages as tabs — Now · Machines · Problems · Reports · More, Now on', `${ptabs.join(' · ')} [${await tabOn()}] ${page.url()}`);
+/* a stage gate's own pages are tabs and More since 26 October (docs/STAGEGATE-RESEARCH.md §4); Plan among them since 27
+   October — the gates, the timeline and Programs, its own row only on its pages (docs/MAP.md) */
+ok(ptabs.map(t => t.replace(/\d.*$/, '').trim()).join(' · ') === 'Now · Plan · Machines · Problems · Reports · More' && await tabOn() === 'Now', '2 its own pages as tabs — Now · Plan · Machines · Problems · Reports · More, Now on', `${ptabs.join(' · ')} [${await tabOn()}] ${page.url()}`);
 ok(/^Projects › Line 4 new case packer/.test(await bar()), '2 the bar starts with the way back: ‹ Projects', await bar());
 await page.locator('.nv-tabs .nv-tab', { hasText: 'Problems' }).click(); await page.waitForTimeout(900);
 ok(/^Problems/.test(await tabOn()) && (await lit()).join() === 'Line 4 new case packer', '2 a tab opens its page, the menu unmoved', `${await tabOn()} | ${(await lit()).join()}`);

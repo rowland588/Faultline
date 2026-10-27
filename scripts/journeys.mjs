@@ -210,10 +210,12 @@ await run('J3 a tool in context', 1360, async (D, J) => { await J3(D, J); });
 await run('J3 a tool in context', 390, async (D, J) => { await J3(D, J); });
 /* J4 — a stage gate's day (phone): on Line 2 commissioning, the seal re-test fails; its problem; its fix with who and when; seen on Problems
    (26 October, four tabs, and a stage gate's Actions are a door from Now — the fix is a row of its Problems; 27 October: the gates are the
-   project's own views on Now, the Machines tab the machines). */
+   Plan tab's, the Machines tab the machines). */
 await run('J4 stage gate: a failed re-test to a fix', 390, async (D, J) => {
   await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
   await press(D, J, 'the row: Line 2 commissioning', projectRow(D, 'Line 2 commissioning')); await orient(D, J, 'Line 2 commissioning');
+  /* the gates are the Plan tab's since 27 October — one row of tabs, Plan's own row on its pages */
+  await nav(D, J, 'Plan'); await orient(D, J, 'Line 2 commissioning');
   await press(D, J, 'tab: Commission', D.page.locator('main a.plt-t').filter({ hasText: /^Commission/ }).first());
   const R = () => D.page.locator('.rd').last();
   await press(D, J, 'the re-test', btn(D, /Seal integrity — Finest Red 2kg — re-test/));

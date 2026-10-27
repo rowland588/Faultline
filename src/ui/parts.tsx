@@ -148,14 +148,19 @@ export interface PageHeaderProps {
   more?: MoreItem[];
   /** Under the sentence: where it belongs, a line of counts. */
   children?: ReactNode;
+  /** THE WAY BACK (27 October — Rowland: "I can't actually go back ... I have to click factory to get back out of the
+   *  page instead of just going back"): a page below a tab — a machine, the journey, a test — says the list it sits
+   *  under, one tap up: "‹ Machines". An installed app on a phone has no browser back. */
+  back?: { label: string; to: string };
 }
 
 /** THE PAGE HEADER — the same on every page: one title, its state, what it says, one primary
  *  action, More ▾ and Report ▾ (docs/STRUCTURE.md §5.5). */
-export function PageHeader({ eyebrow, title, state, says, primary, papers = [], more = [], children }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, state, says, primary, papers = [], more = [], children, back }: PageHeaderProps) {
   return (
     <header className="pace-head part-head">
       <div className="pace-head-main">
+        {back && <a className="part-back" href={`#${back.to}`}><Icon name="chevronLeft" size={14} />{back.label}</a>}
         {eyebrow && <p className="pace-eyebrow">{eyebrow}</p>}
         <h1 className="pace-title">{title}{state && <> <StateTag tone={state.tone}>{state.word}</StateTag></>}</h1>
         {says && <p className="pace-lede">{says}</p>}

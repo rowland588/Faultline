@@ -30,6 +30,8 @@ import { projectsOnLines, stageOnlyByLine, useJobFloor, type FloorWord, type Sta
 import type { ProgramLine, Proof } from '../lib/programsReport';
 import { studyHref } from '../lib/studyLinks';
 import { ProveProgram } from '../ui/ProveProgram';
+import { ProgramsPage } from './ProgramsPage';
+import { planModel } from '../lib/planModel';
 import { asked } from '../lib/lines';
 import { niceDay, todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
@@ -136,9 +138,6 @@ export function LineProgramsScreen() {
         </div>
       ) : (
         <>
-          {inLine && rec.lines.length > 1 && (
-            <p className="lp-up"><button type="button" className="cw-link" onClick={() => nav('/programs')}>Every line’s programs — in the Factory ›</button></p>
-          )}
           {!inLine && rec.lines.length > 1 && (
             <div className="chip-row lp-lines" role="group" aria-label="Which line">
               <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} aria-pressed={lineF === 'all'} onClick={() => setLineF('all')}>All lines</button>
@@ -161,10 +160,20 @@ export function LineProgramsScreen() {
  *  itself last; then Plan a program on it. */
 function LineBlock({ s, rec, may, today, floor, proofs, onStage, startAdding }: { s: LineRead; rec: LineRecords; may: boolean; today: string; floor: Map<string, FloorWord>; proofs: ReadonlyMap<string, Proof>; onStage: StageOnly[]; startAdding: boolean }) {
   const { line, machines, programs } = s;
+  /* A MACHINE A STAGE-GATE PROJECT IS WORKING ON shows that project's own rows here — the same rows, Test it and every
+     attempt as the project's Programs, opened in place (27 October — Rowland, pressing a program on the line: "now I'm
+     in a completely different page ... I can't go back out"). It used to send you to the project's Programs. */
+  const projectOn = (m?: LineMachine) => {
+    const pid = m?.record?.projectId;
+    const job = pid ? rec.jobs.find(j => j.id === pid && !j.archivedAt && !j.deletedAt && planModel(j) === 'commissioning') : undefined;
+    return job && m?.record ? { job, assetId: m.record.id } : undefined;
+  };
+  const inPlace = new Set(machines.filter(m => projectOn(m)).map(m => m.name.trim().toLowerCase()));
   const groups = [
     ...machines.map(m => ({ key: m.record?.id ?? m.name, m, rows: programs.filter(p => machineOfProgram(p, machines) === m) })),
     { key: '', m: undefined as LineMachine | undefined, rows: programs.filter(p => !machineOfProgram(p, machines)) },
-  ].filter(g => g.rows.length);
+  /* a project's machine shows its box when the line or the project has a program on it */
+  ].filter(g => g.rows.length || (projectOn(g.m) && onStage.some(r => (r.line.machine ?? '').trim().toLowerCase() === g.m?.name.trim().toLowerCase())));
   const own = programs.filter(p => !p.projectId);
   const proved = programs.filter(isProved).length, late = programs.filter(p => standingOf(p, today) === 'overdue').length;
   const products = productsOnLine(programs, rec.standards.filter(x => x.workspaceId === line.id));
@@ -175,7 +184,13 @@ function LineBlock({ s, rec, may, today, floor, proofs, onStage, startAdding }: 
         <span className="sub">{programs.length ? `${programs.length} program${programs.length === 1 ? '' : 's'} · ${proved} proved` : onStage.length ? '' : 'No programs yet'}{late ? <> · <b className="is-r">{late} late</b></> : null}
           {onStage.length > 0 && <>{programs.length ? ' · ' : ''}{onStage.length} more on {(n => (n.length === 1 ? `${n[0]}’s` : `${n.length} projects’`))([...new Set(onStage.map(x => x.projectName))])} Commission</>}</span>
       </div>
-      {groups.map(g => (
+      {groups.map(g => (g.m && projectOn(g.m) ? (
+        <div key={g.key} className="lp-m lp-m-job" data-machine={g.m.name}>
+          <h3 className="lp-mh">{g.m.name}{g.m.record?.oem ? <span className="sub"> · {g.m.record.oem}</span> : null}</h3>
+          <ProgramsPage projectId={(projectOn(g.m) as { job: { id: string } }).job.id} only={(projectOn(g.m) as { assetId: string }).assetId}
+            title={`Being proved in ${(projectOn(g.m) as { job: { name: string } }).job.name}`} />
+        </div>
+      ) : (
         <div key={g.key || 'line'} className="lp-m">
           <h3 className="lp-mh">{g.m ? g.m.name : 'The line itself'}{g.m?.record?.oem ? <span className="sub"> · {g.m.record.oem}</span> : null}</h3>
           <ul className="mt-list pgr-list">
@@ -186,8 +201,9 @@ function LineBlock({ s, rec, may, today, floor, proofs, onStage, startAdding }: 
             ))}
           </ul>
         </div>
-      ))}
-      {onStage.length > 0 && <OnProjectsStage rows={onStage} />}
+      )))}
+      {/* typed on a project's Programs loaded — shown above on its machine when that machine's project rows are in place */}
+      {(rest => rest.length > 0 && <OnProjectsStage rows={rest} />)(onStage.filter(r => !inPlace.has((r.line.machine ?? '').trim().toLowerCase())))}
       {may && (
         <AddFold label={`Plan a program on ${line.name}`} start={startAdding}>
           <AddLineProgram line={line} machines={machines} products={products} />
