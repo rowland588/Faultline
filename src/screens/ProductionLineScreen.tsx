@@ -267,6 +267,23 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       window.alert('Sorry — the PDF could not be made. Please try again.');
     } finally { setBusy(false); }
   };
+  /* EVERY MACHINE ON THE LINE, IN FULL (27 October — Rowland: "where are we on line 2A? I should be able to go to line
+     2A ... and then print off a report that says, there you go. There's everything that's happening on that line
+     currently"): the line's machines as the Factory's Machines says them, then each in full — every test and attempt,
+     every program and its tests, every step, its problems and what was done, the studies (lib/machineDossier). */
+  const printMachines = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const { lineMachinesPaper } = await import('../lib/machineDossier');
+      const { saveMachinesPaper } = await import('../lib/machinePaperPdf');
+      const paper = await lineMachinesPaper(wsId);
+      if (paper) await saveMachinesPaper(paper, [line.name, 'machines report']);
+    } catch (e) {
+      console.error('machines report failed', e);
+      window.alert('Sorry — the PDF could not be made. Please try again.');
+    } finally { setBusy(false); }
+  };
   /* THE LINE, EDITED WHERE IT IS — its name and its type (Rowland, 13
      October: "change the types, the names of the lines. Again, always full
      edit control"), the same two boxes as Your factory; the Rename prompt it
@@ -315,6 +332,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         primary={{ label: 'Time a stop', icon: 'time', className: 'pl-time', run: () => nav(`/w/${wsId}/capture`) }}
         papers={[
           { label: 'Line report — 1 page', for: 'the line, its tiles, problems, machines, programs and what its tools found', disabled: busy || !reading, make: printLine },
+          { label: 'Machines report — every machine in full', for: 'each machine on the line: where it is up to, every test and every attempt, every program and its tests, every step, its problems and what was done, the studies', disabled: busy, make: printMachines },
           /* EVERYTHING ON THE LINE (23 October, lib/lineBundle) — drawn on its own report page, made on arrival */
           { label: 'Line report — everything on the line', for: dual.madeOf.length ? 'each line it is made of, then both together — every tool used, programs, problems, who owes what' : 'every tool used on the line, its programs, its problems, where on the line, who owes what — tick what goes in', make: () => nav(savingAt(`/lines/${wsId}/report`)) },
           { label: 'Problems report', for: rows.length ? 'every problem open on the line, with its plan and journey' : 'no problem open on the line yet', disabled: busy || !rows.length, make: () => pdf('report') },

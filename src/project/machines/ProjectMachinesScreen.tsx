@@ -16,9 +16,7 @@ import { useProject } from '../../lib/useProjects';
 import { useProjectRead } from '../projectRead';
 import { niceDay } from '../../lib/weeks';
 import { useTesting } from '../../lib/useTesting';
-import { useLineRecords, useMachinesToTakeOn } from '../../lib/useLineRecords';
-import { lineOfMachine } from '../../lib/lineRecords';
-import { live } from '../../lib/testing';
+import { useMachinesToTakeOn } from '../../lib/useLineRecords';
 import { useAccess } from '../../cloud/access';
 import { PageHeader } from '../../ui/parts';
 import { AddAsset } from '../../screens/TestsScreen';
@@ -30,7 +28,6 @@ export function ProjectMachinesScreen({ projectId }: { projectId: string }) {
   const read = useProjectRead(project);
   const tt = useTesting(projectId);
   const takeOn = useMachinesToTakeOn(projectId);
-  const rec = useLineRecords();
   const can = useAccess(projectId);
   const [said, setSaid] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,13 +43,11 @@ export function ProjectMachinesScreen({ projectId }: { projectId: string }) {
     if (busy) return;
     setBusy(true); setSaid(null);
     try {
-      const lineName = (assetId: string) => {
-        const a = live(gate.assets).find(x => x.id === assetId);
-        const ws = a ? lineOfMachine(a, rec.jobLines) : undefined;
-        return ws ? rec.all.find(w => w.id === ws)?.name : undefined;
-      };
+      /* the rows as this page says them, then every machine in full (27 October — "all you've done is headlines") */
+      const { projectMachinesFullPaper } = await import('../../lib/machineDossier');
       const { saveMachinesPaper } = await import('../../lib/machinePaperPdf');
-      const how = await saveMachinesPaper(projectMachinesPaper(gate, read.owed, read.today, lineName), [project.name, 'machines report']);
+      const paper = await projectMachinesFullPaper(projectId, projectMachinesPaper(gate, read.owed, read.today));
+      const how = await saveMachinesPaper(paper, [project.name, 'machines report']);
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('machines report failed', e);
@@ -65,7 +60,7 @@ export function ProjectMachinesScreen({ projectId }: { projectId: string }) {
       <PageHeader eyebrow={<span className="pl-eyebrow">MACHINES · {project.name}</span>} title="Machines"
         says={projectMachinesSays(machines)}
         papers={[
-          { label: 'Machines report', for: machines.length ? 'every machine as this page says it, then a page a machine — its gates, what is open, its tests, its programs' : 'no machines yet', disabled: !machines.length || busy, make: print },
+          { label: 'Machines report', for: machines.length ? 'every machine as this page says it, then each in full — what is open and who has it, every test and every attempt, every program and its tests, every step, its problems and what was done' : 'no machines yet', disabled: !machines.length || busy, make: print },
           { label: 'Commissioning report', for: 'where each machine has got to, and a card a machine', make: () => nav(`/project/${projectId}/report?doc=commissioning`) },
         ]} />
       {said && <p className="tc-ok" role="status">{said}</p>}

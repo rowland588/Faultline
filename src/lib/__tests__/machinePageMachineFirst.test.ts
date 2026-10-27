@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { openOnMachine, machineTests, type MachineRecord } from '../machineRecord';
-import { lineMachinePaper, projectMachinePaper } from '../machinePaper';
-import type { ProgramLine } from '../programsReport';
+import { machineDetailPaper } from '../machineDetail';
+import type { JobInput } from '../portfolio';
+import type { Test, TestItem, Asset } from '../testing';
+import type { Program } from '../programs';
 import type { LineMachineView } from '../lineMachine';
+import type { Snag } from '../../snag/types';
 
 const m = {
   id: 'm1', name: 'Wrapper', at: 'at Set up', arrival: 'On site since 2 Oct', arrivalLate: false,
@@ -31,38 +34,64 @@ describe('a machine\'s page, machine first', () => {
   });
 });
 
-describe('the machine report says what its page says (27 October — "still no report abilities")', () => {
-  const progs = [
-    { machine: 'Wrapper', assetId: 'm1', what: 'PR-04', runs: 'Finest 2kg', word: 'proved 7 Oct', tone: 'g', bucket: 'done', earlier: [] },
-    { machine: 'Wrapper', assetId: 'm1', what: 'PR-07', word: 'to do', tone: 'n', bucket: 'open', earlier: [] },
-    { machine: 'Coder', assetId: 'm2', what: 'PR-09', word: 'to do', tone: 'n', bucket: 'open', earlier: [] },
-  ] as unknown as ProgramLine[];
-  const p = projectMachinePaper({ project: 'Line 2 commissioning', m: { ...m, oem: 'Ilapak' } as MachineRecord, status: 'On site', programs: progs, line: 'Line 2a' });
-  it('its status, its facts and the project it is going through, up to its gate', () => {
-    expect(p).toMatchObject({ eyebrow: 'MACHINE · Line 2 commissioning', name: 'Wrapper', status: { word: 'On site', tone: 'w' } });
-    expect(p.facts).toEqual(['Made by Ilapak', 'On site since 2 Oct', 'On Line 2a']);
-    expect(p.inProject).toBe('Going through Line 2 commissioning — a stage-gate project — up to Set up.');
-    expect(p.gates?.map(g => [g.label, g.says, g.tone])).toEqual([['Install', '2 of 2 done', 'g'], ['Set up', '1 of 3 done · 1 late', 'r'], ['Commission', '1 of 2 done', 'w'], ['Hand over', 'not started', 'n']]);
+
+/* THE MACHINE REPORT IN FULL (27 October — Rowland: "all you've done is headlines ... The tests that have been done,
+   you can't see the results. You can't see the efforts that have been put in place") */
+describe('a machine in full — every attempt, what was seen, what was found, the program and its tests, the fix, the step', () => {
+  const T = (x: Partial<Test> & Pick<Test, 'id' | 'title'>): Test => ({ projectId: 'P', kind: 'test', assetId: 'm1', outcome: 'planned', sort: 1, createdAt: 1, updatedAt: 1, ...x } as Test);
+  const asset = { id: 'm1', projectId: 'P', name: 'Wrapper', oem: 'Ilapak', state: 'onSite', onSiteOn: '2026-10-02', sort: 1, updatedAt: 1 } as Asset;
+  const tests: Test[] = [
+    T({ id: 't1', title: 'Seal integrity', passesIf: 'no leak in 20 packs', outcome: 'failed', ranOn: '2026-10-10', result: 'two leaks on lane 2', createdAt: 1,
+      runAgreed: { rate: 60, minutes: 30 }, run: { speed: 55, minutes: 30, packs: 1600, rejects: 40 } } as Partial<Test> as Test),
+    T({ id: 't2', title: 'Seal integrity — re-test', fromTestId: 't1', outcome: 'passed', ranOn: '2026-10-14', result: 'no leaks', createdAt: 2 }),
+    T({ id: 'pt1', title: 'Prove PR-04', programId: 'p1', outcome: 'passed', ranOn: '2026-10-12', result: 'ran clean', createdAt: 3,
+      run: { speed: 50, minutes: 60, packs: 2900, rejects: 10 } } as Partial<Test> as Test),
+    T({ id: 'f1', title: 'Change the jaw heater', kind: 'fix', fromTestId: 't1', outcome: 'passed', ranOn: '2026-10-13', result: 'new heater fitted', withWhom: 'Dave' }),
+    T({ id: 'i1', title: 'Positioned', kind: 'install', outcome: 'passed', ranOn: '2026-10-03', result: 'on its marks' }),
+  ];
+  const items = [{ id: 'x1', projectId: 'P', testId: 't1', kind: 'found', what: 'Jaw heater reads 20° low', owner: 'Dave', createdAt: Date.parse('2026-10-10T10:00:00Z'), updatedAt: 1 }] as TestItem[];
+  const programs = [{ id: 'p1', projectId: 'P', assetId: 'm1', what: 'PR-04', runs: 'Finest 2kg', state: 'proved', provedOn: '2026-10-12', sort: 1, createdAt: 1, updatedAt: 1 }] as unknown as Program[];
+  const gate = { project: { id: 'P', name: 'Line 2 commissioning', createdAt: 1, updatedAt: 1 }, tests, items, assets: [asset], materials: [], programs, studies: [] } as unknown as JobInput;
+  const p = machineDetailPaper({ name: 'Wrapper', today: '2026-10-27', line: 'Line 2a', project: { name: 'Line 2 commissioning', gate, assetId: 'm1' } });
+  const sec = (t: RegExp) => p.sections.find(x => t.test(x.title));
+  it('its status, the project and the gate it is up to, the tiles and the closing line', () => {
+    expect(p).toMatchObject({ eyebrow: 'MACHINE · Line 2 commissioning · Line 2a', name: 'Wrapper', status: { word: 'On site' } });
+    expect(p.inProject).toMatch(/^Going through Line 2 commissioning — a stage-gate project — /);
+    expect(p.tiles?.map(t => t.label)).toEqual(['Tests passed', 'Programs proved', 'Open on it', 'Late or failed', 'Critical']);
+    expect(p.closing).toMatch(/^Wrapper is on site and up to .* in Line 2 commissioning: \d+ of \d+ tests passed, 1 of 1 programs proved/);
   });
-  it('what is open, its tests and its own programs only — each in its colour', () => {
-    expect(p.sections.map(s => [s.title, s.count])).toEqual([['What is open on it', '4'], ['Its tests', '1 of 2 passed'], ['Its programs', '2']]);
-    expect(p.sections[0].rows[0]).toEqual({ what: 'Guards', says: 'Set up', word: 'late — was 26 Oct', tone: 'r' });
-    expect(p.sections[0].rows[1]).toMatchObject({ what: 'Film tracks off', says: 'Problem — critical', tone: 'a' });
-    expect(p.sections[2].rows.map(r => [r.what, r.word, r.tone])).toEqual([['PR-04', 'PASSED — proved 7 Oct', 'g'], ['PR-07', 'TO DO', 'n']]);
+  it('a test with every attempt — what it had to show, what each aimed at and did, how it went, what was seen, what was found on it', () => {
+    const row = sec(/^Its tests/)?.rows.find(r => r.what.startsWith('Seal integrity'));
+    expect(row?.lines?.[0]).toBe('Has to show: no leak in 20 packs');
+    expect(row?.lines).toContain('Test 1 · 10 Oct · aiming 60 ppm for 30 min · set at 55 ppm · ran 30 min · 1,600 packs · 40 rejects · netted 52 ppm — didn’t pass: two leaks on lane 2');
+    expect(row?.lines?.some(l => /^Test 2 · 14 Oct — passed: no leaks$/.test(l))).toBe(true);
+    expect(row?.lines?.some(l => /^Found 10 Oct: Jaw heater reads 20° low · Dave$/.test(l))).toBe(true);
+    expect(row?.says).toMatch(/2 tests · 1 passed · 1 didn’t pass/);
   });
-  it('handed over says so', () => {
-    expect(projectMachinePaper({ project: 'P', m: { ...m, at: 'Handed over 3 Oct' } as MachineRecord, status: 'Handed over', programs: [] }).inProject).toBe('Going through P — a stage-gate project — handed over 3 oct.');
+  it('the program with every test of it', () => {
+    const row = sec(/^Its programs/)?.rows[0];
+    expect(row?.what).toBe('PR-04');
+    expect(row?.lines?.some(l => /^Test 1 · 12 Oct · set at 50 ppm · ran 60 min · 2,900 packs · 10 rejects · netted 48.2 ppm — passed: ran clean$/.test(l))).toBe(true);
   });
-  it('on its line: every project, its programs, its problems, its studies and its stops', () => {
-    const v = { name: 'Wrapper', whose: 'With P', says: 'With P · 2 programs', oem: 'Ilapak',
-      projects: [{ id: 'P', name: 'P', tests: 3, open: 1, failed: 1, last: 'Seal failed 4 Oct', href: '' }],
-      programs: progs.slice(0, 1), problems: [{ id: 's', what: 'Film tracks', priority: 'critical', open: true, href: '' }, { id: 't', what: 'Old', priority: 'low', open: false, href: '' }],
-      studies: [{ id: 'x', name: 'Seal 2kg', tool: 'Capability study', href: '' }], stops: { n: 3, minutes: 41 } } as unknown as LineMachineView;
-    const l = lineMachinePaper('Line 2a', v);
-    expect(l.facts).toEqual(['With P · 2 programs', 'Made by Ilapak']);
-    expect(l.sections.map(s => [s.title, s.count])).toEqual([['The projects on it', '1'], ['Its programs', '1'], ['Its problems', '1 open of 2'], ['Studies of it', '1'], ['Its stops', '3 in 28 days']]);
-    expect(l.sections[0].rows[0]).toEqual({ what: 'P', says: '3 tests · last: Seal failed 4 Oct', word: '1 open · 1 didn’t pass', tone: 'r' });
-    expect(l.sections[2].rows.map(r => [r.word, r.tone])).toEqual([['Critical', 'r'], ['closed', 'g']]);
-    expect(l.sections[4].rows[0]).toMatchObject({ what: '3 stops timed in the last 28 days', word: '41 minutes' });
+  it('the fix with what was done; the install step with what was said', () => {
+    const fix = sec(/problems and fixes/)?.rows.find(r => r.what === 'Fix: Change the jaw heater');
+    expect(fix).toMatchObject({ says: 'Dave · for Seal integrity', tone: 'g' });
+    expect(fix?.lines).toEqual(['Done: new heater fitted']);
+    const step = sec(/^Install — every step/)?.rows.find(r => r.what === 'Positioned');
+    expect(step?.lines).toContain('Said: on its marks');
+  });
+  it('on its line: the register’s problem with its journey, the study with what it found', () => {
+    const view = { name: 'Wrapper', whose: '', says: 'x', projects: [{ id: 'P', name: 'Line 2 commissioning', tests: 2, open: 0, failed: 0, href: '' }], programs: [],
+      problems: [{ id: 's1', what: 'Film tracks off', priority: 'high', open: true, href: '' }], studies: [], stops: { n: 2, minutes: 14 } } as unknown as LineMachineView;
+    const snags = [{ id: 's1', problem: 'Film tracks off', owner: 'Rob', raisedAt: Date.parse('2026-10-11T09:00:00Z'), status: 'open',
+      journey: [{ id: 'j1', at: Date.parse('2026-10-12T09:00:00Z'), did: 'reset the guide', result: 'still drifts' }] }] as unknown as Snag[];
+    const q = machineDetailPaper({ name: 'Wrapper', today: '2026-10-27', line: 'Line 2a', project: { name: 'Line 2 commissioning', gate, assetId: 'm1' }, view, snags });
+    const reg = q.sections.find(x => /register/.test(x.title))?.rows[0];
+    expect(reg).toMatchObject({ what: 'Film tracks off', word: 'High', tone: 'a' });
+    expect(reg?.says).toMatch(/^with Rob · raised 11 Oct$/);
+    expect(reg?.lines).toEqual(['12 Oct — reset the guide — still drifts']);
+    /* its own project's work is this page — never listed again as another's */
+    expect(q.sections.some(x => /Other projects/.test(x.title))).toBe(false);
+    expect(q.sections.find(x => x.title === 'Its stops')?.rows[0]).toMatchObject({ word: '14 minutes' });
   });
 });

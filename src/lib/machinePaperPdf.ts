@@ -20,23 +20,32 @@ const TONE: Record<PaperTone, string> = { r: '#c4281c', a: '#b45309', w: '#6d28d
 
 const pad = (f: Frame) => (f.density === 'compact' ? 4 : 6);
 
-/** A row: words on the left (bold head, muted line under it), its state on the right in its colour. */
-function rowOf(head: string, under: string | undefined, right: string, tone: PaperTone, lead?: string) {
+/** A row: words on the left (bold head, muted line under it), its state on the right in its colour — and under them,
+ *  the full width, its detail a line each: every attempt, what was seen, what was written, each step of its journey. */
+function rowOf(head: string, under: string | undefined, right: string, tone: PaperTone, lead?: string, detail: readonly string[] = []) {
   const rightW = (f: Frame) => Math.min(190, f.w * 0.36), numW = lead ? 20 : 0;
   const parts = (f: Frame) => ({
     h: wrap(f.doc, head, f.w - rightW(f) - numW - 12, 9.5, 'bold'),
     u: under ? wrap(f.doc, under, f.w - rightW(f) - numW - 12, 8.5) : [],
     r: wrap(f.doc, right, rightW(f), 8.5, 'bold'),
+    d: detail.map(x => wrap(f.doc, x, f.w - numW - 22, 8)),
   });
+  const top = (p: ReturnType<typeof parts>) => Math.max(p.h.length * 12 + p.u.length * 10.5, p.r.length * 10.5);
+  const deep = (p: ReturnType<typeof parts>) => p.d.reduce((n, l) => n + l.length * 9.6, 0) + (p.d.length ? 5 : 0);
   return {
-    h: (f: Frame) => { const p = parts(f); return 2 * pad(f) + Math.max(p.h.length * 12 + p.u.length * 10.5, p.r.length * 10.5) + 2; },
-    draw: (f: Frame, top: number) => {
-      const p = parts(f), y = top + pad(f);
-      f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, top, f.x + f.w, top);
+    h: (f: Frame) => { const p = parts(f); return 2 * pad(f) + top(p) + deep(p) + 2; },
+    draw: (f: Frame, y0: number) => {
+      const p = parts(f), y = y0 + pad(f);
+      f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y0, f.x + f.w, y0);
       if (lead) { font(f.doc, 9.5, 'bold', MUTED); f.doc.text(lead, f.x, y + 9); }
       font(f.doc, 9.5, 'bold', INK2); f.doc.text(p.h, f.x + numW, y + 9);
       if (p.u.length) { font(f.doc, 8.5, 'normal', MUTED); f.doc.text(p.u, f.x + numW, y + 9 + p.h.length * 12 - 1.5); }
       font(f.doc, 8.5, 'bold', TONE[tone]); f.doc.text(p.r, f.x + f.w, y + 9, { align: 'right' });
+      /* the detail, as it was lived — a thin rule down its left, each line in turn */
+      let yy = y + top(p) + 5;
+      if (p.d.length) { f.doc.setDrawColor(LINE); f.doc.setLineWidth(1); f.doc.line(f.x + numW + 3, yy - 1, f.x + numW + 3, yy + deep(p) - 7); }
+      font(f.doc, 8, 'normal', INK2);
+      for (const l of p.d) { f.doc.text(l, f.x + numW + 10, yy + 7); yy += l.length * 9.6; }
     },
   };
 }
@@ -90,10 +99,38 @@ function machineOf(m: MachinePaper): Block[] {
       });
     }, f => gap(f.density, 'm')));
   }
-  for (const s of m.sections) {
+  /* THE TILES — a few counted figures, each of what it should be */
+  const tiles = m.tiles ?? [];
+  if (tiles.length) {
+    const n = tiles.length;
+    out.push(box(f => 46 + gap(f.density, 'm'), (f, y) => {
+      tiles.forEach((t, i) => {
+        const w = f.w / n - 6, x = f.x + i * (f.w / n);
+        f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.8); f.doc.roundedRect(x, y, w, 40, 4, 4, 'S');
+        font(f.doc, 16, 'bold', t.tone === 'n' ? INK : TONE[t.tone]); f.doc.text(t.value, x + 8, y + 19);
+        if (t.of) { const vw = f.doc.getTextWidth(t.value); font(f.doc, 8.5, 'normal', MUTED); f.doc.text(t.of, x + 12 + vw, y + 19); }
+        font(f.doc, 7.5, 'bold', MUTED); f.doc.text(t.label.toUpperCase(), x + 8, y + 33);
+      });
+    }, f => gap(f.density, 'm')));
+  }
+  /* what has something in full; what has nothing said once, in one line — never a heading a "none" */
+  for (const s of m.sections.filter(x => x.rows.length)) {
     out.push(label(`${s.title} · ${s.count}`));
-    if (!s.rows.length) { out.push(text({ text: s.empty, colour: MUTED, after: 10 })); continue; }
-    out.push(rows({ rows: s.rows.map(r => rowOf(r.what, r.says || undefined, r.word, r.tone)), after: 'm' }));
+    out.push(rows({ rows: s.rows.map(r => rowOf(r.what, r.says || undefined, r.word, r.tone, undefined, r.lines ?? [])), after: 'm' }));
+  }
+  const none = m.sections.filter(x => !x.rows.length);
+  if (none.length) {
+    out.push(label('Nothing on it yet'));
+    out.push(text({ text: none.map(x => x.empty).join(' '), colour: MUTED, after: 10 }));
+  }
+  /* THE CLOSING LINE — the machine in one sentence */
+  if (m.closing) {
+    const c = m.closing;
+    const ls = (f: Frame) => wrap(f.doc, c, f.w - 28, 10, 'bold');
+    out.push(box(f => 18 + ls(f).length * 13 + gap(f.density, 'm'), (f, y) => {
+      paperBand(f.doc, f.x, y, f.w, 14 + ls(f).length * 13, 6);
+      font(f.doc, 10, 'bold', INK); f.doc.text(ls(f), f.x + 14, y + 17);
+    }, f => gap(f.density, 'm')));
   }
   return out;
 }

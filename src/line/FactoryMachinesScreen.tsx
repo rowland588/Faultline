@@ -59,11 +59,32 @@ export function FactoryMachinesScreen() {
     } finally { setBusy(false); }
   };
 
+  const printLine = async (wsId: string, name: string) => {
+    if (busy) return;
+    setBusy(true); setSaid(null);
+    try {
+      const { lineMachinesPaper } = await import('../lib/machineDossier');
+      const { saveMachinesPaper } = await import('../lib/machinePaperPdf');
+      const paper = await lineMachinesPaper(wsId);
+      if (!paper) throw new Error('line not found');
+      const how = await saveMachinesPaper(paper, [name, 'machines report']);
+      setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
+    } catch (e) {
+      console.error('line machines pdf failed', e);
+      setSaid('The paper could not be made — try again.');
+    } finally { setBusy(false); }
+  };
+
   return (
     <div className="wrap pace fmc">
       <PageHeader eyebrow={<span className="pl-eyebrow">FACTORY</span>} title="Machines"
         says={<span className="pl-says fmc-says">{r.says}</span>}
-        papers={[{ label: 'The factory’s machines', for: r.total ? 'every machine, line by line — its status, its project and where it is up to, its programs, what is next' : 'no machines named yet', disabled: !r.total || busy, make: print }]} />
+        papers={[
+          { label: 'The factory’s machines', for: r.total ? 'every machine, line by line — its status, its project and where it is up to, its programs, what is next' : 'no machines named yet', disabled: !r.total || busy, make: print },
+          /* A LINE'S MACHINES IN FULL (27 October — "where are we on line 2A? ... print off a report ... everything that's
+             happening on that line currently"): each line's machines, every one in full (lib/machineDossier) */
+          ...r.groups.filter(g => g.rows.length).map(g => ({ label: `${g.line.name} — its machines in full`, for: `${g.rows.length} machine${g.rows.length === 1 ? '' : 's'}: every test and every attempt, every program and its tests, every step, its problems and what was done`, disabled: busy, make: () => printLine(g.line.id, g.line.name) })),
+        ]} />
       {said && <p className="tc-ok" role="status">{said}</p>}
       {!rec.lines.length && (
         <div className="fac-empty">

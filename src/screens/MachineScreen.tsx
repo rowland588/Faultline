@@ -20,8 +20,6 @@
  * every machine name opens it (ui/MachinePanel openMachine). */
 import { useState } from 'react';
 import { PageHeader } from '../ui/parts';
-import { useProjectRead } from '../project/projectRead';
-import { machineReportPaper } from '../project/machines/machines';
 import { useTesting } from '../lib/useTesting';
 import { usePrograms } from '../lib/usePrograms';
 import { useProject } from '../lib/useProjects';
@@ -53,9 +51,6 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
   /* ITS LINE — the machine's page there reads everything ever done to it, every project's (one record of a
      machine, docs/STAGEGATE-RESEARCH.md §5 slice 4): one tap from here, where a project looks for it */
   const rec = useLineRecords();
-  /* ITS PAPER (27 October — Rowland: "still no report abilities"): this page on paper, read from the project's
-     records as the page reads them (project/machines machineReportPaper, lib/machinePaperPdf) */
-  const read = useProjectRead(project);
   const [said, setSaid] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -74,14 +69,17 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
   /* its status in plain words — handed over, else where the machine itself is */
   const status = m.at.startsWith('Handed over') ? 'Handed over' : ASSET_STATE_WORD[assetStateOf(asset)];
   const open = openOnMachine(m);
+  const tests = machineTests(m);
   const lineId = lineOfMachine(asset, rec.jobLines);
-  const lineName = lineId ? rec.all.find(w => w.id === lineId)?.name : undefined;
+  /* ITS PAPER, IN FULL (27 October — "the tests that have been done, you can't see the results"): every test and
+     attempt, every program and its tests, every step, its problems and what was done (lib/machineDossier) */
   const print = async () => {
-    if (busy || !read?.gate) return;
+    if (busy) return;
     setBusy(true); setSaid(null);
     try {
-      const paper = machineReportPaper(read.gate, asset.id, read.today, lineName);
-      if (!paper) throw new Error('machine not in the read');
+      const { machinePaper } = await import('../lib/machineDossier');
+      const paper = await machinePaper({ projectId, assetId: asset.id });
+      if (!paper) throw new Error('machine not found');
       const { saveMachinesPaper } = await import('../lib/machinePaperPdf');
       const how = await saveMachinesPaper(paper, [project.name, `${asset.name} machine report`]);
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
@@ -90,7 +88,6 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
       setSaid('The paper could not be made — try again.');
     } finally { setBusy(false); }
   };
-  const tests = machineTests(m);
   const row = (l: { id: string; title: string; word: string; tone: string; who?: string }, where?: string) => (
     <li key={l.id} className={'lt-li mpg-l is-' + l.tone}>
       <button type="button" className="lt-row" onClick={() => openRecord(projectId, l.id)}>
@@ -107,7 +104,7 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
           line, every project's work on it */}
       <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {project.name}</span>} title={m.name}
         papers={[
-          { label: 'Machine report', for: 'this page on paper — its status, where it is up to, what is open, its tests, its programs', disabled: busy || !read?.gate, make: print },
+          { label: 'Machine report', for: 'this machine in full — where it is up to, what is open and who has it, every test and every attempt, every program and its tests, every step, its problems and what was done', disabled: busy, make: print },
           { label: 'Commissioning report', for: 'every machine in the project, a card each', make: () => nav(`/project/${projectId}/report?doc=commissioning`) },
         ]}>
         <p className="cw-handover">

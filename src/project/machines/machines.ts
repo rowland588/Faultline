@@ -12,8 +12,7 @@ import { programsReading } from '../../lib/programsReport';
 import { ASSET_STATE_WORD, assetStateOf, live } from '../../lib/testing';
 import { niceDay } from '../../lib/weeks';
 import { machinesOf, type NowMachine } from '../now/now';
-import { machineRecord } from '../../lib/machineRecord';
-import { projectMachinePaper, type MachinePaper, type MachinesPaper } from '../../lib/machinePaper';
+import type { MachinesPaper } from '../../lib/machinePaper';
 
 export type StatusTone = 'g' | 'w' | 'n';
 
@@ -63,22 +62,10 @@ export function projectMachinesSays(rows: readonly ProjectMachineRow[]): string 
   return [`${rows.length} machine${rows.length === 1 ? '' : 's'}`, handed ? `${handed} handed over` : '', late ? `${late} with something late or critical` : 'nothing late'].filter(Boolean).join(' · ');
 }
 
-/* ON PAPER — the project's Machines report (a row a machine as the tab says it, then a page each) and one machine's
- * report (its page alone), both read here from the project's records so the paper says what the pages say. */
+/* ON PAPER — the project's Machines report: a row a machine as the tab says it (each machine in full follows). */
 
-/** One machine's page on paper, from the project's records (lib/machineRecord and the Programs report). */
-export function machinePaperOf(gate: JobInput, assetId: string, today: string, line?: string): MachinePaper | undefined {
-  const tests = live(gate.tests), items = live(gate.items), assets = live(gate.assets);
-  const a = assets.find(x => x.id === assetId);
-  if (!a) return undefined;
-  const reading = programsReading({ tests, items, assets, programs: gate.programs, today, holder: gate.project, studies: gate.studies ?? [] });
-  const m = machineRecord(a, { tests, items, programs: gate.programs, today });
-  const status = m.at.startsWith('Handed over') ? 'Handed over' : ASSET_STATE_WORD[assetStateOf(a)];
-  return projectMachinePaper({ project: gate.project.name, m, status, programs: reading?.lines ?? [], ...(line ? { line } : {}) });
-}
-
-/** The project's Machines report: the tab's sentence and rows, then a page a machine. */
-export function projectMachinesPaper(gate: JobInput, owed: readonly JobItem[], today: string, lineOf: (assetId: string) => string | undefined = () => undefined): MachinesPaper {
+/** The project's Machines report's front: the tab's sentence and rows (each machine in full follows, lib/machineDossier). */
+export function projectMachinesPaper(gate: JobInput, owed: readonly JobItem[], today: string): MachinesPaper {
   const rows = projectMachineRows(gate, owed, today);
   return {
     eyebrow: `MACHINES · ${gate.project.name}`, title: 'The machines', says: projectMachinesSays(rows),
@@ -86,13 +73,8 @@ export function projectMachinesPaper(gate: JobInput, owed: readonly JobItem[], t
       name: `${m.name}${m.oem ? ` — ${m.oem}` : ''}`, status: { word: m.status, tone: m.statusTone },
       says: rowSays(m, gate.project.name), right: nextWords(m), rightTone: m.next?.late || m.critical ? 'r' : m.next ? 'w' : 'n',
     })), empty: 'No machines on the project yet.' }],
-    machines: rows.map(m => machinePaperOf(gate, m.id, today, lineOf(m.id))).filter((x): x is MachinePaper => !!x),
+    /* each machine in full is lib/machineDossier's (projectMachinesFullPaper) */
+    machines: [],
     foot: `${gate.project.name} — its machines`,
   };
-}
-
-/** One machine's report — its page alone. */
-export function machineReportPaper(gate: JobInput, assetId: string, today: string, line?: string): MachinesPaper | undefined {
-  const m = machinePaperOf(gate, assetId, today, line);
-  return m ? { eyebrow: m.eyebrow, title: m.name, says: '', groups: [], machines: [m], foot: `${m.name} — ${gate.project.name}` } : undefined;
 }

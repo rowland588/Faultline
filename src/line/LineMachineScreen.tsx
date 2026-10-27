@@ -3,8 +3,8 @@
  * #/lines/:ws/machine/:name — the line's page for one machine, reached from the line's machines. What it
  * is and who is working on it, every project that did anything to it (each opening its page in that
  * project), its programs, its problems, the studies of it and its stops. Read by lib/lineMachine; nothing
- * here decides a word. Report ▾ prints this page (27 October — Rowland: "still no report abilities"):
- * lib/machinePaper lineMachinePaper, drawn by lib/machinePaperPdf. */
+ * here decides a word. Report ▾ prints this machine in full (27 October — Rowland: "still no report
+ * abilities"; "all you've done is headlines"): lib/machineDossier, drawn by lib/machinePaperPdf. */
 import { useEffect, useMemo, useState } from 'react';
 import type { Observation, Workspace } from '../types';
 import type { Snag } from '../snag/types';
@@ -15,7 +15,6 @@ import { projectsOnLines, useJobFloor } from '../lib/useJobFloor';
 import { lineMachineView, STOP_DAYS } from '../lib/lineMachine';
 import { todayISO } from '../lib/weeks';
 import { PageHeader } from '../ui/parts';
-import { lineMachinePaper } from '../lib/machinePaper';
 import { nav } from '../state/useRoute';
 
 export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }) {
@@ -58,9 +57,13 @@ export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }
     if (busy) return;
     setBusy(true); setSaid(null);
     try {
-      const m = lineMachinePaper(line.name, v);
+      /* in full (27 October — "all you've done is headlines"): every project's work on it, each test and attempt,
+         its programs and their tests, its problems and what was done, the studies and what they found (lib/machineDossier) */
+      const { machinePaper } = await import('../lib/machineDossier');
+      const paper = await machinePaper({ wsId, name: v.name });
+      if (!paper) throw new Error('machine not on the line');
       const { saveMachinesPaper } = await import('../lib/machinePaperPdf');
-      const how = await saveMachinesPaper({ eyebrow: m.eyebrow, title: m.name, says: '', groups: [], machines: [m], foot: `${m.name} — ${line.name}` }, [line.name, `${v.name} machine report`]);
+      const how = await saveMachinesPaper(paper, [line.name, `${v.name} machine report`]);
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('machine report failed', e);
@@ -71,7 +74,7 @@ export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }
   return (
     <div className="wrap pace lmc">
       <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {line.name}</span>} title={v.name}
-        papers={[{ label: 'Machine report', for: 'this page on paper — every project’s work on it, its programs, its problems, the studies of it, its stops', disabled: busy, make: print }]}>
+        papers={[{ label: 'Machine report', for: 'this machine in full — every project’s work on it, each test and every attempt, its programs and their tests, its problems and what was done, the studies and what they found, its stops', disabled: busy, make: print }]}>
         <p className="sub lmc-says">{v.says}</p>
         {v.oem && <p className="sub">Made by <b>{v.oem}</b></p>}
       </PageHeader>

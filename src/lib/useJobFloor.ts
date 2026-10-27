@@ -32,30 +32,34 @@ export interface StageOnly { projectId: string; projectName: string; assetId?: s
 
 /** The floor's word on each of these jobs' programs, by program id — only
  *  where the job's Set up said something of it; and each job's programs that are only on its stage. */
+/** The floor's word on these jobs' programs, read once — what the hook reads, for a paper made on a press. */
+export async function loadJobFloor(jobIds: readonly string[]): Promise<Map<string, FloorWord> & { stageOnly?: StageOnly[] }> {
+  const ids = [...new Set(jobIds.filter(Boolean))];
+  const all = await Promise.all(ids.map(async pid => {
+    const [tests, items, assets, programs, project] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid), listPrograms(pid), getProject(pid)]);
+    const lines = programsReading({ tests, items, assets, programs, today: todayISO(), ...(project ? { holder: project } : {}) })?.lines ?? [];
+    return lines.map(l => ({ l, pid, name: project?.name ?? 'its project' }));
+  }));
+  const m: Map<string, FloorWord> & { stageOnly?: StageOnly[] } = new Map<string, FloorWord>();
+  m.stageOnly = all.flat().filter(x => x.l.partId && !x.l.programId)
+    .map(x => ({ projectId: x.pid, projectName: x.name, ...(x.l.assetId ? { assetId: x.l.assetId } : {}),
+      line: { ...x.l, proving: `On ${x.name}'s Commission — a line on ${x.l.machine}'s Programs loaded, not on a Programs list yet` } }));
+  for (const { l } of all.flat()) {
+    /* Only where the floor's status leads the row — the newer fact; one
+       proved since the floor last spoke reads as proved, as it does here. */
+    if (!l.programId || !l.partId || !l.record) continue;
+    m.set(l.programId, { word: l.word, tone: l.tone, bucket: l.bucket, ...(l.note ? { note: l.note } : {}) });
+  }
+  return m;
+}
+
 export function useJobFloor(jobIds: readonly string[]): Map<string, FloorWord> & { stageOnly?: StageOnly[] } {
   const key = [...new Set(jobIds.filter(Boolean))].sort().join(',');
   const [got, setGot] = useState<Map<string, FloorWord> & { stageOnly?: StageOnly[] }>(() => new Map());
   useEffect(() => {
     let live = true;
     const ids = key ? key.split(',') : [];
-    const load = () => void Promise.all(ids.map(async pid => {
-      const [tests, items, assets, programs, project] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid), listPrograms(pid), getProject(pid)]);
-      const lines = programsReading({ tests, items, assets, programs, today: todayISO(), ...(project ? { holder: project } : {}) })?.lines ?? [];
-      return lines.map(l => ({ l, pid, name: project?.name ?? 'its project' }));
-    })).then(all => {
-      if (!live) return;
-      const m: Map<string, FloorWord> & { stageOnly?: StageOnly[] } = new Map<string, FloorWord>();
-      m.stageOnly = all.flat().filter(x => x.l.partId && !x.l.programId)
-        .map(x => ({ projectId: x.pid, projectName: x.name, ...(x.l.assetId ? { assetId: x.l.assetId } : {}),
-          line: { ...x.l, proving: `On ${x.name}'s Commission — a line on ${x.l.machine}'s Programs loaded, not on a Programs list yet` } }));
-      for (const { l } of all.flat()) {
-        /* Only where the floor's status leads the row — the newer fact; one
-           proved since the floor last spoke reads as proved, as it does here. */
-        if (!l.programId || !l.partId || !l.record) continue;
-        m.set(l.programId, { word: l.word, tone: l.tone, bucket: l.bucket, ...(l.note ? { note: l.note } : {}) });
-      }
-      setGot(m);
-    });
+    const load = () => void loadJobFloor(ids).then(m => { if (live) setGot(m); });
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };

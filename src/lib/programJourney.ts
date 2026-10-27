@@ -90,8 +90,37 @@ export function attemptsOf(p: Pick<Program, 'id' | 'testId'>, tests: Test[]): Te
   return out;
 }
 
+/** EVERY ATTEMPT OF ONE TEST — the test and every re-test that followed it (Test.fromTestId), first to last, in the
+ *  same words as a program's journey: what each aimed at, what it did, how it went, what was seen. A test that is
+ *  not a program's (seal integrity, a performance run) has a journey too (27 October — Rowland: "the tests that
+ *  have been done, you can't see the results ... the efforts that have been put in place"). */
+export function testChain(t: Test, tests: Test[]): Test[] {
+  const mine = live(tests).filter(x => (x.kind ?? 'test') === 'test');
+  let root: Test = t;
+  for (let guard = 0; guard < 100; guard++) {
+    const back = root.fromTestId ? mine.find(x => x.id === root.fromTestId) : undefined;
+    if (!back) break;
+    root = back;
+  }
+  const out: Test[] = [];
+  const seen = new Set<string>();
+  for (let cur: Test | undefined = root, guard = 0; cur && guard < 100 && !seen.has(cur.id); guard++) {
+    out.push(cur); seen.add(cur.id);
+    const at: Test = cur;
+    cur = mine.find(x => x.fromTestId === at.id && !seen.has(x.id));
+  }
+  return out;
+}
+
+/** A test's journey — every attempt of it (testChain). */
+export const testJourney = (t: Test, tests: Test[], today: string): Journey => journeyOfAttempts(testChain(t, tests), today);
+
 export function programJourney(p: Pick<Program, 'id' | 'testId'>, tests: Test[], today: string): Journey {
-  const attempts: Attempt[] = attemptsOf(p, tests).map((t, i) => {
+  return journeyOfAttempts(attemptsOf(p, tests), today);
+}
+
+function journeyOfAttempts(list: Test[], today: string): Journey {
+  const attempts: Attempt[] = list.map((t, i) => {
     const { agreed: a, day: d } = runOf(t);
     const aim = [num(a?.rate) != null && `aiming ${fmt(a?.rate as number)} ppm`, num(a?.minutes) != null && `for ${fmt(a?.minutes as number)} min`, num(a?.net) != null && `· net ${fmt(a?.net as number)} ppm`].filter(Boolean).join(' ') || undefined;
     const net = nettedOf(t);
