@@ -9,7 +9,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
-  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
+  | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms'
   | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'tools' | 'parts' | 'projectTools' | 'lineReport';
 
@@ -84,6 +84,8 @@ export function parseRoute(hash: string): Route {
      line rides on the route, so the Problem button takes it as the line. */
   /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October, lib/lineBundle): its own report page, made on arrival with ?save=1 */
   if (segs[0] === 'lines' && segs[1] && segs[2] === 'report') return { name: 'lineReport', wsId: decodeURIComponent(segs[1]), query };
+  /* A MACHINE ON ITS LINE — everything ever done to it (docs/STAGEGATE-RESEARCH.md §5, slice 4): by its name */
+  if (segs[0] === 'lines' && segs[1] && segs[2] === 'machine' && segs[3]) return { name: 'lineMachine', wsId: decodeURIComponent(segs[1]), id: (() => { try { return decodeURIComponent(segs[3]); } catch { return segs[3]; } })(), query };
   if (segs[0] === 'lines' && segs[1]) return { name: 'lineHome', wsId: decodeURIComponent(segs[1]), query };
   /* YOUR FACTORY — the production lines set up and edited in one place
      (Rowland, 13 October: "build your factory, edit your factory"). */

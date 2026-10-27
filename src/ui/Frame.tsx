@@ -60,7 +60,7 @@ import {
  *  /project/:id later sits in the frame without being registered here. */
 function projectOf(route: Route, chainProject?: string): string | undefined {
   /* a production line's own page is the line's, never a job's — no project needed */
-  if (route.name === 'lineHome' || route.name === 'lineReport' || route.name === 'factory' || route.name === 'linePrograms') return undefined;
+  if (route.name === 'lineHome' || route.name === 'lineReport' || route.name === 'lineMachine' || route.name === 'factory' || route.name === 'linePrograms') return undefined;
   if (route.wsId) return chainProject;
   if (route.name === 'paceReport') return route.query.get('project') ?? undefined;
   /* A TOOL'S PAGE INSIDE A PROJECT carries it (lib/inProject; docs/PROJECTS.md,

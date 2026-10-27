@@ -14,6 +14,8 @@
  *      the next start; renamed on the line's page, the study and Line capacity's station (its stop name too) follow
  *   7  slice 3: Install's Add a machine offers the line's own machines to take on with a tap — not one the project
  *      has — and the tap takes that record on, no second one
+ *   8  slice 4: its name on the line's page opens its own page — what it is in a sentence, the project on it opening
+ *      its page there, its program, the study of it — and on a phone nothing off the side
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/one-machine.mjs      (SMOKE_BASE, as smoke) */
@@ -165,6 +167,31 @@ await page.waitForTimeout(1200);
 const took = await page.evaluate(async ([ws, n]) => (await (await import('/src/db/core.ts')).getDB()).getAll('commission_assets').then(a => a.filter(x => !x.deletedAt && x.workspaceId === ws && x.name === n)), [WS, TAKE]);
 ok(took.length === 1 && took[0].id === takeId && took[0].projectId === PID && took[0].oem === 'Herma', '7 the tap takes that record on — the same one, its maker kept, the project\'s now', JSON.stringify(took.map(r => [r.id === takeId, r.projectId === PID, r.oem])));
 ok(!flat(await page.locator('.cw-addf-line').innerText().catch(() => '')).includes(TAKE), '7 and it is offered no more');
+
+/* 8 · slice 4 — the machine's own page, from the line */
+await go(`#/lines/${WS}`);
+await page.locator('.pl-machine-name', { hasText: 'Date coder X2' }).click();
+await page.locator('.lmc').waitFor({ timeout: 15000 });
+await page.waitForTimeout(800);
+ok(/#\/lines\/[^/]+\/machine\/Date%20coder%20X2$/.test(page.url()), "8 its name on the line's page opens its own page", page.url());
+ok(flat(await page.locator('.lmc .part-head h1').innerText()).startsWith('Date coder X2'), '8 the page is the machine');
+const bar8 = flat(await page.locator('.nv-ctx').innerText());
+ok(/^Factory/.test(bar8) && !/Projects/.test(bar8) && await page.locator('.nv-tab[aria-current="page"]', { hasText: 'Overview' }).count() === 1, "8 it sits on its line — the line's frame and tabs, never a project's", bar8);
+const says = flat(await page.locator('.lmc-says').innerText());
+ok(/^With .+ · worked on by 1 project · 1 program · no problem open/.test(says), '8 what it is in a sentence — whose, the project, its programs', says);
+ok(/Domino UK/.test(flat(await page.locator('.lmc .part-head').innerText())), '8 who made it');
+ok(/Date code layout B/.test(flat(await page.locator('.lmc-programs').innerText())), '8 its program, as the line reads it');
+ok(/Coder stops/.test(flat(await page.locator('.lmc-studies').innerText())), '8 the study of it');
+await page.locator('.lmc-proj .cw-link').first().click();
+await page.waitForTimeout(1200);
+ok(page.url().endsWith(`#/project/${PID}/machine/${lineId}`), '8 the project on it opens its page there — the same record', page.url());
+const pp = await ctx.newPage();
+await pp.setViewportSize({ width: 390, height: 844 });
+await pp.goto(`${BASE}/#/lines/${WS}/machine/${encodeURIComponent('Date coder X2')}`);
+await pp.locator('.lmc').waitFor({ timeout: 15000 });
+await pp.waitForTimeout(800);
+ok(await pp.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 0, '8 the phone: nothing off the side');
+await pp.close();
 
 ok(errs.length === 0, 'no console error', errs.join(' | '));
 await b.close();

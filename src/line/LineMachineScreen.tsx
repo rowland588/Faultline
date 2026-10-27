@@ -1,0 +1,131 @@
+/* A MACHINE ON ITS LINE — EVERYTHING EVER DONE TO IT (docs/STAGEGATE-RESEARCH.md §5, slice 4).
+ *
+ * #/lines/:ws/machine/:name — the line's page for one machine, reached from the line's machines. What it
+ * is and who is working on it, every project that did anything to it (each opening its page in that
+ * project), its programs, its problems, the studies of it and its stops. Read by lib/lineMachine; nothing
+ * here decides a word. */
+import { useEffect, useMemo, useState } from 'react';
+import type { Observation, Workspace } from '../types';
+import type { Snag } from '../snag/types';
+import type { Test } from '../lib/testing';
+import { getWorkspace, listAllSnags, listAllTests, listObservations, onDataChange } from '../db';
+import { useLineRecords } from '../lib/useLineRecords';
+import { projectsOnLines, useJobFloor } from '../lib/useJobFloor';
+import { lineMachineView, STOP_DAYS } from '../lib/lineMachine';
+import { todayISO } from '../lib/weeks';
+import { PageHeader } from '../ui/parts';
+import { nav } from '../state/useRoute';
+
+export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }) {
+  const rec = useLineRecords();
+  const [line, setLine] = useState<Workspace | null | undefined>(undefined);
+  const [tests, setTests] = useState<Test[]>([]);
+  const [snags, setSnags] = useState<Snag[]>([]);
+  const [stops, setStops] = useState<Observation[]>([]);
+  useEffect(() => {
+    let live = true;
+    const load = () => void Promise.all([getWorkspace(wsId), listAllTests(), listAllSnags(), listObservations(wsId)]).then(([w, t, s, o]) => {
+      if (!live) return;
+      setLine(w ?? null); setTests(t); setSnags(s); setStops(o);
+    });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [wsId]);
+
+  const floor = useJobFloor(useMemo(() => projectsOnLines([wsId], rec.jobLines, pid => rec.jobs.some(j => j.id === pid && !j.archivedAt)), [wsId, rec.jobLines, rec.jobs]));
+  const jobNames = useMemo(() => new Map(rec.jobs.map(j => [j.id, j.name])), [rec.jobs]);
+  const v = useMemo(() => (line ? lineMachineView(name, {
+    ws: line, assets: rec.machines, jobLines: rec.jobLines, jobs: rec.jobs, programs: rec.programs, tests, snags, studies: rec.studies, stops,
+    now: Date.now(), floor, jobNames, today: todayISO(),
+  }) : undefined), [line, name, rec.machines, rec.jobLines, rec.jobs, rec.programs, rec.studies, tests, snags, stops, floor, jobNames]);
+
+  if (rec.loading || line === undefined) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
+  if (!line || !v) {
+    return (
+      <div className="wrap pace lmc-gone">
+        <p className="sub">{line ? `${name} is not on ${line.name} any more.` : 'That line is not here any more.'}</p>
+        <button type="button" className="btn btn-primary" onClick={() => nav(line ? `/lines/${wsId}` : '/')}>{line ? `Back to ${line.name}` : 'Back to the factory'}</button>
+      </div>
+    );
+  }
+  const openProblems = v.problems.filter(p => p.open).length;
+
+  return (
+    <div className="wrap pace lmc">
+      <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {line.name}</span>} title={v.name}>
+        <p className="sub lmc-says">{v.says}</p>
+        {v.oem && <p className="sub">Made by <b>{v.oem}</b></p>}
+      </PageHeader>
+
+      <section className="pl-sec lmc-projects" aria-label="The projects on it">
+        <div className="pl-sec-h"><h2>The projects on it</h2><span className="sub">{v.projects.length || 'none'}</span></div>
+        {v.projects.length === 0
+          ? <p className="sub">No project has worked on it. A project takes it on from its Install — Add a machine.</p>
+          : (
+            <ol className="pl-machines">
+              {v.projects.map(p => (
+                <li key={p.id} className="pl-machine lmc-proj">
+                  <b>{p.name}</b>
+                  <span className="sub">{[`${p.tests} ${p.tests === 1 ? 'test' : 'tests'}`, p.open ? `${p.open} open` : 'none open', p.failed ? `${p.failed} didn’t pass` : ''].filter(Boolean).join(' · ')}{p.last ? ` · last: ${p.last}` : ''}</span>
+                  <button type="button" className="cw-link" onClick={() => nav(p.href)}>Its page in {p.name} ›</button>
+                </li>
+              ))}
+            </ol>
+          )}
+      </section>
+
+      <section className="pl-sec lmc-programs" aria-label="Its programs">
+        <div className="pl-sec-h"><h2>Its programs</h2><span className="sub">{v.programs.length || 'none'}</span></div>
+        {v.programs.length === 0
+          ? <p className="sub">No programs on it. Plan one on the line's Programs.</p>
+          : (
+            <ol className="pl-machines">
+              {v.programs.map(l => (
+                <li key={(l.programId ?? l.partId ?? l.what)} className="pl-machine">
+                  <b>{l.what}</b><span className={'spp-pill is-' + l.tone}>{l.word}</span>{l.runs && <span className="sub">{l.runs}</span>}
+                </li>
+              ))}
+            </ol>
+          )}
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}`)}>Every program on {line.name} ›</button>
+      </section>
+
+      <section className="pl-sec lmc-problems" aria-label="Its problems">
+        <div className="pl-sec-h"><h2>Its problems</h2><span className="sub">{v.problems.length ? `${openProblems} open of ${v.problems.length}` : 'none'}</span></div>
+        {v.problems.length === 0
+          ? <p className="sub">No problem on the register names it.</p>
+          : (
+            <ol className="pl-machines">
+              {v.problems.map(p => (
+                <li key={p.id} className={'pl-machine' + (p.open ? '' : ' is-done')}>
+                  <button type="button" className="cw-link" onClick={() => nav(p.href)}>{p.what}</button>
+                  <span className="sub">{p.open ? p.priority === 'critical' ? 'Critical' : p.priority === 'high' ? 'High' : 'Low' : 'closed'}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+      </section>
+
+      <section className="pl-sec lmc-studies" aria-label="Studies of it">
+        <div className="pl-sec-h"><h2>Studies of it</h2><span className="sub">{v.studies.length || 'none'}</span></div>
+        {v.studies.length === 0
+          ? <p className="sub">No study names it yet — the line's Tools start one on it.</p>
+          : (
+            <ol className="pl-machines">
+              {v.studies.map(s => (
+                <li key={s.id} className="pl-machine">
+                  <button type="button" className="cw-link" onClick={() => nav(s.href)}>{s.name}</button><span className="sub">{s.tool}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+      </section>
+
+      <section className="pl-sec lmc-stops" aria-label="Its stops">
+        <div className="pl-sec-h"><h2>Its stops</h2></div>
+        <p className="sub">{v.stops.n ? `${v.stops.n} ${v.stops.n === 1 ? 'stop' : 'stops'} timed in the last ${STOP_DAYS} days — ${v.stops.minutes} minutes.` : `No stops timed on it in the last ${STOP_DAYS} days.`}</p>
+      </section>
+    </div>
+  );
+}

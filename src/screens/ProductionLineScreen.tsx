@@ -626,7 +626,8 @@ function MachineRow({ line, m, may, programs, job }: { line: Workspace; m: LineM
   );
   return (
     <li className="pl-machine" data-machine={m.name}>
-      <b>{m.name}</b>
+      {/* ITS OWN PAGE — everything ever done to it, every project's (slice 4, line/LineMachineScreen) */}
+      <a className="pl-machine-name" href={`#/lines/${encodeURIComponent(line.id)}/machine/${encodeURIComponent(m.name)}`}><b>{m.name}</b></a>
       {may
         ? <input className="text-input pl-oem" defaultValue={m.record?.oem ?? ''} key={m.record?.oem ?? ''} maxLength={80} placeholder="Who made it" aria-label={`Who made the ${m.name}`}
             onBlur={e => { const v = e.target.value.trim(); if (v !== (m.record?.oem ?? '')) void setMachineFacts(line.id, m.name, { oem: v }); }}

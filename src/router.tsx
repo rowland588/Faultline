@@ -46,6 +46,7 @@ const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => (
 const QuickSnagsScreen = lazy(() => import('./snag/QuickSnagsScreen').then(m => ({ default: m.QuickSnagsScreen })));
 const ProductionLineScreen = lazy(() => import('./screens/ProductionLineScreen').then(m => ({ default: m.ProductionLineScreen })));
 const LineReportScreen = lazy(() => import('./line/report/LineReportScreen').then(m => ({ default: m.LineReportScreen })));
+const LineMachineScreen = lazy(() => import('./line/LineMachineScreen').then(m => ({ default: m.LineMachineScreen })));
 const FactoryScreen = lazy(() => import('./screens/FactoryScreen').then(m => ({ default: m.FactoryScreen })));
 const LineProgramsScreen = lazy(() => import('./screens/LineProgramsScreen').then(m => ({ default: m.LineProgramsScreen })));
 const LineToolsScreen = lazy(() => import('./screens/LineToolsScreen').then(m => ({ default: m.LineToolsScreen })));
@@ -163,6 +164,8 @@ function app(route: Route) {
   if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
   /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October, lib/lineBundle) */
   if (route.name === 'lineReport' && route.wsId) return <LineReportScreen key={route.wsId} wsId={route.wsId} />;
+  /* A MACHINE ON ITS LINE — everything ever done to it (docs/STAGEGATE-RESEARCH.md §5, slice 4) */
+  if (route.name === 'lineMachine' && route.wsId && route.id) return <LineMachineScreen key={`${route.wsId}:${route.id}`} wsId={route.wsId} name={route.id} />;
   if (route.name === 'lineHome' && route.wsId) {
     const v = route.query.get('view');
     return <ProductionLineScreen key={route.wsId} wsId={route.wsId} view={v === 'tools' || v === 'projects' || v === 'setup' || v === 'logs' ? v : 'overview'} />;

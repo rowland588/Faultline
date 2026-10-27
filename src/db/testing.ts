@@ -77,6 +77,12 @@ export async function listTests(projectId: string): Promise<Test[]> {
 /** Every test that proves a program, on whichever job (Test.programId) —
  *  how a line's program was proved, read on its line (lib/programsReport
  *  proofOf). */
+/** Every test on the device, on every project — what was done to a machine,
+ *  whichever project did it (lib/lineMachine). */
+export async function listAllTests(): Promise<Test[]> {
+  return (await (await getDB()).getAll('tests')).filter(t => !t.deletedAt);
+}
+
 export async function listProvingTests(): Promise<Test[]> {
   return (await (await getDB()).getAll('tests')).filter(t => !t.deletedAt && !!t.programId);
 }

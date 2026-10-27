@@ -14829,3 +14829,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .nv-tab { padding: 0 clamp(4px, 1.5vw, 8px); }
   .nv-tab-total, .nv-tab-dot { display: none; }
 }
+
+/* A machine on its line (line/LineMachineScreen) — gone from the line */
+.lmc-gone .sub { margin-top: var(--space-5); }
+.lmc-gone .btn { margin-top: var(--space-3); }

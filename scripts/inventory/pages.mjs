@@ -54,6 +54,16 @@ export const PAGES = (sd, cap) => [
     { what: 'who owes what by when', sel: '.lr-h', text: /^Who owes what by when/ },
     { what: 'the closing line', sel: '.lr .ln-close' },
   ] },
+  /* A MACHINE ON ITS LINE — everything ever done to it (27 October, docs/STAGEGATE-RESEARCH.md §5 slice 4, line/LineMachineScreen) */
+  { name: 'A machine on its line — everything done to it', path: `#/lines/${sd.wsId}/machine/${encodeURIComponent('Ilapak flow wrapper')}`, must: [
+    { what: 'its name, the page header', sel: '.lmc .part-head h1', text: /Ilapak flow wrapper/ },
+    { what: 'what it is in a sentence — whose, projects, programs, problems, stops', sel: '.lmc-says', text: /With .* · worked on by/ },
+    { what: 'the projects on it, each opening its page there', sel: '.lmc-projects .lmc-proj .cw-link', text: /^Its page in / },
+    { what: 'its programs', sel: '.lmc-programs h2' },
+    { what: 'its problems', sel: '.lmc-problems h2' },
+    { what: 'studies of it', sel: '.lmc-studies h2' },
+    { what: 'its stops', sel: '.lmc-stops h2' },
+  ] },
   { name: 'A line — its own page', path: `#/lines/${sd.line7WsId}`, must: [
     { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
     { what: 'a card a machine', sel: '.tour-card', n: 2 },

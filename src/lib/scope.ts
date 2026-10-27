@@ -35,7 +35,7 @@ const LINE_LISTS = new Set<Route['name']>(['quickSnags', 'linePrograms', 'lineTo
 export function scopeOf(route: Route, hints: ScopeHints = {}): Scope {
   if (route.name === 'start') return { kind: 'home' };
   if (hints.projectId) return { kind: 'project', projectId: hints.projectId };
-  if ((route.name === 'lineHome' || route.name === 'lineReport') && route.wsId) return { kind: 'line', wsId: route.wsId };
+  if ((route.name === 'lineHome' || route.name === 'lineReport' || route.name === 'lineMachine') && route.wsId) return { kind: 'line', wsId: route.wsId };
   if (FACTORY.has(route.name)) return { kind: 'factory' };
   const line = route.query.get('line');
   if (LINE_LISTS.has(route.name)) return line ? { kind: 'line', wsId: line } : { kind: 'factory' };

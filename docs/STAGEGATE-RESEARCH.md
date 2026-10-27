@@ -291,8 +291,23 @@ Not in slice 1: a record for every name on a list (on purpose, above).
 - **Proved**: `lib/__tests__/machineMerge.test.ts` (studies pointed, what can
   be taken on) and `scripts/acceptance/one-machine.mjs` steps 6–7.
 
-Left: slice 4 (one machine page — from the line, everything ever done) and
-slice 5 (handover passes the machine to the line).
+### 5.2c Slice 4 as built (27 October) — a machine's own page on its line
+
+`#/lines/:ws/machine/:name`, opened from a machine's name on the line's
+page (`line/LineMachineScreen`, read by `lib/lineMachine`): what it is in
+one sentence (whose, the projects that worked on it, its programs, its
+problems open, its stops in 28 days) and who made it; every project that
+did anything to it — its tests, what is open, what did not pass, its last
+result — each opening the machine's page in that project (the same
+record); its programs as the line's Programs reads them; its problems from
+the register; the studies of it; its stops. Nothing on it is a second
+answer. A project's own machine page (`screens/MachineScreen`) stays that
+project's gates and runs. Proved: `lib/__tests__/lineMachine.test.ts`,
+`scripts/acceptance/one-machine.mjs` step 8, the inventory's row for it.
+
+Left: slice 5 (handover passes the machine to the line) — what it should
+mean is Rowland's to say (§6): today a machine handed over stays the
+project's record and shows on the line all the same.
 
 ### 5.3 The slices (each shipped on its own, nothing removed until proved)
 
