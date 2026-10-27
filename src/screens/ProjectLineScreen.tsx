@@ -28,7 +28,7 @@
  * wins and snags, so the owners filling these in ARE what the client ends up
  * reading. One source at the top, fed from underneath. */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { nav, useRoute } from '../state/useRoute';
+import { nav, navReplace, useRoute } from '../state/useRoute';
 import { ReportMenu } from '../ui/parts';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { Fold, openFold } from '../ui/Fold';
@@ -186,6 +186,11 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
     [problems.problems, lineId, ppm.lines],
   );
 
+  /* A STAGE-GATE PROJECT'S LINE IS THE LINE (27 October — Rowland: "Even if I go to projects and click line 2A, I
+     can't even get to that line page"). Its name on the project opens the line's own page, the one with everything
+     on it; a section asked for by name (?view=, an action, a win) still opens here. */
+  const toFactoryLine = !!project && planModel(project) === 'commissioning' && !raw && !!line?.workspaceId;
+  useEffect(() => { if (toFactoryLine && line?.workspaceId) navReplace(`/lines/${encodeURIComponent(line.workspaceId)}`); }, [toFactoryLine, line?.workspaceId]);
   const counts = useLinePackCounts(projectId, lineId, line?.workspaceId);
   /* THE FACTORY'S LINE (docs/BLUEPRINT.md §1 rule 2: a job owns no line, it
      points at one). The job's line is named as the factory names it — not

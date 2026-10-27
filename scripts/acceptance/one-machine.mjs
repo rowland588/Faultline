@@ -180,12 +180,13 @@ const bar8 = flat(await page.locator('.nv-ctx').innerText());
 ok(/^Factory/.test(bar8) && !/Projects/.test(bar8) && await page.locator('.nv-tab[aria-current="page"]', { hasText: 'Machines' }).count() === 1, "8 it sits on its line — the line's frame, under its Machines tab, never a project's", bar8);
 const says = flat(await page.locator('.lmc-says').innerText());
 ok(/^With .+ · worked on by 1 project · 1 program · no problem open/.test(says), '8 what it is in a sentence — whose, the project, its programs', says);
-ok(/Domino UK/.test(flat(await page.locator('.lmc .part-head').innerText())), '8 who made it');
+ok(/Domino UK/.test(flat(await page.locator('.lmc').innerText())), '8 who made it');
 ok(/Date code layout B/.test(flat(await page.locator('.lmc-programs').innerText())), '8 its program, as the line reads it');
 ok(/Coder stops/.test(flat(await page.locator('.lmc-studies').innerText())), '8 the study of it');
 await page.locator('.lmc-proj .cw-link').first().click();
 await page.waitForTimeout(1200);
-ok(page.url().endsWith(`#/project/${PID}/machine/${lineId}`), '8 the project on it opens its page there — the same record', page.url());
+/* one machine, one page (27 October): the project on it opens the project; its part for this machine is on this page */
+ok(page.url().endsWith(`#/project/${PID}`), '8 the project on it opens the project itself', page.url());
 const pp = await ctx.newPage();
 await pp.setViewportSize({ width: 390, height: 844 });
 await pp.goto(`${BASE}/#/lines/${WS}/machine/${encodeURIComponent('Date coder X2')}`);

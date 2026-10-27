@@ -1,9 +1,11 @@
-/* A MACHINE ON ITS LINE — EVERYTHING EVER DONE TO IT (docs/STAGEGATE-RESEARCH.md §5, slice 4).
+/* A MACHINE — ITS ONE PAGE, ON ITS LINE (docs/STAGEGATE-RESEARCH.md §5, slice 4; the one page since 27 October).
  *
- * #/lines/:ws/machine/:name — the line's page for one machine, reached from the line's machines. What it
- * is and who is working on it, every project that did anything to it (each opening its page in that
- * project), its programs, its problems, the studies of it and its stops. Read by lib/lineMachine; nothing
- * here decides a word. Report ▾ prints this machine in full (27 October — Rowland: "still no report
+ * #/lines/:ws/machine/:name — reached from the line's machines, the Factory, a project's Machines and every machine
+ * name. Rowland, 27 October, after walking into two pages of Pick and place: one machine, one page. While a
+ * stage-gate project is working on it, the project's part comes first (project/machines/MachineInProject — where it
+ * is up to, its four gates, what is open, its tests, its programs, the machine itself); then every project that did
+ * anything to it, the line's own programs on it, its problems, the studies of it and its stops. The project's address
+ * for it (#/project/:id/machine/:asset) opens this page. Read by lib/lineMachine; nothing here decides a word. Report ▾ prints this machine in full (27 October — Rowland: "still no report
  * abilities"; "all you've done is headlines"): lib/machineDossier, drawn by lib/machinePaperPdf. */
 import { useEffect, useMemo, useState } from 'react';
 import type { Observation, Workspace } from '../types';
@@ -16,6 +18,8 @@ import { lineMachineView, STOP_DAYS } from '../lib/lineMachine';
 import { todayISO } from '../lib/weeks';
 import { PageHeader } from '../ui/parts';
 import { nav } from '../state/useRoute';
+import { planModel } from '../lib/planModel';
+import { MachineInProject } from '../project/machines/MachineInProject';
 
 export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }) {
   const rec = useLineRecords();
@@ -53,6 +57,11 @@ export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }
     );
   }
   const openProblems = v.problems.filter(p => p.open).length;
+  /* THE PROJECT WORKING ON IT NOW — a stage-gate project, not put away, whose machine record this is */
+  const job = v.record?.projectId ? rec.jobs.find(j => j.id === v.record?.projectId && !j.archivedAt && planModel(j) === 'commissioning') : undefined;
+  const assetId = v.record?.id;
+  /* the line's own programs on it — a project's are in its part above, the same rows and form as its Programs */
+  const lineProgs = job ? v.programs.filter(l => !!l.programId && rec.programs.find(p => p.id === l.programId)?.projectId !== job.id) : v.programs;
   const print = async () => {
     if (busy) return;
     setBusy(true); setSaid(null);
@@ -74,11 +83,17 @@ export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }
   return (
     <div className="wrap pace lmc">
       <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {line.name}</span>} title={v.name}
-        papers={[{ label: 'Machine report', for: 'this machine in full — every project’s work on it, each test and every attempt, its programs and their tests, its problems and what was done, the studies and what they found, its stops', disabled: busy, make: print }]}>
+        papers={[
+          { label: 'Machine report', for: 'this machine in full — where it is up to, what is open and who has it, every test and every attempt, its programs and their tests, every step, its problems and what was done, the studies and what they found, its stops', disabled: busy, make: print },
+          ...(job ? [{ label: 'Commissioning report', for: `every machine in ${job.name}, a card each`, make: () => nav(`/project/${job.id}/report?doc=commissioning`) }] : []),
+        ]}>
         <p className="sub lmc-says">{v.says}</p>
-        {v.oem && <p className="sub">Made by <b>{v.oem}</b></p>}
+        {v.oem && !job && <p className="sub">Made by <b>{v.oem}</b></p>}
       </PageHeader>
       {said && <p className="tc-ok" role="status">{said}</p>}
+
+      {/* IN ITS PROJECT — what the project working on it now is doing to it, first */}
+      {job && assetId && <MachineInProject projectId={job.id} assetId={assetId} onRemoved={() => nav(`/project/${job.id}/machines`)} />}
 
       <section className="pl-sec lmc-projects" aria-label="The projects on it">
         <div className="pl-sec-h"><h2>The projects on it</h2><span className="sub">{v.projects.length || 'none'}</span></div>
@@ -90,7 +105,7 @@ export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }
                 <li key={p.id} className="pl-machine lmc-proj">
                   <b>{p.name}</b>
                   <span className="sub">{[`${p.tests} ${p.tests === 1 ? 'test' : 'tests'}`, p.open ? `${p.open} open` : 'none open', p.failed ? `${p.failed} didn’t pass` : ''].filter(Boolean).join(' · ')}{p.last ? ` · last: ${p.last}` : ''}</span>
-                  <button type="button" className="cw-link" onClick={() => nav(p.href)}>Its page in {p.name} ›</button>
+                  <button type="button" className="cw-link" onClick={() => nav(p.href)}>Open {p.name} ›</button>
                 </li>
               ))}
             </ol>
@@ -98,12 +113,12 @@ export function LineMachineScreen({ wsId, name }: { wsId: string; name: string }
       </section>
 
       <section className="pl-sec lmc-programs" aria-label="Its programs">
-        <div className="pl-sec-h"><h2>Its programs</h2><span className="sub">{v.programs.length || 'none'}</span></div>
-        {v.programs.length === 0
-          ? <p className="sub">No programs on it. Plan one on the line's Programs.</p>
+        <div className="pl-sec-h"><h2>{job ? 'The line’s own programs on it' : 'Its programs'}</h2><span className="sub">{lineProgs.length || 'none'}</span></div>
+        {lineProgs.length === 0
+          ? <p className="sub">{job ? `None besides ${job.name}’s, above.` : 'No programs on it. Plan one on the line’s Programs.'}</p>
           : (
             <ol className="pl-machines">
-              {v.programs.map(l => (
+              {lineProgs.map(l => (
                 <li key={(l.programId ?? l.partId ?? l.what)} className="pl-machine">
                   <b>{l.what}</b><span className={'spp-pill is-' + l.tone}>{l.word}</span>{l.runs && <span className="sub">{l.runs}</span>}
                 </li>

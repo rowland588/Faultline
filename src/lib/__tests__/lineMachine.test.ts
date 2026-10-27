@@ -45,8 +45,8 @@ describe('a machine on its line — everything ever done to it', () => {
     expect(v?.oem).toBe('Ilapak');
     expect(v?.whose).toBe('With Line 7 commissioning');
     expect(v?.projects).toEqual([
-      { id: 'P', name: 'Line 7 commissioning', tests: 3, open: 1, failed: 1, last: 'Guard check — didn’t pass', href: '/project/P/machine/m1' },
-      { id: 'Q', name: 'Seal upgrade', tests: 1, open: 0, failed: 0, last: 'New jaws run — passed', href: '/project/Q/machine/m1' },
+      { id: 'P', name: 'Line 7 commissioning', tests: 3, open: 1, failed: 1, last: 'Guard check — didn’t pass', href: '/project/P' /* the project itself: its part for the machine is on the machine's one page (27 October) */ },
+      { id: 'Q', name: 'Seal upgrade', tests: 1, open: 0, failed: 0, last: 'New jaws run — passed', href: '/project/Q' },
     ].map(x => expect.objectContaining({ id: x.id, name: x.name, tests: x.tests, open: x.open, failed: x.failed, href: x.href })));
     expect(v?.programs.map(p => p.what)).toEqual(['PR-04 Finest Red']);
     expect(v?.problems.map(p => [p.id, p.open, p.priority])).toEqual([['s2', true, 'critical'], ['s1', false, 'high']]);

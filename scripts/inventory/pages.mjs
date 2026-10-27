@@ -64,14 +64,27 @@ export const PAGES = (sd, cap) => [
     { what: 'each name opening the machine\'s page', sel: '.pl-machine-name', text: /›$/ },
     { what: 'a machine named on the line', sel: '.pl-new input' },
   ] },
-  /* A MACHINE ON ITS LINE — everything ever done to it (27 October, docs/STAGEGATE-RESEARCH.md §5 slice 4, line/LineMachineScreen) */
-  { name: 'A machine on its line — everything done to it', path: `#/lines/${sd.wsId}/machine/${encodeURIComponent('Ilapak flow wrapper')}`, must: [
-    { what: 'its name, the page header', sel: '.lmc .part-head h1', text: /Ilapak flow wrapper/ },
-    /* its paper (27 October — Rowland: "still no report abilities") */
+  /* A MACHINE — ITS ONE PAGE, ON ITS LINE (27 October: Rowland walked into two pages of Pick and place, "I then end up on a
+     different machine 2A pick and place"; one machine, one page — line/LineMachineScreen, the project's part
+     project/machines/MachineInProject; the project's address for it opens this page) */
+  { name: 'A machine — its one page, on its line', path: `#/project/${sd.projectId}/machine/${sd.machineId}`, must: [
+    { what: 'its name, the page header', sel: '.lmc .part-head h1', text: /\S/ },
+    /* its paper (27 October — Rowland: "still no report abilities"; "all you've done is headlines") */
     { what: 'Report ▾ with its machine report', sel: '.lmc .part-head .part-menu-b', text: /^Report/ },
     { what: 'what it is in a sentence — whose, projects, programs, problems, stops', sel: '.lmc-says', text: /With .* · worked on by/ },
-    { what: 'the projects on it, each opening its page there', sel: '.lmc-projects .lmc-proj .cw-link', text: /^Its page in / },
-    { what: 'its programs', sel: '.lmc-programs h2' },
+    /* THE PROJECT'S PART, FIRST — "it's going through a stage gate process and it's up to these things. It has these tests ... these programs" */
+    { what: 'its status in plain words', sel: '.mpg-in-project .cw-handover .mpg-at', text: /^(Not here yet|On site|Installed|Running|Handed over)$/ },
+    { what: 'the project it is going through, and where it is up to', sel: '.mpg-in', text: /^Going through .* — a stage-gate project — / },
+    { what: 'its four gates in a row', sel: '.mpg-steps .mpg-step', n: 4 },
+    { what: 'the five tiles — the project’s money last', sel: '.mpg-in-project > .sg-tiles .ln-tile', n: 5 },
+    { what: 'what is open on it, most pressing first', sel: '.mpg-open h2' },
+    { what: 'its tests', sel: '.mpg-tests h2' },
+    { what: 'its programs', sel: '.mpg-side .pp-m' },
+    { what: 'the machine itself — its label, its details', sel: '.mpg-itself .mp-label' },
+    { what: 'the closing line', sel: '.mpg-in-project > .ln-close' },
+    /* then the line's — every project that worked on it, each opening the project itself; no second page of the machine */
+    { what: 'the projects on it, each opening the project', sel: '.lmc-projects .lmc-proj .cw-link', text: /^Open / },
+    { what: 'the line’s own programs on it', sel: '.lmc-programs h2' },
     { what: 'its problems', sel: '.lmc-problems h2' },
     { what: 'studies of it', sel: '.lmc-studies h2' },
     { what: 'its stops', sel: '.lmc-stops h2' },
@@ -83,7 +96,10 @@ export const PAGES = (sd, cap) => [
     { what: 'the bar — the line a crumb, and Go to ▾ the picker', sel: '.nv-top .nv-goto', text: /^Go to/ },
     { what: 'its tabs — Overview · Machines · Problems · Programs · Tools · Set up', sel: '.nv-tabs .nv-tab', n: 6 },
     { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
-    { what: 'a card a machine', sel: '.tour-card', n: 2 },
+    /* its machines and only them (27 October — Line 2a's two read as six, Line capacity's stations counted as machines). This
+       line names none, so the strip says so and where they are named; a line with machines is walked by line-is-home.mjs H1 */
+    { what: 'a card a machine — none named here, so said, with the way to name them', sel: '.tour .tour-says', text: /no machines named yet/ },
+    { what: 'Name its machines ›', sel: '.tour button', text: /^Name its machines/ },
     /* the floor's two acts first, and the stopwatch among the tools (16 October, docs/UPGRADE-AUDIT.md F1) */
     { what: 'Time a stop', sel: '.pl-time' },
     /* the filmed walk from the line, no job needed (20 October, docs/DIRECTION.md) — in More ▾ since B3 (one primary on the page header,
@@ -151,23 +167,6 @@ export const PAGES = (sd, cap) => [
     { what: 'a machine a project is working on — its status, where it is up to there', sel: '.fmc-m .pms-status' },
     { what: 'each machine’s words and what is next', sel: '.fmc-m .lt-says', n: 4 },
     { what: 'the page header — Report ▾ with the factory’s machines', sel: '.part-head .part-menu-b', text: /^Report/ },
-  ] },
-  /* A MACHINE, MACHINE FIRST (27 October — Rowland: "If I go to machine, I want to be able to see everything associated to
-     my machine ... it's going through a stage gate process and it's up to these things. It has these tests ... these programs") */
-  { name: 'A machine — its own page', path: `#/project/${sd.projectId}/machine/${sd.machineId}`, must: [
-    { what: 'its status in plain words, first', sel: '.cw-handover .mpg-at', text: /^(Not here yet|On site|Installed|Running|Handed over)$/ },
-    { what: 'the project it is going through, and where it is up to', sel: '.mpg-in', text: /^Going through .* — a stage-gate project — / },
-    { what: 'its four gates in a row', sel: '.mpg-steps .mpg-step', n: 4 },
-    { what: 'Report ▾ with its machine report', sel: '.mpg .part-head .part-menu-b', text: /^Report/ },
-    /* the same machine on its line, every project's work on it (27 October — Rowland: "press machines ... I do not see a machine page") */
-    { what: 'Everything on its line — the same machine there', sel: '.mpg-line .cw-link', text: /^Everything on .* — every project’s work on it ›$/ },
-    { what: 'what is open on it, most pressing first', sel: '.mpg-open h2' },
-    { what: 'its tests', sel: '.mpg-tests h2' },
-    { what: 'the machine itself — its label, its details', sel: '.mpg-itself .mp-label' },
-    { what: 'its programs', sel: '.mpg-side .pp-m' },
-    /* the lean page (17 October; lib/stageGatePages machineTiles): gates through, late, fixes, no fix yet, the job's money — and the closing line */
-    { what: 'the five tiles — the project’s money last', sel: '.mpg > .sg-tiles .ln-tile', n: 5 },
-    { what: 'the closing line', sel: '.mpg > .ln-close' },
   ] },
   /* one row a program, its test on the row, one form (16 October: "too many views and doors") */
   { name: 'Programs — a stage-gate project', path: `#/project/${sd.projectId}/programs`, must: [

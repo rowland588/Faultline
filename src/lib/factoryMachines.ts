@@ -41,7 +41,7 @@ export interface FactoryMachineRow {
   /** What is next on it ("Late: … · 12 Oct"), or the problems open on it. */
   right: string;
   rightTone: PaperTone;
-  /** Its page in its project when one is working on it, else its own page on its line. */
+  /** Its one page, on its line — a project working on it is a part of that page. */
   href: string;
 }
 
@@ -103,7 +103,8 @@ export function factoryMachines(i: {
         says,
         right: inP ? nextWords(inP.row) : problems || 'No problems open',
         rightTone: inP ? (late ? 'r' : inP.row.next ? 'w' : 'n') : critical ? 'r' : open ? 'a' : 'n',
-        href: inP ? `/project/${encodeURIComponent(inP.projectId)}/machine/${encodeURIComponent(inP.row.id)}` : `/lines/${encodeURIComponent(line.id)}/machine/${encodeURIComponent(m.name)}`,
+        /* its one page, on its line — the project's part is on it (27 October) */
+        href: `/lines/${encodeURIComponent(line.id)}/machine/${encodeURIComponent(m.name)}`,
       };
     });
     return { line: { id: line.id, name: line.name, ...(line.lineType ? { lineType: line.lineType } : {}) }, rows };

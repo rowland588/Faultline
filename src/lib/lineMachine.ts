@@ -85,7 +85,8 @@ export function lineMachineView(name: string, i: LineMachineInput): LineMachineV
       open: ts.filter(t => !isSettled(t)).length,
       failed: ts.filter(t => t.outcome === 'failed').length,
       ...(done ? { last: `${done.title} — ${outcomeWord(done)}` } : {}),
-      href: rec ? `/project/${id}/machine/${rec.id}` : `/project/${id}`,
+      /* the project itself — its part for this machine is on this page (27 October: one machine, one page) */
+      href: `/project/${id}`,
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
 

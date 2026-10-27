@@ -45,19 +45,16 @@ export function LineTour({ line, machines, rows, snags, obs, standards }: {
   const now = Date.now();
   const constraint = useMemo(() => lineConstraint(standards.filter(s => !s.deletedAt).map(s => ({ product: s.product, capacity: s.capacity }))), [standards]);
   const perMin = hasLabour(line) ? labourPerMs(line) * 60_000 : 0;
-  /* EVERY MACHINE THE LINE'S RECORDS NAME — its list first (the factory's flow
-     order), then Line capacity's stations in theirs, then any a stop or a
-     problem names: a stop on a machine nobody listed is still on the tour */
+  /* THE LINE'S MACHINES, AND ONLY THEM — its list in the factory's flow order (lib/lineRecords machinesOnLine).
+     Until 27 October the tour added every name a capacity station, a stop or a problem used, and Line 2a's two
+     machines read as six — its Line capacity's p60, wrapper, bagger and packer counted as machines (Rowland: "it
+     says line 2A actually has six machines on it. It doesn't."). A station stays Line capacity's; a problem or a
+     stop on a name that is not one of its machines is said as on no machine. */
   const names = useMemo(() => {
     const out: string[] = [], seen = new Set<string>();
-    const add = (n?: string) => { const t = n?.trim(); if (!t || /^(whole line|the line|line|no machine named)$/i.test(t)) return; const k = machineKey(t); if (!seen.has(k)) { seen.add(k); out.push(t); } };
-    machines.forEach(add);
-    standards.filter(x => !x.deletedAt).forEach(x => x.capacity?.stations.forEach(st => add(st.name)));
-    between(obs, now - WEEKS * WEEK, now).forEach(o => add(o.asset));
-    rows.forEach(r => add(r.machine));
+    for (const n of machines) { const t = n.trim(); const k = machineKey(t); if (t && !/^(whole line|the line|line|no machine named)$/i.test(t) && !seen.has(k)) { seen.add(k); out.push(t); } }
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` by the render
-  }, [machines, standards, obs, rows]);
+  }, [machines]);
   const cards = useMemo(() => {
     const recent = between(obs, now - WEEKS * WEEK, now);
     return names.map(name => {
@@ -72,12 +69,21 @@ export function LineTour({ line, machines, rows, snags, obs, standards }: {
   }, [names, rows, snags, obs, constraint]);
   /* a machine on the line's list has a page of its own; one only a stop, a station or a problem names opens its problems */
   const listed = new Set(machines.map(machineKey));
-  if (!names.length) return null;
   const open = rows.length, crit = rows.filter(r => r.priority === 'critical').length, late = rows.filter(r => r.late).length;
   const worst = [...cards].sort((a, b) => b.mine.length - a.mine.length || b.minWeek - a.minWeek)[0];
   const placed = new Set(cards.flatMap(c => c.mine.map(r => r.id)));
   const loose = rows.filter(r => !placed.has(r.id)).length;
   const stoppy = [...cards].sort((a, b) => b.minWeek - a.minWeek)[0];
+  /* a line with no machines named says so, and where they are named — never a station or a stop standing in for one */
+  if (!names.length) {
+    return (
+      <section className="pl-sec tour" aria-label="The line, machine by machine">
+        <div className="pl-sec-h"><h2>The line, machine by machine</h2></div>
+        <p className="tour-says">{`${line.name}: no machines named yet, ${open ? `${open} problem${open === 1 ? '' : 's'} open${crit ? ` (${crit} critical)` : ''}${late ? `, ${late} late` : ''}` : 'nothing open'}.`}</p>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/lines/${encodeURIComponent(line.id)}?view=machines`)}>Name its machines ›</button>
+      </section>
+    );
+  }
   const says = [
     `${line.name}: ${names.length} machine${names.length === 1 ? '' : 's'}, ${open ? `${open} problem${open === 1 ? '' : 's'} open${crit ? ` (${crit} critical)` : ''}${late ? `, ${late} late` : ''}` : 'nothing open'}.`,
     worst && worst.mine.length > 1 ? `${worst.mine.length * 2 > open ? 'Most are' : `${worst.mine.length} are`} on the ${worst.name}.` : '',

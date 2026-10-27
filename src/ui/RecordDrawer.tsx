@@ -97,6 +97,9 @@ const RECORD_ROUTES = new Set<RouteName>([
   /* A machine's own page: a stage, test, fix or problem on it set ?open= and nothing opened (found 27 October,
      scripts/acceptance/where-am-i.mjs H11 — it had been so since the page was made) */
   'machine',
+  /* The machine's one page, on its line (27 October): a project's stage, test, fix or problem on it opens over it,
+     its project carried on the address (?job=) */
+  'lineMachine',
 ]);
 
 const split = (): [string, URLSearchParams] => {

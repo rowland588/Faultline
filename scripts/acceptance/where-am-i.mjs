@@ -134,16 +134,14 @@ const names = await page.evaluate(async ([ws, pid]) => {
   }
 }
 
-/* ---- E · a project's machine goes to the same machine on its line ---- */
+/* ---- E · a project's machine is the same machine on its line — one page (27 October) ---- */
 {
   await go(`#/project/${PID}/machine/${names.asset}`);
-  const link = main().getByRole('button', { name: new RegExp(`^Everything on ${names.line.replace(/[—()]/g, '.')} — every project’s work on it`) });
-  await link.waitFor({ timeout: 10000 }).catch(() => {});
-  ok(await link.count() === 1, `E1 the project's machine page says where it stands — ${names.line}`);
-  await link.click(); await page.locator('.lmc').waitFor({ timeout: 15000 }); await page.waitForTimeout(800);
+  await page.locator('.lmc').waitFor({ timeout: 15000 }).catch(() => {}); await page.waitForTimeout(800);
+  ok(/#\/lines\/[^/]+\/machine\//.test(page.url()), `E1 the project's address for it opens its one page, on ${names.line}`, page.url());
   ok(flat(await page.locator('.lmc .part-head h1').innerText()).startsWith(names.machine) && (await menu()).lit.join() === names.line,
     `E2 the same machine on its line, the line named and lit (${page.url().split('#')[1]})`);
-  ok(await main().locator('.lmc-proj', { hasText: names.job }).count() === 1, 'E3 its page there names the project, one tap back');
+  ok(await main().locator('.lmc-proj', { hasText: names.job }).count() === 1 && flat(await main().locator('.mpg-in').innerText()).includes(names.job), 'E3 its page names the project — its part on it first, one tap back');
 }
 
 /* ---- F · the bar: the place a crumb, Go to the picker ---- */
@@ -182,7 +180,8 @@ const names = await page.evaluate(async ([ws, pid]) => {
   const ilapak = flat(await main().locator('.fmc-m[data-machine="Ilapak flow wrapper"]').innerText());
   ok(/Ilapak UK/.test(ilapak) && /In Line 2 commissioning: (at |due on site|handed over)/.test(ilapak) && /Programs: /.test(ilapak), `G4 a row says who made it, its project and where it is up to, its programs (${ilapak})`);
   await main().locator('.fmc-m[data-machine="Ilapak flow wrapper"] .lt-row').click(); await page.locator('.mpg').waitFor({ timeout: 15000 }); await page.waitForTimeout(600);
-  ok(new RegExp(`#/project/${PID}/machine/`).test(page.url()), `G5 a row opens the machine's page in its project (${page.url().split('#')[1]})`);
+  /* its one page, on its line, the project's part on it (27 October) */
+  ok(/#\/lines\/[^/]+\/machine\//.test(page.url()) && await main().locator('.mpg-in-project').count() === 1, `G5 a row opens the machine's one page, its project's part on it (${page.url().split('#')[1]})`);
   /* its paper, read back */
   await go('#/machines');
   await page.locator('.part-head .part-menu-b', { hasText: /^Report/ }).click(); await page.waitForTimeout(300);

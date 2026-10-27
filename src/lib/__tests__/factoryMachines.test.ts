@@ -58,7 +58,7 @@ describe('a machine a project is working on says what its project says of it (27
   const r = factoryMachines({ ...base, inProjects: new Map([['m1', { projectId: 'P', project: 'Line 2 commissioning', row }]]) });
   const x = r.groups[0].rows[0];
   it('its status, where it is up to, its programs, what it owes — then the register’s problems on it', () => {
-    expect(x).toMatchObject({ status: 'On site', statusTone: 'w', rightTone: 'r', href: '/project/P/machine/m1' });
+    expect(x).toMatchObject({ status: 'On site', statusTone: 'w', rightTone: 'r', href: '/lines/L1/machine/Flow%20wrapper' /* its one page, on its line (27 October) */ });
     expect(x.says).toBe('In Line 2 commissioning: at Commission · Programs: 1 of 2 passed · 2 open, 1 late · 1 problem open, 1 critical on the register');
     expect(x.right).toMatch(/^Late: Seal integrity · /);
   });
