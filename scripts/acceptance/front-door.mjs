@@ -6,7 +6,7 @@
  * From an empty device:
  *
  *   1  #/ is the Factory page — its name, the menu (Factory · Projects · Problems · Actions · Tools,
- *      Reports at the foot) with Factory lit, its own tabs (Overview · Lines · Programs) and the bar
+ *      Reports at the foot) with Factory lit, its own tabs (Overview · Lines · Machines · Programs — Machines since 27 October) and the bar
  *      saying Factory › Overview; no question, no front door
  *   2  Projects from the menu: New project offers the three kinds of change by their situations, the
  *      stage gate picked; the project made opens with its own tabs, the menu the same with Projects
@@ -54,7 +54,7 @@ const MENU = 'Factory · Projects · Problems · Actions · Tools · Reports';
 await go('#/');
 ok(await h1() === 'Factory', '1 #/ is the Factory page', await h1());
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Factory', '1 the menu, Factory lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
-ok((await tabs()).join(' · ') === 'Overview · Lines · Programs' && await tabOn() === 'Overview', '1 the factory\'s own tabs, Overview on', (await tabs()).join(' · '));
+ok((await tabs()).join(' · ') === 'Overview · Lines · Machines · Programs' && await tabOn() === 'Overview', '1 the factory\'s own tabs, Overview on', (await tabs()).join(' · '));
 ok(/^Factory ›? ?Overview$/.test((await bar()).replace(/\s*›\s*/g, ' › ').replace('Factory › Overview', 'Factory › Overview')) || /Factory.*Overview/.test(await bar()), '1 the bar says Factory › Overview', await bar());
 ok(await page.locator('.fd-ask, .fd-lib, .fd-tools').count() === 0 && !/What do you need to get done/.test(await page.locator('.nv-main').innerText()), '1 no front door, no question');
 

@@ -56,7 +56,8 @@ const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail
    counts the visit (the "since" story failed so, 17 October) */
 const go = async h => {
   await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2300);
-  await page.waitForFunction(() => !/Loading…/.test(document.querySelector('main')?.innerText ?? ''), null, { timeout: 15000 }).catch(() => {});
+  /* a page still reading says so — "Loading…", or Now's "Reading where the project is…" (project/now) — and is not read until it has done */
+  await page.waitForFunction(() => !/Loading…|Reading where the project is…/.test(document.querySelector('main')?.innerText ?? ''), null, { timeout: 15000 }).catch(() => {});
 };
 const { more: pressMore } = await import('../lib/pageHeader.mjs');
 const words = async sel => ((await page.locator(sel).count()) ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : null);
