@@ -26,6 +26,7 @@
  * project's record is its owner's (supabase/ACCESS_LEVELS.sql). Slice 3 — a
  * project taking machines on — is where those meet. */
 import type { Asset } from './testing';
+import type { ToolStudy } from './study';
 import { lineOfMachine, machineKey, type JobLine } from './lineRecords';
 
 export interface MachineMerge {
@@ -108,4 +109,29 @@ export function movedScope(testId: string, moved: ReadonlyMap<string, string>): 
   if (!testId.startsWith('asset:')) return undefined;
   const to = moved.get(testId.slice('asset:'.length));
   return to ? `asset:${to}` : undefined;
+}
+
+/** EVERY STUDY POINTS AT ITS MACHINE'S RECORD (slice 2): a study on a line
+ *  naming one of its machines (ToolStudy.machine, in the line's words) points
+ *  at that machine's record too (ToolStudy.assetId), so the machine's page can
+ *  find it whatever it is called next. Only where the line holds a record of
+ *  that name — a record is never made for it here — and never over a study
+ *  that already points at a live record (a stage-gate study's own machine).
+ *  Returns the studies to write, each with its record. */
+export function studiesToPoint(studies: readonly ToolStudy[], assets: readonly Asset[], jobLines: readonly JobLine[]): { id: string; assetId: string }[] {
+  const live = assets.filter(a => !a.deletedAt && !a.mergedInto);
+  const liveIds = new Set(live.map(a => a.id));
+  const byKey = new Map<string, Asset>();
+  for (const a of live.slice().sort((x, y) => (x.projectId ? 0 : 1) - (y.projectId ? 0 : 1) || (x.id < y.id ? -1 : 1))) {
+    const lineId = lineOfMachine(a, jobLines), k = machineKey(a.name);
+    if (lineId && k && !byKey.has(`${lineId}\u0000${k}`)) byKey.set(`${lineId}\u0000${k}`, a);
+  }
+  const out: { id: string; assetId: string }[] = [];
+  for (const s of studies) {
+    if (s.deletedAt || !s.workspaceId || !s.machine?.trim()) continue;
+    if (s.assetId && liveIds.has(s.assetId)) continue;
+    const rec = byKey.get(`${s.workspaceId}\u0000${machineKey(s.machine)}`);
+    if (rec && rec.id !== s.assetId) out.push({ id: s.id, assetId: rec.id });
+  }
+  return out;
 }

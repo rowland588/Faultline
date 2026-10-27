@@ -265,8 +265,34 @@ machine**:
   `scripts/acceptance/one-machine.mjs`, and the sync harness's scenario 12
   (two devices, one offline, each making the record; one kept everywhere).
 
-Not in slice 1: a record for every name on a list; studies, stops,
-stations and counts pointing at the record (slice 2).
+Not in slice 1: a record for every name on a list (on purpose, above).
+
+### 5.2b Slices 2 and 3 as built (27 October)
+
+- **Slice 2 — what names a machine follows it.** A study on a line naming
+  one of its machines — a reliability count, a check log, a capability
+  study, the stopwatch's — points at that machine's record
+  (`ToolStudy.assetId`, the column studies already had; the same pass,
+  `lib/machineMerge` studiesToPoint), only where the line holds a record of
+  that name and never over a study already on a live record. A rename on
+  the line now carries every study's machine name and Line capacity's
+  station logged under it (`Station.asset`), as it carried stops, problems
+  and station names before. Stops (`observations.asset`) keep the name they
+  were timed under and are renamed with it, as before — no id on every
+  stop; the cost of a migration on the biggest table buys nothing a rename
+  does not.
+- **Slice 3 — a project takes machines on.** Install's *Add a machine* offers
+  the line's own machines (`lib/lineRecords` machinesToTakeOn — a name, or a
+  record on no project), one tap each: the tap takes that record on, its
+  maker and history kept (slice 1's addProjectMachine). One another project
+  is working on is not offered; two projects on one machine at once is
+  still not modelled (a project's machines are the records naming it) —
+  said, not guessed at.
+- **Proved**: `lib/__tests__/machineMerge.test.ts` (studies pointed, what can
+  be taken on) and `scripts/acceptance/one-machine.mjs` steps 6–7.
+
+Left: slice 4 (one machine page — from the line, everything ever done) and
+slice 5 (handover passes the machine to the line).
 
 ### 5.3 The slices (each shipped on its own, nothing removed until proved)
 

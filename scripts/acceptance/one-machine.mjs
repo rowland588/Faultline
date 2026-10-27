@@ -10,6 +10,10 @@
  *   4  a second record of it arriving from another device, a program and a note on it — on the next start it is put
  *      away into the one kept (mergedInto, nothing deleted), the program and the note follow, what it knew is taken
  *   5  the line's page still shows it once, its program under it
+ *   6  slice 2: a study on the line naming it (a reliability count, in other words' case) points at its record on
+ *      the next start; renamed on the line's page, the study and Line capacity's station (its stop name too) follow
+ *   7  slice 3: Install's Add a machine offers the line's own machines to take on with a tap — not one the project
+ *      has — and the tap takes that record on, no second one
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/one-machine.mjs      (SMOKE_BASE, as smoke) */
@@ -109,6 +113,58 @@ await go(`#/lines/${WS}`);
 ok(await page.locator('.pl-machines > li', { hasText: NAME }).count() === 1, "5 the line's page still shows it once");
 const progs = flat(await page.locator('section[aria-label="Programs on this line"]').innerText().catch(() => ''));
 ok(/Date code layout B/.test(progs), "5 its program on the line's page", progs.slice(0, 300));
+
+/* 6 · slice 2 — a study points at it; a rename carries the study and the station */
+const sid = await page.evaluate(async ([ws, name]) => {
+  const { putStudy } = await import('/src/db/studies.ts');
+  const { listStandardsForLine, putStandard } = await import('/src/db/standards.ts');
+  const t = Date.now(), id = 'zz-rel';
+  await putStudy({ id, tool: 'reliability', name: 'Coder stops', workspaceId: ws, machine: name.toUpperCase(), facts: {}, uses: [], startedAt: t, createdAt: t, updatedAt: t });
+  const st = (await listStandardsForLine(ws)).find(x => x.capacity?.stations?.length);
+  if (st) await putStandard({ ...st, capacity: { ...st.capacity, stations: [...st.capacity.stations, { id: 'zz-st', name: 'Coder', kind: 'machine', unit: 'packs', contains: 1, rate: 120, ratePer: 'min', asset: name }] } });
+  return { id, std: st?.id };
+}, [WS, NAME]);
+await page.reload();
+await page.locator('.nv-main').waitFor({ timeout: 15000 });
+await page.waitForTimeout(2500);
+const pointed = await page.evaluate(async () => (await (await import('/src/db/core.ts')).getDB()).get('studies', 'zz-rel'));
+ok(pointed?.assetId === lineId, '6 a study on the line naming it points at its record on the next start', JSON.stringify({ assetId: pointed?.assetId, lineId }));
+await go(`#/lines/${WS}`);
+await page.getByRole('button', { name: `Rename ${NAME}` }).click();
+const box = page.locator('.lt-name input').first();
+await box.fill('Date coder X2');
+await box.press('Enter');
+await page.waitForTimeout(1200);
+const after = await page.evaluate(async std => {
+  const db = await (await import('/src/db/core.ts')).getDB();
+  const s = await db.get('studies', 'zz-rel');
+  const st = std ? await db.get('standards', std) : undefined;
+  return { machine: s?.machine, assetId: s?.assetId, asset: st?.capacity?.stations?.find(x => x.id === 'zz-st')?.asset };
+}, sid.std);
+ok(after.machine === 'Date coder X2' && after.assetId === lineId, '6 renamed on the line — the study says its new name and still points at it', JSON.stringify(after));
+ok(!!sid.std && after.asset === 'Date coder X2', "6 and Line capacity's station logged under its name follows", JSON.stringify({ std: sid.std, asset: after.asset }));
+rs = live(await page.evaluate(async ws => (await (await import('/src/db/core.ts')).getDB()).getAll('commission_assets').then(a => a.filter(x => x.workspaceId === ws && /date coder/i.test(x.name))), WS));
+ok(rs.length === 1 && rs[0].id === lineId && rs[0].name === 'Date coder X2', '6 still one record of it, now called by its new name', JSON.stringify(rs.map(r => [r.id, r.name])));
+
+/* 7 · slice 3 — taken on from Install with a tap */
+const TAKE = 'Labeller Z9';
+await go(`#/lines/${WS}`);
+await page.getByLabel("The machine's name").fill(TAKE);
+await page.getByLabel('Who made the new machine').fill('Herma');
+await page.getByRole('button', { name: 'Add the machine' }).click();
+await page.waitForTimeout(900);
+const takeId = (await page.evaluate(async ([ws, n]) => (await (await import('/src/db/core.ts')).getDB()).getAll('commission_assets').then(a => a.filter(x => !x.deletedAt && x.workspaceId === ws && x.name === n)), [WS, TAKE]))[0]?.id;
+await go(`#/project/${PID}/install`);
+await page.locator('.cw-add', { hasText: 'Add a machine' }).first().click();
+const offer = page.locator('.cw-addf-line');
+const offered = flat(await offer.innerText().catch(() => ''));
+ok(offered.includes(TAKE), "7 Install offers the line's own machine to take on", offered.slice(0, 300));
+ok(!offered.includes('Date coder X2'), "7 not one the project has already", offered.slice(0, 300));
+await offer.getByRole('button', { name: TAKE }).click();
+await page.waitForTimeout(1200);
+const took = await page.evaluate(async ([ws, n]) => (await (await import('/src/db/core.ts')).getDB()).getAll('commission_assets').then(a => a.filter(x => !x.deletedAt && x.workspaceId === ws && x.name === n)), [WS, TAKE]);
+ok(took.length === 1 && took[0].id === takeId && took[0].projectId === PID && took[0].oem === 'Herma', '7 the tap takes that record on — the same one, its maker kept, the project\'s now', JSON.stringify(took.map(r => [r.id === takeId, r.projectId === PID, r.oem])));
+ok(!flat(await page.locator('.cw-addf-line').innerText().catch(() => '')).includes(TAKE), '7 and it is offered no more');
 
 ok(errs.length === 0, 'no console error', errs.join(' | '));
 await b.close();

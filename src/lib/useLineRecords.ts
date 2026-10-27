@@ -11,7 +11,7 @@ import type { Standard } from '../tools/linestandard/standard';
 import type { JobLine } from './lineRecords';
 import type { ToolStudy } from './study';
 import { allPaceLines, allProjects, getWorkspace, listAllAssets, listAllPrograms, listAllStandards, listAllStudies, listProvingTests, listWorkspaces, onDataChange } from '../db';
-import { machineKey, machinesOf } from './lineRecords';
+import { machineKey, machinesOf, machinesToTakeOn, onlyLineOf } from './lineRecords';
 import { liveProductionLines } from './lines';
 
 export interface LineRecords {
@@ -51,6 +51,25 @@ export function useMachinesOf(wsId: string | undefined, jobId?: string): string[
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, [wsId, jobId]);
+  return names;
+}
+
+/** THE MACHINES OF A PROJECT'S LINE IT CAN TAKE ON (lib/lineRecords
+ *  machinesToTakeOn) — for Install's Add a machine. None for a project on no
+ *  line, or on several (it says which when it adds one). */
+export function useMachinesToTakeOn(projectId: string): string[] {
+  const [names, setNames] = useState<string[]>([]);
+  useEffect(() => {
+    let live = true;
+    const load = () => void Promise.all([allPaceLines(), listAllAssets()]).then(async ([jobLines, assets]) => {
+      const wsId = onlyLineOf(projectId, jobLines);
+      const ws = wsId ? await getWorkspace(wsId) : undefined;
+      if (live) setNames(ws ? machinesToTakeOn(ws, assets, jobLines) : []);
+    });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [projectId]);
   return names;
 }
 

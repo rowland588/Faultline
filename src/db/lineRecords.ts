@@ -15,6 +15,7 @@ import { patchWorkspaceRecord } from './workspaces';
 import { renameInObservations } from './observations';
 import { listAllSnags, patchSnag } from './walk';
 import { listStandardsForLine, putStandard } from './standards';
+import { listStudiesForLine, patchStudy } from './studies';
 
 /** A machine's name on the line's list, at the end, when it is not there. */
 async function onTheList(wsId: ID, name: string): Promise<void> {
@@ -82,8 +83,19 @@ export async function renameLineMachine(wsId: ID, from: string, to: string): Pro
   }
   for (const st of await listStandardsForLine(wsId)) {
     const stations = st.capacity?.stations ?? [];
-    if (!stations.some(x => machineKey(x.name) === key)) continue;
-    await putStandard({ ...st, capacity: { ...st.capacity, stations: stations.map(x => (machineKey(x.name) === key ? { ...x, name } : x)) } as NonNullable<typeof st.capacity> });
+    /* a station's name, and the name its stops are logged under when that is not its name (Station.asset) */
+    const hit = (x: { name: string; asset?: string }) => machineKey(x.name) === key || (!!x.asset && machineKey(x.asset) === key);
+    if (!stations.some(hit)) continue;
+    await putStandard({ ...st, capacity: { ...st.capacity, stations: stations.map(x => (!hit(x) ? x : {
+      ...x, ...(machineKey(x.name) === key ? { name } : {}), ...(x.asset && machineKey(x.asset) === key ? { asset: name } : {}),
+    })) } as NonNullable<typeof st.capacity> });
+  }
+  /* EVERY STUDY OF IT ON THE LINE follows too — a reliability count, a check
+     log, a capability study, the stopwatch's: each keeps its machine in the
+     line's words (ToolStudy.machine), and a rename used to leave them saying
+     the old one (docs/STAGEGATE-RESEARCH.md §5, slice 2). */
+  for (const s of await listStudiesForLine(wsId)) {
+    if (s.machine && machineKey(s.machine) === key) await patchStudy(s.id, { machine: name });
   }
   /* THE LINE'S OWN LIST — where the stopwatch, the walk and a problem pick a
      machine — is renamed in place too, so every caller gets it: a job's

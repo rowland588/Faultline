@@ -48,6 +48,7 @@ import { gateOf, type StepGate, type Test, type TestItem } from '../lib/testing'
 import { usePrograms } from '../lib/usePrograms';
 import { programsReading } from '../lib/programsReport';
 import { AddAsset } from './TestsScreen';
+import { useMachinesToTakeOn } from '../lib/useLineRecords';
 import { useAccess } from '../cloud/access';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
 import { useJobMoney } from '../lib/useJobMoney';
@@ -105,6 +106,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
   const { projects, loading } = useProjects();
   const project = projects.find(p => p.id === projectId);
   const tt = useTesting(projectId);
+  const takeOn = useMachinesToTakeOn(projectId);
   const face = FACE[gate];
   const filmed = useFilmed(projectId, tt.tests, tt.items);
   const can = useAccess(projectId);
@@ -330,7 +332,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
 
       {gate === 'install' && can.edit && (
         <div className="cx-assets in-add-machine">
-          <AddAsset add={tt.addAsset} />
+          <AddAsset add={tt.addAsset} onLine={takeOn} />
         </div>
       )}
 

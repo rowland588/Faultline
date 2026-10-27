@@ -107,6 +107,17 @@ export function machinesOnLine(ws: Pick<Workspace, 'id' | 'assets'>, assets: rea
   return out;
 }
 
+/** THE LINE'S MACHINES A PROJECT CAN TAKE ON (docs/STAGEGATE-RESEARCH.md §5,
+ *  slice 3): every machine of its line, in flow order, that is the line's own
+ *  (a name, or a record on no project) — Install's Add a machine offers them,
+ *  so a machine already on the line is taken on with a tap, its record and
+ *  history with it (db/lineRecords addProjectMachine), never typed again into
+ *  a second. A machine this project has, or another project is working on,
+ *  is not offered. */
+export function machinesToTakeOn(ws: Pick<Workspace, 'id' | 'assets'>, assets: readonly Asset[], jobLines: readonly JobLine[]): string[] {
+  return machinesOnLine(ws, assets, jobLines).filter(m => !m.record?.projectId).map(m => m.name);
+}
+
 /** "Whole line" — the stopwatch's place for a loss on no one machine. A
  *  picker that offers places keeps it first (ui: the stopwatch). */
 export const isWholeLine = (name: string): boolean => machineKey(name) === 'whole line';

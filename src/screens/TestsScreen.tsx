@@ -298,7 +298,9 @@ export function machinesFrom(text: string): { name: string; oem?: string }[] {
    MANY): the form stays open after Add with the supplier kept for the next
    one, so eight machines are eight names, not eight trips back to the button;
    and a pasted list adds them all. Done closes it. */
-export function AddAsset({ add }: { add: (name: string, oem?: string) => Promise<string> }) {
+export function AddAsset({ add, onLine = [] }: { add: (name: string, oem?: string) => Promise<string>;
+  /** The line's machines this project can take on (lib/lineRecords machinesToTakeOn) — one tap each. */
+  onLine?: string[] }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [oem, setOem] = useState('');
@@ -333,6 +335,16 @@ export function AddAsset({ add }: { add: (name: string, oem?: string) => Promise
       <button className="btn" type="submit" disabled={!name.trim()}>Add</button>
       <button className="btn btn-ghost" type="button" onClick={close}>{added ? 'Done' : 'Cancel'}</button>
       <span className="sub cw-addf-hint">{added ? `${added} added — the next one, or Done.` : 'Or paste a list — one machine a line, its supplier after a comma.'}</span>
+      {/* ONE RECORD OF A MACHINE (slice 3): a machine already on the line is
+          taken on with its record, not typed again as a second one. */}
+      {onLine.length > 0 && (
+        <div className="cw-addf-line" role="group" aria-label="On the line already">
+          <span className="sub">On the line already — tap to take it on:</span>
+          {onLine.map(n => (
+            <button key={n} type="button" className="chip" onClick={() => { void add(n); setAdded(x => x + 1); }}>{n}</button>
+          ))}
+        </div>
+      )}
     </form>
   );
 }

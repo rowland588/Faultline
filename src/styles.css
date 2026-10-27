@@ -11860,6 +11860,7 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 
 /* THE START OF A JOB (docs/JOBSTART.md). */
 .cw-addf-hint { flex: 1 1 100%; }
+.cw-addf-line { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 /* "Same days" or "One after another", over the dates. */
 .ig-seq { margin: 4px 0 8px; display: inline-flex; }
 .ig-gap input { width: 6em; }

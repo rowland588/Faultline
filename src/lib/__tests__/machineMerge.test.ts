@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { planOneRecord, mergedIds, movedScope } from '../machineMerge';
+import { planOneRecord, mergedIds, movedScope, studiesToPoint } from '../machineMerge';
+import type { ToolStudy } from '../study';
 import type { Asset } from '../testing';
-import type { JobLine } from '../lineRecords';
+import { machinesToTakeOn, type JobLine } from '../lineRecords';
 
 const A = (id: string, o: Partial<Asset> = {}): Asset => ({ id, projectId: '', name: 'Flow wrapper', state: 'onSite', sort: 1, updatedAt: 1, ...o });
 const jl: JobLine[] = [{ id: 'jl1', projectId: 'P', workspaceId: 'L1' }, { id: 'jl2', projectId: 'Q', workspaceId: 'L1' }, { id: 'jl3', projectId: 'R', workspaceId: 'L2' }, { id: 'jl4', projectId: 'R', workspaceId: 'L3' }];
@@ -64,5 +65,26 @@ describe('one record of a machine', () => {
     expect(movedScope('asset:other', moved)).toBeUndefined();
     expect(movedScope('gate:install', moved)).toBeUndefined();
     expect(movedScope('t-123', moved)).toBeUndefined();
+  });
+
+  it('a study naming a machine its line holds points at that record — never makes one, never moves one already pointed', () => {
+    const S = (id: string, o: Partial<ToolStudy> = {}) => ({ id, tool: 'reliability', name: id, workspaceId: 'L1', machine: 'flow wrapper', facts: {}, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1, ...o }) as ToolStudy;
+    const recs = [A('mc', { workspaceId: 'L1' }), A('job', { projectId: 'P' }), A('cw', { workspaceId: 'L1', name: 'Checkweigher' }), A('gone', { workspaceId: 'L1', name: 'Labeller', mergedInto: 'x', deletedAt: 1 })];
+    const out = studiesToPoint([
+      S('a'),                                   // → the project's record first, as the merge keeps it
+      S('b', { machine: ' CHECKWEIGHER ' }),     // case and spacing never make two
+      S('c', { machine: 'Palletiser' }),         // no record of it on the line: left
+      S('d', { assetId: 'cw' }),                 // already on a live record: left
+      S('e', { assetId: 'gone', machine: 'Checkweigher' }), // on a record put away: pointed again
+      S('f', { workspaceId: 'L2' }),             // another line
+      S('g', { machine: '' }), S('h', { deletedAt: 3 }),
+    ], recs, jl);
+    expect(out).toEqual([{ id: 'a', assetId: 'job' }, { id: 'b', assetId: 'cw' }, { id: 'e', assetId: 'cw' }]);
+  });
+
+  it('a project can take on the line\'s own machines — a name, or a record on no project — never one a project has', () => {
+    const ws = { id: 'L1', assets: ['Whole line', 'Flow wrapper', 'Checkweigher', 'Labeller', 'Palletiser'] };
+    const recs = [A('a', { workspaceId: 'L1', name: 'Checkweigher' }), A('b', { projectId: 'P', name: 'Labeller' }), A('c', { projectId: 'Q', workspaceId: 'L1', name: 'Palletiser' })];
+    expect(machinesToTakeOn(ws, recs, jl)).toEqual(['Flow wrapper', 'Checkweigher']);
   });
 });
