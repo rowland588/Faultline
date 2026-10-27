@@ -104,7 +104,7 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
 /* ---- B2 · 1 every page: the place named, the menu the same everywhere, the scope's own pages its tabs within their size ----
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
-const LIMIT = { factory: 3, line: 8, project: 18 };
+const LIMIT = { factory: 4, line: 8, project: 18 };   /* the factory's Machines tab, 27 October */
 const MENU = 'Factory · Projects · Problems · Actions · Tools · Reports';
 const ONE_BAR = 'Factory · Projects · Problem · Problems · More';
 for (const width of [1360, 390]) {
@@ -144,7 +144,7 @@ for (const width of [1360, 390]) {
   }
   const tag = width > 900 ? 'desk' : 'phone';
   ok(!unnamed.length, `B2 1 ${tag}: every page in PAGES.md names its place — Home, the factory, a line or a project`, unnamed.join(' | '));
-  if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page and naming the line or project you are in, a scope’s own pages its tabs within their size (factory 3, line 8, project 18)', over.join(' | '));
+  if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page and naming the line or project you are in, a scope’s own pages its tabs within their size (factory 4, line 8, project 18)', over.join(' | '));
   else ok(!offBar.length && bars.all?.size === 1, `B2 1 phone: the bar the same five on every page — ${[...(bars.all ?? [])].join(' / ')}`, offBar.join(' | '));
   await ctx.close();
 }

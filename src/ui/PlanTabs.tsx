@@ -14,7 +14,7 @@ import { GATE_KEYS, GATE_PATH, type GateKey } from './rail';
 
 const WORD: Record<GateKey, string> = { install: 'Install', setup: 'Set up', testing: 'Commission', handover: 'Hand over' };
 
-export function PlanTabs({ projectId, on }: { projectId: string; on: GateKey | 'timeline' | 'programs' }) {
+export function PlanTabs({ projectId, on }: { projectId: string; on: GateKey | 'timeline' | 'programs' | 'now' }) {
   const { counts } = useStanding(projectId);
   const p = `#/project/${projectId}`;
   /* On a phone the tabs scroll sideways: the one you are on is brought into view. */
@@ -24,11 +24,14 @@ export function PlanTabs({ projectId, on }: { projectId: string; on: GateKey | '
     if (el && row.current) row.current.scrollLeft = Math.max(0, el.offsetLeft - (row.current.clientWidth - el.clientWidth) / 2);
   }, [on]);
   return (
-    <nav className="plt" aria-label="The machines">
+    <nav className="plt" aria-label="The project — now, its gates, the timeline and programs">
       {/* THE MACHINES TAB'S VIEWS (26 October, docs/STAGEGATE-RESEARCH.md §4): the gates, the timeline and the
-          programs — one tab, Machines, where the plan and Programs were two */}
-      <span className="plt-h">Machines</span>
+          programs. Since 27 October they are the project's own, under Now — its front page first — and no longer the
+          Machines tab's (Rowland: "If I go to projects, I should be able to see my project status ... If I go to
+          machine, I want to be able to see everything associated to my machine"). The heading that said MACHINES over
+          them went with it. */}
       <span className="plt-tabs" ref={row}>
+        <a href={p} className={'plt-t plt-now' + (on === 'now' ? ' on' : '')} aria-current={on === 'now' ? 'page' : undefined}>Now</a>
         {GATE_KEYS.map(k => {
           const c = counts[k];
           return (

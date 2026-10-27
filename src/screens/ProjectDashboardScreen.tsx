@@ -34,6 +34,7 @@ import { PaceSuccess } from './PaceSuccess';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
 import { NowBody } from '../project/now/NowScreen';
+import { PlanTabs } from '../ui/PlanTabs';
 import { sixmTiles, type SixMFigures } from '../lib/sixmLean';
 import type { FishboneData } from '../lib/fishbone';
 import type { ProblemView } from '../lib/problems';
@@ -651,6 +652,9 @@ function TestingOverview({ projectId, edit, remove = false }: { projectId: strin
               page of its own (/plan), one line and a door here. */}
           {/* WHAT CHANGED SINCE YOU LAST LOOKED — under the answer; nothing when
               nothing did (lib/since). */}
+          {/* THE PROJECT'S OWN VIEWS — its gates, the timeline and Programs, one tap from its front page (27 October:
+              the project is the project's status; the machines are the Machines tab's) */}
+          <PlanTabs projectId={projectId} on="now" />
           <SinceLine projectId={projectId} since={sinceOf({ tests: tt.tests, items: tt.items, assets: tt.assets, seenAt })} />
           {/* What the notes asked to be reminded of, while it is due. */}
           <ProjectReminders projectId={projectId} />

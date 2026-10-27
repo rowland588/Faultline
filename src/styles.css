@@ -14850,3 +14850,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .pl-machine-name:hover b { text-decoration: underline; }
 .mpg-line { margin: var(--space-1) 0 0; }
 .fac-card-go { margin-top: var(--space-1); color: var(--brand); font-weight: 600; font-size: var(--t-detail); }
+/* machines, simply (27 October) — the Factory's Machines tab and a project's list */
+.fmc-n { color: var(--muted); font-weight: 700; margin-right: var(--space-1); }
+.pms-add { margin-top: var(--space-4); }
+.pms-status { display: inline-block; margin-left: var(--space-1); padding: 0 var(--space-2); border-radius: var(--radius-pill); font-size: var(--t-detail); font-weight: 600; border: 1px solid var(--line); color: var(--ink-2); }
+.pms-status.is-g { color: var(--st-g); border-color: var(--st-g); }

@@ -10,7 +10,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
-  | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms'
+  | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
   | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'tools' | 'parts' | 'projectTools' | 'lineReport';
 
 export interface Route {
@@ -90,6 +90,8 @@ export function parseRoute(hash: string): Route {
   /* YOUR FACTORY — the production lines set up and edited in one place
      (Rowland, 13 October: "build your factory, edit your factory"). */
   if (segs[0] === 'factory') return { name: 'factory', query };
+  /* every machine in the factory, line by line (27 October: "Why don't I see machines?") */
+  if (segs[0] === 'machines') return { name: 'factoryMachines', query };
   /* PROGRAMS FROM THE CONTROL ROOM — every line's, planned and proved, no
      job needed (docs/BLUEPRINT.md, Stage 2). ?line= opens it on one line. */
   if (segs[0] === 'programs') return { name: 'linePrograms', query };
@@ -199,6 +201,8 @@ export function parseRoute(hash: string): Route {
     // Now — where a stage-gate project is, on one page (docs/STAGEGATE-RESEARCH.md §4).
     if (segs[2] === 'now') return { name: 'now', id, query };
     if (segs[2] === 'programs') return { name: 'programs', id, query };
+    /* its machines, simply — the first of the Machines tab's views (27 October) */
+    if (segs[2] === 'machines') return { name: 'projectMachines', id, query };
     /* its tools — every use of a tool in the project, by kind (docs/STRUCTURE.md §5.1, B2) */
     if (segs[2] === 'tools') return { name: 'projectTools', id, query };
     /* a machine of a stage-gate job, a page of its own (docs/STAGEGATE-UX.md slice 3) */

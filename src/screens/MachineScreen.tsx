@@ -1,4 +1,11 @@
-/* A MACHINE, A PAGE OF ITS OWN (docs/STAGEGATE-UX.md slice 3).
+/* A MACHINE, A PAGE OF ITS OWN (docs/STAGEGATE-UX.md slice 3; machine first since 27 October).
+ *
+ * Rowland, 27 October: "If I go to machine, I want to be able to see everything associated to my machine. For
+ * example, it will say that this machine is going through a stage gate process and it's up to these things. It has
+ * these tests on them, these programs on them, and this is where we are." So: its status in plain words; the project
+ * it is going through and where it is up to, its four gates one strip; what is open on it, most pressing first; its
+ * tests; its programs; the machine itself. The stages gate by gate are worked on the project's own gate pages, each
+ * row here opening its record as it did there.
  *
  * Rowland, 16 October: "when i show peole the app, i get losst in it, find
  * dorrs that open othe rthings". One machine's story was spread over five
@@ -16,13 +23,13 @@ import { useTesting } from '../lib/useTesting';
 import { usePrograms } from '../lib/usePrograms';
 import { useProject } from '../lib/useProjects';
 import { useAccess } from '../cloud/access';
-import { live } from '../lib/testing';
-import { machineRecord, type MachineGate } from '../lib/machineRecord';
+import { live, assetStateOf, ASSET_STATE_WORD } from '../lib/testing';
+import { machineRecord, machineTests, openOnMachine, type MachineGate } from '../lib/machineRecord';
 import { todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { openRecord } from '../ui/RecordDrawer';
-import { MachinePanel } from '../ui/MachinePanel';
 import { AccessNote } from '../ui/AccessNote';
+import { MachineItself } from '../ui/MachinePanel';
 import { ProgramsPage } from './ProgramsPage';
 import { useJobMoney } from '../lib/useJobMoney';
 import { MONEY_WAIT, machineClosing, machineCounts, machineTiles } from '../lib/stageGatePages';
@@ -55,16 +62,30 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
     );
   }
   const m = machineRecord(asset, { tests: tt.tests, items: tt.items, programs: progs.programs, today: todayISO() });
-  const tone = m.at.startsWith('Handed over') ? 'g' : m.arrivalLate || m.gates.some(g => g.tone === 'late' || g.tone === 'failed') ? 'r' : 'w';
+
+  /* its status in plain words — handed over, else where the machine itself is */
+  const status = m.at.startsWith('Handed over') ? 'Handed over' : ASSET_STATE_WORD[assetStateOf(asset)];
+  const open = openOnMachine(m);
+  const tests = machineTests(m);
+  const row = (l: { id: string; title: string; word: string; tone: string; who?: string }, where?: string) => (
+    <li key={l.id} className={'lt-li mpg-l is-' + l.tone}>
+      <button type="button" className="lt-row" onClick={() => openRecord(projectId, l.id)}>
+        <b className="lt-what">{l.title}</b>
+        <span className="lt-says">{[where, l.who].filter(Boolean).join(' · ')}</span>
+        <span className={'lt-where' + (l.tone === 'late' || l.tone === 'failed' ? ' act-late' : '')}>{l.word}</span>
+      </button>
+    </li>
+  );
 
   return (
     <div className="wrap pace mpg">
-      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the machine, where it is at, its maker and when it lands */}
+      {/* THE PAGE HEADER: the machine — its status in plain words, who made it, since when; and the same machine on its
+          line, every project's work on it */}
       <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {project.name}</span>} title={m.name}>
         <p className="cw-handover">
-          <b className={'mpg-at is-' + tone}>{m.at}</b>
+          <b className={'mpg-at is-' + (status === 'Handed over' ? 'g' : status === 'Not here yet' ? 'n' : 'w')}>{status}</b>
           {m.oem && <span className="sub">{m.oem}</span>}
-          <span className={'sub' + (m.arrivalLate ? ' in-late' : '')}>On site: {m.arrival}</span>
+          <span className={'sub' + (m.arrivalLate ? ' in-late' : '')}>{m.arrival}</span>
         </p>
         {(() => {
           const wsId = lineOfMachine(asset, rec.jobLines);
@@ -79,30 +100,48 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
         })()}
       </PageHeader>
       <AccessNote can={can} owner={project.lead} />
-      {/* THE LEAN PAGE (lib/stageGatePages): its gates through, what is late,
-          its fixes, the problems on it with no fix, and the job's money */}
+
+      {/* WHERE IT IS UP TO IN ITS PROJECT (27 October — Rowland: "it will say that this machine is going through a stage
+          gate process and it's up to these things"): one sentence, then its four gates in a row, each in its colour and
+          its words. The gates are the project's; the stages under them are worked on the project's own gate pages. */}
+      <section className="pl-sec mpg-project" aria-label="Its project">
+        <p className="mpg-in">Going through <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}`)}>{project.name}</button> — a stage-gate project — {m.at.startsWith('Handed over') ? <b>{m.at.toLowerCase()}</b> : <>up to <b>{m.at.replace(/^at /, '')}</b></>}.</p>
+        <ol className="mpg-steps" aria-label={`${m.name}: its gates`}>
+          {m.gates.map(g => (
+            <li key={g.gate} className={'mpg-step is-' + GATE_SQ[g.tone]}>
+              <b>{g.label}</b>
+              <span>{g.says}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* THE LEAN PAGE (lib/stageGatePages): its gates through, what is late, its fixes, the problems on it with no fix,
+          and the project's money */}
       <LeanTiles tiles={machineTiles(machineCounts(m), money ?? MONEY_WAIT)} className="sg-tiles" />
 
-      {/* ITS FOUR GATES, IN ORDER — where it is at a glance, each in its colour
-          and its words; the stages and tests are under them below. */}
-      <ol className="mpg-steps" aria-label={`${m.name}: its gates`}>
-        {m.gates.map(g => (
-          <li key={g.gate} className={'mpg-step is-' + GATE_SQ[g.tone]}>
-            <b>{g.label}</b>
-            <span>{g.says}</span>
-          </li>
-        ))}
-      </ol>
-
       <div className="mpg-cols">
-        <section className="mpg-main" aria-label="Its gates, stages and tests">
-          <MachinePanel asset={asset} projectId={projectId} tt={tt} programs={progs.programs} can={can} page
-            onOpen={id => openRecord(projectId, id)} onClose={() => nav(`/project/${projectId}`)} />
-        </section>
+        <div className="mpg-main">
+          {/* WHAT IS OPEN ON IT — the most pressing first, each opening its record (lib/machineRecord openOnMachine) */}
+          <section className="pl-sec mpg-open" aria-label="What is open on it">
+            <div className="pl-sec-h"><h2>What is open on it</h2><span className="sub">{open.length ? `${open.length}` : 'nothing'}</span></div>
+            {open.length ? <ul className="lt-rows">{open.map(l => row(l, l.where))}</ul> : <p className="sub">Nothing open on it — no stage, fix or problem waiting.</p>}
+          </section>
+          {/* ITS TESTS — every one as it stands, each opening its record to run or record it */}
+          <section className="pl-sec mpg-tests" aria-label="Its tests">
+            <div className="pl-sec-h"><h2>Its tests</h2><span className="sub">{tests.length ? `${tests.filter(t => t.tone === 'done').length} of ${tests.length} passed` : 'none yet'}</span></div>
+            {tests.length ? <ul className="lt-rows">{tests.map(l => row(l))}</ul> : <p className="sub">No tests on it yet — they are planned on the project’s Commission.</p>}
+          </section>
+        </div>
+        {/* ITS PROGRAMS — the same rows and form as Programs */}
         <section className="mpg-side" aria-label="Its programs">
           <ProgramsPage projectId={projectId} only={asset.id} />
         </section>
       </div>
+      {/* THE MACHINE ITSELF — its climb to rate, its label, its details and remove (ui/MachinePanel MachineItself) */}
+      <section className="mpg-itself" aria-label="The machine itself">
+        <MachineItself asset={asset} projectId={projectId} tt={tt} can={can} onClose={() => nav(`/project/${projectId}/machines`)} />
+      </section>
       {/* THE CLOSING LINE — the machine in one sentence, the slip in money */}
       <LeanClosing closing={machineClosing(machineCounts(m), money ?? MONEY_WAIT)} />
     </div>

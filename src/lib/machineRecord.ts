@@ -163,3 +163,21 @@ export function machineRecord(asset: Asset, x: { tests: Test[]; items: TestItem[
     fixes, fixesDone: fixesAll.length - fixes.length, problems, open,
   };
 }
+
+/** THE MACHINE'S PAGE, MACHINE FIRST (27 October — Rowland: "If I go to machine, I want to be able to see everything
+ *  associated to my machine ... this machine is going through a stage gate process and it's up to these things. It
+ *  has these tests on them, these programs on them, and this is where we are"). What is still open on it — the stages
+ *  of its install, set-up and handover not done, its fixes, the problems on it with no fix — the most pressing first,
+ *  each said where it sits. Its tests are their own list (machineTests). */
+export type OpenOnMachine = MachineLine & { where: string };
+const PRESSING: Record<MachineTone, number> = { failed: 0, late: 0, problem: 1, asking: 2, ahead: 3, none: 4, done: 5 };
+export function openOnMachine(m: MachineRecord): OpenOnMachine[] {
+  const stages = m.gates.filter(g => g.gate !== 'commission').flatMap(g => g.lines.filter(l => l.tone !== 'done').map(l => ({ ...l, where: g.label })));
+  const fixes = m.fixes.map(l => ({ ...l, where: 'Fix' }));
+  const problems = m.problems.map(l => ({ ...l, where: l.critical ? 'Problem — critical' : 'Problem' }));
+  return [...stages, ...fixes, ...problems].map((l, i) => ({ l, i }))
+    .sort((a, b) => PRESSING[a.l.tone] - PRESSING[b.l.tone] || a.i - b.i).map(x => x.l);
+}
+
+/** Its tests, each as it stands — passed, didn't pass, booked, late. */
+export const machineTests = (m: MachineRecord): MachineLine[] => m.gates.find(g => g.gate === 'commission')?.lines ?? [];

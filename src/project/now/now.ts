@@ -31,6 +31,8 @@ export type NowTone = 'r' | 'a' | 'w' | 'g' | 'n';
 export interface NowMachine {
   id: string;
   name: string;
+  /** Who made it, when said. */
+  oem?: string;
   /** The gate it is at, in a word — "Commission", "Due on site", "Handed over". */
   gate: string;
   gateTone: NowTone;
@@ -53,7 +55,7 @@ const GATE_TONE: Record<GateTone, NowTone> = { done: 'g', going: 'w', late: 'r',
 const PROGRAM_RANK: Record<ProgramLine['bucket'], number> = { failed: 0, late: 1, open: 2, baseline: 3, done: 4 };
 
 /** One machine's row. `journey` is lib/install journeyOf for it; `at` is machineAt's short word. */
-export function nowMachine(a: Pick<Asset, 'id' | 'name'>, at: { short: string }, journey: { gate?: JourneyGate; label: string; tone: GateTone }[],
+export function nowMachine(a: Pick<Asset, 'id' | 'name'> & { oem?: string }, at: { short: string }, journey: { gate?: JourneyGate; label: string; tone: GateTone }[],
   reading: ProgramsReading | undefined, owed: readonly JobItem[], tests: readonly Pick<Test, 'id' | 'assetId'>[]): NowMachine {
   const here = journey.find(g => g.label === at.short);
   const gateTone: NowTone = at.short === 'Handed over' ? 'g' : at.short === 'Due on site' ? 'n' : here ? GATE_TONE[here.tone] : 'n';
@@ -67,7 +69,7 @@ export function nowMachine(a: Pick<Asset, 'id' | 'name'>, at: { short: string },
   const dated = mine.filter(x => x.on).sort((x, y) => (x.on as string).localeCompare(y.on as string));
   const next = dated[0];
   return {
-    id: a.id, name: a.name.trim(), gate: at.short, gateTone,
+    id: a.id, name: a.name.trim(), ...(a.oem?.trim() ? { oem: a.oem.trim() } : {}), gate: at.short, gateTone,
     ...(lines.length ? {
       programs: [`${passed} of ${lines.length} passed`, failed ? `${failed} didn’t pass` : '', late ? `${late} late` : ''].filter(Boolean).join(' · '),
       programsTone: failed || late ? 'r' : passed === lines.length ? 'g' : 'w',

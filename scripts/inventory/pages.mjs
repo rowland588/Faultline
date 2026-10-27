@@ -25,7 +25,7 @@ export const PAGES = (sd, cap) => [
     { what: 'its heading', sel: '.home h1', text: /^Factory$/ },
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
     { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Problems · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
-    { what: 'its own tabs — Overview · Lines · Programs, Overview on', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
+    { what: 'its own tabs — Overview · Lines · Machines · Programs, Overview on', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
     { what: 'Line Talk — start one, or carry on the latest', sel: '.home-talk .fd-talk-start', text: /Start a Line Talk/ },
     { what: 'carry on the latest Line Talk', sel: '.home-talk .fd-talk-on', text: /^Carry on: / },
     /* the page header since B3: the band's two report buttons are its Report ▾ */
@@ -118,6 +118,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'its tabs — Now · Machines · Problems · Reports · More', sel: '.nv-tabs .nv-tab', n: 5 },
     { what: 'its own pages as tabs — Now on', sel: '.nv-tabs .nv-tab.is-on', text: /^Now/ },
+    /* the project's own views — its gates, the timeline and Programs — from its front page (27 October: the project is the
+       project's status; the machines are the Machines tab's) */
+    { what: 'the project’s own views — Now · Install · Set up · Commission · Hand over · Timeline · Programs', sel: '.plt .plt-t', n: 7 },
     { what: 'Now’s sentence — the machines, what blocks handover, what is late', sel: '.now .now-says', text: /machine/ },
     { what: 'the verdict', sel: '.vd' },
     /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
@@ -129,11 +132,30 @@ export const PAGES = (sd, cap) => [
     { what: 'What you owe — late first, All actions ›', sel: '.now-owe .act-li' },
     { what: 'the closing line', sel: '.now .ln-close' },
   ] },
+  /* A PROJECT'S MACHINES, SIMPLY (27 October — Rowland: "I don't understand why I don't see machines, simply enough") */
+  { name: 'A stage-gate project — its machines', path: `#/project/${sd.projectId}/machines`, must: [
+    { what: 'Machines on, among the project’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Machines/ },
+    { what: 'a row a machine, its status in plain words', sel: '.pms .now-m .pms-status', n: 3 },
+    { what: 'where each is up to in the project, what it owes, what is next', sel: '.pms .now-m .lt-says', n: 3 },
+  ] },
+  /* EVERY MACHINE IN THE FACTORY (27 October — Rowland: "Why don't I see machines?") */
+  { name: 'The factory’s machines', path: '#/machines', must: [
+    { what: 'Machines on, among the Factory’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Machines/ },
+    { what: 'every machine in a sentence', sel: '.fmc-says', text: /machines? on/ },
+    { what: 'each line in floor order, its machines in flow order', sel: '.fmc-line .fmc-m', n: 4 },
+    { what: 'the page header — Report ▾ with the factory’s machines', sel: '.part-head .part-menu-b', text: /^Report/ },
+  ] },
+  /* A MACHINE, MACHINE FIRST (27 October — Rowland: "If I go to machine, I want to be able to see everything associated to
+     my machine ... it's going through a stage gate process and it's up to these things. It has these tests ... these programs") */
   { name: 'A machine — its own page', path: `#/project/${sd.projectId}/machine/${sd.machineId}`, must: [
+    { what: 'its status in plain words, first', sel: '.cw-handover .mpg-at', text: /^(Not here yet|On site|Installed|Running|Handed over)$/ },
+    { what: 'the project it is going through, and where it is up to', sel: '.mpg-in', text: /^Going through .* — a stage-gate project — / },
     { what: 'its four gates in a row', sel: '.mpg-steps .mpg-step', n: 4 },
     /* the same machine on its line, every project's work on it (27 October — Rowland: "press machines ... I do not see a machine page") */
     { what: 'Everything on its line — the same machine there', sel: '.mpg-line .cw-link', text: /^Everything on .* — every project’s work on it ›$/ },
-    { what: 'its stages and tests, gate by gate', sel: '.mpg-main .mp-gate' },
+    { what: 'what is open on it, most pressing first', sel: '.mpg-open h2' },
+    { what: 'its tests', sel: '.mpg-tests h2' },
+    { what: 'the machine itself — its label, its details', sel: '.mpg-itself .mp-label' },
     { what: 'its programs', sel: '.mpg-side .pp-m' },
     /* the lean page (17 October; lib/stageGatePages machineTiles): gates through, late, fixes, no fix yet, the job's money — and the closing line */
     { what: 'the five tiles — the project’s money last', sel: '.mpg > .sg-tiles .ln-tile', n: 5 },
@@ -392,8 +414,8 @@ export const PAGES = (sd, cap) => [
     { what: 'its name, Stops timed, and the line', sel: '.study-log b', text: /^Stops timed$/ },
     { what: 'its four views as tabs, Capture lit', sel: '.study-views [role=tab]', n: 4 },
     { what: 'Capture the view shown', sel: '.study-views [role=tab][aria-selected=true]', text: /^Capture$/ },
-    /* the seeded study is a stage-gate project's own walk, filmed from Install: Machines lit (the plan, 26 October) */
-    { what: 'where it sits, its tab on — Machines', sel: '.nv-tabs .nv-tab.is-on', text: /^Machines/ }] },
+    /* the seeded study is a stage-gate project's own walk, filmed from Install: Now lit — the gates are the project's own (27 October) */
+    { what: 'where it sits, its tab on — Now', sel: '.nv-tabs .nv-tab.is-on', text: /^Now/ }] },
   { name: 'Actions — the factory', path: '#/actions', must: [
     { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },

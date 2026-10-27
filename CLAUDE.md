@@ -207,6 +207,15 @@ link buttons. A new page or tool takes these parts, and its acceptance
 script presses by name through `scripts/lib/pageHeader.mjs` (the page's own
 button, else the menu), so a control moving into a menu never breaks it.
 
+**Machines are machines, a project is a project (27 October).** Rowland: *"If
+I go to projects, I should be able to see my project status ... If I go to
+machine, I want to be able to see everything associated to my machine."* So
+the Factory has a Machines tab (`#/machines`, every machine line by line), a
+stage-gate project's Machines tab is a plain list of its machines, its gates,
+Timeline and Programs are the project's own views from Now (`ui/PlanTabs`),
+and a machine's page says its status first and that it is *going through* the
+project, up to its gate — never the gates as the page (`docs/STRUCTURE.md` §20).
+
 **Since B5 each place has one job and each thing one word** (§5.6, §5.7).
 Home is yours — *Carry on where you were* (`lib/recentPlaces`, noted by the
 frame on this device only, never synced), what is under way by name, start

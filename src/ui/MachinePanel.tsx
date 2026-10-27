@@ -148,6 +148,38 @@ export function MachinePanel({ asset, projectId, tt, programs, can, onOpen, onCl
   );
 }
 
+/** THE MACHINE ITSELF, ON ITS OWN PAGE (27 October — the page is the machine first, its gates one strip of it): its climb
+ *  to rate, its label, its name, supplier and dates, and remove — what this panel carried below the gates, kept. */
+export function MachineItself({ asset, projectId, tt, can, onClose }: { asset: Asset; projectId: string; tt: TT; can: Can; onClose: () => void }) {
+  const ran = live(tt.tests).filter(t => t.assetId === asset.id && (t.kind ?? 'test') === 'test' && hasRun(t)).length;
+  const climbs = climbsOf({ tests: tt.tests, assets: [asset] }).filter(c => c.machineId === asset.id);
+  return (
+    <>
+      {climbs.length > 0 && (
+        <section className="rd-blk mp-gate" aria-label="Its climb to rate">
+          <h3 className="mp-gate-h"><span className="mp-gate-l">Its climb to rate</span></h3>
+          <Climbs cs={climbs} />
+        </section>
+      )}
+      <MachineLabelButton asset={asset} projectId={projectId} />
+      {can.edit && (
+        <section className="rd-blk">
+          <h3 className="mp-gate-h"><span className="mp-gate-l">The machine</span></h3>
+          <MachineCard a={asset} ran={ran} save={tt.saveAsset} />
+        </section>
+      )}
+      {can.remove && (
+        <div className="rd-blk">
+          <button type="button" className="btn btn-ghost btn-sm cw-del rd-del" onClick={() => {
+            if (!confirm(`Remove “${asset.name}”?\n\nIts stages and tests stay — they just stop naming a machine.`)) return;
+            void tt.removeAsset(asset.id); onClose();
+          }}>Remove this machine</button>
+        </div>
+      )}
+    </>
+  );
+}
+
 function MachineLabelButton({ asset, projectId }: { asset: Asset; projectId: string }) {
   const { project } = useProject(projectId);
   const [said, setSaid] = useState('');

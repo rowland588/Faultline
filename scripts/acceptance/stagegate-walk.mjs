@@ -188,16 +188,15 @@ const desk = await device(1360);
   await W.go(J);
   await P.locator('main').filter({ hasText: /\d+ done · \d+ to go/ }).waitFor({ timeout: 20000 }).catch(() => {});
   const doneBefore = Number((/(\d+) done · \d+ to go/.exec(flat(await P.locator('main').innerText())) ?? [])[1]);
-  /* the plan is the Machines tab since 26 October */
-  await W.tap('Machines (its tab)', W.btn(/^Machines\d/));
-  await W.tap('Hand over (its tab)', W.btn(/^Hand over/));
+  /* the gates are the project's own views from Now since 27 October (ui/PlanTabs; the Machines tab is the machines) */
+  await W.tap('Hand over (its view)', P.locator('main a.plt-t').filter({ hasText: /^Hand over/ }).first());
   await W.tap('the item booked 23 Oct', P.locator('.ig-cell').filter({ hasText: '23 Oct' }).first());
   await W.tap('Done today', P.locator('.rd').last().getByRole('button', { name: /Done today/ }).first());
   await W.go(J);
   await P.locator('main').filter({ hasText: /\d+ done · \d+ to go/ }).waitFor({ timeout: 20000 }).catch(() => {});
   const doneAfter = Number((/(\d+) done · \d+ to go/.exec(flat(await P.locator('main').innerText())) ?? [])[1]);
   ok(doneAfter === doneBefore + 1, `5a the front page counts it — ${doneBefore} → ${doneAfter} done`);
-  journey('5', W, 4, 'a hand-over item done from Machines');
+  journey('5', W, 4, 'a hand-over item done from the project’s front page');
   await desk.close();
 }
 
@@ -205,8 +204,7 @@ const desk = await device(1360);
 {
   const W = await device(390); const P = W.page; const J = `#/project/${W.sd.projectId}`;
   await W.go(J);
-  /* a project's pages are tabs across the top since 23 October; Programs is one of the Machines tab's views since 26 October */
-  await W.tap('Machines (its tab)', P.locator('.nv-tabs .nv-tab').filter({ has: P.locator('.nv-tab-l', { hasText: /^Machines$/ }) }));
+  /* Programs is one of the project's own views from Now since 27 October (ui/PlanTabs) */
   await W.tap('Programs (its view)', P.locator('main a.plt-t').filter({ hasText: /^Programs/ }).first());
   const row = P.locator('.pgr').filter({ hasText: 'PR-07 Baking Potatoes' }).first();
   const box = async name => row.getByRole('button', { name }).first().boundingBox();

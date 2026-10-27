@@ -126,6 +126,8 @@ export function hereOf(route: Route): string {
     case 'quickSnags': return 'quicksnags';
     case 'lineHome': case 'lineReport': case 'lineMachine': return `line:${route.wsId}`;
     case 'factory': return 'factory';
+    case 'factoryMachines': return 'allmachines';
+    case 'projectMachines': return 'machines';
     case 'linePrograms': return 'lineprograms';
     case 'videos': case 'videoStudy': return 'video';
     case 'talks': case 'talk': return 'talk';
@@ -286,7 +288,7 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
     ? [{ key: 'place', label: place.name, to: place.to, on: true, state: 'n', bare: true, sub: true, under, icon: under === 'home' ? 'machine' : 'board' }] : []);
   return [{
     lines: [
-      { key: 'home', label: 'Factory', to: '/room', on: (f && (here === 'home' || here === 'factory' || here === 'lineprograms')) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
+      { key: 'home', label: 'Factory', to: '/room', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
       ...placed('home'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
       ...placed('projects'),
@@ -325,10 +327,12 @@ export function scopeTabs(groups: RailGroup[]): RailLine[] {
 
 /** THE FACTORY'S OWN TABS — on the Factory page and the two lists under it, every line and every
  *  line's programs. */
-export const FACTORY_PAGES = new Set(['home', 'factory', 'lineprograms']);
+export const FACTORY_PAGES = new Set(['home', 'factory', 'allmachines', 'lineprograms']);
 export const factoryTabs = (here: string): RailLine[] => [
   plain('home', 'Overview', '/room', here, 'home'),
   plain('factory', 'Lines', '/factory', here, 'machine'),
+  /* every machine in the factory, line by line (27 October — Rowland: "Why don't I see machines?") */
+  plain('allmachines', 'Machines', '/machines', here, 'machine'),
   plain('lineprograms', 'Programs', '/programs', here, 'list'),
 ];
 
@@ -341,6 +345,7 @@ export function factoryGroups(here: string, projects = 0): RailGroup[] {
       { key: 'quicksnags', label: 'Problems', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'flag' },
       { ...plain('projects', 'Projects', '/projects', here, 'board'), n: projects || undefined },
       plain('factory', 'Lines', '/factory', here, 'machine'),
+      plain('allmachines', 'Machines', '/machines', here, 'machine'),
       plain('lineprograms', 'Programs', '/programs', here, 'list'),
       plain('tools', 'Tools', '/tools', here, 'chart'),
     ],
@@ -376,15 +381,21 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
 
 /** A STAGE-GATE PROJECT'S PAGES — four tabs and More (projectGroups). */
 function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, job: RailLine): RailGroup[] {
+  /* THE MACHINES ARE THE MACHINES; THE GATES ARE THE PROJECT'S (27 October — Rowland: "If I go to projects, I should be
+     able to see my project status ... If I go to machine, I want to be able to see everything associated to my machine").
+     Machines is a row a machine, each opening its page; the gates — Install, Set up, Commission, Hand over — the timeline
+     and Programs are the project's own views, under Now, reached from its front page (ui/PlanTabs). Until 27 October
+     Machines opened on the first gate with work. */
+  const machinesTab = counted('machines', 'Machines', `${p}/machines`, o.here, o.counts, [...GATE_KEYS], 'machine');
   const at = GATE_KEYS.find(k => (o.counts[k]?.n ?? 0) > 0);
-  const plan = counted('plan', 'Machines', at ? `${p}/${GATE_PATH[at]}` : `${p}/plan`, o.here, o.counts, [...GATE_KEYS], 'machine');
+  const plan: RailLine = { ...plain('plan', 'The gates', at ? `${p}/${GATE_PATH[at]}` : `${p}/plan`, o.here, 'route'), on: o.here === 'plan' || (GATE_KEYS as readonly string[]).includes(o.here) };
   const under = (l: RailLine): RailLine => ({ ...l, sub: true });
   const more = (l: RailLine): RailLine => ({ ...l, sub: true, inMore: true });
   const ms = o.machines ?? [];
   /* past six, one line — the plan lists them, machine by machine */
   const machines: RailLine[] = ms.length <= 6
     ? ms.map(m => ({ key: `machine:${m.id}`, label: m.name, to: `${p}/machine/${encodeURIComponent(m.id)}`, on: o.here === `machine:${m.id}`, state: m.state, sub: true, ...(m.open ? { n: m.open } : {}), ...(m.late ? { late: m.late } : {}), icon: 'machine' as const }))
-    : [{ key: 'machines', label: `Machines (${ms.length})`, to: `${p}/plan`, on: o.here.startsWith('machine:'), state: ms.some(m => m.state === 'r') ? 'r' : 'w', sub: true, late: ms.reduce((n, m) => n + (m.late ?? 0), 0) || undefined, icon: 'machine' as const }];
+    : [{ key: 'machinelist', label: `Machines (${ms.length})`, to: `${p}/machines`, on: o.here.startsWith('machine:'), state: ms.some(m => m.state === 'r') ? 'r' : 'w', sub: true, late: ms.reduce((n, m) => n + (m.late ?? 0), 0) || undefined, icon: 'machine' as const }];
   const inMore = ['materials', 'tools', 'notes', 'details'];
   return [
     { lines: [upLine()] },
@@ -394,9 +405,10 @@ function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, 
       under(plain('day', 'The day', `${p}/day`, o.here, 'time')),
       under(plain('journey', 'Journey', `${p}/journey`, o.here, 'time')),
       under(plain('actions', 'Actions', `${p}/actions`, o.here, 'list')),
-      { ...plan, on: o.here === 'plan' || (GATE_KEYS as readonly string[]).includes(o.here) },
-      ...machines,
+      under(plan),
       under(counted('programs', 'Programs', `${p}/programs`, o.here, o.counts, ['programs'], 'list')),
+      machinesTab,
+      ...machines,
       counted('fixes', 'Problems', `${p}/fixes`, o.here, o.counts, ['fixes'], 'flag'),
       { key: 'preports', label: 'Reports', on: o.here === 'reports', state: 'n', bare: true, icon: 'list' },
       { key: 'pmore', label: 'More', on: inMore.includes(o.here), state: 'n', bare: true, icon: 'grip' },

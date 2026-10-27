@@ -15,10 +15,19 @@
  *   E  a project's machine page goes to the same machine on its line — every project's work on it
  *   F  the bar: Factory › the place › the page, the place's name opening its first page; Go to ▾ the picker of lines
  *      and projects
+ *   G  the Factory has a Machines tab (Rowland, 27 October: "Why don't I see machines?") — every line in floor order,
+ *      its machines in flow order, each with who made it, its project, its programs and what is open, as
+ *      lib/factoryMachines reads them; a row opens the machine's page on its line; its paper says the same
+ *   H  a project's Machines tab opens on its machines, a row each, as Now reads them — the gates, the timeline and
+ *      Programs the tabs beside it; a row opens the machine's page in the project
  *   and on a phone nothing off the side, and no console error anywhere.
  *
  *   node scripts/acceptance/where-am-i.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -151,10 +160,75 @@ const names = await page.evaluate(async ([ws, pid]) => {
   await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 }
 
+/* ---- G · every machine in the factory ---- */
+{
+  await go('#/room');
+  await page.locator('.nv-tab', { hasText: /^Machines$/ }).first().click(); await page.waitForTimeout(1800);
+  ok(/#\/machines$/.test(page.url()) && await tabOn() === 'Machines' && (await menu()).lit.join() === 'Factory', `G1 the Factory's Machines tab (${page.url().split('#')[1]})`);
+  /* what lib/factoryMachines says from the records as lib/useLineRecords reads them */
+  const want = await page.evaluate(async () => {
+    const db = await import('/src/db.ts');
+    const { liveProductionLines } = await import('/src/lib/lines.ts');
+    const { factoryMachines } = await import('/src/lib/factoryMachines.ts');
+    const [all, assets, programs, jobLines, jobs, snags] = await Promise.all([db.listWorkspaces(), db.listAllAssets(), db.listAllPrograms(), db.allPaceLines(), db.allProjects(), db.listAllSnags()]);
+    const r = factoryMachines({ lines: await liveProductionLines(all), assets, jobLines, jobs: jobs.filter(j => !j.deletedAt), programs, snags });
+    return { says: r.says, rows: r.groups.flatMap(g => g.rows.map(x => `${g.line.name}|${x.name}`)) };
+  }).catch(e => ({ says: `(${e.message})`, rows: [] }));
+  const says = flat(await main().locator('.fmc-says').innerText());
+  ok(says === want.says, `G2 the sentence as lib/factoryMachines says it (${says})`, want.says);
+  const rows = await main().locator('.fmc-line').evaluateAll(els => els.flatMap(el => [...el.querySelectorAll('.fmc-m')].map(m => `${el.querySelector('h2')?.firstChild?.textContent?.trim()}|${m.getAttribute('data-machine')}`)));
+  ok(rows.length > 0 && JSON.stringify(rows) === JSON.stringify(want.rows), `G3 every line's machines, in floor and flow order (${rows.length})`, `${rows.join(', ')} ≠ ${want.rows.join(', ')}`);
+  const ilapak = flat(await main().locator('.fmc-m[data-machine="Ilapak flow wrapper"]').innerText());
+  ok(/Ilapak UK/.test(ilapak) && /With Line 2 commissioning/.test(ilapak) && /programs? proved/.test(ilapak), `G4 a row says who made it, its project and its programs (${ilapak})`);
+  await main().locator('.fmc-m[data-machine="Ilapak flow wrapper"] .lt-row').click(); await page.locator('.lmc').waitFor({ timeout: 15000 }); await page.waitForTimeout(600);
+  ok(/#\/lines\/[^/]+\/machine\/Ilapak%20flow%20wrapper$/.test(page.url()), `G5 a row opens the machine's page on its line (${page.url().split('#')[1]})`);
+  /* its paper, read back */
+  await go('#/machines');
+  await page.locator('.part-head .part-menu-b', { hasText: /^Report/ }).click(); await page.waitForTimeout(300);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('menuitem', { name: /The factory’s machines/ }).or(page.locator('.part-menu-i', { hasText: /The factory’s machines/ })).first().click()]);
+  const f = join(mkdtempSync(join(tmpdir(), 'wai-')), 'machines.pdf'); await dl.saveAs(f);
+  const paper = execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+  ok(paper.includes(want.says) && want.rows.every(r => paper.includes(r.split('|')[1])) && /With Line 2 commissioning/.test(paper), 'G6 its paper: the sentence and every machine, as the screen says them', paper.slice(0, 300));
+}
+
+/* ---- H · a project's machines, simply; a machine first ---- */
+{
+  await go(`#/project/${PID}`);
+  await page.locator('.nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Machines$/ }) }).first().click(); await page.waitForTimeout(1800);
+  ok(new RegExp(`#/project/${PID}/machines$`).test(page.url()) && await page.locator('.plt').count() === 0, `H1 a project's Machines opens on its machines — no gates over them (${page.url().split('#')[1]})`);
+  const rows = (await main().locator('.pms .now-m').evaluateAll(els => els.map(e => e.getAttribute('data-now-machine'))));
+  const want = await page.evaluate(async pid => {
+    const { getDB } = await import('/src/db/core.ts');
+    return (await (await getDB()).getAll('commission_assets')).filter(a => a.projectId === pid && !a.deletedAt).sort((a, b) => a.sort - b.sort).map(a => a.name.trim());
+  }, PID);
+  ok(rows.length > 0 && JSON.stringify(rows) === JSON.stringify(want), `H2 a row a machine, in its order (${rows.join(', ')})`, want.join(', '));
+  const st = (await main().locator('.pms .now-m .pms-status').allInnerTexts()).map(flat);
+  ok(st.length === rows.length && st.every(w => ['Not here yet', 'On site', 'Installed', 'Running', 'Handed over'].includes(w)), `H3 each says its status in plain words (${st.join(', ')})`);
+  /* the gates are the project's, from its front page */
+  await go(`#/project/${PID}`);
+  const views = (await page.locator('.plt .plt-t').allInnerTexts()).map(t => flat(t).split(' ')[0]);
+  ok(views[0] === 'Now' && ['Install', 'Set', 'Commission', 'Hand', 'Timeline', 'Programs'].every(v => views.includes(v)), `H4 the project's own views on its front page (${views.join(' · ')})`);
+  await page.locator('.plt .plt-t', { hasText: /^Install/ }).click(); await page.waitForTimeout(1500);
+  ok(/\/install$/.test(page.url()) && await tabOn() === 'Now', `H5 a gate opens lighting Now — the project's (${await tabOn()})`);
+  /* a machine's page — the machine first: its status, the project it is going through and where it is up to, what is open, its tests, its programs */
+  await go(`#/project/${PID}/machines`);
+  await main().locator('.pms .now-m .lt-row').first().click(); await page.locator('.mpg').waitFor({ timeout: 15000 }); await page.waitForTimeout(800);
+  const head = flat(await main().locator('.cw-handover').innerText());
+  const inProject = flat(await main().locator('.mpg-in').innerText());
+  ok(/^(Not here yet|On site|Installed|Running|Handed over)/.test(head), `H6 the machine's status first (${head})`);
+  ok(inProject.startsWith(`Going through ${names.job} — a stage-gate project — `), `H7 the project it is going through, and where it is up to (${inProject})`);
+  ok(await main().locator('.mpg-steps .mpg-step').count() === 4 && await main().locator('.mpg-open h2').count() === 1 && await main().locator('.mpg-tests h2').count() === 1 && await main().locator('.mpg-side').count() === 1,
+    'H8 its gates one strip; what is open on it, its tests and its programs below');
+  ok(await main().locator('.mp-gate .mp-gate-go').count() === 0, 'H9 no gate-by-gate panel on the machine');
+  ok(await main().locator('.mpg-itself .mp-label button').count() === 1, 'H10 the machine itself kept — its label, its details');
+  const firstOpen = main().locator('.mpg-open .lt-row').first();
+  if (await firstOpen.count()) { await firstOpen.click(); await page.waitForTimeout(1200); ok(await page.locator('.rd-title, .rd-state-row').count() > 0, 'H11 a row opens its record'); await page.keyboard.press('Escape'); await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(500); }
+}
+
 /* ---- the phone ---- */
 {
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const h of [`#/lines/${WS}`, `#/lines/${WS}?view=machines`, `#/programs?line=${WS}`, `#/project/${PID}/machine/${names.asset}`]) {
+  for (const h of [`#/lines/${WS}`, `#/lines/${WS}?view=machines`, `#/programs?line=${WS}`, `#/project/${PID}/machine/${names.asset}`, '#/machines', `#/project/${PID}/machines`]) {
     await go(h);
     const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     ok(wide <= 1, `P phone: nothing off the side on ${h.split('/').slice(0, 2).join('/')}… (${wide}px)`);
@@ -167,5 +241,5 @@ const names = await page.evaluate(async ([ws, pid]) => {
 
 ok(errs.length === 0, 'no console error', errs.join(' | '));
 await b.close();
-console.log(fail ? `\nWhere am I NOT accepted: ${fail} failed` : '\nWhere am I accepted: the menu names the place, a line\'s pages stay on it, its Machines a tab and every way to a machine its page, one name Factory, a project\'s machine on its line, the bar a crumb and Go to, the phone');
+console.log(fail ? `\nWhere am I NOT accepted: ${fail} failed` : '\nWhere am I accepted: the menu names the place, a line\'s pages stay on it, its Machines a tab and every way to a machine its page, one name Factory, a project\'s machine on its line, the bar a crumb and Go to, every machine in the factory and a project\'s machines simply, the phone');
 process.exit(fail ? 1 : 0);

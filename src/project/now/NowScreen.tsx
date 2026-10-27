@@ -18,7 +18,10 @@ import { standing } from '../../lib/standing';
 import { stageGateOnTarget } from '../../lib/onTarget';
 import { stageGateClosing, stageGateTiles } from '../../lib/stageGateLean';
 import { linesDay } from '../../lib/lineLoss';
-import { live } from '../../lib/testing';
+import { live, type Asset, type Test, type TestItem } from '../../lib/testing';
+import type { Program } from '../../lib/programs';
+import type { ProgramsReading } from '../../lib/programsReport';
+import type { JobItem } from '../../lib/portfolio';
 import { niceDay } from '../../lib/weeks';
 import { planCount, planFor } from '../../lib/huddle';
 import { useJobFactoryLines } from '../../lib/useFactoryLines';
@@ -41,6 +44,37 @@ function openAction(a: ProjectAction) {
   if (!x) return;
   if (x.id && (x.critical || IN_DRAWER.has(x.kind))) openRecord(x.jobId, x.id);
   else nav(planHref(x.jobId, x));
+}
+
+/** A stage-gate project's machines, a row each, as Now reads them (project/now nowMachine) — on Now and on the
+ *  Machines tab's own list (27 October). */
+export function machinesOf(assets: readonly Asset[], tests: Test[], items: TestItem[], programs: readonly Program[],
+  reading: ProgramsReading | undefined, owed: readonly JobItem[], today: string): NowMachine[] {
+  return [...assets].sort((a, b) => a.sort - b.sort).map(a => {
+    const j = gatesOf(a, tests, items, today, programs);
+    return nowMachine(a, machineAt(a, j), j, reading, owed, tests);
+  });
+}
+
+/** A ROW A MACHINE — its name and who made it, the gate it is at, its programs, what it owes, what is next; a tap
+ *  opens its page in the project. */
+export function MachineRows({ projectId, machines }: { projectId: string; machines: readonly NowMachine[] }) {
+  return (
+    <ul className="lt-rows">
+      {machines.map(m => (
+        <li key={m.id} className={'lt-li now-m' + (m.critical || m.late ? ' is-late' : '')} data-now-machine={m.name}>
+          <button type="button" className="lt-row" onClick={() => nav(`/project/${projectId}/machine/${encodeURIComponent(m.id)}`)}>
+            <b className="lt-what">{m.name}{m.oem && <span className="sub now-oem"> · {m.oem}</span>} <span className={'now-gate is-' + m.gateTone}>{m.gate}</span></b>
+            <span className="lt-says">
+              {[m.programs ? `Programs: ${m.programs}` : '', m.worstProgram ?? '',
+                m.open ? `${m.open} open${m.late ? `, ${m.late} late` : ''}${m.critical ? `, ${m.critical} critical` : ''}` : 'nothing owed'].filter(Boolean).join(' · ')}
+            </span>
+            <span className="lt-where">{m.next ? <>{m.next.late ? 'Late' : 'Next'}: {m.next.what} · <span className={m.next.late ? 'act-late' : ''}>{niceDay(m.next.on)}</span></> : 'nothing dated'}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 /** #/project/:id/now — an old link: Now is the project's front page since 26 October (four tabs). */
@@ -69,10 +103,7 @@ export function NowBody({ projectId }: { projectId: string }) {
     const figures = jobFiguresOf(st, g.project, tests, items, assets, linesDay(factory.lines), assigned, today);
     const reading = programsReading({ tests, items, assets, programs: g.programs, today, holder: g.project, studies: read.studies });
     const rows = projectActions(read.owed, read.register, projectId, today);
-    const machines: NowMachine[] = assets.map(a => {
-      const j = gatesOf(a, tests, items, today, g.programs);
-      return nowMachine(a, machineAt(a, j), j, reading, read.owed, tests);
-    });
+    const machines = machinesOf(assets, tests, items, g.programs, reading, read.owed, today);
     const block = blockers(rows);
     const owe = owedFirst(rows);
     const ahead = daysOf(read.journey, lookAhead(today), today);
@@ -130,22 +161,7 @@ export function NowBody({ projectId }: { projectId: string }) {
           <span className="sub">{machines.length ? `${machines.length} on the project` : 'None yet'}</span>
         </div>
         {!machines.length && <p className="qsl-empty">No machines on the project yet — they are added at Install.</p>}
-        {machines.length > 0 && (
-          <ul className="lt-rows">
-            {machines.map(m => (
-              <li key={m.id} className={'lt-li now-m' + (m.critical || m.late ? ' is-late' : '')} data-now-machine={m.name}>
-                <button type="button" className="lt-row" onClick={() => nav(`/project/${projectId}/machine/${encodeURIComponent(m.id)}`)}>
-                  <b className="lt-what">{m.name} <span className={'now-gate is-' + m.gateTone}>{m.gate}</span></b>
-                  <span className="lt-says">
-                    {[m.programs ? `Programs: ${m.programs}` : '', m.worstProgram ?? '',
-                      m.open ? `${m.open} open${m.late ? `, ${m.late} late` : ''}${m.critical ? `, ${m.critical} critical` : ''}` : 'nothing owed'].filter(Boolean).join(' · ')}
-                  </span>
-                  <span className="lt-where">{m.next ? <>{m.next.late ? 'Late' : 'Next'}: {m.next.what} · <span className={m.next.late ? 'act-late' : ''}>{niceDay(m.next.on)}</span></> : 'nothing dated'}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        {machines.length > 0 && <MachineRows projectId={projectId} machines={machines} />}
       </section>
 
       {/* 4 · TODAY AND THE NEXT TWO WEEKS — what the day and the journey say ahead (project/journey) */}

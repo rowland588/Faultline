@@ -74,7 +74,8 @@ await go(NOW);
 const rows = page.locator('.now-machines .now-m');
 await rows.first().waitFor({ timeout: 15000 });
 const names = [];
-for (const r of await rows.all()) names.push(flat((await r.locator('.lt-what').innerText()).replace(/\s(Install|Set up|Commission|Hand over|Handed over|Due on site)$/, '')));
+/* its name (who made it beside it since 27 October) */
+for (const r of await rows.all()) names.push(flat(await r.getAttribute('data-now-machine')));
 const held = await page.evaluate(async pid => (await (await import('/src/db/testing.ts')).listAssets(pid)).filter(a => !a.deletedAt).map(a => a.name.trim()), PID);
 ok(names.length === held.length && held.every(n => names.includes(n)), '4 a row for each of the project’s machines', `${names} / ${held}`);
 const gates = (await page.locator('.now-machines .now-gate').allInnerTexts()).map(flat);
@@ -136,11 +137,15 @@ ok(await page.locator('.sheet, [role=dialog]').filter({ hasText: /report/i }).co
 await page.keyboard.press('Escape'); await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(500);
 await go(NOW);
 await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Machines$/ }) }).click(); await page.waitForTimeout(1200);
+/* Machines is the machines, a row each with its status (27 October: "If I go to machine, I want to be able to see
+   everything associated to my machine"); the gates are the project's own, from its front page */
+ok(page.url().endsWith('/machines') && await page.locator('.pms .now-m').count() >= 1 && await page.locator('.plt').count() === 0,
+  '9 Machines opens on the machines, a row each — no gates over them', page.url());
+await go(NOW);
 const views = (await page.locator('.plt .plt-t').allInnerTexts()).map(t => flat(t).split(' ')[0]);
-ok(await page.locator('.plt-h').innerText().then(flat) === 'MACHINES' || /Machines/i.test(await page.locator('.plt-h').innerText()), '9 Machines opens the plan, its views headed Machines');
-ok(views.includes('Programs') && views.includes('Timeline') && views.includes('Commission'), '9 its views: the gates, the timeline and Programs', views);
+ok(views[0] === 'Now' && views.includes('Programs') && views.includes('Timeline') && views.includes('Commission'), '9 the project\'s own views from its front page: Now, the gates, the timeline and Programs', views);
 await page.locator('.plt .plt-t', { hasText: /^Programs/ }).click(); await page.waitForTimeout(1200);
-ok(page.url().includes('/programs') && JSON.stringify(await lit()) === JSON.stringify(['Machines']), '9 Programs opens, lighting Machines', `${page.url()} ${await lit()}`);
+ok(page.url().includes('/programs') && JSON.stringify(await lit()) === JSON.stringify(['Now']), '9 Programs opens, lighting Now', `${page.url()} ${await lit()}`);
 await go(NOW);
 await page.locator('.now-ahead .now-today').click(); await page.waitForTimeout(1200);
 ok(page.url().includes('/day') && JSON.stringify(await lit()) === JSON.stringify(['Now']), '9 the day a door from Now, lighting it', `${page.url()} ${await lit()}`);

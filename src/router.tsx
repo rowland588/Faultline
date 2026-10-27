@@ -44,6 +44,8 @@ const NotesScreen = lazy(() => import('./screens/NotesScreen').then(m => ({ defa
 const ClientReportScreen = lazy(() => import('./screens/ClientReportScreen').then(m => ({ default: m.ClientReportScreen })));
 const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => ({ default: m.PaceExecReport })));
 const QuickSnagsScreen = lazy(() => import('./snag/QuickSnagsScreen').then(m => ({ default: m.QuickSnagsScreen })));
+const FactoryMachinesScreen = lazy(() => import('./line/FactoryMachinesScreen').then(m => ({ default: m.FactoryMachinesScreen })));
+const ProjectMachinesScreen = lazy(() => import('./project/machines/ProjectMachinesScreen').then(m => ({ default: m.ProjectMachinesScreen })));
 const ProductionLineScreen = lazy(() => import('./screens/ProductionLineScreen').then(m => ({ default: m.ProductionLineScreen })));
 const LineReportScreen = lazy(() => import('./line/report/LineReportScreen').then(m => ({ default: m.LineReportScreen })));
 const LineMachineScreen = lazy(() => import('./line/LineMachineScreen').then(m => ({ default: m.LineMachineScreen })));
@@ -171,6 +173,7 @@ function app(route: Route) {
     return <ProductionLineScreen key={route.wsId} wsId={route.wsId} view={v === 'machines' || v === 'tools' || v === 'projects' || v === 'setup' || v === 'logs' ? v : 'overview'} />;
   }
   if (route.name === 'factory') return <FactoryScreen />;
+  if (route.name === 'factoryMachines') return <FactoryMachinesScreen />;
   if (route.name === 'allActions') return <EveryActionScreen />;
   if (route.name === 'tools') return <ToolsScreen />;
   if (route.name === 'projectTools' && route.id) return <ProjectToolsScreen key={route.id} projectId={route.id} />;
@@ -243,6 +246,7 @@ function app(route: Route) {
   if (route.name === 'handover' && route.id) return gate(route.id, <InstallScreen projectId={route.id} gate="handover" />);
   if (route.name === 'day' && route.id) return gate(route.id, <DayScreen projectId={route.id} />);
   if (route.name === 'plan' && route.id) return gate(route.id, <PlanScreen projectId={route.id} />);
+  if (route.name === 'projectMachines' && route.id) return gate(route.id, <ProjectMachinesScreen projectId={route.id} />);
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
   /* the project's actions, every method's (docs/PROJECTS.md, P3) */
   if (route.name === 'actions' && route.id) return <ActionsScreen projectId={route.id} />;
