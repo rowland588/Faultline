@@ -35,7 +35,7 @@ a door changes this page first, in the same commit. The map it replaces is
 | Factory › Tools | `#/tools` | the library of tools |
 | **A line** (home) | `#/lines/:ws` | Overview · Machines · Problems · Programs · Tools · Set up (also Logs and Projects); Report ▾: the line report, every machine in full, the problems |
 | **A machine** (one page) | `#/lines/:ws/machine/:name` | while a stage-gate project works on it, the project's part first (where it's up to, its gates, what's open, its tests, its programs); then every project on it, the line's own programs, its problems, studies and stops; Report ▾: the machine in full |
-| **A project** | `#/project/:id` | its work; its line opens the line; its machines open the one machine page |
+| **A project** | `#/project/:id` | its work; its line opens the line; its machines open the one machine page; *Today* is the Journey on today (`#/project/:id/journey?from=d&to=d`) |
 
 ## Old addresses, kept
 
@@ -44,6 +44,7 @@ a door changes this page first, in the same commit. The map it replaces is
 | `#/project/:id/machine/:asset` | the machine's one page on its line (a record asked for in the drawer is kept) |
 | `#/project/:id/line/:lid` (stage gate) | the line's own page (a section asked for by name still opens the project's) |
 | `#/machines`, `#/programs`, `#/snags`, `#/actions` | still open; no Factory door leads there, but the Every report sheet does |
+| `#/project/:id/day` (`?d=` a day) | the project's Journey on that day — The day folded into the Journey, 27 October (Rowland: "fold it"): *Today* is its first range |
 
 ## Left for later (agreed 27 October)
 

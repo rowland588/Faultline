@@ -114,7 +114,8 @@ const journey = (n, W, max, says) => {
   const W = await device(390); const P = W.page; const J = `#/project/${W.sd.projectId}`;
   const stage = async title => W.db(async ([pid, t]) => (await (await import('/src/db.ts')).listTests(pid)).find(x => !x.deletedAt && x.title === t), [W.sd.projectId, title]);
   await W.go(J);
-  await W.tap('The day', W.btn(/The day/));
+  /* The day is the Journey on today since 27 October ("fold it"): Now's door says Today */
+  await W.tap('Today', W.btn(/^Today — /));
   ok(flat(await P.locator('.dp-offer').innerText().catch(() => '')).includes('tap to add it to the plan'), '2a the day says what a tap on a due stage does — it adds it to the plan');
   await W.tap('+ Ilapak flow wrapper — Change parts fitted', P.locator('.dp-offer .dp-chip').filter({ hasText: 'Change parts fitted' }).first());
   const line = P.locator('.dp-row').filter({ hasText: 'Ilapak flow wrapper — Change parts fitted' }).first();

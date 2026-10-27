@@ -3,6 +3,7 @@
  * standard, the evidence cards of each line's walk, and the spreadsheet of
  * everything. Each screen keeps its own PDF button for the thing it shows; this
  * is the index, so nobody has to know which page a document lives on. */
+import { dayHref } from '../project/journey/journey';
 import { useEffect, useState } from 'react';
 import type { Project } from '../types';
 import { planModel } from '../lib/planModel';
@@ -109,7 +110,7 @@ export function JobPapers({ project, onClose }: { project: Project; onClose: () 
         {/* What the method prints (lib/planModel: "the tree on one page") was
             the one printable thing this index did not list. */}
         {tree && <Door title="The lever tree" says="The tree on one page — print it from the tree itself." onClick={() => go(`/project/${project.id}/tree`)} />}
-        {stageGate && <Door title="The day" says="For the team — the day's story: what got done, what was found, with the pictures. One page." onClick={() => go(`/project/${project.id}/day`)} />}
+        {stageGate && <Door title="Today" says="For the team — the day's story: what got done, what was found, with the pictures. One page — on the Journey, picked on today." onClick={() => go(dayHref(project.id))} />}
         {/* THE COMMISSIONING REPORT AND CARDS (Rowland, 14 October) */}
         {stageGate && <Door title="Commissioning report" says="For the meeting, or to send — where commissioning has got to, machine by machine: the tests, the programs, the problems, what is booked next; and the cards, a page a machine." onClick={() => go(`/project/${project.id}/report?doc=commissioning`)} />}
         {stageGate && <Door title="Test cards" says="For the floor and the OEM — a card for every test on Commission's board, what it had to show and what was seen. Print them from Commission." onClick={() => go(`/project/${project.id}/testing`)} />}

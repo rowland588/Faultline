@@ -403,7 +403,6 @@ function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, 
     { label: o.name, lines: [
       { ...job, label: 'Now', icon: 'home' as const, on: o.here === 'job' },
       under(plain('now', 'Now', `${p}/now`, o.here, 'home')),
-      under(plain('day', 'The day', `${p}/day`, o.here, 'time')),
       under(plain('journey', 'Journey', `${p}/journey`, o.here, 'time')),
       under(plain('actions', 'Actions', `${p}/actions`, o.here, 'list')),
       under(plan),

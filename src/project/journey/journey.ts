@@ -38,8 +38,10 @@ import { addDays, daysBetween, isoDay, mondayOf, niceDay, todayISO } from '../..
 export interface Range { from: string; to: string }
 
 /** The one-tap ranges, in the order they are offered; `dates` is two picked. */
-export type RangePick = 'thisWeek' | 'thisAndNext' | 'lastWeek' | 'sinceStart' | 'dates';
+export type RangePick = 'today' | 'thisWeek' | 'thisAndNext' | 'lastWeek' | 'sinceStart' | 'dates';
 export const RANGE_PICKS: { id: RangePick; label: string }[] = [
+  /* THE DAY, FOLDED IN (27 October — Rowland: "fold it"): one day is the journey opened on it, its plan and story */
+  { id: 'today', label: 'Today' },
   { id: 'thisWeek', label: 'This week' },
   { id: 'thisAndNext', label: 'This week and next' },
   { id: 'lastWeek', label: 'Last week' },
@@ -57,6 +59,7 @@ export const MOST_DAYS = 731;
 export function rangeOf(pick: RangePick, today: string, started?: string, dates?: Partial<Range>): Range {
   const mon = mondayOf(today);
   switch (pick) {
+    case 'today': return { from: today, to: today };
     case 'thisWeek': return { from: mon, to: addDays(mon, 6) };
     case 'thisAndNext': return { from: mon, to: addDays(mon, 13) };
     case 'lastWeek': return { from: addDays(mon, -7), to: addDays(mon, -1) };
@@ -85,6 +88,9 @@ export function pickOf(r: Range, today: string, started?: string): RangePick {
 const clamp = (r: Range): Range => (daysBetween(r.from, r.to) + 1 > MOST_DAYS ? { from: addDays(r.to, -(MOST_DAYS - 1)), to: r.to } : r);
 
 /** The same length of time, before or after: ‹ earlier · later ›. */
+/** The Journey on one day — The day since 27 October (Rowland: "fold it"); today when no day is given. */
+export const dayHref = (projectId: string, day: string = todayISO()): string => `/project/${projectId}/journey?from=${day}&to=${day}`;
+
 export function slideRange(r: Range, by: -1 | 1): Range {
   const n = daysBetween(r.from, r.to) + 1;
   return { from: addDays(r.from, by * n), to: addDays(r.to, by * n) };

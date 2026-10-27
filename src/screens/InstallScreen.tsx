@@ -25,6 +25,7 @@
  * "what we found" and fixes that can be for it. What the machine reads as is
  * lib/install's, one call, so the sentence here is the sentence on paper.
  */
+import { dayHref } from '../project/journey/journey';
 import { PageHeader } from '../ui/parts';
 import { useEffect, useState } from 'react';
 import { everyGateOffer, giveEveryGate, takeBack } from '../lib/giveGates';
@@ -190,7 +191,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
         ]}>
         <p className="cw-handover">
           {going > 0 && <span className="sub">{going} machine{going === 1 ? '' : 's'} {face.doing}</span>}
-          <button className="cw-link" onClick={() => nav(`/project/${projectId}/day`)}>Read the day</button>
+          <button className="cw-link" onClick={() => nav(dayHref(projectId))}>Read today</button>
         </p>
       </PageHeader>
       <AccessNote can={can} owner={project.lead} />

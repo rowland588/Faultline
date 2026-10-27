@@ -6,6 +6,7 @@
  * tiles), what blocks handover, where each machine is, what is coming in the next two weeks, what
  * you owe. Every word from the module that already says it (project/now/now). A row opens its
  * record where it is kept. */
+import { dayHref } from '../journey/journey';
 import { useEffect, useMemo } from 'react';
 import { useProject } from '../../lib/useProjects';
 import { useProjectRead } from '../projectRead';
@@ -155,7 +156,7 @@ export function NowBody({ projectId }: { projectId: string }) {
         <div className="qsl-gh">
           <h2>Today and the next two weeks</h2>
           <span className="sub">{ahead.days.length ? `${ahead.days.reduce((n, d) => n + d.lines.length, 0)} things on ${ahead.days.length} day${ahead.days.length === 1 ? '' : 's'}` : 'Nothing dated in the next two weeks'}</span>
-          <button type="button" className="cw-link now-today" onClick={() => nav(`/project/${projectId}/day`)}>The day — {dayWord} ›</button>
+          <button type="button" className="cw-link now-today" onClick={() => nav(dayHref(projectId))}>Today — {dayWord} ›</button>
           <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/journey`)}>Any dates ›</button>
         </div>
         {ahead.days.map(d => (

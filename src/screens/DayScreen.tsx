@@ -1,4 +1,7 @@
-/* THE DAY — one date on the job, told as a story.
+/* THE DAY — one date on the job, told as a story. Since 27 October it is a part of the Journey (Rowland: "fold it"):
+ * the Journey picked on one day — Today, or a day stepped to — draws it under its own range, and #/project/:id/day
+ * opens the Journey there (router). Nothing it did is gone: the plan for today, what is due, the story, the gates'
+ * bars, the pictures and Today's update.
  *
  * Rowland: "the ability to understand the issues and stages that are taking
  * place on a day to day basis, telling a story."
@@ -41,7 +44,7 @@ import { LeanClosing, LeanTiles } from '../ui/Lean';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export function DayScreen({ projectId }: { projectId: string }) {
+export function DayScreen({ projectId, day: on, inJourney = false }: { projectId: string; day?: string; inJourney?: boolean }) {
   const { project, loading } = useProject(projectId);
   const tt = useTesting(projectId);
   /* What was measured at the line (lib/study) — part of the day's story. */
@@ -53,7 +56,8 @@ export function DayScreen({ projectId }: { projectId: string }) {
   const can = useAccess(projectId);
   /* the job's money — what the slip costs, or what a day late would (lib/useJobMoney) */
   const jobMoney = useJobMoney(projectId);
-  const asked = useRoute().query.get('d') ?? '';
+  const route = useRoute();
+  const asked = on ?? route.query.get('d') ?? '';
   const today = todayISO();
   /* A day still to come has no story, and a link to one said "Nothing was
      logged" over bars marked "by the end of the day" — read as today. */
@@ -94,7 +98,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
   const days = activeDays(input);
   const prev = [...days].reverse().find(d => d < date);
   const next = days.find(d => d > date && d <= today) ?? (date < today ? today : undefined);
-  const go = (d: string) => nav(`/project/${projectId}/day${d === today ? '' : `?d=${d}`}`);
+  const go = (d: string) => nav(`/project/${projectId}/journey?from=${d}&to=${d}`);
   /* A line about a record opens it in the drawer, over the day (ui/RecordDrawer). */
   const open = (l: DayLine) => {
     if (l.id) openRecord(projectId, l.id);
@@ -160,19 +164,29 @@ export function DayScreen({ projectId }: { projectId: string }) {
     } finally { setBusy(false); }
   };
 
+  /* IN THE JOURNEY: the Journey's header is the page's — the day's verdict and its update are one line under it,
+     and the Journey's ‹ › step the day, so the page's own day picker is not drawn */
+  const update = date === today ? 'Today’s update' : 'This day’s update';
   return (
-    <div className="wrap pace cm-screen">
-      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3). FROM THE TOP — Rowland, 5 October: "I wanted to be able to very
+    <div className={inJourney ? 'dy-in-jn' : 'wrap pace cm-screen'}>
+      {inJourney ? (
+        <div className="dy-jn-head">
+          {onTarget ? <OnTargetLine v={{ ...onTarget, reason: onTarget.brief ?? onTarget.reason }} asOf={asOf} /> : <p className="dy-headline">{day.headline}</p>}
+          <button type="button" className="btn btn-primary dy-update" disabled={busy} onClick={() => void send()}>{busy ? 'Building…' : update}</button>
+        </div>
+      ) : (
+      /* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3). FROM THE TOP — Rowland, 5 October: "I wanted to be able to very
           quickly see today and send out an up-to-date movement on today. Even that's not easy to do." The update is
           the day's one thing to do, and its paper in Report ▾ too; it saves the page to the device, and the bar it
           leaves (ui/PdfReady) opens it to read and sends it — "view it before I send it". THE VERDICT AS ITS ONE
-          LINE (docs/FLOW.md item 5) — the date and the counts; with no verdict (a 6M job's day) the paragraph. */}
+          LINE (docs/FLOW.md item 5) — the date and the counts; with no verdict (a 6M job's day) the paragraph. */
       <PageHeader
         title={<>{date === today ? 'Today' : niceDay(date, { weekday: 'short', year: date.slice(0, 4) !== today.slice(0, 4) })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</>}
-        primary={{ label: busy ? 'Building…' : date === today ? 'Today’s update' : 'This day’s update', disabled: busy, run: () => void send() }}
-        papers={[{ label: date === today ? 'Today’s update' : 'This day’s update', for: 'one page of the day to send — done, late, what went wrong, what was found', disabled: busy, make: send }]}>
+        primary={{ label: busy ? 'Building…' : update, disabled: busy, run: () => void send() }}
+        papers={[{ label: update, for: 'one page of the day to send — done, late, what went wrong, what was found', disabled: busy, make: send }]}>
         {onTarget ? <OnTargetLine v={{ ...onTarget, reason: onTarget.brief ?? onTarget.reason }} asOf={asOf} /> : <p className="dy-headline">{day.headline}</p>}
       </PageHeader>
+      )}
       {(said || err) && (
         <p className={'sub ' + (err ? 'tw-err' : 'tc-ok')} role="status">
           {err ?? said}{' '}
@@ -184,7 +198,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
           went wrong, found — and the job's money last */}
       {!day.empty && <LeanTiles tiles={dayTiles(day, money)} className="sg-tiles" />}
 
-      <nav className="dy-nav" aria-label="Pick a day">
+      {!inJourney && <nav className="dy-nav" aria-label="Pick a day">
         <button className="btn btn-ghost" disabled={!prev} onClick={() => prev && go(prev)}>
           ‹ {prev ? niceDay(prev, { weekday: 'short' }) : 'Earlier'}
         </button>
@@ -193,7 +207,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
         <button className="btn btn-ghost" disabled={!next} onClick={() => next && go(next)}>
           {next ? (next === today ? 'Today' : niceDay(next, { weekday: 'short' })) : 'Later'} ›
         </button>
-      </nav>
+      </nav>}
 
       {/* THE PLAN FOR TODAY — agreed at the huddle, ticked through the day
           (ui/DayPlan). Today it is worked here; on a day that has gone the
@@ -267,7 +281,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
       )}
 
       {/* Said once, on an empty day; a day with a story does not need its button explained. */}
-      {day.empty && <p className="sub tw-note">“{date === today ? 'Today’s update' : 'This day’s update'}” at the top saves one page of this to your device — the day’s story, the gates’ bars and the day’s pictures — to read, then send from the bar it leaves.</p>}
+      {day.empty && <p className="sub tw-note">“{update}” at the top saves one page of this to your device — the day’s story, the gates’ bars and the day’s pictures — to read, then send from the bar it leaves.</p>}
 
       {/* THE CLOSING LINE — the day in one sentence, the slip in money */}
       <LeanClosing closing={dayClosing(day, money)} />

@@ -14867,3 +14867,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fac-card-worst.is-r { color: var(--st-r); }
 .pl-stops-li { display: flex; flex-direction: column; gap: var(--space-1); }
 .pl-stops-li .pl-time { align-self: flex-start; }
+
+/* THE DAY IN THE JOURNEY (27 October, "fold it"): the day's verdict and its update one line under the Journey's range */
+.jn-oneday { display: grid; gap: 14px; margin-top: 6px; }
+.dy-jn-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; justify-content: space-between; }
+.dy-jn-head > :first-child { flex: 1 1 280px; min-width: 0; margin: 0; }

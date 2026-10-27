@@ -10,6 +10,7 @@
  * or on the whole job (testId ''). The same notes show on each step's own page
  * under "For the meeting". Ticked once raised. Private preparation — the
  * client report and every other document leave them out. */
+import { dayHref } from '../project/journey/journey';
 import { PageHeader } from '../ui/parts';
 import { AddFold } from '../ui/AddFold';
 import { useState } from 'react';
@@ -277,14 +278,14 @@ export function NotesScreen({ projectId }: { projectId: string }) {
         says={can.edit ? 'What to raise at the next meeting — tick each one once it has been talked about.' : 'What is to be raised at the next meeting.'}
         more={open.length > 0 ? [{ label: copied ? 'Copied' : 'Copy as a list', run: copy }] : []} />
       <AccessNote can={can} owner={project.lead} />
-      {/* THE PLAN FOR TODAY sits beside these on The day (lib/huddle): notes
+      {/* THE PLAN FOR TODAY sits beside these on the Journey's Today (once The day) (lib/huddle): notes
           are what to raise; the plan is what the huddle agreed to do today. */}
       {planModel(project) === 'commissioning' && (() => {
         const plan = planFor(tt.items, todayISO(), tt);
         return (
           <p className="sub nt-today">
             <b>The plan for today</b> — {plan.length ? planCount(plan) : can.edit ? 'not agreed yet' : 'none agreed'} ·{' '}
-            <button className="cw-link" onClick={() => nav(`/project/${projectId}/day`)}>{plan.length || !can.edit ? 'Open it on The day ›' : 'Agree it on The day ›'}</button>
+            <button className="cw-link" onClick={() => nav(dayHref(projectId))}>{plan.length || !can.edit ? 'Open it on Today ›' : 'Agree it on Today ›'}</button>
           </p>
         );
       })()}

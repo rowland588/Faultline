@@ -14,7 +14,11 @@
  * line a record's own, opening it where it is kept) and Rowland's commentary
  * for the day (a note on the day, lib/noteScope `day:`), written and edited
  * in place. Nothing is stored for the range; everything here is read by
- * lib/journey, which the paper prints too (J3). */
+ * lib/journey, which the paper prints too (J3).
+ *
+ * ONE DAY, PICKED — Today, or a day stepped to with ‹ › — is The day (27 October, Rowland: "fold it"): the plan for
+ * today to agree and tick, what is due, what happened, the gates' bars, the pictures and Today's update
+ * (screens/DayScreen, drawn here), then that day's commentary. #/project/:id/day opens it (router). */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useProject } from '../../lib/useProjects';
 import { useJourney, type JourneyRead } from './useJourney';
@@ -38,6 +42,7 @@ import { openRecord } from '../../ui/RecordDrawer';
 import { ActionSheet, removeActionWithUndo, type Editing } from '../../ui/ActionSheet';
 import { offerUndo } from '../../ui/Undo';
 import { Icon } from '../../ui/Icon';
+import { DayScreen } from '../../screens/DayScreen';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -68,7 +73,15 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
      the last range this page put on the address, so the two cannot chase each other. */
   const askedFrom = route.query.get('from') ?? '', askedTo = route.query.get('to') ?? '';
   const written = useRef(range);
+  const first = useRef(true);
   useEffect(() => {
+    /* A plain link to the Journey (no range on it) opened while the page is up — from Today, say — opens it on its
+       usual range, as it would have opened fresh; it kept the day picked before (27 October). */
+    if (!askedFrom && !askedTo && !first.current) {
+      const usual = rangeOf('thisAndNext', today, started);
+      if (usual.from !== range.from || usual.to !== range.to) { written.current = usual; setPicking(false); setRange(usual); return; }
+    }
+    first.current = false;
     const asked = askedRange(new URLSearchParams({ from: askedFrom, to: askedTo }));
     const differs = (r: Range) => r.from !== range.from || r.to !== range.to;
     if (asked && differs(asked) && (asked.from !== written.current.from || asked.to !== written.current.to)) {
@@ -79,7 +92,7 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
     const q = new URLSearchParams(route.query);
     q.set('from', range.from); q.set('to', range.to);
     navReplace(`/project/${projectId}/journey?${q.toString()}`);
-  }, [range, projectId, route.query, askedFrom, askedTo]);
+  }, [range, projectId, route.query, askedFrom, askedTo, today, started]);
   const choose = (p: RangePick) => {
     if (p === 'dates') { setPicking(true); setDates({ from: range.from, to: range.to }); return; }
     setPicking(false);
@@ -135,6 +148,9 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
     if (l.go) nav(`/project/${projectId}/${l.go}`);
   };
 
+  /* ONE DAY — The day, inside the Journey; a day still to come stays the Journey's list of what is due on it */
+  const oneDay = range.from === range.to && range.from <= today ? range.from : undefined;
+
   return (
     <div className="wrap jn">
       <PageHeader
@@ -161,12 +177,22 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
             <button type="button" className="btn btn-sm" aria-label="Earlier" onClick={() => { setPicking(false); setRange(slideRange(range, -1)); }}>‹</button>
             <b className="jn-range-t">{rangeLabel(range, today)}</b>
             <button type="button" className="btn btn-sm" aria-label="Later" onClick={() => { setPicking(false); setRange(slideRange(range, 1)); }}>›</button>
-            <span className="sub">{daysOf(range).length} days · {j.days.length} with something on them</span>
+            <span className="sub">{(n => `${n} ${n === 1 ? 'day' : 'days'}`)(daysOf(range).length)} · {j.days.length} with something on {j.days.length === 1 && daysOf(range).length === 1 ? 'it' : 'them'}</span>
           </p>
         </div>
       </PageHeader>
 
       {said && <p className="tc-ok jn-said" role="status">{said}</p>}
+      {oneDay && (
+        <section className="jn-oneday" aria-label={oneDay === today ? 'Today' : niceDay(oneDay, { weekday: 'short' })}>
+          <DayScreen projectId={projectId} day={oneDay} inJourney />
+          <div className="jn-day is-today">
+            <div className="qsl-gh"><h2>Commentary</h2></div>
+            <Commentary projectId={projectId} date={oneDay} notes={j.days.find(d => d.date === oneDay)?.commentary ?? []} edit={can.edit} remove={can.remove} />
+          </div>
+        </section>
+      )}
+      {!oneDay && <>
       <LeanTiles tiles={journeyTiles(j, today)} className="jn-tiles" />
 
       {/* THE TOOLS WE WILL USE — a tick a tool, what for, when; a plan is an action with a tool */}
@@ -220,6 +246,7 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
       {days.length > 0 && j.skipped > 0 && <p className="sub jn-skipped">{j.skipped} {j.skipped === 1 ? 'day' : 'days'} with nothing recorded, not shown.</p>}
 
       <LeanClosing closing={closing} />
+      </>}
       {editing && <ActionSheet editing={editing} lines={read.lines} onClose={() => setEditing(null)} />}
     </div>
   );

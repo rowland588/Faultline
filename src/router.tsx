@@ -22,7 +22,7 @@ import { ActionsScreen, EveryActionScreen } from './screens/ActionsScreen';
 import { JourneyScreen } from './project/journey/JourneyScreen';
 import { NowScreen } from './project/now/NowScreen';
 import { InstallScreen } from './screens/InstallScreen';
-import { DayScreen } from './screens/DayScreen';
+import { todayISO } from './lib/weeks';
 import { PlanScreen } from './screens/PlanScreen';
 import { TestScreen } from './screens/TestScreen';
 /* Eager: the 6M job's front page and every line page lead with the fishbone,
@@ -244,7 +244,13 @@ function app(route: Route) {
   if (route.name === 'install' && route.id) return gate(route.id, <InstallScreen projectId={route.id} />);
   if (route.name === 'gateSetup' && route.id) return gate(route.id, <InstallScreen projectId={route.id} gate="setup" />);
   if (route.name === 'handover' && route.id) return gate(route.id, <InstallScreen projectId={route.id} gate="handover" />);
-  if (route.name === 'day' && route.id) return gate(route.id, <DayScreen projectId={route.id} />);
+  /* THE DAY IS THE JOURNEY ON ONE DAY (27 October, "fold it"): the old address opens it there, a record asked for kept */
+  if (route.name === 'day' && route.id) {
+    const q = new URLSearchParams(route.query);
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(q.get('d') ?? '') && (q.get('d') ?? '') <= todayISO() ? q.get('d') ?? '' : todayISO();
+    q.delete('d'); q.set('from', d); q.set('to', d);
+    return <GoTo to={`/project/${route.id}/journey?${q.toString()}`} />;
+  }
   if (route.name === 'plan' && route.id) return gate(route.id, <PlanScreen projectId={route.id} />);
   if (route.name === 'projectMachines' && route.id) return gate(route.id, <ProjectMachinesScreen projectId={route.id} />);
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;

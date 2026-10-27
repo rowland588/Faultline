@@ -88,7 +88,7 @@ and proved; every old address keeps opening where its job now lives.**
 | Problems | **keep** | step 5 |
 | Reports (client report and its papers) | **keep** | step 8 |
 | Materials · Notes · Tools · Details | **keep**, under More | rarely used, nothing else does their job |
-| **The day** | **fold into Journey** — *Today* is a day of the journey; its paper, *Today's update*, stays under Reports | Now already shows today; three places said today |
+| **The day** | **fold into Journey** — *Today* is a day of the journey; its paper, *Today's update*, stays under Reports — **done 27 October** (Rowland: "fold it"): Journey's first range is *Today*; one day picked draws everything The day drew, then its commentary; `#/project/:id/day` opens it there; Now's *Today — …*, Reports' *Today*, Commission's *Read today* and Notes open it | Now already shows today; three places said today |
 | **Journey** · **Actions** | **keep the pages; take them off the rail** — reached from Now (*Any dates ›*, *All actions ›*) and Reports | Now shows both in short; the rail listed them as places of their own |
 | Rail: the second **Now** line (the old `/now` page) | **remove the line**; `/now` keeps forwarding to the front page | the same page twice |
 | Rail: **The gates** line | **remove the line** | the gates are Now's views, one tap from the front page |
@@ -111,10 +111,10 @@ PAGES.md stays (what each page must show), checked by the gate.
 | Slice | What | Proved by |
 |---|---|---|
 | **P1** | The rail and tabs as §4 says: the second Now, The gates, the machine lines, Journey, Actions and The day off the rail — every address still opening | structure.mjs, journeys (none longer), inventory |
-| **P2** | The day folded into Journey as *Today*; *Today's update* paper kept | paper parity (the same paper), acceptance |
+| **P2** | The day folded into Journey as *Today*; *Today's update* paper kept — **done 27 October** | paper parity (the same paper), acceptance (now.mjs 9, stagegate-walk 2, the inventory's *Today*) |
 | **P3** | The old documents to `docs/history/`; BLUEPRINT and CLAUDE.md pointing here | — |
 | **P4** | **The path walked**: one acceptance script driving the eight steps of §1 end to end on a fresh device, every place in §2 and every paper in §3 read back — the stage gate's definition of done | the script itself, in the gate |
 | **P5** | What Rowland's own walk of the path finds | his walk |
 
 **Decisions for Rowland before P1:** §4's *fold* and *remove* rows — The day
-into Journey; Journey, Actions, The gates and the machine lines off the rail.
+into Journey (decided 27 October: "fold it", and done); Journey, Actions, The gates and the machine lines off the rail.

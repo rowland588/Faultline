@@ -6,6 +6,7 @@
  * it, so a row says what changed since you last opened that job. Storage can
  * be refused (a private window, cleared site data): then there is simply no
  * line, never an error. */
+import { dayHref } from '../project/journey/journey';
 import { useEffect, useState } from 'react';
 import type { Since } from '../lib/since';
 import { openRecord } from './RecordDrawer';
@@ -33,11 +34,11 @@ export function useSeenAt(projectId: string): number | undefined {
 }
 
 /** Where a part goes when it names more than one thing. */
-const PAGE: Record<Since['parts'][number]['kind'], string> = { late: 'plan', failed: 'testing', problem: 'fixes', done: 'day' };
+const PAGE: Record<Since['parts'][number]['kind'], string> = { late: 'plan', failed: 'testing', problem: 'fixes', done: 'journey' };
 
 export function SinceLine({ projectId, since, compact }: { projectId: string; since?: Since; compact?: boolean }) {
   if (!since) return null;
-  const open = (p: Since['parts'][number]) => (p.ids.length === 1 ? openRecord(projectId, p.ids[0]) : nav(`/project/${projectId}/${PAGE[p.kind]}`));
+  const open = (p: Since['parts'][number]) => (p.ids.length === 1 ? openRecord(projectId, p.ids[0]) : (p.kind === 'done' ? nav(dayHref(projectId)) : nav(`/project/${projectId}/${PAGE[p.kind]}`)));
   /* In the control room the line sits inside the row's own button, so it is
      words only — a span, never a button inside a button. */
   if (compact) {

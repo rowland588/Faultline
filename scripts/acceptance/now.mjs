@@ -148,7 +148,8 @@ await page.locator('.plt .plt-t', { hasText: /^Programs/ }).click(); await page.
 ok(page.url().includes('/programs') && JSON.stringify(await lit()) === JSON.stringify(['Now']), '9 Programs opens, lighting Now', `${page.url()} ${await lit()}`);
 await go(NOW);
 await page.locator('.now-ahead .now-today').click(); await page.waitForTimeout(1200);
-ok(page.url().includes('/day') && JSON.stringify(await lit()) === JSON.stringify(['Now']), '9 the day a door from Now, lighting it', `${page.url()} ${await lit()}`);
+/* The day folded into the Journey (27 October, "fold it"): Today opens the Journey on today */
+ok(/\/journey\?from=(\d{4}-\d\d-\d\d)&to=\1/.test(decodeURIComponent(page.url())) && await page.locator('.dy-in-jn').count() === 1 && JSON.stringify(await lit()) === JSON.stringify(['Now']), '9 Today a door from Now — the Journey on today, lighting Now', `${page.url()} ${await lit()}`);
 await go(NOW);
 await page.locator('.now-owe .qsl-gh button', { hasText: 'All actions' }).click(); await page.waitForTimeout(1200);
 ok(page.url().endsWith('/actions') && JSON.stringify(await lit()) === JSON.stringify(['Now']), '9 the actions a door from Now, lighting it', `${page.url()} ${await lit()}`);

@@ -53,7 +53,10 @@ const input: JourneyInput = { gate, steps, register, notes };
 
 describe('the range', () => {
   it('the one-tap ranges — this week, this and next, last week, since the start, dates — from a Wednesday', () => {
-    expect(RANGE_PICKS.map(p => p.label)).toEqual(['This week', 'This week and next', 'Last week', 'Since the start', 'Pick dates']);
+    /* Today first — The day folded into the journey (27 October) */
+    expect(RANGE_PICKS.map(p => p.label)).toEqual(['Today', 'This week', 'This week and next', 'Last week', 'Since the start', 'Pick dates']);
+    expect(rangeOf('today', TODAY)).toEqual({ from: TODAY, to: TODAY });
+    expect(pickOf({ from: TODAY, to: TODAY }, TODAY)).toBe('today');
     expect(rangeOf('thisWeek', TODAY)).toEqual({ from: '2026-10-19', to: '2026-10-25' });
     expect(rangeOf('thisAndNext', TODAY)).toEqual({ from: '2026-10-19', to: '2026-11-01' });
     expect(rangeOf('lastWeek', TODAY)).toEqual({ from: '2026-10-12', to: '2026-10-18' });

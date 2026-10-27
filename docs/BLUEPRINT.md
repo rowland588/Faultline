@@ -366,7 +366,7 @@ line, and can be attached to a job. Every "which line", "which machine" and
 
 **Jobs.** Stage gate — its places (docs/STAGEGATE-UX.md, 16 October): the
 job (Today), the Plan (Install · Set up · Commission · Hand over · Timeline
-as its tabs), Programs, Problems, Materials, The day; reports. A machine
+as its tabs), Programs, Problems, Materials, Today (the Journey on today, since 27 October); reports. A machine
 becomes a page of its own next (slice 3). 6M (board, fishbone,
 evidence, proof). Lever tree. Their machines, programs and capacity come from
 the lines they are on.
