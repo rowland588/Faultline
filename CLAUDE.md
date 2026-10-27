@@ -53,6 +53,20 @@ reader per scope, one number everywhere (a gate check), one place per thing
 in the code, one answer per project kind — in four slices that change
 nothing a person sees. S1 is built (§5 of the doc: what it found); S2 is built (§6: `src/project/projectRead` the one reader, `src/project/projectKind` the one answer per kind — read a project through them, never twice). S3 is built (§7, 23–24 October — the ten tools moved on 24 October, a commit each): **the code in its places** — `src/project/` (the reader, the kinds, `journey/`), `src/line/report/`, `src/tools/<key>/` (a tool by its catalogue key, `reliability/` first); a new tool is built in its own folder, an older one moved when next worked on, with `scripts/moves.mjs` (moves files, keeps every import true) and proved by tsc, the tests, the catalogue's test and the gate. S4 is built (§8): the four biggest files split at their own seams — the stage-gate paper a sheet a file (`lib/paceReport/`), the A3's pages and the 6M report's screen apart (`screens/paceReportPages`, `screens/SixMReportScreen`), the 6M report's model apart from its paper (`lib/sixmReport`), capacity's sums apart from how a figure is written (`tools/linebalance/capacityWords`) and what the result says (`tools/linebalance/capacitySays`); the old file re-exports what left it, so every import stands.
 
+## The stage-gate path — 27 October
+
+**Read `docs/STAGEGATE-PATH.md` before touching anything in a stage-gate
+project.** Rowland, 27 October: *"we need a clear path for stage gate until we
+have this we will never achieve what we want"* — *"Agreed do it."* It is the
+stage gate on one page: the eight steps from starting a project to handover
+(what you do, where, what is kept, where it shows), the five places
+(Now · Machines · Problems · Reports · More) and the question each answers, the
+papers, every screen today marked keep, fold or remove, and the slices that
+take the app there. Where an older document (STAGEGATE, STAGEGATE-UX,
+-RESEARCH, -REBUILD, SIMPLE, FLOW, PANELS, BLUEPRINT §3–4) disagrees, the path
+wins; nothing is built for a stage-gate project that is not on it, and a change
+to the path changes that page first.
+
 ## The project is the workspace — 21 October
 
 **Read `docs/PROJECTS.md`.** Rowland, 21 October: *"a project is the project
