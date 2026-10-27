@@ -9,7 +9,7 @@
  *
  * B2 — the scope frame: on every page in docs/PAGES.md, at desk and phone, the context bar names
  * the place (the factory, a line or a project); since 23 October (one home, a fixed menu) the rail is
- * one menu on every page — Factory · Projects · Problems · Actions · Tools, Reports at the foot — and a
+ * one menu on every page — Factory · Projects · Tools, Reports at the foot (Problems and Actions the line's and the project's, 27 October) — and a
  * scope's own pages are tabs across the top, never above their size (the factory 3, a line 8, a
  * project 18 with its machines one tap from its front page); the phone's bar is the same five on
  * every page; ＋ is a problem where you are in one tap; and, with 30 more lines and 50 more projects
@@ -104,8 +104,8 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
 /* ---- B2 · 1 every page: the place named, the menu the same everywhere, the scope's own pages its tabs within their size ----
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
-const LIMIT = { factory: 4, line: 8, project: 18 };   /* the factory's Machines tab, 27 October */
-const MENU = 'Factory · Projects · Problems · Actions · Tools · Reports';
+const LIMIT = { factory: 2, line: 8, project: 18 };   /* the factory: Overview · Set up (27 October, the line is home) */
+const MENU = 'Factory · Projects · Tools · Reports';
 const ONE_BAR = 'Factory · Projects · Problem · Problems · More';
 for (const width of [1360, 390]) {
   const { ctx, page, go, sd } = await device(width, 'team');

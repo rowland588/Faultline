@@ -143,13 +143,14 @@ await go(`#/project/${sd.pacedProjectId}/actions`);
   ok(kinds.length > 0 && kinds.some(k => /\bAction\b/.test(k)) && (await page.locator('.ln-close').count()) === 1, `6 the 6M project's actions: ${kinds.length}, its board's actions among them`);
 }
 
-/* ---- 8 every project's actions, in the control room (P4) ---- */
-await go('#/room');
-/* the factory's Actions (docs/STRUCTURE.md B2, 23 October: "Every action" on the control room's rail is the factory's Actions) */
-await page.locator('.nv-rail').getByRole('button', { name: 'Actions', exact: true }).click(); await page.waitForTimeout(2500);
+/* ---- 8 every project's actions at one address (P4) ---- */
+/* Off the Factory's menu since 27 October (Rowland: "I think the line's own list should cover it. Because when you start
+   putting 10 production lines, it'll get too full") — each project's Actions are its own; #/actions keeps its address for
+   old links and the Every report sheet, the Factory lit */
+await go('#/actions');
 {
   const rail = flat(await page.locator('.nv-rail').innerText());
-  ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Projects Problems Actions Tools Reports' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Actions' && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action, from the menu — Actions, lit', `${page.url()} | ${rail}`);
+  ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Projects Tools Reports' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Factory' && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action at its address — no Actions on the menu, the Factory lit', `${page.url()} | ${rail}`);
   const all = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(t.whats.every(w => all.includes(flat(w))) && all.length > t.n, `8 every project's actions — ${t.name}'s ${t.n} among ${all.length}`);
   await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Project' }).click(); await page.waitForTimeout(300);

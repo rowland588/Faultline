@@ -188,7 +188,8 @@ export function FactoryScreen() {
           LINE (it said THE BACKBONE, a word of the build's — FLOW-AUDIT #20); the way up is the bar's. */}
       <PageHeader
         eyebrow={<span className="pl-eyebrow">FACTORY</span>}
-        title="Lines"
+        /* the lines are set up here (27 October — Rowland: "put the lines in the setup because it's factory setup") */
+        title="Set up"
         says={<span className="pl-says">{factorySays(lines)}</span>}
         primary={may && !adding ? { label: 'Add lines', run: () => { setAdding(true); setAdded([]); } } : undefined}
         papers={[{ label: 'Factory report — 1 page', for: lines.length ? 'every line in floor order, with its type, its projects and what is open' : 'no line in the factory yet', disabled: !lines.length || printing, make: printFactory }]}

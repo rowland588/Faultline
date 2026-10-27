@@ -127,7 +127,7 @@ const names = await page.evaluate(async ([ws, pid]) => {
   const go1 = flat(await main().locator('.fac-card', { hasText: names.line }).first().locator('.fac-card-go').innerText());
   ok(go1 === `Open ${names.line} ›`, `D2 each card says what a tap does (${go1})`);
   await go('#/factory');
-  ok(flat(await main().locator('.part-head h1').first().innerText()) === 'Lines' && await tabOn() === 'Lines', 'D3 the Lines page is titled Lines, its tab lit');
+  ok(flat(await main().locator('.part-head h1').first().innerText()) === 'Set up' && await tabOn() === 'Set up', 'D3 the lines are set up on Set up, titled so, its tab lit (27 October)');
   for (const h of ['#/room', '#/factory', `#/lines/${WS}`]) {
     await go(h);
     ok(!/Your factory/.test(await page.locator('.nv').innerText()), `D4 no "Your factory" on ${h.split('?')[0]}`);
@@ -160,9 +160,12 @@ const names = await page.evaluate(async ([ws, pid]) => {
 
 /* ---- G · every machine in the factory ---- */
 {
+  /* off the Factory's tabs since 27 October (Rowland: "I don't need the machines anymore because I've got it already on the
+     lines") — every line's Machines tab has them; the address is kept for old links and the Every report sheet */
   await go('#/room');
-  await page.locator('.nv-tab', { hasText: /^Machines$/ }).first().click(); await page.waitForTimeout(1800);
-  ok(/#\/machines$/.test(page.url()) && await tabOn() === 'Machines' && (await menu()).lit.join() === 'Factory', `G1 the Factory's Machines tab (${page.url().split('#')[1]})`);
+  ok(await page.locator('.nv-tab', { hasText: /^Machines$/ }).count() === 0, 'G1 no Machines tab on the Factory');
+  await go('#/machines');
+  ok(/#\/machines$/.test(page.url()) && (await menu()).lit.join() === 'Factory', `G1 its address still opens, the Factory lit (${page.url().split('#')[1]})`);
   /* what lib/factoryMachines says from the records as lib/useLineRecords reads them */
   const want = await page.evaluate(async () => {
     const db = await import('/src/db.ts');

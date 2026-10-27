@@ -273,7 +273,7 @@ ok(opts2.includes('Line 1') && !opts2.some(o => /performance/.test(o)), `26b a t
 
 /* 27-30 — Stage 1: the factory holds the line's facts; two lines merged (BLUEPRINT §7) */
 await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
-const facts = async () => (await page.getByRole('region', { name: 'The line' }).innerText()).replace(/\s+/g, ' ');
+const facts = async () => (await page.getByRole('region', { name: 'The line', exact: true }).innerText()).replace(/\s+/g, ' ');
 ok(/Shifts Not said yet/.test(await facts()) && /Crew and cost Not said yet/.test(await facts()), `27 the line's facts, unsaid, said so: ${(await facts()).slice(0, 90)}`);
 await page.getByRole('button', { name: 'Set up the line ›' }).click(); await page.waitForTimeout(900);
 const setup = page.locator('.sheet').last();

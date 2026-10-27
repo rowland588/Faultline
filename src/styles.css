@@ -14855,3 +14855,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .pms-add { margin-top: var(--space-4); }
 .pms-status { display: inline-block; margin-left: var(--space-1); padding: 0 var(--space-2); border-radius: var(--radius-pill); font-size: var(--t-detail); font-weight: 600; border: 1px solid var(--line); color: var(--ink-2); }
 .pms-status.is-g { color: var(--st-g); border-color: var(--st-g); }
+
+/* THE FACTORY'S BOARD (27 October — "which line needs me?"): a line's state in a word and its colour, its worst thing */
+.fac-card.is-r { border-left: 4px solid var(--st-r); }
+.fac-card.is-a { border-left: 4px solid var(--st-a); }
+.fac-card-state { font-size: var(--t-detail); font-weight: 700; }
+.fac-card-state.is-r { color: var(--st-r); }
+.fac-card-state.is-a { color: var(--st-a); }
+.fac-card-state.is-g { color: var(--st-g); font-weight: 600; }
+.fac-card-worst { font-size: var(--t-detail); color: var(--ink); }
+.fac-card-worst.is-r { color: var(--st-r); }
+.pl-stops-li { display: flex; flex-direction: column; gap: var(--space-1); }
+.pl-stops-li .pl-time { align-self: flex-start; }

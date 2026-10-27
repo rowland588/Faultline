@@ -60,13 +60,14 @@ const rail = (await page.locator('.nv-rail').innerText()).replace(/\s+/g, ' ');
 const tabs = (await page.locator('.nv-tabs .nv-tab-l').allInnerTexts()).join(' · ');
 const lit = (await page.locator('.nv-rail .nv-ri.is-on').allInnerTexts()).join();   /* the line named under Factory, lit (27 October) */
 const said = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();
-ok(rail === 'Factory Line 2B Projects Problems Actions Tools Reports' && lit === 'Line 2B' && tabs === 'Overview · Machines · Problems · Programs · Tools · Set up' && /^Factory › Line 2B › Overview Go to$/.test(said + (await page.locator('.nv-top .nv-goto').innerText()).replace(/^/, ' ').trimEnd()),
+ok(rail === 'Factory Line 2B Projects Tools Reports' && lit === 'Line 2B' && tabs === 'Overview · Machines · Problems · Programs · Tools · Set up' && /^Factory › Line 2B › Overview Go to$/.test(said + (await page.locator('.nv-top .nv-goto').innerText()).replace(/^/, ' ').trimEnd()),
   `3 the menu with Factory lit (${rail} | ${lit}), the line's tabs (${tabs}), the bar saying ${said}`);
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
-// THE STOPWATCH FROM THE LINE (docs/UPGRADE-AUDIT.md F1): Time a stop first in the header; Stops timed first among the tools, none yet
+// THE STOPWATCH FROM THE LINE (docs/UPGRADE-AUDIT.md F1): Stops timed first among the tools, none yet, Time a stop beside it (off the header since 27 October)
 ok(/None yet — the stopwatch/.test(await page.locator('.pl-tool.is-stops').innerText()), '4a Stops timed, first tool: none yet');
-await page.locator('.pl .pace-head-actions .pl-time').click(); await page.waitForTimeout(1500);
-ok(/#\/w\/[^/]+\/capture$/.test(page.url()), `4b Time a stop opens the stopwatch on the line: ${page.url().split('#')[1]}`);
+ok(await page.locator('.pl .pace-head-actions .pl-time').count() === 0, '4b no stopwatch button on the line\'s header');
+await page.locator('.pl .pl-stops-li .pl-time').first().click(); await page.waitForTimeout(1500);
+ok(/#\/w\/[^/]+\/capture$/.test(page.url()), `4b Time a stop, beside Stops timed, opens the stopwatch on the line: ${page.url().split('#')[1]}`);
 await page.getByRole('button', { name: 'Start timing' }).click(); await page.waitForTimeout(1200);
 await page.locator('.cap-stop').click(); await page.waitForTimeout(800);
 ok(/Logged · Whole line/.test(await page.locator('.toast').innerText().catch(() => '')), '4c a stop timed in two taps');
@@ -127,16 +128,16 @@ const wide = await page.evaluate(() => document.documentElement.scrollWidth - wi
 ok(wide <= 1, `13 phone: nothing off the side (${wide}px)`);
 if (OUT) await page.screenshot({ path: `${OUT}/l-4-phone.png` });
 await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
-ok(/Actions/.test(await page.locator('.nv-sheet').innerText()) && /Tools/.test(await page.locator('.nv-sheet').innerText()), '14 phone: More is the menu — Actions and Tools in it');
+ok(/Projects/.test(await page.locator('.nv-sheet').innerText()) && /Tools/.test(await page.locator('.nv-sheet').innerText()), '14 phone: More is the menu — Projects and Tools in it (Problems and Actions the line\'s and the project\'s, 27 October)');
 if (OUT) await page.screenshot({ path: `${OUT}/l-5-phone-more.png` });
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 // THE PHONE'S BAR INSIDE THE STUDY (docs/UPGRADE-AUDIT.md F2): one Problem button on the line's page; Capture · Analyse · Evidence on the bar
 ok(!(await page.locator('.pl .pl-problem').isVisible()) && !(await page.locator('.qs-top').isVisible()) && (await page.locator('.nv-bar .nv-bi.is-plus').isVisible()), '15 phone: the line page says Problem once — the ＋ on the bar');
-await page.locator('.pl .pace-head-actions .pl-time').click(); await page.waitForTimeout(1500);
+await page.locator('.pl .pl-stops-li .pl-time').first().click(); await page.waitForTimeout(1500);
 const bar = (await page.locator('.nv-bar').innerText()).replace(/\s+/g, ' ');
 /* the bar is the line's, fixed (docs/STRUCTURE.md D6, B2); the study's four views are tabs on its page */
 const views = (await page.locator('.study-views [role=tab]').allInnerTexts()).join(' · ');
-ok(bar === 'Factory Projects Problem Problems More' && views === 'Capture · Analyse · Evidence · Meeting', `16 phone: the bar in a study is the menu's (${bar}), its views on the page (${views})`);
+ok(bar === 'Factory Projects Problem Tools More' && views === 'Capture · Analyse · Evidence · Meeting', `16 phone: the bar in a study is the menu's (${bar}), its views on the page (${views})`);
 await page.locator('.study-views').getByRole('tab', { name: 'Analyse' }).click(); await page.waitForTimeout(1500);
 ok(/#\/w\/[^/]+\/analyse$/.test(page.url()), `17 phone: Analyse is one tap from the stopwatch: ${page.url().split('#')[1]}`);
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);

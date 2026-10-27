@@ -24,8 +24,8 @@ export const PAGES = (sd, cap) => [
   { name: 'Factory — the one home', path: '#/', must: [
     { what: 'its heading', sel: '.home h1', text: /^Factory$/ },
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
-    { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Problems · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
-    { what: 'its own tabs — Overview · Lines · Machines · Programs, Overview on', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
+    { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
+    { what: 'its own tabs — Overview · Set up, Overview on (27 October: every line\'s machines and programs on the line)', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
     { what: 'Line Talk — start one, or carry on the latest', sel: '.home-talk .fd-talk-start', text: /Start a Line Talk/ },
     { what: 'carry on the latest Line Talk', sel: '.home-talk .fd-talk-on', text: /^Carry on: / },
     /* the page header since B3: the band's two report buttons are its Report ▾ */
@@ -33,6 +33,10 @@ export const PAGES = (sd, cap) => [
     /* one name, Factory (27 October — Rowland: "Where is factory? ... I didn't pick a line"): the lines headed Lines, each card saying Open */
     { what: 'Lines — every line', sel: '.fac-home .home-sec-title', text: /^Lines$/ },
     { what: 'every line, each card saying Open <line> ›', sel: '.fac-floor .fac-card-go', text: /^Open .* ›$/ },
+    /* THE BOARD (27 October — "which line needs me?"): each line's state in a word and its colour, its worst thing and who has it, its projects */
+    { what: 'each line where it stands, in a word and its colour', sel: '.fac-floor .fac-card-state', text: /\S/ },
+    { what: 'each line\'s projects, or none', sel: '.fac-floor .fac-card-projects', text: /^(Projects: |No project on it)/ },
+    { what: 'Set up the lines', sel: '.fac-home .pl-sec-acts .btn', text: /^Set up the lines$/ },
     { what: 'this week, across every line and project', sel: '.jb-week' },
     { what: 'the projects on one timeline', sel: '.jb-gantt', desk: true },
     /* the lean page (17 October, slice 5; lib/roomLean): each number in the band says what it is of, the money is the slips' cost, and the board closes on one line */
@@ -40,8 +44,8 @@ export const PAGES = (sd, cap) => [
     { what: 'what the slips cost', sel: '.jb-stat.is-money' },
     { what: 'the closing line', sel: '.jb > .ln-close' },
   ] },
-  { name: 'Lines — the factory\'s', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' },
-    { what: 'titled Lines (27 October — it was Your factory, a second name for the Factory)', sel: '.fac .part-head h1', text: /^Lines$/ },
+  { name: 'Set up — the factory\'s lines', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' },
+    { what: 'titled Set up (27 October — "put the lines in the setup because it\'s factory setup")', sel: '.fac .part-head h1', text: /^Set up$/ },
     /* the page header since B3: its paper in Report ▾ */
     { what: 'the page header — Report ▾ with the factory report', sel: '.fac .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 5b; lib/factoryLean): the tiles — lines, problems open, late, a day of the factory in margin — and the closing line */
@@ -101,7 +105,7 @@ export const PAGES = (sd, cap) => [
     { what: 'a card a machine — none named here, so said, with the way to name them', sel: '.tour .tour-says', text: /no machines named yet/ },
     { what: 'Name its machines ›', sel: '.tour button', text: /^Name its machines/ },
     /* the floor's two acts first, and the stopwatch among the tools (16 October, docs/UPGRADE-AUDIT.md F1) */
-    { what: 'Time a stop', sel: '.pl-time' },
+    { what: 'Time a stop, beside Stops timed (off the header, 27 October)', sel: '.pl-stops-li .pl-time' },
     /* the filmed walk from the line, no job needed (20 October, docs/DIRECTION.md) — in More ▾ since B3 (one primary on the page header,
        docs/STRUCTURE.md §5.4: seven buttons squeezed the line's name into a column 50 px wide), beside Edit the line */
     { what: 'More ▾ — Film the line and Edit the line', sel: '.pl .part-head .part-menu-b', text: /^More/ },

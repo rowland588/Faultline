@@ -266,6 +266,20 @@ project) and says a project's line (*on Line 7*, one tap). A new page of a
 scope is a tab; nothing is ever added to the menu. A script reaches a scope's
 page by its tab (`.nv-tabs .nv-tab .nv-tab-l`), the menu by `.nv-rail .nv-ri`.
 
+## The line is home — 27 October
+
+**Read `docs/MAP.md` before adding or moving any page or door.** Rowland, 27
+October: *"My line is my home page ... We've been overcomplicating things and
+it's been there in our face all the time."* A machine, program, problem, study
+or stop lives on its line and has its page there — a machine one page, the
+line's, with a stage-gate project's part on it; a project is work on a line,
+its line and machines opening the line's pages; the Factory is the board of
+lines (each line's state, its worst problem and who has it, its projects),
+Projects, Set up and Tools. **A new page is never added at the Factory or in a
+project for something that lives on a line** — that is how one machine came to
+have two pages and the line's page went unfound. The gate's
+`line-is-home.mjs` walks the route.
+
 ## The blueprint comes first
 
 **`docs/BLUEPRINT.md` is the one map of the app** — agreed with Rowland, 13
@@ -448,16 +462,23 @@ not.
 
 ## The gate
 
-**Two cycles since 23 October** (Rowland: "64 min is too long ... shorten the
-cycle"), both run by `scripts/gate.sh quick|full CHECKOUT PORT LIVE_CHECKOUT
+**Three cycles** (23 October, Rowland: "64 min is too long ... shorten the
+cycle"; 27 October, the fast one), all run by `scripts/gate.sh fast|quick|full CHECKOUT PORT LIVE_CHECKOUT
 LIVE_PORT OUT` from a checkout whose dev server is up (the live checkout's at
 `origin/main`, for the paper comparison), every step kept running after a
 failure, `summary.txt` the one answer:
 
-- **Quick — every change, about 20 minutes.** Everything below except the
-  forty random projects and the two-device sync; the browser checks four at
-  a time. It is the definition of done for a change to a screen, a tool, a
-  paper's words or a document.
+- **Fast — every change, about 10 minutes (27 October — Rowland: "65 browser
+  scripts is excessive").** `GATE_ONLY="<scripts>" scripts/gate.sh fast …`:
+  types, lint, unit tests, the build, every screen (smoke), the page
+  inventory, the structure and the journeys, and only the acceptance scripts
+  for the pages and records the change touches (`GATE_PAPERS=1` adds every
+  paper against live, for a change to a report). It is the definition of done
+  for a change to a screen, a tool, a paper's words or a document.
+- **Quick — about 20 minutes.** Everything below except the forty random
+  projects and the two-device sync; the browser checks four at a time. Run
+  before a change to many places at once (the frame, the menus, a shared
+  reader), where any script might be the one it breaks.
 - **Full — about 65 minutes.** The quick gate plus the forty random projects
   (every fact reconciled) and, last and alone, the two-device sync. Run
   **before** anything that touches `src/cloud/`, the mappers or the schema,

@@ -131,9 +131,11 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   const todo = t.kit.n - t.kit.proved;
   ok(flat(await card.innerText()).includes(`${todo} programs to prove`) && (t.kit.late ? await card.locator('b.is-r', { hasText: `${t.kit.late} late` }).count() === 1 : true),
     `1 the line's card: ${todo} programs to prove${t.kit.late ? `, ${t.kit.late} late in red` : ''}`);
-  await main.locator('.fac-home').getByRole('button', { name: 'Programs', exact: true }).click(); await page.waitForTimeout(1800);
-  ok(page.url().endsWith('#/programs') && await page.locator('.nv-tabs .nv-tab.is-on[aria-current="page"]', { hasText: /^Programs$/ }).count() === 1 && await main.locator('h1', { hasText: 'Programs' }).count() === 1,
-    '1b the control room opens Programs — every line, no job');
+  /* every line's programs are on its own Programs tab (27 October — "Programs. I don't need that because it already exists on
+     the lines"); the Factory has no Programs button, and #/programs keeps its address */
+  ok(await main.locator('.fac-home').getByRole('button', { name: 'Programs', exact: true }).count() === 0, '1b no Programs button on the Factory');
+  await go('#/programs');
+  ok(page.url().endsWith('#/programs') && await main.locator('h1', { hasText: 'Programs' }).count() === 1, '1b #/programs still opens — every line, no job');
 }
 
 /* ---- 1c a project's programs typed only on its Commission, on its line (23 October: "programs on the line in my

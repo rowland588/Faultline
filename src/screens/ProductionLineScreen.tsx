@@ -304,13 +304,15 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
   /* Stops timed — the line's first log; in Tools as before, and first under Logs */
   const stopsRow = (
-    <li>
+    <li className="pl-stops-li">
       <button type="button" className="pl-tool is-stops" onClick={() => nav(`/w/${wsId}/${stops.n ? 'analyse' : 'capture'}`)}>
         <b>Stops timed</b>
         {stops.says && <span className={'pl-tool-says ie-tone is-' + stops.tone}>{stops.says}</span>}
         <span className="sub">{stops.n ? `The last four weeks — where the time goes, ranked by ${line.packsPerMin ? 'what it costs' : 'minutes lost'}` : 'None yet — the stopwatch, and the Pareto of what the stops cost'}</span>
         <span className="pl-tool-go" aria-hidden>›</span>
       </button>
+      {/* THE STOPWATCH, BESIDE WHAT IT RECORDS (27 October: off the line's header) */}
+      <button type="button" className="btn btn-sm pl-time" onClick={() => nav(`/w/${wsId}/capture`)}>Time a stop</button>
     </li>
   );
   /* the overview is the whole page; a page of the line shows its own part alone */
@@ -328,8 +330,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         /* where the line is, in words — only the abnormal carries colour; the words the control
            room's card for it says (lib/lineWork) */
         says={<span className="pl-says">{lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}</span>}
-        /* THE FLOOR'S ACT, FIRST: time a stop. The stopwatch had no door from the line (docs/UPGRADE-AUDIT.md F1). */
-        primary={{ label: 'Time a stop', icon: 'time', className: 'pl-time', run: () => nav(`/w/${wsId}/capture`) }}
+        /* NO BUTTON OF ITS OWN HERE (27 October — Rowland: "it also has a timer stop on the top right hand side. It's got a
+           button there. I don't know why"). Time a stop is on the line's Stops timed, under Logs and Tools, where the
+           stops it records are read; a problem is the bar's Problem (＋ on a phone), on this line. */
         papers={[
           { label: 'Line report — 1 page', for: 'the line, its tiles, problems, machines, programs and what its tools found', disabled: busy || !reading, make: printLine },
           { label: 'Machines report — every machine in full', for: 'each machine on the line: where it is up to, every test and every attempt, every program and its tests, every step, its problems and what was done, the studies', disabled: busy, make: printMachines },

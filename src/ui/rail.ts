@@ -292,20 +292,21 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
       ...placed('home'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
       ...placed('projects'),
-      { key: 'quicksnags', label: 'Problems', to: '/snags', on: f && here === 'quicksnags', state: 'n', bare: true, icon: 'flag' },
-      { ...plain('allactions', 'Actions', '/actions', here, 'list'), on: f && here === 'allactions' },
+      /* THE LINE IS HOME (27 October — Rowland: "I think the line's own list should cover it. Because when you start
+         putting 10 production lines, it'll get too full"): every line's problems and every project's actions are on
+         the line and the project; the menu keeps the Factory, the projects and the tools */
       { ...plain('tools', 'Tools', '/tools', here, 'chart'), on: f && here === 'tools' },
     ],
   }, { foot: true, lines: [{ key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' }] }];
 }
 
-/** The phone's bar, the same on every page: Factory · Projects · ＋ · Problems · More. */
+/** The phone's bar, the same on every page: Factory · Projects · ＋ · Tools · More (Problems is each line's, 27 October). */
 export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
   const all = groups.flatMap(g => g.lines);
   /* the place you are in lights the bar's line it sits under — Factory for a line, Projects for a project */
   const lit = all.find(l => l.key === 'place' && l.on)?.under;
   const by = (k: string) => { const l = all.find(x => x.key === k); return l && lit === k ? { ...l, on: true } : l; };
-  const five = [by('home'), by('projects'), ...(plus ? [plusLine()] : []), by('quicksnags')].filter((l): l is RailLine => !!l);
+  const five = [by('home'), by('projects'), ...(plus ? [plusLine()] : []), by('tools')].filter((l): l is RailLine => !!l);
   return [...five, { key: 'more', label: 'More', on: !five.some(l => l.on) && all.some(l => l.on && l.key !== 'place'), state: 'n', icon: 'grip' }];
 }
 
@@ -325,28 +326,25 @@ export function scopeTabs(groups: RailGroup[]): RailLine[] {
   return lines.filter(kept).map(l => (lit && l.key === lit ? { ...l, on: true } : l));
 }
 
-/** THE FACTORY'S OWN TABS — on the Factory page and the two lists under it, every line and every
- *  line's programs. */
-export const FACTORY_PAGES = new Set(['home', 'factory', 'allmachines', 'lineprograms']);
+/** THE FACTORY'S OWN TABS — the board of lines and Set up, where the lines themselves are added, named, typed,
+ *  ordered and archived (27 October — Rowland: "Why do I need lines when I've got setup? Yeah, put the lines in the
+ *  setup because it's factory setup ... I don't need the machines anymore because I've got it already on the lines.
+ *  Programs. I don't need that because it already exists on the lines"). Every machine, program and problem is on its
+ *  line's page; the pages that listed them all (#/machines, #/programs, #/snags, #/actions) keep their addresses for
+ *  old links and the Every report sheet, and light the Factory. */
+export const FACTORY_PAGES = new Set(['home', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
 export const factoryTabs = (here: string): RailLine[] => [
   plain('home', 'Overview', '/room', here, 'home'),
-  plain('factory', 'Lines', '/factory', here, 'machine'),
-  /* every machine in the factory, line by line (27 October — Rowland: "Why don't I see machines?") */
-  plain('allmachines', 'Machines', '/machines', here, 'machine'),
-  plain('lineprograms', 'Programs', '/programs', here, 'list'),
+  plain('factory', 'Set up', '/factory', here, 'machine'),
 ];
 
-/** THE FACTORY'S PAGES — every line and project at once. */
+/** THE FACTORY'S PAGES — the board of lines, the projects, Set up and the tools. */
 export function factoryGroups(here: string, projects = 0): RailGroup[] {
   return [{
     lines: [
       { ...controlRoom(here), label: 'Overview', icon: 'list' },
-      plain('allactions', 'Actions', '/actions', here, 'list'),
-      { key: 'quicksnags', label: 'Problems', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'flag' },
       { ...plain('projects', 'Projects', '/projects', here, 'board'), n: projects || undefined },
-      plain('factory', 'Lines', '/factory', here, 'machine'),
-      plain('allmachines', 'Machines', '/machines', here, 'machine'),
-      plain('lineprograms', 'Programs', '/programs', here, 'list'),
+      plain('factory', 'Set up', '/factory', here, 'machine'),
       plain('tools', 'Tools', '/tools', here, 'chart'),
     ],
   }, { foot: true, lines: [{ key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' }] }];

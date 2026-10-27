@@ -282,9 +282,15 @@ await run('J7a a problem on Line 7, on the phone', 390, async (D, J) => {
   await D.page.locator('main').getByText('Bagger infeed guard loose', { exact: false }).first().waitFor({ timeout: 8000 });
   J.steps.push('[on the register, on Line 7]');
 });
+/* Every action and every problem were the Factory's own lists until 27 October (Rowland: "I think the line's own list should
+   cover it. Because when you start putting 10 production lines, it'll get too full") — the late actions are the project's
+   Actions, a problem the line's Problems */
 await run('J7b every late action, by person (desk)', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
-  await nav(D, J, 'Actions'); await orient(D, J, 'Actions');
+  await nav(D, J, 'Projects'); await orient(D, J, 'Projects');
+  await press(D, J, 'the project: Line 2 commissioning', D.page.locator('main').getByText('Line 2 commissioning', { exact: true }).first()); await orient(D, J, 'Line 2 commissioning');
+  /* a stage gate's Actions are a door from Now (26 October) */
+  await press(D, J, 'Now: All actions ›', D.page.locator('main').getByRole('button', { name: /^All actions/ }).first()); await orient(D, J, 'Actions');
   await press(D, J, 'Late', D.page.locator('main').getByRole('button', { name: /^Late$/ }).first());
   await press(D, J, 'the late test: Changeover 2kg → 1.25kg', D.page.locator('main button.lt-row').filter({ hasText: 'Changeover 2kg' }).first());
   await orient(D, J, 'Actions');
@@ -294,6 +300,7 @@ await run('J7b every late action, by person (desk)', 1360, async (D, J) => {
 });
 await run('J7c a line problem moved into a project (desk)', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
+  await press(D, J, 'the Factory board: Line 7 — smoke test', D.page.locator('main .fac-card').filter({ hasText: 'Line 7 — smoke test' }).first()); await orient(D, J, 'Line 7');
   await nav(D, J, 'Problems'); await orient(D, J, 'Problems');
   await press(D, J, 'the problem on Line 7 — smoke test', D.page.locator('main button.qsl-open').filter({ hasText: 'seeded snag 0' }).first());
   await D.page.locator('main select:has(option:text-is("No project"))').first().selectOption({ label: 'Line 7 pace' }); J.entries++; J.steps.push('⌨ Project: Line 7 pace');
@@ -348,7 +355,12 @@ await browser.close();
 
 /* ---- against the baseline ---- */
 /** A journey allowed more taps than its baseline: its name and device, and the reason Rowland agreed. */
-const LONGER = {};
+const LONGER = {
+  /* 27 October — the line is home (docs/MAP.md): the Factory lists no problems or actions of its own; Rowland: "I think the
+     line's own list should cover it. Because when you start putting 10 production lines, it'll get too full" */
+  'J7b every late action, by person (desk) [desk]': 'the late actions are the project\'s Actions — Projects › the project › Actions',
+  'J7c a line problem moved into a project (desk) [desk]': 'a problem is the line\'s — the Factory board › the line › Problems',
+};
 const base = JSON.parse(readFileSync(new URL('../docs/structure/journeys-baseline.json', import.meta.url), 'utf8')).walks;
 let fail = 0;
 console.log('\n  journey                                              taps (was)   hunts (was)   named (was)');

@@ -68,7 +68,19 @@ function useNarrow(q = '(max-width: 719px)'): boolean {
 interface WsContents { obs: number; videos: number;
   /** Its problems open, critical and late — lib/lineWork lineProblems, the
    *  count the line's own page and the control room's numbers use. */
-  problems: Pick<LineProblems, 'open' | 'critical' | 'late'>; cases?: number }
+  problems: Pick<LineProblems, 'open' | 'critical' | 'late'>; cases?: number;
+  /** The worst thing on it — the register's first row (critical, then late, then newest), who has it and when. */
+  worst?: { what: string; owner?: string; due?: string; red: boolean } }
+
+/** WHERE A LINE STANDS, in a word and its colour — the factory's board (27 October: "which line needs me?"). Red: a
+ *  critical or late problem; amber: problems open; green: nothing open. Always with its words beside it. */
+function lineState(c: WsContents | undefined): { word: string; tone: 'r' | 'a' | 'g' | 'n' } {
+  if (!c) return { word: '…', tone: 'n' };
+  const p = c.problems;
+  if (p.critical || p.late) return { word: [p.late ? `${p.late} late` : '', p.critical ? `${p.critical} critical` : ''].filter(Boolean).join(' · '), tone: 'r' };
+  if (p.open) return { word: `${p.open} problem${p.open === 1 ? '' : 's'} open`, tone: 'a' };
+  return { word: 'Nothing late', tone: 'g' };
+}
 
 function contentsLabel(c: WsContents | undefined): ReactNode {
   if (!c) return '…';
@@ -189,12 +201,14 @@ export function WorkspaceHome() {
         /* open, and not put away by a fresh start, moved or deleted (the
            Problems register) — critical and late counted by the one rule */
         const p = lineProblems(snags, w);
+        const top = p.rows[0];
         return [w.id, {
           obs: obs.length,
           videos: segs.length,
           problems: { open: p.open, critical: p.critical, late: p.late },
           cases: away ? 0 : cases.length,
-        }] as const;
+          ...(top ? { worst: { what: top.what, ...(top.owner ? { owner: top.owner } : {}), ...(top.due ? { due: top.due } : {}), red: top.priority === 'critical' || top.late } } : {}),
+        } satisfies WsContents] as const;
       }));
       if (!alive) return;
       const byId = Object.fromEntries(entries);
@@ -267,11 +281,11 @@ export function WorkspaceHome() {
     <section className="home-spaces fac-home" aria-label="Lines">
       <div className="home-sec-head">
         <h2 className="home-sec-title">Lines</h2>
+        {/* THE LINES THEMSELVES ARE SET UP IN SET UP (27 October — Rowland: "put the lines in the setup because it's
+            factory setup"); every line's programs, problems and machines are on the line's own page */}
         {prodLines.length > 0 && (
           <span className="pl-sec-acts">
-            {/* every line's programs, planned and proved, no job needed (Stage 2) */}
-            <button className="btn" onClick={() => nav('/programs')}>Programs</button>
-            <button className="btn" onClick={() => nav('/factory')}>Edit the lines</button>
+            <button className="btn" onClick={() => nav('/factory')}>Set up the lines</button>
           </span>
         )}
       </div>
@@ -287,12 +301,18 @@ export function WorkspaceHome() {
             {prodLines.map(w => {
               const c = counts[w.id];
               const on = belongs?.[w.id];
+              /* THE BOARD (27 October — "which line needs me?"): where it stands in a word and its colour, the worst
+                 thing on it and who has it, the projects on it; a tap opens the line, home */
+              const st = lineState(c);
               return (
                 <li key={w.id}>
-                  <button className="fac-card" onClick={() => nav(`/lines/${w.id}`)}>
+                  <button className={'fac-card is-' + st.tone} data-line={w.name} onClick={() => nav(`/lines/${w.id}`)}>
                     <b className="fac-card-name">{w.name}</b>
                     <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
-                    <span className="fac-card-meta">{contentsLabel(c)}{on ? ` · on ${on}` : ''}</span>
+                    <span className={'fac-card-state is-' + st.tone}>{st.word}</span>
+                    {c?.worst && <span className={'fac-card-worst' + (c.worst.red ? ' is-r' : '')}>{c.worst.what}<span className="sub"> · {c.worst.owner ?? 'nobody yet'}{c.worst.due ? ` · ${c.worst.due}` : ''}</span></span>}
+                    <span className="fac-card-meta">{contentsLabel(c)}</span>
+                    <span className="fac-card-meta fac-card-projects">{on ? `Projects: ${on}` : 'No project on it'}</span>
                     {dualSaid(dualOf(w, prodLines)) && <span className="fac-card-meta fac-dual">{dualSaid(dualOf(w, prodLines))}</span>}
                     {rateOf[w.id] && <span className="fac-card-meta">{rateOf[w.id]}</span>}
                     {/* its programs not yet proved, the late in red (Stage 2) */}
