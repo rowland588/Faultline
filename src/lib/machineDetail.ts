@@ -28,7 +28,8 @@ import { testJourney } from './programJourney';
 import { ASSET_STATE_WORD, assetStateOf, filesSaid, latestAttempts, live, testOfFix, type Test, type TestItem } from './testing';
 import { recordProvedLine, studyLine } from './studyLinks';
 import { niceDay, isoDay } from './weeks';
-import type { MachinePaper, PaperRow, PaperSection, PaperTone } from './machinePaper';
+import type { MachinePaper, PaperDetail, PaperRow, PaperSection, PaperTone } from './machinePaper';
+import { attemptDetail, attemptFromLine, itemDetail, runWords, statusWord, whenWords, type PlainKind } from './machinePlain';
 import { statusTone } from './machinePaper';
 
 export interface DetailInput {
@@ -47,36 +48,45 @@ export interface DetailInput {
   studies?: readonly ToolStudy[];
 }
 
-const LINE_TONE: Record<MachineTone, PaperTone> = { done: 'g', failed: 'r', late: 'r', problem: 'a', asking: 'a', ahead: 'w', none: 'n' };
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const PRIORITY: Record<string, string> = { critical: 'Critical', high: 'High', low: 'Low' };
 const toneOfOutcome = (t: Test): PaperTone => (t.outcome === 'passed' ? 'g' : t.outcome === 'failed' || t.outcome === 'notRun' ? 'r' : t.plannedFor ? 'w' : 'n');
 
-/** What was written on a test or step — what was found, the next step agreed, a note — each with its day and who. */
-function itemsOn(testId: string, items: readonly TestItem[]): string[] {
-  const word: Record<TestItem['kind'], string> = { found: 'Found', next: 'Next', note: 'Note', today: 'Today' };
-  return live([...items]).filter(i => i.testId === testId).sort((a, b) => a.createdAt - b.createdAt).map(i => [
-    `${word[i.kind] ?? 'Note'} ${niceDay(isoDay(i.createdAt))}: ${i.what}`,
-    i.critical ? ' — critical' : i.risk ? ' — high risk' : '',
-    i.impact ? ` — ${i.impact}` : '',
-    i.owner ? ` · ${i.owner}` : '', i.due ? ` · by ${niceDay(i.due)}` : '',
-    i.hoursLost ? ` · ${i.hoursLost} h lost` : '',
-    i.doneAt != null && i.kind !== 'note' ? ' · done' : '',
-  ].join(''));
+/** What was written on a test or step — what was found, the next step agreed, a note — each labelled with its day
+ *  and who (lib/machinePlain itemDetail). */
+function itemsOn(testId: string, items: readonly TestItem[]): PaperDetail[] {
+  return live([...items]).filter(i => i.testId === testId).sort((a, b) => a.createdAt - b.createdAt).map(itemDetail);
 }
 
-/** A program on paper: its badge and word, how it was proved, its run, every test of it, what it said before. */
+/** Files and a study's proof, labelled. */
+const filesLine = (t: { docs?: Test['docs'] }): PaperDetail[] => (filesSaid(t) ? [{ label: 'Files', text: filesSaid(t) }] : []);
+const provedLine = (proof: string | undefined): PaperDetail[] => (proof ? [{ label: 'Proved by', text: proof.replace(/^Proved by: /, '') }] : []);
+
+/** A row's status as its coloured word, and when, said whole (lib/machinePlain). */
+function plainRow(kind: PlainKind, l: { word: string; tone: MachineTone; critical?: boolean; risk?: boolean }): { word: string; tone: PaperTone; when: string } {
+  const st = statusWord(kind, l.tone, l.word, l);
+  return { ...st, when: whenWords(kind, l.tone, l.word) };
+}
+
+/** A program on paper: its status as one word, when, what it runs and who, how it was proved, its run at speed, every
+ *  test of it as an attempt, and what it said before. */
 function programRow(l: ProgramLine): PaperRow {
   const b = badgeOf(l);
+  /* the word without the badge said again — "DONE — done 24 Oct" read as two things */
+  const rest = l.word.trim().toLowerCase().startsWith(b.toLowerCase()) ? l.word.trim().slice(b.length).replace(/^[\s—·-]+/, '') : l.word.trim();
   return {
-    what: l.what, says: [l.runs, l.who].filter(Boolean).join(' · '),
-    word: l.word.trim().toUpperCase() === b ? b : `${b} — ${l.word}`, tone: l.tone,
-    lines: [
-      ...(l.note ? [`Seen: ${l.note}`] : []),
-      ...(l.proof ? [l.proof.word] : []),
-      ...(l.run ? [`Run: ${l.run}`] : []),
-      ...(l.tests ?? []).flatMap(t => [t.text, ...t.studies.map(s => `   Study: ${s}`)]),
-      ...l.earlier.map(e => `Before: ${e}`),
+    what: l.what, says: [l.runs ? `Runs: ${l.runs}` : '', l.who ? `With: ${l.who}` : ''].filter(Boolean).join(' · '),
+    word: b, tone: l.tone,
+    detail: [
+      ...(rest && rest.toUpperCase() !== b ? [{ label: 'Where it stands', text: b === 'FAILED' ? `marked failed — ${rest}` : /^\d{1,2} [A-Z][a-z]{2}( \d{4})?$/.test(rest) ? `${b.toLowerCase()} ${rest}` : rest }] : []),
+      /* a program marked failed though its last test passed — said, so the two are never read as one answer */
+      ...(b === 'FAILED' && (l.tests ?? []).slice(-1)[0]?.tone === 'g' ? [{ label: 'Read this', text: 'This program is marked FAILED on the program itself, though its last test below passed. The status at the top is the one that stands.' }] : []),
+      ...(l.note ? [{ label: 'What was seen', text: l.note }] : []),
+      ...(l.proof ? [{ label: 'How it was proved', text: l.proof.word, tone: l.proof.tone }] : []),
+      ...(l.run ? [{ label: 'Its run at speed', text: l.run }] : []),
+      ...(l.tests ?? []).flatMap(t => [attemptFromLine(t.text, t.tone), ...t.studies.map(st => ({ label: 'Study of it', text: st }))]),
+      ...(!(l.tests ?? []).length && l.bucket !== 'done' && l.bucket !== 'baseline' && !/booked|passed|proved/i.test(l.word) ? [{ label: 'Tests', text: 'not tested yet' }] : []),
+      ...l.earlier.map(e => ({ label: 'Before', text: e })),
     ],
   };
 }
@@ -118,9 +128,24 @@ export function machineDetailPaper(i: DetailInput): MachinePaper {
       );
 
       /* WHAT IS OPEN ON IT, AND WHO HAS IT — the action plan */
+      const KIND: Record<string, string> = { Install: 'Install step', 'Set up': 'Set-up step', 'Hand over': 'Hand-over step', Fix: 'Fix' };
       sections.push({
-        title: 'What is open on it, and who has it', count: open.length ? String(open.length) : 'nothing',
-        rows: open.map(l => ({ what: l.title, says: [l.where, l.who ? `with ${l.who}` : ''].filter(Boolean).join(' · '), word: l.word, tone: LINE_TONE[l.tone] })),
+        title: 'What is open on it, and who has it', count: open.length ? `${open.length} open` : 'nothing',
+        intro: 'Everything not finished on this machine — its install, set-up and hand-over steps, its fixes and the problems found on it — the most urgent first.',
+        table: true,
+        rows: open.map(l => {
+          const problem = l.where.startsWith('Problem');
+          const pr = problem ? (l as typeof l & { critical?: boolean; risk?: boolean }) : undefined;
+          const st = plainRow(problem ? 'problem' : l.where === 'Fix' ? 'fix' : 'step', { ...l, ...(pr?.critical ? { critical: true } : {}), ...(pr?.risk ? { risk: true } : {}) });
+          /* a problem's word is where it was found and the day: "Seal integrity — Finest Red 2kg · 27 Oct" */
+          const at = problem ? l.word.lastIndexOf(' · ') : -1;
+          return {
+            what: l.title, word: st.word, tone: st.tone,
+            kind: problem ? `Problem${at > 0 ? ` found on ${l.word.slice(0, at)}` : ''}` : KIND[l.where] ?? l.where,
+            who: l.who ?? (problem ? 'nobody yet — no fix raised' : 'nobody named'),
+            when: problem ? `found ${at > 0 ? l.word.slice(at + 3) : l.word}` : st.when,
+          };
+        }),
         empty: 'Nothing open on it — no stage, fix or problem waiting.',
       });
 
@@ -128,6 +153,7 @@ export function machineDetailPaper(i: DetailInput): MachinePaper {
       const chains = latestAttempts(tests).filter(t => t.assetId === asset.id && (t.kind ?? 'test') === 'test').sort((a, b) => a.sort - b.sort);
       sections.push({
         title: 'Its tests — every attempt', count: chains.length ? `${passed} of ${chains.length} passed` : 'none yet',
+        intro: 'Each test agreed for this machine: what it has to show, then every attempt in order — the day, how it went, what was seen — and anything found while testing.',
         rows: chains.map(t => {
           const j = testJourney(t, tests, i.today);
           const cell = latest.find(x => x.id === t.id);
@@ -135,16 +161,18 @@ export function machineDetailPaper(i: DetailInput): MachinePaper {
           /* the test by its first name, and what it was agreed to show — a re-test carries neither again */
           const first = j.attempts[0]?.test ?? t;
           const passesIf = [...j.attempts].reverse().map(a => a.test.passesIf?.trim()).find(Boolean) ?? t.passesIf?.trim();
+          const st = cell ? plainRow('test', cell) : { word: '', tone: toneOfOutcome(t), when: '' };
           return {
-            what: first.title, says: [t.withWhom?.trim(), j.says].filter(Boolean).join(' · '),
-            word: cell?.word ?? '', tone: cell ? LINE_TONE[cell.tone] : toneOfOutcome(t),
-            lines: [
-              ...(passesIf ? [`Has to show: ${passesIf}`] : []),
-              ...j.attempts.map(a => a.text),
-              ...(j.best ? [j.best] : []),
+            what: first.title, says: [t.withWhom?.trim() ? `With: ${t.withWhom.trim()}` : '', j.says ? `Attempts: ${j.says.replace(/^\d+ tests? · /, '')}` : ''].filter(Boolean).join(' · '),
+            word: st.word, tone: st.tone,
+            detail: [
+              { label: 'Has to show', text: passesIf ?? 'not written down yet' },
+              ...j.attempts.map(attemptDetail),
+              /* the fastest pass, when there was more than one attempt to choose from */
+              ...(j.best && j.attempts.length > 1 ? [{ label: 'Best pass', text: runWords(j.best.replace(/^Passed /, '')).replace(/\(test (\d+)\)/, '(attempt $1)') }] : []),
               ...j.attempts.flatMap(a => itemsOn(a.test.id, items)),
-              ...(filesSaid(t) ? [filesSaid(t)] : []),
-              ...(proof ? [proof] : []),
+              ...filesLine(t),
+              ...provedLine(proof),
             ],
           };
         }),
@@ -154,6 +182,7 @@ export function machineDetailPaper(i: DetailInput): MachinePaper {
       /* ITS PROGRAMS — every test of each */
       sections.push({
         title: 'Its programs — every test of each', count: progs.length ? `${proved} of ${progs.length} proved` : 'none',
+        intro: 'Each program for this machine — what it runs, where it stands, and every test run of it.',
         rows: progs.map(programRow), empty: 'No programs on it.',
       });
 
@@ -162,10 +191,13 @@ export function machineDetailPaper(i: DetailInput): MachinePaper {
         const done = g.lines.filter(l => l.tone === 'done').length;
         sections.push({
           title: `${g.label} — every step`, count: g.lines.length ? `${done} of ${g.lines.length} done` : 'none',
+          intro: `Every ${g.label.toLowerCase()} step for this machine, when it was done or is due, and what was written about it.`,
           rows: g.lines.map(l => {
             const t = tests.find(x => x.id === l.id);
-            return { what: l.title, says: l.who ? `with ${l.who}` : '', word: l.word, tone: LINE_TONE[l.tone],
-              lines: [...(t?.result?.trim() ? [`Said: ${t.result.trim()}`] : []), ...(t && filesSaid(t) ? [filesSaid(t)] : []), ...itemsOn(l.id, items)] };
+            const st = plainRow('step', l);
+            return { what: l.title, says: l.who ? `With: ${l.who}` : '', word: st.word, tone: st.tone,
+              detail: [{ label: l.tone === 'done' ? 'Done on' : 'When', text: st.when },
+                ...(t?.result?.trim() ? [{ label: 'What was written', text: t.result.trim() }] : []), ...(t ? filesLine(t) : []), ...itemsOn(l.id, items)] };
           }),
           empty: `No ${g.label.toLowerCase()} steps on it.`,
         });
@@ -174,15 +206,25 @@ export function machineDetailPaper(i: DetailInput): MachinePaper {
       /* ITS PROBLEMS AND FIXES — each with what was done */
       const fixesAll = tests.filter(t => t.kind === 'fix' && (t.assetId ?? testOfFix(t, tests)?.assetId) === asset.id);
       const pf: PaperRow[] = [
-        ...m.problems.map(p => ({ what: p.title, says: p.critical ? 'Problem — critical' : p.risk ? 'Problem — high risk' : 'Problem, no fix yet', word: p.word, tone: LINE_TONE[p.tone] })),
-        ...fixesAll.map(f => ({
-          what: `Fix: ${f.title}`, says: [f.withWhom?.trim(), testOfFix(f, tests) ? `for ${testOfFix(f, tests)?.title}` : ''].filter(Boolean).join(' · '),
-          word: f.outcome === 'passed' ? `fixed ${niceDay(f.ranTo ?? f.ranOn)}` : m.fixes.find(x => x.id === f.id)?.word ?? 'open',
-          tone: f.outcome === 'passed' ? 'g' as const : LINE_TONE[m.fixes.find(x => x.id === f.id)?.tone ?? 'none'],
-          lines: [...(f.result?.trim() ? [`Done: ${f.result.trim()}`] : []), ...itemsOn(f.id, items)],
-        })),
+        ...m.problems.map(p => {
+          const st = statusWord('problem', p.tone, p.word, p);
+          const at = p.word.lastIndexOf(' · ');
+          return { what: `Problem: ${p.title}`, word: st.word, tone: st.tone,
+            detail: [{ label: 'Found on', text: at > 0 ? `${p.word.slice(0, at)}, ${p.word.slice(at + 3)}` : p.word }, { label: 'Fix', text: 'no fix raised yet' }] };
+        }),
+        ...fixesAll.map(f => {
+          const open = m.fixes.find(x => x.id === f.id);
+          const st = f.outcome === 'passed' ? { word: 'FIXED', tone: 'g' as const, when: niceDay(f.ranTo ?? f.ranOn) } : open ? plainRow('fix', open) : { word: 'OPEN', tone: 'a' as const, when: '' };
+          return {
+            what: `Fix: ${f.title}`, says: [f.withWhom?.trim() ? `With: ${f.withWhom.trim()}` : '', testOfFix(f, tests) ? `For: ${testOfFix(f, tests)?.title}` : ''].filter(Boolean).join(' · '),
+            word: st.word, tone: st.tone,
+            detail: [...(st.when ? [{ label: f.outcome === 'passed' ? 'Fixed on' : 'When', text: st.when }] : []),
+              ...(f.result?.trim() ? [{ label: 'What was done', text: f.result.trim() }] : []), ...itemsOn(f.id, items)],
+          };
+        }),
       ];
       sections.push({ title: 'Its problems and fixes', count: pf.length ? `${m.problems.length} open problem${m.problems.length === 1 ? '' : 's'} · ${m.fixesDone} of ${fixesAll.length} fixes done` : 'none',
+        intro: 'The problems found on this machine that have no fix yet, then every fix raised for it — what it was for, who has it and where it stands.',
         rows: pf, empty: 'No problems found on it and no fixes.' });
 
       const next = open.find(l => l.tone !== 'done');
@@ -197,42 +239,53 @@ export function machineDetailPaper(i: DetailInput): MachinePaper {
   if (v) {
     if (!i.project) {
       facts = [v.says, v.oem ? `Made by ${v.oem}` : ''].filter(Boolean);
-      sections.push({ title: 'Its programs', count: v.programs.length ? String(v.programs.length) : 'none', rows: v.programs.map(programRow), empty: 'No programs on it.' });
+      sections.push({ title: 'Its programs', count: v.programs.length ? plural(v.programs.length, 'program') : 'none', intro: 'Each program for this machine on its line — what it runs, where it stands, and every test run of it.',
+        rows: v.programs.map(programRow), empty: 'No programs on it.' });
     }
     const others = i.project ? v.projects.filter(p => p.name !== i.project?.name) : v.projects;
     if (!i.project || others.length) {
       sections.push({
-        title: i.project ? 'Other projects’ work on it' : 'The projects on it', count: others.length ? String(others.length) : 'none',
-        rows: others.map(p => ({ what: p.name, says: [plural(p.tests, 'test'), p.last ? `last: ${p.last}` : ''].filter(Boolean).join(' · '),
-          word: [p.open ? `${p.open} open` : 'none open', p.failed ? `${p.failed} didn’t pass` : ''].filter(Boolean).join(' · '), tone: p.failed ? 'r' as const : p.open ? 'w' as const : 'g' as const })),
+        title: i.project ? 'Other projects’ work on it' : 'The projects on it', count: others.length ? plural(others.length, 'project') : 'none',
+        intro: 'Every project that has worked on this machine, how many of its tests and steps are still open, and the last thing it did.',
+        rows: others.map(p => ({ what: p.name, word: p.failed ? `${p.failed} DIDN’T PASS` : p.open ? `${p.open} OPEN` : 'NOTHING OPEN', tone: p.failed ? 'r' as const : p.open ? 'w' as const : 'g' as const,
+          detail: [{ label: 'Its work on it', text: plural(p.tests, 'test or step', 'tests and steps') }, ...(p.last ? [{ label: 'Last thing done', text: p.last }] : [])] })),
         empty: 'No project has worked on it.',
       });
     }
     sections.push({
       title: 'Its problems on the register — each with what was done', count: v.problems.length ? `${v.problems.filter(p => p.open).length} open of ${v.problems.length}` : 'none',
+      intro: 'Problems written on the line’s register that name this machine — open ones first by priority — with who has each, by when, and every step taken on it.',
       rows: v.problems.map(p => {
         const s = snagsById.get(p.id);
+        /* RAG is the priority's own (CLAUDE.md, 12 October): Critical red, High amber, Low green — a closed one green, with its word */
         return {
-          what: p.what, says: [s?.owner ? `with ${s.owner}` : '', s?.dueAt ? `by ${niceDay(isoDay(s.dueAt))}` : '', s?.raisedAt ? `raised ${niceDay(isoDay(s.raisedAt))}` : ''].filter(Boolean).join(' · '),
-          word: p.open ? PRIORITY[p.priority] ?? 'Low' : `closed${s?.closedAt ? ` ${niceDay(isoDay(s.closedAt))}` : ''}`,
-          tone: !p.open ? 'g' as const : p.priority === 'critical' ? 'r' as const : p.priority === 'high' ? 'a' as const : 'n' as const,
-          lines: (s?.journey ?? []).slice().sort((a, b) => a.at - b.at).map(j => `${niceDay(isoDay(j.at))} — ${j.did}${j.result ? ` — ${j.result}` : ''}`),
+          what: p.what, says: [s?.owner ? `Who has it: ${s.owner}` : 'Who has it: nobody yet', s?.dueAt ? `By: ${niceDay(isoDay(s.dueAt))}` : ''].filter(Boolean).join(' · '),
+          word: p.open ? `${(PRIORITY[p.priority] ?? 'Low').toUpperCase()} — OPEN` : 'CLOSED',
+          tone: !p.open ? 'g' as const : p.priority === 'critical' ? 'r' as const : p.priority === 'high' ? 'a' as const : 'g' as const,
+          detail: [
+            ...(s?.raisedAt ? [{ label: 'Raised', text: niceDay(isoDay(s.raisedAt)) }] : []),
+            ...(!p.open && s?.closedAt ? [{ label: 'Closed', text: niceDay(isoDay(s.closedAt)) }] : []),
+            ...(s?.journey ?? []).slice().sort((a, b) => a.at - b.at).map(j => ({ label: `Step taken · ${niceDay(isoDay(j.at))}`, text: j.did, ...(j.result ? { more: `What came of it: ${j.result}` } : {}) })),
+          ],
         };
       }),
       empty: 'No problem on the register names it.',
     });
     sections.push({
-      title: 'Studies of it — what each found', count: v.studies.length ? String(v.studies.length) : 'none',
+      title: 'Studies of it — what each found', count: v.studies.length ? plural(v.studies.length, 'study', 'studies') : 'none',
+      intro: `Studies that measured this machine, and what each one found.${v.studies.some(x => /reliab/i.test(x.tool)) ? ' MTBF is the average running time between one stop and the next; “90% sure” gives the range it is 90% likely to lie in.' : ''}`,
       rows: v.studies.map(x => {
         const s = studiesById.get(x.id);
         const f = s ? studyLine(s) : undefined;
-        return { what: x.name, says: x.tool, word: '', tone: (f?.tone === 'r' ? 'r' : f?.tone === 'a' ? 'a' : f?.tone === 'g' ? 'g' : 'n') as PaperTone, lines: f ? [f.text] : [] };
+        return { what: x.name, says: `Tool: ${x.tool}`, word: '', tone: (f?.tone === 'r' ? 'r' : f?.tone === 'a' ? 'a' : f?.tone === 'g' ? 'g' : 'n') as PaperTone,
+          detail: f ? [{ label: 'What it found', text: f.text }] : [{ label: 'What it found', text: 'nothing yet — no readings taken' }] };
       }),
       empty: 'No study names it yet.',
     });
     sections.push({
       title: 'Its stops', count: v.stops.n ? `${v.stops.n} in ${STOP_DAYS} days` : 'none',
-      rows: v.stops.n ? [{ what: `${plural(v.stops.n, 'stop')} timed in the last ${STOP_DAYS} days`, word: `${v.stops.minutes} minutes`, tone: 'n' }] : [],
+      intro: `Stops timed on this machine in the last ${STOP_DAYS} days.`,
+      rows: v.stops.n ? [{ what: `${plural(v.stops.n, 'stop')} timed in the last ${STOP_DAYS} days`, word: '', tone: 'n', detail: [{ label: 'Time stopped', text: `${v.stops.minutes} minutes in all` }] }] : [],
       empty: `No stops timed on it in the last ${STOP_DAYS} days.`,
     });
     if (!closing) {

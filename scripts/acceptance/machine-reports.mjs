@@ -133,26 +133,35 @@ const proj = want.projects[PID];
   ok(!lost.length, `P3 every machine's row — its status, its words, what is next (${proj.rows.length})`, lost.map(x => x.name).join(', '));
   ok(n >= proj.rows.length + 1, `P4 the rows, then a page a machine (${n} pages for ${proj.rows.length} machines)`);
   const each = (t.match(/Going through /g) ?? []).length;
-  /* a section with something is a heading; one with nothing is said in the machine's one "Nothing on it yet" line */
-  const said = (head, none) => (t.match(head) ?? []).length + (t.match(none) ?? []).length;
-  ok(each === proj.rows.length && said(/WHAT IS OPEN ON IT, AND WHO HAS IT/g, /Nothing open on it — no stage/g) === proj.rows.length
-    && said(/ITS TESTS — EVERY ATTEMPT/g, /No tests on it yet/g) === proj.rows.length && said(/ITS PROGRAMS — EVERY TEST OF EACH/g, /No programs on it\./g) === proj.rows.length,
+  /* a section with something is named twice — in the machine's contents and on its own band; one with nothing is said
+     once, under "Nothing on it yet" */
+  const said = (head, none) => (t.match(head) ?? []).length / 2 + (t.match(none) ?? []).length;
+  ok(each === proj.rows.length && said(/What is open on it, and who has it/g, /Nothing open on it — no stage/g) === proj.rows.length
+    && said(/Its tests — every attempt/g, /No tests on it yet/g) === proj.rows.length && said(/Its programs — every test of each/g, /No programs on it\./g) === proj.rows.length,
     `P5 each machine in full: where it is up to, what is open and who has it, every test and attempt, every program and its tests (${each})`);
+  /* EASY TO READ (28 October — "Each section needs sectioning off ... clear headers ... nobody can make a mistake when
+     reading this"): each machine says how to read it — the five colours with their words — and what is in it */
+  ok((t.match(/How to read this report/gi) ?? []).length === proj.rows.length && (t.match(/What is in it/gi) ?? []).length === proj.rows.length
+    && ['its day has gone, it failed, or it is critical', 'finished, passed or fixed', 'not started, and no day given yet'].every(w => t.includes(w)),
+    'P5b each machine: how to read it (every colour with its words) and what is in it');
   /* THE DETAIL (27 October — "all you've done is headlines ... you can't see the results"): every attempt of every
-     test on the project's machines, in lib/programJourney's words, with what it had to show and what was seen */
+     test and program on the project's machines, labelled with its number and day, its result in words, what was seen
+     (lib/programJourney's attempts as lib/machinePlain says them) */
   const attempts = await page.evaluate(async pid => {
     const db = await import('/src/db.ts');
     const { testJourney, programJourney } = await import('/src/lib/programJourney.ts');
+    const { attemptDetail } = await import('/src/lib/machinePlain.ts');
     const { latestAttempts, live } = await import('/src/lib/testing.ts');
     const { todayISO } = await import('/src/lib/weeks.ts');
     const tests = await db.listTests(pid), programs = await db.listPrograms(pid), assets = live(await db.listAssets(pid));
     const on = new Set(assets.map(a => a.id));
     const chains = latestAttempts(tests).filter(t => on.has(t.assetId) && (t.kind ?? 'test') === 'test');
-    return [...chains.flatMap(t => testJourney(t, tests, todayISO()).attempts.map(a => a.text)),
-      ...live(programs).filter(p => on.has(p.assetId)).flatMap(p => programJourney(p, tests, todayISO()).attempts.map(a => a.text))];
+    const said = a => { const d = attemptDetail(a); return [d.label, d.word, d.text].filter(Boolean).join(' '); };
+    return [...chains.flatMap(t => testJourney(t, tests, todayISO()).attempts.map(said)),
+      ...live(programs).filter(p => on.has(p.assetId)).flatMap(p => programJourney(p, tests, todayISO()).attempts.map(said))];
   }, PID);
   const missingAttempts = attempts.filter(a => !t.includes(onPaper(a)));
-  ok(attempts.length > 0 && !missingAttempts.length, `P6 every attempt of every test and program, as it was run — aimed, did, how it went, what was seen (${attempts.length})`, missingAttempts.slice(0, 3).join(' / '));
+  ok(attempts.length > 0 && !missingAttempts.length, `P6 every attempt of every test and program, labelled — its number and day, how it went, what was seen (${attempts.length})`, missingAttempts.slice(0, 3).join(' / '));
 }
 
 /* ---- M · a machine's page in the project, and its Machine report ---- */
@@ -183,8 +192,8 @@ const proj = want.projects[PID];
   const projects = (await main().locator('.lmc-proj > b').allInnerTexts()).map(flat);
   const f = await paper('Machine report', 'line-machine-report.pdf');
   const t = pdf(f);
-  ok(t.includes(name) && /THE PROJECTS ON IT|No project has worked on it/.test(t) && /ITS PROGRAMS|No programs on it/.test(t) && /ITS PROBLEMS ON THE REGISTER|No problem on the register names it/.test(t)
-    && /STUDIES OF IT — WHAT EACH FOUND|No study names it yet/.test(t) && /ITS STOPS|No stops timed on it/.test(t),
+  ok(t.includes(name) && /The projects on it|No project has worked on it/.test(t) && /Its programs|No programs on it/.test(t) && /Its problems on the register|No problem on the register names it/.test(t)
+    && /Studies of it — what each found|No study names it yet/.test(t) && /Its stops|No stops timed on it/.test(t),
     `L1 the machine report on its line: its name and every section (${name})`, t.slice(0, 400));
   ok(projects.every(p => t.includes(p)), `L2 every project on it (${projects.join(', ') || 'none'})`);
 }

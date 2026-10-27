@@ -60,25 +60,35 @@ describe('a machine in full — every attempt, what was seen, what was found, th
     expect(p.tiles?.map(t => t.label)).toEqual(['Tests passed', 'Programs proved', 'Open on it', 'Late or failed', 'Critical']);
     expect(p.closing).toMatch(/^Wrapper is on site and up to .* in Line 2 commissioning: \d+ of \d+ tests passed, 1 of 1 programs proved/);
   });
+  /* 28 October — "difficult to read ... nobody can make a mistake when reading this": the same facts, each labelled,
+     its result one word in its colour, a run's figures in whole words (lib/machinePlain) */
   it('a test with every attempt — what it had to show, what each aimed at and did, how it went, what was seen, what was found on it', () => {
     const row = sec(/^Its tests/)?.rows.find(r => r.what.startsWith('Seal integrity'));
-    expect(row?.lines?.[0]).toBe('Has to show: no leak in 20 packs');
-    expect(row?.lines).toContain('Test 1 · 10 Oct · aiming 60 ppm for 30 min · set at 55 ppm · ran 30 min · 1,600 packs · 40 rejects · netted 52 ppm — didn’t pass: two leaks on lane 2');
-    expect(row?.lines?.some(l => /^Test 2 · 14 Oct — passed: no leaks$/.test(l))).toBe(true);
-    expect(row?.lines?.some(l => /^Found 10 Oct: Jaw heater reads 20° low · Dave$/.test(l))).toBe(true);
-    expect(row?.says).toMatch(/2 tests · 1 passed · 1 didn’t pass/);
+    expect(row).toMatchObject({ word: 'PASSED', tone: 'g' });
+    expect(row?.detail?.[0]).toEqual({ label: 'Has to show', text: 'no leak in 20 packs' });
+    expect(row?.detail).toContainEqual({ label: 'Attempt 1 · 10 Oct', word: 'DIDN’T PASS', tone: 'r', text: 'two leaks on lane 2',
+      more: 'Aimed for 60 packs a minute for 30 minutes. It ran: machine set at 55 packs a minute · ran 30 minutes · 1,600 packs · 40 rejects · 52 good packs a minute.' });
+    expect(row?.detail).toContainEqual({ label: 'Attempt 2 · 14 Oct', word: 'PASSED', tone: 'g', text: 'no leaks' });
+    expect(row?.detail).toContainEqual({ label: 'Problem found · 10 Oct', text: 'Jaw heater reads 20° low', more: 'Who has it: Dave' });
+    expect(row?.says).toBe('Attempts: 1 passed · 1 didn’t pass');
   });
   it('the program with every test of it', () => {
     const row = sec(/^Its programs/)?.rows[0];
     expect(row?.what).toBe('PR-04');
-    expect(row?.lines?.some(l => /^Test 1 · 12 Oct · set at 50 ppm · ran 60 min · 2,900 packs · 10 rejects · netted 48.2 ppm — passed: ran clean$/.test(l))).toBe(true);
+    expect(row?.detail).toContainEqual({ label: 'Attempt 1 · 12 Oct', word: 'PASSED', tone: 'g', text: 'ran clean',
+      more: 'It ran: machine set at 50 packs a minute · ran 60 minutes · 2,900 packs · 10 rejects · 48.2 good packs a minute.' });
   });
   it('the fix with what was done; the install step with what was said', () => {
     const fix = sec(/problems and fixes/)?.rows.find(r => r.what === 'Fix: Change the jaw heater');
-    expect(fix).toMatchObject({ says: 'Dave · for Seal integrity', tone: 'g' });
-    expect(fix?.lines).toEqual(['Done: new heater fitted']);
+    expect(fix).toMatchObject({ says: 'With: Dave · For: Seal integrity', word: 'FIXED', tone: 'g' });
+    expect(fix?.detail).toEqual([{ label: 'Fixed on', text: '13 Oct' }, { label: 'What was done', text: 'new heater fitted' }]);
     const step = sec(/^Install — every step/)?.rows.find(r => r.what === 'Positioned');
-    expect(step?.lines).toContain('Said: on its marks');
+    expect(step).toMatchObject({ word: 'DONE', tone: 'g' });
+    expect(step?.detail).toEqual([{ label: 'Done on', text: '3 Oct' }, { label: 'What was written', text: 'on its marks' }]);
+  });
+  it('every section says in one sentence what it holds', () => {
+    expect(p.sections.every(x => !!x.intro && x.intro.endsWith('.'))).toBe(true);
+    expect(sec(/^What is open/)?.table).toBe(true);
   });
   it('on its line: the register’s problem with its journey, the study with what it found', () => {
     const view = { name: 'Wrapper', whose: '', says: 'x', projects: [{ id: 'P', name: 'Line 2 commissioning', tests: 2, open: 0, failed: 0, href: '' }], programs: [],
@@ -87,11 +97,11 @@ describe('a machine in full — every attempt, what was seen, what was found, th
       journey: [{ id: 'j1', at: Date.parse('2026-10-12T09:00:00Z'), did: 'reset the guide', result: 'still drifts' }] }] as unknown as Snag[];
     const q = machineDetailPaper({ name: 'Wrapper', today: '2026-10-27', line: 'Line 2a', project: { name: 'Line 2 commissioning', gate, assetId: 'm1' }, view, snags });
     const reg = q.sections.find(x => /register/.test(x.title))?.rows[0];
-    expect(reg).toMatchObject({ what: 'Film tracks off', word: 'High', tone: 'a' });
-    expect(reg?.says).toMatch(/^with Rob · raised 11 Oct$/);
-    expect(reg?.lines).toEqual(['12 Oct — reset the guide — still drifts']);
+    expect(reg).toMatchObject({ what: 'Film tracks off', word: 'HIGH — OPEN', tone: 'a' });
+    expect(reg?.says).toBe('Who has it: Rob');
+    expect(reg?.detail).toEqual([{ label: 'Raised', text: '11 Oct' }, { label: 'Step taken · 12 Oct', text: 'reset the guide', more: 'What came of it: still drifts' }]);
     /* its own project's work is this page — never listed again as another's */
     expect(q.sections.some(x => /Other projects/.test(x.title))).toBe(false);
-    expect(q.sections.find(x => x.title === 'Its stops')?.rows[0]).toMatchObject({ word: '14 minutes' });
+    expect(q.sections.find(x => x.title === 'Its stops')?.rows[0]?.detail).toEqual([{ label: 'Time stopped', text: '14 minutes in all' }]);
   });
 });

@@ -9,10 +9,24 @@
  *  ahead, green done, grey not started. */
 export type PaperTone = 'r' | 'a' | 'w' | 'g' | 'n';
 
+/** One labelled line of a row's detail (28 October — Rowland: "it's difficult to read ... it must be easy to read
+ *  plain English, and nobody can make a mistake when reading this"): what it is on the left ("Has to show",
+ *  "Attempt 2 · 26 Oct", "Problem found 27 Oct"), the words on the right — a result, when there is one, first and in
+ *  its colour ("DIDN'T PASS"), and a second line under them when the line has more to say (what it aimed at and did). */
+export interface PaperDetail { label: string; text: string; word?: string; tone?: PaperTone; more?: string }
+
 export interface PaperRow { what: string; says?: string; word: string; tone: PaperTone;
-  /** The detail under it — every attempt, what was seen, what was written, each step of a journey — a line each. */
-  lines?: string[] }
-export interface PaperSection { title: string; count: string; rows: PaperRow[]; empty: string }
+  /** The detail under it — every attempt, what was seen, what was written, each step of a journey — a labelled line each. */
+  detail?: PaperDetail[];
+  /** In a table section (what needs doing): what kind of thing it is, who has it and by when, each its own column. */
+  kind?: string; who?: string; when?: string }
+export interface PaperSection {
+  title: string; count: string; rows: PaperRow[]; empty: string;
+  /** One plain sentence under the heading — what this part of the report holds. */
+  intro?: string;
+  /** Drawn as a table — what, who, by when, its status — rather than a card a row. */
+  table?: boolean;
+}
 
 export interface MachinePaper {
   /** "MACHINE · Line 2 commissioning" */
