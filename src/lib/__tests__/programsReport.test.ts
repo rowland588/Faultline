@@ -244,4 +244,16 @@ describe('a program judged by criteria on the line\'s report', () => {
     expect(line?.tests?.[0]?.text).toMatch(/didn’t pass|didn't pass/i);
     expect(line?.criteria?.each.some(c => c.title.includes('Run test'))).toBe(true);
   });
+
+  it('lists every test attempt on the line for a program not judged by criteria — headline still from the record', () => {
+    const plain = prog('pl9', 'Program 9 Finest', { projectId: '', workspaceId: 'ws-7', assetId: 'lw', state: 'onMachine', testOn: T });
+    const t1 = { ...tr, id: 'tr1', programId: 'pl9', title: 'First run' } as Test;
+    const fail = { ...tr, id: 'tr2', programId: 'pl9', title: 'Second run', ranOn: '2026-10-27', run: { speed: 70, minutes: 60, packs: 3600, rejects: 80 } } as Test;
+    const r = programsReading({ tests: [], items: [], assets: [lineAsset], programs: [plain], today: T, judged: { tests: [t1, fail], studies: [] } });
+    const line = r?.lines[0];
+    expect(line?.tests?.length).toBe(2);
+    expect(line?.word).toMatch(/no test yet|test/i);
+    expect(line?.tests?.[0]?.text).toMatch(/75|3600|60/);
+    expect(line?.tests?.[1]?.text).toMatch(/70|3600|60/);
+  });
 });

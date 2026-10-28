@@ -216,14 +216,11 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
       programs.push({ ...p, ...(on ? { assetId: on } : { assetId: undefined }) });
     }
   }
-  /* no tests here on purpose: the line's reading counts a program proved by
-     its record, not by a job's test — passing the tests in re-counted the
-     proved and moved the words the line's page and paper say (the
-     machines-programs acceptance). A failed test travelling to the line
-     (docs/UPGRADE-AUDIT.md C6) waits on programsReading carrying "failed"
-     without re-counting proved — with C2, the Commission cell. */
+  /* no tests in the main reading on purpose: the line's headline counts a program proved by its record, not by a job's
+     test (docs/UPGRADE-AUDIT.md C6). `judged` carries every Commission test that names a program on the line so paper
+     and the machine's "Its programs" list every attempt, criteria answers and how it was proved — without moving the
+     headline. */
   const r0 = programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}),
-    /* a program's criteria are still answered by its tests and studies (lib/programCriteria) — they prove nothing here */
     ...(o.tests ? { judged: { tests: o.tests, ...(o.studies ? { studies: o.studies } : {}) } } : {}) });
   const extra = lines.flatMap(l => (o.stageOnly?.get(l.id) ?? []).map(x => {
     const own = l.machines.find(m => m.record && machineKey(m.name) === machineKey(x.machine));

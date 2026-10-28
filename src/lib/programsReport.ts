@@ -279,10 +279,14 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
   judged?: { tests: readonly Test[]; studies?: readonly ToolStudy[] } }): ProgramsReading | undefined {
   const today = x.today ?? todayISO();
   const tests = live(x.tests);
-  /* the judged data only for a program judged by its criteria — any other's word is read from the reading's own tests,
-     as it always was (a line's reading takes none: a job's test does not prove the line's record) */
+  /* A line's reading passes `tests: []` so a program proved on its record is not re-counted from a job's test
+     (docs/UPGRADE-AUDIT.md C6). `judged` carries every test that names a program on that line — for criteria,
+     for every attempt on paper, and for how it was proved — without moving the headline the line's record owns. */
   const jtAll = x.judged ? live([...x.judged.tests]) : tests, jsAll = x.judged ? x.judged.studies : x.studies;
   const tOf = (p?: Program) => (p && judgedByCriteria(p) ? jtAll : tests), sOf = (p?: Program) => (p && judgedByCriteria(p) ? jsAll : x.studies);
+  /** Tests and studies for detail on paper — every attempt, criteria answers, proof — when the line passes judged data. */
+  const tDetail = (p?: Program) => (x.judged ? jtAll : tOf(p)), sDetail = (p?: Program) => (x.judged ? jsAll : sOf(p));
+  const runTests = x.judged ? jtAll : tests;
   const assets = live(x.assets);
   const progs = inOrder(x.programs);
   const nameOf = (id?: string) => assets.find(a => a.id === id)?.name ?? 'The line';
@@ -319,7 +323,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
           ? programWords(p, tOf(p), today, floorFailedOn(p, tests, x.items, x.holder), sOf(p)) : undefined;
         const earlier = (part.results ?? []).filter(r => r !== now).reverse()
           .map(r => `${resultWords(r)}${r.note ? ` — ${r.note}` : ''}`);
-        const run = programRunSays(runsOfProgram(part, m || undefined, tests, [...productsOf(p?.runs), p?.what ?? '']));
+        const run = programRunSays(runsOfProgram(part, m || undefined, runTests, [...productsOf(p?.runs), p?.what ?? '']));
         group.push({
           ...(run ? { run: run.word, runTone: run.tone } : {}),
           machine, partId: part.id, stageId: st.id, ...(p ? { programId: p.id } : {}), ...(m ? { assetId: m } : {}),
@@ -329,26 +333,26 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
              and what was seen stay beside it. */
           ...(proved ? { word: proved.word, tone: proved.tone, bucket: proved.bucket, ...(said.note ? { note: said.note } : {}) }
             : own ? { word: own.word, tone: own.tone, bucket: own.bucket, ...(said.note ? { note: said.note } : {}) } : said),
-          ...(p && proved ? (pf => (pf ? { proof: pf } : {}))(proofOf(p, tOf(p), sOf(p))) : {}),
+          ...(p && proved ? (pf => (pf ? { proof: pf } : {}))(proofOf(p, tDetail(p), sDetail(p))) : {}),
           earlier,
-          ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tOf(p), sOf(p), today)),
+          ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tDetail(p), sDetail(p), today)),
           ...((proved || judged) && now ? { proving: `on the floor: ${said.word}` } : {}),
           /* THE FLOOR'S STATUS LEADS: the program record's own state beside
              it, so the line's answer is on the job's row too (flow audit #3). */
           ...(p && !proved && !own ? (r => ({ record: { word: r.word, tone: r.tone }, proving: `On the line: ${r.word}` }))(programWords(p, tOf(p), today, floorFailedOn(p, tests, x.items, x.holder), sOf(p))) : {}),
-          ...(p ? criteriaLine(p, tOf(p), sOf(p), today) : {}),
+          ...(p ? criteriaLine(p, tDetail(p), sDetail(p), today) : {}),
         });
       }
     }
     for (const p of mine.filter(q => !used.has(q.id))) {
-      const run = programRunSays(runsOfProgram({ id: '', what: p.what }, m || undefined, tests, productsOf(p.runs)));
+      const run = programRunSays(runsOfProgram({ id: '', what: p.what }, m || undefined, runTests, productsOf(p.runs)));
       group.push({
         ...(run ? { run: run.word, runTone: run.tone } : {}),
         machine, programId: p.id, ...(m ? { assetId: m } : {}), what: p.what.trim(), ...(p.runs ? { runs: p.runs } : {}), ...(p.from ? { who: p.from } : {}),
         ...programWords(p, tOf(p), today, undefined, sOf(p)), ...(p.note?.trim() ? { note: p.note.trim() } : {}), earlier: [],
-        ...criteriaLine(p, tOf(p), sOf(p), today),
-        ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tOf(p), sOf(p), today)),
-        ...(pf => (pf ? { proof: pf } : {}))(proofOf(p, tOf(p), sOf(p))),
+        ...criteriaLine(p, tDetail(p), sDetail(p), today),
+        ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tDetail(p), sDetail(p), today)),
+        ...(pf => (pf ? { proof: pf } : {}))(proofOf(p, tDetail(p), sDetail(p))),
       });
     }
     if (group.length) machines.push({ name: machine, lines: group });
