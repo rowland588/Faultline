@@ -29,7 +29,7 @@
  * program (lib/programs) and its proving tests (lib/testing) — the part made
  * the first time the floor says something of a program kept only on the list,
  * the program made the first time it is tested or given what it runs. */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { PartResultIs, Test, TestItem } from '../lib/testing';
 import { live } from '../lib/testing';
 import type { Program } from '../lib/programs';
@@ -51,6 +51,27 @@ import { ProductsBox } from './ProductsBox';
 import { ProgramCriteria } from './ProgramCriteria';
 
 type TT = ReturnType<typeof useTesting>;
+
+/** TEST + CRITERIA in one fold (STAGEGATE-AESTHETIC-REVIEW C5) — compact until opened. */
+export function ProgramProveBlock({ open, onToggle, test, criteria }: {
+  open: boolean;
+  onToggle: () => void;
+  test: ReactNode;
+  criteria: ReactNode;
+}) {
+  return (
+    <div className={'pgr-prove' + (open ? ' is-open' : '')}>
+      <button type="button" className="pgr-prove-h" aria-expanded={open} onClick={onToggle}>
+        <span className="pgr-prove-l">Prove</span>
+        <span className="sub pgr-prove-hint">{open ? 'Test and criteria' : 'Test · criteria — tap to open'}</span>
+      </button>
+      <div className="pgr-prove-body">
+        {test}
+        {criteria}
+      </div>
+    </div>
+  );
+}
 
 /* ============================== the row itself ============================= */
 
@@ -266,8 +287,10 @@ export function JobProgramRow({ projectId, line: l, tt, progs, can, stages, mach
      machine, made a record the moment it is tested. */
   const testee: Program = program ?? { id: '', projectId, what: l.what, ...(assetId ? { assetId } : {}), state: 'onMachine', sort: 0, createdAt: 0, updatedAt: 0 };
   const history = (part?.results ?? []).slice().reverse();
-  const showProveDetail = open || testOpen;
-  const showAll = () => { if (!open) onToggle(); };
+  const [proveOpen, setProveOpen] = useState(testOpen);
+  useEffect(() => { if (testOpen) setProveOpen(true); }, [testOpen]);
+  const proveDetail = proveOpen || testOpen;
+  const showAll = () => setProveOpen(true);
 
   return (
     <ProgramRowShell
@@ -276,19 +299,22 @@ export function JobProgramRow({ projectId, line: l, tt, progs, can, stages, mach
       {...(l.note ? { note: l.note } : {})} {...(aside ? { aside } : {})} problems={openProblems}
       {...(l.programId ? { dataProgram: l.programId } : {})}
       open={open} onToggle={onToggle}
-      action={<ProgramTest projectId={projectId} program={testee} assetId={assetId || undefined} tt={tt} can={can} open={testOpen} quiet
-        detail={showProveDetail}
-        onShowAll={showAll}
-        {...(can.edit ? { floor: say } : {})}
-        {...(program ? {} : { record: () => progs.add({ what: l.what, assetId: assetId || undefined, state: 'onMachine', ...(l.who ? { from: l.who } : {}) }) })} />}
-      criteria={<ProgramCriteria {...(program ? { program } : {})} tests={tt.tests} edit={can.edit} machine={l.machine !== 'The line' ? l.machine : undefined}
-        detail={showProveDetail || !!(program?.criteria?.length || program?.signedOff)}
-        onShowAll={showAll}
-        ensure={async () => {
-          const id = await progs.add({ what: l.what, assetId: assetId || undefined, state: 'onMachine', ...(l.who ? { from: l.who } : {}) });
-          return id ? (await listPrograms(projectId)).find(x => x.id === id) : undefined;
-        }}
-        planRun={async cur => (await tt.planTests([{ title: provingTitle(cur), ...(assetId ? { assetId } : {}), extra: { programId: cur.id, ...(cur.runs ? { planned: cur.runs } : {}) } }]))[0]} />}
+      action={
+        <ProgramProveBlock open={proveOpen} onToggle={() => setProveOpen(x => !x)}
+          test={<ProgramTest projectId={projectId} program={testee} assetId={assetId || undefined} tt={tt} can={can} open={testOpen && can.edit} quiet
+            detail={proveDetail}
+            onShowAll={showAll}
+            {...(can.edit ? { floor: say } : {})}
+            {...(program ? {} : { record: () => progs.add({ what: l.what, assetId: assetId || undefined, state: 'onMachine', ...(l.who ? { from: l.who } : {}) }) })} />}
+          criteria={<ProgramCriteria {...(program ? { program } : {})} tests={tt.tests} edit={can.edit} machine={l.machine !== 'The line' ? l.machine : undefined}
+            detail={proveDetail}
+            onShowAll={showAll}
+            ensure={async () => {
+              const id = await progs.add({ what: l.what, assetId: assetId || undefined, state: 'onMachine', ...(l.who ? { from: l.who } : {}) });
+              return id ? (await listPrograms(projectId)).find(x => x.id === id) : undefined;
+            }}
+            planRun={async cur => (await tt.planTests([{ title: provingTitle(cur), ...(assetId ? { assetId } : {}), extra: { programId: cur.id, ...(cur.runs ? { planned: cur.runs } : {}) } }]))[0]} />} />
+      }
       panel={
         <>
           {l.proof && <p className={'pgr-proof is-' + l.proof.tone}>{l.proof.word}</p>}

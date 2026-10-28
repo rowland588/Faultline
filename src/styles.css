@@ -13241,6 +13241,17 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .pgr-said { font-size: var(--t-detail); color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; }
 .pgr-aside { font-size: var(--t-detail); font-weight: 600; overflow-wrap: anywhere; }
 .pgr-aside.is-r { color: var(--st-r); }
+/* Prove — test and criteria in one fold (STAGEGATE-AESTHETIC-REVIEW C5) */
+.pgr-prove { grid-column: 1 / -1; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--bg) 88%, var(--surface)); }
+.pgr-prove-h { all: unset; box-sizing: border-box; width: 100%; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 7px 10px; cursor: pointer; font: inherit; border-bottom: 1px solid transparent; }
+.pgr-prove-h:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-sm); }
+.pgr-prove.is-open .pgr-prove-h { border-bottom-color: var(--line); }
+.pgr-prove-l { font-weight: 700; font-size: var(--t-detail); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
+.pgr-prove-hint { flex: 1 1 120px; }
+.pgr-prove-body { padding: 8px 10px 10px; display: grid; gap: 8px; min-width: 0; }
+.pgr-prove .pgc-compact { border: 0; padding: 0; background: transparent; }
+.pgr-prove .pgc-h { margin: 0; }
+
 /* the test: beside the row while it has no journey; under it once it has */
 .pgr-test { grid-column: 1 / -1; min-width: 0; }
 .pgr:not(:has(.ptx-j)):not(:has(.ptx-panel)) .pgr-test { grid-column: 2; grid-row: 1; }

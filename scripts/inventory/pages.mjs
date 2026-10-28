@@ -186,7 +186,8 @@ export const PAGES = (sd, cap) => [
     { what: 'Add a program — the one primary', sel: '.part-head .btn-primary', text: /^Add a program$/ },
     /* the page header since B3: the programs report in Report ▾ (it was "Programs report — PDF") */
     { what: 'the page header — Report ▾ with the programs report', sel: '.part-head .part-menu-b', text: /^Report/ },
-    { what: 'the states worth showing, each a filter', sel: '.pp-chip', n: 2 },
+    { what: 'Needs you first — then the states worth showing, each a filter', sel: '.pp-chip', text: /Needs you/ },
+    { what: 'Prove — test and criteria in one fold on each row', sel: '.pgr-prove-h', n: 1 },
     { what: 'a row a program, machine by machine', sel: '.pgr-list .pgr', n: 4 },
     { what: 'how its test went, on its row', sel: '.pgr .ptx-go' },
     { what: 'a program added to a machine', sel: '.pgr-add-open' },

@@ -49,7 +49,7 @@ import { openRecord, openRecordAt } from '../ui/RecordDrawer';
 import { MachineName, openMachine } from '../ui/MachinePanel';
 import { AccessNote } from '../ui/AccessNote';
 import { ProgramTest } from '../ui/ProgramTest';
-import { JobProgramRow, ProgramFields, ProgramRowShell } from '../ui/ProgramRow';
+import { JobProgramRow, ProgramFields, ProgramProveBlock, ProgramRowShell } from '../ui/ProgramRow';
 import { ProgramCriteria } from '../ui/ProgramCriteria';
 import { useAccess, useCanStartProjects } from '../cloud/access';
 import { deleteProgramWithTests, putProgram, putProgramOnMachine } from '../db';
@@ -67,15 +67,23 @@ import { useLineRecords } from '../lib/useLineRecords';
 
 /* The two said "why" of the ones to do (12 October): not tested, no program. */
 type Said = 'notTested' | 'noProgram';
-type Filter = 'all' | ProgBucket | Said;
+type Filter = 'all' | 'needs' | ProgBucket | Said;
+
+/** Still to do, failed, late, or waiting on the floor — the Programs page opens here (STAGEGATE-AESTHETIC-REVIEW C5). */
+export function programNeedsAttention(l: ProgramLine): boolean {
+  return l.bucket === 'failed' || l.bucket === 'late' || l.bucket === 'open'
+    || l.said === 'notTested' || l.said === 'noProgram';
+}
+
 const FILTERS: { key: Filter; word: string }[] = [
-  { key: 'all', word: 'All' }, { key: 'failed', word: 'Failed' }, { key: 'late', word: 'Late' },
+  { key: 'all', word: 'All' }, { key: 'needs', word: 'Needs you' },
+  { key: 'failed', word: 'Failed' }, { key: 'late', word: 'Late' },
   { key: 'noProgram', word: 'No program' }, { key: 'notTested', word: 'Not tested' },
   { key: 'baseline', word: 'At baseline' }, { key: 'open', word: 'To do' }, { key: 'done', word: 'Passed or done' },
 ];
 /* Only the abnormal count wears colour (CLAUDE.md) — no program waits on
    whoever writes it (amber); not tested is still to do. */
-const TILE_TONE: Record<Exclude<Filter, 'all'>, string> = { done: 'g', baseline: 'g', failed: 'r', late: 'r', open: 'n', noProgram: 'a', notTested: 'n' };
+const TILE_TONE: Record<Exclude<Filter, 'all'>, string> = { needs: 'w', done: 'g', baseline: 'g', failed: 'r', late: 'r', open: 'n', noProgram: 'a', notTested: 'n' };
 const isSaid = (f: Filter): f is Said => f === 'notTested' || f === 'noProgram';
 type LineRow = PickRow & { line: string; lineId: string };
 
@@ -93,7 +101,8 @@ export function ProgramsPage({ projectId, only, title }: {
   const can = useAccess(projectId);
   /* THE JOB'S MONEY (lib/useJobMoney) — said in the closing line when the slip has run one up */
   const money = useJobMoney(projectId);
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<Filter>('needs');
+  const [filterPicked, setFilterPicked] = useState(false);
   const [machineF, setMachineF] = useState('all');
   const [openRow, setOpenRow] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -110,6 +119,12 @@ export function ProgramsPage({ projectId, only, title }: {
      job's machines, so its report carries them (lib/lineRecords). */
   const lineReadings = useMemo(() => jobLineReadings(jobLinePrograms(projectId, rec.all, rec.machines, rec.programs, rec.jobLines), today,
     { tests: [...tt.tests, ...rec.provingTests.filter(t => !tt.tests.some(u => u.id === t.id))], studies: rec.studies }), [rec, projectId, today, tt.tests]);
+
+  useEffect(() => {
+    if (!reading || filterPicked) return;
+    const n = (reading.lines ?? []).filter(programNeedsAttention).length;
+    if (filter === 'needs' && n === 0) setFilter('all');
+  }, [reading, filter, filterPicked]);
 
   if (tt.loading || progs.loading || !project) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
 
@@ -130,8 +145,13 @@ export function ProgramsPage({ projectId, only, title }: {
     const name = ws ? rec.all.find(w => w.id === ws)?.name : undefined;
     return { word: `${name ? `On ${name}` : 'On the Programs list'}: ${l.record.word}`, tone: l.record.tone };
   };
-  const count = (b: Filter) => (b === 'all' ? lines.length : lines.filter(l => (isSaid(b) ? l.said === b : l.bucket === b)).length);
-  const keep = (l: ProgramLine) => filter === 'all' || (isSaid(filter) ? l.said === filter : l.bucket === filter);
+  const count = (b: Filter) => {
+    if (b === 'all') return lines.length;
+    if (b === 'needs') return lines.filter(programNeedsAttention).length;
+    return lines.filter(l => (isSaid(b) ? l.said === b : l.bucket === b)).length;
+  };
+  const keep = (l: ProgramLine) => filter === 'all' || (filter === 'needs' ? programNeedsAttention(l)
+    : isSaid(filter) ? l.said === filter : l.bucket === filter);
   /* The machines in the job's order, then the line itself when anything is
      on it — every machine shows, so a program can be added to one. */
   const machines = [...assets.map(a => ({ id: a.id, name: a.name })),
@@ -175,7 +195,7 @@ export function ProgramsPage({ projectId, only, title }: {
           else document.querySelector('.pp-m')?.scrollIntoView({ behavior: 'smooth' });
         } } : undefined}
         papers={[{ label: 'Programs report', for: 'every program machine by machine — the project’s and its lines’ own', disabled: (!reading && !lineReadings.length) || busy, make: download }]}>
-        <p className="sub pp-how">Tap a program for its name, machine and history. Test it and pick criteria on its row — open the row for every test and every criterion.
+        <p className="sub pp-how">Opens on what needs you. Tap a program for its name and history — <b>Prove</b> on its row holds the test and the criteria together.
           {jobLines.map(l => <span key={l.id}> · <button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(l.id)}`)}>{l.name}&rsquo;s programs ›</button></span>)}</p>
       </PageHeader>
       {said && <p className="tc-ok" role="status">{said}</p>}
@@ -190,7 +210,7 @@ export function ProgramsPage({ projectId, only, title }: {
             const tone = f.key === 'all' ? 'n' : n ? TILE_TONE[f.key as Exclude<Filter, 'all'>] : 'z';
             return (
               <button key={f.key} type="button" className={`pp-chip is-${tone}${filter === f.key ? ' on' : ''}`} aria-pressed={filter === f.key}
-                onClick={() => setFilter(filter === f.key && f.key !== 'all' ? 'all' : f.key)}>
+                onClick={() => { setFilterPicked(true); setFilter(filter === f.key && f.key !== 'all' ? 'all' : f.key); }}>
                 {f.word} <b>{n}</b>
               </button>
             );
@@ -269,6 +289,9 @@ function LineOwnRow({ r, onLine, projectId, tt, can, today, open, onToggle, test
   machines: string[];
 }) {
   const may = useCanStartProjects();
+  const [proveOpen, setProveOpen] = useState(testOpen);
+  useEffect(() => { if (testOpen) setProveOpen(true); }, [testOpen]);
+  const proveDetail = proveOpen || testOpen;
   const p = r.program, st = stateOf(p), late = !r.proved && standingOf(p, today) === 'overdue';
   const word = r.proved && p.signedOff ? `signed off — passed ${niceDay(p.signedOff.on)}` : r.proved ? `proved ${niceDay(p.provedOn)}` : late ? `test was due ${niceDay(p.testOn)}`
     : `${STATE_WORD[st].toLowerCase()}${p.testOn ? ` · test ${niceDay(p.testOn)}` : ''}`;
@@ -278,13 +301,16 @@ function LineOwnRow({ r, onLine, projectId, tt, can, today, open, onToggle, test
       meta={[p.runs && `runs ${p.runs}`, p.from, onLine && r.machine ? `${r.machine} is not on this project — tested on the line itself` : ''].filter(Boolean).join(' · ') || undefined}
       {...(p.note ? { note: p.note } : {})}
       open={open} onToggle={onToggle}
-      action={<ProgramTest projectId={projectId} program={p} {...(r.assetId ? { assetId: r.assetId } : {})} tt={tt} can={can} open={testOpen} quiet
-        detail={open || testOpen}
-        onShowAll={() => { if (!open) onToggle(); }} />}
-      criteria={<ProgramCriteria program={p} tests={tt.tests} edit={can.edit} {...(r.machine ? { machine: r.machine } : {})}
-        detail={open || testOpen || !!(p.criteria?.length || p.signedOff)}
-        onShowAll={() => { if (!open) onToggle(); }}
-        planRun={async cur => (await tt.planTests([{ title: provingTitle(cur), ...(r.assetId ? { assetId: r.assetId } : {}), extra: { programId: cur.id, ...(cur.runs ? { planned: cur.runs } : {}) } }]))[0]} />}
+      action={
+        <ProgramProveBlock open={proveOpen} onToggle={() => setProveOpen(x => !x)}
+          test={<ProgramTest projectId={projectId} program={p} {...(r.assetId ? { assetId: r.assetId } : {})} tt={tt} can={can} open={testOpen && can.edit} quiet
+            detail={proveDetail}
+            onShowAll={() => setProveOpen(true)} />}
+          criteria={<ProgramCriteria program={p} tests={tt.tests} edit={can.edit} {...(r.machine ? { machine: r.machine } : {})}
+            detail={proveDetail}
+            onShowAll={() => setProveOpen(true)}
+            planRun={async cur => (await tt.planTests([{ title: provingTitle(cur), ...(r.assetId ? { assetId: r.assetId } : {}), extra: { programId: cur.id, ...(cur.runs ? { planned: cur.runs } : {}) } }]))[0]} />} />
+      }
       panel={<>
         <p className="sub pgr-own">Planned on {r.line} — kept there, and changed here or there alike.{' '}
           <button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(r.lineId)}`)}>{r.line}&rsquo;s programs ›</button></p>
