@@ -27,6 +27,7 @@ const sanLine = (l: ProgramLine): ProgramLine => ({
   ...(l.note ? { note: san(l.note) } : {}), ...(l.proving ? { proving: san(l.proving) } : {}),
   ...(l.run ? { run: san(l.run) } : {}),
   ...(l.tests ? { tests: l.tests.map(t => ({ ...t, badge: san(t.badge), text: san(t.text), studies: t.studies.map(san), ...(t.split ? { split: san(t.split) } : {}) })) } : {}), ...(l.proof ? { proof: { ...l.proof, word: san(l.proof.word) } } : {}),
+  ...(l.criteria ? { criteria: { ...l.criteria, says: san(l.criteria.says), each: l.criteria.each.map(c => ({ ...c, title: san(c.title), word: san(c.word), says: san(c.says) })) } } : {}),
 });
 
 /** Each machine's programs, a row each: the program and its state on one
@@ -45,12 +46,15 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
     /* how a proved one was proved (flow audit #21) — its colour only when abnormal */
     proof: l.proof ? wrap(f.doc, l.proof.word, f.w - indent, 8) : [],
     run: l.run ? wrap(f.doc, `In Commission: ${l.run}`, f.w - indent, 8.5, 'bold') : [],
+    /* ITS CRITERIA (docs/PROGRAM-GOAL.md): where they stand — unless signed off, which its proof says — then each with its answer */
+    crit: l.criteria && !(l.proof && /^Signed off/.test(l.proof.word)) ? wrap(f.doc, `Criteria: ${l.criteria.says}`, f.w - indent, 8.5, 'bold') : [],
+    each: (l.criteria?.each ?? []).map(c => ({ tone: c.tone, lines: wrap(f.doc, `${c.word} — ${c.title}: ${c.says}`, f.w - indent - 4, 8) })),
     /* every test of it, first to last, each with the studies lined up for it */
     tests: (l.tests ?? []).map(t => ({ tone: t.tone, badge: t.badge, lines: [...wrap(f.doc, t.text, f.w - indent - 4, 8), ...(t.split ? wrap(f.doc, t.split, f.w - indent - 4, 8) : [])], studies: t.studies.flatMap(x => wrap(f.doc, `Study: ${x}`, f.w - indent - 16, 7.5)) })),
   });
   const height = (f: Frame, l: ProgramLine) => {
     const p = parts(f, l);
-    return 8 + Math.max(p.head.length * 13 + p.who.length * 10, p.word.length * 10, 16) + p.note.length * 11 + p.run.length * 11 + (p.earlier.length + p.proving.length + p.proof.length) * 10 + p.tests.reduce((n, t) => n + 9 + t.lines.length * 10 + t.studies.length * 9, 0) + 6;
+    return 8 + Math.max(p.head.length * 13 + p.who.length * 10, p.word.length * 10, 16) + p.note.length * 11 + p.run.length * 11 + p.crit.length * 11 + p.each.reduce((n, c) => n + c.lines.length * 10, 0) + (p.earlier.length + p.proving.length + p.proof.length) * 10 + p.tests.reduce((n, t) => n + 9 + t.lines.length * 10 + t.studies.length * 9, 0) + 6;
   };
   for (const g of reading.machines.map(m => ({ ...m, name: san(m.name), lines: m.lines.map(sanLine) }))) {
     /* The machine's name as it is written — a capitalised label lost it to
@@ -76,6 +80,8 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
           font(f.doc, 8, 'bold', TONE[l.tone]); f.doc.text(p.word, f.x + f.w - stateW, y + 15);
           ty = Math.max(ty, y + 16 + p.word.length * 10);
           if (p.proof.length) { font(f.doc, 8, l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? 'bold' : 'normal', l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? TONE[l.proof.tone] : MUTED); f.doc.text(p.proof, f.x + indent, ty); ty += p.proof.length * 10; }
+          if (p.crit.length) { font(f.doc, 8.5, 'bold', l.criteria ? TONE[l.criteria.tone] : INK2); f.doc.text(p.crit, f.x + indent, ty); ty += p.crit.length * 11; }
+          for (const c of p.each) { font(f.doc, 8, 'normal', c.tone === 'r' || c.tone === 'a' ? TONE[c.tone] : INK2); f.doc.text(c.lines, f.x + indent + 4, ty); ty += c.lines.length * 10; }
           if (p.note.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.note, f.x + indent, ty); ty += p.note.length * 11; }
           if (p.proving.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.proving, f.x + indent, ty); ty += p.proving.length * 10; }
           /* Its run at speed — the colour only when it fell short or passed. */

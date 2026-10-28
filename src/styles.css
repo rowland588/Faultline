@@ -13268,6 +13268,30 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .pgr-after { grid-column: 1; min-width: 0; display: grid; gap: 2px; font-size: var(--t-detail); }
 .pgr-after .mt-facts, .pgr-after .lp-how { margin: 0; }
 
+/* A PROGRAM'S CRITERIA AND ITS SIGN-OFF (ui/ProgramCriteria; docs/PROGRAM-GOAL.md) — under its test, the row's width;
+   each criterion its tool's answer in its colour, the sign-off said in words */
+.pgr-crit { grid-column: 1 / -1; min-width: 0; }
+.pgc { display: grid; gap: 6px; min-width: 0; }
+.pgc-empty { display: block; }
+.pgc-add { font-size: var(--t-detail); text-align: left; }
+.pgc-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: var(--t-detail); }
+.pgc-v { overflow-wrap: anywhere; }
+.pgc-since { margin: 0; font-size: var(--t-detail); font-weight: 600; color: var(--st-a); overflow-wrap: anywhere; }
+.pgc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.pgc-row { display: flex; align-items: flex-start; gap: 6px; min-width: 0; padding: 4px 8px; border: 1px solid var(--line); border-left: 3px solid var(--st-n); border-radius: var(--radius-sm); background: var(--surface); }
+.pgc-row.is-g { border-left-color: var(--st-g); } .pgc-row.is-r { border-left-color: var(--st-r); } .pgc-row.is-a { border-left-color: var(--st-a); }
+.pgc-open { all: unset; box-sizing: border-box; cursor: pointer; flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: var(--t-detail); }
+.pgc-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-xs); }
+.pgc-t { font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.pgc-says { flex-basis: 100%; color: var(--ink-2); overflow-wrap: anywhere; }
+.pgc-x { all: unset; cursor: pointer; padding: 2px; color: var(--muted); line-height: 0; }
+.pgc-x:hover { color: var(--st-r); }
+.pgc-signed { margin: 0; font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; }
+.pgc-signed b { color: var(--st-g); }
+.pgc-acts, .pgc-go, .pgc-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.pgc-panel { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); min-width: 0; }
+.pgc-refused { color: var(--st-a); font-weight: 600; }
+
 /* THE PLAN'S TABS (ui/PlanTabs; docs/STAGEGATE-UX.md slice 2) — the four
    gates and the timeline as one place, above each one's page. The tab you
    are on is underlined in the blue you press; a tab's count as the rail

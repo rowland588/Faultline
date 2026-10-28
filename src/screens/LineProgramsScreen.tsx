@@ -23,7 +23,7 @@ import { ProductsBox } from '../ui/ProductsBox';
 import { useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import type { Program, ProgramState } from '../lib/programs';
-import { STATE_WORD, daysOverdue, isProved, movedOne, standingOf, stateOf } from '../lib/programs';
+import { STATE_WORD, daysOverdue, isProved, judgedByCriteria, movedOne, standingOf, stateOf } from '../lib/programs';
 import { lineProgramsReading, machineKey, machineOfProgram, machinesOnLine, productsOnLine, programsOnLine, type LineMachine } from '../lib/lineRecords';
 import { useLineRecords, type LineRecords } from '../lib/useLineRecords';
 import { projectsOnLines, stageOnlyByLine, useJobFloor, type FloorWord, type StageOnly } from '../lib/useJobFloor';
@@ -41,6 +41,7 @@ import { nav } from '../state/useRoute';
 import { DateInput } from '../ui/DateInput';
 import { AddFold } from '../ui/AddFold';
 import { ProgramFields, ProgramRowShell } from '../ui/ProgramRow';
+import { ProgramCriteria } from '../ui/ProgramCriteria';
 import { offerUndo } from '../ui/Undo';
 
 /** One line's programs, read once for the page and the paper. */
@@ -297,6 +298,8 @@ function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: 
          does nothing and the row does not say it does. */
       open={open} onToggle={() => { if (edit) { setOpen(!open); setProving(false); } else if (job) nav(`/project/${job.id}/programs`); }}
       {...(edit ? {} : { tap: job ? `open it on ${job.name}’s Programs` : '' })}
+      /* ITS CRITERIA AND ITS SIGN-OFF (docs/PROGRAM-GOAL.md) — a line's own changed here, a project's read here */
+      criteria={<ProgramCriteria program={p} tests={rec.provingTests} edit={edit} {...(machine ? { machine: machine.name } : {})} />}
       after={(job || (isProved(p) && proof)) ? <>
         {job && (
           <div className="mt-facts lp-job">on <button type="button" className="cw-link" onClick={() => nav(`/project/${job.id}/programs`)}>{job.name} ›</button>{job.archivedAt ? ' (archived)' : ''}</div>
@@ -346,7 +349,8 @@ function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: 
                 }}>
                 <option value="needed">Not written</option>
                 <option value="onMachine">On the machine</option>
-                <option value="proved">Proved</option>
+                {/* judged by its criteria, only the sign-off proves it */}
+                {(!judgedByCriteria(p) || isProved(p)) && <option value="proved">Proved</option>}
               </select>
             </label>
           } />

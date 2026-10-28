@@ -64,8 +64,10 @@ export interface CriterionAnswer {
 
 const dayOf = (ms: number | undefined): string | undefined => (ms ? new Date(ms).toISOString().slice(0, 10) : undefined);
 
-/** A study criterion's answer: the tool's verdict, an overrule taking its place. */
-function studyAnswer(c: Criterion, s: ToolStudy | undefined, ctx?: StudyContext): CriterionAnswer {
+/** A study criterion's answer: the tool's verdict, an overrule taking its place. `known` false: the studies were not
+ *  read where this is asked, so a study not found is not yet known — never said gone, never a pass. */
+function studyAnswer(c: Criterion, s: ToolStudy | undefined, ctx?: StudyContext, known = true): CriterionAnswer {
+  if (!s && !known) return { c, title: 'A study', word: 'notYet', tone: 'n', says: 'Open the program to read its study.', short: 'study not read here' };
   if (!s || s.deletedAt) return { c, title: 'A study', word: 'gone', tone: 'a', says: 'The study picked for it has been deleted — take it off or pick another.', short: 'study deleted' };
   const said = studySays(s, ctx);
   const line = studyLine(s, ctx);
@@ -94,9 +96,9 @@ function runAnswer(c: Criterion, tests: Test[], today: string): CriterionAnswer 
 }
 
 /** Every criterion picked for a program, in the order picked, with its answer. */
-export function criteriaOf(p: Pick<Program, 'criteria'>, studies: readonly ToolStudy[], tests: readonly Test[], today = todayISO(), ctx?: StudyContext): CriterionAnswer[] {
+export function criteriaOf(p: Pick<Program, 'criteria'>, studies: readonly ToolStudy[] | undefined, tests: readonly Test[], today = todayISO(), ctx?: StudyContext): CriterionAnswer[] {
   return (p.criteria ?? []).map(c => c.kind === 'study'
-    ? studyAnswer(c, studies.find(s => s.id === c.id), ctx)
+    ? studyAnswer(c, studies?.find(s => s.id === c.id), ctx, !!studies)
     : runAnswer(c, [...tests], today));
 }
 

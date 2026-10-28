@@ -23,7 +23,8 @@ import { stepsNamed, untouched, usualAgreed, usualHolder, usualStages, whoFor } 
 import { changeTests, moveTestsWithWhy } from './WhyMoved';
 import { movedLater } from '../lib/story';
 import { staggered } from '../lib/weeks';
-import { isProved, type Program } from '../lib/programs';
+import { isProved, judgedByCriteria, type Program } from '../lib/programs';
+import { criteriaOf, criteriaVerdict } from '../lib/programCriteria';
 import { afterPanelBack } from './backCloses';
 import { programJourney } from '../lib/programJourney';
 import { isSettled, live, outcomeWord, plannedEnd, type Asset, type Outcome, type Test } from '../lib/testing';
@@ -123,7 +124,11 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
           {mine.map(p => {
             const t = provingTestOf(p, tt.tests);
             const c = t ? testCell(t, today) : undefined;
-            const word = isProved(p) && (!c || c.tone !== 'g') ? { tone: 'g', word: `proved ${niceDay(p.provedOn)}` } : c ?? { tone: 'n', word: 'no test yet' };
+            /* SIGNED OFF, or where its criteria stand, when it is judged by them (docs/PROGRAM-GOAL.md) — a test is one criterion */
+            const judged = judgedByCriteria(p) ? criteriaVerdict(p, criteriaOf(p, studies, tt.tests, today)) : undefined;
+            const word = p.signedOff && isProved(p) ? { tone: 'g', word: `signed off — passed ${niceDay(p.signedOff.on)}` }
+              : judged && !isProved(p) ? { tone: judged.tone, word: judged.words }
+              : isProved(p) && (!c || c.tone !== 'g') ? { tone: 'g', word: `proved ${niceDay(p.provedOn)}` } : c ?? { tone: 'n', word: 'no test yet' };
             return (
               <li key={p.id}>
                 <button type="button" className="cgp-row" onClick={() => close(() => (t ? openRecord(project.id, t.id) : nav(`/project/${project.id}/programs?test=${encodeURIComponent(p.id)}`)))}>

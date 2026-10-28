@@ -48,6 +48,7 @@ import { changeTests } from '../ui/WhyMoved';
 import { gateOf, type StepGate, type Test, type TestItem } from '../lib/testing';
 import { usePrograms } from '../lib/usePrograms';
 import { programsReading } from '../lib/programsReport';
+import { useJobStudies } from '../ui/StudyLinks';
 import { AddAsset } from './TestsScreen';
 import { useMachinesToTakeOn } from '../lib/useLineRecords';
 import { useAccess } from '../cloud/access';
@@ -371,8 +372,9 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
  *  their page. */
 function ProgramsLine({ projectId, tt }: { projectId: string; tt: ReturnType<typeof useTesting> }) {
   const progs = usePrograms(projectId);
+  const studies = useJobStudies(projectId);
   if (progs.loading) return null;
-  const r = programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today: todayISO() });
+  const r = programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today: todayISO(), studies });
   return (
     /* THE ROW IS THE DOOR (docs/DOORS.md rule 1): where the programs stand,
        and a tap opens their page. It was a heading pressed against the

@@ -31,6 +31,9 @@ import { programsCell, programsWords } from './commission';
 import type { Program } from './programs';
 import { niceDay } from './weeks';
 import { programJourney } from './programJourney';
+import { CRITERION_WORD, criteriaOf, criteriaVerdict, passedItLine } from './programCriteria';
+import { judgedByCriteria } from './programs';
+import type { ToolStudy } from './study';
 import type { LeanTile, LeanTone } from './lean';
 import { moneyTile } from './stageGateLean';
 import { commissionClosing, commissionTiles } from './stageGatePages';
@@ -65,7 +68,10 @@ export interface CmMachine {
   journeys: CmJourney[];
 }
 
-export interface CmJourney { what: string; says: string; best?: string; steps: { text: string; tone: CmTone }[] }
+export interface CmJourney { what: string; says: string; best?: string; steps: { text: string; tone: CmTone }[];
+  /** ITS CRITERIA (docs/PROGRAM-GOAL.md), when any are picked — where they stand, or what passed it once signed off, and
+   *  each criterion with its tool's answer. */
+  criteria?: { says: string; tone: CmTone; each: { text: string; tone: CmTone }[] } }
 
 export interface CmLine { text: string; meta?: string; tone: CmTone }
 
@@ -115,6 +121,8 @@ export interface CommissioningInput {
   tests: Test[];
   programs: Program[];
   today: string;
+  /** The studies a program's criteria are answered by (lib/programCriteria). */
+  studies?: readonly ToolStudy[];
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -174,7 +182,7 @@ export function commissioningReport(x: CommissioningInput): CommissioningReport 
         counts.booked && `${counts.booked} booked`, counts.noDay && `${counts.noDay} with no day`].filter(Boolean).join(' · ')
       : 'no tests planned';
     const m = { at: hm.at, counts, open: hm.open, programsWrong: pc?.wrong ?? 0 };
-    const journeys = a ? journeysOf(x.programs.filter(p => (p.assetId ?? '') === a.id), x.tests, today) : [];
+    const journeys = a ? journeysOf(x.programs.filter(p => (p.assetId ?? '') === a.id), x.tests, today, x.studies) : [];
     return {
       name: hm.name, at: hm.at, verdict: verdictOf(m), counts, testsSaid, tests: hm.tests,
       ...(pc ? { programs: programsWords(pc) } : {}), programsWrong: pc?.wrong ?? 0, open: hm.open,
@@ -225,14 +233,21 @@ export function commissioningReport(x: CommissioningInput): CommissioningReport 
     verdict: c.onTarget, says: commission?.says ?? 'No tests planned yet', dates, machinesSaid,
     ...(c.commentary ? { commentary: c.commentary } : {}),
     machines, why, doing, booked, line: h.line, linePrograms: h.linePrograms, runs: commission?.runs ?? [],
-    lineJourneys: journeysOf(x.programs.filter(p => !p.assetId || !assets.some(a => a.id === p.assetId)), x.tests, today),
+    lineJourneys: journeysOf(x.programs.filter(p => !p.assetId || !assets.some(a => a.id === p.assetId)), x.tests, today, x.studies),
   };
 }
 
-/** Each program's journey, those tested at least once (lib/programJourney). */
-function journeysOf(programs: Program[], tests: Test[], today: string): CmJourney[] {
+/** Each program's journey, those tested at least once or judged by criteria picked for it (lib/programJourney,
+ *  lib/programCriteria). */
+function journeysOf(programs: Program[], tests: Test[], today: string, studies?: readonly ToolStudy[]): CmJourney[] {
   return programs.filter(p => !p.deletedAt).flatMap(p => {
     const j = programJourney(p, tests, today);
-    return j.attempts.length ? [{ what: p.what, says: j.says ?? '', ...(j.best ? { best: j.best } : {}), steps: j.attempts.map(s => ({ text: s.text, tone: s.result.tone })) }] : [];
+    const criteria = judgedByCriteria(p) ? (answers => {
+      const v = criteriaVerdict(p, answers);
+      return { says: passedItLine(p, answers) ?? [v.words, v.since].filter(Boolean).join(' — '), tone: (v.tone === 'w' ? 'w' : v.tone) as CmTone,
+        each: answers.map(a => ({ text: `${CRITERION_WORD[a.word]} — ${a.title}: ${a.says}`, tone: a.tone as CmTone })) };
+    })(criteriaOf(p, studies, tests, today)) : undefined;
+    return j.attempts.length || criteria ? [{ what: p.what, says: j.says ?? (criteria ? 'not tested — judged by its criteria' : ''), ...(j.best ? { best: j.best } : {}),
+      steps: j.attempts.map(s => ({ text: s.text, tone: s.result.tone })), ...(criteria ? { criteria } : {}) }] : [];
   });
 }

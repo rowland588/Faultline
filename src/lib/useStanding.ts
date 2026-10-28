@@ -5,7 +5,9 @@
  * differently from the client report, which calls the same `standing()` on the
  * same records.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { listStudies, onDataChange } from '../db';
+import type { ToolStudy } from './study';
 import { useProject } from './useProjects';
 import { useTesting } from './useTesting';
 import { useMaterials } from './useMaterials';
@@ -41,6 +43,15 @@ export function useStanding(projectId: string): StandingState {
   const tt = useTesting(projectId);
   const mats = useMaterials(projectId);
   const progs = usePrograms(projectId);
+  /* the studies a program's criteria are answered by (lib/programCriteria) — its count says the same as its page */
+  const [studies, setStudies] = useState<ToolStudy[] | undefined>(undefined);
+  useEffect(() => {
+    let on = true;
+    const load = () => void listStudies(projectId).then(s => { if (on) setStudies(s); });
+    load();
+    const off = onDataChange(load);
+    return () => { on = false; off(); };
+  }, [projectId]);
 
   const loading = pl || tt.loading || mats.loading || progs.loading;
   const expectedAt = project?.expectedAt;
@@ -93,12 +104,12 @@ export function useStanding(projectId: string): StandingState {
          has not passed; late what is past its day, failed what failed — two
          words, as the Programs page's tiles say them. */
       programs: (r => (r ? { n: r.open + r.late + r.failed, late: r.late, failed: r.failed, done: r.done + r.baseline } : row('programs', by('programs')?.open ?? 0, by('programs')?.late ?? 0)))(
-        loading ? undefined : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project })),
+        loading ? undefined : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project, ...(studies ? { studies } : {}) })),
       /* The gates after Install. */
       setup: { ...row('setup', by('setup')?.open ?? 0, by('setup')?.late ?? 0), problem: problems('setup') },
       handover: { ...row('handover', by('handover')?.open ?? 0, by('handover')?.late ?? 0), problem: problems('handover') },
     };
-  }, [answer.rows, loading, tt.tests, tt.items, tt.assets, mats.materials, progs.programs, project]);
+  }, [answer.rows, loading, tt.tests, tt.items, tt.assets, mats.materials, progs.programs, project, studies]);
 
   return { loading, standing: answer, counts, expectedAt, plannedAt };
 }

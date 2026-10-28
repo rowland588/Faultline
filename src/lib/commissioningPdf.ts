@@ -143,6 +143,11 @@ function journeyBlocks(m: Pick<CmMachine, 'journeys'>, title = 'Programs — the
   for (const j of m.journeys) {
     out.push(line(j.what, j.says, INK2));
     if (j.best) out.push(text({ text: j.best, size: 8.5, style: 'bold', colour: OK, indent: 10 }));
+    /* its criteria (docs/PROGRAM-GOAL.md): where they stand, or what passed it — then each with its tool's answer */
+    if (j.criteria) {
+      out.push(text({ text: `Criteria: ${j.criteria.says}`, size: 8.5, style: 'bold', colour: j.criteria.tone === 'n' ? INK2 : CM[j.criteria.tone], indent: 10 }));
+      for (const c of j.criteria.each) out.push(text({ text: c.text, size: 8.5, colour: c.tone === 'r' ? DANGER : INK2, indent: 20, bullet: '•', after: 1 }));
+    }
     for (const st of j.steps) out.push(text({ text: st.text, size: 8.5, colour: st.tone === 'r' ? DANGER : st.tone === 'w' ? BOOKED : INK2, indent: 10, bullet: '•', after: 1 }));
   }
   out.push({ height: f => gap(f.density, 's'), draw: () => undefined });

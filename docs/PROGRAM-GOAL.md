@@ -1,7 +1,9 @@
 # A program is proved by the criteria you pick — the design, for Rowland's go
 
-**Status: a design, agreed in principle on 28 October. Nothing here is built** — it changes the program record and
-what "proved" means, so it waits for Rowland's go (CLAUDE.md: nothing new is built until he says go).
+**Status: built, 28 October, at Rowland's "Go"** — the record (`programs.criteria`, `programs.signed_off`, applied and
+read back), the logic (`src/lib/programCriteria.ts`, its tests on program 5), the row (`src/ui/ProgramCriteria.tsx` on a
+project's Programs, a line's own programs there and on the line's page), the machine page, Commission's sheet, the
+Programs report, the Machine report and the commissioning report; proved by `scripts/acceptance/program-criteria.mjs`.
 
 ## What he said
 
@@ -73,11 +75,16 @@ PROGRAM — what it runs, its machine
 
 ## What changes in the record
 
-- **Criteria:** a study or test already names its program (`ToolStudy.programId`, `Test.programId`), so the
-  criteria are those — no new table. Lining a study up for a program makes it a criterion.
+- **Criteria:** an explicit list on the program, `criteria` — `{ kind: 'study' | 'run', id }`, one JSON column
+  (`supabase/PROGRAM_CRITERIA.sql`). Not every study or test naming the program: program 5's net run, failed on outside
+  noise, would otherwise be one, and every program tested before would need a sign-off. A study made from *Add a
+  criterion* names the program (`ToolStudy.programId`); a run test is the first test of its chain, passed once any attempt
+  passed. A study's answer is its tool's own verdict (lib/studyLinks studySays, an overrule taking its place) — for a
+  capability study with limits that is "every reading within them", its Ppk said beside it.
 - **Sign-off:** one new field on the program, `signedOff` — the names and the day (one JSON column, `programs.signed_off`,
-  additive; shipped the house way: `supabase/PROGRAM_SIGNOFF.sql`, applied, read back — or pasted, while the
-  Supabase connector is failing to connect).
+  additive; `supabase/PROGRAM_SIGNOFF.sql`, applied and read back). Nothing takes a sign-off back by itself — a test,
+  a deleted test or the floor's status leave it standing; a criterion that slips afterwards is said beside it (*Since
+  it was signed off, … reads didn't pass*). The owner and the team sign off (can.edit); a client reads it.
 - **Programs from before:** a program already proved keeps its date and says how (*Proved by its test*, *Signed off by
   hand*), as today. A program with no criteria picked works as today — a passed test proves it — until criteria are
   picked; then only the sign-off does.
@@ -89,7 +96,7 @@ PROGRAM — what it runs, its machine
 - **A machine-efficiency figure** (run time ÷ time less outside stops) — belongs in a tool (the loss count or
   reliability), not in the program; a separate piece if wanted.
 
-## The build, once you say go
+## The build (done 28 October)
 
 1. `PROGRAM_SIGNOFF.sql`, the mapper and the schema test.
 2. `lib/programs`: a program's criteria and their answers (`criteriaOf`), ready to sign off, signed off — with unit

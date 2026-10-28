@@ -228,9 +228,9 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
      the handover reading's machines, and the programs the board counts:
      the job's and each line's this job has a test for (lib/commissionPrograms). */
   const commissioning = useMemo(() => (report && handover ? commissioningReport({
-    client: report, handover, assets: tt.assets, tests: tt.tests, today: todayISO(),
+    client: report, handover, assets: tt.assets, tests: tt.tests, today: todayISO(), studies: rec.studies,
     programs: boardPrograms({ jobPrograms: progs.programs, lines: lineFacts.linePrograms, assets: tt.assets, tests: tt.tests, items: tt.items, holder: project ?? undefined, projectId }),
-  }) : null), [report, handover, tt.assets, tt.tests, tt.items, progs.programs, lineFacts.linePrograms, project, projectId]);
+  }) : null), [report, handover, tt.assets, tt.tests, tt.items, progs.programs, lineFacts.linePrograms, project, projectId, rec.studies]);
   const [cardsBusy, setCardsBusy] = useState(false);
 
   /* The preview is the PDF itself, redrawn when what is on it changes — and

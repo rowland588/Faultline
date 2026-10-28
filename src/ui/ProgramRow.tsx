@@ -33,12 +33,13 @@ import { useState, type ReactNode } from 'react';
 import type { PartResultIs, Test, TestItem } from '../lib/testing';
 import { live } from '../lib/testing';
 import type { Program } from '../lib/programs';
+import { provingTitle } from '../lib/programs';
 import type { ProgramLine } from '../lib/programsReport';
 import { editedResult, partMoved, partsOf, resultWords, withoutResult } from '../lib/noted';
 import { provingTestOf } from '../lib/commission';
 import { todayISO } from '../lib/weeks';
 import { uid } from '../lib/ids';
-import { deleteProgram, deleteProgramWithTests, deleteTestItem, putTestItem } from '../db';
+import { deleteProgram, deleteProgramWithTests, deleteTestItem, listPrograms, putTestItem } from '../db';
 import type { useTesting } from '../lib/useTesting';
 import type { ProgramsState } from '../lib/usePrograms';
 import type { Can } from '../lib/access';
@@ -47,12 +48,13 @@ import { offerUndo } from './Undo';
 import { ProgramTest, type FloorSay } from './ProgramTest';
 import { PartRun } from './StageParts';
 import { ProductsBox } from './ProductsBox';
+import { ProgramCriteria } from './ProgramCriteria';
 
 type TT = ReturnType<typeof useTesting>;
 
 /* ============================== the row itself ============================= */
 
-export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, problems = 0, action, after, open, onToggle, panel, tap, dataProgram, className }: {
+export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, problems = 0, action, criteria, after, open, onToggle, panel, tap, dataProgram, className }: {
   what: string;
   /** "Line 7's own" — whose record it is, when not the job's. */
   tag?: string;
@@ -66,6 +68,8 @@ export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, prob
   problems?: number;
   /** Its test: the journey, the button, the form (ui/ProgramTest). */
   action?: ReactNode;
+  /** Its criteria and its sign-off (ui/ProgramCriteria) — under its test, the width of the row. */
+  criteria?: ReactNode;
   /** Under the row's words, outside its button — links that open another
    *  record (the job that holds it, the study that proved it). */
   after?: ReactNode;
@@ -94,6 +98,7 @@ export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, prob
       </button>
       {after && <div className="pgr-after">{after}</div>}
       {action && <div className="pgr-test">{action}</div>}
+      {criteria && <div className="pgr-crit">{criteria}</div>}
       {open && panel && <div className="pgr-panel">{panel}</div>}
     </li>
   );
@@ -272,6 +277,12 @@ export function JobProgramRow({ projectId, line: l, tt, progs, can, stages, mach
       action={<ProgramTest projectId={projectId} program={testee} assetId={assetId || undefined} tt={tt} can={can} open={testOpen} quiet
         {...(can.edit ? { floor: say } : {})}
         {...(program ? {} : { record: () => progs.add({ what: l.what, assetId: assetId || undefined, state: 'onMachine', ...(l.who ? { from: l.who } : {}) }) })} />}
+      criteria={<ProgramCriteria {...(program ? { program } : {})} tests={tt.tests} edit={can.edit} machine={l.machine !== 'The line' ? l.machine : undefined}
+        ensure={async () => {
+          const id = await progs.add({ what: l.what, assetId: assetId || undefined, state: 'onMachine', ...(l.who ? { from: l.who } : {}) });
+          return id ? (await listPrograms(projectId)).find(x => x.id === id) : undefined;
+        }}
+        planRun={async cur => (await tt.planTests([{ title: provingTitle(cur), ...(assetId ? { assetId } : {}), extra: { programId: cur.id, ...(cur.runs ? { planned: cur.runs } : {}) } }]))[0]} />}
       panel={
         <>
           {l.proof && <p className={'pgr-proof is-' + l.proof.tone}>{l.proof.word}</p>}

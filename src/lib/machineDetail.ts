@@ -83,6 +83,9 @@ function programRow(l: ProgramLine): PaperRow {
       ...(b === 'FAILED' && (l.tests ?? []).slice(-1)[0]?.tone === 'g' ? [{ label: 'Read this', text: 'This program is marked FAILED on the program itself, though its last test below passed. The status at the top is the one that stands.' }] : []),
       ...(l.note ? [{ label: 'What was seen', text: l.note }] : []),
       ...(l.proof ? [{ label: 'How it was proved', text: l.proof.word, tone: l.proof.tone }] : []),
+      /* its criteria (docs/PROGRAM-GOAL.md): where they stand — its proof says a sign-off — then each with its tool's answer */
+      ...(l.criteria && !(l.proof && /^Signed off/.test(l.proof.word)) ? [{ label: 'Its criteria', text: l.criteria.says, tone: l.criteria.tone }] : []),
+      ...(l.criteria?.each ?? []).map(c => ({ label: 'Criterion', text: `${c.word} — ${c.title}: ${c.says}`, tone: c.tone })),
       ...(l.run ? [{ label: 'Its run at speed', text: l.run }] : []),
       ...(l.tests ?? []).flatMap(t => [withSplit(attemptFromLine(t.text, t.tone), t.split), ...t.studies.map(st => ({ label: 'Study of it', text: st }))]),
       ...(!(l.tests ?? []).length && l.bucket !== 'done' && l.bucket !== 'baseline' && !/booked|passed|proved/i.test(l.word) ? [{ label: 'Tests', text: 'not tested yet' }] : []),

@@ -187,6 +187,8 @@ export const PAGES = (sd, cap) => [
     { what: 'a row a program, machine by machine', sel: '.pgr-list .pgr', n: 4 },
     { what: 'how its test went, on its row', sel: '.pgr .ptx-go' },
     { what: 'a program added to a machine', sel: '.pgr-add-open' },
+    /* 28 October, docs/PROGRAM-GOAL.md: the criteria picked for it and its sign-off — with none, one door on each row */
+    { what: 'its criteria on its row — + Pick its criteria', sel: '.pgr .pgc-add', text: /Pick its criteria/ },
     /* the lean page (17 October, docs/LEAN-PAGE.md): its counted figures are the chips, its closing line the programs in a sentence */
     { what: 'the closing line', sel: '.ln-close' },
   ] },

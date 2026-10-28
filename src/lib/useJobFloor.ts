@@ -6,7 +6,7 @@
  * (lib/programsReport), read here once per job and kept current, so the line
  * says it beside the record's own state. Nothing is stored. */
 import { useEffect, useState } from 'react';
-import { getProject, listAssets, listPrograms, listTestItems, listTests, onDataChange } from '../db';
+import { getProject, listAssets, listPrograms, listStudies, listTestItems, listTests, onDataChange } from '../db';
 import { programsReading, type ProgBucket, type ProgTone, type ProgramLine } from './programsReport';
 import { lineOfMachine, onlyLineOf, type JobLine } from './lineRecords';
 import type { Asset } from './testing';
@@ -36,8 +36,8 @@ export interface StageOnly { projectId: string; projectName: string; assetId?: s
 export async function loadJobFloor(jobIds: readonly string[]): Promise<Map<string, FloorWord> & { stageOnly?: StageOnly[] }> {
   const ids = [...new Set(jobIds.filter(Boolean))];
   const all = await Promise.all(ids.map(async pid => {
-    const [tests, items, assets, programs, project] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid), listPrograms(pid), getProject(pid)]);
-    const lines = programsReading({ tests, items, assets, programs, today: todayISO(), ...(project ? { holder: project } : {}) })?.lines ?? [];
+    const [tests, items, assets, programs, project, studies] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid), listPrograms(pid), getProject(pid), listStudies(pid)]);
+    const lines = programsReading({ tests, items, assets, programs, today: todayISO(), studies, ...(project ? { holder: project } : {}) })?.lines ?? [];
     return lines.map(l => ({ l, pid, name: project?.name ?? 'its project' }));
   }));
   const m: Map<string, FloorWord> & { stageOnly?: StageOnly[] } = new Map<string, FloorWord>();

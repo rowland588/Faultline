@@ -42,7 +42,7 @@ import { useTesting } from '../lib/useTesting';
 import { usePrograms } from '../lib/usePrograms';
 import { useProject } from '../lib/useProjects';
 import { live, type Test } from '../lib/testing';
-import { STATE_WORD, isProgramsStage, standingOf, stateOf } from '../lib/programs';
+import { STATE_WORD, isProgramsStage, provingTitle, standingOf, stateOf } from '../lib/programs';
 import { programsReading, type ProgBucket, type ProgramLine } from '../lib/programsReport';
 import { niceDay, todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
@@ -51,6 +51,7 @@ import { MachineName, openMachine } from '../ui/MachinePanel';
 import { AccessNote } from '../ui/AccessNote';
 import { ProgramTest } from '../ui/ProgramTest';
 import { JobProgramRow, ProgramFields, ProgramRowShell } from '../ui/ProgramRow';
+import { ProgramCriteria } from '../ui/ProgramCriteria';
 import { useAccess, useCanStartProjects } from '../cloud/access';
 import { deleteProgramWithTests, putProgram, putProgramOnMachine } from '../db';
 import { offerUndo } from '../ui/Undo';
@@ -266,7 +267,7 @@ function LineOwnRow({ r, onLine, projectId, tt, can, today, open, onToggle, test
 }) {
   const may = useCanStartProjects();
   const p = r.program, st = stateOf(p), late = !r.proved && standingOf(p, today) === 'overdue';
-  const word = r.proved ? `proved ${niceDay(p.provedOn)}` : late ? `test was due ${niceDay(p.testOn)}`
+  const word = r.proved && p.signedOff ? `signed off — passed ${niceDay(p.signedOff.on)}` : r.proved ? `proved ${niceDay(p.provedOn)}` : late ? `test was due ${niceDay(p.testOn)}`
     : `${STATE_WORD[st].toLowerCase()}${p.testOn ? ` · test ${niceDay(p.testOn)}` : ''}`;
   const tone = r.proved ? 'g' : late ? 'r' : st === 'needed' ? 'n' : 'w';
   return (
@@ -275,6 +276,8 @@ function LineOwnRow({ r, onLine, projectId, tt, can, today, open, onToggle, test
       {...(p.note ? { note: p.note } : {})}
       open={open} onToggle={onToggle}
       action={<ProgramTest projectId={projectId} program={p} {...(r.assetId ? { assetId: r.assetId } : {})} tt={tt} can={can} open={testOpen} quiet />}
+      criteria={<ProgramCriteria program={p} tests={tt.tests} edit={can.edit} {...(r.machine ? { machine: r.machine } : {})}
+        planRun={async cur => (await tt.planTests([{ title: provingTitle(cur), ...(r.assetId ? { assetId: r.assetId } : {}), extra: { programId: cur.id, ...(cur.runs ? { planned: cur.runs } : {}) } }]))[0]} />}
       panel={<>
         <p className="sub pgr-own">Planned on {r.line} — kept there, and changed here or there alike.{' '}
           <button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(r.lineId)}`)}>{r.line}&rsquo;s programs ›</button></p>

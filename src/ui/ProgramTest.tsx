@@ -20,7 +20,7 @@
  * a line's program sits on the job's machine of the same name). */
 import { useEffect, useRef, useState } from 'react';
 import type { Program } from '../lib/programs';
-import { isProved, provingTitle } from '../lib/programs';
+import { isProved, judgedByCriteria, provingTitle } from '../lib/programs';
 import type { Outcome, PartResultIs, Test } from '../lib/testing';
 import { provingTestOf } from '../lib/commission';
 import { programJourney, runOf } from '../lib/programJourney';
@@ -242,7 +242,7 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
           </ol>
         </div>
       ) : quiet ? null : (
-        <span className="sub ptx-none">{isProved(p) ? 'Proved by hand — no test behind it' : 'Not tested yet'}</span>
+        <span className="sub ptx-none">{p.signedOff ? 'Signed off on its criteria — no run test behind it' : isProved(p) ? 'Proved by hand — no test behind it' : 'Not tested yet'}</span>
       )}
       {can.edit && !open && (
         <button type="button" className="btn btn-sm ptx-go" onClick={start}>{label}</button>
@@ -292,7 +292,9 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
             )}
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>Cancel</button>
           </span>
-          {how === 'passed' && <small className="sub">A pass proves {p.what} on that day. A later test at a higher speed that does not pass leaves this pass standing.</small>}
+          {how === 'passed' && <small className="sub">{judgedByCriteria(p)
+            ? `A pass answers its run test, when that is one of ${p.what}’s criteria — it is proved when it is signed off.`
+            : `A pass proves ${p.what} on that day. A later test at a higher speed that does not pass leaves this pass standing.`}</small>}
         </div>
       )}
     </div>

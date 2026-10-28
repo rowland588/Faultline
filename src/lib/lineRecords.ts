@@ -222,7 +222,9 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
      machines-programs acceptance). A failed test travelling to the line
      (docs/UPGRADE-AUDIT.md C6) waits on programsReading carrying "failed"
      without re-counting proved — with C2, the Commission cell. */
-  const r0 = programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}) });
+  const r0 = programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}),
+    /* a program's criteria are still answered by its tests and studies (lib/programCriteria) — they prove nothing here */
+    ...(o.tests ? { judged: { tests: o.tests, ...(o.studies ? { studies: o.studies } : {}) } } : {}) });
   const extra = lines.flatMap(l => (o.stageOnly?.get(l.id) ?? []).map(x => {
     const own = l.machines.find(m => m.record && machineKey(m.name) === machineKey(x.machine));
     const name = own ? (many ? `${l.name} · ${own.name}` : own.name) : many ? `${l.name} · the line itself` : 'The line';
