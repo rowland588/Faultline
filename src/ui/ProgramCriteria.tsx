@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Program } from '../lib/programs';
 import type { Test } from '../lib/testing';
 import type { ToolStudy } from '../lib/study';
-import { CRITERION_TOOLS, CRITERION_WORD, cannotSignOff, criteriaOf, criteriaVerdict, criterionStudy, signedOff, signersOf, studiesToPick, unsigned, withAllProofStudies, withCriterion, withoutCriterion, type CriterionTool } from '../lib/programCriteria';
+import { CRITERION_TOOLS, CRITERION_WORD, cannotSignOff, criteriaOf, criteriaVerdict, criterionStudy, proofStudiesToPick, signedOff, signersOf, studiesToPick, unsigned, withAllProofStudies, withCriterion, withoutCriterion, type CriterionTool } from '../lib/programCriteria';
 import { TOOL_NAME, studyHref } from '../lib/studyLinks';
 import { attemptsOf, testJourney } from '../lib/programJourney';
 import { listAllStudies, onDataChange, putProgram, putStudy } from '../db';
@@ -141,7 +141,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
     setSigning(false);
   };
 
-  const provable = p && studies ? studiesToPick(p, studies, mine.map(t => t.id)) : [];
+  const provable = p && studies ? proofStudiesToPick(p, studies, mine.map(t => t.id)) : [];
   const showDetail = detail || expanded || adding || signing;
 
   /* NONE PICKED: one quiet door — a passed test proves it, as it always has */

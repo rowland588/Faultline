@@ -188,11 +188,18 @@ export function withCriterion(p: Program, c: Criterion): Program {
   return { ...p, criteria: [...(p.criteria ?? []), c] };
 }
 
-/** Every study already lined up on this program's tests (or made for it) that can be a criterion — added in one go
- *  (Rowland, 26–28 October, program 5: capability studies on *Proved by* while criteria stayed empty — the net run
- *  alone read FAILED). Does not add run tests. */
+/** Studies on this program's tests as *Proved by* (proof role) — what "Use proving studies as criteria" adds. */
+export function proofStudiesToPick(p: Pick<Program, 'id' | 'criteria'>, studies: readonly ToolStudy[], testIds: readonly ID[]): ToolStudy[] {
+  const tids = new Set(testIds);
+  const picked = new Set((p.criteria ?? []).filter(c => c.kind === 'study').map(c => c.id));
+  return studies.filter(s => !s.deletedAt && isCriterionTool(s.tool) && !picked.has(s.id)
+    && s.uses.some(u => u.kind === 'test' && u.role === 'proof' && tids.has(u.ref)));
+}
+
+/** Every proof-linked study on its tests — added in one go (Rowland, 26–28 October, program 5). Does not add run tests
+ *  or studies made for the program but not lined up on a test. */
 export function withAllProofStudies(p: Program, studies: readonly ToolStudy[], testIds: readonly ID[]): Program {
-  return studiesToPick(p, studies, testIds).reduce((cur, s) => withCriterion(cur, { kind: 'study', id: s.id }), p);
+  return proofStudiesToPick(p, studies, testIds).reduce((cur, s) => withCriterion(cur, { kind: 'study', id: s.id }), p);
 }
 
 /** A criterion taken off; the study or test itself is kept. */
