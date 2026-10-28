@@ -7,7 +7,7 @@ import type { PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow } from '../db';
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
 import type { Material } from '../lib/materials';
-import type { Program, ProgramState } from '../lib/programs';
+import type { Criterion, Program, ProgramState, SignOff } from '../lib/programs';
 import type { Standard, StandardMark } from '../tools/linestandard/standard';
 import { factsOf, listById, type StudyUse, type ToolStudy } from '../lib/study';
 import { footageKeys, forTheCloud } from '../tools/video/footage';
@@ -42,6 +42,22 @@ export interface EntityMap {
 const k = (key: string | undefined, mime?: string, owner?: string): MediaKey[] => (key ? [{ key, mime, owner }] : []);
 
 const n = (v: unknown): number | undefined => (v == null ? undefined : Number(v));
+
+/* A program's criteria and sign-off from the cloud, each kept only when it is
+   the shape this build reads — a row written by a later build never crashes a
+   screen, it reads as no criteria picked / not signed off. */
+const criteriaFromRow = (v: unknown): { criteria?: Criterion[] } => {
+  if (!Array.isArray(v)) return {};
+  const list = v.filter((c): c is Criterion => !!c && typeof c === 'object'
+    && ((c as Criterion).kind === 'study' || (c as Criterion).kind === 'run') && typeof (c as Criterion).id === 'string');
+  return list.length ? { criteria: list.map(c => ({ kind: c.kind, id: c.id })) } : {};
+};
+const signedOffFromRow = (v: unknown): { signedOff?: SignOff } => {
+  const o = v as SignOff | null;
+  if (!o || typeof o !== 'object' || !Array.isArray(o.by) || typeof o.on !== 'string') return {};
+  const by = o.by.filter((x): x is string => typeof x === 'string' && !!x.trim());
+  return by.length ? { signedOff: { by, on: o.on, at: Number(o.at) || 0 } } : {};
+};
 
 export const MAPS: Record<SyncKind, EntityMap> = {
   workspaces: {
@@ -586,6 +602,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         state: p.state,
         test_on: p.testOn ?? null, proved_on: p.provedOn ?? null, test_id: p.testId ?? null,
         supplier: p.from ?? null, note: p.note ?? null,
+        criteria: p.criteria?.length ? p.criteria : null,
+        signed_off: p.signedOff ?? null,
         sort: p.sort, created_at: p.createdAt,
         updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
@@ -606,6 +624,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       testId: (r.test_id as string) ?? undefined,
       from: (r.supplier as string) ?? undefined,
       note: (r.note as string) ?? undefined,
+      ...criteriaFromRow(r.criteria),
+      ...signedOffFromRow(r.signed_off),
       sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     } satisfies Program),

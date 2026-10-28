@@ -93,6 +93,17 @@ export interface Program {
    *  it off, and the screen says which. */
   testId?: ID;
 
+  /** THE CRITERIA PICKED FOR IT — the tools and run tests that say whether it
+   *  passed, each its own answer against the parameters set in it (Rowland, 28
+   *  October: "the program has a set role of criteria. So I choose the
+   *  criteria"; docs/PROGRAM-GOAL.md). Absent or empty is a program as it has
+   *  always been: a passed test proves it. Once one is picked, only the
+   *  sign-off does. Read through lib/programCriteria. */
+  criteria?: Criterion[];
+  /** SIGNED OFF — PASSED: who signed (one or more names) and the day. Its day
+   *  is `provedOn`. Absent on every program proved before criteria existed. */
+  signedOff?: SignOff;
+
   /** Who owes it to us. Usually the OEM. */
   from?: string;
   note?: string;
@@ -102,7 +113,18 @@ export interface Program {
   deletedAt?: number;
 }
 
+/** One criterion picked for a program: a study made for it in its tool, or a
+ *  run test (the first test of its chain — its re-tests are its attempts). */
+export interface Criterion { kind: 'study' | 'run'; id: ID }
+
+/** Who signed a program off, and when: the names, the day (ISO), the moment. */
+export interface SignOff { by: string[]; on: string; at: number }
+
 export const live = (rows: Program[]): Program[] => rows.filter(p => !p.deletedAt);
+
+/** Judged by the criteria picked for it — any picked, or signed off — so only
+ *  the sign-off proves it (lib/programCriteria). */
+export const judgedByCriteria = (p: Pick<Program, 'criteria' | 'signedOff'>): boolean => !!p.criteria?.length || !!p.signedOff;
 
 /** THE PRODUCTS A PROGRAM RUNS, each once, in the order given — its `runs` text
  *  split at the commas (or semicolons, or lines) between them. */
@@ -350,6 +372,14 @@ export function programAfterTest(p: Program, t: ProvingTest, today = todayISO(),
   let next: Program = p;
   const ranOn = t.ranOn ?? p.provedOn ?? today;
   const failedSince = t.outcome === 'passed' && !!floorFailedOn && (freshPass ? floorFailedOn > ranOn : floorFailedOn >= ranOn);
+  /* JUDGED BY ITS CRITERIA (lib/programCriteria): once any are picked, or it
+     is signed off, a test is one criterion's answer and only the sign-off
+     proves it — a test neither proves it nor takes a proof away. Its booked
+     day still follows the test. */
+  if (judgedByCriteria(p)) {
+    if (!next.provedOn && t.outcome === 'planned' && t.plannedFor && next.testOn !== t.plannedFor) next = { ...next, testOn: t.plannedFor, testId: t.id };
+    return next === p ? undefined : next;
+  }
   if (t.outcome === 'passed' && !failedSince) {
     next = { ...p, state: 'proved', provedOn: ranOn, testOn: undefined, testId: t.id };
   } else if (p.testId === t.id && p.provedOn) {
@@ -380,7 +410,7 @@ export function programAfterTestGone(p: Program, t: ProvingTest, rest: readonly 
   if (p.deletedAt || (t.programId !== p.id && p.testId !== t.id)) return undefined;
   let next: Program = p;
   if (next.testId === t.id) next = { ...next, testId: undefined };
-  if (p.provedOn && p.testId === t.id) next = { ...next, state: 'onMachine', provedOn: undefined };
+  if (p.provedOn && p.testId === t.id && !judgedByCriteria(p)) next = { ...next, state: 'onMachine', provedOn: undefined };
   if (!next.provedOn && t.plannedFor && next.testOn === t.plannedFor) next = { ...next, testOn: undefined };
   const kept = rest.filter(x => x.id !== t.id && !x.deletedAt && x.programId === p.id).sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0)).pop();
   if (kept) next = programAfterTest(next, kept, today) ?? next;
@@ -408,7 +438,8 @@ export function programAfterTestGone(p: Program, t: ProvingTest, rest: readonly 
  *  changes. `failed` — the newest failure the floor said: its day, and the
  *  moment it was said. */
 export function programAfterFloor(p: Program, failed: { on: string; at: number } | undefined): Program | undefined {
-  if (!failed || p.deletedAt || !p.provedOn) return undefined;
+  /* a sign-off is the people's word on its criteria — the floor's status does not take it back */
+  if (!failed || p.deletedAt || !p.provedOn || p.signedOff) return undefined;
   const newer = failed.on > p.provedOn || (failed.on === p.provedOn && failed.at > p.updatedAt);
   return newer ? { ...p, state: 'onMachine', provedOn: undefined } : undefined;
 }

@@ -27,6 +27,7 @@ import { answerOf, type AnswerHolder } from './install';
 import type { ToolStudy } from './study';
 import { TOOL_NAME, linkedTo, studyLine } from './studyLinks';
 import { programJourney } from './programJourney';
+import { criteriaOf, passedItLine } from './programCriteria';
 
 /** The house colours: green done, red failed or late, indigo under way,
  *  amber waiting on a verdict, grey not started. */
@@ -135,6 +136,8 @@ export const studyWords = (s: Pick<ToolStudy, 'tool' | 'name'>): string =>
  *  program names one. */
 export function proofOf(p: Program, tests: readonly Test[] | undefined, studies: readonly ToolStudy[] = []): Proof | undefined {
   if (!isProved(p)) return undefined;
+  /* SIGNED OFF — PASSED, by the names who accepted it, with what passed it (lib/programCriteria) */
+  if (p.signedOff) return { word: passedItLine(p, criteriaOf(p, studies, tests ?? [])) ?? 'Signed off — passed', tone: 'g' };
   /* THE TEST THAT PROVED IT — not the latest attempt: a later test at a
      higher speed that did not pass leaves this proof standing
      (lib/programJourney). */
