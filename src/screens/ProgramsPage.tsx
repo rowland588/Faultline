@@ -172,7 +172,7 @@ export function ProgramsPage({ projectId, only, title }: {
           was "Programs report — PDF") */}
       <PageHeader title="Programs" says={<span className="pp-says">{reading ? reading.says : 'No programs yet.'}</span>}
         papers={[{ label: 'Programs report', for: 'every program machine by machine — the project’s and its lines’ own', disabled: (!reading && !lineReadings.length) || busy, make: download }]}>
-        <p className="sub pp-how">Tap a program to change it. Say how its test went with the button on its row.
+        <p className="sub pp-how">Tap a program for its name, machine and history. Test it and pick criteria on its row — open the row for every test and every criterion.
           {jobLines.map(l => <span key={l.id}> · <button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(l.id)}`)}>{l.name}&rsquo;s programs ›</button></span>)}</p>
       </PageHeader>
       {said && <p className="tc-ok" role="status">{said}</p>}
@@ -275,8 +275,12 @@ function LineOwnRow({ r, onLine, projectId, tt, can, today, open, onToggle, test
       meta={[p.runs && `runs ${p.runs}`, p.from, onLine && r.machine ? `${r.machine} is not on this project — tested on the line itself` : ''].filter(Boolean).join(' · ') || undefined}
       {...(p.note ? { note: p.note } : {})}
       open={open} onToggle={onToggle}
-      action={<ProgramTest projectId={projectId} program={p} {...(r.assetId ? { assetId: r.assetId } : {})} tt={tt} can={can} open={testOpen} quiet />}
+      action={<ProgramTest projectId={projectId} program={p} {...(r.assetId ? { assetId: r.assetId } : {})} tt={tt} can={can} open={testOpen} quiet
+        detail={open || testOpen}
+        onShowAll={() => { if (!open) onToggle(); }} />}
       criteria={<ProgramCriteria program={p} tests={tt.tests} edit={can.edit} {...(r.machine ? { machine: r.machine } : {})}
+        detail={open || testOpen || !!(p.criteria?.length || p.signedOff)}
+        onShowAll={() => { if (!open) onToggle(); }}
         planRun={async cur => (await tt.planTests([{ title: provingTitle(cur), ...(r.assetId ? { assetId: r.assetId } : {}), extra: { programId: cur.id, ...(cur.runs ? { planned: cur.runs } : {}) } }]))[0]} />}
       panel={<>
         <p className="sub pgr-own">Planned on {r.line} — kept there, and changed here or there alike.{' '}

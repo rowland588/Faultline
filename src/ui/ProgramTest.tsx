@@ -59,7 +59,7 @@ const FLOOR_OF: Record<Ran, PartResultIs> = { passed: 'passed', failed: 'failed'
  *  stage (made the first time when there is none). Returns its undo. */
 export type FloorSay = (is: PartResultIs | undefined, note: string, day: string) => Promise<(() => Promise<void>) | undefined>;
 
-export function ProgramTest({ projectId, program: p, assetId, tt, can, open: openAtStart = false, record, floor, quiet = false }: {
+export function ProgramTest({ projectId, program: p, assetId, tt, can, open: openAtStart = false, record, floor, quiet = false, detail = true, onShowAll }: {
   projectId: string;
   /** The program — or, for a line on a machine's programs stage that is on
    *  no Programs list yet, its name and machine (id ''), made a program the
@@ -82,6 +82,11 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
   /** On a row that already says where the program stands in its own pill
    *  (ui/ProgramRow): "Not tested yet" is not said a second time. */
   quiet?: boolean;
+  /** Full test history on the row — false shows the latest attempt and one
+   *  line, with a way to open every attempt (Programs UI, 28 October). */
+  detail?: boolean;
+  /** Opens the row's details — every attempt listed. */
+  onShowAll?: () => void;
 }) {
   const today = todayISO();
   const test = provingTestOf(p, tt.tests);
@@ -181,6 +186,8 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
   };
 
   const label = test && ran ? 'Go again' : test ? 'Say how it went' : 'Test it';
+  const showLadder = detail || open || openAtStart;
+  const last = journey.attempts.length ? journey.attempts[journey.attempts.length - 1] : undefined;
   const box2 = (k: keyof Nums, word: string, unit: string) => (
     <label className="ptx-n">
       <span className="field-label">{word}</span>
@@ -194,6 +201,7 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
     <div className="ptx" ref={box}>
       {/* THE JOURNEY — every attempt, first to last, each opening its test. */}
       {journey.attempts.length > 0 ? (
+        showLadder ? (
         <div className="ptx-j">
           <span className="ptx-j-h">
             <b>Its tests</b> <span className="sub">{journey.says}</span>
@@ -241,6 +249,25 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
             ))}
           </ol>
         </div>
+        ) : last ? (
+        <div className="ptx-j ptx-compact">
+          <span className="sub">{journey.says}{journey.best ? ` · ${journey.best}` : ''}</span>
+          <ol className="ptx-ladder" aria-label={`Latest test of ${p.what}`}>
+            <li key={last.test.id} className={'is-' + last.result.tone}>
+              <button type="button" className="ptx-step" onClick={() => openRecord(projectId, last.test.id)}>
+                <b>Test {last.n}</b>
+                <span className="ptx-when">{last.test.ranOn ? last.when : ''}</span>
+                {last.did && <span>{last.did}</span>}
+                <span className={'cg-pstate is-' + last.result.tone}>{last.result.word}</span>
+              </button>
+              {last.split && <span className="ptx-split">{last.split}</span>}
+            </li>
+          </ol>
+          {onShowAll && journey.attempts.length > 1 && (
+            <button type="button" className="cw-link ptx-all" onClick={onShowAll}>All {journey.attempts.length} tests ›</button>
+          )}
+        </div>
+        ) : null
       ) : quiet ? null : (
         <span className="sub ptx-none">{p.signedOff ? 'Signed off on its criteria — no run test behind it' : isProved(p) ? 'Proved by hand — no test behind it' : 'Not tested yet'}</span>
       )}
