@@ -8,9 +8,11 @@
 UPDATE tests
 SET run_agreed = '{"rate": 75, "minutes": 60}'::jsonb,
     run = '{"packs": 3600, "speed": 75, "minutes": 60, "rejects": 30}'::jsonb,
-    result = COALESCE(result, 'Line ran consistently at 75 ppm — one hour, no changeovers in that hour (same evidence as 21 Oct).')
+    result = COALESCE(NULLIF(trim(result), ''), 'Line ran consistently at 75 ppm — one hour, no changeovers in that hour (same evidence as 21 Oct).')
 WHERE id = 'f18b7162-c5c3-4c7e-a738-924c00256c60'
   AND program_id = '5e885049-616c-4cf8-bdba-5b97dbed79ab';
+
+-- No net rate target on the criterion — speed and run length only (Rowland, 28 Oct).
 
 UPDATE programs
 SET criteria = '[{"kind": "run", "id": "9cab3d45-5d1e-4be7-9297-4c6d7a971d7f"}]'::jsonb,
