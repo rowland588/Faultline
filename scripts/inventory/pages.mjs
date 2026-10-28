@@ -235,7 +235,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the update to send, at the top', sel: '.dy-jn-head .btn-primary', text: /update/ },
     { what: 'the tiles — done, late, went wrong, found, the project’s money', sel: '.dy-in-jn > .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.dy-in-jn > .ln-close' }] },
-  { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' },
+  { name: 'Timeline — the Gantt', path: `#/project/${sd.projectId}/plan`, must: [
+    { what: 'Timeline on, among the project’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Timeline/ },
+    { what: 'the Gantt', sel: '.gt-body' },
     /* B3: the Gantt's own PDF is the page header's Report ▾ */
     { what: 'the page header — Report ▾ with the plan on one page', sel: '.part-head .part-menu-b', text: /^Report/ }, { what: 'the plan’s tabs, Timeline on', sel: '.plt .plt-t.on', text: /^Timeline/ },
     /* the lean page (17 October; lib/stageGatePages planTiles): the header's count line moved into the tiles, the job's money last; the closing line */
