@@ -18,9 +18,10 @@
  * WHICH RECORD: the test (lib/testing), made the first time and answered
  * after; no new record. Its machine is the job's (lib/commissionPrograms —
  * a line's program sits on the job's machine of the same name). */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Program } from '../lib/programs';
 import { isProved, judgedByCriteria, provingTitle } from '../lib/programs';
+import { criteriaOf, criteriaVerdict } from '../lib/programCriteria';
 import type { Outcome, PartResultIs, Test } from '../lib/testing';
 import { provingTestOf } from '../lib/commission';
 import { programJourney, runOf } from '../lib/programJourney';
@@ -104,6 +105,15 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
   useEffect(() => { if (openAtStart && box.current) box.current.scrollIntoView({ block: 'center' }); }, [openAtStart]);
 
   const jobStudies = useJobStudies(projectId);
+  const criteriaNote = useMemo(() => {
+    if (!judgedByCriteria(p) || !jobStudies) return undefined;
+    const answers = criteriaOf(p, jobStudies, tt.tests, today);
+    const v = criteriaVerdict(p, answers);
+    if (!answers.length) return undefined;
+    if (v.ready) return 'Every criterion passed — sign off the program when you and your colleagues are ready.';
+    if (v.passed > 0) return `${v.words} — the run’s net rate alone does not fail the program once criteria are picked.`;
+    return `${v.words} — pick studies already on its tests as criteria, or add new ones, so the tools judge the program.`;
+  }, [p, jobStudies, tt.tests, today]);
   const ran = test && test.outcome !== 'planned';
   const start = () => {
     setHow(null); setSeen('');
@@ -248,6 +258,7 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
               </li>
             ))}
           </ol>
+          {criteriaNote && <small className="sub ptx-critnote">{criteriaNote}</small>}
         </div>
         ) : last ? (
         <div className="ptx-j ptx-compact">
@@ -266,6 +277,7 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
           {onShowAll && journey.attempts.length > 1 && (
             <button type="button" className="cw-link ptx-all" onClick={onShowAll}>All {journey.attempts.length} tests ›</button>
           )}
+          {criteriaNote && <small className="sub ptx-critnote">{criteriaNote}</small>}
         </div>
         ) : null
       ) : quiet ? null : (

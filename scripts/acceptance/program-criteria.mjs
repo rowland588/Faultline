@@ -83,9 +83,47 @@ ok(/didn.t pass/i.test(await pill()) && /net rate alone/.test(split1), `1b its r
    drawn again under that line (ui/ProgramRow) — the page read afresh once it has */
 await page.waitForTimeout(2000); await go(PROGRAMS);
 const doneBefore = await done();
+let rec;
+
+/* ---- 1c a study already passed on its test — shown first, one tap as a criterion (program 5, 28 October) ---- */
+const proofId = await page.evaluate(async ([pid, name]) => {
+  const db = await import('/src/db.ts');
+  const { uid, now } = await import('/src/lib/ids.ts');
+  const p = (await db.listPrograms(pid)).find(x => x.what === name);
+  const t = (await db.listTests(pid)).find(x => x.programId === p?.id && x.outcome === 'failed');
+  if (!p || !t) return null;
+  const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
+    401.0, 401.9, 400.8, 401.9, 401.1, 401.2, 401.6, 401.3, 400.7, 401.3, 400.4, 401.1, 401.5, 401.9, 400.8];
+  const id = uid();
+  const at = now();
+  await db.putStudy({ id, tool: 'capability', name: 'Express 75 ppm — already passed', projectId: pid, workspaceId: p.workspaceId,
+    machine: 'Ilapak flow wrapper', agreed: { readings: { kind: 'limits', unit: 'g', nominal: 400, lower: 395, upper: 408, count: 30 } },
+    facts: { readings: THIRTY.map((value, i) => ({ id: `r${i}`, value, at: at + i })) },
+    uses: [{ id: uid(), kind: 'test', ref: t.id, role: 'proof', at, by: 'acceptance' }],
+    startedAt: at, createdAt: at, updatedAt: at });
+  return id;
+}, [PID, NAME]);
+ok(proofId, '1c a capability study passed and lined up on the failed run as Proved by');
+await page.waitForTimeout(1500); await go(PROGRAMS);
+ok(await row().locator('.pgc-proof-all').count() === 1, '1c its row offers the proving study as criteria in one go');
+await row().locator('.pgc-add').click(); await page.waitForTimeout(400);
+ok(await row().locator('.pgc-existing .pgc-row .spp-pill', { hasText: 'Passed' }).count() >= 1,
+  '1c Add a criterion shows work already done first — Passed with its tool’s sentence');
+await row().locator('.pgc-existing .pgc-open').first().click(); await page.waitForTimeout(2000);
+rec = await record();
+ok(rec?.criteria?.length === 1 && rec.criteria[0].kind === 'study' && rec.criteria[0].id === proofId,
+  `1c the passed study is a criterion on the record — ${proofId}`);
+ok(/ready to sign off|1 of 1 criteria passed/i.test(await pill()) && !/didn.t pass|^failed/i.test(await pill()),
+  `1c the net run still failed but the program is judged by the tool — "${await pill()}"`);
+await row().locator('.pgc-x').click(); await page.waitForTimeout(1500);
+rec = await record();
+ok(!rec?.criteria?.length, '1c criterion taken off again for the walk that follows');
 
 /* ---- 2 two criteria picked: a capability study and a reliability study, the net run left off ---- */
 await row().locator('.pgc-add').click(); await page.waitForTimeout(400);
+const startNewCap = row().getByRole('button', { name: /Start a new capability study instead/i });
+if (await startNewCap.count()) await startNewCap.click();
+await page.waitForTimeout(200);
 const chips = (await row().locator('.pgc-panel [role=radio]').allInnerTexts()).map(flat);
 ok(JSON.stringify(chips) === JSON.stringify(['Capability study', 'Control chart', 'Reliability study', 'Analysis', 'Run test']),
   `2 Add a criterion offers the tools that say pass or fail, and its run test — ${chips.join(' · ')}`);
@@ -93,9 +131,12 @@ await row().locator('input[aria-label="Name the study"]').fill('Placement 75 ppm
 await row().getByRole('button', { name: 'Add it, set up later' }).click(); await page.waitForTimeout(1500);
 await row().getByRole('button', { name: 'Add a criterion' }).click(); await page.waitForTimeout(300);
 await row().locator('.pgc-panel [role=radio]', { hasText: 'Reliability study' }).click();
+const startNewRel = row().getByRole('button', { name: /Start a new reliability study instead/i });
+if (await startNewRel.count()) await startNewRel.click();
+await page.waitForTimeout(200);
 await row().locator('input[aria-label="Name the study"]').fill('Robot faults');
 await row().getByRole('button', { name: 'Add it, set up later' }).click(); await page.waitForTimeout(1800);
-let rec = await record();
+rec = await record();
 const crit = (await row().locator('.pgc-row').evaluateAll(els => els.map(e => ({ t: e.querySelector('.pgc-t')?.textContent ?? '', w: e.querySelector('.spp-pill')?.textContent ?? '' }))));
 ok(rec?.criteria?.length === 2 && rec.criteria.every(c => c.kind === 'study') && JSON.stringify(crit) === JSON.stringify([{ t: 'Capability study — Placement 75 ppm', w: 'Not yet' }, { t: 'Reliability study — Robot faults', w: 'Not yet' }]),
   `2b the two criteria on the record and on its row, each Not yet — ${crit.map(c => `${c.t}: ${c.w}`).join(' · ')}`);

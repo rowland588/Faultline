@@ -217,6 +217,22 @@ export function studiesToPick(p: Pick<Program, 'id' | 'criteria'>, studies: read
     && (s.programId === p.id || s.uses.some(u => u.kind === 'test' && tids.has(u.ref))));
 }
 
+const pickRank = (w: CriterionWord): number => (w === 'passed' ? 0 : w === 'notYet' ? 1 : w === 'failed' ? 2 : 3);
+
+/** Every study that could be picked, with its tool's answer — proof-linked on its tests first, then passed before not yet. */
+export function unpickedStudyChoices(p: Pick<Program, 'id' | 'criteria'>, studies: readonly ToolStudy[], testIds: readonly ID[], ctx?: StudyContext): CriterionAnswer[] {
+  const proofIds = new Set(proofStudiesToPick(p, studies, testIds).map(s => s.id));
+  const pool = studiesToPick(p, studies, testIds);
+  const sorted = [...pool].sort((a, b) => {
+    const byProof = (proofIds.has(a.id) ? 0 : 1) - (proofIds.has(b.id) ? 0 : 1);
+    if (byProof) return byProof;
+    const aw = studyAnswer({ kind: 'study', id: a.id }, a, ctx).word;
+    const bw = studyAnswer({ kind: 'study', id: b.id }, b, ctx).word;
+    return pickRank(aw) - pickRank(bw);
+  });
+  return sorted.map(s => studyAnswer({ kind: 'study', id: s.id }, s, ctx));
+}
+
 /** A new study for a program in the picked tool — on its line, its project and machine; set up in the tool. */
 export function criterionStudy(p: Pick<Program, 'id' | 'projectId' | 'workspaceId' | 'assetId'>, tool: CriterionTool, name: string, x: { id: string; at: number; machine?: string }): ToolStudy {
   return {

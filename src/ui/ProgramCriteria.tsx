@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Program } from '../lib/programs';
 import type { Test } from '../lib/testing';
 import type { ToolStudy } from '../lib/study';
-import { CRITERION_TOOLS, CRITERION_WORD, cannotSignOff, criteriaOf, criteriaVerdict, criterionStudy, proofStudiesToPick, signedOff, signersOf, studiesToPick, unsigned, withAllProofStudies, withCriterion, withoutCriterion, type CriterionTool } from '../lib/programCriteria';
+import { CRITERION_TOOLS, CRITERION_WORD, cannotSignOff, criteriaOf, criteriaVerdict, criterionStudy, proofStudiesToPick, signedOff, signersOf, studiesToPick, unpickedStudyChoices, unsigned, withAllProofStudies, withCriterion, withoutCriterion, type CriterionTool } from '../lib/programCriteria';
 import { TOOL_NAME, studyHref } from '../lib/studyLinks';
 import { attemptsOf, testJourney } from '../lib/programJourney';
 import { listAllStudies, onDataChange, putProgram, putStudy } from '../db';
@@ -85,6 +85,8 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   const today = todayISO();
   const [tool, setTool] = useState<Pick>('capability');
   const [name, setName] = useState('');
+  /** When work already exists on its tests, start on that list — not "Set it up now" (program 5, 28 October). */
+  const [newStudy, setNewStudy] = useState(false);
   const [signing, setSigning] = useState(false);
   const [by, setBy] = useState('');
   const [day, setDay] = useState(today);
@@ -112,13 +114,13 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
     const s = criterionStudy(cur, tool, name.trim() || `${cur.what} — ${PICK_NAME[tool].toLowerCase()}${n ? ` ${n + 1}` : ''}`, { id: uid(), at: now(), ...(machine ? { machine } : {}) });
     await putStudy(s);
     await putProgram(withCriterion(cur, { kind: 'study', id: s.id }));
-    setName(''); setAdding(false);
+    setName(''); setAdding(false); setNewStudy(false);
     if (open) nav(studyHref(s));
   };
   const pickStudy = async (s: ToolStudy) => {
     const cur = await record();
     if (cur) await save(withCriterion(cur, { kind: 'study', id: s.id }), `${s.name} — a criterion of ${cur.what}`, cur);
-    setAdding(false);
+    setAdding(false); setNewStudy(false);
   };
   const pickRun = async (id?: string) => {
     const cur = await record();
@@ -142,7 +144,10 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   };
 
   const provable = p && studies ? proofStudiesToPick(p, studies, mine.map(t => t.id)) : [];
+  const unpicked = useMemo(() => (p && studies ? unpickedStudyChoices(p, studies, mine.map(t => t.id)) : []), [p, studies, mine]);
+  const passedUnpicked = unpicked.filter(a => a.word === 'passed').length;
   const showDetail = detail || expanded || adding || signing;
+  const openAdding = () => { setExpanded(true); setAdding(true); setNewStudy(unpicked.length === 0); setSigning(false); };
 
   /* NONE PICKED: one quiet door — a passed test proves it, as it always has */
   if (!answers.length && !p?.signedOff && !adding) {
@@ -151,8 +156,13 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
         {provable.length > 0 && (
           <>
             <p className="sub pgc-hint">
-              {provable.length === 1 ? 'One study is' : `${provable.length} studies are`} already lined up on this program&apos;s tests.
-              Pick {provable.length === 1 ? 'it' : 'them'} as criteria so the program is judged by the tool — not the net run alone when outside noise fails the rate.
+              {passedUnpicked > 0
+                ? (passedUnpicked === 1
+                  ? 'One study on this program\u2019s tests already passed — pick it as a criterion and the program is judged by that tool, not the net run alone.'
+                  : `${passedUnpicked} studies on this program\u2019s tests already passed — pick them as criteria so the program is judged by the tools, not the net run alone.`)
+                : (provable.length === 1
+                  ? 'One study is already lined up on this program\u2019s tests — pick it as a criterion so the program is judged by the tool, not the net run alone when outside noise fails the rate.'
+                  : `${provable.length} studies are already lined up on this program\u2019s tests. Pick them as criteria so the program is judged by the tools — not the net run alone when outside noise fails the rate.`)}
             </p>
             {edit && (
               <button type="button" className="btn btn-sm pgc-proof-all" onClick={() => void record().then(async cur => {
@@ -165,7 +175,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
             )}
           </>
         )}
-        {edit && <button type="button" className="cw-link pgc-add" onClick={() => { setExpanded(true); setAdding(true); }}>+ Pick its criteria</button>}
+        {edit && <button type="button" className="cw-link pgc-add" onClick={openAdding}>+ Pick its criteria</button>}
       </div>
     );
   }
@@ -182,7 +192,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
             {v?.ready && (
               <button type="button" className="btn btn-primary btn-sm pgc-sign" onClick={() => { setExpanded(true); setSigning(true); setBy(me); setDay(today); }}>Sign off</button>
             )}
-            <button type="button" className="btn btn-sm" onClick={() => { setExpanded(true); setAdding(true); }}>Add a criterion</button>
+            <button type="button" className="btn btn-sm" onClick={openAdding}>Add a criterion</button>
             {onShowAll && <button type="button" className="cw-link pgc-all" onClick={() => { setExpanded(true); onShowAll?.(); }}>Open criteria ›</button>}
           </span>
         )}
@@ -228,7 +238,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
 
       {edit && !p?.signedOff && (
         <div className="pgc-acts">
-          {!adding && <button type="button" className="btn btn-sm" onClick={() => { setExpanded(true); setAdding(true); setSigning(false); }}>Add a criterion</button>}
+          {!adding && <button type="button" className="btn btn-sm" onClick={openAdding}>Add a criterion</button>}
           {v?.ready && !signing && (
             <button type="button" className="btn btn-primary btn-sm pgc-sign" onClick={() => { setSigning(true); setAdding(false); setBy(me); setDay(today); }}>Sign off</button>
           )}
@@ -245,24 +255,55 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
           </span>
           {tool !== 'run' ? (
             <>
-              <label className="ptx-f">
-                <span className="field-label">Name it — what it judges</span>
-                <input className="text-input" value={name} maxLength={120} aria-label="Name the study" autoFocus
-                  placeholder={tool === 'capability' ? 'e.g. Placement weight at 75 ppm' : tool === 'reliability' ? 'e.g. Robot faults' : tool === 'chart' ? 'e.g. Seal temperature' : 'e.g. Fill before and after'}
-                  onChange={e => setName(e.target.value)} />
-              </label>
-              <small className="sub">It is made for {p?.what ?? 'the program'}{machine ? ` on the ${machine}` : ''} and set up in the {TOOL_NAME[tool]?.toLowerCase()} — its limits or what it must reach are set there, and its verdict is the answer.</small>
-              <span className="pgc-go">
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => void addStudy(true)}>Set it up now</button>
-                <button type="button" className="btn btn-sm" onClick={() => void addStudy(false)}>Add it, set up later</button>
-              </span>
-              {toPick.filter(s => s.tool === tool).length > 0 && (
-                <span className="pgc-pick" aria-label="Or pick a study of it already made">
-                  <span className="sub">Or pick one already made:</span>
-                  {toPick.filter(s => s.tool === tool).map(s => (
-                    <button key={s.id} type="button" className="chip" onClick={() => void pickStudy(s)}>{s.name}</button>
-                  ))}
-                </span>
+              {unpicked.length > 0 && (
+                <div className="pgc-existing" aria-label="Studies already on this program">
+                  <span className="ptx-h">Work already on this program&apos;s tests</span>
+                  <small className="sub">Each is judged in its tool. Pick one as a criterion — its verdict is the answer; a run that failed on net alone does not fail the program once criteria are picked.</small>
+                  <ul className="pgc-list">
+                    {unpicked.map(a => (
+                      <li key={a.c.id} className={'pgc-row is-' + a.tone}>
+                        <button type="button" className="pgc-open" onClick={() => a.study && void pickStudy(a.study)}>
+                          <span className="pgc-t">{a.title}</span>
+                          <span className={'spp-pill is-' + a.tone}>{CRITERION_WORD[a.word]}</span>
+                          <span className="pgc-says">{a.says}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {(newStudy || unpicked.length === 0) ? (
+                <>
+                  {unpicked.length > 0 && (
+                    <button type="button" className="cw-link pgc-new" onClick={() => setNewStudy(false)}>‹ Back to work already done</button>
+                  )}
+                  <label className="ptx-f">
+                    <span className="field-label">Name it — what it judges</span>
+                    <input className="text-input" value={name} maxLength={120} aria-label="Name the study" autoFocus={newStudy || unpicked.length === 0}
+                      placeholder={tool === 'capability' ? 'e.g. Placement weight at 75 ppm' : tool === 'reliability' ? 'e.g. Robot faults' : tool === 'chart' ? 'e.g. Seal temperature' : 'e.g. Fill before and after'}
+                      onChange={e => setName(e.target.value)} />
+                  </label>
+                  <small className="sub">It is made for {p?.what ?? 'the program'}{machine ? ` on the ${machine}` : ''} and set up in the {TOOL_NAME[tool]?.toLowerCase()} — its limits or what it must reach are set there, and its verdict is the answer.</small>
+                  <span className="pgc-go">
+                    <button type="button" className="btn btn-primary btn-sm" onClick={() => void addStudy(true)}>Set it up now</button>
+                    <button type="button" className="btn btn-sm" onClick={() => void addStudy(false)}>Add it, set up later</button>
+                  </span>
+                  {toPick.filter(s => s.tool === tool).length > 0 && (
+                    <span className="pgc-pick" aria-label="Or pick a study of this tool already made">
+                      <span className="sub">Or pick one of this tool already made:</span>
+                      {toPick.filter(s => s.tool === tool).map(s => {
+                        const a = unpicked.find(x => x.c.id === s.id);
+                        return (
+                          <button key={s.id} type="button" className="chip" onClick={() => void pickStudy(s)}>
+                            {s.name}{a ? ` · ${CRITERION_WORD[a.word]}` : ''}
+                          </button>
+                        );
+                      })}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <button type="button" className="btn btn-sm pgc-new" onClick={() => setNewStudy(true)}>Start a new {PICK_NAME[tool].toLowerCase()} instead</button>
               )}
             </>
           ) : (
@@ -278,7 +319,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
               </span>
             </>
           )}
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAdding(false)}>Cancel</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setAdding(false); setNewStudy(false); }}>Cancel</button>
         </div>
       )}
 

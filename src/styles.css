@@ -13276,6 +13276,10 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .pgr-crit { grid-column: 1 / -1; min-width: 0; }
 .pgc { display: grid; gap: 6px; min-width: 0; }
 .pgc-empty { display: block; }
+.pgc-hint { margin: 0 0 6px; overflow-wrap: anywhere; }
+.pgc-proof-all { margin: 0 0 6px; }
+.pgc-existing { display: grid; gap: 6px; }
+.pgc-new { font-size: var(--t-detail); justify-self: start; }
 .pgc-compact { padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg); }
 .pgc-acts-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .pgc-all { font-size: var(--t-detail); }
