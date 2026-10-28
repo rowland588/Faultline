@@ -266,6 +266,8 @@ export function JobProgramRow({ projectId, line: l, tt, progs, can, stages, mach
      machine, made a record the moment it is tested. */
   const testee: Program = program ?? { id: '', projectId, what: l.what, ...(assetId ? { assetId } : {}), state: 'onMachine', sort: 0, createdAt: 0, updatedAt: 0 };
   const history = (part?.results ?? []).slice().reverse();
+  const showProveDetail = open || testOpen;
+  const showAll = () => { if (!open) onToggle(); };
 
   return (
     <ProgramRowShell
@@ -275,9 +277,13 @@ export function JobProgramRow({ projectId, line: l, tt, progs, can, stages, mach
       {...(l.programId ? { dataProgram: l.programId } : {})}
       open={open} onToggle={onToggle}
       action={<ProgramTest projectId={projectId} program={testee} assetId={assetId || undefined} tt={tt} can={can} open={testOpen} quiet
+        detail={showProveDetail}
+        onShowAll={showAll}
         {...(can.edit ? { floor: say } : {})}
         {...(program ? {} : { record: () => progs.add({ what: l.what, assetId: assetId || undefined, state: 'onMachine', ...(l.who ? { from: l.who } : {}) }) })} />}
       criteria={<ProgramCriteria {...(program ? { program } : {})} tests={tt.tests} edit={can.edit} machine={l.machine !== 'The line' ? l.machine : undefined}
+        detail={showProveDetail || !!(program?.criteria?.length || program?.signedOff)}
+        onShowAll={showAll}
         ensure={async () => {
           const id = await progs.add({ what: l.what, assetId: assetId || undefined, state: 'onMachine', ...(l.who ? { from: l.who } : {}) });
           return id ? (await listPrograms(projectId)).find(x => x.id === id) : undefined;

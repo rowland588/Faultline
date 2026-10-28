@@ -59,7 +59,7 @@ function useProgramStudies(on: boolean): ToolStudy[] | undefined {
 type Pick = CriterionTool | 'run';
 const PICK_NAME: Record<Pick, string> = { capability: 'Capability study', chart: 'Control chart', reliability: 'Reliability study', analysis: 'Analysis', run: 'Run test' };
 
-export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun }: {
+export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun, detail = true, onShowAll }: {
   /** The program — or, for a line on a machine's programs stage with no record yet, none (`ensure` makes it). */
   program?: Program;
   /** Make its program record, the first time a criterion is picked. */
@@ -72,8 +72,12 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   machine?: string;
   /** Make its first run test, when it has none to pick (ui/ProgramTest's own way). Absent: pick one it has. */
   planRun?: (p: Program) => Promise<string | undefined>;
+  /** Full criteria list on the row — false is a one-line summary and actions. */
+  detail?: boolean;
+  onShowAll?: () => void;
 }) {
   const [adding, setAdding] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   /* Studies load while editing even with none picked — *Proved by* studies on its tests must show before + Pick (program 5, 26 Oct). */
   const studies = useProgramStudies(!!program && (edit || !!program.criteria?.length || !!program.signedOff || adding));
   const { session } = useSession();
@@ -138,6 +142,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   };
 
   const provable = p && studies ? studiesToPick(p, studies, mine.map(t => t.id)) : [];
+  const showDetail = detail || expanded || adding || signing;
 
   /* NONE PICKED: one quiet door — a passed test proves it, as it always has */
   if (!answers.length && !p?.signedOff && !adding) {
@@ -160,7 +165,27 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
             )}
           </>
         )}
-        {edit && <button type="button" className="cw-link pgc-add" onClick={() => setAdding(true)}>+ Pick its criteria</button>}
+        {edit && <button type="button" className="cw-link pgc-add" onClick={() => { setExpanded(true); setAdding(true); }}>+ Pick its criteria</button>}
+      </div>
+    );
+  }
+
+  if (!showDetail) {
+    return (
+      <div className="pgc pgc-compact" aria-label={`The criteria of ${p?.what ?? 'the program'}`}>
+        <span className="pgc-h">
+          <b>Its criteria</b>
+          {v && <span className={'spp-pill pgc-v is-' + v.tone}>{v.words}</span>}
+        </span>
+        {edit && !p?.signedOff && (
+          <span className="pgc-acts pgc-acts-inline">
+            {v?.ready && (
+              <button type="button" className="btn btn-primary btn-sm pgc-sign" onClick={() => { setExpanded(true); setSigning(true); setBy(me); setDay(today); }}>Sign off</button>
+            )}
+            <button type="button" className="btn btn-sm" onClick={() => { setExpanded(true); setAdding(true); }}>Add a criterion</button>
+            {onShowAll && <button type="button" className="cw-link pgc-all" onClick={() => { setExpanded(true); onShowAll?.(); }}>Open criteria ›</button>}
+          </span>
+        )}
       </div>
     );
   }
@@ -203,7 +228,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
 
       {edit && !p?.signedOff && (
         <div className="pgc-acts">
-          {!adding && <button type="button" className="btn btn-sm" onClick={() => { setAdding(true); setSigning(false); }}>Add a criterion</button>}
+          {!adding && <button type="button" className="btn btn-sm" onClick={() => { setExpanded(true); setAdding(true); setSigning(false); }}>Add a criterion</button>}
           {v?.ready && !signing && (
             <button type="button" className="btn btn-primary btn-sm pgc-sign" onClick={() => { setSigning(true); setAdding(false); setBy(me); setDay(today); }}>Sign off</button>
           )}
