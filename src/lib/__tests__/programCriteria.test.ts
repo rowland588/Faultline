@@ -9,7 +9,7 @@
  * So: the net run left off, a capability study and a reliability study picked,
  * both passing against what is set in them, signed off by two names. */
 import { describe, expect, it } from 'vitest';
-import { cannotSignOff, criteriaOf, criteriaVerdict, criterionStudy, passedItLine, signedOff, signersOf, studiesToPick, unsigned, withCriterion, withoutCriterion } from '../programCriteria';
+import { cannotSignOff, criteriaOf, criteriaVerdict, criterionStudy, passedItLine, signedOff, signersOf, studiesToPick, unsigned, withAllProofStudies, withCriterion, withoutCriterion } from '../programCriteria';
 import { isProved, programAfterFloor, programAfterTest, programAfterTestGone, stateOf, type Program } from '../programs';
 import type { Test } from '../testing';
 import type { ToolStudy } from '../study';
@@ -122,6 +122,11 @@ describe('picking and taking off criteria', () => {
     const map = { ...cap({ id: 'm' }), tool: 'map' as const };
     const other = cap({ id: 'o', programId: 'p9' });
     expect(studiesToPick(withCriterion(p5, { kind: 'study', id: 'cap' }), [cap(), onTest, map, other], ['r1']).map(s => s.id)).toEqual(['c2']);
+  });
+  it('withAllProofStudies: every study on its tests, not the run', () => {
+    const onTest = { ...cap(), id: 'c2', programId: undefined, uses: [{ id: 'u', kind: 'test', ref: 'r1', role: 'proof', at: 1, by: 'x' }] } as ToolStudy;
+    const next = withAllProofStudies(p5, [cap(), onTest], ['r1']);
+    expect(next.criteria?.map(c => c.id).sort()).toEqual(['c2']);
   });
   it('a new study for the program: on its project and machine, set up in its tool', () => {
     const s = criterionStudy({ ...p5, assetId: 'a1', workspaceId: 'w' }, 'reliability', ' Robot faults ', { id: 'n', at: 9, machine: 'Robot' });

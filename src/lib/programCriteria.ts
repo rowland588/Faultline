@@ -188,6 +188,13 @@ export function withCriterion(p: Program, c: Criterion): Program {
   return { ...p, criteria: [...(p.criteria ?? []), c] };
 }
 
+/** Every study already lined up on this program's tests (or made for it) that can be a criterion — added in one go
+ *  (Rowland, 26–28 October, program 5: capability studies on *Proved by* while criteria stayed empty — the net run
+ *  alone read FAILED). Does not add run tests. */
+export function withAllProofStudies(p: Program, studies: readonly ToolStudy[], testIds: readonly ID[]): Program {
+  return studiesToPick(p, studies, testIds).reduce((cur, s) => withCriterion(cur, { kind: 'study', id: s.id }), p);
+}
+
 /** A criterion taken off; the study or test itself is kept. */
 export function withoutCriterion(p: Program, c: Pick<Criterion, 'kind' | 'id'>): Program {
   const left = (p.criteria ?? []).filter(x => !(x.kind === c.kind && x.id === c.id));

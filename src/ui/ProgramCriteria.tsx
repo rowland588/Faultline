@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Program } from '../lib/programs';
 import type { Test } from '../lib/testing';
 import type { ToolStudy } from '../lib/study';
-import { CRITERION_TOOLS, CRITERION_WORD, cannotSignOff, criteriaOf, criteriaVerdict, criterionStudy, signedOff, signersOf, studiesToPick, unsigned, withCriterion, withoutCriterion, type CriterionTool } from '../lib/programCriteria';
+import { CRITERION_TOOLS, CRITERION_WORD, cannotSignOff, criteriaOf, criteriaVerdict, criterionStudy, signedOff, signersOf, studiesToPick, unsigned, withAllProofStudies, withCriterion, withoutCriterion, type CriterionTool } from '../lib/programCriteria';
 import { TOOL_NAME, studyHref } from '../lib/studyLinks';
 import { attemptsOf, testJourney } from '../lib/programJourney';
 import { listAllStudies, onDataChange, putProgram, putStudy } from '../db';
@@ -74,7 +74,8 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   planRun?: (p: Program) => Promise<string | undefined>;
 }) {
   const [adding, setAdding] = useState(false);
-  const studies = useProgramStudies(!!program?.criteria?.length || !!program?.signedOff || adding);
+  /* Studies load while editing even with none picked — *Proved by* studies on its tests must show before + Pick (program 5, 26 Oct). */
+  const studies = useProgramStudies(!!program && (edit || !!program.criteria?.length || !!program.signedOff || adding));
   const { session } = useSession();
   const me = displayName(session?.user.email) || '';
   const today = todayISO();
@@ -136,11 +137,30 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
     setSigning(false);
   };
 
+  const provable = p && studies ? studiesToPick(p, studies, mine.map(t => t.id)) : [];
+
   /* NONE PICKED: one quiet door — a passed test proves it, as it always has */
   if (!answers.length && !p?.signedOff && !adding) {
     return (
       <div className="pgc pgc-empty">
-        <button type="button" className="cw-link pgc-add" onClick={() => setAdding(true)}>+ Pick its criteria</button>
+        {provable.length > 0 && (
+          <>
+            <p className="sub pgc-hint">
+              {provable.length === 1 ? 'One study is' : `${provable.length} studies are`} already lined up on this program&apos;s tests.
+              Pick {provable.length === 1 ? 'it' : 'them'} as criteria so the program is judged by the tool — not the net run alone when outside noise fails the rate.
+            </p>
+            {edit && (
+              <button type="button" className="btn btn-sm pgc-proof-all" onClick={() => void record().then(async cur => {
+                if (!cur || !studies) return;
+                const next = withAllProofStudies(cur, studies, mine.map(t => t.id));
+                await save(next, `${provable.length} proving ${provable.length === 1 ? 'study' : 'studies'} — criteria of ${cur.what}`, cur);
+              })}>
+                Use {provable.length} proving {provable.length === 1 ? 'study' : 'studies'} as criteria
+              </button>
+            )}
+          </>
+        )}
+        {edit && <button type="button" className="cw-link pgc-add" onClick={() => setAdding(true)}>+ Pick its criteria</button>}
       </div>
     );
   }
