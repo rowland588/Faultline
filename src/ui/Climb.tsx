@@ -48,12 +48,12 @@ export function ClimbLine({ c, machine, line }: { c: Climb; machine?: boolean; l
   );
 }
 
-/** Every climb given, under one small heading — the run's own, or a machine's. */
-export function Climbs({ cs, machine, line }: { cs: Climb[]; machine?: boolean; line?: RunLine }) {
+/** Every climb given — the run's own, or a machine's. Heading optional when the section already titles it (STAGEGATE-AESTHETIC C3). */
+export function Climbs({ cs, machine, line, heading = true }: { cs: Climb[]; machine?: boolean; line?: RunLine; heading?: boolean }) {
   if (!cs.length) return null;
   return (
     <div className="cl-list">
-      <small className="cl-h">The climb to rate</small>
+      {heading && <small className="cl-h">The climb to rate</small>}
       {cs.map(c => <ClimbLine key={`${c.machineId ?? ''}|${c.product}`} c={c} machine={machine} line={line} />)}
     </div>
   );

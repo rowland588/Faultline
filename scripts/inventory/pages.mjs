@@ -88,14 +88,15 @@ export const PAGES = (sd, cap) => [
     { what: 'what is open on it, most pressing first', sel: '.mpg-open h2' },
     { what: 'its tests', sel: '.mpg-tests h2' },
     { what: 'its programs', sel: '.mpg-side .pp-m' },
-    { what: 'the machine itself — its label, its details', sel: '.mpg-itself .mp-label' },
-    { what: 'the closing line', sel: '.mpg-in-project > .ln-close' },
     /* then the line's — every project that worked on it, each opening the project itself; no second page of the machine */
     { what: 'the projects on it, each opening the project', sel: '.lmc-projects .lmc-proj .cw-link', text: /^Open / },
     { what: 'the line’s own programs on it', sel: '.lmc-programs h2' },
     { what: 'its problems', sel: '.lmc-problems h2' },
     { what: 'studies of it', sel: '.lmc-studies h2' },
     { what: 'its stops', sel: '.lmc-stops h2' },
+    /* last — itself and the closing line after every line section (STAGEGATE-AESTHETIC C3) */
+    { what: 'the machine itself — its label, its details; Remove in More ▾', sel: '.mpg-itself .mp-label' },
+    { what: 'the closing line', sel: '.lmc .mpg-in-project > .ln-close' },
   ] },
   { name: 'A line — its own page', path: `#/lines/${sd.line7WsId}`, must: [
     /* WHERE AM I (27 October — Rowland: "Where am I? Overview? ... I do not see a machine page"): the menu names the line under

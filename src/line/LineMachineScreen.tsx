@@ -99,7 +99,7 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
       {said && <p className="tc-ok" role="status">{said}</p>}
 
       {/* IN ITS PROJECT — what the project working on it now is doing to it, first */}
-      {job && assetId && <MachineInProject projectId={job.id} assetId={assetId} onRemoved={() => nav(`/project/${job.id}/machines`)} />}
+      {job && assetId && <MachineInProject projectId={job.id} assetId={assetId} onRemoved={() => nav(`/project/${job.id}/machines`)} tail="afterLine" />}
 
       <section className="pl-sec lmc-projects" aria-label="The projects on it">
         <div className="pl-sec-h"><h2>The projects on it</h2><span className="sub">{v.projects.length || 'none'}</span></div>
@@ -169,6 +169,9 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
         <div className="pl-sec-h"><h2>Its stops</h2></div>
         <p className="sub">{v.stops.n ? `${v.stops.n} ${v.stops.n === 1 ? 'stop' : 'stops'} timed in the last ${STOP_DAYS} days — ${v.stops.minutes} minutes.` : `No stops timed on it in the last ${STOP_DAYS} days.`}</p>
       </section>
+
+      {/* After every line section — itself and the closing line (STAGEGATE-AESTHETIC C3). */}
+      {job && assetId && <MachineInProject projectId={job.id} assetId={assetId} onRemoved={() => nav(`/project/${job.id}/machines`)} tail="only" />}
     </div>
   );
 }

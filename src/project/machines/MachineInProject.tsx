@@ -37,8 +37,13 @@ export const machineStatus = (asset: Asset, at: string): string => (at.startsWit
 export const statusTone = (status: string): 'g' | 'n' | 'w' => (status === 'Handed over' ? 'g' : status === 'Not here yet' ? 'n' : 'w');
 
 /** The project's part of a machine's page — everything the project is doing to it. `onRemoved` is where the page
- *  goes when the machine is taken off the project (MachineItself's remove). */
-export function MachineInProject({ projectId, assetId, onRemoved }: { projectId: string; assetId: string; onRemoved: () => void }) {
+ *  goes when the machine is taken off the project (MachineItself's remove).
+ *  On a line's machine page (`tail="afterLine"`), the project body comes first; itself and the closing line sit
+ *  after the line's own sections (STAGEGATE-AESTHETIC C3 / U4). */
+export function MachineInProject({ projectId, assetId, onRemoved, tail = 'inline' }: {
+  projectId: string; assetId: string; onRemoved: () => void;
+  tail?: 'inline' | 'afterLine' | 'only';
+}) {
   const tt = useTesting(projectId);
   const progs = usePrograms(projectId);
   const { project } = useProject(projectId);
@@ -53,6 +58,10 @@ export function MachineInProject({ projectId, assetId, onRemoved }: { projectId:
   const status = machineStatus(asset, m.at);
   const open = openOnMachine(m);
   const tests = machineTests(m);
+  const moneyReady = money ?? MONEY_WAIT;
+  const itself = <MachineItself asset={asset} projectId={projectId} tt={tt} can={can} onClose={onRemoved} />;
+  const closing = <LeanClosing closing={machineClosing(machineCounts(m), moneyReady)} />;
+  if (tail === 'only') return <div className="mpg mpg-in-project">{itself}{closing}</div>;
   const row = (l: { id: string; title: string; word: string; tone: string; who?: string }, where?: string) => (
     <li key={l.id} className={'lt-li mpg-l is-' + l.tone}>
       <button type="button" className="lt-row" onClick={() => openRecord(projectId, l.id)}>
@@ -88,7 +97,7 @@ export function MachineInProject({ projectId, assetId, onRemoved }: { projectId:
 
       {/* THE LEAN PAGE (lib/stageGatePages): its gates through, what is late, its fixes, the problems on it with no fix,
           and the project's money */}
-      <LeanTiles tiles={machineTiles(machineCounts(m), money ?? MONEY_WAIT)} className="sg-tiles" />
+      <LeanTiles tiles={machineTiles(machineCounts(m), moneyReady)} className="sg-tiles" />
 
       <div className="mpg-cols">
         <div className="mpg-main">
@@ -108,12 +117,10 @@ export function MachineInProject({ projectId, assetId, onRemoved }: { projectId:
           <ProgramsPage projectId={projectId} only={asset.id} />
         </section>
       </div>
-      {/* THE MACHINE ITSELF — its climb to rate, its label, its details and remove (ui/MachinePanel MachineItself) */}
-      <section className="mpg-itself" aria-label="The machine itself">
-        <MachineItself asset={asset} projectId={projectId} tt={tt} can={can} onClose={onRemoved} />
-      </section>
-      {/* THE CLOSING LINE — the machine in one sentence, the slip in money */}
-      <LeanClosing closing={machineClosing(machineCounts(m), money ?? MONEY_WAIT)} />
+      {tail === 'inline' && <>
+        {itself}
+        {closing}
+      </>}
     </div>
   );
 }
