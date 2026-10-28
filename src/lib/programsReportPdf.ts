@@ -26,7 +26,7 @@ const sanLine = (l: ProgramLine): ProgramLine => ({
   ...(l.runs ? { runs: san(l.runs) } : {}), ...(l.who ? { who: san(l.who) } : {}),
   ...(l.note ? { note: san(l.note) } : {}), ...(l.proving ? { proving: san(l.proving) } : {}),
   ...(l.run ? { run: san(l.run) } : {}),
-  ...(l.tests ? { tests: l.tests.map(t => ({ ...t, badge: san(t.badge), text: san(t.text), studies: t.studies.map(san) })) } : {}), ...(l.proof ? { proof: { ...l.proof, word: san(l.proof.word) } } : {}),
+  ...(l.tests ? { tests: l.tests.map(t => ({ ...t, badge: san(t.badge), text: san(t.text), studies: t.studies.map(san), ...(t.split ? { split: san(t.split) } : {}) })) } : {}), ...(l.proof ? { proof: { ...l.proof, word: san(l.proof.word) } } : {}),
 });
 
 /** Each machine's programs, a row each: the program and its state on one
@@ -46,7 +46,7 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
     proof: l.proof ? wrap(f.doc, l.proof.word, f.w - indent, 8) : [],
     run: l.run ? wrap(f.doc, `In Commission: ${l.run}`, f.w - indent, 8.5, 'bold') : [],
     /* every test of it, first to last, each with the studies lined up for it */
-    tests: (l.tests ?? []).map(t => ({ tone: t.tone, badge: t.badge, lines: wrap(f.doc, t.text, f.w - indent - 4, 8), studies: t.studies.flatMap(x => wrap(f.doc, `Study: ${x}`, f.w - indent - 16, 7.5)) })),
+    tests: (l.tests ?? []).map(t => ({ tone: t.tone, badge: t.badge, lines: [...wrap(f.doc, t.text, f.w - indent - 4, 8), ...(t.split ? wrap(f.doc, t.split, f.w - indent - 4, 8) : [])], studies: t.studies.flatMap(x => wrap(f.doc, `Study: ${x}`, f.w - indent - 16, 7.5)) })),
   });
   const height = (f: Frame, l: ProgramLine) => {
     const p = parts(f, l);

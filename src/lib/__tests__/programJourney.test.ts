@@ -72,3 +72,36 @@ describe('a program’s journey', () => {
     expect(programJourney(p, [], '2026-10-14')).toEqual({ attempts: [] });
   });
 });
+
+/* WHAT A TEST MET AND WHAT IT DID NOT (Rowland, 27 October: program 5 failed on net packs a minute because of lost time
+   that had nothing to do with the trial — "you can fail the overall goal, but it still means that you passed the test.
+   But there's no clarity on it"). Each agreed number is judged on its own (lib/run readRun) and said in one sentence. */
+describe('what each test met and missed', () => {
+  const p5: Program = { id: 'p5', projectId: 'j', what: 'Program 5 Express 1.25 kg', state: 'onMachine', sort: 1, createdAt: t0, updatedAt: t0 };
+  const at = (id: string, o: Partial<Test>) => test(id, { programId: 'p5', title: 'Program 5', ...o });
+  /* 70 ppm for 30 min, net 55, rejects 2% at most: 1,650 packs, 25 rejects → net (1,650 − 25) ÷ 30 = 54.17 */
+  const short = at('s', { outcome: 'failed', ranOn: '2026-10-27', runAgreed: { rate: 70, minutes: 30, net: 55, rejectsMax: 2 }, run: { speed: 70, minutes: 30, packs: 1650, rejects: 25 } });
+  it('failed on the net alone: the speed, rejects and run length it met are said, each a check of its own', () => {
+    const a = programJourney(p5, [short], '2026-10-28').attempts[0];
+    expect(a.checks?.map(c => [c.label, c.ok])).toEqual([['Speed it ran at', true], ['Net rate', false], ['Rejects', true], ['Run length', true]]);
+    expect(a.split).toBe('Didn’t pass on net rate alone (54.2 ppm, 0.8 ppm short) — speed it ran at, rejects and run length all met');
+  });
+  it('every number met — passed, and said so', () => {
+    const ok = at('o', { outcome: 'passed', ranOn: '2026-10-28', runAgreed: { rate: 70, minutes: 30 }, run: { speed: 70, minutes: 30, packs: 2000, rejects: 4 } });
+    expect(programJourney(p5, [ok], '2026-10-28').attempts[0].split).toBe('Every number met — speed it ran at and run length');
+  });
+  it('every number met but marked didn’t pass — says another reason failed it', () => {
+    const hand = at('h', { outcome: 'failed', ranOn: '2026-10-28', runAgreed: { rate: 70, minutes: 30 }, run: { speed: 70, minutes: 30 } });
+    expect(programJourney(p5, [hand], '2026-10-28').attempts[0].split).toBe('Every number it was judged on was met (speed it ran at and run length) — marked didn’t pass for another reason');
+  });
+  it('two missed: both said with their gaps, nothing claimed met', () => {
+    const two = at('t', { outcome: 'failed', ranOn: '2026-10-28', runAgreed: { rate: 70, minutes: 60 }, run: { speed: 65, minutes: 40 } });
+    expect(programJourney(p5, [two], '2026-10-28').attempts[0].split).toBe('Didn’t pass on speed it ran at (65 ppm, 5 ppm slower) and run length (40 min, 20 min short)');
+  });
+  it('a test not yet run says nothing about it', () => {
+    const booked = at('b', { plannedFor: '2026-10-30', runAgreed: { rate: 70, minutes: 30 } });
+    const a = programJourney(p5, [booked], '2026-10-28').attempts[0];
+    expect(a.checks).toBeUndefined();
+    expect(a.split).toBeUndefined();
+  });
+});

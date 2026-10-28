@@ -67,7 +67,7 @@ describe('a machine in full — every attempt, what was seen, what was found, th
     expect(row).toMatchObject({ word: 'PASSED', tone: 'g' });
     expect(row?.detail?.[0]).toEqual({ label: 'Has to show', text: 'no leak in 20 packs' });
     expect(row?.detail).toContainEqual({ label: 'Attempt 1 · 10 Oct', word: 'DIDN’T PASS', tone: 'r', text: 'two leaks on lane 2',
-      more: 'Aimed for 60 packs a minute for 30 minutes. It ran: machine set at 55 packs a minute · ran 30 minutes · 1,600 packs · 40 rejects · 52 good packs a minute.' });
+      more: 'Aimed for 60 packs a minute for 30 minutes. It ran: machine set at 55 packs a minute · ran 30 minutes · 1,600 packs · 40 rejects · 52 good packs a minute. Didn’t pass on net rate alone (52 ppm, 8 ppm short) — run length met.' });
     expect(row?.detail).toContainEqual({ label: 'Attempt 2 · 14 Oct', word: 'PASSED', tone: 'g', text: 'no leaks' });
     expect(row?.detail).toContainEqual({ label: 'Problem found · 10 Oct', text: 'Jaw heater reads 20° low', more: 'Who has it: Dave' });
     expect(row?.says).toBe('Attempts: 1 passed · 1 didn’t pass');

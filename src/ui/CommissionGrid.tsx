@@ -134,7 +134,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                 {/* ITS JOURNEY — every test of it, first to last (lib/programJourney). */}
                 {(j => j.attempts.length > 1 && (
                   <ol className="cgp-j" aria-label={`The tests of ${p.what}`}>
-                    {j.attempts.map(a => <li key={a.test.id} className={'is-' + a.result.tone}>{a.text}</li>)}
+                    {j.attempts.map(a => <li key={a.test.id} className={'is-' + a.result.tone}>{a.text}{a.split ? <span className="ptx-split"> — {a.split}</span> : null}</li>)}
                   </ol>
                 ))(programJourney(p, tt.tests, today))}
               </li>

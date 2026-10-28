@@ -11,6 +11,9 @@
  *   3  Go again carries the aim as it now stands (aiming to run 60), not the one first written
  *   2+ the aim is a SPEED (Rowland: "it's not short … a net rate to achieve doesn't exist … they can be both"): 59.5 ppm netted
  *      is 15.5 below the 75 it ran at, a fact — never "short"; a net rate given as well is judged, and only then
+ *   5  what each test met and missed, each agreed number its own (28 October — program 5: "you can fail the overall goal,
+ *      but it still means that you passed the test. But there's no clarity on it"): a test short on its net alone says
+ *      so, its speed, rejects and run length met, on the line where the program sits; pressed, it opens in the drawer there
  *   4  on a phone (390 px): a project's tabs — more than fit, the one you are on in view, the edge fading where
  *      more wait, the last one reachable; the top bar opaque (nothing reading through it); nothing off the side */
 import pkg from 'playwright';
@@ -103,15 +106,42 @@ const after = flat(await step().innerText());
 ok(/ran 60 min · 3,600 packs · 30 rejects/.test(after) && /netted 59\.5 ppm/.test(after) && !/netted 20/.test(after), `2f the row follows the record — "${after}"`);
 const best = flat(await row.locator('.ptx-best').first().innerText());
 ok(/for 60 min/.test(best) && !/180/.test(best), `2g the best pass follows it — "${best}"`);
+const chips = (await row.locator('.ptx-ladder li').last().locator('.ptx-chk').allInnerTexts()).map(flat);
+ok(JSON.stringify(chips) === JSON.stringify(['✓ Speed it ran at 75 ppm', '✓ Net rate 59.5 ppm', '✓ Run length 60 min'])
+  && flat(await row.locator('.ptx-ladder li').last().locator('.ptx-split').innerText()) === 'Every number met — speed it ran at, net rate and run length',
+  `2h each number it was judged on said on its own, met — ${chips.join(' · ')}`);
 
 /* ---- 3 Go again carries the aim as it stands ---- */
 await row.getByRole('button', { name: 'Go again' }).first().click(); await page.waitForTimeout(500);
 ok(await row.locator('input[aria-label^="Aiming to run"]').first().inputValue() === '60' && await row.locator('input[aria-label^="Aiming for"]').first().inputValue() === '75' && await row.locator('input[aria-label^="Net rate target"]').first().inputValue() === '59',
   '3 Go again starts from the aim as it now stands — 75 ppm for 60 min, net 59');
 
+/* ---- 5 a test that didn't pass on its net alone, on the line where the program sits (28 October — Rowland, program 5:
+   "you can fail the overall goal, but it still means that you passed the test. But there's no clarity on it ... on the
+   dashboard itself, it's just failure") — what it met and what it missed, each number its own; pressed, it opens in
+   the drawer on the line ---- */
+await page.evaluate(async pid => {
+  const db = await import('/src/db.ts');
+  const prog = (await db.listPrograms(pid)).find(x => x.what.startsWith('PR-07'));
+  const a = (await db.listAssets(pid)).find(x => x.name === 'Ilapak flow wrapper');
+  const now = Date.now();
+  await db.putTest({ id: crypto.randomUUID(), projectId: pid, assetId: a.id, programId: prog.id, title: 'PR-07 Baking Potatoes 2 kg', kind: 'test', outcome: 'failed', ranOn: '2026-10-27',
+    runAgreed: { rate: 70, minutes: 30, net: 55, rejectsMax: 2 }, run: { speed: 70, minutes: 30, packs: 1650, rejects: 25 }, result: 'Lost time on the infeed, nothing to do with the trial', createdAt: now, updatedAt: now, sort: 99 });
+}, sd.projectId);
+await page.goto(`${BASE}/#/programs?line=${sd.wsId}`); await page.locator('.lp-m-job').first().waitFor({ timeout: 15000 }).catch(() => {}); await page.waitForTimeout(1500);
+const r7 = page.locator('.lp-m-job .pgr', { hasText: 'PR-07' }).first();
+const c7 = (await r7.locator('.ptx-chk').allInnerTexts()).map(flat);
+ok(JSON.stringify(c7) === JSON.stringify(['✓ Speed it ran at 70 ppm', '✗ Net rate 54.2 ppm — 0.8 ppm short', '✓ Rejects 1.5%', '✓ Run length 30 min'])
+  && await r7.locator('.ptx-chk.is-missed').count() === 1, `5 on the line, each number its own — the net missed, the speed, rejects and run length met: ${c7.join(' · ')}`);
+const s7 = flat(await r7.locator('.ptx-split').first().innerText().catch(() => ''));
+ok(s7 === 'Didn’t pass on net rate alone (54.2 ppm, 0.8 ppm short) — speed it ran at, rejects and run length all met', `5b said in one sentence: "${s7}"`);
+await r7.locator('.ptx-step').first().click(); await page.waitForTimeout(1500);
+ok(page.url().includes(`#/programs?line=${sd.wsId}`) && /[?&]open=/.test(page.url()) && await page.locator('.rd').count() >= 1, '5c pressed, the test opens in the drawer on the line — no other page', page.url());
+await page.keyboard.press('Escape'); await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 5000 }).catch(() => {});
+
 /* ---- 4e nothing off the side ---- */
 const wide = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
-ok(!wide, '4e nothing off the side of the phone');
+ok(!wide, '4e nothing off the side of the phone' + (wide ? ` — ${await page.evaluate(() => { const W = document.documentElement.clientWidth; return location.hash.slice(0, 40) + ' ' + [...document.querySelectorAll('body *')].filter(e => e.getBoundingClientRect().right > W + 1).slice(0, 5).map(e => e.tagName + '.' + String(e.className).slice(0, 40) + ' ' + Math.round(e.getBoundingClientRect().right)).join(' | '); })}` : ''));
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
 await browser.close();
 if (failed) { console.log(`${failed} check(s) failed`); process.exit(1); }

@@ -12881,6 +12881,12 @@ button.vc-row-in:focus-visible { outline: 2px solid var(--brand); outline-offset
 .ptx-step:hover { background: var(--accent-soft); }
 .ptx-when { color: var(--ink-2); }
 .ptx-seen { flex-basis: 100%; color: var(--ink-2); }
+/* what a test met and missed — each number on its own: met quiet in green words, missed red with its gap (visual rule 2) */
+.ptx-checks { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.ptx-chk { font-size: var(--t-label); border: 1px solid var(--line); border-radius: var(--radius-pill); padding: 1px 8px; overflow-wrap: anywhere; }
+.ptx-chk.is-met { color: var(--st-g); background: color-mix(in srgb, var(--st-g) 6%, transparent); }
+.ptx-chk.is-missed { color: var(--st-r); font-weight: 700; border-color: color-mix(in srgb, var(--st-r) 45%, transparent); background: color-mix(in srgb, var(--st-r) 7%, transparent); }
+.ptx-split { flex-basis: 100%; color: var(--ink); font-weight: 600; }
 .ptx-nums { display: flex; flex-wrap: wrap; gap: 8px 12px; }
 .ptx-n { display: grid; gap: 2px; }
 .ptx-n-in { display: flex; align-items: center; gap: 6px; }
@@ -14217,6 +14223,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fd-back .ln-h { margin-bottom: 8px; }
 /* a test taken off where it sits (ui/ProgramTest, 23 October) */
 .ptx-ladder li { display: flex; align-items: flex-start; gap: 2px; }
+/* nothing in a test's line may widen the row past the phone: the ladder, its rows and its steps shrink, long words wrap */
+.ptx-j, .ptx-ladder, .ptx-ladder li, .ptx-ladder li > .ptx-step { min-width: 0; }
+.pgr .ptx-ladder .ptx-seen { max-width: 100%; }
 .ptx-del { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; margin-top: 1px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--muted); cursor: pointer; }
 .ptx-del:hover { color: var(--danger); background: var(--surface-2); }
 .home-talk { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }

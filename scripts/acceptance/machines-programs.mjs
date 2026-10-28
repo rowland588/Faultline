@@ -424,7 +424,9 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   const mname = await page.evaluate(async ([pid, id]) => (await (await import('/src/db.ts')).listAssets(pid)).find(a => a.id === id)?.name ?? 'The line itself', [sd.projectId, second.assetId]);
   await main.getByRole('button', { name: new RegExp(`^${mname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} — programs:`) }).click(); await page.waitForTimeout(500);
   const sheetJ = (await page.getByRole('dialog', { name: `Programs on ${mname}` }).locator('.cgp-j li').allInnerTexts()).map(flat);
-  ok(sheetJ.length >= 2 && sheetJ.includes(r.j.attempts[1].text), `7i Commission's sheet carries the journey (${sheetJ.length} steps)`);
+  /* each step its line, then what it met and missed when the numbers judge it (28 October, lib/programJourney splitOf) */
+  const sheetWant = flat(`${r.j.attempts[1].text}${r.j.attempts[1].split ? ` — ${r.j.attempts[1].split}` : ''}`);
+  ok(sheetJ.length >= 2 && sheetJ.includes(sheetWant), `7i Commission's sheet carries the journey (${sheetJ.length} steps)`, `${sheetWant} | ${sheetJ.join(' | ')}`);
   await page.keyboard.press('Escape'); await page.waitForTimeout(500);
   /* and the commissioning paper */
   await go(`#/project/${sd.projectId}/report?doc=commissioning`);

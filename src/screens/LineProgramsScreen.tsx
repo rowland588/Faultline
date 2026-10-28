@@ -24,7 +24,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import type { Program, ProgramState } from '../lib/programs';
 import { STATE_WORD, daysOverdue, isProved, movedOne, standingOf, stateOf } from '../lib/programs';
-import { lineProgramsReading, machineOfProgram, machinesOnLine, productsOnLine, programsOnLine, type LineMachine } from '../lib/lineRecords';
+import { lineProgramsReading, machineKey, machineOfProgram, machinesOnLine, productsOnLine, programsOnLine, type LineMachine } from '../lib/lineRecords';
 import { useLineRecords, type LineRecords } from '../lib/useLineRecords';
 import { projectsOnLines, stageOnlyByLine, useJobFloor, type FloorWord, type StageOnly } from '../lib/useJobFloor';
 import type { ProgramLine, Proof } from '../lib/programsReport';
@@ -163,10 +163,25 @@ function LineBlock({ s, rec, may, today, floor, proofs, onStage, startAdding }: 
   /* A MACHINE A STAGE-GATE PROJECT IS WORKING ON shows that project's own rows here — the same rows, Test it and every
      attempt as the project's Programs, opened in place (27 October — Rowland, pressing a program on the line: "now I'm
      in a completely different page ... I can't go back out"). It used to send you to the project's Programs. */
+  /* The project is found however the machine is kept (28 October — Rowland's Line 2a: the line has its own record of
+     Pick and place and the project another, and the line's own came first, so the project's programs fell back to rows
+     that opened the project's page): its record's project, else a stage-gate project on this line with a record of the
+     same machine, else the project a program or a Programs-loaded line on it belongs to. */
   const projectOn = (m?: LineMachine) => {
-    const pid = m?.record?.projectId;
-    const job = pid ? rec.jobs.find(j => j.id === pid && !j.archivedAt && !j.deletedAt && planModel(j) === 'commissioning') : undefined;
-    return job && m?.record ? { job, assetId: m.record.id } : undefined;
+    if (!m) return undefined;
+    const key = machineKey(m.name);
+    const live = (pid?: string) => (pid ? rec.jobs.find(j => j.id === pid && !j.archivedAt && !j.deletedAt && planModel(j) === 'commissioning'
+      && (m.record?.projectId === pid || rec.jobLines.some(l => l.projectId === pid && l.workspaceId === line.id && !l.deletedAt))) : undefined);
+    const assetOf = (pid: string) => (m.record?.projectId === pid ? m.record
+      : rec.machines.find(a => a.projectId === pid && !a.deletedAt && !a.mergedInto && machineKey(a.name) === key));
+    const pids = [m.record?.projectId, ...rec.machines.filter(a => a.projectId && !a.deletedAt && !a.mergedInto && machineKey(a.name) === key).map(a => a.projectId),
+      ...programs.filter(p => p.projectId && machineOfProgram(p, machines) === m).map(p => p.projectId),
+      ...onStage.filter(r => machineKey(r.line.machine ?? '') === key).map(r => r.projectId)];
+    for (const pid of pids) {
+      const job = live(pid); const a = job && assetOf(job.id);
+      if (job && a) return { job, assetId: a.id };
+    }
+    return undefined;
   };
   const inPlace = new Set(machines.filter(m => projectOn(m)).map(m => m.name.trim().toLowerCase()));
   const groups = [

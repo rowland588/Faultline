@@ -66,9 +66,9 @@ function resultWord(word: string): string {
 
 /** One attempt of a test or a program, labelled: "Attempt 2 · 26 Oct" — PASSED — what was seen; under it what it
  *  aimed at and what it did, in whole words. */
-export function attemptDetail(a: Pick<Attempt, 'n' | 'when' | 'aim' | 'did' | 'result' | 'seen' | 'test'>): PaperDetail {
+export function attemptDetail(a: Pick<Attempt, 'n' | 'when' | 'aim' | 'did' | 'result' | 'seen' | 'test'> & Partial<Pick<Attempt, 'split'>>): PaperDetail {
   const ran = !!a.test.ranOn;
-  const more = [a.aim ? cap(runWords(a.aim)) : '', a.did ? `It ran: ${runWords(a.did)}` : ''].filter(Boolean).join('. ');
+  const more = [a.aim ? cap(runWords(a.aim)) : '', a.did ? `It ran: ${runWords(a.did)}` : '', a.split ?? ''].filter(Boolean).join('. ');
   return {
     label: `Attempt ${a.n}${ran ? ` · ${a.when}` : ''}`,
     word: resultWord(a.result.word), tone: a.result.tone,
@@ -97,6 +97,12 @@ export function attemptFromLine(line: string, tone: PaperTone): PaperDetail {
     word: resultWord(word), tone, text: seen,
     ...(more ? { more: `${more}.` } : {}),
   };
+}
+
+/** An attempt read from its line, with what it met and did not said under it (lib/programJourney splitOf). */
+export function withSplit(d: PaperDetail, split?: string): PaperDetail {
+  if (!split) return d;
+  return { ...d, more: d.more ? `${d.more.replace(/\.$/, '')}. ${split}.` : `${split}.` };
 }
 
 /** What was written on a test or a step — a problem found, the next step agreed, a note — labelled with its kind and

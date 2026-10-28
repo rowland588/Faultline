@@ -100,6 +100,9 @@ const RECORD_ROUTES = new Set<RouteName>([
   /* The machine's one page, on its line (27 October): a project's stage, test, fix or problem on it opens over it,
      its project carried on the address (?job=) */
   'lineMachine',
+  /* A line's own pages — its Programs tab and the line's Programs list — where a project's programs sit in place: a
+     test or a problem pressed there set ?open= and nothing opened (28 October — Rowland: "I can't go back out") */
+  'lineHome', 'linePrograms',
 ]);
 
 const split = (): [string, URLSearchParams] => {

@@ -19,6 +19,7 @@
  * only the test that proved it can take it back). Pure. */
 import { live, type Test } from './testing';
 import { testCell } from './commission';
+import { readRuns, type RunCheck } from './run';
 import { niceDay } from './weeks';
 import type { Program } from './programs';
 
@@ -36,8 +37,34 @@ export interface Attempt {
   /** How it went — "passed", "didn't pass", "didn't run", "booked 16 Oct". */
   result: { word: string; tone: AttemptTone };
   seen?: string;
+  /** WHAT IT MET AND WHAT IT DID NOT — each agreed number judged on its own (lib/run readRun), so a test that
+   *  didn't pass on its net rate still says its speed, run length and rejects were met (Rowland, 27 October: "you can
+   *  fail the overall goal, but it still means that you passed the test. But there's no clarity on it"). */
+  checks?: RunCheck[];
+  /** The same in one sentence — "Didn't pass on net rate only (52.5 ppm, 2.5 ppm short) — speed it ran at, run length
+   *  and rejects met." Absent with nothing judged. */
+  split?: string;
   /** The line as the row, the sheet and the paper print it. */
   text: string;
+}
+
+const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+const listed = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+/** What an attempt met and did not, in one sentence — from its own checks and its own answer. Pure. */
+export function splitOf(outcome: Test['outcome'], checks: readonly RunCheck[]): string | undefined {
+  if (!checks.length) return undefined;
+  const met = checks.filter(c => c.ok), missed = checks.filter(c => !c.ok);
+  const missedSaid = listed(missed.map(c => `${lower(c.label)} (${c.got}, ${c.gap})`));
+  const metSaid = listed(met.map(c => lower(c.label)));
+  if (!missed.length) {
+    return outcome === 'failed' ? `Every number it was judged on was met (${metSaid}) — marked didn’t pass for another reason`
+      : `Every number met — ${metSaid}`;
+  }
+  const one = missed.length === 1 ? missed[0] : undefined;
+  const head = outcome === 'passed' ? `Marked passed, though ${missedSaid} ${missed.length === 1 ? 'was' : 'were'} missed`
+    : one && met.length ? `Didn’t pass on ${lower(one.label)} alone (${one.got}, ${one.gap})` : `Didn’t pass on ${missedSaid}`;
+  return met.length ? `${head} — ${metSaid} ${met.length === 1 ? 'met' : 'all met'}` : head;
 }
 
 export interface Journey {
@@ -132,8 +159,11 @@ function journeyOfAttempts(list: Test[], today: string): Journey {
     const word = t.outcome === 'passed' ? 'passed' : c.word;
     const when = t.ranOn ? niceDay(t.ranOn) : t.plannedFor ? `booked ${niceDay(t.plannedFor)}` : 'no day yet';
     const seen = t.result?.trim() || undefined;
+    const checks = t.ranOn || t.outcome === 'passed' || t.outcome === 'failed' ? readRuns(t).products[0]?.r.checks ?? [] : [];
+    const split = splitOf(t.outcome, checks);
     const text = [`Test ${i + 1}`, t.ranOn ? when : undefined, aim, did].filter(Boolean).join(' · ') + ` — ${word}${seen ? `: ${seen}` : ''}`;
-    return { n: i + 1, test: t, when, ...(aim ? { aim } : {}), ...(did ? { did } : {}), result: { word, tone: c.tone as AttemptTone }, ...(seen ? { seen } : {}), text };
+    return { n: i + 1, test: t, when, ...(aim ? { aim } : {}), ...(did ? { did } : {}), result: { word, tone: c.tone as AttemptTone }, ...(seen ? { seen } : {}),
+      ...(checks.length ? { checks } : {}), ...(split ? { split } : {}), text };
   });
   if (!attempts.length) return { attempts };
   /* The fastest pass — the speed it ran at, else what it netted, else what it aimed at. */

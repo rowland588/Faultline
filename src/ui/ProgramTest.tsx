@@ -209,6 +209,18 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
                   {a.did && <span>{a.did}</span>}
                   <span className={'cg-pstate is-' + a.result.tone}>{a.result.word}</span>
                   {a.seen && <span className="ptx-seen">{a.seen}</span>}
+                  {/* WHAT IT MET AND WHAT IT DID NOT, each number on its own (Rowland, 27 October: "you can fail the overall
+                      goal, but it still means that you passed the test. But there's no clarity on it") */}
+                  {a.checks && (
+                    <span className="ptx-checks" aria-label={`What test ${a.n} met`}>
+                      {a.checks.map(c => (
+                        <span key={c.what} className={'ptx-chk ' + (c.ok ? 'is-met' : 'is-missed')}>
+                          {c.ok ? '✓' : '✗'} {c.label} {c.got}{c.ok ? '' : ` — ${c.gap}`}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                  {a.split && <span className="ptx-split">{a.split}</span>}
                 </button>
                 {/* THE STUDIES LINED UP FOR THIS TEST, all on the program (Rowland, 26 October) — each opens */}
                 {linkedTo(jobStudies, 'test', a.test.id, 'proof').length > 0 && (

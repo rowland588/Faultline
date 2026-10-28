@@ -29,7 +29,7 @@ import { ASSET_STATE_WORD, assetStateOf, filesSaid, latestAttempts, live, testOf
 import { recordProvedLine, studyLine } from './studyLinks';
 import { niceDay, isoDay } from './weeks';
 import type { MachinePaper, PaperDetail, PaperRow, PaperSection, PaperTone } from './machinePaper';
-import { attemptDetail, attemptFromLine, itemDetail, runWords, statusWord, whenWords, type PlainKind } from './machinePlain';
+import { attemptDetail, attemptFromLine, itemDetail, withSplit, runWords, statusWord, whenWords, type PlainKind } from './machinePlain';
 import { statusTone } from './machinePaper';
 
 export interface DetailInput {
@@ -84,7 +84,7 @@ function programRow(l: ProgramLine): PaperRow {
       ...(l.note ? [{ label: 'What was seen', text: l.note }] : []),
       ...(l.proof ? [{ label: 'How it was proved', text: l.proof.word, tone: l.proof.tone }] : []),
       ...(l.run ? [{ label: 'Its run at speed', text: l.run }] : []),
-      ...(l.tests ?? []).flatMap(t => [attemptFromLine(t.text, t.tone), ...t.studies.map(st => ({ label: 'Study of it', text: st }))]),
+      ...(l.tests ?? []).flatMap(t => [withSplit(attemptFromLine(t.text, t.tone), t.split), ...t.studies.map(st => ({ label: 'Study of it', text: st }))]),
       ...(!(l.tests ?? []).length && l.bucket !== 'done' && l.bucket !== 'baseline' && !/booked|passed|proved/i.test(l.word) ? [{ label: 'Tests', text: 'not tested yet' }] : []),
       ...l.earlier.map(e => ({ label: 'Before', text: e })),
     ],

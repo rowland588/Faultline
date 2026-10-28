@@ -78,7 +78,8 @@ export interface ProgramLine {
    *  lined up for or proving that test (Rowland, 26 October: "check that the programs report will show all
    *  test information clearly and correctly"). The same words as the program's row and the commissioning
    *  sheet (lib/programJourney). */
-  tests?: { badge: string; text: string; tone: ProgTone; studies: string[] }[];
+  /** Each test, first to last; `split` what it met and what it did not (lib/programJourney splitOf). */
+  tests?: { badge: string; text: string; tone: ProgTone; studies: string[]; split?: string }[];
 }
 
 export interface ProgramsReading {
@@ -236,6 +237,7 @@ function testsOfProgram(p: Program | undefined, tests: Test[], studies: readonly
   const out = programJourney(p, tests, today).attempts.map(a => ({
     badge: /^booked/.test(a.result.word) ? 'BOOKED' : /passed\?/.test(a.result.word) ? 'VERDICT?' : a.result.word.toUpperCase(),
     text: a.text,
+    ...(a.split ? { split: a.split } : {}),
     tone: (a.result.tone === 'a' ? 'a' : a.result.tone) as ProgTone,
     studies: linkedTo([...(studies ?? [])], 'test', a.test.id, 'proof').map(st => `${studyWords(st)} — ${studyLine(st).text}`),
   }));
