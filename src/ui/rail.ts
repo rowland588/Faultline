@@ -300,6 +300,19 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
   }, { foot: true, lines: [{ key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' }] }];
 }
 
+/** A STAGE-GATE PROJECT'S PHONE BAR — Now · Programs · ＋ · Timeline · More (28 October emergency UI: the work you do
+ *  every day, not the global Factory menu while you are inside a project). */
+export function projectMenuBar(groups: RailGroup[], plus = true): RailLine[] {
+  const tabs = scopeTabs(groups);
+  const pick = (key: string, fallback: RailLine) => tabs.find(l => l.key === key) ?? fallback;
+  const p = tabs[0]?.to?.match(/^(\/project\/[^/]+)/)?.[1] ?? '';
+  const now = pick('job', { key: 'job', label: 'Now', to: p || '/', on: false, state: 'n', icon: 'home' });
+  const progs = pick('programs', { key: 'programs', label: 'Programs', to: `${p}/programs`, on: false, state: 'n', icon: 'list' });
+  const time = pick('timeline', { key: 'timeline', label: 'Timeline', to: `${p}/plan`, on: false, state: 'n', icon: 'time' });
+  const more: RailLine = { key: 'pmore', label: 'More', on: !now.on && !progs.on && !time.on && groups.flatMap(g => g.lines).some(l => l.on && (l.inMore || l.key === 'machines' || l.key === 'fixes' || l.key === 'preports')), state: 'n', icon: 'grip' };
+  return [...[now, progs], ...(plus ? [plusLine()] : []), time, more];
+}
+
 /** The phone's bar, the same on every page: Factory · Projects · ＋ · Tools · More (Problems is each line's, 27 October). */
 export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
   const all = groups.flatMap(g => g.lines);
@@ -316,12 +329,14 @@ export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
 export function scopeTabs(groups: RailGroup[]): RailLine[] {
   const lines = groups.flatMap(g => g.lines);
   const kept = (l: RailLine) => l.key !== 'up' && !l.sub && l.key !== 'projects' && l.key !== 'logs' && l.key !== 'reports';
-  /* a page folded under a tab lights it: a machine its Plan, a project's line its Lines, the line's
+  /* a page folded under a tab lights it: a machine its Machines tab, a gate its Gates tab, the line's
      logs its Tools, the line's projects its Overview */
   const under = lines.find(l => l.on && !kept(l) && l.key !== 'up');
   /* Reports is under no tab — it lit the one before it, Notes, on the project's
      Client report (walkthrough, 25 October); the crumb says where you are. */
   const lit = !under || under.key === 'reports' ? undefined : under.key === 'logs' ? 'tools' : under.key === 'projects' ? 'overview'
+    : under.key.startsWith('machine:') ? 'machines'
+    : (GATE_KEYS as readonly string[]).includes(under.key) ? 'gates'
     : [...lines.slice(0, lines.indexOf(under))].reverse().find(kept)?.key;
   return lines.filter(kept).map(l => (lit && l.key === lit ? { ...l, on: true } : l));
 }
@@ -392,10 +407,12 @@ function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, 
      Machines opened on the first gate with work. */
   const machinesTab = counted('machines', 'Machines', `${p}/machines`, o.here, o.counts, [...GATE_KEYS], 'machine');
   const at = GATE_KEYS.find(k => (o.counts[k]?.n ?? 0) > 0);
-  /* THE PLAN TAB (27 October — Rowland: "None of that should be there ... it's a mess", of the second row of tabs under
-     the project's own): the gates, the timeline and Programs are one tab, opening on the first gate with work; its own
-     switcher (ui/PlanTabs) moves between them. It was "The gates", a line under Now that lit Now. */
-  const plan: RailLine = { ...plain('plan', 'Plan', at ? `${p}/${GATE_PATH[at]}` : `${p}/plan`, o.here, 'route'), on: o.here === 'plan' || (GATE_KEYS as readonly string[]).includes(o.here) };
+  const onGate = (GATE_KEYS as readonly string[]).includes(o.here);
+  /* EMERGENCY UI (28 October): Programs and the Gantt timeline are top-level project tabs — one tap each. Gates stay
+     one tab (Install … Hand over) with ui/PlanTabs moving between them on gate pages only. */
+  const timeline: RailLine = { ...plain('timeline', 'Timeline', `${p}/plan`, o.here, 'time'), on: o.here === 'plan' };
+  const gates: RailLine = { ...plain('gates', 'Gates', at ? `${p}/${GATE_PATH[at]}` : `${p}/install`, o.here, 'route'), on: onGate };
+  const programsTab = counted('programs', 'Programs', `${p}/programs`, o.here, o.counts, ['programs'], 'list');
   const under = (l: RailLine): RailLine => ({ ...l, sub: true });
   const more = (l: RailLine): RailLine => ({ ...l, sub: true, inMore: true });
   const ms = o.machines ?? [];
@@ -411,8 +428,9 @@ function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, 
       under(plain('now', 'Now', `${p}/now`, o.here, 'home')),
       under(plain('journey', 'Journey', `${p}/journey`, o.here, 'time')),
       under(plain('actions', 'Actions', `${p}/actions`, o.here, 'list')),
-      plan,
-      under(counted('programs', 'Programs', `${p}/programs`, o.here, o.counts, ['programs'], 'list')),
+      programsTab,
+      timeline,
+      gates,
       machinesTab,
       ...machines,
       counted('fixes', 'Problems', `${p}/fixes`, o.here, o.counts, ['fixes'], 'flag'),

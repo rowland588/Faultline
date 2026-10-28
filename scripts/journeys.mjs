@@ -215,7 +215,7 @@ await run('J4 stage gate: a failed re-test to a fix', 390, async (D, J) => {
   await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
   await press(D, J, 'the row: Line 2 commissioning', projectRow(D, 'Line 2 commissioning')); await orient(D, J, 'Line 2 commissioning');
   /* the gates are the Plan tab's since 27 October — one row of tabs, Plan's own row on its pages */
-  await nav(D, J, 'Plan'); await orient(D, J, 'Line 2 commissioning');
+  await nav(D, J, 'Gates'); await orient(D, J, 'Line 2 commissioning');
   await press(D, J, 'tab: Commission', D.page.locator('main a.plt-t').filter({ hasText: /^Commission/ }).first());
   const R = () => D.page.locator('.rd').last();
   await press(D, J, 'the re-test', btn(D, /Seal integrity — Finest Red 2kg — re-test/));

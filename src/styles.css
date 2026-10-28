@@ -14865,6 +14865,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ptx-studies { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0 0 4px; }
 
 /* NOW — a stage-gate project's current state on one page (project/now/NowScreen) */
+.now-doors { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.now-doors .btn { min-height: 38px; }
 .now .qsl-g { margin-top: 18px; }
 .now-gate { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: var(--radius-xs); font-size: var(--t-small); font-weight: 700; letter-spacing: .02em; color: var(--on-dark); background: var(--st-n-ink); vertical-align: 1px; }
 .now-gate.is-r { background: var(--st-r); }

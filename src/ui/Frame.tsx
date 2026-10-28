@@ -49,7 +49,7 @@ import { toolByKey } from '../catalogue/registry';
 import { listAllSnags, allPaceLines } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import {
-  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, scopeTabs, factoryTabs, FACTORY_PAGES, OFF_THE_MENU_NAME, STUDY_SCREENS, lineHref,
+  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, projectMenuBar, scopeTabs, factoryTabs, FACTORY_PAGES, OFF_THE_MENU_NAME, STUDY_SCREENS, lineHref,
   type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState, type Count,
 } from './rail';
 
@@ -364,7 +364,7 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage 
   /* the place you are in, named in the menu under Factory or Projects (27 October: "Where am I?") */
   const place = kind === 'line' && line ? { name: line.name, to: lineHref(line.id) } : kind === 'project' && project ? { name: project.name, to: `/project/${project.id}` } : undefined;
   const menu = menuGroups(onKey, kind, kind === 'factory' ? all.find(l => l.key === 'projects')?.n ?? 0 : 0, place);
-  const five = bar ?? menuBar(menu, may);
+  const five = bar ?? (kind === 'project' ? projectMenuBar(groups, may) : menuBar(menu, may));
   const tabs = bar ? [] : kind === 'factory' ? (FACTORY_PAGES.has(onKey) ? factoryTabs(onKey) : []) : scopeTabs(groups);
   const [more, setMore] = useState(false);
   const [reports, setReports] = useState(false);

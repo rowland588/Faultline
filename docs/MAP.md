@@ -46,7 +46,9 @@ a door changes this page first, in the same commit. The map it replaces is
 | **A line** (home) | `#/lines/:ws` | Overview · Machines · Problems · Programs · Tools · Set up (also Logs and Projects); Report ▾: the line report, every machine in full, the problems |
 | **A machine** (one page) | `#/lines/:ws/machine/:name` | while a stage-gate project works on it, the project's part first (where it's up to, its gates, what's open, its tests, its programs); then every project on it, the line's own programs, its problems, studies and stops; Report ▾: the machine in full |
 | **A project** | `#/project/:id` | its work; its line opens the line; its machines open the one machine page in the project's frame (`#/project/:id/machine/:asset`, ‹ Machines back to the project's machines, *on <line> ›* to the line's frame); *Today* is the Journey on today (`#/project/:id/journey?from=d&to=d`) |
-| A project › **Plan** | `#/project/:id/install` (and `/set-up`, `/testing`, `/handover`, `/plan`, `/programs`) | the gates, the timeline and the project's programs, one tab with its own row of views; a test or a fix opened on its own page says ‹ Commission or ‹ Problems |
+| A project › **Programs** | `#/project/:id/programs` | every program machine by machine — Test it, criteria, add under each machine |
+| A project › **Timeline** | `#/project/:id/plan` | the Gantt — every dated step, test and program |
+| A project › **Gates** | `#/project/:id/install` (and `/set-up`, `/testing`, `/handover`) | the four gates; **Install · Set up · Commission · Hand over** across the top on gate pages only |
 | A line › **Programs** | `#/lines/:ws?view=programs` | machine by machine; a machine a stage-gate project is proving shows that project's programs **in place** (*Being proved in <project>*), each opening and tested there — no door into the project's pages |
 
 ## Old addresses, kept

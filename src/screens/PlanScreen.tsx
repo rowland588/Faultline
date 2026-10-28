@@ -29,7 +29,9 @@ import { useAccess } from '../cloud/access';
 import { planGaps } from '../lib/onTarget';
 import { paceOf } from '../lib/pace';
 import { todayISO } from '../lib/standing';
-import { PlanTabs } from '../ui/PlanTabs';
+import { GATE_PATH, GATE_KEYS } from '../ui/rail';
+
+const GATE_WORD: Record<(typeof GATE_KEYS)[number], string> = { install: 'Install', setup: 'Set up', testing: 'Commission', handover: 'Hand over' };
 
 export function PlanScreen({ projectId }: { projectId: string }) {
   /* All the jobs, for each gate's list as the Install grid finds it (lib/install usualStages). */
@@ -71,13 +73,18 @@ export function PlanScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
-      <PlanTabs projectId={projectId} on={'timeline'} />
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3). The plan's counts are its tiles (the lean page, 17 October);
           what is not on it yet stays said here (lib/onTarget planGaps, docs/JOBSTART.md): the plan only draws what
           has a date. Its paper is the project's — the plan in the Reports sheet. */}
-      <PageHeader title="The plan"
+      <PageHeader title="Timeline"
+        primary={{ label: 'Programs', run: () => nav(`/project/${projectId}/programs`) }}
         papers={st.plan.length > 0 ? [{ label: 'The plan — on one landscape page', for: 'For the team and the client — every machine’s stages against the days, drawn as the screen is', make: async () => { await printPlan.current?.(); } }] : []}>
         {gaps && <p className="cw-handover"><span className="sub">Not on it yet: {gaps}</span></p>}
+        <p className="now-doors sub">
+          {GATE_KEYS.map(k => (
+            <button key={k} type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/${GATE_PATH[k]}`)}>{GATE_WORD[k]} ›</button>
+          ))}
+        </p>
       </PageHeader>
       <AccessNote can={can} owner={project.lead} />
       {st.plan.length > 0 && <LeanTiles tiles={planTiles(counts, money ?? MONEY_WAIT)} className="sg-tiles" />}

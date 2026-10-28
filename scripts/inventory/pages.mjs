@@ -143,7 +143,8 @@ export const PAGES = (sd, cap) => [
   { name: 'A stage-gate project — its front page, Now', path: `#/project/${sd.projectId}`, must: [
     /* B3: the status report and the client report in the header's Report ▾ (the verdict's link moved here) */
     { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
-    { what: 'its tabs — Now · Plan · Machines · Problems · Reports · More', sel: '.nv-tabs .nv-tab', n: 6 },
+    { what: 'its tabs — Now · Programs · Timeline · Gates · Machines · Problems · Reports · More', sel: '.nv-tabs .nv-tab', n: 8 },
+    { what: 'doors to Programs, Timeline, Commission and Machines', sel: '.now-doors .btn', n: 4 },
     { what: 'its own pages as tabs — Now on', sel: '.nv-tabs .nv-tab.is-on', text: /^Now/ },
     /* the second row of views that was here — Now · the gates · Timeline · Programs — is taken off (27 October, Rowland:
        "None of that should be there ... it's a mess"): the gates, the timeline and Programs are the Plan tab's, their row
@@ -180,7 +181,9 @@ export const PAGES = (sd, cap) => [
   ] },
   /* one row a program, its test on the row, one form (16 October: "too many views and doors") */
   { name: 'Programs — a stage-gate project', path: `#/project/${sd.projectId}/programs`, must: [
+    { what: 'Programs on, among the project’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Programs/ },
     { what: 'the programs in a sentence', sel: '.pp-says' },
+    { what: 'Add a program — the one primary', sel: '.part-head .btn-primary', text: /^Add a program$/ },
     /* the page header since B3: the programs report in Report ▾ (it was "Programs report — PDF") */
     { what: 'the page header — Report ▾ with the programs report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the states worth showing, each a filter', sel: '.pp-chip', n: 2 },
@@ -436,7 +439,7 @@ export const PAGES = (sd, cap) => [
     { what: 'its four views as tabs, Capture lit', sel: '.study-views [role=tab]', n: 4 },
     { what: 'Capture the view shown', sel: '.study-views [role=tab][aria-selected=true]', text: /^Capture$/ },
     /* the seeded study is a stage-gate project's own walk, filmed from Install: Plan lit — the gates are the Plan tab's (27 October) */
-    { what: 'where it sits, its tab on — Plan', sel: '.nv-tabs .nv-tab.is-on', text: /^Plan/ }] },
+    { what: 'where it sits — the line study’s Tools tab or the project’s Tools', sel: '.nv-tabs .nv-tab.is-on' }] },
   { name: 'Actions — the factory', path: '#/actions', must: [
     { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },

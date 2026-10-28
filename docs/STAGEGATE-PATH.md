@@ -42,11 +42,14 @@ these eight steps is not part of the stage gate.
 
 ## 2. The places — and the one question each answers
 
-A stage-gate project has **five tabs**: **Now · Machines · Problems · Reports · More**.
+A stage-gate project has **eight tabs**: **Now · Programs · Timeline · Gates · Machines · Problems · Reports · More** (28 October emergency UI — Programs and the Gantt are one tap each; the four gates share **Gates** with a switcher on gate pages only).
 
 | Place | The question it answers | What is on it |
 |---|---|---|
-| **Now** (the front page) | *Where is the project, and what needs me?* | Are we on target · what blocks handover · the machines, a row each · today and the next two weeks · what you owe. Its own views across the top: **Now · Install · Set up · Commission · Hand over · Timeline · Programs** |
+| **Now** (the front page) | *Where is the project, and what needs me?* | Are we on target · what blocks handover · the machines, a row each · today and the next two weeks · what you owe · doors to **Programs**, **Timeline**, **Commission**, **Machines** |
+| **Programs** | *What runs on each machine, and did it pass?* | every program machine by machine · Test it and criteria on each row · add a program under each machine |
+| **Timeline** | *When does everything happen?* | the Gantt — dates across the top, every machine's bars |
+| **Gates** | *Install · Set up · Commission · Hand over* | the gate the project is in first; **Install · Set up · Commission · Hand over** across the top on gate pages |
 | **Machines** | *Which machines, and where is each up to?* | a row a machine: status, where it is up to, programs, what it owes, what is next |
 | **A machine** (from any machine name) | *Everything about this machine* | its status · *Going through <project> — up to <gate>* and its four gates · what is open on it · its tests · its programs · the machine itself (label, details) |
 | **Problems** | *What is wrong, and who is fixing it?* | every problem and fix on the project, by priority, each with who and by when |

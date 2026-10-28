@@ -9,16 +9,15 @@
  * red and in words (CLAUDE.md, visual rule 3). The routes are unchanged, so
  * every link into a gate still lands on its tab.
  *
- * THE PLAN TAB'S SWITCHER (27 October — Rowland: a second row of tabs under the project's own, with its own "Now",
- * "None of that should be there ... it's a mess"). The project's tabs are Now · Plan · Machines · Problems · Reports ·
- * More; this row shows only on Plan's own pages, and Now is no longer in it. */
+ * THE GATES' SWITCHER (28 October emergency UI): Programs and Timeline are top-level project tabs. This row is only on
+ * gate pages (Install · Set up · Commission · Hand over) — not on Programs or the Timeline. */
 import { useEffect, useRef } from 'react';
 import { useStanding } from '../lib/useStanding';
 import { GATE_KEYS, GATE_PATH, type GateKey } from './rail';
 
 const WORD: Record<GateKey, string> = { install: 'Install', setup: 'Set up', testing: 'Commission', handover: 'Hand over' };
 
-export function PlanTabs({ projectId, on }: { projectId: string; on: GateKey | 'timeline' | 'programs' }) {
+export function PlanTabs({ projectId, on }: { projectId: string; on: GateKey }) {
   const { counts } = useStanding(projectId);
   const p = `#/project/${projectId}`;
   /* On a phone the tabs scroll sideways: the one you are on is brought into view. */
@@ -28,7 +27,7 @@ export function PlanTabs({ projectId, on }: { projectId: string; on: GateKey | '
     if (el && row.current) row.current.scrollLeft = Math.max(0, el.offsetLeft - (row.current.clientWidth - el.clientWidth) / 2);
   }, [on]);
   return (
-    <nav className="plt" aria-label="The plan — its gates, the timeline and programs">
+    <nav className="plt" aria-label="The four gates">
       {/* THE MACHINES TAB'S VIEWS (26 October, docs/STAGEGATE-RESEARCH.md §4): the gates, the timeline and the
           programs. Since 27 October they are the project's own, under Now — its front page first — and no longer the
           Machines tab's (Rowland: "If I go to projects, I should be able to see my project status ... If I go to
@@ -45,8 +44,6 @@ export function PlanTabs({ projectId, on }: { projectId: string; on: GateKey | '
             </a>
           );
         })}
-        <a href={`${p}/plan`} className={'plt-t plt-time' + (on === 'timeline' ? ' on' : '')} aria-current={on === 'timeline' ? 'page' : undefined}>Timeline</a>
-        <a href={`${p}/programs`} className={'plt-t plt-progs' + (on === 'programs' ? ' on' : '')} aria-current={on === 'programs' ? 'page' : undefined}>Programs</a>
       </span>
     </nav>
   );

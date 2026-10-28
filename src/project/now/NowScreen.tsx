@@ -116,6 +116,12 @@ export function NowBody({ projectId }: { projectId: string }) {
   return (
     <div className="now">
       <p className="sub now-says">{nowSays(machines, block, rows)}</p>
+      <nav className="now-doors" aria-label="Go straight to">
+        <button type="button" className="btn btn-primary" onClick={() => nav(`/project/${projectId}/programs`)}>Programs</button>
+        <button type="button" className="btn" onClick={() => nav(`/project/${projectId}/plan`)}>Timeline</button>
+        <button type="button" className="btn" onClick={() => nav(`/project/${projectId}/testing`)}>Commission — tests</button>
+        <button type="button" className="btn" onClick={() => nav(`/project/${projectId}/machines`)}>Machines</button>
+      </nav>
 
       {/* 1 · ARE WE ON TARGET — the front page's band and tiles, the same figures */}
       <Verdict st={st} brief onTarget={onTarget} tiles={stageGateTiles(figures)} />

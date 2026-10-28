@@ -220,9 +220,9 @@ const names = await page.evaluate(async ([ws, pid]) => {
   ok(await page.locator('.plt').count() === 0, 'H4 no second row of tabs on the project\'s front page');
   await go(`#/project/${PID}/testing`);
   const views = (await page.locator('.plt .plt-t').allInnerTexts()).map(t => flat(t).split(' ')[0]);
-  ok(!views.includes('Now') && ['Install', 'Set', 'Commission', 'Hand', 'Timeline', 'Programs'].every(v => views.includes(v)), `H4 Plan's own views on its pages (${views.join(' · ')})`);
+  ok(!views.includes('Now') && ['Install', 'Set', 'Commission', 'Hand'].every(v => views.some(x => x.includes(v))), `H4 gate pages: only the four gates in the row (${views.join(' · ')})`);
   await page.locator('.plt .plt-t', { hasText: /^Install/ }).click(); await page.waitForTimeout(1500);
-  ok(/\/install$/.test(page.url()) && await tabOn() === 'Plan', `H5 a gate opens lighting Plan — the project's (${await tabOn()})`);
+  ok(/\/install$/.test(page.url()) && await tabOn() === 'Gates', `H5 a gate opens lighting Gates — the project's (${await tabOn()})`);
   /* a machine's page — the machine first: its status, the project it is going through and where it is up to, what is open, its tests, its programs */
   await go(`#/project/${PID}/machines`);
   await main().locator('.pms .now-m .lt-row').first().click(); await page.locator('.mpg').waitFor({ timeout: 15000 }); await page.waitForTimeout(800);

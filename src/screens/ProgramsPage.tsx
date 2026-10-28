@@ -36,7 +36,6 @@
  * The eight tiles are the chips worth showing: a zero is not a filter
  * anyone needs, and the sentence above them still says every count. */
 import { PageHeader } from '../ui/parts';
-import { PlanTabs } from '../ui/PlanTabs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTesting } from '../lib/useTesting';
 import { usePrograms } from '../lib/usePrograms';
@@ -167,10 +166,14 @@ export function ProgramsPage({ projectId, only, title }: {
   return (
     <div className="wrap pace pp">
       {/* one of the Machines tab's views (ui/PlanTabs) — on a stage-gate project's own Programs, never the line's */}
-      {!only && <PlanTabs projectId={projectId} on="programs" />}
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): where the programs are, in words; the report in Report ▾ (it
           was "Programs report — PDF") */}
       <PageHeader title="Programs" says={<span className="pp-says">{reading ? reading.says : 'No programs yet.'}</span>}
+        primary={can.edit ? { label: 'Add a program', run: () => {
+          const el = document.querySelector<HTMLElement>('.pgr-add input');
+          if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+          else document.querySelector('.pp-m')?.scrollIntoView({ behavior: 'smooth' });
+        } } : undefined}
         papers={[{ label: 'Programs report', for: 'every program machine by machine — the project’s and its lines’ own', disabled: (!reading && !lineReadings.length) || busy, make: download }]}>
         <p className="sub pp-how">Tap a program for its name, machine and history. Test it and pick criteria on its row — open the row for every test and every criterion.
           {jobLines.map(l => <span key={l.id}> · <button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(l.id)}`)}>{l.name}&rsquo;s programs ›</button></span>)}</p>
