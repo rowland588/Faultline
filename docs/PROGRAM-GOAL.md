@@ -1,124 +1,101 @@
-# A program is a goal — the design, for Rowland's yes
+# A program is proved by the criteria you pick — the design, for Rowland's go
 
-**Status: a design. Nothing here is built.** It changes the program record and
-what "proved" means, so it waits for Rowland's word (CLAUDE.md: nothing new is
-built until he says go).
+**Status: a design, agreed in principle on 28 October. Nothing here is built** — it changes the program record and
+what "proved" means, so it waits for Rowland's go (CLAUDE.md: nothing new is built until he says go).
 
 ## What he said
 
-Rowland, 27 October, on program 5 (Express 1.25 kg), tested on 26 and 27 October:
-it failed on net packs a minute, because of lost time that had nothing to do with
-the experiment — *"you can fail the overall goal, but it still means that you
-passed the test. But there's no clarity on it."* Then:
+27 October, program 5 (Express 1.25 kg): it failed on net packs a minute because of lost time that had nothing to
+do with the trial — *"you can fail the overall goal, but it still means that you passed the test."*
 
-> "In a test we can prove it with many tools, its like a tier structure, think of
-> the program as a goal to achieve, and the test / tools we use are there to help
-> us achieve the goal. we can pass a test and not achieve a goal because for
-> example, we want to achieve 55ppm net ppm, but to achieve that i needs to run
-> different tools / tests sometimes increments of speed, or less rejects."
+28 October:
 
-And on 14 October, about the same thing from the other side: *"There is no real
-pass and fail ultimate. It's just the status of what was done."*
+> "when you're doing a program and you're running other tests and using tools, specifically the SPC tools, then any
+> of them actually is good enough for the entire program to pass ... I may not achieve the packs per minute, but this
+> could be because of not the robot ... outside noise ... to simply say that robot passed, it got X amount of packs
+> per minute net, doesn't necessarily mean it did it cleanly ... the most important thing is actually the scientific
+> evidence, the tools that I use ... I need to be able to choose which one is a pass ... sometimes the tool is the goal."
 
-## What the app does today (and why it reads wrong)
+And, shown the industry's way (below):
 
-- A program's test aims at a **speed** (`RunAgreed.rate`), for so many minutes,
-  with at most so many rejects, and a **net** rate as an optional second aim
-  (`RunAgreed.net`). The test is judged on all of them together.
-- **A test that passes proves the program** (`lib/programs` `programAfterTest`):
-  the program's `provedOn` is that test's day.
-- So the test and the program have one answer between them. A test that ran its
-  speed clean but missed the net "didn't pass", and the program says the same,
-  although the trial did what it was for. And a test that passes proves the
-  program even when the line is still short of what production needs.
+> "the program has a set role of criteria. So I choose the criteria. So it's likely I'm going to pick tools ... as I
+> pick these tools, they will be my criteria. If they pass, I then need to be able to sign off. So I will sign off,
+> me and my colleagues together, but just leave it as signed off, passed ... it's running tools, and then seeing if
+> setting your parameters and whether or not it passes or fails. It's just as simple as that."
 
-## The tiers
+## The industry's way, which this follows
+
+- **Acceptance is against criteria agreed in writing, each its own test with its own evidence**, signed criterion
+  by criterion (FAT/SAT practice; `knowledge/methods/commissioning/acceptance-tests.md`). No single number accepts a
+  machine.
+- **The machine is judged apart from the line.** EN 415-11:2021 (which replaced DIN 8743) counts only the losses
+  the machine system causes when it gives the machine's figures (from excerpts — the standard's text has not been
+  read). A capability study on the machine alone (ISO 22514-3, Cm/Cmk, `spc.machine-capability`) is built to take the
+  outside noise out. So the tools, not the line's net rate, say whether the machine did it cleanly.
+- **The people who accept it sign, and the record keeps who and when.**
+
+## The shape
 
 ```
-PROGRAM — the goal          what production needs: e.g. net 55 packs a minute,
-   │                        at most 1% rejects, held for 60 minutes
-   │                        → GOAL REACHED (dated) · WORKING TOWARDS IT (best so far) · NOT WRITTEN
+PROGRAM — what it runs, its machine
    │
-   ├── TEST — a step         what this trial is for: e.g. "run at 50 ppm for 30 min, rejects ≤ 2%"
-   │      │                  → PASSED · DIDN'T PASS · DIDN'T RUN · BOOKED      (its own aim, its own answer)
-   │      │                  → and, read against the goal: "net 48 of 55 — 7 short" / "goal reached"
-   │      │
-   │      └── TOOLS          the evidence for the step: capability study, control chart, reliability,
-   │                         analysis … each with its own verdict, as today (Proved by)
+   ├── ITS CRITERIA — the tools you pick for it, each set up with its own parameters
+   │      ├── Capability study "placement 75 ppm"   — Cmk ≥ 1.67 (set in the study)   → PASSED / NOT YET / FAILED
+   │      ├── Reliability "robot faults"             — MTBF wanted 4 h               → PASSED / NOT YET / FAILED
+   │      ├── Control chart "seal temp"              — in control                    → …
+   │      └── A run test "75 ppm for 60 min"         — speed, minutes, rejects (net only if you give it) → …
    │
-   ├── TEST — the next step  e.g. "run at 55 ppm" …
-   └── …
+   └── SIGNED OFF — PASSED: the names of who signed (you and your colleagues), the day
 ```
 
-- **A test is never failed by the goal.** It passes or fails on its own aim:
-  what this trial set out to try. The goal is read beside it, never instead of it.
-- **The program is proved only when the goal is reached:** a test whose run,
-  as recorded, meets every number of the goal. A test passing its own aim
-  doesn't prove the program unless its run also meets the goal.
-- **Between the two, the program says how close it is:** *Working towards 55 ppm
-  net — best 52.5 (test 2, 27 Oct), 2.5 to go.*
-
-Program 5 would read:
-
-| | Its aim | Its answer | Against the goal (net 55) |
-|---|---|---|---|
-| Test 1 · 26 Oct | 50 ppm for 60 min | **PASSED** — ran clean | net 48 — 7 short |
-| Test 2 · 27 Oct | 55 ppm for 60 min | **PASSED** — the speed ran; 9 min lost to the infeed, not the trial | net 52.5 — 2.5 short |
-| **Program 5** | | | **WORKING TOWARDS THE GOAL** — best 52.5 of 55 |
-
-## What changes in the record
-
-- **One new field on the program: `goal`.** It is the numbers production needs,
-  in the same shape a test's aim already has (net packs a minute, the most
-  rejects, the minutes it must hold, and a speed if one is set). It is stored as
-  one JSON column `programs.goal`: additive, nothing removed, and every
-  program written before it keeps working.
-- **A program with no goal works exactly as today** (a passed test proves it),
-  unless you say otherwise (question 3).
-- `provedOn` stays the one fact that makes a program proved. Only the rule that
-  writes it changes: with a goal, it is written by the first test whose run
-  meets the goal, not by the first test that passes.
-- No new noun. The goal is the program's; the steps are its tests, as now; the
-  tools are the studies lined up for each test, as now.
-
-The database change ships the house way (`supabase/PROGRAM_GOAL.sql`, applied,
-read back) before the screens that use it. The Supabase connector is failing to
-connect this session (`ERR_PROXY_TUNNEL`), so it may need the file pasted into
-the SQL editor.
+- **You pick the criteria.** On a program, *Add a criterion* offers the tools: capability study, control chart,
+  reliability, analysis, a run test (the test as it is today) — any tool the app has. Each is a study or test made
+  for this program, set up in the tool with its own parameters (limits, MTBF wanted, the agreed run). Nothing new is
+  invented: these are the studies already lined up on a program's tests today (*Proved by*), lifted to the program.
+- **Each criterion's answer is its tool's own** — the verdict the tool already gives against the parameters you set
+  (lib/studyLinks studySays: met, not met, not enough yet). A run test's answer is its own as now, with what it met
+  and missed (live since 28 October).
+- **Net packs a minute is just another criterion** — picked when it matters, left off when it is outside noise.
+  "Sometimes the tool is the goal": then the tool is the criterion.
+- **When every criterion has passed, the program is ready to sign off.** *Sign off* asks who is signing (one or more
+  names — you and your colleagues) and the day, and the program reads **Signed off — passed**, with the names and
+  the day. That date is the program's proved date (`provedOn`), as now.
+- **The program always says what passed it:** *"Signed off — passed 28 Oct by R. Glew, J. Smith · Cmk 1.82 on
+  placement (27 Oct) · robot MTBF 6.1 h (27 Oct)."* The same words on every report.
 
 ## Where it shows
 
-The goal shows wherever the program already shows, as a branch off it:
-
-| Place | What it gains |
+| Place | What it says |
 |---|---|
-| Programs (the project's, and a line's — in place) | the goal under the program's name; its status word (GOAL REACHED · WORKING TOWARDS IT); best so far and what is left; each test's row with its own answer and its reading against the goal |
-| A machine's page | its programs: goal reached of all, and the closest one still short |
-| Now — the machines | "Programs: 2 of 5 at their goal" (it counts goal reached, not tests passed) |
-| Commission — the board | a program's square green only at its goal |
-| Programs report, commissioning report, machine report (paper) | the goal, then every test under it — its aim, its answer, its reading against the goal — the same words as the screen |
-| Set up the goal | on the program's row (Change), by whoever may change what was agreed (`can.agree`), as the agreed numbers are today |
+| Programs (the project's, and a line's in place) | under each program its criteria, a row each with its tool's answer; *2 of 3 criteria passed*; *Ready to sign off*; *Signed off — passed* with who and when |
+| A machine's page, Now's machines, Commission's board | programs signed off of all, the rest *n of m criteria passed* |
+| Programs report, machine report, commissioning report | each program, its criteria and their answers, and the sign-off — the same words |
 
-## The decisions that are yours
+## What changes in the record
 
-1. **What a goal holds.** Net packs a minute, the most rejects, and how long it
-   must hold. Anything else, such as the speed it must run at, or a number of
-   shifts?
-2. **Once, or more than once.** Is the goal reached by one run that meets it, or
-   by two or three in a row (or on different shifts)?
-3. **A program with no goal.** Keep today's rule (a passed test proves it), or
-   ask for a goal before a program can be proved?
-4. **Lost time that is not the trial's.** On 27 October the net was pulled down
-   by stops unrelated to the experiment. Should a stop marked *not the trial's*
-   be left out of the reading against the goal (said so beside it), or always
-   counted?
+- **Criteria:** a study or test already names its program (`ToolStudy.programId`, `Test.programId`), so the
+  criteria are those — no new table. Lining a study up for a program makes it a criterion.
+- **Sign-off:** one new field on the program, `signedOff` — the names and the day (one JSON column, `programs.signed_off`,
+  additive; shipped the house way: `supabase/PROGRAM_SIGNOFF.sql`, applied, read back — or pasted, while the
+  Supabase connector is failing to connect).
+- **Programs from before:** a program already proved keeps its date and says how (*Proved by its test*, *Signed off by
+  hand*), as today. A program with no criteria picked works as today — a passed test proves it — until criteria are
+  picked; then only the sign-off does.
+
+## Left out, on purpose
+
+- **Which stops were outside the machine** — not here; it is said in the tools that count stops (Rowland: "it'd be
+  captured in other things").
+- **A machine-efficiency figure** (run time ÷ time less outside stops) — belongs in a tool (the loss count or
+  reliability), not in the program; a separate piece if wanted.
 
 ## The build, once you say go
 
-1. `PROGRAM_GOAL.sql` (the column), the mapper and the schema test.
-2. `lib/programs`: the goal read (`goalReading` — reached, best, what is left)
-   and the rule that writes `provedOn`, with unit tests on program 5's numbers.
-3. The rows, the machine page, Now and the board.
-4. The three papers.
-5. An acceptance script: program 5 walked, two tests passed short of the goal,
-   then a third reaching it, every place moving with it.
+1. `PROGRAM_SIGNOFF.sql`, the mapper and the schema test.
+2. `lib/programs`: a program's criteria and their answers (`criteriaOf`), ready to sign off, signed off — with unit
+   tests (program 5: the net run left off, a capability study and a reliability study picked, both passed, signed off
+   by two names).
+3. The program row: its criteria, *Add a criterion* (the tools), *Sign off*.
+4. The machine page, Now, Commission's board.
+5. The three papers.
+6. An acceptance script: program 5 walked from no criteria to signed off, every place moving with it.
