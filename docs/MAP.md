@@ -66,6 +66,14 @@ a door changes this page first, in the same commit. The map it replaces is
   target, owner and numbers for the line. To be decided with the 6M work.
 - What each line costs, on the Factory board. There is no per-line cost of
   open problems yet, so it is left off rather than invented.
+- **Line Overview with a date range** (Rowland, 28 October): the line stays
+  home — machines, programs, problems, tools, logs — and a project is a lens
+  on the same line (its gates, its programs in Plan), not a second home. What
+  is not built yet is an optional range on the line Overview (*this week ·
+  pick dates*) that filters what happened on that line in that window (programs
+  tested, studies run, problems opened) without moving those things off the
+  line's own tabs. The project's Journey keeps the project plan; the line range
+  would answer "what happened on Line 2a this week?" on the line itself.
 
 ## Proved by
 
