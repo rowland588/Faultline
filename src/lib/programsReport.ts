@@ -279,7 +279,10 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
   judged?: { tests: readonly Test[]; studies?: readonly ToolStudy[] } }): ProgramsReading | undefined {
   const today = x.today ?? todayISO();
   const tests = live(x.tests);
-  const jt = x.judged ? live([...x.judged.tests]) : tests, js = x.judged ? x.judged.studies : x.studies;
+  /* the judged data only for a program judged by its criteria — any other's word is read from the reading's own tests,
+     as it always was (a line's reading takes none: a job's test does not prove the line's record) */
+  const jtAll = x.judged ? live([...x.judged.tests]) : tests, jsAll = x.judged ? x.judged.studies : x.studies;
+  const tOf = (p: Program) => (judgedByCriteria(p) ? jtAll : tests), sOf = (p: Program) => (judgedByCriteria(p) ? jsAll : x.studies);
   const assets = live(x.assets);
   const progs = inOrder(x.programs);
   const nameOf = (id?: string) => assets.find(a => a.id === id)?.name ?? 'The line';
@@ -304,7 +307,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
         /* Proved in Commission leads — unless the floor said something about
            it since, which is the newer fact (a pass that later failed). */
         const provedFirst = !!p && isProved(p) && !(now && p.provedOn && now.on > p.provedOn);
-        const proved = p && provedFirst ? programWords(p, jt, today, undefined, js) : undefined;
+        const proved = p && provedFirst ? programWords(p, tOf(p), today, undefined, sOf(p)) : undefined;
         /* THE FLOOR SAID NOTHING, THE PROGRAM WAS TESTED (Rowland, 26 October: "program 5 says to do — I just did
            it"): the line's headline was the part's "to do" while its own test sat under it as a small note. When the
            floor has said no status and the program has tests, the TEST is the headline — passed, didn't pass,
@@ -313,7 +316,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
            run test wrote with it is one criterion's word at most, and is said beside it */
         const judged = !!p && !provedFirst && judgedByCriteria(p);
         const own = p && !provedFirst && (judged || (!now && !part.doneAt && programJourney(p, tests, today).attempts.length))
-          ? programWords(p, jt, today, floorFailedOn(p, tests, x.items, x.holder), js) : undefined;
+          ? programWords(p, tOf(p), today, floorFailedOn(p, tests, x.items, x.holder), sOf(p)) : undefined;
         const earlier = (part.results ?? []).filter(r => r !== now).reverse()
           .map(r => `${resultWords(r)}${r.note ? ` — ${r.note}` : ''}`);
         const run = programRunSays(runsOfProgram(part, m || undefined, tests, [...productsOf(p?.runs), p?.what ?? '']));
@@ -332,8 +335,8 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
           ...((proved || judged) && now ? { proving: `on the floor: ${said.word}` } : {}),
           /* THE FLOOR'S STATUS LEADS: the program record's own state beside
              it, so the line's answer is on the job's row too (flow audit #3). */
-          ...(p && !proved && !own ? (r => ({ record: { word: r.word, tone: r.tone }, proving: `On the line: ${r.word}` }))(programWords(p, jt, today, floorFailedOn(p, tests, x.items, x.holder), js)) : {}),
-          ...(p ? criteriaLine(p, jt, js, today) : {}),
+          ...(p && !proved && !own ? (r => ({ record: { word: r.word, tone: r.tone }, proving: `On the line: ${r.word}` }))(programWords(p, tOf(p), today, floorFailedOn(p, tests, x.items, x.holder), sOf(p))) : {}),
+          ...(p ? criteriaLine(p, tOf(p), sOf(p), today) : {}),
         });
       }
     }
@@ -342,8 +345,8 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
       group.push({
         ...(run ? { run: run.word, runTone: run.tone } : {}),
         machine, programId: p.id, ...(m ? { assetId: m } : {}), what: p.what.trim(), ...(p.runs ? { runs: p.runs } : {}), ...(p.from ? { who: p.from } : {}),
-        ...programWords(p, jt, today, undefined, js), ...(p.note?.trim() ? { note: p.note.trim() } : {}), earlier: [],
-        ...criteriaLine(p, jt, js, today),
+        ...programWords(p, tOf(p), today, undefined, sOf(p)), ...(p.note?.trim() ? { note: p.note.trim() } : {}), earlier: [],
+        ...criteriaLine(p, tOf(p), sOf(p), today),
         ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tests, x.studies, today)),
         ...(pf => (pf ? { proof: pf } : {}))(proofOf(p, tests, x.studies)),
       });
