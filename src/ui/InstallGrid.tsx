@@ -40,6 +40,9 @@ type Open = { t: 'cell'; row: number; col: number } | { t: 'col'; col: number } 
 
 const short = (iso?: string) => (iso ? niceDay(iso) : '');
 
+/** Empty grid cells — a quiet dash, not a loud + (docs/STAGEGATE-AESTHETIC-REVIEW.md C4). */
+const EMPTY_CELL = '—';
+
 /** A day, or a block of them as the cell can hold it: "9 Oct", "5–9 Oct",
  *  "30 Sep–2 Oct". The start is half of what a block says. */
 export function spanShort(from?: string, to?: string): string {
@@ -489,7 +492,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                         <PartsMark said={ps} className="igm-parts" />
                         {filesAt(cs) && <span className="pt-mark igm-parts ig-files">{filesAt(cs)}</span>}
                         {answeredAt(cs) && <span className="pt-mark igm-parts ig-files">{answeredAt(cs)}{answeredAt(cs) === 'signed' && cs?.step.withWhom ? ` · ${cs.step.withWhom}` : ''}</span>}</span>
-                      <span className="igm-word">{cs && cs.tone === 'done' && cs.lateBy ? <>{cs.step.ranOn ? `done ${short(cs.step.ranOn)}` : 'done'} · <b className="ig-late-by">{lateByWords(cs.lateBy)}</b></> : cs ? stageWord(cs) : can.edit ? '+ add' : 'not added yet'}</span>
+                      <span className="igm-word">{cs && cs.tone === 'done' && cs.lateBy ? <>{cs.step.ranOn ? `done ${short(cs.step.ranOn)}` : 'done'} · <b className="ig-late-by">{lateByWords(cs.lateBy)}</b></> : cs ? stageWord(cs) : EMPTY_CELL}</span>
                     </button>
                   );
                 })}
@@ -597,7 +600,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                           onClick={() => openCell(s, ri, ci)}
                           disabled={!s && !can.edit}
                           aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}${ps ? `, ${ps.text}` : ''}${filesAt(s) ? `, ${filesAt(s)}` : ''}${crit ? `, ${criticalCount(crit)}` : ''}`}>
-                          {s ? <span>{s.tone === 'done' && s.lateBy ? <>{s.step.ranOn ? short(s.step.ranOn) : 'Done'} <b className="ig-late-by">{lateByWords(s.lateBy)}</b></> : cellWord(s)}</span> : can.edit ? '+' : ''}
+                          {s ? <span>{s.tone === 'done' && s.lateBy ? <>{s.step.ranOn ? short(s.step.ranOn) : 'Done'} <b className="ig-late-by">{lateByWords(s.lateBy)}</b></> : cellWord(s)}</span> : EMPTY_CELL}
                           {/* ITS PARTS, A BRANCH UNDER ITS DAY (ui/StageParts). */}
                           {crit ? critMark(crit) : riskMark(s)}
                           <PartsMark said={ps} />

@@ -58,6 +58,9 @@ const cellClass = (c: TestCell): string =>
  *  the whole name is on the square's title and in the list. */
 const shortName = (s: string) => s.replace(/\s*\(.*\)\s*$/, '').trim() || s;
 
+/** Empty grid cells — a quiet dash, not a loud + (docs/STAGEGATE-AESTHETIC-REVIEW.md C4). */
+const EMPTY_CELL = '—';
+
 export function CommissionGrid({ project, projects, tt, programs, can }: {
   project: Project; projects: Project[]; tt: TT; programs: Program[]; can: Can;
 }) {
@@ -273,7 +276,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                       : void add([{ title: columns[i], assetId: r.asset?.id }], `Added “${columns[i]}” to ${rowName(r.asset)}`))}>
                     <span className="igm-sq" aria-hidden />
                     <span className="igm-name">{columns[i]}</span>
-                    <span className="igm-word">{c ? c.word : can.edit ? '+ add' : 'not added yet'}{c && <RunWords t={c.test} />}{c && <StudyWord studies={studies} id={c.test.id} dot />}</span>
+                    <span className="igm-word">{c ? c.word : EMPTY_CELL}{c && <RunWords t={c.test} />}{c && <StudyWord studies={studies} id={c.test.id} dot />}</span>
                   </button>
                 ))}
                 {/* This machine's other tests — its own, in its own card. */}
@@ -344,9 +347,9 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                         <StudyWord studies={studies} id={c.test.id} />
                       </button>
                     ) : can.edit ? (
-                      <button className="ig-cell is-empty" aria-label={`Add “${columns[i]}” to ${rowName(r.asset)}`}
-                        onClick={() => void add([{ title: columns[i], assetId: r.asset?.id }], `Added “${columns[i]}” to ${rowName(r.asset)}`)}>+</button>
-                    ) : <span className="ig-cell is-empty cg-none">not added yet</span>}
+                      <button type="button" className="ig-cell is-empty" aria-label={`Add “${columns[i]}” to ${rowName(r.asset)}`}
+                        onClick={() => void add([{ title: columns[i], assetId: r.asset?.id }], `Added “${columns[i]}” to ${rowName(r.asset)}`)}>{EMPTY_CELL}</button>
+                    ) : <span className="ig-cell is-empty cg-none" aria-hidden>{EMPTY_CELL}</span>}
                   </td>
                 ))}
                 {anyPrograms && (
@@ -358,7 +361,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                         <span>{r.programs.proved} of {r.programs.total} proved</span>
                         {r.programs.wrong > 0 && <b className="pt-late">{r.programs.wrong} gone wrong</b>}
                       </button>
-                    ) : <span className="ig-cell is-empty cg-none">no programs</span>}
+                    ) : <span className="ig-cell is-empty cg-none" aria-hidden>{EMPTY_CELL}</span>}
                   </td>
                 )}
                 {/* THIS MACHINE'S OTHER TESTS — its own, in its own row: one

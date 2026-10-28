@@ -7271,7 +7271,21 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
   width: 100%; min-width: 86px; min-height: 44px; border-radius: var(--radius-sm);
   font-size: var(--t-label); font-weight: 700; background: var(--surface-2); color: var(--ink-2);
 }
-.ig-cell.is-empty { background: transparent; border: 1.5px dashed var(--line-2); color: var(--muted); font-size: var(--t-h); font-weight: 500; }
+/* Empty cells stay tappable but quiet — no dashed + boxes (STAGEGATE-AESTHETIC-REVIEW C4). */
+.ig-cell.is-empty {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: none;
+  color: var(--muted);
+  font-size: var(--t-label);
+  font-weight: 500;
+}
+.ig-cell.is-empty:not(:disabled):hover {
+  border-color: var(--line-2);
+  background: color-mix(in srgb, var(--surface-2) 45%, var(--surface));
+  color: var(--ink-2);
+}
+.ig-cell.is-empty.cg-none { pointer-events: none; }
 /* NORMAL RECEDES, THE ABNORMAL STANDS OUT. Done was solid green — the loudest
    thing on the grid, louder than the one cell that was late. Done is now a
    quiet green wash; late and a problem are what the eye lands on. */
@@ -7324,8 +7338,10 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .igm-st.is-asking .igm-word { color: var(--st-a); font-weight: 700; }
 .igm-st.is-booked .igm-sq { border-color: var(--st-w); }
 .igm-st.is-booked .igm-word { color: var(--st-w); }
-.igm-st.is-empty { background: transparent; border-style: dashed; color: var(--muted); }
-.igm-st.is-empty .igm-sq { border-style: dashed; }
+.igm-st.is-empty { background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.igm-st.is-empty .igm-sq { border-color: var(--line-2); opacity: 0.45; }
+.igm-st.is-empty .igm-word { font-weight: 500; color: var(--muted); }
+.igm-st.is-empty:not(:disabled):hover { border-color: var(--line-2); background: color-mix(in srgb, var(--surface-2) 35%, var(--surface)); }
 .igm-st:disabled { cursor: default; }
 .igm .ig-says { padding: 0 4px; }
 
@@ -11797,7 +11813,7 @@ button.gt-fixlab small { font-size: var(--t-label); }
 /* "no programs", "not added yet" on Commission's board: small words, as an
    empty square's state — the empty square's big "+" size made "none" read
    as content (the rule above lost to .ig-cell.is-empty). */
-.ig-cell.is-empty.cg-none { font-size: var(--t-label); font-weight: 500; color: var(--muted); }
+.ig-cell.is-empty.cg-none { font-size: var(--t-label); font-weight: 500; color: var(--muted); cursor: default; }
 
 /* The plan's second line under a name: "done · 1 day late" stays one line.
    The bold "1 day late" was caught by the rule for the name itself and
