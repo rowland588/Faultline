@@ -4,6 +4,8 @@ Rowland asked for a **full review** of the stage gate — look and feel, UI, app
 
 **This document is findings and a plan only.** Nothing here is built until you say go (same as `docs/STAGEGATE-AUDIT-27-OCTOBER.md`). Where this disagrees with `docs/STAGEGATE-PATH.md` on navigation shape, **the path page should be updated first** when a slice ships (audit item N10).
 
+**Correction (28 October):** **Journey is not in the main menu** you see (Factory · Projects · Tools, etc.). It was taken off the project tabs on purpose (`docs/STAGEGATE-PATH.md` §4). The route `#/project/:id/journey` still exists and is reached from Now (*Any dates ›*) and Reports — not as its own tab. Phase **C2** below is about shortening that **page** if you open it, not adding Journey back to the bar.
+
 **Yardstick** (from the 27 October audit): you always know where you are; one name per page; one obvious way to each place; opening something does not drop you out of the project by accident; nothing said twice; plain words; **normal is quiet** — only late and failed carry strong colour.
 
 ---
