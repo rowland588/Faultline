@@ -169,7 +169,8 @@ const desk = await device(1360);
   await P.waitForTimeout(800);
   ok(await P.locator('.rd').count() > 0, '3c Fixed goes back to the problem — the drawer stays, nothing lost');
   await W.tap('back to the test', D().getByRole('button', { name: /^back to Seal integrity/i }).first());
-  await W.tap('Plan the re-test', D().getByRole('button', { name: /Plan the re-test/ }).first());
+  await W.tap('More on the test', D().getByRole('button', { name: /^More/ }).first());
+  await W.tap('Plan the re-test', D().getByRole('menuitem', { name: /Plan the re-test/ }).first());
   /* the new record is written, then opened — under the gate's load the drawer can open on it a moment before it lands */
   await D().getByText(/— re-test/).first().waitFor({ timeout: 10000 }).catch(() => {});
   const title = flat(await D().locator('h2, h3, .rd-title').first().innerText().catch(() => ''));

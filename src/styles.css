@@ -10341,6 +10341,8 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 
 /* The floor's actions, first. */
 .rd-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rd-acts-test { margin-top: 8px; }
+.rd-acts-test .part-menu-b { min-height: 44px; }
 .rd-acts .btn { min-height: 44px; }
 .rd .vo-say { margin: 10px 0 0; }
 /* The voice sits in the row with the buttons ("Fixed · Didn't fix it · Say

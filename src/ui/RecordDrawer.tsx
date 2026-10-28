@@ -71,6 +71,7 @@ import { offerUndo } from './Undo';
 import { ProblemRecord, problemOf } from './ProblemRecord';
 import { MachinePanel } from './MachinePanel';
 import { NotYetForm, recordNotYet } from './NotYet';
+import { MoreMenu, type MoreItem } from './parts';
 
 /* ---------------- opening and closing: the URL carries it ---------------- */
 
@@ -618,8 +619,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
         </>
       ) : (
         <>
-          {/* THE VERDICT IS ASKED FOR once the day or a result is on the
-              record and nobody has said how it went (lib/testing needsVerdict). */}
+          {/* THE VERDICT (STAGEGATE-AESTHETIC-REVIEW C6) — four outcomes, Hit a
+              problem, then More ▾ for Edit, re-test and put back (U6). */}
           {needsVerdict(t) && <span className="tw-ask">{verdictQuestion(kind)}</span>}
           <span className={'tw-seg' + (needsVerdict(t) ? ' is-asking' : '')}>
             {(['passed', 'failed', 'notRun', 'planned'] as const).map(o => (
@@ -629,17 +630,13 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
               </button>
             ))}
           </span>
-          <div className="rd-acts">
-            {/* WHAT WAS SEEN ON IT — the problem form, as on a stage; the
-                verdict stays the one pressed above (it was the record's page's
-                "What we found"). */}
+          <div className="rd-acts rd-acts-test">
             <button type="button" className="btn ig-bad" onClick={() => setProblem(true)}>Hit a problem</button>
-            <button type="button" className="btn" onClick={() => setEditing(true)}>Edit</button>
-            {/* A run that did not prove it is run again: the machine, the
-                product and what it passes on carried forward. */}
-            {(t.outcome === 'failed' || t.outcome === 'notRun') && (
-              <button type="button" className="btn btn-ghost" onClick={() => void (async () => onOpen(await tt.planNextFrom(t)))()}>Plan the re-test</button>
-            )}
+            <MoreMenu label="More" items={([
+              { label: 'Edit', run: () => setEditing(true) },
+              ...(t.outcome === 'failed' || t.outcome === 'notRun' ? [{ label: 'Plan the re-test', run: () => void (async () => onOpen(await tt.planNextFrom(t)))() }] as MoreItem[] : []),
+              ...(t.outcome !== 'planned' || !!t.ranOn ? [{ label: backWord(t), run: () => andClose(setOutcome('planned', `${t.title} back to planned`)) }] as MoreItem[] : []),
+            ] as MoreItem[])} />
           </div>
         </>
       ))}
