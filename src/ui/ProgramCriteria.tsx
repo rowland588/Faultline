@@ -92,13 +92,19 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   const [day, setDay] = useState(today);
 
   const p = program;
+  const mine = useMemo(() => (p ? attemptsOf(p, [...tests]) : []), [p, tests]);
+  const testIds = useMemo(() => mine.map(t => t.id), [mine]);
   const answers = useMemo(() => (p ? criteriaOf(p, studies, tests, today) : []), [p, studies, tests, today]);
   const v = p ? criteriaVerdict(p, answers) : undefined;
-  const mine = p ? attemptsOf(p, [...tests]) : [];
+  const provable = useMemo(() => (p && studies ? proofStudiesToPick(p, studies, testIds) : []), [p, studies, testIds]);
+  const unpicked = useMemo(() => (p && studies ? unpickedStudyChoices(p, studies, testIds) : []), [p, studies, testIds]);
+  const passedUnpicked = unpicked.filter(a => a.word === 'passed').length;
+  const showDetail = detail || expanded || adding || signing;
+  if (!p?.criteria?.length && !p?.signedOff && !edit) return null;
+
   const runRoots = mine.filter(t => !t.fromTestId || !mine.some(x => x.id === t.fromTestId))
     .filter(t => !(p?.criteria ?? []).some(c => c.kind === 'run' && c.id === t.id));
-  const toPick = p && studies ? studiesToPick(p, studies, mine.map(t => t.id)) : [];
-  if (!p?.criteria?.length && !p?.signedOff && !edit) return null;
+  const toPick = p && studies ? studiesToPick(p, studies, testIds) : [];
 
   const save = async (next: Program, said: string, before: Program) => {
     await putProgram(next);
@@ -143,10 +149,6 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
     setSigning(false);
   };
 
-  const provable = p && studies ? proofStudiesToPick(p, studies, mine.map(t => t.id)) : [];
-  const unpicked = useMemo(() => (p && studies ? unpickedStudyChoices(p, studies, mine.map(t => t.id)) : []), [p, studies, mine]);
-  const passedUnpicked = unpicked.filter(a => a.word === 'passed').length;
-  const showDetail = detail || expanded || adding || signing;
   const openAdding = () => { setExpanded(true); setAdding(true); setNewStudy(unpicked.length === 0); setSigning(false); };
 
   /* NONE PICKED: one quiet door — a passed test proves it, as it always has */
@@ -167,7 +169,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
             {edit && (
               <button type="button" className="btn btn-sm pgc-proof-all" onClick={() => void record().then(async cur => {
                 if (!cur || !studies) return;
-                const next = withAllProofStudies(cur, studies, mine.map(t => t.id));
+                const next = withAllProofStudies(cur, studies, testIds);
                 await save(next, `${provable.length} proving ${provable.length === 1 ? 'study' : 'studies'} — criteria of ${cur.what}`, cur);
               })}>
                 Use {provable.length} proving {provable.length === 1 ? 'study' : 'studies'} as criteria
