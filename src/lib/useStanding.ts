@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listStudies, onDataChange } from '../db';
 import type { ToolStudy } from './study';
+import { judgedByCriteria } from './programs';
 import { useProject } from './useProjects';
 import { useTesting } from './useTesting';
 import { useMaterials } from './useMaterials';
@@ -45,13 +46,16 @@ export function useStanding(projectId: string): StandingState {
   const progs = usePrograms(projectId);
   /* the studies a program's criteria are answered by (lib/programCriteria) — its count says the same as its page */
   const [studies, setStudies] = useState<ToolStudy[] | undefined>(undefined);
+  /* read only when a program is judged by criteria — every other count needs none */
+  const judged = progs.programs.some(judgedByCriteria);
   useEffect(() => {
+    if (!judged) { setStudies(undefined); return undefined; }
     let on = true;
     const load = () => void listStudies(projectId).then(s => { if (on) setStudies(s); });
     load();
     const off = onDataChange(load);
     return () => { on = false; off(); };
-  }, [projectId]);
+  }, [projectId, judged]);
 
   const loading = pl || tt.loading || mats.loading || progs.loading;
   const expectedAt = project?.expectedAt;

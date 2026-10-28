@@ -11,6 +11,7 @@ import { programsReading, type ProgBucket, type ProgTone, type ProgramLine } fro
 import { lineOfMachine, onlyLineOf, type JobLine } from './lineRecords';
 import type { Asset } from './testing';
 import { todayISO } from './weeks';
+import { judgedByCriteria } from './programs';
 
 export interface FloorWord {
   /** "Failed · closed 13 Oct", "baseline achieved — done 13 Oct". */
@@ -36,8 +37,10 @@ export interface StageOnly { projectId: string; projectName: string; assetId?: s
 export async function loadJobFloor(jobIds: readonly string[]): Promise<Map<string, FloorWord> & { stageOnly?: StageOnly[] }> {
   const ids = [...new Set(jobIds.filter(Boolean))];
   const all = await Promise.all(ids.map(async pid => {
-    const [tests, items, assets, programs, project, studies] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid), listPrograms(pid), getProject(pid), listStudies(pid)]);
-    const lines = programsReading({ tests, items, assets, programs, today: todayISO(), studies, ...(project ? { holder: project } : {}) })?.lines ?? [];
+    const [tests, items, assets, programs, project] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid), listPrograms(pid), getProject(pid)]);
+    /* the studies only where a program is judged by criteria (lib/programCriteria) */
+    const studies = programs.some(judgedByCriteria) ? await listStudies(pid) : undefined;
+    const lines = programsReading({ tests, items, assets, programs, today: todayISO(), ...(studies ? { studies } : {}), ...(project ? { holder: project } : {}) })?.lines ?? [];
     return lines.map(l => ({ l, pid, name: project?.name ?? 'its project' }));
   }));
   const m: Map<string, FloorWord> & { stageOnly?: StageOnly[] } = new Map<string, FloorWord>();

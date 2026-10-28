@@ -30,16 +30,29 @@ import { openRecord } from './RecordDrawer';
 import { offerUndo } from './Undo';
 import { Icon } from './Icon';
 
-/** The studies naming programs, kept current — every device's, a line's own program's among them. */
-function useProgramStudies(): ToolStudy[] | undefined {
-  const [list, setList] = useState<ToolStudy[] | undefined>(undefined);
+/* The studies naming programs, kept current — every device's, a line's own program's among them. ONE READ FOR EVERY
+   ROW: a page of programs draws one of these a row, and each reading every study on every write slowed the page's
+   redraw enough to lose what was typed in a drawer over it (program-edit, 28 October). */
+let shared: ToolStudy[] | undefined;
+const listeners = new Set<(s: ToolStudy[]) => void>();
+let offShared: (() => void) | undefined;
+let reading: Promise<void> | undefined;
+const readShared = (): Promise<void> => (reading ??= listAllStudies()
+  .then(s => { shared = s; for (const f of listeners) f(s); })
+  .finally(() => { reading = undefined; }));
+function useProgramStudies(on: boolean): ToolStudy[] | undefined {
+  const [list, setList] = useState<ToolStudy[] | undefined>(shared);
   useEffect(() => {
-    let on = true;
-    const load = () => void listAllStudies().then(s => { if (on) setList(s); });
-    load();
-    const off = onDataChange(load);
-    return () => { on = false; off(); };
-  }, []);
+    /* read only where they are wanted — a program with criteria, or one being given them */
+    if (!on) return undefined;
+    listeners.add(setList);
+    if (!offShared) offShared = onDataChange(() => void readShared());
+    if (shared) setList(shared); else void readShared();
+    return () => {
+      listeners.delete(setList);
+      if (!listeners.size) { offShared?.(); offShared = undefined; shared = undefined; }
+    };
+  }, [on]);
   return list;
 }
 
@@ -60,11 +73,11 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   /** Make its first run test, when it has none to pick (ui/ProgramTest's own way). Absent: pick one it has. */
   planRun?: (p: Program) => Promise<string | undefined>;
 }) {
-  const studies = useProgramStudies();
+  const [adding, setAdding] = useState(false);
+  const studies = useProgramStudies(!!program?.criteria?.length || !!program?.signedOff || adding);
   const { session } = useSession();
   const me = displayName(session?.user.email) || '';
   const today = todayISO();
-  const [adding, setAdding] = useState(false);
   const [tool, setTool] = useState<Pick>('capability');
   const [name, setName] = useState('');
   const [signing, setSigning] = useState(false);
