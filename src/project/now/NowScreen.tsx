@@ -25,6 +25,7 @@ import { useJobFactoryLines } from '../../lib/useFactoryLines';
 import { useAssignedProblems } from '../../lib/useAssignedProblems';
 import { Verdict } from '../../ui/Verdict';
 import { LeanClosing } from '../../ui/Lean';
+import { StateTag, type Tone } from '../../ui/parts';
 import { openRecord } from '../../ui/RecordDrawer';
 import { planHref } from '../../lib/plan';
 import { nav, navReplace } from '../../state/useRoute';
@@ -34,6 +35,11 @@ import { blockers, jobFiguresOf, lookAhead, machinesOf, nowSays, owedFirst, type
 const IN_DRAWER = new Set(['test', 'fix', 'install', 'setup', 'handover']);
 /* a day says its first few things; the rest are the journey's, one tap away */
 const DAY_MOST = 5;
+const MACHINES_MOST = 8;
+
+function nowTiles(figures: Parameters<typeof stageGateTiles>[0]) {
+  return stageGateTiles(figures, 'now');
+}
 
 function openAction(a: ProjectAction) {
   if (a.snagId) { nav(`/snags?open=${encodeURIComponent(a.snagId)}`); return; }
@@ -51,7 +57,7 @@ export function MachineRows({ projectId, machines }: { projectId: string; machin
       {machines.map(m => (
         <li key={m.id} className={'lt-li now-m' + (m.critical || m.late ? ' is-late' : '')} data-now-machine={m.name}>
           <button type="button" className="lt-row" onClick={() => nav(`/project/${projectId}/machine/${encodeURIComponent(m.id)}`)}>
-            <b className="lt-what">{m.name}{m.oem && <span className="sub now-oem"> · {m.oem}</span>} <span className={'now-gate is-' + m.gateTone}>{m.gate}</span></b>
+            <b className="lt-what">{m.name}{m.oem && <span className="sub now-oem"> · {m.oem}</span>}{' '}<StateTag tone={m.gateTone as Tone}>{m.gate}</StateTag></b>
             <span className="lt-says">
               {[m.programs ? `Programs: ${m.programs}` : '', m.worstProgram ?? '',
                 m.open ? `${m.open} open${m.late ? `, ${m.late} late` : ''}${m.critical ? `, ${m.critical} critical` : ''}` : 'nothing owed'].filter(Boolean).join(' · ')}
@@ -117,14 +123,15 @@ export function NowBody({ projectId }: { projectId: string }) {
     <div className="now">
       <p className="sub now-says">{nowSays(machines, block, rows)}</p>
       <nav className="now-doors" aria-label="Go straight to">
-        <button type="button" className="btn btn-primary" onClick={() => nav(`/project/${projectId}/programs`)}>Programs</button>
-        <button type="button" className="btn" onClick={() => nav(`/project/${projectId}/plan`)}>Timeline</button>
-        <button type="button" className="btn" onClick={() => nav(`/project/${projectId}/testing`)}>Commission — tests</button>
-        <button type="button" className="btn" onClick={() => nav(`/project/${projectId}/machines`)}>Machines</button>
+        <button type="button" className="now-door is-lead" onClick={() => nav(`/project/${projectId}/programs`)}>Programs</button>
+        <span className="now-doors-sep" aria-hidden>·</span>
+        <button type="button" className="now-door" onClick={() => nav(`/project/${projectId}/plan`)}>Timeline</button>
+        <button type="button" className="now-door" onClick={() => nav(`/project/${projectId}/testing`)}>Commission</button>
+        <button type="button" className="now-door" onClick={() => nav(`/project/${projectId}/machines`)}>Machines</button>
       </nav>
 
       {/* 1 · ARE WE ON TARGET — the front page's band and tiles, the same figures */}
-      <Verdict st={st} brief onTarget={onTarget} tiles={stageGateTiles(figures)} />
+      <Verdict st={st} brief onTarget={onTarget} tiles={nowTiles(figures)} />
 
       {/* 2 · WHAT BLOCKS HANDOVER — the critical problems, and nothing else */}
       <section className="qsl-g now-block" aria-label="Blocking handover">
@@ -154,7 +161,14 @@ export function NowBody({ projectId }: { projectId: string }) {
           <span className="sub">{machines.length ? `${machines.length} on the project` : 'None yet'}</span>
         </div>
         {!machines.length && <p className="qsl-empty">No machines on the project yet — they are added at Install.</p>}
-        {machines.length > 0 && <MachineRows projectId={projectId} machines={machines} />}
+        {machines.length > 0 && (
+          <>
+            <MachineRows projectId={projectId} machines={machines.slice(0, MACHINES_MOST)} />
+            {machines.length > MACHINES_MOST && (
+              <p className="sub now-more">{machines.length - MACHINES_MOST} more — <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/machines`)}>All machines ›</button></p>
+            )}
+          </>
+        )}
       </section>
 
       {/* 4 · TODAY AND THE NEXT TWO WEEKS — what the day and the journey say ahead (project/journey) */}

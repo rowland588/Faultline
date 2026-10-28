@@ -144,7 +144,7 @@ export const PAGES = (sd, cap) => [
     /* B3: the status report and the client report in the header's Report ▾ (the verdict's link moved here) */
     { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'its tabs — Now · Programs · Timeline · Gates · Machines · Problems · Reports · More', sel: '.nv-tabs .nv-tab', n: 8 },
-    { what: 'doors to Programs, Timeline, Commission and Machines', sel: '.now-doors .btn', n: 4 },
+    { what: 'doors to Programs, Timeline, Commission and Machines', sel: '.now-doors .now-door', n: 4 },
     { what: 'its own pages as tabs — Now on', sel: '.nv-tabs .nv-tab.is-on', text: /^Now/ },
     /* the second row of views that was here — Now · the gates · Timeline · Programs — is taken off (27 October, Rowland:
        "None of that should be there ... it's a mess"): the gates, the timeline and Programs are the Plan tab's, their row
@@ -152,9 +152,9 @@ export const PAGES = (sd, cap) => [
     { what: 'Now’s sentence — the machines, what blocks handover, what is late', sel: '.now .now-says', text: /machine/ },
     { what: 'the verdict', sel: '.vd' },
     /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
-    { what: 'the band’s tiles — handover, late of what is still to do, critical, fixes open, what the slip costs', sel: '.vd .vd-tile', n: 5, desk: true },
+    { what: 'the band’s tiles — handover, late, critical, fixes open (money when it counts; no “give line…” placeholder)', sel: '.vd .vd-tile', n: 5, desk: true },
     { what: 'Blocking handover — the critical problems', sel: '.now-block .now-crit' },
-    { what: 'The machines — a row each with its gate, each opening its page', sel: '.now-machines .now-m .now-gate', n: 3 },
+    { what: 'The machines — a row each with its gate, each opening its page', sel: '.now-machines .now-m .part-tag', n: 3 },
     { what: 'Today and the next two weeks — the days, the day and any dates one tap away', sel: '.now-ahead .now-day .jn-li' },
     { what: 'the day — today’s update, a door from Now', sel: '.now-ahead .now-today' },
     { what: 'What you owe — late first, All actions ›', sel: '.now-owe .act-li' },

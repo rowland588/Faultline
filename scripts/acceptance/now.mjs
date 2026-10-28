@@ -80,7 +80,7 @@ const names = [];
 for (const r of await rows.all()) names.push(flat(await r.getAttribute('data-now-machine')));
 const held = await page.evaluate(async pid => (await (await import('/src/db/testing.ts')).listAssets(pid)).filter(a => !a.deletedAt).map(a => a.name.trim()), PID);
 ok(names.length === held.length && held.every(n => names.includes(n)), '4 a row for each of the project’s machines', `${names} / ${held}`);
-const gates = (await page.locator('.now-machines .now-gate').allInnerTexts()).map(flat);
+const gates = (await page.locator('.now-machines .part-tag').allInnerTexts()).map(flat);
 ok(gates.length === names.length && gates.every(g => /^(Install|Set up|Commission|Hand over|Handed over|Due on site)$/.test(g)), '4 each at a gate, in words', gates);
 const wrapper = flat(await rows.filter({ hasText: 'Ilapak flow wrapper' }).locator('.lt-says').innerText());
 const m = wrapper.match(/Programs: (\d+) of (\d+) passed(?: · (\d+) didn’t pass)?/);

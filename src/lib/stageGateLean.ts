@@ -60,7 +60,9 @@ function criticalTile(x: JobFigures): LeanTile {
     ...(crit ? { tone: 'r' as LeanTone } : x.risks || others > 0 ? { tone: 'a' as LeanTone } : {}) };
 }
 
-export function stageGateTiles(x: JobFigures): LeanTile[] {
+/** Tiles for a surface. On Now, a placeholder money tile (“give … on the Factory’s Lines page”) is
+ *  omitted — it is setup noise, not part of today’s answer (STAGEGATE-AESTHETIC-REVIEW B4). */
+export function stageGateTiles(x: JobFigures, surface: 'now' | 'full' = 'full'): LeanTile[] {
   const day = x.handoverOn ? niceDay(x.handoverOn) : '';
   const handover: LeanTile = x.handedOver
     ? x.handedVs != null
@@ -76,7 +78,7 @@ export function stageGateTiles(x: JobFigures): LeanTile[] {
     criticalTile(x),
     { k: 'Fixes open', v: String(x.fixesOpen), of: x.fixesLate ? `${x.fixesLate} late` : x.fixesOpen ? 'none late' : 'none open', ...(x.fixesLate ? { tone: 'r' as LeanTone } : {}) },
     moneyTile(x),
-  ];
+  ].filter((_, i, all) => surface !== 'now' || i !== 4 || all[4].v !== '—');
 }
 
 const and = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0] ?? '');

@@ -2,7 +2,9 @@
 
 Rowland asked for a **full review** of the stage gate — look and feel, UI, app colours, and the code that carries it — and an **improvement plan** to execute in slices.
 
-**This document is findings and a plan only.** Nothing here is built until you say go (same as `docs/STAGEGATE-AUDIT-27-OCTOBER.md`). Where this disagrees with `docs/STAGEGATE-PATH.md` on navigation shape, **the path page should be updated first** when a slice ships (audit item N10).
+**Shipped slices (28 October, Rowland: go on aesthetics):** **B1** — Now machine gates use `StateTag` (outline, not solid `.now-gate` pills). **B4 (Now only)** — fifth lean tile hidden when it is only a “give … on the Factory’s Lines page” placeholder (`stageGateTiles(..., 'now')`). **C1 (partial)** — machine list capped at eight with *All machines ›*; Now shortcuts are text doors, not a second button row; calmer project tabs and Now verdict band (`src/styles.css` `.now .vd`, `.now-doors`, `.nv-tab`). Further slices (B2–B3, C2–C6, A*, D*, E*) remain below.
+
+Where this disagrees with `docs/STAGEGATE-PATH.md` on navigation shape, **the path page should be updated first** when a slice ships (audit item N10).
 
 **Correction (28 October):** **Journey is not in the main menu** you see (Factory · Projects · Tools, etc.). It was taken off the project tabs on purpose (`docs/STAGEGATE-PATH.md` §4). The route `#/project/:id/journey` still exists and is reached from Now (*Any dates ›*) and Reports — not as its own tab. Phase **C2** below is about shortening that **page** if you open it, not adding Journey back to the bar.
 
