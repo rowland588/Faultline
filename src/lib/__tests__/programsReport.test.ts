@@ -227,3 +227,21 @@ describe('a tested program does not read "to do"', () => {
     expect([r?.failed, r?.late, r?.open]).toEqual([1, 0, 0]);
   });
 });
+
+/* A LINE'S READING TAKES NO JOB TESTS — judged programs still show every test attempt and criteria (lib/programsReport judged). */
+describe('a program judged by criteria on the line\'s report', () => {
+  const lineAsset = asset('lw', 'Wrapper', 0);
+  lineAsset.projectId = '';
+  const p = prog('pl5', 'Program 5 Express 125', { projectId: '', workspaceId: 'ws-7', assetId: 'lw', criteria: [{ kind: 'run', id: 'tr' }] });
+  const tr = { id: 'tr', projectId: 'job', kind: 'test', title: 'Prove program 5', programId: 'pl5', outcome: 'failed', ranOn: T,
+    runAgreed: { rate: 75, minutes: 60 }, run: { speed: 75, minutes: 60, packs: 3600, rejects: 40 }, sort: 1, createdAt: 1, updatedAt: 1 } as Test;
+
+  it('lists test attempts and criteria from judged tests, not the empty line reading', () => {
+    const r = programsReading({ tests: [], items: [], assets: [lineAsset], programs: [p], today: T,
+      judged: { tests: [tr], studies: [] } });
+    const line = r?.lines[0];
+    expect(line?.tests?.length).toBe(1);
+    expect(line?.tests?.[0]?.text).toMatch(/didn’t pass|didn't pass/i);
+    expect(line?.criteria?.each.some(c => c.title.includes('Run test'))).toBe(true);
+  });
+});

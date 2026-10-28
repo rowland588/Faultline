@@ -282,7 +282,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
   /* the judged data only for a program judged by its criteria — any other's word is read from the reading's own tests,
      as it always was (a line's reading takes none: a job's test does not prove the line's record) */
   const jtAll = x.judged ? live([...x.judged.tests]) : tests, jsAll = x.judged ? x.judged.studies : x.studies;
-  const tOf = (p: Program) => (judgedByCriteria(p) ? jtAll : tests), sOf = (p: Program) => (judgedByCriteria(p) ? jsAll : x.studies);
+  const tOf = (p?: Program) => (p && judgedByCriteria(p) ? jtAll : tests), sOf = (p?: Program) => (p && judgedByCriteria(p) ? jsAll : x.studies);
   const assets = live(x.assets);
   const progs = inOrder(x.programs);
   const nameOf = (id?: string) => assets.find(a => a.id === id)?.name ?? 'The line';
@@ -315,7 +315,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
         /* JUDGED BY ITS CRITERIA (docs/PROGRAM-GOAL.md): where they stand leads, whatever the floor said — a status the
            run test wrote with it is one criterion's word at most, and is said beside it */
         const judged = !!p && !provedFirst && judgedByCriteria(p);
-        const own = p && !provedFirst && (judged || (!now && !part.doneAt && programJourney(p, tests, today).attempts.length))
+        const own = p && !provedFirst && (judged || (!now && !part.doneAt && programJourney(p, tOf(p), today).attempts.length))
           ? programWords(p, tOf(p), today, floorFailedOn(p, tests, x.items, x.holder), sOf(p)) : undefined;
         const earlier = (part.results ?? []).filter(r => r !== now).reverse()
           .map(r => `${resultWords(r)}${r.note ? ` — ${r.note}` : ''}`);
@@ -329,9 +329,9 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
              and what was seen stay beside it. */
           ...(proved ? { word: proved.word, tone: proved.tone, bucket: proved.bucket, ...(said.note ? { note: said.note } : {}) }
             : own ? { word: own.word, tone: own.tone, bucket: own.bucket, ...(said.note ? { note: said.note } : {}) } : said),
-          ...(p && proved ? (pf => (pf ? { proof: pf } : {}))(proofOf(p, tests, x.studies)) : {}),
+          ...(p && proved ? (pf => (pf ? { proof: pf } : {}))(proofOf(p, tOf(p), sOf(p))) : {}),
           earlier,
-          ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tests, x.studies, today)),
+          ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tOf(p), sOf(p), today)),
           ...((proved || judged) && now ? { proving: `on the floor: ${said.word}` } : {}),
           /* THE FLOOR'S STATUS LEADS: the program record's own state beside
              it, so the line's answer is on the job's row too (flow audit #3). */
@@ -347,8 +347,8 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
         machine, programId: p.id, ...(m ? { assetId: m } : {}), what: p.what.trim(), ...(p.runs ? { runs: p.runs } : {}), ...(p.from ? { who: p.from } : {}),
         ...programWords(p, tOf(p), today, undefined, sOf(p)), ...(p.note?.trim() ? { note: p.note.trim() } : {}), earlier: [],
         ...criteriaLine(p, tOf(p), sOf(p), today),
-        ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tests, x.studies, today)),
-        ...(pf => (pf ? { proof: pf } : {}))(proofOf(p, tests, x.studies)),
+        ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tOf(p), sOf(p), today)),
+        ...(pf => (pf ? { proof: pf } : {}))(proofOf(p, tOf(p), sOf(p))),
       });
     }
     if (group.length) machines.push({ name: machine, lines: group });
