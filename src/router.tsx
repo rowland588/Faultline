@@ -25,6 +25,7 @@ import { InstallScreen } from './screens/InstallScreen';
 import { todayISO } from './lib/weeks';
 import { PlanScreen } from './screens/PlanScreen';
 import { TestScreen } from './screens/TestScreen';
+import { TestRecordForward } from './screens/TestRecordForward';
 /* Eager: the 6M job's front page and every line page lead with the fishbone,
    so it is on the start-up path of that method already. */
 import { FishboneScreen } from './screens/FishboneScreen';
@@ -95,6 +96,12 @@ function ProjectDoor({ projectId }: { projectId: string }) {
 function GoHome() {
   useEffect(() => { navReplace('/'); }, []);
   return null;
+}
+
+/** Stage-gate tests live in the drawer (D3); ?legacy=1 keeps the old full page for the sync harness. */
+function TestRoute({ projectId, testId, legacy }: { projectId: string; testId: string; legacy: boolean }) {
+  if (legacy) return <TestScreen key={testId} projectId={projectId} testId={testId} />;
+  return <TestRecordForward projectId={projectId} testId={testId} />;
 }
 
 /** An old link onto a page that is now part of another — no 404, no trail. */
@@ -275,7 +282,7 @@ function app(route: Route) {
   }
   if ((route.name === 'testing' || route.name === 'test') && route.id) {
     return gate(route.id, route.name === 'test' && route.lineId
-      ? <TestScreen key={route.lineId} projectId={route.id} testId={route.lineId} />
+      ? <TestRoute projectId={route.id} testId={route.lineId} legacy={route.query.get('legacy') === '1'} />
       : <TestsScreen projectId={route.id} />);
   }
   if (route.name === 'projectSetup') return <ProjectSetupScreen projectId={route.id!} />;

@@ -40,7 +40,7 @@ export function measure() {
 }
 
 /** The ceilings — only ever lowered. */
-const CEILING = { fontSizes: 4, hex: 108, rgba: 125, radii: 6, breakpoints: 4, inline: 515 };   // B7 (24 October): breakpoints 28 → 4 (719/720 and 1099/1100, the two edges of phone · tablet · desk); fontSizes 52 → 4 (the six type tokens and --t-mark; the four em sizes that size against their parent stay); radii 27 → 6 (--radius, --radius-sm, --radius-lg and the three B7 added — xs for a tag, pill, round — the six raw left are 0, inherit and shorthand corners built of tokens)
+const CEILING = { fontSizes: 4, hex: 99, rgba: 125, radii: 6, breakpoints: 4, inline: 515 };   // B7 (24 October): breakpoints 28 → 4 (719/720 and 1099/1100, the two edges of phone · tablet · desk); fontSizes 52 → 4 (the six type tokens and --t-mark; the four em sizes that size against their parent stay); radii 27 → 6 (--radius, --radius-sm, --radius-lg and the three B7 added — xs for a tag, pill, round — the six raw left are 0, inherit and shorthand corners built of tokens)
 
 describe('the ratchet: raw style values only come down', () => {
   const now = measure();

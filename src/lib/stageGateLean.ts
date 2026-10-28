@@ -60,9 +60,15 @@ function criticalTile(x: JobFigures): LeanTile {
     ...(crit ? { tone: 'r' as LeanTone } : x.risks || others > 0 ? { tone: 'a' as LeanTone } : {}) };
 }
 
-/** Tiles for a surface. On Now, a placeholder money tile (“give … on the Factory’s Lines page”) is
- *  omitted — it is setup noise, not part of today’s answer (STAGEGATE-AESTHETIC-REVIEW B4). */
-export function stageGateTiles(x: JobFigures, surface: 'now' | 'full' = 'full'): LeanTile[] {
+/** Drop the fifth tile when it only tells you to fill in the Factory’s Lines page (B4). */
+export function omitPlaceholderMoney(tiles: LeanTile[]): LeanTile[] {
+  const m = tiles[tiles.length - 1];
+  if (m?.v === '—' && m.of?.includes('give ') && m.of.includes('Lines page')) return tiles.slice(0, -1);
+  return tiles;
+}
+
+/** Tiles for a surface. On Now and gate pages, a placeholder money tile is omitted (B4). */
+export function stageGateTiles(x: JobFigures, surface: 'now' | 'page' | 'full' = 'full'): LeanTile[] {
   const day = x.handoverOn ? niceDay(x.handoverOn) : '';
   const handover: LeanTile = x.handedOver
     ? x.handedVs != null
@@ -71,14 +77,15 @@ export function stageGateTiles(x: JobFigures, surface: 'now' | 'full' = 'full'):
     : x.daysToGo != null
       ? { k: 'Handover', v: String(Math.abs(x.daysToGo)), of: `${plural(Math.abs(x.daysToGo), 'day')} ${x.daysToGo < 0 ? 'past handover' : 'to handover'}${day ? ` · ${day}` : ''}`, ...(x.daysToGo < 0 ? { tone: 'r' as LeanTone } : {}) }
       : { k: 'Handover', v: '—', of: 'no handover date agreed yet' };
-  return [
+  const tiles: LeanTile[] = [
     handover,
     { k: 'Late', v: String(x.late), of: x.outstanding ? `of ${x.outstanding} still to do${x.late ? ' — past their day' : ', none past its day'}` : 'nothing left to do',
       ...(x.late ? { tone: 'r' as LeanTone } : x.outstanding ? { tone: 'n' as LeanTone } : { tone: 'g' as LeanTone }) },
     criticalTile(x),
     { k: 'Fixes open', v: String(x.fixesOpen), of: x.fixesLate ? `${x.fixesLate} late` : x.fixesOpen ? 'none late' : 'none open', ...(x.fixesLate ? { tone: 'r' as LeanTone } : {}) },
     moneyTile(x),
-  ].filter((_, i, all) => surface !== 'now' || i !== 4 || all[4].v !== '—');
+  ];
+  return surface === 'full' ? tiles : omitPlaceholderMoney(tiles);
 }
 
 const and = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0] ?? '');
@@ -100,11 +107,15 @@ export function moneyTile(x: JobFigures): LeanTile {
     : { k: 'A day late', v: fmtGBP(d.margin), of: `would cost a day of ${names} not making, in margin${rest}` };
 }
 
-/** The closing line: the verdict and its one-line why. */
-export function stageGateClosing(v: OnTarget, x?: JobFigures): { text: string; tone: LeanTone } {
+/** The closing line: the verdict and its one-line why. `brief` omits the headline word — it is already on the band (U2). */
+export function stageGateClosing(v: OnTarget, x?: JobFigures, opts?: { brief?: boolean }): { text: string; tone: LeanTone } {
   const why = v.brief ?? v.reason;
-  /* the money, when the slip has one: what it costs, said once more where the verdict is */
   const late = x ? lateBy(x) : 0, m = x?.day?.margin;
   const cost = late > 0 && m != null ? ` — ${fmtGBP(late * m)} of margin, ${late} ${plural(late, 'day')} of ${and(x?.day?.priced ?? [])} not making` : '';
-  return { text: `${v.word}${why ? ` — ${why}` : ''}${cost}.`.replace(/\.\.$/, '.'), tone: v.tone === 'behind' ? 'r' : v.tone === 'risk' ? 'a' : v.tone === 'on' ? 'g' : 'n' };
+  const tone: LeanTone = v.tone === 'behind' ? 'r' : v.tone === 'risk' ? 'a' : v.tone === 'on' ? 'g' : 'n';
+  if (opts?.brief) {
+    const tail = [why, cost.replace(/^ — /, '')].filter(Boolean).join(' — ');
+    return { text: tail ? `${tail}.` : '', tone };
+  }
+  return { text: `${v.word}${why ? ` — ${why}` : ''}${cost}.`.replace(/\.\.$/, '.'), tone };
 }

@@ -261,6 +261,8 @@ async function closeSheets(page) {
   }
 }
 const go = async (page, hash) => {
+  /* Stage-gate test routes open the drawer (D3); the harness still needs the legacy full page. */
+  if (/^\/project\/[^/]+\/testing\/[^/?#]+/.test(hash) && !hash.includes('legacy=1')) hash += (hash.includes('?') ? '&' : '?') + 'legacy=1';
   await flushShots();
   await closeSheets(page);
   await page.goto(`${BASE}/#${hash}`, { waitUntil: 'domcontentloaded' });

@@ -18,6 +18,7 @@ import { actionTiles, actionsClosing, byDate, byPerson, byProject, byWhere, PRIO
 import { whenWord } from '../lib/projectActionsPdf';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
 import { PageHeader } from '../ui/parts';
+import { Fold } from '../ui/Fold';
 import { openRecord } from '../ui/RecordDrawer';
 import { planHref } from '../lib/plan';
 import { nav } from '../state/useRoute';
@@ -105,14 +106,10 @@ function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name
       </div>
       {!shown.length && <p className="qsl-empty">{read.rows.length ? `None ${only === 'late' ? 'late' : only === 'nobody' ? 'without a name' : 'critical or high'}.` : every ? 'Nothing owed on any project or line.' : 'Nothing owed on the project.'}</p>}
       {groups.map(g => (
-        <section key={g.key || 'none'} className="qsl-g act-g" aria-label={g.label}>
-          <div className="qsl-gh">
-            <h2>{g.label}</h2>
-            <span className="sub">{g.rows.length} open{g.late ? <> · <b className="act-late">{g.late} late</b></> : null}</span>
-            {view === 'person' && g.key && (
-              <button type="button" className="cw-link act-own" disabled={!!printing} onClick={() => void paper(g.label)} aria-label={`${g.label}’s actions on paper (PDF)`}>{printing === g.label ? 'Making…' : 'Their list'}</button>
-            )}
-          </div>
+        <Fold key={g.key || 'none'} id={`act-${view}-${g.key || 'none'}`} title={g.label} start={g.rows.length <= 8}
+          says={<>{g.rows.length} open{g.late ? <> · <b className="act-late">{g.late} late</b></> : null}{view === 'person' && g.key && (
+            <> · <button type="button" className="cw-link act-own" disabled={!!printing} onClick={e => { e.stopPropagation(); void paper(g.label); }} aria-label={`${g.label}’s actions on paper (PDF)`}>{printing === g.label ? 'Making…' : 'Their list'}</button></>
+          )}</>}>
           <ul className="lt-rows">
             {g.rows.map(a => (
               <li key={a.key} className={'lt-li act-li' + (a.late ? ' is-late' : a.soon ? ' is-soon' : '')} data-action={a.key}>
@@ -127,7 +124,7 @@ function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name
               </li>
             ))}
           </ul>
-        </section>
+        </Fold>
       ))}
       <LeanClosing closing={closing} />
     </div>

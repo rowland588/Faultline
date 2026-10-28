@@ -93,16 +93,16 @@ const whats = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat)
 ok(t.n > 0 && whats.length === t.n && same(whats, t.whats.map(flat)), `2 every thing owed and every problem taken for the project: ${t.n} (${t.register} from the register)`, JSON.stringify(whats.slice(0, 5)));
 const tile = async k => flat(await page.locator('.act-tiles .ln-tile', { has: page.locator('.ln-k', { hasText: new RegExp(`^${k}$`) }) }).locator('.ln-v').innerText());
 ok(await tile('Open') === String(t.n) && await tile('Late') === String(t.late), `2 the tiles: ${t.n} open, ${t.late} late — of them ${t.owedLate} late as Needs you counts them`);
-const heads = (await page.locator('.act-g .qsl-gh h2').allInnerTexts()).map(flat);
+const heads = (await page.locator('.fold .fold-t').allInnerTexts()).map(flat);
 ok(JSON.stringify(heads) === JSON.stringify(t.people), `2 who is doing what — a group a person: ${heads.join(' · ')}`, JSON.stringify(t.people));
 ok(flat(await page.locator('.ln-close > span:last-child').innerText()) === t.closing, `2 the closing line: "${t.closing}"`);
 
 /* ---- 3 by when, by where, and the filters ---- */
 await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'When' }).click(); await page.waitForTimeout(300);
-const whenHeads = (await page.locator('.act-g .qsl-gh h2').allInnerTexts()).map(flat);
+const whenHeads = (await page.locator('.fold .fold-t').allInnerTexts()).map(flat);
 ok(whenHeads.length > 0 && whenHeads.every(h => ['Late', 'Due in the next 7 days', 'Later', 'No date agreed'].includes(h)) && (await page.locator('.act-li').count()) === t.n, `3 by when: ${whenHeads.join(' · ')}`);
 await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Where' }).click(); await page.waitForTimeout(300);
-ok((await page.locator('.act-li').count()) === t.n, `3 by where: ${(await page.locator('.act-g .qsl-gh h2').allInnerTexts()).length} places`);
+ok((await page.locator('.act-li').count()) === t.n, `3 by where: ${(await page.locator('.fold .fold-t').allInnerTexts()).length} places`);
 for (const [label, n] of [['Late', t.late], ['Critical and high', t.pri], ['Nobody yet', t.nobody]]) {
   await page.getByRole('group', { name: 'Which' }).getByRole('button', { name: label }).click(); await page.waitForTimeout(300);
   ok((await page.locator('.act-li').count()) === n, `3 only ${label.toLowerCase()}: ${n}`);
@@ -150,21 +150,21 @@ await go(`#/project/${sd.pacedProjectId}/actions`);
 await go('#/actions');
 {
   const rail = flat(await page.locator('.nv-rail').innerText());
-  ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Projects Tools Reports' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Factory' && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action at its address — no Actions on the menu, the Factory lit', `${page.url()} | ${rail}`);
+  ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Projects Tools Factory reports' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Factory' && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action at its address — no Actions on the menu, the Factory lit', `${page.url()} | ${rail}`);
   const all = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(t.whats.every(w => all.includes(flat(w))) && all.length > t.n, `8 every project's actions — ${t.name}'s ${t.n} among ${all.length}`);
   await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Project' }).click(); await page.waitForTimeout(300);
-  const groups = (await page.locator('.act-g .qsl-gh h2').allInnerTexts()).map(flat);
+  const groups = (await page.locator('.fold .fold-t').allInnerTexts()).map(flat);
   const sixm = await page.evaluate(async id => (await (await import('/src/db.ts')).getProject(id))?.name, sd.pacedProjectId);
   ok(groups.includes(t.name) && groups.includes(sixm), `8 by project: ${groups.join(' · ')}`);
-  const own = page.locator('.act-g', { has: page.locator('h2', { hasText: t.name }) }).locator('.act-li');
+  const own = page.locator('.fold', { has: page.locator('.fold-t', { hasText: t.name }) }).locator('.act-li');
   ok(await own.count() === t.n, `8 ${t.name} holds its own ${t.n} — the same as its own page`);
   const lineOwn = await page.evaluate(async () => {
     const db = await import('/src/db.ts'); const L = await import('/src/lib/lines.ts');
     const lines = new Set((await L.liveProductionLines(await db.listWorkspaces())).map(w => w.id));
     return (await db.listAllSnags()).filter(s => !s.deletedAt && !s.archivedAt && s.status !== 'closed' && !s.projectId && lines.has(s.workspaceId)).map(s => s.problem);
   });
-  const onLines = (await page.locator('.act-g', { has: page.locator('h2', { hasText: 'On the lines, no project' }) }).locator('.act-li .lt-what').allInnerTexts()).map(flat);
+  const onLines = (await page.locator('.fold', { has: page.locator('.fold-t', { hasText: 'On the lines, no project' }) }).locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(same(onLines, lineOwn.map(flat)), `8 every line's own open problem, under no project: ${lineOwn.length}`, JSON.stringify({ onLines, lineOwn }));
   const text = await pdfText(() => paper(page, 'The action list'));
   ok(text.includes('Every project and line') && text.includes(t.name), '8 on paper: every project and line, each row marked with its project');

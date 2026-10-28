@@ -4,7 +4,10 @@ Rowland, 27 October: *"i want a full navigation audit done on the stagegate ...
 everything ... goal, clean, obvious simple navigations, nothing messy .. same
 with the Ui run at the same time a full UI audit same principles"*.
 
-**Findings only — nothing changed.** Published for his decision:
+**Findings only at walk time.** The improvement programme that addresses them is
+**`docs/STAGEGATE-AESTHETIC-REVIEW.md`** (28 October — shipped slice by slice).
+
+Published for his decision:
 https://claude.ai/artifact/RvyLCvyBrtQjoxvyDPP8my (the same findings, with
 screenshots). Walked on main 9638dcc against the seeded commissioning project
 at 1360×900 and 390×844: 25 pages, about 760 controls pressed (nothing that

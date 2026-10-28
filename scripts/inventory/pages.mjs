@@ -377,7 +377,7 @@ export const PAGES = (sd, cap) => [
     /* the page header since B3: the action list in Report ▾ (it was a button saying PDF) */
     { what: 'the page header — Report ▾ with the action list', sel: '.act .part-head .part-menu-b', text: /^Report/ },
     { what: 'seen by who, when or where', sel: '[aria-label="Seen by"] .chip', n: 3 },
-    { what: 'a group a person, each with its actions', sel: '.act-g .act-li' },
+    { what: 'a group a person, each with its actions — folded by who', sel: '.fold .act-li' },
     { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Actions — a 6M project', path: `#/project/${sd.pacedProjectId}/actions`, must: [
     { what: 'the tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'its actions', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },

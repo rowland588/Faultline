@@ -238,7 +238,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           { label: 'Problem cards', for: onPaper ? 'a card for each, for the board' : 'no problem on the project yet', disabled: pdfBusy || !onPaper, make: () => pdf('cards') },
         ]}>
         <p className="qsl-path">This project's problems, and the fix that puts each right.{' '}
-          <button type="button" className="linkish" onClick={() => nav('/snags')}>Every problem, every line and project: the factory’s Problems ›</button></p>
+          <button type="button" className="linkish" onClick={() => nav('/snags')}>Every problem, every line and project — the register ›</button></p>
       </PageHeader>
       <AccessNote can={can} owner={project.lead} />
       <LeanTiles tiles={problemTiles(pcounts, money ?? MONEY_WAIT)} className="sg-tiles" />

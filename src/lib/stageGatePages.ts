@@ -12,6 +12,7 @@
  * the job's lines in Your factory. The closing line is the page in one
  * sentence: where it stands, what is wrong, and the slip in money. */
 import type { LeanTile, LeanTone } from './lean';
+import { omitPlaceholderMoney } from './stageGateLean';
 import type { MachineRecord } from './machineRecord';
 
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);
@@ -45,7 +46,7 @@ export interface GateCounts {
 
 export function gateTiles(x: GateCounts, money: LeanTile): LeanTile[] {
   const unit = x.gate === 'handover' ? 'item' : 'step';
-  return [
+  return omitPlaceholderMoney([
     { k: 'Done', v: String(x.done), of: x.total ? `of ${x.total} ${plural(x.total, unit)}` : `no ${unit}s planned yet`, ...(x.total && x.done === x.total ? { tone: 'g' as LeanTone } : {}) },
     { k: 'Late', v: String(x.late), of: x.late ? 'past their day' : 'nothing past its day', tone: x.late ? 'r' : 'n' },
     { k: 'Problems', v: String(x.problems), of: x.problems ? `stopping a ${x.gate === 'handover' ? 'hand-over item' : 'stage'}` : 'none stopping a stage', tone: x.problems ? 'r' : 'n' },
@@ -54,7 +55,7 @@ export function gateTiles(x: GateCounts, money: LeanTile): LeanTile[] {
       : 'every machine has its list',
       ...(x.notAdded || x.bare ? { tone: 'a' as LeanTone } : { tone: 'n' as LeanTone }) },
     money,
-  ];
+  ]);
 }
 
 export function gateClosing(x: GateCounts, money: LeanTile): { text: string; tone: LeanTone } {
@@ -74,13 +75,13 @@ export interface CommissionCounts { passed: number; total: number; failed: numbe
 
 export function commissionTiles(x: CommissionCounts, money: LeanTile): LeanTile[] {
   const left = Math.max(0, x.total - x.passed - x.failed - x.notRun);
-  return [
+  return omitPlaceholderMoney([
     { k: 'Passed', v: String(x.passed), of: x.total ? `of ${x.total} ${plural(x.total, 'test')}` : 'no tests planned yet', ...(x.total && x.passed === x.total ? { tone: 'g' as LeanTone } : {}) },
     { k: 'Didn’t pass', v: String(x.failed), of: x.failed ? 'ran and fell short' : 'none fell short', tone: x.failed ? 'r' : 'n' },
     { k: 'Didn’t run', v: String(x.notRun), of: x.notRun ? 'booked, did not happen' : 'every booked test ran', tone: x.notRun ? 'r' : 'n' },
     { k: 'Still to run', v: String(left), of: left ? `${plural(left, 'test')} planned` : 'nothing left to run', tone: 'n' },
     money,
-  ];
+  ]);
 }
 
 export function commissionClosing(x: CommissionCounts, money: LeanTile): { text: string; tone: LeanTone } {

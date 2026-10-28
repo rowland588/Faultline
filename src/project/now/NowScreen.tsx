@@ -176,8 +176,8 @@ export function NowBody({ projectId }: { projectId: string }) {
         <div className="qsl-gh">
           <h2>Today and the next two weeks</h2>
           <span className="sub">{ahead.days.length ? `${ahead.days.reduce((n, d) => n + d.lines.length, 0)} things on ${ahead.days.length} day${ahead.days.length === 1 ? '' : 's'}` : 'Nothing dated in the next two weeks'}</span>
-          <button type="button" className="cw-link now-today" onClick={() => nav(dayHref(projectId))}>Today — {dayWord} ›</button>
-          <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/journey`)}>Any dates ›</button>
+          <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/journey`)}>Journey ›</button>
+          <button type="button" className="cw-link now-today" onClick={() => nav(dayHref(projectId))}>Today — {dayWord}</button>
         </div>
         {ahead.days.map(d => (
           <div key={d.date} className={'now-day' + (d.today ? ' is-today' : '')} data-now-day={d.date}>
@@ -192,7 +192,7 @@ export function NowBody({ projectId }: { projectId: string }) {
                 </li>
               ))}
             </ul>
-            {d.lines.length > DAY_MOST && <p className="sub now-more">{d.lines.length - DAY_MOST} more on this day — <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/journey?from=${d.date}&to=${d.date}`)}>see the day ›</button></p>}
+            {d.lines.length > DAY_MOST && <p className="sub now-more">{d.lines.length - DAY_MOST} more on this day — <button type="button" className="cw-link" onClick={() => nav(dayHref(projectId, d.date))}>open the day</button></p>}
           </div>
         ))}
       </section>
@@ -223,7 +223,10 @@ export function NowBody({ projectId }: { projectId: string }) {
         {owe.more > 0 && <p className="sub now-more">{owe.more} more on <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/actions`)}>Actions ›</button></p>}
       </section>
 
-      <LeanClosing closing={stageGateClosing(onTarget, figures)} />
+      {(() => {
+        const closing = stageGateClosing(onTarget, figures, { brief: true });
+        return closing.text ? <LeanClosing closing={closing} /> : null;
+      })()}
     </div>
   );
 }

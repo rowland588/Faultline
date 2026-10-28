@@ -73,5 +73,7 @@ describe('a stage-gate job’s tiles', () => {
     expect(stageGateClosing({ tone: 'on', word: 'On target', reason: 'Handover 26 Oct, the day agreed' })).toEqual({ text: 'On target — Handover 26 Oct, the day agreed.', tone: 'g' });
     expect(stageGateClosing({ tone: 'behind', word: 'Behind target', reason: 'Handover 3 Nov, 8 days after the agreed 26 Oct' }, { ...base, slipDays: 8, day: linesDay([line7]) }).text)
       .toBe('Behind target — Handover 3 Nov, 8 days after the agreed 26 Oct — £25.2k of margin, 8 days of Line 7 not making.');
+    expect(stageGateClosing({ tone: 'behind', word: 'Behind target', reason: '2 late', brief: 'Handover 26 Oct' }, { ...base, slipDays: 8, day: linesDay([line7]) }, { brief: true }).text)
+      .toMatch(/^Handover 26 Oct — £25\.2k of margin/);
   });
 });

@@ -134,7 +134,7 @@ ok(s.closing === t.closing, `2 the closing line: "${t.closing}"`, s.closing);
 ok(t.booked && s.lines.find(d => d.date === t.booked.date)?.texts.includes(t.booked.text), `2 a test booked ahead on its day: ${t.booked?.date} — "${t.booked?.text}"`);
 const skippedSaid = flat(await page.locator('.jn-skipped').innerText().catch(() => ''));
 ok(t.skipped === 0 ? !skippedSaid : skippedSaid.startsWith(`${t.skipped} day`), `2 the days with nothing said once: "${skippedSaid}"`);
-ok(flat(await page.locator('.jn-day.is-today h2').innerText()).endsWith('today'), '2 today marked');
+ok(/today/i.test(flat(await page.locator('.fold[data-fold^="jn-day-"].is-open .fold-t').first().innerText())), '2 today marked');
 /* ---- 9 the paper for this week and next, from the page's Report ▾ ---- */
 {
   const t0 = await truth('thisAndNext');
@@ -160,7 +160,7 @@ for (const [label, words, when] of picks) {
 }
 t = await truth('thisAndNext');
 ok(same(t.plans, [['linebalance', 'Line capacity', picks[1][1], t.range.to], ['changeover', 'SMED', picks[0][1], day5], ['losses', 'Loss count', picks[2][1], '']]), '3 three tools ticked, each a plan with what for and when, in the catalogue’s order (Line capacity before SMED)', JSON.stringify(t.plans));
-ok((await page.locator('.jn-tool.is-on').count()) === 3 && flat(await page.locator('.jn-tools .qsl-gh .sub').innerText()) === `3 of ${NTOOLS} ticked`, `3 the list says 3 of ${NTOOLS} ticked`);
+ok((await page.locator('.jn-tool.is-on').count()) === 3 && flat(await page.locator('.fold[data-fold="jn-tools"] .fold-s').innerText()).includes(`3 of ${NTOOLS} ticked`), `3 the list says 3 of ${NTOOLS} ticked`);
 s = await shown();
 const smedDay = s.lines.find(d => d.date === day5);
 ok(smedDay?.texts.includes(`SMED: ${picks[0][1]}.`) && sameDays(t, s), `3 the plan on the journey’s day, in the tool’s word: "SMED: ${picks[0][1]}."`, JSON.stringify(smedDay?.texts));

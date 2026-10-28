@@ -68,6 +68,9 @@
   --st-a: #b45309;   /* at risk — amber: waiting on somebody, not yet wrong */
   --st-r: #c4281c;   /* blocked — signal red: the day has gone */
   --st-g: #15803d;   /* done — the one green */
+  /* Soft fills for charts and tags on gate pages (STAGEGATE-AESTHETIC B3 — no one-off hex). */
+  --fill-warn: color-mix(in srgb, var(--st-a) 14%, var(--surface));
+  --fill-w: color-mix(in srgb, var(--st-w) 12%, var(--surface));
 
   /* THE IDENTITY. One cyan-teal, one job each for the rest. --brand fills
      the primary action (white on it 5.3:1); --accent is the same teal where
@@ -1933,8 +1936,8 @@ button.st-pill { cursor: pointer; }
   margin-left: 6px; padding: 1px 6px; border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 700;
   background: var(--surface-2); color: var(--ink-2);
 }
-.pace-profile-longstop { background: #fdf0e0; color: var(--warn); }
-.pace-profile-frequency { background: #e3f2f3; color: #0e7286; }
+.pace-profile-longstop { background: var(--fill-warn); color: var(--st-a); }
+.pace-profile-frequency { background: var(--fill-w); color: var(--st-w); }
 .pace-bar-track { background: var(--surface-2); border-radius: var(--radius-sm); height: 16px; overflow: hidden; }
 .pace-bar-fill { height: 100%; background: var(--brand); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 .pace-bar-nums { text-align: right; }
@@ -4903,15 +4906,16 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 
 /* a status word, carrying its own colour so it never relies on the dot */
 .cm-tag {
-  display: inline-block; padding: 1px 8px; border-radius: var(--radius-sm);
-  font-size: var(--t-label); font-weight: 700; white-space: nowrap;
-  background: var(--surface-2); color: var(--ink-2);
+  display: inline-block; padding: 2px 9px; border-radius: var(--radius-pill);
+  font-size: var(--t-detail); font-weight: 700; white-space: nowrap;
+  background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line);
 }
-.cm-tag.is-proven, .cm-tag.is-g, .cm-tag.is-have { background: #e4f4ea; color: #1d6f3e; }
-.cm-tag.is-below, .cm-tag.is-a, .cm-tag.is-short { background: #fdf1de; color: #8a5710; }
-.cm-tag.is-missing, .cm-tag.is-r, .cm-tag.is-late { background: #fdeae8; color: #9c2f24; }
-.cm-tag.is-untested, .cm-tag.is-n { background: var(--surface-2); color: var(--muted); }
-.cm-tag.is-w, .cm-tag.is-awaited { background: #e3f2f3; color: #0d5f6e; }
+/* Commission tags — same semantics as .spp-pill / .part-tag (STAGEGATE-AESTHETIC B2). */
+.cm-tag.is-proven, .cm-tag.is-g, .cm-tag.is-have { color: var(--st-g); border: 1px solid color-mix(in srgb, var(--st-g) 35%, transparent); background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); }
+.cm-tag.is-below, .cm-tag.is-a, .cm-tag.is-short { color: var(--st-a); border: 1px solid var(--st-a); background: var(--fill-warn); }
+.cm-tag.is-missing, .cm-tag.is-r, .cm-tag.is-late { color: var(--on-dark); border: 1px solid var(--st-r); background: var(--st-r); }
+.cm-tag.is-untested, .cm-tag.is-n { background: var(--surface-2); color: var(--st-n-ink); border: 1px solid var(--line); }
+.cm-tag.is-w, .cm-tag.is-awaited { color: var(--st-w); border: 1px solid color-mix(in srgb, var(--st-w) 45%, transparent); background: var(--fill-w); }
 
 /* editable cells: they look like text until you touch them, so a dense table
    does not read as a form */
@@ -13348,7 +13352,7 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .plt-n b { color: var(--st-r); }
 .plt-n.is-done { color: var(--st-g); }
 .plt-time { margin-left: 10px; }
-@media (max-width: 719px) { .plt-h { display: none; } .plt-t { padding: 9px 9px 8px; } .plt-time { margin-left: 0; } }
+@media (max-width: 719px) { .plt-h { display: none; } .plt-t { padding: 9px 9px 8px; } .plt-time { margin-left: 0; } .plt { margin-bottom: 6px; } }
 
 /* A MACHINE, A PAGE OF ITS OWN (screens/MachineScreen; docs/STAGEGATE-UX.md
    slice 3) — its four gates in a row, each in its colour and its words; then
@@ -14273,9 +14277,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .nv-tabs.has-l { -webkit-mask-image: linear-gradient(to right, transparent, var(--ink) 36px); mask-image: linear-gradient(to right, transparent, var(--ink) 36px); }
 .nv-tabs.has-l.has-r { -webkit-mask-image: linear-gradient(to right, transparent, var(--ink) 36px, var(--ink) calc(100% - 36px), transparent); mask-image: linear-gradient(to right, transparent, var(--ink) 36px, var(--ink) calc(100% - 36px), transparent); }
 @media (max-width: 719px) {
-  .nv-tabs { padding: 0 6px; } .nv-tab { padding: 0 10px; gap: 4px; }
+  .nv-tabs { padding: 0 6px; margin-bottom: 4px; } .nv-tab { padding: 0 10px; gap: 4px; }
   /* on a phone the work scrolls under the top bar: opaque, so nothing reads through it (25 October: "difficult to see … screen") */
-  .nv-top { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .nv-top { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; padding-top: 4px; padding-bottom: 4px; }
 }
 @media (min-width: 1100px) { .nv-tabs { margin-left: var(--nv-rail); padding: 0 20px; } }
 .nv:has(.nv-tabs) .nv-main .fr { height: calc(100dvh - var(--nv-top) - var(--nv-tabs)); }

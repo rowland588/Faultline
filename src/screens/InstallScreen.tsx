@@ -56,7 +56,7 @@ import { LeanClosing, LeanTiles } from '../ui/Lean';
 import { useJobMoney } from '../lib/useJobMoney';
 import { MONEY_WAIT, gateClosing, gateTiles } from '../lib/stageGatePages';
 import { AccessNote } from '../ui/AccessNote';
-import { PlanTabs } from '../ui/PlanTabs';
+import { GatePageShell } from '../ui/GatePageShell';
 
 /* THE GATES OF A STAGE-GATE JOB — Install, Set up and Hand over are one
    screen with three faces: machines down the side, that gate's stages across
@@ -180,7 +180,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
 
   return (
     <div className="wrap pace cm-screen">
-      <PlanTabs projectId={projectId} on={gate} />
+      <GatePageShell projectId={projectId} on={gate} />
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the gate, how many machines are under way and the day; its
           papers in Report ▾ — a card a step, offered once there is a step to print (on a job just started it stood
           there greyed out over nothing — the walk), and on Hand over THE HANDOVER REPORT, the line as it was really

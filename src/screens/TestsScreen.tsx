@@ -31,7 +31,7 @@ import { AccessNote } from '../ui/AccessNote';
 import { useAccess } from '../cloud/access';
 import { useJobPrograms } from '../lib/useJobPrograms';
 import { boardPrograms as boardProgramsOf } from '../lib/commissionPrograms';
-import { PlanTabs } from '../ui/PlanTabs';
+import { GatePageShell } from '../ui/GatePageShell';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
 import { useJobMoney } from '../lib/useJobMoney';
 import { MONEY_WAIT, commissionClosing, commissionTiles } from '../lib/stageGatePages';
@@ -117,7 +117,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
-      <PlanTabs projectId={projectId} on={'testing'} />
+      <GatePageShell projectId={projectId} on={'testing'} />
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3). COMMISSION — the gate where each machine is proved against
           what was agreed (it was called Testing; the URL keeps the old name so no link breaks). Its papers in
           Report ▾: THE COMMISSIONING REPORT (Rowland, 14 October: "a commissioning report, commissioning cards ...

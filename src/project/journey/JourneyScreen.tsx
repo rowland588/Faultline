@@ -43,6 +43,7 @@ import { ActionSheet, removeActionWithUndo, type Editing } from '../../ui/Action
 import { offerUndo } from '../../ui/Undo';
 import { Icon } from '../../ui/Icon';
 import { DayScreen } from '../../screens/DayScreen';
+import { Fold } from '../../ui/Fold';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -197,13 +198,9 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
       <LeanTiles tiles={journeyTiles(j, today)} className="jn-tiles" />
 
       {/* THE TOOLS WE WILL USE — a tick a tool, what for, when; a plan is an action with a tool */}
-      <section className={'jn-tools' + (every ? ' is-all' : '')} aria-label="The tools we will use">
-        <div className="qsl-gh">
-          <h2>The tools we will use</h2>
-          <span className="sub">{plans.length ? `${plans.length} of ${APP_TOOLS.length} ticked` : 'none ticked yet — tick the tools this project will use, and say what for'}</span>
-          <button type="button" className="cw-link jn-every" onClick={() => setEvery(x => !x)}>{every ? 'Only the ticked' : `Every tool (${APP_TOOLS.length})`}</button>
-        </div>
-        <ul className="jn-tool-list">
+      <Fold id="jn-tools" title="The tools we will use" start={plans.some(p => p && !p.done)}
+        says={<>{plans.length ? `${plans.length} of ${APP_TOOLS.length} ticked` : 'none ticked yet'} · <button type="button" className="cw-link jn-every" onClick={e => { e.stopPropagation(); setEvery(x => !x); }}>{every ? 'Only the ticked' : `Every tool (${APP_TOOLS.length})`}</button></>}>
+        <ul className={'jn-tool-list' + (every ? ' is-all' : '')}>
           {APP_TOOLS.map(t => {
             const p = plans.find(x => x.tool === t.key);
             const reads = toolByKey(t.key)?.reads;
@@ -218,31 +215,29 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
               onOpen={() => { if (p) setEditing({ isNew: false, step: p.step }); }} />;
           })}
         </ul>
-      </section>
+      </Fold>
 
       {/* THE DAYS, IN ORDER */}
       {!days.length && <p className="qsl-empty">Nothing recorded between these dates{j.skipped ? ` — ${j.skipped} days, nothing on any of them` : ''}.</p>}
       {days.map(d => (
-        <section key={d.date} className={'jn-day' + (d.today ? ' is-today' : d.past ? ' is-past' : ' is-ahead')} data-date={d.date} aria-label={d.label}>
-          <div className="qsl-gh">
-            <h2>{d.label}{d.today && <span className="jn-today"> · today</span>}</h2>
-            <span className="sub">{d.lines.length ? `${d.lines.length} ${d.past ? 'recorded' : d.today ? 'today' : 'due'}` : d.today ? 'nothing logged yet today' : ''}</span>
-            {!d.past && can.edit && <button type="button" className="cw-link jn-plan" onClick={() => plan(d.date)}>+ Plan something for this day</button>}
+        <Fold key={d.date} id={`jn-day-${d.date}`} title={`${d.label}${d.today ? ' · today' : ''}`} start={d.today || d.lines.some(l => l.late || l.tone === 'slipped')}
+          says={<>{d.lines.length ? `${d.lines.length} ${d.past ? 'recorded' : d.today ? 'today' : 'due'}` : d.today ? 'nothing logged yet today' : 'nothing on this day'}{!d.past && can.edit ? <> · <button type="button" className="cw-link jn-plan" onClick={e => { e.stopPropagation(); plan(d.date); }}>+ Plan something</button></> : null}</>}>
+          <div className={'jn-day' + (d.today ? ' is-today' : d.past ? ' is-past' : ' is-ahead')} data-date={d.date}>
+            {d.lines.length > 0 && (
+              <ul className="lt-rows">
+                {d.lines.map((l, i) => (
+                  <li key={i} className={'lt-li jn-li is-' + l.tone}>
+                    <button type="button" className="lt-row" onClick={() => open(l)}>
+                      <b className="lt-what">{l.text}</b>
+                      {(l.kind || l.detail) && <span className="lt-says">{[l.kind, l.detail].filter(Boolean).join(' · ')}</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Commentary projectId={projectId} date={d.date} notes={d.commentary} edit={can.edit} remove={can.remove} />
           </div>
-          {d.lines.length > 0 && (
-            <ul className="lt-rows">
-              {d.lines.map((l, i) => (
-                <li key={i} className={'lt-li jn-li is-' + l.tone}>
-                  <button type="button" className="lt-row" onClick={() => open(l)}>
-                    <b className="lt-what">{l.text}</b>
-                    {(l.kind || l.detail) && <span className="lt-says">{[l.kind, l.detail].filter(Boolean).join(' · ')}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Commentary projectId={projectId} date={d.date} notes={d.commentary} edit={can.edit} remove={can.remove} />
-        </section>
+        </Fold>
       ))}
       {days.length > 0 && j.skipped > 0 && <p className="sub jn-skipped">{j.skipped} {j.skipped === 1 ? 'day' : 'days'} with nothing recorded, not shown.</p>}
 

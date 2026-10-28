@@ -297,7 +297,7 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
          the line and the project; the menu keeps the Factory, the projects and the tools */
       { ...plain('tools', 'Tools', '/tools', here, 'chart'), on: f && here === 'tools' },
     ],
-  }, { foot: true, lines: [{ key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' }] }];
+  }, { foot: true, lines: [{ key: 'reports', label: 'Factory reports', on: false, state: 'n', bare: true, icon: 'list' }] }];
 }
 
 /** A STAGE-GATE PROJECT'S PHONE BAR — Now · Programs · ＋ · Timeline · More (28 October emergency UI: the work you do
@@ -405,7 +405,10 @@ function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, 
      Machines is a row a machine, each opening its page; the gates — Install, Set up, Commission, Hand over — the timeline
      and Programs are the project's own views, under Now, reached from its front page (ui/PlanTabs). Until 27 October
      Machines opened on the first gate with work. */
-  const machinesTab = counted('machines', 'Machines', `${p}/machines`, o.here, o.counts, [...GATE_KEYS], 'machine');
+  const ms = o.machines ?? [];
+  /* Machines tab counts machines, not gate steps (STAGEGATE-AESTHETIC A4 / audit N6). */
+  const machCount: Count = { n: ms.length, late: ms.reduce((n, m) => n + (m.late ?? 0), 0) };
+  const machinesTab = counted('machines', 'Machines', `${p}/machines`, o.here, { ...o.counts, machines: machCount }, ['machines'], 'machine');
   const at = GATE_KEYS.find(k => (o.counts[k]?.n ?? 0) > 0);
   const onGate = (GATE_KEYS as readonly string[]).includes(o.here);
   /* EMERGENCY UI (28 October): Programs and the Gantt timeline are top-level project tabs — one tap each. Gates stay
@@ -415,7 +418,6 @@ function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, 
   const programsTab = counted('programs', 'Programs', `${p}/programs`, o.here, o.counts, ['programs'], 'list');
   const under = (l: RailLine): RailLine => ({ ...l, sub: true });
   const more = (l: RailLine): RailLine => ({ ...l, sub: true, inMore: true });
-  const ms = o.machines ?? [];
   /* past six, one line — the plan lists them, machine by machine */
   const machines: RailLine[] = ms.length <= 6
     ? ms.map(m => ({ key: `machine:${m.id}`, label: m.name, to: `${p}/machine/${encodeURIComponent(m.id)}`, on: o.here === `machine:${m.id}`, state: m.state, sub: true, ...(m.open ? { n: m.open } : {}), ...(m.late ? { late: m.late } : {}), icon: 'machine' as const }))
