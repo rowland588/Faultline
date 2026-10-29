@@ -109,7 +109,7 @@ pump at the bottom.
 - [practice] Industry practice — the 5×5 consequence × likelihood matrix as used by maintenance and asset-management functions; no single public text (from knowledge).
 
 ## In Faultline
-Not built (FC-064). The line's machines, their stops and the bottleneck
+Built (FC-064): scored register `criticality` at `#/scored/criticality` (`src/lib/ie/criticality.ts`, `src/tools/scored/defs/criticality.ts`). The line's machines, their stops and the bottleneck
 are already records (`src/line`, `src/tools/losses`, `src/tools/capability`);
 FC-064 scores each machine on the written scales with the loss count's
 history as the likelihood and the lost contribution as the consequence,

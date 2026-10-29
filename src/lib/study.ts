@@ -557,6 +557,8 @@ export interface LogCheck {
   addedAt?: number;
   /** Taken off the list: no longer due, its results kept. */
   removed?: boolean;
+  /** Planned maintenance (FC-063): standard hours for this task — backlog is summed in these hours. */
+  stdHours?: number;
 }
 
 export interface AgreedLog {
@@ -612,6 +614,26 @@ export interface StudyAgreed {
   reliability?: AgreedReliability;
   /** A CHECK LOG's agreement (knowledge/specs/FC-236-check-logs.md): which log, and the checks on its list. */
   log?: AgreedLog;
+  /** A SCORED REGISTER (FC-064): which ranking, and the rows scored on its scales. */
+  scored?: AgreedScored;
+}
+
+/** One asset row on a criticality or FMEA register — agreed before the meeting signs it off. */
+export interface ScoredRow {
+  id: string;
+  name: string;
+  production?: number;
+  safety?: number;
+  quality?: number;
+  repair?: number;
+  likelihood?: number;
+  ccp?: boolean;
+  standby?: boolean;
+}
+
+export interface AgreedScored {
+  key: string;
+  rows: ScoredRow[];
 }
 
 /** A CALCULATOR (src/tools/calc; knowledge/specs/FC-235-calculators.md — 25 October): which one it is (`key`, the name of its

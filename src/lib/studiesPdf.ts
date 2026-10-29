@@ -55,6 +55,8 @@ import { analysisClosing, analysisFigures, analysisGrids, analysisPicture, analy
 import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } from '../tools/chart/chart';
 import { neckOf } from './lineLoss';
 import { calcPaperParts } from './report/calcPaper';
+import { scoredPaperBlocks } from './report/scoredPaper';
+import { scoredSays, scoredTitle, studyScored } from '../tools/scored/scored';
 import { logBodyBlocks, logPaperBlocks, paperInput } from '../tools/checks/checksPaper';
 import { ctxFrom } from '../tools/checks/ctx';
 import { defOf } from '../tools/checks/registry';
@@ -597,6 +599,11 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     /* a calculation (FC-235): one generic page from the definition's own result — the same the screen draws */
     const c = calcPaperParts(s);
     if (c) { eyebrow = c.eyebrow; verdict = c.verdict; tiles = c.tiles; closing = c.closing; body = c.body; }
+  } else if (s.tool === 'scored' && s.agreed?.scored) {
+    const said = scoredSays(s);
+    eyebrow = scoredTitle(s); verdict = { text: said.verdict, tone: said.tone };
+    body = scoredPaperBlocks(s);
+    closing = { text: studyScored(s)?.result?.closing ?? '', tone: said.tone };
   } else if (s.tool === 'chart' && s.agreed?.chart) {
     const a = s.agreed.chart, f = chartFigures(a, s.facts.readings ?? []), said = chartSays(f, a);
     eyebrow = 'Control chart'; verdict = { text: said.verdict, tone: said.tone }; tiles = chartTiles(f, a); closing = chartClosing(f, a, said);

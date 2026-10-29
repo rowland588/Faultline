@@ -67,6 +67,9 @@ export interface LogFigures {
   clean?: { n: number; bound: number };
   /** Problems raised from this log that are open now / raised in all. */
   problems: { open: number; raised: number };
+  /** Planned maintenance: overdue tasks × their standard hours (FC-063). */
+  backlogHours?: number;
+  backlogJobs?: number;
 }
 
 export interface LogInputs { s: ToolStudy; def: LogDef; now: number; ctx: LogCtx; snags?: readonly Snag[]; days?: number }
@@ -132,6 +135,9 @@ export function logFigures(i: LogInputs): LogFigures | undefined {
   const raisedIds = new Set([...live.flatMap(r => [r.problemId, ...(r.problemIds ?? [])]), ...(s.facts.tags ?? []).filter(t => !t.struck).map(t => t.problemId)].filter((x): x is string => !!x));
   const snagById = new Map((i.snags ?? []).map(x => [x.id, x]));
   const open = [...raisedIds].filter(id => { const p = snagById.get(id); return p && p.status !== 'closed' && !p.deletedAt; }).length;
+  const overdueChecks = all.filter(x => x.key === 'overdue');
+  const backlogJobs = overdueChecks.filter(x => (x.check.stdHours ?? 0) > 0).length;
+  const backlogHours = overdueChecks.reduce((n, x) => n + (x.check.stdHours ?? 0), 0);
   return {
     now, period, before, round,
     comp: logCompliance(log, results, period.from, period.to), compBefore: logCompliance(log, results, before.from, before.to),
@@ -146,6 +152,7 @@ export function logFigures(i: LogInputs): LogFigures | undefined {
     results: live.length, struck: (results ?? []).filter(r => r.struck).length,
     ...(bound !== undefined && cleanN >= 20 ? { clean: { n: cleanN, bound } } : {}),
     problems: { open, raised: raisedIds.size },
+    ...(backlogHours > 0 ? { backlogHours, backlogJobs } : {}),
   };
 }
 

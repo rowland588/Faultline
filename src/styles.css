@@ -15080,3 +15080,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .part-back { display: inline-flex; align-items: center; gap: 4px; margin: 0 0 8px; padding: 6px 10px 6px 6px; min-height: 36px;
   border-radius: var(--radius-sm); font-weight: 600; font-size: var(--t-body); color: var(--brand); text-decoration: none; background: color-mix(in srgb, var(--brand) 9%, transparent); }
 .part-back:hover, .part-back:focus-visible { text-decoration: underline; }
+
+/* SCORED REGISTER (FC-064) — machines ranked on screen */
+.scored-table-wrap { overflow-x: auto; margin: var(--space-3) 0; }
+.scored-table { width: 100%; border-collapse: collapse; font-size: var(--t-body); }
+.scored-table th, .scored-table td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.scored-table th { font-size: var(--t-detail); color: var(--muted); text-align: left; }
+.scored-table .text-input { width: 100%; min-width: 4rem; }
+.scored-table .scored-num { max-width: 4.5rem; }

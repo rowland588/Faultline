@@ -59,7 +59,7 @@ if (bootErrors.length) console.log('errors during boot/seed:', bootErrors);
 
 const ROUTES = [
   ['home', '#/room'], ['the front door at home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
-  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['control charts', '#/chart'], ['analyses', '#/analysis'], ['calculators', '#/calc'], ['kanban sizing, saved ones', '#/calc/kanban'], ['value stream maps', '#/value-stream'], ['SMED', '#/smed'], ['SMED, an old link', '#/changeover'], ['work sampling', '#/sampling'], ['reliability studies', '#/reliability'], ['pace report', '#/pace-report'],
+  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['control charts', '#/chart'], ['analyses', '#/analysis'], ['calculators', '#/calc'], ['kanban sizing, saved ones', '#/calc/kanban'], ['scored registers — the hub', '#/scored'], ['equipment criticality — its list', '#/scored/criticality'], ['value stream maps', '#/value-stream'], ['SMED', '#/smed'], ['SMED, an old link', '#/changeover'], ['work sampling', '#/sampling'], ['reliability studies', '#/reliability'], ['pace report', '#/pace-report'],
   ['project dashboard', `#/project/${seeded.projectId}`],
   /* THE FRONT DOOR: what you need, what is under way, the three kinds of change, the tools */
   ['the front door', '#/start'],

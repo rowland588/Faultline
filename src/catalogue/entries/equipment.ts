@@ -1,6 +1,7 @@
 /* THE CATALOGUE — maintenance and reliability, changeovers, commissioning (src/catalogue/types.ts). */
 import type { Entry } from '../types';
 import { logBuilt } from '../../tools/checks/built';
+import { scoredBuilt } from '../../tools/scored/built';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
@@ -98,7 +99,10 @@ export const EQUIPMENT: Entry[] = [
     food: 'Planned maintenance on non-production days.',
     depends: ['FC-060', 'FC-064'],
     complexity: 'M', value: 'medium', valueWhy: 'Most sites keep this in a CMMS; useful where they do not.',
-    status: 'to-build', form: 'tool', kind: 'register', methods: ['maintenance.planned-maintenance'], scenarios: ['machine'],
+    status: 'available', form: 'tool', kind: 'log', methods: ['maintenance.planned-maintenance'], scenarios: ['machine'],
+    built: logBuilt('planned-maintenance'),
+    spec: 'knowledge/specs/FC-063-planned-maintenance.md',
+    limits: ['Planned share and reactive hours are not typed here (FC-067).', 'Parts and breakdown cost are not in money on this page.', 'Criticality (FC-064) does not set intervals automatically.'],
   },
   {
     id: 'FC-064', name: 'Equipment criticality ranking', discipline: 'maintenance', sub: 'strategy',
@@ -110,7 +114,10 @@ export const EQUIPMENT: Entry[] = [
     food: 'CCP equipment always class A.',
     depends: ['FC-065', 'FC-066'],
     complexity: 'S', value: 'medium', valueWhy: 'Directs scarce engineering time.',
-    status: 'to-build', form: 'tool', kind: 'register', methods: ['maintenance.criticality'], scenarios: ['machine'],
+    status: 'available', form: 'tool', kind: 'register', methods: ['maintenance.criticality'], scenarios: ['machine'],
+    built: scoredBuilt('criticality'),
+    spec: 'knowledge/specs/FC-064-criticality.md',
+    limits: ['Likelihood is typed — not read from reliability or the loss count yet.', 'Does not set spares service level on FC-066 automatically.', 'RCM (FC-065) and PM tasks (FC-063) are separate records.'],
   },
   {
     id: 'FC-065', name: 'Reliability-centred maintenance', discipline: 'maintenance', sub: 'strategy',

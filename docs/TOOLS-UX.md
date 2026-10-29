@@ -313,8 +313,10 @@ No new hues, no new `640px` breakpoint, no hex ceiling raised in `styles.css`.
 | **W4c** | FC-122 calibration checks (log `calibration`) | **Done** — check-log def, spec, `log-shape.mjs`, catalogue available |
 | **W4d** | FC-123 uncertainty budget (calc `uncertainty-budget`) | **Done** — `lib/ie/uncertainty`, spec, unit + `calc-shape.mjs`, catalogue available |
 | **W5a** | FC-066 critical spares (calc `critical-spares`) | **Done** — `lib/ie/spares`, spec, unit + `calc-shape.mjs`, catalogue available |
+| **W5b** | FC-063 planned maintenance (log `planned-maintenance`) | **Done** — check-log def, backlog hours tile, `log-shape.mjs` |
+| **W5b** | FC-064 criticality (scored `criticality`) | **Done** — scored-register shape, `lib/ie/criticality`, `scored-shape.mjs` |
 
-**Coverage (honest):** ~114 available tools — **100%** lean shell + list patterns;
-**~32%** tool-specific signature CSS; hub tools (calculators, checks, pareto modes) share work-panel chrome.
+**Coverage (honest):** ~116 available tools — **100%** lean shell + list patterns;
+**~32%** tool-specific signature CSS; hub tools (calculators, checks, scored registers, pareto modes) share work-panel chrome.
 
-**Next slice:** W5 — FC-063 planned maintenance log or FC-064 criticality register; reliability study polish; wire guard bands when CCP screens move.
+**Next slice:** W5 — FC-057 cost deployment, FC-067 maintenance measures; reliability study polish; wire guard bands when CCP screens move.

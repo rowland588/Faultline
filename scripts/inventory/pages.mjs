@@ -495,6 +495,15 @@ export const PAGES = (sd, cap) => [
     { what: 'the action plan', sel: '.ln-plan-p' },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
+  /* SCORED REGISTERS (W5b, FC-064, knowledge/specs/FC-064-criticality.md): hub and one register's list */
+  { name: 'Scored registers — the hub', path: '#/scored', must: [
+    { what: 'the page named Scored registers', sel: '.part-head .pace-title', text: /^Scored registers$/ },
+    { what: 'equipment criticality as a card', sel: '.pl-tool-card', text: /Equipment criticality/ },
+  ] },
+  { name: 'Equipment criticality — its list', path: '#/scored/criticality', must: [
+    { what: 'the page named Equipment criticality, with New ranking', sel: '.part-head .pace-title', text: /^Equipment criticality$/ },
+    { what: 'New ranking', sel: '.pace-head-actions .btn-primary', text: /^New ranking$/ },
+  ] },
   /* THE CALCULATORS (25 October, FC-235, knowledge/specs/FC-235-calculators.md): the hub with every calculator as a card and the saved ones; one calculator's list; a saved calculation — figures left, the answer right, the saved before, the what-if */
   { name: 'Calculators — the hub', path: '#/calc', must: [
     { what: 'the page named Calculators with Report ▾', sel: '.part-head .pace-title', text: /^Calculators$/ }, { what: 'a card each calculator, with what it is for', sel: '.calc-card', n: 4 },

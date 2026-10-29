@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 115 |
+| Available (`available`) | 117 |
 | Partly (`partial`) | 24 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 78 |
+| Not built yet (`to-build`) | 76 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -21,7 +21,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Industrial engineering and work measurement | 14 | 7 | 3 |  | 3 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 9 | 4 |  | 3 | 1 |  |
 | Equipment performance and losses | 10 | 6 | 1 |  | 1 |  | 2 |
-| Maintenance, reliability and TPM | 11 | 7 |  |  | 3 | 1 |  |
+| Maintenance, reliability and TPM | 11 | 9 |  |  | 1 | 1 |  |
 | Changeovers | 5 | 1 | 2 |  | 2 |  |  |
 | Commissioning and operational readiness | 13 | 11 | 1 |  |  | 1 |  |
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |

@@ -111,7 +111,7 @@ gear); the shutdown's work list and its backlog.
 - [textbook] Wireman, T., *Developing Performance Indicators for Managing Maintenance*, 2nd ed., Industrial Press, 2005 (from knowledge).
 
 ## In Faultline
-Not built (FC-063 the schedule, FC-067 the indicators). The line's
+Built (FC-063): check log `planned-maintenance` at `#/log/planned-maintenance` — tasks due, compliance and backlog in crew-hours. FC-067 the indicators board not built yet. The line's
 machines and the stage gate's maintenance stages exist (`src/line`,
 `src/project`); FC-063 adds the task list per machine with its reasons,
 the due/done/late board on the line and the control room, the backlog in

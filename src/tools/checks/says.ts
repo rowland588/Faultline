@@ -66,6 +66,12 @@ export function logTiles(f: LogFigures, def: LogDef): LeanTile[] {
       tone: f.heldPacks ? 'r' : 'n',
     });
   }
+  if (f.backlogHours !== undefined && f.backlogHours > 0) {
+    tiles.push({
+      k: 'Backlog', v: `${f.backlogHours} h`, of: `${f.backlogJobs ?? 0} overdue PM task${(f.backlogJobs ?? 0) === 1 ? '' : 's'} at standard hours`,
+      tone: 'r',
+    });
+  }
   const sc = f.scored.find(x => x.latest);
   if (sc?.latest && sc.latest.figures.pct !== undefined) {
     const prev = sc.pcts.length > 1 ? sc.pcts[sc.pcts.length - 2] : undefined;

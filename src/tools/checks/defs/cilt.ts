@@ -45,7 +45,7 @@ export const def: LogDef = {
     'A repeat abnormality is the same check tagged again within 28 days — the sign the fix was a wipe and the source is still there.',
     'The seven steps and their step audits are not built; the minutes the checks take against the short stops they prevent are not measured here.',
     'The hygiene clean is a different standard with its own verification; the two are scheduled together, not confused.',
-    'Planned maintenance by the fitters (FC-063) is another log, not built yet.',
+    'Planned maintenance by the fitters (FC-063) is another log on the same shape.',
   ],
   examples: [{
     /* a shift check (8 h, a grace of 2 h) done at 06:00 and 14:00, the 22:00 one missed by 01:00; the guard tagged twice (a repeat abnormality) */

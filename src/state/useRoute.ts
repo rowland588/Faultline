@@ -151,6 +151,11 @@ export function parseRoute(hash: string): Route {
     if (key && segs[2]) return { name: 'study', view: 'calc', key, id: decodeURIComponent(segs[2]), query };
     return { name: 'studies', view: 'calc', ...(key ? { key } : {}), query };
   }
+  if (segs[0] === 'scored') {
+    const key = segs[1] ? decodeURIComponent(segs[1]) : undefined;
+    if (key && segs[2]) return { name: 'study', view: 'scored', key, id: decodeURIComponent(segs[2]), query };
+    return { name: 'studies', view: 'scored', ...(key ? { key } : {}), query };
+  }
   /* /chart is every control chart; /chart/:id one of them (knowledge/specs/FC-086-charts.md, W2 —
      readings in order against limits set from a steady period, the signals in words). */
   if (segs[0] === 'chart') {

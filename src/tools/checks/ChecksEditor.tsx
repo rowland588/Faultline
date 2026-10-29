@@ -116,6 +116,7 @@ function CheckForm({ s, def, was, onClose }: { s: ToolStudy; def: LogDef; was?: 
   const [items, setItems] = useState(itemsText(was?.items));
   const [passPct, setPassPct] = useState(was?.passPct?.toString() ?? '');
   const [target, setTarget] = useState(was?.target?.toString() ?? '');
+  const [stdHours, setStdHours] = useState(was?.stdHours?.toString() ?? '');
   const [reaction, setReaction] = useState(was?.reaction ?? '');
   const [priority, setPriority] = useState(was?.priority ?? def.priority);
   const [holds, setHolds] = useState(was?.holds ?? def.holds);
@@ -128,6 +129,7 @@ function CheckForm({ s, def, was, onClose }: { s: ToolStudy; def: LogDef; was?: 
     ...(kind === 'value' ? { ...(num(lo) !== undefined ? { lo: num(lo) } : {}), ...(num(hi) !== undefined ? { hi: num(hi) } : {}), ...(unitW.trim() ? { unit: unitW.trim() } : {}) } : {}),
     ...(kind === 'scored' ? { items: parseItems(items, was?.items), ...(num(passPct) !== undefined ? { passPct: num(passPct) } : {}), ...(was?.findingBelow !== undefined ? { findingBelow: was.findingBelow } : {}) } : {}),
     ...(kind === 'count' && num(target) !== undefined ? { target: num(target) } : {}),
+    ...(num(stdHours) !== undefined ? { stdHours: num(stdHours) } : {}),
     ...(reaction.trim() ? { reaction: reaction.trim() } : {}), priority, holds, ...(was?.addedAt ? { addedAt: was.addedAt } : was ? {} : { addedAt: clock() }),
   };
   const problem = bad ? 'Numbers only in the number boxes.' : checkProblem(draft);
@@ -167,6 +169,9 @@ function CheckForm({ s, def, was, onClose }: { s: ToolStudy; def: LogDef; was?: 
           </div>
         )}
         {kind === 'passfail' && <label className="field"><span className="field-label">What passes <i className="sub">in words</i></span><input className="text-input" value={criterion} maxLength={160} aria-label="What passes" onChange={e => setCriterion(e.target.value)} /></label>}
+        {kind === 'passfail' && def.key === 'planned-maintenance' && (
+          <label className="field"><span className="field-label">Standard hours <i className="sub">for backlog</i></span><input className="text-input" inputMode="decimal" value={stdHours} aria-label="Standard hours" onChange={e => setStdHours(e.target.value)} /></label>
+        )}
         {kind === 'value' && (
           <div className="ie-agree-grid">
             <label className="field"><span className="field-label">Lowest allowed <i className="sub">optional</i></span><input className="text-input" inputMode="decimal" value={lo} aria-label="Lowest allowed" onChange={e => setLo(e.target.value)} /></label>
