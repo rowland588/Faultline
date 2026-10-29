@@ -264,14 +264,14 @@ export function ProjectsScreen() {
                     : <a href="#/factory">set up a line on the Factory ›</a>}
                   {' '}when you only need to prove, not a project.
                 </p>
-                <button type="button" className="btn btn-ghost proj-install-advanced" style={{ marginTop: 8 }}
+                <button type="button" className="btn btn-ghost proj-install-advanced"
                   onClick={() => { setShowInstallTrack(true); setModel('commissioning'); }}>
                   Need a formal install with gates?
                 </button>
               </>
             ) : (
-              <div className="proj-model-advanced card" style={{ marginTop: 8, padding: 12 }}>
-                <p className="sub" style={{ margin: '0 0 10px' }}>
+              <div className="proj-model-advanced card">
+                <p className="sub">
                   Optional desk track — gates and handover when an OEM or sign-off pack needs them.
                   Prove on the line first; this does not replace Programs.
                 </p>
@@ -281,7 +281,7 @@ export function ProjectsScreen() {
                   <span className="proj-model-q">{OPTIONAL_INSTALL_MODEL.useWhen}</span>
                   <span className="proj-model-runs">Runs as <b>{OPTIONAL_INSTALL_MODEL.label}</b></span>
                 </button>
-                <button type="button" className="btn btn-ghost" style={{ marginTop: 10 }}
+                <button type="button" className="btn btn-ghost proj-model-advanced-back"
                   onClick={() => { setShowInstallTrack(false); setModel('board'); }}>
                   Back — Performance (6M) only
                 </button>
@@ -289,7 +289,7 @@ export function ProjectsScreen() {
             )}
           </div>
           {model && (
-            <div className="proj-new-grid" style={{ marginTop: 12 }}>
+            <div className="proj-new-grid">
               <label className="proj-field">
                 <span className="field-label">Name</span>
                 <input className="text-input" autoFocus value={name} maxLength={80}

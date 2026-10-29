@@ -3027,7 +3027,11 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .proj-sit-list { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 4px; }
 .proj-sit-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: var(--t-detail); }
 .proj-sit-l { margin: 2px 0 0; font-size: var(--t-detail); }
-.proj-new-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 8px; }
+.proj-install-advanced { margin-top: 8px; }
+.proj-model-advanced { margin-top: 8px; padding: 12px; }
+.proj-model-advanced .sub { margin: 0 0 10px; }
+.proj-model-advanced-back { margin-top: 10px; }
+.proj-new-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 12px; }
 .proj-field { display: block; min-width: 0; }
 .proj-field .text-input { width: 100%; }
 
