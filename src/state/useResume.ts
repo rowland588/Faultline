@@ -26,7 +26,7 @@
  */
 import { useEffect, useState } from 'react';
 import type { ID } from '../types';
-import { saveRoute, setLastWorkspace } from '../db';
+import { saveRoute, setLastWorkspace, sweepArchivedInstallationLines } from '../db';
 import { parseRoute, useHash } from './useRoute';
 
 /** Gate the first render on the one thing boot genuinely has to do. */
@@ -38,6 +38,7 @@ export function useBootResume(): boolean {
       /* Ask the browser to keep our IndexedDB (best-effort) so the floor's data
          is not silently evicted. Never blocks boot. */
       try { await navigator.storage?.persist?.(); } catch { /* not supported */ }
+      try { await sweepArchivedInstallationLines(); } catch { /* local only */ }
       if (alive) setReady(true);
     })();
     return () => { alive = false; };

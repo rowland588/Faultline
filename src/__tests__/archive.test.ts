@@ -85,7 +85,7 @@ describe('release installation to the line', () => {
     });
 
     const r = await db.releaseInstallationToLine(id);
-    expect(r).toMatchObject({ workspaceId: wsId, programs: 1, tests: 1, machines: 1 });
+    expect(r).toMatchObject({ workspaceId: wsId, programs: 1, tests: 1, machines: 1, linesArchived: 0 });
 
     expect(await db.listTests(id)).toHaveLength(0);
     expect((await db.listAllPrograms()).find(p => p.id === 'pg1')).toMatchObject({ projectId: '', workspaceId: wsId });

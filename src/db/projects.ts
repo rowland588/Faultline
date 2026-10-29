@@ -17,6 +17,9 @@ import { putProgram } from './programs';
 import { putAsset, putTest, putTestItem } from './testing';
 import { putStandard } from './standards';
 import { putStudy } from './studies';
+import { listAllPrograms } from './programs';
+import { archiveWorkspace } from './workspaces';
+import { projectsOnWorkspace, putPaceLine } from './pace';
 
 export async function allProjects(): Promise<Project[]> {
   const db = await getDB();
@@ -149,6 +152,54 @@ export interface ReleaseInstallationResult {
   programs: number;
   tests: number;
   machines: number;
+  /** Factory lines archived because they only belonged to this installation. */
+  linesArchived: number;
+}
+
+/** After an installation project goes away: drop its gate lines from the factory
+ *  board and archive workspaces that only existed for that job (Line 7 / Line 8
+ *  on the install), keeping the line that now owns the programs. */
+export async function tidyArchivedInstallation(projectId: ID, keepWorkspaceId?: ID): Promise<number> {
+  const db = await getDB();
+  const stamp = now();
+  const paceRows = (await db.getAll('pace_ppm')).filter(r => r.projectId === projectId && !r.deletedAt);
+  const wsIds = new Set<ID>();
+  for (const row of paceRows) {
+    if (row.workspaceId) wsIds.add(row.workspaceId);
+    await putPaceLine({ ...row, deletedAt: stamp, updatedAt: stamp });
+  }
+  if (paceRows.length) await recordTombstones('pace_ppm', paceRows.map(r => r.id));
+
+  const progs = await listAllPrograms();
+  let archived = 0;
+  for (const wsId of wsIds) {
+    if (keepWorkspaceId && wsId === keepWorkspaceId) continue;
+    const on = await projectsOnWorkspace(wsId);
+    const live = (await Promise.all(on.map(id => getProject(id)))).filter(p => p && !p.archivedAt && !p.deletedAt);
+    if (live.length) continue;
+    if (progs.some(p => !p.deletedAt && !p.projectId && p.workspaceId === wsId)) continue;
+    const ws = await db.get('workspaces', wsId);
+    if (ws && !ws.archived) {
+      await archiveWorkspace(wsId);
+      archived++;
+    }
+  }
+  return archived;
+}
+
+const INSTALL_TIDY_KEY = 'fl-install-tidy-swept';
+
+/** One pass per archived installation project — clears ghost lines on Factory after Rowland moved programs to the line. */
+export async function sweepArchivedInstallationLines(): Promise<void> {
+  if (typeof localStorage === 'undefined') return;
+  let done: string[] = [];
+  try { done = JSON.parse(localStorage.getItem(INSTALL_TIDY_KEY) ?? '[]') as string[]; } catch { done = []; }
+  for (const p of await allProjects()) {
+    if (!p.archivedAt || planModel(p) !== 'commissioning' || done.includes(p.id)) continue;
+    await tidyArchivedInstallation(p.id);
+    done.push(p.id);
+    localStorage.setItem(INSTALL_TIDY_KEY, JSON.stringify(done));
+  }
 }
 
 /** Move every program, test, machine and line standard onto a production line,
@@ -198,8 +249,9 @@ export async function releaseInstallationToLine(projectId: ID, workspaceId?: ID)
     if (s.workspaceId) await putStudy({ ...s, projectId: undefined, updatedAt: stamp });
   }
 
+  const linesArchived = await tidyArchivedInstallation(projectId, wsId);
   await archiveProject(projectId);
-  return { workspaceId: wsId, programs: programs.length, tests: tests.length, machines: assets.length };
+  return { workspaceId: wsId, programs: programs.length, tests: tests.length, machines: assets.length, linesArchived };
 }
 
 export async function archiveProject(id: ID): Promise<void> {
