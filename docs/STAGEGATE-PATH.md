@@ -4,7 +4,10 @@ Rowland, 27 October: *"What is a consistent issue with us is the blueprint of th
 app .. we need a clear path for stage gate until we have this we will never
 achieve what we want."* Then: *"Agreed do it."*
 
-**This page is the stage gate.** Where an older document disagrees with it
+**This page is the stage gate.** **Under review (29 October)** — Rowland's
+product opinion: **programs and tests on the line** are the Gemba core; the
+full path below stays live until [`docs/STAGEGATE-PROGRAMS-CORE.md`](STAGEGATE-PROGRAMS-CORE.md)
+slices (SG-P…) ship at his go. Where an older document disagrees with it
 (BLUEPRINT §3–4 on a project's pages, STAGEGATE, STAGEGATE-UX,
 STAGEGATE-RESEARCH, STAGEGATE-REBUILD, SIMPLE, FLOW, PANELS), this page wins.
 They are history from here (§5). Nothing is built for a stage-gate project that

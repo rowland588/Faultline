@@ -9,7 +9,9 @@ to it.
 **Read with:** [`docs/DIRECTION.md`](DIRECTION.md) (wins on disagreement),
 [`docs/MAP.md`](MAP.md) (line is home), [`docs/BLUEPRINT.md`](BLUEPRINT.md)
 (records and layers), [`docs/OPEX.md`](OPEX.md) (the shared improvement loop),
-[`docs/STAGEGATE-PATH.md`](STAGEGATE-PATH.md), [`docs/SIXM.md`](SIXM.md),
+[`docs/STAGEGATE-PATH.md`](STAGEGATE-PATH.md),
+[`docs/STAGEGATE-PROGRAMS-CORE.md`](STAGEGATE-PROGRAMS-CORE.md),
+[`docs/SIXM.md`](SIXM.md),
 [`docs/PROJECTS.md`](PROJECTS.md), [`docs/TOOLKIT.md`](TOOLKIT.md),
 [`docs/LEAN40.md`](LEAN40.md), [`docs/STAGEGATE-ACTIONS-AND-6M.md`](STAGEGATE-ACTIONS-AND-6M.md),
 [`docs/LEVER-TREE-FIT.md`](LEVER-TREE-FIT.md) (lever tree **parked** — no park
@@ -116,6 +118,15 @@ as single home (`docs/MAP.md`).
 **Gap Rowland named 29 Oct:** meeting **action tracker** feel — Actions
 exists but is easy to miss; optional **6M depth** for hard commissioning
 problems (`docs/STAGEGATE-ACTIONS-AND-6M.md` — design only).
+
+**Rowland 29 Oct — programs/tests core:** You built stage gate for live
+installation, but for Gemba **most of that shell is not the product lead** —
+on the line you **run a program** and **run tests on the product** to see what
+is going on; **one program, several products** under it is normal. *"Everything
+at stage gate isn't really needed … only programs and tests."* Line › Programs,
+Test it, criteria and sign-off already support that without a project; gates,
+Now, Timeline and handover stay **optional installation** work, not the hero
+loop. Full map: [`docs/STAGEGATE-PROGRAMS-CORE.md`](STAGEGATE-PROGRAMS-CORE.md).
 
 ### 3.2 6M (`planModel: board`)
 
@@ -231,7 +242,7 @@ line, not the driver (`docs/LINE-TALK.md`).
 
 | System | Keep | Reframe | Merge | Park |
 |---|---|---|---|---|
-| **Stage gate** | Eight-step path, machine page, programs/criteria, commissioning papers | “Installation engine”; Actions more visible; sibling link to 6M on same line | Share **register**, **Actions reader**, **line tools** — not `planModel` | — |
+| **Stage gate** | Eight-step path, machine page, programs/criteria, commissioning papers; **line Programs as Gemba core** (`STAGEGATE-PROGRAMS-CORE.md`) | “Installation engine” (optional); **hero = line programs + tests**; Actions more visible; sibling link to 6M on same line | Share **register**, **Actions reader**, **line tools** — not `planModel` | — |
 | **6M** | Fishbone journey, board, proof/hold, tool-fed suggestions | “Performance engine”; optional `6M-PATH.md` like stage gate | **Lightweight RCA mode** for SG *via sibling project*, not fish on SG rail (`STAGEGATE-ACTIONS-AND-6M.md`) | — |
 | **Lever tree** | Code + seeds for re-entry | Outcome-down sponsor story (when validated) | **Fold candidate:** outcome + date on 6M only (`LEVER-TREE-FIT` option C) | **Default: park** — off New project; no half-visible third method |
 | **Actions (P3/P4)** | Single meeting list, late one number | Stage gate: “tracker home”; 6M: countermeasures + checks | Fixes + countermeasures + plan rows — one reader | — |
