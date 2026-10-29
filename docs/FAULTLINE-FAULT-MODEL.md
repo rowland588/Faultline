@@ -37,6 +37,8 @@ frequency or pass/fail matters.
 A fault is not a new noun beside **project** or **problem** on screen today;
 slice 2 aligns the register, 6M cases and line context to this shape. Until
 then, **problem** on the line and **case** on the 6M board carry the work.
+The walk, the video study of people, and Line Talk are how that evidence is
+taken: [`docs/ADVANCED-TOOLS.md`](ADVANCED-TOOLS.md).
 
 ---
 
