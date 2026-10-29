@@ -1,7 +1,7 @@
 # FC-166 — Code and label verification: the right label on the schedule — the specification
 
 **Catalogue:** FC-166 · **Knowledge:** `packaging.code-label-verification` (full, practice) · built on the check-log
-shape, `knowledge/specs/FC-236-check-logs.md` · **Status:** built on `cursor/tools-w6-batch-de14`.
+shape, `knowledge/specs/FC-236-check-logs.md` · **Status:** built, W6 (29 October 2026).
 
 ## 1. Purpose
 Wrong labels drive recalls. This log records start, reel change, hourly and end checks — label identity, date/lot,

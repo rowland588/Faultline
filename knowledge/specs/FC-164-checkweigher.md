@@ -1,7 +1,7 @@
 # FC-164 — Checkweigher verification: test weights at the limits and the reject proved — the specification
 
 **Catalogue:** FC-164 · **Knowledge:** `packaging.checkweigher-verification` (full, practice) · built on the check-log
-shape, `knowledge/specs/FC-236-check-logs.md` · **Status:** built on `cursor/tools-w6-batch-de14`.
+shape, `knowledge/specs/FC-236-check-logs.md` · **Status:** built, W6 (29 October 2026).
 
 ## 1. Purpose
 The checkweigher decides on every pack at speed whether it ships. This log records the verification checks the plan

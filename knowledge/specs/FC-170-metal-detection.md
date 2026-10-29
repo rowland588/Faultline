@@ -114,5 +114,5 @@ hold in packs and pounds; the seam) and `checks.test.ts` (the clean bound agains
 *Not proved:* a real detector's signal; the retailer's frequency; two phones on one detector.
 
 ## 12. Maintainability
-`src/tools/checks/defs/metal-detection.ts` is the whole of it. FC-135 will read `holdFor`; FC-164 (checkweigher)
-and FC-166 (code and label) are the same shape with their own lists.
+`src/tools/checks/defs/metal-detection.ts` is the whole of it. FC-135 will read `holdFor`; FC-164
+(`defs/checkweigher.ts`) and FC-166 (`defs/code-label.ts`) are the same shape with their own lists.

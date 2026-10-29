@@ -112,9 +112,10 @@ question about rejects proven.
 - [standard] BRCGS Global Standard Food Safety, Issue 9 (2022), clause 6.3 — quantity control (from knowledge; clause not confirmed).
 
 ## In Faultline
-Not built (FC-164). The programs page records a program's test and its
-day (`src/line`), and the register takes a failed check as a problem
-(`src/snag`); FC-164 adds the verification record per checkweigher and
-product — the three test weights' readings, the reject proven, the
-schedule's due and done — with a failed check opening the product-at-
-risk count and a hold.
+Built (FC-164, `knowledge/specs/FC-164-checkweigher.md`) as a check log on
+the shared shape (FC-236, `src/tools/checks`, `defs/checkweigher.ts`): test
+weights at the limits and the reject at speed on the starter schedule,
+pass/fail each check, compliance and what a failure holds; the programs page
+still records a program's test (`src/line`); the register carries the problem
+a failure raises (`src/snag`). Typed weight readings and drift (FC-119) are
+not on this page.

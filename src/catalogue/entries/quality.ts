@@ -1,6 +1,7 @@
 /* THE CATALOGUE — quality, Six Sigma, root cause (src/catalogue/types.ts). */
 import type { Entry } from '../types';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
+import { logBuilt } from '../../tools/checks/built';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -534,7 +535,15 @@ export const QUALITY: Entry[] = [
     food: 'Every checkweigher on an ℮ line.',
     depends: ['FC-119', 'FC-100'],
     complexity: 'S', value: 'medium', valueWhy: 'Evidence an inspector asks for.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['packaging.checkweigher-verification'], scenarios: ['packing', 'quality'],
+    status: 'available', form: 'tool', kind: 'log', methods: ['packaging.checkweigher-verification'], scenarios: ['packing', 'quality'], words: ['checkweigher', 'test weight', 'reject', 'OIML'],
+    spec: 'knowledge/specs/FC-164-checkweigher.md',
+    built: logBuilt('checkweigher'),
+    limits: [
+      'It records checks and states the team’s rules; it never decides a release.',
+      'Individual weight readings are not typed — only pass or fail against the criterion on each check; the test-weight masses and legal limits are the site’s programme, not set here.',
+      'A static weight on a stopped belt does not verify dynamic weighing; the zone of indecision (FC-119) is not calculated on this page.',
+      'Event checks (start-up, product change) are counted when done, not scheduled as overdue; a failure works out packs held and raises a problem — the product-on-hold record (FC-135) is not built yet.',
+    ],
   },
   {
     id: 'FC-165', name: 'Seal integrity tests — leaks and seal strength', discipline: 'packaging', sub: 'seal',
@@ -560,7 +569,14 @@ export const QUALITY: Entry[] = [
     food: 'Retailer labels; use-by codes.',
     depends: ['FC-071', 'FC-014'],
     complexity: 'S', value: 'high', valueWhy: 'Label errors are the commonest recall cause.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['packaging.code-label-verification'], scenarios: ['packing', 'safety'], words: ['label check', 'date code', 'allergen label'],
+    status: 'available', form: 'tool', kind: 'log', methods: ['packaging.code-label-verification'], scenarios: ['packing', 'safety'], words: ['label check', 'date code', 'allergen label', 'barcode'],
+    spec: 'knowledge/specs/FC-166-code-label.md',
+    built: logBuilt('code-label'),
+    limits: [
+      'It records checks and states the team’s rules; it never decides a release or a recall.',
+      'A visual read alone does not verify identity when two labels can look alike — scan when you can; the run plan’s label code belongs at first-off release (FC-071).',
+      'Event checks (start of run, reel change, end of run) are counted when done, not scheduled as overdue; a failure works out packs held and raises a problem — FC-135 is not built yet.',
+    ],
   },
   {
     id: 'FC-167', name: 'Residual oxygen in modified-atmosphere packs', discipline: 'packaging', sub: 'gas',
