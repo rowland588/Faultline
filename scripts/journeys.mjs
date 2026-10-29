@@ -105,6 +105,7 @@ const TOOL_NAMES = new Set(['SMED', 'Line capacity', 'Line balance', 'Line stand
  *  line or a project its Tools tab then the tool; any other line or project the context bar's switcher. */
 async function nav(D, J, label) {
   if (label === 'Control room') label = 'Factory';
+  if (label === 'Reports' && await rail(D, 'Factory reports').count()) label = 'Factory reports';
   if (await tab(D, label).count()) return press(D, J, `tab: ${label}`, tab(D, label));
   /* a project's line, said in the context bar — "on Line 7 ›" (desk) */
   const onLine = D.page.locator('.nv-top .nv-ctx .nv-on-line').filter({ hasText: new RegExp(`^${esc(label)}$`) });
@@ -294,6 +295,12 @@ await run('J7b every late action, by person (desk)', 1360, async (D, J) => {
   /* a stage gate's Actions are a door from Now (26 October) */
   await press(D, J, 'Now: All actions ›', D.page.locator('main').getByRole('button', { name: /^All actions/ }).first()); await orient(D, J, 'Actions');
   await press(D, J, 'Late', D.page.locator('main').getByRole('button', { name: /^Late$/ }).first());
+  for (let i = 0; i < 10; i++) {
+    const shut = D.page.locator('.act .fold:not(.is-open) .fold-toggle');
+    if (!(await shut.count())) break;
+    await shut.first().click();
+    await D.page.waitForTimeout(120);
+  }
   await press(D, J, 'the late test: Changeover 2kg → 1.25kg', D.page.locator('main button.lt-row').filter({ hasText: 'Changeover 2kg' }).first());
   await orient(D, J, 'Actions');
   const opened = await D.page.locator('aside.rd').count();

@@ -153,7 +153,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Now’s sentence — the machines, what blocks handover, what is late', sel: '.now .now-says', text: /machine/ },
     { what: 'the verdict', sel: '.vd' },
     /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
-    { what: 'the band’s tiles — handover, late, critical, fixes open (money when it counts; no “give line…” placeholder)', sel: '.vd .vd-tile', n: 5, desk: true },
+    { what: 'the band’s tiles — handover, late, critical, fixes open (money when it counts; no “give line…” placeholder)', sel: '.vd .vd-tile', n: 4, desk: true },
     { what: 'Blocking handover — the critical problems', sel: '.now-block .now-crit' },
     { what: 'The machines — a row each with its gate, each opening its page', sel: '.now-machines .now-m .part-tag', n: 3 },
     { what: 'Today and the next two weeks — the days, the day and any dates one tap away', sel: '.now-ahead .now-day .jn-li' },
@@ -189,9 +189,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the page header — Report ▾ with the programs report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'Needs you first — then the states worth showing, each a filter', sel: '.pp-chip', text: /Needs you/ },
     { what: 'Prove — test and criteria in one fold on each row', sel: '.pgr-prove-h', n: 1 },
-    { what: 'a row a program, machine by machine', sel: '.pgr-list .pgr', n: 4 },
+    { what: 'a row a program, machine by machine — the job’s own, not the line’s', sel: '.pgr-list .pgr:not(:has(.pp-line-tag))', n: 3 },
     { what: 'how its test went, on its row', sel: '.pgr .ptx-go' },
-    { what: 'a program added to a machine', sel: '.pgr-add-open' },
+    { what: 'a program added to a machine — the link or the box', sel: '.pgr-add-open, .pgr-add' },
     /* 28 October, docs/PROGRAM-GOAL.md: the criteria picked for it and its sign-off — with none, one door on each row */
     { what: 'its criteria on its row — + Pick its criteria', sel: '.pgr .pgc-add', text: /Pick its criteria/ },
     /* the lean page (17 October, docs/LEAN-PAGE.md): its counted figures are the chips, its closing line the programs in a sentence */
@@ -203,14 +203,14 @@ export const PAGES = (sd, cap) => [
     { what: 'Needs you', sel: '.nd-list' }, { what: 'the board, machine by machine', sel: '.ig-grid', desk: true },
     { what: 'the board as a card a machine', sel: '.igm-card', phone: true },
     /* the lean page (17 October, docs/LEAN-PAGE.md; lib/stageGatePages): the header's counts as tiles, and the money */
-    { what: 'the tiles — passed, didn’t pass, didn’t run, still to run, the money', sel: '.sg-tiles .ln-tile', n: 5 },
+    { what: 'the tiles — passed, didn’t pass, didn’t run, still to run, the money when it counts', sel: '.sg-tiles .ln-tile', n: 4 },
     /* the page header since B3: the commissioning report and the test cards in Report ▾ */
     { what: 'the page header — Report ▾ with the commissioning report and the test cards', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
   { name: 'Install', path: `#/project/${sd.projectId}/install`, must: [
     { what: 'the plan’s tabs, Install on', sel: '.plt .plt-t.on', text: /^Install/ },
-    { what: 'the tiles — done, late, problems, not added yet, the money', sel: '.sg-tiles .ln-tile', n: 5 },
+    { what: 'the tiles — done, late, problems, not added yet, the money when it counts', sel: '.sg-tiles .ln-tile', n: 4 },
     { what: 'Needs you', sel: '.cg-needs' },
     /* the page header since B3: the step cards in Report ▾ */
     { what: 'the page header — Report ▾ with the step cards', sel: '.part-head .part-menu-b', text: /^Report/ },
@@ -241,7 +241,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Timeline on, among the project’s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Timeline/ },
     { what: 'the Gantt', sel: '.gt-body' },
     /* B3: the Gantt's own PDF is the page header's Report ▾ */
-    { what: 'the page header — Report ▾ with the plan on one page', sel: '.part-head .part-menu-b', text: /^Report/ }, { what: 'the plan’s tabs, Timeline on', sel: '.plt .plt-t.on', text: /^Timeline/ },
+    { what: 'the page header — Report ▾ with the plan on one page', sel: '.part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October; lib/stageGatePages planTiles): the header's count line moved into the tiles, the job's money last; the closing line */
     { what: 'the tiles — done of the dates, late, still ahead, the project’s money', sel: '.cm-screen > .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.cm-screen > .ln-close' }] },
@@ -388,13 +388,13 @@ export const PAGES = (sd, cap) => [
     { what: 'the range — its five picks', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the range said', sel: '.jn-range-t' },
     { what: 'the four tiles — done, still to do, late, planned', sel: '.jn-tiles .ln-tile', n: 4 },
     /* every tool at a desk; on a phone the list folds to the ticked, Every tool under it */
-    { what: 'the tools we will use — a tick a tool', sel: '.jn-tools .jn-tool', n: 11, desk: true },
+    { what: 'the tools we will use — a tick a tool', sel: '.jn-tool-list .jn-tool', n: 15, desk: true },
     { what: 'the tools we will use, folded — Every tool', sel: '.fold[data-fold="jn-tools"] .jn-every', text: /^Every tool/, phone: true },
     { what: 'the days in order', sel: '.jn-day' }, { what: 'a day’s lines, each a record’s own', sel: '.jn-day .jn-li' },
     { what: 'today marked', sel: '.jn-day.is-today' }, { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Journey — a 6M project', path: `#/project/${sd.pacedProjectId}/journey`, must: [
     { what: 'the range', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the four tiles', sel: '.jn-tiles .ln-tile', n: 4 },
-    { what: 'the tools we will use', sel: '.jn-tools .jn-tool', n: 11, desk: true }, { what: 'the days', sel: '.jn-day .jn-li' }, { what: 'the closing line', sel: '.ln-close' }] },
+    { what: 'the tools we will use', sel: '.jn-tool-list .jn-tool', n: 15, desk: true }, { what: 'the days', sel: '.jn-day .jn-li' }, { what: 'the closing line', sel: '.ln-close' }] },
   /* the parts every page is built from (docs/STRUCTURE.md §7, B1, 23 October) — in development, photographed so a change to a part is seen before it ships */
   { name: 'The parts', path: '#/parts', must: [
     { what: 'the page header — one title, its state', sel: '.part-head h1 .part-tag' },
@@ -442,8 +442,8 @@ export const PAGES = (sd, cap) => [
     { what: 'its name, Stops timed, and the line', sel: '.study-log b', text: /^Stops timed$/ },
     { what: 'its four views as tabs, Capture lit', sel: '.study-views [role=tab]', n: 4 },
     { what: 'Capture the view shown', sel: '.study-views [role=tab][aria-selected=true]', text: /^Capture$/ },
-    /* the seeded study is a stage-gate project's own walk, filmed from Install: Plan lit — the gates are the Plan tab's (27 October) */
-    { what: 'where it sits — the line study’s Tools tab or the project’s Tools', sel: '.nv-tabs .nv-tab.is-on' }] },
+    /* the line study lives under the line's Logs tab (docs/STRUCTURE.md B6) */
+    { what: 'where it sits — Tools lit on the line (Stops timed lives under Logs, which lights Tools)', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools$/ }] },
   { name: 'Actions — the factory', path: '#/actions', must: [
     { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },

@@ -10,7 +10,7 @@
  * taken on what is live and on the change, compared pixel by pixel in the
  * browser, and every page that moved listed with how much — and put side by
  * side in NEW/compare.html — to be looked at, and said in the commit. */
-import pkg from '/home/user/fl-card/node_modules/playwright/index.js';
+import pkg from 'playwright';
 import { mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { PAGES } from './inventory/pages.mjs';
@@ -61,7 +61,7 @@ const errors = [];
 for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone', { width: 390, height: 844 }]].filter(([t]) => VIEWS.includes(t))) {
   const ctx = await browser.newContext({ serviceWorkers: 'block', viewport, locale: 'en-GB', timezoneId: 'Europe/London' });
   await ctx.route(`https://${REF}.supabase.co/**`, r => r.abort());
-  await ctx.addInitScript(([k, s]) => { localStorage.setItem(k, JSON.stringify(s)); }, [`sb-${REF}-auth-token`, SESSION]);
+  await ctx.addInitScript(([k, s]) => { try { localStorage?.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, [`sb-${REF}-auth-token`, SESSION]);
   const page = await ctx.newPage();
   /* one moment for every picture, so a date on a page is not a change */
   if (SHOTS) await page.clock.setFixedTime(new Date('2026-10-15T10:00:00Z'));
@@ -79,6 +79,17 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
   }).catch(() => undefined);
   for (const pg of PAGES(sd, cap)) {
     await page.goto(`${BASE}/${pg.path}`); await page.waitForTimeout(2200);
+    /* Folded sections start shut on a phone (ui/Fold); open them so what a page must show is on the screen. */
+    for (let i = 0; i < 16; i++) {
+      const shut = page.locator('.fold:not(.is-open) .fold-toggle');
+      if (!(await shut.count())) break;
+      await shut.first().click();
+      await page.waitForTimeout(120);
+    }
+    if (pg.path.includes('/programs')) {
+      await page.locator('.pp-chip', { hasText: 'All' }).first().click({ timeout: 8000 }).catch(() => {});
+      await page.waitForTimeout(400);
+    }
     /* A page slower than that is waited for, never counted as missing what it shows: up to 8 s more for
        the first thing it must show (19 October: the job's front page took 2.8–3.6 s after Problems). */
     await page.waitForFunction(sel => [...document.querySelectorAll(sel)].some(e => e.getBoundingClientRect().width > 0), pg.must[0].sel, { timeout: 8000 }).catch(() => {});

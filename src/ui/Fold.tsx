@@ -24,9 +24,13 @@ const phone = (): boolean => {
   try { return window.matchMedia('(max-width: 640px)').matches; } catch { return false; }
 };
 
+const store = (): Storage | null => {
+  try { return localStorage; } catch { return null; }
+};
+
 function read(id: string, start: boolean): boolean {
   try {
-    const v = localStorage.getItem(KEY + id);
+    const v = store()?.getItem(KEY + id);
     return v == null ? start : v === '1';
   } catch { return start; }
 }
@@ -34,7 +38,7 @@ function read(id: string, start: boolean): boolean {
 /** Open a card before arriving at it — the same stored choice a tap makes.
  *  For a door that lands on one card of another page. */
 export function openFold(id: string): void {
-  try { localStorage.setItem(KEY + id, '1'); } catch { /* fine */ }
+  try { store()?.setItem(KEY + id, '1'); } catch { /* fine */ }
 }
 
 export function Fold({ id, title, says, start = true, need = false, children }: {
@@ -52,7 +56,7 @@ export function Fold({ id, title, says, start = true, need = false, children }: 
 }) {
   const [open, setOpen] = useState(() => read(id, need || (start && !phone())));
   const toggle = () => setOpen(o => {
-    try { localStorage.setItem(KEY + id, o ? '0' : '1'); } catch { /* fine */ }
+    try { store()?.setItem(KEY + id, o ? '0' : '1'); } catch { /* fine */ }
     return !o;
   });
   return (

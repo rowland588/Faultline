@@ -101,7 +101,7 @@ export function ProgramsPage({ projectId, only, title }: {
   const can = useAccess(projectId);
   /* THE JOB'S MONEY (lib/useJobMoney) — said in the closing line when the slip has run one up */
   const money = useJobMoney(projectId);
-  const [filter, setFilter] = useState<Filter>('needs');
+  const [filter, setFilter] = useState<Filter>(only != null ? 'all' : 'needs');
   const [filterPicked, setFilterPicked] = useState(false);
   const [machineF, setMachineF] = useState('all');
   const [openRow, setOpenRow] = useState<string | null>(null);

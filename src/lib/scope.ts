@@ -34,13 +34,13 @@ const LINE_LISTS = new Set<Route['name']>(['quickSnags', 'linePrograms', 'lineTo
  *  otherwise; the front door is Home. */
 export function scopeOf(route: Route, hints: ScopeHints = {}): Scope {
   if (route.name === 'start') return { kind: 'home' };
-  if (hints.projectId) return { kind: 'project', projectId: hints.projectId };
   if ((route.name === 'lineHome' || route.name === 'lineReport' || route.name === 'lineMachine') && route.wsId) return { kind: 'line', wsId: route.wsId };
+  /* a line study's screens and a line's own products are the line's (B6) — the route wins over a project the study belongs to */
+  if (route.wsId) return { kind: 'line', wsId: route.wsId };
+  if (hints.projectId) return { kind: 'project', projectId: hints.projectId };
   if (FACTORY.has(route.name)) return { kind: 'factory' };
   const line = route.query.get('line');
   if (LINE_LISTS.has(route.name)) return line ? { kind: 'line', wsId: line } : { kind: 'factory' };
-  /* a line study's screens and a line's own products are the line's (B6 makes the study its Logs) */
-  if (route.wsId) return { kind: 'line', wsId: route.wsId };
   if (hints.lineId) return { kind: 'line', wsId: hints.lineId };
   return { kind: 'factory' };
 }
