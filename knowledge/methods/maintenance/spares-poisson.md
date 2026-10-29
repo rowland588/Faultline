@@ -110,8 +110,10 @@ parts whose absence turns a 20-minute repair into a 3-week stop.
 - [textbook] Sherbrooke, C.C., *Optimal Inventory Modeling of Systems: Multi-Echelon Techniques*, 2nd ed., Kluwer, 2004 — the pipeline for repairables (from knowledge).
 
 ## In Faultline
-Not built (FC-066). The reliability study gives a machine's MTBF and its
-bound (`src/tools/reliability`); FC-066 takes a part's MTBF, the number
+Built (FC-066): calculator `critical-spares` at `#/calc/critical-spares`
+(`src/tools/calc/defs/critical-spares.ts`, `src/lib/ie/spares.ts`). The
+reliability study gives a machine's MTBF and its bound (`src/tools/reliability`);
+FC-066 takes a part's MTBF, the number
 installed and the lead time, says the stock for the level chosen with
 the stock-out risk at the stock held now, and sets the holding cost
 against the line's lost contribution over a lead time in money.

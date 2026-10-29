@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 113 |
+| Available (`available`) | 114 |
 | Partly (`partial`) | 25 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 79 |
+| Not built yet (`to-build`) | 78 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -21,7 +21,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Industrial engineering and work measurement | 14 | 7 | 3 |  | 3 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 9 | 4 |  | 3 | 1 |  |
 | Equipment performance and losses | 10 | 6 | 1 |  | 1 |  | 2 |
-| Maintenance, reliability and TPM | 11 | 6 |  |  | 4 | 1 |  |
+| Maintenance, reliability and TPM | 11 | 7 |  |  | 3 | 1 |  |
 | Changeovers | 5 | 1 | 2 |  | 2 |  |  |
 | Commissioning and operational readiness | 13 | 11 | 1 |  |  | 1 |  |
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
@@ -69,9 +69,9 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 71
+- a tool of its own: 72
 - a mode of another tool: 74
-- a part several tools share: 37
+- a part several tools share: 36
 - a way through several tools: 8
 - a report or board: 34
 - decided after research: 12

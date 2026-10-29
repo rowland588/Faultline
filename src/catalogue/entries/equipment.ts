@@ -1,6 +1,7 @@
 /* THE CATALOGUE — maintenance and reliability, changeovers, commissioning (src/catalogue/types.ts). */
 import type { Entry } from '../types';
 import { logBuilt } from '../../tools/checks/built';
+import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -133,7 +134,15 @@ export const EQUIPMENT: Entry[] = [
     food: 'Seal jaws, knives, load cells.',
     depends: ['FC-058', 'FC-064'],
     complexity: 'S', value: 'medium', valueWhy: 'Turns a failure rate into a stocking decision.',
-    status: 'to-build', form: 'component', methods: ['maintenance.spares-poisson'], scenarios: ['machine'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['maintenance.spares-poisson'], scenarios: ['machine'],
+    built: {
+      where: ['/calc/critical-spares'],
+      code: [...CALC_CODE, 'src/tools/calc/defs/critical-spares.ts', 'src/lib/ie/spares.ts'],
+      tests: [...CALC_TESTS, 'src/lib/ie/__tests__/spares.test.ts'],
+      acceptance: ['calc-shape.mjs'],
+    },
+    spec: 'knowledge/specs/FC-066-critical-spares.md',
+    limits: ['MTBF is typed — it is not read from an open reliability study yet.', 'Wear-out parts and pooled stores across lines are not modelled here.', 'Criticality class (FC-064) does not set the service level automatically.'],
   },
   {
     id: 'FC-067', name: 'Maintenance measures — MTBF, MTTR, planned share, backlog', discipline: 'maintenance', sub: 'strategy',

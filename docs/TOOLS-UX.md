@@ -305,15 +305,16 @@ No new hues, no new `640px` breakpoint, no hex ceiling raised in `styles.css`.
 | **T0** | Standards + spruce surfaces (`a41f45ad`) | Done on main |
 | **T1** | Directory lede, Use one now, list rows, empty states | **Done** — shared `--tool-work-*`, `.empty`, `.lt-empty`, `.et-lede` |
 | **T2** | Top 8 studies | **Shared layer** — band/tiles/panels/`ie-pic`/`ie-cap-box` |
-| **T3** | Signature inner views (top studies + partials) | **Extended** — `.tool-sig-*` on capability/chart/SMED/VSM/board/losses/reliability/analysis; added `tool-sig-sample`, `tool-sig-calc`, `tool-sig-bal`, `tool-sig-co`, `tool-sig-pareto`, `tool-sig-check`; all Analysis pictures use `tool-sig-an` |
+| **T3** | Signature inner views (top studies + partials) | **Extended** — `.tool-sig-*` on capability/chart/SMED/VSM/board/losses/reliability/analysis; `tool-sig-vid` on video study stacks and load chart; `tool-sig-walk` on line capture timer and feed (waste walk / FC-005 partial); calculators, checks, pareto, analysis as before |
 | **T4** | Report engine section headers + closing band | **Done** on main (`87877112`) |
 | **W3c** | FC-119/120 gauge, FC-114 shape | **Done** on main |
 | **W4a** | FC-118 gauge R&R (Analysis `grr`) | **Done** — `lib/ie/gaugeRr`, spec, unit + acceptance `gauge-rr.mjs`, catalogue available |
 | **W4b** | FC-121 attribute agreement (Analysis `attr`) | **Done** — `lib/ie/attributeAgreement`, spec, unit + acceptance `attribute-agreement.mjs`, catalogue available |
 | **W4c** | FC-122 calibration checks (log `calibration`) | **Done** — check-log def, spec, `log-shape.mjs`, catalogue available |
 | **W4d** | FC-123 uncertainty budget (calc `uncertainty-budget`) | **Done** — `lib/ie/uncertainty`, spec, unit + `calc-shape.mjs`, catalogue available |
+| **W5a** | FC-066 critical spares (calc `critical-spares`) | **Done** — `lib/ie/spares`, spec, unit + `calc-shape.mjs`, catalogue available |
 
-**Coverage (honest):** ~113 available tools — **100%** lean shell + list patterns;
-**~30%** tool-specific signature CSS; hub tools (calculators, checks, pareto modes) share work-panel chrome.
+**Coverage (honest):** ~114 available tools — **100%** lean shell + list patterns;
+**~32%** tool-specific signature CSS; hub tools (calculators, checks, pareto modes) share work-panel chrome.
 
-**Next slice:** W4 complete — wire guard bands to CCP/capability when those screens are touched; `GATE_PAPERS=1` on changeover + shift-losses when two checkouts; video/walk signature when those screens gain a hero canvas.
+**Next slice:** W5 — FC-063 planned maintenance log or FC-064 criticality register; reliability study polish; wire guard bands when CCP screens move.

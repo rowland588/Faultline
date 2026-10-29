@@ -12140,6 +12140,12 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .tool-sig-co.co-ladder-pic { border-left-width: 3px; }
 .tool-sig-pareto .ie-pareto-bars { border-left: 3px solid var(--tool-panel-edge); padding-left: 8px; }
 .tool-sig-check.lg-card { border-left: 3px solid var(--tool-panel-edge); box-shadow: var(--shadow); }
+.tool-sig-vid.vid-stacks,
+.tool-sig-vid.vid-load { border-left: 3px solid var(--tool-panel-edge); background: var(--tool-work-bg); box-shadow: var(--shadow); padding: 10px 10px 10px 12px; border-radius: var(--radius-sm); }
+.tool-sig-vid .ie-stack { filter: drop-shadow(0 1px 0 color-mix(in srgb, var(--brand) 6%, transparent)); }
+.tool-sig-walk.cap-timer { border-left: 3px solid var(--tool-panel-edge); box-shadow: var(--shadow); }
+.tool-sig-walk.cap-timer.live { box-shadow: var(--shadow-lift); }
+.tool-sig-walk.cap-feed .cap-feed-list { border-left: 3px solid var(--tool-panel-edge); box-shadow: var(--shadow); }
 
 .ie-dots { width: 100%; height: auto; display: block; overflow: visible; }
 .ie-lim { stroke: var(--ink-2); stroke-width: 2; }

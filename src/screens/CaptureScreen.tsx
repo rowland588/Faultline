@@ -323,7 +323,7 @@ export function CaptureScreen() {
       </fieldset>
 
       {/* THE TIME — the whole point */}
-      <div className={'cap-timer' + (timing ? ' live' : '')}>
+      <div className={'cap-timer tool-sig-walk' + (timing ? ' live' : '')}>
         {timing ? (
           <>
             <div className="cap-timer-what">{asset} · {category}</div>
@@ -396,7 +396,7 @@ export function CaptureScreen() {
       {/* No link to Analyse here: it is the next tab in the row above. */}
 
       {/* THE CHECK SHEET — every log lands here, newest first */}
-      <div className="cap-feed">
+      <div className="cap-feed tool-sig-walk">
         <div className="cap-feed-head">
           <span className="cap-feed-title-lbl">Logged on this line</span>
           <span className="cap-feed-count"><b>{observations.length}</b> {observations.length === 1 ? 'entry' : 'entries'}{total > 0 && <> · <b>{fmtDurationWords(total)}</b></>}</span>
