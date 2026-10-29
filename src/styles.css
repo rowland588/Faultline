@@ -118,6 +118,12 @@
   --sweep: linear-gradient(135deg, #12171c 0%, #123832 58%, #0a6a5c 100%);
   --sweep-soft: linear-gradient(135deg, #f4f1ea 0%, #e9e4da 100%);
 
+  /* TOOLS — warm panels and spruce bars (docs/TOOLS-UX.md §4). One vocabulary
+     for #/tools, scope Tools lists, and line tool cards. */
+  --tool-panel: color-mix(in srgb, var(--brand) 7%, var(--surface));
+  --tool-panel-edge: color-mix(in srgb, var(--brand) 28%, var(--line));
+  --tool-row-hover: color-mix(in srgb, var(--brand) 5%, var(--surface));
+
   /* chrome — the LIGHT cockpit frame (workspace bar, tab bar, meeting room) */
   --chrome: #f1efe8;
   --chrome-2: #e6e2da;
@@ -10924,9 +10930,15 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .lt-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; padding: 8px 2px; }
 .lt-name .text-input { flex: 1 1 220px; }
 .lt-clash { flex-basis: 100%; color: var(--st-a); }
-.lt-row { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; width: 100%; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.lt-row { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; width: 100%; padding: 10px 12px; border-bottom: 1px solid var(--line);
+  box-shadow: inset 3px 0 0 transparent; border-radius: var(--radius-sm); transition: background 0.12s ease, box-shadow 0.12s ease; }
+.lt-row:hover, .lt-row:focus-visible { background: var(--tool-row-hover); box-shadow: inset 3px 0 0 var(--tool-panel-edge); }
 .lt-row:hover .lt-what, .lt-row:focus-visible .lt-what { color: var(--brand); }
 .lt-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Scope Tools and the directory “Use one now” — card stack on warm paper */
+.et-now .lt-rows, .ptools .lt-rows, .part-sec .lt-rows { display: flex; flex-direction: column; gap: 6px; padding: 0; }
+.et-now .lt-li, .ptools .lt-li, .part-row { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow); }
+.et-now .lt-li > .lt-row, .ptools .lt-li > .lt-row, .part-row > .lt-row { border-bottom: 0; box-shadow: inset 3px 0 0 var(--tool-panel-edge); }
 .lt-what { flex: 1 1 200px; min-width: 0; font-size: var(--t-body); color: var(--ink); overflow-wrap: anywhere; }
 .lt-says { font-size: var(--t-detail); color: var(--ink-2); }
 .lt-says.is-short { color: var(--st-r); font-weight: 700; }
@@ -11047,7 +11059,10 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .pl-row.is-late { box-shadow: inset 3px 0 0 var(--st-r); }
 .pl-row-main { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .pl-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
-.pl-tool { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.pl-tool { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-align: left; font: inherit; color: var(--ink); cursor: pointer;
+  box-shadow: inset 0 3px 0 0 var(--tool-panel-edge), var(--shadow); transition: border-color 0.12s ease, box-shadow 0.12s ease; }
+.pl-tool:hover, .pl-tool:focus-visible { border-color: var(--tool-panel-edge); box-shadow: inset 0 3px 0 0 var(--brand), var(--shadow-lift); }
+.pl-tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pl-tool .sub { grid-column: 1; font-size: var(--t-detail); }
 .pl-tool-go { grid-row: 1 / span 2; grid-column: 2; align-self: center; color: var(--muted); font-size: var(--t-h); }
 /* WHAT EACH TOOL FOUND, on its tile (FLOW-AUDIT.md, 10): its latest record's
@@ -13955,6 +13970,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* EVERY TOOL — the directory (screens/ToolsScreen) */
 .et h1 { margin-bottom: 4px; }
 .et-lede { max-width: 80ch; }
+.et-now { margin: 0 0 18px; padding: 14px 16px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--tool-panel); box-shadow: var(--shadow); border-left: 3px solid var(--brand); }
+.et-now .ln-h { margin: 0 0 8px; color: var(--ink); }
+.et-all-h { margin-top: 18px !important; padding-top: 14px; border-top: 1px solid var(--line); }
 .et-search { display: flex; flex-direction: column; gap: 4px; max-width: 640px; margin: 14px 0 10px; }
 .et-search input { font-size: var(--t-h); min-height: 46px; }
 .et-status { margin: 0 0 8px; }
@@ -13964,7 +13982,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .et-route-b { all: unset; box-sizing: border-box; cursor: pointer; padding: 7px 12px; border: 1px solid var(--line-2); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink); font-size: var(--t-detail); }
 .et-route-b.on, .et-route-b:hover { border-color: var(--brand); }
 .et-route-b:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.et-route { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: var(--radius); background: var(--surface); }
+.et-route { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: var(--radius); background: var(--tool-panel); box-shadow: var(--shadow); }
 .et-route h3 { margin: 0 0 6px; font-size: var(--t-body); }
 .et-route ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 .et-route li > span:first-child { display: block; }
@@ -13977,8 +13995,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .et-chip:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .et-group h3 { margin: 16px 0 6px; font-size: var(--t-body); }
 .et-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.et-row { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.et-row { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow); transition: box-shadow 0.12s ease, border-color 0.12s ease; }
+.et-row.is-open { border-color: var(--tool-panel-edge); box-shadow: var(--shadow-lift); background: color-mix(in srgb, var(--tool-panel) 35%, var(--surface)); }
 .et-row-h { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; padding: 9px 12px; }
+.et-row-h:hover { background: var(--tool-row-hover); }
 .et-row-h:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .et-id { font-variant-numeric: tabular-nums; font-size: var(--t-detail); color: var(--muted); font-weight: 700; }
 .et-name { color: var(--ink); min-width: 0; }

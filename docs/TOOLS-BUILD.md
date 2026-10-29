@@ -17,6 +17,10 @@ skill — a specification before code, formulas validated by independent cases,
 the report built with the tool, an acceptance script in the gate, the
 catalogue kept truthful. What is not built properly is not built.
 
+**Presentation and finding tools** — shell, directory, problem routes, spruce
+graphic language, and the UX checklist added to the standard — are in
+`docs/TOOLS-UX.md` (29 October 2026).
+
 ## 1. How it goes faster without going worse
 
 Rowland, 23 October: *"work out a way to complete the plan faster."* The
