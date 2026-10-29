@@ -452,7 +452,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
 
       {/* THE FOOTAGE — what it is, read from the file, and where it is */}
       <section className="vid-panel" aria-label="The footage">
-        <div className="vid-player">
+        <div className="vid-player tool-sig-video">
           {url ? (
             <video ref={player} src={url} controls muted playsInline preload="auto" aria-label="The footage" onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
           ) : (
@@ -597,7 +597,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
           </table>
           <Workload f={f} />
           {f.takt && f.balance.people.some(p => p.work > 0) && (
-            <div className="vid-stacks tool-sig-vid ie-pic" aria-label="Each person's work stacked against takt"><Stacks f={f.balance} /><Legend f={f.balance} /></div>
+            <div className="vid-stacks tool-sig-vid tool-sig-video ie-pic" aria-label="Each person's work stacked against takt"><Stacks f={f.balance} /><Legend f={f.balance} /></div>
           )}
           <Takt v={v} disabled={!can.edit} onSave={d => void patchV({ demand: d })} />
           <h3>What it says</h3>
@@ -635,7 +635,7 @@ function Workload({ f }: { f: ReturnType<typeof videoFigures> }) {
   const y = (v: number) => T + (1 - v / most) * (H - T - B);
   const col = (W - L - 8) / ss.length, bw = Math.min(64, col * 0.6);
   return (
-    <svg className="vid-load tool-sig-vid" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Each station's work and time with no movement in a cycle">
+    <svg className="vid-load tool-sig-vid tool-sig-video" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Each station's work and time with no movement in a cycle">
       {[0, 0.25, 0.5, 0.75, 1].map(k => <g key={k}><line x1={L} x2={W - 4} y1={y(most * k)} y2={y(most * k)} className="vid-load-grid" /><text x={L - 4} y={y(most * k) + 3} className="vid-load-ax">{(most * k).toFixed(0)} s</text></g>)}
       {ss.map((s, i) => {
         const x = L + 4 + i * col + (col - bw) / 2, work = s.workTime?.mean ?? 0, wait = s.waitTime?.mean ?? 0;
@@ -704,7 +704,7 @@ function Stations({ zones, disabled, onChange }: { zones: readonly VideoZone[]; 
 function Timeline({ zones, events, durationSec, t, onPick }: { zones: readonly VideoZone[]; events: readonly VideoEvent[]; durationSec: number; t: number; onPick: (s: number) => void }) {
   const pc = (x: number) => `${(x / Math.max(0.001, durationSec)) * 100}%`;
   return (
-    <div className="vid-tl" aria-label="The events on the footage's timeline">
+    <div className="vid-tl tool-sig-video" aria-label="The events on the footage's timeline">
       {zones.map(z => (
         <div key={z.id} className="vid-lane">
           <span className="vid-lane-l">{z.label}</span>

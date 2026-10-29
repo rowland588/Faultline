@@ -12140,9 +12140,16 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .tool-sig-co.co-ladder-pic { border-left-width: 3px; }
 .tool-sig-pareto .ie-pareto-bars { border-left: 3px solid var(--tool-panel-edge); padding-left: 8px; }
 .tool-sig-check.lg-card { border-left: 3px solid var(--tool-panel-edge); box-shadow: var(--shadow); }
+.tool-sig-video.vid-player,
+.tool-sig-video.vid-tl,
 .tool-sig-vid.vid-stacks,
-.tool-sig-vid.vid-load { border-left: 3px solid var(--tool-panel-edge); background: var(--tool-work-bg); box-shadow: var(--shadow); padding: 10px 10px 10px 12px; border-radius: var(--radius-sm); }
-.tool-sig-vid .ie-stack { filter: drop-shadow(0 1px 0 color-mix(in srgb, var(--brand) 6%, transparent)); }
+.tool-sig-vid.vid-load,
+.tool-sig-video.vid-stacks,
+.tool-sig-video.vid-load { border-left: 3px solid var(--tool-panel-edge); background: var(--tool-work-bg); box-shadow: var(--shadow); padding: 10px 10px 10px 12px; border-radius: var(--radius-sm); }
+.tool-sig-vid .ie-stack,
+.tool-sig-video .ie-stack { filter: drop-shadow(0 1px 0 color-mix(in srgb, var(--brand) 6%, transparent)); }
+.tool-sig-video.vid-player { padding: 0 0 0 12px; border-radius: var(--radius-sm); overflow: hidden; }
+.tool-sig-video.vid-tl { padding: 8px 8px 8px 12px; }
 .tool-sig-walk.cap-timer { border-left: 3px solid var(--tool-panel-edge); box-shadow: var(--shadow); }
 .tool-sig-walk.cap-timer.live { box-shadow: var(--shadow-lift); }
 .tool-sig-walk.cap-feed .cap-feed-list { border-left: 3px solid var(--tool-panel-edge); box-shadow: var(--shadow); }

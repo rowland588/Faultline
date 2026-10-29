@@ -528,9 +528,15 @@ export const OPERATIONS: Entry[] = [
     food: 'Hand palletising; loading ingredient sacks.',
     depends: ['FC-208'],
     complexity: 'M', value: 'medium', valueWhy: 'Arithmetic built and proved; nobody can reach it.',
-    status: 'partial', form: 'tool', kind: 'study', methods: ['ergonomics.niosh-lifting'], scenarios: ['people'], words: ['manual handling', 'lifting', 'ergonomics'],
-    built: { where: [], code: ['src/lib/ie/ergo.ts'], tests: ['src/lib/ie/__tests__/ergo.test.ts'], acceptance: [] },
-    limits: ['Arithmetic only — on no screen.'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['ergonomics.niosh-lifting'], scenarios: ['people'], words: ['manual handling', 'lifting', 'ergonomics'],
+    built: {
+      where: ['/calc/niosh-lifting'],
+      code: [...CALC_CODE, 'src/tools/calc/defs/niosh-lifting.ts', 'src/lib/ie/ergo.ts'],
+      tests: [...CALC_TESTS, 'src/lib/ie/__tests__/ergo.test.ts'],
+      acceptance: ['calc-shape.mjs'],
+    },
+    spec: 'knowledge/specs/FC-207-niosh-lifting.md',
+    limits: ['One lift task at a time — not carrying, pushing or team lifts.', 'Screening only — not HSE MAC (FC-208) or a full risk assessment.'],
   },
   {
     id: 'FC-208', name: 'HSE MAC — manual handling assessment charts', discipline: 'ergonomics', sub: 'handling',

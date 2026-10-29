@@ -48,4 +48,4 @@ End-of-line palletising by hand; loading ingredient sacks.
 - [practice] NIOSH (1994), *Applications Manual for the Revised NIOSH Lifting Equation*, DHHS (NIOSH) Publication 94-110.
 
 ## In Faultline
-Arithmetic only (`src/lib/ie/ergo.ts`, FC-207 — no screen).
+Calculator `/calc/niosh-lifting` (`src/tools/calc/defs/niosh-lifting.ts`, arithmetic `src/lib/ie/ergo.ts`, FC-207 available).

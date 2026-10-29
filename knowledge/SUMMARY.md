@@ -6,8 +6,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 114 |
-| Partly (`partial`) | 25 |
+| Available (`available`) | 115 |
+| Partly (`partial`) | 24 |
 | Planned (`specified`) | 0 |
 | Not built yet (`to-build`) | 78 |
 | Research first (`research`) | 12 |
@@ -36,7 +36,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Production planning and scheduling | 8 | 1 |  |  | 7 |  |  |
 | Cost and operational performance | 6 | 4 |  |  | 1 |  | 1 |
 | Visual and daily management | 15 | 7 | 4 |  | 4 |  |  |
-| Ergonomics, layout and automation | 6 |  | 1 |  | 5 |  |  |
+| Ergonomics, layout and automation | 6 | 1 |  |  | 5 |  |  |
 | Projects and continuous improvement | 10 | 1 | 1 |  | 4 |  | 4 |
 | Skills and training | 4 |  | 1 |  | 3 |  |  |
 | Energy, water and environment | 4 |  |  |  | 3 | 1 |  |
@@ -106,7 +106,6 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 1. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
 2. FC-071 First-off release at changeover — line clearance and the first good pack (Not built yet) — First-off release at changeover — recall risk and hidden changeover time.
 3. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
-4. FC-207 NIOSH lifting equation (Partly) — Put the NIOSH arithmetic on a screen — built and proved, unreachable.
 
 ## Where related capabilities could be combined
 
