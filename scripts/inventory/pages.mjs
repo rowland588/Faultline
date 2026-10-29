@@ -35,6 +35,7 @@ export const PAGES = (sd, cap) => [
     { what: 'every line, each card saying Open <line> ›', sel: '.fac-floor .fac-card-go', text: /^Open .* ›$/ },
     /* THE BOARD (27 October — "which line needs me?"): each line's state in a word and its colour, its worst thing and who has it, its projects */
     { what: 'each line where it stands, in a word and its colour', sel: '.fac-floor .fac-card-state', text: /\S/ },
+    { what: 'each line\'s machines named on the card', sel: '.fac-floor .fac-card-machines', text: /\S/ },
     { what: 'each line\'s projects, or none', sel: '.fac-floor .fac-card-projects', text: /^(Projects: |No project on it)/ },
     { what: 'Set up the lines', sel: '.fac-home .pl-sec-acts .btn', text: /^Set up the lines$/ },
     { what: 'this week, across every line and project', sel: '.jb-week' },
@@ -45,6 +46,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the closing line', sel: '.jb > .ln-close' },
   ] },
   { name: 'Set up — the factory\'s lines', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' },
+    { what: 'each line\'s machines named in flow order', sel: '.fac-machines' },
     { what: 'titled Set up (27 October — "put the lines in the setup because it\'s factory setup")', sel: '.fac .part-head h1', text: /^Set up$/ },
     /* the page header since B3: its paper in Report ▾ */
     { what: 'the page header — Report ▾ with the factory report', sel: '.fac .part-head .part-menu-b', text: /^Report/ },

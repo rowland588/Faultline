@@ -120,12 +120,12 @@ ok(grpText.includes(PROBLEM) && /Problem · Priya Shah/.test(grpText) && grpText
 /* the line's card: critical and late in red, each with its word */
 const card = page.locator('.fac-card').filter({ has: page.locator('.fac-card-name', { hasText: /^Line 7$/ }) });
 const cardText = flat(await card.innerText());
-const reds = await card.locator('b.is-r').evaluateAll(els => {
+const reds = await card.locator('.is-r').evaluateAll(els => {
   const probe = document.createElement('span'); probe.style.color = 'var(--st-r)'; document.body.append(probe);
   const red = getComputedStyle(probe).color; probe.remove();
-  return els.map(e => ({ t: e.textContent, red: getComputedStyle(e).color === red }));
+  return els.map(e => ({ t: e.textContent?.trim(), red: getComputedStyle(e).color === red }));
 });
-ok(/1 problem open · 1 critical · 1 late/.test(cardText) && reds.filter(r => r.red).map(r => r.t).join('|').startsWith('1 critical|1 late'), `1g Line 7's card: "${cardText.slice(0, 90)}" — red: ${reds.filter(r => r.red).map(r => r.t).join(', ')}`);
+ok(/1 critical · 1 late/.test(cardText) && reds.filter(r => r.red).map(r => r.t).join('|').includes('1 critical') && reds.filter(r => r.red).some(r => r.t === '1 late'), `1g Line 7's card: "${cardText.slice(0, 90)}" — red: ${reds.filter(r => r.red).map(r => r.t).join(', ')}`);
 
 /* ---- 6 — the critical list, readable at a desk ---- */
 await page.locator('.jb-stat.is-crit').click(); await page.waitForTimeout(700);
@@ -234,9 +234,9 @@ const pos = await page.evaluate(() => {
   const frame = Math.max(r('.nv-top')?.bottom ?? 0, r('.nv-tabs')?.bottom ?? 0);
   return { says: says?.top, frame, tilesBottom: tiles?.bottom, fac: fac?.top, fabOverHeadline: hit(says, fab), wide: document.documentElement.scrollWidth - window.innerWidth };
 });
-/* the headline the first thing under the frame (it was under 300px from the top with a 56px bar: 244px under it) */
-ok(pos.says > pos.frame && pos.says - pos.frame < 244 && pos.tilesBottom < 844 && pos.fac > pos.says && !pos.fabOverHeadline && pos.wide <= 1,
-  `11a the answer first: headline at ${Math.round(pos.says)}px (${Math.round(pos.says - pos.frame)}px under the frame), the four numbers end at ${Math.round(pos.tilesBottom)}px, the factory after (${Math.round(pos.fac)}px), the bar’s ＋ off it`);
+/* 29 October — Lines board first on the Factory, then the control-room band (Rowland: line-first Gemba) */
+ok(pos.fac > pos.frame && pos.fac - pos.frame < 420 && pos.says > pos.fac && !pos.fabOverHeadline && pos.wide <= 1,
+  `11a Lines first: board at ${Math.round(pos.fac)}px (${Math.round(pos.fac - pos.frame)}px under the frame), the band after (${Math.round(pos.says)}px), the bar’s ＋ off it`);
 const bar = await page.locator('.nv-bar .nv-bi .nv-bi-l').allInnerTexts();
 /* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Tools · More (27 October) */
 ok(bar.join(' · ') === 'Factory · Projects · Problem · Tools · More', `11b the bar: ${bar.join(' · ')}`);
@@ -281,7 +281,7 @@ ok(phoneCrit.over.every(x => x <= 1) && phoneCrit.out <= 0 && phoneCrit.whens.in
   const [lb] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.locator('.meet-report', { hasText: 'Machine labels' }).first().click()]);
   ok(/Control-room-report/.test(dl.suggestedFilename()) && /machine-labels/.test(lb.suggestedFilename()), `12b made from it: ${dl.suggestedFilename()} · ${lb.suggestedFilename()}`);
   await page.keyboard.press('Escape'); await page.waitForTimeout(500);
-  await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
+  await page.goto(`${BASE}/#/`); await page.waitForTimeout(2000);
   await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
   await page.locator('.nv-sheet').getByRole('button', { name: 'Reports', exact: true }).click(); await page.waitForTimeout(1200);
   ok(await page.locator('.meet-report', { hasText: 'Control room report — 1 page' }).count() === 1, '12c off a job, More › Reports opens the same list');

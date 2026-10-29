@@ -116,7 +116,9 @@ export function WorkspaceHome() {
     const load = () => void liveRecentPlaces(4).then(p => { if (on) setPlaces(p); });
     load();
     const off = onDataChange(load);
-    return () => { on = false; off(); };
+    /* notePlace (ui/Frame) writes localStorage only — re-read when the address changes */
+    window.addEventListener('hashchange', load);
+    return () => { on = false; off(); window.removeEventListener('hashchange', load); };
   }, [delTick, dataTick]);
 
   useEffect(() => { void listArchivedWorkspaces().then(a => setArchivedN(a.length)); }, [delTick, dataTick]);
@@ -253,7 +255,7 @@ export function WorkspaceHome() {
      began at the foot of it, under the Problem button. The line cards go
      under the band there; at a desk the factory still leads. */
   const factory = (
-    <section className="home-spaces fac-home" aria-label="Lines">
+    <section className="home-spaces fac-home ep-panel" aria-label="Lines">
       <div className="home-sec-head">
         <h2 className="home-sec-title">Lines</h2>
         {/* THE LINES THEMSELVES ARE SET UP IN SET UP (27 October — Rowland: "put the lines in the setup because it's
@@ -276,26 +278,44 @@ export function WorkspaceHome() {
             {prodLines.map(w => {
               const c = counts[w.id];
               const on = belongs?.[w.id];
-              /* THE BOARD (27 October — "which line needs me?"): where it stands in a word and its colour, the worst
-                 thing on it and who has it, the projects on it; a tap opens the line, home */
+              /* THE BOARD (27 October — "which line needs me?"; 29 October E1 — Planner cards on a Teams canvas) */
               const st = lineState(c);
+              const k = lineKit(w, rec.machines, rec.programs, rec.jobLines);
+              const named = k.machines.filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line');
+              const machineSaid = named.length
+                ? (k.flow || named.map(m => (m.record?.oem ? `${m.name} (${m.record.oem})` : m.name)).join(' → '))
+                : 'No machines named yet';
+              const todo = k.programs.length - k.proved;
+              const bits = [
+                dualSaid(dualOf(w, prodLines)),
+                rateOf[w.id],
+              ].filter(Boolean);
               return (
                 <li key={w.id}>
                   <button className={'fac-card is-' + st.tone} data-line={w.name} onClick={() => nav(`/lines/${w.id}`)}>
-                    <b className="fac-card-name">{w.name}</b>
+                    <div className="fac-card-head">
+                      <b className="fac-card-name">{w.name}</b>
+                    </div>
+                    {st.tone === 'r' && c && (c.problems.critical || c.problems.late)
+                      ? (
+                        <span className="fac-card-state is-r">
+                          {c.problems.critical > 0 && <b className="is-r">{c.problems.critical} critical</b>}
+                          {c.problems.critical > 0 && c.problems.late > 0 && ' · '}
+                          {c.problems.late > 0 && <b className="is-r">{c.problems.late} late</b>}
+                        </span>
+                      )
+                      : <span className={'fac-card-state is-' + st.tone}>{st.word}</span>}
                     <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
-                    <span className={'fac-card-state is-' + st.tone}>{st.word}</span>
+                    <span className="fac-card-machines">{machineSaid}</span>
+                    <span className="fac-card-projects">{on ? `Projects: ${on}` : 'No project on it'}</span>
                     {c?.worst && <span className={'fac-card-worst' + (c.worst.red ? ' is-r' : '')}>{c.worst.what}<span className="sub"> · {c.worst.owner ?? 'nobody yet'}{c.worst.due ? ` · ${c.worst.due}` : ''}</span></span>}
-                    {(() => {
-                      const k = lineKit(w, rec.machines, rec.programs, rec.jobLines);
-                      const bits = [
-                        on ? `Project: ${on}` : '',
-                        k.late ? `${k.late} program${k.late === 1 ? '' : 's'} late` : (k.programs.length - k.proved > 0 ? `${k.programs.length - k.proved} to prove` : ''),
-                        dualSaid(dualOf(w, prodLines)),
-                        rateOf[w.id],
-                      ].filter(Boolean);
-                      return bits.length ? <span className="fac-card-meta">{bits.join(' · ')}</span> : null;
-                    })()}
+                    {(todo > 0 || k.late || bits.length) ? (
+                      <span className="fac-card-meta">
+                        {todo > 0 ? `${todo} program${todo === 1 ? '' : 's'} to prove` : ''}
+                        {k.late ? <>{todo > 0 ? ' · ' : ''}<span className="is-r">{k.late} program{k.late === 1 ? '' : 's'} late</span></> : null}
+                        {bits.length ? <>{todo > 0 || k.late ? ' · ' : ''}{bits.join(' · ')}</> : null}
+                      </span>
+                    ) : null}
                     <span className="fac-card-go">Open line ›</span>
                   </button>
                 </li>
@@ -312,9 +332,9 @@ export function WorkspaceHome() {
     : 'Add your production lines first; everything else hangs off them.';
 
   const facQuick = (
-    <nav className="fac-quick" aria-label="On the factory">
-      <button type="button" className="btn fd-talk-start" onClick={() => nav('/talk')}><Icon name="mic" size="1.1em" />Line Talk</button>
-      {talk && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/talk/${talk.id}`)}>Carry on talk</button>}
+    <nav className="fac-quick home-talk" aria-label="On the factory">
+      <button type="button" className="btn fd-talk-start" onClick={() => nav('/talk')}><Icon name="mic" size="1.1em" />Start a Line Talk</button>
+      {talk && <button type="button" className="btn btn-ghost btn-sm fd-talk-on" onClick={() => nav(`/talk/${talk.id}`)}>Carry on: {talk.name}</button>}
       <button type="button" className="chip" onClick={() => nav('/programs')}>Programs</button>
       <button type="button" className="chip" onClick={() => nav('/snags')}>Problems</button>
       <button type="button" className="chip" onClick={() => nav('/tools')}>Tools</button>

@@ -228,6 +228,10 @@ export function FactoryScreen() {
       )}
 
       {lines.length > 0 && (
+        <div className="ep-panel fac-plan" aria-label="Lines on the floor">
+          <div className="fac-plan-head" aria-hidden>
+            <span>#</span><span>Name · type</span><span>Machines</span><span>On the line</span><span>Actions</span>
+          </div>
         <ol className="fac-lines" aria-label="The lines, in floor order">
           {lines.map((w, i) => {
             const c = open.get(w.id);
@@ -248,8 +252,22 @@ export function FactoryScreen() {
                   <CommitBox value={w.lineType ?? ''} label={`${w.name}'s type`} list="fac-types" placeholder="Type — e.g. Packing" disabled={!may}
                     onCommit={v => void put(w, { lineType: v || undefined }, v ? `${w.name} is a ${v} line` : `${w.name} has no type`)} />
                 </span>
-                {/* its machines in flow order, each with who made it (Stage 2) */}
-                {kitOf(w).flow && <span className="fac-flow">{kitOf(w).flow}</span>}
+                {/* its machines in flow order — always shown; names and order on the line's Machines tab (Stage 2) */}
+                {(() => {
+                  const k = kitOf(w);
+                  const named = k.machines.filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line');
+                  return (
+                    <div className="fac-machines" aria-label={`Machines on ${w.name}`}>
+                      <span className="fac-machines-l">Machines</span>
+                      {named.length
+                        ? <span className="fac-machines-flow">{k.flow || named.map(m => (m.record?.oem ? `${m.name} (${m.record.oem})` : m.name)).join(' → ')}</span>
+                        : <span className="fac-machines-empty is-n">None named yet — open the line and name them in flow order</span>}
+                      <button type="button" className="btn btn-ghost btn-sm fac-machines-go" onClick={() => nav(`/lines/${w.id}?view=machines`)}>
+                        {named.length ? 'Names and order ›' : 'Name machines ›'}
+                      </button>
+                    </div>
+                  );
+                })()}
                 <span className="fac-on">
                   {c?.open ? <>{c.open} problem{c.open === 1 ? '' : 's'} open{c.late ? <> · <b className="is-r">{c.late} late</b></> : null}</> : <span className="is-n">No problems open</span>}
                   {job && <span className="fac-job">on {job}</span>}
@@ -277,6 +295,7 @@ export function FactoryScreen() {
             );
           })}
         </ol>
+        </div>
       )}
       {/* THE CLOSING LINE — what is open and where, and what a day is worth */}
       {lines.length > 0 && <LeanClosing closing={factoryClosing(reading)} />}
