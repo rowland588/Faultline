@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 123 |
+| Available (`available`) | 124 |
 | Partly (`partial`) | 24 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 70 |
+| Not built yet (`to-build`) | 69 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -22,7 +22,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Capacity, throughput and bottlenecks | 17 | 9 | 4 |  | 3 | 1 |  |
 | Equipment performance and losses | 10 | 7 | 1 |  |  |  | 2 |
 | Maintenance, reliability and TPM | 11 | 10 |  |  |  | 1 |  |
-| Changeovers | 5 | 1 | 2 |  | 2 |  |  |
+| Changeovers | 5 | 2 | 2 |  | 1 |  |  |
 | Commissioning and operational readiness | 13 | 11 | 1 |  |  | 1 |  |
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
 | Statistical analysis | 15 | 12 | 1 |  | 1 | 1 |  |
@@ -104,8 +104,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 ## The backlog — what to build first (`src/catalogue/backlog.ts`)
 
 1. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
-2. FC-071 First-off release at changeover — line clearance and the first good pack (Not built yet) — First-off release at changeover — recall risk and hidden changeover time.
-3. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
+2. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
 
 ## Where related capabilities could be combined
 

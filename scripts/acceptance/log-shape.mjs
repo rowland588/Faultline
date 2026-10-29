@@ -47,9 +47,10 @@ const whereFor = whereLabel =>
     : whereLabel === 'Machine' ? 'Wrapper'
       : whereLabel === 'Area' ? 'Packing hall'
         : whereLabel === 'Site' ? 'Slicer guard'
-          : whereLabel === 'Checkweigher' ? 'Checkweigher'
-            : whereLabel === 'Labeller' ? 'Labeller'
-              : whereLabel;
+          : whereLabel === 'Line' ? 'Line 7'
+            : whereLabel === 'Checkweigher' ? 'Checkweigher'
+              : whereLabel === 'Labeller' ? 'Labeller'
+                : whereLabel;
 
 /** A device at a width — its own context, as a team member (the owner) or a client. */
 async function device(width, access) {

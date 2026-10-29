@@ -10,6 +10,5 @@ import type { BacklogItem } from './types';
 
 export const BACKLOG: BacklogItem[] = [
   { id: 'FC-155', why: 'Horizontal deployment — the factory already knows every line’s machines.' },
-  { id: 'FC-071', why: 'First-off release at changeover — recall risk and hidden changeover time.' },
   { id: 'FC-070', why: 'Changeover sequence with allergen rules — food’s changeover saving.' },
 ];

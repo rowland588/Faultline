@@ -217,7 +217,14 @@ export const EQUIPMENT: Entry[] = [
     food: 'Retailer labels and allergen declarations at every product change.',
     depends: ['FC-068', 'FC-166', 'FC-092'],
     complexity: 'S', value: 'high', valueWhy: 'A wrong label is a recall; release time is hidden changeover time.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['changeover.first-off-release'], scenarios: ['changeover', 'safety', 'quality'], words: ['line clearance', 'positive release', 'first off'],
+    status: 'available', form: 'tool', kind: 'log', methods: ['changeover.first-off-release'], scenarios: ['changeover', 'safety', 'quality'], words: ['line clearance', 'positive release', 'first off'],
+    spec: 'knowledge/specs/FC-071-first-off-release.md',
+    built: logBuilt('first-off'),
+    limits: [
+      'First-off minutes belong in SMED (FC-068); in-run label checks are FC-166.',
+      'Event checks at changeover are counted when done, not scheduled overdue.',
+      'The product-on-hold record (FC-135) is not built yet.',
+    ],
   },
   {
     id: 'FC-072', name: 'Cleandown changeovers by SMED — wet and dry cleans', discipline: 'changeover', sub: 'smed',
