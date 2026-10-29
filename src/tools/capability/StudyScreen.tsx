@@ -106,7 +106,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           <Says said={said} s={s} f={f} a={a} />
           <div className="ie-body">
             {/* W1 — the modes' pictures (./ModeParts): a run or an inspection a bar against its limits, the faults' Pareto, a rate's intervals */}
-            <div className="ie-pic">{a.kind === 'ticks' ? <Ticks readings={readings} />
+            <div className="ie-pic tool-sig-cap">{a.kind === 'ticks' ? <Ticks readings={readings} />
               : a.kind === 'rejects' && f.runs ? <RunsChart r={f.runs} />
               : a.kind === 'faults' && f.faults ? <><UChart q={f.faults} /><Pareto q={f.faults} /></>
               : a.kind === 'rate' && f.rate ? <RateBars r={f.rate} unit={a.unit} />

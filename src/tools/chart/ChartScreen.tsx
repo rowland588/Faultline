@@ -102,7 +102,7 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
             </p>
           )}
           <div className="ie-body">
-            <div className="ie-pic"><ChartPic f={f} a={a} said={said.text} /></div>
+            <div className="ie-pic tool-sig-chart"><ChartPic f={f} a={a} said={said.text} /></div>
             {!closed && can.edit && <ChartPad a={a} f={f} readings={readings} onAdd={add} onNote={note} onStrike={rid => strike(rid, true)} />}
           </div>
           <ChartReadings readings={readings} f={f} a={a} canStrike={can.edit && !closed} onStrike={strike} />

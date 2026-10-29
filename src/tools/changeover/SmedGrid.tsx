@@ -78,7 +78,7 @@ export function SmedGrid({ seq, rung, by, branched, onOpen }: {
   };
   if (!n) return <p className="sub ie-pic-empty">{rung === 'now' ? 'Each element lands here as it is recorded — a square in the lane of whoever does it, solid if the line is stopped for it, hatched if it could be done while it runs.' : 'Nothing is planned inside the stop yet.'}</p>;
   return (
-    <div className="vs co-grid">
+    <div className="vs co-grid tool-sig-smed">
       {n > 1 && (
         <div className="vs-play">
           <button type="button" className="btn" onClick={() => { if (!playing && (at === null || at >= n - 1)) setAt(-1); setPlaying(p => !p); }}>

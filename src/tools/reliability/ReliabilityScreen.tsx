@@ -426,7 +426,7 @@ function Watch({ s, counters, runs, events, t, me, together = 0 }: { s: ToolStud
   const lastIn = run ? events.filter(e => !e.struck && e.at >= run.from).sort((x, y) => y.at - x.at)[0] : undefined;
 
   return (
-    <div className={'rl-watch' + (run ? ' is-on' : '')} role="group" aria-label="The watch and a button for each thing counted">
+    <div className={'rl-watch tool-sig-watch' + (run ? ' is-on' : '')} role="group" aria-label="The watch and a button for each thing counted">
       <div className="rl-clock">
         <span className="rl-k">{together ? (run ? `Watching the line — ${together} machines` : 'The line’s watch is stopped') : run ? 'Watching' : 'The watch is stopped'}</span>
         <b className="rl-time" aria-live="off">{clock(timedCs.length ? runningMs : watched)}</b>

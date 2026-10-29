@@ -293,8 +293,8 @@ No new hues, no new `640px` breakpoint, no hex ceiling raised in `styles.css`.
 | Registry (eleven + line tools) | `src/catalogue/registry` |
 | Problem routes | `src/catalogue/problems.ts` |
 | Tool shell | `src/ui/StudyActs.tsx`, `src/ui/Lean.tsx` |
-| Styles | `src/styles.css` — `.et-*`, `.lt-row`, `.pl-tool`, `.ln-band`, `--tool-work-*` |
-| Report wow | `src/lib/report/blocks.ts` `heading`, `src/lib/report/lean.ts` `leanHead` |
+| Styles | `src/styles.css` — `.et-*`, `.lt-row`, `.pl-tool`, `.ln-band`, `--tool-work-*`, `.tool-sig-*` |
+| Report wow | `src/lib/report/blocks.ts` `heading`, `src/lib/report/lean.ts` `leanHead`, `leanClosing` |
 
 ---
 
@@ -305,13 +305,13 @@ No new hues, no new `640px` breakpoint, no hex ceiling raised in `styles.css`.
 | **T0** | Standards + spruce surfaces (`a41f45ad`) | Done on main |
 | **T1** | Directory lede, Use one now, list rows, empty states | **Done** — shared `--tool-work-*`, `.empty`, `.lt-empty`, `.et-lede` |
 | **T2** | Top 8 studies (capability, reliability, line capacity, line balance, SMED, VSM, shift losses, control chart) | **Shared layer** — band/tiles/panels/`ie-pic`/`ie-cap-box`; per-tool signature views unchanged |
-| **T3** | Remaining available tools | Not started — inherits T1+T2 CSS |
-| **T4** | Report engine section headers | **Started** — brand accent on `heading` + `leanHead` |
-| **W3c** | FC-119/120 gauge, FC-114 shape | Next build wave after wow slices |
+| **T3** | Signature inner views (capability histogram, SMED grid, line standard board, shift losses waterfall, VSM lanes, reliability watch, control chart, gauge/shape analysis) | **Done** — `.tool-sig-*` hooks + work-panel chrome on each canvas; SMED stage panel uses `--tool-work-*` |
+| **T4** | Report engine section headers + closing band | **Done** — brand accent on `heading`, `leanHead`, and a teal rule on `leanClosing` |
+| **W3c** | FC-119/120 gauge, FC-114 shape (available) | **Wow pass** — shared `tool-sig-an` on gauge and shape analysis pictures and tables; behaviour unchanged |
 
 **Coverage (honest):** ~109 available tools — **100%** inherit lean shell + list patterns;
-**~15%** touched with tool-specific CSS this session; **100%** get panel/chart/empty
-polish via shared classes (`ln-panel`, `ie-pic`, `EmptyState`, directory rows).
+**~25%** have tool-specific signature CSS (top studies + W3c gauge/shape); **100%** get
+panel/chart/empty polish via shared classes (`ln-panel`, `ie-pic`, `EmptyState`, directory rows).
 
-**Next session:** Finish T3 spot-checks where checklist fails; `GATE_PAPERS=1` on
-capability + reliability papers; W3c gauge wow pass; toolkits W11 when Rowland says go.
+**Next session:** T3 pass on remaining partial tools as they become available; `GATE_PAPERS=1`
+spot-check on SMED and shift-loss papers; W4 gauge R&R when Rowland says go; toolkits W11 when Rowland says go.

@@ -313,6 +313,8 @@ export function leanClosing(c: { text: string; tone: LeanTone }): Block {
     draw: (f, y) => {
       const d = f.doc, l = lines(f), h = hOf(f);
       paperBand(d, f.x, y, f.w, h);
+      d.setDrawColor(BRAND); d.setLineWidth(1.4);
+      d.line(f.x + 6, y + 3.5, f.x + Math.min(44, f.w * 0.18), y + 3.5);
       const cx = f.x + 22, cy = y + h / 2;
       d.setFillColor(TONE[c.tone]); d.circle(cx, cy, 9, 'F');
       d.setDrawColor('#ffffff'); d.setLineWidth(1.7);

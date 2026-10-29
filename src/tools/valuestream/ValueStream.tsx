@@ -101,7 +101,7 @@ export function ValueStreamGrid({ flow, f, a, wasteOnly, by, branched, onOpen }:
           {at !== null && at >= 0 && <span className="vs-at sub">Step {at + 1} of {steps.length} — lead time so far <b>{dur(acc[at] ?? 0)}</b></span>}
         </div>
       )}
-      <div className="vs-scroll" role="region" aria-label="The value stream — the journey across, who does it down the side" tabIndex={0}>
+      <div className="vs-scroll tool-sig-vsm" role="region" aria-label="The value stream — the journey across, who does it down the side" tabIndex={0}>
         <div className="vs-grid" style={cols}>
           <div className="vs-h">Classification</div>
           {steps.map((st, i) => { const v = valueOf(st); return square(st, i, v ? VALUE_CODE[v] : '?', 'vs-sq vs-cls'); })}

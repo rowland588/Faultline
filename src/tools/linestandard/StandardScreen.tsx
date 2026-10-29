@@ -735,7 +735,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
       </>}
 
       <div className="ls-body">
-        <div className="ls-board-wrap">
+        <div className="ls-board-wrap tool-sig-board">
           <div ref={boardRef} className={'ls-board' + (url ? '' : ' is-blank') + (tool.t !== 'select' && !ro ? ' is-placing' : '') + (tool.t === 'shape' && !ro ? ' is-drawing' : '') + (ro ? ' is-read' : '')}
             style={url ? undefined : { aspectRatio: `${BOARDS[boardOf(s)].w} / ${BOARDS[boardOf(s)].h}` }}
             onPointerDown={boardDown} onPointerMove={move} onPointerUp={up}

@@ -154,7 +154,7 @@ function Losses({ s, line, obs, rate, can, me, constraint, counts }: { s: ToolSt
           bar or a row tapped opens it, Make it better on it. */}
       <div className="ln-grid">
         {lean.trend && <LeanPanel title="Shift by shift"><LeanTrend trend={lean.trend} /></LeanPanel>}
-        <LeanPanel title="Where the minutes went" className={lean.trend ? '' : 'ln-span'}><div className="ie-pic lf-pic"><Waterfall f={f} said={said} onOpen={setViewing} /></div></LeanPanel>
+        <LeanPanel title="Where the minutes went" className={lean.trend ? '' : 'ln-span'}><div className="ie-pic lf-pic tool-sig-lf"><Waterfall f={f} said={said} onOpen={setViewing} /></div></LeanPanel>
       </div>
       {f.enough && f.bars.length > 0 && <LeanPanel title="Top causes" className="ln-solo"><div className="lf-tab"><CauseTable f={f} branches={branches} onOpen={setViewing} onC={onC} /></div></LeanPanel>}
       <div className="ln-grid">

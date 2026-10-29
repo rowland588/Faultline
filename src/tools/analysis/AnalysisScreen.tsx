@@ -87,7 +87,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
           </div>
           {a.kind === 'plan' && <PlanBox a={a} canAgree={can.agree && !closed} onPlan={setPlan} />}
           <div className="ie-body">
-            <div className="ie-pic">
+            <div className={'ie-pic' + (a.kind === 'gauge' || a.kind === 'shape' ? ' tool-sig-an' : '')}>
               {plot ? <PlotView plot={plot} said={said.text} /> : <Pic rows={analysisPicture(f, a)} said={said.text} />}
               {f.kind === 'relate' && f.line && <Predict f={f} a={a} />}
               {analysisGrids(f, a).map(g => <GridView key={g.label} g={g} />)}

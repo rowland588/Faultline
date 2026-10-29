@@ -12112,6 +12112,29 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
   background: var(--tool-work-bg); padding: 12px 14px 14px; box-shadow: var(--shadow); }
 .ie-pic .ie-hist { border-top: 0; padding-top: 0; margin-top: 4px; }
 .ie-pic-empty { margin: 30px 8px; text-align: center; }
+
+/* T3 — signature tool views (docs/TOOLS-UX.md §9): spruce work chrome on the
+   method-specific picture where ln-panel does not wrap the whole canvas. */
+.tool-sig-cap .ie-bar { fill: color-mix(in srgb, var(--brand) 14%, var(--line-2)); }
+.tool-sig-cap .ie-bar.is-out { fill: var(--st-r); }
+.tool-sig-cap .ie-lim { stroke: var(--brand); stroke-width: 2.2; opacity: 0.85; }
+.tool-sig-cap .ie-mean { stroke: var(--ink); stroke-width: 1.8; }
+.tool-sig-chart .ie-ch-pic { display: flex; flex-direction: column; gap: 10px; padding-top: 2px; }
+.tool-sig-chart .ie-ch .ie-dot { fill: color-mix(in srgb, var(--brand) 55%, var(--ink)); }
+.tool-sig-chart .ie-ch .ie-dot.is-out { fill: var(--st-r); }
+.tool-sig-smed .vs-scroll,
+.tool-sig-vsm.vs-scroll { border-left: 3px solid var(--tool-panel-edge); background: var(--tool-work-bg); box-shadow: var(--shadow); }
+.tool-sig-smed .vs-lane span { background: color-mix(in srgb, var(--brand) 6%, var(--surface)); border-color: color-mix(in srgb, var(--brand) 22%, var(--line)); }
+.tool-sig-board .ls-board { border-left: 3px solid var(--tool-panel-edge); box-shadow: var(--shadow-lift); }
+.tool-sig-lf .lf-fall { filter: drop-shadow(0 1px 0 color-mix(in srgb, var(--brand) 8%, transparent)); }
+.tool-sig-lf .lf-bar { fill: color-mix(in srgb, var(--brand) 18%, var(--ink-2)); }
+.tool-sig-lf .lf-bar.is-frame { fill: var(--surface-2); }
+.tool-sig-watch.rl-watch { border-left: 3px solid var(--tool-panel-edge); box-shadow: var(--shadow); }
+.tool-sig-watch.is-on { box-shadow: var(--shadow-lift); }
+.tool-sig-an .ie-tbl-wrap,
+.tool-sig-an .ie-grid { border-left: 3px solid var(--tool-panel-edge); padding-left: 10px; margin-top: 8px; }
+.tool-sig-an .ie-an-pic { margin-bottom: 4px; }
+
 .ie-dots { width: 100%; height: auto; display: block; overflow: visible; }
 .ie-lim { stroke: var(--ink-2); stroke-width: 2; }
 .ie-lim2 { stroke: var(--muted); stroke-width: 1.6; }
@@ -12463,7 +12486,7 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .co-stages { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 0; }
 .co-stage { min-height: var(--tap); }
 .co-stage-n { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-right: 2px; border-radius: var(--radius-round); border: 1.5px solid currentColor; font-size: var(--t-label); font-weight: 800; }
-.co-panel { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.co-panel { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-left: 3px solid var(--tool-panel-edge); border-radius: var(--radius); background: var(--tool-work-bg); box-shadow: var(--shadow); }
 .co-panel-say { margin: 0 0 8px; max-width: 76ch; }
 .co-figure { margin: 4px 0 4px; }
 .co-figure b { font-variant-numeric: tabular-nums; }
