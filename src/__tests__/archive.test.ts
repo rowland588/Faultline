@@ -66,6 +66,24 @@ async function projectWithEverything(db: Awaited<ReturnType<typeof freshDb>>) {
 }
 
 describe('release installation to the line', () => {
+  it('restores an archived Line 2A when releasing installation onto it', async () => {
+    const db = await freshDb();
+    const t = 1;
+    const ws = await db.createWorkspace('Line 2A');
+    await db.archiveWorkspace(ws.id);
+    const id = 'proj-line-2-arch';
+    await db.addProject({
+      id, name: 'Line 2 commissioning', color: '#2b87d4', workspaceIds: [ws.id],
+      commissioning: true, createdAt: t, updatedAt: t,
+    });
+    await db.putPaceLine({ id: 'pl-2a', projectId: id, key: '2A', name: 'Line 2A', workspaceId: ws.id, sort: 0, updatedAt: t });
+    await db.putProgram({ id: 'pg-arch', projectId: id, what: 'PR-04', state: 'onMachine', sort: 1, createdAt: t, updatedAt: t });
+
+    await db.releaseInstallationToLine(id);
+    expect((await db.listWorkspaces()).some(w => w.id === ws.id)).toBe(true);
+    expect((await db.listAllPrograms()).find(p => p.id === 'pg-arch')).toMatchObject({ projectId: '', workspaceId: ws.id });
+  });
+
   it('moves programs and tests onto the line and archives the project', async () => {
     const db = await freshDb();
     const t = 1;
@@ -273,6 +291,25 @@ describe('a line can be put away too, and its film is what makes deleting it dif
 
     expect((await db.listWorkspaces()).map(w => w.id)).toContain(ws.id);
     expect(await db.listArchivedWorkspaces()).toEqual([]);
+  });
+
+  it('restoreProductionLine lifts programs off archived installation projects', async () => {
+    const db = await freshDb();
+    const t = 1;
+    const ws = await db.createWorkspace('Line 2A');
+    const id = 'proj-arch-lift';
+    await db.addProject({
+      id, name: 'Line 2 install', color: '#2b87d4', workspaceIds: [ws.id],
+      commissioning: true, archivedAt: t, createdAt: t, updatedAt: t,
+    });
+    await db.putPaceLine({ id: 'pl-l', projectId: id, key: '2A', name: 'Line 2A', workspaceId: ws.id, sort: 0, updatedAt: t });
+    await db.putProgram({ id: 'pg-l', projectId: id, what: 'PR-07', state: 'needed', sort: 1, createdAt: t, updatedAt: t });
+    await db.archiveWorkspace(ws.id);
+
+    await db.restoreProductionLine(ws.id);
+    expect((await db.listWorkspaces()).map(w => w.id)).toContain(ws.id);
+    expect((await db.listAllPrograms()).find(p => p.id === 'pg-l')).toMatchObject({ projectId: '', workspaceId: ws.id });
+    expect((await db.getProject(id))?.archivedAt).toBe(t);
   });
 
   it('counts what a delete would destroy, in words rather than table names', async () => {

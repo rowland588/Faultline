@@ -4,14 +4,14 @@
  * PROJECT: a line can be renamed or removed and its targets still have to be
  * findable.
  */
-import type { ID, Project } from '../types';
+import type { ID, Project, Workspace } from '../types';
 import type { PlanModel } from '../lib/planModel';
 import { planModel } from '../lib/planModel';
 import { uid, now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones } from './sync';
 import { allPaceLines } from './pace';
-import { listWorkspaces } from './workspaces';
+import { getWorkspace, restoreWorkspace } from './workspaces';
 import { addMachineToLine } from './lineRecords';
 import { putProgram } from './programs';
 import { putAsset, putTest, putTestItem } from './testing';
@@ -130,14 +130,19 @@ export const onLine = (lineId?: string) => (r: { lineId?: string }) => !lineId |
  * — projectId cleared, workspaceId set to the line (Line 2A when it exists).
  */
 
+async function allWorkspaces(): Promise<Workspace[]> {
+  return (await getDB()).getAll('workspaces');
+}
+
 /** Which factory line should own what leaves an installation project. */
 async function resolveReleaseWorkspace(projectId: ID, hint?: ID): Promise<ID> {
   if (hint) return hint;
-  const [jobLines, workspaces] = await Promise.all([allPaceLines(), listWorkspaces()]);
+  const [jobLines, workspaces] = await Promise.all([allPaceLines(), allWorkspaces()]);
   const onJob = jobLines.filter(l => l.projectId === projectId && !l.deletedAt);
   const line2a = onJob.find(l => /2a/i.test(l.name) || l.key === '2A');
   if (line2a?.workspaceId) return line2a.workspaceId;
-  const ws2a = workspaces.find(w => !w.archived && /line\s*2a/i.test(w.name));
+  const ws2a = workspaces.find(w => !w.archived && /line\s*2a/i.test(w.name))
+    ?? workspaces.find(w => w.archived && /line\s*2a/i.test(w.name));
   if (ws2a) return ws2a.id;
   const withWs = onJob.find(l => l.workspaceId);
   if (withWs?.workspaceId) return withWs.workspaceId;
@@ -202,16 +207,9 @@ export async function sweepArchivedInstallationLines(): Promise<void> {
   }
 }
 
-/** Move every program, test, machine and line standard onto a production line,
- *  then archive the installation project (gates, plan, Commission — all on the
- *  archived project, reachable from Archive if needed). */
-export async function releaseInstallationToLine(projectId: ID, workspaceId?: ID): Promise<ReleaseInstallationResult> {
-  const p = await getProject(projectId);
-  if (!p) throw new Error('That project is not here.');
-  if (planModel(p) !== 'commissioning') throw new Error('Only an installation project can release programs to the line.');
-  const wsId = await resolveReleaseWorkspace(projectId, workspaceId);
+/** Move a project's programs, tests, machines and line standards onto a factory line. */
+async function moveInstallationArtifactsToLine(projectId: ID, wsId: ID, stamp: number): Promise<{ programs: number; tests: number; machines: number }> {
   const db = await getDB();
-  const stamp = now();
 
   const assets = (await db.getAllFromIndex('commission_assets', 'by_project', projectId))
     .filter(a => !(a as { deletedAt?: number }).deletedAt);
@@ -249,9 +247,65 @@ export async function releaseInstallationToLine(projectId: ID, workspaceId?: ID)
     if (s.workspaceId) await putStudy({ ...s, projectId: undefined, updatedAt: stamp });
   }
 
+  return { programs: programs.length, tests: tests.length, machines: assets.length };
+}
+
+async function installationProjectOnLine(projectId: ID, wsId: ID): Promise<boolean> {
+  return (await projectsOnWorkspace(wsId)).includes(projectId);
+}
+
+/** How many programs and tests would move off archived installation projects onto this line. */
+export async function countLiftableFromArchivedProjects(wsId: ID): Promise<{ programs: number; tests: number }> {
+  const db = await getDB();
+  let programs = 0;
+  let tests = 0;
+  for (const p of await allProjects()) {
+    if (!p.archivedAt || planModel(p) !== 'commissioning') continue;
+    if (!(await installationProjectOnLine(p.id, wsId))) continue;
+    programs += (await db.getAllFromIndex('programs', 'by_project', p.id)).filter(r => !(r as { deletedAt?: number }).deletedAt).length;
+    tests += (await db.getAllFromIndex('tests', 'by_project', p.id)).filter(t => !t.deletedAt).length;
+  }
+  return { programs, tests };
+}
+
+/** Programs and tests still on archived installation projects come onto the line; projects stay archived. */
+export async function liftProgramsFromArchivedProjectsOnLine(wsId: ID): Promise<{ programs: number; tests: number }> {
+  const stamp = now();
+  let programs = 0;
+  let tests = 0;
+  for (const p of await allProjects()) {
+    if (!p.archivedAt || planModel(p) !== 'commissioning') continue;
+    if (!(await installationProjectOnLine(p.id, wsId))) continue;
+    const moved = await moveInstallationArtifactsToLine(p.id, wsId, stamp);
+    programs += moved.programs;
+    tests += moved.tests;
+  }
+  signalWrite();
+  return { programs, tests };
+}
+
+/** Put a production line back on the factory board — programs on the line, not a project. */
+export async function restoreProductionLine(wsId: ID): Promise<{ lifted: { programs: number; tests: number } }> {
+  const lifted = await liftProgramsFromArchivedProjectsOnLine(wsId);
+  await restoreWorkspace(wsId);
+  return { lifted };
+}
+
+/** Move every program, test, machine and line standard onto a production line,
+ *  then archive the installation project (gates, plan, Commission — all on the
+ *  archived project, reachable from Archive if needed). */
+export async function releaseInstallationToLine(projectId: ID, workspaceId?: ID): Promise<ReleaseInstallationResult> {
+  const p = await getProject(projectId);
+  if (!p) throw new Error('That project is not here.');
+  if (planModel(p) !== 'commissioning') throw new Error('Only an installation project can release programs to the line.');
+  const wsId = await resolveReleaseWorkspace(projectId, workspaceId);
+  const stamp = now();
+  const moved = await moveInstallationArtifactsToLine(projectId, wsId, stamp);
+  const target = await getWorkspace(wsId);
+  if (target?.archived) await restoreWorkspace(wsId);
   const linesArchived = await tidyArchivedInstallation(projectId, wsId);
   await archiveProject(projectId);
-  return { workspaceId: wsId, programs: programs.length, tests: tests.length, machines: assets.length, linesArchived };
+  return { workspaceId: wsId, ...moved, linesArchived };
 }
 
 export async function archiveProject(id: ID): Promise<void> {

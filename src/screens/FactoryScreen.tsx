@@ -22,8 +22,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import { nav } from '../state/useRoute';
 import {
-  archiveWorkspace, deleteWorkspace, mergeLinesUndoable, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
-  listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, restoreWorkspace, updateWorkspace, workspaceContents,
+  archiveWorkspace, countLiftableFromArchivedProjects, deleteWorkspace, mergeLinesUndoable, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
+  listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, restoreProductionLine, updateWorkspace, workspaceContents,
 } from '../db';
 import { addLineToFactory, factorySays, lineFacts, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked, dualOf, dualSaid } from '../lib/lines';
 import { useLineRecords } from '../lib/useLineRecords';
@@ -340,7 +340,29 @@ export function FactoryScreen() {
                     <span className="proj-arch-t">{w.name}{w.lineType ? ` · ${w.lineType}` : ''}</span>
                     <span className="proj-arch-s">Archived · {fmtRelative(w.updatedAt)}</span>
                   </span>
-                  {may && <button className="btn btn-ghost btn-sm" onClick={() => void restoreWorkspace(w.id).then(() => said(`${w.name} restored`))}>Restore</button>}
+                  {may && (
+                    <>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => void (async () => {
+                        const lift = await countLiftableFromArchivedProjects(w.id);
+                        const liftSay = lift.programs
+                          ? `\n\n${lift.programs} program${lift.programs === 1 ? '' : 's'} and ${lift.tests} test${lift.tests === 1 ? '' : 's'} still on archived installation projects will move onto this line.`
+                          : '';
+                        if (!confirm(`Restore “${w.name}” to the factory?${liftSay}\n\nPrograms and tests live on the line’s Programs tab — not a project. Issues stay on the line’s Problems register.`)) return;
+                        const r = await restoreProductionLine(w.id);
+                        const moved = r.lifted.programs ? ` — ${r.lifted.programs} program${r.lifted.programs === 1 ? '' : 's'} on the line` : '';
+                        said(`${w.name} restored${moved}`);
+                        offerUndo(`${w.name} archived again`, async () => { await archiveWorkspace(w.id); });
+                      })()}>Restore line</button>
+                      <button type="button" className="btn btn-sm" title="Back on the factory with programs and tests on the line; installation projects stay archived"
+                        onClick={() => void (async () => {
+                          const lift = await countLiftableFromArchivedProjects(w.id);
+                          if (!confirm(`Restore “${w.name}” for programs and tests?${lift.programs ? `\n\nMoves ${lift.programs} program${lift.programs === 1 ? '' : 's'} and ${lift.tests} test${lift.tests === 1 ? '' : 's'} onto the line.` : '\n\nNothing to move off archived projects — what is already on the line stays.'}\n\nDoes not restore an installation project — open Programs on the line to test.`)) return;
+                          const r = await restoreProductionLine(w.id);
+                          said(`${w.name} restored for programs${r.lifted.programs ? ` — ${r.lifted.programs} moved onto the line` : ''}`);
+                          offerUndo(`${w.name} archived again`, async () => { await archiveWorkspace(w.id); });
+                        })()}>Programs & tests</button>
+                    </>
+                  )}
                   {/* DELETING A LINE DESTROYS FILM THAT EXISTS NOWHERE ELSE, so the confirm counts it out loud first. */}
                   {may && !owns(w) && <span className="sub">Only the line’s owner can delete it</span>}
                   {may && owns(w) && (

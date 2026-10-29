@@ -153,7 +153,7 @@ await page.locator('.fac-line[data-line="Line 2A"]').getByRole('button', { name:
 const shelf = (await page.locator('.proj-arch-h').innerText().catch(() => 'no archive')).replace(/\s+/g, ' ');
 ok(!(await order()).some(x => x.startsWith('Line 2A|')) && /^Archived lines 1\b/i.test(shelf), `9b Line 2A archived — gone from the factory (${(await order()).join(' / ')}), under ${shelf}`);
 await page.getByRole('button', { name: /Archived lines/ }).click(); await page.waitForTimeout(300);
-await page.locator('.proj-arch-row', { hasText: 'Line 2A' }).getByRole('button', { name: 'Restore' }).click(); await page.waitForTimeout(1200);
+await page.locator('.proj-arch-row', { hasText: 'Line 2A' }).getByRole('button', { name: 'Restore line' }).click(); await page.waitForTimeout(1200);
 ok((await order()).some(x => x.startsWith('Line 2A|')), '9c and restored');
 
 /* 10 — more lines, placed at the end */
