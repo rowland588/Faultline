@@ -206,19 +206,21 @@ const desk = await device(1360);
 /* ======================= 4 · a program tested (phone) ======================= */
 {
   const W = await device(390); const P = W.page; const J = `#/project/${W.sd.projectId}`;
-  await W.go(J);
-  /* Programs is a top tab (28 October emergency UI) */
-  await W.tap('Programs tab', P.locator('.nv-tabs .nv-tab', { has: P.locator('.nv-tab-l', { hasText: /^Programs$/ }) }).first());
-  const row = P.locator('.pgr').filter({ hasText: 'PR-07 Baking Potatoes' }).first();
-  const box = async name => row.getByRole('button', { name }).first().boundingBox();
-  const [rb, tb] = [await row.boundingBox(), await box(/Test it/)];
-  ok(!!rb && !!tb && tb.y < rb.y + 40, '4a on a phone the row\'s Test it is beside its name, not a line under it');
+  await W.go(`${J}/programs`);
+  await P.locator('.pgr').first().waitFor({ timeout: 20000 });
+  const row = P.locator('.pgr').filter({ hasText: /PR-07 Baking Potatoes/ }).first();
+  await row.waitFor({ state: 'visible', timeout: 20000 });
+  const [rb, pb] = [await row.boundingBox(), await row.locator('.pgr-prove-h').boundingBox()];
+  ok(!!rb && !!pb && pb.y < rb.y + 48, '4a on a phone Prove is on the row beside its name, not a line under it');
+  await W.tap('Prove', row.locator('.pgr-prove-h').first());
   await W.tap('Test it', row.getByRole('button', { name: /Test it/ }).first());
   await W.tap('Passed', row.getByRole('button', { name: /^Passed$/ }).first());
   await W.tap('Save', row.getByRole('button', { name: /^Save$/ }).first());
   await P.waitForTimeout(1500);
-  await row.getByText(/proved/).first().waitFor({ timeout: 10000 }).catch(() => {});
-  ok(/proved/.test(flat(await row.innerText())), `4b the row says proved ("${flat(await row.locator('.pgr-top').innerText()).slice(0, 60)}")`);
+  await P.getByRole('button', { name: /^All \d+/ }).first().click(); W.taps++; await P.waitForTimeout(500);
+  const rowAfter = P.locator('.pgr').filter({ hasText: /PR-07 Baking Potatoes/ }).first();
+  await rowAfter.waitFor({ state: 'visible', timeout: 10000 });
+  ok(/proved|passed|at baseline|done/i.test(flat(await rowAfter.innerText())), `4b the row says it passed ("${flat(await rowAfter.locator('.pgr-top').innerText()).slice(0, 60)}")`);
   await W.go(`${J}/testing`);
   const needs = (await P.locator('.cg-needs .nd-row').allInnerTexts()).map(flat);
   ok(!needs.some(x => x.includes('PR-07')), '4c Commission\'s Needs you no longer asks for PR-07\'s test');

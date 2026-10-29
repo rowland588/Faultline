@@ -48,7 +48,7 @@ const tabs = async () => (await page.locator('.nv-tabs .nv-tab').allInnerTexts()
 const tabOn = async () => flat(await page.locator('.nv-tabs .nv-tab.is-on').innerText().catch(() => ''));
 const bar = async () => flat(await page.locator('.nv-ctx').innerText().catch(() => ''));
 const h1 = async () => flat(await page.locator('.nv-main h1').first().innerText().catch(() => ''));
-const MENU = 'Factory · Projects · Tools · Reports';
+const MENU = 'Factory · Projects · Tools · Factory reports';
 
 /* 1 — an empty device: #/ is the Factory page */
 await go('#/');
@@ -76,7 +76,7 @@ ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Line 4 new 
 const ptabs = await tabs();
 /* a stage gate's own pages are tabs and More since 26 October (docs/STAGEGATE-RESEARCH.md §4); Plan among them since 27
    October — the gates, the timeline and Programs, its own row only on its pages (docs/MAP.md) */
-ok(ptabs.map(t => t.replace(/\d.*$/, '').trim()).join(' · ') === 'Now · Plan · Machines · Problems · Reports · More' && await tabOn() === 'Now', '2 its own pages as tabs — Now · Plan · Machines · Problems · Reports · More, Now on', `${ptabs.join(' · ')} [${await tabOn()}] ${page.url()}`);
+ok(ptabs.map(t => t.replace(/\d.*$/, '').trim()).join(' · ') === 'Now · Programs · Timeline · Gates · Machines · Problems · Reports · More' && await tabOn() === 'Now', '2 its own pages as tabs — Now · Programs · Timeline · Gates · Machines · Problems · Reports · More, Now on', `${ptabs.join(' · ')} [${await tabOn()}] ${page.url()}`);
 ok(/^Projects › Line 4 new case packer/.test(await bar()), '2 the bar starts with the way back: ‹ Projects', await bar());
 await page.locator('.nv-tabs .nv-tab', { hasText: 'Problems' }).click(); await page.waitForTimeout(900);
 ok(/^Problems/.test(await tabOn()) && (await lit()).join() === 'Line 4 new case packer', '2 a tab opens its page, the menu unmoved', `${await tabOn()} | ${(await lit()).join()}`);
@@ -115,12 +115,13 @@ for (const old of ['#/start', '#/methods', '#/methods/some-method', '#/design?sa
 
 /* 6 — the phone */
 await page.setViewportSize({ width: 390, height: 800 });
-const BAR = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
-for (const h of ['#/', '#/projects', '#/factory', projectAt]) {
+const BAR_FACTORY = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
+const BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* project-scoped bar (A3) */
+for (const [h, want] of [['#/', BAR_FACTORY], ['#/projects', BAR_FACTORY], ['#/factory', BAR_FACTORY], [projectAt, BAR_PROJECT]]) {
   await go(h);
   const five = (await page.locator('.nv-bar .nv-bi').allInnerTexts()).map(flat).join(' · ');
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  ok(five === BAR && wide <= 1, `6 the phone (${h}): the same bar, nothing off the side`, `${five} | ${wide}px`);
+  ok(five === want && wide <= 1, `6 the phone (${h}): the bar for this scope, nothing off the side`, `${five} | ${wide}px`);
 }
 await go('#/projects');
 const proj = page.locator('.nv-main a, .nv-main button', { hasText: 'Line 4 new case packer' }).first();

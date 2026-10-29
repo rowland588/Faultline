@@ -61,12 +61,17 @@ ok(/machine/.test(flat(await page.locator('.now-says').innerText())), '1 the sen
 ok(await page.locator('.jn-week').count() === 0, '1 the week said once — the next two weeks on Now, not "This week and next" above it');
 
 /* 2 · the band */
-ok(await page.locator('.now .vd .vd-tile').count() === 5, '2 the band and its five tiles');
+ok(await page.locator('.now .vd .vd-tile').count() === 4, '2 the band and its four tiles — placeholder money hidden on Now (B4)');
 ok(await page.locator('.part-head .part-menu-b', { hasText: /^Report/ }).count() > 0, '2 Report ▾ on the page header');
 
 /* 3 · blocking handover = the Actions page's critical rows */
 const blocking = (await page.locator('.now-block .now-crit .lt-what').allInnerTexts()).map(flat);
 await go(`#/project/${PID}/actions`);
+for (let i = 0; i < 24; i++) {
+  const b = page.locator('.act .fold:not(.is-open) .fold-toggle').first();
+  if (!(await b.count())) break;
+  await b.click(); await page.waitForTimeout(200);
+}
 const crit = [];
 for (const li of await page.locator('.act-li').all()) if (await li.locator('.act-pri.is-critical').count()) crit.push(flat(await li.locator('.lt-what').innerText()));
 ok(blocking.length > 0 && JSON.stringify([...new Set(crit)].sort()) === JSON.stringify([...blocking].sort()), '3 blocking handover is the Actions page’s critical rows', `${blocking} vs ${crit}`);

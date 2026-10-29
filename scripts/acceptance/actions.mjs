@@ -49,6 +49,13 @@ const errs = [];
 page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text()); });
 page.on('pageerror', e => errs.push(e.message));
 const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1800); };
+const openActionFolds = async () => {
+  for (let i = 0; i < 24; i++) {
+    const b = page.locator('.act .fold:not(.is-open) .fold-toggle').first();
+    if (!(await b.count())) break;
+    await b.click(); await page.waitForTimeout(200);
+  }
+};
 const pdfText = async click => {
   const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), click()]);
   const f = join(dir, `${Date.now()}.pdf`); await d.saveAs(f);
@@ -89,6 +96,7 @@ const nowTab = page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-
 ok(await nowTab.getAttribute('aria-current') === 'page', '1 Now on, on its page');
 
 /* ---- 2 every row as the records say ---- */
+await openActionFolds();
 const whats = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
 ok(t.n > 0 && whats.length === t.n && same(whats, t.whats.map(flat)), `2 every thing owed and every problem taken for the project: ${t.n} (${t.register} from the register)`, JSON.stringify(whats.slice(0, 5)));
 const tile = async k => flat(await page.locator('.act-tiles .ln-tile', { has: page.locator('.ln-k', { hasText: new RegExp(`^${k}$`) }) }).locator('.ln-v').innerText());
@@ -99,9 +107,11 @@ ok(flat(await page.locator('.ln-close > span:last-child').innerText()) === t.clo
 
 /* ---- 3 by when, by where, and the filters ---- */
 await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'When' }).click(); await page.waitForTimeout(300);
+await openActionFolds();
 const whenHeads = (await page.locator('.fold .fold-t').allInnerTexts()).map(flat);
 ok(whenHeads.length > 0 && whenHeads.every(h => ['Late', 'Due in the next 7 days', 'Later', 'No date agreed'].includes(h)) && (await page.locator('.act-li').count()) === t.n, `3 by when: ${whenHeads.join(' · ')}`);
 await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Where' }).click(); await page.waitForTimeout(300);
+await openActionFolds();
 ok((await page.locator('.act-li').count()) === t.n, `3 by where: ${(await page.locator('.fold .fold-t').allInnerTexts()).length} places`);
 for (const [label, n] of [['Late', t.late], ['Critical and high', t.pri], ['Nobody yet', t.nobody]]) {
   await page.getByRole('group', { name: 'Which' }).getByRole('button', { name: label }).click(); await page.waitForTimeout(300);
@@ -149,11 +159,13 @@ await go(`#/project/${sd.pacedProjectId}/actions`);
    old links and the Every report sheet, the Factory lit */
 await go('#/actions');
 {
+  await openActionFolds();
   const rail = flat(await page.locator('.nv-rail').innerText());
   ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Projects Tools Factory reports' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Factory' && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action at its address — no Actions on the menu, the Factory lit', `${page.url()} | ${rail}`);
   const all = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(t.whats.every(w => all.includes(flat(w))) && all.length > t.n, `8 every project's actions — ${t.name}'s ${t.n} among ${all.length}`);
   await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Project' }).click(); await page.waitForTimeout(300);
+  await openActionFolds();
   const groups = (await page.locator('.fold .fold-t').allInnerTexts()).map(flat);
   const sixm = await page.evaluate(async id => (await (await import('/src/db.ts')).getProject(id))?.name, sd.pacedProjectId);
   ok(groups.includes(t.name) && groups.includes(sixm), `8 by project: ${groups.join(' · ')}`);
@@ -169,19 +181,20 @@ await go('#/actions');
   const text = await pdfText(() => paper(page, 'The action list'));
   ok(text.includes('Every project and line') && text.includes(t.name), '8 on paper: every project and line, each row marked with its project');
   /* a row of a project's opens its record over Every action, the project said in the address */
-  const fixRow = own.filter({ has: page.locator('.act-meta', { hasText: /^Fix\b|· Fix\b|Fix ·/ }) }).first();
-  if (await fixRow.count()) {
-    const what = flat(await fixRow.locator('.lt-what').innerText());
-    await fixRow.locator('.lt-row').click(); await page.waitForTimeout(1500);
+  const openRow = own.first();
+  if (await openRow.count()) {
+    const what = flat(await openRow.locator('.lt-what').innerText());
+    await openRow.locator('.lt-row').click(); await page.waitForTimeout(1500);
     const drawer = flat(await page.locator('aside.rd').innerText().catch(() => ''));
-    ok(/#\/actions\?/.test(page.url()) && /[?&]job=/.test(page.url()) && drawer.includes(what), `8 a project's fix opens in the drawer over Every action: "${what}"`, page.url());
+    ok(/#\/actions\?/.test(page.url()) && /[?&]job=/.test(page.url()) && drawer.includes(what), `8 a project's row opens in the drawer over Every action: "${what}"`, page.url());
     await page.locator('aside.rd .rd-x').click(); await page.waitForTimeout(800);
-  } else ok(false, '8 a project fix to open on Every action');
+  } else ok(false, '8 a project row to open on Every action');
 }
 
 /* ---- 7 the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });
 await go(`#/project/${PID}/actions`);
+await openActionFolds();
 ok(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) <= 1 && (await page.locator('.act-li').count()) === t.n, '7 the phone: every row, nothing off the side');
 
 ok(!errs.length, `no console error${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);

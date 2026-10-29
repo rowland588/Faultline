@@ -57,11 +57,13 @@ export function Fold({ id, title, says, start = true, need = false, children }: 
   });
   return (
     <section className={'fold' + (open ? ' is-open' : '')} data-fold={id}>
-      <button type="button" className="fold-h" aria-expanded={open} onClick={toggle}>
-        <span className="fold-t">{title}</span>
+      <div className="fold-h">
+        <button type="button" className="fold-toggle" aria-expanded={open} onClick={toggle}>
+          <span className="fold-t">{title}</span>
+          <span className="fold-chev" aria-hidden />
+        </button>
         {says != null && <span className="fold-s">{says}</span>}
-        <span className="fold-chev" aria-hidden />
-      </button>
+      </div>
       {open && <div className="fold-b">{children}</div>}
     </section>
   );

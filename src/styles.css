@@ -7728,10 +7728,13 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .fold { margin: 14px 0; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
 .fold-h {
   display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 14px 16px;
-  font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer;
+}
+.fold-toggle {
+  display: inline-flex; align-items: baseline; gap: 10px; flex: 1; min-width: 0;
+  font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer; padding: 0;
 }
 .fold-h:hover { background: color-mix(in srgb, var(--brand) 4%, transparent); }
-.fold-h:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
+.fold-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
 .fold-t { font-family: var(--display); font-size: var(--t-body); font-weight: 700; color: var(--ink); white-space: nowrap; }
 .fold-s { flex: 1; min-width: 0; font-size: var(--t-detail); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fold-chev {
@@ -14384,7 +14387,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .jn-week { margin: 4px 0 10px; }
 @media (max-width: 1099px) {
   .jn-every { display: inline; }
-  .jn-tools:not(.is-all) .jn-tool.is-off { display: none; }
+  .jn-tool-list:not(.is-all) .jn-tool.is-off { display: none; }
   .jn-tool-tick { min-width: 0; }
   .jn-tool-what { min-width: 0; width: 100%; }
 }

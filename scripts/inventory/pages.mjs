@@ -389,7 +389,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the four tiles — done, still to do, late, planned', sel: '.jn-tiles .ln-tile', n: 4 },
     /* every tool at a desk; on a phone the list folds to the ticked, Every tool under it */
     { what: 'the tools we will use — a tick a tool', sel: '.jn-tools .jn-tool', n: 11, desk: true },
-    { what: 'the tools we will use, folded — Every tool', sel: '.jn-tools .jn-every', text: /^Every tool/, phone: true },
+    { what: 'the tools we will use, folded — Every tool', sel: '.fold[data-fold="jn-tools"] .jn-every', text: /^Every tool/, phone: true },
     { what: 'the days in order', sel: '.jn-day' }, { what: 'a day’s lines, each a record’s own', sel: '.jn-day .jn-li' },
     { what: 'today marked', sel: '.jn-day.is-today' }, { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Journey — a 6M project', path: `#/project/${sd.pacedProjectId}/journey`, must: [

@@ -103,23 +103,32 @@ const truth = (pick, dates) => page.evaluate(async ([pid, pick, dates]) => {
   };
 }, [PID, pick, dates]);
 
+const openJourneyDays = async () => {
+  for (let i = 0; i < 40; i++) {
+    const b = page.locator('.fold[data-fold^="jn-day-"]:not(.is-open) .fold-toggle').first();
+    if (!(await b.count())) break;
+    await b.click(); await page.waitForTimeout(120);
+  }
+};
 /* what the page shows */
-const shown = async () => ({
+const shown = async () => {
+  await openJourneyDays();
+  return {
   label: flat(await page.locator('.jn-range-t').innerText()),
   days: await page.locator('.jn-day').evaluateAll(es => es.map(e => e.dataset.date)),
   lines: await page.locator('.jn-day').evaluateAll(es => es.map(e => ({ date: e.dataset.date, texts: [...e.querySelectorAll('.jn-li .lt-what')].map(x => x.textContent.replace(/\s+/g, ' ').trim()), notes: [...e.querySelectorAll('.jn-note-t')].map(x => x.childNodes[0]?.textContent?.replace(/\s+/g, ' ').trim() ?? '') }))),
   tiles: await page.locator('.jn-tiles .ln-tile').evaluateAll(es => es.map(e => [e.querySelector('.ln-k')?.textContent.trim(), e.querySelector('.ln-v')?.textContent.trim()])),
   closing: flat(await page.locator('.ln-close > span:last-child').innerText()),
   url: page.url().split('#')[1],
-});
+}; };
 /* the page's days are the module's, plus today empty when it is in the range and had nothing */
 const sameDays = (t, s) => same(s.lines.filter(d => d.texts.length || d.notes.length || d.date !== t.today).map(d => [d.date, d.texts]), t.lines.map(d => [d.date, d.texts]));
 
 /* ---- 1 a door from Now (a stage gate's tabs are four and More since 26 October — Any dates ›), Now lit; this week and
    next by default; the range on the address ---- */
 await go(`#/project/${PID}`);
-await page.locator('.now-ahead .qsl-gh button', { hasText: 'Any dates' }).click(); await page.waitForTimeout(2500);
-ok(page.url().includes(`#/project/${PID}/journey`), '1 Journey from Now — Any dates ›', page.url());
+await page.locator('.now-ahead .qsl-gh button', { hasText: 'Journey ›' }).click(); await page.waitForTimeout(2500);
+ok(page.url().includes(`#/project/${PID}/journey`), '1 Journey from Now — Journey ›', page.url());
 const tab = page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: /^Now$/ }) });
 ok(await tab.getAttribute('aria-current') === 'page', '1 Now on, on its page');
 let t = await truth('thisAndNext');
@@ -134,7 +143,8 @@ ok(s.closing === t.closing, `2 the closing line: "${t.closing}"`, s.closing);
 ok(t.booked && s.lines.find(d => d.date === t.booked.date)?.texts.includes(t.booked.text), `2 a test booked ahead on its day: ${t.booked?.date} — "${t.booked?.text}"`);
 const skippedSaid = flat(await page.locator('.jn-skipped').innerText().catch(() => ''));
 ok(t.skipped === 0 ? !skippedSaid : skippedSaid.startsWith(`${t.skipped} day`), `2 the days with nothing said once: "${skippedSaid}"`);
-ok(/today/i.test(flat(await page.locator('.fold[data-fold^="jn-day-"].is-open .fold-t').first().innerText())), '2 today marked');
+await openJourneyDays();
+ok(await page.locator('.fold[data-fold^="jn-day-"].is-open .jn-day.is-today').count() > 0, '2 today marked');
 /* ---- 9 the paper for this week and next, from the page's Report ▾ ---- */
 {
   const t0 = await truth('thisAndNext');
@@ -143,6 +153,11 @@ ok(/today/i.test(flat(await page.locator('.fold[data-fold^="jn-day-"].is-open .f
 }
 
 /* ---- 3 the tools we will use ---- */
+const openJnTools = async () => {
+  const tgl = page.locator('.fold[data-fold="jn-tools"]:not(.is-open) .fold-toggle');
+  if (await tgl.count()) { await tgl.click(); await page.waitForTimeout(400); }
+};
+await openJnTools();
 /* every tool the catalogue registers is offered — counted from it, so a tool built later never breaks the count */
 const NTOOLS = await page.evaluate(async () => (await import('/src/catalogue/registry.ts')).APP_TOOLS.length);
 const toolRow = label => page.locator('.jn-tool', { has: page.locator('.jn-tool-tick b', { hasText: new RegExp(`^${label}$`) }) });
@@ -226,8 +241,8 @@ await go(`#/project/${PID}`);
 t = await truth('thisAndNext');
 await page.locator('.now-ahead').waitFor({ timeout: 15000 });
 ok(await page.locator('.jn-week').count() === 0 && await page.locator('.now-ahead .now-day').count() > 0, '7 the front page says the weeks ahead once — Now’s next two weeks, no second week line');
-await page.locator('.now-ahead .qsl-gh button', { hasText: 'Any dates' }).click(); await page.waitForTimeout(1500);
-ok(page.url().includes(`/journey?from=${t.range.from}&to=${t.range.to}`), '7 Any dates › lands on this week and next');
+await page.locator('.now-ahead .qsl-gh button', { hasText: 'Journey ›' }).click(); await page.waitForTimeout(1500);
+ok(page.url().includes(`/journey?from=${t.range.from}&to=${t.range.to}`), '7 Journey › lands on this week and next');
 /* ---- 9 from the front page's Report ▾, from Reports, and this week and next on the status report ---- */
 await go(`#/project/${PID}`);
 {
@@ -236,7 +251,7 @@ await go(`#/project/${PID}`);
 }
 await go(`#/project/${PID}`);
 {
-  await page.locator('.nv-rail .nv-ri', { has: page.locator('.nv-ri-l', { hasText: /^Reports$/ }) }).click(); await page.waitForTimeout(800);
+  await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: /^Reports$/ }) }).click(); await page.waitForTimeout(800);
   const text = await pdfText(() => page.locator('.meet-report', { has: page.locator('b', { hasText: /^Journey report$/ }) }).click());
   ok(text.includes(t.label), '9 Reports lists it, and the door makes it', text.slice(0, 160));
 }
@@ -248,6 +263,7 @@ await go(`#/project/${PID}/report`);
 
 /* ---- the 6M project has the tab too ---- */
 await go(`#/project/${sd.pacedProjectId}/journey`);
+await openJnTools();
 ok((await page.locator('.jn-day').count()) > 0 && (await page.locator('.jn-tool').count()) === NTOOLS, `a 6M project’s journey: ${await page.locator('.jn-day').count()} days with something`);
 {
   const text = await pdfText(() => paper(page, /^Journey report — /));
@@ -276,10 +292,18 @@ const sd2 = await p2.evaluate(async () => {
 await p2.goto(`${BASE}/#/project/${sd2.projectId}/journey`); await p2.locator('.jn').waitFor({ timeout: 15000 }); await p2.waitForTimeout(2500);
 const wide = await p2.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
 ok(wide, '8 the phone: nothing off the side', await p2.evaluate(() => document.documentElement.scrollWidth));
-const onPhone = await p2.locator('.jn-tool:visible').count();
-ok(onPhone === 3 && await p2.locator('.jn-every').isVisible(), `8 the tick list folded to the ticked (${onPhone}) with Every tool under it`);
-await p2.locator('.jn-every').click(); await p2.waitForTimeout(300);
+const toolsTgl = p2.locator('.fold[data-fold="jn-tools"]:not(.is-open) .fold-toggle');
+if (await toolsTgl.count()) await toolsTgl.click();
+await p2.waitForTimeout(400);
+const onPhone = await p2.locator('.jn-tool-list:not(.is-all) .jn-tool:visible').count();
+ok(onPhone === 3 && await p2.locator('.fold[data-fold="jn-tools"] .jn-every').isVisible(), `8 the tick list folded to the ticked (${onPhone}) with Every tool under it`);
+await p2.locator('.fold[data-fold="jn-tools"] .jn-every').click(); await p2.waitForTimeout(300);
 ok((await p2.locator('.jn-tool:visible').count()) === NTOOLS, '8 Every tool unfolds them');
+for (let i = 0; i < 40; i++) {
+  const b = p2.locator('.fold[data-fold^="jn-day-"]:not(.is-open) .fold-toggle').first();
+  if (!(await b.count())) break;
+  await b.click(); await p2.waitForTimeout(80);
+}
 ok((await p2.locator('.jn-day').count()) > 3 && (await p2.locator('.jn-tiles .ln-tile').count()) === 4, '8 the days and the four tiles on the phone');
 await ctx2.close();
 

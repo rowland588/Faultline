@@ -105,8 +105,11 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
 const LIMIT = { factory: 2, line: 8, project: 18 };   /* the factory: Overview · Set up (27 October, the line is home) */
-const MENU = 'Factory · Projects · Tools · Reports';
-const ONE_BAR = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
+const MENU = 'Factory · Projects · Tools · Factory reports';
+const ONE_BAR_FACTORY = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
+const ONE_BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* stage-gate project phone bar (A3) */
+const ONE_BAR_6M = 'Overview · Programs · Problem · Timeline · More';   /* 6M / lever-tree project phone bar */
+const BAR_OK = new Set([ONE_BAR_FACTORY, ONE_BAR_PROJECT, ONE_BAR_6M]);
 for (const width of [1360, 390]) {
   const { ctx, page, go, sd } = await device(width, 'team');
   const names = await page.evaluate(async () => {
@@ -139,13 +142,13 @@ for (const width of [1360, 390]) {
     if (width > 900 && (menu !== MENU || !placeOk || got.tabs.length > LIMIT[kind])) over.push(`${pg.name} (${kind}): menu ${menu}; place ${place.join() || 'none'}; tabs ${got.tabs.length} — ${got.tabs.join(', ')}`);
     if (width < 900) {
       (bars.all ??= new Set()).add(got.bar);
-      if (got.bar !== ONE_BAR) offBar.push(`${pg.name}: ${got.bar}`);
+      if (!BAR_OK.has(got.bar)) offBar.push(`${pg.name}: ${got.bar}`);
     }
   }
   const tag = width > 900 ? 'desk' : 'phone';
   ok(!unnamed.length, `B2 1 ${tag}: every page in PAGES.md names its place — Home, the factory, a line or a project`, unnamed.join(' | '));
   if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page and naming the line or project you are in, a scope’s own pages its tabs within their size (factory 4, line 8, project 18)', over.join(' | '));
-  else ok(!offBar.length && bars.all?.size === 1, `B2 1 phone: the bar the same five on every page — ${[...(bars.all ?? [])].join(' / ')}`, offBar.join(' | '));
+  else ok(!offBar.length && (bars.all?.size ?? 0) <= 3, `B2 1 phone: the factory or project bar on every page — ${[...(bars.all ?? [])].join(' / ')}`, offBar.join(' | '));
   await ctx.close();
 }
 
@@ -170,7 +173,7 @@ for (const width of [1360, 390]) {
   });
   await go('#/room');
   const rail = await page.locator('.nv-rail .nv-ri').count();
-  ok(rail === 4, `B2 3 the menu with 30 more lines and 50 more projects: ${rail} lines, as ever (Factory · Projects · Tools · Reports since 27 October)`);
+  ok(rail === 4, `B2 3 the menu with 30 more lines and 50 more projects: ${rail} lines, as ever (Factory · Projects · Tools · Factory reports since 28 October)`);
   const found = [];
   for (const [name, keys] of [['Scale line 29', '29'], ['Scale project 47', '47'], ['Line 7 pace', 'pac'], ['Line 2 commissioning', 'com']]) {
     await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(400);
