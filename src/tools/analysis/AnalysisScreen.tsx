@@ -87,7 +87,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
           </div>
           {a.kind === 'plan' && <PlanBox a={a} canAgree={can.agree && !closed} onPlan={setPlan} />}
           <div className="ie-body">
-            <div className={'ie-pic' + (a.kind === 'gauge' || a.kind === 'shape' ? ' tool-sig-an' : '')}>
+            <div className={'ie-pic tool-sig-an'}>
               {plot ? <PlotView plot={plot} said={said.text} /> : <Pic rows={analysisPicture(f, a)} said={said.text} />}
               {f.kind === 'relate' && f.line && <Predict f={f} a={a} />}
               {analysisGrids(f, a).map(g => <GridView key={g.label} g={g} />)}
@@ -118,7 +118,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
 }
 
 /* ----------------------------------------------------------------- agreeing */
-const ORDER: AgreedAnalysis['kind'][] = ['sure', 'change', 'paired', 'groups', 'table', 'relate', 'learn', 'plan', 'gauge', 'shape'];
+const ORDER: AgreedAnalysis['kind'][] = ['sure', 'change', 'paired', 'groups', 'table', 'relate', 'learn', 'plan', 'gauge', 'grr', 'shape'];
 const GMODES: { k: AgreedGauge['mode']; word: string; eg: string }[] = [
   { k: 'repeat', word: 'One reference, read again and again', eg: 'a 500 g test weight weighed 25 to 50 times — the Type 1 study' },
   { k: 'range', word: 'References across its range', eg: 'a probe at 0, 20, 40, 60 and 80 °C, ten readings each — bias and linearity' },
@@ -155,13 +155,18 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const [targetT, setTargetT] = useState(txt(gg?.target)), [limitT, setLimitT] = useState(txt(gg?.limit)), [sliceT, setSliceT] = useState(gg?.slice !== undefined ? String(Math.round(gg.slice * 1000) / 10) : '');
   const [needT, setNeedT] = useState(txt(gg?.need)), [resT, setResT] = useState(txt(gg?.resolution)), [baseT, setBaseT] = useState(txt(gg?.baseline));
   const [packsT, setPacksT] = useState(txt(gg?.packsPerShift)), [weeksT, setWeeksT] = useState(txt(gg?.shiftsPerWeek)), [kgT, setKgT] = useState(txt(gg?.costPerKg));
+  const grr0 = a?.grr;
+  const [partsT, setPartsT] = useState((grr0?.parts ?? []).join(', '));
+  const [apprT, setApprT] = useState((grr0?.appraisers ?? []).join(', '));
+  const [trialsT, setTrialsT] = useState(String(grr0?.trials ?? 2));
   if (!canAgree) return <div className="ie-agree is-wait"><h2>Waiting for it to be agreed</h2><p className="sub">What is asked and how sure it has to be is agreed by the project’s owner first.</p></div>;
   const nn = num;
   const gaugeDraft: AgreedGauge = { mode: gMode, ...(gMode !== 'range' && nn(gRef) !== undefined ? { reference: nn(gRef) } : {}), ...(nn(lowerT) !== undefined ? { lower: nn(lowerT) } : {}), ...(nn(upperT) !== undefined ? { upper: nn(upperT) } : {}),
     ...(nn(targetT) !== undefined ? { target: nn(targetT) } : {}), ...(gMode === 'range' && nn(limitT) !== undefined ? { limit: nn(limitT) } : {}), ...(nn(sliceT) !== undefined ? { slice: (nn(sliceT) as number) / 100 } : {}),
     ...(nn(needT) !== undefined ? { need: nn(needT) } : {}), ...(nn(resT) !== undefined ? { resolution: nn(resT) } : {}), ...(gMode === 'drift' && nn(baseT) !== undefined ? { baseline: nn(baseT) } : {}),
     ...(nn(packsT) !== undefined ? { packsPerShift: Math.round(nn(packsT) as number) } : {}), ...(nn(weeksT) !== undefined ? { shiftsPerWeek: nn(weeksT) } : {}), ...(nn(kgT) !== undefined ? { costPerKg: nn(kgT) } : {}) };
-  const boxes = kind === 'gauge' ? [gRef, lowerT, upperT, targetT, limitT, sliceT, needT, resT, baseT, packsT, weeksT, kgT] : kind === 'shape' ? [lowerT, upperT] : [];
+  const grrDraft = { parts: names(partsT), appraisers: names(apprT), trials: (trialsT === '3' ? 3 : 2) as 2 | 3, ...(num(lowerT) !== undefined ? { lower: num(lowerT) } : {}), ...(num(upperT) !== undefined ? { upper: num(upperT) } : {}) };
+  const boxes = kind === 'gauge' ? [gRef, lowerT, upperT, targetT, limitT, sliceT, needT, resT, baseT, packsT, weeksT, kgT] : kind === 'shape' || kind === 'grr' ? [lowerT, upperT] : [];
   const draft: AgreedAnalysis = { kind, name: name.trim(), ...(unit.trim() && kind !== 'table' ? { unit: unit.trim() } : {}), confidence: conf,
     ...(kind === 'sure' ? { of } : {}), ...(kind === 'change' ? { data, better } : {}),
     ...(kind === 'groups' ? { better, ...(first.trim() ? { firstName: first.trim() } : {}) } : {}),
@@ -170,6 +175,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
     ...(kind === 'learn' && (standardT.trim() || perRunT.trim()) ? { learn: { ...(num(standardT) !== undefined ? { standard: num(standardT) } : {}), ...(num(perRunT) !== undefined ? { perRun: num(perRunT) } : {}) } } : {}),
     ...(kind === 'gauge' ? { gauge: gaugeDraft } : {}),
     ...(kind === 'shape' ? { shape: { ...(num(lowerT) !== undefined ? { lower: num(lowerT) } : {}), ...(num(upperT) !== undefined ? { upper: num(upperT) } : {}) } } : {}),
+    ...(kind === 'grr' ? { grr: grrDraft } : {}),
     ...(kind === 'paired' ? { ...(first.trim() ? { firstName: first.trim() } : {}), ...(second.trim() ? { secondName: second.trim() } : {}), ...(num(within) !== undefined ? { within: num(within) } : {}) } : {}),
     ...(kind === 'plan' ? { plan: a?.plan ?? { ask: 'mean' as const } } : {}) };
   const problem = (within.trim() !== '' && num(within) === undefined) || boxes.some(b => b.trim() !== '' && num(b) === undefined) || (standardT.trim() !== '' && num(standardT) === undefined) || (perRunT.trim() !== '' && num(perRunT) === undefined) ? 'Numbers only in the boxes.' : analysisProblem(draft);
@@ -221,7 +227,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       </div>
       <div className="ie-agree-grid">
         <label className="field"><span className="field-label">What is measured</span>
-          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : kind === 'learn' ? 'Time to pack a case' : kind === 'gauge' ? 'Bench scale' : kind === 'shape' ? 'Residual oxygen' : 'Fill weight'} /></label>
+          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : kind === 'learn' ? 'Time to pack a case' : kind === 'gauge' ? 'Bench scale' : kind === 'grr' ? 'Seal strength' : kind === 'shape' ? 'Residual oxygen' : 'Fill weight'} /></label>
         {kind !== 'table' && <label className="field"><span className="field-label">Unit {kind === 'sure' && of === 'rate' ? <i className="sub">what the time is counted in — hours</i> : kind === 'change' && data === 'counted' ? <i className="sub">optional</i> : null}</span>
           <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder={of === 'rate' && kind === 'sure' ? 'hours' : kind === 'learn' ? 's' : 'g'} /></label>}
         {kind === 'learn' && <>
@@ -278,6 +284,21 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
           <label className="field"><span className="field-label">An upper limit that matters <i className="sub">optional</i></span>
             <input className="text-input" inputMode="decimal" value={upperT} onChange={e => setUpperT(e.target.value)} placeholder="2" aria-label="Upper limit" /></label>
         </>}
+        {kind === 'grr' && <>
+          <label className="field ie-wide"><span className="field-label">The parts <i className="sub">ten spanning the range, separated by commas</i></span>
+            <input className="text-input" value={partsT} onChange={e => setPartsT(e.target.value)} placeholder="1, 2, 3, 4, 5, 6, 7, 8, 9, 10" aria-label="The parts" /></label>
+          <label className="field ie-wide"><span className="field-label">The appraisers <i className="sub">three operators, separated by commas</i></span>
+            <input className="text-input" value={apprT} onChange={e => setApprT(e.target.value)} placeholder="A, B, C" aria-label="The appraisers" /></label>
+          <div className="ie-kinds" role="radiogroup" aria-label="Trials each">
+            <span className="field-label">Trials each</span>
+            <button type="button" role="radio" aria-checked={trialsT !== '3'} className={'chip' + (trialsT !== '3' ? ' on' : '')} onClick={() => setTrialsT('2')}>2</button>
+            <button type="button" role="radio" aria-checked={trialsT === '3'} className={'chip' + (trialsT === '3' ? ' on' : '')} onClick={() => setTrialsT('3')}>3</button>
+          </div>
+          <label className="field"><span className="field-label">Tolerance — lower <i className="sub">optional — for %GRR of tolerance</i></span>
+            <input className="text-input" inputMode="decimal" value={lowerT} onChange={e => setLowerT(e.target.value)} placeholder="10" aria-label="Lower tolerance" /></label>
+          <label className="field"><span className="field-label">…and upper</span>
+            <input className="text-input" inputMode="decimal" value={upperT} onChange={e => setUpperT(e.target.value)} placeholder="16" aria-label="Upper tolerance" /></label>
+        </>}
         {kind === 'relate' && <label className="field ie-wide"><span className="field-label">The drivers <i className="sub">one to {MAX_DRIVERS}, each with its unit in brackets, separated by commas — the result is what is measured above</i></span>
           <input className="text-input" value={driversT} onChange={e => setDriversT(e.target.value)} placeholder="Jaw temperature (°C), Dwell (s)" aria-label="The drivers" /></label>}
         {kind === 'paired' && <>
@@ -311,6 +332,7 @@ export function agreedWords(a: AgreedAnalysis): string {
     case 'gauge': { const g = a.gauge, lim = g && g.lower !== undefined && g.upper !== undefined ? ` judging ${g.lower}–${g.upper}${u}` : g && (g.lower ?? g.upper) !== undefined ? ` judging a limit of ${g.lower ?? g.upper}${u}` : '';
       return g?.mode === 'range' ? `${a.name} — bias across its range${u ? ` in${u}` : ''}${g.limit !== undefined ? `, read at ${g.limit}${u}` : ''}${lim} · ${c}` : g?.mode === 'drift' ? `${a.name} — ${g.reference !== undefined ? `the reference ${g.reference}${u}` : 'a reference'} checked day after day${lim} · ${c}` : `${a.name} — one reference${g?.reference !== undefined ? ` (${g.reference}${u})` : ''} read again and again${lim} · ${c}`; }
     case 'shape': { const s = a.shape; return `${a.name}${u ? ` in${u}` : ''} — which shape fits${s?.lower !== undefined ? `, a lower limit of ${s.lower}${u}` : ''}${s?.upper !== undefined ? `, an upper limit of ${s.upper}${u}` : ''} · ${c}`; }
+    case 'grr': { const g = a.grr; return `${a.name}${u ? ` in${u}` : ''} — ${g?.parts.length ?? 0} parts × ${g?.appraisers.length ?? 0} appraisers × ${g?.trials ?? 2} trials${g?.lower !== undefined && g?.upper !== undefined ? ` · tolerance ${g.lower}–${g.upper}${u}` : ''}`; }
     case 'plan': return `${a.name} — how many readings · ${c}`;
   }
 }
@@ -365,7 +387,71 @@ function Entry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReadi
   if (a.kind === 'table') return <TableEntry a={a} readings={readings} onAdd={onAdd} />;
   if (a.kind === 'relate') return <RelateEntry a={a} onAdd={onAdd} />;
   if (a.kind === 'gauge' && a.gauge?.mode === 'range') return <GaugeRangeEntry a={a} readings={readings} onAdd={onAdd} />;
+  if (a.kind === 'grr') return <GrrEntry a={a} readings={readings} onAdd={onAdd} />;
   return <SimpleEntry a={a} readings={readings} onAdd={onAdd} />;
+}
+
+function GrrPaste({ onAdd, trials, parts, appraisers }: { onAdd: OnAdd; trials: number; parts: string[]; appraisers: string[]; }) {
+  const [t, setT] = useState('');
+  const [skipped, setSkipped] = useState<string[]>([]);
+  const go = () => {
+    const trialCount = new Map<string, number>();
+    const out: Omit<StudyReading, 'id' | 'at'>[] = [];
+    const bad: string[] = [];
+    for (const line of t.split(/\n/).map(x => x.trim()).filter(Boolean)) {
+      const bits = line.split(/[\t,; ]+/).filter(Boolean);
+      if (bits.length < 3) { bad.push(line); continue; }
+      const v = num(bits[bits.length - 1]);
+      const appr = bits[bits.length - 2];
+      const part = bits.slice(0, -2).join(' ');
+      if (v === undefined || !parts.includes(part) || !appraisers.includes(appr)) { bad.push(line); continue; }
+      const key = `${part}\0${appr}`;
+      const tr = (trialCount.get(key) ?? 0) + 1;
+      if (tr > trials) { bad.push(line); continue; }
+      trialCount.set(key, tr);
+      out.push({ value: v, arm: part, col: appr, group: tr });
+    }
+    if (out.length) onAdd(out);
+    setSkipped(bad);
+    setT('');
+  };
+  return (
+    <div className="ie-paste">
+      <label className="field"><span className="field-label">Or paste part, appraiser, value — one to a line</span>
+        <textarea className="text-input" rows={3} value={t} onChange={e => setT(e.target.value)} aria-label="Paste gauge R&R readings" placeholder={'1 A 12.1\n1 A 12.0\n1 B 12.4'} /></label>
+      <button type="button" className="btn" disabled={!t.trim()} onClick={go}>Add these</button>
+      {skipped.length > 0 && <p className="ie-problem" role="status">Left out: {skipped.slice(0, 4).join('; ')}{skipped.length > 4 ? ` … ${skipped.length} lines` : ''}.</p>}
+    </div>
+  );
+}
+
+/** Gauge R&R: part × appraiser × trial — the next empty cell in the agreed grid. */
+function GrrEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReading[]; onAdd: OnAdd }) {
+  const g = a.grr ?? { parts: [], appraisers: [], trials: 2 as const };
+  const trials = g.trials ?? 2;
+  const [part, setPart] = useState(g.parts[0] ?? '');
+  const [appr, setAppr] = useState(g.appraisers[0] ?? '');
+  const trialOf = (p: string, o: string) => readings.filter(r => !r.struck && r.arm === p && r.col === o && typeof r.value === 'number').length + 1;
+  const nextTrial = part && appr ? trialOf(part, appr) : 1;
+  const full = nextTrial > trials;
+  const done = g.parts.length * g.appraisers.length * trials;
+  const have = readings.filter(r => !r.struck && r.arm && r.col && typeof r.value === 'number').length;
+  return (
+    <div className="ie-cap-box" aria-label="Take the readings">
+      <p className="ie-count"><b>{have}</b> of {done} readings · blind, random order on the floor</p>
+      <div className="chip-row" role="radiogroup" aria-label="Which part?">
+        {g.parts.map(p => <button key={p} type="button" role="radio" aria-checked={part === p} className={'chip' + (part === p ? ' on' : '')} onClick={() => setPart(p)}>{p}</button>)}
+      </div>
+      <div className="chip-row" role="radiogroup" aria-label="Which appraiser?">
+        {g.appraisers.map(o => <button key={o} type="button" role="radio" aria-checked={appr === o} className={'chip' + (appr === o ? ' on' : '')} onClick={() => setAppr(o)}>{o}</button>)}
+      </div>
+      {part && appr && !full ? <>
+        <p className="sub ie-pad-hint">Part <b>{part}</b>, appraiser <b>{appr}</b>, trial <b>{nextTrial}</b> of {trials} — then Enter</p>
+        <Pad key={`${part}-${appr}-${nextTrial}`} unit={a.unit} label="The reading" onEnter={v => onAdd([{ value: v, arm: part, col: appr, group: nextTrial }])} />
+      </> : full && part && appr ? <p className="sub">Every trial for {part} · {appr} is in — pick another cell.</p> : null}
+      <GrrPaste onAdd={onAdd} trials={trials} parts={g.parts} appraisers={g.appraisers} />
+    </div>
+  );
 }
 
 type OnAdd = (rs: Omit<StudyReading, 'id' | 'at'>[]) => void;
@@ -596,7 +682,7 @@ function PlanBox({ a, canAgree, onPlan }: { a: AgreedAnalysis; canAgree: boolean
 function Rows({ a, readings, canStrike, onStrike }: { a: AgreedAnalysis; readings: StudyReading[]; canStrike: boolean; onStrike: (id: string, struck: boolean) => void }) {
   if (!readings.length) return null;
   const u = a.unit ? ` ${a.unit}` : '';
-  const word = (r: StudyReading): string => (r.col !== undefined && typeof r.made === 'number' ? `${r.arm} × ${r.col}: ${r.made}` : Array.isArray(r.xs) && typeof r.value === 'number' ? `${r.xs.join(', ')} → ${r.value}${u}` : typeof r.with === 'number' && a.kind === 'gauge' ? `${r.value}${u} against ${r.with}${u}` : typeof r.with === 'number' ? `${r.value}${u} → ${r.with}${u}` : typeof r.made === 'number' ? `${r.rejected} of ${r.made}${a.kind === 'sure' && a.of === 'rate' ? ` over ${r.made}${u}`.replace(/^ of.*/, '') : ''}` : typeof r.value === 'number' ? `${r.value}${u}` : '—');
+  const word = (r: StudyReading): string => (a.kind === 'grr' && r.arm && r.col && typeof r.value === 'number' ? `${r.arm} · ${r.col} · trial ${r.group ?? 1}: ${r.value}${u}` : r.col !== undefined && typeof r.made === 'number' ? `${r.arm} × ${r.col}: ${r.made}` : Array.isArray(r.xs) && typeof r.value === 'number' ? `${r.xs.join(', ')} → ${r.value}${u}` : typeof r.with === 'number' && a.kind === 'gauge' ? `${r.value}${u} against ${r.with}${u}` : typeof r.with === 'number' ? `${r.value}${u} → ${r.with}${u}` : typeof r.made === 'number' ? `${r.rejected} of ${r.made}${a.kind === 'sure' && a.of === 'rate' ? ` over ${r.made}${u}`.replace(/^ of.*/, '') : ''}` : typeof r.value === 'number' ? `${r.value}${u}` : '—');
   return (
     <details className="ie-readings">
       <summary>Every reading, in the order taken ({readings.length})</summary>

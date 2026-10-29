@@ -483,7 +483,10 @@ export const SPC: Entry[] = [
     food: 'Seal strength testers; thickness gauges; probes.',
     depends: ['FC-119', 'FC-094'],
     complexity: 'M', value: 'medium', valueWhy: 'Trust in every measured study.',
-    status: 'to-build', form: 'tool', kind: 'study', methods: ['msa.gauge-rr'], scenarios: ['quality'], words: ['MSA', 'GRR', 'measurement system'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['msa.gauge-rr'], scenarios: ['quality'], words: ['MSA', 'GRR', 'measurement system'],
+    built: { where: ['/analysis'], code: ['src/lib/ie/gaugeRr.ts', 'src/tools/analysis/grr.ts', 'src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx'], tests: ['src/lib/ie/__tests__/gaugeRr.test.ts', 'src/tools/analysis/__tests__/analysisGrr.test.ts'], acceptance: ['gauge-rr.mjs'] },
+    spec: 'knowledge/specs/FC-118-gauge-rr.md',
+    limits: ['Blind random order is agreed on the page — the app does not shuffle or hide labels; the floor runs the study that way.', 'Money of give-away from %GRR is not priced in this slice (knowledge/MONEY.md FC-118).'],
   },
   {
     id: 'FC-119', name: 'Type 1 gauge study — one reference measured again and again', discipline: 'msa', sub: 'gauge',
@@ -497,7 +500,7 @@ export const SPC: Entry[] = [
     complexity: 'S', value: 'high', valueWhy: 'Quick, and it decides whether weights can be trusted.',
     status: 'available', form: 'mode', partOf: 'FC-105', methods: ['msa.type1-gauge'], scenarios: ['quality', 'packing'],
     built: GAUGE_BUILT, spec: GAUGE_SPEC,
-    limits: ['One reference, one operator, one day — the repeatability and reproducibility of several operators on several parts is gauge R&R (FC-118), not built.', 'The 20% slice, the 1.33 wanted and the 5% least count are the automotive practice’s, Faultline’s defaults and changeable; VDA volume 5’s text was not read (knowledge/GAPS.md).', 'The gauge’s record is not carried to the studies that name it (no gauge noun — BLUEPRINT §2 first); a bias is money only for a weight in g or kg: give-away when it reads low, short weight (never priced) when it reads high.'],
+    limits: ['One reference, one operator, one day — the repeatability and reproducibility of several operators on several parts is gauge R&R (FC-118) on the Analysis tool.', 'The 20% slice, the 1.33 wanted and the 5% least count are the automotive practice’s, Faultline’s defaults and changeable; VDA volume 5’s text was not read (knowledge/GAPS.md).', 'The gauge’s record is not carried to the studies that name it (no gauge noun — BLUEPRINT §2 first); a bias is money only for a weight in g or kg: give-away when it reads low, short weight (never priced) when it reads high.'],
   },
   {
     id: 'FC-120', name: 'Bias, linearity and stability of a gauge', discipline: 'msa', sub: 'gauge',

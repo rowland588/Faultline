@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 109 |
+| Available (`available`) | 110 |
 | Partly (`partial`) | 25 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 83 |
+| Not built yet (`to-build`) | 82 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -26,7 +26,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Commissioning and operational readiness | 13 | 11 | 1 |  |  | 1 |  |
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
 | Statistical analysis | 15 | 12 | 1 |  | 1 | 1 |  |
-| Measurement systems | 6 | 2 |  |  | 4 |  |  |
+| Measurement systems | 6 | 3 |  |  | 3 |  |  |
 | Quality engineering and defects | 14 | 3 |  |  | 9 | 2 |  |
 | Six Sigma and DMAIC | 8 |  | 2 |  | 6 |  |  |
 | Root cause and problem solving | 10 | 4 | 2 |  | 4 |  |  |
@@ -69,8 +69,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 73
-- a mode of another tool: 72
+- a tool of its own: 72
+- a mode of another tool: 73
 - a part several tools share: 37
 - a way through several tools: 8
 - a report or board: 34
@@ -111,7 +111,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 ## Where related capabilities could be combined
 
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
-- FC-105 Before and after — did it move, for a reason — 9 modes inside it
+- FC-105 Before and after — did it move, for a reason — 10 modes inside it
 - FC-073 The stage gate — new equipment to handover — 9 modes inside it
 - FC-001 Value stream map — current and future state — 5 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 5 modes inside it

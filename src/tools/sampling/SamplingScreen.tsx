@@ -273,7 +273,7 @@ function Round({ a, taps, t, round, onTap, onStrike }: {
 function Shares({ a, taps }: { a: AgreedSampling; taps: Tap[] }) {
   if (!tapsOf(taps).length) return <p className="sub ie-pic-empty">Each person’s shares build here as the taps come in — every share with the margin it carries.</p>;
   return (
-    <div className="ws-shares">
+    <div className="ws-shares tool-sig-sample">
       {a.who.map(p => {
         const n = tapsOf(taps, p).length;
         const enough = samplingEnough(n) === 'enough';

@@ -32,7 +32,7 @@ export function ResultView({ def, run, agreed }: { def: CalcDef; run: Run; agree
           {warns.map(w => <p key={w.say} className="ie-check is-a">{w.say}</p>)}
         </div>
       )}
-      {r.picture && <div className="ie-pic calc-picbox"><CalcPictureView pic={r.picture} /></div>}
+      {r.picture && <div className="ie-pic calc-picbox tool-sig-calc"><CalcPictureView pic={r.picture} /></div>}
       <details className="calc-working" open>
         <summary>How it is worked out</summary>
         <table className="ie-tbl calc-working-t">

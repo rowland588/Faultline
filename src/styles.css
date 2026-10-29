@@ -12134,6 +12134,12 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .tool-sig-an .ie-tbl-wrap,
 .tool-sig-an .ie-grid { border-left: 3px solid var(--tool-panel-edge); padding-left: 10px; margin-top: 8px; }
 .tool-sig-an .ie-an-pic { margin-bottom: 4px; }
+.tool-sig-sample .ws-bar-t { border-left: 3px solid var(--tool-panel-edge); }
+.tool-sig-calc.calc-picbox { box-shadow: var(--shadow-lift); }
+.tool-sig-bal .ie-stack { filter: drop-shadow(0 1px 0 color-mix(in srgb, var(--brand) 6%, transparent)); }
+.tool-sig-co.co-ladder-pic { border-left-width: 3px; }
+.tool-sig-pareto .ie-pareto-bars { border-left: 3px solid var(--tool-panel-edge); padding-left: 8px; }
+.tool-sig-check.lg-card { border-left: 3px solid var(--tool-panel-edge); box-shadow: var(--shadow); }
 
 .ie-dots { width: 100%; height: auto; display: block; overflow: visible; }
 .ie-lim { stroke: var(--ink-2); stroke-width: 2; }

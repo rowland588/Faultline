@@ -403,7 +403,7 @@ function LadderBars({ l, f, money }: { l: Ladder; f: StudyFacts; money?: SmedMon
   const top = l.now.elapsedSec;
   const pct = (sec: number) => `${Math.max(0, Math.min(100, (sec / top) * 100))}%`;
   return (
-    <div className="ie-pic co-ladder-pic" role="img" aria-label={ladderSays(l).text}>
+    <div className="ie-pic co-ladder-pic tool-sig-co" role="img" aria-label={ladderSays(l).text}>
       {rungs.map(r => {
         const sec = l[r].elapsedSec;
         const week = run && per ? extrapolate(sec, per, run, f.ratePerMin, money).week : undefined;

@@ -10,6 +10,7 @@
 import type { AgreedAnalysis, AnalysisPlan, StudyReading } from '../../lib/study';
 import type { LeanTile } from '../../lib/lean';
 import { learnFigures, learnPlot, learnProblem, learnSays, learnTiles, type LearnFigures } from './learn';
+import { grrFigures, grrGrids, grrProblem, grrSays, grrTiles, type GrrFigures } from './grr';
 import { dagostinoPearson, histogram } from '../../lib/ie/dist';
 import { describe, type Described } from '../../lib/ie/describe';
 import { compareGroups, type GroupsResult } from '../../lib/ie/groups';
@@ -53,6 +54,7 @@ export const KIND_WORDS: Record<AgreedAnalysis['kind'], { name: string; ask: str
   learn: { name: 'How fast it is learned', ask: 'How fast is a new job being learned?', example: 'a new starter packing; a new product’s first runs; seasonal staff in their first week' },
   gauge: { name: 'Is the gauge fit', ask: 'Is this gauge fit for what it judges?', example: 'a bench scale against a 500 g test weight; a probe at five temperatures; the daily check weight' },
   shape: { name: 'Which shape fits', ask: 'Which shape do these readings follow?', example: 'residual oxygen; minutes between short stops; seal strength with a hard floor' },
+  grr: { name: 'Gauge R&R', ask: 'How much of what we see is the measurement?', example: 'seal strength — ten parts, three appraisers, two trials each, blind and randomised' },
   plan: { name: 'How many readings', ask: 'How many readings do I need?', example: 'to know a mean to ±0.3 g; to see a 0.5 g difference between shifts' },
 };
 export const confidenceOf = (a: Pick<AgreedAnalysis, 'confidence'>): Confidence => a.confidence ?? DEFAULT_CONFIDENCE;
@@ -60,6 +62,7 @@ export { pctWord, placesOf, fmtP, pSay } from './format';
 
 /* ------------------------------------------- reading the record --------------------------------------- */
 const live = (rs: StudyReading[]): StudyReading[] => rs.filter(r => !r.struck);
+const grrValues = (rs: StudyReading[]): number[] => live(rs).filter(r => r.arm && r.col && typeof r.value === 'number').map(r => r.value as number);
 const armValues = (rs: StudyReading[], arm: string): number[] => live(rs).filter(r => r.arm === arm && typeof r.value === 'number').map(r => r.value as number);
 const noArm = (rs: StudyReading[]): number[] => live(rs).filter(r => !r.arm && typeof r.value === 'number').map(r => r.value as number);
 const pctPoints = (x: number): string => `${(Math.abs(x) * 100).toFixed(Math.abs(x) * 100 < 1 ? 2 : 1)} points`;
@@ -114,7 +117,7 @@ export interface RelateFigures extends Base {
   kind: 'relate'; k: number; n: number; need: number; enough: boolean; weak: boolean; drivers: { name: string; unit?: string }[]; xs: number[][]; y: number[];
   line?: Line; multi?: Multiple; /** perfectly collinear drivers, or a constant one — nothing is fitted */ refusal?: string; p?: number; significant: boolean;
 }
-export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures | GroupsFigures | TableFigures | RelateFigures | LearnFigures | GaugeFigures | ShapeFigures;
+export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures | GroupsFigures | TableFigures | RelateFigures | LearnFigures | GaugeFigures | ShapeFigures | GrrFigures;
 
 const normalCheck = (what: string, xs: number[]): { check?: Check; non: boolean } => {
   if (xs.length < NORMAL_FROM) return { non: false };
@@ -128,6 +131,7 @@ export function analysisFigures(a: AgreedAnalysis, readings: StudyReading[], opt
   const base = (dp: number): Base => ({ conf, alpha, dp, unit, checks: [] });
   if (a.kind === 'gauge') return gaugeFigures(a, readings, base(0));
   if (a.kind === 'shape') return shapeFigures(a, readings, base(0));
+  if (a.kind === 'grr') return grrFigures(a, readings, base(placesOf(grrValues(readings))));
   if (a.kind === 'sure') {
     const of = a.of ?? 'mean';
     if (of === 'share') {
@@ -331,9 +335,10 @@ export function planProblem(p: AnalysisPlan, pilotN = 0): string {
 }
 
 /** What cannot be agreed, said while agreeing. */
-export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'> & Partial<Pick<AgreedAnalysis, 'rows' | 'cols' | 'drivers' | 'learn' | 'gauge' | 'shape'>>): string {
+export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'> & Partial<Pick<AgreedAnalysis, 'rows' | 'cols' | 'drivers' | 'learn' | 'gauge' | 'shape' | 'grr'>>): string {
   if (a.kind === 'gauge') return gaugeProblem(a.name, a.gauge);
   if (a.kind === 'shape') return shapeProblem(a.name, a.shape);
+  if (a.kind === 'grr') return grrProblem(a.name, a.grr);
   if (!a.name.trim()) return 'What is measured — a name, "Fill weight".';
   if (a.kind === 'table') {
     const dup = (xs: string[]) => new Set(xs.map(x => x.toLowerCase())).size !== xs.length;
@@ -426,6 +431,7 @@ export function analysisSays(f: AnalysisFigures, a: AgreedAnalysis): AnalysisSay
   if (f.kind === 'learn') return learnSays(f, a);
   if (f.kind === 'gauge') return gaugeSays(f, a);
   if (f.kind === 'shape') return shapeSays(f, a);
+  if (f.kind === 'grr') return grrSays(f, a);
   /* plan */
   const power = pctWord(f.power), conf = pctWord(f.conf), p = a.plan;
   if (!f.ok || f.need === undefined || !p) return { text: f.why ?? 'Say what to size.', tone: 'n', verdict: 'Not enough to size', more: [], notClaimed: '' };
@@ -580,6 +586,7 @@ export function analysisTiles(f: AnalysisFigures, a: AgreedAnalysis): LeanTile[]
   }
   if (f.kind === 'gauge') return gaugeTiles(f, a);
   if (f.kind === 'shape') return shapeTiles(f, a);
+  if (f.kind === 'grr') return grrTiles(f);
   if (f.kind === 'relate') {
     if (f.k === 1) {
       const l = f.line, d = f.drivers[0];
@@ -605,7 +612,7 @@ export function analysisClosing(f: AnalysisFigures, a: AgreedAnalysis, said: Ana
   if (f.kind === 'sure') return { text: `${said.verdict} — ${what}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'change') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'learn') return { text: `${said.verdict} — ${what}${f.reach && !f.reach.already ? `, the standard at about run ${f.reach.run}` : ''}.`, tone: said.tone };
-  if (f.kind === 'gauge' || f.kind === 'shape') return { text: `${said.verdict} — ${what}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
+  if (f.kind === 'gauge' || f.kind === 'shape' || f.kind === 'grr') return { text: `${said.verdict} — ${what}${f.kind === 'grr' && f.res ? `, %GRR ${f.res.pctGrrTotal.toFixed(1)}%` : ''}${f.kind !== 'grr' ? `, ${pctWord(f.conf)} confidence` : ''}.`, tone: said.tone };
   if (f.kind === 'groups' || f.kind === 'table' || f.kind === 'relate') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'paired') return { text: `${said.verdict} — ${f.pairs} pair${f.pairs === 1 ? '' : 's'}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}.`, tone: said.tone };
   return { text: `${said.verdict}.`, tone: said.tone };
@@ -694,6 +701,7 @@ export function analysisPlot(f: AnalysisFigures, a: AgreedAnalysis): Plot | unde
 export function analysisGrids(f: AnalysisFigures, _a?: AgreedAnalysis): Grid[] {
   if (f.kind === 'gauge') return gaugeGrids(f);
   if (f.kind === 'shape') return shapeGrids(f);
+  if (f.kind === 'grr') return grrGrids(f);
   return [];
 }
 export type { Grid } from './measure';

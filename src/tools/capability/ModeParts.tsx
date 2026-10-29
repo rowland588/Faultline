@@ -63,7 +63,7 @@ export function Pareto({ q }: { q: FaultsFigures }) {
   let cum = 0;
   const pts = sorted.map(({ v }, k) => { cum += v / total; return `${P.l + k * bw + bw / 2},${yc(cum)}`; });
   return (
-    <div className="ie-pareto">
+    <div className="ie-pareto tool-sig-pareto">
       <div className="ie-pareto-h">
         <span className="ie-checks-h">Faults by kind{byMoney && priced ? ' — by money' : ''}</span>
         {priced && <button type="button" className="linkish" onClick={() => setByMoney(b => !b)}>{byMoney ? 'By count' : 'By money'}</button>}

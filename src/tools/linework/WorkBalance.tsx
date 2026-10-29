@@ -346,7 +346,7 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
         <>
         {a && f.people.length > 0 && (
           <>
-            <div className="ie-pic"><Stacks f={f} ghost={showGhost ? ghost : undefined} /></div>
+            <div className="ie-pic tool-sig-bal"><Stacks f={f} ghost={showGhost ? ghost : undefined} /></div>
             <Legend f={f} />
           </>
         )}

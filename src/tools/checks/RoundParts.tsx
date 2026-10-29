@@ -65,7 +65,7 @@ export function RoundCard({ s, st, p }: { s: ToolStudy; st: CheckState; p: Round
   const trend = c.kind === 'value' ? valueTrend(c, s.facts.results) : undefined;
   const says = trend ? valueSays(c, trend) : undefined;
   return (
-    <li className={'lg-card is-' + st.tone} data-check={c.id} data-state={st.key}>
+    <li className={'lg-card tool-sig-check is-' + st.tone} data-check={c.id} data-state={st.key}>
       <div className="lg-card-h">
         <b className="lg-name">{c.name}</b>
         <span className={'lg-state is-' + st.tone}>{TONE_WORD[st.key]}</span>

@@ -630,7 +630,7 @@ export interface AgreedCalc {
  *  this figure, did it change, do two ways of measuring agree, how many readings do I need — and the readings or
  *  counts that answer it. W3b adds the groups, the counts in a table and the relations as more kinds. */
 export interface AgreedAnalysis {
-  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'learn' | 'gauge' | 'shape';
+  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'learn' | 'gauge' | 'shape' | 'grr';
   /** what is measured — "Fill weight", "Reject rate" */
   name: string;
   unit?: string;
@@ -660,6 +660,18 @@ export interface AgreedAnalysis {
   gauge?: AgreedGauge;
   /** which shape fits (W3c, FC-114): the limits that matter, optional */
   shape?: { lower?: number; upper?: number };
+  /** gauge R&R (FC-118): crossed parts × appraisers × trials */
+  grr?: AgreedGrr;
+}
+/** GAUGE R&R (FC-118). Parts and appraisers are named before measuring; trials default to 2. Tolerance optional but needed for %GRR of tolerance. */
+export interface AgreedGrr {
+  parts: string[];
+  appraisers: string[];
+  trials?: 2 | 3;
+  lower?: number;
+  upper?: number;
+  /** Pool interaction when p exceeds this (default 0.25). */
+  poolAlpha?: number;
 }
 /** IS THE GAUGE FIT (W3c, knowledge/specs/FC-119-gauge.md). `repeat`: one reference read again and again (Type 1); `range`: references
  *  across the range, each reading carrying its reference in `with` (bias and linearity); `drift`: one reference checked day after day
