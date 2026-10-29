@@ -109,6 +109,11 @@ BLUEPRINT §3–4 where they speak of a project's pages. They move to
 `docs/history/` with a line at the top saying so; nothing in them is lost.
 PAGES.md stays (what each page must show), checked by the gate.
 
+**Actions, problems and optional 6M investigation** — how the meeting tracker
+connects to Problems and when to use the 6M loop on a stage-gate project:
+`docs/STAGEGATE-ACTIONS-AND-6M.md` (29 October, design only until Rowland
+says go).
+
 ## 6. The slices — each live on its own, nothing broken
 
 | Slice | What | Proved by |
@@ -118,6 +123,7 @@ PAGES.md stays (what each page must show), checked by the gate.
 | **P3** | The old documents to `docs/history/`; BLUEPRINT and CLAUDE.md pointing here | — |
 | **P4** | **The path walked**: one acceptance script driving the eight steps of §1 end to end on a fresh device, every place in §2 and every paper in §3 read back — the stage gate's definition of done | the script itself, in the gate |
 | **P5** | What Rowland's own walk of the path finds | his walk |
+| **SG-0 … SG-4** | Action tracker visibility, problem journey, run→verified, optional 6M link — `docs/STAGEGATE-ACTIONS-AND-6M.md` | actions.mjs, snags patterns, stagegate-walk when SG-2+ |
 
 **Decisions for Rowland before P1:** §4's *fold* and *remove* rows — The day
 into Journey (decided 27 October: "fold it", and done); Journey, Actions, The gates and the machine lines off the rail.
