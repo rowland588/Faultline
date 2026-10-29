@@ -40,8 +40,8 @@ Read from the app as it runs, not from memory (22 October, `main` 166e769):
 - **Reference products**, for the quality of organisation expected — not to
   copy: Microsoft Teams (app bar → team → channel → tabs; a tab is a canvas;
   navigation kept to fewer than three levels), Microsoft Planner (one plan,
-  many views — Grid, Board, Schedule, Charts; *My tasks* across every plan),
-  Procore (company level and project level, a header naming both with a
+  many views — Grid, Board, Schedule, Charts; *My tasks* across every plan).
+  App-wide shell and rollout: `docs/ENTERPRISE-UI.md`. Also Procore (company level and project level, a header naming both with a
   switcher and an arrow up, a toolbox grouped by discipline showing only the
   tools you may use, favourites starred), Atlassian's 2025 navigation (global
   places kept apart from a space's own; *For you*), and SafetyCulture (sites

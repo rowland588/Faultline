@@ -56,6 +56,8 @@
    * not a seventh hue. That is the difference between a scheme and a palette.
    * ========================================================================= */
   --bg: #f6f4ef;          /* warm quiet paper — graphite ink sits on it; colour is a status, not a wash */
+  /* Teams-style canvas behind elevated panels (docs/ENTERPRISE-UI.md E1) — reuses existing neutrals */
+  --canvas: #f2f5f5;
   --surface: #ffffff;
   --surface-2: #efece6;
   --ink: #0f1417;         /* near-black with navy in it, as on the landing */
@@ -11111,8 +11113,83 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .pl-new .text-input { flex: 1 1 200px; margin: 0; }
 /* YOUR FACTORY (screens/FactoryScreen, the control room's Your factory) — the lines in floor order, each
    with its type; the control room's a grid of cards like a floor plan, the factory page a list edited in place */
+/* Enterprise panels — Planner / Teams canvas (docs/ENTERPRISE-UI.md) */
+.nv-main { background: var(--canvas); }
+.nv-main .wrap { overflow-x: clip; max-width: 100%; }
+.ep-panel {
+  margin: 0 0 18px; padding: 16px 18px 18px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.ep-panel .home-sec-head { margin-bottom: 8px; }
+.status-pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px;
+  border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 700; line-height: 1.4;
+  background: var(--surface-2); color: var(--ink-2);
+}
+.status-pill.is-r { background: color-mix(in srgb, var(--st-r) 12%, var(--surface)); color: var(--st-r); }
+.status-pill.is-a { background: color-mix(in srgb, var(--st-a) 14%, var(--surface)); color: var(--st-a); }
+.status-pill.is-g { background: color-mix(in srgb, var(--st-g) 12%, var(--surface)); color: var(--st-g); }
+.status-pill.is-n { background: var(--surface-2); color: var(--muted); }
+
+/* ---- Enterprise shell — every signed-in page (.nv-main, docs/ENTERPRISE-UI.md E0) ----
+   Teams: grey canvas, white content regions. Planner: cards and tables on panels,
+   not bare lists on the paper colour. Immersive tools (film, full-screen timer)
+   keep their own layout — selectors stay inside .wrap, not .fr / .walk-stage. */
+.nv-main .wrap > .part-head,
+.nv-main .wrap > .pace-head.part-head {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 16px 18px 14px; margin-bottom: 14px;
+}
+.nv-main .wrap > .sg-tiles,
+.nv-main .wrap > .ln-tiles.sg-tiles {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 10px 12px; margin-bottom: 14px;
+}
+.nv-main .wrap .pl-sec,
+.nv-main .wrap .home-projects,
+.nv-main .wrap .fd-back,
+.nv-main .wrap .proj-arch,
+.nv-main .wrap .fac-add,
+.nv-main .wrap .fac-merge {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 14px 16px 16px; margin-top: 18px;
+}
+.nv-main .wrap .pl-sec { margin-top: 18px; }
+.nv-main .wrap .pl-sec:first-of-type { margin-top: 14px; }
+/* Control room / project board — calm Planner panel, not a drifting hero (Rowland, 29 Oct) */
+.nv-main .jb-hero {
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+  box-shadow: var(--shadow); padding: 18px 20px 16px;
+}
+.nv-main .jb-glow { display: none; }
+.nv-main .jb-eyebrow { color: var(--muted); }
+.nv-main .jb-says { color: var(--ink); font-size: var(--t-h); animation: none; }
+.nv-main .jb-stat {
+  background: var(--surface-2); border-color: var(--line); color: var(--muted); animation: none;
+}
+.nv-main .jb-stat b { color: var(--ink); }
+.nv-main .jb-stat.is-late b { color: var(--st-r); }
+.nv-main .jb-of { color: var(--muted); opacity: 1; }
+.nv-main .jb-owe { background: var(--surface-2); border-color: var(--line); color: var(--ink); }
+.nv-main .jb-owe-h { color: var(--muted); }
+/* List rows — one card a row on the canvas */
+.nv-main .lt-row,
+.nv-main .pl-row,
+.nv-main .qsl-work {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+}
+.nv-main .fac-quick {
+  padding: 10px 12px; border-radius: var(--radius); background: var(--surface);
+  border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+
 .fac-home { margin-bottom: 18px; }
-.fac-quick { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 14px; }
+.fac-quick {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 14px;
+  padding: 10px 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
 .fac-quick .fd-talk-start { margin: 0; }
 /* On a phone the factory's head was "Your factory" on two lines beside two
    stacked buttons (FLOW-AUDIT.md, 11): the name, then its two doors in a
@@ -11152,11 +11229,21 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .pl-edit-f { flex: 1 1 200px; display: flex; flex-direction: column; gap: 2px; font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); }
 .pl-edit-f .text-input { margin: 0; font-weight: 400; }
 .fac-says { margin-top: 0; }
-.fac-floor { list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
-.fac-card { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
-.fac-card-name { font-size: var(--t-body); }
-.fac-card-type, .fac-card-meta { font-size: var(--t-detail); color: var(--ink-2); }
-.fac-card-type { font-weight: 700; letter-spacing: .02em; }
+.fac-floor { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.fac-card {
+  width: 100%; height: 100%; display: flex; flex-direction: column; gap: 6px; padding: 14px 16px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-align: left;
+  font: inherit; color: var(--ink); cursor: pointer; box-shadow: var(--shadow);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+.fac-card:hover { border-color: var(--line-2); box-shadow: var(--shadow-lift); transform: translateY(-1px); }
+.fac-card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.fac-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.fac-card-name { font-size: var(--t-h3, 18px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.fac-card-type, .fac-card-meta, .fac-card-machines, .fac-card-projects { font-size: var(--t-detail); color: var(--ink-2); line-height: 1.4; }
+.fac-card-type { font-weight: 600; color: var(--muted); }
+.fac-card-machines { color: var(--ink); }
+.fac-card-projects { font-weight: 600; }
 /* only the abnormal number carries colour, with its word (FLOW-AUDIT.md, 1:
    the card's "1 late" was bold grey) */
 .fac-card .is-r { color: var(--st-r); font-weight: 700; }
@@ -11170,8 +11257,21 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .fac-add-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .fac-add-row .text-input { flex: 1 1 180px; margin: 0; }
 .fac-added { margin: 8px 0 0; font-weight: 600; }
+.fac-plan { margin-top: 8px; }
+.fac-plan-head {
+  display: none; padding: 0 8px 8px; font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line);
+}
+@media (min-width: 1100px) {
+  .fac-plan-head { display: grid; grid-template-columns: 40px minmax(180px, 1fr) minmax(200px, 2fr) minmax(160px, 1fr) auto; gap: 10px; align-items: end; }
+}
 .fac-lines { list-style: none; margin: 0; padding: 0; }
-.fac-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 8px 2px; border-bottom: 1px solid var(--line); }
+.fac-line {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 12px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.fac-line:last-child { border-bottom: 0; }
+.fac-line:hover { background: color-mix(in srgb, var(--brand) 4%, var(--surface)); }
 .fac-move { display: inline-flex; flex-direction: column; gap: 2px; }
 .fac-mv { width: 30px; height: 22px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink-2); font-size: var(--t-label); line-height: 1; cursor: pointer; }
 .fac-mv:disabled { opacity: .35; cursor: default; }
@@ -12890,6 +12990,11 @@ button.vc-col:focus-visible { outline: 2px solid var(--brand); outline-offset: 2
 .lpj-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .lpj-row-main { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .lpj-row .is-r { color: var(--st-r); }
+.fac-machines { order: 10; flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; padding: 4px 0 2px calc(1.6em + 40px); font-size: var(--t-detail); color: var(--ink-2); }
+.fac-machines-l { font-weight: 700; color: var(--ink); flex: 0 0 auto; }
+.fac-machines-flow { flex: 1 1 200px; min-width: 0; line-height: 1.35; }
+.fac-machines-empty { flex: 1 1 200px; min-width: 0; }
+.fac-machines-go { margin-left: auto; flex: 0 0 auto; }
 .fac-flow { order: 10; flex: 1 1 100%; padding-left: calc(1.6em + 40px); font-size: var(--t-detail); color: var(--ink-2); }
 
 /* ---- Line capacity on a phone (Rowland, 13 October: "the line capacity page
@@ -15062,7 +15167,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .pl-machine-name { color: var(--brand); text-decoration: none; }
 .pl-machine-name:hover b { text-decoration: underline; }
 .mpg-line { margin: var(--space-1) 0 0; }
-.fac-card-go { margin-top: var(--space-1); color: var(--brand); font-weight: 600; font-size: var(--t-detail); }
+.fac-card-go { margin-top: auto; padding-top: 4px; color: var(--brand); font-weight: 700; font-size: var(--t-detail); }
 /* machines, simply (27 October) — the Factory's Machines tab and a project's list */
 .fmc-n { color: var(--muted); font-weight: 700; margin-right: var(--space-1); }
 .pms-add { margin-top: var(--space-4); }
