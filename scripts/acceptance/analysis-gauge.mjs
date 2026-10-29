@@ -119,7 +119,7 @@ let good, worn, off, lowS;
   good = await start('Bench scale, 500 g test weight');
   await page.waitForSelector('.ie-kind'); await page.waitForTimeout(300);
   const kinds = await all('[role=radiogroup][aria-label="What do you want to know?"] .ie-kind');
-  ok(kinds.length === 12 && /^Is this gauge fit for what it judges/.test(kinds[8]) && /^Do inspectors agree with themselves and the standard/.test(kinds[9]) && /^Which shape do these readings follow/.test(kinds[11]), `1 the gauge, attribute agreement and the shape offered last: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
+  ok(kinds.length === 12 && /^Is this gauge fit for what it judges/.test(kinds[8]) && /^How much of what we see is the measurement/.test(kinds[9]) && /^Do inspectors agree with themselves and the standard/.test(kinds[10]) && /^Which shape do these readings follow/.test(kinds[11]), `1 the gauge, gauge R&R, attribute agreement and the shape offered last: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
   await page.getByRole('radio', { name: /Is this gauge fit/ }).click();
   const modes = await all('[role=radiogroup][aria-label="How is it checked?"] .ie-kind');
   ok(modes.length === 3 && /^One reference, read again and again/.test(modes[0]) && /^References across its range/.test(modes[1]) && /^One reference, checked day after day/.test(modes[2]), `1 three ways of checking offered: ${modes.map(m => m.split(' — ')[0].slice(0, 40)).join(' | ')}`);
