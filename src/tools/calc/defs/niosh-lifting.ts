@@ -108,6 +108,7 @@ const def: CalcDef = {
       closing: r.rwl > 0
         ? `At ${fmt(num(v, 'loadKg'), 1)} kg the lifting index is ${liWord} against ${fmt(r.rwl, 1)} kg — ${FACTOR[lim]} is the first multiplier to improve.`
         : 'The measurements put this task outside the equation — measure again or use a different assessment method.',
+      money: { missing: ['NIOSH gives risk only — no money on this calculator (FC-207).'] },
     };
   },
   examples: [
