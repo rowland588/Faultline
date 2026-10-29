@@ -87,7 +87,9 @@ offers as cards a person adds; it never saves a record, never works out a
 figure, never passes a gate.
 
 Everything else is formulas: every calculation, and the sentences that say
-what the figures mean. The voice note on a form stays as it is.
+what the figures mean. The voice note on a form stays as it is. Which of the
+walk, the video study and the evidence actually call a model is
+[`docs/ADVANCED-TOOLS.md`](ADVANCED-TOOLS.md) (29 October).
 
 ## The only AI: voice and the camera — 20 October, later the same day
 
