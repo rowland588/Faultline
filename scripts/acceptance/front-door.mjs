@@ -8,8 +8,8 @@
  *   1  #/ is the Factory page — its name, the menu (Factory · Projects · Problems · Actions · Tools,
  *      Reports at the foot) with Factory lit, its own tabs (Overview · Lines · Machines · Programs — Machines since 27 October) and the bar
  *      saying Factory › Overview; no question, no front door
- *   2  Projects from the menu: New project offers the three kinds of change by their situations, the
- *      stage gate picked; the project made opens with its own tabs, the menu the same with Projects
+ *   2  Projects from the menu: New project offers Performance (6M); optional install under advanced link;
+ *      commissioning project made opens with its own tabs, the menu the same with Projects
  *      lit, the bar starting ‹ Projects; that link back lands on Projects, listing it
  *   3  a line from the Factory's Lines: its tabs, Factory lit, ‹ Factory back to the Factory page
  *   4  the Factory page carries you back to where you were — the project and the line, each one tap
@@ -62,11 +62,16 @@ ok(await page.locator('.fd-ask, .fd-lib, .fd-tools').count() === 0 && !/What do 
 await page.locator('.nv-rail .nv-ri', { hasText: 'Projects' }).click(); await page.waitForTimeout(800);
 ok(/#\/projects/.test(page.url()) && (await lit()).join() === 'Projects', '2 Projects from the menu, lit', `${page.url()} | ${(await lit()).join()}`);
 await go('#/projects?new=1');
-const kinds = (await page.locator('.proj-model-opt .proj-model-runs b').allInnerTexts()).map(flat);
-const sits = (await page.locator('.proj-model-opt .proj-model-t').allInnerTexts()).map(flat).join(' | ');
-ok(kinds.join(' · ') === 'Performance (6M) · Installation project' && /Find and fix what is holding a line back/.test(sits) && /New equipment — optional gates/.test(sits) && !/Lever tree/.test(await page.locator('.proj-new').innerText()),
-  '2 New project offers Performance first and Installation second — lever tree parked', `${kinds.join(' · ')} | ${sits}`);
-await page.locator('.proj-model-opt', { hasText: 'Installation project' }).click();
+const mainKinds = (await page.locator('.proj-model-grid .proj-model-opt .proj-model-runs b').allInnerTexts()).map(flat);
+const sits = flat(await page.locator('.proj-model-grid .proj-model-opt .proj-model-t').innerText().catch(() => ''));
+ok(mainKinds.join(' · ') === 'Performance (6M)' && /Find and fix what is holding a line back/.test(sits)
+  && !/New equipment — optional gates/.test(await page.locator('.proj-model-grid').innerText())
+  && !/Lever tree/.test(await page.locator('.proj-new').innerText())
+  && await page.locator('.proj-install-advanced').isVisible(),
+  '2 New project — Performance (6M) only on main screen; install under advanced link', `${mainKinds.join(' · ')} | ${sits}`);
+await page.locator('.proj-install-advanced').click();
+await page.waitForTimeout(300);
+await page.locator('.proj-model-advanced .proj-model-opt').click();
 await page.locator('.proj-new-grid input.text-input').first().fill('Line 4 new case packer');
 await page.getByRole('button', { name: 'Create and add the machines' }).click(); await page.waitForTimeout(1500);
 ok(/#\/project\/[^/]+/.test(page.url()), '2 the project made and opened', page.url());

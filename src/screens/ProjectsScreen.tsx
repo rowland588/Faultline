@@ -12,7 +12,7 @@
 import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
-import { isPicked, methodOf, MODELS, NEW_PROJECT_MODELS, planModel, type PlanModel } from '../lib/planModel';
+import { isPicked, methodOf, MODELS, OPTIONAL_INSTALL_MODEL, planModel, PRIMARY_NEW_PROJECT_MODELS, type PlanModel } from '../lib/planModel';
 import { FilterBar, RecordRow, RecordRows } from '../ui/parts';
 import { useLineRecords } from '../lib/useLineRecords';
 import { STORE_WORDS, addPaceLine, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange, updateProject } from '../db';
@@ -147,8 +147,14 @@ export function ProjectsScreen() {
    *
    * NOTHING IS PICKED FOR YOU. Three methods, each for a different kind of
    * job — a default is a choice made without anybody noticing there was one. */
-  /* ...unless it was picked already — on the front door or a line's page (?model=) */
-  const [model, setModel] = useState<PlanModel | null>(() => { const m = q.get('model'); return isPicked(m) ? m : null; });
+  /* Performance (6M) by default; commissioning only from ?model= or the advanced link. */
+  const [model, setModel] = useState<PlanModel | null>(() => {
+    const m = q.get('model');
+    if (m === 'commissioning') return 'commissioning';
+    if (isPicked(m)) return m;
+    return 'board';
+  });
+  const [showInstallTrack, setShowInstallTrack] = useState(() => q.get('model') === 'commissioning');
   /* ?new=1 ARRIVING WHILE THE PAGE IS OPEN — a link to start a project followed from Projects itself
      (the address changes, the page stays): open New, with the kind the link names (B5) */
   useEffect(() => {
@@ -157,7 +163,8 @@ export function ProjectsScreen() {
       if (h.get('new') !== '1') return;
       setAdding(true);
       const m = h.get('model');
-      if (isPicked(m)) setModel(m);
+      if (m === 'commissioning') { setModel('commissioning'); setShowInstallTrack(true); }
+      else if (isPicked(m)) setModel(m);
     };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
@@ -181,7 +188,7 @@ export function ProjectsScreen() {
        naming its factory line — never a second line of the same name */
     const picked = factory.filter(w => onLines.includes(w.id));
     for (const [i, w] of picked.entries()) await addPaceLine({ projectId: p.id, key: lineKey(w.name), name: w.name, workspaceId: w.id, sort: i + 1 });
-    setName(''); setLead(''); setHandover(''); setAdding(false); setModel(null); setOnLines([]);
+    setName(''); setLead(''); setHandover(''); setAdding(false); setModel('board'); setShowInstallTrack(false); setOnLines([]);
     /* Straight into the job. A commissioning project starts with its machines
        and its first test, on the Testing screen; it used to land on Lines &
        people and ask for a line with a sponsor. A 3P or lever-tree project is
@@ -230,25 +237,56 @@ export function ProjectsScreen() {
               name and the lead come once that is said. */}
           <div className="proj-model">
             <span className="field-label">{startLine ? `What are you trying to do on ${startLine.name}?` : 'What are you trying to do?'}</span>
-            <div className="proj-model-grid">
-              {NEW_PROJECT_MODELS.map(m => (
-                <button key={m.id} type="button" aria-pressed={model === m.id}
-                  className={'proj-model-opt' + (model === m.id ? ' on' : '')}
-                  onClick={() => setModel(m.id)}>
-                  <span className="proj-model-t">{m.situation}</span>
-                  <span className="proj-model-q">{m.blurb}</span>
-                  <span className="proj-model-s">{m.useWhen}</span>
-                  <span className="proj-model-runs">Runs as <b>{m.label}</b></span>
-                  <dl className="proj-model-dl">
-                    <dt>Built from</dt><dd>{m.organised}</dd>
-                    <dt>Rhythm</dt><dd>{m.rhythm}</dd>
-                    <dt>Done when</dt><dd>{m.done}</dd>
-                    <dt>Prints</dt><dd>{m.document}</dd>
-                  </dl>
+            {!showInstallTrack ? (
+              <>
+                <div className="proj-model-grid">
+                  {PRIMARY_NEW_PROJECT_MODELS.map(m => (
+                    <button key={m.id} type="button" aria-pressed={model === m.id}
+                      className={'proj-model-opt' + (model === m.id ? ' on' : '')}
+                      onClick={() => { setModel(m.id); setShowInstallTrack(false); }}>
+                      <span className="proj-model-t">{m.situation}</span>
+                      <span className="proj-model-q">{m.blurb}</span>
+                      <span className="proj-model-s">{m.useWhen}</span>
+                      <span className="proj-model-runs">Runs as <b>{m.label}</b></span>
+                      <dl className="proj-model-dl">
+                        <dt>Built from</dt><dd>{m.organised}</dd>
+                        <dt>Rhythm</dt><dd>{m.rhythm}</dd>
+                        <dt>Done when</dt><dd>{m.done}</dd>
+                        <dt>Prints</dt><dd>{m.document}</dd>
+                      </dl>
+                    </button>
+                  ))}
+                </div>
+                <p className="chip-hint">
+                  Programs and tests live on the line —{' '}
+                  {startLine
+                    ? <a href={`#/programs?line=${encodeURIComponent(startLine.id)}`}>open {startLine.name}’s Programs ›</a>
+                    : <a href="#/factory">set up a line on the Factory ›</a>}
+                  {' '}when you only need to prove, not a project.
+                </p>
+                <button type="button" className="btn btn-ghost proj-install-advanced" style={{ marginTop: 8 }}
+                  onClick={() => { setShowInstallTrack(true); setModel('commissioning'); }}>
+                  Need a formal install with gates?
                 </button>
-              ))}
-            </div>
-            {!model && <p className="chip-hint">Pick the closest. It can be changed later under Details.</p>}
+              </>
+            ) : (
+              <div className="proj-model-advanced card" style={{ marginTop: 8, padding: 12 }}>
+                <p className="sub" style={{ margin: '0 0 10px' }}>
+                  Optional desk track — gates and handover when an OEM or sign-off pack needs them.
+                  Prove on the line first; this does not replace Programs.
+                </p>
+                <button type="button" className={'proj-model-opt on'} aria-pressed
+                  onClick={() => setModel('commissioning')}>
+                  <span className="proj-model-t">{OPTIONAL_INSTALL_MODEL.situation}</span>
+                  <span className="proj-model-q">{OPTIONAL_INSTALL_MODEL.useWhen}</span>
+                  <span className="proj-model-runs">Runs as <b>{OPTIONAL_INSTALL_MODEL.label}</b></span>
+                </button>
+                <button type="button" className="btn btn-ghost" style={{ marginTop: 10 }}
+                  onClick={() => { setShowInstallTrack(false); setModel('board'); }}>
+                  Back — Performance (6M) only
+                </button>
+              </div>
+            )}
           </div>
           {model && (
             <div className="proj-new-grid" style={{ marginTop: 12 }}>
@@ -331,9 +369,9 @@ export function ProjectsScreen() {
             <h2 className="proj-empty-title">No projects yet</h2>
             {mayStart ? <>
               <p className="sub">
-                A project is a change to one or more of your lines — new equipment, a line made to perform
-                better, a number hit by a date. Start one, or wait to be invited to somebody else’s: a project you are
-                invited to appears here the next time the app syncs.
+                Prove with Programs on the line first — no project required. Start Performance (6M) when fault-finding
+                and Actions need a project, or wait to be invited to somebody else’s: a project you are invited to
+                appears here the next time the app syncs.
               </p>
               <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => setAdding(true)}>
                 Start a project

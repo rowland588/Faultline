@@ -113,7 +113,17 @@ export const MODELS: (Method & { id: PickedModel })[] = [
     document: 'The tree on one page · client report' },
 ];
 
-/** New project picker — Performance first; lever tree parked (docs/FAULTLINE-FAULT-MODEL.md). */
+/** New project — the one card on the main screen (docs/FAULTLINE-FAULT-MODEL.md). */
+export const PRIMARY_NEW_PROJECT_MODELS = MODELS.filter(m => m.id === 'board');
+
+/** Optional install track — Details switcher and ?model=commissioning, not a peer card. */
+export const OPTIONAL_INSTALL_MODEL = (() => {
+  const m = MODELS.find(x => x.id === 'commissioning');
+  if (!m) throw new Error('planModel: commissioning entry missing');
+  return m;
+})();
+
+/** New project advanced + project Details (lever tree parked). */
 export const NEW_PROJECT_MODELS = MODELS.filter(m => m.id !== 'tree');
 
 /** Details switcher — keep lever tree only for projects already on it. */

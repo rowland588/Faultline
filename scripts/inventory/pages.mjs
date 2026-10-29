@@ -678,9 +678,10 @@ export const PAGES = (sd, cap) => [
     { what: 'a row a project — its kind and who leads it, its lines and its handover', sel: '.proj-list li.part-row', n: 3 },
     { what: 'All lines, to narrow it to one', sel: '.proj-list select.proj-line-f' },
   ] },
-  /* NEW JOB: the three kinds of project, chosen from the situation (the words box and the library went with the method builder, 20 October) */
+  /* NEW JOB: Performance (6M) on the main screen; optional install under advanced link (29 Oct, docs/FAULTLINE-FAULT-MODEL.md) */
   { name: 'New project', path: '#/projects?new=1', must: [
-    { what: 'Faultline’s three kinds of project, each from its situation', sel: '.proj-model-opt', n: 3 },
+    { what: 'Performance (6M) — find and fix what is holding a line back', sel: '.proj-model-opt .proj-model-t', text: /Find and fix what is holding a line back/ },
+    { what: 'Need a formal install with gates? — optional, not a peer card', sel: '.proj-install-advanced', text: /^Need a formal install with gates\?$/ },
   ] },
   /* A VIDEO STUDY (18 October, docs/VIDEO.md): footage read for the work at each station, reviewed, worked out as a line balance */
   { name: 'Video studies', path: '#/video', must: [
