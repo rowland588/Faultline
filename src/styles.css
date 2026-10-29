@@ -14,6 +14,14 @@
  * the structure below — one job per colour — is unchanged, only the colours
  * that fill the jobs moved.
  *
+ * 29 October — the colour a person can see. The aesthetic programme had
+ * aligned tokens and calmed the gates, and the page still read as the old
+ * cyan on cool grey. The brand is now a spruce teal on a warm quiet paper
+ * (the same one job: what you press, and the mark). State hues are unchanged
+ * — green done, violet in progress, amber at risk, red late or failed, quiet
+ * not-started. A gate is a small mark, never a solid alarm button. Late and
+ * failed are the only strong red.
+ *
  * "Futuristic but classic" is a discipline, not a palette: one confident
  * gradient and nothing else glowing; deep ink on generous white; hairlines
  * rather than boxes; motion that is short and purposeful. A factory floor in
@@ -47,13 +55,13 @@
    * needs to stand out and none of these fits, the answer is weight or space,
    * not a seventh hue. That is the difference between a scheme and a palette.
    * ========================================================================= */
-  --bg: #f4f6f6;          /* cool white — the landing's paper */
+  --bg: #f6f4ef;          /* warm quiet paper — graphite ink sits on it; colour is a status, not a wash */
   --surface: #ffffff;
-  --surface-2: #edf1f1;
+  --surface-2: #efece6;
   --ink: #0f1417;         /* near-black with navy in it, as on the landing */
   --ink-2: #3c474c;
   --muted: #56636a;       /* 5.6:1 on the page, 5.9:1 on white — labels must stay readable */
-  --line: #e1e7e7;
+  --line: #e4e0d8;
   --line-2: #c7d1d2;      /* a stronger rule: tree connectors, crumb outlines */
 
   /* WHERE A BOX HAS GOT TO — five states, told apart at a glance and at 34%
@@ -75,16 +83,16 @@
   /* THE IDENTITY. One cyan-teal, one job each for the rest. --brand fills
      the primary action (white on it 5.3:1); --accent is the same teal where
      text must carry it (5.6:1 on white). */
-  --accent: #0b7285;
-  --accent-soft: #e3f4f6;
-  --accent-rgb: 11, 114, 133;
-  --brand: #0c7489;
-  --brand-2: #095c6d;     /* pressed/hover */
-  --brand-sky: #22c3d6;   /* the light end of the landing's gradient */
+  --accent: #0c655c;
+  --accent-soft: #e4f3ef;
+  --accent-rgb: 12, 101, 92;
+  --brand: #0a6a5c;       /* spruce — white on it 6.5:1. The mark is brighter; a button is this, never the mark */
+  --brand-2: #084e45;     /* pressed/hover */
+  --brand-sky: #2bb8a6;   /* the mark on graphite. White text fails on it (2.5:1) — never a button fill */
   --on-brand: #ffffff;
   --on-dark: #ffffff;    /* words on a dark or coloured fill — the state pill, the graphite frame: the one place white words are allowed (B7) */
   /* THE BRIGHT CYAN IS THE MARK ON GRAPHITE AND NOTHING ELSE. */
-  --brand-mark: #22c3d6;
+  --brand-mark: #2bb8a6;
   --blue: #6d28d9;        /* booked, planned — violet, never a second identity */
   --blue-soft: #f3eefd;
   --gold: #b45309;        /* outstanding */
@@ -95,27 +103,27 @@
      October: "black background with white writing ... when it prints, it
      won't work" — then "light everywhere"): a pale fill, a teal edge,
      graphite words; what is on screen is what prints (lib/reportKit BAND). */
-  --shell: #eef3f3;       /* the band's pale fill — reportKit BAND */
+  --shell: #f3f1eb;       /* the band's pale fill — reportKit BAND */
   --shell-2: #ffffff;     /* a tile or a panel on the band */
   --shell-ink: #0f1417;
   --shell-muted: #59666c;
   --shell-dim: #323d43;
-  --shell-line: #d6dfdf;
+  --shell-line: #ddd8ce;
   /* the numbers allowed to carry colour on a band — and the answer to "are
      we on target?" (ui/OnTarget) — the five states' own, readable on pale */
   --shell-warn: #b45309;
   --shell-bad: #c4281c;
   --shell-ok: #15803d;
 
-  --sweep: linear-gradient(135deg, #12171c 0%, #16323a 58%, #0c7489 100%);
-  --sweep-soft: linear-gradient(135deg, #eef6f6 0%, #e5efef 100%);
+  --sweep: linear-gradient(135deg, #12171c 0%, #123832 58%, #0a6a5c 100%);
+  --sweep-soft: linear-gradient(135deg, #f4f1ea 0%, #e9e4da 100%);
 
   /* chrome — the LIGHT cockpit frame (workspace bar, tab bar, meeting room) */
-  --chrome: #eef2f2;
-  --chrome-2: #e4eaea;
+  --chrome: #f1efe8;
+  --chrome-2: #e6e2da;
   --chrome-ink: #0f1417;
   --chrome-muted: #56636a;
-  --chrome-line: #d6dfdf;
+  --chrome-line: #ddd8ce;
 
   --ok: #15803d;          /* good news — the done green, never a second one */
   --warn: #b45309;        /* 5.0:1 on white — #a97822 was 3.4:1 on every 'to decide' tag */
@@ -189,11 +197,11 @@ body {
   margin: 0;
   font-family: var(--font);
   font-size: var(--t-body);   /* the body size, so a word nobody sized is still one of the six */
-  /* The landing's mist, kept faint: a breath of teal and mint at the head of
-     every page over the fresh paper, never behind the work itself. */
+  /* A faint spruce mist at the head of every page, over the warm paper,
+     never behind the work itself. */
   background:
-    radial-gradient(1100px 420px at 50% -140px, rgba(34,195,214, 0.12), transparent 70%),
-    radial-gradient(700px 360px at 92% -80px, rgba(127,227,190, 0.16), transparent 70%),
+    radial-gradient(1100px 420px at 50% -140px, rgba(43,184,166, 0.12), transparent 70%),
+    radial-gradient(700px 360px at 92% -80px, rgba(125,206,184, 0.16), transparent 70%),
     var(--bg);
   background-repeat: no-repeat;
   color: var(--ink);
@@ -238,8 +246,9 @@ button { font-family: inherit; }
 }
 .btn:active { transform: scale(0.98); }
 .btn-primary {
-  background: linear-gradient(135deg, var(--brand), #0e7f94); border-color: var(--brand); /* both ends hold white text at 4.6:1 or better */
-  color: var(--on-brand); font-weight: 700; box-shadow: 0 8px 20px -10px rgba(12,116,137, 0.55);
+  /* Flat spruce. A gradient out to the mark (#2bb8a6) drops white text under 3:1. */
+  background: var(--brand); border-color: var(--brand);
+  color: var(--on-brand); font-weight: 700; box-shadow: 0 8px 20px -10px rgba(10,106,92, 0.55);
 }
 .btn-primary:active { background: var(--brand-2); border-color: var(--brand-2); }
 .btn-primary:disabled { box-shadow: none; }
@@ -1933,11 +1942,11 @@ button.st-pill { cursor: pointer; }
 .pace-bar-name { display: block; font-size: var(--t-detail); font-weight: 700; color: var(--ink); }
 .pace-bar-meta { display: block; margin-top: 1px; font-size: var(--t-label); color: var(--muted); }
 .pace-profile {
-  margin-left: 6px; padding: 1px 6px; border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 700;
-  background: var(--surface-2); color: var(--ink-2);
+  margin-left: 6px; padding: 1px 6px 1px 8px; border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 700;
+  background: var(--surface-2); color: var(--ink-2); box-shadow: inset 3px 0 0 var(--line-2);
 }
-.pace-profile-longstop { background: var(--fill-warn); color: var(--st-a); }
-.pace-profile-frequency { background: var(--fill-w); color: var(--st-w); }
+.pace-profile-longstop { background: var(--fill-warn); color: var(--st-a); box-shadow: inset 3px 0 0 var(--st-a); }
+.pace-profile-frequency { background: var(--fill-w); color: var(--st-w); box-shadow: inset 3px 0 0 var(--st-w); }
 .pace-bar-track { background: var(--surface-2); border-radius: var(--radius-sm); height: 16px; overflow: hidden; }
 .pace-bar-fill { height: 100%; background: var(--brand); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 .pace-bar-nums { text-align: right; }
@@ -4911,11 +4920,11 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line);
 }
 /* Commission tags — same semantics as .spp-pill / .part-tag (STAGEGATE-AESTHETIC B2). */
-.cm-tag.is-proven, .cm-tag.is-g, .cm-tag.is-have { color: var(--st-g); border: 1px solid color-mix(in srgb, var(--st-g) 35%, transparent); background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); }
-.cm-tag.is-below, .cm-tag.is-a, .cm-tag.is-short { color: var(--st-a); border: 1px solid var(--st-a); background: var(--fill-warn); }
-.cm-tag.is-missing, .cm-tag.is-r, .cm-tag.is-late { color: var(--on-dark); border: 1px solid var(--st-r); background: var(--st-r); }
-.cm-tag.is-untested, .cm-tag.is-n { background: var(--surface-2); color: var(--st-n-ink); border: 1px solid var(--line); }
-.cm-tag.is-w, .cm-tag.is-awaited { color: var(--st-w); border: 1px solid color-mix(in srgb, var(--st-w) 45%, transparent); background: var(--fill-w); }
+.cm-tag.is-proven, .cm-tag.is-g, .cm-tag.is-have { color: var(--st-g); border: 1px solid color-mix(in srgb, var(--st-g) 35%, transparent); background: color-mix(in srgb, var(--st-g) 12%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-g); }
+.cm-tag.is-below, .cm-tag.is-a, .cm-tag.is-short { color: var(--st-a); border: 1px solid color-mix(in srgb, var(--st-a) 55%, transparent); background: var(--fill-warn); box-shadow: inset 3px 0 0 var(--st-a); }
+.cm-tag.is-missing, .cm-tag.is-r, .cm-tag.is-late { color: var(--st-r); border: 1px solid var(--st-r); background: color-mix(in srgb, var(--st-r) 18%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-r); }
+.cm-tag.is-untested, .cm-tag.is-n { background: var(--surface-2); color: var(--st-n-ink); border: 1px solid var(--line); box-shadow: inset 3px 0 0 var(--st-n); }
+.cm-tag.is-w, .cm-tag.is-awaited { color: var(--st-w); border: 1px solid color-mix(in srgb, var(--st-w) 45%, transparent); background: var(--fill-w); box-shadow: inset 3px 0 0 var(--st-w); }
 
 /* editable cells: they look like text until you touch them, so a dense table
    does not read as a form */
@@ -5736,7 +5745,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .pg-ring { width: 12px; height: 12px; border-radius: var(--radius-round); box-shadow: inset 0 0 0 2px var(--blue); }
 
 /* the list: the left edge says when it settles, the pill says what we have */
-.mt-row.is-pg-overdue { border-left-color: var(--danger); }
+.mt-row.is-pg-overdue { border-left-color: var(--danger); background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); }
 .mt-row.is-pg-booked { border-left-color: var(--blue); }
 .mt-row.is-pg-undated { border-left-color: var(--warn); }
 .mt-row.is-pg-proved { background: var(--surface-2); border-left-color: var(--ok); }
@@ -5749,8 +5758,8 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   width: 158px; padding: 6px 8px; font-size: var(--t-label); font-weight: 700;
   border-radius: var(--radius-sm);
 }
-.pg-state-sel.is-pg-proved { color: var(--ok); border-color: var(--ok); }
-.pg-state-sel.is-pg-onMachine { color: var(--warn); border-color: var(--warn); }
+.pg-state-sel.is-pg-proved { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); background: color-mix(in srgb, var(--ok) 12%, var(--surface)); box-shadow: inset 3px 0 0 var(--ok); }
+.pg-state-sel.is-pg-onMachine { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, transparent); background: var(--fill-warn); box-shadow: inset 3px 0 0 var(--warn); }
 .pg-state-sel.is-pg-needed { color: var(--ink-2); }
 
 /* said out loud rather than left to be inferred from an empty link */
@@ -6038,14 +6047,14 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   background: var(--surface); display: flex; flex-direction: column; gap: 2px; max-width: 78ch; }
 .ot-q { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .ot-a { font-size: var(--t-body); line-height: 1.4; color: var(--ink); }
-.ot-w { font-weight: 800; }
+.ot-w { display: inline-block; padding: 0 8px; border-radius: var(--radius-pill); font-weight: 800; }
 .ot-r { color: var(--ink-2); }
-.ot.is-behind { border-color: var(--st-r); border-width: 1.5px 1.5px 1.5px 5px; background: color-mix(in srgb, var(--st-r) 7%, var(--surface)); }
-.ot.is-behind .ot-w { color: var(--st-r); }
-.ot.is-risk { border-color: var(--st-a); background: color-mix(in srgb, var(--st-a) 8%, var(--surface)); }
-.ot.is-risk .ot-w { color: var(--st-a); }
-.ot.is-on { border-color: color-mix(in srgb, var(--st-g) 40%, var(--line)); background: color-mix(in srgb, var(--st-g) 5%, var(--surface)); }
-.ot.is-on .ot-w { color: var(--st-g); }
+.ot.is-behind { border-color: var(--st-r); border-width: 1.5px 1.5px 1.5px 5px; background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); }
+.ot.is-behind .ot-w { color: var(--st-r); background: color-mix(in srgb, var(--st-r) 14%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-r); }
+.ot.is-risk { border-color: var(--st-a); background: var(--fill-warn); }
+.ot.is-risk .ot-w { color: var(--st-a); background: color-mix(in srgb, var(--st-a) 12%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-a); }
+.ot.is-on { border-color: color-mix(in srgb, var(--st-g) 45%, var(--line)); background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); }
+.ot.is-on .ot-w { color: var(--st-g); background: color-mix(in srgb, var(--st-g) 12%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-g); }
 .ot.is-none .ot-w { color: var(--ink-2); }
 /* On the dark band of the front page: first, across the whole card. */
 .vd > .ot { flex: 1 1 100%; margin: 0; max-width: none; }
@@ -7296,7 +7305,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .ig-cell.is-done { background: color-mix(in srgb, var(--st-g) 11%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--st-g) 35%, transparent); color: var(--st-g); }
 .ig-cell.is-problem { background: var(--st-r); color: var(--on-dark); }
 .ig-cell.is-late { background: color-mix(in srgb, var(--st-r) 10%, var(--surface)); border: 2px solid var(--st-r); color: var(--st-r); font-weight: 700; }
-.ig-cell.is-asking { background: var(--st-a); color: var(--on-dark); }
+.ig-cell.is-asking { background: var(--fill-warn); color: var(--st-a); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--st-a) 55%, transparent); }
 /* THE COLOUR RULES, ON THE GRID. A day booked is still ahead — indigo, quiet.
    No day yet is not started — grey, whatever its place; the next one says
    "Next" in words rather than borrowing indigo, which said "booked" of a
@@ -7308,7 +7317,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
    (ui/InstallGrid, phoneCards). The same five states as the squares, in the
    same colours, with the state in words on the right: done a quiet green
    wash, late a heavier red edge, a problem solid red, waiting on a verdict
-   amber, a booked day indigo, no day grey. "Next" is said in words. */
+   a calm amber wash, a booked day violet, no day grey. "Next" is said in words. */
 .igm { display: grid; gap: 10px; }
 .igm-all { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 .igm-chip { font: inherit; font-size: var(--t-label); font-weight: 700; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-pill); padding: 5px 10px; min-height: 32px; cursor: pointer; }
@@ -7463,7 +7472,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .tw-fold { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit; }
 .tw-fold .tw-block-h { margin: 0; }
 .tw-fold-t { flex: 1 1 16ch; min-width: 0; color: var(--ink-2); font-size: var(--t-detail); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tw-fold-go { color: var(--accent, #0e7f94); font-size: var(--t-detail); font-weight: 700; }
+.tw-fold-go { color: var(--accent); font-size: var(--t-detail); font-weight: 700; }
 .tw-fold:hover { border-color: var(--line-2, #cfd8e3); }
 
 .pace-title-row { display: flex; align-items: center; gap: 10px; }
@@ -7487,14 +7496,14 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
  * Light whatever the theme, on purpose: it is the one screen that is only a
  * door, and Rowland asked for it bright. */
 .door {
-  --door-bg: #f6f9f9;
+  --door-bg: #f6f4ef;
   --door-ink: #12171c;
   --door-ink-2: #3f4d53;
   --door-mute: #7a878d;
   --door-blue: var(--brand);
-  --door-blue-2: #22c3d6;
-  --door-sky: #7fe3ea;
-  --door-line: #dce6e6;
+  --door-blue-2: #2bb8a6;
+  --door-sky: #7ed9cc;
+  --door-line: #e4e0d8;
   position: relative; isolation: isolate;
   min-height: 100vh; min-height: 100dvh; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
@@ -7505,27 +7514,27 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 /* A faint dot grid, fading out from the middle — the only "technical" texture. */
 .door::before {
   content: ""; position: absolute; inset: 0; z-index: -1;
-  background-image: radial-gradient(rgba(12,116,137, 0.13) 1px, transparent 1.2px);
+  background-image: radial-gradient(rgba(10,106,92, 0.13) 1px, transparent 1.2px);
   background-size: 26px 26px;
   -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 42%, #000 20%, transparent 75%);
   mask-image: radial-gradient(ellipse 60% 50% at 50% 42%, #000 20%, transparent 75%);
 }
 .door-mist { position: absolute; inset: -20%; z-index: -2; pointer-events: none; }
 .door-mist span { position: absolute; border-radius: var(--radius-round); filter: blur(70px); opacity: 0.9; }
-.door-m1 { width: 52vmax; height: 52vmax; left: 8%; top: 4%; background: radial-gradient(circle, #b4ebf2, transparent 65%); animation: door-drift 22s ease-in-out infinite alternate; }
-.door-m2 { width: 46vmax; height: 46vmax; right: 6%; top: 18%; background: radial-gradient(circle, #c9eef4, transparent 65%); animation: door-drift 28s ease-in-out infinite alternate-reverse; }
-.door-m3 { width: 40vmax; height: 40vmax; left: 30%; bottom: 0; background: radial-gradient(circle, #cdf3e1, transparent 65%); animation: door-drift 32s ease-in-out infinite alternate; }
+.door-m1 { width: 52vmax; height: 52vmax; left: 8%; top: 4%; background: radial-gradient(circle, #b7ebe4, transparent 65%); animation: door-drift 22s ease-in-out infinite alternate; }
+.door-m2 { width: 46vmax; height: 46vmax; right: 6%; top: 18%; background: radial-gradient(circle, #c9eee6, transparent 65%); animation: door-drift 28s ease-in-out infinite alternate-reverse; }
+.door-m3 { width: 40vmax; height: 40vmax; left: 30%; bottom: 0; background: radial-gradient(circle, #c8f0e4, transparent 65%); animation: door-drift 32s ease-in-out infinite alternate; }
 @keyframes door-drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(4vmax, -3vmax) scale(1.08); } }
 
 .door-main { width: 100%; max-width: 1200px; display: flex; flex-direction: column; align-items: center; }
 .door-stage { position: relative; width: 100%; display: grid; place-items: center; font-size: clamp(60px, 17vw, 210px); }
 .door-pulse { position: absolute; left: -16px; width: calc(100% + 32px); top: 52%; height: 1.2em; transform: translateY(-50%); overflow: visible; }
 .door-trace, .door-beat { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.door-trace { stroke: rgba(12,116,137, 0.22); stroke-width: 1.25; }
+.door-trace { stroke: rgba(10,106,92, 0.22); stroke-width: 1.25; }
 .door-beat {
   stroke: url(#door-beat-g); stroke-width: 2.5;
   stroke-dasharray: 180 1000; stroke-dashoffset: 180;
-  filter: drop-shadow(0 0 6px rgba(34, 195, 214, 0.6));
+  filter: drop-shadow(0 0 6px rgba(43, 184, 166, 0.6));
   animation: door-run 3.2s cubic-bezier(.45, .05, .55, .95) infinite;
 }
 @keyframes door-run { from { stroke-dashoffset: 180; } to { stroke-dashoffset: -1000; } }
@@ -7534,11 +7543,11 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
   font-family: "Outfit Variable", var(--display); font-size: 1em; font-weight: 200;
   line-height: 1.05; letter-spacing: -0.015em;
   /* Graphite into teal, with a pale cyan sheen that passes through every few seconds. */
-  background: linear-gradient(100deg, #12171c 0%, #0b6474 30%, var(--brand) 42%, #c9f4f6 50%, var(--brand) 58%, #0b6474 70%, #12171c 100%);
+  background: linear-gradient(100deg, #12171c 0%, #0a5c54 30%, var(--brand) 42%, #d4f3ec 50%, var(--brand) 58%, #0a5c54 70%, #12171c 100%);
   background-size: 260% 100%; background-position: 100% 0;
   -webkit-background-clip: text; background-clip: text; color: transparent;
   animation: door-sheen 7s ease-in-out infinite;
-  filter: drop-shadow(0 8px 30px rgba(12,116,137, 0.16));
+  filter: drop-shadow(0 8px 30px rgba(10,106,92, 0.16));
 }
 @keyframes door-sheen { 0%, 25% { background-position: 100% 0; } 75%, 100% { background-position: 0% 0; } }
 .door-methods {
@@ -7554,7 +7563,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
   background: rgba(255, 255, 255, 0.66);
   -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
   border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 0 1px rgba(12,116,137, 0.07), 0 24px 60px -24px rgba(10,70,80, 0.28), 0 2px 6px rgba(10,70,80, 0.05);
+  box-shadow: 0 0 0 1px rgba(10,106,92, 0.07), 0 24px 60px -24px rgba(8,78,69, 0.28), 0 2px 6px rgba(8,78,69, 0.05);
 }
 .door-card-h { margin: 0 0 2px; font-family: "Outfit Variable", var(--display); font-size: var(--t-h); font-weight: 400; letter-spacing: -0.01em; color: var(--door-ink); }
 .door-f { display: grid; gap: 6px; }
@@ -7564,12 +7573,12 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
   background: rgba(255, 255, 255, 0.85); border: 1px solid var(--door-line); border-radius: var(--radius);
   padding: 11px 13px; outline: none; transition: border-color .15s, box-shadow .15s;
 }
-.door-f input:focus { border-color: var(--door-blue-2); box-shadow: 0 0 0 4px rgba(34,195,214, 0.16); }
+.door-f input:focus { border-color: var(--door-blue-2); box-shadow: 0 0 0 4px rgba(43,184,166, 0.16); }
 .door-go {
   position: relative; overflow: hidden; margin-top: 6px; min-height: 48px; border: none; border-radius: var(--radius); cursor: pointer;
   font: inherit; font-size: var(--t-body); font-weight: 600; letter-spacing: 0.01em; color: var(--on-dark);
-  background: linear-gradient(135deg, var(--door-blue), #0e7f94);
-  box-shadow: 0 10px 24px -10px rgba(12,116,137, 0.6);
+  background: var(--door-blue);
+  box-shadow: 0 10px 24px -10px rgba(10,106,92, 0.6);
   transition: transform .15s, box-shadow .15s;
 }
 /* A shimmer across the button, now and then — and on hover. */
@@ -7579,7 +7588,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
   transform: skewX(-18deg); animation: door-glint 5s ease-in-out infinite 1.5s;
 }
 @keyframes door-glint { 0%, 70% { left: -60%; } 100% { left: 130%; } }
-.door-go:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 14px 28px -10px rgba(12,116,137, 0.7); }
+.door-go:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 14px 28px -10px rgba(10,106,92, 0.7); }
 /* Not ready yet: still the colour you press, faded — never a dead grey block. */
 .door-go:disabled { cursor: default; opacity: 0.42; box-shadow: none; }
 .door-go:disabled::after { display: none; }
@@ -7650,16 +7659,16 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
    few seconds, then settles. */
 .is-filled { animation: vo-filled 3.6s ease-out; border-radius: var(--radius); }
 @keyframes vo-filled {
-  0%, 55% { box-shadow: 0 0 0 3px rgba(34,195,214, 0.55), 0 0 22px rgba(34,195,214, 0.35); background-color: rgba(34,195,214, 0.07); }
-  100% { box-shadow: 0 0 0 0 rgba(34,195,214, 0); background-color: transparent; }
+  0%, 55% { box-shadow: 0 0 0 3px rgba(43,184,166, 0.55), 0 0 22px rgba(43,184,166, 0.35); background-color: rgba(43,184,166, 0.07); }
+  100% { box-shadow: 0 0 0 0 rgba(43,184,166, 0); background-color: transparent; }
 }
 .tw-block.is-filled { animation-name: vo-filled-block; }
 @keyframes vo-filled-block {
-  0%, 55% { box-shadow: 0 0 0 3px rgba(34,195,214, 0.55), 0 0 22px rgba(34,195,214, 0.3); }
+  0%, 55% { box-shadow: 0 0 0 3px rgba(43,184,166, 0.55), 0 0 22px rgba(43,184,166, 0.3); }
   100% { box-shadow: var(--shadow); }
 }
 .vo-ask { margin: 0 0 8px; font-size: var(--t-detail); font-weight: 700; color: var(--ink); }
-@media (prefers-reduced-motion: reduce) { .is-filled { animation: none; outline: 3px solid rgba(34,195,214, 0.55); } }
+@media (prefers-reduced-motion: reduce) { .is-filled { animation: none; outline: 3px solid rgba(43,184,166, 0.55); } }
 .ig-why { margin: 0 0 12px; font-size: var(--t-detail); line-height: 1.5; color: var(--ink-2); }
 /* Columns on the grid that are not one of the stages, in the stage editor. */
 .in-extra { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line-2); display: grid; gap: 10px; }
@@ -8007,9 +8016,9 @@ span.ls-role:hover { border-color: transparent; }
 .ls-svg { position: absolute; inset: 0; overflow: visible; }
 .ls-board.is-placing { cursor: crosshair; }
 .ls-shape { cursor: move; }
-.ls-shape.is-on > :first-child { filter: drop-shadow(0 0 0.5px var(--brand)) drop-shadow(0 0 3px rgba(12,116,137, 0.55)); }
+.ls-shape.is-on > :first-child { filter: drop-shadow(0 0 0.5px var(--brand)) drop-shadow(0 0 3px rgba(10,106,92, 0.55)); }
 .ls-handle { fill: var(--on-dark); stroke: var(--brand); stroke-width: 2; cursor: nwse-resize; }
-.ls-draft { fill: rgba(12,116,137, 0.08); stroke: var(--brand); stroke-width: 2; stroke-dasharray: 6 4; }
+.ls-draft { fill: rgba(10,106,92, 0.08); stroke: var(--brand); stroke-width: 2; stroke-dasharray: 6 4; }
 .ls-shape-t {
   position: absolute; display: flex; align-items: center; justify-content: center; text-align: center;
   padding: 2px 6px; font-weight: 700; line-height: 1.15; overflow: hidden; overflow-wrap: anywhere; pointer-events: none; white-space: pre-wrap;
@@ -8021,7 +8030,7 @@ span.ls-role:hover { border-color: transparent; }
 .ls-tools-say { margin: 6px 2px 0; font-size: var(--t-label); }
 .ls-tones { display: flex; flex-wrap: wrap; gap: 6px; }
 .ls-tone { padding: 7px 12px; border-radius: var(--radius-pill); border: 2px solid; font: inherit; font-size: var(--t-detail); font-weight: 700; cursor: pointer; }
-.ls-tone.is-on { box-shadow: 0 0 0 3px rgba(12,116,137, 0.25); }
+.ls-tone.is-on { box-shadow: 0 0 0 3px rgba(10,106,92, 0.25); }
 .ls-icon-group { margin-bottom: 14px; }
 .ls-icon-h { margin: 0 0 8px; font-size: var(--t-label); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .ls-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
@@ -11228,11 +11237,11 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .spp-row.is-done .spp-name { color: var(--ink-2); }
 .spp-meta { color: var(--muted); font-size: var(--t-detail); }
 .spp-said { font-size: var(--t-detail); color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; }
-.spp-pill { flex: none; padding: 2px 9px; border: 1px solid var(--line); border-radius: var(--radius-pill); font-size: var(--t-detail); font-weight: 700; color: var(--muted); white-space: nowrap; }
-.spp-pill.is-g { color: var(--st-g); border-color: color-mix(in srgb, var(--st-g) 35%, transparent); background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); }
-.spp-pill.is-w { color: var(--st-w); border-color: color-mix(in srgb, var(--st-w) 45%, transparent); }
-.spp-pill.is-a { color: var(--st-a); border-color: var(--st-a); }
-.spp-pill.is-r { color: var(--on-dark); border-color: var(--st-r); background: var(--st-r); }
+.spp-pill { flex: none; padding: 2px 9px; border: 1px solid var(--line); border-radius: var(--radius-pill); font-size: var(--t-detail); font-weight: 700; color: var(--muted); white-space: nowrap; background: var(--surface); }
+.spp-pill.is-g { color: var(--st-g); border-color: color-mix(in srgb, var(--st-g) 35%, transparent); background: color-mix(in srgb, var(--st-g) 12%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-g); }
+.spp-pill.is-w { color: var(--st-w); border-color: color-mix(in srgb, var(--st-w) 45%, transparent); background: var(--fill-w); box-shadow: inset 3px 0 0 var(--st-w); }
+.spp-pill.is-a { color: var(--st-a); border-color: color-mix(in srgb, var(--st-a) 55%, transparent); background: var(--fill-warn); box-shadow: inset 3px 0 0 var(--st-a); }
+.spp-pill.is-r { color: var(--st-r); border-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 16%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-r); }
 /* the program record's own state beside the floor's (flow audit #3) — it wraps, never off the side */
 .spp-pill.spp-rec { flex: 0 1 auto; min-width: 0; white-space: normal; overflow-wrap: anywhere; font-weight: 600; text-align: left; }
 .spp-pill.spp-rec.is-r { color: var(--st-r); background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); }
@@ -12066,7 +12075,7 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .ie-verdict.is-g { background: color-mix(in srgb, var(--st-g) 9%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 30%, var(--surface)); }
 .ie-verdict.is-r { background: var(--st-r); border-color: var(--st-r); }
 .ie-verdict.is-r b { color: var(--on-dark); }
-.ie-verdict.is-a { border-color: var(--st-a); }
+.ie-verdict.is-a { border-color: var(--st-a); background: var(--fill-warn); box-shadow: inset 3px 0 0 var(--st-a); }
 .ie-verdict.is-a b { color: var(--st-a); }
 .ie-says { padding: 8px 0 4px; }
 .ie-say { margin: 0 0 4px; font-size: var(--t-body); line-height: 1.45; color: var(--ink); max-width: 72ch; }
@@ -12672,7 +12681,7 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .vc-key-r { color: var(--st-r); font-weight: 600; }
 .vc-col { all: unset; box-sizing: border-box; position: relative; z-index: 1; display: flex; flex-direction: column; min-width: 0; padding: 0 4px; border-radius: var(--radius); }
 button.vc-col { cursor: pointer; }
-button.vc-col:hover { background: rgba(12,116,137, .05); }
+button.vc-col:hover { background: rgba(10,106,92, .05); }
 button.vc-col:hover .vc-bar, button.vc-col:focus-visible .vc-bar { filter: brightness(1.07) saturate(1.1); transform: translateY(-2px); }
 button.vc-col:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .vc-stack { position: relative; display: block; height: var(--plotH); }
@@ -12697,8 +12706,8 @@ button.vc-col:focus-visible { outline: 2px solid var(--brand); outline-offset: 2
 .vc-nm { font-size: var(--t-label); line-height: 1.25; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .vc-sp { font-size: var(--t-label); color: var(--muted); font-variant-numeric: tabular-nums; }
 .vc-key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--t-detail); color: var(--ink-2); margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
-.vc-sw { display: inline-block; width: 14px; height: 14px; border-radius: var(--radius-xs); vertical-align: -2px; margin-right: 6px; background: linear-gradient(180deg, #3fc9d8, var(--brand)); }
-.vc-sw.is-run { background: repeating-linear-gradient(135deg, #7fdbe4 0 3px, transparent 3px 6px); box-shadow: inset 0 0 0 1.5px #7fdbe4; }
+.vc-sw { display: inline-block; width: 14px; height: 14px; border-radius: var(--radius-xs); vertical-align: -2px; margin-right: 6px; background: linear-gradient(180deg, #2bb8a6, var(--brand)); }
+.vc-sw.is-run { background: repeating-linear-gradient(135deg, #2bb8a6 0 3px, transparent 3px 6px); box-shadow: inset 0 0 0 1.5px #2bb8a6; }
 .vc-sw.is-limit { background: linear-gradient(180deg, #33414b, #12171c); }
 .vc-k { display: inline-block; width: 22px; vertical-align: middle; margin-right: 6px; border-top: 2.5px solid var(--ink); }
 .vc-k.is-guide { border-top: 2px dashed var(--ink-2); }
@@ -13248,8 +13257,16 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .pgr-main:hover .pgr-name, .pgr.is-open .pgr-name { color: var(--brand); }
 .pgr-meta { font-size: var(--t-detail); color: var(--muted); }
 .pgr-said { font-size: var(--t-detail); color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; }
-.pgr-aside { font-size: var(--t-detail); font-weight: 600; overflow-wrap: anywhere; }
+.pgr-aside { font-size: var(--t-detail); font-weight: 700; overflow-wrap: anywhere; color: var(--ink-2); }
 .pgr-aside.is-r { color: var(--st-r); }
+.pgr-aside.is-a { color: var(--st-a); }
+.pgr-aside.is-g { color: var(--st-g); }
+.pgr-aside.is-w { color: var(--st-w); }
+.pgr-aside.is-n { color: var(--st-n-ink); }
+.pgr:has(.pgr-aside.is-g) { box-shadow: inset 3px 0 0 var(--st-g); }
+.pgr:has(.pgr-aside.is-w) { box-shadow: inset 3px 0 0 var(--st-w); }
+.pgr:has(.pgr-aside.is-a) { box-shadow: inset 3px 0 0 var(--st-a); background: var(--fill-warn); }
+.pgr:has(.pgr-aside.is-r) { box-shadow: inset 4px 0 0 var(--st-r); background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); }
 /* Prove — test and criteria in one fold (STAGEGATE-AESTHETIC-REVIEW C5) */
 .pgr-prove { grid-column: 1 / -1; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--bg) 88%, var(--surface)); }
 .pgr-prove-h { all: unset; box-sizing: border-box; width: 100%; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 7px 10px; cursor: pointer; font: inherit; border-bottom: 1px solid transparent; }
@@ -13274,10 +13291,10 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .pgr .ptx-ladder { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; border: 0; }
 .pgr .ptx-ladder li::before { display: none; }
 .pgr .ptx-step { width: auto; max-width: 100%; gap: 2px 8px; padding: 3px 9px; border: 1px solid var(--line); border-left: 3px solid var(--st-n); border-radius: var(--radius-sm); background: var(--surface); }
-.pgr .ptx-ladder li.is-g .ptx-step { border-left-color: var(--st-g); }
-.pgr .ptx-ladder li.is-r .ptx-step { border-left-color: var(--st-r); }
-.pgr .ptx-ladder li.is-a .ptx-step { border-left-color: var(--st-a); }
-.pgr .ptx-ladder li.is-w .ptx-step { border-left-color: var(--st-w); }
+.pgr .ptx-ladder li.is-g .ptx-step { border-left-color: var(--st-g); background: color-mix(in srgb, var(--st-g) 12%, var(--surface)); }
+.pgr .ptx-ladder li.is-r .ptx-step { border-left-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 12%, var(--surface)); }
+.pgr .ptx-ladder li.is-a .ptx-step { border-left-color: var(--st-a); background: var(--fill-warn); }
+.pgr .ptx-ladder li.is-w .ptx-step { border-left-color: var(--st-w); background: var(--fill-w); }
 .pgr .ptx-seen { flex-basis: auto; max-width: 44ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pgr .ptx-compact { flex: 1 1 100%; display: grid; gap: 4px; align-items: start; }
 .pgr .ptx-compact .ptx-split { margin: 0; font-weight: 600; }
@@ -13360,18 +13377,21 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 /* A MACHINE, A PAGE OF ITS OWN (screens/MachineScreen; docs/STAGEGATE-UX.md
    slice 3) — its four gates in a row, each in its colour and its words; then
    its stages and tests beside its programs. */
-.mpg-at.is-r { color: var(--st-r); } .mpg-at.is-g { color: var(--st-g); } .mpg-at.is-w { color: var(--st-w); }
+.mpg-at { display: inline-flex; align-items: center; padding: 1px 10px 1px 8px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink-2); box-shadow: inset 3px 0 0 var(--st-n); }
+.mpg-at.is-r { color: var(--st-r); background: color-mix(in srgb, var(--st-r) 16%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-r); }
+.mpg-at.is-g { color: var(--st-g); background: color-mix(in srgb, var(--st-g) 14%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-g); }
+.mpg-at.is-w { color: var(--st-w); background: var(--fill-w); box-shadow: inset 3px 0 0 var(--st-w); }
 .mpg-steps { list-style: none; margin: 4px 0 18px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.mpg-step { display: grid; gap: 2px; padding: 10px 12px; border: 1.5px solid var(--line-2); border-radius: var(--radius); background: var(--surface); min-width: 0; }
-.mpg-step b { font-size: var(--t-body); }
+.mpg-step { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-top: 4px solid var(--st-n); border-radius: var(--radius); background: var(--surface); min-width: 0; }
+.mpg-step b { font-size: var(--t-body); color: var(--ink); }
 .mpg-step span { font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; }
-.mpg-step.is-g { border-color: transparent; background: color-mix(in srgb, var(--st-g) 9%, var(--surface)); }
+.mpg-step.is-g { border-color: color-mix(in srgb, var(--st-g) 30%, var(--line)); border-top-color: var(--st-g); background: color-mix(in srgb, var(--st-g) 14%, var(--surface)); }
 .mpg-step.is-g b { color: var(--st-g); }
-.mpg-step.is-r { border-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 6%, var(--surface)); }
+.mpg-step.is-r { border-color: var(--st-r); border-top-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 12%, var(--surface)); }
 .mpg-step.is-r b { color: var(--st-r); }
-.mpg-step.is-a { border-color: var(--st-a); }
+.mpg-step.is-a { border-color: color-mix(in srgb, var(--st-a) 45%, var(--line)); border-top-color: var(--st-a); background: var(--fill-warn); }
 .mpg-step.is-a b { color: var(--st-a); }
-.mpg-step.is-w { border-color: var(--st-w); }
+.mpg-step.is-w { border-color: color-mix(in srgb, var(--st-w) 35%, var(--line)); border-top-color: var(--st-w); background: var(--fill-w); }
 .mpg-step.is-w b { color: var(--st-w); }
 .mpg-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .mpg-main { padding: 4px 16px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); min-width: 0; }
@@ -13473,7 +13493,7 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .wb-tm-name i { font-style: normal; font-weight: 600; color: var(--muted); }
 .wb-tm-t { font-size: var(--t-detail); color: var(--ink-2); white-space: nowrap; }
 .wb-tm .wb-split { margin: 4px 0 0; font-size: calc(var(--t-num) * 1.75); line-height: 1; }
-.wb-tm .wb-lap { min-height: 120px; font-size: var(--t-page); position: sticky; bottom: 8px; box-shadow: 0 6px 18px rgba(12,116,137, 0.28); }
+.wb-tm .wb-lap { min-height: 120px; font-size: var(--t-page); position: sticky; bottom: 8px; box-shadow: 0 6px 18px rgba(10,106,92, 0.28); }
 .wb-tm .wb-t-acts .btn { flex: 1 1 140px; min-height: 52px; }
 .wb-tm-say { margin: 0; font-size: var(--t-label); }
 @media (pointer: coarse) { .wb-tm-keys { display: none; } }
@@ -13550,12 +13570,13 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .ln-sub { margin: 0; color: var(--shell-dim); font-size: var(--t-body); font-weight: 600; }
 .ln-band .ln-verdict { margin-top: 8px; border-color: var(--shell-line); background: var(--shell-2); }
 .ln-band .ln-verdict b { color: var(--shell-ink); }
-.ln-band .ln-verdict.is-a { background: var(--st-a); border-color: var(--st-a); }
+.ln-band .ln-verdict.is-a { background: var(--fill-warn); border-color: var(--st-a); box-shadow: inset 3px 0 0 var(--st-a); }
 .ln-band .ln-verdict.is-r { background: var(--st-r); border-color: var(--st-r); }
-.ln-band .ln-verdict.is-g { background: var(--st-g); border-color: var(--st-g); }
-/* a verdict in a state's colour says its word in white — a state pill, not a dark band */
-.ln-band .ln-verdict.is-a b, .ln-band .ln-verdict.is-r b, .ln-band .ln-verdict.is-g b,
-.ls-head.is-band .ln-verdict.is-a b, .ls-head.is-band .ln-verdict.is-r b, .ls-head.is-band .ln-verdict.is-g b { color: var(--on-dark); }
+.ln-band .ln-verdict.is-g { background: color-mix(in srgb, var(--st-g) 14%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 45%, transparent); box-shadow: inset 3px 0 0 var(--st-g); }
+/* Late and failed stay white on red — the one strong fill. Done and at risk are marks. */
+.ln-band .ln-verdict.is-r b, .ls-head.is-band .ln-verdict.is-r b { color: var(--on-dark); }
+.ln-band .ln-verdict.is-a b, .ls-head.is-band .ln-verdict.is-a b { color: var(--st-a); }
+.ln-band .ln-verdict.is-g b, .ls-head.is-band .ln-verdict.is-g b { color: var(--st-g); }
 .ln-facts { display: grid; grid-template-columns: auto auto; gap: 3px 14px; margin: 2px 0 0; font-size: var(--t-detail); align-content: start; }
 .ln-facts > div { display: contents; }
 .ln-facts dt { color: var(--shell-muted); font-weight: 700; }
@@ -13687,8 +13708,8 @@ button.ln-row:hover { background: var(--surface-2); }
 .ls-head.is-band .ln-verdict { margin-top: 6px; border-radius: var(--radius-pill); padding: 2px 10px; border: 1px solid var(--shell-line); background: var(--shell-2); font-size: var(--t-detail); }
 .ls-head.is-band .ln-verdict b { color: var(--shell-ink); }
 .ls-head.is-band .ln-verdict.is-r { background: var(--st-r); border-color: var(--st-r); }
-.ls-head.is-band .ln-verdict.is-a { background: var(--st-a); border-color: var(--st-a); }
-.ls-head.is-band .ln-verdict.is-g { background: var(--st-g); border-color: var(--st-g); }
+.ls-head.is-band .ln-verdict.is-a { background: var(--fill-warn); border-color: var(--st-a); box-shadow: inset 3px 0 0 var(--st-a); }
+.ls-head.is-band .ln-verdict.is-g { background: color-mix(in srgb, var(--st-g) 14%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 45%, transparent); box-shadow: inset 3px 0 0 var(--st-g); }
 .cap-tiles { margin: 10px 0 12px; }
 @media (max-width: 1099px) {
   /* on a phone the band's doors are small — the band says where we are, the doors are a tap away */
@@ -13724,7 +13745,7 @@ button.ln-row:hover { background: var(--surface-2); }
 /* the control room's drifting glow was light on dark; on the pale band it is left out */
 .jb-glow { display: none; }
 .nv-ri.is-on { background: var(--accent-soft); color: var(--ink); box-shadow: inset 3px 0 0 var(--brand); }
-.btn-primary { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 10px 22px -12px rgba(12, 116, 137, 0.75); }
+.btn-primary { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 10px 22px -12px rgba(10, 106, 92, 0.75); }
 .btn-primary:hover { filter: brightness(1.06); }
 .btn:not(.btn-primary):hover { border-color: var(--line-2); }
 .ln-tile, .vd-tile { transition: transform 0.12s ease, box-shadow 0.12s ease; }
@@ -13769,7 +13790,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .vid-player { position: relative; max-width: 960px; }
 .vid-player video { display: block; width: 100%; max-height: 62vh; background: #000; border-radius: var(--radius-sm); }
 .vid-zones { position: absolute; inset: 0 0 42px 0; pointer-events: none; }
-.vid-zone { position: absolute; border: 2px dashed rgba(34, 195, 214, .85); box-sizing: border-box; }
+.vid-zone { position: absolute; border: 2px dashed rgba(43, 184, 166, .85); box-sizing: border-box; }
 .vid-zone i { position: absolute; top: 4px; left: 4px; font-style: normal; font-size: var(--t-label); background: rgba(244, 246, 246, .92); color: var(--ink); padding: 1px 5px; border-radius: var(--radius-xs); }
 .vid-nofootage { padding: 28px 16px; background: var(--paper, var(--bg)); border: 1px dashed var(--line); border-radius: var(--radius-sm); }
 .vid-facts { margin: 8px 0 0; }
@@ -13877,9 +13898,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .vck-cam { position: relative; max-width: 720px; }
 .vck-cam video { display: block; width: 100%; max-height: 56vh; background: #000; border-radius: var(--radius-sm); }
 .vck-thirds { position: absolute; inset: 0; pointer-events: none; }
-.vck-thirds i { position: absolute; top: 0; bottom: 0; border-right: 2px dashed rgba(34, 195, 214, .85); box-sizing: border-box; }
+.vck-thirds i { position: absolute; top: 0; bottom: 0; border-right: 2px dashed rgba(43, 184, 166, .85); box-sizing: border-box; }
 .vck-thirds i:last-child { border-right: 0; }
-.vck-thirds b { position: absolute; left: 8px; bottom: 8px; width: 8px; max-height: calc(100% - 16px); background: rgba(34, 195, 214, .9); border-radius: var(--radius-xs); transition: height .2s; }
+.vck-thirds b { position: absolute; left: 8px; bottom: 8px; width: 8px; max-height: calc(100% - 16px); background: rgba(43, 184, 166, .9); border-radius: var(--radius-xs); transition: height .2s; }
 .vck-live { display: grid; gap: 4px; margin: 12px 0; }
 .vck-live > div { display: grid; grid-template-columns: 110px 1fr; gap: 8px; }
 .vck-live dt { color: var(--muted); }
@@ -14189,16 +14210,24 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* ===================== THE PARTS (ui/parts, docs/STRUCTURE.md §7) =====================
    Every page built from the same few. The header, the chips and the rows are the house's own
    (pace-head, chip-row, lt-row); these are what the house did not have. */
+/* A status mark: the word in its colour, a thin bar, a dot. Never a solid
+   fill with white words — that turned a gate name into an alarm button.
+   Late and failed are the strong red. Done and in progress stay small. */
 .part-tag {
-  display: inline-flex; align-items: center; vertical-align: middle; margin-left: var(--space-2);
-  padding: 2px 10px; border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 700; letter-spacing: 0.02em;
-  border: 1px solid currentColor; background: var(--surface);
+  display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; margin-left: var(--space-2);
+  padding: 2px 10px 2px 8px; border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 700; letter-spacing: 0.02em;
+  border: 1px solid transparent; background: var(--surface-2); color: var(--ink-2);
+  box-shadow: inset 3px 0 0 var(--st-n);
 }
-.part-tag.is-r { color: var(--st-r); }
-.part-tag.is-a { color: var(--st-a); }
-.part-tag.is-w { color: var(--st-w); }
-.part-tag.is-g { color: var(--st-g); }
-.part-tag.is-n { color: var(--st-n-ink); }
+.part-tag::before {
+  content: ""; width: 7px; height: 7px; border-radius: var(--radius-round); background: currentColor; flex: none;
+}
+.part-tag.is-r { color: var(--st-r); background: color-mix(in srgb, var(--st-r) 16%, var(--surface)); border-color: color-mix(in srgb, var(--st-r) 55%, transparent); box-shadow: inset 3px 0 0 var(--st-r); }
+.part-tag.is-a { color: var(--st-a); background: var(--fill-warn); border-color: color-mix(in srgb, var(--st-a) 45%, transparent); box-shadow: inset 3px 0 0 var(--st-a); }
+.part-tag.is-w { color: var(--st-w); background: var(--fill-w); border-color: color-mix(in srgb, var(--st-w) 40%, transparent); box-shadow: inset 3px 0 0 var(--st-w); }
+.part-tag.is-g { color: var(--st-g); background: color-mix(in srgb, var(--st-g) 14%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 40%, transparent); box-shadow: inset 3px 0 0 var(--st-g); }
+.part-tag.is-n { color: var(--st-n-ink); background: var(--surface-2); box-shadow: inset 3px 0 0 var(--st-n); }
+.part-tag.is-n::before { background: var(--st-n); }
 .part-menu { position: relative; }
 .part-menu-b { gap: var(--space-1); }
 .part-menu-list {
@@ -14918,10 +14947,12 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* Verdict on Now — calm band, no chart decoration (same tokens, less theatre) */
 .now .vd {
   background: var(--shell);
-  border-left-width: 3px;
-  border-left-color: color-mix(in srgb, var(--brand) 50%, var(--shell-line));
+  border-left: 4px solid var(--brand);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--line) 85%, transparent);
 }
+/* A machine at its gate: quiet row. Late or critical takes a red bar and a pale red ground — the status word stays a mark, not a button. */
+.now-m .lt-row { box-shadow: inset 3px 0 0 transparent; }
+.now-m.is-late .lt-row { box-shadow: inset 4px 0 0 var(--st-r); background: color-mix(in srgb, var(--st-r) 9%, var(--surface)); }
 .now .vd-tiles.is-lean { border-radius: var(--radius-sm); }
 .now .vd-tile { background: color-mix(in srgb, var(--shell-2) 92%, var(--shell)); }
 .now-day { margin-top: 10px; }
@@ -14949,8 +14980,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* machines, simply (27 October) — the Factory's Machines tab and a project's list */
 .fmc-n { color: var(--muted); font-weight: 700; margin-right: var(--space-1); }
 .pms-add { margin-top: var(--space-4); }
-.pms-status { display: inline-block; margin-left: var(--space-1); padding: 0 var(--space-2); border-radius: var(--radius-pill); font-size: var(--t-detail); font-weight: 600; border: 1px solid var(--line); color: var(--ink-2); }
-.pms-status.is-g { color: var(--st-g); border-color: var(--st-g); }
+.pms-status { display: inline-block; margin-left: var(--space-1); padding: 0 8px 0 7px; border-radius: var(--radius-pill); font-size: var(--t-detail); font-weight: 700; border: 1px solid var(--line); color: var(--st-n-ink); background: var(--surface-2); box-shadow: inset 3px 0 0 var(--st-n); }
+.pms-status.is-g { color: var(--st-g); border-color: color-mix(in srgb, var(--st-g) 40%, transparent); background: color-mix(in srgb, var(--st-g) 14%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-g); }
+.pms-status.is-w { color: var(--st-w); border-color: color-mix(in srgb, var(--st-w) 40%, transparent); background: var(--fill-w); box-shadow: inset 3px 0 0 var(--st-w); }
+.pms-status.is-a { color: var(--st-a); border-color: color-mix(in srgb, var(--st-a) 50%, transparent); background: var(--fill-warn); box-shadow: inset 3px 0 0 var(--st-a); }
+.pms-status.is-r { color: var(--st-r); border-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 16%, var(--surface)); box-shadow: inset 3px 0 0 var(--st-r); }
 
 /* THE FACTORY'S BOARD (27 October — "which line needs me?"): a line's state in a word and its colour, its worst thing */
 .fac-card.is-r { border-left: 4px solid var(--st-r); }
