@@ -22,7 +22,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
 import { addLineToFactory, asked, byFloor, liveProductionLines } from '../lib/lines';
-import { addSnag, allPaceLines, deleteSnag, inArchivedProject, listAllSnags, listAllStandards, projectWalkIds, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, patchSnag, setSnagsStatus, type PaceLineRow, type PaceTodoRow } from '../db';
+import { addSnag, allPaceLines, deleteSnag, inArchivedProject, listAllSnags, listAllPrograms, listAllAssets, listAllStandards, projectWalkIds, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, patchSnag, setSnagsStatus, type PaceLineRow, type PaceTodoRow } from '../db';
 import { problemCost, type ProblemCost } from '../lib/problemCost';
 import { neckOf } from '../lib/lineLoss';
 import type { Standard } from '../tools/linestandard/standard';
@@ -31,7 +31,7 @@ import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
 import type { SnagCardRow } from '../lib/buildSnagCards';
 import { jobGroup, jobOnLine, PRIORITY_RANK, PRIORITY_WORD, type JobGroup, type JobRow, type Priority, type SixMProblem, type SnagRow, type SnagTone, snagsReading } from '../lib/snagsReport';
-import { factoryLinesOf } from '../lib/lineRecords';
+import { factoryLinesOf, programsOnLine } from '../lib/lineRecords';
 import { openRecord } from '../ui/RecordDrawer';
 import { useAccessByJob } from '../ui/JobsBoard';
 import { useSyncStatus } from '../cloud/session';
@@ -816,6 +816,29 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
 }) {
   const machine = frame?.name ?? s.targetAsset ?? '';
   const typed = !frame && !!s.targetAsset && !machines.some(m => m.toLowerCase() === s.targetAsset?.trim().toLowerCase());
+  const [linePrograms, setLinePrograms] = useState<{ id: string; what: string }[]>([]);
+  useEffect(() => {
+    let live = true;
+    void Promise.all([listAllPrograms(), allPaceLines(), listAllAssets()]).then(([progs, jl, assets]) => {
+      if (!live) return;
+      const mach = machine.trim().toLowerCase();
+      const onLine = programsOnLine(s.workspaceId, progs.filter(p => !p.deletedAt), jl);
+      const narrowed = mach
+        ? onLine.filter(p => {
+          if (!p.assetId) return true;
+          const name = assets.find(a => a.id === p.assetId)?.name?.trim().toLowerCase();
+          return !name || name === mach;
+        })
+        : onLine;
+      setLinePrograms(narrowed.slice(0, 16).map(p => ({ id: p.id, what: p.what.trim() || 'Program' })));
+    });
+    return () => { live = false; };
+  }, [s.workspaceId, machine]);
+  const tieProgram = (what: string) => {
+    const tag = what.trim();
+    if (!tag || (s.problem ?? '').includes(tag)) return;
+    put({ problem: (s.problem ?? '').trim() ? `${(s.problem ?? '').trim()} · ${tag}` : tag });
+  };
   /* CLOSED ASKS WHAT SHOWS IT IS FIXED — one optional line, kept as the last step of its journey and so on its card
      and the Problems report (FLOW-AUDIT #12: "one tap closes it ... its last step read 'Ran 2 h without a jam, then
      jammed again', and it still closed with nothing asked"). Proof is OPEX's fifth move; the 6M asks "Did it work",
@@ -860,18 +883,9 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
         </form>
       )}
 
+      <p className="sub pe-anchor-lede">Anchor it on the line — area, machine and program when it matters.</p>
       <div className="pe-row">
-        {/* PROJECT first — where it is going (Rowland, 12 October: "assign the
-            problems to where they're going to be"): every project open. */}
-        <label className="pe-f"><span className="pe-k">PROJECT <i className="cw-f-opt">if it is for one</i></span>
-          <select className="text-input" value={s.projectId ?? ''} aria-label="Which project" onChange={e => put({ projectId: e.target.value || undefined })}>
-            <option value="">No project</option>
-            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            {/* the project it is for, archived since — named, so the box never says No project when it is for one */}
-            {s.projectId && !projects.some(p => p.id === s.projectId) && <option value={s.projectId}>{jobName(s.projectId) ?? 'A project no longer here'}</option>}
-          </select></label>
-        {/* LINE — any line, or a new one typed. Its NAME is the line's, put right on the line's own page (below). */}
-        <div className="pe-f"><span className="pe-k">LINE</span>
+        <div className="pe-f"><span className="pe-k">AREA (LINE)</span>
           {/* PINNED ON A WALK, it is on that line's walk picture — it stays on its line (13 October audit: moved, it kept the old line's pin) */}
           {s.assetId ? <p className="pe-said">{lineName(s.workspaceId) === 'Not on a line' ? 'Pinned on the walk of a line no longer in use' : `${lineName(s.workspaceId)} — pinned on its walk`}</p> : <>
           <select className="text-input" value={s.workspaceId} aria-label="Which line" onChange={e => {
@@ -893,7 +907,7 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
             <button type="button" className="linkish pe-rename" onClick={() => nav(`/lines/${encodeURIComponent(s.workspaceId)}`)}>Rename {lineName(s.workspaceId)} on its page ›</button>
           )}</>}</div>
       </div>
-      <div className="pe-f pe-wide"><span className="pe-k">MACHINE</span>
+      <div className="pe-f pe-wide"><span className="pe-k">MACHINE <i className="cw-f-opt">asset on the line</i></span>
         {frame
           ? <p className="pe-said">{frame.name} — pinned on the walk <button type="button" className="linkish" onClick={onWalk}>See it on the walk ›</button></p>
           : <>
@@ -905,6 +919,24 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
               onSave={v => put({ targetAsset: v.trim() || undefined })} />
           </>}
       </div>
+      {linePrograms.length > 0 && (
+        <div className="pe-f pe-wide"><span className="pe-k">PROGRAM <i className="cw-f-opt">if the fault is on a product run</i></span>
+          <div className="chip-row" role="group" aria-label="Which program">
+            {linePrograms.map(p => (
+              <button key={p.id} type="button" className="chip" onClick={() => tieProgram(p.what)}>{p.what}</button>
+            ))}
+          </div>
+          <button type="button" className="linkish btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(s.workspaceId)}`)}>
+            Every program on {lineName(s.workspaceId)} ›
+          </button>
+        </div>
+      )}
+      <label className="pe-f pe-wide"><span className="pe-k">PROJECT <i className="cw-f-opt">if it is for one</i></span>
+        <select className="text-input" value={s.projectId ?? ''} aria-label="Which project" onChange={e => put({ projectId: e.target.value || undefined })}>
+          <option value="">No project</option>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          {s.projectId && !projects.some(p => p.id === s.projectId) && <option value={s.projectId}>{jobName(s.projectId) ?? 'A project no longer here'}</option>}
+        </select></label>
       <div className="pe-row">
         <label className="pe-f"><span className="pe-k">WHOSE</span>
           <DraftText value={s.owner ?? ''} placeholder="Whose is it?" className="text-input" max={60} ariaLabel="Whose is it" onSave={v => put({ owner: v.trim() || undefined })} /></label>

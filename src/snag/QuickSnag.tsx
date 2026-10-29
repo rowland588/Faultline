@@ -27,8 +27,10 @@ import { Evidence } from '../ui/EvidenceDoors';
 import { EvidenceViewer, withPins } from '../ui/Evidence';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
-import { addSnag, patchSnag, listWorkspaces, allPaceLines } from '../db';
+import { addSnag, patchSnag, listWorkspaces, allPaceLines, listAllPrograms, listAllAssets } from '../db';
 import { useMachinesOf } from '../lib/useLineRecords';
+import { programsOnLine } from '../lib/lineRecords';
+import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
 import { useAccess } from '../cloud/access';
 import { uid } from '../lib/ids';
@@ -107,6 +109,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(0);
+  const [linePrograms, setLinePrograms] = useState<{ id: string; what: string }[]>([]);
 
   const ownLine = snag?.workspaceId;
   useEffect(() => {
@@ -147,6 +150,31 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
      current machines to pick from — they should"; flow audit #14: never
      another line's. */
   const lineMachines = useMachinesOf(line === NEW_LINE ? undefined : line, project || undefined);
+
+  useEffect(() => {
+    if (!line || line === ASK || line === NEW_LINE) { setLinePrograms([]); return; }
+    let live = true;
+    void Promise.all([listAllPrograms(), allPaceLines(), listAllAssets()]).then(([progs, jl, assets]) => {
+      if (!live) return;
+      const mach = machine.trim().toLowerCase();
+      const onLine = programsOnLine(line, progs.filter(p => !p.deletedAt), jl);
+      const narrowed = mach
+        ? onLine.filter(p => {
+          if (!p.assetId) return true;
+          const name = assets.find(a => a.id === p.assetId)?.name?.trim().toLowerCase();
+          return !name || name === mach;
+        })
+        : onLine;
+      setLinePrograms(narrowed.slice(0, 16).map(p => ({ id: p.id, what: p.what.trim() || 'Program' })));
+    });
+    return () => { live = false; };
+  }, [line, machine]);
+
+  const tieProgram = (what: string) => {
+    const tag = what.trim();
+    if (!tag) return;
+    setWords(w => (w.includes(tag) ? w : (w.trim() ? `${w.trim()} · ${tag}` : tag)));
+  };
 
   const ws = lines?.find(w => w.id === line);
   /* a project this person may only read takes no problem from them: said, and Save held */
@@ -203,17 +231,13 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
         <label className="cw-f cw-f-wide"><span>WHAT’S WRONG</span>
           <textarea rows={2} value={words} maxLength={600} placeholder="e.g. Guard on the infeed conveyor is loose"
             onChange={e => setWords(e.target.value)} /></label>
+        <p className="sub qs-anchor-lede">Anchor the fault on the line — area, machine and program when it matters.</p>
         <div className="qs-row">
-          <label className="cw-f"><span>LINE</span>
+          <label className="cw-f"><span>AREA (LINE)</span>
             <select value={line} onChange={e => pickLine(e.target.value)} aria-label="Which line">
               {line === ASK && <option value={ASK} disabled>Which line?</option>}
               {(lines ?? []).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
               <option value={NEW_LINE}>A new line…</option>
-            </select></label>
-          <label className="cw-f"><span>PROJECT <i className="cw-f-opt">if it is for one</i></span>
-            <select value={project} onChange={e => pickProject(e.target.value)} aria-label="Which project">
-              <option value="">No project</option>
-              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select></label>
         </div>
         {/* A JOB ON SEVERAL LINES ASKS WHICH — as it asks for the machine — its lines first */}
@@ -249,6 +273,26 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
             </div>
           );
         })()}
+        {linePrograms.length > 0 && (
+          <div className="qs-mach" role="group" aria-label="Which program">
+            <span className="qs-l">PROGRAM <i className="cw-f-opt">if the fault is on a product run</i></span>
+            <div className="chip-row">
+              {linePrograms.map(p => (
+                <button key={p.id} type="button" className="chip" onClick={() => tieProgram(p.what)}>{p.what}</button>
+              ))}
+            </div>
+            {ws && (
+              <button type="button" className="linkish btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(ws.id)}`)}>
+                Every program on {ws.name} ›
+              </button>
+            )}
+          </div>
+        )}
+        <label className="cw-f cw-f-wide"><span>PROJECT <i className="cw-f-opt">if it is for one</i></span>
+          <select value={project} onChange={e => pickProject(e.target.value)} aria-label="Which project">
+            <option value="">No project</option>
+            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select></label>
         <div className="qs-mach" role="group" aria-label="Priority">
           <span className="qs-l">PRIORITY</span>
           <div className="chip-row">

@@ -85,6 +85,10 @@ const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail
 /* a sheet closed by Escape takes its history entry off a moment later — wait for it, or it lands on top of the goto (CLAUDE.md) */
 const go = async h => { await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 3000 }).catch(() => {}); await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2200); };
 const flat = s => (s ?? '').replace(/\s+/g, ' ').trim();
+const ensureProve = async row => {
+  const prove = row.locator('.pgr-prove-h');
+  if (await prove.count() && !(await row.locator('.pgr-prove.is-open').count())) { await prove.click(); await page.waitForTimeout(300); }
+};
 const main = page.locator('.nv-main');
 
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
@@ -276,6 +280,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
     `7 the job sees the line's own programs under their machines, marked by line — the same records, no second list (${rows.length})`);
   const cw = t.programs.find(p => p.what === 'CW-3 Maris Piper 2kg');
   const row = main.locator(`.pgr[data-program="${cw.id}"]`);
+  await ensureProve(row);
   await row.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
   const panel = row.getByRole('group', { name: 'Test CW-3 Maris Piper 2kg' });
   const saveOff = await panel.getByRole('button', { name: 'Save' }).isDisabled();
@@ -329,8 +334,13 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
     await db.putProgram({ id: 'acc-lp-9', projectId: '', workspaceId: ws, what: 'LP-9 Express 1kg', runs: 'Express 1kg', state: 'onMachine', sort: 9000, createdAt: t, updatedAt: t });
   }, WS);
   await go(`#/project/${sd.projectId}/programs`);
+  await main.locator('.pp-chip', { hasText: /^All\b/ }).click(); await page.waitForTimeout(600);
   const lp = main.locator('.pgr[data-program="acc-lp-9"]');
-  await lp.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
+  await lp.waitFor({ timeout: 15000 });
+  await ensureProve(lp);
+  const lpGo = lp.locator('.ptx-go');
+  await lpGo.waitFor({ timeout: 15000 });
+  await lpGo.click(); await page.waitForTimeout(300);
   const lpp = lp.getByRole('group', { name: 'Test LP-9 Express 1kg' });
   await lpp.getByRole('button', { name: 'Didn’t pass' }).click();
   await lpp.getByLabel('What was seen when LP-9 Express 1kg ran').fill('Film tracked off after 40 packs');
@@ -352,10 +362,13 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
    programs, nothing's changed ... link it into the stage gate process") ---- */
 {
   await go(`#/project/${sd.projectId}/programs`);
+  await main.locator('.pp-chip', { hasText: /^All\b/ }).click(); await page.waitForTimeout(600);
   const what = 'First program to verify Tesco';
   const before = await page.evaluate(async pid => (await (await import('/src/db.ts')).listPrograms(pid)).filter(p => !p.deletedAt).length, sd.projectId);
   const row = main.locator('.pgr', { hasText: what });
+  await row.waitFor({ timeout: 15000 });
   ok(await row.getByRole('button', { name: 'Test it' }).count() === 1, '7h a "Programs loaded" line with no record has Test it on its row');
+  await ensureProve(row);
   await row.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
   await row.getByRole('button', { name: 'Passed' }).click();
   await row.locator('.ptx-panel textarea').fill('Ran 200 packs through the de-nester, all placed');
@@ -397,6 +410,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   const t0 = await truth();
   const cw = t0.programs.find(p => p.what === 'CW-3 Maris Piper 2kg');
   const row = main.locator(`.pgr[data-program="${cw.id}"]`);
+  await ensureProve(row);
   await row.getByRole('button', { name: 'Go again' }).click(); await page.waitForTimeout(300);
   const pan = row.getByRole('group', { name: 'Test CW-3 Maris Piper 2kg' });
   await pan.getByLabel('Aiming for — CW-3 Maris Piper 2kg', { exact: true }).fill('55');
@@ -572,6 +586,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   /* one form: didn't pass is the test's and the floor's at once */
   await go(`#/project/${sd.projectId}/programs`);
   const r12 = main.locator('.pgr', { hasText: 'PR-12 Express 1.25 kg' }).first();
+  await ensureProve(r12);
   await r12.locator('.ptx-go').click(); await page.waitForTimeout(400);
   await r12.locator('.ptx-panel').getByRole('button', { name: 'Didn’t pass', exact: true }).click();
   await r12.locator('.ptx-panel textarea').fill('Film creasing again on the 1.25 kg — seal jaws cold');
@@ -665,6 +680,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   await go(`#/project/${sd.projectId}/programs`);
   ok(await main.getByRole('button', { name: /Add a program, or change one/ }).count() === 0 && await main.getByRole('button', { name: 'Track it here' }).count() === 0, '13f no second list at the foot, no "Track it here"');
   const r07 = main.locator('.pgr', { hasText: 'PR-07 Baking Potatoes 2 kg' }).first();
+  await ensureProve(r07);
   await r07.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
   const f07 = r07.getByRole('group', { name: 'Test PR-07 Baking Potatoes 2 kg' });
   const blank = await f07.getByRole('button', { name: 'Save', exact: true }).isDisabled();

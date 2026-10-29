@@ -1023,7 +1023,7 @@ function PaceExecReportA3() {
             <p className="exec-eyebrow">
               {line
                 ? `${project?.name ?? 'Project'} · line report`
-                : project ? `${methodOf(project).label} · client report` : hasTracker ? 'Client report' : 'Stage gate · client report'}
+                : project ? `${methodOf(project).label} · client report` : hasTracker ? 'Client report' : 'Installation project · client report'}
             </p>
             <h1 className="exec-title">{title}</h1>
             <p className="exec-lede">{hasTracker ? subtitle : 'What we are proving · where the project is · who owes what, by when'}</p>

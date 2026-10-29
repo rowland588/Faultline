@@ -320,7 +320,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
 
   /* ================= PAGE 1 — LINE PACE ================= */
   setFont(d, 8, 'bold', BRAND);
-  d.text(`${data.method ?? (data.tracker ? '' : 'Stage gate')}${data.method || !data.tracker ? ' · ' : ''}CLIENT REPORT`.toUpperCase(), M, M + 8);
+  d.text(`${data.method ?? (data.tracker ? '' : 'Installation project')}${data.method || !data.tracker ? ' · ' : ''}CLIENT REPORT`.toUpperCase(), M, M + 8);
   setFont(d, 24, 'bold', INK);
   d.text(fit(d, data.title, CW * 0.6), M, M + 34);
   setFont(d, 9, 'normal', INK2);

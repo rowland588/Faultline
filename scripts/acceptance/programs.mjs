@@ -64,7 +64,13 @@ const truth = () => page.evaluate(async pid => {
 /* ONE FORM (16 October): a program's status is said where its test is — the
    button on its row (Test it · Say how it went · Go again) opens it. */
 const ROWS = '.pgr:not(:has(.pp-line-tag))';
-const openForm = async row => { await row.locator('.ptx-go').click(); await page.waitForTimeout(400); return row.locator('.ptx-panel'); };
+const openForm = async row => {
+  const prove = row.locator('.pgr-prove-h');
+  if (await prove.count() && !(await row.locator('.pgr-prove.is-open').count())) { await prove.click(); await page.waitForTimeout(300); }
+  const testBtn = row.getByRole('button', { name: /^(Test it|Say how it went|Go again)$/ });
+  if (await testBtn.count()) await testBtn.first().click();
+  else await row.locator('.ptx-go').click();
+  await page.waitForTimeout(400); return row.locator('.ptx-panel'); };
 const say = async (k, is, note) => {
   const row = page.locator(ROWS).nth(k);
   const form = await openForm(row);

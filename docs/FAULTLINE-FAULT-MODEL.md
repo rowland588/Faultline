@@ -8,9 +8,17 @@ disagreement), [`docs/FAULTLINE-PRODUCT-DISCOVERY.md`](FAULTLINE-PRODUCT-DISCOVE
 [`docs/STAGEGATE-PROGRAMS-CORE.md`](STAGEGATE-PROGRAMS-CORE.md),
 [`docs/MAP.md`](MAP.md), [`docs/SIXM.md`](SIXM.md).
 
-**Slice 1 (this commit):** docs + person-visible demotion of commissioning
-narrative papers and lever tree on New project; code paths kept. **Slice 2
-(later):** fault record in data model, routing UI, deeper report cleanup.
+**Slice 1 (`b3b33bed`):** docs + person-visible demotion of commissioning
+narrative papers and lever tree on New project; code paths kept.
+
+**Slice 2 (this branch):** register form copy and order — area (line), machine,
+program chips and Programs link (no new snag field yet); remaining user-facing
+“Stage gate” → “Installation project” (picker, export, client report fallbacks,
+index/how-it-works/llms); eslint ratchet 64→60; acceptance scripts open the
+**Prove** fold before Test it (programs UI).
+
+**Still slice 3+:** fault anchors in storage/sync, categorize → tool suggestions,
+commissioning acceptance on legacy flag only.
 
 ---
 
@@ -139,9 +147,20 @@ UI demotion only; memory and slice 2 decide code removal.
 
 ---
 
-## 9. Slice 2 (next)
+## 9. Slice 2 — done on branch; slice 3 (next)
 
-- Fault anchors on register + 6M case; categorize → tool suggestions.
-- Rename remaining “Stage gate” chips where still shown.
+**Shipped (slice 2):**
+
+- Problems register + QuickSnag: anchor lede; **Area (line)** · **Machine** ·
+  **Program** (chips from the line, ties name into the words) · **Project**;
+  link to line Programs.
+- User-facing **Installation project** everywhere `methodOf` / `MODELS` already
+  said so; export workbook, client report fallbacks, landing copy updated.
+- ESLint ceiling 60 (was 64).
+- `programs.mjs` / `machines-programs.mjs`: open **Prove** before **Test it**.
+
+**Next (slice 3):**
+
+- Fault anchors persisted on register + 6M case; categorize → tool suggestions.
 - Gate commissioning acceptance on legacy flag or direct navigation only.
 - Optional: hide Commission tab behind Installation “More” when no gates in use.
