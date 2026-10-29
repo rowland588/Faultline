@@ -104,7 +104,7 @@ good or bad.
 - [manual] AIAG, *Measurement Systems Analysis*, 4th ed., 2010, ch. III section C — attribute measurement systems study (from knowledge; text not read).
 
 ## In Faultline
-Not built (FC-121). When built: the pieces coded, the inspectors' verdicts
+Built as Analysis `kind: 'attr'` (FC-121): the pieces coded, the inspectors' verdicts
 tapped on the phone in the study's random order, the reference typed once,
 the agreements, κ and each person's two error rates said in words, with the
 money of each error — and the result carried to the register's reject

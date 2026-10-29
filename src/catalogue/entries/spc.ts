@@ -526,7 +526,10 @@ export const SPC: Entry[] = [
     food: 'Seal checks, bake colour, foreign-matter inspection.',
     depends: ['FC-098', 'FC-137'],
     complexity: 'M', value: 'medium', valueWhy: 'Trust in every visual check.',
-    status: 'to-build', form: 'tool', kind: 'study', methods: ['msa.attribute-agreement'], scenarios: ['quality'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['msa.attribute-agreement'], scenarios: ['quality'], words: ['MSA', 'kappa', 'attribute agreement'],
+    built: { where: ['/analysis'], code: ['src/lib/ie/attributeAgreement.ts', 'src/tools/analysis/attr.ts', 'src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx'], tests: ['src/lib/ie/__tests__/attributeAgreement.test.ts', 'src/tools/analysis/__tests__/analysisAttr.test.ts'], acceptance: ['attribute-agreement.mjs'] },
+    spec: 'knowledge/specs/FC-121-attribute-agreement.md',
+    limits: ['Blind random order is agreed on the page — the app does not shuffle piece codes; the floor runs it that way.', 'Misses priced at customer complaint cost (Q) are not in this slice — false alarms on good packs only when materials a pack is given.'],
   },
   {
     id: 'FC-122', name: 'Calibration register and checks', discipline: 'msa', sub: 'calibration',

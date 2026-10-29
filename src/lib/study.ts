@@ -630,7 +630,7 @@ export interface AgreedCalc {
  *  this figure, did it change, do two ways of measuring agree, how many readings do I need — and the readings or
  *  counts that answer it. W3b adds the groups, the counts in a table and the relations as more kinds. */
 export interface AgreedAnalysis {
-  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'learn' | 'gauge' | 'shape' | 'grr';
+  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'learn' | 'gauge' | 'shape' | 'grr' | 'attr';
   /** what is measured — "Fill weight", "Reject rate" */
   name: string;
   unit?: string;
@@ -662,6 +662,8 @@ export interface AgreedAnalysis {
   shape?: { lower?: number; upper?: number };
   /** gauge R&R (FC-118): crossed parts × appraisers × trials */
   grr?: AgreedGrr;
+  /** attribute agreement (FC-121): pieces × inspectors × looks vs a reference */
+  attr?: AgreedAttr;
 }
 /** GAUGE R&R (FC-118). Parts and appraisers are named before measuring; trials default to 2. Tolerance optional but needed for %GRR of tolerance. */
 export interface AgreedGrr {
@@ -672,6 +674,14 @@ export interface AgreedGrr {
   upper?: number;
   /** Pool interaction when p exceeds this (default 0.25). */
   poolAlpha?: number;
+}
+/** ATTRIBUTE AGREEMENT (FC-121). Item codes and inspectors named before judging; looks default to 2. Reference verdicts use readings with col `reference`. */
+export interface AgreedAttr {
+  items: string[];
+  inspectors: string[];
+  looks?: 2 | 3;
+  materialsPerPack?: number;
+  packsPerShift?: number;
 }
 /** IS THE GAUGE FIT (W3c, knowledge/specs/FC-119-gauge.md). `repeat`: one reference read again and again (Type 1); `range`: references
  *  across the range, each reading carrying its reference in `with` (bias and linearity); `drift`: one reference checked day after day

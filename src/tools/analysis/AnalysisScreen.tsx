@@ -118,7 +118,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
 }
 
 /* ----------------------------------------------------------------- agreeing */
-const ORDER: AgreedAnalysis['kind'][] = ['sure', 'change', 'paired', 'groups', 'table', 'relate', 'learn', 'plan', 'gauge', 'grr', 'shape'];
+const ORDER: AgreedAnalysis['kind'][] = ['sure', 'change', 'paired', 'groups', 'table', 'relate', 'learn', 'plan', 'gauge', 'grr', 'attr', 'shape'];
 const GMODES: { k: AgreedGauge['mode']; word: string; eg: string }[] = [
   { k: 'repeat', word: 'One reference, read again and again', eg: 'a 500 g test weight weighed 25 to 50 times — the Type 1 study' },
   { k: 'range', word: 'References across its range', eg: 'a probe at 0, 20, 40, 60 and 80 °C, ten readings each — bias and linearity' },
@@ -159,6 +159,12 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const [partsT, setPartsT] = useState((grr0?.parts ?? []).join(', '));
   const [apprT, setApprT] = useState((grr0?.appraisers ?? []).join(', '));
   const [trialsT, setTrialsT] = useState(String(grr0?.trials ?? 2));
+  const attr0 = a?.attr;
+  const [itemsT, setItemsT] = useState((attr0?.items ?? []).join(', '));
+  const [inspT, setInspT] = useState((attr0?.inspectors ?? []).join(', '));
+  const [looksT, setLooksT] = useState(String(attr0?.looks ?? 2));
+  const [matT, setMatT] = useState(attr0?.materialsPerPack !== undefined ? String(attr0.materialsPerPack) : '');
+  const [packsAttrT, setPacksAttrT] = useState(attr0?.packsPerShift !== undefined ? String(attr0.packsPerShift) : '');
   if (!canAgree) return <div className="ie-agree is-wait"><h2>Waiting for it to be agreed</h2><p className="sub">What is asked and how sure it has to be is agreed by the project’s owner first.</p></div>;
   const nn = num;
   const gaugeDraft: AgreedGauge = { mode: gMode, ...(gMode !== 'range' && nn(gRef) !== undefined ? { reference: nn(gRef) } : {}), ...(nn(lowerT) !== undefined ? { lower: nn(lowerT) } : {}), ...(nn(upperT) !== undefined ? { upper: nn(upperT) } : {}),
@@ -166,7 +172,12 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
     ...(nn(needT) !== undefined ? { need: nn(needT) } : {}), ...(nn(resT) !== undefined ? { resolution: nn(resT) } : {}), ...(gMode === 'drift' && nn(baseT) !== undefined ? { baseline: nn(baseT) } : {}),
     ...(nn(packsT) !== undefined ? { packsPerShift: Math.round(nn(packsT) as number) } : {}), ...(nn(weeksT) !== undefined ? { shiftsPerWeek: nn(weeksT) } : {}), ...(nn(kgT) !== undefined ? { costPerKg: nn(kgT) } : {}) };
   const grrDraft = { parts: names(partsT), appraisers: names(apprT), trials: (trialsT === '3' ? 3 : 2) as 2 | 3, ...(num(lowerT) !== undefined ? { lower: num(lowerT) } : {}), ...(num(upperT) !== undefined ? { upper: num(upperT) } : {}) };
-  const boxes = kind === 'gauge' ? [gRef, lowerT, upperT, targetT, limitT, sliceT, needT, resT, baseT, packsT, weeksT, kgT] : kind === 'shape' || kind === 'grr' ? [lowerT, upperT] : [];
+  const attrDraft = {
+    items: names(itemsT), inspectors: names(inspT), looks: (looksT === '3' ? 3 : 2) as 2 | 3,
+    ...(num(matT) !== undefined ? { materialsPerPack: num(matT) } : {}),
+    ...(num(packsAttrT) !== undefined ? { packsPerShift: Math.round(num(packsAttrT) as number) } : {}),
+  };
+  const boxes = kind === 'gauge' ? [gRef, lowerT, upperT, targetT, limitT, sliceT, needT, resT, baseT, packsT, weeksT, kgT] : kind === 'shape' || kind === 'grr' ? [lowerT, upperT] : kind === 'attr' ? [matT, packsAttrT] : [];
   const draft: AgreedAnalysis = { kind, name: name.trim(), ...(unit.trim() && kind !== 'table' ? { unit: unit.trim() } : {}), confidence: conf,
     ...(kind === 'sure' ? { of } : {}), ...(kind === 'change' ? { data, better } : {}),
     ...(kind === 'groups' ? { better, ...(first.trim() ? { firstName: first.trim() } : {}) } : {}),
@@ -176,6 +187,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
     ...(kind === 'gauge' ? { gauge: gaugeDraft } : {}),
     ...(kind === 'shape' ? { shape: { ...(num(lowerT) !== undefined ? { lower: num(lowerT) } : {}), ...(num(upperT) !== undefined ? { upper: num(upperT) } : {}) } } : {}),
     ...(kind === 'grr' ? { grr: grrDraft } : {}),
+    ...(kind === 'attr' ? { attr: attrDraft } : {}),
     ...(kind === 'paired' ? { ...(first.trim() ? { firstName: first.trim() } : {}), ...(second.trim() ? { secondName: second.trim() } : {}), ...(num(within) !== undefined ? { within: num(within) } : {}) } : {}),
     ...(kind === 'plan' ? { plan: a?.plan ?? { ask: 'mean' as const } } : {}) };
   const problem = (within.trim() !== '' && num(within) === undefined) || boxes.some(b => b.trim() !== '' && num(b) === undefined) || (standardT.trim() !== '' && num(standardT) === undefined) || (perRunT.trim() !== '' && num(perRunT) === undefined) ? 'Numbers only in the boxes.' : analysisProblem(draft);
@@ -227,7 +239,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       </div>
       <div className="ie-agree-grid">
         <label className="field"><span className="field-label">What is measured</span>
-          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : kind === 'learn' ? 'Time to pack a case' : kind === 'gauge' ? 'Bench scale' : kind === 'grr' ? 'Seal strength' : kind === 'shape' ? 'Residual oxygen' : 'Fill weight'} /></label>
+          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : kind === 'learn' ? 'Time to pack a case' : kind === 'gauge' ? 'Bench scale' : kind === 'grr' ? 'Seal strength' : kind === 'attr' ? 'Seal wrinkle check' : kind === 'shape' ? 'Residual oxygen' : 'Fill weight'} /></label>
         {kind !== 'table' && <label className="field"><span className="field-label">Unit {kind === 'sure' && of === 'rate' ? <i className="sub">what the time is counted in — hours</i> : kind === 'change' && data === 'counted' ? <i className="sub">optional</i> : null}</span>
           <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder={of === 'rate' && kind === 'sure' ? 'hours' : kind === 'learn' ? 's' : 'g'} /></label>}
         {kind === 'learn' && <>
@@ -299,6 +311,25 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
           <label className="field"><span className="field-label">…and upper</span>
             <input className="text-input" inputMode="decimal" value={upperT} onChange={e => setUpperT(e.target.value)} placeholder="16" aria-label="Upper tolerance" /></label>
         </>}
+        {kind === 'attr' && <>
+          <label className="field ie-wide"><span className="field-label">The pieces <i className="sub">coded packs — at least ten, separated by commas</i></span>
+            <input className="text-input" value={itemsT} onChange={e => setItemsT(e.target.value)} placeholder="P01, P02, P03 …" aria-label="The pieces" /></label>
+          <label className="field ie-wide"><span className="field-label">The inspectors <i className="sub">two or three, separated by commas</i></span>
+            <input className="text-input" value={inspT} onChange={e => setInspT(e.target.value)} placeholder="A, B, C" aria-label="The inspectors" /></label>
+          <div className="ie-kinds" role="radiogroup" aria-label="Looks each">
+            <span className="field-label">Looks each</span>
+            <button type="button" role="radio" aria-checked={looksT !== '3'} className={'chip' + (looksT !== '3' ? ' on' : '')} onClick={() => setLooksT('2')}>2</button>
+            <button type="button" role="radio" aria-checked={looksT === '3'} className={'chip' + (looksT === '3' ? ' on' : '')} onClick={() => setLooksT('3')}>3</button>
+          </div>
+          <details className="ie-wide ie-agree-more"><summary>False alarms in money — optional</summary>
+            <div className="ie-agree-grid">
+              <label className="field"><span className="field-label">Materials a pack <i className="sub">£</i></span>
+                <input className="text-input" inputMode="decimal" value={matT} onChange={e => setMatT(e.target.value)} placeholder="0.12" aria-label="Materials a pack" /></label>
+              <label className="field"><span className="field-label">Packs a shift</span>
+                <input className="text-input" inputMode="numeric" value={packsAttrT} onChange={e => setPacksAttrT(e.target.value)} placeholder="3000" aria-label="Packs a shift" /></label>
+            </div>
+          </details>
+        </>}
         {kind === 'relate' && <label className="field ie-wide"><span className="field-label">The drivers <i className="sub">one to {MAX_DRIVERS}, each with its unit in brackets, separated by commas — the result is what is measured above</i></span>
           <input className="text-input" value={driversT} onChange={e => setDriversT(e.target.value)} placeholder="Jaw temperature (°C), Dwell (s)" aria-label="The drivers" /></label>}
         {kind === 'paired' && <>
@@ -333,6 +364,7 @@ export function agreedWords(a: AgreedAnalysis): string {
       return g?.mode === 'range' ? `${a.name} — bias across its range${u ? ` in${u}` : ''}${g.limit !== undefined ? `, read at ${g.limit}${u}` : ''}${lim} · ${c}` : g?.mode === 'drift' ? `${a.name} — ${g.reference !== undefined ? `the reference ${g.reference}${u}` : 'a reference'} checked day after day${lim} · ${c}` : `${a.name} — one reference${g?.reference !== undefined ? ` (${g.reference}${u})` : ''} read again and again${lim} · ${c}`; }
     case 'shape': { const s = a.shape; return `${a.name}${u ? ` in${u}` : ''} — which shape fits${s?.lower !== undefined ? `, a lower limit of ${s.lower}${u}` : ''}${s?.upper !== undefined ? `, an upper limit of ${s.upper}${u}` : ''} · ${c}`; }
     case 'grr': { const g = a.grr; return `${a.name}${u ? ` in${u}` : ''} — ${g?.parts.length ?? 0} parts × ${g?.appraisers.length ?? 0} appraisers × ${g?.trials ?? 2} trials${g?.lower !== undefined && g?.upper !== undefined ? ` · tolerance ${g.lower}–${g.upper}${u}` : ''}`; }
+    case 'attr': { const g = a.attr; return `${a.name} — ${g?.items.length ?? 0} pieces × ${g?.inspectors.length ?? 0} inspectors × ${g?.looks ?? 2} looks · reference on every piece`; }
     case 'plan': return `${a.name} — how many readings · ${c}`;
   }
 }
@@ -388,7 +420,92 @@ function Entry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReadi
   if (a.kind === 'relate') return <RelateEntry a={a} onAdd={onAdd} />;
   if (a.kind === 'gauge' && a.gauge?.mode === 'range') return <GaugeRangeEntry a={a} readings={readings} onAdd={onAdd} />;
   if (a.kind === 'grr') return <GrrEntry a={a} readings={readings} onAdd={onAdd} />;
+  if (a.kind === 'attr') return <AttrEntry a={a} readings={readings} onAdd={onAdd} />;
   return <SimpleEntry a={a} readings={readings} onAdd={onAdd} />;
+}
+
+const verdictWord = (v: number): string => (v >= 0.5 ? 'Reject' : 'Pass');
+
+/** Attribute agreement: reference per piece, then inspector × look judgments. */
+function AttrEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReading[]; onAdd: OnAdd }) {
+  const g = a.attr ?? { items: [], inspectors: [], looks: 2 as const };
+  const looks = g.looks ?? 2;
+  const [item, setItem] = useState(g.items[0] ?? '');
+  const [insp, setInsp] = useState(g.inspectors[0] ?? '');
+  const [phase, setPhase] = useState<'ref' | 'judgment'>('ref');
+  const refOf = (it: string) => readings.find(r => !r.struck && r.arm === it && r.col === 'reference' && typeof r.value === 'number');
+  const refsDone = g.items.filter(it => refOf(it)).length;
+  const judgmentOf = (it: string, name: string) => readings.filter(r => !r.struck && r.arm === it && r.col === name && typeof r.value === 'number').length;
+  const nextLook = item && insp ? judgmentOf(item, insp) + 1 : 1;
+  const needJudgments = g.items.length * g.inspectors.length * looks;
+  const haveJudgments = readings.filter(r => !r.struck && r.arm && r.col && r.col !== 'reference' && typeof r.value === 'number').length;
+  const refsComplete = refsDone >= g.items.length;
+  const addVerdict = (reject: boolean, ref: boolean) => {
+    if (!item) return;
+    if (ref) onAdd([{ arm: item, col: 'reference', value: reject ? 1 : 0 }]);
+    else if (insp && nextLook <= looks) onAdd([{ arm: item, col: insp, group: nextLook, value: reject ? 1 : 0 }]);
+  };
+  return (
+    <div className="ie-cap-box tool-sig-an" aria-label="Take the judgments">
+      <div className="chip-row" role="tablist" aria-label="Reference or judgments">
+        <button type="button" role="tab" aria-selected={phase === 'ref'} className={'chip' + (phase === 'ref' ? ' on' : '')} onClick={() => setPhase('ref')}>Reference · {refsDone}/{g.items.length}</button>
+        <button type="button" role="tab" aria-selected={phase === 'judgment'} className={'chip' + (phase === 'judgment' ? ' on' : '')} disabled={!refsComplete} onClick={() => setPhase('judgment')}>Judgments · {haveJudgments}/{needJudgments}</button>
+      </div>
+      <div className="chip-row" role="radiogroup" aria-label="Which piece?">
+        {g.items.map(p => <button key={p} type="button" role="radio" aria-checked={item === p} className={'chip' + (item === p ? ' on' : '')} onClick={() => setItem(p)}>{p}{refOf(p) ? ' ✓' : ''}</button>)}
+      </div>
+      {phase === 'judgment' && <>
+        <div className="chip-row" role="radiogroup" aria-label="Which inspector?">
+          {g.inspectors.map(o => <button key={o} type="button" role="radio" aria-checked={insp === o} className={'chip' + (insp === o ? ' on' : '')} onClick={() => setInsp(o)}>{o}</button>)}
+        </div>
+        {item && insp && nextLook <= looks ? <p className="sub ie-pad-hint">Piece <b>{item}</b>, inspector <b>{insp}</b>, look <b>{nextLook}</b> of {looks}</p> : null}
+      </>}
+      {phase === 'ref' && item ? <p className="sub ie-pad-hint">Expert reference for <b>{item}</b></p> : null}
+      <div className="ie-kind-taps">
+        <button type="button" className="btn btn-primary" disabled={!item || (phase === 'judgment' && (!insp || nextLook > looks))} onClick={() => addVerdict(false, phase === 'ref')}>Pass</button>
+        <button type="button" className="btn" disabled={!item || (phase === 'judgment' && (!insp || nextLook > looks))} onClick={() => addVerdict(true, phase === 'ref')}>Reject</button>
+      </div>
+      <AttrPaste onAdd={onAdd} items={g.items} inspectors={g.inspectors} looks={looks} />
+    </div>
+  );
+}
+
+function AttrPaste({ onAdd, items, inspectors, looks }: { onAdd: OnAdd; items: string[]; inspectors: string[]; looks: number }) {
+  const [t, setT] = useState('');
+  const [skipped, setSkipped] = useState<string[]>([]);
+  const go = () => {
+    const out: Omit<StudyReading, 'id' | 'at'>[] = [];
+    const bad: string[] = [];
+    for (const line of t.split(/\n/).map(x => x.trim()).filter(Boolean)) {
+      const bits = line.split(/[\t,; ]+/).filter(Boolean);
+      if (bits.length < 3) { bad.push(line); continue; }
+      const verdict = /^(reject|fail|1|bad)$/i.test(bits[bits.length - 1]) ? 1 : /^(pass|good|0|ok)$/i.test(bits[bits.length - 1]) ? 0 : undefined;
+      if (verdict === undefined) { bad.push(line); continue; }
+      const itRaw = bits[0];
+      const it = items.includes(itRaw) ? itRaw : items.find(x => x.toLowerCase() === itRaw.toLowerCase());
+      if (!it) { bad.push(line); continue; }
+      if (bits.length === 3 && /^ref(erence)?$/i.test(bits[1])) {
+        out.push({ arm: it, col: 'reference', value: verdict });
+        continue;
+      }
+      if (bits.length < 4) { bad.push(line); continue; }
+      const name = bits[1];
+      const lk = Number(bits[2]);
+      if (!inspectors.includes(name) || !Number.isFinite(lk) || lk < 1 || lk > looks) { bad.push(line); continue; }
+      out.push({ arm: it, col: name, group: lk, value: verdict });
+    }
+    if (out.length) onAdd(out);
+    setSkipped(bad);
+    setT('');
+  };
+  return (
+    <div className="ie-paste">
+      <label className="field"><span className="field-label">Or paste piece, inspector, look, pass|reject — one to a line</span>
+        <textarea className="text-input" rows={3} value={t} onChange={e => setT(e.target.value)} aria-label="Paste attribute judgments" placeholder={'P01 reference reject\nP01 A 1 pass\nP01 A 2 pass'} /></label>
+      <button type="button" className="btn" disabled={!t.trim()} onClick={go}>Add these</button>
+      {skipped.length > 0 && <p className="ie-problem" role="status">Left out: {skipped.slice(0, 4).join('; ')}{skipped.length > 4 ? ` … ${skipped.length} lines` : ''}.</p>}
+    </div>
+  );
 }
 
 function GrrPaste({ onAdd, trials, parts, appraisers }: { onAdd: OnAdd; trials: number; parts: string[]; appraisers: string[]; }) {
@@ -682,7 +799,7 @@ function PlanBox({ a, canAgree, onPlan }: { a: AgreedAnalysis; canAgree: boolean
 function Rows({ a, readings, canStrike, onStrike }: { a: AgreedAnalysis; readings: StudyReading[]; canStrike: boolean; onStrike: (id: string, struck: boolean) => void }) {
   if (!readings.length) return null;
   const u = a.unit ? ` ${a.unit}` : '';
-  const word = (r: StudyReading): string => (a.kind === 'grr' && r.arm && r.col && typeof r.value === 'number' ? `${r.arm} · ${r.col} · trial ${r.group ?? 1}: ${r.value}${u}` : r.col !== undefined && typeof r.made === 'number' ? `${r.arm} × ${r.col}: ${r.made}` : Array.isArray(r.xs) && typeof r.value === 'number' ? `${r.xs.join(', ')} → ${r.value}${u}` : typeof r.with === 'number' && a.kind === 'gauge' ? `${r.value}${u} against ${r.with}${u}` : typeof r.with === 'number' ? `${r.value}${u} → ${r.with}${u}` : typeof r.made === 'number' ? `${r.rejected} of ${r.made}${a.kind === 'sure' && a.of === 'rate' ? ` over ${r.made}${u}`.replace(/^ of.*/, '') : ''}` : typeof r.value === 'number' ? `${r.value}${u}` : '—');
+  const word = (r: StudyReading): string => (a.kind === 'attr' && r.arm && r.col && typeof r.value === 'number' ? `${r.arm} · ${r.col}${r.col !== 'reference' ? ` · look ${r.group ?? 1}` : ' (reference)'}: ${verdictWord(r.value)}` : a.kind === 'grr' && r.arm && r.col && typeof r.value === 'number' ? `${r.arm} · ${r.col} · trial ${r.group ?? 1}: ${r.value}${u}` : r.col !== undefined && typeof r.made === 'number' ? `${r.arm} × ${r.col}: ${r.made}` : Array.isArray(r.xs) && typeof r.value === 'number' ? `${r.xs.join(', ')} → ${r.value}${u}` : typeof r.with === 'number' && a.kind === 'gauge' ? `${r.value}${u} against ${r.with}${u}` : typeof r.with === 'number' ? `${r.value}${u} → ${r.with}${u}` : typeof r.made === 'number' ? `${r.rejected} of ${r.made}${a.kind === 'sure' && a.of === 'rate' ? ` over ${r.made}${u}`.replace(/^ of.*/, '') : ''}` : typeof r.value === 'number' ? `${r.value}${u}` : '—');
   return (
     <details className="ie-readings">
       <summary>Every reading, in the order taken ({readings.length})</summary>
