@@ -33,6 +33,11 @@ real user. Every proof of it ran on recorded answers.
 **For Rowland's team first; sold later.** So the measure of every change is
 whether the team uses it on the line, not whether a market would admire it.
 
+**29 October — Rowland, go:** **faultline.opexelevate.co.uk** is **fault-centric
+Gemba CI** — faults on program, machine, area (or any combo), tools that
+quantify, 6M for deep line performance, **programs and tests on the line** as
+the prove loop. Full model: [`docs/FAULTLINE-FAULT-MODEL.md`](FAULTLINE-FAULT-MODEL.md).
+
 **A manufacturing improvement system, built on the line.** Three parts:
 
 1. **The tools** — fast, correct calculation on what people measure on the
@@ -40,19 +45,24 @@ whether the team uses it on the line, not whether a market would admire it.
    shift's losses, work sampling, capability, the value stream map, the
    stopwatch, the video study — and the filmed walk with its snags, where
    Faultline began.
-2. **The three kinds of change** that drive what the tools find to actions
-   and proof: the stage gate (new equipment), the 6M (a running line made to
-   perform better), the lever tree (a number to hit).
+2. **Two engines** (not three equal heroes): **Performance** — 6M + tools when
+   a running line is off target; **Prove** — programs and tests on the line
+   (pass/fail, criteria, re-test). **Installation project** (stored as
+   `commissioning`) is optional gates/handover for rare formal installs —
+   not the default promise. **Lever tree** is parked (hidden from New project).
 3. **The control room** above them: problems, actions, who owes what by when,
-   and the reports.
+   and the reports from records.
 
 **What makes it different** (checked against Minitab Engage, SafetyCulture
 and the video time-study tools, 20 October): not the number of tools — those
 products have years on it. It is that **the line knows itself**: a line's
 shifts, rates, crew and margin are set once and every tool reads them, so
-every finding comes out in money without retyping; commissioning new
-equipment machine by machine; and evidence → cause → action → proof on the
-same line's numbers. Every change strengthens that thread or it waits.
+every finding comes out in money without retyping; **prove on the line** with
+programs and tests; and evidence → cause → action → proof on the same line's
+numbers. **Commissioning narrative papers** (commissioning report, cards,
+handover as the default client story) are **out of the default product** —
+slice 1 hides them from Report ▾; see the fault model doc. Every change
+strengthens the Gemba thread or it waits.
 
 **Deep, not wide.** A tool earns its place only when it answers a question
 the floor asks, gives the answer in a couple of minutes on a phone, reads the
@@ -153,7 +163,11 @@ Rowland revokes it.
 
 ## What comes next, in order
 
-Nothing new is built until Rowland says go.
+**Fault moat slice 1 is live on `main` after 29 October go** — docs, New project
+(Performance first, lever tree hidden), commissioning narrative papers demoted
+in menus. Slice 2: fault record, routing, legacy paper cleanup.
+
+Earlier sequence (still true where not superseded):
 
 1. ~~Park the builder and the assistant behind the switch~~ — done, then
    **deleted** the same day at his word (above): the builder, *Better

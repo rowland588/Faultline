@@ -64,9 +64,9 @@ ok(/#\/projects/.test(page.url()) && (await lit()).join() === 'Projects', '2 Pro
 await go('#/projects?new=1');
 const kinds = (await page.locator('.proj-model-opt .proj-model-runs b').allInnerTexts()).map(flat);
 const sits = (await page.locator('.proj-model-opt .proj-model-t').allInnerTexts()).map(flat).join(' | ');
-ok(kinds.join(' · ') === 'Stage gate · 6M · Lever tree' && /Bring new equipment into use/.test(sits) && /Make a running line perform better/.test(sits) && /Hit a number by a date/.test(sits),
-  '2 New project offers the three kinds of change by their situations', `${kinds.join(' · ')} | ${sits}`);
-await page.locator('.proj-model-opt', { hasText: 'Stage gate' }).click();
+ok(kinds.join(' · ') === 'Performance (6M) · Installation project' && /Find and fix what is holding a line back/.test(sits) && /New equipment — optional gates/.test(sits) && !/Lever tree/.test(await page.locator('.proj-new').innerText()),
+  '2 New project offers Performance first and Installation second — lever tree parked', `${kinds.join(' · ')} | ${sits}`);
+await page.locator('.proj-model-opt', { hasText: 'Installation project' }).click();
 await page.locator('.proj-new-grid input.text-input').first().fill('Line 4 new case packer');
 await page.getByRole('button', { name: 'Create and add the machines' }).click(); await page.waitForTimeout(1500);
 ok(/#\/project\/[^/]+/.test(page.url()), '2 the project made and opened', page.url());

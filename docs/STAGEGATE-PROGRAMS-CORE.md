@@ -2,8 +2,11 @@
 
 **For Rowland.** Records your product opinion (29 October 2026, ~17:50 UTC),
 translates it for engineering, and says what already exists on the line versus
-what today lives only inside a stage-gate project. **Not a build list** — no
-gates or screens are removed until you say go (`docs/DIRECTION.md`).
+what today lives only inside a stage-gate project. **Slice 1 (29 Oct go):**
+commissioning narrative papers demoted in UI; New project leads with
+Performance (6M); Installation project secondary; lever tree hidden from
+picker. Gates and Commission screens unchanged in code. Authority:
+[`docs/FAULTLINE-FAULT-MODEL.md`](FAULTLINE-FAULT-MODEL.md).
 
 **Read with:** [`docs/FAULTLINE-PRODUCT-DISCOVERY.md`](FAULTLINE-PRODUCT-DISCOVERY.md)
 (identity and reframes), [`docs/STAGEGATE-PATH.md`](STAGEGATE-PATH.md) (today's

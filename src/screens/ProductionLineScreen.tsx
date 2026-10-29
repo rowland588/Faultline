@@ -342,9 +342,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         /* where the line is, in words — only the abnormal carries colour; the words the control
            room's card for it says (lib/lineWork) */
         says={<span className="pl-says">{lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}</span>}
-        /* NO BUTTON OF ITS OWN HERE (27 October — Rowland: "it also has a timer stop on the top right hand side. It's got a
-           button there. I don't know why"). Time a stop is on the line's Stops timed, under Logs and Tools, where the
-           stops it records are read; a problem is the bar's Problem (＋ on a phone), on this line. */
+        primary={may ? { label: kit?.programs.length ? 'Programs on this line' : 'Plan a program', run: () => nav(`/programs?line=${encodeURIComponent(wsId)}`) } : undefined}
         papers={[
           { label: 'Line report — 1 page', for: 'the line, its tiles, problems, machines, programs and what its tools found', disabled: busy || !reading, make: printLine },
           { label: 'Machines report — every machine in full', for: 'each machine on the line: where it is up to, every test and every attempt, every program and its tests, every step, its problems and what was done, the studies', disabled: busy, make: printMachines },

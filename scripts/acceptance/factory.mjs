@@ -182,7 +182,7 @@ await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
 ok(/Projects on this line/.test(await txt()) && /No project on this line now/.test(await txt()), '13 a line\'s page: Jobs on this line — none yet, said so');
 await page.getByRole('button', { name: 'Start a project on this line ›' }).click(); await page.waitForTimeout(1500);
 ok(/#\/projects\?new=1&line=/.test(page.url()), `13b Start a job on this line: ${page.url().split('#')[1].slice(0, 30)}…`);
-await page.getByRole('button', { name: /Make a running line perform better/ }).click(); await page.waitForTimeout(400);
+await page.getByRole('button', { name: /Find and fix what is holding a line back/ }).click(); await page.waitForTimeout(400);
 const chip = name => page.getByRole('group', { name: 'Which lines it is on' }).getByRole('button', { name: new RegExp(`^${name}\\b`) });
 ok((await chip('Line 1').getAttribute('aria-pressed')) === 'true', '14 the new project: Line 1 already picked, from the factory');
 await chip('Line 4').click();

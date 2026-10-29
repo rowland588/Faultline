@@ -49,7 +49,7 @@ const journey: KindPaper = {
 
 export const KINDS: Record<ProjectKind, KindFacts> = {
   stagegate: {
-    kind: 'stagegate', label: 'Stage gate',
+    kind: 'stagegate', label: 'Installation project',
     ownWork: 'the install steps, tests, fixes and hand-over items on the plan, the materials and programs waited on',
     reportTo: id => `/project/${id}/report`,
     papers: [

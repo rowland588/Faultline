@@ -25,7 +25,7 @@ describe('one answer per kind', () => {
     expect(KINDS.tree.papers.map(p => p.label)).toEqual(['Client report — A3', 'Journey report — this week and next']);
     expect(KINDS.stagegate.reportTo('p1')).toBe('/project/p1/report');
     expect(KINDS.sixm.papers[1].to('p1')).toBe('/pace-report?project=p1&doc=full');
-    expect(kindFacts({ commissioning: true } as never).label).toBe('Stage gate');
+    expect(kindFacts({ commissioning: true } as never).label).toBe('Installation project');
   });
 });
 

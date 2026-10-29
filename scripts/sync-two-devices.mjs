@@ -306,7 +306,7 @@ function makePdf(title) {
 /* ---------- the phone's hands ---------- */
 async function createJob(page, name) {
   await go(page, '/projects?new=1');
-  await page.getByRole('button', { name: /Bring new equipment into use/ }).click();
+  await page.getByRole('button', { name: /New equipment — optional gates when you need them/ }).click();
   await page.getByPlaceholder('e.g. Line 7 new wrapper').fill(name);
   await page.getByPlaceholder('Who is accountable for it').fill('Rowland');
   await page.getByRole('button', { name: 'Create and add the machines' }).click();

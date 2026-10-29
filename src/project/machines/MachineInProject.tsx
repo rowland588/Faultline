@@ -20,6 +20,7 @@ import { useAccess } from '../../cloud/access';
 import { live, assetStateOf, ASSET_STATE_WORD, type Asset } from '../../lib/testing';
 import { machineRecord, machineTests, openOnMachine, type MachineGate } from '../../lib/machineRecord';
 import { todayISO } from '../../lib/weeks';
+import { withoutCommissioningNarrativePapers } from '../../lib/productStory';
 import { nav } from '../../state/useRoute';
 import { openRecord } from '../../ui/RecordDrawer';
 import { AccessNote } from '../../ui/AccessNote';
@@ -61,7 +62,7 @@ export function MachineInProject({ projectId, assetId, onRemoved, tail = 'inline
   const moneyReady = money ?? MONEY_WAIT;
   const itself = <MachineItself asset={asset} projectId={projectId} tt={tt} can={can} onClose={onRemoved} />;
   const closing = <LeanClosing closing={machineClosing(machineCounts(m), moneyReady)} />;
-  if (tail === 'only') return <div className="mpg mpg-in-project">{itself}{closing}</div>;
+  if (tail === 'only') return <div className="mpg mpg-project-tail">{itself}{closing}</div>;
   const row = (l: { id: string; title: string; word: string; tone: string; who?: string }, where?: string) => (
     <li key={l.id} className={'lt-li mpg-l is-' + l.tone}>
       <button type="button" className="lt-row" onClick={() => openRecord(projectId, l.id)}>
@@ -84,7 +85,7 @@ export function MachineInProject({ projectId, assetId, onRemoved, tail = 'inline
       {/* WHERE IT IS UP TO IN ITS PROJECT: one sentence, then its four gates in a row, each in its colour and its words.
           The gates are the project's; the stages under them are worked on the project's own gate pages. */}
       <section className="pl-sec mpg-project" aria-label="Its project">
-        <p className="mpg-in">Going through <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}`)}>{project.name}</button> — a stage-gate project — {m.at.startsWith('Handed over') ? <b>{m.at.toLowerCase()}</b> : m.at.startsWith('at ') ? <>up to <b>{m.at.slice(3)}</b></> : <b>{m.at}</b>}.</p>
+        <p className="mpg-in">Going through <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}`)}>{project.name}</button> — an installation project — {m.at.startsWith('Handed over') ? <b>{m.at.toLowerCase()}</b> : m.at.startsWith('at ') ? <>up to <b>{m.at.slice(3)}</b></> : <b>{m.at}</b>}.</p>
         <ol className="mpg-steps" aria-label={`${m.name}: its gates`}>
           {m.gates.map(g => (
             <li key={g.gate} className={'mpg-step is-' + GATE_SQ[g.tone]}>
@@ -139,10 +140,10 @@ export function MachineOffLine({ projectId, assetId, name }: { projectId: string
   return (
     <div className="wrap pace mpg">
       <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {project?.name ?? ''}</span>} title={name}
-        papers={[
+        papers={withoutCommissioningNarrativePapers([
           { label: 'Machine report', for: 'this machine in full — where it is up to, what is open and who has it, every test and every attempt, every program and its tests, every step, its problems and what was done', make: print },
           { label: 'Commissioning report', for: 'every machine in the project, a card each', make: () => nav(`/project/${projectId}/report?doc=commissioning`) },
-        ]} />
+        ])} />
       <MachineInProject projectId={projectId} assetId={assetId} onRemoved={() => nav(`/project/${projectId}/machines`)} />
     </div>
   );

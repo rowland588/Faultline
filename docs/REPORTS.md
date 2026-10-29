@@ -171,7 +171,14 @@ maintain relevance when things change in the app .. new functions the app
 does but also all changes in status. Check full report, 1 page status,
 programs, handover."
 
-A stage-gate job has five papers, all read off the same records: the **full
+**29 October — default product (slice 1):** Report ▾ on stage-gate and line
+pages no longer offers **commissioning report**, **commissioning cards**, or
+**handover report** as the default client story (`src/lib/productStory.ts`).
+**Programs report**, **test cards**, and status/client reports stay. PDF code
+and `?doc=commissioning` / `?doc=handover` remain for legacy until slice 2;
+`commissioning-report.mjs` still proves those renderers when run explicitly.
+
+A stage-gate job has five papers in code, all read off the same records: the **full
 report** (`lib/clientReport`), the **one-page status** (`lib/statusReport`,
 read off the full report's reading), the **programs report** (the Set up
 reading, `lib/programsReport`, and the job's lines' own), the

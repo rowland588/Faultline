@@ -126,8 +126,8 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           counts are the tiles under it (lib/stageGatePages); the line here keeps the handover this gate drives at. */}
       <PageHeader title="Commission"
         papers={[
-          { label: 'Commissioning report', for: 'where commissioning has got to, machine by machine, and a card a machine', make: () => nav(`/project/${projectId}/report?doc=commissioning`) },
           { label: 'Test cards', for: proofs.length ? 'a card for every test on the board' : 'no test on the board yet', disabled: cardsBusy || proofs.length === 0, make: allCards },
+          { label: 'Programs report', for: 'every program, machine by machine — where each stands and what was seen', make: () => nav(`/project/${projectId}/report?doc=programs`) },
         ]}>
         <p className="cw-handover">
           {project.expectedAt

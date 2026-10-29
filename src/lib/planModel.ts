@@ -87,23 +87,22 @@ export interface Method {
 export type PickedModel = PlanModel;
 
 export const MODELS: (Method & { id: PickedModel })[] = [
-  { id: 'commissioning', label: 'Stage gate',
-    situation: 'Bring new equipment into use',
-    blurb: 'Is the equipment proved to what was agreed, so it can be accepted?',
-    useWhen: 'New or moved equipment — a supplier to work with, gates to pass, a handover date.',
-    organised: 'Machines through their install stages, tests with agreed pass marks, fixes, materials and programs',
-    rhythm: 'Daily, at the line',
-    done: 'Handed over',
-    /* All it prints (docs/JOBSTART.md) — the card said two of seven. */
-    document: 'Status report · client report · the plan · programs report · handover report · test and fix cards' },
-  { id: 'board', label: '6M',
-    situation: 'Make a running line perform better',
-    blurb: 'What is holding this line back, what is the root cause, and who is fixing it?',
-    useWhen: 'Running lines that need to perform better — a gap to a target, a team, a weekly meeting.',
-    organised: 'Lines with owners · problems traced on the fishbone — People, Machine, Method, Material, Measurement, Environment',
-    rhythm: 'Weekly, in the meeting',
+  { id: 'board', label: 'Performance (6M)',
+    situation: 'Find and fix what is holding a line back',
+    blurb: 'What fault is costing the line, the root cause on the fishbone, and who is fixing it.',
+    useWhen: 'Running lines — a gap, stops or rejects, tools to quantify, then 6M and Actions.',
+    organised: 'Lines with owners · faults on program, machine or area · fishbone and countermeasures',
+    rhythm: 'Weekly, on the line and in the meeting',
     done: 'At target, and holding',
     document: 'The fishbone · the 6M board · client report' },
+  { id: 'commissioning', label: 'Installation project',
+    situation: 'New equipment — optional gates when you need them',
+    blurb: 'Prove with programs and tests on the line; gates and handover only when the install needs them.',
+    useWhen: 'Rare formal install — OEM, agreed tests, optional gate plan and handover date.',
+    organised: 'Machines on the line · programs and tests · optional install stages and fixes',
+    rhythm: 'At the line first; desk rhythm when gates are used',
+    done: 'Proved on the line, handed over when agreed',
+    document: 'Status report · programs report · test cards · optional install papers (legacy)' },
   { id: 'tree', label: 'Lever tree',
     situation: 'Hit a number by a date',
     blurb: 'What has to be true to reach this outcome, and is it being done?',
@@ -113,6 +112,13 @@ export const MODELS: (Method & { id: PickedModel })[] = [
     done: 'The outcome proved',
     document: 'The tree on one page · client report' },
 ];
+
+/** New project picker — Performance first; lever tree parked (docs/FAULTLINE-FAULT-MODEL.md). */
+export const NEW_PROJECT_MODELS = MODELS.filter(m => m.id !== 'tree');
+
+/** Details switcher — keep lever tree only for projects already on it. */
+export const setupProjectModels = (p: Held): typeof MODELS =>
+  p.leverTree ? MODELS : NEW_PROJECT_MODELS;
 
 export const methodOf = (p: Held): Method =>
   MODELS.find(m => m.id === planModel(p)) ?? MODELS[0];

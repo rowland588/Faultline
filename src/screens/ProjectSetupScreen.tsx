@@ -23,7 +23,7 @@ import { offerUndo } from '../ui/Undo';
 import { COLORS, useProject, useProjects } from '../lib/useProjects';
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY } from '../lib/story';
-import { MODELS, methodOf, planModel, setPlanModel, switchBack } from '../lib/planModel';
+import { methodOf, planModel, setPlanModel, setupProjectModels, switchBack } from '../lib/planModel';
 import { niceDay } from '../lib/weeks';
 import type { Project } from '../types';
 import type { Can } from '../lib/access';
@@ -687,7 +687,7 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
       <div className="pset-tools">
           <p className="field-label">How this project runs</p>
           <div className="proj-model-grid">
-            {MODELS.map(m => (
+            {setupProjectModels(project).map(m => (
               <button key={m.id} type="button"
                 className={'proj-model-opt' + (planModel(project) === m.id ? ' on' : '')}
                 onClick={() => {

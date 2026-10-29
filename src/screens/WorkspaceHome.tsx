@@ -366,7 +366,7 @@ export function WorkspaceHome() {
         /* What the app is now — the control room for change on the lines. The
            old pitch ("walk the line … a tracked snag list") described the
            line-study tool it began as, which is now a tool inside a change. */
-        <p className="home-tag">A control room for change on your lines — new equipment brought into use, a line made to perform better, a number hit by a date — and one view of whether all of it is in hand.</p>
+        <p className="home-tag">Fault-centric Gemba CI on your lines — find and fix what holds a line back (6M and tools), prove programs and tests on the line, and one view of whether all of it is in hand.</p>
       )}
     </>
   );
@@ -441,10 +441,9 @@ export function WorkspaceHome() {
             <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>Start a project</button>
           </div>
           <p className="sub home-sec-sub">
-            Start here. Say what you are trying to change — new equipment, a line that has to
-            perform better, or a number to hit by a date — and the project is run the way that
-            kind of change is run. Every project you start shows up on this screen, with what is
-            late and who owes what.
+            Start with Performance (6M) when a line is off target — faults, tools, root cause and Actions.
+            Choose Installation project only when you need optional gates for a formal install. Every
+            project shows here with what is late and who owes what; programs and tests live on the line first.
           </p>
         </section>
       )}

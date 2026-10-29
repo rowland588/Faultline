@@ -1,10 +1,9 @@
 # Faultline — product discovery (29 October 2026)
 
 **For Rowland.** Strategic memo: what Faultline is becoming, what we built,
-where it strains against Gemba, and what to decide next. **Not a build spec.**
-Nothing here is built until you say go (`docs/DIRECTION.md`). **Do not**
-rewrite DIRECTION in a builder session — this page sits beside it and points
-to it.
+where it strains against Gemba, and what to decide next. **29 October go:** slice 1 shipped — [`docs/FAULTLINE-FAULT-MODEL.md`](FAULTLINE-FAULT-MODEL.md),
+[`docs/DIRECTION.md`](DIRECTION.md) updated. This memo remains the strategic
+context; the fault model is the build authority for product shape.
 
 **Read with:** [`docs/DIRECTION.md`](DIRECTION.md) (wins on disagreement),
 [`docs/MAP.md`](MAP.md) (line is home), [`docs/BLUEPRINT.md`](BLUEPRINT.md)

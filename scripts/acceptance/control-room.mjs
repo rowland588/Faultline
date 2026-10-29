@@ -186,7 +186,7 @@ const sit = flat(await page.locator('.proj-sit').innerText().catch(() => ''));
 ok(/^A change on Line 7 1 problem open · 1 critical · 1 late/.test(sit) && sit.includes(PROBLEM) && sit.includes('3 days late') && sit.includes(`The latest shift counted: ${truth.loss}`) && /P-200 Express — test was /.test(sit),
   `19a the line's situation over the three ways: "${sit.slice(0, 200)}"`);
 ok(/What are you trying to do on Line 7\?/i.test(flat(await page.locator('.proj-model').innerText())), '19b the question says the line');
-await page.locator('.proj-model-opt', { hasText: 'Make a running line perform better' }).click(); await page.waitForTimeout(400);
+await page.locator('.proj-model-opt', { hasText: 'Find and fix what is holding a line back' }).click(); await page.waitForTimeout(400);
 await page.getByLabel('Name', { exact: true }).fill('Line 7 jams').catch(async () => { await page.locator('.proj-new input.text-input').first().fill('Line 7 jams'); });
 await page.locator('.proj-new .btn-primary', { hasText: /^Create/ }).click(); await page.waitForTimeout(3500);
 const step = page.locator('.gr-step', { hasText: 'Open the first problem' });
@@ -275,7 +275,7 @@ ok(phoneCrit.over.every(x => x <= 1) && phoneCrit.out <= 0 && phoneCrit.whens.in
   const doors = (await page.locator('.meet-report b').allInnerTexts()).map(flat);
   const jobs = (await page.locator('.cr-job-papers > .meet-line-n').allInnerTexts()).map(flat);
   ok(['Control room report — 1 page', 'Factory report', 'Problems', 'Programs', 'Line capacity', 'Line standard'].every(d => doors.includes(d))
-    && ['Client report', 'Handover report', 'Machine labels', 'The plan'].every(d => doors.includes(d)) && jobs.includes('Line 2 commissioning'),
+    && ['Client report', 'Test cards', 'Programs report', 'Machine labels', 'The plan'].every(d => doors.includes(d)) && jobs.includes('Line 2 commissioning'),
     `12a Report ▾ › Every report: the control room's papers, each line's and each job's own (${doors.length} doors; jobs ${jobs.join(', ')})`);
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.locator('.meet-report', { hasText: 'Control room report — 1 page' }).first().click()]);
   const [lb] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.locator('.meet-report', { hasText: 'Machine labels' }).first().click()]);

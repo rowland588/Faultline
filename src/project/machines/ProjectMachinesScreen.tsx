@@ -20,6 +20,7 @@ import { useMachinesToTakeOn } from '../../lib/useLineRecords';
 import { useAccess } from '../../cloud/access';
 import { PageHeader } from '../../ui/parts';
 import { AddAsset } from '../../screens/TestsScreen';
+import { withoutCommissioningNarrativePapers } from '../../lib/productStory';
 import { nav } from '../../state/useRoute';
 import { projectMachineRows, projectMachinesPaper, projectMachinesSays, rowSays } from './machines';
 
@@ -59,10 +60,11 @@ export function ProjectMachinesScreen({ projectId }: { projectId: string }) {
     <div className="wrap pace pms">
       <PageHeader eyebrow={<span className="pl-eyebrow">MACHINES · {project.name}</span>} title="Machines"
         says={projectMachinesSays(machines)}
-        papers={[
+        papers={withoutCommissioningNarrativePapers([
           { label: 'Machines report', for: machines.length ? 'every machine as this page says it, then each in full — what is open and who has it, every test and every attempt, every program and its tests, every step, its problems and what was done' : 'no machines yet', disabled: !machines.length || busy, make: print },
           { label: 'Commissioning report', for: 'where each machine has got to, and a card a machine', make: () => nav(`/project/${projectId}/report?doc=commissioning`) },
-        ]} />
+          { label: 'Programs report', for: 'every program, machine by machine — where each stands and what was seen', make: () => nav(`/project/${projectId}/report?doc=programs`) },
+        ])} />
       {said && <p className="tc-ok" role="status">{said}</p>}
       {machines.length > 0
         ? (

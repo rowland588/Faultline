@@ -20,6 +20,7 @@ import { pdfFileName } from '../lib/fileName';
 import type { Shot } from '../lib/testReport';
 import type { jsPDF } from 'jspdf';
 import { commissioningReport, type CommissioningReport } from '../lib/commissioningReport';
+import { commissioningNarrativePapersInMenus } from '../lib/productStory';
 import { boardPrograms } from '../lib/commissionPrograms';
 import { OnTargetLine } from '../ui/OnTarget';
 import { CriticalStory, CriticalTag } from '../ui/CriticalFields';
@@ -296,7 +297,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
                 ? 'Where commissioning has got to, machine by machine — the tests, the programs, the problems and what is booked next. For the meeting, or to send; the cards are a page a machine.'
               : 'The whole record, in the order the project is run — for whoever wants every detail.'}
         primary={{ label: busy ? 'Making it…' : 'Download', icon: 'download', run: () => void download(), disabled: busy }}
-        papers={which === 'commissioning' ? [{ label: 'Commissioning cards — a page a machine', for: 'For the meeting — one page a machine, each its tests, programs and problems', make: downloadCards, disabled: !commissioning }] : []}>
+        papers={which === 'commissioning' && commissioningNarrativePapersInMenus ? [{ label: 'Commissioning cards — a page a machine', for: 'For the meeting — one page a machine, each its tests, programs and problems', make: downloadCards, disabled: !commissioning }] : []}>
         {/* The answer the first page leads with (lib/onTarget). */}
         {/* On the status view, the verdict and the handover only — what
             is wrong is listed under it, once. */}
@@ -330,8 +331,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
         <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
         <button type="button" className={'chip' + (which === 'full' ? ' on' : '')} aria-pressed={which === 'full'} onClick={() => setWhich('full')}>Full report</button>
         <button type="button" className={'chip' + (which === 'programs' ? ' on' : '')} aria-pressed={which === 'programs'} onClick={() => setWhich('programs')}>Programs report</button>
-        <button type="button" className={'chip' + (which === 'commissioning' ? ' on' : '')} aria-pressed={which === 'commissioning'} onClick={() => setWhich('commissioning')}>Commissioning</button>
-        <button type="button" className={'chip' + (which === 'handover' ? ' on' : '')} aria-pressed={which === 'handover'} onClick={() => setWhich('handover')}>Handover report</button>
+        {commissioningNarrativePapersInMenus && <button type="button" className={'chip' + (which === 'commissioning' ? ' on' : '')} aria-pressed={which === 'commissioning'} onClick={() => setWhich('commissioning')}>Commissioning</button>}
+        {commissioningNarrativePapersInMenus && <button type="button" className={'chip' + (which === 'handover' ? ' on' : '')} aria-pressed={which === 'handover'} onClick={() => setWhich('handover')}>Handover report</button>}
       </span>
 
       {/* THE COMMISSIONING REPORT, in words beside its page (on a phone, the

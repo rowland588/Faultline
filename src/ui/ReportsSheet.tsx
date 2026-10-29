@@ -11,6 +11,7 @@ import { kindFacts } from '../project/projectKind';
 import { usePaceLines } from '../lib/usePaceLines';
 import { getPaceWorkspaceId } from '../db';
 import { nav } from '../state/useRoute';
+import { commissioningNarrativePapersInMenus } from '../lib/productStory';
 import { Sheet } from './Sheet';
 
 export function Door({ title, says, onClick }: { title: string; says: string; onClick: () => void }) {
@@ -111,13 +112,10 @@ export function JobPapers({ project, onClose }: { project: Project; onClose: () 
             the one printable thing this index did not list. */}
         {tree && <Door title="The lever tree" says="The tree on one page — print it from the tree itself." onClick={() => go(`/project/${project.id}/tree`)} />}
         {stageGate && <Door title="Today" says="For the team — the day's story: what got done, what was found, with the pictures. One page — on the Journey, picked on today." onClick={() => go(dayHref(project.id))} />}
-        {/* THE COMMISSIONING REPORT AND CARDS (Rowland, 14 October) */}
-        {stageGate && <Door title="Commissioning report" says="For the meeting, or to send — where commissioning has got to, machine by machine: the tests, the programs, the problems, what is booked next; and the cards, a page a machine." onClick={() => go(`/project/${project.id}/report?doc=commissioning`)} />}
         {stageGate && <Door title="Test cards" says="For the floor and the OEM — a card for every test on Commission's board, what it had to show and what was seen. Print them from Commission." onClick={() => go(`/project/${project.id}/testing`)} />}
-        {stageGate && <Door title="Programs" says="For the OEM and the team — every program, machine by machine: where each stands and what was seen." onClick={() => go(`/project/${project.id}/report?doc=programs`)} />}
-        {/* THE HANDOVER REPORT (docs/HANDOVER.md) — the record a team keeps
-            that the line was handed over, as it really went. */}
-        {stageGate && <Door title="Handover report" says="For the team and whoever takes the line over — every machine as it was really handed over: its tests, its hand-over list, what was still open, and lines to sign." onClick={() => go(`/project/${project.id}/report?doc=handover`)} />}
+        {stageGate && <Door title="Programs report" says="For the OEM and the team — every program, machine by machine: where each stands and what was seen." onClick={() => go(`/project/${project.id}/report?doc=programs`)} />}
+        {stageGate && commissioningNarrativePapersInMenus && <Door title="Commissioning report" says="For the meeting, or to send — where commissioning has got to, machine by machine: the tests, the programs, the problems, what is booked next; and the cards, a page a machine." onClick={() => go(`/project/${project.id}/report?doc=commissioning`)} />}
+        {stageGate && commissioningNarrativePapersInMenus && <Door title="Handover report" says="For the team and whoever takes the line over — every machine as it was really handed over: its tests, its hand-over list, what was still open, and lines to sign." onClick={() => go(`/project/${project.id}/report?doc=handover`)} />}
         {/* THE PLAN prints from its own page (ui/Gantt's PDF), and was the one
             stage-gate document this index did not list. */}
         {stageGate && <Door title="The plan" says="For the team and the client — every machine's stages against the days, on one landscape page. Print it from the plan." onClick={() => go(`/project/${project.id}/plan`)} />}

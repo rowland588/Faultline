@@ -12,7 +12,7 @@
 import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
-import { MODELS, isPicked, methodOf, planModel, type PlanModel } from '../lib/planModel';
+import { isPicked, methodOf, MODELS, NEW_PROJECT_MODELS, planModel, type PlanModel } from '../lib/planModel';
 import { FilterBar, RecordRow, RecordRows } from '../ui/parts';
 import { useLineRecords } from '../lib/useLineRecords';
 import { STORE_WORDS, addPaceLine, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange, updateProject } from '../db';
@@ -231,7 +231,7 @@ export function ProjectsScreen() {
           <div className="proj-model">
             <span className="field-label">{startLine ? `What are you trying to do on ${startLine.name}?` : 'What are you trying to do?'}</span>
             <div className="proj-model-grid">
-              {MODELS.map(m => (
+              {NEW_PROJECT_MODELS.map(m => (
                 <button key={m.id} type="button" aria-pressed={model === m.id}
                   className={'proj-model-opt' + (model === m.id ? ' on' : '')}
                   onClick={() => setModel(m.id)}>
@@ -301,8 +301,8 @@ export function ProjectsScreen() {
           {model && (
             <p className="chip-hint">
               {model === 'commissioning'
-                ? 'You name the machines and who supplied them next, then their install stages and tests.'
-                : 'You add the lines next — that is where owners and sponsors go.'}
+                ? 'Optional install track — machines on the line, programs and tests; open the line’s Programs without a project when you only need to prove.'
+                : 'You add the lines next — faults, tools and the fishbone follow from there.'}
             </p>
           )}
         </section>

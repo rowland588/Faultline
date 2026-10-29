@@ -26,6 +26,7 @@
  * lib/install's, one call, so the sentence here is the sentence on paper.
  */
 import { dayHref } from '../project/journey/journey';
+import { commissioningNarrativePapersInMenus } from '../lib/productStory';
 import { PageHeader } from '../ui/parts';
 import { useEffect, useState } from 'react';
 import { everyGateOffer, giveEveryGate, takeBack } from '../lib/giveGates';
@@ -188,7 +189,9 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
       <PageHeader title={GATE_WORD[gate]}
         papers={[
           ...(steps.length > 0 ? [{ label: `${cardWord} cards`, for: `a card for every ${cardWord.toLowerCase()} on ${GATE_WORD[gate]}`, disabled: cardsBusy, make: allCards }] : []),
-          ...(gate === 'handover' ? [{ label: 'Handover report', for: 'the line as it was handed over — what was done, signed and still open', make: () => nav(`/project/${projectId}/report?doc=handover`) }] : []),
+          ...(gate === 'handover' && commissioningNarrativePapersInMenus
+            ? [{ label: 'Handover report', for: 'the line as it was handed over — what was done, signed and still open', make: () => nav(`/project/${projectId}/report?doc=handover`) }]
+            : []),
         ]}>
         <p className="cw-handover">
           {going > 0 && <span className="sub">{going} machine{going === 1 ? '' : 's'} {face.doing}</span>}

@@ -76,7 +76,7 @@ const journey = (n, W, max, says) => {
   const W = await device(390); const P = W.page;
   await W.go('#/room');
   await W.tap('New project', W.btn(/New project/));
-  await W.tap('Bring new equipment into use', W.btn(/Bring new equipment into use/));
+  await W.tap('Installation project', W.btn(/New equipment — optional gates when you need them/));
   await P.getByLabel('Name', { exact: true }).fill('Line 7 new wrapper');
   await P.getByLabel('Lead', { exact: true }).fill('Sam');
   await W.tap('Line 7', W.btn(/^Line 7$/));
