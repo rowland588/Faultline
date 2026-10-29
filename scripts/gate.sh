@@ -4,8 +4,8 @@
 #
 #   fast    every change (27 October — Rowland: "65 browser scripts is excessive") — about 10 minutes: tsc, eslint,
 #           vitest, the build, every screen (smoke), the page inventory, the structure and the journeys, and only the
-#           acceptance scripts for what the change touches, named in GATE_ONLY="a b c" (GATE_PAPERS=1 for a report change):
-#           GATE_ONLY="line-is-home where-am-i" scripts/gate.sh fast CHECKOUT PORT LIVE_CHECKOUT LIVE_PORT OUT
+#           acceptance scripts for what the change touches, named in GATE_ONLY="a b c" — no .mjs suffix (GATE_PAPERS=1 for a report change):
+#           GATE_ONLY="log-shape calc-shape board-shape" scripts/gate.sh fast CHECKOUT PORT LIVE_CHECKOUT LIVE_PORT OUT
 #   quick   every acceptance script — before a change to many places at once — about 20 minutes: tsc, eslint, vitest, the build; then, four at a time against the
 #           checkout's dev server: every screen (smoke), every report at three sizes and the paper-by-paper
 #           comparison against what is live, every acceptance script, the page inventory and the journeys.
@@ -42,12 +42,12 @@ if [ "$MODE" = full ]; then
   step report-fuzz-a node scripts/report-stress.mjs "$O/fuzz-a" --seeds "$(seq -s, 1 20)" & FA=$!
   step report-fuzz-b node scripts/report-stress.mjs "$O/fuzz-b" --seeds "$(seq -s, 21 40)" & FB=$!
 fi
-one() { case "$1" in
+one() { local name="${1%.mjs}"; case "$name" in
   smoke) step smoke node scripts/smoke.mjs ;;
   report-stress) step report-stress node scripts/report-stress.mjs "$O/paper" --repeatable && { while ! grep -q '^rc=' "$O/paper-live.log" 2>/dev/null; do sleep 5; done; if grep -q '^rc=0' "$O/paper-live.log"; then step paper-parity node scripts/paper-parity.mjs "$O/paper-live" "$O/paper"; else step paper-parity sh -c 'echo "the live papers were not drawn (paper-live.log) — nothing to compare"; exit 1'; fi; } ;;
   journeys) step journeys node scripts/journeys.mjs "$O/journeys.json" ;;
   inventory) step inventory node scripts/inventory.mjs ;;
-  *) step "acceptance $1" node "scripts/acceptance/$1.mjs" ;;
+  *) step "acceptance $name" node "scripts/acceptance/$name.mjs" ;;
 esac; }
 export -f one
 # every acceptance script the gate lists (CLAUDE.md), the long ones first so the pool ends together

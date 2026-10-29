@@ -109,10 +109,10 @@ recipes differ by a single ingredient.
 - [guide] Food Standards Agency and FDF guidance on allergen labelling and label control (from knowledge).
 
 ## In Faultline
-Built (FC-166, `knowledge/specs/FC-166-code-label.md`) as a check log on
-the shared shape (FC-236, `src/tools/checks`, `defs/code-label.ts`): label,
+Built (`FC-166`, `knowledge/specs/FC-166-code-label.md`) as a check log on
+the shared shape (`src/tools/checks`, `defs/code-label.ts`): label,
 date, allergen and legibility on the starter schedule (start, reel change,
 hourly, end), pass/fail each check, compliance and what a failure holds; the
 line's programs still carry the product and its run (`src/line`); the register
-carries the problem (`src/snag`). First-off release (FC-071) and the poka-yoke
-register (FC-014) are separate tools.
+carries the problem (`src/snag`). First-off release and the poka-yoke register
+are separate tools when built.

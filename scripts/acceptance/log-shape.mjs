@@ -1,5 +1,5 @@
 /* THE CHECK LOG SHAPE, DRIVEN — table-driven over EVERY registered definition (knowledge/specs/FC-236-check-logs.md;
- * FC-170 metal detection, FC-177 and FC-013 scored audits and 5S, FC-062 and FC-234 CILT and condition checks, and
+ * FC-164 checkweigher, FC-166 code and label, FC-170 metal detection, FC-177 and FC-013 scored audits and 5S, FC-062 and FC-234 CILT and condition checks, and
  * every log added after them: a definition in src/tools/checks/defs is covered by being there).
  *
  *   S1  the Logs hub — the factory's, a line's (?view=logs, Stops timed first), a project's; every kind, grouped, with
@@ -42,6 +42,11 @@ const errors = [];
 let failed = 0;
 const ok = (c, m, extra) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}${!c && extra ? ` — ${extra}` : ''}`); if (!c) failed++; };
 const flat = x => (x ?? '').replace(/\s+/g, ' ').trim();
+const whereFor = whereLabel =>
+  whereLabel === 'Detector' ? 'Metal detector'
+    : whereLabel === 'Machine' ? 'Wrapper'
+      : whereLabel === 'Area' ? 'Packing hall'
+        : whereLabel;
 
 /** A device at a width — its own context, as a team member (the owner) or a client. */
 async function device(width, access) {
@@ -237,7 +242,7 @@ async function audit(page, key, id, checkName, levels, tag) {
 for (const key of SKIP.has('S3') ? [] : KEYS) {
   console.log(`\n--- S3 · ${key}, on a phone ---`);
   const def = await pp.evaluate(async k => { const d = (await import('/src/tools/checks/registry.ts')).defOf(k); return { title: d.title, noun: d.noun, kinds: d.kinds, whereLabel: d.whereLabel, holds: d.holds, priority: d.priority, tags: !!d.tags, starters: d.starterChecks.map(c => ({ name: c.name, kind: c.kind, when: c.when, priority: c.priority, where: c.where })), rests: d.standard.rests, confirm: d.standard.confirm, limits: d.limits, scale: d.scale, ex: d.examples[0] }; }, key);
-  const where = def.whereLabel === 'Detector' ? 'Metal detector' : def.whereLabel === 'Machine' ? 'Wrapper' : 'Packing hall';
+  const where = whereFor(def.whereLabel);
   /* ---- start it from the starter list ---- */
   await phone.go(`#/log/${key}?add=1&line=${CLEANP}`);
   ok(await pp.locator('[data-sheet="new-log"]').count() === 1, `S3 ${key}: New opens the starter sheet`);
@@ -472,7 +477,7 @@ if (!SKIP.has('S4')) {
     const made = await dp.evaluate(async ([key, i, line, pick]) => {
       const db = await import('/src/db.ts'), R = await import('/src/tools/checks/registry.ts'), X = await import('/src/tools/checks/example.ts');
       const def = R.defOf(key), ex = def.examples[i];
-      const s = X.exampleStudy(def, ex, Date.now(), { line, where: def.whereLabel === 'Detector' ? 'Metal detector' : 'Packing hall' });
+      const s = X.exampleStudy(def, ex, Date.now(), { line, where: whereFor(def.whereLabel) });
       const id = crypto.randomUUID();
       await db.putStudy({ ...s, id, name: `${def.title} — example ${i + 1}`, createdAt: Date.now(), updatedAt: Date.now() });
       return { id, ids: Object.fromEntries(pick.map((k, j) => [k, s.agreed.log.checks[j].id])) };

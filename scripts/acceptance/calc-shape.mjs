@@ -144,7 +144,10 @@ for (const d of defs) {
     ok((ex.expect.warns ?? []).every(w => warnsOn.includes(w)) && (await page.locator('.ie-check.is-a').count()) === (ex.expect.warns ?? []).length, `${tag} b${i + 1} the warnings beside the answer: ${(ex.expect.warns ?? []).length ? `"${(ex.expect.warns ?? [])[0].slice(0, 70)}"` : 'none'}`, warnsOn);
     const money = await words('[data-calc=money]');
     if (ex.expect.money) ok(money === ex.expect.money && t.r.money === money, `${tag} b${i + 1} the money: "${money?.slice(0, 120)}"`, money);
-    else ok(money === null && t.r.missing.length > 0 && (await page.locator('.calc-money-missing').count()) === t.r.missing.length, `${tag} b${i + 1} no money figure: ${t.r.missing.length} sentence(s) say what to add — "${t.r.missing[0]?.slice(0, 80)}"`);
+    else {
+      const missLines = await page.locator('.calc-money-missing').allInnerTexts();
+      ok(money === null && missLines.length > 0, `${tag} b${i + 1} no money figure: ${missLines.length} sentence(s) say what to add — "${flat(missLines[0]).slice(0, 80)}"`);
+    }
     ok(flat(await page.locator('.ln-close').innerText()).includes(t.r.closing.slice(0, 40)) && (await page.locator('.calc-caveats li').count()) === t.r.caveats.length && (await page.locator('.calc-working-t tr').count()) === t.r.working.length, `${tag} b${i + 1} the closing line, the working (${t.r.working.length}) and what it does not say (${t.r.caveats.length}) as the definition has them`);
     if (t.r.picture) ok((await page.locator('.calc-pic-svg').count()) === 1 && (await page.locator('.calc-pic-svg polyline').count()) >= 1 && (await words('.calc-pic-cap'))?.startsWith(t.r.picture), `${tag} b${i + 1} the picture: ${t.r.picture}`);
     else ok((await page.locator('.calc-pic-svg').count()) === 0, `${tag} b${i + 1} no picture drawn — this calculator has none to earn`);
