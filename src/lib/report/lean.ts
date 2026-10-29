@@ -9,7 +9,7 @@
  * triangle and its words (green better, red worse, grey the same), so it
  * survives a black-and-white print. */
 import { changeTone, type LeanAction, type LeanInsight, type LeanPage, type LeanTile, type LeanTone, type LeanTrend } from '../lean';
-import { DANGER, INK, INK2, LINE, MUTED, OK, WARN, paperBand, san } from '../reportKit';
+import { BRAND, DANGER, INK, INK2, LINE, MUTED, OK, WARN, paperBand, san } from '../reportKit';
 import { SIZE, font, rows, text, wrap, type Row } from './blocks';
 import type { Block, Frame } from './flow';
 
@@ -141,7 +141,10 @@ export function leanHead(title: string, aside?: string): Block {
       const d = f.doc, k = f.density === 'compact' ? 2 : 0;
       font(d, 11, 'bold', INK); d.text(san(title), f.x, y + 11 - k);
       if (aside) { font(d, 7.5, 'normal', MUTED); d.text(san(aside), f.x + f.w, y + 11 - k, { align: 'right' }); }
-      d.setDrawColor(LINE); d.setLineWidth(0.7); d.line(f.x, y + 15.5 - k, f.x + f.w, y + 15.5 - k);
+      const ry = y + 15.5 - k;
+      const accent = Math.min(48, f.w * 0.22);
+      d.setDrawColor(BRAND); d.setLineWidth(2); d.line(f.x, ry, f.x + accent, ry);
+      d.setDrawColor(LINE); d.setLineWidth(0.7); d.line(f.x + accent, ry, f.x + f.w, ry);
     },
   };
 }

@@ -237,6 +237,40 @@ reuse, backlog by `backlog.ts`.
 
 ---
 
+## 9. Wow checklist — screen and paper
+
+Rowland, 29 October: *detail, visuals, wow on screen and in print.* Use this
+when reviewing or shipping a tool slice; shared CSS and report blocks carry
+most of it — touch a tool screen only when its signature view fails a row.
+
+### Screen
+
+| Check | Where | Pass when |
+|---|---|---|
+| **Hero band** | `LeanBand` / `ln-band` | Eyebrow, title hierarchy, verdict with words + state mark; teal edge and trace print as on screen |
+| **Tiles** | `LeanTiles` / `ln-tile` | Up to five figures, tabular nums, top accent on abnormal/met; lift on hover where tappable |
+| **Work panel** | `LeanPanel` / `ln-panel`, `ie-pic` | Section heading with brand rule; chart/table on warm work background, spruce left bar, soft shadow |
+| **Typography** | `--t-*` only | One page title, one section heading, body/detail — nothing louder than the verdict |
+| **Lists** | `lt-row`, `pl-tool`, `et-row` | Spruce inset bar, hover lift, status always in words |
+| **Empty** | `EmptyState`, `lt-empty` | Dashed panel, one line what to do, primary action reachable on phone |
+| **Closing** | `ln-close` | Navy band, mark in tone, money or missing input named |
+
+### Paper (Report ▾)
+
+| Check | Where | Pass when |
+|---|---|---|
+| **Band** | `leanBand` / `paperBand` | Pale fill, teal edge, verdict wraps; matches screen sentence |
+| **Tiles** | `leanTiles` | Top edge + wash parity with screen states |
+| **Sections** | `heading`, `leanHead` | Title + muted says; **brand accent** on rule before body |
+| **Whitespace** | `flow()` rules | No near-empty pages, no clipped sentences |
+| **Closing** | `leanClosing` | Same tone mark and words as screen |
+
+### Ratchet
+
+No new hues, no new `640px` breakpoint, no hex ceiling raised in `styles.css`.
+
+---
+
 ## 7. This session’s slice (29 Oct 2026)
 
 - **Phase A:** this document; links from `knowledge/README.md` and
@@ -259,4 +293,25 @@ reuse, backlog by `backlog.ts`.
 | Registry (eleven + line tools) | `src/catalogue/registry` |
 | Problem routes | `src/catalogue/problems.ts` |
 | Tool shell | `src/ui/StudyActs.tsx`, `src/ui/Lean.tsx` |
-| Styles | `src/styles.css` — `.et-*`, `.lt-row`, `.pl-tool`, `.ln-band` |
+| Styles | `src/styles.css` — `.et-*`, `.lt-row`, `.pl-tool`, `.ln-band`, `--tool-work-*` |
+| Report wow | `src/lib/report/blocks.ts` `heading`, `src/lib/report/lean.ts` `leanHead` |
+
+---
+
+## 10. Wow programme — progress
+
+| Slice | Scope | Status (29 Oct 2026 session) |
+|---|---|---|
+| **T0** | Standards + spruce surfaces (`a41f45ad`) | Done on main |
+| **T1** | Directory lede, Use one now, list rows, empty states | **Done** — shared `--tool-work-*`, `.empty`, `.lt-empty`, `.et-lede` |
+| **T2** | Top 8 studies (capability, reliability, line capacity, line balance, SMED, VSM, shift losses, control chart) | **Shared layer** — band/tiles/panels/`ie-pic`/`ie-cap-box`; per-tool signature views unchanged |
+| **T3** | Remaining available tools | Not started — inherits T1+T2 CSS |
+| **T4** | Report engine section headers | **Started** — brand accent on `heading` + `leanHead` |
+| **W3c** | FC-119/120 gauge, FC-114 shape | Next build wave after wow slices |
+
+**Coverage (honest):** ~109 available tools — **100%** inherit lean shell + list patterns;
+**~15%** touched with tool-specific CSS this session; **100%** get panel/chart/empty
+polish via shared classes (`ln-panel`, `ie-pic`, `EmptyState`, directory rows).
+
+**Next session:** Finish T3 spot-checks where checklist fails; `GATE_PAPERS=1` on
+capability + reliability papers; W3c gauge wow pass; toolkits W11 when Rowland says go.
