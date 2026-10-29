@@ -65,11 +65,13 @@ const truth = () => page.evaluate(async pid => {
    button on its row (Test it · Say how it went · Go again) opens it. */
 const ROWS = '.pgr:not(:has(.pp-line-tag))';
 const openForm = async row => {
+  await row.scrollIntoViewIfNeeded();
+  await row.waitFor({ state: 'visible', timeout: 15000 });
   const prove = row.locator('.pgr-prove-h');
   if (await prove.count() && !(await row.locator('.pgr-prove.is-open').count())) { await prove.click(); await page.waitForTimeout(300); }
   const testBtn = row.getByRole('button', { name: /^(Test it|Say how it went|Go again)$/ });
   if (await testBtn.count()) await testBtn.first().click();
-  else await row.locator('.ptx-go').click();
+  else await row.locator('.ptx-go').first().click();
   await page.waitForTimeout(400); return row.locator('.ptx-panel'); };
 const say = async (k, is, note) => {
   const row = page.locator(ROWS).nth(k);
@@ -114,10 +116,13 @@ const names = (await page.locator(`${ROWS} .pgr-name`).allInnerTexts()).map(flat
 }
 /* ---- 4 commentary with no status ---- */
 {
+  /* done-on-the-floor lines sit in Passed or done — not on Needs you (28 October, Prove fold) */
+  await page.locator('.pp-chip', { hasText: /^All\b/ }).click(); await page.waitForTimeout(600);
   const t0 = await truth();
   const k = t0.items.findIndex(i => !(i.results ?? []).length);
   if (k >= 0) {
     const row = page.locator(ROWS, { hasText: t0.items[k].what }).first();
+    await row.waitFor({ state: 'visible', timeout: 15000 });
     const form = await openForm(row);
     await form.locator('textarea').fill('Waiting on the change parts');
     await form.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(900);

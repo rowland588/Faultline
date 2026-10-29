@@ -64,6 +64,11 @@ function Says({ says }: { says: string }) {
    it was really handed over, every machine, and the lines to sign. */
 type Which = 'status' | 'full' | 'programs' | 'handover' | 'commissioning';
 
+const docFromHash = (): Which => (/[?&]doc=programs\b/.test(window.location.hash) ? 'programs'
+  : /[?&]doc=handover\b/.test(window.location.hash) ? 'handover'
+    : /[?&]doc=commissioning\b/.test(window.location.hash) ? 'commissioning'
+      : /[?&]doc=full\b/.test(window.location.hash) ? 'full' : 'status');
+
 async function buildStatus(r: ClientReport): Promise<jsPDF> {
   const { loadPdfLib, titlePdf } = await import('../lib/savePdf');
   const { drawStatusReport } = await import('../lib/clientReportPdf');
@@ -191,10 +196,15 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   }), [rec, snags, projectId]);
   const [withStandards, setWithStandards] = useState(true);
   /* ?doc=programs — opened from the Reports sheet or the Programs page. */
-  const [which, setWhich] = useState<Which>(() => (/[?&]doc=programs\b/.test(window.location.hash) ? 'programs'
-    : /[?&]doc=handover\b/.test(window.location.hash) ? 'handover'
-      : /[?&]doc=commissioning\b/.test(window.location.hash) ? 'commissioning'
-        : /[?&]doc=full\b/.test(window.location.hash) ? 'full' : 'status'));
+  const [which, setWhich] = useState<Which>(() => docFromHash());
+  /* Legacy ?doc= links and Report ▾ hops must switch the paper when the hash
+     changes without remounting (29 Oct — handover via ?doc= after programs). */
+  useEffect(() => {
+    const sync = () => setWhich(docFromHash());
+    sync();
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
   const [busy, setBusy] = useState(false);
   /* What happened to the last press, said beside the button the way the test
      card and the day say it — a download with no word back read as nothing

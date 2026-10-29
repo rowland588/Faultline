@@ -409,6 +409,37 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       {/* WHERE IT STANDS, COUNTED (lib/lineLean) — the tiles its report prints */}
       {show('overview') && reading && <LeanTiles tiles={lineTiles(reading)} className="pl-tiles" />}
 
+      {/* HOW THIS LINE IS SEEN (docs/ADVANCED-TOOLS.md §5A) — walk, video study, Line Talk; the sums stay in Tools. */}
+      {show('overview') && (
+        <section className="pl-sec pl-see" aria-label="How this line is seen">
+          <div className="pl-sec-h"><h2>See it on the line</h2></div>
+          <p className="sub pl-see-lede">How this line is seen. The sums stay in the tools.</p>
+          <ul className="pl-see-doors">
+            <li>
+              <button type="button" className="pl-see-door" onClick={() => nav(walkAssets.length ? `/w/${wsId}/line` : `/w/${wsId}/snags?manage=1`)}>
+                <b>Walk the line</b>
+                <span className="sub">You mark the frame; nothing is sent to a model.</span>
+                <span className="pl-tool-go" aria-hidden>›</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" className="pl-see-door" onClick={() => nav(`/video?line=${encodeURIComponent(wsId)}`)}>
+                <b>Film the work</b>
+                <span className="sub">Times are read on the phone; naming the work from the frames is optional Claude, off until ticked.</span>
+                <span className="pl-tool-go" aria-hidden>›</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" className="pl-see-door" onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>
+                <b>Talk it</b>
+                <span className="sub">Line Talk answers through the app; what you said is kept either way.</span>
+                <span className="pl-tool-go" aria-hidden>›</span>
+              </button>
+            </li>
+          </ul>
+        </section>
+      )}
+
       {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
       {show('overview') && kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} rows={rows} snags={mine} obs={obs} standards={standards} />}
 

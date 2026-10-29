@@ -83,6 +83,7 @@ const LATE = `Domino coder — not on site, was due ${set.dueSaid}`;
 const LINE_HEAD = `On ${set.lineName}, with no project`;
 
 const go = async () => { await page.goto(`${BASE}/${REPORT}`); await page.waitForTimeout(2600); };
+const goDoc = async doc => { await page.goto(`${BASE}/${REPORT}?doc=${doc}`); await page.waitForTimeout(2600); };
 const pick = async name => { await page.getByRole('button', { name, exact: true }).first().click(); await page.waitForTimeout(900); };
 const grab = async (name) => {
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
@@ -96,7 +97,11 @@ const papers = async (tag) => {
   await pick('Full report'); out.fullToc = await toc(); out.full = await grab(`full-${tag}.pdf`);
   out.gaps = (await page.locator('.cr-toc span.sub', { hasText: /^Not added yet: / }).allInnerTexts()).map(t => flat(t).replace(/^Not added yet: /, ''));
   await pick('Programs report'); out.programsToc = await toc(); out.programs = await grab(`programs-${tag}.pdf`);
-  await pick('Handover report'); out.handoverToc = await toc(); out.handover = await grab(`handover-${tag}.pdf`);
+  /* Handover chip hidden from default menus (productStory); legacy PDF via ?doc=handover (29 Oct fault moat). */
+  await goDoc('handover');
+  await page.getByRole('heading', { name: 'Handover report' }).waitFor({ timeout: 20000 });
+  out.handoverToc = await toc().catch(() => '');
+  out.handover = await grab(`handover-${tag}.pdf`);
   for (const k of ['status', 'full', 'programs', 'handover']) out[`${k}Text`] = pdfText(out[k]);
   return out;
 };

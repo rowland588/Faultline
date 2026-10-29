@@ -118,6 +118,8 @@ export const PAGES = (sd, cap) => [
     /* the line is the hub (17 October, BLUEPRINT Stage 3; lib/lineLean). Its products, ready or not, came off on
        23 October — Rowland: "You've invented products ... The program is the product"; a program says its products */
     { what: 'the four tiles — problems, programs, stops, a day of the line', sel: '.pl-tiles .ln-tile', n: 4 },
+    { what: 'See it on the line — Walk the line, Film the work, Talk it', sel: '.pl-see .pl-see-door b', n: 3 },
+    { what: 'how this line is seen — the lede under the doors', sel: '.pl-see-lede', text: /How this line is seen/ },
     /* its papers in Report ▾ since B3 — the line report, the problems report and the problem cards, each named */
     { what: 'Report ▾ — the line report among its papers', sel: '.pl .part-head .part-menu-b', text: /^Report/ },
     { what: 'the closing line', sel: '.pl > .ln-close' },
