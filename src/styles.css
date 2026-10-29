@@ -11112,6 +11112,8 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 /* YOUR FACTORY (screens/FactoryScreen, the control room's Your factory) — the lines in floor order, each
    with its type; the control room's a grid of cards like a floor plan, the factory page a list edited in place */
 .fac-home { margin-bottom: 18px; }
+.fac-quick { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 14px; }
+.fac-quick .fd-talk-start { margin: 0; }
 /* On a phone the factory's head was "Your factory" on two lines beside two
    stacked buttons (FLOW-AUDIT.md, 11): the name, then its two doors in a
    row under it. And under the band it follows, the head sits closer. */

@@ -46,6 +46,30 @@ export function notePlace(place: Place): void {
   try { localStorage.setItem(KEY, JSON.stringify(remember(recentPlaces(), place))); } catch { /* a private window — Home simply has none */ }
 }
 
+/** When a line is archived or deleted — drop it from carry-on on this device. */
+export function dropRecentLine(wsId: string): void {
+  const raw = recentPlaces();
+  const kept = raw.filter(p => p.kind !== 'line' || lineIdFromPlace(p.to) !== wsId);
+  if (kept.length === raw.length) return;
+  try { localStorage.setItem(KEY, JSON.stringify(kept)); } catch { /* private window */ }
+}
+
+/** Line workspace id from a remembered address (`/lines/:ws/...`). */
+export function lineIdFromPlace(to: string): string | undefined {
+  const path = placeAddress(to).replace(/^#/, '');
+  const segs = path.split('?')[0].split('/').filter(Boolean);
+  if (segs[0] !== 'lines' || !segs[1]) return undefined;
+  try { return decodeURIComponent(segs[1]); } catch { return segs[1]; }
+}
+
+/** Project id from a remembered address. */
+export function projectIdFromPlace(to: string): string | undefined {
+  const path = placeAddress(to).replace(/^#/, '');
+  const segs = path.split('?')[0].split('/').filter(Boolean);
+  if (segs[0] !== 'project' || !segs[1]) return undefined;
+  try { return decodeURIComponent(segs[1]); } catch { return segs[1]; }
+}
+
 /** When a place was last open — "at 09:12" today, else the day. */
 export function lastOpen(at: number, today: string, niceDay: (iso: string) => string): string {
   const d = new Date(at);

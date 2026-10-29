@@ -4,6 +4,7 @@ import { uid, now } from '../lib/ids';
 import { taxonomyById, DEFAULT_TAXONOMY_ID } from '../lib/taxonomy';
 import { getDB, signalWrite } from './core';
 import { recordTombstones } from './sync';
+import { dropRecentLine } from '../lib/recentPlaces';
 
 /* ---------- workspaces (the isolation container) ---------- */
 
@@ -116,6 +117,7 @@ export async function deleteWorkspace(id: ID): Promise<void> {
   await recordTombstones('snag_assets', assets.map(a => a.id));
   await recordTombstones('snags', snags.map(s => s.id));
   await recordTombstones('cases', cases.map(c => c.id));
+  dropRecentLine(id);
 }
 
 /* ---------- putting a line away, and taking it out for good ----------
@@ -137,6 +139,7 @@ export async function archiveWorkspace(id: ID): Promise<void> {
   if (!ws) return;
   await db.put('workspaces', { ...ws, archived: true, updatedAt: now() });
   signalWrite();
+  dropRecentLine(id);
 }
 
 export async function restoreWorkspace(id: ID): Promise<void> {
