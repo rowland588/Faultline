@@ -109,9 +109,10 @@ cold stores.
 - [standard] ISO/IEC 17025:2017 — the laboratory's side of the certificates (from knowledge).
 
 ## In Faultline
-Not built (FC-122). When built: the register on the line (each gauge a
-record with its due date, overdue in red on the line's page and the
-control room), a check typed as a reading, a failure opening the
-product-at-risk review from the line's own counts and raising a hold
-(`src/snag`), and the daily verification reading feeding the stability
-chart.
+Built as the **Calibration checks** log on a line (FC-122, `/log/calibration`):
+each gauge a check with its interval and acceptable band on the reference;
+readings typed; due and overdue in the Logs round; a failure holds packs
+since the last good check and raises a problem on the register. Product
+release is the site's call. Daily verification does not yet feed the bias
+and stability study automatically; the product-on-hold register is not
+built yet.

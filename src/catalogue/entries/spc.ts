@@ -1,5 +1,7 @@
 /* THE CATALOGUE — SPC and capability, statistics, measurement systems (src/catalogue/types.ts). */
 import type { Entry } from '../types';
+import { logBuilt } from '../../tools/checks/built';
+import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 
 const CAPABILITY_BUILT = { where: ['/capability'], code: ['src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/sampleLean.ts', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts', 'src/lib/__tests__/audit-ie-sample.test.ts'], acceptance: ['ecosystem-capability.mjs', 'capability-kinds.mjs'] };
 const SPEC = 'knowledge/specs/FC-094-capability.md';
@@ -514,7 +516,7 @@ export const SPC: Entry[] = [
     complexity: 'M', value: 'low', valueWhy: 'After a type 1 study raises a question.',
     status: 'available', form: 'mode', partOf: 'FC-119', methods: ['msa.bias-linearity-stability'], scenarios: ['quality'],
     built: GAUGE_BUILT, spec: GAUGE_SPEC,
-    limits: ['The line of bias is fitted to each reference’s mean bias, as the record does (four references at least, five usual); the AIAG form on every reading is not offered.', 'Stability is an individuals chart with the four Western Electric tests, limits from the first N checks agreed; no guard band is applied to a CCP check or the capability study — the page says the true value, the team applies it.', 'No calibration register or due dates (FC-122).'],
+    limits: ['The line of bias is fitted to each reference’s mean bias, as the record does (four references at least, five usual); the AIAG form on every reading is not offered.', 'Stability is an individuals chart with the four Western Electric tests, limits from the first N checks agreed; no guard band is applied to a CCP check or the capability study — the page says the true value, the team applies it.', 'Calibration due dates and routine checks are on the line’s Calibration log (FC-122), not duplicated here.'],
   },
   {
     id: 'FC-121', name: 'Inspectors agreeing — attribute agreement (kappa)', discipline: 'msa', sub: 'attribute',
@@ -541,7 +543,15 @@ export const SPC: Entry[] = [
     food: 'Cooking and chilling probes; checkweighers.',
     depends: ['FC-169', 'FC-119'],
     complexity: 'S', value: 'medium', valueWhy: 'CCP measurements depend on it.',
-    status: 'to-build', form: 'tool', kind: 'register', methods: ['msa.calibration'], scenarios: ['quality', 'safety'],
+    status: 'available', form: 'tool', kind: 'log', methods: ['msa.calibration'], scenarios: ['quality', 'safety'], words: ['calibration', 'scale', 'probe', 'due', 'overdue'],
+    built: logBuilt('calibration'),
+    spec: 'knowledge/specs/FC-122-calibration-register.md',
+    limits: [
+      'It records checks and states the team’s rules; it never decides a release.',
+      'Set lo and hi from the reference and allowed error before a reading is judged.',
+      'Interval by drift (FC-120) and the product-on-hold register (FC-135) are not built yet.',
+      'Daily checks do not yet feed the bias/stability study automatically.',
+    ],
   },
   {
     id: 'FC-123', name: 'Measurement uncertainty budget', discipline: 'msa', sub: 'calibration',
@@ -553,6 +563,18 @@ export const SPC: Entry[] = [
     food: 'CCP temperatures near their limit.',
     depends: ['FC-122'],
     complexity: 'M', value: 'low', valueWhy: 'Specialist.',
-    status: 'to-build', form: 'tool', kind: 'study', methods: ['msa.measurement-uncertainty'], scenarios: ['quality', 'safety'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['msa.measurement-uncertainty'], scenarios: ['quality', 'safety'], words: ['uncertainty', 'GUM', 'guard band', 'TUR'],
+    built: {
+      where: ['/calc/uncertainty-budget'],
+      code: [...CALC_CODE, 'src/tools/calc/defs/uncertainty-budget.ts', 'src/lib/ie/uncertainty.ts'],
+      tests: [...CALC_TESTS, 'src/lib/ie/__tests__/uncertainty.test.ts'],
+      acceptance: ['calc-shape.mjs'],
+    },
+    spec: 'knowledge/specs/FC-123-uncertainty-budget.md',
+    limits: [
+      'Only resolution, repeatability and certificate — other sources must be added mentally or in a later build.',
+      'k = 2 is assumed for the statement; Welch–Satterthwaite for few degrees of freedom is not offered.',
+      'Give-away money is for grams and cost a kilo only; guard bands on CCP checks are not wired into FC-169 yet.',
+    ],
   },
 ];

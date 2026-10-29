@@ -310,8 +310,10 @@ No new hues, no new `640px` breakpoint, no hex ceiling raised in `styles.css`.
 | **W3c** | FC-119/120 gauge, FC-114 shape | **Done** on main |
 | **W4a** | FC-118 gauge R&R (Analysis `grr`) | **Done** — `lib/ie/gaugeRr`, spec, unit + acceptance `gauge-rr.mjs`, catalogue available |
 | **W4b** | FC-121 attribute agreement (Analysis `attr`) | **Done** — `lib/ie/attributeAgreement`, spec, unit + acceptance `attribute-agreement.mjs`, catalogue available |
+| **W4c** | FC-122 calibration checks (log `calibration`) | **Done** — check-log def, spec, `log-shape.mjs`, catalogue available |
+| **W4d** | FC-123 uncertainty budget (calc `uncertainty-budget`) | **Done** — `lib/ie/uncertainty`, spec, unit + `calc-shape.mjs`, catalogue available |
 
-**Coverage (honest):** ~111 available tools — **100%** lean shell + list patterns;
+**Coverage (honest):** ~113 available tools — **100%** lean shell + list patterns;
 **~30%** tool-specific signature CSS; hub tools (calculators, checks, pareto modes) share work-panel chrome.
 
-**Next slice:** W4 remainder (FC-122 calibration register, FC-123 uncertainty); `GATE_PAPERS=1` on changeover + shift-losses when two checkouts; video/walk signature when those screens gain a hero canvas.
+**Next slice:** W4 complete — wire guard bands to CCP/capability when those screens are touched; `GATE_PAPERS=1` on changeover + shift-losses when two checkouts; video/walk signature when those screens gain a hero canvas.

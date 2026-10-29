@@ -113,8 +113,9 @@ metal detector's sensitivity check pieces (their own certificate's U).
 - [standard] ISO/IEC 17025:2017, clause 7.8.6 — reporting a decision rule with a statement of conformity (from knowledge).
 
 ## In Faultline
-Not built (FC-123). When built: a budget a gauge (its sources typed with
-their distributions, the table and the Pareto drawn), U stated beside the
-gauge's readings wherever they are used, and the guard band offered to the
-capability study's limit and the CCP check — with the give-away it costs
-said in money.
+Built as the **Measurement uncertainty budget** calculator (FC-123,
+`/calc/uncertainty-budget`): resolution, repeatability and certificate
+combined into u_c and expanded U, shares of variance, optional guard
+band at a lower limit, test uncertainty ratio, and give-away when cost a
+kilo is given. Not yet wired into capability limits or CCP monitoring;
+extra sources are typed only through these three boxes today.
