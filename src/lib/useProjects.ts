@@ -10,7 +10,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { heldReading } from './heldReading';
 import {
   ensureProjects, createProject, updateProject, deleteProject, onDataChange,
-  archiveProject, restoreProject, purgeProject, projectContents,
+  archiveProject, restoreProject, purgeProject, projectContents, releaseInstallationToLine,
+  type ReleaseInstallationResult,
 } from '../db';
 import type { Project } from '../types';
 import type { PlanModel } from './planModel';
@@ -32,6 +33,8 @@ export interface ProjectsState {
   purge: (id: string) => Promise<void>;
   /** What a purge would take, counted so the confirm can say it out loud. */
   contents: (id: string) => Promise<{ store: string; count: number }[]>;
+  /** Programs, tests and machines → production line; installation project archived. */
+  releaseToLine: (id: string, workspaceId?: string) => Promise<ReleaseInstallationResult>;
 }
 
 /** The palette new projects take their accent from, in order — so two projects
@@ -89,6 +92,11 @@ export function useProjects(): ProjectsState {
     restore: async (id: string) => { await restoreProject(id); await refresh(); },
     purge: async (id: string) => { await purgeProject(id); await refresh(); },
     contents: (id: string) => projectContents(id),
+    releaseToLine: async (id: string, workspaceId?: string) => {
+      const r = await releaseInstallationToLine(id, workspaceId);
+      await refresh();
+      return r;
+    },
   };
 }
 

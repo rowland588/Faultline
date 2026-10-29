@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { offerUndo } from '../ui/Undo';
 import { COLORS, useProject, useProjects } from '../lib/useProjects';
+import { installationProjectSurfaceInMenus } from '../lib/productStory';
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY } from '../lib/story';
 import { methodOf, planModel, setPlanModel, setupProjectModels, switchBack } from '../lib/planModel';
@@ -397,7 +398,8 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   const part = useRoute().query.get('part');
   if (part) openFold(part);
   const { loading, project } = useProject(projectId);
-  const { archive, purge, contents } = useProjects();
+  const { archive, purge, contents, releaseToLine } = useProjects();
+  const [releasing, setReleasing] = useState(false);
   /* DELETE, asked on the job itself: what it would take, counted first. */
   const [deleting, setDeleting] = useState<{ store: string; count: number }[] | null>(null);
   const [gone, setGone] = useState(false);
@@ -495,11 +497,32 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           them and their stage lists live on Install, the first gate — the
           grid they are worked on. Details does not hold them, and said nothing
           about where they were. */}
-      {commissioning && (
+      {commissioning && installationProjectSurfaceInMenus && (
         <button className="why-door" onClick={() => nav(`/project/${project.id}/install`)}>
           <span className="why-door-t">Machines, who supplied them, and their stage lists</span>
           <span className="why-door-s">They are kept on Install, the first gate, where each one is worked through its stages ›</span>
         </button>
+      )}
+
+      {commissioning && can.remove && (
+        <section className="pace-sec proj-release-line">
+          <div className="pace-sec-head">
+            <h2 className="pace-sec-title">Keep programs on the line</h2>
+            <p className="pace-sec-sub">Every program, test and machine moves onto the production line (Line 2A when you have it). The installation project is archived — gates and Commission are no longer on Home.</p>
+          </div>
+          <div className="card">
+            <button type="button" className="btn btn-primary" disabled={releasing} onClick={() => {
+              if (!confirm(`Move every program and test onto the production line and archive “${project.name}”?\n\nNothing you ran is deleted. Open Programs on Line 2A to carry on.`)) return;
+              setReleasing(true);
+              void releaseToLine(project.id).then(r => {
+                nav(`/programs?line=${encodeURIComponent(r.workspaceId)}`);
+              }).catch(err => {
+                alert(err instanceof Error ? err.message : 'Could not move programs to the line.');
+                setReleasing(false);
+              });
+            }}>{releasing ? 'Moving…' : 'Move to the line and archive installation'}</button>
+          </div>
+        </section>
       )}
 
       {!commissioning && linesSection}

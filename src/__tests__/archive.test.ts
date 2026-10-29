@@ -65,6 +65,34 @@ async function projectWithEverything(db: Awaited<ReturnType<typeof freshDb>>) {
   return id;
 }
 
+describe('release installation to the line', () => {
+  it('moves programs and tests onto the line and archives the project', async () => {
+    const db = await freshDb();
+    const t = 1;
+    const ws = await db.createWorkspace('Line 2A');
+    const wsId = ws.id;
+    const id = 'proj-line-2';
+    await db.addProject({
+      id, name: 'Line 2 commissioning', color: '#2b87d4', workspaceIds: [wsId],
+      commissioning: true, createdAt: t, updatedAt: t,
+    });
+    await db.putPaceLine({ id: 'pl-2a', projectId: id, key: '2A', name: 'Line 2A', workspaceId: wsId, sort: 0, updatedAt: t });
+    await db.putAsset({ id: 'as-w', projectId: id, name: 'Ilapak flow wrapper', state: 'running', sort: 10, updatedAt: t });
+    await db.putProgram({ id: 'pg1', projectId: id, assetId: 'as-w', what: 'PR-04 Finest Red 2 kg', state: 'onMachine', sort: 1, createdAt: t, updatedAt: t });
+    await db.putTest({
+      id: 'ts1', projectId: id, kind: 'test', title: 'Prove program PR-04', assetId: 'as-w', programId: 'pg1',
+      outcome: 'passed', sort: 1, createdAt: t, updatedAt: t,
+    });
+
+    const r = await db.releaseInstallationToLine(id);
+    expect(r).toMatchObject({ workspaceId: wsId, programs: 1, tests: 1, machines: 1 });
+
+    expect(await db.listTests(id)).toHaveLength(0);
+    expect((await db.listAllPrograms()).find(p => p.id === 'pg1')).toMatchObject({ projectId: '', workspaceId: wsId });
+    expect((await db.getProject(id))?.archivedAt).toBeGreaterThan(0);
+  });
+});
+
 describe('archiving is reversible and loses nothing', () => {
   it('takes the project out of the live list and puts it back', async () => {
     const db = await freshDb();

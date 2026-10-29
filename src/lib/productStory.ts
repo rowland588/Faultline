@@ -12,6 +12,9 @@ export const commissioningNarrativePapersInMenus = false;
 /** Lever tree on New project and on Details unless the project is already one. */
 export const leverTreeInNewProject = false;
 
+/** Install gate screens linked from Details (Machines / stages). Programs and tests live on the line. */
+export const installationProjectSurfaceInMenus = false;
+
 const NARRATIVE_LABELS = new Set([
   'Commissioning report',
   'Handover report',

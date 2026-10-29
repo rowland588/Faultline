@@ -6,9 +6,17 @@
  */
 import type { ID, Project } from '../types';
 import type { PlanModel } from '../lib/planModel';
+import { planModel } from '../lib/planModel';
 import { uid, now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones } from './sync';
+import { allPaceLines } from './pace';
+import { listWorkspaces } from './workspaces';
+import { addMachineToLine } from './lineRecords';
+import { putProgram } from './programs';
+import { putAsset, putTest, putTestItem } from './testing';
+import { putStandard } from './standards';
+import { putStudy } from './studies';
 
 export async function allProjects(): Promise<Project[]> {
   const db = await getDB();
@@ -113,7 +121,86 @@ export const onLine = (lineId?: string) => (r: { lineId?: string }) => !lineId |
  * PURGE is the other one. It is reachable only from the archive, so nothing can
  * be destroyed in one step from the main list, and it takes the project's whole
  * file with it.
+ *
+ * RELEASE TO THE LINE (Rowland, 29 October): an installation project's programs,
+ * tests and machines belong on the production line when the gate shell goes away
+ * — projectId cleared, workspaceId set to the line (Line 2A when it exists).
  */
+
+/** Which factory line should own what leaves an installation project. */
+async function resolveReleaseWorkspace(projectId: ID, hint?: ID): Promise<ID> {
+  if (hint) return hint;
+  const [jobLines, workspaces] = await Promise.all([allPaceLines(), listWorkspaces()]);
+  const onJob = jobLines.filter(l => l.projectId === projectId && !l.deletedAt);
+  const line2a = onJob.find(l => /2a/i.test(l.name) || l.key === '2A');
+  if (line2a?.workspaceId) return line2a.workspaceId;
+  const ws2a = workspaces.find(w => !w.archived && /line\s*2a/i.test(w.name));
+  if (ws2a) return ws2a.id;
+  const withWs = onJob.find(l => l.workspaceId);
+  if (withWs?.workspaceId) return withWs.workspaceId;
+  const p = await getProject(projectId);
+  const fromProj = p?.workspaceIds?.find(Boolean);
+  if (fromProj) return fromProj;
+  throw new Error('Pick which production line should keep the programs and tests.');
+}
+
+export interface ReleaseInstallationResult {
+  workspaceId: ID;
+  programs: number;
+  tests: number;
+  machines: number;
+}
+
+/** Move every program, test, machine and line standard onto a production line,
+ *  then archive the installation project (gates, plan, Commission — all on the
+ *  archived project, reachable from Archive if needed). */
+export async function releaseInstallationToLine(projectId: ID, workspaceId?: ID): Promise<ReleaseInstallationResult> {
+  const p = await getProject(projectId);
+  if (!p) throw new Error('That project is not here.');
+  if (planModel(p) !== 'commissioning') throw new Error('Only an installation project can release programs to the line.');
+  const wsId = await resolveReleaseWorkspace(projectId, workspaceId);
+  const db = await getDB();
+  const stamp = now();
+
+  const assets = (await db.getAllFromIndex('commission_assets', 'by_project', projectId))
+    .filter(a => !(a as { deletedAt?: number }).deletedAt);
+  for (const a of assets) {
+    await addMachineToLine(wsId, a.name, a.oem);
+    await putAsset({ ...a, projectId: '', workspaceId: wsId, updatedAt: stamp });
+  }
+
+  const programs = (await db.getAllFromIndex('programs', 'by_project', projectId))
+    .filter(r => !(r as { deletedAt?: number }).deletedAt);
+  for (const prog of programs) {
+    await putProgram({ ...prog, projectId: '', workspaceId: wsId, updatedAt: stamp });
+  }
+
+  const tests = (await db.getAllFromIndex('tests', 'by_project', projectId))
+    .filter(t => !t.deletedAt);
+  for (const test of tests) {
+    await putTest({ ...test, projectId: '', updatedAt: stamp });
+  }
+
+  const items = (await db.getAllFromIndex('test_items', 'by_project', projectId))
+    .filter(i => !(i as { deletedAt?: number }).deletedAt);
+  for (const item of items) {
+    await putTestItem({ ...item, projectId: '', updatedAt: stamp });
+  }
+
+  const standards = (await db.getAllFromIndex('standards', 'by_project', projectId))
+    .filter(s => !s.deletedAt);
+  for (const s of standards) {
+    await putStandard({ ...s, projectId: '', workspaceId: wsId, updatedAt: stamp });
+  }
+
+  const studies = (await db.getAllFromIndex('studies', 'by_project', projectId)).filter(s => !s.deletedAt);
+  for (const s of studies) {
+    if (s.workspaceId) await putStudy({ ...s, projectId: undefined, updatedAt: stamp });
+  }
+
+  await archiveProject(projectId);
+  return { workspaceId: wsId, programs: programs.length, tests: tests.length, machines: assets.length };
+}
 
 export async function archiveProject(id: ID): Promise<void> {
   const db = await getDB();
