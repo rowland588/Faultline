@@ -25,7 +25,6 @@ import { useState } from 'react';
 import '@fontsource-variable/outfit';
 import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
-import { NEW_PROJECT_MODELS } from '../lib/planModel';
 
 /* Flat, a small tremor, the fault, and flat again — across the full width. */
 const TRACE = 'M0 80 H360 L374 72 L388 88 L400 80 H430 L458 14 L490 150 L514 50 L532 96 L546 80 H1000';
@@ -81,11 +80,8 @@ export function Landing() {
           <h1 className="door-name">Faultline</h1>
         </div>
 
-        {/* The three ways a project runs in here — see lib/planModel. */}
-        <p className="door-methods" aria-label={`Projects run as: ${NEW_PROJECT_MODELS.map(m => m.label).join(', ')}`}>
-          {NEW_PROJECT_MODELS.map((m, i) => (
-            <span key={m.id}>{i > 0 && <i className="door-sep" aria-hidden />}{m.label}</span>
-          ))}
+        <p className="door-methods" aria-label="Line Gemba first — programs on the line, Performance (6M) projects when needed">
+          Programs and tests on the line · Performance (6M) when a line is off target
         </p>
 
         <form className="door-card" onSubmit={e => { e.preventDefault(); void submit(); }}>

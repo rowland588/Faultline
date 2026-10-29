@@ -441,9 +441,9 @@ export function WorkspaceHome() {
             <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>Start a project</button>
           </div>
           <p className="sub home-sec-sub">
-            Start with Performance (6M) when a line is off target — faults, tools, root cause and Actions.
-            Choose Installation project only when you need optional gates for a formal install. Every
-            project shows here with what is late and who owes what; programs and tests live on the line first.
+            Set up your lines on the Factory, then prove with Programs — no project required for tests on the line.
+            Start Performance (6M) when fault-finding and Actions need a project workspace. Every project shows
+            here with what is late and who owes what.
           </p>
         </section>
       )}
