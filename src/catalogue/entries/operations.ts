@@ -66,7 +66,14 @@ export const OPERATIONS: Entry[] = [
     food: 'Nut, sesame, milk and gluten changeovers.',
     depends: ['FC-072', 'FC-070', 'FC-172'],
     complexity: 'M', value: 'high', valueWhy: 'Safety and a large changeover loss together.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['foodsafety.allergen-changeover'], scenarios: ['safety', 'changeover'], words: ['allergen'],
+    status: 'available', form: 'tool', kind: 'log', methods: ['foodsafety.allergen-changeover'], scenarios: ['safety', 'changeover'], words: ['allergen'],
+    spec: 'knowledge/specs/FC-171-allergen-changeover.md',
+    built: logBuilt('allergen-changeover'),
+    limits: [
+      'It records checks and states the team’s rules; it never decides a release or shortens the validated clean.',
+      'Validation evidence is kept outside this log; ATP verifies allergens only where the site validated it as a proxy (FC-172).',
+      'Changeover checks are counted when done, not scheduled overdue; a failure raises a Critical problem — FC-135 hold is not built yet.',
+    ],
   },
   {
     id: 'FC-172', name: 'Cleaning verification — ATP and swabs', discipline: 'foodsafety', sub: 'hygiene',
@@ -78,7 +85,14 @@ export const OPERATIONS: Entry[] = [
     food: 'Slicers, conveyors, depositors.',
     depends: ['FC-171', 'FC-173'],
     complexity: 'S', value: 'medium', valueWhy: 'Evidence for hygiene.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['foodsafety.cleaning-verification-atp'], scenarios: ['safety'], words: ['ATP', 'swab'],
+    status: 'available', form: 'tool', kind: 'log', methods: ['foodsafety.cleaning-verification-atp'], scenarios: ['safety'], words: ['ATP', 'swab'],
+    spec: 'knowledge/specs/FC-172-cleaning-atp.md',
+    built: logBuilt('cleaning-atp'),
+    limits: [
+      'ATP is residue, not pathogens — environmental monitoring (FC-173) is separate.',
+      'Set limits on each site from your baseline; with none, readings are trended and not judged.',
+      'Pre-op failures do not hold product made since a last good check; re-clean delay is priced when wage and line rate are given.',
+    ],
   },
   {
     id: 'FC-173', name: 'Environmental monitoring — Listeria zones and trends', discipline: 'foodsafety', sub: 'hygiene',
@@ -894,7 +908,7 @@ export const OPERATIONS: Entry[] = [
     spec: 'knowledge/specs/FC-236-check-logs.md',
     built: { where: ['/logs'], code: LOG_CODE, tests: LOG_TESTS, acceptance: [LOG_ACCEPTANCE] },
     limits: [
-      'A kind of check with no definition yet is not offered: each log (metal detection, 5S, scored audits, CILT, condition routes) is one file in src/tools/checks/defs; the other fifteen entries on this shape are not built.',
+      'A kind of check with no definition yet is not offered: each log is one file in src/tools/checks/defs (metal detection, checkweigher, code and label, 5S, scored audits, CILT, condition routes, calibration, planned maintenance); the other entries on this shape are not built.',
       'The count kind (an hour-by-hour board, FC-196) is built and tested in code but no definition uses it, so no browser script drives it.',
       'A result’s photo is not held on the result: a photograph goes on the problem a failure or a finding raises, where the register already holds it. The product-on-hold record (FC-135) is not built; the hold’s facts are ready for it.',
       'Two devices working one log at once are proved at the merge (every result kept, a strike holds), not by the two-device run; iOS Safari and a log of thousands of results are not tried.',

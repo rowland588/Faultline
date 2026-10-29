@@ -6,10 +6,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 121 |
+| Available (`available`) | 123 |
 | Partly (`partial`) | 24 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 72 |
+| Not built yet (`to-build`) | 70 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -32,7 +32,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Root cause and problem solving | 10 | 4 | 2 |  | 4 |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
-| Food safety, hygiene and traceability | 11 | 3 |  |  | 6 | 2 |  |
+| Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |
 | Production planning and scheduling | 8 | 1 |  |  | 7 |  |  |
 | Cost and operational performance | 6 | 4 |  |  | 1 |  | 1 |
 | Visual and daily management | 15 | 7 | 4 |  | 4 |  |  |

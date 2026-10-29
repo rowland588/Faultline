@@ -1,5 +1,5 @@
 /* THE CHECK LOG SHAPE, DRIVEN — table-driven over EVERY registered definition (knowledge/specs/FC-236-check-logs.md;
- * FC-164 checkweigher, FC-166 code and label, FC-170 metal detection, FC-177 and FC-013 scored audits and 5S, FC-062 and FC-234 CILT and condition checks, and
+ * FC-164 checkweigher, FC-166 code and label, FC-171 allergen changeover, FC-172 cleaning ATP, FC-170 metal detection, FC-177 and FC-013 scored audits and 5S, FC-062 and FC-234 CILT and condition checks, and
  * every log added after them: a definition in src/tools/checks/defs is covered by being there).
  *
  *   S1  the Logs hub — the factory's, a line's (?view=logs, Stops timed first), a project's; every kind, grouped, with
@@ -46,7 +46,8 @@ const whereFor = whereLabel =>
   whereLabel === 'Detector' ? 'Metal detector'
     : whereLabel === 'Machine' ? 'Wrapper'
       : whereLabel === 'Area' ? 'Packing hall'
-        : whereLabel;
+        : whereLabel === 'Site' ? 'Slicer guard'
+          : whereLabel;
 
 /** A device at a width — its own context, as a team member (the owner) or a client. */
 async function device(width, access) {
@@ -469,19 +470,20 @@ console.log('\n--- S4 · the worked examples, on the page ---');
 if (!SKIP.has('S4')) {
   const EX = await dp.evaluate(async () => {
     const R = await import('/src/tools/checks/registry.ts');
-    return R.LOG_DEFS.flatMap(d => d.examples.map((ex, i) => ({ key: d.key, i, name: ex.name, nowMin: ex.nowMin, expect: ex.expect, scored: !!d.scale, pick: ex.checks ?? d.starterChecks.map((_, k) => k) })));
+    return R.LOG_DEFS.flatMap(d => d.examples.map((ex, i) => ({ key: d.key, i, name: ex.name, nowMin: ex.nowMin, expect: ex.expect, scored: !!d.scale, whereLabel: d.whereLabel, pick: ex.checks ?? d.starterChecks.map((_, k) => k) })));
   });
   ok(EX.length >= KEYS.length, `S4 ${EX.length} worked examples across ${KEYS.length} definitions — every definition has at least one`);
   for (const e of EX) {
     const tag = `S4 ${e.key} · ${e.name}`;
-    const made = await dp.evaluate(async ([key, i, line, pick]) => {
+    const wherePlace = whereFor(e.whereLabel);
+    const made = await dp.evaluate(async ([key, i, line, pick, where]) => {
       const db = await import('/src/db.ts'), R = await import('/src/tools/checks/registry.ts'), X = await import('/src/tools/checks/example.ts');
       const def = R.defOf(key), ex = def.examples[i];
-      const s = X.exampleStudy(def, ex, Date.now(), { line, where: whereFor(def.whereLabel) });
+      const s = X.exampleStudy(def, ex, Date.now(), { line, where: where || 'Packing hall' });
       const id = crypto.randomUUID();
       await db.putStudy({ ...s, id, name: `${def.title} — example ${i + 1}`, createdAt: Date.now(), updatedAt: Date.now() });
       return { id, ids: Object.fromEntries(pick.map((k, j) => [k, s.agreed.log.checks[j].id])) };
-    }, [e.key, e.i, CLEAN, e.pick]);
+    }, [e.key, e.i, CLEAN, e.pick, wherePlace]);
     await desk.go(`#/log/${e.key}/${made.id}`);
     const x = e.expect, inWeek = e.nowMin <= 7 * 1440;
     const tiles = Object.fromEntries((await tilesOnPage(dp)).map(t => [t[0], t[1]]));

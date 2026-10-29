@@ -122,8 +122,8 @@ manager has read about.
 - [guide] Campden BRI, *Validation of cleaning to remove food allergens* (Guideline 59) (from knowledge).
 
 ## In Faultline
-Not built (FC-171); SMED times the clean as a changeover
-(`src/tools/changeover`). FC-171 adds the matrix per line (which changes
-need the clean), the validation record, each changeover's verification
-swabs and release time, the clean's internal/external split into SMED,
-and the fails by site.
+Built (`FC-171`, `knowledge/specs/FC-171-allergen-changeover.md`) as a check log on
+the shared shape (`src/tools/checks`, `defs/allergen-changeover.ts`): visual and
+verification swabs each allergen changeover, pass/fail, and a problem on fail.
+SMED times the clean (`src/tools/changeover`, FC-072). The allergen matrix,
+validation records and release timing in SMED are not built yet.

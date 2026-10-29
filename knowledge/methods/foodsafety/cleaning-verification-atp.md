@@ -107,7 +107,8 @@ manager's monthly trend.
 - [guide] Campden BRI guidance on cleaning validation and verification (from knowledge).
 
 ## In Faultline
-Not built (FC-172). The register takes a hygiene problem on a line and
-machine (`src/snag`); FC-172 adds the swab sites per line with their
-limits, each swab's RLU tapped at pre-op with its band, the pass rate
-and trend, and the Pareto of fails by site with the re-clean recorded.
+Built (`FC-172`, `knowledge/specs/FC-172-cleaning-atp.md`) as a check log on
+the shared shape (`src/tools/checks`, `defs/cleaning-atp.ts`): swab sites per
+line, RLU typed at pre-op against limits set on each check, compliance, trends,
+and failures by site. The register still takes hygiene problems (`src/snag`);
+a fail here raises one on the register with the re-clean in its words.
