@@ -88,11 +88,14 @@ function MachineSlide({ stop, wsId, layer, heat, money }: {
       )}
       {layer === 'proof' && (
         <span className="line-proof">
-          {stop.win && (
-            <span className="lp-badge lp-win" role="button" tabIndex={0} onClick={e => openCase(e, stop.win!.c.id)}>
-              <Icon name={stop.win.slipping ? 'warning' : 'check'} size="1.15em" /> {money(stop.win.savedMsWeek)}/wk proven{stop.win.slipping ? ' · slipping' : ''} — {stop.win.c.title} ›
+          {stop.win && (() => {
+            const w = stop.win;
+            return (
+            <span className="lp-badge lp-win" role="button" tabIndex={0} onClick={e => openCase(e, w.c.id)}>
+              <Icon name={w.slipping ? 'warning' : 'check'} size="1.15em" /> {money(w.savedMsWeek)}/wk proven{w.slipping ? ' · slipping' : ''} — {w.c.title} ›
             </span>
-          )}
+            );
+          })()}
           {stop.openCase && (
             <span className="lp-badge lp-live" role="button" tabIndex={0} onClick={e => openCase(e, stop.openCase!.id)}>
               <Icon name="case" size="1.15em" /> being worked — {stop.openCase.title} ›

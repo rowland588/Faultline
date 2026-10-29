@@ -147,7 +147,7 @@ export function SnagsScreen() {
   const move = async (from: number, to: number) => {
     if (to < 0 || to >= segs.length) return;
     const order = segs.map(s => s.id); const [m] = order.splice(from, 1); order.splice(to, 0, m);
-    setSegs(order.map((id, i) => ({ ...segs.find(s => s.id === id)!, sequence: i + 1 })));
+    setSegs(order.flatMap((id, i) => { const seg = segs.find(s => s.id === id); return seg ? [{ ...seg, sequence: i + 1 }] : []; }));
     await reorderSegments(order);
   };
 

@@ -38,7 +38,8 @@ export default function PinImage({ src, pins, onPlace, onPinTap, readOnly, alt =
   };
   const onPointerMove = (e: RPointerEvent) => {
     if (!ptrs.current.has(e.pointerId)) return;
-    const prev = ptrs.current.get(e.pointerId)!;
+    const prev = ptrs.current.get(e.pointerId);
+    if (!prev) return;
     ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (ptrs.current.size === 2 && gesture.current) {
       const [a, b] = [...ptrs.current.values()];

@@ -290,7 +290,7 @@ export function useRoute(): Route {
 }
 
 /** Navigate (adds a history entry). */
-export const nav = (to: string | { page: string; [key: string]: any }): void => {
+export const nav = (to: string | { page: string; [key: string]: unknown }): void => {
   let hash: string;
   if (typeof to === 'string') {
     hash = to.startsWith('#') ? to : '#' + to;

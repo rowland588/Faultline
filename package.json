@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/check-env.mjs && node scripts/check-live-schema.mjs && tsc --noEmit && eslint src --max-warnings 61 && vitest run && vite build",
+    "build": "node scripts/check-env.mjs && node scripts/check-live-schema.mjs && tsc --noEmit && eslint src --max-warnings 60 && vitest run && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "node scripts/smoke.mjs",
     "schema:live": "node scripts/check-live-schema.mjs",
-    "lint": "eslint src --max-warnings 61"
+    "lint": "eslint src --max-warnings 60"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
