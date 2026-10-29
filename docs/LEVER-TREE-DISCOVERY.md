@@ -2,6 +2,8 @@
 
 Rowland asked to **discover what lever tree can be**, not build yet. This is positioning in plain English for a manufacturing ops lead who has to **sell change to sponsors** and stay in control across every line. It sits beside the technical review [`docs/reviews/LEVER-TREE-REVIEW-29-OCT.md`](reviews/LEVER-TREE-REVIEW-29-OCT.md).
 
+**Does it belong in the app?** Strategic memo (keep / park / fold): [`docs/LEVER-TREE-FIT.md`](LEVER-TREE-FIT.md).
+
 **Hypothesis you can edit:** lever tree is its **own** kind of change — not stage gate with a diagram, not 6M with a different skin. It is for when the business already agrees **one number** and **a date**, and the job is to show **what must become true**, **which lever is off**, and **that the work under it is happening** — in language a sponsor can follow monthly.
 
 ---

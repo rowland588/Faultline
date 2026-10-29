@@ -6,7 +6,7 @@ import type { LogDef } from '../def';
 const REACTION =
   'Re-clean the site to the hygiene method, re-swab, and do not start production on that line until the reading passes the limit you set.';
 const PREOP = {
-  where: 'Site',
+  where: 'Slicer guard',
   when: { every: 1, unit: 'day' } as const,
   kind: 'value' as const,
   unit: 'RLU',

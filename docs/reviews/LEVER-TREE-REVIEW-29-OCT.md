@@ -4,6 +4,8 @@ Rowland asked for a **review of the lever tree** while stage-gate work continues
 
 **Positioning (plain English, for sponsors):** [`docs/LEVER-TREE-DISCOVERY.md`](../LEVER-TREE-DISCOVERY.md) — what lever tree is for, when to pick it, and open questions; written the same day from this review, not a build spec.
 
+**Strategic fit (keep / park / fold):** [`docs/LEVER-TREE-FIT.md`](../LEVER-TREE-FIT.md).
+
 **Audience:** Rowland and the next builder session. **Yardstick:** the same questions stage gate is now held to — one path, one name per place, shared infrastructure parity, sellability without becoming a generic method builder.
 
 ---
