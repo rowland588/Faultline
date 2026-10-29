@@ -6,6 +6,7 @@ import type { LogDef } from '../def';
 const REACTION =
   'Do not start the next product. Re-clean to the validated procedure, re-swab the failed sites, and sign release only when every check passes.';
 const CO = {
+  where: 'Site',
   when: { when: 'changeover' } as const,
   kind: 'passfail' as const,
   reaction: REACTION,
