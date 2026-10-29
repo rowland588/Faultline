@@ -20,6 +20,10 @@ Read `docs/DIRECTION.md` first, as `CLAUDE.md` says: the catalogue is the
 full opportunity, not a plan to build it all — *"deep, not wide ... a new tool
 is added when a real problem on the line needs it."* The backlog weighs that.
 
+**Product strategy (29 Oct 2026):** how tools and the two live methodologies
+(stage gate, 6M) fit Gemba, the line-home map, and the moat —
+[`docs/FAULTLINE-PRODUCT-DISCOVERY.md`](../docs/FAULTLINE-PRODUCT-DISCOVERY.md).
+
 ## Finding things
 
 ```

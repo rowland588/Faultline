@@ -15,6 +15,11 @@ page header, one report menu and a design system of shared parts. Rowland,
 No record changes. §1 and §3 here were rewritten to the scopes with B2
 (23 October), the slice that built them; the rest of this blueprint stands.
 
+**29 October — product identity (Rowland, strategic):** what SG, 6M and tools
+are *for*, Gemba vs installation tension, moat vs OEE, and decisions before
+the next build — [`docs/FAULTLINE-PRODUCT-DISCOVERY.md`](FAULTLINE-PRODUCT-DISCOVERY.md).
+Does not replace this blueprint or `docs/DIRECTION.md`.
+
 ---
 
 ## 0. Why this exists
