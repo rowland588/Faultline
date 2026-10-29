@@ -2,6 +2,8 @@
 
 Rowland asked for a **review of the lever tree** while stage-gate work continues. This document is research against the repo and docs as of 29 October; it does not change product behaviour. Where it disagrees with older maps (`docs/map/tree-and-control-room.md`, parts of `docs/STRUCTURE.md` §13), **the code and `docs/DIRECTION.md` win**.
 
+**Positioning (plain English, for sponsors):** [`docs/LEVER-TREE-DISCOVERY.md`](../LEVER-TREE-DISCOVERY.md) — what lever tree is for, when to pick it, and open questions; written the same day from this review, not a build spec.
+
 **Audience:** Rowland and the next builder session. **Yardstick:** the same questions stage gate is now held to — one path, one name per place, shared infrastructure parity, sellability without becoming a generic method builder.
 
 ---
