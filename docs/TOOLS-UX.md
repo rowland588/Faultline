@@ -315,8 +315,10 @@ No new hues, no new `640px` breakpoint, no hex ceiling raised in `styles.css`.
 | **W5a** | FC-066 critical spares (calc `critical-spares`) | **Done** — `lib/ie/spares`, spec, unit + `calc-shape.mjs`, catalogue available |
 | **W5b** | FC-063 planned maintenance (log `planned-maintenance`) | **Done** — check-log def, backlog hours tile, `log-shape.mjs` |
 | **W5b** | FC-064 criticality (scored `criticality`) | **Done** — scored-register shape, `lib/ie/criticality`, `scored-shape.mjs` |
+| **W5c** | FC-057 cost deployment (calc `cost-deployment`) | **Done** — `lib/ie/costDeployment`, spec, unit + `calc-shape.mjs`, `.tool-sig-board` on matrix tiles |
+| **W5c** | FC-067 maintenance measures (board `maintenance-measures`) | **Done** — board shape, `lib/ie/maintenanceMeasures`, `board-shape.mjs`, lean paper |
 
-**Coverage (honest):** ~116 available tools — **100%** lean shell + list patterns;
-**~32%** tool-specific signature CSS; hub tools (calculators, checks, scored registers, pareto modes) share work-panel chrome.
+**Coverage (honest):** ~119 available tools — **100%** lean shell + list patterns;
+**~33%** tool-specific signature CSS; hub tools (calculators, checks, scored registers, boards, pareto modes) share work-panel chrome.
 
-**Next slice:** W5 — FC-057 cost deployment, FC-067 maintenance measures; reliability study polish; wire guard bands when CCP screens move.
+**Next slice:** W6 checks — FC-164 checkweigher, FC-166 code/label, FC-171 allergen changeover (check-log pattern, `log-shape.mjs`); reliability study polish; wire guard bands when CCP screens move.

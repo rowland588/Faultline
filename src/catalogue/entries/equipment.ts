@@ -2,6 +2,7 @@
 import type { Entry } from '../types';
 import { logBuilt } from '../../tools/checks/built';
 import { scoredBuilt } from '../../tools/scored/built';
+import { boardBuilt } from '../../tools/board/built';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
@@ -161,7 +162,10 @@ export const EQUIPMENT: Entry[] = [
     food: 'The engineering manager’s monthly report.',
     depends: ['FC-058', 'FC-059', 'FC-063'],
     complexity: 'M', value: 'low', valueWhy: 'Useful once the inputs exist.',
-    status: 'to-build', form: 'report', methods: ['maintenance.planned-maintenance', 'maintenance.mttr-availability'], scenarios: ['machine'],
+    status: 'available', form: 'tool', kind: 'board', methods: ['maintenance.planned-maintenance', 'maintenance.mttr-availability'], scenarios: ['machine'],
+    built: boardBuilt('maintenance-measures'),
+    spec: 'knowledge/specs/FC-067-maintenance-measures.md',
+    limits: ['Reactive crew-hours are typed until repair-time stops feed them (FC-059).', 'MTBF is from each reliability study on the line — not merged automatically.', 'Parts and breakdown cost in money are not on this board.'],
   },
   {
     id: 'FC-068', name: 'SMED — a changeover timed, separated and cut down', discipline: 'changeover', sub: 'smed',

@@ -60,6 +60,7 @@ const ChangeoverScreen = lazy(() => import('./tools/changeover/ChangeoverScreen'
 const AnalysisScreen = lazy(() => import('./tools/analysis/AnalysisScreen').then(m => ({ default: m.AnalysisScreen })));
 const CalcScreen = lazy(() => import('./tools/calc/CalcScreen').then(m => ({ default: m.CalcScreen })));
 const ScoredScreen = lazy(() => import('./tools/scored/ScoredScreen').then(m => ({ default: m.ScoredScreen })));
+const MaintenanceBoardScreen = lazy(() => import('./tools/board/BoardScreen').then(m => ({ default: m.BoardScreen })));
 const ChartScreen = lazy(() => import('./tools/chart/ChartScreen').then(m => ({ default: m.ChartScreen })));
 const ReliabilityScreen = lazy(() => import('./tools/reliability/ReliabilityScreen').then(m => ({ default: m.ReliabilityScreen })));
 /* the check logs (knowledge/specs/FC-236-check-logs.md): the Logs hub, one kind's list, and a log */
@@ -200,6 +201,7 @@ function app(route: Route) {
   /* a calculator (knowledge/specs/FC-235-calculators.md): the hub, one calculator's saved ones, one saved calculation */
   if ((route.name === 'studies' || (route.name === 'study' && route.id)) && route.view === 'calc') return <CalcScreen key={`${route.key ?? ''}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} calcKey={route.key} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
   if ((route.name === 'studies' || (route.name === 'study' && route.id)) && route.view === 'scored') return <ScoredScreen key={`${route.key ?? ''}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} scoredKey={route.key} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
+  if ((route.name === 'studies' || (route.name === 'study' && route.id)) && route.view === 'board') return <MaintenanceBoardScreen key={`${route.key ?? ''}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} boardKey={route.key} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
   /* the check logs: the scopes' Logs (#/logs, ?line=, ?project=), one kind's list and a log */
   if (route.name === 'studies' && route.view === 'logs') return <LogsHubScreen key={`${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} />;
   if (route.name === 'studies' && route.view === 'log' && route.key) return <LogListScreen key={`${route.key}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} logKey={route.key} />;

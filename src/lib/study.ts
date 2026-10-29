@@ -29,7 +29,7 @@ import type { TalkTurn } from '../tools/talk/talk';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
-export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk', 'reliability', 'chart', 'analysis', 'calc', 'log', 'ledger', 'doc', 'scored', 'run'] as const;
+export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk', 'reliability', 'chart', 'analysis', 'calc', 'log', 'ledger', 'doc', 'scored', 'board', 'run'] as const;
 export type StudyTool = typeof STUDY_TOOLS[number];
 
 export const isStudyTool = (v: unknown): v is StudyTool => (STUDY_TOOLS as readonly unknown[]).includes(v);
@@ -616,6 +616,14 @@ export interface StudyAgreed {
   log?: AgreedLog;
   /** A SCORED REGISTER (FC-064): which ranking, and the rows scored on its scales. */
   scored?: AgreedScored;
+  /** A BOARD (FC-067): which board, and typed inputs it owns (reactive hours until FC-059 feeds them). */
+  board?: AgreedBoard;
+}
+
+/** A board’s own typed fields — measures are read from sibling records on the line. */
+export interface AgreedBoard {
+  key: string;
+  reactiveHours?: number;
 }
 
 /** One asset row on a criticality or FMEA register — agreed before the meeting signs it off. */

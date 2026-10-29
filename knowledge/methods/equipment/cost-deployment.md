@@ -108,9 +108,9 @@ they must return.
 - [textbook] Suzuki, T. (ed.), *TPM in Process Industries*, 1994 — loss structure and the cost of losses (from knowledge).
 
 ## In Faultline
-Not built (FC-057). The losses are already counted in their own units
-and most are priced by the money model (`src/tools/losses`,
-`src/tools/capability`, `src/lib/problemCost.ts`); FC-057 lays them in
-the matrix by machine, traces the causal cells, ranks them in money and
-hands the top losses to the project list with their expected return —
-and books the saving only from the re-measured cell.
+Built (FC-057): calculator `cost-deployment` at `#/calc/cost-deployment`
+— loss matrix in pounds by type and process, optional causal moves,
+Pareto and one project's recovery and payback (`lib/ie/costDeployment`).
+The losses are still counted in their own tools (`src/tools/losses`,
+`src/tools/capability`, `src/lib/problemCost.ts`); cells stay empty until
+you type or link them. Savings are booked only from the re-measured cell.

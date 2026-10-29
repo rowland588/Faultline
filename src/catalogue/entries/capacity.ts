@@ -349,6 +349,14 @@ export const CAPACITY: Entry[] = [
     food: 'Group WCM programmes in large food plants.',
     depends: ['FC-049', 'FC-128', 'FC-220'],
     complexity: 'XL', value: 'medium', valueWhy: 'Plant-wide, and heavy to keep.',
-    status: 'to-build', form: 'report', methods: ['equipment.cost-deployment'], scenarios: ['money', 'project'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['equipment.cost-deployment'], scenarios: ['money', 'project'],
+    built: {
+      where: ['/calc/cost-deployment'],
+      code: [...CALC_CODE, 'src/tools/calc/defs/cost-deployment.ts', 'src/lib/ie/costDeployment.ts'],
+      tests: [...CALC_TESTS, 'src/lib/ie/__tests__/costDeployment.test.ts'],
+      acceptance: ['calc-shape.mjs'],
+    },
+    spec: 'knowledge/specs/FC-057-cost-deployment.md',
+    limits: ['Each cell is typed in pounds — shift losses and SMED do not fill the matrix yet.', 'Causal moves between processes are optional; plant roll-up is FC-220.', 'COPQ (FC-128) is a separate calculator.'],
   },
 ];

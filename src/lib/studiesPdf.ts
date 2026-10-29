@@ -56,7 +56,9 @@ import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } 
 import { neckOf } from './lineLoss';
 import { calcPaperParts } from './report/calcPaper';
 import { scoredPaperBlocks } from './report/scoredPaper';
+import { boardPaperBlocks } from './report/boardPaper';
 import { scoredSays, scoredTitle, studyScored } from '../tools/scored/scored';
+import { boardSays, boardTitle, studyBoard } from '../tools/board/board';
 import { logBodyBlocks, logPaperBlocks, paperInput } from '../tools/checks/checksPaper';
 import { ctxFrom } from '../tools/checks/ctx';
 import { defOf } from '../tools/checks/registry';
@@ -604,6 +606,13 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     eyebrow = scoredTitle(s); verdict = { text: said.verdict, tone: said.tone };
     body = scoredPaperBlocks(s);
     closing = { text: studyScored(s)?.result?.closing ?? '', tone: said.tone };
+  } else if (s.tool === 'board' && s.agreed?.board) {
+    const siblings = p.history ?? [];
+    const said = boardSays(s, siblings, Date.now());
+    eyebrow = boardTitle(s); verdict = { text: said.verdict, tone: said.tone };
+    body = boardPaperBlocks(s, siblings, Date.now());
+    tiles = studyBoard(s, siblings, Date.now())?.result?.tiles ?? [];
+    closing = { text: studyBoard(s, siblings, Date.now())?.result?.closing ?? '', tone: said.tone };
   } else if (s.tool === 'chart' && s.agreed?.chart) {
     const a = s.agreed.chart, f = chartFigures(a, s.facts.readings ?? []), said = chartSays(f, a);
     eyebrow = 'Control chart'; verdict = { text: said.verdict, tone: said.tone }; tiles = chartTiles(f, a); closing = chartClosing(f, a, said);
@@ -759,7 +768,7 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'log') { const li = logInputOf(p, p.items[0]); if (li) return logPaperBlocks(li, p.printed, d); }
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
-  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis', 'calc'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis', 'calc', 'board', 'scored'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return smedLeanBlocks(p, p.items[0], d);
   const out: Block[] = [];
   out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
