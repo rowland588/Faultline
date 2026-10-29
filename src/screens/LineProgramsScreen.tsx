@@ -34,7 +34,8 @@ import { ProgramsPage } from './ProgramsPage';
 import { planModel } from '../lib/planModel';
 import { asked } from '../lib/lines';
 import { niceDay, todayISO } from '../lib/weeks';
-import { pdfFileName } from '../lib/fileName';
+import { saveLineProgramsReport } from '../lib/lineProgramsPaper';
+import { savingAt } from '../lib/useSaveOnArrival';
 import { useCanStartProjects } from '../cloud/access';
 import { addLineProgram, deleteProgramWithTests, putProgram, putProgramOnMachine, putPrograms } from '../db';
 import { nav } from '../state/useRoute';
@@ -100,14 +101,19 @@ export function LineProgramsScreen() {
     if (!reading || busy) return;
     setBusy(true); setSaid(null);
     try {
-      const { loadPdfLib, deliverPdf } = await import('../lib/savePdf');
-      const { drawProgramsReport } = await import('../lib/programsReportPdf');
-      const { jsPDF } = await loadPdfLib();
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      const name = one ? (one.lineType ? `${one.name} (${one.lineType})` : one.name) : 'Every line';
-      await drawProgramsReport(doc, { name, printed: niceDay(today, { year: true }), reading, eyebrow: one ? 'PROGRAMS · PRODUCTION LINE' : 'PROGRAMS · THE FACTORY' });
-      const how = await deliverPdf(doc, pdfFileName(one?.name ?? 'Factory', 'programs', today));
-      setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
+      if (one) {
+        const how = await saveLineProgramsReport(one, reading, today);
+        setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
+      } else {
+        const { loadPdfLib, deliverPdf } = await import('../lib/savePdf');
+        const { drawProgramsReport } = await import('../lib/programsReportPdf');
+        const { pdfFileName } = await import('../lib/fileName');
+        const { jsPDF } = await loadPdfLib();
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+        await drawProgramsReport(doc, { name: 'Every line', printed: niceDay(today, { year: true }), reading, eyebrow: 'PROGRAMS · THE FACTORY' });
+        const how = await deliverPdf(doc, pdfFileName('Factory', 'programs', today));
+        setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
+      }
     } catch (e) {
       console.error('line programs report failed', e);
       setSaid('The report could not be made — try again.');
@@ -122,7 +128,10 @@ export function LineProgramsScreen() {
         says={inLine && one
           ? `${one.name}’s programs, machine by machine — planned and proved. No project needed: plan one here. A project’s own programs on the line show beside them.`
           : 'Every line’s programs, machine by machine — planned and proved. No project needed: plan one on a line here. A project’s own programs on the line show beside them.'}
-        papers={[{ label: 'Programs report', for: reading ? 'every program machine by machine, how each was proved' : 'no programs yet', disabled: !reading || busy, make: download }]}>
+        papers={[
+          { label: 'Programs report', for: reading ? 'every program machine by machine, how each was proved' : 'no programs yet', disabled: !reading || busy, make: download },
+          ...(inLine && one ? [{ label: 'Programs report — on its page', for: 'the same paper, made on arrival', disabled: !reading, make: () => nav(savingAt(`/lines/${one.id}/programs/report`)) }] : []),
+        ]}>
         {/* where they are, in words — only the late carry colour */}
         <p className="pl-says lp-says">{!reading ? 'No programs yet.' : <>
           {reading.total} program{reading.total === 1 ? '' : 's'} · {reading.done} proved
@@ -309,6 +318,9 @@ function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: 
             already put it back on the machine here (lib/programs). */}
         {job && floor && (
           <div className="mt-facts lp-floor">On its Set up: <b className={'is-' + floor.tone}>{floor.word}</b>{floor.note ? ` — ${floor.note}` : ''}</div>
+        )}
+        {edit && (
+          <p className="mt-facts"><button type="button" className="cw-link" onClick={() => nav(savingAt(`/lines/${encodeURIComponent(line.id)}/program/${encodeURIComponent(p.id)}/report`))}>Program report — every test on paper ›</button></p>
         )}
         {/* HOW IT WAS PROVED (flow audit #21) — its test, the study that
             showed it (one tap to it), or signed off by hand; amber when

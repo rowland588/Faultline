@@ -20,6 +20,7 @@ import { lineMachineView, STOP_DAYS } from '../lib/lineMachine';
 import { todayISO } from '../lib/weeks';
 import { PageHeader } from '../ui/parts';
 import { nav } from '../state/useRoute';
+import { savingAt } from '../lib/useSaveOnArrival';
 import { planModel } from '../lib/planModel';
 import { MachineInProject } from '../project/machines/MachineInProject';
 
@@ -91,6 +92,11 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
         back={inProject ? { label: 'Machines', to: `/project/${inProject}/machines` } : { label: 'Machines', to: `/lines/${encodeURIComponent(wsId)}?view=machines` }}
         papers={[
           { label: 'Machine report', for: 'this machine in full — where it is up to, what is open and who has it, every test and every attempt, its programs and their tests, every step, its problems and what was done, the studies and what they found, its stops', disabled: busy, make: print },
+          ...lineProgs.filter(l => l.programId).map(l => ({
+            label: `Program report — ${l.what}`,
+            for: 'every test on this program and how it went',
+            make: () => nav(savingAt(`/lines/${encodeURIComponent(wsId)}/program/${encodeURIComponent(l.programId!)}/report`)),
+          })),
           ...(job ? [{ label: 'Commissioning report', for: `every machine in ${job.name}, a card each`, make: () => nav(`/project/${job.id}/report?doc=commissioning`) }] : []),
         ]}>
         <p className="sub lmc-says">{v.says}</p>

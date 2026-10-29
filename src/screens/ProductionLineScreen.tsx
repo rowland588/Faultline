@@ -51,6 +51,7 @@ import { saveProblemCardsFor, saveProblemsReportFor } from '../lib/problemsPdf';
 import { useLineRecords } from '../lib/useLineRecords';
 import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../lib/useJobFloor';
 import { lineKit } from '../lib/lineRecords';
+import { programsReadingOnLine, saveLineProgramsReport } from '../lib/lineProgramsPaper';
 import { STATE_WORD, isProved, standingOf, stateOf, todayISO } from '../lib/programs';
 import { niceDay } from '../lib/weeks';
 import { addMachineToLine, archiveWorkspace, renameLineMachine, restoreWorkspace, setMachineFacts } from '../db';
@@ -194,6 +195,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   /* programs typed only on a project's Commission, on this line (23 October: "it's like you don't have any programs") */
   const floor = useJobFloor(useMemo(() => (line ? projectsOnLines([line.id], rec.jobLines, pid => rec.jobs.some(j => j.id === pid && !j.archivedAt)) : []), [line, rec.jobLines, rec.jobs]));
   const onStage = useMemo(() => (line ? stageOnlyByLine(floor.stageOnly ?? [], rec.machines, rec.jobLines).get(line.id) ?? [] : []), [line, floor, rec.machines, rec.jobLines]);
+  const programsReading = useMemo(() => (line && !rec.loading ? programsReadingOnLine(rec, line, today, { floor, jobName: new Map(rec.jobs.map(j => [j.id, j.name])), stageOnlyLines: onStage.map(x => x.line) }) : undefined),
+    [line, rec, today, floor, onStage, rec.jobs]);
   /* THE LINE AS A LEAN PAGE (lib/lineLean) — the tiles and the closing line
      its page and its report both say */
   const checkCounts = useMemo(() => scopeCounts(studies, Date.now()), [studies]);
@@ -271,6 +274,15 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
      2A ... and then print off a report that says, there you go. There's everything that's happening on that line
      currently"): the line's machines as the Factory's Machines says them, then each in full — every test and attempt,
      every program and its tests, every step, its problems and what was done, the studies (lib/machineDossier). */
+  const printPrograms = async () => {
+    if (!line || !programsReading || busy) return;
+    setBusy(true);
+    try { await saveLineProgramsReport(line, programsReading, today); }
+    catch (e) {
+      console.error('programs report failed', e);
+      window.alert('Sorry — the PDF could not be made. Please try again.');
+    } finally { setBusy(false); }
+  };
   const printMachines = async () => {
     if (busy) return;
     setBusy(true);
@@ -338,6 +350,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           { label: 'Machines report — every machine in full', for: 'each machine on the line: where it is up to, every test and every attempt, every program and its tests, every step, its problems and what was done, the studies', disabled: busy, make: printMachines },
           /* EVERYTHING ON THE LINE (23 October, lib/lineBundle) — drawn on its own report page, made on arrival */
           { label: 'Line report — everything on the line', for: dual.madeOf.length ? 'each line it is made of, then both together — every tool used, programs, problems, who owes what' : 'every tool used on the line, its programs, its problems, where on the line, who owes what — tick what goes in', make: () => nav(savingAt(`/lines/${wsId}/report`)) },
+          { label: 'Programs report', for: programsReading ? 'every program on the line, machine by machine, every test and how it went' : 'no program on the line yet', disabled: busy || !programsReading, make: printPrograms },
+          { label: 'Programs report — on its page', for: programsReading ? 'the same paper, made on arrival' : 'no program on the line yet', disabled: !programsReading, make: () => nav(savingAt(`/lines/${wsId}/programs/report`)) },
           { label: 'Problems report', for: rows.length ? 'every problem open on the line, with its plan and journey' : 'no problem open on the line yet', disabled: busy || !rows.length, make: () => pdf('report') },
           { label: 'Problem cards', for: rows.length ? 'a card for each problem open, for the board' : 'no problem open on the line yet', disabled: busy || !rows.length, make: () => pdf('cards') },
         ]}

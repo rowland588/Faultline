@@ -4,7 +4,8 @@ Rowland, 27 October: *"What is a consistent issue with us is the blueprint of th
 app .. we need a clear path for stage gate until we have this we will never
 achieve what we want."* Then: *"Agreed do it."*
 
-**This page is the stage gate.** **Under review (29 October)** — Rowland's
+**This page is the stage gate.** **Fixed gates (no workflow editor)** —
+`docs/STAGEGATE-GATES-POLICY.md` (29 October). **Under review (29 October)** — Rowland's
 product opinion: **programs and tests on the line** are the Gemba core; the
 full path below stays live until [`docs/STAGEGATE-PROGRAMS-CORE.md`](STAGEGATE-PROGRAMS-CORE.md)
 slices (SG-P…) ship at his go. Where an older document disagrees with it

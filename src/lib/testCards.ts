@@ -54,3 +54,22 @@ export async function saveBoardCards(projectId: string, project: { name: string;
   await deliverPdf(doc, pdfFileName(project.name, what, todayISO()), { brand: false });
   return list.length;
 }
+
+export async function saveTestCard(projectId: string, testId: string, project: { name: string; lead?: string }) {
+  const { loadPdfLib, deliverPdf } = await import('./savePdf');
+  const { drawTrialCard } = await import('./trialCardPdf');
+  const { trialCard } = await import('./trialCard');
+  const { shotsOf } = await import('./testReport');
+  const { pdfFileName } = await import('./fileName');
+  const { todayISO } = await import('./weeks');
+  const [tests, items, assets, studies, paceLines, workspaces] = await Promise.all([listTests(projectId), listTestItems(projectId), listAssets(projectId), listStudies(projectId), allPaceLines(), listWorkspaces()]);
+  const t = tests.find(x => x.id === testId && !x.deletedAt);
+  if (!t) throw new Error('test not found');
+  const { runLineOf } = await import('./runMoney');
+  const { jsPDF } = await loadPdfLib();
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const c = trialCard(t, tests, items, assets, studies, runLineOf(t, assets, paceLines, workspaces));
+  const shots = await shotsOf([...(t.media ?? []), ...itemsOf(items, t.id, 'found').flatMap(x => x.media ?? [])]);
+  drawTrialCard(doc, c, { project: project.name, lead: project.lead, builtAt: Date.now(), shots });
+  return deliverPdf(doc, pdfFileName(project.name, `${t.title} test card`, todayISO()), { brand: false });
+}

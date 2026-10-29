@@ -2,7 +2,7 @@
  * October: "on programs they are missing from the reports — need its own
  * report, and added to the main report." */
 import { describe, expect, it } from 'vitest';
-import { badgeOf, programsReading } from '../programsReport';
+import { badgeOf, programsReading, readingForProgram } from '../programsReport';
 import { statusReport } from '../statusReport';
 import { clientReport } from '../clientReport';
 import type { Asset, Test, TestItem } from '../testing';
@@ -255,5 +255,16 @@ describe('a program judged by criteria on the line\'s report', () => {
     expect(line?.word).toMatch(/no test yet|test/i);
     expect(line?.tests?.[0]?.text).toMatch(/75|3600|60/);
     expect(line?.tests?.[1]?.text).toMatch(/70|3600|60/);
+  });
+});
+
+describe('readingForProgram', () => {
+  it('keeps one program line from a full line reading', () => {
+    const lineAsset = asset('lw', 'Wrapper', 0);
+    const p = prog('pl1', 'CW-1 Finest', { projectId: '', workspaceId: 'ws-7', assetId: 'lw' });
+    const r = programsReading({ tests: [], items: [], assets: [lineAsset], programs: [p, prog('pl2', 'CW-2', { projectId: '', workspaceId: 'ws-7', assetId: 'lw' })], today: T });
+    const one = readingForProgram(r!, 'pl1');
+    expect(one?.lines).toHaveLength(1);
+    expect(one?.lines[0]?.what).toBe('CW-1 Finest');
   });
 });

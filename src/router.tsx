@@ -49,6 +49,8 @@ const FactoryMachinesScreen = lazy(() => import('./line/FactoryMachinesScreen').
 const ProjectMachinesScreen = lazy(() => import('./project/machines/ProjectMachinesScreen').then(m => ({ default: m.ProjectMachinesScreen })));
 const ProductionLineScreen = lazy(() => import('./screens/ProductionLineScreen').then(m => ({ default: m.ProductionLineScreen })));
 const LineReportScreen = lazy(() => import('./line/report/LineReportScreen').then(m => ({ default: m.LineReportScreen })));
+const LineProgramsReportScreen = lazy(() => import('./line/LineProgramsReportScreen').then(m => ({ default: m.LineProgramsReportScreen })));
+const LineProgramReportScreen = lazy(() => import('./line/LineProgramReportScreen').then(m => ({ default: m.LineProgramReportScreen })));
 const LineMachineScreen = lazy(() => import('./line/LineMachineScreen').then(m => ({ default: m.LineMachineScreen })));
 const FactoryScreen = lazy(() => import('./screens/FactoryScreen').then(m => ({ default: m.FactoryScreen })));
 const LineProgramsScreen = lazy(() => import('./screens/LineProgramsScreen').then(m => ({ default: m.LineProgramsScreen })));
@@ -175,6 +177,8 @@ function app(route: Route) {
   if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
   /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October, lib/lineBundle) */
   if (route.name === 'lineReport' && route.wsId) return <LineReportScreen key={route.wsId} wsId={route.wsId} />;
+  if (route.name === 'lineProgramsReport' && route.wsId) return <LineProgramsReportScreen key={route.wsId} wsId={route.wsId} />;
+  if (route.name === 'lineProgramReport' && route.wsId && route.id) return <LineProgramReportScreen key={`${route.wsId}:${route.id}`} wsId={route.wsId} programId={route.id} />;
   /* A MACHINE ON ITS LINE — everything ever done to it (docs/STAGEGATE-RESEARCH.md §5, slice 4) */
   if (route.name === 'lineMachine' && route.wsId && route.id) return <LineMachineScreen key={`${route.wsId}:${route.id}`} wsId={route.wsId} name={route.id} />;
   if (route.name === 'lineHome' && route.wsId) {

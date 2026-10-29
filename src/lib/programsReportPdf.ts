@@ -166,3 +166,28 @@ export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: s
     doc.text(`${i} of ${pages}`, W - M, H - 18, { align: 'right' });
   }
 }
+
+export async function drawOneProgramReport(doc: jsPDF, x: { lineName: string; printed: string; reading: ProgramsReading;
+  eyebrow?: string }): Promise<void> {
+  const line = x.reading.lines[0];
+  if (!line) return;
+  const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
+  const name = san(line.what);
+  const blocks = (d: Density): Block[] => {
+    const out: Block[] = [];
+    out.push(text({ text: x.eyebrow ?? 'PROGRAM · PRODUCTION LINE', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+    out.push(text({ text: name, size: SIZE.title, style: 'bold', after: 4 }));
+    out.push(text({ text: [`On ${san(x.lineName)}`, line.machine ? `Machine: ${san(line.machine)}` : '', `Printed ${san(x.printed)}`].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
+    out.push(...programsBlocks(x.reading, d, { machineLabels: false }));
+    return out;
+  };
+  const density = await chooseDensity(base, d => blocks(d));
+  await pour({ ...base, density, dry: false }, blocks(density), () => doc.addPage('a4', 'portrait'));
+  const pages = doc.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    font(doc, 7.5, 'normal', MUTED);
+    doc.text(`${name}  ·  ${san(x.lineName)}  ·  ${san(x.printed)}`, M, H - 18);
+    doc.text(`${i} of ${pages}`, W - M, H - 18, { align: 'right' });
+  }
+}

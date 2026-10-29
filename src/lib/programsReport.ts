@@ -362,6 +362,17 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
 
 /** THE COUNTS AND THE SENTENCE of programs already grouped by machine — the job's reading, and a line's
  *  with its projects' programs added (lib/lineRecords lineProgramsReading). */
+export function readingForProgram(reading: ProgramsReading, programId: string): ProgramsReading | undefined {
+  const machines = reading.machines.map(m => ({ ...m, lines: m.lines.filter(l => l.programId === programId) })).filter(m => m.lines.length);
+  return readingOf(machines);
+}
+
+export function readingForProgramNamed(reading: ProgramsReading, what: string): ProgramsReading | undefined {
+  const k = key(what);
+  const machines = reading.machines.map(m => ({ ...m, lines: m.lines.filter(l => key(l.what) === k) })).filter(m => m.lines.length);
+  return readingOf(machines);
+}
+
 export function readingOf(machines: { name: string; lines: ProgramLine[] }[]): ProgramsReading | undefined {
   const lines = machines.flatMap(g => g.lines);
   if (!lines.length) return undefined;

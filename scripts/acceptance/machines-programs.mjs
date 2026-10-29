@@ -34,6 +34,7 @@
  *   8  Your factory: each line's machines in flow order and its programs in
  *      words, on the screen and on its paper
  *   9  the programs report of the line: its sentence and every program
+ *   9b line Overview: programs report, program report page, test card (29 Oct)
  *   10 Line capacity on the line offers its machines
  *   11 on a phone: nothing off the side
  *   12 one program, one answer (flow audit #3): a program failed on the
@@ -266,6 +267,8 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
    from programs and improve the ui to actually run it?" — "do it") ---- */
 {
   await go(`#/project/${sd.projectId}/programs`);
+  await main.locator('.pp-chip', { hasText: /^All\b/ }).waitFor({ timeout: 15000 });
+  await main.locator('.pp-chip', { hasText: /^All\b/ }).click(); await page.waitForTimeout(600);
   const t = await truth();
   const own = t.programs.filter(p => !p.projectId);
   const rows = (await main.locator('.pgr:has(.pp-line-tag)').allInnerTexts()).map(flat);
@@ -463,6 +466,38 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   const lost = [t.reading.says, 'PROGRAMS·PRODUCTIONLINE', ...t.programs.map(p => p.what)].filter(w => !txt.includes(w.replace(/\s+/g, '')));
   ok(!lost.length, `9 the line's programs report: its sentence and every program${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
+}
+
+/* ---- 9b line Overview, programs report page, one program, one test card ---- */
+{
+  await go(`#/lines/${WS}`);
+  const t = await truth();
+  const dirOv = mkdtempSync(join(tmpdir(), 'lprogs-ov-'));
+  const [dlOv] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
+  const ovFile = join(dirOv, 'programs-overview.pdf'); await dlOv.saveAs(ovFile);
+  const ovTxt = flat(execFileSync('pdftotext', ['-layout', ovFile, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
+  ok(ovTxt.includes(t.reading.says.replace(/\s+/g, '')), '9b line Overview programs report on paper');
+  await go(`#/lines/${WS}/programs/report?save=1`); await page.waitForTimeout(2500);
+  ok(flat(await main.locator('.lpr .part-head h1').innerText()).includes('every program'), '9b programs report page on the line');
+  const withJob = t.programs.find(p => p.projectId);
+  ok(!!withJob, '9b a program on the line tied to a job');
+  if (withJob) {
+    await go(`#/lines/${WS}/program/${encodeURIComponent(withJob.id)}/report?save=1`); await page.waitForTimeout(2500);
+    const dirOne = mkdtempSync(join(tmpdir(), 'lprog-one-'));
+    const [dlOne] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Download' }).click()]);
+    const oneFile = join(dirOne, 'program.pdf'); await dlOne.saveAs(oneFile);
+    const oneTxt = flat(execFileSync('pdftotext', ['-layout', oneFile, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
+    ok(oneTxt.includes(withJob.what.replace(/\s+/g, '')), `9b program report PDF (${withJob.what})`);
+    const tests = await page.evaluate(async ([pid, progId]) => (await (await import('/src/db.ts')).listTests(pid)).filter(x => !x.deletedAt && x.programId === progId), [sd.projectId, withJob.id]);
+    const attempt = tests.find(x => x.ranOn || x.outcome === 'passed' || x.outcome === 'failed') ?? tests[0];
+    if (attempt) {
+      const dirCard = mkdtempSync(join(tmpdir(), 'ltest-card-'));
+      const [dlCard] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, `Test card — ${attempt.title}`)]);
+      const cardFile = join(dirCard, 'test-card.pdf'); await dlCard.saveAs(cardFile);
+      const cardTxt = flat(execFileSync('pdftotext', ['-layout', cardFile, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
+      ok(cardTxt.includes(attempt.title.replace(/\s+/g, '')), `9b test card for "${attempt.title}"`);
+    }
+  }
 }
 
 /* ---- 10 Line capacity on the line offers its machines ---- */
