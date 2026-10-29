@@ -20,6 +20,7 @@
  * many it has, so nobody thinks they were lost.
  */
 import type { Project } from '../types';
+import { methodOf } from './planModel';
 import type { Snag, SnagAsset } from '../snag/types';
 import type { Material } from './materials';
 import type { Program } from './programs';
@@ -28,7 +29,6 @@ import type { Asset, Test, TestItem } from './testing';
 import { liveStandards, peopleOf, type Standard } from '../tools/linestandard/standard';
 import { gateOf, rootTestOf, testOfFix } from './testing';
 import { GATE_WORD } from './install';
-import { planModel } from './planModel';
 import type { XCell, XSheet } from './xlsxWrite';
 
 export interface ProjectData {
@@ -87,10 +87,6 @@ const STEP_STATUS: Record<Test['outcome'], string> = {
 const FIX_STATUS: Record<Test['outcome'], string> = {
   planned: 'Open', passed: 'Done', failed: 'Didn’t fix it', notRun: 'Didn’t happen',
 };
-const KIND: Record<ReturnType<typeof planModel>, string> = {
-  commissioning: 'Stage gate', board: '6M', tree: 'Lever tree',
-};
-
 /** A name per record that is unique inside its project — the Excel tool links
  *  rows by name, and two re-tests called the same thing would be one row. */
 function uniqueNames(tests: Test[]): Map<string, string> {
@@ -114,7 +110,7 @@ export function exportSheets(projects: ProjectData[], walks: WalkData[], exporte
   for (const pd of projects) {
     const p = pd.project;
     const name = p.name;
-    rows.Projects.push([name, KIND[planModel(p)], p.lead ?? '', d(p.plannedAt), d(p.expectedAt), p.description ?? '']);
+    rows.Projects.push([name, methodOf(p).label, p.lead ?? '', d(p.plannedAt), d(p.expectedAt), p.description ?? '']);
 
     for (const st of liveStandards(pd.standards ?? []).sort((a, b) => a.sort - b.sort)) {
       const people = peopleOf(st);

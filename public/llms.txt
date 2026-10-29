@@ -6,7 +6,7 @@ Faultline is made by OpEx Elevate (UK). It is invite-only — there is no public
 
 ## The three methods — three kinds of change
 
-- **Stage gate.** New equipment taken through its gates — Install, Set up, Commission, Hand over — with the supplier: install stages, tests against what was agreed, the fixes they raise, the materials and programs it waits on, and the handover date.
+- **Installation project.** New equipment taken through its gates — Install, Set up, Commission, Hand over — with the supplier: install stages, tests against what was agreed, the fixes they raise, the materials and programs it waits on, and the handover date.
 - **3P.** A running line improved week by week on the board, every action sorted People, Plant or Process, with an owner and a due date. Kept entirely in the app.
 - **Lever tree.** One outcome worked down to what has to be true for it; each condition's colour follows its number or the work under it.
 

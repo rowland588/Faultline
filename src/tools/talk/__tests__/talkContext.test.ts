@@ -21,7 +21,7 @@ const IN: TalkContextIn = {
   programs: [{ what: '400 g tray (runs Maris Piper)', machine: 'Tray sealer', word: 'On the machine', test: 'Thu 22 Oct', late: false }],
   tools: [{ label: 'Line capacity', says: '400 g tray: the Tray sealer limits the line at 58 a minute against 62' }],
   stops: '42 min lost in 7 stops — the Bagger most, 20 min',
-  jobs: [{ name: 'Line 7 sealer upgrade', method: 'Stage gate', verdict: 'Behind target — 2 tests late' }],
+  jobs: [{ name: 'Line 7 sealer upgrade', method: 'Installation project', verdict: 'Behind target — 2 tests late' }],
 };
 
 describe('what Line Talk is told about the line', () => {
@@ -31,7 +31,7 @@ describe('what Line Talk is told about the line', () => {
     expect(t).toContain('OPEN PROBLEMS (2, in priority order):\n- Critical · Guard on the infeed bent — Checkweigher · Open · 4 days · owner Dave · 3 days late · plan: New guard from stores · latest step (19 Oct): Bent back by hand — Still catching\n- Low · Label smudging · Open · 4 days · nobody owns it yet');
     expect(t).toContain('PROGRAMS NOT PROVED YET (1):\n- 400 g tray (runs Maris Piper) — Tray sealer · On the machine · test Thu 22 Oct');
     expect(t).toContain("WHAT ITS TOOLS FOUND (each tool's latest record on this line, in its own words):\n- Stops timed (last four weeks): 42 min lost in 7 stops — the Bagger most, 20 min\n- Line capacity: 400 g tray: the Tray sealer limits the line at 58 a minute against 62");
-    expect(t).toContain('PROJECTS ON THIS LINE:\n- Line 7 sealer upgrade (Stage gate) — Behind target — 2 tests late');
+    expect(t).toContain('PROJECTS ON THIS LINE:\n- Line 7 sealer upgrade (Installation project) — Behind target — 2 tests late');
   });
 
   it('says plainly what there is none of', () => {
@@ -42,8 +42,8 @@ describe('what Line Talk is told about the line', () => {
   });
 
   it('the job a talk is on, with or without a line; nothing at all on neither', () => {
-    expect(talkContext({ problems: [], programs: [], tools: [], jobs: [], job: { name: 'Sealer upgrade', method: 'Stage gate', verdict: 'On target' } }))
-      .toBe('THIS CONVERSATION IS ON THE PROJECT: Sealer upgrade (Stage gate) — On target');
+    expect(talkContext({ problems: [], programs: [], tools: [], jobs: [], job: { name: 'Sealer upgrade', method: 'Installation project', verdict: 'On target' } }))
+      .toBe('THIS CONVERSATION IS ON THE PROJECT: Sealer upgrade (Installation project) — On target');
     expect(talkContext({ problems: [], programs: [], tools: [], jobs: [] })).toBe('');
   });
 
