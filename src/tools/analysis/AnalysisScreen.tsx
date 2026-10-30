@@ -18,13 +18,15 @@ import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
 import type { AgreedAnalysis, AgreedGauge, AnalysisPlan, StudyReading, ToolStudy } from '../../lib/study';
 import { StudyBand } from '../../ui/StudyActs';
-import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
+import { ReadingsPaste } from '../../ui/ReadingsPaste';
+import { UnitField } from '../../ui/UnitField';
+import { WhereItSits, UsedFor, useBetter, planEmpty } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { useLine } from '../linework/WorkBalance';
 import { raisedFrom } from '../losses/lossLean';
 import { CONFIDENCES } from '../../lib/ie/stats';
-import { analysisClosing, analysisFigures, analysisGrids, analysisPicture, analysisPlot, analysisProblem, analysisSays, analysisTiles, confidenceOf, KIND_WORDS, MAX_DRIVERS, parsePasted, parseRows, pctWord, planProblem, predictionSays, type Grid, type PicRow, type Plot, type RelateFigures } from './analysis';
+import { analysisClosing, analysisFigures, analysisGrids, analysisPicture, analysisPlot, analysisProblem, analysisSays, analysisTiles, confidenceOf, KIND_WORDS, MAX_DRIVERS, parseRows, pctWord, planProblem, predictionSays, type Grid, type PicRow, type Plot, type RelateFigures } from './analysis';
 
 const OWNER = canAt('owner');
 
@@ -61,8 +63,12 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
   const [agreeing, setAgreeing] = useState(false);
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
   const { steps, tests } = useBetter(s, me);
-  const add = (rs: Omit<StudyReading, 'id' | 'at'>[]) =>
-    write(cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), ...rs.map(r => ({ id: uid(), at: now(), ...(me ? { who: me } : {}), ...r }))] } }));
+  /* the readings put in, and how to take that very paste out again — one Undo for the whole of it (ui/ReadingsPaste) */
+  const add = (rs: Omit<StudyReading, 'id' | 'at'>[]): (() => void) => {
+    const made = rs.map(r => ({ id: uid(), at: now(), ...(me ? { who: me } : {}), ...r }));
+    write(cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), ...made] } }));
+    return () => { const gone = new Set(made.map(r => r.id)); write(cur => ({ facts: { ...cur.facts, readings: (cur.facts.readings ?? []).filter(r => !gone.has(r.id)) } })); };
+  };
   const strike = (rid: string, struck: boolean) =>
     write(cur => ({ facts: { ...cur.facts, readings: (cur.facts.readings ?? []).map(r => (r.id === rid ? { ...r, struck: struck || undefined } : r)) } }));
   const setPlan = (p: Partial<AnalysisPlan>) => write(cur => ({ agreed: { ...cur.agreed, analysis: { ...(cur.agreed?.analysis as AgreedAnalysis), plan: { ...(cur.agreed?.analysis?.plan as AnalysisPlan), ...p } } } }));
@@ -108,7 +114,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
           </p>
           <UsedFor s={s} can={can} me={me} />
           <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
-            <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from what it found." />
+            <LeanActions actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'what it found')} />
           </LeanPanel>
           <LeanClosing closing={analysisClosing(f, a, said)} />
         </>
@@ -118,7 +124,27 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
 }
 
 /* ----------------------------------------------------------------- agreeing */
-const ORDER: AgreedAnalysis['kind'][] = ['sure', 'change', 'paired', 'groups', 'table', 'relate', 'learn', 'plan', 'gauge', 'grr', 'attr', 'shape'];
+/* THE TWELVE QUESTIONS UNDER THREE PLAIN HEADINGS (tools audit, 30 October: "12-question wall on a phone") — none dropped, each
+   keeps its stored key; the one line under a question says it in the floor's words, the longer example shows on the one chosen. */
+const QUESTION_GROUPS: { head: string; kinds: AgreedAnalysis['kind'][] }[] = [
+  { head: 'Can I trust this number?', kinds: ['sure', 'plan', 'shape', 'gauge', 'grr', 'attr'] },
+  { head: 'Did it change or differ?', kinds: ['change', 'paired', 'groups', 'learn'] },
+  { head: 'How are things linked?', kinds: ['relate', 'table'] },
+];
+const PLAIN: Record<AgreedAnalysis['kind'], string> = {
+  sure: 'Can I rely on my average, my reject rate or my stops? — with its margin',
+  change: 'Did my fix work? — compare before and after',
+  paired: 'Do my two scales agree? — the same packs on both',
+  groups: 'Is one shift or head different? — compare three or more',
+  table: 'Does a fault go with a lane or a shift? — counts in a table',
+  relate: 'Does a hotter seal mean a stronger seal? — one thing against another',
+  learn: 'Is the new starter getting quicker? — the time of each run',
+  plan: 'How many do I need to measure? — before I start',
+  gauge: 'Can I trust my scale? — a known test weight, read again and again',
+  grr: 'Is it the product, or the measuring? — operators and parts',
+  attr: 'Do the checkers call it the same? — pass or reject on the same packs',
+  shape: 'Is it a bell curve, or something else? — find the shape that fits',
+};
 const GMODES: { k: AgreedGauge['mode']; word: string; eg: string }[] = [
   { k: 'repeat', word: 'One reference, read again and again', eg: 'a 500 g test weight weighed 25 to 50 times — the Type 1 study' },
   { k: 'range', word: 'References across its range', eg: 'a probe at 0, 20, 40, 60 and 80 °C, ten readings each — bias and linearity' },
@@ -136,7 +162,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const a = s.agreed?.analysis;
   const [kind, setKind] = useState<AgreedAnalysis['kind']>(a?.kind ?? 'sure');
   const [name, setName] = useState(a?.name ?? s.name ?? '');
-  const [unit, setUnit] = useState(a?.unit ?? 'g');
+  const [unit, setUnit] = useState(a?.unit ?? '');   // never assumed: a time is not in grams (tools audit, 30 October)
   const [conf, setConf] = useState<0.9 | 0.95 | 0.99>(a ? confidenceOf(a) : 0.95);
   const [of, setOf] = useState<NonNullable<AgreedAnalysis['of']>>(a?.of ?? 'mean');
   const [data, setData] = useState<NonNullable<AgreedAnalysis['data']>>(a?.data ?? 'measured');
@@ -200,12 +226,21 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
     <form className="ie-agree" onSubmit={e => { e.preventDefault(); save(); }}>
       <h2>{a ? 'What is asked' : 'What do you want to know?'}</h2>
       <p className="sub">{hasReadings ? 'Changing what was agreed re-reads everything against it.' : 'Asked once, before the readings — the answer is worked out as they are typed.'}</p>
-      <div className="ie-kinds" role="radiogroup" aria-label="What do you want to know?">
+      <div className="ie-qgroups" role="radiogroup" aria-label="What do you want to know?">
         <span className="field-label">The question</span>
-        {ORDER.map(k => (
-          <button key={k} type="button" role="radio" aria-checked={kind === k} className={'ie-kind' + (kind === k ? ' on' : '')} onClick={() => { setKind(k); if (k === 'learn' && unit === 'g') setUnit('s'); }}>
-            <b>{KIND_WORDS[k].ask}</b><small>{KIND_WORDS[k].example}</small>
-          </button>
+        {QUESTION_GROUPS.map(g => (
+          <div key={g.head} className="ie-qgroup">
+            <h3 className="ie-qhead">{g.head}</h3>
+            <div className="ie-kinds">
+              {g.kinds.map(k => (
+                <button key={k} type="button" role="radio" aria-checked={kind === k} className={'ie-kind' + (kind === k ? ' on' : '')} title={KIND_WORDS[k].example}
+                  onClick={() => { setKind(k); if (k === 'learn' && unit.trim() === '') setUnit('s'); }}>
+                  <b>{KIND_WORDS[k].ask}</b><small>{PLAIN[k]}</small>
+                  {kind === k && <small className="ie-kind-eg">e.g. {KIND_WORDS[k].example}</small>}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
       {kind === 'sure' && (
@@ -240,8 +275,9 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       <div className="ie-agree-grid">
         <label className="field"><span className="field-label">What is measured</span>
           <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : kind === 'learn' ? 'Time to pack a case' : kind === 'gauge' ? 'Bench scale' : kind === 'grr' ? 'Seal strength' : kind === 'attr' ? 'Seal wrinkle check' : kind === 'shape' ? 'Residual oxygen' : 'Fill weight'} /></label>
-        {kind !== 'table' && <label className="field"><span className="field-label">Unit {kind === 'sure' && of === 'rate' ? <i className="sub">what the time is counted in — hours</i> : kind === 'change' && data === 'counted' ? <i className="sub">optional</i> : null}</span>
-          <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder={of === 'rate' && kind === 'sure' ? 'hours' : kind === 'learn' ? 's' : 'g'} /></label>}
+        {kind !== 'table' && <UnitField value={unit} onChange={setUnit}
+          hint={kind === 'sure' && of === 'rate' ? 'what the time is counted in — hours' : kind === 'change' && data === 'counted' ? 'optional' : 'optional — leave empty if the figures have none'}
+          placeholder={of === 'rate' && kind === 'sure' ? 'hours' : kind === 'learn' ? 's' : undefined} />}
         {kind === 'learn' && <>
           <label className="field"><span className="field-label">The standard it is heading for <i className="sub">optional, in the unit — a time a unit</i></span>
             <input className="text-input" inputMode="decimal" value={standardT} onChange={e => setStandardT(e.target.value)} placeholder="40" aria-label="The standard" /></label>
@@ -399,22 +435,7 @@ function Pad({ unit, label, onEnter }: { unit?: string; label: string; onEnter: 
   );
 }
 
-/** A box to paste or type many at once — what could not be read is listed. */
-function Paste({ cols, label, onAdd }: { cols: 1 | 2; label: string; onAdd: (p: ReturnType<typeof parsePasted>) => void }) {
-  const [t, setT] = useState('');
-  const [skipped, setSkipped] = useState<string[]>([]);
-  return (
-    <div className="ie-paste">
-      <label className="field"><span className="field-label">{label}</span>
-        <textarea className="text-input" rows={3} value={t} onChange={e => setT(e.target.value)} aria-label={label}
-          placeholder={cols === 2 ? '401.2 401.6\n400.8 401.1' : '401.2\n401.6\n400.8'} /></label>
-      <button type="button" className="btn" disabled={!t.trim()} onClick={() => { const p = parsePasted(t, cols); onAdd(p); setSkipped(p.skipped); setT(''); }}>Add these</button>
-      {skipped.length > 0 && <p className="ie-problem" role="status">Left out — not numbers: {skipped.slice(0, 6).join(', ')}{skipped.length > 6 ? `, and ${skipped.length - 6} more` : ''}.</p>}
-    </div>
-  );
-}
-
-function Entry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReading[]; onAdd: (rs: Omit<StudyReading, 'id' | 'at'>[]) => void }) {
+function Entry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReading[]; onAdd: OnAdd }) {
   if (a.kind === 'groups') return <GroupEntry a={a} readings={readings} onAdd={onAdd} />;
   if (a.kind === 'table') return <TableEntry a={a} readings={readings} onAdd={onAdd} />;
   if (a.kind === 'relate') return <RelateEntry a={a} onAdd={onAdd} />;
@@ -571,7 +592,7 @@ function GrrEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyRe
   );
 }
 
-type OnAdd = (rs: Omit<StudyReading, 'id' | 'at'>[]) => void;
+type OnAdd = (rs: Omit<StudyReading, 'id' | 'at'>[]) => (() => void) | void;
 /** Groups: a chip a group, a new one by name, the pad and a pasted column into the chosen group. */
 function GroupEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReading[]; onAdd: OnAdd }) {
   const noun = (a.firstName || 'group').toLowerCase();
@@ -594,7 +615,7 @@ function GroupEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: Study
       {sel ? <>
         <p className="sub ie-pad-hint">Readings for <b>{sel}</b>, then Enter</p>
         <Pad key={sel} unit={a.unit} label="The reading" onEnter={v => onAdd([{ value: v, arm: sel }])} />
-        <Paste cols={1} label={`Or paste ${sel}’s readings — a number to a line, or spaced`} onAdd={p => onAdd(p.values.map(value => ({ value, arm: sel })))} />
+        <ReadingsPaste cols={1} label={`Or paste ${sel}’s readings — a number to a line, or spaced`} onAdd={p => onAdd(p.values.map(value => ({ value, arm: sel })))} />
       </> : null}
     </div>
   );
@@ -622,7 +643,7 @@ function GaugeRangeEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: 
       {sel !== undefined ? <>
         <p className="sub ie-pad-hint">Readings of the <b>{sel}{u}</b> reference, then Enter</p>
         <Pad key={sel} unit={a.unit} label="The reading" onEnter={v => onAdd([{ value: v, with: sel }])} />
-        <Paste cols={1} label={`Or paste readings of ${sel}${u} — a number to a line, or spaced`} onAdd={p => onAdd(p.values.map(value => ({ value, with: sel })))} />
+        <ReadingsPaste cols={1} label={`Or paste readings of ${sel}${u} — a number to a line, or spaced`} onAdd={p => onAdd(p.values.map(value => ({ value, with: sel })))} />
       </> : null}
     </div>
   );
@@ -739,7 +760,7 @@ function SimpleEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: Stud
       <div className="ie-cap-box" aria-label="Take the pairs">
         <p className="sub ie-pad-hint">{firstV === undefined ? `${a.firstName || 'The first way'}, then Enter` : `${a.secondName || 'The second way'} on the same item, then Enter`}</p>
         <Pad key={firstV === undefined ? 'a' : 'b'} unit={unit} label={firstV === undefined ? 'The first reading' : 'The second reading'} onEnter={v => { if (firstV === undefined) setFirstV(v); else { onAdd([{ value: firstV, with: v }]); setFirstV(undefined); } }} />
-        <Paste cols={2} label="Or paste pairs — two numbers to a line" onAdd={p => onAdd(p.pairs.map(([value, w]) => ({ value, with: w })))} />
+        <ReadingsPaste cols={2} label="Or paste pairs — two numbers to a line" onAdd={p => onAdd(p.pairs.map(([value, w]) => ({ value, with: w })))} />
       </div>
     );
   }
@@ -749,7 +770,7 @@ function SimpleEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: Stud
       {armChips}
       {note && <p className="sub ie-pad-hint">{note}</p>}
       <Pad unit={unit} label="The reading" onEnter={v => onAdd([{ value: v, ...(a.kind === 'change' ? { arm } : {}) }])} />
-      <Paste cols={1} label="Or paste readings — a number to a line, or spaced" onAdd={p => onAdd(p.values.map(value => ({ value, ...(a.kind === 'change' ? { arm } : {}) })))} />
+      <ReadingsPaste cols={1} label="Or paste readings — a number to a line, or spaced" onAdd={p => onAdd(p.values.map(value => ({ value, ...(a.kind === 'change' ? { arm } : {}) })))} />
     </div>
   );
 }

@@ -28,7 +28,7 @@ import { allowFailProblem, checksSay, confOf, judgeOf, passFailPlanOf, pctWord, 
 import type { AgreedReadings, StudyReading, ToolStudy } from '../../lib/study';
 import { TOOL_WORDS } from '../../screens/StudiesScreen';
 import { StudyBand } from '../../ui/StudyActs';
-import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
+import { WhereItSits, UsedFor, useBetter, planEmpty } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { sampleClosing, sampleTiles } from './sampleLean';
@@ -38,9 +38,14 @@ import { modeAgreedWords, modeProblem } from './modes';
 import { RunsChart, UChart, Pareto, RateBars, RunsCapture, FaultsCapture, modeReadingWord } from './ModeParts';
 import { raisedFrom } from '../losses/lossLean';
 import { DraftText } from '../../ui/Draft';
+import { ReadingsPaste } from '../../ui/ReadingsPaste';
+import { UnitField } from '../../ui/UnitField';
 import { useMachinesOf } from '../../lib/useLineRecords';
 
 const OWNER = canAt('owner');
+
+/** A phone — the width at which the page stacks (styles.css, 719/720). */
+const onPhone = (): boolean => { try { return window.matchMedia('(max-width: 719px)').matches; } catch { return false; } };
 
 export function StudyScreen({ id }: { id: string }) {
   const [s, setS] = useState<ToolStudy | null | undefined>(undefined);
@@ -71,6 +76,9 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
   const said = useMemo(() => sampleSays(f, a), [f, a]);
   const closed = !!s.closedAt;
   const [agreeing, setAgreeing] = useState(false);
+  /* ON A PHONE, A STUDY NOT YET FULL MEETS ITS ENTRY FIRST (tools audit, 30 October: the pad sat ~600px down under the tiles):
+     decided once, when the page opens, so the pad never moves under a finger as the last reading goes in. */
+  const [entryFirst] = useState(() => onPhone() && !f.enough);
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
   const w = TOOL_WORDS[s.tool];
   /* what was raised from it — the action plan (ui/StudyPlace useBetter) */
@@ -78,12 +86,20 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
 
   const add = (r: Omit<StudyReading, 'id' | 'at'>) =>
     write(cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), { id: uid(), at: now(), ...(me ? { who: me } : {}), ...r }] } }));
+  /* a paste — every reading in at once, and how to take that very paste out again (one Undo; ui/ReadingsPaste) */
+  const addMany = (rs: Omit<StudyReading, 'id' | 'at'>[]): (() => void) => {
+    const made = rs.map(r => ({ id: uid(), at: now(), ...(me ? { who: me } : {}), ...r }));
+    write(cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), ...made] } }));
+    return () => { const gone = new Set(made.map(r => r.id)); write(cur => ({ facts: { ...cur.facts, readings: (cur.facts.readings ?? []).filter(r => !gone.has(r.id)) } })); };
+  };
   const strike = (rid: string, struck: boolean) =>
     write(cur => ({ facts: { ...cur.facts, readings: (cur.facts.readings ?? []).map(r => (r.id === rid ? { ...r, struck: struck || undefined } : r)) } }));
   /* a failed item's fate — waste, reworked, recovered by hand (FC-156; Rowland, 24 October) */
   const setFate = (rid: string, fate: Fate) =>
     write(cur => ({ facts: { ...cur.facts, readings: (cur.facts.readings ?? []).map(r => (r.id === rid ? { ...r, ...(fate === 'waste' ? { fate: undefined } : { fate }) } : r)) } }));
 
+  const entry = a && !closed && can.edit ? (a.kind === 'rejects' ? <RunsCapture f={f} onAdd={add} /> : a.kind === 'faults' ? <FaultsCapture a={a} f={f} onAdd={add} />
+    : <Capture a={a} f={f} readings={readings} onAdd={add} onAddMany={addMany} onStrike={id => strike(id, true)} onFate={setFate} />) : null;
   return (
     <div className="wrap ie">
       {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6; lib/ie/sampleLean): the
@@ -102,6 +118,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
         <Agree s={s} canAgree={can.agree && !closed} hasReadings={f.n > 0} onDone={() => setAgreeing(false)} cancel={a ? () => setAgreeing(false) : undefined} />
       ) : (
         <>
+          {entryFirst && entry && <div className="ie-body ie-entry-first">{entry}</div>}
           <LeanTiles tiles={sampleTiles(f, a, said)} className="ie-strip" />
           <Says said={said} s={s} f={f} a={a} />
           <div className="ie-body">
@@ -111,8 +128,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
               : a.kind === 'faults' && f.faults ? <><UChart q={f.faults} /><Pareto q={f.faults} /></>
               : a.kind === 'rate' && f.rate ? <RateBars r={f.rate} unit={a.unit} />
               : <><Dots f={f} a={a} readings={readings} said={said} /><Hist f={f} a={a} /></>}</div>
-            {!closed && can.edit && (a.kind === 'rejects' ? <RunsCapture f={f} onAdd={add} /> : a.kind === 'faults' ? <FaultsCapture a={a} f={f} onAdd={add} />
-              : <Capture a={a} f={f} readings={readings} onAdd={add} onStrike={id => strike(id, true)} onFate={setFate} />)}
+            {!entryFirst && entry}
           </div>
           <Readings readings={readings} f={f} a={a} canStrike={can.edit && !closed} onStrike={strike} onFate={setFate} />
           <p className="ie-agreed sub">
@@ -122,7 +138,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           <UsedFor s={s} can={can} me={me} />
           <Act s={s} f={f} said={said} can={can} me={me} write={write} />
           <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
-            <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure in its own figures." />
+            <LeanActions actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'its own figures')} />
           </LeanPanel>
           <LeanClosing closing={sampleClosing(f, a, said)} />
         </>
@@ -194,7 +210,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const a = s.agreed?.readings;
   const [kind, setKind] = useState<AgreedReadings['kind']>(a?.kind ?? 'limits');
   const [side, setSide] = useState<Side>(sideOf(a));
-  const [unit, setUnit] = useState(a?.unit ?? 'g');
+  const [unit, setUnit] = useState(a?.unit ?? '');   // never assumed: a speed is not in grams (tools audit, 30 October)
   const [nominal, setNominal] = useState(a?.nominal?.toString() ?? '');
   const [lower, setLower] = useState(a?.lower?.toString() ?? '');
   const [upper, setUpper] = useState(a?.upper?.toString() ?? '');
@@ -259,6 +275,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
     : kind === 'limits' && side === 'most' && hi === undefined ? 'Type the limit — at most what?'
     : kind === 'limits' && side === 'both' && (lo === undefined || hi === undefined) ? 'Both limits — or choose At least or At most.'
     : kind === 'limits' && lo !== undefined && hi !== undefined && lo >= hi ? 'The lower limit has to be below the upper.'
+    : kind === 'packers' && !unit.trim() ? 'The unit — g or kg, what the pack is weighed in (the packers’ rules are worked in it).'
     : kind === 'packers' && nom === undefined ? 'The nominal — what the pack says.'
     : kind === 'packers' && tne === undefined ? 'The packers’ rules cover 5 g to 10 kg (or ml to l).'
     : [packs, shiftsWk, costKg, materials, rework].some(t => t.trim() !== '' && !(Number.isFinite(Number(t)) && Number(t) >= 0)) ? 'The money boxes take numbers, zero or more.'
@@ -347,8 +364,8 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
         </div>
       )}
       <div className="ie-agree-grid">
-        {(kind === 'limits' || kind === 'packers' || kind === 'rate') && <label className="field"><span className="field-label">Unit</span>
-          <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder={kind === 'rate' ? 'packs' : 'g'} /></label>}
+        {(kind === 'limits' || kind === 'packers' || kind === 'rate') && <UnitField value={unit} onChange={setUnit}
+          hint={kind === 'packers' ? 'g or kg — the unit the pack is weighed in' : 'what the readings are in — leave empty if they have none'} placeholder={kind === 'rate' ? 'packs' : undefined} />}
         {(kind === 'limits' || kind === 'rate') && side !== 'most' && <label className="field"><span className="field-label">{side === 'least' ? (kind === 'rate' ? 'At least, a minute' : 'At least') : 'Lower limit'}</span>
           <input className="text-input" inputMode="decimal" value={lower} onChange={e => setLower(e.target.value)} placeholder={side === 'least' ? '75' : '400'} /></label>}
         {(kind === 'limits' || kind === 'rate') && side !== 'least' && <label className="field"><span className="field-label">{side === 'most' ? (kind === 'rate' ? 'At most, a minute' : 'At most') : 'Upper limit'}</span>
@@ -569,9 +586,9 @@ function Ticks({ readings }: { readings: StudyReading[] }) {
 /* ------------------------------------------------------------------ capture: the number pad */
 const KEYS = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '.', '0', '⌫'];
 
-function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
+function Capture({ a, f, readings, onAdd, onAddMany, onStrike, onFate }: {
   a: AgreedReadings; f: SampleFigures; readings: StudyReading[];
-  onAdd: (r: Omit<StudyReading, 'id' | 'at'>) => void; onStrike: (id: string) => void; onFate: (id: string, fate: Fate) => void;
+  onAdd: (r: Omit<StudyReading, 'id' | 'at'>) => void; onAddMany: (rs: Omit<StudyReading, 'id' | 'at'>[]) => () => void; onStrike: (id: string) => void; onFate: (id: string, fate: Fate) => void;
 }) {
   const [typed, setTyped] = useState('');
   /* WHAT BECOMES OF THE NEXT FAILED ITEM — chosen first and kept until changed, so ✗ Failed never moves it (Rowland,
@@ -633,6 +650,12 @@ function Capture({ a, f, readings, onAdd, onStrike, onFate }: {
             <button type="button" className="ie-key ie-enter" onClick={enter} aria-label="Enter the reading" disabled={!typed || !Number.isFinite(Number(typed))}>↵</button>
           </div>
         </>
+      )}
+      {/* THE SAME READINGS BY ANOTHER WAY IN — pasted from a sheet or a printout (ui/ReadingsPaste, one mechanism with the Analysis).
+          Pass or fail is a ✓ or a ✗ each, so there is nothing to paste. */}
+      {a.kind !== 'ticks' && (
+        <ReadingsPaste label="Or paste readings — a number to a line, or spaced" hint={a.kind === 'rate' ? 'The packs counted in each interval, one to a line.' : weigher ? 'Each takes the head typed above, if there is one.' : undefined}
+          onAdd={p => { const h = Math.round(Number(head)); return onAddMany(p.values.map(value => ({ value, ...(weigher && head.trim() !== '' && h >= 1 ? { head: h } : {}) }))); }} />
       )}
       {last.length > 0 && (
         <ul className="ie-last" aria-label="The last readings">

@@ -731,19 +731,5 @@ export function parseRows(text: string, width: number): { rows: number[][]; skip
   return out;
 }
 
-/* ------------------------------------------- pasted readings ------------------------------------------- */
-export interface Pasted { values: number[]; pairs: [number, number][]; skipped: string[] }
-/** Numbers pasted or typed in a box — a number to a line, or spaced or comma separated; with `cols` 2, a pair to a line. Whatever
- *  is not a number is listed in `skipped`, never silently dropped. */
-export function parsePasted(text: string, cols: 1 | 2 = 1): Pasted {
-  const out: Pasted = { values: [], pairs: [], skipped: [] };
-  const num = (t: string): number | undefined => (t !== '' && /^[+-]?(\d+\.?\d*|\.\d+)$/.test(t) ? Number(t) : undefined);
-  for (const line of text.split(/\r?\n/)) {
-    const toks = line.split(/[\s,;]+/).filter(Boolean); if (!toks.length) continue;
-    if (cols === 2) {
-      const [x, y] = [num(toks[0]), num(toks[1])];
-      if (toks.length === 2 && x !== undefined && y !== undefined) out.pairs.push([x, y]); else out.skipped.push(line.trim());
-    } else for (const t of toks) { const v = num(t); if (v !== undefined) out.values.push(v); else out.skipped.push(t); }
-  }
-  return out;
-}
+/* pasted readings — one parser for every tool that takes them (lib/pasteReadings; the Analysis, the Capability study and the Control chart) */
+export { parsePasted, type Pasted } from '../../lib/pasteReadings';

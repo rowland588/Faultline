@@ -17,7 +17,10 @@ import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
 import type { AgreedChart, StudyReading, ToolStudy } from '../../lib/study';
 import { StudyBand } from '../../ui/StudyActs';
-import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
+import { ReadingsPaste } from '../../ui/ReadingsPaste';
+import { UnitField } from '../../ui/UnitField';
+import { subgroupOf } from '../../lib/pasteReadings';
+import { WhereItSits, UsedFor, useBetter, planEmpty } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { raisedFrom } from '../losses/lossLean';
@@ -25,6 +28,9 @@ import { ALL_RULES, RULE_WORDS, WESTERN_ELECTRIC, type Rule } from '../../lib/ie
 import { chartClosing, chartFigures, chartProblem, chartSays, chartTiles, freezeFrom, LIMITS_FROM, GREENS_TO_QUALIFY, type ChartFigures } from './chart';
 
 const OWNER = canAt('owner');
+
+/** A phone — the width at which the page stacks (styles.css, 719/720). */
+const onPhone = (): boolean => { try { return window.matchMedia('(max-width: 719px)').matches; } catch { return false; } };
 
 export function ChartScreen({ id }: { id: string }) {
   const [s, setS] = useState<ToolStudy | null | undefined>(undefined);
@@ -52,11 +58,20 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
   const said = useMemo(() => (a && f ? chartSays(f, a) : undefined), [a, f]);
   const closed = !!s.closedAt;
   const [agreeing, setAgreeing] = useState(false);
+  /* ON A PHONE, A CHART NOT YET WORKED OUT MEETS ITS PAD FIRST (tools audit, 30 October): the limits are set from the first twenty
+     (five greens qualify a pre-control set-up) — until then the entry is above the tiles; decided once, when the page opens. */
+  const [entryFirst] = useState(() => onPhone() && (f?.n ?? 0) < (a?.kind === 'precontrol' ? GREENS_TO_QUALIFY : LIMITS_FROM));
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
   const { steps, tests } = useBetter(s, me);
 
   const add = (r: Omit<StudyReading, 'id' | 'at'>) =>
     write(cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), { id: uid(), at: now(), ...(me ? { who: me } : {}), ...r }] } }));
+  /* a paste — every reading in at once, and how to take that very paste out again (one Undo; ui/ReadingsPaste) */
+  const addMany = (rs: Omit<StudyReading, 'id' | 'at'>[]): (() => void) => {
+    const made = rs.map(r => ({ id: uid(), at: now(), ...(me ? { who: me } : {}), ...r }));
+    write(cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), ...made] } }));
+    return () => { const gone = new Set(made.map(r => r.id)); write(cur => ({ facts: { ...cur.facts, readings: (cur.facts.readings ?? []).filter(r => !gone.has(r.id)) } })); };
+  };
   const strike = (rid: string, struck: boolean) =>
     write(cur => ({ facts: { ...cur.facts, readings: (cur.facts.readings ?? []).map(r => (r.id === rid ? { ...r, struck: struck || undefined } : r)) } }));
   const note = (rid: string, text: string) =>
@@ -72,6 +87,7 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
     write(cur => ({ agreed: { ...cur.agreed, chart: { ...(cur.agreed?.chart as AgreedChart), frozen: fr, ...(again && cur.agreed?.chart?.frozen ? { frozenBefore: [...(cur.agreed.chart.frozenBefore ?? []), cur.agreed.chart.frozen] } : {}) } } }));
   };
 
+  const entry = a && f && !closed && can.edit ? <ChartPad a={a} f={f} readings={readings} onAdd={add} onAddMany={addMany} onNote={note} onStrike={rid => strike(rid, true)} /> : null;
   const page = bandPage('Control chart', s, said?.verdict, said?.tone);
   return (
     <div className="wrap ie ie-chart">
@@ -84,6 +100,7 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
         <Agree s={s} canAgree={can.agree && !closed} hasReadings={readings.length > 0} onDone={() => setAgreeing(false)} cancel={a ? () => setAgreeing(false) : undefined} />
       ) : f && said && (
         <>
+          {entryFirst && entry && <div className="ie-body ie-entry-first">{entry}</div>}
           <LeanTiles tiles={chartTiles(f, a)} className="ie-strip" />
           <div className="ie-says">
             <p className={'ie-say is-' + said.tone}>{said.text}</p>
@@ -103,7 +120,7 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           )}
           <div className="ie-body">
             <div className="ie-pic tool-sig-chart"><ChartPic f={f} a={a} said={said.text} /></div>
-            {!closed && can.edit && <ChartPad a={a} f={f} readings={readings} onAdd={add} onNote={note} onStrike={rid => strike(rid, true)} />}
+            {!entryFirst && entry}
           </div>
           <ChartReadings readings={readings} f={f} a={a} canStrike={can.edit && !closed} onStrike={strike} />
           <p className="ie-agreed sub">
@@ -112,7 +129,7 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           </p>
           <UsedFor s={s} can={can} me={me} />
           <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
-            <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from a signal." />
+            <LeanActions actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'a signal')} />
           </LeanPanel>
           <LeanClosing closing={chartClosing(f, a, said)} />
         </>
@@ -127,13 +144,25 @@ const KINDS: { k: AgreedChart['kind']; word: string; eg: string }[] = [
   { k: 'xbar', word: 'Subgroups', eg: 'four packs an hour — X̄-R, and X̄-S from 11' },
   { k: 'precontrol', word: 'Pre-control', eg: 'approving a set-up: five greens, then pairs' },
 ];
+/** What each signal CATCHES, in the floor's words — the technical name stays beneath it. (Screen only: the signals' own words,
+ *  lib/ie/charts RULE_WORDS, are what the chart's sentences and the paper say.) */
+const CATCHES: Record<Rule, string> = {
+  beyond: 'One reading far out — past a control limit',
+  run: 'A step change — eight in a row on the same side of the middle',
+  trend: 'A drift — six in a row climbing or falling',
+  alternate: 'Over-adjusting — fourteen in a row zig-zagging up and down',
+  '2of3': 'A shift starting — two of three readings well off to one side',
+  '4of5': 'A small shift that stays — four of five a little off to one side',
+  inside: 'Too steady — fifteen in a row hugging the middle (a stuck gauge?)',
+  outside: 'Two streams mixed — eight in a row off the middle, on both sides',
+};
 const num = (t: string): number | undefined => (t.trim() === '' || !Number.isFinite(Number(t)) ? undefined : Number(t));
 
 function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; canAgree: boolean; hasReadings: boolean; onDone: () => void; cancel?: () => void }) {
   const a = s.agreed?.chart;
   const [kind, setKind] = useState<AgreedChart['kind']>(a?.kind ?? 'xmr');
   const [name, setName] = useState(a?.name ?? s.name ?? '');
-  const [unit, setUnit] = useState(a?.unit ?? 'g');
+  const [unit, setUnit] = useState(a?.unit ?? '');   // never assumed: a temperature is not in grams (tools audit, 30 October)
   const [target, setTarget] = useState(a?.target?.toString() ?? '');
   const [lower, setLower] = useState(a?.lower?.toString() ?? '');
   const [upper, setUpper] = useState(a?.upper?.toString() ?? '');
@@ -174,8 +203,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       <div className="ie-agree-grid">
         <label className="field"><span className="field-label">What is measured</span>
           <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder="Fill weight" /></label>
-        <label className="field"><span className="field-label">Unit</span>
-          <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder="g" /></label>
+        <UnitField value={unit} onChange={setUnit} />
         {kind !== 'precontrol' && <label className="field"><span className="field-label">Target <i className="sub">the nominal — optional</i></span>
           <input className="text-input" inputMode="decimal" value={target} onChange={e => setTarget(e.target.value)} placeholder="400" /></label>}
         <label className="field"><span className="field-label">Lower specification limit {kind !== 'precontrol' && <i className="sub">optional</i>}</span>
@@ -189,12 +217,13 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       </div>
       {kind !== 'precontrol' && (
         <fieldset className="ie-rules">
-          <legend className="field-label">Which signals <i className="sub">Western Electric’s four are on; the other four are offered</i></legend>
+          <legend className="field-label">What should it watch for? <i className="sub">four are on to start with — tick any more you want</i></legend>
           {ALL_RULES.map(r => (
-            <label key={r} className="ie-rule"><input type="checkbox" checked={rules.includes(r)} onChange={() => toggle(r)} /> <span>{RULE_WORDS[r].name[0].toUpperCase() + RULE_WORDS[r].name.slice(1)}</span></label>
+            <label key={r} className="ie-rule"><input type="checkbox" checked={rules.includes(r)} onChange={() => toggle(r)} aria-labelledby={`ie-rule-${r}`} aria-describedby={`ie-rule-${r}-n`} />
+              <span className="ie-rule-w"><span id={`ie-rule-${r}`}>{CATCHES[r]}</span><small id={`ie-rule-${r}-n`} className="sub">{RULE_WORDS[r].name[0].toUpperCase() + RULE_WORDS[r].name.slice(1)} · {WESTERN_ELECTRIC.includes(r) ? 'Western Electric rule' : 'Nelson rule'}</small></span></label>
           ))}
-          <label className="ie-rule"><input type="checkbox" checked={ewma} onChange={e => setEwma(e.target.checked)} /> <span>Draw the running level (EWMA)</span></label>
-          {kind === 'xmr' && <label className="ie-rule"><input type="checkbox" checked={products} onChange={e => setProducts(e.target.checked)} /> <span>Many products on one chart — each reading says its product and nominal (short-run)</span></label>}
+          <label className="ie-rule"><input type="checkbox" checked={ewma} onChange={e => setEwma(e.target.checked)} /> <span className="ie-rule-w"><span>Draw the running level — a smoothed line that shows a slow drift early</span><small className="sub">EWMA</small></span></label>
+          {kind === 'xmr' && <label className="ie-rule"><input type="checkbox" checked={products} onChange={e => setProducts(e.target.checked)} /> <span className="ie-rule-w"><span>Many products on one chart — each reading says its product and nominal</span><small className="sub">Short-run chart</small></span></label>}
         </fieldset>
       )}
       {problem && <p className="ie-problem">{problem}</p>}
@@ -217,9 +246,9 @@ export function agreedWords(a: AgreedChart): string {
 const KEYS = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '.', '0', '⌫'];
 const NOTES = ['Adjusted', 'New reel', 'Restart'];
 
-function ChartPad({ a, f, readings, onAdd, onNote, onStrike }: {
+function ChartPad({ a, f, readings, onAdd, onAddMany, onNote, onStrike }: {
   a: AgreedChart; f: ChartFigures; readings: StudyReading[];
-  onAdd: (r: Omit<StudyReading, 'id' | 'at'>) => void; onNote: (id: string, text: string) => void; onStrike: (id: string) => void;
+  onAdd: (r: Omit<StudyReading, 'id' | 'at'>) => void; onAddMany: (rs: Omit<StudyReading, 'id' | 'at'>[]) => () => void; onNote: (id: string, text: string) => void; onStrike: (id: string) => void;
 }) {
   const [typed, setTyped] = useState('');
   const [product, setProduct] = useState(() => [...readings].reverse().find(r => r.product)?.product ?? '');
@@ -233,7 +262,7 @@ function ChartPad({ a, f, readings, onAdd, onNote, onStrike }: {
     const v = Number(typed);
     if (typed.trim() === '' || typed === '-' || !Number.isFinite(v)) return;
     if (a.products && (!product.trim() || num(nominal) === undefined)) return;
-    onAdd({ value: v, ...(m ? { group: Math.floor(readings.length / m) + 1 } : {}), ...(a.products ? { product: product.trim(), nominal: num(nominal) as number } : {}) });
+    onAdd({ value: v, ...(m ? { group: subgroupOf(readings.length, m) } : {}), ...(a.products ? { product: product.trim(), nominal: num(nominal) as number } : {}) });
     setTyped('');
   }, [typed, a.products, product, nominal, m, readings.length, onAdd]);
   /* a keyboard types into the pad too, unless a box has the focus */
@@ -269,6 +298,13 @@ function ChartPad({ a, f, readings, onAdd, onNote, onStrike }: {
         {KEYS.map(k => <button key={k} type="button" className="ie-key" onClick={() => press(k)} aria-label={k === '⌫' ? 'Delete' : k}>{k}</button>)}
         <button type="button" className="ie-key ie-enter" onClick={enter} aria-label="Enter the reading" disabled={!typed || !Number.isFinite(Number(typed)) || (!!a.products && (!product.trim() || num(nominal) === undefined))}>↵</button>
       </div>
+      {/* THE SAME READINGS BY ANOTHER WAY IN — pasted from a sheet or a printout (ui/ReadingsPaste, one mechanism with the Analysis). In
+          subgroups a paste fills them in order, carrying on from a half-full one; with many products every reading takes the product and
+          nominal typed above. */}
+      <ReadingsPaste label="Or paste readings — a number to a line, or spaced"
+        hint={m ? `They fill subgroups of ${m} in the order given${inGroup ? `, carrying on from the ${inGroup} already in the next` : ''}.` : 'In the order taken, the first first.'}
+        disabled={a.products && (!product.trim() || num(nominal) === undefined) ? 'Say the product and its nominal above first — every pasted reading carries them.' : undefined}
+        onAdd={p => onAddMany(p.values.map((value, i) => ({ value, ...(m ? { group: subgroupOf(readings.length + i, m) } : {}), ...(a.products ? { product: product.trim(), nominal: num(nominal) as number } : {}) })))} />
       {last.length > 0 && (
         <>
           <ul className="ie-last" aria-label="The last readings">

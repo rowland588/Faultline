@@ -223,6 +223,15 @@ export function useBetter(s: ToolStudy, me?: string, ctx?: StudyContext) {
   return { board, targets, byRef, better, assets: tt.assets, steps: ax.steps, tests: tt.tests };
 }
 
+/** WHAT THE EMPTY ACTION PLAN SAYS — only what is true on this page. "Make it better" is a button on a study that is attached to a
+ *  project and has something in it worth making better (lib/studyLinks worthBetter); a quick session or a line's study has none,
+ *  so the plan must not point at it (tools audit, 30 October: "an empty Action plan that names a button that is not there"). */
+export function planEmpty(s: ToolStudy, from: string): string {
+  if (!s.projectId) return `Nothing raised from it yet. It is on no project — attach it to one (Attach to a project, under its name) and Make it better can raise a fix or a countermeasure from ${from}.`;
+  if (worthBetter(s)) return `Nothing raised from it yet — Make it better (above) raises a fix or a countermeasure from ${from}.`;
+  return `Nothing raised from it yet — Make it better appears here when ${from} shows something to put right.`;
+}
+
 export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string }) {
   const { board, targets, byRef, better, assets } = useBetter(s, me);
   const [picking, setPicking] = useState(false);

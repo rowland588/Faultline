@@ -323,6 +323,9 @@ const seal = await startStudy('Seal integrity — after the jaw fix', 'Ilapak fl
   await page.getByLabel('Packs a shift').fill('10000'); await page.getByLabel('Shifts a week').fill('5');
   ok((await page.getByLabel(/What the product costs you a kilo/).count()) === 1 && (await page.getByLabel(/A pack’s materials/).count()) === 0, '9a a measured study asks the cost a kilo, not a pack’s materials');
   await page.getByLabel(/What the product costs you a kilo/).fill('18');
+  /* sold by weight needs its unit said — never assumed (tools audit, 30 October): refused until a chip or a typed g or kg */
+  ok(/^The unit — g or kg/.test((await words('.ie-problem')) ?? ''), `9a sold by weight with no unit: refused, said why — "${await words('.ie-problem')}"`);
+  await page.getByRole('group', { name: 'Usual ones' }).getByRole('button', { name: 'g', exact: true }).click();
   await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
   await typeAll([404.1, 404.1, 404.1, 404.1]);
   let t = await truth(heavy);
@@ -564,6 +567,7 @@ const weigher = await startStudy('Multihead — 150 g, heads compared', 'Ishida 
 const fill = await startStudy('Fill weight — 400 g bags, the lowest legal target', 'Ishida CCW-RV-214W multihead weigher');
 {
   await page.getByRole('radio', { name: /^Sold by weight/ }).click(); await page.waitForTimeout(200);
+  await page.getByRole('group', { name: 'Usual ones' }).getByRole('button', { name: 'g', exact: true }).click();
   await page.getByLabel('Nominal (on the pack)').fill('400'); await page.getByLabel(/What the product costs you a kilo/).fill('18');
   await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
   await typeAll([404.1, 404.1, 404.1, 404.1]);
@@ -579,6 +583,7 @@ const fill = await startStudy('Fill weight — 400 g bags, the lowest legal targ
 const volume = await startStudy('Juice 400 ml — checked by weight', 'Rotary filler');
 {
   await page.getByRole('radio', { name: /^Sold by weight/ }).click(); await page.waitForTimeout(200);
+  await page.getByRole('group', { name: 'Usual ones' }).getByRole('button', { name: 'g', exact: true }).click();
   await page.getByLabel(/Sold by volume — the nominal in ml/).fill('400');
   ok((await page.getByLabel('Nominal (on the pack)').count()) === 0 && (await words('.ie-problem')) === 'The density in g/ml — the product’s, at the temperature it is packed.', '14b with millilitres typed the nominal in grams is not asked and the density is');
   await page.getByLabel(/Density, g\/ml/).fill('1.03');
@@ -673,6 +678,7 @@ const MEAL = 'Rice, 120, 3.0\nSauce, 80, 2.5\nVegetables, 60, 2.0\nGarnish, 40, 
 const meal = await startStudy('Chicken and rice meal, 300 g', 'Ready-meal line');
 {
   await page.getByRole('radio', { name: /^Sold by weight/ }).click(); await page.waitForTimeout(200);
+  await page.getByRole('group', { name: 'Usual ones' }).getByRole('button', { name: 'g', exact: true }).click();
   await page.getByLabel('Nominal (on the pack)').fill('300');
   await page.getByLabel('The deposits', { exact: true }).fill('Rice, 120\nSauce, 80, 2.5');
   ok(/^A deposit is a line — its name, its mean and its spread/.test((await words('.ie-problem')) ?? '') && (await page.getByRole('button', { name: 'Agree these' }).isDisabled()), '17 a deposit with no spread: said at the box, Agree held');

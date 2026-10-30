@@ -18,6 +18,10 @@
  *      middle half under its histogram
  *   8  on paper: the sentence, the picture, the checks, every reading — the study and the list
  *   9  kept after a reload; the phone
+ *  10  the tools audit's fixes (30 October), desk and 375px: the twelve questions under three plain headings (6 + 4 + 2, none dropped) each with a
+ *      one-line example, the Unit box empty with its nine chips (a tap sets it, a second clears it, typing is free), no unit said on screen
+ *      and on paper until one is chosen, then said on both; a paste Undone as one step, text that is not a number listed; the empty action
+ *      plan saying what is true on no project
  *
  * Fails on any console error.   node scripts/acceptance/analysis.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
@@ -130,7 +134,7 @@ let mean;
   mean = await start('Thirty packs');
   ok(mean.length > 8, `2 started from the list: ${mean.slice(0, 8)}…`);
   const kinds = await all('[role=radiogroup][aria-label="What do you want to know?"] .ie-kind');
-  ok(kinds.length === 12 && /^How sure am I of this figure/.test(kinds[0]) && /^Did it really change/.test(kinds[1]) && /^Do two ways of measuring agree/.test(kinds[2]) && /^Do these groups really differ/.test(kinds[3]) && /^Is one thing linked to the other/.test(kinds[4]) && /^Does one thing move with another/.test(kinds[5]) && /^How fast is a new job being learned/.test(kinds[6]) && /^How many readings/.test(kinds[7]) && /^Is this gauge fit/.test(kinds[8]) && /^How much of what we see is the measurement/.test(kinds[9]) && /^Do inspectors agree with themselves and the standard/.test(kinds[10]) && /^Which shape do these readings follow/.test(kinds[11]), `2 the twelve questions offered: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
+  ok(kinds.length === 12 && /^How sure am I of this figure/.test(kinds[0]) && /^How many readings/.test(kinds[1]) && /^Which shape do these readings follow/.test(kinds[2]) && /^Is this gauge fit/.test(kinds[3]) && /^How much of what we see is the measurement/.test(kinds[4]) && /^Do inspectors agree with themselves and the standard/.test(kinds[5]) && /^Did it really change/.test(kinds[6]) && /^Do two ways of measuring agree/.test(kinds[7]) && /^Do these groups really differ/.test(kinds[8]) && /^How fast is a new job being learned/.test(kinds[9]) && /^Does one thing move with another/.test(kinds[10]) && /^Is one thing linked to the other/.test(kinds[11]), `2 the twelve questions offered, under three headings: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
   ok((await page.getByRole('radio', { name: '95%', exact: true, checked: true }).count()) === 1, '2 95% is the confidence unless another is picked');
   await page.getByLabel('What is measured').fill(''); await page.getByRole('button', { name: 'Agree these' }).click({ force: true }).catch(() => {});
   ok(/^What is measured/.test((await words('.ie-problem')) ?? ''), `2 no name — refused, said why: "${await words('.ie-problem')}"`);
@@ -324,6 +328,76 @@ let paired;
   ok(w <= 390 && pad && svgs, `9 the phone: nothing off the side (${w}px), the pad’s keys big enough, the picture inside`);
   await page.setViewportSize({ width: 1360, height: 900 });
 }
+
+/* ---- 10 · the tools audit's fixes (30 October): no unit assumed, the twelve questions under three headings with a plain line each,
+        a paste that Undo takes back as one step, an empty plan that says what is true — at the desk and at 375 ---- */
+const SHOTS = process.env.SHOTS ?? OUT;
+const TEN = [401.2, 401.6, 400.8, 401.1, 401.9, 400.6, 401.3, 401.0, 400.9, 401.5];
+const chipsOf = () => page.getByRole('group', { name: 'Usual ones' }).getByRole('button');
+for (const [vw, vh, tag] of [[1360, 900, 'desk'], [375, 812, '375']]) {
+  await page.setViewportSize({ width: vw, height: vh });
+  const id = await start(`Fill time ${tag}`);
+  /* the questions — three plain headings, none dropped, a plain line under each, the stored question still its own */
+  const heads = await all('.ie-qhead');
+  ok(JSON.stringify(heads) === JSON.stringify(['Can I trust this number?', 'Did it change or differ?', 'How are things linked?']), `10 ${tag}: the questions under three headings: ${heads.join(' · ')}`);
+  const counts = await page.locator('.ie-qgroup').evaluateAll(gs => gs.map(g => g.querySelectorAll('[role=radio]').length));
+  ok(counts.join() === '6,4,2', `10 ${tag}: 6 + 4 + 2 questions — all twelve`);
+  const plain = await page.locator('.ie-kind').evaluateAll(bs => bs.map(b => b.querySelector('small')?.textContent ?? ''));
+  ok(plain.length === 12 && plain.every(t => / — /.test(t) && t.length < 90), `10 ${tag}: a one-line plain example under each question`, plain.join(' | '));
+  const change = flat(await page.getByRole('radio', { name: /Did it really change/ }).innerText());
+  ok(/Did my fix work\? — compare before and after/.test(change), `10 ${tag}: "Did it really change?" says "${change.slice(25)}"`);
+  await page.getByRole('radio', { name: /Did it really change/ }).click();
+  ok(/e\.g\. fill weights before and after a re-calibration/.test(flat(await page.locator('.ie-kind.on').innerText())), `10 ${tag}: the one chosen also shows its longer example`);
+  await page.getByRole('radio', { name: /How sure am I/ }).click();
+  /* the unit starts empty; the chips are the usual ones, one tap each; typing is free */
+  const unitBox = page.getByLabel('Unit', { exact: true });
+  ok((await unitBox.inputValue()) === '', `10 ${tag}: the Unit box starts empty — no "g" put there for you`);
+  ok(JSON.stringify(await chipsOf().allInnerTexts()) === JSON.stringify(['g', 'kg', 'mm', 's', 'min', '°C', 'ppm', '%', 'pack/min']), `10 ${tag}: g · kg · mm · s · min · °C · ppm · % · pack/min offered`);
+  const chipH = await chipsOf().evaluateAll(els => Math.min(...els.map(e => e.getBoundingClientRect().height)));
+  ok(chipH >= 44, `10 ${tag}: each chip is a thumb’s size (${Math.round(chipH)}px)`);
+  await chipsOf().filter({ hasText: /^s$/ }).click();
+  ok((await unitBox.inputValue()) === 's' && (await chipsOf().filter({ hasText: /^s$/ }).getAttribute('aria-pressed')) === 'true', `10 ${tag}: a tap puts s in the box`);
+  await chipsOf().filter({ hasText: /^s$/ }).click();
+  ok((await unitBox.inputValue()) === '', `10 ${tag}: and a second tap takes it out`);
+  await unitBox.fill('rpm');
+  ok((await unitBox.inputValue()) === 'rpm', `10 ${tag}: any other typed freely`);
+  await unitBox.fill('');
+  await page.getByLabel('What is measured').fill('Fill time');
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  /* no unit: the sentence, the tiles, the agreement and the paper say none */
+  await paste(TEN);
+  const none = await words('.ie-say');
+  const t0 = await truth(id);
+  ok(t0.a.unit === undefined && none === t0.said.text && !/ g\b/.test(none) && /^10 readings, mean 401\.\d+ — we can be 95% confident the true mean is between/.test(none), `10 ${tag}: no unit agreed, none said: "${none?.slice(0, 120)}"`);
+  ok(!/ g\b/.test(flat(await page.locator('.wrap').innerText())), `10 ${tag}: no "g" anywhere on the page`);
+  ok(!/ in [a-z%°]/.test((await words('.ie-agreed b')) ?? ''), `10 ${tag}: the agreement says no unit: "${await words('.ie-agreed b')}"`);
+  /* a paste is ONE step — Undo takes the ten out together; text that is not a number is listed and refused */
+  await paste(['400.1', '400.2', 'abc', '400.3']);
+  ok(/Added 3 readings/.test((await words('.ie-pasted')) ?? '') && /Left out — not numbers: abc/.test((await words('.ie-problem')) ?? '') && (await truth(id)).a && (await page.evaluate(async sid => (await (await import('/src/db.ts')).getStudy(sid)).facts.readings.length, id)) === 13, `10 ${tag}: three of four lines added, "abc" listed and left out`);
+  await page.getByRole('button', { name: 'Undo' }).click(); await page.waitForTimeout(600);
+  const left = await page.evaluate(async sid => (await (await import('/src/db.ts')).getStudy(sid)).facts.readings.length, id);
+  ok(left === 10 && (await words('.ie-say')) === none, `10 ${tag}: one Undo took the whole paste out — back to ${left} readings, the sentence as it was`);
+  /* the plan says what is true on a quick session: no Make it better to press */
+  const plan = flat(await page.locator('.ln-plan-p').innerText());
+  ok(/It is on no project — attach it to one/.test(plan) && (await page.getByRole('button', { name: /^Make it better/ }).count()) === 0, `10 ${tag}: the empty action plan points at attaching, not at a button that is not there`);
+  /* on paper: no unit, then the unit */
+  let p = await pdf(`noun-${tag}.pdf`);
+  ok(/mean 401\.\d+ — we can be 95% confident the true mean is between/.test(p.text) && !/ g\b/.test(p.text.replace(/\bpage\b/gi, '')) && !/in g\b/.test(p.text), `10 ${tag}: on paper with no unit: no "g" (${p.pages} page${p.pages === 1 ? '' : 's'})`, p.text.slice(0, 500));
+  await reagree(async () => { await chipsOf().filter({ hasText: /^s$/ }).click(); });
+  const t1 = await truth(id);
+  ok(t1.a.unit === 's' && /mean 401\.\d+ s — we can be 95% confident/.test((await words('.ie-say')) ?? '') && (await words('.ie-say')) === t1.said.text, `10 ${tag}: with a unit chosen the same figures carry it: "${(await words('.ie-say'))?.slice(0, 100)}"`);
+  p = await pdf(`unit-${tag}.pdf`);
+  ok(/mean 401\.\d+ s — we can be 95% confident the true mean is between/.test(p.text) && / in s\b/.test(p.text), `10 ${tag}: on paper with a unit: s, in s`);
+  const w = await page.evaluate(() => document.scrollingElement.scrollWidth);
+  ok(w <= vw, `10 ${tag}: nothing off the side (${w}px)`);
+  await page.screenshot({ path: join(SHOTS, `analysis-${tag}.png`), fullPage: true });
+  /* the Agree page itself, at this width, with no horizontal scroll */
+  await go('#/analysis'); await page.getByRole('button', { name: 'New analysis' }).first().click(); await page.waitForTimeout(400);
+  await page.getByLabel('What is it of?').fill('Shot'); await page.getByLabel(/On which machine/).fill('M'); await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500);
+  ok((await page.evaluate(() => document.scrollingElement.scrollWidth)) <= vw, `10 ${tag}: the question page — nothing off the side`);
+  await page.screenshot({ path: join(SHOTS, `analysis-agree-${tag}.png`), fullPage: true });
+}
+await page.setViewportSize({ width: 1360, height: 900 });
 
 ok(!errors.length, `no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
 await browser.close();
