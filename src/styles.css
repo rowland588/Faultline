@@ -12484,7 +12484,7 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
    own, Rowland's choice (11 October): VA green, NE amber, NV red — the one place
    those hues mean value, not state, always with the letters beside them. */
 :root { --vs-va: #2f9d58; --vs-ne: #e6b236; --vs-nv: #d4524b; }
-.vs-page .vs-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: 8px; margin: 10px 0 6px; align-items: start; }
+.vs-page .vs-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 10px 0 6px; align-items: stretch; }
 .vs-card2 { border: 1px solid var(--line); border-top: 4px solid var(--line-2, var(--line)); border-radius: var(--radius); background: var(--surface); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
 .vs-card2.is-adds { border-top-color: var(--vs-va); }
 .vs-card2.is-needed { border-top-color: var(--vs-ne); }
@@ -12563,7 +12563,7 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
   .vs-grid .vs-sq { width: 38px; height: 34px; font-size: var(--t-label); }
   .vs-page .vs-cards { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: minmax(104px, 1fr); overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 4px; }
   .vs-page .vs-card2 { scroll-snap-align: start; padding: 6px 8px; }
-  .vs-page .vs-card2 span { font-size: var(--t-label); }
+  .vs-page .vs-card2 span { font-size: var(--t-label); white-space: normal; }
   .vs-lane span { padding: 3px 5px; font-size: var(--t-label); }
   .vs-h { padding: 0 6px; font-size: var(--t-label); }
   .vs-card2 b { font-size: var(--t-h); }
@@ -14801,6 +14801,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 
 /* the value stream's money cards (FC-001): the of-line under the figure, the missing input in it */
 .vs-card2.is-money small { color: var(--muted); font-size: var(--fs-xs); line-height: 1.3; }
+/* ONE HEIGHT, ONE LINE (30 October — "the tile row is uneven and crowded"): a tile is its figure and a one-line label, and a
+   money tile's sentence clipped to one line; the whole of it is the tile's tooltip and the sentence under what the map says */
+.vs-card2 span, .vs-card2.is-money small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vs-card2 b { white-space: nowrap; }
+.vs-page .vs-cards .vs-card2 { min-height: 90px; }   /* the money tiles' one-line sentence sets it; every tile the same */
 .vs-card2.is-money.is-none b { color: var(--muted); }
 
 /* B7 — DENSITY BY DEVICE (docs/STRUCTURE.md §7): a desk control is 36 px; the floor keeps its 52 px touch
