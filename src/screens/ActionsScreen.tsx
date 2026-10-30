@@ -14,8 +14,8 @@
 import { useMemo, useState } from 'react';
 import { useProject, useProjects } from '../lib/useProjects';
 import { useEveryAction, useProjectActions, type ProjectActionsRead } from '../lib/useProjectActions';
-import { actionTiles, actionsClosing, byDate, byPerson, byProject, byWhere, PRIORITY_WORD, type ActionGroup, type ProjectAction } from '../lib/projectActions';
-import { whenWord } from '../lib/projectActionsPdf';
+import { actionTiles, actionsClosing, byDate, byPerson, byProject, byWhere, type ActionGroup, type ProjectAction } from '../lib/projectActions';
+import { PriorityPill, WhenPill } from '../ui/ActionPills';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
 import { PageHeader } from '../ui/parts';
 import { Fold } from '../ui/Fold';
@@ -116,10 +116,10 @@ function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name
                 <button type="button" className="lt-row" onClick={() => open(a)}>
                   <b className="lt-what">{a.what}</b>
                   <span className="lt-says act-meta">
-                    {a.priority && <span className={'act-pri is-' + a.priority}>{PRIORITY_WORD[a.priority]}</span>}
+                    {a.priority && <PriorityPill priority={a.priority} />}
                     {[every && view !== 'project' ? a.project?.name ?? 'On the line' : '', a.kind, a.where, a.why].filter(Boolean).join(' · ')}
                   </span>
-                  <span className="lt-where act-when">{view !== 'person' && <>{a.who || 'nobody yet'} · </>}<span className={a.late ? 'act-late' : a.soon ? 'act-soon' : ''}>{whenWord(a)}</span></span>
+                  <span className="lt-where act-when">{view !== 'person' && <>{a.who || 'nobody yet'} · </>}<WhenPill a={a} /></span>
                 </button>
               </li>
             ))}
