@@ -24,7 +24,7 @@ describe('every page is in one scope', () => {
   it('a project\'s pages are the project\'s — and so is anything the frame says is in one', () => {
     expect(at('#/project/p1/plan', { projectId: 'p1' })).toEqual({ kind: 'project', projectId: 'p1' });
     expect(at('#/capability?project=p1', { projectId: 'p1' })).toEqual({ kind: 'project', projectId: 'p1' });
-    expect(at('#/w/w1/capture', { projectId: 'p1' })).toEqual({ kind: 'line', wsId: 'w1' });
+    expect(at('#/w/w1/capture', { projectId: 'p1' })).toEqual({ kind: 'project', projectId: 'p1' });
   });
 
   it('a record on no project is its line\'s when it is on one, else the factory\'s', () => {

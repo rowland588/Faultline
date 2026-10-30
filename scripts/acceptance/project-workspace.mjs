@@ -201,9 +201,13 @@ let made;
   await page.setViewportSize({ width: 390, height: 844 });
   await go(`#/smed?project=${PID}`);
   const bar = (await page.locator('.nv-bar .nv-bi-l').allInnerTexts()).map(flat);
-  const lit = await page.locator('.nv-bar .nv-bi', { hasText: 'Projects' }).getAttribute('aria-current');
-  /* the menu's bar, the same on every page: Factory · Projects · ＋ · Tools · More (Problems each line's since 27 October) — Projects lit inside one */
-  ok(bar.join(' · ') === 'Factory · Projects · Problem · Tools · More' && lit === 'page' && await railLine('Tools').getAttribute('aria-current') === 'page', `7 the phone: the menu's bar — ${bar.join(' · ')}, Projects lit, the project's Tools tab on`);
+  /* a project's phone bar is the project's own since 28 October (the emergency UI, src/ui/rail.ts
+     projectMenuBar): its first tab · Programs · ＋ · Timeline · More — on this 6M project the first
+     tab is Overview. A tool's page lights the project's Tools tab (the bar names no Tools line, so
+     none of its five is lit there). Before that the bar was the menu's five everywhere with
+     Projects lit (brought to the new truth 30 October). */
+  const tabOn = flat((await page.locator('.nv-tabs .nv-tab.is-on .nv-tab-l').allInnerTexts()).join(' '));
+  ok(bar.join(' · ') === 'Overview · Programs · Problem · Timeline · More' && tabOn === 'Tools', `7 the phone: the project's own bar — ${bar.join(' · ')}, the project's Tools tab on (${tabOn || '—'})`);
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(wide <= 1 && await page.locator('.ip-scope .chip').count() === 3, `7 nothing off the side (${wide}px), the three chips on it`);
 }

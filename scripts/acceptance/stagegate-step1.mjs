@@ -162,7 +162,8 @@ ok(pdfText(status).includes('Scan for it now') && pdfPages(status) === 1, `4 the
   const cl = (await page.locator('.cl-worth').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
   ok(m.climbs.length === 1 && JSON.stringify(cl) === JSON.stringify(m.climbs) && /^The climb so far: [\d,]+ packs below the agreed 60 over \d runs — £[\d,]+ contribution\.$/.test(cl[0] ?? ''), `5 the climb says what it has cost so far — ${JSON.stringify(cl)}`);
   const flat = x => x.replace(/[’']/g, '').replace(/\s+/g, ' ');
-  const card = await grab(() => pressMore(page, /card — PDF$/), 'run-card.pdf');
+  /* the run opens in the drawer since D3 — its card button lives there, not under main's header */
+  const card = await grab(() => pressMore(page, /card — PDF$/, page.locator('.rd').last()), 'run-card.pdf');
   const ct = flat(pdfText(card));
   ok(m.worths.every(w => ct.includes(flat(w).slice(0, 50))) && ct.includes(flat(m.climbs[0]).slice(0, 40)), '5 the test’s card carries the worth and the climb’s cost');
   await go(`${J}/report`);

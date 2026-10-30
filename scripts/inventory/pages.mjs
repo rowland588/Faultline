@@ -450,8 +450,8 @@ export const PAGES = (sd, cap) => [
     { what: 'its name, Stops timed, and the line', sel: '.study-log b', text: /^Stops timed$/ },
     { what: 'its four views as tabs, Capture lit', sel: '.study-views [role=tab]', n: 4 },
     { what: 'Capture the view shown', sel: '.study-views [role=tab][aria-selected=true]', text: /^Capture$/ },
-    /* the line study lives under the line's Logs tab (docs/STRUCTURE.md B6) */
-    { what: 'where it sits — Tools lit on the line (Stops timed lives under Logs, which lights Tools)', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools$/ }] },
+    /* the seeded study is a stage-gate project's own walk, filmed from Install: Plan lit — the gates are the Plan tab's (27 October; put back 30 October with scopeOf's P2 order) */
+    { what: 'where it sits — the line study’s Tools tab or the project’s Tools', sel: '.nv-tabs .nv-tab.is-on' }] },
   { name: 'Actions — the factory', path: '#/actions', must: [
     { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },

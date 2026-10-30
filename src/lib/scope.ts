@@ -35,12 +35,17 @@ const LINE_LISTS = new Set<Route['name']>(['quickSnags', 'linePrograms', 'lineTo
 export function scopeOf(route: Route, hints: ScopeHints = {}): Scope {
   if (route.name === 'start') return { kind: 'home' };
   if ((route.name === 'lineHome' || route.name === 'lineReport' || route.name === 'lineMachine') && route.wsId) return { kind: 'line', wsId: route.wsId };
-  /* a line study's screens and a line's own products are the line's (B6) — the route wins over a project the study belongs to */
-  if (route.wsId) return { kind: 'line', wsId: route.wsId };
+  /* a record in a project wears the project's rail — the project it is on, not the address it was
+     reached by (docs/PROJECTS.md P2; lib/inProject). 29 October put route.wsId above this to force
+     every /w/ page into line scope, and a Line capacity made inside a project stopped opening in it
+     (scripts/acceptance/project-workspace.mjs check 5, found 30 October) — put back, as B6 asks:
+     the rail lights Logs on a line, the line in a 6M project, the Plan in a stage gate. */
   if (hints.projectId) return { kind: 'project', projectId: hints.projectId };
   if (FACTORY.has(route.name)) return { kind: 'factory' };
   const line = route.query.get('line');
   if (LINE_LISTS.has(route.name)) return line ? { kind: 'line', wsId: line } : { kind: 'factory' };
+  /* a line study's screens and a line's own products are the line's (B6 makes the study its Logs) */
+  if (route.wsId) return { kind: 'line', wsId: route.wsId };
   if (hints.lineId) return { kind: 'line', wsId: hints.lineId };
   return { kind: 'factory' };
 }

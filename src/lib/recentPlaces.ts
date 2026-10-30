@@ -54,12 +54,18 @@ export function dropRecentLine(wsId: string): void {
   try { localStorage.setItem(KEY, JSON.stringify(kept)); } catch { /* private window */ }
 }
 
-/** Line workspace id from a remembered address (`/lines/:ws/...`). */
+/** Line workspace id from a remembered address — every shape a line's page wears: `/lines/:ws/...`,
+ *  a list narrowed to it (`/programs?line=<id>`, lib/scope LINE_LISTS) or a record of it
+ *  (`/w/:ws/...`). It read only `/lines/:ws`, so the scrub of archived lines (recentPlacesLive,
+ *  29 October) threw away a LIVE line remembered on its Programs tab, and the Factory page lost
+ *  its carry-on row (found 30 October, scripts/acceptance/front-door.mjs check 4). */
 export function lineIdFromPlace(to: string): string | undefined {
   const path = placeAddress(to).replace(/^#/, '');
-  const segs = path.split('?')[0].split('/').filter(Boolean);
-  if (segs[0] !== 'lines' || !segs[1]) return undefined;
-  try { return decodeURIComponent(segs[1]); } catch { return segs[1]; }
+  const [bare, query = ''] = path.split('?');
+  const segs = bare.split('/').filter(Boolean);
+  const raw = ((segs[0] === 'lines' || segs[0] === 'w') && segs[1]) || new URLSearchParams(query).get('line') || undefined;
+  if (!raw) return undefined;
+  try { return decodeURIComponent(raw); } catch { return raw; }
 }
 
 /** Project id from a remembered address. */
