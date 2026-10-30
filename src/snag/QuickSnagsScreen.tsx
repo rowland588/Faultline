@@ -68,7 +68,7 @@ const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', 
    always with its word beside the colour. */
 const PRIO_CLASS: Record<Priority, string> = { critical: 'is-r', high: 'is-a', low: 'is-g' };
 const PRIOS: Priority[] = ['critical', 'high', 'low'];
-const PrioTag = ({ p }: { p: Priority }) => <span className={'qsl-prio ' + PRIO_CLASS[p]}>{PRIORITY_WORD[p]}</span>;
+const PrioTag = ({ p }: { p: Priority }) => <span className={'status-pill qsl-prio ' + PRIO_CLASS[p]}>{PRIORITY_WORD[p]}</span>;
 const photoRef = (key: string, s?: { media?: MediaRef[] }): MediaRef =>
   s?.media?.find(m => m.blobKey === key) ?? { id: key, kind: 'photo', blobKey: key, mime: 'image/jpeg', capturedAt: 0 };
 const NEW_LINE = '__new_line__';
@@ -426,7 +426,7 @@ export function QuickSnagsScreen() {
   );
 
   return (
-    <div className={'wrap qsl' + (chosen.length ? ' has-bar' : '')}>
+    <div className={'wrap qsl qsl-reg' + (chosen.length ? ' has-bar' : '')}>
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the register's name, what it says, Problem the one
           thing to do; the report and the cards in Report ▾, Start fresh in More ▾. */}
       <PageHeader
@@ -544,7 +544,7 @@ export function QuickSnagsScreen() {
                       </span>
                       <span className="preg-right">
                         {savedOn?.id === r.id && <span className="preg-saved" role="status">Saved</span>}
-                        <span className={'qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span>
+                        <span className={'status-pill qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span>
                         {r.due && <span className={'qsl-dueword ' + TONE_CLASS[r.dueTone ?? 'n']}>{r.due}</span>}
                       </span>
                     </button>
@@ -714,7 +714,7 @@ function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onLis
                 {r.fixWhat && <span className="qsl-meta qsl-fixline">Fix: {r.fixWhat}</span>}
                 <span className="qsl-meta">{r.where}{r.who ? ` · ${r.who}` : r.kind === 'case' ? '' : ' · nobody yet'}{r.fromSnag ? ` · seen first on ${r.fromSnag.replace(/^a (?:snag|problem) on /, '')}` : ''}</span>
               </span>
-              <span className="preg-right"><span className={'qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span></span>
+              <span className="preg-right"><span className={'status-pill qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span></span>
             </button>
             {opened.has(r.id) && canEdit && data && r.kind !== 'action' && r.kind !== 'case' && (
               <JobEditor r={r} data={data} job={g.job} lines={lines} busy={busy} onCard={() => onCard(r)} onOpen={() => onOpen(r)} onToLine={onToLine} onDone={() => flip(r.id)} />

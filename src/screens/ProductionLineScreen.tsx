@@ -456,11 +456,11 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
                 <li key={r.id}>
                   <button type="button" className={'pl-row' + (r.late ? ' is-late' : '')} onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}&open=${encodeURIComponent(r.id)}`)}>
                     <span className="pl-row-main">
-                      <span className="qsl-what"><span className={'qsl-prio ' + PRIO_CLASS[r.priority]}>{PRIORITY_WORD[r.priority]}</span>{r.what}</span>
+                      <span className="qsl-what"><span className={'status-pill qsl-prio ' + PRIO_CLASS[r.priority]}>{PRIORITY_WORD[r.priority]}</span>{r.what}</span>
                       <span className="qsl-meta">{[r.machine ?? '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>
                     </span>
                     <span className="preg-right">
-                      <span className={'qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span>
+                      <span className={'status-pill qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span>
                       {r.due && <span className={'qsl-dueword ' + TONE_CLASS[r.dueTone ?? 'n']}>{r.due}</span>}
                     </span>
                   </button>

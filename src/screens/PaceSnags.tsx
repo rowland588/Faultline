@@ -79,7 +79,7 @@ function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding, from }: {
           {from && <span className="ps-snag-from">{from}</span>}
           {asset && <span className="ps-snag-asset">{asset.name}</span>}
           {snag.owner && <span>{snag.owner}</span>}
-          <span className={'ps-snag-status is-' + tone}>
+          <span className={'status-pill ps-snag-status ' + (tone === 'done' ? 'is-g' : tone === 'prog' ? 'is-w' : 'is-r')}>
             {snag.status === 'in_progress' ? 'In progress' : snag.status === 'closed' ? 'Closed' : 'Open'}
           </span>
         </span>
