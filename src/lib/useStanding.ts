@@ -6,7 +6,8 @@
  * same records.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { listStudies, onDataChange } from '../db';
+import { listAllStandards, listStudies, onDataChange } from '../db';
+import type { Standard } from '../tools/linestandard/standard';
 import type { ToolStudy } from './study';
 import { judgedByCriteria } from './programs';
 import { useProject } from './useProjects';
@@ -46,12 +47,13 @@ export function useStanding(projectId: string): StandingState {
   const progs = usePrograms(projectId);
   /* the studies a program's criteria are answered by (lib/programCriteria) — its count says the same as its page */
   const [studies, setStudies] = useState<ToolStudy[] | undefined>(undefined);
+  const [standards, setStandards] = useState<Standard[] | undefined>(undefined);
   /* read only when a program is judged by criteria — every other count needs none */
   const judged = progs.programs.some(judgedByCriteria);
   useEffect(() => {
-    if (!judged) { setStudies(undefined); return undefined; }
+    if (!judged) { setStudies(undefined); setStandards(undefined); return undefined; }
     let on = true;
-    const load = () => void listStudies(projectId).then(s => { if (on) setStudies(s); });
+    const load = () => void Promise.all([listStudies(projectId), listAllStandards()]).then(([s, st]) => { if (on) { setStudies(s); setStandards(st); } });
     load();
     const off = onDataChange(load);
     return () => { on = false; off(); };
@@ -108,12 +110,12 @@ export function useStanding(projectId: string): StandingState {
          has not passed; late what is past its day, failed what failed — two
          words, as the Programs page's tiles say them. */
       programs: (r => (r ? { n: r.open + r.late + r.failed, late: r.late, failed: r.failed, done: r.done + r.baseline } : row('programs', by('programs')?.open ?? 0, by('programs')?.late ?? 0)))(
-        loading ? undefined : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project, ...(studies ? { studies } : {}) })),
+        loading ? undefined : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project, ...(studies ? { studies } : {}), ...(standards ? { standards } : {}) })),
       /* The gates after Install. */
       setup: { ...row('setup', by('setup')?.open ?? 0, by('setup')?.late ?? 0), problem: problems('setup') },
       handover: { ...row('handover', by('handover')?.open ?? 0, by('handover')?.late ?? 0), problem: problems('handover') },
     };
-  }, [answer.rows, loading, tt.tests, tt.items, tt.assets, mats.materials, progs.programs, project, studies]);
+  }, [answer.rows, loading, tt.tests, tt.items, tt.assets, mats.materials, progs.programs, project, studies, standards]);
 
   return { loading, standing: answer, counts, expectedAt, plannedAt };
 }

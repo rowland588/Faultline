@@ -34,6 +34,7 @@ import { programJourney } from './programJourney';
 import { CRITERION_WORD, criteriaOf, criteriaVerdict, passedItLine } from './programCriteria';
 import { judgedByCriteria } from './programs';
 import type { ToolStudy } from './study';
+import type { Standard } from '../tools/linestandard/standard';
 import type { LeanTile, LeanTone } from './lean';
 import { moneyTile } from './stageGateLean';
 import { commissionClosing, commissionTiles } from './stageGatePages';
@@ -123,6 +124,8 @@ export interface CommissioningInput {
   today: string;
   /** The studies a program's criteria are answered by (lib/programCriteria). */
   studies?: readonly ToolStudy[];
+  /** The line standards a Line capacity criterion is read from. */
+  standards?: readonly Standard[];
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -182,7 +185,7 @@ export function commissioningReport(x: CommissioningInput): CommissioningReport 
         counts.booked && `${counts.booked} booked`, counts.noDay && `${counts.noDay} with no day`].filter(Boolean).join(' · ')
       : 'no tests planned';
     const m = { at: hm.at, counts, open: hm.open, programsWrong: pc?.wrong ?? 0 };
-    const journeys = a ? journeysOf(x.programs.filter(p => (p.assetId ?? '') === a.id), x.tests, today, x.studies) : [];
+    const journeys = a ? journeysOf(x.programs.filter(p => (p.assetId ?? '') === a.id), x.tests, today, x.studies, x.standards) : [];
     return {
       name: hm.name, at: hm.at, verdict: verdictOf(m), counts, testsSaid, tests: hm.tests,
       ...(pc ? { programs: programsWords(pc) } : {}), programsWrong: pc?.wrong ?? 0, open: hm.open,
@@ -233,20 +236,20 @@ export function commissioningReport(x: CommissioningInput): CommissioningReport 
     verdict: c.onTarget, says: commission?.says ?? 'No tests planned yet', dates, machinesSaid,
     ...(c.commentary ? { commentary: c.commentary } : {}),
     machines, why, doing, booked, line: h.line, linePrograms: h.linePrograms, runs: commission?.runs ?? [],
-    lineJourneys: journeysOf(x.programs.filter(p => !p.assetId || !assets.some(a => a.id === p.assetId)), x.tests, today, x.studies),
+    lineJourneys: journeysOf(x.programs.filter(p => !p.assetId || !assets.some(a => a.id === p.assetId)), x.tests, today, x.studies, x.standards),
   };
 }
 
 /** Each program's journey, those tested at least once or judged by criteria picked for it (lib/programJourney,
  *  lib/programCriteria). */
-function journeysOf(programs: Program[], tests: Test[], today: string, studies?: readonly ToolStudy[]): CmJourney[] {
+function journeysOf(programs: Program[], tests: Test[], today: string, studies?: readonly ToolStudy[], standards?: readonly Standard[]): CmJourney[] {
   return programs.filter(p => !p.deletedAt).flatMap(p => {
     const j = programJourney(p, tests, today);
     const criteria = judgedByCriteria(p) ? (answers => {
       const v = criteriaVerdict(p, answers);
       return { says: passedItLine(p, answers) ?? [v.words, v.since].filter(Boolean).join(' — '), tone: (v.tone === 'w' ? 'w' : v.tone) as CmTone,
         each: answers.map(a => ({ text: `${CRITERION_WORD[a.word]} — ${a.title}: ${a.says}`, tone: a.tone as CmTone })) };
-    })(criteriaOf(p, studies, tests, today)) : undefined;
+    })(criteriaOf(p, studies, tests, today, { standards })) : undefined;
     return j.attempts.length || criteria ? [{ what: p.what, says: j.says ?? (criteria ? 'not tested — judged by its criteria' : ''), ...(j.best ? { best: j.best } : {}),
       steps: j.attempts.map(s => ({ text: s.text, tone: s.result.tone })), ...(criteria ? { criteria } : {}) }] : [];
   });

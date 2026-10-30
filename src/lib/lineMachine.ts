@@ -22,6 +22,7 @@ import { lineProgramsReading, machineKey, machinesOnLine, programsOnLine, type J
 import type { ProgramLine } from './programsReport';
 import { studyHref } from './studyLinks';
 import { toolLabel } from '../catalogue/registry';
+import type { Standard } from '../tools/linestandard/standard';
 
 /** How far back the stops are counted. */
 export const STOP_DAYS = 28;
@@ -54,6 +55,8 @@ export interface LineMachineInput {
   tests: readonly Test[];
   snags: readonly Snag[];
   studies: readonly ToolStudy[];
+  /** The line standards a program's Line capacity criterion is read from. */
+  standards?: readonly Standard[];
   stops: readonly Observation[];
   now: number;
   /** What each project's floor said of its programs, and the projects' names — the line's Programs page's own
@@ -92,7 +95,7 @@ export function lineMachineView(name: string, i: LineMachineInput): LineMachineV
 
   /* its programs, as the line's Programs page reads them */
   const progs = rec ? programsOnLine(i.ws.id, i.programs, i.jobLines).filter(p => p.assetId === rec.id) : [];
-  const reading = progs.length ? lineProgramsReading([{ name: i.ws.name, id: i.ws.id, machines: [m], programs: progs }], i.today, { tests: i.tests, studies: i.studies, ...(i.floor ? { floor: i.floor } : {}), ...(i.jobNames ? { jobName: i.jobNames } : {}) }) : undefined;
+  const reading = progs.length ? lineProgramsReading([{ name: i.ws.name, id: i.ws.id, machines: [m], programs: progs }], i.today, { tests: i.tests, studies: i.studies, ...(i.standards ? { standards: i.standards } : {}), ...(i.floor ? { floor: i.floor } : {}), ...(i.jobNames ? { jobName: i.jobNames } : {}) }) : undefined;
   const programs = (reading?.lines ?? []).filter(l => !rec || l.assetId === rec.id);
 
   /* the register's problems on it — the line's own, by its name (Snag.targetAsset) */

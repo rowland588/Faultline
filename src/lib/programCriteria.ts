@@ -32,38 +32,61 @@ import type { Test } from './testing';
 import type { ToolStudy } from './study';
 import { balanceStudyFor } from '../tools/linework/balanceLink';
 import type { Standard } from '../tools/linestandard/standard';
+import { capacityVerdict } from '../tools/linebalance/capacity';
+import { newLogStudy } from '../tools/checks/start';
+import type { LogDef } from '../tools/checks/def';
 import { studyLine, studySays, TOOL_NAME, type StudyContext } from './studyLinks';
 import { testChain, testJourney } from './programJourney';
 import { niceDay, todayISO } from './weeks';
 
 /** The tools a criterion can be — each says passed or failed against what is set in it (the 30 October audit,
  *  docs/PROGRAM-GOAL.md: every app tool and mode that ends in a verdict against a stated target or limit, and no other). */
-export const CRITERION_TOOLS = ['capability', 'chart', 'reliability', 'analysis', 'changeover', 'balance'] as const;
+export const CRITERION_TOOLS = ['capability', 'chart', 'reliability', 'analysis', 'changeover', 'balance', 'sampling', 'losses', 'log'] as const;
 export type CriterionTool = typeof CRITERION_TOOLS[number];
 export const isCriterionTool = (t: string): t is CriterionTool => (CRITERION_TOOLS as readonly string[]).includes(t);
 
 /** The ones the picker can make a study of for the program and set up in the tool. A line balance is timed on a product's
- *  line standard, so it is made from one (`criterionBalance`) or picked once timed. */
-export const CRITERION_MADE = ['capability', 'chart', 'reliability', 'analysis', 'changeover'] as const;
+ *  line standard, so it is made from one (`criterionBalance`) or picked once timed; a check log is a line's, made from one of
+ *  the log kinds on the program's line (`criterionLog`). */
+export const CRITERION_MADE = ['capability', 'chart', 'reliability', 'analysis', 'changeover', 'sampling', 'losses'] as const;
 export type CriterionMade = typeof CRITERION_MADE[number];
+
+/** Everything the picker can pick: the tools above, a product's Line capacity (kept on its line standard, not a study) — and
+ *  the run test, which the picker adds. In the order the chips are drawn. */
+export const CRITERION_PICKS = ['capability', 'chart', 'reliability', 'analysis', 'changeover', 'balance', 'capacity', 'sampling', 'losses', 'log'] as const;
+export type CriterionPick = typeof CRITERION_PICKS[number];
 
 /** The picker's words for each tool: its name, and what it judges the program by — the tool's own verdict, said before
  *  anything is made. */
-export const CRITERION_HELP: Record<CriterionTool, { name: string; judges: string; example: string }> = {
+export const CRITERION_HELP: Record<CriterionPick, { name: string; judges: string; example: string }> = {
   capability: { name: 'Capability study', judges: 'readings against the limits agreed (Ppk), a pass-or-fail run, rejects or faults against the share allowed, a rate held for the time', example: 'e.g. Placement weight at 75 ppm' },
   chart: { name: 'Control chart', judges: 'readings in order against limits set from a steady period — in control, or a signal', example: 'e.g. Seal temperature' },
   reliability: { name: 'Reliability study', judges: 'the MTBF measured against the MTBF wanted, for each thing counted', example: 'e.g. Robot faults' },
   analysis: { name: 'Analysis', judges: 'did it move the right way, do two ways of measuring agree, is the gauge fit (Type 1, R&R), do inspectors agree — the other questions give figures only', example: 'e.g. Fill before and after' },
   changeover: { name: 'SMED', judges: 'the changeover timed against the minutes it must come in at — set on the SMED itself', example: 'e.g. Changeover to the 2 kg pack' },
   balance: { name: 'Line balance', judges: 'every person’s work timed within takt, on a product’s line standard', example: 'e.g. Packing, morning' },
+  capacity: { name: 'Line capacity', judges: 'what the line can make, once stops count, against the target typed on the product’s Line capacity — meets it or falls short', example: 'e.g. Maris Piper 2 kg' },
+  sampling: { name: 'Work sampling', judges: 'the share of the time people spend on the work itself against the % wanted, margins counted — set on the study', example: 'e.g. Packers, morning shift' },
+  losses: { name: 'Loss count', judges: 'the minutes a counted shift lost against the most it may lose — set on the count', example: 'e.g. Shift 1 at the packer' },
+  log: { name: 'Check log', judges: 'the latest results of every check on the log all passed — a count typed on the log, not the clock', example: 'e.g. Metal detection, commissioning week' },
 };
 
 /** The analysis questions that end in a verdict against something stated — a direction (better lower or higher), a difference
  *  that does not matter, a tolerance, the %GRR bands, inspectors agreeing. The rest (how sure, how many readings, groups,
  *  tables, relations, learning, shape) give figures: they can be green on the page, but that is not a pass. */
 export const ANALYSIS_JUDGES: readonly string[] = ['change', 'paired', 'gauge', 'grr', 'attr'];
-/** Whether a study of this kind can say passed or failed at all — a figures-only analysis never does. */
-export const canJudge = (s: Pick<ToolStudy, 'tool' | 'agreed'>): boolean => s.tool !== 'analysis' || !s.agreed?.analysis || ANALYSIS_JUDGES.includes(s.agreed.analysis.kind);
+/** Why a study cannot say passed or failed at all, or undefined when it can: a question that gives figures only, or a tool
+ *  whose target is not typed yet (a work share wanted, the most a shift may lose, the results in a row). The page may wear a
+ *  colour — a log that is "up to date" — but that is a standing or a size, not a pass against something stated. */
+export function cannotJudge(s: Pick<ToolStudy, 'tool' | 'agreed'>): string | undefined {
+  if (s.tool === 'analysis' && s.agreed?.analysis && !ANALYSIS_JUDGES.includes(s.agreed.analysis.kind))
+    return 'It gives figures, not a pass or fail — take it off and pick a question that judges (did it change, do two ways agree, is the gauge fit).';
+  if (s.tool === 'sampling' && !s.agreed?.sampling?.workAtLeast) return 'No share is wanted yet — set the work share it must reach on the study, and it can judge.';
+  if (s.tool === 'losses' && s.agreed?.losses?.maxLostMin === undefined) return 'No most is set yet — set the minutes a shift may lose on the count, and it can judge.';
+  if (s.tool === 'log' && !s.agreed?.log?.inARow) return 'No count is set yet — set how many results in a row of every check must pass on the log, and it can judge.';
+  return undefined;
+}
+export const canJudge = (s: Pick<ToolStudy, 'tool' | 'agreed'>): boolean => cannotJudge(s) === undefined;
 
 export type CriterionWord = 'passed' | 'failed' | 'notYet' | 'gone';
 export const CRITERION_WORD: Record<CriterionWord, string> = {
@@ -86,6 +109,8 @@ export interface CriterionAnswer {
   on?: string;
   study?: ToolStudy;
   test?: Test;
+  /** A Line capacity criterion: the line standard its capacity is kept on. */
+  standard?: Standard;
 }
 
 const dayOf = (ms: number | undefined): string | undefined => (ms ? new Date(ms).toISOString().slice(0, 10) : undefined);
@@ -104,7 +129,7 @@ function studyAnswer(c: Criterion, s: ToolStudy | undefined, ctx?: StudyContext,
     : !judges ? 'notYet' : said.tone === 'g' ? 'passed' : said.tone === 'r' ? 'failed' : 'notYet';
   const title = `${TOOL_NAME[s.tool] ?? 'Study'} — ${s.name}`;
   const short = `${s.name}: ${over ? `${over} (overruled)` : said.verdict}`;
-  const figures = !judges && !over ? ' It gives figures, not a pass or fail — take it off and pick a question that judges (did it change, do two ways agree, is the gauge fit).' : '';
+  const figures = !judges && !over ? ` ${cannotJudge(s)}` : '';
   return { c, title, word, tone: TONE[word], says: `${line.text}${figures}`, short, ...(dayOf(s.updatedAt) ? { on: dayOf(s.updatedAt) } : {}), study: s };
 }
 
@@ -127,11 +152,28 @@ function runAnswer(c: Criterion, tests: Test[], today: string): CriterionAnswer 
   return { c, title, word, tone: TONE[word], says, short: passed ? (j.best ?? 'passed') : `run test ${CRITERION_WORD[word].toLowerCase()}`, ...(on ? { on } : {}), test: root };
 }
 
-/** Every criterion picked for a program, in the order picked, with its answer. */
+/** A Line capacity criterion's answer: the capacity kept on a product's line standard, met or missed against the target typed on
+ *  it — by `capacityVerdict`, the sheet's own gap. `known` false: the standards were not read where this is asked. */
+function capacityAnswer(c: Criterion, st: Standard | undefined, known = true): CriterionAnswer {
+  if (!st && !known) return { c, title: 'A Line capacity', word: 'notYet', tone: 'n', says: 'Open the program to read its Line capacity.', short: 'capacity not read here' };
+  if (!st || st.deletedAt) return { c, title: 'A Line capacity', word: 'gone', tone: 'a', says: 'The product’s line standard picked for it has been deleted — take it off or pick another.', short: 'capacity deleted' };
+  const v = capacityVerdict(st.capacity);
+  const word: CriterionWord = v.word === 'meets' ? 'passed' : v.word === 'short' ? 'failed' : 'notYet';
+  return { c, title: `Line capacity — ${st.product || 'a product'}`, word, tone: TONE[word], says: v.text, short: `${st.product || 'Line capacity'}: ${v.verdict}`,
+    ...(dayOf(st.updatedAt) ? { on: dayOf(st.updatedAt) } : {}), standard: st };
+}
+
+/** What a product's Line capacity would answer if it were picked — for a chip that offers it. */
+export const answerOfStandard = (st: Standard): CriterionAnswer => capacityAnswer({ kind: 'capacity', id: st.id }, st);
+
+/** Every criterion picked for a program, in the order picked, with its answer. `ctx.standards` are the line standards a Line
+ *  capacity criterion is read from; left out, such a criterion is not yet known — never gone, never a pass. */
 export function criteriaOf(p: Pick<Program, 'criteria'>, studies: readonly ToolStudy[] | undefined, tests: readonly Test[], today = todayISO(), ctx?: StudyContext): CriterionAnswer[] {
   return (p.criteria ?? []).map(c => c.kind === 'study'
     ? studyAnswer(c, studies?.find(s => s.id === c.id), ctx, !!studies)
-    : runAnswer(c, [...tests], today));
+    : c.kind === 'capacity'
+      ? capacityAnswer(c, ctx?.standards?.find(s => s.id === c.id), !!ctx?.standards)
+      : runAnswer(c, [...tests], today));
 }
 
 export { judgedByCriteria } from './programs';
@@ -298,3 +340,35 @@ export function balancesToPick(p: Pick<Program, 'criteria' | 'projectId' | 'work
 export function standardsToTime(p: Pick<Program, 'projectId' | 'workspaceId'>, standards: readonly Standard[]): Standard[] {
   return standards.filter(s => !s.deletedAt && (p.projectId ? s.projectId === p.projectId : !!p.workspaceId && s.workspaceId === p.workspaceId));
 }
+
+/** A new check log for a program: one of the log kinds, started on the program's line from its starter list, made for the
+ *  program on its machine. Needs a line (a log is a line's); undefined when the program has none. */
+export function criterionLog(p: Pick<Program, 'id' | 'projectId' | 'workspaceId' | 'assetId'>, def: LogDef, x: { id: string; at: number; name: string; machine?: string }): ToolStudy | undefined {
+  if (!p.workspaceId) return undefined;
+  const s = newLogStudy(def, { name: x.name, workspaceId: p.workspaceId, since: x.at, now: x.at, id: () => x.id, ...(p.projectId ? { projectId: p.projectId } : {}), ...(x.machine ? { machine: x.machine } : {}) });
+  return { ...s, programId: p.id, ...(p.assetId && p.projectId ? { assetId: p.assetId } : {}) };
+}
+
+/** The check logs in the program's own place — its project, else its line — not picked yet. */
+export function logsToPick(p: Pick<Program, 'criteria' | 'projectId' | 'workspaceId'>, studies: readonly ToolStudy[]): ToolStudy[] {
+  const picked = new Set((p.criteria ?? []).filter(c => c.kind === 'study').map(c => c.id));
+  return studies.filter(s => !s.deletedAt && s.tool === 'log' && !!s.agreed?.log && !picked.has(s.id)
+    && (p.projectId ? s.projectId === p.projectId : !!p.workspaceId && s.workspaceId === p.workspaceId));
+}
+
+/** The product Line capacities in the program's own place — its project's line standards, else its line's, and those of its
+ *  project's line — with stations on them, not picked yet. */
+export function capacitiesToPick(p: Pick<Program, 'criteria' | 'projectId' | 'workspaceId'>, standards: readonly Standard[]): Standard[] {
+  const picked = new Set((p.criteria ?? []).filter(c => c.kind === 'capacity').map(c => c.id));
+  return standardsToTime(p, standards).filter(s => !picked.has(s.id) && !!s.capacity?.stations.length);
+}
+
+/** The product standards a Line capacity could be started on — in the program's place, with no stations written yet. */
+export function capacitiesToStart(p: Pick<Program, 'criteria' | 'projectId' | 'workspaceId'>, standards: readonly Standard[]): Standard[] {
+  const picked = new Set((p.criteria ?? []).filter(c => c.kind === 'capacity').map(c => c.id));
+  return standardsToTime(p, standards).filter(s => !picked.has(s.id) && !s.capacity?.stations.length);
+}
+
+/** Where a product's Line capacity opens: the standard's own page, on Line capacity. */
+export const capacityHref = (st: Pick<Standard, 'id' | 'projectId' | 'workspaceId'>): string =>
+  st.projectId ? `/project/${st.projectId}/standard/${st.id}?at=balance` : `/w/${st.workspaceId ?? ''}/standards/${st.id}?at=balance`;

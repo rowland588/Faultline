@@ -162,18 +162,54 @@ export function samplingLine(facts: SamplingFacts): string {
 
 /* ---------------------------------------------------------------- the study's words */
 
-export interface SamplingSays { text: string; tone: 'n'; verdict: string }
+export interface SamplingSays { text: string; tone: 'n' | 'g' | 'r'; verdict: string }
+
+/** AGAINST THE WORK SHARE WANTED (30 October, a program's criterion): each person's share of the first activity — the work
+ *  itself — against the % typed on the study, read with the margin their taps allow, never the bare share. `met` when every
+ *  person watched has enough taps and their share, less its margin, is at least the wanted; `missed` as soon as one person's
+ *  share, plus its margin, is under it; otherwise `notYet` — too few taps, or too close to call. Undefined when no share is wanted. */
+export function workAgainst(a: AgreedSampling | undefined, taps: Tap[]): { word: 'met' | 'missed' | 'notYet'; text: string; verdict: string } | undefined {
+  const want = a?.workAtLeast;
+  if (!a || !(want !== undefined && want > 0 && want <= 100)) return undefined;
+  const work = a.activities[0] ?? 'working';
+  const rows = a.who.map(w => {
+    const mine = tapsOf(taps, w), n = mine.length;
+    const sh = shares(mine, a.activities).find(x => x.activity === work);
+    return { w, n, enough: samplingEnough(n) === 'enough', share: (sh?.share ?? 0) * 100, margin: (sh?.margin ?? 0) * 100 };
+  });
+  const p = (x: number) => `${Math.round(x)}%`;
+  const under = rows.filter(r => r.enough && r.share + r.margin < want);
+  if (under.length) {
+    return { word: 'missed', verdict: `Under the ${want}% wanted`,
+      text: `${under.map(r => `${r.w} is ${work} ${p(r.share)} of the time (±${Math.round(r.margin)} points, from ${r.n} taps)`).join('; ')} — under the ${want}% wanted.` };
+  }
+  const early = rows.filter(r => !r.enough);
+  if (!rows.length || early.length) {
+    return { word: 'notYet', verdict: `Not yet against ${want}%`,
+      text: `${work} at least ${want}% is the target — ${early.length ? `${early.map(r => r.w).join(', ')} ${early.length === 1 ? 'has' : 'have'} too few taps yet (${TOO_FEW_TAPS} needed before a share is said)` : 'nobody is watched yet'}.` };
+  }
+  const close = rows.filter(r => r.share - r.margin < want);
+  if (close.length) {
+    return { word: 'notYet', verdict: `Too close to call against ${want}%`,
+      text: `${close.map(r => `${r.w} ${work} ${p(r.share)} (±${Math.round(r.margin)} points)`).join('; ')} — too close to ${want}% to say; more taps narrow it.` };
+  }
+  return { word: 'met', verdict: `${work} at least ${want}%`,
+    text: `${rows.map(r => `${r.w} ${work} ${p(r.share)} (±${Math.round(r.margin)})`).join(', ')} — every person at least the ${want}% wanted, margins counted.` };
+}
 
 /** What a sampling study says: each person's reading, and one word or two for
- *  a list — never a score. Grey throughout: the shares are the facts, and
- *  what is too much waiting is the team's to say on its fishbone. */
+ *  a list — never a score. Grey throughout unless a work share is wanted
+ *  (AgreedSampling.workAtLeast): then the verdict against it, margins counted.
+ *  What is too much waiting is otherwise the team's to say on its fishbone. */
 export function samplingSays(a: AgreedSampling | undefined, taps: Tap[]): SamplingSays {
   if (!a) return { text: 'Say who is watched and the shift, then answer each moment as it comes.', tone: 'n', verdict: 'Not set up' };
   const n = tapsOf(taps).length;
-  if (!n) return { text: `${a.who.length} ${a.who.length === 1 ? 'person' : 'people'} watched, ${a.prompts.length} moments in the shift — no taps yet.`, tone: 'n', verdict: 'No taps yet' };
+  const vs = workAgainst(a, taps);
+  if (!n) return { text: `${a.who.length} ${a.who.length === 1 ? 'person' : 'people'} watched, ${a.prompts.length} moments in the shift — no taps yet.`, tone: 'n', verdict: vs ? vs.verdict : 'No taps yet' };
   const facts = { activities: a.activities, marginPts: a.marginPts, taps };
   const text = a.who.map(w => samplingReading(facts, w)).join('. ') + '.';
   const early = a.who.some(w => samplingEnough(tapsOf(taps, w).length) !== 'enough');
+  if (vs) return { text: `${text} ${vs.text}`, tone: vs.word === 'met' ? 'g' : vs.word === 'missed' ? 'r' : 'n', verdict: vs.verdict };
   return { text, tone: 'n', verdict: early ? `Too early — ${n} tap${n === 1 ? '' : 's'}` : `From ${n} taps` };
 }
 

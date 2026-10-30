@@ -24,6 +24,7 @@ import type { Program } from './programs';
 import { inOrder, productsOf, isProved, standingOf, todayISO } from './programs';
 import { programsReading, proofOf, readingOf, type ProgramLine, type ProgramsReading } from './programsReport';
 import type { ToolStudy } from './study';
+import type { Standard } from '../tools/linestandard/standard';
 
 /** Just enough of a job's line (db PaceLineRow) to know its factory line. */
 export interface JobLine { id: string; projectId?: string; workspaceId?: string; deletedAt?: number }
@@ -198,6 +199,8 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
      *  #21). Without the tests, a program naming one says "Proved by its
      *  test in Commission". */
     tests?: readonly Test[]; studies?: readonly ToolStudy[];
+    /** The line standards a program's Line capacity criterion is read from (lib/programCriteria). */
+    standards?: readonly Standard[];
     /** THE PROJECTS' PROGRAMS THAT ARE ONLY A LINE ON A MACHINE'S *Programs loaded* (Rowland, 23 October: "programs on
      *  the line in my factory, it's like you don't have any programs"): by line, each as its project's reading says it,
      *  with the machine's name — put under that machine of the line, else the line itself, and counted. */
@@ -221,6 +224,7 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
      and the machine's "Its programs" list every attempt, criteria answers and how it was proved — without moving the
      headline. */
   const r0 = programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}),
+    ...(o.standards ? { standards: o.standards } : {}),
     ...(o.tests ? { judged: { tests: o.tests, ...(o.studies ? { studies: o.studies } : {}) } } : {}) });
   const extra = lines.flatMap(l => (o.stageOnly?.get(l.id) ?? []).map(x => {
     const own = l.machines.find(m => m.record && machineKey(m.name) === machineKey(x.machine));
@@ -244,7 +248,7 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
     const p = l.programId ? byId.get(l.programId) : undefined;
     const f = l.programId ? o.floor?.get(l.programId) : undefined;
     const job = p ? o.jobName?.get(p.projectId) : undefined;
-    const proof = p ? proofOf(p, o.tests, o.studies) : undefined;
+    const proof = p ? proofOf(p, o.tests, o.studies, o.standards) : undefined;
     /* THE FLOOR'S STATUS COUNTS HERE AS IT DOES ON ITS JOB (walkthrough, 25
        October: Program 9 failed on Line 2 A's Set up — the job's status report
        said "1 failed", the factory's programs report over the same programs
@@ -273,7 +277,7 @@ export function jobLinePrograms(projectId: string, all: readonly Workspace[], ma
 /** Each of those lines read as its own Programs page reads it — a line with
  *  no programs of its own has none. `tests`: the tests on any job that prove
  *  a program (a line's proved on another job says its test). */
-export function jobLineReadings(lines: readonly JobLinePrograms[], today: string, o: { tests?: readonly Test[]; studies?: readonly ToolStudy[] } = {}): { line: string; reading: ProgramsReading }[] {
+export function jobLineReadings(lines: readonly JobLinePrograms[], today: string, o: { tests?: readonly Test[]; studies?: readonly ToolStudy[]; standards?: readonly Standard[] } = {}): { line: string; reading: ProgramsReading }[] {
   return lines.flatMap(l => {
     const r = l.programs.length ? lineProgramsReading([l], today, o) : undefined;
     return r ? [{ line: l.name, reading: r }] : [];

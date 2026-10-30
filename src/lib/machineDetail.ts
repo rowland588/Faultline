@@ -108,7 +108,7 @@ export function machineDetailPaper(i: DetailInput): MachinePaper {
     const asset = assets.find(a => a.id === i.project?.assetId);
     if (asset) {
       const m = machineRecord(asset, { tests, items, programs: gate.programs, today: i.today });
-      const reading = programsReading({ tests, items, assets, programs: gate.programs, today: i.today, holder: gate.project, studies: gate.studies ?? [] });
+      const reading = programsReading({ tests, items, assets, programs: gate.programs, today: i.today, holder: gate.project, studies: gate.studies ?? [], ...(gate.standards ? { standards: gate.standards } : {}) });
       const progs = (reading?.lines ?? []).filter(l => l.assetId === asset.id);
       const handed = m.at.startsWith('Handed over');
       status = handed ? 'Handed over' : ASSET_STATE_WORD[assetStateOf(asset)];

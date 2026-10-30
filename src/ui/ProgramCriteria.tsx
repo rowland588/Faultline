@@ -19,11 +19,14 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Program } from '../lib/programs';
 import type { Test } from '../lib/testing';
 import type { ToolStudy } from '../lib/study';
-import { CRITERION_HELP, answerOfStudy, CRITERION_TOOLS, CRITERION_WORD, balancesToPick, cannotSignOff, criteriaOf, criteriaVerdict, criterionBalance, criterionStudy, proofStudiesToPick, standardsToTime, signedOff, signersOf, studiesToPick, unpickedStudyChoices, unsigned, withAllProofStudies, withCriterion, withoutCriterion, type CriterionTool } from '../lib/programCriteria';
+import { CRITERION_HELP, CRITERION_MADE, CRITERION_PICKS, CRITERION_WORD, answerOfStandard, answerOfStudy, balancesToPick, cannotSignOff, capacitiesToPick, capacitiesToStart, capacityHref, criteriaOf, criteriaVerdict, criterionBalance, criterionLog, criterionStudy, logsToPick, proofStudiesToPick, standardsToTime, signedOff, signersOf, studiesToPick, unpickedStudyChoices, unsigned, withAllProofStudies, withCriterion, withoutCriterion, type CriterionMade, type CriterionPick } from '../lib/programCriteria';
 import { TOOL_NAME, studyHref } from '../lib/studyLinks';
 import { attemptsOf, testJourney } from '../lib/programJourney';
-import { listAllStandards, listAllStudies, onDataChange, putProgram, putStudy } from '../db';
+import { allPaceLines, listAllStudies, onDataChange, putProgram, putStudy } from '../db';
+import { lineOfProgram } from '../lib/lineRecords';
 import type { Standard } from '../tools/linestandard/standard';
+import { useAllStandards } from '../lib/useAllStandards';
+import { LOG_DEFS } from '../tools/checks/registry';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { now, uid } from '../lib/ids';
@@ -40,9 +43,15 @@ let shared: ToolStudy[] | undefined;
 const listeners = new Set<(s: ToolStudy[]) => void>();
 let offShared: (() => void) | undefined;
 let reading: Promise<void> | undefined;
-const readShared = (): Promise<void> => (reading ??= listAllStudies()
-  .then(s => { shared = s; for (const f of listeners) f(s); })
-  .finally(() => { reading = undefined; }));
+/* a write that lands while a read is under way is read again once it ends — else the page keeps what was true before it */
+let dirty = false;
+const readShared = (): Promise<void> => {
+  if (reading) { dirty = true; return reading; }
+  reading = listAllStudies()
+    .then(s => { shared = s; for (const f of listeners) f(s); })
+    .finally(() => { reading = undefined; if (dirty) { dirty = false; void readShared(); } });
+  return reading;
+};
 function useProgramStudies(on: boolean): ToolStudy[] | undefined {
   const [list, setList] = useState<ToolStudy[] | undefined>(shared);
   useEffect(() => {
@@ -61,8 +70,10 @@ function useProgramStudies(on: boolean): ToolStudy[] | undefined {
 
 /** a tool's name in a sentence: "a control chart", "a SMED" */
 const lc = (n: string): string => (n === n.toUpperCase() ? n : n.toLowerCase());
-type Pick = CriterionTool | 'run';
-const PICK_NAME: Record<Pick, string> = { ...Object.fromEntries(CRITERION_TOOLS.map(t => [t, CRITERION_HELP[t].name])) as Record<CriterionTool, string>, run: 'Run test' };
+type Pick = CriterionPick | 'run';
+const PICK_NAME: Record<Pick, string> = { ...Object.fromEntries(CRITERION_PICKS.map(t => [t, CRITERION_HELP[t].name])) as Record<CriterionPick, string>, run: 'Run test' };
+/** the tools whose study the picker makes and sets up in the tool */
+const isMade = (t: Pick): t is CriterionMade => (CRITERION_MADE as readonly string[]).includes(t);
 
 export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun, detail = true, onShowAll }: {
   /** The program — or, for a line on a machine's programs stage with no record yet, none (`ensure` makes it). */
@@ -95,26 +106,29 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   /** When work already exists on its tests, start on that list — not "Set it up now" (program 5, 28 October). */
   const [newStudy, setNewStudy] = useState(false);
   const [signing, setSigning] = useState(false);
-  /* the line standards a balance could be timed on — read only while a line balance is being picked */
-  const [standards, setStandards] = useState<Standard[]>([]);
+  /* the kind of check log being started, and the line it is started on: the program's own, else its job's only line */
+  const [logKey, setLogKey] = useState('');
+  const [lineOfIt, setLineOfIt] = useState<string | undefined>(undefined);
   const [by, setBy] = useState('');
   const [day, setDay] = useState(today);
 
   const p = program;
   const mine = useMemo(() => (p ? attemptsOf(p, [...tests]) : []), [p, tests]);
   const testIds = useMemo(() => mine.map(t => t.id), [mine]);
-  const answers = useMemo(() => (p ? criteriaOf(p, studies, tests, today) : []), [p, studies, tests, today]);
+  /* the line standards a Line capacity is kept on (and a balance timed on) — read where criteria are */
+  const standards = useAllStandards(!!program && (edit || !!program.criteria?.length || !!program.signedOff || adding));
+  const answers = useMemo(() => (p ? criteriaOf(p, studies, tests, today, { standards }) : []), [p, studies, tests, today, standards]);
   const v = p ? criteriaVerdict(p, answers) : undefined;
   const provable = useMemo(() => (p && studies ? proofStudiesToPick(p, studies, testIds) : []), [p, studies, testIds]);
   const unpicked = useMemo(() => (p && studies ? unpickedStudyChoices(p, studies, testIds) : []), [p, studies, testIds]);
   const passedUnpicked = unpicked.filter(a => a.word === 'passed').length;
   const showDetail = detail || expanded || adding || signing;
   useEffect(() => {
-    if (!adding || tool !== 'balance') return undefined;
-    const load = () => void listAllStandards().then(setStandards).catch(() => {});
-    load();
-    return onDataChange(load);
-  }, [adding, tool]);
+    if (!adding || tool !== 'log' || !p || p.workspaceId) return undefined;
+    let on = true;
+    void allPaceLines().then(jl => { if (on) setLineOfIt(lineOfProgram(p, jl)); }).catch(() => {});
+    return () => { on = false; };
+  }, [adding, tool, p]);
   if (!p?.criteria?.length && !p?.signedOff && !edit) return null;
 
   const runRoots = mine.filter(t => !t.fromTestId || !mine.some(x => x.id === t.fromTestId))
@@ -128,7 +142,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   const record = async (): Promise<Program | undefined> => p ?? await ensure?.();
   /* A NEW STUDY FOR IT, in the tool picked — set up in the tool (open: there now) */
   const addStudy = async (open: boolean) => {
-    if (tool === 'run' || tool === 'balance') return;
+    if (!isMade(tool)) return;
     const cur = await record();
     if (!cur) return;
     const n = (cur.criteria ?? []).filter(c => c.kind === 'study').length;
@@ -153,6 +167,27 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
     setAdding(false); setNewStudy(false);
     nav(studyHref(s));
   };
+  /* A PRODUCT'S LINE CAPACITY is kept on its line standard: picked once written, or started on a product with none — opened there */
+  const pickCapacity = async (std: Standard, open: boolean) => {
+    const cur = await record();
+    if (!cur) return;
+    await putProgram(withCriterion(cur, { kind: 'capacity', id: std.id }));
+    setAdding(false); setNewStudy(false);
+    if (open) nav(capacityHref(std));
+  };
+  /* A CHECK LOG for it: one of the kinds, started on the program's line from its starter list */
+  const lineId = p?.workspaceId ?? lineOfIt;
+  const addLog = async (open: boolean) => {
+    const def = LOG_DEFS.find(d => d.key === (logKey || LOG_DEFS[0]?.key));
+    const cur = await record();
+    if (!def || !cur) return;
+    const s = criterionLog({ ...cur, ...(lineId ? { workspaceId: lineId } : {}) }, def, { id: uid(), at: now(), name: name.trim() || `${cur.what} — ${def.title.toLowerCase()}`, ...(machine ? { machine } : {}) });
+    if (!s) return;
+    await putStudy(s);
+    await putProgram(withCriterion(cur, { kind: 'study', id: s.id }));
+    setName(''); setAdding(false); setNewStudy(false);
+    if (open) nav(studyHref(s));
+  };
   const pickRun = async (id?: string) => {
     const cur = await record();
     if (!cur) return;
@@ -164,7 +199,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   const off = (i: number) => {
     if (!p) return;
     const a = answers[i];
-    void save(withoutCriterion(p, a.c), `${a.title} — taken off ${p.what}’s criteria (the ${a.c.kind === 'study' ? 'study' : 'test'} is kept)`, p);
+    void save(withoutCriterion(p, a.c), `${a.title} — taken off ${p.what}’s criteria (the ${a.c.kind === 'study' ? 'study' : a.c.kind === 'capacity' ? 'Line capacity' : 'test'} is kept)`, p);
   };
   const signers = signersOf(by);
   const refused = p ? cannotSignOff(p, answers, signers, day) : 'No program.';
@@ -250,7 +285,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
                   <button type="button" className="btn btn-sm" onClick={() => setRenaming(null)}>Cancel</button>
                 </span>
               ) : (
-                <button type="button" className="pgc-open" onClick={() => { if (a.study) nav(studyHref(a.study)); else if (a.test) openRecord(a.test.projectId, a.test.id); }}>
+                <button type="button" className="pgc-open" onClick={() => { if (a.study) nav(studyHref(a.study)); else if (a.standard) nav(capacityHref(a.standard)); else if (a.test) openRecord(a.test.projectId, a.test.id); }}>
                   <span className="pgc-t">{a.title}</span>
                   <span className={'status-pill is-' + a.tone}>{CRITERION_WORD[a.word]}</span>
                   <span className="pgc-says">{a.says}</span>
@@ -292,11 +327,11 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
       {edit && adding && (
         <div className="pgc-panel" role="group" aria-label={`Add a criterion to ${p?.what ?? 'the program'}`}>
           <span className="spp-pick" role="radiogroup" aria-label="Which tool">
-            {([...CRITERION_TOOLS, 'run'] as Pick[]).map(k => (
+            {([...CRITERION_PICKS, 'run'] as Pick[]).map(k => (
               <button key={k} type="button" role="radio" aria-checked={tool === k} className={'chip' + (tool === k ? ' on' : '')} onClick={() => setTool(k)}>{PICK_NAME[k]}</button>
             ))}
           </span>
-          {tool !== 'run' && tool !== 'balance' && <small className="sub pgc-judges">{CRITERION_HELP[tool].name} judges: {CRITERION_HELP[tool].judges}.</small>}
+          {isMade(tool) && <small className="sub pgc-judges">{CRITERION_HELP[tool].name} judges: {CRITERION_HELP[tool].judges}.</small>}
           {tool === 'balance' ? (
             <>
               <small className="sub pgc-judges">{CRITERION_HELP.balance.name} judges: {CRITERION_HELP.balance.judges}. Each person’s work is timed on the product’s line standard (the map’s people are its elements, the takt Line capacity’s target) — time it there, or pick one already timed.</small>
@@ -304,7 +339,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
                 /* timed in its place, or lined up on one of its tests — each once */
                 const lined = unpicked.flatMap(a => (a.study?.tool === 'balance' ? [a.study] : []));
                 const timed = p && studies ? [...balancesToPick(p, studies), ...lined.filter(l => !balancesToPick(p, studies).some(b => b.id === l.id))] : [];
-                const onStd = p ? standardsToTime(p, standards) : [];
+                const onStd = p ? standardsToTime(p, standards ?? []) : [];
                 return (
                   <>
                     {timed.length > 0 && (
@@ -321,6 +356,66 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
                     ) : (
                       !timed.length && <small className="sub">No line standard on {p?.projectId ? 'its project' : 'its line'} yet — make one (Line standard, the people and where they stand) and time their work there.</small>
                     )}
+                  </>
+                );
+              })()}
+            </>
+          ) : tool === 'capacity' ? (
+            <>
+              <small className="sub pgc-judges">{CRITERION_HELP.capacity.name} judges: {CRITERION_HELP.capacity.judges}. It is kept on the product’s line standard, where its stations and its target are written — meets the target is Passed, short of it Didn’t pass, no target or no stations Not yet.</small>
+              {(() => {
+                const have = p ? capacitiesToPick(p, standards ?? []) : [];
+                const none = p ? capacitiesToStart(p, standards ?? []) : [];
+                return (
+                  <>
+                    {have.length > 0 && (
+                      <span className="pgc-pick" aria-label="Line capacities already written here">
+                        <span className="sub">Pick one already written:</span>
+                        {have.map(st => <button key={st.id} type="button" className="chip" onClick={() => void pickCapacity(st, false)}>{st.product || 'A product'} · {CRITERION_WORD[answerOfStandard(st).word]}</button>)}
+                      </span>
+                    )}
+                    {none.length > 0 && (
+                      <span className="pgc-pick" aria-label="Start a Line capacity on a product">
+                        <span className="sub">Or start one on:</span>
+                        {none.map(st => <button key={st.id} type="button" className="chip" onClick={() => void pickCapacity(st, true)}>{st.product || 'A product'}</button>)}
+                      </span>
+                    )}
+                    {!have.length && !none.length && <small className="sub">No product line standard on {p?.projectId ? 'its project' : 'its line'} to keep a Line capacity on — make one (Line standard) and write its stations there.</small>}
+                  </>
+                );
+              })()}
+            </>
+          ) : tool === 'log' ? (
+            <>
+              <small className="sub pgc-judges">{CRITERION_HELP.log.name} judges: {CRITERION_HELP.log.judges}. Set how many results in a row of every check must pass on the log itself — the clock never judges it.</small>
+              {(() => {
+                const have = p && studies ? logsToPick(p, studies) : [];
+                return (
+                  <>
+                    {have.length > 0 && (
+                      <span className="pgc-pick" aria-label="Check logs already on this program’s place">
+                        <span className="sub">Pick one already started:</span>
+                        {have.map(s => <button key={s.id} type="button" className="chip" onClick={() => void pickStudy(s)}>{s.name} · {CRITERION_WORD[answerOfStudy(s).word]}</button>)}
+                      </span>
+                    )}
+                    {lineId ? (
+                      <>
+                        <label className="ptx-f">
+                          <span className="field-label">Or start one — which kind of check</span>
+                          <select className="text-input" value={logKey || LOG_DEFS[0]?.key || ''} aria-label="Which check log" onChange={e => setLogKey(e.target.value)}>
+                            {LOG_DEFS.map(d => <option key={d.key} value={d.key}>{d.title}</option>)}
+                          </select>
+                        </label>
+                        <label className="ptx-f">
+                          <span className="field-label">Name it — what it judges</span>
+                          <input className="text-input" value={name} maxLength={120} aria-label="Name the check log" placeholder={CRITERION_HELP.log.example} onChange={e => setName(e.target.value)} />
+                        </label>
+                        <span className="pgc-go">
+                          <button type="button" className="btn btn-primary btn-sm" onClick={() => void addLog(true)}>Set it up now</button>
+                          <button type="button" className="btn btn-sm" onClick={() => void addLog(false)}>Add it, set up later</button>
+                        </span>
+                      </>
+                    ) : !have.length && <small className="sub">This program is on no line yet, and a check log is a line’s — put the program on a line, or start the log from the line’s Logs and pick it here.</small>}
                   </>
                 );
               })()}

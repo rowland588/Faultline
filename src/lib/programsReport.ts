@@ -25,6 +25,7 @@ import { partStatus, partsOf, resultNow, resultWords } from './noted';
 import { niceDay, todayISO } from './weeks';
 import { answerOf, type AnswerHolder } from './install';
 import type { ToolStudy } from './study';
+import type { Standard } from '../tools/linestandard/standard';
 import { TOOL_NAME, linkedTo, studyLine } from './studyLinks';
 import { programJourney } from './programJourney';
 import { CRITERION_WORD, criteriaOf, criteriaVerdict, passedItLine } from './programCriteria';
@@ -138,10 +139,10 @@ export const studyWords = (s: Pick<ToolStudy, 'tool' | 'name'>): string =>
  *  `tests` — the tests that could have proved it, when they are known; a
  *  paper that cannot see them says "Proved by its test in Commission" when the
  *  program names one. */
-export function proofOf(p: Program, tests: readonly Test[] | undefined, studies: readonly ToolStudy[] = []): Proof | undefined {
+export function proofOf(p: Program, tests: readonly Test[] | undefined, studies: readonly ToolStudy[] = [], standards?: readonly Standard[]): Proof | undefined {
   if (!isProved(p)) return undefined;
   /* SIGNED OFF — PASSED, by the names who accepted it, with what passed it (lib/programCriteria) */
-  if (p.signedOff) return { word: passedItLine(p, criteriaOf(p, studies, tests ?? [])) ?? 'Signed off — passed', tone: 'g' };
+  if (p.signedOff) return { word: passedItLine(p, criteriaOf(p, studies, tests ?? [], undefined, { standards })) ?? 'Signed off — passed', tone: 'g' };
   /* THE TEST THAT PROVED IT — not the latest attempt: a later test at a
      higher speed that did not pass leaves this proof standing
      (lib/programJourney). */
@@ -188,12 +189,12 @@ export const floorFailedOn = (p: Pick<Program, 'what' | 'assetId'>, tests: Test[
 
 /** A Program record in words — the same reading the stage drawer gives it
  *  (ui/ProgramLink). `failedOn`: the newest day the floor failed it. */
-function programWords(p: Program, tests: Test[], today: string, failedOn?: string, studies?: readonly ToolStudy[]): Pick<ProgramLine, 'word' | 'tone' | 'bucket'> {
+function programWords(p: Program, tests: Test[], today: string, failedOn?: string, studies?: readonly ToolStudy[], standards?: readonly Standard[]): Pick<ProgramLine, 'word' | 'tone' | 'bucket'> {
   if (p.signedOff && isProved(p)) return { word: `signed off — passed ${niceDay(p.signedOff.on)}`, tone: 'g', bucket: 'done' };
   if (isProved(p)) return { word: `proved${p.provedOn ? ` ${niceDay(p.provedOn)}` : ''}`, tone: 'g', bucket: 'done' };
   /* JUDGED BY ITS CRITERIA: where they stand together is its word — a test is one criterion's answer */
   if (judgedByCriteria(p)) {
-    const v = criteriaVerdict(p, criteriaOf(p, studies, tests, today));
+    const v = criteriaVerdict(p, criteriaOf(p, studies, tests, today, { standards }));
     const word = v.ready ? v.words.replace(/^Ready/, 'ready') : `${STATE_WORD[stateOf(p)].toLowerCase()} · ${v.words}`;
     return { word, tone: (v.tone === 'w' ? 'w' : v.tone) as ProgTone, bucket: v.failed ? 'failed' : 'open' };
   }
@@ -221,9 +222,9 @@ function programWords(p: Program, tests: Test[], today: string, failedOn?: strin
 }
 
 /** A program's criteria for its line — nothing when none are picked. */
-export function criteriaLine(p: Program, tests: Test[], studies: readonly ToolStudy[] | undefined, today: string): Pick<ProgramLine, 'criteria'> {
+export function criteriaLine(p: Program, tests: Test[], studies: readonly ToolStudy[] | undefined, today: string, standards?: readonly Standard[]): Pick<ProgramLine, 'criteria'> {
   if (!judgedByCriteria(p)) return {};
-  const answers = criteriaOf(p, studies ?? [], tests, today);
+  const answers = criteriaOf(p, studies ?? [], tests, today, { standards });
   const v = criteriaVerdict(p, answers);
   return { criteria: { says: [v.words, v.since].filter(Boolean).join(' — '), tone: (v.tone === 'w' ? 'w' : v.tone) as ProgTone,
     each: answers.map(a => ({ title: a.title, word: CRITERION_WORD[a.word], tone: a.tone as ProgTone, says: a.says })) } };
@@ -274,6 +275,9 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
   /** The studies that could show a program proved (ToolStudy.programId) — how
    *  each proved one was proved (proofOf). */
   studies?: readonly ToolStudy[];
+  /** The line standards a program's Line capacity criterion is read from (lib/programCriteria). Left out where they were not
+   *  read: such a criterion is then "not yet", never a pass. */
+  standards?: readonly Standard[];
   /** What a program's criteria are judged on, where the reading itself is made without the tests (a line's reading,
    *  lib/lineRecords) — every test and study naming the program. Defaults to the reading's own. */
   judged?: { tests: readonly Test[]; studies?: readonly ToolStudy[] } }): ProgramsReading | undefined {
@@ -311,7 +315,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
         /* Proved in Commission leads — unless the floor said something about
            it since, which is the newer fact (a pass that later failed). */
         const provedFirst = !!p && isProved(p) && !(now && p.provedOn && now.on > p.provedOn);
-        const proved = p && provedFirst ? programWords(p, tOf(p), today, undefined, sOf(p)) : undefined;
+        const proved = p && provedFirst ? programWords(p, tOf(p), today, undefined, sOf(p), x.standards) : undefined;
         /* THE FLOOR SAID NOTHING, THE PROGRAM WAS TESTED (Rowland, 26 October: "program 5 says to do — I just did
            it"): the line's headline was the part's "to do" while its own test sat under it as a small note. When the
            floor has said no status and the program has tests, the TEST is the headline — passed, didn't pass,
@@ -320,7 +324,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
            run test wrote with it is one criterion's word at most, and is said beside it */
         const judged = !!p && !provedFirst && judgedByCriteria(p);
         const own = p && !provedFirst && (judged || (!now && !part.doneAt && programJourney(p, tOf(p), today).attempts.length))
-          ? programWords(p, tOf(p), today, floorFailedOn(p, tests, x.items, x.holder), sOf(p)) : undefined;
+          ? programWords(p, tOf(p), today, floorFailedOn(p, tests, x.items, x.holder), sOf(p), x.standards) : undefined;
         const earlier = (part.results ?? []).filter(r => r !== now).reverse()
           .map(r => `${resultWords(r)}${r.note ? ` — ${r.note}` : ''}`);
         const run = programRunSays(runsOfProgram(part, m || undefined, runTests, [...productsOf(p?.runs), p?.what ?? '']));
@@ -333,14 +337,14 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
              and what was seen stay beside it. */
           ...(proved ? { word: proved.word, tone: proved.tone, bucket: proved.bucket, ...(said.note ? { note: said.note } : {}) }
             : own ? { word: own.word, tone: own.tone, bucket: own.bucket, ...(said.note ? { note: said.note } : {}) } : said),
-          ...(p && proved ? (pf => (pf ? { proof: pf } : {}))(proofOf(p, tDetail(p), sDetail(p))) : {}),
+          ...(p && proved ? (pf => (pf ? { proof: pf } : {}))(proofOf(p, tDetail(p), sDetail(p), x.standards)) : {}),
           earlier,
           ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tDetail(p), sDetail(p), today)),
           ...((proved || judged) && now ? { proving: `on the floor: ${said.word}` } : {}),
           /* THE FLOOR'S STATUS LEADS: the program record's own state beside
              it, so the line's answer is on the job's row too (flow audit #3). */
-          ...(p && !proved && !own ? (r => ({ record: { word: r.word, tone: r.tone }, proving: `On the line: ${r.word}` }))(programWords(p, tOf(p), today, floorFailedOn(p, tests, x.items, x.holder), sOf(p))) : {}),
-          ...(p ? criteriaLine(p, tDetail(p), sDetail(p), today) : {}),
+          ...(p && !proved && !own ? (r => ({ record: { word: r.word, tone: r.tone }, proving: `On the line: ${r.word}` }))(programWords(p, tOf(p), today, floorFailedOn(p, tests, x.items, x.holder), sOf(p), x.standards)) : {}),
+          ...(p ? criteriaLine(p, tDetail(p), sDetail(p), today, x.standards) : {}),
         });
       }
     }
@@ -349,10 +353,10 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
       group.push({
         ...(run ? { run: run.word, runTone: run.tone } : {}),
         machine, programId: p.id, ...(m ? { assetId: m } : {}), what: p.what.trim(), ...(p.runs ? { runs: p.runs } : {}), ...(p.from ? { who: p.from } : {}),
-        ...programWords(p, tOf(p), today, undefined, sOf(p)), ...(p.note?.trim() ? { note: p.note.trim() } : {}), earlier: [],
-        ...criteriaLine(p, tDetail(p), sDetail(p), today),
+        ...programWords(p, tOf(p), today, undefined, sOf(p), x.standards), ...(p.note?.trim() ? { note: p.note.trim() } : {}), earlier: [],
+        ...criteriaLine(p, tDetail(p), sDetail(p), today, x.standards),
         ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tDetail(p), sDetail(p), today)),
-        ...(pf => (pf ? { proof: pf } : {}))(proofOf(p, tDetail(p), sDetail(p))),
+        ...(pf => (pf ? { proof: pf } : {}))(proofOf(p, tDetail(p), sDetail(p), x.standards)),
       });
     }
     if (group.length) machines.push({ name: machine, lines: group });

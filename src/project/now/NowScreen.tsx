@@ -94,7 +94,7 @@ export function NowBody({ projectId }: { projectId: string }) {
       ...(g.project.expectedAt ? { expectedAt: g.project.expectedAt } : {}), ...(g.project.plannedAt ? { plannedAt: g.project.plannedAt } : {}), today });
     const onTarget = stageGateOnTarget({ project: g.project, tests, items, assets, materials: g.materials, programs: g.programs, today }, st);
     const figures = jobFiguresOf(st, g.project, tests, items, assets, linesDay(factory.lines), assigned, today);
-    const reading = programsReading({ tests, items, assets, programs: g.programs, today, holder: g.project, studies: read.studies });
+    const reading = programsReading({ tests, items, assets, programs: g.programs, today, holder: g.project, studies: read.studies, ...(g.standards ? { standards: g.standards } : {}) });
     const rows = projectActions(read.owed, read.register, projectId, today);
     const machines = machinesOf(assets, tests, items, g.programs, reading, read.owed, today);
     const block = blockers(rows);

@@ -227,21 +227,21 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const report = useMemo(() => (ready && project ? clientReport({
     project, projects, assets: tt.assets, tests: tt.tests, items: tt.items,
     materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], studies, studyContext, paceLines: pl.lines, workspaces, today: todayISO(),
-    proofStudies: rec.studies, provingTests: rec.provingTests, ...lineFacts, ...(week ? { week } : {}),
-  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies, studyContext, pl.lines, workspaces, rec.studies, rec.provingTests, lineFacts, week]);
+    proofStudies: rec.studies, proofStandards: rec.standards, provingTests: rec.provingTests, ...lineFacts, ...(week ? { week } : {}),
+  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies, studyContext, pl.lines, workspaces, rec.studies, rec.standards, rec.provingTests, lineFacts, week]);
 
   const handover = useMemo(() => (ready && project ? handoverReport({
     project, assets: tt.assets, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, studies, today: todayISO(),
-    proofStudies: rec.studies, provingTests: rec.provingTests, ...lineFacts,
-  }) : null), [ready, project, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, studies, rec.studies, rec.provingTests, lineFacts]);
+    proofStudies: rec.studies, proofStandards: rec.standards, provingTests: rec.provingTests, ...lineFacts,
+  }) : null), [ready, project, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, studies, rec.studies, rec.standards, rec.provingTests, lineFacts]);
 
   /* THE COMMISSIONING REPORT — the client report's reading of Commission,
      the handover reading's machines, and the programs the board counts:
      the job's and each line's this job has a test for (lib/commissionPrograms). */
   const commissioning = useMemo(() => (report && handover ? commissioningReport({
-    client: report, handover, assets: tt.assets, tests: tt.tests, today: todayISO(), studies: rec.studies,
+    client: report, handover, assets: tt.assets, tests: tt.tests, today: todayISO(), studies: rec.studies, standards: rec.standards,
     programs: boardPrograms({ jobPrograms: progs.programs, lines: lineFacts.linePrograms, assets: tt.assets, tests: tt.tests, items: tt.items, holder: project ?? undefined, projectId }),
-  }) : null), [report, handover, tt.assets, tt.tests, tt.items, progs.programs, lineFacts.linePrograms, project, projectId, rec.studies]);
+  }) : null), [report, handover, tt.assets, tt.tests, tt.items, progs.programs, lineFacts.linePrograms, project, projectId, rec.studies, rec.standards]);
   const [cardsBusy, setCardsBusy] = useState(false);
 
   /* The preview is the PDF itself, redrawn when what is on it changes — and

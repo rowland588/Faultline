@@ -335,6 +335,8 @@ export interface ClientReportInput {
    *  (ToolStudy.programId): a program proved by a study on its line says so,
    *  as the line's Programs page does, never "signed off by hand". */
   proofStudies?: ToolStudy[];
+  /** The line standards a program's Line capacity criterion is read from (every line's, not only the job's). */
+  proofStandards?: Standard[];
   /** THE JOB'S LINES' OWN PROGRAMS — planned on the line with no job
    *  (ui/LineProgramsOnJob reads the same). */
   linePrograms?: JobLinePrograms[];
@@ -412,7 +414,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
   const proofStudies = x.proofStudies ?? studies;
   /* THE PROGRAMS, read once (lib/programsReport) — Set up's section, the
      programs report and what a machine was handed over with. */
-  const progs = programsReading({ tests, items, assets, programs, today, holder: project, studies: proofStudies });
+  const progs = programsReading({ tests, items, assets, programs, today, holder: project, studies: proofStudies, ...(x.proofStandards ? { standards: x.proofStandards } : {}) });
 
   const notedOpen = notedProblems(tests, items, assets).open;
   const assignedSnags = assignedToJob(x.assigned ?? [], project.id);
@@ -556,7 +558,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
   /* THE LINE'S OWN PROGRAMS, on the job's line with no job — the line's own
      reading, its own words (lib/lineRecords), proved by a test here or a study */
   const provingTests = [...tests, ...(x.provingTests ?? []).filter(t => !tests.some(u => u.id === t.id))];
-  const linePrograms = jobLineReadings(x.linePrograms ?? [], today, { tests: provingTests, studies: proofStudies });
+  const linePrograms = jobLineReadings(x.linePrograms ?? [], today, { tests: provingTests, studies: proofStudies, ...(x.proofStandards ? { standards: x.proofStandards } : {}) });
   if (linePrograms.length) setup.linePrograms = linePrograms;
 
   const proofs = tests.filter(t => (t.kind ?? 'test') === 'test').sort((a, b) => a.sort - b.sort);

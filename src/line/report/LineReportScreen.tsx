@@ -82,7 +82,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
   const stageOnly = useMemo(() => stageOnlyByLine(floor.stageOnly ?? [], rec.machines, rec.jobLines), [floor, rec.machines, rec.jobLines]);
   const jobNames = useMemo(() => new Map(rec.jobs.map(j => [j.id, j.name])), [rec.jobs]);
   const programs = useMemo(() => new Map((bundle?.parts ?? []).map(p => [p.line.id, lineProgramsReading([{ id: p.line.id, name: p.line.name, machines: p.kit.machines, programs: p.kit.programs }], today,
-    { floor, jobName: jobNames, tests: rec.provingTests, studies: rec.studies, stageOnly: new Map([[p.line.id, (stageOnly.get(p.line.id) ?? []).map(x => x.line)]]) })] as const)), [bundle, today, floor, jobNames, rec.provingTests, rec.studies, stageOnly]);
+    { floor, jobName: jobNames, tests: rec.provingTests, studies: rec.studies, standards: rec.standards, stageOnly: new Map([[p.line.id, (stageOnly.get(p.line.id) ?? []).map(x => x.line)]]) })] as const)), [bundle, today, floor, jobNames, rec.provingTests, rec.studies, rec.standards, stageOnly]);
 
   const checkCounts = useMemo(() => new Map((bundle?.parts ?? []).map(p => [p.line.id, scopeCounts(rec.studies.filter(x => !x.deletedAt && x.workspaceId === p.line.id), Date.now())] as const)), [bundle, rec.studies]);
   /* EACH PART AS THE ONE-PAGE LINE REPORT READS IT (lib/lineLean) — the same tiles and closing line */

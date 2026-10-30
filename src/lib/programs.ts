@@ -113,9 +113,11 @@ export interface Program {
   deletedAt?: number;
 }
 
-/** One criterion picked for a program: a study made for it in its tool, or a
- *  run test (the first test of its chain — its re-tests are its attempts). */
-export interface Criterion { kind: 'study' | 'run'; id: ID }
+/** One criterion picked for a program: a study made for it in its tool, a
+ *  run test (the first test of its chain — its re-tests are its attempts), or a
+ *  product's Line capacity (30 October) — `id` is the line standard it is kept on
+ *  (Standard.capacity), met or missed against the target typed there. */
+export interface Criterion { kind: 'study' | 'run' | 'capacity'; id: ID }
 
 /** Who signed a program off, and when: the names, the day (ISO), the moment. */
 export interface SignOff { by: string[]; on: string; at: number }

@@ -532,7 +532,26 @@ export interface LossSays { text: string; tone: Tone; verdict: string; lines: { 
 
 /** What the count says — the one sentence, then the lines under it: how
  *  each number is known, and what wants checking. */
-export function lossSays(f: LossFigures, c?: LossCount, o: { product?: string } = {}): LossSays {
+export function lossSays(f: LossFigures, c?: LossCount, o: { product?: string; maxLostMin?: number } = {}): LossSays {
+  const base = lossSaysFigures(f, c, o);
+  const vs = lostAgainst(f, o.maxLostMin);
+  if (!vs) return base;
+  return { ...base, text: `${base.text} ${vs.text}`, tone: vs.word === 'within' ? 'g' : vs.word === 'over' ? 'r' : base.tone, verdict: vs.verdict };
+}
+
+/** AGAINST THE MOST A SHIFT MAY LOSE (30 October, a program's criterion — AgreedLosses.maxLostMin, typed on the count): the
+ *  minutes lost at the bottleneck's speed, which the count's own figures give (`lostMin`), against it. `within` at or under
+ *  it, `over` above it, `notYet` while the shift is not counted. Undefined when no most is wanted. */
+export function lostAgainst(f: LossFigures, max: number | undefined): { word: 'within' | 'over' | 'notYet'; text: string; verdict: string } | undefined {
+  if (!(max !== undefined && Number.isFinite(max) && max >= 0)) return undefined;
+  if (!f.enough || f.lostMin === undefined) return { word: 'notYet', text: `At most ${minWords(max)} lost is the target — the shift is not counted yet.`, verdict: `Not yet against ${minWords(max)}` };
+  const lost = f.lostMin;
+  return lost > max + 1e-9
+    ? { word: 'over', text: `${minWords(lost)} lost against at most ${minWords(max)} — over by ${minWords(lost - max)}.`, verdict: `Over the ${minWords(max)} allowed by ${minWords(lost - max)}` }
+    : { word: 'within', text: `${minWords(lost)} lost, within the ${minWords(max)} allowed.`, verdict: `Within the ${minWords(max)} allowed` };
+}
+
+function lossSaysFigures(f: LossFigures, c?: LossCount, o: { product?: string } = {}): LossSays {
   const who = shiftWords(c);
   if (!f.enough) {
     return { text: `Count the shift: ${f.missing.join(', ')} still to put in — then the waterfall draws itself from the stops already timed.`, tone: 'n', verdict: 'Not yet counted', lines: [] };

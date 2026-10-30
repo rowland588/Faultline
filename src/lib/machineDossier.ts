@@ -7,7 +7,7 @@
  * lib/machineDetail, the list of them to lib/factoryMachines, so the paper says what the Factory's Machines, the
  * project's Machines and the machine's own page say, with all the detail behind it. Made on the press, never kept. */
 import {
-  allPaceLines, allProjects, getProject, getWorkspace, listAllAssets, listAllPrograms, listAllSnags, listAllStudies, listAllTests,
+  allPaceLines, allProjects, getProject, getWorkspace, listAllAssets, listAllPrograms, listAllSnags, listAllStandards, listAllStudies, listAllTests,
   listAssets, listMaterials, listObservations, listPrograms, listStudies, listTestItems, listTests,
 } from '../db';
 import type { Project, Workspace } from '../types';
@@ -25,11 +25,11 @@ import { todayISO } from './weeks';
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** A stage-gate project's records, as the control room reads them (lib/useJobInputs). */
-async function gateOf(project: Project): Promise<JobInput> {
+async function gateOf(project: Project, standards: Awaited<ReturnType<typeof listAllStandards>>): Promise<JobInput> {
   const [tests, items, assets, materials, programs, studies] = await Promise.all([
     listTests(project.id), listTestItems(project.id), listAssets(project.id), listMaterials(project.id), listPrograms(project.id), listStudies(project.id),
   ]);
-  return { project, tests, items, assets, materials, programs, studies };
+  return { project, tests, items, assets, materials, programs, studies, standards };
 }
 
 interface Shared {
@@ -41,14 +41,15 @@ interface Shared {
   tests: Awaited<ReturnType<typeof listAllTests>>;
   snags: Awaited<ReturnType<typeof listAllSnags>>;
   studies: Awaited<ReturnType<typeof listAllStudies>>;
+  standards: Awaited<ReturnType<typeof listAllStandards>>;
   gates: Map<string, JobInput>;
 }
 
 async function shared(): Promise<Shared> {
-  const [jobLines, jobs, assets, programs, tests, snags, studies] = await Promise.all([
-    allPaceLines(), allProjects(), listAllAssets(), listAllPrograms(), listAllTests(), listAllSnags(), listAllStudies(),
+  const [jobLines, jobs, assets, programs, tests, snags, studies, standards] = await Promise.all([
+    allPaceLines(), allProjects(), listAllAssets(), listAllPrograms(), listAllTests(), listAllSnags(), listAllStudies(), listAllStandards(),
   ]);
-  return { today: todayISO(), jobLines, jobs: jobs.filter(j => !j.deletedAt), assets, programs, tests, snags, studies, gates: new Map() };
+  return { today: todayISO(), jobLines, jobs: jobs.filter(j => !j.deletedAt), assets, programs, tests, snags, studies, standards, gates: new Map() };
 }
 
 const isGate = (p: Project | undefined): p is Project => !!p && !p.archivedAt && planModel(p) === 'commissioning';
@@ -59,7 +60,7 @@ async function gateFor(s: Shared, projectId: string | undefined): Promise<JobInp
   if (hit) return hit;
   const p = s.jobs.find(j => j.id === projectId);
   if (!isGate(p)) return undefined;
-  const g = await gateOf(p);
+  const g = await gateOf(p, s.standards);
   s.gates.set(projectId, g);
   return g;
 }
@@ -75,7 +76,7 @@ async function linePapers(s: Shared, ws: Workspace, only?: string): Promise<Mach
   for (const m of machinesOnLine(ws, s.assets, s.jobLines)) {
     if (only && machineKey(m.name) !== machineKey(only)) continue;
     const view = lineMachineView(m.name, { ws, assets: s.assets, jobLines: s.jobLines, jobs: s.jobs, programs: s.programs, tests: s.tests, snags: s.snags,
-      studies: s.studies, stops, now: Date.now(), floor, jobNames, today: s.today });
+      studies: s.studies, standards: s.standards, stops, now: Date.now(), floor, jobNames, today: s.today });
     const gate = await gateFor(s, m.record?.projectId);
     out.push(machineDetailPaper({
       name: m.name, today: s.today, line: ws.name, ...(view ? { view } : {}), snags: s.snags, studies: s.studies,
@@ -123,7 +124,7 @@ async function machinePaperWith(s: Shared, at: { wsId: string; name: string } | 
     if (ws && asset) paper = (await linePapers(s, ws, asset.name))[0];
     if (!paper && asset) {
       const project = await getProject(at.projectId);
-      const gate = isGate(project) ? await gateOf(project) : undefined;
+      const gate = isGate(project) ? await gateOf(project, await listAllStandards()) : undefined;
       if (gate) paper = machineDetailPaper({ name: asset.name.trim(), today: s.today, project: { name: gate.project.name, gate, assetId: asset.id }, snags: s.snags, studies: s.studies });
     }
   }
@@ -134,7 +135,7 @@ async function machinePaperWith(s: Shared, at: { wsId: string; name: string } | 
 export async function projectMachinesFullPaper(projectId: string, front: Pick<MachinesPaper, 'eyebrow' | 'title' | 'says' | 'groups' | 'foot'>): Promise<MachinesPaper> {
   const s = await shared();
   const project = s.jobs.find(j => j.id === projectId);
-  const gate = isGate(project) ? await gateOf(project) : undefined;
+  const gate = isGate(project) ? await gateOf(project, await listAllStandards()) : undefined;
   const machines: MachinePaper[] = [];
   for (const a of gate ? gate.assets.filter(x => !x.deletedAt).sort((x, y) => x.sort - y.sort) : []) {
     const one = await machinePaperWith(s, { projectId, assetId: a.id });

@@ -38,6 +38,7 @@ import type { LossCount, RunTiming, ToolStudy } from '../../lib/study';
 import type { Observation, Workspace } from '../../types';
 import { UsedFor, WhereItSits, useBetter } from '../../ui/StudyPlace';
 import { StudyBand } from '../../ui/StudyActs';
+import { TargetNumber } from '../../ui/TargetNumber';
 import { capacityForCount } from '../../ui/ShiftLosses';
 import { constraintShare, lineConstraint, type ConstraintShare, type LineConstraint } from '../../lib/intelligence';
 import { lossLean, lossPart, raisedFrom } from './lossLean';
@@ -96,7 +97,7 @@ function Losses({ s, line, obs, rate, can, me, constraint, counts }: { s: ToolSt
   const c = s.facts.losses;
   const ctx = useMemo<StudyContext>(() => ({ observations: obs, workspaces: line ? [line] : [] }), [obs, line]);
   const f = useMemo(() => lossFiguresOf(s, ctx), [s, ctx]);
-  const said = useMemo(() => lossSays(f, c, { ...(s.product ? { product: s.product } : {}) }), [f, c, s.product]);
+  const said = useMemo(() => lossSays(f, c, { ...(s.product ? { product: s.product } : {}), ...(s.agreed?.losses ? { maxLostMin: s.agreed.losses.maxLostMin } : {}) }), [f, c, s.product, s.agreed?.losses]);
   const closed = !!s.closedAt;
   const editable = can.edit && !closed;
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
@@ -142,7 +143,13 @@ function Losses({ s, line, obs, rate, can, me, constraint, counts }: { s: ToolSt
   return (
     <div className="wrap ie lf ln">
       <StudyBand page={lean} s={s} what="Loss count" canEdit={editable} canRemove={can.remove} />
-      <div className="ln-under"><WhereItSits s={s} can={can} /></div>
+      <div className="ln-under">
+        <WhereItSits s={s} can={can} />
+        {/* THE MOST A SHIFT MAY LOSE — what a program's criterion judges this count by (tools/losses lostAgainst) */}
+        <TargetNumber label="A shift may lose at most" value={s.agreed?.losses?.maxLostMin} unit="min" min={0} editable={can.agree && !closed}
+          hint={s.agreed?.losses ? undefined : 'Set it and a program can be judged by this count.'}
+          onSet={n => write(cur => { const { losses: _l, ...rest } = cur.agreed ?? {}; void _l; return { agreed: n !== undefined ? { ...rest, losses: { maxLostMin: n } } : (Object.keys(rest).length ? rest : undefined) }; })} />
+      </div>
       <LeanTiles tiles={lean.tiles} className="ie-strip" />
 
       {/* Until the count is in, the count comes first — it is the one thing to do */}
