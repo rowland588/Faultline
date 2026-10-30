@@ -18,7 +18,7 @@ import type { SixM } from './sixm';
 import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from '../tools/capability/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from '../tools/linework/balance';
 import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, share as shareOf, stepAt, stepFigure, whoOf } from '../tools/valuestream/steps';
-import { actionWords, availableOf, carrySequence, changeoverSays, compareChangeovers, figuresOf, intervalOf, intervalSays, ladderOf, ladderSays, mins, stepFigure as changeoverStepFigure } from '../tools/changeover/changeover';
+import { actionWords, againstStandard, availableOf, carrySequence, changeoverSays, mustComeIn, compareChangeovers, figuresOf, intervalOf, intervalSays, ladderOf, ladderSays, mins, stepFigure as changeoverStepFigure } from '../tools/changeover/changeover';
 import { samplingSays, samplingWorst, worstWords } from '../tools/sampling/sampling';
 import { barExpect, barWords, compareLosses, findBar, inWindow, lossFigures, lossLine, lossSays, nextShift, type CostModel, type LossFigures } from '../tools/losses/losses';
 import { studyBalance } from '../tools/linework/balanceLink';
@@ -77,10 +77,18 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
        it; the interval when it can be read. What the changeovers cost is said
        where the line's own cost is to hand (the page, the paper's table). */
     const f = figuresOf(s.facts);
-    const said = changeoverSays(f);
+    /* the minutes typed on the study (a program's criterion is judged by them); none: figures only, as ever */
+    const typed = mustComeIn(s.agreed?.changeover, undefined);
+    const said = changeoverSays(f, typed);
     const l = ladderOf(s.facts.sequence);
     const iv = intervalOf(f, s.facts.products, availableOf(s.facts)?.min);
-    return { text: [said.text, l.planned ? ladderSays(l).text : '', iv.ready ? intervalSays(iv, f).text : ''].filter(Boolean).join(' '), tone: said.tone, verdict: said.verdict };
+    const text = [said.text, ...said.lines.filter(x => x.tone === 'g' || x.tone === 'r').map(x => x.text), l.planned ? ladderSays(l).text : '', iv.ready ? intervalSays(iv, f).text : ''].filter(Boolean).join(' ');
+    /* AGAINST THE MINUTES it must come in at: within or over is the verdict whatever else (external work inside) the
+       sentence says; while it cannot be told the tone stays the figures' and the verdict says what is missing */
+    const vs = againstStandard(f, typed);
+    if (vs?.word === 'within') return { text, tone: 'g', verdict: `Within the ${mins(vs.minutes * 60)} standard` };
+    if (vs?.word === 'over') return { text, tone: 'r', verdict: `Over the ${mins(vs.minutes * 60)} standard by ${mins((vs.overMin as number) * 60)}` };
+    return { text, tone: vs ? 'n' : said.tone, verdict: vs ? `Not yet against ${mins(vs.minutes * 60)}` : said.verdict };
   }
   if (s.tool === 'sampling') return samplingSays(s.agreed?.sampling, s.facts.taps ?? []);
   if (s.tool === 'reliability') return studyReliabilitySays(s.agreed?.reliability, s.facts.watch, s.facts.events);

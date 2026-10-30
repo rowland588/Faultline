@@ -742,6 +742,26 @@ export function agreedFor(list: StandardChangeover[] | undefined, from?: string)
   return (f ? all.find(a => (a.from ?? '').trim().toLowerCase() === f) : undefined) ?? [...all].sort((a, b) => b.agreedAt - a.agreedAt)[0];
 }
 
+/** THE MINUTES IT MUST COME IN AT — typed on the study (AgreedChangeover), else the product's line standard's. A study's own
+ *  wins: a program's criterion is judged by the number set on it, whatever the line standard says for other changeovers. */
+export function mustComeIn(typed: { minutes?: number } | undefined, std: Pick<StandardChangeover, 'minutes'> | undefined): Pick<StandardChangeover, 'minutes'> | undefined {
+  if (typed && typed.minutes !== undefined && Number.isFinite(typed.minutes) && typed.minutes > 0) return { minutes: typed.minutes };
+  return std;
+}
+
+/** AGAINST ITS MINUTES — the one verdict a changeover gives, by the rule changeoverSays says it with (over by more than half
+ *  a minute is over): `within`, `over` (by how many minutes), or `notYet` while it cannot be told — nothing timed, an
+ *  element with no time of its own, or an element carried from the changeover before and not timed again. Over is still
+ *  over with elements untimed (the minutes are at least this). Undefined when no minutes are agreed: nothing to judge by. */
+export function againstStandard(f: ChangeoverFigures, agreed?: Pick<StandardChangeover, 'minutes'>): { word: 'within' | 'over' | 'notYet'; overMin?: number; minutes: number } | undefined {
+  const minutes = agreed && agreed.minutes > 0 ? agreed.minutes : undefined;
+  if (minutes === undefined) return undefined;
+  if (!f.steps || !f.enough) return { word: 'notYet', minutes };
+  const over = f.nowSec / 60 - minutes;
+  if (over > 0.5) return f.carried ? { word: 'notYet', minutes } : { word: 'over', overMin: over, minutes };
+  return f.untimed || f.carried ? { word: 'notYet', minutes } : { word: 'within', minutes };
+}
+
 /* -------------------------------------------------------------- on paper */
 
 export interface ChangeoverRow {

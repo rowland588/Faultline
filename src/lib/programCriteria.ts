@@ -30,14 +30,40 @@ import type { ID } from '../types';
 import type { Criterion, Program, SignOff } from './programs';
 import type { Test } from './testing';
 import type { ToolStudy } from './study';
+import { balanceStudyFor } from '../tools/linework/balanceLink';
+import type { Standard } from '../tools/linestandard/standard';
 import { studyLine, studySays, TOOL_NAME, type StudyContext } from './studyLinks';
 import { testChain, testJourney } from './programJourney';
 import { niceDay, todayISO } from './weeks';
 
-/** The tools a criterion can be — each says passed or failed against what is set in it. */
-export const CRITERION_TOOLS = ['capability', 'chart', 'reliability', 'analysis'] as const;
+/** The tools a criterion can be — each says passed or failed against what is set in it (the 30 October audit,
+ *  docs/PROGRAM-GOAL.md: every app tool and mode that ends in a verdict against a stated target or limit, and no other). */
+export const CRITERION_TOOLS = ['capability', 'chart', 'reliability', 'analysis', 'changeover', 'balance'] as const;
 export type CriterionTool = typeof CRITERION_TOOLS[number];
 export const isCriterionTool = (t: string): t is CriterionTool => (CRITERION_TOOLS as readonly string[]).includes(t);
+
+/** The ones the picker can make a study of for the program and set up in the tool. A line balance is timed on a product's
+ *  line standard, so it is made from one (`criterionBalance`) or picked once timed. */
+export const CRITERION_MADE = ['capability', 'chart', 'reliability', 'analysis', 'changeover'] as const;
+export type CriterionMade = typeof CRITERION_MADE[number];
+
+/** The picker's words for each tool: its name, and what it judges the program by — the tool's own verdict, said before
+ *  anything is made. */
+export const CRITERION_HELP: Record<CriterionTool, { name: string; judges: string; example: string }> = {
+  capability: { name: 'Capability study', judges: 'readings against the limits agreed (Ppk), a pass-or-fail run, rejects or faults against the share allowed, a rate held for the time', example: 'e.g. Placement weight at 75 ppm' },
+  chart: { name: 'Control chart', judges: 'readings in order against limits set from a steady period — in control, or a signal', example: 'e.g. Seal temperature' },
+  reliability: { name: 'Reliability study', judges: 'the MTBF measured against the MTBF wanted, for each thing counted', example: 'e.g. Robot faults' },
+  analysis: { name: 'Analysis', judges: 'did it move the right way, do two ways of measuring agree, is the gauge fit (Type 1, R&R), do inspectors agree — the other questions give figures only', example: 'e.g. Fill before and after' },
+  changeover: { name: 'SMED', judges: 'the changeover timed against the minutes it must come in at — set on the SMED itself', example: 'e.g. Changeover to the 2 kg pack' },
+  balance: { name: 'Line balance', judges: 'every person’s work timed within takt, on a product’s line standard', example: 'e.g. Packing, morning' },
+};
+
+/** The analysis questions that end in a verdict against something stated — a direction (better lower or higher), a difference
+ *  that does not matter, a tolerance, the %GRR bands, inspectors agreeing. The rest (how sure, how many readings, groups,
+ *  tables, relations, learning, shape) give figures: they can be green on the page, but that is not a pass. */
+export const ANALYSIS_JUDGES: readonly string[] = ['change', 'paired', 'gauge', 'grr', 'attr'];
+/** Whether a study of this kind can say passed or failed at all — a figures-only analysis never does. */
+export const canJudge = (s: Pick<ToolStudy, 'tool' | 'agreed'>): boolean => s.tool !== 'analysis' || !s.agreed?.analysis || ANALYSIS_JUDGES.includes(s.agreed.analysis.kind);
 
 export type CriterionWord = 'passed' | 'failed' | 'notYet' | 'gone';
 export const CRITERION_WORD: Record<CriterionWord, string> = {
@@ -72,12 +98,18 @@ function studyAnswer(c: Criterion, s: ToolStudy | undefined, ctx?: StudyContext,
   const said = studySays(s, ctx);
   const line = studyLine(s, ctx);
   const over = s.overrule?.verdict;
+  /* a question that gives figures and no verdict is never a pass or a fail, whatever colour its page wears */
+  const judges = canJudge(s);
   const word: CriterionWord = over === 'Passed' ? 'passed' : over === 'Didn’t pass' ? 'failed'
-    : said.tone === 'g' ? 'passed' : said.tone === 'r' ? 'failed' : 'notYet';
+    : !judges ? 'notYet' : said.tone === 'g' ? 'passed' : said.tone === 'r' ? 'failed' : 'notYet';
   const title = `${TOOL_NAME[s.tool] ?? 'Study'} — ${s.name}`;
   const short = `${s.name}: ${over ? `${over} (overruled)` : said.verdict}`;
-  return { c, title, word, tone: TONE[word], says: line.text, short, ...(dayOf(s.updatedAt) ? { on: dayOf(s.updatedAt) } : {}), study: s };
+  const figures = !judges && !over ? ' It gives figures, not a pass or fail — take it off and pick a question that judges (did it change, do two ways agree, is the gauge fit).' : '';
+  return { c, title, word, tone: TONE[word], says: `${line.text}${figures}`, short, ...(dayOf(s.updatedAt) ? { on: dayOf(s.updatedAt) } : {}), study: s };
 }
+
+/** What a study would answer if it were picked — for a chip that offers it ("Finest Red 2kg · Passed"). */
+export const answerOfStudy = (s: ToolStudy, ctx?: StudyContext): CriterionAnswer => studyAnswer({ kind: 'study', id: s.id }, s, ctx);
 
 /** A run test's answer: its chain of attempts — passed once any passed. */
 function runAnswer(c: Criterion, tests: Test[], today: string): CriterionAnswer {
@@ -234,11 +266,35 @@ export function unpickedStudyChoices(p: Pick<Program, 'id' | 'criteria'>, studie
 }
 
 /** A new study for a program in the picked tool — on its line, its project and machine; set up in the tool. */
-export function criterionStudy(p: Pick<Program, 'id' | 'projectId' | 'workspaceId' | 'assetId'>, tool: CriterionTool, name: string, x: { id: string; at: number; machine?: string }): ToolStudy {
+export function criterionStudy(p: Pick<Program, 'id' | 'projectId' | 'workspaceId' | 'assetId'>, tool: CriterionMade, name: string, x: { id: string; at: number; machine?: string }): ToolStudy {
   return {
     id: x.id, tool, name: name.trim(), programId: p.id,
     ...(p.projectId ? { projectId: p.projectId } : {}), ...(p.workspaceId ? { workspaceId: p.workspaceId } : {}),
     ...(x.machine ? { machine: x.machine } : {}), ...(p.assetId && p.projectId ? { assetId: p.assetId } : {}),
     facts: {}, uses: [], startedAt: x.at, createdAt: x.at, updatedAt: x.at,
   };
+}
+
+/** A new line balance for a program: timed on a product's line standard (the map's people its elements, the takt Line
+ *  capacity's target), made for the program on its machine. It opens on that standard's People view. */
+export function criterionBalance(p: Pick<Program, 'id' | 'projectId' | 'workspaceId' | 'assetId'>, standard: Standard, x: { id: string; at: number; machine?: string; name?: string }): ToolStudy {
+  const s = balanceStudyFor(standard, { id: x.id, at: x.at }, {
+    programId: p.id,
+    ...(p.projectId ? { projectId: p.projectId } : {}), ...(p.workspaceId && !standard.workspaceId ? { workspaceId: p.workspaceId } : {}),
+    ...(x.machine ? { machine: x.machine } : {}), ...(p.assetId && p.projectId ? { assetId: p.assetId } : {}),
+  });
+  return x.name?.trim() ? { ...s, name: x.name.trim() } : s;
+}
+
+/** The line balances timed in the program's own place — its project, else its line — not picked yet: what the Line balance
+ *  chip offers to pick, whether or not one names the program (a balance is timed on a standard, not made for a program). */
+export function balancesToPick(p: Pick<Program, 'criteria' | 'projectId' | 'workspaceId'>, studies: readonly ToolStudy[]): ToolStudy[] {
+  const picked = new Set((p.criteria ?? []).filter(c => c.kind === 'study').map(c => c.id));
+  return studies.filter(s => !s.deletedAt && s.tool === 'balance' && !picked.has(s.id)
+    && (p.projectId ? s.projectId === p.projectId : !!p.workspaceId && s.workspaceId === p.workspaceId));
+}
+
+/** The line standards a balance could be timed on for this program: its project's, else its line's. */
+export function standardsToTime(p: Pick<Program, 'projectId' | 'workspaceId'>, standards: readonly Standard[]): Standard[] {
+  return standards.filter(s => !s.deletedAt && (p.projectId ? s.projectId === p.projectId : !!p.workspaceId && s.workspaceId === p.workspaceId));
 }

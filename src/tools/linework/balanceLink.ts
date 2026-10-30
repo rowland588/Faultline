@@ -24,8 +24,10 @@
 import { stepsFromEvents, taktOf } from '../video/study';
 import { chainFactor, fmtMoney as m, labourInputs, syncWhatIfs, type Capacity, type Station, type StationKind } from '../linebalance/capacity';
 import type { Workspace } from '../../types';
-import type { AgreedBalance, BalanceCrew, ToolStudy } from '../../lib/study';
+import type { AgreedBalance, BalanceCrew, BalanceStep, ToolStudy } from '../../lib/study';
+import { peopleOf, type Standard } from '../linestandard/standard';
 import { balance, type BalanceFigures } from './balance';
+import { uid } from '../../lib/ids';
 
 /** A work balance's figures as every reader takes them — its elements, the
  *  takt it holds to and where each person is on the line, all on the study
@@ -41,6 +43,18 @@ export const studyBalance = (s: Pick<ToolStudy, 'facts' | 'agreed'>): BalanceFig
   }
   return balance(s.facts.steps, s.agreed?.balance, s.facts.crew);
 };
+
+/** A NEW LINE BALANCE for a product's line standard — the map's people and what they do become the elements (nothing typed
+ *  twice), the takt Line capacity's target and following it. One place makes it: the balance's own Start, and a program's
+ *  criterion (`extra`: its program, machine, and so on). */
+export function balanceStudyFor(s: Standard, x: { id: string; at: number }, extra: Partial<ToolStudy> = {}): ToolStudy {
+  const t = taktFromTarget(s.capacity);
+  const steps: BalanceStep[] = peopleOf(s).map((p, i) => ({ id: uid(), order: i, name: p.task?.trim() || 'Their work', who: p.label?.trim() || `Op ${i + 1}` }));
+  return { id: x.id, tool: 'balance', name: s.product, standardId: s.id,
+    ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}),
+    ...(t ? { agreed: { balance: { taktSec: t.taktSec, from: 'target' as const } } } : {}),
+    facts: { steps }, uses: [], startedAt: x.at, createdAt: x.at, updatedAt: x.at, ...extra };
+}
 
 /** A station a person can be at, in the order the product flows. */
 export interface StationPick {

@@ -13667,6 +13667,7 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .pgc { display: grid; gap: 6px; min-width: 0; }
 .pgc-empty { display: block; }
 .pgc-hint { margin: 0 0 6px; overflow-wrap: anywhere; }
+.pgc-judges { overflow-wrap: anywhere; }
 .pgc-proof-all { margin: 0 0 6px; }
 .pgc-existing { display: grid; gap: 6px; }
 .pgc-new { font-size: var(--t-detail); justify-self: start; }

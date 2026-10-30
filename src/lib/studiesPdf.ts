@@ -23,7 +23,7 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, font, gap, label, rows, text, wrap } from './report/blocks';
 import { streamBlocks } from './report/streamTable';
 import { changeoverBlocks } from './report/changeoverTable';
-import { agreedFor as agreedForChangeover, changeoverSays, extrapolationSays, figuresOf, ladderOf, moneyOf } from '../tools/changeover/changeover';
+import { agreedFor as agreedForChangeover, mustComeIn, changeoverSays, extrapolationSays, figuresOf, ladderOf, moneyOf } from '../tools/changeover/changeover';
 import { smedLean } from '../tools/changeover/changeoverLean';
 import { sampleClosing, sampleTiles } from '../tools/capability/sampleLean';
 import { momentsAt, personRate, samplingClosing, samplingTiles } from '../tools/sampling/samplingLean';
@@ -560,7 +560,7 @@ function smedLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Bloc
   const { s, where } = item;
   const ws = p.ctx?.workspaces?.find(w => w.id === s.workspaceId);
   const st = p.standards.find(x => x.id === s.standardId);
-  const agreed = agreedForChangeover(st?.capacity?.changeovers, s.facts.fromProduct);
+  const agreed = mustComeIn(s.agreed?.changeover, agreedForChangeover(st?.capacity?.changeovers, s.facts.fromProduct));
   const f = figuresOf(s.facts), l = ladderOf(s.facts.sequence), said = changeoverSays(f, agreed), money = moneyOf(ws);
   const cost = extrapolationSays(l, s.facts, money);
   const page = smedLean({ s, f, l, said, cost, ...(money ? { money } : {}), ...(p.lineName ? { line: p.lineName } : {}), ...(agreed ? { agreed } : {}),

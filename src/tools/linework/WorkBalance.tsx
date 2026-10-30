@@ -47,7 +47,7 @@ import { aPiece, balance, balanceSays, elementSays, keptLaps, secs, suggest, typ
 import { ImproveLens, MachineLens, OrderLens, TimesLens, type LensCtx } from './WorkLenses';
 import { allowanceOf, partsProblem, CAUSES } from './allowance';
 import { libraryFrom, type LibraryRow } from './standardData';
-import { agreedFor, balanceCost, balanceCostSays, capacityTaking, costInputs, crewKept, stationsOf, taktFromTarget, targetOffer, type StationPick } from './balanceLink';
+import { agreedFor, balanceStudyFor, balanceCost, balanceCostSays, capacityTaking, costInputs, crewKept, stationsOf, taktFromTarget, targetOffer, type StationPick } from './balanceLink';
 import type { Workspace } from '../../types';
 import type { AgreedBalance, AllowancePart, BalanceCrew, BalanceStep, Lap, StepKind, ToolStudy } from '../../lib/study';
 import type { Can } from '../../lib/access';
@@ -187,17 +187,7 @@ export function WorkView({ s, can }: { s: Standard; can: Can }) {
 function Start({ s, can }: { s: Standard; can: Can }) {
   const people = peopleOf(s);
   const t = taktFromTarget(s.capacity);
-  const start = () => {
-    const at = now();
-    /* The map's people and what they do become the elements — nothing typed twice. */
-    const steps: BalanceStep[] = people.map((p, i) => ({ id: uid(), order: i, name: p.task?.trim() || 'Their work', who: p.label?.trim() || `Op ${i + 1}` }));
-    const id = uid();
-    void putStudy({ id, tool: 'balance', name: s.product, standardId: s.id,
-      ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}),
-      /* a new balance takes its takt from Line capacity's target, and follows it */
-      ...(t ? { agreed: { balance: { taktSec: t.taktSec, from: 'target' as const } } } : {}),
-      facts: { steps }, uses: [], startedAt: at, createdAt: at, updatedAt: at });
-  };
+  const start = () => { void putStudy(balanceStudyFor(s, { id: uid(), at: now() })); };
   return (
     <div className="wb-start">
       <p><b>Who does what on this product, and how long it takes — timed at the line.</b></p>

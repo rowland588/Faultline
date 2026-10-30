@@ -17,7 +17,14 @@
  *   5  the Programs report, the machine's page and its Machine report, Commission's sheet and the commissioning report
  *      each say it signed off, by whom, and what passed it
  *   6  the sign-off taken back: ready again, nothing proved, the criteria kept; signed again
- *   7  on a phone: the criteria and the sign-off fit, nothing off the side */
+ *   7  on a phone: the criteria and the sign-off fit, nothing off the side
+ *   8  the audit's tools (30 October — Rowland: "Five tools in the criteria picker — what are you saying, we only have 5
+ *      tools built? We should have many more that offer a verdict?"): the picker offers seven chips and says what each
+ *      judges; a SMED made for the program, the minutes it must come in at set on the SMED itself (not yet while unset,
+ *      Passed within them, Didn't pass over them); a line balance timed on a product's line standard (made from the
+ *      picker, or picked once timed — Not yet without a takt, Passed within takt, Didn't pass over it); a figures-only
+ *      analysis question never passes; the program's pill, its sign-off line and the Programs report moving with
+ *      each; on a phone the seven chips wrap and nothing is off the side */
 import pkg from 'playwright';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
@@ -52,6 +59,10 @@ const go = async h => {
   await page.waitForFunction(() => !(history.state && history.state.flPanel), null, { timeout: 5000 }).catch(() => {});
   await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2500);
 };
+/* the Programs page opens on Needs you (28 October): a signed-off program is not among them, so All is pressed to see its row */
+const goPrograms = async () => { await go(PROGRAMS); await page.locator('button.pp-chip', { hasText: /^All\b/ }).first().click({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(600); };
+/* the criteria are in the Prove fold, compact until opened (C5): opened to see their rows and the way back from a sign-off */
+const openProve = async () => { const h = row().locator('.pgr-prove-h').first(); if (await h.count() && (await h.getAttribute('aria-expanded')) !== 'true') await h.click(); await page.waitForTimeout(500); };
 const download = async (label, file, within = page.locator('body')) => {
   const b = await find(page, 'Report', label, within);
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), b.click({ timeout: 60000 })]);
@@ -69,7 +80,7 @@ const pill = async () => flat(await row().locator('.pgr-top .status-pill').first
 const done = async () => Number(/(\d+) done/.exec(flat(await page.locator('.nv-main').innerText()))?.[1] ?? NaN);
 
 /* ---- 1 no criteria: one door; its run failed on net alone reads failed, as always ---- */
-await go(PROGRAMS);
+await goPrograms();
 ok(await row().locator('.pgc-empty .pgc-add', { hasText: '+ Pick its criteria' }).count() === 1 && await row().locator('.pgc-list').count() === 0,
   '1 no criteria picked: one quiet door on its row — + Pick its criteria — and no list');
 await row().getByRole('button', { name: /^Test it$/ }).click(); await page.waitForTimeout(500);
@@ -81,7 +92,7 @@ const split1 = flat(await row().locator('.ptx-split').first().innerText().catch(
 ok(/didn.t pass/i.test(await pill()) && /net rate alone/.test(split1), `1b its run failed on net alone (${split1}) — the row reads didn’t pass, as with no criteria it always has: "${await pill()}"`);
 /* testing a program kept only on the list makes its line on the machine's programs stage a moment later, and its row is
    drawn again under that line (ui/ProgramRow) — the page read afresh once it has */
-await page.waitForTimeout(2000); await go(PROGRAMS);
+await page.waitForTimeout(2000); await goPrograms();
 const doneBefore = await done();
 let rec;
 
@@ -104,7 +115,7 @@ const proofId = await page.evaluate(async ([pid, name]) => {
   return id;
 }, [PID, NAME]);
 ok(proofId, '1c a capability study passed and lined up on the failed run as Proved by');
-await page.waitForTimeout(1500); await go(PROGRAMS);
+await page.waitForTimeout(1500); await goPrograms();
 ok(await row().locator('.pgc-proof-all').count() === 1, '1c its row offers the proving study as criteria in one go');
 await row().locator('.pgc-add').click(); await page.waitForTimeout(400);
 ok(await row().locator('.pgc-existing .pgc-row .status-pill', { hasText: 'Passed' }).count() >= 1,
@@ -125,8 +136,8 @@ const startNewCap = row().getByRole('button', { name: /Start a new capability st
 if (await startNewCap.count()) await startNewCap.click();
 await page.waitForTimeout(200);
 const chips = (await row().locator('.pgc-panel [role=radio]').allInnerTexts()).map(flat);
-ok(JSON.stringify(chips) === JSON.stringify(['Capability study', 'Control chart', 'Reliability study', 'Analysis', 'Run test']),
-  `2 Add a criterion offers the tools that say pass or fail, and its run test — ${chips.join(' · ')}`);
+ok(JSON.stringify(chips) === JSON.stringify(['Capability study', 'Control chart', 'Reliability study', 'Analysis', 'SMED', 'Line balance', 'Run test']),
+  `2 Add a criterion offers every tool that ends in a verdict against a stated target (the 30 October audit), and its run test — ${chips.join(' · ')}`);
 await row().locator('input[aria-label="Name the study"]').fill('Placement 75 ppm');
 await row().getByRole('button', { name: 'Add it, set up later' }).click(); await page.waitForTimeout(1500);
 await row().getByRole('button', { name: 'Add a criterion' }).click(); await page.waitForTimeout(300);
@@ -167,7 +178,7 @@ ok(/ready to sign off — all 2 criteria passed/i.test(await pill()) && await ro
   `3b every criterion passed: the row "${await pill()}", and Sign off`);
 await row().locator('.pgc-open', { hasText: 'Placement 75 ppm' }).click(); await page.waitForTimeout(1500);
 ok(page.url().includes(`/capability/${rec.criteria[0].id}`), `3c a criterion opens its study — ${page.url().split('#')[1]}`);
-await go(PROGRAMS);
+await goPrograms();
 
 /* ---- 4 signed off by two names on a day ---- */
 await row().getByRole('button', { name: 'Sign off', exact: true }).click(); await page.waitForTimeout(300);
@@ -216,7 +227,7 @@ ok(/^Signed off — passed .+ by R\. Glew and J\. Smith · Placement 75 ppm: Pas
 }
 
 /* ---- 6 taken back, signed again ---- */
-await go(PROGRAMS);
+await goPrograms(); await openProve();
 await row().getByRole('button', { name: 'Take the sign-off back' }).click(); await page.waitForTimeout(2000);
 rec = await record();
 ok(!rec.signedOff && !rec.provedOn && rec.criteria?.length === 2 && /ready to sign off/i.test(await pill()), `6 the sign-off taken back: "${await pill()}", nothing proved, both criteria kept`);
@@ -225,8 +236,176 @@ await row().locator('input[aria-label="Who is signing it off"]').fill('R. Glew')
 await row().getByRole('button', { name: 'Signed off — passed', exact: true }).click(); await page.waitForTimeout(2000);
 ok((await record()).signedOff?.by?.join() === 'R. Glew' && (await pill()).startsWith('signed off — passed'), '6b signed again, by one name');
 
+/* ---- 8 the tools the 30 October audit added: SMED and a line balance, each with its own verdict ---- */
+{
+  await goPrograms(); await openProve();
+  await row().getByRole('button', { name: 'Take the sign-off back' }).click(); await page.waitForTimeout(2000);
+  await row().getByRole('button', { name: 'Add a criterion' }).click(); await page.waitForTimeout(300);
+  const chips8 = (await row().locator('.pgc-panel [role=radio]').allInnerTexts()).map(flat);
+  ok(chips8.length === 7 && chips8.includes('SMED') && chips8.includes('Line balance'), `8 the picker offers seven choices, not five — ${chips8.join(' · ')}`);
+  await row().locator('.pgc-panel [role=radio]', { hasText: 'SMED' }).click(); await page.waitForTimeout(200);
+  const hint8 = flat(await row().locator('.pgc-panel .pgc-judges').first().innerText());
+  ok(/SMED judges: the changeover timed against the minutes it must come in at/.test(hint8), `8b each tool says what it judges before anything is made — "${hint8.slice(0, 120)}"`);
+  const startNewSmed = row().getByRole('button', { name: /Start a new smed instead/i });
+  if (await startNewSmed.count()) await startNewSmed.click();
+  await row().locator('input[aria-label="Name the study"]').fill('Changeover to 2 kg');
+  await row().getByRole('button', { name: 'Add it, set up later' }).click(); await page.waitForTimeout(1800);
+  rec = await record();
+  const smedId = rec.criteria.map(c => c.id).find(id => id !== rec.criteria[0].id && id !== rec.criteria[1].id);
+  const smed = await page.evaluate(id => import('/src/db.ts').then(db => db.getStudy(id)), smedId);
+  ok(smed?.tool === 'changeover' && smed.programId === rec.id && smed.projectId === PID && smed.machine === 'Ilapak flow wrapper',
+    `8c a SMED made for the program, on its project and its machine — ${smed?.tool} on ${smed?.machine}`);
+  const smedRow = () => row().locator('.pgc-row', { hasText: 'SMED — Changeover to 2 kg' });
+  ok(flat(await smedRow().locator('.status-pill').innerText()) === 'Not yet' && /2 of 3 criteria passed/.test(await pill()) && await row().getByRole('button', { name: 'Sign off', exact: true }).count() === 0,
+    `8d it reads Not yet, the row "${await pill()}", and Sign off is gone until it passes`);
+
+  /* its minutes are set on the SMED itself; its elements are timed there (seeded: 10 + 8 minutes with the line stopped) */
+  await page.evaluate(async id => {
+    const db = await import('/src/db.ts');
+    const st = (i, sec) => ({ id: `e${i}`, order: i, name: `Element ${i}`, side: 'internal', sec, source: 'timed' });
+    await db.patchStudy(id, cur => ({ facts: { ...cur.facts, sequence: [st(0, 600), st(1, 480)] } }));
+  }, smedId);
+  await page.waitForTimeout(1500);
+  ok(flat(await smedRow().locator('.status-pill').innerText()) === 'Not yet' && /18 min/.test(flat(await smedRow().innerText())),
+    `8e timed at 18 minutes with no minutes set it is still Not yet — never a pass on figures alone: "${flat(await smedRow().innerText()).slice(0, 140)}"`);
+  await smedRow().locator('.pgc-open').click(); await page.waitForTimeout(2500);
+  ok(page.url().includes(`/smed/${smedId}`), `8f the criterion opens the SMED — ${page.url().split('#')[1]}`);
+  const box = page.locator('input[aria-label="It must come in at"]');
+  ok(await box.count() === 1, '8g the SMED has its box — It must come in at');
+  await box.fill('20'); await box.blur(); await page.waitForTimeout(1200);
+  const after20 = await page.evaluate(id => import('/src/db.ts').then(db => db.getStudy(id)), smedId);
+  ok(after20.agreed?.changeover?.minutes === 20, `8h the minutes are kept on the study — ${JSON.stringify(after20.agreed)}`);
+  await goPrograms(); await openProve();
+  let sa = flat(await smedRow().innerText());
+  ok(flat(await smedRow().locator('.status-pill').innerText()) === 'Passed' && /Within the 20 min standard/.test(sa), `8i 18 min within 20: Passed with the SMED's own sentence — "${sa.slice(0, 160)}"`);
+  ok(/ready to sign off — all 3 criteria passed/i.test(await pill()), `8j every criterion passed: "${await pill()}"`);
+  await smedRow().locator('.pgc-open').click(); await page.waitForTimeout(2500);
+  await page.locator('input[aria-label="It must come in at"]').fill('15'); await page.locator('input[aria-label="It must come in at"]').blur(); await page.waitForTimeout(1200);
+  await goPrograms(); await openProve();
+  sa = flat(await smedRow().innerText());
+  ok(flat(await smedRow().locator('.status-pill').innerText()) === 'Didn’t pass' && /Over the 15 min standard by 3 min/.test(sa) && /2 of 3 criteria passed · 1 didn.t pass/.test(await pill()),
+    `8k the minutes changed to 15: Didn’t pass, over by 3 min, the row "${await pill()}"`);
+  await smedRow().locator('.pgc-open').click(); await page.waitForTimeout(2500);
+  await page.locator('input[aria-label="It must come in at"]').fill('20'); await page.locator('input[aria-label="It must come in at"]').blur(); await page.waitForTimeout(1200);
+  await goPrograms(); await openProve();
+
+  /* a line balance: timed on a product's line standard, made from the picker */
+  await row().getByRole('button', { name: 'Add a criterion' }).click(); await page.waitForTimeout(300);
+  await row().locator('.pgc-panel [role=radio]', { hasText: 'Line balance' }).click(); await page.waitForTimeout(800);
+  const stds = (await row().locator('.pgc-panel [aria-label="Time a new line balance on a product"] .chip').allInnerTexts()).map(flat);
+  ok(stds.includes('Finest Red 2kg') && stds.includes('Tesco Express 1.25 kg'), `8l Line balance offers the project's line standards to time it on — ${stds.join(' · ')}`);
+  /* one already timed in the project is offered to pick */
+  const timedId = await page.evaluate(async ([pid, sid]) => {
+    const db = await import('/src/db.ts'); const { uid, now } = await import('/src/lib/ids.ts');
+    const id = uid(), at = now();
+    const t = (i, who, sec) => ({ id: `t${i}`, order: i, name: `Task ${i}`, who, typedSec: sec });
+    await db.putStudy({ id, tool: 'balance', name: 'Finest Red 2kg — timed Tuesday', projectId: pid, standardId: sid, agreed: { balance: { taktSec: 12 } },
+      facts: { steps: [t(0, 'Op 1', 10), t(1, 'Op 2', 8)] }, uses: [], startedAt: at, createdAt: at, updatedAt: at });
+    return id;
+  }, [PID, sd.standardId]);
+  await page.waitForTimeout(1500);
+  const picks = (await row().locator('.pgc-panel [aria-label="Line balances already timed here"] .chip').allInnerTexts()).map(flat);
+  ok(picks.length === 1 && /Finest Red 2kg — timed Tuesday · Passed/.test(picks[0]), `8m a balance already timed in the project is offered, with its answer — ${picks.join(' · ')}`);
+  await row().locator('.pgc-panel [aria-label="Line balances already timed here"] .chip').first().click(); await page.waitForTimeout(1800);
+  const balRow = () => row().locator('.pgc-row', { hasText: 'Line balance — Finest Red 2kg — timed Tuesday' });
+  sa = flat(await balRow().innerText());
+  ok(flat(await balRow().locator('.status-pill').innerText()) === 'Passed' && /takt/.test(sa), `8n picked: Line balance Passed within takt — "${sa.slice(0, 160)}"`);
+  /* over takt */
+  await page.evaluate(async id => {
+    const db = await import('/src/db.ts');
+    await db.patchStudy(id, cur => ({ facts: { ...cur.facts, steps: cur.facts.steps.map((x, i) => (i === 0 ? { ...x, typedSec: 14 } : x)) } }));
+  }, timedId);
+  await page.waitForTimeout(1500);
+  sa = flat(await balRow().innerText());
+  ok(flat(await balRow().locator('.status-pill').innerText()) === 'Didn’t pass' && /Op 1 carries/.test(sa), `8o a person over takt: Didn’t pass, said who — "${sa.slice(0, 160)}"`);
+  await balRow().locator('.pgc-x').click(); await page.waitForTimeout(1500);
+  ok(!(await balanceGone()), '8p taken off the criteria — the balance study is kept');
+  async function balanceGone() { return !(await page.evaluate(id => import('/src/db.ts').then(db => db.getStudy(id)), timedId)); }
+  /* made from the picker on the product's line standard: opens there, Not yet until it has a takt and times */
+  await row().getByRole('button', { name: 'Add a criterion' }).click(); await page.waitForTimeout(300);
+  await row().locator('.pgc-panel [role=radio]', { hasText: 'Line balance' }).click(); await page.waitForTimeout(800);
+  await row().locator('.pgc-panel [aria-label="Time a new line balance on a product"] .chip', { hasText: 'Finest Red 2kg' }).click(); await page.waitForTimeout(2500);
+  rec = await record();
+  const madeId = rec.criteria.map(c => c.id).find(id => ![rec.criteria[0].id, rec.criteria[1].id, smedId].includes(id));
+  const made = await page.evaluate(id => import('/src/db.ts').then(db => db.getStudy(id)), madeId);
+  ok(made?.tool === 'balance' && made.programId === rec.id && made.projectId === PID && made.standardId === sd.standardId && made.machine === 'Ilapak flow wrapper' && (made.facts.steps ?? []).length === 2,
+    `8q a line balance made for the program from the product's line standard — its two people the elements, on the machine`);
+  ok(page.url().includes(`/standard/${sd.standardId}`) && page.url().includes(`study=${madeId}`), `8r it opens on the standard's People view — ${page.url().split('#')[1]}`);
+  await goPrograms(); await openProve();
+  const made8 = row().locator('.pgc-row', { hasText: 'Line balance — Finest Red 2kg' });
+  ok(flat(await made8.locator('.status-pill').innerText()) === 'Not yet', `8s untimed and with no takt it is Not yet — "${flat(await made8.innerText()).slice(0, 120)}"`);
+  await page.evaluate(async id => {
+    const db = await import('/src/db.ts');
+    await db.patchStudy(id, cur => ({ agreed: { balance: { taktSec: 12 } }, facts: { ...cur.facts, steps: cur.facts.steps.map((x, i) => ({ ...x, typedSec: i ? 8 : 10 })) } }));
+  }, madeId);
+  await page.waitForTimeout(1500);
+  ok(flat(await made8.locator('.status-pill').innerText()) === 'Passed' && /ready to sign off — all 4 criteria passed/i.test(await pill()), `8t timed within a 12 s takt: Passed — the row "${await pill()}"`);
+
+  /* a figures-only analysis question can never pass */
+  const sureId = await page.evaluate(async ([pid, prog]) => {
+    const db = await import('/src/db.ts'); const { uid, now } = await import('/src/lib/ids.ts');
+    const id = uid(), at = now();
+    await db.putStudy({ id, tool: 'analysis', name: 'How sure is the fill', projectId: pid, programId: prog,
+      agreed: { analysis: { kind: 'sure', name: 'Fill weight', unit: 'g' } },
+      facts: { readings: [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4].map((value, i) => ({ id: `s${i}`, at: at + i, value })) }, uses: [], startedAt: at, createdAt: at, updatedAt: at });
+    const p = (await db.listPrograms(pid)).find(x => x.id === prog);
+    await db.putProgram({ ...p, criteria: [...p.criteria, { kind: 'study', id }] });
+    return id;
+  }, [PID, rec.id]);
+  await page.waitForTimeout(1800);
+  const sureRow = row().locator('.pgc-row', { hasText: 'Analysis — How sure is the fill' });
+  sa = flat(await sureRow.innerText());
+  ok(flat(await sureRow.locator('.status-pill').innerText()) === 'Not yet' && /gives figures, not a pass or fail/.test(sa) && await row().getByRole('button', { name: 'Sign off', exact: true }).count() === 0,
+    `8u an analysis that only gives figures never passes — Not yet, said, no Sign off — "${sa.slice(0, 200)}"`);
+  await sureRow.locator('.pgc-x').click(); await page.waitForTimeout(1500);
+  void sureId;
+
+  /* signed off with the new tools among its criteria: the sign-off line, the report */
+  await row().getByRole('button', { name: 'Sign off', exact: true }).click(); await page.waitForTimeout(300);
+  await row().locator('input[aria-label="Who is signing it off"]').fill('R. Glew, J. Smith');
+  await row().getByRole('button', { name: 'Signed off — passed', exact: true }).click(); await page.waitForTimeout(2500);
+  const line8 = await page.evaluate(async ([pid, name]) => {
+    const db = await import('/src/db.ts'); const C = await import('/src/lib/programCriteria.ts');
+    const p = (await db.listPrograms(pid)).find(x => x.what === name);
+    return C.passedItLine(p, C.criteriaOf(p, await db.listAllStudies(), await db.listTests(pid)));
+  }, [PID, NAME]);
+  ok(/Changeover to 2 kg: Within the 20 min standard/.test(line8) && /Finest Red 2kg: Within takt/.test(line8), `8v what passed it names the new tools' verdicts: "${line8}"`);
+  const t8 = pdf(await download('Programs report', 'programs8.pdf'));
+  ok(t8.includes('Passed — SMED — Changeover to 2 kg') && t8.includes('Passed — Line balance — Finest Red 2kg') && t8.includes('Within the 20 min standard'),
+    '8w the Programs report: each new criterion with its answer and the tool’s sentence', t8.slice(t8.indexOf('PR-07'), t8.indexOf('PR-07') + 700));
+  await go(`#/project/${PID}/machines`);
+  await page.locator('.nv-main').getByText('Ilapak flow wrapper', { exact: false }).first().click(); await page.waitForTimeout(2500);
+  const mach8 = pdf(await download('Machine report', 'machine8.pdf'));
+  ok(mach8.includes('Changeover to 2 kg') && mach8.includes('Finest Red 2kg'), '8x its Machine report says what passed it, the new tools among them', mach8.slice(mach8.indexOf('PR-07'), mach8.indexOf('PR-07') + 500));
+  await go(`#/project/${PID}/report?doc=commissioning`);
+  const cm8 = pdf(await download('Download', 'commissioning8.pdf'));
+  ok(cm8.includes('Passed — SMED — Changeover to 2 kg') && cm8.includes('Passed — Line balance — Finest Red 2kg'), '8x2 the commissioning report: the new criteria with their answers', cm8.slice(cm8.indexOf('PR-07'), cm8.indexOf('PR-07') + 600));
+  await go(`#/project/${PID}/testing`);
+  await page.locator('.nv-main button[aria-label^="Ilapak flow wrapper — programs"]').first().click(); await page.waitForTimeout(1200);
+  ok(flat(await page.locator('[role=dialog]').last().innerText().catch(() => '')).includes(`signed off — passed ${nice}`), '8x3 Commission’s sheet of the machine’s programs still says it signed off, the new tools among its criteria');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(800);
+  /* the phone: seven chips wrap, nothing off the side */
+  await page.setViewportSize({ width: 375, height: 780 });
+  await goPrograms(); await openProve();
+  await row().getByRole('button', { name: 'Take the sign-off back' }).click(); await page.waitForTimeout(1500);
+  await row().getByRole('button', { name: 'Add a criterion' }).click(); await page.waitForTimeout(400);
+  const fit8 = await page.evaluate(name => {
+    const li = [...document.querySelectorAll('li.pgr')].find(l => l.querySelector('.pgr-name')?.textContent?.includes(name));
+    const chips = [...(li?.querySelectorAll('.pgc-panel [role=radio]') ?? [])].map(c => c.getBoundingClientRect());
+    return { n: chips.length, over: document.documentElement.scrollWidth - window.innerWidth, inside: chips.every(r => r.right <= window.innerWidth + 1 && r.left >= -1), rows: new Set(chips.map(r => Math.round(r.top))).size };
+  }, NAME);
+  ok(fit8.n === 7 && fit8.inside && fit8.over <= 0 && fit8.rows >= 2, `8y on a 375 px phone the seven chips wrap onto ${fit8.rows} lines, none off the side (${fit8.over}px over)`);
+  await row().getByRole('button', { name: 'Cancel' }).first().click().catch(() => {});
+  await page.setViewportSize({ width: 1360, height: 900 });
+  await goPrograms(); await openProve();
+  await row().getByRole('button', { name: 'Sign off', exact: true }).click(); await page.waitForTimeout(300);
+  await row().locator('input[aria-label="Who is signing it off"]').fill('R. Glew');
+  await row().getByRole('button', { name: 'Signed off — passed', exact: true }).click(); await page.waitForTimeout(2000);
+  ok((await pill()).startsWith('signed off — passed'), '8z signed again, with the new tools among its criteria');
+}
+
 /* ---- 7 on a phone ---- */
-await page.setViewportSize({ width: 390, height: 780 }); await go(PROGRAMS);
+await page.setViewportSize({ width: 390, height: 780 }); await goPrograms(); await openProve();
 const fit = await page.evaluate(name => {
   const li = [...document.querySelectorAll('li.pgr')].find(l => l.querySelector('.pgr-name')?.textContent?.includes(name));
   const c = li?.querySelector('.pgc'); const r = c?.getBoundingClientRect();
