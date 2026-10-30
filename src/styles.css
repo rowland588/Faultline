@@ -11163,6 +11163,7 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .status-pill.is-a { background: color-mix(in srgb, var(--st-a) 14%, var(--surface)); color: var(--st-a); }
 .status-pill.is-g { background: color-mix(in srgb, var(--st-g) 12%, var(--surface)); color: var(--st-g); }
 .status-pill.is-n { background: var(--surface-2); color: var(--muted); }
+.status-pill.is-w { background: color-mix(in srgb, var(--st-w) 12%, var(--surface)); color: var(--st-w); }   /* under way, still ahead (E4) */
 
 /* ---- Enterprise shell — every signed-in page (.nv-main, docs/ENTERPRISE-UI.md E0) ----
    Teams: grey canvas, white content regions. Planner: cards and tables on panels,
