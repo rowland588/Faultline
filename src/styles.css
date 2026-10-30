@@ -13629,6 +13629,9 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .pgc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .pgc-row { display: flex; align-items: flex-start; gap: 6px; min-width: 0; padding: 4px 8px; border: 1px solid var(--line); border-left: 3px solid var(--st-n); border-radius: var(--radius-sm); background: var(--surface); }
 .pgc-row.is-g { border-left-color: var(--st-g); } .pgc-row.is-r { border-left-color: var(--st-r); } .pgc-row.is-a { border-left-color: var(--st-a); }
+.pgc-rename { display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; flex-wrap: wrap; }
+.pgc-rename .text-input { flex: 1 1 14em; min-width: 0; }
+.pgc-rn { flex: none; align-self: center; }
 .pgc-open { all: unset; box-sizing: border-box; cursor: pointer; flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: var(--t-detail); }
 .pgc-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-xs); }
 .pgc-t { font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }

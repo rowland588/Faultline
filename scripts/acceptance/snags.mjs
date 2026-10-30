@@ -704,7 +704,30 @@ const ids = await page.evaluate(async () => {
   /* on a line with no 6M job: start one */
   const none = await openUp('Pallet wrapper film breaks');
   ok(/No 6M project on Line 2C yet/.test(await none.innerText()) && (await none.getByRole('button', { name: 'Start one to find its root cause ›' }).count()) === 1, '17 on a line with no 6M job: "Start one to find its root cause ›"');
-  await row('Pallet wrapper film breaks').locator('.pe-save').click(); await page.waitForTimeout(400);
+  /* ONE TAP (Rowland, 30 October — "make it a one tap start"): Start one makes the line's 6M project — the one New project
+     makes, "<line> performance" on that factory line — and goes straight on as Find the root cause › does */
+  const before = await page.evaluate(async () => (await import('/src/db.ts')).allProjects().then(a => a.length));
+  await none.getByRole('button', { name: 'Start one to find its root cause ›' }).click(); await page.waitForTimeout(3500);
+  const wrapper = await snag('Pallet wrapper film breaks');
+  const startedOn = await page.evaluate(async ({ proj, l2c }) => {
+    const db = await import('/src/db.ts');
+    const p = (await db.allProjects()).find(x => x.id === proj);
+    const lines = (await db.allPaceLines()).filter(l => l.projectId === proj && !l.deletedAt);
+    const model = p ? (await import('/src/lib/planModel.ts')).planModel(p) : undefined;
+    return { name: p?.name, model, lines: lines.map(l => l.workspaceId), onL2c: lines.some(l => l.workspaceId === l2c) };
+  }, { proj: wrapper?.projectId ?? '', l2c: ids.l2c });
+  ok(startedOn.name === 'Line 2C performance' && startedOn.model === 'board' && startedOn.onL2c && startedOn.lines.length === 1, `17 one tap made the project: ${startedOn.name}, a 6M project, on Line 2C only`, JSON.stringify(startedOn));
+  const wcase = await page.evaluate(async id => (await import('/src/db.ts')).getCase(id), wrapper?.caseId ?? '');
+  ok(new RegExp(`#/project/${wrapper?.projectId}/fishbone\\?.*problem=${wrapper?.caseId}`).test(page.url()) && wcase?.title === 'Pallet wrapper film breaks' && wrapper?.status === 'closed',
+    '17 …and went straight on: its fishbone open on the problem in its words, the register problem taken there');
+  const after = await page.evaluate(async () => (await import('/src/db.ts')).allProjects().then(a => a.length));
+  ok(after === before + 1, `17 exactly one project made (${before} → ${after})`);
+  /* a second problem on that line finds the project now — Find the root cause ›, never a second project */
+  await page.evaluate(async l2c => { const db = await import('/src/db.ts'); const t = Date.now(); await db.addSnag({ id: crypto.randomUUID(), workspaceId: l2c, problem: 'Pallet wrapper jams at the turntable', status: 'open', raisedAt: t, updatedAt: t, media: [] }); }, ids.l2c);
+  await go('#/snags');
+  const second = await openUp('Pallet wrapper jams at the turntable');
+  ok((await second.getByRole('button', { name: /Find the root cause/ }).count()) === 1 && (await second.getByRole('button', { name: /Start one/ }).count()) === 0, '17 the next problem on Line 2C offers Find the root cause ›, not Start one');
+  await row('Pallet wrapper jams at the turntable').locator('.pe-save').click(); await page.waitForTimeout(400);
   /* on Line 7, whose 6M job finds root causes */
   const pe = await openUp(what);
   await pe.getByRole('button', { name: 'Find the root cause ›' }).click(); await page.waitForTimeout(3000);

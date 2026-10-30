@@ -85,6 +85,8 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   const today = todayISO();
   const [tool, setTool] = useState<Pick>('capability');
   const [name, setName] = useState('');
+  /* a criterion's study renamed where it is listed — what it judges can be said better after it is made */
+  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   /** When work already exists on its tests, start on that list — not "Set it up now" (program 5, 28 October). */
   const [newStudy, setNewStudy] = useState(false);
   const [signing, setSigning] = useState(false);
@@ -213,11 +215,27 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
         <ul className="pgc-list">
           {answers.map((a, i) => (
             <li key={`${a.c.kind}:${a.c.id}`} className={'pgc-row is-' + a.tone}>
-              <button type="button" className="pgc-open" onClick={() => { if (a.study) nav(studyHref(a.study)); else if (a.test) openRecord(a.test.projectId, a.test.id); }}>
-                <span className="pgc-t">{a.title}</span>
-                <span className={'status-pill is-' + a.tone}>{CRITERION_WORD[a.word]}</span>
-                <span className="pgc-says">{a.says}</span>
-              </button>
+              {renaming && a.study && renaming.id === a.study.id ? (
+                <span className="pgc-rename">
+                  <input className="text-input" value={renaming.value} maxLength={120} autoFocus aria-label="Rename the study — what it judges"
+                    onChange={e => setRenaming({ id: renaming.id, value: e.target.value })}
+                    onKeyDown={e => { if (e.key === 'Escape') setRenaming(null); }} />
+                  <button type="button" className="btn btn-primary btn-sm" disabled={!renaming.value.trim()} onClick={() => {
+                    const st = a.study; if (!st) return;
+                    void putStudy({ ...st, name: renaming.value.trim(), updatedAt: now() }).then(() => setRenaming(null));
+                  }}>Save name</button>
+                  <button type="button" className="btn btn-sm" onClick={() => setRenaming(null)}>Cancel</button>
+                </span>
+              ) : (
+                <button type="button" className="pgc-open" onClick={() => { if (a.study) nav(studyHref(a.study)); else if (a.test) openRecord(a.test.projectId, a.test.id); }}>
+                  <span className="pgc-t">{a.title}</span>
+                  <span className={'status-pill is-' + a.tone}>{CRITERION_WORD[a.word]}</span>
+                  <span className="pgc-says">{a.says}</span>
+                </button>
+              )}
+              {edit && a.study && !(renaming && renaming.id === a.study.id) && (
+                <button type="button" className="cw-link pgc-rn" aria-label={`Rename ${a.title}`} title="Rename — what it judges" onClick={() => a.study && setRenaming({ id: a.study.id, value: a.study.name })}>Rename</button>
+              )}
               {edit && !p?.signedOff && (
                 <button type="button" className="pgc-x" aria-label={`Take ${a.title} off the criteria`} title="Take it off the criteria" onClick={() => off(i)}>
                   <Icon name="close" size={13} /></button>

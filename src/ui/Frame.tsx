@@ -105,11 +105,17 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   const recordOf = useRecordProject(record, product ?? route.id);
   /* a record: its own project or none; a line's list of its products: the
      project it was opened in, or none */
-  const projectId = record ? recordOf?.project || undefined
+  const projectIdOf = record ? recordOf?.project || undefined
     : route.name === 'lineStandards' ? route.query.get(PROJECT_KEY) ?? undefined
       : projectOf(route, chain?.projectId);
   /* An archived job still opens (from the archive), and still wears its rail. */
-  const project = projectId ? (projects.find(p => p.id === projectId) ?? archived.find(p => p.id === projectId)) : undefined;
+  const projectOfRecord = projectIdOf ? (projects.find(p => p.id === projectIdOf) ?? archived.find(p => p.id === projectIdOf)) : undefined;
+  /* …but a RECORD (a study, a product's tool) that sits on a live line wears the LINE's frame even when the project it
+     was made in is archived — Rowland, 30 October: opening a test's proving study "takes me to the old UI, an archived
+     section ... I just want the test". A project's own pages (and a record on no line) keep the project's rail. */
+  const onLiveLine = !!record && !!projectOfRecord?.archivedAt && !!recordOf?.line;
+  const projectId = onLiveLine ? undefined : projectIdOf;
+  const project = onLiveLine ? undefined : projectOfRecord;
   /* THE SCOPE (lib/scope; docs/STRUCTURE.md §5): the factory, a line or a project — or Home */
   const scope: Scope = scopeOf(route, { projectId: project ? projectId : undefined, lineId: recordOf?.line });
   const jobHere = useHere(route, project);

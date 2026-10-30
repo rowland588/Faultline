@@ -27,6 +27,8 @@ import { problemCost, type ProblemCost } from '../lib/problemCost';
 import { neckOf } from '../lib/lineLoss';
 import type { Standard } from '../tools/linestandard/standard';
 import { useProjects } from '../lib/useProjects';
+import { startLineSixm } from '../lib/lineSixm';
+import { useCanStartProjects } from '../cloud/access';
 import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
 import type { SnagCardRow } from '../lib/buildSnagCards';
@@ -81,7 +83,8 @@ interface RootOn { id: string; name: string; lineId: string }
 const todayInput = () => dueToInput(new Date().setHours(0, 0, 0, 0));
 
 export function QuickSnagsScreen() {
-  const { projects, archived: archivedJobs } = useProjects();
+  const { projects, archived: archivedJobs, create: createProject } = useProjects();
+  const mayStart = useCanStartProjects();
   const [snags, setSnags] = useState<Snag[] | null>(null);
   const [lines, setLines] = useState<Workspace[]>([]);
   /* the lines' standards, for each line's bottleneck — what a problem's minutes cost (lib/problemCost, FC-154) */
@@ -131,6 +134,7 @@ export function QuickSnagsScreen() {
   const [setting, setSetting] = useState(false);
   const [showAway, setShowAway] = useState(false);
   const [busy, setBusy] = useState<'' | 'report' | 'cards'>('');
+  const [starting, setStarting] = useState('');
   const [viewing, setViewing] = useState<{ snagId?: string; media: MediaRef } | null>(null);
   const liveJobs = useMemo(() => projects.filter(p => !p.archivedAt), [projects]);
   /* who may change a project's own problems — a client of it reads them (lib/access) */
@@ -294,6 +298,17 @@ export function QuickSnagsScreen() {
     if (!made) return;
     offerUndo(`Taken to 6M on ${j.name} — its fishbone is open`, made.undo);
     nav(`/project/${j.id}/fishbone?line=${encodeURIComponent(j.lineId)}&problem=${encodeURIComponent(made.problem.id)}`);
+  };
+  /* START ONE TO FIND ITS ROOT CAUSE: the line has no 6M project, so this tap makes it (lib/lineSixm — the project
+     New project makes, named "<line> performance") and goes straight on as Find the root cause › does */
+  const startRootCause = async (s: Snag) => {
+    const line = factory.find(w => w.id === s.workspaceId);
+    if (!line || starting) return;
+    setStarting(s.id);
+    try {
+      const j = await startLineSixm(createProject, { id: line.id, name: line.name });
+      await toRootCause(s, j);
+    } finally { setStarting(''); }
   };
   /* where a problem taken to 6M went — its 6M problem, on its job's line */
   const rootOf = (s: Snag): { jobId: string; line?: string; job: string } | undefined => {
@@ -553,7 +568,7 @@ export function QuickSnagsScreen() {
                       onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId, s.projectId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
                       sixm={sixmOn(s.workspaceId)} onRoot={j => void toRootCause(s, j)} rootOf={rootOf(s)}
-                      onStart={() => nav(`/projects?new=1&line=${encodeURIComponent(s.workspaceId)}`)}
+                      onStart={mayStart ? () => void startRootCause(s) : undefined} starting={starting === s.id}
                       onCard={() => void cards([s])} onWalk={() => nav(`/w/${s.workspaceId}/asset/${s.assetId}`)}
                       onDelete={() => { if (window.confirm('Delete this problem? Its photos and everything written about it go with it.\n\nUndo brings it back for a few seconds.')) void deleteSnag(s.id).then(back => offerUndo(`Deleted “${s.problem.trim().length > 40 ? s.problem.trim().slice(0, 39) + '…' : s.problem.trim() || 'the problem'}”`, back)); }} />}
                   </li>
@@ -801,12 +816,12 @@ function JobEditor({ r, data, job, lines, busy, onCard, onOpen, onToLine, onDone
   );
 }
 
-function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave, lineName, jobName, sixm, onRoot, rootOf, onStart, cost }: {
+function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave, lineName, jobName, sixm, onRoot, rootOf, onStart, starting, cost }: {
   s: Snag; lines: Workspace[]; projects: Project[]; machines: string[]; frame?: SnagAsset;
   /** What it costs the line a day while it is open, from its minutes (lib/problemCost, FC-154). */
   cost?: ProblemCost;
   /** The 6M jobs on its line, and whether this person may open a problem on each (lib/access). */
-  sixm: (RootOn & { canEdit: boolean })[]; onRoot: (j: RootOn) => void; onStart: () => void;
+  sixm: (RootOn & { canEdit: boolean })[]; onRoot: (j: RootOn) => void; onStart?: () => void; starting?: boolean;
   /** Where it went, when it was taken to 6M. */
   rootOf?: { jobId: string; line?: string; job: string };
   put: (p: SnagChange) => void; onView: (m: MediaRef) => void; onCard: () => void; onWalk: () => void; onDelete: () => void; busy: string;
@@ -977,7 +992,7 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
               ? <div className="qsl-x-acts">{roots.map(j => <button key={j.id} type="button" className="btn" onClick={() => onRoot(j)}>Find the root cause{roots.length > 1 ? ` on ${j.name}` : ''} ›</button>)}</div>
               : sixm.length > 0
                 ? <p className="sub pe-said">{sixm[0].name} finds root causes on {lineName(s.workspaceId)} — its team can take it there.</p>
-                : <p className="sub pe-said">No 6M project on {lineName(s.workspaceId)} yet. <button type="button" className="linkish" onClick={onStart}>Start one to find its root cause ›</button></p>}
+                : <p className="sub pe-said">No 6M project on {lineName(s.workspaceId)} yet.{onStart && <> <button type="button" className="linkish" disabled={starting} onClick={onStart}>Start one to find its root cause ›</button></>}</p>}
           </div>
         )}
 
