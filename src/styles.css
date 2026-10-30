@@ -11037,6 +11037,23 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .qsl-prio.is-g { background: color-mix(in srgb, var(--st-g) 12%, var(--surface)); color: var(--st-g); border-color: color-mix(in srgb, var(--st-g) 40%, var(--surface)); }
 .qsl-prio-set.is-a { color: var(--st-a); }
 .qsl-fixline { color: var(--ink-2); }
+/* E4 problems — the shared .status-pill carries a problem's PRIORITY (Critical red, High amber, Low green, always with its
+   word) and its state in words, on the register, a line's Problems rows and the walk's snags; the register's groups are
+   panels and its problems card-rows on the grey canvas, as E2/E3 did. The old class names stay on the pill (scripts read them). */
+.status-pill.qsl-prio, .status-pill.qsl-prio.is-r, .status-pill.qsl-prio.is-a, .status-pill.qsl-prio.is-g {
+  display: inline-block; margin-right: 8px; border: 0; padding: 1px 9px; text-transform: uppercase; letter-spacing: .03em; font-weight: 800; vertical-align: 1px;
+}
+.status-pill.qsl-state { max-width: 100%; text-align: left; white-space: normal; font-weight: 700; }
+.nv-main .qsl-reg .qsl-g {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 12px 16px 14px; margin-top: 16px;
+}
+.nv-main .qsl-reg .qsl-rows { display: grid; gap: 6px; margin-top: 10px; }
+.nv-main .qsl-reg .qsl-row { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0 12px 0 4px; }
+.nv-main .qsl-reg .qsl-row:hover { border-color: var(--line-2); }
+.nv-main .qsl-reg .qsl-row.is-open, .nv-main .qsl-reg .qsl-row.is-picked { background: var(--surface-2); }
+.nv-main .qsl-reg .qsl-open { padding-top: 8px; padding-bottom: 8px; }
+@media (max-width: 719px) { .nv-main .qsl-reg .qsl-g { padding: 10px 10px 12px; } .nv-main .qsl-reg .qsl-row { padding-right: 8px; } }
 .qs-mach-other { margin-top: 6px; max-width: 320px; }
 .chip.qs-prio.is-critical.on { background: var(--st-r); border-color: var(--st-r); color: var(--on-dark); }
 .chip.qs-prio.is-high.on { background: color-mix(in srgb, var(--st-a) 18%, var(--surface)); border-color: var(--st-a); color: var(--st-a); }
