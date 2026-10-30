@@ -67,4 +67,5 @@ waits); positive release and QA holds; a bakery's mix–prove–bake–cool–pa
 `src/tools/valuestream/MapScreen.tsx` with `src/tools/valuestream/steps.ts`: a line's stream as
 a swimlane grid by who and where, walked on the phone, its future state copied
 and changed, before → after, on paper; acceptance `scripts/acceptance/value-stream.mjs`.
+Since 30 October each step is classified VA · NE · NV in one tap — beside the stopwatch, in the step's panel (V · E · N), with a step nobody has classified said as *not classified* and counted on the page and every paper (knowledge/specs/FC-001-value-stream-money.md, part 2); the page is one primary, a row on the grid and More ▾.
 Not built: inventory counts converted to days, supermarkets, kanban, pitch.

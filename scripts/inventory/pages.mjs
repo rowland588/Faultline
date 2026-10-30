@@ -370,6 +370,9 @@ export const PAGES = (sd, cap) => [
     { what: 'words up a tall, narrow shape', sel: '.ls-shape-t.is-up' },
   ] }] : []),
   { name: 'A value stream map', path: `#/value-stream/${sd.lineMapId}`, must: [{ what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ }, { what: 'the grid', sel: '.vs-grid' },
+    /* 30 October — Rowland: "too complex, many different buttons ... simplify": one primary, one row on the grid, the letters one button a step, the rest behind More ▾ */
+    { what: 'the one primary — Time the steps', sel: '.ln-band-acts .btn-primary', text: /^Time the steps/ }, { what: 'the grid’s one row — Lanes by Who · Where, + Add a step', sel: '.vs-bar .vs-add', text: /^\+ Add a step/ },
+    { what: 'a letter chip a step — its value, VA · NE · NV, and the way in to the step’s panel', sel: 'button.vs-cls', n: 16 },
     { what: 'the band', sel: '.ln-band' }, { what: 'its seven cards', sel: '.vs-cards .vs-card2' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' },
     /* IN MONEY (knowledge/specs/FC-001-value-stream-money.md, 24 October): the waste work's labour a day and the product waiting, among the cards; the sentence with what is missing named */
     { what: 'the money cards — Waste work a day, Waiting product tied up (FC-001)', sel: '.vs-cards .vs-card2.is-money', n: 2 }, { what: 'the money sentence — the labour said, or the line’s wage named as missing', sel: '.ie-say.ie-money', text: /^Waste work/ }] },

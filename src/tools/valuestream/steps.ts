@@ -21,7 +21,7 @@
  *
  * THE GRID: lanes down the side (who), the journey across (the steps in
  * order), each card filled by its value (ui/ValueStream). */
-import type { AgreedMap, FlowStep } from '../../lib/study';
+import type { AgreedMap, FlowKind, FlowStep, FlowValue } from '../../lib/study';
 
 const DAY = 86_400;
 
@@ -38,6 +38,84 @@ export function waitOf(st: FlowStep, a?: AgreedMap): { sec?: number; from?: 'que
  *  marked stays unmarked, and the reading says so — never guessed. */
 export const valueOf = (st: FlowStep): FlowStep['value'] =>
   st.kind === 'wait' || st.kind === 'store' ? 'waste' : st.value === 'adds' && st.kind !== 'operation' ? 'needed' : st.value;
+
+/* ------------------------------------------------ marking a step's value
+ * Rowland, 30 October: "it doesn't allow me to quickly reference the activity
+ * as VNA, VA, etc". One rule for every place a step is marked — the step's
+ * sheet, the quick buttons on the map, the classify walk — so they can never
+ * disagree: an operation can be VA, NE or NV; a move or a check only NE or NV
+ * (the app will not call a move value-adding); a wait or a store is NV by
+ * definition and is marked by nobody. */
+
+/** The values a step of this kind can be marked. */
+export const valuesFor = (kind: FlowKind): FlowValue[] =>
+  kind === 'operation' ? ['adds', 'needed', 'waste'] : kind === 'wait' || kind === 'store' ? [] : ['needed', 'waste'];
+
+/** Can a person mark this step at all (a wait or a store is NV already)? */
+export const markable = (st: FlowStep): boolean => valuesFor(st.kind).length > 0;
+
+/** The value a step has after one tap on `tapped`: that value; the same value
+ *  tapped again clears it; one the kind does not allow changes nothing. */
+export function tapValue(st: FlowStep, tapped: FlowValue): FlowValue | undefined {
+  if (!valuesFor(st.kind).includes(tapped)) return valueOf(st);
+  return valueOf(st) === tapped ? undefined : tapped;
+}
+
+/** The step marked `v` (undefined clears it) — a value its kind does not allow is dropped. */
+export function withValue(st: FlowStep, v: FlowValue | undefined): FlowStep {
+  const { value: _was, ...rest } = st; void _was;
+  return v && valuesFor(st.kind).includes(v) ? { ...rest, value: v } : rest;
+}
+
+/** How the steps stand: each value, and the steps nobody has marked yet (a wait
+ *  or a store is NV, so is never among them). */
+export interface ClassCounts { steps: number; adds: number; needed: number; waste: number; unclassified: number; waits: number }
+export function classCounts(flow: FlowStep[] | undefined): ClassCounts {
+  const c: ClassCounts = { steps: 0, adds: 0, needed: 0, waste: 0, unclassified: 0, waits: 0 };
+  for (const st of flow ?? []) {
+    c.steps++;
+    const v = valueOf(st);
+    if (st.kind === 'wait' || st.kind === 'store') c.waits++;
+    if (v === 'adds') c.adds++; else if (v === 'needed') c.needed++; else if (v === 'waste') c.waste++; else c.unclassified++;
+  }
+  return c;
+}
+
+/** The nudge, said exactly as the arithmetic does it: a step nobody has marked
+ *  keeps its time in the lead time but in none of VA · NE · NV, so the share
+ *  that adds value counts only what is marked VA. */
+export const notClassifiedWords = (n: number): string =>
+  `${n} step${n === 1 ? '' : 's'} not classified yet — the % value added counts only the steps classified VA; ${n === 1 ? 'its' : 'their'} time is in the lead time but in none of VA · NE · NV.`;
+
+/** The steps in the order of the journey — the order the classify walk goes. */
+export const walkOrder = (flow: FlowStep[] | undefined): FlowStep[] => [...(flow ?? [])].sort((x, y) => x.order - y.order);
+
+/** The place of the next step nobody has classified, after `from` (−1 for the
+ *  start), wrapping round to the ones before it; undefined when none is left. */
+export function nextUnclassified(steps: FlowStep[], from: number): number | undefined {
+  const n = steps.length;
+  for (let k = 1; k <= n; k++) {
+    const i = (from + k + n) % n;
+    if (i !== from && !valueOf(steps[i])) return i;
+  }
+  return undefined;
+}
+
+/** "Step 7 of 23 — 5 still to classify" (or "all classified"). */
+export function walkCount(steps: FlowStep[], at: number): string {
+  const left = steps.filter(x => !valueOf(x)).length;
+  return `Step ${at + 1} of ${steps.length} — ${left ? `${left} still to classify` : 'all classified'}`;
+}
+
+/** Where the walk ends: how many are VA · NE · NV, the share that adds value
+ *  and the lead time — the figures the map's own cards say, from flowFigures. */
+export function classifySummary(flow: FlowStep[] | undefined, a?: AgreedMap): { counts: ClassCounts; f: FlowFigures; text: string } {
+  const counts = classCounts(flow), f = flowFigures(flow, a);
+  const marked = `${counts.adds} VA · ${counts.needed} NE · ${counts.waste} NV`;
+  const lead = f.leadSec > 0 ? ` ${share(f.pce ?? 0)} of the ${f.untimed ? 'at least ' : ''}${dur(f.leadSec)} lead time adds value (${dur(f.addsSec)}).` : '';
+  const left = counts.unclassified ? ` ${notClassifiedWords(counts.unclassified)}` : '';
+  return { counts, f, text: `${counts.steps} step${counts.steps === 1 ? '' : 's'}: ${marked}.${lead}${left}` };
+}
 
 export interface FlowFigures {
   /** The swimlanes, in the order the journey first reaches them. */
@@ -171,7 +249,7 @@ export function flowSays(f: FlowFigures, a?: AgreedMap): FlowSays {
   const lines: string[] = [];
   if (f.untimed) lines.push(`${f.untimed} step${f.untimed === 1 ? ' has' : 's have'} no time yet — the lead time is at least this.`);
   if (f.carried) lines.push(`${f.carried} step${f.carried === 1 ? ' is' : 's are'} carried from the map before — not walked or typed again yet.`);
-  if (f.unmarked) lines.push(`${f.unmarked} step${f.unmarked === 1 ? '' : 's'} not marked adds value, needed or waste yet.`);
+  if (f.unmarked) lines.push(notClassifiedWords(f.unmarked));
   if (f.biggestWait?.from === 'queue' && a?.demandPerDay) lines.push(`${f.biggestWait.step.name.trim()}: worked out from ${f.biggestWait.step.queue} waiting, at ${a.demandPerDay} a day.`);
   return { text: parts.join(' '), lines };
 }

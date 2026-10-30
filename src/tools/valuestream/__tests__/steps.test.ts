@@ -1,6 +1,7 @@
 /* The value stream's arithmetic — one line end to end, the departments that touch it included. */
 import { describe, it, expect } from 'vitest';
-import { flowFigures, flowSays, compareFlows, waitOf, valueOf, dur, parseDur, lanesOf, lanesOfStep, whoOf, whereOf, laneByDefault, stepWorth, stepFigure, compareStep, carryFlow, streamRows, flowMoney, flowMoneySays, MISSING_WAGE, MISSING_RATE, MISSING_PIECE, MISSING_DEMAND } from '../steps';
+import { valuesFor, markable, tapValue, withValue, classCounts, notClassifiedWords, walkOrder, nextUnclassified, walkCount, classifySummary, flowFigures, flowSays, compareFlows, waitOf, valueOf, dur, parseDur, lanesOf, lanesOfStep, whoOf, whereOf, laneByDefault, stepWorth, stepFigure, compareStep, carryFlow, streamRows, flowMoney, flowMoneySays, MISSING_WAGE, MISSING_RATE, MISSING_PIECE, MISSING_DEMAND } from '../steps';
+import { flowClosing, flowTiles } from '../flowLean';
 import type { FlowStep } from '../../../lib/study';
 
 const D = 86_400;
@@ -46,7 +47,7 @@ describe('the value stream (tool 2)', () => {
     expect([f.untimed, f.unmarked]).toEqual([1, 1]);
     const s = flowSays(f, agreed);
     expect(s.text).toMatch(/^Lead time at least 4\.5 d/);
-    expect(s.lines.slice(0, 2)).toEqual(['1 step has no time yet — the lead time is at least this.', '1 step not marked adds value, needed or waste yet.']);
+    expect(s.lines.slice(0, 2)).toEqual(['1 step has no time yet — the lead time is at least this.', '1 step not classified yet — the % value added counts only the steps classified VA; its time is in the lead time but in none of VA · NE · NV.']);
   });
   it('a typed wait wins over a queue; no demand, no queue days', () => {
     expect(waitOf({ id: 'x', order: 0, name: 'x', lane: 'x', kind: 'store', queue: 600, waitSec: 60 }, agreed)).toEqual({ sec: 60 });
@@ -217,5 +218,101 @@ describe('money on the value stream (FC-001)', () => {
     const k = flowMoney(line(), { demandPerDay: 9600, availableSecPerDay: 16 * H }, rate);
     expect(k.tiedUp).toBeUndefined(); expect(k.missing.waits).toBe(MISSING_PIECE);
     expect(flowMoney([], a, rate)).toEqual({ waits: [], unpriced: 0, missing: {} });
+  });
+});
+
+
+/* CLASSIFYING A STEP IN ONE TAP (Rowland, 30 October: "it doesn't allow me to quickly reference the activity as VNA, VA, etc") */
+describe('marking a step VA · NE · NV — one rule for the sheet, the map and the stopwatch', () => {
+  const step = (o: Partial<FlowStep> & Pick<FlowStep, 'kind'>): FlowStep => ({ id: 'x', order: 0, name: 'x', lane: 'x', ...o });
+  it('an operation can be VA, NE or NV; a move or a check only NE or NV; a wait or a store nothing (it is NV already)', () => {
+    expect(valuesFor('operation')).toEqual(['adds', 'needed', 'waste']);
+    expect(valuesFor('move')).toEqual(['needed', 'waste']);
+    expect(valuesFor('check')).toEqual(['needed', 'waste']);
+    expect(valuesFor('wait')).toEqual([]);
+    expect(valuesFor('store')).toEqual([]);
+    expect(markable(step({ kind: 'operation' }))).toBe(true);
+    expect(markable(step({ kind: 'wait' }))).toBe(false);
+  });
+  it('one tap sets it, the same tap again clears it, a value the kind cannot take changes nothing', () => {
+    const op = step({ kind: 'operation' });
+    expect(tapValue(op, 'adds')).toBe('adds');
+    expect(tapValue({ ...op, value: 'adds' }, 'adds')).toBeUndefined();
+    expect(tapValue({ ...op, value: 'adds' }, 'waste')).toBe('waste');
+    const mv = step({ kind: 'move' });
+    expect(tapValue(mv, 'adds')).toBeUndefined();            // a move is never VA
+    expect(tapValue({ ...mv, value: 'waste' }, 'adds')).toBe('waste');
+    expect(tapValue(step({ kind: 'wait' }), 'needed')).toBe('waste');   // a wait stays NV
+  });
+  it('an older step saved "adds" on a move reads as necessary, so a tap on NE clears it', () => {
+    const old = step({ kind: 'move', value: 'adds' });
+    expect(valueOf(old)).toBe('needed');
+    expect(tapValue(old, 'needed')).toBeUndefined();
+  });
+  it('withValue saves it as the step editor would: the value the kind allows, or none', () => {
+    expect(withValue(step({ kind: 'operation' }), 'adds').value).toBe('adds');
+    expect('value' in withValue(step({ kind: 'operation', value: 'adds' }), undefined)).toBe(false);
+    expect('value' in withValue(step({ kind: 'move' }), 'adds')).toBe(false);
+    expect('value' in withValue(step({ kind: 'wait' }), 'waste')).toBe(false);
+  });
+});
+
+describe('classifying the steps — the count, the nudge, the walk', () => {
+  const flow = (): FlowStep[] => { n = 0; return [
+    st({ name: 'Load', lane: 'Op 1', kind: 'operation', value: 'needed', cycleSec: 60 }),
+    st({ name: 'Seal', lane: 'Machine', kind: 'operation', cycleSec: 10 }),
+    st({ name: 'Walk', lane: 'Op 2', kind: 'move', cycleSec: 30 }),
+    st({ name: 'Hold', lane: 'QA', kind: 'wait', waitSec: 300 }),
+    st({ name: 'Pack', lane: 'Op 2', kind: 'operation', value: 'adds', cycleSec: 20 }),
+  ]; };
+  it('counts each value, and the steps nobody has marked (a wait is NV, never unmarked)', () => {
+    expect(classCounts(flow())).toEqual({ steps: 5, adds: 1, needed: 1, waste: 1, unclassified: 2, waits: 1 });
+    expect(classCounts(undefined).steps).toBe(0);
+  });
+  it('the nudge says exactly what the arithmetic does: unmarked time is in the lead time but in none of VA · NE · NV', () => {
+    const f = flowFigures(flow());
+    expect(f.unmarked).toBe(2);
+    expect(f.leadSec).toBe(60 + 10 + 30 + 300 + 20);
+    expect(f.addsSec).toBe(20);                       // only Pack — the share counts only the VA
+    expect(f.pce).toBeCloseTo(20 / 420, 10);
+    expect(f.neededSec + f.wasteSec + f.addsSec).toBe(60 + 300 + 20);   // the 40 s of the two unmarked steps is in none
+    expect(notClassifiedWords(2)).toBe('2 steps not classified yet — the % value added counts only the steps classified VA; their time is in the lead time but in none of VA · NE · NV.');
+    expect(notClassifiedWords(1)).toMatch(/^1 step not classified yet — .* its time /);
+  });
+  it('the walk goes in the journey’s order; next unclassified skips the done and wraps; none left says so', () => {
+    const w = walkOrder(flow().reverse());
+    expect(w.map(x => x.name)).toEqual(['Load', 'Seal', 'Walk', 'Hold', 'Pack']);
+    expect(nextUnclassified(w, -1)).toBe(1);
+    expect(nextUnclassified(w, 1)).toBe(2);
+    expect(nextUnclassified(w, 2)).toBe(1);           // wraps round to the one before it
+    expect(nextUnclassified(w.map(x => (x.name === 'Seal' || x.name === 'Walk' ? { ...x, value: 'needed' as const } : x)), 0)).toBeUndefined();
+    expect(walkCount(w, 6 - 5)).toBe('Step 2 of 5 — 2 still to classify');
+    expect(walkCount(w.map(x => (x.kind === 'operation' || x.kind === 'move' ? { ...x, value: 'needed' as const } : x)), 4)).toBe('Step 5 of 5 — all classified');
+  });
+  it('the walk ends on the figures the map says: counts, the share and the lead time', () => {
+    const done = flow().map(x => (x.name === 'Seal' ? { ...x, value: 'adds' as const } : x.name === 'Walk' ? { ...x, value: 'waste' as const } : x));
+    const s = classifySummary(done);
+    expect(s.counts).toMatchObject({ adds: 2, needed: 1, waste: 2, unclassified: 0 });
+    expect(s.f.pce).toBeCloseTo(30 / 420, 10);
+    expect(s.text).toBe('5 steps: 2 VA · 1 NE · 2 NV. 7.1% of the 7 min lead time adds value (30.0 s).');
+    expect(classifySummary(flow()).text).toMatch(/2 steps not classified yet — the % value added counts only the steps classified VA/);
+  });
+});
+
+describe('the unclassified, said on every page and paper from one module', () => {
+  const mixed: FlowStep[] = [
+    { id: 'a', order: 0, name: 'Seal', lane: 'M', kind: 'operation', cycleSec: 10 },
+    { id: 'b', order: 1, name: 'Pack', lane: 'M', kind: 'operation', value: 'adds', cycleSec: 20 },
+  ];
+  it('the closing line and the tiles carry the count; a fully classified map says nothing extra', () => {
+    const f = flowFigures(mixed);
+    expect(flowClosing(f).text).toBe('30.0 s lead time, 67% of it adding value. 1 step not classified yet — the % value added counts only the steps classified VA; its time is in the lead time but in none of VA · NE · NV.');
+    expect(flowTiles(f, mixed).find(t => t.k === 'Not classified')).toMatchObject({ v: '1 step', tone: 'a' });
+    const done = mixed.map(x => ({ ...x, value: 'adds' as const }));
+    expect(flowClosing(flowFigures(done)).text).toBe('30.0 s lead time, 100% of it adding value.');
+    expect(flowTiles(flowFigures(done), done).some(t => t.k === 'Not classified')).toBe(false);
+  });
+  it('a row of the stream on paper has no value until it is classified (the paper says "not classified")', () => {
+    expect(streamRows(mixed).rows.map(r => r.value)).toEqual([undefined, 'adds']);
   });
 });

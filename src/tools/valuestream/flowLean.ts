@@ -8,7 +8,7 @@
  * carried; a missing input named, never a figure made up. */
 import type { LeanTile, LeanTone } from '../../lib/lean';
 import type { AgreedMap, FlowStep } from '../../lib/study';
-import { dur, share, whereOf, whoOf, type FlowFigures, type FlowMoney } from './steps';
+import { dur, notClassifiedWords, share, whereOf, whoOf, type FlowFigures, type FlowMoney } from './steps';
 
 /** THE CLOSING LINE — the lead time and its value-added share, and where to
  *  start: the biggest wait; a cycle over takt said in red, where the stream
@@ -21,7 +21,9 @@ export function flowClosing(f: FlowFigures, a?: AgreedMap): { text: string; tone
   const first = w ? ` — start with the biggest wait: ${w.step.name.trim() || 'a step'}${at ? ` (${at})` : ''}, ${dur(w.sec)}` : '';
   const c = f.longestCycle;
   const over = c?.overTakt && f.taktSec ? `; ${c.step.name.trim() || 'a step'} is over takt (${dur(c.sec)} against ${dur(f.taktSec)}) — where the stream is limited` : '';
-  return { text: `${lead}${first}${over}.`, tone: over ? 'r' : 'n' };
+  /* a step nobody has classified is said here as on the page and on paper — the share that adds value counts only the VA */
+  const nudge = f.unmarked ? ` ${notClassifiedWords(f.unmarked)}` : '';
+  return { text: `${lead}${first}${over}.${nudge}`, tone: over ? 'r' : 'n' };
 }
 
 /** The map's seven cards as the paper's tiles — the same labels and figures
@@ -34,6 +36,7 @@ export function flowTiles(f: FlowFigures, list: readonly FlowStep[]): LeanTile[]
     { k: 'Necessary', v: dur(f.neededSec), of: 'work that does not add value but must be done' },
     { k: 'Non-value adding', v: dur(f.wasteSec), of: 'wasteful work and every wait', ...(f.wasteSec > 0 ? { tone: 'r' as LeanTone } : {}) },
     { k: 'Cycle time', v: dur(cycle), of: f.taktSec ? `takt ${dur(f.taktSec)}` : 'no takt agreed yet' },
+    ...(f.unmarked ? [{ k: 'Not classified', v: `${f.unmarked} step${f.unmarked === 1 ? '' : 's'}`, of: 'in none of VA · NE · NV — the % value added counts only the VA', tone: 'a' as LeanTone }] : []),
   ];
 }
 

@@ -24,7 +24,12 @@
  *      Evidence appendix with the stream as a table
  *   8  on a 6M job, the fishbone offers the line map's wait and waste, each
  *      on its bone; accepted, the cause says where it came from
- *   and a client reads the map and changes nothing.
+ *   and a client reads the map and changes nothing;
+ *   10 classifying the steps (30 October): the stopwatch's VA · NE · NV beside the clock, a letter ending the
+ *      step and starting the next, Undo the last step, the phone; the step's panel — one tap sets a value, the
+ *      same tap clears it, Undo, a wait showing NV with no control, V · E · N and ← →; the nudge, the card, the
+ *      closing line; the walk ending on the module's figures; the paper saying "not classified"; the page's
+ *      controls at least halved and every one found in its new place (More ▾).
  *
  * Every sentence is checked against the module that makes it (lib/ie/steps,
  * lib/studyLinks, lib/fishbone) on the same records. Fails on any console
@@ -36,7 +41,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { paper as pressPaper } from '../lib/pageHeader.mjs';
+import { paper as pressPaper, more } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
@@ -75,7 +80,7 @@ const truth = id => page.evaluate(async id => {
   if (!s) return null;
   const a = s.agreed?.map;
   const f = S.flowFigures(s.facts.flow, a);
-  return { id: s.id, uses: s.uses, flow: s.facts.flow ?? [], said: S.flowSays(f, a), who: S.lanesOf(s.facts.flow ?? [], 'who', a), where: S.lanesOf(s.facts.flow ?? [], 'where', a) };
+  return { id: s.id, uses: s.uses, flow: s.facts.flow ?? [], unmarked: f.unmarked, counts: S.classCounts(s.facts.flow), summary: S.classifySummary(s.facts.flow, a).text, ordered: S.walkOrder(s.facts.flow).map(x => x.id), said: S.flowSays(f, a), who: S.lanesOf(s.facts.flow ?? [], 'who', a), where: S.lanesOf(s.facts.flow ?? [], 'where', a) };
 }, id);
 
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
@@ -116,7 +121,7 @@ let t = await truth(sd.lineMapId);
 /* ---- 3 · Walk it ---- */
 {
   const n0 = t.flow.length;
-  await page.getByRole('button', { name: 'Walk it', exact: true }).click(); await page.waitForTimeout(300);
+  await page.getByRole('button', { name: 'Time the steps', exact: true }).click(); await page.waitForTimeout(300);
   const walk = page.locator('.vs-walk');
   await walk.getByLabel('This step — what happens').fill('Wrap the pallet');
   await walk.getByLabel('Who does it').fill('Op 3'); await walk.getByLabel('Where').fill('Wrapper');
@@ -156,12 +161,12 @@ let tp = await truth(proofId);
 ok(!!proofId && proofId !== sd.lineMapId && tp.flow.length === t.flow.length && tp.flow.every(x => x.source === 'carried') && tp.uses[0]?.role === 'proof',
   `5 a second map on the line, the same ${tp.flow.length} steps, each carried`);
 {
-  await page.getByRole('button', { name: 'Walk it again' }).click(); await page.waitForTimeout(300);
+  await page.getByRole('button', { name: 'Time the steps again' }).click(); await page.waitForTimeout(300);
   const first = [...tp.flow].sort((a, b) => a.order - b.order).find(x => x.kind !== 'wait' && x.kind !== 'store');
   ok(((await words('.vs-walk .wb-t-h')) ?? '').includes(`up next: ${first.name}`), `5 Walk it again: up next "${first.name}"`);
   await page.getByRole('button', { name: /^Start/ }).click(); await page.waitForTimeout(1100);
   await page.getByRole('button', { name: /^Stop/ }).click(); await page.waitForTimeout(300);
-  await page.getByRole('button', { name: 'Walk it again' }).click(); await page.waitForTimeout(300);
+  await page.getByRole('button', { name: 'Time the steps again' }).click(); await page.waitForTimeout(300);
   await page.getByRole('button', { name: /^Start/ }).click(); await page.waitForTimeout(1100);
   await page.getByRole('button', { name: /^Next step/ }).click(); await page.waitForTimeout(900);
   await page.getByRole('button', { name: /^Stop/ }).click(); await page.waitForTimeout(500);
@@ -200,6 +205,12 @@ ok(has('Evidence') && has('Value stream map - Run released to pallet away') && h
   && has(`Being made better: ${await page.evaluate(async ([pid, fid]) => (await (await import('/src/db.ts')).listTests(pid)).find(x => x.id === fid)?.title, [sd.projectId, fixId])}`.slice(0, 40)),
   '7 the client report: the map in Evidence, the stream as a table, the step a fix came from naming it');
 
+{
+  /* the map's steps nobody has classified: said on the client report's table, as on the page (the two walked steps) */
+  const n = t.unmarked;
+  ok(n >= 2 && has(`${n} steps not classified yet`) && /not classified/.test(txt), `7 the client report: the table says "not classified" and counts them — ${n} steps`);
+}
+
 /* ---- 8 · on a 6M job, the fishbone offers the line map ---- */
 {
   const want = await page.evaluate(async ([pid, cid]) => {
@@ -224,10 +235,11 @@ await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client
 await go(MAP);
 await page.locator('.vs-grid, .vs-sq').first().waitFor({ timeout: 10000 }).catch(() => {});
 {
-  const doors = await page.locator('.vs-page').getByRole('button', { name: /^\+ Add a step|^Walk it|^Copy to the future|Change what it is held|Name the ends/ }).allInnerTexts();
+  const doors = await page.locator('.vs-page').getByRole('button', { name: /^\+ Add a step|^Time the steps|^Classify the steps|Change what it is held|Name the ends/ }).allInnerTexts();
   await square('Walk to fetch flat cases').first().click().catch(() => {}); await page.waitForTimeout(300);
   const inSheet = await page.getByRole('button', { name: /Change this step|Make it better/ }).count();
-  ok((await page.locator('.vs-sq').count()) > 0 && doors.length === 0 && inSheet === 0, `a client reads the map and changes nothing${doors.length || inSheet ? ` — found: ${doors.join(', ')} and ${inSheet} in the step's sheet` : ''}`);
+  const letters = await page.getByRole('radio', { name: /^(VA|NE|NV) —/ }).count();
+  ok((await page.locator('.vs-sq').count()) > 0 && doors.length === 0 && inSheet === 0 && letters === 0, `a client reads the map and changes nothing — no VA · NE · NV buttons either${doors.length || inSheet || letters ? ` — found: ${doors.join(', ')}, ${inSheet} in the step's sheet, ${letters} letters` : ''}`);
 }
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 
@@ -259,14 +271,14 @@ await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
   ok(await sameCards() && mt.m.waste.gbpPerDay > 0 && /^Waste work costs £\d+ a day in labour \(4 non-value-adding steps — [\d.]+ h a day at £18\.85 an hour\)\. £[\d.]+k of product is waiting between steps — £[\d.]+k of it at Release the run to the line \(at £0\.80 a piece\), which costs about £\d+ a day to carry at 25% a year\.$/.test(mt.said.text)
     && (await words('.ie-money')) === mt.said.text, `9 with the wage: the sentence with its because at £18.85 an hour — page "${await words('.ie-money')}" · module ${JSON.stringify({ rate: mt.m.ratePerHour, gbp: mt.m.waste.gbpPerDay, text: mt.said.text })}`);
   /* no rate: tied up still said, the rate named as missing */
-  await page.getByRole('button', { name: 'Change what it is held against' }).click(); await page.waitForTimeout(300);
+  await more(page, 'Change what it is held against'); await page.waitForTimeout(300);
   ok((await page.getByLabel(/Carrying rate, a year/).inputValue()) === '25' && (await page.getByLabel(/What a piece has cost/).inputValue()) === '0.8', '9 the two boxes carry what was agreed');
   await page.getByLabel(/Carrying rate, a year/).fill('');
   await page.getByRole('button', { name: 'Agree it' }).click(); await page.waitForTimeout(600);
   mt = await moneyTruth();
   ok(mt.m.carryPerDay === undefined && /give the carrying rate a year to say what carrying it costs/.test(await cardText(1)) && (await words('.ie-money')) === mt.said.text && /; give the carrying rate a year/.test(mt.said.text),
     `9 no rate: tied up said, the rate named — card "${await cardText(1)}" · page "${await words('.ie-money')}" · module ${JSON.stringify({ carry: mt.m.carryPerDay, text: mt.said.text })}`);
-  await page.getByRole('button', { name: 'Change what it is held against' }).click(); await page.waitForTimeout(300);
+  await more(page, 'Change what it is held against'); await page.waitForTimeout(300);
   await page.getByLabel(/Carrying rate, a year/).fill('150');
   ok((await words('.ie-problem')) === 'The carrying rate — a percentage a year, up to 100.', '9 a rate over 100 refused');
   await page.getByLabel(/Carrying rate, a year/).fill('25');
@@ -278,6 +290,172 @@ await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
   mt = await moneyTruth();
   ok(/WASTE WORK/i.test(t9) && /WAITING PRODUCT/i.test(t9) && t9.includes(mt.said.text.slice(0, 50)) && t9.includes('In money from: £18.85 an hour (the line) · £0.80 a piece · 25% a year, 365 days.'),
     `9 on paper: the two tiles, the sentence and the inputs`);
+}
+
+
+/* ---- 10 · classifying the steps (knowledge/specs/FC-001-value-stream-money.md, part 2 — Rowland, 30 October: "it doesn't
+   allow me to quickly reference the activity as VNA, VA, etc"; "I had a stop watch but no ability to classify the
+   activity, need 3 quick buttons next to the stop watch"; "too complex, many different buttons ... simplify") ---- */
+const flowNow = async () => (await truth(sd.lineMapId)).flow;
+const byName = (flow, name) => flow.find(x => x.name === name);
+const ask = (fn, ...a) => page.evaluate(async ([f, args]) => { const S = await import('/src/tools/valuestream/steps.ts'); return S[f](...args); }, [fn, a]);
+{
+  /* 10a · the stopwatch's three letters: a letter ends the step being timed with its value and starts the next */
+  await go(MAP);
+  await page.getByRole('button', { name: 'Time the steps', exact: true }).click(); await page.waitForTimeout(500);
+  const walk = page.locator('.vs-walk');
+  const letters = walk.locator('.vs-seg-b');
+  ok((await letters.count()) === 3 && (await letters.allInnerTexts()).map(x => x.split('\n')[0]).join(' ') === 'VA NE NV' && await letters.first().isDisabled(),
+    '10a the stopwatch: VA · NE · NV beside the clock, waiting for Start');
+  await walk.getByLabel('Who does it').fill('Op 3'); await walk.getByLabel('Where').fill('Labeller');
+  await walk.getByLabel('This step — what happens').fill('Sticker the case');
+  await page.getByRole('button', { name: /^Start/ }).click(); await page.waitForTimeout(1200);
+  await walk.getByRole('button', { name: 'VA — done, next' }).click(); await page.waitForTimeout(700);
+  await walk.getByLabel('This step — what happens').fill('Scan the label');
+  await walk.getByRole('radio', { name: 'Move' }).click(); await page.waitForTimeout(200);
+  const vaOnMove = await walk.getByRole('button', { name: 'VA — done, next' }).isDisabled();
+  await walk.getByRole('button', { name: 'NE — done, next' }).click(); await page.waitForTimeout(700);
+  await walk.getByLabel('This step — what happens').fill('Rework the label');
+  await walk.getByRole('button', { name: 'NV — done, next' }).click(); await page.waitForTimeout(700);
+  await walk.getByLabel('This step — what happens').fill('Not sure yet');
+  await walk.getByRole('button', { name: 'Next step — not classified' }).click(); await page.waitForTimeout(700);
+  let fl = await flowNow();
+  const sticker = byName(fl, 'Sticker the case'), scan = byName(fl, 'Scan the label'), rework = byName(fl, 'Rework the label'), unsure = byName(fl, 'Not sure yet');
+  ok(sticker?.value === 'adds' && sticker.kind === 'operation' && sticker.source === 'timed' && sticker.cycleSec >= 0.8 && JSON.stringify(sticker.who) === '["Op 3"]' && sticker.where === 'Labeller'
+    && scan?.value === 'needed' && scan.kind === 'move' && rework?.value === 'waste' && rework.kind === 'operation' && unsure && unsure.value === undefined,
+    `10a one tap a step: VA ${sticker?.cycleSec}s · a move NE · NV · one left unclassified — saved as the step's sheet saves them`);
+  ok(vaOnMove, '10a a Move greys VA — only an operation adds value (the sheet\'s rule)');
+  const cc = await ask('classCounts', fl);
+  ok((await words('.vs-walk-tally')) === `${cc.adds} VA · ${cc.needed} NE · ${cc.waste} NV so far · ${cc.unclassified} not classified`, `10a the tally as the module counts it: "${await words('.vs-walk-tally')}"`);
+  /* Undo the last step: its time, words and value */
+  await walk.getByRole('button', { name: 'Undo the last step' }).click(); await page.waitForTimeout(500);
+  fl = await flowNow();
+  ok(!byName(fl, 'Not sure yet') && byName(fl, 'Rework the label')?.value === 'waste', '10a Undo the last step takes the unclassified one back');
+  await walk.getByRole('button', { name: 'Undo the last step' }).click(); await page.waitForTimeout(500);
+  fl = await flowNow();
+  ok(!byName(fl, 'Rework the label') && byName(fl, 'Scan the label')?.value === 'needed' && (await walk.getByLabel('This step — what happens').inputValue()) === 'Rework the label',
+    '10a Undo again takes the NV step and its value back, its words returned to the box');
+  await page.getByRole('button', { name: /^Stop/ }).click(); await page.waitForTimeout(400);
+  await go(MAP);
+  fl = await flowNow();
+  ok(byName(fl, 'Sticker the case')?.value === 'adds' && byName(fl, 'Scan the label')?.value === 'needed' && (await square('Sticker the case').count()) === 1, '10a reload-proof: the two kept steps keep their letters');
+  /* the phone: the three letters a thumb's size, nothing off the side */
+  await page.setViewportSize({ width: 375, height: 812 }); await page.waitForTimeout(400);
+  await page.getByRole('button', { name: 'Time the steps', exact: true }).click(); await page.waitForTimeout(700);
+  const hs = await page.locator('.vs-walk .vs-seg-b').evaluateAll(els => els.map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.height), Math.round(r.right)]; }));
+  const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const primary = await page.locator('.ln-band-acts .btn-primary').boundingBox();
+  ok(hs.length === 3 && hs.every(([h, r]) => h >= 44 && r <= 375) && wide <= 1 && primary && primary.x + primary.width <= 376, `10a the phone: the three letters ${hs.map(x => x[0]).join('/')} px tall, the primary inside the band, nothing off the side (${wide} px over)`);
+  await page.getByRole('button', { name: /^Back$/ }).click(); await page.waitForTimeout(300);
+  await page.setViewportSize({ width: 1360, height: 900 });
+
+  /* 10b · the step's panel on the map: its value in three buttons; one tap sets it, the same tap clears it, Undo */
+  const A = fl.find(x => x.kind === 'operation' && x.value && x.source !== 'timed'), B = fl.find(x => x.kind === 'check' || (x.kind === 'move' && x.source !== 'timed')), W = fl.find(x => x.kind === 'wait' || x.kind === 'store');
+  const strip = names => page.evaluate(async ([id, ids]) => { const db = await import('/src/db.ts'); await db.patchStudy(id, cur => ({ facts: { ...cur.facts, flow: cur.facts.flow.map(x => (ids.includes(x.id) ? (({ value, ...r }) => r)(x) : x)) } })); }, [sd.lineMapId, names]);
+  await strip([A.id, B.id]);
+  await go(MAP);
+  const chip = st => page.locator(`.vs-cls[aria-label*="${st.name}"]`);
+  const dlg = () => page.locator('[role="dialog"]').last();
+  await chip(A).click(); await page.waitForTimeout(500);
+  let ordered = (await truth(sd.lineMapId)).ordered, idxA = ordered.indexOf(A.id);
+  ok(/^Step \d+ of \d+ — \d+ still to classify$/.test((await words('.vs-cw-count')) ?? '') && (await words('.vs-cw-count')) === await ask('walkCount', (await flowNow()).sort((x, y) => x.order - y.order), idxA),
+    `10b a step opened: "${await words('.vs-cw-count')}" — as the module counts it`);
+  ok((await dlg().getByRole('radio').count()) === 3 && !(await dlg().getByRole('radio', { name: /^VA/ }).isDisabled()), '10b an operation: three buttons, VA allowed');
+  await dlg().getByRole('radio', { name: /^VA/ }).click(); await page.waitForTimeout(600);
+  ok(byName(await flowNow(), A.name)?.value === 'adds', '10b one tap on VA saves the step');
+  await go(MAP);
+  ok(byName(await flowNow(), A.name)?.value === 'adds' && /is-adds/.test(await chip(A).getAttribute('class')), '10b reload-proof: the grid\'s letter chip says VA');
+  await chip(A).click(); await page.waitForTimeout(400);
+  await dlg().getByRole('radio', { name: /^VA/ }).click(); await page.waitForTimeout(500);
+  ok(byName(await flowNow(), A.name)?.value === undefined, '10b a second tap on the lit one clears it');
+  await page.getByRole('button', { name: 'Undo', exact: true }).click(); await page.waitForTimeout(600);
+  ok(byName(await flowNow(), A.name)?.value === 'adds', '10b Undo puts it back');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+  await page.waitForFunction(() => !(history.state && history.state.flPanel), null, { timeout: 10000 }).catch(() => {});
+  /* a check or a move: VA is greyed; a key says NV; a wait or a store shows NV and no buttons */
+  await chip(B).click(); await page.waitForTimeout(500);
+  ok(await dlg().getByRole('radio', { name: /^VA/ }).isDisabled(), `10b a ${B.kind}: VA greyed — only an operation adds value`);
+  await page.keyboard.press('n'); await page.waitForTimeout(600);
+  ok(byName(await flowNow(), B.name)?.value === 'waste', '10b the N key says NV');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+  await page.waitForFunction(() => !(history.state && history.state.flPanel), null, { timeout: 10000 }).catch(() => {});
+  await chip(W).click(); await page.waitForTimeout(500);
+  ok((await dlg().getByRole('radio').count()) === 0 && /NV/.test((await words('.vs-cw-fixed')) ?? '') && /by definition/.test((await words('.vs-cw-fixed')) ?? ''), `10b a ${W.kind} shows NV with no control: "${await words('.vs-cw-fixed')}"`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+  await page.waitForFunction(() => !(history.state && history.state.flPanel), null, { timeout: 10000 }).catch(() => {});
+
+  /* 10c · the walk is the panel: the nudge's link opens the first unclassified step; a letter goes on to the next */
+  await strip([A.id, B.id]); await go(MAP);
+  let tt = await truth(sd.lineMapId);
+  const nudge = await ask('notClassifiedWords', tt.unmarked);
+  ok(tt.unmarked >= 3 && (await words('.vs-nudge')) === `${nudge} Classify the steps ›`, `10c the nudge: "${await words('.vs-nudge')}"`);
+  ok(((await words('.vs-cards .vs-card2.is-unmarked')) ?? '').toLowerCase() === `not classified ${tt.unmarked} steps`, `10c the totals band carries a Not classified card: "${await words('.vs-cards .vs-card2.is-unmarked')}"`);
+  ok((await words('.ln-close > span:last-child')) === (await page.evaluate(async id => { const { getStudy } = await import('/src/db.ts'); const S = await import('/src/tools/valuestream/steps.ts'); const L = await import('/src/tools/valuestream/flowLean.ts'); const m = await getStudy(id); return L.flowClosing(S.flowFigures(m.facts.flow, m.agreed?.map), m.agreed?.map).text; }, sd.lineMapId)) && (await words('.ln-close > span:last-child'))?.endsWith(nudge),
+    `10c the closing line ends with the same sentence: "${await words('.ln-close > span:last-child')}"`);
+  await page.getByRole('button', { name: 'Classify the steps ›' }).click(); await page.waitForTimeout(500);
+  const first = await ask('nextUnclassified', (await flowNow()).sort((x, y) => x.order - y.order), -1);
+  ok((await words('.vs-cw-count'))?.startsWith(`Step ${first + 1} of`), `10c the link opens the first unclassified step (${await words('.vs-cw-count')})`);
+  await page.getByRole('button', { name: 'Next unclassified ›' }).click(); await page.waitForTimeout(400);
+  const second = await ask('nextUnclassified', (await flowNow()).sort((x, y) => x.order - y.order), first);
+  ok((await words('.vs-cw-count'))?.startsWith(`Step ${second + 1} of`), '10c Next unclassified skips to the next one nobody has classified');
+  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(300);
+  ok((await words('.vs-cw-count'))?.startsWith(`Step ${second} of`), '10c ← goes back a step'); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(300);
+  /* V · E · N through every step left */
+  const keys = ['v', 'e', 'n', 'e', 'v', 'n', 'e', 'v'];
+  let pressed = 0;
+  for (; pressed < keys.length; pressed++) {
+    const left = (await truth(sd.lineMapId)).unmarked;
+    if (!left) break;
+    const here = (await words('.vs-cw-count')) ?? '';
+    const cur = (await flowNow()).sort((x, y) => x.order - y.order)[Number(/Step (\d+)/.exec(here)[1]) - 1];
+    if (cur.kind === 'wait' || cur.kind === 'store') break;
+    const k = cur.kind === 'operation' ? keys[pressed] : keys[pressed] === 'v' ? 'e' : keys[pressed];
+    await page.keyboard.press(k); await page.waitForTimeout(600);
+  }
+  tt = await truth(sd.lineMapId);
+  ok(tt.unmarked === 0 && (await words('.vs-cw-count'))?.endsWith('all classified'), `10c every step classified by V · E · N and the panel followed (${pressed} presses): "${await words('.vs-cw-count')}"`);
+  ok((await words('.vs-cw-sum')) === tt.summary && /^\d+ steps: \d+ VA · \d+ NE · \d+ NV\./.test(tt.summary), `10c it ends on the module's figures: "${await words('.vs-cw-sum')}"`);
+  ok((await page.getByRole('button', { name: 'Next unclassified ›' }).count()) === 0 && (await page.locator('.vs-nudge').count()) === 0, '10c none left: no Next unclassified, no nudge');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+  await page.waitForFunction(() => !(history.state && history.state.flPanel), null, { timeout: 10000 }).catch(() => {});
+
+  /* 10d · the paper says "not classified" and counts them */
+  await strip([A.id, B.id]); await go(MAP);
+  tt = await truth(sd.lineMapId);
+  const [dl10] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, / — on paper$/)]);
+  const f10 = join(OUT, 'map-classify.pdf'); await dl10.saveAs(f10);
+  const t10 = pdfText(f10);
+  const w10 = await ask('notClassifiedWords', tt.unmarked);
+  ok(t10.includes(w10.slice(0, 70)) && /not\s+classified/.test(t10) && /NOT CLASSIFIED/i.test(t10) && new RegExp(`${tt.unmarked} steps?`, 'i').test(t10), `10d on paper: the count above the table, "not classified" in the rows, a tile — ${tt.unmarked} steps`);
+  const closing10 = t10.includes('adding value') && t10.includes(w10.slice(0, 40));
+  ok(closing10, '10d on paper: the closing line says the same');
+
+  /* 10e · the page is simpler: every capability found in its new place, the count of controls cut by half */
+  await go(MAP);
+  const counts = await page.evaluate(() => {
+    const vis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+    const own = [...document.querySelectorAll('.vs-page button, .vs-page a[href], .vs-page input, .vs-page [role=tab]')].filter(vis);
+    return { all: own.length, chips: own.filter(e => e.classList.contains('vs-cls')).length };
+  });
+  const BEFORE = 70;    /* the same count on main, 30 October: 18 controls and 52 grid squares (spec, part 2) */
+  ok(counts.all <= BEFORE / 2, `10e the controls in the page: ${counts.all} (${counts.chips} of them the steps' letter chips) against ${BEFORE} before — at least halved`);
+  ok((await page.locator('.vs-page .vs-bar button, .vs-page .vs-bar [role=tab]').allInnerTexts()).join('|') === 'Who does it|Where|+ Add a step', '10e the grid\'s one row: Lanes by, + Add a step — no Today chip while there is no future');
+  await page.locator('.ln-band-acts .part-menu-b', { hasText: /^More/ }).click(); await page.waitForTimeout(300);
+  const items = (await page.getByRole('menuitem').allInnerTexts()).map(x => x.trim());
+  ok(JSON.stringify(items) === JSON.stringify(['Play the journey', 'Show only the waste', 'Plan the future — copy today’s steps', 'Change what it is held against', 'Rename', 'Delete']),
+    `10e More ▾ holds the rest: ${items.join(' · ')}`);
+  await page.getByRole('menuitem', { name: 'Show only the waste' }).click(); await page.waitForTimeout(300);
+  ok((await page.locator('.vs-only').count()) === 1 && (await page.locator('.vs-grid').first().evaluate(e => e.closest('.vs').classList.contains('is-waste-only'))), '10e Show only the waste: the grid narrowed, a chip to undo it');
+  await page.locator('.vs-only').click(); await page.waitForTimeout(200);
+  await more(page, 'Play the journey'); await page.waitForTimeout(1200);
+  ok((await page.locator('.vs-play').count()) === 1 && /Step \d+ of \d+ — lead time so far/.test((await words('.vs-at')) ?? ''), '10e Play the journey: its bar appears only while it plays');
+  await page.getByRole('button', { name: 'Stop playing' }).click(); await page.waitForTimeout(300);
+  ok((await page.locator('.vs-play').count()) === 0, '10e Stop playing takes the bar away');
+  await more(page, 'Plan the future — copy today’s steps'); await page.waitForTimeout(500);
+  ok((await page.getByRole('tab', { name: 'The future' }).getAttribute('aria-selected')) === 'true' && (await page.getByRole('tab', { name: 'Today' }).count()) === 1, '10e Plan the future: copied, the Today · The future tabs appear');
+  await page.getByRole('button', { name: '+ Add a step' }).click(); await page.waitForTimeout(400);
+  ok((await page.locator('[role="dialog"]').last().textContent())?.includes('Add a step'), '10e + Add a step opens the step form');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(400);
 }
 
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');

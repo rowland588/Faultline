@@ -48,30 +48,36 @@ export function StudyName({ s, naming, onDone }: { s: ToolStudy; naming: boolean
 
 /** THE TOOL SHELL'S MENUS on a study (docs/STRUCTURE.md §5.5, B4) — More ▾: Rename, and Delete
  *  with Undo, going back to the tool's list (on its line, when it is on one); Report ▾: its papers. */
-export function StudyMenus({ s, canEdit, canRemove, onRename, papers = [] }: {
+export function StudyMenus({ s, canEdit, canRemove, onRename, papers = [], extra = [], primary }: {
   s: ToolStudy; canEdit: boolean; canRemove: boolean; onRename: () => void; papers?: Paper[];
+  /** The tool's own actions in More ▾, before Rename and Delete (a tool may add its own). */
+  extra?: MoreItem[];
+  /** The tool's one primary action, beside More ▾ and Report ▾ (the page header's: one primary). */
+  primary?: { label: string; run: () => void };
 }) {
   const more: MoreItem[] = [
+    ...extra,
     ...(canEdit ? [{ label: 'Rename', run: onRename }] : []),
     ...(canRemove ? [{ label: 'Delete', danger: true, run: () => void removeStudy(s).then(gone => { if (gone) nav(toolListHref(s)); }) }] : []),
   ];
-  if (!more.length && !papers.length) return null;
+  if (!more.length && !papers.length && !primary) return null;
   return (
     <div className="ln-band-acts">
       <MoreMenu items={more} />
       <ReportMenu papers={papers} />
+      {primary && <button type="button" className="btn btn-primary" onClick={primary.run}>{primary.label}</button>}
     </div>
   );
 }
 
 /** THE TOOL SHELL'S HEADER on a study — the lean page's band (what, where, when, its verdict), the
  *  record's name, and its menus: one header on every tool (§5.5). `what` names its paper. */
-export function StudyBand({ page, s, what, canEdit, canRemove }: { page: LeanPage; s: ToolStudy; what: string; canEdit: boolean; canRemove: boolean }) {
+export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary }: { page: LeanPage; s: ToolStudy; what: string; canEdit: boolean; canRemove: boolean; extra?: MoreItem[]; primary?: { label: string; run: () => void } }) {
   const [naming, setNaming] = useState(false);
   const paper = useStudyPaper(s);
   return (
     <LeanBand page={page} title={<StudyName s={s} naming={naming} onDone={() => setNaming(false)} />}>
-      <StudyMenus s={s} canEdit={canEdit} canRemove={canRemove} onRename={() => setNaming(true)}
+      <StudyMenus s={s} canEdit={canEdit} canRemove={canRemove} onRename={() => setNaming(true)} extra={extra} primary={primary}
         papers={[{ label: `${what} — on paper`, for: 'What it is, where it sits, what it says and its figures', make: paper }]} />
     </LeanBand>
   );
