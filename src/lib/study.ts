@@ -147,6 +147,9 @@ export interface StudyReading {
  *  StandardChangeover.minutes is. Set by whoever may agree it (can.agree). */
 export interface AgreedChangeover { minutes: number }
 
+/** The most a counted shift may lose, in minutes — what lossSays judges the count against. */
+export interface AgreedLosses { maxLostMin: number }
+
 /** A WORK BALANCE's agreement (docs/TOOLKIT.md, tools 3 and 4): the takt it
  *  is balanced against, and the allowance added to the timed work — agreed
  *  before the timing, by the owner on a job. */
@@ -458,6 +461,9 @@ export interface AgreedSampling {
    *  instead of people, each tapped working · starved · blocked · down at
    *  each moment — Roser's walk, repeated, on a product's line standard. */
   walk?: boolean;
+  /** A program's criterion (30 October): the share of the time the first activity (the work itself) must be at least,
+   *  in % — for every person watched, read with the margin their taps allow. Absent: shares only, no verdict. */
+  workAtLeast?: number;
 }
 
 /** A SHIFT'S LOSSES, BY HAND (docs/TOOLKIT.md, tool 7; docs/BUILD.md, E):
@@ -573,6 +579,9 @@ export interface AgreedLog {
   since: number;
   /** Hours in a shift, for a check "every shift" (absent: 8). */
   shiftHours?: number;
+  /** A program's criterion (30 October): how many results in a row, of every check on the list, must have passed — the
+   *  latest N of each, none failing. A count, not the clock: `tools/checks/inARow`. Absent: figures only. */
+  inARow?: number;
 }
 
 /** One answer of a scored checklist as it was asked — name and group kept, so editing the list later never re-scores it. */
@@ -616,6 +625,8 @@ export interface StudyAgreed {
   /** SMED (30 October, a program's criterion): the minutes the changeover must come in at, typed on the study itself —
    *  what changeoverSays judges it against when no product's line standard has agreed minutes of its own. */
   changeover?: AgreedChangeover;
+  /** A shift's losses (30 October, a program's criterion): the most minutes a shift may lose — typed on the count. */
+  losses?: AgreedLosses;
   map?: AgreedMap;
   sampling?: AgreedSampling;
   reliability?: AgreedReliability;

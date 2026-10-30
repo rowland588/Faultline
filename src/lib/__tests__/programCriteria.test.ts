@@ -148,7 +148,7 @@ describe('picking and taking off criteria', () => {
  * a verdict against a stated target by their own module: SMED against the minutes it must come in at, a line balance against
  * takt. Each reads through studySays — the module its page uses — and says `notYet` while it cannot be told.
  * ------------------------------------------------------------------------------------------------------------------- */
-import { ANALYSIS_JUDGES, CRITERION_HELP, CRITERION_MADE, CRITERION_TOOLS, balancesToPick, canJudge, criterionBalance, isCriterionTool, proofStudiesToPick, standardsToTime } from '../programCriteria';
+import { ANALYSIS_JUDGES, CRITERION_HELP, CRITERION_MADE, CRITERION_PICKS, CRITERION_TOOLS, balancesToPick, canJudge, criterionBalance, isCriterionTool, proofStudiesToPick, standardsToTime } from '../programCriteria';
 import { againstStandard, changeoverSays, figuresOf, mustComeIn } from '../../tools/changeover/changeover';
 import { studySays } from '../studyLinks';
 import type { Standard } from '../../tools/linestandard/standard';
@@ -163,12 +163,13 @@ const smed = (minutes: number | undefined, seq = [step('a', 0, 600), step('b', 1
 const on = (s: ToolStudy) => criteriaOf(withCriterion(p5, { kind: 'study', id: s.id }), [s], [], '2026-10-30')[0];
 
 describe('the criterion tools — every one a tool whose study ends in a verdict', () => {
-  it('six tools, five made from the picker and a line balance timed on a line standard', () => {
-    expect([...CRITERION_TOOLS]).toEqual(['capability', 'chart', 'reliability', 'analysis', 'changeover', 'balance']);
-    expect([...CRITERION_MADE]).toEqual(['capability', 'chart', 'reliability', 'analysis', 'changeover']);
-    expect(CRITERION_TOOLS.every(t => CRITERION_HELP[t].name && CRITERION_HELP[t].judges && CRITERION_HELP[t].example)).toBe(true);
-    /* a tool that only shows figures is never offered */
-    for (const t of ['map', 'sampling', 'losses', 'talk', 'calc', 'log', 'scored', 'board']) expect(isCriterionTool(t)).toBe(false);
+  it('ten choices with the run test: nine tools of studies, a line capacity kept on a standard — and a line balance timed on one', () => {
+    expect([...CRITERION_TOOLS]).toEqual(['capability', 'chart', 'reliability', 'analysis', 'changeover', 'balance', 'sampling', 'losses', 'log']);
+    expect([...CRITERION_MADE]).toEqual(['capability', 'chart', 'reliability', 'analysis', 'changeover', 'sampling', 'losses']);
+    expect([...CRITERION_PICKS]).toEqual(['capability', 'chart', 'reliability', 'analysis', 'changeover', 'balance', 'capacity', 'sampling', 'losses', 'log']);
+    expect(CRITERION_PICKS.every(t => CRITERION_HELP[t].name && CRITERION_HELP[t].judges && CRITERION_HELP[t].example)).toBe(true);
+    /* a tool that only shows figures, with no target to type, is never offered */
+    for (const t of ['map', 'talk', 'calc', 'scored', 'board']) expect(isCriterionTool(t)).toBe(false);
   });
 });
 
@@ -296,5 +297,206 @@ describe('what a picked SMED or balance lined up on a test’s Proved by offers'
   it('they are offered as proving studies like the others', () => {
     const lined = { ...smed(20), programId: undefined, uses: [{ id: 'u', kind: 'test' as const, ref: 'r1', role: 'proof' as const, at: 1, by: 'x' }] };
     expect(proofStudiesToPick(p5, [lined], ['r1']).map(s => s.id)).toEqual(['smed']);
+  });
+});
+
+/* ---------------------------------------------------------------------------------------------------------------------
+ * THE SECOND SLICE OF THE AUDIT (30 October, the coordinator's "do the Line capacity slice now … and revisit two refusals"):
+ * Line capacity (a criterion kept on a line standard), a check log judged by a count not the clock, work sampling against a
+ * share typed on the study, a loss count against the most a shift may lose. Each reads through the tool's own module.
+ * ------------------------------------------------------------------------------------------------------------------- */
+import { capacitiesToPick, capacitiesToStart, capacityHref, cannotJudge, criterionLog, logsToPick } from '../programCriteria';
+import { capacityVerdict, type Capacity, type Station } from '../../tools/linebalance/capacity';
+import { workAgainst } from '../../tools/sampling/sampling';
+import { lostAgainst, lossFigures } from '../../tools/losses/losses';
+import { inARow } from '../../tools/checks/inARow';
+import { defOf } from '../../tools/checks/registry';
+import { mapKind } from './helpers/noop';
+
+describe('Line capacity — meets its target or falls short (the sheet’s own gap)', () => {
+  /* the worked line of tools/linebalance/__tests__/capacity.test.ts: Bagger 70 bags a minute, Basketer 12 to a basket at 5.5 a minute = 66 */
+  const st = (o: Partial<Station> & { name: string; unit: string }): Station => ({ id: o.name, kind: 'machine', contains: 1, ratePer: 'min', ...o });
+  const cap = (target?: number, stations: Station[] = [st({ name: 'Bagger', unit: 'bags', rate: 70 }), st({ name: 'Basketer', unit: 'baskets', contains: 12, rate: 5.5 })]): Capacity => ({ stations, ...(target !== undefined ? { targetPerMin: target } : {}) });
+  const std = (id: string, c?: Capacity, o: Partial<Standard> = {}): Standard => ({ id, projectId: 'j', product: `Product ${id}`, marks: [], sort: 0, createdAt: 1, updatedAt: Date.parse('2026-10-29T10:00:00Z'), ...(c ? { capacity: c } : {}), ...o });
+  const withCap = withCriterion(p5, { kind: 'capacity', id: 's1' });
+  const ans = (s: Standard) => criteriaOf(withCap, [], [], '2026-10-30', { standards: [s] })[0];
+
+  it('the module: 66 against a target of 60 meets it; against 70 it is 4 short; no target or no stations: not yet', () => {
+    expect(capacityVerdict(cap(60))).toMatchObject({ word: 'meets', verdict: 'Meets the 60 bags/min target' });
+    expect(capacityVerdict(cap(70))).toMatchObject({ word: 'short', verdict: '4 bags/min short of the 70 target' });
+    expect(capacityVerdict(cap(66)).word).toBe('meets');                     // exactly the target is meeting it
+    expect(capacityVerdict(cap(undefined))).toMatchObject({ word: 'notYet', verdict: 'No target yet' });
+    expect(capacityVerdict(cap(60, []))).toMatchObject({ word: 'notYet', verdict: 'No stations yet' });
+    expect(capacityVerdict(undefined).word).toBe('notYet');
+    /* a station with no speed cannot be counted: nothing to judge */
+    expect(capacityVerdict(cap(60, [st({ name: 'Bagger', unit: 'bags' })])).word).toBe('notYet');
+  });
+  it('as a criterion: Passed, Didn’t pass, Not yet — with the sheet’s sentence and the short form', () => {
+    const met = ans(std('s1', cap(60)));
+    expect([met.word, met.tone, met.title, met.short]).toEqual(['passed', 'g', 'Line capacity — Product s1', 'Product s1: Meets the 60 bags/min target']);
+    expect(met.says).toContain('limits the line at 66');
+    expect(met.standard?.id).toBe('s1');
+    const missed = ans(std('s1', cap(70)));
+    expect([missed.word, missed.tone, missed.short]).toEqual(['failed', 'r', 'Product s1: 4 bags/min short of the 70 target']);
+    expect(ans(std('s1', cap(undefined))).word).toBe('notYet');
+    expect(ans(std('s1')).word).toBe('notYet');                                // a standard with no capacity written yet
+  });
+  it('the standards not read here: not yet, never gone; deleted or absent when read: gone', () => {
+    expect(criteriaOf(withCap, [], [], '2026-10-30')[0]).toMatchObject({ word: 'notYet', tone: 'n' });          // no ctx
+    expect(criteriaOf(withCap, [], [], '2026-10-30', { standards: [] })[0]).toMatchObject({ word: 'gone', tone: 'a' });
+    expect(ans(std('s1', cap(60), { deletedAt: 3 })).word).toBe('gone');
+  });
+  it('it sits among the others: ready to sign off only when every criterion passed, signed off with its short form in the line', () => {
+    const picked = withCriterion(withCriterion(p5, { kind: 'study', id: 'cap' }), { kind: 'capacity', id: 's1' });
+    const a = criteriaOf(picked, [cap2()], [run], '2026-10-30', { standards: [std('s1', cap(60))] });
+    expect(criteriaVerdict(picked, a).words).toBe('Ready to sign off — all 2 criteria passed');
+    const b = criteriaOf(picked, [cap2()], [run], '2026-10-30', { standards: [std('s1', cap(70))] });
+    expect(criteriaVerdict(picked, b)).toMatchObject({ words: '1 of 2 criteria passed · 1 didn’t pass', ready: false });
+    expect(cannotSignOff(picked, b, ['R. Glew'], '2026-10-30')).toMatch(/Line capacity — Product s1 — didn’t pass/);
+    const signed = signedOff(picked, ['R. Glew'], '2026-10-30', 5);
+    expect(passedItLine(signed, a)).toMatch(/· Product s1: Meets the 60 bags\/min target \(29 Oct\)$/);
+  });
+  it('the capacities to pick: written ones in the program’s place; one to start where no stations are written', () => {
+    const list = [std('a', cap(60)), std('b', undefined), std('c', cap(60), { projectId: 'other' }), std('d', cap(60), { deletedAt: 1 }), std('e', { stations: [] })];
+    expect(capacitiesToPick({ projectId: 'j' }, list).map(s => s.id)).toEqual(['a']);
+    expect(capacitiesToStart({ projectId: 'j' }, list).map(s => s.id)).toEqual(['b', 'e']);
+    expect(capacitiesToPick({ projectId: 'j', criteria: [{ kind: 'capacity', id: 'a' }] }, list)).toEqual([]);
+    expect(capacitiesToPick({ projectId: '', workspaceId: 'w' }, [std('f', cap(60), { projectId: '', workspaceId: 'w' })]).map(s => s.id)).toEqual(['f']);
+    expect(capacityHref({ id: 'a', projectId: 'j' })).toBe('/project/j/standard/a?at=balance');
+    expect(capacityHref({ id: 'a', projectId: '', workspaceId: 'w' })).toBe('/w/w/standards/a?at=balance');
+  });
+  it('taking it off keeps the standard; the same capacity twice is one', () => {
+    expect(withCriterion(withCap, { kind: 'capacity', id: 's1' }).criteria).toHaveLength(1);
+    expect(withoutCriterion(withCap, { kind: 'capacity', id: 's1' }).criteria).toBeUndefined();
+  });
+  it('the cloud keeps the kind (mapper) — a later build’s unknown kind is still dropped', () => {
+    expect(mapKind([{ kind: 'capacity', id: 'x' }, { kind: 'study', id: 'y' }, { kind: 'nonsense', id: 'z' }])).toEqual([{ kind: 'capacity', id: 'x' }, { kind: 'study', id: 'y' }]);
+  });
+});
+const cap2 = () => cap();
+
+describe('Work sampling — the work share wanted, margins counted', () => {
+  const tapsFor = (who: string, working: number, waiting: number) => [
+    ...Array.from({ length: working }, (_, i) => ({ id: `${who}w${i}`, at: i, who, activity: 'working' })),
+    ...Array.from({ length: waiting }, (_, i) => ({ id: `${who}x${i}`, at: 1000 + i, who, activity: 'waiting' })),
+  ];
+  const a = (want?: number, who = ['Op 1']): NonNullable<ToolStudy['agreed']> => ({ sampling: { who, activities: ['working', 'waiting'], marginPts: 5, from: 0, to: 1, prompts: [], ...(want !== undefined ? { workAtLeast: want } : {}) } });
+  const sm = (agreed: ToolStudy['agreed'], taps: ReturnType<typeof tapsFor>): ToolStudy => ({ id: 'sm', tool: 'sampling', name: 'Packers, morning', programId: 'p5', projectId: 'j', agreed, facts: { taps }, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1 });
+  it('54 of 60 working (90% ±8 points) is at least 80%: met; at 85% it is too close to call — not yet', () => {
+    const taps = tapsFor('Op 1', 54, 6);
+    expect(workAgainst(a(80).sampling, taps)).toMatchObject({ word: 'met', verdict: 'working at least 80%' });
+    const near = workAgainst(a(85).sampling, taps);
+    expect(near).toMatchObject({ word: 'notYet' });
+    expect(near?.text).toContain('too close to 85%');
+    const ans = on(sm(a(80), taps));
+    expect([ans.word, ans.short]).toEqual(['passed', 'Packers, morning: working at least 80%']);
+  });
+  it('30 of 60 working (50%): its upper bound is under 80% — missed, said who', () => {
+    const v = workAgainst(a(80).sampling, tapsFor('Op 1', 30, 30));
+    expect(v).toMatchObject({ word: 'missed', verdict: 'Under the 80% wanted' });
+    expect(v?.text).toContain('Op 1 is working 50% of the time');
+    expect(on(sm(a(80), tapsFor('Op 1', 30, 30))).word).toBe('failed');
+  });
+  it('one person short of the share fails them all; one with too few taps keeps it not yet', () => {
+    expect(workAgainst(a(80, ['Op 1', 'Op 2']).sampling, [...tapsFor('Op 1', 54, 6), ...tapsFor('Op 2', 30, 30)])?.word).toBe('missed');
+    const early = workAgainst(a(80, ['Op 1', 'Op 2']).sampling, [...tapsFor('Op 1', 54, 6), ...tapsFor('Op 2', 5, 5)]);
+    expect(early).toMatchObject({ word: 'notYet' });
+    expect(early?.text).toContain('Op 2 has too few taps');
+  });
+  it('no share wanted, or none typed on the study: no verdict and the criterion says why', () => {
+    expect(workAgainst(a().sampling, tapsFor('Op 1', 54, 6))).toBeUndefined();
+    const none = sm(a(), tapsFor('Op 1', 54, 6));
+    expect(cannotJudge(none)).toMatch(/No share is wanted yet/);
+    const r = on(none);
+    expect([r.word, r.tone]).toEqual(['notYet', 'n']);
+    expect(r.says).toMatch(/No share is wanted yet/);
+  });
+});
+
+describe('Loss count — against the most a shift may lose', () => {
+  /* Line 7, Shift 1: 450 planned minutes at 100 a minute = 45,000 expected; 36,500 made → 85 min lost (the loss module's worked case) */
+  const count = { shift: 'Shift 1', from: 0, to: 1, plannedMin: 450, breakMin: 30, made: 36_500, rejects: 600, ratePerMin: 100, rateFrom: 'plate' as const, rateMachine: 'Bagger' };
+  const ls = (max?: number, c: Partial<typeof count> | null = {}): ToolStudy => ({ id: 'ls', tool: 'losses', name: 'Shift 1 at the packer', programId: 'p5', projectId: 'j',
+    ...(max !== undefined ? { agreed: { losses: { maxLostMin: max } } } : {}), facts: c ? { losses: { ...count, ...c } } : {}, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1 });
+  it('85 min lost against at most 90: within; against 60: over by 25', () => {
+    expect(lostAgainst(lossFigures(count, undefined, undefined), 90)).toMatchObject({ word: 'within', verdict: 'Within the 90 min allowed' });
+    expect(lostAgainst(lossFigures(count, undefined, undefined), 60)).toMatchObject({ word: 'over', verdict: 'Over the 60 min allowed by 25 min' });
+    expect(lostAgainst(lossFigures(count, undefined, undefined), undefined)).toBeUndefined();
+    const ok = on(ls(90)), bad = on(ls(60));
+    expect([ok.word, ok.tone, ok.short]).toEqual(['passed', 'g', 'Shift 1 at the packer: Within the 90 min allowed']);
+    expect([bad.word, bad.tone, bad.short]).toEqual(['failed', 'r', 'Shift 1 at the packer: Over the 60 min allowed by 25 min']);
+    expect(ok.says).toContain('85 min lost, within the 90 min allowed.');
+  });
+  it('the shift not counted yet: not yet; nothing typed: no verdict, said', () => {
+    expect(on(ls(90, { made: undefined })).word).toBe('notYet');
+    expect(on(ls(90, null)).word).toBe('notYet');
+    const none = on(ls(undefined));
+    expect([none.word, none.tone]).toEqual(['notYet', 'n']);
+    expect(none.says).toMatch(/No most is set yet/);
+  });
+  it('exactly the most is within it', () => {
+    expect(on(ls(85)).word).toBe('passed');
+  });
+});
+
+describe('Check log — the latest results of every check passed (a count, not the clock)', () => {
+  const def = defOf('metal-detection');
+  type Chk = NonNullable<NonNullable<ToolStudy['agreed']>['log']>['checks'][number];
+  type Res = NonNullable<ToolStudy['facts']['results']>[number];
+  const chk = (id: string): Chk => ({ id, name: `Check ${id}`, when: { every: 1, unit: 'hour' }, kind: 'passfail' });
+  const res = (checkId: string, i: number, outcome: 'pass' | 'fail'): Res => ({ id: `${checkId}${i}`, checkId, at: 1_000 * (i + 1), outcome });
+  const lg = (n: number | undefined, results: Res[], checks: Chk[] = [chk('a'), chk('b')]): ToolStudy => ({ id: 'lg', tool: 'log', name: 'Metal detection, commissioning week', programId: 'p5', projectId: 'j', workspaceId: 'w',
+    agreed: { log: { key: 'metal-detection', checks, since: 0, ...(n !== undefined ? { inARow: n } : {}) } }, facts: { results }, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1 });
+  const all = (a: 'pass' | 'fail', n: number, c: string) => Array.from({ length: n }, (_, i) => res(c, i, i === n - 1 ? a : 'pass'));
+  it('the last 3 of both checks passed: passed — whatever time it is', () => {
+    expect(def).toBeTruthy();
+    const s = lg(3, [...all('pass', 3, 'a'), ...all('pass', 4, 'b')]);
+    expect(inARow(s)).toMatchObject({ word: 'passed', verdict: '3 in a row passed' });
+    const a = on(s);
+    expect([a.word, a.tone, a.short]).toEqual(['passed', 'g', 'Metal detection, commissioning week: 3 in a row passed']);
+    /* the same fact a year later: still passed — the clock is not read */
+    expect(inARow({ ...s, facts: { results: s.facts.results } })?.word).toBe('passed');
+  });
+  it('a check that failed on its latest: didn’t pass, whichever the others; a failure stands until it passes again', () => {
+    const s = lg(3, [...all('pass', 3, 'a'), ...all('fail', 4, 'b')]);
+    expect(inARow(s)).toMatchObject({ word: 'failed', verdict: '1 check failed' });
+    expect(on(s).word).toBe('failed');
+    const fixed = lg(3, [...all('pass', 3, 'a'), ...all('fail', 4, 'b'), res('b', 4, 'pass'), res('b', 5, 'pass')]);
+    expect(inARow(fixed)?.word).toBe('notYet');                      // 2 passes since the failure, 3 wanted
+    expect(inARow(lg(3, [...all('pass', 3, 'a'), ...all('fail', 4, 'b'), res('b', 4, 'pass'), res('b', 5, 'pass'), res('b', 6, 'pass')]))?.word).toBe('passed');
+  });
+  it('fewer than the count done, or the list empty: not yet, with each check’s streak said', () => {
+    const s = lg(3, [...all('pass', 2, 'a'), ...all('pass', 3, 'b')]);
+    expect(inARow(s)).toMatchObject({ word: 'notYet', verdict: 'Not yet — 2 of 3 in a row' });
+    expect(inARow(s)?.text).toContain('Check a 2 of 3');
+    expect(inARow(lg(3, [], []))).toMatchObject({ word: 'notYet', verdict: 'No checks yet' });
+    expect(on(lg(3, [])).word).toBe('notYet');
+  });
+  it('a struck result does not count; a check taken off is not asked', () => {
+    const results = [...all('pass', 3, 'a'), { ...res('b', 0, 'fail'), struck: true }, ...all('pass', 3, 'b')];
+    expect(inARow(lg(3, results))?.word).toBe('passed');
+    expect(inARow(lg(3, all('pass', 3, 'a'), [chk('a'), { ...chk('b'), removed: true }]))?.word).toBe('passed');
+  });
+  it('a value or a score is judged by the log’s own verdict: a reading outside its limits is a bad result', () => {
+    const val: Chk = { id: 'v', name: 'Seal temp', when: { every: 1, unit: 'hour' }, kind: 'value', lo: 150, hi: 180, unit: '°C' };
+    const r = (i: number, value: number): Res => ({ id: `v${i}`, checkId: 'v', at: i + 1, outcome: 'value', value });
+    expect(inARow(lg(2, [r(0, 160), r(1, 170)], [val]))?.word).toBe('passed');
+    expect(inARow(lg(2, [r(0, 160), r(1, 190)], [val]))?.word).toBe('failed');
+  });
+  it('no count typed: figures only — the criterion is not yet and says what to set; "up to date" is never a pass', () => {
+    const s = lg(undefined, [...all('pass', 3, 'a'), ...all('pass', 3, 'b')]);
+    expect(inARow(s)).toBeUndefined();
+    expect(cannotJudge(s)).toMatch(/No count is set yet/);
+    const a = on(s);
+    expect([a.word, a.tone]).toEqual(['notYet', 'n']);
+    expect(a.says).toMatch(/No count is set yet/);
+  });
+  it('a new log for the program: one of the kinds, on its line, from the starter list; none without a line', () => {
+    const d = defOf('metal-detection') as NonNullable<typeof def>;
+    const s = criterionLog({ ...p5, assetId: 'a1', workspaceId: 'w' }, d, { id: 'n', at: 9, name: 'Metal detection, week 1', machine: 'Detector' }) as ToolStudy;
+    expect([s.tool, s.name, s.programId, s.projectId, s.workspaceId, s.assetId, s.machine, s.agreed?.log?.key]).toEqual(['log', 'Metal detection, week 1', 'p5', 'j', 'w', 'a1', 'Detector', 'metal-detection']);
+    expect((s.agreed?.log?.checks ?? []).length).toBeGreaterThan(0);
+    expect(criterionLog(p5, d, { id: 'n', at: 9, name: 'x' })).toBeUndefined();
+    expect(logsToPick({ projectId: 'j' }, [s, { ...s, id: 'o', projectId: 'other' }, { ...s, id: 'd', deletedAt: 1 }]).map(x => x.id)).toEqual(['n']);
   });
 });

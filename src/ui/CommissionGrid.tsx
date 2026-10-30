@@ -42,6 +42,7 @@ import { nav } from '../state/useRoute';
 import { niceDay, todayISO } from '../lib/weeks';
 import { squareWord } from '../lib/studyLinks';
 import { useJobStudies } from './StudyLinks';
+import { useAllStandards } from '../lib/useAllStandards';
 import type { ToolStudy } from '../lib/study';
 
 type TT = ReturnType<typeof useTesting>;
@@ -66,6 +67,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
 }) {
   const [editing, setEditing] = useState(false);
   const studies = useJobStudies(project.id);
+  const standards = useAllStandards();
   /* A test's column, opened to do it for every machine — as Install's are. */
   const [colOpen, setColOpen] = useState<number | null>(null);
   /* Which phone card shows its not-yet-added usual tests, one at a time. */
@@ -128,7 +130,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
             const t = provingTestOf(p, tt.tests);
             const c = t ? testCell(t, today) : undefined;
             /* SIGNED OFF, or where its criteria stand, when it is judged by them (docs/PROGRAM-GOAL.md) — a test is one criterion */
-            const judged = judgedByCriteria(p) ? criteriaVerdict(p, criteriaOf(p, studies, tt.tests, today)) : undefined;
+            const judged = judgedByCriteria(p) ? criteriaVerdict(p, criteriaOf(p, studies, tt.tests, today, { standards })) : undefined;
             const word = p.signedOff && isProved(p) ? { tone: 'g', word: `signed off — passed ${niceDay(p.signedOff.on)}` }
               : judged && !isProved(p) ? { tone: judged.tone, word: judged.words }
               : isProved(p) && (!c || c.tone !== 'g') ? { tone: 'g', word: `proved ${niceDay(p.provedOn)}` } : c ?? { tone: 'n', word: 'no test yet' };

@@ -144,7 +144,7 @@ function useNudge(at: number | undefined, words: string | undefined) {
 }
 
 export function agreedWords(a: AgreedSampling): string {
-  return `watching ${a.who.join(', ')} · ${hhmm(a.from)}–${hhmm(a.to)} · ${a.prompts.length} moments · ±${a.marginPts} points wanted`;
+  return `watching ${a.who.join(', ')} · ${hhmm(a.from)}–${hhmm(a.to)} · ${a.prompts.length} moments · ±${a.marginPts} points wanted${a.workAtLeast ? ` · ${a.activities[0] ?? 'working'} at least ${a.workAtLeast}%` : ''}`;
 }
 
 /* ------------------------------------------------------------------ set up: who, what, when */
@@ -160,6 +160,8 @@ function SetUp({ s, canAgree, hasTaps, onDone, cancel }: { s: ToolStudy; canAgre
   const [adding, setAdding] = useState('');
   const [acts, setActs] = useState((a?.activities ?? [...DEFAULT_ACTIVITIES]).join(', '));
   const [margin, setMargin] = useState(String(a?.marginPts ?? 5));
+  /* the share of the time the work itself must reach — what a program's criterion judges it by (tools/sampling workAgainst); empty: shares only */
+  const [want, setWant] = useState(a?.workAtLeast !== undefined ? String(a.workAtLeast) : '');
   const day = (ms: number) => new Date(ms).toTimeString().slice(0, 5);
   const start = a?.from ?? Math.ceil(Date.now() / 300_000) * 300_000;
   const [from, setFrom] = useState(day(start));
@@ -169,6 +171,7 @@ function SetUp({ s, canAgree, hasTaps, onDone, cancel }: { s: ToolStudy; canAgre
   const people = [...new Set([...offered, ...who])];
   const activities = acts.split(',').map(x => x.trim()).filter(Boolean);
   const m = Number(margin), n = Math.round(Number(count));
+  const wantN = want.trim() ? Number(want.replace(',', '.')) : undefined;
   /* The shift as instants: today, or tomorrow for an end past midnight. */
   const at = (hm: string, base = new Date()) => { const [h, mi] = hm.split(':').map(Number); const d = new Date(base); d.setHours(h ?? 0, mi ?? 0, 0, 0); return d.getTime(); };
   const fromMs = at(from), toRaw = at(to), toMs = toRaw <= fromMs ? toRaw + 86_400_000 : toRaw;
@@ -177,11 +180,12 @@ function SetUp({ s, canAgree, hasTaps, onDone, cancel }: { s: ToolStudy; canAgre
     : activities.length < 2 ? 'At least two activities a tap can be.'
     : !(m >= 1 && m <= 20) ? 'The margin wanted, between 1 and 20 points.'
     : !(n >= 5 && n <= 400) ? 'How many moments in the shift — between 5 and 400.'
+    : wantN !== undefined && !(Number.isFinite(wantN) && wantN > 0 && wantN <= 100) ? 'The work share wanted, between 1 and 100 %, or leave it empty.'
     : '';
   const sameShift = !!a && a.from === fromMs && a.to === toMs && a.prompts.length === n;
   const save = () => {
     if (problem || !canAgree) return;
-    const agreed: AgreedSampling = { who, activities, marginPts: m, from: fromMs, to: toMs, prompts: sameShift && a ? a.prompts : schedulePrompts(fromMs, toMs, n) };
+    const agreed: AgreedSampling = { who, activities, marginPts: m, from: fromMs, to: toMs, prompts: sameShift && a ? a.prompts : schedulePrompts(fromMs, toMs, n), ...(wantN !== undefined ? { workAtLeast: wantN } : {}) };
     void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, sampling: agreed } }));
     onDone();
   };
@@ -216,6 +220,8 @@ function SetUp({ s, canAgree, hasTaps, onDone, cancel }: { s: ToolStudy; canAgre
         <label className="field"><span className="field-label">to</span><input className="text-input" type="time" value={to} onChange={e => setTo(e.target.value)} /></label>
         <label className="field"><span className="field-label">Moments in the shift</span><input className="text-input" inputMode="numeric" value={count} onChange={e => setCount(e.target.value)} /></label>
         <label className="field"><span className="field-label">Margin wanted, ± points</span><input className="text-input" inputMode="numeric" value={margin} onChange={e => setMargin(e.target.value)} /></label>
+        <label className="field"><span className="field-label">Work share wanted, at least %</span><input className="text-input" inputMode="decimal" value={want} aria-label="Work share wanted, at least %" placeholder="optional" onChange={e => setWant(e.target.value)} />
+          <span className="sub">Optional. The first activity is the work: with a share wanted, a program can be judged by this study — every person at least that, margins counted.</span></label>
       </div>
       {!problem && <p className="ie-note">A share near 30% known within ±{m} points needs {tapsNeeded(0.3, m / 100)} taps a person — {n} moments give {n}{n < tapsNeeded(0.3, m / 100) ? '; sample another shift for the rest' : ''}.</p>}
       {problem && <p className="ie-problem">{problem}</p>}

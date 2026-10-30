@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import type { Project } from '../types';
 import {
   listAssets, listMaterials, listPrograms, listStudies, listTestItems, listTests, listPaceTodos, listTargets, listReadings,
-  loadPaceLines, onDataChange, listTreeNodes, listWorkspaces,
+  loadPaceLines, onDataChange, listTreeNodes, listWorkspaces, listAllStandards,
 } from '../db';
 import { bindSources, treeStanding, withTrackerRows } from './treeBind';
 import { stepAction } from './actions';
@@ -32,6 +32,8 @@ export function useJobInputs(projects: Project[]): JobInputs | null {
     const load = async () => {
       const gateProjects = projects.filter(p => planModel(p) === 'commissioning');
       const pacedProjects = projects.filter(p => planModel(p) === 'board' || planModel(p) === 'tree');
+      /* the line standards a program's Line capacity criterion is read from — one read, every gate's */
+      const standards = gateProjects.length ? await listAllStandards() : [];
       const gate = await Promise.all(gateProjects.map(async project => ({
         project,
         tests: await listTests(project.id),
@@ -41,6 +43,7 @@ export function useJobInputs(projects: Project[]): JobInputs | null {
         programs: await listPrograms(project.id),
         /* a test proved by a study still short says so on its row */
         studies: await listStudies(project.id),
+        standards,
       })));
       const factoryName = new Map((await listWorkspaces()).map(w => [w.id, w.name]));
       const paced = await Promise.all(pacedProjects.map(async (project): Promise<PacedInput> => {

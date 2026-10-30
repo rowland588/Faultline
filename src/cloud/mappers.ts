@@ -49,7 +49,7 @@ const n = (v: unknown): number | undefined => (v == null ? undefined : Number(v)
 const criteriaFromRow = (v: unknown): { criteria?: Criterion[] } => {
   if (!Array.isArray(v)) return {};
   const list = v.filter((c): c is Criterion => !!c && typeof c === 'object'
-    && ((c as Criterion).kind === 'study' || (c as Criterion).kind === 'run') && typeof (c as Criterion).id === 'string');
+    && ((c as Criterion).kind === 'study' || (c as Criterion).kind === 'run' || (c as Criterion).kind === 'capacity') && typeof (c as Criterion).id === 'string');
   return list.length ? { criteria: list.map(c => ({ kind: c.kind, id: c.id })) } : {};
 };
 const signedOffFromRow = (v: unknown): { signedOff?: SignOff } => {

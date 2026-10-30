@@ -14,7 +14,7 @@ export function programsReadingOnLine(rec: LineRecords, line: Workspace, today: 
   const machines = machinesOnLine(line, rec.machines, rec.jobLines);
   const programs = programsOnLine(line.id, rec.programs, rec.jobLines);
   return lineProgramsReading([{ id: line.id, name: line.name, machines, programs }], today, {
-    floor: o.floor, jobName: o.jobName, tests: rec.provingTests, studies: rec.studies,
+    floor: o.floor, jobName: o.jobName, tests: rec.provingTests, studies: rec.studies, standards: rec.standards,
     stageOnly: new Map([[line.id, o.stageOnlyLines]]),
   });
 }

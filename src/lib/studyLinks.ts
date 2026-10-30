@@ -14,6 +14,7 @@
 import type { ID, Observation, Workspace } from '../types';
 import type { BalanceStep, ChangeoverStep, FlowStep, StudyUse, ToolStudy } from './study';
 import type { PaceTodoRow } from '../db/rows';
+import type { Standard } from '../tools/linestandard/standard';
 import type { SixM } from './sixm';
 import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from '../tools/capability/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from '../tools/linework/balance';
@@ -24,6 +25,7 @@ import { barExpect, barWords, compareLosses, findBar, inWindow, lossFigures, los
 import { studyBalance } from '../tools/linework/balanceLink';
 import { chartFigures, chartSays } from '../tools/chart/chart';
 import { statusOf } from '../tools/checks/owed';
+import { inARow } from '../tools/checks/inARow';
 import { analysisFigures, analysisSays } from '../tools/analysis/analysis';
 import { calcSays, calcTitle } from '../tools/calc/calc';
 import { scoredSays, scoredTitle } from '../tools/scored/scored';
@@ -43,6 +45,8 @@ export interface StudyContext {
   workspaces?: ({ id: string } & CostModel & Partial<Pick<Workspace, 'name' | 'packsPerMin' | 'shifts'>>)[];
   /** Other studies on the device — boards read PM logs and reliability from siblings. */
   studies?: ToolStudy[];
+  /** The line standards — a program's Line capacity criterion is answered by the capacity kept on one (lib/programCriteria). */
+  standards?: readonly Standard[];
 }
 
 /** A loss count's figures from its facts and what the context holds of its line. */
@@ -103,11 +107,14 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
   /* a check log: what is due, overdue and failed, from its own module (src/tools/checks/owed) */
   if (s.tool === 'log') {
     if (!s.agreed?.log) return { text: 'not set up yet', tone: 'n', verdict: 'Not set up' };
+    /* a count typed on the log (a program's criterion): the latest N of every check passed — a fact, not the clock */
+    const row = inARow(s);
+    if (row) return { text: row.text, tone: row.word === 'passed' ? 'g' : row.word === 'failed' ? 'r' : 'n', verdict: row.verdict };
     const t = statusOf(s, Date.now());
     return { text: `${t.words[0].toUpperCase()}${t.words.slice(1)}`, tone: t.tone, verdict: t.overdue || t.failed ? `${t.overdue + t.failed} to put right` : t.due ? `${t.due} due` : t.results ? 'Up to date' : 'Not started' };
   }
   if (s.tool === 'losses') {
-    const said = lossSays(lossFiguresOf(s, ctx), s.facts.losses, { ...(s.product ? { product: s.product } : {}) });
+    const said = lossSays(lossFiguresOf(s, ctx), s.facts.losses, { ...(s.product ? { product: s.product } : {}), ...(s.agreed?.losses ? { maxLostMin: s.agreed.losses.maxLostMin } : {}) });
     return { text: said.text, tone: said.tone, verdict: said.verdict };
   }
   const a = s.agreed?.readings;

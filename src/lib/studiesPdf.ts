@@ -530,7 +530,7 @@ function rateBlocks(r: RateFigures, f: SampleFigures, a: AgreedReadings): Block[
 function lossLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Block[] {
   const { s, where } = item;
   const f = lossFiguresOf(s, p.ctx);
-  const said = lossSays(f, s.facts.losses, { ...(s.product ? { product: s.product } : {}) });
+  const said = lossSays(f, s.facts.losses, { ...(s.product ? { product: s.product } : {}), ...(s.agreed?.losses ? { maxLostMin: s.agreed.losses.maxLostMin } : {}) });
   const history = (p.history ?? []).filter(h => h.tool === 'losses' && !h.deletedAt).map(h => ({ s: h, f: h.id === s.id ? f : lossFiguresOf(h, p.ctx) }));
   const page = lossLean({ s, f, said, ...(p.lineName ? { line: p.lineName } : {}), history, actions: raisedFrom(s, p.records?.actions ?? [], p.records?.fixes ?? [], lossPart(f)) });
   const e = studyEvidence(s, [], p.standards, p.ctx);

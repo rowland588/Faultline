@@ -7,7 +7,8 @@
  * its words, is its definition (./defs); everything else is the same code. The paper reads the same figures
  * (lib/studiesPdf). A client reads and writes nothing (can.edit); the checks are agreed by the owner (can.agree). */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStudy, onDataChange } from '../../db';
+import { getStudy, onDataChange, patchStudy } from '../../db';
+import { TargetNumber } from '../../ui/TargetNumber';
 import { useAccess } from '../../cloud/access';
 import { useSession } from '../../cloud/session';
 import { displayName } from '../../cloud/team';
@@ -83,6 +84,10 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
       <div className="ln-under">
         <p className="sub ie-where">{s.machine ? <><b>{s.machine}</b> · </> : null}{def.fc}{' · '}<button type="button" className="linkish" onClick={() => nav(logHref(def.key))}>Every {def.title.toLowerCase()} log</button></p>
         <WhereItSits s={s} can={can} />
+        {/* A COUNT, NOT THE CLOCK — what a program's criterion judges this log by (lib/programCriteria; tools/checks/inARow) */}
+        <TargetNumber label="Results in a row, every check, that must pass" value={s.agreed?.log?.inARow} integer min={1} max={50} editable={can.agree && !closed}
+          hint={s.agreed?.log?.inARow ? undefined : 'Set it and a program can be judged by this log — the latest results of every check, none failing.'}
+          onSet={n => void patchStudy(s.id, cur => { const lg = cur.agreed?.log; if (!lg) return {}; const { inARow: _x, ...rest } = lg; void _x; return { agreed: { ...cur.agreed, log: n !== undefined ? { ...rest, inARow: n } : rest } }; })} />
       </div>
       <LeanTiles tiles={logTiles(f, def)} className="ie-strip lg-tiles" />
       <div className="ie-says"><p className={'ie-say is-' + said.tone} data-says>{said.text}</p></div>

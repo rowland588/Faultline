@@ -524,6 +524,21 @@ export function analyse(cap: Capacity): CapacityResult {
   return cap.lanes && cap.lanes.length > 0 ? analyseLanes(cap) : analyseChain(cap);
 }
 
+/** MEETS ITS TARGET OR NOT (30 October, a program's criterion): the line's capacity — the limit's effective figure once stops
+ *  count — against the target the owner typed (`targetPerMin`), by the very `gap` the page's sentence says it with: short when
+ *  the gap is above nothing, meeting it otherwise. `notYet` with no target, no station that can be counted, or no line.
+ *  The words are the sheet's own sentence plus the verdict; never a figure the sheet does not hold. */
+export function capacityVerdict(cap: Capacity | undefined): { word: 'meets' | 'short' | 'notYet'; text: string; verdict: string } {
+  if (!cap || !cap.stations.length) return { word: 'notYet', verdict: 'No stations yet', text: 'Add the stations in the order the product goes through them, with how fast each one runs.' };
+  const r = analyse(cap);
+  if (r.target == null) return { word: 'notYet', verdict: 'No target yet', text: `${r.sentence} Give the line a target to meet — the capacity cannot be judged without one.` };
+  if (r.line == null || r.gap == null) return { word: 'notYet', verdict: 'Not counted yet', text: r.sentence };
+  const per = `${r.unit}/min`;
+  return r.gap > 0
+    ? { word: 'short', verdict: `${fmtN(r.gap)} ${per} short of the ${fmtN(r.target)} target`, text: r.sentence }
+    : { word: 'meets', verdict: `Meets the ${fmtN(r.target)} ${per} target`, text: r.sentence };
+}
+
 /** ONE CHAIN OF STATIONS, in the order the product goes through them. */
 function analyseChain(cap: Capacity): CapacityResult {
   const stations = cap.stations;

@@ -24,7 +24,15 @@
  *      Passed within them, Didn't pass over them); a line balance timed on a product's line standard (made from the
  *      picker, or picked once timed — Not yet without a takt, Passed within takt, Didn't pass over it); a figures-only
  *      analysis question never passes; the program's pill, its sign-off line and the Programs report moving with
- *      each; on a phone the seven chips wrap and nothing is off the side */
+ *      each; on a phone the seven chips wrap and nothing is off the side
+ *   9  the second slice (the coordinator's, 30 October: "build every tool that offers a verdict"): the picker's eleven
+ *      choices; a product's Line capacity — kept on its line standard, picked once written or started on a product with
+ *      no stations, Passed meeting its target (66 a minute against 60), Didn't pass 4 short of 70, Not yet with no stations,
+ *      the criterion opening it; work sampling against the work share typed on the study (margins counted: 90% ±8 meets 80,
+ *      50% misses it); a loss count against the most a shift may lose (85 min within 90, over by 25 against 60); a check log
+ *      judged by a count not the clock (the latest 3 of every check, a failure standing); each Not yet with a reason until
+ *      its target is typed; the sign-off line, the Programs report, the Machine report, the commissioning report and
+ *      Commission's sheet saying each; the phone */
 import pkg from 'playwright';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
@@ -53,7 +61,13 @@ await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringi
 const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
-page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errors.push(`console: ${m.text().slice(0, 200)}`); });
+page.on('console', m => {
+  if (m.type() === 'error' && !IGNORE.test(m.text())) {
+    errors.push(`console: ${m.text().slice(0, 200)}`);
+    /* a React warning's own words are in its arguments (a duplicate key's key, the component) */
+    void Promise.all(m.args().slice(0, 4).map(a => a.jsonValue().catch(() => '?'))).then(v => errors.push(`  args: ${JSON.stringify(v.slice(1)).slice(0, 500)}`));
+  }
+});
 /* a sheet closed just before takes its history entry off a moment later (ui/backCloses) — wait for it (CLAUDE.md) */
 const go = async h => {
   await page.waitForFunction(() => !(history.state && history.state.flPanel), null, { timeout: 5000 }).catch(() => {});
@@ -63,6 +77,8 @@ const go = async h => {
 const goPrograms = async () => { await go(PROGRAMS); await page.locator('button.pp-chip', { hasText: /^All\b/ }).first().click({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(600); };
 /* the criteria are in the Prove fold, compact until opened (C5): opened to see their rows and the way back from a sign-off */
 const openProve = async () => { const h = row().locator('.pgr-prove-h').first(); if (await h.count() && (await h.getAttribute('aria-expanded')) !== 'true') await h.click(); await page.waitForTimeout(500); };
+/* wait for a row to read what it will read: the page redraws on the data change a moment after the write */
+const settle = async check => { for (let i = 0; i < 24; i++) { if (await check().catch(() => false)) return true; await page.waitForTimeout(500); } return false; };
 const download = async (label, file, within = page.locator('body')) => {
   const b = await find(page, 'Report', label, within);
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), b.click({ timeout: 60000 })]);
@@ -136,7 +152,7 @@ const startNewCap = row().getByRole('button', { name: /Start a new capability st
 if (await startNewCap.count()) await startNewCap.click();
 await page.waitForTimeout(200);
 const chips = (await row().locator('.pgc-panel [role=radio]').allInnerTexts()).map(flat);
-ok(JSON.stringify(chips) === JSON.stringify(['Capability study', 'Control chart', 'Reliability study', 'Analysis', 'SMED', 'Line balance', 'Run test']),
+ok(JSON.stringify(chips) === JSON.stringify(['Capability study', 'Control chart', 'Reliability study', 'Analysis', 'SMED', 'Line balance', 'Line capacity', 'Work sampling', 'Loss count', 'Check log', 'Run test']),
   `2 Add a criterion offers every tool that ends in a verdict against a stated target (the 30 October audit), and its run test — ${chips.join(' · ')}`);
 await row().locator('input[aria-label="Name the study"]').fill('Placement 75 ppm');
 await row().getByRole('button', { name: 'Add it, set up later' }).click(); await page.waitForTimeout(1500);
@@ -242,7 +258,7 @@ ok((await record()).signedOff?.by?.join() === 'R. Glew' && (await pill()).starts
   await row().getByRole('button', { name: 'Take the sign-off back' }).click(); await page.waitForTimeout(2000);
   await row().getByRole('button', { name: 'Add a criterion' }).click(); await page.waitForTimeout(300);
   const chips8 = (await row().locator('.pgc-panel [role=radio]').allInnerTexts()).map(flat);
-  ok(chips8.length === 7 && chips8.includes('SMED') && chips8.includes('Line balance'), `8 the picker offers seven choices, not five — ${chips8.join(' · ')}`);
+  ok(chips8.length === 11 && chips8.includes('SMED') && chips8.includes('Line balance'), `8 the picker offers eleven choices, not five — ${chips8.join(' · ')}`);
   await row().locator('.pgc-panel [role=radio]', { hasText: 'SMED' }).click(); await page.waitForTimeout(200);
   const hint8 = flat(await row().locator('.pgc-panel .pgc-judges').first().innerText());
   ok(/SMED judges: the changeover timed against the minutes it must come in at/.test(hint8), `8b each tool says what it judges before anything is made — "${hint8.slice(0, 120)}"`);
@@ -338,7 +354,7 @@ ok((await record()).signedOff?.by?.join() === 'R. Glew' && (await pill()).starts
     const db = await import('/src/db.ts');
     await db.patchStudy(id, cur => ({ agreed: { balance: { taktSec: 12 } }, facts: { ...cur.facts, steps: cur.facts.steps.map((x, i) => ({ ...x, typedSec: i ? 8 : 10 })) } }));
   }, madeId);
-  await page.waitForTimeout(1500);
+  await settle(async () => /ready to sign off — all 4 criteria passed/i.test(await pill()));
   ok(flat(await made8.locator('.status-pill').innerText()) === 'Passed' && /ready to sign off — all 4 criteria passed/i.test(await pill()), `8t timed within a 12 s takt: Passed — the row "${await pill()}"`);
 
   /* a figures-only analysis question can never pass */
@@ -394,7 +410,7 @@ ok((await record()).signedOff?.by?.join() === 'R. Glew' && (await pill()).starts
     const chips = [...(li?.querySelectorAll('.pgc-panel [role=radio]') ?? [])].map(c => c.getBoundingClientRect());
     return { n: chips.length, over: document.documentElement.scrollWidth - window.innerWidth, inside: chips.every(r => r.right <= window.innerWidth + 1 && r.left >= -1), rows: new Set(chips.map(r => Math.round(r.top))).size };
   }, NAME);
-  ok(fit8.n === 7 && fit8.inside && fit8.over <= 0 && fit8.rows >= 2, `8y on a 375 px phone the seven chips wrap onto ${fit8.rows} lines, none off the side (${fit8.over}px over)`);
+  ok(fit8.n === 11 && fit8.inside && fit8.over <= 0 && fit8.rows >= 2, `8y on a 375 px phone the eleven chips wrap onto ${fit8.rows} lines, none off the side (${fit8.over}px over)`);
   await row().getByRole('button', { name: 'Cancel' }).first().click().catch(() => {});
   await page.setViewportSize({ width: 1360, height: 900 });
   await goPrograms(); await openProve();
@@ -402,6 +418,195 @@ ok((await record()).signedOff?.by?.join() === 'R. Glew' && (await pill()).starts
   await row().locator('input[aria-label="Who is signing it off"]').fill('R. Glew');
   await row().getByRole('button', { name: 'Signed off — passed', exact: true }).click(); await page.waitForTimeout(2000);
   ok((await pill()).startsWith('signed off — passed'), '8z signed again, with the new tools among its criteria');
+}
+
+
+/* ---- 9 the second slice of the audit: Line capacity, work sampling, a loss count, a check log — each with a target typed where it lives ---- */
+{
+  await goPrograms(); await openProve();
+  await row().getByRole('button', { name: 'Take the sign-off back' }).click(); await page.waitForTimeout(2000);
+  const crit9 = () => row().locator('.pgc-row');
+  const pill9 = async t => flat(await row().locator('.pgc-row', { hasText: t }).locator('.status-pill').first().innerText());
+  const rowText = async t => flat(await row().locator('.pgc-row', { hasText: t }).first().innerText());
+  const db = fn => page.evaluate(fn, [PID, NAME]);
+  const startNew = async label => { const b = row().getByRole('button', { name: new RegExp(`Start a new ${label} instead`, 'i') }); if (await b.count()) await b.click(); await page.waitForTimeout(200); };
+  const add = async chip => { await row().getByRole('button', { name: 'Add a criterion' }).click(); await page.waitForTimeout(300); await row().locator('.pgc-panel [role=radio]', { hasText: chip }).click(); await page.waitForTimeout(500); };
+
+  /* Line capacity: kept on the product's line standard — Bagger 70 a minute, Basketer 12 bags to a basket at 5.5 = 66 a minute */
+  const stds = await page.evaluate(async pid => (await (await import('/src/db.ts')).listStandards(pid)).map(x => [x.id, x.product]), PID);
+  const FR = stds.find(x => x[1] === 'Finest Red 2kg')[0], TX = stds.find(x => x[1] === 'Tesco Express 1.25 kg')[0];
+  const setCap = (target, stations = true) => page.evaluate(async ([id, target, stations]) => {
+    const d = await import('/src/db.ts'); const st = await d.getStandard(id);
+    const sx = (n, u, o) => ({ id: n, name: n, kind: 'machine', unit: u, contains: 1, ratePer: 'min', ...o });
+    await d.putStandard({ ...st, capacity: { stations: stations ? [sx('Bagger', 'bags', { rate: 70 }), sx('Basketer', 'baskets', { contains: 12, rate: 5.5 })] : [], ...(target ? { targetPerMin: target } : {}) } });
+  }, [FR, target, stations]);
+  await setCap(60);
+  await page.evaluate(async id => { const d = await import('/src/db.ts'); const st = await d.getStandard(id); await d.putStandard({ ...st, capacity: { stations: [], targetPerMin: 50 } }); }, TX);
+  await page.waitForTimeout(1500);
+  await add('Line capacity');
+  const hint9 = flat(await row().locator('.pgc-panel .pgc-judges').first().innerText());
+  ok(/Line capacity judges: what the line can make, once stops count, against the target/.test(hint9), `9 Line capacity says what it judges — "${hint9.slice(0, 130)}"`);
+  const have = (await row().locator('[aria-label="Line capacities already written here"] .chip').allInnerTexts()).map(flat);
+  const start = (await row().locator('[aria-label="Start a Line capacity on a product"] .chip').allInnerTexts()).map(flat);
+  ok(have.length === 1 && /^Finest Red 2kg · Passed$/.test(have[0]) && start.includes('Tesco Express 1.25 kg') && start.includes('Finest Red 2kg') === false,
+    `9b the capacity already written is offered with its answer, one with no stations to start — ${have.join(' · ')} | ${start.join(' · ')}`);
+  await row().locator('[aria-label="Line capacities already written here"] .chip').first().click(); await page.waitForTimeout(1800);
+  rec = await record();
+  ok(rec.criteria.some(c => c.kind === 'capacity' && c.id === FR), `9c it is a criterion of kind capacity on the record — ${JSON.stringify(rec.criteria.filter(c => c.kind === 'capacity'))}`);
+  let t9 = await rowText('Line capacity — Finest Red 2kg');
+  ok(await pill9('Line capacity — Finest Red 2kg') === 'Passed' && /limits the line at 66/.test(t9) && /above the 60 target/.test(t9), `9d 66 a minute against a target of 60: Passed, the sheet's own sentence — "${t9.slice(0, 170)}"`);
+  await setCap(70); await page.waitForTimeout(1500);
+  t9 = await rowText('Line capacity — Finest Red 2kg');
+  ok(await pill9('Line capacity — Finest Red 2kg') === 'Didn’t pass' && /4 short of the 70 target/.test(t9), `9e the target raised to 70: Didn’t pass, 4 short — "${t9.slice(0, 170)}"`);
+  await setCap(60); await page.waitForTimeout(1500);
+  await row().locator('.pgc-row', { hasText: 'Line capacity — Finest Red 2kg' }).locator('.pgc-open').click(); await page.waitForTimeout(2200);
+  ok(page.url().includes(`/standard/${FR}`) && page.url().includes('at=balance'), `9f the criterion opens the product's Line capacity — ${page.url().split('#')[1]}`);
+  await goPrograms(); await openProve();
+  /* started on a product with no stations: Not yet, opening there */
+  await add('Line capacity');
+  await row().locator('[aria-label="Start a Line capacity on a product"] .chip', { hasText: 'Tesco Express 1.25 kg' }).click(); await page.waitForTimeout(2200);
+  ok(page.url().includes(`/standard/${TX}`) && page.url().includes('at=balance'), `9g started on a product with no stations: it opens there — ${page.url().split('#')[1]}`);
+  await goPrograms(); await openProve();
+  ok(await pill9('Line capacity — Tesco Express 1.25 kg') === 'Not yet' && /Add the stations/.test(await rowText('Line capacity — Tesco Express 1.25 kg')), '9h with no stations it is Not yet, and says what to add');
+  await row().locator('.pgc-row', { hasText: 'Tesco Express' }).locator('.pgc-x').click(); await page.waitForTimeout(1500);
+
+  /* work sampling: the share of the time on the work, typed on the study */
+  await add('Work sampling'); await startNew('work sampling');
+  await row().locator('input[aria-label="Name the study"]').fill('Packers, morning');
+  await row().getByRole('button', { name: 'Add it, set up later' }).click(); await page.waitForTimeout(1800);
+  rec = await record();
+  const smpId = rec.criteria[rec.criteria.length - 1].id;
+  ok(await pill9('Work sampling — Packers, morning') === 'Not yet', '9i a work sampling made for the program reads Not yet');
+  const seedSampling = (working, waiting) => page.evaluate(async ([id, working, waiting]) => {
+    const d = await import('/src/db.ts'); const t = Date.now();
+    const mk = (w, n) => Array.from({ length: n }, (_, i) => ({ id: `${w}${i}`, at: t - 100_000 + i, who: 'Op 1', activity: w }));
+    await d.patchStudy(id, cur => ({ agreed: { sampling: { who: ['Op 1'], activities: ['working', 'waiting'], marginPts: 5, from: t - 8 * 3_600_000, to: t, prompts: Array.from({ length: 40 }, (_, i) => t - 8 * 3_600_000 + i * 600_000), ...(cur.agreed?.sampling?.workAtLeast ? { workAtLeast: cur.agreed.sampling.workAtLeast } : {}) } },
+      facts: { ...cur.facts, taps: [...mk('working', working), ...mk('waiting', waiting)] } }));
+  }, [smpId, working, waiting]);
+  await seedSampling(54, 6); await page.waitForTimeout(1500);
+  ok(await pill9('Work sampling — Packers, morning') === 'Not yet' && /No share is wanted yet/.test(await rowText('Work sampling — Packers, morning')), '9j 54 of 60 working but no share wanted: shares only — Not yet, and it says what to set');
+  await row().locator('.pgc-row', { hasText: 'Work sampling' }).locator('.pgc-open').click(); await page.waitForTimeout(2500);
+  ok(page.url().includes(`/sampling/${smpId}`), `9k the criterion opens the study — ${page.url().split('#')[1]}`);
+  await page.getByRole('button', { name: 'Change what was agreed' }).click(); await page.waitForTimeout(500);
+  await page.locator('input[aria-label="Work share wanted, at least %"]').fill('80');
+  await page.getByRole('button', { name: 'Start sampling' }).click(); await page.waitForTimeout(1500);
+  const agreed9 = await page.evaluate(id => import('/src/db.ts').then(d => d.getStudy(id)), smpId);
+  ok(agreed9.agreed?.sampling?.workAtLeast === 80 && agreed9.facts.taps.length === 60, `9l the work share wanted is kept on the study (${agreed9.agreed?.sampling?.workAtLeast}%) with its 60 taps`);
+  await goPrograms(); await openProve();
+  t9 = await rowText('Work sampling — Packers, morning');
+  ok(await pill9('Work sampling — Packers, morning') === 'Passed' && /every person at least the 80% wanted/.test(t9), `9m 90% working (±8 points) against 80%: Passed, margins counted — "${t9.slice(0, 200)}"`);
+  await seedSampling(30, 30); await page.waitForTimeout(1500);
+  t9 = await rowText('Work sampling — Packers, morning');
+  ok(await pill9('Work sampling — Packers, morning') === 'Didn’t pass' && /Op 1 is working 50% of the time/.test(t9), `9n 30 of 60 working: Didn’t pass, said who — "${t9.slice(0, 200)}"`);
+  await seedSampling(54, 6); await page.waitForTimeout(1200);
+
+  /* a loss count: the most a counted shift may lose, typed on the count */
+  await add('Loss count'); await startNew('loss count');
+  await row().locator('input[aria-label="Name the study"]').fill('Shift 1 at the packer');
+  await row().getByRole('button', { name: 'Add it, set up later' }).click(); await page.waitForTimeout(1800);
+  rec = await record();
+  const lossId = rec.criteria[rec.criteria.length - 1].id;
+  await page.evaluate(async id => {
+    const d = await import('/src/db.ts'); const t = Date.now();
+    await d.patchStudy(id, cur => ({ facts: { ...cur.facts, losses: { shift: 'Shift 1', from: t - 8 * 3_600_000, to: t, plannedMin: 450, breakMin: 30, made: 36_500, rejects: 600, ratePerMin: 100, rateFrom: 'plate', rateMachine: 'Bagger' } } }));
+  }, lossId);
+  await page.waitForTimeout(1500);
+  ok(await pill9('Loss count — Shift 1 at the packer') === 'Not yet' && /No most is set yet/.test(await rowText('Loss count — Shift 1 at the packer')), '9o a counted shift (85 min lost) with no most set: Not yet, and it says what to set');
+  await row().locator('.pgc-row', { hasText: 'Loss count' }).locator('.pgc-open').click(); await page.waitForTimeout(2500);
+  ok(page.url().includes(`/losses/${lossId}`) && await page.locator('input[aria-label="A shift may lose at most"]').count() === 1, `9p the criterion opens the count, with its box — A shift may lose at most`);
+  const most = page.locator('input[aria-label="A shift may lose at most"]');
+  await most.fill('90'); await most.blur(); await page.waitForTimeout(1200);
+  ok((await page.evaluate(id => import('/src/db.ts').then(d => d.getStudy(id)), lossId)).agreed?.losses?.maxLostMin === 90, '9q the most is kept on the count');
+  await goPrograms(); await openProve();
+  t9 = await rowText('Loss count — Shift 1 at the packer');
+  ok(await pill9('Loss count — Shift 1 at the packer') === 'Passed' && /85 min lost, within the 90 min allowed/.test(t9), `9r 85 min lost against at most 90: Passed — "${t9.slice(0, 200)}"`);
+  await row().locator('.pgc-row', { hasText: 'Loss count' }).locator('.pgc-open').click(); await page.waitForTimeout(2500);
+  await page.locator('input[aria-label="A shift may lose at most"]').fill('60'); await page.locator('input[aria-label="A shift may lose at most"]').blur(); await page.waitForTimeout(1200);
+  await goPrograms(); await openProve();
+  t9 = await rowText('Loss count — Shift 1 at the packer');
+  ok(await pill9('Loss count — Shift 1 at the packer') === 'Didn’t pass' && /over by 25 min/.test(t9), `9s against at most 60: Didn’t pass, over by 25 min — "${t9.slice(0, 200)}"`);
+  await row().locator('.pgc-row', { hasText: 'Loss count' }).locator('.pgc-open').click(); await page.waitForTimeout(2500);
+  await page.locator('input[aria-label="A shift may lose at most"]').fill('90'); await page.locator('input[aria-label="A shift may lose at most"]').blur(); await page.waitForTimeout(1200);
+
+  /* a check log: the latest results of every check passed — a count, not the clock. Started from the picker on the job's only line. */
+  await goPrograms(); await openProve();
+  await add('Check log');
+  const hasKinds = await row().locator('select[aria-label="Which check log"] option').count();
+  ok(hasKinds >= 10, `9t Check log offers its kinds to start (${hasKinds}) — the program is on its job's line`);
+  await row().locator('select[aria-label="Which check log"]').selectOption({ value: 'metal-detection' });
+  await row().locator('input[aria-label="Name the check log"]').fill('Metal detection, commissioning week');
+  await row().getByRole('button', { name: 'Add it, set up later' }).click(); await page.waitForTimeout(2000);
+  rec = await record();
+  const logId = rec.criteria[rec.criteria.length - 1].id;
+  const log9 = await page.evaluate(id => import('/src/db.ts').then(d => d.getStudy(id)), logId);
+  ok(log9?.tool === 'log' && log9.agreed?.log?.key === 'metal-detection' && log9.programId === rec.id && log9.projectId === PID && !!log9.workspaceId && log9.agreed.log.checks.length >= 3,
+    `9u a log made for the program from the starter list, on its line — ${log9?.agreed?.log?.checks?.length} checks`);
+  const results = (n, bad) => page.evaluate(async ([id, n, bad]) => {
+    const d = await import('/src/db.ts'); const st = await d.getStudy(id); const t = Date.now() - 3_600_000 * 20;
+    const rs = []; let i = 0;
+    for (const c of st.agreed.log.checks) for (let k = 0; k < n; k++) rs.push({ id: `${c.id}-${k}`, checkId: c.id, at: t + 1000 * ++i, outcome: bad && k === n - 1 && c === st.agreed.log.checks[0] ? 'fail' : 'pass' });
+    await d.patchStudy(id, cur => ({ facts: { ...cur.facts, results: rs } }));
+  }, [logId, n, bad]);
+  await results(3, false); await page.waitForTimeout(1500);
+  ok(await pill9('Check log — Metal detection, commissioning week') === 'Not yet' && /No count is set yet/.test(await rowText('Check log — Metal detection')), '9v three passes of every check but no count set: "up to date" is not a pass — Not yet, and it says what to set');
+  await row().locator('.pgc-row', { hasText: 'Check log' }).locator('.pgc-open').click(); await page.waitForTimeout(2500);
+  ok(page.url().includes(`/log/metal-detection/${logId}`), `9w the criterion opens the log — ${page.url().split('#')[1]}`);
+  const inrow = page.locator('input[aria-label="Results in a row, every check, that must pass"]');
+  await inrow.fill('3'); await inrow.blur(); await page.waitForTimeout(1200);
+  ok((await page.evaluate(id => import('/src/db.ts').then(d => d.getStudy(id)), logId)).agreed?.log?.inARow === 3, '9x the count is kept on the log');
+  await goPrograms(); await openProve();
+  t9 = await rowText('Check log — Metal detection');
+  ok(await pill9('Check log — Metal detection') === 'Passed' && /of every one of the \d+ checks passed/.test(t9), `9y the latest 3 of every check passed: Passed — "${t9.slice(0, 190)}"`);
+  await results(3, true); await settle(async () => (await pill9('Check log — Metal detection')) === 'Didn’t pass');
+  t9 = await rowText('Check log — Metal detection');
+  ok(await pill9('Check log — Metal detection') === 'Didn’t pass' && /failed on its latest/.test(t9), `9z a check failed on its latest: Didn’t pass — "${t9.slice(0, 190)}"`);
+  await results(3, false); await page.waitForTimeout(1200);
+
+  /* every criterion passed again: signed off, the new tools in the line, on every paper */
+  ok(/ready to sign off/i.test(await pill()), `9aa every criterion passed: "${await pill()}"`);
+  await row().getByRole('button', { name: 'Sign off', exact: true }).click(); await page.waitForTimeout(300);
+  await row().locator('input[aria-label="Who is signing it off"]').fill('R. Glew, J. Smith');
+  await row().getByRole('button', { name: 'Signed off — passed', exact: true }).click(); await page.waitForTimeout(2500);
+  const line9 = await page.evaluate(async ([pid, name]) => {
+    const d = await import('/src/db.ts'); const C = await import('/src/lib/programCriteria.ts');
+    const p = (await d.listPrograms(pid)).find(x => x.what === name);
+    return C.passedItLine(p, C.criteriaOf(p, await d.listAllStudies(), await d.listTests(pid), undefined, { standards: await d.listAllStandards() }));
+  }, [PID, NAME]);
+  ok(/Finest Red 2kg: Meets the 60 bags\/min target/.test(line9) && /Packers, morning: working at least 80%/.test(line9) && /Shift 1 at the packer: Within the 90 min allowed/.test(line9) && /Metal detection, commissioning week: 3 in a row passed/.test(line9),
+    `9bb what passed it names every new tool's verdict: "${line9.slice(0, 600)}"`);
+  const pp = pdf(await download('Programs report', 'programs9.pdf'));
+  ok(['Passed — Line capacity — Finest Red 2kg', 'Passed — Work sampling — Packers, morning', 'Passed — Loss count — Shift 1 at the packer', 'Passed — Check log — Metal detection, commissioning week'].every(x => pp.includes(x)),
+    '9cc the Programs report: each new criterion with its answer', pp.slice(pp.indexOf('PR-07'), pp.indexOf('PR-07') + 900));
+  await goPrograms();
+  ok((await pill()).startsWith('signed off — passed') && !/not yet/i.test(await pill()), `9dd the Programs row: "${await pill()}"`);
+  const m9 = pdf(await (async () => { await go(`#/project/${PID}/machines`); await page.locator('.nv-main').getByText('Ilapak flow wrapper', { exact: false }).first().click(); await page.waitForTimeout(2500); return download('Machine report', 'machine9.pdf'); })());
+  ok(m9.includes('Finest Red 2kg') && m9.includes('Packers, morning') && m9.includes('Shift 1 at the packer') && m9.includes('Metal detection, commissioning week'), '9ee its Machine report says what passed it, the new tools among them', m9.slice(m9.indexOf('PR-07'), m9.indexOf('PR-07') + 600));
+  await go(`#/project/${PID}/report?doc=commissioning`);
+  const c9 = pdf(await download('Download', 'commissioning9.pdf'));
+  ok(c9.includes('Passed — Line capacity — Finest Red 2kg') && c9.includes('Passed — Check log — Metal detection, commissioning week'), '9ff the commissioning report: the new criteria with their answers', c9.slice(c9.indexOf('PR-07'), c9.indexOf('PR-07') + 700));
+  await go(`#/project/${PID}/testing`);
+  await page.locator('.nv-main button[aria-label^="Ilapak flow wrapper — programs"]').first().click(); await page.waitForTimeout(1200);
+  ok(flat(await page.locator('[role=dialog]').last().innerText().catch(() => '')).includes(`signed off — passed ${nice}`), '9gg Commission’s sheet of the machine’s programs: signed off, the Line capacity read from the standards');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(800);
+  /* the phone */
+  await page.setViewportSize({ width: 375, height: 780 });
+  await goPrograms(); await openProve();
+  await row().getByRole('button', { name: 'Take the sign-off back' }).click(); await page.waitForTimeout(1500);
+  await row().getByRole('button', { name: 'Add a criterion' }).click(); await page.waitForTimeout(400);
+  await row().locator('.pgc-panel [role=radio]', { hasText: 'Line capacity' }).click(); await page.waitForTimeout(500);
+  const fit9 = await page.evaluate(name => {
+    const li = [...document.querySelectorAll('li.pgr')].find(l => l.querySelector('.pgr-name')?.textContent?.includes(name));
+    const els = [...(li?.querySelectorAll('.pgc-panel [role=radio], .pgc-panel .chip, .pgc-panel .pgc-judges') ?? [])].map(c => c.getBoundingClientRect());
+    return { n: els.length, over: document.documentElement.scrollWidth - window.innerWidth, inside: els.every(r => r.right <= window.innerWidth + 1 && r.left >= -1) };
+  }, NAME);
+  ok(fit9.n >= 11 && fit9.inside && fit9.over <= 0, `9hh on a 375 px phone the eleven chips and Line capacity's hint and picks fit — nothing off the side (${fit9.over}px over)`);
+  await row().getByRole('button', { name: 'Cancel' }).first().click().catch(() => {});
+  await page.setViewportSize({ width: 1360, height: 900 });
+  await goPrograms(); await openProve();
+  await row().getByRole('button', { name: 'Sign off', exact: true }).click(); await page.waitForTimeout(300);
+  await row().locator('input[aria-label="Who is signing it off"]').fill('R. Glew');
+  await row().getByRole('button', { name: 'Signed off — passed', exact: true }).click(); await page.waitForTimeout(2000);
+  ok((await pill()).startsWith('signed off — passed'), '9ii signed again, with every new tool among its criteria');
 }
 
 /* ---- 7 on a phone ---- */

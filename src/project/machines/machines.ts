@@ -29,7 +29,7 @@ export const gateOwed = (gate: JobInput, today: string): JobItem[] => [...critic
 /** Every machine of a stage-gate project, in its order, a row each. */
 export function projectMachineRows(gate: JobInput, owed: readonly JobItem[], today: string): ProjectMachineRow[] {
   const tests = live(gate.tests), items = live(gate.items), assets = live(gate.assets);
-  const reading = programsReading({ tests, items, assets, programs: gate.programs, today, holder: gate.project, studies: gate.studies ?? [] });
+  const reading = programsReading({ tests, items, assets, programs: gate.programs, today, holder: gate.project, studies: gate.studies ?? [], ...(gate.standards ? { standards: gate.standards } : {}) });
   return machinesOf(assets, tests, items, gate.programs, reading, owed, today).map(m => {
     const a = assets.find(x => x.id === m.id);
     const status = m.gate === 'Handed over' ? 'Handed over' : a ? ASSET_STATE_WORD[assetStateOf(a)] : '';

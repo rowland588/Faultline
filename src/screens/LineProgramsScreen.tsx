@@ -88,8 +88,8 @@ export function LineProgramsScreen() {
   /* PROGRAMS ONLY ON A PROJECT'S STAGE (23 October: "it's like you don't have any programs"), by the line they stand on */
   const stageOnly = useMemo(() => stageOnlyByLine(floor.stageOnly ?? [], rec.machines, rec.jobLines), [floor, rec.machines, rec.jobLines]);
   const reading = useMemo(() => lineProgramsReading(shown.map(s => ({ id: s.line.id, name: s.line.name, machines: s.machines, programs: s.programs })), today,
-    { floor, jobName, tests: rec.provingTests, studies: rec.studies, stageOnly: new Map([...stageOnly].map(([k, v]) => [k, v.map(x => x.line)] as const)) }),
-  [shown, today, floor, jobName, rec.provingTests, rec.studies, stageOnly]);
+    { floor, jobName, tests: rec.provingTests, studies: rec.studies, standards: rec.standards, stageOnly: new Map([...stageOnly].map(([k, v]) => [k, v.map(x => x.line)] as const)) }),
+  [shown, today, floor, jobName, rec.provingTests, rec.studies, rec.standards, stageOnly]);
   /* HOW EACH PROVED ONE WAS PROVED (flow audit #21) — the reading's own words. */
   const proofs = useMemo(() => new Map((reading?.lines ?? []).flatMap(l => (l.programId && l.proof ? [[l.programId, l.proof] as const] : []))), [reading]);
   const counts = useMemo(() => new Map(readLines(rec).map(s => [s.line.id, s.programs.length])), [rec]);

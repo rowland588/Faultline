@@ -113,12 +113,12 @@ export function ProgramsPage({ projectId, only, title }: {
   const [testing] = useState(() => (m => (m ? decodeURIComponent(m) : undefined))(/[?&]test=([^&]+)/.exec(window.location.hash)?.[1]));
 
   const reading = useMemo(() => (tt.loading || progs.loading ? undefined
-    : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project, studies: rec.studies })),
-  [tt.loading, progs.loading, tt.tests, tt.items, tt.assets, progs.programs, today, project, rec.studies]);
+    : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project, studies: rec.studies, standards: rec.standards })),
+  [tt.loading, progs.loading, tt.tests, tt.items, tt.assets, progs.programs, today, project, rec.studies, rec.standards]);
   /* THE LINE'S OWN PROGRAMS on paper too — the page shows them under the
      job's machines, so its report carries them (lib/lineRecords). */
   const lineReadings = useMemo(() => jobLineReadings(jobLinePrograms(projectId, rec.all, rec.machines, rec.programs, rec.jobLines), today,
-    { tests: [...tt.tests, ...rec.provingTests.filter(t => !tt.tests.some(u => u.id === t.id))], studies: rec.studies }), [rec, projectId, today, tt.tests]);
+    { tests: [...tt.tests, ...rec.provingTests.filter(t => !tt.tests.some(u => u.id === t.id))], studies: rec.studies, standards: rec.standards }), [rec, projectId, today, tt.tests]);
 
   useEffect(() => {
     if (!reading || filterPicked) return;

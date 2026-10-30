@@ -62,7 +62,7 @@ export function LineProgramsOnJob({ project, tt, can }: { project: Project; tt?:
                     <span className={'pg-state-sel is-pg-' + stateOf(p)}>{STATE_WORD[stateOf(p)]}</span>
                     <span className={late ? 'is-r' : 'sub'}>{isProved(p) ? `proved ${niceDay(p.provedOn)}` : p.testOn ? `${late ? 'test was ' : 'test '}${niceDay(p.testOn)}` : 'no test day'}</span>
                     {/* how it was proved (flow audit #21) */}
-                    {(pf => pf && <span className={'lp-how is-' + pf.tone}>{pf.word}</span>)(proofOf(p, rec.provingTests, rec.studies))}
+                    {(pf => pf && <span className={'lp-how is-' + pf.tone}>{pf.word}</span>)(proofOf(p, rec.provingTests, rec.studies, rec.standards))}
                     {project.commissioning && tt && (test
                       ? <span className="sub">Its test in Commission: <span className={'cg-pstate is-' + testCell(test, today).tone}>{testCell(test, today).word}</span>{' '}<button type="button" className="cw-link" onClick={() => openRecord(project.id, test.id)}>Open it</button></span>
                       : !isProved(p) && can.edit && <button type="button" className="cw-link" onClick={() => void planTest()}>Prove it in Commission</button>)}

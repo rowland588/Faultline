@@ -35,6 +35,7 @@ import { notedProblems } from './noted';
 import { assignedToJob, assignedWords, namesMachine, wentWithAlso } from './clientReport';
 import type { LeanTile } from './lean';
 import { PRIORITY_WORD } from './snagsReport';
+import type { Standard } from '../tools/linestandard/standard';
 
 /** done · didn't pass · late (its day gone, or never run) · still ahead · no day. */
 export type HoTone = 'done' | 'failed' | 'late' | 'ahead' | 'none';
@@ -132,6 +133,8 @@ export interface HandoverInput {
   studies?: ToolStudy[];
   /** The studies that can show a program proved — the job's and its lines'. */
   proofStudies?: ToolStudy[];
+  /** The line standards a program's Line capacity criterion is read from. */
+  proofStandards?: Standard[];
   /** The job's lines' own programs (lib/clientReport ClientReportInput). */
   linePrograms?: JobLinePrograms[];
   /** The tests that prove programs, on whichever job. */
@@ -166,7 +169,7 @@ export function handoverReport(x: HandoverInput): HandoverReport {
 
   /* THE PROGRAMS, read once — as the Programs page and the programs report
      say them, proved by a test or a study on the line (lib/programsReport). */
-  const progs = programsReading({ tests, items, assets, programs, today, holder: x.project, studies: x.proofStudies ?? x.studies ?? [] });
+  const progs = programsReading({ tests, items, assets, programs, today, holder: x.project, studies: x.proofStudies ?? x.studies ?? [], ...(x.proofStandards ? { standards: x.proofStandards } : {}) });
   /* PROBLEMS WITH NO FIX (lib/noted) — the machine's, and the line's. */
   const noted = notedProblems(tests, items, assets).open;
   const flag = (i: { critical?: boolean; risk?: boolean }) => (i.critical ? ' (critical)' : i.risk ? ' (high risk)' : '');
@@ -245,7 +248,7 @@ export function handoverReport(x: HandoverInput): HandoverReport {
   ];
   /* THE LINE'S OWN PROGRAMS, as the line's Programs page reads them */
   const proving = [...tests, ...(x.provingTests ?? []).filter(t => !tests.some(u => u.id === t.id))];
-  const linePrograms = jobLineReadings(x.linePrograms ?? [], today, { tests: proving, studies: x.proofStudies ?? [] }).map(({ line: name, reading: r }) => ({
+  const linePrograms = jobLineReadings(x.linePrograms ?? [], today, { tests: proving, studies: x.proofStudies ?? [], ...(x.proofStandards ? { standards: x.proofStandards } : {}) }).map(({ line: name, reading: r }) => ({
     line: name, says: r.says, open: r.lines.filter(p => p.bucket !== 'done' && p.bucket !== 'baseline').map(p => `${p.machine} — ${p.what}: ${p.word}${p.who ? ` · ${p.who}` : ''}`),
   }));
 

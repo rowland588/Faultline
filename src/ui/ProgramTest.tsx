@@ -32,6 +32,7 @@ import { openRecord } from './RecordDrawer';
 import { offerUndo } from './Undo';
 import { Icon } from './Icon';
 import { useJobStudies } from './StudyLinks';
+import { useAllStandards } from '../lib/useAllStandards';
 import { TOOL_NAME, linkedTo, studyHref } from '../lib/studyLinks';
 import { nav } from '../state/useRoute';
 
@@ -105,15 +106,16 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
   useEffect(() => { if (openAtStart && box.current) box.current.scrollIntoView({ block: 'center' }); }, [openAtStart]);
 
   const jobStudies = useJobStudies(projectId);
+  const standards = useAllStandards();
   const criteriaNote = useMemo(() => {
     if (!judgedByCriteria(p) || !jobStudies) return undefined;
-    const answers = criteriaOf(p, jobStudies, tt.tests, today);
+    const answers = criteriaOf(p, jobStudies, tt.tests, today, { standards });
     const v = criteriaVerdict(p, answers);
     if (!answers.length) return undefined;
     if (v.ready) return 'Every criterion passed — sign off the program when you and your colleagues are ready.';
     if (v.passed > 0) return `${v.words} — the run’s net rate alone does not fail the program once criteria are picked.`;
     return `${v.words} — pick studies already on its tests as criteria, or add new ones, so the tools judge the program.`;
-  }, [p, jobStudies, tt.tests, today]);
+  }, [p, jobStudies, tt.tests, today, standards]);
   const ran = test && test.outcome !== 'planned';
   const start = () => {
     setHow(null); setSeen('');

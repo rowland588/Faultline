@@ -38,6 +38,7 @@ import { standing, slipWords, type PlanMark } from './standing';
 import { layoutPlan, type PlacedMark, type PlanAxis } from './plan';
 import { companies, resolver, type Company } from './names';
 import type { PaceLineRow, PaceTodoRow } from '../db';
+import type { Standard } from '../tools/linestandard/standard';
 import { methodOf, planModel, type PlanModel } from './planModel';
 import { DUE_SOON_DAYS, isLate as stepIsLate } from './actions';
 import { openByBone } from './pillars';
@@ -62,6 +63,8 @@ export interface JobInput {
   /** The job's studies (lib/study) — a test proved by one still short of its
    *  readings says so on its row. */
   studies?: ToolStudy[];
+  /** The line standards a program's Line capacity criterion is read from (lib/programCriteria). */
+  standards?: Standard[];
 }
 
 /** A 6M or lever tree job, as the control room reads it: the actions kept on
