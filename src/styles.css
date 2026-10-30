@@ -6098,6 +6098,38 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ot.is-dark .ot-pace .ot-pw { color: var(--shell-muted); }
 .ot.is-dark .ot-pace.is-risk { color: var(--shell-warn); }
 
+/* ---- E3 (docs/ENTERPRISE-UI.md): the project's band calm, as the control room's ----
+   E0 turned the control room's .jb-hero from a dark drifting hero into a quiet Planner
+   panel (Rowland, 29 Oct); the project front page's and Now's band is the same family,
+   so in the app shell it reads the same — surface, ink, light tiles. The paper and any
+   context outside .nv-main keep the band as it was. Text unchanged everywhere. */
+.nv-main .vd { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.nv-main .vd-eyebrow { color: var(--muted); }
+.nv-main .vd-sentence { color: var(--ink); }
+.nv-main .vd-slip { color: var(--ink-2); }
+.nv-main .vd-l { color: var(--muted); }
+.nv-main .vd-of { color: var(--ink-2); }
+.nv-main .vd-tiles { background: var(--line); }
+.nv-main .vd-tile { background: var(--surface-2); }
+.nv-main .vd-n { color: var(--ink); }
+.nv-main .vd-n.is-warn { color: var(--st-a); }
+.nv-main .vd-n.is-bad { color: var(--st-r); }
+/* the on-target strip inside it reads as its light self */
+.nv-main .vd .ot.is-dark { background: var(--surface-2); border-color: var(--line-2); }
+.nv-main .vd .ot.is-dark .ot-q { color: var(--muted); }
+.nv-main .vd .ot.is-dark .ot-a { color: var(--ink); }
+.nv-main .vd .ot.is-dark .ot-r { color: var(--ink-2); }
+.nv-main .vd .ot.is-dark.is-behind { border-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); }
+.nv-main .vd .ot.is-dark.is-behind .ot-w { color: var(--st-r); }
+.nv-main .vd .ot.is-dark.is-risk { border-color: var(--st-a); background: var(--fill-warn); }
+.nv-main .vd .ot.is-dark.is-risk .ot-w { color: var(--st-a); }
+.nv-main .vd .ot.is-dark.is-on { border-color: color-mix(in srgb, var(--st-g) 45%, var(--line)); }
+.nv-main .vd .ot.is-dark.is-on .ot-w { color: var(--st-g); }
+.nv-main .vd .ot.is-dark.is-none .ot-w { color: var(--ink-2); }
+.nv-main .vd .ot.is-dark .ot-pace { color: var(--ink-2); }
+.nv-main .vd .ot.is-dark .ot-pace .ot-pw { color: var(--muted); }
+.nv-main .vd .ot.is-dark .ot-pace.is-risk { color: var(--st-a); }
+
 /* THE CLIMB TO RATE (ui/Climb, lib/rampUp) — the runs as dots in ink, the
    agreed rate dashed, the fitted climb dotted on to where it meets it. No
    state's colour on the picture; the sentence carries the tone in words. */
@@ -11137,7 +11169,7 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
    not bare lists on the paper colour. Immersive tools (film, full-screen timer)
    keep their own layout — selectors stay inside .wrap, not .fr / .walk-stage. */
 .nv-main .wrap > .part-head,
-.nv-main .wrap > .pace-head.part-head {
+.nv-main .wrap > .pace-head {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: var(--shadow); padding: 16px 18px 14px; margin-bottom: 14px;
 }
@@ -11152,6 +11184,8 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .nv-main .wrap .fd-back,
 .nv-main .wrap .proj-arch,
 .nv-main .wrap .fac-add,
+.nv-main .wrap .proj-list,
+.nv-main .now .qsl-g,
 .nv-main .wrap .fac-merge {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: var(--shadow); padding: 14px 16px 16px; margin-top: 18px;

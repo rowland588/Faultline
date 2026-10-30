@@ -44,7 +44,7 @@ headers. Optional explicit wrapper: class `ep-panel` (same look as E0 sections).
 | **E0** | **Global shell** — `.nv-main` canvas, headers, sections, jb band, list rows | **Built 29 Oct** |
 | **E1** | Factory lines board + Set up machines table (first vertical slice) | **Built 29 Oct** |
 | **E2** | Line Overview + Machines — cards match Factory board | **Built 30 Oct** — the tour's machine cards wear `.fac-card`'s surface (shadow, lift, the name at the board's size, an "Open machine ›" go line), the Machines tab is a Planner table with Set up's columns (# · Machine · Who made it · Programs · Actions; stacked under 720px), the line's tiles on a panel |
-| **E3** | Projects list + project Now — same panel language as control room | Next |
+| **E3** | Projects list + project Now — same panel language as control room | **Built 30 Oct** — every bare `.pace-head` page header and the Projects list on panels, the Now page's four sections on panels, and the project front page's dark `.vd` verdict band made calm under `.nv-main` as E0 made `.jb-hero` (surface, ink, light tiles, the on-target strip and pace line remapped; text unchanged, the paper keeps its band) |
 | **E4** | Problems, Programs, Actions — shared status pills and row density | Next |
 | **E5** | Stage-gate gates / Commission grids — align with E0 panels (no second palette) | Next |
 | **E6** | Tool chrome (study shell, drawers) — panel headers only | Next |
