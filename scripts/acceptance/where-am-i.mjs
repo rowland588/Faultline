@@ -190,7 +190,8 @@ const names = await page.evaluate(async ([ws, pid]) => {
   /* a machine a project is working on says what that project's Machines tab says (27 October — "factory machines tells you nothing"; machine-reports.mjs proves every word) */
   const ilapak = flat(await main().locator('.fmc-m[data-machine="Ilapak flow wrapper"]').innerText());
   ok(/Ilapak UK/.test(ilapak) && /In Line 2 commissioning: (at |due on site|handed over)/.test(ilapak) && /Programs: /.test(ilapak), `G4 a row says who made it, its project and where it is up to, its programs (${ilapak})`);
-  await main().locator('.fmc-m[data-machine="Ilapak flow wrapper"] .lt-row').click(); await page.locator('.mpg').waitFor({ timeout: 15000 }); await page.waitForTimeout(600);
+  /* two .mpg blocks since C3 (the machine itself and the closing line split into .mpg-project-tail) — wait on the project's part */
+  await main().locator('.fmc-m[data-machine="Ilapak flow wrapper"] .lt-row').click(); await page.locator('.mpg.mpg-in-project').waitFor({ timeout: 15000 }); await page.waitForTimeout(600);
   /* its one page, on its line, the project's part on it (27 October) */
   ok(/#\/lines\/[^/]+\/machine\//.test(page.url()) && await main().locator('.mpg-in-project').count() === 1, `G5 a row opens the machine's one page, its project's part on it (${page.url().split('#')[1]})`);
   /* its paper, read back */
@@ -225,11 +226,12 @@ const names = await page.evaluate(async ([ws, pid]) => {
   ok(/\/install$/.test(page.url()) && await tabOn() === 'Gates', `H5 a gate opens lighting Gates — the project's (${await tabOn()})`);
   /* a machine's page — the machine first: its status, the project it is going through and where it is up to, what is open, its tests, its programs */
   await go(`#/project/${PID}/machines`);
-  await main().locator('.pms .now-m .lt-row').first().click(); await page.locator('.mpg').waitFor({ timeout: 15000 }); await page.waitForTimeout(800);
+  await main().locator('.pms .now-m .lt-row').first().click(); await page.locator('.mpg.mpg-in-project').waitFor({ timeout: 15000 }); await page.waitForTimeout(800);
   const head = flat(await main().locator('.cw-handover').innerText());
   const inProject = flat(await main().locator('.mpg-in').innerText());
   ok(/^(Not here yet|On site|Installed|Running|Handed over)/.test(head), `H6 the machine's status first (${head})`);
-  ok(inProject.startsWith(`Going through ${names.job} — a stage-gate project — `), `H7 the project it is going through, and where it is up to (${inProject})`);
+  /* "an installation project" since 29 October (docs/FAULTLINE-FAULT-MODEL.md — the stage gate's user-facing name) */
+  ok(inProject.startsWith(`Going through ${names.job} — an installation project — `), `H7 the project it is going through, and where it is up to (${inProject})`);
   ok(await main().locator('.mpg-steps .mpg-step').count() === 4 && await main().locator('.mpg-open h2').count() === 1 && await main().locator('.mpg-tests h2').count() === 1 && await main().locator('.mpg-side').count() === 1,
     'H8 its gates one strip; what is open on it, its tests and its programs below');
   ok(await main().locator('.mp-gate .mp-gate-go').count() === 0, 'H9 no gate-by-gate panel on the machine');

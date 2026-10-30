@@ -252,7 +252,7 @@ point of home? ... The control room, is it required? ... I literally start
 using it and I've got no idea where I am. I lose myself"; the shape chosen,
 *one home, a fixed menu*). `#/` is the **Factory** page (`screens/WorkspaceHome`
 — what was the control room, `#/room` kept; the front door is gone: its three
-kinds are New project's, its tools the page's *Use a tool* row and Tools,
+kinds are New project's, its tools the page's Tools chip and the Tools page (the *Use a tool* row folded into the chip, 29 October, Enterprise UI E1),
 *Carry on where you were* and Line Talk on the Factory page). The rail is
 **one menu on every page** — Factory · Projects · Problems · Actions · Tools,
 Reports at the foot (`ui/rail` menuGroups; Factory lit inside a line, Projects

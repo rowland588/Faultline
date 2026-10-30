@@ -220,7 +220,7 @@ ok(/on Line 1 performance/.test(await row1.innerText()) && (await row1.getByRole
 await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
 if (OUT) await page.screenshot({ path: `${OUT}/f-8-line-jobs.png` });
 const jobsSec = (await page.getByRole('region', { name: 'Projects on this line' }).innerText()).replace(/\s+/g, ' ');
-ok(/Line 1 performance 6M/.test(jobsSec), `19 Line 1's page: its job — ${jobsSec}`);
+ok(/Line 1 performance Performance \(6M\)/.test(jobsSec), `19 Line 1's page: its job — ${jobsSec}`);
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 ok(/Projects: Line 1 performance/.test(await page.locator('.fac-card', { hasText: 'Line 1' }).first().innerText()), '20 the Factory board\'s card: Projects: Line 1 performance');
 if (OUT) await page.screenshot({ path: `${OUT}/f-5-control-jobs.png` });

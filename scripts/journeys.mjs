@@ -170,7 +170,10 @@ await run('J1 across factory, line and project', 390, async (D, J) => { await J1
 /* J2 — a tool on its own, on the floor (phone): from Home, a capability study with no line or project — set up, three readings, the verdict read. */
 await run('J2 a tool on its own', 390, async (D, J) => {
   await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
-  await press(D, J, 'Factory: Use a tool — Capability', D.page.locator('main .home-tools').getByRole('button', { name: /^Capability/ }).first()); await orient(D, J, 'Capability');
+  /* since E1 (29 October, docs/ENTERPRISE-UI.md) the Factory is the board of lines — its Use a tool row folded
+     into the Tools chip, so a tool on its own starts from Tools (one tap more, agreed in LONGER below) */
+  await press(D, J, 'Factory: Tools', D.page.locator('main .fac-quick').getByRole('button', { name: 'Tools', exact: true })); await orient(D, J, 'Tools');
+  await press(D, J, 'Tools: Capability', D.page.locator('main .et-now').getByRole('button', { name: /^Capability\b/ }).first()); await orient(D, J, 'Capability');
   await press(D, J, 'New capability study', btn(D, 'New capability study'));
   await type(D, J, 'What is it of?', D.page.getByLabel('What is it of?'), 'Fill weight 400 g');
   await type(D, J, 'On which machine?', D.page.getByLabel(/On which machine/), 'Ishida checkweigher');
@@ -369,6 +372,9 @@ const LONGER = {
      line's own list should cover it. Because when you start putting 10 production lines, it'll get too full" */
   'J7b every late action, by person (desk) [desk]': 'the late actions are the project\'s Actions — Projects › the project › Actions',
   'J7c a line problem moved into a project (desk) [desk]': 'a problem is the line\'s — the Factory board › the line › Problems',
+  /* 29–30 October — Enterprise UI E1 (docs/ENTERPRISE-UI.md): the Factory is the board of lines; its Use a tool
+     row folded into the Tools chip, so a tool on its own is Factory › Tools › the tool — one tap more */
+  'J2 a tool on its own [phone]': 'the Factory is the board of lines — a tool starts from its Tools chip',
 };
 const base = JSON.parse(readFileSync(new URL('../docs/structure/journeys-baseline.json', import.meta.url), 'utf8')).walks;
 let fail = 0;

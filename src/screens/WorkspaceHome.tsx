@@ -286,10 +286,9 @@ export function WorkspaceHome() {
                 ? (k.flow || named.map(m => (m.record?.oem ? `${m.name} (${m.record.oem})` : m.name)).join(' → '))
                 : 'No machines named yet';
               const todo = k.programs.length - k.proved;
-              const bits = [
-                dualSaid(dualOf(w, prodLines)),
-                rateOf[w.id],
-              ].filter(Boolean);
+              /* a dual line's words keep their own element (.fac-dual), as Your factory's rows say them */
+              const dual = dualSaid(dualOf(w, prodLines));
+              const rate = rateOf[w.id];
               return (
                 <li key={w.id}>
                   <button className={'fac-card is-' + st.tone} data-line={w.name} onClick={() => nav(`/lines/${w.id}`)}>
@@ -309,14 +308,16 @@ export function WorkspaceHome() {
                     <span className="fac-card-machines">{machineSaid}</span>
                     <span className="fac-card-projects">{on ? `Projects: ${on}` : 'No project on it'}</span>
                     {c?.worst && <span className={'fac-card-worst' + (c.worst.red ? ' is-r' : '')}>{c.worst.what}<span className="sub"> · {c.worst.owner ?? 'nobody yet'}{c.worst.due ? ` · ${c.worst.due}` : ''}</span></span>}
-                    {(todo > 0 || k.late || bits.length) ? (
+                    {(todo > 0 || k.late || dual || rate) ? (
                       <span className="fac-card-meta">
                         {todo > 0 ? `${todo} program${todo === 1 ? '' : 's'} to prove` : ''}
-                        {k.late ? <>{todo > 0 ? ' · ' : ''}<span className="is-r">{k.late} program{k.late === 1 ? '' : 's'} late</span></> : null}
-                        {bits.length ? <>{todo > 0 || k.late ? ' · ' : ''}{bits.join(' · ')}</> : null}
+                        {k.late ? <>{todo > 0 ? ' · ' : ''}<b className="is-r">{k.late} late</b></> : null}
+                        {dual ? <>{todo > 0 || k.late ? ' · ' : ''}<span className="fac-dual">{dual}</span></> : null}
+                        {rate ? <>{todo > 0 || k.late || dual ? ' · ' : ''}{rate}</> : null}
                       </span>
                     ) : null}
-                    <span className="fac-card-go">Open line ›</span>
+                    {/* the way in, named (27 October, where-am-i D: each card saying what a tap does) */}
+                    <span className="fac-card-go">Open {w.name} ›</span>
                   </button>
                 </li>
               );

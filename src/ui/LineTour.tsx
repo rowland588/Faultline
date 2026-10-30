@@ -119,6 +119,8 @@ export function LineTour({ line, machines, rows, snags, obs, standards }: {
                   ? <>{Math.round(c.minWeek)} min a week stopped{perMin ? ` · ${fmtGBP(c.minWeek * perMin)} idle labour` : ''}{c.on ? ' — and output, at the constraint' : ''}</>
                   : <span className="sub">no stops logged lately</span>}
               </span>
+              {/* the way in, said as the Factory board's cards say it (docs/ENTERPRISE-UI.md E2) */}
+              <span className="tour-go" aria-hidden>{listed.has(machineKey(c.name)) ? 'Open machine ›' : 'Its problems ›'}</span>
             </button>
           </li>
         ))}

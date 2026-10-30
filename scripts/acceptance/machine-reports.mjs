@@ -108,7 +108,8 @@ const want = await truth();
   ok(!!inP && /^In .+: (at |due on site|handed over)/.test(inP.says), `F2 a machine a project is working on: its status, where it is up to (${inP?.name}: ${inP?.status} — ${inP?.says})`);
   ok(!none || /^(No project on it|With )/.test(none.says), `F3 a machine with no project on it says so (${none?.name}: ${none?.says})`);
   if (inP) {
-    await main().locator(`.fmc-m[data-machine="${inP.name}"] .lt-row`).first().click(); await page.locator('.mpg').waitFor({ timeout: 15000 }); await page.waitForTimeout(600);
+    /* two .mpg blocks since C3 (.mpg-project-tail holds the machine itself) — wait on the project's part */
+    await main().locator(`.fmc-m[data-machine="${inP.name}"] .lt-row`).first().click(); await page.locator('.mpg.mpg-in-project').waitFor({ timeout: 15000 }); await page.waitForTimeout(600);
     ok(page.url().endsWith(`#${inP.href}`), `F4 its row opens its page in the project (${page.url().split('#')[1]})`);
   }
   await go('#/machines');
@@ -167,7 +168,7 @@ const proj = want.projects[PID];
 /* ---- M · a machine's page in the project, and its Machine report ---- */
 {
   await go(`#/project/${PID}/machines`);
-  await main().locator('.pms .now-m .lt-row').first().click(); await page.locator('.mpg').waitFor({ timeout: 15000 }); await page.waitForTimeout(1200);
+  await main().locator('.pms .now-m .lt-row').first().click(); await page.locator('.mpg.mpg-in-project').waitFor({ timeout: 15000 }); await page.waitForTimeout(1200);
   const name = flat(await main().locator('.pace-title').first().innerText());
   const status = flat(await main().locator('.mpg-at').innerText());
   const inProject = flat(await main().locator('.mpg-in').innerText());
@@ -208,7 +209,8 @@ const proj = want.projects[PID];
   ok(t.includes(`${lineName} — its machines`) && onLine.every(x => t.includes(onPaper(x.name)) && t.includes(onPaper(x.says))), `W1 the line's machines report: its machines as the Factory's Machines says them (${onLine.length})`, t.slice(0, 300));
   ok(n >= onLine.length + 1 && onLine.filter(x => x.status).every(x => t.includes(x.status.toUpperCase())), `W2 then every machine in full, each with its status (${n} pages)`);
   const inP = onLine.find(x => x.status);
-  ok(!inP || t.includes(`Going through ${proj.name} — a stage-gate project — `), 'W3 a project’s machine in full — the project it is going through');
+  /* "an installation project" since 29 October (docs/FAULTLINE-FAULT-MODEL.md) */
+  ok(!inP || t.includes(`Going through ${proj.name} — an installation project — `), 'W3 a project’s machine in full — the project it is going through');
   /* and the same from the Factory's Machines, line by line */
   await go('#/machines');
   const g = await paper(`${lineName} — its machines in full`, 'factory-line-machines.pdf');

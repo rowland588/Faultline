@@ -119,7 +119,8 @@ const smedLine = await page.locator('.sheet, [role="dialog"]').last().getByLabel
 ok(smedLine === 'Line 2B', `11 New SMED starts on ${smedLine}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
-ok(/Line 2B No type yet 1 problem open/.test(await txt()), '12 the control room: Line 2B, 1 problem open');
+/* the board's card says the state between the name and the type since E1 (29 October, docs/ENTERPRISE-UI.md) */
+ok(/Line 2B 1 problem open No type yet/.test(await txt()), '12 the control room: Line 2B, 1 problem open');
 if (OUT) await page.screenshot({ path: `${OUT}/l-3-control.png` });
 // phone
 await page.setViewportSize({ width: 390, height: 844 });

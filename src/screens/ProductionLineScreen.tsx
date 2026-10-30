@@ -484,12 +484,18 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         {!kit?.machines.length
           ? <p className="sub">No machines listed yet{may ? ' — name them below, in flow order.' : '.'}</p>
           : (
-            <ol className="pl-machines">
-              {kit.machines.map(m => (
-                <MachineRow key={m.name} line={line} m={m} may={may} programs={kit.programs.filter(p => p.assetId && p.assetId === m.record?.id)}
-                  job={m.jobId ? projects.find(p => p.id === m.jobId)?.name : undefined} />
-              ))}
-            </ol>
+            <>
+              {/* the Planner table head, as Set up's lines table says its columns (docs/ENTERPRISE-UI.md E2) */}
+              <div className="pl-machines-head" aria-hidden>
+                <span>#</span><span>Machine</span><span>Who made it</span><span>Programs</span><span>Actions</span>
+              </div>
+              <ol className="pl-machines">
+                {kit.machines.map(m => (
+                  <MachineRow key={m.name} line={line} m={m} may={may} programs={kit.programs.filter(p => p.assetId && p.assetId === m.record?.id)}
+                    job={m.jobId ? projects.find(p => p.id === m.jobId)?.name : undefined} />
+                ))}
+              </ol>
+            </>
           )}
         {may && (
           <div className="pl-new" role="group" aria-label="Add a machine">
@@ -698,8 +704,8 @@ function MachineRow({ line, m, may, programs, job }: { line: Workspace; m: LineM
         ? <input className="text-input pl-oem" defaultValue={m.record?.oem ?? ''} key={m.record?.oem ?? ''} maxLength={80} placeholder="Who made it" aria-label={`Who made the ${m.name}`}
             onBlur={e => { const v = e.target.value.trim(); if (v !== (m.record?.oem ?? '')) void setMachineFacts(line.id, m.name, { oem: v }); }}
             onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
-        : m.record?.oem ? <span className="sub">{m.record.oem}</span> : null}
-      <span className="sub">{[programs.length ? `${programs.length} program${programs.length === 1 ? '' : 's'}, ${programs.filter(isProved).length} proved` : 'no programs', job ? `brought in by ${job}` : ''].filter(Boolean).join(' · ')}</span>
+        : m.record?.oem ? <span className="sub pl-oem-said">{m.record.oem}</span> : null}
+      <span className="sub pl-machine-on">{[programs.length ? `${programs.length} program${programs.length === 1 ? '' : 's'}, ${programs.filter(isProved).length} proved` : 'no programs', job ? `brought in by ${job}` : ''].filter(Boolean).join(' · ')}</span>
       {may && onList && (
         <span className="lt-acts pl-machine-acts">
           <button type="button" className="cw-link" onClick={() => { setName(m.name); setNaming(true); }} aria-label={`Rename ${m.name}`}>Rename</button>

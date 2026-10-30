@@ -84,7 +84,8 @@ export const PAGES = (sd, cap) => [
     { what: 'what it is in a sentence — whose, projects, programs, problems, stops', sel: '.lmc-says', text: /With .* · worked on by/ },
     /* THE PROJECT'S PART, FIRST — "it's going through a stage gate process and it's up to these things. It has these tests ... these programs" */
     { what: 'its status in plain words', sel: '.mpg-in-project .cw-handover .mpg-at', text: /^(Not here yet|On site|Installed|Running|Handed over)$/ },
-    { what: 'the project it is going through, and where it is up to', sel: '.mpg-in', text: /^Going through .* — a stage-gate project — / },
+    /* "an installation project" since 29 October (docs/FAULTLINE-FAULT-MODEL.md — the stage gate's user-facing name) */
+    { what: 'the project it is going through, and where it is up to', sel: '.mpg-in', text: /^Going through .* — an installation project — / },
     { what: 'its four gates in a row', sel: '.mpg-steps .mpg-step', n: 4 },
     { what: 'the five tiles — the project’s money last', sel: '.mpg-in-project > .sg-tiles .ln-tile', n: 5 },
     { what: 'what is open on it, most pressing first', sel: '.mpg-open h2' },
@@ -98,7 +99,8 @@ export const PAGES = (sd, cap) => [
     { what: 'its stops', sel: '.lmc-stops h2' },
     /* last — itself and the closing line after every line section (STAGEGATE-AESTHETIC C3) */
     { what: 'the machine itself — its label, its details; Remove in More ▾', sel: '.mpg-itself .mp-label' },
-    { what: 'the closing line', sel: '.lmc .mpg-in-project > .ln-close' },
+    /* after every line section since C3 (docs/STAGEGATE-AESTHETIC-REVIEW.md) — the machine itself and the closing line last */
+    { what: 'the closing line', sel: '.lmc .mpg-project-tail > .ln-close' },
   ] },
   { name: 'A line — its own page', path: `#/lines/${sd.line7WsId}`, must: [
     /* WHERE AM I (27 October — Rowland: "Where am I? Overview? ... I do not see a machine page"): the menu names the line under
@@ -252,7 +254,9 @@ export const PAGES = (sd, cap) => [
   { name: 'The client report — a stage-gate project', path: `#/project/${sd.projectId}/report`, must: [
     /* B3: the paper's page header — Download the one primary, where it said PDF */
     { what: 'the page header — Download', sel: '.part-head .btn-primary', text: /^Download/ },
-    { what: 'its five papers to choose', sel: '.cr-which .chip', n: 5 }] },
+    /* three since 29 October: the commissioning and handover narrative papers sit behind the legacy switch
+       (src/lib/productStory.ts commissioningNarrativePapersInMenus — docs/FAULTLINE-FAULT-MODEL.md §7) */
+    { what: 'its three papers to choose', sel: '.cr-which .chip', n: 3 }] },
   { name: 'The client report — a 6M project', path: `#/pace-report?project=${sd.pacedProjectId}`, must: [
     { what: 'the page header — Download', sel: '.part-head .btn-primary', text: /^Download/ },
     { what: 'its two papers to choose', sel: '.cr-which .chip', n: 2 }] },
