@@ -421,7 +421,19 @@ export const PAGES = (sd, cap) => [
     { what: 'start from the problem — every route', sel: '.et-route-b', n: 20 },
     { what: 'every tool by discipline, each with its status in words', sel: '.et-row .et-st', n: 200 },
     /* the eleven a person can open, one tap each — the factory's tools since the rail stopped listing them (23 October, docs/STRUCTURE.md B2) */
-    { what: 'use one now — every tool a person can open', sel: '.et-now .lt-row', n: 11 },
+    /* since 30 October (docs/TOOLS-SHOWCASE.md, TG1) the rows are the gallery: a card each, with its picture, its one line and use, opening its page; Open › its list */
+    { what: 'the gallery — a card for every tool a person can open', sel: '.et-now .tc-card', n: 15 },
+    { what: 'each card with its picture or its drawn tile', sel: '.et-now .tc-card .tc-pic', n: 15 },
+  ] },
+  /* A TOOL'S OWN PAGE (30 October, docs/TOOLS-SHOWCASE.md, TG2 — Rowland: "view it on a full page, tells me what the tool can be used for") */
+  { name: 'Tools — a tool\u2019s own page', path: '#/tools/capability', must: [
+    { what: 'its name', sel: '.pace-head h1', text: /^Capability$/ },
+    { what: 'its picture', sel: '.tp-hero .tc-pic' },
+    { what: 'what you can use it for, in its questions', sel: '.tp-sec[aria-label="What you can use it for"] .tp-qs li', n: 3 },
+    { what: 'what you give it and what you get', sel: '.tp-io h2', n: 2 },
+    { what: 'what is inside it — its modes, each with its status in words', sel: '.tp-modes .et-st', n: 5 },
+    { what: 'where it stands and what it does not do yet', sel: '.tp-sec[aria-label="Where it stands"]' },
+    { what: 'the other tools — previous and next', sel: '.tp-pn button', n: 2 },
   ] },
   /* A PROJECT'S TOOLS (23 October, docs/STRUCTURE.md §5.1, B2): the eleven tools left the foot of the project's rail for one page — each tool, how often it is used here, its latest; New on its row */
   /* RESULTS (docs/STRUCTURE.md D9, B5): Numbers and Wins one page, two views */
@@ -686,10 +698,10 @@ export const PAGES = (sd, cap) => [
     { what: 'a row a project — its kind and who leads it, its lines and its handover', sel: '.proj-list li.part-row', n: 3 },
     { what: 'All lines, to narrow it to one', sel: '.proj-list select.proj-line-f' },
   ] },
-  /* NEW JOB: Performance (6M) on the main screen; optional install under advanced link (29 Oct, docs/FAULTLINE-FAULT-MODEL.md) */
+  /* NEW JOB: Performance (6M) on the main screen; no install link since 30 Oct (was under an advanced link, 29 Oct, docs/FAULTLINE-FAULT-MODEL.md) */
   { name: 'New project', path: '#/projects?new=1', must: [
     { what: 'Performance (6M) — find and fix what is holding a line back', sel: '.proj-model-opt .proj-model-t', text: /Find and fix what is holding a line back/ },
-    { what: 'Need a formal install with gates? — optional, not a peer card', sel: '.proj-install-advanced', text: /^Need a formal install with gates\?$/ },
+    /* 'Need a formal install with gates?' taken off 30 October (Rowland: "remove it") — the stage-gate track is no longer offered on this page */
   ] },
   /* A VIDEO STUDY (18 October, docs/VIDEO.md): footage read for the work at each station, reviewed, worked out as a line balance */
   { name: 'Video studies', path: '#/video', must: [

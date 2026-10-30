@@ -67,9 +67,9 @@ const sits = flat(await page.locator('.proj-model-grid .proj-model-opt .proj-mod
 ok(mainKinds.join(' · ') === 'Performance (6M)' && /Find and fix what is holding a line back/.test(sits)
   && !/New equipment — optional gates/.test(await page.locator('.proj-model-grid').innerText())
   && !/Lever tree/.test(await page.locator('.proj-new').innerText())
-  && await page.locator('.proj-install-advanced').isVisible(),
-  '2 New project — Performance (6M) only on main screen; install under advanced link', `${mainKinds.join(' · ')} | ${sits}`);
-await page.locator('.proj-install-advanced').click();
+  && (await page.locator('.proj-install-advanced').count()) === 0 && !/formal install/i.test(await page.locator('.proj-new').innerText()),
+  '2 New project — Performance (6M) only; no formal-install link (Rowland, 30 October: remove it)', `${mainKinds.join(' · ')} | ${sits}`);
+await go('#/projects?new=1&model=commissioning');   // the stage gate is still reachable by its address (old links), never offered
 await page.waitForTimeout(300);
 await page.locator('.proj-model-advanced .proj-model-opt').click();
 await page.locator('.proj-new-grid input.text-input').first().fill('Line 4 new case packer');

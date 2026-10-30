@@ -1,4 +1,4 @@
-# The tools are the heart — a plan to show them (PLAN ONLY, 30 October 2026)
+# The tools are the heart — a plan to show them (30 October 2026 — GO GIVEN, TG0–TG2 being built)
 
 Rowland, 30 October: *"look at the tool page, it needs a massive upgrade. I want
 the ability to scroll through the tools, pick one, view it on a full page that
@@ -9,7 +9,7 @@ competition doesn't have these tools — they simply run off IoT, OEE, MRP and
 CMMS. We need a plan to massively increase the tools' engagement and
 visibility — not the app."*
 
-**Nothing here is built until Rowland says go** (`docs/DIRECTION.md`). This
+**Go given by Rowland, 30 October** ("go ahead with the tool plan"); the recommended answer to each decision in §5 is taken (photographs; fifteen cards with the modes inside; suggestions by fixed rule; the tool book last; TG0–TG2 first). Built so far: TG1 the gallery (`ui/ToolCard`, `lib/useToolUse`, `screens/ToolsScreen`) and TG2 the tool's own page (`screens/ToolPageScreen`, `#/tools/:key`), proved by `scripts/acceptance/tool-page.mjs`; TG0 the pictures in progress. Known gap: §B.4 "what it is worth" is not on the page — the money sentence lives in `knowledge/MONEY.md`, not on the catalogue entry; it needs a `money` field on the entry first (next). This
 sits beside `docs/TOOLS-UX.md` (how a tool's chrome looks, how to find one by
 its problem — built) and `docs/TOOLS-BUILD.md` (which tools get built, by
 wave). Where they disagree about how tools are *shown*, this wins once agreed.

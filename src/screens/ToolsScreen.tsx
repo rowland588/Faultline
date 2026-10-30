@@ -12,10 +12,12 @@
  * the catalogue's words never weigh on the rest of the app. */
 import { PageHeader } from '../ui/parts';
 import { APP_TOOLS } from '../catalogue/registry';
+import { ToolCard } from '../ui/ToolCard';
+import { useToolUse, usedSaid } from '../lib/useToolUse';
 import { useMemo, useState } from 'react';
 import { ENTRIES, PROBLEMS, disciplineName, entryById, searchEntries, searchProblems, statusCounts, subName } from '../catalogue';
-import { DISCIPLINES, FORM_WORDS, STATUSES, STATUS_WORDS, type Entry, type ProblemRoute, type Status } from '../catalogue/types';
-import { nav } from '../state/useRoute';
+import { DISCIPLINES, FORM_WORDS, KINDS, STATUSES, STATUS_WORDS, type Entry, type Kind, type ProblemRoute, type Status } from '../catalogue/types';
+import { nav, useRoute } from '../state/useRoute';
 
 /** The state colours, one meaning each: built is done (a quiet green);
  *  partly built or specified is under way; not built, research and left out
@@ -23,6 +25,8 @@ import { nav } from '../state/useRoute';
 const TONE: Record<Status, 'g' | 'w' | 'n'> = { available: 'g', partial: 'w', specified: 'w', 'to-build': 'n', research: 'n', 'left-out': 'n' };
 /** Where an entry opens in the app, when it is there to open. */
 const opens = (e: Entry): string | undefined => ((e.status === 'available' || e.status === 'partial') ? e.built?.where[0] : undefined);
+/** The kind chips' words — the floor's, not the model's. */
+const KIND_CHIP: Record<Kind, string> = { study: 'Studies', standard: 'Standards', log: 'Logs', register: 'Registers', document: 'Documents', board: 'Boards' };
 const plural = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
 
 export function ToolsScreen() {
@@ -30,7 +34,11 @@ export function ToolsScreen() {
   const [status, setStatus] = useState<Status | ''>('');
   const [disc, setDisc] = useState('');
   const [open, setOpen] = useState<string | null>(null);
-  const [route, setRoute] = useState<string | null>(null);
+  const here = useRoute();
+  /* a tool's page sends you to the problem routes it sits on (?route=) */
+  const [route, setRoute] = useState<string | null>(() => { const r = here.query.get('route'); return r && PROBLEMS.some(p => p.id === r) ? r : null; });
+  const [kind, setKind] = useState<Kind | ''>('');
+  const use = useToolUse();
 
   const all = statusCounts();
   const words = q.trim();
@@ -54,21 +62,26 @@ export function ToolsScreen() {
         {all.specified} planned, {all['to-build']} not built yet, {all.research} needing research first, {all['left-out']} left out on purpose.
       </span>} />
 
-      {/* USE ONE NOW — the tools a person can open, first (docs/STRUCTURE.md §5.1: the factory's Tools is
-          the library; the eleven left every rail on 23 October). Each opens its list; started from there,
-          one is on no line or project, or put on one. */}
+      {/* THE GALLERY (docs/TOOLS-SHOWCASE.md, TG1 — Rowland, 30 October: "scroll through the tools, pick one, view it on a
+          full page ... thumbnail pictures"). It replaces the plain "Use one now" rows: the same tools, each with its picture,
+          its one line and whether it has been used; a card opens the tool's own page, Open › its list as the row did. */}
       <section className="et-now" aria-label="Use one now">
-        <h2 className="ln-h">Use one now</h2>
-        <ul className="lt-rows">
-          {APP_TOOLS.map(t => (
-            <li key={t.key} className="lt-li">
-              <button type="button" className="lt-row" onClick={() => nav(t.to)}>
-                <b className="lt-what">{t.label}</b>
-                <span className="lt-where">{t.says}</span>
-              </button>
-            </li>
+        <div className="tc-gal-h">
+          <h2 className="ln-h">The tools</h2>
+          <div className="chip-row" role="radiogroup" aria-label="Kind of tool">
+            <button type="button" role="radio" aria-checked={!kind} className={'chip' + (!kind ? ' on' : '')} onClick={() => setKind('')}>All {APP_TOOLS.length}</button>
+            {KINDS.filter(k => APP_TOOLS.some(t => t.kind === k)).map(k => (
+              <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(kind === k ? '' : k)}>{KIND_CHIP[k]} {APP_TOOLS.filter(t => t.kind === k).length}</button>
+            ))}
+          </div>
+        </div>
+        <div className="tc-gal" role="list" aria-label="Every tool you can open">
+          {APP_TOOLS.filter(t => !kind || t.kind === kind).map(t => (
+            <div key={t.key} role="listitem" className="tc-cell">
+              <ToolCard tool={t} said={usedSaid(use?.[t.key])} onOpen={() => nav(`/tools/${t.key}`)} onList={() => nav(t.to)} />
+            </div>
           ))}
-        </ul>
+        </div>
         <h2 className="ln-h et-all-h">Or find one by the problem</h2>
       </section>
 

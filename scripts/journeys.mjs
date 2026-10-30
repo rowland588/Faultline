@@ -173,7 +173,7 @@ await run('J2 a tool on its own', 390, async (D, J) => {
   /* since E1 (29 October, docs/ENTERPRISE-UI.md) the Factory is the board of lines — its Use a tool row folded
      into the Tools chip, so a tool on its own starts from Tools (one tap more, agreed in LONGER below) */
   await press(D, J, 'Factory: Tools', D.page.locator('main .fac-quick').getByRole('button', { name: 'Tools', exact: true })); await orient(D, J, 'Tools');
-  await press(D, J, 'Tools: Capability', D.page.locator('main .et-now').getByRole('button', { name: /^Capability\b/ }).first()); await orient(D, J, 'Capability');
+  await press(D, J, 'Tools: Capability', D.page.locator('main .et-now').getByRole('button', { name: 'Open Capability', exact: true })); await orient(D, J, 'Capability');
   await press(D, J, 'New capability study', btn(D, 'New capability study'));
   await type(D, J, 'What is it of?', D.page.getByLabel('What is it of?'), 'Fill weight 400 g');
   await type(D, J, 'On which machine?', D.page.getByLabel(/On which machine/), 'Ishida checkweigher');

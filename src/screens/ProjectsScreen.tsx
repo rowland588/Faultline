@@ -264,10 +264,6 @@ export function ProjectsScreen() {
                     : <a href="#/factory">set up a line on the Factory ›</a>}
                   {' '}when you only need to prove, not a project.
                 </p>
-                <button type="button" className="btn btn-ghost proj-install-advanced"
-                  onClick={() => { setShowInstallTrack(true); setModel('commissioning'); }}>
-                  Need a formal install with gates?
-                </button>
               </>
             ) : (
               <div className="proj-model-advanced card">
