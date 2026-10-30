@@ -42,6 +42,7 @@ const N = mod.tools.length;
 
 /* 1 */
 const cards = page.locator('.et-now .tc-card');
+await cards.first().waitFor({ timeout: 15000 });   // under load the page can take longer than a fixed pause
 ok((await cards.count()) === N && N >= 15, `1 a card for every app tool — ${N}`, await cards.count());
 const names = (await page.locator('.et-now .tc-card .tc-name').allInnerTexts()).map(flat);
 ok(mod.tools.every(t => names.includes(t.label)), '1 each named as the registry names it');

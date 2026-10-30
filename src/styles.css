@@ -15343,15 +15343,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .tc-pic img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
 .tc-pic-none { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--brand); }
 .tc-body { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px 12px; }
-.tc-name { font-size: var(--t-md, 1rem); color: var(--ink); }
-.tc-says { color: var(--ink-2); font-size: .88rem; line-height: 1.4; }
-.tc-used { margin-top: 2px; color: var(--muted); font-size: .8rem; }
-.tc-open { all: unset; box-sizing: border-box; cursor: pointer; position: absolute; top: 8px; right: 8px; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: .78rem; color: var(--brand); box-shadow: var(--shadow); }
+.tc-name { font-size: var(--t-body); color: var(--ink); }
+.tc-says { color: var(--ink-2); font-size: var(--t-detail); line-height: 1.4; }
+.tc-used { margin-top: 2px; color: var(--muted); font-size: var(--t-label); }
+.tc-open { all: unset; box-sizing: border-box; cursor: pointer; position: absolute; top: 8px; right: 8px; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--surface); border: 1px solid var(--line); font-size: var(--t-label); color: var(--brand); box-shadow: var(--shadow); }
 .tc-open:hover, .tc-open:focus-visible { border-color: var(--brand); }
 .tp-hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 18px; align-items: start; margin: 4px 0 18px; }
 .tp-hero .tc-pic.is-big { border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .tp-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
-.tp-problem { margin: 0 0 8px; font-size: 1.05rem; line-height: 1.5; color: var(--ink); }
+.tp-problem { margin: 0 0 8px; font-size: var(--t-body); line-height: 1.5; color: var(--ink); }
 .tp-sec { margin: 0 0 18px; padding: 14px 16px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); border-left: 3px solid var(--tool-panel-edge); }
 .tp-sec .ln-h { margin: 0 0 8px; }
 .tp-lede { margin: 0 0 8px; color: var(--ink); line-height: 1.5; }
@@ -15362,7 +15362,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .tp-mode:hover, .tp-mode:focus-visible { background: var(--tool-row-hover); box-shadow: inset 3px 0 0 var(--tool-panel-edge); }
 .tp-modes .is-here .tp-mode { box-shadow: inset 3px 0 0 var(--brand); background: var(--tool-panel); }
 .tp-routes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
-.tp-h3 { margin: 12px 0 4px; font-size: .95rem; }
+.tp-h3 { margin: 12px 0 4px; font-size: var(--t-detail); }
 .tp-pn { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 6px 0 24px; }
 @media (max-width: 719px) {
   /* a phone scrolls the tools sideways, one card and the edge of the next, snapped */
