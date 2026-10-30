@@ -1,0 +1,92 @@
+{
+  "analysis": {
+    "w": 960,
+    "h": 600,
+    "of": "An analysis — did a re-calibration change fill time: the five figures, the sentence and the before / after / change picture",
+    "takenFrom": "baf6098"
+  },
+  "calc": {
+    "w": 960,
+    "h": 600,
+    "of": "A calculator — an acceptance-sampling plan: what it protects, with its operating-characteristic curve",
+    "takenFrom": "baf6098"
+  },
+  "capability": {
+    "w": 960,
+    "h": 600,
+    "of": "A capability study — thirty fill weights against the limits, the histogram, Ppk and the give-away",
+    "takenFrom": "baf6098"
+  },
+  "changeover": {
+    "w": 960,
+    "h": 600,
+    "of": "SMED — a changeover as a grid: who does each element, internal and external, and what separating them buys back",
+    "takenFrom": "baf6098"
+  },
+  "chart": {
+    "w": 960,
+    "h": 600,
+    "of": "A control chart — forty fill weights against limits set from twenty, the signals, the moving range and the CUSUM",
+    "takenFrom": "baf6098"
+  },
+  "linebalance": {
+    "w": 960,
+    "h": 600,
+    "of": "Line capacity — every station beside the bottleneck as the V-curve, against the target",
+    "takenFrom": "baf6098"
+  },
+  "linestandard": {
+    "w": 960,
+    "h": 600,
+    "of": "Line standard — the line drawn on the board: machines, areas and the people placed on them, the bottleneck faded",
+    "takenFrom": "baf6098"
+  },
+  "linework": {
+    "w": 960,
+    "h": 600,
+    "of": "Line balance — the people's work stacked against takt, the constraint in red",
+    "takenFrom": "baf6098"
+  },
+  "logs": {
+    "w": 960,
+    "h": 600,
+    "of": "A check log — the round: a failed check held open, two done on time, the tiles and the sentence",
+    "takenFrom": "baf6098"
+  },
+  "losses": {
+    "w": 960,
+    "h": 600,
+    "of": "Loss count — a shift's lost minutes: shift by shift against the rate, and where the minutes went",
+    "takenFrom": "baf6098"
+  },
+  "reliability": {
+    "w": 960,
+    "h": 600,
+    "of": "Reliability — stops against watched hours and the running time between them, with MTBF",
+    "takenFrom": "baf6098"
+  },
+  "sampling": {
+    "w": 960,
+    "h": 600,
+    "of": "Work sampling — what two people were doing at random moments: each share with its margin",
+    "takenFrom": "baf6098"
+  },
+  "talk": {
+    "w": 960,
+    "h": 600,
+    "of": "Line Talk — the talk on the line: what was said, a photo, a typed line, and the document asked for",
+    "takenFrom": "baf6098"
+  },
+  "valuestream": {
+    "w": 960,
+    "h": 600,
+    "of": "Value stream map — a line's door-to-door steps by who does them, value added, necessary and waste",
+    "takenFrom": "baf6098"
+  },
+  "video": {
+    "w": 960,
+    "h": 600,
+    "of": "Video study — the filmed line read into the work done at each station",
+    "takenFrom": "baf6098"
+  }
+}
