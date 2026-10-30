@@ -14356,13 +14356,31 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .act-g .qsl-gh { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .act-own { margin-left: auto; }
 .act-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
-.act-pri { font-size: var(--t-label); font-weight: 700; padding: 1px 7px; border-radius: var(--radius-pill); color: var(--on-dark); }
-.act-pri.is-critical { background: var(--st-r); }
-.act-pri.is-high { background: var(--st-a); }
-.act-pri.is-low { background: var(--st-g); }
+/* E4 Actions — a priority is a .status-pill (is-r Critical · is-a High · is-g Low, always with its word;
+   ui/ActionPills), so .act-pri keeps only the hook the scripts look for; a late or soon date is a pill too */
+.act-pri { white-space: nowrap; }
 .act-late { color: var(--st-r); font-weight: 700; }
 .act-soon { color: var(--st-a); font-weight: 600; }
-.act-li.is-late .lt-row { border-left: 3px solid var(--st-r); }
+/* E4 Actions — Planner rows: a card a row on the canvas, three columns on a desk (what · why and where · who and when),
+   stacked under 720px; late keeps its red edge on the card, normal recedes */
+.act .lt-rows, .now-owe .lt-rows, .now-block .lt-rows { display: flex; flex-direction: column; gap: 6px; }
+.act-li { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow); }
+.act-li.is-late { border-left: 3px solid var(--st-r); }
+.nv-main .act-li > .lt-row {
+  border: 0; border-radius: var(--radius-sm); background: transparent; padding: 8px 12px;
+  display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) minmax(140px, auto); align-items: center; gap: 2px 16px;
+}
+.act-li .lt-what { flex: none; }
+.act-li .lt-where { flex-basis: auto; text-align: right; }
+.act-li .lt-where .status-pill { margin-left: 2px; }
+.act .chip-row.qsl-f {
+  padding: 8px 12px; margin: 0 0 8px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow);
+}
+@media (max-width: 719px) {
+  .nv-main .act-li > .lt-row { grid-template-columns: minmax(0, 1fr); }
+  .act-li .lt-where { text-align: left; }
+}
 
 /* ---------------------------------------------------------------- A RELIABILITY STUDY (screens/ReliabilityScreen; docs/TOOLKIT.md, tool 13)
    The watch and the event button, big enough to use at a machine without looking twice;

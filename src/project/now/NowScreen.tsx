@@ -10,8 +10,8 @@ import { dayHref } from '../journey/journey';
 import { useEffect, useMemo } from 'react';
 import { useProject } from '../../lib/useProjects';
 import { useProjectRead } from '../projectRead';
-import { projectActions, PRIORITY_WORD, type ProjectAction } from '../../lib/projectActions';
-import { whenWord } from '../../lib/projectActionsPdf';
+import { projectActions, type ProjectAction } from '../../lib/projectActions';
+import { PriorityPill, WhenPill } from '../../ui/ActionPills';
 import { journeyOf as daysOf, type JourneyLine } from '../journey/journey';
 import { programsReading } from '../../lib/programsReport';
 import { standing } from '../../lib/standing';
@@ -145,8 +145,8 @@ export function NowBody({ projectId }: { projectId: string }) {
               <li key={a.key} className="lt-li act-li is-late now-crit" data-now-block={a.key}>
                 <button type="button" className="lt-row" onClick={() => openAction(a)}>
                   <b className="lt-what">{a.what}</b>
-                  <span className="lt-says act-meta"><span className="act-pri is-critical">{PRIORITY_WORD.critical}</span>{[a.where, a.why].filter(Boolean).join(' · ')}</span>
-                  <span className="lt-where act-when">{a.who || 'nobody yet'} · <span className={a.late ? 'act-late' : ''}>{whenWord(a)}</span></span>
+                  <span className="lt-says act-meta"><PriorityPill priority="critical" />{[a.where, a.why].filter(Boolean).join(' · ')}</span>
+                  <span className="lt-where act-when">{a.who || 'nobody yet'} · <WhenPill a={a} /></span>
                 </button>
               </li>
             ))}
@@ -211,10 +211,10 @@ export function NowBody({ projectId }: { projectId: string }) {
                 <button type="button" className="lt-row" onClick={() => openAction(a)}>
                   <b className="lt-what">{a.what}</b>
                   <span className="lt-says act-meta">
-                    {a.priority && <span className={'act-pri is-' + a.priority}>{PRIORITY_WORD[a.priority]}</span>}
+                    {a.priority && <PriorityPill priority={a.priority} />}
                     {[a.kind, a.where].filter(Boolean).join(' · ')}
                   </span>
-                  <span className="lt-where act-when">{a.who || 'nobody yet'} · <span className={a.late ? 'act-late' : a.soon ? 'act-soon' : ''}>{whenWord(a)}</span></span>
+                  <span className="lt-where act-when">{a.who || 'nobody yet'} · <WhenPill a={a} /></span>
                 </button>
               </li>
             ))}
