@@ -13577,6 +13577,13 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .pgc-h .status-pill, .pgc-row .status-pill { flex: none; max-width: 100%; }
 .pgc-row .status-pill { align-self: center; }
 @media (max-width: 719px) {
+  /* a phone's card-row is one column — the name has the width, Prove and Test it under it (the name was a word a line) */
+  .nv-main .pgr { grid-template-columns: minmax(0, 1fr); padding: 8px 10px; }
+  .nv-main .pgr:not(:has(.ptx-j)):not(:has(.ptx-panel)) .pgr-test { grid-column: 1; grid-row: auto; }
+  .nv-main .pp-m { padding: 12px 10px 14px; }
+  .pgr-top .status-pill { align-self: flex-start; }
+}
+@media (max-width: 719px) {
   /* a row with a journey or the form open runs full width; one without keeps
      its button (Test it, Say how it went) beside its name, as on a desk — it
      sat on a line of its own under every row (docs/STAGEGATE-UX.md slice 6) */
