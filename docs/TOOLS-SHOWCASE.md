@@ -16,6 +16,8 @@ wave). Where they disagree about how tools are *shown*, this wins once agreed.
 It adds no record and no AI: every word on a tool's page is the catalogue's
 and every figure a formula's.
 
+*Next level up — `docs/TOOLS-WORLDS.md` (30 October, plan only): the tools gathered into worlds (Statistics · Lean · Equipment · Quality & food safety · Projects), each its own ecosystem.*
+
 ## 1. What is wrong today (measured, not felt)
 
 `#/tools` (`screens/ToolsScreen`) opens with a text lede of counts ("236 tools
