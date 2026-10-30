@@ -12484,7 +12484,7 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
    own, Rowland's choice (11 October): VA green, NE amber, NV red — the one place
    those hues mean value, not state, always with the letters beside them. */
 :root { --vs-va: #2f9d58; --vs-ne: #e6b236; --vs-nv: #d4524b; }
-.vs-page .vs-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 8px; margin: 10px 0 6px; }
+.vs-page .vs-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: 8px; margin: 10px 0 6px; align-items: start; }
 .vs-card2 { border: 1px solid var(--line); border-top: 4px solid var(--line-2, var(--line)); border-radius: var(--radius); background: var(--surface); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
 .vs-card2.is-adds { border-top-color: var(--vs-va); }
 .vs-card2.is-needed { border-top-color: var(--vs-ne); }
@@ -12573,6 +12573,57 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
 .vs-by { display: flex; align-items: center; gap: 6px; margin: 2px 0 8px; }
 .vs-other { display: flex; gap: 6px; margin-top: 6px; }
 .vs-other .text-input { flex: 1; min-width: 0; }
+/* THE MAP'S ONE PANEL FOR A STEP, AND ITS QUICK LETTERS (Rowland, 30 October: "I had a stop watch but no ability to
+   classify the activity ... too complex, many different buttons ... simplify"). VA · NE · NV in one segmented
+   control — the method's own hues, only on the lit letter, always with the letters; no new colour. */
+.vs-seg { display: inline-grid; grid-template-columns: repeat(3, minmax(56px, 1fr)); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.vs-seg-b { appearance: none; border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--ink-2, var(--ink)); font: inherit; font-weight: 800; font-size: var(--t-detail); letter-spacing: .03em; min-height: 40px; padding: 0 14px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; transition: background .12s, color .12s; }
+.vs-seg-b:first-child { border-left: 0; }
+.vs-seg-b b { font-weight: 800; }
+.vs-seg-b small { font-size: var(--t-mark); font-weight: 600; letter-spacing: 0; opacity: .85; }
+.vs-seg-b:hover:not(:disabled):not(.on) { background: color-mix(in srgb, var(--ink) 6%, var(--surface)); }
+.vs-seg-b:focus-visible { outline: 2.5px solid var(--brand); outline-offset: -2.5px; }
+.vs-seg-b:disabled { opacity: .35; cursor: not-allowed; }
+.vs-seg-b.is-adds.on { background: var(--vs-va); color: var(--on-dark); }
+.vs-seg-b.is-needed.on { background: var(--vs-ne); color: #2b2100; }
+.vs-seg-b.is-waste.on { background: var(--vs-nv); color: var(--on-dark); }
+.vs-seg.is-big { display: grid; width: 100%; margin: 8px 0 4px; }
+.vs-seg.is-big .vs-seg-b { min-height: 64px; font-size: var(--t-h); }
+.vs-seg.is-big .vs-seg-b small { font-size: var(--t-detail); }
+/* beside the stopwatch the three are told apart at a glance: each carries a tint and a foot of its own hue */
+.vs-seg.is-walk .vs-seg-b, .vs-seg.is-big .vs-seg-b { border-bottom: 4px solid transparent; }
+.vs-seg.is-walk .vs-seg-b.is-adds, .vs-seg.is-big .vs-seg-b.is-adds:not(.on) { background: color-mix(in srgb, var(--vs-va) 14%, var(--surface)); border-bottom-color: var(--vs-va); }
+.vs-seg.is-walk .vs-seg-b.is-needed, .vs-seg.is-big .vs-seg-b.is-needed:not(.on) { background: color-mix(in srgb, var(--vs-ne) 22%, var(--surface)); border-bottom-color: var(--vs-ne); }
+.vs-seg.is-walk .vs-seg-b.is-waste, .vs-seg.is-big .vs-seg-b.is-waste:not(.on) { background: color-mix(in srgb, var(--vs-nv) 14%, var(--surface)); border-bottom-color: var(--vs-nv); }
+.vs-seg.is-walk .vs-seg-b:disabled { background: var(--surface); border-bottom-color: var(--line); }
+.vs-seg.is-walk .vs-seg-b:active:not(:disabled) { filter: brightness(.94); }
+.vs-fixed { display: inline-flex; align-items: center; gap: 8px; }
+.vs-fixed small { color: var(--muted); }
+.vs-walk-tally { margin: 4px 0 6px; }
+.vs-walk-skip { align-self: flex-start; }
+.vs-cw-count { margin: 0 0 6px; font-size: var(--t-detail); font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+.vs-cw-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 12px; }
+.vs-cw-fixed { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.vs-cw-help { margin: 4px 0 0; }
+.vs-cw-sum { margin: 0 0 12px; padding: 10px 12px; border-left: 3px solid var(--brand); background: color-mix(in srgb, var(--brand) 6%, var(--surface)); border-radius: var(--radius-sm); }
+.vs-card2.is-unmarked { border-top: 4px dashed var(--muted); }
+.vs-nudge .linkish { font-weight: 700; }
+.vs-bar { gap: 10px 14px; }
+.vs-bar .vs-by { margin: 0; }
+.vs-bar .vs-add { margin-left: auto; }
+.vs-sq[data-open] { cursor: pointer; }
+.vs-sq[data-open]:hover { transform: scale(1.12); }
+@media (max-width: 719px) {
+  /* the page's one primary takes the width of the band — never off the side */
+  .vs-page .ln-band-acts { flex-wrap: wrap; width: 100%; }
+  .vs-page .ln-band-acts .btn-primary { order: -1; flex: 1 1 100%; min-height: 44px; }
+  .vs-seg-b { min-height: 44px; }
+  .vs-seg.is-big .vs-seg-b { min-height: 64px; }
+  .vs-cw-nav .btn, .vs-walk-skip, .vs-bar .vs-add, .vs-only { min-height: 44px; }
+  .vs-walk-skip { align-self: stretch; }
+  .vs-bar .vs-add { margin-left: 0; }
+}
+@media (pointer: coarse) { .vs-cw-keys { display: none; } }
 
 /* ============ SMED — quick changeover (screens/ChangeoverScreen, ui/SmedGrid, tool 6) ============
    Value by fill, never a state colour (TOOLKIT 3.3): work the line stops for

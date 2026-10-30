@@ -19,7 +19,7 @@ export const LEAN: Entry[] = [
     scenarios: ['running', 'project'], words: ['VSM', 'lead time', 'flow', 'waits', 'waiting time'],
     built: { where: ['/value-stream'], code: ['src/tools/valuestream/MapScreen.tsx', 'src/tools/valuestream/steps.ts', 'src/tools/valuestream/flowLean.ts'], tests: ['src/tools/valuestream/__tests__/steps.test.ts'], acceptance: ['value-stream.mjs'] },
     spec: 'knowledge/specs/FC-001-value-stream-money.md',
-    limits: ['Inventory counts are not converted to days (Little’s law, FC-044).', 'No supermarket, kanban or pitch on the future state.', 'In money since 24 October: the waste work’s labour a day and the product waiting tied up and carried (knowledge/specs/FC-001-value-stream-money.md); not yet before → after in money, nor shelf life spent in waits.'],
+    limits: ['Inventory counts are not converted to days (Little’s law, FC-044).', 'No supermarket, kanban or pitch on the future state.', 'In money since 24 October: the waste work’s labour a day and the product waiting tied up and carried (knowledge/specs/FC-001-value-stream-money.md); not yet before → after in money, nor shelf life spent in waits.', 'Classified since 30 October in one tap (the stopwatch’s VA · NE · NV, a step’s panel, V · E · N) and said as not classified, with the count, on the page and every paper; not yet before → after in the classification, nor classifying from the filmed walk.'],
   },
   {
     id: 'FC-002', name: 'Product families and P–Q analysis', discipline: 'lean', sub: 'flow',

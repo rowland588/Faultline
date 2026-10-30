@@ -18,7 +18,7 @@
  * reading (lib/ie/steps); the grid; the steps, one tap to change; today or
  * the future state, copied from today and changed, before → after said; and
  * what it is used for on its job. */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStandard, getStudy, getWorkspace, onDataChange, patchStudy } from '../../db';
 import { peopleOf } from '../linestandard/standard';
 import { useAccess } from '../../cloud/access';
@@ -28,9 +28,10 @@ import { can as canAt, type Can } from '../../lib/access';
 import { uid } from '../../lib/ids';
 import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
-import { compareFlows, dur, flowFigures, flowMoney, flowMoneySays, flowSays, laneByDefault, parseDur, share, stepWorth, valueOf, whereOf, whoOf, type LaneBy, type LineRate } from './steps';
+import { classCounts, classifySummary, compareFlows, dur, flowFigures, flowMoney, flowMoneySays, flowSays, laneByDefault, nextUnclassified, notClassifiedWords, parseDur, share, stepWorth, tapValue, valueOf, valuesFor, waitOf, walkOrder, whereOf, whoOf, withValue, type LaneBy, type LineRate } from './steps';
 import type { AgreedMap, FlowKind, FlowStep, FlowValue, StudyUse, ToolStudy } from '../../lib/study';
-import { KIND_WORD, StepFacts, VALUE_WORD, ValueStreamGrid, WalkIt } from './ValueStream';
+import { KIND_WORD, StepFacts, VALUE_CODE, VALUE_WORD, ValueStreamGrid, WalkIt } from './ValueStream';
+import { offerUndo } from '../../ui/Undo';
 import { UsedFor, useBetter, WhereItSits } from '../../ui/StudyPlace';
 import { StudyBand } from '../../ui/StudyActs';
 import { LeanActions, LeanClosing, LeanPanel } from '../../ui/Lean';
@@ -76,9 +77,13 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   const [wasteOnly, setWasteOnly] = useState(false);
   const [editing, setEditing] = useState<FlowStep | 'new' | null>(null);
   /* A square tapped: everything about that step, one more tap to change it. */
-  const [viewing, setViewing] = useState<{ st: FlowStep; n: number; lead: number } | null>(null);
+  const [viewId, setViewId] = useState<string | null>(null);
   const [agreeing, setAgreeing] = useState(false);
   const [walking, setWalking] = useState(false);
+  /* how to take back each step the walk has ended, last first */
+  const walkUndo = useRef<(() => void)[]>([]);
+  /* More ▾: the journey played, only the waste shown */
+  const [playSignal, setPlaySignal] = useState(0);
   /* THE MAP INSIDE A CHANGE: a step's wait or waste raises a fix (stage gate)
      or a countermeasure (6M) — the same Make it better as Used for — and the
      step then wears the branch: a mark on its square, the record in its facts. */
@@ -95,6 +100,42 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
   const setList = (fn: (cur: FlowStep[]) => FlowStep[]) =>
     write(cur => ({ facts: { ...cur.facts, [shown]: fn((shown === 'future' ? cur.facts.future : cur.facts.flow) ?? []) } }));
+  /* A STEP'S VALUE IN ONE TAP (Rowland, 30 October): saved at once, with Undo.
+     */
+  const classify = (st: FlowStep, v: FlowValue | undefined) => {
+    const was = valueOf(st), key = shown;
+    const put = (to: FlowValue | undefined) => write(cur => ({ facts: { ...cur.facts, [key]: ((key === 'future' ? cur.facts.future : cur.facts.flow) ?? []).map(x => (x.id === st.id ? withValue(x, to) : x)) } }));
+    put(v);
+    offerUndo(`${st.name.trim() || 'A step'}: ${v ? VALUE_CODE[v] : 'not classified'}`, async () => put(was));
+  };
+  /* THE STEP OPEN: one panel for a step and for walking the map — its value in three buttons, Back,
+     Next and Next unclassified (Rowland, 30 October: "too complex, many different buttons ...
+     simplify"). A letter on a step nobody had classified goes on to the next one nobody has. */
+  const ordered = useMemo(() => walkOrder(list), [list]);
+  const viewIdx = viewId ? ordered.findIndex(x => x.id === viewId) : -1;
+  const viewing = viewIdx >= 0 ? { st: ordered[viewIdx], n: viewIdx + 1, lead: stepLead(list, ordered[viewIdx], a) } : null;
+  const summary = useMemo(() => classifySummary(list, a), [list, a]);
+  const jumpTo = (from: number) => { const j = nextUnclassified(ordered, from); if (j !== undefined) setViewId(ordered[j].id); };
+  const tap = (tapped: FlowValue) => {
+    if (!viewing || !editable || !valuesFor(viewing.st.kind).includes(tapped)) return;
+    const next = tapValue(viewing.st, tapped), fresh = !valueOf(viewing.st);
+    classify(viewing.st, next);
+    if (next && fresh) jumpTo(viewIdx);
+  };
+  useEffect(() => {
+    if (!viewing || !editable) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = ({ v: 'adds', e: 'needed', n: 'waste' } as Record<string, FlowValue>)[e.key.toLowerCase()];
+      if (k) { e.preventDefault(); tap(k); }
+      else if (e.key === 'ArrowLeft' && viewIdx > 0) { e.preventDefault(); setViewId(ordered[viewIdx - 1].id); }
+      else if (e.key === 'ArrowRight' && viewIdx < ordered.length - 1) { e.preventDefault(); setViewId(ordered[viewIdx + 1].id); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
   const compare = useMemo(() => (shown === 'future' ? new Map((s.facts.flow ?? []).map(x => [x.id, x])) : undefined), [shown, s.facts.flow]);
   const lanesKnown = useLanes(s);
   const [lineName, setLineName] = useState<string | undefined>(undefined);
@@ -119,19 +160,53 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6): the band; the seven cards
           stay its tiles, in the method's colours; the action plan and the
           closing line (lib/ie/flowLean) at its foot */}
-      <StudyBand page={bandPage('Value stream map', s, f.steps ? `${f.untimed ? '≥ ' : ''}${dur(f.leadSec)} lead time` : 'No steps yet', f.longestCycle?.overTakt ? 'r' : 'n')} s={s} what="Value stream map" canEdit={can.edit && !s.closedAt} canRemove={can.remove} />
+      <StudyBand page={bandPage('Value stream map', s, f.steps ? `${f.untimed ? '≥ ' : ''}${dur(f.leadSec)} lead time` : 'No steps yet', f.longestCycle?.overTakt ? 'r' : 'n')} s={s} what="Value stream map" canEdit={can.edit && !s.closedAt} canRemove={can.remove}
+        /* ONE primary, and the rest behind More ▾ (Rowland, 30 October: "too complex, many different buttons, not understanding
+           any of them ... simplify"): what a person does here is time the steps; the views and the other ways in are in More */
+        primary={editable ? { label: carried.length ? 'Time the steps again' : 'Time the steps', run: () => setWalking(true) } : undefined}
+        extra={[
+          ...(list.length > 1 ? [{ label: 'Play the journey', run: () => setPlaySignal(n => n + 1) }] : []),
+          ...(list.length > 0 ? [{ label: wasteOnly ? 'Show every step' : 'Show only the waste', run: () => setWasteOnly(w => !w) }] : []),
+          ...(editable && !hasFuture && (s.facts.flow ?? []).length > 0 ? [{ label: 'Plan the future — copy today’s steps', run: () => { write(cur => ({ facts: { ...cur.facts, future: (cur.facts.flow ?? []).map(x => ({ ...x })) } })); setWhich('future'); } }] : []),
+          ...(can.agree && a?.demandPerDay ? [{ label: 'Change what it is held against', run: () => setAgreeing(true) }] : []),
+        ]} />
       <div className="ln-under">
         <p className="sub ie-where">{/* the line is said once, just below, where it can be changed (ui/StudyPlace) */}
           {lineName ? 'what is done, and who does it' : 'not on a line yet — put it on its line below'} · started {niceDay(isoDay(s.startedAt))}{s.product ? <> · <b>{s.product}</b></> : null}</p>
         <WhereItSits s={s} can={can} />
       </div>
 
+      {walking && (
+        <WalkIt people={lanesKnown.people} places={lanesKnown.places} onDone={() => { walkUndo.current = []; setWalking(false); }} again={carried} tally={classCounts(list)}
+          onUndo={() => walkUndo.current.pop()?.()}
+          onStep={w => {
+            /* the value a letter gave — only if the kind may take it (steps.valuesFor, the step's sheet's rule) */
+            const val = w.value && valuesFor(w.kind).includes(w.value) ? w.value : undefined;
+            if (w.again) {
+              let prev: FlowStep | undefined;
+              setList(cur => cur.map(x => {
+                if (x.id !== w.again) return x;
+                prev = x;
+                const nx: FlowStep = { ...x, name: w.name, ...(w.who && !whoOf(x, a).includes(w.who) ? { who: [w.who] } : {}), ...(w.where ? { where: w.where } : {}), cycleSec: w.cycleSec, source: 'timed' as const };
+                return val ? withValue(nx, val) : nx;
+              }));
+              walkUndo.current.push(() => setList(cur => cur.map(x => (x.id === w.again && prev ? prev : x))));
+            } else {
+              const id = uid();
+              setList(cur => [...cur, { id, order: cur.reduce((m, x) => Math.max(m, x.order), -1) + 1, name: w.name,
+                ...(w.who ? { who: [w.who] } : {}), ...(w.where ? { where: w.where } : {}), lane: (laneByDefault(a) === 'who' ? w.who : w.where) || w.who || w.where || 'Not said',
+                kind: w.kind, ...(val ? { value: val } : {}), cycleSec: w.cycleSec, source: 'timed' as const }]);
+              walkUndo.current.push(() => setList(cur => cur.filter(x => x.id !== id)));
+            }
+          }} />
+      )}
+
       {agreeing ? <Agree s={s} onDone={() => setAgreeing(false)} />
         : (
           <p className="ie-agreed sub vs-agreed">
             {a?.supplier || a?.customer ? <>From <b>{a?.supplier || 'the order'}</b> to <b>{a?.customer || 'the customer'}</b>. </> : 'The two ends are not named yet. '}
             {a?.demandPerDay ? <>The customer takes <b>{a.demandPerDay} a day</b>{a.availableSecPerDay ? <>, worked in <b>{dur(a.availableSecPerDay)}</b> — takt <b>{f.taktSec ? dur(f.taktSec) : '—'}</b></> : ''}. </> : 'No demand agreed yet — takt and days of stock come from it. '}
-            {can.agree && <button type="button" className="linkish" onClick={() => setAgreeing(true)}>{a ? 'Change what it is held against' : 'Name the ends and the demand'}</button>}
+            {can.agree && !a?.demandPerDay && <button type="button" className="linkish" onClick={() => setAgreeing(true)}>{a ? 'Change what it is held against' : 'Name the ends and the demand'}</button>}
           </p>
         )}
 
@@ -145,6 +220,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
         <div className="vs-card2"><span>Cycle time</span><b>{dur(cycleTotal(list))}</b></div>
         <div className="vs-card2 is-lead"><span>Lead time</span><b>{f.untimed ? '≥ ' : ''}{dur(f.leadSec)}</b></div>
         {f.taktSec ? <div className="vs-card2"><span>Takt</span><b>{dur(f.taktSec)}</b></div> : null}
+        {f.unmarked > 0 && <div className="vs-card2 is-unmarked" title="In none of VA · NE · NV — the % value added counts only the steps classified VA"><span>Not classified</span><b>{f.unmarked} step{f.unmarked === 1 ? '' : 's'}</b></div>}
         {/* IN MONEY (knowledge/specs/FC-001-value-stream-money.md): the labour on waste work a day, and
             the product waiting — tied up and carried; a missing input named on the card */}
         {flowMoneyTiles(money, a).map(t => (
@@ -155,41 +231,34 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
         <p className="ie-say">{said.text}</p>
         {moneySaid && <p className={'ie-say ie-money is-' + moneySaid.tone}>{moneySaid.text}</p>}
         {shown === 'future' && <p className="ie-say vs-compare"><b>Today → the future:</b> {compareFlows(today, f)}</p>}
-        {said.lines.map(l => <p key={l} className="ie-say ie-cap is-n">{l}</p>)}
-      </div>
-
-      <div className="vs-bar">
-        <span className="chip-row" role="tablist" aria-label="Which state">
-          <button type="button" role="tab" aria-selected={shown === 'flow'} className={'chip' + (shown === 'flow' ? ' on' : '')} onClick={() => setWhich('flow')}>Today</button>
-          {hasFuture && <button type="button" role="tab" aria-selected={shown === 'future'} className={'chip' + (shown === 'future' ? ' on' : '')} onClick={() => setWhich('future')}>The future</button>}
-        </span>
-        <button type="button" className="btn" aria-pressed={wasteOnly} onClick={() => setWasteOnly(w => !w)}>{wasteOnly ? 'Show every step' : 'Show only the waste'}</button>
-        {editable && !hasFuture && (s.facts.flow ?? []).length > 0 && (
-          <button type="button" className="btn" onClick={() => { write(cur => ({ facts: { ...cur.facts, future: (cur.facts.flow ?? []).map(x => ({ ...x })) } })); setWhich('future'); }}>Copy to the future</button>
+        {f.unmarked > 0 && (
+          <p className="ie-say ie-cap is-a vs-nudge">{notClassifiedWords(f.unmarked)}{' '}
+            {editable && <button type="button" className="linkish" onClick={() => jumpTo(-1)}>Classify the steps ›</button>}</p>
         )}
-        {editable && <button type="button" className="btn btn-primary" onClick={() => setEditing('new')}>+ Add a step</button>}
-        {editable && !walking && <button type="button" className="btn" onClick={() => setWalking(true)}>{carried.length ? 'Walk it again' : 'Walk it'}</button>}
+        {said.lines.filter(l => l !== notClassifiedWords(f.unmarked)).map(l => <p key={l} className="ie-say ie-cap is-n">{l}</p>)}
       </div>
-
-      {walking && (
-        <WalkIt people={lanesKnown.people} places={lanesKnown.places} onDone={() => setWalking(false)} again={carried}
-          onStep={w => setList(cur => (w.again
-            ? cur.map(x => (x.id === w.again ? { ...x, name: w.name, ...(w.who && !whoOf(x, a).includes(w.who) ? { who: [w.who] } : {}), ...(w.where ? { where: w.where } : {}), cycleSec: w.cycleSec, source: 'timed' as const } : x))
-            : [...cur, { id: uid(), order: cur.reduce((m, x) => Math.max(m, x.order), -1) + 1, name: w.name,
-              ...(w.who ? { who: [w.who] } : {}), ...(w.where ? { where: w.where } : {}), lane: (laneByDefault(a) === 'who' ? w.who : w.where) || w.who || w.where || 'Not said',
-              kind: w.kind, cycleSec: w.cycleSec, source: 'timed' as const }]))} />
-      )}
 
       {list.length > 0
         ? <>
-          <span className="chip-row vs-by" role="tablist" aria-label="Lanes by">
-            <span className="sub">Lanes by</span>
-            <button type="button" role="tab" aria-selected={laneBy === 'who'} className={'chip' + (laneBy === 'who' ? ' on' : '')} onClick={() => setLaneBy('who')}>Who does it</button>
-            <button type="button" role="tab" aria-selected={laneBy === 'where'} className={'chip' + (laneBy === 'where' ? ' on' : '')} onClick={() => setLaneBy('where')}>Where</button>
-          </span>
-          <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} by={laneBy} branched={branches} onOpen={(st, n, lead) => setViewing({ st, n, lead })} />
+          <div className="vs-bar">
+            {hasFuture && (
+              <span className="chip-row" role="tablist" aria-label="Which state">
+                <button type="button" role="tab" aria-selected={shown === 'flow'} className={'chip' + (shown === 'flow' ? ' on' : '')} onClick={() => setWhich('flow')}>Today</button>
+                <button type="button" role="tab" aria-selected={shown === 'future'} className={'chip' + (shown === 'future' ? ' on' : '')} onClick={() => setWhich('future')}>The future</button>
+              </span>
+            )}
+            <span className="chip-row vs-by" role="tablist" aria-label="Lanes by">
+              <span className="sub">Lanes by</span>
+              <button type="button" role="tab" aria-selected={laneBy === 'who'} className={'chip' + (laneBy === 'who' ? ' on' : '')} onClick={() => setLaneBy('who')}>Who does it</button>
+              <button type="button" role="tab" aria-selected={laneBy === 'where'} className={'chip' + (laneBy === 'where' ? ' on' : '')} onClick={() => setLaneBy('where')}>Where</button>
+            </span>
+            {wasteOnly && <button type="button" className="chip on vs-only" onClick={() => setWasteOnly(false)} title="Show every step again">Only the waste ✕</button>}
+            {editable && <button type="button" className="btn vs-add" onClick={() => setEditing('new')}>+ Add a step</button>}
+          </div>
+          <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} by={laneBy} branched={branches} onOpen={st => setViewId(st.id)} playSignal={playSignal} />
         </>
-        : <div className="qsl-empty"><p><b>No steps yet.</b> Start where the line's work starts — the order released, the film arriving from stores — and add each thing that is done, in the lane of whoever does it (an operator, the machine, planning, quality, maintenance), to the pallet leaving.</p></div>}
+        : <div className="qsl-empty"><p><b>No steps yet.</b> {editable ? <>Press <b>Time the steps</b> and walk the line with the stopwatch, tapping VA · NE · NV as each step ends — or type them in. </> : null}Start where the line's work starts — the order released, the film arriving from stores — to the pallet leaving, whoever does each thing (an operator, the machine, planning, quality, maintenance).</p>
+          {editable && <button type="button" className="btn" onClick={() => setEditing('new')}>+ Add a step</button>}</div>}
 
 
       {/* WHAT WE ARE DOING ABOUT IT — what was raised from a step's wait or waste */}
@@ -199,9 +268,14 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       <UsedFor s={s} can={can} me={me} />
       <LeanClosing closing={flowClosing(f, a)} />
 
+
       {viewing && (
-        <Sheet open onClose={() => setViewing(null)} title={`Step ${viewing.n}`}>
-          <StepFacts st={list.find(x => x.id === viewing.st.id) ?? viewing.st} n={viewing.n} leadSoFar={viewing.lead} a={a} was={compare?.get(viewing.st.id)} />
+        <Sheet open onClose={() => setViewId(null)} title={`Step ${viewing.n}`}>
+          <StepFacts st={viewing.st} n={viewing.n} leadSoFar={viewing.lead} a={a} was={compare?.get(viewing.st.id)}
+            onValue={editable ? (_next, tapped) => tap(tapped) : undefined}
+            walk={{ at: viewIdx, total: ordered.length, left: summary.counts.unclassified, summary: summary.text,
+              ...(viewIdx > 0 ? { onBack: () => setViewId(ordered[viewIdx - 1].id) } : {}), ...(viewIdx < ordered.length - 1 ? { onNext: () => setViewId(ordered[viewIdx + 1].id) } : {}),
+              ...(nextUnclassified(ordered, viewIdx) !== undefined ? { onJump: () => jumpTo(viewIdx) } : {}) }} />
           {(branches.get(viewing.st.id) ?? []).length > 0 && s.projectId && (
             <div className="vs-branch">
               <small className="ie-h">Being made better</small>
@@ -216,10 +290,10 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
           )}
           <div className="vs-step-acts">
             {editable && shown === 'flow' && !!s.projectId && !branches.has(viewing.st.id) && stepWorth(list.find(x => x.id === viewing.st.id) ?? viewing.st, a) && (
-              <button type="button" className="btn btn-primary" onClick={() => { const id = viewing.st.id; setViewing(null); void better(id); }}>{board ? 'Make it better — a countermeasure' : 'Make it better — raise a fix'}</button>
+              <button type="button" className="btn btn-primary" onClick={() => { const id = viewing.st.id; setViewId(null); void better(id); }}>{board ? 'Make it better — a countermeasure' : 'Make it better — raise a fix'}</button>
             )}
-            {editable && <button type="button" className="btn" onClick={() => { setEditing(list.find(x => x.id === viewing.st.id) ?? viewing.st); setViewing(null); }}>Change this step</button>}
-            <button type="button" className="btn btn-ghost" onClick={() => setViewing(null)}>Close</button>
+            {editable && <button type="button" className="btn" onClick={() => { setEditing(list.find(x => x.id === viewing.st.id) ?? viewing.st); setViewId(null); }}>Change this step</button>}
+            <button type="button" className="btn btn-ghost" onClick={() => setViewId(null)}>Close</button>
           </div>
         </Sheet>
       )}
@@ -255,6 +329,13 @@ function useLanes(s: ToolStudy): { people: string[]; places: string[] } {
     people: [...new Set([...ownWho, ...std.people, 'Machine', 'Team leader', 'Planning', 'Stores', 'Quality', 'Maintenance', 'Hygiene', 'Forklift driver', 'Despatch'])],
     places: [...new Set([...ownWhere, ...std.stations, 'Goods in', 'Stores', 'Infeed', 'Outfeed', 'Despatch', 'Office'])],
   };
+}
+
+/** The lead time by the end of a step — what its sheet says ("Lead time by here"). */
+function stepLead(list: FlowStep[], st: FlowStep, a?: AgreedMap): number {
+  let run = 0;
+  for (const x of [...list].sort((p, q) => p.order - q.order)) { run += (x.cycleSec ?? 0) + (waitOf(x, a).sec ?? 0); if (x.id === st.id) break; }
+  return run;
 }
 
 const cycleTotal = (list: FlowStep[]) => list.reduce((t, x) => t + (x.cycleSec ?? 0), 0);
@@ -296,7 +377,7 @@ function StepSheet({ step, list, people, places, a, canRemove, onClose, onSave, 
   const everyone = other.trim() && !who.includes(other.trim()) ? [...who, other.trim()] : who;
   const ready = !!name.trim() && (everyone.length > 0 || !!where.trim()) && !bad;
   /* Only an operation can add value; a wait or a store is waste. */
-  const values: FlowValue[] = kind === 'operation' ? ['adds', 'needed', 'waste'] : kind === 'wait' || kind === 'store' ? [] : ['needed', 'waste'];
+  const values: FlowValue[] = valuesFor(kind);   /* the one rule (steps.valuesFor), shared with the map's quick buttons */
   const save = () => {
     if (!ready) return;
     const q = Number(queue), p = Number(crew), b = Number(batch);

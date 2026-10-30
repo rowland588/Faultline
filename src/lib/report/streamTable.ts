@@ -11,7 +11,7 @@
  * never inside one, the header drawn again overleaf (blocks.rows).
  *
  * The words are worked out in lib/ie/steps (streamRows); this only draws. */
-import type { StreamRow } from '../../tools/valuestream/steps';
+import { notClassifiedWords, type StreamRow } from '../../tools/valuestream/steps';
 import { INK, INK2, LINE, MUTED } from '../reportKit';
 import { font, rows, text, wrap, SIZE, type Row } from './blocks';
 import type { Block, Frame } from './flow';
@@ -27,7 +27,7 @@ const T = 8;           // the table's type size
 const LH = 10;         // its line height
 /** Column x offsets from the left, and widths; "what" takes what is left. */
 const cols = (w: number) => {
-  const fixed = { n: 16, who: 80, where: 68, value: 30, work: 72, wait: 40, lead: 44 };
+  const fixed = { n: 16, who: 76, where: 64, value: 44, work: 72, wait: 40, lead: 44 };
   const what = Math.max(110, w - (fixed.n + fixed.who + fixed.where + fixed.value + fixed.work + fixed.wait + fixed.lead));
   const x = { n: 0, what: fixed.n, who: fixed.n + what, where: 0, value: 0, work: 0, wait: 0, lead: 0 };
   x.where = x.who + fixed.who; x.value = x.where + fixed.where; x.work = x.value + fixed.value;
@@ -59,7 +59,11 @@ export function streamBlocks(list: StreamRow[], total: { work: string; wait: str
   const carried = list.filter(r => r.carried).map(r => r.n);
   const said = carried.length === list.length ? 'Every step is carried from the map before — not walked again yet; their figures are the old ones, in grey.'
     : carried.length ? `Step${carried.length === 1 ? '' : 's'} ${listOf(carried)} carried from the map before — not walked again yet; ${carried.length === 1 ? 'its figures are' : 'their figures are'} the old ones, in grey.` : '';
-  return [...(said ? [text({ text: said, size: SIZE.tiny + 0.5, colour: MUTED, after: 3 })] : []), streamTable(list, total)];
+  /* a step nobody has classified is shown "not classified" in its row, and counted here — the share that adds value counts only the VA */
+  const unclassified = list.filter(r => !r.value).length;
+  const nudge = unclassified ? `${notClassifiedWords(unclassified)} Steps ${listOf(list.filter(r => !r.value).map(r => r.n))}.` : '';
+  return [...(nudge ? [text({ text: nudge, size: SIZE.tiny + 0.5, colour: INK2, style: 'bold', after: 2 })] : []),
+    ...(said ? [text({ text: said, size: SIZE.tiny + 0.5, colour: MUTED, after: 3 })] : []), streamTable(list, total)];
 }
 
 const listOf = (ns: number[]): string => (ns.length < 2 ? String(ns[0] ?? '') : `${ns.slice(0, -1).join(', ')} and ${ns[ns.length - 1]}`);
@@ -89,7 +93,13 @@ function streamTable(list: StreamRow[], total: { work: string; wait: string; lea
         const v = VALUE[r.value];
         f.doc.setFillColor(v.fill); f.doc.roundedRect(f.x + x.value, y + 4, 22, 9, 1.5, 1.5, 'F');
         font(f.doc, SIZE.tiny, 'bold', v.ink); f.doc.text(v.code, f.x + x.value + 11, y + 10.6, { align: 'center' });
-      } else { font(f.doc, T, 'normal', MUTED); f.doc.text('—', f.x + x.value + 6, ty); }
+      } else {
+        /* not classified: the grid's dashed box, the words in it */
+        f.doc.setDrawColor(MUTED); f.doc.setLineWidth(0.6); f.doc.setLineDashPattern([1.6, 1.4], 0);
+        f.doc.roundedRect(f.x + x.value, y + 3.5, 38, 13, 1.5, 1.5, 'S'); f.doc.setLineDashPattern([], 0);
+        font(f.doc, 5.8, 'bold', MUTED);
+        f.doc.text('not', f.x + x.value + 19, y + 8.4, { align: 'center' }); f.doc.text('classified', f.x + x.value + 19, y + 14, { align: 'center' });
+      }
       /* a step carried from before: its figures in grey — the old ones */
       font(f.doc, T, 'normal', r.carried ? MUTED : INK2); f.doc.text(p.work, f.x + x.work, ty);
       f.doc.text(r.wait, f.x + x.wait, ty);
