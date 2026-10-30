@@ -65,7 +65,7 @@ const today = await page.evaluate(async () => (await import('/src/lib/weeks.ts')
 const nice = await page.evaluate(async d => (await import('/src/lib/weeks.ts')).niceDay(d), today);
 const record = () => page.evaluate(async ([pid, name]) => (await (await import('/src/db.ts')).listPrograms(pid)).find(p => p.what === name), [PID, NAME]);
 const row = () => page.locator('li.pgr', { has: page.locator('.pgr-name', { hasText: NAME }) }).first();
-const pill = async () => flat(await row().locator('.pgr-top .spp-pill').first().innerText());
+const pill = async () => flat(await row().locator('.pgr-top .status-pill').first().innerText());
 const done = async () => Number(/(\d+) done/.exec(flat(await page.locator('.nv-main').innerText()))?.[1] ?? NaN);
 
 /* ---- 1 no criteria: one door; its run failed on net alone reads failed, as always ---- */
@@ -107,7 +107,7 @@ ok(proofId, '1c a capability study passed and lined up on the failed run as Prov
 await page.waitForTimeout(1500); await go(PROGRAMS);
 ok(await row().locator('.pgc-proof-all').count() === 1, '1c its row offers the proving study as criteria in one go');
 await row().locator('.pgc-add').click(); await page.waitForTimeout(400);
-ok(await row().locator('.pgc-existing .pgc-row .spp-pill', { hasText: 'Passed' }).count() >= 1,
+ok(await row().locator('.pgc-existing .pgc-row .status-pill', { hasText: 'Passed' }).count() >= 1,
   '1c Add a criterion shows work already done first — Passed with its tool’s sentence');
 await row().locator('.pgc-existing .pgc-open').first().click(); await page.waitForTimeout(2000);
 rec = await record();
@@ -137,7 +137,7 @@ await page.waitForTimeout(200);
 await row().locator('input[aria-label="Name the study"]').fill('Robot faults');
 await row().getByRole('button', { name: 'Add it, set up later' }).click(); await page.waitForTimeout(1800);
 rec = await record();
-const crit = (await row().locator('.pgc-row').evaluateAll(els => els.map(e => ({ t: e.querySelector('.pgc-t')?.textContent ?? '', w: e.querySelector('.spp-pill')?.textContent ?? '' }))));
+const crit = (await row().locator('.pgc-row').evaluateAll(els => els.map(e => ({ t: e.querySelector('.pgc-t')?.textContent ?? '', w: e.querySelector('.status-pill')?.textContent ?? '' }))));
 ok(rec?.criteria?.length === 2 && rec.criteria.every(c => c.kind === 'study') && JSON.stringify(crit) === JSON.stringify([{ t: 'Capability study — Placement 75 ppm', w: 'Not yet' }, { t: 'Reliability study — Robot faults', w: 'Not yet' }]),
   `2b the two criteria on the record and on its row, each Not yet — ${crit.map(c => `${c.t}: ${c.w}`).join(' · ')}`);
 const studies = await page.evaluate(async ids => { const db = await import('/src/db.ts'); return Promise.all(ids.map(id => db.getStudy(id))); }, rec.criteria.map(c => c.id));
@@ -160,7 +160,7 @@ await page.evaluate(async ids => {
 }, rec.criteria.map(c => c.id));
 await page.waitForTimeout(2000);
 const said = await page.evaluate(async ids => { const db = await import('/src/db.ts'); const L = await import('/src/lib/studyLinks.ts'); return Promise.all(ids.map(async id => L.studyLine(await db.getStudy(id)).text)); }, rec.criteria.map(c => c.id));
-const rows3 = await row().locator('.pgc-row').evaluateAll(els => els.map(e => ({ w: e.querySelector('.spp-pill')?.textContent ?? '', s: (e.querySelector('.pgc-says')?.textContent ?? '').replace(/\s+/g, ' ').trim() })));
+const rows3 = await row().locator('.pgc-row').evaluateAll(els => els.map(e => ({ w: e.querySelector('.status-pill')?.textContent ?? '', s: (e.querySelector('.pgc-says')?.textContent ?? '').replace(/\s+/g, ' ').trim() })));
 ok(rows3.every(r => r.w === 'Passed') && rows3.map(r => r.s).join('|') === said.map(flat).join('|'),
   `3 each criterion Passed with its tool's own sentence — ${rows3.map(r => r.s.slice(0, 70)).join(' · ')}`);
 ok(/ready to sign off — all 2 criteria passed/i.test(await pill()) && await row().getByRole('button', { name: 'Sign off', exact: true }).count() === 1,

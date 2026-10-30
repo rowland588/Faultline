@@ -258,7 +258,7 @@ function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last, t
       {!can.edit ? (
         <span className="pg-state">
           <span className="field-label">Where it&rsquo;s got to</span>
-          <span className={'pg-state-sel is-pg-' + got}>{STATE_WORD[got]}</span>
+          <span className={'status-pill is-' + (got === 'proved' ? 'g' : got === 'onMachine' ? 'a' : 'n')}>{STATE_WORD[got]}</span>
         </span>
       ) : (
       <label className="pg-state">

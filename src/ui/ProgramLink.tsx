@@ -101,7 +101,7 @@ export function ProgramLink({ projectId, t, tests, onPatch, can, holder, items }
       {!parts.length && <span className="sub">None written on it yet</span>}
       {said.length > 0 && (
         <ul className="rd-progs">
-          {said.map(({ p, s }) => <li key={p.id}><span>{p.what}</span><span className={'spp-pill is-' + s.tone}>{s.word}</span></li>)}
+          {said.map(({ p, s }) => <li key={p.id}><span>{p.what}</span><span className={'status-pill is-' + s.tone}>{s.word}</span></li>)}
         </ul>
       )}
       <button type="button" className="btn btn-sm btn-primary" onClick={() => (t.assetId ? openMachine(projectId, t.assetId) : nav(`/project/${projectId}/programs`))}>

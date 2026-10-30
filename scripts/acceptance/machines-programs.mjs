@@ -224,7 +224,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await row().locator('.pgr-form').getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1000);
   let p = (await truth()).programs.find(x => x.what === 'LB-2 Express labels');
   ok(shut && p.state === 'onMachine' && p.note === 'On the HMI — not run yet' && p.testOn === iso(-3), '4 a tap opens its boxes: on the machine, its commentary and its test day, kept');
-  ok(/is-pg-overdue/.test(await row().getAttribute('class')) && flat(await row().locator('.spp-pill').first().innerText()) === 'on the machine · test was 3 days ago', '4b a test day gone by: red, "test was 3 days ago" in its one pill');
+  ok(/is-pg-overdue/.test(await row().getAttribute('class')) && flat(await row().locator('.status-pill').first().innerText()) === 'on the machine · test was 3 days ago', '4b a test day gone by: red, "test was 3 days ago" in its one pill');
   await row().locator('.pgr-main').click(); await page.waitForTimeout(400);
   await row().getByLabel('Where LB-2 Express labels has got to').selectOption('proved'); await page.waitForTimeout(300);
   await row().getByLabel('The day LB-2 Express labels was proved').fill(iso(-1));
@@ -568,14 +568,14 @@ await page.setViewportSize({ width: 1360, height: 900 });
      answer the job's Programs gives, the line's record only when it says something worse */
   let row = main.locator(`.lp-m-job [data-program="${p04.id}"]`);
   await row.waitFor({ state: 'visible', timeout: 15000 });
-  ok(flat(await row.locator('.pgr-top .spp-pill').first().innerText()) === l04.word && await row.locator('.lp-floor').count() === 0,
-    `12b the line's Programs says the job's one answer, in place (${flat(await row.locator('.pgr-top .spp-pill').first().innerText())})`);
+  ok(flat(await row.locator('.pgr-top .status-pill').first().innerText()) === l04.word && await row.locator('.lp-floor').count() === 0,
+    `12b the line's Programs says the job's one answer, in place (${flat(await row.locator('.pgr-top .status-pill').first().innerText())})`);
   await go(`#/project/${sd.projectId}/programs`);
   await main.locator('.pp-chip', { hasText: /^All\b/ }).click(); await page.waitForTimeout(600);
   /* ONE STATUS A ROW (16 October): the record's word only when it says
      something worse than the floor's — here it does not */
   const jrow = what => main.locator('.pgr', { hasText: what }).first();
-  const one = async what => ({ pills: await jrow(what).locator('.pgr-top .spp-pill:not(.pgr-pn)').count(), word: flat(await jrow(what).locator('.pgr-top .spp-pill').first().innerText()), aside: await jrow(what).locator('.pgr-aside').count() });
+  const one = async what => ({ pills: await jrow(what).locator('.pgr-top .status-pill:not(.pgr-pn)').count(), word: flat(await jrow(what).locator('.pgr-top .status-pill').first().innerText()), aside: await jrow(what).locator('.pgr-aside').count() });
   const r04 = await one('PR-04 Finest Red 2 kg'), s12 = await one('PR-12 Express 1.25 kg');
   ok(r04.pills === 1 && r04.word === l04.word && r04.aside === 0 && s12.pills === 1 && s12.word === j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').word && s12.aside === 0,
     `12c the job's row says one status — "${r04.word}", "${s12.word}" — the line's record only when it is worse`);
@@ -612,7 +612,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
     `12f didn't pass in the one form: the floor says failed, and the program drops back to on the machine (${j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record?.word})`);
   await go(`#/programs?line=${WS}`);
   row = main.locator(`.lp-m-job [data-program="${p12.id}"]`);
-  const w12 = flat(await row.locator('.pgr-top .spp-pill').first().innerText());
+  const w12 = flat(await row.locator('.pgr-top .status-pill').first().innerText());
   ok(w12 === j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').word && /^Failed/.test(w12) && !/proved/i.test(w12),
     `12g and the line's Programs says the same — its failure, never proved (${w12})`);
   /* on paper: the job's programs report says the record beside the floor's, and counts no failure as done */

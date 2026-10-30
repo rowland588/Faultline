@@ -187,7 +187,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
       <div className="pgc pgc-compact" aria-label={`The criteria of ${p?.what ?? 'the program'}`}>
         <span className="pgc-h">
           <b>Its criteria</b>
-          {v && <span className={'spp-pill pgc-v is-' + v.tone}>{v.words}</span>}
+          {v && <span className={'status-pill pgc-v is-' + v.tone}>{v.words}</span>}
         </span>
         {edit && !p?.signedOff && (
           <span className="pgc-acts pgc-acts-inline">
@@ -206,7 +206,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
     <div className="pgc" aria-label={`The criteria of ${p?.what ?? 'the program'}`}>
       <div className="pgc-h">
         <b>Its criteria</b>
-        {v && <span className={'spp-pill pgc-v is-' + v.tone}>{v.words}</span>}
+        {v && <span className={'status-pill pgc-v is-' + v.tone}>{v.words}</span>}
       </div>
       {v?.since && <p className="pgc-since">{v.since}</p>}
       {answers.length > 0 && (
@@ -215,7 +215,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
             <li key={`${a.c.kind}:${a.c.id}`} className={'pgc-row is-' + a.tone}>
               <button type="button" className="pgc-open" onClick={() => { if (a.study) nav(studyHref(a.study)); else if (a.test) openRecord(a.test.projectId, a.test.id); }}>
                 <span className="pgc-t">{a.title}</span>
-                <span className={'spp-pill is-' + a.tone}>{CRITERION_WORD[a.word]}</span>
+                <span className={'status-pill is-' + a.tone}>{CRITERION_WORD[a.word]}</span>
                 <span className="pgc-says">{a.says}</span>
               </button>
               {edit && !p?.signedOff && (
@@ -266,7 +266,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
                       <li key={a.c.id} className={'pgc-row is-' + a.tone}>
                         <button type="button" className="pgc-open" onClick={() => a.study && void pickStudy(a.study)}>
                           <span className="pgc-t">{a.title}</span>
-                          <span className={'spp-pill is-' + a.tone}>{CRITERION_WORD[a.word]}</span>
+                          <span className={'status-pill is-' + a.tone}>{CRITERION_WORD[a.word]}</span>
                           <span className="pgc-says">{a.says}</span>
                         </button>
                       </li>

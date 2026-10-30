@@ -79,7 +79,7 @@ export function LineProgramReportScreen({ wsId, programId }: { wsId: string; pro
       <PageHeader
         eyebrow={<span className="pl-eyebrow">PROGRAM · {line.name.toUpperCase()}</span>}
         title={row.what}
-        says={<><span className={'spp-pill is-' + row.tone}>{row.word}</span>{row.machine ? ` · ${row.machine}` : ''}{row.runs ? ` · runs ${row.runs}` : ''}</>}
+        says={<><span className={'status-pill is-' + row.tone}>{row.word}</span>{row.machine ? ` · ${row.machine}` : ''}{row.runs ? ` · runs ${row.runs}` : ''}</>}
         primary={{ label: 'Download', disabled: busy, run: () => void download() }}
         papers={testPapers}
         back={{ label: 'Programs', to: `/programs?line=${encodeURIComponent(wsId)}` }}

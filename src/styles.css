@@ -10955,6 +10955,8 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
    its filter, then each machine's programs the whole width of the page. Only
    the abnormal count wears colour; a zero is grey. */
 .pp-m { margin-top: 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+/* E4 Programs — the machine's panel as every Enterprise panel */
+.nv-main .pp-m { box-shadow: var(--shadow); padding: 14px 16px 16px; }
 .pp-mh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .pp-mh h2 { margin: 0; font-size: var(--t-h); flex: 1 1 auto; min-width: 0; }
 .pp-door p { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 6px 0 0; }
@@ -13564,6 +13566,16 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .pgr-own { margin: 0; }
 .pgr-add { margin-top: 10px; }
 .pgr-add-open { margin-top: 8px; font-size: var(--t-detail); text-align: left; }
+/* E4 Programs (docs/ENTERPRISE-UI.md) — a program is a Planner card-row on its machine's panel; its state is the one
+   .status-pill (words kept, colour never alone). Specificity stays under .pgr:has(.pgr-aside…) so a record's own red/amber tint wins. */
+.nv-main .pgr-list { gap: 6px; margin-top: 8px; }
+.nv-main .pgr { padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.nv-main .pgr:first-child { border-top: 1px solid var(--line); }
+.nv-main .pgr:not(.is-open):hover { border-color: color-mix(in srgb, var(--brand) 35%, var(--line)); }
+.nv-main .pgr.is-pg-overdue { box-shadow: inset 3px 0 0 var(--st-r); }
+.pgr-top .status-pill { align-self: center; }
+.pgc-h .status-pill, .pgc-row .status-pill { flex: none; max-width: 100%; }
+.pgc-row .status-pill { align-self: center; }
 @media (max-width: 719px) {
   /* a row with a journey or the form open runs full width; one without keeps
      its button (Test it, Say how it went) beside its name, as on a desk — it

@@ -110,8 +110,8 @@ export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, prob
         <span className="pgr-top">
           {tag && <span className="pp-line-tag">{tag}</span>}
           <span className="pgr-name">{what}</span>
-          <span className={'spp-pill is-' + tone}>{word}</span>
-          {problems > 0 && <span className="spp-pill is-r pgr-pn">{problems === 1 ? 'a problem' : `${problems} problems`}</span>}
+          <span className={'status-pill is-' + tone}>{word}</span>
+          {problems > 0 && <span className="status-pill is-r pgr-pn">{problems === 1 ? 'a problem' : `${problems} problems`}</span>}
         </span>
         {meta && <span className="pgr-meta">{meta}</span>}
         {note && <span className="pgr-said">{note}</span>}

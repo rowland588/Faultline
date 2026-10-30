@@ -57,7 +57,7 @@ export function LineProgramsReportScreen({ wsId }: { wsId: string }) {
           {reading.lines.map(l => (
             <li key={l.programId ?? l.what} className="lpr-row">
               <b>{l.what}</b>
-              <span className={'spp-pill is-' + l.tone}>{l.word}</span>
+              <span className={'status-pill is-' + l.tone}>{l.word}</span>
               {l.programId && (
                 <button type="button" className="cw-link" onClick={() => nav(savingAt(`/lines/${encodeURIComponent(wsId)}/program/${encodeURIComponent(l.programId!)}/report`))}>
                   Its program report ›
