@@ -37,7 +37,7 @@ import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
 import { peopleOf, type Standard } from '../linestandard/standard';
 import {
-  actionWords, agreedFor, availableOf, changeoversPer, changeoverSays, checklistOf, CONVERT_HOW, extrapolate, extrapolationSays, figuresOf, FN_WORD, FNS, functionSays,
+  actionWords, agreedFor, availableOf, mustComeIn, changeoversPer, changeoverSays, checklistOf, CONVERT_HOW, extrapolate, extrapolationSays, figuresOf, FN_WORD, FNS, functionSays,
   HOW_WORD, intervalOf, intervalSays, ladderOf, ladderSays, lineRateOf, mins, moneyOf, patternFromShifts, planWords, rateFromWords, runMinOf, runningOf, runningWords, span,
   SMED_TARGET_SEC, standardFrom, standardLine, STREAMLINE_HOW, whenIn, costOf, scaleRows, type CostScale, type Ladder, type CoLaneBy, type Rung, type SmedMoney,
 } from './changeover';
@@ -111,7 +111,10 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
   const l = useMemo(() => ladderOf(seq), [seq]);
   const std = standardFor(s, standards);
   const agreed = agreedFor(std?.capacity?.changeovers, s.facts.fromProduct);
-  const said = useMemo(() => changeoverSays(f, agreed), [f, agreed]);
+  /* the minutes typed on the study (what a program's criterion is judged by) win over the product's line standard's */
+  const typedMin = s.agreed?.changeover?.minutes;
+  const against = useMemo(() => mustComeIn(s.agreed?.changeover, agreed), [s.agreed?.changeover, agreed]);
+  const said = useMemo(() => changeoverSays(f, against), [f, against]);
   const money = useMemo(() => moneyOf(line), [line]);
   const cost = useMemo(() => extrapolationSays(l, s.facts, money), [l, s.facts, money]);
   const iv = useMemo(() => intervalOf(f, s.facts.products, availableOf(s.facts)?.min), [f, s.facts]);
@@ -140,8 +143,8 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
   }, [s.uses, byRef]);
   const branched = useMemo(() => new Set(branches.keys()), [branches]);
   /* THE LEAN PAGE — the same reading its paper prints (lib/ie/changeoverLean) */
-  const lean = useMemo(() => smedLean({ s, f, l, said, cost, ...(money ? { money } : {}), ...(line ? { line: line.name } : {}), ...(agreed ? { agreed } : {}),
-    raised: raisedFrom(s, steps, tests, step => seq.find(x => x.id === step)?.name) }), [s, f, l, said, cost, money, line, agreed, steps, tests, seq]);
+  const lean = useMemo(() => smedLean({ s, f, l, said, cost, ...(money ? { money } : {}), ...(line ? { line: line.name } : {}), ...(against ? { agreed: against } : {}),
+    raised: raisedFrom(s, steps, tests, step => seq.find(x => x.id === step)?.name) }), [s, f, l, said, cost, money, line, against, steps, tests, seq]);
   /* Proving a fix: the elements carried from before, timed again one by one. */
   const carried = useMemo(() => seq.filter(x => x.source === 'carried'), [seq]);
   const from = s.facts.fromProduct?.trim(), to = (s.facts.toProduct ?? s.product)?.trim();
@@ -197,6 +200,14 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
           {editable && <button type="button" className="linkish" onClick={() => setProducts(true)}>Change the products</button>}
         </p>
         <WhereItSits s={s} can={can} />
+        {/* THE MINUTES IT MUST COME IN AT — typed here, it is what a program's criterion judges this changeover by */}
+        {(typedMin !== undefined || (can.agree && !closed)) && (
+          <p className="sub ie-where co-must">
+            <TargetBox value={typedMin !== undefined ? typedMin * 60 : undefined} label="It must come in at" editable={can.agree && !closed}
+              onSet={sec => write(cur => { const { changeover: _c, ...rest } = cur.agreed ?? {}; void _c; return { agreed: sec !== undefined ? { ...rest, changeover: { minutes: +(sec / 60).toFixed(2) } } : (Object.keys(rest).length ? rest : undefined) }; })} />
+            {' '}<span>{typedMin !== undefined ? 'minutes — the stop, with the external work done before and after; a program’s criterion is judged by this.' : '— the stop, with the external work done before and after. Set it and a program can be judged by it.'}</span>
+          </p>
+        )}
       </div>
       <LeanTiles tiles={lean.tiles} className="ie-strip" />
       <div className="ie-says">

@@ -143,6 +143,10 @@ export interface StudyReading {
   struck?: boolean;
 }
 
+/** The minutes a changeover must come in at — the stop, with the external work done before and after, as
+ *  StandardChangeover.minutes is. Set by whoever may agree it (can.agree). */
+export interface AgreedChangeover { minutes: number }
+
 /** A WORK BALANCE's agreement (docs/TOOLKIT.md, tools 3 and 4): the takt it
  *  is balanced against, and the allowance added to the timed work — agreed
  *  before the timing, by the owner on a job. */
@@ -609,6 +613,9 @@ export interface StudyAgreed {
   /** FC-235 — a calculator's inputs (knowledge/specs/FC-235-calculators.md): which calculator, and what was put in. */
   calc?: AgreedCalc;
   balance?: AgreedBalance;
+  /** SMED (30 October, a program's criterion): the minutes the changeover must come in at, typed on the study itself —
+   *  what changeoverSays judges it against when no product's line standard has agreed minutes of its own. */
+  changeover?: AgreedChangeover;
   map?: AgreedMap;
   sampling?: AgreedSampling;
   reliability?: AgreedReliability;

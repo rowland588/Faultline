@@ -6,9 +6,11 @@
  *
  *   its criteria    a row each — the tool and its name, its answer in its colour (Passed · Didn't pass · Not yet),
  *                   what the tool says; a tap opens the study or the test; × takes it off (the study stays)
- *   Add a criterion the tools that say pass or fail — a capability study, a control chart, a reliability study, an
- *                   analysis — each made for the program and set up in its tool with its own parameters; a study of
- *                   it already made, picked; or a run test (its tests as they are)
+ *   Add a criterion the tools that say pass or fail (lib/programCriteria CRITERION_TOOLS, the 30 October audit in
+ *                   docs/PROGRAM-GOAL.md) — a capability study, a control chart, a reliability study, an analysis,
+ *                   a SMED, a line balance — each made for the program and set up in its tool with its own
+ *                   parameters (a line balance is timed on a product's line standard); a study of it already made,
+ *                   picked; or a run test (its tests as they are)
  *   Sign off        once every criterion has passed: who is signing (one or more names) and the day — the program
  *                   reads "Signed off — passed", and the day is its proved day; taken back with Undo or later
  *
@@ -17,10 +19,11 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Program } from '../lib/programs';
 import type { Test } from '../lib/testing';
 import type { ToolStudy } from '../lib/study';
-import { CRITERION_TOOLS, CRITERION_WORD, cannotSignOff, criteriaOf, criteriaVerdict, criterionStudy, proofStudiesToPick, signedOff, signersOf, studiesToPick, unpickedStudyChoices, unsigned, withAllProofStudies, withCriterion, withoutCriterion, type CriterionTool } from '../lib/programCriteria';
+import { CRITERION_HELP, answerOfStudy, CRITERION_TOOLS, CRITERION_WORD, balancesToPick, cannotSignOff, criteriaOf, criteriaVerdict, criterionBalance, criterionStudy, proofStudiesToPick, standardsToTime, signedOff, signersOf, studiesToPick, unpickedStudyChoices, unsigned, withAllProofStudies, withCriterion, withoutCriterion, type CriterionTool } from '../lib/programCriteria';
 import { TOOL_NAME, studyHref } from '../lib/studyLinks';
 import { attemptsOf, testJourney } from '../lib/programJourney';
-import { listAllStudies, onDataChange, putProgram, putStudy } from '../db';
+import { listAllStandards, listAllStudies, onDataChange, putProgram, putStudy } from '../db';
+import type { Standard } from '../tools/linestandard/standard';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { now, uid } from '../lib/ids';
@@ -56,8 +59,10 @@ function useProgramStudies(on: boolean): ToolStudy[] | undefined {
   return list;
 }
 
+/** a tool's name in a sentence: "a control chart", "a SMED" */
+const lc = (n: string): string => (n === n.toUpperCase() ? n : n.toLowerCase());
 type Pick = CriterionTool | 'run';
-const PICK_NAME: Record<Pick, string> = { capability: 'Capability study', chart: 'Control chart', reliability: 'Reliability study', analysis: 'Analysis', run: 'Run test' };
+const PICK_NAME: Record<Pick, string> = { ...Object.fromEntries(CRITERION_TOOLS.map(t => [t, CRITERION_HELP[t].name])) as Record<CriterionTool, string>, run: 'Run test' };
 
 export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun, detail = true, onShowAll }: {
   /** The program — or, for a line on a machine's programs stage with no record yet, none (`ensure` makes it). */
@@ -90,6 +95,8 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   /** When work already exists on its tests, start on that list — not "Set it up now" (program 5, 28 October). */
   const [newStudy, setNewStudy] = useState(false);
   const [signing, setSigning] = useState(false);
+  /* the line standards a balance could be timed on — read only while a line balance is being picked */
+  const [standards, setStandards] = useState<Standard[]>([]);
   const [by, setBy] = useState('');
   const [day, setDay] = useState(today);
 
@@ -102,6 +109,12 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   const unpicked = useMemo(() => (p && studies ? unpickedStudyChoices(p, studies, testIds) : []), [p, studies, testIds]);
   const passedUnpicked = unpicked.filter(a => a.word === 'passed').length;
   const showDetail = detail || expanded || adding || signing;
+  useEffect(() => {
+    if (!adding || tool !== 'balance') return undefined;
+    const load = () => void listAllStandards().then(setStandards).catch(() => {});
+    load();
+    return onDataChange(load);
+  }, [adding, tool]);
   if (!p?.criteria?.length && !p?.signedOff && !edit) return null;
 
   const runRoots = mine.filter(t => !t.fromTestId || !mine.some(x => x.id === t.fromTestId))
@@ -115,11 +128,11 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
   const record = async (): Promise<Program | undefined> => p ?? await ensure?.();
   /* A NEW STUDY FOR IT, in the tool picked — set up in the tool (open: there now) */
   const addStudy = async (open: boolean) => {
-    if (tool === 'run') return;
+    if (tool === 'run' || tool === 'balance') return;
     const cur = await record();
     if (!cur) return;
     const n = (cur.criteria ?? []).filter(c => c.kind === 'study').length;
-    const s = criterionStudy(cur, tool, name.trim() || `${cur.what} — ${PICK_NAME[tool].toLowerCase()}${n ? ` ${n + 1}` : ''}`, { id: uid(), at: now(), ...(machine ? { machine } : {}) });
+    const s = criterionStudy(cur, tool, name.trim() || `${cur.what} — ${lc(PICK_NAME[tool])}${n ? ` ${n + 1}` : ''}`, { id: uid(), at: now(), ...(machine ? { machine } : {}) });
     await putStudy(s);
     await putProgram(withCriterion(cur, { kind: 'study', id: s.id }));
     setName(''); setAdding(false); setNewStudy(false);
@@ -129,6 +142,16 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
     const cur = await record();
     if (cur) await save(withCriterion(cur, { kind: 'study', id: s.id }), `${s.name} — a criterion of ${cur.what}`, cur);
     setAdding(false); setNewStudy(false);
+  };
+  /* A LINE BALANCE is timed on a product's line standard: made for the program from one, and opened there */
+  const timeBalance = async (std: Standard) => {
+    const cur = await record();
+    if (!cur) return;
+    const s = criterionBalance(cur, std, { id: uid(), at: now(), ...(machine ? { machine } : {}) });
+    await putStudy(s);
+    await putProgram(withCriterion(cur, { kind: 'study', id: s.id }));
+    setAdding(false); setNewStudy(false);
+    nav(studyHref(s));
   };
   const pickRun = async (id?: string) => {
     const cur = await record();
@@ -273,7 +296,36 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
               <button key={k} type="button" role="radio" aria-checked={tool === k} className={'chip' + (tool === k ? ' on' : '')} onClick={() => setTool(k)}>{PICK_NAME[k]}</button>
             ))}
           </span>
-          {tool !== 'run' ? (
+          {tool !== 'run' && tool !== 'balance' && <small className="sub pgc-judges">{CRITERION_HELP[tool].name} judges: {CRITERION_HELP[tool].judges}.</small>}
+          {tool === 'balance' ? (
+            <>
+              <small className="sub pgc-judges">{CRITERION_HELP.balance.name} judges: {CRITERION_HELP.balance.judges}. Each person’s work is timed on the product’s line standard (the map’s people are its elements, the takt Line capacity’s target) — time it there, or pick one already timed.</small>
+              {(() => {
+                /* timed in its place, or lined up on one of its tests — each once */
+                const lined = unpicked.flatMap(a => (a.study?.tool === 'balance' ? [a.study] : []));
+                const timed = p && studies ? [...balancesToPick(p, studies), ...lined.filter(l => !balancesToPick(p, studies).some(b => b.id === l.id))] : [];
+                const onStd = p ? standardsToTime(p, standards) : [];
+                return (
+                  <>
+                    {timed.length > 0 && (
+                      <span className="pgc-pick" aria-label="Line balances already timed here">
+                        <span className="sub">Pick one already timed:</span>
+                        {timed.map(s => <button key={s.id} type="button" className="chip" onClick={() => void pickStudy(s)}>{s.name} · {CRITERION_WORD[answerOfStudy(s).word]}</button>)}
+                      </span>
+                    )}
+                    {onStd.length > 0 ? (
+                      <span className="pgc-pick" aria-label="Time a new line balance on a product">
+                        <span className="sub">Or time a new one on:</span>
+                        {onStd.map(st => <button key={st.id} type="button" className="chip" onClick={() => void timeBalance(st)}>{st.product || 'A product'}</button>)}
+                      </span>
+                    ) : (
+                      !timed.length && <small className="sub">No line standard on {p?.projectId ? 'its project' : 'its line'} yet — make one (Line standard, the people and where they stand) and time their work there.</small>
+                    )}
+                  </>
+                );
+              })()}
+            </>
+          ) : tool !== 'run' ? (
             <>
               {unpicked.length > 0 && (
                 <div className="pgc-existing" aria-label="Studies already on this program">
@@ -300,10 +352,10 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
                   <label className="ptx-f">
                     <span className="field-label">Name it — what it judges</span>
                     <input className="text-input" value={name} maxLength={120} aria-label="Name the study" autoFocus={newStudy || unpicked.length === 0}
-                      placeholder={tool === 'capability' ? 'e.g. Placement weight at 75 ppm' : tool === 'reliability' ? 'e.g. Robot faults' : tool === 'chart' ? 'e.g. Seal temperature' : 'e.g. Fill before and after'}
+                      placeholder={CRITERION_HELP[tool].example}
                       onChange={e => setName(e.target.value)} />
                   </label>
-                  <small className="sub">It is made for {p?.what ?? 'the program'}{machine ? ` on the ${machine}` : ''} and set up in the {TOOL_NAME[tool]?.toLowerCase()} — its limits or what it must reach are set there, and its verdict is the answer.</small>
+                  <small className="sub">It is made for {p?.what ?? 'the program'}{machine ? ` on the ${machine}` : ''} and set up in the {lc(TOOL_NAME[tool] ?? PICK_NAME[tool])} — its limits or what it must reach are set there, and its verdict is the answer.</small>
                   <span className="pgc-go">
                     <button type="button" className="btn btn-primary btn-sm" onClick={() => void addStudy(true)}>Set it up now</button>
                     <button type="button" className="btn btn-sm" onClick={() => void addStudy(false)}>Add it, set up later</button>
@@ -323,7 +375,7 @@ export function ProgramCriteria({ program, ensure, tests, edit, machine, planRun
                   )}
                 </>
               ) : (
-                <button type="button" className="btn btn-sm pgc-new" onClick={() => setNewStudy(true)}>Start a new {PICK_NAME[tool].toLowerCase()} instead</button>
+                <button type="button" className="btn btn-sm pgc-new" onClick={() => setNewStudy(true)}>Start a new {lc(PICK_NAME[tool])} instead</button>
               )}
             </>
           ) : (

@@ -141,3 +141,160 @@ describe('picking and taking off criteria', () => {
     expect([s.tool, s.name, s.programId, s.projectId, s.workspaceId, s.assetId, s.machine, s.uses]).toEqual(['reliability', 'Robot faults', 'p5', 'j', 'w', 'a1', 'Robot', []]);
   });
 });
+
+/* ---------------------------------------------------------------------------------------------------------------------
+ * THE 30 OCTOBER AUDIT (docs/PROGRAM-GOAL.md, "Which tools can judge a test") — Rowland: "Five tools in the criteria picker
+ * — what are you saying, we only have 5 tools built? We should have many more that offer a verdict." The tools added end in
+ * a verdict against a stated target by their own module: SMED against the minutes it must come in at, a line balance against
+ * takt. Each reads through studySays — the module its page uses — and says `notYet` while it cannot be told.
+ * ------------------------------------------------------------------------------------------------------------------- */
+import { ANALYSIS_JUDGES, CRITERION_HELP, CRITERION_MADE, CRITERION_TOOLS, balancesToPick, canJudge, criterionBalance, isCriterionTool, proofStudiesToPick, standardsToTime } from '../programCriteria';
+import { againstStandard, changeoverSays, figuresOf, mustComeIn } from '../../tools/changeover/changeover';
+import { studySays } from '../studyLinks';
+import type { Standard } from '../../tools/linestandard/standard';
+
+const step = (id: string, order: number, sec: number | undefined, side: 'internal' | 'external' = 'internal', source: 'timed' | 'typed' | 'carried' = 'timed') =>
+  ({ id, order, name: `Element ${id}`, side, ...(sec !== undefined ? { sec } : {}), source });
+/* strip the former 10 min + fit it 8 min = 18 min with the line stopped */
+const smed = (minutes: number | undefined, seq = [step('a', 0, 600), step('b', 1, 480)], o: Partial<ToolStudy> = {}): ToolStudy => ({
+  id: 'smed', tool: 'changeover', name: 'Changeover to the 2 kg pack', programId: 'p5', projectId: 'j',
+  ...(minutes !== undefined ? { agreed: { changeover: { minutes } } } : {}),
+  facts: { sequence: seq }, uses: [], startedAt: 1, createdAt: 1, updatedAt: Date.parse('2026-10-29T10:00:00Z'), ...o });
+const on = (s: ToolStudy) => criteriaOf(withCriterion(p5, { kind: 'study', id: s.id }), [s], [], '2026-10-30')[0];
+
+describe('the criterion tools — every one a tool whose study ends in a verdict', () => {
+  it('six tools, five made from the picker and a line balance timed on a line standard', () => {
+    expect([...CRITERION_TOOLS]).toEqual(['capability', 'chart', 'reliability', 'analysis', 'changeover', 'balance']);
+    expect([...CRITERION_MADE]).toEqual(['capability', 'chart', 'reliability', 'analysis', 'changeover']);
+    expect(CRITERION_TOOLS.every(t => CRITERION_HELP[t].name && CRITERION_HELP[t].judges && CRITERION_HELP[t].example)).toBe(true);
+    /* a tool that only shows figures is never offered */
+    for (const t of ['map', 'sampling', 'losses', 'talk', 'calc', 'log', 'scored', 'board']) expect(isCriterionTool(t)).toBe(false);
+  });
+});
+
+describe('SMED — against the minutes it must come in at (30 October audit)', () => {
+  it('18 min against 20: within, passed — with the standard said in its sentence and its short form', () => {
+    const a = on(smed(20));
+    expect([a.word, a.tone, a.title]).toEqual(['passed', 'g', 'SMED — Changeover to the 2 kg pack']);
+    expect(a.says).toContain('Within the 20 min standard.');
+    expect(a.short).toBe('Changeover to the 2 kg pack: Within the 20 min standard');
+    expect(studySays(smed(20)).verdict).toBe('Within the 20 min standard');
+  });
+  it('18 min against 15: over by 3 min, didn’t pass', () => {
+    const a = on(smed(15));
+    expect([a.word, a.tone]).toEqual(['failed', 'r']);
+    expect(a.says).toContain('Over the 15 min standard by 3 min.');
+    expect(a.short).toBe('Changeover to the 2 kg pack: Over the 15 min standard by 3 min');
+  });
+  it('external work inside is the page’s amber, never the criterion’s: within the minutes still passes', () => {
+    const a = on(smed(25, [step('a', 0, 600), step('e', 1, 300, 'external'), step('b', 2, 480)]));   // 23 min as timed
+    expect(a.word).toBe('passed');
+    expect(studySays(smed(25, [step('a', 0, 600), step('e', 1, 300, 'external'), step('b', 2, 480)])).tone).toBe('g');
+    /* the same figures with no minutes typed: figures only — not yet, never a pass */
+    const none = on(smed(undefined, [step('a', 0, 600), step('e', 1, 300, 'external'), step('b', 2, 480)]));
+    expect([none.word, none.tone]).toEqual(['notYet', 'n']);
+  });
+  it('no minutes typed: not yet, however good the time looks', () => {
+    const a = on(smed(undefined));
+    expect([a.word, a.short]).toEqual(['notYet', 'Changeover to the 2 kg pack: 18 min now']);
+  });
+  it('not yet while it cannot be told: nothing timed, an element with no time, one carried from the changeover before', () => {
+    expect(on(smed(20, [])).word).toBe('notYet');
+    expect(on(smed(20, [step('a', 0, undefined)])).word).toBe('notYet');
+    expect(on(smed(20, [step('a', 0, 600), step('b', 1, undefined)])).word).toBe('notYet');            // 10 min of a changeover not all timed
+    expect(on(smed(20, [step('a', 0, 600), step('b', 1, 480, 'internal', 'carried')])).word).toBe('notYet');
+    /* over is still over with an element untimed — the minutes are at least this — but not with one carried */
+    expect(on(smed(15, [step('a', 0, 1000), step('b', 1, undefined)])).word).toBe('failed');
+    expect(on(smed(15, [step('a', 0, 1000), step('b', 1, 480, 'internal', 'carried')])).word).toBe('notYet');
+  });
+  it('the module’s two rules agree: over by more than half a minute is over, in changeoverSays and in againstStandard', () => {
+    for (const [sec, want] of [[20 * 60 + 29, 'within'], [20 * 60 + 31, 'over'], [19 * 60, 'within']] as const) {
+      const f = figuresOf({ sequence: [step('a', 0, sec)] });
+      expect(againstStandard(f, { minutes: 20 })?.word).toBe(want);
+      expect(changeoverSays(f, { minutes: 20 }).lines.some(l => l.tone === 'r')).toBe(want === 'over');
+    }
+    expect(againstStandard(figuresOf({ sequence: [step('a', 0, 600)] }), undefined)).toBeUndefined();
+  });
+  it('the study’s own minutes win over a product’s line standard; neither: none', () => {
+    expect(mustComeIn({ minutes: 12 }, { minutes: 30 })).toEqual({ minutes: 12 });
+    expect(mustComeIn(undefined, { minutes: 30 })).toEqual({ minutes: 30 });
+    expect(mustComeIn({ minutes: 0 }, undefined)).toBeUndefined();
+  });
+  it('a SMED deleted is gone; an overrule beside the verdict takes its place', () => {
+    const p = withCriterion(p5, { kind: 'study', id: 'smed' });
+    expect(criteriaOf(p, [{ ...smed(20), deletedAt: 5 }], [], '2026-10-30')[0].word).toBe('gone');
+    expect(criteriaOf(p, [{ ...smed(15), overrule: { verdict: 'Passed', why: 'agreed with the OEM', by: 'R. Glew', at: 3 } }], [], '2026-10-30')[0].word).toBe('passed');
+  });
+});
+
+describe('Line balance — every person within takt (30 October audit)', () => {
+  const typed = (id: string, who: string, sec: number) => ({ id, order: Number(id.replace(/\D/g, '')) || 0, name: id, who, typedSec: sec });
+  const bal = (takt: number | undefined, secs: number[], o: Partial<ToolStudy> = {}): ToolStudy => ({
+    id: 'bal', tool: 'balance', name: 'Packing, morning', projectId: 'j', standardId: 'std1', programId: 'p5',
+    ...(takt !== undefined ? { agreed: { balance: { taktSec: takt } } } : {}),
+    facts: { steps: secs.map((s, i) => typed(`e${i + 1}`, `Op ${i + 1}`, s)) }, uses: [], startedAt: 1, createdAt: 1, updatedAt: Date.parse('2026-10-29T10:00:00Z'), ...o });
+  it('everyone inside a 12 s takt: passed, with the page’s sentence', () => {
+    const a = on(bal(12, [10, 8]));
+    expect([a.word, a.title, a.short]).toEqual(['passed', 'Line balance — Packing, morning', 'Packing, morning: Within takt']);
+    expect(a.says).toContain('takt');
+  });
+  it('one person over takt: didn’t pass, who and by how much', () => {
+    const a = on(bal(12, [14, 8]));
+    expect([a.word, a.short]).toEqual(['failed', 'Packing, morning: Over takt']);
+    expect(a.says).toContain('Op 1 carries');
+  });
+  it('no takt agreed, or nothing listed: not yet', () => {
+    expect(on(bal(undefined, [10, 8])).word).toBe('notYet');
+    expect(on(bal(12, [])).word).toBe('notYet');
+  });
+  it('the balances to pick are those timed in the program’s own place, and a new one is timed on a line standard', () => {
+    const other = bal(12, [10], { id: 'b2', projectId: 'other' });
+    const gone = bal(12, [10], { id: 'b3', deletedAt: 9 });
+    expect(balancesToPick({ projectId: 'j' }, [bal(12, [10]), other, gone, cap()]).map(s => s.id)).toEqual(['bal']);
+    expect(balancesToPick({ projectId: 'j', criteria: [{ kind: 'study', id: 'bal' }] }, [bal(12, [10])])).toEqual([]);
+    expect(balancesToPick({ projectId: '', workspaceId: 'w' }, [bal(12, [10], { projectId: undefined, workspaceId: 'w' }), bal(12, [10], { id: 'b4', workspaceId: 'x' })]).map(s => s.id)).toEqual(['bal']);
+    const std = (id: string, o: Partial<Standard>): Standard => ({ id, projectId: '', product: id, marks: [], sort: 0, createdAt: 1, updatedAt: 1, ...o });
+    expect(standardsToTime({ projectId: 'j' }, [std('s1', { projectId: 'j' }), std('s2', { projectId: 'k' }), std('s3', { projectId: 'j', deletedAt: 1 })]).map(s => s.id)).toEqual(['s1']);
+    expect(standardsToTime({ projectId: '', workspaceId: 'w' }, [std('s4', { workspaceId: 'w' }), std('s5', { workspaceId: 'x' })]).map(s => s.id)).toEqual(['s4']);
+  });
+  it('criterionBalance: the map’s people its elements, Line capacity’s target its takt, made for the program on its machine', () => {
+    const std: Standard = { id: 'std1', projectId: 'j', workspaceId: 'w', product: 'Maris Piper 2 kg', sort: 0, createdAt: 1, updatedAt: 1,
+      marks: [{ id: 'm1', kind: 'person', label: 'Op 1', task: 'Fold and tape', x: 0, y: 0 }, { id: 'm2', kind: 'person', label: 'Op 2', x: 0, y: 0 }] as Standard['marks'],
+      capacity: { targetPerMin: 5, stations: [] } };
+    const s = criterionBalance({ ...p5, assetId: 'a1', workspaceId: 'w' }, std, { id: 'n', at: 9, machine: 'Packer' });
+    expect([s.tool, s.name, s.standardId, s.programId, s.projectId, s.workspaceId, s.assetId, s.machine]).toEqual(['balance', 'Maris Piper 2 kg', 'std1', 'p5', 'j', 'w', 'a1', 'Packer']);
+    expect(s.agreed?.balance).toEqual({ taktSec: 12, from: 'target' });
+    expect((s.facts.steps ?? []).map(x => [x.who, x.name])).toEqual([['Op 1', 'Fold and tape'], ['Op 2', 'Their work']]);
+    /* named for what it judges when asked */
+    expect(criterionBalance(p5, std, { id: 'n2', at: 9, name: ' Packing at 5 a minute ' }).name).toBe('Packing at 5 a minute');
+  });
+});
+
+describe('Analysis — only the questions that judge can pass or fail', () => {
+  const an = (agreed: ToolStudy['agreed'], readings: ToolStudy['facts']['readings'] = []): ToolStudy => ({ id: 'an', tool: 'analysis', name: 'Fill', programId: 'p5', projectId: 'j', agreed, facts: { readings }, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1 });
+  let k = 0;
+  const vs = (xs: number[], arm: string) => xs.map(value => ({ id: `x${++k}`, at: k, value, arm }));
+  const B = [12.4, 12.9, 13.1, 12.2, 12.8, 13.4, 12.6, 12.9, 13.0, 12.5, 13.2, 12.7], A = [12.1, 12.3, 12.6, 11.9, 12.5, 12.2, 12.4, 12.0, 12.7, 12.3, 12.2, 12.5];
+  it('did it change: moved the right way passes, the wrong way fails', () => {
+    expect(on(an({ analysis: { kind: 'change', name: 'Fill weight', unit: 'g', better: 'lower' } }, [...vs(B, 'before'), ...vs(A, 'after')])).word).toBe('passed');
+    expect(on(an({ analysis: { kind: 'change', name: 'Fill weight', unit: 'g', better: 'higher' } }, [...vs(B, 'before'), ...vs(A, 'after')])).word).toBe('failed');
+  });
+  it('how sure, how many, learning, shape: figures — green on their page, never a pass; the answer says so', () => {
+    const sure = an({ analysis: { kind: 'sure', name: 'Fill weight', unit: 'g' } }, vs(B, 'x'));
+    expect(canJudge(sure)).toBe(false);
+    const a = on(sure);
+    expect([a.word, a.tone]).toEqual(['notYet', 'n']);
+    expect(a.says).toMatch(/gives figures, not a pass or fail/);
+    for (const kind of ['sure', 'plan', 'groups', 'table', 'relate', 'learn', 'shape'] as const) expect(canJudge(an({ analysis: { kind, name: 'x' } }))).toBe(false);
+    for (const kind of ANALYSIS_JUDGES) expect(canJudge(an({ analysis: { kind: kind as 'change', name: 'x' } }))).toBe(true);
+    /* an overrule is the person’s word, even on a question that only gives figures */
+    expect(on({ ...sure, overrule: { verdict: 'Passed', why: 'seen on the floor', at: 3 } }).word).toBe('passed');
+  });
+});
+
+describe('what a picked SMED or balance lined up on a test’s Proved by offers', () => {
+  it('they are offered as proving studies like the others', () => {
+    const lined = { ...smed(20), programId: undefined, uses: [{ id: 'u', kind: 'test' as const, ref: 'r1', role: 'proof' as const, at: 1, by: 'x' }] };
+    expect(proofStudiesToPick(p5, [lined], ['r1']).map(s => s.id)).toEqual(['smed']);
+  });
+});

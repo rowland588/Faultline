@@ -36,7 +36,7 @@ import { useAccess } from '../cloud/access';
 import { can as canOf } from '../lib/access';
 import { rateForCount } from '../ui/ShiftLosses';
 import { dur, flowFigures, share } from '../tools/valuestream/steps';
-import { changeoverFigures, changeoverSays, figuresOf, mins } from '../tools/changeover/changeover';
+import { changeoverFigures, changeoverSays, figuresOf, mins, mustComeIn } from '../tools/changeover/changeover';
 import { samplingSays } from '../tools/sampling/sampling';
 import { plural, relAll, span, studyReliabilitySays } from '../tools/reliability/reliability';
 import { chartFigures, chartSays } from '../tools/chart/chart';
@@ -155,7 +155,7 @@ export { studyHref } from '../lib/studyLinks';
  *  it says the loss and not where it went. */
 export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; tone: string } {
   if (s.tool === 'changeover') {
-    const said = changeoverSays(figuresOf(s.facts));
+    const said = changeoverSays(figuresOf(s.facts), mustComeIn(s.agreed?.changeover, undefined));
     return { text: said.verdict, tone: said.tone };
   }
   if (s.tool === 'map') {
