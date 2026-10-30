@@ -15370,3 +15370,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .tc-cell { flex: 0 0 78%; scroll-snap-align: start; min-width: 0; }
   .tp-hero, .tp-io { grid-template-columns: 1fr; }
 }
+@media (max-width: 719px) {
+  /* the kind chips are one row that scrolls, not three rows above the first card */
+  .tc-gal-h .chip-row { flex-wrap: nowrap; overflow-x: auto; margin-right: -16px; padding-right: 16px; scrollbar-width: none; }
+  .tc-gal-h .chip-row .chip { flex: none; }
+  .tc-gal-h .chip-row::-webkit-scrollbar { display: none; }
+}
