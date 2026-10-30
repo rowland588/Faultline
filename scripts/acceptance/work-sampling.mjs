@@ -27,6 +27,7 @@
  *
  *   node scripts/acceptance/work-sampling.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { paper as pressPaper } from '../lib/pageHeader.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -198,6 +199,104 @@ await go(STUDY);
   const r = want.rows;
   const lost = [r.head, 'PERSON', 'TAPS', ...r.rows.flatMap(x => [x.who, ...(x.early ? [x.early] : x.cells.filter(c => c.share !== '—').map(c => `${c.share} ${c.margin}`))])].filter(x => !has(x));
   ok(!lost.length, `6 the 6M report's Evidence: each person's shares with their margins — "${r.head}"${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
+}
+
+/* ---- 7 · a device with no line; the shift it starts on; one more sample now (30 October — Rowland: "we must have tools that are ready and functional") ----
+   A work sampling study watches a line's people. On a fresh device the picker was an empty "Pick the line…" and Start could not be
+   pressed; it now offers "＋ A new line…", opens on it and says why. The shift it starts on was "now to now + 8 h" whoever's line it
+   was: it is now the line's own shift (the one running, else the next today) and, with none set, the next whole hour for eight —
+   said in words under the times. And between the random moments there is "Take a sample now": one tap makes this instant a moment,
+   the round it asks is the ordinary one, it is kept apart as taken by hand and said so on the page and on paper. Desk and phone. */
+for (const [label, width] of [['phone', 390], ['desk', 1360]]) {
+  const c = await browser.newContext({ serviceWorkers: 'block', viewport: { width, height: width < 900 ? 844 : 900 }, locale: 'en-GB', hasTouch: width < 900, acceptDownloads: true });
+  await c.route('**://*.supabase.co/**', r => r.abort());
+  await c.addInitScript(([k, v]) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } }, [`sb-${REF}-auth-token`, SESSION]);
+  const pg = await c.newPage();
+  pg.on('pageerror', e => errors.push(e.message.split('\n')[0]));
+  pg.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errors.push(`console: ${m.text().slice(0, 200)}`); });
+  const there = async h => { await pg.goto(`${BASE}/${h}`); await pg.waitForTimeout(2200); };
+  const said = async (sel, root = pg) => ((await root.locator(sel).count()) ? (await root.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : '');
+  const fit = () => pg.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+  const hmOf = ms => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  await there('#/room');
+  ok(await pg.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).length) === 0, `7 ${label}: a fresh device has no line`);
+  await there('#/sampling');
+  await pg.getByRole('button', { name: 'New work sampling' }).first().click(); await pg.waitForTimeout(600);
+  const dlg = pg.locator('[role="dialog"]').last();
+  const opts = (await dlg.locator('select[data-line-field] option').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
+  ok(opts.length === 2 && /A new line/.test(opts[1]), `7 ${label}: the picker offers “＋ A new line…” (${opts.join(' | ')})`);
+  ok((await said('[data-no-line]', dlg)) === 'A study belongs to a line — add yours here.', `7 ${label}: and says why in one line — "${await said('[data-no-line]', dlg)}"`);
+  ok(await dlg.getByLabel('The new line’s name').inputValue() === 'Line 1' && await dlg.getByRole('button', { name: 'Start it' }).isDisabled(), `7 ${label}: opened on Line 1 — Start waits for what the study is of`);
+  ok(await fit(), `7 ${label}: the sheet with the line to make — nothing off the side`);
+  await dlg.getByLabel(/What is it of/).fill('Morning, packing hall');
+  await dlg.getByLabel('The new line’s name').fill('Line 5');
+  await dlg.getByRole('button', { name: 'Start it' }).click(); await pg.waitForTimeout(2200);
+  const sid = pg.url().split('sampling/')[1]?.split(/[?#]/)[0];
+  const made = await pg.evaluate(async id => { const db = await import('/src/db.ts'); const st = await db.getStudy(id); const ws = await db.listWorkspaces(); return { on: st?.workspaceId, ws: ws.map(w => [w.id, w.name]) }; }, sid ?? '');
+  ok(!!sid && made.ws.length === 1 && made.ws[0][1] === 'Line 5' && made.on === made.ws[0][0], `7 ${label}: Start made Line 5 through Your factory's function and the study is on it`);
+
+  /* the shift it starts on: no shift on the line — the next whole hour, for eight, said */
+  const hourNext = Math.ceil(Date.now() / 3_600_000) * 3_600_000;
+  const times = async () => ({ from: await pg.getByLabel('Shift from', { exact: true }).inputValue(), to: await pg.getByLabel('Shift to', { exact: true }).inputValue(), says: await said('[data-shift-says]') });
+  let t = await times();
+  ok(t.from === hmOf(hourNext) && t.to === hmOf(hourNext + 8 * 3_600_000) && /Line 5 has no shift set, so it starts at the next whole hour for eight hours/.test(t.says ?? ''), `7 ${label}: no shift on the line — from ${t.from} to ${t.to} (the next whole hour, for eight), said: "${t.says}"`);
+  ok(await fit(), `7 ${label}: the set-up — nothing off the side`);
+  /* …and the line's own shift once it has one (one running now, built from the clock so it holds at any hour) */
+  const sh = await pg.evaluate(async wid => {
+    const db = await import('/src/db.ts'); const w = (await db.listWorkspaces()).find(x => x.id === wid);
+    const hm = ms => new Date(ms).toTimeString().slice(0, 5); const n = Date.now();
+    const shift = { name: 'Day shift', start: hm(n - 3_600_000), end: hm(n + 6 * 3_600_000) };
+    await db.updateWorkspace({ ...w, shifts: [shift] });
+    return shift;
+  }, made.on);
+  await pg.waitForTimeout(1200);
+  t = await times();
+  const fromMs = (hh, mm) => { const d = new Date(); d.setHours(+hh, +mm, 0, 0); return d.getTime(); };
+  const [fh, fm] = t.from.split(':'); const gap = fromMs(fh, fm) - Date.now();
+  ok(t.to === sh.end && gap > -60_000 && gap <= 6 * 60_000 && /Line 5’s Day shift .* which is running — from \d\d:\d\d to its end/.test(t.says ?? ''), `7 ${label}: the line's own shift — from ${t.from} (now, to the next five minutes) to ${t.to}, its end: "${t.says}"`);
+  /* a time typed over is left alone */
+  await pg.getByLabel('Shift to', { exact: true }).fill('23:00'); await pg.waitForTimeout(300);
+  ok((await times()).to === '23:00', `7 ${label}: a time typed over is kept`);
+
+  /* set up: one person, and start */
+  await pg.getByLabel('Add a person or role').fill('Op 1');
+  await pg.getByRole('button', { name: 'Add', exact: true }).click();
+  await pg.getByRole('button', { name: 'Start sampling' }).click(); await pg.waitForTimeout(1000);
+  const st0 = await pg.evaluate(async id => { const s = await (await import('/src/db.ts')).getStudy(id); return s?.agreed?.sampling; }, sid);
+  ok(!!st0 && st0.prompts.length === 40 && !st0.extra && st0.to - st0.from <= 8 * 3_600_000, `7 ${label}: 40 random moments drawn, none taken by hand`);
+
+  /* take a sample now */
+  const now0 = Date.now();
+  await pg.evaluate(async (id) => { /* nothing due: move the clock past the first moment's grace so no round stands between us and the button */
+    const db = await import('/src/db.ts'); const s = await db.getStudy(id);
+    const a = s.agreed.sampling;
+    await db.putStudy({ ...s, agreed: { ...s.agreed, sampling: { ...a, prompts: a.prompts.map(p => p + 3 * 86_400_000), from: a.from + 3 * 86_400_000, to: a.to + 3 * 86_400_000 } }, updatedAt: Date.now() });
+  }, sid);
+  await there(`#/sampling/${sid}`);
+  const nowBtn = pg.locator('[data-sample-now]');
+  ok(await pg.locator('.ws-round').count() === 0 && await nowBtn.count() === 1 && /Take a sample now/.test(await nowBtn.innerText()), `7 ${label}: between the moments the round offers “Take a sample now”`);
+  if (width < 900) { const [h] = await nowBtn.evaluateAll(e => e.map(x => Math.round(x.getBoundingClientRect().height))); ok(h >= 44, `7 ${label}: the button is ${h} px tall`); }
+  await nowBtn.click(); await pg.waitForTimeout(900);
+  const round = (await said('.ws-round')) ?? '';
+  const a1 = await pg.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id)).agreed.sampling, sid);
+  ok(a1.prompts.length === 41 && a1.extra?.length === 1 && a1.extra[0] >= now0 - 1000 && a1.extra[0] <= Date.now() && a1.prompts.every((p, i, xs) => i === 0 || xs[i - 1] <= p), `7 ${label}: this instant is now a moment, in order — 41 moments, 1 taken by hand`);
+  ok(/Sample taken by hand — \d\d:\d\d/.test(round) && await nowBtn.count() === 0, `7 ${label}: the round is asked at once, "${round.slice(0, 50)}…", and the button waits while it is open`);
+  ok(await fit(), `7 ${label}: the round — nothing off the side`);
+  await pg.locator('.ws-round .ws-person', { hasText: 'Op 1' }).getByRole('button', { name: 'working', exact: true }).click(); await pg.waitForTimeout(800);
+  const a2 = await pg.evaluate(async id => { const s = await (await import('/src/db.ts')).getStudy(id); return { taps: s.facts.taps, a: s.agreed.sampling }; }, sid);
+  ok(a2.taps.length === 1 && a2.taps[0].at === a1.extra[0] && a2.taps[0].who === 'Op 1' && a2.taps[0].activity === 'working', `7 ${label}: one tap per person as at any moment, stamped with the moment`);
+  const strip = (await said('.ie-strip')) ?? '';
+  ok(/40 moments and 1 taken by hand in the shift/.test(strip) && /1 of 1 moment so far answered/.test(strip), `7 ${label}: the tiles say how many were taken by hand — "${strip.slice(0, 160)}"`);
+  ok(await nowBtn.count() === 1, `7 ${label}: answered, the button is back for another`);
+  await nowBtn.click(); await pg.waitForTimeout(1300);
+  const a3 = await pg.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id)).agreed.sampling, sid);
+  ok(a3.extra?.length === 2 || a3.prompts.length === 41, `7 ${label}: a second sample, 1.3 s later, is its own moment (${a3.extra?.length} by hand)`);
+  /* its paper says it */
+  const [dl] = await Promise.all([pg.waitForEvent('download', { timeout: 60000 }), pressPaper(pg, / — on paper$/)]);
+  const f = join(mkdtempSync(join(tmpdir(), 'sampling-')), `${label}.pdf`); await dl.saveAs(f);
+  const txt = san(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' '));
+  ok(/moments and \d taken by hand/.test(txt) || /taken by hand/.test(txt), `7 ${label}: the paper says how many moments were taken by hand`);
+  await c.close();
 }
 
 /* ---- a client reads it and changes nothing ---- */

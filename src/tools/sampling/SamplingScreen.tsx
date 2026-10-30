@@ -25,8 +25,8 @@ import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
 import { peopleOf } from '../linestandard/standard';
 import {
-  DEFAULT_ACTIVITIES, TOO_FEW_TAPS, dueRound, nextPrompt, samplingEnough, samplingReading, samplingSays,
-  schedulePrompts, shares, tapsNeeded, tapsOf,
+  DEFAULT_ACTIVITIES, TOO_FEW_TAPS, defaultShift, dueRound, nextPrompt, samplingEnough, samplingReading, samplingSays,
+  momentsWords, schedulePrompts, shares, shiftStartWords, takeNow, tapsNeeded, tapsOf,
 } from './sampling';
 import type { AgreedSampling, Tap, ToolStudy } from '../../lib/study';
 import { TOOL_WORDS } from '../../screens/StudiesScreen';
@@ -107,7 +107,7 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
       ) : (
         <>
           <LeanTiles tiles={samplingTiles(a, taps, momentsAt(a, taps, t), rate)} className="ie-strip" />
-          {!closed && can.edit && <Round a={a} taps={taps} t={t} round={round} onTap={tap} onStrike={id => strike(id, true)} />}
+          {!closed && can.edit && <Round a={a} taps={taps} t={t} round={round} onTap={tap} onStrike={id => strike(id, true)} onNow={() => void takeSampleNow(s.id).then(() => setT(Date.now()))} />}
           <div className="ie-says">
             {a.walk && <WalkSays s={s} a={a} taps={taps} />}
             {a.who.map(p => <p key={p} className="ie-say is-n">{samplingReading({ activities: a.activities, marginPts: a.marginPts, taps }, p)}</p>)}
@@ -144,8 +144,14 @@ function useNudge(at: number | undefined, words: string | undefined) {
 }
 
 export function agreedWords(a: AgreedSampling): string {
-  return `watching ${a.who.join(', ')} · ${hhmm(a.from)}–${hhmm(a.to)} · ${a.prompts.length} moments · ±${a.marginPts} points wanted${a.workAtLeast ? ` · ${a.activities[0] ?? 'working'} at least ${a.workAtLeast}%` : ''}`;
+  return `watching ${a.who.join(', ')} · ${hhmm(a.from)}–${hhmm(a.to)} · ${momentsWords(a)} · ±${a.marginPts} points wanted${a.workAtLeast ? ` · ${a.activities[0] ?? 'working'} at least ${a.workAtLeast}%` : ''}`;
 }
+
+/** One more moment, right now: this instant added to the study's moments (tools/sampling takeNow). */
+const takeSampleNow = (id: string): Promise<void> => patchStudy(id, cur => {
+  const a = cur.agreed?.sampling;
+  return a ? { agreed: { ...cur.agreed, sampling: takeNow(a, Date.now()) } } : {};
+});
 
 /* ------------------------------------------------------------------ set up: who, what, when */
 function SetUp({ s, canAgree, hasTaps, onDone, cancel }: { s: ToolStudy; canAgree: boolean; hasTaps: boolean; onDone: () => void; cancel?: () => void }) {
@@ -163,9 +169,14 @@ function SetUp({ s, canAgree, hasTaps, onDone, cancel }: { s: ToolStudy; canAgre
   /* the share of the time the work itself must reach — what a program's criterion judges it by (tools/sampling workAgainst); empty: shares only */
   const [want, setWant] = useState(a?.workAtLeast !== undefined ? String(a.workAtLeast) : '');
   const day = (ms: number) => new Date(ms).toTimeString().slice(0, 5);
-  const start = a?.from ?? Math.ceil(Date.now() / 300_000) * 300_000;
-  const [from, setFrom] = useState(day(start));
-  const [to, setTo] = useState(day(a?.to ?? start + 8 * 3_600_000));
+  /* the shift starts on the line's own shift (Set up the line) — the one running, else the next today, else the next
+     whole hour for eight hours — and says which, until somebody types a time (lib: tools/sampling defaultShift) */
+  const line = useFactoryLines(s.workspaceId).find(x => x.id === s.workspaceId);
+  const dflt = useMemo(() => defaultShift(line?.shifts ?? [], Date.now()), [line?.shifts]);
+  const [from, setFrom] = useState(day(a?.from ?? dflt.from));
+  const [to, setTo] = useState(day(a?.to ?? dflt.to));
+  const typed = useRef(false);
+  useEffect(() => { if (!a && !typed.current) { setFrom(day(dflt.from)); setTo(day(dflt.to)); } }, [a, dflt]);
   const [count, setCount] = useState(String(a?.prompts.length ?? 40));
 
   const people = [...new Set([...offered, ...who])];
@@ -216,13 +227,14 @@ function SetUp({ s, canAgree, hasTaps, onDone, cancel }: { s: ToolStudy; canAgre
         <span className="sub">The first is the work itself; the rest are what it is measured against. Separate them with commas, in the floor’s words.</span>
       </label>
       <div className="ie-agree-grid">
-        <label className="field"><span className="field-label">Shift from</span><input className="text-input" type="time" value={from} onChange={e => setFrom(e.target.value)} /></label>
-        <label className="field"><span className="field-label">to</span><input className="text-input" type="time" value={to} onChange={e => setTo(e.target.value)} /></label>
+        <label className="field"><span className="field-label">Shift from</span><input className="text-input" type="time" value={from} aria-label="Shift from" onChange={e => { typed.current = true; setFrom(e.target.value); }} /></label>
+        <label className="field"><span className="field-label">to</span><input className="text-input" type="time" value={to} aria-label="Shift to" onChange={e => { typed.current = true; setTo(e.target.value); }} /></label>
         <label className="field"><span className="field-label">Moments in the shift</span><input className="text-input" inputMode="numeric" value={count} onChange={e => setCount(e.target.value)} /></label>
         <label className="field"><span className="field-label">Margin wanted, ± points</span><input className="text-input" inputMode="numeric" value={margin} onChange={e => setMargin(e.target.value)} /></label>
         <label className="field"><span className="field-label">Work share wanted, at least %</span><input className="text-input" inputMode="decimal" value={want} aria-label="Work share wanted, at least %" placeholder="optional" onChange={e => setWant(e.target.value)} />
           <span className="sub">Optional. The first activity is the work: with a share wanted, a program can be judged by this study — every person at least that, margins counted.</span></label>
       </div>
+      {!a && <p className="sub ws-shift-says" data-shift-says={dflt.source}>{shiftStartWords(dflt, line?.name)}</p>}
       {!problem && <p className="ie-note">A share near 30% known within ±{m} points needs {tapsNeeded(0.3, m / 100)} taps a person — {n} moments give {n}{n < tapsNeeded(0.3, m / 100) ? '; sample another shift for the rest' : ''}.</p>}
       {problem && <p className="ie-problem">{problem}</p>}
       <div className="ie-agree-act">
@@ -235,9 +247,9 @@ function SetUp({ s, canAgree, hasTaps, onDone, cancel }: { s: ToolStudy; canAgre
 
 /* ------------------------------------------------------------------ strip */
 /* ------------------------------------------------------------------ the moment: one tap per person */
-function Round({ a, taps, t, round, onTap, onStrike }: {
+function Round({ a, taps, t, round, onTap, onStrike, onNow }: {
   a: AgreedSampling; taps: Tap[]; t: number; round?: { at: number; no: number; left: string[] };
-  onTap: (who: string, activity: string, at: number) => void; onStrike: (id: string) => void;
+  onTap: (who: string, activity: string, at: number) => void; onStrike: (id: string) => void; onNow: () => void;
 }) {
   const next = nextPrompt(a.prompts, t);
   if (!round) {
@@ -250,12 +262,14 @@ function Round({ a, taps, t, round, onTap, onStrike }: {
           <span key={x.id} className="ws-done-i">{x.who} {x.activity} <button type="button" className="linkish" onClick={() => onStrike(x.id)} aria-label={`Strike ${x.who} ${x.activity}`}>Strike</button></span>
         ))}</p>}
         <p className="sub">{next ? <>The next moment is at <b>{hhmm(next)}</b>. Keep Faultline open on this phone — it asks then{('vibrate' in navigator) ? ', and buzzes' : ''}.</> : 'Every moment of the shift has come.'}</p>
+        <button type="button" className="btn ws-now" data-sample-now onClick={onNow}>{a.walk ? 'Walk the line now' : 'Take a sample now'}</button>
+        <p className="sub ws-now-w">{a.walk ? 'One more walk, right now, besides the ones the phone asks.' : 'One more moment, right now, besides the random ones — each person tapped as at any moment. It is marked as taken by hand.'}</p>
       </div>
     );
   }
   return (
     <div className="ws-round" role="group" aria-label={`Moment ${round.no}`} aria-live="assertive">
-      <p className="ws-round-h"><b>{a.walk ? 'Walk' : 'Moment'} {round.no} of {a.prompts.length} — {hhmm(round.at)}</b> · {a.walk ? 'walk the line and tap each station: working, starved (waiting for its input), blocked (cannot pass on) or down' : 'tap what each person is doing right now'}</p>
+      <p className="ws-round-h"><b>{a.extra?.includes(round.at) ? `${a.walk ? 'Walk' : 'Sample'} taken by hand — ${hhmm(round.at)}` : `${a.walk ? 'Walk' : 'Moment'} ${round.no} of ${a.prompts.length} — ${hhmm(round.at)}`}</b> · {a.walk ? 'walk the line and tap each station: working, starved (waiting for its input), blocked (cannot pass on) or down' : 'tap what each person is doing right now'}</p>
       {a.who.map(p => {
         const got = tapsOf(taps, p).find(x => x.at === round.at);
         return (

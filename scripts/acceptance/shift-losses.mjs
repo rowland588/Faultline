@@ -413,6 +413,52 @@ await page.setViewportSize({ width: 1360, height: 900 });
     `8 Op 3 on a guess: no rate offered — "${await words('.lf-rate-why')}"`);
 }
 
+/* ---- 9 · a device with no line: the picker makes the line (30 October — Rowland: "we must have tools that are ready and functional") ----
+   A loss count belongs to a line. On a fresh device "Pick the line…" over an empty list and a Start that could not be pressed
+   was a dead end; the picker now offers "＋ A new line…" (lib/lineChoice), opens on it with a name guessed and says why in a line,
+   and Start makes the line through Your factory's own function and carries on. Desk and phone, nothing off the side. */
+for (const [label, width] of [['phone', 390], ['desk', 1360]]) {
+  const c = await browser.newContext({ serviceWorkers: 'block', viewport: { width, height: width < 900 ? 844 : 900 }, locale: 'en-GB', hasTouch: width < 900 });
+  await c.route('**://*.supabase.co/**', r => r.abort());
+  await c.addInitScript(([k, v]) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } }, [`sb-${REF}-auth-token`, SESSION]);
+  const pg = await c.newPage();
+  pg.on('pageerror', e => errors.push(e.message.split('\n')[0]));
+  pg.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errors.push(`console: ${m.text().slice(0, 200)}`); });
+  const there = async h => { await pg.goto(`${BASE}/${h}`); await pg.waitForTimeout(2200); };
+  const fit = () => pg.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+  await there('#/room');
+  const nLines = () => pg.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).map(w => `${w.name}|${w.lineType ?? ''}`));
+  ok((await nLines()).length === 0, `9 ${label}: a fresh device has no line`);
+  await there('#/losses');
+  await pg.getByRole('button', { name: 'New loss count' }).first().click(); await pg.waitForTimeout(600);
+  const dlg = pg.locator('[role="dialog"]').last();
+  const opts = (await dlg.locator('select[data-line-field] option').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
+  ok(opts.length === 2 && /Pick the line/.test(opts[0]) && /A new line/.test(opts[1]), `9 ${label}: the picker offers “＋ A new line…” (${opts.join(' | ')})`);
+  ok((await words('[data-no-line]', dlg)) === 'A count belongs to a line — add yours here.', `9 ${label}: and says why in one line — "${await words('[data-no-line]', dlg)}"`);
+  ok(await dlg.getByLabel('The new line’s name').inputValue() === 'Line 1' && await dlg.getByRole('button', { name: 'Start it' }).isEnabled(), `9 ${label}: opened on a new line named Line 1, Start pressable`);
+  ok(await fit(), `9 ${label}: the sheet — nothing off the side`);
+  if (width < 900) { const h = await dlg.locator('select[data-line-field]').evaluate(e => Math.round(e.getBoundingClientRect().height)); ok(h >= 44, `9 ${label}: the picker is ${h} px tall — a thumb's size`); }
+  await dlg.getByLabel('The new line’s name').fill('Line 3');
+  await dlg.getByLabel('The new line’s type').selectOption('Packing');
+  await dlg.getByRole('button', { name: 'Start it' }).click(); await pg.waitForTimeout(2200);
+  const id = pg.url().split('losses/')[1]?.split(/[?#]/)[0];
+  const made = await pg.evaluate(async sid => { const db = await import('/src/db.ts'); const st = await db.getStudy(sid); const ws = await db.listWorkspaces(); return { on: st?.workspaceId, ws: ws.map(w => ({ id: w.id, name: w.name, type: w.lineType })) }; }, id ?? '');
+  ok(!!id && made.ws.length === 1 && made.ws[0].name === 'Line 3' && made.ws[0].type === 'Packing' && made.on === made.ws[0].id, `9 ${label}: Start made Line 3 (Packing) through Your factory's function and the count is on it`);
+  ok(await pg.locator('.lf').count() === 1 && (await pg.locator('.nv-main').innerText()).includes('Line 3'), `9 ${label}: the count's page opened and says the line`);
+  ok(await fit(), `9 ${label}: the count — nothing off the side`);
+  /* a second count: the line is listed, "＋ A new line…" last, no sentence about having none; the line is not made twice */
+  await there('#/losses');
+  await pg.getByRole('button', { name: 'New loss count' }).first().click(); await pg.waitForTimeout(600);
+  const d2 = pg.locator('[role="dialog"]').last();
+  const o2 = (await d2.locator('select[data-line-field] option').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
+  ok(o2.join('|') === 'Pick the line…|Line 3|＋ A new line…' && await d2.locator('[data-no-line]').count() === 0, `9 ${label}: with a line the picker lists it, “＋ A new line…” last, the sentence gone (${o2.join(' | ')})`);
+  ok(await d2.getByRole('button', { name: 'Start it' }).isDisabled(), `9 ${label}: and Start waits for a line to be picked`);
+  await d2.locator('select[data-line-field]').selectOption({ label: 'Line 3' });
+  await d2.getByRole('button', { name: 'Start it' }).click(); await pg.waitForTimeout(2000);
+  ok((await nLines()).length === 1, `9 ${label}: a second count on Line 3 makes no second line`);
+  await c.close();
+}
+
 /* ---- a client reads a count and changes nothing ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await go(`#/losses/${countId}`);

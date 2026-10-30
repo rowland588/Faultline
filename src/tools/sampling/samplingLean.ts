@@ -11,7 +11,7 @@
 import { burdenOf } from '../../lib/cost';
 import type { LeanTile, LeanTone } from '../../lib/lean';
 import type { AgreedSampling, Tap } from '../../lib/study';
-import { missedPrompts, nextPrompt, roundsDone, samplingWorst, tapsOf, TOO_FEW_TAPS, worstWords } from './sampling';
+import { missedPrompts, momentsWords, nextPrompt, roundsDone, samplingWorst, tapsOf, TOO_FEW_TAPS, worstWords } from './sampling';
 
 const pct = (f: number): string => `${Math.round(f * 100)}%`;
 const gbp = (n: number): string => `£${n >= 100 ? Math.round(n).toLocaleString('en-GB') : n.toFixed(2)}`;
@@ -32,7 +32,7 @@ export function worstCost(a: AgreedSampling, taps: Tap[], rate?: number): { who:
 export function momentsAt(a: AgreedSampling, taps: Tap[], t: number): { done: number; come: number; missed: number; next?: string; over: boolean } {
   const next = nextPrompt(a.prompts, t);
   return { done: roundsDone(a.prompts, taps, a.who), come: a.prompts.filter(p => p <= t).length,
-    missed: Math.max(0, ...a.who.map(w => missedPrompts(a.prompts, taps, w, t).length)),
+    missed: Math.max(0, ...a.who.map(w => missedPrompts(a.prompts.filter(p => !a.extra?.includes(p)), taps, w, t).length)),   /* a sample taken by hand and left is not a moment missed */
     ...(next ? { next: new Date(next).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) } : {}), over: t >= a.to };
 }
 
@@ -43,7 +43,7 @@ export function samplingTiles(a: AgreedSampling, taps: Tap[], at: { done: number
   const who = a.walk ? 'stations' : 'people';
   return [
     { k: 'Taps', v: String(n), of: `${at.done} of ${at.come} moment${at.come === 1 ? '' : 's'} so far answered${at.missed ? ` · ${at.missed} missed` : ''}`, ...(at.missed ? { tone: 'a' as LeanTone } : {}) },
-    { k: a.walk ? 'Stations' : 'People', v: String(a.who.length), of: `${who} watched · ${a.prompts.length} moments in the shift` },
+    { k: a.walk ? 'Stations' : 'People', v: String(a.who.length), of: `${who} watched · ${momentsWords(a)} in the shift` },
     w ? { k: 'Biggest share not the work', v: pct(w.share), of: `${w.who} ${w.activity} (±${Math.round(w.margin * 100)} points, from ${w.n} taps)` }
       : { k: 'Biggest share not the work', v: '—', of: `said once ${TOO_FEW_TAPS} taps a person are in` },
     a.walk ? { k: 'Next moment', v: at.next ?? '—', of: at.next ? 'the phone asks then' : at.over ? 'the shift is over' : 'no moments left' }

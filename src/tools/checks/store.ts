@@ -23,6 +23,14 @@ const SCALE_MAX = (def: LogDef): number => Math.max(...(def.scale?.levels.map(l 
 export const addResult = (id: string, r: LogResult): Promise<void> =>
   patchStudy(id, cur => ({ facts: { ...cur.facts, results: [...(cur.facts.results ?? []), r] } }));
 
+/** Several results added in ONE write (Pass all due) — one list entry each, merged by id across phones. */
+export const addResults = (id: string, rs: readonly LogResult[]): Promise<void> =>
+  patchStudy(id, cur => ({ facts: { ...cur.facts, results: [...(cur.facts.results ?? []), ...rs] } }));
+
+/** Several results struck (or put back) in one write — the Undo of Pass all due. */
+export const strikeResults = (id: string, resultIds: readonly string[], struck: boolean): Promise<void> =>
+  patchStudy(id, cur => ({ facts: { ...cur.facts, results: (cur.facts.results ?? []).map(r => (resultIds.includes(r.id) ? { ...r, struck: struck || undefined } : r)) } }));
+
 /** A result struck (or put back): kept, counting for nothing. */
 export const strikeResult = (id: string, resultId: string, struck: boolean): Promise<void> =>
   patchStudy(id, cur => ({ facts: { ...cur.facts, results: (cur.facts.results ?? []).map(r => (r.id === resultId ? { ...r, struck: struck || undefined } : r)) } }));

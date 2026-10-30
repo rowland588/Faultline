@@ -650,6 +650,104 @@ if (!SKIP.has('S9')) {
   await empty.ctx.close();
 }
 
+/* =============================================================================================== S10 · first run, the round first, Pass all due */
+/* 30 October — Rowland: "we must have tools that are ready and functional". On a device with NO line a New log used to show an
+   empty "Pick the line…" and a Start that could not be pressed; on a phone the checks to do were 700 px down under the tiles, three
+   hourly checks were three taps, and the starter list's boxes were 20 px. Table-driven over every definition, desk and phone. */
+console.log('\n--- S10 · no line yet, the round first on a phone, Pass all due ---');
+if (!SKIP.has('S10')) {
+  const boxes = (page, sel) => page.locator(sel).evaluateAll(els => els.map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
+  for (const [label, width] of [['desk', 1360], ['phone', 375]]) {
+    const dev = await device(width);
+    const pg = dev.page;
+    await dev.go('#/room');
+    ok(await pg.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).length) === 0, `S10 ${label}: a fresh device has no line`);
+    /* ---- the dead end is gone: the picker offers to make the line, already open on it, with a plain sentence ---- */
+    await dev.go(`#/log/${KEYS[0]}?add=1`);
+    const opts = await pg.locator('[data-sheet="new-log"] select[data-line-field] option').allInnerTexts();
+    ok(opts.length === 2 && /Pick the line/.test(opts[0]) && /A new line/.test(opts[1]), `S10 ${label}: the picker offers “＋ A new line…” (${opts.map(flat).join(' | ')})`);
+    ok(flat(await pg.locator('[data-no-line]').innerText()) === 'A log belongs to a line — add yours here.', 'S10 ' + label + ': and says in one line why — "A log belongs to a line — add yours here."');
+    ok(await pg.locator('[data-new-line]').count() === 1 && await pg.getByLabel('The new line’s name').inputValue() === 'Line 1', `S10 ${label}: opened on a new line, named Line 1 as Your factory would guess`);
+    ok(await pg.getByRole('button', { name: 'Start it' }).isEnabled(), `S10 ${label}: Start is pressable on a device with no line`);
+    if (width < 900) {
+      const bx = await boxes(pg, '.lg-pick label');
+      const cb = await boxes(pg, '.lg-pick input');
+      ok(bx.length > 0 && bx.every(([, h]) => h >= 44) && cb.every(([w, h]) => w >= 24 && h >= 24), `S10 ${label}: the starter list is tappable rows — ${bx.length} rows ${bx[0]?.join('×')} px, boxes ${cb[0]?.join('×')} px (was 20)`);
+      ok(await offSide(pg), `S10 ${label}: the sheet with the line to make — nothing off the side`);
+    }
+    await pg.getByLabel('The new line’s name').fill('Line 9');
+    await pg.getByLabel('The new line’s type').selectOption('Packing');
+    await pg.getByRole('button', { name: 'Start it' }).click();
+    await pg.waitForURL(new RegExp(`#/log/${KEYS[0]}/[^/?]+`), { timeout: 10000 });
+    await pg.locator('li.lg-card').first().waitFor();
+    const made = await pg.evaluate(async () => { const db = await import('/src/db.ts'); const ws = await db.listWorkspaces(); const s = (await db.listAllStudies()).find(x => x.tool === 'log'); return { ws: ws.map(w => [w.name, w.lineType]), on: s?.workspaceId, id: ws[0]?.id }; });
+    ok(made.ws.length === 1 && made.ws[0][0] === 'Line 9' && made.ws[0][1] === 'Packing' && made.on === made.id, `S10 ${label}: the line was made through Your factory’s function (Line 9, Packing) and the log is on it`);
+    ok(/Line 9/.test(flat(await pg.locator('.ln-band').innerText())), `S10 ${label}: the log’s band says the line, Line 9`);
+    /* a second log: the line is in the list, "＋ A new line…" last, and a second line is made the same way */
+    await dev.go(`#/log/${KEYS[1] ?? KEYS[0]}?add=1`);
+    const opts2 = (await pg.locator('[data-sheet="new-log"] select[data-line-field] option').allInnerTexts()).map(flat);
+    ok(opts2.join('|') === 'Pick the line…|Line 9|＋ A new line…' && await pg.locator('[data-no-line]').count() === 0, `S10 ${label}: with a line the picker lists it and “＋ A new line…” last, the no-line sentence gone (${opts2.join(' | ')})`);
+    await pg.locator('select[data-line-field]').selectOption({ label: '＋ A new line…' });
+    ok(await pg.getByLabel('The new line’s name').inputValue() === 'Line 10', `S10 ${label}: a second line is offered as Line 10`);
+    await pg.getByRole('button', { name: 'Start it' }).click();
+    await pg.waitForURL(new RegExp(`#/log/${KEYS[1] ?? KEYS[0]}/[^/?]+`), { timeout: 10000 });
+    ok(await pg.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).sort((a, b) => (a.floorOrder ?? 0) - (b.floorOrder ?? 0)).map(w => w.name).join(',')) === 'Line 9,Line 10', `S10 ${label}: and Line 10 made at the end of the floor`);
+    const LINE = made.id;
+
+    /* ---- every definition: the round first on a phone, Pass all due as the module says it ---- */
+    for (const key of KEYS) {
+      await dev.go(`#/log/${key}?add=1&line=${LINE}`);
+      await pg.getByRole('button', { name: 'Start it' }).click();
+      await pg.waitForURL(new RegExp(`#/log/${key}/[^/?]+`), { timeout: 10000 });
+      const id = logIdOf(pg);
+      /* back-date the start so every timed check is overdue — the round a shift in would show */
+      await pg.evaluate(async sid => { const db = await import('/src/db.ts'); const s = await db.getStudy(sid); await db.putStudy({ ...s, agreed: { ...s.agreed, log: { ...s.agreed.log, since: Date.now() - 40 * 3_600_000 } }, updatedAt: Date.now() }); }, id);
+      await dev.go(`#/log/${key}/${id}`);
+      await pg.locator('li.lg-card').first().waitFor();
+      const plan = await pg.evaluate(async sid => {
+        const db = await import('/src/db.ts'), C = await import('/src/tools/checks/checks.ts'), P = await import('/src/tools/checks/passAll.ts'), R = await import('/src/tools/checks/registry.ts');
+        const s = await db.getStudy(sid); const def = R.defOf(s.agreed.log.key);
+        const pl = P.passAllPlan(C.roundOf(s.agreed.log, s.facts.results, Date.now(), def).now);
+        return { pass: pl.pass.map(x => x.check.name), ask: pl.ask.map(x => x.check.name), failed: pl.failed.length, offered: P.passAllOffered(pl), label: P.passAllLabel(pl) };
+      }, id);
+      const geo = await pg.evaluate(() => {
+        const top = sel => { const e = document.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().top + window.scrollY) : null; };
+        return { round: top('.lg-roundp'), card: top('li.lg-card'), tiles: top('.lg-tiles'), h: window.innerHeight };
+      });
+      if (width < 900) ok(geo.round !== null && geo.tiles !== null && geo.round < geo.tiles && geo.card < geo.h * 0.75, `S10 ${key}: on a phone the round comes before the tiles — first check at ${geo.card} px of a ${geo.h} px screen, tiles at ${geo.tiles} px`);
+      else ok(geo.tiles < geo.round, `S10 ${key}: at a desk the tiles stay first (${geo.tiles} then ${geo.round} px)`);
+      ok(await offSide(pg), `S10 ${key} ${label}: nothing off the side`);
+      const btn = pg.locator('[data-pass-all]');
+      if (!plan.offered) { ok(await btn.count() === 0, `S10 ${key} ${label}: ${plan.pass.length} pass-or-fail check${plan.pass.length === 1 ? '' : 's'} due — no Pass all due (one has its own big tap)`); continue; }
+      ok(await btn.count() === 1 && flat(await btn.innerText()) === plan.label, `S10 ${key} ${label}: ${plan.label}`);
+      if (width < 900) { const [[, h]] = await boxes(pg, '[data-pass-all]'); ok(h >= 44, `S10 ${key}: the button is ${h} px tall on a phone`); }
+      const resultsNow = () => pg.evaluate(async sid => ((await (await import('/src/db.ts')).getStudy(sid)).facts.results ?? []).filter(r => !r.struck).length, id);
+      const before = await resultsNow();
+      await btn.click();
+      const sheet = pg.locator('[data-sheet="pass-all"]');
+      await sheet.waitFor();
+      const said = flat(await sheet.innerText());
+      ok(said.includes(`Mark ${plan.pass.length} check${plan.pass.length === 1 ? '' : 's'} as passed now?`), `S10 ${key}: the confirmation names how many — "${said.slice(0, 60)}"`);
+      const listed = (await sheet.locator('[data-pass-list] li').allInnerTexts()).map(flat);
+      ok(listed.length === plan.pass.length && plan.pass.every(n => listed.some(l => l.startsWith(n))), `S10 ${key}: and lists each one — ${plan.pass.join(', ')}`);
+      ok(plan.ask.length ? plan.ask.every(n => said.includes(n)) && /not passed by this/.test(said) : !/not passed by this/.test(said), `S10 ${key}: ${plan.ask.length ? `the ${plan.ask.length} that need a reading, a count or an audit are named and not passed` : 'nothing needs a reading here'}`);
+      ok(await resultsNow() === before, `S10 ${key}: nothing is recorded until it is confirmed`);
+      await sheet.getByRole('button', { name: `Pass ${plan.pass.length} check${plan.pass.length === 1 ? '' : 's'}` }).click();
+      await pg.waitForTimeout(700);
+      const mine = await pg.evaluate(async sid => { const s = await (await import('/src/db.ts')).getStudy(sid); return (s.facts.results ?? []).filter(r => !r.struck).map(r => ({ name: s.agreed.log.checks.find(c => c.id === r.checkId)?.name, outcome: r.outcome, at: r.at })); }, id);
+      ok(mine.length === before + plan.pass.length && mine.every(r => r.outcome === 'pass') && new Set(mine.map(r => r.at)).size === 1 && plan.pass.every(n => mine.some(r => r.name === n)), `S10 ${key}: one pass each for the ${plan.pass.length}, at one moment — never a reading made up for the ${plan.ask.length} left`);
+      const afterTruth = await sameAsModule(pg, id, `S10 ${key} after Pass all due`);
+      ok(plan.pass.every(n => Object.entries(afterTruth.names).some(([cid, nm]) => nm === n && afterTruth.states[cid] === 'done')) && plan.ask.every(n => Object.entries(afterTruth.names).some(([cid, nm]) => nm === n && ['due', 'overdue'].includes(afterTruth.states[cid]))), `S10 ${key}: the passed are done; the ones that need a number are still due`);
+      ok(await btn.count() === 0, `S10 ${key}: and the button is gone — nothing left to pass`);
+      /* Undo puts every one back in one tap */
+      await undoToast(pg); await pg.waitForTimeout(300);
+      ok(await resultsNow() === before, `S10 ${key}: Undo strikes all ${plan.pass.length} together`);
+      ok(await pg.locator('[data-pass-all]').count() === 1, `S10 ${key}: and the button is back`);
+    }
+    await dev.ctx.close();
+  }
+}
+
 /* ==TRAILER== */
 ok(errors.length === 0, 'no console error anywhere', errors.slice(0, 3).join(' | '));
 console.log(failed ? `\nThe check log shape NOT accepted: ${failed} failed` : '\nThe check log shape accepted.');

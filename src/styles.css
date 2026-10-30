@@ -10990,7 +10990,8 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .lt-where { flex-basis: 100%; font-size: var(--t-detail); color: var(--muted); }
 .lt-new { display: grid; gap: 12px; }
 .lt-new .field { display: grid; gap: 4px; }
-.lt-new select { min-height: 40px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; background: var(--surface); color: var(--ink); }
+.lt-newline { display: grid; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--brand) 5%, var(--surface)); }
+.lt-new select { min-height: max(40px, var(--tap)); padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; background: var(--surface); color: var(--ink); }
 .ls-balance { scroll-margin-top: 64px; }
 .qsl-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 18px 0; }
 .qsl-g { margin-top: 14px; }
@@ -15229,18 +15230,31 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .lg-lvb.lg-na { font-size: var(--t-detail); }
 .lg-lvb.on { border-color: var(--brand); background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--brand); }
 .lg-find-l { display: flex; gap: 10px; align-items: flex-start; min-height: 44px; }
-.lg-find-l input { width: 22px; height: 22px; margin-top: 2px; flex-shrink: 0; }
+.lg-find-l input { width: 28px; height: 28px; flex-shrink: 0; }
 .lg-fs { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 12px 10px; margin: 0; }
 .lg-every { display: flex; gap: 8px; margin-top: 8px; }
 .lg-every-n { max-width: 6em; }
-.lg-pick li { padding: 4px 0; }
-.lg-pick label { display: flex; gap: 10px; align-items: flex-start; min-height: 40px; }
-.lg-pick input { width: 20px; height: 20px; margin-top: 2px; flex-shrink: 0; }
+.lg-pick li { padding: 2px 0; }
+.lg-pick label { display: flex; gap: 12px; align-items: center; min-height: 44px; cursor: pointer; }
+.lg-pick input { width: 28px; height: 28px; flex-shrink: 0; }
+.lg-passall { margin-left: auto; min-height: 44px; font-size: var(--t-body); border: 2px solid var(--st-g); color: var(--st-g); background: color-mix(in srgb, var(--st-g) 9%, var(--surface)); font-weight: 700; }
 .lg-hold-l { display: flex; gap: 8px; align-items: flex-start; }
 .lg-ta { min-height: 10em; font-family: inherit; }
 .lg-rests { margin: 0 0 12px; }
 .lg-line-says { margin: 0 0 8px; }
 @media (max-width: 719px) {
+  /* THE ROUND FIRST (30 October): on a phone the checks to do now come before the tiles — the page is a column, the
+     figures and the action plan follow the round; on the History and The checks views the order is the page's own */
+  .lg[data-tab="round"] { display: flex; flex-direction: column; }
+  .lg[data-tab="round"] .ln-under { order: 2; }
+  .lg[data-tab="round"] .lg-figs { order: 3; }
+  .lg[data-tab="round"] .lg-plan { order: 4; }
+  .lg[data-tab="round"] .ln-close { order: 5; }
+  .lg-h2 { flex-wrap: wrap; }
+  /* a thumb's size (30 October — the audit measured 15–32 px links on a check log): every small link and button on a log's
+     page and on a log list's rows is 44 px to press on a phone */
+  .lg .linkish, .lg-acts .cw-link { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; }
+  .lg-passall { flex: 1 1 100%; margin-left: 0; min-height: var(--tap); }
   .lg-round { grid-template-columns: 1fr; }
   .lg-res-t { flex-basis: 100%; }
   .lg-li { flex-direction: column; }

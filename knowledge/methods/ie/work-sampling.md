@@ -36,7 +36,10 @@ moments (so routine cycles are not aliased); enough observations for the margin 
 
 ## Assumptions, limits and misuse
 Moments must be random and independent of the work; observers changing the
-behaviour; activities defined loosely.
+behaviour; activities defined loosely. A moment the observer chooses ("Take a
+sample now") is not random: Faultline counts it like any other, keeps it apart
+as *taken by hand* and says how many there were on the page and on the paper,
+so a reader can judge — a strictly random study uses only the phone's moments.
 
 ## Reading the result
 "Waiting 22% ±5% of the shift — about 1 h 45 m a person."
