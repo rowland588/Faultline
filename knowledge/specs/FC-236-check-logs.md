@@ -179,6 +179,27 @@ applicable); a number for a count. A pass is one tap and a toast with Undo; a fa
 if known, the packs) and shows what it holds before saving. The page is tabs on a phone (Round · History · The
 checks); the Logs hubs list a log with its state in words and colour. Taps: a pass 1; a fail 3; an audit 22.
 
+**Ready on a first run, and on a phone (30 October — Rowland: "we must have tools that are ready and functional").**
+Four things the 30 October audit found a person could not do, each now a rule of the shape, never a special case of one
+definition (`scripts/acceptance/log-shape.mjs` S10, table-driven over every definition):
+- *No line yet is not a dead end.* A log is a line's. On a device with no line the New sheet's picker offers
+  "＋ A new line…" last (`ui/LineField`, `lib/lineChoice` — the one picker the loss count and work sampling share), opens on
+  it with a name guessed (Your factory's own guess) and a type to choose, says in one line why ("A log belongs to a line
+  — add yours here."), and Start makes the line through Your factory's `addLineToFactory` and carries on. Somebody who may
+  not add lines (a client of the project, or invited only to one) is shown the lines and no add, and told whose job it is.
+- *The round first on a phone.* The checks to do come before the figures: the band, the Round / History / The checks tabs
+  and the first card with its ✓ Pass / ✗ Fail are on the first screen (a 375 × 844 phone); the tiles, the sentence, the
+  insights, the action plan and the closing line follow. A desk keeps the figures first, as before.
+- *Pass all due.* In the Round's "Due now", **Pass all due · N** (two or more due) opens a confirmation that names how
+  many and which will be marked passed now, then writes one pass for each in ONE write with ONE Undo. A check answered by
+  a reading, a count or an audit is never passed by it (a number is never made up) — it is named in the confirmation as
+  needing its own answer; a check that has *failed* is re-checked on its own card (a re-test after a failure is a
+  decision, not a habit); a check due only soon is not due. Pure rule: `passAll.ts` (`passAllPlan`), proved on every
+  definition's starter list.
+- *Tap targets.* The starter list's boxes are rows 44 px tall with 28 px boxes (they were 20 px); every small link on a
+  log's page and on a log list's rows (Strike, Edit, Take off, Rename, Delete, Change, the way back to the list) is 44 px
+  on a phone; the New sheet's line picker is a thumb's height.
+
 ## 9. Failure handling
 No checks on the list: *"Nothing is on the list to check yet"* with *Start from the starter list*. No
 result: *"none done yet"*. A number that is not a number: *"Numbers only"*, not saved. A scored check with an
@@ -251,7 +272,16 @@ then drives each definition's worked examples and compares the page with the num
 13. The line's page lists the log with its state; the line report carries its section and its owed checks;
     Needs you / the project's Actions carry an overdue or failed check as a row that opens the log — S7.
 14. Empty, too-few and invalid states say what to do and block nothing that is valid — S9.
-15. Nothing that worked broke: the gate's other scripts (front-door, tools-directory, structure, journeys,
+15. On a device with no line the New sheet makes the line where it is picked (one line, through Your factory's function,
+    the log on it); with a line the picker lists it and "＋ A new line…" last — S10 (desk and phone).
+16. On a phone the round is above the tiles and the first check's Pass is on the first screen; at a desk the tiles stay
+    first — S10, every definition.
+17. Pass all due names the number and the checks, records nothing until confirmed, writes one pass each for the pass-or-fail
+    checks due now or overdue at one moment, passes no reading, count or audit and no failed check, and one Undo strikes
+    all — `passAll.test.ts` (every definition's starter list), S10 (every definition: the count, the list, the states
+    after, Undo).
+18. The starter list's rows and every small link on a log's page are at least 44 px on a phone — S10.
+19. Nothing that worked broke: the gate's other scripts (front-door, tools-directory, structure, journeys,
     project-workspace, line-hub, smoke, inventory) as run on this branch.
 *Not yet proved:* the two-device sync of a live log (`sync-two-devices.mjs` is not run here — the merge is proved
 at unit level); iOS Safari; a log of thousands of results.

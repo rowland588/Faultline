@@ -1250,6 +1250,11 @@ the existing Pareto in £, each loss pointed at its cause on the fish, and
 each countermeasure's saving and payback from what it says it should
 change. No new record.
 
+**Ready on a first run (30 October).** A count is a line's. On a device with no line the New sheet's picker offers "＋ A new
+line…" (`ui/LineField`, `lib/lineChoice`), opens on it with a name guessed, says "A count belongs to a line — add yours
+here." and Start makes the line through Your factory's `addLineToFactory` and the count on it; with a line the picker lists
+it and "＋ A new line…" last. Proved by `scripts/acceptance/shift-losses.mjs` step 9 (desk and phone, nothing off the side).
+
 ## 8. The ramp-up and the pace — the stage gate's two forecasts
 
 **Ramp-up.** A product's performance runs on successive days
@@ -1307,6 +1312,21 @@ p) ÷ n)); taps needed for the margin wanted; the meter.
 report.
 
 **Proved by.** p 0.30, E 0.05 → 323.
+
+**Ready on a first run, a shift that is the line's, one more sample now (30 October — Rowland: "we must have tools that are
+ready and functional").** *No line yet is not a dead end:* a study watches a line's people, and on a device with no line the
+New sheet's picker offers "＋ A new line…" (`ui/LineField`, `lib/lineChoice` — the one picker the loss count and the check
+logs share), opens on it with a name guessed, says "A study belongs to a line — add yours here." and Start makes the line
+through Your factory's `addLineToFactory`. *The shift it starts on* is the line's own (Set up the line): the shift running
+now, from now (to the next five minutes) to its end, else the next that starts today; with none set, the next whole hour for
+eight hours — and the page says which, in words under the times (`tools/sampling defaultShift`, `shiftStartWords`); a time
+typed over is left alone. *Take a sample now:* between the random moments one tap makes this instant a moment — the round it
+asks is the ordinary one, a tap per person stamped with the moment — kept apart as **taken by hand**
+(`AgreedSampling.extra`) and said wherever the moments are said ("40 moments and 1 taken by hand" on the tiles, the agreed
+line and the paper). **A limit, said:** a moment chosen by the observer is not random — it counts in the shares like any
+other, and the paper says how many there were so a reader can judge; for a study that must be strictly random, take only the
+phone's moments. Proved by `sampling.test.ts` (*take a sample now, and the shift a study starts on*) and
+`scripts/acceptance/work-sampling.mjs` step 7 (no line, the shift, the sample, its paper; desk and phone).
 
 ## 10. Capacity's three numbers, and the product mix
 

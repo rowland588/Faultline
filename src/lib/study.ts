@@ -450,6 +450,9 @@ export interface AgreedSampling {
   to: number;
   /** The instants the phone asks at, inside the shift. */
   prompts: number[];
+  /** Instants in `prompts` that were TAKEN BY HAND ("Take a sample now") rather than drawn at random — kept apart so
+   *  the page and the paper say how many of the moments were not random (tools/sampling takeNow). */
+  extra?: number[];
   /** A BOTTLENECK WALK (docs/CAPACITY.md §3): the line's stations watched
    *  instead of people, each tapped working · starved · blocked · down at
    *  each moment — Roser's walk, repeated, on a product's line standard. */

@@ -14,6 +14,8 @@
  * needed for a margin E at a share p = z² p(1 − p) ÷ E²; how many more.
  * Proved by: p 0.30, E 0.05 → 323 taps (the TOOLKIT's own example). */
 
+import type { Shift } from '../../types';
+import { shiftWindow } from '../../lib/shifts';
 import type { AgreedSampling, Tap } from '../../lib/study';
 export type { Tap };
 
@@ -104,6 +106,50 @@ export function schedulePrompts(from: number, to: number, count: number, rand: (
   return out.sort((a, b) => a - b);
 }
 
+/** The moments drawn at random, and the ones taken by hand ("Take a sample now"). */
+export const handOf = (a: Pick<AgreedSampling, 'prompts' | 'extra'>): number => (a.extra ?? []).filter(x => a.prompts.includes(x)).length;
+export const randomOf = (a: Pick<AgreedSampling, 'prompts' | 'extra'>): number => a.prompts.length - handOf(a);
+/** "40 moments", or "40 moments and 2 taken by hand". */
+export const momentsWords = (a: Pick<AgreedSampling, 'prompts' | 'extra'>): string => `${randomOf(a)} moments${handOf(a) ? ` and ${handOf(a)} taken by hand` : ''}`;
+
+/** TAKE A SAMPLE NOW (30 October — the audit: "once running there is no 'take a sample now': only the random moments").
+ *  One tap makes this instant a moment of the study, in the shift's list and in order, so the round it asks is the
+ *  ordinary one — a tap per person, stamped with the moment — and is marked as taken by hand. A moment already at
+ *  this instant (to the second) is not made twice. The random moments stand as they were drawn. */
+export function takeNow(a: AgreedSampling, t: number): AgreedSampling {
+  const at = Math.floor(t / 1000) * 1000;
+  if (a.prompts.includes(at)) return a;
+  return { ...a, prompts: [...a.prompts, at].sort((x, y) => x - y), extra: [...(a.extra ?? []), at] };
+}
+
+/** THE SHIFT A NEW STUDY STARTS ON (30 October — the audit: the default "now to now + 8 h" put the moments at the wrong
+ *  hours for anyone who did not notice). From the line's own shifts (Set up the line): the one running now, from now
+ *  (rounded up to the next five minutes) to its end — if at least `minLeftMin` minutes remain; else the next one that
+ *  starts today. With no shift set on the line, or none left today: from the next whole hour, for eight hours. The
+ *  form speaks of a clock on today's date, so a shift starting tomorrow is never offered. Said in words beside it. */
+export interface ShiftStart { from: number; to: number; source: 'running' | 'next' | 'hour'; shift?: Shift }
+export function defaultShift(shifts: readonly Shift[], t: number, minLeftMin = 30): ShiftStart {
+  const DAYMS = 86_400_000, HOUR = 3_600_000, MIN5 = 300_000;
+  const iso = (ms: number): string => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const windows = shifts.flatMap(shift => [t - DAYMS, t].flatMap(d => { const w = shiftWindow(shift, iso(d)); return w ? [{ shift, ...w }] : []; }));
+  const running = windows.filter(w => w.from <= t && w.to - t >= minLeftMin * 60_000).sort((x, y) => y.from - x.from)[0];
+  if (running) return { from: Math.max(running.from, Math.ceil(t / MIN5) * MIN5), to: running.to, source: 'running', shift: running.shift };
+  const endOfToday = new Date(t); endOfToday.setHours(23, 59, 59, 999);
+  const next = windows.filter(w => w.from > t && w.from <= endOfToday.getTime()).sort((x, y) => x.from - y.from)[0];
+  if (next) return { from: next.from, to: next.to, source: 'next', shift: next.shift };
+  const from = Math.ceil(t / HOUR) * HOUR;
+  return { from, to: from + 8 * HOUR, source: 'hour' };
+}
+
+/** The shift, in words — where the default came from, so a person is told and not left to notice. */
+export function shiftStartWords(s: ShiftStart, lineName?: string): string {
+  const hm = (ms: number): string => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const whose = lineName ? `${lineName}’s ` : '';
+  if (s.source === 'running' && s.shift) return `From ${whose}${s.shift.name || 'shift'} (${s.shift.start}–${s.shift.end}), which is running — from ${hm(s.from)} to its end. Change it if you are watching another.`;
+  if (s.source === 'next' && s.shift) return `From ${whose}${s.shift.name || 'shift'} (${s.shift.start}–${s.shift.end}), the next on the line today. Change it if you are watching another.`;
+  return `${lineName ? `${lineName} has no shift set` : 'No shift is set'}, so it starts at the next whole hour for eight hours. Change it to the shift you are watching.`;
+}
+
 /** The next prompt still ahead, or none. */
 export const nextPrompt = (prompts: number[], now: number): number | undefined => prompts.find(p => p > now);
 
@@ -170,7 +216,7 @@ export interface SamplingSays { text: string; tone: 'n'; verdict: string }
 export function samplingSays(a: AgreedSampling | undefined, taps: Tap[]): SamplingSays {
   if (!a) return { text: 'Say who is watched and the shift, then answer each moment as it comes.', tone: 'n', verdict: 'Not set up' };
   const n = tapsOf(taps).length;
-  if (!n) return { text: `${a.who.length} ${a.who.length === 1 ? 'person' : 'people'} watched, ${a.prompts.length} moments in the shift — no taps yet.`, tone: 'n', verdict: 'No taps yet' };
+  if (!n) return { text: `${a.who.length} ${a.who.length === 1 ? 'person' : 'people'} watched, ${momentsWords(a)} in the shift — no taps yet.`, tone: 'n', verdict: 'No taps yet' };
   const facts = { activities: a.activities, marginPts: a.marginPts, taps };
   const text = a.who.map(w => samplingReading(facts, w)).join('. ') + '.';
   const early = a.who.some(w => samplingEnough(tapsOf(taps, w).length) !== 'enough');
@@ -240,7 +286,7 @@ export function samplingRows(a: AgreedSampling | undefined, taps: Tap[]): { acti
     };
   });
   const n = tapsOf(taps).length;
-  return { activities, rows, head: `${a.who.length} ${a.who.length === 1 ? 'person' : 'people'} watched at ${a.prompts.length} random moments — ${n} tap${n === 1 ? '' : 's'}; each share with its margin at 95%, in points` };
+  return { activities, rows, head: `${a.who.length} ${a.who.length === 1 ? 'person' : 'people'} watched at ${randomOf(a)} random moments${handOf(a) ? ` and ${handOf(a)} taken by hand` : ''} — ${n} tap${n === 1 ? '' : 's'}; each share with its margin at 95%, in points` };
 }
 
 /** The line's card: the biggest share that is not the work, with its margin

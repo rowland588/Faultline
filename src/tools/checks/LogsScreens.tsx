@@ -8,7 +8,7 @@
  *
  * A new log is started from its definition's starter list, on a line (a log is always a line's: its machines, its rate
  * and its problems are the line's), and in a project when it is started inside one. */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { putStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
 import { useCanStartProjects } from '../../cloud/access';
@@ -16,7 +16,9 @@ import { can as canAt } from '../../lib/access';
 import { asked, machineOntoLine } from '../../lib/lines';
 import { inProject, inScope, startLine, type ProjectScope } from '../../lib/inProject';
 import { useInProject } from '../../lib/useInProject';
-import { useFactoryLines } from '../../lib/useFactoryLines';
+import { useFactoryLines, useFactoryLinesRead } from '../../lib/useFactoryLines';
+import { existingLine, lineChosen, NEW_LINE, settleLine, type LineChoice } from '../../lib/lineChoice';
+import { LineField } from '../../ui/LineField';
 import { useMachinesOf } from '../../lib/useLineRecords';
 import { now as clock } from '../../lib/ids';
 import { plural } from '../../lib/format';
@@ -168,7 +170,7 @@ export function LogRow({ s, def, now, line, project }: { s: ToolStudy; def?: Log
         <span className="lt-where">{d ? `${d.title} · ` : ''}{plural(st.checks, 'check')} · {plural(st.results, 'result')}{s.closedAt ? ' · closed' : ''}</span>
       </button>
       {((may.edit && !s.closedAt) || may.remove) && (
-        <span className="lt-acts">
+        <span className="lt-acts lg-acts">
           {may.edit && !s.closedAt && <button type="button" className="cw-link" onClick={() => setNaming(true)} aria-label={`Rename ${s.name || 'this log'}`}>Rename</button>}
           {may.remove && <button type="button" className="cw-link sp-rm" onClick={() => void removeStudy(s)} aria-label={`Delete ${s.name || 'this log'}`}>Delete</button>}
         </span>
@@ -180,28 +182,37 @@ export function LogRow({ s, def, now, line, project }: { s: ToolStudy; def?: Log
 /* ------------------------------------------------------------------------------ a new log */
 
 export function NewLogSheet({ def, onClose, line, project }: { def: LogDef; onClose: () => void; line?: string; project?: { id: string; name: string; lineIds: string[] } }) {
-  const factoryLines = useFactoryLines(line);
+  const { lines: factoryLines, read: linesRead } = useFactoryLinesRead(line);
   const pLines = project?.lineIds;
   const lines = useMemo(() => (pLines?.length ? [...factoryLines.filter(l => pLines.includes(l.id)), ...factoryLines.filter(l => !pLines.includes(l.id))] : factoryLines), [factoryLines, pLines]);
-  const [lineId, setLineId] = useState(line ?? '');
-  useEffect(() => { if (!lineId && pLines) setLineId(startLine(pLines)); }, [lineId, pLines]);
+  const [lineSel, setLineSel] = useState(line ?? '');
+  /* "＋ A new line…" in the picker (lib/lineChoice): made when Start is pressed, through Your factory's own function */
+  const [newLine, setNewLine] = useState({ name: '', type: '' });
+  const lineId = existingLine(lineSel);
+  const lineChoice: LineChoice = { value: lineSel, newName: newLine.name, newType: newLine.type };
+  const pickLine = useCallback((c: LineChoice) => { setLineSel(c.value); setNewLine({ name: c.newName, type: c.newType }); }, []);
+  useEffect(() => { if (!lineSel && pLines) setLineSel(startLine(pLines)); }, [lineSel, pLines]);
+  const projectCan = useAccess(project?.id ?? '');
+  const mayStart = useCanStartProjects();
+  const canMakeLine = mayStart && (!project || projectCan.edit);
   const [machine, setMachine] = useState('');
   const [name, setName] = useState('');
   const [pick, setPick] = useState<Set<number>>(() => new Set(def.starterChecks.map((_, i) => i)));
   const [busy, setBusy] = useState(false);
   const machines = useMachinesOf(lineId || undefined);
-  const lineName = lines.find(l => l.id === lineId)?.name;
+  const lineName = lines.find(l => l.id === lineId)?.name ?? (lineSel === NEW_LINE ? newLine.name.trim() || undefined : undefined);
   const area = def.whereLabel.toLowerCase();
   const suggested = `${def.title}${machine.trim() ? ` — ${machine.trim()}` : lineName ? ` — ${lineName}` : ''}`;
-  const ready = !!lineId && pick.size > 0 && !busy;
+  const ready = lineChosen(lineChoice) && pick.size > 0 && !busy;
   const make = async () => {
     if (!ready) return;
     setBusy(true);
     try {
       const t = clock();
-      const s = newLogStudy(def, { since: t, now: t, name: name.trim() || suggested, workspaceId: lineId, ...(project ? { projectId: project.id } : {}), ...(machine.trim() ? { machine: machine.trim(), where: machine.trim() } : {}), pick: [...pick].sort((a, b) => a - b) });
+      const madeOn = await settleLine(lineChoice);
+      const s = newLogStudy(def, { since: t, now: t, name: name.trim() || suggested, workspaceId: madeOn, ...(project ? { projectId: project.id } : {}), ...(machine.trim() ? { machine: machine.trim(), where: machine.trim() } : {}), pick: [...pick].sort((a, b) => a - b) });
       await putStudy(s);
-      if (machine.trim()) await machineOntoLine(lineId, machine);
+      if (machine.trim()) await machineOntoLine(madeOn, machine);
       onClose();
       nav(project ? inProject(logHref(def.key, s.id), project.id) : logHref(def.key, s.id));
     } finally { setBusy(false); }
@@ -210,13 +221,7 @@ export function NewLogSheet({ def, onClose, line, project }: { def: LogDef; onCl
     <Sheet open onClose={onClose} title={`New ${def.noun} log`}>
       <form className="lt-new lg-new" data-sheet="new-log" onSubmit={e => { e.preventDefault(); void make(); }}>
         {project && <p className="sub ie-for" data-for-project={project.id}>For <b>{project.name}</b> — it is the project’s, with everything else in it.</p>}
-        <label className="field"><span className="field-label">Which line?</span>
-          <select className="text-input" value={lineId} aria-label="Which line" onChange={e => setLineId(e.target.value)}>
-            <option value="">Pick the line…</option>
-            {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
-          <span className="sub">A log is a line’s: its machines, its rate and its problems are the line’s.</span>
-        </label>
+        <LineField lines={lines} read={linesRead} choice={lineChoice} onChange={pickLine} canAdd={canMakeLine} belongs="A log" hint="A log is a line’s: its machines, its rate and its problems are the line’s." />
         <label className="field"><span className="field-label">{def.whereLabel} <i className="sub">optional — filled into every check that has none</i></span>
           <input className="text-input" value={machine} maxLength={80} list={machines.length ? 'new-log-where' : undefined} aria-label={def.whereLabel} onChange={e => setMachine(e.target.value)} placeholder={area === 'detector' ? 'Metal detector' : area === 'machine' ? 'Wrapper' : 'Packing hall'} />
           {machines.length > 0 && <datalist id="new-log-where">{machines.map(m => <option key={m} value={m} />)}</datalist>}

@@ -650,6 +650,8 @@ export const PAGES = (sd, cap) => [
     { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'the band with its verdict', sel: '.ln-band' },
     { what: 'the tiles — done on time, missed, failed, product held — each of the plan and since the 7 days before', sel: '.lg-tiles .ln-tile', n: 4 },
+    /* 30 October: the figures are one block, which follows the round on a phone (the round first) */
+    { what: 'the figures in one block — the tiles inside it — that a phone puts after the round', sel: '.lg-figs .lg-tiles' },
     { what: 'the sentence — what is due, failed or overdue, and the compliance', sel: '[data-says]', text: /Metal detection checks:/ },
     { what: 'the Round, History and The checks as views of one log', sel: '[role="tab"]', n: 3 },
     { what: 'a card for each check, in the state it is in', sel: 'li.lg-card[data-state]', n: 3 },

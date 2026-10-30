@@ -24,7 +24,8 @@ import { useFactoryLines } from '../../lib/useFactoryLines';
 import { defOf } from './registry';
 import { logFigures } from './figures';
 import { logActions, logClosing, logInsights, logSays, logTiles } from './says';
-import { RoundCard, type RoundProps } from './RoundParts';
+import { PassAllSheet, RoundCard, type RoundProps } from './RoundParts';
+import { passAllLabel, passAllOffered, passAllPlan } from './passAll';
 import { HistoryPanel } from './HistoryPanel';
 import { ChecksPanel } from './ChecksEditor';
 import { useLogCtx, useNow, useSnags } from './useLogData';
@@ -67,6 +68,7 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
   const snags = useSnags();
   const lines = useFactoryLines(s.workspaceId);
   const line = lines.find(l => l.id === s.workspaceId);
+  const [passing, setPassing] = useState(false);
   const [tab, setTab] = useState<Tab>(() => { const t = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('tab'); return t === 'history' || t === 'checks' ? t : 'round'; });
   const f = useMemo(() => logFigures({ s, def, now, ctx, snags }), [s, def, now, ctx, snags]);
   if (!f) return null;
@@ -75,18 +77,22 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
   const p: RoundProps = { s, def, can: closed ? { ...can, edit: false } : can, ...(me ? { me } : {}), ctx, now };
   const page = bandPage(def.title.toUpperCase(), s, said.verdict, said.tone, [['Line', line?.name ?? 'No line'], ['Read over', 'the last 7 days']]);
   const plan = logActions(f, s, snags);
+  const passPlan = passAllPlan(f.round.now);
   const nowCards = f.round.now, later = f.round.later, events = f.round.events;
   const cards = (rows: typeof nowCards) => <ul className="lg-round">{rows.map(st => <RoundCard key={st.check.id} s={s} st={st} p={p} />)}</ul>;
   return (
-    <div className="wrap ie lg" data-log={def.key}>
+    <div className="wrap ie lg" data-log={def.key} data-tab={tab}>
       <StudyBand page={page} s={s} what={def.title} canEdit={can.edit && !closed} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where">{s.machine ? <><b>{s.machine}</b> · </> : null}{def.fc}{' · '}<button type="button" className="linkish" onClick={() => nav(logHref(def.key))}>Every {def.title.toLowerCase()} log</button></p>
         <WhereItSits s={s} can={can} />
       </div>
-      <LeanTiles tiles={logTiles(f, def)} className="ie-strip lg-tiles" />
-      <div className="ie-says"><p className={'ie-say is-' + said.tone} data-says>{said.text}</p></div>
-      <LeanInsights insights={logInsights(f)} className="lg-ins" />
+      {/* on a phone the round comes first and these follow it (styles.css .lg-figs) */}
+      <div className="lg-figs">
+        <LeanTiles tiles={logTiles(f, def)} className="ie-strip lg-tiles" />
+        <div className="ie-says"><p className={'ie-say is-' + said.tone} data-says>{said.text}</p></div>
+        <LeanInsights insights={logInsights(f)} className="lg-ins" />
+      </div>
       <ViewTabs label="Views of this log" value={tab} onChange={k => setTab(k as Tab)} views={[
         { key: 'round', label: 'Round', count: nowCards.length }, { key: 'history', label: 'History' }, { key: 'checks', label: 'The checks' },
       ]} />
@@ -95,7 +101,9 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
           {log0(s).length === 0 && <p className="sub" data-none-checks>Nothing is on the list to check yet — see The checks.</p>}
           {log0(s).length > 0 && (
             <section aria-label="Due now" className="lg-sec">
-              <h2 className="lg-h2">Due now <span className="sub">{nowCards.length ? plural(nowCards.length, 'check') : ''}</span></h2>
+              <h2 className="lg-h2">Due now <span className="sub">{nowCards.length ? plural(nowCards.length, 'check') : ''}</span>
+                {p.can.edit && passAllOffered(passPlan) && <button type="button" className="btn lg-passall" data-pass-all onClick={() => setPassing(true)}>{passAllLabel(passPlan)}</button>}
+              </h2>
               {nowCards.length ? cards(nowCards) : <p className="sub lg-none" data-nothing-due>Nothing is due now{later.length ? ` — the next is ${later[0].check.name}, ${later[0].words.replace(/^Done [^—]*— /, '').toLowerCase()}` : ''}.</p>}
             </section>
           )}
@@ -104,6 +112,7 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
           {!can.edit && <p className="sub">You can read this log; its checks are done by its team.</p>}
         </div>
       )}
+      {passing && passPlan.pass.length > 0 && <PassAllSheet s={s} plan={passPlan} {...(me ? { me } : {})} onClose={() => setPassing(false)} />}
       {tab === 'history' && <HistoryPanel s={s} def={def} f={f} can={{ ...can, edit: can.edit && !closed }} />}
       {tab === 'checks' && <ChecksPanel s={s} def={def} can={{ ...can, agree: can.agree && !closed }} />}
       <section className="ln-panel lg-plan"><h2 className="ln-h">Action plan</h2>

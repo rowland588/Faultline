@@ -14,7 +14,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { asked, machineOntoLine } from '../lib/lines';
 import { listAllStudies, listObservations, listStandardsForLine, listWorkspaces, onDataChange, putStudy } from '../db';
-import { useFactoryLines } from '../lib/useFactoryLines';
+import { useFactoryLinesRead } from '../lib/useFactoryLines';
+import { existingLine, lineChosen, settleLine, type LineChoice } from '../lib/lineChoice';
+import { LineField } from '../ui/LineField';
 import { useInProject } from '../lib/useInProject';
 import { inScope, startLine, type ProjectScope } from '../lib/inProject';
 import { ProjectScopeChips } from '../ui/ProjectScope';
@@ -32,7 +34,7 @@ import { Sheet } from '../ui/Sheet';
 import { sample, sampleSays } from '../tools/capability/sample';
 import { lossFiguresOf, studyHref, type StudyContext } from '../lib/studyLinks';
 import { removeStudy, StudyRowName } from '../ui/StudyActs';
-import { useAccess } from '../cloud/access';
+import { useAccess, useCanStartProjects } from '../cloud/access';
 import { can as canOf } from '../lib/access';
 import { rateForCount } from '../ui/ShiftLosses';
 import { dur, flowFigures, share } from '../tools/valuestream/steps';
@@ -394,12 +396,21 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
      the departments that touch it included (Rowland, 11 October: "remove
      business-wide mapping ... but keep the line large, different
      departments can affect the line"). */
-  const [lineId, setLineId] = useState(onLine ?? '');
+  const [lineSel, setLineId] = useState(onLine ?? '');
+  /* "＋ A new line…" in the picker (lib/lineChoice): the line is made when Start is pressed, and lineId is then its id */
+  const [newLine, setNewLine] = useState({ name: '', type: '' });
+  const lineId = existingLine(lineSel);
+  const lineChoice: LineChoice = { value: lineSel, newName: newLine.name, newType: newLine.type };
+  const pickLine = useCallback((c: LineChoice) => { setLineId(c.value); setNewLine({ name: c.newName, type: c.newType }); }, []);
   /* inside a project, on the project's line when it has one — its lines offered first */
   const pLines = project?.lineIds;
-  useEffect(() => { if (open && !lineId && pLines) setLineId(startLine(pLines)); }, [open, lineId, pLines]);
+  useEffect(() => { if (open && !lineSel && pLines) setLineId(startLine(pLines)); }, [open, lineSel, pLines]);
+  /* a line is made by whoever may start work in the factory and, inside a project, may change its work */
+  const projectCan = useAccess(project?.id ?? '');
+  const mayStart = useCanStartProjects();
+  const canMakeLine = mayStart && (!project || projectCan.edit);
   /* the lines of Your factory, in floor order (lib/useFactoryLines) */
-  const factoryLines = useFactoryLines(onLine);
+  const { lines: factoryLines, read: linesRead } = useFactoryLinesRead(onLine);
   const lines = useMemo(() => (pLines?.length ? [...factoryLines.filter(l => pLines.includes(l.id)), ...factoryLines.filter(l => !pLines.includes(l.id))] : factoryLines), [factoryLines, pLines]);
   const [standards, setStandards] = useState<Standard[]>([]);
   useEffect(() => { if (lineId) void listStandardsForLine(lineId).then(setStandards); else setStandards([]); }, [lineId]);
@@ -432,7 +443,7 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
   const lineName = lines.find(l => l.id === lineId)?.name ?? project?.name ?? 'the line';
   const wholeLine = isRel && pick === WHOLE;
   useEffect(() => { if (!open) { setStep('one'); setPick(''); } }, [open]);
-  const ready = (!named || !!name.trim() || wholeLine) && !busy && (!isLine || !!lineId) && (!isChange || !!machine.trim()) && (!wholeLine || lineMachines.length > 0);
+  const ready = (!named || !!name.trim() || wholeLine) && !busy && (!isLine || lineChosen(lineChoice)) && (!isChange || !!machine.trim()) && (!wholeLine || lineMachines.length > 0);
   const toSetup = () => { setSetup(lineMachines.map(m => ({ machine: m, on: true, counting: 'stop', target: '', timed: true, reasons: DEFAULT_STOP_REASONS.join(', ') }))); setStep('line'); };
   const num = (v: string) => (v.trim() ? Number(v) : undefined);
   const lineProblem = setupProblem(setup.map(r => ({ machine: r.machine, on: r.on, counting: r.counting, targetMin: num(r.target), timed: r.timed, reasons: r.reasons })));
@@ -458,6 +469,8 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
     setBusy(true);
     try {
       const t = now();
+      /* a new line is made first, through Your factory's own function, and the study is put on it */
+      const lineId = isLine ? await settleLine(lineChoice) : existingLine(lineSel);
       if (isChange) {
         const from = name.trim(), to = machine.trim();
         const std = standards.find(x => !x.deletedAt && x.product.trim().toLowerCase() === to.toLowerCase());
@@ -536,13 +549,9 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
           </label>
         )}
         {isLine && (
-          <label className="field"><span className="field-label">Which line?</span>
-            <select className="text-input" value={lineId} aria-label="Which line" onChange={e => setLineId(e.target.value)}>
-              <option value="">Pick the line…</option>
-              {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
-            <span className="sub">{tool === 'losses' ? 'Its shifts, the stops timed on it and its cost model are what the count is read against.' : tool === 'map' ? 'A lane for each person or department whose work touches the line — Op 1, Op 2, the machine, the team leader, planning, stores, quality, maintenance.' : 'Its product’s line standard brings the people to watch; anyone else is added by name.'}</span>
-          </label>
+          <LineField lines={lines} read={linesRead} choice={lineChoice} onChange={pickLine} canAdd={canMakeLine}
+            belongs={tool === 'losses' ? 'A count' : tool === 'map' ? 'A map' : 'A study'}
+            hint={tool === 'losses' ? 'Its shifts, the stops timed on it and its cost model are what the count is read against.' : tool === 'map' ? 'A lane for each person or department whose work touches the line — Op 1, Op 2, the machine, the team leader, planning, stores, quality, maintenance.' : 'Its product’s line standard brings the people to watch; anyone else is added by name.'} />
         )}
         {named && (
           <label className="field"><span className="field-label">{isChange ? 'From which product?' : 'What is it of?'}</span>

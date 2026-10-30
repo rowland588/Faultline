@@ -37,20 +37,27 @@ export function useArchivedPlaces(): Set<string> {
 }
 
 export function useFactoryLines(keep?: string): Workspace[] {
-  const [lines, setLines] = useState<Workspace[]>([]);
+  return useFactoryLinesRead(keep).lines;
+}
+
+/** The same, and whether the lines have been READ yet — so "this factory has no
+ *  line" is said only once it is known, never in the first blink before the
+ *  read (ui/LineField). */
+export function useFactoryLinesRead(keep?: string): { lines: Workspace[]; read: boolean } {
+  const [got, setGot] = useState<{ lines: Workspace[]; read: boolean }>({ lines: [], read: false });
   useEffect(() => {
     let live = true;
     const load = () => void (async () => {
       const all = await listWorkspaces();
       const floor = await liveProductionLines(all);
       const own = keep && !floor.some(w => w.id === keep) ? all.filter(w => w.id === keep) : [];
-      if (live) setLines([...floor, ...own]);
+      if (live) setGot({ lines: [...floor, ...own], read: true });
     })();
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, [keep]);
-  return lines;
+  return got;
 }
 
 /** EVERY JOB'S DAY OF ITS LINES NOT MAKING (lib/lineLoss linesDay, from

@@ -1,6 +1,6 @@
 /* Work sampling's arithmetic, proved by docs/TOOLKIT.md §9's worked example. */
 import { describe, it, expect } from 'vitest';
-import { tapsNeeded, marginOf, shares, moreNeeded, schedulePrompts, nextPrompt, missedPrompts, dueRound, roundsDone, samplingReading, samplingLine, samplingEnough, samplingOffers, samplingRows, samplingCardLine, boneOfActivity, worstWords, type Tap } from '../sampling';
+import { tapsNeeded, marginOf, shares, moreNeeded, schedulePrompts, nextPrompt, missedPrompts, dueRound, roundsDone, samplingReading, samplingLine, samplingEnough, samplingOffers, samplingRows, samplingCardLine, boneOfActivity, worstWords, takeNow, defaultShift, shiftStartWords, handOf, randomOf, momentsWords, type Tap } from '../sampling';
 
 const tap = (i: number, who: string, activity: string, at = i * 60_000): Tap => ({ id: `t${i}`, at, who, activity });
 /** 190 taps for Op 2: 116 working, 34 walking, 27 waiting, 13 searching. */
@@ -111,5 +111,61 @@ describe('where a work sampling goes — the fishbone, the line\'s card, paper',
     expect(samplingCardLine(a, [...op2, ...op1])).toBe('Op 2 is walking 18% of the time (±5 points, from 190 taps)');
     expect(samplingCardLine(a, op1)).toBe('Too early — 20 taps of 2 people watched');
     expect(samplingCardLine(a, [])).toBe('2 people watched — no taps yet');
+  });
+});
+
+describe('take a sample now, and the shift a study starts on (30 October)', () => {
+  const hm = (h: number, m = 0) => new Date(2026, 9, 30, h, m).getTime();
+  const a = { who: ['Op 1'], activities: ['working', 'waiting'], marginPts: 5, from: hm(6), to: hm(14), prompts: [hm(7), hm(9)] };
+
+  it('adds this instant to the moments, in order, marked as taken by hand — the random ones as drawn', () => {
+    const b = takeNow(a, hm(8, 5) + 400);
+    expect(b.prompts).toEqual([hm(7), hm(8, 5), hm(9)]);
+    expect(b.extra).toEqual([hm(8, 5)]);
+    expect(handOf(b)).toBe(1);
+    expect(randomOf(b)).toBe(2);
+    expect(momentsWords(b)).toBe('2 moments and 1 taken by hand');
+    expect(momentsWords(a)).toBe('2 moments');
+  });
+  it('the moment it makes is the round due at once, answered by a tap a person like any other', () => {
+    const b = takeNow(a, hm(8, 5));
+    expect(dueRound(b.prompts, [], b.who, hm(8, 5))).toEqual({ at: hm(8, 5), no: 2, left: ['Op 1'] });
+  });
+  it('is not made twice at the same second', () => {
+    const b = takeNow(a, hm(8, 5));
+    expect(takeNow(b, hm(8, 5) + 300)).toBe(b);
+  });
+
+  const shifts = [{ name: 'Early', start: '06:00', end: '14:00' }, { name: 'Late', start: '14:00', end: '22:00' }, { name: 'Nights', start: '22:00', end: '06:00' }];
+  it('starts on the shift running now, from now to its end', () => {
+    const d = defaultShift(shifts, hm(9, 12));
+    expect(d.source).toBe('running');
+    expect(d.shift?.name).toBe('Early');
+    expect(d.from).toBe(hm(9, 15));   // the next five minutes
+    expect(d.to).toBe(hm(14));
+  });
+  it('a shift with under half an hour left is not the one — the next today is', () => {
+    const d = defaultShift(shifts, hm(13, 50));
+    expect(d).toMatchObject({ source: 'next', from: hm(14), to: hm(22) });
+    expect(d.shift?.name).toBe('Late');
+  });
+  it('an overnight shift running past midnight ends tomorrow morning', () => {
+    const d = defaultShift(shifts, hm(23, 0));
+    expect(d.shift?.name).toBe('Nights');
+    expect(d.from).toBe(hm(23, 0));
+    expect(d.to).toBe(new Date(2026, 9, 31, 6, 0).getTime());
+  });
+  it('with no shift set on the line, the next whole hour for eight hours', () => {
+    const d = defaultShift([], hm(9, 12));
+    expect(d).toEqual({ from: hm(10), to: hm(18), source: 'hour' });
+    expect(shiftStartWords(d, 'Line 7')).toBe('Line 7 has no shift set, so it starts at the next whole hour for eight hours. Change it to the shift you are watching.');
+  });
+  it('a shift that starts later today is offered when none is running', () => {
+    const d = defaultShift([{ name: 'Late', start: '14:00', end: '22:00' }], hm(9, 12));
+    expect(d).toMatchObject({ source: 'next', from: hm(14), to: hm(22) });
+    expect(shiftStartWords(d, 'Line 7')).toContain('Line 7’s Late (14:00–22:00), the next on the line today');
+  });
+  it('a shift with no times is ignored', () => {
+    expect(defaultShift([{ name: 'Days', start: '', end: '' }], hm(9, 0)).source).toBe('hour');
   });
 });

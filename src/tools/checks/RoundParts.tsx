@@ -18,7 +18,8 @@ import { freqWords, logOf, verdictOf, valueTrend, valueSays, when, type CheckSta
 import { previewFailure, type LogCtx } from './hold';
 import { blankAnswers, findingBelowOf, repeatsOf, shareOfMax } from './scoring';
 import { scoredSeries } from './figures';
-import { addResult, newResult, raiseFindings, raiseTag, recordFailure, strikeResult } from './store';
+import { addResult, addResults, newResult, raiseFindings, raiseTag, recordFailure, strikeResult, strikeResults } from './store';
+import { passAllResults, passAllWords, type PassAllPlan } from './passAll';
 
 export interface RoundProps { s: ToolStudy; def: LogDef; can: Can; me?: string; ctx: LogCtx; now: number }
 
@@ -299,3 +300,36 @@ export function TagSheet({ s, st, me, onClose }: { s: ToolStudy; st: CheckState;
   );
 }
 
+
+/* ------------------------------------------------------------------ pass all due, said before it is done */
+
+/** The confirmation: how many are passed and which, what is NOT passed by it and why, then one write and one Undo.
+ *  Nothing is recorded until "Pass N checks" is pressed. */
+export function PassAllSheet({ s, plan, me, onClose }: { s: ToolStudy; plan: PassAllPlan; me?: string; onClose: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const words = passAllWords(plan);
+  const go = async () => {
+    if (busy || !plan.pass.length) return;
+    setBusy(true);
+    try {
+      const rs = passAllResults(plan, me, clock());
+      await addResults(s.id, rs);
+      offerUndo(`${plural(rs.length, 'check')} passed`, async () => { await strikeResults(s.id, rs.map(r => r.id), true); });
+      onClose();
+    } finally { setBusy(false); }
+  };
+  return (
+    <Sheet open onClose={onClose} title="Pass all due">
+      <div className="lg-sheet" data-sheet="pass-all">
+        <p className="lg-fail-what"><b>{words.head}</b></p>
+        <ul className="lg-confirm" data-pass-list>{plan.pass.map(st => <li key={st.check.id}>{st.check.name}{st.check.where ? <span className="sub"> — {st.check.where}</span> : null}</li>)}</ul>
+        {words.asks && <p className="sub ie-tone is-a" data-pass-asks>{words.asks}</p>}
+        {words.failed && <p className="sub ie-tone is-r" data-pass-failed>{words.failed}</p>}
+        <div className="lg-sheet-act">
+          <button type="button" className="btn btn-primary lg-confirm" disabled={busy} onClick={() => void go()}>Pass {plural(plan.pass.length, 'check')}</button>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </Sheet>
+  );
+}
