@@ -15447,3 +15447,22 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .tc-gal-h .chip-row .chip { flex: none; }
   .tc-gal-h .chip-row::-webkit-scrollbar { display: none; }
 }
+/* THE TOOLS AUDIT FIXES (30 October): a unit never assumed, readings pasted, the entry first on a phone, signals in plain words,
+   the Analysis's twelve questions under three headings. */
+.ie-unitpick { display: flex; flex-direction: column; gap: 6px; }
+.ie-unit-chips { gap: 8px; }
+.ie-pasted { margin: 0; }
+.ie-qgroups { display: flex; flex-direction: column; gap: 14px; }
+.ie-qgroups > .field-label { margin-bottom: -6px; }
+.ie-qhead { margin: 0 0 6px; font-size: var(--t-body); font-weight: 700; color: var(--ink); }
+.ie-kind-eg { color: var(--ink-2); }
+.ie-rule { min-height: 44px; padding: 6px 4px; cursor: pointer; align-items: flex-start; }
+.ie-rule input { width: 22px; height: 22px; margin: 2px 0 0; flex: none; }
+.ie-rule-w { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ie-rule-w small { font-size: var(--t-detail); color: var(--muted); }
+@media (max-width: 719px) {
+  .ie-rules { grid-template-columns: 1fr; }
+  .ie-rule { min-height: 48px; padding: 8px 4px; }
+  .ie-entry-first { margin-top: 4px; }
+}
+.ie-unit-hint { margin: 0; }
