@@ -169,7 +169,10 @@ let made;
   await dlg.getByRole('button', { name: 'Make it and balance the line' }).click(); await page.waitForTimeout(2000);
   const st = await page.evaluate(async () => (await (await import('/src/db.ts')).listAllStandards()).find(s => s.product === 'P2 Tray pack 6' && !s.deletedAt));
   ok(st?.projectId === PID && st?.workspaceId === LINE7 && !!st?.capacity, `5 made on ${NAME}, on Line 7, its capacity started`, JSON.stringify({ p: st?.projectId, w: st?.workspaceId }));
-  ok(await projectRail() && await onProject() === PID, '5 it opens in the project');
+  /* since 29 October a line product's tool is the LINE's page (lib/scope: a /w/ address is in line scope,
+     the route wins over the project) — it opens on Line 7 with the line's frame, and the record stays the
+     project's (above). Before then it opened under the project's own rail. */
+  ok(/\/w\/[^/]+\/standards\//.test(page.url()) && /Line 7/.test(await page.locator('.nv-top .nv-ctx').innerText()), '5 it opens on its line, the record still the project’s', page.url());
 }
 
 /* ---- 6 outside a project, nothing changed ---- */
