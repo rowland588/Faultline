@@ -126,7 +126,7 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
 
 /* =============================== one station ================================ */
 
-function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned, why, wait, own, coLeft = 0, suggested, say, asTime, factor, lineUnit, patch, move, remove, assets, machines = [], open: wantOpen, onToggle, ro }: {
+function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned, why, wait, own, coLeft = 0, suggested, say, asTime, factor, lineUnit, patch, move, remove, like, assets, machines = [], open: wantOpen, onToggle, ro }: {
   s: Station; i: number; last: boolean; prevUnit?: string;
   /** Its number on the card, and whether it can move earlier or later in ITS
    *  line — several lines feeding one place number and order each its own. */
@@ -148,6 +148,8 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
   /** How many of the line's unit are in one of its own, when counted. */
   factor?: number; lineUnit: string;
   patch: (p: Partial<Station>) => void; move: (by: -1 | 1) => void; remove: () => void; assets: string[];
+  /** ADD ONE LIKE THIS — the next station with this one's unit, people and speed pattern, named by the person. */
+  like: () => void;
   /** The line's machines in flow order (lib/lineRecords), offered as names. */
   machines?: string[];
   /** ONE STATION OPEN AT A TIME. Every station's eight boxes were open at once
@@ -207,12 +209,14 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
           <button className="btn btn-ghost in-usual-b" onClick={() => move(-1)} disabled={!canUp} aria-label="Move earlier in the line"><Icon name="arrowUp" size="1.1em" /></button>
           <button className="btn btn-ghost in-usual-b" onClick={() => move(1)} disabled={!canDown} aria-label="Move later in the line"><Icon name="arrowDown" size="1.1em" /></button>
           <button className="btn btn-ghost in-usual-b" onClick={remove} aria-label={`Remove ${s.name || 'this station'}`}><Icon name="close" size="1.1em" /></button>
-          <button type="button" className={'btn btn-sm' + (open ? ' btn-primary' : ' btn-ghost')} onClick={onToggle} aria-expanded={open}>{open ? 'Done' : 'Edit'}</button>
+          <button type="button" className={'btn btn-sm cap-st-edit' + (open ? ' btn-primary' : ' btn-ghost')} onClick={onToggle} aria-expanded={open}>{open ? 'Done' : 'Edit'}</button>
         </span>
         </>}
       </div>
 
       {why && <p className="cap-why" role="note">Not counted yet: {why}.</p>}
+
+      {!ro && <p className="cap-like"><button type="button" className="cw-link" onClick={like} aria-label={`Add a station like ${s.name.trim() || `station ${num}`}`}>＋ Add one like this</button><span className="sub"> — the same unit, people and speed; just name it</span></p>}
 
       {!open && (
         <p className="cap-sum">
@@ -664,6 +668,23 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     setStations(list);
     setEditing(st.id);
   };
+  /* ADD ONE LIKE THIS: a copy of the station's pattern straight after it (and after its twin on every line while they are in step),
+     nameless so the person names it, open for it. Not its machine's logged name — that is another machine's. */
+  const addLike = (src: Station) => {
+    const targets = stepIdsOf(src.id) ?? [src.id];
+    const list = [...current.stations];
+    let first: string | undefined;
+    for (const tid of targets) {
+      const t = list.find(x => x.id === tid);
+      if (!t) continue;
+      const { asset: _a, speedIn: _s, ...pattern } = t; void _a; void _s;
+      const c: Station = { ...pattern, id: uid(), name: '', contains: 1 };
+      list.splice(list.indexOf(t) + 1, 0, c);
+      first ??= c.id;
+    }
+    setStations(list);
+    if (first) setEditing(first);
+  };
   const moveIn = (id: string, by: -1 | 1) => {
     const g = groups.find(x => x.stations.some(y => y.id === id));
     if (!g) return;
@@ -872,8 +893,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       <div className="pace-sec-head">
         <h2 className="pace-sec-title">Where {line.name} is limited</h2>
         <p className="pace-sec-sub">
-          Set the line up on the left — how many lines, what it should do, its stations — and watch it drawn on the right as you type:
-          where it is held, what each station can do, and the way to the target. A screen to show where to look, not a simulation.
+          Set the line up — how many lines, what it should do, its stations — and watch it drawn as you type (beside the set-up on a wide
+          screen, under it on a phone): where it is held, what each station can do, and the way to the target. A screen to show where to look, not a simulation.
         </p>
       </div>
 
@@ -1049,7 +1070,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
                     suggested={suggestRunning((stats[s.id]?.ownMins ?? 0) - (coOff ? stats[s.id]?.changeoverMins ?? 0 : 0), cap.plannedHoursPerWeek, stops.weeks)}
                     say={paceSays(r, s, chainOf[gi2 - 1]?.unit, chainOf[gi2 - 1])} asTime={rateAsTime(r, s, chainOf[gi2 - 1]?.unit)} factor={result(s.id)?.factor ?? chainFactor(chainOf, gi2)} lineUnit={r.unit}
                     chain={chainWords(chainOf, gi2)}
-                    patch={p => patchStation(s.id, p)} move={by => moveIn(s.id, by)} remove={() => remove(s)} assets={assets} machines={machines}
+                    patch={p => patchStation(s.id, p)} move={by => moveIn(s.id, by)} remove={() => remove(s)} like={() => addLike(s)} assets={assets} machines={machines}
                     open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} ro={!can.edit} />
                 );
               })}

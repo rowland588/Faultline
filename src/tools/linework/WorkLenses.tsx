@@ -41,6 +41,8 @@ export interface LensCtx {
 const money = (v: number) => `£${v < 1 ? v.toFixed(3) : v.toFixed(2)}`;
 const KIND_WORD: Record<string, string> = { work: 'work', walk: 'walking', wait: 'waiting', machine: 'machine' };
 const ratingOk = (v: number) => v >= 50 && v <= 150;
+/** The paces the floor says most — chips fill the same field the box does (50-150), never another scale. */
+export const PACE_CHIPS = [90, 100, 110, 120];
 
 /* ================================================================== TIMES */
 
@@ -51,10 +53,25 @@ export function TimesLens(c: LensCtx) {
   const money_ = a ? allowanceMoney(f, a, c.rate) : { text: '' };
   const reused = reusedSays(f);
   const byStep = new Map(steps.map(s => [s.id, s]));
+  /* timed, a person's own (a machine's run is never rated) and not rated yet */
+  const unrated = people.flatMap(p => p.elements).filter(e => e.source === 'timed' && e.kind !== 'machine' && !e.rated).map(e => e.id);
+  const rateAll = (v: number) => c.setSteps(cur => cur.map(x => (unrated.includes(x.id) ? { ...x, rating: v } : x)));
   return (
     <section className="wb-lens wb-times" aria-label="Times">
       <p className="sub wb-lede">What each step takes at a standard pace. <b>Observed</b> is the mean of its laps; <b>basic</b> = observed × pace ÷ 100; <b>standard</b> = basic + the allowance. The pace is a trained observer’s judgement — 100 is the standard pace (BS 3138): what a qualified worker keeps up steadily, with the effort and care the job asks, with no rest. A step timed and never rated is taken at 100, and says so. A machine’s run is never rated and carries no allowance.</p>
       {!f.elements.length && <p className="sub">List the work and time it on the first tab — the times are read here.</p>}
+      {editable && unrated.length > 0 && (
+        <div className="wb-bulk" role="group" aria-label="Pace for every unrated step">
+          <p><b>{unrated.length} timed {unrated.length === 1 ? 'step is' : 'steps are'} not rated</b> — taken at 100 and said so. Rate them all at once, then change the odd one.</p>
+          <span className="chip-row">
+            <button type="button" className="btn" onClick={() => rateAll(100)}>Rest at 100</button>
+            <span className="sub">Set every unrated step to…</span>
+            <span className="chip-row" role="group" aria-label="Set every unrated step to">
+              {PACE_CHIPS.map(r => <button key={r} type="button" className="chip wb-pace-chip" onClick={() => rateAll(r)}>{r}</button>)}
+            </span>
+          </span>
+        </div>
+      )}
       {people.map(p => (
         <div key={p.who} className="wb-tp">
           <h3>{p.who}{p.station ? <span className="sub"> at {p.station}</span> : null}</h3>
@@ -95,6 +112,9 @@ function TimesRow({ e, st, editable, onRate }: { e: ElementFigures; st?: Balance
           <span className="wb-pace">
             <input className="text-input" type="number" inputMode="numeric" min={50} max={150} step={1} key={`${e.id}-${st?.rating ?? ''}`} defaultValue={st?.rating ?? ''} placeholder="100" aria-label={`Pace seen — ${e.name}`}
               onBlur={ev => { const v = Number(ev.target.value); if (!ev.target.value.trim()) onRate(undefined); else if (ratingOk(v)) onRate(Math.round(v)); else ev.target.value = String(st?.rating ?? ''); }} />
+            <span className="chip-row wb-pace-chips" role="group" aria-label={`Pace chips — ${e.name}`}>
+              {PACE_CHIPS.map(r => <button key={r} type="button" aria-pressed={st?.rating === r} className={'chip wb-pace-chip' + (st?.rating === r ? ' on' : '')} onClick={() => onRate(st?.rating === r ? undefined : r)}>{r}</button>)}
+            </span>
             {!e.rated && <small className="is-a">not rated — taken at 100</small>}
           </span>
         ) : timed ? (e.rated ? String(e.rating) : <small className="is-a">not rated — 100</small>) : '—')}

@@ -362,6 +362,8 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
   const url = useBlobUrl(s.photoKey);
   const [tool, setTool] = useState<Tool>({ t: 'icon', kind: 'person' });
   const [marks, setMarks] = useState<StandardMark[]>(s.marks);
+  const marksRef = useRef(marks);
+  marksRef.current = marks;
   /* WHAT THE PEOPLE PLACED COST (knowledge/specs/FC-006-line-standard-money.md): the line's wage,
      on-costs and rated speed, read live — a wage given on Set up the line while the map is open
      reaches the sentence, as the value stream's does */
@@ -489,7 +491,12 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
     const at = pct(e);
     const m: StandardMark = { id: uid(), kind: tool.kind, x: clamp(at.x, 2, 98), y: clamp(at.y, 3, 97), label: tool.kind === 'person' ? nextRole({ marks }) : undefined };
     saveMarks([...marks, m]);
-    if (tool.kind === 'person') setEditing(m.id);
+    /* A PERSON IS PLACED AT ONCE, with the next role and the usual colour — eight people are eight taps,
+       not eight sheets. Tapping the person opens them (name, colour, task, bottleneck); Undo takes this one off. */
+    if (tool.kind === 'person') {
+      const placedId = m.id;
+      offerUndo(`${m.label} placed — tap them to name, colour or give them a task`, async () => saveMarks(marksRef.current.filter(x => x.id !== placedId)));
+    }
   };
   const finishDraw = () => {
     const d = draw;
@@ -605,7 +612,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
     .filter(p => !all.some(x => x.product.trim().toLowerCase() === p.what.trim().toLowerCase()));
   const shapes = marks.filter(isShape), icons_ = marks.filter(m => !isShape(m));
   const say = tool.t === 'shape' ? `Drag on the board to draw a ${SHAPES.find(x => x.shape === tool.shape)?.word.toLowerCase()} — or just tap for one.`
-    : tool.t === 'icon' ? `Tap the board to place ${tool.kind === 'person' ? 'a person' : `a ${markOf(tool.kind).word.toLowerCase()}`}. Drag one to move it; drag the empty board to scroll.`
+    : tool.t === 'icon' ? `Tap the board to place ${tool.kind === 'person' ? 'a person' : `a ${markOf(tool.kind).word.toLowerCase()}`}. Tap one placed to name or colour it, drag it to move it; drag the empty board to scroll.`
       : 'Tap a shape to select it, drag to move, pull the corner to resize. Tap it again to name it. Drag the empty board to scroll.';
   const fontPx = Math.max(10, size.bw * 0.017);
 
@@ -736,6 +743,15 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
 
       <div className="ls-body">
         <div className="ls-board-wrap tool-sig-board">
+          {/* ROOM ON A PHONE: a wide board is about 190 px high there — one tap makes it Tall or Square, everything kept where it stood */}
+          {!ro && !url && boardOf(s) === 'wide' && (
+            <p className="ls-room" role="note">
+              <span>This wide board is only {Math.round(size.bh)} px high here.</span>
+              {(['tall', 'square'] as BoardShape[]).map(b => (
+                <button key={b} type="button" className="btn btn-sm" onClick={() => { const next = reshaped(marks, boardOf(s), b); setMarks(next); void putStandard({ ...s, marks: next, board: b }); }}>Make it {BOARDS[b].word.toLowerCase()}</button>
+              ))}
+            </p>
+          )}
           <div ref={boardRef} className={'ls-board' + (url ? '' : ' is-blank') + (tool.t !== 'select' && !ro ? ' is-placing' : '') + (tool.t === 'shape' && !ro ? ' is-drawing' : '') + (ro ? ' is-read' : '')}
             style={url ? undefined : { aspectRatio: `${BOARDS[boardOf(s)].w} / ${BOARDS[boardOf(s)].h}` }}
             onPointerDown={boardDown} onPointerMove={move} onPointerUp={up}
@@ -825,7 +841,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           )}
           {thingsOf({ marks }) && <p className="sub ls-things">{thingsOf({ marks })}</p>}
           <h3 className="ls-side-h">Who does what</h3>
-          {people.length === 0 && <p className="sub">{ro ? 'Nobody placed on this product yet.' : 'Pick Person and tap the board where they stand — or select a shape and add an operator to it.'}</p>}
+          {people.length === 0 && <p className="sub">{ro ? 'Nobody placed on this product yet.' : 'Nobody yet — tap the board where they stand (Person is picked), or select a shape and add an operator to it.'}</p>}
           {ro && people.map((p, i) => (
             <div key={p.id} className={'ls-person' + (p.bottleneck ? ' is-bn' : '')}>
               <span className="ls-pn" style={{ background: colourOf(p) }} aria-hidden>{i + 1}</span>

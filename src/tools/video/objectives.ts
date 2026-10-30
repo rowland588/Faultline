@@ -245,6 +245,18 @@ export const OBJECTIVES: Record<VideoStudyKind, Objective> = {
 
 export const KINDS = Object.keys(OBJECTIVES) as VideoStudyKind[];
 
+/** A study can be STARTED only where Faultline measures something from footage today. A kind it does not
+ *  measure yet is shown, with the reason, and is for what to film and what to use meanwhile — never a study. */
+export const startable = (k: VideoStudyKind): boolean => OBJECTIVES[k].readiness !== 'not-yet';
+
+/** The studies for a picker: measured first, then partly measured, then the ones not available yet. */
+const group = (readiness: Readiness, title: string) => ({ readiness, title, kinds: KINDS.filter(k => OBJECTIVES[k].readiness === readiness) });
+export const KINDS_BY_READINESS: { readiness: Readiness; title: string; kinds: VideoStudyKind[] }[] = [
+  group('measured', 'Measured from footage today'),
+  group('partly', 'Partly measured from footage today'),
+  group('not-yet', 'Not available yet — not measured from footage'),
+].filter(g => g.kinds.length > 0);
+
 /** The study a person's words ask for. A changeover, the elements of a cycle
  *  or people's walking are named only when meant; then a line balance wins
  *  over the rest ("the line balance of the product packing" is a balance,

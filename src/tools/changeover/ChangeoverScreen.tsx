@@ -26,7 +26,7 @@
  * Nothing worked out is stored: every figure and sentence comes from
  * lib/ie/changeover on each render. A chip writes on its tap; a box writes
  * when it is left, never on a keystroke. */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStudy, getWorkspace, listStandardsForLine, onDataChange, patchStudy, putStandard } from '../../db';
 import { useAccess } from '../../cloud/access';
 import { useSession } from '../../cloud/session';
@@ -41,7 +41,8 @@ import {
   HOW_WORD, intervalOf, intervalSays, ladderOf, ladderSays, lineRateOf, mins, moneyOf, patternFromShifts, planWords, rateFromWords, runMinOf, runningOf, runningWords, span,
   SMED_TARGET_SEC, standardFrom, standardLine, STREAMLINE_HOW, whenIn, costOf, scaleRows, type CostScale, type Ladder, type CoLaneBy, type Rung, type SmedMoney,
 } from './changeover';
-import { dur, parseDur } from '../valuestream/steps';
+import { dur } from '../valuestream/steps';
+import { typedTime } from './typedTime';
 import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, SmedFunction, SmedHow, SmedPlan, SmedPlanKind, SmedRateFrom, StudyFacts, StudyUse, ToolStudy } from '../../lib/study';
 import type { Workspace } from '../../types';
 import { UsedFor, useBetter, WhereItSits } from '../../ui/StudyPlace';
@@ -58,7 +59,7 @@ import { machinesOf } from '../../lib/lineRecords';
 const OWNER = canAt('owner');
 const day = (ms: number) => niceDay(isoDay(ms));
 /** A time typed: a bare number is minutes — the floor says "4" for four minutes. */
-const minutesTyped = (t: string): number | undefined => (t.trim() ? parseDur(t, 'min') : undefined);
+const minutesTyped = (t: string): number | undefined => (t.trim() ? typedTime(t) : undefined);
 const numTyped = (t: string): number | undefined => { const v = Number(t.replace(',', '.')); return t.trim() && Number.isFinite(v) && v > 0 ? v : undefined; };
 
 type Stage = 'record' | 'separate' | 'convert' | 'streamline' | 'standardise';
@@ -360,6 +361,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
           nameOf={nameOf} when={when}
           onClose={() => setEditing(null)}
           onSave={st => { setSeq(cur => (cur.some(x => x.id === st.id) ? cur.map(x => (x.id === st.id ? st : x)) : [...cur, st])); setEditing(null); }}
+          onAdd={st => setSeq(cur => (cur.some(x => x.id === st.id) ? cur : [...cur, { ...st, order: cur.reduce((m, x) => Math.max(m, x.order), -1) + 1 }]))}
           onMove={(id, by2) => setSeq(cur => move(cur, id, by2))}
           onRemove={id => { setSeq(cur => cur.filter(x => x.id !== id).map(x => (x.alongside === id ? { ...x, alongside: undefined } : x))); setEditing(null); }} />
       )}
@@ -644,12 +646,12 @@ function move(list: ChangeoverStep[], id: string, by: -1 | 1): ChangeoverStep[] 
 /** EVERYTHING ABOUT ONE ELEMENT — what opens when its square is tapped, as the
  *  map's step sheet does: what, who, where, side, function, time, how known,
  *  done alongside what, the plan, Make it better. */
-function ElementSheet({ step, seq, people, places, editable, canRemove, branch, better, nameOf, when, onClose, onSave, onMove, onRemove }: {
+function ElementSheet({ step, seq, people, places, editable, canRemove, branch, better, nameOf, when, onClose, onSave, onAdd, onMove, onRemove }: {
   step?: ChangeoverStep; seq: ChangeoverStep[]; people: string[]; places: string[]; editable: boolean; canRemove: boolean;
   branch: { title: string; href: string }[];
   better?: { label: string; onClick: () => void };
   nameOf: (id: string) => string | undefined; when: (st: ChangeoverStep) => 'before' | 'after';
-  onClose: () => void; onSave: (st: ChangeoverStep) => void; onMove: (id: string, by: -1 | 1) => void; onRemove: (id: string) => void;
+  onClose: () => void; onSave: (st: ChangeoverStep) => void; onAdd: (st: ChangeoverStep) => void; onMove: (id: string, by: -1 | 1) => void; onRemove: (id: string) => void;
 }) {
   const last = seq.length ? seq[seq.length - 1] : undefined;
   const [name, setName] = useState(step?.name ?? '');
@@ -667,15 +669,30 @@ function ElementSheet({ step, seq, people, places, editable, canRemove, branch, 
   const bad = (!!time.trim() && sec === undefined) || (!!target.trim() && targetSec === undefined);
   const everyone = other.trim() && !crew.includes(other.trim()) ? [...crew, other.trim()] : crew;
   const ready = !!name.trim() && !bad;
-  const save = () => {
-    if (!ready) return;
+  /* ADD AND NEXT (a new element only): the sheet stays, the name and the time
+     clear, Internal or External and the person stay — and are SAID, never
+     silent — so eight elements are typed without opening the sheet eight times. */
+  const [added, setAdded] = useState<string[]>([]);
+  const nameBox = useRef<HTMLInputElement>(null);
+  const carriedCrew = !step && crew.length > 0 && !!last?.crew && last.crew.length === crew.length && crew.every(x => (last.crew ?? []).includes(x));
+  const build = (): ChangeoverStep | undefined => {
+    if (!ready) return undefined;
     const p: SmedPlan | undefined = plan ? { ...plan, ...(note.trim() ? { note: note.trim() } : { note: undefined }), ...(targetSec !== undefined ? { targetSec } : { targetSec: undefined }) } : undefined;
-    onSave({ id: step?.id ?? uid(), order: step?.order ?? (last ? last.order + 1 : 0), name: name.trim(), side,
+    return ({ id: step?.id ?? uid(), order: step?.order ?? (last ? last.order + 1 : 0), name: name.trim(), side,
       ...(sec !== undefined && sec > 0 ? { sec } : {}),
       /* timed stays timed when only its words change; a carried one opened and saved is as typed */
       source: step?.source === 'timed' && sec === step.sec ? 'timed' : 'typed', ...(step?.source === 'timed' && sec === step.sec ? { at: step.at, who: step.who } : sec !== undefined && sec > 0 ? { at: now() } : {}),
       ...(everyone.length ? { crew: everyone } : {}), ...(where.trim() ? { where: where.trim() } : {}), ...(fn ? { fn } : {}),
       ...(alongside ? { alongside } : {}), ...(p ? { plan: JSON.parse(JSON.stringify(p)) as SmedPlan } : {}), ...(step?.when ? { when: step.when } : {}) });
+  };
+  const save = () => { const st = build(); if (st) onSave(st); };
+  const addNext = () => {
+    const st = build();
+    if (!st) return;
+    onAdd(st);
+    setAdded(a => [...a, `${st.name}${st.sec ? ` (${dur(st.sec)})` : ''}`]);
+    setName(''); setTime(''); setWhere(''); setFn(undefined); setAlongside(''); setPlanState(undefined); setNote(''); setTarget(''); setOther('');
+    nameBox.current?.focus();
   };
   const kinds: [SmedPlanKind, string][] = side === 'internal' ? [['convert', '→E Convert to external'], ['streamline', '↓ Streamline'], ['eliminate', '✕ Eliminate'], ['keep', 'Keep']] : [['streamline', '↓ Streamline (organise)'], ['keep', 'Keep']];
   const howFor: SmedHow[] = plan?.kind === 'convert' ? CONVERT_HOW : plan?.kind === 'streamline' ? (side === 'external' ? ['organise'] : STREAMLINE_HOW.filter(h => h !== 'organise')) : plan?.kind === 'eliminate' ? ['no-adjust'] : [];
@@ -700,35 +717,8 @@ function ElementSheet({ step, seq, people, places, editable, canRemove, branch, 
       <div className="vs-step-acts"><button type="button" className="btn btn-ghost" onClick={onClose}>Close</button></div>
     </Sheet>
   );
-  return (
-    <Sheet open onClose={onClose} title={step ? 'The element' : 'Type an element'}>
-      {step && <div className="vs-facts"><h3>{step.name.trim() || 'An element'}</h3>{facts}</div>}
-      {branch.length > 0 && <div className="vs-branch"><small className="ie-h">Being made better</small>{branch.map(b => <p key={b.href}><button type="button" className="linkish" onClick={() => nav(b.href)}>{b.title}</button></p>)}</div>}
-      {better && <div className="vs-step-acts co-better"><button type="button" className="btn btn-primary" onClick={better.onClick}>{better.label}</button></div>}
-      <form className="vs-step" onSubmit={e => { e.preventDefault(); save(); }}>
-        <label className="field"><span className="field-label">What is done</span>
-          <input className="text-input" value={name} autoFocus={!step} maxLength={120} placeholder="e.g. Change the former tube" onChange={e => setName(e.target.value)} /></label>
-        <div className="field"><span className="field-label">Internal or external</span>
-          <span className="chip-row" role="radiogroup" aria-label="Internal or external">
-            {(['internal', 'external'] as ChangeoverSide[]).map(x => (
-              <button key={x} type="button" role="radio" aria-checked={side === x} className={'chip co-chip is-' + x + (side === x ? ' on' : '')}
-                onClick={() => { setSide(x); if (x === 'external' && (plan?.kind === 'convert' || plan?.kind === 'eliminate')) setPlanState(undefined); }}>{x === 'internal' ? 'Internal — the line stopped' : 'External — could be done while it runs'}</button>
-            ))}
-          </span></div>
-        <label className="field"><span className="field-label">How long it takes</span>
-          <input className="text-input" value={time} inputMode="text" placeholder="e.g. 4 min, 30 s" onChange={e => setTime(e.target.value)} />
-          <span className={'sub' + (time.trim() && sec === undefined ? ' vs-bad' : '')}>{time.trim() ? (sec !== undefined ? `= ${dur(sec)}` : 'Not a time — try "4 min" or "30 s"') : 'a bare number is minutes'}</span></label>
-        <div className="field"><span className="field-label">Who does it — one or more</span>
-          <span className="chip-row" role="group" aria-label="Who does it">
-            {[...new Set([...crew, ...people])].map(p => (
-              <button key={p} type="button" aria-pressed={crew.includes(p)} className={'chip' + (crew.includes(p) ? ' on' : '')}
-                onClick={() => setCrew(w => (w.includes(p) ? w.filter(x => x !== p) : [...w, p]))}>{p}</button>
-            ))}
-          </span>
-          <span className="vs-other">
-            <input className="text-input" value={other} maxLength={60} aria-label="Someone else" placeholder="Someone else — e.g. Op 4, the electrician"
-              onChange={e => setOther(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (other.trim()) { setCrew(w => (w.includes(other.trim()) ? w : [...w, other.trim()])); setOther(''); } } }} />
-          </span></div>
+  const rest = (
+    <>
         <label className="field"><span className="field-label">Where — the part of the machine <i className="sub">optional</i></span>
           <input className="text-input" value={where} list="co-places" maxLength={60} placeholder="e.g. the jaws, the film unit, the former" onChange={e => setWhere(e.target.value)} />
           <datalist id="co-places">{places.map(x => <option key={x} value={x} />)}</datalist></label>
@@ -760,8 +750,45 @@ function ElementSheet({ step, seq, people, places, editable, canRemove, branch, 
             </>
           )}
         </div>
+    </>
+  );
+  return (
+    <Sheet open onClose={onClose} title={step ? 'The element' : 'Type an element'}>
+      {step && <div className="vs-facts"><h3>{step.name.trim() || 'An element'}</h3>{facts}</div>}
+      {branch.length > 0 && <div className="vs-branch"><small className="ie-h">Being made better</small>{branch.map(b => <p key={b.href}><button type="button" className="linkish" onClick={() => nav(b.href)}>{b.title}</button></p>)}</div>}
+      {better && <div className="vs-step-acts co-better"><button type="button" className="btn btn-primary" onClick={better.onClick}>{better.label}</button></div>}
+      <form className="vs-step" onSubmit={e => { e.preventDefault(); if (step) save(); else addNext(); }}>
+        {!step && added.length > 0 && <p className="sub co-added" role="status" aria-live="polite">{added.length} added so far — the last: {added[added.length - 1]}. Type the next, or Add it to finish.</p>}
+        <label className="field"><span className="field-label">What is done</span>
+          <input className="text-input" ref={nameBox} value={name} autoFocus={!step} maxLength={120} placeholder="e.g. Change the former tube" onChange={e => setName(e.target.value)} /></label>
+        <div className="field"><span className="field-label">Internal or external</span>
+          <span className="chip-row" role="radiogroup" aria-label="Internal or external">
+            {(['internal', 'external'] as ChangeoverSide[]).map(x => (
+              <button key={x} type="button" role="radio" aria-checked={side === x} className={'chip co-chip is-' + x + (side === x ? ' on' : '')}
+                onClick={() => { setSide(x); if (x === 'external' && (plan?.kind === 'convert' || plan?.kind === 'eliminate')) setPlanState(undefined); }}>{x === 'internal' ? 'Internal — the line stopped' : 'External — could be done while it runs'}</button>
+            ))}
+          </span></div>
+        <label className="field"><span className="field-label">How long it takes</span>
+          <input className="text-input" value={time} inputMode="text" placeholder="e.g. 4 min, 90 s, 1:30" onChange={e => setTime(e.target.value)} />
+          <span className={'sub' + (time.trim() && sec === undefined ? ' vs-bad' : '')}>{time.trim() ? (sec !== undefined ? `= ${dur(sec)}` : 'Not a time — try "4 min", "90 s" or "1:30"') : 'a bare number is minutes; 1:30 is a minute and a half'}</span></label>
+        <div className="field"><span className="field-label">Who does it — one or more</span>
+          {carriedCrew && <span className="sub co-carry" role="status">Same as the last element: {crew.join(', ')}. Tap a name to change it, or <button type="button" className="linkish" onClick={() => setCrew([])}>nobody</button>.</span>}
+          <span className="chip-row" role="group" aria-label="Who does it">
+            {[...new Set([...crew, ...people])].map(p => (
+              <button key={p} type="button" aria-pressed={crew.includes(p)} className={'chip' + (crew.includes(p) ? ' on' : '')}
+                onClick={() => setCrew(w => (w.includes(p) ? w.filter(x => x !== p) : [...w, p]))}>{p}</button>
+            ))}
+          </span>
+          <span className="vs-other">
+            <input className="text-input" value={other} maxLength={60} aria-label="Someone else" placeholder="Someone else — e.g. Op 4, the electrician"
+              onChange={e => setOther(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (other.trim()) { setCrew(w => (w.includes(other.trim()) ? w : [...w, other.trim()])); setOther(''); } } }} />
+          </span></div>
+        {step ? rest : <details className="co-more"><summary>More — where, the kind of work, the plan <i className="sub">optional; each can be set on the element's row after</i></summary>{rest}</details>}
         <div className="vs-step-acts">
-          <button type="submit" className="btn btn-primary" disabled={!ready}>{step ? 'Save' : 'Add it'}</button>
+          {step ? <button type="submit" className="btn btn-primary" disabled={!ready}>Save</button> : <>
+            <button type="submit" className="btn btn-primary" disabled={!ready}>Add and next</button>
+            <button type="button" className="btn" disabled={!ready} onClick={save}>Add it</button>
+          </>}
           {step && <>
             <button type="button" className="btn" onClick={() => onMove(step.id, -1)}>Earlier</button>
             <button type="button" className="btn" onClick={() => onMove(step.id, 1)}>Later</button>

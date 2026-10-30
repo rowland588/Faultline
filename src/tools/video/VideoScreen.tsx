@@ -48,7 +48,7 @@ import { isRunning, resumeLeftJobs, runJob } from './runner';
 import { readObjective, questionsFor, answer } from './ask';
 import { assistLabeller } from './providers';
 import { BASIS_WORD, EVENT_CATEGORIES, EVENT_WORD, FLAG_WORD, KIND_WORD, READING_VERSION, type EventCategory, type FootageScan, type VideoEvent, type VideoFacts, type VideoSource, type VideoStudyKind, type VideoZone, type Viewpoint } from './record';
-import { KINDS, OBJECTIVES, READINESS_WORD, VIEWPOINTS } from './objectives';
+import { KINDS_BY_READINESS, OBJECTIVES, READINESS_WORD, VIEWPOINTS, startable } from './objectives';
 import { capturePlan } from './capture';
 import { assessFootage } from './assess';
 import { FilmPlan, FitView } from './VideoFit';
@@ -212,7 +212,8 @@ function NewVideoStudy({ open, onClose, project }: { open: boolean; onClose: () 
     try { const sc = await scanFootage(f, dur); if (mine === picking.current) { setScan(sc); setScanning('no'); } }
     catch (e) { console.warn('the quick look at the footage did not finish', e); if (mine === picking.current) setScanning('failed'); }
   };
-  const ok = !!file && !!facts && !problems.length && !reading && !busy;
+  const can_ = startable(kind);
+  const ok = !!file && !!facts && !problems.length && !reading && !busy && can_;
   const make = async () => {
     if (!ok || !file || !facts) return;
     setBusy(true);
@@ -241,8 +242,8 @@ function NewVideoStudy({ open, onClose, project }: { open: boolean; onClose: () 
         <div className="vfit-pick">
           <label className="field"><span className="field-label">The study</span>
             <select className="text-input" value={kindPick} aria-label="The study" onChange={e => setKindPick(e.target.value as VideoStudyKind | '')}>
-              <option value="">{KIND_WORD[read.kind]} — from the words</option>
-              {KINDS.map(k => <option key={k} value={k}>{KIND_WORD[k]} — {READINESS_WORD[OBJECTIVES[k].readiness].toLowerCase()}</option>)}
+              <option value="">{KIND_WORD[read.kind]} — from the words{startable(read.kind) ? '' : ' (not measured from footage yet)'}</option>
+              <KindOptions />
             </select>
           </label>
           {(OBJECTIVES[kind].minCycles ?? 0) > 0 && (
@@ -291,6 +292,7 @@ function NewVideoStudy({ open, onClose, project }: { open: boolean; onClose: () 
         <label className="field"><span className="field-label">Its name</span>
           <input className="text-input" value={name} maxLength={120} aria-label="Its name" onChange={e => setName(e.target.value)} />
         </label>
+        {!can_ && <p className="sub vid-notyet" role="note">Faultline does not measure {KIND_WORD[kind].toLowerCase()} from footage yet, so a study of it cannot be started. Pick a study measured today, or use {OBJECTIVES[kind].meanwhile ? `${OBJECTIVES[kind].meanwhile?.tool} meanwhile` : 'the tool by hand'}.</p>}
         <button type="submit" className="btn btn-primary" disabled={!ok}>{busy ? 'Saving…' : 'Start the study'}</button>
       </form>
     </Sheet>
@@ -475,7 +477,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
           <div className="vfit-pick">
             <label className="field"><span className="field-label">The study</span>
               <select className="text-input" value={kind} aria-label="The study" onChange={e => void patchV({ kind: e.target.value as VideoStudyKind })}>
-                {KINDS.map(k => <option key={k} value={k}>{KIND_WORD[k]} — {READINESS_WORD[OBJECTIVES[k].readiness].toLowerCase()}</option>)}
+                <KindOptions />
               </select>
             </label>
             <label className="field"><span className="field-label">Where was the phone?</span>
@@ -700,6 +702,18 @@ function Stations({ zones, disabled, onChange }: { zones: readonly VideoZone[]; 
   );
 }
 
+/** THE STUDIES TO PICK FROM — the measured ones first, then the partly measured; those Faultline does not measure
+ *  from footage yet are listed last, greyed, each saying so (docs/VIDEO-DESIGN.md) — they cannot be picked. */
+function KindOptions() {
+  return <>
+    {KINDS_BY_READINESS.map(g => (
+      <optgroup key={g.readiness} label={g.title}>
+        {g.kinds.map(k => <option key={k} value={k} disabled={!startable(k)}>{KIND_WORD[k]} — {READINESS_WORD[OBJECTIVES[k].readiness].toLowerCase()}</option>)}
+      </optgroup>
+    ))}
+  </>;
+}
+
 /** Every event on a lane of its station, the playhead across them; a tap plays from there. */
 function Timeline({ zones, events, durationSec, t, onPick }: { zones: readonly VideoZone[]; events: readonly VideoEvent[]; durationSec: number; t: number; onPick: (s: number) => void }) {
   const pc = (x: number) => `${(x / Math.max(0.001, durationSec)) * 100}%`;
@@ -708,9 +722,15 @@ function Timeline({ zones, events, durationSec, t, onPick }: { zones: readonly V
       {zones.map(z => (
         <div key={z.id} className="vid-lane">
           <span className="vid-lane-l">{z.label}</span>
-          <div className="vid-lane-t">
+          {/* a thin block is hard to hit: the whole lane is the target — a tap plays from the event nearest it (within a thumb's reach) */}
+          <div className="vid-lane-t" onClick={ev => {
+            const r = ev.currentTarget.getBoundingClientRect(), x = ev.clientX - r.left, px = (sec: number) => (sec / Math.max(0.001, durationSec)) * r.width;
+            let best: VideoEvent | undefined, far = Infinity;
+            for (const e of events) { if (e.zone !== z.id) continue; const a = px(e.start), b = px(e.end), d = x < a ? a - x : x > b ? x - b : 0; if (d < far) { far = d; best = e; } }
+            if (best && far <= 24) onPick(best.start);
+          }}>
             {events.filter(e => e.zone === z.id).map(e => (
-              <button key={e.id} type="button" className={`vid-bar is-${e.review}`} style={{ left: pc(e.start), width: pc(e.end - e.start) }} title={`${clock(e.start)}–${clock(e.end)} ${EVENT_WORD[e.category]}`} aria-label={`${z.label} ${clock(e.start)} to ${clock(e.end)}`} onClick={() => onPick(e.start)} />
+              <button key={e.id} type="button" className={`vid-bar is-${e.review}`} style={{ left: pc(e.start), width: pc(e.end - e.start) }} title={`${clock(e.start)}–${clock(e.end)} ${EVENT_WORD[e.category]}`} aria-label={`${z.label} ${clock(e.start)} to ${clock(e.end)}`} onClick={ev => { ev.stopPropagation(); onPick(e.start); }} />
             ))}
             <span className="vid-head-line" style={{ left: pc(t) }} />
           </div>

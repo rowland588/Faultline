@@ -154,6 +154,73 @@ await page.getByLabel('How long it takes').fill('5');
 await page.getByRole('button', { name: 'Add it' }).click(); await page.waitForTimeout(600);
 t = await truth(Q);
 ok(t.facts.sequence.length === 3 && t.facts.sequence[2].sec === 300 && t.facts.sequence[2].source === 'typed', '1 a third typed: "5" is five minutes, 300 s');
+/* 1b · ADD AND NEXT (30 October — the audit: "each typed element costs about 5 actions, 41 for 8, the sheet closes after every Add,
+   Who silently carries over"): the sheet stays open, the name and time clear, Internal/External and the person stay — and are SAID —
+   Enter adds, and the time takes "90 s", "1:30", "1.5 min" and a bare number of minutes */
+{
+  let acts = 0;
+  const A = async f => { acts++; await f(); };
+  await A(() => page.getByRole('button', { name: '+ Type an element' }).click()); await page.waitForTimeout(300);
+  const carried0 = (await words('.co-carry', dialog())) ?? '';
+  ok(/^Same as the last element: Op 2\./.test(carried0) && (await dialog().getByRole('button', { name: 'nobody' }).count()) === 1,
+    `1b the person carried over is SAID, with one tap to clear it: "${carried0}"`);
+  ok((await dialog().locator('details.co-more').count()) === 1 && !(await dialog().locator('details.co-more').evaluate(d => d.open)), '1b where, the kind of work and the plan folded away on a new element — optional, set on its row after');
+  const eight = [['Remove the old former', '90 s', 90], ['Fit the new former', '1:30', 90], ['Align the film', '1.5 min', 90], ['Set the jaws', '2', 120],
+    ['Check the seal', '45 s', 45], ['Fill the hopper', '0:45', 45], ['First packs and weigh', '3 min', 180], ['Release at rate', '30 s', 30]];
+  for (const [i, [nm, tm]] of eight.entries()) {
+    await A(() => dialog().getByLabel('What is done').fill(nm));
+    await A(() => dialog().getByLabel('How long it takes').fill(tm));
+    if (i === 7) { await A(() => dialog().getByRole('button', { name: 'Add it', exact: true }).click()); }
+    else if (i === 2) { await A(() => dialog().getByLabel('How long it takes').press('Enter')); }
+    else { await A(() => dialog().getByRole('button', { name: 'Add and next' }).click()); }
+    await page.waitForTimeout(250);
+    if (i === 0 || i === 2) {
+      const empty = (await dialog().getByLabel('What is done').inputValue()) === '' && (await dialog().getByLabel('How long it takes').inputValue()) === '';
+      const focused = await page.evaluate(() => (document.activeElement?.closest('label')?.textContent ?? '').startsWith('What is done'));
+      const status = (await words('.co-added', dialog())) ?? '';
+      ok(empty && focused && new RegExp(`^${i + 1} added so far — the last: ${nm}`).test(status), `1b "${nm}" added and the sheet stays: name and time clear, the cursor back on the name, "${status.slice(0, 60)}"`);
+    }
+  }
+  ok((await page.locator('[role="dialog"]').count()) === 0, '1b the last one added with "Add it" closes the sheet');
+  t = await truth(Q);
+  const got = t.facts.sequence.slice(3);
+  ok(got.length === 8 && got.every((x, i) => x.name === eight[i][0] && x.sec === eight[i][2] && x.source === 'typed' && x.side === 'internal' && (x.crew ?? []).join() === 'Op 2'),
+    `1b eight elements: ${got.map(x => `${x.sec} s`).join(', ')} — "90 s", "1:30", "1.5 min", a bare 2 (minutes), "45 s", "0:45", "3 min", "30 s"; the person carried and said`);
+  ok(new Set(got.map(x => x.order)).size === 8 && got.every((x, i) => i === 0 || x.order > got[i - 1].order), '1b in the order typed');
+  /* the action count: opening, then name + time + one tap each — 25 for eight, against 41 before */
+  ok(acts <= 25, `1b eight elements in ${acts} actions (open, then a name, a time and one tap each) — it was 41`);
+  /* internal/external stays; the person changed on one tap each; nobody */
+  await page.getByRole('button', { name: '+ Type an element' }).click(); await page.waitForTimeout(300);
+  await dialog().getByRole('radio', { name: /^External/ }).click();
+  await dialog().getByLabel('What is done').fill('Stage the next film reel');
+  await dialog().getByLabel('How long it takes').fill('2 min');
+  await dialog().getByRole('button', { name: 'Op 2', exact: true }).click(); await dialog().getByRole('button', { name: 'Fitter', exact: true }).click();
+  ok((await dialog().locator('.co-carry').count()) === 0, '1b a person changed by tapping names: the "same as the last" line goes — nothing is carried that was changed');
+  await dialog().getByRole('button', { name: 'Add and next' }).click(); await page.waitForTimeout(300);
+  ok((await dialog().getByRole('radio', { name: /^External/ }).getAttribute('aria-checked')) === 'true' && /^Same as the last element: Fitter\./.test((await words('.co-carry', dialog())) ?? ''),
+    '1b External stays chosen for the next, and the person just added is said: "Same as the last element: Fitter."');
+  await dialog().getByLabel('What is done').fill('Wipe the sealing jaws');
+  await dialog().getByLabel('How long it takes').fill('soon');
+  ok(await dialog().getByRole('button', { name: 'Add and next' }).isDisabled() && /Not a time — try "4 min", "90 s" or "1:30"/.test((await dialog().innerText()).replace(/\s+/g, ' ')), '1b a time that is not a time is refused in words, nothing added');
+  await dialog().getByLabel('How long it takes').fill('1:30');
+  await dialog().getByRole('button', { name: 'nobody' }).click();
+  await dialog().getByRole('button', { name: 'Add it', exact: true }).click(); await page.waitForTimeout(500);
+  t = await truth(Q);
+  const [x9, x10] = t.facts.sequence.slice(11);
+  ok(t.facts.sequence.length === 13 && x9.side === 'external' && x9.sec === 120 && x9.crew?.join() === 'Fitter' && x10.side === 'external' && x10.sec === 90 && !x10.crew,
+    `1b Stage the next film reel: external, 2 min, Fitter; Wipe the sealing jaws: external kept, 1:30, nobody (cleared on one tap)`);
+  /* phone and desk: nothing off the side, with the sheet open */
+  for (const [w, h] of [[375, 812], [1360, 860], [390, 844]]) {
+    await page.setViewportSize({ width: w, height: h }); await page.waitForTimeout(300);
+    await page.getByRole('button', { name: '+ Type an element' }).click(); await page.waitForTimeout(300);
+    const sw = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, w: window.innerWidth, sheet: Math.max(0, ...[...document.querySelectorAll('[role="dialog"] *')].map(e => e.getBoundingClientRect().right)) }));
+    const btn = await dialog().getByRole('button', { name: 'Add and next' }).boundingBox();
+    ok(sw.doc <= sw.w && sw.sheet <= sw.w + 1 && btn && btn.height >= 40, `1b the sheet at ${w} px: nothing off the side (${sw.doc} of ${sw.w}), Add and next ${Math.round(btn?.height ?? 0)} px high`);
+    await dialog().getByRole('button', { name: 'Cancel' }).click(); await page.waitForTimeout(400);
+  }
+  t = await truth(Q);
+  ok(t.facts.sequence.length === 13, '1b Cancel adds nothing');
+}
 /* the grid: lanes by who, I solid, E hatched */
 {
   const lanes = (await page.locator('.co-grid .vs-lane').allInnerTexts()).map(x => x.trim());

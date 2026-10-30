@@ -54,6 +54,7 @@ const SESSION = {
 };
 const IGNORE = /Supabase|net::ERR|Failed to fetch|ERR_FAILED|aborted|WebSocket|tunnel|Download the React DevTools/i;
 const OUT = mkdtempSync(join(tmpdir(), 'acceptance-'));
+const SHOTS = process.env.SHOTS;
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
 const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1360, height: 900 }, locale: 'en-GB', acceptDownloads: true });
@@ -155,6 +156,88 @@ t = await truth(SID);
   t = await truth(SID);
   const sealSays = t.els.find(e => e.name === 'Check the seal')?.says ?? '';
   ok(/observed at 125/.test(sealSays) && (await words('.wb-said', row)) === sealSays, `3 rated 125: "${sealSays}"`);
+}
+
+/* ---- 3b · the pace on one tap (30 October — the audit: "a pace is typed per step, a 34px number box each"; Rowland: "tools that are
+   ready and functional"): chips 90 · 100 · 110 · 120 on every timed step of the Times tab, the same field as the box (50-150) —
+   a tap fills it, a second tap clears it; Rest at 100 and Set every unrated step to… rate what is left in one tap; a step already
+   rated keeps its own; a machine's run is never rated; 44 px targets on a phone; a client sees none of it ---- */
+{
+  const mine = await page.evaluate(async ([ws, pid]) => {
+    const db = await import('/src/db.ts'); const { uid } = await import('/src/lib/ids.ts');
+    const t = Date.now(), id = uid();
+    const lap = xs => xs.map((sec, i) => ({ id: uid(), sec, at: t - (60 - i) * 15_000, who: 'K. Ahmed' }));
+    await db.putStandard({ id, projectId: pid, workspaceId: ws, product: 'Pace chips 1kg', marks: [], capacity: { stations: [] }, sort: 9, createdAt: t, updatedAt: t });
+    const steps = [['Load the sealer', [6.1, 5.9, 6.0, 6.2, 5.8]], ['Inspect the pack', [12, 11.5, 12.4, 12.1, 11.9]], ['Fold the case', [8.0, 8.2, 7.9, 8.1, 8.0]], ['Tape the case', [5.0, 5.2, 4.9, 5.1, 5.0]], ['Stack the tray', [9.0, 9.4, 8.8, 9.1, 9.0]]]
+      .map(([name, laps], i) => ({ id: uid(), order: i, name, who: 'Op 1', laps: lap(laps) }));
+    steps.push({ id: uid(), order: 5, name: 'Sealer runs', who: 'Op 1', kind: 'machine', typedSec: 30 });
+    await db.putStudy({ id: uid(), tool: 'balance', name: 'Pace chips 1kg', standardId: id, workspaceId: ws, projectId: pid, agreed: { balance: { taktSec: 45 } }, facts: { steps }, uses: [], startedAt: t - 3_600_000, createdAt: t, updatedAt: t });
+    return { id, names: steps.map(x => x.name) };
+  }, [sd.wsId, sd.projectId]);
+  const PACE = `#/w/${sd.wsId}/standards/${mine.id}?at=balance&view=work&lens=times`;
+  const ratings = () => page.evaluate(async sid => {
+    const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts');
+    const s = S.currentBalance(await db.listAllStudies(), sid); const B = await import('/src/tools/linework/balance.ts');
+    const a = (await import('/src/tools/linework/balanceLink.ts')).agreedFor(s.agreed?.balance, undefined, false);
+    const f = B.balance(s.facts.steps, a, []);
+    return Object.fromEntries(s.facts.steps.map(x => { const e = f.elements.find(y => y.id === x.id); return [x.name, { rating: x.rating ?? null, basic: e?.basic ?? null, observed: e?.observed ?? null }]; }));
+  }, mine.id);
+  const row = n => page.locator('.wb-tr', { hasText: n });
+  const bulk = () => words('.wb-bulk');
+  for (const [w, h] of [[1360, 900], [375, 812]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await go(PACE);
+    await page.locator('.wb-times').waitFor({ timeout: 10000 }).catch(() => {});
+    if (w === 1360) {
+      ok(/^5 timed steps are not rated/.test((await bulk()) ?? '') && (await page.locator('.wb-tr').count()) === 6 && (await page.locator('.wb-pace-chips').count()) === 5,
+        `3b the Times tab: "${(await bulk())?.slice(0, 60)}" — a row of chips on each of the five timed steps, none on the machine's run`);
+      const labels = await row('Load the sealer').locator('.wb-pace-chip').allInnerTexts();
+      ok(labels.join() === '90,100,110,120', `3b the chips: ${labels.join(' · ')}`);
+      await row('Load the sealer').getByRole('button', { name: '90', exact: true }).click(); await page.waitForTimeout(700);
+      let r = await ratings();
+      ok(r['Load the sealer'].rating === 90 && Math.abs(r['Load the sealer'].basic - r['Load the sealer'].observed * 0.9) < 1e-9 && /^4 timed steps are not rated/.test((await bulk()) ?? ''),
+        `3b one tap on 90 fills the same field — basic = observed × 90 ÷ 100 (${r['Load the sealer'].basic?.toFixed(2)} s), four left unrated`);
+      ok(await row('Load the sealer').getByRole('button', { name: '90', exact: true }).getAttribute('aria-pressed') === 'true' && (await row('Load the sealer').getByLabel(/^Pace seen/).inputValue()) === '90', '3b the chip lit and the number box says 90 — one field');
+      await row('Load the sealer').getByRole('button', { name: '90', exact: true }).click(); await page.waitForTimeout(600);
+      r = await ratings();
+      ok(r['Load the sealer'].rating === null && /^5 timed steps/.test((await bulk()) ?? ''), '3b the lit chip tapped again clears it — back to not rated');
+      await row('Load the sealer').getByRole('button', { name: '120', exact: true }).click(); await page.waitForTimeout(600);
+      await row('Inspect the pack').getByLabel(/^Pace seen/).fill('95'); await row('Inspect the pack').getByLabel(/^Pace seen/).press('Tab'); await page.waitForTimeout(600);
+      r = await ratings();
+      ok(r['Load the sealer'].rating === 120 && r['Inspect the pack'].rating === 95 && /^3 timed steps are not rated/.test((await bulk()) ?? ''), '3b the box still takes any pace from 50 to 150 (95): the chips are only the usual ones');
+      await page.getByRole('group', { name: 'Set every unrated step to' }).getByRole('button', { name: '110', exact: true }).click(); await page.waitForTimeout(800);
+      r = await ratings();
+      ok(r['Fold the case'].rating === 110 && r['Tape the case'].rating === 110 && r['Stack the tray'].rating === 110 && r['Load the sealer'].rating === 120 && r['Inspect the pack'].rating === 95 && r['Sealer runs'].rating === null,
+        '3b "Set every unrated step to 110": the three unrated at 110, the two already rated keep their own, the machine’s run is never rated');
+      ok((await page.locator('.wb-bulk').count()) === 0, '3b nothing unrated — the bar goes');
+      await row('Tape the case').getByRole('button', { name: '110', exact: true }).click(); await page.waitForTimeout(500);
+      await row('Stack the tray').getByRole('button', { name: '110', exact: true }).click(); await page.waitForTimeout(600);
+      ok(/^2 timed steps are not rated/.test((await bulk()) ?? ''), '3b two cleared — two unrated again');
+      await page.getByRole('button', { name: 'Rest at 100' }).click(); await page.waitForTimeout(800);
+      r = await ratings();
+      ok(r['Tape the case'].rating === 100 && r['Stack the tray'].rating === 100 && r['Fold the case'].rating === 110 && (await page.locator('.wb-bulk').count()) === 0
+        && !/not rated/.test(await row('Tape the case').innerText()), '3b "Rest at 100": the last two rated 100 and say so no more; the one at 110 kept');
+      /* a client: no chips, no bar */
+      await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
+      await go(`${J}/standard/${mine.id}?at=balance&view=work&lens=times`);
+      await page.locator('.wb-times').waitFor({ timeout: 10000 }).catch(() => {});
+      ok((await page.locator('.wb-pace-chip').count()) === 0 && (await page.locator('.wb-bulk').count()) === 0 && (await page.locator('.wb-times input[aria-label^="Pace seen"]').count()) === 0, '3b a client reads the paces and sets none');
+      await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
+      await go(PACE);
+      await page.locator('.wb-times').waitFor({ timeout: 10000 }).catch(() => {});
+    } else {
+      /* the phone: a card a step, chips on 44 px targets, nothing off the side — make two unrated again on the way */
+      for (const n of ['Tape the case', 'Stack the tray']) { await row(n).getByLabel(/^Pace seen/).fill(''); await row(n).getByLabel(/^Pace seen/).press('Tab'); await page.waitForTimeout(500); }
+      await page.waitForTimeout(600);
+      const sizes = await page.locator('.wb-pace-chip').evaluateAll(els => els.map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
+      const bulkSizes = await page.locator('.wb-bulk button').evaluateAll(els => els.map(e => { const r = e.getBoundingClientRect(); return Math.round(r.height); }));
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      ok(sizes.length >= 20 && sizes.every(([sw, sh]) => sw >= 44 && sh >= 44) && bulkSizes.length === 5 && bulkSizes.every(x => x >= 44), `3b on a phone every pace chip is at least 44 × 44 (${sizes.length} of them, smallest ${Math.min(...sizes.map(x => x[0]))} × ${Math.min(...sizes.map(x => x[1]))}) and the bulk buttons ${Math.min(...bulkSizes)} px high`);
+      ok(over <= 1, `3b on a phone nothing is off the side (${over} px)`);
+      if (SHOTS) await page.screenshot({ path: `${SHOTS}/wb-pace-phone.png`, fullPage: false });
+    }
+  }
+  await page.setViewportSize({ width: 1360, height: 900 });
 }
 
 /* ---- 4 · the map reads it ---- */
