@@ -32,7 +32,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
 const P = sd.projectId;
 const prog = id => page.evaluate(async id => { const db = await import('/src/db.ts'); return (await db.listAllPrograms()).find(p => p.id === id) ?? null; }, id);
 const tests = () => page.evaluate(async pid => { const db = await import('/src/db.ts'); return (await db.listTests(pid)).filter(t => t.programId && !t.deletedAt).map(t => ({ id: t.id, title: t.title, programId: t.programId, outcome: t.outcome, plannedFor: t.plannedFor })); }, P);
-const rowWord = async what => page.evaluate(w => { const r = [...document.querySelectorAll('.pgr')].find(x => x.querySelector('.pgr-name')?.textContent.trim() === w); return r ? r.querySelector('.spp-pill')?.textContent.trim() : null; }, what);
+const rowWord = async what => page.evaluate(w => { const r = [...document.querySelectorAll('.pgr')].find(x => x.querySelector('.pgr-name')?.textContent.trim() === w); return r ? r.querySelector('.status-pill')?.textContent.trim() : null; }, what);
 
 /* 1 · a booked test deleted: its program forgets the day */
 let ts = await tests();

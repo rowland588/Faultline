@@ -133,7 +133,7 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
             <ol className="pl-machines">
               {lineProgs.map(l => (
                 <li key={(l.programId ?? l.partId ?? l.what)} className="pl-machine">
-                  <b>{l.what}</b><span className={'spp-pill is-' + l.tone}>{l.word}</span>{l.runs && <span className="sub">{l.runs}</span>}
+                  <b>{l.what}</b><span className={'status-pill is-' + l.tone}>{l.word}</span>{l.runs && <span className="sub">{l.runs}</span>}
                 </li>
               ))}
             </ol>

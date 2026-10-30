@@ -262,7 +262,7 @@ function StageRow({ l, onOpen }: { l: ProgramLine; onOpen: () => void }) {
   return (
     <li className="pgr lp-row" data-stage-program={l.what}>
       <button type="button" className="pgr-main" onClick={onOpen} aria-label={`${l.what} — ${l.word}, on its project's Programs`}>
-        <span className="pgr-top"><span className="pgr-name">{l.what}</span><span className={'spp-pill is-' + l.tone}>{l.word}</span></span>
+        <span className="pgr-top"><span className="pgr-name">{l.what}</span><span className={'status-pill is-' + l.tone}>{l.word}</span></span>
         <span className="pgr-meta">{l.machine}{l.runs ? ` · runs ${l.runs}` : ''}</span>
         {l.note && <span className="pgr-said">{l.note}</span>}
       </button>
