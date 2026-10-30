@@ -7919,8 +7919,13 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .ls-board.is-drawing { touch-action: none; }
 .ls-shape, .ls-handle { touch-action: none; }
 /* under the board: its picture, and a plain board's shape */
+.ls-room { display: none; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0; font-size: var(--t-detail); color: var(--ink-2); }
 .ls-board-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .ls-shape-pick .chip { min-height: 32px; padding: 4px 12px; }
+@media (max-width: 640px) {
+  .ls-room { display: flex; }
+  .ls-room .btn, .ls-shape-pick .chip, .ls-tool { min-height: 44px; }
+}
 /* a person's colour (13 October) — a disc and its word */
 .ls-pcols { display: flex; flex-wrap: wrap; gap: 6px; }
 .ls-pcol { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px 4px 6px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--surface); font: inherit; font-size: var(--t-detail); font-weight: 600; color: var(--ink); cursor: pointer; }
@@ -13494,7 +13499,20 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .capx .cap-st-h .cw-seg .chip { min-height: 36px; padding: 0 12px; font-size: var(--t-detail); }
 .capx .cap-st-h .in-usual-b { min-width: 34px; min-height: 36px; padding: 0 6px; }
 .capx .cap-st-h .btn-sm { min-height: 36px; }
-@media (max-width: 719px) { .capx .cap-st-h { flex-wrap: wrap; } }
+@media (max-width: 719px) {
+  .capx .cap-st-h { flex-wrap: wrap; }
+  /* a shut station on a phone: its number, name and Edit on one row; its kind and moves on the next */
+  .capx .cap-st-acts { display: contents; }
+  .capx .cap-st-n { order: 0; }
+  .capx .cap-st-h .cap-name { order: 1; flex: 1 1 0; }
+  .capx .cap-st-edit { order: 2; min-height: 44px; min-width: 56px; }
+  .capx .cap-st-h .cw-seg { order: 3; }
+  .capx .cap-st-h .in-usual-b { order: 4; min-width: 44px; min-height: 44px; }
+  .capx .cap-st-h .cw-seg .chip { min-height: 44px; }
+}
+.cap-like { margin: 2px 0 0 34px; font-size: var(--t-label); }
+.cap-like .cw-link { min-height: 32px; }
+@media (max-width: 719px) { .cap-like .cw-link { min-height: 44px; display: inline-flex; align-items: center; } .cap-like .sub { display: none; } }
 
 /* ONE ROW A PROGRAM (ui/ProgramRow; Rowland, 16 October: "too many views and
    doors"). The name and its one status on the first line, what it runs and
@@ -14101,11 +14119,17 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .vid-tl { margin: 10px 0; display: grid; gap: 4px; }
 .vid-lane { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 8px; }
 .vid-lane-l { font-size: var(--t-detail); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vid-lane-t { position: relative; height: 22px; background: var(--paper, var(--bg)); border: 1px solid var(--line); border-radius: var(--radius-xs); }
+.vid-lane-t { position: relative; height: 22px; cursor: pointer; background: var(--paper, var(--bg)); border: 1px solid var(--line); border-radius: var(--radius-xs); }
 .vid-bar { position: absolute; top: 3px; bottom: 3px; min-width: 3px; border-radius: var(--radius-xs); border: 1px solid var(--st-n-ink); background: transparent; padding: 0; cursor: pointer; }
 .vid-bar.is-candidate { background: color-mix(in srgb, var(--st-n) 45%, transparent); }
 .vid-bar.is-accepted { background: color-mix(in srgb, var(--st-g) 40%, transparent); border-color: var(--st-g); }
 .vid-bar.is-rejected { background: repeating-linear-gradient(45deg, transparent 0 3px, var(--line) 3px 5px); border-style: dashed; }
+@media (max-width: 719px) {
+  /* a thin block is no target for a thumb: the lane is 44px high and a tap anywhere near an event plays from it */
+  .vid-lane-t { height: 44px; }
+  .vid-bar { top: 14px; bottom: 14px; min-width: 6px; }
+  .vid-ev select { min-height: 44px; }
+}
 .vid-head-line { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); pointer-events: none; }
 .vid-events { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
 .vid-ev { display: grid; grid-template-columns: 120px 150px 1fr; gap: 4px 10px; align-items: start; padding: 8px 10px; border: 1px solid var(--line); border-left: 4px solid var(--st-n); border-radius: var(--radius-sm); }
@@ -15017,6 +15041,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .wb-tbl tr.is-r th, .wb-tbl tr.is-r td { color: var(--st-r); font-weight: 700; }
 .wb-pace { display: grid; gap: 2px; }
 .wb-pace .text-input { width: 5.5em; min-height: 34px; padding: 4px 8px; }
+.wb-pace-chips { gap: 6px; }
+.wb-pace-chip { min-height: 44px; min-width: 44px; justify-content: center; }
+.wb-bulk { display: grid; gap: 8px; margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
+.wb-bulk p { margin: 0; }
+.wb-bulk .btn { min-height: 44px; }
 .wb-task { margin: 6px 0 0; }
 .wb-allow, .wb-lib, .wb-tend, .wb-prop, .wb-im-says, .wb-rate, .wb-parts, .wb-empty { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 12px; display: grid; gap: 8px; }
 .wb-allow p, .wb-lib p, .wb-tend p, .wb-prop p, .wb-empty p { margin: 0; }

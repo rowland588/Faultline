@@ -53,6 +53,7 @@ const page = await ctx.newPage();
 page.on('dialog', d => void d.accept());
 const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/supabase|net::|Failed to fetch|DevTools/i.test(m.text())) errs.push(m.text().slice(0, 150)); });
 let fail = 0; const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail++; };
+const words = async sel => ((await page.locator(sel).count()) ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : null);
 
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
@@ -86,7 +87,25 @@ await page.mouse.move(p.x, p.y); await page.mouse.down(); await page.mouse.move(
 ok(await count() === n0, `2 a drag across the empty board places nothing (${await count()} of ${n0})`);
 p = at(0.7, 0.4);
 await page.mouse.click(p.x, p.y); await page.waitForTimeout(800);
-ok(await count() === n0 + 1 && await page.locator('.sheet').count() > 0, `2b a tap places a person, and asks who (${await count()})`);
+/* 30 October (the audit: "place 8 people = 8 sheets"): a tap places a person AT ONCE — the next role, the usual colour — with a toast and
+   Undo; the sheet opens only when the person placed is tapped again */
+{
+  const toast = (await words('.toast')) ?? '';
+  ok(await count() === n0 + 1 && await page.locator('.sheet').count() === 0, `2b a tap places a person at once and opens no sheet (${await count()})`);
+  ok(/^Op 1 placed — tap them to name, colour or give them a task Undo$/.test(toast), `2b the toast says who and what next: "${toast}"`);
+  ok((await rec()).marks.some(m => m.label === 'Op 1' && m.kind === 'person' && !m.colour), '2b kept on the record as the next role, the usual colour');
+  await page.locator('.toast-undo').click(); await page.waitForTimeout(800);
+  ok(await count() === n0 && !(await rec()).marks.some(m => m.label === 'Op 1'), '2c Undo takes that one person off the board and the record');
+  p = at(0.7, 0.4);
+  await page.mouse.click(p.x, p.y); await page.waitForTimeout(800);
+  ok(await count() === n0 + 1 && await page.locator('.sheet').count() === 0, '2c tapped again, placed again');
+  await page.locator('.ls-mark', { hasText: 'Op 1' }).click(); await page.waitForTimeout(700);
+  ok(await page.locator('.sheet').count() > 0 && (await page.locator('.sheet').last().getByRole('group', { name: 'Their colour' }).count()) === 1, '2d a second tap, on the person placed, opens them — name, colour, task');
+}
+{
+  const say = (await words('.ls-tools-say')) ?? '', side = (await words('.ls-side')) ?? '';
+  ok(/^Tap the board to place a person\. Tap one placed to name or colour it, drag it to move it; drag the empty board to scroll\.$/.test(say) && !/Pick Person and tap/.test(side), `2e one true sentence under the tools: "${say}"`);
+}
 
 /* 4 — their colour */
 const sheet = page.locator('.sheet').last();
@@ -110,8 +129,10 @@ ok(moved && moved.x > 33 && await page.locator('.sheet').count() === 0, `3 the l
 
 /* 5 — the board made tall */
 const yBefore = (await rec()).marks.find(m => m.id === 'p-lead').y;
+await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(200);
 const pxBefore = await lead.evaluate(el => el.getBoundingClientRect().top);
 await page.getByRole('group', { name: "The board's shape" }).getByRole('button', { name: 'Tall' }).click(); await page.waitForTimeout(1200);
+await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(200);
 const bb = await board.boundingBox();
 const r5 = await rec(), yAfter = r5.marks.find(m => m.id === 'p-lead').y;
 const pxAfter = await page.locator('.ls-mark', { hasText: 'Line lead' }).evaluate(el => el.getBoundingClientRect().top);
@@ -403,6 +424,63 @@ const crowd = await page.evaluate(async ([ws, shape]) => {
   ok(vis && box && box.x >= 0 && box.x + box.width <= 390, `15f on a phone the sentence sits under the count, nothing off the side (${box ? Math.round(box.x + box.width) : '-'} of 390)`);
   await page.setViewportSize({ width: 1360, height: 900 }); await page.waitForTimeout(400);
   await setLine(ws0);
+}
+
+/* 16 · EIGHT PEOPLE, EIGHT TAPS — on a phone's width and at a desk: a board of its own, a wide one a phone gives 190 px, made taller
+   in one tap with everything kept; then eight people placed with no sheet between them, Undo for the last, a second tap to edit */
+{
+  const fresh = await page.evaluate(async ws => {
+    const db = await import('/src/db.ts'); const id = `std-eight-${Date.now()}`, t = Date.now();
+    await db.putStandard({ id, projectId: '', workspaceId: ws, product: 'Eight people 1kg', marks: [], sort: t, createdAt: t, updatedAt: t });
+    return id;
+  }, sd.wsId);
+  const recE = async () => page.evaluate(async id => (await (await import('/src/db.ts')).listAllStandards()).find(s => s.id === id), fresh);
+  for (const [w, h] of [[375, 812], [1360, 900]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.goto(`${BASE}/#/w/${sd.wsId}/standards/${fresh}`); await page.waitForTimeout(2200);
+    const bd = page.locator('.ls-board');
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    ok(over <= 1, `16 at ${w} px nothing off the side (${over} px)`);
+    if (w === 375) {
+      const room = (await words('.ls-room')) ?? '';
+      const bb0 = await bd.boundingBox();
+      const btn = await page.locator('.ls-room').getByRole('button', { name: 'Make it tall' }).boundingBox();
+      const tool = await page.getByRole('button', { name: 'Person', exact: true }).boundingBox();
+      ok(/^This wide board is only \d+ px high here\./.test(room) && bb0.height < 230 && btn && btn.height >= 44 && tool && tool.height >= 44,
+        `16 on a phone a wide board is ${Math.round(bb0.height)} px high and says so ("${room.slice(0, 50)}…"), Make it tall ${Math.round(btn?.height ?? 0)} px, Person ${Math.round(tool?.height ?? 0)} px`);
+      await page.locator('.ls-room').getByRole('button', { name: 'Make it tall' }).click(); await page.waitForTimeout(1000);
+      const bb1 = await bd.boundingBox();
+      ok(Math.abs(bb1.height / bb1.width - 4 / 3) < 0.02 && bb1.height > 400 && (await recE()).board === 'tall' && (await page.locator('.ls-room').count()) === 0,
+        `16b one tap and the board is tall: ${Math.round(bb1.height)} px, kept on the record, the note gone`);
+    } else {
+      ok((await page.locator('.ls-room').isVisible()) === false, '16 at a desk the phone note is not shown');
+    }
+    const spots = [[0.12, 0.2], [0.37, 0.2], [0.62, 0.2], [0.87, 0.2], [0.12, 0.7], [0.37, 0.7], [0.62, 0.7], [0.87, 0.7]];
+    let taps = 0;
+    await bd.evaluate(el => el.scrollIntoView({ block: 'center' })); await page.waitForTimeout(400);
+    const shown = await bd.boundingBox();
+    ok(shown.y >= 56 && shown.y + shown.height <= (w === 375 ? 750 : 900), `16 the board is in view (${Math.round(shown.y)} to ${Math.round(shown.y + shown.height)})`);
+    for (const [i, [fx, fy]] of spots.entries()) {
+      const q = { x: shown.x + shown.width * fx, y: shown.y + shown.height * fy };
+      await page.mouse.click(q.x, q.y); taps++; await page.waitForTimeout(350);
+      if (await page.locator('.sheet').count()) { ok(false, `16 a sheet opened after tap ${i + 1}`); break; }
+    }
+    const ms = (await recE()).marks.filter(m => m.kind === 'person');
+    ok(ms.length === 8 && taps === 8 && ms.map(m => m.label).join() === 'Op 1,Op 2,Op 3,Op 4,Op 5,Op 6,Op 7,Op 8' && (await page.locator('.sheet').count()) === 0,
+      `16c eight people in ${taps} taps, no sheet between them: ${ms.map(m => m.label).join(', ')}`);
+    await page.locator('.toast-undo').click(); await page.waitForTimeout(700);
+    ok((await recE()).marks.filter(m => m.kind === 'person').length === 7, '16d Undo, for the last one placed — seven stand');
+    await page.locator('.ls-mark', { hasText: 'Op 3' }).first().click(); await page.waitForTimeout(600);
+    const sh = page.locator('.sheet').last();
+    await sh.getByRole('group', { name: 'Their colour' }).getByRole('button', { name: 'Teal' }).click(); await page.waitForTimeout(300);
+    await sh.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(900);
+    ok((await recE()).marks.find(m => m.label === 'Op 3')?.colour === 'teal', '16e a second tap on Op 3 opened it; its colour kept');
+    const over2 = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    ok(over2 <= 1, `16 at ${w} px, eight people placed, nothing off the side (${over2} px)`);
+    if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/ls-eight-${w}.png` });
+    await page.evaluate(async id => { const db = await import('/src/db.ts'); const s = (await db.listAllStandards()).find(x => x.id === id); await db.putStandard({ ...s, marks: [], board: undefined }); }, fresh);
+  }
+  await page.setViewportSize({ width: 1360, height: 900 });
 }
 
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
