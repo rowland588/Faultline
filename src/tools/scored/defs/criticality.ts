@@ -1,4 +1,4 @@
-import { rankCriticality } from '../../../lib/ie/criticality';
+import { rankCriticality, type RankedRow } from '../../../lib/ie/criticality';
 import type { ScoredDef } from '../types';
 
 const def: ScoredDef = {
@@ -20,7 +20,18 @@ const def: ScoredDef = {
     'Does not set spares service level on FC-066 automatically.',
     'RCM (FC-065) and PM tasks (FC-063) are separate records.',
   ],
-  rank: rankCriticality,
+  rank: rows => rankCriticality(rows),
+  noun: 'machine',
+  help: 'Consequence is the highest of the four dimensions you fill (1–5). Likelihood 1–5. Tick CCP for a food-safety override to class A.',
+  fields: [
+    { id: 'production', label: 'Production', kind: 'score' }, { id: 'safety', label: 'Safety', kind: 'score' }, { id: 'quality', label: 'Quality', kind: 'score' },
+    { id: 'repair', label: 'Repair', kind: 'score' }, { id: 'likelihood', label: 'Likelihood', kind: 'score' },
+    { id: 'ccp', label: 'CCP', kind: 'tick' }, { id: 'standby', label: 'Standby', kind: 'tick' },
+  ],
+  columns: [
+    { label: 'Score', of: r => String(r.score) },
+    { label: 'Class', of: r => (r as RankedRow).class, tone: r => (r.class === 'A' ? 'r' : r.class === 'B' ? 'a' : 'n') },
+  ],
   examples: [{
     name: 'Line 2 — five assets from the knowledge record',
     rows: [

@@ -104,8 +104,4 @@ ideas; choosing a pack format or a supplier on several criteria.
 - [practice] The PICK chart (Possible, Implement, Challenge, Kill) — Six Sigma practice (from knowledge).
 
 ## In Faultline
-Not built (FC-144). A 6M's countermeasures are raised with their
-expected effect (`src/lib/sixm.ts`); FC-144 would score several
-countermeasures for one cause on agreed criteria, place them on
-impact–effort with the impact taken from the cause's size in money, and
-turn the quick wins into actions.
+**Impact–effort is built (FC-144, 31 October 2026)** as a scored register at `#/scored/impact-effort` (`knowledge/specs/FC-144-impact-effort.md`): countermeasures scored impact 1–5 and effort 1–5, the PICK quadrants (Implement · Challenge · Possible · Kill — the grid checked against six published descriptions; the cut, impact 3 or more high and effort 2 or less low, is Faultline's and follows the worked case above), the order, and the quick wins in money from what the team types (worth a year, hours × the line's £ an hour, other spend) with a plain payback. `src/lib/ie/pick.ts`, independent case `scripts/knowledge/cases-pick.py`. **Not built:** the Pugh matrix and the quick wins raised as Actions in one tap; the impact is typed, not yet read from a 6M problem's £.

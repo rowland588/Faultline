@@ -658,11 +658,20 @@ export interface ScoredRow {
   likelihood?: number;
   ccp?: boolean;
   standby?: boolean;
+  /** Impact and effort (FC-144 — the PICK chart): each a whole number 1–5. */
+  impact?: number;
+  effort?: number;
+  /** What it is worth a year, £ · the hours it takes · any other spend, £ — all optional, typed. */
+  worthGbp?: number;
+  hours?: number;
+  spendGbp?: number;
 }
 
 export interface AgreedScored {
   key: string;
   rows: ScoredRow[];
+  /** £ an hour for the people doing the work (FC-144) — typed, or taken from the line's wage × on-costs; optional. */
+  rate?: number;
 }
 
 /** A CALCULATOR (src/tools/calc; knowledge/specs/FC-235-calculators.md — 25 October): which one it is (`key`, the name of its

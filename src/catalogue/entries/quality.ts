@@ -2,6 +2,7 @@
 import type { Entry } from '../types';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 import { logBuilt } from '../../tools/checks/built';
+import { scoredBuilt } from '../../tools/scored/built';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -285,7 +286,11 @@ export const QUALITY: Entry[] = [
     food: 'A 6M’s countermeasures on a packing line.',
     depends: ['FC-146', 'FC-191'],
     complexity: 'S', value: 'medium', valueWhy: 'Orders the action plan.',
-    status: 'to-build', form: 'component', methods: ['sixsigma.selection-matrices'], scenarios: ['project'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'impact-effort', label: 'Impact and effort', says: 'Which countermeasure first — impact against effort, in order, with what the quick wins are worth', icon: 'list', order: 23.5 },
+    methods: ['sixsigma.selection-matrices'], scenarios: ['project'], words: ['PICK chart', 'quick wins', 'impact effort matrix', 'prioritise countermeasures'],
+    built: (() => { const b = scoredBuilt('impact-effort'); return { ...b, code: [...b.code, 'src/lib/ie/pick.ts'], tests: [...b.tests, 'src/lib/ie/__tests__/pick.test.ts'] }; })(),
+    spec: 'knowledge/specs/FC-144-impact-effort.md',
+    limits: ['The scores and the £ a year are typed — not read from the 6M problem or the Pareto bar yet.', 'The quick wins are not put on the Actions in one tap.', 'Payback is a plain division, not NPV (FC-191); Pugh (FC-143) is a separate register.'],
   },
   {
     id: 'FC-145', name: 'QFD — the house of quality', discipline: 'sixsigma', sub: 'define',

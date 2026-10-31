@@ -15430,6 +15430,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .scored-table th { font-size: var(--t-detail); color: var(--muted); text-align: left; }
 .scored-table .text-input { width: 100%; min-width: 4rem; }
 .scored-table .scored-num { max-width: 4.5rem; }
+.scored-table .scored-num.scored-money { max-width: 7.5rem; min-width: 5.5rem; }
+.scored-table td:first-child .text-input { min-width: 9rem; }
+.scored-rate { display: grid; gap: 4px; margin: var(--space-3) 0; }
+.scored-rate .scored-num { width: 8rem; max-width: 8rem; }
 
 /* THE TOOLS GALLERY AND A TOOL'S OWN PAGE (docs/TOOLS-SHOWCASE.md, TG1–TG2) — tokens only, no new hue */
 .tc-gal-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; margin-bottom: 10px; }
