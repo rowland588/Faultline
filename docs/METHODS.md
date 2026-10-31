@@ -131,7 +131,6 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 5 | FC-201 The team’s own weekly number, proved | part-built | part-built — finish | A3, DMAIC, Improvement Kata, Kaizen event, Theory of Constraints |
 | 4 | FC-153 Stratification — split the data to find where it lives | part-built | calculation — an analysis question (stratify, then test) | 8D, A3, DMAIC, PDCA |
 | 4 | FC-225 Standard operating procedure with photos | NOT BUILT | document — steps with photos, versioned, with a paper | 8D, Kaizen event, PDCA, Stage gate |
-| 3 | FC-143 Pugh matrix — choosing between solutions | NOT BUILT | scored register — scored-shape definition (Pugh) | 8D, A3, DMAIC |
 | 3 | FC-149 Is / is not — specifying the problem | NOT BUILT | document — a two-column form that feeds the problem | 8D, A3, DMAIC |
 | 2 | FC-132 Process FMEA with action priority | NOT BUILT | scored register — scored-shape definition (severity, occurrence, detection → action priority) | 8D, DMAIC |
 | 2 | FC-133 Control plan — what is checked, how, how often, and what if  | NOT BUILT | register — a list per check (what, how, how often, reaction) feeding the check logs | 8D, DMAIC |
@@ -165,7 +164,7 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 1 | FC-222 Skills matrix and cover | NOT BUILT | register — a matrix people × skills | Stage gate |
 | 1 | FC-224 One-point lesson | part-built | document — one page | Kaizen event |
 
-**Built from this table on 31 October (M5, first eight-agent round):** FC-144 Impact and effort (PICK chart) · FC-128 Cost of poor quality · FC-191 Payback and NPV · FC-134 Complaints per million · FC-014 Mistake-proofing check log (partial) · FC-199 Gemba walk, how fresh the looking is · FC-041 Capacity's three numbers and FC-042 Product mix at the constraint (Line capacity, A shift and the capacity panel) · FC-215 Critical path (partial — a typed network; the plan has no “waits for”). Those rows are taken off the list above; the catalogue (`node scripts/catalogue.mjs show FC-nnn`) holds each one's status and limits.
+**Built from this table on 31 October (M5, first eight-agent round):** FC-144 Impact and effort (PICK chart) · FC-143 Pugh matrix · FC-128 Cost of poor quality · FC-191 Payback and NPV · FC-134 Complaints per million · FC-014 Mistake-proofing check log (partial) · FC-199 Gemba walk, how fresh the looking is · FC-041 Capacity's three numbers and FC-042 Product mix at the constraint (Line capacity, A shift and the capacity panel) · FC-215 Critical path (partial — a typed network; the plan has no “waits for”). Those rows are taken off the list above; the catalogue (`node scripts/catalogue.mjs show FC-nnn`) holds each one's status and limits.
 
 **In all (counted at M0, 31 October):** 117 catalogue tools are placed in the eight methods; `src/lib/__tests__/methods.test.ts` holds the placed total true, and the catalogue the status of each.
 
