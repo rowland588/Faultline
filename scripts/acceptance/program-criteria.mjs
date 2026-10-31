@@ -563,6 +563,8 @@ ok((await record()).signedOff?.by?.join() === 'R. Glew' && (await pill()).starts
   await results(3, false); await page.waitForTimeout(1200);
 
   /* every criterion passed again: signed off, the new tools in the line, on every paper */
+  /* the row's header is read from every study on the device, loaded a moment after the criteria block's own — wait for it */
+  await settle(async () => /ready to sign off/i.test(await pill()));
   ok(/ready to sign off/i.test(await pill()), `9aa every criterion passed: "${await pill()}"`);
   await row().getByRole('button', { name: 'Sign off', exact: true }).click(); await page.waitForTimeout(300);
   await row().locator('input[aria-label="Who is signing it off"]').fill('R. Glew, J. Smith');

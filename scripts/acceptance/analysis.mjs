@@ -338,6 +338,7 @@ for (const [vw, vh, tag] of [[1360, 900, 'desk'], [375, 812, '375']]) {
   await page.setViewportSize({ width: vw, height: vh });
   const id = await start(`Fill time ${tag}`);
   /* the questions — three plain headings, none dropped, a plain line under each, the stored question still its own */
+  await page.locator('.ie-qhead').first().waitFor({ timeout: 15000 }).catch(() => {}); /* the form is drawn a moment after the study opens */
   const heads = await all('.ie-qhead');
   ok(JSON.stringify(heads) === JSON.stringify(['Can I trust this number?', 'Did it change or differ?', 'How are things linked?']), `10 ${tag}: the questions under three headings: ${heads.join(' · ')}`);
   const counts = await page.locator('.ie-qgroup').evaluateAll(gs => gs.map(g => g.querySelectorAll('[role=radio]').length));
