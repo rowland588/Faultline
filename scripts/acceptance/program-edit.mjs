@@ -53,11 +53,16 @@ await page.goto(`${BASE}/#/project/${sd.projectId}/programs`); await page.waitFo
   /* Now · Plan · Machines · Problems · Reports · More since 27 October (Rowland, 25 October: "Programs mobile ui difficult to
      see all tabs"; 26 October: "9 are still to many tabs"; 27 October, the second row under them "a mess" — the gates, the
      timeline and Programs one Plan tab) — the strip fits a phone, nothing to scroll for; Programs is Plan's view, Plan lit */
-  ok(!!t && !t.more && !/has-r/.test(t.cls) && t.n === 6, `4 the project's ${t?.n} tabs fit a phone whole — nothing waits off the side (${t?.cls})`);
+  /* 28 October emergency UI (cc12694; Rowland: Programs and Timeline are project tabs again): Now · Programs · Timeline · Gates ·
+     Machines · Problems · Reports · More — eight, so on a phone the strip scrolls with the edge fading where more waits; the
+     phone bar below carries the daily four (Now · Programs · ＋ · Timeline · More). The tab you are under is in view. */
+  ok(!!t && t.n === 8 && (!t.more || /has-r/.test(t.cls)), `4 the project's ${t?.n} tabs on a phone — the strip scrolls and fades where more wait (${t?.cls})`);
   ok(!!t && t.onIn, '4b the tab you are under (Plan, for Programs) is in view, whole');
   ok(!!t && /^rgb\(/.test(t.topBg) && (t.blur === 'none' || !t.blur), `4c the top bar is opaque on a phone — ${t?.topBg}, blur ${t?.blur}`);
+  await page.evaluate(() => { const n = document.querySelector('.nv-tabs'); n.scrollLeft = n.scrollWidth; });
+  await page.waitForTimeout(400);
   const end = await page.evaluate(() => { const n = document.querySelector('.nv-tabs'); const l = [...n.querySelectorAll('.nv-tab')].at(-1).getBoundingClientRect(), b = n.getBoundingClientRect(); return { cls: n.className, lastIn: l.right <= b.right + 1, last: [...n.querySelectorAll('.nv-tab')].at(-1).innerText.trim() }; });
-  ok(end.lastIn && end.last === 'More' && !/has-l|has-r/.test(end.cls), `4d the last tab, More, whole with nothing scrolled and no fade (${end.cls})`);
+  ok(end.lastIn && end.last === 'More' && !/has-r/.test(end.cls), `4d the last tab, More, reachable — scrolled to the end it is whole and the right fade is gone (${end.cls})`);
 }
 
 /* ---- 1 a program tested, its row ---- */
@@ -70,6 +75,9 @@ await page.getByRole('button', { name: 'Passed', exact: true }).first().click();
 for (const [k, v] of Object.entries(arguments_)) await page.locator(`input[aria-label^="${k}"]`).first().fill(v);
 ok(await page.locator('input[aria-label^="Net rate target"]').count() === 1 && /judged on it only when you give one/.test(flat(await page.locator('.ptx-panel').first().innerText())), '1a the form says what Aiming for is (the speed it is set to) and offers Net rate target as a second, optional aim');
 await page.getByRole('button', { name: 'Save', exact: true }).first().click(); await page.waitForTimeout(3500);
+/* the page opens on what needs you and a passed program leaves it — All shows it; the row's Prove fold is closed until opened (the Programs redesign, 28 October) — open every one, the test's steps are inside */
+const openProve = async () => { await page.locator('.pp-chip', { hasText: /^All/ }).first().click().catch(() => {}); await page.waitForTimeout(300); for (const h of await page.locator('.pgr-prove-h[aria-expanded=false]').all()) await h.click().catch(() => {}); await page.waitForTimeout(300); };
+await openProve();
 const stepLoc = page.locator('.ptx-step', { hasText: 'aiming 75 ppm' });
 const row = page.locator('li.pgr', { has: stepLoc }).first();
 const step = () => stepLoc.first();
@@ -130,6 +138,9 @@ await page.evaluate(async pid => {
 }, sd.projectId);
 await page.goto(`${BASE}/#/programs?line=${sd.wsId}`); await page.locator('.lp-m-job').first().waitFor({ timeout: 15000 }).catch(() => {}); await page.waitForTimeout(1500);
 const r7 = page.locator('.lp-m-job .pgr', { hasText: 'PR-07' }).first();
+/* its Prove fold is closed until opened */
+if (await r7.locator('.pgr-prove-h[aria-expanded=false]').count()) await r7.locator('.pgr-prove-h').first().click();
+await page.waitForTimeout(300);
 const c7 = (await r7.locator('.ptx-chk').allInnerTexts()).map(flat);
 ok(JSON.stringify(c7) === JSON.stringify(['✓ Speed it ran at 70 ppm', '✗ Net rate 54.2 ppm — 0.8 ppm short', '✓ Rejects 1.5%', '✓ Run length 30 min'])
   && await r7.locator('.ptx-chk.is-missed').count() === 1, `5 on the line, each number its own — the net missed, the speed, rejects and run length met: ${c7.join(' · ')}`);

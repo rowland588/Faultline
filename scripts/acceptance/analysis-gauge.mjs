@@ -125,6 +125,7 @@ let good, worn, off, lowS;
   ok(modes.length === 3 && /^One reference, read again and again/.test(modes[0]) && /^References across its range/.test(modes[1]) && /^One reference, checked day after day/.test(modes[2]), `1 three ways of checking offered: ${modes.map(m => m.split(' — ')[0].slice(0, 40)).join(' | ')}`);
   /* nothing agreed: refused in words */
   await page.getByLabel('What is measured').fill('Bench scale');
+  await page.getByLabel('Unit', { exact: false }).first().fill('g'); /* the unit starts empty since 30 October (ui/UnitField) — it is typed, never assumed */
   ok(/The reference’s true value/.test((await words('.ie-problem')) ?? '') && (await page.getByRole('button', { name: 'Agree these' }).isDisabled()), '1 a Type 1 study asks for the reference first, Agree held');
   await page.getByLabel('Reference value', { exact: true }).fill('500');
   ok(/What it judges — a lower and an upper limit/.test((await words('.ie-problem')) ?? ''), '1 …then the tolerance it judges');

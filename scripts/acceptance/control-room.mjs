@@ -283,7 +283,7 @@ ok(phoneCrit.over.every(x => x <= 1) && phoneCrit.out <= 0 && phoneCrit.whens.in
   await page.keyboard.press('Escape'); await page.waitForTimeout(500);
   await page.goto(`${BASE}/#/`); await page.waitForTimeout(2000);
   await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
-  await page.locator('.nv-sheet').getByRole('button', { name: 'Reports', exact: true }).click(); await page.waitForTimeout(1200);
+  await page.locator('.nv-sheet').getByRole('button', { name: /^(Factory )?reports$/i }).click(); /* Factory reports since 28 October */ await page.waitForTimeout(1200);
   ok(await page.locator('.meet-report', { hasText: 'Control room report — 1 page' }).count() === 1, '12c off a job, More › Reports opens the same list');
   await page.keyboard.press('Escape');
 }

@@ -23,7 +23,7 @@
  *     node scripts/report-stress.mjs [outDir] [--fuzz N | --seeds a,b] [--repeatable]
  */
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { find } from './lib/pageHeader.mjs';
 import pkg from 'playwright';
 const { chromium } = pkg;
@@ -31,6 +31,7 @@ const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const OUT = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : '/tmp/report-stress';
 const REPEATABLE = process.argv.includes('--repeatable');
+const NARRATIVE_IN_MENUS = /commissioningNarrativePapersInMenus\s*=\s*true/.test(readFileSync(new URL('../src/lib/productStory.ts', import.meta.url), 'utf8'));
 mkdirSync(OUT, { recursive: true });
 
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
@@ -450,11 +451,15 @@ for (const size of SIZES) {
     ['client', `#/project/${job.projectId}/report`, [['Full report'], ['Download']], must.client],
     /* The programs, a report of their own (8 October). */
     ['programs', `#/project/${job.projectId}/report`, [['Programs report'], ['Download']], must.programs],
-    /* The handover, as it really went (9 October). */
-    ['handover', `#/project/${job.projectId}/report`, [['Handover report'], ['Download']], must.handover],
-    /* The commissioning report and its cards (14 October). */
-    ['commissioning', `#/project/${job.projectId}/report`, [['Commissioning'], ['Download']], must.commissioning],
-    ['commissioning cards', `#/project/${job.projectId}/report`, [['Commissioning'], ['Commissioning cards — a page a machine']], must.commissioningCards],
+    /* The handover (9 October), the commissioning report and its cards (14 October) — pressed from the Reports menu, so only while
+       the menu offers them: since 29 October the default product leaves them out (src/lib/productStory.ts
+       commissioningNarrativePapersInMenus = false; the code and the lib/*Report tests stay). Read from the source so the check
+       comes back the day the flag does. */
+    ...(NARRATIVE_IN_MENUS ? [
+      ['handover', `#/project/${job.projectId}/report`, [['Handover report'], ['Download']], must.handover],
+      ['commissioning', `#/project/${job.projectId}/report`, [['Commissioning'], ['Download']], must.commissioning],
+      ['commissioning cards', `#/project/${job.projectId}/report`, [['Commissioning'], ['Commissioning cards — a page a machine']], must.commissioningCards],
+    ] : []),
     /* The machine labels, from the Reports index's own door (ui/ReportsSheet). */
     ...(must.labels.length ? [['machine labels', `#/project/${job.projectId}`, [['Reports'], [/^Machine labels/]], must.labels]] : []),
     /* The card is the record's own page now (screens/TestScreen); its button

@@ -29,6 +29,7 @@ const page = await ctx.newPage();
 const errs = [];
 page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text()); });
 page.on('pageerror', e => errs.push(e.message));
+const openProve = async () => { await page.locator('.pp-chip', { hasText: /^All/ }).first().click().catch(() => {}); await page.waitForTimeout(300); for (const h of await page.locator('.pgr-prove-h[aria-expanded=false]').all()) await h.click().catch(() => {}); await page.waitForTimeout(300); }; /* the page opens on what needs you, and a row's Prove fold is closed until opened (28 October) */
 const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); };
 await go('#/room');
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
@@ -57,7 +58,7 @@ ok(names.includes('60 ppm') && names.includes('75 ppm') && names.length === befo
 const listed = await page.locator('.sl .sl-row').allInnerTexts();
 ok(['60 ppm', '75 ppm'].every(n => listed.some(l => l.includes(n))) && listed.length === names.length, '3 every study lined up is listed under Proved by', listed.join(' || '));
 /* on the program: under its test */
-await go(`#/project/${sd.projectId}/programs`);
+await go(`#/project/${sd.projectId}/programs`); await openProve();
 const chips = await page.locator('.ptx-studies .chip').allInnerTexts();
 ok(chips.includes('60 ppm') && chips.includes('75 ppm'), '3 the program’s row lists the studies under its test', chips.join(' | '));
 await page.locator('.ptx-studies .chip', { hasText: '75 ppm' }).first().click();
@@ -74,7 +75,7 @@ await page.getByRole('button', { name: 'Line it up' }).click();
 await page.waitForTimeout(600);
 const tools = await page.evaluate(async ([pid, tid]) => (await (await import('/src/db.ts')).listStudies(pid)).filter(s => !s.deletedAt && (s.uses ?? []).some(u => u.kind === 'test' && u.ref === tid && u.role === 'proof')).map(s => `${s.tool}:${s.name}`), [sd.projectId, test.id]);
 ok(tools.includes('chart:Run chart 60') && tools.includes('capability:60 ppm'), '4 the study made is a control chart, the others stay capability studies', tools.join('|'));
-await go(`#/project/${sd.projectId}/programs`);
+await go(`#/project/${sd.projectId}/programs`); await openProve();
 const chips2 = await page.locator('.ptx-studies .chip').allInnerTexts();
 ok(chips2.includes('Control chart: Run chart 60') && chips2.includes('60 ppm'), '4 the program’s row names the tool of a study that is not a capability study', chips2.join(' | '));
 /* 5  the Programs report: every test of the program, and each study lined up for it, as the row says them */

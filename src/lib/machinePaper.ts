@@ -35,7 +35,7 @@ export interface MachinePaper {
   status?: { word: string; tone: PaperTone };
   /** Who made it, when it came, its line — each a short fact. */
   facts: string[];
-  /** "Going through Line 2 commissioning — a stage-gate project — up to Commission." */
+  /** "Going through Line 2 commissioning — an installation project — up to Commission." */
   inProject?: string;
   gates?: { label: string; says: string; tone: PaperTone }[];
   sections: PaperSection[];

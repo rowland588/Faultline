@@ -113,7 +113,7 @@ export function machineDetailPaper(i: DetailInput): MachinePaper {
       const handed = m.at.startsWith('Handed over');
       status = handed ? 'Handed over' : ASSET_STATE_WORD[assetStateOf(asset)];
       facts = [m.oem ? `Made by ${m.oem}` : '', m.arrival, i.line ? `On ${i.line}` : ''].filter(Boolean);
-      inProject = `Going through ${i.project.name} — a stage-gate project — ${handed ? m.at.toLowerCase() : m.at.startsWith('at ') ? `up to ${m.at.slice(3)}` : m.at}.`;
+      inProject = `Going through ${i.project.name} — an installation project — ${handed ? m.at.toLowerCase() : m.at.startsWith('at ') ? `up to ${m.at.slice(3)}` : m.at}.`;
       gates = m.gates.map(g => ({ label: g.label, says: g.says, tone: ({ done: 'g', going: 'w', late: 'r', problem: 'a', failed: 'r', ahead: 'n', none: 'n' } as const)[g.tone] }));
 
       /* THE TILES — counted, each of what it should be */

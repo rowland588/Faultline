@@ -8,7 +8,7 @@
  * record's page, kept for old links, reads the same pieces from here. */
 import { useJobStudies } from './StudyLinks';
 import { useEffect, useRef, useState } from 'react';
-import { deleteBlobs, getBlob, putBlob } from '../db';
+import { deleteBlobs, getBlob, listStudies, putBlob } from '../db';
 import type { Can } from '../lib/access';
 import { pdfFileName } from '../lib/fileName';
 import { uid } from '../lib/ids';
@@ -55,7 +55,9 @@ export function CardPdf({ test, tt, project }: { test: Test; tt: TT; project: { 
       const { jsPDF } = await loadPdfLib();
       const { drawTrialCard } = await import('../lib/trialCardPdf');
       const { shotsOf } = await import('../lib/testReport');
-      const c = trialCard(test, tt.tests, tt.items, tt.assets, studies, line);
+      /* the studies are read again as the button is pressed: pressed before the hook above has answered, the card
+         would go without its HOW WE KNOW strip (report-stress, the huge test card, 30–31 October) */
+      const c = trialCard(test, tt.tests, tt.items, tt.assets, await listStudies(test.projectId).catch(() => studies), line);
       const found = itemsOf(tt.items, test.id, 'found');
       const shots = await shotsOf([...(test.media ?? []), ...found.flatMap(i => i.media ?? [])]);
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });

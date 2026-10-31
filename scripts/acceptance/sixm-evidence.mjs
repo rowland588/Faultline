@@ -262,7 +262,7 @@ const S6 = `#/project/${sd.pacedProjectId}`;
 /* ---- 17 · the 6M's paper: the report first, each line's papers folded under it ---- */
 {
   await go(S6);
-  await page.getByRole('button', { name: /^Reports/ }).first().click(); await page.waitForTimeout(700);
+  await page.getByRole('button', { name: /^(Factory )?reports/i }).first().click(); /* the menu's foot reads Factory reports since 28 October; inside a project it opens that project's papers */ await page.waitForTimeout(700);
   const dlg = page.getByRole('dialog');
   const titles = async () => dlg.locator('.meet-report b').allInnerTexts();
   const shut = await titles();

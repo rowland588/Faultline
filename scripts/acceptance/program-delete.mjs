@@ -57,6 +57,8 @@ ok(!!(await prog(pid)) && (await tests()).some(t => t.id === 'tt-book'), 'Undo: 
 
 /* 3 · a line's own program on the job: changed and deleted where it sits */
 await page.goto(`${BASE}/#/project/${P}/programs`); await page.waitForTimeout(3500);
+/* the page opens on what needs you (28 October); a line's own program that is done is under All */
+await page.locator('.pp-chip', { hasText: /^All/ }).first().click(); await page.waitForTimeout(400);
 const own = page.locator('.pgr').filter({ has: page.locator('.pp-line-tag') }).first();
 const ownName = (await own.locator('.pgr-name').innerText()).trim();
 await own.locator('.pgr-main').click(); await page.waitForTimeout(500);

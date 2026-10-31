@@ -56,7 +56,7 @@ describe('a machine in full — every attempt, what was seen, what was found, th
   const sec = (t: RegExp) => p.sections.find(x => t.test(x.title));
   it('its status, the project and the gate it is up to, the tiles and the closing line', () => {
     expect(p).toMatchObject({ eyebrow: 'MACHINE · Line 2 commissioning · Line 2a', name: 'Wrapper', status: { word: 'On site' } });
-    expect(p.inProject).toMatch(/^Going through Line 2 commissioning — a stage-gate project — /);
+    expect(p.inProject).toMatch(/^Going through Line 2 commissioning — an installation project — /);
     expect(p.tiles?.map(t => t.label)).toEqual(['Tests passed', 'Programs proved', 'Open on it', 'Late or failed', 'Critical']);
     expect(p.closing).toMatch(/^Wrapper is on site and up to .* in Line 2 commissioning: \d+ of \d+ tests passed, 1 of 1 programs proved/);
   });
