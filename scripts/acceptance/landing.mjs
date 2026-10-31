@@ -114,6 +114,25 @@ for (const w of [1360, 390]) {
   await c.close();
 }
 
+/* 7 · the structured data a crawler reads (31 October: the brand edit left the tail of the old sentence after the new one, so the
+   page's JSON-LD did not parse and a search engine would have ignored all of it — nothing on screen shows it). Every page that
+   carries a block: each block parses, and the app's says what the page says. */
+for (const path of ['/', '/how-it-works.html']) {
+  const html = await (await fetch(`${BASE}${path}`)).text();
+  const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  let bad = '';
+  const parsed = blocks.map(t => { try { return JSON.parse(t); } catch (e) { bad = `${path}: ${e.message}`; return null; } });
+  ok(bad === '', `7 ${path} — its ${blocks.length} structured-data block${blocks.length === 1 ? '' : 's'} parse${blocks.length === 1 ? 's' : ''}`, bad);
+  if (path === '/') {
+    ok(blocks.length >= 1, '7 the app’s page carries structured data');
+    const g = parsed[0]?.['@graph'] ?? [];
+    const app = g.find(n => n['@type'] === 'SoftwareApplication');
+    const org = g.find(n => n['@type'] === 'Organization');
+    ok(app?.name === 'Faultline' && org?.name === 'Opex Elevate', '7 the product is Faultline and its parent Opex Elevate', JSON.stringify([app?.name, org?.name]));
+    ok(/operational improvement system/i.test(app?.description ?? '') && !/control room for change|am I in control/i.test(app?.description ?? ''), '7 the description says the lifecycle, none of the old words', app?.description);
+  }
+}
+
 ok(errs.length === 0, 'no console error', errs.slice(0, 3).join(' | '));
 await b.close();
 console.log(fail ? `\n${fail} FAILED` : '\nAll passed');
