@@ -334,7 +334,10 @@ export const OPERATIONS: Entry[] = [
     food: 'A £4,800 splice table saving £310 a week.',
     depends: ['FC-189', 'FC-144'],
     complexity: 'S', value: 'medium', valueWhy: 'Gets small fixes funded.',
-    status: 'to-build', form: 'component', methods: ['cost.investment-appraisal'], scenarios: ['money', 'project'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['cost.investment-appraisal'], scenarios: ['money', 'project'], words: ['payback', 'NPV', 'IRR', 'return on investment', 'business case'],
+    built: { where: ['/calc/payback-npv'], code: [...CALC_CODE, 'src/tools/calc/defs/payback-npv.ts', 'src/tools/investment/investment.ts'], tests: [...CALC_TESTS, 'src/tools/investment/__tests__/investment.test.ts'], acceptance: ['calc-shape.mjs'] },
+    spec: 'knowledge/specs/FC-191-payback-npv.md',
+    limits: ['A constant saving a week and a cost all up front, whole years with each year’s saving at its year end — an uneven cash flow is not built.', 'The saving is typed (or built from a loss and a share, or from hours at the wage): it is not yet read from the tool that measured it, so its source is the person’s word until then.', 'No picture of the cumulative cash is drawn.', 'The case for a whole project and its measurement after handover (FC-192) stays left out.'],
   },
   {
     id: 'FC-192', name: 'The case for the change — what a project is worth', discipline: 'cost', sub: 'invest',

@@ -152,4 +152,67 @@ ok(abs(1800 * 0.85 - 1530) < 1e-9 and abs(1800 * 0.85 * 0.25 - 382.5) < 1e-9, "L
 ok(900 / 600 == 1.5, "L6 halve the WIP: 1.5 hours")
 # L7 a lead time shown in the floor's units
 print("  L7 0.4 h =", 0.4 * 60, "min; 30 h =", 30 / 24, "days")
+print("\n== FC-128 Cost of poor quality: the four buckets (PAF) built from hours, packs and typed pounds")
+# Q1 the record's week (cases-quality.py quality.copq): prevention 1,800 / appraisal 3,200 / internal 9,400 / external 2,600, sales 310,000
+rate, mat, rw, cc = 15.0, 0.50, 1.40, 80.0
+prev = 80 * rate + 600
+appr = 160 * rate + 1000 * mat + 300
+internal = 3400 * mat + 2000 * rw + 4100 + 800
+external = 20 * cc + 1000
+tot = prev + appr + internal + external; fail = internal + external; sales = 310000
+print(f"  Q1 prevention £{prev:,.0f}, appraisal £{appr:,.0f}, internal £{internal:,.0f}, external £{external:,.0f}; total £{tot:,.0f} = {tot/sales:.1%} of sales; poor quality £{fail:,.0f} = {fail/sales:.2%}; failure share {fail/tot:.1%}")
+ok((prev, appr, internal, external) == (1800, 3200, 9400, 2600) and tot == 17000, "Q1 the four buckets 1,800 · 3,200 · 9,400 · 2,600, total 17,000")
+ok(round(tot / sales * 100, 1) == 5.5 and round(fail / sales * 100, 1) == 3.9 and round(fail / tot * 100) == 71, "Q1 5.5% of sales all in, 3.9% poor quality, failure 71% of the cost of quality")
+items = {"Give-away": 4100, "Rework": 2000 * rw, "Scrap": 3400 * mat, "Complaints": 20 * cc, "Credits and charge-backs": 1000, "Holds and downgrades": 800}
+print("  Q1 failure ranked:", [(k, v, f"{v/fail:.1%}") for k, v in sorted(items.items(), key=lambda kv: -kv[1])])
+ok(sorted(items, key=lambda k: -items[k])[:3] == ["Give-away", "Rework", "Scrap"] and abs(sum(items.values()) - fail) < 1e-9, "Q1 the failure ranked: give-away 4,100 then rework 2,800 then scrap 1,700; the items add to 12,000")
+print(f"  Q1 a pack made (155,000): {fail/155000*100:.2f}p")
+# Q2 a later week, nothing in sales: prevention up, give-away cut, a quality stop typed
+prev2 = 120 * rate + 600; appr2 = 160 * rate + 1000 * mat + 300
+int2 = 2000 * mat + 1500 * rw + 2400 + 500 + 300; ext2 = 12 * cc + 400
+tot2 = prev2 + appr2 + int2 + ext2; fail2 = int2 + ext2
+print(f"  Q2 prevention £{prev2:,.0f}, appraisal £{appr2:,.0f}, internal £{int2:,.0f}, external £{ext2:,.0f}; total £{tot2:,.0f}; poor quality £{fail2:,.0f}; change in poor quality £{fail2-fail:,.0f}")
+ok((prev2, appr2, int2, ext2, tot2, fail2) == (2400, 3200, 6300, 1360, 13260, 7660), "Q2 2,400 · 3,200 · 6,300 · 1,360; total 13,260; poor quality 7,660")
+# Q3 a priced part only: 1,200 packs scrapped at 50p, 350 give-away typed, 4 complaints with no cost
+internal3 = 1200 * mat + 350
+print(f"  Q3 internal failure £{internal3:,.0f} — 4 complaints counted, not priced")
+ok(internal3 == 950, "Q3 950 priced; the complaints are counted but unpriced until the cost of one is given")
+
+print("\n== FC-191 What an improvement is worth: payback, NPV, IRR on a measured weekly saving")
+def annuity(r, n): return n if abs(r) < 1e-12 else (1 - (1 + r) ** -n) / r
+def appraisal(cost, weekly, weeks, life, rate):
+    annual = weekly * weeks
+    npv = annual * annuity(rate, life) - cost
+    irr = optimize.brentq(lambda r: annual * annuity(r, life) - cost, -0.99, 1e4)
+    cf = [-cost] + [annual] * life                              # a second method: the roots of the cash-flow polynomial
+    roots = [x.real for x in np.roots(cf[::-1]) if abs(x.imag) < 1e-9 and x.real > 0]
+    assert abs(irr - (1 / min(roots) - 1)) < 1e-6, "brentq and the polynomial's root agree on the IRR"
+    return dict(annual=annual, payback=cost / weekly, npv=npv, irr=irr, roi=annual / cost)
+# I1 the record's SMED kit (cost.investment-appraisal): 60% of £1,900 a week = £1,140; £28,000; 48 weeks; 5 years; 10%
+a = appraisal(28000, 0.6 * 1900, 48, 5, 0.10)
+print(f"  I1 saving £{a['annual']:,.0f} a year; payback {a['payback']:.2f} weeks ({a['payback']/48:.2f} years of running); NPV £{a['npv']:,.0f}; IRR {a['irr']:.1%}; yearly return {a['roi']:.1%}")
+ok(abs(a['annual'] - 54720) < 1e-6 and abs(a['payback'] - 24.5614) < 1e-3 and abs(a['payback'] / 48 - 0.5117) < 1e-3, "I1 £54,720 a year; payback 24.6 weeks = 0.51 years (the record: 6.1 months)")
+ok(abs(a['npv'] - 179431.85) < 0.01 and round(a['npv'], -2) == 179400, "I1 NPV at 10% over 5 years £179,432 (the record: £179,400)")
+ok(round(a['irr'] * 100) == 195 and abs(a['roi'] - 1.954286) < 1e-6, "I1 IRR 195% (the record); the yearly return 195.4%")
+h = appraisal(28000, 0.6 * 1900 / 2, 48, 5, 0.10)
+print(f"  I1b saving halved: payback {h['payback']:.1f} weeks ({h['payback']/48:.2f} years); NPV £{h['npv']:,.0f}")
+ok(abs(h['payback'] - 49.123) < 1e-3 and round(h['npv'], -2) == 75700, "I1b saving halved: payback 49.1 weeks (1.0 year), NPV £75,716 (the record: £75,700)")
+c = appraisal(28000 * 1.25, 0.6 * 1900, 48, 5, 0.10)
+print(f"  I1c cost up a quarter: payback {c['payback']:.2f} weeks; NPV £{c['npv']:,.0f}")
+ok(abs(c['payback'] - 30.702) < 1e-3 and abs(c['npv'] - 172431.85) < 0.01, "I1c cost up a quarter: payback 30.7 weeks, NPV £172,432")
+# I2 the catalogue's example: a £4,800 splice table saving £310 a week; 48 weeks; 3 years; 10%
+b = appraisal(4800, 310, 48, 3, 0.10)
+print(f"  I2 payback {b['payback']:.1f} weeks; NPV £{b['npv']:,.0f}; IRR {b['irr']:.1%}; yearly return {b['roi']:.0%}")
+ok(abs(b['payback'] - 15.4839) < 1e-3 and abs(b['npv'] - 32204.36) < 0.01 and round(b['irr'] * 100) == 305 and abs(b['roi'] - 3.1) < 1e-9, "I2 splice table: 15.5 weeks, NPV £32,204, IRR 305%, yearly return 310%")
+# I3 a spend that does not pay: £30,000 for £200 a week over 3 years at 10% (48 weeks): NPV negative, payback longer than the life
+d = appraisal(30000, 200, 48, 3, 0.10)
+print(f"  I3 payback {d['payback']:.0f} weeks against {3*48} running weeks of life; NPV £{d['npv']:,.0f}; IRR {d['irr']:.2%}")
+ok(abs(d['payback'] - 150) < 1e-9 and 150 > 3 * 48 and abs(d['npv'] + 6126.22) < 0.01 and d['irr'] < 0, "I3 payback 150 weeks > 144 running weeks of life; NPV -£6,126; IRR below zero")
+# I4 the saving built from hours: 6 hours a week at £14.70 an hour
+print(f"  I4 saving a week £{6*14.70:.2f}")
+ok(abs(6 * 14.70 - 88.2) < 1e-9, "I4 6 hours a week at £14.70 = £88.20 a week")
+# I5 a zero rate: NPV is the plain sum less the cost (annuity limit n)
+z = appraisal(1000, 10, 50, 2, 0.0)
+ok(abs(z['npv'] - (10 * 50 * 2 - 1000)) < 1e-9, "I5 at 0% the NPV is saving x years less the cost")
+
 print("\nall independent cases hold")
