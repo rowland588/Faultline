@@ -15446,6 +15446,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .pugh-table .pugh-lead { box-shadow: inset 0 -3px 0 var(--brand); }
 .pugh-leads { display: block; font-weight: 600; }
 .pugh-acts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.scored-table .scored-num.scored-money { max-width: 7.5rem; min-width: 5.5rem; }
+.scored-table td:first-child .text-input { min-width: 9rem; }
+.scored-rate { display: grid; gap: 4px; margin: var(--space-3) 0; }
+.scored-rate .scored-num { width: 8rem; max-width: 8rem; }
 
 /* THE TOOLS GALLERY AND A TOOL'S OWN PAGE (docs/TOOLS-SHOWCASE.md, TG1–TG2) — tokens only, no new hue */
 .tc-gal-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; margin-bottom: 10px; }

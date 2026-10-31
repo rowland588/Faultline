@@ -100,7 +100,10 @@ measured and a saving to re-measure.
 - [textbook] Drury, C., *Management and Cost Accounting*, 11th ed., 2021 — capital investment appraisal (from knowledge).
 
 ## In Faultline
-Not built (FC-191); the case for new equipment left out (FC-192,
-`docs/BLUEPRINT.md` §6). When a tool's measured saving needs a figure
-against a spend, the three figures are a small calculation on the tool's
-own money line, with the re-measurement as the booking rule.
+Built as a calculator (FC-191, 31 October; `knowledge/specs/FC-191-payback-npv.md`, `src/tools/investment/investment.ts`,
+`src/tools/calc/defs/payback-npv.ts`, `/calc/payback-npv`, proved by `calc-shape.mjs`): payback in running weeks, NPV at
+the business's own rate over whole years, IRR, the return a year, and the two checks above (the saving halved; the cost
+up a quarter), the saving typed or built from a loss and a share or from hours at the wage. The worked SMED kit above is
+its first example (`scripts/knowledge/cases-calc.py` I1). The case for new equipment (FC-192) stays left out
+(`docs/BLUEPRINT.md` §6). **Not yet:** an uneven cash flow; the saving read from the tool that measured it; a picture
+of the cumulative cash.

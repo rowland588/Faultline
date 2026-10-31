@@ -97,7 +97,7 @@ export const METHODS: readonly ProjectMethod[] = [
     source: "Faultline’s own, from commissioning practice (docs/STAGEGATE.md, src/lib/planModel.ts); the word “stage gate” and the gate idea from Cooper (2001), who wrote it for product development — knowledge record `commissioning.stage-gate`",
     record: 'commissioning.stage-gate',
     sections: [
-      { name: "Install", what: "The machines on site, their stages and parts; what is late.", tools: ['FC-079', 'FC-215'], note: "Machines and materials; critical path is not built." },
+      { name: "Install", what: "The machines on site, their stages and parts; what is late.", tools: ['FC-079', 'FC-215'], note: "Machines and materials; critical path is a calculator over a typed network, not yet read from the plan." },
       { name: "Set up", what: "Programs loaded, the people ready, the standards written.", tools: ['FC-075', 'FC-082', 'FC-225', 'FC-222', 'FC-223', 'FC-178'], note: "Readiness is partly built; skills and SOP are not." },
       { name: "Commission", what: "Tests against what was agreed; the run at rate; the climb; capability; the filmed walk.", tools: ['FC-074', 'FC-075', 'FC-076', 'FC-077', 'FC-083', 'FC-084', 'FC-061', 'FC-118', 'FC-164', 'FC-165', 'FC-170', 'FC-081', 'FC-085'], note: "This is the Prove loop: programs and tests on the line." },
       { name: "Hand over", what: "Sign-off, spares, maintenance, what is still owed.", tools: ['FC-080', 'FC-078', 'FC-066', 'FC-063', 'FC-062', 'FC-064', 'FC-082'], note: "The pace forecast says when." },

@@ -80,7 +80,12 @@ function partBlocks(p: LineBundlePaper, part: LinePart, d: Density): Block[] {
   if (reading) {
     out.push(leanTiles(lineTiles(reading)));
     const c = lineClosing(reading);
-    out.push(text({ text: c.text, size: 9.5, style: 'bold', colour: c.tone === 'r' ? TONE.r : c.tone === 'a' ? TONE.a : INK2, after: gap(d, 'm') }));
+    out.push(text({ text: c.text, size: 9.5, style: 'bold', colour: c.tone === 'r' ? TONE.r : c.tone === 'a' ? TONE.a : INK2, after: gap(d, 's') }));
+    /* HOW FRESH THE LOOKING IS (FC-199) — the line's sentence and what the looking found, as its page says them */
+    if (reading.looking) {
+      out.push(text({ text: reading.looking.says, size: 9, style: 'bold', colour: /stale/.test(reading.looking.says) ? TONE.r : /fading/.test(reading.looking.says) ? TONE.a : INK2, after: 2 }));
+      out.push(text({ text: reading.looking.more, size: 8, colour: MUTED, after: gap(d, 'm') }));
+    }
   }
 
   /* WHAT IS OPEN — its problems, priority order, the late in red; its programs, machine by machine */

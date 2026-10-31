@@ -36,6 +36,8 @@ export const PAGES = (sd, cap) => [
     /* THE BOARD (27 October — "which line needs me?"): each line's state in a word and its colour, its worst thing and who has it, its projects */
     { what: 'each line where it stands, in a word and its colour', sel: '.fac-floor .fac-card-state', text: /\S/ },
     { what: 'each line\'s machines named on the card', sel: '.fac-floor .fac-card-machines', text: /\S/ },
+    /* HOW FRESH THE LOOKING IS (31 October, FC-199 tools/gemba): each card says when anyone last looked at the line, in words */
+    { what: 'each line: when anyone last looked at it', sel: '.fac-floor .fac-card-looked', text: /^(Looked at|Last looked at|Not looked at|Nothing recorded)/ },
     { what: 'each line\'s projects, or none', sel: '.fac-floor .fac-card-projects', text: /^(Projects: |No project on it)/ },
     { what: 'Set up the lines', sel: '.fac-home .pl-sec-acts .btn', text: /^Set up the lines$/ },
     { what: 'this week, across every line and project', sel: '.jb-week' },
@@ -122,6 +124,9 @@ export const PAGES = (sd, cap) => [
     /* the line is the hub (17 October, BLUEPRINT Stage 3; lib/lineLean). Its products, ready or not, came off on
        23 October — Rowland: "You've invented products ... The program is the product"; a program says its products */
     { what: 'the four tiles — problems, programs, stops, a day of the line', sel: '.pl-tiles .ln-tile', n: 4 },
+    /* HOW FRESH THE LOOKING IS (31 October, FC-199 tools/gemba): days since anyone looked at the line, its level in words, what the looking found */
+    { what: 'Eyes on the line — when anyone last looked, in words', sel: '.pl-looked .lk-says', text: /(looked at|not looked at|nothing recorded)/i },
+    { what: 'what the looking found, and that only what is recorded counts', sel: '.pl-looked .lk-foot', text: /recorded in the app/ },
     { what: 'See it on the line — Walk the line, Film the work, Talk it', sel: '.pl-see .pl-see-door b', n: 3 },
     { what: 'how this line is seen — the lede under the doors', sel: '.pl-see-lede', text: /How this line is seen/ },
     /* its papers in Report ▾ since B3 — the line report, the problems report and the problem cards, each named */

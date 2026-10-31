@@ -196,7 +196,7 @@ export function summarizePugh(r: PughResult): PughSummary {
     'A mark says better, same or worse than the datum — not by how much. The score is a way into the discussion, not the answer.',
     'Criteria and weights should be agreed before the options are scored, and then left alone; weights chosen to pick a favourite defeat it.',
   ];
-  if (r.anyCost) caveats.push('The costs typed sit beside the score and are not weighed in it; a capital choice is decided by its payback (FC-191, not built), not by this matrix.');
+  if (r.anyCost) caveats.push('The costs typed sit beside the score and are not weighed in it; a capital choice is decided by its payback and NPV (the Payback and NPV calculator), not by this matrix.');
   if (r.left.length) caveats.push(`Left out until marked on every criterion: ${r.left.map(l => `${l.name} (not marked on ${list(l.missing)})`).join('; ')}.`);
 
   const lines: string[] = [];

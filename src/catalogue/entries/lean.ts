@@ -193,7 +193,14 @@ export const LEAN: Entry[] = [
     food: 'Label scanners, reject-confirm on metal detectors, allergen-coloured utensils.',
     depends: ['FC-133', 'FC-132', 'FC-166'],
     complexity: 'S', value: 'medium', valueWhy: 'Protects against the errors that cause recalls.',
-    status: 'to-build', form: 'tool', kind: 'log', methods: ['lean.poka-yoke'], scenarios: ['quality', 'safety'], words: ['poka yoke', 'error proofing'],
+    status: 'partial', form: 'tool', kind: 'log', methods: ['lean.poka-yoke'], scenarios: ['quality', 'safety'], words: ['poka yoke', 'error proofing'],
+    spec: 'knowledge/specs/FC-014-mistake-proofing.md',
+    built: logBuilt('mistake-proofing'),
+    limits: [
+      'The register is the list of checks: a device’s type (contact, fixed-value, motion-step), function (control, warning) and the error it prevents are words in the check, not separate fields — the list cannot yet be filtered or counted by them.',
+      'The errors not yet proofed (the FMEA’s ranking, FC-132) and a device’s effectiveness before and after (FC-134) are not built; a device’s own cost against the failures it stops is not held.',
+      'It records the tests and never decides a release; event checks (a repair, a move, a reset) are counted when done, not scheduled; the product-on-hold record (FC-135) is not built yet.',
+    ],
   },
   {
     id: 'FC-015', name: 'Andon calls — response and resolution times', discipline: 'lean', sub: 'poka',

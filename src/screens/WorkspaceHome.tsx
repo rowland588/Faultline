@@ -45,6 +45,9 @@ import { ControlRoomReports } from '../ui/ControlRoomReports';
 import { lastOpen, type Place } from '../lib/recentPlaces';
 import { liveRecentPlaces } from '../lib/recentPlacesLive';
 import { Icon } from '../ui/Icon';
+import { useLooking } from '../tools/gemba/useLooking';
+import { lookingShort } from '../tools/gemba/looking';
+import '../tools/gemba/looking.css';
 import { niceDay, todayISO } from '../lib/weeks';
 
 /* What a workspace card must answer: "what's in here?" — for ALL content, not
@@ -250,6 +253,8 @@ export function WorkspaceHome() {
     return () => { on = false; off(); };
   }, []);
   const prodLines = productionLines((list ?? []).filter(w => w.id !== pendingDel?.id && (liveIds === null || liveIds.has(w.id))));
+  /* HOW FRESH THE LOOKING IS, a line at a time (FC-199, tools/gemba) — the silence made visible on the board */
+  const looked = useLooking(prodLines.map(w => w.id));
   /* ON A PHONE THE ANSWER COMES FIRST (FLOW-AUDIT.md, 11): the first screen
      held the title, New project and the factory's cards, and the headline
      began at the foot of it, under the Problem button. The line cards go
@@ -307,6 +312,7 @@ export function WorkspaceHome() {
                     <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
                     <span className="fac-card-machines">{machineSaid}</span>
                     <span className="fac-card-projects">{on ? `Projects: ${on}` : 'No project on it'}</span>
+                    {(() => { const lk = looked?.find(x => x.id === w.id)?.looking; return lk ? <span className={'fac-card-looked is-' + lk.level}>{lookingShort(lk)}</span> : null; })()}
                     {c?.worst && <span className={'fac-card-worst' + (c.worst.red ? ' is-r' : '')}>{c.worst.what}<span className="sub"> · {c.worst.owner ?? 'nobody yet'}{c.worst.due ? ` · ${c.worst.due}` : ''}</span></span>}
                     {(todo > 0 || k.late || dual || rate) ? (
                       <span className="fac-card-meta">

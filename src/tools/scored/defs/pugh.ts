@@ -13,7 +13,7 @@ const def: ScoredDef = {
   question: 'Which option scores best against what matters — and where is the lead thin?',
   scales: [],
   limits: [
-    'Impact and effort (FC-144) and the payback of a capital option (FC-191) are not built; an option’s cost is typed and shown beside the score, never in it.',
+    'An option’s cost is typed and shown beside the score, never in it; payback and NPV of a capital option are the Payback and NPV calculator’s (FC-191) — the two are not joined.',
     'Rounds of convergence are not kept as a history: edit the matrix and read it again.',
   ],
   matrix: {

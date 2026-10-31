@@ -66,10 +66,16 @@ export function listRows(list: LineReportRow[], cap: number, more: (n: number) =
 function blocksOf(r: LineReport, d: Density): Block[] {
   const out: Block[] = [];
   const page = bandPage(`PRODUCTION LINE${r.type ? ` · ${r.type.toUpperCase()}` : ''} · THE LINE REPORT`, { name: r.name }, undefined, undefined,
-    [...(r.dual ? [r.dual] : []), ['Projects on it', String(r.jobs.length)], ['Machines', r.machines ? String(r.machines.split(' → ').length) : '0']]);
+    [...(r.dual ? [r.dual] : []), ['Projects on it', String(r.jobs.length)], ['Machines', r.machines ? String(r.machines.split(' → ').length) : '0'], ...(r.reading.looking ? [['Last looked at', r.reading.looking.fact] as [string, string]] : [])]);
   const c = lineClosing(r.reading);
   out.push(leanBand({ ...page, verdict: { text: c.tone === 'r' ? 'Needs you' : c.tone === 'a' ? 'Gaps to close' : 'In hand', tone: c.tone } }, r.printed));
   out.push(leanTiles(lineTiles(r.reading)));
+
+  /* HOW FRESH THE LOOKING IS (FC-199) — one sentence and what the looking found, under the tiles; never a tile */
+  if (r.reading.looking) {
+    out.push(text({ text: r.reading.looking.says, size: 9, style: 'bold', colour: /stale/.test(r.reading.looking.says) ? TONE.r : /fading/.test(r.reading.looking.says) ? TONE.a : INK2, after: 2 }));
+    out.push(text({ text: r.reading.looking.more, size: 8, colour: MUTED, after: gap(d, 'm') }));
+  }
 
   /* THE PROBLEMS OPEN ON IT — priority order, the late in red. */
   out.push(leanHead('Problems open', r.problems.length ? `${r.problems.length} open` : undefined));
