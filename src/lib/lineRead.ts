@@ -8,6 +8,7 @@ import type { Observation, Workspace } from '../types';
 import type { Standard } from '../tools/linestandard/standard';
 import type { ToolStudy } from './study';
 import { analyse } from '../tools/linebalance/capacity';
+import { mixOfLine } from '../tools/linebalance/capacityMix';
 import { lossFiguresOf } from './studyLinks';
 import { runningOf } from '../tools/changeover/changeover';
 import { stopsOfBar, type LossBar } from '../tools/losses/losses';
@@ -66,8 +67,17 @@ export function readLine(x: LineReadInput) {
   const facts: LineFacts = { line: x.lineName ?? 'This line', unit, rates, fall, ...(constraint ? { constraint } : {}), trend, changes, load, unitsPer };
   const heat = heatOf(obs, now, ws?.assets ?? []);
   const asOf = new Date(now).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  const brief = weeklyBrief(facts, { asOf, ...(heat.rows.length ? { heat: heat.says } : {}) });
-  return { unit, from, recent, rates, constraint, trend, changes, fall, figs, shiftsPerWeek, load, weekFrom, facts, heat, brief };
+  /* WHICH FIRST WHEN THE LINE IS FULL (FC-042): the products ranked by what a minute of the constraint earns, the
+     week's minutes the line's own. In the brief only once a product has its own price — what the line already had
+     written never changes by what it was not asked. */
+  const mixed = mixOfLine(products, {
+    ...(minutesPerWeek != null ? { weekMinutes: minutesPerWeek } : {}),
+    cost: { ...(ws?.marginPerPack != null ? { marginPerPack: ws.marginPerPack } : {}), ...(ws?.materialsPerPack != null ? { materialsPerPack: ws.materialsPerPack } : {}) },
+    ...(constraint ? { constraint: constraint.name } : {}),
+  });
+  const mixInBrief = mixed && mixed.mix.rows.length > 1 && Object.values(mixed.from).includes('price') ? [mixed.sentence, ...mixed.money] : undefined;
+  const brief = weeklyBrief(facts, { asOf, ...(heat.rows.length ? { heat: heat.says } : {}), ...(mixInBrief ? { mix: mixInBrief } : {}) });
+  return { unit, from, recent, rates, constraint, trend, changes, fall, figs, shiftsPerWeek, minutesPerWeek, load, mixed, weekFrom, facts, heat, brief };
 }
 export type LineRead = ReturnType<typeof readLine>;
 

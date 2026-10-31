@@ -88,6 +88,10 @@ export interface MixRow {
   minutesGiven: number;
   made: number;
   unmade: number;
+  /** £ the packs made earn (throughput: price less materials, a pack × packs). */
+  throughput: number;
+  /** £ the packs left unmade would have earned — had the constraint the minutes. */
+  unmadeWorth: number;
 }
 
 export interface Mix {
@@ -99,20 +103,23 @@ export interface Mix {
   fill: number;
   /** The week's minutes the constraint has. */
   weekMinutes: number;
+  /** £ the week earns in this order (Σ packs made × margin a pack), and what the unmade packs are worth. */
+  throughput: number;
+  unmadeWorth: number;
+  /** What a minute LOST at the constraint costs: the £ a minute of the last product the week reaches. Absent
+   *  while the week has room — a minute lost then is not output lost yet (Goldratt: only the constraint's
+   *  minute is the line's). */
+  lostMinute?: number;
+  /** What a minute GAINED would earn: the £ a minute of the first product left unmade. Absent when nothing is. */
+  extraMinute?: number;
+  /** The same week filled in the order of margin a pack — the habit — and what the ranking earns beyond it. */
+  habit?: { throughput: number; firstName: string; ranking: number };
   sentence: string;
 }
 
-/** Rank by £ a constraint minute and fill the constraint's week in that order. */
-export function mix(products: MixProduct[], weekMinutes: number): Mix {
-  const skipped: Mix['skipped'] = [];
-  const rows: MixRow[] = [];
-  for (const p of products) {
-    if (p.marginPerPack == null) { skipped.push({ product: p, why: 'no margin a pack yet' }); continue; }
-    if (!p.perConstraintMin) { skipped.push({ product: p, why: 'no speed on the constraint yet' }); continue; }
-    if (p.demandPerWeek == null) { skipped.push({ product: p, why: 'no demand a week yet' }); continue; }
-    rows.push({ product: p, perMin: p.marginPerPack * p.perConstraintMin, minutesNeeded: p.demandPerWeek / p.perConstraintMin, minutesGiven: 0, made: 0, unmade: 0 });
-  }
-  rows.sort((a, b) => b.perMin - a.perMin);
+/** Fill the constraint's minutes down a list of rows in the order given: each is given the minutes it needs while
+ *  any are left, and made whole only when it had them all. */
+function fillWeek(rows: MixRow[], weekMinutes: number): void {
   let left = Math.max(0, weekMinutes);
   for (const r of rows) {
     r.minutesGiven = Math.min(left, r.minutesNeeded);
@@ -123,10 +130,43 @@ export function mix(products: MixProduct[], weekMinutes: number): Mix {
     const demand = r.product.demandPerWeek ?? 0;
     r.made = r.minutesGiven >= r.minutesNeeded - 1e-9 ? demand : Math.min(demand, Math.floor(r.minutesGiven * (r.product.perConstraintMin ?? 0) + 1e-9));
     r.unmade = Math.max(0, demand - r.made);
+    r.throughput = r.made * (r.product.marginPerPack ?? 0);
+    r.unmadeWorth = r.unmade * (r.product.marginPerPack ?? 0);
   }
+}
+
+/** Rank by £ a constraint minute and fill the constraint's week in that order. */
+export function mix(products: MixProduct[], weekMinutes: number): Mix {
+  const skipped: Mix['skipped'] = [];
+  const rows: MixRow[] = [];
+  for (const p of products) {
+    if (p.marginPerPack == null) { skipped.push({ product: p, why: 'no margin a pack yet' }); continue; }
+    if (!p.perConstraintMin) { skipped.push({ product: p, why: 'no speed on the constraint yet' }); continue; }
+    if (p.demandPerWeek == null) { skipped.push({ product: p, why: 'no demand a week yet' }); continue; }
+    rows.push({ product: p, perMin: p.marginPerPack * p.perConstraintMin, minutesNeeded: p.demandPerWeek / p.perConstraintMin, minutesGiven: 0, made: 0, unmade: 0, throughput: 0, unmadeWorth: 0 });
+  }
+  rows.sort((a, b) => b.perMin - a.perMin);
+  fillWeek(rows, weekMinutes);
   const needed = rows.reduce((s, r) => s + r.minutesNeeded, 0);
   const fill = weekMinutes > 0 ? needed / weekMinutes : 0;
   const unmade = rows.filter(r => r.unmade > 0);
+  const throughput = rows.reduce((n, r) => n + r.throughput, 0);
+  const unmadeWorth = rows.reduce((n, r) => n + r.unmadeWorth, 0);
+  /* a minute lost costs what the last product made earns a minute — only while the week is full (something unmade);
+     a minute gained earns what the first product left out would */
+  const lastMade = [...rows].reverse().find(r => r.minutesGiven > 0);
+  const firstOut = rows.find(r => r.unmade > 0);
+  const lostMinute = weekMinutes > 0 && unmade.length && lastMade ? lastMade.perMin : undefined;
+  const extraMinute = weekMinutes > 0 && firstOut ? firstOut.perMin : undefined;
+  /* the habit: the same minutes given in the order of margin a pack, biggest first — where it parts from the ranking
+     the ranking earns the difference */
+  let habit: Mix['habit'];
+  if (rows.length > 1 && weekMinutes > 0) {
+    const byPack = rows.map(r => ({ ...r })).sort((a, b) => (b.product.marginPerPack ?? 0) - (a.product.marginPerPack ?? 0));
+    fillWeek(byPack, weekMinutes);
+    const h = byPack.reduce((n, r) => n + r.throughput, 0);
+    if (byPack.map(r => r.product.id).join() !== rows.map(r => r.product.id).join()) habit = { throughput: h, firstName: byPack[0].product.name, ranking: throughput - h };
+  }
   let sentence: string;
   if (!rows.length) sentence = skipped.length ? `No product has its margin, speed and demand yet (${skipped.length} to fill in).` : 'No products yet.';
   /* No minutes on the constraint: nothing is made — it said "fills at 0%;
@@ -142,5 +182,5 @@ export function mix(products: MixProduct[], weekMinutes: number): Mix {
       : `The week fills at ${pct(fill)}; everything is made.`;
     sentence = `${rank} — ${first ? first.product.name : ''} first. ${week}`;
   }
-  return { rows, skipped, fill, weekMinutes, sentence };
+  return { rows, skipped, fill, weekMinutes, throughput, unmadeWorth, ...(lostMinute != null ? { lostMinute } : {}), ...(extraMinute != null ? { extraMinute } : {}), ...(habit ? { habit } : {}), sentence };
 }
