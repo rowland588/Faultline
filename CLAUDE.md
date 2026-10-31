@@ -53,7 +53,23 @@ reader per scope, one number everywhere (a gate check), one place per thing
 in the code, one answer per project kind — in four slices that change
 nothing a person sees. S1 is built (§5 of the doc: what it found); S2 is built (§6: `src/project/projectRead` the one reader, `src/project/projectKind` the one answer per kind — read a project through them, never twice). S3 is built (§7, 23–24 October — the ten tools moved on 24 October, a commit each): **the code in its places** — `src/project/` (the reader, the kinds, `journey/`), `src/line/report/`, `src/tools/<key>/` (a tool by its catalogue key, `reliability/` first); a new tool is built in its own folder, an older one moved when next worked on, with `scripts/moves.mjs` (moves files, keeps every import true) and proved by tsc, the tests, the catalogue's test and the gate. S4 is built (§8): the four biggest files split at their own seams — the stage-gate paper a sheet a file (`lib/paceReport/`), the A3's pages and the 6M report's screen apart (`screens/paceReportPages`, `screens/SixMReportScreen`), the 6M report's model apart from its paper (`lib/sixmReport`), capacity's sums apart from how a figure is written (`tools/linebalance/capacityWords`) and what the result says (`tools/linebalance/capacitySays`); the old file re-exports what left it, so every import stands.
 
-## The stage-gate path — 27 October
+## Stage gate is no longer a way to start a project — 29–30 October
+
+Rowland, 31 October: *"Stage gate is not part of the app — we moved everything into 6M, we realised this."* The record
+of it (it was never written here, so a session reading only this file went on treating stage gate as one of the three
+methods): **29 October** — the product became fault-centric, two engines, **Performance (6M + the line tools)** and
+**Prove (programs and tests on the line)** (`docs/FAULTLINE-FAULT-MODEL.md`, `docs/FAULTLINE-PRODUCT-DISCOVERY.md`,
+`docs/STAGEGATE-PROGRAMS-CORE.md`); the Installation project was demoted from New project to an advanced link
+(`fe38a62`), a Line 2 installation's programs were released onto the factory line (`0682405`, `d8173dd`). **30 October** —
+*"Need a formal install with gates … remove it"*: New project offers **Performance (6M)** only, no formal-install link
+(`docs/PAGES.md`, New project; an old `?model=commissioning` address still opens one). So: **nothing is built for a
+stage-gate project, and no page is added to a stage-gate screen** — the Enterprise UI plan's **E5** (stage-gate gates and
+Commission grids) is dropped (`docs/ENTERPRISE-UI.md`). What is *not* decided, and so not touched: the stage-gate screens,
+Commission and the commissioning reports that older projects still open — their code paths were *kept* by the 29 October
+slices; deleting them is a plan of its own (what goes, what stays, what happens to the data) and waits for Rowland's word.
+Programs, tests and machines live on the line and are the **Prove** engine — they stay.
+
+## The stage-gate path — 27 October (superseded for new work by the section above)
 
 **Read `docs/STAGEGATE-PATH.md` before touching anything in a stage-gate
 project.** Rowland, 27 October: *"we need a clear path for stage gate until we
@@ -332,10 +348,13 @@ Running projects on a factory floor, three ways. Rowland, 30 September:
 > "I've built three individual project methods ... I want to be able to use
 > this in multiple business scenarios, because my work is so diverse."
 
-- **Stage gate** — new equipment taken through its gates (install stages,
-  tests against what was agreed, fixes, what it waits on) to handover, with
-  the OEM. Stored as `commissioning` on the project; never shown under that
-  name — commissioning is one gate in the middle, not the method.
+- **Stage gate** *(no longer offered as a way to start a project since 30
+  October — see "Stage gate is no longer a way to start a project"; kept here
+  because older projects are still of it)* — new equipment taken through its
+  gates (install stages, tests against what was agreed, fixes, what it waits
+  on) to handover, with the OEM. Stored as `commissioning` on the project;
+  never shown under that name — commissioning is one gate in the middle, not
+  the method.
 - **6M** — a running line made to perform better, as a root cause analysis
   (replaced "3P" on 4 October; `docs/SIXM.md` is the design). The gap → the
   problem (the head of the fish, from the Pareto, the constraint or something
