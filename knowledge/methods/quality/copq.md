@@ -107,9 +107,11 @@ after the first recall.
 - [textbook] Campanella, J. (ed.), *Principles of Quality Costs*, 3rd ed., ASQ Quality Press, 1999 (from knowledge).
 
 ## In Faultline
-Not built (FC-128). Most of the internal-failure items are already counted
-in money by the tools (`src/tools/capability` give-away and rejects,
-`src/lib/problemCost.ts` rejects and held product, `src/tools/losses`
-quality stops); FC-128 adds the four buckets as a page on the line and the
-factory, each item traced to its record, the share of sales, and the
-failure Pareto.
+Built as a calculator (FC-128, 31 October; `knowledge/specs/FC-128-cost-of-poor-quality.md`, `src/tools/copq/copq.ts`,
+`src/tools/calc/defs/copq.ts`, `/calc/copq`, proved by `calc-shape.mjs`): the four buckets summed from items priced on
+the line's cost model (hours × the wage, packs × a pack's materials, rework, a complaint at the typed cost of one) or
+typed in pounds, the cost of poor quality (internal + external failure) and the cost of quality (all four), each as a
+share of sales and a cost a pack, the failure ranked, and what is missing named. The worked week above is its first
+example (`scripts/knowledge/cases-calc.py` Q1). **Not yet:** the items are typed — rejects by fate (`src/tools/capability`),
+holds, complaints and quality stops are not read from the records that count them; no Pareto is drawn; one period a
+record (the saved before gives the change).

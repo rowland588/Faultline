@@ -70,7 +70,10 @@ export const QUALITY: Entry[] = [
     food: 'Rejects, write-offs, retailer credits, recalls.',
     depends: ['FC-098', 'FC-134', 'FC-190'],
     complexity: 'M', value: 'medium', valueWhy: 'Puts quality in the language of the business.',
-    status: 'to-build', form: 'report', methods: ['quality.copq'], scenarios: ['quality', 'money'], words: ['COPQ', 'cost of quality'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['quality.copq'], scenarios: ['quality', 'money'], words: ['COPQ', 'cost of quality'],
+    built: { where: ['/calc/copq'], code: [...CALC_CODE, 'src/tools/calc/defs/copq.ts', 'src/tools/copq/copq.ts'], tests: [...CALC_TESTS, 'src/tools/copq/__tests__/copq.test.ts'], acceptance: ['calc-shape.mjs'] },
+    spec: 'knowledge/specs/FC-128-cost-of-poor-quality.md',
+    limits: ['Every item is typed (or priced from hours, packs and the unit costs given): the rejects by fate, holds, complaints and quality stops are not yet read from the records that count them.', 'One period a record; the trend is the saved before and the line’s list of records, not a chart over many periods.', 'The failure is ranked in words and in the working — no Pareto is drawn.', 'Complaints per million (FC-134) is not built; the cost of a complaint is the business’s own typed figure.'],
   },
   {
     id: 'FC-129', name: 'Acceptance sampling by attributes — AQL plans', discipline: 'quality', sub: 'inspection',
