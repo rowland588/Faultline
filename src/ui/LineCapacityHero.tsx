@@ -24,6 +24,7 @@ import {
 } from '../lib/intelligence';
 import { Metric, WhyNumber } from './WhyNumber';
 import { PERIOD_WEEKS, readLine, unitOf } from '../lib/lineRead';
+import type { LineMix } from '../tools/linebalance/capacityMix';
 
 const fmt = (n: number, d = 1) => n.toLocaleString('en-GB', { maximumFractionDigits: d });
 const when = (t: number) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -194,6 +195,9 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
         </ul>
         <DemandPaste products={products} />
       </details>
+      {/* WHICH PRODUCT FIRST WHEN THE LINE IS FULL (FC-042) — throughput per constraint minute, ranked; the week filled in
+          that order; what is unmade by name and in money (tools/linebalance/capacityMix) */}
+      <MixView products={products} mixed={a.mixed} />
       {/* RECOVERY LEVERS — slide a loss down, see what comes back; the mirage kept */}
       {levers && levers.rows.length > 0 && (
         <details className="lch-lev">
@@ -269,6 +273,63 @@ function DemandPaste({ products }: { products: Standard[] }) {
       <textarea className="text-area" rows={3} value={text} placeholder={'Maris Piper 2kg, 12000\nTesco Express 1.25 kg, 4000'} aria-label="Orders pasted, a product and a quantity a line" onChange={e => setText(e.target.value)} />
       <button type="button" className="btn btn-sm" disabled={!text.trim()} onClick={() => void apply()}>Use these</button>
       {said && <span className="sub" role="status"> {said}</span>}
+    </details>
+  );
+}
+
+/** What a pack earns, typed where it sits — the product's Line capacity holds it; on a job, the job's people may change it. */
+function PriceRow({ s, from }: { s: Standard; from?: 'price' | 'margin' }) {
+  const jobCan = useAccess(s.projectId ?? '');
+  const may = s.projectId ? jobCan : canOf('owner');
+  const save = (p: 'pricePerPack' | 'materialsPerPack', v: number | undefined) => {
+    if (!s.capacity) return;
+    const before = s;
+    void putStandard({ ...s, capacity: { ...s.capacity, [p]: v } });
+    offerUndo(`${p === 'pricePerPack' ? 'Price' : 'Materials'} for ${s.product} ${v != null ? `set to £${v}` : 'cleared'}`, async () => { await putStandard(before); });
+  };
+  const box = (p: 'pricePerPack' | 'materialsPerPack', what: string) => (may.edit
+    ? <DraftNumber className="text-input lch-mix-in" value={s.capacity?.[p]} placeholder={what} label={`${what} a pack for ${s.product}, pounds`} onSave={v => save(p, v)} />
+    : <b>{s.capacity?.[p] != null ? `£${s.capacity[p]}` : '—'}</b>);
+  return (
+    <li className="lch-mix-row">
+      <span className="lch-dem-p">{s.product}</span>
+      {box('pricePerPack', 'price')}
+      {box('materialsPerPack', 'materials')}
+      <span className="sub lch-dem-h">{from === 'price' ? 'its own' : from === 'margin' ? 'line’s margin' : ''}</span>
+    </li>
+  );
+}
+
+/** Which first when the line is full: the ranking, the week filled in order, the money, and the two numbers each
+ *  product is asked for. Nothing is shown to rank until a product has a margin, a speed and orders. */
+function MixView({ products, mixed }: { products: Standard[]; mixed: LineMix | undefined }) {
+  const withCap = products.filter(p => p.capacity?.stations.length);
+  if (!withCap.length || !mixed) return null;
+  const m = mixed.mix;
+  const money = (n: number) => `£${n >= 100 ? Math.round(n).toLocaleString('en-GB') : n.toFixed(2)}`;
+  const unit = mixed.unit;
+  return (
+    <details className="lch-lev lch-mix" open={m.rows.length > 0}>
+      <summary className="lch-h">Which first when the line is full? <span className="sub">what a minute of the constraint earns, by product</span></summary>
+      <p className={'lch-dem-says lch-mix-says' + (m.rows.some(r => r.unmade > 0) ? ' is-over' : '')} aria-live="polite"><b>{mixed.sentence}</b></p>
+      {m.rows.length > 0 && (
+        <ol className="lch-mix-rank" aria-label="Products ranked by what a constraint minute earns">
+          {m.rows.map((r, i) => (
+            <li key={r.product.id} className={r.unmade > 0 ? 'is-short' : ''}>
+              <span className="lch-mix-n">{i + 1}</span>
+              <span className="lch-mix-p"><b>{r.product.name}</b> <span className="sub">{money(r.perMin)} a constraint minute · needs {Math.round(r.minutesNeeded).toLocaleString('en-GB')} min</span></span>
+              <span className="lch-mix-m">{r.unmade > 0 ? <><b>{r.made.toLocaleString('en-GB')}</b> made · <em>{r.unmade.toLocaleString('en-GB')} {unit} unmade{r.unmadeWorth > 0 ? ` — ${money(r.unmadeWorth)}` : ''}</em></> : <><b>{r.made.toLocaleString('en-GB')}</b> made</>}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {mixed.money.map(t => <p key={t} className="lch-mix-money">{t}</p>)}
+      {mixed.left.length > 0 && <p className="sub lch-mix-left">Left out: {mixed.left.map(x => `${x.product} — ${x.why}`).join('; ')}.</p>}
+      {mixed.notes.map(t => <p key={t} className="sub lch-mix-note">{t}</p>)}
+      <ul className="lch-mix-rows" aria-label="What each product earns a pack">
+        <li className="lch-mix-row lch-mix-head sub"><span>Product</span><span>Price a pack</span><span>Materials a pack</span><span /></li>
+        {withCap.map(p => <PriceRow key={p.id} s={p} {...(mixed.from[p.id] ? { from: mixed.from[p.id] } : {})} />)}
+      </ul>
     </details>
   );
 }

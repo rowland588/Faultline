@@ -12,6 +12,8 @@ import { allProjects, listAllStudies, listWorkspaces } from '../../db';
 import { analyse, labourInputs, shiftsIn } from './capacity';
 import { capacityPaper, type CapacityPaper } from './capacityPaper';
 import { changeoverIn } from '../changeover/changeover';
+import { countedShiftOf } from './capacityThree';
+import { contributionOf } from '../losses/losses';
 import { walkVerdict } from '../../lib/ie/walk';
 import { balance, balanceSays } from '../linework/balance';
 import { currentBalance } from '../../lib/studyLinks';
@@ -42,6 +44,7 @@ export async function capacityPapersFor(list: Standard[], printed = printedOn())
       product: s.product, line: w?.name ?? (job ? `Project: ${job}` : 'On no line'), ...(job ? { job } : {}), printed,
       ...(cap ? { capacity: cap } : {}),
       ...(w ? { shifts: shiftsIn(w.shifts) } : {}),
+      ...(w ? (() => { const counted = countedShiftOf(studies.filter(x => !x.deletedAt && x.tool === 'losses' && x.workspaceId === w.id), s.id); const contribution = contributionOf(w)?.perPack; return { ...(counted ? { counted } : {}), ...(contribution != null ? { contribution } : {}) }; })() : {}),
       ...(cap ? (() => { const co = changeoverIn(cap.changeovers, studies, s.id); return co ? { co } : {}; })() : {}),
       labour: labourInputs(cap, headcount(s), w),
       ...(w?.marginPerPack ? { margin: w.marginPerPack } : {}),

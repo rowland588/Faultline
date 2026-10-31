@@ -714,6 +714,182 @@ let TRAY;
   await page.evaluate(async b => { const db = await import('/src/db.ts'); await db.putStandard(b); }, before);
 }
 
+/* ---- 17 capacity's three numbers (FC-041 — knowledge/specs/FC-041-capacity-three-numbers.md) ---- design (the plate
+   × every minute of the shift), effective (what the shift can really make: the sheet's capacity a shift) and
+   actual (the line's newest counted shift), utilisation and efficiency told apart, where design went, the
+   shortfall in money; on the page, on the paper and on a phone. The line is worked by hand: a bagger on its plate at
+   100 bags a minute running 95% of the time, a shift of 480 min less 30 of breaks, a target of 100 —
+   design 48,000; breaks 3,000 + stops (100 − 95) × 450 = 2,250; effective 42,750 (89%); counted 40,000 → 83% of
+   design, 94% of effective, 2,750 short (£1,100 at £0.40), the target asking 45,000 = 105% (cases-capacity-three-mix.py). */
+{
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtempSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+  const before = await page.evaluate(async id => (await import('/src/db.ts')).getStandard(id), SID);
+  const wsBefore = await page.evaluate(async id => (await import('/src/db.ts')).getWorkspace(id), sd.wsId);
+  const countsBefore = await page.evaluate(async ([wsId]) => { const db = await import('/src/db.ts'); return (await db.listAllStudies()).filter(s => s.tool === 'losses' && s.workspaceId === wsId && !s.deletedAt); }, [sd.wsId]);
+  const setWs = patch => page.evaluate(async ([id, p]) => { const db = await import('/src/db.ts'); const w = await db.getWorkspace(id); await db.updateWorkspace({ ...w, ...p }); }, [sd.wsId, patch]);
+  const norm = t => t.replace(/\s+/g, ' ').replace(/[–—−]/g, '-').replace(/’/g, "'");
+  const BAGGER = { labour: { people: 4, ratePerHour: 14 }, targetPerMin: 100, plannedHoursPerWeek: 40, stations: [
+    { id: 'bg', crew: 1, kind: 'machine', name: 'Bagger', rate: 100, unit: 'bags', source: 'plate', goodPct: 100, ratePer: 'min', contains: 1, runningPct: 95 }] };
+  await page.evaluate(async ([id, cap]) => { const db = await import('/src/db.ts'); const st = await db.getStandard(id); await db.putStandard({ ...st, capacity: cap }); }, [SID, BAGGER]);
+  /* no count yet: this line's own counts are put away for the first checks and brought back at the end */
+  const smedsBefore = await page.evaluate(async ([sid]) => { const db = await import('/src/db.ts'); return (await db.listAllStudies()).filter(s => s.tool === 'changeover' && s.standardId === sid && !s.deletedAt); }, [SID]);
+  await page.evaluate(async ids => { const db = await import('/src/db.ts'); for (const s of ids) await db.putStudy({ ...s, deletedAt: Date.now() }); }, [...countsBefore, ...smedsBefore]);
+  await setWs({ shifts: [], marginPerPack: undefined });
+  await go(CAP);
+  ok((await page.locator('.thr').count()) === 0, '17a no shifts on the line: no three numbers, and nothing invented — A shift says the shifts are not set');
+
+  await setWs({ shifts: [{ name: 'Days', start: '06:00', end: '14:00', breakMin: 30 }] });
+  await go(CAP);
+  const truth = () => page.evaluate(async ([id]) => {
+    const db = await import('/src/db.ts'); const C = await import('/src/tools/linebalance/capacity.ts'); const T = await import('/src/tools/linebalance/capacityThree.ts'); const X = await import('/src/tools/changeover/changeover.ts'); const L = await import('/src/tools/losses/losses.ts');
+    const st = await db.getStandard(id); const ws = await db.getWorkspace(st.workspaceId); const all = await db.listAllStudies();
+    const counted = T.countedShiftOf(all.filter(s => !s.deletedAt && s.tool === 'losses' && s.workspaceId === st.workspaceId), id);
+    return T.threeCapacities(C.analyse(st.capacity), C.shiftsIn(ws?.shifts), X.changeoverIn(st.capacity.changeovers, all, id), counted, { ...(L.contributionOf(ws) ? { contribution: L.contributionOf(ws).perPack } : {}), targetPerMin: st.capacity.targetPerMin });
+  }, [SID]);
+  let t = await truth();
+  const rowTxt = norm((await page.locator('.thr-t tbody tr').first().innerText()));
+  ok(t.rows[0].design === 48_000 && t.rows[0].effective === 42_750 && t.rows[0].breaks === 3_000 && Math.abs(t.rows[0].pace - 2_250) < 1e-6 && rowTxt === 'Days 48,000 - 3,000 none - 2,250 42,750 89% of design',
+    `17b the table by hand — built to make 48,000, breaks 3,000 and the line's own stops 2,250 gone, 42,750 really (89%): ${rowTxt}`);
+  const says = norm(await words('.thr-says'));
+  ok(says === norm('At the plate speed of the Bagger — 100 bags a minute — a shift is built to make 48,000 bags. Breaks take 3,000 and the line’s own stops and rejects 2,250: it can really make 42,750, 89% of that. The target asks 45,000 of its planned minutes — 105% of what it can really make.')
+    && says === norm(t.sentence), `17b the sentence, by hand and as the module says it — ${says.slice(0, 120)}…`);
+  const notes = norm(await words('.thr-notes'));
+  ok(/No changeover is timed into this product yet/.test(notes) && /No shift has been counted yet/.test(notes) && (await page.locator('.thr-count').count()) === 0,
+    '17b no changeover timed and no count yet: each said, and no actual claimed');
+
+  /* a counted shift — the newest of the line's loss counts, for this product */
+  const countId = await page.evaluate(async ([sid, wsId]) => { const db = await import('/src/db.ts'); const now = Date.now(); const id = crypto.randomUUID();
+    await db.putStudy({ id, tool: 'losses', name: 'Days, counted', product: 'Maris Piper 2kg', standardId: sid, workspaceId: wsId,
+      facts: { losses: { shift: 'Days', from: now - 8 * 3_600_000, to: now, breakMin: 30, plannedMin: 450, made: 40_000, rejects: 0, ratePerMin: 100, rateFrom: 'plate', rateMachine: 'Bagger' } },
+      uses: [], startedAt: now, createdAt: now, updatedAt: now });
+    return id; }, [SID, sd.wsId]);
+  await go(CAP); t = await truth();
+  const dayWord = await page.evaluate(() => new Date(Date.now() - 8 * 3_600_000).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }));
+  const count = norm(await words('.thr-count'));
+  ok(count === norm(`Counted — Days, ${dayWord}: 40,000 good bags made. Of the 48,000 the shift was built to make that is 83% — how much of the asset was used; of the 42,750 it could really make that is 94% — how well the planned time ran.`) && count === norm(t.countSays),
+    `17c the counted shift: utilisation and efficiency told apart — ${count.slice(0, 110)}…`);
+  const ratios = norm(await words('.thr-ratios'));
+  ok(/83% utilisation - made . built to make/.test(ratios) && /94% efficiency - made . can really make/.test(ratios) && /105% loading - what the target asks . can really make/.test(ratios), `17c the three ratios each named for what it divides: ${ratios}`);
+  ok(norm(await words('.thr-money')) === '2,750 bags short of what it could really make. Give the line a margin a pack (Set up the line) to say that in money.' && (await page.locator('.thr-money.is-r').count()) === 1,
+    '17c no margin a pack on the line: 2,750 bags short said, the money named as missing — never invented');
+  await setWs({ marginPerPack: 0.4 });
+  await go(CAP);
+  const money = norm(await words('.thr-money'));
+  ok(money === norm('2,750 bags short of what it could really make — worth £1,100 of contribution if it cannot be made up. The loss count says where they went.'), `17c with the line's margin of 40p: ${money}`);
+  await page.locator('.thr-go').click(); await page.waitForTimeout(1500);
+  ok(page.url().includes(`/losses/${countId}`), '17c the loss count opens from the block — where the shift’s packs went');
+  await go(CAP);
+
+  /* the paper says what the page does */
+  const dir = mkdtempSync(join(tmpdir(), 'cap-three-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, /^Line capacity — /)]);
+  const file = join(dir, 'three.pdf'); await dl.saveAs(file);
+  const txt = norm(execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }));
+  t = await truth();
+  const want = [norm(`Three numbers — counted Days, ${dayWord}: 40,000 made — 83% of 48,000 built to make, 94% of 42,750 it can really make; 2,750 short, £1,100.`), norm(`Three numbers — ${t.paper}`)];
+  const lost = want.filter(w => !txt.toLowerCase().includes(w.toLowerCase()));
+  ok(!lost.length, `17d the paper: Three numbers in one line — the counted shift against what it was built to make and can really make, the shortfall and its worth — as the module says it${lost.length ? ` — lost: ${lost[0].slice(0, 90)}` : ''}`);
+
+  /* on a phone */
+  await page.setViewportSize({ width: 375, height: 800 }); await go(CAP);
+  const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  ok(wide <= 1 && (await page.locator('.thr-says').isVisible()), `17e on a phone: the three numbers read, nothing off the side (${wide}px over)`);
+  await page.setViewportSize({ width: 1360, height: 900 });
+
+  /* put back */
+  await page.evaluate(async ([st, ws, studies, cid]) => { const db = await import('/src/db.ts'); await db.putStandard(st); await db.updateWorkspace(ws); for (const s of studies) await db.putStudy(s); const c = await db.getStudy(cid); await db.putStudy({ ...c, deletedAt: Date.now() }); }, [before, wsBefore, [...countsBefore, ...smedsBefore], countId]);
+}
+
+/* ---- 18 which first when the line is full (FC-042 — knowledge/specs/FC-042-product-mix.md) ---- throughput per
+   constraint minute on the line's capacity panel. Three products on one filler, a week of 50 planned hours (3,000
+   minutes): Snack 250 g £0.30 − £0.18 = £0.12 × 300 a minute = £36, Standard 500 g £0.55 − £0.30 = £0.25 × 120 =
+   £30, Family 1.5 kg £1.20 − £0.60 = £0.60 × 40 = £24 — the reverse of margin a pack; they ask 1,000 + 2,000 + 1,500 =
+   4,500 minutes (150%): Snack and Standard whole, 60,000 Family unmade (£36,000); the week earns £96,000 and by
+   margin a pack £81,000; a minute lost £30, gained £24 (cases-capacity-three-mix.py). */
+{
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtempSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+  const norm = t => t.replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'");
+  const MIXWS = await page.evaluate(async () => {
+    const db = await import('/src/db.ts'); const ws = await db.createWorkspace('Mix line');
+    let n = 0;
+    for (const [name, rate, demand] of [['Family 1.5 kg', 40, 60_000], ['Standard 500 g', 120, 240_000], ['Snack 250 g', 300, 300_000]]) {
+      await db.putStandard({ id: crypto.randomUUID(), projectId: '', workspaceId: ws.id, product: name, marks: [], sort: n++, createdAt: Date.now() + n, updatedAt: Date.now() + n,
+        capacity: { plannedHoursPerWeek: 50, demandPerWeek: demand, stations: [{ id: `f${n}`, name: 'Filler', kind: 'machine', unit: 'packs', contains: 1, rate, ratePer: 'min', source: 'plate', goodPct: 100, runningPct: 100 }] } });
+    }
+    return ws.id;
+  });
+  const MIX = `#/balances?line=${MIXWS}`;
+  const openMix = async () => { const d = page.locator('.lch-mix'); await d.waitFor({ timeout: 10000 }); if (!(await d.evaluate(e => e.open))) await d.locator('summary').click(); await page.waitForTimeout(300); };
+  const truth = () => page.evaluate(async id => {
+    const db = await import('/src/db.ts'); const M = await import('/src/tools/linebalance/capacityMix.ts');
+    const ps = (await db.listStandardsForLine(id)).filter(p => !p.deletedAt);
+    return M.mixOfLine(ps, { weekMinutes: 3000, constraint: 'Filler' });
+  }, MIXWS);
+
+  await go(MIX); await openMix();
+  ok(norm(await words('.lch-mix-says')) === 'No product has its margin, speed and demand yet (3 to fill in).' && (await page.locator('.lch-mix-rank li').count()) === 0
+    && norm(await words('.lch-mix-note')).includes('Give the line a margin a pack (Set up the line), or each product its price and materials, to rank on what a minute earns.')
+    && norm(await words('.lch-mix-left')) === 'Left out: Family 1.5 kg - no margin a pack yet; Standard 500 g - no margin a pack yet; Snack 250 g - no margin a pack yet.',
+  '18a nothing priced: no ranking, the three left out and named, the missing input said and where to give it — nothing invented');
+
+  /* type each product's price and materials into its boxes */
+  for (const [name, price, mat] of [['Snack 250 g', '0.30', '0.18'], ['Standard 500 g', '0.55', '0.30'], ['Family 1.5 kg', '1.20', '0.60']]) {
+    const p = page.getByLabel(`price a pack for ${name}, pounds`); await p.fill(price); await p.press('Enter'); await page.waitForTimeout(250);
+    const m = page.getByLabel(`materials a pack for ${name}, pounds`); await m.fill(mat); await m.press('Enter'); await page.waitForTimeout(350);
+  }
+  await page.waitForTimeout(600);
+  const t = await truth();
+  const rank = (await page.locator('.lch-mix-rank li').allInnerTexts()).map(norm);
+  ok(t.mix.rows.map(r => r.product.name).join('|') === 'Snack 250 g|Standard 500 g|Family 1.5 kg' && rank.length === 3
+    && /^1 Snack 250 g £36\.00 a constraint minute . needs 1,000 min/.test(rank[0]) && /^2 Standard 500 g £30\.00 a constraint minute . needs 2,000 min/.test(rank[1])
+    && /^3 Family 1\.5 kg £24\.00 a constraint minute . needs 1,500 min/.test(rank[2]) && /60,000 packs unmade - £36,000/.test(rank[2]),
+  `18b ranked by what a constraint minute earns — the reverse of margin a pack (£36 · £30 · £24); Family 1.5 kg 60,000 unmade, £36,000: ${rank.join(' | ').slice(0, 150)}`);
+  const sentence = norm(await words('.lch-mix-says'));
+  ok(sentence === norm('Snack 250 g earns £36 a constraint minute, Standard 500 g £30, Family 1.5 kg £24 — Snack 250 g first. The week is full at 150% of it asked; 60,000 of Family 1.5 kg unmade.') && sentence === norm(t.sentence),
+    `18b the sentence, by hand and as the module says it: ${sentence}`);
+  const money = (await page.locator('.lch-mix-money').allInnerTexts()).map(norm);
+  const wantMoney = ['Run in that order the week earns £96,000 of throughput (price less materials).',
+    'Run by margin a pack instead — Family 1.5 kg first — it would earn £81,000: the ranking earns £15,000 more.',
+    '60,000 Family 1.5 kg unmade — worth £36,000 of throughput if the Filler had the minutes.',
+    'A minute lost at the Filler costs £30.00 (a Standard 500 g minute); a minute gained earns £24.00 (Family 1.5 kg’s) — the figure that prices a stop, a changeover or a speed loss there.'].map(norm);
+  ok(JSON.stringify(money) === JSON.stringify(wantMoney) && JSON.stringify(t.money.map(norm)) === JSON.stringify(wantMoney),
+    `18b the money by hand: £96,000 against the habit's £81,000, £36,000 unmade, a minute lost £30 and gained £24`);
+
+  /* kept after a reload; the brief and the paper carry it */
+  await go(MIX); await openMix();
+  ok(norm(await words('.lch-mix-says')) === sentence && (await page.getByLabel('price a pack for Snack 250 g, pounds').inputValue()) === '0.3', '18c the prices kept after a reload, the ranking the same');
+  const brief = norm((await page.locator('.lch-brief-t').textContent()) ?? '');
+  ok(brief.includes('Run in that order the week earns £96,000 of throughput') && brief.includes(norm('Snack 250 g earns £36 a constraint minute')), '18d "The week, to send" carries the ranking once a product has its price');
+  const dir = mkdtempSync(join(tmpdir(), 'cap-mix-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, /^Line capacity — every product shown/)]);
+  const file = join(dir, 'mix.pdf'); await dl.saveAs(file);
+  const txt = norm(execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }));
+  const lost = [sentence, wantMoney[0], wantMoney[1]].filter(w => !txt.toLowerCase().includes(w.toLowerCase()));
+  ok(!lost.length, `18d the paper's front carries the ranking and its money as the page says them${lost.length ? ` — lost: ${lost[0].slice(0, 90)}` : ''}`);
+
+  /* the week with room: 80 planned hours = 4,800 minutes against 4,500 asked — nothing unmade, no minute priced as lost */
+  await page.evaluate(async id => { const db = await import('/src/db.ts'); for (const p of await db.listStandardsForLine(id)) await db.putStandard({ ...p, capacity: { ...p.capacity, plannedHoursPerWeek: 80 } }); }, MIXWS);
+  await go(MIX); await openMix();
+  ok(norm(await words('.lch-mix-says')).endsWith('The week fills at 94%; everything is made.') && (await page.locator('.lch-mix-rank li.is-short').count()) === 0
+    && (await page.locator('.lch-mix-money').allInnerTexts()).map(norm).pop() === 'The week has room (it fills at 94%): a minute lost at the Filler is not output lost yet.',
+  '18e a week with room: everything made, and a minute lost at the constraint is not priced as lost output yet');
+
+  /* only the line's margin: the same for every product, so the ranking is by speed alone — said */
+  await page.evaluate(async id => { const db = await import('/src/db.ts'); for (const p of await db.listStandardsForLine(id)) { const { pricePerPack, materialsPerPack, ...rest } = p.capacity; await db.putStandard({ ...p, capacity: { ...rest, plannedHoursPerWeek: 50 } }); }
+    const w = await db.getWorkspace(id); await db.updateWorkspace({ ...w, marginPerPack: 0.2 }); }, MIXWS);
+  await go(MIX); await openMix();
+  ok(norm(await words('.lch-mix-note')).includes('Every product carries the line’s margin a pack, so they are ranked by speed alone'.replace('’', "'")) && (await page.locator('.lch-mix-rank li').first().innerText()).includes('Snack 250 g'),
+    '18e only the line’s margin a pack: ranked by speed alone, and said');
+
+  /* on a phone */
+  await page.setViewportSize({ width: 375, height: 800 }); await go(MIX); await openMix();
+  const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  ok(wide <= 1 && (await page.locator('.lch-mix-says').isVisible()), `18f on a phone: the ranking reads, nothing off the side (${wide}px over)`);
+  await page.setViewportSize({ width: 1360, height: 900 });
+}
+
 /* ---- a client reads it and changes nothing ---- a line's own tool is its
    members' to change; on a job, a client of the job reads it. So the
    standard is put on the job first, as a person would attach it. */

@@ -318,6 +318,7 @@ export const PAGES = (sd, cap) => [
     { what: 'ask about the line', sel: '.lch-ask' },
     { what: 'where the time went, band by band', sel: '.lch-bands .lch-band', n: 3 },
     { what: 'will next week’s orders fit', sel: '.lch-dem' },
+    { what: 'which first when the line is full — throughput per constraint minute (31 October, FC-042)', sel: '.lch-mix' },
   ] },
   /* THE LINE BALANCE, its own tool (17 October) — at the old People tab's address too, which still opens it */
   { name: 'Line balance — one product', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=balance&view=work`, must: [

@@ -173,8 +173,8 @@ own and names what it feeds.
 | FC-038 The constraint and the mirage | built — where a lost minute costs output | T | built | built |
 | FC-039 Recovery levers | the share recovered × the loss's £ (its L + T) | L, T | built (from the loss count) | built |
 | FC-040 Load against demand | built — next week's orders: short in packs → S | S | contribution | built |
-| FC-041 Capacity's three numbers | design − actual in packs → T a shift, as what the gap is worth | T | contribution | "Give a contribution a pack to say the capacity gap in money" |
-| FC-042 Product mix at the constraint | built (arithmetic) — T a constraint minute, unmade worth | T | price and materials a product | built |
+| FC-041 Capacity's three numbers | built 31 Oct (`knowledge/specs/FC-041-capacity-three-numbers.md`) — effective − actual in packs → T a shift, "if it cannot be made up" (design − effective is a plan, not priced) | T | contribution a pack (the line's price less materials, else its margin) | "Give the line a margin a pack (Set up the line) to say that in money" — the packs still said |
+| FC-042 Product mix at the constraint | built 31 Oct (`knowledge/specs/FC-042-product-mix.md`) — T a constraint minute, the week's throughput, the unmade by name and worth, the ranking against the habit, a minute lost and gained at the constraint (priced only while the week is full) | T | price and materials a pack on each product (else the line's materials and margin) | "Give the line a margin a pack (Set up the line), or each product its price and materials, to rank on what a minute earns" |
 | FC-043 Drum–buffer–rope | the buffer's holding (H) against the starvation it prevents (T) | H, T | cost a piece; contribution | as FC-037 |
 | FC-044 Little's law | WIP tied up and carried (H); the lead time's days of life | H | cost a piece; carrying rate | as FC-037 |
 | FC-045 Utilisation and variability (VUT) | the queue's holding (H) and the spare capacity's cost (L at the station) side by side — the buffer choice in money | H, L | cost a piece; wage | as FC-037 |

@@ -311,6 +311,13 @@ function shiftTable(p: CapacityPaper): Block | null {
   return rows({ header, rows: [...s.rows.map(r => line(r)), ...(s.day ? [line(s.day, true)] : [])], after: 's' });
 }
 
+/** CAPACITY'S THREE NUMBERS (FC-041): what a shift is built to make, can really make and made — one short paragraph, the same
+ *  facts the screen's block says (a product is one page: the screen's longer sentences and notes stay on the screen). */
+function threeBlocks(p: CapacityPaper, d: Density): Block[] {
+  if (!p.three) return [];
+  return [text({ text: `Three numbers — ${p.three.paper}`, size: S, colour: INK2, after: gap(d, 's') })];
+}
+
 /** WHERE IT IS LIMITED — the V drawn along each line (and where they merge,
  *  when several feed one), the bottleneck walked, the capacity sheet a row a
  *  station. `sayV`: the V's sentence beside it (the lean page says it under
@@ -391,6 +398,7 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
     if (t) out.push(t);
     out.push(text({ text: p.shift.sentence, size: T, colour: INK2, after: gap(d, 'm') }));
   }
+  out.push(...threeBlocks(p, d));
   if (p.labour) {
     out.push(label(`What a ${oneOf(p.unit)} costs in labour`));
     out.push(text({ text: p.labour.says, size: T, colour: INK2, after: p.labour.more ? 4 : gap(d, 'm') }));
@@ -450,6 +458,7 @@ export function productLeanBlocks(p: CapacityPaper, d: Density): Block[] {
     out.push(shiftTbl);
     out.push(text({ text: p.shift.sentence, size: T, colour: INK2, after: gap(d, 'm') }));
   }
+  out.push(...threeBlocks(p, d));
   /* THE ACTION PLAN — the way to the target, worked out (its steps the rows,
      the whole in the heading's words; a plan that cannot reach the target
      says why in full), and the what-ifs tried. With neither the closing line
@@ -529,11 +538,16 @@ function frontBlocks(papers: CapacityPaper[], scope: string, printed: string, d:
  *  the front, then each product's own. The first page is the current one. */
 export async function drawCapacityPaper(doc: jsPDF, papers: CapacityPaper[], o: { scope?: string; printed: string; weeks?: LineWeek[] }): Promise<void> {
   const one = papers.length === 1 && !o.scope;
-  const build = (d: Density): Block[] => (one ? productLeanBlocks(papers[0], d)
+  const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
+  /* One product is ONE page (list-paper.mjs, 1) and the three numbers' line is for room, not for a second page: when it
+     would cost a page the paper leaves it to the screen, which always says it. */
+  const fit = async (q: CapacityPaper) => { const d = await chooseDensity(base, x => productLeanBlocks(q, x)); return (await pour({ ...base, density: d, dry: true }, productLeanBlocks(q, d), () => undefined)).pages; };
+  const bareOf = (q: CapacityPaper): CapacityPaper => { const c: CapacityPaper = { ...q }; delete c.three; return c; };
+  const first: CapacityPaper | undefined = one && papers[0]?.three && (await fit(papers[0])) > (await fit(bareOf(papers[0]))) ? bareOf(papers[0]) : papers[0];
+  const build = (d: Density): Block[] => (one ? productLeanBlocks(first as CapacityPaper, d)
     /* the first product follows the front where it stands — kept whole
        overleaf, it left the front alone on a page */
     : [...frontBlocks(papers, o.scope ?? 'every product shown', o.printed, d, o.weeks), ...papers.flatMap((p, i) => productBlocks(p, d, false, i > 0))]);
-  const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const density = await chooseDensity(base, build);
   await pour({ ...base, density, dry: false }, build(density), () => doc.addPage('a4', 'portrait'));
   const pages = doc.getNumberOfPages();

@@ -104,8 +104,13 @@ one table, so the three stop arguing about one word.
 - [textbook] Slack, N., Brandon-Jones, A. and Burgess, N., *Operations Management*, 10th ed., Pearson, 2022 — capacity measurement (from knowledge).
 
 ## In Faultline
-Arithmetic built (`src/lib/ie/mix.ts` threeNumbers, with its test; FC-041
-partly — no page of its own). The load against demand uses the plannable
-figure (`capacity.load-vs-demand`); Line capacity's shift view gives
-the plannable rate. A page would put the three numbers and the two ratios
-on the line's week with the loss count's gap beside them, in money.
+Built (31 October, FC-041, `knowledge/specs/FC-041-capacity-three-numbers.md`): on a product's Line capacity page,
+under **A shift**, and on its paper — `src/tools/linebalance/capacityThree.ts`. Design is the plate speed of the
+station that sets the pace × the shift's whole minutes; effective is the shift's capacity as `shiftCapacity` works
+it (breaks the line stops for, the changeovers SMED timed into the product, the line's own stops and rejects);
+actual is the line's newest counted shift (the loss count's good packs, `countedShiftOf`). Utilisation, efficiency
+and loading are said apart; the gap from design to effective is three plain numbers in packs that add exactly; the
+shortfall to the sheet is priced at the line's contribution (T) "if it cannot be made up" or the missing input
+named. A shift, not the 24 × 7 week of the worked case above (the line sets its shifts; the week against the orders is the load-against-demand tool's);
+the headroom of an extra shift against its labour is a decision and is not priced. The week-level
+arithmetic stays in `src/lib/ie/mix.ts` (`threeNumbers`, tested on the worked week).

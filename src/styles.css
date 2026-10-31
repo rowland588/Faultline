@@ -13063,6 +13063,38 @@ button.vc-col:focus-visible { outline: 2px solid var(--brand); outline-offset: 2
 .shc-day td { border-top: 1.5px solid var(--line-2); }
 .shc-says { margin: 0; }
 .shc-go { justify-self: start; }
+/* Capacity's three numbers (FC-041), under a shift */
+.thr { display: grid; gap: 6px; margin: 0 0 16px; }
+.thr .cap-sheet-box { margin: 0; }
+.thr-t { min-width: 600px; }
+@media (max-width: 719px) {
+  /* a phone keeps the shift, what it is built to make and what it can really make; the three losses between them are in the sentence under */
+  .thr-t { min-width: 0; }
+  .thr-t th:nth-child(n+3):nth-child(-n+5), .thr-t td:nth-child(n+3):nth-child(-n+5) { display: none; }
+}
+.thr-says, .thr-count { margin: 0; }
+.thr-ratios { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.thr-ratios li { min-width: 0; }
+.thr-money { margin: 0; }
+.thr-notes { margin: 0; }
+.thr-go { justify-self: start; }
+/* Which first when the line is full (FC-042), on the line's capacity panel */
+.lch-mix-rank { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+.lch-mix-rank li { display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: baseline; padding: 6px 0 6px 8px; border-bottom: 1px solid var(--line); border-left: 4px solid transparent; }
+.lch-mix-rank li.is-short { border-left-color: var(--st-a); }
+.lch-mix-n { font-weight: 700; color: var(--muted); }
+.lch-mix-m em { font-style: normal; color: var(--st-a); font-weight: 600; }
+.lch-mix-money { margin: 0 0 4px; }
+.lch-mix-left, .lch-mix-note { margin: 0 0 4px; }
+.lch-mix-rows { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
+.lch-mix-row { display: grid; grid-template-columns: 1fr 96px 96px 80px; gap: 10px; align-items: center; }
+.lch-mix-in { width: 100%; }
+@media (max-width: 719px) {
+  .lch-mix-rank li { grid-template-columns: 22px 1fr; }
+  .lch-mix-m { grid-column: 2; }
+  .lch-mix-row { grid-template-columns: 1fr 76px 76px; }
+  .lch-mix-row .lch-dem-h { display: none; }
+}
 
 /* ---- a line's machines and programs (docs/BLUEPRINT.md, Stage 2) ---- */
 .pl-machines { list-style: none; margin: 0; padding: 0; counter-reset: plm; }

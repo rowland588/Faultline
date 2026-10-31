@@ -123,6 +123,12 @@ export interface Capacity {
   /** NEXT WEEK'S ORDERS for this product, in the line's unit — typed or pasted
    *  on the line's capacity (lib/intelligence loadVsDemand); never from an ERP. */
   demandPerWeek?: number;
+  /** WHAT THIS PRODUCT EARNS A PACK (FC-042, knowledge/specs/FC-042-product-mix.md): its price and its materials,
+   *  typed on the line's capacity panel — throughput is price less the truly variable cost, so the mix can rank
+   *  products on what each earns a constraint minute. Each absent when not typed: the line's own materials and
+   *  margin a pack stand in (`contributionOf`), said which. Kept inside the standard's jsonb — no column. */
+  pricePerPack?: number;
+  materialsPerPack?: number;
   stations: Station[];
   /** THE V's MARGIN (docs/CAPACITY.md §4): how much faster, in percent, each
    *  station a step away from the bottleneck is agreed to be — so a short stop
