@@ -540,6 +540,11 @@ export const PAGES = (sd, cap) => [
   { name: 'Scored registers — the hub', path: '#/scored', must: [
     { what: 'the page named Scored registers', sel: '.part-head .pace-title', text: /^Scored registers$/ },
     { what: 'equipment criticality as a card', sel: '.pl-tool-card', text: /Equipment criticality/ },
+    { what: 'the Pugh matrix as a card (FC-143)', sel: '.pl-tool-card', text: /Pugh matrix/ },
+  ] },
+  { name: 'Pugh matrix — its list (FC-143)', path: '#/scored/pugh', must: [
+    { what: 'the page named Pugh matrix, with New ranking', sel: '.part-head .pace-title', text: /^Pugh matrix$/ },
+    { what: 'New ranking', sel: '.pace-head-actions .btn-primary', text: /^New ranking$/ },
   ] },
   { name: 'Equipment criticality — its list', path: '#/scored/criticality', must: [
     { what: 'the page named Equipment criticality, with New ranking', sel: '.part-head .pace-title', text: /^Equipment criticality$/ },

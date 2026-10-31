@@ -12,7 +12,7 @@ import { now, uid } from '../../lib/ids';
 import { bandPage } from '../../lib/lean';
 import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
-import type { ScoredRow, ToolStudy } from '../../lib/study';
+import type { ScoredCriterion, ScoredRow, ToolStudy } from '../../lib/study';
 import { studyHref } from '../../lib/studyLinks';
 import { PageHeader, Section } from '../../ui/parts';
 import { Sheet } from '../../ui/Sheet';
@@ -20,6 +20,7 @@ import { ProjectScopeChips } from '../../ui/ProjectScope';
 import { LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { StudyBand, removeStudy, StudyRowName } from '../../ui/StudyActs';
 import { WhereItSits } from '../../ui/StudyPlace';
+import { PughEditor } from '../pugh/PughEditor';
 import { scoredByKey, scoredGroups } from './registry';
 import { newScoredStudy, scoredSays, scoredTitle, studyScored } from './scored';
 import type { ScoredDef, ScoredField } from './types';
@@ -75,7 +76,7 @@ function ScoredHub() {
   const groups = scoredGroups();
   return (
     <div className="wrap ie">
-      <PageHeader title="Scored registers" says="Machines and countermeasures ranked on agreed scales — criticality, impact and effort, and later FMEA and Pugh matrices." />
+      <PageHeader title="Scored registers" says="Machines and countermeasures ranked on agreed scales — criticality, impact and effort — and the Pugh matrix for choosing between solutions." />
       {groups.map(g => (
         <Section key={g.group} title={g.group}>
           <ul className="pl-tool">
@@ -113,7 +114,7 @@ function ScoredList({ scoredKey }: { scoredKey: string }) {
       <PageHeader eyebrow={<button type="button" className="linkish" onClick={() => nav('/scored')}>Scored registers</button>} title={def.title} says={def.says}
         primary={mayAdd ? { label: 'New ranking', run: () => setAdding(true) } : undefined} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
-      {rows.length === 0 && <p className="sub qsl-empty">No {def.title.toLowerCase()} yet — start one and score each {def.noun ?? 'machine'}.</p>}
+      {rows.length === 0 && <p className="sub qsl-empty">{def.matrix?.asks.empty ?? `No ${def.title.toLowerCase()} yet — start one and score each ${def.noun ?? 'machine'}.`}</p>}
       <ul className="lt-rows">{rows.map(s => <ScoredRowItem key={s.id} s={s} />)}</ul>
       <NewScored open={adding} def={def} onClose={() => setAdding(false)} project={inP.project ? { id: inP.project.id, lineIds: inP.lineIds } : undefined} />
     </div>
@@ -136,8 +137,8 @@ function NewScored({ open, def, onClose, project }: { open: boolean; def: Scored
   return (
     <Sheet open={open} onClose={onClose} title={`New ${def.title.toLowerCase()}`}>
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
-        <label className="field"><span className="field-label">What line is this for?</span>
-          <input className="text-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Line 2 — October review" /></label>
+        <label className="field"><span className="field-label">{def.matrix?.asks.name ?? 'What line is this for?'}</span>
+          <input className="text-input" value={name} onChange={e => setName(e.target.value)} placeholder={def.matrix?.asks.placeholder ?? 'e.g. Line 2 — October review'} /></label>
         <label className="field"><span className="field-label">Line</span>
           <select className="text-input" value={lineId} onChange={e => setLineId(e.target.value)}>
             <option value="">Choose a line</option>
@@ -176,8 +177,15 @@ function Record({ s, def, can, onPatch }: {
   s: ToolStudy; def: ScoredDef; can: ReturnType<typeof canAt>; onPatch: (fn: (cur: ToolStudy) => Partial<ToolStudy>) => void;
 }) {
   const agreedKey = s.agreed?.scored?.key ?? def.key;
+  const queue = useRef<{ rows: ScoredRow[]; criteria?: ScoredCriterion[]; datum?: string } | null>(null);
   const [rows, setRowsLocal] = useState<ScoredRow[]>(s.agreed?.scored?.rows ?? []);
-  useEffect(() => { setRowsLocal(s.agreed?.scored?.rows ?? []); }, [s.agreed?.scored?.rows]);
+  /* what the record holds is taken in only when nothing typed here is waiting to be saved — a reload of an older save must not undo the edit after it */
+  useEffect(() => { if (!queue.current) setRowsLocal(s.agreed?.scored?.rows ?? []); }, [s.agreed?.scored?.rows]);
+  /* a matrix (Pugh) also keeps its criteria and its datum */
+  const [criteria, setCriteriaLocal] = useState<ScoredCriterion[]>(s.agreed?.scored?.criteria ?? []);
+  useEffect(() => { if (!queue.current) setCriteriaLocal(s.agreed?.scored?.criteria ?? []); }, [s.agreed?.scored?.criteria]);
+  const [datum, setDatumLocal] = useState<string>(s.agreed?.scored?.datum ?? def.matrix?.datumDefault ?? '');
+  useEffect(() => { if (!queue.current) setDatumLocal(s.agreed?.scored?.datum ?? def.matrix?.datumDefault ?? ''); }, [s.agreed?.scored?.datum, def.matrix?.datumDefault]);
   const [rate, setRateLocal] = useState<number | undefined>(s.agreed?.scored?.rate);
   useEffect(() => { setRateLocal(s.agreed?.scored?.rate); }, [s.agreed?.scored?.rate]);
   const rateRef = useRef<number | undefined>(rate);
@@ -187,24 +195,23 @@ function Record({ s, def, can, onPatch }: {
   const lineRate = line?.labourRatePerHour && line.labourRatePerHour > 0 ? Math.round(line.labourRatePerHour * burdenOf(line) * 100) / 100 : undefined;
   const liveStudy = useMemo((): ToolStudy => ({
     ...s,
-    agreed: { ...s.agreed, scored: { key: agreedKey, rows, ...(rate !== undefined ? { rate } : {}) } },
-  }), [s, agreedKey, rows, rate]);
+    agreed: { ...s.agreed, scored: { key: agreedKey, rows, ...(rate !== undefined ? { rate } : {}), ...(def.matrix ? { criteria, datum } : {}) } },
+  }), [s, agreedKey, rows, rate, criteria, datum, def.matrix]);
   const x = studyScored(liveStudy);
   const result = x?.result;
   const problems = x?.problems;
-  const ranked = x && 'ok' in x.ranked ? x.ranked.ok : [];
+  const ranked = x?.ranked && 'ok' in x.ranked ? x.ranked.ok : [];
   const canEdit = can.edit && !s.closedAt;
   const timer = useRef<number>();
-  const queue = useRef<ScoredRow[] | null>(null);
   const flush = () => {
     if (!queue.current) return;
     const next = queue.current;
     queue.current = null;
-    setRowsLocal(next);
+    setRowsLocal(next.rows);
     onPatch(cur => ({
       agreed: {
         ...cur.agreed,
-        scored: { key: cur.agreed?.scored?.key ?? def.key, rows: next, ...(rateRef.current !== undefined ? { rate: rateRef.current } : {}) },
+        scored: { ...cur.agreed?.scored, key: cur.agreed?.scored?.key ?? def.key, rows: next.rows, ...(next.criteria ? { criteria: next.criteria } : {}), ...(next.datum !== undefined ? { datum: next.datum } : {}), ...(rateRef.current !== undefined ? { rate: rateRef.current } : {}) },
       },
       updatedAt: now(),
     }));
@@ -215,8 +222,14 @@ function Record({ s, def, can, onPatch }: {
     setRows(rows);
   };
   const setRows = (next: ScoredRow[]) => {
-    queue.current = next;
+    queue.current = { ...queue.current, rows: next };
     setRowsLocal(next);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(flush, 400);
+  };
+  const setMatrix = (next: { rows: ScoredRow[]; criteria: ScoredCriterion[]; datum: string }) => {
+    queue.current = { rows: next.rows, criteria: next.criteria, datum: next.datum };
+    setRowsLocal(next.rows); setCriteriaLocal(next.criteria); setDatumLocal(next.datum);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(flush, 400);
   };
@@ -238,7 +251,17 @@ function Record({ s, def, can, onPatch }: {
       {result && <LeanTiles tiles={result.tiles} />}
       {result && <p className="ie-says">{result.sentence}</p>}
       {result?.money?.map(m => <p key={m} className="ie-says ie-money">{m}</p>)}
-      <Section title={`Score each ${noun}`}>
+      {result?.also && (
+        <LeanPanel title={result.also.title}>
+          <ul className="ie-caveats">{result.also.lines.map(l => <li key={l}>{l}</li>)}</ul>
+        </LeanPanel>
+      )}
+      {def.matrix && (
+        <Section title="Mark each option against the datum">
+          <PughEditor draft={{ rows, criteria, datum }} table={x?.table} leaders={x?.leaders} canEdit={canEdit} onChange={setMatrix} />
+        </Section>
+      )}
+      {!def.matrix && <Section title={`Score each ${noun}`}>
         <p className="sub">{def.help}</p>
         {def.asksRate && (
           <label className="field scored-rate"><span className="field-label">£ an hour for the people doing the work (optional)</span>
@@ -269,7 +292,7 @@ function Record({ s, def, can, onPatch }: {
           </table>
         </div>
         {canEdit && <button type="button" className="btn" onClick={addRow}>+ Add a {noun}</button>}
-      </Section>
+      </Section>}
       {result && (
         <LeanPanel title="What this does not say">
           <ul className="ie-caveats">{result.caveats.map(c => <li key={c}>{c}</li>)}</ul>

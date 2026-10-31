@@ -27,8 +27,8 @@ describe('every tool says how its records behave', () => {
 });
 
 describe('the app\'s tools, from the catalogue', () => {
-  it('are the nineteen a person can open, each built, available or partly, at an address the router answers', () => {
-    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Control chart', 'Analysis', 'Calculators', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Video study', 'Line Talk', 'Check logs', 'Problems register', 'Actions', 'Equipment criticality', 'Impact and effort', 'Maintenance measures']);
+  it('are the twenty-one a person can open, each built, available or partly, at an address the router answers', () => {
+    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Control chart', 'Analysis', 'Calculators', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Video study', 'Line Talk', 'Check logs', 'Problems register', 'Actions', 'Equipment criticality', 'Impact and effort', 'Pugh matrix', 'Maintenance measures']);
     for (const t of APP_TOOLS) {
       const e = ENTRIES.find(x => x.id === t.id)!;
       expect(['available', 'partial'], t.id).toContain(e.status);

@@ -78,6 +78,9 @@ const TOOLS = [
     route: s => `#/scored/criticality/${s.criticalityId}`, parts: ['.ie-says', '.scored-table-wrap'], css: '' },
   { key: 'impact-effort', of: 'Impact and effort — four film-break countermeasures on the PICK chart: the quick wins first, what they are worth, the project, the fill-in',
     route: s => `#/scored/impact-effort/${s.impactEffortId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'], css: '' },
+  { key: 'pugh', of: 'Pugh matrix — four fixes for film breaks marked better, same or worse than the present state on five weighted criteria: who leads and where the lead is beaten',
+    route: s => `#/scored/pugh/${s.pughId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'],
+    css: '.pugh-datum,.pugh-key,.pugh-acts,.pugh-table .sp-rm,.pugh-table tfoot tr[data-foot="Cost"],.pugh-table tfoot tr[data-foot="Same (S)"]{display:none !important}' },
   { key: 'maintenance', of: 'Maintenance measures — PM compliance, the planned share and MTBF, read from the line\'s logs and studies',
     route: s => `#/board/maintenance-measures/${s.maintenanceId}`, parts: ['.ln-tiles', '.ie-says'], css: '' },
   { key: 'sampling', of: 'Work sampling — what two people were doing at random moments: each share with its margin',
@@ -159,10 +162,14 @@ function PICTURE_SEEDS_FN() {
     const pickDef = SCORED.find(d => d.key === 'impact-effort');
     pick.agreed = { scored: { key: 'impact-effort', rate: pickDef.examples[0].rate, rows: pickDef.examples[0].rows.map(r => ({ ...r })) } };
     await putStudy(pick);
+    const pughDef = SCORED.find(d => d.key === 'pugh'), pex = pughDef.examples[0];
+    const pugh = newScoredStudy(pughDef, { name: 'Line 7 — film breaks, which fix first', workspaceId: wsId, now: t });
+    pugh.agreed = { scored: { key: 'pugh', rows: pex.rows.map(r => ({ ...r })), criteria: pex.criteria, datum: pex.datum } };
+    await putStudy(pugh);
     const maint = newBoardStudy(BOARDS.find(d => d.key === 'maintenance-measures'), { name: 'Line 7 — October', workspaceId: wsId, now: t });
     maint.agreed = { board: { key: 'maintenance-measures', reactiveHours: 190 } };
     await putStudy(maint);
-    return { criticalityId: crit.id, impactEffortId: pick.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
+    return { criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
   };
 }
 

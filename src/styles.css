@@ -15462,6 +15462,22 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .scored-table th { font-size: var(--t-detail); color: var(--muted); text-align: left; }
 .scored-table .text-input { width: 100%; min-width: 4rem; }
 .scored-table .scored-num { max-width: 4.5rem; }
+.pugh-datum { max-width: 24rem; }
+.pugh-table th, .pugh-table td { min-width: 5.5rem; }
+.pugh-table th:nth-child(2), .pugh-table td:nth-child(2) { min-width: 4rem; width: 4rem; }
+.pugh-table th:nth-child(3), .pugh-table td:nth-child(3) { min-width: 3.25rem; width: 3.25rem; }
+.pugh-table th:first-child, .pugh-table td:first-child { min-width: 8rem; position: sticky; left: 0; z-index: 1; background: var(--canvas); }
+.pugh-table .scored-num { max-width: 6rem; padding-inline: 8px 2px; }
+.pugh-table tfoot .scored-num { min-width: 5rem; }
+.pugh-table th .sp-rm, .pugh-table td .sp-rm { display: block; margin-top: 2px; }
+.pugh-table .pugh-mark { width: 100%; min-width: 4rem; text-align: center; font-weight: 600; }
+.pugh-datum-cell { text-align: center; color: var(--muted); }
+.pugh-table tfoot th { text-align: left; font-weight: 600; color: var(--ink); }
+.pugh-table tfoot td { text-align: center; }
+.pugh-table .pugh-sum th, .pugh-table .pugh-sum td { font-weight: 700; }
+.pugh-table .pugh-lead { box-shadow: inset 0 -3px 0 var(--brand); }
+.pugh-leads { display: block; font-weight: 600; }
+.pugh-acts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
 .scored-table .scored-num.scored-money { max-width: 7.5rem; min-width: 5.5rem; }
 .scored-table td:first-child .text-input { min-width: 9rem; }
 .scored-rate { display: grid; gap: 4px; margin: var(--space-3) 0; }

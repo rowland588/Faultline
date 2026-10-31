@@ -2,6 +2,7 @@
 import type { Entry } from '../types';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 import { logBuilt } from '../../tools/checks/built';
+import { pughBuilt } from '../../tools/pugh/built';
 import { scoredBuilt } from '../../tools/scored/built';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
@@ -274,7 +275,11 @@ export const QUALITY: Entry[] = [
     food: 'Choosing between three fixes for film breaks.',
     depends: ['FC-144', 'FC-191'],
     complexity: 'S', value: 'low', valueWhy: 'Makes the choice explicit.',
-    status: 'to-build', form: 'component', methods: ['sixsigma.selection-matrices'], scenarios: ['project'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'pugh', label: 'Pugh matrix', says: 'Choose between solutions: each option marked better, same or worse than the datum on the criteria you agreed first', icon: 'board', order: 23.6 },
+    methods: ['sixsigma.selection-matrices'], scenarios: ['project'], words: ['Pugh', 'decision matrix', 'choose a fix', 'which countermeasure', 'options'],
+    built: pughBuilt,
+    spec: 'knowledge/specs/FC-143-pugh-matrix.md',
+    limits: ['It ranks options against one datum by the team’s judgement — it is not a measurement, and a different datum can change the order.', 'Marks are better, same or worse; not by how much.', 'An option’s cost is typed and shown beside the score, never in it; payback and NPV of a capital option are the Payback and NPV calculator’s (FC-191) — the two are not joined.', 'Rounds of convergence are not kept as a history — edit the matrix and read it again.'],
   },
   {
     id: 'FC-144', name: 'Impact and effort — which countermeasure first', discipline: 'sixsigma', sub: 'decide',
