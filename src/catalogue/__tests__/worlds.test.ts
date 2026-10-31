@@ -48,4 +48,11 @@ describe('the worlds', () => {
     expect(stat).toContain('rejects');
     expect(stat).toContain('giveaway');
   });
+
+  it('are quick: every world, its tools and its entries read again and again inside a page\'s time (31 October: the tool page took five seconds to draw)', () => {
+    const t0 = performance.now();
+    for (let i = 0; i < 20; i++) for (const w of WORLDS) { worldTools(w); worldEntries(w); }
+    for (const t of APP_TOOLS) worldOfTool(t);
+    expect(performance.now() - t0).toBeLessThan(500);
+  });
 });

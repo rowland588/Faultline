@@ -16,6 +16,16 @@ const built = (e: Entry): boolean => e.status === 'available' || e.status === 'p
 /** The app tool an entry is built inside: the tool itself, the tool it is `partOf` (through any chain), or the one whose folder
  *  (src/tools/<key>/) holds its code. Undefined when it is no tool's. */
 export function ownerOf(e: Entry): string | undefined {
+  /* the catalogue and the registry never change while the app runs, and every page of a world asks this of every entry
+     (a world's tools ask it of all 236, each of which asks the world) — so it is worked out once per entry */
+  if (OWNERS.has(e.id)) return OWNERS.get(e.id);
+  const owner = workOutOwner(e);
+  OWNERS.set(e.id, owner);
+  return owner;
+}
+const OWNERS = new Map<string, string | undefined>();
+
+function workOutOwner(e: Entry): string | undefined {
   const ids = new Set(APP_TOOLS.map(t => t.id));
   if (ids.has(e.id)) return e.id;
   let p = e.partOf ? ENTRIES.find(x => x.id === e.partOf) : undefined;

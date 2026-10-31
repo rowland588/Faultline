@@ -63,6 +63,14 @@ export const worldEntries = (w: World): Entry[] => ENTRIES.filter(e => worldOfEn
  *  each by its discipline, the tool's own breaking a tie. Check logs is a Lean entry with its metal-detection, CILT and audit
  *  logs inside it; most of those are Quality and food safety's, so it opens there. Never typed per tool. */
 export function worldOfTool(t: Pick<AppTool, 'id'>): World | undefined {
+  if (TOOL_WORLDS.has(t.id)) return TOOL_WORLDS.get(t.id);
+  const w = workOutToolWorld(t);
+  TOOL_WORLDS.set(t.id, w);
+  return w;
+}
+const TOOL_WORLDS = new Map<string, World | undefined>();
+
+function workOutToolWorld(t: Pick<AppTool, 'id'>): World | undefined {
   const own = ENTRIES.find(e => e.id === t.id);
   if (!own) return undefined;
   const tally = new Map<string, number>();
