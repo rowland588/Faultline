@@ -62,6 +62,15 @@ for d in [2, 9, 16]:
     level = 'stale' if d > 14 else 'fading' if d > 7 else 'fresh'
     print(f"  last looked {d} days ago -> {level}")
 print("  walks a week per line against the standard (daily by the team leader, weekly by the manager); observations raised and closed")
+# FC-199 spec §6: the worked lines, a second implementation of lib looking (days = whole 24 h blocks)
+DAY, H, ref = 86400, 3600, 1_800_000_000
+lines = {"A": [(ref-2*DAY-3*H, "stop", None)], "B": [(ref-9*DAY-5*H, "walk", None), (ref-12*DAY, "problem", "Wrapper")],
+         "C": [(ref-16*DAY-H, "problem", "Wrapper"), (ref-40*DAY, "stop", "Sealer")], "D": []}
+lvl = lambda d: 'stale' if d is None or d > 14 else 'fading' if d > 7 else 'fresh'
+for k, v in lines.items():
+    ds = [(ref-t)//DAY for t, _, _ in v]; d = min(ds) if ds else None
+    print(f"  line {k}: {d if d is not None else 'never'} days -> {lvl(d)}; rhythm {len({x for x in ds if x < 14})} of 14")
+print("  boundaries 6/7/8/14/15 days: " + ", ".join(lvl(d) for d in (6, 7, 8, 14, 15)))
 
 print("\n== KPI tree (visual.kpi-tree)")
 labour, giveaway, waste, energy, film = 9.0, 4.0, 3.0, 2.5, 12.5  # pence a pack

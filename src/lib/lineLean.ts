@@ -26,6 +26,8 @@ export interface LineReading {
   jobs: number;
   /** The line's check logs (src/tools/checks/owed scopeCounts): how many, and the checks overdue, failed or due now. A tile only once there is a log. */
   checks?: { logs: number; overdue: number; failed: number; due: number };
+  /** How fresh the looking is (FC-199, tools/gemba/looking — lookingReading): said under the tiles and as a fact in the band, never a tile. */
+  looking?: { fact: string; says: string; more: string };
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);

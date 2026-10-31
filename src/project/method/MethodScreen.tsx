@@ -23,6 +23,8 @@ import type { Standard } from '../../tools/linestandard/standard';
 import { PageHeader, RecordRow, RecordRows } from '../../ui/parts';
 import { usesOf } from '../../screens/ProjectToolsScreen';
 import { howTool, openable, toolStateWord } from './methodTools';
+import { useProjectLooking } from '../../tools/gemba/useLooking';
+import { projectSays, stalestFirst } from '../../tools/gemba/looking';
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
@@ -45,6 +47,8 @@ export function MethodScreen({ projectId }: { projectId: string }) {
     if (got) for (const t of APP_TOOLS) { const u = usesOf(t, got.studies, got.standards); m.set(t.key, { n: u.n ?? 0, latest: u.latest }); }
     return m;
   }, [got]);
+  /* FC-199, how fresh the looking is: the project's lines, read for the Gemba walk row (tools/gemba) */
+  const looking = useProjectLooking(projectId);
   const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
   if (!project || !method) return <p className="sub wrap">That project is not on this device.</p>;
 
@@ -80,11 +84,15 @@ export function MethodScreen({ projectId }: { projectId: string }) {
                 const t = openable(h);
                 const u = t ? uses.get(t.key) : undefined;
                 const name = h.how === 'unknown' ? id : h.entry.name;
+                /* the Gemba walk is not a page of its own: its row says how fresh the looking is on the project's lines and opens the stalest */
+                const gemba = id === 'FC-199' && looking?.length ? looking : undefined;
+                const worst = gemba ? stalestFirst(gemba)[0] : undefined;
                 return (
                   <RecordRow key={id} what={name}
-                    says={u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
+                    {...(worst && worst.looking.level !== 'fresh' ? { tone: worst.looking.level === 'stale' ? 'r' as const : 'a' as const } : {})}
+                    says={gemba ? projectSays(gemba) : u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
                     where={toolStateWord(h)}
-                    onOpen={() => (t ? nav(inProject(t.to, projectId)) : undefined)}
+                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : t ? nav(inProject(t.to, projectId)) : undefined)}
                     aside={t && can.edit && t.key !== 'talk'
                       ? <button type="button" className="btn btn-sm" aria-label={`New — ${name}`} onClick={() => start(t)}>New</button>
                       : undefined} />

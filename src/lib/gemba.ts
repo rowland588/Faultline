@@ -6,7 +6,10 @@
  * habit alive better than any reminder ever has. */
 import type { Observation } from '../types';
 
-const DAY = 86_400_000;
+export const DAY = 86_400_000;
+export type Level = 'fresh' | 'fading' | 'stale';
+/** The house's rule, once (24 October; FC-199): fresh up to 7 whole days, fading 8–14, stale beyond or never. */
+export const levelOfDays = (d: number | null): Level => (d == null || d > 14 ? 'stale' : d > 7 ? 'fading' : 'fresh');
 
 export interface Freshness {
   lastObsAt: number | null;   // newest observation's start
@@ -14,7 +17,7 @@ export interface Freshness {
   daysSinceObs: number | null;
   daysSinceWalk: number | null;
   /** amber at > 7 days without ANY eyes (obs or walk); red at > 14 */
-  level: 'fresh' | 'fading' | 'stale';
+  level: Level;
 }
 
 export function freshness(obs: Observation[], walkTimes: number[], ref = Date.now()): Freshness {
@@ -24,7 +27,7 @@ export function freshness(obs: Observation[], walkTimes: number[], ref = Date.no
   const daysSinceObs = days(lastObsAt);
   const daysSinceWalk = days(lastWalkAt);
   const freshest = Math.min(daysSinceObs ?? Infinity, daysSinceWalk ?? Infinity);
-  const level = freshest === Infinity ? 'stale' : freshest > 14 ? 'stale' : freshest > 7 ? 'fading' : 'fresh';
+  const level = levelOfDays(freshest === Infinity ? null : freshest);
   return { lastObsAt, lastWalkAt, daysSinceObs, daysSinceWalk, level };
 }
 

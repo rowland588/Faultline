@@ -52,6 +52,7 @@ import { changeoverLine, currentBalance, currentChangeover, currentLosses, curre
 import { useStudyContext } from '../ui/ShiftLosses';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
+import { ProjectLookingNote } from '../tools/gemba/LookedAt';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
 import { KIND_WORD, kindWord, lateWhen, needsYou, pacedOwed, pacedSays, sixmProblemOf, type JobItem, type Urgency } from '../lib/portfolio';
 import { openRecord } from '../ui/RecordDrawer';
@@ -240,8 +241,10 @@ function whenSaid(x: JobItem, urgency: Urgency, today: string): string {
  *  then the next thing booked (lib/portfolio needsYou). The same items the
  *  control room's week is made of, so the front page and the board above it
  *  cannot disagree; each row opens its own record (lib/plan planHref). */
-function NeedsYouPanel({ items, today, door, split, max }: {
+function NeedsYouPanel({ items, today, door, split, max, projectId }: {
   items: JobItem[]; today: string;
+  /** The project — its lines not looked at lately are a note under the list (tools/gemba, FC-199): not an owed item, so no count moves. */
+  projectId?: string;
   /** How many rows before the rest becomes a count — fewer under the fishbone
    *  or the tree, so the page stays one screen. */
   max?: number;
@@ -318,6 +321,7 @@ function NeedsYouPanel({ items, today, door, split, max }: {
       {foot.length > 0 && (
         <p className="fp-foot">{foot.map((x, i) => <span key={i}>{i > 0 && ' · '}{x}</span>)}</p>
       )}
+      {projectId && <ProjectLookingNote projectId={projectId} />}
     </Panel>
   );
 }
@@ -959,7 +963,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
                   under it are what this job is run against; a manager could
                   not tell how the outcome stood without opening the tree. */}
               {model === 'tree' && treeRows && <TreeTopPanel projectId={projectId} tree={tree} />}
-              <NeedsYouPanel items={owed} today={today} split max={5} door={{ label: 'The board', to: `/project/${projectId}/board` }} />
+              <NeedsYouPanel items={owed} today={today} split max={5} projectId={projectId} door={{ label: 'The board', to: `/project/${projectId}/board` }} />
               <LinesPanel projectId={projectId} lines={ppm.lines.map(l => ({ ...l, name: factoryName(l) ?? l.name }))} standing={standing} can={can} project={project} caps={lineCaps.capacities} />
             </div>
             )}
