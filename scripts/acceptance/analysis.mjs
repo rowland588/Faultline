@@ -342,12 +342,12 @@ for (const [vw, vh, tag] of [[1360, 900, 'desk'], [375, 812, '375']]) {
   ok(JSON.stringify(heads) === JSON.stringify(['Can I trust this number?', 'Did it change or differ?', 'How are things linked?']), `10 ${tag}: the questions under three headings: ${heads.join(' · ')}`);
   const counts = await page.locator('.ie-qgroup').evaluateAll(gs => gs.map(g => g.querySelectorAll('[role=radio]').length));
   ok(counts.join() === '6,4,2', `10 ${tag}: 6 + 4 + 2 questions — all twelve`);
-  const plain = await page.locator('.ie-kind').evaluateAll(bs => bs.map(b => b.querySelector('small')?.textContent ?? ''));
+  const plain = await page.locator('.ie-qgroup .ie-kind').evaluateAll(bs => bs.map(b => b.querySelector('small')?.textContent ?? ''));
   ok(plain.length === 12 && plain.every(t => / — /.test(t) && t.length < 90), `10 ${tag}: a one-line plain example under each question`, plain.join(' | '));
   const change = flat(await page.getByRole('radio', { name: /Did it really change/ }).innerText());
   ok(/Did my fix work\? — compare before and after/.test(change), `10 ${tag}: "Did it really change?" says "${change.slice(25)}"`);
   await page.getByRole('radio', { name: /Did it really change/ }).click();
-  ok(/e\.g\. fill weights before and after a re-calibration/.test(flat(await page.locator('.ie-kind.on').innerText())), `10 ${tag}: the one chosen also shows its longer example`);
+  ok(/e\.g\. fill weights before and after a re-calibration/.test(flat(await page.locator('.ie-qgroup .ie-kind.on').innerText())), `10 ${tag}: the one chosen also shows its longer example`);
   await page.getByRole('radio', { name: /How sure am I/ }).click();
   /* the unit starts empty; the chips are the usual ones, one tap each; typing is free */
   const unitBox = page.getByLabel('Unit', { exact: true });

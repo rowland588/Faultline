@@ -255,8 +255,10 @@ for (const [label, width] of [['phone', 390], ['desk', 1360]]) {
   const [fh, fm] = t.from.split(':'); const gap = fromMs(fh, fm) - Date.now();
   ok(t.to === sh.end && gap > -60_000 && gap <= 6 * 60_000 && /Line 5’s Day shift .* which is running — from \d\d:\d\d to its end/.test(t.says ?? ''), `7 ${label}: the line's own shift — from ${t.from} (now, to the next five minutes) to ${t.to}, its end: "${t.says}"`);
   /* a time typed over is left alone */
-  await pg.getByLabel('Shift to', { exact: true }).fill('23:00'); await pg.waitForTimeout(300);
-  ok((await times()).to === '23:00', `7 ${label}: a time typed over is kept`);
+  /* three hours on from now, whatever the hour — a fixed '23:00' read as tomorrow's when the script ran after 23:00 */
+  const typedTo = await pg.evaluate(() => { const d = new Date(Date.now() + 3 * 3_600_000); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; });
+  await pg.getByLabel('Shift to', { exact: true }).fill(typedTo); await pg.waitForTimeout(300);
+  ok((await times()).to === typedTo, `7 ${label}: a time typed over is kept`);
 
   /* set up: one person, and start */
   await pg.getByLabel('Add a person or role').fill('Op 1');

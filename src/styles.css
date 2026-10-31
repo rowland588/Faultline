@@ -7922,7 +7922,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .ls-room { display: none; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0; font-size: var(--t-detail); color: var(--ink-2); }
 .ls-board-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .ls-shape-pick .chip { min-height: 32px; padding: 4px 12px; }
-@media (max-width: 640px) {
+@media (max-width: 719px) {
   .ls-room { display: flex; }
   .ls-room .btn, .ls-shape-pick .chip, .ls-tool { min-height: 44px; }
 }
@@ -15274,11 +15274,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 @media (max-width: 719px) {
   /* THE ROUND FIRST (30 October): on a phone the checks to do now come before the tiles — the page is a column, the
      figures and the action plan follow the round; on the History and The checks views the order is the page's own */
-  .lg[data-tab="round"] { display: flex; flex-direction: column; }
-  .lg[data-tab="round"] .ln-under { order: 2; }
-  .lg[data-tab="round"] .lg-figs { order: 3; }
-  .lg[data-tab="round"] .lg-plan { order: 4; }
-  .lg[data-tab="round"] .ln-close { order: 5; }
+  .lg[data-on="round"] { display: flex; flex-direction: column; }
+  .lg[data-on="round"] .ln-under { order: 2; }
+  .lg[data-on="round"] .lg-figs { order: 3; }
+  .lg[data-on="round"] .lg-plan { order: 4; }
+  .lg[data-on="round"] .ln-close { order: 5; }
   .lg-h2 { flex-wrap: wrap; }
   /* a thumb's size (30 October — the audit measured 15–32 px links on a check log): every small link and button on a log's
      page and on a log list's rows is 44 px to press on a phone */
@@ -15495,3 +15495,6 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .ie-entry-first { margin-top: 4px; }
 }
 .ie-unit-hint { margin: 0; }
+
+/* the typed target on a criterion — a short number box (ui/TargetNumber) */
+.tn-input { max-width: 6em; }

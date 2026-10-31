@@ -345,7 +345,7 @@ export function standardsToTime(p: Pick<Program, 'projectId' | 'workspaceId'>, s
  *  program on its machine. Needs a line (a log is a line's); undefined when the program has none. */
 export function criterionLog(p: Pick<Program, 'id' | 'projectId' | 'workspaceId' | 'assetId'>, def: LogDef, x: { id: string; at: number; name: string; machine?: string }): ToolStudy | undefined {
   if (!p.workspaceId) return undefined;
-  const s = newLogStudy(def, { name: x.name, workspaceId: p.workspaceId, since: x.at, now: x.at, id: () => x.id, ...(p.projectId ? { projectId: p.projectId } : {}), ...(x.machine ? { machine: x.machine } : {}) });
+  const s = { ...newLogStudy(def, { name: x.name, workspaceId: p.workspaceId, since: x.at, now: x.at, ...(p.projectId ? { projectId: p.projectId } : {}), ...(x.machine ? { machine: x.machine } : {}) }), id: x.id };
   return { ...s, programId: p.id, ...(p.assetId && p.projectId ? { assetId: p.assetId } : {}) };
 }
 

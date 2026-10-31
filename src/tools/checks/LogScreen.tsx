@@ -82,7 +82,7 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
   const nowCards = f.round.now, later = f.round.later, events = f.round.events;
   const cards = (rows: typeof nowCards) => <ul className="lg-round">{rows.map(st => <RoundCard key={st.check.id} s={s} st={st} p={p} />)}</ul>;
   return (
-    <div className="wrap ie lg" data-log={def.key} data-tab={tab}>
+    <div className="wrap ie lg" data-log={def.key} data-on={tab}>
       <StudyBand page={page} s={s} what={def.title} canEdit={can.edit && !closed} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where">{s.machine ? <><b>{s.machine}</b> · </> : null}{def.fc}{' · '}<button type="button" className="linkish" onClick={() => nav(logHref(def.key))}>Every {def.title.toLowerCase()} log</button></p>

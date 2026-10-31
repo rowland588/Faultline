@@ -17,7 +17,7 @@ export function TargetNumber({ label, value, unit, hint, editable, min = 0, max,
   return (
     <p className="sub ie-where tn">
       <label className="co-target-box">{label}{' '}
-        <input className="text-input" value={t} inputMode="decimal" aria-label={label} style={{ maxWidth: '6em' }}
+        <input className="text-input tn-input" value={t} inputMode="decimal" aria-label={label}
           onChange={e => setT(e.target.value)} onBlur={() => { if (!t.trim()) { if (value !== undefined) onSet(undefined); } else if (!bad && n !== value) onSet(n); }} />
         {unit ? ` ${unit}` : ''}
       </label>
