@@ -11,6 +11,9 @@
  *      methodology · Organise the delivery · Verify the result
  *   4  the sign-in: the card's two boxes, Sign in held until both are filled, Create account by its link and back, and
  *      the signal said in words when the cloud cannot be reached
+ *   6  the how-it-works page (public/how-it-works.html, static): the descriptor, the eight methods, the five lifecycle parts in
+ *      order, every picture loading, none of the old words (control room for change, 3P, Lever tree), nothing off the
+ *      side at 1360 and 390
  *   5  at a desk the five stages sit beside the sign-in; on a phone the sign-in is first, the five below it, nothing
  *      off the side at 320, 390 and 1360
  *   and no console error.
@@ -87,6 +90,28 @@ for (const w of [390, 320]) {
   ok(cc.y < ss.y, `5 on a ${w}-wide phone the sign-in comes first, the five stages below`, JSON.stringify({ ss, cc }));
   ok((await p.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 1, `5 nothing off the side at ${w}`);
   await p.ctx.close();
+}
+
+/* 6 — how it works (static) */
+for (const w of [1360, 390]) {
+  const c = await b.newContext({ viewport: { width: w, height: 900 } });
+  await c.route('**://fonts.g*/**', r => r.abort());
+  const hp = await c.newPage();
+  await hp.goto(`${BASE}/how-it-works.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await hp.evaluate(async () => { for (const i of document.images) i.loading = 'eager'; await Promise.all([...document.images].map(i => (i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; })))); });
+  if (w === 1360) {
+    ok(flat(await hp.locator('h1').innerText()) === 'The Operational Improvement System', '6 how it works: the descriptor is its title');
+    const parts = (await hp.locator('.part').allTextContents()).map(flat);
+    ok(parts.slice(0, 5).join(' | ') === '1 · Identify the opportunity | 2 · Diagnose the problem | 3 · Apply a methodology | 4 · Organise the delivery | 5 · Verify the result', '6 the five lifecycle parts, in order', parts.join(' | '));
+    const named = (await hp.locator('.methods .method b').allInnerTexts()).map(flat);
+    ok(named.join(' | ') === wanted.join(' | '), '6 the eight methods, the module’s names in the module’s order', named.join(' | '));
+    const text = flat(await hp.locator('body').innerText());
+    ok(!/control room for change|\b3P\b|Lever tree|OpEx/.test(text), '6 none of the old words');
+    const broken = await hp.evaluate(() => [...document.images].filter(i => !i.naturalWidth).map(i => i.src));
+    ok(broken.length === 0 && (await hp.locator('figure img').count()) >= 10, `6 every picture loads (${await hp.locator('figure img').count()})`, broken.join(' '));
+  }
+  ok((await hp.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 1, `6 how it works: nothing off the side at ${w}`);
+  await c.close();
 }
 
 ok(errs.length === 0, 'no console error', errs.slice(0, 3).join(' | '));

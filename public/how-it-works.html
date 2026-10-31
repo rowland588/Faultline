@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>How Faultline works — the control room for change on your lines</title>
-  <meta name="description" content="How an operations lead runs every change on their production lines in Faultline, screen by screen: the control room, a stage-gate job, a 3P line, the line balance, a lever tree, and the report the client gets." />
+  <title>How Faultline works — The Operational Improvement System | Opex Elevate</title>
+  <meta name="description" content="How the operational improvement system works, screen by screen: identify the opportunity, diagnose the problem, apply a method (PDCA, DMAIC, 8D, A3, Stage gate, Kaizen event, Improvement Kata, Theory of Constraints), organise the delivery and verify the result — every picture is the live app." />
   <link rel="canonical" href="https://faultline.opexelevate.co.uk/how-it-works.html" />
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="Faultline" />
-  <meta property="og:title" content="How Faultline works — the control room for change on your lines" />
-  <meta property="og:description" content="The control room, the three methods and the client report — every picture is the live app." />
+  <meta property="og:title" content="How Faultline works — The Operational Improvement System" />
+  <meta property="og:description" content="Identify, diagnose, apply a method, organise the delivery, verify the result — every picture is the live app." />
   <meta property="og:url" content="https://faultline.opexelevate.co.uk/how-it-works.html" />
   <meta property="og:image" content="https://faultline.opexelevate.co.uk/og.png" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -43,7 +43,12 @@
     .lede { color: var(--ink-2); font-size: 18px; max-width: 62ch; margin: 0; }
     .quote { margin: 18px 0 0; color: var(--muted); font-size: 15px; max-width: 62ch; }
     .methods { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 28px 0 8px; }
-    @media (min-width: 720px) { .methods { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 720px) { .methods { grid-template-columns: repeat(4, 1fr); } }
+    .grid3 { display: grid; grid-template-columns: 1fr; gap: 18px; margin: 18px 0 4px; }
+    @media (min-width: 760px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
+    figcaption { margin-top: 8px; color: var(--muted); font-size: 14px; }
+    .descriptor { font-family: "Outfit", sans-serif; font-weight: 500; font-size: clamp(20px, 3vw, 26px); color: var(--brand); margin: 6px 0 0; }
+    .parent { color: var(--muted); font-size: 14px; margin: 4px 0 0; }
     .method { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
     .method b { display: block; font-size: 17px; }
     .method span { color: var(--ink-2); font-size: 14.5px; }
@@ -74,93 +79,111 @@
 
   <section class="hero">
     <span class="eyebrow">How it works</span>
-    <h1>The control room for change on your lines</h1>
-    <p class="lede">New equipment through its gates. A line made to perform better. A number hit by a date. Many changes happen on a line at once — Faultline runs each one the way it should be run, measures it before and after, and puts all of them in one view that answers the only question that matters: am I in control?</p>
-    <p class="quote">"Show the business a formal process, to show that I am in control of the project." — the ops lead it was built with</p>
-    <div class="methods">
-      <div class="method"><b>Installation project</b><span>New equipment through Install, Set up, Commission and Hand over — with the supplier.</span></div>
-      <div class="method"><b>3P</b><span>A running line improved week by week on the board: People, Plant, Process.</span></div>
-      <div class="method"><b>Lever tree</b><span>One outcome worked down to what has to be true for it.</span></div>
+    <h1>The Operational Improvement System</h1>
+    <p class="parent">Faultline, an Opex Elevate product</p>
+    <p class="lede">A line is losing minutes, packs and pounds. Faultline takes it from finding where, through working out why and fixing it by a recognised method, to organising who does what by when and proving the result on the same number — measured by people, worked out by formula, every finding said in money.</p>
+    <div class="methods" aria-label="The eight methods a project can run">
+      <div class="method"><b>PDCA</b><span>Improve one number steadily, and prove the change held.</span></div>
+      <div class="method"><b>DMAIC</b><span>Cut variation or defects with data, with a review before each phase.</span></div>
+      <div class="method"><b>8D</b><span>Contain a complaint or incident, find why, and stop it coming back.</span></div>
+      <div class="method"><b>A3</b><span>One problem and its solution on one page, agreed with the people who must support it.</span></div>
+      <div class="method"><b>Stage gate</b><span>New equipment from delivery to handover, each gate passed on evidence.</span></div>
+      <div class="method"><b>Kaizen event</b><span>Fix one process in a focused week, and check it a month later.</span></div>
+      <div class="method"><b>Improvement Kata</b><span>Improve toward a goal when you do not yet know the way, one experiment at a time.</span></div>
+      <div class="method"><b>Theory of Constraints</b><span>Find the one thing that limits the whole line, and get more through it.</span></div>
     </div>
   </section>
 
-  <span class="part">The control room</span>
-  <h2>Every job, every line, on one screen</h2>
-  <p class="chlede">What is running, what is late, and who owes what by when — across all three kinds of change.</p>
-  <div class="step wide">
-    <div><h3>Open the app and know where you stand</h3>
-      <p>One sentence says how many jobs are running, which hands over first and how many things are past their day. Who owes what is split by company — the supplier, the site, nobody named — so the chase list writes itself. Each job is a row on one shared calendar.</p>
-      <p class="says">What it lets you say to your manager: "Three jobs, Line 2 hands over first, and these six things are late — here is whose each one is."</p></div>
-    <figure><img src="/guide/control-room.png" width="1366" height="900" alt="Faultline Home: a dark summary card with jobs running and things past their day, who owes what by company, and every job on one calendar" loading="lazy" /></figure>
+  <span class="part">1 · Identify the opportunity</span>
+  <h2>Find where the line is losing</h2>
+  <p class="chlede">Time the stops, count the losses, walk the line, write the problems down where they happen.</p>
+  <div class="step">
+    <div><h3>A shift's lost minutes, and where they went</h3>
+      <p>Counted on the phone at the line's own speed: the shift less its breaks, then every loss by reason — short stops told apart from slow running — in minutes, packs and pounds. The biggest bar is where to look first.</p>
+      <p class="says">To the team: "Of the planned minutes, this is where they went, and what each cost."</p></div>
+    <figure><img src="/tools/losses.png" width="960" height="600" alt="The loss count: a shift's lost minutes shift by shift against the rate, and where the minutes went" loading="lazy" /></figure>
+  </div>
+  <div class="step">
+    <div><h3>Every problem on the line, in order</h3>
+      <p>The register holds each problem with its priority, where it sits, who has it and its journey — what was tried and what came of it. Nothing is deleted; a problem is put away, and brought back with one tap.</p></div>
+    <figure><img src="/tools/problems.png" width="960" height="600" alt="The problems register: every problem on the line in priority order, with its place and its owner" loading="lazy" /></figure>
   </div>
 
-  <span class="part">Installation project</span>
-  <h2>New equipment, proved to what was agreed</h2>
-  <p class="chlede">Machines through their install stages, tests with agreed pass marks, the fixes they raise, and what the job waits on.</p>
+  <span class="part">2 · Diagnose the problem</span>
+  <h2>Say why, with figures you can defend</h2>
+  <p class="chlede">The technical tools are built from manual inputs and calculated live, each with its working shown and its limits said.</p>
+  <div class="grid3">
+    <figure><img src="/tools/capability.png" width="960" height="600" alt="A capability study: thirty fill weights against the limits, the histogram, Ppk and the give-away" loading="lazy" /><figcaption><b>Capability.</b> Would it keep passing all shift — Ppk, how sure we are, and what the give-away costs.</figcaption></figure>
+    <figure><img src="/tools/linebalance.png" width="960" height="600" alt="Line capacity: every station beside the bottleneck as the V-curve, against the target" loading="lazy" /><figcaption><b>Line capacity.</b> Every station beside the bottleneck, against the target, in packs and pounds.</figcaption></figure>
+    <figure><img src="/tools/reliability.png" width="960" height="600" alt="Reliability: stops against watched hours and the running time between them, with MTBF" loading="lazy" /><figcaption><b>Reliability.</b> Stops against hours watched, the time between them and the MTBF.</figcaption></figure>
+  </div>
+  <p class="chlede" style="margin-top:14px">Also: control charts, gauge studies, value stream maps, SMED, work sampling, root cause with the fishbone and the five whys, calculators, and more — each opens from the Tools page.</p>
+
+  <span class="part">3 · Apply a methodology</span>
+  <h2>A project is a method, with its tools in the right place</h2>
+  <p class="chlede">Pick the method; its sections come in order, and the tools that fit each section come with them. Add any other tool to any section.</p>
+  <div class="step wide">
+    <div><h3>Start a project by choosing how it will be run</h3>
+      <p>Eight methods, each with its question and its sections. None is picked for you. The project is on a line, with its lines picked from the factory.</p></div>
+    <figure><img src="/guide/methods.png" width="1366" height="760" alt="New project: eight cards — PDCA, DMAIC, 8D, A3, Stage gate, Kaizen event, Improvement Kata and Theory of Constraints — each with its question and its sections" loading="lazy" /></figure>
+  </div>
   <div class="step">
-    <div><h3>Where the job is, in one sentence</h3>
-      <p>Days to handover, things outstanding, how many are late, and the date's movement from what was agreed. Each machine across the four gates, red only where it is late or failed.</p>
-      <p class="says">To the supplier: "Two of your three machines have something late, and this is what is holding each one."</p></div>
-    <figure><img src="/guide/stage-gate.png" width="1366" height="900" alt="A stage-gate job: where the job is, then each machine across Install, Set up, Commission and Hand over" loading="lazy" /></figure>
+    <div><h3>The method's sections, and the tools in them</h3>
+      <p>Under each section sit the tools that fit it, said honestly: built, a mode of another tool, or not built yet. How often each has been used in this project is counted, and New starts one in the project. A tool you use that the method does not list still shows.</p>
+      <p class="says">To the sponsor: "We are in Measure; the capability study is done and the gauge study is next."</p></div>
+    <figure><img src="/guide/method.png" width="1366" height="900" alt="A DMAIC project's Measure section: the tools that fit it, with how often each has been used and a New button" loading="lazy" /></figure>
   </div>
   <div class="step phone">
-    <div><h3>The install grid, on the phone at the machine</h3>
-      <p>Tap a square to mark a stage done or plan it. A date that moves asks why — and the plan, the day's report and the client report all carry the reason.</p></div>
-    <figure><img src="/guide/install.png" width="390" height="844" alt="The install grid on a phone: each machine's stages, done in green, late in red" loading="lazy" /></figure>
+    <div><h3>The same page on the phone, at the line</h3>
+      <p>Tap a tool to open it in the project; New starts one at once. What you do inside a project lands in the project — no "which project is this for?".</p></div>
+    <figure><img src="/guide/method-phone.png" width="390" height="844" alt="A method project on a phone: the section's tools, each with its status and a New button" loading="lazy" /></figure>
   </div>
 
-  <span class="part">3P</span>
-  <h2>A line made to perform better, week by week</h2>
-  <p class="chlede">The board is the meeting: every action sorted People, Plant or Process, with an owner and a date.</p>
+  <span class="part">4 · Organise the delivery</span>
+  <h2>Who is doing what, by when</h2>
+  <p class="chlede">Projects, actions with an owner and a day, programs and tests proved on the line, and the journey day by day.</p>
   <div class="step">
-    <div><h3>The lines against target, and the board under them</h3>
-      <p>Each line's number against its target for the period, the actions open on each, and what is late. Done actions are judged by the line's own numbers either side of the day they closed — the verdict is allowed to say not yet proven.</p>
-      <p class="says">To the sponsor: "Both lines are at target, five actions are open, one is past its day."</p></div>
-    <figure><img src="/guide/board.png" width="1366" height="900" alt="A 3P job: lines at target, then the board sorted People, Plant and Process" loading="lazy" /></figure>
-  </div>
-  <div class="step phone">
-    <div><h3>Where the line is limited — and what if</h3>
-      <p>Every machine and person in one unit, the slowest bar is the limit. Make a what-if — a new machine, a second person — and the bars move to show where the limit goes. Make it so, and it lands on the board with the prediction as its reason.</p></div>
-    <figure><img src="/guide/line-balance.png" width="390" height="1000" alt="The line balance on a phone: each station's bar, the limit in red, a what-if tab beside the line as run" loading="lazy" /></figure>
+    <div><h3>Every action, the late first</h3>
+      <p>Who is doing what, where, why and by when, with its priority. A row opens its record; a person's own actions go on paper for the meeting. Whatever you do in a project lands here with no extra step.</p>
+      <p class="says">To the team: "These four are late, these are whose they are, and these are due this week."</p></div>
+    <figure><img src="/tools/actions.png" width="960" height="600" alt="Actions: the tiles, the late first, every row opening its record" loading="lazy" /></figure>
   </div>
 
-  <span class="part">Lever tree</span>
-  <h2>One number, worked down to what has to be true</h2>
-  <p class="chlede">The outcome, the conditions under it, and the work under each — every colour following its number or its actions.</p>
-  <div class="step wide">
-    <div><h3>The tree, read at a glance</h3>
-      <p>A condition bound to a measure takes that measure's colour: behind target is red, on target is green. Work hung from the board shows the board's own state. The outcome and what is off track also show on the job's front page and on Home.</p></div>
-    <figure><img src="/guide/lever-tree.png" width="1366" height="900" alt="A lever tree: the outcome, what needs to be true, the conditions and the actions from the board" loading="lazy" /></figure>
-  </div>
-
-  <span class="part">The client report</span>
-  <h2>The story of the job, on paper</h2>
-  <p class="chlede">Built from the same records the screens show, in the same words — on screen first, then as a PDF to send.</p>
+  <span class="part">5 · Verify the result</span>
+  <h2>Prove it on the same number, in money</h2>
+  <p class="chlede">A fix is judged on the number it was meant to move, before and after, and said in pounds — allowed to say not proven.</p>
   <div class="step">
-    <div><h3>What the client reads</h3>
-      <p>Where the job is, the gates and each machine, what is late and whose it is, the plan, the tests and fixes or the board, the numbers against target and where the line is limited. A report that tells the story of the project, not a list of records.</p>
-      <p class="says">To the client: "Here is exactly where your line is, and what each side owes before we meet again."</p></div>
-    <figure><img src="/guide/client-report.png" width="910" height="1287" alt="The first page of a stage-gate client report PDF, with the Faultline mark" loading="lazy" /></figure>
+    <div><h3>Did it change — and by how much</h3>
+      <p>Before and after on the same number, with the right test for the data, the interval in words, and the difference that matters. The verdict is red for the wrong way and green for the right way, never for a lucky one.</p></div>
+    <figure><img src="/tools/analysis.png" width="960" height="600" alt="An analysis: did a re-calibration change fill time — the figures, the sentence and the before, after and change picture" loading="lazy" /></figure>
+  </div>
+  <div class="step">
+    <div><h3>The papers to hand over</h3>
+      <p>Every tool and project has its paper, built from the same records the screens show and in the same words: what the problem was, what was done, who owed what, and the result. On screen first, then as a PDF to send.</p>
+      <p class="says">To the client: "Here is exactly what changed, what it is worth, and what each side owes."</p></div>
+    <figure><img src="/guide/client-report.png" width="910" height="1287" alt="The first page of a client report PDF, with the Faultline mark" loading="lazy" /></figure>
   </div>
 
   <section class="faq">
     <span class="part">Questions</span>
     <h2>Common questions</h2>
+    <h3>Is this a project-management tool?</h3>
+    <p>No. Projects are one part of it — the delivery. Faultline covers the whole improvement lifecycle, from finding the opportunity to verifying the result.</p>
     <h3>Does it need sensors, integrations or an IT project?</h3>
-    <p>No. Faultline is an installable web app on the phones and laptops a team already has.</p>
+    <p>No. Faultline is an installable web app on the phones and laptops a team already has. Everything is counted, timed, tapped, photographed or filmed by a person.</p>
     <h3>Does it work on the floor with no signal?</h3>
     <p>Yes. Every screen works offline and syncs itself to the rest of the team when coverage returns.</p>
     <h3>Who sees what?</h3>
-    <p>It is invite-only. A project's owner adds people by email, and they see that project on their own device.</p>
+    <p>It is invite-only. A project's owner adds people by email, as owner, team or client, and they see that project on their own device.</p>
     <h3>Does it replace OEE or machine monitoring?</h3>
-    <p>No — those see that a machine stopped. Faultline runs the change: what has to be done, who owes it, and whether it worked.</p>
+    <p>No — those see that a machine stopped. Faultline finds what is costing the line, works out why, runs the fix by a method and shows whether it worked.</p>
   </section>
 
   <div class="cta">
     <p>Faultline is invite-only. If you have been invited, create your account with the email the invitation went to.</p>
     <a href="/">Sign in to Faultline</a>
   </div>
-  <footer>Faultline · made by OpEx Elevate</footer>
+  <footer>Faultline — The Operational Improvement System · an Opex Elevate product</footer>
 </div>
 </body>
 </html>
