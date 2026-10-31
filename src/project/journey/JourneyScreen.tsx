@@ -269,7 +269,9 @@ function ToolRow({ label, says, plan, used, edit, onTick, onChange, onOpen }: {
           <input className="jn-tool-what" aria-label={`What ${label} is for`} placeholder="What for — e.g. the Bagger's seal weights" value={what} disabled={!edit}
             onChange={e => setWhat(e.target.value)} onBlur={() => { if (what.trim() !== (plan.what ?? '')) void onChange({ what: what.trim() }); }}
             onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
-          <input type="date" className="jn-tool-when" aria-label={`When ${label} is planned`} value={plan.due ?? ''} disabled={!edit} onChange={e => void onChange({ due: e.target.value || undefined })} />
+          <input type="date" className="jn-tool-when" aria-label={`When ${label} is planned`} value={plan.due ?? ''} disabled={!edit}
+            /* the day carries the words as typed: the plan this row holds can be a moment behind what was just saved */
+            onChange={e => void onChange({ due: e.target.value || undefined, ...(what.trim() !== (plan.what ?? '') ? { what: what.trim() } : {}) })} />
           <button type="button" className="cw-link" onClick={onOpen}>{plan.done ? `Done${plan.doneOn ? ` ${niceDay(plan.doneOn)}` : ''}` : plan.who ? plan.who : 'Who ›'}</button>
         </span>
       ) : <span className="sub jn-tool-says">{says}</span>}
