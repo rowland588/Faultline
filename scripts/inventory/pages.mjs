@@ -717,8 +717,20 @@ export const PAGES = (sd, cap) => [
   ] },
   /* NEW JOB: Performance (6M) on the main screen; no install link since 30 Oct (was under an advanced link, 29 Oct, docs/FAULTLINE-FAULT-MODEL.md) */
   { name: 'New project', path: '#/projects?new=1', must: [
-    { what: 'Performance (6M) — find and fix what is holding a line back', sel: '.proj-model-opt .proj-model-t', text: /Find and fix what is holding a line back/ },
+    /* the eight methods (31 October, docs/METHODS.md M3 — "the method equals the project"): a card each, its question and its sections, none picked */
+    { what: 'a card for each of the eight methods', sel: '.proj-model-grid .proj-model-opt', n: 8 },
+    { what: 'PDCA — how do we improve one number steadily', sel: '.proj-model-opt .proj-model-t', text: /^PDCA$/ },
+    { what: 'the stage gate is one of them', sel: '.proj-model-opt .proj-model-t', text: /^Stage gate$/ },
+    { what: 'a method’s sections on its card', sel: '.proj-model-opt .proj-model-s', text: /Plan · Do · Check · Act/ },
     /* 'Need a formal install with gates?' taken off 30 October (Rowland: "remove it") — the stage-gate track is no longer offered on this page */
+  ] },
+  /* A PROJECT THAT RUNS A METHOD (31 October, docs/METHODS.md M3): its sections in order and the tools that fit each */
+  { name: 'A method project — its sections', path: `#/project/${sd.methodProjectId}`, must: [
+    { what: 'its heading — the method', sel: '.pmethod h1', text: /^DMAIC$/ },
+    { what: 'its five sections in order', sel: '.pmethod .pace-sec-title', n: 5 },
+    { what: 'a tool a row, said honestly (built, a mode, built into the app, not built yet)', sel: '.pmethod .lt-li', n: 20 },
+    { what: 'New on a tool that exists', sel: '.pmethod .lt-li .btn', n: 5 },
+    { what: 'Add a tool in each section', sel: '.pmethod .pmethod-add button', text: /^Add a tool$/ },
   ] },
   /* A VIDEO STUDY (18 October, docs/VIDEO.md): footage read for the work at each station, reviewed, worked out as a line balance */
   { name: 'Video studies', path: '#/video', must: [

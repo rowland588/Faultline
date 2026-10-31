@@ -74,8 +74,8 @@ const journey = (n, W, max, says) => {
 /* ======================= 1 · a job and its machines (phone) ======================= */
 {
   const W = await device(390); const P = W.page;
-  /* New project no longer offers a formal install (29–30 October); the installation form is still there by its address
-     (?model=commissioning) — the door a stage-gate method will give back */
+  /* The stage gate is a method again (31 October, M3): its card on New project; the older address
+     (?model=commissioning) picks the same card */
   await W.go('#/projects?new=1&model=commissioning');
   await P.getByLabel('Name', { exact: true }).waitFor({ timeout: 15000 });
   await P.getByLabel('Name', { exact: true }).fill('Line 7 new wrapper');

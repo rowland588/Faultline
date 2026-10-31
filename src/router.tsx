@@ -5,6 +5,7 @@
  * the Landing (sign in / create account, and only invited emails can register).
  * Once signed in the session is cached locally, so the app still works offline. */
 import { lazy, Suspense, useEffect } from 'react';
+import { useProject } from './lib/useProjects';
 import { useRoute, navReplace } from './state/useRoute';
 import { usePersistRoute } from './state/useResume';
 import { WorkspaceProvider } from './state/WorkspaceProvider';
@@ -73,6 +74,7 @@ const LogScreen = lazy(() => import('./tools/checks/LogScreen').then(m => ({ def
 const ToolsScreen = lazy(() => import('./screens/ToolsScreen').then(m => ({ default: m.ToolsScreen })));
 const ToolPageScreen = lazy(() => import('./screens/ToolPageScreen').then(m => ({ default: m.ToolPageScreen })));
 const ToolWorldScreen = lazy(() => import('./screens/ToolWorldScreen').then(m => ({ default: m.ToolWorldScreen })));
+const MethodScreen = lazy(() => import('./project/method/MethodScreen').then(m => ({ default: m.MethodScreen })));
 const ProjectToolsScreen = lazy(() => import('./screens/ProjectToolsScreen').then(m => ({ default: m.ProjectToolsScreen })));
 const PartsScreen = lazy(() => import('./screens/PartsScreen').then(m => ({ default: m.PartsScreen })));
 const SamplingScreen = lazy(() => import('./tools/sampling/SamplingScreen').then(m => ({ default: m.SamplingScreen })));
@@ -96,6 +98,12 @@ import { MachineScreen } from './screens/MachineScreen';
 /** A PROJECT'S FRONT PAGE — the page of the method it runs (the method
  *  builder's own kind of project went with it on 20 October). */
 function ProjectDoor({ projectId }: { projectId: string }) {
+  /* A PROJECT THAT RUNS A METHOD OPENS ON THE METHOD (docs/METHODS.md, M3) — its sections and the tools that fit each.
+     The stage gate keeps its own front page (Now) until M4 gives it its doors back; a project from before the
+     methods (no method, not a stage gate) opens as it always has. */
+  const { project, loading } = useProject(projectId);
+  if (loading) return null;
+  if (project?.method && project.method !== 'stage-gate') return <MethodScreen projectId={projectId} />;
   return <ProjectDashboardScreen projectId={projectId} />;
 }
 

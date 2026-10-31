@@ -86,6 +86,8 @@ export interface Seeded {
    *  open the tree on the stage-gate job, which bounced to its front page, so
    *  the tree had never been rendered by it. */
   treeProjectId: string;
+  /** A project that runs a method (31 October, docs/METHODS.md M3) — DMAIC, no tool used yet. */
+  methodProjectId: string;
   /** The 6M problems on Line 2A of the board project: one open and being
    *  acted on (a Pareto bar), one closed and holding (the gap). */
   problemId: string;
@@ -815,6 +817,13 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   /* A PROJECT ON THE LEVER TREE: an outcome, a line under it, a condition
      bound to the board (so the tree draws derived rows), a Pareto, and actions
      written on its board against its own line. */
+  /* A PROJECT THAT RUNS A METHOD: DMAIC — its page is the method's five sections, the tools that fit each */
+  const methodic = await createProject('Line 7 seal failures', '#0e7490', 'Rowland', 'r@example.com', 'board', 'dmaic');
+  /* one tool used in it already — a capability study of the sealing temperature — so its rows say "1 use in this project" */
+  await putStudy({ id: uid(), tool: 'capability', name: 'Seal temperature — jaw 2', projectId: methodic.id, machine: 'Ilapak flow wrapper',
+    agreed: { readings: { kind: 'limits', unit: '°C', nominal: 180, lower: 170, upper: 190, count: 10 } },
+    facts: { readings: [179, 181, 180, 182, 178, 180, 181, 179, 180, 182].map((value, i) => ({ id: uid(), value, at: t - (10 - i) * 60_000, who: 'K. Ahmed' })) },
+    uses: [], startedAt: t - 11 * 60_000, createdAt: t, updatedAt: t });
   const tree = await createProject('Line 2B to 60 ppm', '#7c3aed', 'Rowland', 'r@example.com', 'tree');
   const treeLine = await addPaceLine({ projectId: tree.id, key: '2B', name: 'Line 2B', owner: 'Rob Scott', sponsor: 'Tanya', sort: 0 });
   const treeBox = (text: string, sort: number, o: Partial<TreeNodeRow> = {}): TreeNodeRow =>
@@ -1321,7 +1330,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     fixId: regulator.id,
     machineId: weigher.id,
     pastDay: iso(-7),
-    pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
+    pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id, methodProjectId: methodic.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
     oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, reliabilityLineIds, reliabilityFamilyId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, analysisGaugeId, analysisRangeId, analysisDriftId, analysisShapeId, calcKanbanId, calcOcId, calcLittleId,

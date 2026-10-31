@@ -6,6 +6,7 @@
  */
 import type { ID, Project } from '../types';
 import type { PlanModel } from '../lib/planModel';
+import type { MethodKey } from '../lib/methods';
 import { planModel } from '../lib/planModel';
 import { uid, now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
@@ -83,12 +84,15 @@ export async function createProject(
    *  which one is a decision worth asking for up front rather than leaving as
    *  an unticked box under Lines & people. */
   model?: PlanModel,
+  /** The method it runs (src/lib/methods.ts, M3) — stage gate is also the commissioning list. */
+  method?: MethodKey,
 ): Promise<Project> {
   const p: Project = {
     id: uid(), name: name.trim() || 'New project', color, workspaceIds: [],
     lead, leadEmail,
     leverTree: model === 'tree' || undefined,
-    commissioning: model === 'commissioning' || undefined,
+    commissioning: model === 'commissioning' || method === 'stage-gate' || undefined,
+    method,
     createdAt: now(), updatedAt: now(),
   };
   await (await getDB()).put('projects', p);

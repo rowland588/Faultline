@@ -8,6 +8,7 @@
  * laptop shows up on the phone without a reload. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { heldReading } from './heldReading';
+import type { MethodKey } from './methods';
 import {
   ensureProjects, createProject, updateProject, deleteProject, onDataChange,
   archiveProject, restoreProject, purgeProject, projectContents, releaseInstallationToLine,
@@ -23,7 +24,7 @@ export interface ProjectsState {
   /** Put away, and gettable back. Kept separate so no screen has to remember
    *  to filter: forgetting the filter is how an archive stops being one. */
   archived: Project[];
-  create: (name: string, lead?: string, model?: PlanModel) => Promise<Project>;
+  create: (name: string, lead?: string, model?: PlanModel, method?: MethodKey) => Promise<Project>;
   rename: (p: Project, patch: Partial<Project>) => Promise<void>;
   remove: (id: string) => Promise<void>;
   archive: (id: string) => Promise<void>;
@@ -75,8 +76,8 @@ export function useProjects(): ProjectsState {
 
   return {
     loading, projects, archived,
-    create: async (name: string, lead?: string, model?: PlanModel) => {
-      const p = await createProject(name, COLORS[all.length % COLORS.length], lead, undefined, model);
+    create: async (name: string, lead?: string, model?: PlanModel, method?: MethodKey) => {
+      const p = await createProject(name, COLORS[all.length % COLORS.length], lead, undefined, model, method);
       await refresh();
       return p;
     },

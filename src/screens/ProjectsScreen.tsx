@@ -12,7 +12,14 @@
 import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
-import { isPicked, methodOf, MODELS, OPTIONAL_INSTALL_MODEL, planModel, PRIMARY_NEW_PROJECT_MODELS, type PlanModel } from '../lib/planModel';
+import { METHODS, methodByKey, methodOfProject, type MethodKey } from '../lib/methods';
+
+/* A PROJECT'S KIND IS ITS METHOD (docs/METHODS.md, M3): the eight methods' names, then — for a project from before them — the
+   plan model it was made on (Performance (6M), Lever tree). One reader of it, for the chips and the rows. */
+const kindOf = (p: Parameters<typeof planModel>[0] & { method?: MethodKey }): string => methodOfProject(p) ?? planModel(p);
+const KINDS: { key: string; label: string }[] = [...METHODS.map(m => ({ key: m.key as string, label: m.name })), ...MODELS.map(m => ({ key: m.id as string, label: m.label }))];
+const kindLabel = (p: Parameters<typeof kindOf>[0]): string => { const m = methodOfProject(p); return m ? (methodByKey(m)?.name ?? m) : methodOf(p).label; };
+import { methodOf, MODELS, planModel, type PlanModel } from '../lib/planModel';
 import { FilterBar, RecordRow, RecordRows } from '../ui/parts';
 import { useLineRecords } from '../lib/useLineRecords';
 import { STORE_WORDS, addPaceLine, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange, updateProject } from '../db';
@@ -113,7 +120,7 @@ export function ProjectsScreen() {
   const [showArchive, setShowArchive] = useState(true);
   /* PROJECTS LISTS THE PROJECTS (docs/STRUCTURE.md §5.6, D4, B5): the live ones first, by kind and by
      line, the archive behind its own chip — where this page said they were on the control room. */
-  const [kind, setKind] = useState<'all' | PlanModel | 'archived'>('all');
+  const [kind, setKind] = useState<string>('all');
   const [onLine, setOnLine] = useState('');
   const rec = useLineRecords();
   const [busy, setBusy] = useState<string | null>(null);
@@ -147,35 +154,38 @@ export function ProjectsScreen() {
    *
    * NOTHING IS PICKED FOR YOU. Three methods, each for a different kind of
    * job — a default is a choice made without anybody noticing there was one. */
-  /* Performance (6M) by default; commissioning only from ?model= or the advanced link. */
-  const [model, setModel] = useState<PlanModel | null>(() => {
-    const m = q.get('model');
-    if (m === 'commissioning') return 'commissioning';
-    if (isPicked(m)) return m;
-    return 'board';
-  });
-  const [showInstallTrack, setShowInstallTrack] = useState(() => q.get('model') === 'commissioning');
+  /* THE METHOD IS THE PROJECT (docs/METHODS.md, M3 — Rowland, 31 October: "the method equals the
+     project"). Eight methods are offered, none picked for you; ?method= (or the older
+     ?model=commissioning, the stage gate's address) picks one. The plan model the older readers
+     want follows from it: the stage gate is the commissioning list, every other method a board. */
+  const fromAddress = (h: URLSearchParams): MethodKey | null => {
+    const m = h.get('method');
+    if (m && METHODS.some(x => x.key === m)) return m as MethodKey;
+    return h.get('model') === 'commissioning' ? 'stage-gate' : null;
+  };
+  const [method, setMethod] = useState<MethodKey | null>(() => fromAddress(q));
+  const model: PlanModel | null = method ? (method === 'stage-gate' ? 'commissioning' : 'board') : null;
   /* ?new=1 ARRIVING WHILE THE PAGE IS OPEN — a link to start a project followed from Projects itself
-     (the address changes, the page stays): open New, with the kind the link names (B5) */
+     (the address changes, the page stays): open New, with the method the link names (B5) */
   useEffect(() => {
     const on = () => {
       const h = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
       if (h.get('new') !== '1') return;
       setAdding(true);
-      const m = h.get('model');
-      if (m === 'commissioning') { setModel('commissioning'); setShowInstallTrack(true); }
-      else if (isPicked(m)) setModel(m);
+      const m = fromAddress(h);
+      if (m) setMethod(m);
     };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   /* the line it was started from, and where that line is */
   const startLine = factory.find(w => w.id === fromLine);
   const sit = useLineSituation(startLine);
 
   const doCreate = async () => {
-    if (!name.trim() || !model) return;
-    const p = await create(name, lead.trim() || undefined, model);
+    if (!name.trim() || !model || !method) return;
+    const p = await create(name, lead.trim() || undefined, model, method ?? undefined);
     /* THE DATE IT IS MEASURED AGAINST, ASKED AT THE START. A stage-gate job
        is judged on its handover — every screen and the client report count
        to it — and it was only asked for later, under Details, so a new job
@@ -188,7 +198,7 @@ export function ProjectsScreen() {
        naming its factory line — never a second line of the same name */
     const picked = factory.filter(w => onLines.includes(w.id));
     for (const [i, w] of picked.entries()) await addPaceLine({ projectId: p.id, key: lineKey(w.name), name: w.name, workspaceId: w.id, sort: i + 1 });
-    setName(''); setLead(''); setHandover(''); setAdding(false); setModel('board'); setShowInstallTrack(false); setOnLines([]);
+    setName(''); setLead(''); setHandover(''); setAdding(false); setMethod(null); setOnLines([]);
     /* Straight into the job. A commissioning project starts with its machines
        and its first test, on the Testing screen; it used to land on Lines &
        people and ask for a line with a sponsor. A 3P or lever-tree project is
@@ -236,60 +246,33 @@ export function ProjectsScreen() {
               say what you are trying to do and the way it is run follows. The
               name and the lead come once that is said. */}
           <div className="proj-model">
-            <span className="field-label">{startLine ? `What are you trying to do on ${startLine.name}?` : 'What are you trying to do?'}</span>
-            {!showInstallTrack ? (
-              <>
-                <div className="proj-model-grid">
-                  {PRIMARY_NEW_PROJECT_MODELS.map(m => (
-                    <button key={m.id} type="button" aria-pressed={model === m.id}
-                      className={'proj-model-opt' + (model === m.id ? ' on' : '')}
-                      onClick={() => { setModel(m.id); setShowInstallTrack(false); }}>
-                      <span className="proj-model-t">{m.situation}</span>
-                      <span className="proj-model-q">{m.blurb}</span>
-                      <span className="proj-model-s">{m.useWhen}</span>
-                      <span className="proj-model-runs">Runs as <b>{m.label}</b></span>
-                      <dl className="proj-model-dl">
-                        <dt>Built from</dt><dd>{m.organised}</dd>
-                        <dt>Rhythm</dt><dd>{m.rhythm}</dd>
-                        <dt>Done when</dt><dd>{m.done}</dd>
-                        <dt>Prints</dt><dd>{m.document}</dd>
-                      </dl>
-                    </button>
-                  ))}
-                </div>
-                <p className="chip-hint">
-                  Programs and tests live on the line —{' '}
-                  {startLine
-                    ? <a href={`#/programs?line=${encodeURIComponent(startLine.id)}`}>open {startLine.name}’s Programs ›</a>
-                    : <a href="#/factory">set up a line on the Factory ›</a>}
-                  {' '}when you only need to prove, not a project.
-                </p>
-              </>
-            ) : (
-              <div className="proj-model-advanced card">
-                <p className="sub">
-                  Optional desk track — gates and handover when an OEM or sign-off pack needs them.
-                  Prove on the line first; this does not replace Programs.
-                </p>
-                <button type="button" className={'proj-model-opt on'} aria-pressed
-                  onClick={() => setModel('commissioning')}>
-                  <span className="proj-model-t">{OPTIONAL_INSTALL_MODEL.situation}</span>
-                  <span className="proj-model-q">{OPTIONAL_INSTALL_MODEL.useWhen}</span>
-                  <span className="proj-model-runs">Runs as <b>{OPTIONAL_INSTALL_MODEL.label}</b></span>
+            <span className="field-label">{startLine ? `Which method will run it on ${startLine.name}?` : 'Which method will run it?'}</span>
+            <div className="proj-model-grid">
+              {METHODS.map(m => (
+                <button key={m.key} type="button" aria-pressed={method === m.key}
+                  className={'proj-model-opt' + (method === m.key ? ' on' : '')}
+                  onClick={() => setMethod(m.key)}>
+                  <span className="proj-model-t">{m.name}</span>
+                  <span className="proj-model-q">{m.question}</span>
+                  <span className="proj-model-s">{m.sections.map(x => x.name).join(' · ')}</span>
                 </button>
-                <button type="button" className="btn btn-ghost proj-model-advanced-back"
-                  onClick={() => { setShowInstallTrack(false); setModel('board'); }}>
-                  Back — Performance (6M) only
-                </button>
-              </div>
-            )}
+              ))}
+            </div>
+            <p className="chip-hint">
+              The tools fit into the method’s sections — add or leave out whichever you need.
+              Programs and tests live on the line —{' '}
+              {startLine
+                ? <a href={`#/programs?line=${encodeURIComponent(startLine.id)}`}>open {startLine.name}’s Programs ›</a>
+                : <a href="#/factory">set up a line on the Factory ›</a>}
+              {' '}when you only need to prove, not a project.
+            </p>
           </div>
           {model && (
             <div className="proj-new-grid">
               <label className="proj-field">
                 <span className="field-label">Name</span>
                 <input className="text-input" autoFocus value={name} maxLength={80}
-                  placeholder={(n => (model === 'board' ? `e.g. ${n} performance` : model === 'tree' ? `e.g. ${n} to 60 ppm by March` : `e.g. ${n} new wrapper`))(startLine?.name ?? 'Line 7')} onChange={e => setName(e.target.value)}
+                  placeholder={(n => (model === 'commissioning' ? `e.g. ${n} new wrapper` : `e.g. ${n} performance`))(startLine?.name ?? 'Line 7')} onChange={e => setName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') void doCreate(); }} />
               </label>
               <label className="proj-field">
@@ -328,15 +311,15 @@ export function ProjectsScreen() {
           {model && (
             <div className="row-inline" style={{ marginTop: 10 }}>
               <button className="btn btn-primary" disabled={!name.trim()} onClick={() => void doCreate()}>
-                {model === 'commissioning' ? 'Create and add the machines' : 'Create and add lines'}
+                {model === 'commissioning' ? 'Create and add the machines' : 'Create project'}
               </button>
             </div>
           )}
-          {model && (
+          {method && (
             <p className="chip-hint">
               {model === 'commissioning'
-                ? 'Optional install track — machines on the line, programs and tests; open the line’s Programs without a project when you only need to prove.'
-                : 'You add the lines next — faults, tools and the fishbone follow from there.'}
+                ? 'Machines on the line, programs and tests; open the line’s Programs without a project when you only need to prove.'
+                : 'It opens on the method’s sections — tools go in where they are needed.'}
             </p>
           )}
         </section>
@@ -383,14 +366,14 @@ export function ProjectsScreen() {
           const w = rec.all.find(x => x.id === l.workspaceId);
           return [w?.id ?? l.id, { id: w?.id ?? l.id, name: w?.name ?? (l as { name?: string }).name ?? 'a line' }] as const;
         })).values()];
-        const shown = projects.filter(p => (kind === 'all' || planModel(p) === kind) && (!onLine || linesOf(p.id).some(l => l.id === onLine)));
+        const shown = projects.filter(p => (kind === 'all' || kindOf(p) === kind) && (!onLine || linesOf(p.id).some(l => l.id === onLine)));
         const today = todayISO();
         return (
           <section className="proj-list" aria-label="The projects">
             {/* THE FILTERS ARE THE COUNTS (CLAUDE.md, simplicity 1): every project, each kind, the archive */}
-            <FilterBar label="Which projects" value={kind} onChange={k => setKind(k as typeof kind)}
+            <FilterBar label="Which projects" value={kind} onChange={k => setKind(k)}
               filters={[{ key: 'all', label: 'All', count: projects.length },
-                ...MODELS.filter(m => projects.some(p => planModel(p) === m.id)).map(m => ({ key: m.id, label: m.label, count: projects.filter(p => planModel(p) === m.id).length })),
+                ...KINDS.filter(k => projects.some(p => kindOf(p) === k.key)).map(k => ({ key: k.key, label: k.label, count: projects.filter(p => kindOf(p) === k.key).length })),
                 ...(archived.length ? [{ key: 'archived', label: 'Archived', count: archived.length }] : [])]}>
               {kind !== 'archived' && factory.length > 1 && (
                 <select className="text-input proj-line-f" value={onLine} onChange={e => setOnLine(e.target.value)} aria-label="On which line">
@@ -407,7 +390,7 @@ export function ProjectsScreen() {
                   const lines = linesOf(p.id).map(l => l.name);
                   return (
                     <RecordRow key={p.id} what={p.name}
-                      says={<>{methodOf(p).label}{p.lead ? <> · led by {p.lead}</> : null}</>}
+                      says={<>{kindLabel(p)}{p.lead ? <> · led by {p.lead}</> : null}</>}
                       where={[lines.length ? lines.join(', ') : 'No line yet', due ? `${due < today ? 'handover was' : 'handover'} ${niceDay(due, { weekday: 'short' })}` : 'no handover date'].join(' · ')}
                       onOpen={() => nav(`/project/${p.id}`)} />
                   );

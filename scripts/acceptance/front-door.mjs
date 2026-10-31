@@ -8,7 +8,7 @@
  *   1  #/ is the Factory page — its name, the menu (Factory · Projects · Problems · Actions · Tools,
  *      Reports at the foot) with Factory lit, its own tabs (Overview · Lines · Machines · Programs — Machines since 27 October) and the bar
  *      saying Factory › Overview; no question, no front door
- *   2  Projects from the menu: New project offers Performance (6M); optional install under advanced link;
+ *   2  Projects from the menu: New project offers the eight methods (M3, 31 October); the stage gate is one of them;
  *      commissioning project made opens with its own tabs, the menu the same with Projects
  *      lit, the bar starting ‹ Projects; that link back lands on Projects, listing it
  *   3  a line from the Factory's Lines: its tabs, Factory lit, ‹ Factory back to the Factory page
@@ -62,16 +62,14 @@ ok(await page.locator('.fd-ask, .fd-lib, .fd-tools').count() === 0 && !/What do 
 await page.locator('.nv-rail .nv-ri', { hasText: 'Projects' }).click(); await page.waitForTimeout(800);
 ok(/#\/projects/.test(page.url()) && (await lit()).join() === 'Projects', '2 Projects from the menu, lit', `${page.url()} | ${(await lit()).join()}`);
 await go('#/projects?new=1');
-const mainKinds = (await page.locator('.proj-model-grid .proj-model-opt .proj-model-runs b').allInnerTexts()).map(flat);
-const sits = flat(await page.locator('.proj-model-grid .proj-model-opt .proj-model-t').innerText().catch(() => ''));
-ok(mainKinds.join(' · ') === 'Performance (6M)' && /Find and fix what is holding a line back/.test(sits)
-  && !/New equipment — optional gates/.test(await page.locator('.proj-model-grid').innerText())
-  && !/Lever tree/.test(await page.locator('.proj-new').innerText())
-  && (await page.locator('.proj-install-advanced').count()) === 0 && !/formal install/i.test(await page.locator('.proj-new').innerText()),
-  '2 New project — Performance (6M) only; no formal-install link (Rowland, 30 October: remove it)', `${mainKinds.join(' · ')} | ${sits}`);
-await go('#/projects?new=1&model=commissioning');   // the stage gate is still reachable by its address (old links), never offered
+const methodNames = (await page.locator('.proj-model-grid .proj-model-opt .proj-model-t').allInnerTexts()).map(flat);
+ok(methodNames.join(' · ') === 'PDCA · DMAIC · 8D · A3 · Stage gate · Kaizen event · Improvement Kata · Theory of Constraints'
+  && !/Lever tree|6M/.test(await page.locator('.proj-new').innerText()) && (await page.locator('.proj-model-opt[aria-pressed="true"]').count()) === 0
+  && (await page.locator('.proj-new-grid').count()) === 0,
+  '2 New project — the eight methods, none picked for you, no name box until one is; 6M and the lever tree not among them (docs/METHODS.md, M3)', methodNames.join(' · '));
+await go('#/projects?new=1&model=commissioning');   // the older stage-gate address picks the Stage gate card
 await page.waitForTimeout(300);
-await page.locator('.proj-model-advanced .proj-model-opt').click();
+ok((await page.locator('.proj-model-opt[aria-pressed="true"] .proj-model-t').allInnerTexts()).map(flat).join() === 'Stage gate', '2 the older ?model=commissioning address picks the Stage gate card');
 await page.locator('.proj-new-grid input.text-input').first().fill('Line 4 new case packer');
 await page.getByRole('button', { name: 'Create and add the machines' }).click(); await page.waitForTimeout(1500);
 ok(/#\/project\/[^/]+/.test(page.url()), '2 the project made and opened', page.url());

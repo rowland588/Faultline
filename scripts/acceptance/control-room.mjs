@@ -185,12 +185,15 @@ await shot('19-start');
 const sit = flat(await page.locator('.proj-sit').innerText().catch(() => ''));
 ok(/^A change on Line 7 1 problem open · 1 critical · 1 late/.test(sit) && sit.includes(PROBLEM) && sit.includes('3 days late') && sit.includes(`The latest shift counted: ${truth.loss}`) && /P-200 Express — test was /.test(sit),
   `19a the line's situation over the three ways: "${sit.slice(0, 200)}"`);
-ok(/What are you trying to do on Line 7\?/i.test(flat(await page.locator('.proj-model').innerText())), '19b the question says the line');
-await page.locator('.proj-model-opt', { hasText: 'Find and fix what is holding a line back' }).click(); await page.waitForTimeout(400);
+ok(/Which method will run it on Line 7\?/i.test(flat(await page.locator('.proj-model').innerText())), '19b the question says the line');
+await page.locator('.proj-model-opt', { hasText: 'PDCA' }).click(); await page.waitForTimeout(400);
 await page.getByLabel('Name', { exact: true }).fill('Line 7 jams').catch(async () => { await page.locator('.proj-new input.text-input').first().fill('Line 7 jams'); });
 await page.locator('.proj-new .btn-primary', { hasText: /^Create/ }).click(); await page.waitForTimeout(3500);
-const step = page.locator('.gr-step', { hasText: 'Open the first problem' });
-ok(await step.count() === 1 && !/is-done/.test(await step.getAttribute('class') ?? ''), `19c the new job on Line 7: "Open the first problem" not done by the line's older case (${await step.getAttribute('class').catch(() => 'none')})`);
+/* 31 October (M3): a project made from New project opens on its method — the four sections of PDCA, in order
+   (the 'Getting it running' steps stay on a project from before the methods) */
+await page.waitForSelector('.pmethod', { timeout: 10000 }).catch(() => {});
+const secs = (await page.locator('.pmethod .pace-sec-title').allInnerTexts()).map(flat);
+ok(secs.join(' | ') === '1. Plan | 2. Do | 3. Check | 4. Act', `19c the new project on Line 7 opens on its method: ${secs.join(' | ')}`);
 
 /* ---- 16 — each count is its page's ---- */
 const P = sd.projectId;

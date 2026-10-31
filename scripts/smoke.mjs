@@ -74,6 +74,7 @@ const ROUTES = [
   ['a Line Talk — heard, corrected, a photo, typed, one waiting, one not heard, a report asked and answered', `#/talk/${seeded.talkId}`],
   ['a Line Talk document — opened, to edit and print', `#/talk/${seeded.talkId}?doc=seedt-8`],
   ['project setup', `#/project/${seeded.projectId}/setup`],
+  ['a method project — DMAIC, its sections and tools', `#/project/${seeded.methodProjectId}`],
   ['lever tree', `#/project/${seeded.treeProjectId}/tree`],
   ['lever tree — front page', `#/project/${seeded.treeProjectId}`],
   ['lever tree — board', `#/project/${seeded.treeProjectId}/board`],
