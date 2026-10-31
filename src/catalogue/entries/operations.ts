@@ -439,9 +439,10 @@ export const OPERATIONS: Entry[] = [
     food: 'Daily walks of a packing hall.',
     depends: ['FC-081', 'FC-200'],
     complexity: 'S', value: 'medium', valueWhy: 'Silence made visible.',
-    status: 'partial', form: 'component', methods: ['visual.gemba-walk'], scenarios: ['daily'],
-    built: { where: [], code: ['src/lib/gemba.ts'], tests: [], acceptance: [] },
-    limits: ['Freshness is worked out but not driven by an acceptance script.'],
+    status: 'available', form: 'component', methods: ['visual.gemba-walk'], scenarios: ['daily'],
+    built: { where: [], code: ['src/lib/gemba.ts', 'src/tools/gemba/looking.ts', 'src/tools/gemba/useLooking.ts', 'src/tools/gemba/LookedAt.tsx'], tests: ['src/tools/gemba/__tests__/looking.test.ts'], acceptance: ['gemba.mjs'] },
+    spec: 'knowledge/specs/FC-199-gemba-walk.md',
+    /* the walk itself is FC-081; the cadence per leader and walks-against-cadence are FC-200 (a record of a leader's routine — not kept) */
   },
   {
     id: 'FC-200', name: 'Leader standard work', discipline: 'visual', sub: 'walk',

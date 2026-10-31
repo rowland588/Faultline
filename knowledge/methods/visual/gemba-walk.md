@@ -100,9 +100,13 @@ snag on the new line.
 - [textbook] Mann, D. (2015), *Creating a Lean Culture*, 3rd ed., CRC Press — gemba walks in leader standard work (from knowledge).
 
 ## In Faultline
-Built: the filmed walk (`src/screens/CaptureScreen.tsx` — a problem
-pointed at, photographed or filmed, on its machine) and freshness on the
-line's card (`src/lib/gemba.ts` — the days since, the word, the fading
-colour). FC-081 is the walk; the cadence per leader and walks-against-
-cadence are not kept, and would be a small addition to the factory's
-page.
+Built (FC-199, 31 October 2026 — `knowledge/specs/FC-199-gemba-walk.md`): the filmed walk
+(`src/screens/CaptureScreen.tsx` — a problem pointed at, photographed or filmed, on its machine, FC-081) and
+**how fresh the looking is** (`src/tools/gemba/looking.ts`, one rule with `src/lib/gemba.ts`): days since the
+last look per line and per machine on its list (a stop timed, a filmed clip, a frame marked, a problem raised
+on the spot — never a problem raised from the Pareto board), fresh ≤ 7 · fading 8–14 · stale beyond or nothing
+recorded, the rhythm over the last 14 days, and what the looking found in 4 weeks (raised · closed · open · the
+oldest open). Shown on the line's page and its two papers, each Factory card, a project's Needs you (only when
+fading or stale) and the Gemba walk row of a Kata or Kaizen event project's method page. Not kept: the cadence
+per leader and walks-against-cadence (Leader standard work — a leader's routine needs a record of its own), a walk's purpose
+and route, and looking that was not recorded in the app (the screen says so).
