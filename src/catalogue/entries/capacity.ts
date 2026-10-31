@@ -268,7 +268,7 @@ export const CAPACITY: Entry[] = [
     food: 'Weigher blockages, film breaks, label jams.',
     depends: ['FC-052', 'FC-049'],
     complexity: 'M', value: 'high', valueWhy: 'The floor’s record of every loss.',
-    status: 'available', form: 'tool', kind: 'log', methods: ['equipment.downtime-log'], scenarios: ['machine', 'running', 'daily'], words: ['downtime', 'stops', 'stopwatch', 'breakdown'],
+    status: 'available', form: 'mode', partOf: 'FC-049', methods: ['equipment.downtime-log'], scenarios: ['machine', 'running', 'daily'], words: ['downtime', 'stops', 'stopwatch', 'breakdown'],
     built: { where: [], code: ['src/screens/CaptureScreen.tsx', 'src/lib/intelligence/stops.ts'], tests: ['src/lib/__tests__/intelligence.test.ts'], acceptance: ['upgrade.mjs', 'sixm-evidence.mjs'] },
   },
   {

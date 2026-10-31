@@ -19,7 +19,7 @@ export function ownerOf(e: Entry): string | undefined {
   const ids = new Set(APP_TOOLS.map(t => t.id));
   if (ids.has(e.id)) return e.id;
   let p = e.partOf ? ENTRIES.find(x => x.id === e.partOf) : undefined;
-  while (p?.partOf) p = ENTRIES.find(x => x.id === p!.partOf);
+  for (let up = p?.partOf; up; up = p?.partOf) p = ENTRIES.find(x => x.id === up);
   if (p && ids.has(p.id)) return p.id;
   for (const t of APP_TOOLS) {
     const own = ENTRIES.find(x => x.id === t.id);

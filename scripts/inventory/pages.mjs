@@ -399,13 +399,13 @@ export const PAGES = (sd, cap) => [
     { what: 'the range — its five picks', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the range said', sel: '.jn-range-t' },
     { what: 'the four tiles — done, still to do, late, planned', sel: '.jn-tiles .ln-tile', n: 4 },
     /* every tool at a desk; on a phone the list folds to the ticked, Every tool under it */
-    { what: 'the tools we will use — a tick a tool', sel: '.jn-tool-list .jn-tool', n: 15, desk: true },
+    { what: 'the tools we will use — a tick a tool', sel: '.jn-tool-list .jn-tool', n: 19, desk: true },
     { what: 'the tools we will use, folded — Every tool', sel: '.fold[data-fold="jn-tools"] .jn-every', text: /^Every tool/, phone: true },
     { what: 'the days in order', sel: '.jn-day' }, { what: 'a day’s lines, each a record’s own', sel: '.jn-day .jn-li' },
     { what: 'today marked', sel: '.jn-day.is-today' }, { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Journey — a 6M project', path: `#/project/${sd.pacedProjectId}/journey`, must: [
     { what: 'the range', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the four tiles', sel: '.jn-tiles .ln-tile', n: 4 },
-    { what: 'the tools we will use', sel: '.jn-tool-list .jn-tool', n: 15, desk: true }, { what: 'the days', sel: '.jn-day .jn-li' }, { what: 'the closing line', sel: '.ln-close' }] },
+    { what: 'the tools we will use', sel: '.jn-tool-list .jn-tool', n: 19, desk: true }, { what: 'the days', sel: '.jn-day .jn-li' }, { what: 'the closing line', sel: '.ln-close' }] },
   /* the parts every page is built from (docs/STRUCTURE.md §7, B1, 23 October) — in development, photographed so a change to a part is seen before it ships */
   { name: 'The parts', path: '#/parts', must: [
     { what: 'the page header — one title, its state', sel: '.part-head h1 .part-tag' },
@@ -425,8 +425,8 @@ export const PAGES = (sd, cap) => [
     { what: 'every tool by discipline, each with its status in words', sel: '.et-row .et-st', n: 200 },
     /* the eleven a person can open, one tap each — the factory's tools since the rail stopped listing them (23 October, docs/STRUCTURE.md B2) */
     /* since 30 October (docs/TOOLS-SHOWCASE.md, TG1) the rows are the gallery: a card each, with its picture, its one line and use, opening its page; Open › its list */
-    { what: 'the gallery — a card for every tool a person can open', sel: '.et-now .tc-card', n: 15 },
-    { what: 'each card with its picture or its drawn tile', sel: '.et-now .tc-card .tc-pic', n: 15 },
+    { what: 'the gallery — a card for every tool a person can open', sel: '.et-now .tc-card', n: 19 },
+    { what: 'each card with its picture or its drawn tile', sel: '.et-now .tc-card .tc-pic', n: 19 },
     /* THE WORLDS (31 October, docs/TOOLS-WORLDS.md W0): a doorway for each way of working, read from the catalogue's disciplines */
     { what: 'the worlds — a card each of the five, with the real tools’ pictures and what is built', sel: '.wd-card', n: 5 },
     { what: 'a world’s card says how much of it is built', sel: '.wd-card .wd-nums', n: 5 },

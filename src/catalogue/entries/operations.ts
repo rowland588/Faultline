@@ -372,7 +372,7 @@ export const OPERATIONS: Entry[] = [
     food: 'The weekly improvement meeting.',
     depends: ['FC-154', 'FC-195'],
     complexity: 'M', value: 'high', valueWhy: 'The actions inside every project — who does what, by when.',
-    status: 'available', form: 'tool', kind: 'register', methods: ['visual.action-tracking'], scenarios: ['daily', 'project'], words: ['action plan', 'tracker', 'to do'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'actions', label: 'Actions', says: 'Who is doing what, why, where and by when', icon: 'list', order: 22 }, methods: ['visual.action-tracking'], scenarios: ['daily', 'project'], words: ['action plan', 'tracker', 'to do'],
     built: { where: ['/actions'], code: ['src/lib/projectActions.ts'], tests: ['src/lib/__tests__/projectActions.test.ts'], acceptance: ['actions.mjs'] },
   },
   {

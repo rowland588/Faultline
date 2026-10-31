@@ -4,7 +4,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **236 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 15 tools a person can open on a page of their own. Built inside them: 89 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 44. Not built yet: 69; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 19 tools a person can open on a page of their own. Built inside them: 92 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 37. Not built yet: 69; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
@@ -71,8 +71,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 74
-- a mode of another tool: 74
+- a tool of its own: 72
+- a mode of another tool: 76
 - a part several tools share: 36
 - a way through several tools: 8
 - a report or board: 32
@@ -120,11 +120,12 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - FC-086 Individuals and moving range chart (XmR) — 4 modes inside it
 - FC-098 Reject rate capability — rejects out of what was made — 3 modes inside it
 - FC-146 6M — a running line made to perform better — 3 modes inside it
+- FC-049 Loss count — a shift’s time model and the waterfall — 2 modes inside it
 - FC-068 SMED — a changeover timed, separated and cut down — 2 modes inside it
 - FC-006 Line standard — who stands where, product by product — 1 modes inside it
 - FC-081 The filmed walk and its problems — the punch list — 1 modes inside it
 - FC-022 Work sampling — what people are doing at random moments — 1 modes inside it
-- FC-049 Loss count — a shift’s time model and the waterfall — 1 modes inside it
+- FC-154 Problems register — priority, journey, where it sits — 1 modes inside it
 - FC-099 Faults per item capability — defects per unit and per million — 1 modes inside it
 - FC-119 Type 1 gauge study — one reference measured again and again — 1 modes inside it
 - FC-124 Defect tally at the line — a check sheet by type — 1 modes inside it

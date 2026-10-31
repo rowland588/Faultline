@@ -65,6 +65,30 @@
     "of": "Reliability — stops against watched hours and the running time between them, with MTBF",
     "takenFrom": "baf6098"
   },
+  "problems": {
+    "w": 960,
+    "h": 600,
+    "of": "The Problems register — every problem on the line in priority order, with its priority, where it sits and who has it",
+    "takenFrom": "166b0b2"
+  },
+  "actions": {
+    "w": 960,
+    "h": 600,
+    "of": "Actions — who is doing what, where and by when: the tiles, the late first, every row opening its record",
+    "takenFrom": "166b0b2"
+  },
+  "criticality": {
+    "w": 960,
+    "h": 600,
+    "of": "Equipment criticality — machines ranked on consequence and likelihood, classed A, B and C, with the food-safety override",
+    "takenFrom": "166b0b2"
+  },
+  "maintenance": {
+    "w": 960,
+    "h": 600,
+    "of": "Maintenance measures — PM compliance, the planned share and MTBF, read from the line's logs and studies",
+    "takenFrom": "166b0b2"
+  },
   "sampling": {
     "w": 960,
     "h": 600,

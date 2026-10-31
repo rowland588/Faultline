@@ -18,10 +18,10 @@ describe('how many tools, said truly', () => {
     expect(c.tools + c.inside + c.parts).toBe(builtAll);
     expect(c.tools).toBeLessThan(builtAll / 5);
   });
-  it('puts a capability mode, a check-log kind and a calculator inside their tools, and the problems register outside any', () => {
+  it('puts a capability mode, a check-log kind and a calculator inside their tools, and a part no tool owns outside any', () => {
     expect(ownerOf(ENTRIES.find(e => e.id === 'FC-095')!)).toBe('FC-094');
     expect(ownerOf(ENTRIES.find(e => e.id === 'FC-170')!)).toBe('FC-236');
-    expect(ownerOf(ENTRIES.find(e => e.id === 'FC-154')!)).toBeUndefined();
+    expect(ownerOf(ENTRIES.find(e => e.id === 'FC-193')!)).toBeUndefined();
   });
   it('says how many methods each tool holds', () => {
     const by = insideByTool();

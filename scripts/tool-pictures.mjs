@@ -7,7 +7,7 @@
  * what each shows and the commit it was taken from. Every number on a picture is the tool's own module reading the
  * seeded record; nothing is typed onto an image.
  *
- *   node scripts/tool-pictures.mjs                 all fifteen, written to public/tools/      (SMOKE_BASE, as smoke)
+ *   node scripts/tool-pictures.mjs                 all nineteen, written to public/tools/      (SMOKE_BASE, as smoke)
  *   node scripts/tool-pictures.mjs chart losses    only these keys
  *   node scripts/tool-pictures.mjs --out DIR       write somewhere else (public/tools is left alone) — for a comparison
  *   node scripts/tool-pictures.mjs --compare       take them all to a temp folder and say which differ from public/tools
@@ -70,6 +70,14 @@ const TOOLS = [
     route: s => `#/losses/${s.lossId}`, parts: ['.ln-band', '.ln-tiles', '.ln-grid'], css: '' },
   { key: 'reliability', of: 'Reliability — stops against watched hours and the running time between them, with MTBF',
     route: s => `#/reliability/${s.reliabilityFamilyId}`, parts: ['.ln-band', '.rl-counted .ie-says', '.rl-graphs'], css: '' },
+  { key: 'problems', of: 'The Problems register — every problem on the line in priority order, with its priority, where it sits and who has it',
+    route: () => '#/snags', parts: ['.qsl-f', '.qsl-g:nth-of-type(1)', '.qsl-g:nth-of-type(2)'], css: '.qsl-g .qsl-row:nth-child(n+4){display:none !important}.qsl-g:nth-of-type(n+3){display:none !important}' },
+  { key: 'actions', of: 'Actions — who is doing what, where and by when: the tiles, the late first, every row opening its record',
+    route: () => '#/actions', parts: ['.act-tiles', '.lt-rows'], css: '.lt-rows > li:nth-child(n+8){display:none !important}' },
+  { key: 'criticality', of: 'Equipment criticality — machines ranked on consequence and likelihood, classed A, B and C, with the food-safety override',
+    route: s => `#/scored/criticality/${s.criticalityId}`, parts: ['.ie-says', '.scored-table-wrap'], css: '' },
+  { key: 'maintenance', of: 'Maintenance measures — PM compliance, the planned share and MTBF, read from the line\'s logs and studies',
+    route: s => `#/board/maintenance-measures/${s.maintenanceId}`, parts: ['.ln-tiles', '.ie-says'], css: '' },
   { key: 'sampling', of: 'Work sampling — what two people were doing at random moments: each share with its margin',
     route: s => `#/sampling/${s.samplingId}`, parts: ['.ln-tiles', '.ws-round', '.ws-shares'], css: '' },
   { key: 'talk', of: 'Line Talk — the talk on the line: what was said, a photo, a typed line, and the document asked for',
@@ -137,7 +145,18 @@ function PICTURE_SEEDS_FN() {
         person('Op 1', 12, 46, 'Feed film, change reels', 'blue'), person('Op 2', 38, 46, 'Seal checks every 30 min', 'teal'),
         person('Op 3', 55, 76, 'Case and tray loading', 'orange'), person('Op 4', 73, 74, 'Pallet build and wrap', 'purple'),
       ] });
-    return { capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
+    /* the two registers' own records, from their worked examples, on the seeded line */
+    const { putStudy } = await import('/src/db.ts');
+    const { SCORED } = await import('/src/tools/scored/registry.ts');
+    const { newScoredStudy } = await import('/src/tools/scored/scored.ts');
+    const { BOARDS } = await import('/src/tools/board/registry.ts');
+    const { newBoardStudy } = await import('/src/tools/board/board.ts');
+    const crit = newScoredStudy(SCORED.find(d => d.key === 'criticality'), { name: 'Line 7 — October review', workspaceId: wsId, now: t });
+    await putStudy(crit);
+    const maint = newBoardStudy(BOARDS.find(d => d.key === 'maintenance-measures'), { name: 'Line 7 — October', workspaceId: wsId, now: t });
+    maint.agreed = { board: { key: 'maintenance-measures', reactiveHours: 190 } };
+    await putStudy(maint);
+    return { criticalityId: crit.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
   };
 }
 

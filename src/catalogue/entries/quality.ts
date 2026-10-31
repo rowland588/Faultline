@@ -398,7 +398,7 @@ export const QUALITY: Entry[] = [
     food: 'A packing hall’s problems, on the control room’s page.',
     depends: ['FC-081', 'FC-194'],
     complexity: 'L', value: 'high', valueWhy: 'The page Rowland reports from.',
-    status: 'available', form: 'tool', kind: 'register', methods: ['visual.action-tracking'], scenarios: ['daily', 'running', 'new'], words: ['problems', 'issues', 'snags', 'register'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'problems', label: 'Problems register', says: 'Every problem with its priority, its journey and where it sits', icon: 'flag', order: 21 }, methods: ['visual.action-tracking'], scenarios: ['daily', 'running', 'new'], words: ['problems', 'issues', 'snags', 'register'],
     spec: 'knowledge/specs/FC-154-problem-cost.md',
     built: { where: ['/snags'], code: ['src/snag/QuickSnagsScreen.tsx', 'src/lib/snagsReport.ts', 'src/lib/problemCost.ts'], tests: ['src/lib/__tests__/snagsReport.test.ts', 'src/lib/__tests__/problemCost.test.ts'], acceptance: ['snags.mjs'] },
     limits: ['Its money is the time a problem costs the line (labour; packs and contribution where it stops the line), the rejects it causes (at the line’s materials a pack) and the product it holds (money tied up at its materials — no carrying cost, the rate lives on the value stream map).', 'A project’s own problems (on its board) say no money yet.'],

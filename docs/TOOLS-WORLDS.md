@@ -13,7 +13,7 @@ almost always the wrong answer").
 
 ## 1. The idea in one picture
 
-Today a person meets 15 tools in one flat gallery. A statistician and a line leader do not want the same fifteen. A
+Today a person meets 19 tools in one flat gallery. A statistician and a line leader do not want the same nineteen. A
 **world** is a doorway for one way of working: its own home page, the tools of that discipline gathered, the question
 you would ask in that world, the one **workspace** they share, and the one report that tells the world's story.
 
