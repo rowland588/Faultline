@@ -10,7 +10,7 @@ import { PageHeader } from '../ui/parts';
 import { ToolCard } from '../ui/ToolCard';
 import { useToolUse, usedSaid } from '../lib/useToolUse';
 import { DISCIPLINES, STATUS_WORDS, type Entry, type Status } from '../catalogue/types';
-import { statusCounts } from '../catalogue';
+import { toolCounts } from '../catalogue/counts';
 import { worldById, worldEntries, worldRoutes, worldTools, WORLDS } from '../catalogue/worlds';
 import { nav } from '../state/useRoute';
 
@@ -23,7 +23,7 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
   const entries = useMemo(() => (world ? worldEntries(world) : []), [world]);
   const tools = useMemo(() => (world ? worldTools(world) : []), [world]);
   const routes = useMemo(() => (world ? worldRoutes(world) : []), [world]);
-  const counts = useMemo(() => statusCounts(entries), [entries]);
+  const c = useMemo(() => toolCounts(entries), [entries]);
 
   if (!world) {
     return (
@@ -34,8 +34,8 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
     );
   }
 
-  const notYet = entries.filter(e => e.status !== 'available' && e.status !== 'left-out');
-  const byDiscipline = DISCIPLINES.filter(d => world.disciplines.includes(d.id))
+  const notYet = entries.filter(e => e.status !== 'available' && e.status !== 'partial' && e.status !== 'left-out');
+  const byDiscipline = DISCIPLINES
     .map(d => ({ d, list: entries.filter(e => e.discipline === d.id) })).filter(g => g.list.length);
 
   return (
@@ -44,9 +44,8 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
         more={[{ label: 'All the tools', run: () => nav('/tools') }]} />
 
       <p className="wd-count" data-counts>
-        {plural(entries.length, 'tool')} in this world — {counts.available} available{counts.partial ? `, ${counts.partial} partly built` : ''}
-        {counts.specified ? `, ${counts.specified} planned` : ''}{counts['to-build'] ? `, ${counts['to-build']} not built yet` : ''}
-        {counts.research ? `, ${counts.research} needing research first` : ''}. {tools.length ? `${tools.length === 1 ? 'One opens' : `${tools.length} open`} as a tool of ${tools.length === 1 ? 'its' : 'their'} own; the rest are modes inside ${tools.length === 1 ? 'it' : 'them'}, or are not built yet.` : ''}
+        {plural(c.tools, 'tool')} to open in this world. {plural(c.inside + c.parts, 'method')} built — {plural(c.inside, 'inside those tools', 'inside those tools')}
+        {c.parts ? `, ${c.parts} built into the app but not tools` : ''}. {c.notBuilt} not built yet{c.research ? `, ${c.research} needing research first` : ''}. {plural(entries.length, 'entry', 'entries')} are catalogued here in all.
       </p>
 
       <section className="wd-sec" aria-label="The tools of this world">

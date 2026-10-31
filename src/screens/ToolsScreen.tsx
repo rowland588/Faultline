@@ -19,6 +19,7 @@ import { ENTRIES, PROBLEMS, disciplineName, entryById, searchEntries, searchProb
 import { DISCIPLINES, FORM_WORDS, KINDS, STATUSES, STATUS_WORDS, type Entry, type Kind, type ProblemRoute, type Status } from '../catalogue/types';
 import { nav, useRoute } from '../state/useRoute';
 import { WORLDS, worldEntries, worldTools } from '../catalogue/worlds';
+import { insideByTool, toolCounts } from '../catalogue/counts';
 import { ToolPicture } from '../ui/ToolCard';
 
 /** The state colours, one meaning each: built is done (a quiet green);
@@ -42,7 +43,8 @@ export function ToolsScreen() {
   const [kind, setKind] = useState<Kind | ''>('');
   const use = useToolUse();
 
-  const all = statusCounts();
+  const counts = useMemo(() => toolCounts(), []);
+  const byTool = useMemo(() => { const by = insideByTool(); return APP_TOOLS.filter(t => by[t.id] > 0).sort((a, b) => by[b.id] - by[a.id]).slice(0, 3).map(t => `${t.label} holds ${by[t.id]}`).join(', ').replace(/, ([^,]*)$/, ' and $1'); }, []);
   const words = q.trim();
   const routes = useMemo(() => (words ? searchProblems(words).slice(0, 3) : []), [words]);
   /* what the words and the discipline match; the status chips count it and filter it */
@@ -59,27 +61,25 @@ export function ToolsScreen() {
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3) — the library has no paper and no one thing to do: its title
           and what it holds */}
       <PageHeader title="Tools" says={<span className="et-lede">
-        Everything Faultline does, and what it could do, found by the problem in your words. What is built opens; what is not
-        says so. {ENTRIES.length} tools in {DISCIPLINES.length} disciplines — {all.available} available, {all.partial} partly built,{' '}
-        {all.specified} planned, {all['to-build']} not built yet, {all.research} needing research first, {all['left-out']} left out on purpose.
+        {counts.tools} tools you can open. Inside them, {counts.inside} methods are built — {byTool}. {counts.parts} more things are built into the
+        app but are not tools (Problems, Actions, reports, the stage gate). {counts.notBuilt} methods are planned or not built yet,{' '}
+        {counts.research} need research first, {counts.leftOut} are left out on purpose. The list lower down is every method and part the
+        catalogue knows — {counts.entries} entries — not a count of tools.
       </span>} />
 
-      {/* THE GALLERY (docs/TOOLS-SHOWCASE.md, TG1 — Rowland, 30 October: "scroll through the tools, pick one, view it on a
-          full page ... thumbnail pictures"). It replaces the plain "Use one now" rows: the same tools, each with its picture,
-          its one line and whether it has been used; a card opens the tool's own page, Open › its list as the row did. */}
       {/* THE WORLDS (docs/TOOLS-WORLDS.md — Rowland, 30 October: "tool worlds, not just tools but their own ecosystem"): a doorway
           for each way of working, read from the catalogue's disciplines, one tap to its home */}
       <section className="wd-row" aria-label="The worlds">
         <h2 className="ln-h">The worlds</h2>
         <div className="wd-cards" role="list">
           {WORLDS.map(w => {
-            const es = worldEntries(w), ts = worldTools(w), c = statusCounts(es);
+            const es = worldEntries(w), ts = worldTools(w), c = toolCounts(es);
             return (
               <button key={w.id} type="button" role="listitem" className="wd-card" data-world={w.id} onClick={() => nav(`/tools/world/${w.id}`)}>
                 <span className="wd-pics" aria-hidden>{ts.slice(0, 3).map(t => <ToolPicture key={t.key} tool={t} />)}</span>
                 <b className="wd-name">{w.name}</b>
                 <span className="wd-line">{w.line}</span>
-                <span className="wd-nums">{c.available} of {es.length} built · {ts.length} to open</span>
+                <span className="wd-nums">{plural(c.tools, 'tool')} · {plural(c.inside + c.parts, 'method')} built · {c.notBuilt} not built</span>
               </button>
             );
           })}
@@ -113,6 +113,7 @@ export function ToolsScreen() {
       </label>
 
       {/* THE COUNTS ARE THE FILTERS (simplicity, rule 1) */}
+      <h2 className="ln-h et-all-h">The catalogue — every method and part, by status <span className="sub">(not a count of tools)</span></h2>
       <div className="chip-row et-status" role="radiogroup" aria-label="Status">
         <button type="button" role="radio" aria-checked={!status} className={'chip' + (!status ? ' on' : '')} onClick={() => setStatus('')}>
           All {STATUSES.reduce((n, s) => n + shown[s], 0)}
@@ -153,7 +154,7 @@ export function ToolsScreen() {
       )}
 
       <section aria-label="The tools">
-        <h2 className="ln-h">{words ? `Tools that match — ${found.length}` : status || disc ? `${plural(found.length, 'tool')}` : 'The tools, by discipline'}</h2>
+        <h2 className="ln-h">{words ? `Catalogued entries that match — ${found.length}` : status || disc ? plural(found.length, 'catalogued entry', 'catalogued entries') : 'Every catalogued method and part, by discipline'}</h2>
         {!found.length && <p className="sub">Nothing matches{words ? ` “${words}”` : ''}. Try the problem in other words, or a tool’s number (FC-012).</p>}
         {words || status || disc
           ? <ul className="et-list">{found.map(e => <Row key={e.id} e={e} open={open === e.id} onToggle={() => setOpen(open === e.id ? null : e.id)} onOpen={setOpen} />)}</ul>

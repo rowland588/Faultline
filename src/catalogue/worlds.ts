@@ -8,6 +8,7 @@
  * is not an error, it is a thing to decide when that discipline's first tool is built. */
 import { ENTRIES } from './index';
 import { PROBLEMS } from './problems';
+import { ownerOf } from './counts';
 import { APP_TOOLS, type AppTool } from './registry';
 import { DISCIPLINES, type Entry, type ProblemRoute } from './types';
 
@@ -48,15 +49,15 @@ export const worldOfDiscipline = (discipline: string): World | undefined => WORL
 /** The world an entry is in. */
 export const worldOf = (e: Pick<Entry, 'discipline'>): World | undefined => worldOfDiscipline(e.discipline);
 
-/** Every catalogue entry in a world, in catalogue order. */
-export const worldEntries = (w: World): Entry[] => ENTRIES.filter(e => w.disciplines.includes(e.discipline));
-
-/** What is inside a tool: its modes (`partOf`) and every entry built in the tool's own folder (src/tools/<key>/ — the check
- *  logs' kinds are entries of their own, built in src/tools/checks). */
-function inside(own: Entry): Entry[] {
-  const dir = own.built?.code.map(c => /^src\/tools\/[^/]+\//.exec(c)?.[0]).find(Boolean);
-  return ENTRIES.filter(x => x.id !== own.id && x.status !== 'left-out' && (x.partOf === own.id || (!!dir && !!x.built?.code.some(c => c.startsWith(dir)))));
+/** The world an entry is in: where the tool it is built inside lives (a capability mode is Statistics', a check-log kind
+ *  Quality and food safety's), else where its own discipline is. Every entry is in exactly one. */
+export function worldOfEntry(e: Entry): World | undefined {
+  const owner = ownerOf(e);
+  return owner ? worldOfTool({ id: owner }) : worldOf(e);
 }
+
+/** Every catalogue entry in a world, in catalogue order. */
+export const worldEntries = (w: World): Entry[] => ENTRIES.filter(e => worldOfEntry(e)?.id === w.id);
 
 /** The world an app tool belongs to: where most of it lives — the tool's own entry and the modes inside it (`partOf`),
  *  each by its discipline, the tool's own breaking a tie. Check logs is a Lean entry with its metal-detection, CILT and audit
@@ -65,7 +66,7 @@ export function worldOfTool(t: Pick<AppTool, 'id'>): World | undefined {
   const own = ENTRIES.find(e => e.id === t.id);
   if (!own) return undefined;
   const tally = new Map<string, number>();
-  for (const e of [own, ...inside(own)]) {
+  for (const e of [own, ...ENTRIES.filter(x => x.id !== own.id && x.status !== 'left-out' && ownerOf(x) === own.id)]) {
     const w = worldOf(e);
     if (w) tally.set(w.id, (tally.get(w.id) ?? 0) + 1);
   }

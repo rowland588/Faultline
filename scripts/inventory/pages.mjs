@@ -434,7 +434,7 @@ export const PAGES = (sd, cap) => [
   /* A WORLD'S HOME (31 October, docs/TOOLS-WORLDS.md W0 — Rowland: "stay on tools and make the statistical world") */
   { name: 'Tools — a world\u2019s home (Statistics)', path: '#/tools/world/statistics', must: [
     { what: 'its name', sel: '.pace-head h1', text: /^Statistics$/ },
-    { what: 'its count, as the catalogue counts it', sel: '[data-counts]', text: /tools in this world/ },
+    { what: 'its count, as the catalogue counts it', sel: '[data-counts]', text: /tools to open in this world/ },
     { what: 'its tools, each a card with a picture', sel: '.wd-sec[aria-label="The tools of this world"] .tc-card', n: 3 },
     { what: 'the questions people bring to it', sel: '.wd-sec[aria-label="Start from a question"] .et-route-b', n: 4 },
     { what: 'what it holds — every entry with its status in words', sel: '.wd-item .et-st', n: 40 },

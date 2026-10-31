@@ -24,7 +24,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 async function load() {
   const out = await build({
     stdin: {
-      contents: "export * from './src/catalogue/index.ts'; export * from './src/catalogue/types.ts'; export { parseMethod } from './src/catalogue/methodRecord.ts';",
+      contents: "export * from './src/catalogue/index.ts'; export * from './src/catalogue/types.ts'; export { parseMethod } from './src/catalogue/methodRecord.ts'; export { toolCounts } from './src/catalogue/counts.ts';",
       resolveDir: ROOT, loader: 'ts', sourcefile: 'catalogue-cli.ts',
     },
     bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent',
@@ -119,7 +119,7 @@ if (cmd === 'show') {
   else if (found.length > 1) { console.log(`${found.length} records match "${rest[0]}" — say which:\n${found.map(x => `  ${x.record.id}  ${x.record.name}`).join('\n')}`); process.exitCode = 2; }
   else console.log(readFileSync(join(ROOT, found[0].path), 'utf8'));
 } else if (cmd === 'summary') {
-  const md = c.summaryMarkdown(methods.length);
+  const md = c.summaryMarkdown(methods.length, c.toolCounts());
   if (rest.includes('--write')) { writeFileSync(join(ROOT, 'knowledge/SUMMARY.md'), md); console.log('knowledge/SUMMARY.md written.'); }
   else console.log(md);
 } else if (cmd === 'check') {

@@ -47,7 +47,7 @@ const flat = x => (x ?? '').replace(/\s+/g, ' ').trim();
 const cat = (fn, ...args) => page.evaluate(async ([fn, args]) => {
   const C = await import('/src/catalogue/index.ts'); const T = await import('/src/catalogue/types.ts');
   const ids = es => es.map(e => e.id);
-  if (fn === 'counts') return { total: C.ENTRIES.length, disciplines: T.DISCIPLINES.length, s: C.statusCounts() };
+  if (fn === 'counts') { const K = await import('/src/catalogue/counts.ts'); return { total: C.ENTRIES.length, disciplines: T.DISCIPLINES.length, s: C.statusCounts(), t: K.toolCounts() }; }
   if (fn === 'search') return { problems: C.searchProblems(args[0]).map(p => p.id), entries: ids(C.searchEntries(args[0])) };
   if (fn === 'discipline') return ids(C.ENTRIES.filter(e => e.discipline === args[0]));
   if (fn === 'entry') { const e = C.entryById(args[0]); return e && { id: e.id, name: e.name, status: T.STATUS_WORDS[e.status], problem: e.problem, decided: e.decided ?? null }; }
@@ -65,8 +65,8 @@ await page.locator('.nv-rail .nv-ri', { hasText: /^Tools$/ }).click(); await pag
 const c = await cat('counts');
 const lede = flat(await page.locator('.et-lede').innerText());
 ok(page.url().endsWith('#/tools') && (await page.locator('h1').innerText()) === 'Tools', `1 the menu opens Tools, the library (${page.url().split('#')[1]})`);
-ok(lede.includes(`${c.total} tools in ${c.disciplines} disciplines — ${c.s.available} available, ${c.s.partial} partly built, ${c.s.specified} planned, ${c.s['to-build']} not built yet, ${c.s.research} needing research first, ${c.s['left-out']} left out on purpose`),
-  `1 the lede as the catalogue counts it: "${lede.slice(lede.indexOf(String(c.total)), lede.indexOf(String(c.total)) + 150)}…"`);
+ok(lede.includes(`${c.t.tools} tools you can open. Inside them, ${c.t.inside} methods are built`) && lede.includes(`${c.t.parts} more things are built into the app but are not tools`) && lede.includes(`${c.t.notBuilt} methods are planned or not built yet, ${c.t.research} need research first, ${c.t.leftOut} are left out on purpose`) && lede.includes(`${c.t.entries} entries — not a count of tools`) && c.t.tools < 25 && c.t.tools + c.t.inside + c.t.parts + c.t.notBuilt + c.t.research + c.t.leftOut === c.total,
+  `1 the lede counts tools truly — ${c.t.tools} tools, ${c.t.inside} methods inside them, ${c.t.parts} parts that are not tools, adding up to ${c.total}: "${lede.slice(0, 200)}…"`);
 ok((await page.locator('.et-route-b').count()) >= 20 && (await rows()).length === c.total, `1 every route to start from, and every tool by discipline (${(await rows()).length})`);
 
 /* ---- 2 · the counts are the filters ---- */

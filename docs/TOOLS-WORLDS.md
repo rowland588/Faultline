@@ -29,7 +29,7 @@ A world is **not a new app and not a new record**: it is a *view over the catalo
 23 disciplines, 236 entries, 124 available) plus a home page. A tool belongs to a world by its discipline, never by a
 second hand-kept list (the B2 lesson: four hand-kept lists drifted).
 
-## 2. The worlds, from what is already built (counts from the catalogue, 30 Oct)
+## 2. The worlds, from what is already built (counts from the catalogue, 30 Oct — **the "Entries / Available" columns count catalogue ENTRIES: tools, the methods inside them and the parts of the app, not tools; the true count of tools, methods and parts is `src/catalogue/counts.ts`, 31 Oct**)
 
 | World | Disciplines it gathers | Entries | Available | What it already is |
 |---|---|---|---|---|

@@ -100,7 +100,7 @@ export const statusCounts = (entries: Entry[] = ENTRIES): Record<Status, number>
 /** THE SUMMARY — knowledge/SUMMARY.md, worked out from the catalogue so it can
  *  never disagree with it (the test fails when the file is stale; write it
  *  with `node scripts/catalogue.mjs summary --write`). */
-export function summaryMarkdown(methodCount: number): string {
+export function summaryMarkdown(methodCount: number, tc: { tools: number; inside: number; parts: number; notBuilt: number; research: number; leftOut: number }): string {
   const s = statusCounts();
   const total = ENTRIES.length;
   const lines: string[] = [];
@@ -109,6 +109,8 @@ export function summaryMarkdown(methodCount: number): string {
   lines.push('Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write` — never typed. The catalogue test fails when this file is stale.');
   lines.push('');
   lines.push(`**${total} entries** across ${DISCIPLINES.length} disciplines, behind them **${methodCount} method records** (\`knowledge/methods/\`) and **${PROBLEMS.length} problem routes**.`);
+  lines.push('');
+  lines.push(`**How many tools:** ${tc.tools} tools a person can open on a page of their own. Built inside them: ${tc.inside} methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): ${tc.parts}. Not built yet: ${tc.notBuilt}; needing research: ${tc.research}; left out on purpose: ${tc.leftOut}. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.`);
   lines.push('');
   lines.push('| Status | Entries |');
   lines.push('|---|---|');

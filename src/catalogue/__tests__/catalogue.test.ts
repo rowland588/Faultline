@@ -11,6 +11,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { toolCounts } from '../counts';
 import { ENTRIES, PROBLEMS, BACKLOG, AVAILABLE_BEFORE_STANDARD, entryById, searchEntries, searchProblems, summaryMarkdown } from '../index';
 import { DISCIPLINES, SCENARIOS, STATUSES, type Entry } from '../types';
 import { parseMethod } from '../methodRecord';
@@ -178,7 +179,7 @@ describe('the catalogue', () => {
   });
 
   it('keeps knowledge/SUMMARY.md as the entries say today (node scripts/catalogue.mjs summary --write)', () => {
-    expect(readFileSync(at('knowledge/SUMMARY.md'), 'utf8')).toBe(summaryMarkdown(methods.length));
+    expect(readFileSync(at('knowledge/SUMMARY.md'), 'utf8')).toBe(summaryMarkdown(methods.length, toolCounts()));
   });
 });
 

@@ -42,10 +42,10 @@ const go = async h => { await page.waitForFunction(() => !(history.state && hist
 await go('#/tools');
 const mod = await page.evaluate(async () => {
   const w = await import('/src/catalogue/worlds.ts'); const c = await import('/src/catalogue/index.ts');
-  const one = x => { const es = w.worldEntries(x); const k = c.statusCounts(es); return { id: x.id, name: x.name, line: x.line, entries: es.length, available: k.available, partial: k.partial, specified: k.specified, toBuild: k['to-build'], research: k.research,
+  const one = async x => { const K = await import('/src/catalogue/counts.ts'); const es = w.worldEntries(x); const k = c.statusCounts(es); const t = K.toolCounts(es); return { t, id: x.id, name: x.name, line: x.line, entries: es.length, available: k.available, partial: k.partial, specified: k.specified, toBuild: k['to-build'], research: k.research,
     tools: w.worldTools(x).map(t => ({ key: t.key, label: t.label })), routes: w.worldRoutes(x).map(r => ({ id: r.id, title: r.title })),
-    held: es.map(e => ({ id: e.id, status: e.status })), notYet: es.filter(e => e.status !== 'available' && e.status !== 'left-out').length }; };
-  return { worlds: w.WORLDS.map(one) };
+    held: es.map(e => ({ id: e.id, status: e.status })), notYet: es.filter(e => e.status !== 'available' && e.status !== 'partial' && e.status !== 'left-out').length }; };
+  return { worlds: await Promise.all(w.WORLDS.map(one)) };
 });
 const S = mod.worlds.find(w => w.id === 'statistics');
 
@@ -55,7 +55,7 @@ await cards.first().waitFor({ timeout: 15000 });
 ok((await cards.count()) === 5 && mod.worlds.length === 5, '1 five worlds on Tools', await cards.count());
 for (const w of mod.worlds) {
   const t = flat(await page.locator(`.wd-card[data-world="${w.id}"]`).innerText());
-  ok(t.includes(w.name) && t.includes(w.line) && t.includes(`${w.available} of ${w.entries} built`) && t.includes(`${w.tools.length} to open`), `1 ${w.name}: its line and "${w.available} of ${w.entries} built · ${w.tools.length} to open"`, t);
+  ok(t.includes(w.name) && t.includes(w.line) && t.includes(`${w.t.tools} tool${w.t.tools === 1 ? '' : 's'} · ${w.t.inside + w.t.parts} method${w.t.inside + w.t.parts === 1 ? '' : 's'} built · ${w.t.notBuilt} not built`) && w.t.tools === w.tools.length, `1 ${w.name}: its line and "${w.t.tools} tools · ${w.t.inside + w.t.parts} methods built · ${w.t.notBuilt} not built"`, t);
 }
 ok((await page.locator('.wd-card .tc-pic').count()) >= 5, '1 the cards carry the real tools’ pictures');
 ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), '1 nothing off the side at desk');
@@ -71,7 +71,7 @@ ok(/World not found/.test(await page.locator('.pace-head h1').innerText()), '2 a
 await go('#/tools/world/statistics');
 ok(flat(await page.locator('.pace-head h1').innerText()) === S.name && flat(await page.locator('.pace-lede').innerText()) === S.line, '3 its name and its line');
 const count = flat(await page.locator('[data-counts]').innerText());
-ok(count.includes(`${S.entries} tools in this world`) && count.includes(`${S.available} available`) && (!S.toBuild || count.includes(`${S.toBuild} not built yet`)), `3 the count sentence as the catalogue counts it — "${count.slice(0, 160)}"`, count);
+ok(count.includes(`${S.t.tools} tools to open in this world`) && count.includes(`${S.t.inside + S.t.parts} methods built`) && count.includes(`${S.t.notBuilt} not built yet`) && count.includes(`${S.entries} entries are catalogued here in all`), `3 the count sentence as the catalogue counts it — "${count.slice(0, 160)}"`, count);
 const toolCards = page.locator('.wd-sec[aria-label="The tools of this world"] .tc-card');
 ok((await toolCards.count()) === S.tools.length && ['capability', 'chart', 'analysis'].every(k => S.tools.some(t => t.key === k)) && !S.tools.some(t => t.key === 'valuestream'), `3 a card for each of its ${S.tools.length} tools — Capability, Control chart, Analysis, and no value stream`);
 await page.locator('.tc-card[data-tool="chart"] .tc-main').click(); await page.waitForTimeout(1500);
