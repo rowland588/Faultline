@@ -14,6 +14,7 @@
  * Nothing worked out is stored. The figures and both sentences come from
  * lib/ie/sample on every render; only at close are they written down, as a
  * receipt, so next month's edits cannot rewrite this month's claim. */
+import { NextStep } from '../../ui/NextStep';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getStudy, onDataChange, patchStudy } from '../../db';
 import { machineOntoLine } from '../../lib/lines';
@@ -121,6 +122,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           {entryFirst && entry && <div className="ie-body ie-entry-first">{entry}</div>}
           <LeanTiles tiles={sampleTiles(f, a, said)} className="ie-strip" />
           <Says said={said} s={s} f={f} a={a} />
+          <NextStep s={s} canEdit={can.edit && !closed} />
           <div className="ie-body">
             {/* W1 — the modes' pictures (./ModeParts): a run or an inspection a bar against its limits, the faults' Pareto, a rate's intervals */}
             <div className="ie-pic tool-sig-cap">{a.kind === 'ticks' ? <Ticks readings={readings} />

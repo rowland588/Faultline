@@ -15536,3 +15536,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .sr-name { display: block; margin: 0 0 12px; }
 .sr-act { display: flex; gap: 8px; flex-wrap: wrap; }
 .sr-from { margin: 4px 0 0; }
+
+/* NEXT, under an answer (ui/NextStep — lib/handOvers): one quiet line and one button */
+.ns-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 8px 0 14px; padding: 10px 12px; border: 1px solid var(--line-2); border-left: 4px solid var(--brand); border-radius: var(--radius); background: var(--surface); }
+.ns-says { flex: 1 1 320px; margin: 0; font-size: var(--t-detail); line-height: 1.45; color: var(--ink); }
+.ns-go { min-height: var(--tap); }

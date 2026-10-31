@@ -21,9 +21,9 @@ const asksFirst = (s: ToolStudy, t: ShareTarget): string | undefined => {
   return has ? undefined : 'You will be asked for the limits — none is guessed.';
 };
 
-export function ShareReadings({ s, onClose }: { s: ToolStudy; onClose: () => void }) {
+export function ShareReadings({ s, onClose, initial }: { s: ToolStudy; onClose: () => void; initial?: ShareTarget }) {
   const offer = shareOffer(s);
-  const [target, setTarget] = useState<ShareTarget | null>(offer?.targets[0] ?? null);
+  const [target, setTarget] = useState<ShareTarget | null>(initial && offer?.targets.includes(initial) ? initial : offer?.targets[0] ?? null);
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (target) setName(shareName(s, target)); }, [target, s]);

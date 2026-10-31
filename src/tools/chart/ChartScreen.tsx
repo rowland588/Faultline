@@ -6,6 +6,7 @@
  * band with the verdict, the tiles, the sentence and the signals, the picture beside the pad, the action
  * plan and the closing line. The arithmetic is lib/ie/charts, the figures and words ./chart — the paper
  * (lib/studiesPdf chartBlocks) says the same from the same module. */
+import { NextStep } from '../../ui/NextStep';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getStudy, onDataChange, patchStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
@@ -110,6 +111,7 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
               </ul>
             )}
           </div>
+          <NextStep s={s} canEdit={can.edit && !closed} />
           {a.kind !== 'precontrol' && f.centre !== undefined && can.edit && !closed && (
             <p className="ie-limits-act sub">
               {f.provisional
