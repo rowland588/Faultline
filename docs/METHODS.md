@@ -144,8 +144,6 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 1 | FC-005 Waste walk — the eight wastes seen, classed and costed | part-built | part-built — finish | Kaizen event |
 | 1 | FC-021 Video time study — the work read from footage | part-built | part-built — camera study | Kaizen event |
 | 1 | FC-039 Recovery levers — what taking a share off the top losses buy | part-built | ? | Theory of Constraints |
-| 1 | FC-041 Capacity’s three numbers — design, effective, actual | part-built | ? | Theory of Constraints |
-| 1 | FC-042 Product mix at the constraint — throughput per constraint mi | part-built | ? | Theory of Constraints |
 | 1 | FC-043 Drum–buffer–rope and buffer management | NOT BUILT | ? | Theory of Constraints |
 | 1 | FC-045 Utilisation and variability — why queues explode | NOT BUILT | ? | Theory of Constraints |
 | 1 | FC-046 Accumulation between machines — buffer minutes and recovery | part-built | ? | Theory of Constraints |
@@ -167,7 +165,7 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 1 | FC-222 Skills matrix and cover | NOT BUILT | register — a matrix people × skills | Stage gate |
 | 1 | FC-224 One-point lesson | part-built | document — one page | Kaizen event |
 
-**Built from this table on 31 October (M5, first eight-agent round):** FC-144 Impact and effort (PICK chart) · FC-128 Cost of poor quality · FC-191 Payback and NPV · FC-134 Complaints per million · FC-014 Mistake-proofing check log (partial) · FC-199 Gemba walk, how fresh the looking is · FC-215 Critical path (partial — a typed network; the plan has no “waits for”). Those rows are taken off the list above; the catalogue (`node scripts/catalogue.mjs show FC-nnn`) holds each one's status and limits.
+**Built from this table on 31 October (M5, first eight-agent round):** FC-144 Impact and effort (PICK chart) · FC-128 Cost of poor quality · FC-191 Payback and NPV · FC-134 Complaints per million · FC-014 Mistake-proofing check log (partial) · FC-199 Gemba walk, how fresh the looking is · FC-041 Capacity's three numbers and FC-042 Product mix at the constraint (Line capacity, A shift and the capacity panel) · FC-215 Critical path (partial — a typed network; the plan has no “waits for”). Those rows are taken off the list above; the catalogue (`node scripts/catalogue.mjs show FC-nnn`) holds each one's status and limits.
 
 **In all (counted at M0, 31 October):** 117 catalogue tools are placed in the eight methods; `src/lib/__tests__/methods.test.ts` holds the placed total true, and the catalogue the status of each.
 

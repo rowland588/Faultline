@@ -4,12 +4,12 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **236 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 20 tools a person can open on a page of their own. Built inside them: 97 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 37. Not built yet: 63; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 20 tools a person can open on a page of their own. Built inside them: 99 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 35. Not built yet: 63; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 129 |
-| Partly (`partial`) | 25 |
+| Available (`available`) | 131 |
+| Partly (`partial`) | 23 |
 | Planned (`specified`) | 0 |
 | Not built yet (`to-build`) | 63 |
 | Research first (`research`) | 12 |
@@ -21,7 +21,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 |---|---|---|---|---|---|---|---|
 | Lean manufacturing and waste | 19 | 8 | 3 |  | 7 | 1 |  |
 | Industrial engineering and work measurement | 14 | 7 | 3 |  | 3 | 1 |  |
-| Capacity, throughput and bottlenecks | 17 | 9 | 4 |  | 3 | 1 |  |
+| Capacity, throughput and bottlenecks | 17 | 11 | 2 |  | 3 | 1 |  |
 | Equipment performance and losses | 10 | 7 | 1 |  |  |  | 2 |
 | Maintenance, reliability and TPM | 11 | 10 |  |  |  | 1 |  |
 | Changeovers | 5 | 2 | 2 |  | 1 |  |  |
@@ -72,10 +72,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 ## By the shape it takes
 
 - a tool of its own: 77
-- a mode of another tool: 75
-- a part several tools share: 34
+- a mode of another tool: 77
+- a part several tools share: 33
 - a way through several tools: 8
-- a report or board: 30
+- a report or board: 29
 - decided after research: 12
 
 ## Research first
@@ -113,10 +113,10 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
 - FC-105 Before and after — did it move, for a reason — 11 modes inside it
 - FC-073 The stage gate — new equipment to handover — 8 modes inside it
+- FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 6 modes inside it
 - FC-001 Value stream map — current and future state — 5 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 5 modes inside it
 - FC-058 Reliability — MTBF and failure rate, several things counted at once — 5 modes inside it
-- FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 4 modes inside it
 - FC-086 Individuals and moving range chart (XmR) — 4 modes inside it
 - FC-098 Reject rate capability — rejects out of what was made — 3 modes inside it
 - FC-146 6M — a running line made to perform better — 3 modes inside it
