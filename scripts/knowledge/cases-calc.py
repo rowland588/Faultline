@@ -1,5 +1,5 @@
 """Independent worked cases for the calculators (knowledge/specs/FC-235-calculators.md and the specs of
-FC-009, FC-183, FC-131, FC-044) — the numbers the unit tests and the acceptance script take as THEIR
+FC-009, FC-183, FC-131, FC-044, FC-215) — the numbers the unit tests and the acceptance script take as THEIR
 literals, computed here by SciPy / NumPy or by hand from the textbook formula, never by the app.
 
 Run: python3 -I scripts/knowledge/cases-calc.py      (prints every case; an assert fails if a stated figure moves)
@@ -10,6 +10,7 @@ Sources (each named where it is used):
   OC curve    the binomial and hypergeometric distributions (knowledge/methods/quality/acceptance-sampling-attributes.md;
               knowledge/research/cases-research-2-sampling.py)
   Little's law Little (1961), L = lambda * W (knowledge/methods/capacity/littles-law.md)
+  Critical path Kelley & Walker (1959), found by listing every path (knowledge/methods/projects/critical-path.md)
 """
 import math
 import numpy as np
@@ -216,3 +217,43 @@ z = appraisal(1000, 10, 50, 2, 0.0)
 ok(abs(z['npv'] - (10 * 50 * 2 - 1000)) < 1e-9, "I5 at 0% the NPV is saving x years less the cost")
 
 print("\nall independent cases hold")
+
+print("\n== FC-215 Critical path and float: by listing every path, NOT by the two passes")
+def paths_cpm(tasks):
+    """tasks: {id: (days, [waits for])}. The end is the longest start-to-end path; the critical paths are the ones that long;
+    a task's float is the end less the longest path THROUGH it (what the forward and backward passes arrive at another way)."""
+    succ = {t: [s for s, (d, p) in tasks.items() if t in p] for t in tasks}
+    starts = [t for t, (d, p) in tasks.items() if not p]
+    out = []
+    def walk(t, path, total):
+        path = path + [t]; total += tasks[t][0]
+        if not succ[t]: out.append((total, path)); return
+        for s in succ[t]: walk(s, path, total)
+    for s in starts: walk(s, [], 0)
+    end = max(t for t, _ in out)
+    return end, [p for t, p in out if abs(t - end) < 1e-9], {t: min(end - tot for tot, p in out if t in p) for t in tasks}
+# P1 the knowledge record's network (cases-projects-people-ergo-sust.py): a filler's chain and a labeller's, then trials, handover
+P1 = {"A": (10, []), "B": (14, []), "C": (5, ["A"]), "D": (4, ["B"]), "E": (6, ["C"]), "F": (8, ["D"]), "G": (5, ["E", "F"]), "H": (2, ["G"])}
+end, crit, fl = paths_cpm(P1)
+print(f"  P1 end {end}, critical {crit}, float {fl}")
+ok(end == 33 and crit == [["B", "D", "F", "G", "H"]] and fl == {"A": 5, "B": 0, "C": 5, "D": 0, "E": 5, "F": 0, "G": 0, "H": 0}, "P1 the end is day 33, the labeller's chain B-D-F-G-H is critical, the filler's A-C-E has 5 days' float")
+# P2 a second network: one critical path; the side tasks C 5, F 5, E 6 days' float
+P2 = {"A": (3, []), "B": (4, ["A"]), "C": (2, ["A"]), "D": (5, ["B"]), "E": (1, ["C"]), "F": (6, ["C"]), "G": (4, ["D", "E"]), "H": (3, ["F", "G"])}
+end, crit, fl = paths_cpm(P2)
+print(f"  P2 end {end}, critical {crit}, float {fl}")
+ok(end == 19 and crit == [["A", "B", "D", "G", "H"]] and fl == {"A": 0, "B": 0, "C": 5, "D": 0, "E": 6, "F": 5, "G": 0, "H": 0}, "P2 the end is day 19, A-B-D-G-H critical, C 5, E 6, F 5 days' float")
+# P3 two chains tie: both critical paths are found, and a task with a day's float
+P3 = {"A": (2, []), "B": (3, ["A"]), "C": (4, ["A"]), "D": (2, ["B"]), "E": (3, ["B", "C"]), "F": (5, ["C"]), "G": (2, ["D", "E"]), "H": (1, ["F", "G"])}
+end, crit, fl = paths_cpm(P3)
+print(f"  P3 end {end}, critical {crit}, float {fl}")
+ok(end == 12 and sorted(crit) == [["A", "C", "E", "G", "H"], ["A", "C", "F", "H"]] and fl["B"] == 1 and fl["D"] == 2, "P3 the end is day 12, two critical paths A-C-E-G-H and A-C-F-H, B has 1 day's float and D 2")
+# P4 a slip: a task late by d moves the end by max(0, d - float); recomputed by listing the paths again
+def slipped(tasks, t, d):
+    tt = {k: ((v[0] + d if k == t else v[0]), v[1]) for k, v in tasks.items()}
+    return paths_cpm(tt)[0]
+print(f"  P4 B +3: {slipped(P1,'B',3)}, A +3: {slipped(P1,'A',3)}, A +8: {slipped(P1,'A',8)}")
+ok(slipped(P1, "B", 3) == 36 and slipped(P1, "A", 3) == 33 and slipped(P1, "A", 8) == 36, "P4 the labeller's delivery 3 days late: 36 (+3); the filler's 3 days late: 33 (+0); the filler's 8 days late (5 float): 36 (+3 = 8 - 5)")
+# P5 money: a day on the critical path at £2,500 a day (the cost of delay is the person's own figure)
+print(f"  P5 3 days x £2,500 = £{3*2500:,}")
+ok(3 * 2500 == 7500, "P5 a handover 3 days later at £2,500 a day is £7,500")
+print("\nall FC-215 independent cases hold")
