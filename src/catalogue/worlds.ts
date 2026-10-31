@@ -60,7 +60,7 @@ export function worldOfEntry(e: Entry): World | undefined {
 export const worldEntries = (w: World): Entry[] => ENTRIES.filter(e => worldOfEntry(e)?.id === w.id);
 
 /** The world an app tool belongs to: where most of it lives — the tool's own entry and the modes inside it (`partOf`),
- *  each by its discipline, the tool's own breaking a tie. Check logs is a Lean entry with its metal-detection, CILT and audit
+ *  each by its discipline (the tool's own entry voting only when nothing is inside it), the tool's home breaking a tie. Check logs is a Lean entry with its metal-detection, CILT and audit
  *  logs inside it; most of those are Quality and food safety's, so it opens there. Never typed per tool. */
 export function worldOfTool(t: Pick<AppTool, 'id'>): World | undefined {
   if (TOOL_WORLDS.has(t.id)) return TOOL_WORLDS.get(t.id);
@@ -74,7 +74,11 @@ function workOutToolWorld(t: Pick<AppTool, 'id'>): World | undefined {
   const own = ENTRIES.find(e => e.id === t.id);
   if (!own) return undefined;
   const tally = new Map<string, number>();
-  for (const e of [own, ...ENTRIES.filter(x => x.id !== own.id && x.status !== 'left-out' && ownerOf(x) === own.id)]) {
+  /* the tool's own entry votes only when nothing is built inside it: a tool that holds many kinds (Check logs) is a
+     container, so where most of ITS KINDS live decides — its own discipline would otherwise add one vote to whichever
+     world it happens to sit in, and tip every tie the next kind builds (31 October: FC-014, a fourth Lean log, made 4–4) */
+  const inside = ENTRIES.filter(x => x.id !== own.id && x.status !== 'left-out' && ownerOf(x) === own.id);
+  for (const e of inside.length ? inside : [own]) {
     const w = worldOf(e);
     if (w) tally.set(w.id, (tally.get(w.id) ?? 0) + 1);
   }
