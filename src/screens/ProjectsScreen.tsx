@@ -177,7 +177,6 @@ export function ProjectsScreen() {
     };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   /* the line it was started from, and where that line is */
   const startLine = factory.find(w => w.id === fromLine);
