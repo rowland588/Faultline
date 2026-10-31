@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { entryById } from '../../catalogue';
-import { METHODS, methodByKey, methodsUsing, toolsOfMethod } from '../methods';
+import { METHODS, methodByKey, methodOfProject, methodsUsing, toolsOfMethod } from '../methods';
 
 const ROOT = resolve(__dirname, '../../..');
 const doc = readFileSync(resolve(ROOT, 'docs/METHODS.md'), 'utf8');
@@ -70,3 +70,18 @@ describe('the eight methods', () => {
     expect(doc, 'the document says another number of tools placed').toContain(`${placed} catalogue tools are placed in the eight methods`);
   });
 });
+
+describe('the method a project runs', () => {
+  it('is the one it was started with', () => {
+    expect(methodOfProject({ method: 'dmaic' })).toBe('dmaic');
+    expect(methodOfProject({ method: 'kata', commissioning: true })).toBe('kata');
+  });
+  it('is read from the older flags for a project made before — a stage-gate job is the stage gate', () => {
+    expect(methodOfProject({ commissioning: true })).toBe('stage-gate');
+  });
+  it('is none of the eight for a 6M board or a lever tree — they keep opening as they do', () => {
+    expect(methodOfProject({})).toBeUndefined();
+    expect(methodOfProject({ commissioning: false })).toBeUndefined();
+  });
+});
+

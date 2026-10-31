@@ -150,3 +150,11 @@ export const toolsOfMethod = (m: ProjectMethod): string[] => [...new Set(m.secti
 
 /** The methods whose sections use a tool — "where this tool is used" (the pathway of docs/METHODS.md). */
 export const methodsUsing = (toolId: string): ProjectMethod[] => METHODS.filter(m => toolsOfMethod(m).includes(toolId));
+
+/** The method a project runs: the one it was started with, else the one its two older flags say — a stage-gate job is the stage
+ *  gate, a lever tree is none of the eight (it stays parked), and a 6M board is none of them either (6M is a tool now; such a
+ *  project keeps opening as it always has, docs/METHODS.md §13). Nothing is written back. */
+export function methodOfProject(p: { method?: MethodKey | undefined; commissioning?: boolean | undefined }): MethodKey | undefined {
+  if (p.method && METHODS.some(m => m.key === p.method)) return p.method;
+  return p.commissioning ? 'stage-gate' : undefined;
+}

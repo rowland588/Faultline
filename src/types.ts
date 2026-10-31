@@ -1,3 +1,4 @@
+import type { MethodKey } from './lib/methods';
 import type { Cause, HoldCheck, ProblemSource, SixM } from './lib/sixm';
 /* Faultline — the data model. One object matters: the Observation. Every one of
  * the seven quality tools is a *read* over Observation[], never a reshape.
@@ -286,6 +287,10 @@ export interface Project {
    *  plan model, picked when the project is started; see lib/commissioning.ts
    *  for why a handover does not fit the 3P board. */
   commissioning?: boolean;
+  /** THE METHOD THIS PROJECT RUNS — one of the eight (src/lib/methods.ts, docs/METHODS.md; PROJECT_METHOD.sql). Absent on every
+   *  project made before it: those are read from `leverTree` / `commissioning` as they always were (lib/methods
+   *  methodOfProject). Agreed, like those two: only the owner changes it. */
+  method?: MethodKey;
 
   /** THE TWO DATES A COMMISSIONING JOB IS JUDGED ON. ISO dates.
    *
