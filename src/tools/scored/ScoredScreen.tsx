@@ -4,8 +4,10 @@ import { getStudy, listAllStudies, onDataChange, patchStudy, putStudy } from '..
 import { useAccess } from '../../cloud/access';
 import { can as canAt } from '../../lib/access';
 import { inScope, startLine, type ProjectScope } from '../../lib/inProject';
+import { asked } from '../../lib/lines';
 import { useInProject } from '../../lib/useInProject';
 import { useFactoryLines, useArchivedPlaces } from '../../lib/useFactoryLines';
+import { burdenOf, fmtGBP } from '../../lib/cost';
 import { now, uid } from '../../lib/ids';
 import { bandPage } from '../../lib/lean';
 import { niceDay, isoDay } from '../../lib/weeks';
@@ -20,7 +22,7 @@ import { StudyBand, removeStudy, StudyRowName } from '../../ui/StudyActs';
 import { WhereItSits } from '../../ui/StudyPlace';
 import { scoredByKey, scoredGroups } from './registry';
 import { newScoredStudy, scoredSays, scoredTitle, studyScored } from './scored';
-import type { ScoredDef } from './types';
+import type { ScoredDef, ScoredField } from './types';
 
 const OWNER = canAt('owner');
 
@@ -73,7 +75,7 @@ function ScoredHub() {
   const groups = scoredGroups();
   return (
     <div className="wrap ie">
-      <PageHeader title="Scored registers" says="Machines and equipment ranked on agreed scales — criticality, and later FMEA and Pugh matrices." />
+      <PageHeader title="Scored registers" says="Machines and countermeasures ranked on agreed scales — criticality, impact and effort, and later FMEA and Pugh matrices." />
       {groups.map(g => (
         <Section key={g.group} title={g.group}>
           <ul className="pl-tool">
@@ -102,7 +104,7 @@ function ScoredList({ scoredKey }: { scoredKey: string }) {
   const list = useScoredList();
   const { shown, inP, scope, setScope } = useShown(list);
   const rows = shown.filter(s => s.agreed?.scored?.key === scoredKey);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(() => asked('add') === '1');   // ?add=1 — a method page's New lands on the sheet
   const jobCan = useAccess(inP.id ?? '');
   const mayAdd = inP.id ? jobCan.edit : OWNER.edit;
   if (!def) return <div className="wrap ie"><p className="sub">This register isn’t in the app yet.</p></div>;
@@ -111,7 +113,7 @@ function ScoredList({ scoredKey }: { scoredKey: string }) {
       <PageHeader eyebrow={<button type="button" className="linkish" onClick={() => nav('/scored')}>Scored registers</button>} title={def.title} says={def.says}
         primary={mayAdd ? { label: 'New ranking', run: () => setAdding(true) } : undefined} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
-      {rows.length === 0 && <p className="sub qsl-empty">No {def.title.toLowerCase()} yet — score each machine on the line, then read who is class A.</p>}
+      {rows.length === 0 && <p className="sub qsl-empty">No {def.title.toLowerCase()} yet — start one and score each {def.noun ?? 'machine'}.</p>}
       <ul className="lt-rows">{rows.map(s => <ScoredRowItem key={s.id} s={s} />)}</ul>
       <NewScored open={adding} def={def} onClose={() => setAdding(false)} project={inP.project ? { id: inP.project.id, lineIds: inP.lineIds } : undefined} />
     </div>
@@ -160,16 +162,33 @@ function ScoredRecord({ id }: { id: string }) {
   return <Record s={s} def={x.def} can={can} onPatch={patch => void patchStudy(id, patch).then(() => load())} />;
 }
 
+function FieldBox({ f, row, disabled, onChange }: { f: ScoredField; row: ScoredRow; disabled: boolean; onChange: (v: number | boolean | undefined) => void }) {
+  if (f.kind === 'tick') return <input type="checkbox" aria-label={f.label} disabled={disabled} checked={!!row[f.id as 'ccp' | 'standby']} onChange={e => onChange(e.target.checked)} />;
+  const v = row[f.id as Exclude<ScoredField['id'], 'ccp' | 'standby'>];
+  const score = f.kind === 'score';
+  return (
+    <input className={'text-input scored-num' + (score ? '' : ' scored-money')} type="number" aria-label={f.label} min={score ? 1 : 0} max={score ? 5 : undefined} step={score ? 1 : f.kind === 'hours' ? 0.5 : 1} inputMode={score ? 'numeric' : 'decimal'}
+      disabled={disabled} value={v ?? ''} onChange={e => onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+  );
+}
+
 function Record({ s, def, can, onPatch }: {
   s: ToolStudy; def: ScoredDef; can: ReturnType<typeof canAt>; onPatch: (fn: (cur: ToolStudy) => Partial<ToolStudy>) => void;
 }) {
   const agreedKey = s.agreed?.scored?.key ?? def.key;
   const [rows, setRowsLocal] = useState<ScoredRow[]>(s.agreed?.scored?.rows ?? []);
   useEffect(() => { setRowsLocal(s.agreed?.scored?.rows ?? []); }, [s.agreed?.scored?.rows]);
+  const [rate, setRateLocal] = useState<number | undefined>(s.agreed?.scored?.rate);
+  useEffect(() => { setRateLocal(s.agreed?.scored?.rate); }, [s.agreed?.scored?.rate]);
+  const rateRef = useRef<number | undefined>(rate);
+  rateRef.current = rate;
+  const lines = useFactoryLines();
+  const line = lines.find(l => l.id === s.workspaceId);
+  const lineRate = line?.labourRatePerHour && line.labourRatePerHour > 0 ? Math.round(line.labourRatePerHour * burdenOf(line) * 100) / 100 : undefined;
   const liveStudy = useMemo((): ToolStudy => ({
     ...s,
-    agreed: { ...s.agreed, scored: { key: agreedKey, rows } },
-  }), [s, agreedKey, rows]);
+    agreed: { ...s.agreed, scored: { key: agreedKey, rows, ...(rate !== undefined ? { rate } : {}) } },
+  }), [s, agreedKey, rows, rate]);
   const x = studyScored(liveStudy);
   const result = x?.result;
   const problems = x?.problems;
@@ -185,10 +204,15 @@ function Record({ s, def, can, onPatch }: {
     onPatch(cur => ({
       agreed: {
         ...cur.agreed,
-        scored: { key: cur.agreed?.scored?.key ?? def.key, rows: next },
+        scored: { key: cur.agreed?.scored?.key ?? def.key, rows: next, ...(rateRef.current !== undefined ? { rate: rateRef.current } : {}) },
       },
       updatedAt: now(),
     }));
+  };
+  const setRate = (v: number | undefined) => {
+    rateRef.current = v;
+    setRateLocal(v);
+    setRows(rows);
   };
   const setRows = (next: ScoredRow[]) => {
     queue.current = next;
@@ -200,6 +224,9 @@ function Record({ s, def, can, onPatch }: {
     setRows(rows.map(r => (r.id === rid ? { ...r, ...patch } : r)));
   };
   const addRow = () => setRows([...rows, { id: uid(), name: '' }]);
+  const noun = def.noun ?? 'machine';
+  const fields = def.fields ?? [];
+  const cols = def.columns ?? [];
   const page = bandPage(def.title, s, result?.verdict, result?.tone, [['Catalogue', def.fc]]);
   return (
     <div className="wrap ie ie-scored" data-scored={def.key}>
@@ -207,33 +234,41 @@ function Record({ s, def, can, onPatch }: {
       <WhereItSits s={s} can={can} />
       <p className="sub">{def.question}</p>
       {problems?.length ? <p className="ie-warn" role="alert">{problems.join(' ')}</p> : null}
+      {x?.left?.length ? <p className="ie-warn" role="alert">Left out of the order: {x.left.join(' ')}</p> : null}
       {result && <LeanTiles tiles={result.tiles} />}
       {result && <p className="ie-says">{result.sentence}</p>}
-      <Section title="Score each asset">
-        <p className="sub">Consequence is the highest of the four dimensions you fill (1–5). Likelihood 1–5. Tick CCP for a food-safety override to class A.</p>
+      {result?.money?.map(m => <p key={m} className="ie-says ie-money">{m}</p>)}
+      <Section title={`Score each ${noun}`}>
+        <p className="sub">{def.help}</p>
+        {def.asksRate && (
+          <label className="field scored-rate"><span className="field-label">£ an hour for the people doing the work (optional)</span>
+            <input className="text-input scored-num" type="number" min={0} step="0.01" inputMode="decimal" disabled={!canEdit} value={rate ?? ''}
+              onChange={e => setRate(e.target.value === '' ? undefined : Number(e.target.value))} />
+            {canEdit && lineRate !== undefined && rate !== lineRate && <button type="button" className="cw-link" onClick={() => setRate(lineRate)}>Use {line?.name ?? 'the line'}’s {fmtGBP(lineRate)} an hour</button>}
+            {lineRate === undefined && rate === undefined && <span className="sub">The line has no wage set — type one, or leave it and the hours stay in hours.</span>}
+          </label>
+        )}
         <div className="scored-table-wrap">
           <table className="scored-table">
-            <thead><tr><th>Machine</th>{def.scales.map(sc => <th key={sc.id}>{sc.label}</th>)}<th>CCP</th><th>Standby</th><th>Score</th><th>Class</th></tr></thead>
+            <thead><tr><th>{noun[0].toUpperCase() + noun.slice(1)}</th>{fields.map(f => <th key={f.id}>{f.label}</th>)}{cols.map(c => <th key={c.label}>{c.label}</th>)}</tr></thead>
             <tbody>
               {rows.map(row => {
                 const out = ranked.find(r => r.id === row.id || (row.name.trim() && r.name === row.name.trim()));
                 return (
                   <tr key={row.id}>
-                    <td><input className="text-input" disabled={!canEdit} value={row.name} onChange={e => editRow(row.id, { name: e.target.value })} /></td>
-                    {(['production', 'safety', 'quality', 'repair', 'likelihood'] as const).map(k => (
-                      <td key={k}><input className="text-input scored-num" type="number" min={1} max={5} disabled={!canEdit} value={row[k] ?? ''} onChange={e => editRow(row.id, { [k]: e.target.value === '' ? undefined : Number(e.target.value) })} /></td>
-                    ))}
-                    <td><input type="checkbox" disabled={!canEdit} checked={!!row.ccp} onChange={e => editRow(row.id, { ccp: e.target.checked })} /></td>
-                    <td><input type="checkbox" disabled={!canEdit} checked={!!row.standby} onChange={e => editRow(row.id, { standby: e.target.checked })} /></td>
-                    <td>{out?.score ?? '—'}</td>
-                    <td><span className={'ie-tone is-' + (out?.class === 'A' ? 'r' : out?.class === 'B' ? 'a' : 'n')}>{out?.class ?? '—'}</span></td>
+                    <td><input className="text-input" aria-label={`${noun} name`} disabled={!canEdit} value={row.name} onChange={e => editRow(row.id, { name: e.target.value })} /></td>
+                    {fields.map(f => <td key={f.id}><FieldBox f={f} row={row} disabled={!canEdit} onChange={v => editRow(row.id, { [f.id]: v })} /></td>)}
+                    {cols.map(c => {
+                      const tone = out && c.tone ? c.tone(out) : undefined;
+                      return <td key={c.label}>{out ? (tone ? <span className={'ie-tone is-' + tone}>{c.of(out)}</span> : c.of(out)) : '—'}</td>;
+                    })}
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-        {canEdit && <button type="button" className="btn" onClick={addRow}>+ Add a machine</button>}
+        {canEdit && <button type="button" className="btn" onClick={addRow}>+ Add a {noun}</button>}
       </Section>
       {result && (
         <LeanPanel title="What this does not say">
