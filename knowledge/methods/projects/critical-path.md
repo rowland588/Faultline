@@ -103,9 +103,16 @@ the handover date defended in the steering meeting.
 - [textbook] Lock, D. (2013), *Project Management*, 10th ed., Gower — network analysis (from knowledge).
 
 ## In Faultline
-Not built (FC-215). The stage gate holds each machine's stages with
-their days and the plan (Gantt grouped by machine — `src/project`); the
-dependencies between stages and machines, the two passes and each
-chain's float are not computed. FC-215 would add the predecessors and
-say which machine's chain is critical and by how many days, on the plan
-and the client report.
+Partly built (FC-215, 31 October 2026): the passes, every critical path and
+float are `src/lib/ie/criticalPath.ts`, and the calculator *Critical path
+and float* (`/calc/critical-path`, `src/tools/calc/defs/critical-path.ts`)
+takes a typed network of up to 16 tasks — days and the letters each waits
+for — and gives the earliest end, the critical path(s), each task's float,
+what one task being late does to the end, the plan as a bar picture, and
+a day's delay in money when the person gives its cost. It is not read
+from a stage-gate project: the plan holds each machine's stages with their
+days (`src/lib/gantt.ts`, `planModel.ts`) but not what a stage waits for,
+so wiring it to the plan — which machine's chain is critical, and by how
+many days, on the plan and the client report — needs that relation stored
+first (a migration, not made). Specification
+`knowledge/specs/FC-215-critical-path.md`.
