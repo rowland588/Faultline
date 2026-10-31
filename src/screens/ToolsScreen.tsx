@@ -18,6 +18,8 @@ import { useMemo, useState } from 'react';
 import { ENTRIES, PROBLEMS, disciplineName, entryById, searchEntries, searchProblems, statusCounts, subName } from '../catalogue';
 import { DISCIPLINES, FORM_WORDS, KINDS, STATUSES, STATUS_WORDS, type Entry, type Kind, type ProblemRoute, type Status } from '../catalogue/types';
 import { nav, useRoute } from '../state/useRoute';
+import { WORLDS, worldEntries, worldTools } from '../catalogue/worlds';
+import { ToolPicture } from '../ui/ToolCard';
 
 /** The state colours, one meaning each: built is done (a quiet green);
  *  partly built or specified is under way; not built, research and left out
@@ -65,6 +67,25 @@ export function ToolsScreen() {
       {/* THE GALLERY (docs/TOOLS-SHOWCASE.md, TG1 — Rowland, 30 October: "scroll through the tools, pick one, view it on a
           full page ... thumbnail pictures"). It replaces the plain "Use one now" rows: the same tools, each with its picture,
           its one line and whether it has been used; a card opens the tool's own page, Open › its list as the row did. */}
+      {/* THE WORLDS (docs/TOOLS-WORLDS.md — Rowland, 30 October: "tool worlds, not just tools but their own ecosystem"): a doorway
+          for each way of working, read from the catalogue's disciplines, one tap to its home */}
+      <section className="wd-row" aria-label="The worlds">
+        <h2 className="ln-h">The worlds</h2>
+        <div className="wd-cards" role="list">
+          {WORLDS.map(w => {
+            const es = worldEntries(w), ts = worldTools(w), c = statusCounts(es);
+            return (
+              <button key={w.id} type="button" role="listitem" className="wd-card" data-world={w.id} onClick={() => nav(`/tools/world/${w.id}`)}>
+                <span className="wd-pics" aria-hidden>{ts.slice(0, 3).map(t => <ToolPicture key={t.key} tool={t} />)}</span>
+                <b className="wd-name">{w.name}</b>
+                <span className="wd-line">{w.line}</span>
+                <span className="wd-nums">{c.available} of {es.length} built · {ts.length} to open</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="et-now" aria-label="Use one now">
         <div className="tc-gal-h">
           <h2 className="ln-h">The tools</h2>

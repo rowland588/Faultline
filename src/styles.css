@@ -15498,3 +15498,29 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 
 /* the typed target on a criterion — a short number box (ui/TargetNumber) */
 .tn-input { max-width: 6em; }
+
+/* THE WORLDS (docs/TOOLS-WORLDS.md) — a card a way of working on Tools, and a world's own home. The pictures are the real tools'
+   (ui/ToolCard ToolPicture), three side by side; the words are the catalogue's, so the card never claims what is not built. */
+.wd-row { margin: 0 0 18px; }
+.wd-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 14px; }
+.wd-card { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; gap: 4px; padding: 0 0 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; height: 100%; }
+.wd-card:hover, .wd-card:focus-visible { box-shadow: var(--shadow-lift, var(--shadow)); border-color: var(--tool-panel-edge); }
+.wd-card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.wd-pics { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--tool-panel); border-bottom: 1px solid var(--line); }
+.wd-pics .tc-pic { aspect-ratio: 4 / 3; border-bottom: 0; border-right: 1px solid var(--line); }
+.wd-pics .tc-pic:last-child { border-right: 0; }
+.wd-name { padding: 8px 12px 0; font-size: var(--t-body); color: var(--ink); }
+.wd-line { padding: 0 12px; color: var(--ink-2); font-size: var(--t-detail); line-height: 1.4; }
+.wd-nums { padding: 2px 12px 0; color: var(--muted); font-size: var(--t-label); }
+.wd-count { margin: 0 0 14px; color: var(--ink-2); font-size: var(--t-detail); line-height: 1.5; }
+.wd-sec { margin: 0 0 18px; }
+.wd-list { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 14px; }
+.wd-item-b { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 5px 4px; font-size: var(--t-detail); color: var(--ink); border-radius: var(--radius-xs); }
+.wd-item-b:hover { background: var(--surface-2); }
+.wd-item-b:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.wd-item-b .et-name { flex: 1; min-width: 0; }
+.wd-others { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 20px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+@media (max-width: 719px) {
+  .wd-cards { grid-template-columns: 1fr; }
+  .wd-list { grid-template-columns: 1fr; }
+}

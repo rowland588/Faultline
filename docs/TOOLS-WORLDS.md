@@ -106,13 +106,19 @@ a food factory uses 80% of the time, in plain words, with the answer in money* �
 Slices W0–W2 are what answers *"our own lean Minitab"*; the fixes now running (readings paste, units, plain
 questions, dead ends) are their foundation and ship first.
 
-## 6. Decisions needed from Rowland
+## 6. Decisions — given 30–31 October
 
-1. **The five worlds and their names** — Statistics · Lean · Equipment · Quality & food safety · Projects — or
-   different (e.g. split Lean into *Flow* and *Work*; merge Equipment into Quality)?
-2. **Shared readings: option A (start one tool from another's readings — recommended) or B (a worksheet record)?**
-3. **Statistics is the first world built fully** — agreed? Its first honest gap after the basics: designed experiments.
-4. **Naming:** *Faultline Stats* as a world's brand inside the app, or just *Statistics*?
-5. **Order:** worlds' home pages first (W0), or the Statistics ecosystem first (W1)?
+1. **The five worlds** — Statistics · Lean · Equipment · Quality and food safety · Projects, "you do what's best, we can change later": held in **one mapping file** (`src/catalogue/worlds.ts`) so a world can be split, merged or renamed in one place. A tool is in the world where most of it lives (its entry and what is built inside it — Check logs, a Lean entry with its food-safety logs, opens in Quality and food safety).
+2. **Shared readings: option A** — start one tool from another's readings, copied with a link back, no new record. "Shared readings yes."
+3. **Statistics is the first world built fully** — "yes to Statistics first".
+4. **Hand-overs** — "this tool says X, now link to this tool": fixed rules from the answer, each with its reason in words, no AI.
+5. **Order** — "World home page can be built once we understand what the system actually is": the system is understood from the three Statistics tools' own readings, so W0 (the doorway) and W1 (shared readings) are built together, Statistics first.
+6. Dash cards and the world report come after the system stands (W3). Notes were dropped on 31 October (the Check logs tool covers it).
 
-Until a go, the Tools gallery and the tool pages stand as built.
+## 7. Built so far
+
+| Slice | What | Where |
+|---|---|---|
+| **W0** | five worlds read from the catalogue; The worlds row on Tools; a world's home (`#/tools/world/:id`): its tools, its questions, what it holds, what is not built yet | `src/catalogue/worlds.ts`, `screens/ToolWorldScreen`, `scripts/acceptance/tool-world.mjs` |
+
+Not done on purpose: the gallery is not filtered by world (the worlds' homes are the filter — one thing, one place).

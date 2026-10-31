@@ -427,6 +427,18 @@ export const PAGES = (sd, cap) => [
     /* since 30 October (docs/TOOLS-SHOWCASE.md, TG1) the rows are the gallery: a card each, with its picture, its one line and use, opening its page; Open › its list */
     { what: 'the gallery — a card for every tool a person can open', sel: '.et-now .tc-card', n: 15 },
     { what: 'each card with its picture or its drawn tile', sel: '.et-now .tc-card .tc-pic', n: 15 },
+    /* THE WORLDS (31 October, docs/TOOLS-WORLDS.md W0): a doorway for each way of working, read from the catalogue's disciplines */
+    { what: 'the worlds — a card each of the five, with the real tools’ pictures and what is built', sel: '.wd-card', n: 5 },
+    { what: 'a world’s card says how much of it is built', sel: '.wd-card .wd-nums', n: 5 },
+  ] },
+  /* A WORLD'S HOME (31 October, docs/TOOLS-WORLDS.md W0 — Rowland: "stay on tools and make the statistical world") */
+  { name: 'Tools — a world\u2019s home (Statistics)', path: '#/tools/world/statistics', must: [
+    { what: 'its name', sel: '.pace-head h1', text: /^Statistics$/ },
+    { what: 'its count, as the catalogue counts it', sel: '[data-counts]', text: /tools in this world/ },
+    { what: 'its tools, each a card with a picture', sel: '.wd-sec[aria-label="The tools of this world"] .tc-card', n: 3 },
+    { what: 'the questions people bring to it', sel: '.wd-sec[aria-label="Start from a question"] .et-route-b', n: 4 },
+    { what: 'what it holds — every entry with its status in words', sel: '.wd-item .et-st', n: 40 },
+    { what: 'the other worlds, one tap away', sel: '.wd-others .chip', n: 4 },
   ] },
   /* A TOOL'S OWN PAGE (30 October, docs/TOOLS-SHOWCASE.md, TG2 — Rowland: "view it on a full page, tells me what the tool can be used for") */
   { name: 'Tools — a tool\u2019s own page', path: '#/tools/capability', must: [

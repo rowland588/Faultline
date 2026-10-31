@@ -525,6 +525,6 @@ export function hereIn(route: Route, scope: 'home' | 'factory' | 'line' | 'proje
     if (route.name === 'quickSnags') return 'problems';
     return hereOf(route);
   }
-  if (tool || route.name === 'tools' || route.name === 'toolPage') return 'tools';
+  if (tool || route.name === 'tools' || route.name === 'toolPage' || route.name === 'toolWorld') return 'tools';
   return hereOf(route);
 }
