@@ -2,6 +2,8 @@
 
 **Status: the eight methods are agreed (Rowland, 31 October). Their sections and default tools are drafted here for him to approve; the build follows this document, slice by slice (§12). Nothing is built yet.** Written 31 October 2026, after Rowland's words: *"the method equals the project … about six methodologies would be great … then we assign the tools to each of them methods … and then we also know which tools we need to build in which method … a linear pathway into exactly what we are then building."* and *"6M is to be used within the methods, within the PDCA, the DMAIC, 8D."* and *"Kaizen event as the sixth."* and, 31 October, *"Yes, seven plus Theory of Constraints"* (Improvement Kata and Theory of Constraints added)
 
+**What the app is, and where methods sit in it (Rowland, 31 October, the same day):** *"operational improvement system, not a project management system … the projects are just one part of the process. The real product is the complete improvement lifecycle: identifying opportunities, diagnosing problems, applying methodologies, organising delivery and verifying results."* The eight methods are the *apply a methodology* step of that lifecycle and a project is how its delivery is organised; Faultline is an operational improvement system, not a project-management system, and nothing here says otherwise.
+
 ## 1. What is being agreed
 
 1. **A method is a project.** Starting a project means picking a method. The method decides the project's sections, in order.

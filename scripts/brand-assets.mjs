@@ -61,6 +61,7 @@ const og = `
     background: linear-gradient(100deg, #12171c 0%, #0b6474 35%, #0c7489 48%, #c9f4f6 56%, #0c7489 64%, #0b6474 80%, #12171c 100%);
     -webkit-background-clip: text; color: transparent; }
   p { margin: 22px 0 0; font-size: 30px; font-weight: 400; color: #3c474c; letter-spacing: 0.01em; }
+  p.o { margin-top: 14px; font-size: 22px; color: #6b7a80; }
   p i { display: inline-block; width: 7px; height: 7px; margin: 0 22px 6px; border-radius: 50%; background: linear-gradient(135deg, #0c7489, #7fe3ea); }
 </style>
 <div class="f">
@@ -75,7 +76,7 @@ const og = `
       <path d="M0 80 H360 L374 72 L388 88 L400 80 H430 L458 14 L490 150 L514 50 L532 96 L546 80 H1000" fill="none" stroke="url(#b)" stroke-width="3" vector-effect="non-scaling-stroke"/>
     </svg>
     <h1>Faultline</h1>
-    <p>Stage gate<i></i>3P<i></i>Lever tree</p>
+    <p>The Operational Improvement System</p><p class="o">An Opex Elevate product</p>
   </div>
 </div>`;
 
