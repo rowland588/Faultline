@@ -7623,11 +7623,11 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .door-steps li::before {
   content: counter(door-step); position: absolute; left: 0; top: 1px; width: 28px; height: 28px; display: grid; place-items: center;
   border-radius: var(--radius-round); border: 1px solid rgba(10,106,92, 0.28); color: var(--door-blue);
-  font-family: "Outfit Variable", var(--display); font-size: var(--t-detail); font-weight: 600; background: rgba(255, 255, 255, 0.6);
+  font-family: "Outfit Variable", var(--display); font-size: var(--t-detail); font-weight: 600; background: rgba(255, 255, 255, 0.66);
 }
 .door-steps b { font-family: "Outfit Variable", var(--display); font-size: var(--t-h); font-weight: 500; letter-spacing: -0.01em; color: var(--door-ink); }
 .door-steps span { font-size: var(--t-body); line-height: 1.45; color: var(--door-ink-2); }
-@media (max-width: 859px) {
+@media (max-width: 719px) {
   .door-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "card" "steps"; max-width: 380px; margin-top: 28px; }
   .door-steps { padding: 0 4px 12px; }
 }
