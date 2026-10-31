@@ -70,6 +70,35 @@ line's facts instead of asking again, says the result in money, prints, and
 has one door into a project. A new tool is added when a real problem on the
 line needs it — never to fill a catalogue.
 
+## 31 October — Faultline is a project system built on methods
+
+Rowland, 31 October: *"Faultline is a project management system that provides
+the essential tools to understand the line's faults. This is the difference to
+other apps: we provide the technical tools and the process to solve the problems,
+to complete the projects."* And: *"the method equals the project … build the
+methods first … and we simply insert the tools where required."*
+
+So (the map is [`docs/METHODS.md`](METHODS.md); where an older document
+disagrees, this wins):
+
+- **A project is a method.** There are eight, agreed 31 October: **PDCA · DMAIC ·
+  8D · A3 · Stage gate · Kaizen event · Improvement Kata · Theory of
+  Constraints**. A method fixes the project's sections, in order; each section
+  has default tools from the catalogue, and any tool can be added to any section.
+- **6M is a tool, not a method** — the fishbone with evidence on each cause, the
+  five whys and the countermeasure board, used inside the methods' cause-finding
+  sections. "A project is a 6M board" is history.
+- **Stage gate comes back as one of the eight.** The 29–30 October decision
+  (New project offers Performance (6M) only; stage gate demoted) is superseded
+  once the build reaches New project (slice M3). Until then the app is as built.
+- **The methods are fixed and ours** — shipped in code, picked by a person. Not a
+  method builder; nothing is built by an assistant (the 20 October rule stands).
+- **The tools follow the methods.** What is built next is read off
+  `docs/METHODS.md` §11 (the pathway), not the old wave order alone.
+- Built in slices M0–M5 (METHODS.md §12): the record in the repo · the methods as
+  data · the project's `method` field · New project and the sections · stage
+  gate's doors · the tools.
+
 ## The AI — one tool: Line Talk
 
 Rowland, 20 October: *"Isn't AI a tool? ... I see it as being a tool rather

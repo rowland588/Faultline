@@ -69,6 +69,27 @@ Commission and the commissioning reports that older projects still open — thei
 slices; deleting them is a plan of its own (what goes, what stays, what happens to the data) and waits for Rowland's word.
 Programs, tests and machines live on the line and are the **Prove** engine — they stay.
 
+## The methods are the projects — 31 October
+
+**Read `docs/METHODS.md` before touching New project, a project's page, or the
+order tools are built.** Rowland, 31 October: *"Faultline is a project management
+system that provides the essential tools to understand the line's faults … we
+provide the technical tools and the process to solve the problems, to complete
+the projects"*; *"the method equals the project"*; *"build methods first … and
+we simply insert the tools where required."* Eight methods, agreed the same day:
+**PDCA · DMAIC · 8D · A3 · Stage gate · Kaizen event · Improvement Kata · Theory of
+Constraints**. A project is one of them: its sections in order, each with default
+tools from the catalogue, any tool addable to any section. **6M is a tool**
+(fishbone, five whys, countermeasure board), not a method; **stage gate returns**
+as one of the eight; the lever tree stays parked. This supersedes, once slice M3
+is live, "the three methods" below, "Stage gate is no longer a way to start a
+project", and the 29–30 October New-project-is-Performance-only decision; until
+M3 the app is as built. The methods are fixed in code and chosen by a person —
+never built by an assistant (`docs/DIRECTION.md`, 20 October, stands). Built in
+slices M0–M5 (METHODS.md §12), each live on its own; M2 is a database change
+(`projects.method`) and goes through `apply_migration` with its read-back. What
+tool to build next is read off METHODS.md §11, each held to `knowledge/STANDARD.md`.
+
 ## The stage-gate path — 27 October (superseded for new work by the section above)
 
 **Read `docs/STAGEGATE-PATH.md` before touching anything in a stage-gate

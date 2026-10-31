@@ -23,6 +23,11 @@ Does not replace this blueprint or `docs/DIRECTION.md`.
 
 ---
 
+> **31 October:** a project is one of eight methods (PDCA, DMAIC, 8D, A3, Stage gate,
+> Kaizen event, Improvement Kata, Theory of Constraints) whose sections the tools fill —
+> [`docs/METHODS.md`](METHODS.md). Where this blueprint speaks of "three methods" or
+> of 6M as a project kind, METHODS.md wins from slice M3; until then the app is as built.
+
 ## 0. Why this exists
 
 Rowland, 13 October:
