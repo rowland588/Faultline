@@ -15,7 +15,13 @@
  * passes through it, the pulse drawn in blue, and the sign-in on frosted glass.
  * Words in ordinary case — capitals spaced out read as a machine talking.
  *
- * Under the name, the three ways a project runs here (lib/planModel).
+ * UNDER THE NAME, WHAT IT IS (31 October — Rowland: "the app has changed, we
+ * need it to represent what it is"). Faultline is a project-management system
+ * that gives a team the tools to understand a line's faults and the method to
+ * put them right: the sentence, the eight methods a project can be (read from
+ * lib/methods, never retyped here), and the three things it does — see what is
+ * wrong, run it by a method, prove it in money. The sign-in stays one glance
+ * from the name: beside the three on a desk, first on a phone.
  *
  * The pulse is the mark's own trace (ui/Logo) drawn across the page: a flat
  * line, a tremor, the fault. It, the sheen and the mist all hold still for
@@ -25,6 +31,7 @@ import { useState } from 'react';
 import '@fontsource-variable/outfit';
 import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
+import { METHODS } from '../lib/methods';
 
 /* Flat, a small tremor, the fault, and flat again — across the full width. */
 const TRACE = 'M0 80 H360 L374 72 L388 88 L400 80 H430 L458 14 L490 150 L514 50 L532 96 L546 80 H1000';
@@ -80,10 +87,17 @@ export function Landing() {
           <h1 className="door-name">Faultline</h1>
         </div>
 
-        <p className="door-methods" aria-label="Line Gemba first — programs on the line, Performance (6M) projects when needed">
-          Programs and tests on the line · Performance (6M) when a line is off target
+        <p className="door-lede">
+          Project management for production lines. See what is going wrong on the line,
+          run the fix by the method that suits it, and prove it worked.
+        </p>
+        <p className="door-methods" aria-label="The eight methods a project can run">
+          {METHODS.map((m, i) => (
+            <span key={m.key}>{i > 0 && <i className="door-sep" aria-hidden />}{m.name}</span>
+          ))}
         </p>
 
+        <div className="door-grid">
         <form className="door-card" onSubmit={e => { e.preventDefault(); void submit(); }}>
           <h2 className="door-card-h">{mode === 'in' ? 'Welcome back' : 'Create your account'}</h2>
           <label className="door-f">
@@ -111,6 +125,22 @@ export function Landing() {
             {mode === 'in' ? 'Been invited? Create your account' : 'Already have an account? Sign in'}
           </button>
         </form>
+
+        <ol className="door-steps" aria-label="What Faultline does">
+          <li>
+            <b>See what is wrong</b>
+            <span>Time the stops, count the losses, test the capability, walk the line — measured by people and worked out by formula, never guessed.</span>
+          </li>
+          <li>
+            <b>Run it by a method</b>
+            <span>A project is one of the eight methods, with its sections in order. The tools sit in the section that needs them.</span>
+          </li>
+          <li>
+            <b>Prove it, in money</b>
+            <span>Every finding in pounds and minutes. Who does what by when, a before and after on the same number, and the papers to hand over.</span>
+          </li>
+        </ol>
+        </div>
 
       </main>
     </div>
