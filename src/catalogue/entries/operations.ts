@@ -504,7 +504,7 @@ export const OPERATIONS: Entry[] = [
     depends: ['FC-193', 'FC-205'],
     complexity: 'L', value: 'high', valueWhy: 'What the business sees.',
     status: 'available', form: 'report', methods: ['visual.reports'], scenarios: ['project', 'daily'], words: ['report', 'PDF', 'cards'],
-    built: { where: [], code: ['src/lib/report/flow.ts', 'src/lib/lean.ts'], tests: ['src/lib/__tests__/reportKit.test.ts', 'src/lib/__tests__/lean.test.ts'], acceptance: ['report-relevance.mjs', 'commissioning-report.mjs'] },
+    built: { where: [], code: ['src/lib/report/flow.ts', 'src/lib/lean.ts'], tests: ['src/lib/__tests__/reportKit.test.ts', 'src/lib/__tests__/lean.test.ts'], acceptance: ['report-relevance.mjs'] },
   },
   {
     id: 'FC-205', name: 'Everything to a spreadsheet', discipline: 'visual', sub: 'talk',

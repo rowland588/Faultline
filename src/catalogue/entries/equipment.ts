@@ -264,7 +264,7 @@ export const EQUIPMENT: Entry[] = [
     depends: ['FC-073', 'FC-084', 'FC-100'],
     complexity: 'L', value: 'high', valueWhy: 'The evidence of the handover.',
     status: 'available', form: 'mode', partOf: 'FC-073', methods: ['commissioning.acceptance-tests'], scenarios: ['new'], words: ['FAT', 'SAT', 'acceptance test'],
-    built: { where: [], code: ['src/lib/testing.ts', 'src/lib/commissioningReport.ts'], tests: ['src/lib/__tests__/commission.test.ts', 'src/lib/__tests__/commissioningReport.test.ts'], acceptance: ['commissioning-report.mjs', 'stagegate-walk.mjs'] },
+    built: { where: [], code: ['src/lib/testing.ts', 'src/lib/commissioningReport.ts'], tests: ['src/lib/__tests__/commission.test.ts', 'src/lib/__tests__/commissioningReport.test.ts'], acceptance: ['stagegate-walk.mjs'] },
   },
   {
     id: 'FC-075', name: 'Program and recipe proving — each attempt’s journey', discipline: 'commissioning', sub: 'acceptance',

@@ -74,10 +74,10 @@ const journey = (n, W, max, says) => {
 /* ======================= 1 · a job and its machines (phone) ======================= */
 {
   const W = await device(390); const P = W.page;
-  await W.go('#/room');
-  await W.tap('New project', W.btn(/New project/));
-  await W.tap('Need formal install', W.btn(/Need a formal install with gates\?/));
-  await P.waitForTimeout(300);
+  /* New project no longer offers a formal install (29–30 October); the installation form is still there by its address
+     (?model=commissioning) — the door a stage-gate method will give back */
+  await W.go('#/projects?new=1&model=commissioning');
+  await P.getByLabel('Name', { exact: true }).waitFor({ timeout: 15000 });
   await P.getByLabel('Name', { exact: true }).fill('Line 7 new wrapper');
   await P.getByLabel('Lead', { exact: true }).fill('Sam');
   await W.tap('Line 7', W.btn(/^Line 7$/));
@@ -212,7 +212,9 @@ const desk = await device(1360);
   const row = P.locator('.pgr').filter({ hasText: /PR-07 Baking Potatoes/ }).first();
   await row.waitFor({ state: 'visible', timeout: 20000 });
   const [rb, pb] = [await row.boundingBox(), await row.locator('.pgr-prove-h').boundingBox()];
-  ok(!!rb && !!pb && pb.y < rb.y + 48, '4a on a phone Prove is on the row beside its name, not a line under it');
+  /* the Programs redesign (28 October): Prove is a fold at the foot of the row, closed until opened — the row stays compact
+     on a phone (its name, its state, one fold line), never a form opened under every program */
+  ok(!!rb && !!pb && pb.y + pb.height <= rb.y + rb.height + 1 && rb.height < 300 && (await row.locator('.pgr-prove-h').getAttribute('aria-expanded')) === 'false', `4a on a phone Prove is one fold line at the foot of a compact row (${Math.round(rb?.height ?? 0)} px), closed until opened`);
   await W.tap('Prove', row.locator('.pgr-prove-h').first());
   await W.tap('Test it', row.getByRole('button', { name: /Test it/ }).first());
   await W.tap('Passed', row.getByRole('button', { name: /^Passed$/ }).first());
