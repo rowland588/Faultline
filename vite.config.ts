@@ -39,9 +39,9 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['mark.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'],
       manifest: {
-        name: 'Faultline — control room for change',
+        name: 'Faultline — The Operational Improvement System',
         short_name: 'Faultline',
-        description: 'The control room for change on your production lines: new equipment through its gates, a line improved week by week, a number hit by a date — each measured before and after, all of it in one view. Works offline on the floor.',
+        description: 'The operational improvement system for production lines, by Opex Elevate: identify opportunities, diagnose problems, apply a method, organise the delivery and verify the result. Works offline on the floor.',
         start_url: '/',
         scope: '/',
         display: 'standalone',

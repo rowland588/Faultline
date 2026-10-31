@@ -20,7 +20,8 @@
  * "project management": "operational improvement system, not a project
  * management system ... the real product is the complete improvement lifecycle:
  * identifying opportunities, diagnosing problems, applying methodologies,
- * organising delivery and verifying results"). So: the sentence, the eight
+ * organising delivery and verifying results"). The brand, settled the same day: the product *Faultline*, the
+ * descriptor *The Operational Improvement System*, the parent *Opex Elevate*, at faultline.opexelevate.co.uk. So: the descriptor and the sentence, the eight
  * methods a project can run (read from lib/methods, never retyped here) as the
  * *apply a methodology* step, and the five stages of the lifecycle in order.
  * Projects are one of the five, not the page's subject. The sign-in stays one
@@ -90,10 +91,10 @@ export function Landing() {
           <h1 className="door-name">Faultline</h1>
         </div>
 
+        <h2 className="door-descriptor">The Operational Improvement System</h2>
         <p className="door-lede">
-          The operational improvement system for production lines. Find the opportunities,
-          diagnose what is going wrong, apply the method that fixes it, organise the delivery
-          and verify the result.
+          Find the opportunities on your production lines, diagnose what is going wrong, apply the
+          method that fixes it, organise the delivery and verify the result.
         </p>
         <p className="door-methods" aria-label="The eight methods a project can run">
           {METHODS.map((m, i) => (
@@ -154,6 +155,7 @@ export function Landing() {
         </ol>
         </div>
 
+        <p className="door-parent">An <b>Opex Elevate</b> product</p>
       </main>
     </div>
   );

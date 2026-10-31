@@ -1,37 +1,30 @@
 # Faultline
 
-> Faultline is a control room for change on production lines. Every change to a line — new equipment, a line that has to perform better, a number that has to be hit — is run on the method that fits it, measured before and after, and shown in one view that answers "am I in control?" across every line and job. Offline-first, installable on the phones and laptops a team already has.
+> Faultline is the operational improvement system for production lines, by Opex Elevate. It covers the whole improvement lifecycle — identifying opportunities, diagnosing problems, applying a methodology, organising delivery and verifying results — with every finding said in money, measured by people and worked out by formula. Offline-first, installable on the phones and laptops a team already has.
 
-Faultline is made by OpEx Elevate (UK). It is invite-only — there is no public sign-up.
+Faultline is made by Opex Elevate (UK). It is invite-only — there is no public sign-up. Domain: faultline.opexelevate.co.uk.
 
-## The three methods — three kinds of change
+## The lifecycle
 
-- **Installation project.** New equipment taken through its gates — Install, Set up, Commission, Hand over — with the supplier: install stages, tests against what was agreed, the fixes they raise, the materials and programs it waits on, and the handover date.
-- **3P.** A running line improved week by week on the board, every action sorted People, Plant or Process, with an owner and a due date. Kept entirely in the app.
-- **Lever tree.** One outcome worked down to what has to be true for it; each condition's colour follows its number or the work under it.
-
-## Inside every change
-
-- **A measured before and after**, judged against the line's own numbers — allowed to say not proven.
-- **The plan as a live Gantt** that asks why a date moved and shows the knock-on.
-- **Line balance**: every machine and person in one unit, the limit found, and what-ifs that show where the limit moves — and can be put on the board.
-- **The line filmed on a phone**, faults pinned to the spot on the footage, each one a fix with an owner.
-- **The control room**: every job across every method, what is late, and who owes what by when.
-- **A client report** for each change — on screen and as a PDF — in the same words as the screens.
+- **Identify the opportunity.** Time the stops, count the losses, walk the line — the biggest losses in minutes, packs and pounds, line by line across the factory.
+- **Diagnose the problem.** Capability, reliability, line capacity and balance, losses, analysis and root cause: the technical tools, each measured by people and worked out by formula.
+- **Apply a methodology.** A project is one of eight methods — PDCA, DMAIC, 8D, A3, Stage gate, Kaizen event, Improvement Kata, Theory of Constraints — each with its sections in order and the tools that fit each section.
+- **Organise the delivery.** Projects, actions with who owes what by when, programs and tests proved on the line, the journey day by day.
+- **Verify the result.** A measured before and after on the same number, every finding in money, and the papers to hand over.
 
 ## What it is not
 
-- Not a sensor or OEE system: people record what they see, and the app runs the change and proves it.
-- Not a compliance or audit-checklist tool.
+- Not a project-management system: a project is the delivery part of the lifecycle, no more.
+- Not a sensor or OEE system: people record what they see.
 - No sensors, no integrations, no IT project.
 
 ## Key pages
 
 - [Home / the app](https://faultline.opexelevate.co.uk/): sign-in.
-- [How it works — real screens](https://faultline.opexelevate.co.uk/how-it-works.html): the control room and the three methods, screen by screen.
+- [How it works — real screens](https://faultline.opexelevate.co.uk/how-it-works.html): screen by screen.
 
 ## Facts
 
-- Audience: operations and engineering leads running several changes on production lines, who report to a general manager, a client or an equipment supplier.
+- Audience: operations, engineering and continuous-improvement leads in manufacturing, in particular food and other fast-moving consumer goods.
 - Platform: installable web app (PWA), offline-first, background sync; phones, tablets, laptops.
 - Access: invite-only; a project's owner adds people by email.

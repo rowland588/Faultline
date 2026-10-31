@@ -1,8 +1,9 @@
 /* THE LANDING PAGE, DRIVEN — what Faultline says it is before anybody signs in (31 October — Rowland: "the app has
  * changed, we need it to represent what it is"). No session, a cloud that cannot be reached:
  *
- *   1  the name and the sentence: Faultline, "The operational improvement system for production lines" — find the
- *      opportunities, diagnose, apply a method, organise the delivery, verify the result; never "project management"
+ *   1  the name, the descriptor and the sentence: Faultline · The Operational Improvement System · find the
+ *      opportunities, diagnose, apply a method, organise the delivery, verify the result; An Opex Elevate product (the
+ *      brand, 31 October: product Faultline, parent Opex Elevate, faultline.opexelevate.co.uk); never "project management"
  *      (Rowland, 31 October: "operational improvement system, not a project management system"); none of the old words
  *      (Performance (6M), Programs and tests on the line)
  *   2  the eight methods under it, each name and the order read from lib/methods — never retyped here
@@ -40,8 +41,11 @@ const { ctx, page } = await open(1360, 900);
 
 /* 1 — the name and the sentence */
 ok(flat(await page.locator('.door-name').innerText()) === 'Faultline', '1 the name');
+const descriptor = flat(await page.locator('.door-descriptor').innerText());
+ok(descriptor === 'The Operational Improvement System', '1 the descriptor, as the brand says it', descriptor);
 const lede = flat(await page.locator('.door-lede').innerText());
-ok(/^The operational improvement system for production lines\./.test(lede) && /Find the opportunities/.test(lede) && /diagnose/.test(lede) && /apply the method/.test(lede) && /organise the delivery/.test(lede) && /verify the result/.test(lede), '1 the sentence says what it is — the whole lifecycle', lede);
+ok(/Find the opportunities/.test(lede) && /diagnose/.test(lede) && /apply the method/.test(lede) && /organise the delivery/.test(lede) && /verify the result/.test(lede), '1 the sentence says what it does — the whole lifecycle', lede);
+ok(flat(await page.locator('.door-parent').innerText()) === 'An Opex Elevate product', '1 the parent brand');
 const all = flat(await page.locator('.door').innerText());
 ok(!/Performance \(6M\)|Programs and tests on the line|project[- ]management/i.test(all), '1 none of the old words, and never "project management"');
 
