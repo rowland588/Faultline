@@ -1,13 +1,16 @@
 /* THE LANDING PAGE, DRIVEN — what Faultline says it is before anybody signs in (31 October — Rowland: "the app has
  * changed, we need it to represent what it is"). No session, a cloud that cannot be reached:
  *
- *   1  the name and the sentence: Faultline, "Project management for production lines" — see what is wrong, run the fix by
- *      a method, prove it worked; none of the old words (Performance (6M), Programs and tests on the line)
+ *   1  the name and the sentence: Faultline, "The operational improvement system for production lines" — find the
+ *      opportunities, diagnose, apply a method, organise the delivery, verify the result; never "project management"
+ *      (Rowland, 31 October: "operational improvement system, not a project management system"); none of the old words
+ *      (Performance (6M), Programs and tests on the line)
  *   2  the eight methods under it, each name and the order read from lib/methods — never retyped here
- *   3  the three things it does, in order: See what is wrong · Run it by a method · Prove it, in money
+ *   3  the five stages of the improvement lifecycle, in order: Identify the opportunity · Diagnose the problem · Apply a
+ *      methodology · Organise the delivery · Verify the result
  *   4  the sign-in: the card's two boxes, Sign in held until both are filled, Create account by its link and back, and
  *      the signal said in words when the cloud cannot be reached
- *   5  at a desk the three things sit beside the sign-in; on a phone the sign-in is first, the three below it, nothing
+ *   5  at a desk the five stages sit beside the sign-in; on a phone the sign-in is first, the five below it, nothing
  *      off the side at 320, 390 and 1360
  *   and no console error.
  *
@@ -38,9 +41,9 @@ const { ctx, page } = await open(1360, 900);
 /* 1 — the name and the sentence */
 ok(flat(await page.locator('.door-name').innerText()) === 'Faultline', '1 the name');
 const lede = flat(await page.locator('.door-lede').innerText());
-ok(/^Project management for production lines\./.test(lede) && /See what is going wrong on the line/.test(lede) && /method/.test(lede) && /prove it worked/.test(lede), '1 the sentence says what it is', lede);
+ok(/^The operational improvement system for production lines\./.test(lede) && /Find the opportunities/.test(lede) && /diagnose/.test(lede) && /apply the method/.test(lede) && /organise the delivery/.test(lede) && /verify the result/.test(lede), '1 the sentence says what it is — the whole lifecycle', lede);
 const all = flat(await page.locator('.door').innerText());
-ok(!/Performance \(6M\)|Programs and tests on the line/.test(all), '1 none of the old words');
+ok(!/Performance \(6M\)|Programs and tests on the line|project[- ]management/i.test(all), '1 none of the old words, and never "project management"');
 
 /* 2 — the eight methods, from the module */
 await page.goto(`${BASE}/#/`); // same page; the module is read through the dev server
@@ -48,11 +51,11 @@ const wanted = await page.evaluate(async () => (await import('/src/lib/methods.t
 const shown = (await page.locator('.door-methods span').allInnerTexts()).map(flat);
 ok(wanted.length === 8 && shown.join(' | ') === wanted.join(' | '), '2 the eight methods, in the module’s order', `${shown.join(' | ')} vs ${wanted.join(' | ')}`);
 
-/* 3 — the three things it does */
+/* 3 — the five stages */
 const steps = await page.locator('.door-steps li b').allInnerTexts();
-ok(steps.map(flat).join(' | ') === 'See what is wrong | Run it by a method | Prove it, in money', '3 the three things, in order', steps.join(' | '));
+ok(steps.map(flat).join(' | ') === 'Identify the opportunity | Diagnose the problem | Apply a methodology | Organise the delivery | Verify the result', '3 the five stages, in order', steps.join(' | '));
 const stepText = flat(await page.locator('.door-steps').innerText());
-ok(/measured by people/.test(stepText) && /sections in order/.test(stepText) && /pounds and minutes/.test(stepText), '3 each says what it is, in the floor’s words');
+ok(/measured by people/.test(stepText) && /sections in order/.test(stepText) && /every finding in money/.test(stepText) && /before and after/.test(stepText), '3 each says what it is, in the floor’s words');
 
 /* 4 — the sign-in */
 const go = page.getByRole('button', { name: 'Sign in' });
@@ -71,13 +74,13 @@ ok((await page.locator('.door-card-h').innerText()) === 'Welcome back', '4 and b
 /* 5 — desk: beside; phone: sign-in first */
 const box = async sel => page.locator(sel).first().boundingBox();
 const [s, c] = [await box('.door-steps'), await box('.door-card')];
-ok(s && c && c.x > s.x + s.width - 4 && Math.abs(c.y - s.y) < 200, '5 at a desk the three things sit beside the sign-in', JSON.stringify({ s, c }));
+ok(s && c && c.x > s.x + s.width - 4 && Math.abs(c.y - s.y) < 200, '5 at a desk the five stages sit beside the sign-in', JSON.stringify({ s, c }));
 ok((await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 1, '5 nothing off the side at 1360');
 await ctx.close();
 for (const w of [390, 320]) {
   const p = await open(w, 800);
   const [ss, cc] = [await p.page.locator('.door-steps').boundingBox(), await p.page.locator('.door-card').boundingBox()];
-  ok(cc.y < ss.y, `5 on a ${w}-wide phone the sign-in comes first, the three things below`, JSON.stringify({ ss, cc }));
+  ok(cc.y < ss.y, `5 on a ${w}-wide phone the sign-in comes first, the five stages below`, JSON.stringify({ ss, cc }));
   ok((await p.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 1, `5 nothing off the side at ${w}`);
   await p.ctx.close();
 }

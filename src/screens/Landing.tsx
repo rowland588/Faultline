@@ -16,12 +16,15 @@
  * Words in ordinary case — capitals spaced out read as a machine talking.
  *
  * UNDER THE NAME, WHAT IT IS (31 October — Rowland: "the app has changed, we
- * need it to represent what it is"). Faultline is a project-management system
- * that gives a team the tools to understand a line's faults and the method to
- * put them right: the sentence, the eight methods a project can be (read from
- * lib/methods, never retyped here), and the three things it does — see what is
- * wrong, run it by a method, prove it in money. The sign-in stays one glance
- * from the name: beside the three on a desk, first on a phone.
+ * need it to represent what it is"; then, correcting the first cut which said
+ * "project management": "operational improvement system, not a project
+ * management system ... the real product is the complete improvement lifecycle:
+ * identifying opportunities, diagnosing problems, applying methodologies,
+ * organising delivery and verifying results"). So: the sentence, the eight
+ * methods a project can run (read from lib/methods, never retyped here) as the
+ * *apply a methodology* step, and the five stages of the lifecycle in order.
+ * Projects are one of the five, not the page's subject. The sign-in stays one
+ * glance from the name: beside the five on a desk, first on a phone.
  *
  * The pulse is the mark's own trace (ui/Logo) drawn across the page: a flat
  * line, a tremor, the fault. It, the sheen and the mist all hold still for
@@ -88,8 +91,9 @@ export function Landing() {
         </div>
 
         <p className="door-lede">
-          Project management for production lines. See what is going wrong on the line,
-          run the fix by the method that suits it, and prove it worked.
+          The operational improvement system for production lines. Find the opportunities,
+          diagnose what is going wrong, apply the method that fixes it, organise the delivery
+          and verify the result.
         </p>
         <p className="door-methods" aria-label="The eight methods a project can run">
           {METHODS.map((m, i) => (
@@ -126,18 +130,26 @@ export function Landing() {
           </button>
         </form>
 
-        <ol className="door-steps" aria-label="What Faultline does">
+        <ol className="door-steps" aria-label="The improvement lifecycle">
           <li>
-            <b>See what is wrong</b>
-            <span>Time the stops, count the losses, test the capability, walk the line — measured by people and worked out by formula, never guessed.</span>
+            <b>Identify the opportunity</b>
+            <span>Time the stops, count the losses, walk the line. The biggest losses show in minutes, packs and pounds.</span>
           </li>
           <li>
-            <b>Run it by a method</b>
-            <span>A project is one of the eight methods, with its sections in order. The tools sit in the section that needs them.</span>
+            <b>Diagnose the problem</b>
+            <span>Capability, reliability, capacity and root cause — measured by people and worked out by formula, never guessed.</span>
           </li>
           <li>
-            <b>Prove it, in money</b>
-            <span>Every finding in pounds and minutes. Who does what by when, a before and after on the same number, and the papers to hand over.</span>
+            <b>Apply a methodology</b>
+            <span>PDCA, DMAIC, 8D and the rest, each with its sections in order and the tools in the section that needs them.</span>
+          </li>
+          <li>
+            <b>Organise the delivery</b>
+            <span>Projects, and actions with who owes what by when; programs and tests proved on the line.</span>
+          </li>
+          <li>
+            <b>Verify the result</b>
+            <span>A before and after on the same number, every finding in money, and the papers to hand over.</span>
           </li>
         </ol>
         </div>

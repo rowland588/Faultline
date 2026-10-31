@@ -70,13 +70,12 @@ line's facts instead of asking again, says the result in money, prints, and
 has one door into a project. A new tool is added when a real problem on the
 line needs it — never to fill a catalogue.
 
-## 31 October — Faultline is a project system built on methods
+## 31 October — Faultline is an operational improvement system; a project is one part of it, and a project is a method
 
-Rowland, 31 October: *"Faultline is a project management system that provides
-the essential tools to understand the line's faults. This is the difference to
-other apps: we provide the technical tools and the process to solve the problems,
-to complete the projects."* And: *"the method equals the project … build the
-methods first … and we simply insert the tools where required."*
+**What it is — Rowland's correction, 31 October, the same day:** *"operational improvement system, not a project management system … the projects are just one part of the process. The real product is the complete improvement lifecycle: identifying opportunities, diagnosing problems, applying methodologies, organising delivery and verifying results."* Faultline is **not** a project-management system and is never described as one on a screen, a paper or the landing page. Its lifecycle, and where each part lives: **identify** opportunities (the Factory board, the line's losses, the problems register) · **diagnose** problems (the technical tools — capability, reliability, capacity, losses, analysis, root cause) · **apply** a methodology (the eight methods below) · **organise** delivery (projects, actions with who and by when, programs and tests on the line, the journey) · **verify** results (a before and after on the same number, every finding in money, the papers). A project is the *delivery* part, no more.
+
+Rowland, 31 October, on the methods: *"the method equals the project … build the
+methods first … and we simply insert the tools where required."* His earlier wording that day ("a project management system that provides the essential tools to understand the line's faults … the technical tools and the process to solve the problems") is superseded by the correction above.
 
 So (the map is [`docs/METHODS.md`](METHODS.md); where an older document
 disagrees, this wins):
