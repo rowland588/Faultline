@@ -607,6 +607,7 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     eyebrow = scoredTitle(s); verdict = { text: said.verdict, tone: said.tone };
     body = scoredPaperBlocks(s);
     closing = { text: studyScored(s)?.result?.closing ?? '', tone: said.tone };
+    if (studyScored(s)?.def.matrix) tiles = studyScored(s)?.result?.tiles ?? [];   /* a matrix's tiles stand on its paper; a ranking's are in its body, as before */
   } else if (s.tool === 'board' && s.agreed?.board) {
     const siblings = p.history ?? [];
     const said = boardSays(s, siblings, Date.now());

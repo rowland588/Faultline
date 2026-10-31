@@ -2,6 +2,7 @@
 import type { Entry } from '../types';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 import { logBuilt } from '../../tools/checks/built';
+import { pughBuilt } from '../../tools/pugh/built';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -257,7 +258,11 @@ export const QUALITY: Entry[] = [
     food: 'Choosing between three fixes for film breaks.',
     depends: ['FC-144', 'FC-191'],
     complexity: 'S', value: 'low', valueWhy: 'Makes the choice explicit.',
-    status: 'to-build', form: 'component', methods: ['sixsigma.selection-matrices'], scenarios: ['project'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'pugh', label: 'Pugh matrix', says: 'Choose between solutions: each option marked better, same or worse than the datum on the criteria you agreed first', icon: 'board', order: 23.5 },
+    methods: ['sixsigma.selection-matrices'], scenarios: ['project'], words: ['Pugh', 'decision matrix', 'choose a fix', 'which countermeasure', 'options'],
+    built: pughBuilt,
+    spec: 'knowledge/specs/FC-143-pugh-matrix.md',
+    limits: ['It ranks options against one datum by the team’s judgement — it is not a measurement, and a different datum can change the order.', 'Marks are better, same or worse; not by how much.', 'Impact and effort (FC-144) and payback or NPV of a capital option (FC-191) are not built; an option’s cost is typed and shown beside the score, never in it.', 'Rounds of convergence are not kept as a history — edit the matrix and read it again.'],
   },
   {
     id: 'FC-144', name: 'Impact and effort — which countermeasure first', discipline: 'sixsigma', sub: 'decide',

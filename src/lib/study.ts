@@ -658,11 +658,25 @@ export interface ScoredRow {
   likelihood?: number;
   ccp?: boolean;
   standby?: boolean;
+  /** A MATRIX (Pugh, FC-143): this row is an OPTION; its mark on each criterion by the criterion's id — +1 better, 0 same, −1 worse than the datum. */
+  scores?: Record<string, number | undefined>;
+  /** A matrix option's cost in pounds, typed (optional) — shown beside the score, never in it. */
+  cost?: number;
+}
+
+/** A criterion of a matrix (Pugh): what matters in the choice, with a whole-number weight 1–5 (blank = 1). */
+export interface ScoredCriterion {
+  id: string;
+  name: string;
+  weight?: number;
 }
 
 export interface AgreedScored {
   key: string;
   rows: ScoredRow[];
+  /** A matrix: the criteria, and what the options are set against ("Present state"). */
+  criteria?: ScoredCriterion[];
+  datum?: string;
 }
 
 /** A CALCULATOR (src/tools/calc; knowledge/specs/FC-235-calculators.md — 25 October): which one it is (`key`, the name of its

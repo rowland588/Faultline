@@ -104,8 +104,4 @@ ideas; choosing a pack format or a supplier on several criteria.
 - [practice] The PICK chart (Possible, Implement, Challenge, Kill) — Six Sigma practice (from knowledge).
 
 ## In Faultline
-Not built (FC-144). A 6M's countermeasures are raised with their
-expected effect (`src/lib/sixm.ts`); FC-144 would score several
-countermeasures for one cause on agreed criteria, place them on
-impact–effort with the impact taken from the cause's size in money, and
-turn the quick wins into actions.
+**The Pugh half is built (FC-143, `knowledge/specs/FC-143-pugh-matrix.md`)** as a scored register at `#/scored/pugh` (`src/tools/pugh/pugh.ts`, `src/tools/scored/defs/pugh.ts`): options marked + · S · − against a named datum on criteria with weights 1–5, the counts and the weighted score, the ranking, the leader(s), where the leader is beaten (the strengths to fold in — controlled convergence as a list), a one-step weight sensitivity ("the lead is thin"), a cost typed per option beside the score and never in it; checked against the film-breaks worked case above and four more cases in `scripts/knowledge/cases-pugh.py`. It ranks against one datum by the team's judgement and says it is not a measurement — and that the order can change with the datum (case 5 of the script). Not built: **impact–effort and the PICK chart (FC-144)** — a 6M's countermeasures are raised with their expected effect (`src/lib/sixm.ts`); FC-144 would score several for one cause, place them on impact–effort with the impact taken from the cause's size in money, and turn the quick wins into actions; **payback and NPV beside the matrix** (`cost.investment-appraisal`); a saved history of convergence rounds.

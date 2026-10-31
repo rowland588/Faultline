@@ -288,7 +288,7 @@ describe('the lines a project points at, by the factory\'s name (docs/FLOW-AUDIT
 
 describe('the tools, from the catalogue (src/catalogue/registry)', () => {
   it('are the fourteen a person can open, each opening its list — in a project, on the project', () => {
-    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line balance', '/linebalance'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Control chart', '/chart'], ['Analysis', '/analysis'], ['Calculators', '/calc'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses'], ['Reliability', '/reliability'], ['Video study', '/video'], ['Line Talk', '/talk'], ['Check logs', '/logs'], ['Problems register', '/snags'], ['Actions', '/actions'], ['Equipment criticality', '/scored/criticality'], ['Maintenance measures', '/board/maintenance-measures']]);
+    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line balance', '/linebalance'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Control chart', '/chart'], ['Analysis', '/analysis'], ['Calculators', '/calc'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses'], ['Reliability', '/reliability'], ['Video study', '/video'], ['Line Talk', '/talk'], ['Check logs', '/logs'], ['Problems register', '/snags'], ['Actions', '/actions'], ['Equipment criticality', '/scored/criticality'], ['Pugh matrix', '/scored/pugh'], ['Maintenance measures', '/board/maintenance-measures']]);
     expect(toolPlaces('', P).every(l => l.to?.includes(`project=${P}`))).toBe(true);
   });
 });
