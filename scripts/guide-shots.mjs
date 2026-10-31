@@ -44,7 +44,7 @@ const shot = async (page, hash, file, o = {}) => {
 
 /* the method page opened at one of its sections, so the picture shows tools in use rather than the first section's gaps */
 const toSection = name => async page => {
-  await page.evaluate(n => { const s = [...document.querySelectorAll('.pmethod .pace-sec-title')].find(h => h.textContent.includes(n)); s?.scrollIntoView({ block: 'start' }); window.scrollBy(0, -70); }, name);
+  await page.evaluate(n => { const s = [...document.querySelectorAll('.pmethod .pace-sec-title')].find(h => h.textContent.includes(n)); s?.scrollIntoView({ block: 'start' }); window.scrollBy(0, -130); }, name);
   await page.waitForTimeout(500);
 };
 
