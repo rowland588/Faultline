@@ -35,6 +35,7 @@ import type { StudyUse, ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
 import { StudyProves } from './ProveProgram';
 import { BelongsTo } from './parts';
+import { CopiedFrom } from './ShareReadings';
 
 
 /** THE STUDY ON PAPER (lib/studiesPdf) — on its own, on a line or on a job: what it is, where it
@@ -127,6 +128,8 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
           {jobs.map(p => <option key={p.id} value={p.id}>{p.name}{s.workspaceId && p.workspaceIds.includes(s.workspaceId) ? ' — on this line' : ''}</option>)}
         </select>
       )}
+      {/* where its readings were copied from (knowledge/specs/FC-094-shared-readings.md) */}
+      <CopiedFrom s={s} />
       {/* the program it shows proved (flow audit #21) — a branch off the study */}
       <StudyProves s={s} />
     </div>

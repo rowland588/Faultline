@@ -120,5 +120,6 @@ questions, dead ends) are their foundation and ship first.
 | Slice | What | Where |
 |---|---|---|
 | **W0** | five worlds read from the catalogue; The worlds row on Tools; a world's home (`#/tools/world/:id`): its tools, its questions, what it holds, what is not built yet | `src/catalogue/worlds.ts`, `screens/ToolWorldScreen`, `scripts/acceptance/tool-world.mjs` |
+| **W1a** | **Use these readings in…** — Capability, Control chart and Analysis start from one another's readings (option A): the copy is a new study on the same line/project/machine/product, struck readings left behind, unit/limits/nominal carried only where known (a capability study with no limit asks, never guesses), the origin said on the copy and its paper | `src/lib/sharedReadings.ts`, `ui/ShareReadings`, `ui/StudyActs`, `knowledge/specs/FC-094-shared-readings.md`, `scripts/acceptance/shared-readings.mjs` |
 
 Not done on purpose: the gallery is not filtered by world (the worlds' homes are the filter — one thing, one place).

@@ -10,6 +10,7 @@
  * never part: a value stream's grid, a changeover's steps, a shift's losses,
  * a sampling's shares. A capability study adds its figures and its readings.
  * Laid out by the report engine (src/lib/report/, docs/REPORTS.md). */
+import { copiedHead } from './sharedReadings';
 import type { jsPDF } from 'jspdf';
 import type { ToolStudy } from './study';
 import type { Standard } from '../tools/linestandard/standard';
@@ -643,7 +644,7 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     body = e.stream ? streamBlocks(e.stream.rows, e.stream.total) : [];
   }
   const out: Block[] = [leanBand(bandPage(eyebrow, s, verdict?.text, verdict?.tone), p.printed)];
-  out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its project` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
+  out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its project` : ''}${copiedHead(s.facts.copiedFrom) ? ` · ${copiedHead(s.facts.copiedFrom)}` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
   if (tiles.length) out.push(leanTiles(tiles));
   out.push(leanHead('What it says'));
   out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: gap(d, 's') }));
@@ -731,6 +732,7 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
   const e = studyEvidence(s, [], p.standards, p.ctx);
   out.push(text({ text: e.title, size: SIZE.h2, style: 'bold', before: i ? gap(d, 'l') : 0, after: 2 }));
   out.push(text({ text: where, size: 8, colour: MUTED, after: 1 }));
+  { const from = copiedHead(s.facts.copiedFrom); if (from) out.push(text({ text: from, size: 8, colour: MUTED, after: 1 })); }
   if (s.uses.length) out.push(text({ text: `Used for: ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its project`, size: 8, colour: MUTED, after: 1 }));
   out.push(text({ text: e.line, size: 9.5, colour: e.tone === 'r' ? DANGER : INK2, after: 6 }));
   if (s.tool === 'capability') out.push(...capabilityBlocks(s));

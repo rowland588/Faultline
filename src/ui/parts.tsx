@@ -103,6 +103,8 @@ export interface MoreItem {
   /** Deleting or putting away — drawn apart, in red words. */
   danger?: boolean;
   disabled?: boolean;
+  /** Why it is disabled (or what it does), in one line under the label — a control that is off says why. */
+  hint?: string;
 }
 
 /** MORE ▾ — the page's other actions, so the header holds one primary and never a row of seven. */
@@ -120,7 +122,7 @@ export function MoreMenu({ items, label = 'More' }: { items: MoreItem[]; label?:
           {items.map(x => (
             <button key={x.label} type="button" role="menuitem" className={'part-menu-i' + (x.danger ? ' is-danger' : '')} disabled={x.disabled}
               onClick={() => { m.setOpen(false); x.run(); }}>
-              <b>{x.label}</b>
+              <b>{x.label}</b>{x.hint && <span className="part-menu-hint">{x.hint}</span>}
             </button>
           ))}
         </div>

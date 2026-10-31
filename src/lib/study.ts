@@ -917,6 +917,9 @@ export interface Tap { id: string; at: number; who: string; activity: string; by
  *  adding to one study both keep what they added (docs/BUILD.md, 2b). */
 export interface StudyFacts {
   readings?: StudyReading[];
+  /** READINGS COPIED FROM ANOTHER STUDY (knowledge/specs/FC-094-shared-readings.md — Rowland, 31 October: shared readings, option A):
+   *  where they came from — never a link that follows, only the note: its id, tool and name when copied, how many and when. */
+  copiedFrom?: { id: string; tool: StudyTool; name: string; n: number; at: number };
   /** A work balance's elements, each with its laps. */
   steps?: BalanceStep[];
   /** A work balance's people and where each is on the line. */

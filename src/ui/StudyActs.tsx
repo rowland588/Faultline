@@ -23,6 +23,8 @@ import type { LeanPage } from '../lib/lean';
 import { LeanBand } from './Lean';
 import { MoreMenu, ReportMenu, type MoreItem, type Paper } from './parts';
 import { useStudyPaper } from './StudyPlace';
+import { ShareReadings } from './ShareReadings';
+import { shareOffer } from '../lib/sharedReadings';
 
 /** Asked, deleted, and offered back. True when it went. */
 export async function removeStudy(s: ToolStudy): Promise<boolean> {
@@ -74,11 +76,18 @@ export function StudyMenus({ s, canEdit, canRemove, onRename, papers = [], extra
  *  record's name, and its menus: one header on every tool (§5.5). `what` names its paper. */
 export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary }: { page: LeanPage; s: ToolStudy; what: string; canEdit: boolean; canRemove: boolean; extra?: MoreItem[]; primary?: { label: string; run: () => void } }) {
   const [naming, setNaming] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const paper = useStudyPaper(s);
+  /* USE THESE READINGS IN… (knowledge/specs/FC-094-shared-readings.md): Capability, Control chart and Analysis start from one
+     another's readings — one mechanism here, so the three tools have it from one place; shown disabled, with its reason, when
+     there is nothing to share, and never to a client */
+  const offer = canEdit ? shareOffer(s) : undefined;
+  const items: MoreItem[] | undefined = offer ? [...(extra ?? []), { label: 'Use these readings in…', run: () => setSharing(true), disabled: !offer.targets.length, ...(offer.targets.length ? {} : { hint: offer.why }) }] : extra;
   return (
     <LeanBand page={page} title={<StudyName s={s} naming={naming} onDone={() => setNaming(false)} />}>
-      <StudyMenus s={s} canEdit={canEdit} canRemove={canRemove} onRename={() => setNaming(true)} extra={extra} primary={primary}
+      <StudyMenus s={s} canEdit={canEdit} canRemove={canRemove} onRename={() => setNaming(true)} extra={items} primary={primary}
         papers={[{ label: `${what} — on paper`, for: 'What it is, where it sits, what it says and its figures', make: paper }]} />
+      {sharing && <ShareReadings s={s} onClose={() => setSharing(false)} />}
     </LeanBand>
   );
 }
