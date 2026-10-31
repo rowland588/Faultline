@@ -78,6 +78,12 @@ devices = 14; checks_due = 14*5; done = 62; failed = 1
 print(f"  {devices} devices, weekly checks due {checks_due} a month... per week due {devices}, done {12}: 2 not checked")
 print(f"  failed checks {failed} of {done} this month; zero-failure bound for 62 passes: at most {3/62:.1%} could fail at 95%")
 print(f"  a label-presence sensor failed: packs since last good check = 7 h × 110/min = {7*60*110:,} to inspect")
+# FC-014 worked cases for the check-log definition (src/tools/checks/defs/mistake-proofing.ts)
+print(f"  exact zero-failure bound for 62 clean checks at 95%: {1-0.05**(1/62):.1%} (the 3/n rule gives {3/62:.1%})")
+# case 1: sensor every 7 h passing at 0, 420, failing at 840; reader every 8 h passing at 0, 480, 960; looked at 965 min; 110/min
+print(f"  FC-014 case 1: window {840-420} min x 110 = {(840-420)*110:,} packs; due 3+3, on time 6")
+# case 2: weekly tools done day 0 and 7; recipe release done day 0 only; looked at day 8; grace 12 h
+print("  FC-014 case 2: due 2+2 (the day-7 recipe release missed after its 12 h grace): on time 3, missed 1, 75%")
 
 print("\n== Process flow chart (lean.process-flow-chart)")
 steps = [("O",2.0,0),("T",1.5,30),("D",12,0),("O",3.5,0),("I",1.0,0),("T",2.0,45),("S",240,0),("T",1.0,20),("O",4.0,0),("D",8,0),("T",1.5,25),("O",1.5,0),("I",0.5,0),("T",1.0,20)]
