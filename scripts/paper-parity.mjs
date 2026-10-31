@@ -41,6 +41,11 @@ const MEANT = {
     .map(f => [f, 'money on the 6M problem and its countermeasures (FC-146, 24 October)'])),
   /* pass or fail by a confidence level or an allowed loss (FC-100, 23 October: "we also want to be adding confidence as part of our
      language"): "that proves fewer than 32 in 100 would fail (95% sure)" is said "we can be 95% confident fewer than 32 in 100 would fail" */
+  /* CAPACITY'S THREE NUMBERS (FC-041, 31 October): a product's paper gains one line — "Three numbers — built to make → can really make"
+     (design, effective, and a counted shift's actual with its shortfall in money), said by tools/linebalance/capacityThree and
+     printed by capacityPaperPdf; the same sentence the screen's A shift block says */
+  ...Object.fromEntries(['capacity-huge-all.pdf', 'capacity-huge-one.pdf', 'capacity-ordinary-all.pdf']
+    .map(f => [f, 'capacity’s three numbers — the Three numbers line on a product’s paper (FC-041, 31 October)'])),
   /* CAPABILITY OVER TIME (FC-101, W2, 24 October): the list's table of products by month before each study's page */
   'huge-studies-capability.pdf': 'Capability over time table (FC-101, W2, 24 October)',
   'ordinary-client.pdf': 'pass or fail said with its confidence (FC-100, 23 October); This week and next (docs/JOURNEY.md J3)',
