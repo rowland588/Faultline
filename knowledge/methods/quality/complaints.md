@@ -101,7 +101,14 @@ BRCGS audit conversation, packaging complaints after a film change.
 - [standard] BRCGS Global Standard Food Safety, Issue 9 (2022), clause 3.10 — complaint handling: recorded, investigated, trended, actions taken (from knowledge; clause number not confirmed against the text).
 
 ## In Faultline
-Not built (FC-134). When built: complaints logged like problems on the
-register (`src/snag`) with product, lot code and kind, the units typed
-per period, CPMU with its bounds and its u-chart on the line's page, the
-Pareto by kind × product, and a serious one opening an 8D.
+Built as a calculator (FC-134, `/calc/complaints-per-million`; specification
+`knowledge/specs/FC-134-complaints.md`): one period on one line — the units
+sold and the complaints typed by six kinds — gives the rate a million with its
+exact Poisson interval, the u-chart's range around the usual rate (the periods
+before), the exact test against the period before, the Pareto of the kinds with
+its picture, and the cost of the period's complaints at one typed cost
+(external failure, `knowledge/MONEY.md`). Independent cases:
+`scripts/knowledge/cases-complaints.py`. Not built: complaints logged one by
+one with product, lot and date code (so no kind × product table and no matching
+to the week made), the many-period trend, an 8D opened from a serious one,
+the cost per kind.

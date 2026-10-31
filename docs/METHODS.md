@@ -82,7 +82,7 @@
 
 | Section | What happens here | Tools (catalogue) | Not built or part-built here |
 |---|---|---|---|
-| **Install** | The machines on site, their stages and parts; what is late. Machines and materials; critical path is not built. | FC-079 Materials and parts on site; FC-215 Critical path and float in a project plan | FC-215 (NOT BUILT) |
+| **Install** | The machines on site, their stages and parts; what is late. Machines and materials; critical path is a calculator over a typed network, not yet read from the plan. | FC-079 Materials and parts on site; FC-215 Critical path and float in a project plan | FC-215 (NOT BUILT) |
 | **Set up** | Programs loaded, the people ready, the standards written. Readiness is partly built; skills and SOP are not. | FC-075 Program and recipe proving; FC-082 Operational readiness; FC-225 Standard operating procedure with photos; FC-222 Skills matrix and cover; FC-223 TWI job instruction; FC-178 Hygienic design review of new equipment | FC-082 (part-built); FC-225 (NOT BUILT); FC-222 (NOT BUILT); FC-223 (NOT BUILT); FC-178 (research first) |
 | **Commission** | Tests against what was agreed; the run at rate; the climb; capability; the filmed walk. This is the Prove loop: programs and tests on the line. | FC-074 Acceptance tests with what was agreed; FC-075 Program and recipe proving; FC-076 Performance run at the agreed rate; FC-077 The climb to rate; FC-083 Held at a rate for a time; FC-084 Machine capability for acceptance (Cm, Cmk); FC-061 Reliability growth during commissioning (Crow–AMSAA); FC-118 Gauge R&R; FC-164 Checkweigher verification; FC-165 Seal integrity tests; FC-170 Metal detection and X-ray verification; FC-081 The filmed walk and its problems; FC-085 Line acceptance on the EN 415-11 time model | FC-085 (research first) |
 | **Hand over** | Sign-off, spares, maintenance, what is still owed. The pace forecast says when. | FC-080 Handover and sign-off; FC-078 The pace says when; FC-066 Critical spares; FC-063 Planned maintenance; FC-062 Autonomous maintenance; FC-064 Equipment criticality ranking; FC-082 Operational readiness | FC-082 (part-built) |
@@ -130,29 +130,21 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 
 | Used by | Tool | Status | How it would be built | Methods |
 |---|---|---|---|---|
-| 5 | FC-144 Impact and effort — which countermeasure first | NOT BUILT | scored register — scored-shape definition (impact × effort) | 8D, A3, DMAIC, Kaizen event, PDCA |
 | 5 | FC-201 The team’s own weekly number, proved | part-built | part-built — finish | A3, DMAIC, Improvement Kata, Kaizen event, Theory of Constraints |
 | 4 | FC-153 Stratification — split the data to find where it lives | part-built | calculation — an analysis question (stratify, then test) | 8D, A3, DMAIC, PDCA |
 | 4 | FC-225 Standard operating procedure with photos | NOT BUILT | document — steps with photos, versioned, with a paper | 8D, Kaizen event, PDCA, Stage gate |
-| 3 | FC-014 Mistake-proofing register and the daily device checks | NOT BUILT | register + log — check-log shape (device checks) | 8D, DMAIC, Kaizen event |
-| 3 | FC-143 Pugh matrix — choosing between solutions | NOT BUILT | scored register — scored-shape definition (Pugh) | 8D, A3, DMAIC |
 | 3 | FC-149 Is / is not — specifying the problem | NOT BUILT | document — a two-column form that feeds the problem | 8D, A3, DMAIC |
-| 2 | FC-128 Cost of poor quality | NOT BUILT | calculation — a calculator definition (calc shape) on the cost model | A3, DMAIC |
 | 2 | FC-132 Process FMEA with action priority | NOT BUILT | scored register — scored-shape definition (severity, occurrence, detection → action priority) | 8D, DMAIC |
 | 2 | FC-133 Control plan — what is checked, how, how often, and what if  | NOT BUILT | register — a list per check (what, how, how often, reaction) feeding the check logs | 8D, DMAIC |
 | 2 | FC-142 Project charter — problem, goal, scope, team, worth | part-built | document — part-built; the charter form | DMAIC, Kaizen event |
 | 2 | FC-152 Fault tree analysis | NOT BUILT | document — a tree drawn from the whys | 8D, A3 |
 | 2 | FC-155 Horizontal deployment — a proved fix offered to every line w | NOT BUILT | workflow — offer a proved fix to the other lines | 8D, PDCA |
-| 2 | FC-191 What an improvement is worth — payback and NPV | NOT BUILT | calculation — a calculator definition (payback, NPV) | DMAIC, Theory of Constraints |
-| 2 | FC-199 Gemba walk — and how fresh the looking is | part-built | part-built — finish | Improvement Kata, Kaizen event |
 | 2 | FC-223 TWI job instruction — the breakdown and four-step teaching | NOT BUILT | document — a breakdown and four-step sheet | Kaizen event, Stage gate |
 | 1 | FC-003 Process flow chart — operation, transport, inspection, delay | NOT BUILT | document — a drawn chart | Kaizen event |
 | 1 | FC-004 Spaghetti diagram — walking and transport distance | NOT BUILT | document — a drawn plan with distances (calc inside) | Kaizen event |
 | 1 | FC-005 Waste walk — the eight wastes seen, classed and costed | part-built | part-built — finish | Kaizen event |
 | 1 | FC-021 Video time study — the work read from footage | part-built | part-built — camera study | Kaizen event |
 | 1 | FC-039 Recovery levers — what taking a share off the top losses buy | part-built | ? | Theory of Constraints |
-| 1 | FC-041 Capacity’s three numbers — design, effective, actual | part-built | ? | Theory of Constraints |
-| 1 | FC-042 Product mix at the constraint — throughput per constraint mi | part-built | ? | Theory of Constraints |
 | 1 | FC-043 Drum–buffer–rope and buffer management | NOT BUILT | ? | Theory of Constraints |
 | 1 | FC-045 Utilisation and variability — why queues explode | NOT BUILT | ? | Theory of Constraints |
 | 1 | FC-046 Accumulation between machines — buffer minutes and recovery | part-built | ? | Theory of Constraints |
@@ -162,7 +154,6 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 1 | FC-111 Designed experiments — two-level factorials | NOT BUILT | calculation — new analysis (two-level factorials) | DMAIC |
 | 1 | FC-112 Optimising settings — response surface | research first | research first | DMAIC |
 | 1 | FC-117 The team’s own weekly number, trended | part-built | part-built — finish | A3 |
-| 1 | FC-134 Complaints per million and their Pareto | NOT BUILT | calculation — rate + Pareto on the defect tally | 8D |
 | 1 | FC-135 Product on hold — non-conformance and release | NOT BUILT | register + workflow — a hold, its release, who signed | 8D |
 | 1 | FC-139 SIPOC — the scope on one page | NOT BUILT | document — a one-page form | DMAIC |
 | 1 | FC-140 Voice of the customer to CTQs | NOT BUILT | document — a table that sets the limits a tool then uses | DMAIC |
@@ -171,11 +162,13 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 1 | FC-178 Hygienic design review of new equipment | research first | research first | Stage gate |
 | 1 | FC-179 The week’s schedule against capacity, with changeovers | NOT BUILT | ? | Theory of Constraints |
 | 1 | FC-198 Tiered daily meeting — the day’s update and its paper | part-built | ? | Improvement Kata |
-| 1 | FC-215 Critical path and float in a project plan | NOT BUILT | calculation — critical path and float | Stage gate |
+| 1 | FC-215 Critical path and float in a project plan | part-built | calculator over a typed network built; reading it from the plan needs a stored “waits for” (migration) | Stage gate |
 | 1 | FC-222 Skills matrix and cover | NOT BUILT | register — a matrix people × skills | Stage gate |
 | 1 | FC-224 One-point lesson | part-built | document — one page | Kaizen event |
 
-**In all:** 117 catalogue tools are placed in the eight methods; 73 are built, 15 part-built, 26 not built, 3 need research first. Of the catalogue's 69 unbuilt tools, 26 are needed by a method; the rest are not on any method's path and wait.
+**Built from this table on 31 October (M5, first eight-agent round):** FC-144 Impact and effort (PICK chart) · FC-143 Pugh matrix · FC-128 Cost of poor quality · FC-191 Payback and NPV · FC-134 Complaints per million · FC-014 Mistake-proofing check log (partial) · FC-199 Gemba walk, how fresh the looking is · FC-041 Capacity's three numbers and FC-042 Product mix at the constraint (Line capacity, A shift and the capacity panel) · FC-215 Critical path (partial — a typed network; the plan has no “waits for”). Those rows are taken off the list above; the catalogue (`node scripts/catalogue.mjs show FC-nnn`) holds each one's status and limits.
+
+**In all (counted at M0, 31 October):** 117 catalogue tools are placed in the eight methods; `src/lib/__tests__/methods.test.ts` holds the placed total true, and the catalogue the status of each.
 
 Tools left out on purpose are not mapped as defaults (FC-050 OEE, FC-216 risk register, FC-217 decision log, FC-218 benefits realised, FC-192 the case for the change, FC-230 builders by assistant); any of the built ones can still be added to a section by hand.
 

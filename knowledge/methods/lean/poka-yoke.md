@@ -90,6 +90,10 @@ is not proof of a year.
   fault; the andon and the cause are the answer, not a stricter rule.
 - Mistake-proofing addresses human error; a machine's own variation is
   SPC's business.
+- The record's "at most 4.8%" for 62 clean checks is the 3/n rule of thumb; the exact one-sided bound at 95% is 4.7%
+  (`cases-lean.py`). The tool says the exact figure.
+- A guard interlock protects a person, not the pack, so its failure holds no product by default; a bypass found on a
+  walk is a fail of the system and is recorded as a fail of the bypass check.
 
 ## Reading the result
 "14 devices; 12 checked this week, 2 not; the label sensor failed its
@@ -118,8 +122,12 @@ last is weighed; the guard interlock.
 - [standard] AIAG, *Advanced Product Quality Planning and Control Plan*, 2nd ed. (2008) — error-proofing verification in the control plan (from knowledge).
 
 ## In Faultline
-Not built (FC-014). The line's machines and their programs hold a test
-and its day (`src/line`); FC-014 adds the device register per line, the
-checks tapped at start-up with their result, a failure opening the
-unprotected product's count and hold, the clean record's bound in words,
-and the unproofed errors from the FMEA as the candidates list.
+Built as a check log, partial (FC-014, `knowledge/specs/FC-014-mistake-proofing.md`, `src/tools/checks/defs/
+mistake-proofing.ts`, on the check-log shape): the register is the list of checks — each device a check with the
+error it prevents in its name, its type (contact, fixed-value, motion-step) and function (control, warning) and the
+deliberate fail test in the words of what passes, where it is, how often it is tested; the checks tapped with their
+result, a failed test working out the packs since the last good one (rate x window, 46,200 in the worked case) and
+raising one problem on the register, the missed ones named, the clean record's bound in words (the exact bound for
+zero failures, 1 - 0.05^(1/n), 4.7% for 62; the 3/n rule gives 4.8%). **Not built:** the register's type, function and
+error as fields of their own (the list cannot be filtered by them), the unproofed errors from the FMEA, the
+device's effectiveness before and after (the complaints rate) and its cost against the failures it stops.

@@ -6,7 +6,7 @@
 import type { LineFacts } from './ask';
 import { askLine } from './ask';
 
-export function weeklyBrief(f: LineFacts, o: { heat?: string; asOf: string }): string[] {
+export function weeklyBrief(f: LineFacts, o: { heat?: string; asOf: string; /** which product first when the line is full (tools/linebalance/capacityMix) */ mix?: string[] }): string[] {
   const held = askLine('where is the line held', f).text;
   const loss = f.fall.bands.length ? askLine('what is the biggest loss', f).text : '';
   const changed = f.changes.length ? f.changes.slice(0, 2).map(c => c.says).join(' ') : 'Nothing moved enough this week to call a change.';
@@ -18,5 +18,6 @@ export function weeklyBrief(f: LineFacts, o: { heat?: string; asOf: string }): s
     changed,
     ...(o.heat ? [o.heat] : []),
     ...(f.load.rows.length ? [f.load.says] : []),
+    ...(o.mix ?? []),
   ].filter(Boolean);
 }

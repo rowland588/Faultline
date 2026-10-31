@@ -19,6 +19,8 @@ import { useEffect, useState } from 'react';
 import { getWorkspace, listAllStudies, onDataChange } from '../../db';
 import { nav } from '../../state/useRoute';
 import { analyse, shiftCapacity, shiftsIn, type CapacityResult, type ChangeoverIn, type ShiftIn } from './capacity';
+import { countedShiftOf, threeCapacities, type CountedShift } from './capacityThree';
+import { contributionOf } from '../losses/losses';
 import { fmtN } from './capacityWords';
 import { changeoverIn } from '../changeover/changeover';
 import { studyHref } from '../../lib/studyLinks';
@@ -27,7 +29,11 @@ import type { Standard } from '../linestandard/standard';
 import { standardMoney, standardMoneySays } from '../linestandard/standardMoney';
 import type { CardFacts } from '../linestandard/standardCard';
 
-export interface ShiftInputs { shifts?: ShiftIn[]; co?: ChangeoverIn; smed?: ToolStudy }
+export interface ShiftInputs {
+  shifts?: ShiftIn[]; co?: ChangeoverIn; smed?: ToolStudy;
+  /** The line's newest counted shift (its loss count), and the line's contribution a pack — for the three numbers (FC-041). */
+  counted?: CountedShift; contribution?: number;
+}
 
 /** The line's shifts and the changeover into this product, kept current.
  *  `shifts` is undefined until the line is read. */
@@ -42,7 +48,9 @@ export function useShiftInputs(workspaceId: string | undefined, standardId: stri
       if (!live) return;
       const co = changeoverIn(agreed, all, standardId);
       const smed = all.filter(s => !s.deletedAt && s.tool === 'changeover' && s.standardId === standardId).sort((a, b) => b.startedAt - a.startedAt)[0];
-      setOut({ shifts: shiftsIn(ws?.shifts), ...(co ? { co } : {}), ...(smed ? { smed } : {}) });
+      const counted = countedShiftOf(all.filter(s => !s.deletedAt && s.tool === 'losses' && s.workspaceId === workspaceId), standardId);
+      const contribution = ws ? contributionOf(ws)?.perPack : undefined;
+      setOut({ shifts: shiftsIn(ws?.shifts), ...(co ? { co } : {}), ...(smed ? { smed } : {}), ...(counted ? { counted } : {}), ...(contribution != null ? { contribution } : {}) });
     };
     void load();
     const off = onDataChange(() => void load());
@@ -90,7 +98,50 @@ export function ShiftCapacityView({ r, inputs }: { r: CapacityResult; inputs: Sh
         </div>
       )}
       <p className="vc-says shc-says">{c.sentence}</p>
+      <ThreeNumbers r={r} inputs={inputs} />
       {inputs.smed && <button type="button" className="linkish shc-go" onClick={() => nav(studyHref(inputs.smed as ToolStudy))}>The SMED into this product ›</button>}
+    </div>
+  );
+}
+
+/** CAPACITY'S THREE NUMBERS (FC-041) — what the shift was built to make, what it can really make and what a counted
+ *  shift made, with the two ratios told apart and where design went (tools/linebalance/capacityThree). */
+function ThreeNumbers({ r, inputs }: { r: CapacityResult; inputs: ShiftInputs }) {
+  const t = threeCapacities(r, inputs.shifts ?? [], inputs.co, inputs.counted, { ...(inputs.contribution != null ? { contribution: inputs.contribution } : {}), ...(r.target != null ? { targetPerMin: r.target } : {}) });
+  if (!t || !t.rows.length) return null;
+  const c = t.counted;
+  return (
+    <div className="thr" aria-label="Capacity’s three numbers">
+      <h3 className="shc-h">The three numbers</h3>
+      <div className="cap-sheet-box">
+        <table className="cap-sheet thr-t">
+          <thead><tr><th>Shift</th><th className="n">Built to make</th><th className="n">Breaks</th><th className="n">Changeovers</th><th className="n">Stops &amp; rejects</th><th className="n">Can really make</th></tr></thead>
+          <tbody>
+            {t.rows.map((x, i) => (
+              <tr key={i}>
+                <td><b>{x.name}</b></td>
+                <td className="n">{big(x.design)}</td>
+                <td className="n">{x.breaks == null ? <span className="sub">not set</span> : `− ${big(x.breaks)}`}</td>
+                <td className="n">{x.changeovers == null ? <span className="sub">—</span> : x.changeovers > 0 ? `− ${big(x.changeovers)}` : <span className="sub">none</span>}</td>
+                <td className="n">{x.pace == null ? <span className="sub">—</span> : `− ${big(x.pace)}`}</td>
+                <td className="n"><b>{big(x.effective)}</b>{x.share != null && <span className="cap-sheet-k">{Math.round(x.share * 100)}% of design</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="vc-says thr-says">{t.sentence}</p>
+      {t.countSays && <p className="vc-says thr-count">{t.countSays}</p>}
+      {c && c.utilisation != null && (
+        <ul className="thr-ratios" aria-label="The two ratios">
+          <li><b>{Math.round(c.utilisation * 100)}%</b> <span className="sub">utilisation — made ÷ built to make</span></li>
+          {c.efficiency != null && <li><b>{Math.round(c.efficiency * 100)}%</b> <span className="sub">efficiency — made ÷ can really make</span></li>}
+          {c.loading != null && <li><b>{Math.round(c.loading * 100)}%</b> <span className="sub">loading — what the target asks ÷ can really make</span></li>}
+        </ul>
+      )}
+      {t.money && <p className={'cap-money thr-money' + (c?.short != null && c.short > 0 ? ' is-r' : '')}>{t.money}</p>}
+      {t.notes.length > 0 && <ul className="cap-notes thr-notes" role="note">{t.notes.map(n => <li key={n}>{n}</li>)}</ul>}
+      {inputs.counted?.id && <button type="button" className="linkish thr-go" onClick={() => nav(`#/losses/${inputs.counted?.id}`)}>Where the shift’s packs went — the loss count ›</button>}
     </div>
   );
 }

@@ -658,11 +658,34 @@ export interface ScoredRow {
   likelihood?: number;
   ccp?: boolean;
   standby?: boolean;
+  /** Impact and effort (FC-144 — the PICK chart): each a whole number 1–5. */
+  impact?: number;
+  effort?: number;
+  /** What it is worth a year, £ · the hours it takes · any other spend, £ — all optional, typed. */
+  worthGbp?: number;
+  hours?: number;
+  spendGbp?: number;
+  /** A MATRIX (Pugh, FC-143): this row is an OPTION; its mark on each criterion by the criterion's id — +1 better, 0 same, −1 worse than the datum. */
+  scores?: Record<string, number | undefined>;
+  /** A matrix option's cost in pounds, typed (optional) — shown beside the score, never in it. */
+  cost?: number;
+}
+
+/** A criterion of a matrix (Pugh): what matters in the choice, with a whole-number weight 1–5 (blank = 1). */
+export interface ScoredCriterion {
+  id: string;
+  name: string;
+  weight?: number;
 }
 
 export interface AgreedScored {
   key: string;
   rows: ScoredRow[];
+  /** £ an hour for the people doing the work (FC-144) — typed, or taken from the line's wage × on-costs; optional. */
+  rate?: number;
+  /** A matrix (Pugh, FC-143): the criteria, and what the options are set against ("Present state"). */
+  criteria?: ScoredCriterion[];
+  datum?: string;
 }
 
 /** A CALCULATOR (src/tools/calc; knowledge/specs/FC-235-calculators.md — 25 October): which one it is (`key`, the name of its

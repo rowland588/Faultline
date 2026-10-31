@@ -2,6 +2,8 @@
 import type { Entry } from '../types';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 import { logBuilt } from '../../tools/checks/built';
+import { pughBuilt } from '../../tools/pugh/built';
+import { scoredBuilt } from '../../tools/scored/built';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -70,7 +72,10 @@ export const QUALITY: Entry[] = [
     food: 'Rejects, write-offs, retailer credits, recalls.',
     depends: ['FC-098', 'FC-134', 'FC-190'],
     complexity: 'M', value: 'medium', valueWhy: 'Puts quality in the language of the business.',
-    status: 'to-build', form: 'report', methods: ['quality.copq'], scenarios: ['quality', 'money'], words: ['COPQ', 'cost of quality'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['quality.copq'], scenarios: ['quality', 'money'], words: ['COPQ', 'cost of quality'],
+    built: { where: ['/calc/copq'], code: [...CALC_CODE, 'src/tools/calc/defs/copq.ts', 'src/tools/copq/copq.ts'], tests: [...CALC_TESTS, 'src/tools/copq/__tests__/copq.test.ts'], acceptance: ['calc-shape.mjs'] },
+    spec: 'knowledge/specs/FC-128-cost-of-poor-quality.md',
+    limits: ['Every item is typed (or priced from hours, packs and the unit costs given): the rejects by fate, holds, complaints and quality stops are not yet read from the records that count them.', 'One period a record; the trend is the saved before and the line’s list of records, not a chart over many periods.', 'The failure is ranked in words and in the working — no Pareto is drawn.', 'Complaints per million (FC-134) is not built; the cost of a complaint is the business’s own typed figure.'],
   },
   {
     id: 'FC-129', name: 'Acceptance sampling by attributes — AQL plans', discipline: 'quality', sub: 'inspection',
@@ -143,9 +148,22 @@ export const QUALITY: Entry[] = [
     inputs: 'Complaints with type, product, line, date code; units sold.',
     outputs: 'CPMU trend; the Pareto; the lines.',
     food: 'Retailer complaint reporting.',
-    depends: ['FC-150', 'FC-128'],
+    depends: ['FC-235'],
     complexity: 'S', value: 'medium', valueWhy: 'The customer’s view of quality, normalised.',
-    status: 'to-build', form: 'report', methods: ['quality.complaints'], scenarios: ['quality'], words: ['complaints', 'CPMU', 'foreign body'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['quality.complaints'], scenarios: ['quality'], words: ['complaints', 'CPMU', 'foreign body', 'complaint rate', 'retailer'],
+    built: {
+      where: ['/calc/complaints-per-million'],
+      code: [...CALC_CODE, 'src/tools/calc/defs/complaints.ts', 'src/tools/complaints/complaints.ts', 'src/lib/ie/dist.ts'],
+      tests: [...CALC_TESTS, 'src/tools/complaints/__tests__/complaints.test.ts'],
+      acceptance: ['calc-shape.mjs'],
+    },
+    spec: 'knowledge/specs/FC-134-complaints.md',
+    limits: [
+      'One period at a time: the rate trend over many periods and the u-chart across them are not drawn (a saved before reads the next period against it; FC-086 charts can take the rate as a measurement).',
+      'Complaints are typed as counts by six kinds; each is not logged with its product, lot or date code, so there is no kind × product table and no matching to the week made.',
+      'One cost is taken for every complaint, so the Pareto is by number, never by money; a cost per kind or seriousness is not asked (FC-128 will sum the buckets).',
+      'A serious complaint does not open an 8D from here (FC-150 not built).',
+    ],
   },
   {
     id: 'FC-135', name: 'Product on hold — non-conformance and release', discipline: 'quality', sub: 'customer',
@@ -257,7 +275,11 @@ export const QUALITY: Entry[] = [
     food: 'Choosing between three fixes for film breaks.',
     depends: ['FC-144', 'FC-191'],
     complexity: 'S', value: 'low', valueWhy: 'Makes the choice explicit.',
-    status: 'to-build', form: 'component', methods: ['sixsigma.selection-matrices'], scenarios: ['project'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'pugh', label: 'Pugh matrix', says: 'Choose between solutions: each option marked better, same or worse than the datum on the criteria you agreed first', icon: 'board', order: 23.6 },
+    methods: ['sixsigma.selection-matrices'], scenarios: ['project'], words: ['Pugh', 'decision matrix', 'choose a fix', 'which countermeasure', 'options'],
+    built: pughBuilt,
+    spec: 'knowledge/specs/FC-143-pugh-matrix.md',
+    limits: ['It ranks options against one datum by the team’s judgement — it is not a measurement, and a different datum can change the order.', 'Marks are better, same or worse; not by how much.', 'An option’s cost is typed and shown beside the score, never in it; payback and NPV of a capital option are the Payback and NPV calculator’s (FC-191) — the two are not joined.', 'Rounds of convergence are not kept as a history — edit the matrix and read it again.'],
   },
   {
     id: 'FC-144', name: 'Impact and effort — which countermeasure first', discipline: 'sixsigma', sub: 'decide',
@@ -269,7 +291,11 @@ export const QUALITY: Entry[] = [
     food: 'A 6M’s countermeasures on a packing line.',
     depends: ['FC-146', 'FC-191'],
     complexity: 'S', value: 'medium', valueWhy: 'Orders the action plan.',
-    status: 'to-build', form: 'component', methods: ['sixsigma.selection-matrices'], scenarios: ['project'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'impact-effort', label: 'Impact and effort', says: 'Which countermeasure first — impact against effort, in order, with what the quick wins are worth', icon: 'list', order: 23.5 },
+    methods: ['sixsigma.selection-matrices'], scenarios: ['project'], words: ['PICK chart', 'quick wins', 'impact effort matrix', 'prioritise countermeasures'],
+    built: (() => { const b = scoredBuilt('impact-effort'); return { ...b, code: [...b.code, 'src/lib/ie/pick.ts'], tests: [...b.tests, 'src/lib/ie/__tests__/pick.test.ts'] }; })(),
+    spec: 'knowledge/specs/FC-144-impact-effort.md',
+    limits: ['The scores and the £ a year are typed — not read from the 6M problem or the Pareto bar yet.', 'The quick wins are not put on the Actions in one tap.', 'Payback is a plain division, not NPV (FC-191); Pugh (FC-143) is a separate register.'],
   },
   {
     id: 'FC-145', name: 'QFD — the house of quality', discipline: 'sixsigma', sub: 'define',

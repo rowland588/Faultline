@@ -4,14 +4,14 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **236 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 19 tools a person can open on a page of their own. Built inside them: 92 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 37. Not built yet: 69; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 21 tools a person can open on a page of their own. Built inside them: 99 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 35. Not built yet: 62; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 124 |
-| Partly (`partial`) | 24 |
+| Available (`available`) | 132 |
+| Partly (`partial`) | 23 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 69 |
+| Not built yet (`to-build`) | 62 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -19,9 +19,9 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
-| Lean manufacturing and waste | 19 | 8 | 2 |  | 8 | 1 |  |
+| Lean manufacturing and waste | 19 | 8 | 3 |  | 7 | 1 |  |
 | Industrial engineering and work measurement | 14 | 7 | 3 |  | 3 | 1 |  |
-| Capacity, throughput and bottlenecks | 17 | 9 | 4 |  | 3 | 1 |  |
+| Capacity, throughput and bottlenecks | 17 | 11 | 2 |  | 3 | 1 |  |
 | Equipment performance and losses | 10 | 7 | 1 |  |  |  | 2 |
 | Maintenance, reliability and TPM | 11 | 10 |  |  |  | 1 |  |
 | Changeovers | 5 | 2 | 2 |  | 1 |  |  |
@@ -29,17 +29,17 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
 | Statistical analysis | 15 | 12 | 1 |  | 1 | 1 |  |
 | Measurement systems | 6 | 6 |  |  |  |  |  |
-| Quality engineering and defects | 14 | 3 |  |  | 9 | 2 |  |
-| Six Sigma and DMAIC | 8 |  | 2 |  | 6 |  |  |
+| Quality engineering and defects | 14 | 5 |  |  | 7 | 2 |  |
+| Six Sigma and DMAIC | 8 | 2 | 2 |  | 4 |  |  |
 | Root cause and problem solving | 10 | 4 | 2 |  | 4 |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
 | Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |
 | Production planning and scheduling | 8 | 1 |  |  | 7 |  |  |
-| Cost and operational performance | 6 | 4 |  |  | 1 |  | 1 |
-| Visual and daily management | 15 | 7 | 4 |  | 4 |  |  |
+| Cost and operational performance | 6 | 5 |  |  |  |  | 1 |
+| Visual and daily management | 15 | 8 | 3 |  | 4 |  |  |
 | Ergonomics, layout and automation | 6 | 1 |  |  | 5 |  |  |
-| Projects and continuous improvement | 10 | 1 | 1 |  | 4 |  | 4 |
+| Projects and continuous improvement | 10 | 1 | 2 |  | 3 |  | 4 |
 | Skills and training | 4 |  | 1 |  | 3 |  |  |
 | Energy, water and environment | 4 |  |  |  | 3 | 1 |  |
 
@@ -71,11 +71,11 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 72
-- a mode of another tool: 76
-- a part several tools share: 36
+- a tool of its own: 78
+- a mode of another tool: 77
+- a part several tools share: 32
 - a way through several tools: 8
-- a report or board: 32
+- a report or board: 29
 - decided after research: 12
 
 ## Research first
@@ -112,11 +112,11 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
 - FC-105 Before and after — did it move, for a reason — 11 modes inside it
-- FC-073 The stage gate — new equipment to handover — 9 modes inside it
+- FC-073 The stage gate — new equipment to handover — 8 modes inside it
+- FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 6 modes inside it
 - FC-001 Value stream map — current and future state — 5 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 5 modes inside it
 - FC-058 Reliability — MTBF and failure rate, several things counted at once — 5 modes inside it
-- FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 4 modes inside it
 - FC-086 Individuals and moving range chart (XmR) — 4 modes inside it
 - FC-098 Reject rate capability — rejects out of what was made — 3 modes inside it
 - FC-146 6M — a running line made to perform better — 3 modes inside it

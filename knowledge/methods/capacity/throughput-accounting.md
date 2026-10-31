@@ -115,9 +115,13 @@ bottleneck line or move it to a slower line with spare hours.
 - [textbook] Noreen, E., Smith, D. and Mackey, J.T., *The Theory of Constraints and its Implications for Management Accounting*, North River Press, 1995 (from knowledge).
 
 ## In Faultline
-Arithmetic built (`src/lib/ie/mix.ts` mix, with its test; FC-042 partly —
-no screen). The line's margin a pack (`knowledge/MONEY.md` §3) is T per
-unit; Line capacity's bottleneck rate per product gives T per constraint
-minute. A screen would rank the week's orders on the full constraint and
-say the constraint minute's worth — the figure every stop and changeover
-on that line is then priced with.
+Built (31 October, FC-042, `knowledge/specs/FC-042-product-mix.md`): on the line's capacity panel — *Which first
+when the line is full?* — `src/tools/linebalance/capacityMix.ts` over `src/lib/ie/mix.ts`. Each product with a
+Line capacity is a row: its speed (the good packs a minute its capacity makes), its orders (the panel's *Will next
+week's orders fit?*), and a **price and materials a pack** typed beside them (kept in the product's Line capacity
+document; the line's materials and margin a pack stand in, said, and then the ranking is by speed alone). Ranked by
+T per constraint minute, the week's minutes (the line's SMED running pattern, else its planned hours) filled in that
+order, the unmade by name and worth, the week's throughput against the same week by margin a pack, and a minute
+lost at the constraint priced at the marginal product — only while the week is full (otherwise "not output lost
+yet"). Changeovers between products are not taken off the week (the sequencing tools’ job); the worked
+case above is the unit test's, with a second brute-forced in `scripts/knowledge/cases-capacity-three-mix.py`.

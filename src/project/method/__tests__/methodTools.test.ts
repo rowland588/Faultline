@@ -11,6 +11,14 @@ describe('how a default tool stands', () => {
     expect(toolStateWord(h)).toMatch(/^Built/);
   });
 
+  it('impact and effort (a scored register) is a tool with a page of its own, built', () => {
+    const h = howTool('FC-144');
+    expect(h.how).toBe('tool');
+    expect(openable(h)?.key).toBe('impact-effort');
+    expect(openable(h)?.to).toBe('/scored/impact-effort');
+    expect(toolStateWord(h)).toBe('Built');
+  });
+
   it('a mode of a tool opens that tool and says so', () => {
     const h = howTool('FC-105'); // before and after — in Analysis
     expect(['tool', 'inside']).toContain(h.how);
@@ -20,7 +28,7 @@ describe('how a default tool stands', () => {
   });
 
   it('a tool not built yet has nothing to open and says so in the catalogue’s word', () => {
-    const h = howTool('FC-144'); // impact and effort
+    const h = howTool('FC-043'); // drum–buffer–rope
     expect(h.how).toBe('notyet');
     expect(openable(h)).toBeUndefined();
     expect(toolStateWord(h)).toBe('Not built yet');

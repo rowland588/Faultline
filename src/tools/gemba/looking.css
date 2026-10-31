@@ -1,0 +1,20 @@
+/* FC-199 — how fresh the looking is. One colour, one meaning: fading is amber, stale is red, each with its words;
+   fresh is neutral (the normal recedes). */
+.lk { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.lk-row { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.lk-row.is-fading { border-color: var(--st-a); }
+.lk-row.is-stale { border: 2px solid var(--st-r); }
+.lk-says { display: flex; align-items: flex-start; gap: 8px; font-weight: 700; color: var(--ink); line-height: 1.3; min-width: 0; overflow-wrap: anywhere; }
+.lk-says svg { flex: none; margin-top: 2px; }
+.lk-row.is-fading .lk-says { color: var(--st-a); }
+.lk-row.is-stale .lk-says { color: var(--st-r); }
+.lk-more { margin: 0; font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; }
+.lk-foot { margin: 0; font-size: var(--t-label); color: var(--muted); }
+.lk-go { justify-self: start; min-height: 44px; font: inherit; font-weight: 700; color: var(--brand); background: none; border: 0; padding: 0 2px; cursor: pointer; text-align: left; }
+.lk-note { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 8px 10px; min-height: 44px; border-top: 1px solid var(--line); font-size: var(--t-body); font-weight: 700; overflow-wrap: anywhere; }
+.lk-note.is-fading { color: var(--st-a); }
+.lk-note.is-stale { color: var(--st-r); }
+.lk-note svg { flex: none; margin-top: 3px; }
+.fac-card-looked { font-size: var(--t-detail); color: var(--ink-2); }
+.fac-card-looked.is-fading { color: var(--st-a); font-weight: 700; }
+.fac-card-looked.is-stale { color: var(--st-r); font-weight: 700; }

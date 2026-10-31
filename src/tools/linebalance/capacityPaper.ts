@@ -23,6 +23,7 @@
  * can do (red), one under the V or a machine not on its plate speed (amber),
  * a person over takt (red). The bottleneck is marked, not coloured — it is
  * the limit, not a failure. */
+import { threeCapacities, type CountedShift } from './capacityThree';
 import { allowanceOf, analyse, bottleneckCost, bottleneckCostSays, changedWords, compareSays, fmtMoney, labourCost, oneMorePerson, shiftCapacity, screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations, type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station } from './capacity';
 import { cycleWords, fmtBig, fmtN, oneOf } from './capacityWords';
 import { shortSays } from './capacitySays';
@@ -122,6 +123,9 @@ export interface CapacityPaper {
   plan?: { says: string; steps: string[]; sum?: string };
   /** Capacity a shift (lib/capacity shiftCapacity). */
   shift?: { rows: CapacityPaperShift[]; day?: CapacityPaperShift; sentence: string };
+  /** Capacity's three numbers (tools/linebalance/capacityThree) — what a shift is built to make, can really make and, once one is
+   *  counted, made; the two ratios, the shortfall in money. The screen's own sentences. */
+  three?: { paper: string };
   /** What a pack costs in labour, and one more person at the bottleneck. */
   labour?: { says: string; more?: string };
   /** WHAT THE BOTTLENECK COSTS A PACK, under the headline (lib/capacity
@@ -191,6 +195,9 @@ export interface CapacityPaperIn {
   shifts?: ShiftIn[];
   /** The changeover into this product (lib/ie/changeover changeoverIn). */
   co?: ChangeoverIn;
+  /** The line's newest counted shift (tools/linebalance/capacityThree countedShiftOf) and its contribution a pack — for the three numbers. */
+  counted?: CountedShift;
+  contribution?: number;
   labour: LabourInputs;
   /** The line's contribution a pack (its margin), for what the packs not made are worth. */
   margin?: number;
@@ -279,6 +286,10 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     sentence: sc.sentence,
   } : undefined;
 
+  /* THE THREE NUMBERS — read by the module the screen reads, so the two never part */
+  const th = x.shifts ? threeCapacities(r, x.shifts, x.co, x.counted, { ...(x.contribution != null ? { contribution: x.contribution } : {}), ...(r.target != null ? { targetPerMin: r.target } : {}) }) : undefined;
+  const three = th && th.rows.length && th.paper ? { paper: th.paper } : undefined;
+
   /* WHAT A PACK COSTS IN LABOUR — and where its people and rate came from,
      so a stand-in is never read as a decision. */
   const says = labourSays(r, x.labour);
@@ -318,6 +329,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     check,
     ...(plan && plan.steps.length ? { plan: { says: plan.sentence, steps: plan.steps.map(x => x.text), ...(plan.reached ? { sum: plan.sentence.split(' — ').pop() as string } : {}) } } : {}),
     ...(shift ? { shift } : {}),
+    ...(three ? { three } : {}),
     ...(labour ? { labour } : {}),
     ...(x.work ? { work: { text: x.work.text, lines: x.work.lines.map(l => ({ text: l.text, tone: (l.tone === 'r' || l.tone === 'a' ? l.tone : 'n') as Tone })) } } : {}),
     whatIfs,
