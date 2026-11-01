@@ -105,7 +105,7 @@ export const SPC_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'Set the limits',
-        means: 'Control limits are where an ordinary reading of this process should land, worked out from its own readings: the centre plus and minus 2.66 times the average moving range (the gap between each reading and the one before). They are not the specification. Until you set them they are provisional and move with every reading, which is no use for spotting a change.',
+        means: 'Control limits are where an ordinary reading of this process should land, worked out from its own readings: the centre plus and minus 2.66 times the average moving range (the gap between each reading and the one before). They are not the specification. Until you set them they are provisional — drawn from the readings so far and said to be — and a chart whose limits are not kept cannot be trusted to signal.',
         doThis: 'Take twenty readings from a stretch you believe was normal, then press Set the limits. After a deliberate change to the process, use Set them again from the latest 20; the old centre stays on the page as “set before”.',
         youGet: 'A centre line and an upper and lower control limit (UCL, LCL) with their values beside the chart, a moving range chart under it with its own upper limit, and a line saying who set the limits and from which readings.',
       },
@@ -185,7 +185,7 @@ export const SPC_GUIDES: Record<string, Guide> = {
         step: 'The shift worth catching',
         means: 'How big a move, in the chart’s own unit, would be worth acting on — 0.8 g on a fill weight, say. The CUSUM adds up each reading’s distance from the target, ignoring the part smaller than half that shift, so a small steady drift piles up while ordinary scatter cancels out.',
         doThis: 'Type it in the chart’s agreement (Change what was agreed if the chart exists) as a number above 0, in the unit. Also type a Target if there is one; with none the CUSUM runs against the chart’s centre.',
-        youGet: 'A CUSUM picture under the chart — two lines, the high side and the low side, against a decision line H. Left empty, the Since tile reads “CUSUM off — turn it on to say since when”.',
+        youGet: 'A CUSUM picture under the chart — two lines, the high side and the low side, against a decision line H. Left empty, the Since tile reads “CUSUM off”, with “turn it on to say since when” beneath it.',
       },
       {
         step: 'Draw the running level',
@@ -496,7 +496,7 @@ export const SPC_GUIDES: Record<string, Guide> = {
       {
         step: 'A group at a time',
         means: 'Each group is a chip with its count; you name a new one and put its readings in.',
-        doThis: 'Name the first group and press Add the shift, then type its readings on the pad (↵ after each) or paste a column; then name the next. A group needs at least 3 readings and there must be two such groups to compare. From 20 in a group the page can also check bell shape.',
+        doThis: 'Name the first group and press the button after it (it uses your word: “Add the shift”), then type its readings on the pad (↵ after each) or paste a column; then name the next. A group needs at least 3 readings and there must be two such groups to compare. From 20 in a group the page can also check bell shape.',
         youGet: 'A dot for every reading on its group’s line, with the group’s average and its interval. A group with fewer than 3 is listed as Too few and left out until it has more.',
       },
       {
