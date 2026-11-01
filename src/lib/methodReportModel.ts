@@ -18,6 +18,7 @@ import { fieldsOf } from './methodSheet';
 import type { ProjectMethod } from './methods';
 import type { LeanPage, LeanTile } from './lean';
 import type { ToolStudy } from './study';
+import type { StudyContext } from './studyLinks';
 import { niceDay } from './weeks';
 
 export type ReportTone = DashTone;
@@ -81,6 +82,8 @@ export interface MethodReportCtx {
   dash: Dashboard;
   owed: readonly ReportOwed[];
   today: string;
+  /** What the tools' sentences read of their lines — the line standards, stops and cost models (a method's own sections may read the same records). */
+  ctx?: StudyContext;
   /** A written answer by field id, '' when not written. */
   answer: (field: string) => string;
 }
@@ -127,7 +130,7 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   const askable = dash.sections.filter(s => s.fields > 0);
 
   /* (e) the method's own sections — the registry's entry, if the method has one */
-  const ownSections = own ? own({ method: m, project: x.project, line: x.line, answers: x.answers, studies: live, findings: dash.findings, dash, owed: x.owed, today: x.today, answer }) : [];
+  const ownSections = own ? own({ method: m, project: x.project, line: x.line, answers: x.answers, studies: live, findings: dash.findings, dash, owed: x.owed, today: x.today, answer, ...(x.ctx ? { ctx: x.ctx } : {}) }) : [];
   const flags: DashAttention[] = ownSections.flatMap(s => (s.flags ?? []).map(f => ({ kind: 'finding' as const, tone: f.tone, text: f.text })));
   const attention = [...dash.attention, ...flags].sort((a, b) => ({ r: 0, a: 1, n: 2 }[a.tone] - { r: 0, a: 1, n: 2 }[b.tone]));
   const toLook = attention.filter(a => a.tone !== 'n').length;

@@ -28,6 +28,8 @@ import { kaizenInsight } from './methodInsights/kaizen-event';
 
 import { kataInsight } from './methodInsights/kata';
 
+import { tocInsight } from './methodInsights/toc';
+
 export const METHOD_INSIGHT: Partial<Record<MethodKey, MethodInsightFn>> = {
   pdca: pdcaInsight,
   dmaic: dmaicInsight,
@@ -35,4 +37,5 @@ export const METHOD_INSIGHT: Partial<Record<MethodKey, MethodInsightFn>> = {
  a3: a3Insight,
   'kaizen-event': kaizenInsight,
   kata: kataInsight,
+ toc: tocInsight,
 };

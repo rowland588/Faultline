@@ -19,6 +19,8 @@ import { kaizenEventReport } from './kaizen-event';
 
 import { kataReport } from './kata';
 
+import { tocReport } from './toc';
+
 export const METHOD_REPORT: Partial<Record<MethodKey, MethodReportFn>> = {
   pdca: pdcaReport,
   dmaic: dmaicReport,
@@ -26,6 +28,7 @@ export const METHOD_REPORT: Partial<Record<MethodKey, MethodReportFn>> = {
  a3: a3Report,
   'kaizen-event': kaizenEventReport,
   kata: kataReport,
+ toc: tocReport,
 };
 
 export type { MethodReportCtx, MethodReportFn, ReportItem, ReportSection } from '../../../lib/methodReportModel';
