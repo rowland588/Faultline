@@ -86,7 +86,12 @@ const whatIfTruth = (key, inputs, id, val) => page.evaluate(async ([key, inputs,
 async function fill(def, inputs) {
   for (const f of def.inputs.filter(f => f.kind === 'choice')) {
     const want = inputs[f.id] ?? f.def;
-    if (want === null || want === undefined) continue;
+    if (want === null || want === undefined) {
+      /* an optional choice the example does not give (a step of a flow chart): cleared, as a person would, when one is set */
+      const clear = page.locator(`[data-clear="${f.id}"]`);
+      if (f.optional && (await clear.count())) await clear.click();
+      continue;
+    }
     await page.locator(`[data-field="${f.id}"] [data-value="${want}"]`).click();
   }
   await page.waitForTimeout(150);

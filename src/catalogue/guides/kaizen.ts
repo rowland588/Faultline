@@ -58,4 +58,52 @@ export const KAIZEN_GUIDES: Record<string, Guide> = {
     ],
     watch: 'Do not name a person as the waste. Waste is in the process; a walk that blames people ends the walks. And storage and inspection that the law or the HACCP plan requires are not waste to remove — they may be waste to shorten.',
   },
+  'FC-003': {
+    intro: 'For following one thing — a tray, a pallet, an ingredient — from where it starts to where it ends, and seeing how many of its steps change it and how many only move it, check it or let it wait.',
+    steps: [
+      {
+        step: 'What is it of?',
+        means: 'The chart is of ONE thing’s path: one tray, one pallet, one batch of an ingredient. Name it by where it starts and ends, so anyone who opens it knows which path it is.',
+        doThis: 'Press New calculation under Process flow chart and type the path’s name — “Tray, oven to despatch”. Pick the line it is on if you want the line’s wage offered later. Then follow the thing on the floor with the phone, not from the written procedure.',
+        youGet: 'A saved chart with its name, ready for its first step. Nothing is made up: it stays empty until you type a step.',
+      },
+      {
+        step: 'Step 1 is a',
+        means: 'Every step is one of five kinds, drawn with its own symbol: an Operation changes the product (mixed, baked, packed); a Transport moves it; an Inspection checks or counts it; a Delay holds it unplanned (waiting for a forklift); a Storage holds it by design (a chill, a proving time).',
+        doThis: 'For each thing that happens to the product, in order, tap the one kind that fits. If you cannot decide between Delay and Storage, ask whether it was meant to wait: a planned chill is Storage, a pallet nobody collected is a Delay.',
+        youGet: 'The step is on the chart with its symbol, and the next step’s boxes appear below it.',
+      },
+      {
+        step: 'Step 1 takes, and moves it',
+        means: 'How many minutes the step took, and — for a transport only — how many metres the product was moved. These are the figures the whole chart is added up from.',
+        doThis: 'Time the step with a clock or take it from the standard, and type the minutes; a transport also takes its metres, paced out on the floor or read off the layout. Leave a box empty if you do not know yet — the step still counts, and the page tells you which are missing.',
+        youGet: 'Under the boxes, a plain warning for any step with no time or any transport with no distance — never a figure the page made up.',
+      },
+      {
+        step: 'The chart and what it says',
+        means: 'The steps down the page in the order they happen, each with its symbol, its words, its minutes and its metres — and above them one sentence and five tiles: how many steps, how much of the time is operations, how much is waiting, how far it travels.',
+        doThis: 'Read the sentence first. Then look at the longest delay and the longest transport it names: those are the first things to ask “why is that there?” about. A chill that is meant to be there is counted as waiting but shown separately, so it does not hide the real delays.',
+        youGet: 'A sentence like “14 steps: 4 change the product … 3.9% of the time is operations and 93% is waiting”, the chart, and a second share with the planned storage set aside.',
+      },
+      {
+        step: 'In money',
+        means: 'What the moving, checking and waiting cost: a person’s minutes on the transports and inspections at their hourly cost, and what holding the product costs while it waits, at the yearly rate finance uses for stock.',
+        doThis: 'Open In money and type how many times a day the path is followed, the hourly cost of the person (the line’s own is offered), what one load is worth and the yearly holding rate. Every box is optional — leave any empty and the page says which one it still needs.',
+        youGet: 'Labour a day on the moves and checks and what holding a load through its waits costs a day — or the one sentence saying what to add. The chart’s answer never waits on it.',
+      },
+      {
+        step: 'Question it, then compare',
+        means: 'The chart is the record; the improvement is the questioning after it. For every step that is not an operation ask why it is there, whether it can go, be combined with another, be moved, or be made simpler — then draw the path again as it would be.',
+        doThis: 'Press Save as the before on the chart as it is. Then change the steps to the questioned path — take a delay out, shorten a transport — and look at the tiles: each says how many steps, minutes and metres fewer than the saved before.',
+        youGet: 'A before → after on the same chart: steps fewer, time in operations up, waiting and metres down, each in words.',
+      },
+      {
+        step: 'On paper',
+        means: 'The same chart drawn on a page for the team and the sponsor: the symbols, every step’s words, minutes and metres, the sentence, the money and what the chart does not say.',
+        doThis: 'Open Report ▾ on the chart and take the paper. Put it on the wall next to the line while the team questions the steps.',
+        youGet: 'A page you can mark up with a pen — circle the delays, strike the transports that could go — and bring back to type the questioned path.',
+      },
+    ],
+    watch: 'Draw what the product really does, not what the procedure says it should do — and do not call a planned storage waste. The delays and the long transports are the questions; the chill that the product needs is not.',
+  },
 };

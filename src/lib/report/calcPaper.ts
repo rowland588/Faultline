@@ -10,7 +10,8 @@ import type { LeanTile, LeanTone } from '../lean';
 import type { ToolStudy } from '../study';
 import { INK2, MUTED, LINE, BRAND, WARN, san } from '../reportKit';
 import { askedFields, beforeRun, inputSaid, studyCalc, tilesSince } from '../../tools/calc/calc';
-import type { CalcPicture } from '../../tools/calc/types';
+import type { CalcChart, CalcPicture } from '../../tools/calc/types';
+import { symbolShape } from '../../tools/flow/symbols';
 import { font, label, rows, text, wrap, type Row } from './blocks';
 import { leanHead } from './lean';
 import type { Block, Frame } from './flow';
@@ -72,6 +73,43 @@ export function pictureBlock(pic: CalcPicture): Block {
   }], after: 's' });
 }
 
+/** A chart of steps (the process flow chart, FC-003): the ASME symbols down the page joined by a line, each step's words and its two figures — one row to a step,
+ *  the same description the screen draws. A row is as tall as its words. */
+export function chartBlock(chart: CalcChart): Block {
+  const R = 15;
+  const wordsOf = (f: Frame, what: string) => wrap(f.doc, `${what}`, f.w - 44 - 110, 8.5);
+  const head: Row = {
+    h: () => 14,
+    draw: (fr, y) => {
+      font(fr.doc, 7.5, 'bold', MUTED);
+      fr.doc.text(san(chart.head[0]), fr.x + 36, y + 9);
+      fr.doc.text(san(chart.head[1]), fr.x + fr.w - 66, y + 9, { align: 'right' });
+      fr.doc.text(san(chart.head[2]), fr.x + fr.w, y + 9, { align: 'right' });
+    },
+  };
+  const row = (r: CalcChart['rows'][number]): Row => ({
+    h: f => Math.max(R, wordsOf(f, `${r.n}. ${san(r.what)}`).length * 10 + 5),
+    draw: (fr, y) => {
+      const d = fr.doc, hh = Math.max(R, wordsOf(fr, `${r.n}. ${san(r.what)}`).length * 10 + 5), cy = y + hh / 2;
+      d.setDrawColor(MUTED); d.setLineWidth(0.8);
+      if (r.n > 1) d.line(fr.x + 10, y, fr.x + 10, cy - 6);
+      d.line(fr.x + 10, cy + 6, fr.x + 10, y + hh);
+      const sh = symbolShape(r.symbol, fr.x + 10, cy, 5.5);
+      d.setDrawColor(INK2); d.setLineWidth(r.symbol === 'O' ? 1.4 : 0.9); d.setFillColor('#ffffff');
+      if ('circle' in sh) d.circle(sh.circle.cx, sh.circle.cy, sh.circle.r, 'FD');
+      else { const [p0, ...rest] = sh.poly; d.lines(rest.map((p, i) => [p[0] - (i ? rest[i - 1][0] : p0[0]), p[1] - (i ? rest[i - 1][1] : p0[1])] as [number, number]), p0[0], p0[1], [1, 1], 'FD', true); }
+      font(d, 5.5, 'bold', INK2); d.text(r.symbol, fr.x + 10, cy + 2, { align: 'center' });
+      font(d, 8.5, 'normal', INK2);
+      wordsOf(fr, `${r.n}. ${san(r.what)}`).forEach((l, k) => d.text(l, fr.x + 36, y + 9 + k * 10));
+      font(d, 8.5, 'normal', INK2);
+      d.text(san(r.time), fr.x + fr.w - 66, y + 9, { align: 'right' });
+      if (r.distance) d.text(san(r.distance), fr.x + fr.w, y + 9, { align: 'right' });
+      d.setDrawColor(LINE); d.setLineWidth(0.4); d.line(fr.x + 24, y + hh, fr.x + fr.w, y + hh);
+    },
+  });
+  return rows({ header: head, rows: chart.rows.map(row), after: 'm' });
+}
+
 export interface CalcPaperParts {
   eyebrow: string;
   verdict: { text: string; tone: LeanTone };
@@ -103,6 +141,7 @@ export function calcPaperParts(s: ToolStudy): CalcPaperParts | undefined {
     const more = [...(r.more ?? []), ...run.problems.filter(p => !p.block).map(p => `Check: ${p.say}`)];
     if (more.length) { out.push(label('What else it says')); for (const m of more) out.push(text({ text: m, size: 8.5, colour: m.startsWith('Check:') ? WARN : INK2, after: 2 })); }
     if (r.picture) { out.push(leanHead(r.picture.title)); out.push(pictureBlock(r.picture)); out.push(text({ text: r.picture.caption, size: 8, colour: MUTED, after: 4 })); }
+    if (r.chart) { out.push(leanHead(r.chart.title)); out.push(chartBlock(r.chart)); out.push(text({ text: r.chart.caption, size: 8, colour: MUTED, after: 4 })); }
   } else out.push(text({ text: `Not worked out yet: ${run.problems.filter(p => p.block).map(p => p.say).join(' ')}`, size: 9, colour: WARN, after: 4 }));
 
   out.push(leanHead('The figures put in'));

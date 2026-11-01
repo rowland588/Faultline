@@ -50,6 +50,9 @@ function Box({ f, p }: { f: Field; p: Props }) {
           {unit}
         </span>
       )}
+      {f.kind === 'choice' && f.optional && !f.default && !p.disabled && raw !== undefined && raw !== '' && (
+        <button type="button" className="linkish calc-clear" data-clear={f.id} onClick={() => p.onEdit(f.id, '')}>Clear this choice</button>
+      )}
       {f.help && <span className="sub calc-help">{f.help}</span>}
       {f.chosen && <span className="sub calc-chosen" data-chosen={f.id}><b>A choice, not a measurement.</b> {f.chosen}</span>}
       {f.from && !p.disabled && (

@@ -27,6 +27,16 @@ describe('how a default tool stands', () => {
     if (mode.how === 'inside') expect(toolStateWord(mode)).toMatch(/^A mode of /);
   });
 
+  it('a calculator’s row opens at its own address, inside the Calculators hub, and New starts that calculator', () => {
+    const h = howTool('FC-003');                                  // the process flow chart — a calculator (Kaizen event, Observe)
+    expect(h.how).toBe('inside');
+    expect(openable(h)?.to).toBe('/calc/process-flow');
+    expect(openable(h)?.key).toBe('calc');
+    expect(toolStateWord(h)).toBe('A mode of Calculators');
+    expect(openable(howTool('FC-215'))?.to).toBe('/calc/critical-path');   // every built calculator opens the same way
+    expect(openable(howTool('FC-128'))?.to).toBe('/calc/copq');
+  });
+
   it('a tool not built yet has nothing to open and says so in the catalogue’s word', () => {
     const h = howTool('FC-043'); // drum–buffer–rope
     expect(h.how).toBe('notyet');

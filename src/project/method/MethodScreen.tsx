@@ -63,9 +63,13 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
   if (!project || !method) return <p className="sub wrap">That project is not on this device.</p>;
 
+  /* a calculator's row counts its own calculations (/calc/<key>), not every calculator in the project */
+  const usesOf2 = (t: AppTool): { n: number; latest?: string } | undefined => (/^\/calc\/./.test(t.to)
+    ? { n: (got?.studies ?? []).filter(x => x.tool === 'calc' && x.agreed?.calc?.key === t.to.slice(6)).length }
+    : uses.get(t.key));
   const usedIn = (s: MethodSection) => {
     const keys = new Set<string>();
-    for (const id of s.tools) { const t = openable(howTool(id)); if (t && (uses.get(t.key)?.n ?? 0) > 0) keys.add(t.key); }
+    for (const id of s.tools) { const t = openable(howTool(id)); if (t && (usesOf2(t)?.n ?? 0) > 0) keys.add(`${t.key}${t.to}`); }
     return keys.size;
   };
   const placed = new Set(method.sections.flatMap(s => s.tools.map(id => openable(howTool(id))?.key).filter(Boolean) as string[]));
@@ -94,7 +98,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
               {s.tools.map(id => {
                 const h = howTool(id);
                 const t = openable(h);
-                const u = t ? uses.get(t.key) : undefined;
+                const u = t ? usesOf2(t) : undefined;
                 const name = h.how === 'unknown' ? id : h.entry.name;
                 /* the Gemba walk is not a page of its own: its row says how fresh the looking is on the project's lines and opens the stalest */
                 const gemba = id === 'FC-199' && looking?.length ? looking : undefined;

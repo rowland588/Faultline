@@ -53,8 +53,8 @@ print(f"  {len(steps)} steps {cnt}; time {total} min {tm}; travelled {dist} m")
 print(f"  operations {tm['O']/total:.4f} of all time; delay+storage {(tm['D']+tm['S'])/total:.4f}; operations without the 240-min storage {tm['O']/(total-240):.4f}")
 print(f"  steps that change the product {cnt['O']} of {len(steps)} = {cnt['O']/len(steps):.4f}; longest transport {max(d for _,_,d in steps)} m")
 # a proposed chart: the first delay and the inspection after it removed, the two longest transports cut to 10 m
-after = [("O",2.0,0),("T",1.5,30),("O",3.5,0),("T",2.0,10),("S",240,0),("T",1.0,20),("O",4.0,0),("D",8,0),("T",1.5,10),("O",1.5,0),("I",0.5,0),("T",1.0,20)]
-print(f"  proposed: {len(after)} steps, {sum(t for _,t,_ in after)} min, {sum(d for *_,d in after)} m (saves {len(steps)-len(after)} steps, {total-sum(t for _,t,_ in after)} min, {dist-sum(d for *_,d in after)} m)")
+proposed = [("O",2.0,0),("T",1.5,30),("O",3.5,0),("T",2.0,10),("S",240,0),("T",1.0,20),("O",4.0,0),("D",8,0),("T",1.5,10),("O",1.5,0),("I",0.5,0),("T",1.0,20)]
+print(f"  proposed: {len(proposed)} steps, {sum(t for _,t,_ in proposed)} min, {sum(d for *_,d in proposed)} m (saves {len(steps)-len(proposed)} steps, {total-sum(t for _,t,_ in proposed)} min, {dist-sum(d for *_,d in proposed)} m)")
 # money: non-operation minutes at the crew's labour; a delay or storage on the bottleneck holds the line
 print(f"  a transport/inspection minute at £{lab_min:.4f} a minute: transports {tm['T']} min = {money(tm['T']*lab_min)}, inspections {tm['I']} min = {money(tm['I']*lab_min)} (labour of the person moving it)")
 
@@ -152,3 +152,20 @@ for cut in (4, 5):
     b, a = ser[:cut], ser[cut:]
     ma_, mb_, va_, vb_, t_, df_ = welch(b, a)
     print(f"  cut at week {cut + 1}: before {b} (mean {ma_:.4f}) after {a} (mean {mb_:.4f}); Welch t {t_:.5f} df {df_:.5f} one-sided p {1 - t_cdf(t_, df_):.5f}; change {((mb_ - ma_) / ma_) * 100:.4f}%")
+
+print("\n== F2 the flow chart in money (FC-003): 30 loads a day, one person at £15 an hour, a load worth £120, holding stock 25% a year")
+perday, hr, load, carry = 30, 15.0, 120.0, 25.0
+move_min = tm['T'] + tm['I']; wait_min = tm['D'] + tm['S']
+print(f"  people's minutes a load on transports + inspections {move_min} min; a day {move_min*perday} min = {move_min*perday/60:.4f} h = {money(move_min*perday/60*hr)} labour")
+per_load = load * carry / 100 * wait_min / (365 * 24 * 60)
+print(f"  waiting {wait_min} min a load (delay {tm['D']} + storage {tm['S']}): carrying one load {per_load:.6f}; a day {per_load*perday:.6f} ; a year {per_load*perday*365:.4f}")
+print(f"  by design (storage {tm['S']} min) {load*carry/100*tm['S']/(365*24*60)*perday:.6f} a day; delays {load*carry/100*tm['D']/(365*24*60)*perday:.6f} a day")
+print(f"  proposed chart: steps {len(proposed)}, transports+inspections {sum(t for s,t,_ in proposed if s in 'TI')} min, saves {(tm['T']+tm['I']-sum(t for s,t,_ in proposed if s in 'TI'))*perday/60*hr:.4f} labour a day")
+
+print("\n== S2 the spaghetti diagram in money (FC-004): one packer at £25 an hour, 36 rounds a shift, 1.3 m/s")
+walk_min = shift_m / 1.3 / 60
+print(f"  {walk_min:.4f} min a shift = {money(walk_min/60*25)} a shift; 5 shifts a week {money(walk_min/60*25*5)}; of a 480-minute shift {walk_min/480:.4%}")
+aw = after_legs * cycles / 1.3 / 60
+print(f"  film at the line: {aw:.4f} min; saves {walk_min-aw:.4f} min = {money((walk_min-aw)/60*25)} a shift")
+# trips: film 84 m of 158 per round, case 56, scale 18
+print(f"  trips per round: film 84 ({84/158:.4%}), cases 56 ({56/158:.4%}), scale 18 ({18/158:.4%})")

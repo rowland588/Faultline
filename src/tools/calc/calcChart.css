@@ -1,0 +1,12 @@
+/* FC-003 — the flow chart's steps. Shape and letter carry the class; the only fill is the pale one an operation (the product changes) wears. */
+.calc-chart { margin: 0; }
+.calc-chart-svg { width: 100%; height: auto; display: block; max-width: 640px; }
+.cc-head { font-size: 11px; font-weight: 700; fill: var(--muted); }
+.cc-row { stroke: var(--line); stroke-width: 0.6; }
+.cc-link { stroke: var(--ink-2); stroke-width: 1.2; }
+.cc-sym { fill: var(--surface); stroke: var(--ink); stroke-width: 1.4; }
+.cc-sym.is-O { fill: var(--surface-2); stroke-width: 2; }
+.cc-letter { font-size: 9px; font-weight: 700; fill: var(--ink); pointer-events: none; }
+.cc-what { font-size: 12px; fill: var(--ink); }
+.cc-n { fill: var(--muted); }
+.cc-fig { font-size: 12px; fill: var(--ink-2); font-variant-numeric: tabular-nums; }

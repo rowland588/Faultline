@@ -28,6 +28,10 @@ export function howTool(id: string): ToolHow {
   if (!entry) return { how: 'unknown', id };
   const own = toolOfEntry(entry.id);
   if (own && (entry.status === 'available' || entry.status === 'partial')) return { how: 'tool', tool: own, entry };
+  /* A CALCULATOR has no page of its own in the registry — the Calculators hub is the app tool — but it has its own address, /calc/<key>: its row opens there and New starts one there */
+  const calcAt = entry.built?.where[0];
+  const hub = toolOfEntry('FC-235'), hubEntry = entryById('FC-235');
+  if ((entry.status === 'available' || entry.status === 'partial') && calcAt && /^\/calc\/[a-z0-9-]+$/.test(calcAt) && hub && hubEntry) return { how: 'inside', tool: { ...hub, to: calcAt }, entry, parent: hubEntry };
   if (entry.status === 'to-build' || entry.status === 'specified' || entry.status === 'research') return { how: 'notyet', entry };
   /* built, with no page of its own: a mode of a tool that has one? */
   let parent = entry.partOf ? entryById(entry.partOf) : undefined;

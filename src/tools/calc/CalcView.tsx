@@ -8,6 +8,7 @@ import type { AgreedCalc } from '../../lib/study';
 import { niceDay, isoDay } from '../../lib/weeks';
 import { askedFields, beforeRun, tilesSince, whatIf, type Run } from './calc';
 import { CalcPictureView } from './CalcPicture';
+import { CalcChartView } from './CalcChart';
 import type { CalcDef, Field, Inputs } from './types';
 
 /** A choice's label, a number as the box takes it. */
@@ -33,6 +34,7 @@ export function ResultView({ def, run, agreed }: { def: CalcDef; run: Run; agree
         </div>
       )}
       {r.picture && <div className="ie-pic calc-picbox tool-sig-calc"><CalcPictureView pic={r.picture} /></div>}
+      {r.chart && <div className="ie-pic calc-picbox tool-sig-calc" data-calc-chart><CalcChartView chart={r.chart} /></div>}
       <details className="calc-working" open>
         <summary>How it is worked out</summary>
         <table className="ie-tbl calc-working-t">

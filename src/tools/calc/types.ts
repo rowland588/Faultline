@@ -101,6 +101,16 @@ export interface CalcPicture {
   dots: { x: number; y: number; label: string }[];
 }
 
+/** A chart that is not an x–y plot: the steps of a path down the page, each with its ASME symbol, its words and two figures (the process flow chart,
+ *  FC-003). Drawn from the one description by the screen (tools/calc/CalcChart) and the paper (lib/report/calcPaper), so the two cannot part. */
+export interface CalcChart {
+  title: string;
+  caption: string;
+  /** The three column heads: what happens, then the two figures. */
+  head: [string, string, string];
+  rows: { n: number; symbol: 'O' | 'T' | 'I' | 'D' | 'S'; what: string; time: string; distance: string }[];
+}
+
 export interface CalcResult {
   /** The band's verdict, a few words: "8 kanbans". */
   verdict: string;
@@ -116,6 +126,8 @@ export interface CalcResult {
   caveats: string[];
   money?: CalcMoney;
   picture?: CalcPicture;
+  /** Or a chart of steps down the page, where the method's picture is that (the process flow chart). */
+  chart?: CalcChart;
   /** The lean page's closing line: where are we, why, and what is being done. */
   closing: string;
 }

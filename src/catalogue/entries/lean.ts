@@ -43,7 +43,10 @@ export const LEAN: Entry[] = [
     food: 'A tray from oven to packing; an ingredient from intake to weigh-up.',
     depends: ['FC-001', 'FC-028'],
     complexity: 'S', value: 'low', valueWhy: 'Useful detail under a value stream; the stream’s steps already carry most of it.',
-    status: 'to-build', form: 'mode', partOf: 'FC-001', methods: ['lean.process-flow-chart'], scenarios: ['running'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['lean.process-flow-chart'], scenarios: ['running'], words: ['ASME', 'flow process chart', 'operation transport inspection delay storage'],
+    built: { where: ['/calc/process-flow'], code: [...CALC_CODE, 'src/tools/calc/defs/process-flow.ts', 'src/tools/calc/CalcChart.tsx', 'src/tools/calc/calcChart.css', 'src/tools/flow/processFlow.ts', 'src/tools/flow/symbols.ts'], tests: [...CALC_TESTS, 'src/tools/flow/__tests__/processFlow.test.ts'], acceptance: ['calc-shape.mjs', 'process-flow.mjs'] },
+    spec: 'knowledge/specs/FC-003-process-flow-chart.md',
+    limits: ['One path of one thing, up to 24 steps typed in order: a person-and-machine path needs the person and machine chart (FC-025) and the whole stream with its information flows the value stream map (FC-001); the steps are not read from the map — a step’s class is picked here, not carried from the map’s value class.', 'Where a path varies (a tray that may or may not be inspected) the usual path is typed and the variant is a second chart; the present and the questioned chart are the saved before and the figures now (before → after), not drawn side by side.', 'The money is the people’s minutes on the moves and checks and the cost of holding the product through its delays and storage, from typed figures (loads a day, a load’s worth, the carrying rate a year, the line’s wage) — no figure is filled in; the shelf life a wait uses is not priced.', 'Times are typed from the floor or the standard: one observation is indicative, and the chart does not rate pace — time the steps that matter with the stopwatch study (FC-019).'],
   },
   {
     id: 'FC-004', name: 'Spaghetti diagram — walking and transport distance', discipline: 'lean', sub: 'waste',
