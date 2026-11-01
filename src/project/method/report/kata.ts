@@ -60,7 +60,7 @@ export const kataReport: MethodReportFn = ctx => {
   };
 
   /* 2 · the experiments */
-  const tableRows = rows.map(r => [`${r.n}${r.ran ? ` · ${niceDay(r.ran)}` : ''}`, r.step || NOT, r.prediction || 'Not written first', r.result || (r.step ? 'No result yet' : '—'), rowState(r), r.learning || '—']);
+  const tableRows = rows.map(r => [`${r.n}${r.ran ? ` · ${niceDay(r.ran)}` : ''}: ${r.step || NOT}`, r.prediction || 'Not written first', r.result || (r.step ? 'No result yet' : '—'), r.learning ? `${rowState(r)}. Learned: ${r.learning}` : rowState(r)]);
   const said = [t.yes && `${t.yes} matched`, t.partly && `${t.partly} partly`, t.no && `${t.no} missed`, t.notSaid && `${t.notSaid} not said`].filter(Boolean).join(', ');
   const last = [...rows].reverse().find(r => done(r) && r.learning);
   const experiments: ReportSection = {
@@ -68,7 +68,7 @@ export const kataReport: MethodReportFn = ctx => {
     lead: rows.length ? `${plural(t.written, 'experiment')} written: ${t.closed} with a result, ${t.open} open.` : 'No experiment is written yet.',
     items: [
       ...(rows.length ? [
-        { kind: 'table', head: ['Experiment', 'Step', 'We expected', 'What happened', 'Matched?', 'What we learned'], shares: [0.12, 0.19, 0.17, 0.19, 0.11, 0.22], rows: tableRows,
+        { kind: 'table', head: ['Experiment and step', 'We expected', 'What happened', 'Matched? What we learned'], shares: [0.28, 0.2, 0.22, 0.3], rows: tableRows,
           tones: rows.map(r => (r.step && !r.result ? 'w' : done(r) && !r.prediction ? 'a' : undefined)) } as ReportItem,
         ...(t.closed ? [{ kind: 'bars', title: 'What the results say about our predictions', bars: [
           { label: 'Steps with a result', v: t.written ? t.closed / t.written : 0, text: `${t.closed} of ${t.written}` },
@@ -89,8 +89,8 @@ export const kataReport: MethodReportFn = ctx => {
     id: 'kata-coaching', title: 'The five coaching questions and the pulse',
     lead: pl.says,
     items: [
-      { kind: 'table', head: ['Question', 'Answer from the storyboard', 'State'], shares: [0.4, 0.45, 0.15],
-        rows: cq.map(c => [`${c.n}. ${c.ask}`, c.said.length ? c.said.join(' · ') : (c.missing ?? NOT), c.said.length ? 'Answered' : 'Not written']),
+      { kind: 'table', head: ['Question', 'Answer from the storyboard', 'State'], shares: [0.38, 0.4, 0.22],
+        rows: cq.map(c => [`${c.n}. ${c.ask}`, c.said.length ? c.said.join(' · ') : (c.missing ?? NOT), c.said.length ? 'Written' : 'Not written']),
         tones: cq.map(c => (c.said.length ? undefined : 'a')) },
     ],
   };

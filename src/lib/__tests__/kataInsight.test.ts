@@ -100,8 +100,8 @@ describe('the Kata sections of the project report', () => {
     expect(ob?.kind === 'table' && ob.rows).toEqual([['Film tension', 'Addressing now'], ['Jaw drift', 'In the way']]);
     expect(s[1].lead).toBe('2 experiments written: 1 with a result, 1 open.');
     const t = s[1].items.find(i => i.kind === 'table');
-    expect(t?.kind === 'table' && t.rows[0]).toEqual(['1 · 8 Nov', 'Re-set dancer', '50', '47', 'No — the lesson', 'Reel too heavy']);
-    expect(t?.kind === 'table' && t.rows[1]).toEqual(['2', 'Lighter reel', '50', 'No result yet', 'Open', '—']);
+    expect(t?.kind === 'table' && t.rows[0]).toEqual(['1 · 8 Nov: Re-set dancer', '50', '47', 'No — the lesson. Learned: Reel too heavy']);
+    expect(t?.kind === 'table' && t.rows[1]).toEqual(['2: Lighter reel', '50', 'No result yet', 'Open']);
     expect(s[1].items.some(i => i.kind === 'callout' && i.text === 'Experiment 1: Reel too heavy')).toBe(true);
   });
   it('flags results whose match is not said', () => {
@@ -111,6 +111,6 @@ describe('the Kata sections of the project report', () => {
   it('the coaching table names the missing answers', () => {
     const s = kataReport(ctx({ target: 'x' }));
     const t = s[2].items[0];
-    expect(t.kind === 'table' && t.rows.map(r => r[2])).toEqual(['Answered', 'Not written', 'Not written', 'Not written', 'Not written']);
+    expect(t.kind === 'table' && t.rows.map(r => r[2])).toEqual(['Written', 'Not written', 'Not written', 'Not written', 'Not written']);
   });
 });
