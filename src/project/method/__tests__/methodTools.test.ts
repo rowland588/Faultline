@@ -47,6 +47,15 @@ describe('how a default tool stands', () => {
     expect(METHODS.find(m => m.key === 'stage-gate')?.sections.find(s => s.name === 'Set up')?.tools).toContain('FC-222');
   });
 
+  it('operational readiness (FC-082) is a tool with a page of its own, in the stage gate’s Set up and Hand over sections', () => {
+    const h = howTool('FC-082');
+    expect(h.how).toBe('tool');
+    expect(openable(h)?.to).toBe('/scored/readiness');
+    expect(toolStateWord(h)).toBe('Built');
+    const sg = METHODS.find(m => m.key === 'stage-gate');
+    expect(sg?.sections.filter(s => s.tools.includes('FC-082')).map(s => s.name)).toEqual(['Set up', 'Hand over']);
+  });
+
   it('a tool not built yet has nothing to open and says so in the catalogue’s word', () => {
     const h = howTool('FC-043'); // drum–buffer–rope
     expect(h.how).toBe('notyet');

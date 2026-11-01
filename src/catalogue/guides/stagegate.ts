@@ -100,4 +100,46 @@ export const STAGEGATE_GUIDES: Record<string, Guide> = {
     ],
     watch: 'This is read for the gaps, not for the people. A matrix that embarrasses people empties itself — and a level nobody has re-checked in a year is only a guess.',
   },
+  'FC-082': {
+    intro: 'For the week before a new line is handed to production: is everything that is not the machine ready — people trained, procedures issued, food safety validated, spares and maintenance in place — and whose job is each thing that is not?',
+    steps: [
+      {
+        step: 'Start the list',
+        means: 'A new line’s list of what must be ready, in areas: people, standards and documents, food safety and quality, maintenance and spares, planning and systems, health and safety. It is a starting point, not the standard.',
+        doThis: 'Start it on the line, at the beginning of the project, not in the last fortnight. Take off what your site does not need, add what it does, and mark anything that does not apply “Not needed here”.',
+        youGet: 'Your list, grouped by area, with everything not yet done.',
+      },
+      {
+        step: 'Who owns it, and by when',
+        means: 'An item with no owner and no day is a wish, not a job. Each item needs one person who will make sure it happens and the day it will be ready.',
+        doThis: 'Type a name and pick a day for every item. A day that has passed on an item not yet ready shows as late, in words.',
+        youGet: 'Open items by who owns them, and a count of the ones nobody owns yet.',
+      },
+      {
+        step: 'What will prove it',
+        means: 'The thing someone could be shown that proves the item is done — the signed training record, the SOP number, the validation record. A tick is not proof.',
+        doThis: 'Check the starter wording says the proof you will actually accept, or change it. When you mark an item Ready, write what was seen — the record’s number, the date.',
+        youGet: 'Ready items with their evidence beside them. A ready item with nothing written is said, so you can go back for it.',
+      },
+      {
+        step: 'Would stop day one',
+        means: 'Some items cannot wait until after handover: food safety and legal ones, and people who must be signed off before they run a station. Mark those so they are never lost in a long list.',
+        doThis: 'Tick “Would stop day one” on anything that must be done before the line can legally or safely run. The starter marks the usual ones; change them to suit.',
+        youGet: 'A tile and a list of the items that stop day one, with who owns them and when — shown in red until they are done.',
+      },
+      {
+        step: 'Ready of total, by area',
+        means: 'The gate is every item, not an average. So the page counts: how many are ready of how many, open, late, and by area — never only a percentage, which hides the one item that stops production.',
+        doThis: 'Read the sentence first, then the tiles, then the lists by area and by owner. Take the late ones and the day-one ones to the handover meeting.',
+        youGet: 'A verdict in words — “16 open, 3 late”, or “Ready to hand over” — and a closing line saying what to chase first.',
+      },
+      {
+        step: 'What a day costs',
+        means: 'While an item that would stop day one is open, production cannot start. Each day of waiting is a day of the line not making product — priced from what you type or the line’s own speed, shifts and margin.',
+        doThis: 'Press the line’s figure, or type your own. Leave it blank if you do not know; the page says what is missing and carries on.',
+        youGet: 'What a day’s wait for start-up costs, said only while something that would stop day one is open.',
+      },
+    ],
+    watch: 'This counts what the team says is ready — it validates nothing. The HACCP amendment and the cleaning validation have their own evidence; the list only says where it is, so look at the evidence before you tick.',
+  },
 };

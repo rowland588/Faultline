@@ -22,6 +22,7 @@ import { StudyBand, removeStudy, StudyRowName } from '../../ui/StudyActs';
 import { WhereItSits } from '../../ui/StudyPlace';
 import { PughEditor } from '../pugh/PughEditor';
 import { SkillsEditor } from '../skills/SkillsEditor';
+import { ChecklistEditor } from './ChecklistEditor';
 import { lineDay } from '../../lib/lineLoss';
 import { scoredByKey, scoredGroups } from './registry';
 import { newScoredStudy, scoredSays, scoredTitle, studyScored } from './scored';
@@ -294,7 +295,9 @@ function Record({ s, def, can, onPatch }: {
           )}
           {(def.matrix.editor ?? 'pugh') === 'skills'
             ? <SkillsEditor draft={{ rows, criteria }} table={x?.table} canEdit={canEdit} onChange={d => setMatrix({ rows: d.rows, criteria: d.criteria, datum })} />
-            : <PughEditor draft={{ rows, criteria, datum }} table={x?.table} leaders={x?.leaders} canEdit={canEdit} onChange={setMatrix} />}
+            : def.matrix.editor === 'checklist' && def.matrix.checklist
+              ? <ChecklistEditor rows={rows} list={def.matrix.checklist} canEdit={canEdit} onChange={next => setMatrix({ rows: next, criteria, datum })} />
+              : <PughEditor draft={{ rows, criteria, datum }} table={x?.table} leaders={x?.leaders} canEdit={canEdit} onChange={setMatrix} />}
         </Section>
       )}
       {!def.matrix && <Section title={`Score each ${noun}`}>

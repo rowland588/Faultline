@@ -15673,3 +15673,27 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .skl-can { white-space: nowrap; font-weight: 700; }
 .skl-cover th, .skl-cover td { background: var(--paper-2, transparent); }
 @media (max-width: 640px) { .skl .cw-link { min-height: 44px; display: inline-flex; align-items: center; } }
+
+/* A CHECKLIST REGISTER (tools/scored/ChecklistEditor — FC-082 readiness, FC-178 hygienic design) */
+.ckl { display: grid; gap: 14px; min-width: 0; }
+.ckl-area { min-width: 0; }
+.ckl-h { margin: 0 0 6px; font-size: var(--t-body, 1rem); display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ckl-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ckl-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; background: var(--surface, transparent); min-width: 0; }
+.ckl-item.is-ready { background: var(--st-g-wash, #f1f8f3); }
+.ckl-item.is-na { opacity: 0.8; }
+.ckl-top { display: grid; grid-template-columns: minmax(0, 1fr) 11rem; gap: 8px; }
+.ckl-top .text-input { min-width: 0; }
+.ckl-name { font-weight: 700; }
+.ckl-tags { margin: 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.ckl-tag { font-size: var(--t-label, 0.8rem); font-weight: 800; padding: 2px 8px; border-radius: 999px; border: 1.5px solid currentColor; }
+.ckl-tag.is-late, .ckl-tag.is-stop { color: var(--st-r, #c4281c); }
+.ckl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 8px; }
+.ckl-grid .field { min-width: 0; margin: 0; }
+.ckl-wide { grid-column: 1 / -1; }
+.ckl-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ckl-stop { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+.ckl-stop input { width: 20px; height: 20px; }
+.ckl-add { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 8px; align-items: end; }
+.ckl-add .btn { min-height: 44px; }
+@media (max-width: 640px) { .ckl-top, .ckl-add { grid-template-columns: minmax(0, 1fr); } .ckl .cw-link { min-height: 44px; display: inline-flex; align-items: center; } .ckl .text-input, .ckl select { min-height: 44px; } }

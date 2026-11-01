@@ -63,7 +63,24 @@ export interface ScoredTable { head: string[]; rows: string[][]; foot: string[][
 export type ScoredMatrixOut = { problems: string[] } | { result: ScoredResult; table: ScoredTable; leaders: string[] };
 
 /** A register whose rows are OPTIONS marked against agreed criteria and a datum (Pugh, FC-143) rather than things scored on boxes. */
+/** A checklist register (FC-082 readiness, FC-178 hygienic design): items under headings, each with a state and the boxes the definition asks. */
+export interface ScoredChecklist {
+  /** One row, said once: "item", "point". */
+  noun: string;
+  /** What the headings are: "Area". */
+  groupLabel: string;
+  /** The states a row can be in, in the order offered; the first is where a new row begins. */
+  states: { key: string; label: string }[];
+  /** The boxes asked in each row, beside its words and its state. */
+  fields: ('source' | 'evidence' | 'owner' | 'due' | 'note' | 'severity' | 'stopper')[];
+  /** The words a box is asked in where it is not the default. */
+  labels?: Partial<Record<'source' | 'evidence' | 'owner' | 'due' | 'note' | 'severity' | 'stopper', string>>;
+  severities?: { key: string; label: string }[];
+}
+
 export interface ScoredMatrix {
+  /** A checklist's states, boxes and words (editor 'checklist'). */
+  checklist?: ScoredChecklist;
   datumDefault: string;
   /** What draws it: the Pugh matrix (default), a skills matrix (people × tasks, levels), or a checklist register (items with a state, an owner and a day). */
   editor?: 'pugh' | 'skills' | 'checklist';
