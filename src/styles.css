@@ -15624,3 +15624,26 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ns-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 8px 0 14px; padding: 10px 12px; border: 1px solid var(--line-2); border-left: 4px solid var(--brand); border-radius: var(--radius); background: var(--surface); }
 .ns-says { flex: 1 1 320px; margin: 0; font-size: var(--t-detail); line-height: 1.45; color: var(--ink); }
 .ns-go { min-height: var(--tap); }
+
+/* WHAT EACH STEP MEANS (docs/METHODS.md §15, 1 November — Rowland: "all tools must have user guidance .. what's each step means").
+   A tool's guide and a method's sections drawn the same way (ui/StepGuide): each step its name, then three small labelled lines —
+   what it means, what to do, what you get. Tokens only: the state colours are not used, nothing here is a state. */
+.sg { display: flex; flex-direction: column; gap: 10px; }
+.sg-intro { margin: 0; color: var(--ink-2); line-height: 1.5; }
+.sg-steps { list-style: none; counter-reset: sg; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sg-step { counter-increment: sg; padding: 10px 12px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.sg-name { margin: 0 0 6px; font-size: var(--t-body); font-weight: 700; color: var(--ink); }
+.sg-name::before { content: counter(sg) '. '; color: var(--brand); }
+.sg-three { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.sg-three > div { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 2px 12px; }
+.sg-three dt { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.sg-three dd { margin: 0; font-size: var(--t-detail); line-height: 1.5; color: var(--ink); }
+.sg-watch { margin: 0; padding: 8px 10px; border-left: 3px solid var(--brand); background: var(--tool-panel); font-size: var(--t-detail); line-height: 1.5; color: var(--ink); }
+.sg-fold { margin: 6px 0 0; }
+.sg-fold > summary { cursor: pointer; font-size: var(--t-label); font-weight: 700; color: var(--brand); padding: 4px 0; }
+.sg-fold[open] > summary { margin-bottom: 6px; }
+@media (max-width: 640px) { .sg-three > div { grid-template-columns: 1fr; } }
+.nv-guide { display: inline-flex; align-items: center; gap: 6px; }
+.nv-guide-q { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 1.5px solid currentColor; border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 700; line-height: 1; }
+.nv-guide-body { display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 640px) { .nv-guide-l { display: none; } }

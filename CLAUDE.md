@@ -1032,6 +1032,15 @@ pushed (`src/cloud/sync.ts`), so a stray local write cannot stall a sync.
 
 ## Things that will bite
 
+- **A container restart wipes every local branch that was not pushed (1 November).** Twelve agents' worktrees and the
+  integration branch lived only in `/home/user/fl-*`; the container was restarted when the 5-hour limit hit and only the
+  checkout of the designated branch came back, so the method pictures and pages, the stage gate's doors and the method tabs,
+  six writers' guides and six builders' tools had to be rebuilt from the saved edit history, and the writers' and builders'
+  text could not. So: **push the working branch after every commit** (`git push -u origin <branch>`; the integration
+  branch is `claude/faultline-connection-1vx7kt` and a green gate is what moves `main`), have agents commit every few tools
+  and have the owner of the session merge and push their commits as they arrive — never leave an hour of work on a path under
+  `/home/user` that is not on GitHub.
+
 - **A policy test that reads a null as `true`.** `SECURITY_RLS.sql` part C2
   meant to drop any policy whose rule was literally `true`, but tested
   `coalesce(with_check, 'true')` — null for every SELECT policy — and silently

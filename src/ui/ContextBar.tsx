@@ -15,11 +15,12 @@ import { LogoMark } from './Logo';
 import { Icon } from './Icon';
 import { AccountMenu } from './AccountMenu';
 import { JumpTo } from './JumpTo';
+import { GuideButton } from './GuideButton';
 import { QuickSnagButton } from '../snag/QuickSnag';
 import { Sheet } from './Sheet';
 import { lineHref } from './rail';
 
-export function ContextBar({ scope, page, tool, toolTo, projects, lines, projectId, onLines }: {
+export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines }: {
   scope: Scope;
   /** The page of the scope you are on — the rail's line that is on. */
   page?: string;
@@ -27,6 +28,8 @@ export function ContextBar({ scope, page, tool, toolTo, projects, lines, project
   tool?: string;
   /** On one of a tool's records: its list in this scope — the tool's name is the way back to it. */
   toolTo?: string;
+  /** The tool's catalogue number — its guide opens from the bar (ui/GuideButton). */
+  toolId?: string;
   projects: Project[];
   lines: Workspace[];
   /** The project the Problem button takes a problem for. */
@@ -68,6 +71,7 @@ export function ContextBar({ scope, page, tool, toolTo, projects, lines, project
         <Icon name="chevronDown" size={14} />
       </button>
       <span className="nv-gap" aria-hidden />
+      {toolId && <GuideButton toolId={toolId} />}
       <JumpTo />
       <QuickSnagButton projectId={projectId} />
       <AccountMenu />

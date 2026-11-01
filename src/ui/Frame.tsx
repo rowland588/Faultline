@@ -131,7 +131,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
 
   return (
     <div className="nv">
-      <ScopeFrame scope={scope} project={project} projects={projects} lines={lines} here={here} toolName={toolName} toolTo={toolTo} wsId={route.wsId} reading={!!reading} />
+      <ScopeFrame scope={scope} project={project} projects={projects} lines={lines} here={here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} />
       <main className="nv-main">{children}</main>
       <QuickSnagHost wsId={route.wsId ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={projectId} />
     </div>
@@ -139,8 +139,8 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
 }
 
 /** THE CONTEXT BAR AND THE SCOPE'S RAIL — one of three, by the scope (docs/STRUCTURE.md §5.2). */
-function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, wsId, reading }: {
-  scope: Scope; project?: Project; projects: Project[]; lines: Workspace[]; here: string; toolName?: string; toolTo?: string; wsId?: string; reading: boolean;
+function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, toolId, wsId, reading }: {
+  scope: Scope; project?: Project; projects: Project[]; lines: Workspace[]; here: string; toolName?: string; toolTo?: string; toolId?: string; wsId?: string; reading: boolean;
 }) {
   const all = useMemo(() => (project && !projects.some(p => p.id === project.id) ? [...projects, project] : projects), [projects, project]);
   const [page, setPage] = useState<string | undefined>(undefined);
@@ -162,7 +162,7 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, w
   }, [reading, scopeName, placePage, scope.kind]);
   return (
     <>
-      <ContextBar scope={scope} page={shown} tool={toolName && toolName !== shown ? toolName : undefined} toolTo={toolTo} projects={all} lines={lines} projectId={project?.id}
+      <ContextBar scope={scope} page={shown} tool={toolName && toolName !== shown ? toolName : undefined} toolTo={toolTo} toolId={toolId} projects={all} lines={lines} projectId={project?.id}
         onLines={scope.kind === 'project' ? onLines : undefined} />
       {reading ? <NavChrome groups={[]} bar={[]} />
         : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={said} />

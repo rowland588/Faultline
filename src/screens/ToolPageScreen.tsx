@@ -13,6 +13,8 @@ import { APP_TOOLS, toolByKey, type AppTool } from '../catalogue/registry';
 import { ENTRIES, PROBLEMS, disciplineName, entryById, subName } from '../catalogue';
 import { FORM_WORDS, KIND_PLACE, STATUS_WORDS, type Entry, type Status } from '../catalogue/types';
 import { useToolUse, usedSaid } from '../lib/useToolUse';
+import { modeGuides, ownGuide, stepCount } from '../catalogue/guide';
+import { GuideFold, GuideSteps } from '../ui/StepGuide';
 import { nav } from '../state/useRoute';
 
 const TONE: Record<Status, 'g' | 'w' | 'n'> = { available: 'g', partial: 'w', specified: 'w', 'to-build': 'n', research: 'n', 'left-out': 'n' };
@@ -98,6 +100,22 @@ export function ToolPageScreen({ toolKey }: { toolKey: string }) {
         <div><h2 className="ln-h">What you give it</h2><p>{entry.inputs}</p><p className="sub">Counted, timed, tapped, photographed or filmed by a person — nothing reads a machine.</p></div>
         <div><h2 className="ln-h">What you get</h2><p>{entry.outputs}</p><p className="sub">How: {entry.method}</p></div>
       </section>
+
+      {(() => {
+        /* WHAT EACH STEP MEANS (Rowland, 1 November): the tool's own steps, the mode this page is marked on first, then every other mode's */
+        const own = entry ? ownGuide(entry.id) : undefined;
+        const markG = mark ? ownGuide(mark.id) : undefined;
+        const modeGs = entry ? modeGuides(entry.id, ENTRIES).filter(m => m.id !== mark?.id) : [];
+        if (!own && !markG && modeGs.length === 0) return null;
+        return (
+          <section className="tp-sec" aria-label="How it works, step by step">
+            <h2 className="ln-h">How it works — what each step means</h2>
+            {markG && mark && <><h3 className="tp-h3">{mark.name}</h3><GuideSteps guide={markG} label={mark.name} /></>}
+            {own && <GuideSteps guide={own} label={entry?.name} />}
+            {modeGs.map(m => <GuideFold key={m.id} summary={`${m.name} — ${stepCount(m.guide)}`}><GuideSteps guide={m.guide} label={m.name} /></GuideFold>)}
+          </section>
+        );
+      })()}
 
       {modes.length > 0 && (
         <section className="tp-sec" aria-label="Inside it">
