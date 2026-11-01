@@ -61,13 +61,13 @@ const PDCA: MethodGuide = {
     {
       section: 'Check',
       means: 'Measuring the same number again, the same way, and setting it against before and against your prediction. The question is whether the difference is bigger than the number’s own ups and downs (“beyond the noise”), and whether it did what you said it would do.',
-      doThis: 'Take the after readings exactly as the before ones were taken: same machine, same count or timing, same definition. Open Analysis, ask Did it change, paste Before and After, and read the sentence it gives with the size of the change in the number’s own units. Put a measurement on a Control chart or in Capability. Then set the result against the prediction: a bigger effect than you planned is a question too (what else changed?).',
+      doThis: 'Take the after readings exactly as the before ones were taken: same machine, same count or timing, same definition. Open Analysis, ask Did it change, paste Before and After, and read the sentence it gives with the size of the change in the number’s own units. Put a measurement on a Control chart or in Capability. Then set the result against the prediction, and begin “Against what we predicted” with Yes, Partly or No so the report can count the cycles that hit it. A bigger effect than you planned is a question too (what else changed?).',
       youGet: 'A verdict in words and figures: moved or not, by how much, how sure, and against what you predicted. Where the line’s rates are given, the money it is worth as well.',
     },
     {
       section: 'Act',
       means: 'Deciding what the result earns. If it worked, the change becomes the way the work is done: written down, people shown it, offered to the other lines, and watched to see that it holds. If it did not work, you say why and plan again.',
-      doThis: 'If it worked, update the Line standard or the standard work (the combination table in Line balance) and raise an Action for the training and one for each other line with the same machine. Start a Control chart on the after period: its limits tell you when a later shift has slipped. If it did not work, write what you learned as a note and go back to Plan. Close the Problem only when the number holds.',
+      doThis: 'If it worked, update the Line standard or the standard work (the combination table in Line balance) and raise an Action for the training and one for each other line with the same machine. Start a Control chart on the after period: its limits tell you when a later shift has slipped. If it did not work, write what you learned, begin the decision with Adapt or Abandon, and start the next cycle from it. Close the Problem only when the number holds.',
       youGet: 'Either a standard that holds the gain with a chart watching it, or a written lesson and a new Plan. Never a change quietly declared a success.',
     },
   ],

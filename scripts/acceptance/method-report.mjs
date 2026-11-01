@@ -110,7 +110,7 @@ ok(km.money.every(([txt, miss]) => pt.includes(txt) && (!miss || /Nothing is est
 await go(`#/project/${PD}/method-report`, 2500);
 await page.waitForSelector('.mrep .ln-band', { timeout: 20000 });
 const pm = await model(PD); pt = await pageText();
-ok(pm.titles[3] === 'What we wrote — PDCA' && missing(pm.lines, pt).length === 0, '4 a PDCA project’s report is its own: What we wrote — PDCA, every line on the page');
+ok(pm.titles.includes('Each cycle against its prediction') && missing(pm.lines, pt).length === 0, '4 a PDCA project’s report is its own: each cycle against its prediction, every line on the page');
 
 /* ---- 5 a client; a phone ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));

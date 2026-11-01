@@ -46,7 +46,9 @@ export function cycleView(answers: Readonly<Record<string, string>>, n: number):
   const quarters = QUARTERS.map((name): QuarterView => {
     const fields = fieldsOf('pdca', name);
     const written = fields.filter(x => (mine[x.id] ?? '').trim() !== '').length;
-    const done = fields.filter(x => !OPTIONAL.has(x.id)).every(x => (mine[x.id] ?? '').trim() !== '');
+    /* a cycle that is adapted or abandoned has no standard to write and nobody to train — only an adopted (or undecided) one does */
+    const unmade = name === 'Act' && decisionOf(mine.decision) !== undefined && decisionOf(mine.decision) !== 'adopt';
+    const done = fields.filter(x => !OPTIONAL.has(x.id) && !(unmade && (x.id === 'standard' || x.id === 'trained'))).every(x => (mine[x.id] ?? '').trim() !== '');
     return { name, fields, written, done, word: written === 0 ? 'Not started' : written === fields.length ? 'All written' : 'Under way' };
   });
   const inHand = quarters.find(q => !q.done)?.name;
@@ -80,4 +82,64 @@ export function cycleLine(c: CycleView): string {
   const a = c.answers, bit = (label: string, v: string | undefined) => (filled(v) ? `${label} ${filled(v)}` : '');
   const parts = [bit('number:', a.number), bit('expected', a.expect), bit('result:', a.result), bit('decision:', a.decision)].filter(Boolean);
   return `Cycle ${c.n} — ${c.status}${parts.length ? `. ${parts.join('; ')}.` : '.'}`;
+}
+
+/* ---- THE CYCLES READ AGAINST THEIR PREDICTIONS (docs/METHODS.md §17) — what the dashboard's insight and the project report both say.
+ * Nothing is worked out from the team's free words: a cycle "hit" its prediction only if the team began "Against what we predicted"
+ * with Yes, Partly or No, and a decision is only Adopt, Adapt or Abandon if it begins with that word. Otherwise it is "not stated". */
+export type Hit = 'yes' | 'partly' | 'no';
+export type Decision = 'adopt' | 'adapt' | 'abandon';
+
+/** How the team judged the prediction — from the first word of "Against what we predicted". */
+export function hitOf(predicted: string | undefined): Hit | undefined {
+  const m = /^\s*(yes|partly|partially|no)\b/i.exec(predicted ?? '');
+  if (!m) return undefined;
+  const w = m[1].toLowerCase();
+  return w === 'yes' ? 'yes' : w === 'no' ? 'no' : 'partly';
+}
+/** What the team decided — from the first word of the decision. */
+export function decisionOf(decision: string | undefined): Decision | undefined {
+  const m = /^\s*(adopt|adapt|abandon)\b/i.exec(decision ?? '');
+  return m ? (m[1].toLowerCase() as Decision) : undefined;
+}
+export const HIT_WORD: Record<Hit, string> = { yes: 'Yes — hit it', partly: 'Partly', no: 'No — missed' };
+
+export interface CycleReading {
+  n: number;
+  status: string;
+  inHand: Quarter | undefined;
+  /** Where it was, and where it should be (Plan). */
+  before: string;
+  /** The effect expected, written in Plan. */
+  predicted: string;
+  /** The number after (Check). */
+  after: string;
+  /** The team's own words against the prediction. */
+  against: string;
+  hit: Hit | undefined;
+  learned: string;
+  beyond: string;
+  decisionText: string;
+  decision: Decision | undefined;
+  again: string;
+  standard: string;
+  change: string;
+  who: string;
+  /** The decision's reason: its words after the leading Adopt, Adapt or Abandon. */
+  why: string;
+  /** Has anything been done or checked in this cycle (Do, Check or Act has an answer)? */
+  started: boolean;
+  /** Is the number after written? */
+  checked: boolean;
+}
+
+export function readCycles(answers: Readonly<Record<string, string>>): CycleReading[] {
+  return cyclesOf(answers).map((c): CycleReading => {
+    const a = c.answers, g = (id: string) => filled(a[id]);
+    const started = [...fieldsOf('pdca', 'Do'), ...fieldsOf('pdca', 'Check'), ...fieldsOf('pdca', 'Act')].some(x => g(x.id) !== '');
+    return {
+      n: c.n, status: c.status, inHand: c.inHand, before: g('gap'), predicted: g('expect'), after: g('result'), against: g('predicted'), hit: hitOf(a.predicted),
+      learned: g('learned'), beyond: g('beyond'), decisionText: g('decision'), decision: decisionOf(a.decision), again: g('again'), standard: g('standard'), change: g('change'), who: g('who'), why: g('decision').replace(/^\s*(adopt|adapt|abandon)\b[\s—:,.-]*/i, ''), started, checked: g('result') !== '',
+    };
+  });
 }
