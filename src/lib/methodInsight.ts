@@ -7,6 +7,7 @@
 import type { MethodKey } from './methods';
 import type { DashAttention, DashOwed } from './methodDashboard';
 import type { ToolStudy } from './study';
+import { a3Insight } from './methodInsights/a3';
 
 export interface InsightIn { answers: Readonly<Record<string, string>>; studies: readonly ToolStudy[]; owed: readonly DashOwed[]; today: string }
 export interface MethodInsight {
@@ -17,4 +18,4 @@ export interface MethodInsight {
 }
 export type MethodInsightFn = (x: InsightIn) => MethodInsight;
 
-export const METHOD_INSIGHT: Partial<Record<MethodKey, MethodInsightFn>> = {};
+export const METHOD_INSIGHT: Partial<Record<MethodKey, MethodInsightFn>> = { a3: a3Insight };
