@@ -28,6 +28,7 @@ import { useStanding } from '../lib/useStanding';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { useWsChain } from '../lib/useTrail';
 import { planModel, type PlanModel } from '../lib/planModel';
+import { methodOfProject } from '../lib/methods';
 import { getStandard, getStudy, listTestItems, listTests, onDataChange } from '../db';
 import { PROJECT_KEY, inProject } from '../lib/inProject';
 import { gateOf, live } from '../lib/testing';
@@ -275,7 +276,8 @@ function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
      and what it waits on — the count its header and the control room say. */
   const late = (counts.board?.late ?? 0) + (counts.materials?.late ?? 0) + (counts.checks?.late ?? 0);
   const groups = withJobStudy(projectGroups({ projectId: p.project.id, name: p.project.name, model: p.method, here: p.here, counts, late,
-    lines: p.lines, notes: p.notes, tools: { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }, wsId: p.wsId }), p.wsId, p.here);
+    lines: p.lines, notes: p.notes, tools: { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }, wsId: p.wsId,
+    ...(methodOfProject(p.project) ? { method: methodOfProject(p.project)! } : {}) }), p.wsId, p.here);
   return <NavChrome groups={groups} project={p.project} model={p.model} kind="project" onPage={p.onPage} />;
 }
 

@@ -203,6 +203,8 @@ const ROUTES = [
   ['your factory — the lines, edited', '#/factory'],
   /* every tool, the directory (src/catalogue) — and found by the problem */
   ['every tool — the directory', '#/tools'],
+  /* a method's own page (docs/METHODS.md §15) */
+  ['a method — its own page', '#/methods/dmaic'],
   ['your factory — adding lines', '#/factory?add=1'],
   /* programs from the control room — every line's, one line's, planning one (BLUEPRINT Stage 2) */
   ['programs — every line', '#/programs'],

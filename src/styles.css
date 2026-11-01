@@ -15647,3 +15647,20 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .nv-guide-q { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 1.5px solid currentColor; border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 700; line-height: 1; }
 .nv-guide-body { display: flex; flex-direction: column; gap: 12px; }
 @media (max-width: 640px) { .nv-guide-l { display: none; } }
+
+/* THE METHODS' PICTURES AND PAGES (docs/METHODS.md §15, 1 November — Rowland: "Projects .. just like tools I want pictures so user can see").
+   A method's card on New project wears its picture (the tool card's frame, ui/MethodPicture) with a way to its own page under it;
+   the page (screens/MethodPageScreen) lists each step as what it means · what to do · what you get, with the tools that fit. */
+.proj-model-card { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.proj-model-card .proj-model-opt { flex: 1; overflow: hidden; }
+.proj-model-opt .tc-pic { margin: -12px -14px 6px; width: calc(100% + 28px); }
+.proj-model-more { align-self: flex-start; padding: 4px 2px; font-size: var(--t-label); font-weight: 700; color: var(--brand); text-decoration: none; }
+.proj-model-more:hover, .proj-model-more:focus-visible { text-decoration: underline; }
+.mp-steps { counter-reset: none; }
+.mp-what { margin: 0 0 6px; color: var(--ink-2); line-height: 1.45; }
+.mp-tools { list-style: none; margin: 8px 0 4px; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--t-detail); }
+.mp-tool { all: unset; cursor: pointer; color: var(--brand); font-weight: 700; }
+.mp-tool:hover, .mp-tool:focus-visible { text-decoration: underline; }
+.mp-tool.is-plain { cursor: default; color: var(--ink); font-weight: 600; }
+.mp-tool.is-plain:hover { text-decoration: none; }
+.mp-others { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }

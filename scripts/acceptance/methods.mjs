@@ -8,6 +8,8 @@
  *      its sections in order and each section's tools in the module's order, each said as lib/methods + methodTools say it
  *   3  the page's honesty: a tool that is built is a row with New; one not built says so and has no button; a mode says
  *      which tool it lives in
+ *   3b a method project's tabs are its own (S4): Overview · Actions · Journey · Problems · Tools · Notes · Details, no 6M tabs;
+ *      Tools holds the 6M tool as one door (Fishbone · Board · Results) and is the tab lit on those pages
  *   4  New on a tool starts it in the project (the address carries ?project=, the tool's list opens the project's frame)
  *      and the use is counted back on the method's row; Add a tool offers every tool and starts it the same way; a tool
  *      used that the method does not list sits under Also used here
@@ -83,6 +85,28 @@ const notYet = rows.filter(r => /Not built yet|Specified|Research/i.test(r.where
 ok(rows.length > 20 && notYet.length > 0 && notYet.every(r => !r.btn), `3 a tool not built says so and has no New (${notYet.length} of ${rows.length})`);
 ok(rows.filter(r => /^A mode of /.test(r.where)).every(r => r.btn), '3 a mode names the tool it lives in and has New');
 ok(rows.some(r => r.where === 'Built' && r.btn), '3 a built tool is a row with New');
+
+/* 3b — the project's tabs are its own (S4, 1 November): Overview · Actions · Journey · Problems · Tools · Notes · Details, never the
+   6M tabs (Fishbone, Board, Lines, Results); the 6M tool is one door under Tools and lights Tools while you are on its pages */
+const tabs = async () => (await page.locator('.nv-tabs .nv-tab .nv-tab-l').allInnerTexts()).map(flat);
+for (const m of ['PDCA', 'DMAIC', 'Theory of Constraints']) {
+  await go(made[m]); await page.waitForSelector('.pmethod');
+  const t = await tabs();
+  ok(t.join(' · ') === 'Overview · Actions · Journey · Problems · Tools · Notes · Details', `3b ${m}: the project's own tabs`, t.join(' · '));
+}
+await go(`${made['DMAIC']}/tools`); await page.waitForSelector('.ptools-sixm', { timeout: 15000 });
+const sixm = (await page.locator('.ptools-sixm .lt-what').allInnerTexts()).map(flat);
+ok(sixm.join(' · ') === 'Fishbone · Board · Results', '3b Tools: the 6M tool as one door — its three pages', sixm.join(' · '));
+await page.locator('.ptools-sixm .lt-row', { hasText: 'Fishbone' }).first().click(); await page.waitForTimeout(1500);
+ok(/\/fishbone/.test(page.url()), '3b the Fishbone opens in the project', page.url());
+const lit = (await page.locator('.nv-tabs .nv-tab.is-on .nv-tab-l').allInnerTexts()).map(flat);
+ok(lit.join() === 'Tools' && !(await tabs()).includes('Fishbone'), '3b …and Tools is the tab that is lit, no Fishbone tab', lit.join());
+await go(made['DMAIC']); await page.waitForSelector('.pmethod');
+await page.locator('.pmethod .lt-li', { hasText: '6M — a running line made to perform better' }).first().locator('.lt-row').click();
+await page.waitForTimeout(1500);
+ok(/\/fishbone/.test(page.url()), '3b the 6M row on a section opens the fishbone, where the method places it', page.url());
+
+await go(made['DMAIC']); await page.waitForSelector('.pmethod');
 
 /* 4 — New starts a tool in the project, counted back */
 const proj = made['DMAIC'].split('/').pop();

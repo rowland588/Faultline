@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
 import { METHODS, methodByKey, methodOfProject, type MethodKey } from '../lib/methods';
+import { MethodPicture } from '../ui/MethodPicture';
 
 /* A PROJECT'S KIND IS ITS METHOD (docs/METHODS.md, M3): the eight methods' names, then — for a project from before them — the
    plan model it was made on (Performance (6M), Lever tree). One reader of it, for the chips and the rows. */
@@ -248,13 +249,18 @@ export function ProjectsScreen() {
             <span className="field-label">{startLine ? `Which method will run it on ${startLine.name}?` : 'Which method will run it?'}</span>
             <div className="proj-model-grid">
               {METHODS.map(m => (
-                <button key={m.key} type="button" aria-pressed={method === m.key}
-                  className={'proj-model-opt' + (method === m.key ? ' on' : '')}
-                  onClick={() => setMethod(m.key)}>
-                  <span className="proj-model-t">{m.name}</span>
-                  <span className="proj-model-q">{m.question}</span>
-                  <span className="proj-model-s">{m.sections.map(x => x.name).join(' · ')}</span>
-                </button>
+                <div key={m.key} className="proj-model-card">
+                  <button type="button" aria-pressed={method === m.key}
+                    className={'proj-model-opt' + (method === m.key ? ' on' : '')}
+                    onClick={() => setMethod(m.key)}>
+                    <MethodPicture method={m} />
+                    <span className="proj-model-t">{m.name}</span>
+                    <span className="proj-model-q">{m.question}</span>
+                    <span className="proj-model-s">{m.sections.map(x => x.name).join(' · ')}</span>
+                  </button>
+                  {/* what the method is and what each step means — its own page, like a tool's (1 November) */}
+                  <a className="proj-model-more" href={`#/methods/${m.key}`} aria-label={`How ${m.name} works — what each step means`}>How it works ›</a>
+                </div>
               ))}
             </div>
             <p className="chip-hint">

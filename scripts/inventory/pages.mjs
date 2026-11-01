@@ -259,9 +259,9 @@ export const PAGES = (sd, cap) => [
   { name: 'The client report — a stage-gate project', path: `#/project/${sd.projectId}/report`, must: [
     /* B3: the paper's page header — Download the one primary, where it said PDF */
     { what: 'the page header — Download', sel: '.part-head .btn-primary', text: /^Download/ },
-    /* three since 29 October: the commissioning and handover narrative papers sit behind the legacy switch
-       (src/lib/productStory.ts commissioningNarrativePapersInMenus — docs/FAULTLINE-FAULT-MODEL.md §7) */
-    { what: 'its three papers to choose', sel: '.cr-which .chip', n: 3 }] },
+    /* five since M4 (1 November, docs/METHODS.md §15): the commissioning report and the handover report are the stage-gate method's own
+       papers again (src/lib/productStory.ts commissioningNarrativePapersInMenus — they were three from 29 October to 1 November) */
+    { what: 'its five papers to choose — status, full, programs, commissioning, handover', sel: '.cr-which .chip', n: 5 }] },
   { name: 'The client report — a 6M project', path: `#/pace-report?project=${sd.pacedProjectId}`, must: [
     { what: 'the page header — Download', sel: '.part-head .btn-primary', text: /^Download/ },
     { what: 'its two papers to choose', sel: '.cr-which .chip', n: 2 }] },
@@ -733,7 +733,20 @@ export const PAGES = (sd, cap) => [
     { what: 'PDCA — how do we improve one number steadily', sel: '.proj-model-opt .proj-model-t', text: /^PDCA$/ },
     { what: 'the stage gate is one of them', sel: '.proj-model-opt .proj-model-t', text: /^Stage gate$/ },
     { what: 'a method’s sections on its card', sel: '.proj-model-opt .proj-model-s', text: /Plan · Do · Check · Act/ },
+    /* a picture on each card and a way to the method's own page (1 November, docs/METHODS.md §15 — "just like tools I want pictures so user can see") */
+    { what: 'a picture on each of the eight cards', sel: '.proj-model-opt .tc-pic', n: 8 },
+    { what: 'How it works — a way to each method’s own page', sel: '.proj-model-card .proj-model-more', n: 8 },
     /* 'Need a formal install with gates?' taken off 30 October (Rowland: "remove it") — the stage-gate track is no longer offered on this page */
+  ] },
+  /* A METHOD'S OWN PAGE (1 November, docs/METHODS.md §15 — Rowland: "Projects .. just like tools I want pictures so user can see .. whats each step means") */
+  { name: 'Methods — a method’s own page', path: '#/methods/dmaic', must: [
+    { what: 'its name', sel: '.pace-head h1', text: /^DMAIC$/ },
+    { what: 'its picture', sel: '.tp-hero .tc-pic' },
+    { what: 'when to reach for it, when not, and an example on a food line', sel: '.tp-hero-side p', n: 3 },
+    { what: 'each of its five steps, said as what it means · what to do · what you get', sel: '.mp-steps .sg-step .sg-three', n: 5 },
+    { what: 'the tools that fit each step, each with its status in words', sel: '.mp-steps .mp-tools li', n: 20 },
+    { what: 'where it comes from', sel: '.tp-sec[aria-label="Where it comes from"]' },
+    { what: 'the other seven methods, one tap away', sel: '.mp-others .chip', n: 7 },
   ] },
   /* A PROJECT THAT RUNS A METHOD (31 October, docs/METHODS.md M3): its sections in order and the tools that fit each */
   { name: 'A method project — its sections', path: `#/project/${sd.methodProjectId}`, must: [

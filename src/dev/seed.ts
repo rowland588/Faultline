@@ -88,6 +88,9 @@ export interface Seeded {
   treeProjectId: string;
   /** A project that runs a method (31 October, docs/METHODS.md M3) — DMAIC, no tool used yet. */
   methodProjectId: string;
+  /** One seeded project for every method, by its key (1 November, the method pictures): each runs its method and has a tool used in
+   *  it already, so its page shows the sections and "1 use in this project". Stage gate is the seeded commissioning job. */
+  methodProjectIds: Record<string, string>;
   /** The 6M problems on Line 2A of the board project: one open and being
    *  acted on (a Pareto bar), one closed and holding (the gap). */
   problemId: string;
@@ -824,6 +827,30 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     agreed: { readings: { kind: 'limits', unit: '°C', nominal: 180, lower: 170, upper: 190, count: 10 } },
     facts: { readings: [179, 181, 180, 182, 178, 180, 181, 179, 180, 182].map((value, i) => ({ id: uid(), value, at: t - (10 - i) * 60_000, who: 'K. Ahmed' })) },
     uses: [], startedAt: t - 11 * 60_000, createdAt: t, updatedAt: t });
+  /* THE OTHER SEVEN METHODS, one seeded project each (the method pictures, 1 November): a name a floor would give it, the method's
+     own key, and one tool used that the method places in a section (a capability study of a seal temperature; SMED where the
+     method places SMED) — so every method's page can be taken as a person meets it, with a use in a section */
+  const sealStudy = (projectId: string, name: string) => putStudy({ id: uid(), tool: 'capability', name, projectId, machine: 'Ilapak flow wrapper',
+    agreed: { readings: { kind: 'limits', unit: '°C', nominal: 180, lower: 170, upper: 190, count: 10 } },
+    facts: { readings: [179, 181, 180, 182, 178, 180, 181, 179, 180, 182].map((value, i) => ({ id: uid(), value, at: t - (10 - i) * 60_000, who: 'K. Ahmed' })) },
+    uses: [], startedAt: t - 11 * 60_000, createdAt: t, updatedAt: t });
+  const methodProjectIds: Record<string, string> = { dmaic: methodic.id };
+  for (const [key, name, colour, tool] of [
+    ['pdca', 'Line 7 jaw temperature drift', '#0e7490', 'capability'],
+    ['eight-d', 'Customer complaint — seal open on arrival', '#b45309', 'capability'],
+    ['a3', 'Line 7 changeover down to 25 minutes', '#6d28d9', 'capability'],
+    ['kaizen-event', 'Packing hall changeover week', '#15803d', 'changeover'],
+    ['kata', 'Line 7 to 52 packs a minute', '#0c7489', 'capability'],
+    ['toc', 'Line 7 bottleneck — the wrapper', '#c4281c', 'changeover'],
+  ] as const) {
+    const pr = await createProject(name, colour, 'Rowland', 'r@example.com', 'board', key);
+    if (tool === 'capability') await sealStudy(pr.id, 'Seal temperature — jaw 2');
+    else await putStudy({ id: uid(), tool: 'changeover', name: 'Finest Red 2kg → Express 1.25 kg', product: 'Express 1.25 kg', projectId: pr.id,
+      facts: { fromProduct: 'Finest Red 2kg', toProduct: 'Express 1.25 kg', sequence: smedElements(t - 4 * 3_600_000, 'Rob Scott'),
+        running: { shiftsPerDay: 3, hoursPerShift: 8, breakMin: 30, daysPerWeek: 5, weeksPerYear: 48 }, changeovers: { count: 2, per: 'shift' }, ratePerMin: 100, rateFrom: 'line' },
+      uses: [], startedAt: t - 4 * 3_600_000, createdAt: t, updatedAt: t });
+    methodProjectIds[key] = pr.id;
+  }
   const tree = await createProject('Line 2B to 60 ppm', '#7c3aed', 'Rowland', 'r@example.com', 'tree');
   const treeLine = await addPaceLine({ projectId: tree.id, key: '2B', name: 'Line 2B', owner: 'Rob Scott', sponsor: 'Tanya', sort: 0 });
   const treeBox = (text: string, sort: number, o: Partial<TreeNodeRow> = {}): TreeNodeRow =>
@@ -1330,7 +1357,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     fixId: regulator.id,
     machineId: weigher.id,
     pastDay: iso(-7),
-    pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id, methodProjectId: methodic.id,
+    pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id, methodProjectId: methodic.id, methodProjectIds: { ...methodProjectIds, 'stage-gate': proj.id },
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
     oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, reliabilityLineIds, reliabilityFamilyId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, analysisGaugeId, analysisRangeId, analysisDriftId, analysisShapeId, calcKanbanId, calcOcId, calcLittleId,

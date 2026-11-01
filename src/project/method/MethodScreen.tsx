@@ -21,12 +21,17 @@ import { methodByKey, methodOfProject, type MethodSection } from '../../lib/meth
 import type { ToolStudy } from '../../lib/study';
 import type { Standard } from '../../tools/linestandard/standard';
 import { PageHeader, RecordRow, RecordRows } from '../../ui/parts';
+import { GuideFold, StepMeans } from '../../ui/StepGuide';
+import { guideOfSection } from '../../lib/methodGuide';
 import { usesOf } from '../../screens/ProjectToolsScreen';
 import { howTool, openable, toolStateWord } from './methodTools';
 import { useProjectLooking } from '../../tools/gemba/useLooking';
 import { projectSays, stalestFirst } from '../../tools/gemba/looking';
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+/** The 6M tool inside a method (S4, 1 November): it has no page of its own in the catalogue's registry — its pages are the project's Fishbone, Board and Results — so its rows open the fishbone. */
+const SIXM_IDS = new Set(['FC-146', 'FC-147', 'FC-148']);
 
 export function MethodScreen({ projectId }: { projectId: string }) {
   const { project } = useProject(projectId);
@@ -77,6 +82,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
               <h2 className="pace-sec-title">{i + 1}. {s.name}</h2>
               <p className="pace-sec-sub">{s.what}{lit ? ` · ${plural(lit, 'tool')} used here` : ''}</p>
               {s.note && <p className="chip-hint">{s.note}</p>}
+              {(() => { const g = guideOfSection(method.key, s.name); return g ? <GuideFold summary="What this step means"><StepMeans means={g.means} doThis={g.doThis} youGet={g.youGet} /></GuideFold> : null; })()}
             </div>
             <RecordRows label={`Tools for ${s.name}`}>
               {s.tools.map(id => {
@@ -92,7 +98,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
                     {...(worst && worst.looking.level !== 'fresh' ? { tone: worst.looking.level === 'stale' ? 'r' as const : 'a' as const } : {})}
                     says={gemba ? projectSays(gemba) : u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
                     where={toolStateWord(h)}
-                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : t ? nav(inProject(t.to, projectId)) : undefined)}
+                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : t ? nav(inProject(t.to, projectId)) : SIXM_IDS.has(id) ? nav(`/project/${projectId}/fishbone`) : undefined)}
                     aside={t && can.edit && t.key !== 'talk'
                       ? <button type="button" className="btn btn-sm" aria-label={`New — ${name}`} onClick={() => start(t)}>New</button>
                       : undefined} />

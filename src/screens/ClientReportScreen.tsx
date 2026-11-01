@@ -34,6 +34,7 @@ import { nav } from '../state/useRoute';
 import { useLineRecords } from '../lib/useLineRecords';
 import { jobFactoryLines, jobLinePrograms } from '../lib/lineRecords';
 import { moneyTile } from '../lib/stageGateLean';
+import { planModel } from '../lib/planModel';
 import { listAllSnags, listWorkspaces, onDataChange } from '../db';
 import type { Workspace } from '../types';
 import { usePaceLines } from '../lib/usePaceLines';
@@ -341,8 +342,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
         <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
         <button type="button" className={'chip' + (which === 'full' ? ' on' : '')} aria-pressed={which === 'full'} onClick={() => setWhich('full')}>Full report</button>
         <button type="button" className={'chip' + (which === 'programs' ? ' on' : '')} aria-pressed={which === 'programs'} onClick={() => setWhich('programs')}>Programs report</button>
-        {commissioningNarrativePapersInMenus && <button type="button" className={'chip' + (which === 'commissioning' ? ' on' : '')} aria-pressed={which === 'commissioning'} onClick={() => setWhich('commissioning')}>Commissioning</button>}
-        {commissioningNarrativePapersInMenus && <button type="button" className={'chip' + (which === 'handover' ? ' on' : '')} aria-pressed={which === 'handover'} onClick={() => setWhich('handover')}>Handover report</button>}
+        {commissioningNarrativePapersInMenus && planModel(project) === 'commissioning' && <button type="button" className={'chip' + (which === 'commissioning' ? ' on' : '')} aria-pressed={which === 'commissioning'} onClick={() => setWhich('commissioning')}>Commissioning</button>}
+        {commissioningNarrativePapersInMenus && planModel(project) === 'commissioning' && <button type="button" className={'chip' + (which === 'handover' ? ' on' : '')} aria-pressed={which === 'handover'} onClick={() => setWhich('handover')}>Handover report</button>}
       </span>
 
       {/* THE COMMISSIONING REPORT, in words beside its page (on a phone, the
