@@ -89,7 +89,7 @@ ok(d.actions.late === 1 && p.att[0] === '1 action is late: Re-set the film dance
 /* ---- 5 the project report on paper ---- */
 {
   const txt = await t.pdfText(() => pressPaper(page, /^Project report/), 'project-report');
-  ok(txt.includes(norm(d.says).slice(0, 90)) && /Doing about it/i.test(txt) && /The journey/i.test(txt) && /What needs attention/i.test(txt) && /next: in /i.test(txt) && /What we wrote/i.test(txt), '5 the paper carries where we are, the journey, attention, what to do next and what we wrote');
+  ok(txt.includes(norm(d.says).slice(0, 90)) && /Doing about it/i.test(txt) && /The journey/i.test(txt) && /What needs attention/i.test(txt) && /next: in /i.test(txt) && /(What|Everything) we wrote/i.test(txt), '5 the paper carries where we are, the journey, attention, what to do next and what we wrote');
   ok(txt.includes('Packs a minute at the packer') && txt.includes('1 action is late: Re-set the film dancer.'), '5 …with the team’s own words and the late action');
 }
 

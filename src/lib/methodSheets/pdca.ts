@@ -18,15 +18,15 @@ export const SECTIONS: SheetSections = {
     ],
     Check: [
       f('result', 'The number now, against before', 'The same measure, the same way — before and after.', { tools: ['FC-105', 'FC-086'] }),
-      f('predicted', 'Against what we predicted', 'Did it move as far as you wrote down in Plan?'),
+      f('predicted', 'Against what we predicted', 'Start with Yes, Partly or No — did the number move as far as you wrote in Plan? Then say by how much. The report counts the cycles that hit it from that first word.'),
       f('learned', 'What we learned', 'In a sentence — what this cycle taught us about the cause, whether or not the number moved.'),
-      f('beyond', 'Beyond the noise? How we know', 'Why the movement is the change and not ordinary variation.', { tools: ['FC-105', 'FC-086'] }),
+      f('beyond', 'Is the change more than the ordinary ups and downs? How we know', 'The number moves a little from shift to shift anyway. Say why this movement is the change and not that — for example, it is bigger than the swing in the readings from before.', { tools: ['FC-105', 'FC-086'] }),
     ],
     Act: [
-      f('standard', 'Made the standard — where it is written', 'The procedure, line standard or checklist that now says it.', { tools: ['FC-007', 'FC-013'] }),
+      f('standard', 'Made the standard — where it is written', 'If you adopted it: the procedure, line standard or checklist that now says it. If you adapted or abandoned it, say so here or leave it blank.', { tools: ['FC-007', 'FC-013'] }),
       f('trained', 'Who was trained', 'The people and the shifts, and the day.'),
       f('spread', 'Other lines to offer it to', 'Where the same machine or problem is.', { tools: ['FC-155'] }),
-      f('decision', 'Adopt, adapt or abandon — and why', 'Adopt: make it the standard as it is. Adapt: change it and run another cycle. Abandon: it did not help — say what you will try instead.'),
-      f('again', 'Or: the next cycle’s change', 'If it did not hold or did not go far enough — what you plan next.'),
+      f('decision', 'Adopt, adapt or abandon — and why', 'Start with one of the three words. Adopt: make it the standard as it is. Adapt: change it and run another cycle. Abandon: it did not help — say what you will try instead.'),
+      f('again', 'Or: the next cycle’s change', 'If it did not hold or did not go far enough — the one change you will try next. “Start the next cycle” copies it into the next Plan.'),
     ],
   };

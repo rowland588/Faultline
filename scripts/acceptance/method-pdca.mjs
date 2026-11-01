@@ -39,7 +39,7 @@ ok(/Under way/i.test(await words('.pdca-q[data-q="Plan"] .msheet-state')) && /2 
 ok(/here/i.test(await words('.pdca-q[data-q="Plan"] .msheet-state')) && /Under way — in Plan/.test(await words('.pdca-cycle.on')), '2 the cycle says where it is, in words');
 for (const [q, l, v] of [['Plan', 'The cause we suspect, and why', 'Film tension'], ['Plan', 'The change we will make', 'Re-set the dancer'], ['Plan', 'The effect we expect, in the number', '58'],
   ['Do', 'Who does what, by when', 'Sam, Tuesday'], ['Do', 'What we measure while doing it, and who collects it', 'Packs a minute, hourly'], ['Do', 'How small we start', 'One shift'], ['Do', 'What we saw while doing it', 'Film snagged once'],
-  ['Check', 'The number now, against before', '57'], ['Check', 'Against what we predicted', 'Short by one'], ['Check', 'What we learned', 'Tension is part of it'], ['Check', 'Beyond the noise? How we know', 'Not sure'],
+  ['Check', 'The number now, against before', '57'], ['Check', 'Against what we predicted', 'No — short by one'], ['Check', 'What we learned', 'Tension is part of it'], ['Check', 'Is the change more than the ordinary ups and downs? How we know', 'Not sure'],
   ['Act', 'Made the standard — where it is written', 'Not yet'], ['Act', 'Who was trained', 'Nobody'], ['Act', 'Adopt, adapt or abandon — and why', 'Adapt — nearly there'], ['Act', 'Or: the next cycle’s change', 'Slow the unwind as well']]) await type(q, l, v);
 await go(`#/project/${PD}`, 2200);
 ok(/All written/i.test(await words('.pdca-q[data-q="Plan"] .msheet-state')) && /5 of 5/i.test(await words('.pdca-q[data-q="Plan"] .msheet-state')), '2 Plan: All written — 5 of 5');
