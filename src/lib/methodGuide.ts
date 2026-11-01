@@ -111,7 +111,101 @@ const DMAIC: MethodGuide = {
   ],
 };
 
-export const METHOD_GUIDE: Readonly<Record<MethodKey, MethodGuide>> = { pdca: PDCA, dmaic: DMAIC } as Record<MethodKey, MethodGuide>;
+const EIGHT_D: MethodGuide = {
+  whenToUse: 'Reach for 8D when something has gone wrong that matters to a customer or to the site (a retailer complaint, a foreign-body incident, a withdrawal, a major audit finding) and you must show that it was contained at once, why it happened, why it was not caught and that it will not come back, with a date and evidence for each discipline.',
+  notFor: 'Not for an internal improvement with no customer form to answer: a chronic give-away or a slow changeover belongs in an A3, PDCA or a Kaizen event. Not for finding a cause alone (use the 6M tool). 8D is heavy, and a report written only to close a complaint, with “operator error” as its cause and “retrained” as its cure, is sent back.',
+  example: 'A retailer complains of leaking seals from lane 3. D0–D1, day 0 to 1: the complaint raised as a Problem, the line stopped, the team named. D2: is and is not (lane 3 only, since the new jaw went in). D3: 14 pallets held, 14 × 1,200 packs × £0.42 = £7,056 tied up. D4, day 9: the new jaw’s heater reads 12 °C low, verified by swapping the jaw to lane 2, where the leaks moved; the escape point is that no check looked at the heater. D5–D6: a heater calibration at every jaw change, and no leakers in six weeks on lane 3 where the old rate would have given about 540. D7: the control plan, the jaw-change checklist and the other sealers. D8, day 30: closed.',
+  sections: [
+    {
+      section: 'D0–D1  Symptom, emergency response, team',
+      means: 'D0 is what happened, in plain facts, and the emergency response: the first thing done to protect the customer and the line. D1 is the team, the few people who know the process and can act. Nothing is analysed yet. The aim is to stop it getting worse and to start the clock.',
+      doThis: 'Raise the incident as a Problem in the register with its line, machine, priority and the date and time you learned of it. If it is a customer complaint, add it to the count in Complaints per million so it shows in the rate. Put the team on the Actions page by name, each with something to do and a day, and write the first response taken (line stopped, product quarantined) as an Action already done.',
+      youGet: 'A dated symptom, the first response taken and a named team with its first Actions. This is day 0 of the clock every later discipline is timed from.',
+    },
+    {
+      section: 'D2  Describe the problem',
+      means: 'Describing the problem so exactly that anyone could recognise it. “Is / is not” is the heart of it: what the problem is and what it could be but is not, where and where not, when and when not, how much and how many. The differences between the is and the is-not are where the cause hides.',
+      doThis: 'Write four pairs: what (which product, which fault) and what not; where (which line, lane, machine) and where not; when (which shift, which batch, since when) and when not; how much (how many packs, what share). Count with the Defect tally at the line, see the types in the Defect Pareto, and split by lane, shift and product with Stratification or Comparing several groups. Where the is / is not tool shows Not built yet, write the four pairs as a note on the project.',
+      youGet: 'A specification of the problem: what, where, when and how much, each with its is-not. It tells D4 which differences to look into.',
+    },
+    {
+      section: 'D3  Contain',
+      means: 'Interim containment: the temporary action that protects the customer while the real fix is not yet known. Product is held, sorted or reworked, what has already left the site is found, and you check that the containment works. It fixes nothing; it buys time.',
+      doThis: 'List what is held and where, how many packs, what they cost and who may release them. Record what the sort or rework finds on the Defect tally. Use What a sampling plan protects (the OC curve) to see what extra inspection really guards against. Make each containment step an Action with an owner and a day, and add one to check, from the first good result, that nothing more has escaped. Where a hold register shows Not built yet, keep the held lots in a note.',
+      youGet: 'Product held or sorted with the quantity and its cost, the customer protected and evidence that the containment works. It is written as containment, never as the corrective action.',
+    },
+    {
+      section: 'D4  Root cause and escape point',
+      means: 'The root cause is why it happened, verified by turning it on and off. The escape point is why your checks did not catch it. “Operator error” is a stopping place, not a root cause: ask what let it happen.',
+      doThis: 'Work the 6M tool: the fishbone with evidence on each cause, then the five whys on every cause you confirm. Test with data (Comparing several groups, Did it change in Analysis, Stratification) and by trying it: turn the suspected cause on and off, or swap the part to another lane and see whether the problem moves. Then ask the second question: which check should have caught this, and why did it not? Record both.',
+      youGet: 'A root cause verified on and off, an escape point, and the whys behind each, with the evidence. This is D4’s deliverable.',
+    },
+    {
+      section: 'D5–D6  Corrective action, implemented and validated',
+      means: 'D5 chooses the permanent corrective action and shows it should work. D6 puts it in and proves, on the number, that it did. It replaces the containment: once D6 holds, the held-and-sorted workaround can stop.',
+      doThis: 'Compare the options in the Pugh matrix and order them with Impact and effort, then make the chosen action an Action with an owner and a day. After it is in, prove it on the same number the complaint was about: Did it change in Analysis, Capability on the new readings and a Control chart running on it. If the result is a count of zero, say what zero proves: the count the old rate would have given, and did not.',
+      youGet: 'The chosen action in place and its proof, before and after on the number with how sure, so the containment can be lifted.',
+    },
+    {
+      section: 'D7  Prevent recurrence',
+      means: 'Preventing it coming back in the system, not just on this line. The FMEA (failure modes and effects analysis, the list of what can go wrong and how well it is caught) is updated, the control plan gains the check that would have caught it, the standard is rewritten, and the fix is offered to every line with the same machine.',
+      doThis: 'Make an Action for each system change, with an owner and a day: the risk list, the control plan check, the written standard (Line standard, the combination table in Line balance) and the mistake-proofing check in the Mistake-proofing log. Then make one Action for each other line with the same machine, to check it or fit the fix. Where a tool the section lists shows Not built yet, the change is still an Action and its evidence a note.',
+      youGet: 'The system changed in writing: the documents updated, the checks added and the other lines told, each with an owner and a date.',
+    },
+    {
+      section: 'D8  Close',
+      means: 'Closing the report: every discipline has its evidence and its date, the team is recognised, and the report goes to whoever raised it, the client. It also shows how many days each discipline took.',
+      doThis: 'Check each discipline has its evidence and date and every Action is closed, then close the Problem. Write what was learned as a note. Make the project’s reports for the client. Where the 8D report shows Not built yet, those reports and the closed Actions are the record.',
+      youGet: 'A closed report, each discipline with evidence and a date, sent to the client, and the days each took.',
+    },
+  ],
+};
+
+const A3: MethodGuide = {
+  whenToUse: 'Reach for an A3 when one problem and its solution have to go on one page and be agreed with the people who must support it: a chronic give-away on a line, a changeover improvement proposed to the sponsor, a 6M brought to the site meeting. The owner drafts the thinking, the others question each block, and the page carries their agreement.',
+  notFor: 'Not for a formal corrective-action report to a customer (8D). Not for a whole programme of problems: one page holds one problem. Not as a form to fill in after the work is done: a page of statements with no facts and no evidence is the common failure.',
+  example: 'Leaking seals on lane 3, found in the weekly count before any complaint. Background: leakers cost money every week and risk a complaint. Current condition: leakers by lane, lane 3 at 3.2% against 0.3% on the others. Target: 0.3% on lane 3 by 14 November. Analysis: the swap test points at the new jaw’s heater. Countermeasures: heater calibration at every jaw change (engineering, 7 November) and a jaw-change checklist (production, 10 November). Plan and follow-up: on 28 November the chart shows 0.2% over four weeks, held. One page, read in the site meeting in two minutes.',
+  sections: [
+    {
+      section: 'Background',
+      means: 'Why this matters to the business: the gap in a number the business cares about, and what the gap costs. A background that does not name the number and the cost is a complaint, not a problem.',
+      doThis: 'Raise the Problem in the register with its line and priority. Put the cost beside it: Cost a pack in labour and Lost time in money for time, Cost of poor quality for rejects and holds. Write the gap in one sentence (the number now, the number wanted, the cost a week) and say who feels it.',
+      youGet: 'The gap stated in the business’s own number, with what it costs a week. It is why the page exists.',
+    },
+    {
+      section: 'Current condition',
+      means: 'The facts drawn with the number on them: a chart, a Pareto or a map of the process, whichever shows the number best. It is what is true today, not what anyone thinks the cause is.',
+      doThis: 'Draw it from real readings and take them yourself at the line. Use the Defect Pareto for faults by type, the Loss count for where a shift’s time goes, the Value stream map for flow and waiting, a Control chart or Capability for a measured value and the Defect tally for counts. Note the dates the readings cover, and pick the one picture that shows the number.',
+      youGet: 'A picture and a number for today: the baseline the target and the follow-up are measured against.',
+    },
+    {
+      section: 'Target',
+      means: 'The number you want and the date you want it by, on the same measure as the current condition. A target with no date is a wish; a target on a different measure cannot be checked.',
+      doThis: 'Set it on the same measure and in the same unit as the current condition. If the target is the line’s output, Line capacity shows what the line can make and how far each way to the target goes. For a number the team reports every week, use the line’s weekly Numbers, which hold the target and the trend. Put the date on the Action that follows.',
+      youGet: 'A target of a number, a unit and a date: what the follow-up will be judged against.',
+    },
+    {
+      section: 'Analysis',
+      means: 'The root cause, with the evidence. The fishbone sorts possible causes on six bones (People, Machine, Method, Material, Measurement, Environment) and the five whys drill each confirmed cause down to something that can be put right.',
+      doThis: 'Open the 6M tool and build the fishbone from the current condition, marking how each cause is known: measured, counted, seen or told. Work the five whys on the confirmed ones. Split the data by shift, head or product where it helps, and ask the is / is not question: where and when it happens, and where and when it does not. Where a fault tree or an is / is not tool shows Not built yet, keep the answers as a note.',
+      youGet: 'The root cause, or causes, with the evidence for each and the chain of whys. The countermeasures aim at these.',
+    },
+    {
+      section: 'Countermeasures',
+      means: 'What will be done, by whom, by when and against which cause. A countermeasure is aimed at one named cause; a list of tasks with no cause named is a to-do list.',
+      doThis: 'Put each countermeasure on the Actions page with its owner, its day, its reason and the cause it answers. When there are several ways to answer a cause, rank them with Impact and effort or compare them in a Pugh matrix. Check that every cause on the analysis has a countermeasure, or a written reason why not.',
+      youGet: 'A set of Actions, each tied to a cause and with an owner and a date, and no cause left unanswered without a reason.',
+    },
+    {
+      section: 'Plan and follow-up',
+      means: 'The steps and their dates, and then the part most often forgotten: the number checked again, and whether it held. The page is not finished until the follow-up is written. It is updated, not replaced.',
+      doThis: 'Plan the steps on the Journey so they land on their days. On the follow-up date take the number again, the same way, and use Did it change in Analysis for before and after, with a Control chart to watch it hold. Keep the weekly Numbers up against the target. Write the result in the project’s notes and close the Problem when it held.',
+      youGet: 'The follow-up result against the target (did it move, by how much, did it hold) and the page closed or planned again.',
+    },
+  ],
+};
+
+export const METHOD_GUIDE: Readonly<Record<MethodKey, MethodGuide>> = { pdca: PDCA, dmaic: DMAIC, 'eight-d': EIGHT_D, a3: A3 } as Record<MethodKey, MethodGuide>;
 
 /** A method’s whole guide. */
 export const guideOfMethod = (key: MethodKey): MethodGuide => METHOD_GUIDE[key];
