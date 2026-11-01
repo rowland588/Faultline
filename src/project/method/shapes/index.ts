@@ -27,7 +27,10 @@ import { KATA_SHAPE } from './kata';
 
 import { DMAIC_SHAPE } from './dmaic';
 
+import { A3Board } from './A3Board';
+
 export const SHAPES: Partial<Record<MethodKey, Shape>> = {
   kata: KATA_SHAPE,
   dmaic: DMAIC_SHAPE,
+  a3: { Board: A3Board, sectionBoxes: 'none' },
 };

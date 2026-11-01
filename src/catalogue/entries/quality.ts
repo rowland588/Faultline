@@ -385,8 +385,8 @@ export const QUALITY: Entry[] = [
     depends: ['FC-146', 'FC-204'],
     complexity: 'S', value: 'medium', valueWhy: 'The 6M told on one page.',
     status: 'partial', form: 'report', methods: ['rca.a3'], scenarios: ['project'],
-    built: { where: [], code: ['src/lib/sixmReport.ts', 'src/lib/sixmReportPdf.ts'], tests: ['src/lib/__tests__/sixmReportPdf.test.ts'], acceptance: ['sixm-evidence.mjs'] },
-    limits: ['The 6M report tells the story over several pages; there is no one-page A3 layout.'],
+    built: { where: [], code: ['src/project/method/shapes/a3Model.ts', 'src/project/method/shapes/A3Board.tsx', 'src/lib/report/a3Paper.ts', 'src/lib/sixmReport.ts', 'src/lib/sixmReportPdf.ts'], tests: ['src/project/method/shapes/__tests__/a3Model.test.ts', 'src/lib/__tests__/sixmReportPdf.test.ts'], acceptance: ['method-a3.mjs', 'sixm-evidence.mjs'] },
+    limits: ['Built 1 November as the A3 method’s own board and paper: “A3 on one page” on A3 landscape from the answers written on the sheet (the seven blocks, a list of countermeasures with the cause each answers, the project’s latest study speaking at the current condition and the follow-up), read back in method-a3.mjs. Not marked available: no specification (knowledge/specs/FC-151-*.md) was written before the code, so the standard’s workflow is not met; the 6M project’s own records (its causes and whys) are not poured into the A3 automatically; the current condition and the follow-up share no drawn chart yet (the target as a line); a sheet with more words than one A3 holds at a readable size runs on to a second page, said on the paper.'],
   },
   {
     id: 'FC-152', name: 'Fault tree analysis', discipline: 'rca', sub: 'structured',
