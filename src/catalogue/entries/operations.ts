@@ -5,6 +5,7 @@ import type { Entry } from '../types';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 import { LOG_ACCEPTANCE, LOG_CODE, LOG_TESTS, logBuilt } from '../../tools/checks/built';
 import { skillsBuilt } from '../../tools/skills/built';
+import { docBuilt } from './docBuilt';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -771,7 +772,10 @@ export const OPERATIONS: Entry[] = [
     food: 'Machine set-ups; cleans; QA checks.',
     depends: ['FC-006', 'FC-222'],
     complexity: 'M', value: 'medium', valueWhy: 'Standard work that sticks.',
-    status: 'to-build', form: 'tool', kind: 'standard', methods: ['people.twi-job-instruction'], scenarios: ['people'], words: ['training', 'TWI', 'job breakdown'],
+    status: 'partial', form: 'mode', partOf: 'FC-240', methods: ['people.twi-job-instruction'], scenarios: ['people'], words: ['training', 'TWI', 'job breakdown'],
+    built: docBuilt('job-instruction', { code: ['src/tools/doc/figures/ji.ts'], tests: ['src/tools/doc/__tests__/teach.test.ts'], acceptance: ['teach.mjs'] }),
+    spec: 'knowledge/specs/FC-223-job-instruction.md',
+    limits: ['A learner signed off here is not entered in the skills matrix (FC-222): the page keeps the name, the day and the 30-day re-check, and the matrix’s levels are set there by the team — the two are not linked.', 'The breakdown is typed, not drawn from the line standard’s elements; the key points are not drafted by Line Talk.', 'The money is the typed hours to standard with and without × the learners × the wage; no learning curve is fitted to them (FC-027).', 'The method is from knowledge: the original Job Instruction manual and the TWI workbooks were not re-read (knowledge/GAPS.md).'],
   },
   {
     id: 'FC-224', name: 'One-point lesson', discipline: 'people', sub: 'instruction',
@@ -783,9 +787,10 @@ export const OPERATIONS: Entry[] = [
     food: 'Setting a film guide; a cleaning step.',
     depends: ['FC-202', 'FC-223'],
     complexity: 'S', value: 'medium', valueWhy: 'Line Talk writes one on request.',
-    status: 'partial', form: 'report', methods: ['people.one-point-lesson'], scenarios: ['people', 'daily'], words: ['OPL'],
-    built: { where: ['/talk'], code: ['src/tools/talk/TalkScreen.tsx'], tests: [], acceptance: ['line-talk-assistant.mjs'] },
-    limits: ['Written by Line Talk on request; there is no one-point lesson of its own with a sign-off.'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['people.one-point-lesson'], scenarios: ['people', 'daily'], words: ['OPL'],
+    built: docBuilt('one-point-lesson', { code: ['src/tools/doc/figures/opl.ts'], tests: ['src/tools/doc/__tests__/teach.test.ts'], acceptance: ['teach.mjs'] }),
+    spec: 'knowledge/specs/FC-224-one-point-lesson.md',
+    limits: ['Line Talk can still write the words of a lesson from what is said, at #/talk; they are copied into the lesson by hand — the two are not linked.', 'Offered to other lines is a line of words: it does not put the lesson on that line’s own list.', 'Coverage counts people marked with a day; it does not test that they remember it. No money of its own (knowledge/MONEY.md).'],
   },
   {
     id: 'FC-225', name: 'Standard operating procedure with photos', discipline: 'people', sub: 'instruction',
@@ -797,7 +802,10 @@ export const OPERATIONS: Entry[] = [
     food: 'Set-ups, cleans, changeovers.',
     depends: ['FC-223', 'FC-006'],
     complexity: 'M', value: 'medium', valueWhy: 'Standards at the point of use.',
-    status: 'to-build', form: 'tool', kind: 'standard', methods: ['people.twi-job-instruction'], scenarios: ['people'], words: ['SOP', 'work instruction'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['people.twi-job-instruction'], scenarios: ['people'], words: ['SOP', 'work instruction'],
+    built: docBuilt('sop', { code: ['src/tools/doc/figures/sop.ts'], tests: ['src/tools/doc/__tests__/teach.test.ts'], acceptance: ['teach.mjs'] }),
+    spec: 'knowledge/specs/FC-225-sop.md',
+    limits: ['A photo is matched to its step by the number its caption starts with — there is no per-step camera button; the steps and the photos are two boxes of one document.', 'It is its own document, not the line standard’s page: it is not attached to a product’s standard or printed with the line standard’s card.', 'The seconds are as typed, not a timed standard; no money of its own (knowledge/MONEY.md).'],
   },
   {
     id: 'FC-226', name: 'Energy and water per tonne', discipline: 'sustainability', sub: 'utilities',
