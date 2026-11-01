@@ -7,7 +7,7 @@
  *      attention list and the next step — every sentence on the page equal to the module's
  *   3  a tool result nobody has written up is flagged; written, the flag goes; a number claimed with no tool behind it is noted
  *   4  a late action is counted and said, red beside its words, and the summary carries it
- *   5  the project report on paper (Report ▾) — read back: the sentence, the journey, the finding, attention, next, what we wrote
+ *   5  the project report on paper (Report ▾ › Project report; the page itself is method-report.mjs) — read back: the sentence, the journey, the finding, attention, next, what we wrote
  *   6  a client reads it; a phone fits
  *
  *   node scripts/acceptance/method-dashboard.mjs      (SMOKE_BASE, as smoke) */
@@ -88,8 +88,8 @@ ok(d.actions.late === 1 && p.att[0] === '1 action is late: Re-set the film dance
 
 /* ---- 5 the project report on paper ---- */
 {
-  const txt = await t.pdfText(() => pressPaper(page, /^Project report — where we are/), 'project-report');
-  ok(txt.includes(norm(d.says).slice(0, 90)) && /Where we are/i.test(txt) && /The journey/i.test(txt) && /What needs attention/i.test(txt) && /What to do next/i.test(txt) && /What we wrote/i.test(txt), '5 the paper carries where we are, the journey, attention, what to do next and what we wrote');
+  const txt = await t.pdfText(() => pressPaper(page, /^Project report/), 'project-report');
+  ok(txt.includes(norm(d.says).slice(0, 90)) && /Doing about it/i.test(txt) && /The journey/i.test(txt) && /What needs attention/i.test(txt) && /next: in /i.test(txt) && /What we wrote/i.test(txt), '5 the paper carries where we are, the journey, attention, what to do next and what we wrote');
   ok(txt.includes('Packs a minute at the packer') && txt.includes('1 action is late: Re-set the film dancer.'), '5 …with the team’s own words and the late action');
 }
 

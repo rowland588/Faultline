@@ -19,7 +19,8 @@ describe('the project report model', () => {
     expect(r.cover.facts.slice(0, 3)).toEqual([['Method', 'PDCA'], ['Line', 'Line 7'], ['Lead', 'Rowland']]);
     expect(r.cover.tiles.map(t => [t.k, t.v])).toEqual([['Sections written', '0'], ['Tool results', '0'], ['To look at', '0'], ['Late actions', '0']]);
     expect(r.sections.map(s => s.id)).toEqual(['journey', 'telling', 'attention', 'wrote']);
-    expect(r.cover.verdict.text).toBe(r.dash.says);
+    expect(r.cover.sub).toBe(r.dash.says);
+    expect(r.cover.verdict).toEqual({ text: 'Not started yet', tone: 'n' });
   });
   it('a missing line and lead are said, not blanked', () => {
     const r = methodReportModel(base({ line: '', project: { name: 'X' } }));

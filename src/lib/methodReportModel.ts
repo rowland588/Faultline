@@ -96,6 +96,8 @@ export interface ReportIn extends Omit<DashIn, 'owed'> {
 }
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+/** The cover's verdict, in its word (a colour is never the only carrier). */
+const VERDICT: Record<ReportTone, string> = { r: 'Needs attention', a: 'Watch', g: 'Every section written', w: 'Under way', n: 'Not started yet' };
 const WORD: Record<string, string> = { r: 'Needs attention', a: 'Watch', n: 'Note', g: 'Fine', w: 'Under way' };
 
 /** The money each study tool can say, and the input it needs when it cannot — named, never filled. */
@@ -143,8 +145,8 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   const cover: ReportCover = {
     eyebrow: `PROJECT REPORT · ${m.name.toUpperCase()}`,
     title: x.project.name,
-    sub: m.question,
-    verdict: { text: dash.says, tone },
+    sub: dash.says,
+    verdict: { text: VERDICT[tone], tone },
     facts: [['Method', m.name], ['Line', x.line || 'No line yet'], ['Lead', x.project.lead?.trim() || 'Not named yet'], ...(here && askable.length ? [['You are in', `${here.name} (step ${here.index + 1} of ${dash.sections.length})`] as [string, string]] : [])],
     printed: x.printed,
     tiles,
@@ -231,7 +233,7 @@ export function itemLines(it: ReportItem): string[] {
 /** All the words of a report, in order — the cover, every item, the closing line. */
 export function reportLines(r: MethodReport): string[] {
   return [
-    r.cover.title, r.cover.verdict.text, ...r.cover.facts.flat(), ...r.cover.tiles.flatMap(t => [t.k, t.v, ...(t.of ? [t.of] : [])]),
+    r.cover.title, r.cover.sub, r.cover.verdict.text, ...r.cover.facts.flat(), ...r.cover.tiles.flatMap(t => [t.k, t.v, ...(t.of ? [t.of] : [])]),
     ...r.sections.flatMap(s => [s.title, ...(s.lead ? [s.lead] : []), ...s.items.flatMap(itemLines)]),
     r.closing.text,
   ];

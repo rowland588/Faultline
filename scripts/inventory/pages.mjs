@@ -409,6 +409,14 @@ export const PAGES = (sd, cap) => [
     { what: 'the tools we will use, folded — Every tool', sel: '.fold[data-fold="jn-tools"] .jn-every', text: /^Every tool/, phone: true },
     { what: 'the days in order', sel: '.jn-day' }, { what: 'a day’s lines, each a record’s own', sel: '.jn-day .jn-li' },
     { what: 'today marked', sel: '.jn-day.is-today' }, { what: 'the closing line', sel: '.ln-close' }] },
+  /* THE PROJECT REPORT of a method project (1 November, docs/METHODS.md §17) */
+  { name: 'The project report — a method project', path: `#/project/${sd.methodProjectId}/method-report`, must: [
+    { what: 'the page header — Print the primary', sel: '.mrep .part-head .btn-primary', text: /^Print$/ },
+    { what: 'the page header — Report ▾ with the Project report', sel: '.mrep .part-head .part-menu-b', text: /^Report/ },
+    { what: 'the band', sel: '.mrep .ln-band' }, { what: 'the four tiles', sel: '.mrep .ln-tile', n: 4 },
+    { what: 'the sections — the journey, what everything is telling us, attention, what we wrote', sel: '.mrep .mrep-sec', n: 4 },
+    { what: 'a tool in its own sentence', sel: '.mrep-tool .mrep-tool-says' }, { what: 'the journey table', sel: '.mrep-table' },
+    { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Journey — a 6M project', path: `#/project/${sd.pacedProjectId}/journey`, must: [
     { what: 'the range', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the four tiles', sel: '.jn-tiles .ln-tile', n: 4 },
     { what: 'the tools we will use', sel: '.jn-tool-list .jn-tool', n: 19, desk: true }, { what: 'the days', sel: '.jn-day .jn-li' }, { what: 'the closing line', sel: '.ln-close' }] },

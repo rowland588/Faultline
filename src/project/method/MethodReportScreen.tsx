@@ -41,7 +41,7 @@ function Item({ it }: { it: ReportItem }) {
         {it.bars.map(b => (
           <div key={b.label} className={'mrep-bar' + (b.here ? ' is-here' : '')}>
             <span className="mrep-bar-l">{b.label}</span>
-            <span className="mrep-bar-t" aria-hidden><i className={b.v >= 1 ? 'is-full' : undefined} style={{ width: `${Math.round(Math.min(1, b.v) * 100)}%` }} /></span>
+            <progress className={'mrep-bar-t' + (b.v >= 1 ? ' is-full' : '')} value={Math.round(Math.min(1, b.v) * 100)} max={100} aria-label={`${b.label}: ${b.text}`} />
             <span className="mrep-bar-x">{b.text}</span>
           </div>
         ))}
