@@ -544,4 +544,166 @@ export const SPC_GUIDES: Record<string, Guide> = {
     ],
     watch: 'A link is not a cause: the test says the counts are not spread the way chance alone would spread them — not why. One big cell is often carrying the whole result, so read the cells that stand out.',
   },
+  'FC-109': {
+    intro: 'For when two measures seem to move together and nobody has plotted them — jaw temperature and seal strength, line speed and give-away — and you want to know how closely, and by how much.',
+    steps: [
+      {
+        step: 'The result and its one driver',
+        means: 'Two measures you suspect move together. The driver is the one you can change or that changes by itself; the result is what you care about, typed as What is measured. With one driver the page draws a scatter and a straight line through it.',
+        doThis: 'On Analysis tap Does one thing move with another — and by how much? (under How are things linked?). Type What is measured — the result, “Seal strength”, with its unit — and one driver with its unit in brackets, “Jaw temperature (°C)”.',
+        youGet: 'Two boxes for each pair, one for the driver and one for the result.',
+      },
+      {
+        step: 'The pairs',
+        means: 'A pair is one pack or one trial with both numbers recorded together. ↵ moves from the driver box to the result box and, from the last box, adds the pair.',
+        doThis: 'Measure both on the same item, type the driver then the result and press Add the pair; or paste rows of two numbers to a line (Or paste rows). Four pairs is the least for a line, and ten or more before it is firm — below that the page calls it a hint.',
+        youGet: 'A scatter of the points as they go in, each pair listed as “170 → 4.6 N”, and a line once there are four.',
+      },
+      {
+        step: 'The link and the line',
+        means: 'r (Pearson’s correlation) runs from −1 to +1: near either end the points sit close to a straight line, near 0 there is no straight-line link. Spearman’s ρ is the same idea on ranks, which one stray reading cannot bend. The fitted line says how much the result changes for each extra unit of the driver, with an interval, and R² is the share of the variation that goes with the driver.',
+        doThis: 'Read the sentence — “Seal strength rises … N for every extra 1 °C of jaw temperature — we can be 95% confident the true change for each is between … and … N” — then the tiles Pairs, Link, Per unit, Explained and Shape.',
+        youGet: 'A verdict of Linked, Linked, not straight or No link shown, with r, ρ, the line’s equation and its standard error.',
+      },
+      {
+        step: 'Does a straight line fit?',
+        means: 'A line is the wrong shape if the relation bends. The page looks at how the points fall above and below the line; too few stretches means the line is too straight for them. It also warns when r and ρ disagree by more than 0.2 — one or two points, or a curve, are pulling the line.',
+        doThis: 'Read Checks on the readings: Shape, Outlier and Residuals. Look at any point flagged as more than three standard errors from the line; none is removed.',
+        youGet: 'An amber line saying “the relation bends, so do not trust the line at the ends”, or a quiet one saying there is no sign the line is the wrong shape.',
+      },
+      {
+        step: 'What does the line give at …',
+        means: 'A box under the picture: type a value of the driver and the line gives the result there, with two intervals — one for the average at that value and one for a single new reading.',
+        doThis: 'Type a value inside the range you measured. Outside it the page gives no interval: beyond the readings the line is a guess. With fewer than 20 pairs it says the answer is rough.',
+        youGet: 'A sentence such as “At 180 °C the line gives … N: we can be 95% confident the average there is between … and …, and a single new reading would fall between … and ….”',
+      },
+    ],
+    watch: 'A link is not a cause: the page says the two move together in these readings — not that one makes the other move, and not beyond the range measured.',
+  },
+  'FC-110': {
+    intro: 'For when a result varies and several things might be driving it — give-away against product temperature and line speed, seal strength against temperature and dwell — and you want to know how much each one counts, with the others held still.',
+    steps: [
+      {
+        step: 'The drivers',
+        means: 'Up to five things that might drive the result, named by you; the tool never picks them. Each has its unit in brackets so the sentences can use it. With more than one driver the page fits a regression rather than a single line.',
+        doThis: 'On Analysis tap Does one thing move with another — and by how much?, type What is measured (the result) and The drivers, separated by commas: “Jaw temperature (°C), Dwell (s)”.',
+        youGet: 'A box for each driver and one for the result, in every row you enter.',
+      },
+      {
+        step: 'Rows: five for each driver, and five more',
+        means: 'One row is one pack or one trial with every driver and the result recorded together. The more drivers, the more rows the fit needs: 15 for two, 20 for three, 25 for four, 30 for five.',
+        doThis: 'Measure every driver and the result on the same item and type them in the boxes (↵ moves along; the last ↵ adds the row), or paste rows with one number to a box. Vary the drivers separately if you can, rather than together.',
+        youGet: 'Each row listed as “170, 0.8 → 4.6 N”, and until there are enough a line saying how many are needed for that many drivers.',
+      },
+      {
+        step: 'The effect of each driver',
+        means: 'For each driver, how much the result moves per unit of it with the others held still, with an interval; R², the share of the variation the drivers explain together; and a p-value for the whole fit.',
+        doThis: 'Read the verdict — Drivers found or No link shown — then the sentence: “Seal strength goes with the drivers — we can be 95% confident they move it together (F …, p …; R² …). Per unit of each, the others held: Jaw temperature +… N (… to …); Dwell +… N (… to …)”. Any driver “not shown to matter once the others are in” is named.',
+        youGet: 'The tiles Rows, Explained (with the adjusted share), p, Strongest and Worst VIF, and the intercept with its caution that it may lie far outside the readings.',
+      },
+      {
+        step: 'Drivers that move together',
+        means: 'If two drivers rise and fall together in your rows — speed and temperature both high on the same shift — the fit cannot say which is doing the work. The variance inflation factor (VIF) measures it, and the page warns above 10.',
+        doThis: 'Read Drivers move together. If it is above 10, keep one driver, or vary them separately in the next trial. Drivers that move exactly together, or one that is the same in every row, are refused with a sentence saying which.',
+        youGet: 'A quiet line when the drivers are far enough apart, or an amber one and the verdict Drivers move together.',
+      },
+    ],
+    watch: 'Only straight-line effects, added up: the page does not look for drivers that work together or for curves. A link is not a cause, and the fit is good only inside the range you measured.',
+  },
+  'FC-113': {
+    intro: 'For planning, before anything is measured: studies are too often run with whatever number of readings was convenient. This works out how many readings or counts a question needs, and what they will cost in time and in a person’s pay.',
+    steps: [
+      {
+        step: 'How many readings do I need?',
+        means: 'The question is answered from what you expect, not from readings you already have, so it can be asked before a study starts. It sits under Can I trust this number?',
+        doThis: 'On Analysis tap How many readings do I need?, name what is measured with its unit, and leave the confidence level at 95% unless your procedure names another.',
+        youGet: 'A What to size panel under the band, with a sentence that updates as you fill it.',
+      },
+      {
+        step: 'What to size',
+        means: 'Six choices. A mean to ±: know an average to within an amount of the unit, such as a fill weight to ±0.3 g. A difference between two groups: be able to see a change, such as 0.5 g between shifts. A share to ±: pin a reject rate to a few points. Two shares apart: tell 10% from 5%. Zero failures to show: how many to test in a row, none failing, to show a share is good. Cycles to time: how many cycles a time study needs.',
+        doThis: 'Tap the one you are planning. For cycles, first type the cycles you have already timed as readings; the page says how many more.',
+        youGet: 'Only the boxes that choice needs.',
+      },
+      {
+        step: 'The spread, and what you need to see',
+        means: 'For a mean or a difference the biggest unknown is the spread (s) of the readings, so you guess it. The other boxes say what you need: Within ± (the unit), Difference that matters, Share expected (blank means 0.5), Within ± as a share, Before and After shares, or Share allowed to be bad.',
+        doThis: 'Guess the spread from a few earlier readings or a similar line — or type eight or more readings on the pad (“Readings to take the spread from”) and the page takes it from them. Type the precision or difference that would change what you do. One batch of — optional — lowers the count when you are sampling from one batch of that size.',
+        youGet: 'If something is missing, the sentence says so in words — “A guess of the spread (s) — or at least 8 readings to take it from” — instead of giving a number.',
+      },
+      {
+        step: 'Power',
+        means: 'For a difference or two shares: power is the chance of seeing the difference if it is really there. 80% is the usual; 90% needs more.',
+        doThis: 'Leave 80% unless missing a real difference would be expensive.',
+        youGet: 'A count per group at that power, and a line saying what difference you could see with a quarter, half and all of that count.',
+      },
+      {
+        step: 'Seconds a reading, and the count',
+        means: 'How long one reading takes turns the count into minutes. If the line has a labour rate, it also gives the pounds of one person’s time. Both are optional.',
+        doThis: 'Type the seconds a reading. Read the sentence — “To know the mean to within ± 0.3 g at 95% confidence, take about 38 readings (spread 0.90 g, a guess)” — and the line below it, which gives the counts by the simpler normal method for comparison.',
+        youGet: 'The count the study needs, in the verdict (38 readings, 52 a group), and — with seconds given — “about 35 minutes at 20 seconds a reading”, and the pounds of one person’s time when the line has a labour rate.',
+      },
+    ],
+    watch: 'The count is only as good as the spread guessed: a spread twice as big needs four times the readings. And a share needs far more counted than a mean needs measured — say so before promising a precise rate from one morning’s count.',
+  },
+  'FC-114': {
+    intro: 'For when a tail estimate is needed and the normal curve does not fit — residual oxygen, minutes between short stops, a strength with a hard floor. It tries four shapes on your readings and says which, if any, describes them.',
+    steps: [
+      {
+        step: 'What is measured, and a limit that matters',
+        means: 'Name the readings (“Residual oxygen”) and, if a limit decides what is acceptable, type it: A lower limit that matters or An upper limit that matters. Both are optional; with one typed the page says how many would fall beyond it.',
+        doThis: 'On Analysis tap Which shape do these readings follow? (under Can I trust this number?), name what is measured with its unit, and type the limit if there is one — an upper limit for oxygen, a lower one for strength.',
+        youGet: 'A page that takes readings, and — once a limit is typed — a count beyond it.',
+      },
+      {
+        step: 'The readings, in the order taken',
+        means: 'A shape is fitted from 20 readings; 30 or more is better, and 50 tells a lognormal from a Weibull. Before that the answer is a hint, and the page says so.',
+        doThis: 'Type or paste them in the order taken. Readings on the floor are often rounded; the page notes when they are too coarse for its goodness test.',
+        youGet: 'The answer as soon as there are 20, with a Size note until there are 50.',
+      },
+      {
+        step: 'Which shape fits',
+        means: 'The page tries a normal (a bell), a lognormal (a long tail to the high side, like oxygen), a Weibull (times between failures, with wear) and an exponential (no memory). Each is tested against the readings with Anderson–Darling, which rejects it below p 0.05; of those that fit, the one with the lowest AIC — a score that rewards fit and penalises complexity — leads.',
+        doThis: 'Read the verdict — Bell-shaped, Follows a Weibull, No shape fits — then the table Every shape tried, which lists each shape’s fit, p, AIC, median, 99.865th point and Ppk.',
+        youGet: 'The leading shape named, with its parameters in the floor’s words (“Weibull: shape β … (above 1: gaps that wear out)”), and the shapes that do not fit named too. Two shapes can fit about equally and the page says so.',
+      },
+      {
+        step: 'The tail and the count',
+        means: 'The 99.865th point is the value the fitted shape says all but 1.35 in 1,000 readings fall below — its version of three sigma. With a limit typed the page says how many would fall beyond it, and puts what was actually counted beside it with a bound.',
+        doThis: 'Prefer the count as measured to the model’s tail unless you have 50 or more readings: from 30 the far tail is a model’s reach, not a measurement. Read “as counted, 3 of 40 are over 2 % (we can be 95% confident the true share is fewer than 19 in 100)”.',
+        youGet: 'The tiles Readings, Shape, Fit, 99.865th point and Beyond the limit, and — with a limit — a percentile Ppk beside the bell’s Ppk.',
+      },
+      {
+        step: 'The probability plot',
+        means: 'A picture of each reading against where the leading shape expects it. Points along the straight line fit; a curve away from the line says the shape does not.',
+        doThis: 'Look at the ends of the plot, where the tail lives, before you trust the shape for a tail estimate.',
+        youGet: 'The plot, headed “Expected under the …” with the shape’s name, beside the table of every shape tried.',
+      },
+    ],
+    watch: 'Steady first: a shape fitted to readings that drifted or mixed fits nothing honestly, and the page says “Not steady — look at the order first”. A shape is the nearest of four, not the process’s law.',
+  },
+  'FC-115': {
+    intro: 'For catching a capability or an interval that looks better than it is because the readings were taken too close together. Consecutive packs from one filler head tend to be alike; when each reading leans on the one before, the same information is counted twice.',
+    steps: [
+      {
+        step: 'Readings in the order taken, 30 or more',
+        means: 'Independence can only be judged from readings kept in the order they were taken, and from 30 of them. Under 30 the page says it is too few to judge.',
+        doThis: 'Type or paste the readings in the order taken, on a capability study or on Analysis (How sure am I of this figure?, a gauge study or a shape study). Do not sort them. The control chart does not make this check.',
+        youGet: 'On Analysis, asked How sure am I of this figure? about a mean, an Order tile that reads Independent, Linked or Too few to judge; for a gauge study or a shape study, a line under Checks on the readings.',
+      },
+      {
+        step: 'The Order check',
+        means: 'The page works out how much each reading depends on the one before it (r₁, the lag-1 autocorrelation) and compares it with a band of plus or minus 2 divided by the square root of the count. Inside the band the readings are independent enough.',
+        doThis: 'Read the Order tile and its line. Independent: “each reading is independent enough of the last (r₁ 0.12, inside ±0.32)”. Linked: “Readings in order lean on the one before (r₁ 0.76, outside ±0.32) — limits and intervals drawn from them are too tight by about 51%”.',
+        youGet: 'On a capability study, the same warning as an amber note under its sentences, with how much too tight the limits and intervals are.',
+      },
+      {
+        step: 'How far apart to sample',
+        means: 'The page tries every 2nd, 3rd, 4th reading of what you have and says the smallest spacing at which the thinned readings fall inside their own band, keeping at least ten.',
+        doThis: 'Next time, take readings at that spacing — every 3rd pack, say — and repeat the study. If no spacing within this set clears it, the page says to take readings further apart.',
+        youGet: 'A sentence such as “sample every 3rd (thinned, r₁ 0.32 is inside ±0.53)”, and readings that count for what they are worth.',
+      },
+    ],
+    watch: 'A step or a drift in the readings also reads as dependence, so check that the process was steady first (Before capability). Linked on readings that moved is the steady check’s finding before it is this one’s.',
+  },
 };
