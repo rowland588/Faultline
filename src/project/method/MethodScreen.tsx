@@ -104,6 +104,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         title={method.name}
         says={`${method.question} ${!got ? '' : total ? `${plural(total, 'use')} of tools in this project so far.` : 'No tool has been used yet — start with the first section.'}`}
         papers={[{ label: 'Project report', for: 'The journey, what each tool is telling us with its own figures, the money, what needs attention and what the team wrote — for the meeting.', make: () => printMethodReport(projectId) }, ...(PAPERS[method.key] ?? []).map(p => ({ label: p.label, ...(p.for ? { for: p.for } : {}), make: () => p.make(projectId) }))]}
+        more={can.remove ? [{ label: 'Delete this project…', danger: true, run: () => nav(`/project/${projectId}/setup?delete=1`) }] : []}
       />
       <MethodDashboard dash={dash} projectId={projectId} />
       {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} save={saveAnswer} onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} /> : null; })()}

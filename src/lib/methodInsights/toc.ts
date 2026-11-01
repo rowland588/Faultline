@@ -19,7 +19,7 @@ export const tocInsight: MethodInsightFn = ({ answers }) => {
     next = `Go again: start pass ${again.n} at ${again.constraint} — read Line capacity afresh and find what limits the line now.`;
     if (last.n === 1 && !has('inertia')) attention.push({ kind: 'finding', tone: 'a', text: `The constraint has moved, but no rule built round the old one has been looked at — an old buffer, schedule or habit can become the new constraint.` });
   }
-  if (has('option') && !has('exploit') && !has('losses')) attention.push({ kind: 'finding', tone: 'a', text: 'An option to spend on the constraint is written, but nothing about getting the most from it first (step 2) — spend only after the free capacity has been found.' });
+  if (has('option') && !has('exploit')) attention.push({ kind: 'finding', tone: 'a', text: 'An option to spend on the constraint is written, but nothing about getting the most from it first (step 2) — spend only after the free capacity has been found.' });
   if (has('constraint') && has('exploit') && !has('rules') && !has('buffer') && !has('release')) attention.push({ kind: 'finding', tone: 'n', text: 'Ways to lose nothing at the constraint are written, but nothing yet makes the rest of the line work to its pace (step 3).' });
   return { ...(attention.length ? { attention } : {}), ...(next ? { next } : {}) };
 };

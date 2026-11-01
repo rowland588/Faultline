@@ -57,13 +57,7 @@ function TocBoard({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
   return (
     <section className="toc" aria-label="The five focusing steps">
       <h2 className="toc-h">The five focusing steps</h2>
-      <p className="toc-sub">Read from this project’s own Line capacity, loss count and week plan — nothing is typed twice. Your own words go in the boxes under each step.</p>
-      <ol className="toc-strip">
-        {steps.map(s => (
-          <li key={s.n} className="toc-chip"><a href={`#toc-step-${s.n}`} onClick={e => { e.preventDefault(); document.getElementById(`toc-step-${s.n}`)?.scrollIntoView({ block: 'start' }); }}>
-            <b>{s.n}. {s.section}</b><span>{s.state.word} · {s.state.written} of {s.state.fields}</span></a></li>
-        ))}
-      </ol>
+      <p className="toc-sub">The figures come from this project’s Line capacity and loss count. Your own judgement goes in the boxes under each step.</p>
       <div className="toc-cards">
         {steps.map(s => (
           <article key={s.n} id={`toc-step-${s.n}`} className="toc-card" aria-label={`Step ${s.n} — ${s.section}`}>

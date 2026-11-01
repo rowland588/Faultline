@@ -29,7 +29,7 @@ const text = async n => norm(await card(n).innerText());
 /* ---- 1 nothing yet ---- */
 await go(`#/project/${P}`, 2000);
 await page.waitForSelector('.toc', { timeout: 20000 });
-ok((await page.locator('.toc-chip').count()) === 5 && (await page.locator('.toc-card').count()) === 5, '1 five steps in the strip, five cards');
+ok((await page.locator('.toc-chip').count()) === 0 && (await page.locator('.toc-card').count()) === 5, '1 five step cards, no second strip (the dashboard’s journey is the one)');
 ok(/The constraint is not read yet/.test(await text(1)) && /no Line capacity with stations yet/.test(await text(1)), '1 step 1 says the constraint is not read and what is missing');
 ok(/No loss count in the project yet/.test(await text(2)) && /Count a shift/.test(await text(2)), '1 step 2 names the missing loss count');
 await card(1).getByRole('button', { name: 'Start Line capacity' }).click(); await page.waitForTimeout(1500);
@@ -77,12 +77,12 @@ ok(page.url().includes(P) && /loss/i.test(page.url()), `3 the card opens the Los
 await go(`#/project/${P}`, 2000);
 const sec = n => page.locator(`.pmethod-sec[aria-label="${n}"]`);
 const box = (s, q) => sec(s).locator('.msheet-f', { has: page.locator('.msheet-q', { hasText: new RegExp('^' + q + '$') }) }).locator('.msheet-in');
-ok((await sec('Identify the constraint').locator('.msheet-q').count()) === 3 && (await sec('Exploit it').locator('.msheet-q').count()) === 3 && (await sec('Go again').locator('.msheet-q').count()) === 2, '4 the extra questions are asked (3 · 3 · 3 · 2 · 2)');
+ok((await sec('Identify the constraint').locator('.msheet-q').count()) === 2 && (await sec('Exploit it').locator('.msheet-q').count()) === 2 && (await sec('Go again').locator('.msheet-q').count()) === 2, '4 the extra questions are asked (2 · 2 · 3 · 2 · 2)');
 await box('Identify the constraint', 'The constraint').fill('Wrapper'); await box('Identify the constraint', 'The constraint').blur(); await page.waitForTimeout(500);
 await box('Go again', 'Where the constraint is now').fill('Packer'); await box('Go again', 'Where the constraint is now').blur(); await page.waitForTimeout(500);
 await go(`#/project/${P}`, 2200);
 ok((await box('Identify the constraint', 'The constraint').inputValue()) === 'Wrapper', '4 the answer is kept after a reload');
-ok(/Under way\s*·\s*1 of 3/.test(norm(await page.locator('.toc-chip').first().innerText()).replace(/\s*·\s*/, ' · ')) || /Under way · 1 of 3/.test(norm(await page.locator('.toc-chip').first().innerText())), '4 the strip counts what is written, in words');
+ok(/Under way: 1 of 2 written/.test(norm(await sec('Identify the constraint').locator('.pace-sec-sub').first().innerText())), '4 the section counts what is written, in words');
 
 /* ---- 5 going again ---- */
 const goAgain = page.getByRole('button', { name: /^Go again — start pass 2 at Packer/ });

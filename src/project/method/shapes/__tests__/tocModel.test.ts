@@ -33,7 +33,7 @@ describe('the five focusing steps read from the line', () => {
     expect(tocSteps({}, { standards: [std], studies: [] })[2].says).toBe('A buffer of 2 hours of the constraint’s running time is set in front of Packer.');
   });
   it('counts what is written, with the person’s words beside the reading', () => {
-    const s = tocSteps({ constraint: 'Packer', goal: '60 a minute, 48 now' }, { standards: [std], studies: [] });
+    const s = tocSteps({ constraint: 'Packer', real: 'A queue in front of it' }, { standards: [std], studies: [] });
     expect(s[0].state.written).toBe(2);
     expect(s[0].answers.find(a => a.id === 'constraint')?.value).toBe('Packer');
     expect(readToc({ standards: [std], studies: [] }).capacity?.r.limit?.station.name).toBe('Packer');

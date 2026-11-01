@@ -22,9 +22,9 @@ describe('the Theory of Constraints reads its project', () => {
     const r = run({ constraint: 'Packer', moved: 'Basketer', 'constraint@2': 'Basketer', 'moved@2': 'Bagger' });
     expect(r.next).toBe('Go again: start pass 3 at Bagger — read Line capacity afresh and find what limits the line now.');
   });
-  it('spending written before exploiting is amber; once exploit or losses are written it is not', () => {
+  it('spending written before exploiting is amber; once exploit is written it is not', () => {
     expect(run({ option: 'A second packer' }).attention?.[0]).toMatchObject({ tone: 'a' });
-    expect(run({ option: 'A second packer', losses: 'Jams, 40 min' }).attention).toBeUndefined();
+    expect(run({ option: 'A second packer', exploit: 'Cut jams, 40 min' }).attention).toBeUndefined();
   });
   it('exploit with no rule for the rest is a note, not an alarm', () => {
     expect(run({ constraint: 'Packer', exploit: 'Fix jams' }).attention?.[0]).toMatchObject({ tone: 'n' });

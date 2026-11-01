@@ -54,7 +54,7 @@ export function tocReport(ctx: MethodReportCtx): ReportSection[] {
   }
   if (s1.lines.length) one.items.push({ kind: 'bullets', items: s1.lines.map(text => ({ text })) });
   one.items.push(...missing(s1));
-  one.items.push(words([['What the line must make, and what it makes', said(a('goal'))], ['The constraint, in the team’s words', said(a('constraint'))], ['Real or a mirage — how we know', said(a('real'))]]));
+  one.items.push(words([['The constraint, in the team’s words', said(a('constraint'))], ['Real or a mirage — how we know', said(a('real'))]]));
   if (limit && a('constraint').trim() && !sameStation(a('constraint'), limit)) one.flags?.push({ tone: 'a', text: `The team wrote “${a('constraint').trim()}” as the constraint, but Line capacity reads ${limit}. One of them is out of date — check the line, then correct whichever is wrong.` });
   if (limit && !a('real').trim()) one.flags?.push({ tone: 'n', text: `${limit} is named the constraint in Line capacity, but the team has not said how it is known to be real, not a mirage — a queue in front of it, stations after it waiting.` });
 
@@ -72,7 +72,7 @@ export function tocReport(ctx: MethodReportCtx): ReportSection[] {
   two.items.push(...s2.lines.filter(l => l !== atLine && !loss?.bars.some(b => l === `${b}.`)).map((l): ReportItem => ({ kind: 'paragraph', text: l })));
   if (loss && limit) two.items.push({ kind: 'paragraph', text: `What this means: only the minutes at ${limit} cost packs. A stop at another station costs labour and tidiness, but the line runs round it — do not chase those first.` });
   two.items.push(...s2.missing.filter(m => !m.startsWith('No margin') || !atLine).map((m): ReportItem => ({ kind: 'callout', tone: 'n', word: 'Missing', text: m })));
-  two.items.push(words([['When it waits — starved, blocked, or at a break', said(a('starved'))], ['What is lost at the constraint, in the team’s words', said(a('losses'))], ['What we will do to lose nothing', said(a('exploit'))]]));
+  two.items.push(words([['When it waits — starved, blocked, or at a break', said(a('starved'))], ['What we will do to lose nothing', said(a('exploit'))]]));
   if (loss && limit && (loss.atConstraintMin ?? 0) === 0) two.flags?.push({ tone: 'a', text: `The loss count names no stop at ${limit} in that shift — check that the stops carry the machine’s name, or that ${limit} really is the limit.` });
 
   /* 3 subordinate */

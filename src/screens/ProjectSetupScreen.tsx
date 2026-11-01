@@ -403,6 +403,9 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   /* DELETE, asked on the job itself: what it would take, counted first. */
   const [deleting, setDeleting] = useState<{ store: string; count: number }[] | null>(null);
   const [gone, setGone] = useState(false);
+  /* ?delete=1 — a project's More ▾ lands here with what it would take already counted and the red button asked */
+  const askDelete = useRoute().query.get('delete') === '1';
+  useEffect(() => { if (askDelete && project) void contents(project.id).then(setDeleting); }, [askDelete, project?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const lines = usePaceLines(projectId);
   /* The numbers on the peers row come from lib/standing.ts, the same call the
      dashboard and the client report make — a row that said something different

@@ -9,12 +9,10 @@ import { f, type SheetSections } from '../methodSheetKit';
 
 export const SECTIONS: SheetSections = {
     'Identify the constraint': [
-      f('goal', 'What the line must make, and what it makes', 'The number the line is asked for and the number it actually gives, in packs a minute or a shift.', { line: true, tools: ['FC-034', 'FC-201'] }),
       f('constraint', 'The constraint', 'The one station or machine that limits the output.', { line: true, tools: ['FC-034', 'FC-038'] }),
       f('real', 'Real or a mirage — how we know', 'A mirage is a machine that looks like the limit but is not: a minute lost there costs the line nothing, because the line runs round it. Is a minute lost here a minute lost by the whole line? Say how you know — a queue in front of it, the stations after it waiting for it.', { tools: ['FC-034'] }),
     ],
     'Exploit it': [
-      f('losses', 'What is lost at the constraint', 'Stops, slow running, changeovers, idle time — in minutes and packs.', { tools: ['FC-049', 'FC-056', 'FC-051'] }),
       f('starved', 'When it waits — starved, blocked, or stopped for a break', 'Starved is waiting for material; blocked is having nowhere to put what it made. Every minute it stands — starved, blocked, short of a person or at a break — is a minute the whole line loses.', { tools: ['FC-049', 'FC-046'] }),
       f('exploit', 'What we will do to lose nothing', 'The actions, who and when.', { tools: ['FC-039', 'FC-194'] }),
     ],
