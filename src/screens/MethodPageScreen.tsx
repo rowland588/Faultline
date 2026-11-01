@@ -11,6 +11,7 @@ import { METHODS, methodByKey } from '../lib/methods';
 import { METHOD_GUIDE } from '../lib/methodGuide';
 import { howTool, openable, toolStateWord } from '../project/method/methodTools';
 import { nav } from '../state/useRoute';
+import './methodPage.css';
 
 export function MethodPageScreen({ methodKey }: { methodKey: string }) {
   const m = methodByKey(methodKey);
@@ -23,6 +24,9 @@ export function MethodPageScreen({ methodKey }: { methodKey: string }) {
     );
   }
   const g = METHOD_GUIDE[m.key];
+  const ids = [...new Set(m.sections.flatMap(x => x.tools))];
+  const ready = ids.filter(id => { const h = howTool(id); return h.how === 'tool' || h.how === 'inside'; }).length;
+  const jump = (i: number) => document.getElementById(`mw-step-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return (
     <div className="wrap tp" data-method={m.key}>
       <PageHeader
@@ -33,22 +37,38 @@ export function MethodPageScreen({ methodKey }: { methodKey: string }) {
         more={[{ label: 'All the methods', run: () => nav('/projects?new=1') }]}
       />
 
-      <section className="tp-hero" aria-label="What it looks like">
-        <MethodPicture method={m} big />
-        <div className="tp-hero-side">
-          <p className="tp-problem"><b>Reach for it when</b> {g.whenToUse}</p>
-          <p className="tp-problem"><b>Not for</b> {g.notFor}</p>
-          <p className="sub"><b>On a food line:</b> {g.example}</p>
+      <section className="tp-hero mw-hero" aria-label="What it looks like">
+        <div className="mw-left">
+          <div className="mw-frame">
+            <div className="mw-frame-bar" aria-hidden><i /><i /><i /><span>{m.name}</span></div>
+            <MethodPicture method={m} big />
+          </div>
+        </div>
+        <div className="tp-hero-side mw-side">
+          <ul className="mw-facts" aria-label={`${m.name} at a glance`}>
+            <li><b>{m.sections.length}</b><span>steps, in order</span></li>
+            <li><b>{ids.length}</b><span>tools fit them</span></li>
+            <li><b>{ready}</b><span>ready to open</span></li>
+          </ul>
+          <p className="mw-card"><em>Reach for it when</em>{g.whenToUse}</p>
+          <p className="mw-card is-not"><em>Not for</em>{g.notFor}</p>
+          <p className="mw-card is-eg"><em>On a food line</em>{g.example}</p>
         </div>
       </section>
 
-      <section className="tp-sec" aria-label="The steps of the method">
+      <nav className="mw-jump" aria-label="Jump to a step">
+        {m.sections.map((x, i) => (
+          <button key={x.name} type="button" className="mw-jump-b" onClick={() => jump(i)}><i>{i + 1}</i>{x.name}</button>
+        ))}
+      </nav>
+
+      <section className="tp-sec mw-sec" aria-label="The steps of the method">
         <h2 className="ln-h">The steps — what each one means <span className="sub">{m.sections.length}</span></h2>
-        <ol className="sg-steps mp-steps">
+        <ol className="sg-steps mp-steps mw-journey">
           {m.sections.map((s, i) => {
             const sg = g.sections[i];
             return (
-              <li key={s.name} className="sg-step">
+              <li key={s.name} id={`mw-step-${i}`} className="sg-step mw-step">
                 <h3 className="sg-name">{s.name}</h3>
                 <p className="mp-what">{s.what}</p>
                 {sg && <StepMeans means={sg.means} doThis={sg.doThis} youGet={sg.youGet} />}
@@ -75,16 +95,16 @@ export function MethodPageScreen({ methodKey }: { methodKey: string }) {
         <p className="sub">The tools fit into the method’s steps — add or leave out whichever you need; a step is lit by a tool used in it, never locked behind the one before.</p>
       </section>
 
-      <section className="tp-sec" aria-label="Where it comes from">
+      <section className="tp-sec mw-sec mw-source" aria-label="Where it comes from">
         <h2 className="ln-h">Where it comes from</h2>
         <p>{m.source}</p>
       </section>
 
-      <section className="tp-sec" aria-label="The other methods">
+      <section className="tp-sec mw-sec" aria-label="The other methods">
         <h2 className="ln-h">The other methods</h2>
         <p className="mp-others">
           {METHODS.filter(x => x.key !== m.key).map(x => (
-            <button key={x.key} type="button" className="chip" onClick={() => nav(`/methods/${x.key}`)}>{x.name}</button>
+            <button key={x.key} type="button" className="chip mw-other" onClick={() => nav(`/methods/${x.key}`)}><MethodPicture method={x} /><span>{x.name}</span></button>
           ))}
         </p>
       </section>
