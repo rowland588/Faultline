@@ -50,3 +50,12 @@ describe('the 8D’s D2 reads the project’s Is / is not (FC-149) and keeps no 
     expect(t.note).toContain('13 Oct 2026');
   });
 });
+
+describe('the 8D report offers the 8D method’s own words', () => {
+  it('what happened, the response, the root cause, how verified and the escape point', () => {
+    const d = docByKey('eight-d')!;
+    const boxes = d.sections.flatMap(s => s.items).filter(i => i.kind !== 'list' && i.kind !== 'photos') as { id: string; offer?: (x: ReturnType<typeof EMPTY_CTX>) => { value: string } | undefined }[];
+    const ctx = { ...EMPTY_CTX('2026-11-01'), methodAnswers: { 'eight-d:symptom': 'a', 'eight-d:response': 'b', 'eight-d:why': 'c', 'eight-d:verified': 'd', 'eight-d:escape': 'e' } };
+    expect(['symptom', 'response', 'rootCause', 'verifiedHow', 'escape'].map(id => boxes.find(b => b.id === id)?.offer?.(ctx)?.value)).toEqual(['a', 'b', 'c', 'd', 'e']);
+  });
+});

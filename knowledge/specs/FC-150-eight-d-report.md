@@ -55,7 +55,11 @@ A document of FC-240 on a project (its natural home) or a line; opens from the 8
 5. Photos: added, captioned, taken out and back, kept after a reload, named to the cloud and printed whole — `doc-shape.mjs` step *f*.
 6. The shape's criteria 2–12 hold for it — `doc-shape.mjs`.
 7. It opens from the 8D method's rows — `methodTools.test.ts`.
-Not yet proved / left (so **partial**): reading D1–D3 and D7 from records that do not exist yet (FC-149, FC-135, FC-132, FC-133); the VDA/AIAG texts for the discipline names and the timetable; the photos in the line report's paper; the photos reaching the cloud before `supabase/DOC_PHOTOS.sql` is applied.
+8. D2 reads the project's Is / is not page (FC-149) as a table when it holds one, and the 8D method's sheet answers (what happened, the emergency response, the root cause, how it was verified, the escape point) are offered, one tap each, saying where from, copied only when tapped — `offers.test.ts`.
+Not yet proved / left (so **partial**): reading D1, D3 and D7 from records that do not exist yet (FC-135, FC-132, FC-133); the VDA/AIAG texts for the discipline names and the timetable; the photos in the line report's paper; **the photos reaching the cloud — `supabase/DOC_PHOTOS.sql` is written and NOT applied, so they stay on the device that took them. This is the one fault that holds the entry at partial.**
+
+## 10a. One 8D, two forms (1 November)
+The 8D *method* (`docs/METHODS.md` §16: `lib/eightD`, the board `project/method/shapes/eight-d`, the paper `lib/report/eightDPaper`, `scripts/acceptance/method-eight-d.mjs`) is the working form in words — its answers are project notes `method:eight-d:*`. This document is the customer's paper with the elapsed days, the containment in money and the project's records read in. To keep one place for each thing: the document **offers** the method's answers where it asks the same question (read, never copied until tapped) and reads the Is / is not page for D2; it stores only what was typed into it.
 
 ## 12. Maintainability
 Definition `src/tools/doc/defs/eight-d.ts`; arithmetic `src/tools/doc/figures/eightd.ts`; what the project holds is read by `src/tools/doc/context.ts`. When FC-149, FC-135 or the FMEA arrive, the matching typed boxes become reads and the *limits* shrink.

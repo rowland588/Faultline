@@ -7,7 +7,7 @@
 import { daysBetween, niceDay } from '../../../lib/weeks';
 import { andList, brief, fmt, gbp, lowerFirst, plural } from '../figures/words';
 import { WEAK_CAUSE, elapsed, expectedWithout, heldValue, sortingCost } from '../figures/eightd';
-import { cellText, numOf, rowsOf, textOf } from '../doc';
+import { cellText, numOf, offerAnswer, rowsOf, textOf } from '../doc';
 import type { DocDef, DocProblem, DocTable } from '../types';
 
 const DIMS = [{ value: 'what', label: 'What' }, { value: 'where', label: 'Where' }, { value: 'when', label: 'When' }, { value: 'howmuch', label: 'How much' }];
@@ -29,8 +29,8 @@ const eightD: DocDef = {
       { id: 'raisedOn', kind: 'date', label: 'The day it was raised', required: true, help: 'D0 — every elapsed day below is counted from it.' },
       { id: 'source', kind: 'choice', label: 'Where it came from', required: true, options: [{ value: 'complaint', label: 'Customer complaint' }, { value: 'internal', label: 'Found inside' }, { value: 'audit', label: 'Audit finding' }, { value: 'incident', label: 'Incident' }] },
       { id: 'ref', kind: 'text', label: 'Complaint or incident reference', example: 'Retailer CAR 4471', help: 'The customer’s own number, so the report can be matched to their request.' },
-      { id: 'symptom', kind: 'long', label: 'What happened', required: true, example: 'Leaking seals on lane 3 trays, found by the customer on delivery', help: 'The symptom as seen, in plain words.' },
-      { id: 'response', kind: 'long', label: 'The emergency response', required: true, example: 'Lane 3 stopped; the last two pallets held', help: 'What was done in the first hours to protect the customer and stop more being made.' },
+      { id: 'symptom', kind: 'long', label: 'What happened', offer: ctx => offerAnswer(ctx, ['eight-d:symptom'], 'the 8D method’s sheet'), required: true, example: 'Leaking seals on lane 3 trays, found by the customer on delivery', help: 'The symptom as seen, in plain words.' },
+      { id: 'response', kind: 'long', label: 'The emergency response', offer: ctx => offerAnswer(ctx, ['eight-d:response'], 'the 8D method’s sheet'), required: true, example: 'Lane 3 stopped; the last two pallets held', help: 'What was done in the first hours to protect the customer and stop more being made.' },
     ] },
     { id: 'd1', title: 'D1 · The team', help: 'Typed — the project’s members are not kept on the device.', items: [
       { id: 'leader', kind: 'person', label: 'Team leader', required: true, offer: ctx => (ctx.lead ? { value: ctx.lead, words: `${ctx.lead} — the project’s lead` } : undefined) },
@@ -62,10 +62,10 @@ const eightD: DocDef = {
       { id: 'rate', kind: 'number', label: 'One person’s £ an hour', min: 0, unit: '£ an hour', offer: ctx => (ctx.labourPerHour ? { value: Math.round(ctx.labourPerHour * 100) / 100, words: `£${fmt(ctx.labourPerHour, 2)} an hour — ${ctx.lineName ?? 'the line'}’s wage with on-costs` } : undefined), help: 'Money — optional. The line’s own is offered when it has one.' },
     ] },
     { id: 'd4', title: 'D4 · Root cause and escape point', help: 'Why it happened, and why it was not caught — verified, turned on and off. The project’s fishbone is read below.', items: [
-      { id: 'rootCause', kind: 'long', label: 'The root cause', required: true, example: 'The new jaw’s heater reads 12 °C low', help: 'A system cause. “Operator error” is a reason to look again.' },
-      { id: 'verifiedHow', kind: 'long', label: 'How it was verified', required: true, example: 'Swapped the jaw to lane 2 and the leaks moved with it', help: 'The cause turned on reproduces the problem and turned off removes it — or the stratification shows it only where the cause is.' },
+      { id: 'rootCause', kind: 'long', label: 'The root cause', offer: ctx => offerAnswer(ctx, ['eight-d:why'], 'the 8D method’s sheet'), required: true, example: 'The new jaw’s heater reads 12 °C low', help: 'A system cause. “Operator error” is a reason to look again.' },
+      { id: 'verifiedHow', kind: 'long', label: 'How it was verified', offer: ctx => offerAnswer(ctx, ['eight-d:verified'], 'the 8D method’s sheet'), required: true, example: 'Swapped the jaw to lane 2 and the leaks moved with it', help: 'The cause turned on reproduces the problem and turned off removes it — or the stratification shows it only where the cause is.' },
       { id: 'verifiedOn', kind: 'date', label: 'The day it was verified', required: true },
-      { id: 'escape', kind: 'long', label: 'The escape point', required: true, example: 'No heater check at jaw change; the end-of-line leak test samples 1 in 200', help: 'Why the checks did not catch it. Half of D4, and usually skipped.' },
+      { id: 'escape', kind: 'long', label: 'The escape point', offer: ctx => offerAnswer(ctx, ['eight-d:escape'], 'the 8D method’s sheet'), required: true, example: 'No heater check at jaw change; the end-of-line leak test samples 1 in 200', help: 'Why the checks did not catch it. Half of D4, and usually skipped.' },
     ] },
     { id: 'd5', title: 'D5 · The permanent corrective action', help: 'Chosen and shown to work. The project’s actions are read below.', items: [
       { id: 'chosen', kind: 'long', label: 'The corrective action chosen, and why it will work', required: true, example: 'A heater calibration check at every jaw change', help: 'The permanent fix, not the containment.' },
@@ -264,7 +264,7 @@ const eightD: DocDef = {
     },
     { name: 'A draft — only the day it was raised', source: 'the shape: a document is saved as typed; the boxes still needed are named', values: { raisedOn: '2026-11-01' }, ctx: { today: '2026-11-03' }, expect: { sentence: '', tiles: { 'Filled in': '1 of 19', 'Days to close': 'open 2 days' }, needs: ['Where it came from', 'What happened', 'The emergency response', 'Team leader', 'The problem, in one statement', 'Is and is not — at least one row', 'Containment actions — at least one action', 'How it was checked that nothing more escaped', 'The root cause', 'How it was verified', 'The day it was verified', 'The escape point', 'The corrective action chosen, and why it will work', 'The day it was chosen', 'The day it was in place', 'How it was validated', 'What was changed in the system — at least one change', 'The day it was closed'] } },
   ],
-  see: [{ key: 'charter', why: 'a corrective action that grows into a project starts from a charter' }],
+  see: [{ key: 'is-is-not', why: 'the specification of the problem — D2 reads it when the project holds one' }, { key: 'charter', why: 'a corrective action that grows into a project starts from a charter' }],
 };
 
 export default eightD;
