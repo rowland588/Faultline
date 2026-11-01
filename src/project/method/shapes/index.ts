@@ -23,4 +23,8 @@ export interface Shape {
   /** `none`: the board is the whole interface and the default boxes under each section are not drawn (the tool rows stay). */
   sectionBoxes?: 'default' | 'none';
 }
-export const SHAPES: Partial<Record<MethodKey, Shape>> = {};
+import { DMAIC_SHAPE } from './dmaic';
+
+export const SHAPES: Partial<Record<MethodKey, Shape>> = {
+  dmaic: DMAIC_SHAPE,
+};
