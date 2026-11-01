@@ -12,7 +12,7 @@ export const SECTIONS: SheetSections = {
       f('target', 'The measure, and its target', 'What will be measured (minutes, packs a minute, rejects) and the number the week is aiming at.', { line: true }),
       f('team', 'The team', 'Who is released for the week: the people who do the work, an engineer, a facilitator.', { line: true }),
       f('dates', 'The dates', 'The days of the event, as agreed with the line.', { line: true }),
-      f('baseline', 'The baseline', 'The measure on day one, taken before the week — not remembered: how many readings, how much they vary.', { tools: ['FC-019', 'FC-051'] }),
+      f('baseline', 'The baseline', 'The measure as it is today, taken before the week starts — counted or timed, not remembered: how many readings, and how much they vary.', { tools: ['FC-019', 'FC-051'] }),
     ],
     Observe: [
       f('waste', 'The waste seen on the floor', 'What the team watched — waiting, walking, rework — with the numbers. The day-by-day notes are on the board above; this is the week in one answer.', { tools: ['FC-001', 'FC-019', 'FC-199'] }),
@@ -22,7 +22,7 @@ export const SECTIONS: SheetSections = {
       f('after', 'The measure after the changes', 'The same measure, taken again the same way — the number to set against the baseline.', { line: true, tools: ['FC-105'] }),
     ],
     Standardise: [
-      f('written', 'The new way, written', 'Where it is, and who has been trained.', { tools: ['FC-007'] }),
+      f('written', 'The new way, written', 'What the new way says, in a line, and where it is kept.', { tools: ['FC-007'] }),
       f('trained', 'Who has been trained in it', 'Every person who does the work on every shift — a standard nobody was taught is not one.', { line: true }),
     ],
     Sustain: [
