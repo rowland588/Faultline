@@ -30,6 +30,19 @@ export function useAnswers(projectId: string, method: MethodKey): { answers: Rec
   return { answers, items };
 }
 
+/** Write one answer of the method's sheet — shared by the boxes under each section and by a method's own shape. */
+export function useSaveAnswer(projectId: string, method: MethodKey, items: Map<string, TestItem>) {
+  return (field: string, what: string, label?: string) => {
+    const scope = answerScope(method, field);
+    const had = items.get(scope);
+    if ((had?.what ?? '') === what) return;
+    const t = Date.now();
+    const next: TestItem = had ? { ...had, what, updatedAt: t } : { id: uid(), projectId, testId: scope, kind: 'note', what, sort: t, createdAt: t, updatedAt: t };
+    void putTestItem(next);
+    offerUndo(`Saved — ${label ?? field}`, async () => { await putTestItem(had ?? { ...next, deletedAt: Date.now() }); });
+  };
+}
+
 export function MethodSheet({ projectId, method, section, answers, items, canEdit, onTool }: {
   projectId: string; method: MethodKey; section: string; answers: Record<string, string>; items: Map<string, TestItem>; canEdit: boolean;
   onTool: (id: string) => void;

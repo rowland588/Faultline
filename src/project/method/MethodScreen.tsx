@@ -22,7 +22,9 @@ import type { ToolStudy } from '../../lib/study';
 import type { Standard } from '../../tools/linestandard/standard';
 import { PageHeader, RecordRow, RecordRows } from '../../ui/parts';
 import { GuideFold, StepMeans } from '../../ui/StepGuide';
-import { MethodSheet, useAnswers } from './MethodSheet';
+import { MethodSheet, useAnswers, useSaveAnswer } from './MethodSheet';
+import { SHAPES } from './shapes';
+import { PAPERS } from './papers';
 import { sectionState } from '../../lib/methodSheet';
 import './methodSheet.css';
 import { guideOfSection } from '../../lib/methodGuide';
@@ -59,6 +61,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const looking = useProjectLooking(projectId);
   const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
   const { answers, items } = useAnswers(projectId, method?.key ?? 'pdca');
+  const saveAnswer = useSaveAnswer(projectId, method?.key ?? 'pdca', items);
   if (!project || !method) return <p className="sub wrap">That project is not on this device.</p>;
 
   const usedIn = (s: MethodSection) => {
@@ -77,7 +80,9 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         eyebrow={`${method.name.toUpperCase()} · ${project.name.toUpperCase()}`}
         title={method.name}
         says={`${method.question} ${!got ? '' : total ? `${plural(total, 'use')} of tools in this project so far.` : 'No tool has been used yet — start with the first section.'}`}
+        papers={(PAPERS[method.key] ?? []).map(p => ({ label: p.label, ...(p.for ? { for: p.for } : {}), make: () => p.make(projectId) }))}
       />
+      {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} save={saveAnswer} onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} /> : null; })()}
       {method.sections.map((s, i) => {
         const lit = usedIn(s);
         return (
@@ -88,8 +93,8 @@ export function MethodScreen({ projectId }: { projectId: string }) {
               {s.note && <p className="chip-hint">{s.note}</p>}
               {(() => { const g = guideOfSection(method.key, s.name); return g ? <GuideFold summary="What this step means"><StepMeans means={g.means} doThis={g.doThis} youGet={g.youGet} /></GuideFold> : null; })()}
             </div>
-            <MethodSheet projectId={projectId} method={method.key} section={s.name} answers={answers} items={items} canEdit={can.edit}
-              onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} />
+            {SHAPES[method.key]?.sectionBoxes !== 'none' && <MethodSheet projectId={projectId} method={method.key} section={s.name} answers={answers} items={items} canEdit={can.edit}
+              onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} />}
             <RecordRows label={`Tools for ${s.name}`}>
               {s.tools.map(id => {
                 const h = howTool(id);
