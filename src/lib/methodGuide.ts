@@ -205,7 +205,77 @@ const A3: MethodGuide = {
   ],
 };
 
-export const METHOD_GUIDE: Readonly<Record<MethodKey, MethodGuide>> = { pdca: PDCA, dmaic: DMAIC, 'eight-d': EIGHT_D, a3: A3 } as Record<MethodKey, MethodGuide>;
+const STAGE_GATE: MethodGuide = {
+  whenToUse: 'Reach for the stage gate when new equipment (a bagger, an oven, a checkweigher, a whole packing line) has to be taken from delivery to handover with its supplier, the OEM, and the site and the supplier must agree what is done, what is failing and who owes what by when. Each gate is passed on evidence, not on a date.',
+  notFor: 'Not for making a running line perform better: use PDCA, DMAIC or an A3, with the 6M tool, on the line itself. Not when there is no new equipment to prove. Gates passed on dates rather than on tests add paper and give no control, so pass a gate on what its tests showed.',
+  example: 'A new packing line with four machines. Install lists each machine’s stages and the parts still to arrive, with what is late. Set up loads the programs and readies the people. Commission runs each test against what was agreed; the labeller’s test fails twice, each failure a Problem with an owner, and the re-test is booked. The project then reads: “Set up: 3 of 4 machines; the labeller’s test failed twice; handover at this pace 9 days late.” Hand over lists the sign-off, the spares and what is still owed.',
+  sections: [
+    {
+      section: 'Install',
+      means: 'Getting the machines onto site and into place. Each machine has its stages of installation, each with a day, and its parts and materials still to arrive. An item is late when its day has gone and it is not here.',
+      doThis: 'Add each machine to the project (a machine always belongs to a line, and the line’s own list offers the machines already named there) and give its stages a day and an owner. List the parts and materials you are waiting for, with their dates, in Materials and parts on site. Mark each stage done as it happens, and raise a Problem for anything damaged or missing. To see which chain of tasks sets the end date, type the tasks and what each waits for into the Critical path calculator.',
+      youGet: 'Every machine on site with where it is up to, the materials and parts still to arrive, and what is late and by how many days.',
+    },
+    {
+      section: 'Set up',
+      means: 'Getting each machine ready to be tested. A program is a machine’s settings for a product; being ready means the programs are loaded, the people can run the machine and the standards are written. Being switched on is not being ready.',
+      doThis: 'Add each machine’s programs on the Programs page and book their tests. List what must be true before testing as readiness items on the handover list and as Actions: people trained, spares in, standards written, food safety checked. Write the standards: the Line standard for who stands where, the combination table in Line balance for the order of the work. Where a tool the section lists shows Not built yet (a skills matrix, a written procedure with photos), the item is still an Action with an owner and a day.',
+      youGet: 'Programs loaded and booked for testing, a readiness list with what is still open, and the standards written: each machine ready to be proved.',
+    },
+    {
+      section: 'Commission',
+      means: 'Proving each machine against what was agreed with the supplier. An acceptance test says what must be shown, a “passes if” such as a stated speed, reject rate or run length. The performance run is the machine running at the agreed rate; the climb is how the rate rises over the first runs. This is the Prove loop: programs and tests on the line.',
+      doThis: 'Run each test from Programs and record every attempt: the speed it ran at, the minutes, the packs and the rejects, against its passes-if. A failed test raises a Problem and a fix, and the re-test is booked. Add the studies that prove it: Capability for the machine’s capability, Reliability for its stops and failures, Gauge R&R for the checkweigher, and the check logs for checkweigher, seal and metal detection verification. Pick a program’s criteria, and when all pass, sign off by name and day. The filmed walk records what you see on film as Problems with photos.',
+      youGet: 'Each program proved, failed or not yet tested, with every attempt in order, and the sign-off by name and day. Each failure is a Problem with an owner.',
+    },
+    {
+      section: 'Hand over',
+      means: 'Handing the machine to production: the sign-off, the critical spares held, the maintenance set up and what is still owed. A handover is one part of the factory giving another a machine it can run, so who signed, when and what was left open matter more than who is on which side.',
+      doThis: 'Work the handover list: every item with an owner and a day, ticked when done. Watch The pace says when, the forecast handover date and how late it is at the rate things are being done. Set up the maintenance the machine needs (Planned maintenance, Autonomous maintenance checks), rank the equipment in Equipment criticality and decide the critical spares to hold. Sign off by name and day. Whatever is still open stays on the Actions page with an owner and a date.',
+      youGet: 'A handover signed by name and day with what is still owed, and the spares, maintenance and criticality in place. If it is not yet done, a forecast date.',
+    },
+  ],
+};
+
+const KAIZEN_EVENT: MethodGuide = {
+  whenToUse: 'Reach for a Kaizen event when one process (a changeover, a line’s flow, a cell’s layout) can be fixed in a focused few days by a team released from its normal work, and the gain has to be checked again a month later. It suits a problem with a clear scope and a measure you can take before and after within the week.',
+  notFor: 'Not for finding a root cause nobody knows yet: use the 6M tool or an A3 first. Not for small daily steps toward a far-off aim (Improvement Kata), and not when the team cannot be released. An event with no baseline or no 30-day check is a demonstration, not an improvement.',
+  example: 'A SMED week on a filler. Prepare: the charter, and eight changeovers timed before, mean 42.1 minutes. Observe: the team watches a changeover and writes down every wait and walk. Improve: the work that can be done while the filler still runs is separated out and the order changed; eight changeovers after average 24.4 minutes, 18 minutes saved each, 106 minutes a week. Standardise: the new sequence written and taught. Sustain: 11 actions raised and 8 closed at 30 days; the last six changeovers took 25, 24, 28, 31, 30 and 33 minutes, mean 28.5 and rising. The gain is creeping back, and the three open actions (a trolley, a pre-set jig, the second operator’s standard) are why.',
+  sections: [
+    {
+      section: 'Prepare',
+      means: 'Getting ready before the week. The charter is the problem in one sentence, the scope, the measure and its target, the sponsor, the team and the dates. The baseline is that measure taken before the week, so there is something to compare. A baseline remembered rather than measured has no value.',
+      doThis: 'Name the team on the Actions page and book the week’s days on the Journey. Write the charter; where the section’s list shows a charter tool, write it there, otherwise as a note on the project. Take the baseline on the floor before the week starts: time eight to ten changeovers with SMED, stops with Stops timed or a cycle with the Stopwatch time study, or map the flow with the Value stream map.',
+      youGet: 'A charter, a team with its days booked, and a baseline of readings taken before the week. It is what the event will be measured against.',
+    },
+    {
+      section: 'Observe',
+      means: 'Seeing the waste with your own eyes on the floor: what people and product actually do, not what the procedure says. The eight wastes are the checklist: defects, over-production, waiting, unused talent, transport, inventory, motion and over-processing.',
+      doThis: 'Walk the process with the team and raise what you see as Problems with photos; the filmed walk records them with film. Use Work sampling for what people do at random moments, the Video study to read the work from footage, and Stops timed for the stops. The Gemba walk shows how fresh your looking is. Where a spaghetti diagram or a flow chart shows Not built yet, sketch it on paper and photograph it into Line Talk. Say in each Problem which waste it is and what it costs, roughly.',
+      youGet: 'A list of the wastes seen where they happen, with the times and counts behind them, in a form the team can rank.',
+    },
+    {
+      section: 'Improve',
+      means: 'Trying changes in the week and measuring each one. ECRS is the checklist for every step: Eliminate it, Combine it with another, Rearrange the order, Simplify what is left. SMED separates the changeover work done with the machine stopped from the work that can be done while it runs. 5S (sort, set in order, shine, standardise, sustain) keeps the area easy to keep right.',
+      doThis: 'Rank the ideas with Impact and effort and start with the quick wins. For a changeover, use SMED: separate, convert, streamline. For people’s work, use Line balance and its ECRS on the elements. Run a 5S audit on the area. Try each change, time it again the same way as the baseline, and compare in Analysis (Did it change).',
+      youGet: 'Changes tried and measured in the week, each with its before and after and what it saves, and a list of what was not finished.',
+    },
+    {
+      section: 'Standardise',
+      means: 'Writing the new way down as the standard and teaching it to the people who do the work. This is usually the reason a gain holds. The standard says who does what, in what order and in how long.',
+      doThis: 'Update the Line standard (who stands where) and the combination table in Line balance (manual, walking and machine time against takt, the pace the customer buys at). Ask Line Talk to write a one-page lesson on what each person must learn, and show it at the line. Make an Action for each person still to be trained, with a day.',
+      youGet: 'The new way written as the standard and taught, with who has been shown it and who is still to be, tracked as Actions.',
+    },
+    {
+      section: 'Sustain',
+      means: 'Keeping the gain after the week. What could not be finished goes on the action list with an owner and a date. At the 30-day check the measure is taken again and the question is simple: is it still moved, or creeping back?',
+      doThis: 'Keep every open item on the Actions page with an owner and a day, and book the 30-day check on the Journey. At the check, take the same measure again, put the readings on a Control chart and compare with the baseline in Analysis. Run the 5S audit again to see its trend. Close the project only when the check passes, or when the reason it slipped has been acted on.',
+      youGet: 'The 30-day verdict: held or creeping back, which actions are still open and what they are costing. The project closes on evidence.',
+    },
+  ],
+};
+
+export const METHOD_GUIDE: Readonly<Record<MethodKey, MethodGuide>> = { pdca: PDCA, dmaic: DMAIC, 'eight-d': EIGHT_D, a3: A3, 'stage-gate': STAGE_GATE, 'kaizen-event': KAIZEN_EVENT } as Record<MethodKey, MethodGuide>;
 
 /** A method’s whole guide. */
 export const guideOfMethod = (key: MethodKey): MethodGuide => METHOD_GUIDE[key];
