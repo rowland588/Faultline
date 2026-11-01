@@ -41,3 +41,74 @@ describe('8D form', () => {
     expect(nextActionN(a)).toBe(3);
   });
 });
+
+import { actionState, dayOf, isOnlyRetraining, isStoppingPlace } from '../eightD';
+import { eightDInsight } from '../methodInsights/eight-d';
+import { eightDReport } from '../../project/method/report/eight-d';
+
+describe('8D reading against today (hand-worked)', () => {
+  it('reads a typed day, or says it cannot', () => {
+    expect(dayOf('2026-11-07', '2026-11-01')).toBe('2026-11-07');
+    expect(dayOf('7 Nov', '2026-11-01')).toBe('2026-11-07');
+    expect(dayOf('7th November 2027', '2026-11-01')).toBe('2027-11-07');
+    expect(dayOf('7/11/2026', '2026-11-01')).toBe('2026-11-07');
+    expect(dayOf('31 Feb', '2026-11-01')).toBe('');
+    expect(dayOf('next Friday', '2026-11-01')).toBe('');
+  });
+  it('an action is done, late (open, day before today) or open; an unreadable day is never late', () => {
+    const r = (due: string, done = false) => ({ n: 1, what: 'x', who: '', due, done });
+    expect(actionState(r('30 Oct'), '2026-11-01')).toBe('late');
+    expect(actionState(r('1 Nov'), '2026-11-01')).toBe('open');
+    expect(actionState(r('30 Oct', true), '2026-11-01')).toBe('done');
+    expect(actionState(r('soon'), '2026-11-01')).toBe('open');
+  });
+  it('stopping places and retraining', () => {
+    expect(isStoppingPlace('Operator error on the night shift')).toBe(true);
+    expect(isStoppingPlace('Heater read 12 °C low after the jaw change')).toBe(false);
+    expect(isOnlyRetraining('Retrain the operators')).toBe(true);
+    expect(isOnlyRetraining('Heater calibration at every jaw change')).toBe(false);
+  });
+});
+
+describe('8D insight', () => {
+  const run = (answers: Record<string, string>) => eightDInsight({ answers, studies: [], owed: [], today: '2026-11-01' });
+  it('says nothing on an empty project', () => expect(run({})).toEqual({ attention: [] }));
+  it('a late action is red, names who, and is the next thing', () => {
+    const r = run({ 'act@1': 'Fit new jaw', 'actwho@1': 'Sam', 'actdue@1': '30 Oct' });
+    expect(r.attention?.[0]).toMatchObject({ tone: 'r', text: 'Corrective action 1 (Fit new jaw) was due 30 Oct and is not done — Sam has it.' });
+    expect(r.next).toBe('Chase corrective action 1: Fit new jaw (Sam).');
+  });
+  it('a cause with no containment, no escape point, and a stopping place', () => {
+    const r = run({ why: 'Operator error' });
+    const t = r.attention?.map(a => a.text) ?? [];
+    expect(t.some(x => x.startsWith('A cause is written but D3 containment is not'))).toBe(true);
+    expect(t.some(x => x.startsWith('The cause is written but not the escape point'))).toBe(true);
+    expect(t.some(x => x.includes('stopping place'))).toBe(true);
+    expect(r.next).toBe('Write D4’s escape point: the check that should have found it.');
+  });
+  it('all actions done, nothing validated', () => {
+    const r = run({ 'act@1': 'Calibrate heater', 'actwho@1': 'Sam', 'actdue@1': '2026-10-20', 'actdone@1': 'yes' });
+    expect(r.attention?.map(a => a.tone)).toEqual(['a']);
+    expect(r.next).toBe('Write “Validated on the number”: the measure after the action.');
+  });
+  it('retraining alone is amber; open actions without owner or day are named', () => {
+    expect(run({ 'act@1': 'Retrain operators', 'actwho@1': 'Sam', 'actdue@1': '9 Nov' }).attention?.[0].text).toMatch(/retraining/);
+    expect(run({ 'act@1': 'Fit jaw' }).attention?.[0].text).toBe('1 corrective action has no owner or day yet — an action nobody owns by a day does not get done.');
+  });
+});
+
+describe('8D report sections', () => {
+  const ctx = (answers: Record<string, string>) => ({ answers, today: '2026-11-01' }) as never;
+  it('four sections in order; the actions table says Late, Open, Done', () => {
+    const s = eightDReport(ctx({ 'act@1': 'A', 'actdue@1': '30 Oct', 'act@2': 'B', 'actdue@2': '9 Nov', 'actwho@2': 'Pat', 'act@3': 'C', 'actdone@3': 'yes' }));
+    expect(s.map(x => x.id)).toEqual(['disciplines', 'isnot', 'cause', 'actions']);
+    const t = s[3].items.find(i => i.kind === 'table');
+    expect(t && t.kind === 'table' && t.rows.map(r => r[4])).toEqual(['Late', 'Open', 'Done']);
+    expect(s[3].lead).toBe('3 listed: 1 done, 2 open, 1 late.');
+    expect(t && t.kind === 'table' && t.rows[1].slice(2, 4)).toEqual(['Pat', '9 Nov']);
+  });
+  it('half-written pairs are named', () => {
+    const s = eightDReport(ctx({ is_what: 'Leakers' }));
+    expect(s[1].items.some(i => i.kind === 'paragraph' && i.text.startsWith('1 of the 4 pairs'))).toBe(true);
+  });
+});

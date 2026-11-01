@@ -20,7 +20,10 @@ export type MethodInsightFn = (x: InsightIn) => MethodInsight;
 
 import { dmaicInsight } from './methodInsights/dmaic';
 
+import { eightDInsight } from './methodInsights/eight-d';
+
 export const METHOD_INSIGHT: Partial<Record<MethodKey, MethodInsightFn>> = {
   pdca: pdcaInsight,
   dmaic: dmaicInsight,
+  'eight-d': eightDInsight,
 };
