@@ -184,3 +184,33 @@ def shuffled(n, seed):
         j = int(r() * (i + 1)); a[i], a[j] = a[j], a[i]
     return a
 print("  shuffle of 8 with seed 12345:", shuffled(8, 12345), " of 16 with seed 20260401:", shuffled(16, 20260401))
+
+
+print("\n== FC-132 the process FMEA's action priority (Faultline's own severity-first rule — not the AIAG-VDA table, which is not reproduced)")
+import hashlib
+def ap_rule(s, o, d):
+    # written differently from the app: explicit conditions, no lookup tables
+    if o >= 8:
+        strength = "weak"
+    elif o <= 3:
+        strength = "strong" if d <= 6 else "moderate"
+    elif o <= 6:
+        strength = "strong" if d <= 3 else ("moderate" if d <= 6 else "weak")
+    else:  # o == 7
+        strength = "moderate" if d <= 3 else "weak"
+    if s >= 9:
+        return "M" if strength == "strong" else "H"
+    if s >= 7:
+        return {"weak": "H", "moderate": "M", "strong": "L"}[strength]
+    if s >= 4:
+        return "M" if strength == "weak" else "L"
+    return "L"
+cells = "".join(ap_rule(s, o, d) for s in range(1, 11) for o in range(1, 11) for d in range(1, 11))
+print("  1000 cells (S, O, D in loop order, 1..10 each):", hashlib.sha256(cells.encode()).hexdigest()[:16], " H", cells.count("H"), "M", cells.count("M"), "L", cells.count("L"))
+mono = all(
+    ("LMH".index(ap_rule(s, o, d)) <= "LMH".index(ap_rule(min(s + 1, 10), o, d)) and "LMH".index(ap_rule(s, o, d)) <= "LMH".index(ap_rule(s, min(o + 1, 10), d)) and "LMH".index(ap_rule(s, o, d)) <= "LMH".index(ap_rule(s, o, min(d + 1, 10))))
+    for s in range(1, 11) for o in range(1, 11) for d in range(1, 11))
+print("  monotone in S, O and D:", mono)
+for name, (s, o, d) in {"seal": (9, 3, 4), "reel": (8, 2, 9), "smudge": (3, 9, 8), "metal": (10, 2, 3), "datecode": (7, 5, 7), "underweight": (7, 4, 2), "splice": (6, 7, 8), "S10 O1 D1": (10, 1, 1), "S9 O8 D1": (9, 8, 1), "S1 O10 D10": (1, 10, 10)}.items():
+    print(f"  {name}: S{s} O{o} D{d} -> {ap_rule(s, o, d)}")
+print("  an RPN would rank the smudge (3*9*8 = 216) above the seal (9*3*4 = 108) and the reel (8*2*9 = 144): the rule does not")

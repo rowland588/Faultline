@@ -3,7 +3,7 @@
  * independent expectation. The boxes-and-columns registers (criticality, impact and effort) have steps A–F; a MATRIX (Pugh) has steps 1–2.
  *
  *   0  criticality registered; its worked example classed as the independent case says (2 class A)
- *   A–F  every definition that is not a matrix, each worked example: the module against its independent literals (counts, order, tiles,
+ *   A–F  every definition that is neither a matrix nor a register of cards (the FMEA and the control plan have their own scripts, fmea.mjs and control-plan.mjs), each worked example: the module against its independent literals (counts, order, tiles,
  *      verdict, money); the saved register opened — tiles, sentence, money, every row's cells equal the module's; the phone; the paper read
  *      back; the £ an hour offered and used; a register that starts blank made through New and typed into by hand (FC-144)
  *   1  every MATRIX definition's worked example run through its own module and equal to its expectation (the leader, every option's
@@ -75,7 +75,7 @@ const { lineId } = await page.evaluate(async () => {
   return { lineId: w.id };
 });
 const all = await page.evaluate(async () => (await import('/src/tools/scored/registry.ts')).SCORED.map(d => ({
-  key: d.key, fc: d.fc, title: d.title, noun: d.noun ?? 'machine', asksRate: !!d.asksRate, blank: !!d.blank, matrix: !!d.matrix, examples: d.examples.map(e => ({ name: e.name, rate: e.rate ?? null, rows: e.rows, expect: e.expect })),
+  key: d.key, fc: d.fc, title: d.title, noun: d.noun ?? 'machine', asksRate: !!d.asksRate, blank: !!d.blank, matrix: !!d.matrix, register: !!d.register, examples: d.examples.map(e => ({ name: e.name, rate: e.rate ?? null, rows: e.rows, expect: e.expect })),
 })));
 ok(all.length >= 3 && all.some(d => d.matrix), `${all.length} definitions registered: ${all.map(d => d.key).join(', ')}`);
 
@@ -109,7 +109,7 @@ const openRecord = async (width, key, ex, rate) => {
   return id;
 };
 
-for (const d of all.filter(x => !x.matrix)) {
+for (const d of all.filter(x => !x.matrix && !x.register)) {
   for (const [n, ex] of d.examples.entries()) {
     const tag = `${d.fc} ${d.key} example ${n + 1} (${ex.name})`;
     const t = await truthOf(d.key, ex);

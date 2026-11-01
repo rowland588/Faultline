@@ -89,6 +89,12 @@
     "of": "Impact and effort — four film-break countermeasures on the PICK chart: the quick wins first, what they are worth, the project, the fill-in",
     "takenFrom": "fdb2f31"
   },
+  "fmea": {
+    "w": 960,
+    "h": 600,
+    "of": "Process FMEA — seven failure modes of a wrapper rated for severity, occurrence and detection: the priority each gets by a stated rule, High first, and what still needs an action",
+    "takenFrom": "2b16a814"
+  },
   "pugh": {
     "w": 960,
     "h": 600,

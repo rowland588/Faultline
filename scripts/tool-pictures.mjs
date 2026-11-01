@@ -78,6 +78,8 @@ const TOOLS = [
     route: s => `#/scored/criticality/${s.criticalityId}`, parts: ['.ie-says', '.scored-table-wrap'], css: '' },
   { key: 'impact-effort', of: 'Impact and effort — four film-break countermeasures on the PICK chart: the quick wins first, what they are worth, the project, the fill-in',
     route: s => `#/scored/impact-effort/${s.impactEffortId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'], css: '' },
+  { key: 'fmea', of: 'Process FMEA — seven failure modes of a wrapper rated for severity, occurrence and detection: the priority each gets by a stated rule, High first, and what still needs an action',
+    route: s => `#/scored/fmea/${s.fmeaId}`, parts: ['.ln-tiles', '.ie-says', '.fm > .fm-card:first-of-type'], css: '.fm-card .fm-more{display:none !important}.fm-card .sp-rm{display:none !important}' },
   { key: 'pugh', of: 'Pugh matrix — four fixes for film breaks marked better, same or worse than the present state on five weighted criteria: who leads and where the lead is beaten',
     route: s => `#/scored/pugh/${s.pughId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'],
     css: '.pugh-datum,.pugh-key,.pugh-acts,.pugh-table .sp-rm,.pugh-table tfoot tr[data-foot="Cost"],.pugh-table tfoot tr[data-foot="Same (S)"]{display:none !important}' },
@@ -166,10 +168,14 @@ function PICTURE_SEEDS_FN() {
     const pugh = newScoredStudy(pughDef, { name: 'Line 7 — film breaks, which fix first', workspaceId: wsId, now: t });
     pugh.agreed = { scored: { key: 'pugh', rows: pex.rows.map(r => ({ ...r })), criteria: pex.criteria, datum: pex.datum } };
     await putStudy(pugh);
+    const fmeaDef = SCORED.find(d => d.key === 'fmea');
+    const fmea = newScoredStudy(fmeaDef, { name: 'Line 7 — wrapper, October', workspaceId: wsId, now: t });
+    fmea.agreed = { scored: { key: 'fmea', rows: fmeaDef.examples[0].rows.map(r => ({ ...r })) } };
+    await putStudy(fmea);
     const maint = newBoardStudy(BOARDS.find(d => d.key === 'maintenance-measures'), { name: 'Line 7 — October', workspaceId: wsId, now: t });
     maint.agreed = { board: { key: 'maintenance-measures', reactiveHours: 190 } };
     await putStudy(maint);
-    return { criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
+    return { criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, fmeaId: fmea.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
   };
 }
 

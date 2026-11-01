@@ -126,7 +126,11 @@ export const QUALITY: Entry[] = [
     food: 'Labelling, allergen control, sealing, metal detection.',
     depends: ['FC-133', 'FC-014', 'FC-168'],
     complexity: 'L', value: 'medium', valueWhy: 'Prevention, before failure.',
-    status: 'to-build', form: 'tool', kind: 'register', methods: ['quality.fmea'], scenarios: ['quality', 'new'], words: ['FMEA', 'risk'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'fmea', label: 'Process FMEA', says: 'What can go wrong at each step, rated, and which failure modes need action first — by a stated rule, never the product of the ratings', icon: 'warning', order: 23.7 },
+    methods: ['quality.fmea'], scenarios: ['quality', 'new'], words: ['FMEA', 'risk', 'failure modes', 'PFMEA', 'action priority', 'severity occurrence detection'],
+    built: { where: ['/scored/fmea'], code: ['src/tools/fmea/fmea.ts', 'src/tools/fmea/FmeaEditor.tsx', 'src/tools/scored/defs/fmea.ts', 'src/tools/scored/RegisterEditor.tsx', 'src/tools/scored/types.ts', 'src/tools/scored/scored.ts', 'src/tools/scored/ScoredScreen.tsx', 'src/lib/report/scoredPaper.ts'], tests: ['src/tools/fmea/__tests__/fmea.test.ts'], acceptance: ['fmea.mjs'] },
+    spec: 'knowledge/specs/FC-132-fmea.md',
+    limits: ['The action priority is Faultline’s own severity-first rule, NOT the AIAG-VDA 2019 action-priority table: that table is the handbook’s and licensed, and could not be read or checked from here; what is public of it (severity weighs most, then occurrence, then detection; High, Medium, Low) is the rule’s only basis. A row can be set by hand from the handbook by a team that holds it, and is marked so.', 'The severity, occurrence and detection anchors are written for food manufacturing by Faultline, not the handbook’s words.', 'An action is a field on the card (what, who, by when, done, re-rated); it is not yet on the project’s Actions page or in Needs you.', 'The steps and the controls are typed — not read from the line’s value stream map, the project’s stages or the check logs; food-safety hazards are marked and belong in the HACCP plan, which is not built (FC-168).', 'No RPN is computed or shown; the 5 / 7 / 8 cuts of the rule have not been put to Rowland.'],
   },
   {
     id: 'FC-133', name: 'Control plan — what is checked, how, how often, and what if not', discipline: 'quality', sub: 'risk',

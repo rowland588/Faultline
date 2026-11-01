@@ -15664,3 +15664,26 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .mp-tool.is-plain { cursor: default; color: var(--ink); font-weight: 600; }
 .mp-tool.is-plain:hover { text-decoration: none; }
 .mp-others { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+
+/* the process FMEA (FC-132) and the control plan (FC-133): a card a record — no state hue on a priority, the word and the weight carry it */
+.fm { display: grid; gap: var(--space-3); }
+.fm-card { border: 1px solid var(--line); border-radius: 10px; padding: var(--space-3); background: var(--canvas); display: grid; gap: var(--space-2); }
+.fm-head { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: end; }
+.fm-no { min-width: 1.6rem; font-size: var(--t-title, 1.1rem); color: var(--muted); }
+.fm-mode { flex: 1 1 14rem; }
+.fm-ap { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); font-weight: 700; white-space: nowrap; color: var(--ink); background: var(--canvas); min-height: 32px; display: inline-flex; align-items: center; }
+.fm-ap.is-H { border: 2px solid var(--ink); font-weight: 800; background: var(--paper, #fff); }
+.fm-ap.is-M { border: 1.5px solid var(--muted); }
+.fm-ap.is-L { color: var(--muted); }
+.fm-why { margin: 0; }
+.fm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--space-2); }
+.fm-rates { grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+.fm-anchor { display: block; min-height: 2.6em; }
+.fm-more > summary, .fm-scales > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.fm-tick { display: flex; gap: 8px; align-items: center; min-height: 44px; }
+.fm-after { border-top: 1px dashed var(--line); margin-top: var(--space-2); padding-top: var(--space-2); }
+.fm-scales ul { margin: 0 0 var(--space-2); padding-left: 1.1rem; }
+.fm select.text-input, .fm input.text-input { min-height: 44px; }
+.fm-status { font-weight: 600; }
+.fm-gap { border: 1px dashed var(--muted); border-radius: 8px; padding: var(--space-2); }
+.fm .sp-rm, .fm .linkish { min-height: 44px; display: inline-flex; align-items: center; }

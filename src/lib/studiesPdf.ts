@@ -615,11 +615,11 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     const c = calcPaperParts(s);
     if (c) { eyebrow = c.eyebrow; verdict = c.verdict; tiles = c.tiles; closing = c.closing; body = c.body; }
   } else if (s.tool === 'scored' && s.agreed?.scored) {
-    const said = scoredSays(s);
+    const beside = { studies: p.history ?? [] }, scored = studyScored(s, beside), said = scoredSays(s, beside);
     eyebrow = scoredTitle(s); verdict = { text: said.verdict, tone: said.tone };
-    body = scoredPaperBlocks(s);
-    closing = { text: studyScored(s)?.result?.closing ?? '', tone: said.tone };
-    if (studyScored(s)?.def.matrix) tiles = studyScored(s)?.result?.tiles ?? [];   /* a matrix's tiles stand on its paper; a ranking's are in its body, as before */
+    body = scoredPaperBlocks(s, beside.studies);
+    closing = { text: scored?.result?.closing ?? '', tone: said.tone };
+    if (scored?.def.matrix || scored?.def.register) tiles = scored.result?.tiles ?? [];   /* a matrix's or a register's tiles stand on its paper; a ranking's are in its body, as before */
   } else if (s.tool === 'board' && s.agreed?.board) {
     const siblings = p.history ?? [];
     const said = boardSays(s, siblings, Date.now());

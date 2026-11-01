@@ -2,6 +2,7 @@ import { summarizeCriticality, type RankedRow } from '../../lib/ie/criticality';
 import type { LeanTone } from '../../lib/lean';
 import { uid } from '../../lib/ids';
 import type { ScoredRow, ToolStudy } from '../../lib/study';
+import { todayISO } from '../../lib/weeks';
 import { scoredByKey } from './registry';
 import type { ScoredDef, ScoredResult, ScoredTable } from './types';
 
@@ -19,11 +20,17 @@ export interface ScoredReading {
   leaders?: string[];
 }
 
-export function studyScored(s: Pick<ToolStudy, 'agreed'>): ScoredReading | undefined {
+/** `beside.studies` are the records beside the register (a control plan reads the FMEAs and the check logs of its line or project), `beside.now` the moment it is read at. */
+export function studyScored(s: Pick<ToolStudy, 'agreed'> & Partial<Pick<ToolStudy, 'id' | 'workspaceId' | 'projectId'>>, beside: { studies?: readonly ToolStudy[]; now?: number } = {}): ScoredReading | undefined {
   const agreed = s.agreed?.scored;
   const def = scoredByKey(agreed?.key);
   if (!agreed || !def) return undefined;
   const rows = agreed.rows ?? [];
+  if (def.register) {
+    const now = beside.now ?? Date.now(), self = s.id ? { id: s.id, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) } : undefined;
+    const out = def.register.analyse({ rows, ctx: { today: todayISO(new Date(now)), now, ...(self ? { self } : {}), studies: beside.studies ?? [] } });
+    return 'problems' in out ? { def, rows, problems: out.problems } : { def, rows, result: out.result, table: out.table, ranked: { ok: out.ranked, counts: {} } };
+  }
   if (def.matrix) {
     const out = def.matrix.analyse({ datum: agreed.datum, criteria: agreed.criteria ?? [], rows });
     return 'problems' in out ? { def, rows, problems: out.problems } : { def, rows, result: out.result, table: out.table, leaders: out.leaders };
@@ -38,8 +45,8 @@ export function studyScored(s: Pick<ToolStudy, 'agreed'>): ScoredReading | undef
 
 export const scoredTitle = (s: Pick<ToolStudy, 'agreed'>): string => scoredByKey(s.agreed?.scored?.key)?.title ?? 'Scored register';
 
-export function scoredSays(s: Pick<ToolStudy, 'agreed'>): { text: string; verdict: string; tone: LeanTone } {
-  const x = studyScored(s);
+export function scoredSays(s: Pick<ToolStudy, 'agreed'> & Partial<Pick<ToolStudy, 'id' | 'workspaceId' | 'projectId'>>, beside: { studies?: readonly ToolStudy[]; now?: number } = {}): { text: string; verdict: string; tone: LeanTone } {
+  const x = studyScored(s, beside);
   if (!x) return { text: 'Not a scored register.', verdict: '—', tone: 'n' };
   if (x.problems?.length) return { text: x.problems.join(' '), verdict: 'Incomplete', tone: 'a' };
   const r = x.result;
@@ -48,13 +55,14 @@ export function scoredSays(s: Pick<ToolStudy, 'agreed'>): { text: string; verdic
 
 export function newScoredStudy(def: ScoredDef, o: { name: string; workspaceId: string; projectId?: string; now: number }): ToolStudy {
   const start = def.matrix?.start();
+  const cards = def.register?.start();
   return {
     id: uid(),
     tool: 'scored',
     name: o.name,
     workspaceId: o.workspaceId,
     projectId: o.projectId,
-    agreed: { scored: start ? { key: def.key, ...start } : { key: def.key, rows: def.blank ? [{ id: uid(), name: '' }] : def.examples[0]?.rows.map(r => ({ ...r, id: uid() })) ?? [] } },
+    agreed: { scored: cards ? { key: def.key, rows: cards } : start ? { key: def.key, ...start } : { key: def.key, rows: def.blank ? [{ id: uid(), name: '' }] : def.examples[0]?.rows.map(r => ({ ...r, id: uid() })) ?? [] } },
     facts: {},
     uses: [],
     startedAt: o.now,

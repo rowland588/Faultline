@@ -541,6 +541,11 @@ export const PAGES = (sd, cap) => [
     { what: 'the page named Scored registers', sel: '.part-head .pace-title', text: /^Scored registers$/ },
     { what: 'equipment criticality as a card', sel: '.pl-tool-card', text: /Equipment criticality/ },
     { what: 'the Pugh matrix as a card (FC-143)', sel: '.pl-tool-card', text: /Pugh matrix/ },
+    { what: 'the process FMEA as a card (FC-132)', sel: '.pl-tool-card', text: /Process FMEA/ },
+  ] },
+  { name: 'Process FMEA — its list (FC-132)', path: '#/scored/fmea', must: [
+    { what: 'the page named Process FMEA, with New FMEA', sel: '.part-head .pace-title', text: /^Process FMEA$/ },
+    { what: 'New FMEA', sel: '.pace-head-actions .btn-primary', text: /^New FMEA$/ },
   ] },
   { name: 'Pugh matrix — its list (FC-143)', path: '#/scored/pugh', must: [
     { what: 'the page named Pugh matrix, with New ranking', sel: '.part-head .pace-title', text: /^Pugh matrix$/ },

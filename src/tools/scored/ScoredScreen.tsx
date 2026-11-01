@@ -21,6 +21,7 @@ import { LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { StudyBand, removeStudy, StudyRowName } from '../../ui/StudyActs';
 import { WhereItSits } from '../../ui/StudyPlace';
 import { PughEditor } from '../pugh/PughEditor';
+import { RegisterEditor } from './RegisterEditor';
 import { scoredByKey, scoredGroups } from './registry';
 import { newScoredStudy, scoredSays, scoredTitle, studyScored } from './scored';
 import type { ScoredDef, ScoredField } from './types';
@@ -112,9 +113,9 @@ function ScoredList({ scoredKey }: { scoredKey: string }) {
   return (
     <div className="wrap ie">
       <PageHeader eyebrow={<button type="button" className="linkish" onClick={() => nav('/scored')}>Scored registers</button>} title={def.title} says={def.says}
-        primary={mayAdd ? { label: 'New ranking', run: () => setAdding(true) } : undefined} />
+        primary={mayAdd ? { label: def.register?.asks.newLabel ?? 'New ranking', run: () => setAdding(true) } : undefined} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
-      {rows.length === 0 && <p className="sub qsl-empty">{def.matrix?.asks.empty ?? `No ${def.title.toLowerCase()} yet — start one and score each ${def.noun ?? 'machine'}.`}</p>}
+      {rows.length === 0 && <p className="sub qsl-empty">{def.matrix?.asks.empty ?? def.register?.asks.empty ?? `No ${def.title.toLowerCase()} yet — start one and score each ${def.noun ?? 'machine'}.`}</p>}
       <ul className="lt-rows">{rows.map(s => <ScoredRowItem key={s.id} s={s} />)}</ul>
       <NewScored open={adding} def={def} onClose={() => setAdding(false)} project={inP.project ? { id: inP.project.id, lineIds: inP.lineIds } : undefined} />
     </div>
@@ -135,10 +136,10 @@ function NewScored({ open, def, onClose, project }: { open: boolean; def: Scored
     nav(studyHref(s));
   };
   return (
-    <Sheet open={open} onClose={onClose} title={`New ${def.title.toLowerCase()}`}>
+    <Sheet open={open} onClose={onClose} title={def.register?.asks.newLabel ?? `New ${def.title.toLowerCase()}`}>
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
-        <label className="field"><span className="field-label">{def.matrix?.asks.name ?? 'What line is this for?'}</span>
-          <input className="text-input" value={name} onChange={e => setName(e.target.value)} placeholder={def.matrix?.asks.placeholder ?? 'e.g. Line 2 — October review'} /></label>
+        <label className="field"><span className="field-label">{def.matrix?.asks.name ?? def.register?.asks.name ?? 'What line is this for?'}</span>
+          <input className="text-input" value={name} onChange={e => setName(e.target.value)} placeholder={def.matrix?.asks.placeholder ?? def.register?.asks.placeholder ?? 'e.g. Line 2 — October review'} /></label>
         <label className="field"><span className="field-label">Line</span>
           <select className="text-input" value={lineId} onChange={e => setLineId(e.target.value)}>
             <option value="">Choose a line</option>
@@ -191,13 +192,16 @@ function Record({ s, def, can, onPatch }: {
   const rateRef = useRef<number | undefined>(rate);
   rateRef.current = rate;
   const lines = useFactoryLines();
+  /* a register of cards reads the records beside it (a control plan: the FMEAs and the check logs of its line or project) */
+  const [beside, setBeside] = useState<ToolStudy[]>([]);
+  useEffect(() => { if (!def.register) return undefined; const load = async () => setBeside(await listAllStudies()); void load(); return onDataChange(() => void load()); }, [def.register]);
   const line = lines.find(l => l.id === s.workspaceId);
   const lineRate = line?.labourRatePerHour && line.labourRatePerHour > 0 ? Math.round(line.labourRatePerHour * burdenOf(line) * 100) / 100 : undefined;
   const liveStudy = useMemo((): ToolStudy => ({
     ...s,
     agreed: { ...s.agreed, scored: { key: agreedKey, rows, ...(rate !== undefined ? { rate } : {}), ...(def.matrix ? { criteria, datum } : {}) } },
   }), [s, agreedKey, rows, rate, criteria, datum, def.matrix]);
-  const x = studyScored(liveStudy);
+  const x = studyScored(liveStudy, { studies: beside });
   const result = x?.result;
   const problems = x?.problems;
   const ranked = x?.ranked && 'ok' in x.ranked ? x.ranked.ok : [];
@@ -261,7 +265,12 @@ function Record({ s, def, can, onPatch }: {
           <PughEditor draft={{ rows, criteria, datum }} table={x?.table} leaders={x?.leaders} canEdit={canEdit} onChange={setMatrix} />
         </Section>
       )}
-      {!def.matrix && <Section title={`Score each ${noun}`}>
+      {def.register && (
+        <Section title={def.register.asks.noun === 'failure mode' ? 'Rate each failure mode' : `The ${def.register.asks.noun}s`}>
+          <RegisterEditor def={def} rows={rows} canEdit={canEdit} study={liveStudy} studies={beside} onChange={setRows} />
+        </Section>
+      )}
+      {!def.matrix && !def.register && <Section title={`Score each ${noun}`}>
         <p className="sub">{def.help}</p>
         {def.asksRate && (
           <label className="field scored-rate"><span className="field-label">£ an hour for the people doing the work (optional)</span>

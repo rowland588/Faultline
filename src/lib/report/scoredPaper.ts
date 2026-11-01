@@ -27,10 +27,21 @@ function matrixTable(t: ScoredTable): Block {
   return rows({ header: make(t.head, true, true), rows: [...t.rows.map(r => make(r, false, false)), ...t.foot.map(r => make(r, true, false))], after: 'm' });
 }
 
-export function scoredPaperBlocks(s: ToolStudy): Block[] {
-  const x = studyScored(s);
+export function scoredPaperBlocks(s: ToolStudy, beside: readonly ToolStudy[] = []): Block[] {
+  const x = studyScored(s, { studies: beside });
   if (!x?.result) return [text({ text: 'Nothing scored yet.' })];
   const r = x.result;
+  if (x.def.register && x.table) {
+    /* a register of cards (FMEA, control plan): the band, tiles, "What it says" and the closing line are the study page's own (studiesPdf); this is the register between them */
+    return [
+      leanHead(x.def.title, r.verdict),
+      matrixTable(x.table),
+      ...(r.money ?? []).map(m => text({ text: m, size: 9 })),
+      ...(r.also ? [leanHead(r.also.title), ...r.also.lines.map(l => text({ text: `· ${l}`, size: 9 }))] : []),
+      leanHead('What this does not say'),
+      ...[...r.caveats, ...x.def.limits].map(c => text({ text: `· ${c}`, size: 9 })),
+    ];
+  }
   if (x.def.matrix && x.table) {
     /* the band, the tiles, "What it says" and the closing line are the study page's own (studiesPdf); this is the matrix between them */
     return [

@@ -106,4 +106,52 @@ export const ANALYSIS_GUIDES: Record<string, Guide> = {
     ],
     watch: 'Do not skip the random order. Making the runs in the order that is quickest lets a drift — a warming machine, a changing reel — look like the factor you changed last.',
   },
+  'FC-132': {
+    intro: 'For going through a process step by step before it fails — a wrapper, a new film, a changeover — to write down what could go wrong, rate it, and decide which failure modes need action first. Done by the people who run it, not by one person at a desk.',
+    steps: [
+      {
+        step: 'New FMEA',
+        means: 'A register for one process or line step, kept as a card for each way it can fail. FMEA means failure mode and effects analysis: what could fail, what that would do, why, and whether it would be caught.',
+        doThis: 'Press New FMEA, name it for the process (“Line 2 wrapper — October review”) and pick the line. Do it round a table with the operator, the engineer and quality — the failure modes that matter are the ones the operators have seen.',
+        youGet: 'A register with one blank card. Add a card for each failure mode with “+ Add a failure mode”.',
+      },
+      {
+        step: 'Failure mode, effect and cause',
+        means: 'The failure mode is what goes wrong (“Seal does not hold”). The effect is what the customer or the next step gets (“A leaker reaches the customer”). The cause is why it would happen (“Jaw temperature drifts”). One failure mode can have several causes: give each its own card.',
+        doThis: 'Fill in Failure mode, Process step, Effect and Cause in plain words. Take the failures from the problems register, the loss count and the complaints, not only from memory.',
+        youGet: 'A card that says one thing that could go wrong, why, and what it would do — ready to be rated.',
+      },
+      {
+        step: 'Prevention now and detection now',
+        means: 'The controls already in place. Prevention stops the cause happening (a set-point check each start). Detection catches the failure before it leaves (a seal pull every 30 minutes). Rate what is really done today, not what the procedure says should be.',
+        doThis: 'Write the prevention and the detection that exist now, as the operators would describe them. If there is nothing, write “none” — that is a finding, not a gap in the form.',
+        youGet: 'The controls the ratings will be judged against, and later the rows of the control plan.',
+      },
+      {
+        step: 'Severity, occurrence and detection',
+        means: 'Three ratings from 1 to 10. Severity: how bad the effect is (10 is a consumer harmed or the law broken). Occurrence: how often the cause happens with the prevention in place (10 is more than 1 in 10; 1 is it cannot happen). Detection: how well the control now would catch it (10 is nothing checks; 1 is the failure cannot pass).',
+        doThis: 'Pick the line that fits best on each scale; the anchor under your pick says what it means in food-manufacturing terms. Argue the anchor, not the number. The scales are listed under “The rating scales”.',
+        youGet: 'A rated failure mode. A card with fewer than all three ratings is not ranked and is counted as “not rated yet”.',
+      },
+      {
+        step: 'The priority',
+        means: 'High, Medium or Low, read from the three ratings by a stated rule: how bad the effect is comes first, then how well the controls hold it back. A severity of 9 or 10 is never Low. The rule is Faultline’s own, shown in full under “How the priority is decided” — it is not the handbook’s table, and the three ratings are never multiplied.',
+        doThis: 'Read the word on the card and the reason under it. High means do something — or write down why the controls now in place are enough. Medium means it should have an action. Low may. If your team holds the AIAG-VDA handbook, set the priority by hand from its table: the card says so.',
+        youGet: 'A register ranked High first, then by severity — and a sentence naming the High modes and how many still have neither an action nor a reason.',
+      },
+      {
+        step: 'Action, and the priority from a handbook',
+        means: 'What will be done about it, who does it and by when. Prevention comes first (lower the occurrence), then better detection; severity only moves with a design change. If there is no action, the reason the controls are enough is written, not assumed.',
+        doThis: 'Open the section and write the action, who, and the day. For a High mode with no action, write why instead. Optionally type what one occurrence costs: it is said beside the priority and never used to rank it. Tick “A food-safety hazard” on any row that is one — it belongs in the HACCP plan too.',
+        youGet: 'An action with an owner and a day; an action past its day shows red, once, in the sentence and the closing line.',
+      },
+      {
+        step: 'After the action',
+        means: 'When the action is in place and checked, rate the card again. The priority should come down; if it does not, the action did not do what it was meant to. A rating made before the action is done is a prediction, so it is not counted.',
+        doThis: 'Enter the day under “Done on”. The three ratings appear again: set the occurrence and detection as they are now, and write how it was checked. Re-open the register at every change, complaint and new failure.',
+        youGet: 'The priority now beside the priority then — “Now Low, down from High” — and the evidence kept with the card.',
+      },
+    ],
+    watch: 'A rating is a judgement, not a measurement, and an FMEA written by one person at a desk lists only what that person knows. Rate with the operators and the scales in front of you, and never read a threshold off the product of the three numbers.',
+  },
 };

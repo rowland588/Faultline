@@ -671,6 +671,28 @@ export interface ScoredRow {
   scores?: Record<string, number | undefined>;
   /** A matrix option's cost in pounds, typed (optional) — shown beside the score, never in it. */
   cost?: number;
+  /** A PROCESS FMEA row (FC-132, src/tools/fmea): `name` is the failure mode. */
+  fmea?: FmeaData;
+  /** A CONTROL PLAN row (FC-133, src/tools/cplan): `name` is the characteristic. */
+  plan?: PlanData;
+}
+/** One failure mode of a process FMEA (FC-132). Ratings are whole numbers 1–10; `ap` is the priority set by hand from a handbook the team holds (absent: the tool's own rule);
+ *  `after` the ratings once `done` (the day the action was in place and checked) is given, with `evidence`; `reason` why the controls are enough when there is no action; `cost` what one occurrence costs, £. */
+export interface FmeaData {
+  step?: string; effect?: string; cause?: string; prevention?: string; detection?: string;
+  s?: number; o?: number; d?: number; ap?: 'H' | 'M' | 'L';
+  action?: string; owner?: string; due?: string; done?: string; reason?: string; evidence?: string;
+  after?: { s?: number; o?: number; d?: number };
+  cost?: number; haccp?: boolean;
+}
+/** One characteristic of a control plan (FC-133): what is checked, against what, how, how often, by whom, recorded where, and what is done when it is not met.
+ *  `link` points at a check of a check log (the log's study and the check's id) so the plan reads whether it is due; `fmea` at the failure mode it controls. */
+export interface PlanData {
+  step?: string; spec?: string; method?: string; sample?: string; owner?: string; record?: string; reaction?: string;
+  everyMin?: number; minutes?: number;
+  link?: { logId: string; checkId: string };
+  fmea?: { studyId: string; rowId: string };
+  haccp?: boolean;
 }
 
 /** A criterion of a matrix (Pugh): what matters in the choice, with a whole-number weight 1–5 (blank = 1). */
