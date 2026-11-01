@@ -82,6 +82,10 @@ const TOOLS = [
     route: s => `#/scored/fmea/${s.fmeaId}`, parts: ['.ln-tiles', '.ie-says', '.fm > .fm-card:first-of-type'], css: '.fm-card .fm-more{display:none !important}.fm-card .sp-rm{display:none !important}' },
   { key: 'control-plan', of: 'Control plan — four characteristics of a wrapper: what is checked, against what, how often and by whom, the reaction when it is out, and what is still unsaid',
     route: s => `#/scored/control-plan/${s.cplanId}`, parts: ['.ln-tiles', '.ie-says', '.fm > .fm-card:first-of-type'], css: '.fm-card .fm-more{display:none !important}.fm-card .sp-rm{display:none !important}.cp-prices,.cp-acts{display:none !important}' },
+  { key: 'hold', of: 'Product on hold — six holds of a line, two open and four decided: the packs held, the oldest, what is tied up (not lost) and what the decided ones lost',
+    route: s => `#/scored/hold/${s.holdId}`, parts: ['.ln-tiles', '.ie-says', '.fm > .fm-card:first-of-type'], css: '.fm-card .fm-after,.fm-card .sp-rm,.cp-prices,.cp-acts{display:none !important}' },
+  { key: 'fault-tree', of: 'Fault tree — how metal could reach a pack despite the detector: nine minimal cut sets, the probability of the top event, and which events carry most of it',
+    route: s => `#/scored/fault-tree/${s.faultId}`, parts: ['.ln-tiles', '.ie-says', '.ft > .ft-node:nth-of-type(1)', '.ft > .ft-node:nth-of-type(2)'], css: '.ft-node .cp-acts,.cp-prices{display:none !important}' },
   { key: 'pugh', of: 'Pugh matrix — four fixes for film breaks marked better, same or worse than the present state on five weighted criteria: who leads and where the lead is beaten',
     route: s => `#/scored/pugh/${s.pughId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'],
     css: '.pugh-datum,.pugh-key,.pugh-acts,.pugh-table .sp-rm,.pugh-table tfoot tr[data-foot="Cost"],.pugh-table tfoot tr[data-foot="Same (S)"]{display:none !important}' },
@@ -205,7 +209,13 @@ function PICTURE_SEEDS_FN() {
     const cplan = newScoredStudy(cpDef, { name: 'Line 7 — wrapper control plan', workspaceId: wsId, now: t });
     cplan.agreed = { scored: { key: 'control-plan', rows: cpDef.examples[0].rows.map(r => ({ ...r })), rate: 25, speed: 200, packCost: 0.4, shiftMin: 480 } };
     await putStudy(cplan);
-    return { cplanId: cplan.id, fmeaId: fmea.id, readinessId: readiness.id, skillsId: skillsStudy.id, criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
+    const hdDef = SCORED.find(d => d.key === 'hold'), hold = newScoredStudy(hdDef, { name: 'Line 7 — holds, October', workspaceId: wsId, now: t });
+    hold.agreed = { scored: { key: 'hold', rows: hdDef.examples[0].rows.map(r => ({ ...r })), rate: 25, costToDate: 0.53, margin: 0.35, carryPct: 12 } };
+    await putStudy(hold);
+    const ftDef = SCORED.find(d => d.key === 'fault-tree'), fault = newScoredStudy(ftDef, { name: 'Line 7 — metal in a pack', workspaceId: wsId, now: t });
+    fault.agreed = { scored: { key: 'fault-tree', rows: ftDef.examples[0].rows.map(r => ({ ...r })), period: 'a year' } };
+    await putStudy(fault);
+    return { holdId: hold.id, faultId: fault.id, cplanId: cplan.id, fmeaId: fmea.id, readinessId: readiness.id, skillsId: skillsStudy.id, criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
   };
 }
 

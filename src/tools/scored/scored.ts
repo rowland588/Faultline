@@ -28,7 +28,7 @@ export function studyScored(s: Pick<ToolStudy, 'agreed'> & Partial<Pick<ToolStud
   const rows = agreed.rows ?? [];
   if (def.register) {
     const now = beside.now ?? Date.now(), self = s.id ? { id: s.id, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) } : undefined;
-    const out = def.register.analyse({ rows, ctx: { today: todayISO(new Date(now)), now, inputs: { rate: agreed.rate, speed: agreed.speed, packCost: agreed.packCost, shiftMin: agreed.shiftMin }, ...(self ? { self } : {}), studies: beside.studies ?? [] } });
+    const out = def.register.analyse({ rows, ctx: { today: todayISO(new Date(now)), now, inputs: { rate: agreed.rate, speed: agreed.speed, packCost: agreed.packCost, shiftMin: agreed.shiftMin, costToDate: agreed.costToDate, margin: agreed.margin, carryPct: agreed.carryPct, eventCost: agreed.eventCost, period: agreed.period }, ...(self ? { self } : {}), studies: beside.studies ?? [] } });
     return 'problems' in out ? { def, rows, problems: out.problems } : { def, rows, result: out.result, table: out.table, ranked: { ok: out.ranked, counts: {} } };
   }
   if (def.matrix) {

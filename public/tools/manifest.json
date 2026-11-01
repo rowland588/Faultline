@@ -101,6 +101,18 @@
     "of": "Control plan — four characteristics of a wrapper: what is checked, against what, how often and by whom, the reaction when it is out, and what is still unsaid",
     "takenFrom": "1d51d763"
   },
+  "hold": {
+    "w": 960,
+    "h": 600,
+    "of": "Product on hold — six holds of a line, two open and four decided: the packs held, the oldest, what is tied up (not lost) and what the decided ones lost",
+    "takenFrom": "ae10dd48"
+  },
+  "fault-tree": {
+    "w": 960,
+    "h": 600,
+    "of": "Fault tree — how metal could reach a pack despite the detector: nine minimal cut sets, the probability of the top event, and which events carry most of it",
+    "takenFrom": "ae10dd48"
+  },
   "pugh": {
     "w": 960,
     "h": 600,

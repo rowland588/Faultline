@@ -51,4 +51,88 @@ export const RISK_CONTROL_GUIDES: Record<string, Guide> = {
     ],
     watch: 'The page checks that the plan is complete, not that it is right: a limit, a frequency or a gauge nobody has validated looks the same as one that has been. A plan copied from another line checks that line’s risks.',
   },
+  'FC-135': {
+    intro: 'For product that may not be right — a failed seal check, a wrong date code, a missed metal-detector test piece. Record what is held, who may release it and by when, then what became of it and what it cost, so no hold sits unowned while its shelf life runs out.',
+    steps: [
+      {
+        step: 'New holds register',
+        means: 'A register for one line or area, kept as a card for each hold. A hold is product held back — labelled and segregated — until someone with the authority decides what becomes of it.',
+        doThis: 'Press New holds register, name it for the line and the month (“Line 2 — holds, November”) and pick the line. Add a card for each hold with “+ Add a hold” as it is raised, at the line, not afterwards.',
+        youGet: 'A register with one blank card, today as the raised day.',
+      },
+      {
+        step: 'What is held, how many and where',
+        means: 'The product and the reason in a line (“Maris 500 g — failed seal check”), the packs, the lot, the label number and where it sits. Held product must be physically segregated or locked in the system with its label: the record alone holds nothing.',
+        doThis: 'Name what is held, type the packs, the lot and the hold label number, say where it is and tick that it is segregated and labelled. If you cannot tick it, go and do that first.',
+        youGet: 'A card that identifies the hold the way an auditor or a customer will ask for it, and says “not segregated” until it is.',
+      },
+      {
+        step: 'Why, the cause and who raised it',
+        means: 'Why it is held is the check, the complaint or the deviation. The cause is the heading the Pareto counts under (Seal, Weight, Code or label, Metal detection…). The same cause held three times is a repeating cause.',
+        doThis: 'Write the failed check in a line, pick or type a cause the same way each time, and the day and the person who raised it.',
+        youGet: '“Holds by cause”, ranked — and a note when one cause has held product three times: an 8D is worth opening.',
+      },
+      {
+        step: 'Who may release it, and by when',
+        means: 'The authority is the person allowed to decide — quality, not production under pressure. The decision day is when it is due. A hold with no decision day is a slow destroy: the shelf life runs out while nobody decides.',
+        doThis: 'Name the authority and set the day the decision is due. Add the product’s total shelf life if you know it, so the page can say how much has gone while held.',
+        youGet: 'Days held, a red line when the decision is past its day, and the share of shelf life used.',
+      },
+      {
+        step: 'The decision',
+        means: 'What became of it: released (shown to conform), released under concession (the customer accepted in writing), reworked, regraded or destroyed. Each is recorded with who decided, when and on what grounds. Rework must be re-inspected: “reworked” with no record is a release.',
+        doThis: 'Pick what became of it. Name who decided, the day, the grounds (the re-test, the customer’s email) and the corrective action reference. Give the hours, the materials added, the price lost a pack or the disposal cost that fate asks for.',
+        youGet: 'The hold closed with its fate, and what it lost where the inputs were given.',
+      },
+      {
+        step: 'What a hold costs',
+        means: 'Two different sums, never added. Tied up is the packs times what a pack has cost to this point while the hold is open — money held, not lost unless the product is. Lost is what a decided hold cost by its fate: the review’s hours, the price lost, the labour again, or the materials, labour and margin not earned.',
+        doThis: 'Open “What a hold costs” and give what a pack has cost to this point (materials and labour), the margin a pack, £ an hour and, if you carry stock at a rate, the percentage a year. Leave any empty: the page names what it still lacks.',
+        youGet: 'Tied up and lost, in pounds, each in its own tile; the carrying cost; and the name of the one input still needed, never an invented figure.',
+      },
+    ],
+    watch: 'Product “on hold” that is not segregated is released by accident. The tied-up money is not a loss and must not be added to the losses; only a decided hold says what was lost.',
+  },
+  'FC-152': {
+    intro: 'For a serious event that must not happen — metal reaching a consumer, an under-cooked product leaving the line — when you need every combination of failures that could cause it, and which barrier is doing the most work. Not for a chronic problem: use the fishbone and the 5 Whys for that.',
+    steps: [
+      {
+        step: 'The top event',
+        means: 'The one event the tree explains, stated exactly: what, where, how much (“Metal reaches a consumer in a pack”). Everything below it is a cause, worked downward.',
+        doThis: 'Press New fault tree and write the top event as the name. Make it specific enough that you could tell whether it happened.',
+        youGet: 'A tree with its top event, ready for causes.',
+      },
+      {
+        step: 'Gates: AND and OR',
+        means: 'An OR gate means any one of the causes below it is enough. An AND gate means all of them must happen together — a hazard present and every defence failing. The gates are how the protections are arranged.',
+        doThis: 'Under the top event press “+ Add a cause under this” for each immediate cause. Where a cause is itself made of causes, add causes under it; pick AND or OR for the group. Ask “would one of these be enough, or must all happen?”',
+        youGet: 'An outline of the logic, indented one step for each level, each row saying whether it is a gate or a basic event.',
+      },
+      {
+        step: 'Basic events and their probabilities',
+        means: 'A basic event is a cause with nothing below it that you can know or act on (“Screen mesh breaks”). Its probability is the chance it happens in the period — the same period for every event (a year, a shift, a demand).',
+        doThis: 'Give each basic event a probability between 0 and 1, from your records (a failure count over the period) or a judgement marked as such. Say the period at the top under “The period and what the top event costs”.',
+        youGet: 'The probabilities in words as you type them (0.02 reads 2%). Without them the cut sets still stand; the probability waits.',
+      },
+      {
+        step: 'A cause under two gates',
+        means: 'If one cause appears in two branches — one maintenance error that lets metal in and also disables the detector — it is one event, not two. Counting it twice makes the answer wrong.',
+        doThis: 'On the second occurrence pick “Or the same cause as” and choose the first. It then takes the first’s probability.',
+        youGet: 'A shared cause counted once, and its importance rising because it sits in more cut sets.',
+      },
+      {
+        step: 'The cut sets and the single points',
+        means: 'A minimal cut set is the smallest group of basic events that, all happening, cause the top event. A cut set of one is a single point: that event alone does it.',
+        doThis: 'Read the sentence first: how many cut sets, the fewest events that can cause it, and any single point. Then the table, the likeliest first. Look hardest at the single points and the pairs.',
+        youGet: 'Every way the top event can happen, ranked by probability — and the single points in amber, a place to look first, not necessarily a failure.',
+      },
+      {
+        step: 'The probability and which events matter',
+        means: 'The probability of the top event, exact for independent events, beside the two usual approximations. Each event’s importance says what share of the risk runs through it, and what making it certain would do to the top.',
+        doThis: 'Read “Which events matter most”. The event with the greatest share is where a control buys most. Optionally give what one occurrence of the top event costs to see the expected cost beside the probability.',
+        youGet: 'The top event’s probability for the period; the weakest link; an expected cost if the cost was given.',
+      },
+    ],
+    watch: 'The tree explains only the causes the team listed, and its probability is only as good as the probabilities typed in. A judgement made up to fill a box makes the answer look like a measurement and have none of its worth.',
+  },
 };

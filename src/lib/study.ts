@@ -681,6 +681,10 @@ export interface ScoredRow {
   fmea?: FmeaData;
   /** A CONTROL PLAN row (FC-133, src/tools/cplan): `name` is the characteristic. */
   plan?: PlanData;
+  /** A HOLD of the product-on-hold register (FC-135, src/tools/hold): `name` is what is held. */
+  hold?: HoldData;
+  /** A NODE of a fault tree (FC-152, src/tools/faulttree): `name` is the event or gate. */
+  tree?: TreeData;
   /** A PERSON of a skills matrix (FC-222): this row's `scores` are levels 0–4 by task; the shift they work, as typed. */
   shift?: string;
   /** An ITEM of a checklist register (FC-082 readiness, FC-178 hygienic design): its heading, where it comes from, what proves it, who owns it,
@@ -704,6 +708,17 @@ export interface FmeaData {
   after?: { s?: number; o?: number; d?: number };
   cost?: number; haccp?: boolean;
 }
+/** One hold of the product-on-hold register (FC-135): what is held, where, why, who may release it, the fate and the money's typed parts. All typed, none worked out. */
+export interface HoldData {
+  lot?: string; label?: string; where?: string; segregated?: boolean; qty?: number; reason?: string; cause?: string;
+  raisedOn?: string; raisedBy?: string; decider?: string; decideBy?: string; life?: number;
+  fate?: 'release' | 'concession' | 'rework' | 'regrade' | 'destroy';
+  decidedOn?: string; decidedBy?: string; grounds?: string; ref?: string;
+  hours?: number; extra?: number; lossPerPack?: number; disposal?: number;
+}
+/** One node of a fault tree (FC-152): under which gate it sits (none: the top event), AND or OR when it has causes below it, a basic event's probability for the period,
+ *  and — for a basic event — the other basic event it is the SAME as (a cause shared between two branches). */
+export interface TreeData { parent?: string; gate?: 'AND' | 'OR'; p?: number; same?: string }
 /** One characteristic of a control plan (FC-133): what is checked, against what, how, how often, by whom, recorded where, and what is done when it is not met.
  *  `link` points at a check of a check log (the log's study and the check's id) so the plan reads whether it is due; `fmea` at the failure mode it controls. */
 export interface PlanData {
@@ -741,6 +756,13 @@ export interface AgreedScored {
   speed?: number;
   packCost?: number;
   shiftMin?: number;
+  /** Product on hold (FC-135): what a pack has cost to this point and the margin a pack, £; the carrying rate, % a year. */
+  costToDate?: number;
+  margin?: number;
+  carryPct?: number;
+  /** Fault tree (FC-152): what one occurrence of the top event costs, £, and the period every probability is for ("a year"). */
+  eventCost?: number;
+  period?: string;
 }
 
 /** A CALCULATOR (src/tools/calc; knowledge/specs/FC-235-calculators.md — 25 October): which one it is (`key`, the name of its

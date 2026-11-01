@@ -15742,3 +15742,14 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .cp-acts .btn { min-height: 44px; }
 .cp-prices { border: 1px dashed var(--line); border-radius: var(--radius-sm); padding: var(--space-2); }
 .cp textarea.text-input { min-height: 44px; font: inherit; }
+
+/* the product-on-hold register (FC-135) and the fault tree (FC-152) share the FMEA's cards */
+.hd-fate { border: 0; border-top: 1px dashed var(--line); margin: var(--space-2) 0 0; padding: var(--space-2) 0 0; }
+.hd-fate legend { font-weight: 700; padding: 0; }
+.ft-node { min-width: 0; }
+.ft-node.is-leaf { background: var(--paper); }
+.ft .cp-acts { gap: var(--space-3); }
+.ft-d1 { margin-left: calc(1 * var(--space-3)); } .ft-d2 { margin-left: calc(2 * var(--space-3)); } .ft-d3 { margin-left: calc(3 * var(--space-3)); }
+.ft-d4 { margin-left: calc(4 * var(--space-3)); } .ft-d5 { margin-left: calc(5 * var(--space-3)); } .ft-d6 { margin-left: calc(6 * var(--space-3)); }
+@media (max-width: 720px) { .ft-node { margin-left: 0 !important; border-left: 4px solid var(--line); } }
+.ft .cp-acts .cw-link { min-height: 44px; display: inline-flex; align-items: center; }

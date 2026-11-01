@@ -4,14 +4,14 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **236 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 25 tools a person can open on a page of their own. Built inside them: 105 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 55; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 27 tools a person can open on a page of their own. Built inside them: 105 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 53; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 145 |
+| Available (`available`) | 147 |
 | Partly (`partial`) | 17 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 55 |
+| Not built yet (`to-build`) | 53 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -29,9 +29,9 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
 | Statistical analysis | 15 | 13 | 1 |  |  | 1 |  |
 | Measurement systems | 6 | 6 |  |  |  |  |  |
-| Quality engineering and defects | 14 | 7 |  |  | 5 | 2 |  |
+| Quality engineering and defects | 14 | 8 |  |  | 4 | 2 |  |
 | Six Sigma and DMAIC | 8 | 2 | 2 |  | 4 |  |  |
-| Root cause and problem solving | 10 | 5 | 1 |  | 4 |  |  |
+| Root cause and problem solving | 10 | 6 | 1 |  | 3 |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
 | Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |

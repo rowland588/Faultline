@@ -12,7 +12,7 @@ import { now, uid } from '../../lib/ids';
 import { bandPage } from '../../lib/lean';
 import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
-import type { ScoredCriterion, ScoredRow, ToolStudy } from '../../lib/study';
+import type { AgreedScored, ScoredCriterion, ScoredRow, ToolStudy } from '../../lib/study';
 import { studyHref } from '../../lib/studyLinks';
 import { PageHeader, Section } from '../../ui/parts';
 import { Sheet } from '../../ui/Sheet';
@@ -187,8 +187,9 @@ function FieldBox({ f, row, disabled, onChange }: { f: ScoredField; row: ScoredR
 }
 
 /** What a control plan prices its checks from, kept on the register beside the rows. */
-const planInputs = (a: { speed?: number; packCost?: number; shiftMin?: number } | undefined): { speed?: number; packCost?: number; shiftMin?: number } =>
-  ({ ...(a?.speed !== undefined ? { speed: a.speed } : {}), ...(a?.packCost !== undefined ? { packCost: a.packCost } : {}), ...(a?.shiftMin !== undefined ? { shiftMin: a.shiftMin } : {}) });
+const REGISTER_KEYS = ['speed', 'packCost', 'shiftMin', 'costToDate', 'margin', 'carryPct', 'eventCost', 'period'] as const;
+const planInputs = (a: AgreedScored | undefined): Partial<Pick<AgreedScored, (typeof REGISTER_KEYS)[number]>> =>
+  Object.fromEntries(REGISTER_KEYS.filter(k => a?.[k] !== undefined).map(k => [k, a?.[k]]));
 
 function Record({ s, def, can, onPatch }: {
   s: ToolStudy; def: ScoredDef; can: ReturnType<typeof canAt>; onPatch: (fn: (cur: ToolStudy) => Partial<ToolStudy>) => void;
@@ -317,9 +318,9 @@ function Record({ s, def, can, onPatch }: {
         </Section>
       )}
       {def.register && (
-        <Section title={def.register.asks.noun === 'failure mode' ? 'Rate each failure mode' : `The ${def.register.asks.noun}s`}>
+        <Section title={def.register.asks.noun === 'failure mode' ? 'Rate each failure mode' : def.key === 'fault-tree' ? 'The tree' : `The ${def.register.asks.noun}s`}>
           <RegisterEditor def={def} rows={rows} canEdit={canEdit} study={liveStudy} studies={beside} onChange={setRows} rate={rate} onRate={setRate}
-            line={line ? { name: line.name, rate: lineRate, speed: line.packsPerMin, packCost: line.marginPerPack, shiftMin: lineDay(line).minutes && line.shifts?.length ? Math.round((lineDay(line).minutes as number) / line.shifts.length) : undefined } : undefined}
+            line={line ? { name: line.name, rate: lineRate, speed: line.packsPerMin, packCost: line.marginPerPack, margin: line.marginPerPack, shiftMin: lineDay(line).minutes && line.shifts?.length ? Math.round((lineDay(line).minutes as number) / line.shifts.length) : undefined } : undefined}
             onInputs={patch => onPatch(cur => ({ agreed: { ...cur.agreed, scored: { ...(cur.agreed?.scored ?? { key: def.key, rows }), ...patch } }, updatedAt: now() }))} />
         </Section>
       )}
