@@ -8,6 +8,8 @@
 import type { MethodKey } from '../../../lib/methods';
 import type { MethodReportFn } from '../../../lib/methodReportModel';
 
-export const METHOD_REPORT: Partial<Record<MethodKey, MethodReportFn>> = {};
+import { tocReport } from './toc';
+
+export const METHOD_REPORT: Partial<Record<MethodKey, MethodReportFn>> = { toc: tocReport };
 
 export type { MethodReportCtx, MethodReportFn, ReportItem, ReportSection } from '../../../lib/methodReportModel';

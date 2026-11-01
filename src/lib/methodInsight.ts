@@ -17,4 +17,6 @@ export interface MethodInsight {
 }
 export type MethodInsightFn = (x: InsightIn) => MethodInsight;
 
-export const METHOD_INSIGHT: Partial<Record<MethodKey, MethodInsightFn>> = {};
+import { tocInsight } from './methodInsights/toc';
+
+export const METHOD_INSIGHT: Partial<Record<MethodKey, MethodInsightFn>> = { toc: tocInsight };
