@@ -809,8 +809,9 @@ for (const size of CR_SIZES) {
     if (size !== 'random-many') await (await import('/src/dev/seed.ts')).seedForSmokeTest();
     if (size === 'many') {
       await seeds.seedReportJob('huge'); await seeds.seedSixMJob('huge');
-      for (const n of [11, 12, 13, 14]) await seeds.seedRandomJob(n);
-      for (const n of [21, 22, 23]) await seeds.seedRandomSixMJob(n);
+      /* 1 November: the ordinary seed now holds a project of every method (seven more), so the board's busiest is made up with fewer random jobs — the same total as before (docs/GUIDE-FINDINGS.md: past about this many the paper is two pages). */
+      for (const n of [11]) await seeds.seedRandomJob(n);
+      for (const n of [21]) await seeds.seedRandomSixMJob(n);
     }
     if (size === 'random-many') {
       /* --seeds 5,17 names two: the rest are made up to eight, so the board is busy. */

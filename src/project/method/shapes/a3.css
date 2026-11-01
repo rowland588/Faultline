@@ -1,0 +1,32 @@
+/* THE A3 BOARD — Toyota's one sheet, two columns (project/method/shapes/A3Board). Tokens only. */
+.a3 { display: grid; gap: 12px; margin: 10px 0 18px; }
+.a3-head { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.a3-says { margin: 0; font-size: var(--t-label); color: var(--ink-2); letter-spacing: .04em; text-transform: uppercase; }
+.a3-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.a3-col { display: grid; gap: 12px; min-width: 0; }
+.a3-side { margin: 0; font-size: var(--t-label); font-weight: 800; color: var(--ink-2); letter-spacing: .06em; text-transform: uppercase; border-bottom: 2px solid var(--brand); padding-bottom: 4px; }
+.a3-blk { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); min-width: 0; }
+.a3-h { margin: 0; font-size: var(--t-body); font-weight: 800; color: var(--ink); }
+.a3-n { display: inline-block; min-width: 1.5em; color: var(--brand); }
+.a3-asks { margin: 0; font-size: var(--t-detail); color: var(--ink-2); }
+.a3-f { display: grid; gap: 4px; min-width: 0; }
+.a3-q { font-weight: 700; font-size: var(--t-detail); color: var(--ink); }
+.a3-in { width: 100%; min-height: 44px; resize: vertical; }
+.a3-ro { white-space: pre-wrap; font-size: var(--t-body); color: var(--ink); }
+.a3-cms { display: grid; gap: 10px; }
+.a3-cm { display: grid; grid-template-columns: 2em 1fr 1fr; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+.a3-cm-n { grid-row: 1 / span 2; font-weight: 800; color: var(--brand); padding-top: 22px; }
+.a3-cm-f { display: grid; gap: 4px; min-width: 0; }
+.a3-cm-f:first-of-type { grid-column: 2 / span 2; }
+.a3-ev { display: grid; gap: 4px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: var(--radius); }
+.a3-ev p { margin: 0; }
+.a3-ev-t { font-weight: 700; font-size: var(--t-detail); color: var(--ink); }
+.a3-ev-s { font-size: var(--t-detail); color: var(--ink-2); }
+.a3-ev .btn, .a3-ev .chip, .a3-door, .a3-add { justify-self: start; min-height: 44px; }
+.a3-warn { margin: 0; font-size: var(--t-detail); font-weight: 700; color: var(--warn); }
+@media (max-width: 720px) {
+  .a3-head, .a3-cols { grid-template-columns: 1fr; }
+  .a3-cm { grid-template-columns: 1.6em 1fr; }
+  .a3-cm-f:first-of-type { grid-column: 2; }
+  .a3-cm-n { grid-row: auto; padding-top: 0; }
+}

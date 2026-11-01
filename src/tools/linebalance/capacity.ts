@@ -34,6 +34,7 @@
  *  5. People are stations. A person is a speed like any other — typed as a rate
  *     or as "this many every this many seconds" — and the pace to type is the
  *     one they can sustain, not their best lap. */
+import type { PlanOrder } from '../plan/types';
 import type { Observation } from '../../types';
 import type { StandardChangeover } from '../../lib/study';
 import { cycleWords, everyWords, fmtBig, fmtN, oneOf } from './capacityWords';
@@ -123,6 +124,13 @@ export interface Capacity {
   /** NEXT WEEK'S ORDERS for this product, in the line's unit — typed or pasted
    *  on the line's capacity (lib/intelligence loadVsDemand); never from an ERP. */
   demandPerWeek?: number;
+  /** THE WEEK'S ORDERS for this product, each with its day and its place in the line's week (FC-179, knowledge/specs/FC-179-week-schedule.md):
+   *  typed on the line's capacity page and laid on the constraint by tools/plan/schedule; the line's week is every product's orders in `seq`
+   *  order. Kept inside the standard's jsonb — no column. */
+  orders?: PlanOrder[];
+  /** THE TIME BUFFER IN FRONT OF THE CONSTRAINT, hours of the drum's running time (FC-043, tools/plan/dbr) — the line's, kept on each of its
+   *  products as the planned hours a week is and read as the longest any says. */
+  bufferH?: number;
   /** WHAT THIS PRODUCT EARNS A PACK (FC-042, knowledge/specs/FC-042-product-mix.md): its price and its materials,
    *  typed on the line's capacity panel — throughput is price less the truly variable cost, so the mix can rank
    *  products on what each earns a constraint minute. Each absent when not typed: the line's own materials and

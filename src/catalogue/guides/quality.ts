@@ -1,0 +1,648 @@
+/* GUIDES — quality engineering, choosing solutions, root cause and the check logs (the discipline's tools; src/catalogue/guide.ts).
+ * Written from each tool’s real page, in its own labels and in the order a person meets them (docs/METHODS.md §15). */
+import type { Guide } from '../guide';
+
+export const QUALITY_GUIDES: Record<string, Guide> = {
+  'FC-124': {
+    intro: 'For counting the kinds of fault found on the packs of a run — leakers, mislabels, crushed packs, foreign-matter finds — as they are seen, so “rejects” stops being one number nobody can break down. It is the tally inside the capability study’s Faults found on each item.',
+    steps: [
+      {
+        step: 'Faults found on each item',
+        means: 'The choice under “What are you measuring?” for items that can carry more than one fault: a pack can be light, open at the seal and mis-labelled all at once. Counting faults, not rejected packs, keeps all three.',
+        doThis: 'Start a new capability study and pick “Faults found on each item” (“a pack inspected for seal, label, print — faults an item, by kind”). If a pack is simply good or bad, pick “Rejects out of what was made” instead.',
+        youGet: 'A study that asks for the kinds of fault and the most you will accept, then takes an inspection at a time — not a list of measurements.',
+      },
+      {
+        step: 'The kinds of fault',
+        means: 'The headings of a check sheet, written before anyone counts: each fault goes under exactly one of them. Decided in advance, they make the counts of different shifts add up.',
+        doThis: 'Type up to twelve kinds with a comma between, as the people at the line would name them: “Open seal, Light pack, Mis-label, Crushed, Wrong date”. Keep them from overlapping; five to twelve works, more slows the tally.',
+        youGet: 'One big button for each kind on the counting pad. A kind you did not foresee can still be added while counting.',
+      },
+      {
+        step: 'Judged against',
+        means: 'The most faults an item may carry on average, and how many inspections you will take — agreed before the first, so the verdict cannot be bent to suit the count. “Opportunities an item” is how many places an item could be wrong; it matters only for a figure per million.',
+        doThis: 'Type “At most how many faults per 100 items” from the specification or your own standard (2 means two faults on every hundred items) and “How many inspections”. Give the opportunities an item only if the customer asks for defects per million.',
+        youGet: 'The agreed record the verdict is read against. With the opportunities typed, the page also says defects per million opportunities and a sigma level, by the 1.5-shift convention it names.',
+      },
+      {
+        step: 'Items inspected, then a tap for each fault',
+        means: 'One inspection is one batch you looked at — the packs from a reel, a tray, ten minutes of output — with the faults found in it. Counting at the line as the faults are seen gives data; counting afterwards from memory gives a story.',
+        doThis: 'Type “Items inspected” (200, say). Each time you find a fault, tap its kind: the button counts up and “Add the inspection” says how many faults on how many. −1 takes one back. A kind not on the list goes in the box marked Other, then Add one. A pack with two faults is two taps. Press Add the inspection when the batch is done.',
+        youGet: 'The inspection on the list as “7 on 200” with its kinds beside it, and one bar on the chart — faults an item, against the chart’s limits.',
+      },
+      {
+        step: 'The tally and what it says',
+        means: 'The sentence turns the counts into a rate and says how sure it is. Faults an item is the faults divided by the items; the page also gives the share of items carrying at least one fault, because one pack can hold several.',
+        doThis: 'Read the sentence, then the tiles Items, Faults, Per 100 and Top kind. The range (“95% confident”) is said from three inspections and the chart drawn from five. The verdict is Met, Not met or Not shown yet against your maximum; until all the inspections are in it reads “3 of 10 inspections”.',
+        youGet: 'The rate with its range, the verdict, and on paper “Faults by kind — the tally and its Pareto”: each kind with its count, share and cumulative share.',
+      },
+    ],
+    watch: 'Count every fault, not every faulty pack, and count the items inspected beside them: a tally with no denominator is not a rate. If Other grows to about a tenth of the faults, read what is in it and make a new kind.',
+  },
+  'FC-125': {
+    intro: 'For deciding which kind of fault to go after first. It is the Pareto drawn under the Faults found on each item study, from the same tally — there is no second list to type.',
+    steps: [
+      {
+        step: 'The tally it is drawn from',
+        means: 'A Pareto is only as good as the counts under it. Here the bars are the kinds you tapped during the inspections, added up across all of them.',
+        doThis: 'Count the faults by kind at the line (see Defect tally at the line) over enough inspections that the order is not luck: with a few faults, the next shift can turn the ranking round.',
+        youGet: 'The kinds and their counts, ready to be ranked. Faults not put under a kind are counted as Other.',
+      },
+      {
+        step: 'Faults by kind',
+        means: 'The picture: one bar for each kind, the most common first, with a line adding the shares up as you go from left to right. Where the line has climbed most of the way, the bars to its left are the vital few.',
+        doThis: 'Read from the left. The first bar is the kind to start with. Look at how many bars it takes for the line to climb most of the way to the top.',
+        youGet: 'The ranked bars with their counts above them and the cumulative line.',
+      },
+      {
+        step: 'The sentence and the Top kind tile',
+        means: 'Under the verdict the page says the ranking in words — “Light pack and open seal are 95% of the faults” — and the Top kind tile gives the first kind with its count and its share.',
+        doThis: 'Use the sentence to open the meeting: these two kinds are where the next hour at the line goes. If only one kind has been seen, it says “Every fault so far is …”.',
+        youGet: 'The kinds to take forward, with their shares, and a number to count again after the fix.',
+      },
+      {
+        step: 'By count, not yet by money',
+        means: 'The bars are by number of faults. A “By money” switch is drawn only when every kind carries a price, and the kinds are not priced on this page yet, so you will not see it.',
+        doThis: 'Weigh the count against what you know of each kind: a leaker that spoils a pack costs more than a crooked label that is relabelled. Do not read the bars as pounds; for what poor quality costs, use the Cost of poor quality calculator.',
+        youGet: 'A ranking by number of faults, honestly labelled as that.',
+      },
+      {
+        step: 'On paper',
+        means: 'The paper prints the same tally as a table beside the study’s sentence, so the meeting sees the ranking without the screen.',
+        doThis: 'Open Report ▾ on the study and take its paper.',
+        youGet: 'A page with “Faults by kind — the tally and its Pareto” — Kind, Count, Share and Cumulative — and the study’s figures.',
+      },
+    ],
+    watch: 'The first bar is where to look, not proof of the cause. Take it to the fishbone or the five whys, then count again after the fix: the bar you went after should be shorter.',
+  },
+  'FC-128': {
+    intro: 'For putting quality in the language of the business: what poor quality cost last week or last month, in pounds, split into the four buckets of the PAF model — prevention, appraisal, internal failure and external failure — and which part to go after first.',
+    steps: [
+      {
+        step: 'The period',
+        means: 'The week or month the costs are of. Every figure on the page must be for the same period and the same line. The name only names the sentence and the paper; the packs made and the sales let the page say the cost of a pack and the cost as a share of sales.',
+        doThis: 'Type a period (“Week 42, Line 2”) and, if you have them, the packs made in the period (good packs out) and — under In money — the sales for the same period, from finance.',
+        youGet: 'The sentence and the paper named for the period; with packs made, “pence of poor quality in every pack made”; with sales, the cost as a share of sales.',
+      },
+      {
+        step: 'Prevention',
+        means: 'What is spent to stop faults happening: training, process design, control-plan work, mistake-proofing, supplier assurance.',
+        doThis: 'Give the hours spent (the page prices them at the wage under In money) and any other costs in pounds — courses, supplier visits, maintenance done for quality.',
+        youGet: 'The Prevention tile in pounds, with its share of the cost of quality.',
+      },
+      {
+        step: 'Appraisal',
+        means: 'What is spent checking — inspection, testing, audits, calibration — whether or not a fault is found.',
+        doThis: 'Give the hours checking (from the check logs and the control plan), the packs destroyed by testing (priced at a pack’s materials) and other costs — lab fees, gauges, calibration contracts.',
+        youGet: 'The Appraisal tile in pounds.',
+      },
+      {
+        step: 'Internal failure',
+        means: 'What goes wrong before the product leaves the site: scrap, rework, give-away, product held or downgraded, line time lost to quality stops.',
+        doThis: 'Give the packs scrapped and the packs reworked (from the capability study’s reject count by fate), the give-away in pounds for the period (from the capability study), product held or downgraded in pounds, and the line time lost to quality stops in pounds (from Lost time in money — the labour, and the contribution only if the stop was at the bottleneck).',
+        youGet: 'The Internal failure tile; its biggest items head the ranked list of failures.',
+      },
+      {
+        step: 'External failure',
+        means: 'What reaches the customer: complaints handled, retailer credits and charge-backs, returns, withdrawals and recalls.',
+        doThis: 'Give the customer complaints received in the period, the credits and charge-backs in pounds, and the returns, withdrawals and recalls in pounds from the incident.',
+        youGet: 'The External failure tile; complaints are priced at what one costs to handle, once that is given.',
+      },
+      {
+        step: 'In money — the unit costs',
+        means: 'The prices that turn counts into pounds. All are optional: an item counted without its price is shown as counted, not priced, and named — never a figure invented.',
+        doThis: 'Give one person’s cost an hour (the line’s wage with on-costs can be used in one tap), a pack’s materials, what putting a pack through again costs, and what one complaint costs to handle — the business’s own figure, which the page never fills in.',
+        youGet: 'Every item priced that can be; a line saying “n items were counted but not priced, so the figures are a floor” and naming what to add.',
+      },
+      {
+        step: 'Poor quality and the ranking',
+        means: 'Poor quality is the two failure buckets together. The cost of quality is all four. The failure items are ranked by pounds so the first project is plain. Juran’s rough range for the cost of quality is 5 to 25% of sales (the library’s record, to be confirmed against the book); the page does not turn the figure red or green.',
+        doThis: 'Read the sentence — “Poor quality cost £12,000 in the period (3.9% of sales) — give-away £4,100 of it, then rework £2,800” — then the tiles: Poor quality, the four buckets and Of sales. Open “How it is worked out” to see each item priced.',
+        youGet: 'The ranked failures and a closing line that names the one to chase first. Save the figures as the before and the next period reads against it.',
+      },
+    ],
+    watch: 'Only counted costs are in; what is not counted is not zero, it is not here. Do not cut prevention to cut the “cost of quality” — the figure to move is failure. A low total can mean good quality or poor counting: the ranking and the trend carry the meaning.',
+  },
+  'FC-131': {
+    intro: 'For finding out what a sampling plan really protects — a goods-in check of 50 with 1 allowed, say — before you rely on it. Type the plan from your contract or procedure; the page draws how often a lot would be accepted at each true share of bad units.',
+    steps: [
+      {
+        step: 'The plan: units taken and bad allowed',
+        means: 'A plan is two numbers: how many units you take from the lot (n) and how many bad ones still let the lot through (c). Everything on the page follows from them.',
+        doThis: 'Type “Units taken from each lot” and “Accept if this many are bad, or fewer” from your own copy of the contract or standard. Draw the sample at random across the whole lot — every layer, every pallet — or it is not a sample.',
+        youGet: 'The rule in words: “Take 125 at random from the lot and accept it if 3 or fewer are bad.” Faultline holds no ISO 2859-1 tables; it reads the plan you type and does not design one.',
+      },
+      {
+        step: 'Size of the lot',
+        means: 'For a delivery from a steady stream, leave this blank: the chance of a bad unit is the same each time. For one lot of known size the bad units are whole ones, so the small-lot arithmetic is used.',
+        doThis: 'Leave it blank for a stream; type the lot’s size only for one particular lot. It matters when you take a tenth or more of it, and the page says so.',
+        youGet: 'The right sum for your lot. The page refuses a sample bigger than the lot, and warns when a small lot has so few bad units that the plan can never reject it.',
+      },
+      {
+        step: 'The quality you want accepted, and the quality you will not',
+        means: 'Two points to read the curve at. The AQL is a share bad you are happy to receive; the limiting quality is a share bad that must almost never get through. The first gives the producer’s risk, the second the consumer’s.',
+        doThis: 'Type each as a percentage bad (1 for one in a hundred). Both are optional. The AQL must be a better, smaller, share than the limiting quality.',
+        youGet: 'The producer’s risk — good lots turned away — and the consumer’s risk — bad lots accepted — each in words, such as “accepted 96.3 times in 100”.',
+      },
+      {
+        step: 'The curve and the answer',
+        means: 'The picture is the answer: across, the true share bad in the lot; up, how often it is accepted. Tiles give Good lots turned away, Bad lots accepted, and Accepted 95 in 100 and 10 in 100 — the share bad a lot may have and still be accepted nearly every time, and the share bad that gets through only one time in ten.',
+        doThis: 'Look first at the two risks. The usual choices are a producer’s risk of 5% and a consumer’s of 10%; the page turns amber above either and its closing line says so. With no points typed it still gives the 95 and 10 in 100 shares.',
+        youGet: 'The curve, the tiles, a verdict such as “Risks 3.7% and 5.4%”, and the table of acceptance at each share bad under “How it is worked out”.',
+      },
+      {
+        step: 'What inspecting costs',
+        means: 'The one cost the plan itself sets: the labour of looking at n units in every lot, accepted or not.',
+        doThis: 'Time one unit at the bench and type the seconds to inspect one unit; give the cost of a person an hour or use the line’s. Both are optional.',
+        youGet: 'The Inspection a lot tile: minutes and pounds a lot. If an input is missing the page says which, and everything else still stands.',
+      },
+    ],
+    watch: 'A plan decides lots at stated risks; it does not prove a lot good or bad. The curve assumes the bad units are scattered at random and the inspectors agree on what is bad — a roll of bad film or a vague standard makes the real acceptance worse than the curve says.',
+  },
+  'FC-134': {
+    intro: 'For telling whether customer complaints are really rising, by dividing them by what was sold and saying how sure the rate is — then ranking the kinds. It is the retailer’s view of quality, put on a like-for-like basis.',
+    steps: [
+      {
+        step: 'Period and units sold',
+        means: 'The complaints are divided by the units sold in the same period, so a busy month does not look worse than a quiet one. The units must be of the same product and period as the complaints.',
+        doThis: 'Type the period (“October”) and the units sold or despatched in it — from despatch records or the retailer’s volume report.',
+        youGet: 'The denominator. On fewer than 100,000 units the page warns that one complaint moves the rate by more than ten a million, so read the count and not the rate.',
+      },
+      {
+        step: 'Complaints by kind',
+        means: 'Six boxes, one for each kind: Foreign body, Packaging or seal, Taste, smell or condition, Quantity or weight, Labelling or date code, and Other. Code what the customer said, not what you think happened.',
+        doThis: 'Type how many complaints of each kind arrived in the period — 0 for a kind with none; at least one of the six must be typed. A blank period is not the same as no complaints.',
+        youGet: 'The total and the rate a million units with its 95% range, and the Pareto of kinds once two or more kinds have complaints.',
+      },
+      {
+        step: 'The usual rate',
+        means: 'What the periods before looked like, so the page can say whether this one falls outside the range you should expect. It is the range of ordinary ups and downs, not a target.',
+        doThis: 'Type the complaints and the units sold in the periods before — the last twelve months, say, not counting this one. Give both or neither.',
+        youGet: 'The Usual range tile, such as 0.08–14.6 a million; a rate above it is shown red, one below it green.',
+      },
+      {
+        step: 'The period before',
+        means: 'A direct comparison of this period with the one just gone, using an exact test of two rates. It stops one bad month being read as a trend.',
+        doThis: 'Type last period’s complaints and its units sold — both or neither.',
+        youGet: 'The Against before tile: “not shown different”, “shown higher” or “shown lower”, with p, the chance of a gap this big by luck if the rate were the same. The page calls a gap shown when p is under 0.05.',
+      },
+      {
+        step: 'The answer and the kinds',
+        means: 'The sentence gives the rate with its range — “12 complaints on 1.25 million units sold in October — 9.6 a million, 95% confident 5.0–16.8” — and where it sits against the usual range and the period before. The picture ranks the kinds with a cumulative line.',
+        doThis: 'Read the sentence, then the tiles: A million, Complaints, Usual range, Against before, Most of them, Cost. With under twenty complaints the range is wide and the order of kinds can change next period: read the complaints one by one before reacting.',
+        youGet: 'A verdict (the rate a million), the Pareto of kinds by number, and a closing line naming the kind to look at first.',
+      },
+      {
+        step: 'In money',
+        means: 'External failure, the cost of quality that reaches the customer: every complaint at one typed cost.',
+        doThis: 'Type the cost of one complaint — handling, the retailer’s credit or charge-back, goodwill — from your own records. It is optional.',
+        youGet: 'The cost of the period’s complaints and the cost for every million units sold. Because one cost is taken for every complaint, the Pareto is by number, never by money.',
+      },
+    ],
+    watch: 'Complaints under-report by a factor nobody knows, and they arrive after the product was made. The rate compares like with like over time; it never says the true defect rate, and a fix shows late.',
+  },
+  'FC-138': {
+    intro: 'For a data-heavy improvement — give-away, yield, a defect rate — where a team works in five phases and a sponsor reviews each before the next. A DMAIC project is one of the eight ways to start a project in Faultline; this walks its five sections and the tools that sit in each.',
+    steps: [
+      {
+        step: 'Start a DMAIC project',
+        means: 'The method is the project: choosing DMAIC makes a project whose front page is its five sections, each with the tools that fit it by default.',
+        doThis: 'On Projects press New project and pick the DMAIC card (“How do we cut variation or defects with data, with a review before each phase?” — Define · Measure · Analyse · Improve · Control). Type a name and the lead, tick the line or lines it is on, then Create project.',
+        youGet: 'A project that opens on the DMAIC page: its question, its five sections in order, and a count of the tool uses in this project so far.',
+      },
+      {
+        step: 'Define',
+        means: 'The problem, the customer’s requirement, the scope, the goal and what it is worth — written before any data is collected. The critical-to-quality measure (CTQ) is the number the whole project will move.',
+        doThis: 'Work down the section’s tools — the project charter, the one-page scope (SIPOC), the voice of the customer turned into limits, Cost of poor quality, What an improvement is worth. Each row says whether the tool is built; one that is not has no New button.',
+        youGet: 'A goal stated as a number with a limit, and what reaching it is worth a year.',
+      },
+      {
+        step: 'Measure',
+        means: 'The baseline of the CTQ with its capability, and the measuring method proved fit to see the improvement you are looking for. A change smaller than the gauge’s noise cannot be seen.',
+        doThis: 'Prove the gauge first with Gauge R&R: %GRR under 10% is good, 10–30% depends on the purpose, over 30% is not acceptable. Then take the baseline with Capability, the reject-rate or faults capability, or the Defect tally, and chart it.',
+        youGet: 'A baseline — Ppk, or defects per million with the convention for its sigma level named — with the number of readings it rests on, and a gauge you can trust.',
+      },
+      {
+        step: 'Analyse',
+        means: 'Root causes found with data, not opinions. The 6M tool lives here, with the tools that split the data and test what it points at.',
+        doThis: 'Rank the faults with the Defect Pareto, split the data to find where the loss lives, and test with the comparisons, correlation and What drives it. Then put the causes on the fishbone, mark how each is known, and ask why.',
+        youGet: 'Verified causes, each marked how it is known, and a root the team can act on.',
+      },
+      {
+        step: 'Improve',
+        means: 'The solution is chosen, piloted and proved on the CTQ. Pugh and Impact and effort choose between options; Before and after proves the pilot.',
+        doThis: 'Score the options with the Pugh matrix and Impact and effort, pilot the winner small, use SMED or a mistake-proofing check where they fit, prove it on the same CTQ with Before and after, and put its worth in pounds.',
+        youGet: 'A proved change with its before → after and its payback.',
+      },
+      {
+        step: 'Control',
+        means: 'The gain held: a chart at the point of control, a control plan row, the standard and the handover to the process owner.',
+        doThis: 'Put the CTQ on a control chart that fits its kind, write the standard, and name the person who will keep reading the chart. Many teams hold for eight weeks before handing over.',
+        youGet: 'A chart, a plan and a named owner — the gain with someone to hold it.',
+      },
+      {
+        step: 'The review between phases',
+        means: 'DMAIC closes each phase with a review of the evidence — a tollgate — before the next begins. Passing it on slides, without the evidence, is how the method decays.',
+        doThis: 'Hold the review with the sponsor in the meeting. A section lights when tools have been used in it, but nothing is locked and the page does not yet record a sign-off, so put what was agreed in the project’s Actions or Notes.',
+        youGet: 'A phase reviewed on evidence, kept in your own record: the page shows what has been used in each section, not whether the review has passed.',
+      },
+    ],
+    watch: 'DMAIC is heavy for a small problem: a floor problem fixed in a week belongs to a 6M or an A3, not five phases. Skipping the gauge study in Measure is the commonest mistake — an improvement smaller than the gauge’s noise cannot be seen.',
+  },
+  'FC-143': {
+    intro: 'For choosing between solutions as a team without the loudest voice winning — three fixes for film breaks, say. Each option is marked better, same or worse than a datum on criteria you agreed first, and the page says who leads and how safe the lead is.',
+    steps: [
+      {
+        step: 'What are you choosing?',
+        means: 'The ranking is named for the decision, and belongs to a line, so it can be found again and shown with that line’s other work.',
+        doThis: 'Open Pugh matrix and press New ranking. Type what you are choosing (“Film breaks on Line 2 — which fix first”), pick the line, and press Start.',
+        youGet: 'An empty matrix with three criteria rows and two option columns, ready to fill.',
+      },
+      {
+        step: 'Datum — what every option is set against',
+        means: 'The datum is the thing each option is compared with — usually the present state. It scores 0 on every criterion, so an option’s marks say whether it is better or worse than doing what you do now.',
+        doThis: 'Leave “Present state” or type another datum, such as the option the team likes best. Change it later and the order can change, so choose it deliberately.',
+        youGet: 'A datum column of D’s, and the datum named in every sentence the page says.',
+      },
+      {
+        step: 'Criteria and weights',
+        means: 'Criteria are what matters in the choice — cuts breaks, cost, time to do, safety, hygiene. A weight of 1 to 5 says how much each matters; a blank weight counts as 1.',
+        doThis: 'Agree the criteria and their weights first, as a team, before anyone scores an option, and then leave them alone. Type each criterion in a row and its weight in the Weight box; + Add a criterion for more. Weights chosen to pick a favourite defeat the matrix.',
+        youGet: 'The rows of the matrix with their weights. A weight that is not a whole number from 1 to 5 is refused in words.',
+      },
+      {
+        step: 'The options',
+        means: 'Each option is a column: a fix, a design, a supplier. Describe them alike so they can be compared fairly.',
+        doThis: 'Type each option’s name in the column head; + Add an option adds a column and Take off removes one (with Undo). Only named options are ranked.',
+        youGet: 'The columns of the matrix, one for each option.',
+      },
+      {
+        step: 'Mark each option',
+        means: 'In each cell, mark the option + (better than the datum), S (the same) or − (worse) on that criterion. A mark says better, same or worse — not by how much.',
+        doThis: 'Mark every cell with the team in the room, using evidence where there is some — a trial’s result beats an opinion. An option is left out of the order, and named, until it is marked on every criterion.',
+        youGet: 'Under each column: Better (+), Worse (−), Same (S), the Weighted score (each weight × its mark, added up) and its Rank.',
+      },
+      {
+        step: 'Cost, if you know it',
+        means: 'What each option costs to do, typed by you. It is shown beside the score and is never part of it: weighing money and judgement in one number hides both.',
+        doThis: 'Type the cost in the “Cost, £ (if known)” row if you have it. For a capital choice, decide on payback and NPV with the Payback and NPV calculator, not on this matrix.',
+        youGet: 'A Cost typed row on the paper and, when one option leads, its cost as a tile beside the score.',
+      },
+      {
+        step: 'Who leads — and how safely',
+        means: 'The verdict names the leader, or says two options tie, or that none beats the datum. The tile “If a weight moves a step” says whether changing any one weight by one would change who leads.',
+        doThis: 'Read the verdict and the tiles — Leads, Beat the datum, Margin, If a weight moves a step. Then “Before you choose”: where another option beats the leader (strengths to fold in) and which weight changes the lead. If the lead is thin or tied, agree the weights again before choosing.',
+        youGet: 'A ranking, a closing line such as “Take Film guide forward as the countermeasure to try”, and the matrix on paper.',
+      },
+    ],
+    watch: 'The matrix orders a discussion; it does not measure anything. It ranks against one datum by the team’s judgement, and a different datum can change the order — the choice is proved only by trying the option and checking the number.',
+  },
+  'FC-144': {
+    intro: 'For many countermeasures and no order: which are quick wins to do this week, which are projects to plan, and which to decline. It is the PICK chart — impact against effort — with the quick wins priced.',
+    steps: [
+      {
+        step: 'Name the ranking and the line',
+        means: 'A ranking is named for its list and filed on a line, so it can be found again and shown with that line’s other work.',
+        doThis: 'Open Impact and effort, press New ranking, name it (“Line 2 — October review”), pick the line and press Start.',
+        youGet: 'An empty table of countermeasures with a row to start on.',
+      },
+      {
+        step: 'Score each countermeasure',
+        means: 'Impact is how much of the gap the countermeasure closes; effort is the work it takes. Both are 1 to 5. 1 barely moves the number and 5 closes most of it; effort 1 is a day or less, 3 a few weeks, 5 a quarter or more, or capital.',
+        doThis: 'Add a row for each countermeasure — from a 6M board, a kaizen week or a meeting — and type its Impact and Effort as whole numbers. Agree what the scores mean before you score. Take the impact from the size of the cause (the Pareto bar) rather than enthusiasm.',
+        youGet: 'A row for each countermeasure placed in the grid. A row with no impact or no effort is left out and named.',
+      },
+      {
+        step: 'What it is worth, and what it costs',
+        means: 'Optional money. What the countermeasure is worth a year, the hours of work it takes and any other spend put the quick wins in pounds with a plain payback.',
+        doThis: 'Type “Worth a year, £”, “Hours” and “Other spend, £” where you know them, and the £ an hour for the people doing the work — or use the line’s. Leave any blank: the page names what is missing and still ranks.',
+        youGet: 'A Pays back column in weeks or years, and a money line such as “The quick wins are worth £10.5k a year for 26 hours of work (£468 of labour at £18 an hour)”. Payback is cost divided by worth, not NPV.',
+      },
+      {
+        step: 'The four quadrants',
+        means: 'Implement is high impact and low effort — do first. Challenge is high impact and high effort — plan as projects. Possible is low impact and low effort — when there is slack. Kill is low impact and high effort — decline, and record it. In Faultline impact 3 or more is high and effort 2 or less is low; the PICK chart prints no cut, so the line is Faultline’s own.',
+        doThis: 'Read the four tiles — Implement, Challenge, Possible, Kill — each with its count. A row with a 3 on an axis is on the line, so the quadrant turns on it: the page says how many and asks you to talk it over.',
+        youGet: 'The quadrant of every countermeasure and the verdict, such as “2 to do first”.',
+      },
+      {
+        step: 'The order and what to do next',
+        means: 'The Order column is the sequence to work in: by quadrant, then impact, then effort, then worth. The sentence lists them: do first, plan as projects, when there is slack, decline.',
+        doThis: 'Take the first list to the team, then put each quick win on the Actions with who and by when — it is not put there for you in one tap. Prove each with the number it should move.',
+        youGet: 'An ordered list for the meeting, the ranking on paper, and a closing line that says to agree it and prove it.',
+      },
+    ],
+    watch: 'The scores are the team’s opinion until a trial or the Pareto says otherwise, and this orders the work — it does not prove a countermeasure works. The check on the same number does.',
+  },
+  'FC-146': {
+    intro: 'For a running line that underperforms where fixes come and go. It takes one measured loss, finds its causes on six bones, asks why until there is something to act on, does the fix, proves it on the same number and keeps the gain. It is a way through several tools — the Fishbone, the Board and the Results pages of a project — and this walks it in order.',
+    steps: [
+      {
+        step: 'Open a problem',
+        means: 'A problem is the head of the fish: one loss, specific and measured, taken from what the line already says. Where it came from is kept on it.',
+        doThis: 'On the project’s Fishbone page press “Open a problem”. Pick a door: The line’s gap (its measure against target), The top Pareto bar, The constraint, a problem already in the factory’s Problems, or Something seen — typed in your own words (“Film wanders on the bagger after a reel change”).',
+        youGet: 'The head of the fish with its number — hours a week for a Pareto bar or the constraint — and its source. The six bones start to fill themselves.',
+      },
+      {
+        step: 'The six bones fill themselves',
+        means: 'People, Machine, Method, Material, Measurement and Environment. What the data suggests is drawn faint and dashed on its bone — the Pareto, what was found on the walk, the line standard, Line capacity, a material, a program, the readings, the line balance — until someone accepts it. A suggestion is not yet a cause.',
+        doThis: 'Tap a faint mark to look at it and add it if it fits, press “+ Add” on a bone to write a cause of your own, or press “I saw…” to put down what you saw on the floor, with a photo.',
+        youGet: 'A fishbone with every cause on a bone and its source kept. See “Fishbone with evidence on each cause” for how each is known.',
+      },
+      {
+        step: 'How each cause is known',
+        means: 'Every cause says how it is known — Data (measured over time), Counted (a check or audit), Seen (first-hand, by a named person) or Told (said by someone) — and how sure we are: Suspected, Confirmed or Ruled out. Evidence and opinion are told apart on the fish.',
+        doThis: 'Open each cause and set both. Go and see, or check the data, before calling a suspected cause confirmed. A study made with another tool can be put against the cause with its “Use it for…”.',
+        youGet: 'A fishbone you can read from across the room: which causes are firm and which are talk.',
+      },
+      {
+        step: 'Ask why',
+        means: 'Five whys on each confirmed cause, until you reach something the team can act on. A second line of reasoning is a second cause on the bone, not a branch of the first.',
+        doThis: 'On the problem press “Ask why” (one tap puts a first answer on from the stops), then “Ask why again” under each answer. When the read-back holds all the way up to the problem, tick “This is the root”.',
+        youGet: 'A chain of whys to a root, read back with “therefore”, and a root tag on the fish.',
+      },
+      {
+        step: 'Fix',
+        means: 'A fix is a countermeasure: an action on the project’s board that points at the root it is for, says what it should change and how much of the problem it should remove — a prediction written before it is done.',
+        doThis: 'Press “+ Add a fix” on the root. Say what has to be done and why, who and by when, what it should change (“changeover 48 → 30 min”) and, if you can, what share of the problem it should remove, in per cent. A small obvious fix needs no fishbone: write it straight into its bone’s lane on the Board.',
+        youGet: 'A row on the Board and on the Actions page, on its bone, with its owner and day; the late ones in red, and each fix’s worth in money once its share is given.',
+      },
+      {
+        step: 'Did it work',
+        means: 'The proof is on the problem’s own number — the hours a week in its scope, before and now — not on a feeling. The page does not judge until a full week after the last fix is done.',
+        doThis: 'Do the fixes, then read the Did it work part of the problem: “Not judged yet”, then “Checking it worked”, then “It moved the right way” or “It moved the wrong way”. Write how each fix ended against what it was to change.',
+        youGet: 'A verdict in words, with each fix’s “should change” set beside what happened.',
+      },
+      {
+        step: 'Close it and keep the gain',
+        means: 'Closing a problem asks how the gain is held: one check — what, who and how often — and whether the standard now says the new way. The problem then reads Holding, or Slipped back if the check is missed.',
+        doThis: 'Press “It worked — close it”. Type what is checked and who checks it, pick how often (every day, week, fortnight or month), tick if the standard is updated, or choose “Close with no check”. Afterwards press “Checked today” each time the check is made.',
+        youGet: 'A problem that reads Holding with its next check due — amber as it comes due, red when missed — or Slipped back.',
+      },
+      {
+        step: 'In money, and on paper',
+        means: 'A problem’s hours a week are said in money through the line’s cost model: labour for every hour, and packs and contribution lost only where the problem stops the line. The same story goes on the 6M paper.',
+        doThis: 'Give the line a wage, a rated speed and a margin a pack on its set-up for the full sentence — each is optional and the page names the one missing. For the paper open Reports in the project’s menu (or Report ▾ on its Overview): Status report — 1 page, or Client report — every detail, with each problem beside its fishbone.',
+        youGet: 'A sentence such as “… a week when it opened … now … less”, and a report that tells the story. A problem whose number is a gap in its own unit says no money.',
+      },
+    ],
+    watch: 'Do not skip to the fix. A countermeasure with no root under it is a guess, and a problem closed with no check slips back. Prove it on the same number you opened it with.',
+  },
+  'FC-147': {
+    intro: 'For telling what the team knows from what it only believes. The 6M fishbone puts every cause on one of six bones and marks how it is known and how sure we are, so brainstormed causes are not treated as facts.',
+    steps: [
+      {
+        step: 'The fishbone',
+        means: 'The head is the problem and its number. People, Machine and Method run along the top, Material, Measurement and Environment along the bottom. Each cause is a rib on its bone, marked with how it is known and how sure we are.',
+        doThis: 'Open the project’s Fishbone page. On a laptop tap any rib to open it beside the fish; on a phone the bones are lanes and a tap opens a sheet. The head opens the problem itself.',
+        youGet: 'The whole argument on one picture: which bone holds the root, and which fixes are past due.',
+      },
+      {
+        step: 'What the data suggests',
+        means: 'Faint dashed marks are offers, not causes: the stops timed in the bar, what was found on the walk, the line standard, Line capacity, a late material or unproved program, the readings, the line balance. Nothing is added until someone accepts it.',
+        doThis: 'Tap a dashed mark. The sheet is headed “Suggested by the data” and says where it came from; “Open it ›” shows the evidence itself. Press “Add to the fishbone” if it fits, or close it.',
+        youGet: 'A cause on its bone with its source kept under “Where it came from”.',
+      },
+      {
+        step: 'A cause of your own',
+        means: 'What the team brainstorms, or someone saw on the floor. It goes on the fish as readily as a suggestion, but it says it was put on by hand.',
+        doThis: 'Press “+ Add” on a bone and type “The cause” (“Splices vary between shifts”), or press “I saw…”, pick the bone, say what you saw and add a photo: it is graded Seen and signed with your name.',
+        youGet: 'A rib on the bone, with its photos.',
+      },
+      {
+        step: 'How it is known',
+        means: 'Four grades, listed from firmest to weakest. Data is measured over time — the stops, the readings. Counted is a check or audit — crew against the standard, skills. Seen is first-hand on the line, by a named person. Told is said by someone.',
+        doThis: 'Open the cause and tap one under “How it is known”. Choose the honest one: a cause you were only told about stays Told until you have seen it or counted it.',
+        youGet: 'A small meter on the rib; on the 6M report the answers of each chain are printed with how each is known.',
+      },
+      {
+        step: 'How sure',
+        means: 'A cause is Suspected until it is Confirmed — you have gone to see, or checked the data — or Ruled out. Only a confirmed cause should be drilled to its root.',
+        doThis: 'Set Suspected, Confirmed or Ruled out under “How sure”. If you mark a suspected cause as the root the sheet reminds you to go and see, or check the data, first. A cause ruled out can no longer be the root.',
+        youGet: 'A status mark on every rib, and the root tag on the one that is the root.',
+      },
+      {
+        step: 'A study as the evidence',
+        means: 'A cause is stronger when a tool’s result stands behind it: a loss count, a value stream map, a SMED, a work sampling.',
+        doThis: 'On the study’s own page press “Use it for…” and pick the cause. Open the cause again: under “How we know” the study is listed with what it says.',
+        youGet: 'The study listed against the cause, and printed among the evidence on the 6M report.',
+      },
+    ],
+    watch: 'A cause on the fishbone is not a cause until it is known. Do not leave every rib Suspected and Told: go and see, or measure, and move it up the grades before you spend on a fix.',
+  },
+  'FC-148': {
+    intro: 'For getting past the symptom. Fixes that stop at the first answer — “the seal failed” — treat the effect and the fault comes back. Five whys asks why of each answer until the team reaches something it can change.',
+    steps: [
+      {
+        step: 'Ask why',
+        means: 'The first why is the problem itself: “Why does <the problem> happen?” The page can offer first answers read from the stops, so a team does not start from a blank box.',
+        doThis: 'On the problem press “Ask why”. Tap an offered answer — it goes on known from the data and suspected until it is checked — or press “Write another answer”. Or press “Say the whys”, talk the chain through and check the words before “Put it on the fishbone”: spoken whys go on as told, not yet seen.',
+        youGet: 'A first answer on a bone, opened in the cause sheet to be worked.',
+      },
+      {
+        step: 'The cause and its bone',
+        means: 'The first answer is a cause and it sits on one of the six bones — People, Machine, Method, Material, Measurement, Environment. A second line of reasoning about the same problem is a second cause, not another why under this one.',
+        doThis: 'In the cause sheet, write “The cause” in one line (“Splices vary between shifts”) and tap its bone. Under it set how it is known and how sure.',
+        youGet: 'A chain that starts from a cause on its bone.',
+      },
+      {
+        step: 'Ask why again',
+        means: 'Each answer is asked “why” again. The page repeats the answer in the question — Why does “Splices vary between shifts” happen? — so you stay on one thread. Five is a guide, not a limit: stop where the team can act.',
+        doThis: 'Type the answer in the “Because…” box and press Enter, or press “+ Ask why again” (it waits until the last box has words). On the fishbone page, open the cause and press “Ask the next why”, which opens the same sheet. Mark how each why is known — Data, Counted, Seen or Told — if you can.',
+        youGet: 'A numbered chain of answers, each with its grade.',
+      },
+      {
+        step: 'When a why ends at a person',
+        means: '“The operator forgot” is not a root cause: people forget when the system lets them. The page notices a why that ends at a person and asks what let it happen.',
+        doThis: 'When the note appears — “What let that happen? A missing standard, an unclear instruction, no check, no training, or a design that allows it?” — answer it, and add the answer as the next why.',
+        youGet: 'A chain that ends at something you can fix — a standard, a check, a design — and not at a name.',
+      },
+      {
+        step: 'This is the root — read it back',
+        means: 'The root is the last why that is something the team can act on. The read-back reads the chain from the root up to the problem with “therefore”: if any line does not hold, the chain has not reached the root yet.',
+        doThis: 'Read “Read it back, from the root up” aloud with the team. When every line holds, tick “This is the root”. Only a cause with a chain under it, that is not ruled out, can be the root; a suspected one asks you to go and see first.',
+        youGet: 'A root tag on the cause on the fish, and the problem’s Fix part offers “+ Add a fix” on that root.',
+      },
+      {
+        step: 'Then a fix',
+        means: 'A chain of whys is worth only the fix at the end of it.',
+        doThis: 'From the cause sheet press “+ Add a fix”: say what has to be done, who and by when, and what it should change. The fix appears on the Board in the cause’s bone.',
+        youGet: 'The fix tied to its root; the cause sheet counts the fixes, how many are past due and how many done.',
+      },
+    ],
+    watch: 'Do not stop at the first answer, and do not stop at a person. If any “therefore” in the read-back does not hold when it is read aloud, the chain is not finished.',
+  },
+  'FC-151': {
+    intro: 'For telling a problem’s whole story — why it matters, where it stands, the cause, the fix, the follow-up — so a manager reads it in two minutes. Faultline’s A3 method is a project whose sections follow the A3’s blocks; the paper it prints today is the 6M report over several pages, because the one-page A3 sheet is not built yet.',
+    steps: [
+      {
+        step: 'Start an A3 project',
+        means: 'The method is the project: an A3 project’s front page is the A3’s own sections, each with the tools that fit it by default.',
+        doThis: 'On Projects press New project and pick the A3 card (“How do we put one problem and its solution on one page, agreed with the people who must support it?”): Background · Current condition · Target · Analysis · Countermeasures · Plan and follow-up. Name it, tick the line, Create project.',
+        youGet: 'A project that opens on the A3 page: six sections in order, each listing its tools and how often they have been used.',
+      },
+      {
+        step: 'Background and current condition',
+        means: 'Why the problem matters to the business — the gap in its number and what it costs — and the facts drawn with the number: a Pareto, a chart or a map, whichever shows it.',
+        doThis: 'Write the problem in the Problems register, price it with the cost tools, and show where the loss is with a Pareto or a chart. On the full report these become “The gap” and “Where the loss is”.',
+        youGet: 'A page that states the gap against the target and where the time or the faults go.',
+      },
+      {
+        step: 'Target',
+        means: 'The number wanted, and by when. Without it the paper can say where things are but not how far there is to go.',
+        doThis: 'Give the line its measure, its target and its readings on the Results page, so the gap is a number the paper can print.',
+        youGet: 'Each line shown against its target in “The gap”, and the problem’s number beside its target where one is set.',
+      },
+      {
+        step: 'Analysis',
+        means: 'The root cause, with the evidence: the problem’s fishbone and its five whys, each cause marked with how it is known.',
+        doThis: 'Open the problem on the Fishbone page, put the causes on their bones, set how each is known and ask why down to the root.',
+        youGet: 'On the paper, under the problem, “Why”: each chain with its answers, how each is known, the root in bold and “Read back from the root”.',
+      },
+      {
+        step: 'Countermeasures and plan',
+        means: 'What will be done, by whom, by when, against which cause. Every cause on the analysis should have a countermeasure or a reason not to.',
+        doThis: 'Add a fix on each root with its owner, its day, what it should change and the share of the problem it should remove.',
+        youGet: 'On the paper “Fix” under each problem and “The board by bone”: every action, its owner and its day.',
+      },
+      {
+        step: 'Follow-up',
+        means: 'Whether it worked on the same number, and how the gain is held. The page is updated, not replaced, so the story keeps its history.',
+        doThis: 'Do the fixes, then read “Did it work” on the problem; close it with a check that keeps the gain — what is checked, who, how often.',
+        youGet: 'On the paper “Did it work” — the number before and now, each fix against what it was to change — and “Keeping the gain”.',
+      },
+      {
+        step: 'Take the paper',
+        means: 'The 6M report is what Faultline prints for this story today: a one-page status for whoever you report to, and the full report with each problem beside its fishbone.',
+        doThis: 'Open Reports in the project’s menu (or Report ▾ on its Overview) and take “Status report — 1 page” or “Client report — every detail”.',
+        youGet: 'A paper that tells the story; read the full report’s problem pages in the order Problem, Why, Fix, Did it work.',
+      },
+    ],
+    watch: 'It is not yet one page of A3 size: the full report runs over several pages, and the one-page status is a status for the client, not an A3. Do not describe it as one when you hand it over.',
+  },
+  'FC-154': {
+    intro: 'For problems that are raised and lost. Every problem is written once, with a priority, a place, an owner and a day, and keeps a journey of what was done and what came of it — the page the meeting reports from.',
+    steps: [
+      {
+        step: 'Write the problem',
+        means: 'The Problem button is on every page: at a desk in the bar at the top, on a phone the ＋ in the middle of the bar. It opens one short sheet made for the floor, picture first.',
+        doThis: 'Take a photo if it helps, type “What’s wrong” (“Guard on the infeed conveyor is loose”), and press Save — or “Save and take another”, which keeps the line, machine and project for the next.',
+        youGet: 'A row on the register. A new line can be made from the sheet with “A new line…”.',
+      },
+      {
+        step: 'Priority',
+        means: 'Critical, High or Low, always shown as a word beside its colour — red, amber, green — so it survives a black-and-white print. The register is in priority order.',
+        doThis: 'Tap the priority your meeting would give it. The page does not decide it for you; you can change it any time from the row.',
+        youGet: 'A priority tag on the row; the counts at the top — Open, Critical, High, Low, Late, Done — are also the filters.',
+      },
+      {
+        step: 'Where it belongs',
+        means: 'A problem sits on a line and, if it is a machine’s, on that machine, and on a program if the fault is on a product run. Naming a project only says who it is for: it stays on the register, and shows on the project too.',
+        doThis: 'Pick the line (“Area”), tap the machine from the line’s list or type another, tap the program if it is a product-run fault, and the project if it is for one.',
+        youGet: 'The problem grouped By line (or By who) on the page, on its line’s page, and on the project’s.',
+      },
+      {
+        step: 'Whose and by when',
+        means: 'Who has it and the day it is due. A problem with a day that has gone is late and shown red; one with nobody is listed as “nobody yet”.',
+        doThis: 'Open the row and type “Whose” and “Due”. To give several the same owner or day, tick them and press “Whose · due” in the bar that appears.',
+        youGet: 'The owner and machine on the row, the Late count, and the problem on the Actions page of whoever owes it.',
+      },
+      {
+        step: 'What we will do, and what it costs the line',
+        means: 'The plan in a line, and — if you know them — the minutes a day the problem costs the line, the rejects a day it causes and the packs it holds. The money is one output beside the figures, never the verdict.',
+        doThis: 'Type “What we will do”. Type the minutes a day, the rejects a day and the packs on hold where you know them; leave any blank. The page names what the line still needs — a wage, a speed, a margin a pack or a pack’s materials.',
+        youGet: 'A sentence under the boxes: labour for the minutes, and packs and contribution lost where it stops the line; the rejects at the line’s materials a pack; the product held as money tied up, not lost.',
+      },
+      {
+        step: 'The journey',
+        means: 'On a day, what was done and what came of it, oldest first. It is what lets a meeting see: this is what it is, this is what we did, this was the result.',
+        doThis: 'In “The journey” type “What we did”, “What came of it” if known, pick the day and press “Add the step”. A step can be changed or taken off where it stands.',
+        youGet: 'The last step on the row, and every step on the problem’s card and on the Problems report.',
+      },
+      {
+        step: 'Where it stands, and closing it',
+        means: 'Open, In progress or Closed. Closing asks one optional question — what shows it is fixed? — kept as the last step of the journey. A problem that keeps coming back can be taken to a 6M project to find its root cause.',
+        doThis: 'Tap the state. On Closed type what shows it is fixed (“A full shift on 2kg film with no jam”) and press Close it, or Not yet. For a repeat problem press “Find the root cause on …”.',
+        youGet: 'A closed problem that says why; or the problem as the head of a fishbone, with its fishbone one tap away.',
+      },
+      {
+        step: 'Read and report',
+        means: 'The page shows what you filter it to, and the paper prints exactly that.',
+        doThis: 'Narrow with the counts, the line, project and Whose lists, “Find a word” and By line or By who. Report ▾ gives the Problems report (with each plan and journey) and Problem cards (one for the board); a group has its own Report and Cards. Start fresh in More ▾ puts every problem away, deleting none.',
+        youGet: 'A report and a card for every problem shown, and a register you can bring back from Put away with a tap.',
+      },
+    ],
+    watch: 'A problem with no owner and no day is a wish. Give every one a whose and a due, and write a step into its journey whenever something is done — that is what the meeting reads.',
+  },
+  'FC-164': {
+    intro: 'For proving, and being able to show, that a checkweigher weighs right at speed and rejects what it should. Test weights and the reject are checked on a schedule, each pass or fail recorded, and a failure says what product it puts in doubt.',
+    steps: [
+      {
+        step: 'Start the log',
+        means: 'A check log belongs to a line: its machines, its rate and its problems are the line’s. It starts from a list of checks you edit — a starting point, not the standard.',
+        doThis: 'Open Check logs, pick Checkweigher verification and press New checkweigher check log. Pick the line, name the checkweigher if you want it written into every check, and keep the checks you want from the starter list: low-limit, nominal and high-limit test weights, the reject check, start-up, and after a product change.',
+        youGet: 'A log with a card for each check, due on the schedule the list gives (the weights and the reject every hour, start-up and changeover when they happen).',
+      },
+      {
+        step: 'The checks as agreed',
+        means: 'What is checked, how often and what passes — agreed before it is done, by whoever may change what was agreed. Certified test weights at the low limit, the nominal and the high limit for each product, passed at line speed, and the reject proved with real under-weight packs.',
+        doThis: 'Open the log’s “The checks” tab. Agree with the quality lead the test weights for each product and the error allowed, and write them into “What passes”. The page lists what is still to confirm: OIML R 51 and your national Weights and Measures guidance, the certified weight set for each product, and the set point and legal minimum per product.',
+        youGet: 'A list the round is judged against. The exact in-service error limits are not held by the page; they are your site’s.',
+      },
+      {
+        step: 'The round',
+        means: 'The Round tab is what wants doing now: “Due now”, then “Done”, then “When it happens” for start-up and product-change checks, which are counted when done and never shown as overdue.',
+        doThis: 'Put the certified weight through at line speed — a static weight on a stopped belt does not verify dynamic weighing — and tap ✓ Pass if it is within the allowed error. For the reject, run a real pack under the set point and tap ✓ Pass only if it was rejected. With two or more pass-or-fail checks due, “Pass all due” passes them together, after asking.',
+        youGet: 'A result for each check with who and when, and an Undo; the card moves from Due now to Done.',
+      },
+      {
+        step: 'A failure',
+        means: 'A check that fails puts in doubt everything made since the last good one. The page works out how much and raises a Critical problem on the register — but whether product is held, released or scrapped is the site’s decision, never the page’s.',
+        doThis: 'Tap ✗ Fail. The sheet says “Held:” — the minutes since the last good check and the packs at the line’s rate — and what to do (tag the checkweigher out of use, hold what was made, find the cause, re-verify). Type “What happened” and, if you counted them, the packs made since the last good check, then Record the failure.',
+        youGet: 'A failed result, one problem on the register, and the packs held with the money tied up in materials once the line has a rated speed and a materials cost a pack — otherwise the page says which to give. A re-check that fails again adds a step to the first problem instead of a second one.',
+      },
+      {
+        step: 'What the log says',
+        means: 'The lean page above the round: how many due checks were done on time in the last 7 days, how many missed, how many failed and what product is held, each against the 7 days before.',
+        doThis: 'Read the sentence and the tiles — Done on time, Missed, Failed, Product held — and the closing line. The History tab shows compliance by check, every failure with what it held, and every result, which can be struck and put back.',
+        youGet: 'A log you can show an inspector: checks done, failures, and what happened after each. It is on paper from the same figures.',
+      },
+    ],
+    watch: 'Only pass or fail is recorded here: individual weight readings are not typed, and the zone of indecision around the set point is not worked out on this page. A check done on a stopped belt proves nothing about the belt at speed.',
+  },
+  'FC-166': {
+    intro: 'For catching a wrong date code, allergen statement or label before the customer does. The checks run on a schedule, each result is recorded, and a wrong one says what product it puts in doubt. Label errors are among the commonest causes of recall, so the checks are worth doing at every reel change.',
+    steps: [
+      {
+        step: 'Start the log',
+        means: 'A check log belongs to a line. It starts from a list of checks you edit — a starting point, not the standard.',
+        doThis: 'Open Check logs, pick Code and label checks and press New label check log. Pick the line, name the labeller if you want it written into every check, and keep the checks you want from the starter list: label identity, date and lot code, allergen statement, and “all three” at start of run, after a reel change and at end of run.',
+        youGet: 'A log with a card for each check: the three hourly checks, and the three event checks that are done when the event happens.',
+      },
+      {
+        step: 'The checks as agreed',
+        means: 'What is checked, how often and what passes — agreed before it is done. The label identity is checked against the plan for the run, the date and lot code against today’s format, the allergen statement against what this recipe must declare.',
+        doThis: 'Open the log’s “The checks” tab and write into “What passes” the retailer’s label code and barcode for each product on the run, and the allergen declaration the recipe expects. The page lists what is still to confirm, including the labelling requirements of BRCGS Food Issue 9, whose clause has not been confirmed against the text.',
+        youGet: 'A list the round is judged against; the allergen expected is verified at changeover and is never decided by the page.',
+      },
+      {
+        step: 'The round',
+        means: '“Due now” shows the checks that want doing; “Done” the ones that are; “When it happens” the start of run, the reel change and the end of run — counted when done, never shown as overdue.',
+        doThis: 'At the labeller compare the pack with the plan: scan the barcode when you can, because a visual read alone does not verify identity when two labels can look alike. Read the date and lot code and the allergen statement. Tap ✓ Pass or ✗ Fail; “Pass all due” passes several together after asking.',
+        youGet: 'A result for each check with who and when, and an Undo; the card moves from Due now to Done.',
+      },
+      {
+        step: 'A wrong label',
+        means: 'A failure puts in doubt everything made since the last good check. The page works out how much and raises a Critical problem on the register; whether to hold, re-check or recall is the site’s decision, never the page’s.',
+        doThis: 'Tap ✗ Fail. The sheet says what is held and what to do: stop the line, hold everything made since the last good check, re-check label by label or by lot before release, name the cause and fix the poka-yoke if one is needed. Type “What happened” and the packs made since the last good check if you counted them, then Record the failure.',
+        youGet: 'A failed result, one problem on the register, and the packs held at the line’s rate with the money tied up once the line has them — otherwise the page names what to give.',
+      },
+      {
+        step: 'What the log says',
+        means: 'The lean page above the round: due checks done on time in the last 7 days, those missed, those failed and the product held, each against the 7 days before.',
+        doThis: 'Read the sentence, the tiles — Done on time, Missed, Failed, Product held — and the closing line. The History tab shows compliance by check, each failure with what it held, and every result.',
+        youGet: 'A record of done and due, failures and containment, on screen and on paper.',
+      },
+    ],
+    watch: 'Good checks cannot prove there are no wrong labels, only that none was found — a sample, not a guarantee. The real fix is a mistake-proofed reel or roll loading, and the run plan’s label code is verified at first-off release, not here.',
+  },
+};

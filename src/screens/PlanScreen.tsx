@@ -30,6 +30,7 @@ import { planGaps } from '../lib/onTarget';
 import { paceOf } from '../lib/pace';
 import { todayISO } from '../lib/standing';
 import { GATE_PATH, GATE_KEYS } from '../ui/rail';
+import { planLine, planPath } from '../tools/criticalpath/plan';
 
 const GATE_WORD: Record<(typeof GATE_KEYS)[number], string> = { install: 'Install', setup: 'Set up', testing: 'Commission', handover: 'Hand over' };
 
@@ -70,6 +71,8 @@ export function PlanScreen({ projectId }: { projectId: string }) {
      sentence counted them, in tiles; the job's money last */
   const counts = planCounts(st.plan, today);
   const gaps = planGaps(tt.tests, tt.assets);
+  /* THE CRITICAL PATH, a branch off the plan (FC-215 part 2): which machine's chain decides the handover, read from the same steps */
+  const chain = planPath({ assets: tt.assets, tests: tt.tests, waitsFor: project.gateStages?.waitsFor, today, handoverAt: all.expectedAt ?? all.plannedAt });
 
   return (
     <div className="wrap pace cm-screen">
@@ -88,6 +91,10 @@ export function PlanScreen({ projectId }: { projectId: string }) {
       </PageHeader>
       <AccessNote can={can} owner={project.lead} />
       {st.plan.length > 0 && <LeanTiles tiles={planTiles(counts, money ?? MONEY_WAIT)} className="sg-tiles" />}
+      {chain.ok && (
+        <p className="sub cpp-line" data-critical-line>{planLine(chain)}{' '}
+          <button type="button" className="cw-link" onClick={() => nav(`/calc/critical-path?project=${projectId}`)}>Critical path ›</button></p>
+      )}
 
       {st.plan.length === 0 ? (
         <p className="sub tw-note">

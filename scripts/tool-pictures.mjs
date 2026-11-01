@@ -83,6 +83,12 @@ const TOOLS = [
   { key: 'pugh', of: 'Pugh matrix — four fixes for film breaks marked better, same or worse than the present state on five weighted criteria: who leads and where the lead is beaten',
     route: s => `#/scored/pugh/${s.pughId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'],
     css: '.pugh-datum,.pugh-key,.pugh-acts,.pugh-table .sp-rm,.pugh-table tfoot tr[data-foot="Cost"],.pugh-table tfoot tr[data-foot="Same (S)"]{display:none !important}' },
+  { key: 'skills', of: 'Skills matrix — seven people on days and nights across three tasks: the level in every cell, and the cover on each shift that shows two single points on nights',
+    route: s => `#/scored/skills/${s.skillsId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'],
+    css: '.skl-pair,.skl-task .sp-rm,.skl-key,.pugh-acts{display:none !important}' },
+  { key: 'readiness', of: 'Operational readiness — a new line’s list of everything not the machine, by area: what is ready, what is open and whose, and what would stop day one',
+    route: s => `#/scored/readiness/${s.readinessId}`, parts: ['.ln-tiles', '.ie-says', '.ckl-area[data-area="Food safety and quality"] .ckl-h', '.ckl-area[data-area="Food safety and quality"] .ckl-item:nth-child(-n+3)'],
+    css: '.ckl-grid .field:nth-child(n+3),.ckl-add,.sp-rm,.ckl-stop{display:none !important}' },
   { key: 'maintenance', of: 'Maintenance measures — PM compliance, the planned share and MTBF, read from the line\'s logs and studies',
     route: s => `#/board/maintenance-measures/${s.maintenanceId}`, parts: ['.ln-tiles', '.ie-says'], css: '' },
   { key: 'sampling', of: 'Work sampling — what two people were doing at random moments: each share with its margin',
@@ -175,7 +181,25 @@ function PICTURE_SEEDS_FN() {
     const maint = newBoardStudy(BOARDS.find(d => d.key === 'maintenance-measures'), { name: 'Line 7 — October', workspaceId: wsId, now: t });
     maint.agreed = { board: { key: 'maintenance-measures', reactiveHours: 190 } };
     await putStudy(maint);
-    return { criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, fmeaId: fmea.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
+    const skillsDef = SCORED.find(d => d.key === 'skills'), kex = skillsDef.examples[0];
+    const skillsStudy = newScoredStudy(skillsDef, { name: 'Line 7 — setters and checks, by shift', workspaceId: wsId, now: t });
+    skillsStudy.agreed = { scored: { key: 'skills', rows: kex.rows.map(r => ({ ...r })), criteria: kex.criteria.map(c => ({ ...c })) } };
+    await putStudy(skillsStudy);
+    const { STARTER } = await import('/src/tools/readiness/readiness.ts');
+    const dayIso = n => { const d = new Date(t + n * 86_400_000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+    const readyRows = STARTER.map((r, i) => ({ ...r, id: `rd${i}` })).map(r => ({
+      ...r,
+      ...(r.name === 'HACCP plan amended for the new equipment' ? { status: 'ready', owner: 'Priya (QA lead)', due: dayIso(-9), note: 'Plan v7, reviewed 12 October' } : {}),
+      ...(r.name === 'HACCP amendment validated' ? { owner: 'Priya (QA lead)', due: dayIso(-2) } : {}),
+      ...(r.name === 'Cleaning procedure validated' ? { owner: 'Priya (QA lead)', due: dayIso(6) } : {}),
+      ...(r.name === 'Allergen controls and changeover checked for the new line' ? { owner: 'Sam (technical)', due: dayIso(8) } : {}),
+      ...(r.name === 'Foreign-body controls tested (metal detection, sieves, magnets)' ? { status: 'ready', owner: 'Sam (technical)', due: dayIso(-4), note: 'Test-piece record, detector 2' } : {}),
+      ...(r.name === 'Control plan updated — checks, limits and who does them' ? { owner: 'Priya (QA lead)', due: dayIso(10) } : {}),
+    }));
+    const readiness = newScoredStudy(SCORED.find(d => d.key === 'readiness'), { name: 'Line 7 — new wrapper, readiness for handover', workspaceId: wsId, now: t });
+    readiness.agreed = { scored: { key: 'readiness', rows: readyRows, dayCost: 9600 } };
+    await putStudy(readiness);
+    return { fmeaId: fmea.id, readinessId: readiness.id, skillsId: skillsStudy.id, criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
   };
 }
 

@@ -18,6 +18,7 @@
  *
  * Every URL is unchanged. The frame reads the route; it never owns one.
  */
+import { isMethodAnswer } from '../lib/methodSheet';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, useHash } from '../state/useRoute';
@@ -215,7 +216,7 @@ function useOpenNotes(projectId: string): number {
   useEffect(() => {
     let live = true;
     const load = () => void listTestItems(projectId).then(rows => {
-      if (live) setN(rows.filter(i => i.kind === 'note' && !i.deletedAt && i.doneAt == null).length);
+      if (live) setN(rows.filter(i => i.kind === 'note' && !isMethodAnswer(i.testId) && !i.deletedAt && i.doneAt == null).length);
     });
     load();
     const off = onDataChange(load);
@@ -271,13 +272,14 @@ function useRailMachines(projectId: string): RailMachine[] {
 }
 
 function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
+  const method = methodOfProject(p.project);
   const counts = useMethodCounts(p.project.id);
   /* The job's square is red for anything late on it — its board's actions
      and what it waits on — the count its header and the control room say. */
   const late = (counts.board?.late ?? 0) + (counts.materials?.late ?? 0) + (counts.checks?.late ?? 0);
   const groups = withJobStudy(projectGroups({ projectId: p.project.id, name: p.project.name, model: p.method, here: p.here, counts, late,
     lines: p.lines, notes: p.notes, tools: { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }, wsId: p.wsId,
-    ...(methodOfProject(p.project) ? { method: methodOfProject(p.project)! } : {}) }), p.wsId, p.here);
+    ...(method ? { method } : {}) }), p.wsId, p.here);
   return <NavChrome groups={groups} project={p.project} model={p.model} kind="project" onPage={p.onPage} />;
 }
 

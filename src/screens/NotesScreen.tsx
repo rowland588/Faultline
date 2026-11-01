@@ -10,6 +10,7 @@
  * or on the whole job (testId ''). The same notes show on each step's own page
  * under "For the meeting". Ticked once raised. Private preparation — the
  * client report and every other document leave them out. */
+import { isMethodAnswer } from '../lib/methodSheet';
 import { dayHref } from '../project/journey/journey';
 import { PageHeader } from '../ui/parts';
 import { AddFold } from '../ui/AddFold';
@@ -241,7 +242,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
   }
 
   const job: Job = { tests: tt.tests, assets: tt.assets, gates: planModel(project) === 'commissioning' };
-  const notes = live(tt.items).filter(i => i.kind === 'note').sort((a, b) => a.createdAt - b.createdAt);
+  const notes = live(tt.items).filter(i => i.kind === 'note' && !isMethodAnswer(i.testId)).sort((a, b) => a.createdAt - b.createdAt);
   const open = notes.filter(n => n.doneAt == null);
   const raised = notes.filter(n => n.doneAt != null);
 

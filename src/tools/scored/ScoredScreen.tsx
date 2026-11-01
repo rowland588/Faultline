@@ -22,6 +22,9 @@ import { StudyBand, removeStudy, StudyRowName } from '../../ui/StudyActs';
 import { WhereItSits } from '../../ui/StudyPlace';
 import { PughEditor } from '../pugh/PughEditor';
 import { RegisterEditor } from './RegisterEditor';
+import { SkillsEditor } from '../skills/SkillsEditor';
+import { ChecklistEditor } from './ChecklistEditor';
+import { lineDay } from '../../lib/lineLoss';
 import { scoredByKey, scoredGroups } from './registry';
 import { newScoredStudy, scoredSays, scoredTitle, studyScored } from './scored';
 import type { ScoredDef, ScoredField } from './types';
@@ -191,16 +194,28 @@ function Record({ s, def, can, onPatch }: {
   useEffect(() => { setRateLocal(s.agreed?.scored?.rate); }, [s.agreed?.scored?.rate]);
   const rateRef = useRef<number | undefined>(rate);
   rateRef.current = rate;
+  /* a matrix may ask the cover wanted (a skills matrix) and what a day or a shift of the line not making costs (a readiness list, a skills matrix) */
+  const [target, setTargetLocal] = useState<number | undefined>(s.agreed?.scored?.target);
+  useEffect(() => { setTargetLocal(s.agreed?.scored?.target); }, [s.agreed?.scored?.target]);
+  const targetRef = useRef<number | undefined>(target);
+  targetRef.current = target;
+  const [dayCost, setDayCostLocal] = useState<number | undefined>(s.agreed?.scored?.dayCost);
+  useEffect(() => { setDayCostLocal(s.agreed?.scored?.dayCost); }, [s.agreed?.scored?.dayCost]);
+  const dayCostRef = useRef<number | undefined>(dayCost);
+  dayCostRef.current = dayCost;
   const lines = useFactoryLines();
   /* a register of cards reads the records beside it (a control plan: the FMEAs and the check logs of its line or project) */
   const [beside, setBeside] = useState<ToolStudy[]>([]);
   useEffect(() => { if (!def.register) return undefined; const load = async () => setBeside(await listAllStudies()); void load(); return onDataChange(() => void load()); }, [def.register]);
   const line = lines.find(l => l.id === s.workspaceId);
   const lineRate = line?.labourRatePerHour && line.labourRatePerHour > 0 ? Math.round(line.labourRatePerHour * burdenOf(line) * 100) / 100 : undefined;
+  /* what a day of the line not making is worth (its speed × its shifts less breaks × its margin a pack) — a shift's share when the page prices a shift */
+  const dayMargin = line ? lineDay(line).margin : undefined;
+  const lineMargin = dayMargin !== undefined && def.matrix?.dayCost ? Math.round(def.matrix.dayCost.unit === 'shift' ? dayMargin / Math.max(1, line?.shifts?.length ?? 1) : dayMargin) : undefined;
   const liveStudy = useMemo((): ToolStudy => ({
     ...s,
-    agreed: { ...s.agreed, scored: { key: agreedKey, rows, ...(rate !== undefined ? { rate } : {}), ...(def.matrix ? { criteria, datum } : {}) } },
-  }), [s, agreedKey, rows, rate, criteria, datum, def.matrix]);
+    agreed: { ...s.agreed, scored: { key: agreedKey, rows, ...(rate !== undefined ? { rate } : {}), ...(def.matrix ? { criteria, datum, ...(target !== undefined ? { target } : {}), ...(dayCost !== undefined ? { dayCost } : {}) } : {}) } },
+  }), [s, agreedKey, rows, rate, criteria, datum, target, dayCost, def.matrix]);
   const x = studyScored(liveStudy, { studies: beside });
   const result = x?.result;
   const problems = x?.problems;
@@ -215,7 +230,7 @@ function Record({ s, def, can, onPatch }: {
     onPatch(cur => ({
       agreed: {
         ...cur.agreed,
-        scored: { ...cur.agreed?.scored, key: cur.agreed?.scored?.key ?? def.key, rows: next.rows, ...(next.criteria ? { criteria: next.criteria } : {}), ...(next.datum !== undefined ? { datum: next.datum } : {}), ...(rateRef.current !== undefined ? { rate: rateRef.current } : {}) },
+        scored: { ...cur.agreed?.scored, key: cur.agreed?.scored?.key ?? def.key, rows: next.rows, ...(next.criteria ? { criteria: next.criteria } : {}), ...(next.datum !== undefined ? { datum: next.datum } : {}), ...(rateRef.current !== undefined ? { rate: rateRef.current } : {}), ...(targetRef.current !== undefined ? { target: targetRef.current } : {}), ...(dayCostRef.current !== undefined ? { dayCost: dayCostRef.current } : {}) },
       },
       updatedAt: now(),
     }));
@@ -225,6 +240,8 @@ function Record({ s, def, can, onPatch }: {
     setRateLocal(v);
     setRows(rows);
   };
+  const setTarget = (v: number | undefined) => { targetRef.current = v; setTargetLocal(v); setRows(rows); };
+  const setDayCost = (v: number | undefined) => { dayCostRef.current = v; setDayCostLocal(v); setRows(rows); };
   const setRows = (next: ScoredRow[]) => {
     queue.current = { ...queue.current, rows: next };
     setRowsLocal(next);
@@ -260,9 +277,31 @@ function Record({ s, def, can, onPatch }: {
           <ul className="ie-caveats">{result.also.lines.map(l => <li key={l}>{l}</li>)}</ul>
         </LeanPanel>
       )}
+      {result?.lists?.map(l => (
+        <LeanPanel key={l.title} title={l.title}>
+          <ul className="ie-caveats">{l.lines.map(t => <li key={t}>{t}</li>)}</ul>
+        </LeanPanel>
+      ))}
       {def.matrix && (
-        <Section title="Mark each option against the datum">
-          <PughEditor draft={{ rows, criteria, datum }} table={x?.table} leaders={x?.leaders} canEdit={canEdit} onChange={setMatrix} />
+        <Section title={def.matrix.section ?? 'Mark each option against the datum'}>
+          {def.matrix.target && (
+            <label className="field scored-rate"><span className="field-label">{def.matrix.target.label}</span>
+              <input className="text-input scored-num" type="number" min={1} max={20} step={1} inputMode="numeric" aria-label="Cover wanted" disabled={!canEdit}
+                value={target ?? def.matrix.target.default} onChange={e => setTarget(e.target.value === '' ? undefined : Number(e.target.value))} /></label>
+          )}
+          {def.matrix.dayCost && (
+            <label className="field scored-rate"><span className="field-label">{def.matrix.dayCost.label}</span>
+              <input className="text-input scored-num" type="number" min={0} step="1" inputMode="decimal" aria-label={`What a ${def.matrix.dayCost.unit} of the line not making costs`} disabled={!canEdit} value={dayCost ?? ''}
+                onChange={e => setDayCost(e.target.value === '' ? undefined : Number(e.target.value))} />
+              {canEdit && lineMargin !== undefined && dayCost !== lineMargin && <button type="button" className="cw-link" onClick={() => setDayCost(lineMargin)}>Use {line?.name ?? 'the line'}’s {fmtGBP(lineMargin)} a {def.matrix.dayCost.unit}</button>}
+              {lineMargin === undefined && dayCost === undefined && <span className="sub">The line has no speed, shifts or margin a pack set — type one, or leave it and the money is named, not guessed.</span>}
+            </label>
+          )}
+          {(def.matrix.editor ?? 'pugh') === 'skills'
+            ? <SkillsEditor draft={{ rows, criteria }} table={x?.table} canEdit={canEdit} onChange={d => setMatrix({ rows: d.rows, criteria: d.criteria, datum })} />
+            : def.matrix.editor === 'checklist' && def.matrix.checklist
+              ? <ChecklistEditor rows={rows} list={def.matrix.checklist} canEdit={canEdit} onChange={next => setMatrix({ rows: next, criteria, datum })} />
+              : <PughEditor draft={{ rows, criteria, datum }} table={x?.table} leaders={x?.leaders} canEdit={canEdit} onChange={setMatrix} />}
         </Section>
       )}
       {def.register && (

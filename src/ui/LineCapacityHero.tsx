@@ -18,13 +18,15 @@ import { DraftNumber } from './Draft';
 import { offerUndo } from './Undo';
 import { stopsOfBar } from '../tools/losses/losses';
 import {
-  ASK_EXAMPLES, askLine, constraintShare, confidenceOf, figure, heatOf, leversOf, onConstraint, parseDemand, reasonOf, WEEK,
+  ASK_EXAMPLES, askLine, constraintShare, confidenceOf, figure, heatOf, leversOf, leverPlan, onConstraint, parseDemand, reasonOf, WEEK,
   type Answer,
   type Figure, type Source,
 } from '../lib/intelligence';
 import { Metric, WhyNumber } from './WhyNumber';
 import { PERIOD_WEEKS, readLine, unitOf } from '../lib/lineRead';
 import type { LineMix } from '../tools/linebalance/capacityMix';
+import { saveLeversPdf } from '../lib/report/leversPaper';
+import { PlanPanel } from '../tools/plan/PlanPanel';
 
 const fmt = (n: number, d = 1) => n.toLocaleString('en-GB', { maximumFractionDigits: d });
 const when = (t: number) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -60,6 +62,8 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
     [obs, counts, smeds, ws, products, lineName, Math.floor(now / 86_400_000)]);
   const heat = a?.heat ?? heatOf([], now);
   const levers = useMemo(() => (a ? leversOf(a.fall, a.rates.theoretical, pct, a.shiftsPerWeek, unit) : undefined), [a, pct, unit]);
+  /* the plan the levers chosen buy — a shift and a week, the two money parts apart (lib/intelligence leversPlan); the paper prints the same */
+  const recovery = useMemo(() => (a && levers ? leverPlan(a.fall, levers, { unit, ...(lineName ? { line: lineName } : {}) }) : undefined), [a, levers, unit, lineName]);
 
   if (!obs || !a) return <div className="lch is-loading" aria-busy="true"><div className="sk sk-line" /><div className="sk sk-row" /></div>;
 
@@ -195,6 +199,9 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
         </ul>
         <DemandPaste products={products} />
       </details>
+      {/* THE WEEK'S SCHEDULE AGAINST CAPACITY, WITH CHANGEOVERS (FC-179) and the time buffer before the constraint (FC-043) — the orders typed
+          with their days, laid on the constraint; the buffer's zones and the rope (tools/plan) */}
+      <PlanPanel products={products} read={a} {...(ws ? { ws } : {})} {...(lineName ? { lineName } : {})} />
       {/* WHICH PRODUCT FIRST WHEN THE LINE IS FULL (FC-042) — throughput per constraint minute, ranked; the week filled in
           that order; what is unmade by name and in money (tools/linebalance/capacityMix) */}
       <MixView products={products} mixed={a.mixed} />
@@ -211,11 +218,18 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
                     onChange={e => setPct({ ...pct, [r.key]: Number(e.target.value) })} />
                   <span className="lch-lev-p">{fmt(r.pct, 0)}%</span>
                 </label>
-                {r.says && <p className={'lch-lev-says' + (r.onConstraint === false ? ' is-mirage' : '')}>{r.says}</p>}
+                {r.says && <p className={'lch-lev-says' + (r.onConstraint === false ? ' is-mirage' : '')}>{recovery?.lines[recovery.rows.findIndex(x => x.key === r.key)] ?? r.says}</p>}
               </li>
             ))}
           </ul>
-          <p className="lch-lev-sum" aria-live="polite"><b>{levers.says}</b>{!a.shiftsPerWeek && <span className="sub"> The week needs the line’s running pattern — set it on the line’s SMED (how the line runs).</span>}</p>
+          <p className="lch-lev-sum" aria-live="polite"><b>{recovery && recovery.rows.length ? recovery.sentence : levers.says}</b>{!a.shiftsPerWeek && <span className="sub"> The week needs the line’s running pattern — set it on the line’s SMED (how the line runs).</span>}</p>
+          {recovery && recovery.rows.length > 0 && (
+            <div className="lch-lev-plan">
+              {recovery.prize && <p className="sub lch-lev-prize">The most to gain at the constraint is {recovery.prize.label.toLowerCase()}{recovery.prize.asset ? ` on the ${recovery.prize.asset}` : ''}: {fmt(recovery.prize.perShift, 1)} min a shift.</p>}
+              {recovery.missing.map(m => <p key={m} className="sub lch-lev-missing">{m}</p>)}
+              <button type="button" className="btn btn-sm" onClick={() => void saveLeversPdf({ line: lineName ?? 'This line', printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), unit, ...(a.constraint ? { constraint: a.constraint.name } : {}), fall: a.fall, levers, weeks: PERIOD_WEEKS })}>Recovery plan on paper</button>
+            </div>
+          )}
         </details>
       )}
       {/* THE WEEK, TO SEND — the panel's own sentences as one paragraph to

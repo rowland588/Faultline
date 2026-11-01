@@ -50,6 +50,11 @@ The oven in a bakery; the filler in a bottling hall; a hand-pack station.
 - [textbook] Goldratt, E.M. (1990), *What Is This Thing Called Theory of Constraints?*, North River Press.
 
 ## In Faultline
-`src/lib/intelligence/constraint.ts` (the constraint and the mirage),
-`src/lib/intelligence/levers.ts` (recovery levers), the loss count's
-constraint (FC-038, FC-039).
+`src/lib/intelligence/constraint.ts` (the constraint and the mirage), `src/lib/intelligence/levers.ts` (recovery levers),
+the loss count's constraint (FC-038, FC-039). Since 1 November the line's capacity page says the **plan** the levers chosen
+buy (`src/lib/intelligence/leversPlan.ts`, `knowledge/specs/FC-039-recovery-levers.md`): each lever's minutes, packs and
+money a shift and a week — the lost contribution only at the constraint, the idle labour wherever the stop is, never summed —
+where the prize is whatever share is chosen, and **Recovery plan on paper** (`src/lib/report/leversPaper.ts`). Proved by
+`scripts/acceptance/recovery-levers.mjs` and `leversPlan.test.ts` against the case in `scripts/knowledge/cases-toc.py`.
+Not yet: a plan kept as a record and carried onto a project's target; the five focusing steps as a project of their own
+(the Theory of Constraints method, `docs/METHODS.md` §10, opens the tools that serve each step).

@@ -101,6 +101,18 @@
     "of": "Pugh matrix — four fixes for film breaks marked better, same or worse than the present state on five weighted criteria: who leads and where the lead is beaten",
     "takenFrom": "fdb2f31"
   },
+  "skills": {
+    "w": 960,
+    "h": 600,
+    "of": "Skills matrix — seven people on days and nights across three tasks: the level in every cell, and the cover on each shift that shows two single points on nights",
+    "takenFrom": "712013fe"
+  },
+  "readiness": {
+    "w": 960,
+    "h": 600,
+    "of": "Operational readiness — a new line’s list of everything not the machine, by area: what is ready, what is open and whose, and what would stop day one",
+    "takenFrom": "19da31f4"
+  },
   "maintenance": {
     "w": 960,
     "h": 600,
