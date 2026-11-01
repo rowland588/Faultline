@@ -6,7 +6,7 @@ discipline: equipment
 kind: established
 evidence: textbook
 depth: full
-checked: 2026-10-24 — Nakajima's minor stoppages and reduced-speed losses (1988) and the way Faultline tells them apart by a timed running speed (`docs/CAPACITY.md` §5–6; `src/tools/losses`); the worked shift computed in `scripts/knowledge/cases-operations.py`
+checked: 2026-11-01 — Nakajima's minor stoppages and reduced-speed losses (1988) and the way Faultline tells them apart by a timed running speed (`docs/CAPACITY.md` §5–6; `src/tools/losses`); the worked shift recomputed by net operating time in `scripts/knowledge/cases-toc.py` (the 24 October case in `cases-operations.py` used run time × (1 − running ÷ ideal), which over-counts slow running)
 needs: [equipment.time-model-losses]
 next: [maintenance.mtbf-failure-rate, rca.fishbone-5whys]
 alternatives: []
@@ -60,13 +60,19 @@ the running speed timed while the machine is actually running.
   speed setting or the product" / "short stops cost more — the jams:
   count them by reason".
 
-**Worked case** (`cases-operations.py`): planned 450 min, timed stops
+**Worked case** (`scripts/knowledge/cases-toc.py`, corrected 1 November): planned 450 min, timed stops
 62 → run 388 min; ideal 120/min, running speed timed 108/min; 38,200
-good packs. Speed loss 69.7 min; slow running 388 × (1 − 108/120) =
-38.8 min (4,656 packs); short stops 30.9 min (3,704 packs). 41 short
-stops counted → 6.3 an hour, 0.75 min each. The machine runs 10% under
-its plate speed all shift — the bigger loss — and jams six times an
-hour. Each is a different fix.
+good packs. Net operating time = 38,200 ÷ 108 = 353.7 min (what the packs
+took at the speed the machine really ran); at the ideal they take 318.3.
+Speed loss 69.7 min = slow running 353.7 − 318.3 = 35.4 min (4,244 packs)
++ short stops 388 − 353.7 = 34.3 min (4,116 packs) — about the same. 41
+short stops counted over the run → 6.3 an hour, 0.84 min (50 s) each. The
+machine runs 10% under its plate speed all shift and jams six times an
+hour: each a different fix. (The first version of this case took slow
+running as run time × (1 − 108/120) = 38.8 min and short stops as the rest,
+30.9 — which runs the machine at 108 *through* its short stops too, so slow
+running is over- and short stops under-counted. The loss count's net-
+operating-time split, Nakajima's, is the one used.)
 
 ## Assumptions, limits and misuse
 - A running speed timed once, for three minutes, on one product is one
@@ -109,11 +115,12 @@ speed loss bought with a stop reduction and should be measured as both.
 - [design] `docs/CAPACITY.md` §5–6 — Faultline's time model and the timed running speed.
 
 ## In Faultline
-The reliability study counts short stops by a tap with MTBF (`src/tools/
-reliability`), and since 25 October times each one — a chip ("30 s"), a time
-said, or help arrived and running again (FC-055 available; spec
-`knowledge/specs/FC-059-repair-times.md`) — giving the minutes lost an hour of
-running and availability. The loss count splits the speed loss once a running
-speed is timed (`src/tools/losses`, FC-056, partial). Not yet: the two read
-together on one page — the frequency and mean length from the study beside the
-minutes from the count.
+The loss count splits the speed loss once a running speed is timed (`src/tools/losses`, FC-056) and, since
+1 November, a **Speed loss** panel on the count and a paragraph on its paper (`src/tools/losses/speedLoss.ts`,
+`SpeedLossPanel.tsx`; `knowledge/specs/FC-056-speed-loss.md`) say each part in minutes, packs and money (two
+parts, never summed), which is the bigger and what to do about it, how often the short stops come and how long
+each lasts — from a count typed on the shift or taken with one tap from a reliability study's count of short
+stops (FC-055, `knowledge/specs/FC-059-repair-times.md`; the study times each one) — and what running under the
+plate does to the crew's labour a pack. Proved by `scripts/acceptance/speed-loss.mjs` and `speedLoss.test.ts`
+on this record's shift. Not yet: short stops counted by reason on the count; priced off the constraint when a
+buffer runs out (`capacity.accumulation-buffer`).

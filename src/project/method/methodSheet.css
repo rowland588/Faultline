@@ -1,0 +1,10 @@
+/* THE METHOD'S SHEET — a section's own questions (project/method/MethodSheet). Tokens only. */
+.msheet { display: grid; gap: 12px; margin: 10px 0 14px; }
+.msheet-state { margin: 0; font-size: var(--t-label); color: var(--ink-2); letter-spacing: .04em; text-transform: uppercase; }
+.msheet-f { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); min-width: 0; }
+.msheet-q { font-weight: 800; font-size: var(--t-body); color: var(--ink); }
+.msheet-hint { font-size: var(--t-detail); color: var(--ink-2); }
+.msheet-in { width: 100%; min-height: 44px; resize: vertical; }
+.msheet-ro { white-space: pre-wrap; font-size: var(--t-body); color: var(--ink); }
+.msheet-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.msheet-tool { cursor: pointer; }

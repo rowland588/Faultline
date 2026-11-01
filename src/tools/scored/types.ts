@@ -18,6 +18,8 @@ export interface ScoredResult {
   money?: string[];
   /** A list under the sentence, titled ("Before you choose" on a Pugh matrix). */
   also?: { title: string; lines: string[] };
+  /** More titled lists after it, in order (a readiness list's open items by owner; a skills matrix's training to do first). */
+  lists?: { title: string; lines: string[] }[];
 }
 
 /** One box a definition asks in each row (beside the name). */
@@ -61,9 +63,34 @@ export interface ScoredTable { head: string[]; rows: string[][]; foot: string[][
 export type ScoredMatrixOut = { problems: string[] } | { result: ScoredResult; table: ScoredTable; leaders: string[] };
 
 /** A register whose rows are OPTIONS marked against agreed criteria and a datum (Pugh, FC-143) rather than things scored on boxes. */
+/** A checklist register (FC-082 readiness, FC-178 hygienic design): items under headings, each with a state and the boxes the definition asks. */
+export interface ScoredChecklist {
+  /** One row, said once: "item", "point". */
+  noun: string;
+  /** What the headings are: "Area". */
+  groupLabel: string;
+  /** The states a row can be in, in the order offered; the first is where a new row begins. */
+  states: { key: string; label: string }[];
+  /** The boxes asked in each row, beside its words and its state. */
+  fields: ('source' | 'evidence' | 'owner' | 'due' | 'note' | 'severity' | 'stopper')[];
+  /** The words a box is asked in where it is not the default. */
+  labels?: Partial<Record<'source' | 'evidence' | 'owner' | 'due' | 'note' | 'severity' | 'stopper', string>>;
+  severities?: { key: string; label: string }[];
+}
+
 export interface ScoredMatrix {
+  /** A checklist's states, boxes and words (editor 'checklist'). */
+  checklist?: ScoredChecklist;
   datumDefault: string;
-  analyse: (a: { datum?: string; criteria: ScoredCriterion[]; rows: ScoredRow[] }) => ScoredMatrixOut;
+  /** What draws it: the Pugh matrix (default), a skills matrix (people × tasks, levels), or a checklist register (items with a state, an owner and a day). */
+  editor?: 'pugh' | 'skills' | 'checklist';
+  /** The heading over the editor, where it is not the Pugh matrix's. */
+  section?: string;
+  /** Asks what a day (or shift) of the line not making costs, £ — typed, or the line's. `unit` is how it is said: "a day", "a shift". */
+  dayCost?: { label: string; unit: 'day' | 'shift' };
+  /** Asks the cover wanted (a skills matrix). */
+  target?: { label: string; default: number };
+  analyse: (a: { datum?: string; criteria: ScoredCriterion[]; rows: ScoredRow[]; target?: number; dayCost?: number; today?: string }) => ScoredMatrixOut;
   /** What a new ranking starts with — blank rows to fill. */
   start: () => { datum: string; criteria: ScoredCriterion[]; rows: ScoredRow[] };
   /** The words of the New sheet and the empty list. */

@@ -21,6 +21,13 @@ import { methodByKey, methodOfProject, type MethodSection } from '../../lib/meth
 import type { ToolStudy } from '../../lib/study';
 import type { Standard } from '../../tools/linestandard/standard';
 import { PageHeader, RecordRow, RecordRows } from '../../ui/parts';
+import { GuideFold, StepMeans } from '../../ui/StepGuide';
+import { MethodSheet, useAnswers, useSaveAnswer } from './MethodSheet';
+import { SHAPES } from './shapes';
+import { PAPERS } from './papers';
+import { sectionState } from '../../lib/methodSheet';
+import './methodSheet.css';
+import { guideOfSection } from '../../lib/methodGuide';
 import { usesOf } from '../../screens/ProjectToolsScreen';
 import { studyHref } from '../../lib/studyLinks';
 import { howTool, openable, openAt, toolStateWord } from './methodTools';
@@ -28,6 +35,9 @@ import { useProjectLooking } from '../../tools/gemba/useLooking';
 import { projectSays, stalestFirst } from '../../tools/gemba/looking';
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+/** The 6M tool inside a method (S4, 1 November): it has no page of its own in the catalogue's registry — its pages are the project's Fishbone, Board and Results — so its rows open the fishbone. */
+const SIXM_IDS = new Set(['FC-146', 'FC-147', 'FC-148']);
 
 export function MethodScreen({ projectId }: { projectId: string }) {
   const { project } = useProject(projectId);
@@ -51,6 +61,8 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   /* FC-199, how fresh the looking is: the project's lines, read for the Gemba walk row (tools/gemba) */
   const looking = useProjectLooking(projectId);
   const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
+  const { answers, items } = useAnswers(projectId, method?.key ?? 'pdca');
+  const saveAnswer = useSaveAnswer(projectId, method?.key ?? 'pdca', items);
   if (!project || !method) return <p className="sub wrap">That project is not on this device.</p>;
 
   const usedIn = (s: MethodSection) => {
@@ -69,23 +81,28 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         eyebrow={`${method.name.toUpperCase()} · ${project.name.toUpperCase()}`}
         title={method.name}
         says={`${method.question} ${!got ? '' : total ? `${plural(total, 'use')} of tools in this project so far.` : 'No tool has been used yet — start with the first section.'}`}
+        papers={(PAPERS[method.key] ?? []).map(p => ({ label: p.label, ...(p.for ? { for: p.for } : {}), make: () => p.make(projectId) }))}
       />
+      {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} save={saveAnswer} onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} /> : null; })()}
       {method.sections.map((s, i) => {
         const lit = usedIn(s);
         return (
           <section key={s.name} className="part-sec pmethod-sec" aria-label={s.name}>
             <div className="pace-sec-head">
               <h2 className="pace-sec-title">{i + 1}. {s.name}</h2>
-              <p className="pace-sec-sub">{s.what}{lit ? ` · ${plural(lit, 'tool')} used here` : ''}</p>
+              <p className="pace-sec-sub">{s.what}{(() => { const st = sectionState(method.key, s.name, answers); return st.fields ? ` · ${st.word}: ${st.written} of ${st.fields} written` : ''; })()}{lit ? ` · ${plural(lit, 'tool')} used here` : ''}</p>
               {s.note && <p className="chip-hint">{s.note}</p>}
+              {(() => { const g = guideOfSection(method.key, s.name); return g ? <GuideFold summary="What this step means"><StepMeans means={g.means} doThis={g.doThis} youGet={g.youGet} /></GuideFold> : null; })()}
             </div>
+            {SHAPES[method.key]?.sectionBoxes !== 'none' && <MethodSheet projectId={projectId} method={method.key} section={s.name} answers={answers} items={items} canEdit={can.edit}
+              onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} />}
             <RecordRows label={`Tools for ${s.name}`}>
               {s.tools.map(id => {
                 const h = howTool(id);
                 const t = openable(h);
                 /* a mode with a page of its own under its tool (a document's kind) counts its own uses, not the whole tool's */
                 const at = openAt(h);
-                const own = h.how === 'inside' && t && at && at !== t.to && got ? got.studies.filter(x => studyHref(x).startsWith(`${at}/`)).length : undefined;
+                const own = h.how === 'inside' && at && at !== h.tool.to && got ? got.studies.filter(x => studyHref(x).startsWith(`${at}/`)).length : undefined;
                 const u = own !== undefined ? { n: own } : t ? uses.get(t.key) : undefined;
                 const name = h.how === 'unknown' ? id : h.entry.name;
                 /* the Gemba walk is not a page of its own: its row says how fresh the looking is on the project's lines and opens the stalest */
@@ -96,7 +113,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
                     {...(worst && worst.looking.level !== 'fresh' ? { tone: worst.looking.level === 'stale' ? 'r' as const : 'a' as const } : {})}
                     says={gemba ? projectSays(gemba) : u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
                     where={toolStateWord(h)}
-                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : t ? nav(inProject(openAt(h) ?? t.to, projectId)) : undefined)}
+                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : t ? nav(inProject(openAt(h) ?? t.to, projectId)) : SIXM_IDS.has(id) ? nav(`/project/${projectId}/fishbone`) : undefined)}
                     aside={t && can.edit && t.key !== 'talk'
                       ? <button type="button" className="btn btn-sm" aria-label={`New — ${name}`} onClick={() => start(t, openAt(h))}>New</button>
                       : undefined} />

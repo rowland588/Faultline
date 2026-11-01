@@ -37,6 +37,7 @@ import { boxed, leanActions, leanBand, leanClosing, leanHead, leanInsights, lean
 import { lossFiguresOf } from './studyLinks';
 import { lossSays } from '../tools/losses/losses';
 import { lossLean, lossPart, raisedFrom } from '../tools/losses/lossLean';
+import { speedLoss } from '../tools/losses/speedLoss';
 import type { ActionLike, FixLike } from './lean';
 import { samplingBlocks } from './report/samplingTable';
 import { balanceBlocks } from './report/balanceTable';
@@ -552,6 +553,12 @@ function lossLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Bloc
     const both = pair(stack(means), stack(plan), 18) as Block;
     out.push({ ...both, height: fr => both.height(fr) + gap(d, 's'), after: () => gap(d, 's') });
   } else out.push(...means, ...plan);
+  /* SPEED LOSS (FC-056) — the same module the screen's panel reads: slow running and short stops told apart, in packs and money */
+  const sp = speedLoss(f, s.facts.losses?.shortStops);
+  if (sp && sp.verdict !== 'No speed loss') {
+    out.push(leanHead('Speed loss'), text({ text: sp.says, size: 8.5, colour: INK2, after: 2 }), ...sp.lines.map(l => text({ text: l, size: 8, colour: INK2, after: 2 })),
+      ...(sp.money ? [text({ text: sp.money[0].toUpperCase() + sp.money.slice(1), size: 8, colour: INK2, after: 2 })] : []));
+  }
   out.push(leanClosing(page.closing));
   if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
   return out;

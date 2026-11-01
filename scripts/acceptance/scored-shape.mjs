@@ -221,7 +221,7 @@ for (const d of all.filter(x => x.blank)) {
 const each = await page.evaluate(async () => {
   const { SCORED } = await import('/src/tools/scored/registry.ts');
   const { studyScored } = await import('/src/tools/scored/scored.ts');
-  return SCORED.filter(d => d.matrix).map(d => {
+  return SCORED.filter(d => d.matrix && (d.matrix.editor ?? 'pugh') === 'pugh').map(d => {
     const ex = d.examples[0];
     const x = studyScored({ agreed: { scored: { key: d.key, rows: ex.rows, criteria: ex.criteria, datum: ex.datum } } });
     return {
@@ -265,7 +265,7 @@ const tilesOf = async () => Object.fromEntries(await page.locator('.ln-tiles .ln
 const footOf = async label => page.locator(`tfoot tr[data-foot="${label}"]`).evaluate(tr => [...tr.querySelectorAll('td')].map(td => td.textContent.trim()).slice(1)).catch(() => null);
 const settle = () => page.waitForTimeout(700);
 
-for (const def of await page.evaluate(async () => (await import('/src/tools/scored/registry.ts')).SCORED.filter(d => d.matrix).map(d => ({ key: d.key, title: d.title, fc: d.fc, example: d.examples[0], asks: d.matrix.asks, datumDefault: d.matrix.datumDefault })))) {
+for (const def of await page.evaluate(async () => (await import('/src/tools/scored/registry.ts')).SCORED.filter(d => d.matrix && (d.matrix.editor ?? 'pugh') === 'pugh').map(d => ({ key: d.key, title: d.title, fc: d.fc, example: d.examples[0], asks: d.matrix.asks, datumDefault: d.matrix.datumDefault })))) {
   const ex = def.example;
   const tag = def.key;
   const id = await newRanking(def.key, 'Film breaks on Line 2 — which fix first');

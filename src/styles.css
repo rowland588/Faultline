@@ -15642,8 +15642,74 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .sg-fold { margin: 6px 0 0; }
 .sg-fold > summary { cursor: pointer; font-size: var(--t-label); font-weight: 700; color: var(--brand); padding: 4px 0; }
 .sg-fold[open] > summary { margin-bottom: 6px; }
-@media (max-width: 640px) { .sg-three > div { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .sg-three > div { grid-template-columns: 1fr; } }
 .nv-guide { display: inline-flex; align-items: center; gap: 6px; }
 .nv-guide-q { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 1.5px solid currentColor; border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 700; line-height: 1; }
 .nv-guide-body { display: flex; flex-direction: column; gap: 12px; }
-@media (max-width: 640px) { .nv-guide-l { display: none; } }
+@media (max-width: 720px) { .nv-guide-l { display: none; } }
+
+/* THE METHODS' PICTURES AND PAGES (docs/METHODS.md §15, 1 November — Rowland: "Projects .. just like tools I want pictures so user can see").
+   A method's card on New project wears its picture (the tool card's frame, ui/MethodPicture) with a way to its own page under it;
+   the page (screens/MethodPageScreen) lists each step as what it means · what to do · what you get, with the tools that fit. */
+.proj-model-card { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.proj-model-card .proj-model-opt { flex: 1; overflow: hidden; }
+.proj-model-opt .tc-pic { margin: -12px -14px 6px; width: calc(100% + 28px); }
+.proj-model-more { align-self: flex-start; padding: 4px 2px; font-size: var(--t-label); font-weight: 700; color: var(--brand); text-decoration: none; }
+.proj-model-more:hover, .proj-model-more:focus-visible { text-decoration: underline; }
+.mp-steps { counter-reset: none; }
+.mp-what { margin: 0 0 6px; color: var(--ink-2); line-height: 1.45; }
+.mp-tools { list-style: none; margin: 8px 0 4px; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--t-detail); }
+.mp-tool { all: unset; cursor: pointer; color: var(--brand); font-weight: 700; }
+.mp-tool:hover, .mp-tool:focus-visible { text-decoration: underline; }
+.mp-tool.is-plain { cursor: default; color: var(--ink); font-weight: 600; }
+.mp-tool.is-plain:hover { text-decoration: none; }
+.mp-others { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+/* THIS PROJECT'S PLAN — the critical path read from the stage-gate plan (tools/criticalpath, FC-215 part 2) */
+.cpp { display: grid; gap: 12px; min-width: 0; }
+.cpp-note, .cpp-left, .cpp-empty { margin: 0; overflow-wrap: anywhere; }
+.cpp-watch { max-width: 24rem; }
+.cpp-late { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; align-items: end; }
+.cpp-late .field { min-width: 0; }
+.cpp-sheet { display: grid; gap: 10px; }
+.cpp-group { border: 0; margin: 0; padding: 0; display: grid; gap: 2px; min-width: 0; }
+.cpp-group legend { font-weight: 800; padding: 0; margin-bottom: 2px; color: var(--ink-2); }
+.cpp-tick { display: flex; align-items: center; gap: 10px; min-height: 44px; overflow-wrap: anywhere; }
+.cpp-tick input { width: 20px; height: 20px; flex: none; }
+.cpp-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.cpp-acts .btn { min-height: 44px; }
+.cpp .lt-row { overflow-wrap: anywhere; }
+@media (max-width: 719px) { .cpp-late { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 720px) { .cpp .cw-link, .cpp .lt-acts button { min-height: 44px; display: inline-flex; align-items: center; } .cpp .text-input, .cpp select { min-height: 44px; } }
+
+/* THE SKILLS MATRIX (tools/skills, FC-222) — the task headings hold a name, two small numbers and a way to take it off */
+.skl-task { min-width: 9.5rem; vertical-align: top; }
+.skl-pair { display: flex; gap: 6px; margin-top: 4px; }
+.skl-pair .scored-num { width: 100%; min-width: 0; }
+.skl-level { min-width: 4.5rem; }
+.skl-can { white-space: nowrap; font-weight: 700; }
+.skl-cover th, .skl-cover td { background: var(--paper-2, transparent); }
+@media (max-width: 720px) { .skl .cw-link { min-height: 44px; display: inline-flex; align-items: center; } }
+
+/* A CHECKLIST REGISTER (tools/scored/ChecklistEditor — FC-082 readiness, FC-178 hygienic design) */
+.ckl { display: grid; gap: 14px; min-width: 0; }
+.ckl-area { min-width: 0; }
+.ckl-h { margin: 0 0 6px; font-size: var(--t-body, 1rem); display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ckl-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ckl-item { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; display: grid; gap: 8px; background: var(--surface, transparent); min-width: 0; }
+.ckl-item.is-ready { background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); }
+.ckl-item.is-na { opacity: 0.8; }
+.ckl-top { display: grid; grid-template-columns: minmax(0, 1fr) 11rem; gap: 8px; }
+.ckl-top .text-input { min-width: 0; }
+.ckl-name { font-weight: 700; }
+.ckl-tags { margin: 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.ckl-tag { font-size: var(--t-label, 0.8rem); font-weight: 800; padding: 2px 8px; border-radius: var(--radius-sm); border: 1.5px solid currentColor; }
+.ckl-tag.is-late, .ckl-tag.is-stop { color: var(--st-r, #c4281c); }
+.ckl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 8px; }
+.ckl-grid .field { min-width: 0; margin: 0; }
+.ckl-wide { grid-column: 1 / -1; }
+.ckl-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ckl-stop { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+.ckl-stop input { width: 20px; height: 20px; }
+.ckl-add { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 8px; align-items: end; }
+.ckl-add .btn { min-height: 44px; }
+@media (max-width: 720px) { .ckl-top, .ckl-add { grid-template-columns: minmax(0, 1fr); } .ckl .cw-link { min-height: 44px; display: inline-flex; align-items: center; } .ckl .text-input, .ckl select { min-height: 44px; } }

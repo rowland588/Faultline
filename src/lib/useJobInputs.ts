@@ -4,6 +4,7 @@
  * it, so a job's verdict on the line's page is the control room's own, never
  * a second opinion (FLOW-AUDIT.md, 10). Moved here from ui/JobsBoard, where
  * it was the board's alone. */
+import { isMethodAnswer } from './methodSheet';
 import { useEffect, useState } from 'react';
 import type { Project } from '../types';
 import {
@@ -89,7 +90,7 @@ export function useJobInputs(projects: Project[]): JobInputs | null {
           }) : [];
         }
         return {
-          project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree, problems, gaps, losses, materials, programs, studies,
+          project, steps, lines, notes: items.filter(i => i.kind === 'note' && !isMethodAnswer(i.testId)), tree, problems, gaps, losses, materials, programs, studies,
           atTarget: series.filter(x => x?.meeting === true).length,
           judged: series.filter(x => x?.meeting != null).length,
           /* Are its lines on target? — the answer its front page leads with. */

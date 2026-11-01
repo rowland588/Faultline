@@ -4,6 +4,7 @@
 import type { Entry } from '../types';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 import { LOG_ACCEPTANCE, LOG_CODE, LOG_TESTS, logBuilt } from '../../tools/checks/built';
+import { skillsBuilt } from '../../tools/skills/built';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -183,7 +184,9 @@ export const OPERATIONS: Entry[] = [
     food: 'Daily retailer orders and promotions.',
     depends: ['FC-040', 'FC-070', 'FC-180'],
     complexity: 'L', value: 'medium', valueWhy: 'Most sites already plan in an ERP or spreadsheet.',
-    status: 'to-build', form: 'tool', kind: 'standard', methods: ['planning.scheduling-rules'], scenarios: ['planning'], words: ['schedule', 'plan'],
+    status: 'available', form: 'mode', partOf: 'FC-034', methods: ['planning.scheduling-rules'], scenarios: ['planning'], words: ['schedule', 'plan'],
+    built: { where: ['/balances'], code: ['src/tools/plan/schedule.ts', 'src/tools/plan/planInputs.ts', 'src/tools/plan/PlanPanel.tsx', 'src/lib/report/planPaper.ts'], tests: ['src/tools/plan/__tests__/schedule.test.ts'], acceptance: ['week-plan.mjs'] }, spec: 'knowledge/specs/FC-179-week-schedule.md',
+    limits: ['The order is the planner’s: choosing it by a rule is FC-180 and the best order of changeovers FC-070 — neither is here.', 'One constraint on one line, a day’s running time the same every running day; no holiday calendar.', 'A changeover not timed on a SMED takes nothing off the week and is named; orders are typed, not read from a system.'],
   },
   {
     id: 'FC-180', name: 'Scheduling rules — due date, shortest first, Johnson’s rule', discipline: 'planning', sub: 'schedule',
@@ -653,10 +656,15 @@ export const OPERATIONS: Entry[] = [
     food: 'A new line project with OEM and site tasks.',
     depends: ['FC-073', 'FC-078'],
     complexity: 'M', value: 'low', valueWhy: 'The stage gate forecasts from pace instead.',
-    status: 'partial', form: 'tool', kind: 'study', methods: ['projects.critical-path'], scenarios: ['project', 'new'], words: ['critical path', 'float', 'slack', 'CPM', 'network'],
-    built: { where: ['/calc/critical-path'], code: [...CALC_CODE, 'src/tools/calc/defs/critical-path.ts', 'src/lib/ie/criticalPath.ts'], tests: [...CALC_TESTS, 'src/lib/ie/__tests__/criticalPath.test.ts'], acceptance: ['calc-shape.mjs'] },
+    status: 'available', form: 'mode', partOf: 'FC-235', methods: ['projects.critical-path'], scenarios: ['project', 'new'], words: ['critical path', 'float', 'slack', 'CPM', 'network'],
+    built: { where: ['/calc/critical-path'], code: [...CALC_CODE, 'src/tools/calc/defs/critical-path.ts', 'src/lib/ie/criticalPath.ts', 'src/tools/criticalpath/plan.ts', 'src/tools/criticalpath/useCriticalPath.ts', 'src/tools/criticalpath/PlanPath.tsx', 'src/tools/criticalpath/planPaper.ts'], tests: [...CALC_TESTS, 'src/lib/ie/__tests__/criticalPath.test.ts', 'src/tools/criticalpath/__tests__/plan.test.ts'], acceptance: ['calc-shape.mjs', 'critical-path-plan.mjs'] },
     spec: 'knowledge/specs/FC-215-critical-path.md',
-    limits: ['The network is typed here (up to 16 tasks, each a letter with its days and the letters it waits for); it is not read from a stage-gate project. The plan holds each machine’s stages with their days but not what a stage waits for — wiring the passes to the live plan, and saying which machine’s chain is critical on the plan and the client report, needs that relation stored first (a dependency field on the stage — a migration, not yet decided).', 'Finish-to-start waits and working days from day 0 only: no calendar, dates or shutdowns, no lags or overlaps, and no limit on people or equipment; a task’s days are estimates held fixed.', 'A slip of one task at a time; a slip is not carried into a new saved plan, and progress (remaining days from today) is re-typed, not read.', 'The money is a day’s delay typed by the person (contribution not earned plus any standing charge); it is not derived from the line’s margin, because the hours a day a new line will run are not held anywhere yet.'],
+    limits: [
+      'Read from a stage-gate project: its machines (arrival from the due date) and its steps (the days booked), with what each step waits for kept on the project (gate_stages.waitsFor, the owner’s). Until the owner says, the page proposes from the dates — the nearest steps booked before it on the machine — and says which waits are the owner’s and which the proposal. The typed calculator (up to 16 lettered tasks) stays for what-ifs.',
+      'Whole calendar days from today, a booked window counted with both ends (weekends count, as the Gantt draws them); no working-day calendar, shutdowns, lags, overlaps, start-to-start waits or limits on people and equipment. A step not done keeps its booked length — progress inside a step is not read.',
+      'The stage-gate client report, status report and Gantt paper do not yet say the critical machine (their parity with live is kept); the Timeline carries one line and the tool its own paper. The handover forecast from the pace of tests (FC-078) is a different sum and is not shown beside it.',
+      'The money on the plan is the project’s lines’ margin for a day (the stage gate’s own model); the typed calculator’s cost of a day is still typed. A line with no speed, shifts or margin is named, never guessed.',
+    ],
   },
   {
     id: 'FC-216', name: 'Risk register', discipline: 'projects', sub: 'manage',
@@ -743,7 +751,15 @@ export const OPERATIONS: Entry[] = [
     food: 'Machine operators, hygiene, QA checks.',
     depends: ['FC-184', 'FC-223'],
     complexity: 'M', value: 'high', valueWhy: 'A common, simple, valuable gap.',
-    status: 'to-build', form: 'tool', kind: 'register', methods: ['people.skills-matrix'], scenarios: ['people'], words: ['training matrix', 'cover', 'flexibility'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'skills', label: 'Skills matrix', says: 'Who can run what, at what level — and where one absence stops a line, shift by shift', icon: 'people', order: 26.1 },
+    methods: ['people.skills-matrix'], scenarios: ['people', 'new'], words: ['training matrix', 'cover', 'flexibility', 'single point', 'ILUO', 'who can run'],
+    built: skillsBuilt,
+    spec: 'knowledge/specs/FC-222-skills-matrix.md',
+    limits: [
+      'The level is the team’s word (— I L U O); the date it was reached and who signed it are not kept, and a level is not re-checked or aged on the page.',
+      'Cover is the people at the standard (U) or above on a shift, against a cover wanted (3 to start with, the record’s “often”, changed per matrix and per task); absence, leave and training are not modelled and the crew plan (FC-184) is not built.',
+      'A single point is priced as a shift of the line not making from a typed figure or the line’s own; the absence rate is not held, so no yearly cost is guessed. The training is a ranked list, not actions on the project.',
+    ],
   },
   {
     id: 'FC-223', name: 'TWI job instruction — the breakdown and four-step teaching', discipline: 'people', sub: 'instruction',
