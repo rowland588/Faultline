@@ -32,9 +32,12 @@ import { A3Board } from './A3Board';
 import { PdcaBoard } from './pdca';
   save: (field: string, what: string, label?: string) => void;
 
+import { TOC_SHAPE } from './toc';
+
 export const SHAPES: Partial<Record<MethodKey, Shape>> = {
   kata: KATA_SHAPE,
   dmaic: DMAIC_SHAPE,
   a3: { Board: A3Board, sectionBoxes: 'none' },
   pdca: { Board: PdcaBoard, sectionBoxes: 'none' },
+  toc: TOC_SHAPE,
 };
