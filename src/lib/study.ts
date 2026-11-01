@@ -685,6 +685,8 @@ export interface ScoredRow {
   hold?: HoldData;
   /** A NODE of a fault tree (FC-152, src/tools/faulttree): `name` is the event or gate. */
   tree?: TreeData;
+  /** A RUN of a response-surface design (FC-112, src/tools/rsm): the coded settings of each factor and the response typed when it was made. */
+  run?: { x: number[]; y?: number };
   /** A PERSON of a skills matrix (FC-222): this row's `scores` are levels 0–4 by task; the shift they work, as typed. */
   shift?: string;
   /** An ITEM of a checklist register (FC-082 readiness, FC-178 hygienic design): its heading, where it comes from, what proves it, who owns it,
@@ -715,6 +717,12 @@ export interface HoldData {
   fate?: 'release' | 'concession' | 'rework' | 'regrade' | 'destroy';
   decidedOn?: string; decidedBy?: string; grounds?: string; ref?: string;
   hours?: number; extra?: number; lossPerPack?: number; disposal?: number;
+}
+/** What a response surface is made from (FC-112): the factors with the settings that are −1 and +1, the design, the centre runs, the seed the run order was shuffled from,
+ *  what is wanted, the response, a confirmation run, and (optional) what the runs cost. */
+export interface RsmSetup {
+  factors: { name: string; unit?: string; low: number; high: number }[];
+  design: 'ccf' | 'ccc' | 'bbd'; centre?: number; seed: number; goal?: 'min' | 'max'; response?: string; unit?: string; confirm?: number; packsPerRun?: number; materialsPerPack?: number;
 }
 /** One node of a fault tree (FC-152): under which gate it sits (none: the top event), AND or OR when it has causes below it, a basic event's probability for the period,
  *  and — for a basic event — the other basic event it is the SAME as (a cause shared between two branches). */
@@ -763,6 +771,8 @@ export interface AgreedScored {
   /** Fault tree (FC-152): what one occurrence of the top event costs, £, and the period every probability is for ("a year"). */
   eventCost?: number;
   period?: string;
+  /** Response surface (FC-112): the design and what is measured. */
+  rsm?: RsmSetup;
 }
 
 /** A CALCULATOR (src/tools/calc; knowledge/specs/FC-235-calculators.md — 25 October): which one it is (`key`, the name of its

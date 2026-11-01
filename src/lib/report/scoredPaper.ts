@@ -43,6 +43,7 @@ export function scoredPaperBlocks(s: ToolStudy, beside: readonly ToolStudy[] = [
       matrixTable(x.table),
       ...(r.money ?? []).map(m => text({ text: m, size: 9 })),
       ...(r.also ? [leanHead(r.also.title), ...r.also.lines.map(l => text({ text: `· ${l}`, size: 9 }))] : []),
+      ...(r.lists ?? []).flatMap(l => [leanHead(l.title), ...l.lines.map(t => text({ text: `· ${t}`, size: 9 }))]),
       leanHead('What this does not say'),
       ...[...r.caveats, ...x.def.limits].map(c => text({ text: `· ${c}`, size: 9 })),
     ];

@@ -176,7 +176,7 @@ export function faultAnalyse(a: { rows: ScoredRow[]; ctx: ScoredContext }): { pr
   ];
   const result: ScoredResult = { verdict, tone, sentence, tiles, closing, caveats, ...(money.length ? { money } : {}),
     ...(lines.length ? { also: { title: 'Which events matter most', lines } } : {}),
-    lists: [{ title: 'The minimal cut sets — every event in one must happen together', lines: [...cuts.slice(0, 40).map(c => `${c.names.join(' AND ')}${c.events.length === 1 ? ' (single point)' : ''}${c.p !== undefined ? ` — ${pWords(c.p)}` : ''}`), ...(cuts.length > 40 ? [`and ${cuts.length - 40} more — all of them are on the paper`] : [])] }] };
+    screenLists: [{ title: 'The minimal cut sets — every event in one must happen together', lines: [...cuts.slice(0, 40).map(c => `${c.names.join(' AND ')}${c.events.length === 1 ? ' (single point)' : ''}${c.p !== undefined ? ` — ${pWords(c.p)}` : ''}`), ...(cuts.length > 40 ? [`and ${cuts.length - 40} more — all of them are on the paper`] : [])] }] };
   const table: ScoredTable = {
     head: ['#', 'Minimal cut set — all must happen', 'Events', 'Probability'],
     rows: cuts.map((c, i) => [String(i + 1), c.names.join(' AND '), String(c.events.length), c.p !== undefined ? pWords(c.p) : '—']),

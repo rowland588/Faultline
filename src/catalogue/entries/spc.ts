@@ -405,7 +405,11 @@ export const SPC: Entry[] = [
     food: 'Cooking time and temperature for yield and texture.',
     depends: ['FC-111'],
     complexity: 'L', value: 'low', valueWhy: 'Specialist; after a factorial.',
-    status: 'research', form: 'research', methods: ['stats.response-surface'], scenarios: ['quality'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'rsm', label: 'Optimising settings', says: 'Fit a curved surface to a designed set of runs and find the best setting — only inside what was run, and checked by a confirmation run', icon: 'chart', order: 4.8 },
+    methods: ['stats.response-surface'], scenarios: ['quality'], words: ['response surface', 'RSM', 'central composite', 'Box-Behnken', 'optimise', 'best setting', 'stationary point', 'quadratic'],
+    built: { where: ['/scored/rsm'], code: ['src/tools/rsm/rsm.ts', 'src/tools/rsm/RsmEditor.tsx', 'src/tools/scored/defs/rsm.ts', 'src/tools/scored/RegisterEditor.tsx', 'src/tools/scored/types.ts', 'src/tools/scored/scored.ts', 'src/tools/scored/ScoredScreen.tsx', 'src/lib/report/scoredPaper.ts'], tests: ['src/tools/rsm/__tests__/rsm.test.ts'], acceptance: ['rsm.mjs'] },
+    spec: 'knowledge/specs/FC-112-response-surface.md',
+    limits: ['Two or three factors, one response at a time, one block: several responses at once (desirability), the contour window the operator may run in and blocks are not built.', 'The best setting is quoted only inside what was run (the ball out to the furthest run) and only if it is the kind wanted; otherwise the best on the edge is given with “move the box and run again”. The region rule, the ridge cut and the tones have not been put to Rowland.', 'The two-factor path is proved against the knowledge record’s published 13-run case and a second implementation; the three-factor path (ten terms, Box–Behnken) by its run counts and the same fit code, not by a worked case with a published answer.', 'It is not started from a factorial’s result, and is not on the line’s page, Needs you or the control room.'],
   },
   {
     id: 'FC-113', name: 'How many readings — sample size and power', discipline: 'stats', sub: 'plan',

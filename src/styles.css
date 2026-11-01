@@ -15753,3 +15753,13 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ft-d4 { margin-left: calc(4 * var(--space-3)); } .ft-d5 { margin-left: calc(5 * var(--space-3)); } .ft-d6 { margin-left: calc(6 * var(--space-3)); }
 @media (max-width: 720px) { .ft-node { margin-left: 0 !important; border-left: 4px solid var(--line); } }
 .ft .cp-acts .cw-link { min-height: 44px; display: inline-flex; align-items: center; }
+
+/* the response surface (FC-112): the setup, then a card a run to type its response into */
+.rs { display: grid; gap: var(--space-3); min-width: 0; }
+.rs-factors { display: grid; gap: var(--space-2); margin-bottom: var(--space-2); }
+.rs-factor { align-items: end; }
+.rs-runs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--space-2); }
+.rs-run { min-width: 0; }
+.rs-set { overflow-wrap: anywhere; }
+.rs .btn, .rs select.text-input, .rs input.text-input, .rs .cw-link { min-height: 44px; }
+.rs .cw-link { display: inline-flex; align-items: center; }

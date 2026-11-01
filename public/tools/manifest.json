@@ -113,6 +113,12 @@
     "of": "Fault tree — how metal could reach a pack despite the detector: nine minimal cut sets, the probability of the top event, and which events carry most of it",
     "takenFrom": "ae10dd48"
   },
+  "rsm": {
+    "w": 960,
+    "h": 600,
+    "of": "Optimising settings — a 13-run central composite on filler speed and product temperature: the fitted surface, the best setting inside what was run and the intervals around it",
+    "takenFrom": "a0e741b5"
+  },
   "pugh": {
     "w": 960,
     "h": 600,

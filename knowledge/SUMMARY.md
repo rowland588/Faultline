@@ -4,15 +4,15 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **236 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 27 tools a person can open on a page of their own. Built inside them: 105 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 53; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 28 tools a person can open on a page of their own. Built inside them: 105 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 53; needing research: 11; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 147 |
+| Available (`available`) | 148 |
 | Partly (`partial`) | 17 |
 | Planned (`specified`) | 0 |
 | Not built yet (`to-build`) | 53 |
-| Research first (`research`) | 12 |
+| Research first (`research`) | 11 |
 | Left out on purpose (`left-out`) | 7 |
 
 ## By discipline
@@ -27,7 +27,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Changeovers | 5 | 2 | 2 |  | 1 |  |  |
 | Commissioning and operational readiness | 13 | 12 |  |  |  | 1 |  |
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
-| Statistical analysis | 15 | 13 | 1 |  |  | 1 |  |
+| Statistical analysis | 15 | 14 | 1 |  |  |  |  |
 | Measurement systems | 6 | 6 |  |  |  |  |  |
 | Quality engineering and defects | 14 | 8 |  |  | 4 | 2 |  |
 | Six Sigma and DMAIC | 8 | 2 | 2 |  | 4 |  |  |
@@ -71,12 +71,12 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 76
+- a tool of its own: 77
 - a mode of another tool: 82
 - a part several tools share: 30
 - a way through several tools: 8
 - a report or board: 28
-- decided after research: 12
+- decided after research: 11
 
 ## Research first
 
@@ -85,7 +85,6 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - FC-047 Line simulation — stops, buffers and output — Needs repair times measured first, and must stay simple.
 - FC-065 Reliability-centred maintenance — Heavy; for the critical few.
 - FC-085 Line acceptance on the EN 415-11 time model — A common language with OEMs — once the standard’s text is read.
-- FC-112 Optimising settings — response surface — Specialist; after a factorial.
 - FC-129 Acceptance sampling by attributes — AQL plans — The ISO tables are copyright — research how to offer plans honestly.
 - FC-130 Acceptance sampling by variables — Needs the standard’s tables.
 - FC-175 Shelf-life studies — Microbiological design is specialist.

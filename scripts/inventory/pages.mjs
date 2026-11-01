@@ -545,6 +545,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the control plan as a card (FC-133)', sel: '.pl-tool-card', text: /Control plan/ },
     { what: 'product on hold as a card (FC-135)', sel: '.pl-tool-card', text: /Product on hold/ },
     { what: 'the fault tree as a card (FC-152)', sel: '.pl-tool-card', text: /Fault tree/ },
+    { what: 'optimising settings as a card (FC-112)', sel: '.pl-tool-card', text: /Optimising settings/ },
   ] },
   { name: 'Process FMEA — its list (FC-132)', path: '#/scored/fmea', must: [
     { what: 'the page named Process FMEA, with New FMEA', sel: '.part-head .pace-title', text: /^Process FMEA$/ },
@@ -561,6 +562,10 @@ export const PAGES = (sd, cap) => [
   { name: 'Fault tree — its list (FC-152)', path: '#/scored/fault-tree', must: [
     { what: 'the page named Fault tree, with New fault tree', sel: '.part-head .pace-title', text: /^Fault tree$/ },
     { what: 'New fault tree', sel: '.pace-head-actions .btn-primary', text: /^New fault tree$/ },
+  ] },
+  { name: 'Optimising settings — its list (FC-112)', path: '#/scored/rsm', must: [
+    { what: 'the page named Optimising settings, with New optimisation', sel: '.part-head .pace-title', text: /^Optimising settings$/ },
+    { what: 'New optimisation', sel: '.pace-head-actions .btn-primary', text: /^New optimisation$/ },
   ] },
   { name: 'Pugh matrix — its list (FC-143)', path: '#/scored/pugh', must: [
     { what: 'the page named Pugh matrix, with New ranking', sel: '.part-head .pace-title', text: /^Pugh matrix$/ },

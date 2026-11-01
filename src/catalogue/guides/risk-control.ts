@@ -135,4 +135,52 @@ export const RISK_CONTROL_GUIDES: Record<string, Guide> = {
     ],
     watch: 'The tree explains only the causes the team listed, and its probability is only as good as the probabilities typed in. A judgement made up to fill a box makes the answer look like a measurement and have none of its worth.',
   },
+  'FC-112': {
+    intro: 'For when a factorial has shown which two or three settings matter and you now want their best values — filler speed and temperature for give-away, seal temperature and dwell for seal strength. It fits a curved surface to a designed set of runs; it does not guess outside them.',
+    steps: [
+      {
+        step: 'The factors and what is wanted',
+        means: 'The factors are the two or three settings you will vary, each with the low and high you are willing to run — those become −1 and +1. What is wanted says whether the best is the smallest response (give-away) or the largest (seal strength).',
+        doThis: 'Press New optimisation, name it, then give each factor a name, a unit, a low and a high. Keep the box where you would actually run the line; the best setting will only be quoted inside it. Name the response and its unit and say which way is better.',
+        youGet: 'A setup that says how many runs it needs, or what is still missing.',
+      },
+      {
+        step: 'The design',
+        means: 'The pattern of runs. Central composite, face-centred, runs the corners, the middle of each face and the centre — never outside your box. Rotatable adds points beyond the corners so the answer is as sure in every direction. Box–Behnken runs the middle of each edge for three factors, with no corner.',
+        doThis: 'For a first look use face-centred. Give five runs at the centre: they are real repeats, and they are what lets the page test whether a curve is the right shape.',
+        youGet: 'The run count — 13 for two factors, 19 for three — and the reason for each kind of run.',
+      },
+      {
+        step: 'The run sheet',
+        means: 'The runs to make, in an order shuffled from a seed so that a machine warming up or a reel changing does not look like one of the factors. Each run is shown in your own units.',
+        doThis: 'Press “Make the run sheet”, then make the runs in the order shown, holding everything else as it is. Do not tidy the order. Making the sheet again throws the runs away; Undo brings them back.',
+        youGet: 'A card for each run with its settings and a box for the result.',
+      },
+      {
+        step: 'The responses',
+        means: 'What each run gave — the grams given away, the newtons the seal held. Typed as the run is made, not afterwards.',
+        doThis: 'Type each result in its box. The page fits as soon as there are more runs with a result than terms (seven for two factors) and says how many it still wants.',
+        youGet: 'The surface fitted, with R² (how much of the spread it explains), adjusted R², and predicted R² — the one that shows a model that fits its runs and predicts nothing.',
+      },
+      {
+        step: 'Lack of fit and the shape',
+        means: 'The centre runs repeated the same setting, so their spread is pure error. Lack of fit asks whether what is left over is more than that. A significant one means a cubic term, a transform or a run that went wrong — never “good model”.',
+        doThis: 'Read the sentence’s lack-of-fit line first. If it is red, do not trust the best setting: look at the runs for one that went wrong before fitting anything more complicated.',
+        youGet: '“No sign the quadratic is wrong” — or a red verdict, Does not fit.',
+      },
+      {
+        step: 'The best setting',
+        means: 'The stationary point is where the surface is flat — the top, the bottom or a saddle. It is quoted only if it is the kind you want and lies inside what you ran. Outside, the curve is a formula with no physics behind it, so the page gives the best on the edge of what was run and tells you to move the box and run again.',
+        doThis: 'Read the setting in your units and its distance from the centre against how far you ran. If it says Beyond the runs, take the edge setting as the new centre and run a smaller design there.',
+        youGet: 'The best setting, its predicted result, the interval for the average and for a single run — or the edge of the region and what to do next.',
+      },
+      {
+        step: 'The confirmation run',
+        means: 'One run at the chosen setting made after the design. The surface is a prediction until a run agrees with it: inside the prediction interval the model holds there; outside, it does not.',
+        doThis: 'Set the line to the best setting, make one run, and type the result in the confirmation box.',
+        youGet: 'Confirmed in green, or Not confirmed in red with “do not adopt the setting”.',
+      },
+    ],
+    watch: 'A best setting beyond the runs is a guess. A drifting machine looks like a factor if the order is tidied. And a surface that fits its own runs but has a low predicted R² has learned the runs, not the process.',
+  },
 };

@@ -187,7 +187,7 @@ function FieldBox({ f, row, disabled, onChange }: { f: ScoredField; row: ScoredR
 }
 
 /** What a control plan prices its checks from, kept on the register beside the rows. */
-const REGISTER_KEYS = ['speed', 'packCost', 'shiftMin', 'costToDate', 'margin', 'carryPct', 'eventCost', 'period'] as const;
+const REGISTER_KEYS = ['speed', 'packCost', 'shiftMin', 'costToDate', 'margin', 'carryPct', 'eventCost', 'period', 'rsm'] as const;
 const planInputs = (a: AgreedScored | undefined): Partial<Pick<AgreedScored, (typeof REGISTER_KEYS)[number]>> =>
   Object.fromEntries(REGISTER_KEYS.filter(k => a?.[k] !== undefined).map(k => [k, a?.[k]]));
 
@@ -290,7 +290,7 @@ function Record({ s, def, can, onPatch }: {
           <ul className="ie-caveats">{result.also.lines.map(l => <li key={l}>{l}</li>)}</ul>
         </LeanPanel>
       )}
-      {result?.lists?.map(l => (
+      {[...(result?.lists ?? []), ...(result?.screenLists ?? [])].map(l => (
         <LeanPanel key={l.title} title={l.title}>
           <ul className="ie-caveats">{l.lines.map(t => <li key={t}>{t}</li>)}</ul>
         </LeanPanel>
@@ -318,7 +318,7 @@ function Record({ s, def, can, onPatch }: {
         </Section>
       )}
       {def.register && (
-        <Section title={def.register.asks.noun === 'failure mode' ? 'Rate each failure mode' : def.key === 'fault-tree' ? 'The tree' : `The ${def.register.asks.noun}s`}>
+        <Section title={def.register.asks.noun === 'failure mode' ? 'Rate each failure mode' : def.key === 'fault-tree' ? 'The tree' : def.key === 'rsm' ? 'The runs' : `The ${def.register.asks.noun}s`}>
           <RegisterEditor def={def} rows={rows} canEdit={canEdit} study={liveStudy} studies={beside} onChange={setRows} rate={rate} onRate={setRate}
             line={line ? { name: line.name, rate: lineRate, speed: line.packsPerMin, packCost: line.marginPerPack, margin: line.marginPerPack, shiftMin: lineDay(line).minutes && line.shifts?.length ? Math.round((lineDay(line).minutes as number) / line.shifts.length) : undefined } : undefined}
             onInputs={patch => onPatch(cur => ({ agreed: { ...cur.agreed, scored: { ...(cur.agreed?.scored ?? { key: def.key, rows }), ...patch } }, updatedAt: now() }))} />
