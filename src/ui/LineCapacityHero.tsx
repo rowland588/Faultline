@@ -26,6 +26,7 @@ import { Metric, WhyNumber } from './WhyNumber';
 import { PERIOD_WEEKS, readLine, unitOf } from '../lib/lineRead';
 import type { LineMix } from '../tools/linebalance/capacityMix';
 import { saveLeversPdf } from '../lib/report/leversPaper';
+import { PlanPanel } from '../tools/plan/PlanPanel';
 
 const fmt = (n: number, d = 1) => n.toLocaleString('en-GB', { maximumFractionDigits: d });
 const when = (t: number) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -198,6 +199,9 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
         </ul>
         <DemandPaste products={products} />
       </details>
+      {/* THE WEEK'S SCHEDULE AGAINST CAPACITY, WITH CHANGEOVERS (FC-179) and the time buffer before the constraint (FC-043) — the orders typed
+          with their days, laid on the constraint; the buffer's zones and the rope (tools/plan) */}
+      <PlanPanel products={products} read={a} {...(ws ? { ws } : {})} {...(lineName ? { lineName } : {})} />
       {/* WHICH PRODUCT FIRST WHEN THE LINE IS FULL (FC-042) — throughput per constraint minute, ranked; the week filled in
           that order; what is unmade by name and in money (tools/linebalance/capacityMix) */}
       <MixView products={products} mixed={a.mixed} />

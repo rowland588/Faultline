@@ -1,0 +1,34 @@
+/* The week's schedule and its buffer (FC-179, FC-043). State colours only beside the words; paper-light. */
+.pln { display: grid; gap: 8px; }
+.pln-says, .pln-money, .pln-missing, .pln-limit, .pln-dsays { margin: 0; }
+.pln-from { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pln-orders { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pln-order { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.pln-order.is-late { border-left: 4px solid var(--st-r); }
+.pln-n { font-weight: 700; color: var(--st-n-ink); }
+.pln-p { min-width: 0; overflow-wrap: anywhere; }
+.pln-ctl { grid-column: 2 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.pln-qty { width: 110px; }
+.pln-due { width: 150px; }
+.pln-add { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+.pln-add .field { flex: 1 1 140px; }
+.pln-zone { font-weight: 700; border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; white-space: nowrap; align-self: start; font-size: 0.85rem; }
+.pln-zone.is-g { border-color: var(--st-g); color: var(--st-g); }
+.pln-zone.is-a { border-color: var(--st-a); color: var(--st-a); }
+.pln-zone.is-r { border-color: var(--st-r); color: var(--st-r); }
+.pln-dbr { display: grid; gap: 8px; }
+.pln-dsays.is-r { border-left: 3px solid var(--st-r); padding-left: 10px; }
+.pln-dsays.is-a { border-left: 3px solid var(--st-a); padding-left: 10px; }
+.pln-drows, .pln-dlines { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pln-drow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: start; }
+.pln-dtext { overflow-wrap: anywhere; }
+.pln-dctl { grid-column: 2; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.pln-done { width: 64px; }
+.pln-bufin { width: 100px; }
+@media (max-width: 640px) {
+  .pln-order { grid-template-columns: 24px minmax(0, 1fr); }
+  .pln-order .pln-zone { grid-column: 2; justify-self: start; }
+  .pln-qty, .pln-due { width: 100%; flex: 1 1 130px; }
+  .pln-ctl .btn, .pln-add .btn, .pln-dctl .btn, .pln-paper { min-height: 44px; }
+  .pln-ctl .btn { min-width: 44px; }
+}
