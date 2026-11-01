@@ -1,0 +1,22 @@
+/* THE 8D REPORT FORM — D0 to D8 (project/method/shapes/eight-d). Tokens only. */
+.e8 { display: grid; gap: 12px; margin: 12px 0 18px; }
+.e8-strip { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; }
+.e8-d { display: grid; gap: 2px; padding: 8px; min-height: 44px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-align: left; cursor: pointer; font: inherit; color: var(--ink); min-width: 0; }
+.e8-d b { font-size: var(--t-body); }
+.e8-d span { font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; }
+.e8-d.is-done { border-color: var(--st-g); }
+.e8-d.is-under { border-color: var(--brand); }
+.e8-says { margin: 0; color: var(--ink-2); }
+.e8-card { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); min-width: 0; }
+.e8-card h3 { margin: 0; font-size: var(--t-body); }
+.e8-isnot { display: grid; grid-template-columns: minmax(0, 0.5fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: start; }
+.e8-isnot .e8-h { font-weight: 800; font-size: var(--t-label); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+.e8-in { width: 100%; min-height: 44px; resize: vertical; }
+.e8-ro { white-space: pre-wrap; }
+.e8-act { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+.e8-in-tool { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+@media (max-width: 720px) {
+  .e8-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .e8-isnot, .e8-act { grid-template-columns: minmax(0, 1fr); }
+  .e8-isnot .e8-h { display: none; }
+}

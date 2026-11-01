@@ -4,6 +4,8 @@ import { f, type SheetSections } from '../methodSheetKit';
 
 export const SECTIONS: SheetSections = {
     'D0–D1  Symptom, emergency response, team': [
+      f('customer', 'Who raised it, and their reference', 'The customer or the part of the factory that complained, and their complaint or incident number.', { line: true }),
+      f('opened', 'Opened, and the reply due', 'The day it was opened and the day the customer wants the report.', { line: true }),
       f('symptom', 'The symptom', 'What was reported, by whom, when.'),
       f('response', 'The emergency response', 'What was done at once to protect the customer.'),
       f('team', 'The team', 'Who is on it, and who leads.', { line: true }),
