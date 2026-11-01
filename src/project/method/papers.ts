@@ -35,7 +35,9 @@ const makeA3 = async (projectId: string): Promise<void> => {
   const pair = evidencePair(studies);
   const ev = (s: (typeof studies)[number] | undefined) => (s ? { title: studyTitle(s), says: studyLine(s, { studies }).text } : undefined);
   const cur = ev(pair.current), fol = ev(pair.followup);
-  await saveA3Pdf({ project: project?.name ?? 'Project', printed: todayISO(), sheet: a3Sheet(answers, { ...(cur ? { current: cur } : {}), ...(fol ? { followup: fol } : {}) }) });
+  const { loadCauses } = await import('./shapes/a3Causes');
+  const causes = await loadCauses(projectId).catch(() => []);
+  await saveA3Pdf({ project: project?.name ?? 'Project', printed: todayISO(), sheet: a3Sheet(answers, { ...(cur ? { current: cur } : {}), ...(fol ? { followup: fol } : {}), causes }) });
 };
 
 /** A method's answers, by field id (the same read the board makes). */

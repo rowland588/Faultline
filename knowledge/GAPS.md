@@ -157,6 +157,21 @@ that can open pages should read, in this order: the NASA RCM Guide's Logic
 Tree; the Shingo Model booklet and the LESAT guide's copyright page; the
 MTM Association's licence page; and, if bought, EN 415-11.
 
+## Re-checked 1 November 2026 (builder T5): FC-085 and FC-178 stay `research`
+
+- **FC-085 Line acceptance on EN 415-11.** `docs/CAPACITY.md` §8 and the records `equipment.time-model-losses` and `commissioning.acceptance-tests` name the
+  standard and say the loss count's time model is **not** EN 415-11's; none gives the standard's time states, output model or key-figure formulas, and the
+  text is paid (about 410 USD) and unread. A tool that said "per EN 415-11" with Faultline's own states would be the false claim the record warns of, so
+  nothing was built. What would unblock it: the owner buys and reads EN 415-11:2021 (time states and their definitions, the output model, the efficiency
+  and availability formulas, Annex C, whether "availability" changed meaning from DIN 8743), then the record is brought to full depth and a spec written.
+- **FC-178 Hygienic design review.** `src/tools/hygiene/hygiene.ts` (with its unit tests) and `src/tools/scored/defs/hygienic-design.ts` exist on `main`
+  as a checklist and findings register in plain words that cite principles by topic only — honest, but it is **not yet to the standard**: EHEDG Guideline 8
+  could not be read (ehedg.org answers the build container's proxy with 403, tried again 1 November), so the checklist's points are not traced to its
+  sections; there is no specification and no acceptance script (`hygienic-design.mjs` is named by the builder entry and does not exist). Left as
+  `research`; never offered as EHEDG, EN 1672-2 or EN ISO 14159 conformance. What would unblock it: someone who can open Guideline 8 (a free download)
+  reads it, the points get section numbers, EHEDG's reuse licence is read, then the spec (graded severity and the gate rule are Faultline's, said on
+  screen), the acceptance script, and the entry becomes `partial`/`available`.
+
 ## Research 1 — 25 October 2026: four entries marked "research"
 
 Done with web search only: **every site the research needed — legislation.gov.uk,
@@ -206,7 +221,7 @@ a page — each record's `checked` line says so — and the sources are listed i
 | FC-129 attributes | **Can be built — as "design a plan from AQL, LQ and the two risks, and see its curve"** (binomial; hypergeometric for a lot). **Cannot** be "the ISO 2859-1 plan for this lot": the tables are copyright. | Wording of the entry to change when specified (it says ISO 2859-1 plans by inspection level). Independent cases: brute-force search of every (n, c); exact sums; hypergeometric; Monte Carlo. A typed contract plan is read by FC-131. |
 | FC-130 variables | **Can be built for one specification limit** (σ known: closed form; σ estimated: exact noncentral t; unbiased fraction beyond the limit). **Cannot yet** for two limits or "the ISO 3951-1 plan". | Normality is the whole basis (skewed lots: consumer's risk at the LQ 27.4% instead of 10%): the shape check and the process history are part of the verdict. Entry's wording to change. |
 | FC-047 simulation | **Can be built**, small and validated, **after** the repair times exist (FC-059 not built; the loss count's timed stops and the reliability counts are not yet a per-machine distribution). | Validated against closed-form limits and exact Markov-chain solutions; the first inputs' own uncertainty (30 stops) is 16 times the simulator's noise; never a forecast; not checked against a real shift until it is. |
-| FC-112 response surface | **Can be built** for two or three factors, one response, one block, CCD (rotatable or face-centred) or Box-Behnken (3 factors). | Every part has an independent case. Needs real replicates, random order and a confirmation run; refuses a point outside the region run and a saddle; multi-response desirability is a later slice. |
+| FC-112 response surface | **Built 1 November 2026** (`knowledge/specs/FC-112-response-surface.md`) for two or three factors, one response, one block, CCD (rotatable or face-centred) or Box-Behnken (3 factors); the two-factor path is proved against the record's published case and a second implementation, the three-factor path by run counts and the same fit code. | Every part has an independent case. Needs real replicates, random order and a confirmation run; refuses a point outside the region run and a saddle; multi-response desirability is a later slice. |
 
 **Corrections made to the earlier records.**
 - `quality.acceptance-sampling-variables`: n = 27 for σ unknown used an
@@ -301,3 +316,9 @@ quality.
 - **Synchronous servicing assumes identical machines and a fixed cycle** (`ie.person-machine`): random servicing (machines that stop at random) is not worked out — a queueing or simulation problem (FC-047, owner's decision).
 - **Ranked positional weight is a heuristic** (`capacity.line-balancing`): a good balance the order allows, not a proof that none is better; the page says so. No zoning or station-fit rules.
 - **The learning curve** (`ie.learning-curve`, FC-027): the unit-time form only; the run reaching a standard is given with the interval of the slope alone (T1 held). The cumulative-average form, forgetting after a break and a plateau model are not built.
+
+## Documents (FC-240, 1 November 2026)
+- **The Kano evaluation table and coefficients are from published guides, not the papers.** The 5 × 5 table (like: Q A A A O; must-be / neutral / live with: R I I I M; dislike: R R R R Q), the five answers' wording, and better = (A+O)/(A+O+M+I), worse = −(O+M)/(A+O+M+I) with reverse and questionable left out, were confirmed on 1 November against the descriptions in several published guides found by search (the page fetches were blocked in the session). Kano, Seraku, Takahashi & Tsuji (1984), Berger et al. (1993) and Sauerwein et al. (1996) were **not read**. The tie-break order some guides use (M > O > A > I) is secondhand and conflicting, so ties are reported as ties.
+- **The 8D's D0–D8 names and the usual timetable (D3 within a day, D4 within two weeks, D8 within 30–60 days)** are from the record, from knowledge — VDA's *8D — Problem Solving in 8 Disciplines* (2018) and AIAG not read. The record's worked timeline is internally inconsistent (six weeks without recurrence after day 19, closed on day 30).
+- **A team member's edits to anything stored in `studies.agreed` on a project are kept by the database only for the owner** (`supabase/STUDIES.sql faultline_keep_study_agreement`: `agreed` is written once by anyone, then only by the owner). The calculators (`agreed.calc.inputs`), the scored registers (`agreed.scored.rows`) and the boards store typed work there; a non-owner team member's later edit would be reverted by the cloud on the next pull. Documents store their words in `facts.docValues` for this reason. Whether the live trigger is as the file says was not read back (the Supabase connector failed to connect in this session) — to check, and to decide for the other three tools.
+- **The charter's worth is typed with its source named**, not read from a register problem's money line (`lib/problemCost` is per day and needs the line's bottleneck): MONEY.md's "never typed free" is met by naming the tool, not by a link.

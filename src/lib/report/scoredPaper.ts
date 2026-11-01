@@ -4,6 +4,7 @@ import { INK2, LINE, MUTED } from '../reportKit';
 import { leanHead } from './lean';
 import type { Block, Frame } from './flow';
 import { studyScored } from '../../tools/scored/scored';
+import { outline, pWords } from '../../tools/faulttree/fault';
 import type { ScoredDef, ScoredField, ScoredRanked, ScoredTable } from '../../tools/scored/types';
 
 /** The matrix: cells wrap inside their columns, a row as tall as its longest cell, the foot (counts, score, rank) in bold. */
@@ -27,10 +28,26 @@ function matrixTable(t: ScoredTable): Block {
   return rows({ header: make(t.head, true, true), rows: [...t.rows.map(r => make(r, false, false)), ...t.foot.map(r => make(r, true, false))], after: 'm' });
 }
 
-export function scoredPaperBlocks(s: ToolStudy): Block[] {
-  const x = studyScored(s);
+export function scoredPaperBlocks(s: ToolStudy, beside: readonly ToolStudy[] = []): Block[] {
+  const x = studyScored(s, { studies: beside });
   if (!x?.result) return [text({ text: 'Nothing scored yet.' })];
   const r = x.result;
+  if (x.def.register && x.table) {
+    /* a register of cards (FMEA, control plan): the band, tiles, "What it says" and the closing line are the study page's own (studiesPdf); this is the register between them */
+    /* a fault tree is first its outline — the top event, each gate, each basic event with its probability — then the cut sets it gives */
+    const tree = x.def.key === 'fault-tree' ? outline(x.rows).filter(l => l.row.name.trim()).map(l => text({
+      text: `${'· '.repeat(l.node.depth)}${l.node.depth === 0 ? 'TOP EVENT' : l.node.leaf ? 'Event' : `${l.node.gate} gate`}: ${l.row.name.trim()}${l.node.leaf && l.node.p !== undefined ? ` — ${pWords(l.node.p)}` : ''}${l.row.tree?.same ? ' (the same cause as another)' : ''}`, size: 9 })) : [];
+    return [
+      ...(tree.length ? [leanHead('The tree'), ...tree] : []),
+      leanHead(x.def.title, r.verdict),
+      matrixTable(x.table),
+      ...(r.money ?? []).map(m => text({ text: m, size: 9 })),
+      ...(r.also ? [leanHead(r.also.title), ...r.also.lines.map(l => text({ text: `· ${l}`, size: 9 }))] : []),
+      ...(r.lists ?? []).flatMap(l => [leanHead(l.title), ...l.lines.map(t => text({ text: `· ${t}`, size: 9 }))]),
+      leanHead('What this does not say'),
+      ...[...r.caveats, ...x.def.limits].map(c => text({ text: `· ${c}`, size: 9 })),
+    ];
+  }
   if (x.def.matrix && x.table) {
     /* the band, the tiles, "What it says" and the closing line are the study page's own (studiesPdf); this is the matrix between them */
     const editor = x.def.matrix.editor ?? 'pugh';

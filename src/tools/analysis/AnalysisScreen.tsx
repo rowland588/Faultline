@@ -26,6 +26,8 @@ import { bandPage } from '../../lib/lean';
 import { useLine } from '../linework/WorkBalance';
 import { raisedFrom } from '../losses/lossLean';
 import { CONFIDENCES } from '../../lib/ie/stats';
+import { DOE_MAX_CENTRE, DOE_MAX_FACTORS, DOE_MAX_REPLICATES, DOE_MIN_FACTORS, doePlan, doeRunWords, doeReadingWord } from './doe';
+import { STRAT_CHOICES, STRAT_MAX_FACTORS, parseStrat, stratRecordWord } from './strat';
 import { analysisClosing, analysisFigures, analysisGrids, analysisPicture, analysisPlot, analysisProblem, analysisSays, analysisTiles, confidenceOf, KIND_WORDS, MAX_DRIVERS, parseRows, pctWord, planProblem, predictionSays, type Grid, type PicRow, type Plot, type RelateFigures } from './analysis';
 
 const OWNER = canAt('owner');
@@ -130,6 +132,7 @@ const QUESTION_GROUPS: { head: string; kinds: AgreedAnalysis['kind'][] }[] = [
   { head: 'Can I trust this number?', kinds: ['sure', 'plan', 'shape', 'gauge', 'grr', 'attr'] },
   { head: 'Did it change or differ?', kinds: ['change', 'paired', 'groups', 'learn'] },
   { head: 'How are things linked?', kinds: ['relate', 'table'] },
+  { head: 'Where is it, and what drives it?', kinds: ['strat', 'doe'] },
 ];
 const PLAIN: Record<AgreedAnalysis['kind'], string> = {
   sure: 'Can I rely on my average, my reject rate or my stops? — with its margin',
@@ -144,6 +147,8 @@ const PLAIN: Record<AgreedAnalysis['kind'], string> = {
   grr: 'Is it the product, or the measuring? — operators and parts',
   attr: 'Do the checkers call it the same? — pass or reject on the same packs',
   shape: 'Is it a bell curve, or something else? — find the shape that fits',
+  strat: 'Is it one shift, line or product? — split the same counts or readings by each',
+  doe: 'Which settings drive it? — change them on purpose, in a planned pattern',
 };
 const GMODES: { k: AgreedGauge['mode']; word: string; eg: string }[] = [
   { k: 'repeat', word: 'One reference, read again and again', eg: 'a 500 g test weight weighed 25 to 50 times — the Type 1 study' },
@@ -185,6 +190,15 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const [partsT, setPartsT] = useState((grr0?.parts ?? []).join(', '));
   const [apprT, setApprT] = useState((grr0?.appraisers ?? []).join(', '));
   const [trialsT, setTrialsT] = useState(String(grr0?.trials ?? 2));
+  const strat0 = a?.strat;
+  const [stratData, setStratData] = useState<'counted' | 'measured'>(strat0?.data ?? 'counted');
+  const [factorsT, setFactorsT] = useState((strat0?.factors ?? ['Shift', 'Product']).join(', '));
+  const [costEachT, setCostEachT] = useState(strat0?.costEach !== undefined ? String(strat0.costEach) : '');
+  const doe0 = a?.doe;
+  const [doeFs, setDoeFs] = useState<{ name: string; unit: string; low: string; high: string }[]>(() => (doe0?.factors.length ? doe0.factors.map(f => ({ name: f.name, unit: f.unit ?? '', low: String(f.low), high: String(f.high) })) : [0, 1].map(() => ({ name: '', unit: '', low: '', high: '' }))));
+  const [doeRep, setDoeRep] = useState(String(doe0?.replicates ?? 2)), [doeCentre, setDoeCentre] = useState(String(doe0?.centre ?? 0));
+  const [doeSeed] = useState(() => doe0?.seed ?? Math.floor(Math.random() * 2 ** 31));
+  const [packsRunT, setPacksRunT] = useState(doe0?.packsPerRun !== undefined ? String(doe0.packsPerRun) : ''), [matRunT, setMatRunT] = useState(doe0?.materialsPerPack !== undefined ? String(doe0.materialsPerPack) : '');
   const attr0 = a?.attr;
   const [itemsT, setItemsT] = useState((attr0?.items ?? []).join(', '));
   const [inspT, setInspT] = useState((attr0?.inspectors ?? []).join(', '));
@@ -203,8 +217,14 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
     ...(num(matT) !== undefined ? { materialsPerPack: num(matT) } : {}),
     ...(num(packsAttrT) !== undefined ? { packsPerShift: Math.round(num(packsAttrT) as number) } : {}),
   };
-  const boxes = kind === 'gauge' ? [gRef, lowerT, upperT, targetT, limitT, sliceT, needT, resT, baseT, packsT, weeksT, kgT] : kind === 'shape' || kind === 'grr' ? [lowerT, upperT] : kind === 'attr' ? [matT, packsAttrT] : [];
-  const draft: AgreedAnalysis = { kind, name: name.trim(), ...(unit.trim() && kind !== 'table' ? { unit: unit.trim() } : {}), confidence: conf,
+  const stratDraft = { factors: names(factorsT), data: stratData, ...(stratData === 'counted' && num(costEachT) !== undefined ? { costEach: num(costEachT) } : {}) };
+  const doeDraft = {
+    factors: doeFs.filter(f => f.name.trim() || f.low.trim() || f.high.trim()).map(f => ({ name: f.name.trim(), ...(f.unit.trim() ? { unit: f.unit.trim() } : {}), low: f.low.trim() === '' ? NaN : Number(f.low), high: f.high.trim() === '' ? NaN : Number(f.high) })),
+    replicates: Number(doeRep), ...(Number(doeCentre) > 0 ? { centre: Number(doeCentre) } : {}), seed: doeSeed,
+    ...(num(packsRunT) !== undefined ? { packsPerRun: num(packsRunT) } : {}), ...(num(matRunT) !== undefined ? { materialsPerPack: num(matRunT) } : {}),
+  };
+  const boxes = kind === 'gauge' ? [gRef, lowerT, upperT, targetT, limitT, sliceT, needT, resT, baseT, packsT, weeksT, kgT] : kind === 'shape' || kind === 'grr' ? [lowerT, upperT] : kind === 'attr' ? [matT, packsAttrT] : kind === 'strat' && stratData === 'counted' ? [costEachT] : kind === 'doe' ? [packsRunT, matRunT, ...doeFs.flatMap(f => [f.low, f.high])] : [];
+  const draft: AgreedAnalysis = { kind, name: name.trim(), ...(unit.trim() && kind !== 'table' && !(kind === 'strat' && stratData === 'counted') ? { unit: unit.trim() } : {}), confidence: conf,
     ...(kind === 'sure' ? { of } : {}), ...(kind === 'change' ? { data, better } : {}),
     ...(kind === 'groups' ? { better, ...(first.trim() ? { firstName: first.trim() } : {}) } : {}),
     ...(kind === 'table' ? { rows: names(rowsT), cols: names(colsT), ...(first.trim() ? { firstName: first.trim() } : {}), ...(second.trim() ? { secondName: second.trim() } : {}) } : {}),
@@ -214,6 +234,8 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
     ...(kind === 'shape' ? { shape: { ...(num(lowerT) !== undefined ? { lower: num(lowerT) } : {}), ...(num(upperT) !== undefined ? { upper: num(upperT) } : {}) } } : {}),
     ...(kind === 'grr' ? { grr: grrDraft } : {}),
     ...(kind === 'attr' ? { attr: attrDraft } : {}),
+    ...(kind === 'strat' ? { strat: stratDraft } : {}),
+    ...(kind === 'doe' ? { doe: doeDraft, better } : {}),
     ...(kind === 'paired' ? { ...(first.trim() ? { firstName: first.trim() } : {}), ...(second.trim() ? { secondName: second.trim() } : {}), ...(num(within) !== undefined ? { within: num(within) } : {}) } : {}),
     ...(kind === 'plan' ? { plan: a?.plan ?? { ask: 'mean' as const } } : {}) };
   const problem = (within.trim() !== '' && num(within) === undefined) || boxes.some(b => b.trim() !== '' && num(b) === undefined) || (standardT.trim() !== '' && num(standardT) === undefined) || (perRunT.trim() !== '' && num(perRunT) === undefined) ? 'Numbers only in the boxes.' : analysisProblem(draft);
@@ -255,7 +277,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
           {GMODES.map(x => <button key={x.k} type="button" role="radio" aria-checked={gMode === x.k} className={'ie-kind' + (gMode === x.k ? ' on' : '')} onClick={() => setGMode(x.k)}><b>{x.word}</b><small>{x.eg}</small></button>)}
         </div>
       )}
-      {(kind === 'change' || kind === 'groups') && (
+      {(kind === 'change' || kind === 'groups' || kind === 'doe') && (
         <>
           {kind === 'change' && <div className="ie-kinds" role="radiogroup" aria-label="How was it taken?">
             <span className="field-label">How was it taken?</span>
@@ -274,8 +296,8 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       </div>
       <div className="ie-agree-grid">
         <label className="field"><span className="field-label">What is measured</span>
-          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : kind === 'learn' ? 'Time to pack a case' : kind === 'gauge' ? 'Bench scale' : kind === 'grr' ? 'Seal strength' : kind === 'attr' ? 'Seal wrinkle check' : kind === 'shape' ? 'Residual oxygen' : 'Fill weight'} /></label>
-        {kind !== 'table' && <UnitField value={unit} onChange={setUnit}
+          <input className="text-input" value={name} maxLength={80} onChange={e => setName(e.target.value)} placeholder={kind === 'sure' && of !== 'mean' ? 'Reject rate' : kind === 'table' ? 'Rejects' : kind === 'relate' ? 'Seal strength' : kind === 'groups' ? 'Give-away' : kind === 'learn' ? 'Time to pack a case' : kind === 'gauge' ? 'Bench scale' : kind === 'grr' ? 'Seal strength' : kind === 'attr' ? 'Seal wrinkle check' : kind === 'doe' ? 'Seal strength' : kind === 'strat' ? (stratData === 'counted' ? 'Rejects' : 'Fill weight') : kind === 'shape' ? 'Residual oxygen' : 'Fill weight'} /></label>
+        {kind !== 'table' && !(kind === 'strat' && stratData === 'counted') && <UnitField value={unit} onChange={setUnit}
           hint={kind === 'sure' && of === 'rate' ? 'what the time is counted in — hours' : kind === 'change' && data === 'counted' ? 'optional' : 'optional — leave empty if the figures have none'}
           placeholder={of === 'rate' && kind === 'sure' ? 'hours' : kind === 'learn' ? 's' : undefined} />}
         {kind === 'learn' && <>
@@ -283,6 +305,60 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
             <input className="text-input" inputMode="decimal" value={standardT} onChange={e => setStandardT(e.target.value)} placeholder="40" aria-label="The standard" /></label>
           <label className="field"><span className="field-label">Units each reading stands for <i className="sub">optional — only to say what learning costs in money</i></span>
             <input className="text-input" inputMode="numeric" value={perRunT} onChange={e => setPerRunT(e.target.value)} placeholder="1,200" aria-label="Units each reading stands for" /></label>
+        </>}
+        {kind === 'doe' && <>
+          <div className="ie-wide ie-doe-fs" role="group" aria-label="The factors">
+            <span className="field-label">The factors <i className="sub">{DOE_MIN_FACTORS} to {DOE_MAX_FACTORS} — each at a low and a high setting you can really run, wide enough to matter and safe to make</i></span>
+            {doeFs.map((f, i) => (
+              <div key={i} className="ie-agree-grid ie-doe-f">
+                <label className="field"><span className="field-label">Factor {i + 1}</span>
+                  <input className="text-input" value={f.name} maxLength={40} onChange={e => setDoeFs(fs => fs.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)))} placeholder={['Seal temperature', 'Dwell', 'Pressure'][i] ?? 'Name'} aria-label={`Factor ${i + 1} name`} /></label>
+                <label className="field"><span className="field-label">Unit</span>
+                  <input className="text-input" value={f.unit} maxLength={12} onChange={e => setDoeFs(fs => fs.map((x, k) => (k === i ? { ...x, unit: e.target.value } : x)))} placeholder={['°C', 's', 'bar'][i] ?? ''} aria-label={`Factor ${i + 1} unit`} /></label>
+                <label className="field"><span className="field-label">Low</span>
+                  <input className="text-input" inputMode="decimal" value={f.low} onChange={e => setDoeFs(fs => fs.map((x, k) => (k === i ? { ...x, low: e.target.value } : x)))} placeholder={['170', '0.8', '3'][i] ?? ''} aria-label={`Factor ${i + 1} low`} /></label>
+                <label className="field"><span className="field-label">High</span>
+                  <input className="text-input" inputMode="decimal" value={f.high} onChange={e => setDoeFs(fs => fs.map((x, k) => (k === i ? { ...x, high: e.target.value } : x)))} placeholder={['190', '1.2', '5'][i] ?? ''} aria-label={`Factor ${i + 1} high`} /></label>
+                {doeFs.length > DOE_MIN_FACTORS && <button type="button" className="linkish" onClick={() => setDoeFs(fs => fs.filter((_, k) => k !== i))} aria-label={`Take off factor ${i + 1}`}>Take off</button>}
+              </div>
+            ))}
+            {doeFs.length < DOE_MAX_FACTORS && <button type="button" className="btn" onClick={() => setDoeFs(fs => [...fs, { name: '', unit: '', low: '', high: '' }])}>Add a factor</button>}
+          </div>
+          <div className="ie-kinds" role="radiogroup" aria-label="Times each corner is run">
+            <span className="field-label">Times each corner is run <i className="sub">2 or more gives the noise from the runs themselves</i></span>
+            {Array.from({ length: DOE_MAX_REPLICATES }, (_, i) => String(i + 1)).map(n => <button key={n} type="button" role="radio" aria-checked={doeRep === n} className={'chip' + (doeRep === n ? ' on' : '')} onClick={() => setDoeRep(n)}>{n}</button>)}
+          </div>
+          <div className="ie-kinds" role="radiogroup" aria-label="Centre runs">
+            <span className="field-label">Centre runs <i className="sub">every factor at its middle — 2 or more let curvature be seen</i></span>
+            {Array.from({ length: DOE_MAX_CENTRE + 1 }, (_, i) => String(i)).map(n => <button key={n} type="button" role="radio" aria-checked={doeCentre === n} className={'chip' + (doeCentre === n ? ' on' : '')} onClick={() => setDoeCentre(n)}>{n}</button>)}
+          </div>
+          <p className="sub ie-wide">{doeDraft.factors.length >= DOE_MIN_FACTORS && Number.isFinite(doeDraft.replicates) ? `${2 ** doeDraft.factors.length * doeDraft.replicates + (doeDraft.centre ?? 0)} runs in all, in a random order shuffled from ${doeSeed} and kept.` : 'The runs are counted once the factors are in.'}</p>
+          <details className="ie-wide ie-agree-more"><summary>What the experiment costs — optional</summary>
+            <div className="ie-agree-grid">
+              <label className="field"><span className="field-label">Packs one run makes</span>
+                <input className="text-input" inputMode="numeric" value={packsRunT} onChange={e => setPacksRunT(e.target.value)} placeholder="200" aria-label="Packs one run makes" /></label>
+              <label className="field"><span className="field-label">Materials a pack <i className="sub">£</i></span>
+                <input className="text-input" inputMode="decimal" value={matRunT} onChange={e => setMatRunT(e.target.value)} placeholder="0.12" aria-label="Materials a pack" /></label>
+            </div>
+          </details>
+        </>}
+        {kind === 'strat' && <>
+          <div className="ie-kinds ie-wide" role="radiogroup" aria-label="How was it taken?">
+            <span className="field-label">How was it taken?</span>
+            <button type="button" role="radio" aria-checked={stratData === 'counted'} className={'ie-kind' + (stratData === 'counted' ? ' on' : '')} onClick={() => setStratData('counted')}><b>Counted</b><small>rejected out of made, a record each</small></button>
+            <button type="button" role="radio" aria-checked={stratData === 'measured'} className={'ie-kind' + (stratData === 'measured' ? ' on' : '')} onClick={() => setStratData('measured')}><b>Measured</b><small>a weight, a temperature, a time — a reading each</small></button>
+          </div>
+          <div className="ie-kinds ie-wide" role="group" aria-label="Factors to split by">
+            <span className="field-label">Split by — tap the ones you tagged the data with</span>
+            {STRAT_CHOICES.map(c => {
+              const on = names(factorsT).some(x => x.toLowerCase() === c.toLowerCase());
+              return <button key={c} type="button" aria-pressed={on} className={'chip' + (on ? ' on' : '')} onClick={() => setFactorsT(names(factorsT).filter(x => x.toLowerCase() !== c.toLowerCase()).concat(on ? [] : [c]).join(', '))}>{c}</button>;
+            })}
+          </div>
+          <label className="field ie-wide"><span className="field-label">The factors <i className="sub">one to {STRAT_MAX_FACTORS}, separated by commas — type the floor’s own too (Head, Lot)</i></span>
+            <input className="text-input" value={factorsT} onChange={e => setFactorsT(e.target.value)} placeholder="Shift, Product" aria-label="The factors" /></label>
+          {stratData === 'counted' && <label className="field"><span className="field-label">What one reject costs <i className="sub">optional, £ — only to say the excess in money</i></span>
+            <input className="text-input" inputMode="decimal" value={costEachT} onChange={e => setCostEachT(e.target.value)} placeholder="0.60" aria-label="What one reject costs" /></label>}
         </>}
         {kind === 'groups' && <label className="field"><span className="field-label">What the groups are <i className="sub">optional — a word for the words</i></span>
           <input className="text-input" value={first} maxLength={30} onChange={e => setFirst(e.target.value)} placeholder="shift" /></label>}
@@ -401,6 +477,8 @@ export function agreedWords(a: AgreedAnalysis): string {
     case 'shape': { const s = a.shape; return `${a.name}${u ? ` in${u}` : ''} — which shape fits${s?.lower !== undefined ? `, a lower limit of ${s.lower}${u}` : ''}${s?.upper !== undefined ? `, an upper limit of ${s.upper}${u}` : ''} · ${c}`; }
     case 'grr': { const g = a.grr; return `${a.name}${u ? ` in${u}` : ''} — ${g?.parts.length ?? 0} parts × ${g?.appraisers.length ?? 0} appraisers × ${g?.trials ?? 2} trials${g?.lower !== undefined && g?.upper !== undefined ? ` · tolerance ${g.lower}–${g.upper}${u}` : ''}`; }
     case 'attr': { const g = a.attr; return `${a.name} — ${g?.items.length ?? 0} pieces × ${g?.inspectors.length ?? 0} inspectors × ${g?.looks ?? 2} looks · reference on every piece`; }
+    case 'strat': { const g = a.strat; return `${a.name}${u ? ` in${u}` : ''} — where it lives, ${g?.data === 'measured' ? 'measured' : 'counted'}, split by ${(g?.factors ?? []).join(', ') || 'its factors'} · ${c}`; }
+    case 'doe': { const g = a.doe; return `${a.name}${u ? ` in${u}` : ''} — ${g?.factors.length ?? 0} factors at two levels (${(g?.factors ?? []).map(x => x.name).join(', ')}), ${g?.replicates ?? 1} run${(g?.replicates ?? 1) === 1 ? '' : 's'} each${g?.centre ? `, ${g.centre} at the centre` : ''} · ${c}`; }
     case 'plan': return `${a.name} — how many readings · ${c}`;
   }
 }
@@ -442,6 +520,8 @@ function Entry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReadi
   if (a.kind === 'gauge' && a.gauge?.mode === 'range') return <GaugeRangeEntry a={a} readings={readings} onAdd={onAdd} />;
   if (a.kind === 'grr') return <GrrEntry a={a} readings={readings} onAdd={onAdd} />;
   if (a.kind === 'attr') return <AttrEntry a={a} readings={readings} onAdd={onAdd} />;
+  if (a.kind === 'strat') return <StratEntry a={a} readings={readings} onAdd={onAdd} />;
+  if (a.kind === 'doe') return <DoeEntry a={a} readings={readings} onAdd={onAdd} />;
   return <SimpleEntry a={a} readings={readings} onAdd={onAdd} />;
 }
 
@@ -651,13 +731,18 @@ function GaugeRangeEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: 
 
 /** A small table beside the picture — the references of a gauge, the shapes tried. The paper draws the same grid. */
 function GridView({ g }: { g: Grid }) {
+  const table = (
+    <table className="ie-tbl">
+      <thead><tr>{g.head.map((h, i) => <th key={h + i} scope="col" className={i === 0 ? 'ie-tbl-corner' : ''}>{h}</th>)}</tr></thead>
+      <tbody>{g.rows.map((r, i) => <tr key={i} className={g.mark?.includes(i) ? 'is-lead' : ''}>{r.map((c, j) => (j === 0 ? <th key={j} scope="row">{c}</th> : <td key={j}>{c}</td>))}</tr>)}</tbody>
+    </table>
+  );
+  /* a long table (the runs of a designed experiment, thirty effects) folds; the paper prints it whole */
+  if (g.rows.length > 16) return <details className="ie-tbl-wrap ie-grid" aria-label={g.label}><summary className="sub ie-grid-label"><b>{g.label}</b> — {g.rows.length} rows</summary>{table}</details>;
   return (
     <div className="ie-tbl-wrap ie-grid" role="group" aria-label={g.label}>
       <p className="sub ie-grid-label"><b>{g.label}</b></p>
-      <table className="ie-tbl">
-        <thead><tr>{g.head.map((h, i) => <th key={h} scope="col" className={i === 0 ? 'ie-tbl-corner' : ''}>{h}</th>)}</tr></thead>
-        <tbody>{g.rows.map((r, i) => <tr key={i} className={g.mark?.includes(i) ? 'is-lead' : ''}>{r.map((c, j) => (j === 0 ? <th key={j} scope="row">{c}</th> : <td key={j}>{c}</td>))}</tr>)}</tbody>
-      </table>
+      {table}
     </div>
   );
 }
@@ -720,6 +805,101 @@ function RelateEntry({ a, onAdd }: { a: AgreedAnalysis; onAdd: OnAdd }) {
           <textarea className="text-input" rows={3} value={text} onChange={e => setText(e.target.value)} aria-label="Paste rows" placeholder={Array.from({ length: 2 }, (_, r) => Array.from({ length: width }, (_c, c) => (r * 5 + c * 3 + 10)).join(' ')).join('\n')} /></label>
         <button type="button" className="btn" disabled={!text.trim()} onClick={() => { const p = parseRows(text, width); if (p.rows.length) onAdd(p.rows.map(r => ({ xs: r.slice(0, ds.length), value: r[ds.length] }))); setSkipped(p.skipped); setText(''); }}>Add these rows</button>
         {skipped.length > 0 && <p className="ie-problem" role="status">Left out — not {width} numbers: {skipped.slice(0, 4).join(' | ')}{skipped.length > 4 ? `, and ${skipped.length - 4} more` : ''}.</p>}
+      </div>
+    </div>
+  );
+}
+
+/** A designed experiment: the next run to make, its settings said, the response typed (or the responses pasted in run order). */
+function DoeEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReading[]; onAdd: OnAdd }) {
+  const d = a.doe;
+  const plan = useMemo(() => (d ? doePlan(d) : []), [d]);
+  const done = useMemo(() => new Set(readings.filter(r => !r.struck && typeof r.value === 'number').map(r => Number(r.arm))), [readings]);
+  const todo = plan.filter(p => !done.has(p.no)), next = todo[0];
+  const [val, setVal] = useState(''), [text, setText] = useState(''), [skipped, setSkipped] = useState<string[]>([]);
+  if (!d) return null;
+  const v = num(val), u = a.unit ? ` ${a.unit}` : '';
+  const reading = (run: (typeof plan)[number], value: number): Omit<StudyReading, 'id' | 'at'> => ({ arm: String(run.no), group: run.rep, xs: run.levels, value });
+  const add = () => { if (!next || v === undefined) return; onAdd([reading(next, v)]); setVal(''); };
+  return (
+    <div className="ie-cap-box" aria-label="Make the runs">
+      {next ? <>
+        <p className="ie-pad-hint">Run <b>{next.no}</b> of {plan.length}{next.centre ? ' — a centre run' : ''}: set <b>{doeRunWords(d, next)}</b>. Make it, then type {a.name.trim() || 'the response'}{u}.</p>
+        <div className="ie-agree-grid">
+          <label className="field"><span className="field-label">Response — run {next.no}</span>
+            <input className="text-input" inputMode="decimal" value={val} onChange={e => setVal(e.target.value)} aria-label={`Response of run ${next.no}`} placeholder="10.4" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} /></label>
+        </div>
+        <button type="button" className="btn btn-primary" disabled={v === undefined} onClick={add}>Add the response</button>
+        {todo.length > 1 && <p className="sub ie-pad-hint">Then: {todo.slice(1, 4).map(p => `run ${p.no} — ${doeRunWords(d, p)}`).join(' · ')}{todo.length > 4 ? ` · and ${todo.length - 4} more` : ''}.</p>}
+      </> : <p className="ie-pad-hint">Every run is made — {plan.length} of {plan.length}.</p>}
+      <div className="ie-paste">
+        <label className="field"><span className="field-label">Or paste the responses in run order — a number to a line, from run {next?.no ?? plan.length + 1}</span>
+          <textarea className="text-input" rows={3} value={text} onChange={e => setText(e.target.value)} aria-label="Paste responses" placeholder={'10.2\n13.1\n11.0'} /></label>
+        <button type="button" className="btn" disabled={!text.trim() || !next} onClick={() => {
+          const toks = text.split(/[\s,;]+/).filter(Boolean), nums = toks.map(t => (/^[+-]?(\d+\.?\d*|\.\d+)$/.test(t) ? Number(t) : NaN));
+          const good = nums.filter(Number.isFinite) as number[], bad = toks.filter((_, i) => !Number.isFinite(nums[i]));
+          const rows = good.slice(0, todo.length).map((value, i) => reading(todo[i], value));
+          if (rows.length) onAdd(rows);
+          setSkipped([...bad, ...good.slice(todo.length).map(String)]); setText('');
+        }}>Add these responses</button>
+        {skipped.length > 0 && <p className="ie-problem" role="status">Left out — not a number, or beyond the last run: {skipped.slice(0, 6).join(', ')}{skipped.length > 6 ? `, and ${skipped.length - 6} more` : ''}.</p>}
+      </div>
+    </div>
+  );
+}
+
+/** Stratification: a chip row a factor (its levels seen so far, a new one by name), the counts or the reading, and rows pasted from a sheet. */
+function StratEntry({ a, readings, onAdd }: { a: AgreedAnalysis; readings: StudyReading[]; onAdd: OnAdd }) {
+  const g = a.strat ?? { factors: [], data: 'counted' as const }, counted = g.data !== 'measured';
+  const seen = useMemo(() => g.factors.map(fa => { const out: string[] = []; for (const r of readings) { const t = r.tags?.[fa]; if (t && !out.includes(t)) out.push(t); } return out; }), [g.factors, readings]);
+  const [extra, setExtra] = useState<Record<string, string[]>>({}), [sel, setSel] = useState<Record<string, string>>({}), [fresh, setFresh] = useState<Record<string, string>>({});
+  const [made, setMade] = useState(''), [rej, setRej] = useState(''), [val, setVal] = useState(''), [text, setText] = useState(''), [skipped, setSkipped] = useState<string[]>([]);
+  const levelsOf = (i: number): string[] => { const fa = g.factors[i]; return [...seen[i], ...(extra[fa] ?? []).filter(x => !seen[i].includes(x))]; };
+  const chosen = (i: number): string => { const fa = g.factors[i], all = levelsOf(i); return all.includes(sel[fa]) ? sel[fa] : ''; };
+  const addLevel = (i: number) => {
+    const fa = g.factors[i], t = (fresh[fa] ?? '').trim(); if (!t) return;
+    const all = levelsOf(i), hit = all.find(x => x.toLowerCase() === t.toLowerCase());
+    if (!hit) setExtra(e => ({ ...e, [fa]: [...(e[fa] ?? []), t] }));
+    setSel(s => ({ ...s, [fa]: hit ?? t })); setFresh(f => ({ ...f, [fa]: '' }));
+  };
+  const nMade = num(made), nRej = num(rej), nVal = num(val);
+  const tagsOk = g.factors.every((_, i) => chosen(i));
+  const ok = tagsOk && (counted ? nMade !== undefined && nRej !== undefined && Number.isInteger(nMade) && Number.isInteger(nRej) && nMade > 0 && nRej >= 0 && nRej <= nMade : nVal !== undefined);
+  const tags = (): Record<string, string> => Object.fromEntries(g.factors.map((fa, i) => [fa, chosen(i)]));
+  const add = () => { if (!ok) return; onAdd([counted ? { tags: tags(), made: nMade as number, rejected: nRej as number } : { tags: tags(), value: nVal as number }]); setMade(''); setRej(''); setVal(''); };
+  const nIn = (fa: string, lv: string) => readings.filter(r => !r.struck && r.tags?.[fa] === lv).length;
+  return (
+    <div className="ie-cap-box" aria-label="Take the records">
+      {g.factors.map((fa, i) => (
+        <div key={fa}>
+          <div className="chip-row" role="radiogroup" aria-label={`Which ${fa.toLowerCase()}?`}>
+            {levelsOf(i).map(lv => <button key={lv} type="button" role="radio" aria-checked={chosen(i) === lv} className={'chip' + (chosen(i) === lv ? ' on' : '')} onClick={() => setSel(s => ({ ...s, [fa]: lv }))}>{lv} · {nIn(fa, lv)}</button>)}
+          </div>
+          <div className="ie-kind-taps">
+            <label className="field"><span className="field-label">{levelsOf(i).length ? `Another ${fa.toLowerCase()}` : `Name the first ${fa.toLowerCase()}`}</span>
+              <input className="text-input" value={fresh[fa] ?? ''} maxLength={30} onChange={e => setFresh(f => ({ ...f, [fa]: e.target.value }))} aria-label={`New ${fa.toLowerCase()}`} placeholder={fa === 'Shift' ? 'Nights' : fa === 'Product' ? 'Product A' : 'Name'}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLevel(i); } }} /></label>
+            <button type="button" className="btn" disabled={!(fresh[fa] ?? '').trim()} onClick={() => addLevel(i)}>Add the {fa.toLowerCase()}</button>
+          </div>
+        </div>
+      ))}
+      <div className="ie-agree-grid">
+        {counted ? <>
+          <label className="field"><span className="field-label">Made</span>
+            <input className="text-input" inputMode="numeric" value={made} onChange={e => setMade(e.target.value)} placeholder="24000" aria-label="Made" /></label>
+          <label className="field"><span className="field-label">Rejected</span>
+            <input className="text-input" inputMode="numeric" value={rej} onChange={e => setRej(e.target.value)} placeholder="120" aria-label="Rejected" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} /></label>
+        </> : (
+          <label className="field"><span className="field-label">The reading{a.unit ? <i className="sub"> in {a.unit}</i> : null}</span>
+            <input className="text-input" inputMode="decimal" value={val} onChange={e => setVal(e.target.value)} placeholder="1.2" aria-label="The reading" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} /></label>
+        )}
+      </div>
+      <button type="button" className="btn btn-primary" disabled={!ok} onClick={add}>{tagsOk ? 'Add the record' : `Pick a level of each: ${g.factors.filter((_, i) => !chosen(i)).join(', ')}`}</button>
+      <div className="ie-paste">
+        <label className="field"><span className="field-label">Or paste records — a line each: {g.factors.join(', ')}, {counted ? 'made, rejected' : 'the reading'} (tabs or commas)</span>
+          <textarea className="text-input" rows={4} value={text} onChange={e => setText(e.target.value)} aria-label="Paste records" placeholder={counted ? `${g.factors.map(fa => (fa === 'Shift' ? 'Days' : fa === 'Product' ? 'Product A' : 'Level 1')).join(', ')}, 24000, 120` : `${g.factors.map(fa => (fa === 'Shift' ? 'Days' : 'Level 1')).join(', ')}, 1.2`} /></label>
+        <button type="button" className="btn" disabled={!text.trim()} onClick={() => { const p = parseStrat(text, g.factors, g.data); if (p.rows.length) onAdd(p.rows); setSkipped(p.skipped); setText(''); }}>Add these records</button>
+        {skipped.length > 0 && <p className="ie-problem" role="status">Left out — not {g.factors.length + (counted ? 2 : 1)} cells ({counted ? 'whole numbers, rejected no more than made' : 'a number last'}): {skipped.slice(0, 4).join(' | ')}{skipped.length > 4 ? `, and ${skipped.length - 4} more` : ''}.</p>}
       </div>
     </div>
   );
@@ -820,7 +1000,7 @@ function PlanBox({ a, canAgree, onPlan }: { a: AgreedAnalysis; canAgree: boolean
 function Rows({ a, readings, canStrike, onStrike }: { a: AgreedAnalysis; readings: StudyReading[]; canStrike: boolean; onStrike: (id: string, struck: boolean) => void }) {
   if (!readings.length) return null;
   const u = a.unit ? ` ${a.unit}` : '';
-  const word = (r: StudyReading): string => (a.kind === 'attr' && r.arm && r.col && typeof r.value === 'number' ? `${r.arm} · ${r.col}${r.col !== 'reference' ? ` · look ${r.group ?? 1}` : ' (reference)'}: ${verdictWord(r.value)}` : a.kind === 'grr' && r.arm && r.col && typeof r.value === 'number' ? `${r.arm} · ${r.col} · trial ${r.group ?? 1}: ${r.value}${u}` : r.col !== undefined && typeof r.made === 'number' ? `${r.arm} × ${r.col}: ${r.made}` : Array.isArray(r.xs) && typeof r.value === 'number' ? `${r.xs.join(', ')} → ${r.value}${u}` : typeof r.with === 'number' && a.kind === 'gauge' ? `${r.value}${u} against ${r.with}${u}` : typeof r.with === 'number' ? `${r.value}${u} → ${r.with}${u}` : typeof r.made === 'number' ? `${r.rejected} of ${r.made}${a.kind === 'sure' && a.of === 'rate' ? ` over ${r.made}${u}`.replace(/^ of.*/, '') : ''}` : typeof r.value === 'number' ? `${r.value}${u}` : '—');
+  const word = (r: StudyReading): string => (a.kind === 'strat' ? stratRecordWord(a, r) : a.kind === 'doe' ? doeReadingWord(a, r) : a.kind === 'attr' && r.arm && r.col && typeof r.value === 'number' ? `${r.arm} · ${r.col}${r.col !== 'reference' ? ` · look ${r.group ?? 1}` : ' (reference)'}: ${verdictWord(r.value)}` : a.kind === 'grr' && r.arm && r.col && typeof r.value === 'number' ? `${r.arm} · ${r.col} · trial ${r.group ?? 1}: ${r.value}${u}` : r.col !== undefined && typeof r.made === 'number' ? `${r.arm} × ${r.col}: ${r.made}` : Array.isArray(r.xs) && typeof r.value === 'number' ? `${r.xs.join(', ')} → ${r.value}${u}` : typeof r.with === 'number' && a.kind === 'gauge' ? `${r.value}${u} against ${r.with}${u}` : typeof r.with === 'number' ? `${r.value}${u} → ${r.with}${u}` : typeof r.made === 'number' ? `${r.rejected} of ${r.made}${a.kind === 'sure' && a.of === 'rate' ? ` over ${r.made}${u}`.replace(/^ of.*/, '') : ''}` : typeof r.value === 'number' ? `${r.value}${u}` : '—');
   return (
     <details className="ie-readings">
       <summary>Every reading, in the order taken ({readings.length})</summary>

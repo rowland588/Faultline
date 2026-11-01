@@ -64,6 +64,7 @@ const MapScreen = lazy(() => import('./tools/valuestream/MapScreen').then(m => (
 const ChangeoverScreen = lazy(() => import('./tools/changeover/ChangeoverScreen').then(m => ({ default: m.ChangeoverScreen })));
 const AnalysisScreen = lazy(() => import('./tools/analysis/AnalysisScreen').then(m => ({ default: m.AnalysisScreen })));
 const CalcScreen = lazy(() => import('./tools/calc/CalcScreen').then(m => ({ default: m.CalcScreen })));
+const DocScreen = lazy(() => import('./tools/doc/DocScreen').then(m => ({ default: m.DocScreen })));
 const ScoredScreen = lazy(() => import('./tools/scored/ScoredScreen').then(m => ({ default: m.ScoredScreen })));
 const RegisterScreen = lazy(() => import('./tools/registers/RegisterScreen').then(m => ({ default: m.RegisterScreen })));
 const MaintenanceBoardScreen = lazy(() => import('./tools/board/BoardScreen').then(m => ({ default: m.BoardScreen })));
@@ -222,6 +223,8 @@ function app(route: Route) {
   if (route.name === 'lineTools') return <LineToolsScreen key={`${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} tool={route.view === 'balance' ? 'balance' : route.view === 'work' ? 'work' : 'map'} />;
   /* a calculator (knowledge/specs/FC-235-calculators.md): the hub, one calculator's saved ones, one saved calculation */
   if ((route.name === 'studies' || (route.name === 'study' && route.id)) && route.view === 'calc') return <CalcScreen key={`${route.key ?? ''}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} calcKey={route.key} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
+  /* a document (knowledge/specs/FC-240-documents.md): the hub, one kind's saved ones, one saved document */
+  if ((route.name === 'studies' || (route.name === 'study' && route.id)) && route.view === 'doc') return <DocScreen key={`${route.key ?? ''}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} docKey={route.key} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
   if ((route.name === 'studies' || (route.name === 'study' && route.id)) && route.view === 'scored') return <ScoredScreen key={`${route.key ?? ''}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} scoredKey={route.key} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
   /* the register tools (m6-registers): product on hold, horizontal deployment, the daily meeting, the fault tree */
   if ((route.name === 'studies' || (route.name === 'study' && route.id)) && isRegisterView(route.view)) return <RegisterScreen key={`${route.view}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}:${route.query.get('tier') ?? ''}`} view={route.view} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;

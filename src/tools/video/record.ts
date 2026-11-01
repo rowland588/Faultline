@@ -166,6 +166,11 @@ export interface VideoSource {
   job: VideoJob;
   /** The demand and the time to make it in, when takt is asked for. */
   demand?: { units: number; unit: string; availableMin: number; per: 'shift' | 'day' };
+  /** The reviewer's pace rating at each station, by zone id (100 is the standard pace, BS 3138). Footage cannot show pace — a person judges it,
+   *  and a station never rated is taken at 100 and says so (FC-021, knowledge/specs/FC-021-video-time-study.md). */
+  pace?: Record<string, number>;
+  /** The allowance the site agreed, as named parts typed by the site (tools/linework/allowance) — never supplied. */
+  allowance?: { id: string; name: string; pct: number }[];
   /** About how long one cycle is, as the person said it before filming — for how long to film. */
   cycleHintSec?: number;
   /** Where the phone was, as the person said it (lib/video/objectives VIEWPOINTS) — a fixed view, or in the hand. */

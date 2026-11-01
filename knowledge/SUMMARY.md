@@ -2,17 +2,17 @@
 
 Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write` — never typed. The catalogue test fails when this file is stale.
 
-**236 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
+**237 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 24 tools a person can open on a page of their own. Built inside them: 105 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 33. Not built yet: 55; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 29 tools a person can open on a page of their own. Built inside them: 116 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 31. Not built yet: 43; needing research: 11; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 147 |
-| Partly (`partial`) | 15 |
+| Available (`available`) | 163 |
+| Partly (`partial`) | 13 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 55 |
-| Research first (`research`) | 12 |
+| Not built yet (`to-build`) | 43 |
+| Research first (`research`) | 11 |
 | Left out on purpose (`left-out`) | 7 |
 
 ## By discipline
@@ -20,18 +20,18 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
 | Lean manufacturing and waste | 19 | 11 | 2 |  | 5 | 1 |  |
-| Industrial engineering and work measurement | 14 | 7 | 3 |  | 3 | 1 |  |
+| Industrial engineering and work measurement | 14 | 8 | 2 |  | 3 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 15 |  |  | 1 | 1 |  |
 | Equipment performance and losses | 10 | 8 |  |  |  |  | 2 |
 | Maintenance, reliability and TPM | 11 | 10 |  |  |  | 1 |  |
 | Changeovers | 5 | 2 | 2 |  | 1 |  |  |
 | Commissioning and operational readiness | 13 | 12 |  |  |  | 1 |  |
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
-| Statistical analysis | 15 | 13 |  |  | 1 | 1 |  |
+| Statistical analysis | 15 | 15 |  |  |  |  |  |
 | Measurement systems | 6 | 6 |  |  |  |  |  |
-| Quality engineering and defects | 14 | 6 |  |  | 6 | 2 |  |
-| Six Sigma and DMAIC | 8 | 2 | 2 |  | 4 |  |  |
-| Root cause and problem solving | 10 | 4 | 2 |  | 4 |  |  |
+| Quality engineering and defects | 14 | 8 |  |  | 4 | 2 |  |
+| Six Sigma and DMAIC | 8 | 6 | 1 |  | 1 |  |  |
+| Root cause and problem solving | 10 | 8 | 2 |  |  |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
 | Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |
@@ -39,8 +39,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Cost and operational performance | 6 | 5 |  |  |  |  | 1 |
 | Visual and daily management | 15 | 9 | 2 |  | 4 |  |  |
 | Ergonomics, layout and automation | 6 | 1 |  |  | 5 |  |  |
-| Projects and continuous improvement | 10 | 2 | 1 |  | 3 |  | 4 |
-| Skills and training | 4 | 1 | 1 |  | 2 |  |  |
+| Projects and continuous improvement | 11 | 3 | 1 |  | 3 |  | 4 |
+| Skills and training | 4 | 3 | 1 |  |  |  |  |
 | Energy, water and environment | 4 |  |  |  | 3 | 1 |  |
 
 ## By subdiscipline
@@ -65,18 +65,18 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - **Cost and operational performance** — Cost a pack 2 · Losses in money 2 · Investment and payback 2
 - **Visual and daily management** — Am I in control 2 · Daily management 5 · Gemba 2 · Measures and KPIs 2 · Talk and reports 4
 - **Ergonomics, layout and automation** — Manual handling 3 · Posture and repetition 2 · Layout and material flow 1
-- **Projects and continuous improvement** — The three kinds of change 1 · Running a project 5 · The improvement programme 4
+- **Projects and continuous improvement** — The three kinds of change 1 · Running a project 6 · The improvement programme 4
 - **Skills and training** — Skills 1 · Instruction 3
 - **Energy, water and environment** — Utilities 2 · Waste and carbon 2
 
 ## By the shape it takes
 
-- a tool of its own: 79
-- a mode of another tool: 78
-- a part several tools share: 31
+- a tool of its own: 78
+- a mode of another tool: 87
+- a part several tools share: 27
 - a way through several tools: 8
-- a report or board: 28
-- decided after research: 12
+- a report or board: 26
+- decided after research: 11
 
 ## Research first
 
@@ -85,7 +85,6 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - FC-047 Line simulation — stops, buffers and output — Needs repair times measured first, and must stay simple.
 - FC-065 Reliability-centred maintenance — Heavy; for the critical few.
 - FC-085 Line acceptance on the EN 415-11 time model — A common language with OEMs — once the standard’s text is read.
-- FC-112 Optimising settings — response surface — Specialist; after a factorial.
 - FC-129 Acceptance sampling by attributes — AQL plans — The ISO tables are copyright — research how to offer plans honestly.
 - FC-130 Acceptance sampling by variables — Needs the standard’s tables.
 - FC-175 Shelf-life studies — Microbiological design is specialist.
@@ -105,23 +104,24 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## The backlog — what to build first (`src/catalogue/backlog.ts`)
 
-1. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
+1. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Partly) — Horizontal deployment — the factory already knows every line’s machines.
 2. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
 
 ## Where related capabilities could be combined
 
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
-- FC-105 Before and after — did it move, for a reason — 11 modes inside it
+- FC-105 Before and after — did it move, for a reason — 13 modes inside it
 - FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 9 modes inside it
+- FC-240 Documents — a page the team agrees: charter, SIPOC, customer needs, Kano, 8D report — 9 modes inside it
 - FC-073 The stage gate — new equipment to handover — 7 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 5 modes inside it
 - FC-058 Reliability — MTBF and failure rate, several things counted at once — 5 modes inside it
-- FC-001 Value stream map — current and future state — 4 modes inside it
 - FC-086 Individuals and moving range chart (XmR) — 4 modes inside it
+- FC-001 Value stream map — current and future state — 3 modes inside it
 - FC-098 Reject rate capability — rejects out of what was made — 3 modes inside it
-- FC-146 6M — a running line made to perform better — 3 modes inside it
 - FC-049 Loss count — a shift’s time model and the waterfall — 2 modes inside it
 - FC-068 SMED — a changeover timed, separated and cut down — 2 modes inside it
+- FC-146 6M — a running line made to perform better — 2 modes inside it
 - FC-081 The filmed walk and its problems — the punch list — 1 modes inside it
 - FC-022 Work sampling — what people are doing at random moments — 1 modes inside it
 - FC-154 Problems register — priority, journey, where it sits — 1 modes inside it

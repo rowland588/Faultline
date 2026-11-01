@@ -51,3 +51,26 @@ describe('evidencePair', () => {
     expect(evidencePair(two).followup?.id).toBe('b');
   });
 });
+
+describe('the A3 worked case and the fishbone it reads (cases-doc.py A1 — the record’s leaking seals on lane 3)', () => {
+  const answers = {
+    why: 'Leakers cost a retailer complaint and £800 a week', current: 'Lane 3 at 3.2% against 0.3% on the others', currentnum: '3.2%', target: '0.3% on lane 3 by 14 Nov',
+    root: 'The new jaw’s heater reads low', plan: 'Calibrate 7 Nov, checklist 10 Nov',
+    counter: 'Calibrate the heater at every jaw change | Engineering | 7 Nov | the new jaw’s heater', 'counter@2': 'Jaw-change checklist | Production | 10 Nov | the new jaw’s heater',
+  };
+  it('six of seven blocks written, two countermeasures that all name a cause, the follow-up still open', () => {
+    const s = a3Sheet(answers);
+    expect(s.written).toBe(6);
+    expect(s.cms.length).toBe(2);
+    expect(s.noCause).toBe(0);
+    expect(s.says).toBe('6 of 7 blocks written · the follow-up is not written — the page lives until it is.');
+  });
+  it('says what the fishbone holds at the analysis, and which root no countermeasure names', () => {
+    const one = a3Sheet(answers, { causes: [{ text: 'The new jaw’s heater reads low', root: true, whys: 3 }, { text: 'Film batch', root: false, whys: 1 }] });
+    expect(one.blocks[3].evidence).toEqual({ title: 'The project’s fishbone', says: '2 causes on the fishbone, 1 marked as the root: “The new jaw’s heater reads low” (3 whys). Every root has a countermeasure that names it.' });
+    const two = a3Sheet(answers, { causes: [{ text: 'The new jaw’s heater reads low', root: true, whys: 3 }, { text: 'Film tension', root: true, whys: 1 }] });
+    expect(two.blocks[3].evidence?.says).toBe('2 causes on the fishbone, 2 marked as the root: “The new jaw’s heater reads low” (3 whys); “Film tension” (1 why). No countermeasure names “Film tension” yet.');
+    expect(a3Sheet(answers, { causes: [{ text: 'x', root: false, whys: 0 }] }).blocks[3].evidence?.says).toBe('1 cause on the fishbone, none marked as the root yet.');
+    expect(a3Sheet(answers, { causes: [] }).blocks[3].evidence).toBeUndefined();
+  });
+});

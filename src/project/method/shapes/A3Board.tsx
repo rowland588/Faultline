@@ -12,6 +12,8 @@ import { APP_TOOLS } from '../../../catalogue/registry';
 import { nav } from '../../../state/useRoute';
 import { inProject } from '../../../lib/inProject';
 import type { ShapeProps } from './index';
+import { loadCauses } from './a3Causes';
+import type { CauseRead } from './a3Model';
 import { CM_COLUMNS, a3Sheet, cmField, cmRows, evidencePair, joinCm, type A3Block, type A3Evidence, type A3Field, type Countermeasure } from './a3Model';
 import './a3.css';
 
@@ -74,9 +76,17 @@ function Countermeasures({ answers, canEdit, save, extra, addRow }: { answers: R
 export function A3Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
   const studies = useProjectStudies(projectId);
   const [extra, setExtra] = useState(0);
+  const [causes, setCauses] = useState<CauseRead[]>([]);
+  useEffect(() => {
+    let live = true;
+    const load = () => void loadCauses(projectId).then(c => { if (live) setCauses(c); }).catch(() => undefined);
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [projectId]);
   const pair = evidencePair(studies);
   const cur = evidenceOf(pair.current, studies), fol = evidenceOf(pair.followup, studies);
-  const sheet = a3Sheet(answers, { ...(cur ? { current: cur.ev } : {}), ...(fol ? { followup: fol.ev } : {}) });
+  const sheet = a3Sheet(answers, { ...(cur ? { current: cur.ev } : {}), ...(fol ? { followup: fol.ev } : {}), causes });
   const open = (s: ToolStudy) => nav(inProject(studyHref(s), projectId));
   const toolId = (key: string) => APP_TOOLS.find(t => t.key === key)?.id;
   const header = (id: string, label: string) => ({ id, label, hint: '', line: true, value: (answers[id] ?? '').trim() });
@@ -110,6 +120,7 @@ export function A3Board({ projectId, answers, canEdit, save, onTool }: ShapeProp
         ? <Countermeasures answers={answers} canEdit={canEdit} save={save} extra={extra} addRow={() => setExtra(Math.max(extra, cmRows(answers).length) + 1)} />
         : b.fields.map(fd => <Field key={fd.id} fd={fd} canEdit={canEdit} save={save} />)}
       {(b.n === 2 || b.n === 7) && evidence(b)}
+      {b.n === 4 && b.evidence && <div className="a3-ev" aria-label="Analysis — what the project’s fishbone says"><p className="a3-ev-t">{b.evidence.title}</p><p className="a3-ev-s">{b.evidence.says}</p></div>}
       {b.n === 4 && doorTo('Open the fishbone and five whys', `/project/${projectId}/fishbone`)}
       {b.n === 5 && doorTo('Open this project’s Actions', `/project/${projectId}/actions`)}
       {b.n === 5 && sheet.noCause > 0 && <p className="a3-warn" role="status">{sheet.noCause} countermeasure{sheet.noCause === 1 ? ' names' : 's name'} no cause — without one it is a to-do, not a countermeasure.</p>}

@@ -77,6 +77,9 @@ function blocksOf(r: LineReport, d: Density): Block[] {
     out.push(text({ text: r.reading.looking.more, size: 8, colour: MUTED, after: gap(d, 'm') }));
   }
 
+  /* A PROVED FIX OFFERED ACROSS THE LINES (FC-155) — each fix proved here with where it stands, and each offered to this line */
+  for (const x of r.reading.spread ?? []) out.push(text({ text: x, size: 8.5, colour: INK2, after: 3 }));
+
   /* THE PROBLEMS OPEN ON IT — priority order, the late in red. */
   out.push(leanHead('Problems open', r.problems.length ? `${r.problems.length} open` : undefined));
   if (!r.problems.length) out.push(text({ text: 'Nothing open on this line.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));

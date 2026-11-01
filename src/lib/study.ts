@@ -27,6 +27,7 @@ import type { FootageGone } from '../tools/video/footage';
 import type { ID } from '../types';
 import type { TalkTurn } from '../tools/talk/talk';
 import type { AgreedHolds, Hold } from '../tools/hold/hold';
+import type { DocPhoto, DocSigned, DocValues } from '../tools/doc/types';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
@@ -135,6 +136,8 @@ export interface StudyReading {
    *  relation's row — `xs` the drivers in the order agreed, `value` the result */
   col?: string;
   xs?: number[];
+  /** a stratification's record (FC-153): the level of each agreed factor this reading was taken at — { Shift: 'Nights', Product: 'A' } */
+  tags?: Record<string, string>;
   /** A failed item: what became of it (Rowland, 24 October — reworked, recovered by hand, or pure
    *  waste). Absent on every reading before: waste. */
   fate?: 'waste' | 'rework' | 'recovered';
@@ -661,6 +664,15 @@ export interface StudyAgreed {
   daily?: Record<string, unknown>;
   /** FC-152 — a fault tree. */
   tree?: Record<string, unknown>;
+  /** A DOCUMENT (FC-240, src/tools/doc): which definition it is, and — once the owner has signed it — who agreed it and when. What was
+   *  TYPED is not here but in `facts.docValues`: on a project the database keeps `agreed` for anyone but the owner, so a team's edits
+   *  to the words of a charter must live where the team may write (supabase/STUDIES.sql faultline_keep_study_agreement). */
+  doc?: AgreedDoc;
+}
+
+export interface AgreedDoc {
+  def: string;
+  signed?: DocSigned;
 }
 
 /** A board’s own typed fields — measures are read from sibling records on the line. */
@@ -691,6 +703,16 @@ export interface ScoredRow {
   scores?: Record<string, number | undefined>;
   /** A matrix option's cost in pounds, typed (optional) — shown beside the score, never in it. */
   cost?: number;
+  /** A PROCESS FMEA row (FC-132, src/tools/fmea): `name` is the failure mode. */
+  fmea?: FmeaData;
+  /** A CONTROL PLAN row (FC-133, src/tools/cplan): `name` is the characteristic. */
+  plan?: PlanData;
+  /** A HOLD of the product-on-hold register (FC-135, src/tools/hold): `name` is what is held. */
+  hold?: HoldData;
+  /** A NODE of a fault tree (FC-152, src/tools/faulttree): `name` is the event or gate. */
+  tree?: TreeData;
+  /** A RUN of a response-surface design (FC-112, src/tools/rsm): the coded settings of each factor and the response typed when it was made. */
+  run?: { x: number[]; y?: number };
   /** A PERSON of a skills matrix (FC-222): this row's `scores` are levels 0–4 by task; the shift they work, as typed. */
   shift?: string;
   /** An ITEM of a checklist register (FC-082 readiness, FC-178 hygienic design): its heading, where it comes from, what proves it, who owns it,
@@ -704,6 +726,43 @@ export interface ScoredRow {
   note?: string;
   severity?: string;
   stopper?: boolean;
+}
+/** One failure mode of a process FMEA (FC-132). Ratings are whole numbers 1–10; `ap` is the priority set by hand from a handbook the team holds (absent: the tool's own rule);
+ *  `after` the ratings once `done` (the day the action was in place and checked) is given, with `evidence`; `reason` why the controls are enough when there is no action; `cost` what one occurrence costs, £. */
+export interface FmeaData {
+  step?: string; effect?: string; cause?: string; prevention?: string; detection?: string;
+  s?: number; o?: number; d?: number; ap?: 'H' | 'M' | 'L';
+  action?: string; owner?: string; due?: string; done?: string; reason?: string; evidence?: string;
+  after?: { s?: number; o?: number; d?: number };
+  cost?: number; haccp?: boolean;
+}
+/** One hold of the product-on-hold register (FC-135): what is held, where, why, who may release it, the fate and the money's typed parts. All typed, none worked out. */
+export interface HoldData {
+  lot?: string; label?: string; where?: string; segregated?: boolean; qty?: number; reason?: string; cause?: string;
+  raisedOn?: string; raisedBy?: string; decider?: string; decideBy?: string; life?: number;
+  fate?: 'release' | 'concession' | 'rework' | 'regrade' | 'destroy';
+  decidedOn?: string; decidedBy?: string; grounds?: string; ref?: string;
+  hours?: number; extra?: number; lossPerPack?: number; disposal?: number;
+}
+/** What a response surface is made from (FC-112): the factors with the settings that are −1 and +1, the design, the centre runs, the seed the run order was shuffled from,
+ *  what is wanted, the response, a confirmation run, and (optional) what the runs cost. */
+export interface RsmSetup {
+  factors: { name: string; unit?: string; low: number; high: number }[];
+  design: 'ccf' | 'ccc' | 'bbd'; centre?: number; seed: number; goal?: 'min' | 'max'; response?: string; unit?: string; confirm?: number; packsPerRun?: number; materialsPerPack?: number;
+}
+/** One node of a fault tree (FC-152): under which gate it sits (none: the top event), AND or OR when it has causes below it, a basic event's probability for the period,
+ *  and — for a basic event — the other basic event it is the SAME as (a cause shared between two branches). */
+export interface TreeData { parent?: string; gate?: 'AND' | 'OR'; p?: number; same?: string }
+/** One characteristic of a control plan (FC-133): what is checked, against what, how, how often, by whom, recorded where, and what is done when it is not met.
+ *  `link` points at a check of a check log (the log's study and the check's id) so the plan reads whether it is due; `fmea` at the failure mode it controls. */
+export interface PlanData {
+  step?: string; spec?: string; method?: string; sample?: string; owner?: string; record?: string; reaction?: string;
+  /** product or process; the minutes between checks (or `event`, what triggers it: "every changeover"); the minutes one check takes; the sample size as a number */
+  kind?: 'product' | 'process'; event?: string; n?: number;
+  everyMin?: number; minutes?: number;
+  link?: { logId: string; checkId: string };
+  fmea?: { studyId: string; rowId: string };
+  haccp?: boolean;
 }
 
 /** A criterion of a matrix (Pugh): what matters in the choice, with a whole-number weight 1–5 (blank = 1). */
@@ -727,6 +786,19 @@ export interface AgreedScored {
   target?: number;
   /** What a day (a readiness list) or a shift (a skills matrix) of the line not making costs, £ — typed, or the line's; optional. */
   dayCost?: number;
+  /** A control plan (FC-133): what the checks are priced from — the line's speed, packs a minute; what a pack held after a failed check is worth, £; the minutes of a shift. All typed, or the line's; each optional. */
+  speed?: number;
+  packCost?: number;
+  shiftMin?: number;
+  /** Product on hold (FC-135): what a pack has cost to this point and the margin a pack, £; the carrying rate, % a year. */
+  costToDate?: number;
+  margin?: number;
+  carryPct?: number;
+  /** Fault tree (FC-152): what one occurrence of the top event costs, £, and the period every probability is for ("a year"). */
+  eventCost?: number;
+  period?: string;
+  /** Response surface (FC-112): the design and what is measured. */
+  rsm?: RsmSetup;
 }
 
 /** A CALCULATOR (src/tools/calc; knowledge/specs/FC-235-calculators.md — 25 October): which one it is (`key`, the name of its
@@ -745,7 +817,7 @@ export interface AgreedCalc {
  *  this figure, did it change, do two ways of measuring agree, how many readings do I need — and the readings or
  *  counts that answer it. W3b adds the groups, the counts in a table and the relations as more kinds. */
 export interface AgreedAnalysis {
-  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'learn' | 'gauge' | 'shape' | 'grr' | 'attr';
+  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'learn' | 'gauge' | 'shape' | 'grr' | 'attr' | 'strat' | 'doe';
   /** what is measured — "Fill weight", "Reject rate" */
   name: string;
   unit?: string;
@@ -779,6 +851,27 @@ export interface AgreedAnalysis {
   grr?: AgreedGrr;
   /** attribute agreement (FC-121): pieces × inspectors × looks vs a reference */
   attr?: AgreedAttr;
+  /** stratification (FC-153): the factors the data is split by, and whether it was counted or measured */
+  strat?: AgreedStrat;
+  /** a designed experiment (FC-111): the factors at two levels each, the replicates and the seed the run order was randomised from */
+  doe?: AgreedDoe;
+}
+/** STRATIFICATION (FC-153). Up to four factors named before the data is taken (Shift, Line, Machine, Product, Supplier … or the floor's own); each reading carries its level of each
+ *  in `tags`. `counted`: made and rejected out of it; `measured`: a value. `costEach` (£ a reject) is optional and only to say the excess in money. */
+export interface AgreedStrat {
+  factors: string[];
+  data: 'counted' | 'measured';
+  costEach?: number;
+}
+/** A DESIGNED EXPERIMENT (FC-111), two levels a factor. `replicates` (1–4) each corner is run; `centre` runs at the middle of every factor, to see curvature; `seed` the run order is shuffled
+ *  from (kept, so the order does not move). Optional money: the packs one run makes and what a pack's materials cost, only to say what the experiment costs. */
+export interface AgreedDoe {
+  factors: { name: string; unit?: string; low: number; high: number }[];
+  replicates: number;
+  centre?: number;
+  seed: number;
+  packsPerRun?: number;
+  materialsPerPack?: number;
 }
 /** GAUGE R&R (FC-118). Parts and appraisers are named before measuring; trials default to 2. Tolerance optional but needed for %GRR of tolerance. */
 export interface AgreedGrr {
@@ -1057,6 +1150,11 @@ export interface StudyFacts {
   results?: LogResult[];
   /** A CILT log's abnormality tags (src/tools/checks, FC-062): each a problem on the register, raised from a check. */
   tags?: LogTag[];
+  /** A DOCUMENT's boxes as typed (src/tools/doc): by box id — text, a number, or a list's rows. Replaced whole by the newer of two devices. */
+  docValues?: DocValues;
+  /** A DOCUMENT's photos (src/tools/doc): an id-keyed list, so two phones adding photos to one document both keep theirs; the files are
+   *  in the media store and go to the cloud with the document (cloud/mappers studies mediaKeys, supabase/DOC_PHOTOS.sql). */
+  docPhotos?: DocPhoto[];
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -1160,5 +1258,6 @@ export function factsOf(v: unknown): StudyFacts {
     ...(o.vevents !== undefined ? { vevents: listById<VideoEvent>(o.vevents) } : {}),
     ...(o.results !== undefined ? { results: listById<LogResult>(o.results) } : {}),
     ...(o.tags !== undefined ? { tags: listById<LogTag>(o.tags) } : {}),
-    ...(o.turns !== undefined ? { turns: listById<TalkTurn>(o.turns) } : {}) };
+    ...(o.turns !== undefined ? { turns: listById<TalkTurn>(o.turns) } : {}),
+    ...(o.docPhotos !== undefined ? { docPhotos: listById<DocPhoto>(o.docPhotos) } : {}) };
 }

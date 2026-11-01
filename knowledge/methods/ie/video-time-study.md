@@ -114,9 +114,8 @@ analyst to stand at.
 - [practice] Faultline's own design and measured accuracy — `docs/VIDEO.md`, `docs/VIDEO-DESIGN.md`, `docs/VIDEO-FEASIBILITY.md`, `scripts/video-eval.mjs`.
 
 ## In Faultline
-Built in part (FC-021): the video study (`src/tools/video/VideoScreen.tsx`)
-with footage fit checks, element marks proposed and reviewed on the
-footage, the ± per boundary, the balance against takt and its paper;
-accepted by `scripts/acceptance/video-study.mjs` and `video-fit.mjs`;
-accuracy measured by `scripts/video-eval.mjs`. Not yet: rating by the
-reviewer, allowances, and the cycles-needed sentence on the study.
+Built (FC-021; `knowledge/specs/FC-021-video-time-study.md`): the video study (`src/tools/video/VideoScreen.tsx`) with footage fit checks, element marks
+proposed and reviewed on the footage, the ± per boundary, the cycles still needed per station, the balance against takt, **the reviewer's pace rating per
+station and the site's allowance giving the basic and the standard time, a planned rate an hour and the allowance in money (1 November)**, and its paper;
+accepted by `scripts/acceptance/video-study.mjs`, `video-fit.mjs`, `video-check.mjs` and `video-standard.mjs`; accuracy measured by `scripts/video-eval.mjs`.
+Not built: changeovers from footage (SMED instead), micro-motion (a mode of its own, not built), a pace suggested by the app.

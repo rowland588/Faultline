@@ -86,6 +86,8 @@ function partBlocks(p: LineBundlePaper, part: LinePart, d: Density): Block[] {
       out.push(text({ text: reading.looking.says, size: 9, style: 'bold', colour: /stale/.test(reading.looking.says) ? TONE.r : /fading/.test(reading.looking.says) ? TONE.a : INK2, after: 2 }));
       out.push(text({ text: reading.looking.more, size: 8, colour: MUTED, after: gap(d, 'm') }));
     }
+    /* A PROVED FIX OFFERED ACROSS THE LINES (FC-155, tools/yokoten) — as the line's page says it */
+    for (const x of reading.spread ?? []) out.push(text({ text: x, size: 8.5, colour: INK2, after: 3 }));
   }
 
   /* WHAT IS OPEN — its problems, priority order, the late in red; its programs, machine by machine */

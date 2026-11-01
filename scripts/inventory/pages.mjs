@@ -549,6 +549,26 @@ export const PAGES = (sd, cap) => [
     { what: 'the page named Scored registers', sel: '.part-head .pace-title', text: /^Scored registers$/ },
     { what: 'equipment criticality as a card', sel: '.pl-tool-card', text: /Equipment criticality/ },
     { what: 'the Pugh matrix as a card (FC-143)', sel: '.pl-tool-card', text: /Pugh matrix/ },
+    { what: 'the process FMEA as a card (FC-132)', sel: '.pl-tool-card', text: /Process FMEA/ },
+    { what: 'the control plan as a card (FC-133)', sel: '.pl-tool-card', text: /Control plan/ },
+    { what: 'the fault tree as a card (FC-152)', sel: '.pl-tool-card', text: /Fault tree/ },
+    { what: 'optimising settings as a card (FC-112)', sel: '.pl-tool-card', text: /Optimising settings/ },
+  ] },
+  { name: 'Process FMEA — its list (FC-132)', path: '#/scored/fmea', must: [
+    { what: 'the page named Process FMEA, with New FMEA', sel: '.part-head .pace-title', text: /^Process FMEA$/ },
+    { what: 'New FMEA', sel: '.pace-head-actions .btn-primary', text: /^New FMEA$/ },
+  ] },
+  { name: 'Control plan — its list (FC-133)', path: '#/scored/control-plan', must: [
+    { what: 'the page named Control plan, with New control plan', sel: '.part-head .pace-title', text: /^Control plan$/ },
+    { what: 'New control plan', sel: '.pace-head-actions .btn-primary', text: /^New control plan$/ },
+  ] },
+  { name: 'Fault tree — its list (FC-152)', path: '#/scored/fault-tree', must: [
+    { what: 'the page named Fault tree, with New fault tree', sel: '.part-head .pace-title', text: /^Fault tree$/ },
+    { what: 'New fault tree', sel: '.pace-head-actions .btn-primary', text: /^New fault tree$/ },
+  ] },
+  { name: 'Optimising settings — its list (FC-112)', path: '#/scored/rsm', must: [
+    { what: 'the page named Optimising settings, with New optimisation', sel: '.part-head .pace-title', text: /^Optimising settings$/ },
+    { what: 'New optimisation', sel: '.pace-head-actions .btn-primary', text: /^New optimisation$/ },
   ] },
   { name: 'Pugh matrix — its list (FC-143)', path: '#/scored/pugh', must: [
     { what: 'the page named Pugh matrix, with New ranking', sel: '.part-head .pace-title', text: /^Pugh matrix$/ },
@@ -593,6 +613,35 @@ export const PAGES = (sd, cap) => [
     { what: 'the curve drawn, with its guides and dots', sel: '.calc-pic-svg polyline', n: 1 }, { what: 'the guides’ words — AQL, LQ, 95 in 100, 10 in 100', sel: '.calc-pic-lab', n: 4 },
     { what: 'what it does not say — the licence caveat', sel: '.calc-caveats li', text: /does not hold the tables of ISO 2859-1/ },
     { what: 'the line’s wage offered or typed', sel: '[data-field=rate] input', n: 1 },
+  ] },
+  /* THE DOCUMENTS (1 November, FC-240, knowledge/specs/FC-240-documents.md): the hub with every kind as a card and the saved ones; one kind's list; a saved charter ready to agree; a saved 8D report */
+  { name: 'Documents — the hub', path: '#/doc', must: [
+    { what: 'the page named Documents with Report ▾', sel: '.part-head .pace-title', text: /^Documents$/ }, { what: 'a card each kind of document, with what it is for', sel: '.calc-card', n: 5 },
+    { what: 'the charter card counting its saved one', sel: '[data-doc-card=charter] .calc-card-n', text: /1 saved/i },
+    { what: 'the saved documents, a row each with its kind and status', sel: '.lt-rows .lt-li', n: 3 },
+  ] },
+  { name: 'One kind of document — Project charter', path: '#/doc/charter', must: [
+    { what: 'the page named for the kind, with New charter', sel: '.part-head .pace-title', text: /^Project charter$/ }, { what: 'New charter', sel: '.pace-head-actions .btn-primary', text: /^New charter$/ },
+    { what: 'its saved ones, a row each with Rename and Delete', sel: '.lt-li .lt-acts', n: 1 },
+    { what: 'the documents that carry on from it', sel: '.calc-see .linkish', n: 2 },
+  ] },
+  { name: 'A document — a charter ready to agree', path: `#/doc/charter/${sd.docCharterId}`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
+    { what: 'the band with its status', sel: '.ln-band', text: /Ready to agree/ },
+    { what: 'the agreement box with its one button', sel: '[data-doc=sign] [data-doc-sign]', text: /^Agree the charter$/ },
+    { what: 'the sections of the charter', sel: '.doc-sec', n: 6 }, { what: 'the boxes, each saying needed or optional', sel: '.doc-field .field-label', n: 19 },
+    { what: 'the six tiles — filled in first', sel: '.doc-tiles .ln-tile', n: 6 }, { what: 'filled in', sel: '.doc-tiles .ln-tile', text: /Filled in\s*11 of 11/ },
+    { what: 'the sentence, in the floor’s words', sel: '[data-doc=sentence]', text: /^Reduce give-away on Line 3 from 4\.1 g a pack to 2 g a pack by 31 Mar 2027, worth £89,107 a year\./ },
+    { what: 'the team table', sel: '[data-doc-table="The team"] tbody tr', n: 5 },
+    { what: 'the money, said with its because', sel: '[data-doc=money]', text: /^Closing the gap is worth £89,107 a year because/ },
+    { what: 'what this does not say', sel: '.doc-caveats li', n: 4 }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' },
+  ] },
+  { name: 'A document — an 8D report with its photos', path: `#/doc/eight-d/${sd.docEightDId}`, must: [
+    { what: 'the band with its status', sel: '.ln-band', text: /Ready to close/ }, { what: 'the nine disciplines and what it costs', sel: '.doc-sec', n: 10 },
+    { what: 'the page saying nothing is read when it is not on a project', sel: '.doc-reads', text: /not on a project/ },
+    { what: 'the days from D0 to each discipline', sel: '[data-doc-table="How long each discipline took"] tbody tr', n: 7 },
+    { what: 'the photos box', sel: '[data-photos=problemPhotos] [data-add-photo]', text: /^Add photos$/ },
+    { what: 'the containment in money, apart', sel: '[data-doc=money]', text: /£7,056 tied up \(not lost\)/ },
   ] },
   /* THE ANALYSIS, PART TWO (24 October, W3b, knowledge/specs/FC-107-groups-tables-relations.md): three shifts, a table of counts, a relation — each page says its answer in "we can be 95% confident" and draws what it is about */
   { name: 'Analysis — do groups differ', path: `#/analysis/${sd.analysisGroupsId}`, must: [

@@ -27,8 +27,8 @@ describe('every tool says how its records behave', () => {
 });
 
 describe('the app\'s tools, from the catalogue', () => {
-  it('are the twenty-four a person can open, each built, available or partly, at an address the router answers', () => {
-    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Control chart', 'Analysis', 'Calculators', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Video study', 'Line Talk', 'Check logs', 'Problems register', 'Actions', 'Equipment criticality', 'Impact and effort', 'Pugh matrix', 'Maintenance measures', 'Product on hold', 'Skills matrix', 'Operational readiness']);
+  it('are the twenty-nine a person can open, each built, available or partly, at an address the router answers', () => {
+    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Control chart', 'Analysis', 'Calculators', 'Documents', 'Optimising settings', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Video study', 'Line Talk', 'Check logs', 'Problems register', 'Actions', 'Equipment criticality', 'Impact and effort', 'Pugh matrix', 'Process FMEA', 'Control plan', 'Fault tree', 'Maintenance measures', 'Product on hold', 'Skills matrix', 'Operational readiness']);
     for (const t of APP_TOOLS) {
       const e = ENTRIES.find(x => x.id === t.id)!;
       expect(['available', 'partial'], t.id).toContain(e.status);
@@ -53,6 +53,7 @@ describe('the app\'s tools, from the catalogue', () => {
       ['chart', 'Control chart', '/chart', 'chart', 'readings in order against limits, and what moved'],
       ['analysis', 'Analysis', '/analysis', 'analysis', 'is it sure, did it change, do two ways agree'],
       ['calc', 'Calculators', '/calc', 'calc', 'sums saved for this line, each with what it says'],
+      ['doc', 'Documents', '/doc', 'doc', 'documents saved for this line, each with where it stands'],
       ['valuestream', 'Value stream', '/value-stream', 'map', 'every step, who does it, the waits'],
       ['changeover', 'SMED', '/smed', 'changeover', 'a changeover timed and cut down'],
       ['sampling', 'Work sampling', '/sampling', 'sampling', 'what people are doing, at random moments'],

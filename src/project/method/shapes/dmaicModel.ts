@@ -101,11 +101,14 @@ export interface Insertion {
   question: string;
   /** The tool's key in the app (registry) and the catalogue id the board starts it by. */
   tool: string; toolName: string; fc: string;
+  /** Where it opens when that is a page of its own inside the tool (a document's list, /doc/charter). */
+  at?: string;
   /** The latest study's own sentence, absent when there is none in this project. */
   says?: string; name?: string; studyCount: number;
 }
 const GAUGE_KINDS = new Set(['gauge', 'grr', 'attr']);
-const SLOTS: { id: string; phase: PhaseKey; question: string; tool: string; toolName: string; fc: string; take: (s: ToolStudy) => boolean }[] = [
+const SLOTS: { id: string; phase: PhaseKey; question: string; tool: string; toolName: string; fc: string; at?: string; take: (s: ToolStudy) => boolean }[] = [
+  { id: 'charter', phase: 'define', question: 'The charter as a page the sponsor agrees', tool: 'doc', toolName: 'Documents', fc: 'FC-142', at: '/doc/charter', take: s => s.tool === 'doc' && s.agreed?.doc?.def === 'charter' },
   { id: 'baseline', phase: 'measure', question: 'The baseline of the measure', tool: 'capability', toolName: 'Capability', fc: 'FC-094', take: s => s.tool === 'capability' },
   { id: 'gauge', phase: 'measure', question: 'The gauge proved fit — how', tool: 'analysis', toolName: 'Analysis', fc: 'FC-118', take: s => s.tool === 'analysis' && GAUGE_KINDS.has(s.agreed?.analysis?.kind ?? '') },
   { id: 'evidence', phase: 'analyse', question: 'Root causes found, and the data that shows each', tool: 'analysis', toolName: 'Analysis', fc: 'FC-105', take: s => s.tool === 'analysis' && !GAUGE_KINDS.has(s.agreed?.analysis?.kind ?? '') && s.agreed?.analysis?.kind !== 'change' },

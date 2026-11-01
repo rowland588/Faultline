@@ -65,3 +65,6 @@ export function openable(h: ToolHow): AppTool | undefined {
   const own = h.entry.built?.where[0];
   return own && own.startsWith(`${h.tool.to}/`) ? { ...h.tool, to: own } : h.tool;
 }
+
+/** Where a row opens, and where New starts it: the tool's page, or a mode's own page inside it (a document's list, /doc/charter). */
+export const openAt = (h: ToolHow): string | undefined => openable(h)?.to;

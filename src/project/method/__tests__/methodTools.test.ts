@@ -1,7 +1,7 @@
 /* A section's default tools, said honestly (src/project/method/methodTools). */
 import { describe, expect, it } from 'vitest';
 import { METHODS, toolsOfMethod } from '../../../lib/methods';
-import { howTool, openable, toolStateWord } from '../methodTools';
+import { howTool, openable, openAt, toolStateWord } from '../methodTools';
 
 describe('how a default tool stands', () => {
   it('a tool with a page of its own opens, as itself', () => {
@@ -35,6 +35,18 @@ describe('how a default tool stands', () => {
     expect(toolStateWord(h)).toBe('A mode of Calculators');
     expect(openable(howTool('FC-215'))?.to).toBe('/calc/critical-path');   // every built calculator opens the same way
     expect(openable(howTool('FC-128'))?.to).toBe('/calc/copq');
+  });
+
+  it('a document is a mode of Documents, opening at its own kind’s page (FC-240)', () => {
+    for (const [id, key] of [['FC-142', 'charter'], ['FC-139', 'sipoc'], ['FC-140', 'voc-ctq'], ['FC-141', 'kano'], ['FC-150', 'eight-d'], ['FC-149', 'is-is-not']] as const) {
+      const h = howTool(id);
+      expect(h.how, id).toBe('inside');
+      expect(openable(h)?.key, id).toBe('doc');
+      expect(openAt(h), id).toBe(`/doc/${key}`);
+      expect(toolStateWord(h), id).toBe('A mode of Documents');
+    }
+    expect(openAt(howTool('FC-094'))).toBe('/capability');
+    expect(openAt(howTool('FC-070'))).toBeUndefined();
   });
 
   it('the Theory of Constraints modes open the tool they live in, and say so', () => {

@@ -7,6 +7,7 @@ import { todayISO } from '../../lib/weeks';
 import type { VideoSource } from './record';
 import { videoFigures } from './study';
 import { footageGone } from './footage';
+import { costInputs } from '../linework/balanceLink';
 
 export async function printVideoReport(id: string, who?: string): Promise<string> {
   const s = await getStudy(id);
@@ -25,6 +26,7 @@ export async function printVideoReport(id: string, who?: string): Promise<string
   titlePdf(doc, `${name} — video study`);
   await drawVideoReport(doc, {
     name, v, events, f, gone: footageGone(s.facts), line: lines.find(l => l.id === s.workspaceId)?.name, job: projects.find(p => p.id === s.projectId)?.name,
+    ...(costInputs(undefined, lines.find(l => l.id === s.workspaceId)).ratePerHour ? { rate: costInputs(undefined, lines.find(l => l.id === s.workspaceId)).ratePerHour } : {}),
     printed: new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
   });
   const file = pdfFileName(name, 'video study', today);

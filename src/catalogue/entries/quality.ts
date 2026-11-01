@@ -4,6 +4,7 @@ import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 import { logBuilt } from '../../tools/checks/built';
 import { pughBuilt } from '../../tools/pugh/built';
 import { scoredBuilt } from '../../tools/scored/built';
+import { DOC_CODE, DOC_TESTS, docBuilt } from './docBuilt';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -126,7 +127,11 @@ export const QUALITY: Entry[] = [
     food: 'Labelling, allergen control, sealing, metal detection.',
     depends: ['FC-133', 'FC-014', 'FC-168'],
     complexity: 'L', value: 'medium', valueWhy: 'Prevention, before failure.',
-    status: 'to-build', form: 'tool', kind: 'register', methods: ['quality.fmea'], scenarios: ['quality', 'new'], words: ['FMEA', 'risk'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'fmea', label: 'Process FMEA', says: 'What can go wrong at each step, rated, and which failure modes need action first — by a stated rule, never the product of the ratings', icon: 'warning', order: 23.7 },
+    methods: ['quality.fmea'], scenarios: ['quality', 'new'], words: ['FMEA', 'risk', 'failure modes', 'PFMEA', 'action priority', 'severity occurrence detection'],
+    built: { where: ['/scored/fmea'], code: ['src/tools/fmea/fmea.ts', 'src/tools/fmea/FmeaEditor.tsx', 'src/tools/scored/defs/fmea.ts', 'src/tools/scored/RegisterEditor.tsx', 'src/tools/scored/types.ts', 'src/tools/scored/scored.ts', 'src/tools/scored/ScoredScreen.tsx', 'src/lib/report/scoredPaper.ts'], tests: ['src/tools/fmea/__tests__/fmea.test.ts'], acceptance: ['fmea.mjs'] },
+    spec: 'knowledge/specs/FC-132-fmea.md',
+    limits: ['The action priority is Faultline’s own severity-first rule, NOT the AIAG-VDA 2019 action-priority table: that table is the handbook’s and licensed, and could not be read or checked from here; what is public of it (severity weighs most, then occurrence, then detection; High, Medium, Low) is the rule’s only basis. A row can be set by hand from the handbook by a team that holds it, and is marked so.', 'The severity, occurrence and detection anchors are written for food manufacturing by Faultline, not the handbook’s words.', 'An action is a field on the card (what, who, by when, done, re-rated); it is not yet on the project’s Actions page or in Needs you.', 'The steps and the controls are typed — not read from the line’s value stream map, the project’s stages or the check logs; food-safety hazards are marked and belong in the HACCP plan, which is not built (FC-168).', 'No RPN is computed or shown; the 5 / 7 / 8 cuts of the rule have not been put to Rowland.'],
   },
   {
     id: 'FC-133', name: 'Control plan — what is checked, how, how often, and what if not', discipline: 'quality', sub: 'risk',
@@ -138,7 +143,11 @@ export const QUALITY: Entry[] = [
     food: 'Weights, seals, codes, metal detection, temperatures.',
     depends: ['FC-132', 'FC-086', 'FC-169'],
     complexity: 'M', value: 'medium', valueWhy: 'The sustain step of every improvement.',
-    status: 'to-build', form: 'tool', kind: 'standard', methods: ['quality.control-plan'], scenarios: ['quality'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'control-plan', label: 'Control plan', says: 'What is checked on the line, against what, how, how often, by whom — and what is done when it is out; the risks of the FMEA with no check', icon: 'flag', order: 23.8 },
+    methods: ['quality.control-plan'], scenarios: ['quality'], words: ['control plan', 'reaction plan', 'checks', 'inspection plan', 'sustain', 'APQP'],
+    built: { where: ['/scored/control-plan'], code: ['src/tools/cplan/cplan.ts', 'src/tools/cplan/PlanEditor.tsx', 'src/tools/scored/defs/control-plan.ts', 'src/tools/scored/RegisterEditor.tsx', 'src/tools/scored/types.ts', 'src/tools/scored/scored.ts', 'src/tools/scored/ScoredScreen.tsx', 'src/lib/report/scoredPaper.ts'], tests: ['src/tools/cplan/__tests__/cplan.test.ts'], acceptance: ['control-plan.mjs'] },
+    spec: 'knowledge/specs/FC-133-control-plan.md',
+    limits: ['The plan is what the team wrote: it checks that each row says six parts (against what, how, the sample, how often, who, the reaction) and that the High and Medium risks of the FMEA beside it have a row — it does not judge whether a limit or a frequency is right. The six parts, the risk threshold and the count of gaps have not been put to Rowland.', 'A result entered in a check log does not yet draw the characteristic’s chart or open the reaction on the plan; a gap is on the plan, not yet on the project’s Actions page.', 'The money is the checks’ labour a shift and the product at risk between two checks from the numbers typed; the chance of a drift is not known, so no expected loss is stated.', 'Critical control points are ticked and point to the HACCP plan, which is not built (FC-168).'],
   },
   {
     id: 'FC-134', name: 'Complaints per million and their Pareto', discipline: 'quality', sub: 'customer',
@@ -225,6 +234,24 @@ export const QUALITY: Entry[] = [
     limits: ['The 6M runs problem → causes → countermeasures → proof → holding, without DMAIC’s phase gates; a Lean Six Sigma charter was in the method engine deleted on 20 October (docs/DIRECTION.md).'],
   },
   {
+    id: 'FC-240', name: 'Documents — a page the team agrees: charter, SIPOC, customer needs, Kano, 8D report', discipline: 'projects', sub: 'manage',
+    problem: 'The pages a method needs — a charter, a scope, what the customer needs, a corrective-action report — live in Word and email: nobody can see what is missing, who agreed it, or what it is worth.',
+    questions: ['Is this page filled in, and what is still missing?', 'Who agreed it, and when?', 'What does it say, in a sentence and in money?'],
+    method: 'A saved set of named boxes for one situation (text, long text, a person, a date, a number, a list of rows, photos); a definition’s own reading turns them into a sentence, tiles, tables, the working, the money and what it does not say, worked out on every render; the boxes needed before it can be agreed are named; the owner agrees it by name and date; it prints as the page it is.',
+    inputs: 'The document’s own boxes, each with what to put in and where to find it; the project’s and the line’s records where a definition reads them; photos.',
+    outputs: 'The document with its status (draft, ready to agree, agreed), the reading beside it, a paper, and a row in the line report.',
+    food: 'A give-away charter for Line 3; a SIPOC for a yield project; the retailer’s needs as limits; an 8D for a complaint.',
+    depends: ['FC-142', 'FC-139', 'FC-140', 'FC-141', 'FC-150'],
+    complexity: 'L', value: 'high', valueWhy: 'The methods’ pages share one proved record, page and paper; each new one is a definition, not a screen.',
+    status: 'available', form: 'tool', kind: 'study',
+    methods: ['sixsigma.charter', 'sixsigma.sipoc', 'sixsigma.voc-ctq', 'rca.eight-d'],
+    scenarios: ['project', 'quality'], words: ['document', 'charter', 'form', 'report', 'sign off', 'agree'],
+    app: { key: 'doc', label: 'Documents', says: 'A page the team agrees — charter, SIPOC, customer needs, Kano, 8D report — filled in, agreed by name and date, and printed', onLine: 'documents saved for this line, each with where it stands', reads: 'doc', icon: 'document', order: 4.72 },
+    built: { where: ['/doc'], code: DOC_CODE, tests: DOC_TESTS, acceptance: ['doc-shape.mjs'] },
+    spec: 'knowledge/specs/FC-240-documents.md',
+    limits: ['It lists only the documents built so far; each is proved on its own (its entry, its definition, its independent cases) and the rest of the methods’ pages are added the same way.'],
+  },
+  {
     id: 'FC-139', name: 'SIPOC — the scope on one page', discipline: 'sixsigma', sub: 'define',
     problem: 'A project’s scope is argued about after it starts.',
     questions: ['What is in and out of scope?'],
@@ -234,7 +261,10 @@ export const QUALITY: Entry[] = [
     food: 'Scoping a yield project from intake to packing.',
     depends: ['FC-001', 'FC-142'],
     complexity: 'S', value: 'low', valueWhy: 'A scoping aid.',
-    status: 'to-build', form: 'mode', partOf: 'FC-001', methods: ['sixsigma.sipoc'], scenarios: ['project'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['sixsigma.sipoc'], scenarios: ['project'],
+    built: docBuilt('sipoc', { tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    spec: 'knowledge/specs/FC-139-sipoc.md',
+    limits: ['The process is typed (four to seven steps with their suppliers, inputs, outputs and customers); it is not read from the line’s machines in flow order or from a value stream map — they are a different level of detail.', 'No money of its own: it bounds the process whose yield the project then values.']
   },
   {
     id: 'FC-140', name: 'Voice of the customer to CTQs', discipline: 'sixsigma', sub: 'define',
@@ -246,7 +276,10 @@ export const QUALITY: Entry[] = [
     food: '“Easy to open” → peel force 8–15 N.',
     depends: ['FC-094', 'FC-141'],
     complexity: 'S', value: 'low', valueWhy: 'Turns wants into limits.',
-    status: 'to-build', form: 'component', methods: ['sixsigma.voc-ctq'], scenarios: ['project', 'quality'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['sixsigma.voc-ctq'], scenarios: ['project', 'quality'],
+    built: docBuilt('voc-ctq', { tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    spec: 'knowledge/specs/FC-140-voc-ctq.md',
+    limits: ['Each CTQ says where it goes next (a capability study, a control plan row, a design decision) but does not yet start the study with its limit carried — the capability study is started from its own page. The control plan is not built (FC-133).', 'No money of its own: Complaints per million and Capability carry the pounds.']
   },
   {
     id: 'FC-141', name: 'Kano analysis', discipline: 'sixsigma', sub: 'define',
@@ -258,7 +291,10 @@ export const QUALITY: Entry[] = [
     food: 'Pack features for a new product.',
     depends: ['FC-140'],
     complexity: 'S', value: 'low', valueWhy: 'More for new products than running lines.',
-    status: 'to-build', form: 'component', methods: ['sixsigma.voc-ctq'], scenarios: ['project'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['sixsigma.voc-ctq'], scenarios: ['project'],
+    built: docBuilt('kano', { code: ['src/tools/doc/figures/kano.ts'], tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    spec: 'knowledge/specs/FC-141-kano.md',
+    limits: ['The evaluation table and the better / worse coefficients are the published ones as several guides print them; Kano et al. (1984) and Berger et al. (1993) themselves were not read (knowledge/GAPS.md).', 'A tie is reported as a tie; the tie-break order some guides use is secondhand and not applied.', 'The survey is typed or tallied by hand: no questionnaire is printed or collected.']
   },
   {
     id: 'FC-142', name: 'Project charter — problem, goal, scope, team, worth', discipline: 'sixsigma', sub: 'define',
@@ -270,9 +306,10 @@ export const QUALITY: Entry[] = [
     food: 'Any improvement project.',
     depends: ['FC-214', 'FC-138'],
     complexity: 'S', value: 'medium', valueWhy: 'A clear start.',
-    status: 'partial', form: 'component', methods: ['sixsigma.charter'], scenarios: ['project'],
-    built: { where: [], code: ['src/lib/planModel.ts'], tests: [], acceptance: ['front-door.mjs'] },
-    limits: ['A project names its kind and its lines; there is no problem or goal statement; the business case was built and taken off at Rowland’s word, 17 October.'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['sixsigma.charter'], scenarios: ['project'],
+    built: (() => { const b = docBuilt('charter', { code: ['src/tools/doc/figures/charter.ts', 'src/project/method/shapes/dmaicModel.ts'], tests: ['src/tools/doc/__tests__/figures.test.ts', 'src/tools/doc/__tests__/offers.test.ts'] }); return { ...b, acceptance: [...b.acceptance, 'charter-define.mjs'] }; })(),
+    spec: 'knowledge/specs/FC-142-charter.md',
+    limits: ['The worth is the measuring tool’s £ a week typed with its source named, or the gap × units × value typed; it is not yet read from a register problem’s money line.', 'The charter is a page of its own on a project or a line: it is not yet shown on the project’s front page, and a revision is the owner reopening it — no change log.']
   },
   {
     id: 'FC-143', name: 'Pugh matrix — choosing between solutions', discipline: 'sixsigma', sub: 'decide',
@@ -369,7 +406,10 @@ export const QUALITY: Entry[] = [
     food: 'Leakers on lane 3 only, since a new jaw on Monday.',
     depends: ['FC-146', 'FC-153'],
     complexity: 'S', value: 'medium', valueWhy: 'Fast for sudden problems.',
-    status: 'to-build', form: 'mode', partOf: 'FC-146', methods: ['rca.is-is-not'], scenarios: ['quality', 'running'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['rca.is-is-not'], scenarios: ['quality', 'running'], words: ['is is not', 'Kepner Tregoe', 'problem specification'],
+    built: docBuilt('is-is-not', { code: ['src/tools/doc/figures/isnot.ts'], tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    spec: 'knowledge/specs/FC-149-is-is-not.md',
+    limits: ['Read from the project: the open problem on the register (offered for the statement) and the line’s materials cost a pack (offered). Typed, because no record holds them: the specification, the distinctions, the changes and the day each was made — the machines’ change histories are not read (they are not kept as records yet) — and the tests of each cause.', 'The causes are tested by a person against each line (explains · needs an assumption · cannot); the app counts and ranks them, it does not judge a cause. A comparison of two percentages is said as a ratio; it is not a significance test.', 'The money is the materials of the extra bad packs only; the contribution they cost is the loss count’s to say, and is not added here.', 'From the knowledge record (Kepner & Tregoe 1965, 1981 — texts not re-read).'],
   },
   {
     id: 'FC-150', name: '8D report', discipline: 'rca', sub: 'structured',
@@ -381,7 +421,10 @@ export const QUALITY: Entry[] = [
     food: 'Retailer complaints; foreign-body incidents.',
     depends: ['FC-146', 'FC-134'],
     complexity: 'M', value: 'medium', valueWhy: 'The format customers ask for.',
-    status: 'to-build', form: 'report', methods: ['rca.eight-d'], scenarios: ['quality'], words: ['8D', 'corrective action'],
+    status: 'partial', form: 'mode', partOf: 'FC-240', methods: ['rca.eight-d'], scenarios: ['quality'], words: ['8D', 'corrective action'],
+    built: docBuilt('eight-d', { code: ['src/tools/doc/figures/eightd.ts'], tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    spec: 'knowledge/specs/FC-150-eight-d-report.md',
+    limits: ['Read from the project: the register’s problems, the fishbone’s causes, the actions, the studies, and (since 1 November) the project’s Is / is not page (FC-149) for D2. Offered from the 8D method’s sheet, copied only when tapped: what happened, the emergency response, the root cause, how it was verified, the escape point. Typed, because no record holds them: the team (D1), the containment and the hold (D3, FC-135 not built), what was changed in the system (D7, the FMEA and control plan are not built).', 'Held at partial for one reason that is a fault, not a choice: the report’s photos reach the cloud only after supabase/DOC_PHOTOS.sql is applied (written 1 November, NOT applied — the database connector was down); until then they stay on the device that took them and the words sync as ever.', 'The D0–D8 steps and the usual timetable are from the automotive practice as the knowledge record states them, not checked against the VDA or AIAG texts.', 'Not on a project, nothing is read: the report is then wholly typed. The line report prints it without the project’s records or its photos. The 8D method’s own board and paper (lib/eightD, method-eight-d.mjs) are the working form in words; this document is the customer’s paper with the days and the money.'],
   },
   {
     id: 'FC-151', name: 'A3 — the problem and its solution on one page', discipline: 'rca', sub: 'structured',
@@ -393,9 +436,10 @@ export const QUALITY: Entry[] = [
     food: 'A 6M presented to the site meeting.',
     depends: ['FC-146', 'FC-204'],
     complexity: 'S', value: 'medium', valueWhy: 'The 6M told on one page.',
-    status: 'partial', form: 'report', methods: ['rca.a3'], scenarios: ['project'],
-    built: { where: [], code: ['src/project/method/shapes/a3Model.ts', 'src/project/method/shapes/A3Board.tsx', 'src/lib/report/a3Paper.ts', 'src/lib/sixmReport.ts', 'src/lib/sixmReportPdf.ts'], tests: ['src/project/method/shapes/__tests__/a3Model.test.ts', 'src/lib/__tests__/sixmReportPdf.test.ts'], acceptance: ['method-a3.mjs', 'sixm-evidence.mjs'] },
-    limits: ['Built 1 November as the A3 method’s own board and paper: “A3 on one page” on A3 landscape from the answers written on the sheet (the seven blocks, a list of countermeasures with the cause each answers, the project’s latest study speaking at the current condition and the follow-up), read back in method-a3.mjs. Not marked available: no specification (knowledge/specs/FC-151-*.md) was written before the code, so the standard’s workflow is not met; the 6M project’s own records (its causes and whys) are not poured into the A3 automatically; the current condition and the follow-up share no drawn chart yet (the target as a line); a sheet with more words than one A3 holds at a readable size runs on to a second page, said on the paper.'],
+    status: 'available', form: 'report', methods: ['rca.a3'], scenarios: ['project'],
+    built: { where: [], code: ['src/project/method/shapes/a3Model.ts', 'src/project/method/shapes/a3Causes.ts', 'src/project/method/shapes/A3Board.tsx', 'src/lib/report/a3Paper.ts', 'src/lib/sixmReport.ts', 'src/lib/sixmReportPdf.ts'], tests: ['src/project/method/shapes/__tests__/a3Model.test.ts', 'src/lib/__tests__/sixmReportPdf.test.ts'], acceptance: ['method-a3.mjs', 'sixm-evidence.mjs'] },
+    spec: 'knowledge/specs/FC-151-a3.md',
+    limits: ['The A3 method’s own board and paper: seven blocks written as words on the method’s sheet, the project’s studies speaking at the current condition and the follow-up and its fishbone at the analysis (roots no countermeasure names are said), “A3 on one page” on A3 landscape that runs on and says so when the words do not fit.', 'Not built: the drawn chart with the target as a line (the number is read from the tool’s sentence, its picture is one tap away); the countermeasures are written on the sheet, not read from the project’s Actions (those are one tap away); the problem’s money is typed in the Background with its source, not read — the A3 has no pound figure of its own.', 'The specification was written after the board and paper, not before; the criteria were then proved against what stands.'],
   },
   {
     id: 'FC-152', name: 'Fault tree analysis', discipline: 'rca', sub: 'structured',
@@ -407,7 +451,11 @@ export const QUALITY: Entry[] = [
     food: 'How metal could reach a pack despite the detector.',
     depends: ['FC-132'],
     complexity: 'L', value: 'low', valueWhy: 'For serious, rare events.',
-    status: 'to-build', form: 'tool', kind: 'document', methods: ['rca.fault-tree'], scenarios: ['safety'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'fault-tree', label: 'Fault tree', says: 'What combinations of failures cause the top event — the cut sets, the single points and the probability of it happening', icon: 'route', order: 23.95 },
+    methods: ['rca.fault-tree'], scenarios: ['safety'], words: ['fault tree', 'FTA', 'cut sets', 'top event', 'AND gate', 'OR gate', 'IEC 61025'],
+    built: { where: ['/scored/fault-tree'], code: ['src/tools/faulttree/fault.ts', 'src/tools/faulttree/FaultEditor.tsx', 'src/tools/scored/defs/fault-tree.ts', 'src/tools/scored/RegisterEditor.tsx', 'src/tools/scored/types.ts', 'src/tools/scored/scored.ts', 'src/tools/scored/ScoredScreen.tsx', 'src/lib/report/scoredPaper.ts'], tests: ['src/tools/faulttree/__tests__/fault.test.ts'], acceptance: ['fault-tree.mjs'] },
+    spec: 'knowledge/specs/FC-152-fault-tree.md',
+    limits: ['Only AND and OR gates are drawn (IEC 61025 also has voting, inhibit and priority gates); the tree is an indented outline on the page and the paper, not a diagram; common-cause failure beyond a cause marked the same event under two branches is not modelled.', 'The probability is exact only for independent basic events with probabilities for the same period; a basic event’s probability is typed, never estimated. A tree of more than 4,000 minimal combinations or 60 basic events is refused: split it.', 'The tree is not yet raised from the 5 Whys or an 8D’s causes, and is not on the line’s page, Needs you or the control room.'],
   },
   {
     id: 'FC-153', name: 'Stratification — split the data to find where it lives', discipline: 'rca', sub: 'causes',
@@ -419,9 +467,10 @@ export const QUALITY: Entry[] = [
     food: 'Nights reject twice what days do, on one product.',
     depends: ['FC-107', 'FC-108', 'FC-052'],
     complexity: 'S', value: 'medium', valueWhy: 'Narrows the search before the fishbone.',
-    status: 'partial', form: 'component', methods: ['rca.stratification'], scenarios: ['quality', 'running'],
-    built: { where: [], code: ['src/lib/paretoFromLog.ts', 'src/lib/intelligence/heat.ts'], tests: ['src/lib/__tests__/paretoFromLog.test.ts'], acceptance: ['upgrade.mjs'] },
-    limits: ['Stops are split by shift, product, money, machine and day; readings and rejects are not split yet.'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['rca.stratification'], scenarios: ['quality', 'running'], words: ['stratify', 'split by shift', 'where does it live', 'by line', 'by product'],
+    built: { where: ['/analysis'], code: ['src/tools/analysis/strat.ts', 'src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx', 'src/lib/ie/relate.ts', 'src/lib/ie/groups.ts', 'src/lib/studiesPdf.ts', 'src/lib/paretoFromLog.ts', 'src/lib/intelligence/heat.ts'], tests: ['src/tools/analysis/__tests__/analysisStrat.test.ts', 'src/lib/__tests__/paretoFromLog.test.ts'], acceptance: ['strat.mjs', 'upgrade.mjs'] },
+    spec: 'knowledge/specs/FC-153-stratification.md',
+    limits: ['Records are tagged by hand or pasted from a sheet — the line’s own stops, loss counts and weigher heads are not read in without retyping (the Pareto of stops keeps its own splits by shift, product, money, machine and day).', 'Up to four factors of twelve levels each; the cross is the two strongest factors only, not three together.', 'A place is named only with five or more rejected in it and a standardised residual beyond +2; the 5, the 2, the 0.5 for factors that run together and the three readings are Faultline’s choices, not yet put to Rowland.', 'Counts are rejected out of made; a rate over time (stops per hour) and a measured split with an interaction model are not here (the factorial, FC-111, varies factors on purpose).', 'Where the problem shows is not why — handing the place found to Is / is not (FC-149) is not built.'],
   },
   {
     id: 'FC-154', name: 'Problems register — priority, journey, where it sits', discipline: 'rca', sub: 'structured',
@@ -448,7 +497,10 @@ export const QUALITY: Entry[] = [
     food: 'A splice guide proved on one flow wrapper, copied to four.',
     depends: ['FC-146', 'FC-105'],
     complexity: 'M', value: 'high', valueWhy: 'Multiplies every proved fix; the factory already knows its machines.',
-    status: 'to-build', form: 'workflow', methods: ['rca.horizontal-deployment'], scenarios: ['running', 'project'], words: ['yokoten', 'roll out', 'read across'],
+    status: 'partial', form: 'workflow', methods: ['rca.horizontal-deployment'], scenarios: ['running', 'project'], words: ['yokoten', 'roll out', 'read across'],
+    built: { where: [], code: ['src/tools/yokoten/yokoten.ts', 'src/tools/yokoten/useYokoten.ts', 'src/tools/yokoten/Spread.tsx', 'src/tools/yokoten/spread.css'], tests: ['src/tools/yokoten/__tests__/yokoten.test.ts'], acceptance: ['horizontal-deployment.mjs'] },
+    spec: 'knowledge/specs/FC-155-horizontal-deployment.md',
+    limits: ['Reads 6M countermeasures proved by their own before → after, not stage-gate fixes; the same machine by name, not a failure mode on another machine.', 'The money (the fix’s £ a week × the lines offered to) is not said — nothing is estimated; a line’s proof is its own words, not a linked study.'],
   },
   {
     id: 'FC-156', name: 'Give-away in money', discipline: 'yield', sub: 'giveaway',

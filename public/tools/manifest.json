@@ -11,6 +11,12 @@
     "of": "A calculator — an acceptance-sampling plan: what it protects, with its operating-characteristic curve",
     "takenFrom": "baf6098"
   },
+  "doc": {
+    "w": 960,
+    "h": 600,
+    "of": "A document — a project charter ready to agree: the status, the gap and the worth as tiles, the sentence it says and the team table",
+    "takenFrom": "e7754a45"
+  },
   "capability": {
     "w": 960,
     "h": 600,
@@ -88,6 +94,30 @@
     "h": 600,
     "of": "Impact and effort — four film-break countermeasures on the PICK chart: the quick wins first, what they are worth, the project, the fill-in",
     "takenFrom": "fdb2f31"
+  },
+  "fmea": {
+    "w": 960,
+    "h": 600,
+    "of": "Process FMEA — seven failure modes of a wrapper rated for severity, occurrence and detection: the priority each gets by a stated rule, High first, and what still needs an action",
+    "takenFrom": "2b16a814"
+  },
+  "control-plan": {
+    "w": 960,
+    "h": 600,
+    "of": "Control plan — four characteristics of a wrapper: what is checked, against what, how often and by whom, the reaction when it is out, and what is still unsaid",
+    "takenFrom": "1d51d763"
+  },
+  "fault-tree": {
+    "w": 960,
+    "h": 600,
+    "of": "Fault tree — how metal could reach a pack despite the detector: nine minimal cut sets, the probability of the top event, and which events carry most of it",
+    "takenFrom": "ae10dd48"
+  },
+  "rsm": {
+    "w": 960,
+    "h": 600,
+    "of": "Optimising settings — a 13-run central composite on filler speed and product temperature: the fitted surface, the best setting inside what was run and the intervals around it",
+    "takenFrom": "a0e741b5"
   },
   "pugh": {
     "w": 960,

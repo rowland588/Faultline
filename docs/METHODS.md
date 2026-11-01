@@ -35,7 +35,7 @@
 | **Plan** | The number, the gap, the cause suspected, the change and the effect expected — written before. Cause by the 6M tool (fishbone, five whys); the number from the tool that measures it. | FC-154 Problems register; FC-125 Defect Pareto; FC-049 Loss count; FC-094 Capability of measured data; FC-146 6M; FC-147 Fishbone with evidence on each cause; FC-148 Five whys; FC-153 Stratification; FC-144 Impact and effort | FC-153 (part-built); FC-144 (NOT BUILT) |
 | **Do** | The change made, small first; who does what by when. Actions is the project’s own page; Calculators for the what-if before the trial. | FC-194 Actions; FC-202 Line Talk; FC-235 Calculators | — |
 | **Check** | The number again, against before and against the prediction; beyond the noise? Before → after is the check. | FC-105 Before and after; FC-106 Paired comparison; FC-104 How sure; FC-086 Individuals and moving range chart (XmR); FC-094 Capability of measured data | — |
-| **Act** | Made the standard, written, trained, offered to the other lines — or planned again. Holding is a control chart on the after period. | FC-007 Standard work combination table; FC-006 Line standard; FC-225 Standard operating procedure with photos; FC-155 Horizontal deployment; FC-013 5S audit with score and trend; FC-086 Individuals and moving range chart (XmR) | FC-225 (NOT BUILT); FC-155 (NOT BUILT) |
+| **Act** | Made the standard, written, trained, offered to the other lines — or planned again. Holding is a control chart on the after period. | FC-007 Standard work combination table; FC-006 Line standard; FC-225 Standard operating procedure with photos; FC-155 Horizontal deployment; FC-013 5S audit with score and trend; FC-086 Individuals and moving range chart (XmR) | FC-225 (NOT BUILT); FC-155 (partly built) |
 
 ## 4. DMAIC
 
@@ -58,9 +58,9 @@
 | **D0–D1  Symptom, emergency response, team** | What happened, the first response, who is on it. | FC-154 Problems register; FC-134 Complaints per million and their Pareto; FC-194 Actions | FC-134 (NOT BUILT) |
 | **D2  Describe the problem** | Is / is not: what, where, when, how much. Is / is not is the heart of D2. | FC-149 Is / is not; FC-124 Defect tally at the line; FC-125 Defect Pareto; FC-153 Stratification | FC-149 (NOT BUILT); FC-153 (part-built) |
 | **D3  Contain** | Product held, sorted or reworked; the customer protected; checked that it works. Nonconformance hold is the D3 tool. | FC-135 Product on hold; FC-131 What a sampling plan protects; FC-124 Defect tally at the line | FC-135 (NOT BUILT) |
-| **D4  Root cause and escape point** | Why it happened and why it was not caught — verified on and off. Escape point reads the control plan and the FMEA. | FC-146 6M; FC-147 Fishbone with evidence on each cause; FC-148 Five whys; FC-152 Fault tree analysis; FC-153 Stratification; FC-107 Comparing several groups; FC-105 Before and after; FC-132 Process FMEA with action priority; FC-133 Control plan | FC-152 (NOT BUILT); FC-153 (part-built); FC-132 (NOT BUILT); FC-133 (NOT BUILT) |
+| **D4  Root cause and escape point** | Why it happened and why it was not caught — verified on and off. Escape point reads the control plan and the FMEA. | FC-146 6M; FC-147 Fishbone with evidence on each cause; FC-148 Five whys; FC-152 Fault tree analysis; FC-153 Stratification; FC-107 Comparing several groups; FC-105 Before and after; FC-132 Process FMEA with action priority; FC-133 Control plan | FC-152 (built 1 Nov); FC-153 (built 1 Nov); FC-132 (NOT BUILT); FC-133 (NOT BUILT) |
 | **D5–D6  Corrective action, implemented and validated** | The permanent action chosen, put in, proved on the number. | FC-143 Pugh matrix; FC-144 Impact and effort; FC-105 Before and after; FC-094 Capability of measured data; FC-086 Individuals and moving range chart (XmR) | FC-143 (NOT BUILT); FC-144 (NOT BUILT) |
-| **D7  Prevent recurrence** | The system changed: FMEA, control plan, standard, the other lines. Horizontal deployment offers the fix to every line. | FC-132 Process FMEA with action priority; FC-133 Control plan; FC-007 Standard work combination table; FC-225 Standard operating procedure with photos; FC-014 Mistake-proofing register and the daily device checks; FC-155 Horizontal deployment | FC-132 (NOT BUILT); FC-133 (NOT BUILT); FC-225 (NOT BUILT); FC-014 (NOT BUILT); FC-155 (NOT BUILT) |
+| **D7  Prevent recurrence** | The system changed: FMEA, control plan, standard, the other lines. Horizontal deployment offers the fix to every line. | FC-132 Process FMEA with action priority; FC-133 Control plan; FC-007 Standard work combination table; FC-225 Standard operating procedure with photos; FC-014 Mistake-proofing register and the daily device checks; FC-155 Horizontal deployment | FC-132 (NOT BUILT); FC-133 (NOT BUILT); FC-225 (NOT BUILT); FC-014 (NOT BUILT); FC-155 (partly built) |
 | **D8  Close** | Evidence for each discipline; the team recognised; the report sent. The 8D report is the paper. | FC-150 8D report; FC-194 Actions | FC-150 (NOT BUILT) |
 
 ## 6. A3
@@ -131,14 +131,13 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | Used by | Tool | Status | How it would be built | Methods |
 |---|---|---|---|---|
 | 5 | FC-201 The team’s own weekly number, proved | part-built | part-built — finish | A3, DMAIC, Improvement Kata, Kaizen event, Theory of Constraints |
-| 4 | FC-153 Stratification — split the data to find where it lives | part-built | calculation — an analysis question (stratify, then test) | 8D, A3, DMAIC, PDCA |
+| 4 | FC-153 Stratification — split the data to find where it lives | built 1 Nov (t8-3) | calculation — an analysis question (stratify, then test) | 8D, A3, DMAIC, PDCA |
 | 4 | FC-225 Standard operating procedure with photos | NOT BUILT | document — steps with photos, versioned, with a paper | 8D, Kaizen event, PDCA, Stage gate |
-| 3 | FC-149 Is / is not — specifying the problem | NOT BUILT | document — a two-column form that feeds the problem | 8D, A3, DMAIC |
-| 2 | FC-132 Process FMEA with action priority | NOT BUILT | scored register — scored-shape definition (severity, occurrence, detection → action priority) | 8D, DMAIC |
-| 2 | FC-133 Control plan — what is checked, how, how often, and what if  | NOT BUILT | register — a list per check (what, how, how often, reaction) feeding the check logs | 8D, DMAIC |
-| 2 | FC-142 Project charter — problem, goal, scope, team, worth | part-built | document — part-built; the charter form | DMAIC, Kaizen event |
-| 2 | FC-152 Fault tree analysis | NOT BUILT | document — a tree drawn from the whys | 8D, A3 |
-| 2 | FC-155 Horizontal deployment — a proved fix offered to every line w | NOT BUILT | workflow — offer a proved fix to the other lines | 8D, PDCA |
+| 3 | FC-149 Is / is not — specifying the problem | BUILT 1 Nov (`t8-1`) — a document of Documents: the specification, changes, causes tested; `knowledge/specs/FC-149-is-is-not.md` | document — a two-column form that feeds the problem | 8D, A3, DMAIC |
+| 2 | FC-132 Process FMEA with action priority | built 1 Nov (t8-3) | scored register — scored-shape definition (severity, occurrence, detection → action priority) | 8D, DMAIC |
+| 2 | FC-133 Control plan — what is checked, how, how often, and what if  | built 1 Nov (t8-3) | register — a card per characteristic (what, how, how often, reaction) reading the FMEA and the check logs beside it | 8D, DMAIC |
+| 2 | FC-152 Fault tree analysis | built 1 Nov (t8-3) | register — a tree as an outline, cut sets and probability | 8D, A3 |
+| 2 | FC-155 Horizontal deployment — a proved fix offered to every line w | partly built (1 Nov: lines, offers, answers; money not said) | workflow — offer a proved fix to the other lines | 8D, PDCA |
 | 2 | FC-223 TWI job instruction — the breakdown and four-step teaching | NOT BUILT | document — a breakdown and four-step sheet | Kaizen event, Stage gate |
 | 1 | FC-003 Process flow chart — operation, transport, inspection, delay | built (1 Nov, t8-4) | document — a drawn chart | Kaizen event |
 | 1 | FC-004 Spaghetti diagram — walking and transport distance | built (1 Nov, t8-4) | document — a drawn plan with distances (calc inside) | Kaizen event |
@@ -151,14 +150,10 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 1 | FC-056 Speed loss — running against ideal speed | part-built | ? | Theory of Constraints |
 | 1 | FC-082 Operational readiness — people, standards, spares, food safe | part-built | part-built — finish | Stage gate |
 | 1 | FC-085 Line acceptance on the EN 415-11 time model | research first | research first | Stage gate |
-| 1 | FC-111 Designed experiments — two-level factorials | NOT BUILT | calculation — new analysis (two-level factorials) | DMAIC |
-| 1 | FC-112 Optimising settings — response surface | research first | research first | DMAIC |
+| 1 | FC-111 Designed experiments — two-level factorials | built 1 Nov (t8-3) | calculation — new analysis (two-level factorials) | DMAIC |
+| 1 | FC-112 Optimising settings — response surface | built 1 Nov (t8-3) | register — a run sheet and a fitted surface | DMAIC |
 | 1 | FC-117 The team’s own weekly number, trended | part-built | part-built — finish | A3 |
-| 1 | FC-135 Product on hold — non-conformance and release | NOT BUILT | register + workflow — a hold, its release, who signed | 8D |
-| 1 | FC-139 SIPOC — the scope on one page | NOT BUILT | document — a one-page form | DMAIC |
-| 1 | FC-140 Voice of the customer to CTQs | NOT BUILT | document — a table that sets the limits a tool then uses | DMAIC |
-| 1 | FC-141 Kano analysis | NOT BUILT | document — a table with a chart | DMAIC |
-| 1 | FC-150 8D report | NOT BUILT | paper — the report assembled from the method’s own sections | 8D |
+| 1 | FC-135 Product on hold — non-conformance and release | BUILT 1 Nov (m6-registers) | register + workflow — a hold, its release, who signed | 8D |
 | 1 | FC-178 Hygienic design review of new equipment | research first | research first | Stage gate |
 | 1 | FC-179 The week’s schedule against capacity, with changeovers | NOT BUILT | ? | Theory of Constraints |
 | 1 | FC-198 Tiered daily meeting — the day’s update and its paper | part-built | ? | Improvement Kata |
@@ -167,6 +162,10 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 1 | FC-224 One-point lesson | part-built | document — one page | Kaizen event |
 
 **Built from this table on 31 October (M5, first eight-agent round):** FC-144 Impact and effort (PICK chart) · FC-143 Pugh matrix · FC-128 Cost of poor quality · FC-191 Payback and NPV · FC-134 Complaints per million · FC-014 Mistake-proofing check log (partial) · FC-199 Gemba walk, how fresh the looking is · FC-041 Capacity's three numbers and FC-042 Product mix at the constraint (Line capacity, A shift and the capacity panel) · FC-215 Critical path (partial — a typed network; the plan has no “waits for”). Those rows are taken off the list above; the catalogue (`node scripts/catalogue.mjs show FC-nnn`) holds each one's status and limits.
+
+**Built from this table on 1 November (M6, the document shape — `src/tools/doc`, FC-240):** FC-142 Project charter · FC-139 SIPOC · FC-140 Customer needs to CTQs · FC-141 Kano analysis · FC-150 8D report (partial — read from the project's register, fishbone, actions and studies; the is / is-not, hold, FMEA and control plan are typed because those tools are not built). A document-shaped tool still to come is a definition in `src/tools/doc/defs/`, not a screen. Those rows are taken off the list above.
+
+**And on 1 November (t8-2, the documents that teach, same shape):** FC-225 Standard operating procedure with photos (a photo belongs to a step by the number its caption starts with — no new storage) · FC-223 TWI job instruction (partial — the sign-offs are not written into the skills matrix) · FC-224 One-point lesson (the grid of who has been taught, by shift; Line Talk still writes the words at `#/talk`). FC-198 Tiered daily meeting is the same shape (partial — typed from the day's records, not read from them). They stand at PDCA's Act, 8D's D7, the stage gate's Set up and Kaizen's Standardise where those rows already listed them.
 
 **In all (counted at M0, 31 October):** 117 catalogue tools are placed in the eight methods; `src/lib/__tests__/methods.test.ts` holds the placed total true, and the catalogue the status of each.
 

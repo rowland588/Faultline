@@ -33,11 +33,13 @@ import { printMethodReport } from './MethodReportScreen';
 import { useStudyContext } from '../../ui/ShiftLosses';
 import { guideOfSection } from '../../lib/methodGuide';
 import { usesOf } from '../../screens/ProjectToolsScreen';
-import { howTool, openable, toolStateWord } from './methodTools';
+import { studyHref } from '../../lib/studyLinks';
+import { howTool, openable, openAt, toolStateWord } from './methodTools';
 import { useProjectLooking } from '../../tools/gemba/useLooking';
 import { projectSays, stalestFirst } from '../../tools/gemba/looking';
 import { useMeasures } from '../../lib/useMeasures';
 import { numbersSays } from '../../lib/measureProof';
+import { useProjectSpread } from '../../tools/yokoten/useYokoten';
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
@@ -69,6 +71,8 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   /* FC-199, how fresh the looking is: the project's lines, read for the Gemba walk row (tools/gemba) */
   const looking = useProjectLooking(projectId);
   const nums = useMeasures(projectId);
+  /* FC-155, a proved fix offered to every line with the same machine: the project's lines, read for its row (tools/yokoten) */
+  const spread = useProjectSpread(projectId);
   const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
   const { answers, items } = useAnswers(projectId, method?.key ?? 'pdca');
   const saveAnswer = useSaveAnswer(projectId, method?.key ?? 'pdca', items);
@@ -91,7 +95,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const placed = new Set(method.sections.flatMap(s => s.tools.map(id => openable(howTool(id))?.key).filter(Boolean) as string[]));
   const also = APP_TOOLS.filter(t => !placed.has(t.key) && (uses.get(t.key)?.n ?? 0) > 0);
   const total = [...uses.values()].reduce((n, u) => n + u.n, 0);
-  const start = (t: AppTool) => nav(inProject(t.key === 'talk' ? t.to : `${t.to}?add=1`, projectId));
+  const start = (t: AppTool, to: string = t.to) => nav(inProject(t.key === 'talk' ? to : `${to}?add=1`, projectId));
 
   return (
     <div className="wrap pmethod">
@@ -119,19 +123,23 @@ export function MethodScreen({ projectId }: { projectId: string }) {
               {s.tools.map(id => {
                 const h = howTool(id);
                 const t = openable(h);
-                const u = t ? usesOf2(t) : undefined;
+                /* a mode with a page of its own under its tool (a document's kind) counts its own uses, not the whole tool's */
+                const at = openAt(h);
+                const own = h.how === 'inside' && at && at !== h.tool.to && got ? got.studies.filter(x => studyHref(x).startsWith(`${at}/`)).length : undefined;
+                const u = own !== undefined ? { n: own } : t ? usesOf2(t) : undefined;
                 const name = h.how === 'unknown' ? id : h.entry.name;
                 /* the Gemba walk is not a page of its own: its row says how fresh the looking is on the project's lines and opens the stalest */
                 const gemba = id === 'FC-199' && looking?.length ? looking : undefined;
                 const worst = gemba ? stalestFirst(gemba)[0] : undefined;
+                const spreadRow = id === 'FC-155' ? spread : undefined;
                 return (
                   <RecordRow key={id} what={name}
                     {...(worst && worst.looking.level !== 'fresh' ? { tone: worst.looking.level === 'stale' ? 'r' as const : 'a' as const } : {})}
-                    says={gemba ? projectSays(gemba) : NUMBER_IDS.has(id) ? (nums.loading ? undefined : numbersSays(nums.measures, nums.readings)) : u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
+                    says={gemba ? projectSays(gemba) : spreadRow ? spreadRow.says : NUMBER_IDS.has(id) ? (nums.loading ? undefined : numbersSays(nums.measures, nums.readings)) : u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
                     where={toolStateWord(h)}
-                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : t ? nav(inProject(t.to, projectId)) : SIXM_IDS.has(id) ? nav(`/project/${projectId}/fishbone`) : NUMBER_IDS.has(id) ? nav(`/project/${projectId}?view=data`) : undefined)}
+                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : spreadRow ? nav(`/lines/${spreadRow.lineId}`) : t ? nav(inProject(openAt(h) ?? t.to, projectId)) : SIXM_IDS.has(id) ? nav(`/project/${projectId}/fishbone`) : NUMBER_IDS.has(id) ? nav(`/project/${projectId}?view=data`) : undefined)}
                     aside={t && can.edit && t.key !== 'talk'
-                      ? <button type="button" className="btn btn-sm" aria-label={`New — ${name}`} onClick={() => start(t)}>New</button>
+                      ? <button type="button" className="btn btn-sm" aria-label={`New — ${name}`} onClick={() => start(t, openAt(h))}>New</button>
                       : undefined} />
                 );
               })}

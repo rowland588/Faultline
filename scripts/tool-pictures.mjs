@@ -52,6 +52,9 @@ const TOOLS = [
   { key: 'calc', of: 'A calculator — an acceptance-sampling plan: what it protects, with its operating-characteristic curve',
     route: s => `#/calc/oc-curve/${s.calcOcId}`, parts: ['.calc-tiles', '.calc-picbox'],
     css: '.calc-body{display:block !important}.calc-form{display:none !important}.calc-picbox{max-width:680px !important;margin:0 auto !important}' },
+  { key: 'doc', of: 'A document — a project charter ready to agree: the status, the gap and the worth as tiles, the sentence it says and the team table',
+    route: s => `#/doc/charter/${s.docCharterId}`, parts: ['.ln-band', '.doc-tiles', '[data-doc=sentence]', '[data-doc-table="The team"]'],
+    css: '.doc-body{display:block !important}.doc-form{display:none !important}.doc-out{max-width:760px !important;margin:0 auto !important}.doc-sign{display:none !important}' },
   { key: 'capability', of: 'A capability study — thirty fill weights against the limits, the histogram, Ppk and the give-away',
     route: s => `#/capability/${s.studyId}`, parts: ['.ln-tiles', '.ie-pic'], css: SHELL_CSS },
   { key: 'changeover', of: 'SMED — a changeover as a grid: who does each element, internal and external, and what separating them buys back',
@@ -78,6 +81,14 @@ const TOOLS = [
     route: s => `#/scored/criticality/${s.criticalityId}`, parts: ['.ie-says', '.scored-table-wrap'], css: '' },
   { key: 'impact-effort', of: 'Impact and effort — four film-break countermeasures on the PICK chart: the quick wins first, what they are worth, the project, the fill-in',
     route: s => `#/scored/impact-effort/${s.impactEffortId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'], css: '' },
+  { key: 'fmea', of: 'Process FMEA — seven failure modes of a wrapper rated for severity, occurrence and detection: the priority each gets by a stated rule, High first, and what still needs an action',
+    route: s => `#/scored/fmea/${s.fmeaId}`, parts: ['.ln-tiles', '.ie-says', '.fm > .fm-card:first-of-type'], css: '.fm-card .fm-more{display:none !important}.fm-card .sp-rm{display:none !important}' },
+  { key: 'control-plan', of: 'Control plan — four characteristics of a wrapper: what is checked, against what, how often and by whom, the reaction when it is out, and what is still unsaid',
+    route: s => `#/scored/control-plan/${s.cplanId}`, parts: ['.ln-tiles', '.ie-says', '.fm > .fm-card:first-of-type'], css: '.fm-card .fm-more{display:none !important}.fm-card .sp-rm{display:none !important}.cp-prices,.cp-acts{display:none !important}' },
+  { key: 'fault-tree', of: 'Fault tree — how metal could reach a pack despite the detector: nine minimal cut sets, the probability of the top event, and which events carry most of it',
+    route: s => `#/scored/fault-tree/${s.faultId}`, parts: ['.ln-tiles', '.ie-says', '.ft > .ft-node:nth-of-type(1)', '.ft > .ft-node:nth-of-type(2)'], css: '.ft-node .cp-acts,.cp-prices{display:none !important}' },
+  { key: 'rsm', of: 'Optimising settings — a 13-run central composite on filler speed and product temperature: the fitted surface, the best setting inside what was run and the intervals around it',
+    route: s => `#/scored/rsm/${s.rsmId}`, parts: ['.ln-tiles', '.ie-says', '.rs-runs > li:nth-child(1)', '.rs-runs > li:nth-child(2)', '.rs-runs > li:nth-child(3)'], css: '.rs-runs{display:grid !important;grid-template-columns:repeat(3,1fr);gap:12px;list-style:none;padding:0}' },
   { key: 'pugh', of: 'Pugh matrix — four fixes for film breaks marked better, same or worse than the present state on five weighted criteria: who leads and where the lead is beaten',
     route: s => `#/scored/pugh/${s.pughId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'],
     css: '.pugh-datum,.pugh-key,.pugh-acts,.pugh-table .sp-rm,.pugh-table tfoot tr[data-foot="Cost"],.pugh-table tfoot tr[data-foot="Same (S)"]{display:none !important}' },
@@ -174,6 +185,10 @@ function PICTURE_SEEDS_FN() {
     const pugh = newScoredStudy(pughDef, { name: 'Line 7 — film breaks, which fix first', workspaceId: wsId, now: t });
     pugh.agreed = { scored: { key: 'pugh', rows: pex.rows.map(r => ({ ...r })), criteria: pex.criteria, datum: pex.datum } };
     await putStudy(pugh);
+    const fmeaDef = SCORED.find(d => d.key === 'fmea');
+    const fmea = newScoredStudy(fmeaDef, { name: 'Line 7 — wrapper, October', workspaceId: wsId, now: t });
+    fmea.agreed = { scored: { key: 'fmea', rows: fmeaDef.examples[0].rows.map(r => ({ ...r })) } };
+    await putStudy(fmea);
     const maint = newBoardStudy(BOARDS.find(d => d.key === 'maintenance-measures'), { name: 'Line 7 — October', workspaceId: wsId, now: t });
     maint.agreed = { board: { key: 'maintenance-measures', reactiveHours: 190 } };
     await putStudy(maint);
@@ -195,7 +210,17 @@ function PICTURE_SEEDS_FN() {
     const readiness = newScoredStudy(SCORED.find(d => d.key === 'readiness'), { name: 'Line 7 — new wrapper, readiness for handover', workspaceId: wsId, now: t });
     readiness.agreed = { scored: { key: 'readiness', rows: readyRows, dayCost: 9600 } };
     await putStudy(readiness);
-    return { readinessId: readiness.id, skillsId: skillsStudy.id, criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
+    const cpDef = SCORED.find(d => d.key === 'control-plan');
+    const cplan = newScoredStudy(cpDef, { name: 'Line 7 — wrapper control plan', workspaceId: wsId, now: t });
+    cplan.agreed = { scored: { key: 'control-plan', rows: cpDef.examples[0].rows.map(r => ({ ...r })), rate: 25, speed: 200, packCost: 0.4, shiftMin: 480 } };
+    await putStudy(cplan);
+    const ftDef = SCORED.find(d => d.key === 'fault-tree'), fault = newScoredStudy(ftDef, { name: 'Line 7 — metal in a pack', workspaceId: wsId, now: t });
+    fault.agreed = { scored: { key: 'fault-tree', rows: ftDef.examples[0].rows.map(r => ({ ...r })), period: 'a year' } };
+    await putStudy(fault);
+    const rsDef = SCORED.find(d => d.key === 'rsm'), rsm = newScoredStudy(rsDef, { name: 'Line 7 — filler give-away', workspaceId: wsId, now: t });
+    rsm.agreed = { scored: { key: 'rsm', rows: rsDef.examples[0].rows.map(r => ({ ...r })), rsm: { ...rsDef.examples[0].rsm } } };
+    await putStudy(rsm);
+    return { rsmId: rsm.id, faultId: fault.id, cplanId: cplan.id, fmeaId: fmea.id, readinessId: readiness.id, skillsId: skillsStudy.id, criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
   };
 }
 

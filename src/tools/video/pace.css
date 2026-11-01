@@ -1,0 +1,5 @@
+/* FC-021 — the pace and the allowance, asked for under the takt. The same form shape as the takt's. */
+.vid-pace { display: grid; gap: 6px; }
+.vid-pace-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.vid-pace-row input.text-input { width: 96px; }
+.vid-pace-row input.text-input[list] { width: 200px; max-width: 100%; }

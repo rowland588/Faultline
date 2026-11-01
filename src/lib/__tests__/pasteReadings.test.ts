@@ -89,12 +89,12 @@ describe('the unit starts empty on the three tools; the usual ones are chips', (
   });
 });
 
-describe('the Analysis’s twelve questions under three headings', () => {
+describe('the Analysis’s fourteen questions under four headings', () => {
   it('every kind appears once, none dropped, the stored keys the old ones', async () => {
     const src = readFileSync(join(__dirname, '..', '..', 'tools/analysis/AnalysisScreen.tsx'), 'utf8');
     const block = /const QUESTION_GROUPS[^=]*=\s*\[([\s\S]*?)\n\];/.exec(src)?.[1] ?? '';
     const kinds = [...block.matchAll(/'([a-z]+)'/g)].map(m => m[1]);
-    expect([...kinds].sort()).toEqual(Object.keys(KIND_WORDS).sort()); expect(kinds.length).toBe(12);
-    expect((block.match(/head:/g) ?? []).length).toBe(3);
+    expect([...kinds].sort()).toEqual(Object.keys(KIND_WORDS).sort()); expect(kinds.length).toBe(14);
+    expect((block.match(/head:/g) ?? []).length).toBe(4);
   });
 });

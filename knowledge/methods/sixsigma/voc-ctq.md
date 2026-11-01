@@ -110,8 +110,10 @@ and taste through the panel.
 - [textbook] George, M.L. et al. (2005), *The Lean Six Sigma Pocket Toolbook*, McGraw-Hill (from knowledge).
 
 ## In Faultline
-Partly: the capability study asks the question first — a measurement
-with its limits, sold by weight, pass or fail — and holds the limit
-(`src/tools/capability`); the CTQ tree from the customer's words
-to that limit is not built (FC-141), and would hand each CTQ to its
-study and its control plan row.
+Built: the CTQ tree (FC-140, 1 November) and the Kano survey (FC-141) as documents of the document shape
+(`src/tools/doc/defs/voc-ctq.ts` and `kano.ts`; `knowledge/specs/FC-140-voc-ctq.md`, `FC-141-kano.md`). The tree: a row a need in the customer's
+words, its driver, the measure, unit, kind of limit, limits, where the limit comes from, the Kano class; the gaps named; where each CTQ goes
+next. Kano: the answers typed a pair at a time or tallied by hand, every pair classed by the published 5 × 5 evaluation table, the class the
+most frequent of the four, a tie reported as a tie, the better and worse coefficients. The capability study still starts from its own page
+(the limit is not yet carried across); the control plan is not built. Kano's table and coefficients were checked against several
+published guides, not the papers (`knowledge/GAPS.md`).

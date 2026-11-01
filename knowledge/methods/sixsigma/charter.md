@@ -98,9 +98,9 @@ losses — each with its number, baseline, target, date and worth.
 - [textbook] George, M.L. et al. (2005), *The Lean Six Sigma Pocket Toolbook*, McGraw-Hill (from knowledge).
 
 ## In Faultline
-Partly: a project is started from its line and names its lines and
-kind (`src/project`); the 6M's problem statement carries the number and
-the target (`src/lib/sixm.ts`). The charter's worth was the business
-case built and taken off on 17 October (`docs/BLUEPRINT.md` §6); when it
-returns it is the gap × the model's rate, said on the project's front
-page, never a second cost model.
+Built (FC-142, 1 November) as a document of the document shape (`src/tools/doc/defs/charter.ts`, `knowledge/specs/FC-142-charter.md`):
+the problem as a number with its baseline and how it was measured, the goal with a date, the scope in and out, the team and their hours,
+what closing the gap is worth (the measuring tool's £ a week typed with its source, or the gap × units × value), the milestones; the
+sentence, the gap, the days to go, the worth, the team's time and its payback, the owner's agreement, the paper. The worth's money is the
+cost model's, never a second one; the business case taken off on 17 October stays off. Not yet: reading the worth from a register
+problem's money line; a revision log; the charter on the project's front page.
