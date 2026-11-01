@@ -77,7 +77,7 @@ export const dayWords = (iso: string, withWeekday = false): string => {
   const d = new Date(`${iso}T12:00:00`);
   return `${withWeekday ? `${WEEKDAY[d.getDay()]} ` : ''}${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`;
 };
-const between = (a: string, b: string) => Math.round((new Date(`${b}T12:00:00`).getTime() - new Date(`${a}T12:00:00`).getTime()) / 86_400_000);
+export const between = (a: string, b: string) => Math.round((new Date(`${b}T12:00:00`).getTime() - new Date(`${a}T12:00:00`).getTime()) / 86_400_000);
 
 export interface Check {
   date?: string;
@@ -118,3 +118,44 @@ export function eventSays(a: Answers, today: string): string {
 
 /** Is there anything to put on paper? */
 export const anythingWritten = (a: Answers): boolean => Object.values(a).some(has);
+
+/** Where the week itself stands against today: has it begun, is it over, which of its days passed with nothing written. */
+export interface WeekState {
+  started: boolean;
+  /** The usual five days are behind us (needs the first day given). */
+  ended: boolean;
+  /** The last of the usual five days. */
+  endDay?: string;
+  /** Days whose date has passed and that hold no words — only when the first day is given. */
+  missed: EventDay[];
+}
+export function weekOf(a: Answers, today: string): WeekState {
+  const days = daysOf(a);
+  const first = days[0]?.iso;
+  const endDay = a['start'] && ISO.test(a['start']) ? days[USUAL_DAYS - 1]?.iso : undefined;
+  const written = days.some(d => d.word !== 'Not written');
+  const started = (!!first && first <= today) || written;
+  const ended = !!endDay && endDay < today;
+  const missed = days.filter(d => !!d.iso && d.iso < today && d.word === 'Not written');
+  return { started, ended, ...(endDay ? { endDay } : {}), missed };
+}
+
+/** The event's actions as the sponsor reads them (docs: knowledge/methods/lean/kaizen-event.md — raised, closed, open, the share
+ *  closed; an open one past its day is late; one nobody owns is the usual failure). Method answers are not actions. */
+export interface ActionsState {
+  raised: number; closed: number; open: number; late: number; noOwner: number;
+  /** Whole percent closed of raised; null when none was raised. */
+  share: number | null;
+}
+export interface OwedLike { kind: string; what: string; owner?: string; due?: string; doneAt?: number | null; testId?: string }
+export function actionsOf(owed: readonly OwedLike[], today: string): ActionsState {
+  const all = owed.filter(i => (i.kind === 'next' || i.kind === 'found') && !(i.testId ?? '').startsWith('method:'));
+  const open = all.filter(i => !i.doneAt);
+  const closed = all.length - open.length;
+  return {
+    raised: all.length, closed, open: open.length,
+    late: open.filter(i => !!i.due && i.due < today).length,
+    noOwner: open.filter(i => !(i.owner ?? '').trim()).length,
+    share: all.length ? Math.round((closed / all.length) * 100) : null,
+  };
+}

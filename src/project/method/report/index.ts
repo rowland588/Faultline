@@ -6,8 +6,11 @@
  * writes each section once. A section may add `flags` (text and a tone) to "what needs attention". A method with no entry gets
  * the default: its questions and the team's answers, section by section. Additive: register an entry, change nothing else. */
 import type { MethodKey } from '../../../lib/methods';
+import { kaizenEventReport } from './kaizen-event';
 import type { MethodReportFn } from '../../../lib/methodReportModel';
 
-export const METHOD_REPORT: Partial<Record<MethodKey, MethodReportFn>> = {};
+export const METHOD_REPORT: Partial<Record<MethodKey, MethodReportFn>> = {
+  'kaizen-event': kaizenEventReport,
+};
 
 export type { MethodReportCtx, MethodReportFn, ReportItem, ReportSection } from '../../../lib/methodReportModel';
