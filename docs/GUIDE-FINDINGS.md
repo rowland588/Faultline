@@ -47,4 +47,14 @@ Writing "what each step means" from the real page (docs/METHODS.md §15) turned 
 - FC-008: "Agree a takt here instead" appears only while there is no takt; once Line capacity has a target, takt cannot be agreed by hand.
 - FC-020 and FC-027 sit behind "Agree these" (the Analysis question form), which is not obvious. FC-019: the laps list is on the first tab, not Times, so striking a lap means going back a tab.
 - FC-006: the bottleneck mark is hand-set and apart from Line capacity's calculated bottleneck (the guide says so in its watch).
+- The line balance has two pace scales: the rating sheet offers 75/90/100/110/125, the Times tab 90/100/110/120 with a 50–150 box. "Agree an allowance" opens a form headed "Agree the takt" when the takt is not Line capacity's. The timer works one step after another but a machine's run goes on alongside the person; the page does not say to type it.
+- The value stream map's money inputs (cost of a piece, carrying rate) sit inside the "Name the ends and the demand" form; nothing on the money cards links there and the link vanishes once demand is set. FC-008's catalogue says "planned cycle time"; the page has only takt. Andon's "Help should arrive within" is inside the collapsed "More about it" fold. "Make it better" on a work sampling study shows only when the study is on a project. The learning-curve money line shows £444; the acceptance notes say £443.84.
+- FC-022 is Work sampling (not the bottleneck walk, which is FC-037, a mode of it). FC-016's limit "Run as a 6M project" is out of date: Kaizen event is a project method with its own five-section page.
 - The ILO sense of "job" appears in the pages' own wording ("the effort and care the job asks"; "How fast is a new job being learned?").
+
+## Methods (src/lib/methods.ts and docs/METHODS.md)
+- The header comment of `methods.ts` ("Nothing reads this yet but its test") is out of date since M3.
+- `docs/METHODS.md` §3–§10 still mark FC-143, 144, 128, 191 and 134 as NOT BUILT; the catalogue says Available.
+- The A3 record has seven blocks (plan and follow-up separate); `methods.ts` merges them as "Plan and follow-up" — apparently deliberate, not stated.
+- The 8D section names carry a double space ("D2  Describe the problem"); `guideOfSection` matches that exact string, so it breaks if either side is retyped.
+- FC-142 (the charter) has no problem or goal statement yet — until the document shape's charter lands, the DMAIC Define and Kaizen Prepare guides say to put the charter in a note.
