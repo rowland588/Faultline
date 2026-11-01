@@ -4,14 +4,14 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **237 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 24 tools a person can open on a page of their own. Built inside them: 108 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 54; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 24 tools a person can open on a page of their own. Built inside them: 109 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 53; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 146 |
+| Available (`available`) | 147 |
 | Partly (`partial`) | 18 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 54 |
+| Not built yet (`to-build`) | 53 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -31,7 +31,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Measurement systems | 6 | 6 |  |  |  |  |  |
 | Quality engineering and defects | 14 | 5 |  |  | 7 | 2 |  |
 | Six Sigma and DMAIC | 8 | 6 | 1 |  | 1 |  |  |
-| Root cause and problem solving | 10 | 4 | 3 |  | 3 |  |  |
+| Root cause and problem solving | 10 | 5 | 3 |  | 2 |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
 | Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |
@@ -114,15 +114,15 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - FC-105 Before and after — did it move, for a reason — 11 modes inside it
 - FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 9 modes inside it
 - FC-073 The stage gate — new equipment to handover — 7 modes inside it
+- FC-240 Documents — a page the team agrees: charter, SIPOC, customer needs, Kano, 8D report — 6 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 5 modes inside it
 - FC-058 Reliability — MTBF and failure rate, several things counted at once — 5 modes inside it
-- FC-240 Documents — a page the team agrees: charter, SIPOC, customer needs, Kano, 8D report — 5 modes inside it
 - FC-001 Value stream map — current and future state — 4 modes inside it
 - FC-086 Individuals and moving range chart (XmR) — 4 modes inside it
 - FC-098 Reject rate capability — rejects out of what was made — 3 modes inside it
-- FC-146 6M — a running line made to perform better — 3 modes inside it
 - FC-049 Loss count — a shift’s time model and the waterfall — 2 modes inside it
 - FC-068 SMED — a changeover timed, separated and cut down — 2 modes inside it
+- FC-146 6M — a running line made to perform better — 2 modes inside it
 - FC-006 Line standard — who stands where, product by product — 1 modes inside it
 - FC-081 The filmed walk and its problems — the punch list — 1 modes inside it
 - FC-022 Work sampling — what people are doing at random moments — 1 modes inside it

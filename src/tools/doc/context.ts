@@ -43,6 +43,12 @@ export async function loadDocCtx(s: ToolStudy, me?: string): Promise<DocCtx> {
     if (a && n.what.trim()) answers[`${a.method}:${a.field}`] = n.what.trim();
   }
   if (Object.keys(answers).length) ctx.methodAnswers = answers;
+  const spec = own.studies.filter(x => x.tool === 'doc' && !x.deletedAt && x.agreed?.doc?.def === 'is-is-not').sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  if (spec) {
+    const raw = spec.facts?.docValues ?? {};
+    const lines = (Array.isArray(raw.spec) ? raw.spec : []).map(r => ({ dim: String(r.c.dim ?? ''), is: String(r.c.is ?? ''), isnot: String(r.c.isnot ?? '') })).filter(l => l.dim && l.is);
+    if (lines.length) ctx.isIsNot = { name: spec.name, ...(typeof raw.since === 'string' && raw.since ? { since: raw.since } : {}), lines };
+  }
   ctx.studies = own.studies.filter(x => x.tool !== 'doc' && !x.deletedAt).map((x): CtxStudy => {
     let said = { text: '', verdict: '', tone: 'n' as const };
     try { const y = studySays(x); said = { text: y.text, verdict: y.verdict, tone: (y.tone === 'r' || y.tone === 'a' || y.tone === 'g' ? y.tone : 'n') as 'n' }; } catch { /* a study this build cannot say stays listed */ }

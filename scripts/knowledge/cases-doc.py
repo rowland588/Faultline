@@ -84,3 +84,17 @@ for label, d in (("D3 contained", date(2026,10,2)), ("D4 verified", date(2026,10
     print(f"  {label:16s} day {(d - d0).days}")
 print(f"  held {14*1200:,} units x 0.42 = {14*1200*0.42:,.2f} tied up; sorting 24 h x 14.70 = {24*14.70:.2f}; expected without the fix {90*6} (90 a week x 6 weeks)")
 print(f"  six weeks after 2026-10-20 ends {date.fromordinal(date(2026,10,20).toordinal()+42)}")
+
+print("\n== I1 Is / is not (rca.is-is-not worked case: leaking seals, lane 3 of a tray sealer; independent of the app)")
+is_rate, not_rate, packs = 3.2, 0.3, 6000          # % of lane-3 packs, % of the other lanes' packs, lane-3 packs a shift
+bad_is, bad_not = packs*is_rate/100, packs*not_rate/100
+excess = bad_is - bad_not
+print(f"  ratio {is_rate/not_rate:.4f} ({is_rate/not_rate:.1f} times); bad packs a shift {bad_is:.0f} against {bad_not:.0f}; excess {excess:.0f} a shift; materials at 0.42 a pack = {excess*0.42:.2f} a shift")
+began = date(2026, 10, 13)
+for label, d in (("new sealing jaw fitted", date(2026,10,13)), ("film batch changed", date(2026,10,2)), ("crew rota changed (after it began)", date(2026,10,15))):
+    print(f"  {label:36s} {d} {(began - d).days:+d} days before it began")
+# causes tested against what / where / when / extent (E explains, A needs an assumption, X cannot)
+causes = {"the new jaw's heater reads low": "EEEE", "a bad film batch": "EXEA", "the new crew": "AAAA"}
+for c, t in causes.items():
+    fails = t.count('X'); ass = t.count('A')
+    print(f"  {c:32s} {t}  cannot {fails}  assumptions {ass}  -> {'ruled out' if fails else ('fits every line' if ass == 0 else f'fits with {ass} assumptions')}")

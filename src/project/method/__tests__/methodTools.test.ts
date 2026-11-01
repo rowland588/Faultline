@@ -28,7 +28,7 @@ describe('how a default tool stands', () => {
   });
 
   it('a document is a mode of Documents, opening at its own kind’s page (FC-240)', () => {
-    for (const [id, key] of [['FC-142', 'charter'], ['FC-139', 'sipoc'], ['FC-140', 'voc-ctq'], ['FC-141', 'kano'], ['FC-150', 'eight-d']] as const) {
+    for (const [id, key] of [['FC-142', 'charter'], ['FC-139', 'sipoc'], ['FC-140', 'voc-ctq'], ['FC-141', 'kano'], ['FC-150', 'eight-d'], ['FC-149', 'is-is-not']] as const) {
       const h = howTool(id);
       expect(h.how, id).toBe('inside');
       expect(openable(h)?.key, id).toBe('doc');

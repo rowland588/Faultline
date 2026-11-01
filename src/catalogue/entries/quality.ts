@@ -389,7 +389,10 @@ export const QUALITY: Entry[] = [
     food: 'Leakers on lane 3 only, since a new jaw on Monday.',
     depends: ['FC-146', 'FC-153'],
     complexity: 'S', value: 'medium', valueWhy: 'Fast for sudden problems.',
-    status: 'to-build', form: 'mode', partOf: 'FC-146', methods: ['rca.is-is-not'], scenarios: ['quality', 'running'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['rca.is-is-not'], scenarios: ['quality', 'running'], words: ['is is not', 'Kepner Tregoe', 'problem specification'],
+    built: docBuilt('is-is-not', { code: ['src/tools/doc/figures/isnot.ts'], tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    spec: 'knowledge/specs/FC-149-is-is-not.md',
+    limits: ['Read from the project: the open problem on the register (offered for the statement) and the line’s materials cost a pack (offered). Typed, because no record holds them: the specification, the distinctions, the changes and the day each was made — the machines’ change histories are not read (they are not kept as records yet) — and the tests of each cause.', 'The causes are tested by a person against each line (explains · needs an assumption · cannot); the app counts and ranks them, it does not judge a cause. A comparison of two percentages is said as a ratio; it is not a significance test.', 'The money is the materials of the extra bad packs only; the contribution they cost is the loss count’s to say, and is not added here.', 'From the knowledge record (Kepner & Tregoe 1965, 1981 — texts not re-read).'],
   },
   {
     id: 'FC-150', name: '8D report', discipline: 'rca', sub: 'structured',

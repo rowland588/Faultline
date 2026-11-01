@@ -1,6 +1,7 @@
 /* THE DOCUMENTS' ARITHMETIC, AGAINST INDEPENDENT CASES — scripts/knowledge/cases-doc.py works every figure a second way (the standard library
  * only; Student's t from the published table; the Kano evaluation table as published guides print it). Nothing here is copied from the code's
  * own output. */
+import { badPacks, excessMaterials, excessPacks, leadDays, ratioOf, verdictOf } from '../figures/isnot';
 import { describe, expect, it } from 'vitest';
 import { baselineInterval, gapOf, paybackWeeks, teamCost, worthOf } from '../figures/charter';
 import { ANSWERS, KANO_TABLE, classOf, classify, coefficients, tallyOf, totalOf, type Answer } from '../figures/kano';
@@ -127,5 +128,27 @@ describe('the words', () => {
     expect(distinctList('a, b; A', undefined, ' c ')).toEqual(['a', 'b', 'c']);
     expect(brief('First sentence. Second one.')).toBe('First sentence');
     expect(brief('x'.repeat(200), 20).endsWith('…')).toBe(true);
+  });
+});
+
+describe('is / is not (cases-doc.py I1 — the record’s leaking-seals case)', () => {
+  it('3.2% against 0.3% is 10.667 times; 6,000 packs a shift make 192 against 18 bad, 174 more; at 42p that is £73.08', () => {
+    expect(ratioOf(3.2, 0.3)).toBeCloseTo(10.6667, 4);
+    expect(badPacks(6000, 3.2)).toBeCloseTo(192, 9);
+    expect(badPacks(6000, 0.3)).toBeCloseTo(18, 9);
+    expect(excessPacks(6000, 3.2, 0.3)).toBeCloseTo(174, 9);
+    expect(excessMaterials(174, 0.42)).toBeCloseTo(73.08, 9);
+    expect(ratioOf(3, 0)).toBeUndefined();
+  });
+  it('a change is the lead by the days before the problem began: 13 Oct jaw +0, 2 Oct film +11, 15 Oct rota −2 (after it began)', () => {
+    expect(leadDays('2026-10-13', '2026-10-13')).toBe(0);
+    expect(leadDays('2026-10-13', '2026-10-02')).toBe(11);
+    expect(leadDays('2026-10-13', '2026-10-15')).toBe(-2);
+  });
+  it('a cause is ruled out by one “cannot”, fits with none, and is untested with nothing said', () => {
+    expect(verdictOf(['yes', 'yes', 'yes', 'yes'])).toMatchObject({ kind: 'fits', assumptions: 0, cannot: 0 });
+    expect(verdictOf(['yes', 'no', 'yes', 'assume'])).toMatchObject({ kind: 'ruled-out', cannot: 1, assumptions: 1 });
+    expect(verdictOf(['assume', 'assume', 'assume', 'assume'])).toMatchObject({ kind: 'assumes', assumptions: 4 });
+    expect(verdictOf(['', '', '', ''])).toMatchObject({ kind: 'untested', tested: 0 });
   });
 });

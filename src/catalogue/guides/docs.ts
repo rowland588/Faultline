@@ -184,6 +184,48 @@ export const DOCS_GUIDES: Record<string, Guide> = {
     ],
     watch: 'Spell a requirement the same way every time — the same words are the same requirement. And needs move: last year’s delight is this year’s expectation, so ask again.',
   },
+  'FC-149': {
+    intro: 'For a problem that began — a spike, a sudden change — when you need to know exactly where it is and is not before anyone proposes a cause. It finds the cause of a change from how things were, fast.',
+    steps: [
+      {
+        step: 'The problem and the day it began',
+        means: 'One statement of what is wrong, with no cause and no fix in it, and the first day it was seen. A problem that was always there has no “since”, and this method is not for it.',
+        doThis: 'Write the problem as the floor says it — “leaking seals on 400 g trays”. Pick the day it began. If the project’s register holds it, one tap uses its words.',
+        youGet: 'The problem on the page, and a day to line the changes up against.',
+      },
+      {
+        step: 'What it is and what it is not',
+        means: 'Four questions, each asked two ways: what, where, when and how much it IS, and what it could be but IS NOT. The IS NOT column is where the method lives — a specification with only IS lines is a complaint.',
+        doThis: 'Add a line for each of what, where, when and how much. For each say what it is, what it could be and is not, and how that is known — the reject log, the count. Facts, not opinion.',
+        youGet: 'The specification table, and a warning for any question not asked, any IS with no IS NOT and any line with no fact behind it.',
+      },
+      {
+        step: 'How much, in numbers',
+        means: 'The same “how much” as percentages — how often where it is and where it is not — so the difference can be said as a ratio and in packs and pounds.',
+        doThis: 'Type the two percentages and the packs made a shift where it is. The line’s materials cost a pack is offered.',
+        youGet: 'How many times more often it happens where it is, and the extra bad packs a shift and what their materials cost.',
+      },
+      {
+        step: 'What is distinct, and what changed',
+        means: 'What is true only of the IS side (lane 3 has the new jaw), and what was changed in, on or around it — and the day. A change that lines up with the day it began is the lead; one that came after cannot be the start.',
+        doThis: 'List the distinctions, then every change you know of with its day — fitted, adjusted, a new batch, a new person.',
+        youGet: 'The changes in order of how close they came before the problem began, and any that came after marked.',
+      },
+      {
+        step: 'Possible causes, tested',
+        means: 'Each suspected cause is tested against every line: would it explain it, would it need an extra assumption, or could it not? One “Cannot” rules it out. The one that explains every line with no assumption is the most probable.',
+        doThis: 'Add a cause, then for each of the four lines say whether it explains it, needs an assumption (say which) or cannot.',
+        youGet: 'A table of causes against lines, the ones left standing, and the most probable named in the sentence.',
+      },
+      {
+        step: 'The check on the floor',
+        means: 'The most probable cause is a lead, not a verdict. It is verified — turned on and off, a part swapped between lanes — before anything is changed.',
+        doThis: 'Write the first check and what it will show, something that can come out either way. Write what it showed when it is done.',
+        youGet: 'The check on the page and the paper, ready to agree with the team leader.',
+      },
+    ],
+    watch: 'Filled with opinion, the table proves whatever the room believes. Every line needs a fact and where it came from.',
+  },
   'FC-150': {
     intro: 'For answering a customer’s corrective-action request, or a serious incident: what was contained, why it happened, why it was not caught, and that it cannot come back — with a date for each step.',
     steps: [

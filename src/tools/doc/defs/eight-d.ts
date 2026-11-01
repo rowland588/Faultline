@@ -39,7 +39,7 @@ const eightD: DocDef = {
         { id: 'name', kind: 'person', label: 'Name', required: true }, { id: 'role', kind: 'text', label: 'Role or function', example: 'Maintenance' },
       ] },
     ] },
-    { id: 'd2', title: 'D2 · The problem described', help: 'Is and is not — what, where, when, how much. Typed: the is / is-not tool is not built yet.', items: [
+    { id: 'd2', title: 'D2 · The problem described', help: 'Is and is not — what, where, when, how much. Typed here; where the project holds an Is / is not page its lines are shown beside, read from it.', items: [
       { id: 'problem', kind: 'long', label: 'The problem, in one statement', required: true, example: 'Seals on lane 3, from 12 October, 4% of trays leaking', help: 'Drawn from the rows below.' },
       { id: 'isnot', kind: 'list', label: 'Is and is not', rowWord: 'row', required: true, help: 'One row each for what, where, when and how much. What it is NOT is what points at the cause.', columns: [
         { id: 'dim', kind: 'choice', label: 'About', required: true, options: DIMS },
@@ -152,6 +152,7 @@ const eightD: DocDef = {
       rows: dated.map(([k, d, u]) => [k, niceDay(d, { year: true }), `day ${day(d) ?? '—'}`, u || '—']), note: 'Common expectations, not rules: the customer’s or the standard’s timetable governs.' });
     if (ctx.problems?.length) tables.push({ title: 'From the register — the project’s problems', head: ['Problem', 'State', 'Owner', 'Raised', 'Closed'], shares: [0.38, 0.14, 0.18, 0.15, 0.15],
       rows: ctx.problems.map(p => [p.problem, p.status.replace('_', ' '), p.owner ?? '—', p.raisedOn ? niceDay(p.raisedOn, { year: true }) : '—', p.closedOn ? niceDay(p.closedOn, { year: true }) : '—']) });
+    if (ctx.isIsNot) tables.push({ title: 'D2 — the project’s is / is not', head: ['About', 'It is', 'It is not'], shares: [0.16, 0.42, 0.42], rows: ctx.isIsNot.lines.map(l => [DIMS.find(d => d.value === l.dim)?.label ?? l.dim, l.is, l.isnot || '—']), note: `Read from “${ctx.isIsNot.name}”${ctx.isIsNot.since ? `, which began ${niceDay(ctx.isIsNot.since, { year: true })}` : ''} — the specification is kept there, not here.` });
     if (ctx.causes?.length) tables.push({ title: 'D4 — causes on the project’s fishbone', head: ['Bone', 'Cause', 'Whys', 'Root cause'], shares: [0.18, 0.5, 0.12, 0.2], rows: ctx.causes.map(c => [c.bone, c.text, String(c.whys), c.root ? 'yes' : 'no']) });
     if (ctx.actions?.length) tables.push({ title: 'D5 to D7 — the project’s actions', head: ['Action', 'Who', 'Due', 'State'], shares: [0.46, 0.2, 0.17, 0.17], rows: ctx.actions.map(a => [a.what, a.who || '—', a.due ? niceDay(a.due, { year: true }) : '—', STATE[a.state]]) });
     if (ctx.studies?.length) tables.push({ title: 'D6 — the project’s studies', head: ['Study', 'Verdict', 'What it says'], shares: [0.34, 0.16, 0.5], rows: ctx.studies.map(s => [s.title, s.verdict || '—', s.says || '—']) });

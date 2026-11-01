@@ -123,6 +123,8 @@ export interface DocCtx {
   causes?: CtxCause[];
   /** What the project's METHOD sheet holds, by `method:field` ("dmaic:problem") — the words a document may OFFER where it asks the same question; read, never copied. */
   methodAnswers?: Record<string, string>;
+  /** The project's newest is / is not specification (FC-149): what the 8D's D2 reads instead of asking twice. */
+  isIsNot?: { name: string; since?: string; lines: { dim: string; is: string; isnot: string }[] };
 }
 
 /** A table the document works out from what was typed — shown on the page and printed, the same. */

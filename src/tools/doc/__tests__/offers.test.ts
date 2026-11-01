@@ -1,6 +1,6 @@
 /* A document offers what the project's method sheet already says (FC-142 reading DMAIC's Define) — read, never stored twice. */
 import { describe, expect, it } from 'vitest';
-import { offerAnswer, EMPTY_CTX } from '../doc';
+import { offerAnswer, EMPTY_CTX, runDoc } from '../doc';
 import { docByKey } from '../registry';
 import { insertionsOf } from '../../../project/method/shapes/dmaicModel';
 import { newDocStudy } from '../doc';
@@ -33,5 +33,20 @@ describe('DMAIC’s Define reads the charter page', () => {
     expect(full.studyCount).toBe(1);
     expect(full.says).toBeTruthy();
     expect(insertionsOf([newDocStudy(docByKey('sipoc')!, { name: 'x', projectId: 'p', now: 2 })]).find(i => i.id === 'charter')!.studyCount).toBe(0);
+  });
+});
+
+describe('the 8D’s D2 reads the project’s Is / is not (FC-149) and keeps no second copy', () => {
+  it('shows its lines as a table when the project holds one, and none when it does not', () => {
+    const d = docByKey('eight-d')!;
+    const base = d.examples[0];
+    const ctx = { ...EMPTY_CTX('2026-11-01'), ...(base.ctx ?? {}) };
+    const without = runDoc(d, base.values, [], ctx).result.tables?.map(t => t.title) ?? [];
+    expect(without).not.toContain('D2 — the project’s is / is not');
+    const withSpec = runDoc(d, base.values, [], { ...ctx, isIsNot: { name: 'Seals on lane 3', since: '2026-10-13', lines: [{ dim: 'where', is: 'Lane 3', isnot: 'Lanes 1, 2 and 4' }] } }).result.tables!;
+    const t = withSpec.find(x => x.title === 'D2 — the project’s is / is not')!;
+    expect(t.rows).toEqual([['Where', 'Lane 3', 'Lanes 1, 2 and 4']]);
+    expect(t.note).toContain('Seals on lane 3');
+    expect(t.note).toContain('13 Oct 2026');
   });
 });
