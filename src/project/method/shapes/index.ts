@@ -23,4 +23,7 @@ export interface Shape {
   /** `none`: the board is the whole interface and the default boxes under each section are not drawn (the tool rows stay). */
   sectionBoxes?: 'default' | 'none';
 }
-export const SHAPES: Partial<Record<MethodKey, Shape>> = {};
+import { KAIZEN_EVENT_SHAPE } from './kaizen-event';
+export const SHAPES: Partial<Record<MethodKey, Shape>> = {
+  'kaizen-event': KAIZEN_EVENT_SHAPE,
+};
