@@ -295,14 +295,14 @@ const KATA: MethodGuide = {
     {
       section: 'Establish the next target condition',
       means: 'Describing the state of the process you want next, with a date two to four weeks away, a measure and a pattern. It describes how the process will run, not the solution: “cycle time 25 seconds every cycle”, not “install a trolley”.',
-      doThis: 'Write it from the current condition. Standard work, takt (the pace the customer buys at) and the Line standard describe the state. Use What-ifs and the way to the target in Line capacity, or a Calculator, to see how far each option would take you. Set the date, and put the target value on the same chart as the current condition. Keep the obstacles you can see as Problems.',
+      doThis: 'Write it from the current condition. Standard work, takt (the pace the customer buys at) and the Line standard describe the state. Use What-ifs and the way to the target in Line capacity, or a Calculator, to see how far each option would take you. Set the date (the box “The date we aim to reach it”), and put the target value on the same chart as the current condition. Keep the obstacles you can see as Problems.',
       youGet: 'A target condition (the value, the pattern, the date) and the obstacles in the way, kept as Problems.',
     },
     {
       section: 'Experiment toward it',
       means: 'Taking one small step at a time, each with a written prediction before, a result after and what you learned. A prediction that matches confirms; one that misses is the learning. A coach asks five questions daily: what is the target condition, what is the actual condition now, what obstacles are in the way and which one are you working on, what is your next step and what do you expect, and when can we see what we have learned.',
-      doThis: 'Make each step an Action: the step, what you expect as a number, who and by when. Afterwards write what happened and what you learned, and use Did it change in Analysis on the same measure. Ask the five questions at the line each day: the Gemba walk keeps count of how recently you looked, and the Journey holds the day’s commentary. Say the answers into Line Talk. If three days pass with no experiment, the routine has stopped.',
-      youGet: 'A log of experiments (step, prediction, result, lesson), a measure moving toward the target and the next obstacle named.',
+      doThis: 'Make each step an Action: the step, what you expect as a number, who and by when. Afterwards write what happened, say whether it matched what you expected (yes, partly or no) and what you learned, and use Did it change in Analysis on the same measure. Ask the five questions at the line each day: the Gemba walk keeps count of how recently you looked, and the Journey holds the day’s commentary. Say the answers into Line Talk. If three days pass with no experiment, the routine has stopped.',
+      youGet: 'A log of experiments (step, prediction, result, whether it matched, lesson), a measure moving toward the target and the next obstacle named.',
     },
   ],
 };

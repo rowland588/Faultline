@@ -7,7 +7,10 @@
  * the default: its questions and the team's answers, section by section. Additive: register an entry, change nothing else. */
 import type { MethodKey } from '../../../lib/methods';
 import type { MethodReportFn } from '../../../lib/methodReportModel';
+import { kataReport } from './kata';
 
-export const METHOD_REPORT: Partial<Record<MethodKey, MethodReportFn>> = {};
+export const METHOD_REPORT: Partial<Record<MethodKey, MethodReportFn>> = {
+  kata: kataReport,
+};
 
 export type { MethodReportCtx, MethodReportFn, ReportItem, ReportSection } from '../../../lib/methodReportModel';

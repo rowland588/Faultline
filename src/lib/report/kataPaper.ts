@@ -23,8 +23,8 @@ export function kataBlocks(x: KataPaperIn): Block[] {
   if (!sb.rows.length) out.push(text({ text: 'No experiment is written yet.', size: SIZE.small, colour: AMBER }));
   for (const r of sb.rows) {
     out.push(label(`Experiment ${r.n}${r.ran ? ` · ${r.ran}` : ''}`));
-    const line = (k: 'step' | 'prediction' | 'result' | 'learning') => text({ text: `${ROW_LABELS[k]}: ${r[k] || 'not written yet'}`, size: SIZE.small, colour: r[k] ? INK2 : AMBER, bullet: '•', indent: 10, after: 2 });
-    out.push(line('step'), line('prediction'), line('result'), line('learning'));
+    const line = (k: 'step' | 'prediction' | 'result' | 'matched' | 'learning') => text({ text: `${ROW_LABELS[k]}: ${r[k] || 'not written yet'}`, size: SIZE.small, colour: r[k] ? INK2 : AMBER, bullet: '•', indent: 10, after: 2 });
+    out.push(line('step'), line('prediction'), line('result'), ...(r.matched ? [line('matched')] : []), line('learning'));
   }
   out.push(heading('The five coaching questions'));
   for (const c of sb.coaching) {
