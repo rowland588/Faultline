@@ -225,7 +225,7 @@ const STAGE_GATE: MethodGuide = {
     {
       section: 'Commission',
       means: 'Proving each machine against what was agreed with the supplier. An acceptance test says what must be shown, a “passes if” such as a stated speed, reject rate or run length. The performance run is the machine running at the agreed rate; the climb is how the rate rises over the first runs. This is the Prove loop: programs and tests on the line.',
-      doThis: 'Run each test from Programs and record every attempt: the speed it ran at, the minutes, the packs and the rejects, against its passes-if. A failed test raises a Problem and a fix, and the re-test is booked. Add the studies that prove it: Capability for the machine’s capability, Reliability for its stops and failures, Gauge R&R for the checkweigher, and the check logs for checkweigher, seal and metal detection verification. Pick a program’s criteria, and when all pass, sign off by name and day. The filmed walk records what you see on film as Problems with photos.',
+      doThis: 'Run each test from Programs and record every attempt: the speed it ran at, the minutes, the packs and the rejects, against its passes-if. A failed test raises a Problem and a fix, and the re-test is booked. Add the studies that prove it: Capability for the machine’s capability, Reliability for its stops and failures, Gauge R&R for the checkweigher, and the verification tools for checkweigher, seal integrity and metal detection. Pick a program’s criteria, and when all pass, sign off by name and day. The filmed walk records what you see on film as Problems with photos.',
       youGet: 'Each program proved, failed or not yet tested, with every attempt in order, and the sign-off by name and day. Each failure is a Problem with an owner.',
     },
     {
@@ -275,7 +275,86 @@ const KAIZEN_EVENT: MethodGuide = {
   ],
 };
 
-export const METHOD_GUIDE: Readonly<Record<MethodKey, MethodGuide>> = { pdca: PDCA, dmaic: DMAIC, 'eight-d': EIGHT_D, a3: A3, 'stage-gate': STAGE_GATE, 'kaizen-event': KAIZEN_EVENT } as Record<MethodKey, MethodGuide>;
+const KATA: MethodGuide = {
+  whenToUse: 'Reach for the Improvement Kata when you have a challenge, a measurable aim a few months away, but you do not yet know the way, and you want a team leader improving a little every day by a routine: a changeover worked down in seconds a week, give-away or start-up losses taken obstacle by obstacle. Its product is a team that improves by method.',
+  notFor: 'Not for one big change in a week (Kaizen event) or a customer problem with a deadline (8D). Not when nobody will coach each day: a storyboard filled in without the daily conversation is paperwork. One large experiment a month is a project, not kata. Each experiment itself follows the plan, do, check, act cycle (PDCA).',
+  example: 'A team leader’s challenge: the end-of-line changeover from 38 seconds to 20 by the end of the quarter. The target condition for 30 November: 25 seconds, every cycle. Seven experiments in two weeks, each with its prediction written first: the first expected 38 and got 35; the third expected 33 and got 36 (the second operator’s reach was the lesson); the seventh expected 30 and got 45, because the film splice with one person took longer. The reel is too heavy for one, and that is the next obstacle.',
+  sections: [
+    {
+      section: 'Understand the direction',
+      means: 'The challenge: a measurable aim some months away, and why it matters to the business. It is not a plan. It is where you are heading, and the next steps come from reading the gap between where the process is now and where it is aimed.',
+      doThis: 'Take the challenge from the line’s or the factory’s aim, for example the target in Line capacity or the team’s weekly number. Write it as a number, a unit and a date, with the reason. If a problem in the register set the challenge, keep the reason there and link it to this project.',
+      youGet: 'A written challenge, the number, the unit and the date, and why it matters. Every experiment is aimed at it.',
+    },
+    {
+      section: 'Grasp the current condition',
+      means: 'Measuring the process as it is right now, its pattern and not just its average. A changeover that averages 32 seconds but swings between 25 and 45 is a different problem from one that sits steady at 32.',
+      doThis: 'Go and see the process, then measure it as it runs: the Stopwatch time study for cycles, Stops timed and the Stops Pareto for stops, the Loss count for a shift, Work sampling for what people do, the Value stream map for the flow. Put the readings on a Control chart in time order, so the pattern shows, and draw how it runs today as the Line standard.',
+      youGet: 'The current condition as measured: a run of readings with its spread, drawn as it runs, and the obstacles you can already see.',
+    },
+    {
+      section: 'Establish the next target condition',
+      means: 'Describing the state of the process you want next, with a date two to four weeks away, a measure and a pattern. It describes how the process will run, not the solution: “cycle time 25 seconds every cycle”, not “install a trolley”.',
+      doThis: 'Write it from the current condition. Standard work, takt (the pace the customer buys at) and the Line standard describe the state. Use What-ifs and the way to the target in Line capacity, or a Calculator, to see how far each option would take you. Set the date, and put the target value on the same chart as the current condition. Keep the obstacles you can see as Problems.',
+      youGet: 'A target condition (the value, the pattern, the date) and the obstacles in the way, kept as Problems.',
+    },
+    {
+      section: 'Experiment toward it',
+      means: 'Taking one small step at a time, each with a written prediction before, a result after and what you learned. A prediction that matches confirms; one that misses is the learning. A coach asks five questions daily: what is the target condition, what is the actual condition now, what obstacles are in the way and which one are you working on, what is your next step and what do you expect, and when can we see what we have learned.',
+      doThis: 'Make each step an Action: the step, what you expect as a number, who and by when. Afterwards write what happened and what you learned, and use Did it change in Analysis on the same measure. Ask the five questions at the line each day: the Gemba walk keeps count of how recently you looked, and the Journey holds the day’s commentary. Say the answers into Line Talk. If three days pass with no experiment, the routine has stopped.',
+      youGet: 'A log of experiments (step, prediction, result, lesson), a measure moving toward the target and the next obstacle named.',
+    },
+  ],
+};
+
+const TOC: MethodGuide = {
+  whenToUse: 'Reach for Theory of Constraints when output is the issue (the line cannot make what is wanted) and effort is being spread across many losses. It finds the one station that limits the whole line and puts every hour of effort where it makes packs: the oven in a bakery, the filler in a bottling hall, a hand-pack station.',
+  notFor: 'Not when several stations are near-equal constraints; simulation is the better tool then. Not for quality or give-away problems that do not limit output. A loss away from the constraint saves labour but makes no more packs, so effort spent there is not what this method is for.',
+  example: 'A bottling line. Identify: Line capacity puts the capper at the bottleneck, and the walk finds bottles queuing in front of it. Exploit: the Loss count at the capper’s ideal speed shows breakdowns there cost 1,400 packs a shift, while the same breakdowns on the labeller cost no packs, because the line runs round it (the mirage). Subordinate: a buffer ahead of the capper, and the filler paced to it. Elevate: only once the capper’s stops are down, price a second person or a faster head against its payback. Go again: the labeller may now be the constraint.',
+  sections: [
+    {
+      section: 'Identify the constraint',
+      means: 'Finding the one station that sets the line’s output. Every other station can run faster; the line cannot. The slowest machine by plate speed (its rated speed) may not be the one limiting you in practice, and a mirage is a loss that looks big but costs no output because the line runs round it.',
+      doThis: 'Open Line capacity, enter the stations in flow order (machines at their plate speed, people at their timed cycle) and read the V-curve and the capacity sheet, which name the bottleneck. Then walk it: the bottleneck walk asks where the work is waiting. Time the people’s work in Line balance. Capacity’s three numbers (design, effective, actual) and Load against demand say whether next week fits, and The constraint and the mirage says where a lost minute costs output.',
+      youGet: 'The constraint named, with its capacity against the target and the evidence from the floor that it is the real one.',
+    },
+    {
+      section: 'Exploit it',
+      means: 'Making the constraint lose nothing. Its stops, its slow running, its changeovers and its idle time all come straight off the line’s output. A minute lost at the constraint is a minute lost to the whole line; a minute lost anywhere else is not.',
+      doThis: 'Run the Loss count for a shift at the constraint, at its ideal speed, to see planned time, breaks, stops, slow running and rejects in packs and pounds. Time its stops with Stops timed and rank them in the Stops Pareto. Cut its changeovers with SMED. Read Product mix at the constraint for which product earns most for each minute there, and What the bottleneck costs for the money.',
+      youGet: 'The constraint’s losses ranked and priced in packs and pounds, and the fixes aimed at them.',
+    },
+    {
+      section: 'Subordinate the rest',
+      means: 'Making everything else work to the constraint’s pace, not running ahead of it and not starving it. A buffer in front of it keeps it fed, and what the other stations make is set by what it can take. The formal way is drum–buffer–rope: the constraint is the drum that sets the beat, the buffer protects it and the rope ties the release of work to its pace.',
+      doThis: 'Use the bottleneck walk and Accumulation between machines to see where product piles up before and after the constraint, and what a buffer holds in minutes. Size the kanbans with Kanban sizing. Test the speeds of the stations around it as what-ifs in Line capacity. Write the rules as Actions, for example who tells the upstream machine to slow when the buffer is full; where the drum–buffer–rope tool shows Not built yet, the rules are still Actions with an owner and a day.',
+      youGet: 'The rest of the line running to the constraint: a buffer in front of it, rules for releasing work and no pile-ups hiding the real losses.',
+    },
+    {
+      section: 'Elevate it',
+      means: 'Spending money to raise the constraint’s capacity (more people, another shift, a faster machine) only after you have squeezed what it already has. The worth must be shown: what it adds a shift, and how long it takes to pay back.',
+      doThis: 'Use What-ifs and the way to the target in Line capacity to see what each option does, including People needed at a station. Put the money on it with Lost time in money, Contribution a pack and the payback and NPV calculator, and look at Recovery levers for what each share of the losses is worth. If an option does not raise the constraint, it does not add packs.',
+      youGet: 'A costed option that raises the constraint, with what it adds a shift, what it costs and when it pays back.',
+    },
+    {
+      section: 'Go again',
+      means: 'When the constraint is raised it moves: some other station becomes the limit. The last step is to find the new constraint and not let old habits or old rules built to protect the previous constraint become the constraint themselves.',
+      doThis: 'Open Line capacity again with the new speeds and read the bottleneck afresh. Compare output before and after with Did it change in Analysis, and keep a Control chart on the weekly number. Start the first step again on the new constraint, and review any rule you made to protect the old one.',
+      youGet: 'The new constraint named, the gain proved and a fresh round begun. The method is a continuing practice, not a project with an end.',
+    },
+  ],
+};
+
+export const METHOD_GUIDE: Readonly<Record<MethodKey, MethodGuide>> = {
+  pdca: PDCA,
+  dmaic: DMAIC,
+  'eight-d': EIGHT_D,
+  a3: A3,
+  'stage-gate': STAGE_GATE,
+  'kaizen-event': KAIZEN_EVENT,
+  kata: KATA,
+  toc: TOC,
+};
 
 /** A method’s whole guide. */
 export const guideOfMethod = (key: MethodKey): MethodGuide => METHOD_GUIDE[key];
