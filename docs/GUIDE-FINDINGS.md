@@ -26,6 +26,7 @@ Writing "what each step means" from the real page (docs/METHODS.md §15) turned 
 ## Quality and calculators
 - FC-125 "by money" can never appear in a faults study (`faultsFigures` sets no gbp; the Agree form asks "A pack’s materials" only for rejects and pass/fail) though the catalogue limit says it is priced.
 - Impact and effort's New sheet labels its first box "What line is this for?" and then asks "Line"; the first box is the ranking's name.
+- FC-146/147 words: CLAUDE.md says measured/counted/observed/reported; the page says Data/Counted/Seen/Told (the guides use the page's). The cause sheet's "+ Ask why again" and the fishbone panel's "Ask the next why" are two buttons for one act. The A3 method page has no Report ▾ of its own (the guide points to Reports in the project menu). FC-138 has no tollgate sign-off.
 - FC-128's limit says "Complaints per million (FC-134) is not built"; FC-134 is available.
 - FC-151 is not an A3 (a 6M project has the one-page status and the client report); FC-138 has no page (the 6M loop mapped to DMAIC; no tollgates).
 
