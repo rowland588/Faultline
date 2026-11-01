@@ -32,7 +32,7 @@ function Box({ id, p, rows = 3, q, hint }: { id: string; p: ShapeProps; rows?: n
       {(hint ?? fl?.hint) && <span className="kata-hint">{hint ?? fl?.hint}</span>}
       {p.canEdit
         ? (line
-          ? <input className="text-input kata-in" type={id.replace(/@\d+$/, '') === 'ran' ? 'date' : 'text'} defaultValue={value} key={value} aria-label={name} onBlur={e => p.save(id, e.target.value.trim())} />
+          ? <input className="text-input kata-in" type={['ran', 'target_by'].includes(id.replace(/@\d+$/, '')) ? 'date' : 'text'} defaultValue={value} key={value} aria-label={name} onBlur={e => p.save(id, e.target.value.trim())} />
           : <textarea className="text-input kata-in" rows={rows} defaultValue={value} key={value} aria-label={name} onBlur={e => p.save(id, e.target.value.trim())} />)
         : <span className="kata-ro">{value || 'Not written yet.'}</span>}
     </label>
@@ -84,7 +84,7 @@ function Board(p: ShapeProps) {
         </div>
         <div className="kata-cell" aria-label="Target condition">
           <h3>3 · Target condition</h3>
-          <Box id="target" p={p} />
+          <Box id="target" p={p} /><Box id="target_by" p={p} />
         </div>
         <div className="kata-cell" aria-label="Obstacles">
           <h3>4 · Obstacles</h3>

@@ -26,10 +26,13 @@ import { a3Insight } from './methodInsights/a3';
 
 import { kaizenInsight } from './methodInsights/kaizen-event';
 
+import { kataInsight } from './methodInsights/kata';
+
 export const METHOD_INSIGHT: Partial<Record<MethodKey, MethodInsightFn>> = {
   pdca: pdcaInsight,
   dmaic: dmaicInsight,
   'eight-d': eightDInsight,
  a3: a3Insight,
   'kaizen-event': kaizenInsight,
+  kata: kataInsight,
 };

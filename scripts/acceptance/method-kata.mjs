@@ -33,7 +33,7 @@ ok((await board.locator('.kata-row').count()) === 1, '1 the experiments table st
 await fill('The challenge', '52 packs a minute on Line 7 by March');
 await fill('The measure and its unit', 'Packs a minute at the packer, counted per hour');
 await fill('The process as it is — its pattern', 'Between 46 and 49, dipping after changeovers');
-await fill('The target condition, and its date', '50 a minute every hour for a week, by 20 Nov');
+await fill('The target condition', '50 a minute every hour for a week');
 await fill('The obstacles in the way', 'Film tension\nJaw temperature drift');
 await fill('The obstacle we are addressing now', 'Film tension');
 await fill('Step — experiment 1', 'Re-set the dancer arm');
