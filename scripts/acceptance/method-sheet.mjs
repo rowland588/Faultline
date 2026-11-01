@@ -23,7 +23,7 @@ const sheets = await page.evaluate(async () => { const M = await import('/src/li
 
 /* ---- 1 every worked method asks its own questions ---- */
 for (const m of sheets) {
-  if (m.key === 'stage-gate') continue;
+  if (m.key === 'stage-gate' || await page.evaluate(async k => (await import('/src/project/method/shapes/index.ts')).SHAPES[k]?.sectionBoxes === 'none', m.key)) continue;   // a method whose board is the whole interface asks its questions there (its own acceptance script)
   await go(`#/project/${ids[m.key]}`, 1800);
   await page.waitForSelector('.pmethod', { timeout: 20000 });
   const got = await page.locator('.pmethod-sec').evaluateAll(els => els.map(e => ({ name: e.getAttribute('aria-label'), qs: [...e.querySelectorAll('.msheet-q')].map(q => q.textContent?.trim()) })));

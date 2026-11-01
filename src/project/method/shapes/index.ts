@@ -5,6 +5,7 @@
 import type { ComponentType } from 'react';
 import type { MethodKey } from '../../../lib/methods';
 import type { TestItem } from '../../../lib/testing';
+import { A3Board } from './A3Board';
 
 export interface ShapeProps {
   projectId: string;
@@ -23,4 +24,6 @@ export interface Shape {
   /** `none`: the board is the whole interface and the default boxes under each section are not drawn (the tool rows stay). */
   sectionBoxes?: 'default' | 'none';
 }
-export const SHAPES: Partial<Record<MethodKey, Shape>> = {};
+export const SHAPES: Partial<Record<MethodKey, Shape>> = {
+  a3: { Board: A3Board, sectionBoxes: 'none' },
+};
