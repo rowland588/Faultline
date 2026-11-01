@@ -185,4 +185,358 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
     ],
     watch: 'A finding’s severity is the priority you give the problem it raises; the page does not classify it. A repeat is the same question twice, not the same fault asked in another question. It does not grade a certification audit; the standard’s grading bands are not built.',
   },
+  'FC-234': {
+    intro: 'For the warning signs a machine gives before it fails — a motor running hotter, a bearing, a belt wearing, a noise that is not normal — read by a person along a route and watched for the direction they are heading. Nothing is read from a sensor: every number is typed.',
+    steps: [
+      {
+        step: 'The route',
+        means: 'Each point on the route is a check: the place you hold the thermometer, the gauge or your ear. The starter list has a motor, a bearing and a gearbox temperature each day, a belt wear gauge each week and “Noise — normal for this machine?”.',
+        doThis: 'Open Check logs, Condition checks on a route, New condition reading log. Pick the line and tick the points. If they are on different machines leave the place box empty, then in The checks Edit each point: name it as a person walking the route would find it (“Conveyor 2 drive motor”), say how often and give the unit (°C, mm). Add a point for every one you walk. A route can mix numbers with pass-or-fail checks like the noise one.',
+        youGet: 'A log with a card for each point on the Round, the ones due first at the top.',
+      },
+      {
+        step: 'A limit for each reading',
+        means: 'A reading means little without the line it must not cross. Lowest allowed and Highest allowed come from the machine maker’s data or your fitter, and the starter list sets none. With neither, the reading is recorded and trended and the page says it is not judged; with both, it can also say how near the limit it is.',
+        doThis: 'Before the first round, Edit each point in The checks and type Lowest allowed and Highest allowed (either, or both) with the unit. Take them from the maker’s instructions or ask the fitter; a typical figure from memory is not a limit.',
+        youGet: 'A pass or fail on every reading, and for a point with both limits, how much room is left.',
+      },
+      {
+        step: 'Take the reading',
+        means: 'One number for each point, read by a person: an infrared thermometer on a motor or bearing, a wear gauge on a belt, your ear for a noise. It is typed on the card; nothing is read from the machine.',
+        doThis: 'Walk the route and at each point type the number in the Reading box on its card and press Record. For the noise tap ✓ Pass if it sounds as it always does, or ✗ Fail if it does not. A number outside its limits is said before it is recorded and opens the failure sheet.',
+        youGet: 'A reading kept with the time and who took it, and a line on the card such as “70 °C — 14% of the band from the upper limit — rising 1.31 °C a reading” (limits 40 and 75, eight daily readings).',
+      },
+      {
+        step: 'Nearing its limit',
+        means: 'A reading can be inside its limits and still be heading for one. The page calls it nearing when it is within 15% of the band between the two limits from either of them (Faultline’s choice, said on the page). It is a reason to look today, not an alarm.',
+        doThis: 'Read the line on each card and, in History, Readings against their limits. A nearing reading is amber with how much of the band is left. If a reading is outside a limit, record the failure: the sheet says to tell the fitter and not to wait on a climbing reading, and raises a High problem on the register. A condition reading holds no product.',
+        youGet: 'The points nearing their limit at the top of the list of things to look at, before any of them has failed.',
+      },
+      {
+        step: 'The trend by point',
+        means: 'From eight readings the page says which way a point is heading. It uses the Mann–Kendall test, which asks whether the readings rise or fall steadily rather than wander, and Sen’s slope, which gives the typical change a reading. One odd day moves neither much. A trend is said only when it is clearly there (p under 0.05).',
+        doThis: 'Take each point at the same time and place so the readings can be compared, and let eight build up. Then read the line under the point’s picture: “rising …” or “falling …” a reading, or nothing said. A steady climb inside the limits is the warning this log exists for.',
+        youGet: 'A direction and a rate for each point. It is a reason to look, not a prediction of the day it will cross the limit.',
+      },
+    ],
+    watch: 'A limit that did not come from the maker or the fitter is a guess. This log records and trends; it does not plan the fitters’ work and it does not rank machines.',
+  },
+  'FC-183': {
+    intro: 'For a material the line cannot run without — film reels, trays, labels, a long-lead ingredient — when running out stops the line and you need to know how much to hold and when to reorder. It sizes one item at a time, ordered when stock falls to a reorder point.',
+    steps: [
+      {
+        step: 'What is it of?',
+        means: 'A calculation is a named, saved set of figures for one situation. Naming it for the material, and the line if you know it, lets the line’s figures be offered later and puts it in the line’s report.',
+        doThis: 'On Calculators pick Safety stock and reorder point and press New calculation. Type what it is of (for example Film reels for the packer), choose the line if you know it (optional) and press Start it.',
+        youGet: 'A saved calculation that works out the answer as you type, with nothing to press.',
+      },
+      {
+        step: 'Use and delivery, as they really run',
+        means: 'Four figures describe the item: how much is used a day on average, how much that swings from day to day (the standard deviation of the daily use), the days from order to delivery on average, and how much that swings. The swings are what the safety stock is held against.',
+        doThis: 'Use the days the line ran, not the days in the week. Count the daily use over a few weeks and put the spreadsheet’s STDEV of those days in “How much a day’s use swings”. For delivery, measure the days from orders you actually placed (a contract’s promised days are not a measure) and type how much they swing. Zero is right only if the item always arrives on the day promised.',
+        youGet: 'The use while an order comes (use × days) and the spread over that time, ready for the service level.',
+      },
+      {
+        step: 'Chance an order arrives before you run out',
+        means: 'The service level is the share of orders that arrive before stock runs out: 90, 95, 97.5, 98, 99 or 99.5 in 100. A higher level needs more safety stock. 95 is Faultline’s starting point, a choice and not a rule.',
+        doThis: 'Choose by what running out costs, not by habit: a film reel that stops the line is not a box of spare gloves. The right level weighs what running out costs against what holding more costs, for this item.',
+        youGet: 'The safety factor z for that chance (how many spreads of cover it takes) and the safety stock, z times the spread of use over the lead time.',
+      },
+      {
+        step: 'Reorder point and safety stock',
+        means: 'The reorder point is what is used while the order comes plus the safety stock, rounded up. Order when stock falls to it. The safety stock is the part held only against the swings.',
+        doThis: 'Read the sentence, then the tiles: Reorder point, Safety stock, Used while it comes, Service and Holding it. Read which source gives most of the spread and what the safety stock would be if it varied half as much. Under Check these, a warning appears when the swing is more than half of what is used while the order comes: the bell-shaped model then understates the stock.',
+        youGet: 'A figure such as “Reorder when stock falls to 21 reels: 12 are used while the order comes, and 8.5 more are held so that about 98 orders in 100 arrive before it runs out”, and the working line by line under How it is worked out.',
+      },
+      {
+        step: 'In money — all optional',
+        means: 'Holding the safety stock costs money every year, and each stock-out costs too. The page puts a pound figure on both from your own figures so the service level can be weighed.',
+        doThis: 'Open In money and give what you can: the units in an order, the days a year the line runs, what one unit costs, the cost of holding stock for a year in % and what running out costs each time. Finance has the holding rate (the industry quotes 15–35%, but the page never fills it in). Leave any out.',
+        youGet: 'What holding the safety stock costs a year and, at this level, how many orders a year run short and what that costs, or a line naming the figure still missing. The reorder point stands without any of them.',
+      },
+      {
+        step: 'What if, and before → after',
+        means: 'Change one figure and watch the answer move without keeping it, or save the figures as the before so a change reads as a before → after.',
+        doThis: 'Under What if… pick a figure (the supplier’s swing, the service level) and type another; the answer and the money show beside the present ones and Make it so keeps it. Press Save as before first if you want the next figures read against these.',
+        youGet: 'The effect of steadier deliveries or a different service level in units and pounds. Steadier deliveries or steadier use come straight off the safety stock.',
+      },
+    ],
+    watch: 'It assumes use over the lead time is bell-shaped. For slow or lumpy items, some days nothing and some days a lot, it understates the stock needed. The service level is the chance an order arrives before you run out, not the share of demand filled.',
+  },
+  'FC-191': {
+    intro: 'For a spend that looks small until someone asks what it saves: a splice table, a SMED kit, a guard. It says how soon the spend pays for itself and what it is worth over its life, from a saving a tool measured, so a small fix can be funded.',
+    steps: [
+      {
+        step: 'How the saving is known',
+        means: 'The saving a week is the heart of it, and it can come three ways: you know it already, you know a loss and the share a fix should recover, or the fix gives back hours of labour.',
+        doThis: 'Pick one: “I know the saving a week” (from the tool that measured it), “A loss and the share the fix recovers” (the way SMED or the loss count says it) or “Hours saved at the wage”. Name what is being bought if you like; it only names the sentence.',
+        youGet: 'Only the boxes that way needs.',
+      },
+      {
+        step: 'The saving',
+        means: 'What the fix gives back each week the line runs, in pounds. It should be a figure a tool measured, not one invented for the form: the loss count’s idle labour or lost contribution, SMED’s changeover cost, a capability study’s give-away.',
+        doThis: 'Type the Saving a week; or the loss now a week and the share the fix recovers; or the hours saved a week and one person’s cost an hour (the line’s wage with on-costs is offered if the calculation is on a line that has one). Savings in lost time away from the bottleneck are labour, not contribution.',
+        youGet: 'A saving a week and how it was made, for example 60% of a £1,900 loss is £1,140 a week.',
+      },
+      {
+        step: 'Weeks a year, and years counted',
+        means: 'The saving is only earned in the weeks the line runs, and only counts for the years the fix lasts. Both are the business’s policy and are asked, never assumed.',
+        doThis: 'Type the weeks a year the line runs (48, 50 and 52 give different years) and the years the saving is counted for: the machine’s life, or the business’s policy; three to five years is usual.',
+        youGet: 'The saving a year, and the length of life the NPV is worked over.',
+      },
+      {
+        step: 'The investment and the discount rate',
+        means: 'The investment is what it costs once. The discount rate is the business’s own yearly return on money; it is what lets a saving next year be set against a cost today. Finance has it, and the page never fills it in.',
+        doThis: 'Open In money. Type the cost: price, fitting, training and any production lost to fit it. Type the discount rate as a number of percent, 10 for 10%; the page warns on one that looks like a fraction. Either is optional and the page says which it still needs.',
+        youGet: 'The tiles that need them: payback, NPV and return.',
+      },
+      {
+        step: 'Payback, NPV and IRR',
+        means: 'Payback is the running weeks for the saving to repay the cost. NPV, net present value, is the saving over the years discounted at the business’s rate, less the cost: above zero it is worth more than the money would earn. IRR is the rate at which the NPV would be zero; set it against the business’s hurdle rate.',
+        doThis: 'Read the sentence, then the tiles: Payback, Saving a week, NPV, Return a year, IRR and Spend. Red appears only by arithmetic: an NPV below zero, or a payback longer than the years counted. Never green.',
+        youGet: 'For example a £4,800 splice table saving £310 a week, over 48 weeks a year for 3 years at 10%: pays back in 15.5 weeks of running, NPV £32,204.',
+      },
+      {
+        step: 'How firm is it',
+        means: 'The saving is expected, not banked, until the tool that measured the loss measures it again after the spend. The page tests two worse cases.',
+        doThis: 'Read “With the saving halved” and “With the cost up a quarter”: each says the new payback and whether the NPV still pays. Then book the saving only when the loss has been measured again after the spend, and use Save as before to keep these figures for the comparison.',
+        youGet: 'A decision that survives a worse case, and the before → after against the measured loss.',
+      },
+    ],
+    watch: 'It takes a constant saving a week and a cost all up front, with each year’s saving at its year end. An uneven cash flow is not built, and the saving is only as good as the tool that measured it.',
+  },
+  'FC-207': {
+    intro: 'For lifting done by hand all shift — cases onto a pallet, ingredient sacks into a hopper — when nobody has assessed it. It screens one two-handed lift with the revised NIOSH equation and says which factor makes it a risk. It is a screen for a trained assessor, not a risk assessment.',
+    steps: [
+      {
+        step: 'The load',
+        means: 'The weight in the hands at the start of the lift. Include the box or the sack, not just the product.',
+        doThis: 'Weigh the case as it is lifted, in kilograms, and type it in Load lifted. Name the task (for example palletising cases) if you like; it only names the sentence.',
+        youGet: 'The load the lifting index is worked against.',
+      },
+      {
+        step: 'Where the hands are',
+        means: 'The reach and height of the hands at the start of the lift, and how far they travel. These set the horizontal, vertical and distance multipliers, each between 0 and 1: the further out, the lower the limit.',
+        doThis: 'Measure with a tape at the start of the lift: Hands from mid-point between ankles (the horizontal reach, in cm; under 25 cm counts as 25 cm), Hands above floor at start (floor to knuckles, in cm) and Vertical travel of the lift (origin to destination, in cm). Add Twist from straight ahead in degrees if the body turns; leave 0 if the person faces the load.',
+        youGet: 'The geometry of the lift, which fixes most of the limit.',
+      },
+      {
+        step: 'How often, and for how long',
+        means: 'The same lift is harder all shift than once in a while. The frequency multiplier comes from how many lifts a minute and how long lifting goes on.',
+        doThis: 'Type Lifts a minute as an average over the task, and pick Lifting goes on for: up to 1 hour, up to 2 hours or up to 8 hours (a shift). Pick the one that matches how long the task really goes on.',
+        youGet: 'A frequency multiplier from the manual’s table; a task with too many lifts for too long is outside the equation.',
+      },
+      {
+        step: 'Hand coupling',
+        means: 'How well the hands can hold the load. A load with handles is easier to lift safely than a loose sack.',
+        doThis: 'Pick Good (handles or cut-outs), Fair (a box without handles) or Poor (a loose or awkward grip, sacks, slippery cartons).',
+        youGet: 'The coupling multiplier: 1.0 for good, 0.95 or 1.0 for fair depending on height, 0.90 for poor.',
+      },
+      {
+        step: 'The limit and the lifting index',
+        means: 'The recommended weight limit, RWL, is 23 kg times the six multipliers. The lifting index, LI, is the load divided by that limit. Up to 1 is nominal risk, above 1 increased risk and above 3 high risk (NIOSH, as the record gives it).',
+        doThis: 'Read the verdict, then the tiles: Recommended limit, Lifting index, Load and Biggest limit. How it is worked out shows each multiplier. Outside the equation is said when the hands are more than 63 cm out, start above 175 cm, travel further than 175 cm, twist beyond 135° or lift too often.',
+        youGet: 'For example 13 kg against a limit of 11.5 kg is an index of 1.14, increased risk, with the vertical height at the start as the biggest limit.',
+      },
+      {
+        step: 'What to change',
+        means: 'The biggest limit is the multiplier that cuts the limit most. The closing line names it as the first multiplier to improve.',
+        doThis: 'Change the figure for the factor named (What if… moves one figure and keeps nothing until Make it so), see the index move, and save the figures as the before to compare. Which control to pick is for the assessor; the page does not say.',
+        youGet: 'An index you can show falling after the change. There is no money on this calculator: NIOSH gives risk only.',
+      },
+    ],
+    watch: 'One two-handed lift at a time. Carrying, pushing, team lifts and jerking loads are not covered, and UK sites often assess with the HSE manual handling charts instead.',
+  },
+  'FC-187': {
+    intro: 'For the staffing question: what does a pack cost in labour, and would one more person at the bottleneck pay for themselves? It sits in Line capacity and uses the line’s one cost model, so every tool that says a cost a pack in money says it the same way.',
+    steps: [
+      {
+        step: 'People on the line — all of them',
+        means: 'Everyone paid to be on the line, not only the people at stations of people. It is the headcount the labour is paid for whatever the line makes.',
+        doThis: 'In the product’s Line capacity find What a pack costs in labour (it says bag, tray or whatever the line counts in). Type People on the line; or leave it and the page uses the people placed on the product’s line standard, else the line’s crew from Set up the line. It says which: typed here, placed on the line standard, the line’s crew or not said yet.',
+        youGet: 'The headcount the cost is worked from, and where it came from, so a stand-in is never mistaken for a decision.',
+      },
+      {
+        step: '£ an hour, each',
+        means: 'What one person costs the business an hour. The wage is not the whole cost: employer NI, pension and holiday cover sit on top, which finance can turn into a multiplier (the page’s note says typically 1.25 to 1.4 in the UK).',
+        doThis: 'Type the pounds an hour for each person, or leave it and the page uses the line’s own rate: its People on the line and £/hr per person in Set up the line, times the optional on-costs multiplier. It says “the line’s rate, with its on-costs” when it does.',
+        youGet: 'The rate the cost is worked from. With either missing the page says what to give, and where.',
+      },
+      {
+        step: 'What a pack costs',
+        means: 'Labour a pack is the people times their rate, divided by the good packs the line makes an hour: the bottleneck’s rate with the rejects taken off.',
+        doThis: 'Read the line under the boxes: for example “34p a bag — 8 people × £12.50 = £100.00 an hour; the line makes 295 bags an hour”, with the rate a minute after it. Change a station in Line capacity and it moves with it; a what-if says its own (“Labour: 2 people more, 30p a bag against 34p as run — 4p lower”).',
+        youGet: 'Labour a pack in pence, and the same number everywhere else the app says a labour cost a pack.',
+      },
+      {
+        step: 'One more person at the bottleneck',
+        means: 'When people set the pace, another person there lifts the line only as far as the next station lets it, but costs an hour’s pay. The page works both out and says whether a pack gets cheaper or dearer.',
+        doThis: 'Read the sentence “One more person at …”: the packs an hour then, the cost an hour and a pack, and whether it is lower (they pay for themselves) or higher (the packs they add do not pay for them). Make it N at the station puts them on the sheet. If the bottleneck is a machine, the page says another person there adds an hour’s cost and no packs.',
+        youGet: 'The answer to “is it worth another person?” in pence a pack.',
+      },
+    ],
+    watch: 'This is labour only. Overheads are not charged per pack, and a person added anywhere but the bottleneck adds cost and no packs.',
+  },
+  'FC-188': {
+    intro: 'For the question the cost a pack raises: how much dearer is every pack because one station holds the whole line back, and what does each minute of it cost? It is read off Line capacity and the Line balance. There is nothing extra to type.',
+    steps: [
+      {
+        step: 'The people and their rate',
+        means: 'The people on the line are paid by the hour whatever the line makes, so the station that holds the line sets what a pack costs. To say that in money the page needs the people and what one costs an hour.',
+        doThis: 'Give them where Cost a pack in labour asks: People on the line and £ an hour, each in Line capacity, or the line’s crew, wage and on-costs in Set up the line. The Line balance counts the people you put on it and takes the rate from Line capacity, else the line’s own. Until a rate is given it says: “Give the line an hourly rate in Line capacity to see what the bottleneck costs a pack and a minute.”',
+        youGet: 'The cost sentences below, with where the rate came from said under them.',
+      },
+      {
+        step: 'On Line capacity: because of the bottleneck',
+        means: 'Under What the sums say, the page compares the line as it runs with the line without this bottleneck: against the target when the line is short of it, else against the next station’s limit, which is as far as fixing this one would lift the line. The same people over more packs cost less a pack, and the difference is “because of” the station.',
+        doThis: 'Read the sentence under the sums, for example “Packer holds the line to 44 bags a minute against the 60 target: labour 34p a bag instead of 25p — 9p a bag because of Packer.” It is red when the line is short of its target. When the line meets its target it says instead what lifting the station to the next limit would do.',
+        youGet: 'Pence a pack and pounds a minute, named for the station: “Each minute £… of labour is paid for bags not made”.',
+      },
+      {
+        step: 'On the Line balance: What it costs',
+        means: 'On the people’s work, the bottleneck is the person whose work a cycle is longest against takt, the time each pack is allowed. The page says what that pace costs, in the client’s words, the abnormal first.',
+        doThis: 'Read What it costs under the balance once takt is given and the work is timed. It says who holds the line, the packs a minute lost against takt, the labour a pack as it runs against at takt, and each minute’s labour paid for packs not made and for the others’ time waiting. When the people keep up with takt it says the labour a pack at takt and any time paid with no work in it.',
+        youGet: 'The cost of an unbalanced line in pence a pack and pounds a minute, ready for the meeting.',
+      },
+      {
+        step: 'Contribution: what the lost packs were worth',
+        means: 'Packs not made also lose the contribution they would have earned. That needs the line’s margin a pack, and it is said beside the labour, never added to it.',
+        doThis: 'Give the line £ margin / pack in Set up the line (open “Know your line speed? Count the packs a stop costs”). Without it the Line balance says contribution lost needs the line’s margin a pack, and the labour is still given.',
+        youGet: '“… of contribution is lost” each minute, added to the sentence.',
+      },
+    ],
+    watch: 'The labour paid for packs not made and the contribution lost are two costs side by side, never one figure. “Because of” means what the same people cost on fewer packs, not an extra bill on top.',
+  },
+  'FC-189': {
+    intro: 'For making a shift’s lost time felt: stops are reported in minutes and nobody feels them, so the loss count says what each cause cost in two parts, the crew standing idle and the packs not made. It is part of the loss count.',
+    steps: [
+      {
+        step: 'The crew and the wage',
+        means: 'Idle labour is the crew paid to stand: the people on the line times what one costs an hour. It is the undeniable part of a loss, because it is paid whatever the line makes.',
+        doThis: 'On the line’s page press Set up the line and, under Cost of downtime, type People on the line and £/hr per person. If finance gave you an on-costs multiplier (employer NI, pension, holiday cover; the page says typically 1.25 to 1.4), open the refine link and type it. Without a crew and a wage the count still works and says what to give.',
+        youGet: 'Idle labour an hour for the line, shown as “= £… /hr labour while this line is down”.',
+      },
+      {
+        step: 'Count the shift',
+        means: 'The loss count compares what the shift should have made at the bottleneck’s speed with what it made; the minutes lost are the gap at that rate. The causes come from the stops timed in Capture inside the shift’s window.',
+        doThis: 'In the loss count fill End of shift — the count: which shift, the day and window, the breaks, the good packs made, the rejects and the rate a minute. Press Save the count.',
+        youGet: 'The minutes lost, and where they went in Top causes: stops by cause, changeovers, rejects, and the slow running and short stops left over.',
+      },
+      {
+        step: 'Idle labour, a cause at a time',
+        means: 'In Top causes each cause carries the crew’s pay for its minutes, wherever on the line it happened: a stop on a machine the line runs round still has people standing.',
+        doThis: 'Read the Idle labour column and the Lost total at its foot; tap a cause to see its stops and what it cost. It is proportional to the time, so the biggest cause in minutes is the biggest in pounds of labour.',
+        youGet: 'Pounds of idle labour for each cause and for the shift.',
+      },
+      {
+        step: 'Lost contribution, only where it counts',
+        means: 'Packs not made are lost only if they cannot be made up. A stop on a machine the line runs round costs its labour, and its packs are made up unless it starved the bottleneck, which a stopwatch cannot see. The table marks which causes are on the constraint.',
+        doThis: 'Read the Lost contribution column with the tag beside each cause: “constraint” or “off the constraint”. It is the packs not made at the rate times the contribution a pack (see Contribution a pack). The foot of the table says “lost only if it cannot be made up”.',
+        youGet: 'The second part of the loss in pounds. With no margin the column is not drawn and the What it cost tile says what to give.',
+      },
+      {
+        step: 'Two parts, never one',
+        means: 'The sentence and the What it cost tile give the pounds in two parts, such as “£107 idle labour · £340 lost contribution if it cannot be made up”, and never add them into one figure: one is money spent, the other money not made.',
+        doThis: 'Say both at the meeting, labour first. When you raise a fix or a countermeasure from a cause (Make it better), it carries both figures with it so the next shift’s count can be held against them.',
+        youGet: 'A loss in the business’s language that cannot be double-counted.',
+      },
+    ],
+    watch: 'Lost contribution is the packs not made at the rate you typed. Check the rate a minute and the good packs before you quote a pound figure.',
+  },
+  'FC-190': {
+    intro: 'For pricing lost output at a figure the business owns instead of a made-up one: what is a pack worth when it is not made? The loss count, the bottleneck’s cost, SMED and the ranking of which product to run first all use this one figure.',
+    steps: [
+      {
+        step: 'The line’s margin a pack',
+        means: 'What the line earns on a pack, as one typed figure. It is what the loss count, the bottleneck’s cost and SMED use for lost packs, and the fallback for any product with no price of its own.',
+        doThis: 'On the line’s page press Set up the line, open “Know your line speed? Count the packs a stop costs (optional)” and type £ margin / pack in pounds (3p is 0.03) beside the packs a minute. Ask finance for it; the page never fills it in.',
+        youGet: 'A contribution for the line. Without it the Lost contribution column is not drawn and the tile says what to give.',
+      },
+      {
+        step: 'A product’s price and materials',
+        means: 'Contribution a pack is price less materials: what a pack sells for, less what it costs in materials. It is more exact than a line’s margin because it is the product’s own, so it is used where products are compared.',
+        doThis: 'On the line’s Line capacity, in “Which first when the line is full?”, find What each product earns a pack and type Price a pack and Materials a pack for each product, in pounds, from the price list and the bill of materials. A product with a price but no materials of its own uses the line’s materials a pack from Set up the line.',
+        youGet: 'A figure for that product, marked “its own” beside the boxes (“line’s margin” where it falls back), and a ranking of which product earns most from a minute of the constraint.',
+      },
+      {
+        step: 'The rule',
+        means: 'The page takes price less materials when both are known and the price is above the materials; else the line’s margin a pack; else it says which is missing. Nothing is invented and nothing waits.',
+        doThis: 'Check the “How known” line under a loss count: “contribution £0.35 a pack (the line’s margin)”, for example. If it is not there, the count says to give the line its crew, wage and margin.',
+        youGet: 'One figure for every tool, with where it came from said beside it.',
+      },
+    ],
+    watch: 'Contribution is what a pack earns after its materials, not a cost a pack; and a lost pack is only lost if it cannot be made up, which the tools that use it say.',
+  },
+  'FC-193': {
+    intro: 'For the person who has to answer “am I in control?” across every line and every project. The Factory page is the one board of the lines with their state, what is late, who owes what and what the slips cost. You open a line from here; nothing is typed on this page.',
+    steps: [
+      {
+        step: 'Lines',
+        means: 'One card for each production line, in floor order, saying in words and colour where it stands: red for a critical or late problem, amber for problems open, green for nothing late. Colour is never the only carrier.',
+        doThis: 'Look for the card that needs you: the state (“2 late · 1 critical”, “3 problems open”, “Nothing late”), its worst problem and who has it, the programs still to prove, how fresh the looking is and the projects on it. Tap a card (it says Open Line 7 ›) to open the line. Set up the lines adds or changes lines.',
+        youGet: 'The line to go to first, and from there its machines, problems, programs and tools.',
+      },
+      {
+        step: 'The headline and its tiles',
+        means: 'Under the lines the control room says in one sentence where everything stands, then counts it: Projects running, Late, Critical (only when there is one) and This week, and The slips cost in margin for stage-gate projects behind their agreed handover. Each tile says what it is of, and only the abnormal is coloured.',
+        doThis: 'Read the sentence, then tap a tile: Late and Critical list those things right there, with Copy as a list for the meeting; Projects running and This week scroll to the projects and the week. If The slips cost shows a dash, it says which line lacks a margin.',
+        youGet: 'The numbers for the room. Late here is the same late as on a project’s own page and in Actions.',
+      },
+      {
+        step: 'Who owes what',
+        means: 'Every open thing across the projects and the lines’ own problems, grouped by the person or company who owes it: a company by name, “The site” for the team’s own, and “No one named” for what nobody has.',
+        doThis: 'Look at the names with the most late and tap one to list what they owe. If one company is typed two ways the page says so (“look like one company”) with a button to call it one. Give a name to everything under “No one named”.',
+        youGet: 'The people and companies to chase, with the count each owes and how many are late.',
+      },
+      {
+        step: 'This week, across every line and project',
+        means: 'What is late or due in the next 7 days, late first, from every project and line. Reminders set on notes, and fixes booked with no date agreed, have their own strips above it.',
+        doThis: 'Work down the list at the weekly meeting and tap a row to open its record. Chase the ones under “No date agreed” until each has a day.',
+        youGet: 'The list to chase, in the order to chase it.',
+      },
+      {
+        step: 'The projects, and the paper',
+        means: 'Each project as a row on a time axis, with its state in words and the dots of what is booked: done, ran but didn’t pass, late, still ahead. Tap a dot to see what it is.',
+        doThis: 'Tap a project to open it here. For a paper, Report ▾ gives the Control room report — 1 page, for the business, every project and line on one A4 with where each is, why and who owes what; Every report lists the factory’s, each line’s and each project’s papers. Carry on where you were, below, takes you back to where you were.',
+        youGet: 'A one-page answer you can hand to the business, made from the same figures as the screen.',
+      },
+    ],
+    watch: 'Green means nothing is late on the records. Fresh looking does not mean a healthy line, and a walk nobody wrote down is not counted.',
+  },
+  'FC-194': {
+    intro: 'For the weekly improvement meeting: who is doing what, why, where and by when, for a project or for the whole factory. Actions is read, not typed: it gathers everything owed from wherever it was raised, so nothing agreed in a meeting is forgotten.',
+    steps: [
+      {
+        step: 'Where an action comes from',
+        means: 'Every thing the project owes, from wherever it was raised: a stage, a test, a fix, a part of the plan, the board’s actions, a check that keeps a gain, what it waits on, the open critical problems and high risks, and the register’s problems taken for the project. The factory’s Actions adds each line’s own problems.',
+        doThis: 'Raise the action where the work is (a problem on the register, a countermeasure on the board, a plan step) and give it an owner and a day there. It appears in Actions by itself. Tap a row to change it where it is kept.',
+        youGet: 'One list of what is owed, read the same way Needs you reads it, so late here is late everywhere.',
+      },
+      {
+        step: 'The tiles',
+        means: 'Six counts: Open (with what it is made of), Late, This week, Nobody yet, No date and Done this week. Only the abnormal is coloured; a zero is grey.',
+        doThis: 'Read Open first, then look at Nobody yet and No date: an action with no owner or no day is not yet an action.',
+        youGet: 'The state of the list in six numbers, and a closing line such as “6 open, 2 late — Dave has 2; 1 with no one named”.',
+      },
+      {
+        step: 'Seen by Who, When or Where',
+        means: 'The same rows grouped three ways: by the person who owes them, by the day they are due, or by the place they are on. The factory’s Actions adds Project.',
+        doThis: 'Pick Who at the meeting to go round the table. Pick When to see the week. Pick Where to go machine by machine. Each group says how many are open and how many late.',
+        youGet: 'The list in the order the meeting needs it.',
+      },
+      {
+        step: 'Which: Everything, Late, Critical and high, Nobody yet',
+        means: 'A filter on the list. Late is past the day agreed; Critical and high is the priority tag on the action; Nobody yet is the ones no one owns.',
+        doThis: 'Press Late before the meeting to chase, and Nobody yet to assign. Tap a row to open its record, where it is changed; that is the only door to each record.',
+        youGet: 'The few things that matter now. Each row shows its priority pill, its kind, where, why, who and when, in words beside the colour.',
+      },
+      {
+        step: 'Paper for the meeting',
+        means: 'The list on paper, and each person’s own list to take away.',
+        doThis: 'Open Report ▾ and press The action list for the meeting. In Who view, press Their list on a person’s group for their own page.',
+        youGet: 'A page for the room and a page for each person with what they owe by when.',
+      },
+    ],
+    watch: 'An action with no name and no day is counted, but it is not owned. Give every one an owner and a day where it is raised, not here.',
+  },
 };
