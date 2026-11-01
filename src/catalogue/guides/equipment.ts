@@ -17,7 +17,7 @@ export const EQUIPMENT_GUIDES: Record<string, Guide> = {
       {
         step: 'What are you counting?',
         means: 'The things you will tap at the machine — a stop, a failure, a jam, a pick, or your own word. Each gets a button of its own, all on the one watch, and its own MTBF: the mean time between them, which is the running time divided by how many you counted.',
-        doThis: 'Tap the offered words or type your own and press Add. For each, type the MTBF wanted in minutes if you have a target (leave it empty if not) and the minutes the line stands each time one happens, if you know it. Press Set it up. The folded More about… holds timing each one, growth and a part that wears.',
+        doThis: 'Tap the offered words or type your own and press Add. For each, type the MTBF wanted in minutes if you have a target (leave it empty if not) and the minutes the line stands each time one happens, if you know it. Press Set it up. The folded More about… holds timing each one, a call for help (andon), growth and a part that wears.',
         youGet: 'A button for each thing counted and the agreed record the verdict is read against. Change what was agreed later: taps already made keep their count, and a count taken off keeps its taps and can be brought back.',
       },
       {
@@ -138,7 +138,7 @@ export const EQUIPMENT_GUIDES: Record<string, Guide> = {
         step: 'Track growth',
         means: 'Reliability growth reads failures against running time on a new machine. If the failures come further apart as the running goes on, the fixes are working.',
         doThis: 'In What are you counting? open More about… and tick Track growth for the count of failures. Watch the machine through its first weeks, start the watch whenever it runs and tap each failure. Put the MTBF wanted in so the page can say when it will be reached.',
-        youGet: 'A Reliability growth panel and a MTBF now tile on the study. Growth is fitted from 8 failures, and called rough until 20.',
+        youGet: 'A Reliability growth panel and an MTBF now tile on the study. Growth is fitted from 8 failures, and called rough until 20.',
       },
       {
         step: 'β — better or worse',
@@ -179,7 +179,7 @@ export const EQUIPMENT_GUIDES: Record<string, Guide> = {
       {
         step: 'The round',
         means: 'The Round shows what is due now and what is done, one big card a check. Done earlier counts, and the next one follows from it.',
-        doThis: 'On each card press ✓ Pass or ✗ Fail. A pass is one tap with Undo. A fail shows what it will hold and what to do, asks what happened, and on Record the failure raises a problem on the line’s register. Pass all due passes everything due in one go after naming which.',
+        doThis: 'On each card press ✓ Pass or ✗ Fail. A pass is one tap with Undo. A fail shows what it will hold and what to do and asks what happened; Record the failure then raises a problem on the line’s register. Pass all due passes everything due in one go after naming which.',
         youGet: 'A card for each check in Due now, Done and When it happens, and a problem on the register for each failure; failing the same check again adds a step to that problem rather than a second one.',
       },
       {
@@ -340,13 +340,13 @@ export const EQUIPMENT_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'Record: lap it as it happens',
-        means: 'Every element of the changeover, in order, with who does it — and the adjustments and the run-up to full rate are elements too, often half of the time.',
+        means: 'Every element of the changeover, in order, with who does it — and the adjustments and the run-up to full rate are elements too, typically half of the time, the page says.',
         doThis: 'At the line press Lap. Name the element, say who does it, choose Internal — the line stopped or External — could be done while the line runs, press Start — at the last good piece and then Next — this one is done as each ends; Last — first good piece at rate finishes. Or press + Type an element and give its minutes. Tag each element with the kind of work to see where the time goes: prepare and check, remove and fit, set and adjust, trial run and run-up.',
         youGet: 'The elements in a grid, a lane for each person, and the Now tile with the minutes from last good to first good.',
       },
       {
         step: 'Separate',
-        means: 'Internal elements need the line stopped; external ones could be done before it stops or after it runs again. In most changeovers more of it is external than anyone realises.',
+        means: 'Internal elements need the line stopped; external ones could be done before it stops or after it runs again. Work that is done with the line stopped only out of habit is the first to move out.',
         doThis: 'Open the Separate stage and mark each element internal or external — the grid shows internal solid and external hatched.',
         youGet: 'Inside the stop: the minutes the line really stands, with the external work moved out of the stop.',
       },
@@ -449,7 +449,7 @@ export const EQUIPMENT_GUIDES: Record<string, Guide> = {
       {
         step: 'Plan the four gates',
         means: 'Install is the weeks from landing to running (positioned and levelled through to the dry run); Set up is programs, settings and guards; Commission is the tests each machine is proved by; Hand over is what production takes with it. Each stage is a step with a day and a person.',
-        doThis: 'Give each machine the usual list of every gate in one tap — “every gate’s list at once” — then date each step and say who is doing it. Edit the list to the job: the usual stages are a guess, not a standard.',
+        doThis: 'Give each machine the usual list of every gate in one tap — “every gate’s list at once” — then date each step and say who is doing it. Edit the list to the project: the usual stages are a guess, not a standard.',
         youGet: 'A grid of machines against stages, a square for each step, the timeline and the next two weeks filled from it.',
       },
       {
@@ -653,7 +653,7 @@ export const EQUIPMENT_GUIDES: Record<string, Guide> = {
       {
         step: 'The hand-over list',
         means: 'What production takes with the machine. The usual list is a place to start: manuals and drawings handed over, operators and engineers trained, spares list agreed, safety sign-off (PUWER) and client signed off. Each item is a step like any other, with a day and a person.',
-        doThis: 'On Hand over give each machine its list and date each item. Edit the list to the job. If the line has line standards, they are handed over here too, product by product.',
+        doThis: 'On Hand over give each machine its list and date each item. Edit the list to the project. If the line has line standards, they are handed over here too, product by product.',
         youGet: 'A grid of machines against hand-over items, and tiles Done, Late, Problems and Not added yet.',
       },
       {
