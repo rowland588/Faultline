@@ -539,4 +539,172 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
     ],
     watch: 'An action with no name and no day is counted, but it is not owned. Give every one an owner and a day where it is raised, not here.',
   },
+  'FC-195': {
+    intro: 'For anyone who needs to know what they owe before somebody chases them. Needs you is the list, on a project’s front page and on its gates, of everything owed, worst first, read from the records themselves, so there is no separate list to keep.',
+    steps: [
+      {
+        step: 'What is on it',
+        means: 'Everything the project owes, read from the records: install, set-up and hand-over steps, tests, fixes, materials, programs, the board’s actions, checks, reminders and problems. A critical problem or a high risk always leads, whatever its date, in solid red, with where it is, what it means for the business and how it stands.',
+        doThis: 'There is nothing to type: give a thing an owner and a day where it is raised and it appears here. The panel’s heading says the answer first, for example “1 critical · 5 late · late first”, “nothing late · 2 due within 3 days” or “nothing owed”.',
+        youGet: 'The list in the order you would deal with it: critical first, then everything past its day (the oldest first), then what falls due within 3 days, then the next thing booked.',
+      },
+      {
+        step: 'Read a row',
+        means: 'Each row says what it is, its kind and who has it (or “nobody yet”), and when, in words beside the colour so it survives a black-and-white print: late in red, due soon in amber, the next one booked in indigo.',
+        doThis: 'Look for rows with “nobody yet”, and for the day: “due today”, “due tomorrow”, “due Fri” or how long ago it was due. A row under another (the study still needed to prove it) shows as a line beneath it.',
+        youGet: 'Who owes what by when, row by row.',
+      },
+      {
+        step: 'Open a row',
+        means: 'Each row is the door to its own record, where it is changed. The list itself has no edit boxes, so there is one place to change each thing.',
+        doThis: 'Tap a row. A step, test or fix opens in the drawer over the page; anything else opens its own page. Change the owner or the day there and the row here follows.',
+        youGet: 'The record open, with the owner and the day to change.',
+      },
+      {
+        step: 'The foot of the list',
+        means: 'Only the first rows are shown. The foot counts the rest so nothing is hidden: how many more are late, how many more are booked, and how many have no date agreed.',
+        doThis: 'Read the foot line, for example “3 more late · 2 more booked · 1 with no date agreed”, and follow the door beside the heading to the full list (the plan or the board). Agree a date for the ones with none.',
+        youGet: 'The whole of what is owed, counted, and the way to the full list.',
+      },
+      {
+        step: 'Lines not looked at lately',
+        means: 'Under the list a note appears for each of the project’s lines nobody has looked at lately. It is not an owed item, so no count moves because of it.',
+        doThis: 'Tap the note to open the line, then go and see: time a stop, film the line or raise a problem there.',
+        youGet: 'A prompt to go to the line, and nothing added to what is owed.',
+      },
+    ],
+    watch: 'Needs you, Actions, the band and the control room read the same records the same way, so late here is late there. A thing with no owner or no day is counted but not yet owned.',
+  },
+  'FC-199': {
+    intro: 'For the silence that hides a line’s problems: nobody has looked at it for days, and nothing says so. The Gemba walk part of the app makes that visible, a line at a time and a machine at a time, in words and colour. You do not enter anything for it; going to the line and recording what you see is what keeps it fresh.',
+    steps: [
+      {
+        step: 'Eyes on the line',
+        means: 'On a line’s page, under the tiles, one sentence says when anyone last looked at the line and how, for example “Line 7 looked at yesterday — a stop timed.” Fresh is up to 7 days, fading is 8 to 14, and stale is more than that or never. The level is in words as well as colour.',
+        doThis: 'Read the sentence. If it says fading or stale, go and see. The same line appears on the Factory board’s card for the line, as a note in a project’s Needs you for lines gone stale, and as the Gemba walk row on a project’s method page.',
+        youGet: 'The days since the last look, and what the look was: a stop timed, a filmed walk, a frame marked or a problem raised.',
+      },
+      {
+        step: 'What counts as a look',
+        means: 'A look is someone at the line leaving a mark in the app: a stop timed, a clip filmed on a walk, a frame marked on a walk, or a problem raised on the spot (pinned on a frame or from the quick problem button). A problem raised from the Pareto board at a desk is not a look.',
+        doThis: 'Time a stop in Capture, film the line, mark a frame or raise a problem while you are standing there. That is the whole of it; the freshness is worked out from those records.',
+        youGet: 'Every look counted by what was recorded. The page says it counts what was recorded in the app: a walk nobody wrote down is not here.',
+      },
+      {
+        step: 'Machines not looked at lately',
+        means: 'The line is judged as a whole and so is each machine on its list. A line can be looked at today and still have a machine nobody has looked at for a fortnight.',
+        doThis: 'Read “Not looked at lately”, which names the stalest machines first (never-looked-at ones first of all) and up to three of them. Go to those machines next.',
+        youGet: 'A short list of machines to visit, such as “Wrapper (never), Filler 12 days”.',
+      },
+      {
+        step: 'The rhythm, and what the looking found',
+        means: 'Whether looking is a habit and whether it turns up anything: on how many of the last 14 days someone looked, and how many problems were raised on looks in the last 4 weeks, how many were closed and the age of the oldest one still open.',
+        doThis: 'Read “Looked at on N of the last 14 days” and the line under it. Press Film the line to go and add a look.',
+        youGet: 'The habit in numbers, and whether the looking is producing problems that get closed.',
+      },
+    ],
+    watch: 'Fresh looking does not mean a healthy line. It counts the looking that was recorded, not the state of the line.',
+  },
+  'FC-202': {
+    intro: 'For the things that happen on the line and are said, not written: a shift handover, an OEM punch list, a one-point lesson, a walk. Talk or type into a conversation about one line, add photos, and ask it to write the report. Its answers come from what you said and what Faultline holds about the line, and it works out no figure of its own.',
+    steps: [
+      {
+        step: 'Start a Line Talk',
+        means: 'A Line Talk is one conversation about one line, kept for good. Put on a line, it knows the line; inside a project it knows the project and what it makes is the project’s.',
+        doThis: 'From the Factory press Start a Line Talk, or open Line Talk from the line’s page and start one there (it says Start a Line Talk on Line 7). Pick the line if asked. A talk begun without a line can be put on one later with “Put it on a line, so Line Talk knows the line”.',
+        youGet: 'A talk named for the line and the day, with a box at the foot. Every talk is listed on its line, newest first, and carried on any day.',
+      },
+      {
+        step: 'What Line Talk knows',
+        means: 'The line as Faultline holds it, as its own pages say it: its machines in flow order and who made them, its crew and shifts, its open problems, the latest findings of its tools, its projects and today’s date, then the whole talk so far. It is told to keep what you said, what the records show and its own reading apart, to use no figure it was not given and to work nothing out.',
+        doThis: 'Open “What Line Talk knows” to read exactly what goes with every question. If something is wrong there, fix it on its own page, not in the talk.',
+        youGet: 'Answers that are about your line and say where they come from.',
+      },
+      {
+        step: 'Talk or type into the box',
+        means: 'The phone’s own speech recognition writes your words into the box as you speak, free and with no recording. You put anything right, then Send. A photo sits in the conversation where it was taken, labelled P1, P2 and so on.',
+        doThis: 'Tap the microphone and say what you see. Correct the words in the box if needed and press Send. Add a photo with the camera button, or several at once. Where the browser will not listen, the page says to use the keyboard’s own microphone. Typing works at any time.',
+        youGet: 'What is sent is kept as sent. A correction after it is kept beside what was heard, and Strike marks a turn out without erasing it.',
+      },
+      {
+        step: 'Ask for a document',
+        means: 'You can ask it anything in words: what did I say about the wrapper, write the walk report, make the punch list for the OEM. Four chips only put words in the box for you to change: Line-walk report, Summary for my manager, Punch list for the OEM and Engineering report.',
+        doThis: 'Press Send. The answer appears as it is written. A document opens with Open — edit and print, where you change it and print it as a paper.',
+        youGet: 'A written answer or a document, with the photos beside what they show. If it cannot answer it says why and keeps your words; Ask again tries once more.',
+      },
+      {
+        step: 'Check what it says',
+        means: 'It is a colleague that listens, not a calculator. A figure it was not given, by you or by Faultline’s records, is flagged for you to check before you use it.',
+        doThis: 'Read any line saying “Check before you use it” and confirm those figures against the source. Correct or strike a turn that was misheard.',
+        youGet: 'A document you can stand behind. Everything said, typed and photographed is kept even when the assistant is off or there is no signal; the answer waits.',
+      },
+    ],
+    watch: 'Line Talk never works out a figure, saves a record or passes a gate. What it writes is words from your talk and the records, to check, not a source of numbers.',
+  },
+  'FC-204': {
+    intro: 'For reading any report or tool page in the app, which are all laid out the same way: where are we, why, and what are we doing, on one page, on screen and on paper alike. Learn the eight parts once and every page reads the same.',
+    steps: [
+      {
+        step: 'The band',
+        means: 'The top of the page: what this is, its title, the line and the day, and the verdict in a few words. It is a pale band with a teal edge, on screen and on paper, so it prints.',
+        doThis: 'Read the verdict first, for example “1 check failed”, “Up to date”, “Index 1.14 — increased risk”.',
+        youGet: 'The answer in a phrase, before any number.',
+      },
+      {
+        step: 'The tiles',
+        means: 'A few big numbers, each of what it should be (“40,900 of 45,000 · 91%”) and, when there is a record before it, since then (“▲ 4,400 on 15 Oct”). A dash means it cannot be said yet and the tile says what to give.',
+        doThis: 'Look for the coloured tiles: only an abnormal number is red or amber and a met one is a quiet green; the rest are plain, and a zero is grey. The change is always worded as well as coloured, so it survives a black-and-white print.',
+        youGet: 'Where we are, against what it should be and against last time.',
+      },
+      {
+        step: 'The trend and the picture',
+        means: 'The tool’s own picture of the thing (a waterfall, a bar chart, a grid, a fishbone) and, with two or more records of the same kind on the same line, the trend of the headline number. There is never a second chart of the same thing.',
+        doThis: 'Read the picture for why, and the trend for where it is going.',
+        youGet: 'Why, shown, and the direction.',
+      },
+      {
+        step: 'What it means',
+        means: 'Three to six sentences the page’s own module says, only what the figures justify. Each is marked: ✕ for what is wrong (red), ! to watch (amber), ✓ for what is right (green) and a dot for information.',
+        doThis: 'Read the ✕ and ! lines first. These are the things to say at the meeting.',
+        youGet: 'The reading of the numbers, with the abnormal first.',
+      },
+      {
+        step: 'The action plan and the closing line',
+        means: 'The action plan lists Action, Owner and Due for what has been raised from this record, late first, with “nobody yet” or “no day” where they are missing. The closing line is the one sentence at the foot: what one side can now say to the other.',
+        doThis: 'Check every action has an owner and a day; if there are none the page says so and where to raise one. Read the closing line aloud.',
+        youGet: 'Who does what by when, and the verdict.',
+      },
+      {
+        step: 'The same page on paper',
+        means: 'Report ▾ at the top of a page lists every paper it has, each named for what it is. The paper is made from the same figures and sentences as the screen by the same model, so the two cannot disagree.',
+        doThis: 'Open Report ▾ and pick the paper. A tool with several lists its papers each by what they are, never by “PDF” or “Print”.',
+        youGet: 'A PDF that says what the screen said, laid out on pages that never cut a block in half.',
+      },
+    ],
+    watch: 'The tiles are counted figures — packs made, minutes lost, stops timed — counted by people and never read from a machine, and no single effectiveness score is built from them by design.',
+  },
+  'FC-205': {
+    intro: 'For the person who needs the project’s records in Excel: a group engineering team, a start-up workbook, a data check. It builds one workbook from what is in the app, worded for the project, with the column headings of the Excel start-up tool so it is that tool’s starting data.',
+    steps: [
+      {
+        step: 'Where to press it',
+        means: 'Every project lists everything printable in one place, and the spreadsheet is the last item. The control room’s Every report lists it under each project’s name.',
+        doThis: 'Open the project, press Reports (the On paper list), and choose Spreadsheet. For a project that is not a stage gate it builds that project alone; for a stage gate it is the start-up record of every project.',
+        youGet: 'An .xlsx file saved to your device, named Faultline- then the project’s name and the day, or, where the device offers sharing instead, a file ready to send.',
+      },
+      {
+        step: 'What is in it',
+        means: 'One sheet for each list, with a Read me sheet first that counts them: Projects, Machines, Tests, Issues (fixes and problems together; the Type column says which), Notes, Materials, Programs and Line standard, one row for each person on each product’s map.',
+        doThis: 'Open the Read me and check the counts. A running line’s project exports what it waits on (materials and programs), its line standards and the problems on its walks. Its numbers, problems and board are on the client report, not here.',
+        youGet: 'Dates as real Excel dates so formulas can compare them with today, and a project column on every row, because the Excel tool keeps every project in one workbook.',
+      },
+      {
+        step: 'What stays behind',
+        means: 'A workbook cannot carry photographs, video or documents, and a link to a phone’s own storage would open nothing. So they stay in the app and each row says how many it has, for example “2 photos (in the app)”.',
+        doThis: 'When a row says it has photos or files, open the record in the app. Training is empty on purpose: the Excel tool keeps it from here on.',
+        youGet: 'A workbook where nothing is silently lost: what could not come across is counted.',
+      },
+    ],
+    watch: 'It is a way out for the data, not a second place to edit it. Changing the workbook changes nothing in the app.',
+  },
 };
