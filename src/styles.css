@@ -15642,11 +15642,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .sg-fold { margin: 6px 0 0; }
 .sg-fold > summary { cursor: pointer; font-size: var(--t-label); font-weight: 700; color: var(--brand); padding: 4px 0; }
 .sg-fold[open] > summary { margin-bottom: 6px; }
-@media (max-width: 640px) { .sg-three > div { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .sg-three > div { grid-template-columns: 1fr; } }
 .nv-guide { display: inline-flex; align-items: center; gap: 6px; }
 .nv-guide-q { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 1.5px solid currentColor; border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 700; line-height: 1; }
 .nv-guide-body { display: flex; flex-direction: column; gap: 12px; }
-@media (max-width: 640px) { .nv-guide-l { display: none; } }
+@media (max-width: 720px) { .nv-guide-l { display: none; } }
 
 /* THE METHODS' PICTURES AND PAGES (docs/METHODS.md §15, 1 November — Rowland: "Projects .. just like tools I want pictures so user can see").
    A method's card on New project wears its picture (the tool card's frame, ui/MethodPicture) with a way to its own page under it;
