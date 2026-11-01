@@ -214,4 +214,124 @@ export const LEAN_GUIDES: Record<string, Guide> = {
     ],
     watch: 'It assumes steady demand and sizes the loop; it does not run it. If the shelf keeps running short, find the cause (a long changeover, a lost card) before adding containers.',
   },
+  'FC-013': {
+    intro: 'For keeping an area at its standard — sort, set in order, shine, standardise, sustain — by scoring the same questions every week and watching whether the score holds. The area is compared with itself over time, never with another.',
+    steps: [
+      {
+        step: 'Start a 5S audit log',
+        means: 'A log is one area’s audit kept going: each audit you do is added to it, so the page can show the trend. It belongs to a line, with its machines and problems.',
+        doThis: 'Open Check logs, find 5S audits and press New 5S audit log. Pick the line, type the Area (“Packing hall”), name it if you like and leave the starter list ticked — it is a starting point to edit, not the standard — then Start it.',
+        youGet: 'A log with one check, the 5S audit, due every week, with twenty questions: four each under Sort, Set in order, Shine, Standardise and Sustain.',
+      },
+      {
+        step: 'The questions as agreed',
+        means: 'The questions are the standard you score against. Scoring only means something if two people would give the same answer, so the evidence that earns each score belongs in the wording of the question.',
+        doThis: 'Open The checks and press Edit on the 5S audit (the project’s owner agrees the checks). Reword the questions in your area’s terms, one a line with its heading and a bar (“Sort | Nothing here that is not used”). Type a Score to reach in per cent if you have one; without it the score is shown, not judged.',
+        youGet: 'The list the audit is run from. The starter questions and the 0 to 4 scale are Faultline’s own start, not a published standard.',
+      },
+      {
+        step: 'Start the audit',
+        means: 'You walk the area and score each question from 0 to 4: 0 not done, 1 started, 2 partly, 3 mostly, 4 at the standard. N/A leaves a question out of the score altogether. It is best done by someone who is not of the area.',
+        doThis: 'On the Round, when the audit is due, press Start the audit. Tap a level for every question; the top of the sheet counts “14 of 20 answered · 68% so far”. Add a note if you want, then Finish once every question is answered.',
+        youGet: 'The audit scored: points out of the most possible, as a percentage, overall and for each S.',
+      },
+      {
+        step: 'Raise the findings',
+        means: 'A finding is any question scored below 3. One that was also below 3 on the audit before has come back, which points at the system rather than at this week.',
+        doThis: 'After Finish, tick the findings you want on the register and press Save the audit and raise 3 problems (the page counts those ticked). Each becomes a problem named for the area, the question and its score, with the log’s words on what to do as its first note; Low priority, or High if it came back. Leave all unticked and press Save the audit to keep the score only.',
+        youGet: 'Problems on the register, each with an owner and a day to give, and an Action plan on the log listing what was raised.',
+      },
+      {
+        step: 'The score and the trend',
+        means: 'The score is the points scored divided by the most possible, for the whole area and for each S. The number matters less than the weakest S and whether it is slipping: a fall two audits running is the signal.',
+        doThis: 'Read the Latest score tile, which says what moved since the audit before, and the sentence: “5S audit: 65%; Shine is the weakest at 44%”. Open History › Audits, in order for each audit by heading and its findings.',
+        youGet: 'A score with its trend, the weakest S, how many findings came back, and the audit’s own closing line.',
+      },
+    ],
+    watch: 'Do not compare one area’s score with another’s — a tidy office and a busy line are not a league table. Compare an area with its own last audit, and judge it against the written standard, not against how it looked last week.',
+  },
+  'FC-015': {
+    intro: 'For a line where people stop and call for help — an engineer to a jam, QA to a weight check — and nobody knows how many calls there are, for what, or how long the line waits. It is a way of counting on the Reliability study: each call is timed from the call to help arriving to the line running again.',
+    steps: [
+      {
+        step: 'A call for help',
+        means: 'Andon is calling at the first abnormality instead of passing it on. The point is not the count of calls but how fast they are answered, so each is timed in two parts: from the call to help arriving (the response), and from the call to the line running again.',
+        doThis: 'On the Reliability study, in What are you counting?, name the thing counted (“call”). Open More about it and set Timing to A call for help — response and clearing (andon). Only the project’s owner sets this up.',
+        youGet: 'A count that times each call. A timed call takes the machine out of running, so its minutes come off the watched time.',
+      },
+      {
+        step: 'The reasons and the response wanted',
+        means: 'The reasons become the buttons at the machine, so a call is classed in one tap, and the response wanted is the team’s own standard for how fast help should come.',
+        doThis: 'Add each reason the floor really calls for (five to eight work best; the page offers film change, jam, QA check, label, material short). Type Help should arrive within, minutes if the team has a standard; it is optional.',
+        youGet: 'A button for each reason, and — with a standard — a count of the calls answered in time.',
+      },
+      {
+        step: 'Press the reason',
+        means: 'The watch runs while the machine runs, and a call counts only while it does. Pressing a reason starts timing the call at once, so nobody has to remember the time afterwards.',
+        doThis: 'Press Start the watch while the machine is running. When someone calls, press the reason. One call is open at a time: the line shows “Called — jam” with its clock until it is closed.',
+        youGet: 'A call stamped with its reason and the moment it was made, counted so far on its button.',
+      },
+      {
+        step: 'Help arrived, Running again',
+        means: 'The two stamps that complete the call. Help arrived ends the wait for someone; Running again ends the stop.',
+        doThis: 'When the fitter or QA person arrives, press Help arrived; when the line runs, press Running again. If nobody pressed at the time, set how long it took with a chip or by typing (“90 s”, “1:30”, “4” minutes). A call left open for hours is asked about.',
+        youGet: 'A complete call: its response and its clearing time, and the minutes the line waited for help.',
+      },
+      {
+        step: 'Read the calls',
+        means: 'The median is the typical call; the slow end (1 in 10 over) is where the help chain fails. The page ranks reasons by the total minutes waited, not by how many, because the most frequent call is not always the one that costs most.',
+        doThis: 'Read the sentence in the calls panel and the Help in and Cleared in tiles. Look at Reasons, by the minutes waited, and — where the line has two or more shifts — By shift. A reason that keeps coming is a cause to take on; Make it better raises it.',
+        youGet: 'A sentence such as “14 calls: help came in 2.3 min typically … 45.5 min waited in all — QA check, 2 calls, is 16 of it”, bars for each reason, and the calls answered within the response wanted.',
+      },
+      {
+        step: 'What the waiting costs',
+        means: 'The minutes spent waiting for help, priced as a stop is: the crew’s labour, and the packs and contribution lost only where the machine is the line’s bottleneck.',
+        doThis: 'Give the line its crew and wage in Set up the line; for packs and contribution, its rated speed and margin a pack. All are optional and the page names what is missing.',
+        youGet: 'A line under the panel: “Waiting for help alone: … min stood an hour of running · £… of the crew’s time …”.',
+      },
+    ],
+    watch: 'Calls are counted by reason and by shift, never by person, and the page shows no name. A call that is punished soon stops being made, so a falling count is not good news by itself.',
+  },
+  'FC-016': {
+    intro: 'For fixing one process in a focused week with a team and checking it a month later. Faultline runs it as a project of the Kaizen event method: five sections to walk through and the tools that fit each. It does not have a charter form or a 30-day check, and says so.',
+    steps: [
+      {
+        step: 'Start it as a Kaizen event',
+        means: 'The method is the project. Choosing Kaizen event gives a project that opens on its five sections — Prepare, Observe, Improve, Standardise, Sustain — with the tools that usually fit each.',
+        doThis: 'Press New project, pick Kaizen event under Which method will run it?, name it for the process (“Filler changeover”) and the line it is on. Its tabs are the ones a 6M project has — Fishbone, Board, Lines, Results — beside Journey, Actions and Problems.',
+        youGet: 'A project that opens on the method page. Every tool is listed with an honest word: Built, Built with limits, A mode of another tool, or Not built yet.',
+      },
+      {
+        step: 'Prepare',
+        means: 'The charter, the team and the baseline: what the problem is, how it will be measured and what it measures today. There is no charter form here; agree the scope, target, team and sponsor in the room.',
+        doThis: 'Keep the charter on the project’s Notes. Take the baseline with a tool in the section — the value stream map, the Line balance’s time study, stops timed — using New beside it, and type the measure into Results › Numbers with Record a reading so the after is read against it.',
+        youGet: 'A measured baseline on the project, started from the tool’s own page, and the line’s number to prove against.',
+      },
+      {
+        step: 'Observe',
+        means: 'The waste seen on the floor, in the week itself, before anyone changes anything.',
+        doThis: 'Use the section’s tools — work sampling, the waste walk, the video time study, the Gemba walk. Some, such as the spaghetti diagram and the process flow chart, are not built; the page says so rather than offering a button.',
+        youGet: 'Evidence on the project of where the time goes, and problems raised on the register from what was seen.',
+      },
+      {
+        step: 'Improve',
+        means: 'Changes tried in the week and measured. Each cause is a bone of the Fishbone and each change a countermeasure on the Board with a person and a day.',
+        doThis: 'Work the changes with the section’s tools — ECRS on the Line balance’s Improve tab, SMED, 5S, Impact and effort to choose which first — and record each as a countermeasure on the Board or as an Action. Re-measure with the same tool you took the baseline with.',
+        youGet: 'Countermeasures on the Board with their owners, and before → after on the same number.',
+      },
+      {
+        step: 'Standardise',
+        means: 'The new way written down so it holds. A change nobody wrote down goes back to the old way within weeks.',
+        doThis: 'Write the new way into the Line standard and the combination table. The standard operating procedure with photographs and the TWI job instruction are not built; the page names them as not built.',
+        youGet: 'The line standard and the Person and machine chart on the project, read by everyone doing the job.',
+      },
+      {
+        step: 'Sustain',
+        means: 'Whatever could not be finished in the week stays open with an owner and a day, and a month later you look again at the number. Faultline does not book that check or compare for you.',
+        doThis: 'Leave the open items on Actions and look at Journey for what is still owed. A month on, record a new reading in Results › Numbers; Wins › Did it work? judges each closed action by the line’s own numbers either side of the day it closed.',
+        youGet: 'The open actions, late ones in red, and the number again beside its baseline.',
+      },
+    ],
+    watch: 'There is no 30-day check built: nothing books it or raises it. Put the day in the diary yourself, and record the number on that day, or the gain is never tested.',
+  },
 };
