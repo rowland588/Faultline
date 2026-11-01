@@ -37,6 +37,7 @@ import { calcSays, dropped, runCalc, startInputs, studyCalc, typedOver, type Run
 import { CalcForm, stillNeeded } from './CalcForm';
 import { BeforeBox, ResultView, WhatIf } from './CalcView';
 import type { CalcDef, Inputs } from './types';
+import { PlanPath } from '../criticalpath/PlanPath';
 
 const OWNER = canAt('owner');
 
@@ -178,6 +179,9 @@ function CalcList({ calcKey }: { calcKey: string }) {
   const mayP = useAccess(inP.id ?? '');
   const mayAdd = !inP.id || mayP.edit;
   const [adding, setAdding] = useState(() => asked('add') === '1');
+  /* the critical path read from the project's plan (FC-215 part 2): its paper joins this page's Report ▾ once there is a plan to print */
+  const [planPaper, setPlanPaper] = useState<(() => Promise<void>) | null>(null);
+  const onPlanPaper = useCallback((m: (() => Promise<void>) | null) => setPlanPaper(m ? () => m : null), []);
   const shown = all.filter(s => s.agreed?.calc?.key === calcKey);
   const lineName = onLine ? lines.find(l => l.id === onLine)?.name ?? 'this line' : undefined;
   const paper = useListPaper(shown, `${def?.title ?? 'Calculator'}${lineName ? ` — ${lineName}` : ''}`);
@@ -200,8 +204,12 @@ function CalcList({ calcKey }: { calcKey: string }) {
       <PageHeader eyebrow={<button type="button" className="linkish" onClick={() => nav(`/calc${back}`)}>All calculators</button>} title={def.title}
         says={<span className="sub">{def.says}. {def.question}</span>}
         primary={mayAdd ? { label: 'New calculation', run: () => setAdding(true) } : undefined}
-        papers={shown.length ? [{ label: `${def.title} — every one shown`, for: 'each with what it says and the figures put in', make: paper }] : []} />
+        papers={[
+          ...(planPaper && calcKey === 'critical-path' ? [{ label: 'Critical path — the plan’s chain of waits', for: 'the project’s machines and steps: what decides the handover, and the float of the rest', make: planPaper }] : []),
+          ...(shown.length ? [{ label: `${def.title} — every one shown`, for: 'each with what it says and the figures put in', make: paper }] : []),
+        ]} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
+      {inP.id && def.key === 'critical-path' && <PlanPath projectId={inP.id} onPaper={onPlanPaper} />}
       {onLine && (
         <div className="chip-row qsl-f" role="group" aria-label="Which line">
           <button type="button" className="chip on" aria-pressed>{lineName}</button>

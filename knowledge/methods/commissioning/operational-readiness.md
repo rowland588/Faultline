@@ -103,8 +103,18 @@ label items are the same); a site's first line in a new allergen.
 - [design] `docs/STAGEGATE.md` — Faultline's handover gate.
 
 ## In Faultline
-Partly: the stage gate's handover list holds items with owners and days
-(`src/project`); no readiness list is offered by area (FC-082). FC-082
-adds the list by area for the kind of change, each item's evidence, the
-day-one stoppers marked, and the count (never only a percentage) on the
-project's front page and the commissioning report.
+Built (FC-082, 1 November 2026): the readiness list, a scored register's
+checklist (`/scored/readiness`, `src/tools/readiness/readiness.ts`, the
+checklist editor `scored/ChecklistEditor.tsx`). It starts from a new line's list
+of 22 items in six areas (a starting point, never the standard), each with its
+state (not yet · ready · not needed here), owner, day, what will prove it and
+what was seen, and whether it would stop day one. It counts ready of total
+overall and by area, open items by owner, the ones past their day, those that
+would stop day one, the open items with no owner or no day and the ready ones
+with no evidence — as counts and names, never only a percentage — and prices a
+day of waiting for start-up from a typed or the line's own figure, only while an
+item that would stop day one is open. Checked against this record's worked case
+(72 items, 56 ready, 16 open, 3 late, two stoppers). The HACCP plan itself, the
+link to the skills matrix, an open item as an action, and the count on the
+project's front page and the commissioning report are not built. Specification
+`knowledge/specs/FC-082-operational-readiness.md`.

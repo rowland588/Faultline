@@ -97,8 +97,17 @@ mixer.
 - [standard] BRCGS Global Standard Food Safety, Issue 9 (2022), clause 7.1 — training and competence records (from knowledge; clause to confirm).
 
 ## In Faultline
-Not built (FC-222). The line standard holds who stands where
-(`src/tools/linestandard`) and the crew plan the people needed; FC-222
-would add the levels per person per task with their dates, the cover
-per shift against the target, the single points in red on the line's
-page, and the training plan as actions.
+Built (FC-222, 1 November 2026): the skills matrix and cover, a scored
+register (`/scored/skills`, `src/tools/skills/skills.ts`, the matrix editor
+`SkillsEditor.tsx`). People down with their shift, the tasks across with the
+cover wanted and how much each matters, a level in each cell (— I L U O);
+cover per task per shift (people at U or O) against the cover wanted
+(3 to start with), the single points, the tasks with nobody or with no
+teacher, each person's versatility, the training to do first (ranked by how
+much the task matters, then how far below), and a single point priced as a
+shift of the line not making from a typed or the line's own figure — never a
+yearly cost, because the absence rate is not held. Checked against this
+record's worked case (the python case: wrapper days 3 / nights 1, labeller
+days 2 / nights 1, CCP days 4 / nights 2). The date a level was reached and
+who signed it, ageing a level, the crew plan and the TWI breakdown are not
+built. Specification `knowledge/specs/FC-222-skills-matrix.md`.
