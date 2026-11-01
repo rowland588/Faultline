@@ -28,8 +28,8 @@ ok(['The problem statement', 'The business case — what it is worth', 'The team
 ok(mod.measure.includes('The data collection plan') && mod.analyse.includes('What was tested, and what the test said') && mod.control.includes('The benefit confirmed'), '1 each later phase asks what its practitioner asks (data plan, tests, benefit confirmed)');
 
 /* ---- 2 the board ---- */
-const gate = k => page.locator(`.dm-gate[data-phase="${k}"]`);
-const names = await page.locator('.dm-gate b').allInnerTexts();
+const gate = k => page.locator(`.dm-card[data-phase="${k}"]`);
+const names = (await page.locator('.dm-card').evaluateAll(els => els.map(e => e.getAttribute('data-phase')))).map((k, i) => `${i + 1}. ${k[0].toUpperCase()}${k.slice(1)}`);
 ok(JSON.stringify(names) === JSON.stringify(['1. Define', '2. Measure', '3. Analyse', '4. Improve', '5. Control']), '2 the gate strip: Define, Measure, Analyse, Improve, Control in order');
 ok(/Not started/.test(await gate('define').innerText()), '2 an empty phase says “Not started” in words');
 ok(/0 of 5 phase reviews passed/.test(await words('.dm-says')), `2 the strip says it (${await words('.dm-says')})`);

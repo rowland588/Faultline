@@ -67,27 +67,15 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
     return () => { live = false; off(); };
   }, [projectId]);
   const gates = gatesOf(answers), cur = currentGate(gates), c = charterOf(answers), ins = insertionsOf(studies);
-  const jump = (k: string) => document.getElementById(`dm-${k}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   return (
     <section className="dm" aria-label="DMAIC — phase gates">
       <p className="dm-says" role="status">{gatesSay(gates)}</p>
-      <ol className="dm-strip" aria-label="The five phases and their reviews">
-        {gates.map((g, i) => (
-          <li key={g.key}>
-            <button type="button" className="dm-gate" data-tone={g.tone} data-phase={g.key} aria-current={cur?.key === g.key ? 'step' : undefined} onClick={() => jump(g.key)}>
-              <b>{i + 1}. {g.name}</b>
-              <span className="dm-word" data-tone={g.tone}>{g.state}</span>
-              <span>{g.written} of {g.fields} written{g.review.when ? ` · ${dayWords(g.review.when)}` : ''}</span>
-            </button>
-          </li>
-        ))}
-      </ol>
       {gates.map(g => {
         const wait = waitingOn(gates, g.key);
         return (
-          <article key={g.key} id={`dm-${g.key}`} className="dm-card" aria-label={g.key === 'define' ? 'Charter and Define review' : `${g.name} review`}>
+          <article key={g.key} id={`dm-${g.key}`} className="dm-card" data-phase={g.key} aria-current={cur?.key === g.key ? 'step' : undefined} aria-label={g.key === 'define' ? 'Charter and Define review' : `${g.name} review`}>
             <h3>{g.key === 'define' ? 'Charter' : g.name} — <span className="dm-word" data-tone={g.tone}>{g.state}</span></h3>
-            <p className="dm-card-sub">{g.asks}{wait ? ` ${wait}` : ''}</p>
+            <p className="dm-card-sub">{g.asks}{wait ? ` ${wait}` : ''} <b>{g.written} of {g.fields} written{g.review.when ? ` · reviewed ${dayWords(g.review.when)}` : ''}</b></p>
             {g.key === 'define' && (
               <>
                 <p className="dm-card-sub">{c.says} The questions are answered under Define below.</p>
