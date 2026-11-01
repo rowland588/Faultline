@@ -46,7 +46,7 @@ export const CAPACITY_GUIDES: Record<string, Guide> = {
       {
         step: 'Set as the standard',
         means: 'Setting it as the standard freezes the takt, the people and the figures as a receipt, and the line standard’s map and card then read it. The next timing, after a fix, is compared against it.',
-        doThis: 'When every step is timed and you are happy with the takt, tap Set as the standard. Reopen to time again if the work changes.',
+        doThis: 'When every step is timed, a takt is in and the project’s owner is happy with it, tap Set as the standard. Reopen to time again if the work changes.',
         youGet: 'A dated receipt with your name and the sentence it closed on, and the paper for the file.',
       },
     ],
@@ -185,7 +185,7 @@ export const CAPACITY_GUIDES: Record<string, Guide> = {
         step: 'What the what-if buys',
         means: 'The page works the copy out as it works the real line, then compares the two in a sentence: what the line would do instead, whether the old bottleneck still limits it, and whether it meets the target.',
         doThis: 'Read “With <your what-if>, the line would do N instead of M (+d). X no longer limits it; Y does.” and the target line after it. A change that moves the limit to a station that is no better has bought nothing — the sentence says “changes nothing” when it is within 1%.',
-        youGet: 'The line’s rate, the limiting station and the labour a pack for the what-if beside the line as run, in the same tiles.',
+        youGet: 'The what-if’s rate, its limiting station and its labour a pack in the same tiles as the line as run, so the two read side by side.',
       },
       {
         step: 'The way to the target',
@@ -351,5 +351,281 @@ export const CAPACITY_GUIDES: Record<string, Guide> = {
       },
     ],
     watch: 'The changeovers between products are not taken off the week yet, and this is one constraint on one line. A ranking that ignores a long changeover may favour a product that costs more to switch to than it earns.',
+  },
+  'FC-044': {
+    intro: 'For when product sits in chillers, racks or on a belt and nobody knows how long. Count what is in progress and how fast it flows out, and the page works the waiting time out — no stopwatch on every item.',
+    steps: [
+      {
+        step: 'What do you want to know',
+        means: 'Little’s law ties three numbers together: the work in progress, how fast it flows out, and how long each piece spends in progress. Give any two and the third follows. Most often you know the first two and want the third.',
+        doThis: 'Choose How long it waits (the lead time), How much is in progress, or How fast it flows. Start a New calculation first — name it for what it is of, such as Cooked product in the chiller, and pick the line.',
+        youGet: 'The boxes for the two figures you need. The third is the answer.',
+      },
+      {
+        step: 'Count what is in progress, and what flows out',
+        means: 'Work in progress is everything between where it goes in and where it comes out — in the chiller, on the racks, on the belt. The flow is what came out over the same window, not the rated speed of the machine.',
+        doThis: 'Walk the boundary you mean and count: type it under Counted in progress, naming what is counted (trays, cases) so the sentence reads right. Under Flowing out, type what actually came out in an hour over the same period. If you counted several times, type the average.',
+        youGet: 'Both figures saved with the calculation, ready for the sum. Counted in one place it is that place’s lead time; over a whole line it is the line’s — count the boundary you mean.',
+      },
+      {
+        step: 'Over the period, the pile',
+        means: 'The law holds for averages in a steady system, where what went in came out. If the pile grew or shrank during the count, the answer is only rough.',
+        doThis: 'Say whether the pile Stayed about the same, Grew or Shrank. It starts as steady until you say otherwise. If it grew or shrank, count again over a longer window or take the average pile.',
+        youGet: 'The answer marked rough, with a warning, when the pile moved. Never silently trusted.',
+      },
+      {
+        step: 'Shelf life and money',
+        means: 'Optional extras. The shelf life says how much of the time the product keeps is spent waiting. What one unit has cost by now puts the stock in progress in money, and the cost of holding stock puts a price on holding it.',
+        doThis: 'Type the Shelf life in hours, What one unit has cost by now (materials and labour so far, £ a unit), and the Cost of holding stock for a year as a percentage — finance will have the business’s figure. The page never fills it in; the industry quotes 15–35% a year.',
+        youGet: 'Shelf life used as a share, what the stock stands at, and what holding it costs a year. Leave any out and the page says which it is missing; the lead time stands without them.',
+      },
+      {
+        step: 'The answer',
+        means: 'The verdict is the lead time (or the work in progress, or the flow), with a sentence in the floor’s words and five tiles: Lead time, In progress, Flow, Shelf life used and Stock held. A wait longer than the product keeps is red.',
+        doThis: 'Read the sentence, then the tiles. How it is worked out shows the division. Note the line “halve the work in progress and, at the same flow, the lead time halves” — that is the whole of what the law lets you promise.',
+        youGet: 'A verdict such as 3 hours lead time, the money tied up in the stock, and a paper to show it. It says how long product waits, not why.',
+      },
+      {
+        step: 'What if, and before and after',
+        means: 'What if… changes one figure and shows the answer without touching your count. Save as before keeps these figures, so that after a change you can count again and see the lead time move.',
+        doThis: 'Pick a figure under What if…, type a new one and read the new answer; Make it so keeps it. After the improvement, count again and use Save these as the new before to compare.',
+        youGet: 'The effect of a change worked out before you make it, and later the lead time before and after beside each other.',
+      },
+    ],
+    watch: 'Use what came OUT over the same window you counted the pile in, in the same unit — not the machine’s rated speed, and not what went in. A rated speed makes the lead time look shorter than the product really waits.',
+  },
+  'FC-049': {
+    intro: 'For the end of a shift that made less than it should when nobody can say where the time went. You count the shift by hand — the packs, the rejects, the breaks — and the page lays out where each planned minute went, in minutes, packs and pounds.',
+    steps: [
+      {
+        step: 'The shift and the day',
+        means: 'A loss count is for one shift (or a window you type) on one line. Everything is read against the planned time of that window, so the window comes first.',
+        doThis: 'Start a New loss count on the line, choose Which shift (or Type the window and enter From, To and Breaks, min — the breaks the line stops for), and set The day. If the line has shifts set, their breaks come with them.',
+        youGet: 'Planned minutes worked out as the shift less its breaks, said in words. Change for the day lets you override it, with a reason kept beside it, such as stood an hour, no orders.',
+      },
+      {
+        step: 'Packs made, rejects and the rate',
+        means: 'The rate is the ideal speed — what the line should have made each minute: the plate speed of the slowest station, or a person’s standard time, from Line capacity. The expected packs are the planned minutes at that rate.',
+        doThis: 'Type Good packs made and Rejects from the shift’s count at the end of the line. Rate a minute is filled from Line capacity where it can; tap use <the plate speed> to take it, or type your own. The line under the box says where the rate came from.',
+        youGet: 'The count saved with Save the count: “The shift should have made N at R a minute; made M — X minutes lost”. Nothing is saved on each keystroke.',
+      },
+      {
+        step: 'The stops are already there',
+        means: 'You do not type the stops again. Every stop timed on the line in Stops timed through the shift is read from there, by the minute, for the window of the count; overlapping stops are counted once.',
+        doThis: 'Time the stops during the shift in the line’s stopwatch log as they happen. The count’s tile Stops timed says how many were found in the window.',
+        youGet: 'A bar for each cause of stop, plus changeovers and rejects (the rejects converted to the minutes they took to make at the rate).',
+      },
+      {
+        step: 'The running speed, timed',
+        means: 'Minutes nobody logged are either slow running (the line ran below its ideal speed) or short stops too quick to log. Timing the packs off the line for a spell while it runs tells the two apart.',
+        doThis: 'While the line runs, count the packs off it for a timed spell and type Packs and In seconds, then Add the timing — several, at different moments, are pooled. A wrong one is struck, not erased.',
+        youGet: 'The minutes that nobody logged split into slow running and short stops. Until it is timed, the page names them together as slow running and short stops.',
+      },
+      {
+        step: 'Where the minutes went',
+        means: 'The waterfall steps down from planned minutes to the good packs made: stops by cause, changeovers, rejects, and the rest. Top causes ranks them. Each cause says whether it sits on the line’s constraint, because a minute lost elsewhere does not cost output.',
+        doThis: 'Read the sentence under What it means first, then the tiles — Good packs, Lost, Stops timed, Rejects and What it cost. Tap a bar to open everything behind it.',
+        youGet: 'The shift’s losses in minutes and packs. What it cost is idle labour (crew × wage × on-costs) and lost contribution (the line’s margin a pack); a missing input is named and nothing waits on it.',
+      },
+      {
+        step: 'Make it better, and close',
+        means: 'A bar is where the next improvement starts. Closing keeps these figures as a receipt, so the shift’s record stands as it was and can be compared with the next one.',
+        doThis: 'On a count that belongs to a project, tap a bar and Make it better — a countermeasure on a 6M project, a fix elsewhere — to raise it in the bar’s own figures. When the count is complete, Close — keep these figures. Reopen needs a reason.',
+        youGet: 'An action tied to the loss that caused it, the trend shift by shift in Good packs, and a one-page paper of the count.',
+      },
+    ],
+    watch: 'A count is only as good as its rate. If Rate a minute is a guess, so is every minute lost. Take it from Line capacity’s plate speed or a timed standard, and if the shift made more than expected the page says to check the rate or the count rather than showing a negative loss.',
+  },
+  'FC-051': {
+    intro: 'For every stop on a line, however small — weigher blockages, film breaks, label jams. A person times each one with the machine and the reason, so the floor has a record of every loss, not only the big ones written on the shift sheet.',
+    steps: [
+      {
+        step: 'Which machine?',
+        means: 'The machine that stopped, picked from the line’s machines in flow order. Whole line is for a loss that is not one machine. The name matters: it is how the stop is later read as on or off the constraint.',
+        doThis: 'Tap the machine. If the machine is missing, Add a machine or area… puts it on the line’s list, so every tool offers it from then on. If the same stop keeps coming, Again? offers the reasons you logged lately as one tap each.',
+        youGet: 'The machine set for the next stop. A stop with no machine named cannot be read against the constraint.',
+      },
+      {
+        step: 'What did you see?',
+        means: 'The reason in the floor’s own words: a category, and optionally a more particular kind under it. These become the bars of the Pareto, so they should be specific — “jam at the infeed”, not “mechanical”.',
+        doThis: 'Tap a category under What did you see?; add one if it is missing. Then, if useful, pick Which kind? (optional). Choose Which shift? if the line has shifts — the clock picks it for you and a tap overrides.',
+        youGet: 'The category, kind and shift set. The stop will rank under them in the Pareto and the stops grid.',
+      },
+      {
+        step: 'Put a time to it',
+        means: 'Timing is the point. Start timing starts a stopwatch that survives the app closing; Stop & log ends it. The stop runs from the machine stopping to it running again.',
+        doThis: 'Tap Start timing when the stop begins and Stop & log when the machine is running again; Discard throws a mistaken one away. If you were not there at the start, Type a time (minutes and seconds) and Log; Log now notes it without a time.',
+        youGet: 'A stop in the list with its machine, reason and minutes. While it runs, a ticker shows what it is costing in labour — and in packs, if the machine is the one that stops the line — when the line’s wage and speed are known.',
+      },
+      {
+        step: 'Cause, and evidence',
+        means: 'On a 6M project, a stop can be tagged with the bone of the fishbone it points to — People, Machine, Method, Material, Measurement or Environment. A photo, a video or an upload on the stop is evidence anyone can look at later.',
+        doThis: 'After logging, tap one bone under Cause, if you know it — or skip. Attach a Photo, Video or Upload before you log, and it goes with the next stop.',
+        youGet: 'A stop carrying its likely cause and its proof, so the Pareto bar can later open the clip that shows it.',
+      },
+      {
+        step: 'Logged on this line',
+        means: 'Every stop lands in the line’s log, newest first, and is the record the Pareto, the stops grid and the loss count are all drawn from. Overlapping stops are counted once, not twice.',
+        doThis: 'Check the list at the end of the shift. Tap a row to change its machine, reason, minutes or note; × deletes it. See all shows every entry.',
+        youGet: 'The count of entries and the total minutes, and a log that every other stops tool reads — no one types the stops again.',
+      },
+    ],
+    watch: 'Choose reasons and machines carefully, not quickly. The log is only as good as its words: “other” and a machine name spelled three ways will each become their own bar, and the Pareto will point at nothing.',
+  },
+  'FC-052': {
+    intro: 'For when everyone has a different view of what loses the most. The Pareto ranks the losses timed on the line by the minutes they cost, and later — run again — shows whether the one you went after got smaller.',
+    steps: [
+      {
+        step: 'Time the stops first',
+        means: 'The Pareto is drawn only from the stops timed in the app on the project’s lines, the last four weeks against the four before. There is no spreadsheet to upload.',
+        doThis: 'If the page says Nothing timed on the line in the last four weeks, tap Time a stop on <the line> and log stops with their category as they happen.',
+        youGet: 'A ranking that builds itself from the stopwatch log and updates as stops are added.',
+      },
+      {
+        step: 'The finding',
+        means: 'The first line says how few categories carry most of the loss: “2 of 9 categories carry 83% of the lost time”. These are the vital few — the categories that make up the first 80% — shaded in the table and named with the words, not the colour alone.',
+        doThis: 'Read the sentence before the table. It tells you where to aim: the vital few first, and a smaller loss is usually just done, as an action.',
+        youGet: 'The count of the vital few and their share of the lost time, plus the total minutes and stops it is drawn from.',
+      },
+      {
+        step: 'Against the four weeks before',
+        means: 'A second Pareto over the same period is the same measurement twice, not movement. The page only claims a change when the two windows differ, and says why when it cannot.',
+        doThis: 'Look for “Measured against <period> — the four weeks before. The right-hand column is the change.” Read the last column for each category: down, up, flat, new or gone. A change under 8% is called flat — the ordinary breathing of a factory, not progress.',
+        youGet: 'Proof that the category you went after got smaller, or didn’t, in the same units the decision was made in.',
+      },
+      {
+        step: 'The table',
+        means: 'Each row is a category with its Minutes lost, its Share, the running share down the ranking (Cum.), the number of Stops and Min/stop. The profile says whether it is a few long stops or many short ones — which is a different problem.',
+        doThis: 'Read down the Cum. column to see where the 80% line falls. Compare Stops and Min/stop: many short stops need the operators’ checks and the machine restored; a few long ones need a root cause.',
+        youGet: 'A ranked table with a bar for each category and the vital few marked in words.',
+      },
+      {
+        step: 'Open a row',
+        means: 'Each row is a door to the drill behind it. It opens the line that lost the most minutes to the category, and from there the machines, kinds and shifts. There you can rank by Lost time or Frequency, and choose 4 wks, 12 wks, Year or All.',
+        doThis: 'Tap a row — “on Line 7”, or “mostly on Line 7, also Line 2”. If two lines lost the same minutes the page asks Which line?. In the drill, tap a bar to walk in; the breadcrumb walks you back.',
+        youGet: 'The same ranking by machine, by kind or by shift. Where the line has a crew and a labour rate each bar also shows its pounds, and the packs lost where the stop stops the line.',
+      },
+      {
+        step: 'Turn a bar into work',
+        means: 'On a 6M project, a bar in the vital few offers Find the root cause, which opens a problem with the bar as the head of the fish. A smaller bar offers Just do it, an action on the board, with the root cause quietly behind it. A bar that already has a problem goes to its fishbone.',
+        doThis: 'Press the one the row offers. You need to be someone who may change the work.',
+        youGet: 'A problem or an action with the loss in its words, and the same loss never twice.',
+      },
+    ],
+    watch: 'A Pareto of minutes does not say what costs output: a big bar off the constraint may make nothing more when fixed. Read it with the Pareto read beneath the drill, which says which bars are on the constraint and which come back week after week.',
+  },
+  'FC-053': {
+    intro: 'For a machine that seems to stop most days but only shows up in the totals. The grid puts every machine against the last four weeks, day by day, so a daily nuisance and a single bad Tuesday look different.',
+    steps: [
+      {
+        step: 'Log every stop against its machine',
+        means: 'The grid is made from the line’s stops log: each cell is the minutes a machine was stopped that day, with overlapping stops counted once. Without a machine named on a stop, it cannot appear.',
+        doThis: 'Pick the machine on every stop as you time it. Machines appear in the line’s flow order, and any not on its list follow, the most stopped first.',
+        youGet: 'A row for every machine with at least one minute of stops in the last four weeks.',
+      },
+      {
+        step: 'Where and when it stops',
+        means: 'On the line’s capacity page, a grid with a row a machine and a column a day, four weeks ago to today. A cell is darker the more minutes were lost; a blank cell is a day with no stops. It is neutral ink, never a state colour.',
+        doThis: 'Look across a row for a band — a machine stopped on most days — and down for a single dark cell, one bad day. The word constraint beside a machine means it is the machine that holds the line. Tap a cell to open the stops behind it.',
+        youGet: 'A band across the grid is a chronic loss; one dark cell is a one-off. A tapped cell lists that day’s stops, each with its minutes and reason.',
+      },
+      {
+        step: 'The grid’s sentence',
+        means: 'The picture is never the only carrier: the sentence under the heading names the worst cell and the machine stopped on the most days.',
+        doThis: 'Read it: “The worst day: the Flow wrapper on Tue 14 Oct — 85 min. The Flow wrapper stopped on 18 of 28 days — a chronic loss, not a bad day.” A machine stopped on at least 14 of the 28 days is called chronic.',
+        youGet: 'A decision about method: a chronic machine needs restoring and its checks; a bad day needs a root cause.',
+      },
+    ],
+    watch: 'A day with less than a minute of stops shows as a blank cell, and a machine with no stops logged against its name does not appear at all. An empty row can mean a quiet machine or one nobody logged.',
+  },
+  'FC-054': {
+    intro: 'For choosing what to do about a loss. Effort goes into last week’s bad day instead of the loss that is there every week; the page labels each ranked loss chronic, recurring or a one-off, so you pick the right approach for each.',
+    steps: [
+      {
+        step: 'Keep the log by week',
+        means: 'The label is worked out from the stops log over the last six weeks: in how many of them did this loss appear at all? It needs a few weeks of stops with reasons to say anything useful.',
+        doThis: 'Time every stop with a specific reason, week after week. Loose reasons like “mechanical” merge a chronic jam with a one-off breakdown, and the label then means nothing.',
+        youGet: 'A log from which each cause’s weeks can be counted.',
+      },
+      {
+        step: 'Read the label on each loss',
+        means: 'On the line’s Analyse page, the reading under the Pareto gives each of the biggest causes a label. Chronic is four or more of the last six weeks; recurring is two or three; a one-off is one week only.',
+        doThis: 'Read the words beside each cause: “chronic — 5 of the last 6 weeks”, “recurring — 3 of the last 6 weeks”, “one week only”, or “not in the last weeks”. Read them with the on-the-constraint words beside them.',
+        youGet: 'Each ranked loss told apart by how often it comes back, not only by how big it is.',
+      },
+      {
+        step: 'Choose the approach',
+        means: 'The three need different responses. A chronic loss is usually small, frequent and accepted as how the machine is; it is removed by restoring the machine to its basic condition and by the operators’ own checks. A one-off, large, noticed loss needs a root-cause look. A recurring one needs watching for a pattern first.',
+        doThis: 'Chronic: restore the machine and set the operators’ checks. One-off: find the root cause once. Recurring: stratify before choosing — the same shift, product, reel or person? After a fix, read it again later to see if it held.',
+        youGet: 'The right method for each loss. A chronic loss investigated as a one-off wastes the investigation on a symptom, and a one-off merely “restored” comes back.',
+      },
+    ],
+    watch: 'Six weeks is the window the app uses, so a seasonal loss needs a longer look than it gives. And chronic is a word about frequency: whether it is accepted is for the people to decide.',
+  },
+  'FC-055': {
+    intro: 'For short stops — jams, film tracking, label faults — that are too quick to log one by one and add up to the biggest loss. Watch the machine run, tap a button each time it happens, and the page gives how often and, if you time them, how long.',
+    steps: [
+      {
+        step: 'What are you counting?',
+        means: 'A study counts one thing or several on the same watch, each with its own button. For short stops you add the short stop; a stop, jam or failure can sit beside it. Each thing counted gets its own MTBF (the mean running time between them), failure rate and cost.',
+        doThis: 'On New reliability study, under Add something to count, tap short stop (or type your own — Your own — e.g. bottle down) and Add. Optionally set MTBF wanted, minutes and Minutes the line stands each time. The project’s owner sets this up before the watch starts.',
+        youGet: 'A button for each thing counted, named in the floor’s words, ready for the watch.',
+      },
+      {
+        step: 'Count only, or time each one',
+        means: 'Counting alone gives how often. Timing each stop also gives how long, and so the minutes lost. A timed one takes the machine out of running: its minutes come off the watched time, so the MTBF is of running time.',
+        doThis: 'Under More about it, set Timing to Count only, or to Time each one — a stop (help arrived, running again). With timing, add the reasons (jam, film break…) — they become the buttons on the stopwatch. Do not time something that does not stop the machine.',
+        youGet: 'Either a plain tap, or Stopped — reason … Running again buttons, and a time said (90 s, 1:30) as a way to put right one you could not watch.',
+      },
+      {
+        step: 'Start the watch and tap',
+        means: 'The watch counts only the time you are actually watching the machine run. Stop it while the machine is down or no one is looking, so the rate is of running time, not of the clock on the wall.',
+        doThis: 'Press Start the watch when you begin watching the machine run, tap the short-stop button each time you see one, and Stop the watch when you leave. A tap can be undone, and a note added on the spot. A watch left on all night is asked about.',
+        youGet: 'A list of every tap with its time, the watched time, and the count in watched hours.',
+      },
+      {
+        step: 'How often and how long',
+        means: 'MTBF is the average running time between short stops: the watched time divided by the count. The failure rate is its reverse, stops an hour. The page gives a range it is 90% sure of, because a short watch gives a rough answer.',
+        doThis: 'Read the tiles — MTBF, Failure rate, Watched, Short stops and What it costs — and the sentence. Watch long enough for the range to narrow. Where stops were timed, Repair times shows the minutes lost, and what the stops were by reason.',
+        youGet: 'How many short stops an hour, how long between them, and with durations the minutes lost in total, and what they cost where the line’s cost is known.',
+      },
+    ],
+    watch: 'A stop counted but never timed is taken as long as the timed ones, and the page says how many that was. Time enough of them, or the minutes lost are an estimate, not a measurement.',
+  },
+  'FC-057': {
+    intro: 'For when projects are chosen by who shouts, not by where the money is lost. Type a period’s losses in pounds by kind and by process, and the page ranks them and says what a project aimed at one would return and how fast it pays back.',
+    steps: [
+      {
+        step: 'Name the period',
+        means: 'The matrix is for one period — a week, say. The name only names the paper; the sums do not depend on it.',
+        doThis: 'Start a New calculation and type the Period, for example Week ending 12 Oct. The page’s sentence speaks of a week, so type one week’s pounds in the cells.',
+        youGet: 'A named calculation to keep, compare with the next period and put on paper.',
+      },
+      {
+        step: 'The loss matrix',
+        means: 'A grid of five kinds of loss against four processes. The kinds are Breakdowns, Changeover, Short stops, Rejects and Give-away; the processes are bagger, filler, case packer and checkweigher. Each cell is the pounds that loss cost at that process in the period.',
+        doThis: 'Type pounds into the cells you know. Each is already converted from minutes or packs — take them from the loss count, SMED and the capability study’s give-away, which are costed there. Leave a cell empty rather than guess; at least one is needed.',
+        youGet: 'The total and each loss’s share. Empty cells stay empty; nothing is filled in for you.',
+      },
+      {
+        step: 'Causal move (optional)',
+        means: 'A loss often shows at one process and is caused at another: starvation at the filler may be caused by the bagger. A causal move shifts value from where the loss is seen to where it starts, so the money lands on the real cause.',
+        doThis: 'Pick Causal move — loss type, From process, To causal process and the Amount to move in pounds. It can move no more than is in the From cell; an over-large move is refused and said.',
+        youGet: 'The same total, with the money moved to its cause — and a line in the sentence saying what was moved.',
+      },
+      {
+        step: 'A project (optional)',
+        means: 'To see which project would buy most, name the loss it would attack, the share of that loss it is expected to recover, and what it costs. The page works out the weekly return and the payback.',
+        doThis: 'Choose Project — which loss, type Recovery expected (% of that loss) and Project cost, £. Payback uses 4.33 weeks to the month, as the page says.',
+        youGet: 'Tiles Project return a week and Payback in months — for example 60% of changeover recovered returns £1,140 a week and pays back £28,000 in about 5.7 months.',
+      },
+      {
+        step: 'Read the ranking',
+        means: 'The verdict gives the total and the top loss, the sentence names the biggest two, and the closing line says which to chase first with its share of the money. It ranks money, not minutes.',
+        doThis: 'Read “Losses total £10,100 a week: Breakdowns £3,000 (30%), then Give-away £2,200”, then the tiles Total, Top loss, Project return and Payback. Change the recovery or the loss under What if… to try another project before you pick one.',
+        youGet: 'The ranked losses by cause in pounds and the project that buys most, on paper for the people who decide.',
+      },
+    ],
+    watch: 'This is a calculator over figures you type, not a plant-wide system: shift losses and SMED do not fill the matrix for you yet, the four processes are fixed, and a cell wrongly priced misranks everything. Use the same prices as the loss count so the numbers agree.',
   },
 };
