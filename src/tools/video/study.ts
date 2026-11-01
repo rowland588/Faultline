@@ -11,8 +11,9 @@
  * accepted work becomes an element whose laps are those events' durations,
  * its waiting another, so the stacks, the takt, the fewest people and the
  * efficiency are worked out by the module every line balance uses. */
-import type { BalanceStep } from '../../lib/study';
+import type { AllowancePart, BalanceStep } from '../../lib/study';
 import { balance, cyclesNeeded, MIN_CYCLES, t95, type BalanceFigures } from '../linework/balance';
+import { allowanceOf, allowanceSays, plannedPerHour } from '../linework/allowance';
 import type { VideoEvent, VideoSource, VideoZone } from './record';
 
 export type Basis = 'verified' | 'provisional';
@@ -152,9 +153,19 @@ export interface VideoStudyFigures {
   pm: number;
   /** Counted events the footage flags. */
   flagged: number;
+  /** THE STANDARD, where a person rated the pace (FC-021): each timed station's observed work, the reviewer's rating, the basic and the standard
+   *  time (basic × (1 + allowance)). A station never rated is taken at 100 and says so. */
+  standards: StationStandard[];
+  /** The allowance as a fraction (0 when none was agreed), and the parts it is built from. */
+  allowance: number;
+  allowanceParts: AllowancePart[];
+  /** Seconds of allowance in one piece through every timed station (0 when none was agreed). */
+  allowanceSec: number;
 }
 
-export function videoFigures(v: Pick<VideoSource, 'facts' | 'job' | 'demand'>, events: readonly VideoEvent[], basis: Basis = 'verified'): VideoStudyFigures {
+export interface StationStandard { zone: string; label: string; observed: number; rating: number; rated: boolean; basic: number; standard: number; perHour?: number }
+
+export function videoFigures(v: Pick<VideoSource, 'facts' | 'job' | 'demand' | 'pace' | 'allowance'>, events: readonly VideoEvent[], basis: Basis = 'verified'): VideoStudyFigures {
   const zones = v.job.config.zones;
   const d = v.facts.durationSec, step = v.job.config.sampleSec;
   const stations = zones.map(z => stationFigures(z, events, basis, d, step));
@@ -166,6 +177,19 @@ export function videoFigures(v: Pick<VideoSource, 'facts' | 'job' | 'demand'>, e
   const efficiency = timed.length >= 2 && longest > 0 ? timed.reduce((t, s) => t + (s.workTime?.mean ?? 0), 0) / (timed.length * longest) : undefined;
   const overTakt = takt ? timed.filter(s => (s.workTime?.mean ?? 0) > takt).map(s => ({ station: s, bySec: (s.workTime?.mean ?? 0) - takt })) : [];
   const steps = stepsFromEvents(zones, events, basis, d, step);
+  /* THE STANDARD (FC-021) — beside the balance, which stays the observed work: waiting is time observed, never rated and never given an allowance.
+     basic = observed × rating ÷ 100 (BS 3138); standard = basic × (1 + allowance); a station never rated is taken at 100 and says so. */
+  const parts = (v.allowance ?? []).filter(p => p.pct > 0);
+  const al = allowanceOf({ parts });
+  const standards: StationStandard[] = stations.flatMap(st => {
+    if (!st.workTime) return [];
+    const r = v.pace?.[st.zone.id], rated = !!(r && r > 0 && Number.isFinite(r)), rating = rated ? (r as number) : 100;
+    const basic = (st.workTime.mean * rating) / 100, standard = basic * (1 + al);
+    return [{ zone: st.zone.id, label: st.zone.label, observed: st.workTime.mean, rating, rated, basic, standard, ...(plannedPerHour(standard) ? { perHour: plannedPerHour(standard) } : {}) }];
+  });
+  /* the allowance is rest the job needs: its seconds in a piece are each standard's share al ÷ (1 + al) */
+  const allowanceSec = al ? standards.reduce((t, x) => t + x.standard * (al / (1 + al)), 0) : 0;
+  const bal = balance(steps, takt ? { taktSec: takt } : undefined);
   const missing: string[] = [];
   if (!takt) missing.push('Takt: the demand (how many) and the time to make it in (minutes a shift or a day).');
   for (const s of stations) if (!s.workTime) missing.push(`${s.zone.label}: no whole piece of work ${basis === 'verified' ? 'accepted' : 'found'} yet.`);
@@ -176,7 +200,7 @@ export function videoFigures(v: Pick<VideoSource, 'facts' | 'job' | 'demand'>, e
     verified: events.length > 0 && candidates === 0 && accepted > 0,
     ...(takt ? { takt } : {}), ...(bottleneck ? { bottleneck } : {}),
     ...(pace && pace > 0 ? { ratePerMin: 60 / pace } : {}), ...(efficiency !== undefined ? { efficiency } : {}),
-    overTakt, balance: balance(steps, takt ? { taktSec: takt } : undefined), missing,
+    overTakt, balance: bal, missing, standards, allowance: al, allowanceParts: parts, allowanceSec,
     pm: Math.max(0, ...stations.map(s => s.pm)), flagged: stations.reduce((t, s) => t + s.flagged, 0),
   };
 }
@@ -200,7 +224,7 @@ export interface Finding { kind: FindingKind; text: string; tone: 'r' | 'a' | 'g
 
 /** WHAT THE STUDY SAYS — each line saying whether it is measured from the
  *  footage, worked out from what was measured, proposed, or not known. */
-export function findings(f: VideoStudyFigures): Finding[] {
+export function findings(f: VideoStudyFigures, o: { rate?: number } = {}): Finding[] {
   const out: Finding[] = [];
   const from = f.basis === 'verified' ? 'accepted' : 'accepted or candidate';
   for (const s of f.stations) {
@@ -210,6 +234,20 @@ export function findings(f: VideoStudyFigures): Finding[] {
     if (w.n < MIN_CYCLES) out.push({ kind: 'unknown', tone: 'a', text: `${s.zone.label}: ${w.n} cycle${w.n === 1 ? '' : 's'} is too few to say how much it varies — film or accept at least ${MIN_CYCLES}.` });
     else if (!s.enough && s.needed) out.push({ kind: 'unknown', tone: 'a', text: `${s.zone.label}: ${w.n} cycles know its work a cycle to within ${Math.round(((w.ci95 ?? 0) / w.mean) * 100)}% — ${s.needed} are needed for ±5%; film or accept more.` });
     for (const l of s.long) out.push({ kind: 'unknown', tone: 'a', text: `${s.zone.label}: a cycle of ${sec1(l.sec)} after ${clock(l.after.start)} — half again as long as usual; a piece of work may have been missed there.` });
+  }
+  /* PACE AND THE STANDARD (FC-021) — footage cannot show how hard someone is working: a person rates it, or the times stay what was observed */
+  const rated = f.standards.filter(x => x.rated);
+  if (f.standards.length && !rated.length) out.push({ kind: 'unknown', tone: 'n', text: 'Pace is not rated: footage cannot show how hard someone is working, so these are observed times, not a standard. Give each station the pace you judge on the film (100 is the standard pace, BS 3138) to work out the basic and the standard time.' });
+  for (const x of rated) out.push({ kind: 'calculated', tone: 'n', text: `${x.label}: pace rated ${x.rating} by the reviewer — basic ${sec1(x.basic)} (observed ${sec1(x.observed)} × ${x.rating} ÷ 100), standard ${sec1(x.standard)}${f.allowance ? ` with ${+(f.allowance * 100).toFixed(2)}% allowance` : ' with no allowance'}${x.perHour ? `, about ${Math.floor(x.perHour)} an hour planned` : ''}.` });
+  if (rated.length && f.standards.some(x => !x.rated)) out.push({ kind: 'unknown', tone: 'a', text: `Not rated yet, so taken at 100: ${f.standards.filter(x => !x.rated).map(x => x.label).join(', ')}.` });
+  if (f.allowance) out.push({ kind: 'calculated', tone: 'n', text: allowanceSays({ parts: f.allowanceParts }) });
+  if (f.allowance && f.allowanceSec > 0) {
+    if (!(o.rate && o.rate > 0)) out.push({ kind: 'unknown', tone: 'n', text: 'Give the line an hourly rate in Line capacity to say the allowance in money.' });
+    else {
+      const perPack = (f.allowanceSec * o.rate) / 3600, perHour = f.takt ? (perPack * 3600) / f.takt : undefined;
+      const m = (v: number) => `£${v < 1 ? v.toFixed(3) : v.toFixed(2)}`;
+      out.push({ kind: 'calculated', tone: 'n', text: `The allowance is ${f.allowanceSec.toFixed(1)} s of every piece — ${m(perPack)} of labour a pack${perHour != null ? `, ${m(perHour)} an hour at takt` : ''}. It is rest the job needs, not waste.` });
+    }
   }
   if (f.bottleneck?.workTime) {
     out.push({ kind: 'calculated', tone: 'n', text: `${f.bottleneck.zone.label} has the most work in a cycle (${sec1(f.bottleneck.workTime.mean)}), so it sets the pace${f.ratePerMin ? `: about ${f.ratePerMin.toFixed(1)} a minute, ${Math.round(f.ratePerMin * 60)} an hour, at its observed cycle` : ''}.` });

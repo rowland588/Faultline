@@ -484,7 +484,10 @@ export const QUALITY: Entry[] = [
     food: 'A splice guide proved on one flow wrapper, copied to four.',
     depends: ['FC-146', 'FC-105'],
     complexity: 'M', value: 'high', valueWhy: 'Multiplies every proved fix; the factory already knows its machines.',
-    status: 'to-build', form: 'workflow', methods: ['rca.horizontal-deployment'], scenarios: ['running', 'project'], words: ['yokoten', 'roll out', 'read across'],
+    status: 'partial', form: 'workflow', methods: ['rca.horizontal-deployment'], scenarios: ['running', 'project'], words: ['yokoten', 'roll out', 'read across'],
+    built: { where: [], code: ['src/tools/yokoten/yokoten.ts', 'src/tools/yokoten/useYokoten.ts', 'src/tools/yokoten/Spread.tsx', 'src/tools/yokoten/spread.css'], tests: ['src/tools/yokoten/__tests__/yokoten.test.ts'], acceptance: ['horizontal-deployment.mjs'] },
+    spec: 'knowledge/specs/FC-155-horizontal-deployment.md',
+    limits: ['Reads 6M countermeasures proved by their own before → after, not stage-gate fixes; the same machine by name, not a failure mode on another machine.', 'The money (the fix’s £ a week × the lines offered to) is not said — nothing is estimated; a line’s proof is its own words, not a linked study.'],
   },
   {
     id: 'FC-156', name: 'Give-away in money', discipline: 'yield', sub: 'giveaway',

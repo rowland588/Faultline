@@ -28,6 +28,8 @@ export interface LineReading {
   checks?: { logs: number; overdue: number; failed: number; due: number };
   /** How fresh the looking is (FC-199, tools/gemba/looking — lookingReading): said under the tiles and as a fact in the band, never a tile. */
   looking?: { fact: string; says: string; more: string };
+  /** Fixes proved on this line and offered to others, and fixes offered to it (FC-155, tools/yokoten) — sentences, said on the papers beside the page; absent when there are none. */
+  spread?: string[];
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);

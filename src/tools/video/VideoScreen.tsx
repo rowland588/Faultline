@@ -53,6 +53,10 @@ import { capturePlan } from './capture';
 import { assessFootage } from './assess';
 import { FilmPlan, FitView } from './VideoFit';
 import { byHand, decide, merge, reclassify, setBoundary, split, acceptAll } from './review';
+import './pace.css';
+import { costInputs } from '../linework/balanceLink';
+import { CAUSES, partsProblem } from '../linework/allowance';
+import type { AllowancePart } from '../../lib/study';
 import { clock, FINDING_WORD, findings, sec1, standing, videoFigures, type Basis } from './study';
 import { checkEvent } from './validate';
 import { footageGone, footageKeys, withoutFootage } from './footage';
@@ -352,6 +356,8 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   const events = useMemo(() => s.facts.vevents ?? [], [s.facts.vevents]);
   const [basis, setBasis] = useState<Basis>('verified');
   const f = useMemo(() => videoFigures(v, events, basis), [v, events, basis]);
+  const lineOfStudy = lines.find(l => l.id === s.workspaceId);
+  const rateOf = useMemo(() => { const r = costInputs(undefined, lineOfStudy).ratePerHour; return r ? { rate: r } : {}; }, [lineOfStudy]);
   const verified = useMemo(() => videoFigures(v, events, 'verified'), [v, events]);
   const st = standing(verified);
   const gone = footageGone(s.facts);
@@ -602,9 +608,10 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
             <div className="vid-stacks tool-sig-vid tool-sig-video ie-pic" aria-label="Each person's work stacked against takt"><Stacks f={f.balance} /><Legend f={f.balance} /></div>
           )}
           <Takt v={v} disabled={!can.edit} onSave={d => void patchV({ demand: d })} />
+          <Pace v={v} f={f} disabled={!can.edit} onSave={p => void patchV(p)} />
           <h3>What it says</h3>
           <ul className="vid-findings" aria-label="What it says">
-            {findings(f).map((x, i) => <li key={i} className={`is-${x.kind}`} data-kind={x.kind}><span className="field-label">{FINDING_WORD[x.kind]}</span> <span className={x.tone !== 'n' ? `ie-tone is-${x.tone}` : ''}>{x.text}</span></li>)}
+            {findings(f, rateOf).map((x, i) => <li key={i} className={`is-${x.kind}`} data-kind={x.kind}><span className="field-label">{FINDING_WORD[x.kind]}</span> <span className={x.tone !== 'n' ? `ie-tone is-${x.tone}` : ''}>{x.text}</span></li>)}
           </ul>
           <Ask f={f} />
         </section>
@@ -781,5 +788,43 @@ function Ask({ f }: { f: ReturnType<typeof videoFigures> }) {
       <span className="chip-row">{['Identify repeated cycles', 'Show the longest gaps with no movement', 'What do you need to calculate takt?', 'Which station contributes most?'].map(x => <button key={x} type="button" className="chip" onClick={() => { setQ(x); ask(x); }}>{x}</button>)}</span>
       {a && <p className="vid-answer" data-how={a.how}>{a.text} <span className="sub">— {a.how === 'worked out' ? 'worked out by the app from the study' : 'not known yet'}</span></p>}
     </div>
+  );
+}
+
+/** PACE AND ALLOWANCE, ASKED FOR (FC-021) — footage cannot show how hard someone is working: the reviewer rates each station (100 is the
+ *  standard pace, BS 3138) and the site types the allowance it agreed, part by part. Left empty, the times stay what was observed and say so. */
+function Pace({ v, f, disabled, onSave }: { v: VideoSource; f: ReturnType<typeof videoFigures>; disabled: boolean; onSave: (p: Partial<VideoSource>) => void }) {
+  const zones = v.job.config.zones.filter(z => f.stations.find(s => s.zone.id === z.id)?.workTime);
+  const [rate, setRate] = useState<Record<string, string>>(() => Object.fromEntries(v.job.config.zones.map(z => [z.id, v.pace?.[z.id] ? String(v.pace[z.id]) : ''])));
+  const [parts, setParts] = useState<AllowancePart[]>(v.allowance ?? []);
+  if (!zones.length) return null;
+  const problem = partsProblem(parts.filter(p => p.name.trim() || p.pct));
+  const save = () => {
+    const pace: Record<string, number> = {};
+    for (const z of zones) { const n = Number(rate[z.id]); if (n > 0 && Number.isFinite(n)) pace[z.id] = n; }
+    if (problem) return;
+    onSave({ pace: Object.keys(pace).length ? pace : undefined, allowance: parts.filter(p => p.name.trim() && p.pct > 0) });
+  };
+  return (
+    <form className="vid-takt vid-pace" onSubmit={e => { e.preventDefault(); save(); }} aria-label="Pace and allowance">
+      <span className="field-label">Pace and allowance — for a standard time</span>
+      <span className="sub">Footage cannot show pace. Rate each station as you judge it on the film (100 is the standard pace); leave it blank and the times stay what was observed.</span>
+      {zones.map(z => (
+        <label key={z.id} className="vid-pace-row">{z.label}
+          <input className="text-input" inputMode="numeric" value={rate[z.id] ?? ''} disabled={disabled} aria-label={`Pace at ${z.label}`} placeholder="100" onChange={e => setRate(r => ({ ...r, [z.id]: e.target.value }))} /></label>
+      ))}
+      <span className="sub">Allowance — each part named, with the percentage your site agreed (none is supplied).</span>
+      {parts.map((p, i) => (
+        <span key={p.id} className="vid-pace-row">
+          <input className="text-input" list="vid-causes" value={p.name} disabled={disabled} aria-label="Allowance part" onChange={e => setParts(ps => ps.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
+          <input className="text-input" inputMode="decimal" value={p.pct || ''} disabled={disabled} aria-label={`${p.name || 'Part'} percent`} onChange={e => setParts(ps => ps.map((x, j) => (j === i ? { ...x, pct: Number(e.target.value) || 0 } : x)))} />
+          {!disabled && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setParts(ps => ps.filter((_, j) => j !== i))}>Take off</button>}
+        </span>
+      ))}
+      <datalist id="vid-causes">{CAUSES.map(c => <option key={c} value={c} />)}</datalist>
+      {!disabled && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setParts(ps => [...ps, { id: uid(), name: '', pct: 0 }])}>Add an allowance part</button>}
+      {problem && <span className="ie-tone is-a" role="alert">{problem}</span>}
+      {!disabled && <button type="submit" className="btn btn-sm" disabled={!!problem}>Work out the standard</button>}
+    </form>
   );
 }

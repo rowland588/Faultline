@@ -39,6 +39,7 @@ import { useProjectLooking } from '../../tools/gemba/useLooking';
 import { projectSays, stalestFirst } from '../../tools/gemba/looking';
 import { useMeasures } from '../../lib/useMeasures';
 import { numbersSays } from '../../lib/measureProof';
+import { useProjectSpread } from '../../tools/yokoten/useYokoten';
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
@@ -70,6 +71,8 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   /* FC-199, how fresh the looking is: the project's lines, read for the Gemba walk row (tools/gemba) */
   const looking = useProjectLooking(projectId);
   const nums = useMeasures(projectId);
+  /* FC-155, a proved fix offered to every line with the same machine: the project's lines, read for its row (tools/yokoten) */
+  const spread = useProjectSpread(projectId);
   const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
   const { answers, items } = useAnswers(projectId, method?.key ?? 'pdca');
   const saveAnswer = useSaveAnswer(projectId, method?.key ?? 'pdca', items);
@@ -131,12 +134,13 @@ export function MethodScreen({ projectId }: { projectId: string }) {
                 /* the Gemba walk is not a page of its own: its row says how fresh the looking is on the project's lines and opens the stalest */
                 const gemba = id === 'FC-199' && looking?.length ? looking : undefined;
                 const worst = gemba ? stalestFirst(gemba)[0] : undefined;
+                const spreadRow = id === 'FC-155' ? spread : undefined;
                 return (
                   <RecordRow key={id} what={name}
                     {...(worst && worst.looking.level !== 'fresh' ? { tone: worst.looking.level === 'stale' ? 'r' as const : 'a' as const } : {})}
-                    says={gemba ? projectSays(gemba) : NUMBER_IDS.has(id) ? (nums.loading ? undefined : numbersSays(nums.measures, nums.readings)) : u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
+                    says={gemba ? projectSays(gemba) : spreadRow ? spreadRow.says : NUMBER_IDS.has(id) ? (nums.loading ? undefined : numbersSays(nums.measures, nums.readings)) : u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
                     where={toolStateWord(h)}
-                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : t ? nav(inProject(openAt(h) ?? t.to, projectId)) : SIXM_IDS.has(id) ? nav(`/project/${projectId}/fishbone`) : NUMBER_IDS.has(id) ? nav(`/project/${projectId}?view=data`) : undefined)}
+                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : spreadRow ? nav(`/lines/${spreadRow.lineId}`) : t ? nav(inProject(openAt(h) ?? t.to, projectId)) : SIXM_IDS.has(id) ? nav(`/project/${projectId}/fishbone`) : NUMBER_IDS.has(id) ? nav(`/project/${projectId}?view=data`) : undefined)}
                     aside={t && can.edit && t.key !== 'talk'
                       ? <button type="button" className="btn btn-sm" aria-label={`New — ${name}`} onClick={() => start(t, openAt(h))}>New</button>
                       : undefined} />

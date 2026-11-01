@@ -104,9 +104,9 @@ on one slicer.
 - [practice] Automotive 8D practice — D7, prevention of recurrence across similar processes (from knowledge).
 
 ## In Faultline
-Not built (FC-155). The factory knows every line's machines
-(`src/lib/lineRecords.ts`) and the 6M holds a countermeasure's
-proof (`src/lib/sixm.ts`); FC-155 adds the offer — the
-candidate lines listed by machine and failure, each line's state and
-potential, the proof on each — on the proved countermeasure and on the
-control room.
+Partly built (FC-155, 1 November 2026; `knowledge/specs/FC-155-horizontal-deployment.md`). A 6M countermeasure that is done and whose
+before → after moved the right way is a proved fix; the other live lines with the same machine (by name) are listed, the line with the
+most problems written on that machine in 90 days first; one tap offers it — a problem of category *Spread a fix* on each receiving line's
+register, made once — and each line takes it, proves it in its own words or declines with a reason (`src/tools/yokoten`, the line's page,
+its two reports, the method page's row). Not built: the money (the fix's £ a week × the lines), a failure mode on a different machine,
+days from proof to proof, stage-gate fixes, and a receiving line's proof as a linked study.

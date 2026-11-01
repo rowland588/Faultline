@@ -4,14 +4,14 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **237 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 25 tools a person can open on a page of their own. Built inside them: 114 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 31. Not built yet: 48; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 25 tools a person can open on a page of their own. Built inside them: 114 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 47; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 156 |
+| Available (`available`) | 157 |
 | Partly (`partial`) | 14 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 48 |
+| Not built yet (`to-build`) | 47 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -20,7 +20,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
 | Lean manufacturing and waste | 19 | 11 | 2 |  | 5 | 1 |  |
-| Industrial engineering and work measurement | 14 | 7 | 3 |  | 3 | 1 |  |
+| Industrial engineering and work measurement | 14 | 8 | 2 |  | 3 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 15 |  |  | 1 | 1 |  |
 | Equipment performance and losses | 10 | 8 |  |  |  |  | 2 |
 | Maintenance, reliability and TPM | 11 | 10 |  |  |  | 1 |  |
@@ -31,7 +31,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Measurement systems | 6 | 6 |  |  |  |  |  |
 | Quality engineering and defects | 14 | 6 |  |  | 6 | 2 |  |
 | Six Sigma and DMAIC | 8 | 6 | 1 |  | 1 |  |  |
-| Root cause and problem solving | 10 | 6 | 2 |  | 2 |  |  |
+| Root cause and problem solving | 10 | 6 | 3 |  | 1 |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
 | Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |
@@ -105,7 +105,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## The backlog — what to build first (`src/catalogue/backlog.ts`)
 
-1. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
+1. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Partly) — Horizontal deployment — the factory already knows every line’s machines.
 2. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
 
 ## Where related capabilities could be combined
