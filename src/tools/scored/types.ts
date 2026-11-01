@@ -20,6 +20,8 @@ export interface ScoredResult {
   also?: { title: string; lines: string[] };
   /** More titled lists after it, in order (a readiness list's open items by owner; a skills matrix's training to do first). */
   lists?: { title: string; lines: string[] }[];
+  /** Lists drawn on the page only — the paper has them as its table (a fault tree's cut sets). */
+  screenLists?: { title: string; lines: string[] }[];
 }
 
 /** One box a definition asks in each row (beside the name). */
@@ -38,6 +40,8 @@ export interface ScoredExample {
   /** A matrix (Pugh): the criteria and the datum its rows (the options) were marked against. */
   criteria?: ScoredCriterion[];
   datum?: string;
+  /** A response surface (FC-112): the design the runs of the example were made on. */
+  rsm?: import('../../lib/study').RsmSetup;
   /** £ an hour the example is worked at, when it has one. */
   rate?: number;
   expect: {
@@ -97,6 +101,19 @@ export interface ScoredMatrix {
   asks: { name: string; placeholder: string; empty: string };
 }
 
+/** What a register of CARDS works out (FMEA, FC-132; the control plan, FC-133): the same result and table every scored register says, the rows in the order it ranks them. */
+export interface ScoredRegisterOut { result: ScoredResult; table: ScoredTable; ranked: ScoredRanked[] }
+/** What a register works out from — today, and the records beside it (a control plan reads the FMEAs and the check logs of its line or project). */
+export interface ScoredContext { today: string; now: number; /** typed inputs of the register (a control plan: £ an hour, packs a minute, £ a pack held, minutes of a shift) */ inputs?: { rate?: number; speed?: number; packCost?: number; shiftMin?: number; costToDate?: number; margin?: number; carryPct?: number; eventCost?: number; period?: string }; /** a response surface's setup */ rsm?: import('../../lib/study').RsmSetup; /** the study being read */ self?: { id: string; workspaceId?: string; projectId?: string }; studies: readonly import('../../lib/study').ToolStudy[] }
+/** A register whose rows are CARDS — each a record of its own with text, ratings and an action, not a few boxes scored (FMEA, control plan). */
+export interface ScoredRegister {
+  analyse: (a: { rows: ScoredRow[]; ctx: ScoredContext }) => { problems: string[] } | ScoredRegisterOut;
+  /** What a new register starts with — one blank card. */
+  start: () => ScoredRow[];
+  /** The words of the New sheet and the empty list. */
+  asks: { name: string; placeholder: string; empty: string; noun: string; /** the primary button and the sheet’s title: "New FMEA" */ newLabel?: string };
+}
+
 export interface ScoredDef {
   key: string;
   fc: string;
@@ -124,4 +141,6 @@ export interface ScoredDef {
   blank?: boolean;
   /** A matrix (Pugh): set, the page draws the matrix editor where the other registers draw their boxes. */
   matrix?: ScoredMatrix;
+  /** A register of cards (FMEA, control plan): set, the page draws that register's own editor. */
+  register?: ScoredRegister;
 }

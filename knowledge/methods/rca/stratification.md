@@ -6,7 +6,7 @@ discipline: rca
 kind: established
 evidence: textbook
 depth: full
-checked: 2026-10-24 — one of Ishikawa's seven QC tools (*Guide to Quality Control*, 1976); the tests on the splits are `stats.chi-square-association`, the two-proportion z and `stats.anova`; the multiple-comparisons caution by Bonferroni; from knowledge; the worked splits computed in `scripts/knowledge/cases-rca.py`; Faultline splits stops by shift, product and money (the Pareto) and by machine and day (the heat map)
+checked: 2026-10-24 (built and the independent cases re-run 2026-11-01, `scripts/knowledge/cases-m6-analysis.py` — SciPy: χ², Fisher, Clopper–Pearson, ANOVA, Tukey) — one of Ishikawa's seven QC tools (*Guide to Quality Control*, 1976); the tests on the splits are `stats.chi-square-association`, the two-proportion z and `stats.anova`; the multiple-comparisons caution by Bonferroni; from knowledge; the worked splits computed in `scripts/knowledge/cases-rca.py`; Faultline splits stops by shift, product and money (the Pareto) and by machine and day (the heat map)
 needs: []
 next: [stats.anova, stats.chi-square-association]
 alternatives: [rca.is-is-not]
@@ -108,9 +108,16 @@ film reels by batch.
 - [textbook] Juran, J.M. and De Feo, J.A. (2010), *Juran's Quality Handbook*, 6th ed., McGraw-Hill — stratification in diagnosis (from knowledge).
 
 ## In Faultline
-Partly (FC-153): the Pareto splits the stops by shift, product and
-money (`src/lib/paretoView.ts`) and the heat map by machine
-and day (`src/lib/intelligence/heat.ts`). FC-153 adds the general split
-of any tagged count or reading by any of its tags, two at once, with
-the rate per stratum, the test and the multiple-comparisons caution in
-words, and a found stratum handed to is/is-not.
+Built (FC-153, 1 November 2026, `knowledge/specs/FC-153-stratification.md`): a question of the
+Analysis tool, *Where does the problem live?* — counted (rejected out of made) or measured
+records tagged with one to four factors (typed, or pasted from a sheet), each factor split with
+the rate or mean of every place and its interval, its share of the rejects against its share of
+what was made, the test of the whole split (χ², Fisher's exact for two places, or the groups test
+for readings) with Cramér's V or η², and the two strongest factors crossed. The multiple-comparisons
+caution is built in: the number of splits tried is counted and the level divided by it; a place is
+named only with five or more rejected in it and beyond a standardised residual of 2; a split whose
+counts are too small is called an approximation, and factors that run together are said to. Money:
+the excess in the named place times what one reject costs, when that is given. The Pareto splits the
+stops by shift, product and money (`src/lib/paretoView.ts`) and the heat map by machine and day
+(`src/lib/intelligence/heat.ts`), as before. Not built: the line's own stops, loss counts and
+weigher heads offered as records without retyping; a third factor in the cross.

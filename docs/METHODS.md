@@ -58,7 +58,7 @@
 | **D0–D1  Symptom, emergency response, team** | What happened, the first response, who is on it. | FC-154 Problems register; FC-134 Complaints per million and their Pareto; FC-194 Actions | FC-134 (NOT BUILT) |
 | **D2  Describe the problem** | Is / is not: what, where, when, how much. Is / is not is the heart of D2. | FC-149 Is / is not; FC-124 Defect tally at the line; FC-125 Defect Pareto; FC-153 Stratification | FC-149 (NOT BUILT); FC-153 (part-built) |
 | **D3  Contain** | Product held, sorted or reworked; the customer protected; checked that it works. Nonconformance hold is the D3 tool. | FC-135 Product on hold; FC-131 What a sampling plan protects; FC-124 Defect tally at the line | FC-135 (NOT BUILT) |
-| **D4  Root cause and escape point** | Why it happened and why it was not caught — verified on and off. Escape point reads the control plan and the FMEA. | FC-146 6M; FC-147 Fishbone with evidence on each cause; FC-148 Five whys; FC-152 Fault tree analysis; FC-153 Stratification; FC-107 Comparing several groups; FC-105 Before and after; FC-132 Process FMEA with action priority; FC-133 Control plan | FC-152 (NOT BUILT); FC-153 (part-built); FC-132 (NOT BUILT); FC-133 (NOT BUILT) |
+| **D4  Root cause and escape point** | Why it happened and why it was not caught — verified on and off. Escape point reads the control plan and the FMEA. | FC-146 6M; FC-147 Fishbone with evidence on each cause; FC-148 Five whys; FC-152 Fault tree analysis; FC-153 Stratification; FC-107 Comparing several groups; FC-105 Before and after; FC-132 Process FMEA with action priority; FC-133 Control plan | FC-152 (built 1 Nov); FC-153 (built 1 Nov); FC-132 (NOT BUILT); FC-133 (NOT BUILT) |
 | **D5–D6  Corrective action, implemented and validated** | The permanent action chosen, put in, proved on the number. | FC-143 Pugh matrix; FC-144 Impact and effort; FC-105 Before and after; FC-094 Capability of measured data; FC-086 Individuals and moving range chart (XmR) | FC-143 (NOT BUILT); FC-144 (NOT BUILT) |
 | **D7  Prevent recurrence** | The system changed: FMEA, control plan, standard, the other lines. Horizontal deployment offers the fix to every line. | FC-132 Process FMEA with action priority; FC-133 Control plan; FC-007 Standard work combination table; FC-225 Standard operating procedure with photos; FC-014 Mistake-proofing register and the daily device checks; FC-155 Horizontal deployment | FC-132 (NOT BUILT); FC-133 (NOT BUILT); FC-225 (NOT BUILT); FC-014 (NOT BUILT); FC-155 (partly built) |
 | **D8  Close** | Evidence for each discipline; the team recognised; the report sent. The 8D report is the paper. | FC-150 8D report; FC-194 Actions | FC-150 (NOT BUILT) |
@@ -131,12 +131,12 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | Used by | Tool | Status | How it would be built | Methods |
 |---|---|---|---|---|
 | 5 | FC-201 The team’s own weekly number, proved | part-built | part-built — finish | A3, DMAIC, Improvement Kata, Kaizen event, Theory of Constraints |
-| 4 | FC-153 Stratification — split the data to find where it lives | part-built | calculation — an analysis question (stratify, then test) | 8D, A3, DMAIC, PDCA |
+| 4 | FC-153 Stratification — split the data to find where it lives | built 1 Nov (t8-3) | calculation — an analysis question (stratify, then test) | 8D, A3, DMAIC, PDCA |
 | 4 | FC-225 Standard operating procedure with photos | NOT BUILT | document — steps with photos, versioned, with a paper | 8D, Kaizen event, PDCA, Stage gate |
 | 3 | FC-149 Is / is not — specifying the problem | BUILT 1 Nov (`t8-1`) — a document of Documents: the specification, changes, causes tested; `knowledge/specs/FC-149-is-is-not.md` | document — a two-column form that feeds the problem | 8D, A3, DMAIC |
-| 2 | FC-132 Process FMEA with action priority | NOT BUILT | scored register — scored-shape definition (severity, occurrence, detection → action priority) | 8D, DMAIC |
-| 2 | FC-133 Control plan — what is checked, how, how often, and what if  | NOT BUILT | register — a list per check (what, how, how often, reaction) feeding the check logs | 8D, DMAIC |
-| 2 | FC-152 Fault tree analysis | NOT BUILT | document — a tree drawn from the whys | 8D, A3 |
+| 2 | FC-132 Process FMEA with action priority | built 1 Nov (t8-3) | scored register — scored-shape definition (severity, occurrence, detection → action priority) | 8D, DMAIC |
+| 2 | FC-133 Control plan — what is checked, how, how often, and what if  | built 1 Nov (t8-3) | register — a card per characteristic (what, how, how often, reaction) reading the FMEA and the check logs beside it | 8D, DMAIC |
+| 2 | FC-152 Fault tree analysis | built 1 Nov (t8-3) | register — a tree as an outline, cut sets and probability | 8D, A3 |
 | 2 | FC-155 Horizontal deployment — a proved fix offered to every line w | partly built (1 Nov: lines, offers, answers; money not said) | workflow — offer a proved fix to the other lines | 8D, PDCA |
 | 2 | FC-223 TWI job instruction — the breakdown and four-step teaching | NOT BUILT | document — a breakdown and four-step sheet | Kaizen event, Stage gate |
 | 1 | FC-003 Process flow chart — operation, transport, inspection, delay | built (1 Nov, t8-4) | document — a drawn chart | Kaizen event |
@@ -150,10 +150,10 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 1 | FC-056 Speed loss — running against ideal speed | part-built | ? | Theory of Constraints |
 | 1 | FC-082 Operational readiness — people, standards, spares, food safe | part-built | part-built — finish | Stage gate |
 | 1 | FC-085 Line acceptance on the EN 415-11 time model | research first | research first | Stage gate |
-| 1 | FC-111 Designed experiments — two-level factorials | NOT BUILT | calculation — new analysis (two-level factorials) | DMAIC |
-| 1 | FC-112 Optimising settings — response surface | research first | research first | DMAIC |
+| 1 | FC-111 Designed experiments — two-level factorials | built 1 Nov (t8-3) | calculation — new analysis (two-level factorials) | DMAIC |
+| 1 | FC-112 Optimising settings — response surface | built 1 Nov (t8-3) | register — a run sheet and a fitted surface | DMAIC |
 | 1 | FC-117 The team’s own weekly number, trended | part-built | part-built — finish | A3 |
-| 1 | FC-135 Product on hold — non-conformance and release | NOT BUILT | register + workflow — a hold, its release, who signed | 8D |
+| 1 | FC-135 Product on hold — non-conformance and release | BUILT 1 Nov (m6-registers) | register + workflow — a hold, its release, who signed | 8D |
 | 1 | FC-178 Hygienic design review of new equipment | research first | research first | Stage gate |
 | 1 | FC-179 The week’s schedule against capacity, with changeovers | NOT BUILT | ? | Theory of Constraints |
 | 1 | FC-198 Tiered daily meeting — the day’s update and its paper | part-built | ? | Improvement Kata |

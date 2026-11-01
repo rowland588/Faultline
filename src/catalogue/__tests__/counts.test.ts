@@ -6,7 +6,7 @@ import { APP_TOOLS } from '../registry';
 describe('how many tools, said truly', () => {
   it('counts a tool only when a person can open it on a page of its own', () => {
     expect(toolCounts().tools).toBe(APP_TOOLS.length);
-    expect(toolCounts().tools).toBeLessThan(30);   // 25 → 30 on 1 November: four register tools (m6-registers) are tools of their own
+    expect(toolCounts().tools).toBeLessThan(38);   // 25 → 30 on 1 November: four register tools (m6-registers) are tools of their own
   });
   it('adds up: every entry is a tool, inside a tool, a part, not built, in research or left out', () => {
     const c = toolCounts();

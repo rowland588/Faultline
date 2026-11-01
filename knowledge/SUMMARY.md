@@ -4,15 +4,15 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **237 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 25 tools a person can open on a page of their own. Built inside them: 114 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 47; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 29 tools a person can open on a page of their own. Built inside them: 116 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 31. Not built yet: 43; needing research: 11; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 157 |
-| Partly (`partial`) | 14 |
+| Available (`available`) | 163 |
+| Partly (`partial`) | 13 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 47 |
-| Research first (`research`) | 12 |
+| Not built yet (`to-build`) | 43 |
+| Research first (`research`) | 11 |
 | Left out on purpose (`left-out`) | 7 |
 
 ## By discipline
@@ -27,11 +27,11 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Changeovers | 5 | 2 | 2 |  | 1 |  |  |
 | Commissioning and operational readiness | 13 | 12 |  |  |  | 1 |  |
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
-| Statistical analysis | 15 | 13 |  |  | 1 | 1 |  |
+| Statistical analysis | 15 | 15 |  |  |  |  |  |
 | Measurement systems | 6 | 6 |  |  |  |  |  |
-| Quality engineering and defects | 14 | 6 |  |  | 6 | 2 |  |
+| Quality engineering and defects | 14 | 8 |  |  | 4 | 2 |  |
 | Six Sigma and DMAIC | 8 | 6 | 1 |  | 1 |  |  |
-| Root cause and problem solving | 10 | 6 | 3 |  | 1 |  |  |
+| Root cause and problem solving | 10 | 8 | 2 |  |  |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
 | Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |
@@ -72,11 +72,11 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 ## By the shape it takes
 
 - a tool of its own: 78
-- a mode of another tool: 85
-- a part several tools share: 28
+- a mode of another tool: 87
+- a part several tools share: 27
 - a way through several tools: 8
 - a report or board: 26
-- decided after research: 12
+- decided after research: 11
 
 ## Research first
 
@@ -85,7 +85,6 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - FC-047 Line simulation — stops, buffers and output — Needs repair times measured first, and must stay simple.
 - FC-065 Reliability-centred maintenance — Heavy; for the critical few.
 - FC-085 Line acceptance on the EN 415-11 time model — A common language with OEMs — once the standard’s text is read.
-- FC-112 Optimising settings — response surface — Specialist; after a factorial.
 - FC-129 Acceptance sampling by attributes — AQL plans — The ISO tables are copyright — research how to offer plans honestly.
 - FC-130 Acceptance sampling by variables — Needs the standard’s tables.
 - FC-175 Shelf-life studies — Microbiological design is specialist.
@@ -111,7 +110,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 ## Where related capabilities could be combined
 
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
-- FC-105 Before and after — did it move, for a reason — 11 modes inside it
+- FC-105 Before and after — did it move, for a reason — 13 modes inside it
 - FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 9 modes inside it
 - FC-240 Documents — a page the team agrees: charter, SIPOC, customer needs, Kano, 8D report — 9 modes inside it
 - FC-073 The stage gate — new equipment to handover — 7 modes inside it

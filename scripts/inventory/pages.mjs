@@ -541,6 +541,26 @@ export const PAGES = (sd, cap) => [
     { what: 'the page named Scored registers', sel: '.part-head .pace-title', text: /^Scored registers$/ },
     { what: 'equipment criticality as a card', sel: '.pl-tool-card', text: /Equipment criticality/ },
     { what: 'the Pugh matrix as a card (FC-143)', sel: '.pl-tool-card', text: /Pugh matrix/ },
+    { what: 'the process FMEA as a card (FC-132)', sel: '.pl-tool-card', text: /Process FMEA/ },
+    { what: 'the control plan as a card (FC-133)', sel: '.pl-tool-card', text: /Control plan/ },
+    { what: 'the fault tree as a card (FC-152)', sel: '.pl-tool-card', text: /Fault tree/ },
+    { what: 'optimising settings as a card (FC-112)', sel: '.pl-tool-card', text: /Optimising settings/ },
+  ] },
+  { name: 'Process FMEA — its list (FC-132)', path: '#/scored/fmea', must: [
+    { what: 'the page named Process FMEA, with New FMEA', sel: '.part-head .pace-title', text: /^Process FMEA$/ },
+    { what: 'New FMEA', sel: '.pace-head-actions .btn-primary', text: /^New FMEA$/ },
+  ] },
+  { name: 'Control plan — its list (FC-133)', path: '#/scored/control-plan', must: [
+    { what: 'the page named Control plan, with New control plan', sel: '.part-head .pace-title', text: /^Control plan$/ },
+    { what: 'New control plan', sel: '.pace-head-actions .btn-primary', text: /^New control plan$/ },
+  ] },
+  { name: 'Fault tree — its list (FC-152)', path: '#/scored/fault-tree', must: [
+    { what: 'the page named Fault tree, with New fault tree', sel: '.part-head .pace-title', text: /^Fault tree$/ },
+    { what: 'New fault tree', sel: '.pace-head-actions .btn-primary', text: /^New fault tree$/ },
+  ] },
+  { name: 'Optimising settings — its list (FC-112)', path: '#/scored/rsm', must: [
+    { what: 'the page named Optimising settings, with New optimisation', sel: '.part-head .pace-title', text: /^Optimising settings$/ },
+    { what: 'New optimisation', sel: '.pace-head-actions .btn-primary', text: /^New optimisation$/ },
   ] },
   { name: 'Pugh matrix — its list (FC-143)', path: '#/scored/pugh', must: [
     { what: 'the page named Pugh matrix, with New ranking', sel: '.part-head .pace-title', text: /^Pugh matrix$/ },

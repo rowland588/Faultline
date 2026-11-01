@@ -103,7 +103,7 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
   if (s.tool === 'analysis') { const c = s.agreed?.analysis; if (!c) return { text: 'not set up yet', tone: 'n', verdict: 'Not set up' }; const said = analysisSays(analysisFigures(c, s.facts.readings ?? []), c); return { text: said.text, tone: said.tone, verdict: said.verdict }; }
   /* a calculator (FC-235): the sentence, the verdict and the tone from its definition */
   if (s.tool === 'calc') return calcSays(s);
-  if (s.tool === 'scored') return scoredSays(s);
+  if (s.tool === 'scored') return scoredSays(s, { studies: ctx?.studies ?? [] });
   /* the register tools (m6-registers): product on hold, horizontal deployment, the daily meeting, the fault tree */
   if (registerKeyOf(s)) return registerSaid(s, ctx);
   if (s.tool === 'doc') return docSays(s);

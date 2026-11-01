@@ -12,6 +12,8 @@ import type { LeanTile } from '../../lib/lean';
 import { learnFigures, learnPlot, learnProblem, learnSays, learnTiles, type LearnFigures } from './learn';
 import { grrFigures, grrGrids, grrProblem, grrSays, grrTiles, type GrrFigures } from './grr';
 import { attrFigures, attrGrids, attrProblem, attrSays, attrTiles, type AttrFigures } from './attr';
+import { doeFigures, doeGrids, doePicture, doeProblem, doeSays, doeTiles, type DoeFigures } from './doe';
+import { stratFigures, stratGrids, stratPicture, stratProblem, stratSays, stratTiles, type StratFigures } from './strat';
 import { dagostinoPearson, histogram } from '../../lib/ie/dist';
 import { describe, type Described } from '../../lib/ie/describe';
 import { compareGroups, type GroupsResult } from '../../lib/ie/groups';
@@ -56,6 +58,8 @@ export const KIND_WORDS: Record<AgreedAnalysis['kind'], { name: string; ask: str
   gauge: { name: 'Is the gauge fit', ask: 'Is this gauge fit for what it judges?', example: 'a bench scale against a 500 g test weight; a probe at five temperatures; the daily check weight' },
   shape: { name: 'Which shape fits', ask: 'Which shape do these readings follow?', example: 'residual oxygen; minutes between short stops; seal strength with a hard floor' },
   grr: { name: 'Gauge R&R', ask: 'How much of what we see is the measurement?', example: 'seal strength — ten parts, three appraisers, two trials each, blind and randomised' },
+  strat: { name: 'Where it lives', ask: 'Where does the problem live — which shift, line, machine or product?', example: 'rejects split by shift, line and product; fill weights split by head; stops by machine and supplier' },
+  doe: { name: 'Which settings drive it', ask: 'Which settings drive the result — and do they interact?', example: 'seal temperature × dwell × pressure on a tray sealer; filler speed × product temperature for give-away' },
   attr: { name: 'Inspectors agreeing', ask: 'Do inspectors agree with themselves and the standard?', example: 'seal wrinkle — fifty coded packs, three inspectors, two blind looks each, against an expert reference' },
   plan: { name: 'How many readings', ask: 'How many readings do I need?', example: 'to know a mean to ±0.3 g; to see a 0.5 g difference between shifts' },
 };
@@ -119,7 +123,7 @@ export interface RelateFigures extends Base {
   kind: 'relate'; k: number; n: number; need: number; enough: boolean; weak: boolean; drivers: { name: string; unit?: string }[]; xs: number[][]; y: number[];
   line?: Line; multi?: Multiple; /** perfectly collinear drivers, or a constant one — nothing is fitted */ refusal?: string; p?: number; significant: boolean;
 }
-export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures | GroupsFigures | TableFigures | RelateFigures | LearnFigures | GaugeFigures | ShapeFigures | GrrFigures | AttrFigures;
+export type AnalysisFigures = SureFigures | ChangeFigures | PairedFigures | PlanFigures | GroupsFigures | TableFigures | RelateFigures | LearnFigures | GaugeFigures | ShapeFigures | GrrFigures | AttrFigures | StratFigures | DoeFigures;
 
 const normalCheck = (what: string, xs: number[]): { check?: Check; non: boolean } => {
   if (xs.length < NORMAL_FROM) return { non: false };
@@ -135,6 +139,8 @@ export function analysisFigures(a: AgreedAnalysis, readings: StudyReading[], opt
   if (a.kind === 'shape') return shapeFigures(a, readings, base(0));
   if (a.kind === 'grr') return grrFigures(a, readings, base(placesOf(grrValues(readings))));
   if (a.kind === 'attr') return attrFigures(a, readings, base(0));
+  if (a.kind === 'doe') return doeFigures(a.doe, a.name, a.better ?? 'either', readings, base(placesOf(live(readings).filter(r => typeof r.value === 'number').map(r => r.value as number))));
+  if (a.kind === 'strat') return stratFigures(a, readings, base(placesOf(live(readings).filter(r => typeof r.value === 'number').map(r => r.value as number))));
   if (a.kind === 'sure') {
     const of = a.of ?? 'mean';
     if (of === 'share') {
@@ -338,11 +344,13 @@ export function planProblem(p: AnalysisPlan, pilotN = 0): string {
 }
 
 /** What cannot be agreed, said while agreeing. */
-export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'> & Partial<Pick<AgreedAnalysis, 'rows' | 'cols' | 'drivers' | 'learn' | 'gauge' | 'shape' | 'grr' | 'attr'>>): string {
+export function analysisProblem(a: Pick<AgreedAnalysis, 'kind' | 'name' | 'within'> & Partial<Pick<AgreedAnalysis, 'rows' | 'cols' | 'drivers' | 'learn' | 'gauge' | 'shape' | 'grr' | 'attr' | 'strat' | 'doe'>>): string {
   if (a.kind === 'gauge') return gaugeProblem(a.name, a.gauge);
   if (a.kind === 'shape') return shapeProblem(a.name, a.shape);
   if (a.kind === 'grr') return grrProblem(a.name, a.grr);
   if (a.kind === 'attr') return attrProblem(a.name, a.attr);
+  if (a.kind === 'strat') return stratProblem(a.name, a.strat);
+  if (a.kind === 'doe') return doeProblem(a.name, a.doe);
   if (!a.name.trim()) return 'What is measured — a name, "Fill weight".';
   if (a.kind === 'table') {
     const dup = (xs: string[]) => new Set(xs.map(x => x.toLowerCase())).size !== xs.length;
@@ -437,6 +445,8 @@ export function analysisSays(f: AnalysisFigures, a: AgreedAnalysis): AnalysisSay
   if (f.kind === 'shape') return shapeSays(f, a);
   if (f.kind === 'grr') return grrSays(f, a);
   if (f.kind === 'attr') return attrSays(f, a);
+  if (f.kind === 'strat') return stratSays(f, a);
+  if (f.kind === 'doe') return doeSays(f, a);
   /* plan */
   const power = pctWord(f.power), conf = pctWord(f.conf), p = a.plan;
   if (!f.ok || f.need === undefined || !p) return { text: f.why ?? 'Say what to size.', tone: 'n', verdict: 'Not enough to size', more: [], notClaimed: '' };
@@ -593,6 +603,8 @@ export function analysisTiles(f: AnalysisFigures, a: AgreedAnalysis): LeanTile[]
   if (f.kind === 'shape') return shapeTiles(f, a);
   if (f.kind === 'grr') return grrTiles(f);
   if (f.kind === 'attr') return attrTiles(f);
+  if (f.kind === 'strat') return stratTiles(f);
+  if (f.kind === 'doe') return doeTiles(f);
   if (f.kind === 'relate') {
     if (f.k === 1) {
       const l = f.line, d = f.drivers[0];
@@ -619,6 +631,7 @@ export function analysisClosing(f: AnalysisFigures, a: AgreedAnalysis, said: Ana
   if (f.kind === 'change') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'learn') return { text: `${said.verdict} — ${what}${f.reach && !f.reach.already ? `, the standard at about run ${f.reach.run}` : ''}.`, tone: said.tone };
   if (f.kind === 'gauge' || f.kind === 'shape' || f.kind === 'grr' || f.kind === 'attr') return { text: `${said.verdict} — ${what}${f.kind === 'grr' && f.res ? `, %GRR ${f.res.pctGrrTotal.toFixed(1)}%` : ''}${f.kind === 'attr' && f.res ? `, Fleiss κ ${f.res.fleissKappa.toFixed(2)}` : ''}${f.kind !== 'grr' && f.kind !== 'attr' ? `, ${pctWord(f.conf)} confidence` : ''}.`, tone: said.tone };
+  if (f.kind === 'strat' || f.kind === 'doe') return { text: `${said.verdict} — ${what}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'groups' || f.kind === 'table' || f.kind === 'relate') return { text: `${said.verdict} — ${what}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}, ${pctWord(f.conf)} confidence.`, tone: said.tone };
   if (f.kind === 'paired') return { text: `${said.verdict} — ${f.pairs} pair${f.pairs === 1 ? '' : 's'}${f.p !== undefined ? `, ${pSay(f.p)}` : ''}.`, tone: said.tone };
   return { text: `${said.verdict}.`, tone: said.tone };
@@ -637,6 +650,8 @@ const sym = (vs: number[]): [number, number] => { const m = Math.max(...vs.map(M
 
 export function analysisPicture(f: AnalysisFigures, a: AgreedAnalysis): PicRow[] {
   if (f.kind === 'gauge') return gaugePicture(f, a);
+  if (f.kind === 'strat') return stratPicture(f, a);
+  if (f.kind === 'doe') return doePicture(f, a);
   const u = a.unit ?? '', dp = f.dp + 1, c = pctWord(f.conf);
   if (f.kind === 'sure') {
     if (f.of === 'share' && f.share) { const s = f.share; return [{ label: 'Share', axis: [0, Math.min(1, Math.max(s.exact.hi * 1.2, 0.02))], unit: '%', point: { v: s.p, text: pct(s.p) }, band: { lo: s.exact.lo, hi: s.exact.hi, text: `${c}: ${pct(s.exact.lo)}–${pct(s.exact.hi)}` } }]; }
@@ -709,6 +724,8 @@ export function analysisGrids(f: AnalysisFigures, _a?: AgreedAnalysis): Grid[] {
   if (f.kind === 'shape') return shapeGrids(f);
   if (f.kind === 'grr') return grrGrids(f);
   if (f.kind === 'attr') return attrGrids(f);
+  if (f.kind === 'strat') return stratGrids(f, _a);
+  if (f.kind === 'doe') return doeGrids(f, _a);
   return [];
 }
 export type { Grid } from './measure';
