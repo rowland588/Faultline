@@ -11,7 +11,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
-  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'lineReport' | 'lineProgramsReport' | 'lineProgramReport';
+  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'lineProgramsReport' | 'lineProgramReport';
 
 export interface Route {
   name: RouteName;
@@ -230,6 +230,8 @@ export function parseRoute(hash: string): Route {
     if (segs[2] === 'tools') return { name: 'projectTools', id, query };
     /* a machine of a stage-gate job, a page of its own (docs/STAGEGATE-UX.md slice 3) */
     if (segs[2] === 'machine' && segs[3]) return { name: 'machine', id, lineId: decodeURIComponent(segs[3]), query };
+    /* a method project's report — viewed here, printed from Print (docs/METHODS.md §17) */
+    if (segs[2] === 'method-report') return { name: 'methodReport', id, query };
     // The stage-gate client report.
     if (segs[2] === 'report') return { name: 'clientReport', id, query };
     // What to raise at the next meeting.

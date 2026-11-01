@@ -164,7 +164,7 @@ export function hereOf(route: Route): string {
     case 'fishbone': return 'fishbone';
     case 'pareto': return 'pareto';
     case 'projectLine': return route.lineId ? `line:${route.lineId}` : '';
-    case 'clientReport': case 'paceReport': return 'reports';
+    case 'clientReport': case 'paceReport': case 'methodReport': return 'reports';
     default: return KEY_OF[route.name] ?? '';
   }
 }

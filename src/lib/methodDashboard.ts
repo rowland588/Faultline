@@ -12,7 +12,7 @@
  * A missing input is said, never filled. Pure. */
 import { fieldsOf, sectionState } from './methodSheet';
 import type { ProjectMethod } from './methods';
-import { studyHref, studyLine, studyTitle, TOOL_NAME } from './studyLinks';
+import { studyHref, studyLine, studyTitle, TOOL_NAME, type StudyContext } from './studyLinks';
 import type { ToolStudy } from './study';
 
 export type DashTone = 'r' | 'a' | 'w' | 'g' | 'n';
@@ -26,6 +26,9 @@ export interface DashSection {
   here: boolean;
 }
 export interface DashFinding {
+  /** The study behind it, and the study tool it is a record of (the project report prints that tool's own paper blocks). */
+  id: string;
+  key: ToolStudy['tool'];
   /** The tool, as the app names it. */
   tool: string;
   section: string;
@@ -39,7 +42,7 @@ export interface DashFinding {
   at: number;
 }
 export interface DashAttention { text: string; tone: 'r' | 'a' | 'n'; kind: 'finding' | 'unwritten' | 'unproved' | 'late' }
-export interface DashOwed { kind: string; what: string; due?: string; doneAt?: number | null; testId?: string }
+export interface DashOwed { kind: string; what: string; owner?: string; due?: string; doneAt?: number | null; testId?: string }
 export interface DashIn {
   method: ProjectMethod;
   answers: Readonly<Record<string, string>>;
@@ -50,6 +53,8 @@ export interface DashIn {
   /** Which study tool each catalogue tool of a section reads (registry), so a record is placed in the section that lists its tool. */
   readsOf: (fcId: string) => ToolStudy['tool'] | undefined;
   nameOf?: (fcId: string) => string | undefined;
+  /** What the tools' sentences read of their lines (stops, cost models) — so the sentence is the one the tool's own page says. */
+  ctx?: StudyContext;
 }
 export interface Dashboard {
   sections: DashSection[];
@@ -89,8 +94,8 @@ export function methodDashboard(x: DashIn): Dashboard {
     const sorted = [...list].sort((a, b) => b.updatedAt - a.updatedAt);
     const s = sorted[0];
     if (!s) continue;
-    const said = studyLine(s, { studies: live as ToolStudy[] });
-    findings.push({ tool: TOOL_NAME[s.tool] ?? tool, section: placeOf.get(tool) ?? '', title: studyTitle(s), says: said.text, tone: said.tone as DashTone, href: studyHref(s), more: sorted.length - 1, at: s.updatedAt });
+    const said = studyLine(s, { ...(x.ctx ?? {}), studies: live as ToolStudy[] });
+    findings.push({ id: s.id, key: s.tool, tool: TOOL_NAME[s.tool] ?? tool, section: placeOf.get(tool) ?? '', title: studyTitle(s), says: said.text, tone: said.tone as DashTone, href: studyHref(s), more: sorted.length - 1, at: s.updatedAt });
   }
   const order = new Map(m.sections.map((s, i) => [s.name, i] as const));
   findings.sort((a, b) => (order.get(a.section) ?? 0) - (order.get(b.section) ?? 0) || b.at - a.at);

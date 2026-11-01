@@ -4,6 +4,7 @@ import { listStudies, listTestItems, onDataChange } from '../../db';
 import type { ProjectMethod } from '../../lib/methods';
 import { methodDashboard, type DashIn, type Dashboard, type DashOwed } from '../../lib/methodDashboard';
 import type { ToolStudy } from '../../lib/study';
+import type { StudyContext } from '../../lib/studyLinks';
 import { todayISO } from '../../lib/weeks';
 import { howTool, openable } from './methodTools';
 
@@ -13,8 +14,8 @@ export const readsOf = (id: string): ToolStudy['tool'] | undefined => {
 };
 export const nameOf = (id: string): string | undefined => { const h = howTool(id); return h.how === 'unknown' ? undefined : h.entry.name; };
 
-export function dashboardOf(method: ProjectMethod, answers: Record<string, string>, studies: readonly ToolStudy[], owed: readonly DashOwed[]): Dashboard {
-  const in_: DashIn = { method, answers, studies, owed, today: todayISO(), readsOf, nameOf };
+export function dashboardOf(method: ProjectMethod, answers: Record<string, string>, studies: readonly ToolStudy[], owed: readonly DashOwed[], ctx?: StudyContext): Dashboard {
+  const in_: DashIn = { method, answers, studies, owed, today: todayISO(), readsOf, nameOf, ...(ctx ? { ctx } : {}) };
   return methodDashboard(in_);
 }
 

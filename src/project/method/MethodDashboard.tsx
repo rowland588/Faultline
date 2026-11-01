@@ -8,7 +8,7 @@ import './methodDashboard.css';
 
 const WORD: Record<string, string> = { r: 'Needs attention', a: 'Watch', g: 'Fine', w: 'Under way', n: '' };
 
-export function MethodDashboard({ dash, onPrint, busy }: { dash: Dashboard; onPrint: () => void; busy?: boolean }) {
+export function MethodDashboard({ dash, projectId }: { dash: Dashboard; projectId: string }) {
   return (
     <section className={'mdash is-' + dash.tone} aria-label="Where this project is">
       <p className="mdash-says" role="status"><b>{dash.says}</b></p>
@@ -43,7 +43,7 @@ export function MethodDashboard({ dash, onPrint, busy }: { dash: Dashboard; onPr
         </div>
       </div>
       {dash.closing && <p className="mdash-close sub">{dash.closing}</p>}
-      <p className="mdash-act"><button type="button" className="btn btn-sm" disabled={busy} onClick={onPrint}>Print the project report</button></p>
+      <p className="mdash-act"><button type="button" className="btn btn-sm" onClick={() => nav(`/project/${projectId}/method-report`)}>View the project report ›</button></p>
     </section>
   );
 }

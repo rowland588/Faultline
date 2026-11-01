@@ -50,6 +50,7 @@ const QuickSnagsScreen = lazy(() => import('./snag/QuickSnagsScreen').then(m => 
 const FactoryMachinesScreen = lazy(() => import('./line/FactoryMachinesScreen').then(m => ({ default: m.FactoryMachinesScreen })));
 const ProjectMachinesScreen = lazy(() => import('./project/machines/ProjectMachinesScreen').then(m => ({ default: m.ProjectMachinesScreen })));
 const ProductionLineScreen = lazy(() => import('./screens/ProductionLineScreen').then(m => ({ default: m.ProductionLineScreen })));
+const MethodReportScreen = lazy(() => import('./project/method/MethodReportScreen').then(m => ({ default: m.MethodReportScreen })));
 const LineReportScreen = lazy(() => import('./line/report/LineReportScreen').then(m => ({ default: m.LineReportScreen })));
 const LineProgramsReportScreen = lazy(() => import('./line/LineProgramsReportScreen').then(m => ({ default: m.LineProgramsReportScreen })));
 const LineProgramReportScreen = lazy(() => import('./line/LineProgramReportScreen').then(m => ({ default: m.LineProgramReportScreen })));
@@ -205,6 +206,7 @@ function app(route: Route) {
   if (route.name === 'toolWorld' && route.key) return <ToolWorldScreen key={route.key} worldId={route.key} />;
   if (route.name === 'methodPage' && route.key) return <MethodPageScreen key={route.key} methodKey={route.key} />;
   if (route.name === 'toolPage' && route.key) return <ToolPageScreen key={route.key} toolKey={route.key} />;
+  if (route.name === 'methodReport' && route.id) return <MethodReportScreen key={route.id} projectId={route.id} />;
   if (route.name === 'projectTools' && route.id) return <ProjectToolsScreen key={route.id} projectId={route.id} />;
   /* the parts page is the builders' — in development only; elsewhere the address is the factory */
   if (route.name === 'parts' && import.meta.env.DEV) return <PartsScreen />;
