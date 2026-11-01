@@ -134,6 +134,8 @@ export interface StudyReading {
    *  relation's row — `xs` the drivers in the order agreed, `value` the result */
   col?: string;
   xs?: number[];
+  /** a stratification's record (FC-153): the level of each agreed factor this reading was taken at — { Shift: 'Nights', Product: 'A' } */
+  tags?: Record<string, string>;
   /** A failed item: what became of it (Rowland, 24 October — reworked, recovered by hand, or pure
    *  waste). Absent on every reading before: waste. */
   fate?: 'waste' | 'rework' | 'recovered';
@@ -704,7 +706,7 @@ export interface AgreedCalc {
  *  this figure, did it change, do two ways of measuring agree, how many readings do I need — and the readings or
  *  counts that answer it. W3b adds the groups, the counts in a table and the relations as more kinds. */
 export interface AgreedAnalysis {
-  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'learn' | 'gauge' | 'shape' | 'grr' | 'attr';
+  kind: 'sure' | 'change' | 'paired' | 'plan' | 'groups' | 'table' | 'relate' | 'learn' | 'gauge' | 'shape' | 'grr' | 'attr' | 'strat' | 'doe';
   /** what is measured — "Fill weight", "Reject rate" */
   name: string;
   unit?: string;
@@ -738,6 +740,27 @@ export interface AgreedAnalysis {
   grr?: AgreedGrr;
   /** attribute agreement (FC-121): pieces × inspectors × looks vs a reference */
   attr?: AgreedAttr;
+  /** stratification (FC-153): the factors the data is split by, and whether it was counted or measured */
+  strat?: AgreedStrat;
+  /** a designed experiment (FC-111): the factors at two levels each, the replicates and the seed the run order was randomised from */
+  doe?: AgreedDoe;
+}
+/** STRATIFICATION (FC-153). Up to four factors named before the data is taken (Shift, Line, Machine, Product, Supplier … or the floor's own); each reading carries its level of each
+ *  in `tags`. `counted`: made and rejected out of it; `measured`: a value. `costEach` (£ a reject) is optional and only to say the excess in money. */
+export interface AgreedStrat {
+  factors: string[];
+  data: 'counted' | 'measured';
+  costEach?: number;
+}
+/** A DESIGNED EXPERIMENT (FC-111), two levels a factor. `replicates` (1–4) each corner is run; `centre` runs at the middle of every factor, to see curvature; `seed` the run order is shuffled
+ *  from (kept, so the order does not move). Optional money: the packs one run makes and what a pack's materials cost, only to say what the experiment costs. */
+export interface AgreedDoe {
+  factors: { name: string; unit?: string; low: number; high: number }[];
+  replicates: number;
+  centre?: number;
+  seed: number;
+  packsPerRun?: number;
+  materialsPerPack?: number;
 }
 /** GAUGE R&R (FC-118). Parts and appraisers are named before measuring; trials default to 2. Tolerance optional but needed for %GRR of tolerance. */
 export interface AgreedGrr {

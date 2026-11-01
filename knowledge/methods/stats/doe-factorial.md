@@ -6,7 +6,7 @@ discipline: stats
 kind: established
 evidence: textbook
 depth: full
-checked: 2026-10-24 — the 2ᵏ design, effects, the normal plot of effects and Lenth's PSE as Box, Hunter & Hunter (2005) and Montgomery's *Design and Analysis of Experiments* ch. 6–8 give them (from knowledge; editions to confirm); the worked 2³ computed independently in `scripts/knowledge/cases-stats.py`
+checked: 2026-10-24 (built and every figure re-run 2026-11-01 against NumPy/SciPy and Montgomery's printed 2⁴ and 2³ examples) — the 2ᵏ design, effects, the normal plot of effects and Lenth's PSE as Box, Hunter & Hunter (2005) and Montgomery's *Design and Analysis of Experiments* ch. 6–8 give them (from knowledge; editions to confirm); the worked 2³ computed independently in `scripts/knowledge/cases-stats.py`
 needs: [msa.gauge-rr]
 next: [stats.response-surface, quality.control-plan]
 alternatives: [stats.correlation-regression]
@@ -112,8 +112,16 @@ checkweigher false rejects vs belt speed and pack spacing.
 - [paper] Lenth, R.V. (1989), "Quick and easy analysis of unreplicated factorials", *Technometrics* 31(4), 469–473 — the PSE (from knowledge).
 
 ## In Faultline
-Not built (FC-111). When built it is a tool of its own: the factors and
-levels typed, the run sheet in random order printed for the floor, the
-responses typed as the runs are made, the effects plotted and said in
-words, Lenth's margin drawn, and the chosen settings handed to the line's
-standard (`quality.control-plan`) with their money.
+Built (FC-111, 1 November 2026, `knowledge/specs/FC-111-doe.md`): a question of the Analysis tool,
+*Which settings drive the result — and do they interact?* — full two-level factorials of two to
+five factors, one to four runs a corner, zero to six centre runs. The factors, their low and high are
+typed by hand; the run order is shuffled from a stored seed and said; the run sheet prints before
+anything is made; the response is typed as each run is made, or pasted in run order. With
+replicates the effects are judged against the runs' own pure error (the analysis of variance);
+with one run a corner by Lenth's method; the fitted model keeps the real terms and what they
+stand on, names the best corner when a direction was given and says "run it to confirm"; centre runs
+test for curvature. The independent cases are NumPy/SciPy's and Montgomery's printed 2⁴ and 2³
+examples (`scripts/knowledge/cases-m6-analysis.py`). One correction to the worked case above: the
+15.8 N at T+, D+, P− is the run that was made; the fitted model (temperature, dwell and their
+interaction) gives 16.10 N there. Not built: fractional factorials and their aliasing, blocking,
+effects valued in pounds, and handing the settings to the line's standard.

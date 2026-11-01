@@ -410,9 +410,10 @@ export const QUALITY: Entry[] = [
     food: 'Nights reject twice what days do, on one product.',
     depends: ['FC-107', 'FC-108', 'FC-052'],
     complexity: 'S', value: 'medium', valueWhy: 'Narrows the search before the fishbone.',
-    status: 'partial', form: 'component', methods: ['rca.stratification'], scenarios: ['quality', 'running'],
-    built: { where: [], code: ['src/lib/paretoFromLog.ts', 'src/lib/intelligence/heat.ts'], tests: ['src/lib/__tests__/paretoFromLog.test.ts'], acceptance: ['upgrade.mjs'] },
-    limits: ['Stops are split by shift, product, money, machine and day; readings and rejects are not split yet.'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['rca.stratification'], scenarios: ['quality', 'running'], words: ['stratify', 'split by shift', 'where does it live', 'by line', 'by product'],
+    built: { where: ['/analysis'], code: ['src/tools/analysis/strat.ts', 'src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx', 'src/lib/ie/relate.ts', 'src/lib/ie/groups.ts', 'src/lib/studiesPdf.ts', 'src/lib/paretoFromLog.ts', 'src/lib/intelligence/heat.ts'], tests: ['src/tools/analysis/__tests__/analysisStrat.test.ts', 'src/lib/__tests__/paretoFromLog.test.ts'], acceptance: ['strat.mjs', 'upgrade.mjs'] },
+    spec: 'knowledge/specs/FC-153-stratification.md',
+    limits: ['Records are tagged by hand or pasted from a sheet — the line’s own stops, loss counts and weigher heads are not read in without retyping (the Pareto of stops keeps its own splits by shift, product, money, machine and day).', 'Up to four factors of twelve levels each; the cross is the two strongest factors only, not three together.', 'A place is named only with five or more rejected in it and a standardised residual beyond +2; the 5, the 2, the 0.5 for factors that run together and the three readings are Faultline’s choices, not yet put to Rowland.', 'Counts are rejected out of made; a rate over time (stops per hour) and a measured split with an interaction model are not here (the factorial, FC-111, varies factors on purpose).', 'Where the problem shows is not why — handing the place found to Is / is not (FC-149) is not built.'],
   },
   {
     id: 'FC-154', name: 'Problems register — priority, journey, where it sits', discipline: 'rca', sub: 'structured',

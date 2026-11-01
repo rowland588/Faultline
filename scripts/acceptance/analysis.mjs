@@ -18,7 +18,7 @@
  *      middle half under its histogram
  *   8  on paper: the sentence, the picture, the checks, every reading — the study and the list
  *   9  kept after a reload; the phone
- *  10  the tools audit's fixes (30 October), desk and 375px: the twelve questions under three plain headings (6 + 4 + 2, none dropped) each with a
+ *  10  the tools audit's fixes (30 October), desk and 375px: the fourteen questions under four plain headings (6 + 4 + 2 + 2, none dropped; 1 November: stratification and designed experiments under “Where is it, and what drives it?”) each with a
  *      one-line example, the Unit box empty with its nine chips (a tap sets it, a second clears it, typing is free), no unit said on screen
  *      and on paper until one is chosen, then said on both; a paste Undone as one step, text that is not a number listed; the empty action
  *      plan saying what is true on no project
@@ -134,7 +134,7 @@ let mean;
   mean = await start('Thirty packs');
   ok(mean.length > 8, `2 started from the list: ${mean.slice(0, 8)}…`);
   const kinds = await all('[role=radiogroup][aria-label="What do you want to know?"] .ie-kind');
-  ok(kinds.length === 12 && /^How sure am I of this figure/.test(kinds[0]) && /^How many readings/.test(kinds[1]) && /^Which shape do these readings follow/.test(kinds[2]) && /^Is this gauge fit/.test(kinds[3]) && /^How much of what we see is the measurement/.test(kinds[4]) && /^Do inspectors agree with themselves and the standard/.test(kinds[5]) && /^Did it really change/.test(kinds[6]) && /^Do two ways of measuring agree/.test(kinds[7]) && /^Do these groups really differ/.test(kinds[8]) && /^How fast is a new job being learned/.test(kinds[9]) && /^Does one thing move with another/.test(kinds[10]) && /^Is one thing linked to the other/.test(kinds[11]), `2 the twelve questions offered, under three headings: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
+  ok(kinds.length === 14 && /^How sure am I of this figure/.test(kinds[0]) && /^How many readings/.test(kinds[1]) && /^Which shape do these readings follow/.test(kinds[2]) && /^Is this gauge fit/.test(kinds[3]) && /^How much of what we see is the measurement/.test(kinds[4]) && /^Do inspectors agree with themselves and the standard/.test(kinds[5]) && /^Did it really change/.test(kinds[6]) && /^Do two ways of measuring agree/.test(kinds[7]) && /^Do these groups really differ/.test(kinds[8]) && /^How fast is a new job being learned/.test(kinds[9]) && /^Does one thing move with another/.test(kinds[10]) && /^Is one thing linked to the other/.test(kinds[11]), `2 the fourteen questions offered, under four headings: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
   ok((await page.getByRole('radio', { name: '95%', exact: true, checked: true }).count()) === 1, '2 95% is the confidence unless another is picked');
   await page.getByLabel('What is measured').fill(''); await page.getByRole('button', { name: 'Agree these' }).click({ force: true }).catch(() => {});
   ok(/^What is measured/.test((await words('.ie-problem')) ?? ''), `2 no name — refused, said why: "${await words('.ie-problem')}"`);
@@ -340,11 +340,11 @@ for (const [vw, vh, tag] of [[1360, 900, 'desk'], [375, 812, '375']]) {
   /* the questions — three plain headings, none dropped, a plain line under each, the stored question still its own */
   await page.locator('.ie-qhead').first().waitFor({ timeout: 15000 }).catch(() => {}); /* the form is drawn a moment after the study opens */
   const heads = await all('.ie-qhead');
-  ok(JSON.stringify(heads) === JSON.stringify(['Can I trust this number?', 'Did it change or differ?', 'How are things linked?']), `10 ${tag}: the questions under three headings: ${heads.join(' · ')}`);
+  ok(JSON.stringify(heads) === JSON.stringify(['Can I trust this number?', 'Did it change or differ?', 'How are things linked?', 'Where is it, and what drives it?']), `10 ${tag}: the questions under four headings: ${heads.join(' · ')}`);
   const counts = await page.locator('.ie-qgroup').evaluateAll(gs => gs.map(g => g.querySelectorAll('[role=radio]').length));
-  ok(counts.join() === '6,4,2', `10 ${tag}: 6 + 4 + 2 questions — all twelve`);
+  ok(counts.join() === '6,4,2,2', `10 ${tag}: 6 + 4 + 2 + 2 questions — all fourteen`);
   const plain = await page.locator('.ie-qgroup .ie-kind').evaluateAll(bs => bs.map(b => b.querySelector('small')?.textContent ?? ''));
-  ok(plain.length === 12 && plain.every(t => / — /.test(t) && t.length < 90), `10 ${tag}: a one-line plain example under each question`, plain.join(' | '));
+  ok(plain.length === 14 && plain.every(t => / — /.test(t) && t.length < 90), `10 ${tag}: a one-line plain example under each question`, plain.join(' | '));
   const change = flat(await page.getByRole('radio', { name: /Did it really change/ }).innerText());
   ok(/Did my fix work\? — compare before and after/.test(change), `10 ${tag}: "Did it really change?" says "${change.slice(25)}"`);
   await page.getByRole('radio', { name: /Did it really change/ }).click();
