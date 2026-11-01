@@ -25,6 +25,7 @@ export async function loadDocCtx(s: ToolStudy, me?: string): Promise<DocCtx> {
     ctx.lineName = line.name;
     const l = labourPerHour(line);
     if (l > 0) ctx.labourPerHour = l;
+    if (line.materialsPerPack && line.materialsPerPack > 0) ctx.materialsPerPack = line.materialsPerPack;
   }
   if (!s.projectId) return ctx;
   const own = await loadOwnRecords(s.projectId);

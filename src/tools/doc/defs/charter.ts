@@ -3,15 +3,12 @@
  * Specified in knowledge/specs/FC-142-charter.md; the method in knowledge/methods/sixsigma/charter.md (ISO 13053-2:2011; Pyzdek & Keller
  * 2014; George et al. 2005). The arithmetic is figures/charter.ts, proved against hand-worked cases in scripts/knowledge/cases-doc.py. */
 import { daysBetween, niceDay } from '../../../lib/weeks';
-import { fmt, gbp, plural } from '../../calc/format';
+import { fmt, gbp, plural, sayN, lowerFirst as lower } from '../figures/words';
 import { cellNum, cellText, numOf, rowsOf, textOf } from '../doc';
 import { baselineInterval, gapOf, paybackWeeks, teamCost, worthOf, WEEKS_A_YEAR, type TeamRow } from '../figures/charter';
 import type { DocDef, DocProblem, DocTable, DocValues } from '../types';
 
-const lower = (s: string) => (/^[A-Z][a-z]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s);
 const money6 = (n: number) => `£${fmt(n, 6)}`;
-/** A figure with its unit: "4.1 g a pack", "91.5% of intake". */
-const sayN = (n: number, unit: string, dp = 2) => (unit.startsWith('%') ? `${fmt(n, dp)}${unit}` : `${fmt(n, dp)} ${unit}`.trim());
 
 const TEAM = (v: DocValues): TeamRow[] => rowsOf(v, 'team').map(r => ({ name: cellText(r, 'name'), role: cellText(r, 'role'), ...(cellNum(r, 'hours') !== undefined ? { hours: cellNum(r, 'hours') as number } : {}) }));
 
@@ -195,7 +192,7 @@ const charter: DocDef = {
       expect: {
         sentence: 'Raise yield at the slicer from 91.5% of intake to 94% of intake by 28 Feb 2027, worth £39,000 a year.',
         tiles: { 'Filled in': '11 of 11', 'The gap': '2.5% of intake', 'Time to go': '119 days', 'Worth a year': '£39,000', 'The team’s time': '12 hours' },
-        money: 'Closing the gap is worth £39,000 a year because Loss count, Line 2, w/c 12 Oct puts £750 a week on the problem.',
+        money: 'Closing the gap is worth £39,000 a year because Loss count, Line 2, w/c 12 Oct puts £750.00 a week on the problem.',
         tables: { 'The team': [['Priya Shah', 'Sponsor'], ['Sam Patel', 'Lead'], ['Jo Marsh', 'Member', '12']] },
         needs: [],
       },

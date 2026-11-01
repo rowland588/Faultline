@@ -145,6 +145,8 @@ export function needsOf(def: DocDef, v: DocValues, photos: readonly DocPhoto[]):
       const bad = rows.filter(r => must.some(c => r.c[c.id] === undefined));
       const whole = rows.length - bad.length;
       const min = i.min ?? (i.required ? 1 : 0);
+      const other = i.alt ? itemsOf(def).find(x => x.id === i.alt) : undefined;
+      if (other && isList(other) && rowsOf(v, other.id).filter(r => other.columns.filter(c => c.required).every(c => r.c[c.id] !== undefined)).length >= Math.max(1, min)) continue;
       if (whole < min) out.push(`${i.label} — ${min === 1 ? `at least one ${i.rowWord}` : `at least ${min} ${i.rowWord}s`}${bad.length ? `, with ${must.map(c => `“${c.label}”`).join(' and ')} given` : ''}`);
       else for (const r of bad) out.push(`${i.label}: ${rows.indexOf(r) + 1} lacks ${must.filter(c => r.c[c.id] === undefined).map(c => `“${c.label}”`).join(' and ')}`);
     } else if (isPhotos(i) && i.required && !photos.some(p => p.field === i.id && !p.struck)) out.push(i.label);
@@ -162,7 +164,9 @@ export function filledOf(def: DocDef, v: DocValues, photos: readonly DocPhoto[])
       if (min > 0 || i.required) {
         total++;
         const must = i.columns.filter(c => c.required);
-        if (rowsOf(v, i.id).filter(r => must.every(c => r.c[c.id] !== undefined)).length >= Math.max(1, min)) filled++;
+        const other = i.alt ? itemsOf(def).find(x => x.id === i.alt) : undefined;
+        const meets = (l: DocList) => rowsOf(v, l.id).filter(r => l.columns.filter(c => c.required).every(c => r.c[c.id] !== undefined)).length >= Math.max(1, min);
+        if (rowsOf(v, i.id).filter(r => must.every(c => r.c[c.id] !== undefined)).length >= Math.max(1, min) || (other && isList(other) && meets(other))) filled++;
       }
     } else if (isPhotos(i) && i.required) { total++; if (photos.some(p => p.field === i.id && !p.struck)) filled++; }
   }

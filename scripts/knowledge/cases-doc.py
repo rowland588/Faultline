@@ -44,3 +44,43 @@ print("  tally", tally)
 A, O, M, I = (tally.get(k, 0) for k in 'AOMI')
 den = A + O + M + I
 print(f"  A {A} O {O} M {M} I {I} (Q {tally.get('Q',0)} R {tally.get('R',0)}); better = (A+O)/(A+O+M+I) = {(A+O)/den:.4f}; worse = -(O+M)/(A+O+M+I) = {-(O+M)/den:.4f}")
+
+# K1 continued — the three requirements the unit test and the acceptance script type in
+def tally_of(pairs):
+    t = {}
+    for f, d in pairs: t[cls(f, d)] = t.get(cls(f, d), 0) + 1
+    return t
+def coeffs(t):
+    A, O, M, I = (t.get(k, 0) for k in 'AOMI'); den = A + O + M + I
+    return (A + O) / den, -(O + M) / den
+need1 = resp
+need2 = [('expect','dislike')] * 10 + [('neutral','dislike')] * 2
+need3 = {'A': 7, 'O': 3, 'M': 0, 'I': 2, 'R': 0, 'Q': 0}          # tallied by hand
+for name, t in (('Reclosable lid', tally_of(need1)), ('Seal does not leak', tally_of(need2)), ('Easy-peel tab (tallied)', need3)):
+    b, w = coeffs(t)
+    print(f"  {name:26s} {dict(sorted(t.items()))}  mode {max('AOMI', key=lambda k: t.get(k,0))}  better {b*100:.1f}%  worse {w*100:.1f}%")
+# a tie: six Attractive and six Must-be
+tie = {'A': 6, 'M': 6}
+print("  tie example", tie, "-> tied between A and M; better", f"{6/12*100:.0f}%", "worse", f"{-6/12*100:.0f}%")
+
+print("\n== S1 SIPOC counts (the record's worked case)")
+steps = [("Intake", "the grower", "raw product", "checked product", "the wash line", "raw product size variation"),
+         ("Wash", "the chemicals supplier", "water, chemicals", "washed product", "the slicer", ""),
+         ("Slice", "engineering", "blades, slicer settings", "sliced product", "packing", "blade sharpness, slicer setting"),
+         ("Pack", "packaging suppliers", "film, trays", "sealed packs", "despatch", ""),
+         ("Despatch", "planning", "the schedule", "pallets", "the retailer's depot", "")]
+def distinct(col):
+    seen = []
+    for s in steps:
+        for p in s[col].replace(';', ',').split(','):
+            p = p.strip()
+            if p and p.lower() not in [x.lower() for x in seen]: seen.append(p)
+    return seen
+print("  steps", len(steps), "customers", len(distinct(4)), "suppliers", len(distinct(1)), "inputs", len(distinct(2)), "outputs", len(distinct(3)), "to measure", len(distinct(5)), distinct(5))
+
+print("\n== E1 8D timeline and containment (rca.eight-d worked case; the record closes at day 30 yet counts six weeks held after day 19 — the example closes at day 62)")
+d0 = date(2026, 10, 1)
+for label, d in (("D3 contained", date(2026,10,2)), ("D4 verified", date(2026,10,10)), ("D5 chosen", date(2026,10,13)), ("D6 implemented", date(2026,10,20)), ("D7 prevention", date(2026,10,27)), ("D8 closed", date(2026,12,2))):
+    print(f"  {label:16s} day {(d - d0).days}")
+print(f"  held {14*1200:,} units x 0.42 = {14*1200*0.42:,.2f} tied up; sorting 24 h x 14.70 = {24*14.70:.2f}; expected without the fix {90*6} (90 a week x 6 weeks)")
+print(f"  six weeks after 2026-10-20 ends {date.fromordinal(date(2026,10,20).toordinal()+42)}")

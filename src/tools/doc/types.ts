@@ -67,6 +67,8 @@ export interface DocList {
   required?: boolean;
   /** Shown only when this holds. */
   showIf?: (v: DocValues) => boolean;
+  /** Another list that does the same job: the need is met when either holds enough rows (a Kano survey typed answer by answer OR tallied by hand). */
+  alt?: string;
 }
 
 /** Photos taken or chosen, each with a caption, kept on the device and sent to the cloud with the document. */
@@ -110,6 +112,8 @@ export interface DocCtx {
   /** ISO day the project began. */
   projectStarted?: string;
   lineName?: string;
+  /** What a pack’s materials cost on the line, £ — offered for what a held unit cost; absent when the line has none. */
+  materialsPerPack?: number;
   /** £ an hour for one person, from the line's cost model (wage × on-costs) — absent when the line has none. */
   labourPerHour?: number;
   /** What the project holds (the one reader, project/projectRead). Absent off a project or while it is being read. */
