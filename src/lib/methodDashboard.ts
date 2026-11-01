@@ -11,6 +11,7 @@
  * nobody has written up, a claim with no number behind it, late actions — and what to do next; then one sentence that sums it up.
  * A missing input is said, never filled. Pure. */
 import { fieldsOf, sectionState } from './methodSheet';
+import { METHOD_INSIGHT } from './methodInsight';
 import type { ProjectMethod } from './methods';
 import { studyHref, studyLine, studyTitle, TOOL_NAME, type StudyContext } from './studyLinks';
 import type { ToolStudy } from './study';
@@ -125,13 +126,15 @@ export function methodDashboard(x: DashIn): Dashboard {
   const open = x.owed.filter(i => (i.kind === 'next' || i.kind === 'found') && !i.doneAt && !(i.testId ?? '').startsWith('method:'));
   const late = open.filter(i => !!i.due && i.due < x.today);
   if (late.length) attention.push({ kind: 'late', tone: 'r', text: `${plural(late.length, 'action')} ${late.length === 1 ? 'is' : 'are'} late: ${late.slice(0, 2).map(i => i.what.trim() || 'an action').join('; ')}${late.length > 2 ? ` and ${late.length - 2} more` : ''}.` });
+  const insight = METHOD_INSIGHT[m.key]?.({ answers: x.answers, studies: live as ToolStudy[], owed: x.owed, today: x.today });
+  if (insight?.attention) attention.push(...insight.attention);
   attention.sort((a, b) => ({ r: 0, a: 1, n: 2 }[a.tone] - { r: 0, a: 1, n: 2 }[b.tone]));
 
   const cur = sections[here];
   const curName = cur?.name ?? '';
   const last = findings[findings.length - 1];
   const nextField = cur ? fieldsOf(m.key, cur.name).find(f => (x.answers[f.id] ?? '').trim() === '') : undefined;
-  const next = !askable.length ? 'This method keeps its own screens — open them from the project’s tabs.'
+  const next = insight?.next ? insight.next : !askable.length ? 'This method keeps its own screens — open them from the project’s tabs.'
     : firstOpen < 0 ? 'Every section is written — view the report and print it for the meeting.'
       : nextField ? `Next: in ${curName}, write “${nextField.label}”.` : `Next: finish ${curName}.`;
 
