@@ -22,21 +22,21 @@ describe('the A3’s own reading', () => {
     const r = a3Reading({ counter: cm('Calibrate heater', 'Eng', '20 Nov', 'Cold jaw heater'), 'counter@2': cm('Jaw checklist', 'Prod', '20 Nov', ''), followdate: '28 Nov' }, T);
     expect(r.cms.map(c => c.state)).toEqual(['Open', 'Cause not named']);
     expect(r.attention[0]).toMatchObject({ tone: 'a' });
-    expect(r.attention[0]!.text).toMatch(/^1 countermeasure names no cause \(2\. Jaw checklist\)/);
+    expect(r.attention[0]?.text).toMatch(/^1 countermeasure names no cause \(2\. Jaw checklist\)/);
     expect(r.next).toBe('Say which cause countermeasure 2 (“Jaw checklist”) answers — or take it off the page.');
   });
   it('a follow-up day passed with nothing written is red, 5 days ago from 5 Nov; it leads and sets the next step', () => {
     const r = a3Reading({ counter: cm('Fix', 'Eng', '1 Nov', 'Cause'), followdate: '5 Nov' }, T);
     expect(r.follow).toMatchObject({ status: 'overdue', days: 5, tone: 'r' });
     expect(r.follow.says).toBe('The follow-up was due on 5 Nov 2026 — 5 days ago — and what it showed is not written. The page lives until it is.');
-    expect(r.attention[0]!.tone).toBe('r');
+    expect(r.attention[0]?.tone).toBe('r');
     expect(r.next).toMatch(/^Check the number now/);
-    expect(r.cms[0]!.passed).toBe(true);
+    expect(r.cms[0]?.passed).toBe(true);
   });
   it('once what it showed is written the follow-up is checked and a passed countermeasure day is not asked about', () => {
     const r = a3Reading({ counter: cm('Fix', 'Eng', '1 Nov', 'Cause'), followdate: '5 Nov', held: '0.2% for four weeks' }, T);
     expect(r.follow).toMatchObject({ status: 'checked', tone: 'g' });
-    expect(r.cms[0]!.passed).toBe(false);
+    expect(r.cms[0]?.passed).toBe(false);
     expect(r.attention).toEqual([]);
   });
   it('coming, today, no day set, a day it cannot read', () => {
@@ -68,14 +68,14 @@ describe('the A3 sections of the project report', () => {
   it('four sections; the table has one row a countermeasure with its state, and the page-level facts are the team’s words', () => {
     const s = a3Report(ctx({ problem: 'Lane 3 leakers 3.2%', owner: 'Sam', currentnum: '3.2%', target: '0.3% by 14 Nov', counter: cm('Calibrate', 'Eng', '7 Nov', ''), followdate: '28 Nov' }));
     expect(s.map(x => x.id)).toEqual(['a3-glance', 'a3-sheet', 'a3-counter', 'a3-follow']);
-    expect(s[0]!.items[0]).toMatchObject({ kind: 'facts' });
-    const f = s[0]!.items[0] as { rows: [string, string][] };
+    expect(s[0]?.items[0]).toMatchObject({ kind: 'facts' });
+    const f = s[0]?.items[0] as { rows: [string, string][] };
     expect(f.rows[0]).toEqual(['Problem', 'Lane 3 leakers 3.2%']);
     expect(f.rows[2]).toEqual(['Questioned and agreed', 'Not written yet.']);
-    const t = s[2]!.items[0] as { rows: string[][] };
+    const t = s[2]?.items[0] as { rows: string[][] };
     expect(t.rows).toEqual([['1', 'Calibrate', 'Eng', '7 Nov', 'No cause named', 'Cause not named · Day passed — is it done?']]);
-    expect(s[2]!.items[1]).toMatchObject({ kind: 'paragraph', text: '0 of 1 countermeasure names the cause it answers. A countermeasure that names no cause is a to-do list, not a countermeasure.', tone: 'a' });
-    const callout = s[3]!.items[1] as { text: string };
+    expect(s[2]?.items[1]).toMatchObject({ kind: 'paragraph', text: '0 of 1 countermeasure names the cause it answers. A countermeasure that names no cause is a to-do list, not a countermeasure.', tone: 'a' });
+    const callout = s[3]?.items[1] as { text: string };
     expect(callout.text).toBe('The follow-up is due on 28 Nov 2026 — in 18 days.');
   });
 });

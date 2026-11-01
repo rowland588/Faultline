@@ -12,6 +12,7 @@ import type { MethodInsight, MethodInsightFn } from '../methodInsight';
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 const pad = (n: number) => String(n).padStart(2, '0');
+const g = (m: RegExpExecArray, i: number) => m[i] ?? '';
 const valid = (y: number, m: number, d: number) => { const t = new Date(Date.UTC(y, m - 1, d)); return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d; };
 
 /** The first day found in the words, as an ISO date; '' when there is none. A day with no year is read in today's year. */
@@ -19,13 +20,13 @@ export function dayIn(text: string, today: string): string {
   const t = (text ?? '').toLowerCase();
   const year = Number(today.slice(0, 4));
   let m = /(\d{4})-(\d{2})-(\d{2})/.exec(t);
-  if (m && valid(+m[1]!, +m[2]!, +m[3]!)) return `${m[1]}-${m[2]}-${m[3]}`;
+  if (m && valid(+g(m, 1), +g(m, 2), +g(m, 3))) return `${m[1]}-${m[2]}-${m[3]}`;
   m = /(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3,9})\.?(?:,?\s+(\d{4}))?/.exec(t);
-  if (m) { const mo = MONTHS.indexOf(m[2]!.slice(0, 3)) + 1, y = m[3] ? +m[3] : year; if (mo && valid(y, mo, +m[1]!)) return `${y}-${pad(mo)}-${pad(+m[1]!)}`; }
+  if (m) { const mo = MONTHS.indexOf(g(m, 2).slice(0, 3)) + 1, y = m[3] ? +m[3] : year; if (mo && valid(y, mo, +g(m, 1))) return `${y}-${pad(mo)}-${pad(+g(m, 1))}`; }
   m = /\b([a-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?\b/.exec(t);
-  if (m) { const mo = MONTHS.indexOf(m[1]!.slice(0, 3)) + 1, y = m[3] ? +m[3] : year; if (mo && valid(y, mo, +m[2]!)) return `${y}-${pad(mo)}-${pad(+m[2]!)}`; }
+  if (m) { const mo = MONTHS.indexOf(g(m, 1).slice(0, 3)) + 1, y = m[3] ? +m[3] : year; if (mo && valid(y, mo, +g(m, 2))) return `${y}-${pad(mo)}-${pad(+g(m, 2))}`; }
   m = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/.exec(t);
-  if (m) { const y = m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : year; if (valid(y, +m[2]!, +m[1]!)) return `${y}-${pad(+m[2]!)}-${pad(+m[1]!)}`; }
+  if (m) { const y = m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : year; if (valid(y, +g(m, 2), +g(m, 1))) return `${y}-${pad(+g(m, 2))}-${pad(+g(m, 1))}`; }
   return '';
 }
 
