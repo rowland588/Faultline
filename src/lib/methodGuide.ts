@@ -193,13 +193,13 @@ const A3: MethodGuide = {
     {
       section: 'Countermeasures',
       means: 'What will be done, by whom, by when and against which cause. A countermeasure is aimed at one named cause; a list of tasks with no cause named is a to-do list.',
-      doThis: 'Put each countermeasure on the Actions page with its owner, its day, its reason and the cause it answers. When there are several ways to answer a cause, rank them with Impact and effort or compare them in a Pugh matrix. Check that every cause on the analysis has a countermeasure, or a written reason why not.',
-      youGet: 'A set of Actions, each tied to a cause and with an owner and a date, and no cause left unanswered without a reason.',
+      doThis: 'Write each countermeasure as one row on the sheet: what, who, by when and the cause it answers (write the day as 7 Nov so the page can tell when it has passed). Raise the ones that need chasing as Actions too, so they reach the Actions page and Needs you. When there are several ways to answer a cause, rank them with Impact and effort or compare them in a Pugh matrix. Check that every cause on the analysis has a countermeasure, or a written reason why not.',
+      youGet: 'A list of countermeasures, each tied to a cause and with an owner and a day, and no cause left unanswered without a reason. The page warns you about any that name no cause.',
     },
     {
       section: 'Plan and follow-up',
       means: 'The steps and their dates, and then the part most often forgotten: the number checked again, and whether it held. The page is not finished until the follow-up is written. It is updated, not replaced.',
-      doThis: 'Plan the steps on the Journey so they land on their days. On the follow-up date take the number again, the same way, and use Did it change in Analysis for before and after, with a Control chart to watch it hold. Keep the weekly Numbers up against the target. Write the result in the project’s notes and close the Problem when it held.',
+      doThis: 'Plan the steps on the Journey so they land on their days. Write the follow-up day (28 Nov) and, on that day, take the number again, the same way, and use Did it change in Analysis for before and after, with a Control chart to watch it hold. Keep the weekly Numbers up against the target. Write the result in the project’s notes and close the Problem when it held.',
       youGet: 'The follow-up result against the target (did it move, by how much, did it hold) and the page closed or planned again.',
     },
   ],

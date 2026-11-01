@@ -13,10 +13,13 @@ import { dmaicReport } from './dmaic';
 
 import { eightDReport } from './eight-d';
 
+import { a3Report } from './a3';
+
 export const METHOD_REPORT: Partial<Record<MethodKey, MethodReportFn>> = {
   pdca: pdcaReport,
   dmaic: dmaicReport,
   'eight-d': eightDReport,
+ a3: a3Report,
 };
 
 export type { MethodReportCtx, MethodReportFn, ReportItem, ReportSection } from '../../../lib/methodReportModel';
