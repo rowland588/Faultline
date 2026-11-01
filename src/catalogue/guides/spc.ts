@@ -370,4 +370,178 @@ export const SPC_GUIDES: Record<string, Guide> = {
     ],
     watch: 'A mean alone is not a description. Look at the picture, the median and the middle half too — and remember that a figure that looks tidy on thirty readings is still only an estimate (see How sure am I of this figure?).',
   },
+  'FC-104': {
+    intro: 'For a figure worked out from a sample — a mean of thirty packs, a reject rate from one morning’s count, stops in forty hours — when somebody is about to treat it as exact. It puts a margin on the figure and says how sure it is. It is the first question on the Analysis page.',
+    steps: [
+      {
+        step: 'How sure am I of this figure?',
+        means: 'A figure from a sample is only an estimate of the truth. This question puts a margin round it: “we can be 95% confident the true mean is between 399.91 and 400.31 g”. It is the first question under Can I trust this number?',
+        doThis: 'On Analysis choose New analysis, name what it is of, and tap How sure am I of this figure? Type what is measured (“Fill weight”) and its unit if it has one.',
+        youGet: 'A page that asks for the readings or counts and gives the margin as they are typed.',
+      },
+      {
+        step: 'What is it?',
+        means: 'Three kinds of figure get three different margins: a mean (measured readings — weights, temperatures), a share (counted, out of what was made — 7 rejected out of 600) and a rate (counted over time — 12 stops in 40 hours).',
+        doThis: 'Tap the one that matches how the number was got. For a rate, put the time unit in the unit box (“hours”) so the sentence says per hour.',
+        youGet: 'The right boxes: a pad for a mean, and Made and Rejected (or Time counted over and Counted) for the other two.',
+      },
+      {
+        step: 'How sure — the confidence level',
+        means: 'How sure the page claims to be when it gives a margin: 90%, 95% or 99%. A higher level gives a wider margin, because it is claiming more.',
+        doThis: 'Leave 95% unless the customer or your procedure names another level.',
+        youGet: 'Every margin and sentence on the page said at that level.',
+      },
+      {
+        step: 'The readings or the counts',
+        means: 'For a mean, the readings in the order taken; an interval needs at least eight. For a share or a rate, one or more runs — what was made and how many were rejected, or the time counted over and what was counted — which add up.',
+        doThis: 'Tap the readings on the pad and press ↵, or paste a column. For counted figures type the two numbers and press Add the run. A wrong reading is struck, not deleted.',
+        youGet: 'A picture with the margin drawn on it, and the figures listed under Every reading, in the order taken.',
+      },
+      {
+        step: 'The margin in words, and what it does not say',
+        means: 'The page gives the figure and its interval, for a mean also the spread and the middle half, and then says what it does not claim. An interval is how sure the mean is from these readings — not a range the packs will fall in.',
+        doThis: 'Read the sentence — “7 of 600 — 1.2% reject rate: we can be 95% confident the true figure is between 0.47% and 2.4%” — then the last line, What this does not say. For a count of none, note that none found is not none there.',
+        youGet: 'A verdict naming the margin (Sure to ± 0.20 g, or Between 0.47% and 2.4%), tiles, and for a share both the exact interval and Wilson’s beside it.',
+      },
+    ],
+    watch: 'A margin says how sure the figure is, not whether it is acceptable — that is the limit’s to say. And a small sample gives a wide margin: for a mean, eight readings is the least that will give an interval at all.',
+  },
+  'FC-105': {
+    intro: 'For any figure that has to be believed before somebody acts on it — a mean from thirty packs, a reject rate from one morning, a fix that “worked”. Analysis asks one question first, takes the readings, and answers in words with its margin and with what the answer does not say. Several of its questions have a guide of their own.',
+    steps: [
+      {
+        step: 'What do you want to know?',
+        means: 'The question comes first because it decides the arithmetic. Twelve are offered under three headings. Can I trust this number? — how sure am I of this figure, how many readings do I need, which shape do the readings follow, is this gauge fit, how much of what we see is the measurement, do inspectors agree. Did it change or differ? — did it really change (before and after), do two ways of measuring agree, do these groups differ, how fast is a new job being learned. How are things linked? — is one thing linked to the other (counts in a table), does one thing move with another.',
+        doThis: 'Choose New analysis on the Analysis page, name what it is of, and tap the question that matches the decision you are about to make. Each has a line in the floor’s words (“Did my fix work? — compare before and after”), and the one you tap shows an example. Type what is measured and, if it has one, its unit.',
+        youGet: 'The boxes that question needs and no others. It is asked once, before the readings; the answer is worked out as they are typed.',
+      },
+      {
+        step: 'What kind of figure, and which way is better?',
+        means: 'Some questions ask one more thing so the arithmetic fits the figures. How sure asks whether it is a mean (measured), a share (counted out of what was made) or a rate (counted over time). Did it really change asks whether the figures were measured or counted, and Which way is better? — lower, higher or no view — which only chooses the words: the page says it never changes the test.',
+        doThis: 'Pick what matches how the numbers were got: weights and temperatures are measured, “7 rejected out of 600” is counted. For a fix, say whether lower or higher is better so the verdict can say it moved the right way or the wrong way.',
+        youGet: 'The right way to put the figures in, and a verdict that reads Moved the right way or Moved the wrong way instead of just Changed.',
+      },
+      {
+        step: 'How sure — the confidence level',
+        means: 'How sure the page claims to be when it gives a margin: 90%, 95% or 99%. A higher level gives a wider margin, because it claims more. A result is called shown when its p-value is below one minus that level — 0.05 at 95%.',
+        doThis: 'Leave 95% unless the customer or your procedure names another level.',
+        youGet: 'Every interval and every “we can be 95% confident” sentence on the page said at that level.',
+      },
+      {
+        step: 'The readings',
+        means: 'The readings or counts that answer the question, in the order taken. What goes in depends on the question: a column of numbers, a run of made and rejected, pairs, groups, a table of counts, or rows of drivers.',
+        doThis: 'Tap numbers on the pad and press ↵, or paste a column. For Did it really change?, tap Before or After first — the chip counts what is in each — and put at least 3 on each side; for counted figures type how many were Made and how many Rejected in a run on each side and press Add the run. A wrong reading is struck, not deleted.',
+        youGet: 'A picture that comes with the first readings, and Every reading, in the order taken, where a struck reading stays on the list, left out of the figures, and can be restored.',
+      },
+      {
+        step: 'The answer in words',
+        means: 'A sentence with the figure, its margin and its p-value, then the tiles, a line of detail and, last, What this does not say. The p-value is how often chance alone would give a result this large; the verdict is Moved the right way, No change shown, Borderline, or the margin itself.',
+        doThis: 'Read the verdict on the band, then the sentence — “Before 411.4 g, after 405.5 g: it fell by 5.9 g — we can be 95% confident it fell by between 4.1 and 7.7 g (p < 0.0001)” — and What this does not say before you quote it to anyone.',
+        youGet: 'A verdict, a picture with the intervals, a closing line, and — for a change — the reminder that the test says the number moved, not why.',
+      },
+      {
+        step: 'Checks on the readings',
+        means: 'Quiet notes on whether the readings can carry the arithmetic: bell-shaped enough (checked from 20 in a group), whether readings in one column lean on the one before (from 30), any reading beyond the fences (looked at, never removed) and groups with too few readings. When the readings are not bell-shaped the page lets a rank test lead — Mann–Whitney, Wilcoxon or Kruskal–Wallis — and says so.',
+        doThis: 'Read any amber line before you trust the answer. Where the page changes which test leads, it says which and why.',
+        youGet: 'Short lines such as “Readings: not bell-shaped — the rank test leads”, each tied to the readings it is about.',
+      },
+      {
+        step: 'Act on it, or change the question',
+        means: 'An answer is a reason to do something: the Action plan lists what has been raised from it. Change what was agreed re-reads every reading against a changed confidence level or names.',
+        doThis: 'If the analysis is attached to a project and found something to put right — a move the wrong way, or two ways that differ by more than matters — press Make it better to raise a fix or a countermeasure from it.',
+        youGet: 'A fix or countermeasure with the analysis as its evidence, or the same readings answered at the new level.',
+      },
+    ],
+    watch: 'Not finding a change is not the same as finding no change: “No change shown” means these readings cannot tell a change from chance. And whatever moved the number is the fix’s to explain — the test only says that it moved.',
+  },
+  'FC-106': {
+    intro: 'For when two ways of measuring the same thing disagree — the line checkweigher and the QA bench scale on the same packs, or a probe and the lab — and you need to know whether the difference is real and whether it matters.',
+    steps: [
+      {
+        step: 'The two ways',
+        means: 'The two methods that measured the same items. “The first way” and “The second way” are just names for the words — Checkweigher 1, Checkweigher 2 — and the sentences say which reads higher.',
+        doThis: 'On Analysis tap Do two ways of measuring agree? (under Did it change or differ?), name what is measured with its unit, and type the names of the first and second way.',
+        youGet: 'A page that takes pairs, and sentences such as “Checkweigher 2 reads 0.3 g higher than Checkweigher 1”.',
+      },
+      {
+        step: 'Largest difference that does not matter',
+        means: 'How far apart the two ways can be before anyone would mind — 0.3 g, say. It is optional, but without it the page can say whether they differ and never whether they agree.',
+        doThis: 'Agree the number with whoever uses the figures, before measuring, in the unit.',
+        youGet: 'A verdict that can be Agree (green: the difference is no more than that), Differ, or Differ, within what matters — red only when the difference is beyond it.',
+      },
+      {
+        step: 'Pairs, item by item',
+        means: 'Measure the same item both ways, one after the other. The page takes the first way’s reading, then the second way’s on the same item; the pair is what is tested.',
+        doThis: 'Weigh a pack on the first scale and press ↵, weigh the same pack on the second and press ↵ — or paste two numbers to a line (Or paste pairs). Use different packs, not one pack repeatedly. Six pairs is the least; from 20 the page can also check the differences are bell-shaped.',
+        youGet: 'Every pair listed, as “12.1 g → 12.4 g”, and a Pairs tile counting them.',
+      },
+      {
+        step: 'The answer',
+        means: 'The mean difference with its interval, from a paired t-test and — beside it — Wilcoxon’s signed-rank test, which does not assume a bell shape. Which one leads depends on whether the differences are bell-shaped.',
+        doThis: 'Read the verdict first, then the sentence — “we can be 95% confident the difference is no more than 0.50 g, which is the most that does not matter (mean difference 0.29 g …)” — then the Higher tile, which counts the pairs in which the second way read higher.',
+        youGet: 'The verdict, the interval, and What this does not say: that the two differ is not the same as which one is right — that needs a reference of known value.',
+      },
+    ],
+    watch: 'Not finding a difference is not showing the two agree — type the difference that does not matter and the page will judge it. And agreeing on average is not agreeing pack by pack: look at the listed differences.',
+  },
+  'FC-107': {
+    intro: 'For when one filler head, lane, shift or supplier is suspected but nobody has tested it — three or more groups measured the same way — and you want to know whether they really differ and which ones.',
+    steps: [
+      {
+        step: 'What the groups are',
+        means: 'The things you are comparing — shifts, heads, lanes, oven zones, suppliers. The word you give (shift, head) is used in the sentences, and Which way is better? only chooses the words; it never changes the test.',
+        doThis: 'On Analysis tap Do these groups really differ?, name what is measured with its unit, type one word for the groups (“shift”), and say whether lower or higher is better, or no view.',
+        youGet: 'A page that takes readings group by group, and a verdict that can name the worst one.',
+      },
+      {
+        step: 'A group at a time',
+        means: 'Each group is a chip with its count; you name a new one and put its readings in.',
+        doThis: 'Name the first group and press Add the shift, then type its readings on the pad (↵ after each) or paste a column; then name the next. A group needs at least 3 readings and there must be two such groups to compare. From 20 in a group the page can also check bell shape.',
+        youGet: 'A dot for every reading on its group’s line, with the group’s average and its interval. A group with fewer than 3 is listed as Too few and left out until it has more.',
+      },
+      {
+        step: 'Do they differ?',
+        means: 'A one-way ANOVA asks whether the groups’ averages differ by more than chance would make them; η² says what share of all the variation is between the groups. Tukey’s test then compares each pair with intervals that hold together across all the pairs, so a long list of pairs does not produce false alarms.',
+        doThis: 'Read the verdict — The shifts differ, Nights is the worst, or No difference shown — then the pair sentences: “Nights is above Days by 0.90 g (between 0.64 and 1.16 g)”. Pairs that are not shown to differ are listed too.',
+        youGet: 'The tiles Shifts, Readings, Widest gap, p and Between the groups (the η² share), and a sentence for every pair that differs.',
+      },
+      {
+        step: 'Which test leads',
+        means: 'If the groups’ spreads differ (Levene’s test) or a group of 20 or more is not bell-shaped, Kruskal–Wallis — a rank test — leads and the ANOVA is shown beside it; Tukey’s intervals are then only indicative.',
+        doThis: 'Read the Spreads and Shape lines under Checks on the readings. An amber line is the page saying which test it is leaning on and why.',
+        youGet: 'The p-value from the test that leads, named on its tile (one-way ANOVA or Kruskal–Wallis).',
+      },
+    ],
+    watch: 'A group not shown to differ is not shown to be the same. And the test says that groups differ, not why: if they do, the cause is still the next job.',
+  },
+  'FC-108': {
+    intro: 'For when faults seem to come from one lane, jaw or shift but it could be chance — counts in a table, such as seal failures by lane. It asks whether the counts are spread across the table the way chance alone would spread them.',
+    steps: [
+      {
+        step: 'The rows and the columns',
+        means: 'A table of counts: what you counted down the side and across the top — fault type by lane, rejects by shift. The words you give for the rows and the columns are used in the sentences.',
+        doThis: 'On Analysis tap Is one thing linked to the other?, then type what the rows are (one word: “Lane”), the rows (“Lane 1, Lane 2, Lane 3”), what the columns are (“Fault type”) and the columns (“Underweight, Leaker, Misprint”), separated by commas. Two to eight names each, none repeated.',
+        youGet: 'An empty table ready to count into. Names that are too few, too many or repeated are refused in words.',
+      },
+      {
+        step: 'Counting into the table',
+        means: 'Pick a row, pick a column, type how many and press Add to the count; each press adds to that cell. Or paste the whole table in one go, a line for each row.',
+        doThis: 'Count from the reject bin or the check sheet. To paste, put the counts in the order of the rows and columns; a count that is not a whole number is left out and listed.',
+        youGet: 'The table with each cell’s count, what chance alone would give beneath it, and the row and column totals.',
+      },
+      {
+        step: 'Linked or not',
+        means: 'χ² (chi-square) measures how far the counts are from what chance would give. Cramér’s V says how strong any link is in words — negligible, small, medium or large. For a 2 × 2 table with a small expected count Fisher’s exact test leads instead.',
+        doThis: 'Read the verdict — Linked, No link shown or Counts too small — then the cells marked more or fewer: those further than 2 standard residuals from the chance figure. “Lane 3 has more Leaker than chance would give (16 against 10.6)” says where the link is.',
+        youGet: 'The tiles Counted, χ² (or Fisher’s exact), p, Cramér’s V and Sure, and the cells that stand out named in the sentence.',
+      },
+      {
+        step: 'When the counts are too small',
+        means: 'The χ² only works if most cells expect at least 5 and none expect less than 1. When that fails the page says Counts too small, shows its p-value as an approximation and says not to trust it.',
+        doThis: 'Merge categories that mean the same — two similar fault types — or count more before acting on it.',
+        youGet: 'An amber verdict instead of a confident one, with the share of cells that expect fewer than 5.',
+      },
+    ],
+    watch: 'A link is not a cause: the test says the counts are not spread the way chance alone would spread them — not why. One big cell is often carrying the whole result, so read the cells that stand out.',
+  },
 };
