@@ -431,4 +431,274 @@ export const EQUIPMENT_GUIDES: Record<string, Guide> = {
     ],
     watch: 'Release is the site’s decision. This log records the checks and who signed — it does not shorten the list, and it does not time the changeover itself (that is SMED).',
   },
+  'FC-073': {
+    intro: 'For new equipment taken from delivery to handover, when the OEM, the site and production disagree about what is done. A stage-gate project takes each machine through four gates — Install, Set up, Commission and Hand over — and answers “where are we, what is late and who owes what” from what is recorded, not from what is said. The tests, programs, runs, climb, pace, materials and handover each have a guide of their own below.',
+    steps: [
+      {
+        step: 'Start the project',
+        means: 'A stage-gate project is the new equipment on a line, taken to the day it is handed over to production. Its handover date is agreed once and never moves; the date now expected can.',
+        doThis: 'Open Projects, press New project and pick Stage gate. Type its name, who leads it, which lines of the factory it is on, and — if there is one yet — Handover agreed. Press Create and add the machines.',
+        youGet: 'A project that opens on Install, on its lines, with a handover date to be judged against.',
+      },
+      {
+        step: 'Bring the machines in',
+        means: 'The unit on the floor is the machine. Each one is on a line, and is a single record however many projects pass through it.',
+        doThis: 'On Install add each machine: tap one the line already has, or type the name and who supplied it — or paste a list, one a line, with the supplier after a comma. For a machine that has not landed, open its Edit and give Expected on site; it reads “due on site” until it is here.',
+        youGet: 'A row for each machine on Install, in the Machines tab and on its line, each with a place: due on site, or the gate it is at.',
+      },
+      {
+        step: 'Plan the four gates',
+        means: 'Install is the weeks from landing to running (positioned and levelled through to the dry run); Set up is programs, settings and guards; Commission is the tests each machine is proved by; Hand over is what production takes with it. Each stage is a step with a day and a person.',
+        doThis: 'Give each machine the usual list of every gate in one tap — “every gate’s list at once” — then date each step and say who is doing it. Edit the list to the job: the usual stages are a guess, not a standard.',
+        youGet: 'A grid of machines against stages, a square for each step, the timeline and the next two weeks filled from it.',
+      },
+      {
+        step: 'Now',
+        means: 'The front page. In the order a board is read: are we on target, what blocks handover, where each machine is, what is coming and what you owe.',
+        doThis: 'Open Now. Read Are we on target? first — behind, at risk, on target — with the pace beside it. Then Blocking handover, The machines, Today and the next two weeks, and What you owe. Tap any row and it opens in a drawer.',
+        youGet: 'The project’s state in one screenful, every figure the same as the Actions page, the report and the control room.',
+      },
+      {
+        step: 'Run the day',
+        means: 'A step is done, hit a problem, or did not happen; a test passed, did not pass or did not run. Everything else — late, blocked, handed over — is worked out from those.',
+        doThis: 'Open the step or test from the grid or Now. A step: Done today (a sign-off asks Who signed it off?), Not yet, or Hit a problem. A test: Passed, Didn’t pass or Didn’t run. When something goes wrong press Hit a problem, then plan the fix with who and by when; fixed, plan the re-test.',
+        youGet: 'A record that keeps what happened and who did it, a problem on the register with a fix attached, and the re-test planned from the failed one.',
+      },
+      {
+        step: 'Hand over and tell people',
+        means: 'A machine is handed over when its hand-over list is done and signed; the project is done when every machine is. Production can accept a line with things still open — the record says what.',
+        doThis: 'Work through Hand over for each machine, then make the paper the reader needs from Report ▾ — the one-page status for the client every week, the full client report, the programs report, step and test cards.',
+        youGet: 'A project that reads Handed over, with what it went with said beside it, and papers made from the records and never typed.',
+      },
+    ],
+    watch: 'The record is the answer. A stage ticked in the app is done on the day it was ticked; a date moved later asks why and keeps the reason. Do not keep a second status in a spreadsheet.',
+  },
+  'FC-074': {
+    intro: 'For tests that were being run without agreed criteria and argued about afterwards. Each acceptance test — FAT at the supplier, SAT on site — states what it passes on before it is run, and every attempt is recorded.',
+    steps: [
+      {
+        step: 'Plan the test',
+        means: 'A test is something done to prove a machine, on a day, against what was agreed. Commission shows every test machine by machine as a square each.',
+        doThis: 'On Commission tap a machine’s + square for one of the usual tests — safety functions proven, runs with product at the agreed speed, packs to spec, rejects and checks proven, changeover in the agreed time, performance run at the agreed rate — or press Plan a test that is not one of the usual ones, say what you plan to do and pick the machines.',
+        youGet: 'A test on each machine, booked for a day and open in the drawer.',
+      },
+      {
+        step: 'Passes if — the expectation',
+        means: 'The criterion, written before the day, that the result is measured against. Once written it moves only by the owner, so the verdict cannot be bent to suit the day.',
+        doThis: 'In What we planned type the test, the machine, the day and Passes if — the expectation, and who it is Done with (the OEM, for a FAT). Make it measurable: “Seals at 60 a minute, no leaks over 100 packs”.',
+        youGet: 'An agreed record on the test. Without one the card says “Nothing agreed in advance”, and the verdict has nothing to stand on.',
+      },
+      {
+        step: 'What happened',
+        means: 'The day it really ran is a separate field from the day it was planned, because the gap between them is usually the story. The verdict is one of four words.',
+        doThis: 'Type the date it ran, what ran and the result, then press Passed, Didn’t pass or Didn’t run. A test that has run with no verdict is asked: Did it pass? — until someone answers. Photos and film go in as What we found on the day.',
+        youGet: 'A verdict in words and colour on the board, the day it really ran and what was found.',
+      },
+      {
+        step: 'What we do next',
+        means: 'A test that does not pass is not the end of the record. The fix and the re-test hang off it and carry the machine, the product and the expectation forward.',
+        doThis: 'Press Hit a problem and plan the fix with who and by when, then More ▾ › Plan the re-test. The re-test is a new attempt of the same test; the earlier one stays.',
+        youGet: 'Every attempt of a test in order, with Follows and Led to links between them, and the board showing the latest.',
+      },
+      {
+        step: 'Test cards and the report',
+        means: 'The floor and the OEM need what each test had to show, on paper.',
+        doThis: 'Report ▾ on Commission makes Test cards — a card for every test on the board — and the Programs report. A test’s own record makes its card too.',
+        youGet: 'A card a test, each saying what it had to show and what it did, numbered by page.',
+      },
+    ],
+    watch: 'Write Passes if before the day, not after. A criterion typed once the numbers are in is an opinion.',
+  },
+  'FC-075': {
+    intro: 'For programs — the product settings and recipes a machine has to run — that are said to be proved without the runs to show it. Each program is tested at a speed, again if need be, and the page keeps every attempt in order.',
+    steps: [
+      {
+        step: 'Add the program',
+        means: 'A program is what a machine runs for a product. Programs sit under their machine on the Programs page, or on a line with no project at all.',
+        doThis: 'On Programs press Add a program, or use + Add a program to the machine under that machine. Type its name or number — “PR-12 Express 1.25 kg” — and say which machine it is for.',
+        youGet: 'A row for the program, with its status in words and colour. Chips along the top filter by where programs stand: Needs you, Failed, Late, No program, Not tested, At baseline, To do and Passed or done.',
+      },
+      {
+        step: 'Test it',
+        means: 'A test says how a run went. It aims at a speed — the speed the machine is set to run at — and may carry a net rate to achieve as a second, optional aim. The net rate it actually made is worked out afterwards.',
+        doThis: 'On the row press Test it. Choose Passed, Didn’t pass or Didn’t run. Type Aiming for and Aiming to run, and after the run Set at, Ran for, Packs and Rejects. Add What was seen and the day it ran, then Save. Not run yet? Book it for a day instead.',
+        youGet: 'A test on the program, and Commission’s board showing it. Each attempt reads in words: what it aimed at (“aiming 55 ppm for 60 min”), then what it did (“set at 50 ppm · ran 30 min · 1,480 packs · 12 rejects · netted 48.9 ppm”).',
+      },
+      {
+        step: 'The journey',
+        means: 'Programs are not passed or failed once. A program is tested at 50 a minute, passes, and is then tested at 55: each attempt is kept, with its own aim and its own result.',
+        doThis: 'Press Go again for the next attempt. It starts from the aim as it stands. Open any attempt to see what it met and what it missed — a test can miss its net rate and still have met its speed, length and rejects.',
+        youGet: 'Every attempt in order. A pass proves the program on the day it ran; a later attempt that does not pass leaves that proof standing.',
+      },
+      {
+        step: 'Proved, or judged on criteria',
+        means: 'Proved always needs a day and what showed it. A program can instead be judged by criteria you pick — a run test, a capability study, a reliability study, a changeover time — and signed off by two names when all pass.',
+        doThis: 'On a row, Prove asks the day and what showed it: in words, or a study on the line. For criteria, + Pick its criteria, make or pick the studies, then sign off once each passes.',
+        youGet: 'A program that reads Proved with its day, or “0 of 2 criteria passed” until it is signed. The Programs report prints the lot, machine by machine.',
+      },
+    ],
+    watch: 'A program proved by a pass at 50 a minute is proved at 50. If the line must run it at 55, test it at 55 — the page keeps both.',
+  },
+  'FC-076': {
+    intro: 'For the acceptance moment: did the line run at the agreed rate, with the rejects the contract allows? Each product is run, the numbers off the machine are typed in, and the page works out the net rate and the verdict.',
+    steps: [
+      {
+        step: 'Plan the run',
+        means: 'A performance run is a test that holds a list of products. Several products are run on the day, so you plan them ahead and fill the numbers in on the line.',
+        doThis: 'On the performance run test press + Add a product run. For each product type the Product, the Net rate in packs a minute, how long it is to run For in minutes, and Rejects at most as a percentage. Press Save and the form is ready for the next, with the agreed numbers carried over.',
+        youGet: 'A row for each product, planned and waiting. The agreed numbers are written once by the team and then kept by the owner.',
+      },
+      {
+        step: 'What it did',
+        means: 'On the day type what the counter and the clock said. The net rate is good packs — packs made less rejects — over the minutes run; you do not type it.',
+        doThis: 'Open the row and fill Ran for, Packs made, Rejects, Ran at and Stood. Add What was seen.',
+        youGet: 'The Net rate worked out, the reject percentage, and each agreed number judged on its own.',
+      },
+      {
+        step: 'Passed or didn’t pass',
+        means: 'A product passes when every agreed number is met. The test’s verdict follows from its products: all met is passed, any short is didn’t pass. You can overrule it, and the page says so when you do.',
+        doThis: 'Read the line over the list — “2 of 3 products run — 1 passed, 1 didn’t pass” — then each row, where only the number that missed is red and says how far, such as 1.6 ppm short. A product short on its rate offers Run it again.',
+        youGet: 'A verdict from the numbers, a pass or didn’t pass for each product, and the gaps in words.',
+      },
+      {
+        step: 'In money',
+        means: 'A product short on its rate left packs unmade. Priced at the line’s margin a pack, that is the contribution it cost over the run.',
+        doThis: 'Set up the line with a margin a pack. Without one the page still says the packs short and asks for the margin; nothing waits on it.',
+        youGet: 'A line such as “3 ppm short: 180 packs over the 60 min run — £90 contribution”, and a day of the line’s shifts at that shortfall. Rejects over the allowance are counted, not priced here.',
+      },
+    ],
+    watch: 'Agree the rate, the length and the reject allowance before the run. The numbers typed on the day are judged against what was written, not against what looks reasonable afterwards.',
+  },
+  'FC-077': {
+    intro: 'For the question production asks of a new line — when will it be at rate? Each run of a product is a dot on a climb, and the page says when the climb meets the agreed rate.',
+    steps: [
+      {
+        step: 'Agree the rate and run it',
+        means: 'The climb is made from the runs themselves: each product on each machine, in the order it ran. Nothing new is typed.',
+        doThis: 'Plan each performance run with its agreed rate and give every run its day and its numbers. Run the product again after each fix; Run it again on a product that fell short repeats it.',
+        youGet: 'The runs, dated, with their net rates — the points of the climb.',
+      },
+      {
+        step: 'Read the climb',
+        means: 'Each run’s time per pack falls by a steady share every time the number of runs doubles, so the curve flattens as it goes. The page fits that and says where it meets the agreed rate: a projection, never a promise.',
+        doThis: 'Under the run’s products read each climb — “Finest Red 2kg: 52 → 56 → 58 a minute over 3 runs — at this climb, the agreed 60 about Fri 14 Nov (run 5)”. Two runs say too early to say when; from three it is fitted.',
+        youGet: 'A picture — the runs as dots, the agreed rate dashed, the fitted curve dotted — and a sentence: at the agreed rate, climbing, too early, or not climbing.',
+      },
+      {
+        step: 'What the climb has cost',
+        means: 'Every run below the agreed rate left packs unmade. Added over the runs that know their minutes, that is what the climb has cost so far.',
+        doThis: 'Give each run its minutes, and the line a margin a pack. Without a margin the page still says the packs and asks for it.',
+        youGet: 'A line such as “The climb so far: 1,200 packs below the agreed 60 over 3 runs — £600 contribution”. A run before 24 October with no minutes is not counted.',
+      },
+    ],
+    watch: 'A flat or very slow climb is said as not reaching the rate, with no date. Take that as the signal to fix something, not to wait.',
+  },
+  'FC-078': {
+    intro: 'For when the handover date is a hope. Nobody types the forecast: the pace the project has actually kept makes it, and the page says when Hand over lands at that pace.',
+    steps: [
+      {
+        step: 'Where it shows',
+        means: 'The pace is said beside “Are we on target?” on the front page, the day and the client report, and as a marker on the timeline. It never moves a date and never changes the verdict; it is said beside them.',
+        doThis: 'Open Now. The line under Are we on target? reads “At the pace so far, Hand over lands about Fri 14 Nov — 3 days after the date agreed”, with its working: “8 stages and tests done in the last 2 weeks · 7 to go”.',
+        youGet: 'A forecast date, how many days it is from the date now expected (or the date agreed), and the count it came from.',
+      },
+      {
+        step: 'What it counts',
+        means: 'The rate is the stages and tests done in the last two weeks divided by the days counted; the work left is every stage and test not yet done. It counts what was done on the day, never what was planned — so a slipped plan cannot hide.',
+        doThis: 'Keep the record honest: tick each step the day it is done. A fix is found work and is not counted; every stage weighs the same.',
+        youGet: 'A pace that moves as the work does, in calendar days, weekends included.',
+      },
+      {
+        step: 'When it will not say',
+        means: 'It says so rather than guess. Under five done or under a week since the first day it says too early; with nothing done in the last two weeks it says so and gives no date.',
+        doThis: 'If it says it can’t say when yet, read why: a machine with nothing on its list, or with no arrival date. Add its stages and its date. A machine still to arrive holds the forecast back, at the pace.',
+        youGet: 'A named reason and the machine to fix, or a forecast once the lists are complete.',
+      },
+      {
+        step: 'Acting on it',
+        means: 'The handover date agreed never moves. The date now expected can, and a later date asks why.',
+        doThis: 'On Commission the owner presses Dates, and when the forecast shows a slip moves Handover now expected, giving the reason when asked.',
+        youGet: 'An expected date with the reason kept, and the forecast measured against it.',
+      },
+    ],
+    watch: 'It is a count, not a schedule. Eight easy stages and two big tests weigh the same, so read it as a pace, and add the big ones as separate steps.',
+  },
+  'FC-079': {
+    intro: 'For the part, film or section that stops the installation because nobody chased it. A list of what the project is waiting for, with the day each is due and whether it has arrived.',
+    steps: [
+      {
+        step: 'Add what you need',
+        means: 'A material is three facts: what it is, when it is due, and whether it is here. It is not a stock system — no quantities to keep right, no receipting.',
+        doThis: 'On Materials open Add what you need. Type What it is — “TESC03163A Finest Red 2kg” — How much in your own words (“10 reels”), the Due day, which line it is For and who it is From. Leave the day empty when none has been agreed.',
+        youGet: 'A row for each, in the order of what is holding you up: late first, then what is coming, then what nobody has dated, then what is in.',
+      },
+      {
+        step: 'Mark it in',
+        means: 'When it arrives the row is marked in on the day it came. Nothing is locked: a wrong day is changed, and Not in after all puts it back.',
+        doThis: 'Press Mark it in, check the day and press It’s in. To move a due date later, change the date; the page asks why and keeps the reason.',
+        youGet: 'A green row with the day it came, and a week strip running from the week it was due.',
+      },
+      {
+        step: 'Late, waiting, no date',
+        means: 'Late is past the day it was due and not here; waiting is due and not yet; no date means nobody has said when, which is itself a problem.',
+        doThis: 'Read the tiles — Here, Late, Waiting with the next due, No date — and the closing line. Chase the late ones first, and get a date on the ones with none.',
+        youGet: 'How many are here of how many needed, how many days late each one is, and the Materials report, one page, from Report ▾.',
+      },
+    ],
+    watch: 'A thing with no date looks fine in a count and holds a project up all the same. The No date tile is amber for that reason.',
+  },
+  'FC-080': {
+    intro: 'For the end of a project: production takes a line with things still open and no record of what. Each machine has a hand-over list, signed by someone and dated, and the record says what was open when it was signed.',
+    steps: [
+      {
+        step: 'The hand-over list',
+        means: 'What production takes with the machine. The usual list is a place to start: manuals and drawings handed over, operators and engineers trained, spares list agreed, safety sign-off (PUWER) and client signed off. Each item is a step like any other, with a day and a person.',
+        doThis: 'On Hand over give each machine its list and date each item. Edit the list to the job. If the line has line standards, they are handed over here too, product by product.',
+        youGet: 'A grid of machines against hand-over items, and tiles Done, Late, Problems and Not added yet.',
+      },
+      {
+        step: 'Sign it off',
+        means: 'A sign-off is a hand-over line that asks who accepted it. The record also keeps what was still open on the machine at that moment, so afterwards anyone can read what was accepted.',
+        doThis: 'Open an item. A sign-off asks Who signed it off? and you press Signed off today; other items are Done today; Not yet says what you are waiting for and whose it is. Hit a problem raises one against it.',
+        youGet: 'The item done, with who and when, and “Signed off 3 Nov with 2 still open — Fix: …” written into its account.',
+      },
+      {
+        step: 'Handed over, with what open',
+        means: 'Nothing is blocked: a machine reads Handed over when its hand-over list is done, and what it was handed over with is said beside it — tests not passed, steps not done, fixes open.',
+        doThis: 'Read the page’s tiles — Done, Late, Problems, Not added yet — and on Now the machine’s place, which reads Handed over with what it went with beside it. Close what can be closed; the rest is on record for whoever takes the line.',
+        youGet: 'The project done when every machine is handed over, and the line standards handed over with it. Item cards are made from Report ▾; the handover paper itself is not offered in the menu now, though its address still opens.',
+      },
+    ],
+    watch: 'Production can accept a line with things open. The point is that the record says which, who accepted, and when.',
+  },
+  'FC-081': {
+    intro: 'For problems seen on a walk that get forgotten or lost in notebooks. Film the line, freeze a frame at each machine, and pin each problem on the picture — it lands on the problems register with its place, its priority and its journey.',
+    steps: [
+      {
+        step: 'Film the walk',
+        means: 'A walk is the line filmed from infeed to outfeed, in clips if the line is long, kept in walk order. It is the picture every problem is pinned on.',
+        doThis: 'From a line’s tools, or on Install under The line, filmed, open the walk and press Film the walk. Or Upload videos you filmed on your phone. Name each clip and put them in walk order.',
+        youGet: 'Segments in walk order, converted so they play on a laptop as well as a phone.',
+      },
+      {
+        step: 'Mark each machine',
+        means: 'Marking freezes the frame where a machine is clearest and gives it a name, so the footage and the line’s machine list are one spine.',
+        doThis: 'Open a clip, scrub to a machine and press Mark a machine. Pick it from the line’s machines or type a new one (it joins the line’s list), add its code if it has one, and press Save & add problems, or Save & mark another.',
+        youGet: 'A still for the machine with a marker on the clip’s timeline, and the machine listed under Machines marked in this clip.',
+      },
+      {
+        step: 'Pin the problem',
+        means: 'A problem has a place: the spot on the picture. Pinned, it shows as a dot on the frame and the frame shows the problem.',
+        doThis: 'On the machine’s picture press Add evidence — or Raise a fix here, on a project — or tap the picture where the problem is. Say what is wrong, a proposed solution, who owns it and by when, and add a close-up photo. Make it a fix turns it into one with an owner and a day.',
+        youGet: 'A problem on the register, priced and tracked, with its photo and its pin; open ones counted on the clip and on the machine.',
+      },
+      {
+        step: 'Close the loop',
+        means: 'A problem is closed with what was done and, ideally, an after photo, so the walk can be shown again later and the difference seen.',
+        doThis: 'Open the problem, set its status, the day it closed, a note of what was done and the After photo. Through time shows a machine’s frames side by side.',
+        youGet: 'A journey of improvement on each problem, and cards and reports from the Problems page for the meeting.',
+      },
+    ],
+    watch: 'Film the line in the order the product flows. Marked in walk order, the frames tell the story from infeed to outfeed; marked out of order, they do not.',
+  },
 };
