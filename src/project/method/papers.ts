@@ -10,6 +10,20 @@ export interface MethodPaper {
   /** Make and download it for this project. */
   make: (projectId: string) => Promise<void>;
 }
+
+import { getProject, listStudies, listTestItems } from '../../db';
+import { answerOf } from '../../lib/methodSheet';
+import { insertionsOf } from './shapes/dmaicModel';
+/** DMAIC's Charter: the charter and the five phase reviews, with what the project's tools say (lib/report/charterPaper). */
+async function makeCharter(projectId: string): Promise<void> {
+  const [project, rows, studies] = await Promise.all([getProject(projectId), listTestItems(projectId), listStudies(projectId)]);
+  const answers: Record<string, string> = {};
+  for (const i of rows) { if (i.kind !== 'note' || i.deletedAt) continue; const a = answerOf(i.testId); if (a?.method === 'dmaic') answers[a.field] = i.what; }
+  const evidence = insertionsOf(studies).filter(i => i.says).map(i => ({ tool: `${i.toolName} — ${i.question}`, says: `${i.name}: ${i.says}` }));
+  const { saveCharterPdf } = await import('../../lib/report/charterPaper');
+  await saveCharterPdf({ project: project?.name ?? 'This project', printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), answers, evidence });
+}
+
 export const PAPERS: Partial<Record<MethodKey, readonly MethodPaper[]>> = {
   kata: [{
     label: 'Kata storyboard', for: 'The learner’s board: challenge, conditions, obstacles, every experiment and the five coaching questions.',
@@ -22,4 +36,5 @@ export const PAPERS: Partial<Record<MethodKey, readonly MethodPaper[]>> = {
       await saveKataPdf({ project: project?.name ?? 'Project', printed: today, answers, todayISO: today });
     },
   }],
+  dmaic: [{ label: 'Charter', for: 'The charter and the five phase reviews, for the sponsor.', make: makeCharter }],
 };

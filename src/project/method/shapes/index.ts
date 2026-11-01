@@ -24,6 +24,10 @@ export interface Shape {
   sectionBoxes?: 'default' | 'none';
 }
 import { KATA_SHAPE } from './kata';
+
+import { DMAIC_SHAPE } from './dmaic';
+
 export const SHAPES: Partial<Record<MethodKey, Shape>> = {
   kata: KATA_SHAPE,
+  dmaic: DMAIC_SHAPE,
 };
