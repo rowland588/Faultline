@@ -27,8 +27,17 @@ describe('how a default tool stands', () => {
     if (mode.how === 'inside') expect(toolStateWord(mode)).toMatch(/^A mode of /);
   });
 
+  it('the Theory of Constraints modes open the tool they live in, and say so', () => {
+    for (const [id, tool] of [['FC-046', 'Line capacity'], ['FC-039', 'Line capacity'], ['FC-056', 'Loss count']] as const) {
+      const h = howTool(id);
+      expect(h.how, id).toBe('inside');
+      expect(openable(h)?.label, id).toBe(tool);
+      expect(toolStateWord(h), id).toBe(`A mode of ${tool}`);
+    }
+  });
+
   it('a tool not built yet has nothing to open and says so in the catalogue’s word', () => {
-    const h = howTool('FC-043'); // drum–buffer–rope
+    const h = howTool('FC-070'); // changeover sequence
     expect(h.how).toBe('notyet');
     expect(openable(h)).toBeUndefined();
     expect(toolStateWord(h)).toBe('Not built yet');

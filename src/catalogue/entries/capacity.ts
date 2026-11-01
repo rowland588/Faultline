@@ -109,7 +109,7 @@ export const CAPACITY: Entry[] = [
     food: 'Setting a target for a 6M project on a packing line.',
     depends: ['FC-038', 'FC-052'],
     complexity: 'S', value: 'medium', valueWhy: 'Sizes a project before it starts.',
-    status: 'available', form: 'report', methods: ['capacity.theory-of-constraints'], scenarios: ['running', 'money', 'project'],
+    status: 'available', form: 'mode', partOf: 'FC-034', methods: ['capacity.theory-of-constraints'], scenarios: ['running', 'money', 'project'],
     built: { where: ['/balances'], code: ['src/lib/intelligence/levers.ts', 'src/lib/intelligence/leversPlan.ts', 'src/lib/report/leversPaper.ts', 'src/ui/LineCapacityHero.tsx'], tests: ['src/lib/__tests__/intelligence.test.ts', 'src/lib/__tests__/leversPlan.test.ts'], acceptance: ['recovery-levers.mjs'] }, spec: 'knowledge/specs/FC-039-recovery-levers.md',
     limits: ['A share is a what-if kept for nothing on screen; the paper prints what is on screen when pressed — the plan is not saved as a record nor carried onto a project’s target.', 'The week needs the line’s running pattern (its SMED); a changeover has no machine to test and is said “only if on the constraint”.', 'Packs are made only if there is demand and the line is not then held somewhere else; a loss’s cost to fix is FC-191’s.'],
   },
