@@ -232,4 +232,142 @@ export const SPC_GUIDES: Record<string, Guide> = {
     ],
     watch: 'Pre-control is a set-up rule, not a control chart and not a capability study — the page says so. Its own record in the library says it is comfortable only on a process already known to be capable (Cp of 1.33 or more); on a marginal process it keeps sending you to adjust.',
   },
+  'FC-093': {
+    intro: 'For a line that makes many products on one machine in a day, each with too few readings for a chart of its own — ten pack sizes on one filler. One chart across all of them, so the machine is watched even while the product keeps changing.',
+    steps: [
+      {
+        step: 'Many products on one chart',
+        means: 'In the chart’s agreement, under One reading at a time, there is a tick: “Many products on one chart — each reading says its product and nominal”. With it on, each reading is plotted as its distance from its own product’s nominal, so a 250 g pack and a 500 g pack can sit on one line.',
+        doThis: 'Pick One reading at a time, name what is measured and its unit, and tick the box. Each product’s nominal is typed with its readings, not here.',
+        youGet: 'A chart in units of “from the nominal”: the centre and the limits are said that way.',
+      },
+      {
+        step: 'Product, and its nominal',
+        means: 'With the tick on, the number pad gains two boxes, Product and Its nominal — what that product is supposed to weigh or measure. Every reading carries them, so the chart knows which product it belongs to.',
+        doThis: 'Type the product (“Finest Red 2kg”) and its nominal (“250”) once; they stay for the readings that follow until you change them, and the products already used are offered. The ↵ key stays off until both are given. Pasted readings take the product and nominal typed above.',
+        youGet: 'Each reading listed with its product and, where the product changes, a faint line across the chart with the new product’s name: a changeover boundary.',
+      },
+      {
+        step: 'Pooled or standardised',
+        means: 'If the products spread alike, the deviations are simply pooled (deviation from nominal). If they spread differently — a big pack is naturally more variable — each reading is divided by its own product’s spread instead (Z-MR) and the limits become −3 to +3. The page decides with Levene’s test and says which it used.',
+        doThis: 'Nothing to choose: read the end of the band’s sentence — “3 products on one chart — Levene p 0.83: the spreads are alike, so the deviations are pooled”, or “…differ, so each product is standardised (Z-MR)”. A product with fewer than two readings is left out of the comparison.',
+        youGet: 'The mode said in words with its evidence. In Z-MR a product’s own spread is used from its 20th reading; before that the pooled spread stands in.',
+      },
+      {
+        step: 'Set the limits, then read the signals',
+        means: 'Limits are set from a steady stretch, as on every chart: take the first twenty readings across a normal mix of products and press Set the limits. The moving range is not taken across a changeover, because that would compare two different set-ups.',
+        doThis: 'Press Set the limits after twenty readings, then keep taking them. When a signal shows, look at which product each flagged reading is — the list names it — and then at what the products have in common: the filler, the operator, the shift.',
+        youGet: 'The same verdict, tiles and signals as the one-at-a-time chart, across every product.',
+      },
+    ],
+    watch: 'The pad will not take a reading without its product and nominal, so type them before the first reading. In Z-MR the CUSUM and the running level are not drawn.',
+  },
+  'FC-097': {
+    intro: 'For anyone about to quote a Ppk. A capability index is only as good as three things it takes for granted: the readings come from one steady process, they spread roughly like a bell, and they were read finely enough to show the spread. The checks are said under the capability sentence.',
+    steps: [
+      {
+        step: 'The readings, in order, from 20',
+        means: 'The three checks are said from 20 readings, in the order taken — the order matters for the steady check. Under 20, one line says how many are in so far.',
+        doThis: 'Take at least twenty, thirty if you can (the Ppk itself is said from 25), and enter them in the order they were taken. Do not sort them or re-type them.',
+        youGet: 'Under the sentences, a block headed Before capability with up to three lines — quiet when a check passes, amber when it does not. A pass-or-fail study has no such block.',
+      },
+      {
+        step: 'Is it bell-shaped?',
+        means: 'The capability index assumes the readings follow a normal (bell) curve, so the share outside the limits can be worked out from the curve. The check is D’Agostino–Pearson’s test: a p-value of 0.05 or more is bell-shaped enough. If not, the page says whether the readings lean to one side or have heavier tails than a bell.',
+        doThis: 'Read the first line: “Bell-shaped enough (D’Agostino–Pearson p 0.41)”, or “Not bell-shaped — they lean high (skew 1.2, p < 0.001): the share outside is read from the readings, not the bell.”',
+        youGet: 'When the readings are not bell-shaped the capability sentence is never green: it says how many were outside as measured, instead of working it out from a curve, and the index is read as rough.',
+      },
+      {
+        step: 'Is it steady?',
+        means: 'A steady process stays in one place all through the study. The check draws the individuals chart’s limits on the study’s own readings and looks for a run of eight on one side of the mean; if either shows, the Ppk describes a mixture and may not hold.',
+        doThis: 'Read the second line: “Steady across the run”, or “Not steady — readings 14 and 22 are outside 398.1–401.9 and 9 in a row sat above the mean from no. 20”. Then look at what happened at those readings — a hopper running down, a new reel, a changeover.',
+        youGet: 'An amber line when it is not steady, and a Next line under the answer offering Chart these readings, to see when the process moved and whether it settled.',
+      },
+      {
+        step: 'Read finely enough?',
+        means: 'If the scale steps in whole grams and the spread is two grams, most readings land on a handful of values and the spread is hidden. The check counts the different values read: five or more is fine enough.',
+        doThis: 'Read the third line: “Read finely enough — 14 different values”, or “Only 3 different values were read — the scale is too coarse to show the spread; the shape and the index are rough.” If it is too coarse, read the instrument to more places if it offers them.',
+        youGet: 'A plain amber warning instead of a confident index built on a scale that cannot see the spread.',
+      },
+    ],
+    watch: 'These checks do not make the Ppk; they say how far to trust it. An amber line is a reason to look at how the readings were taken, not a reason to drop the study. Whether each reading leans on the one before is a separate check (readings taken too close together).',
+  },
+  'FC-101': {
+    intro: 'For reading several capability studies at once instead of one at a time: which products or machines are weak, and whether capability is getting better or worse month by month. It is a table above the Capability study list, and on that list’s paper.',
+    steps: [
+      {
+        step: 'The capability studies behind it',
+        means: 'The table adds no readings of its own; it is built from the capability studies you have already made, each with its own verdict. It appears once two studies have something to say — a study with no readings yet is left out.',
+        doThis: 'Make a capability study each time you want a new point — a month, a product, a machine — rather than reusing an old one, and name the machine when you start it. A row is labelled by the study’s product when it has one, else the machine you named, else the study’s name.',
+        youGet: 'Nothing to fill in here: the table builds itself above the list as the studies accumulate.',
+      },
+      {
+        step: 'A row for each product, a column for each month',
+        means: 'Each cell is the figure of the study started in that month — Ppk 1.52 for a measurement, “0.80% rejected” for a reject-rate study, “3 of 20 met” for a rate held, or the readings so far — coloured by that study’s own verdict. If two studies fall in one month the later one shows, marked ×2.',
+        doThis: 'Scan the Latest column first, then along a row for the trend. A cell is a link: press it to open that study.',
+        youGet: 'A grid in which a weak product stands out by its colour and its word, and a trend you can read across a row.',
+      },
+      {
+        step: 'The sentence over the table, and the paper',
+        means: 'One line says how many products and machines and how many months are in the table, and names any whose latest study is not capable. Open the list from a line and the table shows only that line’s studies.',
+        doThis: 'Read it before the grid: “3 products and machines over 4 months — Finest Red 2kg is not capable in the latest study”, or “none is failing in the latest study”. For the meeting, press Report ▾ on the list.',
+        youGet: 'The paper “Capability study — every one shown”, which puts Capability over time first and then a page for each study.',
+      },
+    ],
+    watch: 'A cell is the latest study of that month, not an average of the month’s studies, and a product with studies in only one month shows no trend yet.',
+  },
+  'FC-102': {
+    intro: 'For putting a reject rate or a count of faults on the same footing as a measured capability, so one page can compare them. It is said under the sentence of a rejects study and of a faults-on-each-item study.',
+    steps: [
+      {
+        step: 'Opportunities an item',
+        means: 'The number of different places on one item where a fault could occur and would be counted — a label could be missing, skewed or misprinted, which is already three. A rate “per million” only means something against this count. It is optional, and typed on the faults study.',
+        doThis: 'When agreeing a faults study, type Opportunities an item — count only what the inspector really checks, because inflating it flatters the result. Leave it empty and the study is judged on its rate per 100 items as before.',
+        youGet: 'Nothing changes until you give it: the per-million line below appears only once it is typed.',
+      },
+      {
+        step: 'Per million',
+        means: 'Faults divided by items times opportunities, scaled to a million. Three faults on 100 items of 6 opportunities each is 3 in 600, which is 5,000 per million opportunities.',
+        doThis: 'Count the faults by kind on each inspection as usual; the page does the division.',
+        youGet: 'A line under the capability sentence: “5,000 per million opportunities (6 an item)”.',
+      },
+      {
+        step: 'Z and the sigma level',
+        means: 'The same rate restated as Z — how many standard deviations of a bell curve would leave that share in the tail — so that it can sit beside a measured Ppk (Z divided by 3). The sigma level adds 1.5 by the Six Sigma convention; that shift is an assumption, not something measured, and the page says it is used.',
+        doThis: 'Use Z to compare — a reject rate shows as “Z 2.27, about Ppk 0.76 (a comparison only)” — never as a verdict on its own. The rate and its bounds are the plain statement.',
+        youGet: 'Z and its equivalent Ppk on a rejects study; Z and the sigma level, with the 1.5-shift convention named, on a faults study that has its opportunities.',
+      },
+    ],
+    watch: 'The 1.5 shift is a convention, not a measurement, and per-million figures with inflated opportunities flatter the result. Quote the plain rate first and the sigma level second.',
+  },
+  'FC-103': {
+    intro: 'For looking at a set of readings before testing them: a mean on its own hides whether the readings are tight or scattered, lopsided or two-humped. The picture and figures appear on a capability study and on Analysis when it is asked “How sure am I of this figure?” about a mean.',
+    steps: [
+      {
+        step: 'The readings',
+        means: 'Any column of measured numbers — thirty fill weights, twelve seal temperatures — in the order they were taken. Describing them comes first, before any test.',
+        doThis: 'Type or paste them on a capability study, or on Analysis under How sure am I of this figure? with A mean — measured readings. The histogram and the median are drawn from the second reading; an interval on the mean needs eight.',
+        youGet: 'A histogram of the readings and the figures under it, drawn as the readings go in.',
+      },
+      {
+        step: 'The histogram',
+        means: 'The readings sorted into bars — about as many bars as the square root of the count, on a round width — with the count above each bar. It shows at a glance whether they pile up in the middle like a bell, lean to one side or have two humps. On a capability study the limits and the target are drawn on it, and a bar holding a reading outside the limits is red.',
+        doThis: 'Look at the shape before the numbers. Two humps usually mean two streams — two heads, two shifts, two reels; a long tail on one side is a lean.',
+        youGet: 'The picture itself, with the count in each bar.',
+      },
+      {
+        step: 'Centre, spread and lean',
+        means: 'The mean is the average; the median is the middle reading and is not pulled by a stray one. The spread (s) is how far readings typically sit from the mean. The middle half is the range holding the middle 50% of the readings. Lean is one number: 0 is even, positive leans to high values with a long tail on the right, negative to low.',
+        doThis: 'Read the line under the histogram on a capability study — “Median 401.20 g · middle half 400.80–401.60 g · lean 0.14” — or the Mean and Spread tiles and the “Middle half …” line on Analysis. If the mean and the median are far apart, the readings are lopsided.',
+        youGet: 'Mean, median, spread, range, middle half and lean, in the unit of the readings.',
+      },
+      {
+        step: 'Readings beyond the fences',
+        means: 'A reading far outside the middle half — more than one and a half times the width of the middle half beyond either end — is flagged for a look. It is never removed: that is your decision once you know why it is there.',
+        doThis: 'On Analysis read the amber line “Readings: 2 readings beyond the fences (… at reading 14) — look at them; none is removed.” On a capability study the flagged reading is ringed. Ask what happened at that reading — a jam, a mis-key — and strike it only if it was not a real reading.',
+        youGet: 'A struck reading stays on the list, left out of the figures, and can be brought back, so nothing is lost by a wrong call.',
+      },
+    ],
+    watch: 'A mean alone is not a description. Look at the picture, the median and the middle half too — and remember that a figure that looks tidy on thirty readings is still only an estimate (see How sure am I of this figure?).',
+  },
 };
