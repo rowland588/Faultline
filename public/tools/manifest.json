@@ -101,6 +101,12 @@
     "of": "Maintenance measures — PM compliance, the planned share and MTBF, read from the line's logs and studies",
     "takenFrom": "166b0b2"
   },
+  "holds": {
+    "w": 960,
+    "h": 600,
+    "of": "Product on hold — a line's register: what is held, since when and why, who decides by when, the money tied up and the one past its day",
+    "takenFrom": "f649ecc1"
+  },
   "sampling": {
     "w": 960,
     "h": 600,

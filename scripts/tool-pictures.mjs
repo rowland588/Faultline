@@ -83,6 +83,8 @@ const TOOLS = [
     css: '.pugh-datum,.pugh-key,.pugh-acts,.pugh-table .sp-rm,.pugh-table tfoot tr[data-foot="Cost"],.pugh-table tfoot tr[data-foot="Same (S)"]{display:none !important}' },
   { key: 'maintenance', of: 'Maintenance measures — PM compliance, the planned share and MTBF, read from the line\'s logs and studies',
     route: s => `#/board/maintenance-measures/${s.maintenanceId}`, parts: ['.ln-tiles', '.ie-says'], css: '' },
+  { key: 'holds', of: 'Product on hold — a line\'s register: what is held, since when and why, who decides by when, the money tied up and the one past its day',
+    setup: setupRegisters, route: s => s.holdsRoute, parts: ['.hd-tiles', '.ie-says', '[data-sec="open"]'], css: '.hd-card:nth-child(n+3){display:none !important}.hd-money{display:none !important}' },
   { key: 'sampling', of: 'Work sampling — what two people were doing at random moments: each share with its margin',
     route: s => `#/sampling/${s.samplingId}`, parts: ['.ln-tiles', '.ws-round', '.ws-shares'], css: '' },
   { key: 'talk', of: 'Line Talk — the talk on the line: what was said, a photo, a typed line, and the document asked for',
@@ -173,6 +175,28 @@ function PICTURE_SEEDS_FN() {
   };
 }
 
+
+/* ---------- the register tools (m6-registers): a register of holds, the pictures' records, made in the page ---------- */
+async function setupRegisters() {
+  await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
+  const r = await page.evaluate(async () => {
+    const db = await import('/src/db.ts'); const { newHoldStudy } = await import('/src/tools/hold/HoldScreen.tsx');
+    const iso = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+    const w = await db.createWorkspace('Line 2 — pouches'); await db.updateWorkspace({ ...w, packsPerMin: 110, materialsPerPack: 0.42, marginPerPack: 0.35 });
+    const h = newHoldStudy({ name: 'Product on hold — Line 2', workspaceId: w.id, now: Date.now() });
+    h.agreed = { holds: { since: Date.now(), authority: ['A. Quality', 'B. Manager'], carryPct: 12 } };
+    const hold = (no, o) => ({ id: crypto.randomUUID(), no, unit: 'packs', raisedAt: Date.parse(o.raisedOn), ...o });
+    h.facts.holds = [
+      hold(1, { product: 'Pouch 400 g', lot: 'L2041', qty: 4800, reason: 'Seal check failed', raisedOn: iso(6), owner: 'A. Quality', decideBy: iso(3), costEach: 0.53, lifeDays: 21, where: 'Hold cage 2' }),
+      hold(2, { product: 'Flapjack 6-pack', lot: 'F0912', qty: 640, unit: 'cases', reason: 'Label shows the wrong allergen line', raisedOn: iso(2), owner: 'B. Manager', decideBy: iso(-1), costEach: 4.1, where: 'Chiller 4' }),
+      hold(3, { product: 'Pouch 400 g', lot: 'L2037', qty: 1200, reason: 'Seal check failed', raisedOn: iso(14), owner: 'A. Quality', decideBy: iso(10), costEach: 0.53,
+        outcomes: [{ id: crypto.randomUUID(), disposition: 'release', qty: 900, on: iso(12), at: Date.parse(iso(12)), by: 'A. Quality', grounds: 'Re-test passed on 20 packs' }, { id: crypto.randomUUID(), disposition: 'destroy', qty: 300, on: iso(12), at: Date.parse(iso(12)), by: 'A. Quality', grounds: 'Seal pressed out of line' }] }),
+    ];
+    await db.putStudy(h);
+    return h.id;
+  });
+  seeded.holdsRoute = `#/holds/${r}`;
+}
 
 /* ---------- the video study: footage whose times are known, made in the page (src/dev/videoSynth.ts, as
    scripts/acceptance/video-study.mjs does), uploaded through New, read on the device, every piece accepted ---------- */

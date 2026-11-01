@@ -1,0 +1,22 @@
+/* THE REGISTER TOOLS (m6-registers) — product on hold, horizontal deployment, the daily meeting, the fault tree.
+   One colour, one meaning: red is past its day or a failure, amber is open or waiting, green is decided or done, grey is nothing yet —
+   each with its words beside it. Tokens only; the phone's controls are a thumb's size. */
+.hd-cards, .rg-cards { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.hd-card, .rg-card { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); min-width: 0; overflow-wrap: anywhere; }
+.hd-card.is-g, .rg-card.is-g { background: color-mix(in srgb, var(--st-g) 5%, var(--surface)); }
+.hd-card.is-a, .rg-card.is-a { border-color: var(--st-a); }
+.hd-card.is-r, .rg-card.is-r { border: 2px solid var(--st-r); background: color-mix(in srgb, var(--st-r) 6%, var(--surface)); }
+.hd-card-h, .rg-card-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.hd-no { font-variant-numeric: tabular-nums; padding: 1px 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.hd-card p, .rg-card p { margin: 0; }
+.hd-act, .rg-act { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 4px; }
+.hd-oc { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+.hd-sec, .rg-sec { display: grid; gap: 8px; margin-block: 14px; }
+.hd-fl { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.hd-fl li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: space-between; }
+.hd-money { margin: 0; }
+.hd-form .ie-agree-grid, .rg-form .ie-agree-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+@media (max-width: 719px) {
+  .hd-act .btn, .hd-act .linkish, .rg-act .btn, .rg-act .linkish, .hd-fl .btn, .hd-oc .linkish, .rg-card .linkish, .rg-card .btn { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; }
+  .hd-form [role="radio"], .rg-form [role="radio"] { min-height: 44px; }
+}

@@ -144,6 +144,7 @@ ok(/#\/project\/[^/]+\/install/.test(page.url()), '5 a stage gate made from its 
    page in the project, and New lands on its start sheet */
 const OPENS = [
   { m: 'Kaizen event', what: 'Mistake-proofing register and the daily device checks', where: /^A mode of Check logs$/, route: /#\/log\/mistake-proofing\?.*add=1/, sheet: '[data-sheet="new-log"]' },
+  { m: '8D', what: 'Product on hold', where: /^Built$/, route: /#\/holds\?.*add=1/, sheet: '[data-sheet="new-holds"]' },
 ];
 for (const o of OPENS) {
   await go(made[o.m]); await page.waitForSelector('.pmethod');

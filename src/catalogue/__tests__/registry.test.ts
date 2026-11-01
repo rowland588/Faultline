@@ -27,8 +27,8 @@ describe('every tool says how its records behave', () => {
 });
 
 describe('the app\'s tools, from the catalogue', () => {
-  it('are the twenty-one a person can open, each built, available or partly, at an address the router answers', () => {
-    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Control chart', 'Analysis', 'Calculators', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Video study', 'Line Talk', 'Check logs', 'Problems register', 'Actions', 'Equipment criticality', 'Impact and effort', 'Pugh matrix', 'Maintenance measures']);
+  it('are the twenty-two a person can open, each built, available or partly, at an address the router answers', () => {
+    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Control chart', 'Analysis', 'Calculators', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Video study', 'Line Talk', 'Check logs', 'Problems register', 'Actions', 'Equipment criticality', 'Impact and effort', 'Pugh matrix', 'Maintenance measures', 'Product on hold']);
     for (const t of APP_TOOLS) {
       const e = ENTRIES.find(x => x.id === t.id)!;
       expect(['available', 'partial'], t.id).toContain(e.status);
@@ -60,6 +60,7 @@ describe('the app\'s tools, from the catalogue', () => {
       ['reliability', 'Reliability', '/reliability', 'reliability', 'a machine watched running: MTBF and the failure rate'],
       ['video', 'Video study', '/video', 'video', 'the line filmed, the work at each station read from the footage'],
       ['talk', 'Line Talk', '/talk', 'talk', 'talk or type on the line, as in a chat — it answers and writes the reports'],
+      ['holds', 'Product on hold', '/holds', 'holds', 'what is on hold, since when, and what is tied up'],
     ]);
   });
 });

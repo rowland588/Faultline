@@ -41,6 +41,7 @@ import { APP_TOOLS } from '../../catalogue/registry';
 import { niceDay } from '../../lib/weeks';
 import { calcTitle } from '../../tools/calc/calc';
 import { owedActions } from '../../tools/checks/owed';
+import { registerKeyOf } from '../../tools/registers/kinds';
 
 /** One thing that can go in: a study, a product's Line capacity or line standard. */
 export interface BundleItem {
@@ -116,7 +117,7 @@ export function itemsOn(line: Pick<Workspace, 'id'>, r: Pick<BundleRecords, 'sta
     if (s.deletedAt || s.workspaceId !== line.id) continue;
     const l = studyLine(s, r.ctx);
     /* the tool's name once — the heading says "SMED — Finest Red 2kg → Express 1.25 kg · Bagger", never "SMED — SMED — …" */
-    out.push({ key: `study:${s.id}`, tool: s.tool === 'calc' ? calcTitle(s) : toolLabel(s.tool), name: `${s.name.trim() || studyTitle(s)}${s.machine ? ` · ${s.machine}` : ''}`, says: l.text, tone: toneOf(l.tone), at: s.updatedAt ?? s.startedAt, ...(s.machine ? { machine: s.machine } : {}), study: s });
+    out.push({ key: `study:${s.id}`, tool: s.tool === 'calc' ? calcTitle(s) : toolLabel((registerKeyOf(s) ?? s.tool) as StudyTool), name: `${s.name.trim() || studyTitle(s)}${s.machine ? ` · ${s.machine}` : ''}`, says: l.text, tone: toneOf(l.tone), at: s.updatedAt ?? s.startedAt, ...(s.machine ? { machine: s.machine } : {}), study: s });
   }
   for (const st of r.standards) {
     if (st.deletedAt || st.workspaceId !== line.id) continue;
@@ -129,7 +130,7 @@ export function itemsOn(line: Pick<Workspace, 'id'>, r: Pick<BundleRecords, 'sta
       out.push({ key: `standard:${st.id}`, tool: 'Line standard', name: st.product, says: n ? `${n} ${n === 1 ? 'person' : 'people'} placed` : 'the board, nobody placed yet', tone: 'n', at: st.updatedAt, standard: st });
     }
   }
-  return out.sort((a, b) => toolRank(a.study?.tool ?? (a.key.startsWith('capacity') ? 'zz-capacity' : 'zz-standard')) - toolRank(b.study?.tool ?? (b.key.startsWith('capacity') ? 'zz-capacity' : 'zz-standard')) || a.tool.localeCompare(b.tool) || b.at - a.at);
+  return out.sort((a, b) => toolRank((a.study && registerKeyOf(a.study)) ?? a.study?.tool ?? (a.key.startsWith('capacity') ? 'zz-capacity' : 'zz-standard')) - toolRank((b.study && registerKeyOf(b.study)) ?? b.study?.tool ?? (b.key.startsWith('capacity') ? 'zz-capacity' : 'zz-standard')) || a.tool.localeCompare(b.tool) || b.at - a.at);
 }
 
 /** WHAT GOES IN BY DEFAULT — the newest record of each tool. */
