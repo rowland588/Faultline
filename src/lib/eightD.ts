@@ -93,3 +93,33 @@ export function disciplineLines(d: Discipline, a: Ans): { label: string; text: s
   return d.fields.map(f => ({ label: f.label, text: (a[f.id] ?? '').trim() }));
 }
 export const isNotPairs = (a: Ans) => ISNOT_ROWS.map(r => ({ q: r.q, is: (a[isId(r.k)] ?? '').trim(), isnot: (a[isnotId(r.k)] ?? '').trim() }));
+
+/* ---- reading the action list against today (the dashboard's insight and the project report both use this) ---- */
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+/** A typed "by when" as a day (YYYY-MM-DD), or '' when it cannot be read as one. Reads 2026-11-07, 7 Nov, 7 November 2026, 7/11/2026
+ * (day first). Without a year it is the year of `today`. Never guesses at "next Friday" or "end of month". */
+export function dayOf(text: string, today: string): string {
+  const t = text.trim().toLowerCase().replace(/(\d)(st|nd|rd|th)\b/, '$1');
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const valid = (y: number, mo: number, d: number) => { const dt = new Date(Date.UTC(y, mo - 1, d)); return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d ? `${y}-${pad(mo)}-${pad(d)}` : ''; };
+  const year = Number(today.slice(0, 4));
+  let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+  if (m) return valid(+m[1], +m[2], +m[3]);
+  m = /^(\d{1,2})\s+([a-z]{3})[a-z]*\.?(?:\s+(\d{4}))?$/.exec(t);
+  if (m) { const mo = MONTHS.indexOf(m[2]) + 1; return mo ? valid(m[3] ? +m[3] : year, mo, +m[1]) : ''; }
+  m = /^(\d{1,2})[/.](\d{1,2})(?:[/.](\d{4}))?$/.exec(t);
+  if (m) return valid(m[3] ? +m[3] : year, +m[2], +m[1]);
+  return '';
+}
+export type ActionState = 'done' | 'late' | 'open';
+/** Done, late (not done and its day is before today), or open. A day that cannot be read is never judged late. */
+export function actionState(r: ActionRow, today: string): ActionState {
+  if (r.done) return 'done';
+  const d = dayOf(r.due, today);
+  return d && d < today ? 'late' : 'open';
+}
+/** A cause that stops at a person or a promise is a stopping place, not a root cause (the guide: ask what let it happen). */
+export const STOPPING_PLACE = /\b(operator|human|people|staff|worker|colleague)s?\s+(error|mistake|fault|failure)\b|\bnot\s+(following|followed)\s+(the\s+)?(procedure|process|instruction)s?\b|\bnegligen/i;
+export const isStoppingPlace = (cause: string): boolean => STOPPING_PLACE.test(cause);
+const RETRAIN = /\bre-?train(ed|ing)?\b|\bremind(ed|er)?\b|\bbriefed?\b/i;
+export const isOnlyRetraining = (action: string): boolean => RETRAIN.test(action);

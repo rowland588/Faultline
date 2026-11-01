@@ -11,7 +11,7 @@ export const SECTIONS: SheetSections = {
       f('team', 'The team', 'Who is on it, and who leads.', { line: true }),
     ],
     'D2  Describe the problem': [
-      f('is', 'What it is — what, where, when, how much', 'The facts, as measured.'),
+      f('is', 'What it is — what, where, when, how much', 'The facts, as measured — numbers where you have them.'),
       f('isnot', 'What it is not', 'What could have been wrong but is not — it narrows the cause.'),
     ],
     'D3  Contain': [
@@ -19,13 +19,13 @@ export const SECTIONS: SheetSections = {
       f('worked', 'Checked that it works', 'How you know nothing more is reaching the customer.'),
     ],
     'D4  Root cause and escape point': [
-      f('why', 'Why it happened', 'The root cause, with the evidence.', { tools: ['FC-125', 'FC-146', 'FC-147'] }),
+      f('why', 'Why it happened', 'The root cause — the reason the fault could happen — with the evidence. “Operator error” is not an answer: ask what let it happen.', { tools: ['FC-125', 'FC-146', 'FC-147'] }),
       f('escape', 'Why it was not caught', 'The escape point — the check that should have found it.', { tools: ['FC-146'] }),
-      f('verified', 'Verified', 'How the cause was proved on and off — switched on, switched off.'),
+      f('verified', 'Verified', 'How you proved it: the fault came back when the cause was put back, and went when it was taken away.'),
     ],
     'D5–D6  Corrective action, implemented and validated': [
-      f('action', 'The permanent corrective action', 'What was chosen and why.', { tools: ['FC-143', 'FC-194'] }),
-      f('validated', 'Validated on the number', 'The measure after the action.', { tools: ['FC-105', 'FC-086'] }),
+      f('action', 'The permanent corrective action', 'What was chosen to stop it for good, and why it should work. List each step, with who and by when, on the form above.', { tools: ['FC-143', 'FC-194'] }),
+      f('validated', 'Validated on the number', 'The same number the complaint was about, measured after the action — and for how long it has held.', { tools: ['FC-105', 'FC-086'] }),
     ],
     'D7  Prevent recurrence': [
       f('system', 'What changed in the system', 'FMEA, control plan, standard — and the other lines it applies to.', { tools: ['FC-132', 'FC-007', 'FC-155'] }),

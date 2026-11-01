@@ -89,7 +89,7 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
           <div key={r.n} className="e8-act" data-action={r.n}>
             <Box id={`act@${r.n}`} label={`Action ${r.n}`} value={r.what} canEdit={canEdit} save={save} />
             <Line id={`actwho@${r.n}`} label={`Action ${r.n} — who`} value={r.who} placeholder="Who" empty="No one yet" canEdit={canEdit} save={save} />
-            <Line id={`actdue@${r.n}`} label={`Action ${r.n} — by when`} value={r.due} placeholder="By when" empty="No day" canEdit={canEdit} save={save} />
+            <Line id={`actdue@${r.n}`} label={`Action ${r.n} — by when`} value={r.due} placeholder="By when, e.g. 7 Nov" empty="No day" canEdit={canEdit} save={save} />
             {canEdit
               ? <button type="button" className="btn btn-sm" aria-pressed={r.done} onClick={() => save(`actdone@${r.n}`, r.done ? '' : 'yes')}>{r.done ? 'Done ✓' : 'Open — mark done'}</button>
               : <span>{r.done ? 'Done' : 'Open'}</span>}
