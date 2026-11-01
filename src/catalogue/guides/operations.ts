@@ -292,7 +292,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'Payback, NPV and IRR',
-        means: 'Payback is the running weeks for the saving to repay the cost. NPV, net present value, is the saving over the years discounted at the business’s rate, less the cost: above zero it is worth more than the money would earn. IRR is the rate at which the NPV would be zero; set it against the business’s hurdle rate.',
+        means: 'Payback is the running weeks for the saving to repay the cost. NPV, net present value, is the saving over the years discounted at the business’s rate, less the cost: above zero it is worth more than the money would earn. IRR is the rate at which the NPV would be zero; set it against the business’s hurdle rate. Return a year is the saving a year divided by the cost.',
         doThis: 'Read the sentence, then the tiles: Payback, Saving a week, NPV, Return a year, IRR and Spend. Red appears only by arithmetic: an NPV below zero, or a payback longer than the years counted. Never green.',
         youGet: 'For example a £4,800 splice table saving £310 a week, over 48 weeks a year for 3 years at 10%: pays back in 15.5 weeks of running, NPV £32,204.',
       },
@@ -479,7 +479,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
       {
         step: 'The headline and its tiles',
         means: 'Under the lines the control room says in one sentence where everything stands, then counts it: Projects running, Late, Critical (only when there is one) and This week, and The slips cost in margin for stage-gate projects behind their agreed handover. Each tile says what it is of, and only the abnormal is coloured.',
-        doThis: 'Read the sentence, then tap a tile: Late and Critical list those things right there, with Copy as a list for the meeting; Projects running and This week scroll to the projects and the week. If The slips cost shows a dash, it says which line lacks a margin.',
+        doThis: 'Read the sentence, then tap a tile: Late and Critical list those things right there, with Copy as a list for the meeting; Projects running and This week scroll to the projects and the week. If The slips cost shows a dash, it says what to give and where.',
         youGet: 'The numbers for the room. Late here is the same late as on a project’s own page and in Actions.',
       },
       {
@@ -581,7 +581,7 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
       {
         step: 'Eyes on the line',
         means: 'On a line’s page, under the tiles, one sentence says when anyone last looked at the line and how, for example “Line 7 looked at yesterday — a stop timed.” Fresh is up to 7 days, fading is 8 to 14, and stale is more than that or never. The level is in words as well as colour.',
-        doThis: 'Read the sentence. If it says fading or stale, go and see. The same line appears on the Factory board’s card for the line, as a note in a project’s Needs you for lines gone stale, and as the Gemba walk row on a project’s method page.',
+        doThis: 'Read the sentence. If it says fading or stale, go and see. The same line appears on the Factory board’s card for the line, as a note in a project’s Needs you for each line that is fading or stale, and as the Gemba walk row on a project’s method page.',
         youGet: 'The days since the last look, and what the look was: a stop timed, a filmed walk, a frame marked or a problem raised.',
       },
       {
@@ -706,5 +706,221 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
       },
     ],
     watch: 'It is a way out for the data, not a second place to edit it. Changing the workbook changes nothing in the app.',
+  },
+  'FC-206': {
+    intro: 'For a quick question about a line that would otherwise mean digging through its pages: will an extra order fit, where is the biggest loss, what changed, where is the line held. The answers are worked out by the app’s own formulas from the line’s counted shifts. A question outside those shapes is said to be outside what it answers.',
+    steps: [
+      {
+        step: 'What the line can make',
+        means: 'At the top of a line’s Line capacity page one sentence says what the line can make, with three speeds: Theoretical (the ideal speed each counted shift was judged against), Demonstrated (a typical counted shift) and Plannable (the speed four shifts in five reached). Ask answers from these.',
+        doThis: 'Count some shifts first: the speeds come from the shifts counted in the loss count over the last weeks, so a line with none says to count a shift. Five counted shifts are wanted to plan on one figure; fewer gives a range. Tap a figure to see the shifts behind it.',
+        youGet: 'The speed to plan on, not the best day’s, and the shifts it was worked out from.',
+      },
+      {
+        step: 'Ask about the line',
+        means: 'A box that takes a question in your own words, “Ask about Line 7”. It recognises the shapes it can answer and says so when yours is not one of them. Nothing is sent to an assistant.',
+        doThis: 'Type a question and press Ask. It answers will an extra order fit (“Can it take another 40 pallets on Thursday?”), the biggest loss (“What’s the biggest loss?”), what changed (“What changed this week?”), where the line is held (“Where is the line held?”) and what it can make.',
+        youGet: 'An answer in words, or, for another kind of question, the list of questions it can answer.',
+      },
+      {
+        step: 'Will an extra order fit?',
+        means: 'It turns the order into the line’s own unit, works out the hours it takes at the speed you can plan on, and sets them against next week’s spare hours.',
+        doThis: 'Say how many and of what (“another 40 pallets”). It needs to know how many of the line’s unit make one pallet, from Line capacity, and the week’s orders and running hours, which you put in on the page (Paste from a sheet takes orders). Without the orders it says how long the order takes and that whether it fits depends on them. It speaks for the week; the day’s plan is not in the app.',
+        youGet: 'A Yes or No with the hours it takes and the hours spare, and, when it does not fit, how many more hours it needs: an extra shift, or less lost at the constraint.',
+      },
+      {
+        step: 'Biggest loss, what changed, where it is held',
+        means: 'The biggest loss is the largest band of the counted shifts’ planned time, with its pounds in two parts and whether it is on the constraint. What changed is the moves this week against the usual (half again and 30 minutes more, with two weeks before). Held at is the constraint, with a note if it has moved.',
+        doThis: 'Ask each in your own words. A biggest loss that is “not the constraint” is said so: fixing it makes no more output, and the prize is at the constraint.',
+        youGet: 'The one thing to look at first, with the figures behind it.',
+      },
+      {
+        step: 'The figures used',
+        means: 'Under every answer a fold lists the figures it used, in words, so the answer can be checked.',
+        doThis: 'Open “The figures used”. Tap Theoretical, Demonstrated, Plannable or a change above to see the shifts or stops behind it.',
+        youGet: 'An answer you can trace to counted shifts and timed stops, not a guess.',
+      },
+    ],
+    watch: 'It answers only from shifts that were counted. A line with few counted shifts gets a range or a request to count one, never an invented figure.',
+  },
+  'FC-213': {
+    intro: 'For a number that has to be hit, such as cost a tonne down by 3 pence: draw the outcome at the top, what has to be true for it underneath, the conditions under those and the work at the bottom. It is a thinking surface first, so every box and its colour are yours unless you bind a box to one of the project’s numbers. It is partly built.',
+    steps: [
+      {
+        step: 'Start with the outcome',
+        means: 'One box at the top: what this project has to deliver. Everything else hangs off it.',
+        doThis: 'Open the project’s Tree. On an empty tree press Start from Line 7 (or Start from the N lines) to get the outcome and one box for each line, or Add the desired outcome to type your own. Only the project’s owner and team can draw; a client reads.',
+        youGet: 'The first box, in the project’s own words, for example “Line 7 hits its packs per minute target”.',
+      },
+      {
+        step: 'Four levels',
+        means: 'Desired outcome, What needs to be true, Required conditions and Required actions. Each box is a statement that must be true for the box above it; the tree is how you check you have thought of everything.',
+        doThis: 'Tap a box and type. Use Add another below for a sibling and Add the next level to its right for what must be true for this one. Move up and Move down reorder a box, and Move this box somewhere else then Put it here moves a branch.',
+        youGet: 'The tree on screen, with a legend of the levels across the top.',
+      },
+      {
+        step: 'Set a box’s state',
+        means: 'Where a box has got to: Not started, In progress, At risk, Late or Done. It is set by hand by whoever holds the pen, and the page never overrides the colour you chose.',
+        doThis: 'Open the Status list on a box and pick one. A box filled from the board takes the board’s state instead, and says “from the board”.',
+        youGet: 'A tree that shows at a glance what is off track, in words as well as colour.',
+      },
+      {
+        step: 'Bind a box to a number',
+        means: 'A box can take its colour from one of the project’s own numbers instead: the line’s latest reading against its target. “Line 2B holds 60 packs a minute” is a number before it is anything else.',
+        doThis: 'Press Bind to a number on the box and pick a measure for a line in Which number…. The box then shows the figure (“52 vs 44 packs a minute”) and says On target, Behind target, No target set or Nothing measured yet. Go back to setting the state by hand with the link on the box.',
+        youGet: 'A box that changes colour when the number does, with the figure beside it.',
+      },
+      {
+        step: 'Put the board’s work under it',
+        means: 'The project’s board holds the countermeasures. Link a box to the board once and its actions arrive by themselves, each with the state the board gives it, so there is nothing to copy.',
+        doThis: 'Press Fill this from the board on a box, or Put them on the tree when the page says N actions on the board are on no box. The page counts any action it could not place and says why, so nothing is lost quietly.',
+        youGet: 'The work at the bottom of the tree kept in step with the board.',
+      },
+      {
+        step: 'Fold, zoom and print',
+        means: 'A large tree is read by folding and zooming, and printed whole.',
+        doThis: 'Use Hide actions to fold the bottom level away, the zoom controls to fit it to the screen, and Report ▾ then The tree — printed for paper.',
+        youGet: 'One sheet showing the outcome, what has to be true for it and the work underneath.',
+      },
+    ],
+    watch: 'The colour is yours until you bind it. A tree drawn by hand shows what you believe; only a bound box shows what the readings say.',
+  },
+  'FC-214': {
+    intro: 'For running a piece of improvement work from start to finish in one place. A project holds its method, its tools, its problems, its actions and its reports, and whatever is done inside it lands in it by itself, so the work is not scattered across tools and lines.',
+    steps: [
+      {
+        step: 'Open the project',
+        means: 'A project is one of eight methods (PDCA, DMAIC, 8D, A3, Stage gate, Kaizen event, Improvement Kata or Theory of Constraints) and its front page is the method: its question, then its sections in order. The lines are the factory’s and shared: a project points at them and holds no copy.',
+        doThis: 'Open Projects and tap the project, or start one with New project and pick its method. Read the question at the top and the numbered sections under it.',
+        youGet: 'The method page, with the project’s own tabs along the top: Journey, Actions, Problems and Tools, then Notes, Reports and Details.',
+      },
+      {
+        step: 'Use a tool inside it',
+        means: 'Under each section the method lists the tools that fit it by default, each saying how often it has been used in this project, and saying honestly whether it is built, is a mode of another tool, or is not built yet. Any tool can be added to any section.',
+        doThis: 'Press New beside a tool, or Add a tool and pick one. It starts in the project, on the project’s line, with no “For a project?” question to answer: it is the project’s from the first tap.',
+        youGet: 'A record that belongs to the project, counted on its section, listed under Tools and reachable from the project’s tabs. A tool used that the method does not list appears under Also used here.',
+      },
+      {
+        step: 'Whatever you find lands in Actions',
+        means: 'Problems and Actions are where everything found inside the project goes: a problem raised on a study, a countermeasure, a fix, a plan step. Actions reads them all with who, why, where, by when and priority.',
+        doThis: 'Raise the problem or action where you find it and give it an owner and a day. Then open Actions to see who is doing what by when, and Needs you on the front page for what is late.',
+        youGet: 'One list for the project, with nothing to copy across from the tools.',
+      },
+      {
+        step: 'Work that belongs to no project yet',
+        means: 'Work done on a line with no project stays on its line: nothing is lost and nothing is forced into a project.',
+        doThis: 'When it belongs in a project, open the record and use its place line (On Line 7 · in … · Change) to put it in the project.',
+        youGet: 'The record in the project from then on, its history with it.',
+      },
+      {
+        step: 'Journey and Reports',
+        means: 'The Journey is the project day by day: what was done, what is next, your commentary and the tools being used, for any range of dates. Reports lists everything printable for the project in one place.',
+        doThis: 'Open Journey, choose this week and next or pick a range, and write the commentary for today. Press Reports for the client report, the Journey report and the spreadsheet.',
+        youGet: 'A paper for whoever you report to, made from what is in the project.',
+      },
+    ],
+    watch: 'Start the tool from inside the project, with its New or from the project’s Tools page. A tool started from the factory’s Tools page belongs to no project and stays on its line until you move it in.',
+  },
+  'FC-021': {
+    intro: 'For timing the work at each station from film instead of a stopwatch, when a stopwatch misses cycles and nobody can check it afterwards. You film the line on a phone, say what you want to find out, review what the app finds on the footage itself, and the cycles, the line balance and takt are worked out from what you accept. It is partly built; changeovers are not measured from footage yet.',
+    steps: [
+      {
+        step: 'What do you want to find out?',
+        means: 'A video study starts from a question, never from the footage. Put in your own words, or pick from the examples, it chooses the study (line balance, cycles at each box, waiting periods and others) and says what footage can and cannot tell you for it.',
+        doThis: 'Press New video study. Type what you want to find out, or tap an example, then check The study it chose. If you know roughly how long one cycle takes, type it in One cycle takes about (seconds). A study Faultline does not measure from footage yet says so, and what to use by hand meanwhile.',
+        youGet: 'How to film it: where the phone goes, what must be in the picture, how long to film (for a line balance, at least 10 whole cycles of the slowest station and one either side), the phone’s settings, the light and the people.',
+      },
+      {
+        step: 'The footage',
+        means: 'The film is read on your device; nothing is sent anywhere to read it. A steady, side-on, raised view with every station in the picture and at least ten whole cycles of the slowest station is what makes the reading good. People are labels such as Operator A, never names, and nobody is recognised by face.',
+        doThis: 'Film as the plan says, with the phone fixed on a stand and not in the hand, sound off, and keep going without pausing. Choose the file (MP4, MOV or WebM up to 20 minutes) and say Where was the phone?. Tell the people what the film is for before you start.',
+        youGet: 'Is this footage fit for the study?: each check Fine, Watch or Not fit, such as camera shake and the light, with what was found and what it means, and what this footage can tell you, measured, worked out, only interpreted or not from footage.',
+      },
+      {
+        step: 'Stations in view',
+        means: 'A station is a place in the picture: a box with the person who works there labelled. The app reads the movement in each box.',
+        doThis: 'Start the study (Which line, For a project, Its name), then under Stations in view, left to right say how many stations are in view, name each and label who works there, and set where each ends. Press Read the footage. Name the work from the frames is off until you tick it and says what it sends: a few small frames of each station, no sound, through the app’s gateway to the assistant, told never to identify anyone.',
+        youGet: 'A reading of when work starts and stops at each station, with a progress bar and a Stop. Lower the Sensitivity under How the footage is read if it finds too little.',
+      },
+      {
+        step: 'Review what was found',
+        means: 'Each piece of work the app finds is a candidate until you accept it. You play it on the footage itself, so the study can be checked by anyone afterwards. Only what is accepted is counted.',
+        doThis: 'Under What was found — review it on the footage tap a time to play from it. Accept or Reject each, move a boundary with Start here and End here at the playhead, Split here, or Merge with the next. Add work at a station for something it missed. Accept every one still to review takes the rest at once, once you are satisfied.',
+        youGet: 'A timeline of events with each end’s ± shown, and a mark on any event inside shaky footage. Whether a gap with no movement is waiting is for you to say; the app never calls it waiting on its own.',
+      },
+      {
+        step: 'The line balance',
+        means: 'From what you accepted: each station’s work a cycle with its spread, how many cycles it rests on, a cycle every, the time with no movement between and how much of the time is working. The station with the most work a cycle sets the pace.',
+        doThis: 'Read the table, then give the Takt: how many to make, of what, in how many minutes a shift or day. Use the two buttons to count from Accepted only or With those to review (provisional). Under What it says, read which station is over takt and by how much. A station “of N needed” has too few cycles to trust.',
+        youGet: 'Work a cycle with ±, the pace, each person’s work stacked against takt and the sentences of What it says, each labelled Measured, Worked out, Proposed — not measured or Not known yet.',
+      },
+      {
+        step: 'Report, and the footage',
+        means: 'The reports made from the study say how many events were accepted and how many were still to review. The footage can be removed while what was found in it stays.',
+        doThis: 'Make the report from Report ▾. Press Delete the footage when you are finished with the film: it goes from this device and the cloud, and the events, figures and reports are kept and say the footage was deleted.',
+        youGet: 'A report for the client that can be checked on the footage, and the film gone from the floor’s devices.',
+      },
+    ],
+    watch: 'Footage cannot judge pace, so a time here is not rated and no allowance is added: rating is for a person with a stopwatch. How accurate the reading is depends on the footage and is measured, not promised.',
+  },
+  'FC-117': {
+    intro: 'For the number a team already keeps each week, such as yield, give-away or labour per tonne, and never sees the trend of. It records the weekly value for each line against its target and, from eight readings, says in words which way it is going.',
+    steps: [
+      {
+        step: 'What the project measures',
+        means: 'A measure is a name, a unit and which way is good: packs per minute, waste, first-pass yield, whatever the business counts. Which way is good matters, because a falling waste figure is a win and a falling rate is not.',
+        doThis: 'The project’s owner sets the measures, and their targets, on the project’s Details page; the Numbers page offers Set the measures up when none are set.',
+        youGet: 'A chart for each measure and line against its target.',
+      },
+      {
+        step: 'Record a reading',
+        means: 'One reading is the day and the value, for a line. A week nobody measured is simply not in the list.',
+        doThis: 'On the project’s Results, in Numbers, open Record a reading, pick the line and the measure, set On, type the value and, if you like, a Note (what was different about it), then press Add reading. A reading can be corrected from Readings, and removed by the owner. When the project measures a rate a minute, a shift counted in the loss count is offered under Counted on the line as a reading in one tap.',
+        youGet: 'A point on the chart and a line in Readings, newest first, with the day and who took it.',
+      },
+      {
+        step: 'The trend in words',
+        means: 'From eight readings the page says whether the number is rising or falling, how fast, and whether that is the right way for this measure. It uses Sen’s slope for the rate, the Mann–Kendall test for whether the trend is steady rather than a wobble, and the runs about the median for a shift or a pattern the slope alone would miss.',
+        doThis: 'Read the sentence under the chart, for example “Trend over 12 readings: falling about 0.2 % a week (Sen), Mann–Kendall p 0.004 — the right way for this measure.” “No steady trend found” is also an answer. Record on the same day each week so the readings compare.',
+        youGet: 'The direction, the rate a week and a verdict on the right way or the wrong way, in colour and words. Before eight readings it says nothing, rather than guess.',
+      },
+      {
+        step: 'Against the target',
+        means: 'The chart draws each reading with the line’s target as a dashed line, so you see how far it is from where it should be and not only which way it is going.',
+        doThis: 'Read the header of the chart: the latest value and how it stands against the target, and the legend that says whether higher or lower is better for this measure.',
+        youGet: 'The gap to the target, in words beside the colour.',
+      },
+    ],
+    watch: 'The trend reads on the screen only. It is not yet on the client report’s paper.',
+  },
+  'FC-201': {
+    intro: 'For the question a team asks after a change: did our number move, and was it for a reason or just luck? It splits the line’s weekly readings at the day the change landed, compares the two halves and gives a verdict that is allowed to say no.',
+    steps: [
+      {
+        step: 'The day the change landed',
+        means: 'The readings before the change and the readings after it are counted, never typed. A change needs at least two readings on each side of its day.',
+        doThis: 'There are two doors. Close a countermeasure on the board: the day it closed splits the readings and the action carries a Did it work? badge. Or log a win, press Prove it from the readings, pick the line and measure, then pick When the change landed from the dates offered, which are only those with two readings either side.',
+        youGet: 'Before and after halves of the line’s own readings for the measure the project leads on.',
+      },
+      {
+        step: 'The verdict',
+        means: 'Proven means the number is better by at least 1.5% and a test (Welch’s, one-sided) says a change this size would come up by chance fewer than 10 times in 100; the page says how many. Not yet proven means better but it could be chance, or there are too few readings. No change is under 1.5%. Worse is shown exactly as loudly as a win.',
+        doThis: 'Read the badge, the sentence (“44 → 52 packs a minute · +18.2% · 6 before · 6 after”) and the line under it that says how likely chance is. Which way is good comes from the measure, so a falling waste figure reads as better.',
+        youGet: 'Proven, Not yet proven, No change or Worse, with both counts so nobody has to ask out of how many.',
+      },
+      {
+        step: 'Too soon to say',
+        means: 'A change with fewer than two readings since it landed is too soon to judge, and fewer than three readings on a side is too few to test at all.',
+        doThis: 'Keep recording the weekly number. When the readings arrive the badge and the sentence follow by themselves.',
+        youGet: 'Too soon to say, with how many readings are in, rather than a verdict built on one.',
+      },
+      {
+        step: 'Call it',
+        means: 'Calling a win freezes its numbers, because readings keep arriving and a claim read out in a meeting must not move afterwards.',
+        doThis: 'Press Call it (or Record it anyway when the verdict is Worse). Later readings will not change what you called.',
+        youGet: 'A receipt on the win that prints on the report exactly as it was called.',
+      },
+    ],
+    watch: 'It says the line’s number moved, never that this action did it. A line can be changed by six things at once; the verdict is the evidence, not the cause.',
   },
 };
