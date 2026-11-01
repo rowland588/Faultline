@@ -57,6 +57,17 @@ const found = (await page.locator('[data-trend]').allInnerTexts()).map(flat);
 ok(found.includes(flat(said.up.text)), `1 the line’s Numbers say it under the chart: "${(found[0] ?? '').slice(0, 130)}"`, found.join(' | '));
 ok((await page.locator('.nm-trend.is-g').count()) >= 1, '1 in the right-way tone — and in words, never the colour alone');
 ok((await page.locator('.nm-measure').count()) >= 2 && found.length === 1, `1 only the measure with eight readings says a trend (${found.length} of ${await page.locator('.nm-measure').count()} measures)`);
+/* the moving average of the last three readings (FC-117): drawn dashed on the chart of the measure with eight readings — 42 41 35 47 44 46 49 52 gives 39.33 41 42 45.67 46.33 49
+   (worked by hand) — and not on the chart with fewer; named in the legend */
+const avg = await page.evaluate(async () => {
+  const paths = [...document.querySelectorAll('path[data-moving-average]')];
+  const { movingAverage } = await import('/src/lib/measureProof.ts');
+  return { n: paths.length, segs: paths.map(p => (p.getAttribute('d') ?? '').split(/[ML]/).filter(Boolean).length), charts: document.querySelectorAll('.nm-measure .pace-chart svg[role=img]').length,
+    key: [...document.querySelectorAll('.pace-key')].some(k => /3-reading average/.test(k.textContent ?? '')), ma: movingAverage([42, 41, 35, 47, 44, 46, 49, 52]).map(v => v === null ? null : Math.round(v * 100) / 100) };
+});
+ok(avg.n === 1 && avg.segs[0] === 6 && avg.key && avg.charts >= 2, `1 the moving average is drawn once, on the chart with eight readings (6 points of 8), named in the legend; the chart with fewer has none (${avg.n} of ${avg.charts} charts)`, JSON.stringify(avg));
+ok(JSON.stringify(avg.ma) === JSON.stringify([null, null, 39.33, 41, 42, 45.67, 46.33, 49]), '1 …the averages are the hand-worked ones: 39.33 41 42 45.67 46.33 49', JSON.stringify(avg.ma));
+
 
 /* 2 — the number proved at a change */
 await page.goto(`${BASE}/#/project/${sd.pacedProjectId}?view=wins`); await page.waitForTimeout(2500);
@@ -80,17 +91,6 @@ ok(/by chance about 2 times in 100/.test(v5.note), `2 …said in plain words: "$
 await sheet.getByRole('button', { name: 'Call it' }).click(); await page.waitForTimeout(1200);
 const called = flat(await page.locator('.win-proof-line').first().innerText());
 ok(called === v5.sentence, `2 Call it freezes the numbers onto the win: "${called}"`);
-
-/* the moving average of the last three readings (FC-117): drawn dashed on the chart of the measure with eight readings — 42 41 35 47 44 46 49 52 gives 39.33 41 42 45.67 46.33 49
-   (worked by hand) — and not on the chart with fewer; named in the legend */
-const avg = await page.evaluate(async () => {
-  const paths = [...document.querySelectorAll('path[data-moving-average]')];
-  const { movingAverage } = await import('/src/lib/measureProof.ts');
-  return { n: paths.length, segs: paths.map(p => (p.getAttribute('d') ?? '').split(/[ML]/).filter(Boolean).length), charts: document.querySelectorAll('.nm-measure svg').length,
-    key: [...document.querySelectorAll('.pace-key')].some(k => /3-reading average/.test(k.textContent ?? '')), ma: movingAverage([42, 41, 35, 47, 44, 46, 49, 52]).map(v => v === null ? null : Math.round(v * 100) / 100) };
-});
-ok(avg.n === 1 && avg.segs[0] === 6 && avg.key && avg.charts >= 2, `1 the moving average is drawn once, on the chart with eight readings (6 points of 8), named in the legend; the chart with fewer has none (${avg.n} of ${avg.charts} charts)`, JSON.stringify(avg));
-ok(JSON.stringify(avg.ma) === JSON.stringify([null, null, 39.33, 41, 42, 45.67, 46.33, 49]), '1 …the averages are the hand-worked ones: 39.33 41 42 45.67 46.33 49', JSON.stringify(avg.ma));
 
 /* 3 — the paper: the 6M client report (the full report), and the A3 of a project that keeps its numbers on the A3 */
 await page.goto(`${BASE}/#/pace-report?project=${sd.pacedProjectId}&line=${sd.pacedLineId}`); await page.waitForTimeout(3000);

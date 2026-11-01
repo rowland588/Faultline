@@ -186,6 +186,7 @@ const def: CalcDef = {
         verdict: '3.1 km a shift', tone: 'n',
         sentence: 'One round of the packer’s is 86 m over 6 legs; 36 rounds a shift is 3.1 km — 40 min of walking at 1.3 m/s (loaded or in a crowded hall), 8.3% of the 480-minute shift.',
         tiles: { 'A round': '86 m', 'Walked a shift': '3.1 km', 'Walking a shift': '40 min', 'Share of the shift': '8.3%', 'Labour a shift': '£16.54' },
+        money: '39.7 min of walking a shift at £25.00 an hour is £16.54 a shift — £82.69 over 5 shifts a week.',
       },
     },
     {
