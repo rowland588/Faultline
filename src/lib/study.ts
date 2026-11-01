@@ -572,6 +572,12 @@ export interface LogCheck {
   removed?: boolean;
   /** Planned maintenance (FC-063): standard hours for this task — backlog is summed in these hours. */
   stdHours?: number;
+  /** MISTAKE-PROOFING REGISTER (FC-014, tools/checks/register): the error this device prevents, in words; its type (Shingo:
+   *  a shape that fits only the right part, a count that must be reached, steps that must happen in order) and its
+   *  function (a control stops or rejects; a warning is a light or a sound a person acts on). All optional. */
+  error?: string;
+  deviceType?: 'contact' | 'fixed-value' | 'motion-step';
+  deviceFunction?: 'control' | 'warning';
 }
 
 export interface AgreedLog {

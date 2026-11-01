@@ -3,8 +3,10 @@
 **Catalogue:** FC-014 · **Knowledge:** `lean.poka-yoke` (full, textbook) · built on the check-log shape,
 `knowledge/specs/FC-236-check-logs.md` (models: FC-170 metal detection, FC-166 code and label, FC-062 CILT) ·
 **Asked for:** `docs/METHODS.md` §11 (the Kaizen event's Improve and Standardise; 8D's D7; DMAIC's Improve),
-Rowland, 31 October: *"I want it done as fast as possible"* · **Status:** built on `m5-kaizen`, 31 October — the
-builder's choices are under *chosen*; the register's structured fields are **not** built (see the Scope).
+Rowland, 31 October: *"I want it done as fast as possible"* · **Status:** the check log built on `m5-kaizen`, 31 October; **the register as data** (a device's error, type and
+function as fields, counted and filtered, on the page and the paper) built on `m6-registers`, 1 November — the
+builder's choices are under *chosen*. The errors not yet proofed (FC-132) and a device's effectiveness before and after
+are **not** built (see the Scope).
 
 ## 1. Purpose
 A mistake-proofing device — the label-presence sensor, the date-code reader, the reject-confirm on the metal
@@ -22,17 +24,22 @@ register."*
 checks (six devices tested every shift, a guard interlock daily, colour-coded tools and a recipe release weekly, a
 walk for bypassed devices every shift, and a re-test after any device is repaired or moved); each check pass or
 fail where *pass means the device acted on the known-bad part*; the states, compliance, the failures with the window
-and the packs held and the problem raised; the paper. **The register is the list of checks** (knowledge/BUILD-SHAPES.md
-row FC-014): the device is the check's name, **what error it prevents** is said in the name, **the type
-(contact · fixed-value · motion-step, Shingo) and function (control · warning)** and **the fail test** are in the
-check's "passes if" words, **where on the line** is the check's where, **how often** is its frequency. What it does
-**not** cover, said on the page and the paper: the register's fields **as data** (type, function and the error are
-words inside the check, so the list cannot yet be filtered by type or function — see §12 for exactly what that
-needs); the errors **not yet proofed** (the FMEA's ranking, **FC-132**, not built); the device's **effectiveness**
-(defects of its kind reaching the next step before and after, **FC-134**/**FC-150**); the device's cost against the
-failures it stops (no device cost is held); deciding whether held product is released, re-run or scrapped (the
-site's call); the product-on-hold record (**FC-135**); the device maker's own verification of a detector or a label
-reader (**FC-170**, **FC-166**, which are separate logs).
+and the packs held and the problem raised; the paper. **The register is the list of checks, and since 1 November
+each device carries its register fields as data** (knowledge/BUILD-SHAPES.md row FC-014): the **error it prevents**
+(words), its **type** (contact · fixed-value · motion-step, Shingo) and its **function** (control · warning) — three
+optional fields of the check (`LogCheck.error`, `deviceType`, `deviceFunction`, inside the study's `agreed` JSON, no
+migration), set on Add a check / Edit, offered on the starter list, **counted** (devices by type, by function, the
+ones with no type or no function yet, the routine checks that are about devices rather than devices) and **filtered** by type and
+function on the log's *The checks* tab, and printed as the device register on the log's paper. A log started before
+this change keeps its words: a check whose "passes if" begins *Contact · control.* (the starter's old form) is read as
+that type and function, said on the page as read from its words. **Where on the line** is the check's where, **how
+often** is its frequency, the **fail test** is the words of what passes. What it does **not** cover, said on the page
+and the paper: the errors **not yet proofed** (the FMEA's ranking, **FC-132**, not built); the device's
+**effectiveness** (defects of its kind reaching the next step before and after the device — needs a link from a
+complaint or a reject count to a device, **FC-134**/**FC-150**, not built); the device's cost against the failures it
+stops (no device cost is held); deciding whether held product is released, re-run or scrapped (the site's call); the
+product-on-hold record (**FC-135**, a register of its own — a failed test's hold can be written into it from there);
+the device maker's own verification of a detector or a label reader (**FC-170**, **FC-166**, which are separate logs).
 
 ## 2. Users and scenarios
 The operator at start of shift on a phone, the engineer who owns the devices, the quality person reading the week
@@ -70,7 +77,13 @@ and **FC-166**; a device's repeated failure goes to the 5 whys.
   problem raised is **Critical** for a device guarding a food-safety or label error, **High** for the others, and
   changeable per check; a failure of a product device **holds** product, a guard interlock holds none (it protects a
   person, not the pack); **no standard's clause number is quoted** (the automotive control-plan reference is listed to
-  confirm).
+  confirm). *Chosen for the register as data (1 November):* a device is a check that has a type, a function or an
+  error (set, or read from the old *Type · function.* words); a check with none of the three is a **routine check on
+  the devices** (the bypass walk, the re-test) and is counted apart, never as a device with no type; the register's
+  fields are optional and a device with no type or no function set is counted as *no type yet* / *no function yet*; the page says a
+  **warning** device depends on a person's reaction and, for a food-safety error, should be a control (the record's
+  rule) — it never decides which errors are food-safety ones; the filters are on the page only (the paper prints the
+  whole register, grouped by type).
 - *Money* (`knowledge/MONEY.md` §4, FC-014): a device's prevention cost against the failures it stops, in cost of
   quality (Q). **Built:** the packs held by a failed test at the line's materials a pack (the shape's one model,
   `lib/problemCost`, H and M); the missing input is named ("Give the line its materials a pack …"). **Not built:** the
@@ -100,6 +113,15 @@ hold (rate × window), the clean bound `1 − (1 − conf)^(1/n)`. Worked here, 
   looked at day 8: tools 2 due 2 on time; recipe release 1 on time, the day-7 one missed once its 12 h grace passed →
   **4 due, 3 on time, 1 missed, 75%**, the recipe release overdue (the record's "14 due, 12 done, 2 not checked",
   in miniature).
+
+- **Case 3 — the register counted** (hand-worked from the starter list, 1 November). The nine starter checks are
+  seven devices and two routine checks. Types: label-presence sensor *contact*, date-code reader *fixed-value*,
+  reject-confirm *motion-step*, case-count sensor *fixed-value*, guard interlock *motion-step*, colour-coded utensils
+  *contact*, recipe release *motion-step* → **contact 2, fixed-value 2, motion-step 3**. Functions: all *control*
+  except the colour-coded utensils (*warning*) → **control 6, warning 1**. Routine checks: the bypass walk and the
+  re-test → **2**. Every device names the error it prevents → **0 without an error**. Taking the type off one device
+  gives **6 devices with a type, 1 with no type yet** (its function and error still counted); reading a log started before the change from its words gives the same
+  seven devices with the same counts. (`register.test.ts`)
 
 ## 7. Outputs
 The shape's (FC-236 §7), in this log's words: tiles (done on time, missed, failed, product held), the sentence, what
@@ -156,13 +178,26 @@ catalogue); `checks.test.ts` (the clean bound against SciPy, the shape's). Accep
 7. Phone, edit, delete with Undo, client read-only — `log-shape.mjs` S3 (the table).
 8. It appears on the Kaizen event, 8D and DMAIC method pages once the catalogue says it is built — the catalogue
    test (`src/catalogue/__tests__/catalogue.test.ts`) and the method page (`src/project/method/methodTools.ts`).
-*Not proved:* a real device's behaviour; two phones on one list; the register's structured fields (not built).
+9. The register's fields are data: a device's error, type and function are set on Add a check / Edit (type and function
+   as chips, *Not stated* allowed), kept after a reload and read by the module — `register.test.ts`;
+   `device-register.mjs` (R2, R3).
+10. The register is counted as Case 3 says — 7 devices (contact 2 · fixed-value 2 · motion-step 3; control 6 · warning
+    1), 2 routine checks, 0 without an error — in the module, on the page's *The device register* panel and on the paper;
+    taking a type off one device moves the count to *6 with a type, 1 with no type yet* without a reload — `register.test.ts`;
+    `device-register.mjs` (R1, R2, R5).
+11. The list is filtered by type and by function (the chips narrow the rows and say how many are shown), and a log started
+    before the change reads its devices from the old words and counts them the same — `register.test.ts`;
+    `device-register.mjs` (R1, R4).
+12. The paper carries the device register and the checks with their error, type and function, equal to the module's
+    sentence; a client reads it and changes nothing — `device-register.mjs` (R5, R6).
+*Not proved:* a real device's behaviour; two phones on one list; the unproofed errors and the device's effectiveness
+(FC-132, FC-134 — not built).
 
 ## 12. Maintainability
-`src/tools/checks/defs/mistake-proofing.ts` is the whole of it. **What the register part needs** (not built, because
-it changes the shared shape other logs use): optional fields on `LogCheck` (`src/lib/study.ts`) — `error?: string`
-(the error prevented), `deviceType?: 'contact' | 'fixed-value' | 'motion-step'`, `deviceFunction?: 'control' |
-'warning'` — an input for each in the check editor (`ChecksEditor.tsx`), and a register table on the log's paper
-and the History view grouped by type and function. They live inside the study's `agreed` JSON (a `jsonb` column), so
-**no migration is needed** — to be confirmed by the lead before that slice. The candidates list (errors not yet
-proofed) waits for **FC-132**; effectiveness for **FC-134**; the control plan's use of these checks for **FC-133**.
+`src/tools/checks/defs/mistake-proofing.ts` is the starter list, its words and its examples; `src/tools/checks/register.ts`
+is the register's arithmetic and sentences (read by the page, the paper and the tests); the shared shape knows a register
+only through `LogDef.register` (the extra inputs on Add a check, the panel on *The checks*, the register on the paper) and
+the three optional fields on `LogCheck` (`src/lib/study.ts`) inside the study's `agreed` JSON — a jsonb column, so **no
+migration**. A second log that is a register of things (a gauge register, a calibration list) turns the same flag on and
+brings its own words. The candidates list (errors not yet proofed) waits for **FC-132**; effectiveness for **FC-134**; the
+control plan's use of these checks for **FC-133**.

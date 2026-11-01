@@ -88,7 +88,9 @@ export function MethodScreen({ projectId }: { projectId: string }) {
               {s.tools.map(id => {
                 const h = howTool(id);
                 const t = openable(h);
-                const u = t ? uses.get(t.key) : undefined;
+                /* a check log's kind counts its own logs, not every check log in the project */
+                const logKind = h.how === 'inside' && h.entry.kind === 'log' ? t?.to.split('/')[2]?.split('?')[0] : undefined;
+                const u = logKind && got ? { n: got.studies.filter(x => !x.deletedAt && x.tool === 'log' && x.agreed?.log?.key === logKind).length } : t ? uses.get(t.key) : undefined;
                 const name = h.how === 'unknown' ? id : h.entry.name;
                 /* the Gemba walk is not a page of its own: its row says how fresh the looking is on the project's lines and opens the stalest */
                 const gemba = id === 'FC-199' && looking?.length ? looking : undefined;

@@ -195,11 +195,11 @@ export const LEAN: Entry[] = [
     complexity: 'S', value: 'medium', valueWhy: 'Protects against the errors that cause recalls.',
     status: 'partial', form: 'tool', kind: 'log', methods: ['lean.poka-yoke'], scenarios: ['quality', 'safety'], words: ['poka yoke', 'error proofing'],
     spec: 'knowledge/specs/FC-014-mistake-proofing.md',
-    built: logBuilt('mistake-proofing'),
+    built: (() => { const b = logBuilt('mistake-proofing'); return { ...b, code: [...b.code, 'src/tools/checks/register.ts'], tests: [...b.tests, 'src/tools/checks/__tests__/register.test.ts'], acceptance: [...b.acceptance, 'device-register.mjs'] }; })(),
     limits: [
-      'The register is the list of checks: a device’s type (contact, fixed-value, motion-step), function (control, warning) and the error it prevents are words in the check, not separate fields — the list cannot yet be filtered or counted by them.',
-      'The errors not yet proofed (the FMEA’s ranking, FC-132) and a device’s effectiveness before and after (FC-134) are not built; a device’s own cost against the failures it stops is not held.',
-      'It records the tests and never decides a release; event checks (a repair, a move, a reset) are counted when done, not scheduled; the product-on-hold record (FC-135) is not built yet.',
+      'The register is data since 1 November — each device names the error it prevents, its type (contact, fixed-value, motion-step) and its function (control, warning), counted and filtered on the log and printed as the device register; a log started before reads the type and function from the old words of the check.',
+      'The errors not yet proofed (the FMEA’s ranking, FC-132) and a device’s effectiveness before and after (defects of its kind reaching the next step — needs a link from a complaint or a reject count to a device) are not built; a device’s own cost against the failures it stops is not held.',
+      'It records the tests and never decides a release; event checks (a repair, a move, a reset) are counted when done, not scheduled; a failed test’s hold can be written into the product-on-hold register (FC-135).',
     ],
   },
   {

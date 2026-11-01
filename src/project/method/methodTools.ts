@@ -29,6 +29,11 @@ export function howTool(id: string): ToolHow {
   const own = toolOfEntry(entry.id);
   if (own && (entry.status === 'available' || entry.status === 'partial')) return { how: 'tool', tool: own, entry };
   if (entry.status === 'to-build' || entry.status === 'specified' || entry.status === 'research') return { how: 'notyet', entry };
+  /* a check log is one kind of the Check logs tool and opens at its own list (/log/<kind>), where New starts it from its starter list */
+  const logTo = entry.kind === 'log' ? entry.built?.where.find(w => w.startsWith('/log/')) : undefined;
+  const hub = logTo ? entryById('FC-236') : undefined;
+  const hubTool = hub ? toolOfEntry(hub.id) : undefined;
+  if (logTo && hub && hubTool) return { how: 'inside', tool: { ...hubTool, to: logTo }, entry, parent: hub };
   /* built, with no page of its own: a mode of a tool that has one? */
   let parent = entry.partOf ? entryById(entry.partOf) : undefined;
   for (let i = 0; parent && !toolOfEntry(parent.id) && parent.partOf && i < 3; i++) parent = entryById(parent.partOf);

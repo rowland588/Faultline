@@ -18,6 +18,7 @@ import { checkRow, findingRows, logFigures, type LogFigures, type ScoreSeries } 
 import { failureLine, logActions, logClosing, logInsights, logSays, logTiles, resultWords } from './says';
 import type { LogCtx } from './hold';
 import { judgedBy } from './RoundParts';
+import { deviceOf, kindCell, registerOf, registerSays, warningNote } from './register';
 
 const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', DANGER = '#c4281c', BAR = '#c3cfcf';
 
@@ -90,9 +91,20 @@ export function logBodyBlocks(i: LogPaperInput): Block[] {
   const ins = logInsights(f);
   if (ins.length) { out.push(leanHead('What it means')); out.push(...leanInsights(ins)); }
 
+  const reg = def.register ? registerOf(log.checks) : undefined;
+  if (reg) {
+    /* the device register (FC-014): the counts in the page's words, then each device with its error, type and function */
+    out.push(leanHead(`The device register — ${reg.devices.length} ${reg.devices.length === 1 ? 'device' : 'devices'}${reg.routines.length ? `, ${reg.routines.length} routine ${reg.routines.length === 1 ? 'check' : 'checks'}` : ''}`));
+    out.push(text({ text: registerSays(reg), size: 9, colour: INK2, after: 3 }));
+    const wn = warningNote(reg);
+    if (wn) out.push(text({ text: wn, size: 8, colour: MUTED, after: 3 }));
+  }
   out.push(leanHead('The checks as agreed'));
-  out.push(checks.length ? table(['Check', 'Where · who', 'How often', 'Judged by', 'If it fails'],
-    checks.map(c => [c.name, [c.where, c.who].filter(Boolean).join(' · ') || '—', freqWords(c.when), judgedBy(c), c.reaction?.trim() || def.reactionWords]), [0.2, 0.15, 0.13, 0.24, 0.28])
+  out.push(checks.length ? (reg
+    ? table(['Check', 'Error it prevents · type · function', 'Where · who', 'How often', 'Judged by', 'If it fails'],
+      checks.map(c => { const d = deviceOf(c); return [c.name, d.isDevice ? [d.error ?? 'error not named', kindCell(d)].join(' · ') : 'A routine check on the devices', [c.where, c.who].filter(Boolean).join(' · ') || '—', freqWords(c.when), judgedBy(c), c.reaction?.trim() || def.reactionWords]; }), [0.15, 0.2, 0.11, 0.11, 0.19, 0.24])
+    : table(['Check', 'Where · who', 'How often', 'Judged by', 'If it fails'],
+      checks.map(c => [c.name, [c.where, c.who].filter(Boolean).join(' · ') || '—', freqWords(c.when), judgedBy(c), c.reaction?.trim() || def.reactionWords]), [0.2, 0.15, 0.13, 0.24, 0.28]))
     : text({ text: 'Nothing is on the list to check yet.', size: 9, colour: MUTED }));
 
   out.push(leanHead(`Checks done on time — the last 7 days`));

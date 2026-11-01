@@ -27,6 +27,13 @@ describe('how a default tool stands', () => {
     if (mode.how === 'inside') expect(toolStateWord(mode)).toMatch(/^A mode of /);
   });
 
+  it('a check log is a kind of the Check logs tool and opens at its own list (m6-registers)', () => {
+    const h = howTool('FC-014'); // mistake-proofing devices
+    expect(h.how).toBe('inside');
+    expect(openable(h)?.to).toBe('/log/mistake-proofing');
+    expect(toolStateWord(h)).toBe('A mode of Check logs');
+  });
+
   it('a tool not built yet has nothing to open and says so in the catalogue’s word', () => {
     const h = howTool('FC-043'); // drum–buffer–rope
     expect(h.how).toBe('notyet');

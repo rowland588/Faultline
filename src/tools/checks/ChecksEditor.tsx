@@ -13,6 +13,7 @@ import { offerUndo } from '../../ui/Undo';
 import type { LogDef } from './def';
 import { checkProblem, logOf, freqWords, FREQ_UNITS, DEFAULT_SHIFT_HOURS } from './checks';
 import { judgedBy } from './RoundParts';
+import { DEVICE_FUNCTIONS, DEVICE_TYPES, deviceLine, deviceOf, narrow, registerOf, registerSays, warningNote, withoutLegacyWords, type DeviceFunction, type DeviceType } from './register';
 import { setChecks } from './store';
 import { starterLog } from './start';
 
@@ -47,7 +48,13 @@ export const itemsText = (items: readonly LogItem[] = []): string => {
 export function ChecksPanel({ s, def, can }: { s: ToolStudy; def: LogDef; can: Can }) {
   const log = logOf(s);
   const [editing, setEditing] = useState<LogCheck | 'new' | null>(null);
-  const live = log.checks.filter(c => !c.removed), off = log.checks.filter(c => c.removed);
+  const [fType, setFType] = useState<DeviceType | undefined>();
+  const [fFn, setFFn] = useState<DeviceFunction | undefined>();
+  const reg = def.register ? registerOf(log.checks) : undefined;
+  const filtering = !!reg && (!!fType || !!fFn);
+  const shown = new Set(reg && filtering ? narrow(reg.devices, { type: fType, fn: fFn }).map(d => d.check.id) : []);
+  const all = log.checks.filter(c => !c.removed), off = log.checks.filter(c => c.removed);
+  const live = filtering ? all.filter(c => shown.has(c.id)) : all;
   const takeOff = async (c: LogCheck) => {
     if (!window.confirm(`Take “${c.name}” off the list?\n\nIts results stay. It is no longer due. Undo puts it back.`)) return;
     await setChecks(s.id, cs => cs.map(x => (x.id === c.id ? { ...x, removed: true } : x)));
@@ -61,6 +68,26 @@ export function ChecksPanel({ s, def, can }: { s: ToolStudy; def: LogDef; can: C
   };
   return (
     <div className="lg-checks" data-tab="checks">
+      {reg && (
+        <LeanPanel title="The device register" className="lg-panel lg-register">
+          <p data-register-says>{registerSays(reg)}</p>
+          {reg.fromWords > 0 && <p className="sub" data-register-words>{reg.fromWords === 1 ? '1 device has its' : `${reg.fromWords} devices have their`} type, function or error read from the words of the check — edit the check to set them.</p>}
+          {reg.devices.length > 0 && (
+            <div className="lg-filters" data-register-filters>
+              <div className="chip-row" role="group" aria-label="Narrow by type">
+                <button type="button" className={'chip' + (!fType ? ' on' : '')} aria-pressed={!fType} onClick={() => setFType(undefined)}>Every type</button>
+                {DEVICE_TYPES.map(t => <button key={t.key} type="button" className={'chip' + (fType === t.key ? ' on' : '')} aria-pressed={fType === t.key} onClick={() => setFType(fType === t.key ? undefined : t.key)}>{t.word} · {reg.byType[t.key]}</button>)}
+              </div>
+              <div className="chip-row" role="group" aria-label="Narrow by function">
+                <button type="button" className={'chip' + (!fFn ? ' on' : '')} aria-pressed={!fFn} onClick={() => setFFn(undefined)}>Any function</button>
+                {DEVICE_FUNCTIONS.map(f => <button key={f.key} type="button" className={'chip' + (fFn === f.key ? ' on' : '')} aria-pressed={fFn === f.key} onClick={() => setFFn(fFn === f.key ? undefined : f.key)}>{f.word} · {reg.byFunction[f.key]}</button>)}
+              </div>
+              {filtering && <p className="sub" data-register-shown>Showing {live.length} of {reg.devices.length} {reg.devices.length === 1 ? 'device' : 'devices'}{reg.routines.length ? `; the ${reg.routines.length} routine ${reg.routines.length === 1 ? 'check is' : 'checks are'} hidden` : ''}.</p>}
+            </div>
+          )}
+          {warningNote(reg) && <p className="sub" data-register-warning>{warningNote(reg)}</p>}
+        </LeanPanel>
+      )}
       <LeanPanel title="The checks as agreed" className="lg-panel" aside={can.agree ? <span className="lg-aside"> <button type="button" className="btn btn-sm btn-primary" onClick={() => setEditing('new')}>Add a check</button></span> : undefined}>
         {!can.agree && <p className="sub">What is checked and how it is judged is agreed by the project’s owner; you can read it here.</p>}
         {live.length === 0 && <p className="sub" data-none-checks>Nothing is on the list to check yet.{can.agree ? ' Add a check, or start from the starter list.' : ''}</p>}
@@ -70,6 +97,7 @@ export function ChecksPanel({ s, def, can }: { s: ToolStudy; def: LogDef; can: C
               <div>
                 <b>{c.name}</b>
                 <p className="sub">{[c.where, c.who ? `by ${c.who}` : '', freqWords(c.when), KIND_WORD[c.kind]].filter(Boolean).join(' · ')}</p>
+                {reg && deviceOf(c).isDevice && <p className="sub" data-device>{deviceLine(deviceOf(c))}</p>}
                 <p className="sub">{judgedBy(c)}</p>
                 {c.reaction?.trim() && <p className="sub">If it fails: {c.reaction.trim()}</p>}
               </div>
@@ -109,7 +137,11 @@ function CheckForm({ s, def, was, onClose }: { s: ToolStudy; def: LogDef; was?: 
   const [unit, setUnit] = useState<'min' | 'hour' | 'shift' | 'day' | 'week'>('every' in f0 ? f0.unit : 'hour');
   const [note, setNote] = useState('when' in f0 ? f0.note ?? '' : '');
   const [kind, setKind] = useState(was?.kind ?? def.kinds[0]);
-  const [criterion, setCriterion] = useState(was?.criterion ?? '');
+  const dev = was ? deviceOf(was) : undefined;
+  const [criterion, setCriterion] = useState(def.register ? withoutLegacyWords(was?.criterion) : was?.criterion ?? '');
+  const [error, setError] = useState(dev?.error ?? '');
+  const [dType, setDType] = useState<DeviceType | undefined>(dev?.type);
+  const [dFn, setDFn] = useState<DeviceFunction | undefined>(dev?.fn);
   const [lo, setLo] = useState(was?.lo?.toString() ?? '');
   const [hi, setHi] = useState(was?.hi?.toString() ?? '');
   const [unitW, setUnitW] = useState(was?.unit ?? '');
@@ -130,12 +162,13 @@ function CheckForm({ s, def, was, onClose }: { s: ToolStudy; def: LogDef; was?: 
     ...(kind === 'scored' ? { items: parseItems(items, was?.items), ...(num(passPct) !== undefined ? { passPct: num(passPct) } : {}), ...(was?.findingBelow !== undefined ? { findingBelow: was.findingBelow } : {}) } : {}),
     ...(kind === 'count' && num(target) !== undefined ? { target: num(target) } : {}),
     ...(num(stdHours) !== undefined ? { stdHours: num(stdHours) } : {}),
+    ...(def.register ? { ...(error.trim() ? { error: error.trim() } : {}), ...(dType ? { deviceType: dType } : {}), ...(dFn ? { deviceFunction: dFn } : {}) } : {}),
     ...(reaction.trim() ? { reaction: reaction.trim() } : {}), priority, holds, ...(was?.addedAt ? { addedAt: was.addedAt } : was ? {} : { addedAt: clock() }),
   };
   const problem = bad ? 'Numbers only in the number boxes.' : checkProblem(draft);
   const save = () => {
     if (problem) return;
-    void setChecks(s.id, cs => (was ? cs.map(x => (x.id === was.id ? { ...x, ...draft, ...(kind !== 'scored' ? { items: undefined, passPct: undefined } : {}) } : x)) : [...cs, draft]));
+    void setChecks(s.id, cs => (was ? cs.map(x => (x.id === was.id ? { ...x, ...draft, ...(kind !== 'scored' ? { items: undefined, passPct: undefined } : {}), ...(def.register ? { error: draft.error, deviceType: draft.deviceType, deviceFunction: draft.deviceFunction } : {}) } : x)) : [...cs, draft]));
     onClose();
   };
   return (
@@ -143,6 +176,26 @@ function CheckForm({ s, def, was, onClose }: { s: ToolStudy; def: LogDef; was?: 
       <form className="lg-sheet lg-form" data-sheet="check" onSubmit={e => { e.preventDefault(); save(); }}>
         <label className="field"><span className="field-label">What is checked</span>
           <input className="text-input" value={name} maxLength={120} autoFocus aria-label="What is checked" onChange={e => setName(e.target.value)} /></label>
+        {def.register && (
+          <>
+            <label className="field"><span className="field-label">The error it prevents <i className="sub">in words — “a pack with no label”</i></span>
+              <input className="text-input" value={error} maxLength={120} aria-label="The error it prevents" onChange={e => setError(e.target.value)} /></label>
+            <fieldset className="lg-fs"><legend className="field-label">Its type <i className="sub">Shingo’s three</i></legend>
+              <div className="chip-row" role="radiogroup" aria-label="Device type">
+                {DEVICE_TYPES.map(t => <button key={t.key} type="button" role="radio" aria-checked={dType === t.key} title={t.help} className={'chip' + (dType === t.key ? ' on' : '')} onClick={() => setDType(t.key)}>{t.word}</button>)}
+                <button type="button" role="radio" aria-checked={!dType} className={'chip' + (!dType ? ' on' : '')} onClick={() => setDType(undefined)}>Not stated</button>
+              </div>
+              {dType && <p className="sub">{DEVICE_TYPES.find(t => t.key === dType)?.help}</p>}
+            </fieldset>
+            <fieldset className="lg-fs"><legend className="field-label">Its function</legend>
+              <div className="chip-row" role="radiogroup" aria-label="Device function">
+                {DEVICE_FUNCTIONS.map(f => <button key={f.key} type="button" role="radio" aria-checked={dFn === f.key} title={f.help} className={'chip' + (dFn === f.key ? ' on' : '')} onClick={() => setDFn(f.key)}>{f.word}</button>)}
+                <button type="button" role="radio" aria-checked={!dFn} className={'chip' + (!dFn ? ' on' : '')} onClick={() => setDFn(undefined)}>Not stated</button>
+              </div>
+              {dFn && <p className="sub">{DEVICE_FUNCTIONS.find(f => f.key === dFn)?.help}</p>}
+            </fieldset>
+          </>
+        )}
         <div className="ie-agree-grid">
           <label className="field"><span className="field-label">{def.whereLabel}</span><input className="text-input" value={where} maxLength={80} aria-label={def.whereLabel} onChange={e => setWhere(e.target.value)} /></label>
           <label className="field"><span className="field-label">Who does it <i className="sub">optional</i></span><input className="text-input" value={who} maxLength={60} aria-label="Who does it" onChange={e => setWho(e.target.value)} /></label>
@@ -168,7 +221,7 @@ function CheckForm({ s, def, was, onClose }: { s: ToolStudy; def: LogDef; was?: 
             {def.kinds.map(k => <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{KIND_WORD[k]}</button>)}
           </div>
         )}
-        {kind === 'passfail' && <label className="field"><span className="field-label">What passes <i className="sub">in words</i></span><input className="text-input" value={criterion} maxLength={160} aria-label="What passes" onChange={e => setCriterion(e.target.value)} /></label>}
+        {kind === 'passfail' && <label className="field"><span className="field-label">What passes <i className="sub">{def.register ? 'the known-bad part, and what the device does' : 'in words'}</i></span><input className="text-input" value={criterion} maxLength={160} aria-label="What passes" onChange={e => setCriterion(e.target.value)} /></label>}
         {kind === 'passfail' && def.key === 'planned-maintenance' && (
           <label className="field"><span className="field-label">Standard hours <i className="sub">for backlog</i></span><input className="text-input" inputMode="decimal" value={stdHours} aria-label="Standard hours" onChange={e => setStdHours(e.target.value)} /></label>
         )}
