@@ -25,6 +25,7 @@ import { strandsOf, orderStrands, type StrandState } from './strands';
 export { strandsOf, orderStrands, strandsSay, strandWord, STRAND_WORD, FIX_STRAND_WORD } from './strands';
 export type { Strand, StrandState, StrandStep } from './strands';
 import { vsTarget } from './measures';
+import { numberTrend } from './measureProof';
 import { CAP_SHEET_UNITS, capacityPlan, lineSheetUnits, type CapacityReport } from '../tools/linebalance/capacity';
 import { fmtN } from '../tools/linebalance/capacityWords';
 import { type PaceReportData } from './paceReport/data';
@@ -123,7 +124,13 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
   const strip = s.across.some(a => a.value != null);
   const qH = strip ? 26 : 0;
   const pL = x + 34, pR = x + w - 52;
-  const pT = y + 58, pB = y + h - qH - 20;
+  /* THE NUMBER'S TREND, on paper as on the page (FC-117, FC-201; lib/measureProof numberTrend — from eight readings): its sentence under the
+     plot, in words with the tone beside it, taking the room it needs from the plot rather than crossing it */
+  setFont(d, 6.5, 'normal', INK2);
+  const tr = numberTrend(s.points, s.measure.direction, s.measure.unit);
+  const trLines: string[] = tr ? (d.splitTextToSize(san(tr.text), w - 24) as string[]).slice(0, 4) : [];
+  const trH = trLines.length ? trLines.length * 7.5 + 3 : 0;
+  const pT = y + 58, pB = y + h - qH - 20 - trH;
 
   const withTarget = target != null ? [...vals, target] : vals;
   const lo = Math.min(...withTarget), hi = Math.max(...withTarget);
@@ -156,6 +163,12 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
   for (const i of ticks) {
     d.text(dayLab(s.points[i].at), px(i), pB + 11,
       { align: i === 0 ? 'left' : i === s.points.length - 1 ? 'right' : 'center' });
+  }
+
+  if (trLines.length && tr) {
+    const top = y + h - qH - 6 - trH;
+    setFont(d, 6.5, 'normal', tr.tone === 'r' ? DANGER : tr.tone === 'a' ? WARN : tr.tone === 'g' ? OK : INK2);
+    trLines.forEach((ln, i) => d.text(ln, x + 12, top + 8 + i * 7.5));
   }
 
   // target line, dashed, labelled at the right

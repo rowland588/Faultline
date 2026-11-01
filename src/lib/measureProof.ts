@@ -26,7 +26,7 @@
  * which way round the one-sided test is asked.
  */
 import { welchOneSidedP, SIGNIFICANCE_P } from './proof';
-import type { Direction } from './measures';
+import { bySort, say, seriesFor, type Direction, type Measure, type Reading } from './measures';
 import { mannKendall, runsAboutMedian } from './ie/charts';
 
 /** Both sides need this many readings before the difference between two means is
@@ -187,6 +187,8 @@ export interface NumberTrend {
   n: number; rising: boolean; slope: number; per: string; p: number; tau: number;
   runs?: { runs: number; fewest: number; signal: boolean };
   tone: 'g' | 'a' | 'r' | 'n'; text: string;
+  /** The trend alone, for a row: "rising about 1.6 ppm a week — the right way" · "no steady trend". */
+  short: string;
 }
 export const TREND_FROM = 8;
 const sig2 = (v: number): string => String(Number(v.toPrecision(2)));
@@ -209,5 +211,24 @@ export function numberTrend(points: { at: string; value: number }[], direction: 
     : `Trend over ${points.length} readings: no steady trend found (Mann–Kendall p ${pText}).`;
   const second = runs ? ` Runs about the median: ${runs.runs} — ${runs.signal ? `a shift or pattern (fewer than ${runs.fewest} is one)` : runs.fewest <= 2 ? 'too few readings for the runs to say a pattern' : `no pattern (fewer than ${runs.fewest} would be)`}.` : '';
   const tone: NumberTrend['tone'] = significant ? (good ? 'g' : 'r') : runs?.signal ? 'a' : 'n';
-  return { n: points.length, rising, slope: mk.slope, per, p: mk.p, tau: mk.tau, ...(runs ? { runs } : {}), tone, text: first + second };
+  const short = significant ? `${rising ? 'rising' : 'falling'} about ${sig2(Math.abs(mk.slope))}${u} ${per} — ${good ? 'the right way' : 'the wrong way'}` : 'no steady trend';
+  return { n: points.length, rising, slope: mk.slope, per, p: mk.p, tau: mk.tau, ...(runs ? { runs } : {}), tone, text: first + second, short };
+}
+
+/* WHAT A PROJECT'S WEEKLY NUMBER HOLDS, in a line — the method page's row for FC-117 and FC-201 (the A3's Target, the Kata's challenge, the
+ * Kaizen event's 30-day check): the measure the project leads on, how many readings of it, the latest, and — from eight readings of one line —
+ * which way it is going. Nothing set, nothing recorded: said, and where to set it. */
+export function numbersSays(measures: readonly Measure[], readings: readonly Reading[]): string {
+  const m = bySort([...measures])[0];
+  if (!m) return 'No measure set yet — the project’s owner sets what the team’s number is on its Setup.';
+  const mine = readings.filter(r => !r.deletedAt && r.measureId === m.id);
+  if (!mine.length) return `${m.name}: no reading recorded yet.`;
+  const byLine = new Map<string, number>();
+  for (const r of mine) byLine.set(r.lineId, (byLine.get(r.lineId) ?? 0) + 1);
+  const [lineId] = [...byLine.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+  const series = seriesFor(mine as Reading[], lineId, m.id);
+  const last = series[series.length - 1];
+  const trend = numberTrend(series.map(r => ({ at: r.at, value: r.value })), m.direction, m.unit);
+  const n = mine.length;
+  return `${m.name}: ${n} reading${n === 1 ? '' : 's'}${byLine.size > 1 ? ` on ${byLine.size} lines` : ''}, latest ${say(last.value, m.unit)}${trend ? `; ${trend.short}` : series.length < TREND_FROM ? `; a trend needs ${TREND_FROM} readings of one line` : ''}.`;
 }

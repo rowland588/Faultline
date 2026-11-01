@@ -472,8 +472,9 @@ export const SPC: Entry[] = [
     depends: ['FC-105', 'FC-201'],
     complexity: 'S', value: 'medium', valueWhy: 'Progress shown on the team’s own measure.',
     status: 'partial', form: 'report', methods: ['stats.time-series-trend'], scenarios: ['daily', 'project'],
-    built: { where: [], code: ['src/lib/measures.ts', 'src/lib/measureProof.ts', 'src/screens/NumbersPanel.tsx'], tests: ['src/lib/__tests__/measures.test.ts', 'src/lib/__tests__/numberTrend.test.ts'], acceptance: ['weekly-number.mjs'] },
-    limits: ['The trend (Sen slope, Mann–Kendall, runs about the median) reads on the screen from 8 weeks; it is not yet on the client report’s paper.'],
+    built: { where: [], code: ['src/lib/measures.ts', 'src/lib/measureProof.ts', 'src/screens/NumbersPanel.tsx', 'src/lib/sixmReport.ts', 'src/lib/sixmReportPdf.ts', 'src/lib/paceReportPdf.ts', 'src/project/method/MethodScreen.tsx'], tests: ['src/lib/__tests__/measures.test.ts', 'src/lib/__tests__/numberTrend.test.ts', 'src/lib/__tests__/weeklyNumber.test.ts', 'src/lib/__tests__/paceReportPdf.test.ts'], acceptance: ['weekly-number.mjs'] },
+    spec: 'knowledge/specs/FC-117-weekly-number.md',
+    limits: ['No moving average is drawn on the chart: the trend is read by Sen’s slope, Mann–Kendall and the runs about the median, in words under it — the method names a moving average and it is not built.', 'The trend reads from eight readings of one line and one measure, and says only the rate so far — never where the number will be; it is not on the line’s one-page report or the combined line report.', 'The weekly number is recorded on a project against a line (Results › Numbers); a line with no project has none, and a shift’s counted rate is offered as a reading, not read in.', 'Before → after at a change is FC-201’s: the day is chosen on the proof sheet, not found from the project’s closed actions.'],
   },
   {
     id: 'FC-118', name: 'Gauge R&R — repeatability and reproducibility', discipline: 'msa', sub: 'gauge',

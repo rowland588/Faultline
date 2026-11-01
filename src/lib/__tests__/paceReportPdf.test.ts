@@ -1094,3 +1094,23 @@ describe('the board sheet', () => {
     expect(laid.flatMap(sh => sh.blocks.flatMap(b => b.lanes[1].cards)).length).toBe(70);
   });
 });
+
+/* THE WEEKLY NUMBER'S TREND ON THE A3 (FC-117, FC-201; knowledge/specs/FC-117-weekly-number.md): from eight readings the line's chart carries the trend
+   sentence the screen carries (lib/measureProof numberTrend); under eight it says nothing — and the page count and the footers do not move. */
+describe('the number’s trend on the client report’s A3', () => {
+  const eight = [42, 41, 35, 47, 44, 46, 49, 52];
+  const lineOf = (values: number[]): PaceReportData['lines'][number] => {
+    const l = line('2');
+    return { ...l, series: l.series ? { ...l.series, points: values.map((value, i) => ({ at: new Date(Date.UTC(2026, 7, 3 + 7 * i)).toISOString().slice(0, 10), value })) } : undefined };
+  };
+  it('eight readings: the sentence is printed, under the chart, in the module’s words', () => {
+    const r = render(data({ lines: [lineOf(eight)] }));
+    const words = r.said.join(' ').replace(/\s+/g, ' ');
+    expect(words).toContain('Trend over 8 readings: rising about 1.6 ppm a week (Sen), Mann–Kendall p 0.04 — the right way for this measure.');
+    expect(r.stamps.every(s => s.of === r.pages)).toBe(true);
+  });
+  it('seven readings: nothing is said of a trend', () => {
+    const r = render(data({ lines: [lineOf(eight.slice(0, 7))] }));
+    expect(r.said.join(' ')).not.toContain('Trend over');
+  });
+});

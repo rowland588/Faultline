@@ -390,8 +390,15 @@ function gapBlock(g: GapLine): Block {
 /** The line's measure over time, against its target — drawn, not described. */
 function chartBlock(s: NonNullable<GapLine['series']>): Block {
   const CH = 96;
-  return box(f => CH + gap(f.density, 'm'), (f, y) => {
+  /* THE NUMBER'S TREND (FC-117, FC-201) — the sentence the line's Numbers say under their chart, from eight readings, in words with its tone beside it */
+  const trendLines = (f: Frame): string[] => (s.trend ? wrap(f.doc, s.trend.text, f.w, SIZE.small) : []);
+  return box(f => CH + trendLines(f).length * lead(SIZE.small, f.density) + gap(f.density, 'm'), (f, y) => {
     const doc = f.doc;
+    const tl = trendLines(f);
+    if (tl.length && s.trend) {
+      font(doc, SIZE.small, 'normal', s.trend.tone === 'r' ? DANGER : s.trend.tone === 'a' ? AMBER : s.trend.tone === 'g' ? OK : INK2);
+      doc.text(tl, f.x, y + CH + SIZE.small * 0.92 + 2);
+    }
     const px0 = f.x + 34, px1 = f.x + f.w - 56, py0 = y + 16, py1 = y + CH - 16;
     const vals = [...s.points.map(p => p.value), ...(s.target != null ? [s.target] : [])];
     let lo = Math.min(...vals), hi = Math.max(...vals);

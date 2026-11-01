@@ -76,9 +76,6 @@ print("  straight-line legs from coordinates:", [round(x, 3) for x in d], "total
 d3 = hypot(3, 4); print("  3-4-5 leg:", d3)
 
 print("\n== C  cycles a time study needs (FC-021): the stopwatch rule on the footage's cycles, 95% confidence and ±5% (Niebel; the record's formula)")
-def need(xs, e=0.05):
-    n = len(xs); s = sum(xs); s2 = sum(x * x for x in xs)
-    return (40 * sqrt(n * s2 - s * s) / s) ** 2 if e == 0.05 else (2 * sqrt(n * s2 - s * s) / (e * s)) ** 2 * 100 / 100
 cy = [40.1, 41.8, 39.6, 42.4, 40.9, 41.2, 39.9, 43.0, 40.4, 41.1]
 n = len(cy); s = sum(cy); s2 = sum(x * x for x in cy)
 mean = s / n; sd = sqrt((s2 - s * s / n) / (n - 1))
@@ -93,3 +90,65 @@ print(f"  steady station: n' = {(40*sqrt(n2*q2 - s_2*s_2)/s_2)**2:.4f}")
 # standard time from footage: observed mean x reviewer's rating x (1 + allowances)
 rating, allow = 1.10, 0.15
 print(f"  observed {mean:.4f} s x rating {rating} = basic {mean*rating:.4f} s; x (1+{allow}) = standard {mean*rating*(1+allow):.4f} s; {3600/(mean*rating*(1+allow)):.4f} an hour")
+
+
+print("\n== P  the team's weekly number proved (FC-201): Welch's one-sided t on the weeks before and after a change; Mann-Kendall and Sen on the series (FC-117)")
+from math import lgamma, exp, log
+
+def betacf(a, b, x):
+    # continued fraction for the incomplete beta (Numerical Recipes 6.4, Lentz)
+    tiny = 1e-300; qab = a + b; qap = a + 1; qam = a - 1
+    c = 1.0; d = 1 - qab * x / qap
+    d = 1 / (d if abs(d) > tiny else tiny); h = d
+    for m in range(1, 300):
+        m2 = 2 * m
+        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+        d = 1 + aa * d; d = 1 / (d if abs(d) > tiny else tiny); c = 1 + aa / c; c = c if abs(c) > tiny else tiny; h *= d * c
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+        d = 1 + aa * d; d = 1 / (d if abs(d) > tiny else tiny); c = 1 + aa / c; c = c if abs(c) > tiny else tiny
+        de = d * c; h *= de
+        if abs(de - 1) < 1e-14: break
+    return h
+
+def betai(a, b, x):
+    if x <= 0: return 0.0
+    if x >= 1: return 1.0
+    bt = exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * log(x) + b * log(1 - x))
+    return bt * betacf(a, b, x) / a if x < (a + 1) / (a + b + 2) else 1 - bt * betacf(b, a, 1 - x) / b
+
+def t_cdf(t, df):
+    x = df / (df + t * t); p = 0.5 * betai(df / 2, 0.5, x)
+    return 1 - p if t > 0 else p
+
+print(f"  check of the t distribution: df 10, t 2.228139 -> {t_cdf(2.228139, 10):.6f} (table 0.975); df 4, t 2.776445 -> {t_cdf(2.776445, 4):.6f} (table 0.975)")
+def welch(a, b):
+    na, nb = len(a), len(b); ma, mb = sum(a) / na, sum(b) / nb
+    va = sum((x - ma) ** 2 for x in a) / (na - 1); vb = sum((x - mb) ** 2 for x in b) / (nb - 1)
+    se2 = va / na + vb / nb; t = (mb - ma) / sqrt(se2)
+    df = se2 ** 2 / ((va / na) ** 2 / (na - 1) + (vb / nb) ** 2 / (nb - 1))
+    return ma, mb, va, vb, t, df
+before = [42, 41, 35, 47, 44]; after = [46, 49, 52, 53, 50]
+ma, mb, va, vb, t, df = welch(before, after)
+p_up = 1 - t_cdf(t, df)           # H1: the mean after is higher (a measure that should rise)
+print(f"  before {before} mean {ma:.4f} var {va:.4f}; after {after} mean {mb:.4f} var {vb:.4f}")
+print(f"  Welch t {t:.6f}, df {df:.6f}, one-sided p (after higher) {p_up:.6f}; change {((mb - ma) / ma) * 100:.4f}%")
+# a measure that should fall: the same weeks read the other way round
+print(f"  a falling measure given the same numbers: p (after lower) = {t_cdf(t, df):.6f}")
+# too few: two readings either side is the minimum for a comparison (MIN_READINGS 2), under 3 a side is untestable
+# Mann-Kendall S, Sen's slope and runs about the median for the eight-week series of the acceptance seed
+ser = [42, 41, 35, 47, 44, 46, 49, 52]
+n = len(ser); S = sum((ser[j] > ser[i]) - (ser[j] < ser[i]) for i in range(n) for j in range(i + 1, n))
+slopes = sorted((ser[j] - ser[i]) / (j - i) for i in range(n) for j in range(i + 1, n)); k = len(slopes)
+sen = (slopes[k // 2 - 1] + slopes[k // 2]) / 2 if k % 2 == 0 else slopes[k // 2]
+var = n * (n - 1) * (2 * n + 5) / 18
+z = (S - 1) / sqrt(var) if S > 0 else (S + 1) / sqrt(var) if S < 0 else 0
+def phi(z): return 0.5 * (1 + __import__("math").erf(z / sqrt(2)))
+pmk = 2 * (1 - phi(abs(z)))
+med = sorted(ser)[n // 2 - 1] / 2 + sorted(ser)[n // 2] / 2
+above = [x > med for x in ser if x != med]; runs = 1 + sum(1 for i in range(1, len(above)) if above[i] != above[i - 1])
+print(f"  series {ser}: Kendall S {S}, Sen's slope {sen:.4f} a week, Mann-Kendall z {z:.4f} p {pmk:.5f} (normal approximation, no ties), median {med}, runs about the median {runs}")
+# the acceptance seed's eight weeks cut where the change landed (the proof sheet's chips)
+for cut in (4, 5):
+    b, a = ser[:cut], ser[cut:]
+    ma_, mb_, va_, vb_, t_, df_ = welch(b, a)
+    print(f"  cut at week {cut + 1}: before {b} (mean {ma_:.4f}) after {a} (mean {mb_:.4f}); Welch t {t_:.5f} df {df_:.5f} one-sided p {1 - t_cdf(t_, df_):.5f}; change {((mb_ - ma_) / ma_) * 100:.4f}%")
