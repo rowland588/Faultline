@@ -111,9 +111,12 @@ pattern nobody measured.
 - [textbook] Hopp, W.J. and Spearman, M.L., *Factory Physics*, 3rd ed., Waveland, 2011, ch. 8–9 — buffers, blocking and starving (from knowledge).
 
 ## In Faultline
-Noted in Line capacity (`src/tools/linework` holds the capacity model;
-the accumulation note in its sheet) but not driven by an acceptance check
-(FC-046, partly). The piece to build: a buffer's capacity typed on the
-line between two stations, the cover and recovery said from the V-curve's
-rates, and each timed stop of a neighbour read through it to say whether
-it cost the bottleneck — in packs and money, on the loss count.
+Built 1 November (FC-046, `knowledge/specs/FC-046-accumulation.md`): Line capacity's **Buffers** block under the V
+(`src/tools/linebalance/capacityBuffer.ts`, `CapacityBuffers.tsx`) reads each station's "can collect after" and
+the stops timed in Capture and says, for every machine beside the bottleneck, the cover, the recovery, how many
+stops were absorbed and how many ran past it — with the minutes, packs and pounds the bottleneck lost, the buffer
+the 90th-percentile stop would need and whether it is back before the next stop; one line on the product's paper.
+Proved by `scripts/acceptance/accumulation.mjs` and `capacityBuffer.test.ts` against this record's worked case
+(`scripts/knowledge/cases-toc.py`). Not yet: the buffer's own stock and carrying cost (H), two stops close
+together and many buffers simulated (`capacity.simulation`), a buffer between lines that merge. The older
+`accumulation()` sentence about the *typical* stop stays beside it, unchanged.

@@ -77,7 +77,7 @@ export function readLine(x: LineReadInput) {
   });
   const mixInBrief = mixed && mixed.mix.rows.length > 1 && Object.values(mixed.from).includes('price') ? [mixed.sentence, ...mixed.money] : undefined;
   const brief = weeklyBrief(facts, { asOf, ...(heat.rows.length ? { heat: heat.says } : {}), ...(mixInBrief ? { mix: mixInBrief } : {}) });
-  return { unit, from, recent, rates, constraint, trend, changes, fall, figs, shiftsPerWeek, minutesPerWeek, load, mixed, weekFrom, facts, heat, brief };
+  return { unit, from, recent, rates, constraint, trend, changes, fall, figs, shiftsPerWeek, minutesPerWeek, run, load, mixed, weekFrom, facts, heat, brief };
 }
 export type LineRead = ReturnType<typeof readLine>;
 

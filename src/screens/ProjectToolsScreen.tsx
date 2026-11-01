@@ -20,6 +20,7 @@ import { inCapacityTool, inMapTool, type Standard } from '../tools/linestandard/
 import type { ToolStudy } from '../lib/study';
 import { nav } from '../state/useRoute';
 import { APP_TOOLS, type AppTool } from '../catalogue/registry';
+import { methodOfProject } from '../lib/methods';
 import { PageHeader, RecordRow, RecordRows } from '../ui/parts';
 import { planModel } from '../lib/planModel';
 import { usePaceLines } from '../lib/usePaceLines';
@@ -72,6 +73,19 @@ export function ProjectToolsScreen({ projectId }: { projectId: string }) {
             aside={can.edit && t.key !== 'talk' ? <button type="button" className="btn btn-sm" aria-label={`New — ${t.label}`} onClick={() => nav(inProject(`${t.to}?add=1`, projectId))}>New</button> : undefined} />
         ))}
       </RecordRows>
+      {methodOfProject(project) && methodOfProject(project) !== 'stage-gate' && (
+        <section className="pace-sec ptools-sixm" aria-label="The 6M tool">
+          <div className="pace-sec-head">
+            <h2 className="pace-sec-title">6M — causes, countermeasures, results</h2>
+            <p className="pace-sec-sub">The 6M tool is used inside any method: the fishbone with the evidence on each cause, the board of countermeasures, and the results on the same number</p>
+          </div>
+          <RecordRows label="The 6M tool">
+            <RecordRow what="Fishbone" says="the causes on six bones, each drilled with five whys" onOpen={() => nav(`/project/${projectId}/fishbone`)} />
+            <RecordRow what="Board" says="the countermeasures — who, by when, what each should change" onOpen={() => nav(`/project/${projectId}/board`)} />
+            <RecordRow what="Results" says="the number against its target, and what worked" onOpen={() => nav(`/project/${projectId}?view=data`)} />
+          </RecordRows>
+        </section>
+      )}
       {evidence && (
         <section className="pace-sec ptools-film" aria-label="The line, filmed">
           <div className="pace-sec-head">

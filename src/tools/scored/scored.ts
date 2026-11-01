@@ -25,7 +25,7 @@ export function studyScored(s: Pick<ToolStudy, 'agreed'>): ScoredReading | undef
   if (!agreed || !def) return undefined;
   const rows = agreed.rows ?? [];
   if (def.matrix) {
-    const out = def.matrix.analyse({ datum: agreed.datum, criteria: agreed.criteria ?? [], rows });
+    const out = def.matrix.analyse({ datum: agreed.datum, criteria: agreed.criteria ?? [], rows, ...(agreed.target !== undefined ? { target: agreed.target } : {}), ...(agreed.dayCost !== undefined ? { dayCost: agreed.dayCost } : {}) });
     return 'problems' in out ? { def, rows, problems: out.problems } : { def, rows, result: out.result, table: out.table, leaders: out.leaders };
   }
   if (!def.rank) return { def, rows, problems: ['This register has no ranking yet.'] };

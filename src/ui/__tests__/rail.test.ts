@@ -177,6 +177,24 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
     expect(all(g).find(l => l.label === 'Line 7')?.to).toBe('/lines/w7');
     expect(all(g).find(l => l.key === 'problems')?.to).toBe(`/snags?project=${P}`);
   });
+  it('a method project: its own tabs, never the 6M ones — Overview · Actions · Journey · Problems · Tools · Notes · Details (S4)', () => {
+    const g = projectGroups({ projectId: P, name: 'Line 7 seal failures', model: 'board', here: 'job', counts: {}, late: 0, method: 'dmaic' });
+    expect(said(g)).toEqual(['Factory', 'Overview', 'Actions', 'Journey', 'Problems', 'Tools', 'Notes', 'Details', 'Reports']);
+    expect(scopeTabs(g).map(l => l.label)).toEqual(['Overview', 'Actions', 'Journey', 'Problems', 'Tools', 'Notes', 'Details']);
+    expect(said(g)).not.toEqual(expect.arrayContaining(['Fishbone']));
+    expect(all(g).find(l => l.key === 'problems')?.to).toBe(`/snags?project=${P}`);
+    /* the 6M pages stay reachable, and while you are on them Tools is the tab that is lit */
+    for (const here of ['fishbone', 'board', 'data', 'wins', 'tools']) {
+      expect(scopeTabs(projectGroups({ projectId: P, name: 'X', model: 'board', here, counts: {}, late: 0, method: 'pdca' })).filter(l => l.on).map(l => l.label)).toEqual(['Tools']);
+    }
+    /* every method but the stage gate; the stage gate keeps its own four tabs and More */
+    for (const method of ['pdca', 'dmaic', 'eight-d', 'a3', 'kaizen-event', 'kata', 'toc'] as const) {
+      expect(scopeTabs(projectGroups({ projectId: P, name: 'X', model: 'board', here: 'job', counts: {}, late: 0, method })).map(l => l.label)).toEqual(['Overview', 'Actions', 'Journey', 'Problems', 'Tools', 'Notes', 'Details']);
+    }
+    expect(scopeTabs(projectGroups({ projectId: P, name: 'X', model: 'commissioning', here: 'job', counts: {}, late: 0, machines: [], method: 'stage-gate' })).map(l => l.label)).toEqual(['Now', 'Programs', 'Timeline', 'Gates', 'Machines', 'Problems', 'Reports', 'More']);
+    /* a project from before the methods (no method) keeps the 6M pages */
+    expect(said(projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'job', counts: {}, late: 0 }))).toContain('Fishbone');
+  });
   it('inside a line study on a 6M project, its line is lit and no screen of it is a rail line (B6)', () => {
     const g = projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'analyse', counts: {}, late: 0, wsId: 'w7', lines: [{ id: 'l1', name: 'Line 7', workspaceId: 'w7', factoryName: 'Line 7' }] });
     expect(said(g).filter(l => ['Capture', 'Analyse', 'Evidence', 'Meeting'].includes(l))).toEqual([]);
@@ -288,7 +306,7 @@ describe('the lines a project points at, by the factory\'s name (docs/FLOW-AUDIT
 
 describe('the tools, from the catalogue (src/catalogue/registry)', () => {
   it('are the fourteen a person can open, each opening its list — in a project, on the project', () => {
-    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line balance', '/linebalance'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Control chart', '/chart'], ['Analysis', '/analysis'], ['Calculators', '/calc'], ['Documents', '/doc'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses'], ['Reliability', '/reliability'], ['Video study', '/video'], ['Line Talk', '/talk'], ['Check logs', '/logs'], ['Problems register', '/snags'], ['Actions', '/actions'], ['Equipment criticality', '/scored/criticality'], ['Impact and effort', '/scored/impact-effort'], ['Pugh matrix', '/scored/pugh'], ['Maintenance measures', '/board/maintenance-measures']]);
+    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line balance', '/linebalance'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Control chart', '/chart'], ['Analysis', '/analysis'], ['Calculators', '/calc'], ['Documents', '/doc'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses'], ['Reliability', '/reliability'], ['Video study', '/video'], ['Line Talk', '/talk'], ['Check logs', '/logs'], ['Problems register', '/snags'], ['Actions', '/actions'], ['Equipment criticality', '/scored/criticality'], ['Impact and effort', '/scored/impact-effort'], ['Pugh matrix', '/scored/pugh'], ['Maintenance measures', '/board/maintenance-measures'], ['Skills matrix', '/scored/skills'], ['Operational readiness', '/scored/readiness']]);
     expect(toolPlaces('', P).every(l => l.to?.includes(`project=${P}`))).toBe(true);
   });
 });

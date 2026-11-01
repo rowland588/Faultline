@@ -34,6 +34,7 @@
 import { APP_TOOLS } from '../catalogue/registry';
 import type { Route } from '../state/useRoute';
 import type { PlanModel } from '../lib/planModel';
+import type { MethodKey } from '../lib/methods';
 import { inProject } from '../lib/inProject';
 
 /** How many are open, how many of those are late, and how many are already
@@ -122,7 +123,7 @@ export function hereOf(route: Route): string {
   switch (route.name) {
     case 'home': return 'home';
     case 'start': return 'start';
-    case 'projects': return 'projects';
+    case 'projects': case 'methodPage': return 'projects';
     case 'quickSnags': return 'quicksnags';
     case 'lineHome': case 'lineReport': case 'lineMachine': return `line:${route.wsId}`;
     case 'factory': return 'factory';
@@ -446,6 +447,32 @@ function commissioningGroups(o: Parameters<typeof projectGroups>[0], p: string, 
   ];
 }
 
+/** THE 6M PAGES — Fishbone, Board, Results and the rest of the 6M tool. On a method project they are not tabs: they are reached
+ *  from the project's Tools (the 6M tool) and from the method's own sections, and they light Tools while you are on them. */
+const SIXM_PAGES = ['fishbone', 'board', 'data', 'wins', 'pareto', 'tree', 'lines'];
+
+/** A METHOD PROJECT'S PAGES (S4, 1 November — Rowland: the method is the project, so the project's tabs are its own): Overview
+ *  (the method's page), Actions, Journey, Problems, Tools, Notes, Details — and Reports at the foot. Not Fishbone, Board, Lines
+ *  or Results: those are the 6M tool, one door under Tools. Every address of those pages stands. */
+function methodGroups(o: Parameters<typeof projectGroups>[0], p: string, job: RailLine): RailGroup[] {
+  const tools: RailLine = { ...plain('tools', 'Tools', `${p}/tools`, o.here, 'chart'), on: o.here === 'tools' || SIXM_PAGES.includes(o.here) };
+  return [
+    { lines: [upLine()] },
+    { label: o.name, lines: [
+      job,
+      plain('actions', 'Actions', `${p}/actions`, o.here, 'list'),
+      plain('journey', 'Journey', `${p}/journey`, o.here, 'time'),
+      plain('problems', 'Problems', `/snags?project=${encodeURIComponent(o.projectId)}`, o.here, 'flag'),
+      tools,
+      { key: 'notes', label: 'Notes', to: `${p}/notes`, on: o.here === 'notes', state: 'n', bare: true, n: o.notes || undefined },
+      plain('details', 'Details', `${p}/setup`, o.here),
+    ] },
+    { foot: true, lines: [
+      { key: 'reports', label: 'Reports', on: o.here === 'reports', state: 'n', bare: true },
+    ] },
+  ];
+}
+
 /** A PROJECT'S PAGES — its overview, its type's own pages (lib/planModel), then
  *  what every project has: Actions, Problems, Tools; Notes, Reports, Details at
  *  the foot. A stage gate's machines fold under Machines past six. */
@@ -453,11 +480,14 @@ export function projectGroups(o: {
   projectId: string; name: string; model: PlanModel; here: string; counts: Counts;
   late: number; problem?: number; machines?: readonly RailMachine[]; lines?: RailLineOf[]; notes?: number;
   tools?: { pareto?: boolean; tree?: boolean };
+  /** The method the project runs, when it runs one that is not the stage gate (src/lib/methods) — its tabs are its own. */
+  method?: MethodKey;
   /** Inside a line study: its line, so its four screens sit under that line. */
   wsId?: string;
 }): RailGroup[] {
   const p = `/project/${o.projectId}`;
   const job: RailLine = { ...jobLine(o.projectId, 'Overview', o.here, o.late, o.problem ?? 0), icon: 'home' };
+  if (o.method && o.method !== 'stage-gate' && o.model !== 'commissioning') return methodGroups(o, p, job);
   let own: RailLine[];
   if (o.model === 'commissioning') {
     /* A STAGE GATE IN FOUR TABS AND MORE (Rowland, 26 October: "9 are still to many tabs" — the remap,

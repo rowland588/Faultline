@@ -74,6 +74,7 @@ const LogScreen = lazy(() => import('./tools/checks/LogScreen').then(m => ({ def
 /* the directory reads the whole catalogue — on its own, so it never weighs on the rest */
 const ToolsScreen = lazy(() => import('./screens/ToolsScreen').then(m => ({ default: m.ToolsScreen })));
 const ToolPageScreen = lazy(() => import('./screens/ToolPageScreen').then(m => ({ default: m.ToolPageScreen })));
+const MethodPageScreen = lazy(() => import('./screens/MethodPageScreen').then(m => ({ default: m.MethodPageScreen })));
 const ToolWorldScreen = lazy(() => import('./screens/ToolWorldScreen').then(m => ({ default: m.ToolWorldScreen })));
 const MethodScreen = lazy(() => import('./project/method/MethodScreen').then(m => ({ default: m.MethodScreen })));
 const ProjectToolsScreen = lazy(() => import('./screens/ProjectToolsScreen').then(m => ({ default: m.ProjectToolsScreen })));
@@ -201,6 +202,7 @@ function app(route: Route) {
   if (route.name === 'allActions') return <EveryActionScreen />;
   if (route.name === 'tools') return <ToolsScreen />;
   if (route.name === 'toolWorld' && route.key) return <ToolWorldScreen key={route.key} worldId={route.key} />;
+  if (route.name === 'methodPage' && route.key) return <MethodPageScreen key={route.key} methodKey={route.key} />;
   if (route.name === 'toolPage' && route.key) return <ToolPageScreen key={route.key} toolKey={route.key} />;
   if (route.name === 'projectTools' && route.id) return <ProjectToolsScreen key={route.id} projectId={route.id} />;
   /* the parts page is the builders' — in development only; elsewhere the address is the factory */

@@ -514,7 +514,13 @@ export interface LossCount {
    *  `rateTimed` when it is their pace as timed, not from the time study. */
   ratePerson?: string;
   rateTimed?: boolean;
+  /** SHORT STOPS COUNTED (FC-056, knowledge/specs/FC-056-speed-loss.md): how many stops too short to time were tapped over a
+   *  watched stretch — typed here, or copied from a reliability study's count (`from` says which; `meanMin` its timed mean). */
+  shortStops?: ShortStopTally;
 }
+
+/** Short stops counted by a tap over a watched period: n of them in `watchedMin` minutes of running. */
+export interface ShortStopTally { n: number; watchedMin: number; from?: string; meanMin?: number }
 
 /** A RUNNING SPEED TIMED on a loss count: the packs counted over a timed
  *  spell while the line runs (docs/CAPACITY.md §5) — what tells slow running
@@ -679,6 +685,19 @@ export interface ScoredRow {
   scores?: Record<string, number | undefined>;
   /** A matrix option's cost in pounds, typed (optional) — shown beside the score, never in it. */
   cost?: number;
+  /** A PERSON of a skills matrix (FC-222): this row's `scores` are levels 0–4 by task; the shift they work, as typed. */
+  shift?: string;
+  /** An ITEM of a checklist register (FC-082 readiness, FC-178 hygienic design): its heading, where it comes from, what proves it, who owns it,
+   *  the day, its state (a key of the definition's), what was seen, how serious, and whether it would stop day one — all typed, none worked out. */
+  group?: string;
+  source?: string;
+  evidence?: string;
+  owner?: string;
+  due?: string;
+  status?: string;
+  note?: string;
+  severity?: string;
+  stopper?: boolean;
 }
 
 /** A criterion of a matrix (Pugh): what matters in the choice, with a whole-number weight 1–5 (blank = 1). */
@@ -686,6 +705,8 @@ export interface ScoredCriterion {
   id: string;
   name: string;
   weight?: number;
+  /** A TASK of a skills matrix (FC-222): the people wanted at the standard on each shift; blank takes the matrix's own. */
+  need?: number;
 }
 
 export interface AgreedScored {
@@ -696,6 +717,10 @@ export interface AgreedScored {
   /** A matrix (Pugh, FC-143): the criteria, and what the options are set against ("Present state"). */
   criteria?: ScoredCriterion[];
   datum?: string;
+  /** A skills matrix (FC-222): the cover wanted on every task, every shift, where a task names none — people at the standard or above. */
+  target?: number;
+  /** What a day (a readiness list) or a shift (a skills matrix) of the line not making costs, £ — typed, or the line's; optional. */
+  dayCost?: number;
 }
 
 /** A CALCULATOR (src/tools/calc; knowledge/specs/FC-235-calculators.md — 25 October): which one it is (`key`, the name of its

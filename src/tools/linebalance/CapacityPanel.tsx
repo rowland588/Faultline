@@ -55,6 +55,7 @@ import { capacityLean } from './capacityLean';
 import { VCurveView } from './VCurve';
 import { BottleneckWalk } from '../../ui/BottleneckWalk';
 import { ShiftCapacityView, useShiftInputs } from './ShiftCapacity';
+import { CapacityBuffers } from './CapacityBuffers';
 import { useLineRecords } from '../../lib/useLineRecords';
 import { machineKey, machinesOf } from '../../lib/lineRecords';
 
@@ -1180,6 +1181,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
           commit({ ...cap, stations: cap.stations.map(s => (s.id === id ? { ...s, crew } : s)), labour: { ...cap.labour, ...(li.people ? { people: li.people + 1 } : {}) } });
         }} />}
       {r.ok.length > 0 && !r.lanes && (() => { const acc = accumulation(r, stats); return acc.sentence ? <p className={'vc-says cap-acc' + (acc.rows.some(p => !p.covered) ? ' is-a' : '')}>{acc.sentence}</p> : null; })()}
+      {r.ok.length > 0 && !r.lanes && <CapacityBuffers r={r} cap={current} obs={stops.obs} from={stops.from} to={stops.to} weeks={stops.weeks} {...(lineWs ? { ws: lineWs } : {})} />}
       {walk && r.ok.length > 0 && <ShiftCapacityView r={r} inputs={shiftIn} />}
       {walk && !w && <BottleneckWalk standardId={walk.standardId} product={walk.product} {...(line.workspaceId ? { workspaceId: line.workspaceId } : {})} {...(projectId ? { projectId } : {})}
         stations={r.ok.map(x => x.station.name.trim() || `Station ${x.index + 1}`)} {...(r.limit ? { calculated: r.limit.station.name.trim() || `Station ${r.limit.index + 1}` } : {})} canEdit={can.edit} />}

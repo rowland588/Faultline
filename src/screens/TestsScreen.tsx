@@ -9,6 +9,7 @@
  * grouped by stage, an asset × pack grid with material supersession. The job
  * never had any of those. It has a cycle, and this is the list of times round it.
  */
+import { commissioningNarrativePapersInMenus } from '../lib/productStory';
 import { PageHeader } from '../ui/parts';
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY, keyOf } from '../lib/story';
@@ -126,6 +127,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           counts are the tiles under it (lib/stageGatePages); the line here keeps the handover this gate drives at. */}
       <PageHeader title="Commission"
         papers={[
+          ...(commissioningNarrativePapersInMenus ? [{ label: 'Commissioning report', for: 'where commissioning has got to, machine by machine — the tests, the programs, the problems and what is booked next; a card a machine behind it', make: () => nav(`/project/${projectId}/report?doc=commissioning`) }] : []),
           { label: 'Test cards', for: proofs.length ? 'a card for every test on the board' : 'no test on the board yet', disabled: cardsBusy || proofs.length === 0, make: allCards },
           { label: 'Programs report', for: 'every program, machine by machine — where each stands and what was seen', make: () => nav(`/project/${projectId}/report?doc=programs`) },
         ]}>

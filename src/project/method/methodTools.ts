@@ -34,6 +34,10 @@ export function howTool(id: string): ToolHow {
   for (let i = 0; parent && !toolOfEntry(parent.id) && parent.partOf && i < 3; i++) parent = entryById(parent.partOf);
   const up = parent ? toolOfEntry(parent.id) : undefined;
   if (parent && up) return { how: 'inside', tool: up, entry, parent };
+  /* a calculator (a page at /calc/<key>) is a mode of the Calculators hub — the tool that has the page, which a method row opens */
+  const hub = APP_TOOLS.find(t => t.key === 'calc');
+  const hubEntry = hub ? entryById(hub.id) : undefined;
+  if (hub && hubEntry && /^\/calc\/[^/]+/.test(entry.built?.where[0] ?? '')) return { how: 'inside', tool: hub, entry, parent: hubEntry };
   return { how: 'builtin', entry };
 }
 
@@ -48,14 +52,14 @@ export function toolStateWord(h: ToolHow): string {
   }
 }
 
-/** The tool a row opens (its own, or the one it lives in) — absent when there is nothing to open. */
-export const openable = (h: ToolHow): AppTool | undefined => (h.how === 'tool' || h.how === 'inside' ? h.tool : undefined);
-
-/** Where a row opens, and where New starts it: a mode's OWN page under its tool when it has one (a document's list, /doc/charter — so New
- *  on "Project charter" starts a charter, not "a document"), else the tool's. */
-export function openAt(h: ToolHow): string | undefined {
-  const t = openable(h);
-  if (!t) return undefined;
-  if (h.how === 'inside') { const w = h.entry.built?.where[0]; if (w && w.startsWith(`${t.to}/`)) return w; }
-  return t.to;
+/** The tool a row opens (its own, or the one it lives in) — absent when there is nothing to open. A mode that has a page of its own
+ *  inside its tool (FC-215's `/calc/critical-path` inside the Calculators) opens at that page, not at the tool's front. */
+export function openable(h: ToolHow): AppTool | undefined {
+  if (h.how === 'tool') return h.tool;
+  if (h.how !== 'inside') return undefined;
+  const own = h.entry.built?.where[0];
+  return own && own.startsWith(`${h.tool.to}/`) ? { ...h.tool, to: own } : h.tool;
 }
+
+/** Where a row opens, and where New starts it: a mode's OWN page under its tool when it has one. */
+export const openAt = (h: ToolHow): string | undefined => openable(h)?.to;
