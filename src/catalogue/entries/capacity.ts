@@ -164,7 +164,9 @@ export const CAPACITY: Entry[] = [
     food: 'Batches waiting before an oven or a constrained filler.',
     depends: ['FC-038', 'FC-179'],
     complexity: 'L', value: 'low', valueWhy: 'For make-to-order flows with a stable constraint.',
-    status: 'to-build', form: 'tool', kind: 'standard', methods: ['capacity.dbr-buffer'], scenarios: ['planning'],
+    status: 'available', form: 'mode', partOf: 'FC-034', methods: ['capacity.dbr-buffer'], scenarios: ['planning'],
+    built: { where: ['/balances'], code: ['src/tools/plan/dbr.ts', 'src/tools/plan/planInputs.ts', 'src/tools/plan/PlanPanel.tsx', 'src/lib/report/planPaper.ts'], tests: ['src/tools/plan/__tests__/dbr.test.ts'], acceptance: ['week-plan.mjs'] }, spec: 'knowledge/specs/FC-043-drum-buffer-rope.md',
+    limits: ['One constraint on one line; the buffer is the line’s one length, tuned only from ten or more recorded arrivals and by the practice’s thresholds (5% / 10%, 15% shorter / 20% longer), not a standard.', 'Every percent done and every arrival is a person’s tap — nothing reads work in progress from a machine.', 'Stock in money needs what a pack’s materials cost; a hole in the drum needs a margin a pack — each named when missing.'],
   },
   {
     id: 'FC-044', name: 'WIP and lead time — Little’s law', discipline: 'capacity', sub: 'queue',

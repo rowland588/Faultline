@@ -4,14 +4,14 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **236 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 21 tools a person can open on a page of their own. Built inside them: 101 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 34. Not built yet: 61; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 21 tools a person can open on a page of their own. Built inside them: 103 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 34. Not built yet: 59; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 136 |
+| Available (`available`) | 138 |
 | Partly (`partial`) | 20 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 61 |
+| Not built yet (`to-build`) | 59 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -21,7 +21,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 |---|---|---|---|---|---|---|---|
 | Lean manufacturing and waste | 19 | 8 | 3 |  | 7 | 1 |  |
 | Industrial engineering and work measurement | 14 | 7 | 3 |  | 3 | 1 |  |
-| Capacity, throughput and bottlenecks | 17 | 14 |  |  | 2 | 1 |  |
+| Capacity, throughput and bottlenecks | 17 | 15 |  |  | 1 | 1 |  |
 | Equipment performance and losses | 10 | 8 |  |  |  |  | 2 |
 | Maintenance, reliability and TPM | 11 | 10 |  |  |  | 1 |  |
 | Changeovers | 5 | 2 | 2 |  | 1 |  |  |
@@ -35,7 +35,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
 | Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |
-| Production planning and scheduling | 8 | 1 |  |  | 7 |  |  |
+| Production planning and scheduling | 8 | 2 |  |  | 6 |  |  |
 | Cost and operational performance | 6 | 5 |  |  |  |  | 1 |
 | Visual and daily management | 15 | 8 | 3 |  | 4 |  |  |
 | Ergonomics, layout and automation | 6 | 1 |  |  | 5 |  |  |
@@ -71,8 +71,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 79
-- a mode of another tool: 78
+- a tool of its own: 77
+- a mode of another tool: 80
 - a part several tools share: 31
 - a way through several tools: 8
 - a report or board: 28
@@ -112,8 +112,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
 - FC-105 Before and after — did it move, for a reason — 11 modes inside it
+- FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 9 modes inside it
 - FC-073 The stage gate — new equipment to handover — 8 modes inside it
-- FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 7 modes inside it
 - FC-001 Value stream map — current and future state — 5 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 5 modes inside it
 - FC-058 Reliability — MTBF and failure rate, several things counted at once — 5 modes inside it

@@ -165,4 +165,88 @@ export const TOC_GUIDES: Record<string, Guide> = {
     ],
     watch: 'It is an approximation for one station in a steady state: close below about 90% busy, and it understates the wait above that. Use the effective process time with the stops in — the plate speed makes the station look less busy than it is.',
   },
+  'FC-179': {
+    intro: 'For the planner on Monday with a list of orders and a question: will every one make its day? You type the orders in the order the line will run them and it lays them on the constraint with the changeovers between them.',
+    steps: [
+      {
+        step: 'The week starts',
+        means: 'The first day the line runs. The week is as long as the line runs — five days Monday to Friday, six to Saturday, seven every day — taken from how the line runs on its SMED.',
+        doThis: 'Leave it on today, or pick the Monday you are planning. If the page says the running pattern is not set, set it on the SMED first — the week is never guessed.',
+        youGet: 'The days and minutes the orders are laid on, and the rate the line is planned at (what four shifts in five proved, not the plate speed).',
+      },
+      {
+        step: 'Add the order',
+        means: 'One order is a product, a quantity and the day it is due. The products are the ones that have a Line capacity, because that is where the speed comes from.',
+        doThis: 'Pick the product, type the quantity in packs and the day it is due, then Add the order. Add the rest in any order, then move them with ▲ ▼ into the order the line will run them.',
+        youGet: 'A numbered list in the order given, each with when it starts and ends and whether it is on time.',
+      },
+      {
+        step: 'The sentence',
+        means: 'The answer in one line: the hours of running and of changeovers, the hours the line runs, whether it all fits with how much is spare or over, and which orders are late against their day.',
+        doThis: 'Read it first. Amber is an order late; red is a week that does not fit. Then move an order, change a date or a quantity and watch it change.',
+        youGet: 'A yes or no for the week, and the orders to move.',
+      },
+      {
+        step: 'Changeovers',
+        means: 'The minutes taken off the constraint between two different products, from what the SMED agreed as the standard for the product changed into. It says how each is known.',
+        doThis: 'If a changeover is not timed the page says so and takes nothing off for it — time it on a SMED and agree it as the standard.',
+        youGet: 'The changeover time in the week, and with a margin a pack, the packs and pounds it costs if it cannot be made up.',
+      },
+      {
+        step: 'The money',
+        means: 'What not fitting costs, in two parts that are never added: the contribution of the packs not made, and the crew’s time to make them all at its normal rate.',
+        doThis: 'If the page asks for a margin a pack or the crew and a wage, give them in Set up the line. The hours and packs are said without them.',
+        youGet: 'Pounds beside the hours, each saying what it is and that it is "if it cannot be made up".',
+      },
+      {
+        step: 'The week’s plan on paper',
+        means: 'The same sentence and one line a run on a page, for the planning meeting.',
+        doThis: 'Press The week’s plan on paper once the orders are in the order you mean.',
+        youGet: 'A page to put on the wall: each run, when it starts and ends, what is late, and how it is known.',
+      },
+    ],
+    watch: 'The order you type is the order that is laid — it is not sorted for you, so a late order is a question about the order, not a fault in the sum. Which order is best is yours to choose.',
+  },
+  'FC-043': {
+    intro: 'For a line with one constraint that must never wait for work. Drum, buffer, rope: the constraint sets the beat, a time buffer protects it, and work is released a buffer ahead of when the constraint needs it. It tells you which order to chase before anyone shouts.',
+    steps: [
+      {
+        step: 'The buffer',
+        means: 'How many hours of the constraint’s running time are held ahead of it — the film, trays, labels, kit and product for a run staged that far ahead. It is counted in the constraint’s own hours, not the clock.',
+        doThis: 'Type a start: about half the time it now takes from release to the constraint. It is tuned later from what actually arrives.',
+        youGet: 'Each order’s place in the buffer, and the stock it holds in front of the constraint.',
+      },
+      {
+        step: 'Done',
+        means: 'How far through the run the constraint is. The drum’s place now is the first order not done, that far through.',
+        doThis: 'At the start of the shift type the percent done on the order running; an order finished leaves the list at 100.',
+        youGet: 'Where the drum is, so every later order shows how close it is.',
+      },
+      {
+        step: 'Plenty, Watch, Expedite',
+        means: 'Plenty is under a third of the buffer gone, Watch a third to two thirds, Expedite two thirds or more and the work has not arrived. Each says so in words as well as colour.',
+        doThis: 'Chase the Expedite orders first — find what each is waiting for upstream. Watch ones need no push yet.',
+        youGet: 'A red list of what to chase now, and what a hole in the drum would cost if it never arrived.',
+      },
+      {
+        step: 'Release',
+        means: 'The rope: an order is released when the drum is a buffer’s length from starting it — not earlier, which piles up stock, and not later, which leaves a hole.',
+        doThis: 'Release each order at the point the row says, in the drum’s words, such as "when Tesco is 29% done".',
+        youGet: 'When to release the next order, without a clock.',
+      },
+      {
+        step: 'Arrived',
+        means: 'Work has reached the front of the constraint. The page notes how much of the buffer was gone when it came.',
+        doThis: 'Tap Arrived on the order when its material and product are staged at the constraint.',
+        youGet: 'The record the buffer is tuned from.',
+      },
+      {
+        step: 'Tuning',
+        means: 'After ten arrivals, mostly in plenty of time and almost none red, the buffer is longer than it needs to be and holds extra stock; if many came in the red, it is too short or something upstream is late.',
+        doThis: 'Try the length it suggests for a few weeks, then look at the arrivals again. Under ten arrivals it will not suggest a change.',
+        youGet: 'A buffer length the arrivals support, and less stock when it can shorten.',
+      },
+    ],
+    watch: 'A week of arrivals proves nothing — wait for about ten before changing the buffer. And the percent done and the arrivals are taps from the floor: the page cannot see the machine.',
+  },
 };

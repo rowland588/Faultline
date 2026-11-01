@@ -183,7 +183,9 @@ export const OPERATIONS: Entry[] = [
     food: 'Daily retailer orders and promotions.',
     depends: ['FC-040', 'FC-070', 'FC-180'],
     complexity: 'L', value: 'medium', valueWhy: 'Most sites already plan in an ERP or spreadsheet.',
-    status: 'to-build', form: 'tool', kind: 'standard', methods: ['planning.scheduling-rules'], scenarios: ['planning'], words: ['schedule', 'plan'],
+    status: 'available', form: 'mode', partOf: 'FC-034', methods: ['planning.scheduling-rules'], scenarios: ['planning'], words: ['schedule', 'plan'],
+    built: { where: ['/balances'], code: ['src/tools/plan/schedule.ts', 'src/tools/plan/planInputs.ts', 'src/tools/plan/PlanPanel.tsx', 'src/lib/report/planPaper.ts'], tests: ['src/tools/plan/__tests__/schedule.test.ts'], acceptance: ['week-plan.mjs'] }, spec: 'knowledge/specs/FC-179-week-schedule.md',
+    limits: ['The order is the planner’s: choosing it by a rule is FC-180 and the best order of changeovers FC-070 — neither is here.', 'One constraint on one line, a day’s running time the same every running day; no holiday calendar.', 'A changeover not timed on a SMED takes nothing off the week and is named; orders are typed, not read from a system.'],
   },
   {
     id: 'FC-180', name: 'Scheduling rules — due date, shortest first, Johnson’s rule', discipline: 'planning', sub: 'schedule',
