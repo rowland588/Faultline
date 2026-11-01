@@ -27,6 +27,10 @@ import { SHAPES } from './shapes';
 import { PAPERS } from './papers';
 import { sectionState } from '../../lib/methodSheet';
 import './methodSheet.css';
+import { MethodDashboard } from './MethodDashboard';
+import { dashboardOf, useProjectEvidence } from './useDashboard';
+import { saveMethodReportPdf } from '../../lib/report/methodReport';
+import { todayISO } from '../../lib/weeks';
 import { guideOfSection } from '../../lib/methodGuide';
 import { usesOf } from '../../screens/ProjectToolsScreen';
 import { howTool, openable, toolStateWord } from './methodTools';
@@ -62,8 +66,14 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
   const { answers, items } = useAnswers(projectId, method?.key ?? 'pdca');
   const saveAnswer = useSaveAnswer(projectId, method?.key ?? 'pdca', items);
+  const evidence = useProjectEvidence(projectId);
   if (!project || !method) return <p className="sub wrap">That project is not on this device.</p>;
 
+  const dash = dashboardOf(method, answers, evidence?.studies ?? [], evidence?.owed ?? []);
+  const makeReport = async () => {
+    const today = todayISO();
+    await saveMethodReportPdf({ project: project.name, method, printed: today, todayISO: today, dash, answers });
+  };
   const usedIn = (s: MethodSection) => {
     const keys = new Set<string>();
     for (const id of s.tools) { const t = openable(howTool(id)); if (t && (uses.get(t.key)?.n ?? 0) > 0) keys.add(t.key); }
@@ -80,8 +90,9 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         eyebrow={`${method.name.toUpperCase()} · ${project.name.toUpperCase()}`}
         title={method.name}
         says={`${method.question} ${!got ? '' : total ? `${plural(total, 'use')} of tools in this project so far.` : 'No tool has been used yet — start with the first section.'}`}
-        papers={(PAPERS[method.key] ?? []).map(p => ({ label: p.label, ...(p.for ? { for: p.for } : {}), make: () => p.make(projectId) }))}
+        papers={[{ label: 'Project report — where we are', for: 'The journey, what each tool is showing, what needs attention, and what the team wrote — for the meeting.', make: makeReport }, ...(PAPERS[method.key] ?? []).map(p => ({ label: p.label, ...(p.for ? { for: p.for } : {}), make: () => p.make(projectId) }))]}
       />
+      <MethodDashboard dash={dash} onPrint={() => void makeReport()} />
       {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} save={saveAnswer} onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} /> : null; })()}
       {method.sections.map((s, i) => {
         const lit = usedIn(s);
