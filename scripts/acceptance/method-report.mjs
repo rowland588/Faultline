@@ -46,7 +46,7 @@ await page.getByRole('button', { name: /View the project report/ }).click();
 await page.waitForSelector('.mrep .ln-band', { timeout: 20000 });
 ok(page.url().includes(`/project/${DM}/method-report`), '1 “View the project report ›” opens the report page');
 let m = await model(DM), pt = await pageText();
-ok(m.ids.join() === 'journey,telling,attention,wrote' && JSON.stringify(m.titles) === JSON.stringify(await page.locator('.mrep-h').allTextContents()), `1 the sections in order: ${m.titles.join(' · ')}`);
+ok(m.ids.join() === 'journey,telling,attention,dmaic-reviews,dmaic-charter,dmaic-next,wrote' && JSON.stringify(m.titles) === JSON.stringify(await page.locator('.mrep-h').allTextContents()), `1 the sections in order: ${m.titles.join(' · ')}`);
 let gone = missing(m.lines, pt);
 ok(gone.length === 0, `1 every one of the model’s ${m.lines.length} lines is on the page${gone.length ? ' — missing: ' + gone.slice(0, 3).join(' | ') : ''}`);
 ok(m.tools.length >= 1 && (await page.locator('.mrep-tool .mrep-tool-says').allTextContents()).map(norm).join() === m.tools.map(x => norm(x[1])).join(), `1 each tool in its own sentence (${m.tools.length}): ${m.tools[0]?.[1].slice(0, 70)}…`);

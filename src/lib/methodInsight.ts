@@ -7,6 +7,7 @@
 import type { MethodKey } from './methods';
 import type { DashAttention, DashOwed } from './methodDashboard';
 import type { ToolStudy } from './study';
+import { dmaicInsight } from './methodInsights/dmaic';
 
 export interface InsightIn { answers: Readonly<Record<string, string>>; studies: readonly ToolStudy[]; owed: readonly DashOwed[]; today: string }
 export interface MethodInsight {
@@ -17,4 +18,6 @@ export interface MethodInsight {
 }
 export type MethodInsightFn = (x: InsightIn) => MethodInsight;
 
-export const METHOD_INSIGHT: Partial<Record<MethodKey, MethodInsightFn>> = {};
+export const METHOD_INSIGHT: Partial<Record<MethodKey, MethodInsightFn>> = {
+  dmaic: dmaicInsight,
+};
