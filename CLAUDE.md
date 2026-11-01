@@ -69,6 +69,10 @@ Commission and the commissioning reports that older projects still open — thei
 slices; deleting them is a plan of its own (what goes, what stays, what happens to the data) and waits for Rowland's word.
 Programs, tests and machines live on the line and are the **Prove** engine — they stay.
 
+## Prove and the tools live on the line, not only in a project — 1 November
+
+Rowland, 1 November: *"We changed the moat ... prove can still be done on line, it doesn't have to be a project ... not everything is a project, and tools can be run independently, attached to a line or a machine."* So: **a program, a test, a machine and every tool (a study, a log, a calculator, a count) can be started, run and reported on a line or a machine with no project at all**; a project is one way to organise work on a line (a method's sections, its actions), never a gate in front of the tools. Nothing is built that needs a project to be used; whatever is done in a project still lands in it (`docs/PROJECTS.md`), and whatever is done on a line stays on the line and is moved into a project with a tap. This is the same rule as "The line is home" and "Every machine is on a line", stated for Prove; a tool built for a method (METHODS.md) must also open from its line and from its machine.
+
 ## The methods are the projects — 31 October
 
 **Read `docs/METHODS.md` before touching New project, a project's page, or the
