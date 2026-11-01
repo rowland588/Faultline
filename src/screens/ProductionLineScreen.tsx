@@ -20,6 +20,8 @@ import { MoreMenu, PageHeader } from '../ui/parts';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { LineTour } from '../ui/LineTour';
 import { LineLooking } from '../tools/gemba/LookedAt';
+import { SpreadFixes } from '../tools/yokoten/Spread';
+import { spreadSentences, useYokoten } from '../tools/yokoten/useYokoten';
 import { useLooking } from '../tools/gemba/useLooking';
 import { lookingReading } from '../tools/gemba/looking';
 import { LinesLogs } from '../tools/checks/LogsScreens';
@@ -205,12 +207,14 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   const checkCounts = useMemo(() => scopeCounts(studies, Date.now()), [studies]);
   /* how fresh the looking is (FC-199) — said on the line's papers beside its page */
   const looked = useLooking(useMemo(() => [wsId], [wsId]))?.[0];
+  const spread = spreadSentences(useYokoten(wsId) ?? undefined);
   const reading: LineReading | undefined = line ? {
     name: line.name, problems: probs, programs: { n: kit?.programs.length ?? 0, proved: kit?.proved ?? 0, late: kit?.late ?? 0, onStage: onStage.length },
     stops: { n: stops.n, minutes: stops.minutes, ...(stops.worst ? { worst: stops.worst } : {}) }, day: lineDay(line), jobs: jobIds.length,
     /* the line's check logs (src/tools/checks): a tile once it has one */
     ...(checkCounts.logs ? { checks: checkCounts } : {}),
     ...(looked ? { looking: lookingReading(line.name, looked.looking) } : {}),
+    ...(spread.length ? { spread } : {}),
   } : undefined;
   const [mName, setMName] = useState('');
   const [mOem, setMOem] = useState('');
@@ -417,6 +421,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
       {/* HOW FRESH THE LOOKING IS (FC-199, tools/gemba) — days since anyone looked at the line and at each machine, and what the looking found */}
       {show('overview') && <LineLooking wsId={wsId} />}
+
+      {/* A PROVED FIX OFFERED TO EVERY LINE WITH THE SAME MACHINE (FC-155, tools/yokoten) — what this line proved, and what was offered to it */}
+      {show('overview') && <SpreadFixes wsId={wsId} />}
 
       {/* HOW THIS LINE IS SEEN (docs/ADVANCED-TOOLS.md §5A) — walk, video study, Line Talk; the sums stay in Tools. */}
       {show('overview') && (

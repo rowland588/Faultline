@@ -4,14 +4,14 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **236 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 23 tools a person can open on a page of their own. Built inside them: 103 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 33. Not built yet: 58; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 23 tools a person can open on a page of their own. Built inside them: 103 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 34. Not built yet: 57; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
 | Available (`available`) | 141 |
-| Partly (`partial`) | 18 |
+| Partly (`partial`) | 19 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 58 |
+| Not built yet (`to-build`) | 57 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -31,7 +31,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Measurement systems | 6 | 6 |  |  |  |  |  |
 | Quality engineering and defects | 14 | 5 |  |  | 7 | 2 |  |
 | Six Sigma and DMAIC | 8 | 2 | 2 |  | 4 |  |  |
-| Root cause and problem solving | 10 | 4 | 2 |  | 4 |  |  |
+| Root cause and problem solving | 10 | 4 | 3 |  | 3 |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
 | Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |
@@ -105,7 +105,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## The backlog — what to build first (`src/catalogue/backlog.ts`)
 
-1. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Not built yet) — Horizontal deployment — the factory already knows every line’s machines.
+1. FC-155 Horizontal deployment — a proved fix offered to every line with the same machine (Partly) — Horizontal deployment — the factory already knows every line’s machines.
 2. FC-070 Changeover sequence — allergens, colours and flavours in the right order (Not built yet) — Changeover sequence with allergen rules — food’s changeover saving.
 
 ## Where related capabilities could be combined

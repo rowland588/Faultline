@@ -23,6 +23,7 @@ import { lineProgramsReading } from '../../lib/lineRecords';
 import { bundleSays, defaultPicks, lineBundle, picksForTools, whereFor, type LineBundle } from './lineBundle';
 import { toolByKey } from '../../catalogue/registry';
 import { useLooking } from '../../tools/gemba/useLooking';
+import { spreadSentences, useYokotenMany } from '../../tools/yokoten/useYokoten';
 import { lookingReading } from '../../tools/gemba/looking';
 import type { LineReading } from '../../lib/lineLean';
 import { scopeCounts } from '../../tools/checks/owed';
@@ -88,6 +89,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
 
   /* how fresh the looking is, a part at a time (FC-199, tools/gemba) */
   const looked = useLooking(partIds);
+  const spreadOf = useYokotenMany(partIds);
   const checkCounts = useMemo(() => new Map((bundle?.parts ?? []).map(p => [p.line.id, scopeCounts(rec.studies.filter(x => !x.deletedAt && x.workspaceId === p.line.id), Date.now())] as const)), [bundle, rec.studies]);
   /* EACH PART AS THE ONE-PAGE LINE REPORT READS IT (lib/lineLean) — the same tiles and closing line */
   const readings = useMemo(() => new Map((bundle?.parts ?? []).map(p => {
@@ -97,9 +99,10 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
       stops: { n: s.n, minutes: s.minutes, ...(s.worst ? { worst: s.worst } : {}) }, day: lineDay(p.line), jobs: jobsOn.get(p.line.id) ?? 0,
       /* the line's check logs (src/tools/checks): the tile and the closing line the line's page says */
       ...(checkCounts.get(p.line.id)?.logs ? { checks: checkCounts.get(p.line.id) } : {}),
-      ...(() => { const lk = looked?.find(x => x.id === p.line.id); return lk ? { looking: lookingReading(p.line.name, lk.looking) } : {}; })() };
+      ...(() => { const lk = looked?.find(x => x.id === p.line.id); return lk ? { looking: lookingReading(p.line.name, lk.looking) } : {}; })(),
+      ...(() => { const sp = spreadSentences(spreadOf?.get(p.line.id)); return sp.length ? { spread: sp } : {}; })() };
     return [p.line.id, r] as const;
-  })), [bundle, obs, stageOnly, jobsOn, checkCounts, looked]);
+  })), [bundle, obs, stageOnly, jobsOn, checkCounts, looked, spreadOf]);
 
   const dualWords = useMemo<[string, string] | undefined>(() => {
     const dual = line ? dualOf(line, productionLines(all)) : { madeOf: [], partOf: [] };
@@ -147,6 +150,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
             <h2>{part.title}{part.title === 'Both lines together' ? <span className="sub"> · what was run on {line.name} itself</span> : null}</h2>
             {reading && <LeanTiles tiles={lineTiles(reading)} className="sg-tiles" />}
             {reading?.looking && <p className="sub lr-looked" data-looking>{reading.looking.says} <span>{reading.looking.more}</span></p>}
+            {reading?.spread?.map((x, i) => <p key={i} className="sub lr-spread" data-spread>{x}</p>)}
             <h3 className="lr-h">What goes in{part.items.length > 1 && (
               <span className="lr-all">
                 <button type="button" className="cw-link" onClick={() => setPicks(new Set([...on, ...part.items.map(i => i.key)]))}>Tick all</button>

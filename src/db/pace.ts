@@ -309,6 +309,10 @@ export async function listPaceTodos(projectId: string, lineId?: string): Promise
   const all = await (await getDB()).getAll('pace_todos');
   return all.filter(inProject(projectId)).filter(onLine(lineId)).sort((a, b) => a.createdAt - b.createdAt);
 }
+/** Every countermeasure on the device, across every project (horizontal deployment reads the factory, not one project). */
+export async function listAllPaceTodos(): Promise<PaceTodoRow[]> {
+  return (await (await getDB()).getAll('pace_todos')).sort((a, b) => a.createdAt - b.createdAt);
+}
 /** The day an action was marked done is the store's to keep, not the screen's:
  *  every place that moves a step to done (the board, the list, a Case) gets it
  *  without remembering to, and reopening a step clears it. A step that arrives

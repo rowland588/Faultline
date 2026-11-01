@@ -645,4 +645,28 @@ export const QUALITY_GUIDES: Record<string, Guide> = {
     ],
     watch: 'Good checks cannot prove there are no wrong labels, only that none was found — a sample, not a guarantee. The real fix is a mistake-proofed reel or roll loading, and the run plan’s label code is verified at first-off release, not here.',
   },
+  'FC-155': {
+    intro: 'For the fix that worked on one line and was never copied to the others. Horizontal deployment lists every line with the same machine, offers the proved fix to each with its evidence, and keeps whether each line took it, proved it or said why not. A fix copied without checking is a rumour, so each line proves it for itself.',
+    steps: [
+      {
+        step: 'A fix proved here',
+        means: 'On a line’s page, under Eyes on the line, Spread what works names a countermeasure from a 6M board that is done and whose before and after moved the right way, then the other lines that have the same machine, the line with the most problems on that machine first.',
+        doThis: 'Prove the fix on its own line first: do the countermeasure, then link a study taken before and a study taken after to it on the board. Nothing is offered until that before and after has moved the right way, and the countermeasure names the machine.',
+        youGet: 'A sentence such as “Splice guide proved on Line 3 — Lines 7, 1 and 4 have the Wrapper”, with each line’s state in words.',
+      },
+      {
+        step: 'Offer it',
+        means: 'One tap makes a problem on each of those lines’ registers, carrying the fix and its proof. It is an ordinary problem: set who and by when there, and it appears in the line’s problems and the actions.',
+        doThis: 'Press Offer it to the lines. Pressing again makes no second one.',
+        youGet: 'One open problem on each line, and the state “offered” beside each line.',
+      },
+      {
+        step: 'Offered to this line',
+        means: 'On the receiving line’s page the fix is listed with where it was proved. The line takes it, tries it, then says what moved on this line, or says why it is not for this line.',
+        doThis: 'Take it when you start. When it has run, press It worked here and write what moved, in a line. If it does not suit this line, press Not for this line and say why, for example a different film.',
+        youGet: 'Taken, proved here or declined on the line, with your words. A decline with a reason is complete; an offer nobody answered stays open.',
+      },
+    ],
+    watch: 'The same machine means the same name, not necessarily the same model; a line that runs a different one should decline with the reason. No money is said, because what the fix is worth a week depends on the 6M problem’s hours and the line’s cost, which are typed on the board.',
+  },
 };
