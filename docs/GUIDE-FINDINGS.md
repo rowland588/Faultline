@@ -44,6 +44,7 @@ Writing "what each step means" from the real page (docs/METHODS.md §15) turned 
 - The capability agreement shows "Packs a shift" and "Shifts a week" for a Faults study, but faults are priced nowhere.
 - FC-101: the catalogue says rejects and rate studies are not in the over-time table; the code puts them in.
 - FC-091 / FC-086 give no money on the chart though the spec says the chart should carry a give-away figure.
+- The control chart's Subgroups tile reads like "6 of 4" (six subgroups of four) — explained in the FC-087 guide, but the tile itself is confusing. CUSUM: the catalogue says k = 0.5σ; the code uses K = half the shift typed with H = 5σ. Provisional limits: the page says "so they stop moving with every reading"; the code computes them from the first 20 readings only. The "Order" tile (readings that lean on the one before) appears only on Analysis → How sure → mean, not on the control chart. Not confirmed on screen: the counted modes' "Before capability" block may show "Said from 20 readings — N so far".
 - Attribute agreement's tabs are "Reference" and "Judgments"; the twelve questions sit under three headings whose bold labels differ from the plain lines.
 
 ## Lean and industrial engineering
