@@ -15667,12 +15667,12 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 
 /* the process FMEA (FC-132) and the control plan (FC-133): a card a record — no state hue on a priority, the word and the weight carry it */
 .fm { display: grid; gap: var(--space-3); }
-.fm-card { border: 1px solid var(--line); border-radius: 10px; padding: var(--space-3); background: var(--canvas); display: grid; gap: var(--space-2); }
+.fm-card { border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3); background: var(--canvas); display: grid; gap: var(--space-2); }
 .fm-head { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: end; }
 .fm-no { min-width: 1.6rem; font-size: var(--t-title, 1.1rem); color: var(--muted); }
 .fm-mode { flex: 1 1 14rem; }
-.fm-ap { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); font-weight: 700; white-space: nowrap; color: var(--ink); background: var(--canvas); min-height: 32px; display: inline-flex; align-items: center; }
-.fm-ap.is-H { border: 2px solid var(--ink); font-weight: 800; background: var(--paper, #fff); }
+.fm-ap { padding: 6px 12px; border-radius: var(--radius-pill); border: 1px solid var(--line); font-weight: 700; white-space: nowrap; color: var(--ink); background: var(--canvas); min-height: 32px; display: inline-flex; align-items: center; }
+.fm-ap.is-H { border: 2px solid var(--ink); font-weight: 800; background: var(--canvas); }
 .fm-ap.is-M { border: 1.5px solid var(--muted); }
 .fm-ap.is-L { color: var(--muted); }
 .fm-why { margin: 0; }
@@ -15685,7 +15685,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fm-scales ul { margin: 0 0 var(--space-2); padding-left: 1.1rem; }
 .fm select.text-input, .fm input.text-input { min-height: 44px; }
 .fm-status { font-weight: 600; }
-.fm-gap { border: 1px dashed var(--muted); border-radius: 8px; padding: var(--space-2); }
+.fm-gap { border: 1px dashed var(--muted); border-radius: var(--radius-sm); padding: var(--space-2); }
 .fm .sp-rm, .fm .linkish { min-height: 44px; display: inline-flex; align-items: center; }
 /* THIS PROJECT'S PLAN — the critical path read from the stage-gate plan (tools/criticalpath, FC-215 part 2) */
 .cpp { display: grid; gap: 12px; min-width: 0; }
@@ -15736,3 +15736,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ckl-add { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 8px; align-items: end; }
 .ckl-add .btn { min-height: 44px; }
 @media (max-width: 720px) { .ckl-top, .ckl-add { grid-template-columns: minmax(0, 1fr); } .ckl .cw-link { min-height: 44px; display: inline-flex; align-items: center; } .ckl .text-input, .ckl select { min-height: 44px; } }
+
+/* the control plan (FC-133) shares the FMEA's cards; its prices and its two buttons */
+.cp-acts { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.cp-acts .btn { min-height: 44px; }
+.cp-prices { border: 1px dashed var(--line); border-radius: var(--radius-sm); padding: var(--space-2); }
+.cp textarea.text-input { min-height: 44px; font: inherit; }

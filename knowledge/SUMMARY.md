@@ -4,14 +4,14 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **236 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 23 tools a person can open on a page of their own. Built inside them: 103 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 33. Not built yet: 58; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 25 tools a person can open on a page of their own. Built inside them: 105 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 55; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 141 |
-| Partly (`partial`) | 18 |
+| Available (`available`) | 145 |
+| Partly (`partial`) | 17 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 58 |
+| Not built yet (`to-build`) | 55 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -27,11 +27,11 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Changeovers | 5 | 2 | 2 |  | 1 |  |  |
 | Commissioning and operational readiness | 13 | 12 |  |  |  | 1 |  |
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
-| Statistical analysis | 15 | 12 | 1 |  | 1 | 1 |  |
+| Statistical analysis | 15 | 13 | 1 |  |  | 1 |  |
 | Measurement systems | 6 | 6 |  |  |  |  |  |
-| Quality engineering and defects | 14 | 5 |  |  | 7 | 2 |  |
+| Quality engineering and defects | 14 | 7 |  |  | 5 | 2 |  |
 | Six Sigma and DMAIC | 8 | 2 | 2 |  | 4 |  |  |
-| Root cause and problem solving | 10 | 4 | 2 |  | 4 |  |  |
+| Root cause and problem solving | 10 | 5 | 1 |  | 4 |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
 | Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |
@@ -71,9 +71,9 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 77
-- a mode of another tool: 80
-- a part several tools share: 31
+- a tool of its own: 76
+- a mode of another tool: 82
+- a part several tools share: 30
 - a way through several tools: 8
 - a report or board: 28
 - decided after research: 12
@@ -111,7 +111,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 ## Where related capabilities could be combined
 
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
-- FC-105 Before and after — did it move, for a reason — 11 modes inside it
+- FC-105 Before and after — did it move, for a reason — 13 modes inside it
 - FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 9 modes inside it
 - FC-073 The stage gate — new equipment to handover — 7 modes inside it
 - FC-001 Value stream map — current and future state — 5 modes inside it

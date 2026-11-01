@@ -100,7 +100,7 @@ export interface ScoredMatrix {
 /** What a register of CARDS works out (FMEA, FC-132; the control plan, FC-133): the same result and table every scored register says, the rows in the order it ranks them. */
 export interface ScoredRegisterOut { result: ScoredResult; table: ScoredTable; ranked: ScoredRanked[] }
 /** What a register works out from — today, and the records beside it (a control plan reads the FMEAs and the check logs of its line or project). */
-export interface ScoredContext { today: string; now: number; /** the study being read */ self?: { id: string; workspaceId?: string; projectId?: string }; studies: readonly import('../../lib/study').ToolStudy[] }
+export interface ScoredContext { today: string; now: number; /** typed inputs of the register (a control plan: £ an hour, packs a minute, £ a pack held, minutes of a shift) */ inputs?: { rate?: number; speed?: number; packCost?: number; shiftMin?: number; costToDate?: number; margin?: number; carryPct?: number; eventCost?: number; period?: string }; /** the study being read */ self?: { id: string; workspaceId?: string; projectId?: string }; studies: readonly import('../../lib/study').ToolStudy[] }
 /** A register whose rows are CARDS — each a record of its own with text, ratings and an action, not a few boxes scored (FMEA, control plan). */
 export interface ScoredRegister {
   analyse: (a: { rows: ScoredRow[]; ctx: ScoredContext }) => { problems: string[] } | ScoredRegisterOut;

@@ -100,7 +100,7 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
   if (s.tool === 'analysis') { const c = s.agreed?.analysis; if (!c) return { text: 'not set up yet', tone: 'n', verdict: 'Not set up' }; const said = analysisSays(analysisFigures(c, s.facts.readings ?? []), c); return { text: said.text, tone: said.tone, verdict: said.verdict }; }
   /* a calculator (FC-235): the sentence, the verdict and the tone from its definition */
   if (s.tool === 'calc') return calcSays(s);
-  if (s.tool === 'scored') return scoredSays(s);
+  if (s.tool === 'scored') return scoredSays(s, { studies: ctx?.studies ?? [] });
   if (s.tool === 'board') return boardSays(s, ctx?.studies ?? [], Date.now());
   /* a control chart (W2): the sentence, the verdict and the tone from its module */
   if (s.tool === 'chart') { const c = s.agreed?.chart; if (!c) return { text: 'not set up yet', tone: 'n', verdict: 'Not set up' }; const said = chartSays(chartFigures(c, s.facts.readings ?? []), c); return { text: said.text, tone: said.tone, verdict: said.verdict }; }

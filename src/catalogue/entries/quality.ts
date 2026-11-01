@@ -142,7 +142,11 @@ export const QUALITY: Entry[] = [
     food: 'Weights, seals, codes, metal detection, temperatures.',
     depends: ['FC-132', 'FC-086', 'FC-169'],
     complexity: 'M', value: 'medium', valueWhy: 'The sustain step of every improvement.',
-    status: 'to-build', form: 'tool', kind: 'standard', methods: ['quality.control-plan'], scenarios: ['quality'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'control-plan', label: 'Control plan', says: 'What is checked on the line, against what, how, how often, by whom — and what is done when it is out; the risks of the FMEA with no check', icon: 'flag', order: 23.8 },
+    methods: ['quality.control-plan'], scenarios: ['quality'], words: ['control plan', 'reaction plan', 'checks', 'inspection plan', 'sustain', 'APQP'],
+    built: { where: ['/scored/control-plan'], code: ['src/tools/cplan/cplan.ts', 'src/tools/cplan/PlanEditor.tsx', 'src/tools/scored/defs/control-plan.ts', 'src/tools/scored/RegisterEditor.tsx', 'src/tools/scored/types.ts', 'src/tools/scored/scored.ts', 'src/tools/scored/ScoredScreen.tsx', 'src/lib/report/scoredPaper.ts'], tests: ['src/tools/cplan/__tests__/cplan.test.ts'], acceptance: ['control-plan.mjs'] },
+    spec: 'knowledge/specs/FC-133-control-plan.md',
+    limits: ['The plan is what the team wrote: it checks that each row says six parts (against what, how, the sample, how often, who, the reaction) and that the High and Medium risks of the FMEA beside it have a row — it does not judge whether a limit or a frequency is right. The six parts, the risk threshold and the count of gaps have not been put to Rowland.', 'A result entered in a check log does not yet draw the characteristic’s chart or open the reaction on the plan; a gap is on the plan, not yet on the project’s Actions page.', 'The money is the checks’ labour a shift and the product at risk between two checks from the numbers typed; the chance of a drift is not known, so no expected loss is stated.', 'Critical control points are ticked and point to the HACCP plan, which is not built (FC-168).'],
   },
   {
     id: 'FC-134', name: 'Complaints per million and their Pareto', discipline: 'quality', sub: 'customer',

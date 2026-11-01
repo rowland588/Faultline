@@ -80,6 +80,8 @@ const TOOLS = [
     route: s => `#/scored/impact-effort/${s.impactEffortId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'], css: '' },
   { key: 'fmea', of: 'Process FMEA — seven failure modes of a wrapper rated for severity, occurrence and detection: the priority each gets by a stated rule, High first, and what still needs an action',
     route: s => `#/scored/fmea/${s.fmeaId}`, parts: ['.ln-tiles', '.ie-says', '.fm > .fm-card:first-of-type'], css: '.fm-card .fm-more{display:none !important}.fm-card .sp-rm{display:none !important}' },
+  { key: 'control-plan', of: 'Control plan — four characteristics of a wrapper: what is checked, against what, how often and by whom, the reaction when it is out, and what is still unsaid',
+    route: s => `#/scored/control-plan/${s.cplanId}`, parts: ['.ln-tiles', '.ie-says', '.fm > .fm-card:first-of-type'], css: '.fm-card .fm-more{display:none !important}.fm-card .sp-rm{display:none !important}.cp-prices,.cp-acts{display:none !important}' },
   { key: 'pugh', of: 'Pugh matrix — four fixes for film breaks marked better, same or worse than the present state on five weighted criteria: who leads and where the lead is beaten',
     route: s => `#/scored/pugh/${s.pughId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'],
     css: '.pugh-datum,.pugh-key,.pugh-acts,.pugh-table .sp-rm,.pugh-table tfoot tr[data-foot="Cost"],.pugh-table tfoot tr[data-foot="Same (S)"]{display:none !important}' },
@@ -199,7 +201,11 @@ function PICTURE_SEEDS_FN() {
     const readiness = newScoredStudy(SCORED.find(d => d.key === 'readiness'), { name: 'Line 7 — new wrapper, readiness for handover', workspaceId: wsId, now: t });
     readiness.agreed = { scored: { key: 'readiness', rows: readyRows, dayCost: 9600 } };
     await putStudy(readiness);
-    return { fmeaId: fmea.id, readinessId: readiness.id, skillsId: skillsStudy.id, criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
+    const cpDef = SCORED.find(d => d.key === 'control-plan');
+    const cplan = newScoredStudy(cpDef, { name: 'Line 7 — wrapper control plan', workspaceId: wsId, now: t });
+    cplan.agreed = { scored: { key: 'control-plan', rows: cpDef.examples[0].rows.map(r => ({ ...r })), rate: 25, speed: 200, packCost: 0.4, shiftMin: 480 } };
+    await putStudy(cplan);
+    return { cplanId: cplan.id, fmeaId: fmea.id, readinessId: readiness.id, skillsId: skillsStudy.id, criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
   };
 }
 

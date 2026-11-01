@@ -605,7 +605,7 @@ function smedLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Bloc
  *  builders the page reads (lib/ie/sampleLean, samplingLean, flowLean). */
 function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Block[] {
   const { s, where } = item;
-  const e = studyEvidence(s, [], p.standards, p.ctx);
+  const e = studyEvidence(s, [], p.standards, s.tool === 'scored' && p.history ? { ...(p.ctx ?? {}), studies: p.history } : p.ctx);
   const raised = raisedFrom(s, p.records?.actions ?? [], p.records?.fixes ?? []);
   let eyebrow = 'Study', verdict: { text: string; tone: string } | undefined, tiles: LeanTile[] = [], closing: { text: string; tone: LeanTone } = { text: e.line, tone: 'n' };
   let body: Block[] = [];

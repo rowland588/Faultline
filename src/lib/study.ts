@@ -708,6 +708,8 @@ export interface FmeaData {
  *  `link` points at a check of a check log (the log's study and the check's id) so the plan reads whether it is due; `fmea` at the failure mode it controls. */
 export interface PlanData {
   step?: string; spec?: string; method?: string; sample?: string; owner?: string; record?: string; reaction?: string;
+  /** product or process; the minutes between checks (or `event`, what triggers it: "every changeover"); the minutes one check takes; the sample size as a number */
+  kind?: 'product' | 'process'; event?: string; n?: number;
   everyMin?: number; minutes?: number;
   link?: { logId: string; checkId: string };
   fmea?: { studyId: string; rowId: string };
@@ -735,6 +737,10 @@ export interface AgreedScored {
   target?: number;
   /** What a day (a readiness list) or a shift (a skills matrix) of the line not making costs, £ — typed, or the line's; optional. */
   dayCost?: number;
+  /** A control plan (FC-133): what the checks are priced from — the line's speed, packs a minute; what a pack held after a failed check is worth, £; the minutes of a shift. All typed, or the line's; each optional. */
+  speed?: number;
+  packCost?: number;
+  shiftMin?: number;
 }
 
 /** A CALCULATOR (src/tools/calc; knowledge/specs/FC-235-calculators.md — 25 October): which one it is (`key`, the name of its

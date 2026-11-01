@@ -55,11 +55,18 @@ function useShown(list: ToolStudy[] | null) {
   return { shown, inP, scope, setScope };
 }
 
-function ScoredRowItem({ s }: { s: ToolStudy }) {
+/** Every study on the device, for a register that reads the records beside it (a control plan reads the FMEAs and the check logs of its line or project). */
+function useBesideStudies(on: boolean): ToolStudy[] {
+  const [beside, setBeside] = useState<ToolStudy[]>([]);
+  useEffect(() => { if (!on) return undefined; const load = async () => setBeside(await listAllStudies()); void load(); return onDataChange(() => void load()); }, [on]);
+  return beside;
+}
+
+function ScoredRowItem({ s, beside }: { s: ToolStudy; beside: readonly ToolStudy[] }) {
   const jobCan = useAccess(s.projectId ?? '');
   const may = s.projectId ? jobCan : OWNER;
   const [naming, setNaming] = useState(false);
-  const said = scoredSays(s);
+  const said = scoredSays(s, { studies: beside });
   if (naming) return <li className="lt-li is-naming" data-study={s.id}><StudyRowName s={s} onDone={() => setNaming(false)} /></li>;
   return (
     <li className="lt-li" data-study={s.id}>
@@ -77,6 +84,7 @@ function ScoredRowItem({ s }: { s: ToolStudy }) {
 function ScoredHub() {
   const list = useScoredList();
   const { shown } = useShown(list);
+  const beside = useBesideStudies(shown.some(s => !!scoredByKey(s.agreed?.scored?.key)?.register));
   const groups = scoredGroups();
   return (
     <div className="wrap ie">
@@ -97,7 +105,7 @@ function ScoredHub() {
       ))}
       {shown.length > 0 && (
         <Section title="Saved rankings">
-          <ul className="lt-rows">{shown.map(s => <ScoredRowItem key={s.id} s={s} />)}</ul>
+          <ul className="lt-rows">{shown.map(s => <ScoredRowItem key={s.id} s={s} beside={beside} />)}</ul>
         </Section>
       )}
     </div>
@@ -109,6 +117,7 @@ function ScoredList({ scoredKey }: { scoredKey: string }) {
   const list = useScoredList();
   const { shown, inP, scope, setScope } = useShown(list);
   const rows = shown.filter(s => s.agreed?.scored?.key === scoredKey);
+  const beside = useBesideStudies(!!def?.register);
   const [adding, setAdding] = useState(() => asked('add') === '1');   // ?add=1 — a method page's New lands on the sheet
   const jobCan = useAccess(inP.id ?? '');
   const mayAdd = inP.id ? jobCan.edit : OWNER.edit;
@@ -119,7 +128,7 @@ function ScoredList({ scoredKey }: { scoredKey: string }) {
         primary={mayAdd ? { label: def.register?.asks.newLabel ?? 'New ranking', run: () => setAdding(true) } : undefined} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
       {rows.length === 0 && <p className="sub qsl-empty">{def.matrix?.asks.empty ?? def.register?.asks.empty ?? `No ${def.title.toLowerCase()} yet — start one and score each ${def.noun ?? 'machine'}.`}</p>}
-      <ul className="lt-rows">{rows.map(s => <ScoredRowItem key={s.id} s={s} />)}</ul>
+      <ul className="lt-rows">{rows.map(s => <ScoredRowItem key={s.id} s={s} beside={beside} />)}</ul>
       <NewScored open={adding} def={def} onClose={() => setAdding(false)} project={inP.project ? { id: inP.project.id, lineIds: inP.lineIds } : undefined} />
     </div>
   );
@@ -177,6 +186,10 @@ function FieldBox({ f, row, disabled, onChange }: { f: ScoredField; row: ScoredR
   );
 }
 
+/** What a control plan prices its checks from, kept on the register beside the rows. */
+const planInputs = (a: { speed?: number; packCost?: number; shiftMin?: number } | undefined): { speed?: number; packCost?: number; shiftMin?: number } =>
+  ({ ...(a?.speed !== undefined ? { speed: a.speed } : {}), ...(a?.packCost !== undefined ? { packCost: a.packCost } : {}), ...(a?.shiftMin !== undefined ? { shiftMin: a.shiftMin } : {}) });
+
 function Record({ s, def, can, onPatch }: {
   s: ToolStudy; def: ScoredDef; can: ReturnType<typeof canAt>; onPatch: (fn: (cur: ToolStudy) => Partial<ToolStudy>) => void;
 }) {
@@ -205,8 +218,7 @@ function Record({ s, def, can, onPatch }: {
   dayCostRef.current = dayCost;
   const lines = useFactoryLines();
   /* a register of cards reads the records beside it (a control plan: the FMEAs and the check logs of its line or project) */
-  const [beside, setBeside] = useState<ToolStudy[]>([]);
-  useEffect(() => { if (!def.register) return undefined; const load = async () => setBeside(await listAllStudies()); void load(); return onDataChange(() => void load()); }, [def.register]);
+  const beside = useBesideStudies(!!def.register);
   const line = lines.find(l => l.id === s.workspaceId);
   const lineRate = line?.labourRatePerHour && line.labourRatePerHour > 0 ? Math.round(line.labourRatePerHour * burdenOf(line) * 100) / 100 : undefined;
   /* what a day of the line not making is worth (its speed × its shifts less breaks × its margin a pack) — a shift's share when the page prices a shift */
@@ -214,8 +226,8 @@ function Record({ s, def, can, onPatch }: {
   const lineMargin = dayMargin !== undefined && def.matrix?.dayCost ? Math.round(def.matrix.dayCost.unit === 'shift' ? dayMargin / Math.max(1, line?.shifts?.length ?? 1) : dayMargin) : undefined;
   const liveStudy = useMemo((): ToolStudy => ({
     ...s,
-    agreed: { ...s.agreed, scored: { key: agreedKey, rows, ...(rate !== undefined ? { rate } : {}), ...(def.matrix ? { criteria, datum, ...(target !== undefined ? { target } : {}), ...(dayCost !== undefined ? { dayCost } : {}) } : {}) } },
-  }), [s, agreedKey, rows, rate, criteria, datum, target, dayCost, def.matrix]);
+    agreed: { ...s.agreed, scored: { key: agreedKey, rows, ...(rate !== undefined ? { rate } : {}), ...(def.register ? planInputs(s.agreed?.scored) : {}), ...(def.matrix ? { criteria, datum, ...(target !== undefined ? { target } : {}), ...(dayCost !== undefined ? { dayCost } : {}) } : {}) } },
+  }), [s, agreedKey, rows, rate, criteria, datum, target, dayCost, def.matrix, def.register]);
   const x = studyScored(liveStudy, { studies: beside });
   const result = x?.result;
   const problems = x?.problems;
@@ -306,7 +318,9 @@ function Record({ s, def, can, onPatch }: {
       )}
       {def.register && (
         <Section title={def.register.asks.noun === 'failure mode' ? 'Rate each failure mode' : `The ${def.register.asks.noun}s`}>
-          <RegisterEditor def={def} rows={rows} canEdit={canEdit} study={liveStudy} studies={beside} onChange={setRows} />
+          <RegisterEditor def={def} rows={rows} canEdit={canEdit} study={liveStudy} studies={beside} onChange={setRows} rate={rate} onRate={setRate}
+            line={line ? { name: line.name, rate: lineRate, speed: line.packsPerMin, packCost: line.marginPerPack, shiftMin: lineDay(line).minutes && line.shifts?.length ? Math.round((lineDay(line).minutes as number) / line.shifts.length) : undefined } : undefined}
+            onInputs={patch => onPatch(cur => ({ agreed: { ...cur.agreed, scored: { ...(cur.agreed?.scored ?? { key: def.key, rows }), ...patch } }, updatedAt: now() }))} />
         </Section>
       )}
       {!def.matrix && !def.register && <Section title={`Score each ${noun}`}>

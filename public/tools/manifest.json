@@ -95,6 +95,12 @@
     "of": "Process FMEA — seven failure modes of a wrapper rated for severity, occurrence and detection: the priority each gets by a stated rule, High first, and what still needs an action",
     "takenFrom": "2b16a814"
   },
+  "control-plan": {
+    "w": 960,
+    "h": 600,
+    "of": "Control plan — four characteristics of a wrapper: what is checked, against what, how often and by whom, the reaction when it is out, and what is still unsaid",
+    "takenFrom": "1d51d763"
+  },
   "pugh": {
     "w": 960,
     "h": 600,
