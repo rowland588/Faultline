@@ -58,12 +58,14 @@ import { useLineRecords } from '../lib/useLineRecords';
 import { LeanClosing } from '../ui/Lean';
 import { registerClosing } from '../lib/problemsLean';
 import { machinesOf } from '../lib/lineRecords';
+import { WASTES, WASTE_KINDS as WASTE_KINDS_ALL, isWaste, wasteTag } from '../tools/waste/waste';
+import { WastePanel, WasteChips } from '../tools/waste/WastePanel';
 
 /** A change to one problem: its fields, or worked out from the row as it is stored (db patchSnag). */
 type SnagChange = Partial<Snag> | ((stored: Snag) => Partial<Snag>);
 /** The counts are the filters: everything open, each priority open, the late, the done. */
 type Filter = 'open' | Priority | 'late' | 'done';
-type Group = 'line' | 'who';
+type Group = 'line' | 'who' | 'waste';
 
 const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
 /* PRIORITY, RAG (Rowland, 12 October): Critical red, High amber, Low green —
@@ -253,11 +255,20 @@ export function QuickSnagsScreen() {
   }, [filter, reading, opened, frozen]);
   const groups = useMemo(() => {
     if (group === 'line') return shownLines.map(g => ({ key: g.id, name: g.name, rows: g.rows }));
+    /* BY WASTE (FC-005): the eight in the walk's own order — the biggest first — then what is said not to be one, then what is not classed yet */
+    if (group === 'waste') {
+      const all = shownLines.flatMap(g => g.rows);
+      const walk = reading.wastes;
+      const order = [...(walk?.lines.map(l => l.kind) ?? []), ...WASTE_KINDS_ALL.filter(k => !walk?.lines.some(l => l.kind === k))];
+      const kinds = order.flatMap(k => { const rows = all.filter(r => r.waste === k); return rows.length ? [{ key: `waste:${k}`, name: WASTES[k].name, rows }] : []; });
+      const none = all.filter(r => r.notWaste), rest = all.filter(r => !r.waste && !r.notWaste);
+      return [...kinds, ...(none.length ? [{ key: 'waste:none', name: 'Not a waste', rows: none }] : []), ...(rest.length ? [{ key: 'waste:unclassed', name: 'Not classed yet', rows: rest }] : [])];
+    }
     const by = new Map<string, SnagRow[]>();
     for (const r of shownLines.flatMap(g => g.rows)) by.set(r.owner ?? '', [...(by.get(r.owner ?? '') ?? []), r]);
     return [...by.entries()].map(([who, rows]) => ({ key: `who:${who}`, name: who || 'Nobody yet', rows: rows.sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt) }))
       .sort((a, b) => (a.name === 'Nobody yet' ? 1 : 0) - (b.name === 'Nobody yet' ? 1 : 0) || b.rows.filter(x => x.late).length - a.rows.filter(x => x.late).length || a.name.localeCompare(b.name));
-  }, [group, shownLines]);
+  }, [group, shownLines, reading]);
   const shownJobs = useMemo(() => {
     const keep = (r: JobRow) => (filter === 'open' ? r.open : filter === 'late' ? r.late : filter === 'done' ? !r.open : r.open && r.priority === filter);
     return reading.jobs.map(g => ({ ...g, rows: g.rows.filter(keep) })).filter(g => g.rows.length);
@@ -388,7 +399,7 @@ export function QuickSnagsScreen() {
       window.alert('Sorry — the PDF could not be made. Please try again.');
     } finally { setBusy(''); }
   };
-  const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: frameName(s) ?? s.targetAsset ?? 'No machine named', ...(costOf(s) ? { cost: costOf(s)?.words } : {}) });
+  const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: frameName(s) ?? s.targetAsset ?? 'No machine named', ...(costOf(s) || isWaste(s.waste) ? { cost: [isWaste(s.waste) ? `Waste: ${WASTES[s.waste].name}.` : '', costOf(s)?.words ?? ''].filter(Boolean).join(' ') } : {}) });
   const cards = async (list: Snag[]) => {
     if (busy || !list.length) return;
     setBusy('cards');
@@ -497,11 +508,13 @@ export function QuickSnagsScreen() {
           </select>
           <input className="text-input qsl-search" type="search" placeholder="Find a word" value={search} onChange={e => setSearch(e.target.value)} aria-label="Find a problem" />
           <span className="cw-seg" role="group" aria-label="Problems by">
-            {(['line', 'who'] as Group[]).map(g => (
-              <button key={g} type="button" className={'chip' + (group === g ? ' on' : '')} aria-pressed={group === g} onClick={() => { setGroup(g); setOpened(new Set()); setFrozen(null); }}>{g === 'line' ? 'By line' : 'By who'}</button>
+            {(['line', 'who', 'waste'] as Group[]).map(g => (
+              <button key={g} type="button" className={'chip' + (group === g ? ' on' : '')} aria-pressed={group === g} onClick={() => { setGroup(g); setOpened(new Set()); setFrozen(null); }}>{g === 'line' ? 'By line' : g === 'who' ? 'By who' : 'By waste'}</button>
             ))}
           </span>
         </div>
+        {/* THE WASTE WALK (FC-005): the eight wastes these problems add up to, ranked, where they are and where each points */}
+        {group === 'waste' && reading.wastes && <WastePanel walk={reading.wastes} />}
       </>}
 
       {snags && here.length === 0 && (
@@ -551,7 +564,7 @@ export function QuickSnagsScreen() {
                       {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name="camera" size={18} /></span>}
                       <span className="qsl-body">
                         <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
-                        <span className="qsl-meta">{[group === 'who' ? r.line : '', r.machine ?? '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>
+                        <span className="qsl-meta">{[group === 'who' ? r.line : '', r.machine ?? '', r.waste && group !== 'waste' ? wasteTag(r.waste) : '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>
                         {r.cost && <span className="qsl-meta qsl-cost">{r.cost.short}</span>}
                         {last
                           ? <span className="qsl-meta preg-last">{r.journey.length} step{r.journey.length === 1 ? '' : 's'} — {last.day}: {last.did}{last.result ? ` → ${last.result}` : ''}</span>
@@ -965,6 +978,8 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
 
       <label className="pe-f pe-wide"><span className="pe-k">WHAT WE WILL DO</span>
         <DraftArea value={s.proposedSolution ?? ''} rows={2} placeholder="The plan — what will put it right" className="text-input" ariaLabel="What we will do" onSave={v => put({ proposedSolution: v || undefined })} /></label>
+      {/* WHICH OF THE EIGHT WASTES IT IS (FC-005, the waste walk) — the class; the size and the cost are the three boxes below */}
+      <WasteChips value={s.waste} onPick={v => put({ waste: v })} />
       {/* WHAT IT COSTS THE LINE while it is open — one number asked, the money one output beside it; a missing line input
           named, nothing blocked (CLAUDE.md, 24 October; knowledge/specs/FC-154-problem-cost.md) */}
       <label className="pe-f pe-wide"><span className="pe-k">MINUTES A DAY IT COSTS THE LINE <i className="cw-f-opt">a stop, slow running, a workaround — while it is open</i></span>

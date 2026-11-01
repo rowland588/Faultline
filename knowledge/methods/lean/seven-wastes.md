@@ -111,9 +111,11 @@ because the standard was never written.
 - [textbook] Womack, J.P. and Jones, D.T. (1996), *Lean Thinking*, Simon & Schuster — muda (from knowledge).
 
 ## In Faultline
-Partly: the filmed walk records problems with photos and film
-(`src/screens/CaptureScreen.tsx`) and the register costs a problem's
-minutes, rejects and held product (`src/snag`, `src/lib/problemCost.ts`)
-without a waste class (FC-005). FC-005 adds the class on a walk's
-finding, the sizing in its unit, the cost by the model's row, the walk's
-ranked list and its trend — and the class's pointer to the tool.
+Built, with limits (FC-005): a waste is a problem on the register that says which of the eight it is — picked in
+the problem's editor (`src/tools/waste`, `snags.waste`) — with its machine, its size (minutes a day, rejects a
+day, packs on hold) and its cost already the problem's (`src/lib/problemCost.ts`). Problems › **By waste** adds
+them up by kind and by place, ranked by what is lost a day, the money in its own parts, the last four weeks and
+where each kind points; the Problems report carries the same block. Specification
+`knowledge/specs/FC-005-waste-walk.md`; proved by `scripts/acceptance/waste-walk.mjs` and the worked case above
+(`scripts/knowledge/cases-kaizen.py`). Not yet: the class at capture, a waste sized in its own unit, a dated
+walk with its route, a trend walk after walk.

@@ -12,6 +12,7 @@ import type { Standard, StandardMark } from '../tools/linestandard/standard';
 import { factsOf, listById, type StudyUse, type ToolStudy } from '../lib/study';
 import { footageKeys, forTheCloud } from '../tools/video/footage';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
+import { isWaste } from '../tools/waste/waste';
 import { talkMediaKeys } from '../tools/talk/talk';
 
 type Row = Record<string, unknown>;
@@ -158,7 +159,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         asset_id: s.assetId ?? null, x_pct: s.xPct ?? null, y_pct: s.yPct ?? null,
         target_category: s.targetCategory ?? null, target_subcategory: s.targetSubcategory ?? null, target_asset: s.targetAsset ?? null,
         case_id: s.caseId ?? null,
-        problem: s.problem, priority: s.priority ?? null, journey: s.journey?.length ? s.journey : null, archived_at: s.archivedAt ?? null, minutes_per_day: s.minutesPerDay ?? null, rejects_per_day: s.rejectsPerDay ?? null, held_packs: s.heldPacks ?? null, proposed_solution: s.proposedSolution ?? null, status: s.status, owner: s.owner ?? null,
+        problem: s.problem, priority: s.priority ?? null, journey: s.journey?.length ? s.journey : null, archived_at: s.archivedAt ?? null, minutes_per_day: s.minutesPerDay ?? null, rejects_per_day: s.rejectsPerDay ?? null, held_packs: s.heldPacks ?? null, ...(s.waste ? { waste: s.waste } : {}), proposed_solution: s.proposedSolution ?? null, status: s.status, owner: s.owner ?? null,
         raised_at: s.raisedAt, due_at: s.dueAt ?? null,
         latest_update: s.latestUpdate ?? null, latest_update_at: s.latestUpdateAt ?? null,
         closed_at: s.closedAt ?? null, close_note: s.closeNote ?? null,
@@ -178,6 +179,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       ...(r.minutes_per_day != null && Number(r.minutes_per_day) >= 0 ? { minutesPerDay: Number(r.minutes_per_day) } : {}),
       ...(r.rejects_per_day != null && Number(r.rejects_per_day) >= 0 ? { rejectsPerDay: Number(r.rejects_per_day) } : {}),
       ...(r.held_packs != null && Number(r.held_packs) >= 0 ? { heldPacks: Number(r.held_packs) } : {}),
+      ...(r.waste === 'none' || isWaste(r.waste) ? { waste: r.waste as Snag['waste'] } : {}),
       proposedSolution: (r.proposed_solution as string) ?? undefined, status: r.status as Snag['status'],
       owner: (r.owner as string) ?? undefined, raisedAt: Number(r.raised_at), dueAt: n(r.due_at),
       latestUpdate: (r.latest_update as string) ?? undefined, latestUpdateAt: n(r.latest_update_at),

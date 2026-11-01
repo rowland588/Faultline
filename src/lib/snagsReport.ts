@@ -21,6 +21,8 @@
  * week amber; an open snag wears the snag's own red, in progress indigo,
  * closed the quiet green (snag/types SNAG_STATUS_META). */
 import { registerCost, type ProblemCost, type RegisterCost } from './problemCost';
+import { isWaste, wasteWalk, type WasteKind, type WasteWalk } from '../tools/waste/waste';
+import { entryById } from '../catalogue';
 import { SNAG_STATUS_META, actionTarget, ageDays, dueInDays, isDueSoon, isOverdue, isQuickSnag, type Snag, type SnagStatus } from '../snag/types';
 import { fixTone } from './fixTone';
 import { isOverdue as fixOverdue, isSettled, live, testOfFix, type Asset, type Test, type TestItem } from './testing';
@@ -105,6 +107,8 @@ export interface SnagRow {
   id: string; workspaceId: string; line: string;
   /** What it costs the line a day while it is open, when its minutes are typed (lib/problemCost, FC-154). */
   cost?: ProblemCost;
+  /** Which of the eight wastes it is (FC-005), when it has been classed; `notWaste` when it was looked at and is not one. */
+  waste?: WasteKind; notWaste?: boolean;
   what: string; from: string;
   status: SnagStatus;
   priority: Priority;
@@ -155,6 +159,8 @@ export interface SnagsReading {
   moved: { projectId?: string; job: string; rows: MovedRow[] }[];
   /** What the open problems that say their minutes cost the line a day (lib/problemCost registerCost, FC-154). */
   cost?: RegisterCost;
+  /** The waste walk over these problems (FC-005): the eight wastes seen, by kind and by place, ranked — its lines empty when none is classed. */
+  wastes?: WasteWalk;
 }
 
 const RANK: Record<SnagStatus, number> = { open: 0, in_progress: 1, closed: 2 };
@@ -187,6 +193,7 @@ export function snagRow(s: Snag, line: string, assetName?: string, jobName?: str
     ...(s.proposedSolution?.trim() ? { plan: s.proposedSolution.trim() } : {}),
     ...((assetName ?? s.targetAsset)?.trim() ? { machine: (assetName ?? s.targetAsset ?? '').trim() } : {}),
     ...(cost ? { cost } : {}),
+    ...(isWaste(s.waste) ? { waste: s.waste } : s.waste === 'none' ? { notWaste: true } : {}),
     journey: [...(s.journey ?? [])].filter(j => j.did?.trim()).sort((a, b) => a.at - b.at)
       .map(j => ({ id: j.id, day: nice(j.at), did: j.did.trim(), ...(j.result?.trim() ? { result: j.result.trim() } : {}) })),
   };
@@ -437,5 +444,7 @@ export function snagsReading(x: SnagsInput): SnagsReading {
   } else if (counts.closed + counts.jobDone) parts.push(`no problem open — ${counts.closed + counts.jobDone} done`);
   if (moved.length) parts.push(`${plural(moved.length, 'problem')} moved to a project and no longer there`);
   const says = parts.length ? `${parts.map((p, i) => (i ? p.charAt(0).toUpperCase() + p.slice(1) : p.charAt(0).toUpperCase() + p.slice(1))).join('. ')}.` : 'No problems.';
-  return { counts, says, lines, jobs, moved: movedGroups, cost: registerCost(here) };
+  const wastes = wasteWalk(here.map(r => ({ id: r.id, ...(r.waste ? { waste: r.waste } : {}), ...(r.notWaste ? { notWaste: true } : {}), status: r.status, ...(r.cost ? { cost: r.cost } : {}), ...(r.machine ? { machine: r.machine } : {}), raisedAt: r.raisedAt })),
+    { today: ref, status: id => entryById(id)?.status });
+  return { counts, says, lines, jobs, moved: movedGroups, cost: registerCost(here), wastes };
 }

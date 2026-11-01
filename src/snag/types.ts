@@ -9,6 +9,7 @@
  * Separate from the Observation/Pareto model — the only (optional) tie is a
  * snag's `linkedObsIds`, pointing at observations in the SAME workspace. */
 import type { ID, MediaRef, Millis } from '../types';
+import type { WasteKind } from '../tools/waste/waste';
 
 export type SnagStatus = 'open' | 'in_progress' | 'closed';
 
@@ -79,6 +80,10 @@ export interface Snag {
   /** The rejects a day it causes (packs thrown away) and the packs it holds now — priced at the line's materials a pack (lib/problemCost, FC-154 part 2). */
   rejectsPerDay?: number;
   heldPacks?: number;
+  /** WHICH OF THE EIGHT WASTES IT IS (FC-005, the waste walk — PROBLEM_WASTE.sql): Ohno's seven and Liker's eighth, picked on the problem as it is
+   *  looked at; 'none' is the answer "not a waste" (a hazard, a breakdown), told apart from absent, which is "not classed yet". Where it is, how big and what it
+   *  costs are the problem's own (machine, minutesPerDay, rejectsPerDay, heldPacks). */
+  waste?: WasteKind | 'none';
   proposedSolution?: string;
   status: SnagStatus;
   owner?: string;            // assignee name (free text)

@@ -68,8 +68,9 @@ export const LEAN: Entry[] = [
     depends: ['FC-081', 'FC-154'],
     complexity: 'M', value: 'medium', valueWhy: 'Gives the filmed walk a waste class and a price.',
     status: 'partial', form: 'mode', partOf: 'FC-081', methods: ['lean.seven-wastes', 'visual.gemba-walk'], scenarios: ['running', 'daily'], words: ['muda', 'TIMWOODS'],
-    built: { where: ['/snags'], code: ['src/screens/CaptureScreen.tsx'], tests: [], acceptance: [] },
-    limits: ['The filmed walk records problems with photos and film, but not which waste each is, nor its cost.'],
+    built: { where: ['/snags'], code: ['src/tools/waste/waste.ts', 'src/tools/waste/WastePanel.tsx', 'src/tools/waste/waste.css', 'src/snag/QuickSnagsScreen.tsx', 'src/lib/snagsReport.ts', 'src/lib/snagsReportPdf.ts', 'src/snag/types.ts', 'src/cloud/mappers.ts', 'src/screens/CaptureScreen.tsx'], tests: ['src/tools/waste/__tests__/waste.test.ts'], acceptance: ['waste-walk.mjs'] },
+    spec: 'knowledge/specs/FC-005-waste-walk.md',
+    limits: ['The class is a column on the register’s problems (snags.waste) and its migration, supabase/PROBLEM_WASTE.sql, is written and not applied: until it is run, a problem that has been classed is refused by the cloud and stays on the device that classed it (a problem never classed syncs as before).', 'A waste is sized only in the problem’s three boxes — minutes a day, rejects a day, packs on hold; a metres walked, a kilos of film or a steps-and-distance is the spaghetti diagram’s or the flow chart’s, not read here.', 'The class is picked on the problem’s editor, one at a time: not at the moment of capture on the Problem sheet, and not for several ticked at once.', 'The walk is the Problems page’s By waste and the Problems report’s block: a dated walk with a purpose and a route is not kept (the gemba walk’s routine, FC-200, is not built), and the trend is the last four weeks, not a chart walk after walk.', 'Only the register’s problems (a Snag on a line) can be classed — a project’s own problem or a 6M problem is another record.', 'Estimates from a walk are indicative: the page says so and points to the tool that measures; unused talent has no money line of its own.'],
   },
   {
     id: 'FC-006', name: 'Line standard — who stands where, product by product', discipline: 'lean', sub: 'standard',
