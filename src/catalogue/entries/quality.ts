@@ -175,7 +175,16 @@ export const QUALITY: Entry[] = [
     food: 'Holds after a missed metal-detector check or a label error.',
     depends: ['FC-170', 'FC-150'],
     complexity: 'S', value: 'medium', valueWhy: 'Hold costs are a large hidden loss.',
-    status: 'to-build', form: 'tool', kind: 'register', methods: ['quality.nonconformance-hold'], scenarios: ['quality', 'safety'],
+    status: 'available', form: 'tool', kind: 'register', methods: ['quality.nonconformance-hold'], scenarios: ['quality', 'safety'], words: ['hold', 'quarantine', 'non-conformance', 'disposition', 'release'],
+    app: { key: 'holds', label: 'Product on hold', says: 'Product set aside with a number, a reason and someone to decide — what is on hold, since when, why and what it has cost', onLine: 'what is on hold, since when, and what is tied up', reads: 'holds', icon: 'flag', order: 24.1 },
+    spec: 'knowledge/specs/FC-135-product-on-hold.md',
+    built: { where: ['/holds'], code: ['src/tools/hold/hold.ts', 'src/tools/hold/holdLean.ts', 'src/tools/hold/holdPaper.ts', 'src/tools/hold/store.ts', 'src/tools/hold/HoldScreen.tsx', 'src/tools/registers/kinds.ts', 'src/tools/registers/Shell.tsx', 'src/tools/registers/paperKit.ts', 'src/tools/registers/registry.ts', 'src/tools/registers/RegisterScreen.tsx'], tests: ['src/tools/hold/__tests__/hold.test.ts'], acceptance: ['product-hold.mjs'] },
+    limits: [
+      'A register is a line’s and a hold is one product, one lot, one quantity in one unit; quantities in different units are said side by side and never added. A hold is split by decision (part released, part destroyed) but not by lot.',
+      'Money is the business’s own figures, typed: the cost of a piece (or the line’s materials a pack for packs), the price lost, the rework’s cost, the disposal and the carrying rate. None is assumed; a missing one is named. A release costs the review’s hours, which are not priced.',
+      'It records the decision and who made it and flags one made by a name not on the register’s list; it does not stop it, and it never decides. A hold is a record: the label and the physical segregation are the site’s.',
+      'The hold’s number is the next on the register on the device that raised it; two phones offline raising holds at once can give the same number twice. Allergen and food-safety holds have their own rules in the site’s HACCP plan; ISO 9001 clause 8.7 and the BRCGS clause were not re-read.',
+    ],
   },
   {
     id: 'FC-136', name: 'Supplier quality — incoming checks and supplier PPM', discipline: 'quality', sub: 'customer',

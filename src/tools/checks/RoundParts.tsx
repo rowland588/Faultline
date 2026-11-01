@@ -20,6 +20,7 @@ import { blankAnswers, findingBelowOf, repeatsOf, shareOfMax } from './scoring';
 import { scoredSeries } from './figures';
 import { addResult, addResults, newResult, raiseFindings, raiseTag, recordFailure, strikeResult, strikeResults } from './store';
 import { passAllResults, passAllWords, type PassAllPlan } from './passAll';
+import { deviceLine, deviceOf, withoutLegacyWords } from './register';
 
 export interface RoundProps { s: ToolStudy; def: LogDef; can: Can; me?: string; ctx: LogCtx; now: number }
 
@@ -27,7 +28,7 @@ const TONE_WORD: Record<string, string> = { done: 'Done', soon: 'Due soon', due:
 
 /** How the check is judged, in a line: what passes, the limits, the score to reach, the target. */
 export function judgedBy(c: CheckState['check']): string {
-  if (c.kind === 'passfail') return c.criterion?.trim() ? `Passes if: ${c.criterion.trim()}` : 'Pass or fail';
+  if (c.kind === 'passfail') { const w = withoutLegacyWords(c.criterion); return w ? `Passes if: ${w}` : 'Pass or fail'; }
   if (c.kind === 'value') {
     const u = c.unit ? ` ${c.unit}` : '';
     if (c.lo === undefined && c.hi === undefined) return `A reading in ${c.unit || 'its unit'} — no limit set, so it is recorded and not judged`;
@@ -72,6 +73,7 @@ export function RoundCard({ s, st, p }: { s: ToolStudy; st: CheckState; p: Round
         <span className={'lg-state is-' + st.tone}>{TONE_WORD[st.key]}</span>
       </div>
       <p className="lg-meta sub">{[c.where, c.who, freqWords(c.when)].filter(Boolean).join(' · ')}</p>
+      {def.register && deviceOf(c).isDevice && <p className="lg-device sub" data-device>{deviceLine(deviceOf(c))}</p>}
       <p className={'lg-words ie-tone is-' + st.tone}>{st.words}</p>
       <p className="lg-judged sub">{judgedBy(c)}</p>
       {says && <p className={'lg-says ie-tone is-' + (trend?.nearing ? 'a' : 'n')}>{says}</p>}

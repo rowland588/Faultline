@@ -469,9 +469,10 @@ export const OPERATIONS: Entry[] = [
     food: 'Weekly yield or labour per tonne.',
     depends: ['FC-117', 'FC-105'],
     complexity: 'S', value: 'medium', valueWhy: 'Proof on the team’s own measure.',
-    status: 'partial', form: 'report', methods: ['stats.time-series-trend', 'stats.two-sample-tests'], scenarios: ['daily', 'project'],
-    built: { where: [], code: ['src/lib/measureProof.ts', 'src/lib/impact.ts'], tests: ['src/lib/__tests__/measures.test.ts', 'src/lib/__tests__/impact.test.ts'], acceptance: ['weekly-number.mjs'] },
-    limits: ['The trend on each number is on the screen; its paper is not yet carried.'],
+    status: 'available', form: 'report', methods: ['stats.time-series-trend', 'stats.two-sample-tests'], scenarios: ['daily', 'project'],
+    built: { where: [], code: ['src/lib/measureProof.ts', 'src/lib/impact.ts', 'src/screens/WinProofSheet.tsx', 'src/lib/sixmReport.ts', 'src/lib/sixmReportPdf.ts', 'src/lib/paceReportPdf.ts', 'src/project/method/MethodScreen.tsx'], tests: ['src/lib/__tests__/measures.test.ts', 'src/lib/__tests__/impact.test.ts', 'src/lib/__tests__/weeklyNumber.test.ts', 'src/lib/__tests__/paceReportPdf.test.ts'], acceptance: ['weekly-number.mjs'] },
+    spec: 'knowledge/specs/FC-117-weekly-number.md',
+    limits: ['The day the change landed is chosen on the proof sheet from the days that leave at least two readings a side; it is not found from the project’s closed actions (that is what a closed action’s own “did it work” reads), and under three readings a side the change is arithmetic, said so, never tested.', 'Welch’s test says the number moved by more than chance on the readings given — never that the fix did it; a line can be changed by six things at once.', 'The 6M client report prints the trend under its chart; a called win’s before → after prints with the win on the A3, not on the 6M report.'],
   },
   {
     id: 'FC-202', name: 'Line Talk — talk on the line, it writes the reports', discipline: 'visual', sub: 'talk',

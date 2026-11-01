@@ -24,6 +24,7 @@
  * management): the bones are told apart by place and name; a confirmed cause
  * is solid, a suspected one an outline, a ruled-out one struck through — and
  * each says so in words beside the mark. */
+import { movingAverage, MOVING_WINDOW, TREND_FROM } from './measureProof';
 import type { jsPDF } from 'jspdf';
 
 
@@ -390,8 +391,15 @@ function gapBlock(g: GapLine): Block {
 /** The line's measure over time, against its target — drawn, not described. */
 function chartBlock(s: NonNullable<GapLine['series']>): Block {
   const CH = 96;
-  return box(f => CH + gap(f.density, 'm'), (f, y) => {
+  /* THE NUMBER'S TREND (FC-117, FC-201) — the sentence the line's Numbers say under their chart, from eight readings, in words with its tone beside it */
+  const trendLines = (f: Frame): string[] => (s.trend ? wrap(f.doc, s.trend.text, f.w, SIZE.small) : []);
+  return box(f => CH + trendLines(f).length * lead(SIZE.small, f.density) + gap(f.density, 'm'), (f, y) => {
     const doc = f.doc;
+    const tl = trendLines(f);
+    if (tl.length && s.trend) {
+      font(doc, SIZE.small, 'normal', s.trend.tone === 'r' ? DANGER : s.trend.tone === 'a' ? AMBER : s.trend.tone === 'g' ? OK : INK2);
+      doc.text(tl, f.x, y + CH + SIZE.small * 0.92 + 2);
+    }
     const px0 = f.x + 34, px1 = f.x + f.w - 56, py0 = y + 16, py1 = y + CH - 16;
     const vals = [...s.points.map(p => p.value), ...(s.target != null ? [s.target] : [])];
     let lo = Math.min(...vals), hi = Math.max(...vals);
@@ -401,7 +409,7 @@ function chartBlock(s: NonNullable<GapLine['series']>): Block {
     const X = (at: string) => px0 + (t1 > t0 ? ((Date.parse(`${at}T12:00:00`) - t0) / (t1 - t0)) : 0.5) * (px1 - px0);
     const Y = (v: number) => py1 - ((v - lo) / (hi - lo)) * (py1 - py0);
     font(doc, SIZE.tiny, 'bold', MUTED);
-    doc.text(`${s.measure.toUpperCase()}${s.unit ? ` (${s.unit})` : ''} · ${s.better === 'up' ? 'HIGHER' : 'LOWER'} IS BETTER`, f.x, y + 8);
+    doc.text(`${s.measure.toUpperCase()}${s.unit ? ` (${s.unit})` : ''} · ${s.better === 'up' ? 'HIGHER' : 'LOWER'} IS BETTER${s.points.length >= TREND_FROM ? ` · DOTTED = AVERAGE OF THE LAST ${MOVING_WINDOW}` : ''}`, f.x, y + 8);
     doc.setDrawColor(LINE); doc.setLineWidth(0.5);
     doc.line(px0, py1, px1, py1); doc.line(px0, py0, px0, py1);
     font(doc, SIZE.tiny, 'normal', MUTED);
@@ -417,6 +425,12 @@ function chartBlock(s: NonNullable<GapLine['series']>): Block {
     }
     doc.setDrawColor(INK); doc.setLineWidth(1.4);
     for (let i = 1; i < s.points.length; i++) doc.line(X(s.points[i - 1].at), Y(s.points[i - 1].value), X(s.points[i].at), Y(s.points[i].value));
+    if (s.points.length >= TREND_FROM) {   /* the moving average of the last three readings, dashed (FC-117) */
+      const ma = movingAverage(s.points.map(p => p.value));
+      doc.setDrawColor(MUTED); doc.setLineWidth(0.9); doc.setLineDashPattern([1, 2], 0);
+      for (let i = 1; i < ma.length; i++) { const a = ma[i - 1], b = ma[i]; if (a != null && b != null) doc.line(X(s.points[i - 1].at), Y(a), X(s.points[i].at), Y(b)); }
+      doc.setLineDashPattern([], 0);
+    }
     doc.setFillColor(INK);
     for (const p of s.points) doc.circle(X(p.at), Y(p.value), 1.6, 'F');
     const last = s.points[s.points.length - 1];

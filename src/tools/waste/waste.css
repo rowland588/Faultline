@@ -1,0 +1,16 @@
+/* FC-005 — the waste walk. One colour, one meaning: nothing here wears a state colour; the biggest is the first row and the words carry the rest. */
+.ws { display: grid; gap: 6px; padding: 10px 12px; margin: 8px 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.ws-says { margin: 0; font-weight: 700; color: var(--ink); line-height: 1.35; overflow-wrap: anywhere; }
+.ws-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.ws-row { display: grid; grid-template-columns: minmax(6.5rem, 9rem) 1fr; column-gap: 10px; row-gap: 2px; padding: 6px 0; border-top: 1px solid var(--line); font-size: var(--t-body); align-items: baseline; }
+.ws-name { color: var(--ink); }
+.ws-words { color: var(--ink-2); overflow-wrap: anywhere; }
+.ws-where { grid-column: 2; font-size: var(--t-detail); color: var(--muted); overflow-wrap: anywhere; }
+.ws-more { margin: 0; font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; }
+.ws-foot { margin: 0; font-size: var(--t-label); color: var(--muted); }
+.ws-chips { margin: 4px 0; }
+.ws-means { margin: 2px 0 0; font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; }
+@media (max-width: 719px) {
+  .ws-row { grid-template-columns: 1fr; }
+  .ws-where { grid-column: 1; }
+}

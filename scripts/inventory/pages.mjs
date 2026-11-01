@@ -546,6 +546,12 @@ export const PAGES = (sd, cap) => [
     { what: 'the page named Pugh matrix, with New ranking', sel: '.part-head .pace-title', text: /^Pugh matrix$/ },
     { what: 'New ranking', sel: '.pace-head-actions .btn-primary', text: /^New ranking$/ },
   ] },
+  /* PRODUCT ON HOLD (m6-registers, FC-135, knowledge/specs/FC-135-product-on-hold.md): the registers, one a line */
+  { name: 'Product on hold — its registers (FC-135)', path: '#/holds', must: [
+    { what: 'the page named Product on hold, with New register', sel: '.part-head .pace-title', text: /^Product on hold$/ },
+    { what: 'New register', sel: '.pace-head-actions .btn-primary', text: /^New register$/ },
+    { what: 'what to do first, when no register is started', sel: '.qsl-empty', text: /A register is a line’s/ },
+  ] },
   { name: 'Equipment criticality — its list', path: '#/scored/criticality', must: [
     { what: 'the page named Equipment criticality, with New ranking', sel: '.part-head .pace-title', text: /^Equipment criticality$/ },
     { what: 'New ranking', sel: '.pace-head-actions .btn-primary', text: /^New ranking$/ },

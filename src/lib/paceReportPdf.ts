@@ -25,6 +25,7 @@ import { strandsOf, orderStrands, type StrandState } from './strands';
 export { strandsOf, orderStrands, strandsSay, strandWord, STRAND_WORD, FIX_STRAND_WORD } from './strands';
 export type { Strand, StrandState, StrandStep } from './strands';
 import { vsTarget } from './measures';
+import { movingAverage, MOVING_WINDOW, numberTrend, TREND_FROM } from './measureProof';
 import { CAP_SHEET_UNITS, capacityPlan, lineSheetUnits, type CapacityReport } from '../tools/linebalance/capacity';
 import { fmtN } from '../tools/linebalance/capacityWords';
 import { type PaceReportData } from './paceReport/data';
@@ -123,7 +124,13 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
   const strip = s.across.some(a => a.value != null);
   const qH = strip ? 26 : 0;
   const pL = x + 34, pR = x + w - 52;
-  const pT = y + 58, pB = y + h - qH - 20;
+  /* THE NUMBER'S TREND, on paper as on the page (FC-117, FC-201; lib/measureProof numberTrend — from eight readings): its sentence under the
+     plot, in words with the tone beside it, taking the room it needs from the plot rather than crossing it */
+  setFont(d, 6.5, 'normal', INK2);
+  const tr = numberTrend(s.points, s.measure.direction, s.measure.unit);
+  const trLines: string[] = tr ? [...(d.splitTextToSize(san(tr.text), w - 24) as string[]).slice(0, 3), `The dotted line is the average of the last ${MOVING_WINDOW} readings.`] : [];
+  const trH = trLines.length ? trLines.length * 7.5 + 3 : 0;
+  const pT = y + 58, pB = y + h - qH - 20 - trH;
 
   const withTarget = target != null ? [...vals, target] : vals;
   const lo = Math.min(...withTarget), hi = Math.max(...withTarget);
@@ -158,6 +165,12 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
       { align: i === 0 ? 'left' : i === s.points.length - 1 ? 'right' : 'center' });
   }
 
+  if (trLines.length && tr) {
+    const top = y + h - qH - 6 - trH;
+    setFont(d, 6.5, 'normal', tr.tone === 'r' ? DANGER : tr.tone === 'a' ? WARN : tr.tone === 'g' ? OK : INK2);
+    trLines.forEach((ln, i) => d.text(ln, x + 12, top + 8 + i * 7.5));
+  }
+
   // target line, dashed, labelled at the right
   if (target != null) {
     d.setDrawColor(TARGET); d.setLineWidth(1.2); d.setLineDashPattern([4, 3], 0);
@@ -171,6 +184,12 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
   d.setDrawColor(ACTUAL); d.setLineWidth(1.8);
   for (let i = 1; i < s.points.length; i++) {
     d.line(px(i - 1), py(vals[i - 1]), px(i), py(vals[i]));
+  }
+  /* the moving average of the last three readings, dashed, once there are enough for the trend (FC-117) */
+  if (s.points.length >= TREND_FROM) {
+    const ma = movingAverage(vals); d.setDrawColor(MUTED); d.setLineWidth(1); d.setLineDashPattern([1.5, 2.5], 0);
+    for (let i = 1; i < ma.length; i++) { const a = ma[i - 1], b = ma[i]; if (a != null && b != null) d.line(px(i - 1), py(a), px(i), py(b)); }
+    d.setLineDashPattern([], 0);
   }
   d.setFillColor(ACTUAL);
   s.points.forEach((_, i) => d.circle(px(i), py(vals[i]), 2.2, 'F'));

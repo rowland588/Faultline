@@ -81,6 +81,9 @@ export interface LogDef {
   scoreRule?: ScoreRule;
   /** Abnormality tags can be raised from a check (CILT). */
   tags?: boolean;
+  /** A register of things (FC-014, mistake-proofing devices): each check also names the error it prevents, its type and its
+   *  function; the log counts and filters them (tools/checks/register) and prints them as a register on its paper. */
+  register?: boolean;
   /** What a miss costs, in this log's own words; absent: the shared sentence (hold.ts). */
   costWords?: (f: CostFacts) => string | undefined;
   /** What the log does not do or does not decide — said on its page and on its paper. */

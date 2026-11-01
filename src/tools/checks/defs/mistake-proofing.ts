@@ -2,15 +2,16 @@
  *
  * A poka-yoke device (Shingo: contact, fixed-value or motion-step; a control that stops the machine or a warning that
  * a person acts on) is protection only while it works, and nobody sees a sensor fail
- * (knowledge/methods/lean/poka-yoke.md). So each device is a check on the list: the device and the error it prevents
- * in its name, its type and function and the deliberate fail test (a known-bad part presented) in the words of what
- * passes, where it is on the line, and how often it is tested. A failed test means everything made since the last good
- * test was unprotected — the shape works that window out and raises ONE problem on the register; whether the product
- * is inspected, held, re-run or scrapped is the site's call, never this tool's. A bypassed device (the jumper, the
- * taped sensor) found on a walk is a failure of the system and is recorded as a fail.
+ * (knowledge/methods/lean/poka-yoke.md). So each device is a check on the list: the device in its name, the error it
+ * prevents, its type and its function as fields of the check (tools/checks/register), the deliberate fail test (a
+ * known-bad part presented) in the words of what passes, where it is on the line, and how often it is tested. A failed
+ * test means everything made since the last good test was unprotected — the shape works that window out and raises
+ * ONE problem on the register; whether the product is inspected, held, re-run or scrapped is the site's call, never
+ * this tool's. A bypassed device (the jumper, the taped sensor) found on a walk is a failure of the system and is
+ * recorded as a fail.
  *
- * The register is the list of checks (knowledge/BUILD-SHAPES.md, FC-014). Its fields as DATA (type, function, the
- * error) are not separate fields of a check yet — they are words here; the spec (§12) says what that needs. */
+ * The register is the list of checks (knowledge/BUILD-SHAPES.md, FC-014), and since 1 November its fields are DATA: a
+ * check's error, deviceType and deviceFunction, counted and filtered by tools/checks/register. */
 import type { LogDef } from '../def';
 
 const REACTION =
@@ -37,23 +38,24 @@ export const def: LogDef = {
   },
   kinds: ['passfail'],
   starterChecks: [
-    { name: 'Label-presence sensor — prevents a pack with no label', where: '', ...SHIFT, criterion: 'Contact · control. A known-bad pack (no label) is presented and the line stops or the pack is rejected' },
-    { name: 'Date-code reader — prevents a missing or wrong date code', where: '', ...SHIFT, criterion: 'Fixed-value · control. A known-bad code (blank, wrong date) is presented and the reader rejects the pack' },
-    { name: 'Reject-confirm on the metal detector — prevents a rejected pack staying in the flow', where: '', ...SHIFT, criterion: 'Motion-step · control. A test piece is detected and the reject confirm proves the pack left the line' },
-    { name: 'Case-count sensor — prevents a short or over-filled case', where: '', ...SHIFT, criterion: 'Fixed-value · control. A case with one pack missing is presented and the sensor stops the case sealing' },
-    { name: 'Guard interlock — prevents the machine starting with the guard open', where: '', ...SHIFT, when: { every: 1, unit: 'day' }, reaction: GUARD_REACTION, holds: false, criterion: 'Motion-step · control. The guard is opened and the machine will not start or stops' },
-    { name: 'Colour-coded utensils and tools — prevent an allergen tool at the wrong station', where: '', ...SHIFT, when: { every: 1, unit: 'week' }, priority: 'high', criterion: 'Contact · warning. Each tool is found at its own station and does not fit another; none missing or swapped' },
-    { name: 'Recipe release — prevents the next ingredient before the last is weighed', where: '', ...SHIFT, when: { every: 1, unit: 'week' }, priority: 'high', criterion: 'Motion-step · control. The next ingredient is requested before the last is weighed in band and the system will not release it' },
+    { name: 'Label-presence sensor', error: 'A pack with no label', deviceType: 'contact', deviceFunction: 'control', where: '', ...SHIFT, criterion: 'A known-bad pack (no label) is presented and the line stops or the pack is rejected' },
+    { name: 'Date-code reader', error: 'A missing or wrong date code', deviceType: 'fixed-value', deviceFunction: 'control', where: '', ...SHIFT, criterion: 'A known-bad code (blank, wrong date) is presented and the reader rejects the pack' },
+    { name: 'Reject-confirm on the metal detector', error: 'A rejected pack staying in the flow', deviceType: 'motion-step', deviceFunction: 'control', where: '', ...SHIFT, criterion: 'A test piece is detected and the reject confirm proves the pack left the line' },
+    { name: 'Case-count sensor', error: 'A short or over-filled case', deviceType: 'fixed-value', deviceFunction: 'control', where: '', ...SHIFT, criterion: 'A case with one pack missing is presented and the sensor stops the case sealing' },
+    { name: 'Guard interlock', error: 'The machine starting with the guard open', deviceType: 'motion-step', deviceFunction: 'control', where: '', ...SHIFT, when: { every: 1, unit: 'day' }, reaction: GUARD_REACTION, holds: false, criterion: 'The guard is opened and the machine will not start or stops' },
+    { name: 'Colour-coded utensils and tools', error: 'An allergen tool at the wrong station', deviceType: 'contact', deviceFunction: 'warning', where: '', ...SHIFT, when: { every: 1, unit: 'week' }, priority: 'high', criterion: 'Each tool is found at its own station and does not fit another; none missing or swapped' },
+    { name: 'Recipe release', error: 'The next ingredient before the last is weighed', deviceType: 'motion-step', deviceFunction: 'control', where: '', ...SHIFT, when: { every: 1, unit: 'week' }, priority: 'high', criterion: 'The next ingredient is requested before the last is weighed in band and the system will not release it' },
     { name: 'No device bypassed — no jumper, tape or override on any of them', where: '', ...SHIFT, criterion: 'Each device walked: none jumpered, taped, switched off or overridden' },
     { name: 'Re-test after a device is repaired, moved or reset', where: '', ...SHIFT, when: { when: 'trigger', note: 'a device is repaired, moved or reset' }, criterion: 'The device acts on the known-bad part again before the line runs' },
   ],
   reactionWords: REACTION,
   whereLabel: 'Machine',
   holds: true,
+  register: true,
   priority: 'critical',
   limits: [
     'It records the tests and states the team’s rules; it never decides whether product is inspected, held, re-run, released or scrapped — that is the site’s call.',
-    'The register is the list of checks: a device’s type (contact, fixed-value, motion-step), function (control, warning) and the error it prevents are words in the check, not separate fields, so the list cannot yet be filtered or counted by them.',
+    'The register is the list of checks: each device names the error it prevents and its type (contact, fixed-value, motion-step) and function (control, warning). They are counted and filtered here; the device maker’s own tolerance, sensitivity and known-bad part are the site’s and are not given.',
     'The errors not yet proofed (the FMEA’s highest-ranked human errors with no device, FC-132) and a device’s effectiveness (defects of its kind before and after, FC-134) are not here.',
     'A device’s own cost against the failures it stops is not held, so what it pays back is not said; the packs held by a failed test are priced at the line’s materials a pack where that is given.',
     'A warning device depends on a person’s reaction; for a food-safety error it should be a control.',

@@ -17,6 +17,7 @@ import { KNOWN_WORD, SIXM, everyWords, holdDue, sixmLabel, toSixM, type Cause, t
 import type { FishboneData } from './fishbone';
 import { factsOf, lineCapacityOf, therefore } from './fishbone';
 import { gapOf, lineSeries, say } from './measures';
+import { numberTrend } from './measureProof';
 import { paretoFromLog } from './paretoFromLog';
 import { paretoView } from './paretoView';
 import { analyse } from '../tools/linebalance/capacity';
@@ -52,7 +53,9 @@ export interface GapLine {
   says: string;
   /** Short of target, in words ("3.2 ppm short") — the one abnormal number. */
   short?: string;
-  series?: { measure: string; unit: string; better: 'up' | 'down'; points: { at: string; value: number }[]; target?: number; period?: string };
+  series?: { measure: string; unit: string; better: 'up' | 'down'; points: { at: string; value: number }[]; target?: number; period?: string;
+    /** The number's trend in words, from eight readings (lib/measureProof numberTrend — FC-117, FC-201): the same sentence the line's Numbers say. */
+    trend?: { text: string; tone: 'g' | 'a' | 'r' | 'n' } };
 }
 
 export interface CauseRep {
@@ -326,6 +329,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       ...(s && s.points.length ? { series: {
         measure: s.measure.name, unit: s.measure.unit ?? '', better: s.measure.direction,
         points: s.points.map(p => ({ at: p.at, value: p.value })), target: s.target, period: s.period?.name,
+        ...(() => { const t = numberTrend(s.points, s.measure.direction, s.measure.unit); return t ? { trend: { text: t.text, tone: t.tone } } : {}; })(),
       } } : {}),
     };
   }) : [];

@@ -36,11 +36,16 @@ import { usesOf } from '../../screens/ProjectToolsScreen';
 import { howTool, openable, toolStateWord } from './methodTools';
 import { useProjectLooking } from '../../tools/gemba/useLooking';
 import { projectSays, stalestFirst } from '../../tools/gemba/looking';
+import { useMeasures } from '../../lib/useMeasures';
+import { numbersSays } from '../../lib/measureProof';
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
 /** The 6M tool inside a method (S4, 1 November): it has no page of its own in the catalogue's registry — its pages are the project's Fishbone, Board and Results — so its rows open the fishbone. */
 const SIXM_IDS = new Set(['FC-146', 'FC-147', 'FC-148']);
+/** The team's own weekly number (FC-117 trended, FC-201 proved): the A3's Target, the Kata's challenge, the Kaizen event's 30-day check. It is kept on the project (its
+ *  measures, targets and readings) and read on the project's Results — its row says what the project holds and opens it. */
+const NUMBER_IDS = new Set(['FC-117', 'FC-201']);
 
 export function MethodScreen({ projectId }: { projectId: string }) {
   const { project } = useProject(projectId);
@@ -63,6 +68,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   }, [got]);
   /* FC-199, how fresh the looking is: the project's lines, read for the Gemba walk row (tools/gemba) */
   const looking = useProjectLooking(projectId);
+  const nums = useMeasures(projectId);
   const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
   const { answers, items } = useAnswers(projectId, method?.key ?? 'pdca');
   const saveAnswer = useSaveAnswer(projectId, method?.key ?? 'pdca', items);
@@ -74,9 +80,15 @@ export function MethodScreen({ projectId }: { projectId: string }) {
     const today = todayISO();
     await saveMethodReportPdf({ project: project.name, method, printed: today, todayISO: today, dash, answers });
   };
+  /* a calculator's row counts its own calculations (/calc/<key>), not every calculator in the project */
+  const usesOf2 = (t: AppTool): { n: number; latest?: string } | undefined => (/^\/calc\/./.test(t.to)
+    ? { n: (got?.studies ?? []).filter(x => x.tool === 'calc' && x.agreed?.calc?.key === t.to.slice(6)).length }
+    : /^\/log\/./.test(t.to)   /* a check log's kind counts its own logs, not every check log in the project */
+      ? { n: (got?.studies ?? []).filter(x => !x.deletedAt && x.tool === 'log' && x.agreed?.log?.key === t.to.split('/')[2]?.split('?')[0]).length }
+      : uses.get(t.key));
   const usedIn = (s: MethodSection) => {
     const keys = new Set<string>();
-    for (const id of s.tools) { const t = openable(howTool(id)); if (t && (uses.get(t.key)?.n ?? 0) > 0) keys.add(t.key); }
+    for (const id of s.tools) { const t = openable(howTool(id)); if (t && (usesOf2(t)?.n ?? 0) > 0) keys.add(`${t.key}${t.to}`); }
     return keys.size;
   };
   const placed = new Set(method.sections.flatMap(s => s.tools.map(id => openable(howTool(id))?.key).filter(Boolean) as string[]));
@@ -110,7 +122,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
               {s.tools.map(id => {
                 const h = howTool(id);
                 const t = openable(h);
-                const u = t ? uses.get(t.key) : undefined;
+                const u = t ? usesOf2(t) : undefined;
                 const name = h.how === 'unknown' ? id : h.entry.name;
                 /* the Gemba walk is not a page of its own: its row says how fresh the looking is on the project's lines and opens the stalest */
                 const gemba = id === 'FC-199' && looking?.length ? looking : undefined;
@@ -118,9 +130,9 @@ export function MethodScreen({ projectId }: { projectId: string }) {
                 return (
                   <RecordRow key={id} what={name}
                     {...(worst && worst.looking.level !== 'fresh' ? { tone: worst.looking.level === 'stale' ? 'r' as const : 'a' as const } : {})}
-                    says={gemba ? projectSays(gemba) : u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
+                    says={gemba ? projectSays(gemba) : NUMBER_IDS.has(id) ? (nums.loading ? undefined : numbersSays(nums.measures, nums.readings)) : u?.n ? `${plural(u.n, 'use')} in this project` : undefined}
                     where={toolStateWord(h)}
-                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : t ? nav(inProject(t.to, projectId)) : SIXM_IDS.has(id) ? nav(`/project/${projectId}/fishbone`) : undefined)}
+                    onOpen={() => (worst ? nav(`/lines/${worst.id}`) : t ? nav(inProject(t.to, projectId)) : SIXM_IDS.has(id) ? nav(`/project/${projectId}/fishbone`) : NUMBER_IDS.has(id) ? nav(`/project/${projectId}?view=data`) : undefined)}
                     aside={t && can.edit && t.key !== 'talk'
                       ? <button type="button" className="btn btn-sm" aria-label={`New — ${name}`} onClick={() => start(t)}>New</button>
                       : undefined} />

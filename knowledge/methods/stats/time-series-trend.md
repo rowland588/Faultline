@@ -100,10 +100,12 @@ its weeks (the proof that a change held).
 - [practice] Perla, R.J., Provost, L.P. and Murray, S.K. (2011), "The run chart: a simple analytical tool for learning from variation", *BMJ Quality & Safety* 20(1), 46–51 — the run chart rules as taught in improvement work (from knowledge).
 
 ## In Faultline
-Built on the screen (W2, 24 October; FC-117, FC-201 stay partial). A project's
-measures week by week and its before → after proof (`src/lib/measures.ts`,
-`src/lib/measureProof.ts`); from 8 weeks each number says its trend in one
-sentence — the Sen slope a week, Mann–Kendall's p, and the runs about the
-median (`numberTrend`; validated against SciPy, `cases-w2.py`) — on the line
-page's Numbers panel. The client report's paper does not carry it yet. Proved
-by `scripts/acceptance/weekly-number.mjs`.
+Built (FC-117 trended — partial, no moving average is drawn; FC-201 proved). A project's measures week by week and
+its before → after proof (`src/lib/measures.ts`, `src/lib/measureProof.ts`); from 8 weeks each number says its
+trend in one sentence — the Sen slope a week, Mann–Kendall's p, and the runs about the median (`numberTrend`;
+validated against SciPy, `cases-w2.py`, and by a second implementation, `cases-kaizen.py` section P) — on the line
+page's Numbers panel and, since 1 November, under the chart on the 6M client report's paper and the A3. The proof at
+a change is Welch's one-sided t on the readings either side of the day the change landed (the Wins' proof sheet), its
+sentence the same on screen and paper. A method project's row for the number (the A3's Target, the Kata's challenge)
+says what the project holds and opens its Results. Specification `knowledge/specs/FC-117-weekly-number.md`; proved by
+`scripts/acceptance/weekly-number.mjs`.

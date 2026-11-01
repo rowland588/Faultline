@@ -12,9 +12,19 @@ import type { Standard, StandardMark } from '../tools/linestandard/standard';
 import { factsOf, listById, type StudyUse, type ToolStudy } from '../lib/study';
 import { footageKeys, forTheCloud } from '../tools/video/footage';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
+import { isWaste } from '../tools/waste/waste';
 import { talkMediaKeys } from '../tools/talk/talk';
 
 type Row = Record<string, unknown>;
+
+/** The waste class of a problem (FC-005) rides in the row's existing `linked_obs_ids` list as one tagged entry (`waste:<kind>`), so the
+ *  waste walk needs no column and nothing waits on the database; the mapper adds it going up and takes it out coming down. */
+const WASTE_TAG = 'waste:';
+const wasteOfRow = (ids: unknown): { waste?: Snag['waste'] } => {
+  const tag = Array.isArray(ids) ? (ids as unknown[]).find((x): x is string => typeof x === 'string' && x.startsWith(WASTE_TAG)) : undefined;
+  const v = tag?.slice(WASTE_TAG.length);
+  return v === 'none' || isWaste(v) ? { waste: v as Snag['waste'] } : {};
+};
 
 /** A blob this record points at. `mime` is a fallback used only when the bytes
  *  aren't self-identifying — storage doesn't reliably preserve content types,
@@ -162,7 +172,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         raised_at: s.raisedAt, due_at: s.dueAt ?? null,
         latest_update: s.latestUpdate ?? null, latest_update_at: s.latestUpdateAt ?? null,
         closed_at: s.closedAt ?? null, close_note: s.closeNote ?? null,
-        detail_photo_key: s.detailPhotoKey ?? null, fixed_photo_key: s.fixedPhotoKey ?? null, linked_obs_ids: s.linkedObsIds ?? [],
+        detail_photo_key: s.detailPhotoKey ?? null, fixed_photo_key: s.fixedPhotoKey ?? null, linked_obs_ids: [...(s.linkedObsIds ?? []), ...(s.waste ? [WASTE_TAG + s.waste] : [])],
         media: s.media ?? null, project_id: s.projectId ?? null, sent: s.sent ?? null,
         updated_at: s.updatedAt ?? s.raisedAt, deleted_at: s.deletedAt ?? null };
     },
@@ -178,13 +188,14 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       ...(r.minutes_per_day != null && Number(r.minutes_per_day) >= 0 ? { minutesPerDay: Number(r.minutes_per_day) } : {}),
       ...(r.rejects_per_day != null && Number(r.rejects_per_day) >= 0 ? { rejectsPerDay: Number(r.rejects_per_day) } : {}),
       ...(r.held_packs != null && Number(r.held_packs) >= 0 ? { heldPacks: Number(r.held_packs) } : {}),
+      ...wasteOfRow(r.linked_obs_ids),
       proposedSolution: (r.proposed_solution as string) ?? undefined, status: r.status as Snag['status'],
       owner: (r.owner as string) ?? undefined, raisedAt: Number(r.raised_at), dueAt: n(r.due_at),
       latestUpdate: (r.latest_update as string) ?? undefined, latestUpdateAt: n(r.latest_update_at),
       closedAt: n(r.closed_at),
       closeNote: (r.close_note as string) ?? undefined, detailPhotoKey: (r.detail_photo_key as string) ?? undefined,
       fixedPhotoKey: (r.fixed_photo_key as string) ?? undefined,
-      linkedObsIds: (r.linked_obs_ids as string[]) ?? undefined,
+      linkedObsIds: ((r.linked_obs_ids as string[]) ?? undefined)?.filter(x => !x.startsWith(WASTE_TAG)),
       ...(Array.isArray(r.media) ? { media: r.media as Snag['media'] } : {}),
       ...(r.project_id ? { projectId: r.project_id as string } : {}),
       ...(Array.isArray(r.sent) ? { sent: r.sent as Snag['sent'] } : {}),

@@ -26,6 +26,7 @@ import type { VideoEvent, VideoSource } from '../tools/video/record';
 import type { FootageGone } from '../tools/video/footage';
 import type { ID } from '../types';
 import type { TalkTurn } from '../tools/talk/talk';
+import type { AgreedHolds, Hold } from '../tools/hold/hold';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
@@ -578,6 +579,12 @@ export interface LogCheck {
   removed?: boolean;
   /** Planned maintenance (FC-063): standard hours for this task — backlog is summed in these hours. */
   stdHours?: number;
+  /** MISTAKE-PROOFING REGISTER (FC-014, tools/checks/register): the error this device prevents, in words; its type (Shingo:
+   *  a shape that fits only the right part, a count that must be reached, steps that must happen in order) and its
+   *  function (a control stops or rejects; a warning is a light or a sound a person acts on). All optional. */
+  error?: string;
+  deviceType?: 'contact' | 'fixed-value' | 'motion-step';
+  deviceFunction?: 'control' | 'warning';
 }
 
 export interface AgreedLog {
@@ -645,6 +652,15 @@ export interface StudyAgreed {
   scored?: AgreedScored;
   /** A BOARD (FC-067): which board, and typed inputs it owns (reactive hours until FC-059 feeds them). */
   board?: AgreedBoard;
+  /** THE REGISTER TOOLS (m6-registers, tools/registers/kinds): which tool a 'ledger' or 'doc' study is lives in its own agreed record. */
+  /** FC-135 — a line's register of product on hold: who may release, the carrying rate. */
+  holds?: AgreedHolds;
+  /** FC-155 — a proved fix offered to the other lines. */
+  deploy?: Record<string, unknown>;
+  /** FC-198 — a tier's daily meeting. */
+  daily?: Record<string, unknown>;
+  /** FC-152 — a fault tree. */
+  tree?: Record<string, unknown>;
 }
 
 /** A board’s own typed fields — measures are read from sibling records on the line. */
@@ -964,6 +980,8 @@ export interface Tap { id: string; at: number; who: string; activity: string; by
 /** What people put in, by tool. Every list is keyed by `id`, so two phones
  *  adding to one study both keep what they added (docs/BUILD.md, 2b). */
 export interface StudyFacts {
+  /** FC-135 — the holds on a line's register (tools/hold): each its own entry, so two phones raising holds both keep theirs. */
+  holds?: Hold[];
   readings?: StudyReading[];
   /** READINGS COPIED FROM ANOTHER STUDY (knowledge/specs/FC-094-shared-readings.md — Rowland, 31 October: shared readings, option A):
    *  where they came from — never a link that follows, only the note: its id, tool and name when copied, how many and when. */

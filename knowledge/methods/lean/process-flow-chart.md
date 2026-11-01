@@ -103,8 +103,10 @@ path through the laboratory.
 - [standard] ASME Standard 101 (1947), *Operation and Flow Process Charts* — the five symbols (from knowledge).
 
 ## In Faultline
-Not built (FC-003). The value stream map's steps already carry who,
-where and the value class (`src/tools/valuestream`); FC-003 is a finer
-chart for one path — each step with its symbol, time and distance, the
-totals and shares, and the present and proposed charts side by side —
-and would feed the map's step times.
+Built (FC-003), as a calculator of the shared shape (`src/tools/calc/defs/process-flow.ts`, the figures in `src/tools/flow/processFlow.ts`): one path of
+one thing, up to 24 steps typed in order, each classed by the five symbols with its minutes and — for a transport — its metres; the counts, minutes and metres
+by class, the share of the time in operations, the share waiting and operations with the storage by design aside; the chart drawn — the symbols down the page,
+the same on screen and on paper (`src/tools/flow/symbols.ts`); the money the map's way (the people's minutes on the moves and checks, the holding of the
+product through its delays and storage — every input optional); and the saved before that makes the questioned chart a before → after. The map's steps are
+not carried in (they have a value class, not an ASME class); the proposed chart is the saved before and the figures now, not drawn beside it. Specification
+`knowledge/specs/FC-003-process-flow-chart.md`; proved by `scripts/acceptance/process-flow.mjs` and the worked case above (`scripts/knowledge/cases-kaizen.py`).

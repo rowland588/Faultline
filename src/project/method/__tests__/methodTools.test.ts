@@ -27,6 +27,16 @@ describe('how a default tool stands', () => {
     if (mode.how === 'inside') expect(toolStateWord(mode)).toMatch(/^A mode of /);
   });
 
+  it('a calculator’s row opens at its own address, inside the Calculators hub, and New starts that calculator', () => {
+    const h = howTool('FC-003');                                  // the process flow chart — a calculator (Kaizen event, Observe)
+    expect(h.how).toBe('inside');
+    expect(openable(h)?.to).toBe('/calc/process-flow');
+    expect(openable(h)?.key).toBe('calc');
+    expect(toolStateWord(h)).toBe('A mode of Calculators');
+    expect(openable(howTool('FC-215'))?.to).toBe('/calc/critical-path');   // every built calculator opens the same way
+    expect(openable(howTool('FC-128'))?.to).toBe('/calc/copq');
+  });
+
   it('the Theory of Constraints modes open the tool they live in, and say so', () => {
     for (const [id, tool] of [['FC-046', 'Line capacity'], ['FC-039', 'Line capacity'], ['FC-056', 'Loss count']] as const) {
       const h = howTool(id);
@@ -72,6 +82,13 @@ describe('how a default tool stands', () => {
     expect(toolStateWord(h)).toBe('Built');
     const sg = METHODS.find(m => m.key === 'stage-gate');
     expect(sg?.sections.filter(s => s.tools.includes('FC-082')).map(s => s.name)).toEqual(['Set up', 'Hand over']);
+  });
+
+  it('a check log is a kind of the Check logs tool and opens at its own list (m6-registers)', () => {
+    const h = howTool('FC-014'); // mistake-proofing devices
+    expect(h.how).toBe('inside');
+    expect(openable(h)?.to).toBe('/log/mistake-proofing');
+    expect(toolStateWord(h)).toBe('A mode of Check logs');
   });
 
   it('a tool not built yet has nothing to open and says so in the catalogue’s word', () => {

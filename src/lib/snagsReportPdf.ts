@@ -26,6 +26,7 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { leanClosing, leanTiles } from './report/lean';
 import { registerClosing, registerTiles } from './problemsLean';
 import { SIZE, font, gap, rows, text, wrap } from './report/blocks';
+import { placesSays, wasteTag } from '../tools/waste/waste';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489';
@@ -58,7 +59,7 @@ function snagParts(f: Frame, r: SnagRow): Parts {
     prio: r.priority,
     what: wrap(f.doc, san(`${PRIORITY_WORD[r.priority].toUpperCase()} · ${r.what}`), tw, 9.5, 'bold'),
     /* its machine and its job — never "taken on the move", which said how it was typed, not where it is (12 October) */
-    from: ((t: string) => (t ? wrap(f.doc, t, tw, 8) : []))(san([r.machine ?? (/^Taken on the move/.test(r.from) ? '' : r.from), r.forJob ? `for ${r.forJob}` : ''].filter(Boolean).join(' · '))),
+    from: ((t: string) => (t ? wrap(f.doc, t, tw, 8) : []))(san([r.machine ?? (/^Taken on the move/.test(r.from) ? '' : r.from), r.waste ? wasteTag(r.waste) : '', r.forJob ? `for ${r.forJob}` : ''].filter(Boolean).join(' · '))),
     /* what we will do, then the journey — on a day, what we did and what came of it */
     note: [
       ...(r.plan ? wrap(f.doc, san(`Plan: ${r.plan}`), tw, 8.5) : []),
@@ -111,6 +112,23 @@ function drawRow(f: Frame, y: number, p: Parts, photo?: SnagPhoto): void {
   p.right.forEach((x, i) => { font(f.doc, 8.5, x.bold ? 'bold' : 'normal', x.c); f.doc.text(x.t, f.x + f.w - RIGHT, y + 19 + i * 11); });
 }
 
+/** THE EIGHT WASTES SEEN (FC-005; tools/waste) — what the classed problems add up to, the biggest first, where they are and where each points; the same
+ *  sentences as the Problems page's By waste. Nothing is printed when no problem is classed. */
+export function wasteBlocks(r: SnagsReading, d: Density): Block[] {
+  const w = r.wastes;
+  if (!w || !w.lines.length) return [];
+  const out: Block[] = [];
+  out.push({ ...text({ text: 'THE EIGHT WASTES SEEN', size: SIZE.eyebrow, style: 'bold', colour: BRAND, before: 4, after: 3 }), keepWithNext: true });
+  out.push(text({ text: san(w.says), size: 9.5, style: 'bold', colour: INK2, after: 4 }));
+  for (const l of w.lines) out.push(text({ text: san(`${l.words}${l.open && l.machines.length ? ` At ${l.machines.slice(0, 3).join(', ')}${l.machines.length > 3 ? ` and ${l.machines.length - 3} more` : ''}.` : ''}`), size: 8.5, colour: INK2, after: 2 }));
+  const places = placesSays(w);
+  if (places) out.push(text({ text: san(places), size: 8.5, colour: INK2, before: 2, after: 2 }));
+  out.push(text({ text: san(w.foundSays), size: 8.5, colour: INK2, after: 2 }));
+  if (w.next) out.push(text({ text: san(w.next), size: 8.5, colour: INK2, after: 2 }));
+  out.push(text({ text: san(`${w.caveats.join(' ')} Ranked by what is lost a day; product held is money tied up, not lost, so it follows.`), size: 7.5, colour: MUTED, after: gap(d, 'm') }));
+  return out;
+}
+
 export function snagsBlocks(r: SnagsReading, d: Density, photos: Map<string, SnagPhoto>): Block[] {
   const out: Block[] = [];
   for (const g of r.lines) {
@@ -154,6 +172,7 @@ export async function drawSnagsReport(doc: jsPDF, x: { title: string; printed: s
        only the abnormal in its colour, a zero grey (CLAUDE.md, rule 3). */
     out.push(leanTiles(registerTiles(r)));
     out.push(text({ text: san(r.says), size: 9.5, colour: INK2, after: gap(d, 'm') }));
+    out.push(...wasteBlocks(r, d));
     out.push(...snagsBlocks(r, d, x.photos));
     /* THE CLOSING LINE — the worst open problem, and where it is */
     out.push(leanClosing(registerClosing(r)));
