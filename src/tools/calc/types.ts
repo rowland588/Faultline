@@ -90,6 +90,9 @@ export interface PictureAxis { label: string; min: number; max: number; ticks: n
 
 /** A drawing both the screen (SVG) and the paper (jsPDF) make from the one description — so the two cannot part. */
 export interface CalcPicture {
+  /** When set, the plot is drawn at this width ÷ height — the shape of the data window (x.max − x.min) ÷ (y.max − y.min) — so one unit is the same length across and up:
+   *  a layout to scale (the spaghetti diagram, FC-004). Absent: the plot fills its box, as every other calculator's does. */
+  aspect?: number;
   title: string;
   /** What to read off it, in a sentence. */
   caption: string;

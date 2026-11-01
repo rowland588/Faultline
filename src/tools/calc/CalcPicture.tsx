@@ -5,14 +5,19 @@ import type { CalcPicture } from './types';
 
 const W = 440, H = 280, L = 54, R = 18, T = 20, B = 44;
 
+/** The plot's size in its box: it fills it, or — for a drawing to scale (pic.aspect) — takes the largest of that shape that fits. */
+const plotSize = (aw: number, ah: number, aspect?: number): { w: number; h: number } =>
+  !aspect ? { w: aw, h: ah } : aw / ah > aspect ? { w: ah * aspect, h: ah } : { w: aw, h: aw / aspect };
+
 export function CalcPictureView({ pic }: { pic: CalcPicture }) {
-  const w = W - L - R, h = H - T - B;
+  const { w, h } = plotSize(W - L - R, H - T - B, pic.aspect);
+  const HH = pic.aspect ? T + h + B : H;
   const xs = (x: number) => L + ((x - pic.x.min) / (pic.x.max - pic.x.min)) * w;
   const ys = (y: number) => T + (1 - (y - pic.y.min) / (pic.y.max - pic.y.min)) * h;
   const right = (x: number) => xs(x) > L + w * 0.62;
   return (
     <figure className="calc-pic">
-      <svg className="calc-pic-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${pic.title}. ${pic.caption}`}>
+      <svg className="calc-pic-svg" viewBox={`0 0 ${W} ${HH}`} role="img" aria-label={`${pic.title}. ${pic.caption}`}>
         <title>{pic.title}</title>
         {pic.y.ticks.map(t => (
           <g key={`y${t}`}>
@@ -49,7 +54,7 @@ export function CalcPictureView({ pic }: { pic: CalcPicture }) {
             {d.label && <text className="calc-pic-val" x={xs(d.x) + (right(d.x) ? -8 : 8)} y={ys(d.y) + (d.y > 0.5 ? 14 : -7)} textAnchor={right(d.x) ? 'end' : 'start'}>{d.label}</text>}
           </g>
         ))}
-        <text className="calc-pic-ax" x={L + w / 2} y={H - 6} textAnchor="middle">{pic.x.label}</text>
+        <text className="calc-pic-ax" x={L + w / 2} y={HH - 6} textAnchor="middle">{pic.x.label}</text>
         <text className="calc-pic-ax" x={L} y={11}>{pic.y.label}</text>
       </svg>
       <figcaption className="sub calc-pic-cap"><b>{pic.title}.</b> {pic.caption}</figcaption>

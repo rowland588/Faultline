@@ -43,7 +43,9 @@ export function pictureBlock(pic: CalcPicture): Block {
   return rows({ rows: [{
     h: () => H + 18,
     draw: (fr: Frame, y: number) => {
-      const d = fr.doc, L = 44, R = 12, T = 14, B = 26, w = fr.w - L - R, h = H - T - B;
+      const d = fr.doc, L = 44, R = 12, T = 14, B = 26, aw = fr.w - L - R, ah = H - T - B;
+      /* a drawing to scale (pic.aspect) takes the largest plot of its shape that fits, so one metre is one length across and up */
+      const w = !pic.aspect ? aw : aw / ah > pic.aspect ? ah * pic.aspect : aw, h = !pic.aspect ? ah : aw / ah > pic.aspect ? ah : aw / pic.aspect;
       const xs = (x: number) => fr.x + L + ((x - pic.x.min) / (pic.x.max - pic.x.min)) * w;
       const ys = (v: number) => y + T + (1 - (v - pic.y.min) / (pic.y.max - pic.y.min)) * h;
       const right = (x: number) => xs(x) > fr.x + L + w * 0.62;
@@ -68,7 +70,7 @@ export function pictureBlock(pic: CalcPicture): Block {
         d.setFillColor(INK2); d.circle(xs(p.x), ys(p.y), 2.2, 'F');
         if (p.label) { font(d, 6.5, 'bold', INK2); t(p.label, xs(p.x) + (right(p.x) ? -5 : 5), ys(p.y) + (p.y > 0.5 ? 9 : -4), right(p.x) ? 'right' : 'left'); }
       }
-      font(d, 7, 'bold', MUTED); t(pic.x.label, fr.x + L + w / 2, y + H + 8, 'center'); t(pic.y.label, fr.x, y + 8);
+      font(d, 7, 'bold', MUTED); t(pic.x.label, fr.x + L + w / 2, pic.aspect ? y + T + h + 24 : y + H + 8, 'center'); t(pic.y.label, fr.x, y + 8);
     },
   }], after: 's' });
 }
