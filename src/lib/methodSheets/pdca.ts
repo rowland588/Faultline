@@ -13,17 +13,20 @@ export const SECTIONS: SheetSections = {
     Do: [
       f('who', 'Who does what, by when', 'The people and the days. It lands on the project’s Actions.', { tools: ['FC-194'] }),
       f('small', 'How small we start', 'One shift, one line, one product — the size of the trial.'),
+      f('collect', 'What we measure while doing it, and who collects it', 'The same number, taken the same way as before — by whom, how often, where it is written down.', { tools: ['FC-094', 'FC-086'] }),
       f('seen', 'What we saw while doing it', 'Surprises, what went differently from the plan.'),
     ],
     Check: [
       f('result', 'The number now, against before', 'The same measure, the same way — before and after.', { tools: ['FC-105', 'FC-086'] }),
       f('predicted', 'Against what we predicted', 'Did it move as far as you wrote down in Plan?'),
+      f('learned', 'What we learned', 'In a sentence — what this cycle taught us about the cause, whether or not the number moved.'),
       f('beyond', 'Beyond the noise? How we know', 'Why the movement is the change and not ordinary variation.', { tools: ['FC-105', 'FC-086'] }),
     ],
     Act: [
       f('standard', 'Made the standard — where it is written', 'The procedure, line standard or checklist that now says it.', { tools: ['FC-007', 'FC-013'] }),
       f('trained', 'Who was trained', 'The people and the shifts, and the day.'),
       f('spread', 'Other lines to offer it to', 'Where the same machine or problem is.', { tools: ['FC-155'] }),
+      f('decision', 'Adopt, adapt or abandon — and why', 'Adopt: make it the standard as it is. Adapt: change it and run another cycle. Abandon: it did not help — say what you will try instead.'),
       f('again', 'Or: the next cycle’s change', 'If it did not hold or did not go far enough — what you plan next.'),
     ],
   };

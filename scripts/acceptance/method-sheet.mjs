@@ -23,7 +23,7 @@ const sheets = await page.evaluate(async () => { const M = await import('/src/li
 
 /* ---- 1 every worked method asks its own questions ---- */
 for (const m of sheets) {
-  if (m.key === 'stage-gate') continue;
+  if (m.key === 'stage-gate' || m.key === 'pdca') continue; /* PDCA's questions are on its board — scripts/acceptance/method-pdca.mjs */
   await go(`#/project/${ids[m.key]}`, 1800);
   await page.waitForSelector('.pmethod', { timeout: 20000 });
   const got = await page.locator('.pmethod-sec').evaluateAll(els => els.map(e => ({ name: e.getAttribute('aria-label'), qs: [...e.querySelectorAll('.msheet-q')].map(q => q.textContent?.trim()) })));
@@ -34,9 +34,9 @@ for (const m of sheets) {
 /* ---- 2 PDCA: one answer kept ---- */
 const PD = ids.pdca;
 await go(`#/project/${PD}`, 1800);
-const plan = () => page.locator('.pmethod-sec[aria-label="Plan"]');
+const plan = () => page.locator('.pdca-q[data-q="Plan"]');
 const box = q => plan().locator('.msheet-f', { has: page.locator('.msheet-q', { hasText: new RegExp('^' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$') }) }).locator('.msheet-in');
-ok(/Not started: 0 of 5 written/.test(await plan().locator('.pace-sec-sub').innerText()) || /0 of 5 written/.test(await plan().locator('.msheet-state').innerText()), '2 PDCA’s plan not started: 0 of 5 written, in words');
+ok(/0 of 5 written/i.test(await plan().locator('.msheet-state').innerText()), '2 PDCA’s plan not started: 0 of 5 written, in words');
 await box('The number we are improving').fill('Packs a minute at the packer');
 await box('The number we are improving').blur(); await page.waitForTimeout(600);
 await go(`#/project/${PD}`, 1800);
@@ -48,9 +48,9 @@ ok(!(await page.locator('body').innerText()).includes('Packs a minute at the pac
 /* ---- 3 a tool falls in where it answers ---- */
 await go(`#/project/${PD}`, 1800);
 {
-  const b = plan().getByRole('button', { name: /^Use Capability.* for The number we are improving/ });
-  ok((await b.count()) === 1, '3 Capability is offered at “The number we are improving”, saying what it is');
-  await b.click(); await page.waitForTimeout(1200);
+  const b = plan().getByRole('button', { name: /^(Start Capability for The number we are improving|Open Capability in this project)/ });
+  ok((await b.count()) >= 1, '3 Capability is offered at “The number we are improving”, saying what it is');
+  await b.first().click(); await page.waitForTimeout(1200);
   ok(/capability/.test(page.url()) && page.url().includes(PD), `3 the tool opens in the project — nothing was required first (${page.url().split('#')[1]})`);
 }
 
@@ -67,7 +67,7 @@ await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client
 await go(`#/project/${PD}`, 2000);
 {
   const boxes = await plan().locator('textarea, input').count();
-  ok(boxes === 0 && (await words('.pmethod-sec[aria-label="Plan"] .msheet-ro')) === 'Packs a minute at the packer', `5 a client reads the answers and writes nothing (${boxes} boxes)`);
+  ok(boxes === 0 && (await words('.pdca-q[data-q="Plan"] .msheet-ro')) === 'Packs a minute at the packer', `5 a client reads the answers and writes nothing (${boxes} boxes)`);
 }
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 

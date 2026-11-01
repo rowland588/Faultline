@@ -5,6 +5,7 @@
 import type { ComponentType } from 'react';
 import type { MethodKey } from '../../../lib/methods';
 import type { TestItem } from '../../../lib/testing';
+import { PdcaBoard } from './pdca';
 
 export interface ShapeProps {
   projectId: string;
@@ -14,7 +15,7 @@ export interface ShapeProps {
   items: Map<string, TestItem>;
   canEdit: boolean;
   /** Write one answer (kept when the person leaves the box; Undo offered). */
-  save: (field: string, what: string) => void;
+  save: (field: string, what: string, label?: string) => void;
   /** Open a catalogue tool in this project (a tool falling in where it is wanted — never required). */
   onTool: (fcId: string) => void;
 }
@@ -23,4 +24,6 @@ export interface Shape {
   /** `none`: the board is the whole interface and the default boxes under each section are not drawn (the tool rows stay). */
   sectionBoxes?: 'default' | 'none';
 }
-export const SHAPES: Partial<Record<MethodKey, Shape>> = {};
+export const SHAPES: Partial<Record<MethodKey, Shape>> = {
+  pdca: { Board: PdcaBoard, sectionBoxes: 'none' },
+};
