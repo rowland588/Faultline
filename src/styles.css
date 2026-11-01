@@ -15664,3 +15664,12 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .cpp .lt-row { overflow-wrap: anywhere; }
 @media (max-width: 520px) { .cpp-late { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) { .cpp .cw-link, .cpp .lt-acts button { min-height: 44px; display: inline-flex; align-items: center; } .cpp .text-input, .cpp select { min-height: 44px; } }
+
+/* THE SKILLS MATRIX (tools/skills, FC-222) — the task headings hold a name, two small numbers and a way to take it off */
+.skl-task { min-width: 9.5rem; vertical-align: top; }
+.skl-pair { display: flex; gap: 6px; margin-top: 4px; }
+.skl-pair .scored-num { width: 100%; min-width: 0; }
+.skl-level { min-width: 4.5rem; }
+.skl-can { white-space: nowrap; font-weight: 700; }
+.skl-cover th, .skl-cover td { background: var(--paper-2, transparent); }
+@media (max-width: 640px) { .skl .cw-link { min-height: 44px; display: inline-flex; align-items: center; } }

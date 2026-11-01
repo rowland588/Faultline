@@ -38,6 +38,15 @@ describe('how a default tool stands', () => {
     expect(openable(howTool('FC-105'))?.to).toBe(openable(howTool('FC-105'))?.to);
   });
 
+  it('the skills matrix (FC-222) is a tool with a page of its own, in the stage gate’s Set up section', () => {
+    const h = howTool('FC-222');
+    expect(h.how).toBe('tool');
+    expect(openable(h)?.key).toBe('skills');
+    expect(openable(h)?.to).toBe('/scored/skills');
+    expect(toolStateWord(h)).toBe('Built');
+    expect(METHODS.find(m => m.key === 'stage-gate')?.sections.find(s => s.name === 'Set up')?.tools).toContain('FC-222');
+  });
+
   it('a tool not built yet has nothing to open and says so in the catalogue’s word', () => {
     const h = howTool('FC-043'); // drum–buffer–rope
     expect(h.how).toBe('notyet');

@@ -4,6 +4,7 @@
 import type { Entry } from '../types';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 import { LOG_ACCEPTANCE, LOG_CODE, LOG_TESTS, logBuilt } from '../../tools/checks/built';
+import { skillsBuilt } from '../../tools/skills/built';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -748,7 +749,15 @@ export const OPERATIONS: Entry[] = [
     food: 'Machine operators, hygiene, QA checks.',
     depends: ['FC-184', 'FC-223'],
     complexity: 'M', value: 'high', valueWhy: 'A common, simple, valuable gap.',
-    status: 'to-build', form: 'tool', kind: 'register', methods: ['people.skills-matrix'], scenarios: ['people'], words: ['training matrix', 'cover', 'flexibility'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'skills', label: 'Skills matrix', says: 'Who can run what, at what level — and where one absence stops a line, shift by shift', icon: 'people', order: 26.1 },
+    methods: ['people.skills-matrix'], scenarios: ['people', 'new'], words: ['training matrix', 'cover', 'flexibility', 'single point', 'ILUO', 'who can run'],
+    built: skillsBuilt,
+    spec: 'knowledge/specs/FC-222-skills-matrix.md',
+    limits: [
+      'The level is the team’s word (— I L U O); the date it was reached and who signed it are not kept, and a level is not re-checked or aged on the page.',
+      'Cover is the people at the standard (U) or above on a shift, against a cover wanted (3 to start with, the record’s “often”, changed per matrix and per task); absence, leave and training are not modelled and the crew plan (FC-184) is not built.',
+      'A single point is priced as a shift of the line not making from a typed figure or the line’s own; the absence rate is not held, so no yearly cost is guessed. The training is a ranked list, not actions on the project.',
+    ],
   },
   {
     id: 'FC-223', name: 'TWI job instruction — the breakdown and four-step teaching', discipline: 'people', sub: 'instruction',

@@ -18,6 +18,8 @@ export interface ScoredResult {
   money?: string[];
   /** A list under the sentence, titled ("Before you choose" on a Pugh matrix). */
   also?: { title: string; lines: string[] };
+  /** More titled lists after it, in order (a readiness list's open items by owner; a skills matrix's training to do first). */
+  lists?: { title: string; lines: string[] }[];
 }
 
 /** One box a definition asks in each row (beside the name). */
@@ -63,7 +65,15 @@ export type ScoredMatrixOut = { problems: string[] } | { result: ScoredResult; t
 /** A register whose rows are OPTIONS marked against agreed criteria and a datum (Pugh, FC-143) rather than things scored on boxes. */
 export interface ScoredMatrix {
   datumDefault: string;
-  analyse: (a: { datum?: string; criteria: ScoredCriterion[]; rows: ScoredRow[] }) => ScoredMatrixOut;
+  /** What draws it: the Pugh matrix (default), a skills matrix (people × tasks, levels), or a checklist register (items with a state, an owner and a day). */
+  editor?: 'pugh' | 'skills' | 'checklist';
+  /** The heading over the editor, where it is not the Pugh matrix's. */
+  section?: string;
+  /** Asks what a day (or shift) of the line not making costs, £ — typed, or the line's. `unit` is how it is said: "a day", "a shift". */
+  dayCost?: { label: string; unit: 'day' | 'shift' };
+  /** Asks the cover wanted (a skills matrix). */
+  target?: { label: string; default: number };
+  analyse: (a: { datum?: string; criteria: ScoredCriterion[]; rows: ScoredRow[]; target?: number; dayCost?: number; today?: string }) => ScoredMatrixOut;
   /** What a new ranking starts with — blank rows to fill. */
   start: () => { datum: string; criteria: ScoredCriterion[]; rows: ScoredRow[] };
   /** The words of the New sheet and the empty list. */

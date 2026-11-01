@@ -81,6 +81,9 @@ const TOOLS = [
   { key: 'pugh', of: 'Pugh matrix — four fixes for film breaks marked better, same or worse than the present state on five weighted criteria: who leads and where the lead is beaten',
     route: s => `#/scored/pugh/${s.pughId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'],
     css: '.pugh-datum,.pugh-key,.pugh-acts,.pugh-table .sp-rm,.pugh-table tfoot tr[data-foot="Cost"],.pugh-table tfoot tr[data-foot="Same (S)"]{display:none !important}' },
+  { key: 'skills', of: 'Skills matrix — seven people on days and nights across three tasks: the level in every cell, and the cover on each shift that shows two single points on nights',
+    route: s => `#/scored/skills/${s.skillsId}`, parts: ['.ln-tiles', '.ie-says', '.scored-table-wrap'],
+    css: '.skl-pair,.skl-task .sp-rm,.skl-key,.pugh-acts{display:none !important}' },
   { key: 'maintenance', of: 'Maintenance measures — PM compliance, the planned share and MTBF, read from the line\'s logs and studies',
     route: s => `#/board/maintenance-measures/${s.maintenanceId}`, parts: ['.ln-tiles', '.ie-says'], css: '' },
   { key: 'sampling', of: 'Work sampling — what two people were doing at random moments: each share with its margin',
@@ -169,7 +172,11 @@ function PICTURE_SEEDS_FN() {
     const maint = newBoardStudy(BOARDS.find(d => d.key === 'maintenance-measures'), { name: 'Line 7 — October', workspaceId: wsId, now: t });
     maint.agreed = { board: { key: 'maintenance-measures', reactiveHours: 190 } };
     await putStudy(maint);
-    return { criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
+    const skillsDef = SCORED.find(d => d.key === 'skills'), kex = skillsDef.examples[0];
+    const skillsStudy = newScoredStudy(skillsDef, { name: 'Line 7 — setters and checks, by shift', workspaceId: wsId, now: t });
+    skillsStudy.agreed = { scored: { key: 'skills', rows: kex.rows.map(r => ({ ...r })), criteria: kex.criteria.map(c => ({ ...c })) } };
+    await putStudy(skillsStudy);
+    return { skillsId: skillsStudy.id, criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
   };
 }
 
