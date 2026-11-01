@@ -88,4 +88,148 @@ export const SPC_GUIDES: Record<string, Guide> = {
     ],
     watch: 'A bad result is often the method, not the gauge: different positions on the pack, different pressure, a different reading point. Fix the way it is measured before you buy a new scale.',
   },
+  'FC-086': {
+    intro: 'For a measurement taken one reading at a time — a fill weight every twenty minutes, an oven temperature every hour — when the question is not “was that pack in specification?” but “is the process steady, and when did it change?”',
+    steps: [
+      {
+        step: 'What is measured, and how it is judged',
+        means: 'The chart is agreed once, before the readings: which kind (One reading at a time is this chart), what is measured and its unit, and — only if you have them — a target and the lower and upper specification limits. Specification limits are the customer’s or the recipe’s limits; they are drawn faintly and never used to work out the chart’s own control limits.',
+        doThis: 'Choose New control chart from Tools, name what it is of (“Fill weight 400 g”) and the machine. Pick One reading at a time, type what is measured and its unit — the page never assumes one — then the target and specification limits if they are written down, and press Agree these.',
+        youGet: 'A chart named for what it measures. Agree these is held until it has a name, and a lower limit at or above the upper is refused in words. What was agreed can be changed later; every reading is then read against the new agreement.',
+      },
+      {
+        step: 'The readings',
+        means: 'One number for each reading, in the order it was taken — order is what a control chart is made of, because it shows when the process moved.',
+        doThis: 'Take the reading at the machine and tap it on the number pad, then ↵; or paste a column from your log (Or paste readings). When you change something — Adjusted, New reel, Restart — tap that under the last reading, or type your own words, so a jump on the chart can be explained later. A wrong reading is struck, not deleted.',
+        youGet: 'Each reading as a point on the chart in order, with a count (“readings · limits from 20”) and a list, Every reading, where a struck one stays, left out of the figures, and can be brought back.',
+      },
+      {
+        step: 'Set the limits',
+        means: 'Control limits are where an ordinary reading of this process should land, worked out from its own readings: the centre plus and minus 2.66 times the average moving range (the gap between each reading and the one before). They are not the specification. Until you set them they are provisional and move with every reading, which is no use for spotting a change.',
+        doThis: 'Take twenty readings from a stretch you believe was normal, then press Set the limits. After a deliberate change to the process, use Set them again from the latest 20; the old centre stays on the page as “set before”.',
+        youGet: 'A centre line and an upper and lower control limit (UCL, LCL) with their values beside the chart, a moving range chart under it with its own upper limit, and a line saying who set the limits and from which readings.',
+      },
+      {
+        step: 'The signals and the verdict',
+        means: 'A point beyond a limit is the loud signal; the quieter ones are patterns inside the limits, such as eight in a row on one side of the centre. Each signal is said with the readings it covers and what it usually means on the floor. A signal is a reason to look, not a cause.',
+        doThis: 'Read the verdict on the band, then the sentence and the list of signals under the tiles. For the first reading in each signal, go and ask what changed just before it — the Adjusted and New reel notes help. If the chart is attached to a project, Make it better raises a fix or a countermeasure from what it found.',
+        youGet: 'A verdict — In control so far, In control, A signal or Out of control — six tiles (Readings, Centre, Limits, Signals, Since, Level), and each signal with what it usually means. Which signals are watched is set when the chart is agreed.',
+      },
+      {
+        step: 'Next — can it hold the specification?',
+        means: 'A capability figure describes a steady process and no other kind. When the chart is steady with its limits set, shows no signal, and a specification limit is known, the page offers the next question.',
+        doThis: 'Press Check capability › when it appears under the sentence. A sheet, Start from these readings, opens already on that choice with a name offered; nothing is made until you press the button at its foot.',
+        youGet: 'A new capability study with the readings copied and a link back to the chart; the chart itself is untouched. A chart with a signal, or with no specification typed, offers nothing.',
+      },
+    ],
+    watch: 'Set the limits from a stretch that was normal. Limits drawn from a period that already had a problem in it are too wide, and the next problem will look ordinary. And the control limits are never the specification: a chart can sit well inside the specification and still be out of control.',
+  },
+  'FC-087': {
+    intro: 'For checks taken in small samples at intervals — four packs weighed every hour, five seal strengths every fifteen minutes — when you want to know whether the average has moved between samples and whether the readings inside a sample have become more or less alike.',
+    steps: [
+      {
+        step: 'Subgroups, and readings in a subgroup',
+        means: 'A subgroup is the handful of readings taken close together and read as one moment. Choose Subgroups when agreeing the chart (“four packs an hour — X̄-R, and X̄-S from 11”): subgroups of 2 to 10 are charted as averages with their range (R) beneath; above 10 the spread beneath is the standard deviation (S) instead.',
+        doThis: 'Pick Subgroups and type Readings in a subgroup — the number you will really take each time, 2 to 25. Name what is measured and its unit; the target and the specification limits are optional. Press Agree these.',
+        youGet: 'A chart that counts in subgroups, not in readings. A size outside 2 to 25 is refused in words.',
+      },
+      {
+        step: 'The readings, a subgroup at a time',
+        means: 'You still enter single readings, in order; every m of them fill one subgroup. A paste fills subgroups in the order given and carries on from a half-full one.',
+        doThis: 'Tap each reading as you measure it; the pad says how many are in the next subgroup (“2 of 4 in the next”). Take the whole subgroup close together in time, because the chart reads it as one moment. A last subgroup that is short is plotted but not judged.',
+        youGet: 'One point for each full subgroup — its average on the main chart and its range (or standard deviation) in the small chart under it. The Subgroups tile reads, for example, “6 of 4”: six subgroups of four.',
+      },
+      {
+        step: 'Set the limits',
+        means: 'Limits are set from a steady stretch, as on every chart — here the first 20 full subgroups, using the standard textbook constants for that subgroup size. Until you set them they are provisional.',
+        doThis: 'Take twenty subgroups from a stretch that was normal, then press Set the limits; the tile then reads “limits from 20”. After a deliberate change, use Set them again from the latest 20.',
+        youGet: 'A centre (the grand average), upper and lower limits for the averages and an upper limit for the range or standard deviation, each drawn on its own chart.',
+      },
+      {
+        step: 'Two charts, one verdict',
+        means: 'The top chart asks whether the average has moved between samples; the one beneath asks whether the readings inside a sample have become more or less alike. A subgroup counts as beyond if its average is outside the limits or its range is outside its own limit.',
+        doThis: 'Read the verdict, then the sentence and the signals, which name subgroups by number (“subgroups 14–21”). For a range beyond its limit, look at what makes the packs within one sample differ; for an average beyond, look at where the machine is set.',
+        youGet: 'A verdict — In control, A signal or Out of control — and the same tiles and signals as the one-at-a-time chart, counted in subgroups.',
+      },
+    ],
+    watch: 'A subgroup must be taken close together. The limits are built from how much the readings differ inside a subgroup, so if you gather packs across a whole hour and call them one subgroup, the chart will signal far too often.',
+  },
+  'FC-090': {
+    intro: 'For finding a process that has moved even though no single reading is outside its limits — a filler creeping heavy as the hopper empties, a new reel that sits just off-centre. The signals are rules for reading patterns on a control chart.',
+    steps: [
+      {
+        step: 'What should it watch for?',
+        means: 'Eight patterns can be watched, each named in the floor’s words with its textbook name beneath: one reading far out; a step change (eight in a row on the same side of the middle); a drift (six in a row climbing or falling); over-adjusting (fourteen in a row zig-zagging); a shift starting (two of three readings well off to one side); a small shift that stays (four of five a little off to one side); too steady (fifteen hugging the middle); and two streams mixed (eight in a row off the middle, on both sides).',
+        doThis: 'When agreeing the chart, leave the four that are ticked to start with unless you have a reason. Tick one more only when it answers a real question — drift if a hopper empties or a part wears, too steady if you suspect a stuck gauge or rounded readings, two streams mixed if two heads or two reels feed one chart.',
+        youGet: 'A chart that watches exactly those patterns; changing them later re-reads every reading. Each extra rule also raises the chance of a false alarm on a steady process.',
+      },
+      {
+        step: 'The signals, in words',
+        means: 'Each signal is said with the readings it covers and what it usually means — for example “Eight in a row on one side of the centre (above) — readings 28–35” with “a step change — a new reel, a new operator, a set-point moved” beside it. A point beyond a limit is red; the pattern signals are amber.',
+        doThis: 'Read the list under the sentence. A run is said once, from where it began, even if it goes on. Go and look at what changed at the first reading of the signal.',
+        youGet: 'The list of signals, a ring round each flagged point in the picture, and the Signals tile — how many, and how many are beyond a limit.',
+      },
+      {
+        step: 'Act on it',
+        means: 'A signal tells you when to look, not why. The limits it is read against must come from a steady stretch, so a signal is only as good as the limits behind it.',
+        doThis: 'Note what was done at the reading (Adjusted, New reel, Restart), look for the cause at the machine, and — if the chart is attached to a project — press Make it better to raise a fix or a countermeasure with the chart as its evidence.',
+        youGet: 'A fix or countermeasure shown in the chart’s Action plan, so the signal does not stay a picture.',
+      },
+    ],
+    watch: 'Do not turn on every rule. The more patterns a chart looks for, the more often it cries wolf on a steady process — and a signal is never proof of cause, only the chart saying “look here”.',
+  },
+  'FC-091': {
+    intro: 'For a drift too small and too slow for any single reading to look wrong — give-away creeping up a gram at a time, seal strength falling as jaws wear — when you want to know since when. It is switched on in the chart’s agreement and drawn on the one-at-a-time chart.',
+    steps: [
+      {
+        step: 'The shift worth catching',
+        means: 'How big a move, in the chart’s own unit, would be worth acting on — 0.8 g on a fill weight, say. The CUSUM adds up each reading’s distance from the target, ignoring the part smaller than half that shift, so a small steady drift piles up while ordinary scatter cancels out.',
+        doThis: 'Type it in the chart’s agreement (Change what was agreed if the chart exists) as a number above 0, in the unit. Also type a Target if there is one; with none the CUSUM runs against the chart’s centre.',
+        youGet: 'A CUSUM picture under the chart — two lines, the high side and the low side, against a decision line H. Left empty, the Since tile reads “CUSUM off — turn it on to say since when”.',
+      },
+      {
+        step: 'Draw the running level',
+        means: 'The EWMA is a smoothed line through the readings that gives recent readings more weight, so a slow drift lifts it long before any single point looks wrong. It is a tick in the agreement: “Draw the running level”.',
+        doThis: 'Tick it if you want the line; it needs no other input. Its weight (0.2) and width are fixed, not tunable here.',
+        youGet: 'A line through the chart, and the Level tile saying “running (EWMA)”. Once the CUSUM has signalled, the Level tile shows the new level the CUSUM estimates instead.',
+      },
+      {
+        step: 'Limits first',
+        means: 'The CUSUM’s decision line H is five times the process’s own spread (σ), and σ comes from the chart’s control limits — so the limits have to be set from a steady stretch before the CUSUM means anything.',
+        doThis: 'Take the first twenty readings from a normal stretch and press Set the limits, then keep taking readings. The decision line is fixed at 5σ and cannot be changed on the page.',
+        youGet: 'A CUSUM measured against a spread that is the process’s own, not a guess. It is not drawn on a short-run chart that is standardised (Z-MR).',
+      },
+      {
+        step: 'Since when',
+        means: 'When either sum goes past H the chart signals, then counts back to the last time the sum was at zero to say when the drift began, and estimates the level now. The page says it as “the rise began about reading 28 (CUSUM, signalled at 38); the level now about 400.9 g”.',
+        doThis: 'Read the Since and Level tiles and the CUSUM picture, where “since” is marked under the point it began. Go to that reading and ask what changed there. Treat it as an estimate, not proof.',
+        youGet: 'A start point, a signal point and the level now, in the chart’s unit. The chart itself says no money; to price a creeping weight as give-away, use the capability study’s money boxes.',
+      },
+    ],
+    watch: 'The CUSUM is built for small, lasting drifts and is slow to react to one big jump — the plain limits on the chart catch that. And “since” is the last time the sum was at zero, an estimate from the readings, not a diagnosis.',
+  },
+  'FC-092': {
+    intro: 'For deciding whether a set-up is good enough to start — the first-off weights after a changeover — with no calculation at the machine. It judges against the specification, not against the process’s own variation.',
+    steps: [
+      {
+        step: 'Pre-control, and both limits',
+        means: 'Pre-control splits the tolerance into three zones: green in the middle half, amber in each outer quarter, red outside the limits. Five greens in a row qualify the set-up; after that the readings are read two at a time.',
+        doThis: 'When agreeing the chart pick Pre-control (“approving a set-up: five greens, then pairs”), name what is measured and its unit, and type both specification limits — it will not agree with one missing. The nominal is the middle of the two limits.',
+        youGet: 'The three zones drawn as bands from your limits, and a chart that counts greens instead of limits.',
+      },
+      {
+        step: 'Set-up: five greens',
+        means: 'Take readings one at a time. A green adds one to the count; an amber or a red sends the count back to zero.',
+        doThis: 'Measure the first packs after the changeover and tap each reading. Adjust the machine when you get an amber or a red, and keep going until five greens in a row.',
+        youGet: 'The Set-up tile (“3 of 5”, then “Qualified” with the reading it happened at) and the verdict Setting up, then Qualified.',
+      },
+      {
+        step: 'Running: pairs of readings',
+        means: 'After the set-up qualifies, readings are taken two at a time. Both green, or one green and one amber, carry on. Two ambers on the same side: adjust toward the nominal, then re-qualify with five greens. Two ambers on opposite sides: stop — the spread has grown. Any red: stop, find why, re-qualify.',
+        doThis: 'At each check take two readings and tap both; the page pairs them in order. Do not decide from a single reading.',
+        youGet: 'Each pair said in words — “both green — carry on”, “both amber on the high side — adjust toward the nominal, then re-qualify”, “a red — stop, find why” — with the Pairs and Red tiles and the verdict Qualified, Adjust or Stop.',
+      },
+    ],
+    watch: 'Pre-control is a set-up rule, not a control chart and not a capability study — the page says so. Its own record in the library says it is comfortable only on a process already known to be capable (Cp of 1.33 or more); on a marginal process it keeps sending you to adjust.',
+  },
 };
