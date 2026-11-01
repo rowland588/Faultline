@@ -179,7 +179,7 @@ export const CAPACITY: Entry[] = [
     status: 'available', form: 'tool', kind: 'study', methods: ['capacity.littles-law'], scenarios: ['running', 'planning'], words: ['WIP', 'work in progress', 'lead time', 'chiller', 'waiting'],
     built: { where: ['/calc/littles-law'], code: [...CALC_CODE, 'src/tools/calc/defs/littles-law.ts', 'src/lib/ie/pull.ts'], tests: [...CALC_TESTS, 'src/lib/ie/__tests__/pull.test.ts'], acceptance: ['calc-shape.mjs'] },
     spec: 'knowledge/specs/FC-044-littles-law.md',
-    limits: ['One boundary at a time — a chiller, a rack, a line: lead time per buffer and in total is each counted separately; the value stream map’s own wait (FC-001) is not yet fed from it.', 'A law of averages in a steady system: the page asks whether the pile grew or shrank and says so when it did.', 'It says how long product waits, not why — the queue at a busy station (FC-045) is not built.'],
+    limits: ['One boundary at a time — a chiller, a rack, a line: lead time per buffer and in total is each counted separately; the value stream map’s own wait (FC-001) is not yet fed from it.', 'A law of averages in a steady system: the page asks whether the pile grew or shrank and says so when it did.', 'It says how long product waits, not why — the queue at a busy station is Utilisation and variability (FC-045).'],
   },
   {
     id: 'FC-045', name: 'Utilisation and variability — why queues explode', discipline: 'capacity', sub: 'queue',
@@ -191,7 +191,10 @@ export const CAPACITY: Entry[] = [
     food: 'Product waiting for a shared spiral freezer.',
     depends: ['FC-044', 'FC-047'],
     complexity: 'S', value: 'low', valueWhy: 'Explains a pattern more than it decides.',
-    status: 'to-build', form: 'component', methods: ['capacity.kingman-vut'], scenarios: ['planning'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['capacity.kingman-vut'], scenarios: ['planning'], words: ['queue', 'utilisation', 'variability', 'Kingman', 'VUT', 'wait', 'spiral freezer'],
+    built: { where: ['/calc/utilisation-variability'], code: [...CALC_CODE, 'src/tools/calc/defs/utilisation-variability.ts', 'src/lib/ie/queue.ts'], tests: [...CALC_TESTS, 'src/lib/ie/__tests__/queue.test.ts'], acceptance: ['calc-shape.mjs'] },
+    spec: 'knowledge/specs/FC-045-utilisation-variability.md',
+    limits: ['An approximation for one station in a steady state — exact only for random arrivals and times on one machine, within about 10% below 90% utilisation and understating above it; a whole line with real stop patterns and buffers is simulation (FC-047, not built).', 'The variabilities need tens of timed cycles or arrivals; the page asks for them (or for the machine’s stops) and never fills them in.', 'In money as the queue’s holding (H) and the spare capacity’s idle crew (L) side by side; the cost of a longer wait to the customer (late orders) is not worked.'],
   },
   {
     id: 'FC-046', name: 'Accumulation between machines — buffer minutes and recovery', discipline: 'capacity', sub: 'queue',

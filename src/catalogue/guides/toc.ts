@@ -123,4 +123,46 @@ export const TOC_GUIDES: Record<string, Guide> = {
     ],
     watch: 'A share is a what-if. The minutes only come back if the cause is fixed, and a minute at the constraint is only output if there is demand for the packs and the line is not then held somewhere else.',
   },
+  'FC-045': {
+    intro: 'For a shared station that product waits for — the spiral freezer, the wrapper, the metal detector — when the answer people reach for is to run it harder. It shows why the wait explodes near full load and what less variability, or a little less load, would buy.',
+    steps: [
+      {
+        step: 'The station and its machines',
+        means: 'The one place work waits for, and how many identical machines take from the same queue. Two wrappers fed from one conveyor are one station of 2 machines; machines that do different jobs are separate stations.',
+        doThis: 'Name the station so the sentences read right, and type how many identical machines share the queue (1 unless you say more).',
+        youGet: 'A station the page can work out the wait for, named in the answer.',
+      },
+      {
+        step: 'Work arriving',
+        means: 'How many units reach the station an hour — what really arrives, not the rated speed of what feeds it. Together with how long each takes, it says how busy the station is.',
+        doThis: 'Count what arrived over a few ordinary hours and divide. If the figure is more than the station can do, the page refuses to give a wait and says so: there is no steady queue, only a growing pile.',
+        youGet: 'The utilisation: the share of its time the station is busy, as a percentage.',
+      },
+      {
+        step: 'How its own time is known',
+        means: 'The station’s effective time for one unit, and how much that time varies. Either you timed its cycles, or it runs a fixed cycle and stops — in which case its stops make the variability, and the page works it out from them.',
+        doThis: 'If you timed cycles, type the average time for one unit with its stops and slow running in (not the plate’s), and how much it varies — the spread of the timed cycles divided by their average, from tens of timings. If it runs a fixed cycle, choose that and give its cycle, how long it is up, and how long an average stop lasts.',
+        youGet: 'The station’s effective process time and its variability, said as low, moderate or high.',
+      },
+      {
+        step: 'How much the arrivals vary',
+        means: 'Whether work arrives steadily or in lumps. Batches arriving together make a station queue far more than the same number arriving evenly.',
+        doThis: 'Take the gaps between units arriving, and divide their spread by their average. A conveyor fed by one steady machine arrives much like that machine’s own variability. Do not guess: with no figure, the page will not work out the wait.',
+        youGet: 'The second of the two variabilities that the wait is made of.',
+      },
+      {
+        step: 'Wait in the queue',
+        means: 'How long a unit waits before the station starts it — variability times utilisation times the process time — and, by Little’s law, how many units stand in front of it. The curve shows why: the wait bends sharply up as the station nears full load.',
+        doThis: 'Read the sentence, then the curve with the station marked on it. Then the lines under it: what a little less load buys, and what halving the variability buys. Slide one figure in the what-if and watch the curve.',
+        youGet: 'The wait in minutes and in process times, the time through, the units waiting, and what changing load or variability would do.',
+      },
+      {
+        step: 'In money',
+        means: 'The two ways of paying for the wait, side by side: the waiting stock tied up (and what holding it costs a year) and the spare capacity of the people who stand at the station when it waits for work.',
+        doThis: 'Give what a unit has cost by now, the cost of holding stock for a year (finance has it), the people at the station and what one costs an hour. All optional — leave one out and the page names it instead of guessing.',
+        youGet: 'The queue in pounds, the crew standing, and what running at 85% would cost in idle time against the wait it saves.',
+      },
+    ],
+    watch: 'It is an approximation for one station in a steady state: close below about 90% busy, and it understates the wait above that. Use the effective process time with the stops in — the plate speed makes the station look less busy than it is.',
+  },
 };

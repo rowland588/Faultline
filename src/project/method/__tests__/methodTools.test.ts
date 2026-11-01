@@ -36,6 +36,15 @@ describe('how a default tool stands', () => {
     }
   });
 
+  it('a calculator is a mode of the Calculators hub, opened and started there — Utilisation and variability among them', () => {
+    for (const id of ['FC-045', 'FC-044', 'FC-009']) {
+      const h = howTool(id);
+      expect(h.how, id).toBe('inside');
+      expect(openable(h)?.key, id).toBe('calc');
+      expect(toolStateWord(h), id).toBe('A mode of Calculators');
+    }
+  });
+
   it('a tool not built yet has nothing to open and says so in the catalogue’s word', () => {
     const h = howTool('FC-070'); // changeover sequence
     expect(h.how).toBe('notyet');

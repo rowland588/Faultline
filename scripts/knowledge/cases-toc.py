@@ -137,3 +137,73 @@ for name, qty, r, due in orders2:
     start = t + co; end = start + qty / r
     print(f"  {name}: ends {end:.1f} (day {math.ceil(end/day_min - 1e-9)}), due day {due}")
     t = end; prev = name
+
+# ------------------------------------------------------------------ FC-045 worked cases for the calculator's examples
+p("FC-045 the calculator's worked cases (utilisation-variability), each by plain arithmetic")
+def kingman(u, te, ca, ce): return ((ca**2 + ce**2) / 2) * (u / (1 - u)) * te
+# E1 the wrapper: te 0.6 min, 92 an hour arriving -> u = 92*0.6/60
+lam, te, ca, ce = 92, 0.6, 0.9, 1.5; u = lam * te / 60
+print(f"  E1 wrapper: u = {u:.4f}; CTq = {kingman(u,te,ca,ce):.4f} min = {kingman(u,te,ca,ce)/te:.2f} process times; queue = lam/60 x CTq = {lam/60*kingman(u,te,ca,ce):.2f} units; time through {kingman(u,te,ca,ce)+te:.4f}")
+print(f"      at 85%: {kingman(.85,te,ca,ce):.4f} min (capacity needed {lam/.85:.2f} an hour, {lam/.85/(60/te)-1:.1%} more than the {60/te:.0f} an hour it does); halving ce: {kingman(u,te,ca,ce/2):.4f} min; ca and ce both 1: {kingman(u,te,1,1):.4f}")
+print(f"      money: queue stock at 85p = £{lam/60*kingman(u,te,ca,ce)*0.85:.2f}; carried 25% a year = £{lam/60*kingman(u,te,ca,ce)*0.85*0.25:.2f}; idle crew of 3 at £14: {(1-u):.0%} idle = £{(1-u)*3*14:.2f} an hour, at 85% {(0.15):.0%} idle = £{0.15*3*14:.2f}")
+# E2 M/M/1 exact
+lam, te = 25.5, 2.0; u = lam * te / 60
+print(f"  E2 M/M/1: u = {u:.2f}; CTq = {kingman(u,te,1,1):.4f} min; exact Wq = rho/(1-rho) te = {u/(1-u)*te:.4f}; queue {lam/60*kingman(u,te,1,1):.3f}")
+# E3 two machines
+m, te, lam = 2, 2.0, 51.0; u = lam * te / 60 / m
+sak = (u ** (math.sqrt(2 * (m + 1)) - 1)) / (m * (1 - u)) * te
+print(f"  E3 two machines: u = {u:.2f}; Sakasegawa CTq = {sak:.4f} min (Erlang C exact {erlang_c(m, lam*te/60)*te/(m*(1-u)):.4f}); queue {lam/60*sak:.3f}")
+# E4 from the stops
+t0, A, mr, cr, c0 = 0.5, 0.90, 10.0, 1.0, 0.2
+te = t0 / A; ce2 = c0**2 + (1 + cr**2) * A * (1 - A) * mr / t0; lam = 86.4; u = lam * te / 60
+ctq = ((1.0 + ce2) / 2) * (u / (1 - u)) * te
+print(f"  E4 stops route: te = {te:.4f}; ce^2 = {ce2:.4f}; lam {lam} -> u = {u:.4f}; ca = 1: CTq = {ctq:.4f} min = {ctq/te:.2f} process times; queue {lam/60*ctq:.3f}")
+print(f"      the same machine with no stops (A=100%, te=0.5, ce=c0=0.2) at the same arrivals: u = {lam*0.5/60:.4f}, CTq = {kingman(lam*0.5/60, 0.5, 1.0, 0.2):.4f} min")
+# refused: u >= 1
+print(f"  refused: 120 an hour at te 0.6 min is u = {120*0.6/60:.2f} (>= 1: no steady queue)")
+
+# ------------------------------------------------------------------ FC-179 / FC-043 the cases the unit tests and the acceptance script use
+import datetime
+p("FC-179 the week's schedule — a line that runs 2 x 7.5 h = 900 min a day, Mon-Fri from Mon 2 Nov 2026, changeover 42 min between products")
+def timeline(orders, mpd=900, days=5, co=42, start=datetime.date(2026, 11, 2)):
+    dates = []; d = start
+    while len(dates) < days:
+        if d.weekday() < 5: dates.append(d)
+        d += datetime.timedelta(days=1)
+    week = mpd * days; t = 0.0; prev = None; out = []
+    for name, qty, rate, due in orders:
+        c = co if prev is not None and prev != name else 0
+        s = t + c; e = s + qty / rate
+        def slot(w, end=False):
+            if w >= week + (1e-9 if end else 0) and not (end and abs(w - week) < 1e-9): return ('after', round(w - week, 1))
+            k = min(days - 1, int((w - (1e-9 if end else 0)) // mpd)); return (dates[k].isoformat(), round(w - k * mpd, 1))
+        out.append((name, qty, rate, round(qty / rate, 1), c, round(s, 1), round(e, 1), slot(s), slot(e, True), due))
+        t = e; prev = name
+    return out, t, week
+ORDERS = [("Maris 2kg", 54000, 100, "2026-11-03"), ("Tesco 1.25kg", 49500, 110, "2026-11-04"), ("King Edward 2.5kg", 150000, 90, "2026-11-04"), ("Baby 1kg", 72000, 120, "2026-11-06")]
+rows, used, week = timeline(ORDERS)
+for r in rows:
+    due = datetime.date.fromisoformat(r[9]); end = r[8]
+    late = (datetime.date.fromisoformat(end[0]) - due).days if end[0] != 'after' and datetime.date.fromisoformat(end[0]) > due else (None if end[0] == 'after' else 0)
+    print(f"  {r[0]}: {r[1]:,} at {r[2]}/min = {r[3]} min run; changeover {r[4]}; working minute {r[5]} -> {r[6]}; starts {r[7]}, ends {r[8]}; due {r[9]}; late days {late}")
+runm = sum(r[3] for r in rows); com = sum(r[4] for r in rows)
+print(f"  run {runm:.1f} + changeovers {com} = {used:.1f} of {week}; spare {week-used:.1f} min = {(week-used)/60:.2f} h; changeovers 3 x 42 = {com} min = {com*110:.0f} units at the next order's rate ({com/42} of them)")
+print(f"  changeover packs at the next run's rate: {42*110 + 42*90 + 42*120:,}; at 35p £{(42*110 + 42*90 + 42*120)*0.35:,.2f}")
+big = ORDERS[:3] + [("Baby 1kg", 360000, 120, "2026-11-06")]
+rows2, used2, _ = timeline(big)
+over = used2 - week
+print(f"  with a 360,000 Baby order: ends at {used2:.1f}; over the week by {over:.1f} min = {over/60:.2f} h; units not made in the week = {over*120:,.0f} (at 120/min); at 35p £{over*120*0.35:,.2f}; overtime labour at £60 an hour £{over/60*60:,.2f}")
+print(f"  its last row: {rows2[-1][7]} -> {rows2[-1][8]}")
+p("FC-043 DBR on that plan: buffer 6 h = 360 drum-minutes; the drum is 40% through order 1 (Maris, 540 min)")
+B = 6.0; now = 0.4 * 540
+for (name, qty, rate, runmin, c, s, e, a, b, due) in rows:
+    left = (s - now) / 60
+    if s <= now: print(f"  {name}: starts at {s}, the drum is on it — here"); continue
+    if left > B: print(f"  {name}: starts in {left:.2f} h > {B} h — outside the buffer; release when the drum is {s - B*60:.1f} min in (rope: due - B)"); continue
+    used_ = (B - left) / B
+    zone = "green" if used_ < 1/3 else ("amber" if used_ < 2/3 else "red")
+    print(f"  {name}: starts in {left:.2f} h; {used_:.1%} of the buffer consumed -> {zone}; release at working minute {s - B*60:.1f}")
+print(f"  WIP implied at the plan's first rate 100/min: 100 x 60 x {B} = {100*60*B:,.0f} units; at 40p materials £{100*60*B*0.40:,.2f}")
+print(f"  tuning: arrivals recorded consumed 0.1 0.2 0.15 0.3 0.25 0.1 0.2 0.35 0.2 0.12 -> red share {sum(1 for x in [0.1,0.2,0.15,0.3,0.25,0.1,0.2,0.35,0.2,0.12] if x>=2/3)/10:.0%}, green share {sum(1 for x in [0.1,0.2,0.15,0.3,0.25,0.1,0.2,0.35,0.2,0.12] if x<1/3)/10:.0%} -> shorten 15%: {B*0.85:.2f} h")
+print(f"  frequent reds: 3 of 10 red -> lengthen 20%: {B*1.2:.2f} h")
+print(f"  a hole in the drum: the red order's run of 450 min at 110/min x 35p = £{450*110*0.35:,.2f} if it cannot be made up")
