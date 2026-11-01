@@ -87,4 +87,40 @@ export const TOC_GUIDES: Record<string, Guide> = {
     ],
     watch: 'A running speed timed once, for one minute, on one product is one reading. Time it again when the product or the setting changes — and never time it straight after a stop.',
   },
+  'FC-039': {
+    intro: 'For the start of an improvement project on a packing line, when you know where the time goes but not what a realistic cut is worth. Slide a share off each top loss and see, a shift and a week, the hours, the packs and the pounds that come back — and where they do not.',
+    steps: [
+      {
+        step: 'The losses',
+        means: 'The line’s biggest losses from the shifts counted over the last six weeks — each stop reason on a machine, and the changeovers — as the waterfall of the loss count ranks them.',
+        doThis: 'Nothing to type: count shifts on the Loss count as you do, and log the stops in Capture. The page needs at least one counted shift with stops, and the line’s Line capacity so it knows which machine holds the line.',
+        youGet: 'Up to six levers, biggest first, each with the minutes a shift it costs and a tag where it is on the machine that holds the line.',
+      },
+      {
+        step: 'Take down by',
+        means: 'The share of a loss you think a project could really remove — a fifth off breakdowns, half off changeovers. It is a what-if, not a promise.',
+        doThis: 'Slide a loss down by the share you believe, in tens. Try the cautious figure and the hopeful one. The sliders write nothing: leave the page and they reset.',
+        youGet: 'The minutes that would come back a shift, and below the sliders the plan in one sentence: a shift, a week, hours, packs and pounds.',
+      },
+      {
+        step: 'At the constraint, and off it',
+        means: 'The constraint is the machine that holds the whole line. A minute got back there is a minute of output for the line. A minute got back anywhere else is only a minute — the line makes no more, because it is held at the constraint.',
+        doThis: 'Look at the tag on each lever. For one off the constraint the page says “not one more pack” and names where the prize is. Aim the project at the losses on the constraint first.',
+        youGet: 'Packs only for the losses that cost the line output, and a plain note on the rest — which stops the team spending months fixing something that gives nothing back.',
+      },
+      {
+        step: 'A week in money',
+        means: 'The packs and pounds a week the plan is worth, kept in two figures that are never added: the contribution the packs earn (only at the constraint) and the idle labour the crew costs while the line stands.',
+        doThis: 'Give the line a margin a pack and its crew and wage in Set up the line, and set how the line runs (shifts a day, days a week) on its SMED. All optional — leave one out and the page names it instead of guessing.',
+        youGet: 'Hours, packs and pounds a week for the plan, each said “if it cannot be made up”, and what to give for anything still missing.',
+      },
+      {
+        step: 'Recovery plan on paper',
+        means: 'The plan as it stands on screen, as a page for the project meeting: the levers chosen, where the line is held, where the prize is and how it is known.',
+        doThis: 'Press Recovery plan on paper once the sliders say what you would take to the meeting. It prints what you see; slide again and press again for another version.',
+        youGet: 'A one-page paper with the plan’s sentence, each lever’s line and the number of shifts it stands on — the basis for a project’s target.',
+      },
+    ],
+    watch: 'A share is a what-if. The minutes only come back if the cause is fixed, and a minute at the constraint is only output if there is demand for the packs and the line is not then held somewhere else.',
+  },
 };

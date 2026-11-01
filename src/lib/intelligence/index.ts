@@ -8,6 +8,7 @@ export * from './constraint';
 export * from './lineRates';
 export * from './waterfall';
 export * from './levers';
+export * from './leversPlan';
 export * from './demand';
 export * from './ask';
 export * from './recurrence';
