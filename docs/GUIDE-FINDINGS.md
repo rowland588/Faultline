@@ -23,6 +23,8 @@ Writing "what each step means" from the real page (docs/METHODS.md §15) turned 
 - The Factory-wide Check logs page (`/logs`) has no door on the Factory tabs; it is reached through a line's Logs tab.
 - The catalogue calls FC-193 "the control room"; the page is titled "Factory" with a "Control room" eyebrow.
 
+- FC-190: "price less materials" applies only where a product's own price is typed; the loss count, bottleneck cost and SMED use the line's margin only. FC-205: the Read me sheet says Stages is "Empty" yet the code writes install steps into it. The spreadsheet's scope for a 6M project holds materials, programs, line standards and walk problems — not the board or numbers. FC-195 has no page in the catalogue (the guide places it on the project's front page, Needs you). FC-213 is partly built and the lever tree is a live Tree tab although CLAUDE.md calls it parked. FC-170 records no signal strength.
+
 ## Quality and calculators
 - FC-125 "by money" can never appear in a faults study (`faultsFigures` sets no gbp; the Agree form asks "A pack’s materials" only for rejects and pass/fail) though the catalogue limit says it is priced.
 - Impact and effort's New sheet labels its first box "What line is this for?" and then asks "Line"; the first box is the ranking's name.
