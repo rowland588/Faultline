@@ -42,7 +42,7 @@
 .mw-step .sg-name::before { content: none; }
 .mw-step .mp-what { font-size: var(--t-body); }
 .mw-step .mp-tools { flex-direction: row; flex-wrap: wrap; gap: 8px; margin: 12px 0 2px; }
-.mw-step .mp-tools li { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border: 1px solid var(--line-2); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--brand) 4%, var(--surface)); font-size: var(--t-detail); }
+.mw-step .mp-tools li { display: inline-block; padding: 5px 12px; border: 1px solid var(--line-2); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--brand) 4%, var(--surface)); font-size: var(--t-detail); }
 .mw-step .mp-tools li .sub { color: var(--ink-2); }
 
 .mw-source { background: color-mix(in srgb, var(--brand) 4%, var(--surface)); }
