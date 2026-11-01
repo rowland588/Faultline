@@ -116,7 +116,7 @@ export const QUALITY_GUIDES: Record<string, Guide> = {
       },
       {
         step: 'Poor quality and the ranking',
-        means: 'Poor quality is the two failure buckets together. The cost of quality is all four. The failure items are ranked by pounds so the first project is plain. A rough guide from Juran puts the cost of quality at 5 to 25% of sales; the page does not turn the figure red or green.',
+        means: 'Poor quality is the two failure buckets together. The cost of quality is all four. The failure items are ranked by pounds so the first project is plain. Juran’s rough range for the cost of quality is 5 to 25% of sales (the library’s record, to be confirmed against the book); the page does not turn the figure red or green.',
         doThis: 'Read the sentence — “Poor quality cost £12,000 in the period (3.9% of sales) — give-away £4,100 of it, then rework £2,800” — then the tiles: Poor quality, the four buckets and Of sales. Open “How it is worked out” to see each item priced.',
         youGet: 'The ranked failures and a closing line that names the one to chase first. Save the figures as the before and the next period reads against it.',
       },
