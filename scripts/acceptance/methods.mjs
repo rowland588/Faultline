@@ -95,6 +95,15 @@ await page.waitForSelector('.pmethod');
 await page.locator('.pmethod .pmethod-add button').first().click();
 ok((await page.locator('.pmethod .pmethod-add-list .chip').count()) >= 10, '4 Add a tool offers the tools', await page.locator('.pmethod .pmethod-add-list .chip').count());
 
+/* 4a — a document is a mode of Documents: its row says so, and New starts that very kind in the project (FC-240) */
+await go(made['DMAIC']);
+await page.waitForSelector('.pmethod');
+const charterRow = page.locator('.pmethod .lt-li', { hasText: 'Project charter' }).first();
+ok(/A mode of Documents/.test(flat(await charterRow.innerText())), '4a Project charter is "A mode of Documents"', flat(await charterRow.innerText()));
+await charterRow.getByRole('button', { name: /^New —/ }).click();
+await page.waitForTimeout(1500);
+ok(/#\/doc\/charter/.test(page.url()) && page.url().includes(proj) && await page.getByRole('heading', { name: 'New charter' }).count() + await page.getByLabel('What is it of?').count() > 0, '4a New on it opens the charter’s own list in the project with the New sheet', page.url());
+
 /* 4b — the uses in the project, counted back: the smoke seed's DMAIC project holds one capability study */
 await go('#/');
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());

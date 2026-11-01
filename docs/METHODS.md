@@ -136,7 +136,6 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 3 | FC-149 Is / is not — specifying the problem | NOT BUILT | document — a two-column form that feeds the problem | 8D, A3, DMAIC |
 | 2 | FC-132 Process FMEA with action priority | NOT BUILT | scored register — scored-shape definition (severity, occurrence, detection → action priority) | 8D, DMAIC |
 | 2 | FC-133 Control plan — what is checked, how, how often, and what if  | NOT BUILT | register — a list per check (what, how, how often, reaction) feeding the check logs | 8D, DMAIC |
-| 2 | FC-142 Project charter — problem, goal, scope, team, worth | part-built | document — part-built; the charter form | DMAIC, Kaizen event |
 | 2 | FC-152 Fault tree analysis | NOT BUILT | document — a tree drawn from the whys | 8D, A3 |
 | 2 | FC-155 Horizontal deployment — a proved fix offered to every line w | NOT BUILT | workflow — offer a proved fix to the other lines | 8D, PDCA |
 | 2 | FC-223 TWI job instruction — the breakdown and four-step teaching | NOT BUILT | document — a breakdown and four-step sheet | Kaizen event, Stage gate |
@@ -155,10 +154,6 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 1 | FC-112 Optimising settings — response surface | research first | research first | DMAIC |
 | 1 | FC-117 The team’s own weekly number, trended | part-built | part-built — finish | A3 |
 | 1 | FC-135 Product on hold — non-conformance and release | NOT BUILT | register + workflow — a hold, its release, who signed | 8D |
-| 1 | FC-139 SIPOC — the scope on one page | NOT BUILT | document — a one-page form | DMAIC |
-| 1 | FC-140 Voice of the customer to CTQs | NOT BUILT | document — a table that sets the limits a tool then uses | DMAIC |
-| 1 | FC-141 Kano analysis | NOT BUILT | document — a table with a chart | DMAIC |
-| 1 | FC-150 8D report | NOT BUILT | paper — the report assembled from the method’s own sections | 8D |
 | 1 | FC-178 Hygienic design review of new equipment | research first | research first | Stage gate |
 | 1 | FC-179 The week’s schedule against capacity, with changeovers | NOT BUILT | ? | Theory of Constraints |
 | 1 | FC-198 Tiered daily meeting — the day’s update and its paper | part-built | ? | Improvement Kata |
@@ -167,6 +162,8 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 1 | FC-224 One-point lesson | part-built | document — one page | Kaizen event |
 
 **Built from this table on 31 October (M5, first eight-agent round):** FC-144 Impact and effort (PICK chart) · FC-143 Pugh matrix · FC-128 Cost of poor quality · FC-191 Payback and NPV · FC-134 Complaints per million · FC-014 Mistake-proofing check log (partial) · FC-199 Gemba walk, how fresh the looking is · FC-041 Capacity's three numbers and FC-042 Product mix at the constraint (Line capacity, A shift and the capacity panel) · FC-215 Critical path (partial — a typed network; the plan has no “waits for”). Those rows are taken off the list above; the catalogue (`node scripts/catalogue.mjs show FC-nnn`) holds each one's status and limits.
+
+**Built from this table on 1 November (M6, the document shape — `src/tools/doc`, FC-240):** FC-142 Project charter · FC-139 SIPOC · FC-140 Customer needs to CTQs · FC-141 Kano analysis · FC-150 8D report (partial — read from the project's register, fishbone, actions and studies; the is / is-not, hold, FMEA and control plan are typed because those tools are not built). A document-shaped tool still to come is a definition in `src/tools/doc/defs/`, not a screen. Those rows are taken off the list above.
 
 **In all (counted at M0, 31 October):** 117 catalogue tools are placed in the eight methods; `src/lib/__tests__/methods.test.ts` holds the placed total true, and the catalogue the status of each.
 

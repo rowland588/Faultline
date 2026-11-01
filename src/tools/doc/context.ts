@@ -2,7 +2,7 @@
  * reader of a project). Loaded for the page and for the paper by the same function, so the two cannot read a project two ways; the
  * pure pieces are tested, the loading is not stored anywhere. A document never copies what it reads: change the problem on the
  * register and the 8D report says the new thing. */
-import { getProject, getWorkspace, listCases, onDataChange } from '../../db';
+import { getProject, getWorkspace, listProjectCases, onDataChange } from '../../db';
 import { labourPerHour } from '../../lib/cost';
 import type { ToolStudy } from '../../lib/study';
 import { studyHref, studySays, studyTitle } from '../../lib/studyLinks';
@@ -29,7 +29,6 @@ export async function loadDocCtx(s: ToolStudy, me?: string): Promise<DocCtx> {
   }
   if (!s.projectId) return ctx;
   const own = await loadOwnRecords(s.projectId);
-  const lineName = (id?: string) => own.lines.find(l => l.workspaceId === id)?.name;
   ctx.problems = own.register.filter(p => !p.deletedAt && !p.archivedAt).map((p): CtxProblem => ({
     id: p.id, problem: p.problem, status: p.status, ...(p.priority ? { priority: p.priority } : {}), ...(p.owner ? { owner: p.owner } : {}),
     ...(p.raisedAt ? { raisedOn: isoDay(p.raisedAt) } : {}), ...(p.closedAt ? { closedOn: isoDay(p.closedAt) } : {}), ...(p.dueAt ? { due: isoDay(p.dueAt) } : {}), ...(p.line ? { line: p.line } : {}),
@@ -43,9 +42,8 @@ export async function loadDocCtx(s: ToolStudy, me?: string): Promise<DocCtx> {
     return { id: x.id, name: x.name, tool: x.tool, title: studyTitle(x), verdict: said.verdict, tone: said.tone, says: said.text, href: studyHref(x) };
   });
   const lineIds = [...new Set(own.lines.map(l => l.workspaceId).filter((x): x is string => !!x))];
-  const cases = (await Promise.all(lineIds.map(id => listCases(id)))).flat().filter(c => c.projectId === s.projectId && !c.deletedAt);
+  const cases = (await listProjectCases(s.projectId, lineIds)).filter(c => !c.deletedAt);
   ctx.causes = cases.flatMap(c => (c.causes ?? []).map((k): CtxCause => ({ id: k.id, bone: BONE.get(k.m) ?? k.m, text: k.text, root: !!k.root, whys: k.whys.length, ...(k.by ? { by: k.by } : {}) })));
-  void lineName;
   return ctx;
 }
 

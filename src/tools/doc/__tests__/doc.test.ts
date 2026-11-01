@@ -3,6 +3,8 @@
  * independent literals say (scripts/knowledge/cases-doc.py and the definition's own source), a blank document read without a throw,
  * the boxes still needed named, the status moving as the document is filled and agreed. */
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { DOCS, docByKey, docGroups } from '../registry';
 import { askedItems, docMediaKeys, docSays, fieldProblems, isList, isPhotos, isScalar, itemsOf, needsOf, newDocStudy, newRow, runDoc, statusOf, studyDoc, toNumber, valuesOf, withCell, withRowAdded, withRowRemoved, withValue, EMPTY_CTX } from '../doc';
 import type { DocCtx, DocDef, DocPhoto, DocRow } from '../types';
@@ -155,5 +157,22 @@ describe('editing what was typed', () => {
       for (const i of askedItems(d, v)) if (isPhotos(i) && i.required) expect(needsOf(d, v, [])).toContain(i.label);
     }
     expect(EMPTY_CTX('2026-11-01').today).toBe('2026-11-01');
+  });
+});
+
+describe('the media rule a document’s photos wait for (supabase/DOC_PHOTOS.sql — written, not applied)', () => {
+  const sql = readFileSync(join(__dirname, '..', '..', '..', '..', 'supabase', 'DOC_PHOTOS.sql'), 'utf8');
+  const live = readFileSync(join(__dirname, '..', '..', '..', '..', 'supabase', 'LINE_TALK.sql'), 'utf8');
+  it('adds the one clause for facts.docPhotos and keeps every one the live rule has', () => {
+    expect(sql).toContain("facts -> ''docPhotos'' @> $3");
+    for (const keep of ["facts -> ''turns'' @> $2", "facts -> ''video'' -> ''media'' ->> ''blobKey'' = $1", 'public.flow_records where media', 'public.standards where photo_key', 'public.snags where detail_photo_key']) {
+      expect(sql, keep).toContain(keep);
+      expect(live, `${keep} is in the rule as it is live`).toContain(keep);
+    }
+    expect(sql).toMatch(/Run ONCE\. Safe to re-run/);
+    expect(sql.slice(sql.indexOf('create or replace function'), sql.indexOf('end $function$'))).not.toMatch(/security definer/i);
+  });
+  it('names the path the mapper sends: facts.docPhotos[].blobKey', () => {
+    expect(docMediaKeys({ docPhotos: [{ id: 'p', field: 'f', blobKey: 'doc-x', mime: 'image/png', at: 1 }] })).toEqual([{ key: 'doc-x', mime: 'image/png' }]);
   });
 });

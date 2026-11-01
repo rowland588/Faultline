@@ -50,3 +50,12 @@ export function toolStateWord(h: ToolHow): string {
 
 /** The tool a row opens (its own, or the one it lives in) — absent when there is nothing to open. */
 export const openable = (h: ToolHow): AppTool | undefined => (h.how === 'tool' || h.how === 'inside' ? h.tool : undefined);
+
+/** Where a row opens, and where New starts it: a mode's OWN page under its tool when it has one (a document's list, /doc/charter — so New
+ *  on "Project charter" starts a charter, not "a document"), else the tool's. */
+export function openAt(h: ToolHow): string | undefined {
+  const t = openable(h);
+  if (!t) return undefined;
+  if (h.how === 'inside') { const w = h.entry.built?.where[0]; if (w && w.startsWith(`${t.to}/`)) return w; }
+  return t.to;
+}

@@ -99,8 +99,7 @@ pack to the first.
 - [textbook] George, M.L. et al. (2005), *The Lean Six Sigma Pocket Toolbook*, McGraw-Hill (from knowledge).
 
 ## In Faultline
-Not built (FC-139). A project names its lines and a line its machines
-in flow order (`src/project`, `src/line`); the SIPOC's process column is
-that order, and its customers and suppliers are two columns the app
-does not hold. A small addition to a project's front page if Rowland
-wants the scope said; not a tool.
+Built (FC-139, 1 November) as a document of the document shape (`src/tools/doc/defs/sipoc.ts`, `knowledge/specs/FC-139-sipoc.md`):
+the process and its edges, four to seven steps each with suppliers, inputs, outputs, customers and the inputs to measure, the boundary; the
+sentence, the SIPOC as its five-column table, the counts, the owner's agreement, the paper. Typed — it is not read from the line's
+machines in flow order or from a value stream map. No money of its own, said on the page.

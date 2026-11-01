@@ -15,6 +15,7 @@
  *
  * Nothing imports this from the app, so it is tree-shaken out of the bundle.
  */
+import { docByKey } from '../tools/doc/registry';
 import {
   createWorkspace, updateWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
   createProject, updateProject, addPaceLine, putPaceTodo,
@@ -142,6 +143,10 @@ export interface Seeded {
   calcKanbanId: string;
   calcOcId: string;
   calcLittleId: string;
+  /** DOCUMENTS (FC-240): the charter's worked example on Line 7 (ready to agree), the SIPOC's on no line, the 8D report's on Line 7 (src/tools/doc/defs examples). */
+  docCharterId: string;
+  docSipocId: string;
+  docEightDId: string;
   analysisGaugeId: string;
   analysisRangeId: string;
   analysisDriftId: string;
@@ -1154,6 +1159,15 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     await putStudy({ id: calcOcId, tool: 'calc', name: 'Goods-in film check', agreed: { calc: { key: 'oc-curve', inputs: { n: 125, c: 3, aql: 1, lq: 6, inspectSec: 30, rate: 14.7 } } }, facts: {}, uses: [], startedAt: t - 86_400_000, createdAt: t, updatedAt: t });
     await putStudy({ id: calcLittleId, tool: 'calc', name: 'Cooked trays in the chiller', workspaceId: ws.id, agreed: { calc: { key: 'littles-law', inputs: { solve: 'leadTime', thing: 'trays', wip: 1800, perHour: 600, steady: 'steady', life: 48, unitCost: 0.85, carrying: 25 } } }, facts: {}, uses: [], startedAt: t - 7_200_000, createdAt: t, updatedAt: t });
   }
+  /* DOCUMENTS (FC-240, knowledge/specs/FC-240-documents.md): the first definitions' worked examples as saved records — a charter ready to agree
+     on Line 7, a SIPOC on no line, an 8D report on Line 7. Their boxes are the definitions' own examples (independent cases: cases-doc.py). */
+  const docCharterId = uid(), docSipocId = uid(), docEightDId = uid();
+  {
+    const ex = (key: string) => docByKey(key)?.examples[0]?.values ?? {};
+    await putStudy({ id: docCharterId, tool: 'doc', name: 'Give-away on Line 3', workspaceId: ws.id, agreed: { doc: { def: 'charter' } }, facts: { docValues: ex('charter') }, uses: [], startedAt: t - 3 * 86_400_000, createdAt: t, updatedAt: t });
+    await putStudy({ id: docSipocId, tool: 'doc', name: 'Slicing and packing', agreed: { doc: { def: 'sipoc' } }, facts: { docValues: ex('sipoc') }, uses: [], startedAt: t - 86_400_000, createdAt: t, updatedAt: t });
+    await putStudy({ id: docEightDId, tool: 'doc', name: 'Leaking seals, lane 3', workspaceId: ws.id, agreed: { doc: { def: 'eight-d' } }, facts: { docValues: ex('eight-d') }, uses: [], startedAt: t - 7_200_000, createdAt: t, updatedAt: t });
+  }
   /* THE GAUGE STUDIES AND THE SHAPE (W3c, knowledge/specs/FC-119-gauge.md and FC-114-fitting.md): a bench scale read fifty times on its 500.0 g
      test weight, a probe at five references, the daily check weight over 25 days, and the minutes between short stops — the specifications'
      independent cases (cases-w3c.py). Quick sessions, no line. */
@@ -1333,7 +1347,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id, methodProjectId: methodic.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, reliabilityLineIds, reliabilityFamilyId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, analysisGaugeId, analysisRangeId, analysisDriftId, analysisShapeId, calcKanbanId, calcOcId, calcLittleId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, reliabilityLineIds, reliabilityFamilyId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, analysisGaugeId, analysisRangeId, analysisDriftId, analysisShapeId, calcKanbanId, calcOcId, calcLittleId, docCharterId, docSipocId, docEightDId,
     line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }

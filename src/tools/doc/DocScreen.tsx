@@ -327,7 +327,9 @@ function Record({ s, def, can, me }: { s: ToolStudy; def: DocDef; can: ReturnTyp
     }).finally(() => { inflight.current--; });
   }, [id]);
   const keptKey = JSON.stringify(kept);
-  useEffect(() => { if (!dirty.current && inflight.current === 0) setDraft(kept); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [keptKey]);
+  const keptRef = useRef(kept);
+  keptRef.current = kept;
+  useEffect(() => { if (!dirty.current && inflight.current === 0) setDraft(keptRef.current); }, [keptKey]);
   useEffect(() => () => flush(), [flush]);
   const stage = (field: string, value: DocValue | undefined) => {
     setDraft(d => withValue(d, field, value));

@@ -85,7 +85,11 @@ export function valueSaid(f: Pick<DocField, 'kind' | 'options' | 'unit'>, x: str
   if (x === undefined || x === '') return '—';
   if (f.kind === 'choice') return (f.options ?? []).find(o => o.value === x)?.label ?? String(x);
   if (f.kind === 'date') return niceDay(String(x), { year: true });
-  if (typeof x === 'number') return `${x.toLocaleString('en-GB', { maximumFractionDigits: 6 })}${f.unit ? ` ${f.unit}` : ''}`;
+  if (typeof x === 'number') {
+    const n = x.toLocaleString('en-GB', { maximumFractionDigits: 6 });
+    /* a pound sign goes before the figure: "£14.7 an hour", "£0.42" */
+    return f.unit?.startsWith('£') ? `£${n}${f.unit.slice(1)}` : `${n}${f.unit ? ` ${f.unit}` : ''}`;
+  }
   return String(x);
 }
 

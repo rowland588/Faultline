@@ -226,7 +226,7 @@ export const QUALITY: Entry[] = [
     food: 'A give-away charter for Line 3; a SIPOC for a yield project; the retailer’s needs as limits; an 8D for a complaint.',
     depends: ['FC-142', 'FC-139', 'FC-140', 'FC-141', 'FC-150'],
     complexity: 'L', value: 'high', valueWhy: 'The methods’ pages share one proved record, page and paper; each new one is a definition, not a screen.',
-    status: 'partial', form: 'tool', kind: 'study',
+    status: 'available', form: 'tool', kind: 'study',
     methods: ['sixsigma.charter', 'sixsigma.sipoc', 'sixsigma.voc-ctq', 'rca.eight-d'],
     scenarios: ['project', 'quality'], words: ['document', 'charter', 'form', 'report', 'sign off', 'agree'],
     app: { key: 'doc', label: 'Documents', says: 'A page the team agrees — charter, SIPOC, customer needs, Kano, 8D report — filled in, agreed by name and date, and printed', onLine: 'documents saved for this line, each with where it stands', reads: 'doc', icon: 'document', order: 4.72 },
@@ -244,7 +244,10 @@ export const QUALITY: Entry[] = [
     food: 'Scoping a yield project from intake to packing.',
     depends: ['FC-001', 'FC-142'],
     complexity: 'S', value: 'low', valueWhy: 'A scoping aid.',
-    status: 'to-build', form: 'mode', partOf: 'FC-001', methods: ['sixsigma.sipoc'], scenarios: ['project'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['sixsigma.sipoc'], scenarios: ['project'],
+    built: docBuilt('sipoc', { tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    spec: 'knowledge/specs/FC-139-sipoc.md',
+    limits: ['The process is typed (four to seven steps with their suppliers, inputs, outputs and customers); it is not read from the line’s machines in flow order or from a value stream map — they are a different level of detail.', 'No money of its own: it bounds the process whose yield the project then values.']
   },
   {
     id: 'FC-140', name: 'Voice of the customer to CTQs', discipline: 'sixsigma', sub: 'define',
@@ -256,7 +259,10 @@ export const QUALITY: Entry[] = [
     food: '“Easy to open” → peel force 8–15 N.',
     depends: ['FC-094', 'FC-141'],
     complexity: 'S', value: 'low', valueWhy: 'Turns wants into limits.',
-    status: 'to-build', form: 'component', methods: ['sixsigma.voc-ctq'], scenarios: ['project', 'quality'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['sixsigma.voc-ctq'], scenarios: ['project', 'quality'],
+    built: docBuilt('voc-ctq', { tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    spec: 'knowledge/specs/FC-140-voc-ctq.md',
+    limits: ['Each CTQ says where it goes next (a capability study, a control plan row, a design decision) but does not yet start the study with its limit carried — the capability study is started from its own page. The control plan is not built (FC-133).', 'No money of its own: Complaints per million and Capability carry the pounds.']
   },
   {
     id: 'FC-141', name: 'Kano analysis', discipline: 'sixsigma', sub: 'define',
@@ -268,7 +274,10 @@ export const QUALITY: Entry[] = [
     food: 'Pack features for a new product.',
     depends: ['FC-140'],
     complexity: 'S', value: 'low', valueWhy: 'More for new products than running lines.',
-    status: 'to-build', form: 'component', methods: ['sixsigma.voc-ctq'], scenarios: ['project'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['sixsigma.voc-ctq'], scenarios: ['project'],
+    built: docBuilt('kano', { code: ['src/tools/doc/figures/kano.ts'], tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    spec: 'knowledge/specs/FC-141-kano.md',
+    limits: ['The evaluation table and the better / worse coefficients are the published ones as several guides print them; Kano et al. (1984) and Berger et al. (1993) themselves were not read (knowledge/GAPS.md).', 'A tie is reported as a tie; the tie-break order some guides use is secondhand and not applied.', 'The survey is typed or tallied by hand: no questionnaire is printed or collected.']
   },
   {
     id: 'FC-142', name: 'Project charter — problem, goal, scope, team, worth', discipline: 'sixsigma', sub: 'define',
@@ -280,9 +289,10 @@ export const QUALITY: Entry[] = [
     food: 'Any improvement project.',
     depends: ['FC-214', 'FC-138'],
     complexity: 'S', value: 'medium', valueWhy: 'A clear start.',
-    status: 'partial', form: 'component', methods: ['sixsigma.charter'], scenarios: ['project'],
-    built: { where: [], code: ['src/lib/planModel.ts'], tests: [], acceptance: ['front-door.mjs'] },
-    limits: ['A project names its kind and its lines; there is no problem or goal statement; the business case was built and taken off at Rowland’s word, 17 October.'],
+    status: 'available', form: 'mode', partOf: 'FC-240', methods: ['sixsigma.charter'], scenarios: ['project'],
+    built: docBuilt('charter', { code: ['src/tools/doc/figures/charter.ts'], tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    spec: 'knowledge/specs/FC-142-charter.md',
+    limits: ['The worth is the measuring tool’s £ a week typed with its source named, or the gap × units × value typed; it is not yet read from a register problem’s money line.', 'The charter is a page of its own on a project or a line: it is not yet shown on the project’s front page, and a revision is the owner reopening it — no change log.']
   },
   {
     id: 'FC-143', name: 'Pugh matrix — choosing between solutions', discipline: 'sixsigma', sub: 'decide',
@@ -391,7 +401,10 @@ export const QUALITY: Entry[] = [
     food: 'Retailer complaints; foreign-body incidents.',
     depends: ['FC-146', 'FC-134'],
     complexity: 'M', value: 'medium', valueWhy: 'The format customers ask for.',
-    status: 'to-build', form: 'report', methods: ['rca.eight-d'], scenarios: ['quality'], words: ['8D', 'corrective action'],
+    status: 'partial', form: 'mode', partOf: 'FC-240', methods: ['rca.eight-d'], scenarios: ['quality'], words: ['8D', 'corrective action'],
+    built: docBuilt('eight-d', { code: ['src/tools/doc/figures/eightd.ts'], tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    spec: 'knowledge/specs/FC-150-eight-d-report.md',
+    limits: ['Read from the project: the register’s problems, the fishbone’s causes, the actions and the studies. Typed, because no record holds them: the team (D1), is / is not (D2, FC-149 not built), the containment and the hold (D3, FC-135 not built), how the cause was verified (D4), what was changed in the system (D7, the FMEA and control plan are not built).', 'The D0–D8 steps and the usual timetable are from the automotive practice as the knowledge record states them, not checked against the VDA or AIAG texts.', 'Not on a project, nothing is read: the report is then wholly typed. The line report prints it without the project’s records or its photos.']
   },
   {
     id: 'FC-151', name: 'A3 — the problem and its solution on one page', discipline: 'rca', sub: 'structured',
