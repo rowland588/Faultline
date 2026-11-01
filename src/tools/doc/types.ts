@@ -121,6 +121,8 @@ export interface DocCtx {
   actions?: CtxAction[];
   studies?: CtxStudy[];
   causes?: CtxCause[];
+  /** What the project's METHOD sheet holds, by `method:field` ("dmaic:problem") — the words a document may OFFER where it asks the same question; read, never copied. */
+  methodAnswers?: Record<string, string>;
 }
 
 /** A table the document works out from what was typed — shown on the page and printed, the same. */

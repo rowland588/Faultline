@@ -36,7 +36,7 @@ describe('how a default tool stands', () => {
       expect(toolStateWord(h), id).toBe('A mode of Documents');
     }
     expect(openAt(howTool('FC-094'))).toBe('/capability');
-    expect(openAt(howTool('FC-043'))).toBeUndefined();
+    expect(openAt(howTool('FC-070'))).toBeUndefined();
   });
 
   it('the Theory of Constraints modes open the tool they live in, and say so', () => {

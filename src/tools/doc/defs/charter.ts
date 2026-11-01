@@ -4,7 +4,7 @@
  * 2014; George et al. 2005). The arithmetic is figures/charter.ts, proved against hand-worked cases in scripts/knowledge/cases-doc.py. */
 import { daysBetween, niceDay } from '../../../lib/weeks';
 import { fmt, gbp, plural, sayN, lowerFirst as lower } from '../figures/words';
-import { cellNum, cellText, numOf, rowsOf, textOf } from '../doc';
+import { cellNum, cellText, numOf, offerAnswer, rowsOf, textOf } from '../doc';
 import { baselineInterval, gapOf, paybackWeeks, teamCost, worthOf, WEEKS_A_YEAR, type TeamRow } from '../figures/charter';
 import type { DocDef, DocProblem, DocTable, DocValues } from '../types';
 
@@ -25,19 +25,19 @@ const charter: DocDef = {
       { id: 'baselineHow', kind: 'long', label: 'How the baseline was measured', required: true, example: 'Mean of ten shifts on the Line 3 weigher, June', help: 'By whom, with which tool, over what. A baseline from memory is usually flattering or dramatic.' },
       { id: 'baselineN', kind: 'number', label: 'Readings behind the baseline', integer: true, min: 2, help: 'Optional — with their spread it gives the baseline’s interval.' },
       { id: 'baselineSd', kind: 'number', label: 'Their spread (standard deviation)', min: 0, help: 'Optional — from the capability study or the spreadsheet that gave the mean.' },
-      { id: 'problem', kind: 'long', label: 'The problem, in words', required: true, example: 'Give-away on Line 3 averages 4.1 g a pack against a 2 g target, since the new weigher in June.', help: 'What is wrong, where, since when, how big, against what it should be. If a cause or a fix is in it, take it out.' },
+      { id: 'problem', kind: 'long', label: 'The problem, in words', required: true, offer: ctx => offerAnswer(ctx, ['dmaic:problem', 'kaizen-event:charter'], 'the project’s method sheet'), example: 'Give-away on Line 3 averages 4.1 g a pack against a 2 g target, since the new weigher in June.', help: 'What is wrong, where, since when, how big, against what it should be. If a cause or a fix is in it, take it out.' },
     ] },
     { id: 'goal', title: 'The goal', help: 'The same number, where it must get to, and by when.', items: [
       { id: 'target', kind: 'number', label: 'Where it must get to', required: true, help: 'The target, in the same unit.' },
       { id: 'by', kind: 'date', label: 'By when', required: true, help: 'A date the sponsor can hold the team to.' },
     ] },
     { id: 'scope', title: 'The scope', help: 'What is in, what is out — the test for every “while we’re at it”.', items: [
-      { id: 'scopeIn', kind: 'long', label: 'In scope', required: true, example: 'Line 3, its four products, all shifts', help: 'Lines, products, shifts, steps.' },
+      { id: 'scopeIn', kind: 'long', label: 'In scope', required: true, offer: ctx => offerAnswer(ctx, ['dmaic:scope'], 'Define’s scope, in and out'), example: 'Line 3, its four products, all shifts', help: 'Lines, products, shifts, steps.' },
       { id: 'scopeOut', kind: 'long', label: 'Out of scope', required: true, example: 'The supplier’s film; the depot’s handling', help: 'What will not be touched, even if it is part of the problem.' },
       { id: 'constraints', kind: 'long', label: 'Constraints', help: 'Optional — no capital, no new people, no stopping the line on days.' },
     ] },
     { id: 'team', title: 'The team', help: 'Who agrees it, who leads it, who does the work and how many hours they give.', items: [
-      { id: 'sponsor', kind: 'person', label: 'Sponsor', required: true, help: 'Who agrees the charter and clears the way.' },
+      { id: 'sponsor', kind: 'person', label: 'Sponsor', required: true, offer: ctx => offerAnswer(ctx, ['kaizen-event:sponsor'], 'the Kaizen event’s sponsor'), help: 'Who agrees the charter and clears the way.' },
       { id: 'lead', kind: 'person', label: 'Lead', required: true, offer: ctx => (ctx.lead ? { value: ctx.lead, words: `${ctx.lead} — the project’s lead` } : undefined), help: 'Who owns the project day to day.' },
       { id: 'team', kind: 'list', label: 'Team members', rowWord: 'member', help: 'Each person who does the work, and the hours they give the project in all.', columns: [
         { id: 'name', kind: 'person', label: 'Name', required: true },

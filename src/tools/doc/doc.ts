@@ -7,6 +7,7 @@ import { niceDay } from '../../lib/weeks';
 import type { LeanTile, LeanTone } from '../../lib/lean';
 import type { ToolStudy } from '../../lib/study';
 import { docByKey } from './registry';
+import { brief } from './figures/words';
 import type { DocColumn, DocCtx, DocDef, DocField, DocItem, DocList, DocPhoto, DocPhotos, DocProblem, DocResult, DocRow, DocSection, DocSigned, DocValues } from './types';
 
 /* ------------------------------------------------------------------ the items of a definition */
@@ -311,3 +312,13 @@ export function withRowRemoved(raw: DocValues, listId: string, rowId: string): D
 /* ------------------------------------------------------------------ small words the definitions share */
 
 export const tileOf = (k: string, v: string, o: Partial<LeanTile> = {}): LeanTile => ({ k, v, ...o });
+
+/** Offer what the project's METHOD sheet already says where a document asks the same question (the DMAIC Define's problem, a Kaizen event's
+ *  sponsor): the first of `keys` ("dmaic:problem") that is written, in one tap, with the place it comes from. Read from the project, never stored twice. */
+export function offerAnswer(ctx: DocCtx, keys: string[], from: string): { value: string; words: string } | undefined {
+  for (const k of keys) {
+    const t = ctx.methodAnswers?.[k];
+    if (t) return { value: t, words: `“${brief(t, 70)}” — as written in ${from}` };
+  }
+  return undefined;
+}

@@ -9,6 +9,7 @@ import { studyHref, studySays, studyTitle } from '../../lib/studyLinks';
 import { isoDay, todayISO } from '../../lib/weeks';
 import { loadOwnRecords } from '../../project/projectRead';
 import { SIXM } from '../../lib/sixm';
+import { answerOf } from '../../lib/methodSheet';
 import { useEffect, useState } from 'react';
 import type { DocPaperExtras } from '../../lib/report/docPaper';
 import { shrinkPicture, type Picture } from '../talk/talkPictures';
@@ -36,6 +37,12 @@ export async function loadDocCtx(s: ToolStudy, me?: string): Promise<DocCtx> {
   ctx.actions = own.steps.map((a): CtxAction => ({
     id: a.id, what: a.what, who: a.who, state: a.state, ...(a.due ? { due: a.due } : {}), ...(a.doneOn ? { doneOn: a.doneOn } : {}), ...(a.why ? { why: a.why } : {}),
   }));
+  const answers: Record<string, string> = {};
+  for (const n of own.notes) {
+    const a = n.kind === 'note' && !n.deletedAt ? answerOf(n.testId) : undefined;
+    if (a && n.what.trim()) answers[`${a.method}:${a.field}`] = n.what.trim();
+  }
+  if (Object.keys(answers).length) ctx.methodAnswers = answers;
   ctx.studies = own.studies.filter(x => x.tool !== 'doc' && !x.deletedAt).map((x): CtxStudy => {
     let said = { text: '', verdict: '', tone: 'n' as const };
     try { const y = studySays(x); said = { text: y.text, verdict: y.verdict, tone: (y.tone === 'r' || y.tone === 'a' || y.tone === 'g' ? y.tone : 'n') as 'n' }; } catch { /* a study this build cannot say stays listed */ }

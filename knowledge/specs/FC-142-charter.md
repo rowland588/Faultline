@@ -42,6 +42,8 @@ Blank boxes are named; invalid numbers are said beside the box and ignored in th
 ## 10. Integration
 A document of tool `doc` on a project or line (FC-240 §10); a DMAIC Define and Kaizen Prepare section row opens it and **New** starts it in the project (`methods.mjs` 4a); the line report lists it; the project's lead and the line's wage are read, never copied.
 
+**One charter, two doors (1 November).** DMAIC's Define asks the charter's questions as words on the method sheet (project notes `method:dmaic:*`, `lib/methodSheet`); the Kaizen event's Prepare asks the same. The charter document is the *page* those words belong on — it is not a second place to keep them. So: (1) the document's *The problem, in words*, *In scope* and *Sponsor* boxes **offer** the sheet's answer (`DocCtx.methodAnswers`, read by `context.ts` from the project's notes; `offerAnswer`), one tap to take it, saying where it came from — nothing is copied until the person taps, and a later change on the sheet changes the offer; (2) DMAIC's Define card has a row *The charter as a page the sponsor agrees* (`dmaicModel` slot `charter`) that reads the project's charter document's own words and status, **Open Documents** landing on `/doc/charter` in the project, or **Start the charter** when there is none. Storage is unchanged: the sheet's notes and the document's `facts.docValues`. No answer is stored twice by the app.
+
 ## 11. Verification
 `src/tools/doc/__tests__/doc.test.ts` (the three examples, the agreement, a blank charter), `figures.test.ts` (the arithmetic against `cases-doc.py` C1, C2); `scripts/acceptance/doc-shape.mjs` (the table, typed through the boxes, on paper, the phone, the agreement, Undo, the line, the project, a client).
 
@@ -52,6 +54,7 @@ A document of tool `doc` on a project or line (FC-240 §10); a DMAIC Define and 
 4. The checks name a goal equal to the baseline, a past date, a spread without readings, a £ a week without a source, one person as sponsor and lead, milestones out of order — `doc.test.ts`.
 5. The shape's criteria 2–12 hold for it — `doc-shape.mjs`.
 6. It opens from DMAIC's Define and the Kaizen event's Prepare, and New starts it in the project — `methodTools.test.ts`; `methods.mjs` 4a.
+7. It is the record behind DMAIC's Define charter questions: the document offers the sheet's problem, scope and sponsor in one tap and copies nothing by itself; a change on the sheet changes the offer; the Define card reads the document's words and status and opens it — `offers.test.ts`; `scripts/acceptance/charter-define.mjs`.
 
 ## 12. Maintainability
 Definition `src/tools/doc/defs/charter.ts`; arithmetic `src/tools/doc/figures/charter.ts`; examples in the definition. The business case taken off on 17 October stays off: the charter's worth is the model's, never a second cost model.

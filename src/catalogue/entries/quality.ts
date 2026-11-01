@@ -290,7 +290,7 @@ export const QUALITY: Entry[] = [
     depends: ['FC-214', 'FC-138'],
     complexity: 'S', value: 'medium', valueWhy: 'A clear start.',
     status: 'available', form: 'mode', partOf: 'FC-240', methods: ['sixsigma.charter'], scenarios: ['project'],
-    built: docBuilt('charter', { code: ['src/tools/doc/figures/charter.ts'], tests: ['src/tools/doc/__tests__/figures.test.ts'] }),
+    built: (() => { const b = docBuilt('charter', { code: ['src/tools/doc/figures/charter.ts', 'src/project/method/shapes/dmaicModel.ts'], tests: ['src/tools/doc/__tests__/figures.test.ts', 'src/tools/doc/__tests__/offers.test.ts'] }); return { ...b, acceptance: [...b.acceptance, 'charter-define.mjs'] }; })(),
     spec: 'knowledge/specs/FC-142-charter.md',
     limits: ['The worth is the measuring tool’s £ a week typed with its source named, or the gap × units × value typed; it is not yet read from a register problem’s money line.', 'The charter is a page of its own on a project or a line: it is not yet shown on the project’s front page, and a revision is the owner reopening it — no change log.']
   },
