@@ -98,3 +98,12 @@ causes = {"the new jaw's heater reads low": "EEEE", "a bad film batch": "EXEA", 
 for c, t in causes.items():
     fails = t.count('X'); ass = t.count('A')
     print(f"  {c:32s} {t}  cannot {fails}  assumptions {ass}  -> {'ruled out' if fails else ('fits every line' if ass == 0 else f'fits with {ass} assumptions')}")
+
+print("\n== A1 A3 sheet (rca.a3 worked case: leaking seals, lane 3 — independent count)")
+blocks = {"Background": True, "Current condition": True, "Target": True, "Analysis": True, "Countermeasures": True, "Plan": True, "Follow-up": False}
+cms = [("Calibrate the heater at every jaw change", "Engineering", "7 Nov", "the new jaw's heater"), ("Jaw-change checklist", "Production", "10 Nov", "the new jaw's heater")]
+print(f"  blocks written {sum(blocks.values())} of {len(blocks)}; countermeasures {len(cms)}, naming no cause {sum(1 for c in cms if not c[3])}")
+roots = ["the new jaw's heater"]
+bare = [r for r in roots if not any(r.lower() in c[3].lower() or c[3].lower() in r.lower() for c in cms)]
+print(f"  roots {len(roots)}, with no countermeasure naming them {len(bare)}")
+print("  a second root 'film tension' with no countermeasure ->", [r for r in roots + ["film tension"] if not any(r.lower() in c[3].lower() or c[3].lower() in r.lower() for c in cms)])

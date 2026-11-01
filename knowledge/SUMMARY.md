@@ -8,8 +8,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 147 |
-| Partly (`partial`) | 18 |
+| Available (`available`) | 148 |
+| Partly (`partial`) | 17 |
 | Planned (`specified`) | 0 |
 | Not built yet (`to-build`) | 53 |
 | Research first (`research`) | 12 |
@@ -31,7 +31,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Measurement systems | 6 | 6 |  |  |  |  |  |
 | Quality engineering and defects | 14 | 5 |  |  | 7 | 2 |  |
 | Six Sigma and DMAIC | 8 | 6 | 1 |  | 1 |  |  |
-| Root cause and problem solving | 10 | 5 | 3 |  | 2 |  |  |
+| Root cause and problem solving | 10 | 6 | 2 |  | 2 |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
 | Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |
