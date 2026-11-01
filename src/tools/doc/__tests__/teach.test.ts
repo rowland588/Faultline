@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { durationSaid, numberRanges, photoMatch, stepOfCaption, stepTimes } from '../figures/sop';
 import { hoursSaved, pointsOf, teachingOf, type Learner } from '../figures/ji';
 import { coverOf } from '../figures/opl';
+import { ruleOf, unanswered, waitDays } from '../figures/meeting';
 import { runDoc } from '../doc';
 import { docByKey } from '../registry';
 import type { DocPhoto } from '../types';
@@ -125,5 +126,43 @@ describe('the one-point lesson (cases-teach.py O1)', () => {
     const v = { title: 't', kind: 'basic', point: 'p', author: 'a', written: '2026-10-25', people: [{ id: 'a', c: { name: 'Ann' } }] };
     expect(runDoc(d, v, [], { today: '2026-11-01' }).problems.map(p => p.say).join('|')).not.toContain('still not taught');
     expect(runDoc(d, v, [], { today: '2026-11-02' }).problems.map(p => p.say).join('|')).toContain('still not taught 8 days after');
+  });
+});
+
+describe('the tiered meeting (cases-teach.py M1)', () => {
+  it('the record’s shift: 3,535 of 3,840, 305 short, the jaw hour 180 = 59.0%; 95% of plan is 3,648, which it misses', () => {
+    expect(3535 / 3840).toBeCloseTo(0.9206, 4);
+    expect(3840 - 3535).toBe(305);
+    expect(180 / 305).toBeCloseTo(0.5902, 4);
+    expect(3840 * 0.95).toBeCloseTo(3648, 10);
+    expect(ruleOf(3535, 3648, 'atleast')).toBe('off');
+    expect(ruleOf(3700, 3648, 'atleast')).toBe('met');
+    expect(ruleOf(410, 456, 'atleast')).toBe('off');
+    expect(ruleOf(1250, 1000, 'atmost')).toBe('off');
+    expect(ruleOf(0, 0, 'atmost')).toBe('met');
+    expect(ruleOf(1, undefined, 'atmost')).toBeUndefined();
+    expect(ruleOf(1, 2, undefined)).toBeUndefined();
+  });
+  it('a red is answered by an action or a reason for its letter; the rest are named', () => {
+    expect(unanswered(['D', 'C', 'S'], [{ letter: 'D', type: 'do' }, { letter: 'C', type: 'why' }])).toEqual(['S']);
+    expect(unanswered([], [])).toEqual([]);
+  });
+  it('an escalation raised on 30 October waits 2 days at 1 November, 0 if answered the same day', () => {
+    expect(waitDays('2026-10-30', undefined, '2026-11-01')).toBe(2);
+    expect(waitDays('2026-10-30', '2026-10-30', '2026-11-01')).toBe(0);
+    expect(waitDays('2026-10-30', '2026-10-31', '2026-11-01')).toBe(1);
+  });
+  it('the cost letter in pounds, or the figure missing — and no cost row is named', () => {
+    const d = docByKey('daily-meeting')!;
+    const base = { tier: '1', day: '2026-10-30', leader: 'Sam' };
+    expect(runDoc(d, { ...base, letters: [{ id: 'c', c: { letter: 'C', status: 'red', actual: 1250, target: 1000, dir: 'atmost' } }] }, [], CTX).result.money.text).toBe('Yesterday’s losses on the cost letter: £1,250.00, £250.00 over the £1,000.00 a day it may lose.');
+    expect(runDoc(d, { ...base, letters: [{ id: 'c', c: { letter: 'C', status: 'green' } }] }, [], CTX).result.money.missing[0]).toContain('has no figure');
+    expect(runDoc(d, { ...base, letters: [{ id: 's', c: { letter: 'S', status: 'green' } }] }, [], CTX).result.money.missing[0]).toContain('not on the list');
+  });
+  it('an escalation answered the same day is not waiting; a red with a reason is answered', () => {
+    const d = docByKey('daily-meeting')!;
+    const run = runDoc(d, { tier: '1', day: '2026-10-30', leader: 'Sam', letters: [{ id: 'a', c: { letter: 'D', status: 'red' } }], actions: [{ id: 'x', c: { letter: 'D', type: 'why', what: 'Planned stop' } }], escalated: [{ id: 'e', c: { what: 'Jaw', raised: '2026-10-30', answer: 'answered', answeredOn: '2026-10-30' } }] }, [], CTX);
+    expect(run.result.sentence).toBe('Tier 1 · 30 Oct: 1 letter read, 1 off target (Delivery), 0 actions raised, every red with an action, 1 escalated and answered.');
+    expect(run.problems.length).toBe(0);
   });
 });

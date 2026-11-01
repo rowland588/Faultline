@@ -430,8 +430,9 @@ export const OPERATIONS: Entry[] = [
     depends: ['FC-197', 'FC-194'],
     complexity: 'M', value: 'medium', valueWhy: 'The rhythm that keeps actions moving.',
     status: 'partial', form: 'report', methods: ['visual.daily-management'], scenarios: ['daily'],
-    built: { where: [], code: ['src/lib/day.ts', 'src/lib/huddle.ts'], tests: ['src/lib/__tests__/day.test.ts', 'src/lib/__tests__/huddle.test.ts'], acceptance: ['stagegate-walk.mjs'] },
-    limits: ['Built for a stage-gate project’s day; no tiered escalation and no line’s daily meeting.'],
+    built: docBuilt('daily-meeting', { code: ['src/tools/doc/figures/meeting.ts', 'src/lib/day.ts', 'src/lib/huddle.ts'], tests: ['src/tools/doc/__tests__/teach.test.ts', 'src/lib/__tests__/day.test.ts', 'src/lib/__tests__/huddle.test.ts'], acceptance: ['teach.mjs', 'stagegate-walk.mjs'] }),
+    spec: 'knowledge/specs/FC-198-daily-meeting.md',
+    limits: ['A tier’s meeting is a record typed from the day’s records: the letters, the figures and the actions are not read from the loss count, the register or the actions, so it can disagree with them (the SQDCP board that reads them, FC-197, is not built).', 'The hour-by-hour board (FC-203) and the meetings’ adherence — held ÷ scheduled across days — are not built; each meeting is a document of its own, not a row on a tiered board.', 'An escalation is a row on the meeting that sent it up: it does not appear on the tier above’s meeting. A stage-gate project’s own day (src/lib/day.ts, huddle.ts) is the older part and is unchanged.'],
   },
   {
     id: 'FC-199', name: 'Gemba walk — and how fresh the looking is', discipline: 'visual', sub: 'walk',

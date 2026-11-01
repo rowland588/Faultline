@@ -7,6 +7,9 @@
  *           marked Signed off with no day: 7 of 9, and the page says the day is missing; the paper carries the breakdown and who was taught
  *   OPL     the film-guide lesson by shift (Days 6 of 6, Nights 5 of 6 = 11 of 12, 92%); a right and a wrong photo added: the pictures counted
  *           and “no picture” gone; the last person given a day: 12 of 12 (100%); the paper carries the grid
+ *   MEETING the tier 1 meeting read as the example says (5 letters, Delivery 3,535 against at least 3,648 not met, the cost letter £250 over, the
+ *           escalation waiting 2 days); the two Delivery actions taken out: a red with no answer, Undo brings them back; the escalation answered:
+ *           no longer waiting; the paper; the phone
  *   the phone, 390 px: nothing off the side
  *   node scripts/acceptance/teach.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
@@ -131,6 +134,30 @@ ok(T.includes(nows('Who has been taught')) && T.includes(nows('Nights')) && T.in
 await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(500);
 wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 ok(wide <= 1, `OPL e the phone: nothing off the side (${wide}px over)`);
+
+/* ---- the tiered meeting ---- */
+await made('daily-meeting', 0, 'Acceptance tier 1');
+t = await tilesOf();
+ok(t['Letters read'] === '5 of 5' && t['Off target'] === '2' && t['Actions raised'] === '2' && t['Reds answered'] === '2 of 2' && t.Escalated === '1' && t['Closed since last'] === '2', 'M a the tier 1 meeting reads as the example says', JSON.stringify(t));
+const lrows = await page.locator('[data-doc-table="Yesterday, by letter"] tbody tr').evaluateAll(rs => rs.map(r => [...r.children].map(c => c.textContent?.replace(/\s+/g, ' ').trim())));
+ok(JSON.stringify(lrows[2]) === JSON.stringify(['Delivery', 'Off target', 'Made 3,535 of 3,840; the sealer jaw hour lost 180', '3,535', '≥ 3,648', 'not met']), 'M a Delivery: 3,535 against at least 3,648 is not met', JSON.stringify(lrows[2]));
+ok(((await words('[data-doc=money]')) ?? '').includes('£250.00 over the £1,000.00 a day it may lose'), 'M a the cost letter in pounds: £250 over', await words('[data-doc=money]'));
+ok(/has waited \d+ days? for an answer/.test(await checks()), 'M a the escalation unanswered since 30 October is said', await checks());
+await page.locator('[data-list="actions"] [data-remove-row="0"]').click(); await page.waitForTimeout(700);
+await page.locator('[data-list="actions"] [data-remove-row="0"]').click(); await page.waitForTimeout(900);
+t = await tilesOf();
+ok(t['Reds answered'] === '1 of 2' && /Delivery is off target with no action and no reason/.test(await checks()), 'M b the two Delivery actions taken out: Delivery is a red with no answer, Cost still answered by its reason', `${JSON.stringify(t)} ${await checks()}`);
+await page.getByRole('button', { name: 'Undo', exact: true }).click(); await page.waitForTimeout(900);
+t = await tilesOf();
+ok(t['Reds answered'] === '2 of 2', 'M b …Undo brings back the last one taken out: Delivery is answered again', JSON.stringify(t));
+await page.locator('[data-list="escalated"] [data-row="0"] [data-cell="answer"] [data-value="answered"]').click(); await page.waitForTimeout(500);
+await page.locator('[data-list="escalated"] [data-row="0"] [data-cell="answeredOn"] input').fill('2026-10-30'); await page.waitForTimeout(1000);
+ok(/1 escalated and answered\.$/.test((await words('[data-doc=sentence]')) ?? '') && !/has waited/.test(await checks()), 'M c the escalation answered the same day: no longer waiting, the check gone', `${await words('[data-doc=sentence]')} ${await checks()}`);
+T = nows(await pdf('meeting.pdf'));
+ok(T.includes(nows('Yesterday, by letter')) && (T.includes(nows('Find the sealer jaw')) || T.includes(nows('SMED on the film change'))) && T.includes(nows('Escalated')) && T.includes(nows('£250.00 over')), 'M d the paper carries the letters, the actions, what went up and the pounds');
+await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(500);
+wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+ok(wide <= 1, `M e the phone: nothing off the side (${wide}px over)`);
 
 ok(!errors.length, `no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
 await browser.close();

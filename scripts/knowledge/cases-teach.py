@@ -39,3 +39,12 @@ for sh in ("Days", "Nights"):
     n = [t for s, t in people if s == sh]
     print(f"  {sh}: {sum(n)} of {len(n)} = {sum(n)/len(n)*100:.1f}%")
 print("  written 2026-10-20, a week later is 2026-10-27; on 2026-11-01 it is", (date(2026, 11, 1) - date(2026, 10, 20)).days, "days on")
+
+print("\n== M1 Tiered meeting: the record's hour-by-hour shift (visual.daily-management worked case) and the rules the page checks")
+plan = 480
+hours = [470, 480, 410, 475, 300, 480, 465, 455]
+made = sum(hours); planned = plan * len(hours)
+print(f"  made {made:,} of {planned:,} = {made/planned*100:.1f}%; gap {planned-made}; the jaw hour lost {plan-300} = {(plan-300)/(planned-made)*100:.1f}% of the gap")
+print(f"  95% of plan = {planned*0.95:,.0f}; made {made:,} {'meets' if made >= planned*0.95 else 'misses'} it")
+print(f"  410 against at least 456 (95% of 480): {'met' if 410 >= 456 else 'not met'}")
+print(f"  cost: 1250 against at most 1000 = {1250-1000} over; an escalation raised 2026-10-30 waits {(date(2026,11,1)-date(2026,10,30)).days} days at 2026-11-01")

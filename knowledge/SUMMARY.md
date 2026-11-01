@@ -4,7 +4,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **237 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 24 tools a person can open on a page of their own. Built inside them: 110 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 52; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 24 tools a person can open on a page of their own. Built inside them: 111 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 31. Not built yet: 52; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
