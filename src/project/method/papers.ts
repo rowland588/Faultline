@@ -10,4 +10,16 @@ export interface MethodPaper {
   /** Make and download it for this project. */
   make: (projectId: string) => Promise<void>;
 }
-export const PAPERS: Partial<Record<MethodKey, readonly MethodPaper[]>> = {};
+export const PAPERS: Partial<Record<MethodKey, readonly MethodPaper[]>> = {
+  kata: [{
+    label: 'Kata storyboard', for: 'The learner’s board: challenge, conditions, obstacles, every experiment and the five coaching questions.',
+    make: async projectId => {
+      const [{ getProject, listTestItems }, { answerOf }, { saveKataPdf }, { todayISO }] = await Promise.all([import('../../db'), import('../../lib/methodSheet'), import('../../lib/report/kataPaper'), import('../../lib/weeks')]);
+      const [project, items] = await Promise.all([getProject(projectId), listTestItems(projectId)]);
+      const answers: Record<string, string> = {};
+      for (const i of items) { const a = i.kind === 'note' && !i.deletedAt ? answerOf(i.testId) : undefined; if (a?.method === 'kata') answers[a.field] = i.what; }
+      const today = todayISO();
+      await saveKataPdf({ project: project?.name ?? 'Project', printed: today, answers, todayISO: today });
+    },
+  }],
+};
