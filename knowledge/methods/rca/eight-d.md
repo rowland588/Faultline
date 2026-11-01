@@ -121,8 +121,11 @@ foreign-body incidents; a withdrawal's report; a BRCGS major's root cause
 - [textbook] Rambaud, L. (2011), *8D Structured Problem Solving*, 2nd ed., PHRED Solutions (from knowledge).
 
 ## In Faultline
-Not built (FC-150). The register's problem with its journey, the hold
-and the 6M's cause and proof are its pieces (`src/snag`,
-`src/lib/sixm.ts`); FC-150 would lay them as the eight
-disciplines with their dates and evidence and print the report in the
-customer's shape — one paper from records that already exist.
+Built, partly (FC-150, 1 November) as a document of the document shape (`src/tools/doc/defs/eight-d.ts`,
+`knowledge/specs/FC-150-eight-d-report.md`): D0 to D8 each with its evidence and day, the elapsed days from D0, the containment in money (held
+product tied up and sorting labour, apart), what the problem cost from the tool that measured it, the way it has stayed away against the old
+rate, the closing by the lead, the customer's paper. It **reads** what the project holds — the register's problems, the fishbone's causes,
+the project's actions and studies — and **types** what no record holds (the team, is / is not, the containment and hold, the verification and
+the escape point, what was changed in the system). Partial: the is / is-not tool, the hold, the FMEA and the control plan
+are not built, so D2, D3 and D7 are typed. The worked case's timeline above is inconsistent as written (D6 on day 19 with six weeks without
+recurrence, closed on day 30): the built example closes on day 62.

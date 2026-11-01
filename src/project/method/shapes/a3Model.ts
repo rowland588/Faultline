@@ -36,6 +36,19 @@ export const cmWritten = (answers: Readonly<Record<string, string>>) =>
   cmRows(answers).filter(r => joinCm(r.cm) !== '');
 
 export interface A3Evidence { title: string; says: string }
+/** A cause on the project's fishbone, as the analysis block reads it (read only — the fishbone keeps it). */
+export interface CauseRead { text: string; root: boolean; whys: number }
+const same = (a: string, b: string) => { const x = a.trim().toLowerCase(), y = b.trim().toLowerCase(); return !!x && !!y && (x === y || x.includes(y) || y.includes(x)); };
+/** What the project's fishbone says at the analysis: how many causes, the roots, and which root has no countermeasure naming it
+ *  (the record: every cause has a countermeasure or a reason not). Absent when the fishbone holds none. */
+export function causesEvidence(causes: readonly CauseRead[], cms: readonly { cm: Countermeasure }[]): A3Evidence | undefined {
+  if (!causes.length) return undefined;
+  const roots = causes.filter(c => c.root);
+  const bare = roots.filter(r => !cms.some(m => same(m.cm.cause, r.text)));
+  const rootsSaid = roots.length ? `${roots.length} marked as the root: ${roots.map(r => `“${r.text}” (${r.whys} ${r.whys === 1 ? 'why' : 'whys'})`).join('; ')}` : 'none marked as the root yet';
+  const cover = roots.length && bare.length ? ` No countermeasure names ${bare.map(r => `“${r.text}”`).join(' or ')} yet.` : roots.length ? ' Every root has a countermeasure that names it.' : '';
+  return { title: 'The project’s fishbone', says: `${causes.length} ${causes.length === 1 ? 'cause' : 'causes'} on the fishbone, ${rootsSaid}.${cover}` };
+}
 export interface A3Field { id: string; label: string; hint: string; line?: boolean; value: string }
 export interface A3Block {
   n: number; title: string; side: 'left' | 'right';
@@ -72,7 +85,7 @@ const BLOCK_DEFS: readonly { n: number; title: string; side: 'left' | 'right'; a
 /** The header's fields ride on the first section; the sheet draws them over both columns. */
 export const HEADER_IDS = ['problem', 'owner'] as const;
 
-export function a3Sheet(answers: Readonly<Record<string, string>>, evidence: { current?: A3Evidence; followup?: A3Evidence } = {}): A3Sheet {
+export function a3Sheet(answers: Readonly<Record<string, string>>, evidence: { current?: A3Evidence; followup?: A3Evidence; causes?: readonly CauseRead[] } = {}): A3Sheet {
   const v = (id: string) => (answers[id] ?? '').trim();
   const blocks: A3Block[] = BLOCK_DEFS.map(d => ({
     n: d.n, title: d.title, side: d.side, asks: d.asks, section: d.section, ...(d.list ? { list: true } : {}),
@@ -84,6 +97,8 @@ export function a3Sheet(answers: Readonly<Record<string, string>>, evidence: { c
     ...(d.n === 7 && evidence.followup ? { evidence: evidence.followup } : {}),
   }));
   const cms = cmWritten(answers);
+  const fish = causesEvidence(evidence.causes ?? [], cms);
+  if (fish) blocks[3].evidence = fish;
   const noCause = cms.filter(r => !r.cm.cause.trim()).length;
   const wrote = (b: A3Block) => (b.list ? cms.length > 0 : b.fields.some(x => x.value !== ''));
   const written = blocks.filter(wrote).length;

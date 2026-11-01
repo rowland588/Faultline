@@ -57,6 +57,7 @@ import { analysisClosing, analysisFigures, analysisGrids, analysisPicture, analy
 import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } from '../tools/chart/chart';
 import { neckOf } from './lineLoss';
 import { calcPaperParts } from './report/calcPaper';
+import { docPaperParts, type DocPaperExtras } from './report/docPaper';
 import { scoredPaperBlocks } from './report/scoredPaper';
 import { boardPaperBlocks } from './report/boardPaper';
 import { scoredSays, scoredTitle, studyScored } from '../tools/scored/scored';
@@ -96,6 +97,8 @@ export interface StudiesPaper {
   /** The register's problems — a check log's action plan and its problems' state (src/tools/checks). */
   snags?: Snag[];
   records?: { actions: ({ id: string; deletedAt?: number } & ActionLike)[]; fixes: ({ id: string; deletedAt?: number } & FixLike)[] };
+  /** A document's world and photos (tools/doc): the project's records it reads and its pictures made small — read before the paper is poured. */
+  doc?: DocPaperExtras;
 }
 
 /** A row of figures across the page — the strip as the paper draws it. */
@@ -599,6 +602,7 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
   const raised = raisedFrom(s, p.records?.actions ?? [], p.records?.fixes ?? []);
   let eyebrow = 'Study', verdict: { text: string; tone: string } | undefined, tiles: LeanTile[] = [], closing: { text: string; tone: LeanTone } = { text: e.line, tone: 'n' };
   let body: Block[] = [];
+  let says: string | undefined;
   if (s.tool === 'capability' && s.agreed?.readings) {
     const a = s.agreed.readings, f = sample(a, s.facts.readings ?? []), said = sampleSays(f, a);
     eyebrow = 'Capability study'; verdict = { text: said.verdict, tone: said.tone }; tiles = sampleTiles(f, a, said); closing = sampleClosing(f, a, said);
@@ -611,6 +615,10 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     /* a calculation (FC-235): one generic page from the definition's own result — the same the screen draws */
     const c = calcPaperParts(s);
     if (c) { eyebrow = c.eyebrow; verdict = c.verdict; tiles = c.tiles; closing = c.closing; body = c.body; }
+  } else if (s.tool === 'doc') {
+    /* a document (FC-240): one generic page from the definition's own reading — the same the screen draws */
+    const c = docPaperParts(s, p.doc);
+    if (c) { eyebrow = c.eyebrow; verdict = c.verdict; tiles = c.tiles; closing = c.closing; body = c.body; says = c.sentence; }
   } else if (s.tool === 'scored' && s.agreed?.scored) {
     const said = scoredSays(s);
     eyebrow = scoredTitle(s); verdict = { text: said.verdict, tone: said.tone };
@@ -661,7 +669,7 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
   out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its project` : ''}${copiedHead(s.facts.copiedFrom) ? ` · ${copiedHead(s.facts.copiedFrom)}` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
   if (tiles.length) out.push(leanTiles(tiles));
   out.push(leanHead('What it says'));
-  out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: gap(d, 's') }));
+  out.push(text({ text: says ?? e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: gap(d, 's') }));
   /* IN MONEY (knowledge/specs/FC-156-capability-money.md): the sentence the page says, with its because, and
      the figures it was scaled by — the same module as the screen, nothing missing made up */
   if (s.tool === 'capability' && s.agreed?.readings) {
@@ -753,6 +761,7 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
   if (s.tool === 'chart') out.push(...chartBlocks(s));
   if (s.tool === 'analysis') out.push(...analysisBlocks(s));
   if (s.tool === 'calc') out.push(...(calcPaperParts(s)?.body ?? []));
+  if (s.tool === 'doc') out.push(...(docPaperParts(s, p.doc)?.body ?? []));
   /* a check log's parts — the line report prints them as the log's own paper does */
   if (s.tool === 'log') { const li = logInputOf(p, { s, where }); if (li) out.push(...logBodyBlocks(li)); }
   if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
@@ -784,7 +793,7 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'log') { const li = logInputOf(p, p.items[0]); if (li) return logPaperBlocks(li, p.printed, d); }
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
-  if (p.lean && p.items.length === 1 && (['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis', 'calc', 'board', 'scored'].includes(p.items[0].s.tool) || registerKeyOf(p.items[0].s))) return studyLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && (['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis', 'calc', 'board', 'scored', 'doc'].includes(p.items[0].s.tool) || registerKeyOf(p.items[0].s))) return studyLeanBlocks(p, p.items[0], d);
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return smedLeanBlocks(p, p.items[0], d);
   const out: Block[] = [];
   out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));

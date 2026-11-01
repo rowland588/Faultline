@@ -586,6 +586,35 @@ export const PAGES = (sd, cap) => [
     { what: 'what it does not say — the licence caveat', sel: '.calc-caveats li', text: /does not hold the tables of ISO 2859-1/ },
     { what: 'the line’s wage offered or typed', sel: '[data-field=rate] input', n: 1 },
   ] },
+  /* THE DOCUMENTS (1 November, FC-240, knowledge/specs/FC-240-documents.md): the hub with every kind as a card and the saved ones; one kind's list; a saved charter ready to agree; a saved 8D report */
+  { name: 'Documents — the hub', path: '#/doc', must: [
+    { what: 'the page named Documents with Report ▾', sel: '.part-head .pace-title', text: /^Documents$/ }, { what: 'a card each kind of document, with what it is for', sel: '.calc-card', n: 5 },
+    { what: 'the charter card counting its saved one', sel: '[data-doc-card=charter] .calc-card-n', text: /1 saved/i },
+    { what: 'the saved documents, a row each with its kind and status', sel: '.lt-rows .lt-li', n: 3 },
+  ] },
+  { name: 'One kind of document — Project charter', path: '#/doc/charter', must: [
+    { what: 'the page named for the kind, with New charter', sel: '.part-head .pace-title', text: /^Project charter$/ }, { what: 'New charter', sel: '.pace-head-actions .btn-primary', text: /^New charter$/ },
+    { what: 'its saved ones, a row each with Rename and Delete', sel: '.lt-li .lt-acts', n: 1 },
+    { what: 'the documents that carry on from it', sel: '.calc-see .linkish', n: 2 },
+  ] },
+  { name: 'A document — a charter ready to agree', path: `#/doc/charter/${sd.docCharterId}`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
+    { what: 'the band with its status', sel: '.ln-band', text: /Ready to agree/ },
+    { what: 'the agreement box with its one button', sel: '[data-doc=sign] [data-doc-sign]', text: /^Agree the charter$/ },
+    { what: 'the sections of the charter', sel: '.doc-sec', n: 6 }, { what: 'the boxes, each saying needed or optional', sel: '.doc-field .field-label', n: 19 },
+    { what: 'the six tiles — filled in first', sel: '.doc-tiles .ln-tile', n: 6 }, { what: 'filled in', sel: '.doc-tiles .ln-tile', text: /Filled in\s*11 of 11/ },
+    { what: 'the sentence, in the floor’s words', sel: '[data-doc=sentence]', text: /^Reduce give-away on Line 3 from 4\.1 g a pack to 2 g a pack by 31 Mar 2027, worth £89,107 a year\./ },
+    { what: 'the team table', sel: '[data-doc-table="The team"] tbody tr', n: 5 },
+    { what: 'the money, said with its because', sel: '[data-doc=money]', text: /^Closing the gap is worth £89,107 a year because/ },
+    { what: 'what this does not say', sel: '.doc-caveats li', n: 4 }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' },
+  ] },
+  { name: 'A document — an 8D report with its photos', path: `#/doc/eight-d/${sd.docEightDId}`, must: [
+    { what: 'the band with its status', sel: '.ln-band', text: /Ready to close/ }, { what: 'the nine disciplines and what it costs', sel: '.doc-sec', n: 10 },
+    { what: 'the page saying nothing is read when it is not on a project', sel: '.doc-reads', text: /not on a project/ },
+    { what: 'the days from D0 to each discipline', sel: '[data-doc-table="How long each discipline took"] tbody tr', n: 7 },
+    { what: 'the photos box', sel: '[data-photos=problemPhotos] [data-add-photo]', text: /^Add photos$/ },
+    { what: 'the containment in money, apart', sel: '[data-doc=money]', text: /£7,056 tied up \(not lost\)/ },
+  ] },
   /* THE ANALYSIS, PART TWO (24 October, W3b, knowledge/specs/FC-107-groups-tables-relations.md): three shifts, a table of counts, a relation — each page says its answer in "we can be 95% confident" and draws what it is about */
   { name: 'Analysis — do groups differ', path: `#/analysis/${sd.analysisGroupsId}`, must: [
     { what: 'the band’s verdict — the worst shift, amber', sel: '.ln-band', text: /B is the worst/ },

@@ -99,6 +99,32 @@ const pdf = async () => {
   const info = execFileSync('pdfinfo', [file], { encoding: 'utf8' });
   return { info, text: norm(execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' })), pages: +/Pages:\s+(\d+)/.exec(info)[1], size: /Page size:\s+([\d.]+) x ([\d.]+)/.exec(info).slice(1).map(Number) };
 };
+/* ---- 4b the fishbone speaks at the analysis (FC-151 — the cause is kept on the fishbone once; the sheet says what it holds) ---- */
+{
+  const an = () => page.locator('.a3-blk[aria-label="4. Analysis"] [aria-label="Analysis — what the project’s fishbone says"]');
+  await go(`#/project/${A3}`, 2200);
+  ok((await an().count()) === 0, '4b no fishbone causes yet: the analysis block says nothing it does not know');
+  await page.evaluate(async id => {
+    const D = await import('/src/db.ts');
+    const ws = await D.createWorkspace('Line 3 — A3 fishbone');
+    await D.addPaceLine({ projectId: id, key: 'L3', name: 'Line 3', workspaceId: ws.id });
+    const now = Date.now(), why = n => Array.from({ length: n }, (_, i) => ({ id: `w${i}`, text: `why ${i + 1}` }));
+    await D.addCase({ id: 'a3-case', workspaceId: ws.id, projectId: id, lineId: ws.id, title: 'Leaking seals', path: [], baselineMsWeek: 0, status: 'open', openedAt: now, updatedAt: now, causes: [
+      { id: 'k1', m: 'machine', text: 'The new jaw’s heater reads low', grade: 'measured', status: 'confirmed', root: true, whys: why(3), at: now },
+      { id: 'k2', m: 'material', text: 'Film batch', grade: 'observed', status: 'suspected', whys: why(1), at: now },
+    ] });
+  }, A3);
+  await go(`#/project/${A3}`, 2600);
+  const said = norm(await an().innerText());
+  ok(said.includes(norm('2 causes on the fishbone, 1 marked as the root: “The new jaw’s heater reads low” (3 whys).')), `4b the analysis reads the fishbone: ${said.slice(0, 160)}`);
+  ok(said.includes(norm('No countermeasure names “The new jaw’s heater reads low” yet.')), '4b the written countermeasure names another cause, so the root is bare — said in words');
+  await fill('Against which cause — countermeasure 1', 'The new jaw’s heater reads low');
+  ok(/Every root has a countermeasure that names it/.test(norm(await an().innerText())), '4b a countermeasure that names the root, and the sheet says so');
+  await fill('Against which cause — countermeasure 1', 'New jaw’s heater runs cold');
+  const p = await pdf();
+  ok(p.text.includes(norm('The project’s fishbone')) && p.text.includes(norm('2 causes on the fishbone, 1 marked as the root')), '4b the paper carries the same sentence under Analysis, read back');
+}
+
 {
   const p = await pdf();
   ok(p.pages === 1, `5 “A3 on one page” is ONE page (${p.pages})`);

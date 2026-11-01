@@ -332,7 +332,7 @@ own and names what it feeds.
 | FC-146 6M | built 24 Oct — the problem's hours a week in money by its line's cost model (labour; packs and contribution where its scope stops the line): before, now, target, the saving so far; a countermeasure's worth = its typed share of the problem × that £; the board's sum (`knowledge/specs/FC-146-sixm-money.md`); a gap problem says no money | L, T | the share (typed on the countermeasure); the line's wage, speed, margin | the sheet's box asks the share; "give the line a wage", "a speed", "a margin a pack" |
 | FC-147 Fishbone with evidence | — of its own; each cause's evidence carries its tool's £ | the tool's | | |
 | FC-148 Five whys | — | — | | |
-| FC-149 Is / is not | — | — | | |
+| FC-149 Is / is not | built 1 Nov — the extra bad packs a shift (packs on the IS side × the difference of the two percentages) at the line's materials a pack (M); contribution is the loss count's, not here | M | packs a shift, the two percentages, materials a pack | each named on the page; the sentence and the table stand without them |
 | FC-150 8D | the problem's £ (as FC-146) and the containment's cost (holds H, sorting L) | the tool's; H, L | | |
 | FC-151 A3 | the problem's £ on the left, the countermeasures' worth on the right — as FC-146 | the tool's | | |
 | FC-152 Fault tree | — of its own; the top event's cost (D) when known | D | | |

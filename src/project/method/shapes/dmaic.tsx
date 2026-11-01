@@ -47,9 +47,9 @@ function Tools({ list, projectId, canEdit, onTool }: { list: Insertion[]; projec
         const t = toolByKey(i.tool);
         return (
           <div key={i.id} className="dm-tool" data-insert={i.id}>
-            <p><b>{i.question}</b> — {i.says ? <>{i.name}: {i.says}</> : <>no {i.toolName} study in this project yet.</>}</p>
-            {i.says && t && <button type="button" className="btn btn-sm" onClick={() => nav(inProject(t.to, projectId))}>Open {i.toolName}</button>}
-            {!i.says && canEdit && <button type="button" className="btn btn-sm" onClick={() => onTool(i.fc)}>Start {i.toolName}</button>}
+            <p><b>{i.question}</b> — {i.says ? <>{i.name}: {i.says}</> : <>{i.at ? 'no charter page in this project yet.' : `no ${i.toolName} study in this project yet.`}</>}</p>
+            {i.says && t && <button type="button" className="btn btn-sm" onClick={() => nav(inProject(i.at ?? t.to, projectId))}>Open {i.toolName}</button>}
+            {!i.says && canEdit && <button type="button" className="btn btn-sm" onClick={() => onTool(i.fc)}>{i.at ? 'Start the charter' : `Start ${i.toolName}`}</button>}
           </div>
         );
       })}

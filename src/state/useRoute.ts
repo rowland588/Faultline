@@ -160,6 +160,14 @@ export function parseRoute(hash: string): Route {
     if (key && segs[2]) return { name: 'study', view: 'calc', key, id: decodeURIComponent(segs[2]), query };
     return { name: 'studies', view: 'calc', ...(key ? { key } : {}), query };
   }
+  /* /doc is every document (the hub); /doc/:key one kind of document's saved ones; /doc/:key/:id one saved document
+     (knowledge/specs/FC-240-documents.md — a charter, a SIPOC, a CTQ table, a Kano survey, an 8D report). All of them are studies of
+     tool `doc`, so a scope, a rail and a context bar treat them as any tool's list and record. */
+  if (segs[0] === 'doc') {
+    const key = segs[1] ? decodeURIComponent(segs[1]) : undefined;
+    if (key && segs[2]) return { name: 'study', view: 'doc', key, id: decodeURIComponent(segs[2]), query };
+    return { name: 'studies', view: 'doc', ...(key ? { key } : {}), query };
+  }
   if (segs[0] === 'scored') {
     const key = segs[1] ? decodeURIComponent(segs[1]) : undefined;
     if (key && segs[2]) return { name: 'study', view: 'scored', key, id: decodeURIComponent(segs[2]), query };

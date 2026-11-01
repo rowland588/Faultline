@@ -40,6 +40,7 @@ import type { LeanAction, LeanTone } from '../../lib/lean';
 import { APP_TOOLS } from '../../catalogue/registry';
 import { niceDay } from '../../lib/weeks';
 import { calcTitle } from '../../tools/calc/calc';
+import { docTitle } from '../../tools/doc/doc';
 import { owedActions } from '../../tools/checks/owed';
 import { registerKeyOf } from '../../tools/registers/kinds';
 
@@ -117,7 +118,7 @@ export function itemsOn(line: Pick<Workspace, 'id'>, r: Pick<BundleRecords, 'sta
     if (s.deletedAt || s.workspaceId !== line.id) continue;
     const l = studyLine(s, r.ctx);
     /* the tool's name once — the heading says "SMED — Finest Red 2kg → Express 1.25 kg · Bagger", never "SMED — SMED — …" */
-    out.push({ key: `study:${s.id}`, tool: s.tool === 'calc' ? calcTitle(s) : toolLabel((registerKeyOf(s) ?? s.tool) as StudyTool), name: `${s.name.trim() || studyTitle(s)}${s.machine ? ` · ${s.machine}` : ''}`, says: l.text, tone: toneOf(l.tone), at: s.updatedAt ?? s.startedAt, ...(s.machine ? { machine: s.machine } : {}), study: s });
+    out.push({ key: `study:${s.id}`, tool: s.tool === 'calc' ? calcTitle(s) : s.tool === 'doc' ? docTitle(s) : toolLabel((registerKeyOf(s) ?? s.tool) as StudyTool), name: `${s.name.trim() || studyTitle(s)}${s.machine ? ` · ${s.machine}` : ''}`, says: l.text, tone: toneOf(l.tone), at: s.updatedAt ?? s.startedAt, ...(s.machine ? { machine: s.machine } : {}), study: s });
   }
   for (const st of r.standards) {
     if (st.deletedAt || st.workspaceId !== line.id) continue;
@@ -177,8 +178,8 @@ export function whereFor(part: LinePart, picks: ReadonlySet<string>, today = tod
 export function picksForTools(b: LineBundle, labels: readonly string[]): Set<string> {
   const want = new Set(labels);
   /* the hub's tick, Calculators, takes every saved calculation — each is listed under its own calculator's title */
-  const hub = want.has(TOOL_LABEL.calc ?? 'Calculators');
-  return new Set(b.parts.flatMap(p => p.items.filter(it => want.has(it.tool) || (hub && it.study?.tool === 'calc')).map(it => it.key)));
+  const hub = want.has(TOOL_LABEL.calc ?? 'Calculators'), docs = want.has(TOOL_LABEL.doc ?? 'Documents');
+  return new Set(b.parts.flatMap(p => p.items.filter(it => want.has(it.tool) || (hub && it.study?.tool === 'calc') || (docs && it.study?.tool === 'doc')).map(it => it.key)));
 }
 
 /** WHO OWES WHAT BY WHEN — every open problem and every program to prove, the late first. */

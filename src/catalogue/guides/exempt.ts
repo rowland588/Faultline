@@ -4,5 +4,5 @@
  * with a guide may not stay on it, and a tool without one that is not on it fails. A new tool is never added here — it is
  * built with its guide. When this list is empty, delete it and the test holds the rule with no exceptions. */
 export const GUIDE_EXEMPT: readonly string[] = [
-  'FC-142', 'FC-153', 'FC-198', 'FC-224',
+  'FC-153', 'FC-198', 'FC-224',
 ];

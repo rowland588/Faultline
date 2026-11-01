@@ -1,0 +1,45 @@
+/* THE DOCUMENT SHAPE (FC-240) — tokens only. One colour, one meaning: the status wears the state colours with its word. */
+.doc-body { display: grid; grid-template-columns: minmax(280px, 520px) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 8px; }
+.doc-form { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.doc-sec { display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 14px; min-width: 0; }
+.doc-sec-h { margin: 0; }
+.doc-sec-help { margin: -6px 0 0; font-size: var(--t-detail); }
+.doc-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.doc-in { display: flex; align-items: baseline; gap: 8px; }
+.doc-in .text-input { flex: 1 1 8em; min-width: 0; }
+.doc-long { resize: vertical; min-height: 4.5em; font: inherit; line-height: 1.4; }
+.doc-unit { white-space: nowrap; }
+.doc-help { font-size: var(--t-detail); line-height: 1.35; }
+.doc-req { font-style: normal; }
+.doc-use { align-self: flex-start; text-align: left; min-height: 44px; }
+.doc-problem { margin: 2px 0 0; }
+.doc-choices.ie-kinds { grid-template-columns: 1fr; }
+.doc-list, .doc-photos { display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed var(--line); padding-top: 10px; min-width: 0; }
+.doc-list-h { display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline; }
+.doc-row { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg); padding: 10px; min-width: 0; }
+.doc-row-n { font-size: var(--t-label); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
+.doc-cells { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.doc-cell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.doc-row-rm { align-self: flex-start; min-height: 44px; }
+.doc-add { align-self: flex-start; min-height: 44px; }
+.doc-none { margin: 0; }
+.doc-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.doc-photo { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.doc-photo-i { width: 100%; height: auto; max-height: 220px; object-fit: contain; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.doc-cap { min-width: 0; }
+.doc-out { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.doc-result { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.doc-tiles { border-bottom: 0; padding: 0; }
+.doc-table { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.doc-table-scroll { overflow-x: auto; max-width: 100%; }
+.doc-table .ie-tbl th, .doc-table .ie-tbl td { text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.doc-sign { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 12px 14px; margin-top: 8px; }
+.doc-sign.is-ready { border-color: var(--st-a); }
+.doc-sign.is-signed { border-color: var(--st-g); }
+.doc-sign-h { margin: 0; }
+.doc-sign .btn { align-self: flex-start; min-height: 44px; }
+.doc-ro, .doc-reads { margin-top: 8px; }
+@media (max-width: 719px) {
+  .doc-body { grid-template-columns: minmax(0, 1fr); }
+  .doc-sec { padding: 12px; }
+}
