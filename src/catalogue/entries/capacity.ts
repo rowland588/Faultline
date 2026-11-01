@@ -335,9 +335,9 @@ export const CAPACITY: Entry[] = [
     food: 'A wrapper run at 68 against 72 to avoid jams.',
     depends: ['FC-049'],
     complexity: 'S', value: 'medium', valueWhy: 'Splits the gap people otherwise argue about.',
-    status: 'partial', form: 'mode', partOf: 'FC-049', methods: ['equipment.short-stops-speed'], scenarios: ['machine', 'running'],
-    built: { where: ['/losses'], code: ['src/tools/losses/losses.ts'], tests: ['src/tools/losses/__tests__/losses.test.ts'], acceptance: ['shift-losses.mjs'] },
-    limits: ['Split only once a running speed is timed; otherwise said as slow running and short stops together.'],
+    status: 'available', form: 'mode', partOf: 'FC-049', methods: ['equipment.short-stops-speed'], scenarios: ['machine', 'running'],
+    built: { where: ['/losses'], code: ['src/tools/losses/losses.ts', 'src/tools/losses/speedLoss.ts', 'src/tools/losses/SpeedLossPanel.tsx'], tests: ['src/tools/losses/__tests__/losses.test.ts', 'src/tools/losses/__tests__/speedLoss.test.ts'], acceptance: ['shift-losses.mjs', 'speed-loss.mjs'] }, spec: 'knowledge/specs/FC-056-speed-loss.md',
+    limits: ['Split only once a running speed is timed; otherwise said as slow running and short stops together.', 'How often and how long short stops last needs them counted over a watched stretch (typed, or taken from a reliability study’s count); not counted by reason here (FC-055 does).', 'Priced at the pace-setter, where a minute is a minute of the line; off the constraint behind a buffer a short stop costs nothing until it empties (FC-046).'],
   },
   {
     id: 'FC-057', name: 'Cost deployment — losses to causes to pounds (WCM)', discipline: 'equipment', sub: 'cost',

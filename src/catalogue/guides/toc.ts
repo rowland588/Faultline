@@ -51,4 +51,40 @@ export const TOC_GUIDES: Record<string, Guide> = {
     ],
     watch: 'A buffer sized for the average stop is too small for the long ones — and the long ones are the ones that cost output. Size it against the longest usual stop, and check it comes back before the next one.',
   },
+  'FC-056': {
+    intro: 'For a line that runs, but slower than it should — and nobody can say by how much, or whether it is slow running or lots of tiny stops. It splits the two, says which costs more, and what each would be worth.',
+    steps: [
+      {
+        step: 'The count',
+        means: 'A shift counted on the Loss count: the planned minutes, the good packs made, the rejects, and the plate speed of the machine that sets the pace. The stops timed in Capture for that window are read in for you.',
+        doThis: 'Count the shift as you do now — good packs and planned minutes at the end of the shift. Nothing extra is typed for the speed loss to appear.',
+        youGet: 'The minutes lost against the plate speed, with the stops, changeovers and rejects taken out. What is left over is the speed loss: slow running and short stops together.',
+      },
+      {
+        step: 'The running speed — timed while it runs',
+        means: 'How fast the machine really goes when it is running, with no stop in the way. Count the packs off it for a timed minute. It is the one measurement that tells slow running from short stops.',
+        doThis: 'While the machine is running, count the packs it makes in a minute (or 60 seconds) and add the timing. A second timing on another product or setting makes the figure firmer. Do not time it right after a stop.',
+        youGet: 'A running speed, and the split of the speed loss: slow running (the speed it runs at) and short stops (stops too short to time). Without it the two stay one lump and the page says so.',
+      },
+      {
+        step: 'Slow running and short stops',
+        means: 'Slow running is time lost because the machine runs below its plate speed. Short stops are the jams and mis-feeds too short to write down — a few seconds each, many an hour. They need different fixes.',
+        doThis: 'Read the sentence first: it says each in minutes and packs, which costs more and what that means. Slow running costs more: look at the speed setting or the product. Short stops cost more: count the jams by reason.',
+        youGet: 'The two in minutes and in packs at the plate speed, the running speed as a share of the plate, and which one is the bigger — or that they cost about the same.',
+      },
+      {
+        step: 'Short stops counted',
+        means: 'How many of those tiny stops you counted over a stretch of running, and for how long you watched. From that the page works out how often they come and how long each lasts.',
+        doThis: 'Tap them as they happen on a reliability study for the machine (a count called Short stop or Jam), then press Use these on the Loss count — or type how many you counted and in how many minutes of running. A watched hour, repeated, is enough.',
+        youGet: 'The short stops an hour and how long each lasts — about 6 an hour at 50 seconds each — so you know if it is a few long jams or many tiny ones.',
+      },
+      {
+        step: 'In money',
+        means: 'What each loss costs: a minute lost on the machine that sets the pace is a minute of the whole line, so it is the packs not made times what a pack earns. The idle crew is a second figure, kept apart.',
+        doThis: 'Give the line a margin a pack and its crew and wage in Set up the line. Both are optional — leave them out and the page still says the minutes and packs, and names what to add.',
+        youGet: 'The lost contribution and the idle labour for slow running and for short stops, said as “if it cannot be made up”, and what running under the plate does to the crew’s labour a pack.',
+      },
+    ],
+    watch: 'A running speed timed once, for one minute, on one product is one reading. Time it again when the product or the setting changes — and never time it straight after a stop.',
+  },
 };

@@ -513,7 +513,13 @@ export interface LossCount {
    *  `rateTimed` when it is their pace as timed, not from the time study. */
   ratePerson?: string;
   rateTimed?: boolean;
+  /** SHORT STOPS COUNTED (FC-056, knowledge/specs/FC-056-speed-loss.md): how many stops too short to time were tapped over a
+   *  watched stretch — typed here, or copied from a reliability study's count (`from` says which; `meanMin` its timed mean). */
+  shortStops?: ShortStopTally;
 }
+
+/** Short stops counted by a tap over a watched period: n of them in `watchedMin` minutes of running. */
+export interface ShortStopTally { n: number; watchedMin: number; from?: string; meanMin?: number }
 
 /** A RUNNING SPEED TIMED on a loss count: the packs counted over a timed
  *  spell while the line runs (docs/CAPACITY.md §5) — what tells slow running
