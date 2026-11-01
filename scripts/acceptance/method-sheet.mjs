@@ -24,6 +24,7 @@ const sheets = await page.evaluate(async () => { const M = await import('/src/li
 /* ---- 1 every worked method asks its own questions ---- */
 for (const m of sheets) {
   if (m.key === 'stage-gate') continue;
+  if (m.key === 'kata') continue;   // the Kata storyboard is the interface; its questions are proved by method-kata.mjs
   await go(`#/project/${ids[m.key]}`, 1800);
   await page.waitForSelector('.pmethod', { timeout: 20000 });
   const got = await page.locator('.pmethod-sec').evaluateAll(els => els.map(e => ({ name: e.getAttribute('aria-label'), qs: [...e.querySelectorAll('.msheet-q')].map(q => q.textContent?.trim()) })));

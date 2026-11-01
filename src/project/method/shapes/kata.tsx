@@ -62,8 +62,8 @@ function Board(p: ShapeProps) {
     return () => { live = false; off(); };
   }, [p.projectId]);
   const looking = useProjectLooking(p.projectId);
-  const [extra, setExtra] = useState(0);
-  const n = Math.max(rowCount(p.answers), 1) + extra;
+  const [shown, setShown] = useState(1);
+  const n = Math.max(rowCount(p.answers), shown);
   const today = todayISO();
   const pl = pulse(p.answers, today);
   const worst = looking?.length ? stalestFirst(looking)[0] : undefined;
@@ -102,7 +102,7 @@ function Board(p: ShapeProps) {
           </li>
         ))}
       </ol>
-      {p.canEdit && <p><button type="button" className="btn btn-ghost btn-sm" onClick={() => setExtra(x => x + 1)}>Add an experiment</button></p>}
+      {p.canEdit && <p><button type="button" className="btn btn-ghost btn-sm" onClick={() => setShown(n + 1)}>Add an experiment</button></p>}
       <Fall tool="analysis" name="Analysis (did it change?)" fc="FC-105" studies={studies} onTool={p.onTool} canEdit={p.canEdit} />
 
       <h3 className="kata-h3">The five coaching questions</h3>
