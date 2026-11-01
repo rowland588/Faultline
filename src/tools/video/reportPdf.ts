@@ -45,6 +45,8 @@ export interface VideoReport {
   events: readonly VideoEvent[];
   f: VideoStudyFigures;
   printed: string;
+  /** One person's rate an hour, the line's (Line capacity's, else the line's wage × on-costs) — for the allowance in money. */
+  rate?: number;
 }
 
 /** The band and the tiles, as the lean page reads them. */
@@ -152,7 +154,7 @@ function blocksOf(r: VideoReport, d: Density): Block[] {
   if (f.takt && v.demand) out.push(text({ text: `Takt: ${v.demand.availableMin} minutes a ${v.demand.per} × 60 ÷ ${v.demand.units} ${v.demand.unit} = ${sec1(f.takt)} a unit.`, size: 8.5, colour: INK2, after: 3 }));
 
   out.push(leanHead('What it says'));
-  for (const x of findings(f)) {
+  for (const x of findings(f, r.rate ? { rate: r.rate } : {})) {
     out.push(text({ text: `${FINDING_WORD[x.kind]} — ${x.text}`, size: 8.5, style: x.kind === 'proposed' ? 'normal' : 'bold', colour: x.kind === 'unknown' ? MUTED : TONE[x.tone], after: 3 }));
   }
 

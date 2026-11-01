@@ -8,8 +8,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 141 |
-| Partly (`partial`) | 19 |
+| Available (`available`) | 142 |
+| Partly (`partial`) | 18 |
 | Planned (`specified`) | 0 |
 | Not built yet (`to-build`) | 57 |
 | Research first (`research`) | 12 |
@@ -20,7 +20,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
 | Lean manufacturing and waste | 19 | 8 | 3 |  | 7 | 1 |  |
-| Industrial engineering and work measurement | 14 | 7 | 3 |  | 3 | 1 |  |
+| Industrial engineering and work measurement | 14 | 8 | 2 |  | 3 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 15 |  |  | 1 | 1 |  |
 | Equipment performance and losses | 10 | 8 |  |  |  |  | 2 |
 | Maintenance, reliability and TPM | 11 | 10 |  |  |  | 1 |  |

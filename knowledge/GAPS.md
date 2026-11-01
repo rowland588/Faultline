@@ -157,6 +157,21 @@ that can open pages should read, in this order: the NASA RCM Guide's Logic
 Tree; the Shingo Model booklet and the LESAT guide's copyright page; the
 MTM Association's licence page; and, if bought, EN 415-11.
 
+## Re-checked 1 November 2026 (builder T5): FC-085 and FC-178 stay `research`
+
+- **FC-085 Line acceptance on EN 415-11.** `docs/CAPACITY.md` §8 and the records `equipment.time-model-losses` and `commissioning.acceptance-tests` name the
+  standard and say the loss count's time model is **not** EN 415-11's; none gives the standard's time states, output model or key-figure formulas, and the
+  text is paid (about 410 USD) and unread. A tool that said "per EN 415-11" with Faultline's own states would be the false claim the record warns of, so
+  nothing was built. What would unblock it: the owner buys and reads EN 415-11:2021 (time states and their definitions, the output model, the efficiency
+  and availability formulas, Annex C, whether "availability" changed meaning from DIN 8743), then the record is brought to full depth and a spec written.
+- **FC-178 Hygienic design review.** `src/tools/hygiene/hygiene.ts` (with its unit tests) and `src/tools/scored/defs/hygienic-design.ts` exist on `main`
+  as a checklist and findings register in plain words that cite principles by topic only — honest, but it is **not yet to the standard**: EHEDG Guideline 8
+  could not be read (ehedg.org answers the build container's proxy with 403, tried again 1 November), so the checklist's points are not traced to its
+  sections; there is no specification and no acceptance script (`hygienic-design.mjs` is named by the builder entry and does not exist). Left as
+  `research`; never offered as EHEDG, EN 1672-2 or EN ISO 14159 conformance. What would unblock it: someone who can open Guideline 8 (a free download)
+  reads it, the points get section numbers, EHEDG's reuse licence is read, then the spec (graded severity and the gate rule are Faultline's, said on
+  screen), the acceptance script, and the entry becomes `partial`/`available`.
+
 ## Research 1 — 25 October 2026: four entries marked "research"
 
 Done with web search only: **every site the research needed — legislation.gov.uk,
