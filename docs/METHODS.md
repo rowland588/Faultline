@@ -165,6 +165,8 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 
 **Built from this table on 1 November (M6, the document shape — `src/tools/doc`, FC-240):** FC-142 Project charter · FC-139 SIPOC · FC-140 Customer needs to CTQs · FC-141 Kano analysis · FC-150 8D report (partial — read from the project's register, fishbone, actions and studies; the is / is-not, hold, FMEA and control plan are typed because those tools are not built). A document-shaped tool still to come is a definition in `src/tools/doc/defs/`, not a screen. Those rows are taken off the list above.
 
+**And on 1 November (t8-2, the documents that teach, same shape):** FC-225 Standard operating procedure with photos (a photo belongs to a step by the number its caption starts with — no new storage) · FC-223 TWI job instruction (partial — the sign-offs are not written into the skills matrix) · FC-224 One-point lesson (the grid of who has been taught, by shift; Line Talk still writes the words at `#/talk`). FC-198 Tiered daily meeting is the same shape (partial — typed from the day's records, not read from them). They stand at PDCA's Act, 8D's D7, the stage gate's Set up and Kaizen's Standardise where those rows already listed them.
+
 **In all (counted at M0, 31 October):** 117 catalogue tools are placed in the eight methods; `src/lib/__tests__/methods.test.ts` holds the placed total true, and the catalogue the status of each.
 
 Tools left out on purpose are not mapped as defaults (FC-050 OEE, FC-216 risk register, FC-217 decision log, FC-218 benefits realised, FC-192 the case for the change, FC-230 builders by assistant); any of the built ones can still be added to a section by hand.

@@ -11,9 +11,9 @@ export const DOC_TESTS = ['src/tools/doc/__tests__/doc.test.ts'];
 export const DOC_ACCEPTANCE = 'doc-shape.mjs';
 
 /** A document's built block: its definition, its own arithmetic and tests, and the shape's code, tests and acceptance script. */
-export const docBuilt = (key: string, own: { code?: string[]; tests?: string[] } = {}): Built => ({
+export const docBuilt = (key: string, own: { code?: string[]; tests?: string[]; acceptance?: string[] } = {}): Built => ({
   where: [`/doc/${key}`],
   code: [`src/tools/doc/defs/${key}.ts`, ...(own.code ?? []), ...DOC_CODE],
   tests: [...DOC_TESTS, ...(own.tests ?? [])],
-  acceptance: [DOC_ACCEPTANCE],
+  acceptance: [DOC_ACCEPTANCE, ...(own.acceptance ?? [])],
 });

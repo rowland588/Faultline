@@ -4,14 +4,14 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **237 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 25 tools a person can open on a page of their own. Built inside them: 111 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 50; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 25 tools a person can open on a page of their own. Built inside them: 114 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 31. Not built yet: 48; needing research: 12; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 154 |
+| Available (`available`) | 156 |
 | Partly (`partial`) | 14 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 50 |
+| Not built yet (`to-build`) | 48 |
 | Research first (`research`) | 12 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -40,7 +40,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Visual and daily management | 15 | 9 | 2 |  | 4 |  |  |
 | Ergonomics, layout and automation | 6 | 1 |  |  | 5 |  |  |
 | Projects and continuous improvement | 11 | 3 | 1 |  | 3 |  | 4 |
-| Skills and training | 4 | 1 | 1 |  | 2 |  |  |
+| Skills and training | 4 | 3 | 1 |  |  |  |  |
 | Energy, water and environment | 4 |  |  |  | 3 | 1 |  |
 
 ## By subdiscipline
@@ -71,11 +71,11 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 80
-- a mode of another tool: 82
+- a tool of its own: 78
+- a mode of another tool: 85
 - a part several tools share: 28
 - a way through several tools: 8
-- a report or board: 27
+- a report or board: 26
 - decided after research: 12
 
 ## Research first
@@ -113,8 +113,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - FC-094 Capability of measured data — between two limits — 15 modes inside it
 - FC-105 Before and after — did it move, for a reason — 11 modes inside it
 - FC-034 Line capacity — the capacity sheet, the V-curve and the bottleneck — 9 modes inside it
+- FC-240 Documents — a page the team agrees: charter, SIPOC, customer needs, Kano, 8D report — 9 modes inside it
 - FC-073 The stage gate — new equipment to handover — 7 modes inside it
-- FC-240 Documents — a page the team agrees: charter, SIPOC, customer needs, Kano, 8D report — 6 modes inside it
 - FC-032 Line balance — each person’s work against takt (Yamazumi) — 5 modes inside it
 - FC-058 Reliability — MTBF and failure rate, several things counted at once — 5 modes inside it
 - FC-086 Individuals and moving range chart (XmR) — 4 modes inside it
