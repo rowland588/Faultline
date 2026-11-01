@@ -5,6 +5,7 @@ import type { Entry } from '../types';
 import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 import { LOG_ACCEPTANCE, LOG_CODE, LOG_TESTS, logBuilt } from '../../tools/checks/built';
 import { skillsBuilt } from '../../tools/skills/built';
+import { hygieneBuilt } from '../../tools/hygiene/built';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -172,7 +173,16 @@ export const OPERATIONS: Entry[] = [
     food: 'New lines in ready-to-eat areas.',
     depends: ['FC-073', 'FC-074'],
     complexity: 'M', value: 'medium', valueWhy: 'Cheapest fixed before handover — guidance to read first.',
-    status: 'research', form: 'research', methods: ['foodsafety.hygienic-design'], scenarios: ['new', 'safety'], words: ['EHEDG', 'hygienic design'],
+    status: 'partial', form: 'tool', kind: 'register', app: { key: 'hygienic-design', label: 'Hygienic design review', says: 'Can this new machine be cleaned? A zone-by-zone checklist and findings register, graded and closed before SAT', icon: 'flag', order: 26.3 },
+    methods: ['foodsafety.hygienic-design'], scenarios: ['new', 'safety'], words: ['EHEDG', 'hygienic design', 'cleanability', 'design review', 'dead leg', 'FAT', 'harbourage'],
+    built: hygieneBuilt,
+    spec: 'knowledge/specs/FC-178-hygienic-design.md',
+    limits: [
+      'A checklist and a findings register — not an EHEDG, EN 1672-2 or EN ISO 14159 assessment, certification or declaration of conformity. The points are in plain words from the principles the record names; EHEDG Guideline 8 (a free download) could not be opened from the build container (the host does not resolve) and the standards are paid, so no section, roughness, radius or gap limit is quoted and each point cites its principle by topic only. Reading Guideline 8 and putting its section numbers on the points is what would take this to available.',
+      'The grades (critical, major, minor) and the gates they close by (shipment, SAT, handover) are Faultline’s own rule, not EHEDG’s — said on the page and the paper.',
+      'The photo that should close a finding is not kept here: the re-check is written beside it, and a closure with nothing written is named as still open. A finding is not made an action on the project by itself.',
+      'No money: the record names the OEM’s redesign now against a site modification later against a hold and a recall after a positive, but no figure is held for them (knowledge/MONEY.md: none).',
+    ],
   },
   {
     id: 'FC-179', name: 'The week’s schedule against capacity, with changeovers', discipline: 'planning', sub: 'schedule',
