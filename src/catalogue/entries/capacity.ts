@@ -203,9 +203,9 @@ export const CAPACITY: Entry[] = [
     food: 'Accumulation tables before case packers.',
     depends: ['FC-034', 'FC-047'],
     complexity: 'S', value: 'medium', valueWhy: 'Shows whether the V protects the critical machine.',
-    status: 'partial', form: 'mode', partOf: 'FC-034', methods: ['capacity.accumulation-buffer', 'capacity.v-curve'], scenarios: ['running', 'new'],
-    built: { where: ['/balances'], code: ['src/tools/linebalance/capacity.ts'], tests: [], acceptance: [] },
-    limits: ['Noted in Line capacity; not driven by an acceptance check.'],
+    status: 'available', form: 'mode', partOf: 'FC-034', methods: ['capacity.accumulation-buffer', 'capacity.v-curve'], scenarios: ['running', 'new'],
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacityBuffer.ts', 'src/tools/linebalance/CapacityBuffers.tsx', 'src/tools/linebalance/capacity.ts'], tests: ['src/tools/linebalance/__tests__/capacityBuffer.test.ts', 'src/tools/linebalance/__tests__/vcurve.test.ts'], acceptance: ['accumulation.mjs'] }, spec: 'knowledge/specs/FC-046-accumulation.md',
+    limits: ['One stopped machine with the others running; two stops close together and many buffers are not simulated (FC-047).', 'In money as the starved minutes at the bottleneck (T); the buffer’s own stock and its carrying cost (H) are not worked.', 'The buffer between lines that merge is not modelled; a buffer is sized from the last four weeks’ timed stops, five or more of a machine.'],
   },
   {
     id: 'FC-047', name: 'Line simulation — stops, buffers and output', discipline: 'capacity', sub: 'queue',

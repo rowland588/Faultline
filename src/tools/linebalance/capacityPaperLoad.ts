@@ -8,11 +8,13 @@
  * the latest bottleneck walk (lib/ie/walk) and the latest work balance
  * (lib/ie/balance) on the standard. Loaded here, never typed twice. */
 import type { jsPDF } from 'jspdf';
-import { allProjects, listAllStudies, listWorkspaces } from '../../db';
+import { allProjects, listAllStudies, listObservations, listWorkspaces } from '../../db';
 import { analyse, labourInputs, shiftsIn } from './capacity';
 import { capacityPaper, type CapacityPaper } from './capacityPaper';
 import { changeoverIn } from '../changeover/changeover';
 import { countedShiftOf } from './capacityThree';
+import { stopLengths } from './capacityBuffer';
+import { PARETO_WINDOW_DAYS } from '../../lib/paretoFromLog';
 import { contributionOf } from '../losses/losses';
 import { walkVerdict } from '../../lib/ie/walk';
 import { balance, balanceSays } from '../linework/balance';
@@ -25,6 +27,10 @@ export const printedOn = (d = new Date()): string => d.toLocaleDateString('en-GB
 /** Each product read for its page, in the order given. */
 export async function capacityPapersFor(list: Standard[], printed = printedOn()): Promise<CapacityPaper[]> {
   const [ws, studies, projects] = await Promise.all([listWorkspaces(), listAllStudies(), allProjects()]);
+  /* the stops timed on each line over the window the capacity page reads (lib/useLineStops), for the buffers' line */
+  const DAY = 86_400_000, to = new Date().setHours(0, 0, 0, 0) + DAY, from = to - PARETO_WINDOW_DAYS * DAY, weeks = PARETO_WINDOW_DAYS / 7;
+  const lineIds = [...new Set(list.map(s => s.workspaceId).filter((x): x is string => !!x))];
+  const stopsBy = new Map(await Promise.all(lineIds.map(async id => [id, await listObservations(id)] as const)));
   return list.map(s => {
     const w = s.workspaceId ? ws.find(x => x.id === s.workspaceId) : undefined;
     const job = s.projectId ? projects.find(p => p.id === s.projectId)?.name : undefined;
@@ -46,6 +52,11 @@ export async function capacityPapersFor(list: Standard[], printed = printedOn())
       ...(w ? { shifts: shiftsIn(w.shifts) } : {}),
       ...(w ? (() => { const counted = countedShiftOf(studies.filter(x => !x.deletedAt && x.tool === 'losses' && x.workspaceId === w.id), s.id); const contribution = contributionOf(w)?.perPack; return { ...(counted ? { counted } : {}), ...(contribution != null ? { contribution } : {}) }; })() : {}),
       ...(cap ? (() => { const co = changeoverIn(cap.changeovers, studies, s.id); return co ? { co } : {}; })() : {}),
+      ...(cap && w ? (() => {
+        const cost = contributionOf({ ...w, ...(cap.pricePerPack != null ? { pricePerPack: cap.pricePerPack } : {}), ...(cap.materialsPerPack != null ? { materialsPerPack: cap.materialsPerPack } : {}) });
+        return { buffer: { lengths: stopLengths(stopsBy.get(w.id) ?? [], cap.stations, from, to), ...(cost ? { contributionPerPack: cost.perPack } : {}),
+          ...(cap.plannedHoursPerWeek && cap.plannedHoursPerWeek > 0 ? { plannedMin: cap.plannedHoursPerWeek * 60 * weeks } : {}) } };
+      })() : {}),
       labour: labourInputs(cap, headcount(s), w),
       ...(w?.marginPerPack ? { margin: w.marginPerPack } : {}),
       ...(walk ? { walk } : {}),
