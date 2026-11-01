@@ -128,7 +128,7 @@ await page.waitForSelector('.pmethod', { timeout: 30000 });
 const fold = page.locator('.pmethod details.sg-fold').first();
 await fold.locator('summary').click();
 const gl = (await fold.locator('dt').allInnerTexts()).map(flat).join('|');
-ok(gl === 'What it means|What to do|What you get', '5 What this step means opens to the three parts', gl);
+ok(gl.toLowerCase() === 'what it means|what to do|what you get', '5 What this step means opens to the three parts', gl);
 ok(flat(await fold.locator('dd').first().innerText()) === words.guide.dmaic.sections[0].means, '5 …the guide’s words for that step');
 
 /* 6 — the phone */

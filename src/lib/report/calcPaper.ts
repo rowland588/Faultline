@@ -17,7 +17,7 @@ import { leanHead } from './lean';
 import type { Block, Frame } from './flow';
 
 /** A table whose cells wrap inside their columns, a row as tall as its longest cell. */
-function table(header: string[], body: string[][], shares: number[]): Block {
+export function table(header: string[], body: string[][], shares: number[]): Block {
   const LH = 9.5;
   const cells = (f: Frame, row: string[], bold: boolean) => row.map((c, i) => wrap(f.doc, c, f.w * shares[i] - 8, 8, bold ? 'bold' : 'normal'));
   const make = (row: string[], bold: boolean): Row => ({

@@ -42,6 +42,7 @@ import { TargetNumber } from '../../ui/TargetNumber';
 import { capacityForCount } from '../../ui/ShiftLosses';
 import { constraintShare, lineConstraint, type ConstraintShare, type LineConstraint } from '../../lib/intelligence';
 import { lossLean, lossPart, raisedFrom } from './lossLean';
+import { SpeedLossPanel } from './SpeedLossPanel';
 import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../../ui/Lean';
 
 const OWNER = canAt('owner');
@@ -164,6 +165,7 @@ function Losses({ s, line, obs, rate, can, me, constraint, counts }: { s: ToolSt
         <LeanPanel title="Where the minutes went" className={lean.trend ? '' : 'ln-span'}><div className="ie-pic lf-pic tool-sig-lf"><Waterfall f={f} said={said} onOpen={setViewing} /></div></LeanPanel>
       </div>
       {f.enough && f.bars.length > 0 && <LeanPanel title="Top causes" className="ln-solo"><div className="lf-tab"><CauseTable f={f} branches={branches} onOpen={setViewing} onC={onC} /></div></LeanPanel>}
+      {f.enough && f.split && <SpeedLossPanel s={s} f={f} editable={editable} />}
       <div className="ln-grid">
         <LeanPanel title="What it means">
           <div className="ie-says">

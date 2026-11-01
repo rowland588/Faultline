@@ -837,10 +837,10 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const methodProjectIds: Record<string, string> = { dmaic: methodic.id };
   for (const [key, name, colour, tool] of [
     ['pdca', 'Line 7 jaw temperature drift', '#0e7490', 'capability'],
-    ['eight-d', 'Customer complaint — seal open on arrival', '#b45309', 'capability'],
+    ['eight-d', 'Seal open on arrival, customer report', '#b45309', 'capability'],
     ['a3', 'Line 7 changeover down to 25 minutes', '#6d28d9', 'capability'],
-    ['kaizen-event', 'Packing hall changeover week', '#15803d', 'changeover'],
-    ['kata', 'Line 7 to 52 packs a minute', '#0c7489', 'capability'],
+    ['kaizen-event', 'Wrapper changeover week', '#15803d', 'changeover'],
+    ['kata', 'Line 7 to 52 a minute', '#0c7489', 'capability'],
     ['toc', 'Line 7 bottleneck — the wrapper', '#c4281c', 'changeover'],
   ] as const) {
     const pr = await createProject(name, colour, 'Rowland', 'r@example.com', 'board', key);

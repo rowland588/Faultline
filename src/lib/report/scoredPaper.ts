@@ -33,10 +33,15 @@ export function scoredPaperBlocks(s: ToolStudy): Block[] {
   const r = x.result;
   if (x.def.matrix && x.table) {
     /* the band, the tiles, "What it says" and the closing line are the study page's own (studiesPdf); this is the matrix between them */
+    const editor = x.def.matrix.editor ?? 'pugh';
     return [
-      leanHead('The matrix — each option against the datum', '+ better · S same · − worse than the datum'),
+      editor === 'skills' ? leanHead('The skills matrix — who can do what', '— not trained · I learning · L with help · U alone to the standard · O can teach it')
+        : editor === 'checklist' ? leanHead(x.def.matrix.section ?? 'The list')
+          : leanHead('The matrix — each option against the datum', '+ better · S same · − worse than the datum'),
       matrixTable(x.table),
+      ...(r.money ?? []).map(m => text({ text: m, size: 9, style: 'bold' })),
       ...(r.also ? [leanHead(r.also.title), ...r.also.lines.map(l => text({ text: `· ${l}`, size: 9 }))] : []),
+      ...(r.lists ?? []).flatMap(l => [leanHead(l.title), ...l.lines.map(t => text({ text: `· ${t}`, size: 9 }))]),
       leanHead('What this does not say'),
       ...[...r.caveats, ...x.def.limits].map(c => text({ text: `· ${c}`, size: 9 })),
     ];

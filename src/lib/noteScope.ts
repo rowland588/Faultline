@@ -40,6 +40,7 @@ export type NoteScope =
    *  holds it. `day:2026-10-21`. */
   | { kind: 'day'; date: string };
 
+export { isMethodAnswer } from './methodSheet';
 const GATE_PREFIX = 'gate:';
 const ASSET_PREFIX = 'asset:';
 const DAY_PREFIX = 'day:';

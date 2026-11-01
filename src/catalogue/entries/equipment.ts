@@ -1,5 +1,6 @@
 /* THE CATALOGUE — maintenance and reliability, changeovers, commissioning (src/catalogue/types.ts). */
 import type { Entry } from '../types';
+import { readinessBuilt } from '../../tools/readiness/built';
 import { logBuilt } from '../../tools/checks/built';
 import { scoredBuilt } from '../../tools/scored/built';
 import { boardBuilt } from '../../tools/board/built';
@@ -371,9 +372,16 @@ export const EQUIPMENT: Entry[] = [
     food: 'HACCP review, cleaning validation and training for a new line.',
     depends: ['FC-080', 'FC-222', 'FC-168'],
     complexity: 'S', value: 'medium', valueWhy: 'Prevents a handover nobody can run.',
-    status: 'partial', form: 'mode', partOf: 'FC-073', methods: ['commissioning.operational-readiness'], scenarios: ['new'],
-    built: { where: [], code: ['src/lib/handoverReport.ts'], tests: ['src/lib/__tests__/handover.test.ts'], acceptance: [] },
-    limits: ['The handover list can hold readiness items; no readiness list is offered.'],
+    status: 'available', form: 'tool', kind: 'register', app: { key: 'readiness', label: 'Operational readiness', says: 'Is production ready to take this line — item by item, with an owner, a day and the evidence', icon: 'list', order: 26.2 },
+    methods: ['commissioning.operational-readiness'], scenarios: ['new'], words: ['readiness', 'ORR', 'ready to run', 'HACCP review', 'training before handover', 'handover checklist'],
+    built: readinessBuilt,
+    spec: 'knowledge/specs/FC-082-operational-readiness.md',
+    limits: [
+      'It counts what the team says is ready and validates nothing: the HACCP amendment and the cleaning validation have their own evidence, and the list only says where it is. The starter list is for a new line and a starting point, never the standard.',
+      'The people item is a tick here; who is signed off on which station is the skills matrix (FC-222), and the two are not joined. The HACCP plan (FC-168) is not built.',
+      'An open item is not made an action on the project by itself, and the project’s front page and the commissioning report do not yet carry the count (their parity with live is kept).',
+      'A day of the line not making is typed, or the line’s own; the cost of a delayed start-up is said only while an item that would stop day one is open.',
+    ],
   },
   {
     id: 'FC-083', name: 'Held at a rate for a time — run at rate, minute by minute', discipline: 'commissioning', sub: 'acceptance',
