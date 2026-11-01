@@ -80,9 +80,15 @@ for (const m of ORDER.filter(x => x !== 'Stage gate')) {
 /* 3 — honesty, on DMAIC */
 await go(made['DMAIC']);
 await page.waitForSelector('.pmethod');
-const rows = await page.locator('.pmethod .lt-li').evaluateAll(els => els.map(e => ({ what: e.querySelector('.lt-what')?.textContent ?? '', where: e.querySelector('.lt-where')?.textContent ?? '', btn: !!e.querySelector('button.btn') })));
+/* DMAIC's tools may all be built (1 November: the documents, registers and analyses) — so the honesty is read across every method made here, DMAIC's rows first */
+const readRows = () => page.locator('.pmethod .lt-li').evaluateAll(els => els.map(e => ({ what: e.querySelector('.lt-what')?.textContent ?? '', where: e.querySelector('.lt-where')?.textContent ?? '', btn: !!e.querySelector('button.btn') })));
+let rows = await readRows();
+for (const m of Object.keys(made)) {
+  if (rows.some(r => /Not built yet|Specified|Research/i.test(r.where))) break;
+  await go(made[m]); await page.waitForSelector('.pmethod'); rows = rows.concat(await readRows());
+}
 const notYet = rows.filter(r => /Not built yet|Specified|Research/i.test(r.where));
-ok(rows.length > 20 && notYet.length > 0 && notYet.every(r => !r.btn), `3 a tool not built says so and has no New (${notYet.length} of ${rows.length})`);
+ok(rows.length > 20 && notYet.every(r => !r.btn), `3 a tool not built says so and has no New (${notYet.length} of ${rows.length}; with every default tool built none is left to show — methodTools.test.ts holds the not-built word)`);
 ok(rows.filter(r => /^A mode of /.test(r.where)).every(r => r.btn), '3 a mode names the tool it lives in and has New');
 ok(rows.some(r => r.where === 'Built' && r.btn), '3 a built tool is a row with New');
 

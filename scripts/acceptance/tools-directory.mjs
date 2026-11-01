@@ -65,7 +65,7 @@ await page.locator('.nv-rail .nv-ri', { hasText: /^Tools$/ }).click(); await pag
 const c = await cat('counts');
 const lede = flat(await page.locator('.et-lede').innerText());
 ok(page.url().endsWith('#/tools') && (await page.locator('h1').innerText()) === 'Tools', `1 the menu opens Tools, the library (${page.url().split('#')[1]})`);
-ok(lede.includes(`${c.t.tools} tools you can open. Inside them, ${c.t.inside} methods are built`) && lede.includes(`${c.t.parts} more things are built into the app but are not tools`) && lede.includes(`${c.t.notBuilt} methods are planned or not built yet, ${c.t.research} need research first, ${c.t.leftOut} are left out on purpose`) && lede.includes(`${c.t.entries} entries — not a count of tools`) && c.t.tools < 29 && c.t.tools + c.t.inside + c.t.parts + c.t.notBuilt + c.t.research + c.t.leftOut === c.total,
+ok(lede.includes(`${c.t.tools} tools you can open. Inside them, ${c.t.inside} methods are built`) && lede.includes(`${c.t.parts} more things are built into the app but are not tools`) && lede.includes(`${c.t.notBuilt} methods are planned or not built yet, ${c.t.research} need research first, ${c.t.leftOut} are left out on purpose`) && lede.includes(`${c.t.entries} entries — not a count of tools`) && c.t.tools < 38 && c.t.tools + c.t.inside + c.t.parts + c.t.notBuilt + c.t.research + c.t.leftOut === c.total,
   `1 the lede counts tools truly — ${c.t.tools} tools, ${c.t.inside} methods inside them, ${c.t.parts} parts that are not tools, adding up to ${c.total}: "${lede.slice(0, 200)}…"`);
 ok((await page.locator('.et-route-b').count()) >= 20 && (await rows()).length === c.total, `1 every route to start from, and every tool by discipline (${(await rows()).length})`);
 

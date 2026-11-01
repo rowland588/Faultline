@@ -12,8 +12,8 @@
 -- studies.facts -> docPhotos contains an entry whose blobKey is the file. It runs with the person's own rights (not security definer), so
 -- a document they cannot see names nothing for them.
 --
--- NOT YET APPLIED — written on the m6-doc branch (1 November 2026); the integrator applies it through apply_migration under the same
--- name and reads it back (CLAUDE.md, "Database changes ship from here"). If another branch also widens this function, merge the
+-- APPLIED to the live database and read back by the owner (1 November 2026). Written on the m6-doc branch; applied through apply_migration under the same
+-- name. (Original note: if another branch also widens this function, merge the
 -- clauses into ONE definition before applying: this function replaces the whole of it.
 -- ============================================================================
 

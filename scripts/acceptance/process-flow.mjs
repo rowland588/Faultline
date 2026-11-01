@@ -159,7 +159,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
 /* ---- 7 · from a Kaizen event's Observe section */
 const kz = sd.methodProjectIds['kaizen-event'];
 await go(`#/project/${kz}`);
-const row = page.locator('li, .rec-row').filter({ hasText: 'Process flow chart' }).first();
+const row = page.locator('.pmethod .lt-li').filter({ hasText: 'Process flow chart' }).first();
 const rt = flat(await row.innerText());
 ok(/A mode of Calculators/.test(rt) && !/Not built yet/.test(rt), `7 Observe lists the Process flow chart as built, a mode of Calculators — "${rt.slice(0, 90)}"`);
 await page.getByRole('button', { name: /^New — Process flow chart/ }).click(); await page.waitForTimeout(1500);
@@ -169,7 +169,7 @@ await page.getByLabel('What is it of?').fill('Packing hall tray'); await page.ge
 const mine = await page.evaluate(async pid => (await (await import('/src/db.ts')).listStudies(pid)).filter(s => s.tool === 'calc' && s.agreed?.calc?.key === 'process-flow').map(s => s.name), kz);
 ok(mine.includes('Packing hall tray'), '7 the chart is the project’s own', JSON.stringify(mine));
 await go(`#/project/${kz}`);
-const after = flat(await page.locator('li, .rec-row').filter({ hasText: 'Process flow chart' }).first().innerText());
+const after = flat(await page.locator('.pmethod .lt-li').filter({ hasText: 'Process flow chart' }).first().innerText());
 ok(/1 use in this project/.test(after), `7 and its row counts it: "${after.slice(0, 120)}"`);
 
 ok(!errors.length, `no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
