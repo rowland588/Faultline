@@ -6,6 +6,14 @@ import type { ComponentType } from 'react';
 import type { MethodKey } from '../../../lib/methods';
 import type { TestItem } from '../../../lib/testing';
 
+import { KATA_SHAPE } from './kata';
+import { DMAIC_SHAPE } from './dmaic';
+import { A3Board } from './A3Board';
+import { PdcaBoard } from './pdca';
+import { TOC_SHAPE } from './toc';
+import { KAIZEN_EVENT_SHAPE } from './kaizen-event';
+import { EightDShape } from './eight-d';
+
 export interface ShapeProps {
   projectId: string;
   method: MethodKey;
@@ -14,7 +22,7 @@ export interface ShapeProps {
   items: Map<string, TestItem>;
   canEdit: boolean;
   /** Write one answer (kept when the person leaves the box; Undo offered). */
-  save: (field: string, what: string) => void;
+  save: (field: string, what: string, label?: string) => void;
   /** Open a catalogue tool in this project (a tool falling in where it is wanted — never required). */
   onTool: (fcId: string) => void;
 }
@@ -23,20 +31,6 @@ export interface Shape {
   /** `none`: the board is the whole interface and the default boxes under each section are not drawn (the tool rows stay). */
   sectionBoxes?: 'default' | 'none';
 }
-import { KATA_SHAPE } from './kata';
-
-import { DMAIC_SHAPE } from './dmaic';
-
-import { A3Board } from './A3Board';
-
-import { PdcaBoard } from './pdca';
-  save: (field: string, what: string, label?: string) => void;
-
-import { TOC_SHAPE } from './toc';
-
-import { KAIZEN_EVENT_SHAPE } from './kaizen-event';
-
-import { EightDShape } from './eight-d';
 
 export const SHAPES: Partial<Record<MethodKey, Shape>> = {
   kata: KATA_SHAPE,

@@ -38,8 +38,6 @@ const makeA3 = async (projectId: string): Promise<void> => {
   await saveA3Pdf({ project: project?.name ?? 'Project', printed: todayISO(), sheet: a3Sheet(answers, { ...(cur ? { current: cur } : {}), ...(fol ? { followup: fol } : {}) }) });
 };
 
-import { listTestItems } from '../../db';
-import { getProject } from '../../db/projects';
 /** A method's answers, by field id (the same read the board makes). */
 const answersOf = async (projectId: string, method: MethodKey): Promise<Record<string, string>> => {
   const out: Record<string, string> = {};
