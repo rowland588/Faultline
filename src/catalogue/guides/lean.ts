@@ -70,7 +70,7 @@ export const LEAN_GUIDES: Record<string, Guide> = {
       {
         step: 'Place the people and the kit',
         means: 'Each person is an icon standing where they work on the picture, with the kit and checks that go with their place.',
-        doThis: 'Pick Person in the bar and tap the board where someone stands. Tap an icon already placed to give it a Role (Op 2, Line lead), say What they do on this product, and pick their colour; drag it to move it. Icons offers the kit and the checks.',
+        doThis: 'Pick Person in the bar and tap the board where someone stands. Tap an icon already placed to give it a Role (Op 2, Line lead), say What they do on this product, and pick their colour; drag it to move it. Icons offers materials and kit, machines, and quality and safety marks.',
         youGet: 'People on the board in their own colours, counted in the box at the right: “3 people on this product”.',
       },
       {
