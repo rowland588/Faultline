@@ -66,3 +66,7 @@ Writing "what each step means" from the real page (docs/METHODS.md §15) turned 
 - The A3 record has seven blocks (plan and follow-up separate); `methods.ts` merges them as "Plan and follow-up" — apparently deliberate, not stated.
 - The 8D section names carry a double space ("D2  Describe the problem"); `guideOfSection` matches that exact string, so it breaks if either side is retyped.
 - FC-142 (the charter) has no problem or goal statement yet — until the document shape's charter lands, the DMAIC Define and Kaizen Prepare guides say to put the charter in a note.
+
+## Control room report on a very busy board (1 November)
+
+Found by `report-stress` (cr-many) after the seed gained a project of every method: with about 19 jobs the control room report is two pages — its last step keeps every job's name and verdict and still spills. The stress case now holds the board to its old total (12 jobs), so the gate tests what it always did; a real factory past about 12–18 projects will see a two-page paper. A further step (a job a half-line, or the tiles above a two-column list) is its own piece of work and waits for Rowland's word.
