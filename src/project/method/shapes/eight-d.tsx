@@ -72,7 +72,7 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
           <span className="e8-h">Is</span>
           <span className="e8-h">Is not</span>
           {ISNOT_ROWS.map(r => (
-            <div key={r.k} style={{ display: 'contents' }}>
+            <div key={r.k} className="e8-pair">
               <b>{r.q}</b>
               <label><span className="sub">{r.is}</span><Box id={isId(r.k)} label={`Is — ${r.q}`} value={answers[isId(r.k)] ?? ''} canEdit={canEdit} save={save} /></label>
               <label><span className="sub">{r.isnot}</span><Box id={isnotId(r.k)} label={`Is not — ${r.q}`} value={answers[isnotId(r.k)] ?? ''} canEdit={canEdit} save={save} /></label>

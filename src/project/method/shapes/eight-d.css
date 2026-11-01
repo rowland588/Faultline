@@ -20,3 +20,4 @@
   .e8-isnot, .e8-act { grid-template-columns: minmax(0, 1fr); }
   .e8-isnot .e8-h { display: none; }
 }
+.e8-pair { display: contents; }
