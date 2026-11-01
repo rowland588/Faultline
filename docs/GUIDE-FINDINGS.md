@@ -10,6 +10,10 @@ Writing "what each step means" from the real page (docs/METHODS.md §15) turned 
 - FC-080: a machine reads "Handed over" when its list is ticked even if it was never tested or a fix is open.
 - FC-059: "Stopped now — timing it" is only an aria-label; the visible text is "Stopped — jam".
 - FC-081: "Make it a fix ›" is on the evidence sheet, not the Problems page.
+- FC-067: the closing line says "Half or more of maintenance is still reactive" whenever the planned share is under 80%; the catalogue promises MTTR and a paper by machine and month — the page has no MTTR tile and no paper.
+- FC-071: every starter check is hard-coded "Line 7" whatever line the log is on.
+- FC-081: the walk's own sheets say "Add evidence" and "New evidence", where the rest of the app says "problem".
+- FC-058's guide names a call for help only in its set-up step; the calls panel itself (response and clearing, reasons ranked by minutes waited, by shift) is explained by FC-015's own guide (lean.ts).
 - FC-069 treats every changeover as the same length as the one timed (the guide says so).
 
 ## Operations, money, logs
