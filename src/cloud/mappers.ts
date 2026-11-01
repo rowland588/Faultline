@@ -13,6 +13,7 @@ import { factsOf, listById, type StudyUse, type ToolStudy } from '../lib/study';
 import { footageKeys, forTheCloud } from '../tools/video/footage';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 import { talkMediaKeys } from '../tools/talk/talk';
+import { docMediaKeys } from '../tools/doc/doc';
 
 type Row = Record<string, unknown>;
 
@@ -676,7 +677,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     /* A video study's footage and its poster, while it has them
        (supabase/VIDEO_MEDIA.sql: the cloud takes a file a study names). */
     /* a video study's footage, and a Line Talk's recordings and photos (lib/talk) */
-    mediaKeys: l => { const s = l as ToolStudy; return [...footageKeys(s.facts ?? {}), ...talkMediaKeys(s.facts ?? {})].flatMap(f => k(f.key, f.mime, s.ownerId)); },
+    mediaKeys: l => { const s = l as ToolStudy; return [...footageKeys(s.facts ?? {}), ...talkMediaKeys(s.facts ?? {}), ...docMediaKeys(s.facts ?? {})].flatMap(f => k(f.key, f.mime, s.ownerId)); },
     nested: ['facts'],
     toRow: (l, fallbackOwner) => {
       const s = l as ToolStudy;

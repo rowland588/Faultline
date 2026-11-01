@@ -26,6 +26,7 @@ import type { VideoEvent, VideoSource } from '../tools/video/record';
 import type { FootageGone } from '../tools/video/footage';
 import type { ID } from '../types';
 import type { TalkTurn } from '../tools/talk/talk';
+import type { DocPhoto, DocSigned, DocValues } from '../tools/doc/types';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
@@ -639,6 +640,15 @@ export interface StudyAgreed {
   scored?: AgreedScored;
   /** A BOARD (FC-067): which board, and typed inputs it owns (reactive hours until FC-059 feeds them). */
   board?: AgreedBoard;
+  /** A DOCUMENT (FC-240, src/tools/doc): which definition it is, and — once the owner has signed it — who agreed it and when. What was
+   *  TYPED is not here but in `facts.docValues`: on a project the database keeps `agreed` for anyone but the owner, so a team's edits
+   *  to the words of a charter must live where the team may write (supabase/STUDIES.sql faultline_keep_study_agreement). */
+  doc?: AgreedDoc;
+}
+
+export interface AgreedDoc {
+  def: string;
+  signed?: DocSigned;
 }
 
 /** A board’s own typed fields — measures are read from sibling records on the line. */
@@ -1014,6 +1024,11 @@ export interface StudyFacts {
   results?: LogResult[];
   /** A CILT log's abnormality tags (src/tools/checks, FC-062): each a problem on the register, raised from a check. */
   tags?: LogTag[];
+  /** A DOCUMENT's boxes as typed (src/tools/doc): by box id — text, a number, or a list's rows. Replaced whole by the newer of two devices. */
+  docValues?: DocValues;
+  /** A DOCUMENT's photos (src/tools/doc): an id-keyed list, so two phones adding photos to one document both keep theirs; the files are
+   *  in the media store and go to the cloud with the document (cloud/mappers studies mediaKeys, supabase/DOC_PHOTOS.sql). */
+  docPhotos?: DocPhoto[];
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -1117,5 +1132,6 @@ export function factsOf(v: unknown): StudyFacts {
     ...(o.vevents !== undefined ? { vevents: listById<VideoEvent>(o.vevents) } : {}),
     ...(o.results !== undefined ? { results: listById<LogResult>(o.results) } : {}),
     ...(o.tags !== undefined ? { tags: listById<LogTag>(o.tags) } : {}),
-    ...(o.turns !== undefined ? { turns: listById<TalkTurn>(o.turns) } : {}) };
+    ...(o.turns !== undefined ? { turns: listById<TalkTurn>(o.turns) } : {}),
+    ...(o.docPhotos !== undefined ? { docPhotos: listById<DocPhoto>(o.docPhotos) } : {}) };
 }

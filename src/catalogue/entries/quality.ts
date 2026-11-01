@@ -4,6 +4,7 @@ import { CALC_CODE, CALC_TESTS } from './calcBuilt';
 import { logBuilt } from '../../tools/checks/built';
 import { pughBuilt } from '../../tools/pugh/built';
 import { scoredBuilt } from '../../tools/scored/built';
+import { DOC_CODE, DOC_TESTS, docBuilt } from './docBuilt';
 
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W1 (24 October): the capability study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
@@ -214,6 +215,24 @@ export const QUALITY: Entry[] = [
     status: 'partial', form: 'workflow', methods: ['sixsigma.dmaic'], scenarios: ['project'], words: ['DMAIC', 'Six Sigma', 'Lean Six Sigma'],
     built: { where: [], code: ['src/lib/sixm.ts'], tests: ['src/lib/__tests__/sixm.test.ts'], acceptance: ['sixm-evidence.mjs'] },
     limits: ['The 6M runs problem → causes → countermeasures → proof → holding, without DMAIC’s phase gates; a Lean Six Sigma charter was in the method engine deleted on 20 October (docs/DIRECTION.md).'],
+  },
+  {
+    id: 'FC-240', name: 'Documents — a page the team agrees: charter, SIPOC, customer needs, Kano, 8D report', discipline: 'projects', sub: 'manage',
+    problem: 'The pages a method needs — a charter, a scope, what the customer needs, a corrective-action report — live in Word and email: nobody can see what is missing, who agreed it, or what it is worth.',
+    questions: ['Is this page filled in, and what is still missing?', 'Who agreed it, and when?', 'What does it say, in a sentence and in money?'],
+    method: 'A saved set of named boxes for one situation (text, long text, a person, a date, a number, a list of rows, photos); a definition’s own reading turns them into a sentence, tiles, tables, the working, the money and what it does not say, worked out on every render; the boxes needed before it can be agreed are named; the owner agrees it by name and date; it prints as the page it is.',
+    inputs: 'The document’s own boxes, each with what to put in and where to find it; the project’s and the line’s records where a definition reads them; photos.',
+    outputs: 'The document with its status (draft, ready to agree, agreed), the reading beside it, a paper, and a row in the line report.',
+    food: 'A give-away charter for Line 3; a SIPOC for a yield project; the retailer’s needs as limits; an 8D for a complaint.',
+    depends: ['FC-142', 'FC-139', 'FC-140', 'FC-141', 'FC-150'],
+    complexity: 'L', value: 'high', valueWhy: 'The methods’ pages share one proved record, page and paper; each new one is a definition, not a screen.',
+    status: 'partial', form: 'tool', kind: 'study',
+    methods: ['sixsigma.charter', 'sixsigma.sipoc', 'sixsigma.voc-ctq', 'rca.eight-d'],
+    scenarios: ['project', 'quality'], words: ['document', 'charter', 'form', 'report', 'sign off', 'agree'],
+    app: { key: 'doc', label: 'Documents', says: 'A page the team agrees — charter, SIPOC, customer needs, Kano, 8D report — filled in, agreed by name and date, and printed', onLine: 'documents saved for this line, each with where it stands', reads: 'doc', icon: 'document', order: 4.72 },
+    built: { where: ['/doc'], code: DOC_CODE, tests: DOC_TESTS, acceptance: ['doc-shape.mjs'] },
+    spec: 'knowledge/specs/FC-240-documents.md',
+    limits: ['It lists only the documents built so far; each is proved on its own (its entry, its definition, its independent cases) and the rest of the methods’ pages are added the same way.'],
   },
   {
     id: 'FC-139', name: 'SIPOC — the scope on one page', discipline: 'sixsigma', sub: 'define',
