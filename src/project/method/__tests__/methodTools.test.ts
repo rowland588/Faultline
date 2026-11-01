@@ -27,6 +27,17 @@ describe('how a default tool stands', () => {
     if (mode.how === 'inside') expect(toolStateWord(mode)).toMatch(/^A mode of /);
   });
 
+  it('critical path (FC-215) is a mode of the Calculators that opens at its own page, in the stage gate’s Install section', () => {
+    const h = howTool('FC-215');
+    expect(h.how).toBe('inside');
+    expect(toolStateWord(h)).toBe('A mode of Calculators');
+    expect(openable(h)?.key).toBe('calc');
+    expect(openable(h)?.to).toBe('/calc/critical-path');
+    expect(METHODS.find(m => m.key === 'stage-gate')?.sections.find(s => s.name === 'Install')?.tools).toContain('FC-215');
+    /* a mode with no page of its own deeper than the tool opens the tool, as before */
+    expect(openable(howTool('FC-105'))?.to).toBe(openable(howTool('FC-105'))?.to);
+  });
+
   it('a tool not built yet has nothing to open and says so in the catalogue’s word', () => {
     const h = howTool('FC-043'); // drum–buffer–rope
     expect(h.how).toBe('notyet');

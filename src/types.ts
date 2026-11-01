@@ -327,6 +327,11 @@ export interface Project {
     /** WHAT A USUAL TEST MUST SHOW — written once, given to every machine's
      *  test of that name (lib/install usualAgreed). Keyed `commission:test`. */
     usualAgreed?: Record<string, { passesIf?: string; runAgreed?: { rate?: number; minutes?: number; rejectsMax?: number } }>;
+    /** WHAT A STEP WAITS FOR (FC-215, knowledge/specs/FC-215-critical-path.md, Part 2) — by step id (or `a:<machine id>` for a
+     *  machine arriving), the ids it cannot start before they have finished. A key present is the owner's word (an empty list:
+     *  it starts at the beginning); absent, the page proposes from the dates. Kept here so it is agreed as the lists are, with no
+     *  new column; an older device reads past it. */
+    waitsFor?: Record<string, string[]>;
   };
 
   /** WHAT THIS BUSINESS MEASURES, and what it calls its periods.
