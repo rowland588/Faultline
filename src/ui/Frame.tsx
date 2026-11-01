@@ -18,6 +18,7 @@
  *
  * Every URL is unchanged. The frame reads the route; it never owns one.
  */
+import { isMethodAnswer } from '../lib/methodSheet';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, useHash } from '../state/useRoute';
@@ -215,7 +216,7 @@ function useOpenNotes(projectId: string): number {
   useEffect(() => {
     let live = true;
     const load = () => void listTestItems(projectId).then(rows => {
-      if (live) setN(rows.filter(i => i.kind === 'note' && !i.deletedAt && i.doneAt == null).length);
+      if (live) setN(rows.filter(i => i.kind === 'note' && !isMethodAnswer(i.testId) && !i.deletedAt && i.doneAt == null).length);
     });
     load();
     const off = onDataChange(load);

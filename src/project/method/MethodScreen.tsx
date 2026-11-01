@@ -22,6 +22,9 @@ import type { ToolStudy } from '../../lib/study';
 import type { Standard } from '../../tools/linestandard/standard';
 import { PageHeader, RecordRow, RecordRows } from '../../ui/parts';
 import { GuideFold, StepMeans } from '../../ui/StepGuide';
+import { MethodSheet, useAnswers } from './MethodSheet';
+import { sectionState } from '../../lib/methodSheet';
+import './methodSheet.css';
 import { guideOfSection } from '../../lib/methodGuide';
 import { usesOf } from '../../screens/ProjectToolsScreen';
 import { howTool, openable, toolStateWord } from './methodTools';
@@ -55,6 +58,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   /* FC-199, how fresh the looking is: the project's lines, read for the Gemba walk row (tools/gemba) */
   const looking = useProjectLooking(projectId);
   const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
+  const { answers, items } = useAnswers(projectId, method?.key ?? 'pdca');
   if (!project || !method) return <p className="sub wrap">That project is not on this device.</p>;
 
   const usedIn = (s: MethodSection) => {
@@ -80,10 +84,12 @@ export function MethodScreen({ projectId }: { projectId: string }) {
           <section key={s.name} className="part-sec pmethod-sec" aria-label={s.name}>
             <div className="pace-sec-head">
               <h2 className="pace-sec-title">{i + 1}. {s.name}</h2>
-              <p className="pace-sec-sub">{s.what}{lit ? ` · ${plural(lit, 'tool')} used here` : ''}</p>
+              <p className="pace-sec-sub">{s.what}{(() => { const st = sectionState(method.key, s.name, answers); return st.fields ? ` · ${st.word}: ${st.written} of ${st.fields} written` : ''; })()}{lit ? ` · ${plural(lit, 'tool')} used here` : ''}</p>
               {s.note && <p className="chip-hint">{s.note}</p>}
               {(() => { const g = guideOfSection(method.key, s.name); return g ? <GuideFold summary="What this step means"><StepMeans means={g.means} doThis={g.doThis} youGet={g.youGet} /></GuideFold> : null; })()}
             </div>
+            <MethodSheet projectId={projectId} method={method.key} section={s.name} answers={answers} items={items} canEdit={can.edit}
+              onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} />
             <RecordRows label={`Tools for ${s.name}`}>
               {s.tools.map(id => {
                 const h = howTool(id);

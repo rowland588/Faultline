@@ -224,3 +224,12 @@ Rowland, 1 November, after M3 and the first eight tools: *"Complete the still op
 **What was found while scoping (counted, not felt):** 117 tools are placed in the eight methods; 81 are built, 14 part-built, 19 to build, 3 research-first. A tool used by several methods is built once. The three research-first tools are researched before they are specified, and are not promoted without evidence.
 
 **How the work is kept (1 November):** a container restart wiped every local branch that had not been pushed — the guide writers' and tool builders' work with it. So work is committed after every few tools and the integration branch is pushed after every step; see CLAUDE.md, *Things that will bite*.
+
+
+## 16. The method itself, not only its tools — 1 November
+
+Rowland, 1 November: *"I asked you to build the method and insert the tools where required — this was the first thing I said do."* Until this section a method project opened on its sections with tools listed under each: a map of tools, with the method's own questions nowhere. A method is the questions it asks, in order; the tools fall in where one answers a question and are never forced.
+
+**Built (slice A):** `src/lib/methodSheet.ts` — the questions of seven methods (PDCA, DMAIC, 8D, A3, Kaizen event, Improvement Kata, Theory of Constraints; the stage gate keeps its own screens), by the method's own section names, each a field with its hint and the tools that answer it; `project/method/MethodSheet` draws a section's fields and keeps an answer as a project note scoped `method:<method>:<field>` (no migration; the notes screens, the rail's open-notes count and the job inputs leave it out via `isMethodAnswer`). `scripts/acceptance/method-sheet.mjs` proves it.
+
+**Not yet (next slices):** each method's *paper* made from its own answers — the A3 on one page, the 8D report D0–D8, the DMAIC charter, the Kata storyboard — which are the "document" tools (FC-142 charter, FC-150 8D report, FC-151 A3) and are built from this sheet, not beside it; a method's own *page shape* beyond a list of boxes (the A3's one-sheet layout, the Kata's storyboard, the PDCA cycle drawn as a loop); the field wording read by Rowland and changed.
