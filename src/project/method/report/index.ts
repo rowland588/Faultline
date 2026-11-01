@@ -9,8 +9,11 @@ import type { MethodKey } from '../../../lib/methods';
 import type { MethodReportFn } from '../../../lib/methodReportModel';
 import { pdcaReport } from './pdca';
 
+import { dmaicReport } from './dmaic';
+
 export const METHOD_REPORT: Partial<Record<MethodKey, MethodReportFn>> = {
   pdca: pdcaReport,
+  dmaic: dmaicReport,
 };
 
 export type { MethodReportCtx, MethodReportFn, ReportItem, ReportSection } from '../../../lib/methodReportModel';
