@@ -2,7 +2,7 @@
  * scripts/knowledge/cases-kaizen.py section P (a second implementation: Welch's t with the incomplete-beta t distribution, checked
  * against the t table; Kendall's S, Sen's slope and the runs worked out by hand), never the code's own output. */
 import { describe, expect, it } from 'vitest';
-import { numberProof, numberTrend, numbersSays, proofSentence, TREND_FROM } from '../measureProof';
+import { movingAverage, numberProof, numberTrend, numbersSays, proofSentence, TREND_FROM } from '../measureProof';
 import type { Measure, Reading } from '../measures';
 
 const BEFORE = [42, 41, 35, 47, 44], AFTER = [46, 49, 52, 53, 50];
@@ -68,5 +68,17 @@ describe('what a project’s number holds, in a line (the method page’s row)',
     const gone = { ...rd('L1', 9, 1), deletedAt: 5 };
     expect(numbersSays([m({ sort: 1 }), m({ id: 'm2', name: 'Waste', unit: '%', direction: 'down', sort: 0 })], [...eight, ...other, gone])).toBe('Waste: 1 reading, latest 99 %; a trend needs 8 readings of one line.');
     expect(numbersSays([m()], [...eight, ...other, gone])).toBe('Rate: 10 readings on 2 lines, latest 52 ppm; rising about 1.6 ppm a week — the right way.');
+  });
+});
+
+describe('the moving average on the run chart (FC-117) — the last three readings, worked by hand', () => {
+  it('42 41 35 47 44 46 49 52 → none, none, 39.33, 41, 42, 45.67, 46.33, 49', () => {
+    const ma = movingAverage([42, 41, 35, 47, 44, 46, 49, 52]);
+    expect(ma.slice(0, 2)).toEqual([null, null]);
+    [118 / 3, 41, 42, 137 / 3, 139 / 3, 49].forEach((v, i) => expect(ma[i + 2]).toBeCloseTo(v, 9));
+  });
+  it('a window longer than the series gives none, and a flat series averages to itself', () => {
+    expect(movingAverage([5, 6], 3)).toEqual([null, null]);
+    expect(movingAverage([4, 4, 4, 4])[3]).toBe(4);
   });
 });

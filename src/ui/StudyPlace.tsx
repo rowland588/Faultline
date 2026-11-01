@@ -36,6 +36,7 @@ import type { Can } from '../lib/access';
 import { StudyProves } from './ProveProgram';
 import { BelongsTo } from './parts';
 import { CopiedFrom } from './ShareReadings';
+import { isRegisterStudy } from '../tools/registers/kinds';
 
 
 /** THE STUDY ON PAPER (lib/studiesPdf) — on its own, on a line or on a job: what it is, where it
@@ -54,7 +55,7 @@ export function useStudyPaper(s: ToolStudy): () => Promise<void> {
       const [standards, workspaces, observations] = await Promise.all([listAllStandards(), listWorkspaces(), s.workspaceId ? listObservations(s.workspaceId) : Promise.resolve([])]);
       /* a loss count prints as the lean page: its line's other counts and what was raised from it */
       /* and SMED (slice 6): what was raised from its elements, its plan and its money */
-      const lean = s.tool === 'losses' || s.tool === 'changeover' || s.tool === 'capability' || s.tool === 'sampling' || s.tool === 'map' || s.tool === 'reliability' || s.tool === 'chart' || s.tool === 'analysis' || s.tool === 'calc' || s.tool === 'log' || s.tool === 'board' || s.tool === 'scored';
+      const lean = s.tool === 'losses' || s.tool === 'changeover' || s.tool === 'capability' || s.tool === 'sampling' || s.tool === 'map' || s.tool === 'reliability' || s.tool === 'chart' || s.tool === 'analysis' || s.tool === 'calc' || s.tool === 'log' || s.tool === 'board' || s.tool === 'scored' || isRegisterStudy(s);
       const [history, actions, fixes] = await Promise.all([
         (s.tool === 'losses' || s.tool === 'board') && s.workspaceId ? listStudiesForLine(s.workspaceId) : Promise.resolve([]),
         lean && s.projectId ? listPaceTodos(s.projectId) : Promise.resolve([]),

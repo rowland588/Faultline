@@ -165,6 +165,10 @@ export function parseRoute(hash: string): Route {
     if (key && segs[2]) return { name: 'study', view: 'scored', key, id: decodeURIComponent(segs[2]), query };
     return { name: 'studies', view: 'scored', ...(key ? { key } : {}), query };
   }
+  /* THE REGISTER TOOLS (m6-registers, tools/registers/kinds): /holds, /deploy, /daily, /fault-tree — a list, and /<tool>/:id one record (studies of tool ledger or doc) */
+  if (segs[0] === 'holds' || segs[0] === 'deploy' || segs[0] === 'daily' || segs[0] === 'fault-tree') {
+    return segs[1] ? { name: 'study', view: segs[0], id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: segs[0], query };
+  }
   if (segs[0] === 'board') {
     const key = segs[1] ? decodeURIComponent(segs[1]) : undefined;
     if (key && segs[2]) return { name: 'study', view: 'board', key, id: decodeURIComponent(segs[2]), query };

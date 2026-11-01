@@ -94,7 +94,7 @@
 | Section | What happens here | Tools (catalogue) | Not built or part-built here |
 |---|---|---|---|
 | **Prepare** | The charter, the team, the baseline. | FC-142 Project charter; FC-001 Value stream map; FC-019 Stopwatch time study; FC-051 Stops timed at the machine | FC-142 (part-built) |
-| **Observe** | The waste seen on the floor. Spaghetti and flow chart are not built. | FC-005 Waste walk; FC-004 Spaghetti diagram; FC-003 Process flow chart; FC-022 Work sampling; FC-021 Video time study; FC-199 Gemba walk | FC-005 (part-built); FC-004 (NOT BUILT); FC-003 (NOT BUILT); FC-021 (part-built); FC-199 (part-built) |
+| **Observe** | The waste seen on the floor. | FC-005 Waste walk; FC-004 Spaghetti diagram; FC-003 Process flow chart; FC-022 Work sampling; FC-021 Video time study; FC-199 Gemba walk | FC-005 (part-built); FC-004 (built); FC-003 (built); FC-021 (part-built); FC-199 (part-built) |
 | **Improve** | Changes tried in the week and measured. ECRS, SMED, 5S, line balance. | FC-028 ECRS on the elements; FC-068 SMED; FC-013 5S audit with score and trend; FC-014 Mistake-proofing register and the daily device checks; FC-032 Line balance; FC-144 Impact and effort; FC-105 Before and after | FC-014 (NOT BUILT); FC-144 (NOT BUILT) |
 | **Standardise** | The new way written and the people trained. | FC-007 Standard work combination table; FC-006 Line standard; FC-225 Standard operating procedure with photos; FC-224 One-point lesson; FC-223 TWI job instruction | FC-225 (NOT BUILT); FC-224 (part-built); FC-223 (NOT BUILT) |
 | **Sustain** | Open actions to the 30-day check; the gain still holding? The 30-day check is the point of the method. | FC-194 Actions; FC-201 The team’s own weekly number, proved; FC-086 Individuals and moving range chart (XmR); FC-013 5S audit with score and trend | FC-201 (part-built) |
@@ -140,8 +140,8 @@ Every tool above that is not yet built, ordered by how many of the eight methods
 | 2 | FC-152 Fault tree analysis | NOT BUILT | document — a tree drawn from the whys | 8D, A3 |
 | 2 | FC-155 Horizontal deployment — a proved fix offered to every line w | NOT BUILT | workflow — offer a proved fix to the other lines | 8D, PDCA |
 | 2 | FC-223 TWI job instruction — the breakdown and four-step teaching | NOT BUILT | document — a breakdown and four-step sheet | Kaizen event, Stage gate |
-| 1 | FC-003 Process flow chart — operation, transport, inspection, delay | NOT BUILT | document — a drawn chart | Kaizen event |
-| 1 | FC-004 Spaghetti diagram — walking and transport distance | NOT BUILT | document — a drawn plan with distances (calc inside) | Kaizen event |
+| 1 | FC-003 Process flow chart — operation, transport, inspection, delay | built (1 Nov, t8-4) | document — a drawn chart | Kaizen event |
+| 1 | FC-004 Spaghetti diagram — walking and transport distance | built (1 Nov, t8-4) | document — a drawn plan with distances (calc inside) | Kaizen event |
 | 1 | FC-005 Waste walk — the eight wastes seen, classed and costed | part-built | part-built — finish | Kaizen event |
 | 1 | FC-021 Video time study — the work read from footage | part-built | part-built — camera study | Kaizen event |
 | 1 | FC-039 Recovery levers — what taking a share off the top losses buy | part-built | ? | Theory of Constraints |

@@ -80,7 +80,7 @@ export interface Snag {
   /** The rejects a day it causes (packs thrown away) and the packs it holds now — priced at the line's materials a pack (lib/problemCost, FC-154 part 2). */
   rejectsPerDay?: number;
   heldPacks?: number;
-  /** WHICH OF THE EIGHT WASTES IT IS (FC-005, the waste walk — PROBLEM_WASTE.sql): Ohno's seven and Liker's eighth, picked on the problem as it is
+  /** WHICH OF THE EIGHT WASTES IT IS (FC-005, the waste walk; carried to the cloud as a waste:<kind> entry in linkedObsIds, no column): Ohno's seven and Liker's eighth, picked on the problem as it is
    *  looked at; 'none' is the answer "not a waste" (a hazard, a breakdown), told apart from absent, which is "not classed yet". Where it is, how big and what it
    *  costs are the problem's own (machine, minutesPerDay, rejectsPerDay, heldPacks). */
   waste?: WasteKind | 'none';

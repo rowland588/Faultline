@@ -19,6 +19,7 @@ import { useState } from 'react';
 import { niceScale } from '../lib/niceScale';
 import { vsTarget } from '../lib/measures';
 import type { LineSeries } from '../lib/measures';
+import { movingAverage, MOVING_WINDOW, TREND_FROM } from '../lib/measureProof';
 
 const ACTUAL = '#2b87d4';
 const TARGET = '#c26a0a';
@@ -125,6 +126,7 @@ export function MeasureChart({ series, who }: {
             {period ? `${period.name} target` : 'Target'} · {num(target)}{unit && ` ${unit}`}
           </span>
         )}
+        {points.length >= TREND_FROM && <span className="pace-key"><span className="pace-swatch pace-swatch-dash pace-swatch-avg" />{MOVING_WINDOW}-reading average</span>}
         <span className="pace-key mc-dir">{measure.direction === 'up' ? 'higher is better' : 'lower is better'}</span>
       </div>
 
@@ -162,6 +164,11 @@ export function MeasureChart({ series, who }: {
           fill="none" stroke={ACTUAL} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"
           d={'M ' + points.map((p, i) => `${x(i)} ${y(p.value)}`).join(' L ')}
         />
+        {/* the moving average of the last three readings — once there are enough for the trend (FC-117) */}
+        {points.length >= TREND_FROM && (
+          <path data-moving-average fill="none" stroke="var(--ink-2)" strokeWidth="1.8" strokeDasharray="2 4" strokeLinecap="round"
+            d={movingAverage(vals).flatMap((v, i) => (v == null ? [] : [`${x(i)} ${y(v)}`])).map((c, k) => (k ? 'L ' : 'M ') + c).join(' ')} />
+        )}
         {points.map((p, i) => (
           <circle key={p.at + i} cx={x(i)} cy={y(p.value)} r={hover === i ? 6 : 4.5}
             fill={ACTUAL} stroke="var(--surface)" strokeWidth="2" />

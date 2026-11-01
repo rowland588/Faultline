@@ -60,6 +60,8 @@ import { calcPaperParts } from './report/calcPaper';
 import { scoredPaperBlocks } from './report/scoredPaper';
 import { boardPaperBlocks } from './report/boardPaper';
 import { scoredSays, scoredTitle, studyScored } from '../tools/scored/scored';
+import { registerKeyOf } from '../tools/registers/kinds';
+import { registerPaper } from '../tools/registers/registry';
 import { boardSays, boardTitle, studyBoard } from '../tools/board/board';
 import { logBodyBlocks, logPaperBlocks, paperInput } from '../tools/checks/checksPaper';
 import { ctxFrom } from '../tools/checks/ctx';
@@ -615,6 +617,10 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     body = scoredPaperBlocks(s);
     closing = { text: studyScored(s)?.result?.closing ?? '', tone: said.tone };
     if (studyScored(s)?.def.matrix) tiles = studyScored(s)?.result?.tiles ?? [];   /* a matrix's tiles stand on its paper; a ranking's are in its body, as before */
+  } else if (registerKeyOf(s)) {
+    /* a register tool (m6-registers): product on hold, horizontal deployment, the daily meeting, the fault tree */
+    const r = registerPaper(s, p.ctx);
+    if (r) { eyebrow = r.eyebrow; verdict = r.verdict; tiles = r.tiles; closing = r.closing; body = r.body; }
   } else if (s.tool === 'board' && s.agreed?.board) {
     const siblings = p.history ?? [];
     const said = boardSays(s, siblings, Date.now());
@@ -778,7 +784,7 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'log') { const li = logInputOf(p, p.items[0]); if (li) return logPaperBlocks(li, p.printed, d); }
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
-  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis', 'calc', 'board', 'scored'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && (['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis', 'calc', 'board', 'scored'].includes(p.items[0].s.tool) || registerKeyOf(p.items[0].s))) return studyLeanBlocks(p, p.items[0], d);
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return smedLeanBlocks(p, p.items[0], d);
   const out: Block[] = [];
   out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));

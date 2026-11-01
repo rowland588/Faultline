@@ -81,12 +81,24 @@ await sheet.getByRole('button', { name: 'Call it' }).click(); await page.waitFor
 const called = flat(await page.locator('.win-proof-line').first().innerText());
 ok(called === v5.sentence, `2 Call it freezes the numbers onto the win: "${called}"`);
 
+/* the moving average of the last three readings (FC-117): drawn dashed on the chart of the measure with eight readings — 42 41 35 47 44 46 49 52 gives 39.33 41 42 45.67 46.33 49
+   (worked by hand) — and not on the chart with fewer; named in the legend */
+const avg = await page.evaluate(async () => {
+  const paths = [...document.querySelectorAll('path[data-moving-average]')];
+  const { movingAverage } = await import('/src/lib/measureProof.ts');
+  return { n: paths.length, segs: paths.map(p => (p.getAttribute('d') ?? '').split(/[ML]/).filter(Boolean).length), charts: document.querySelectorAll('.nm-measure svg').length,
+    key: [...document.querySelectorAll('.pace-key')].some(k => /3-reading average/.test(k.textContent ?? '')), ma: movingAverage([42, 41, 35, 47, 44, 46, 49, 52]).map(v => v === null ? null : Math.round(v * 100) / 100) };
+});
+ok(avg.n === 1 && avg.segs[0] === 6 && avg.key && avg.charts >= 2, `1 the moving average is drawn once, on the chart with eight readings (6 points of 8), named in the legend; the chart with fewer has none (${avg.n} of ${avg.charts} charts)`, JSON.stringify(avg));
+ok(JSON.stringify(avg.ma) === JSON.stringify([null, null, 39.33, 41, 42, 45.67, 46.33, 49]), '1 …the averages are the hand-worked ones: 39.33 41 42 45.67 46.33 49', JSON.stringify(avg.ma));
+
 /* 3 — the paper: the 6M client report (the full report), and the A3 of a project that keeps its numbers on the A3 */
 await page.goto(`${BASE}/#/pace-report?project=${sd.pacedProjectId}&line=${sd.pacedLineId}`); await page.waitForTimeout(3000);
 await page.getByRole('button', { name: 'Full report', exact: true }).click(); await page.waitForTimeout(1200);
 const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click({ timeout: 60000 })]);
 const txt = await readPdf(dl, 'full.pdf');
 ok(txt.includes(flat(said.up.text)), `3 the 6M client report’s paper carries the trend under the line’s chart, as the page says it: "${flat(said.up.text).slice(0, 110)}…"`, txt.slice(0, 600));
+ok(/DOTTED = AVERAGE OF THE LAST 3/.test(txt), '3 …and names the dotted moving average on the chart');
 /* the lever tree project's A3 (drawPaceReport): eight readings on its line, then the paper */
 const tree = await page.evaluate(async (pid) => {
   const db = await import('/src/db.ts'); const rs = (await db.listReadings(pid)).filter(r => !r.deletedAt);
@@ -101,6 +113,7 @@ const exp = await page.evaluate(async (m) => { const { numberTrend } = await imp
   return numberTrend([42, 41, 35, 47, 44, 46, 49, 52].map((value, i) => ({ at: day(i), value })), m.direction, m.unit)?.text; }, tree);
 const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click({ timeout: 60000 })]);
 const txt2 = await readPdf(dl2, 'a3.pdf');
+ok(/The dotted line is the average of the last 3 readings\./.test(txt2), '3 the A3 names its dotted moving average');
 ok(!!exp && txt2.includes(flat(exp)), `3 the A3 carries it too: "${(exp ?? '').slice(0, 100)}…"`, txt2.slice(0, 400));
 
 /* 4 — a method project's row: FC-201 on a Kata project (the challenge), FC-117 on an A3 (the Target) */

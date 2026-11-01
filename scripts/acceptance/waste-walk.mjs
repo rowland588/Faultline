@@ -10,7 +10,7 @@
  *   3  a problem classed in its editor — the eight chips and Not a waste, the kind saying what it means and where it points; kept after a reload;
  *      its row naming the class; the walk moving without a reload; a problem put right leaving the money and being counted as put right
  *   4  the paper: the Problems report carries THE EIGHT WASTES SEEN with the sentences, the problem's report card names its waste
- *   5  the cloud row: the column is sent only for a problem that has been classed (a problem never classed is untouched before PROBLEM_WASTE.sql)
+ *   5  the cloud row: no column — the class rides as one waste:<kind> entry in linked_obs_ids, only for a problem that has been classed
  *   6  the phone: the panel, the chips (48 px) and the editor, nothing off the side
  *
  *   node scripts/acceptance/waste-walk.mjs      (SMOKE_BASE, as smoke) */
@@ -188,11 +188,16 @@ await pr.locator('.qsl-open').click().catch(() => {});
 /* 5 — the cloud row */
 const wire = await page.evaluate(async () => {
   const { MAPS } = await import('/src/cloud/mappers.ts');
-  const base = { id: 'x', workspaceId: 'w', problem: 'p', status: 'open', raisedAt: 1, updatedAt: 1 };
-  return { never: 'waste' in MAPS.snags.toRow(base, 'u'), classed: MAPS.snags.toRow({ ...base, waste: 'waiting' }, 'u').waste, none: MAPS.snags.toRow({ ...base, waste: 'none' }, 'u').waste,
-    back: MAPS.snags.fromRow({ ...MAPS.snags.toRow({ ...base, waste: 'motion' }, 'u') }).waste, bad: MAPS.snags.fromRow({ ...MAPS.snags.toRow(base, 'u'), waste: 'muda' }).waste, noneBack: MAPS.snags.fromRow({ ...MAPS.snags.toRow(base, 'u'), waste: 'none' }).waste };
+  const base = { id: 'x', workspaceId: 'w', problem: 'p', status: 'open', raisedAt: 1, updatedAt: 1, linkedObsIds: ['o1'] };
+  const up = w => MAPS.snags.toRow(w === undefined ? base : { ...base, waste: w }, 'u');
+  const down = r => MAPS.snags.fromRow({ ...r });
+  return { column: 'waste' in up('waiting'), plain: up(undefined).linked_obs_ids, classed: up('waiting').linked_obs_ids, none: up('none').linked_obs_ids,
+    back: down(up('motion')), noneBack: down(up('none')).waste, never: down(up(undefined)).waste,
+    bad: down({ ...up(undefined), linked_obs_ids: ['o1', 'waste:muda'] }) };
 });
-ok(wire.never === false && wire.classed === 'waiting' && wire.none === 'none' && wire.back === 'motion' && wire.bad === undefined && wire.noneBack === 'none', '5 the column goes up only for a problem that has been classed, and comes back as it went; a word that is not one of the eight is not believed', JSON.stringify(wire));
+ok(wire.column === false && JSON.stringify(wire.plain) === '["o1"]' && JSON.stringify(wire.classed) === '["o1","waste:waiting"]' && JSON.stringify(wire.none) === '["o1","waste:none"]'
+  && wire.back.waste === 'motion' && JSON.stringify(wire.back.linkedObsIds) === '["o1"]' && wire.noneBack === 'none' && wire.never === undefined && wire.bad.waste === undefined,
+  '5 NO COLUMN: the class rides in the row’s linked_obs_ids as one waste:<kind> entry, goes up only for a problem that has been classed, comes back as it went and is taken out of the links; a word that is not one of the eight is not believed', JSON.stringify(wire));
 
 /* 6 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });

@@ -73,7 +73,9 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   /* a calculator's row counts its own calculations (/calc/<key>), not every calculator in the project */
   const usesOf2 = (t: AppTool): { n: number; latest?: string } | undefined => (/^\/calc\/./.test(t.to)
     ? { n: (got?.studies ?? []).filter(x => x.tool === 'calc' && x.agreed?.calc?.key === t.to.slice(6)).length }
-    : uses.get(t.key));
+    : /^\/log\/./.test(t.to)   /* a check log's kind counts its own logs, not every check log in the project */
+      ? { n: (got?.studies ?? []).filter(x => !x.deletedAt && x.tool === 'log' && x.agreed?.log?.key === t.to.split('/')[2]?.split('?')[0]).length }
+      : uses.get(t.key));
   const usedIn = (s: MethodSection) => {
     const keys = new Set<string>();
     for (const id of s.tools) { const t = openable(howTool(id)); if (t && (usesOf2(t)?.n ?? 0) > 0) keys.add(`${t.key}${t.to}`); }

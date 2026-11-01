@@ -33,15 +33,16 @@ export function howTool(id: string): ToolHow {
   const hub = toolOfEntry('FC-235'), hubEntry = entryById('FC-235');
   if ((entry.status === 'available' || entry.status === 'partial') && calcAt && /^\/calc\/[a-z0-9-]+$/.test(calcAt) && hub && hubEntry) return { how: 'inside', tool: { ...hub, to: calcAt }, entry, parent: hubEntry };
   if (entry.status === 'to-build' || entry.status === 'specified' || entry.status === 'research') return { how: 'notyet', entry };
+  /* a check log is one kind of the Check logs tool and opens at its own list (/log/<kind>), where New starts it from its starter list */
+  const logTo = entry.kind === 'log' ? entry.built?.where.find(w => w.startsWith('/log/')) : undefined;
+  const logHub = logTo ? entryById('FC-236') : undefined;
+  const logHubTool = logHub ? toolOfEntry(logHub.id) : undefined;
+  if (logTo && logHub && logHubTool) return { how: 'inside', tool: { ...logHubTool, to: logTo }, entry, parent: logHub };
   /* built, with no page of its own: a mode of a tool that has one? */
   let parent = entry.partOf ? entryById(entry.partOf) : undefined;
   for (let i = 0; parent && !toolOfEntry(parent.id) && parent.partOf && i < 3; i++) parent = entryById(parent.partOf);
   const up = parent ? toolOfEntry(parent.id) : undefined;
   if (parent && up) return { how: 'inside', tool: up, entry, parent };
-  /* a calculator (a page at /calc/<key>) is a mode of the Calculators hub — the tool that has the page, which a method row opens */
-  const hub = APP_TOOLS.find(t => t.key === 'calc');
-  const hubEntry = hub ? entryById(hub.id) : undefined;
-  if (hub && hubEntry && /^\/calc\/[^/]+/.test(entry.built?.where[0] ?? '')) return { how: 'inside', tool: hub, entry, parent: hubEntry };
   return { how: 'builtin', entry };
 }
 

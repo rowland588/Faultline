@@ -191,6 +191,12 @@ export interface NumberTrend {
   short: string;
 }
 export const TREND_FROM = 8;
+/** The moving average of a number's readings (FC-117, "a run chart … with a moving average"): the trailing mean of the last `window` readings, from the
+ *  reading that has that many behind it; shown once there are eight readings, as the trend is. Entries line up with `values` (null where too few yet). */
+export const MOVING_WINDOW = 3;
+export function movingAverage(values: number[], window = MOVING_WINDOW): (number | null)[] {
+  return values.map((_, i) => (i + 1 < window ? null : values.slice(i + 1 - window, i + 1).reduce((a, b) => a + b, 0) / window));
+}
 const sig2 = (v: number): string => String(Number(v.toPrecision(2)));
 export function numberTrend(points: { at: string; value: number }[], direction: Direction, unit?: string): NumberTrend | null {
   if (points.length < TREND_FROM) return null;

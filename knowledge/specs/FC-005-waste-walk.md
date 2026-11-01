@@ -15,7 +15,7 @@ contribution a day, most of it at the Packer."**
 
 **Scope.** What this build covers: (1) a **class on a problem** — one of Ohno's seven wastes and Liker's eighth (transport, inventory, motion,
 waiting, over-production, over-processing, defects, unused talent), or *Not a waste*, picked in the problem's own editor, kept on the problem
-(`snags.waste`, one column, `supabase/PROBLEM_WASTE.sql`); (2) the **walk** over any set of problems the Problems page already shows (a line, a
+(`Snag.waste`, kept on the device and carried to the cloud inside the row's existing `linked_obs_ids` list as one `waste:<kind>` entry — no column, no migration); (2) the **walk** over any set of problems the Problems page already shows (a line, a
 project, a person): the open ones classed as waste, by kind and by place, **ranked by what is lost a day** and, after it, by money tied up;
 each kind's money in its **own parts** (labour, packs lost, contribution, materials, product tied up) read from the problem's cost
 (`lib/problemCost`, FC-154) — never blended into one figure; the machines each kind is on and the places ranked; the last four weeks (raised,
@@ -124,15 +124,14 @@ One tap to the editor's chips on a problem the team is looking at; one tap to *B
 one column. Nothing is added to the rail, the tabs or the menu.
 
 ## 9. Failure handling
-A client or a person who cannot edit the project's problems does not change a class (the editor is the register's own access). A cloud that
-has not had `PROBLEM_WASTE.sql` run refuses only a problem that has been **classed** — a problem never classed is sent exactly as before (the
-column is sent only when set); the Problems page already says "The cloud did not accept N changes". A class from a newer app that this build
+A client or a person who cannot edit the project's problems does not change a class (the editor is the register's own access). There is no
+column: the class rides in `linked_obs_ids` (1 November — the connector was down and a migration was to be avoided), so a classed problem syncs
+like any other; the mapper adds the entry going up and takes it out coming down, so the problem's links never show it. A class from a newer app that this build
 does not know is not believed (read as not classed). Nothing classed, nothing sized, no wage: each said in words.
 
 ## 10. Integration
-**Record:** `Snag.waste` (`snags.waste text`, check in the eight and `'none'`); the mapper sends it only when set and reads only the nine words;
-`src/cloud/__tests__/sync-schema.test.ts` passes with the new migration file. **A migration is waiting** (`supabase/PROBLEM_WASTE.sql`,
-written, not applied). **Where it shows (CLAUDE.md rule 5):** the Problems page (every scope it is drawn in: the factory, a line's Problems tab,
+**Record:** `Snag.waste` (the eight and `'none'`); the mapper puts it in `linked_obs_ids` as `waste:<kind>` only when set and reads only the nine
+words; no migration (`supabase/PROBLEM_WASTE.sql` was withdrawn). **Where it shows (CLAUDE.md rule 5):** the Problems page (every scope it is drawn in: the factory, a line's Problems tab,
 a project's), the problem's row and editor, the Problems report and the problem cards, and — because it is a problem of the line — everywhere the
 problem already shows. The Kaizen event's *Observe* row for FC-005 opens the Problems register (it is a mode of FC-081). `docs/PAGES.md` has the
 page's new lines. Not on the line's one-page report or the combined report (they carry the problems tile and the closing line already; the

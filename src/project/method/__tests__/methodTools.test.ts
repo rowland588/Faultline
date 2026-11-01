@@ -84,6 +84,13 @@ describe('how a default tool stands', () => {
     expect(sg?.sections.filter(s => s.tools.includes('FC-082')).map(s => s.name)).toEqual(['Set up', 'Hand over']);
   });
 
+  it('a check log is a kind of the Check logs tool and opens at its own list (m6-registers)', () => {
+    const h = howTool('FC-014'); // mistake-proofing devices
+    expect(h.how).toBe('inside');
+    expect(openable(h)?.to).toBe('/log/mistake-proofing');
+    expect(toolStateWord(h)).toBe('A mode of Check logs');
+  });
+
   it('a tool not built yet has nothing to open and says so in the catalogue’s word', () => {
     const h = howTool('FC-070'); // changeover sequence
     expect(h.how).toBe('notyet');

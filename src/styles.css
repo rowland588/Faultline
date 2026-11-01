@@ -1913,6 +1913,7 @@ button.st-pill { cursor: pointer; }
   height: 3px;
 }
 .pace-key .pace-swatch-dash { background: none; border-top: 3px dashed var(--warn); height: 0; }
+.pace-key .pace-swatch-avg { border-top: 2px dotted var(--ink-2); }   /* the moving average's key (FC-117) */
 
 /* every period's target under a chart — however many periods this business runs.
    It was four fixed columns headed Q1..Q4; auto-fit is what lets a business on

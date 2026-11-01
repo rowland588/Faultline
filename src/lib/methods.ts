@@ -110,7 +110,7 @@ export const METHODS: readonly ProjectMethod[] = [
     record: 'lean.kaizen-event',
     sections: [
       { name: "Prepare", what: "The charter, the team, the baseline.", tools: ['FC-142', 'FC-001', 'FC-019', 'FC-051'] },
-      { name: "Observe", what: "The waste seen on the floor.", tools: ['FC-005', 'FC-004', 'FC-003', 'FC-022', 'FC-021', 'FC-199'], note: "Spaghetti and flow chart are not built." },
+      { name: "Observe", what: "The waste seen on the floor.", tools: ['FC-005', 'FC-004', 'FC-003', 'FC-022', 'FC-021', 'FC-199'], },
       { name: "Improve", what: "Changes tried in the week and measured.", tools: ['FC-028', 'FC-068', 'FC-013', 'FC-014', 'FC-032', 'FC-144', 'FC-105'], note: "ECRS, SMED, 5S, line balance." },
       { name: "Standardise", what: "The new way written and the people trained.", tools: ['FC-007', 'FC-006', 'FC-225', 'FC-224', 'FC-223'] },
       { name: "Sustain", what: "Open actions to the 30-day check; the gain still holding?", tools: ['FC-194', 'FC-201', 'FC-086', 'FC-013'], note: "The 30-day check is the point of the method." },

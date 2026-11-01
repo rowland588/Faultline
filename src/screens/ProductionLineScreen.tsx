@@ -63,6 +63,7 @@ import type { LineMachine } from '../lib/lineRecords';
 import type { Program } from '../lib/programs';
 import type { Snag, SnagAsset } from '../snag/types';
 import { talkSaid, turnsOf } from '../tools/talk/talk';
+import { isRegisterKey, registerKeyOf, type RegisterKey } from '../tools/registers/kinds';
 
 const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
 /* PRIORITY, RAG (Rowland, 12 October) — always with its word. */
@@ -78,8 +79,8 @@ export const TOOLS: { key: string; label: string; to: string; study?: StudyTool 
 
 /** A tool's own uses among a line's or a project's studies — a video study is a balance study with
  *  footage, so it is the video's and never the line balance's. */
-export const usesOfTool = (study: StudyTool | 'video', studies: ToolStudy[]): ToolStudy[] =>
-  studies.filter(s => !s.deletedAt && (study === 'video' ? !!s.facts?.video : s.tool === study && !s.facts?.video));
+export const usesOfTool = (study: StudyTool | 'video' | RegisterKey, studies: ToolStudy[]): ToolStudy[] =>
+  studies.filter(s => !s.deletedAt && (study === 'video' ? !!s.facts?.video : isRegisterKey(study) ? registerKeyOf(s) === study : s.tool === study && !s.facts?.video));
 
 export type LineTool = typeof TOOLS[number];
 

@@ -7,6 +7,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { useProject } from './lib/useProjects';
 import { useRoute, navReplace } from './state/useRoute';
+import { isRegisterKey as isRegisterView } from './tools/registers/kinds';
 import { usePersistRoute } from './state/useResume';
 import { WorkspaceProvider } from './state/WorkspaceProvider';
 import { WorkspaceHome } from './screens/WorkspaceHome';
@@ -63,6 +64,7 @@ const ChangeoverScreen = lazy(() => import('./tools/changeover/ChangeoverScreen'
 const AnalysisScreen = lazy(() => import('./tools/analysis/AnalysisScreen').then(m => ({ default: m.AnalysisScreen })));
 const CalcScreen = lazy(() => import('./tools/calc/CalcScreen').then(m => ({ default: m.CalcScreen })));
 const ScoredScreen = lazy(() => import('./tools/scored/ScoredScreen').then(m => ({ default: m.ScoredScreen })));
+const RegisterScreen = lazy(() => import('./tools/registers/RegisterScreen').then(m => ({ default: m.RegisterScreen })));
 const MaintenanceBoardScreen = lazy(() => import('./tools/board/BoardScreen').then(m => ({ default: m.BoardScreen })));
 const ChartScreen = lazy(() => import('./tools/chart/ChartScreen').then(m => ({ default: m.ChartScreen })));
 const ReliabilityScreen = lazy(() => import('./tools/reliability/ReliabilityScreen').then(m => ({ default: m.ReliabilityScreen })));
@@ -219,6 +221,8 @@ function app(route: Route) {
   /* a calculator (knowledge/specs/FC-235-calculators.md): the hub, one calculator's saved ones, one saved calculation */
   if ((route.name === 'studies' || (route.name === 'study' && route.id)) && route.view === 'calc') return <CalcScreen key={`${route.key ?? ''}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} calcKey={route.key} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
   if ((route.name === 'studies' || (route.name === 'study' && route.id)) && route.view === 'scored') return <ScoredScreen key={`${route.key ?? ''}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} scoredKey={route.key} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
+  /* the register tools (m6-registers): product on hold, horizontal deployment, the daily meeting, the fault tree */
+  if ((route.name === 'studies' || (route.name === 'study' && route.id)) && isRegisterView(route.view)) return <RegisterScreen key={`${route.view}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}:${route.query.get('tier') ?? ''}`} view={route.view} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
   if ((route.name === 'studies' || (route.name === 'study' && route.id)) && route.view === 'board') return <MaintenanceBoardScreen key={`${route.key ?? ''}:${route.id ?? ''}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} boardKey={route.key} {...(route.name === 'study' && route.id ? { id: route.id } : {})} />;
   /* the check logs: the scopes' Logs (#/logs, ?line=, ?project=), one kind's list and a log */
   if (route.name === 'studies' && route.view === 'logs') return <LogsHubScreen key={`${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} />;

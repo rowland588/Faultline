@@ -58,6 +58,54 @@ export const KAIZEN_GUIDES: Record<string, Guide> = {
     ],
     watch: 'Do not name a person as the waste. Waste is in the process; a walk that blames people ends the walks. And storage and inspection that the law or the HACCP plan requires are not waste to remove — they may be waste to shorten.',
   },
+  'FC-004': {
+    intro: 'For following one person’s round — the packer fetching film, cases and a scale — and seeing how far it is, how much of the shift it takes and which trips make most of it.',
+    steps: [
+      {
+        step: 'Whose round',
+        means: 'The diagram is of ONE person’s round (or one trolley’s): the places walked in order, back to where it started. Name whose it is so the sentence reads right.',
+        doThis: 'Press New calculation under Spaghetti diagram, name the round — “Packer, flow-wrap line” — and follow the person on the floor with the phone, not from what they say they do.',
+        youGet: 'A saved diagram ready for its first place. Nothing is made up: it stays empty until you type a place.',
+      },
+      {
+        step: 'Place 1 and the places after it',
+        means: 'Each place is somewhere the person stops — the line, the film store, the scale. Each leg is the walk from the place before; the metres are what was actually walked, paced, wheeled or taped.',
+        doThis: 'Type the first place, then each next place with the metres walked to it and, if you like, what the trip is for (“Fetch film”). Legs with the same words become one trip, so the trips can be ranked. Come back to the first place to finish the round.',
+        youGet: 'The next place’s boxes appear below as you name one, up to twenty; a leg with no length is named and left out of the sums, never given one.',
+      },
+      {
+        step: 'Where it is on the layout',
+        means: 'Optionally give each place its position on the plan — metres east and north of one corner — and the round is drawn to scale. Where a leg has no walked metres, the straight line between two positions stands in for it, and the page says so.',
+        doThis: 'Measure from one corner of the plan or the floor. Give both numbers for every place, or leave them out and just type the metres walked.',
+        youGet: 'The round drawn with each leg a line and each place a dot and a name, one metre the same length across and up, so the tangle is the real distance.',
+      },
+      {
+        step: 'How many rounds a shift, and the pace',
+        means: 'The shift’s walking is one round times the rounds in a shift, at a walking pace. The pace moves the minutes by about a quarter, so the page starts at the careful 1.3 m/s (loaded or crowded) and says what 1.6 m/s unloaded would give.',
+        doThis: 'Type the rounds: packs a shift divided by packs a round, or count the rounds in a timed hour and scale up. Pick the pace that fits the walk, or time one on your floor and type it.',
+        youGet: 'The sentence — “158 m a round; 36 rounds a shift is 5.7 km, 73 min of walking” — the tiles, the trips ranked by distance and the other pace’s minutes.',
+      },
+      {
+        step: 'In money',
+        means: 'The walking is the person’s paid time: minutes a shift at their hourly cost with on-costs, and a week from the shifts they work it.',
+        doThis: 'Open In money and type the hourly cost (the line’s own is offered) and the shifts a week. Every box is optional; the page names any it still needs.',
+        youGet: 'Labour a shift and a week spent walking — or the one sentence saying what to add. The distance never waits on it.',
+      },
+      {
+        step: 'Question each trip, then compare',
+        means: 'The diagram is the record; the improvement is asking of the longest trips whether what is fetched could come to the person — staged at the line — or be shared, shortened or taken out.',
+        doThis: 'Press Save as the before. Change the legs to the new layout — the film trolley 6 m away instead of the store 42 m — and watch each tile say how much less.',
+        youGet: 'A before → after on the same diagram: metres, minutes and pounds a shift, each in words.',
+      },
+      {
+        step: 'On paper',
+        means: 'The round drawn on a page to the same scale, with the trips, the working leg by leg, the money and what it does not say.',
+        doThis: 'Open Report ▾ and take the paper to the layout; mark the trips to remove with a pen.',
+        youGet: 'A page for the team and the sponsor, the same figures as the screen.',
+      },
+    ],
+    watch: 'One person’s one round may not be typical: follow several and say the range. A straight line is a floor, not the way walked — type the metres where it is further. And walking is not all waste: some of it carries needed material.',
+  },
   'FC-003': {
     intro: 'For following one thing — a tray, a pallet, an ingredient — from where it starts to where it ends, and seeing how many of its steps change it and how many only move it, check it or let it wait.',
     steps: [

@@ -133,3 +133,19 @@ describe('what the walk will and will not say', () => {
     expect(Object.keys(WASTES).sort()).toEqual([...WASTE_KINDS].sort());
   });
 });
+
+describe('the class in the cloud row — no column (1 November)', () => {
+  const base = { id: 'x', workspaceId: 'w', problem: 'p', status: 'open' as const, raisedAt: 1, updatedAt: 1, linkedObsIds: ['o1'] };
+  it('goes up as one waste:<kind> entry in linked_obs_ids, only when classed, and comes back out of the links', async () => {
+    const { MAPS } = await import('../../../cloud/mappers');
+    const up = (w?: 'motion' | 'none') => MAPS.snags.toRow(w ? { ...base, waste: w } : base, 'u');
+    expect('waste' in up('motion')).toBe(false);                       // no column
+    expect(up().linked_obs_ids).toEqual(['o1']);
+    expect(up('motion').linked_obs_ids).toEqual(['o1', 'waste:motion']);
+    const back = MAPS.snags.fromRow(up('motion')) as unknown as { waste?: string; linkedObsIds?: string[] };
+    expect(back.waste).toBe('motion'); expect(back.linkedObsIds).toEqual(['o1']);
+    expect((MAPS.snags.fromRow(up('none')) as unknown as { waste?: string }).waste).toBe('none');
+    expect((MAPS.snags.fromRow({ ...up(), linked_obs_ids: ['waste:muda'] }) as unknown as { waste?: string }).waste).toBeUndefined();   // not one of the eight, not believed
+    expect((MAPS.snags.fromRow(up()) as unknown as { waste?: string }).waste).toBeUndefined();
+  });
+});

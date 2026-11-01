@@ -21,9 +21,9 @@ one line and one measure: Mann–Kendall's S and p, Sen's slope per week, the ru
 measure (`lib/measureProof numberTrend`), under the line's chart on screen, and **on the client report's paper** (the 6M client report under its chart, and
 the A3 under its chart); (3) the **proof at a change** (FC-201) — the readings before and after a day the change landed, counted, both means, the change,
 and Welch's one-sided t, with a verdict that is allowed to say *no* or *worse*, frozen when a win is called (`lib/measureProof numberProof`,
-`screens/WinProofSheet`, the Wins and their paper); (4) the **method page**: a project's row for FC-117 and FC-201 (the A3's Target, the Kata's challenge, the Kaizen
+`screens/WinProofSheet`, the Wins and their paper); (3b) the **moving average** (added 1 November, t8-4) — the mean of the last three readings (`lib/measureProof movingAverage`, `MOVING_WINDOW` = 3, a chosen window, not a standard), drawn dashed on the line's chart (`charts/MeasureChart`), the 6M client report's chart and the A3's plot from the same eight readings the trend needs, named in the legend or under the chart; (4) the **method page**: a project's row for FC-117 and FC-201 (the A3's Target, the Kata's challenge, the Kaizen
 event's 30-day check) says what the project holds — the measure, how many readings, the latest, the trend — and opens its Results. What it deliberately does not
-cover: **a moving average line** on the chart (the entry names it; the trend is read by Sen and Mann–Kendall, and no average is drawn — **FC-117 stays partial for it**);
+cover: **a window other than three** for the moving average, and a forecast;
 **a control chart of the number** (FC-086, its own tool, on the capability and chart tools' readings); **a day found for the change** from the project's closed
 actions (an action's `doneOn` is used by `lib/impact`, the sheet takes a chosen day); **a forecast** (the trend says the rate so far, never where it will be);
 **any figure from a machine**: every reading is typed by a person; **any AI**. The money of a number is the tool it comes from (`knowledge/MONEY.md` §4: FC-117 and FC-201
@@ -131,11 +131,10 @@ sentence from eight readings, none from seven), `sixmReportPdf.test.ts`. Accepta
 6. A Kata project's FC-201 row and an A3 project's FC-117 row say "No measure set yet …" with none, the latest and the trend from eight readings, and a tap opens Results — `weekly-number.mjs` step 4.
 7. The phone (390): nothing off the side — `weekly-number.mjs`.
 8. Existing behaviour unchanged: the Numbers panel, the Wins, the chart, the papers' other blocks and page counts — `paceReportPdf.test.ts` (the footer arithmetic), `measures.test.ts`.
-Not yet proved: the full gate and the paper-parity comparison (the A3's and the 6M report's chart blocks changed on purpose, so a comparison with live will flag them as changed); a moving average
-(not built).
+9. The moving average (FC-117): the last-three-readings mean of 42 41 35 47 44 46 49 52 is 39.33, 41, 42, 45.67, 46.33, 49 (by hand), drawn once on the chart with eight readings and not on one with fewer, named in the legend, and named on the 6M client report's and the A3's paper — `weeklyNumber.test.ts` (`the moving average`) and `weekly-number.mjs` steps 1 and 3.
+Not yet proved: the full gate and the paper-parity comparison (the A3's and the 6M report's chart blocks changed on purpose, so a comparison with live will flag them as changed).
 
 ## 12. Maintainability
 `src/lib/measures.ts` (the record), `measureProof.ts` (the trend, the proof, the row's sentence — one module), `screens/NumbersPanel.tsx`, `screens/WinProofSheet.tsx`, `lib/sixmReport.ts` +
-`sixmReportPdf.ts` and `lib/paceReportPdf.ts` (the papers), `project/method/MethodScreen.tsx` (the row). Left for later, each with its number: a moving average on the chart (**FC-117**, entry says so);
-a change's day found from the project's closed actions on the proof sheet; the trend on the line's one-page report and the combined report (they carry the line's own tiles); the number's control
+`sixmReportPdf.ts` and `lib/paceReportPdf.ts` (the papers), `project/method/MethodScreen.tsx` (the row). Left for later, each with its number: a change's day found from the project's closed actions on the proof sheet; the trend on the line's one-page report and the combined report (they carry the line's own tiles); the number's control
 chart (**FC-086**); a forecast.
