@@ -107,5 +107,5 @@ passes on (c_d), the machine's own variability from its stops (effective process
 utilisation, and the queue's holding beside the spare capacity's idle crew in money. Checked against the exact M/M/1 wait, Erlang C
 for two machines (Sakasegawa's form 1.2% off at 85%) and a Lindley-recursion simulation of G/G/1 — Kingman within 2.2% below 90%
 utilisation and 6.0% low at 92% (`scripts/knowledge/cases-toc.py`), which is why the page says it understates above about 90%.
-Not yet: a line of stations and real stop patterns (`capacity.simulation`, FC-047); the variabilities read from a cycle study
+Not yet: a line of stations and real stop patterns (`capacity.simulation`); the variabilities read from a cycle study
 or the stops log instead of typed. Added 24 October from the books Rowland gave (`knowledge/SOURCES.md`).
