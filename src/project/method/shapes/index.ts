@@ -36,6 +36,8 @@ import { TOC_SHAPE } from './toc';
 
 import { KAIZEN_EVENT_SHAPE } from './kaizen-event';
 
+import { EightDShape } from './eight-d';
+
 export const SHAPES: Partial<Record<MethodKey, Shape>> = {
   kata: KATA_SHAPE,
   dmaic: DMAIC_SHAPE,
@@ -43,4 +45,5 @@ export const SHAPES: Partial<Record<MethodKey, Shape>> = {
   pdca: { Board: PdcaBoard, sectionBoxes: 'none' },
   toc: TOC_SHAPE,
   'kaizen-event': KAIZEN_EVENT_SHAPE,
+  'eight-d': EightDShape,
 };
