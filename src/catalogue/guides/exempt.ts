@@ -4,11 +4,9 @@
  * with a guide may not stay on it, and a tool without one that is not on it fails. A new tool is never added here — it is
  * built with its guide. When this list is empty, delete it and the test holds the rule with no exceptions. */
 export const GUIDE_EXEMPT: readonly string[] = [
-  'FC-001', 'FC-005', 'FC-006', 'FC-007', 'FC-008', 'FC-009', 'FC-013', 'FC-014',
-  'FC-015', 'FC-016', 'FC-019', 'FC-020', 'FC-021', 'FC-022', 'FC-024', 'FC-025',
-  'FC-026', 'FC-027', 'FC-028', 'FC-031', 'FC-032', 'FC-033', 'FC-034', 'FC-035',
-  'FC-036', 'FC-037', 'FC-038', 'FC-039', 'FC-040', 'FC-041', 'FC-042', 'FC-044',
-  'FC-046', 'FC-049', 'FC-051', 'FC-052', 'FC-053', 'FC-054', 'FC-055', 'FC-056',
+  'FC-001', 'FC-005', 'FC-006', 'FC-008', 'FC-009', 'FC-013', 'FC-014', 'FC-015',
+  'FC-016', 'FC-020', 'FC-021', 'FC-022', 'FC-024', 'FC-025', 'FC-027', 'FC-039',
+  'FC-044', 'FC-049', 'FC-051', 'FC-052', 'FC-053', 'FC-054', 'FC-055', 'FC-056',
   'FC-057', 'FC-058', 'FC-059', 'FC-060', 'FC-061', 'FC-062', 'FC-063', 'FC-064',
   'FC-066', 'FC-067', 'FC-068', 'FC-069', 'FC-071', 'FC-072', 'FC-073', 'FC-074',
   'FC-075', 'FC-076', 'FC-077', 'FC-078', 'FC-079', 'FC-080', 'FC-081', 'FC-082',
