@@ -100,7 +100,12 @@ time), it must be capacity.
 - [paper] Sakasegawa, H. (1977), "An approximation formula Lq ≈ αρ^β/(1−ρ)", *Annals of the Institute of Statistical Mathematics* 29, 67–75 — the multi-server form. From knowledge.
 
 ## In Faultline
-Not built (FC-045). Line capacity's accumulation and the bottleneck walk say
-where product waits; the loss count's stops give A, m_r and c_r for the
-effective process time. Added 24 October from the books Rowland gave
-(`knowledge/SOURCES.md`).
+Built 1 November (FC-045, `knowledge/specs/FC-045-utilisation-variability.md`): the **Utilisation and variability** calculator
+(`src/tools/calc/defs/utilisation-variability.ts`, arithmetic `src/lib/ie/queue.ts`) — the wait in the queue in minutes and in
+process times, the units waiting by Little's law, what 85% (or 95%) utilisation and halved variability buy, what a busy station
+passes on (c_d), the machine's own variability from its stops (effective process time), the picture of wait against
+utilisation, and the queue's holding beside the spare capacity's idle crew in money. Checked against the exact M/M/1 wait, Erlang C
+for two machines (Sakasegawa's form 1.2% off at 85%) and a Lindley-recursion simulation of G/G/1 — Kingman within 2.2% below 90%
+utilisation and 6.0% low at 92% (`scripts/knowledge/cases-toc.py`), which is why the page says it understates above about 90%.
+Not yet: a line of stations and real stop patterns (`capacity.simulation`, FC-047); the variabilities read from a cycle study
+or the stops log instead of typed. Added 24 October from the books Rowland gave (`knowledge/SOURCES.md`).

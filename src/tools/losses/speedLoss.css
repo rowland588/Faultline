@@ -1,0 +1,11 @@
+/* SPEED LOSS (FC-056) — a count's two hidden losses told apart, with the short stops counted beside them */
+.slp { display: grid; gap: 8px; }
+.slp-says, .slp-money, .slp-missing { margin: 0; }
+.slp.is-a .slp-says { border-left: 3px solid var(--st-a); padding-left: 10px; }
+.slp-lines { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.slp-count { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
+.slp-offers { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.slp-offers li { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.slp-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+.slp-form .field { flex: 1 1 140px; }
+@media (max-width: 640px) { .slp-form .btn, .slp-offers .btn { min-height: 44px; } }
