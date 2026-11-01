@@ -82,7 +82,7 @@ const sipoc: DocDef = {
       ] : [],
       money: { missing: [], none: 'A SIPOC has no money of its own — it bounds the process whose yield, rejects or time the project then values (knowledge/MONEY.md, FC-139).' },
       caveats: [
-        'It is a scope, not a map: where the data come from is the Measure phase’s job, and the value stream map or the process flow chart is the detail that comes after.',
+        'It is a scope, not a map: where the data come from is the Measure phase’s work, and the value stream map or the process flow chart is the detail that comes after.',
         'A SIPOC built by one person settles nothing — the team and the sponsor agree it, and the agreement is on the page.',
         'A scope that leaves out the step where the problem is caused (the supplier’s process) cannot solve the problem: widen it or change the goal.',
         'Customers named as “the business” or “quality” name nobody whose requirement can be measured; name people or places.',

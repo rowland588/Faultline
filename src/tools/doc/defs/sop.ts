@@ -30,7 +30,7 @@ const sop: DocDef = {
   signoff: { word: 'Agreed', ready: 'Ready to agree', by: 'the line manager', ask: 'Agree the procedure', back: 'Reopen the procedure' },
   sections: [
     { id: 'procedure', title: 'The procedure', help: 'What it is, where it is used and who keeps it.', items: [
-      { id: 'title', kind: 'text', label: 'Procedure', required: true, example: 'Changeover to the 500 g pack', help: 'The job, as the floor names it.' },
+      { id: 'title', kind: 'text', label: 'Procedure', required: true, example: 'Changeover to the 500 g pack', help: 'The task, as the floor names it.' },
       { id: 'use', kind: 'choice', label: 'What it is for', required: true, options: [
         { value: 'setup', label: 'Set-up' }, { value: 'clean', label: 'Clean' }, { value: 'changeover', label: 'Changeover' }, { value: 'check', label: 'Check' }, { value: 'other', label: 'Something else' },
       ] },
@@ -60,7 +60,7 @@ const sop: DocDef = {
     const careKinds = [...new Set(care.map(x => careLabel(x.c).toLowerCase()))];
     const t = stepTimes(steps.map(r => cellNum(r, 'secs')));
     const checks: { field?: string; say: string }[] = [];
-    if (n > STEP_CEILING) checks.push({ field: 'steps', say: `${plural(n, 'step')} is long for the machine — ${STEP_CEILING} is the usual ceiling. Split it into two procedures, or teach the job from a breakdown.` });
+    if (n > STEP_CEILING) checks.push({ field: 'steps', say: `${plural(n, 'step')} is long for the machine — ${STEP_CEILING} is the usual ceiling. Split it into two procedures, or teach the task from a breakdown.` });
     steps.forEach((r, i) => { if (cellText(r, 'do').length > LONG_STEP) checks.push({ field: 'steps', say: `Step ${i + 1} is a paragraph, not an instruction — keep “Do” to one action and put the knack in “How”.` }); });
     if (n && m.without.length) checks.push({ field: 'stepPhotos', say: `${m.without.length === 1 ? `Step ${m.without[0]} has` : `Steps ${numberRanges(m.without)} have`} no photo — the picture is the instruction.` });
     const careNoPhoto = care.filter(x => m.without.includes(x.i)).map(x => x.i);
@@ -90,12 +90,12 @@ const sop: DocDef = {
       ],
       tables: table,
       working: t.given ? [{ label: 'Time', value: `${t.given} of ${n} steps timed = ${durationSaid(t.total)}`, note: t.all ? 'the sum of the seconds given' : 'a partial sum — not a total for the procedure' }] : [],
-      money: { missing: [], none: 'A procedure has no money of its own: the stops, rejects and injuries it prevents are priced on the problem it fixes, and teaching it is priced in the job breakdown (knowledge/MONEY.md, FC-225).' },
+      money: { missing: [], none: 'A procedure has no money of its own: the stops, rejects and injuries it prevents are priced on the problem it fixes, and teaching it is priced in the task breakdown (knowledge/MONEY.md, FC-225).' },
       caveats: [
         'A procedure on paper is not a procedure followed: whether people do it this way is seen at the machine, not on this page.',
         'A photo is matched to a step by the number its caption starts with; a photo without one is kept and shown but matched to no step.',
         'The seconds are as typed. They are not a timed standard — the time study and the line balance are that.',
-        'Twelve steps is the usual ceiling for a page at the machine; a longer job is taught from a job breakdown, step by step with its key points.',
+        'Twelve steps is the usual ceiling for a page at the machine; a longer task is taught from a task breakdown, step by step with its key points.',
       ],
       checks,
       closing: sentence ? `${sentence.replace(/\.$/, '')}. Read it against the machine, then put it where the work is done.` : 'Type the steps, one action each, and add a photo for every step.',

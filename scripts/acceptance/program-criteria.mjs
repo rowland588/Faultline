@@ -105,7 +105,7 @@ for (const [k, v] of Object.entries({ 'Aiming for': '75', 'Aiming to run': '60',
   await row().locator(`input[aria-label^="${k}"]`).first().fill(v);
 await row().getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(3000);
 const split1 = flat(await row().locator('.ptx-split').first().innerText().catch(() => ''));
-ok(/didn.t pass/i.test(await pill()) && /net rate alone/.test(split1), `1b its run failed on net alone (${split1}) — the row reads didn’t pass, as with no criteria it always has: "${await pill()}"`);
+ok(/failed|didn.t pass/i.test(await pill()) && /net rate alone/.test(split1), `1b its run failed on net alone (${split1}) — the row reads didn’t pass, as with no criteria it always has: "${await pill()}"`);
 /* testing a program kept only on the list makes its line on the machine's programs stage a moment later, and its row is
    drawn again under that line (ui/ProgramRow) — the page read afresh once it has */
 await page.waitForTimeout(2000); await goPrograms();

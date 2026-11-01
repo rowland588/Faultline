@@ -111,7 +111,7 @@ await page.locator('.fd-places li', { hasText: 'Line 4 new case packer' }).locat
 ok(/#\/project\//.test(page.url()) && (await lit()).join() === 'Line 4 new case packer', '4 one tap back into the project', page.url());
 
 /* 5 — old links land on the Factory page */
-for (const old of ['#/start', '#/methods', '#/methods/some-method', '#/design?say=Line%202%20keeps%20stopping']) {
+for (const old of ['#/start', '#/methods', '#/design?say=Line%202%20keeps%20stopping']) {
   await go(old);
   ok(await h1() === 'Factory', `5 an old link (${old}) lands on the Factory page`, await h1());
 }

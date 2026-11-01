@@ -27,8 +27,8 @@ const TRYOUT = [
 const TRYOUT_WORD = (v: string) => TRYOUT.find(o => o.value === v)?.label ?? '—';
 
 const jobInstruction: DocDef = {
-  key: 'job-instruction', fc: 'FC-223', title: 'TWI job instruction', noun: 'job breakdown', group: 'Standardise',
-  says: 'A job taken apart into important steps, key points and reasons, and every learner taught, tried out and signed off by name and day',
+  key: 'job-instruction', fc: 'FC-223', title: 'TWI task instruction', noun: 'task breakdown', group: 'Standardise',
+  says: 'A task taken apart into important steps, key points and reasons, and every learner taught, tried out and signed off by name and day',
   question: 'How do we teach this task so everyone does it right?',
   signoff: { word: 'Agreed', ready: 'Ready to agree', by: 'the supervisor', ask: 'Agree the breakdown', back: 'Reopen the breakdown' },
   sections: [
