@@ -9468,6 +9468,9 @@ button.prp-go:hover { background: color-mix(in srgb, var(--ink) 4%, transparent)
 .prp-state { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: var(--t-label); }
 .prp-state .sub { font-size: var(--t-label); }
 .prp-tag { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
+.prp-tag-start { color: var(--ink); border-bottom: 2px solid var(--brand); }
+.prp-tag-next { font-weight: 600; }
+.prp-start { margin: 6px 0 0; font-size: var(--t-detail); line-height: 1.45; color: var(--ink); }
 .prp-open { margin-left: auto; font-weight: 700; color: var(--accent); }
 .prp-bar.is-sel .prp-open { color: var(--muted); }
 .prp-press {

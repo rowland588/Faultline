@@ -24,6 +24,7 @@ import { PHASE_WORD } from '../lib/problems';
 import { WHY_CHOICES, WHY_QUESTION, justDoItStep, lineOfBar, openBarProblem, pickOf, problemOfBar, vitalWords } from '../lib/paretoPicks';
 import { phaseTone, problemTitleOfBar, sameSource } from '../screens/FishboneScreen';
 import { uid } from '../lib/ids';
+import { useStartHere } from '../lib/useStartHere';
 import { Sheet, SheetRow } from './Sheet';
 import { ActionSheet, type Editing } from './ActionSheet';
 import { ShiftLossLine } from './ShiftLosses';
@@ -104,6 +105,10 @@ export function ParetoPane({ projectId, lineId, selected, onOpen }: ParetoPanePr
     setAction({ isNew: true, step: justDoItStep(m, { projectId, lineId: lineFor(m)?.id ?? lineId, id: uid(), now: Date.now() }) });
   };
 
+  /* WHERE TO START (lib/paretoStart): the vital-few bar that costs the line most at its constraint, or the input missing */
+  const vitalNames = view ? view.rows.filter(r => r.verdict !== 'gone' && r.vital).map(r => r.category) : [];
+  const startAt = useStartHere(fixedLine ? [fixedLine] : lines, vitalNames);
+
   if (pareto.loading) return <section className="prp" aria-label="Pareto"><p className="sub">Loading…</p></section>;
 
   /* A SHIFT'S LOSSES, BESIDE THE PARETO (tool 7): the line's latest shift
@@ -140,6 +145,10 @@ export function ParetoPane({ projectId, lineId, selected, onOpen }: ParetoPanePr
       <span className="prp-track" aria-hidden><span className="prp-fill" style={{ width: `${max > 0 ? (m.mins / max) * 100 : 0}%` }} /></span>
     </>
   );
+  /* "Start here" on the one bar, "Next" on the other vital few — only while the mark is drawn; words, no state colour */
+  const startTag = (m: ParetoMove) => (startAt?.mark
+    ? (startAt.mark.category === m.category ? <span className="prp-tag prp-tag-start">Start here</span> : <span className="prp-tag prp-tag-next">Next</span>)
+    : null);
   const phase = (p: ReturnType<typeof problemFor>) =>
     p && <span className={'fj-phase is-' + phaseTone(p.phase)}>{PHASE_WORD[p.phase]}</span>;
 
@@ -150,6 +159,7 @@ export function ParetoPane({ projectId, lineId, selected, onOpen }: ParetoPanePr
         <p className="prp-sub">{where} · last four weeks · {mins(view.totalMins)} min over {view.totalStops} stops</p>
       </header>
       <p className="prp-vital"><b>{w.count}</b>{w.of}<b>{w.share}</b>{w.tail}</p>
+      {startAt?.says && <p className="prp-start" role="status" aria-label="Where to start">{startAt.says}</p>}
       {shifts}
 
       <ol className="prp-bars">
@@ -162,13 +172,13 @@ export function ParetoPane({ projectId, lineId, selected, onOpen }: ParetoPanePr
               {go
                 ? <button type="button" className="prp-go" onClick={go} disabled={busy && !p}>
                     {bar(m)}
-                    <span className="prp-state"><span className="prp-tag">Vital few</span>
+                    <span className="prp-state"><span className="prp-tag">Vital few</span>{startTag(m)}
                       {p ? <>{phase(p)}<span className="prp-open">{sel ? 'Open now' : 'Open it ›'}</span></>
                         : <span className="prp-press">Find the root cause ›</span>}</span>
                   </button>
                 : <div className="prp-go is-still">
                     {bar(m)}
-                    <span className="prp-state"><span className="prp-tag">Vital few</span><span className="sub">no problem opened yet</span></span>
+                    <span className="prp-state"><span className="prp-tag">Vital few</span>{startTag(m)}<span className="sub">no problem opened yet</span></span>
                   </div>}
             </li>
           );
