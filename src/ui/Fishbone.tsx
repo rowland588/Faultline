@@ -29,6 +29,8 @@ import type { Can } from '../lib/access';
 import { PHASE_WORD, type Bone, type ProblemMeasure, type ProblemView, type Suggestion } from '../lib/problems';
 import { GRADES, KNOWN_WORD, sixmLabel, type Cause, type SixM } from '../lib/sixm';
 import { plural } from '../lib/format';
+import { checkStateOf } from '../lib/causeCheck';
+import { todayISO } from '../lib/weeks';
 import { boneWords, fixesOf, fixTag, isRoot, layoutFish, lossWords, orderItems, STATUS_WORD, type FixTag, type Item } from './fishbone/layout';
 import { FixTagMark, GradeMeter, RootTag, StatusGlyph } from './fishbone/marks';
 import { coarsePointer, useInnerBox, useWidth } from './fishbone/useWidth';
@@ -153,6 +155,8 @@ function causeSays(c: Cause, withRoot = true, fix?: FixTag): string {
   if (withRoot && isRoot(c)) bits.push('the root');
   const whys = c.whys.filter(x => x.text.trim()).length;
   if (whys) bits.push(plural(whys, 'why', 'whys'));
+  /* FC-148: a cause ticked to check says where its check stands (the status already says confirmed or ruled out) */
+  if (c.tick && c.status === 'suspected') bits.push(checkStateOf(c, todayISO()).word);
   if (fix) bits.push(fix.words);
   return bits.join(' · ');
 }
