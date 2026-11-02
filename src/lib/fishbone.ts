@@ -21,6 +21,7 @@
  */
 import { problemMoney } from './sixmMoney';
 import { neckOf } from './lineLoss';
+import { thereforeBranches } from './whyTree';
 import type { Case, DrillPath, Observation, Workspace } from '../types';
 import type { PaceLineRow } from '../db/rows';
 import type { PaceAction } from './actionShapes';
@@ -145,7 +146,6 @@ export function fmtHours(ms: number): string {
 /** The first letter lowered when the word is an ordinary one ("The rail" →
  *  "the rail"), kept when it is an acronym ("PLC"). */
 const lowerFirst = (s: string) => (s.length > 1 && /[a-z]/.test(s[1]) ? s[0].toLowerCase() + s.slice(1) : s);
-const clause = (s: string) => s.trim().replace(/[.;:,\s]+$/, '');
 
 /* ================================== scope ================================== */
 
@@ -978,10 +978,8 @@ export function buildView(problem: Case, data: FishboneData, today = Date.now())
  *    "wn, therefore wn-1" … "w1, therefore <cause>", "<cause>, therefore <problem>".
  *  Empty whys are skipped. If any line does not hold, it is not the root. */
 export function therefore(cause: Cause, problemTitle: string): string[] {
-  const chain = [problemTitle, cause.text, ...cause.whys.map(w => w.text)].map(clause).filter(Boolean);
-  const out: string[] = [];
-  for (let i = chain.length - 1; i > 0; i--) out.push(`${chain[i]}, therefore ${lowerFirst(chain[i - 1])}`);
-  return out;
+  /* a tree reads branch by branch (FC-148); a chain is one branch, the same lines as ever; a line shared by two branches is said once */
+  return [...new Set(thereforeBranches(cause, problemTitle).flat())];
 }
 
 /* ======================== the working method's shapes ======================== */

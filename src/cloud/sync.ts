@@ -671,7 +671,13 @@ function mergeList(base: { id: string }[], mine: { id: string }[], theirs: { id:
       const my = m.get(x.id);
       if (!my || same(my, bm.get(x.id)) || same(my, x)) return x;    // we did not touch it
       if (same(x, bm.get(x.id))) return my;                          // only we did
-      return mineNewer ? my : x;                                     // both: the newer
+      /* both: the newer — except a cause's whys (FC-148, the why tree): each side's added branches are
+         kept, merged by id one level down, so two devices drilling one cause both keep what they added */
+      const pick = mineNewer ? my : x;
+      const bw = (bm.get(x.id) as { whys?: unknown } | undefined)?.whys;
+      const mw = (my as { whys?: unknown }).whys, tw = (x as { whys?: unknown }).whys;
+      if (isIdList(mw) && isIdList(tw)) return { ...pick, whys: mergeList(isIdList(bw) ? bw : [], mw, tw, mineNewer) } as { id: string };
+      return pick;
     });
   for (const x of mine) if (!t.has(x.id) && !b.has(x.id)) out.push(x); // added by us
   return out;
