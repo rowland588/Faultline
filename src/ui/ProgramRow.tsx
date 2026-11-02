@@ -29,6 +29,7 @@
  * program (lib/programs) and its proving tests (lib/testing) — the part made
  * the first time the floor says something of a program kept only on the list,
  * the program made the first time it is tested or given what it runs. */
+import { ProgramStatusSection } from './ProgramStatus';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { PartResultIs, Test, TestItem } from '../lib/testing';
 import { live } from '../lib/testing';
@@ -75,7 +76,7 @@ export function ProgramProveBlock({ open, onToggle, test, criteria }: {
 
 /* ============================== the row itself ============================= */
 
-export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, problems = 0, action, criteria, after, open, onToggle, panel, tap, dataProgram, className }: {
+export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, problems = 0, status, action, criteria, after, open, onToggle, panel, tap, dataProgram, className }: {
   what: string;
   /** "Line 7's own" — whose record it is, when not the job's. */
   tag?: string;
@@ -87,6 +88,8 @@ export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, prob
   /** The other record's word, only when it says something worse. */
   aside?: { word: string; tone: string };
   problems?: number;
+  /** Its status section — where the work stands, best speed, the speed production can run at, caveats (ui/ProgramStatus). */
+  status?: ReactNode;
   /** Its test: the journey, the button, the form (ui/ProgramTest). */
   action?: ReactNode;
   /** Its criteria and its sign-off (ui/ProgramCriteria) — under its test, the width of the row. */
@@ -118,6 +121,7 @@ export function ProgramRowShell({ what, tag, word, tone, meta, note, aside, prob
         {aside && <span className={'pgr-aside is-' + aside.tone}>{aside.word}</span>}
       </button>
       {after && <div className="pgr-after">{after}</div>}
+      {status}
       {action && <div className="pgr-test">{action}</div>}
       {criteria && <div className="pgr-crit">{criteria}</div>}
       {open && panel && <div className="pgr-panel">{panel}</div>}
@@ -298,6 +302,11 @@ export function JobProgramRow({ projectId, line: l, tt, progs, can, stages, mach
       meta={[l.runs && `runs ${l.runs}`, l.who].filter(Boolean).join(' · ') || undefined}
       {...(l.note ? { note: l.note } : {})} {...(aside ? { aside } : {})} problems={openProblems}
       {...(l.programId ? { dataProgram: l.programId } : {})}
+      status={<ProgramStatusSection {...(program ? { program } : {})} edit={can.edit}
+        ensure={async () => {
+          const id = await progs.add({ what: l.what, assetId: assetId || undefined, state: 'onMachine', ...(l.who ? { from: l.who } : {}) });
+          return id ? (await listPrograms(projectId)).find(x => x.id === id) : undefined;
+        }} />}
       open={open} onToggle={onToggle}
       action={
         <ProgramProveBlock open={proveOpen} onToggle={() => setProveOpen(x => !x)}

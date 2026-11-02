@@ -35,6 +35,7 @@
  * each machine, which makes the machine's programs stage when it has none.
  * The eight tiles are the chips worth showing: a zero is not a filter
  * anyone needs, and the sentence above them still says every count. */
+import { ProgramStatusSection } from '../ui/ProgramStatus';
 import { PageHeader } from '../ui/parts';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTesting } from '../lib/useTesting';
@@ -300,6 +301,7 @@ function LineOwnRow({ r, onLine, projectId, tt, can, today, open, onToggle, test
     <ProgramRowShell what={p.what} tag={`${r.line}’s own`} word={word} tone={tone} dataProgram={p.id}
       meta={[p.runs && `runs ${p.runs}`, p.from, onLine && r.machine ? `${r.machine} is not on this project — tested on the line itself` : ''].filter(Boolean).join(' · ') || undefined}
       {...(p.note ? { note: p.note } : {})}
+      status={<ProgramStatusSection program={p} edit={can.edit} />}
       open={open} onToggle={onToggle}
       action={
         <ProgramProveBlock open={proveOpen} onToggle={() => setProveOpen(x => !x)}

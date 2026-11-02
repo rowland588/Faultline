@@ -15767,3 +15767,16 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .rs-set { overflow-wrap: anywhere; }
 .rs .btn, .rs select.text-input, .rs input.text-input, .rs .cw-link { min-height: 44px; }
 .rs .cw-link { display: inline-flex; align-items: center; }
+
+/* a program's status section (ui/ProgramStatus) — what the person says of it, under its row */
+.pgs { grid-column: 1 / -1; min-width: 0; display: grid; gap: 4px; padding: 6px 2px 2px; border-top: 1px dashed var(--line); }
+.pgs-h { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; min-width: 0; }
+.pgs-t { font-size: var(--t-label); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+.pgs-f { font-size: var(--t-detail); }
+.pgs-edit { min-height: 44px; }
+.pgs-cav { margin: 0; font-size: var(--t-detail); color: var(--ink); overflow-wrap: anywhere; white-space: pre-wrap; }
+.pgs-warn { margin: 0; font-size: var(--t-detail); font-weight: 700; color: var(--st-a); }
+.pgs-none { margin: 0; }
+.pgs-form { display: grid; gap: 8px; max-width: 34rem; }
+.pgs-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.pgs-acts .btn { min-height: 44px; }

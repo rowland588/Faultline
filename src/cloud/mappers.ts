@@ -8,6 +8,7 @@ import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
 import type { Material } from '../lib/materials';
 import type { Criterion, Program, ProgramState, SignOff } from '../lib/programs';
+import { statusFromRow } from '../lib/programStatus';
 import type { Standard, StandardMark } from '../tools/linestandard/standard';
 import { factsOf, listById, type StudyUse, type ToolStudy } from '../lib/study';
 import { footageKeys, forTheCloud } from '../tools/video/footage';
@@ -618,6 +619,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         supplier: p.from ?? null, note: p.note ?? null,
         criteria: p.criteria?.length ? p.criteria : null,
         signed_off: p.signedOff ?? null,
+        run_status: p.status ?? null,
         sort: p.sort, created_at: p.createdAt,
         updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
@@ -640,6 +642,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       note: (r.note as string) ?? undefined,
       ...criteriaFromRow(r.criteria),
       ...signedOffFromRow(r.signed_off),
+      ...statusFromRow(r.run_status),
       sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     } satisfies Program),

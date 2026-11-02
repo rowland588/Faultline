@@ -17,6 +17,7 @@
  * Read machine by machine. Where a part and a program on the same machine
  * have the same name they are ONE program — its status from the part, and
  * "proved" from Commission when it has been. Nothing is stored here. */
+import { statusTally, type ProgramStatus } from './programStatus';
 import { live, type Asset, type Test, type TestItem } from './testing';
 import { STATE_WORD, inOrder, productsOf, isProved, isProgramsStage, standingOf, stateOf, type Program } from './programs';
 import { provingTestOf, testCell } from './commission';
@@ -85,6 +86,8 @@ export interface ProgramLine {
   tests?: { badge: string; text: string; tone: ProgTone; studies: string[]; split?: string }[];
   /** ITS CRITERIA, when any are picked (lib/programCriteria; docs/PROGRAM-GOAL.md) — each its tool's own answer, and
    *  where they stand together: "2 of 3 criteria passed", "Ready to sign off …", "Signed off — passed 28 Oct by …". */
+  /** ITS STATUS SECTION, typed by hand (lib/programStatus) — the work, the best speed, the speed production can run at, the caveats. */
+  status?: ProgramStatus;
   criteria?: { says: string; tone: ProgTone; each: { title: string; word: string; tone: ProgTone; says: string }[] };
 }
 
@@ -101,6 +104,8 @@ export interface ProgramsReading {
   doneAll: number;
   /** "12 programs · 8 done — 5 passed, 3 at baseline · 1 failed · 3 to do". */
   says: string;
+  /** What the people said of their work on them, together (lib/programStatus statusTally) — '' when nobody has said anything. */
+  statusSays?: string;
 }
 
 const key = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -345,6 +350,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
              it, so the line's answer is on the job's row too (flow audit #3). */
           ...(p && !proved && !own ? (r => ({ record: { word: r.word, tone: r.tone }, proving: `On the line: ${r.word}` }))(programWords(p, tOf(p), today, floorFailedOn(p, tests, x.items, x.holder), sOf(p), x.standards)) : {}),
           ...(p ? criteriaLine(p, tDetail(p), sDetail(p), today, x.standards) : {}),
+          ...(p?.status ? { status: p.status } : {}),
         });
       }
     }
@@ -355,6 +361,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
         machine, programId: p.id, ...(m ? { assetId: m } : {}), what: p.what.trim(), ...(p.runs ? { runs: p.runs } : {}), ...(p.from ? { who: p.from } : {}),
         ...programWords(p, tOf(p), today, undefined, sOf(p), x.standards), ...(p.note?.trim() ? { note: p.note.trim() } : {}), earlier: [],
         ...criteriaLine(p, tDetail(p), sDetail(p), today, x.standards),
+        ...(p.status ? { status: p.status } : {}),
         ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tDetail(p), sDetail(p), today)),
         ...(pf => (pf ? { proof: pf } : {}))(proofOf(p, tDetail(p), sDetail(p), x.standards)),
       });
@@ -392,7 +399,7 @@ export function readingOf(machines: { name: string; lines: ProgramLine[] }[]): P
     failed ? `${failed} failed` : '', late ? `${late} late` : '', open ? `${open} to do` : '', why].filter(Boolean).join(' · ');
   return {
     lines, machines,
-    total, done, baseline, failed, late, open, notTested, noProgram, doneAll, says,
+    total, done, baseline, failed, late, open, notTested, noProgram, doneAll, says, statusSays: statusTally(lines),
   };
 }
 

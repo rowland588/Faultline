@@ -37,6 +37,7 @@
  * and if not, when do we find out.
  */
 import type { ID } from '../types';
+import type { ProgramStatus } from './programStatus';
 import type { Test } from './testing';
 import { daysBetween, todayISO, weeksFrom, type Week } from './weeks';
 export { todayISO, monthSpans, weekIndexOf, type Week } from './weeks';
@@ -104,6 +105,10 @@ export interface Program {
    *  is `provedOn`. Absent on every program proved before criteria existed. */
   signedOff?: SignOff;
 
+  /** THE STATUS SECTION, typed by hand (Rowland, 2 November): the work on it (not started · doing · done · on hold), the best speed it has
+   *  been run at, the speed production can run it at, and what to watch. Not the proof state above — the person's own word beside it
+   *  (lib/programStatus; programs.run_status). Absent: nothing said. */
+  status?: ProgramStatus;
   /** Who owes it to us. Usually the OEM. */
   from?: string;
   note?: string;
