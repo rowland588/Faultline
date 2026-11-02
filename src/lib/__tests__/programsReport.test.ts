@@ -189,6 +189,17 @@ describe('a program’s tests and their studies on the report', () => {
     expect(two).toContain('capability study “60 ppm”');
     expect(two).toContain('control chart “60 ppm run”');
   });
+  it('carries the commentary written on a test’s studies, oldest first, struck ones left out (Rowland, 2 November: “commentary on program 10 on a test … I can’t see it anywhere”)', () => {
+    const day = (iso: string) => new Date(iso + 'T10:00:00Z').getTime();
+    const withNotes = studies.map(x => x.id === 'c1' ? { ...x, facts: { remarks: [
+      { id: 'r2', at: day('2026-10-08'), text: 'Seal lifted on the third pack', by: 'Rowland' },
+      { id: 'r1', at: day('2026-10-07'), text: 'Film tension checked first' },
+      { id: 'r3', at: day('2026-10-08'), text: 'a mistake', struck: true },
+    ] } } as ToolStudy : x);
+    const l2 = programsReading({ tests: [...tests, t1, t2], items, assets, programs: [programs[0]!], today: T, studies: withNotes })?.lines.find(l => /PR-12/.test(l.what));
+    expect(l2?.tests?.[1]?.notes).toEqual(['7 Oct — Film tension checked first', '8 Oct — Seal lifted on the third pack (Rowland)']);
+    expect(l2?.tests?.[0]?.notes).toBeUndefined();
+  });
   it('a program with no test of its own carries none', () => {
     expect(r?.lines.find(l => /PR-99/.test(l.what))?.tests).toBeUndefined();
   });

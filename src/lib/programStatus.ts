@@ -57,12 +57,12 @@ export function statusFrom(d: StatusDraft, at: number, by?: string): ProgramStat
 export const aheadOfBest = (s: ProgramStatus | undefined): boolean => !!s && s.bestSpeed != null && s.runAt != null && s.runAt > s.bestSpeed;
 
 /** The parts of the one line: ["Doing", "Best speed 75 ppm", "Production can run at 70 ppm", "Caveats: …"], what is said only. */
-export function statusParts(s: ProgramStatus | undefined): string[] {
+export function statusParts(s: ProgramStatus | undefined, caveats = true): string[] {
   if (!s) return [];
-  return [WORK_WORD[s.work], ...(s.bestSpeed != null ? [`Best speed ${speedWord(s.bestSpeed)}`] : []), ...(s.runAt != null ? [`Production can run at ${speedWord(s.runAt)}`] : []), ...(s.caveats ? [`Caveats: ${s.caveats}`] : [])];
+  return [WORK_WORD[s.work], ...(s.bestSpeed != null ? [`Best speed ${speedWord(s.bestSpeed)}`] : []), ...(s.runAt != null ? [`Production can run at ${speedWord(s.runAt)}`] : []), ...(caveats && s.caveats ? [`Caveats: ${s.caveats}`] : [])];
 }
 /** The line a row and a paper say, or '' when nothing is said. */
-export const statusSays = (s: ProgramStatus | undefined): string => statusParts(s).join(' · ');
+export const statusSays = (s: ProgramStatus | undefined, caveats = true): string => statusParts(s, caveats).join(' · ');
 export const AHEAD_SAYS = 'Production is asked to run faster than the best speed it has been run at.';
 
 /** From the cloud: kept only when it is the shape this build reads — a row written by a later build never crashes a screen. */

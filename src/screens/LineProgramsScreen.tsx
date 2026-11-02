@@ -42,6 +42,7 @@ import { nav } from '../state/useRoute';
 import { DateInput } from '../ui/DateInput';
 import { AddFold } from '../ui/AddFold';
 import { ProgramFields, ProgramRowShell } from '../ui/ProgramRow';
+import { ProgramStatusSection } from '../ui/ProgramStatus';
 import { ProgramCriteria } from '../ui/ProgramCriteria';
 import { offerUndo } from '../ui/Undo';
 
@@ -308,6 +309,7 @@ function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: 
       open={open} onToggle={() => { if (edit) { setOpen(!open); setProving(false); } else if (job) nav(`/project/${job.id}/programs`); }}
       {...(edit ? {} : { tap: job ? `open it on ${job.name}’s Programs` : '' })}
       /* ITS CRITERIA AND ITS SIGN-OFF (docs/PROGRAM-GOAL.md) — a line's own changed here, a project's read here */
+      status={<ProgramStatusSection program={p} edit={edit} />}
       criteria={<ProgramCriteria program={p} tests={rec.provingTests} edit={edit} {...(machine ? { machine: machine.name } : {})} />}
       after={(job || (isProved(p) && proof)) ? <>
         {job && (

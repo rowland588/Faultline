@@ -83,7 +83,10 @@ export interface ProgramLine {
    *  test information clearly and correctly"). The same words as the program's row and the commissioning
    *  sheet (lib/programJourney). */
   /** Each test, first to last; `split` what it met and what it did not (lib/programJourney splitOf). */
-  tests?: { badge: string; text: string; tone: ProgTone; studies: string[]; split?: string }[];
+  tests?: { badge: string; text: string; tone: ProgTone; studies: string[]; split?: string;
+    /** THE COMMENTARY written on the studies that prove this test (their Notes — Rowland, 2 November: "I have commentary on program 10 on a
+     *  test … I can't see that commentary anywhere"): "14 Oct — seal lifted on the third pack (Rowland)", oldest first, struck ones left out. */
+    notes?: string[] }[];
   /** ITS CRITERIA, when any are picked (lib/programCriteria; docs/PROGRAM-GOAL.md) — each its tool's own answer, and
    *  where they stand together: "2 of 3 criteria passed", "Ready to sign off …", "Signed off — passed 28 Oct by …". */
   /** ITS STATUS SECTION, typed by hand (lib/programStatus) — the work, the best speed, the speed production can run at, the caveats. */
@@ -270,6 +273,10 @@ function testsOfProgram(p: Program | undefined, tests: Test[], studies: readonly
     ...(a.split ? { split: a.split } : {}),
     tone: (a.result.tone === 'a' ? 'a' : a.result.tone) as ProgTone,
     studies: linkedTo([...(studies ?? [])], 'test', a.test.id, 'proof').map(st => `${studyWords(st)} — ${studyLine(st).text}`),
+    ...(n => (n.length ? { notes: n } : {}))(linkedTo([...(studies ?? [])], 'test', a.test.id, 'proof')
+      .flatMap(st => (st.facts.remarks ?? []).filter(r => !r.struck && r.text.trim()))
+      .sort((x, y) => x.at - y.at)
+      .map(r => `${niceDay(new Date(r.at).toISOString().slice(0, 10))} — ${r.text.trim()}${r.by ? ` (${r.by})` : ''}`)),
   }));
   return out.length ? out : undefined;
 }

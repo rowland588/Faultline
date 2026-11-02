@@ -73,8 +73,9 @@ ok(/faster than the best speed it has been run at/.test(flat(await section().inn
 const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, 'Programs report')]);
 const f = join(dir, 'programs.pdf'); await dl.saveAs(f);
 const txt = flat(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
-const want = 'Status: Doing · Best speed 75 ppm · Production can run at 80 ppm · Caveats: Only on the 2 kg film; check film tension each reel'.replace(/\s+/g, '');
-ok(txt.includes(want), '4 the report carries the Status line as the module says it');
+const want = 'Status: Doing · Best speed 75 ppm · Production can run at 80 ppm'.replace(/\s+/g, '');
+const wantCav = 'Caveats: Only on the 2 kg film; check film tension each reel'.replace(/\s+/g, '');
+ok(txt.includes(want) && txt.includes(wantCav) && txt.indexOf(want) < txt.indexOf(wantCav), '4 the report carries the Status line as the module says it, the caveats on their own line under it');
 ok(txt.includes('faster than the best speed'.replace(/\s+/g, '')), '4 and the amber sentence');
 ok(/1ofd+programswithastatus—1doing/.test(txt) || /1of\d+programswithastatus/.test(txt), '4 and the tally of what people said of their programs');
 
@@ -92,6 +93,34 @@ await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 await page.setViewportSize({ width: 390, height: 800 }); await page.reload(); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1800); await openAll();
 const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 ok(over <= 1, `5 the phone: nothing off the side (${over}px)`);
+/* 6 THE LINE'S OWN PROGRAMS PAGE has the status section too, and the commentary written on a test's study reaches the paper
+   (Rowland, 2 November: "where is it all?"; "commentary on program 10 on a test … I can't see it anywhere") */
+await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
+await page.setViewportSize({ width: 1360, height: 900 });
+await page.evaluate(async ([ws]) => {
+  const { putProgram } = await import('/src/db/programs.ts'); const { putTest } = await import('/src/db/testing.ts'); const { putStudy } = await import('/src/db/studies.ts');
+  const t = Date.now();
+  await putProgram({ id: 'pg10', workspaceId: ws, what: 'Program 10', state: 'onMachine', testId: 't10', createdAt: t, updatedAt: t, sort: 1 });
+  await putTest({ id: 't10', projectId: 'line:' + ws, workspaceId: ws, title: 'Prove Program 10', kind: 'test', outcome: 'passed', programId: 'pg10', ranOn: '2026-10-30', sort: 1, createdAt: t, updatedAt: t });
+  await putStudy({ id: 's10', tool: 'capability', name: 'Program 10 at 70 ppm', workspaceId: ws, uses: [{ id: 'u10', kind: 'test', ref: 't10', role: 'proof', at: t, by: 'x' }], agreed: {}, facts: { remarks: [{ id: 'rm1', at: t, text: 'Seal lifted on the third pack at 75', by: 'Rowland' }] }, startedAt: t, createdAt: t, updatedAt: t });
+}, [sd.wsId]);
+await go(`#/programs?line=${encodeURIComponent(sd.wsId)}`);
+await page.locator('.pp-chip', { hasText: /^All/ }).first().click().catch(() => {}); await page.waitForTimeout(500);
+const lrow = page.locator('.lp-row', { hasText: 'Program 10' }).first();
+const lsec = lrow.locator('[data-program-status]');
+ok(await lsec.count() === 1 && await lsec.getByRole('button', { name: 'Set the status' }).count() === 1, '6 the line’s own Programs row has the Status section');
+await lsec.getByRole('button', { name: 'Set the status' }).click();
+await lsec.getByRole('radio', { name: 'Doing' }).click();
+await lsec.getByLabel('Best speed run').fill('75'); await lsec.getByLabel('Production can run at').fill('70');
+await lsec.getByLabel('Caveats').fill('Only on the 2 kg film');
+await lsec.getByRole('button', { name: 'Keep the status' }).click(); await page.waitForTimeout(700);
+ok(/Doing/.test(await lsec.innerText()) && /75 ppm/.test(await lsec.innerText()), '6 set on the line’s page and shown there');
+const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, 'Programs report')]);
+const f2 = join(dir, 'line-programs.pdf'); await dl2.saveAs(f2);
+const t2 = flat(execFileSync('pdftotext', ['-raw', f2, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
+ok(t2.includes('Status:Doing·Bestspeed75ppm·Productioncanrunat70ppm'), '6 the line’s programs report carries the status');
+ok(t2.includes('Note:') && t2.includes('Seallifted on the third pack at 75'.replace(/\s+/g, '')), '6 and the commentary written on Program 10’s test, under the test');
+
 ok(errs.length === 0, 'no console error', errs.join(' | '));
 await b.close();
 console.log(fail ? '\nFAILED' : '\nALL PASSED');

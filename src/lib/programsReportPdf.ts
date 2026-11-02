@@ -43,23 +43,25 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
     who: l.who ? wrap(f.doc, l.who, f.w - indent - stateW - 10, 8) : [],
     word: wrap(f.doc, l.word, stateW, 8, 'bold'),
     note: l.note ? wrap(f.doc, l.note, f.w - indent, 8.5) : [],
-    earlier: l.earlier.flatMap(e => wrap(f.doc, `Before: ${e}`, f.w - indent, 8)),
-    proving: l.proving ? wrap(f.doc, l.proving, f.w - indent, 8) : [],
-    /* how a proved one was proved (flow audit #21) — its colour only when abnormal */
-    proof: l.proof ? wrap(f.doc, l.proof.word, f.w - indent, 8) : [],
-    run: l.run ? wrap(f.doc, `In Commission: ${l.run}`, f.w - indent, 8.5, 'bold') : [],
+    /* LESS WRITING (Rowland, 2 November: "most of that writing is pointless"): what a person reads is the state, the status they typed,
+       what was seen, each test's result and the commentary written on it. The statuses said before, the "on the floor" echo, Commission's
+       run line and a proof that reads well are off the paper (on the page, one tap away); a proof that is amber or red, or a sign-off (who, when), stays. The criteria's answers and the studies lined up for a test stay: Rowland asked for both (28 and 26 October). */
+    earlier: [] as string[], proving: [] as string[],
+    proof: l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r' || /^Signed off/.test(l.proof.word)) ? wrap(f.doc, l.proof.word, f.w - indent, 8) : [],
+    run: [] as string[],
     /* ITS STATUS SECTION — typed by hand: where the work stands, the best speed, the speed production can run at, the caveats (lib/programStatus) */
-    stat: l.status ? wrap(f.doc, `Status: ${statusSays(l.status)}`, f.w - indent, 8.5, 'bold') : [],
+    stat: l.status ? wrap(f.doc, `Status: ${statusSays(l.status, false)}`, f.w - indent, 9.5, 'bold') : [],
+    cav: l.status?.caveats ? wrap(f.doc, `Caveats: ${l.status.caveats}`, f.w - indent, 8.5) : [],
     ahead: aheadOfBest(l.status) ? wrap(f.doc, AHEAD_SAYS, f.w - indent, 8, 'bold') : [],
     /* ITS CRITERIA (docs/PROGRAM-GOAL.md): where they stand — unless signed off, which its proof says — then each with its answer */
     crit: l.criteria && !(l.proof && /^Signed off/.test(l.proof.word)) ? wrap(f.doc, `Criteria: ${l.criteria.says}`, f.w - indent, 8.5, 'bold') : [],
     each: (l.criteria?.each ?? []).map(c => ({ tone: c.tone, lines: wrap(f.doc, `${c.word} — ${c.title}: ${c.says}`, f.w - indent - 4, 8) })),
     /* every test of it, first to last, each with the studies lined up for it */
-    tests: (l.tests ?? []).map(t => ({ tone: t.tone, badge: t.badge, lines: [...wrap(f.doc, t.text, f.w - indent - 4, 8), ...(t.split ? wrap(f.doc, t.split, f.w - indent - 4, 8) : [])], studies: t.studies.flatMap(x => wrap(f.doc, `Study: ${x}`, f.w - indent - 16, 7.5)) })),
+    tests: (l.tests ?? []).map(t => ({ tone: t.tone, badge: t.badge, lines: [...wrap(f.doc, t.text, f.w - indent - 4, 8), ...(t.split ? wrap(f.doc, t.split, f.w - indent - 4, 8) : [])], studies: t.studies.flatMap(x => wrap(f.doc, `Study: ${x}`, f.w - indent - 16, 7.5)), notes: (t.notes ?? []).flatMap(x => wrap(f.doc, `Note: ${x}`, f.w - indent - 12, 8.5)) })),
   });
   const height = (f: Frame, l: ProgramLine) => {
     const p = parts(f, l);
-    return 8 + Math.max(p.head.length * 13 + p.who.length * 10, p.word.length * 10, 16) + p.note.length * 11 + p.run.length * 11 + p.stat.length * 11 + p.ahead.length * 10 + p.crit.length * 11 + p.each.reduce((n, c) => n + c.lines.length * 10, 0) + (p.earlier.length + p.proving.length + p.proof.length) * 10 + p.tests.reduce((n, t) => n + 9 + t.lines.length * 10 + t.studies.length * 9, 0) + 6;
+    return 8 + Math.max(p.head.length * 13 + p.who.length * 10, p.word.length * 10, 16) + p.note.length * 11 + p.run.length * 11 + p.stat.length * 12 + p.cav.length * 11 + p.ahead.length * 10 + p.crit.length * 11 + p.each.reduce((n, c) => n + c.lines.length * 10, 0) + (p.earlier.length + p.proving.length + p.proof.length) * 10 + p.tests.reduce((n, t) => n + 9 + t.lines.length * 10 + t.notes.length * 11 + t.studies.length * 9, 0) + 6;
   };
   for (const g of reading.machines.map(m => ({ ...m, name: san(m.name), lines: m.lines.map(sanLine) }))) {
     /* The machine's name as it is written — a capitalised label lost it to
@@ -85,7 +87,8 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
           font(f.doc, 8, 'bold', TONE[l.tone]); f.doc.text(p.word, f.x + f.w - stateW, y + 15);
           ty = Math.max(ty, y + 16 + p.word.length * 10);
           if (p.proof.length) { font(f.doc, 8, l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? 'bold' : 'normal', l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? TONE[l.proof.tone] : MUTED); f.doc.text(p.proof, f.x + indent, ty); ty += p.proof.length * 10; }
-          if (p.stat.length) { font(f.doc, 8.5, 'bold', l.status ? TONE[WORK_TONE[l.status.work]] : INK2); f.doc.text(p.stat, f.x + indent, ty); ty += p.stat.length * 11; }
+          if (p.stat.length) { font(f.doc, 9.5, 'bold', l.status ? TONE[WORK_TONE[l.status.work]] : INK2); f.doc.text(p.stat, f.x + indent, ty); ty += p.stat.length * 12; }
+          if (p.cav.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.cav, f.x + indent, ty); ty += p.cav.length * 11; }
           if (p.ahead.length) { font(f.doc, 8, 'bold', AMBER); f.doc.text(p.ahead, f.x + indent, ty); ty += p.ahead.length * 10; }
           if (p.crit.length) { font(f.doc, 8.5, 'bold', l.criteria ? TONE[l.criteria.tone] : INK2); f.doc.text(p.crit, f.x + indent, ty); ty += p.crit.length * 11; }
           for (const c of p.each) { font(f.doc, 8, 'normal', c.tone === 'r' || c.tone === 'a' ? TONE[c.tone] : INK2); f.doc.text(c.lines, f.x + indent + 4, ty); ty += c.lines.length * 10; }
@@ -98,6 +101,7 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
               /* each test: its own result in its colour first, then what it aimed at and did */
               font(f.doc, 7, 'bold', TONE[t.tone]); f.doc.text(t.badge.slice(0, 14), f.x + indent, ty);
               font(f.doc, 8, 'normal', INK2); f.doc.text(t.lines, f.x + indent + 0, ty + 9); ty += 9 + t.lines.length * 10;
+              if (t.notes.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(t.notes, f.x + indent + 12, ty); ty += t.notes.length * 11; }
               if (t.studies.length) { font(f.doc, 7.5, 'normal', MUTED); f.doc.text(t.studies, f.x + indent + 12, ty); ty += t.studies.length * 9; }
             }
           }

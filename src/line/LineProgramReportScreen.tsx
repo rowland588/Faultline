@@ -5,6 +5,7 @@ import { getWorkspace } from '../db';
 import { useLineRecords } from '../lib/useLineRecords';
 import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../lib/useJobFloor';
 import { programsReadingOnLine, saveOneProgramReport } from '../lib/lineProgramsPaper';
+import { statusSays } from '../lib/programStatus';
 import { readingForProgram } from '../lib/programsReport';
 import { programJourney, attemptsOf } from '../lib/programJourney';
 import { useSaveOnArrival } from '../lib/useSaveOnArrival';
@@ -85,6 +86,12 @@ export function LineProgramReportScreen({ wsId, programId }: { wsId: string; pro
         back={{ label: 'Programs', to: `/programs?line=${encodeURIComponent(wsId)}` }}
       />
       {said && <p className="tc-ok" role="status">{said}</p>}
+      {row.status && (
+        <section className="pgs" aria-label="Program status" data-program-status>
+          <div className="pgs-h"><span className="pgs-t">Status</span> <b>{statusSays(row.status, false)}</b></div>
+          {row.status.caveats && <p className="pgs-cav"><span className="sub">Caveats</span> {row.status.caveats}</p>}
+        </section>
+      )}
       {row.note && <p className="sub">{row.note}</p>}
       {row.proof && <p className="sub">{row.proof.word}</p>}
       {(journey?.attempts ?? []).map((a, i) => (
@@ -94,7 +101,8 @@ export function LineProgramReportScreen({ wsId, programId }: { wsId: string; pro
         </section>
       ))}
       {(row.tests ?? []).map((t, i) => (
-        <p key={i} className="sub"><span className={'is-' + t.tone}>{t.badge}</span> {t.text}{t.split ? ` — ${t.split}` : ''}</p>
+        <p key={i} className="sub"><span className={'is-' + t.tone}>{t.badge}</span> {t.text}{t.split ? ` — ${t.split}` : ''}
+          {(t.notes ?? []).map((n, k) => <span key={k} className="lpr-note" style={{ display: 'block' }}>Note: {n}</span>)}</p>
       ))}
     </div>
   );
