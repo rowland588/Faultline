@@ -26,6 +26,7 @@
  * Nothing worked out is stored: every figure and sentence comes from
  * lib/ie/changeover on each render. A chip writes on its tap; a box writes
  * when it is left, never on a keystroke. */
+import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStudy, getWorkspace, listStandardsForLine, onDataChange, patchStudy, putStandard } from '../../db';
 import { useAccess } from '../../cloud/access';
@@ -349,6 +350,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
       <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
         <LeanActions actions={lean.actions} empty={lean.actionsEmpty} />
       </LeanPanel>
+      <Commentary s={s} canEdit={can.edit} title="Notes" />
       <UsedFor s={s} can={can} me={me} />
       <LeanClosing closing={lean.closing} />
 

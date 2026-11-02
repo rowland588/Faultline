@@ -14,6 +14,7 @@
  * better raises the fix or the countermeasure with the figure in its words).
  * Agreed before measured: who is watched, the activities and the shift come
  * first. Nothing worked out is stored; lib/ie/sampling makes every figure. */
+import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStandard, getStudy, onDataChange, patchStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
@@ -118,6 +119,7 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
             Agreed: <b>{agreedWords(a)}</b>
             {can.agree && !closed && <button type="button" className="linkish" onClick={() => setSetting(true)}>Change what was agreed</button>}
           </p>
+          <Commentary s={s} canEdit={can.edit} title="Notes" />
           <UsedFor s={s} can={can} me={me} />
           <Act s={s} a={a} taps={taps} text={said.text} can={can} me={me} />
           <LeanPanel title="Action plan" className="ln-solo ln-plan-p">

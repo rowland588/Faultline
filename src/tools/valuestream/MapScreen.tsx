@@ -18,6 +18,7 @@
  * reading (lib/ie/steps); the grid; the steps, one tap to change; today or
  * the future state, copied from today and changed, before → after said; and
  * what it is used for on its job. */
+import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStandard, getStudy, getWorkspace, onDataChange, patchStudy } from '../../db';
 import { peopleOf } from '../linestandard/standard';
@@ -265,6 +266,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
         <LeanActions actions={raisedFrom(s, steps, tests, step => list.find(x => x.id === step)?.name)} empty="Nothing raised from it yet — tap a red step's wait or waste and Make it better." />
       </LeanPanel>
+      <Commentary s={s} canEdit={can.edit} title="Notes" />
       <UsedFor s={s} can={can} me={me} />
       <LeanClosing closing={flowClosing(f, a)} />
 

@@ -185,6 +185,13 @@ function histBlock(f: SampleFigures, a: AgreedReadings): Block | undefined {
  *  reading in the order taken, ten to a row, struck ones said so. Pass or
  *  fail: checked, failed, allowed and what it proves, then each one good or
  *  failed by its number (knowledge/specs/FC-094-capability.md §7). */
+/** THE NOTES WRITTEN ON A STUDY, as its paper ends (Rowland, 2 November: "ensure commentary is on every tool and is onto reports") — under any tool's
+ *  own blocks, only when there are some; capability and reliability print theirs inside their own blocks, so they are left out here. */
+export function notesTail(s: ToolStudy): Block[] {
+  if (s.tool === 'capability' || s.tool === 'reliability') return [];
+  return (s.facts.remarks ?? []).some(r => !r.struck) ? [label('Notes'), ...remarksBlocks(s.facts.remarks)] : [];
+}
+
 /** The capability study's paper: its figures, then the notes written while it ran (Rowland, 2 November) — only when there are some. */
 function capabilityBlocks(s: ToolStudy): Block[] {
   const out = capabilityFigures(s);
@@ -619,6 +626,9 @@ function smedLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Bloc
  *  says, its own table, the action plan and the closing line, from the same
  *  builders the page reads (lib/ie/sampleLean, samplingLean, flowLean). */
 function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Block[] {
+  return [...studyLeanCore(p, item, d), ...notesTail(item.s)];
+}
+function studyLeanCore(p: StudiesPaper, item: StudyPaperItem, d: Density): Block[] {
   const { s, where } = item;
   const e = studyEvidence(s, [], p.standards, s.tool === 'scored' && p.history ? { ...(p.ctx ?? {}), studies: p.history } : p.ctx);
   const raised = raisedFrom(s, p.records?.actions ?? [], p.records?.fixes ?? []);
@@ -771,7 +781,10 @@ function logInputOf(p: StudiesPaper, { s, where }: StudyPaperItem) {
  *  its sentence, then its table and figures by tool. The combined line report
  *  (lib/lineBundlePdf) prints each tool's section with these, so the two
  *  papers can never disagree. `i` > 0 opens a gap before it. */
-export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: number, d: Density = 'comfortable'): Block[] {
+export function studyBlocks(p: StudiesPaper, item: StudyPaperItem, i: number, d: Density = 'comfortable'): Block[] {
+  return [...studyBlocksCore(p, item, i, d), ...notesTail(item.s)];
+}
+function studyBlocksCore(p: StudiesPaper, { s, where }: StudyPaperItem, i: number, d: Density = 'comfortable'): Block[] {
   const out: Block[] = [];
   const e = studyEvidence(s, [], p.standards, p.ctx);
   out.push(text({ text: e.title, size: SIZE.h2, style: 'bold', before: i ? gap(d, 'l') : 0, after: 2 }));
@@ -813,10 +826,10 @@ export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: nu
 }
 
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
-  if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'log') { const li = logInputOf(p, p.items[0]); if (li) return logPaperBlocks(li, p.printed, d); }
-  if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'log') { const li = logInputOf(p, p.items[0]); if (li) return [...logPaperBlocks(li, p.printed, d), ...notesTail(p.items[0].s)]; }
+  if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return [...lossLeanBlocks(p, p.items[0], d), ...notesTail(p.items[0].s)];
   if (p.lean && p.items.length === 1 && (['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis', 'calc', 'board', 'scored', 'doc'].includes(p.items[0].s.tool) || registerKeyOf(p.items[0].s))) return studyLeanBlocks(p, p.items[0], d);
-  if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return smedLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return [...smedLeanBlocks(p, p.items[0], d), ...notesTail(p.items[0].s)];
   const out: Block[] = [];
   out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
   out.push(text({ text: p.title, size: SIZE.title, style: 'bold', after: 4 }));

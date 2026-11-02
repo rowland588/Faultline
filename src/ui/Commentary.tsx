@@ -7,18 +7,22 @@ import { now, uid } from '../lib/ids';
 import { niceDay, isoDay } from '../lib/weeks';
 import type { Remark, ToolStudy } from '../lib/study';
 import { LeanPanel } from './Lean';
+import { useSession } from '../cloud/session';
+import { displayName } from '../cloud/team';
 
 const hm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 /** COMMENTARY — what the person at the machine saw and thinks, kept with when
  *  and who; edited where it sits, taken off with Undo, and on the paper. */
 export function Commentary({ s, canEdit, me, title = 'Commentary', hint }: { s: ToolStudy; canEdit: boolean; me?: string; title?: string; hint?: string }) {
+  const { session } = useSession();
+  const who = me ?? (displayName(session?.user.email) || undefined);
   const remarks = useMemo(() => [...(s.facts.remarks ?? [])].sort((x, y) => x.at - y.at), [s.facts.remarks]);
   const [text, setText] = useState('');
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const [showOff, setShowOff] = useState(false);
   const put = (fn: (rs: Remark[]) => Remark[]) => void patchStudy(s.id, cur => ({ facts: { ...cur.facts, remarks: fn(cur.facts.remarks ?? []) } }));
-  const add = () => { const v = text.trim(); if (!v) return; put(rs => [...rs, { id: uid(), at: now(), text: v, ...(me ? { by: me } : {}) }]); setText(''); };
+  const add = () => { const v = text.trim(); if (!v) return; put(rs => [...rs, { id: uid(), at: now(), text: v, ...(who ? { by: who } : {}) }]); setText(''); };
   const live = remarks.filter(r => !r.struck), off = remarks.filter(r => r.struck);
   return (
     <LeanPanel title={title} className="ln-solo rl-remarks">

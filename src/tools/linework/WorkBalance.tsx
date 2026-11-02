@@ -30,6 +30,7 @@
  * raises a fix on whoever is over takt, and the fix's Prove it times the
  * same elements again — a second study on the same product, the newest the
  * one the map reads, the earlier one still opening as itself (?study=). */
+import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getWorkspace, listAllStudies, onDataChange, patchStudy, putStandard, putStudy } from '../../db';
 import { useSession } from '../../cloud/session';
@@ -393,6 +394,7 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
           </button>
         )}
       </div>
+      <Commentary s={study} canEdit={can.edit} title="Notes" />
       <UsedFor s={study} can={can} me={me} />
     </div>
   );

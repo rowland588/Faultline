@@ -6,6 +6,7 @@
  * band with the verdict, the tiles, the sentence and the signals, the picture beside the pad, the action
  * plan and the closing line. The arithmetic is lib/ie/charts, the figures and words ./chart — the paper
  * (lib/studiesPdf chartBlocks) says the same from the same module. */
+import { Commentary } from '../../ui/Commentary';
 import { NextStep } from '../../ui/NextStep';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getStudy, onDataChange, patchStudy } from '../../db';
@@ -129,6 +130,7 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
             Agreed: <b>{agreedWords(a)}</b>
             {can.agree && !closed && <button type="button" className="linkish" onClick={() => setAgreeing(true)}>Change what was agreed</button>}
           </p>
+          <Commentary s={s} canEdit={can.edit} title="Notes" />
           <UsedFor s={s} can={can} me={me} />
           <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
             <LeanActions actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'a signal')} />

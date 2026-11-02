@@ -1,4 +1,5 @@
 /* SCORED REGISTERS — hub, one register’s saved rankings, one record (FC-064 criticality first). */
+import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
@@ -279,6 +280,7 @@ function Record({ s, def, can, onPatch }: {
     <div className="wrap ie ie-scored" data-scored={def.key}>
       <StudyBand page={page} s={s} what={def.title} canEdit={canEdit} canRemove={can.remove} />
       <WhereItSits s={s} can={can} />
+      <Commentary s={s} canEdit={can.edit} title="Notes" />
       <p className="sub">{def.question}</p>
       {problems?.length ? <p className="ie-warn" role="alert">{problems.join(' ')}</p> : null}
       {x?.left?.length ? <p className="ie-warn" role="alert">Left out of the order: {x.left.join(' ')}</p> : null}

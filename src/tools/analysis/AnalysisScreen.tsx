@@ -6,6 +6,7 @@
  * tool's (docs/LEAN-PAGE.md): the band with the verdict, the tiles, the sentence, the picture beside the
  * entry, the checks, the action plan and the closing line. The arithmetic is lib/ie/stats, the figures and
  * words ./analysis — the paper (lib/studiesPdf analysisBlocks) says the same from the same module. */
+import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getStudy, onDataChange, patchStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
@@ -114,6 +115,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
             Agreed: <b>{agreedWords(a)}</b>
             {can.agree && !closed && <button type="button" className="linkish" onClick={() => setAgreeing(true)}>Change what was agreed</button>}
           </p>
+          <Commentary s={s} canEdit={can.edit} title="Notes" />
           <UsedFor s={s} can={can} me={me} />
           <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
             <LeanActions actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'what it found')} />

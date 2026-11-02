@@ -7,6 +7,7 @@
  * A calculation is a study of tool `calc` (lib/study): on a line, in a project, or on none. Its page and its paper are drawn from the
  * definition's own result (./calc, ./defs/<key>) so the screen, the paper and the acceptance script say one thing. Access as the
  * other tools: a team member types the figures (can.edit), the owner deletes (can.remove), a client reads it and takes the paper. */
+import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
@@ -390,6 +391,7 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
           {r && <WhatIf def={def} draft={draft} run={run} canEdit={canEdit} onMakeIt={makeIt} />}
         </div>
       </div>
+      <Commentary s={s} canEdit={can.edit} title="Notes" />
       <UsedFor s={s} can={can} me={me} />
       <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
         <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from what it found." />

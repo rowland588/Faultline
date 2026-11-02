@@ -21,6 +21,7 @@
  * the takt, a method's step and the line's page read it as the line balance
  * it is. The footage stays on the device it was taken on until the cloud
  * takes a study's footage (docs/VIDEO.md, blockers); everything else syncs. */
+import { Commentary } from '../../ui/Commentary';
 import { PageHeader } from '../../ui/parts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteBlobs, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../../db';
@@ -628,6 +629,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
           {can.remove && !gone && <button type="button" className="btn btn-ghost" onClick={() => void deleteFootage()}>Delete the footage</button>}
         </div>
       </section>
+      <Commentary s={s} canEdit={can.edit} title="Notes" />
     </div>
   );
 }

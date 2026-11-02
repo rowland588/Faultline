@@ -1,4 +1,5 @@
 /* BOARDS — hub, one board’s saved views, one record (FC-067 maintenance measures first). */
+import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
@@ -189,6 +190,7 @@ function Record({ s, def, result, siblings, can, onPatch }: {
     <div className="wrap ie ie-board tool-sig-board" data-board={def.key}>
       <StudyBand page={page} s={s} what={def.title} canEdit={canEdit} canRemove={can.remove} />
       <WhereItSits s={s} can={can} />
+      <Commentary s={s} canEdit={can.edit} title="Notes" />
       <p className="sub">{def.question}</p>
       <LeanTiles tiles={result.tiles} />
       <p className="ie-says">{result.sentence}</p>

@@ -8,6 +8,7 @@
  * definition's own reading (./doc, ./defs/<key>) so the screen, the paper and the acceptance script say one thing. Access as the other
  * tools: a team member types the words (can.edit), the owner agrees it and deletes it (can.agree, can.remove), a client reads it and
  * takes the paper. */
+import { Commentary } from '../../ui/Commentary';
 import './doc.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../../db';
@@ -397,6 +398,7 @@ function Record({ s, def, can, me }: { s: ToolStudy; def: DocDef; can: ReturnTyp
           <ReadingView run={run} />
         </div>
       </div>
+      <Commentary s={s} canEdit={can.edit} title="Notes" />
       <UsedFor s={s} can={can} me={me} />
       <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
         <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from what it found." />

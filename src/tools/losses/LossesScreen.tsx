@@ -20,6 +20,7 @@
  * Nothing worked out is stored. The figures and the sentence come from
  * lib/ie/losses on every render, from the count and the line's stops in the
  * window; only at close are they written down, as a receipt. */
+import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getStandard, getStudy, getWorkspace, listObservations, listStandardsForLine, listStudiesForLine, onDataChange, patchStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
@@ -184,6 +185,7 @@ function Losses({ s, line, obs, rate, can, me, constraint, counts }: { s: ToolSt
       {/* WHAT IS TYPED — the count and the running speed, under the eight */}
       {f.enough && detail}
 
+      <Commentary s={s} canEdit={can.edit} title="Notes" />
       <UsedFor s={s} can={can} me={me} />
       <Act s={s} f={f} said={said} can={can} me={me} write={write} />
 

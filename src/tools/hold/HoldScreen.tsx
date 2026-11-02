@@ -4,6 +4,7 @@
  * what it means in money, then the holds — On hold now (one card each: its number, its product and lot, how much, why, how long, who
  * decides by when, what is tied up; Decide), Decided (each fate, who, on what grounds), why holds happen, the action plan (each hold
  * owed a decision) and the closing line. A failed check raises a hold in one tap from here. A client reads and changes nothing. */
+import { Commentary } from '../../ui/Commentary';
 import { useEffect, useMemo, useState } from 'react';
 import { listStudiesForLine, onDataChange } from '../../db';
 import { useSession } from '../../cloud/session';
@@ -119,6 +120,7 @@ function Register({ s, can }: { s: ToolStudy; can: ReturnType<typeof import('../
         primary={mayEdit ? { label: 'Raise a hold', run: () => setRaising({}) } : undefined}
         extra={can.agree && !closed ? [{ label: 'Who decides, and the carrying rate', run: () => setSettings(true) }] : undefined} />
       <WhereItSits s={s} can={can} />
+      <Commentary s={s} canEdit={can.edit} title="Notes" />
       <LeanTiles tiles={holdTiles(f)} className="ie-strip hd-tiles" />
       <div className="ie-says"><p className={'ie-say is-' + said.tone} data-says>{said.text}</p></div>
       {money.map(m => <p key={m} className="sub hd-money" data-money>{m}</p>)}
