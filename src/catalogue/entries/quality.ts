@@ -380,8 +380,9 @@ export const QUALITY: Entry[] = [
     food: 'Film breaks on a wrapper: splice tension measured, reel core observed.',
     depends: ['FC-146', 'FC-148'],
     complexity: 'L', value: 'high', valueWhy: 'Evidence and opinion told apart.',
-    status: 'available', form: 'mode', partOf: 'FC-146', methods: ['rca.fishbone-5whys'], scenarios: ['running', 'quality'], words: ['Ishikawa', 'cause and effect'],
-    built: { where: [], code: ['src/lib/fishbone.ts'], tests: ['src/lib/__tests__/fishbone.test.ts'], acceptance: ['sixm-evidence.mjs'] },
+    status: 'available', form: 'mode', partOf: 'FC-146', methods: ['rca.fishbone-5whys'], scenarios: ['running', 'quality'], words: ['Ishikawa', 'cause and effect'], spec: 'knowledge/specs/FC-148-why-tree.md',
+    built: { where: [], code: ['src/lib/fishbone.ts', 'src/lib/causeCheck.ts', 'src/ui/WhatToCheck.tsx'], tests: ['src/lib/__tests__/fishbone.test.ts', 'src/lib/__tests__/causeCheck.test.ts'], acceptance: ['sixm-evidence.mjs', 'why-tree.mjs'] },
+    limits: ['Choosing what to verify (FC-148 part A): the team rates each cause in three plain levels and ticks the few worth checking; a rating is judgement, never a score — it only orders the list. The check (what, who, by when) is made an action on the board; the whys open only on a confirmed cause (a cause that already has whys is never locked).'],
   },
   {
     id: 'FC-148', name: 'Five whys', discipline: 'rca', sub: 'causes',
@@ -393,8 +394,9 @@ export const QUALITY: Entry[] = [
     food: 'Why did the seal fail → jaw cold → heater fault → connector loose.',
     depends: ['FC-147'],
     complexity: 'S', value: 'high', valueWhy: 'Gets past the symptom.',
-    status: 'available', form: 'mode', partOf: 'FC-146', methods: ['rca.fishbone-5whys'], scenarios: ['running', 'quality'], words: ['5 whys', 'why why'],
-    built: { where: [], code: ['src/lib/sixm.ts'], tests: ['src/lib/__tests__/sixm.test.ts'], acceptance: ['sixm-evidence.mjs'] },
+    status: 'available', form: 'mode', partOf: 'FC-146', methods: ['rca.fishbone-5whys'], scenarios: ['running', 'quality'], words: ['5 whys', 'why why'], spec: 'knowledge/specs/FC-148-why-tree.md',
+    built: { where: [], code: ['src/lib/sixm.ts', 'src/lib/whyTree.ts', 'src/ui/WhyTreeEditor.tsx'], tests: ['src/lib/__tests__/sixm.test.ts', 'src/lib/__tests__/whyTree.test.ts'], acceptance: ['sixm-evidence.mjs', 'why-tree.mjs'] },
+    limits: ['The why tree (FC-148 part B): a why can have several answers; a branch ends at a root or at “Same root as…” a root another branch reached — that way of drawing a shared root is Faultline’s own, no named standard prescribes it. The “five” is a prompt, not a limit. Two devices adding different branches to one cause both keep them; two edits to the same answer’s words are last-writer. Countermeasures can point at one root of the tree.'],
   },
   {
     id: 'FC-149', name: 'Is / is not — specifying the problem', discipline: 'rca', sub: 'structured',

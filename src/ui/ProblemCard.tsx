@@ -36,16 +36,18 @@ import type { PaceAction } from '../lib/actionShapes';
 import type { PaceTodoRow } from '../db';
 import type { Case } from '../types';
 import type { ProblemFacts, StartingWhy } from '../lib/fishbone';
-import { therefore } from '../lib/fishbone';
+import { refIsCause, therefore } from '../lib/fishbone';
 import {
-  blamesAPerson, boneOfStop, boneOfSub, everyWords, holdDue, KNOWN_WORD, SIXM, sixmLabel,
-  type Cause, type Grade, type SixM,
+  blamesAPerson, boneOfStop, boneOfSub, everyWords, holdDue, KNOWN_WORD, SIXM, sixmLabel, WHY_OF_CAUSE,
+  type Cause, type Grade, type SixM, type Why,
 } from '../lib/sixm';
 import { whysFill, type VoiceResult } from '../lib/voice';
 import type { VoiceContext } from '../../api/voice';
 import { statusOfAction } from '../lib/treeBind';
 import { plural } from '../lib/format';
 import { isRoot, lossWords, STATUS_WORD } from './fishbone/layout';
+import { WhatToCheck } from './WhatToCheck';
+import { isTree, readTree, treeSays, whyForest, type WhyNode } from '../lib/whyTree';
 import { StatusGlyph } from './fishbone/marks';
 import { Measure } from './Fishbone';
 import { VoiceNote } from './Voice';
@@ -83,11 +85,21 @@ export function sourceWords(s: NonNullable<Case['source']>): string {
 }
 
 /** One answer in a chain, as the card reads it. */
-export interface Answer { text: string; grade?: Grade; root: boolean }
+export interface Answer { text: string; grade?: Grade; root: boolean; /** how deep in the why tree (a chain: its place in the chain) */ depth?: number; /** "Same root as …" — the root it ends at */ sameAs?: string }
 
 /** A chain's answers in order: the first answer (the cause's own words and
  *  grade), then each why. The root is the last answer of a rooted chain. */
 export function answersOf(c: Cause): Answer[] {
+  if (isTree(c)) {
+    /* a why tree (FC-148): depth first, each answer under what it answers, a branch's end marked */
+    const out: Answer[] = [{ text: c.text.trim(), grade: c.grade, root: false, depth: 0 }];
+    const walk = (n: WhyNode) => {
+      out.push({ text: n.why.text.trim(), grade: n.why.grade, root: n.end === 'root', depth: n.depth, ...(n.end === 'same' && n.sameAs ? { sameAs: n.sameAs.why.text.trim() } : {}) });
+      n.children.forEach(walk);
+    };
+    whyForest(c).top.forEach(walk);
+    return out;
+  }
   const whys = c.whys.filter(w => w.text.trim());
   const all: Answer[] = [
     { text: c.text.trim(), grade: c.grade, root: false },
@@ -214,6 +226,7 @@ export function ProblemCard(p: ProblemCardProps) {
     <article className={'pc is-' + phaseTone(v.phase)} aria-label={`The problem: ${v.problem.title}`}>
       <ProblemPart {...p} />
       <WhyPart {...p} />
+      <WhatToCheck view={v} can={can} today={todayISO()} onSaveCause={p.onSaveCause} onOpenCause={p.onOpenCause} />
       <FixPart {...p} />
       <WorkedPart {...p} />
       {/* A PROBLEM OPENED BY MISTAKE IS REMOVED, NOT CLOSED: closing asks how
@@ -387,13 +400,15 @@ export function Chain({ c, problemTitle, can, onOpen }: { c: Cause; problemTitle
       {/* Spans, not a list: a button holds phrasing content only. */}
       <span className="pc-answers" role="list">
         {answers.map((a, i) => (
-          <span key={i} role="listitem" className={'pc-a' + (a.root ? ' is-root' : '')} style={{ ['--d' as string]: Math.min(i, 5) }}>
+          <span key={i} role="listitem" className={'pc-a' + (a.root ? ' is-root' : '')} style={{ ['--d' as string]: Math.min(a.depth ?? i, 5) }}>
             <span className="pc-a-t">{a.text || 'An answer with no words yet'}</span>
             {a.grade && <span className="pc-known">{KNOWN_WORD[a.grade]}</span>}
             {a.root && <span className="pc-root">the root</span>}
+            {a.sameAs && <span className="pc-known">same root as “{a.sameAs}”</span>}
           </span>
         ))}
       </span>
+      {isTree(c) && c.whys.some(w => w.text.trim()) && <span className="pc-look">{treeSays(c)}</span>}
       {/* Read back from the root to the head, one link a line — each has to hold. */}
       {back.length > 0 && <span className="pc-backs">{back.map((l, i) => <span key={i} className="pc-back">{l}.</span>)}</span>}
       {look && <span className="pc-look">{root ? 'Told, not seen — go and look before acting on it.' : 'Go and look before the next why.'}</span>}
@@ -474,6 +489,15 @@ function WhysReview({ heard, problem, under, onSave, onDiscard }: {
  *  person marks the root when it is one. */
 export function chainWithWhys(c: Cause, words: string[], newId: () => string): Cause {
   const said = words.map(w => w.trim()).filter(Boolean);
+  if (isTree(c)) {
+    /* a why tree (FC-148): the spoken chain goes on under the last open branch (else under the cause), each answering the one before */
+    let under: string = WHY_OF_CAUSE;
+    const open = readTree(c).open;
+    if (open.length) under = open[open.length - 1].id;
+    const added: Why[] = [];
+    said.forEach(text => { const id = newId(); added.push({ id, text, grade: 'reported' as const, of: under }); under = id; });
+    return { ...c, whys: [...c.whys, ...added] };
+  }
   return { ...c, whys: [...c.whys, ...said.map(text => ({ id: newId(), text, grade: 'reported' as const }))] };
 }
 
@@ -546,7 +570,7 @@ export function FixPart({ view: v, can, onAddFix, onOpenFix }: ProblemCardProps)
  *  page, so the two say a fix in the same words. */
 export function FixRows({ view: v, fixes, onOpenFix }: { view: ProblemView; fixes: PaceAction[]; onOpenFix: (a: PaceAction) => void }) {
   const chains = v.bones.flatMap(b => b.causes);
-  const causeOf = (a: PaceAction) => chains.find(c => a.causeRef === `${v.problem.id}:${c.id}`);
+  const causeOf = (a: PaceAction) => chains.find(c => refIsCause(a.causeRef, v.problem.id, c.id));
   return (
     <ul className="pc-fixes">
       {fixes.map(a => {
@@ -577,7 +601,7 @@ export function FixRows({ view: v, fixes, onOpenFix }: { view: ProblemView; fixe
 
 /** The fixes pointing at one chain (its causeRef). */
 export const fixesOf = (v: ProblemView, c: Cause): PaceAction[] =>
-  v.actions.filter(a => a.causeRef === `${v.problem.id}:${c.id}`);
+  v.actions.filter(a => refIsCause(a.causeRef, v.problem.id, c.id));
 
 /** ONE CHAIN'S FIX — the fishbone page's cause panel: the fixes pointing at
  *  this chain, in the card's words, and "+ Add a fix" on it (the cause sheet

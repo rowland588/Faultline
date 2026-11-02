@@ -14,7 +14,7 @@ import type { PaceAction } from '../../lib/actionShapes';
 import type { NodeStatus } from '../../db/rows';
 import { plural } from '../../lib/format';
 import { statusOfAction } from '../../lib/treeBind';
-import { causeRefOf } from '../../lib/fishbone';
+import { refIsCause } from '../../lib/fishbone';
 
 /** One mark on a bone: a cause, or something the data suggests. */
 export type Item =
@@ -89,7 +89,7 @@ const FIX_WORD: Record<NodeStatus, string> = { r: 'past due', a: 'waiting', w: '
 /** The actions that are this cause's fixes — their causeRef points at it
  *  (lib/fishbone causeRefOf, the same match countermeasuresFor makes). */
 export const fixesOf = (actions: PaceAction[], problemId: string, causeId: string): PaceAction[] =>
-  actions.filter(a => a.causeRef === causeRefOf(problemId, causeId));
+  actions.filter(a => refIsCause(a.causeRef, problemId, causeId));
 
 /** What a cause's fixes say from across the room: how many, and the worst
  *  state in the board's own words and tone (statusOfAction — the rule the

@@ -86,8 +86,30 @@ export interface CauseSource {
   tool?: 'balance' | 'map' | 'changeover' | 'losses' | 'sampling';
 }
 
-/** One "why" in the chain under a cause; the last one is the root. */
-export interface Why { id: string; text: string; grade?: Grade }
+/** One "why" under a cause — a node of the why tree (FC-148, knowledge/specs/FC-148-why-tree.md).
+ *  A cause written before the tree is a chain: no why has `of`, each answers the one before it, and
+ *  the last is the root when `Cause.root` says so. In tree mode (any why has `of`) `of` names the why
+ *  this one answers, or WHY_OF_CAUSE for an answer to the cause itself. */
+export interface Why {
+  id: string;
+  text: string;
+  grade?: Grade;
+  /** The why this answers; WHY_OF_CAUSE when it answers the cause. Absent in a legacy chain. */
+  of?: string;
+  /** A branch that ends here: something that can be put right so it does not come back. */
+  root?: boolean;
+  /** A branch that ends at a root another branch reached — that why's id (Faultline's own link). */
+  sameAs?: string;
+}
+/** `Why.of` for a why that answers the cause itself. */
+export const WHY_OF_CAUSE = 'cause';
+
+/** How likely a suspected cause is, and how much of the problem it could explain — the team's own
+ *  judgement in three plain words each, never multiplied (FC-148 part A). */
+export type Likely = 'unlikely' | 'possible' | 'likely';
+export type Explains = 'little' | 'some' | 'most';
+/** The check that would confirm or rule a cause out: what, who, by when (a day, ISO). */
+export interface CauseCheck { what?: string; who?: string; by?: string }
 
 /** A cause on a bone of the fishbone. Stored on the problem (cases.causes)
  *  as a list merged by id, so two devices adding causes both keep theirs. */
@@ -98,9 +120,17 @@ export interface Cause {
   grade: Grade;
   status: CauseStatus;
   source?: CauseSource;
-  /** The five whys, drilled from this cause down. A second line of reasoning
-   *  is a second cause on the bone — the chains branch that way. */
+  /** The whys drilled from this cause down — a tree since FC-148 (a legacy chain reads as one branch). */
   whys: Why[];
+  /** FC-148 part A — choosing what to verify: the team's rating, the tick, the check and what it found. */
+  likely?: Likely;
+  explains?: Explains;
+  /** Ticked: worth checking before it is drilled. */
+  tick?: boolean;
+  check?: CauseCheck;
+  found?: string;
+  /** The board action made for the check (pace_todos id), so it is not made twice. */
+  checkAction?: string;
   /** The chain has reached a cause the team can act on and that passes the
    *  "therefore" test read back up to the problem. */
   root?: boolean;
