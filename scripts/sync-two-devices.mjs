@@ -557,6 +557,8 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
      stage), then given what it runs on its row — which makes its program
      record: both tables travel (16 October, docs/STAGEGATE-UX.md). */
   await go(p, `/project/${pid}/programs`);
+  /* Programs opens on Needs you (C5); adding a program is under All */
+  await p.locator('.pp-chip', { hasText: /^All/ }).first().click().catch(() => {});
   await p.getByRole('button', { name: /^\+ Add a program to the Case packer/ }).click();
   await p.getByLabel('Add a program to Case packer').fill('P-104 perforation');
   await p.getByRole('button', { name: 'Add', exact: true }).click();
