@@ -6,7 +6,7 @@ discipline: rca
 kind: established
 evidence: textbook
 depth: full
-checked: 2026-10-22 — Ishikawa (1982) and Ohno (1988, the five whys); Faultline's 6M (bones People, Machine, Method, Material, Measurement, Environment; each cause says how it is known) in docs/SIXM.md and docs/OPEX.md, src/lib/sixm.ts, proved by sixm tests and scripts/acceptance/sixm-evidence.mjs
+checked: 2026-11-02 — the cause-selection and branching practice read from secondary sources (Wikipedia, Mind Tools, Kainexus, ThinkReliability; Ishikawa, Ohno and Liker from memory, to be checked against the books — knowledge/GAPS.md); earlier 2026-10-22 — Ishikawa (1982) and Ohno (1988, the five whys); Faultline's 6M (bones People, Machine, Method, Material, Measurement, Environment; each cause says how it is known) in docs/SIXM.md and docs/OPEX.md, src/lib/sixm.ts, proved by sixm tests and scripts/acceptance/sixm-evidence.mjs
 needs: [quality.pareto]
 next: [rca.pdca, stats.doe-factorial, rca.horizontal-deployment]
 alternatives: [rca.is-is-not, rca.fault-tree, rca.eight-d]
@@ -34,10 +34,14 @@ the team that knows the process; evidence from the tools.
 Causes per bone; why-chains; evidence links; countermeasures with owner and
 date; before → after on the problem's number (`stats.two-sample-tests`).
 
+**Choosing what to verify, and the why tree (FC-148, 2 November).**
+After the fishbone the team **selects the most likely causes and verifies them before asking why** — brainstorm for breadth, select, verify with data or by going to see, then drill (Ishikawa 1982; Ohno 1988 and Liker 2004 on *genchi genbutsu*; ASQ's cause-and-effect guidance). A vote is a priority, not proof: Faultline orders the list by the team's own three-level rating (how likely, how much of the problem) and never multiplies them. The five whys **branches**: a why can have several answers and each branch is questioned until it reaches a root; there is no fixed depth ("five" is a rule of thumb) — Wikipedia *Five whys*, Mind Tools *5 Whys*, Kainexus *5 root cause analysis techniques*, ThinkReliability *Top criticisms of the 5-why approach*. That branches may end at a root another branch reached is Faultline's own way of drawing a systemic cause (training, scheduling, maintenance planning), said so on the page. `knowledge/specs/FC-148-why-tree.md`.
+
 ## Assumptions, limits and misuse
 - A fishbone of opinions with no evidence is a brainstorm, not an analysis.
 - Stopping the whys at "operator error".
-- One cause chosen before the data.
+- One cause chosen before the data — which is why the whys open on a confirmed cause.
+- A single chain: it follows one line of inquiry and different people reach different roots; a tree does not.
 
 ## Reading the result
 "Film breaks: three causes measured (splice tension, reel core, jaw temp), two observed; the splice fix cut breaks 61%, holding 4 weeks."
