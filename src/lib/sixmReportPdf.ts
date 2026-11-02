@@ -525,17 +525,30 @@ function problemBlocks(p: ProblemRep, d: Density, out: Block[]): void {
   /* --------------------------------- Why --------------------------------- */
   add(part('Why', p.whySays));
   if (p.suggested) add(text({ text: p.suggested, size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
+  if (p.checks.length) {
+    /* FC-148 part A — the causes thought of and checked, ruled-out ones kept with what the check found */
+    add({ ...text({ text: `Causes thought of and checked${p.checkSays ? ` — ${p.checkSays}` : ''}`, size: SIZE.small, style: 'bold', colour: INK2, before: 3, after: 2 }), keepWithNext: true });
+    p.checks.forEach(r => add(text({
+      text: `${r.cause} · ${r.bone} · ${r.rating} · ${r.check} · ${r.state}${r.found !== '—' ? ` · It found: ${r.found}` : ''}`,
+      size: SIZE.small, colour: INK2, indent: 12, after: 1,
+    })));
+    add(text({ text: 'Ratings are the team’s judgement, not measurements; the check decides.', size: SIZE.tiny, colour: MUTED, indent: 12, after: gap(d, 's') }));
+  }
   for (const ch of p.chains) {
     /* The chain's bone, how sure, and whether its root is found — then its
-       answers in order, each with how it is known, the root in bold. */
+       answers in order, each with how it is known, the root in bold. A why
+       tree (FC-148) prints depth first, each branch's end in words. */
     add({ ...text({ text: ch.head + (ch.from ? `  ·  ${ch.from}` : ''), size: SIZE.small, style: 'bold', colour: ch.state === 'out' ? MUTED : INK2, before: 3, after: 2 }), keepWithNext: true });
+    if (ch.says) add({ ...text({ text: ch.says, size: SIZE.small, colour: INK2, indent: 22, after: 2 }), keepWithNext: true });
+    if (ch.checked) add({ ...text({ text: ch.checked, size: SIZE.small, colour: MUTED, indent: 22, after: 2 }), keepWithNext: true });
     ch.answers.forEach((a, i) => {
       const last = i === ch.answers.length - 1;
+      const isRoot = a.tag ? a.tag === 'the root' : last && ch.state === 'root';
       add({
         ...text({
-          text: `${a.text}${a.known ? ` (${a.known})` : ''}${last && ch.state === 'root' ? ' — the root' : ''}`,
-          size: SIZE.body - 0.5, colour: ch.state === 'out' ? MUTED : INK, indent: 22, bullet: `${i + 1}`, after: 2,
-          style: last && ch.state === 'root' ? 'bold' : 'normal',
+          text: `${a.text}${a.known ? ` (${a.known})` : ''}${a.tag ? ` — ${a.tag}` : isRoot ? ' — the root' : ''}`,
+          size: SIZE.body - 0.5, colour: ch.state === 'out' ? MUTED : INK, indent: 22 + (a.depth && a.depth > 1 ? (a.depth - 1) * 8 : 0), bullet: `${i + 1}`, after: 2,
+          style: isRoot ? 'bold' : 'normal',
         }),
         keepWithNext: !last || ch.therefore.length > 0,
       });

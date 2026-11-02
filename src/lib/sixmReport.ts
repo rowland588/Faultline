@@ -13,6 +13,8 @@ import type { Case } from '../types';
 import type { PaceTodoRow } from '../db/rows';
 import type { Phase, ProblemView } from './problems';
 import { PHASE_WORD } from './problems';
+import { checkRows, checkWords, stepSays } from './causeCheck';
+import { isTree, treeSays, whyForest, type WhyNode } from './whyTree';
 import { KNOWN_WORD, SIXM, everyWords, holdDue, sixmLabel, toSixM, type Cause, type CauseStatus, type Grade, type SixM } from './sixm';
 import type { FishboneData } from './fishbone';
 import { factsOf, lineCapacityOf, therefore } from './fishbone';
@@ -102,7 +104,11 @@ export interface CounterRep {
  *  written, then each "why?"), each with how it is known. */
 export interface ChainRep {
   cause: CauseRep;
-  answers: { text: string; known?: string }[];
+  answers: { text: string; known?: string; /** how deep in the why tree (FC-148); absent in a chain */ depth?: number; /** the end of a branch, in words: "the root", "same root as …", "not yet at a root" */ tag?: string }[];
+  /** A why tree's sentence — branches, roots, shared roots, what is open (lib/whyTree treeSays); only for a tree. */
+  says?: string;
+  /** What the team rated, checked and found for this cause (FC-148 part A), in words. */
+  checked?: string;
   /** The last answer is the root · still being found · ruled out. */
   state: 'root' | 'open' | 'out';
   /** The chain's bone, status and state in words: "Machine · confirmed · root found". */
@@ -148,6 +154,10 @@ export interface ProblemRep {
   chains: ChainRep[];
   /** "3 chains — 1 root found · 1 still being found · 1 ruled out". */
   whySays: string;
+  /** FC-148 part A — the causes thought of and checked: the sentence (lib/causeCheck stepSays) and a row each, only
+   *  when something was rated, ticked or found. Ruled-out causes stay, with what the check found. */
+  checkSays?: string;
+  checks: { cause: string; bone: string; rating: string; check: string; found: string; state: string }[];
   /** What the data suggests and nobody has looked at yet, per bone. */
   suggested: string;
   /** Said when nothing is on the fishbone yet. */
@@ -405,10 +415,20 @@ export function sixmReport(o: SixMInput): SixMReport {
     const chains: ChainRep[] = causes.map(c => {
       const rep = repOf(c);
       const state: ChainRep['state'] = rep.root ? 'root' : c.status === 'ruled_out' ? 'out' : 'open';
-      const answers = [{ text: c.text, ...(rep.grade ? { known: rep.grade } : {}) },
-        ...c.whys.filter(x => x.text.trim()).map(x => ({ text: x.text, ...(x.grade ? { known: GRADE_WORD(x.grade) } : {}) }))];
+      const answers: ChainRep['answers'] = [{ text: c.text, ...(rep.grade ? { known: rep.grade } : {}) }];
+      if (isTree(c)) {
+        const walk = (n: WhyNode) => {
+          answers.push({ text: n.why.text, ...(n.why.grade ? { known: GRADE_WORD(n.why.grade) } : {}), depth: n.depth,
+            ...(n.end === 'root' ? { tag: 'the root' } : n.end === 'same' && n.sameAs ? { tag: `same root as “${n.sameAs.why.text}”` } : n.end === 'open' ? { tag: 'not yet at a root' } : {}) });
+          n.children.forEach(walk);
+        };
+        whyForest(c).top.forEach(walk);
+      } else answers.push(...c.whys.filter(x => x.text.trim()).map(x => ({ text: x.text, ...(x.grade ? { known: GRADE_WORD(x.grade) } : {}) })));
+      const chk = checkWords(c);
       return {
         cause: rep, answers, state,
+        ...(isTree(c) && c.whys.some(x => x.text.trim()) ? { says: treeSays(c) } : {}),
+        ...(chk ? { checked: chk } : {}),
         head: [rep.bone, rep.statusWord, state === 'root' ? 'root found' : state === 'out' ? '' : 'still being found'].filter(Boolean).join(' · '),
         ...(rep.from || rep.by ? { from: [rep.from ? `from ${rep.from}` : '', rep.by ?? ''].filter(Boolean).join(' · ') } : {}),
         therefore: state === 'root' ? therefore(c, p.title) : [],
@@ -489,6 +509,8 @@ export function sixmReport(o: SixMInput): SixMReport {
       ...(from ? { from } : {}),
       is: facts.is.filter(x => x.trim()), isNot: facts.isNot.filter(x => x.trim()),
       chains,
+      ...(checkRows(causes, today).length ? { checkSays: stepSays(causes, today) } : {}),
+      checks: checkRows(causes, today),
       whySays: chains.length ? [plural(chains.length, 'chain'), nRoot ? `${nRoot} root found` : 'no root found yet', nOpen ? `${nOpen} still being found` : '', nOut ? `${nOut} ruled out` : ''].filter(Boolean).join(' · ') : '',
       suggested: nSugg ? `The data suggests ${plural(nSugg, causes.length ? 'more cause' : 'cause')} not yet looked at — on ${listWords(sugg.map(b => sixmLabel(b.m)))}.` : '',
       /* With chains, Why's count says there is no root yet and each chain says

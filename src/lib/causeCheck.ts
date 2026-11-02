@@ -7,7 +7,7 @@
  *
  * Nothing here touches the database or React. No AI, no number invented. */
 import { dayWords } from './kaizenEvent';
-import { KNOWN_WORD, type Cause, type Explains, type Likely } from './sixm';
+import { KNOWN_WORD, sixmLabel, type Cause, type Explains, type Likely } from './sixm';
 import type { PaceTodoRow } from '../db/rows';
 
 export const LIKELY_LEVELS: { key: Likely; label: string }[] = [
@@ -90,6 +90,32 @@ export function stepSays(causes: Cause[], today: string): string {
     bits.push(`${checking.length} checking${due}`);
   }
   return `${ticked} of ${n} cause${n === 1 ? '' : 's'} ticked to check${bits.length ? ` — ${bits.join(', ')}` : ''}.`;
+}
+
+/** What the team rated, checked and found for one cause, in words — the paper's and the card's line. Empty when nothing was. */
+export function checkWords(c: Cause): string {
+  const said = [c.likely ? likelyWord(c.likely) : '', c.explains ? explainsWord(c.explains) : ''].filter(Boolean);
+  const k = c.check ?? {};
+  const bits: string[] = [];
+  if (said.length) bits.push(`Rated ${said.join(' · ').toLowerCase()} (the team’s judgement)`);
+  if (c.tick) bits.push(`ticked to check${k.what?.trim() ? `: ${k.what.trim()}` : ''}${k.who?.trim() ? ` — ${k.who.trim()}` : ''}${k.by ? `, by ${dayWords(k.by)}` : ''}`);
+  if (c.found?.trim()) bits.push(`the check found: ${c.found.trim()}`);
+  const out = bits.join('; ');
+  return out ? `${out.charAt(0).toUpperCase()}${out.slice(1)}.` : '';
+}
+
+/** A row a cause for the paper's “causes thought of and checked” table — only when something was rated, ticked or found. */
+export function checkRows(causes: Cause[], today: string): { cause: string; bone: string; rating: string; check: string; found: string; state: string }[] {
+  return orderForCheck(causes).filter(c => c.likely || c.explains || c.tick || c.found?.trim()).map(c => {
+    const k = c.check ?? {};
+    return {
+      cause: c.text, bone: sixmLabel(c.m),
+      rating: [c.likely ? likelyWord(c.likely) : '', c.explains ? explainsWord(c.explains) : ''].filter(Boolean).join(' · ') || 'Not rated',
+      check: c.tick ? [k.what?.trim(), k.who?.trim(), k.by ? `by ${dayWords(k.by)}` : ''].filter(Boolean).join(' — ') || 'No check written' : 'Not ticked',
+      found: c.found?.trim() || (c.status === 'suspected' ? '—' : 'Nothing written'),
+      state: checkStateOf(c, today).word,
+    };
+  });
 }
 
 /** The check as an action on the board: a check is an action — who, by when — never a separate list. It points at no

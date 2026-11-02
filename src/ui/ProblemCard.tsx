@@ -38,8 +38,8 @@ import type { Case } from '../types';
 import type { ProblemFacts, StartingWhy } from '../lib/fishbone';
 import { refIsCause, therefore } from '../lib/fishbone';
 import {
-  blamesAPerson, boneOfStop, boneOfSub, everyWords, holdDue, KNOWN_WORD, SIXM, sixmLabel,
-  type Cause, type Grade, type SixM,
+  blamesAPerson, boneOfStop, boneOfSub, everyWords, holdDue, KNOWN_WORD, SIXM, sixmLabel, WHY_OF_CAUSE,
+  type Cause, type Grade, type SixM, type Why,
 } from '../lib/sixm';
 import { whysFill, type VoiceResult } from '../lib/voice';
 import type { VoiceContext } from '../../api/voice';
@@ -47,7 +47,7 @@ import { statusOfAction } from '../lib/treeBind';
 import { plural } from '../lib/format';
 import { isRoot, lossWords, STATUS_WORD } from './fishbone/layout';
 import { WhatToCheck } from './WhatToCheck';
-import { isTree, treeSays, whyForest, type WhyNode } from '../lib/whyTree';
+import { isTree, readTree, treeSays, whyForest, type WhyNode } from '../lib/whyTree';
 import { StatusGlyph } from './fishbone/marks';
 import { Measure } from './Fishbone';
 import { VoiceNote } from './Voice';
@@ -489,6 +489,15 @@ function WhysReview({ heard, problem, under, onSave, onDiscard }: {
  *  person marks the root when it is one. */
 export function chainWithWhys(c: Cause, words: string[], newId: () => string): Cause {
   const said = words.map(w => w.trim()).filter(Boolean);
+  if (isTree(c)) {
+    /* a why tree (FC-148): the spoken chain goes on under the last open branch (else under the cause), each answering the one before */
+    let under: string = WHY_OF_CAUSE;
+    const open = readTree(c).open;
+    if (open.length) under = open[open.length - 1].id;
+    const added: Why[] = [];
+    said.forEach(text => { const id = newId(); added.push({ id, text, grade: 'reported' as const, of: under }); under = id; });
+    return { ...c, whys: [...c.whys, ...added] };
+  }
   return { ...c, whys: [...c.whys, ...said.map(text => ({ id: newId(), text, grade: 'reported' as const }))] };
 }
 

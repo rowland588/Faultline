@@ -241,13 +241,24 @@ function ProblemParts({ p }: { p: SixMReport['problems'][number] }) {
       <div className="cr-part">
         <p className="cr-part-h">Why{p.whySays && <small> · {p.whySays}</small>}</p>
         {p.suggested && <span className="sub">{p.suggested}</span>}
+        {p.checks.length > 0 && (
+          <div className="cr-chain" aria-label="Causes thought of and checked">
+            <span className="cr-chain-h">Causes thought of and checked{p.checkSays ? ` · ${p.checkSays}` : ''}</span>
+            {p.checks.map((r, i) => (
+              <span key={i} className="cr-cm">{r.cause} · {r.bone} · {r.rating} · {r.check} · {r.state}{r.found !== '—' ? ` · It found: ${r.found}` : ''}</span>
+            ))}
+            <span className="sub">Ratings are the team’s judgement, not measurements; the check decides.</span>
+          </div>
+        )}
         {p.chains.map(ch => (
           <div key={ch.cause.id} className={'cr-chain' + (ch.state === 'out' ? ' is-out' : '')}>
             <span className="cr-chain-h">{ch.head}{ch.from ? ` · ${ch.from}` : ''}</span>
+            {ch.says && <span className="sub">{ch.says}</span>}
+            {ch.checked && <span className="sub">{ch.checked}</span>}
             <ol>
               {ch.answers.map((a, i) => {
-                const root = ch.state === 'root' && i === ch.answers.length - 1;
-                return <li key={i} className={root ? 'is-root' : undefined}>{a.text}{a.known ? ` (${a.known})` : ''}{root ? ' — the root' : ''}</li>;
+                const root = a.tag ? a.tag === 'the root' : ch.state === 'root' && i === ch.answers.length - 1;
+                return <li key={i} className={root ? 'is-root' : undefined}>{a.depth && a.depth > 1 ? `${'– '.repeat(a.depth - 1)}` : ''}{a.text}{a.known ? ` (${a.known})` : ''}{a.tag ? ` — ${a.tag}` : root ? ' — the root' : ''}</li>;
               })}
             </ol>
             {ch.therefore.length > 0 && <span className="sub">Read back from the root: {ch.therefore.join('; ')}</span>}
