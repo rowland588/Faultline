@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ABANDON_REASONS, abandonReady, abandonedRemark, abandonedSays } from '../abandon';
+import { ABANDON_REASONS, abandonReady, abandonedRemark, abandonedSays, callOf, callRemark, callSays } from '../abandon';
 import { studySays } from '../studyLinks';
 import type { ToolStudy } from '../study';
 
@@ -24,5 +24,20 @@ describe('abandoning a test', () => {
     const said = studySays(s);
     expect(said.verdict).toBe('Abandoned');
     expect(said.tone).toBe('a');
+  });
+  it('is one call — failed, passed or abandoned — read the same everywhere', () => {
+    const readings = { text: '11 of 20 checked — all good so far.', tone: 'w', verdict: '11 of 20 in' } as never;
+    const over = { verdict: 'Didn’t pass', why: 'machine fault: left jaw heater tripped', at: 5, by: 'Rowland' };
+    expect(callOf({ facts: {}, overrule: undefined })).toBeUndefined();
+    expect(callOf({ facts: {}, overrule: over })).toMatchObject({ call: 'failed', by: 'Rowland' });
+    expect(callOf({ facts: {}, overrule: { ...over, verdict: 'Passed' } })?.call).toBe('passed');
+    expect(callOf({ facts: { abandoned: a }, overrule: undefined })?.call).toBe('abandoned');
+    const failed = callSays({ facts: {}, overrule: over }, readings);
+    expect(failed).toMatchObject({ verdict: 'Failed', tone: 'r' });
+    expect(failed.text).toBe('Failed — called by Rowland: machine fault: left jaw heater tripped. The readings said: 11 of 20 in.');
+    expect(callSays({ facts: {}, overrule: undefined }, readings)).toBe(readings);
+    expect(callSays({ facts: { abandoned: a }, overrule: undefined }, readings).verdict).toBe('Abandoned');
+    expect(callRemark('failed', 'Machine fault', 'jaw', 11)).toBe('Test called failed — machine fault: jaw.');
+    expect(callRemark('abandoned', 'Machine fault', '', 1)).toBe('Test abandoned — machine fault (1 reading taken).');
   });
 });

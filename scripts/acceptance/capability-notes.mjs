@@ -6,7 +6,7 @@
  *   2b a Back to the test button at the top of the study, going to the test it proves
  *   3  a note edited where it sits, deleted and brought back with Undo
  *   4  the note on the study's paper, read back
- *   6  Abandon the test: a reason chosen (words required for “Something else”), kept with the readings it had, the page, the commentary and the paper saying so, a criterion not reading it as passed, taken up again
+ *   6  End the test — one control: Fail the test (a total fail, with its reason, in the headline verdict, the notes and the criterion), changed to Abandon, readings still editable, the paper saying it, the call taken back
  *   5  a client (read only) sees the note and no box to write in; the phone fits
  *   node scripts/acceptance/capability-notes.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
@@ -83,26 +83,43 @@ const f = join(dir, 'study.pdf'); await d.saveAs(f);
 const txt = flat(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }));
 ok(/notes/i.test(txt) && txt.includes('loosened at 10:40'), '4 the note is on the study’s paper', txt.slice(-400));
 
-/* 6 abandon the test, with a reason (Rowland, 2 November) */
-await page.getByRole('button', { name: 'Abandon the test', exact: true }).click();
-ok(await page.getByRole('button', { name: 'Abandon it' }).isDisabled(), '6 no reason chosen — Abandon it held');
+/* 6 end the test — one control, three calls, each with its reason (Rowland, 2 November: "a total fail on the tests … abandoned,
+   overrule … don't save and are confusing") */
+const state = () => page.evaluate(async id => { const x = await (await import('/src/db.ts')).getStudy(id); return { ab: x?.facts.abandoned, over: x?.overrule }; }, sid);
+const band = async () => flat(await page.locator('.ln-band').first().innerText());
+ok((await page.getByRole('button', { name: 'Overrule the verdict' }).count()) === 0, '6 the separate Overrule button is gone — one control');
+await page.getByRole('button', { name: 'Fail the test', exact: true }).click();
+ok(await page.getByRole('button', { name: 'Fail it' }).isDisabled(), '6 no reason chosen — Fail it held');
 await page.getByRole('radio', { name: 'Something else' }).click();
-ok(await page.getByRole('button', { name: 'Abandon it' }).isDisabled(), '6 “Something else” with no words — held');
+ok(await page.getByRole('button', { name: 'Fail it' }).isDisabled(), '6 “Something else” with no words — held');
 await page.getByRole('radio', { name: 'Machine fault' }).click();
 await page.getByLabel('Its reason, in your words').fill('left jaw heater tripped at 10:52');
+await page.getByRole('button', { name: 'Fail it' }).click(); await page.waitForTimeout(500);
+let st = await state();
+ok(st.over?.verdict === 'Didn’t pass' && st.over.why.includes('machine fault: left jaw heater') && !st.ab, '6 failed as a whole, with its reason, saved', JSON.stringify(st));
+ok(/Failed/.test(await band()) && (await page.locator('.ie-say').first().innerText()).startsWith('Failed — called'), '6 the headline verdict and the sentence say Failed, not one line lower down', await band());
+ok((await page.getByRole('button', { name: 'Good', exact: true }).count()) === 1 && (await page.getByRole('button', { name: /^Strike/ }).count()) > 0, '6 still editable — the taps and Strike are there');
+ok((await notes()).some(n => n.startsWith('Test called failed — machine fault')), '6 the notes say it');
+const crit = async () => page.evaluate(async id => { const db = await import('/src/db.ts'); const m = await import('/src/lib/programCriteria.ts'); const L = await import('/src/lib/studyLinks.ts'); const x = await db.getStudy(id); return { line: L.studyLine(x).text, ov: x.overrule?.verdict, ab: x.facts.abandoned?.reason }; }, sid);
+let cr = await crit();
+ok(cr.ov === 'Didn’t pass' && /Overruled: Didn’t pass/.test(cr.line), '6 a program’s criterion reads it as failed', JSON.stringify(cr));
+/* change the call: abandon it */
+await page.getByRole('button', { name: 'Abandon the test', exact: true }).click();
+await page.getByRole('radio', { name: 'Line stopped' }).click();
 await page.getByRole('button', { name: 'Abandon it' }).click(); await page.waitForTimeout(500);
-const ab = await page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id))?.facts.abandoned, sid);
-ok(ab?.reason === 'Machine fault' && ab.why.includes('heater') && ab.taken === before + 3, '6 abandoned with its reason, words and the readings it had', JSON.stringify(ab));
-ok((await page.locator('.ie-say').first().innerText()).startsWith('Abandoned — machine fault: left jaw heater tripped'), '6 the page says Abandoned — machine fault, never passed or failed');
-ok((await page.getByRole('button', { name: 'Good', exact: true }).count()) === 0, '6 the Good and Failed taps are gone');
-ok((await notes()).some(n => n.startsWith('Test abandoned — machine fault')), '6 the commentary says it too');
+st = await state();
+ok(st.ab?.reason === 'Line stopped' && !st.over && st.ab.taken === before + 3, '6 the call changed to abandoned — the fail taken off, the readings it had kept', JSON.stringify(st));
+ok(/Abandoned/.test(await band()) && (await page.getByRole('button', { name: 'Good', exact: true }).count()) === 0, '6 the headline says Abandoned and the taps are gone');
+await page.getByRole('button', { name: /Every reading/ }).click().catch(() => {}); await page.waitForTimeout(300);
+ok((await page.getByRole('button', { name: /^Strike/ }).count()) > 0, '6 the readings are still editable after abandoning (every reading, with Strike and what became of a failed one)');
 const [d2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, / — on paper$/)]);
 const f2 = join(dir, 'abandoned.pdf'); await d2.saveAs(f2);
-ok(/Abandoned — machine fault/.test(flat(execFileSync('pdftotext', ['-raw', f2, '-'], { encoding: 'utf8' }))), '6 the paper says it first');
-const crit = await page.evaluate(async id => { const db = await import('/src/db.ts'); const m = await import('/src/lib/studyLinks.ts'); return m.studySays(await db.getStudy(id)).verdict; }, sid);
-ok(crit === 'Abandoned', '6 a program’s criterion reads it as neither passed nor failed', crit);
-await page.getByRole('button', { name: 'Take the test up again' }).click(); await page.waitForTimeout(500);
-ok((await page.getByRole('button', { name: 'Good', exact: true }).count()) === 1 && !(await page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id))?.facts.abandoned, sid)), '6 taken up again — the taps are back, nothing lost');
+ok(/Abandoned — line stopped/.test(flat(execFileSync('pdftotext', ['-raw', f2, '-'], { encoding: 'utf8' }))), '6 the paper says it first');
+cr = await crit();
+ok(!cr.ov && cr.ab === 'Line stopped', '6 a criterion reads it as abandoned, not passed or failed', JSON.stringify(cr));
+await page.getByRole('button', { name: 'Take the call back' }).click(); await page.waitForTimeout(500);
+st = await state();
+ok(!st.ab && !st.over && (await page.getByRole('button', { name: 'Good', exact: true }).count()) === 1, '6 the call taken back — the test as the readings say, the taps back');
 ok((await readingsN()) === before + 3, '6 every reading still there');
 
 /* 5 the phone */

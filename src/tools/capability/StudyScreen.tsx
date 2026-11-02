@@ -30,7 +30,7 @@ import type { AgreedReadings, StudyAbandoned, StudyReading, ToolStudy } from '..
 import { TOOL_WORDS } from '../../screens/StudiesScreen';
 import { StudyBand } from '../../ui/StudyActs';
 import { Commentary } from '../../ui/Commentary';
-import { ABANDON_REASONS, abandonReady, abandonedRemark, abandonedSays, takenUpRemark } from '../../lib/abandon';
+import { ABANDON_REASONS, CALL_WORD, abandonReady, callOf, callRemark, callSays, takenUpRemark, type TestCall } from '../../lib/abandon';
 import { WhereItSits, UsedFor, BackToTest, useBetter, planEmpty } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
@@ -78,7 +78,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
   const f = useMemo(() => sample(a, readings), [a, readings]);
   /* a test given up reads as Abandoned, with its reason — never passed or failed (lib/abandon) */
   const abandoned = s.facts.abandoned;
-  const said = useMemo((): SampleSays => (abandoned ? { text: abandonedSays(abandoned), tone: 'a', verdict: 'Abandoned' } : sampleSays(f, a)), [f, a, abandoned]);
+  const said = useMemo((): SampleSays => callSays({ facts: { abandoned }, overrule: s.overrule }, sampleSays(f, a)), [f, a, abandoned, s.overrule]);
   const closed = !!s.closedAt;
   const [agreeing, setAgreeing] = useState(false);
   /* ON A PHONE, A STUDY NOT YET FULL MEETS ITS ENTRY FIRST (tools audit, 30 October: the pad sat ~600px down under the tiles):
@@ -126,7 +126,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
         <>
           {entryFirst && entry && <div className="ie-body ie-entry-first">{entry}</div>}
           <LeanTiles tiles={sampleTiles(f, a, said)} className="ie-strip" />
-          <Says said={said} s={s} f={f} a={a} />
+          <Says said={said} f={f} a={a} />
           <NextStep s={s} canEdit={can.edit && !closed} />
           <div className="ie-body">
             {/* W1 — the modes' pictures (./ModeParts): a run or an inspection a bar against its limits, the faults' Pareto, a rate's intervals */}
@@ -471,7 +471,7 @@ export function agreedWords(a: AgreedReadings): string {
 }
 
 /* ------------------------------------------------------------------ says */
-function Says({ said, s, f, a }: { said: SampleSays; s: ToolStudy; f: SampleFigures; a: AgreedReadings }) {
+function Says({ said, f, a }: { said: SampleSays; f: SampleFigures; a: AgreedReadings }) {
   /* BEFORE CAPABILITY — the three checks an index stands on (spc.normality-
      checks), quiet when they pass, amber when they do not */
   const checks = checksSay(f, a);
@@ -489,9 +489,6 @@ function Says({ said, s, f, a }: { said: SampleSays; s: ToolStudy; f: SampleFigu
           <span className="ie-checks-h">Before capability</span>
           {checks.map(c => <p key={c.k} className={'ie-check is-' + c.tone} data-check={c.k}>{c.text}</p>)}
         </div>
-      )}
-      {s.overrule && (
-        <p className="ie-say ie-over"><b>{s.overrule.verdict}</b> · overruled{s.overrule.by ? ` by ${s.overrule.by}` : ''} — {s.overrule.why}</p>
       )}
     </div>
   );
@@ -740,20 +737,28 @@ function Act({ s, f, said, can, me, write }: {
   s: ToolStudy; f: SampleFigures; said: SampleSays; can: ReturnType<typeof canAt>; me?: string;
   write: (p: Parameters<typeof patchStudy>[1]) => void;
 }) {
-  const [over, setOver] = useState<null | { verdict: string; why: string }>(null);
   const [reopen, setReopen] = useState<string | null>(null);
-  const [aband, setAband] = useState<null | { reason: string; why: string }>(null);
+  const [ending, setEnding] = useState<null | { call: TestCall; reason: string; why: string }>(null);
   const closed = !!s.closedAt;
   const by = me ? { by: me } : {};
-  /* ABANDONING THE TEST, WITH A REASON (Rowland, 2 November) — kept with when and who, written into the notes too, and taken up again with one tap */
-  const abandon = (reason: string, why: string) => write(cur => {
-    const a: StudyAbandoned = { at: now(), ...by, reason, ...(why.trim() ? { why: why.trim() } : {}), taken: (cur.facts.readings ?? []).filter(r => !r.struck).length };
-    return { facts: { ...cur.facts, abandoned: a, remarks: [...(cur.facts.remarks ?? []), { id: uid(), at: a.at, text: abandonedRemark(a), ...by }] } };
-  });
-  const takeUp = () => write(cur => {
+  /* ENDING THE TEST — one control, three calls (lib/abandon): Failed and Passed are the study's overrule over the readings, Abandoned is
+     kept with the readings it had. Each carries its reason, is written into the notes, can be changed or taken back, and leaves every
+     reading — and what became of each failed item — editable (Rowland, 2 November). */
+  const callIt = (call: TestCall, reason: string, why: string) => write(cur => {
     const { abandoned: _gone, ...rest } = cur.facts;
-    return { facts: { ...rest, remarks: [...(cur.facts.remarks ?? []), { id: uid(), at: now(), text: takenUpRemark, ...by }] } };
+    const taken = (cur.facts.readings ?? []).filter(r => !r.struck).length, at = now();
+    const remarks = [...(cur.facts.remarks ?? []), { id: uid(), at, text: callRemark(call, reason, why, taken), ...by }];
+    if (call === 'abandoned') {
+      const ab: StudyAbandoned = { at, ...by, reason, ...(why.trim() ? { why: why.trim() } : {}), taken };
+      return { overrule: undefined, facts: { ...rest, abandoned: ab, remarks } };
+    }
+    return { overrule: { verdict: call === 'passed' ? 'Passed' : 'Didn’t pass', why: `${reason.toLowerCase()}${why.trim() ? `: ${why.trim()}` : ''}`, at, ...by }, facts: { ...rest, remarks } };
   });
+  const takeBack = () => write(cur => {
+    const { abandoned: _gone, ...rest } = cur.facts;
+    return { overrule: undefined, facts: { ...rest, remarks: [...(cur.facts.remarks ?? []), { id: uid(), at: now(), text: takenUpRemark, ...by }] } };
+  });
+  const current = callOf(s);
 
   if (closed && s.receipt) {
     return (
@@ -783,46 +788,36 @@ function Act({ s, f, said, can, me, write }: {
   }));
   const reopened = s.receipt?.reopened ?? [];
   const lastReopen = reopened[reopened.length - 1];
-  if (s.facts.abandoned) {
-    return (
-      <div className="ie-act is-abandoned">
-        <p className="sub">Abandoned {niceDay(isoDay(s.facts.abandoned.at))}{s.facts.abandoned.by ? ` by ${s.facts.abandoned.by}` : ''} — {s.facts.abandoned.reason.toLowerCase()}{s.facts.abandoned.why ? `: ${s.facts.abandoned.why}` : ''}</p>
-        {can.edit && <button type="button" className="btn" onClick={takeUp}>Take the test up again</button>}
-      </div>
-    );
-  }
   return (
     <div className="ie-act">
       {lastReopen && <p className="sub">Reopened {niceDay(isoDay(lastReopen.at))}{lastReopen.by ? ` by ${lastReopen.by}` : ''} — {lastReopen.why}</p>}
       {can.edit && f.enough && <button type="button" className="btn btn-primary" onClick={close}>Close — keep these figures</button>}
-      {can.edit && aband === null && <button type="button" className="btn" onClick={() => setAband({ reason: '', why: '' })}>Abandon the test</button>}
-      {aband && (
-        <form className="ie-why" aria-label="Abandon the test" onSubmit={e => { e.preventDefault(); if (!abandonReady(aband.reason, aband.why)) return; abandon(aband.reason, aband.why); setAband(null); }}>
-          <div className="chip-row" role="radiogroup" aria-label="Why it is abandoned">
+      {current && (
+        <p className="sub ie-called" data-call={current.call}>The test is called <b>{current.call === 'abandoned' ? 'abandoned' : current.call === 'failed' ? 'failed' : 'passed'}</b>{current.by ? ` by ${current.by}` : ''}, {niceDay(isoDay(current.at))} — {current.text}</p>
+      )}
+      {can.edit && ending === null && (
+        <span className="ie-ends" role="group" aria-label="End the test">
+          {(['failed', 'abandoned', 'passed'] as TestCall[]).filter(c => c !== current?.call && (c !== 'passed' || f.n > 0)).map(c => (
+            <button key={c} type="button" className="btn" onClick={() => setEnding({ call: c, reason: '', why: '' })}>{CALL_WORD[c]}</button>
+          ))}
+          {current && <button type="button" className="btn" onClick={takeBack}>Take the call back</button>}
+        </span>
+      )}
+      {ending && (
+        <form className="ie-why" aria-label={CALL_WORD[ending.call]} onSubmit={e => { e.preventDefault(); if (!abandonReady(ending.reason, ending.why)) return; callIt(ending.call, ending.reason, ending.why); setEnding(null); }}>
+          <div className="chip-row" role="radiogroup" aria-label="How the test ends">
+            {(['failed', 'abandoned', 'passed'] as TestCall[]).map(c => (
+              <button key={c} type="button" role="radio" aria-checked={ending.call === c} className={'chip' + (ending.call === c ? ' on' : '')} onClick={() => setEnding({ ...ending, call: c })}>{c === 'failed' ? 'Failed' : c === 'abandoned' ? 'Abandoned' : 'Passed'}</button>
+            ))}
+          </div>
+          <div className="chip-row" role="radiogroup" aria-label="Why">
             {ABANDON_REASONS.map(r => (
-              <button key={r} type="button" role="radio" aria-checked={aband.reason === r} className={'chip' + (aband.reason === r ? ' on' : '')} onClick={() => setAband({ ...aband, reason: r })}>{r}</button>
+              <button key={r} type="button" role="radio" aria-checked={ending.reason === r} className={'chip' + (ending.reason === r ? ' on' : '')} onClick={() => setEnding({ ...ending, reason: r })}>{r}</button>
             ))}
           </div>
-          <input className="text-input" value={aband.why} placeholder={aband.reason === 'Something else' ? 'Say why — required' : 'Anything to add — kept with it'} aria-label="Its reason, in your words" onChange={e => setAband({ ...aband, why: e.target.value })} />
-          <button type="submit" className="btn btn-primary" disabled={!abandonReady(aband.reason, aband.why)}>Abandon it</button>
-          <button type="button" className="btn" onClick={() => setAband(null)}>Keep going</button>
-        </form>
-      )}
-      {can.agree && f.n > 0 && !s.overrule && over === null && (
-        <button type="button" className="btn" onClick={() => setOver({ verdict: said.verdict === 'Passed' ? 'Didn’t pass' : 'Passed', why: '' })}>Overrule the verdict</button>
-      )}
-      {can.agree && s.overrule && <button type="button" className="btn" onClick={() => write({ overrule: undefined })}>Take back the overrule</button>}
-      {over && (
-        <form className="ie-why" onSubmit={e => { e.preventDefault(); if (!over.why.trim()) return;
-          write({ overrule: { verdict: over.verdict, why: over.why.trim(), at: now(), ...by } }); setOver(null); }}>
-          <div className="chip-row" role="radiogroup" aria-label="The verdict instead">
-            {['Passed', 'Didn’t pass'].map(v => (
-              <button key={v} type="button" role="radio" aria-checked={over.verdict === v} className={'chip' + (over.verdict === v ? ' on' : '')} onClick={() => setOver({ ...over, verdict: v })}>{v}</button>
-            ))}
-          </div>
-          <input className="text-input" autoFocus value={over.why} placeholder="Why — kept beside the app’s verdict" onChange={e => setOver({ ...over, why: e.target.value })} />
-          <button type="submit" className="btn btn-primary" disabled={!over.why.trim()}>Overrule</button>
-          <button type="button" className="btn" onClick={() => setOver(null)}>Leave it</button>
+          <input className="text-input" value={ending.why} placeholder={ending.reason === 'Something else' ? 'Say why — required' : 'Anything to add — kept with it'} aria-label="Its reason, in your words" onChange={e => setEnding({ ...ending, why: e.target.value })} />
+          <button type="submit" className="btn btn-primary" disabled={!abandonReady(ending.reason, ending.why)}>{ending.call === 'failed' ? 'Fail it' : ending.call === 'abandoned' ? 'Abandon it' : 'Pass it'}</button>
+          <button type="button" className="btn" onClick={() => setEnding(null)}>Keep going</button>
         </form>
       )}
     </div>
