@@ -57,6 +57,7 @@ import { displayName } from '../cloud/team';
 import { useActions } from '../lib/actions';
 import type { PaceAction } from '../lib/actionShapes';
 import { uid } from '../lib/ids';
+import { withCheckAction } from '../lib/checkAction';
 import { todayISO } from '../lib/weeks';
 import { drawerShows, panelOf, readingOf, readPinned, samePanel, withPanel, writePinned, type RoomPanel } from '../lib/fishboneRoom';
 
@@ -548,6 +549,12 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
     setQuery({ problem: made.problem.id, line: fixedLine ? undefined : (made.problem.lineId ?? line?.id), cause: undefined, panel: undefined });
   };
 
+  /* a cause saved with a check written also makes (or updates) the check's action on the board (lib/checkAction, FC-148) */
+  const saveCauseChecked = async (problem: Case, c: Cause) => {
+    const out = await withCheckAction(c, { projectId, ...(problem.lineId ?? line?.id ? { lineId: problem.lineId ?? line?.id } : {}), problemTitle: problem.title });
+    await api.saveCause(problem.id, out);
+  };
+
   const draftFrom = (m: SixM, s?: Suggestion): Cause => ({
     id: uid(), m, text: s?.text ?? '', grade: s?.grade ?? 'observed', status: 'suspected',
     source: s?.source, whys: [], at: Date.now(),
@@ -561,7 +568,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
   const addCountermeasure = async (cause: Cause, fromSheet = true) => {
     if (!view) return;
     const stored = view.bones.flatMap(b => b.causes).find(c => c.id === cause.id);
-    if (!stored || JSON.stringify(stored) !== JSON.stringify(cause)) await api.saveCause(view.problem.id, cause);
+    if (!stored || JSON.stringify(stored) !== JSON.stringify(cause)) await saveCauseChecked(view.problem, cause);
     setEditing(null);
     /* Back to the cause sheet only when it was opened from there; "Add a fix"
        on the card (or a cause's panel) comes back to it, where the new fix is
@@ -704,7 +711,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
     ) : undefined,
     onOpenCause: c => setEditing({ cause: c, draft: false }),
     onWriteCause: m => setEditing({ cause: { ...draftFrom(m), ...(by ? { by } : {}) }, draft: true }),
-    onSaveCause: async c => { if (can.edit) await api.saveCause(v.problem.id, c); },
+    onSaveCause: async c => { if (can.edit) await saveCauseChecked(v.problem, c); },
     onAddFix: c => void addCountermeasure(c, false),
     onOpenFix: openFix,
     onClose: () => setClosing(true),
@@ -723,7 +730,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
 
       {view && editing && (
         <CauseSheet open view={view} cause={editing.cause} draft={editing.draft} can={can}
-          onSave={(c: Cause) => api.saveCause(view.problem.id, c)}
+          onSave={(c: Cause) => saveCauseChecked(view.problem, c)}
           onRemove={async (id: string) => {
             await api.removeCause(view.problem.id, id);
             // Its panel goes with it, rather than saying it has gone.
@@ -825,7 +832,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
     <CausePanel wide={wide} view={view} cause={openCause} can={can} newId={uid}
       voiceContext={() => ({ today: todayISO(), on: { title: view.problem.title } })}
       onEdit={c => setEditing({ cause: c, draft: false })}
-      onSaveCause={async c => { if (can.edit) await api.saveCause(view.problem.id, c); }}
+      onSaveCause={async c => { if (can.edit) await saveCauseChecked(view.problem, c); }}
       onAddFix={c => void addCountermeasure(c, false)}
       onOpenFix={openFix}
       onOpenSource={s => void openSource(s)}

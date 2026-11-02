@@ -27,12 +27,14 @@ export interface WhyForest {
 }
 
 const filled = (whys: Why[]): Why[] => (whys ?? []).filter(w => (w.text ?? '').trim());
+/** `keepEmpty`: the editor's view, where an answer just asked for has no words yet. */
+export interface ForestOpts { keepEmpty?: boolean }
 /** Is the cause written as a tree? */
 export const isTree = (c: Pick<Cause, 'whys'>): boolean => (c.whys ?? []).some(w => w.of !== undefined);
 
 /** The whys as a forest. A chain reads as one branch; an orphan or a circle is repaired by attaching to the cause. */
-export function whyForest(c: TreeCause): WhyForest {
-  const ws = filled(c.whys);
+export function whyForest(c: TreeCause, o: ForestOpts = {}): WhyForest {
+  const ws = o.keepEmpty ? (c.whys ?? []) : filled(c.whys);
   const tree = ws.some(w => w.of !== undefined);
   const nodes = new Map<string, WhyNode>(ws.map(w => [w.id, { why: w, depth: 1, end: 'open' as WhyEnd, children: [] }]));
   const repaired: string[] = [];
@@ -168,6 +170,13 @@ const lowerFirst = (s: string) => (s.length > 1 && /[a-z]/.test(s[1]) ? s[0].toL
 /* ================================ editing ================================ */
 /* Pure edits on the list of whys. A chain is turned into a tree (every why gets `of`) the first time it is
    branched, so the order the person wrote it in is the order it reads in. */
+
+/** The whys as a tree to edit: a chain gets its `of`, and its last why carries the root mark the cause held. */
+export function treeOf(c: TreeCause): Why[] {
+  if (isTree(c)) return c.whys;
+  const t = asTree(c.whys);
+  return c.root && t.length ? t.map((w, i) => (i === t.length - 1 ? { ...w, root: true } : w)) : t;
+}
 
 /** A chain written before the tree, as the same whys with `of` set. A tree is returned as it is. */
 export function asTree(whys: Why[]): Why[] {

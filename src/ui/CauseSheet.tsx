@@ -16,15 +16,18 @@ import { useState } from 'react';
 import type { Can } from '../lib/access';
 import type { ProblemView } from '../lib/problems';
 import type { PaceAction } from '../lib/actionShapes';
-import { blamesAPerson, GRADES, KNOWN_WORD, SIXM, sixmLabel, type Cause, type CauseSource, type CauseStatus, type Grade, type Why } from '../lib/sixm';
+import { GRADES, KNOWN_WORD, SIXM, sixmLabel, type Cause, type CauseSource, type CauseStatus, type Grade, type Why } from '../lib/sixm';
+import { hasRoot, isTree } from '../lib/whyTree';
+import { canAskWhy, whyClosedSays } from '../lib/causeCheck';
+import { CauseCheckFields } from './CauseCheckFields';
+import { WhyTreeEditor } from './WhyTreeEditor';
 import { statusOfAction } from '../lib/treeBind';
-import { uid } from '../lib/ids';
 import { plural } from '../lib/format';
 import { Sheet } from './Sheet';
 import { GradeMeter, RootTag, StatusGlyph } from './fishbone/marks';
 import { LineField } from './fishbone/LineField';
 import { lossWords, STATUS_WORD } from './fishbone/layout';
-import { therefore } from '../lib/fishbone';
+import { refIsCause, therefore } from '../lib/fishbone';
 import { Evidence } from './EvidenceDoors';
 import { EvidenceViewer, withPins } from './Evidence';
 import type { MediaRef } from '../types';
@@ -65,13 +68,14 @@ const gradeOf = (g?: Grade) => GRADES.find(x => x.key === g);
  *  the fish say. The stored keys do not change. */
 const known = (g: Grade) => KNOWN_WORD[g].charAt(0).toUpperCase() + KNOWN_WORD[g].slice(1);
 const filled = (w: Why[]) => w.filter(x => x.text.trim());
-const short = (s: string, n = 64) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
 /** What is saved: words trimmed, empty whys dropped, and "root" only while
  *  there is a chain under it and the cause still stands. */
 export function tidyCause(c: Cause): Cause {
   const whys = filled(c.whys).map(w => ({ ...w, text: w.text.trim() }));
-  return { ...c, text: c.text.trim(), whys, root: !!c.root && whys.length > 0 && c.status !== 'ruled_out', media: c.media?.length ? c.media : undefined };
+  /* a tree keeps the cause's own `root` true while any why is a root (FC-148); a chain keeps what it held */
+  const rooted = isTree({ whys }) ? hasRoot({ whys, root: c.root }) : !!c.root && whys.length > 0;
+  return { ...c, text: c.text.trim(), whys, root: rooted && c.status !== 'ruled_out', media: c.media?.length ? c.media : undefined };
 }
 
 export function CauseSheet(p: CauseSheetProps) {
@@ -112,25 +116,12 @@ export function CauseSheet(p: CauseSheetProps) {
     } finally { setBusy(false); }
   };
 
-  /* THE FIVE WHYS. */
-  const setWhy = (id: string, patch: Partial<Why>) => set({ whys: c.whys.map(w => (w.id === id ? { ...w, ...patch } : w)) });
-  const addWhy = () => { const id = uid(); set({ whys: [...c.whys, { id, text: '' }] }); setFocusWhy(id); };
-  const dropWhy = (id: string) => {
-    const whys = c.whys.filter(w => w.id !== id);
-    set({ whys, ...(filled(whys).length ? {} : { root: false }) });
-  };
-  const nextWhy = (i: number) => {
-    const next = c.whys[i + 1];
-    if (next) { setFocusWhy(null); requestAnimationFrame(() => setFocusWhy(next.id)); return; }
-    if (c.whys[i]?.text.trim()) addWhy();
-  };
   const chain = filled(c.whys);
   /* Read back from the root to the head, one link a line — each one has to hold. */
   const readBack = chain.length ? therefore(c, view.problem.title || 'the problem') : [];
 
-  /* WHAT IS BEING DONE ABOUT IT — the board's actions that point here. */
-  const ref = `${view.problem.id}:${cause.id}`;
-  const cms = view.actions.filter(a => a.causeRef === ref);
+  /* WHAT IS BEING DONE ABOUT IT — the board's actions that point here (or at one of the roots of its why tree). */
+  const cms = view.actions.filter(a => refIsCause(a.causeRef, view.problem.id, cause.id));
   const tone = (a: PaceAction) => statusOfAction(a);
   const late = cms.filter(a => tone(a) === 'r').length, done = cms.filter(a => tone(a) === 'g').length;
 
@@ -219,73 +210,26 @@ export function CauseSheet(p: CauseSheetProps) {
         <Evidence media={c.media ?? []} kind="found" onView={setViewing}
           onAdd={edit ? async refs => { setC(x => (x ? { ...x, media: [...(x.media ?? []), ...refs] } : x)); } : undefined} />
 
-        {/* THE FIVE WHYS */}
-        <div className="cs-f cs-whys">
-          <span className="cs-k">Why does it happen?</span>
-          {c.whys.length === 0 && !edit && <p className="cs-quiet">Nobody has asked why yet.</p>}
-          {c.whys.length > 0 && (
-            <ol className="cs-chain">
-              {(edit ? c.whys : chain).map((w, i, arr) => {
-                const prev = i === 0 ? c.text : arr[i - 1]?.text ?? '';
-                const ask = w.text.trim() ? blamesAPerson(w.text) : null;
-                const wg = gradeOf(w.grade);
-                return (
-                  <li key={w.id} className="cs-why">
-                    <div className="cs-why-h">
-                      <span className="cs-why-q">{prev.trim() ? <>Why does “{short(prev.trim())}” happen?</> : 'Why does that happen?'}</span>
-                      {edit && (
-                        <span className="cs-why-tools">
-                          <select className="cs-why-g" aria-label={`How why ${i + 1} is known`} value={w.grade ?? ''}
-                            onChange={e => setWhy(w.id, { grade: (e.target.value || undefined) as Grade | undefined })}>
-                            <option value="">How known?</option>
-                            {GRADES.map(x => <option key={x.key} value={x.key}>{known(x.key)}</option>)}
-                          </select>
-                          <button type="button" className="cs-x" onClick={() => dropWhy(w.id)} aria-label={`Take out why ${i + 1}`}>×</button>
-                        </span>
-                      )}
-                    </div>
-                    {edit
-                      ? <LineField label={`Why ${i + 1}`} value={w.text} placeholder="Because…" autoFocus={focusWhy === w.id}
-                          onChange={v => setWhy(w.id, { text: v })} onEnter={() => nextWhy(i)} />
-                      : <p className="cs-why-a">{w.text}{wg && <span className="cs-why-gw"><GradeMeter grade={wg.key} /> {KNOWN_WORD[wg.key]}</span>}</p>}
-                    {ask && <p className="cs-ask" role="note">{ask}</p>}
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-          {edit && (
-            <div className="cs-why-add">
-              <button type="button" className="btn cs-ask-b" onClick={addWhy}
-                disabled={c.whys.length > 0 && !c.whys[c.whys.length - 1]?.text.trim()}>
-                + {c.whys.length ? 'Ask why again' : 'Ask why'}
-              </button>
-              {c.whys.length >= 5 && <span className="cs-quiet">Five is a guide, not a limit — stop where the team can act.</span>}
-            </div>
-          )}
+        {/* CHOOSING WHAT TO VERIFY (FC-148 part A) — the rating, the tick, the check and what it found, as on What to check */}
+        <div className="cs-f cs-check">
+          <span className="cs-k">Is it real? — check it first</span>
+          <CauseCheckFields c={c} edit={edit} set={set} idKey={c.id} />
+        </div>
 
-          {edit && chain.length > 0 && (
-            <label className={'cs-root-t' + (c.status === 'ruled_out' ? ' is-off' : '')}>
-              <input type="checkbox" checked={!!c.root && c.status !== 'ruled_out'} disabled={c.status === 'ruled_out'}
-                onChange={e => set({ root: e.target.checked })} />
-              <span><b>This is the root</b> — something the team can act on, and the read-back below holds all the way to the problem.</span>
-            </label>
-          )}
-          {edit && c.root && c.status === 'suspected' && chain.length > 0 && (
-            <p className="cs-quiet">Still suspected. Go and see, or check the data, before acting on it as the root.</p>
-          )}
-
-          {readBack.length > 0 && (
+        {/* THE WHY TREE (FC-148 part B) — the whys open on a confirmed cause */}
+        <WhyTreeEditor open={canAskWhy(c)} c={c} edit={edit} closedSays={whyClosedSays(c)} set={set} focusWhy={focusWhy} setFocusWhy={setFocusWhy} />
+        {readBack.length > 0 && (
+          <div className="cs-f cs-whys">
             <div className="cs-read">
               <span className="cs-k">Read it back, from the root up</span>
               <ol className="cs-read-l">{readBack.map((l, i) => {
                 const at = l.indexOf(', therefore ');
                 return <li key={i}>{at < 0 ? l : <>{l.slice(0, at)}<span className="cs-tf">, therefore </span>{l.slice(at + 12)}</>}.</li>;
               })}</ol>
-              <span className="cs-quiet">If any line does not hold, the chain has not reached the root yet.</span>
+              <span className="cs-quiet">If any line does not hold, that branch has not reached the root yet.</span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* WHAT IS BEING DONE ABOUT IT — "Fix", the working method's word for a
             countermeasure (docs/SIXM.md), as the problem card says it. */}

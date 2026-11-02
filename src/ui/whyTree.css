@@ -1,0 +1,47 @@
+/* The why tree and the check step (FC-148). Tokens only; one breakpoint. */
+.wt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.wt-list .wt-list { margin: 10px 0 0 14px; padding-left: 12px; border-left: 2px solid var(--line-2); }
+.wt-node { display: flex; flex-direction: column; gap: 4px; }
+.wt-h { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 30px; }
+.wt-q { flex: 1 1 160px; min-width: 0; font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); overflow-wrap: anywhere; }
+.wt-tools { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; }
+.wt-tag { font-size: var(--t-label); font-weight: 700; color: var(--ink-2); padding: 2px 8px; border: 1px solid var(--line-2); border-radius: var(--radius-pill); }
+.wt-tag.is-root { background: var(--ink); border-color: var(--ink); color: var(--on-brand); }
+.wt-tag.is-open { color: var(--muted); font-weight: 500; }
+.wt-says { margin: 0; padding: 8px 10px; border-left: 3px solid var(--line-2); background: var(--surface-2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: var(--t-detail); line-height: 1.45; color: var(--ink); }
+.wt-closed { margin: 0; padding: 10px 12px; border: 1px dashed var(--line-2); border-radius: var(--radius-sm); font-size: var(--t-detail); line-height: 1.45; color: var(--ink-2); }
+.wt-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.wt-b { min-height: 44px; padding: 0 14px; font-size: var(--t-detail); color: var(--accent); }
+.wt-root { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: var(--t-label); color: var(--ink-2); cursor: pointer; }
+.wt-root input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+.wt-root b { color: var(--ink); }
+.wt-same { display: flex; align-items: center; gap: 6px; min-height: 44px; font-size: var(--t-label); color: var(--ink-2); }
+.wt-same select { min-height: 44px; max-width: 220px; padding: 0 8px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface); font: inherit; font-size: var(--t-detail); color: var(--ink); }
+.wt-note { margin-top: 4px; }
+
+/* the "What to check" step */
+.wc { display: flex; flex-direction: column; gap: 10px; }
+.wc-says { margin: 0; font-size: var(--t-detail); line-height: 1.45; color: var(--ink); }
+.wc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.wc-card { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.wc-card.is-late { border-color: var(--st-r); box-shadow: inset 3px 0 0 var(--st-r); }
+.wc-card.is-ruled-out { opacity: 0.7; }
+.wc-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.wc-text { flex: 1 1 200px; min-width: 0; margin: 0; padding: 0; border: 0; background: none; font: inherit; font-size: var(--t-body); font-weight: 700; text-align: left; color: var(--ink); cursor: pointer; overflow-wrap: anywhere; }
+.wc-bone { font-size: var(--t-label); color: var(--muted); }
+.wc-state { font-size: var(--t-label); font-weight: 700; color: var(--ink-2); }
+.wc-state.is-r { color: var(--st-r); }
+.cf { display: flex; flex-direction: column; gap: 8px; }
+.cf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.cf-lab { font-size: var(--t-label); font-weight: 700; color: var(--ink-2); min-width: 92px; }
+.cf-tick { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: var(--t-detail); color: var(--ink); cursor: pointer; }
+.cf-tick input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+.cf-boxes { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; }
+.cf-box { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cf-box span { font-size: var(--t-label); color: var(--muted); }
+.cf-box input { min-height: 44px; box-sizing: border-box; width: 100%; padding: 0 10px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface); font: inherit; font-size: var(--t-body); color: var(--ink); }
+.cf-judge { margin: 0; font-size: var(--t-label); color: var(--muted); }
+@media (max-width: 720px) {
+  .cf-boxes { grid-template-columns: minmax(0, 1fr); }
+  .wt-list .wt-list { margin-left: 6px; padding-left: 8px; }
+}
