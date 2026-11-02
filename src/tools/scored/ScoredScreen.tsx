@@ -280,7 +280,6 @@ function Record({ s, def, can, onPatch }: {
     <div className="wrap ie ie-scored" data-scored={def.key}>
       <StudyBand page={page} s={s} what={def.title} canEdit={canEdit} canRemove={can.remove} />
       <WhereItSits s={s} can={can} />
-      <Commentary s={s} canEdit={can.edit} title="Notes" />
       <p className="sub">{def.question}</p>
       {problems?.length ? <p className="ie-warn" role="alert">{problems.join(' ')}</p> : null}
       {x?.left?.length ? <p className="ie-warn" role="alert">Left out of the order: {x.left.join(' ')}</p> : null}
@@ -366,6 +365,7 @@ function Record({ s, def, can, onPatch }: {
       )}
       {result && <LeanClosing closing={{ text: result.closing, tone: result.tone }} />}
       <p className="sub">Started {niceDay(isoDay(s.startedAt))}</p>
+      <Commentary s={s} canEdit={can.edit} title="Notes" folded />
     </div>
   );
 }

@@ -69,6 +69,8 @@ export function MapScreen({ id }: { id: string }) {
 function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string }) {
   const hasFuture = (s.facts.future ?? []).length > 0;
   const [which, setWhich] = useState<Which>('flow');
+  /* its page keeps its controls few (30 October, "at least halved"): a note is begun from More ▾ */
+  const [noting, setNoting] = useState(false);
   const shown: Which = which === 'future' && hasFuture ? 'future' : 'flow';
   const a = s.agreed?.map;
   const list = useMemo(() => (shown === 'future' ? s.facts.future : s.facts.flow) ?? [], [shown, s.facts.future, s.facts.flow]);
@@ -166,6 +168,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
            any of them ... simplify"): what a person does here is time the steps; the views and the other ways in are in More */
         primary={editable ? { label: carried.length ? 'Time the steps again' : 'Time the steps', run: () => setWalking(true) } : undefined}
         extra={[
+          ...(can.edit ? [{ label: 'Add a note', run: () => setNoting(true) }] : []),
           ...(list.length > 1 ? [{ label: 'Play the journey', run: () => setPlaySignal(n => n + 1) }] : []),
           ...(list.length > 0 ? [{ label: wasteOnly ? 'Show every step' : 'Show only the waste', run: () => setWasteOnly(w => !w) }] : []),
           ...(editable && !hasFuture && (s.facts.flow ?? []).length > 0 ? [{ label: 'Plan the future — copy today’s steps', run: () => { write(cur => ({ facts: { ...cur.facts, future: (cur.facts.flow ?? []).map(x => ({ ...x })) } })); setWhich('future'); } }] : []),
@@ -266,7 +269,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
         <LeanActions actions={raisedFrom(s, steps, tests, step => list.find(x => x.id === step)?.name)} empty="Nothing raised from it yet — tap a red step's wait or waste and Make it better." />
       </LeanPanel>
-      <Commentary s={s} canEdit={can.edit} title="Notes" />
+      <Commentary s={s} canEdit={can.edit} title="Notes" folded="menu" open={noting} />
       <UsedFor s={s} can={can} me={me} />
       <LeanClosing closing={flowClosing(f, a)} />
 

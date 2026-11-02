@@ -629,7 +629,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
           {can.remove && !gone && <button type="button" className="btn btn-ghost" onClick={() => void deleteFootage()}>Delete the footage</button>}
         </div>
       </section>
-      <Commentary s={s} canEdit={can.edit} title="Notes" />
+      <Commentary s={s} canEdit={can.edit} title="Notes" folded />
     </div>
   );
 }

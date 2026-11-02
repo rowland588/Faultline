@@ -398,7 +398,7 @@ function Record({ s, def, can, me }: { s: ToolStudy; def: DocDef; can: ReturnTyp
           <ReadingView run={run} />
         </div>
       </div>
-      <Commentary s={s} canEdit={can.edit} title="Notes" />
+      <Commentary s={s} canEdit={can.edit} title="Notes" folded />
       <UsedFor s={s} can={can} me={me} />
       <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
         <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from what it found." />

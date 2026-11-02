@@ -394,7 +394,7 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
           </button>
         )}
       </div>
-      <Commentary s={study} canEdit={can.edit} title="Notes" />
+      <Commentary s={study} canEdit={can.edit} title="Notes" folded />
       <UsedFor s={study} can={can} me={me} />
     </div>
   );

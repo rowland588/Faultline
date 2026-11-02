@@ -391,7 +391,7 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
           {r && <WhatIf def={def} draft={draft} run={run} canEdit={canEdit} onMakeIt={makeIt} />}
         </div>
       </div>
-      <Commentary s={s} canEdit={can.edit} title="Notes" />
+      <Commentary s={s} canEdit={can.edit} title="Notes" folded />
       <UsedFor s={s} can={can} me={me} />
       <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
         <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from what it found." />

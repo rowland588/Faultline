@@ -185,7 +185,7 @@ function Losses({ s, line, obs, rate, can, me, constraint, counts }: { s: ToolSt
       {/* WHAT IS TYPED — the count and the running speed, under the eight */}
       {f.enough && detail}
 
-      <Commentary s={s} canEdit={can.edit} title="Notes" />
+      <Commentary s={s} canEdit={can.edit} title="Notes" folded />
       <UsedFor s={s} can={can} me={me} />
       <Act s={s} f={f} said={said} can={can} me={me} write={write} />
 

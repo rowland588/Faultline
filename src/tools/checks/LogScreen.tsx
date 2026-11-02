@@ -93,7 +93,6 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
           hint={s.agreed?.log?.inARow ? undefined : 'Set it and a program can be judged by this log — the latest results of every check, none failing.'}
           onSet={n => void patchStudy(s.id, cur => { const lg = cur.agreed?.log; if (!lg) return {}; const { inARow: _x, ...rest } = lg; void _x; return { agreed: { ...cur.agreed, log: n !== undefined ? { ...rest, inARow: n } : rest } }; })} />
       </div>
-      <Commentary s={s} canEdit={can.edit} title="Notes" />
       {/* on a phone the round comes first and these follow it (styles.css .lg-figs) */}
       <div className="lg-figs">
         <LeanTiles tiles={logTiles(f, def)} className="ie-strip lg-tiles" />
@@ -126,6 +125,7 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
         <LeanActions actions={plan} empty="No problem has been raised from this log." onOpen={undefined} />
       </section>
       <LeanClosing closing={logClosing(f, s)} />
+      <Commentary s={s} canEdit={can.edit} title="Notes" folded />
     </div>
   );
 }

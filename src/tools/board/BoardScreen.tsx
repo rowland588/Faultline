@@ -190,7 +190,6 @@ function Record({ s, def, result, siblings, can, onPatch }: {
     <div className="wrap ie ie-board tool-sig-board" data-board={def.key}>
       <StudyBand page={page} s={s} what={def.title} canEdit={canEdit} canRemove={can.remove} />
       <WhereItSits s={s} can={can} />
-      <Commentary s={s} canEdit={can.edit} title="Notes" />
       <p className="sub">{def.question}</p>
       <LeanTiles tiles={result.tiles} />
       <p className="ie-says">{result.sentence}</p>
@@ -206,6 +205,7 @@ function Record({ s, def, result, siblings, can, onPatch }: {
       </LeanPanel>
       <LeanClosing closing={{ text: result.closing, tone: result.tone }} />
       <p className="sub">Started {niceDay(isoDay(s.startedAt))} · reads {siblings.filter(x => x.workspaceId === s.workspaceId && x.tool === 'log').length} logs and {siblings.filter(x => x.workspaceId === s.workspaceId && x.tool === 'reliability').length} reliability studies on this line</p>
+      <Commentary s={s} canEdit={can.edit} title="Notes" folded />
     </div>
   );
 }

@@ -120,7 +120,6 @@ function Register({ s, can }: { s: ToolStudy; can: ReturnType<typeof import('../
         primary={mayEdit ? { label: 'Raise a hold', run: () => setRaising({}) } : undefined}
         extra={can.agree && !closed ? [{ label: 'Who decides, and the carrying rate', run: () => setSettings(true) }] : undefined} />
       <WhereItSits s={s} can={can} />
-      <Commentary s={s} canEdit={can.edit} title="Notes" />
       <LeanTiles tiles={holdTiles(f)} className="ie-strip hd-tiles" />
       <div className="ie-says"><p className={'ie-say is-' + said.tone} data-says>{said.text}</p></div>
       {money.map(m => <p key={m} className="sub hd-money" data-money>{m}</p>)}
@@ -197,6 +196,7 @@ function Register({ s, can }: { s: ToolStudy; can: ReturnType<typeof import('../
       {raising && <RaiseSheet s={s} was={raising.was} from={raising.from} ctx={ctx} me={me} holds={s.facts.holds ?? []} authority={agreed.authority} onClose={() => setRaising(null)} />}
       {deciding && <DecideSheet s={s} h={deciding} ctx={ctx} me={me} authority={agreed.authority} onClose={() => setDeciding(null)} />}
       {settings && <SettingsSheet s={s} agreed={agreed} onClose={() => setSettings(false)} />}
+      <Commentary s={s} canEdit={can.edit} title="Notes" folded />
     </div>
   );
 }

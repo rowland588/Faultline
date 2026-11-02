@@ -130,7 +130,7 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
             Agreed: <b>{agreedWords(a)}</b>
             {can.agree && !closed && <button type="button" className="linkish" onClick={() => setAgreeing(true)}>Change what was agreed</button>}
           </p>
-          <Commentary s={s} canEdit={can.edit} title="Notes" />
+          <Commentary s={s} canEdit={can.edit} title="Notes" folded />
           <UsedFor s={s} can={can} me={me} />
           <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
             <LeanActions actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'a signal')} />

@@ -119,7 +119,7 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
             Agreed: <b>{agreedWords(a)}</b>
             {can.agree && !closed && <button type="button" className="linkish" onClick={() => setSetting(true)}>Change what was agreed</button>}
           </p>
-          <Commentary s={s} canEdit={can.edit} title="Notes" />
+          <Commentary s={s} canEdit={can.edit} title="Notes" folded />
           <UsedFor s={s} can={can} me={me} />
           <Act s={s} a={a} taps={taps} text={said.text} can={can} me={me} />
           <LeanPanel title="Action plan" className="ln-solo ln-plan-p">

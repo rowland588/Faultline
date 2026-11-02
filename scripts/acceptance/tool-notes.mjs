@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { more } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -42,6 +43,12 @@ for (const st of studies.filter(x => WANT.includes(x.tool))) {
   const text = `Note on ${st.tool}: film tight on the left jaw`;
   await page.goto(`${BASE}/${st.href.startsWith('#') ? st.href : '#' + st.href}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1800);
   const box = page.getByLabel('Add to the commentary');
+  /* a page with no note yet shows one small control — Add a note — and the box comes out when it is pressed */
+  if (!(await box.count())) {
+    const own = page.getByRole('button', { name: 'Add a note', exact: true });
+    if (await own.count()) await own.first().click(); else await more(page, 'Add a note').catch(() => {});   /* a page keeping its controls few begins a note from More ▾ */
+    await page.waitForTimeout(300);
+  }
   const there = await box.count();
   ok(there === 1, `${st.tool}: the page carries a Notes box`, st.href);
   if (!there) continue;

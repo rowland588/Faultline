@@ -350,7 +350,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
       <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
         <LeanActions actions={lean.actions} empty={lean.actionsEmpty} />
       </LeanPanel>
-      <Commentary s={s} canEdit={can.edit} title="Notes" />
+      <Commentary s={s} canEdit={can.edit} title="Notes" folded />
       <UsedFor s={s} can={can} me={me} />
       <LeanClosing closing={lean.closing} />
 

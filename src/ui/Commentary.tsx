@@ -14,16 +14,23 @@ const hm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-d
 
 /** COMMENTARY — what the person at the machine saw and thinks, kept with when
  *  and who; edited where it sits, taken off with Undo, and on the paper. */
-export function Commentary({ s, canEdit, me, title = 'Commentary', hint }: { s: ToolStudy; canEdit: boolean; me?: string; title?: string; hint?: string }) {
+export function Commentary({ s, canEdit, me, title = 'Commentary', hint, folded = false, open = false }: { s: ToolStudy; canEdit: boolean; me?: string; title?: string; hint?: string; folded?: boolean | 'menu'; open?: boolean }) {
   const { session } = useSession();
   const who = me ?? (displayName(session?.user.email) || undefined);
   const remarks = useMemo(() => [...(s.facts.remarks ?? [])].sort((x, y) => x.at - y.at), [s.facts.remarks]);
   const [text, setText] = useState('');
+  const [asking, setAsking] = useState(false);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const [showOff, setShowOff] = useState(false);
   const put = (fn: (rs: Remark[]) => Remark[]) => void patchStudy(s.id, cur => ({ facts: { ...cur.facts, remarks: fn(cur.facts.remarks ?? []) } }));
   const add = () => { const v = text.trim(); if (!v) return; put(rs => [...rs, { id: uid(), at: now(), text: v, ...(who ? { by: who } : {}) }]); setText(''); };
   const live = remarks.filter(r => !r.struck), off = remarks.filter(r => r.struck);
+  /* FOLDED: a page with no note yet shows one small control, not a box — the box comes out when it is wanted (docs, Simplicity 2) */
+  if (folded && !live.length && !off.length && !asking && !open) {
+    /* 'menu': the page has no room for a control — its More ▾ opens the box (open) */
+    if (folded === 'menu') return null;
+    return canEdit ? <p className="cmt-fold"><button type="button" className="cw-link" onClick={() => setAsking(true)}>Add a note</button></p> : null;
+  }
   return (
     <LeanPanel title={title} className="ln-solo rl-remarks">
       {!live.length && <p className="sub">{canEdit ? (hint ?? 'Nothing written yet — what was seen at the machine, what was tried, what to look at next.') : 'Nothing written yet.'}</p>}
