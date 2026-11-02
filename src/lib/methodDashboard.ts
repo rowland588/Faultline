@@ -142,7 +142,10 @@ export function methodDashboard(x: DashIn): Dashboard {
   const evidence = findings.length ? `${plural(findings.reduce((n, f) => n + 1 + f.more, 0), 'tool result')} so far — ${attention.find(a => a.kind === 'finding')?.text ?? `latest: ${last?.tool ?? ''}, ${lc(last?.says ?? '')}`}`
     : 'No tool has been used yet — a tool falls in where a question needs a number.';
   const owed = late.length ? ` ${plural(late.length, 'action')} late.` : open.length ? ` ${plural(open.length, 'action')} open, none late.` : '';
-  const says = `${lead} ${evidence}${owed} ${next}`.replace(/\s+/g, ' ').trim();
+  /* the money the tools say, in their own words (first £ clause of the first finding that has one) — never worked out here */
+  const pounds = findings.map(f => f.says.split(/(?<=[.;])\s+|\s+[—–]\s+/).map(c => c.trim()).find(c => c.includes('£'))).find(Boolean);
+  const money = pounds ? ` In money: ${pounds.replace(/\.$/, '')}.` : '';
+  const says = `${lead} ${evidence}${money}${owed} ${next}`.replace(/\s+/g, ' ').trim();
   const tone: DashTone = attention.some(a => a.tone === 'r') ? 'r' : attention.some(a => a.tone === 'a') ? 'a' : askable.length && firstOpen < 0 ? 'g' : written || findings.length ? 'w' : 'n';
   const closing = askable.length ? `${written} of ${askable.length} sections written · ${plural(findings.length, 'tool')} reporting · ${plural(attention.filter(a => a.tone !== 'n').length, 'thing')} to look at · ${late.length} late.` : '';
   return { sections, here, written, findings, attention, actions: { open: open.length, late: late.length }, next, says, tone, closing };

@@ -85,7 +85,7 @@ function blocksOfItem(it: ReportItem, data: ReportPaperData, d: Density, first: 
     case 'bullets': return it.items.map(b => text({ text: b.text, size: SIZE.small, colour: b.tone ? TONE[b.tone] : INK2, bullet: '•', indent: 10, after: 3 }));
     case 'table': return [table(it.head, it.rows, it.shares, it.tones)];
     case 'callout': return [callout(it.tone, it.word, it.text)];
-    case 'money': return [callout('n', it.missing ? `Money not said · ${it.tool} (${it.title})` : `Money · ${it.tool} (${it.title})`, it.text)];
+    case 'money': return [callout('n', `${it.missing ? 'Money not said' : 'Money'} · ${it.title.toLowerCase().includes(it.tool.toLowerCase()) ? it.title : `${it.tool} (${it.title})`}`, it.text)];
     case 'bars': return bars(it.title, it.bars);
     case 'qa': return [label(it.title), table(['Question', 'Answer'], it.rows.map(r => [r.q, r.a]), [0.38, 0.62], it.rows.map(r => (r.written ? undefined : 'n')))];
     case 'tool': {

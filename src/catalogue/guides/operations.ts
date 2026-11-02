@@ -855,13 +855,19 @@ export const OPERATIONS_GUIDES: Record<string, Guide> = {
         youGet: 'Work a cycle with ±, the pace, each person’s work stacked against takt and the sentences of What it says, each labelled Measured, Worked out, Proposed — not measured or Not known yet.',
       },
       {
+        step: 'Pace and allowance — the standard time',
+        means: 'Footage shows how long work took, not how hard someone was working, so a time is observed until a person rates it. You give the pace at each station (100 is normal), the site adds its allowance in named parts (personal needs, fatigue, standing), and the standard time is worked out from them. Nothing is rated for you and no allowance is assumed.',
+        doThis: 'Under the line balance, type the Pace at each station, then Add an allowance part for each the site has agreed, with its percent, and press Work out the standard. A station you leave unrated is taken at 100 and said so.',
+        youGet: 'Basic time and standard time at each station, how many an hour that plans, the allowance in its parts, and the report saying which times are rated and which are only observed.',
+      },
+      {
         step: 'Report, and the footage',
         means: 'The reports made from the study say how many events were accepted and how many were still to review. The footage can be removed while what was found in it stays.',
         doThis: 'Make the report from Report ▾. Press Delete the footage when you are finished with the film: it goes from this device and the cloud, and the events, figures and reports are kept and say the footage was deleted.',
         youGet: 'A report for the client that can be checked on the footage, and the film gone from the floor’s devices.',
       },
     ],
-    watch: 'Footage cannot judge pace, so a time here is not rated and no allowance is added: rating is for a person with a stopwatch. How accurate the reading is depends on the footage and is measured, not promised.',
+    watch: 'Footage cannot judge pace, so a time stays observed, not a standard, until a person rates it and the site’s allowance is typed. How accurate the reading is depends on the footage and is measured, not promised.',
   },
   'FC-117': {
     intro: 'For the number a team already keeps each week, such as yield, give-away or labour per tonne, and never sees the trend of. It records the weekly value for each line against its target and, from eight readings, says in words which way it is going.',

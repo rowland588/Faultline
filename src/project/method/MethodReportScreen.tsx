@@ -34,7 +34,7 @@ function Item({ it }: { it: ReportItem }) {
       </table></div>
     );
     case 'callout': return <div className={'mrep-call is-' + it.tone}><b className="mrep-word">{it.word}</b><span>{it.text}</span></div>;
-    case 'money': return <div className={'mrep-call mrep-money' + (it.missing ? ' is-missing' : '')}><b className="mrep-word">{it.missing ? 'Money not said' : 'Money'} · {it.tool} ({it.title})</b><span>{it.text}</span></div>;
+    case 'money': return <div className={'mrep-call mrep-money' + (it.missing ? ' is-missing' : '')}><b className="mrep-word">{it.missing ? 'Money not said' : 'Money'} · {it.title.toLowerCase().includes(it.tool.toLowerCase()) ? it.title : `${it.tool} (${it.title})`}</b><span>{it.text}</span></div>;
     case 'bars': return (
       <div className="mrep-bars" role="group" aria-label={it.title}>
         <p className="mrep-bars-h">{it.title}</p>
