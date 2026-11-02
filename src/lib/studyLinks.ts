@@ -11,6 +11,7 @@
  * scope (what it is of, and the same limits), the latest on each side, and
  * enough readings on both. It says "the number moved", never "the fix did
  * it" — that is the fix's to say, and a person presses the button. */
+import { abandonedSays } from './abandon';
 import type { ID, Observation, Workspace } from '../types';
 import type { BalanceStep, ChangeoverStep, FlowStep, StudyUse, ToolStudy } from './study';
 import type { PaceTodoRow } from '../db/rows';
@@ -74,6 +75,8 @@ export function linkedTo(studies: ToolStudy[], kind: StudyUse['kind'], ref: ID, 
 /** What a study says, in the tool's words: a work balance by its stacks
  *  against takt, a measured test by its readings. */
 export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
+  /* a test given up is neither passed nor failed (lib/abandon) — a criterion reads it as Not yet */
+  if (s.facts.abandoned) return { text: abandonedSays(s.facts.abandoned), tone: 'a', verdict: 'Abandoned' };
   if (s.tool === 'balance') return balanceLine(studyBalance(s));
   if (s.tool === 'map') {
     const f = flowFigures(s.facts.flow, s.agreed?.map);

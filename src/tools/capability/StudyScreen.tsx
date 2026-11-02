@@ -26,10 +26,12 @@ import { now, uid } from '../../lib/ids';
 import { niceDay, isoDay } from '../../lib/weeks';
 import { nav } from '../../state/useRoute';
 import { allowFailProblem, checksSay, confOf, judgeOf, passFailPlanOf, pctWord, sample, sampleLines, sampleSays, ticksAgreedWords, CONFIDENCES, CPK_FROM, SURE, type Judge, type SampleFigures, type SampleSays, FATES, fateOf, fateWord, moneySays, sampleMoney, weightUnit, type Fate } from './sample';
-import type { AgreedReadings, StudyReading, ToolStudy } from '../../lib/study';
+import type { AgreedReadings, StudyAbandoned, StudyReading, ToolStudy } from '../../lib/study';
 import { TOOL_WORDS } from '../../screens/StudiesScreen';
 import { StudyBand } from '../../ui/StudyActs';
-import { WhereItSits, UsedFor, useBetter, planEmpty } from '../../ui/StudyPlace';
+import { Commentary } from '../../ui/Commentary';
+import { ABANDON_REASONS, abandonReady, abandonedRemark, abandonedSays, takenUpRemark } from '../../lib/abandon';
+import { WhereItSits, UsedFor, BackToTest, useBetter, planEmpty } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { sampleClosing, sampleTiles } from './sampleLean';
@@ -74,7 +76,9 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
   const a = s.agreed?.readings;
   const readings = useMemo(() => s.facts.readings ?? [], [s.facts.readings]);
   const f = useMemo(() => sample(a, readings), [a, readings]);
-  const said = useMemo(() => sampleSays(f, a), [f, a]);
+  /* a test given up reads as Abandoned, with its reason — never passed or failed (lib/abandon) */
+  const abandoned = s.facts.abandoned;
+  const said = useMemo((): SampleSays => (abandoned ? { text: abandonedSays(abandoned), tone: 'a', verdict: 'Abandoned' } : sampleSays(f, a)), [f, a, abandoned]);
   const closed = !!s.closedAt;
   const [agreeing, setAgreeing] = useState(false);
   /* ON A PHONE, A STUDY NOT YET FULL MEETS ITS ENTRY FIRST (tools audit, 30 October: the pad sat ~600px down under the tiles):
@@ -99,7 +103,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
   const setFate = (rid: string, fate: Fate) =>
     write(cur => ({ facts: { ...cur.facts, readings: (cur.facts.readings ?? []).map(r => (r.id === rid ? { ...r, ...(fate === 'waste' ? { fate: undefined } : { fate }) } : r)) } }));
 
-  const entry = a && !closed && can.edit ? (a.kind === 'rejects' ? <RunsCapture f={f} onAdd={add} /> : a.kind === 'faults' ? <FaultsCapture a={a} f={f} onAdd={add} />
+  const entry = a && !closed && !abandoned && can.edit ? (a.kind === 'rejects' ? <RunsCapture f={f} onAdd={add} /> : a.kind === 'faults' ? <FaultsCapture a={a} f={f} onAdd={add} />
     : <Capture a={a} f={f} readings={readings} onAdd={add} onAddMany={addMany} onStrike={id => strike(id, true)} onFate={setFate} />) : null;
   return (
     <div className="wrap ie">
@@ -112,6 +116,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           {s.workspaceId && can.edit && !closed ? <StudyMachine s={s} /> : s.machine ? <><b>{s.machine}</b> · </> : null}
           started {niceDay(isoDay(s.startedAt))}
         </p>
+        <BackToTest s={s} {...(me ? { me } : {})} />
         <WhereItSits s={s} can={can} />
       </div>
 
@@ -132,6 +137,8 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
               : <><Dots f={f} a={a} readings={readings} said={said} /><Hist f={f} a={a} /></>}</div>
             {!entryFirst && entry}
           </div>
+          {/* NOTES ON THE TEST — what was seen while it ran (Rowland, 2 November: "allow me to put notes on the test … write my observations in"); written between the taps, kept with when and who, on the paper */}
+          <Commentary s={s} canEdit={can.edit} me={me} title="Notes" hint="Nothing written yet — what you saw while it ran, what was tried, what to look at next." />
           <Readings readings={readings} f={f} a={a} canStrike={can.edit && !closed} onStrike={strike} onFate={setFate} />
           <p className="ie-agreed sub">
             Agreed: <b>{agreedWords(a)}</b>
@@ -735,8 +742,18 @@ function Act({ s, f, said, can, me, write }: {
 }) {
   const [over, setOver] = useState<null | { verdict: string; why: string }>(null);
   const [reopen, setReopen] = useState<string | null>(null);
+  const [aband, setAband] = useState<null | { reason: string; why: string }>(null);
   const closed = !!s.closedAt;
   const by = me ? { by: me } : {};
+  /* ABANDONING THE TEST, WITH A REASON (Rowland, 2 November) — kept with when and who, written into the notes too, and taken up again with one tap */
+  const abandon = (reason: string, why: string) => write(cur => {
+    const a: StudyAbandoned = { at: now(), ...by, reason, ...(why.trim() ? { why: why.trim() } : {}), taken: (cur.facts.readings ?? []).filter(r => !r.struck).length };
+    return { facts: { ...cur.facts, abandoned: a, remarks: [...(cur.facts.remarks ?? []), { id: uid(), at: a.at, text: abandonedRemark(a), ...by }] } };
+  });
+  const takeUp = () => write(cur => {
+    const { abandoned: _gone, ...rest } = cur.facts;
+    return { facts: { ...rest, remarks: [...(cur.facts.remarks ?? []), { id: uid(), at: now(), text: takenUpRemark, ...by }] } };
+  });
 
   if (closed && s.receipt) {
     return (
@@ -766,10 +783,31 @@ function Act({ s, f, said, can, me, write }: {
   }));
   const reopened = s.receipt?.reopened ?? [];
   const lastReopen = reopened[reopened.length - 1];
+  if (s.facts.abandoned) {
+    return (
+      <div className="ie-act is-abandoned">
+        <p className="sub">Abandoned {niceDay(isoDay(s.facts.abandoned.at))}{s.facts.abandoned.by ? ` by ${s.facts.abandoned.by}` : ''} — {s.facts.abandoned.reason.toLowerCase()}{s.facts.abandoned.why ? `: ${s.facts.abandoned.why}` : ''}</p>
+        {can.edit && <button type="button" className="btn" onClick={takeUp}>Take the test up again</button>}
+      </div>
+    );
+  }
   return (
     <div className="ie-act">
       {lastReopen && <p className="sub">Reopened {niceDay(isoDay(lastReopen.at))}{lastReopen.by ? ` by ${lastReopen.by}` : ''} — {lastReopen.why}</p>}
       {can.edit && f.enough && <button type="button" className="btn btn-primary" onClick={close}>Close — keep these figures</button>}
+      {can.edit && aband === null && <button type="button" className="btn" onClick={() => setAband({ reason: '', why: '' })}>Abandon the test</button>}
+      {aband && (
+        <form className="ie-why" aria-label="Abandon the test" onSubmit={e => { e.preventDefault(); if (!abandonReady(aband.reason, aband.why)) return; abandon(aband.reason, aband.why); setAband(null); }}>
+          <div className="chip-row" role="radiogroup" aria-label="Why it is abandoned">
+            {ABANDON_REASONS.map(r => (
+              <button key={r} type="button" role="radio" aria-checked={aband.reason === r} className={'chip' + (aband.reason === r ? ' on' : '')} onClick={() => setAband({ ...aband, reason: r })}>{r}</button>
+            ))}
+          </div>
+          <input className="text-input" value={aband.why} placeholder={aband.reason === 'Something else' ? 'Say why — required' : 'Anything to add — kept with it'} aria-label="Its reason, in your words" onChange={e => setAband({ ...aband, why: e.target.value })} />
+          <button type="submit" className="btn btn-primary" disabled={!abandonReady(aband.reason, aband.why)}>Abandon it</button>
+          <button type="button" className="btn" onClick={() => setAband(null)}>Keep going</button>
+        </form>
+      )}
       {can.agree && f.n > 0 && !s.overrule && over === null && (
         <button type="button" className="btn" onClick={() => setOver({ verdict: said.verdict === 'Passed' ? 'Didn’t pass' : 'Passed', why: '' })}>Overrule the verdict</button>
       )}

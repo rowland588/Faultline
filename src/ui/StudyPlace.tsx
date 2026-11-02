@@ -237,6 +237,21 @@ export function planEmpty(s: ToolStudy, from: string): string {
   return `Nothing raised from it yet — Make it better appears here when ${from} shows something to put right.`;
 }
 
+/** BACK TO THE TEST — a study that proves a test says so at the top, and one tap goes back to it (Rowland, 2 November: "I need the
+ *  ability to go off this test and go back on it"); the readings and notes stay where they are, the study is one tap from the test. */
+export function BackToTest({ s, me }: { s: ToolStudy; me?: string }) {
+  const { byRef } = useBetter(s, me);
+  if (!s.projectId) return null;
+  const projectId = s.projectId;
+  const tests = s.uses.filter(u => u.kind === 'test' && byRef.has(u.ref));
+  if (!tests.length) return null;
+  return (
+    <p className="ie-back sub">
+      {tests.map(u => <button key={u.id} type="button" className="btn btn-sm" onClick={() => nav(recordHref(projectId, u))}>‹ Back to the test — {byRef.get(u.ref)?.title}</button>)}
+    </p>
+  );
+}
+
 export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string }) {
   const { board, targets, byRef, better, assets } = useBetter(s, me);
   const [picking, setPicking] = useState(false);

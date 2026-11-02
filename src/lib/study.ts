@@ -1062,6 +1062,9 @@ export interface RelEvent {
   reason?: string;
 }
 
+/** A test abandoned: the reason (one of lib/abandon ABANDON_REASONS), the person's own words, and the readings it had when it stopped. */
+export interface StudyAbandoned { at: number; by?: string; reason: string; why?: string; taken: number }
+
 /** A REMARK — commentary kept on a study, for its page and its paper. Taken
  *  off by striking, so Undo can bring it back. */
 export interface Remark { id: string; at: number; text: string; by?: string; editedAt?: number; struck?: boolean }
@@ -1126,6 +1129,8 @@ export interface StudyFacts {
   watch?: WatchRun[];
   events?: RelEvent[];
   remarks?: Remark[];
+  /** A test given up before it was finished (Rowland, 2 November): when, who, the reason chosen and any words with it, and how many readings it had. Kept in the facts, so no column changes; a remark says it too. */
+  abandoned?: StudyAbandoned;
   /** FC-060: the lives of a part that wears, each its own entry (merged by id). */
   lives?: RelLife[];
   /** A shift's losses: the end-of-shift count (tool 7). The stops are the

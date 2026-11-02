@@ -10,6 +10,7 @@
  * never part: a value stream's grid, a changeover's steps, a shift's losses,
  * a sampling's shares. A capability study adds its figures and its readings.
  * Laid out by the report engine (src/lib/report/, docs/REPORTS.md). */
+import { abandonedSays } from './abandon';
 import { copiedHead } from './sharedReadings';
 import type { jsPDF } from 'jspdf';
 import type { ToolStudy } from './study';
@@ -184,7 +185,16 @@ function histBlock(f: SampleFigures, a: AgreedReadings): Block | undefined {
  *  reading in the order taken, ten to a row, struck ones said so. Pass or
  *  fail: checked, failed, allowed and what it proves, then each one good or
  *  failed by its number (knowledge/specs/FC-094-capability.md §7). */
+/** The capability study's paper: its figures, then the notes written while it ran (Rowland, 2 November) — only when there are some. */
 function capabilityBlocks(s: ToolStudy): Block[] {
+  const out = capabilityFigures(s);
+  /* a test given up says so first, with its reason (lib/abandon) — the figures below are what it had, judged as nothing */
+  if (s.facts.abandoned) out.unshift(text({ text: abandonedSays(s.facts.abandoned), size: 9.5, style: 'bold', colour: AMBER, after: 4 }));
+  if (s.agreed?.readings && (s.facts.remarks ?? []).some(r => !r.struck)) { out.push(label('Notes')); out.push(...remarksBlocks(s.facts.remarks)); }
+  return out;
+}
+
+function capabilityFigures(s: ToolStudy): Block[] {
   const a = s.agreed?.readings;
   if (!a) return [];
   const f = sample(a, s.facts.readings ?? []);
