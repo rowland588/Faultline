@@ -40,8 +40,14 @@ export interface DashFinding {
   href: string;
   /** More records of the same tool in the project than the one shown. */
   more: number;
+  /** What the person wrote on the study while it ran (facts.remarks), oldest first — the report draws it with the finding (Rowland, 2 November: notes are part of the report structure). */
+  notes: { text: string; at: number; by?: string }[];
   at: number;
 }
+/** The live notes on a study, oldest first. */
+export const notesOf = (s: ToolStudy): DashFinding['notes'] =>
+  (s.facts.remarks ?? []).filter(r => !r.struck && r.text.trim()).sort((a, b) => a.at - b.at).map(r => ({ text: r.text.trim(), at: r.at, ...(r.by ? { by: r.by } : {}) }));
+
 export interface DashAttention { text: string; tone: 'r' | 'a' | 'n'; kind: 'finding' | 'unwritten' | 'unproved' | 'late' }
 export interface DashOwed { kind: string; what: string; owner?: string; due?: string; doneAt?: number | null; testId?: string }
 export interface DashIn {
@@ -96,7 +102,7 @@ export function methodDashboard(x: DashIn): Dashboard {
     const s = sorted[0];
     if (!s) continue;
     const said = studyLine(s, { ...(x.ctx ?? {}), studies: live as ToolStudy[] });
-    findings.push({ id: s.id, key: s.tool, tool: TOOL_NAME[s.tool] ?? tool, section: placeOf.get(tool) ?? '', title: studyTitle(s), says: said.text, tone: said.tone as DashTone, href: studyHref(s), more: sorted.length - 1, at: s.updatedAt });
+    findings.push({ id: s.id, key: s.tool, tool: TOOL_NAME[s.tool] ?? tool, section: placeOf.get(tool) ?? '', title: studyTitle(s), says: said.text, tone: said.tone as DashTone, href: studyHref(s), more: sorted.length - 1, notes: notesOf(s), at: s.updatedAt });
   }
   const order = new Map(m.sections.map((s, i) => [s.name, i] as const));
   findings.sort((a, b) => (order.get(a.section) ?? 0) - (order.get(b.section) ?? 0) || b.at - a.at);

@@ -112,6 +112,23 @@ await page.waitForSelector('.mrep .ln-band', { timeout: 20000 });
 const pm = await model(PD); pt = await pageText();
 ok(pm.titles.includes('Each cycle against its prediction') && missing(pm.lines, pt).length === 0, '4 a PDCA project’s report is its own: each cycle against its prediction, every line on the page');
 
+/* ---- 4b the notes written on a tool's study are part of the report (Rowland, 2 November: "make sure the notes are part of the report structure") ---- */
+{
+  const noted = await page.evaluate(async pid => {
+    const db = await import('/src/db.ts');
+    const st = (await db.listStudies(pid)).find(x => x.tool === 'capability' && !x.deletedAt);
+    if (!st) return null;
+    await db.patchStudy(st.id, cur => ({ facts: { ...cur.facts, remarks: [...(cur.facts.remarks ?? []), { id: crypto.randomUUID(), at: Date.now(), text: 'Jaw 2 heater tripped at 10:52, film tight on the left', by: 'Acceptance' }] } }));
+    return st.id;
+  }, DM);
+  ok(!!noted, '4b the DMAIC project has a capability study to note on');
+  await go(`#/project/${DM}/method-report`, 2500);
+  ok(/Jaw 2 heater tripped/.test(await page.locator('.mrep-tool-notes').first().innerText().catch(() => '')), '4b the page draws the note with the tool’s finding');
+  const lines = await page.evaluate(async pid => { const M = await import('/src/lib/methodReportModel.ts'); void M; return 0; }, DM).catch(() => 0); void lines;
+  const withNote = await paperOf(() => pressPaper(page, 'Project report'));
+  ok(squash(withNote.text).includes(squash('Jaw 2 heater tripped at 10:52, film tight on the left')), '4b the note is on the project report’s paper');
+}
+
 /* ---- 5 a client; a phone ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await go(`#/project/${DM}/method-report`, 2500);

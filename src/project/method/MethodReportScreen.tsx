@@ -51,6 +51,12 @@ function Item({ it }: { it: ReportItem }) {
       <article className={'mrep-tool is-' + it.tone}>
         <p className="mrep-tool-where">{it.section} · {it.tool} · {it.title}{it.more ? ` · and ${it.more} more of this tool` : ''}</p>
         <p className="mrep-tool-says">{it.says}</p>
+        {it.notes.length > 0 && (
+          <div className="mrep-tool-notes" aria-label={`Notes on ${it.title}`}>
+            <b className="mrep-word">Notes</b>
+            <ul>{it.notes.map((n, i) => <li key={i}>{n.text} <span className="sub">{new Date(n.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {new Date(n.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}{n.by ? ` · ${n.by}` : ''}</span></li>)}</ul>
+          </div>
+        )}
         <p className="mrep-tool-meta">{WORD[it.tone] ? <b className="mrep-word">{WORD[it.tone]}</b> : null} <button type="button" className="linkish" onClick={() => nav(it.href)}>Open {it.title}</button></p>
       </article>
     );

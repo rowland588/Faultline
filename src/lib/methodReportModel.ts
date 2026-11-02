@@ -36,7 +36,7 @@ export type ReportItem =
   /** Small bars where a record already says a share: label, 0–1, the words beside it. */
   | { kind: 'bars'; title: string; bars: { label: string; v: number; text: string; here?: boolean }[] }
   /** A tool's result: its sentence here; on paper, that tool's own paper blocks follow it. */
-  | { kind: 'tool'; id: string; tool: string; key: string; title: string; section: string; says: string; tone: ReportTone; href: string; more: number; where: string }
+  | { kind: 'tool'; id: string; tool: string; key: string; title: string; section: string; says: string; tone: ReportTone; href: string; more: number; where: string; notes: { text: string; at: number; by?: string }[] }
   /** Questions and the team's answers. */
   | { kind: 'qa'; title: string; rows: { q: string; a: string; written: boolean }[] };
 
@@ -170,7 +170,7 @@ export function methodReportModel(x: ReportIn, own?: MethodReportFn): MethodRepo
   const telling: ReportSection = {
     id: 'telling', title: 'What everything is telling us now',
     lead: dash.findings.length ? `${plural(results, 'tool result')} from ${plural(dash.findings.length, 'tool')} — each in the tool’s own sentence, with its own figures.` : 'No tool has been used in this project yet — a tool falls in where a question needs a number.',
-    items: dash.findings.map((f): ReportItem => ({ kind: 'tool', id: f.id, tool: f.tool, key: f.key, title: f.title, section: f.section, says: f.says, tone: f.tone, href: f.href, more: f.more, where: `${f.section} · ${x.project.name}` })),
+    items: dash.findings.map((f): ReportItem => ({ kind: 'tool', id: f.id, tool: f.tool, key: f.key, title: f.title, section: f.section, says: f.says, tone: f.tone, href: f.href, more: f.more, notes: f.notes, where: `${f.section} · ${x.project.name}` })),
   };
   const moneyItems: ReportItem[] = [];
   for (const f of dash.findings) {
@@ -228,7 +228,7 @@ export function itemLines(it: ReportItem): string[] {
     case 'callout': return [it.word, it.text];
     case 'money': return [it.text];
     case 'bars': return [it.title, ...it.bars.flatMap(b => [b.label, b.text])];
-    case 'tool': return [it.says];
+    case 'tool': return [it.says, ...it.notes.map(n => n.text)];
     case 'qa': return [it.title, ...it.rows.flatMap(r => [r.q, r.a])];
   }
 }
