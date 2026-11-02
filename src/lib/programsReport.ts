@@ -274,7 +274,7 @@ function testsOfProgram(p: Program | undefined, tests: Test[], studies: readonly
     tone: (a.result.tone === 'a' ? 'a' : a.result.tone) as ProgTone,
     studies: linkedTo([...(studies ?? [])], 'test', a.test.id, 'proof').map(st => `${studyWords(st)} — ${studyLine(st).text}`),
     ...(n => (n.length ? { notes: n } : {}))(linkedTo([...(studies ?? [])], 'test', a.test.id, 'proof')
-      .flatMap(st => (st.facts.remarks ?? []).filter(r => !r.struck && r.text.trim()))
+      .flatMap(st => (st.facts?.remarks ?? []).filter(r => !r.struck && r.text.trim()))
       .sort((x, y) => x.at - y.at)
       .map(r => `${niceDay(new Date(r.at).toISOString().slice(0, 10))} — ${r.text.trim()}${r.by ? ` (${r.by})` : ''}`)),
   }));

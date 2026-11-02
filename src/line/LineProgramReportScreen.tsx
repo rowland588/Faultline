@@ -102,7 +102,7 @@ export function LineProgramReportScreen({ wsId, programId }: { wsId: string; pro
       ))}
       {(row.tests ?? []).map((t, i) => (
         <p key={i} className="sub"><span className={'is-' + t.tone}>{t.badge}</span> {t.text}{t.split ? ` — ${t.split}` : ''}
-          {(t.notes ?? []).map((n, k) => <span key={k} className="lpr-note" style={{ display: 'block' }}>Note: {n}</span>)}</p>
+          {(t.notes ?? []).map((n, k) => <span key={k} className="lpr-note sub">Note: {n}</span>)}</p>
       ))}
     </div>
   );

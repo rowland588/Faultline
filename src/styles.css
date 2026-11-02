@@ -15781,3 +15781,4 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .pgs-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .pgs-acts .btn { min-height: 44px; }
 .cmt-fold { margin: 6px 0 0; }
+.lpr-note { display: block; }
