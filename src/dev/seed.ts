@@ -1395,3 +1395,41 @@ export async function seedChecksForTest(wsId: string, projectId?: string): Promi
   }
   return ids;
 }
+
+/** FC-148 — a 6M problem for the check step and the why tree, made on a project and its line on request (the acceptance
+ *  script's, never part of the smoke seed, so no other fixture's count moves). Seven causes across the six bones: one
+ *  rated and ticked with its check written (due in a week), one confirmed (counted) with the poor-training why tree
+ *  (3 branches, 1 shared root), one ruled out with what the check found, three suspected (one rated), and a legacy
+ *  chain on a cause written before the tree. Returns the ids the script presses. */
+export async function seedWhyTreeProblem(o: { projectId: string; lineId: string; workspaceId: string }): Promise<{ problemId: string; trainingCauseId: string; spliceCauseId: string }> {
+  const t = Date.now(), day = 86_400_000;
+  const due = new Date(t + 7 * day).toISOString().slice(0, 10);
+  const problem: Case = {
+    id: uid(), workspaceId: o.workspaceId, title: 'Film breaks on the Bagger', path: [{ dimension: 'asset', value: 'Bagger' }, { dimension: 'category', value: 'Breakdown' }],
+    baselineMsWeek: Math.round(2.1 * 3_600_000), status: 'open', openedAt: t - 9 * day, updatedAt: t,
+    projectId: o.projectId, lineId: o.lineId, source: { kind: 'pareto', category: 'Breakdown', asset: 'Bagger' },
+    causes: [
+      { id: 'wt-splice', m: 'method', text: 'Splices vary between shifts', grade: 'observed', status: 'suspected', whys: [], at: t - 8 * day, likely: 'likely', explains: 'most',
+        tick: true, check: { what: 'Pull the splice log for 4 weeks', who: 'Sam', by: due } },
+      { id: 'wt-training', m: 'people', text: 'Poor training on the changeover', grade: 'observed', status: 'confirmed', root: true, at: t - 8 * day, likely: 'likely', explains: 'some', tick: true,
+        check: { what: 'Ask the two newest starters to walk the changeover', who: 'Pat', by: new Date(t - 2 * day).toISOString().slice(0, 10) }, found: 'Neither could name the film-change steps',
+        whys: [
+          { id: 'wt-w1', text: 'There is no written standard', of: 'cause', grade: 'counted' },
+          { id: 'wt-w2', text: 'New starters are not signed off', of: 'cause', grade: 'counted' },
+          { id: 'wt-w3', text: 'The trainer has no time', of: 'cause', grade: 'reported' },
+          { id: 'wt-w4', text: 'Nobody owns the standard', of: 'wt-w1', sameAs: 'wt-w6' },
+          { id: 'wt-w5', text: 'The sign-off sheet is not issued', of: 'wt-w2', sameAs: 'wt-w6' },
+          { id: 'wt-w6', text: 'Training is not planned into the roster', of: 'wt-w3', root: true, grade: 'counted' },
+        ] },
+      { id: 'wt-jaw', m: 'machine', text: 'Sealing jaw runs cold at start-up', grade: 'reported', status: 'ruled_out', whys: [], at: t - 7 * day, likely: 'possible', explains: 'little', tick: true,
+        check: { what: 'Log the jaw temperature for a week', who: 'Rob' }, found: 'Within 2 °C of set point on every start-up' },
+      { id: 'wt-reel', m: 'material', text: 'Reel cores out of round', grade: 'reported', status: 'suspected', whys: [], at: t - 6 * day, likely: 'possible', explains: 'some' },
+      { id: 'wt-eye', m: 'measurement', text: 'Photo-eye misses the film join', grade: 'observed', status: 'suspected', whys: [], at: t - 5 * day },
+      { id: 'wt-heat', m: 'environment', text: 'Hot mornings soften the film', grade: 'reported', status: 'suspected', whys: [], at: t - 4 * day },
+      { id: 'wt-old', m: 'method', text: 'Film is stored by the door', grade: 'observed', status: 'confirmed', root: true, at: t - 20 * day,
+        whys: [{ id: 'wt-o1', text: 'There is no shelf in the packing area', grade: 'observed' }, { id: 'wt-o2', text: 'Nobody asked for one', grade: 'reported' }] },
+    ],
+  };
+  await addCase(problem);
+  return { problemId: problem.id, trainingCauseId: 'wt-training', spliceCauseId: 'wt-splice' };
+}
