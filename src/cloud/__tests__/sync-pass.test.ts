@@ -290,6 +290,17 @@ describe('mergeRows — who moved which box', () => {
     const r = mergeRows({ media: [p, v1] }, { media: [p, v1, v2] }, { media: [p, ph] }, false);
     expect((r.row.media as { id: string }[]).map(m => m.id)).toEqual(['p', 'ph', 'v2']);   // v1 removed there, v2 added here
   });
+  it('two devices drilling one cause each keep the branch they added (FC-148, the why tree)', async () => {
+    const { mergeRows } = await import('../sync');
+    const w1 = { id: 'w1', text: 'No written standard', of: 'cause' }, w2 = { id: 'w2', text: 'Trainer has no time', of: 'cause' };
+    const base = { causes: [{ id: 'c', text: 'Poor training', whys: [w1] }] };
+    const mine = { causes: [{ id: 'c', text: 'Poor training', whys: [w1, { id: 'w3', text: 'Nobody owns it', of: 'w1' }] }] };
+    const theirs = { causes: [{ id: 'c', text: 'Poor training', whys: [w1, w2] }] };
+    for (const mineNewer of [true, false]) {
+      const merged = (mergeRows(base, mine, theirs, mineNewer).row.causes as { whys: { id: string }[] }[])[0];
+      expect(merged.whys.map(w => w.id).sort()).toEqual(['w1', 'w2', 'w3']);
+    }
+  });
   it('numbers put in for one product on the phone and another on the laptop both stay', async () => {
     const { mergeRows } = await import('../sync');
     const base = { runs: [{ id: 'a', product: 'Red' }, { id: 'b', product: 'White' }] };
