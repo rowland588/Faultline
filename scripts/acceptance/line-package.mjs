@@ -141,7 +141,7 @@ for (const [w, h, label] of [[1360, 520, 'a short desk window'], [390, 640, 'a p
   await page.setViewportSize({ width: w, height: h }); await go(`#/lines/${LINE}`, 2500);
   await page.locator('.pl .part-head .part-menu-b', { hasText: /^Report/ }).click(); await page.waitForTimeout(300);
   const m = await page.evaluate(() => { const l = document.querySelector('.part-menu-list'); const r = l.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: window.innerHeight, sh: l.scrollHeight, ch: l.clientHeight, oy: getComputedStyle(l).overflowY }; });
-  ok(m.bottom <= m.h + 1 && m.top >= 0 && m.sh > m.ch && /auto|scroll/.test(m.oy), `8 ${label}: the Report list ends inside the window (${Math.round(m.bottom)} of ${m.h}) and scrolls inside itself (${m.sh} in ${m.ch})`, JSON.stringify(m));
+  ok(m.bottom <= m.h + 1 && m.top >= 0 && m.sh >= m.ch && /auto|scroll/.test(m.oy), `8 ${label}: the Report list ends inside the window (${Math.round(m.bottom)} of ${m.h}) and fits or scrolls inside itself (${m.sh} in ${m.ch})`, JSON.stringify(m));
   const items = page.getByRole('menuitem'); const last = items.last();
   await last.scrollIntoViewIfNeeded(); await page.waitForTimeout(200);
   const lb = await last.boundingBox();

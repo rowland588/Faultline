@@ -52,12 +52,10 @@ import { between, stopMinutes, WEEK } from '../lib/intelligence';
 import type { ToolStudy, StudyTool } from '../lib/study';
 import type { Workspace } from '../types';
 import { useProjects } from '../lib/useProjects';
-import { saveProblemCardsFor, saveProblemsReportFor } from '../lib/problemsPdf';
 import { MachinePicture } from '../ui/MachinePicture';
 import { useLineRecords } from '../lib/useLineRecords';
 import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../lib/useJobFloor';
 import { lineKit } from '../lib/lineRecords';
-import { programsReadingOnLine, saveLineProgramsReport } from '../lib/lineProgramsPaper';
 import { STATE_WORD, isProved, standingOf, stateOf, todayISO } from '../lib/programs';
 import { niceDay } from '../lib/weeks';
 import { addMachineToLine, archiveWorkspace, renameLineMachine, restoreWorkspace, setMachineFacts } from '../db';
@@ -202,8 +200,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   /* programs typed only on a project's Commission, on this line (23 October: "it's like you don't have any programs") */
   const floor = useJobFloor(useMemo(() => (line ? projectsOnLines([line.id], rec.jobLines, pid => rec.jobs.some(j => j.id === pid && !j.archivedAt)) : []), [line, rec.jobLines, rec.jobs]));
   const onStage = useMemo(() => (line ? stageOnlyByLine(floor.stageOnly ?? [], rec.machines, rec.jobLines).get(line.id) ?? [] : []), [line, floor, rec.machines, rec.jobLines]);
-  const programsReading = useMemo(() => (line && !rec.loading ? programsReadingOnLine(rec, line, today, { floor, jobName: new Map(rec.jobs.map(j => [j.id, j.name])), stageOnlyLines: onStage.map(x => x.line) }) : undefined),
-    [line, rec, today, floor, onStage, rec.jobs]);
   /* THE LINE AS A LEAN PAGE (lib/lineLean) — the tiles and the closing line
      its page and its report both say */
   const checkCounts = useMemo(() => scopeCounts(studies, Date.now()), [studies]);
@@ -234,19 +230,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
   /* the line as its paper names it — with its type, as the page does */
   const named = line.lineType ? `${line.name} (${line.lineType})` : line.name;
-  /* THE LINE ON PAPER (12 October: "if it's attached to a line, every group
-     I can send from that") — its report, or a card for each problem open. */
-  const pdf = async (kind: 'report' | 'cards') => {
-    if (busy || !mine.length) return;
-    setBusy(true);
-    try {
-      if (kind === 'report') await saveProblemsReportFor({ title: `${named} — problems`, snags: mine, jobs: [], lineName: () => line.name, jobName: id => projects.find(p => p.id === id)?.name });
-      else await saveProblemCardsFor({ name: named, lineRows: mine.map(snag => ({ snag, assetName: snag.targetAsset?.trim() || 'No machine named' })), jobRows: [] });
-    } catch (e) {
-      console.error('line pdf failed', e);
-      window.alert('Sorry — the PDF could not be made. Please try again.');
-    } finally { setBusy(false); }
-  };
   /* THE LINE REPORT, ONE PAGE (BLUEPRINT §3, Stage 3) — the lean page on
      paper: the tiles and closing line this page says,
      what is open, its machines and programs to prove, what its tools found
@@ -286,15 +269,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
      2A ... and then print off a report that says, there you go. There's everything that's happening on that line
      currently"): the line's machines as the Factory's Machines says them, then each in full — every test and attempt,
      every program and its tests, every step, its problems and what was done, the studies (lib/machineDossier). */
-  const printPrograms = async () => {
-    if (!line || !programsReading || busy) return;
-    setBusy(true);
-    try { await saveLineProgramsReport(line, programsReading, today); }
-    catch (e) {
-      console.error('programs report failed', e);
-      window.alert('Sorry — the PDF could not be made. Please try again.');
-    } finally { setBusy(false); }
-  };
   const printMachines = async () => {
     if (busy) return;
     setBusy(true);
@@ -356,17 +330,14 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         says={<span className="pl-says">{lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}</span>}
         primary={may ? { label: kit?.programs.length ? 'Programs on this line' : 'Plan a program', run: () => nav(`/programs?line=${encodeURIComponent(wsId)}`) } : undefined}
         papers={[
-          { label: 'Line report — 1 page', for: 'the line, its tiles, problems, machines, programs and what its tools found', disabled: busy || !reading, make: printLine },
-          { label: 'Machines report — every machine in full', for: 'each machine on the line: where it is up to, every test and every attempt, every program and its tests, every step, its problems and what was done, the studies', disabled: busy, make: printMachines },
-          /* EVERYTHING ON THE LINE (23 October, lib/lineBundle) — drawn on its own report page, made on arrival */
+          /* THE LINE'S REPORTS, THREE (3 November — Rowland: "the line reports there are many and it's confusing me, simplify"). Eight entries stood
+             here, Programs twice. Now: the one-page summary; the report with the tools picked (a tick a tool record); and the full package (every
+             paper joined). The single papers — Problems, Problem cards, Programs, Test cards, Machines — are ticks on the package's page and keep
+             their own pages' Report ▾ (Programs, Problems); the machines tab keeps its Machines report. */
+          { label: 'Line report — 1 page', for: 'the short one: the line, its tiles, problems, machines, programs and what its tools found', disabled: busy || !reading, make: printLine },
           { label: 'Line report — everything on the line', for: dual.madeOf.length ? 'each line it is made of, then both together — every tool used, programs, problems, who owes what' : 'every tool used on the line, its programs, its problems, where on the line, who owes what — tick what goes in', make: () => nav(savingAt(`/lines/${wsId}/report`)) },
-          /* THE FULL PACKAGE (3 November — Rowland: "send almost a package of information to my client … it actually prints off its actual report itself"):
-             every tool's own paper joined behind a cover and contents, on the same page, made on arrival */
-          { label: 'Line report — full package', for: 'everything on the line as its own papers, joined: problems, programs and every test, machines, line standards with their maps, Line capacity, each tool\u2019s report', make: () => nav(savingAt(`/lines/${wsId}/report?full=1`)) },
-          { label: 'Programs report', for: programsReading ? 'every program on the line, machine by machine, every test and how it went' : 'no program on the line yet', disabled: busy || !programsReading, make: printPrograms },
-          { label: 'Programs report — on its page', for: programsReading ? 'the same paper, made on arrival' : 'no program on the line yet', disabled: !programsReading, make: () => nav(savingAt(`/lines/${wsId}/programs/report`)) },
-          { label: 'Problems report', for: rows.length ? 'every problem open on the line, with its plan and journey' : 'no problem open on the line yet', disabled: busy || !rows.length, make: () => pdf('report') },
-          { label: 'Problem cards', for: rows.length ? 'a card for each problem open, for the board' : 'no problem open on the line yet', disabled: busy || !rows.length, make: () => pdf('cards') },
+          { label: 'Line report — full package', for: 'the long one, to send: every paper joined behind a cover — problems and their cards, programs and every test, machines, line standards with their maps, Line capacity, each tool\u2019s report; tick what goes in', make: () => nav(savingAt(`/lines/${wsId}/report?full=1`)) },
+          ...(view === 'machines' ? [{ label: 'Machines report — every machine in full', for: 'each machine on the line: where it is up to, every test and every attempt, every program and its tests, every step, its problems and what was done, the studies', disabled: busy, make: printMachines }] : []),
         ]}
         more={[
           /* THE FILMED WALK, FROM THE LINE (20 October, docs/DIRECTION.md): film the line, freeze a

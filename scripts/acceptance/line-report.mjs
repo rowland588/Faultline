@@ -72,7 +72,7 @@ ok(page.url().includes(`#/lines/${LINE}/report`) && !/save=1/.test(page.url()), 
 const first = await readPdf(dl, 'first.pdf');
 await go(`#/lines/${LINE}`, 2500);
 const menuPapers = await (async () => { await page.locator('.pl .part-head .part-menu-b', { hasText: /^Report/ }).click(); const items = await page.getByRole('menuitem').allInnerTexts(); await page.keyboard.press('Escape'); return items.map(flat); })();
-ok(menuPapers.some(x => x.startsWith('Line report — 1 page')) && menuPapers.some(x => x.startsWith('Line report — everything on the line')) && menuPapers.some(x => x.startsWith('Problems report')), `1b the single reports stay beside it (${menuPapers.map(x => x.split(' ').slice(0, 4).join(' ')).join(' · ')})`);
+ok(menuPapers.some(x => x.startsWith('Line report — 1 page')) && menuPapers.some(x => x.startsWith('Line report — everything on the line')) && menuPapers.some(x => x.startsWith('Line report — full package')) && menuPapers.length === 3, `1b the line's Report ▾ is three entries (3 November — "the line reports there are many and it's confusing me"): the single papers are ticks on the package page (${menuPapers.map(x => x.split(' ').slice(0, 4).join(' ')).join(' · ')})`);
 
 /* 2 · the page as the module says */
 await go(`#/lines/${LINE}/report`, 3500);
