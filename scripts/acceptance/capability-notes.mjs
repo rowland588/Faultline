@@ -89,7 +89,11 @@ const state = () => page.evaluate(async id => { const x = await (await import('/
 const band = async () => flat(await page.locator('.ln-band').first().innerText());
 ok((await page.getByRole('button', { name: 'Overrule the verdict' }).count()) === 0, '6 the separate Overrule button is gone — one control');
 await page.getByRole('button', { name: 'Fail the test', exact: true }).click();
-ok(await page.getByRole('button', { name: 'Fail it' }).isDisabled(), '6 no reason chosen — Fail it held');
+ok(!(await page.getByRole('button', { name: 'Fail it' }).isDisabled()), '6 no reason chosen — Fail it still works (3 Nov: "anything to add, no, fail it" saved nothing)');
+await page.getByRole('button', { name: 'Fail it' }).click(); await page.waitForTimeout(500);
+{ const b0 = await state(); ok(b0.over?.verdict === 'Didn’t pass' && /no reason given/.test(b0.over.why) && !b0.ab, '6 failed with no reason at all — saved, the words "no reason given"', JSON.stringify(b0)); }
+await page.getByRole('button', { name: 'Take the call back' }).click(); await page.waitForTimeout(400);
+await page.getByRole('button', { name: 'Fail the test', exact: true }).click();
 await page.getByRole('radio', { name: 'Something else' }).click();
 ok(await page.getByRole('button', { name: 'Fail it' }).isDisabled(), '6 “Something else” with no words — held');
 await page.getByRole('radio', { name: 'Machine fault' }).click();

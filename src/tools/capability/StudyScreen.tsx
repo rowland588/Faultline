@@ -30,7 +30,7 @@ import type { AgreedReadings, StudyAbandoned, StudyReading, ToolStudy } from '..
 import { TOOL_WORDS } from '../../screens/StudiesScreen';
 import { StudyBand } from '../../ui/StudyActs';
 import { Commentary } from '../../ui/Commentary';
-import { ABANDON_REASONS, CALL_WORD, abandonReady, callOf, callRemark, callSays, takenUpRemark, type TestCall } from '../../lib/abandon';
+import { ABANDON_REASONS, CALL_WORD, callReady, callWhy, callOf, callRemark, callSays, takenUpRemark, type TestCall } from '../../lib/abandon';
 import { WhereItSits, UsedFor, BackToTest, useBetter, planEmpty } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
@@ -752,7 +752,7 @@ function Act({ s, f, said, can, me, write }: {
       const ab: StudyAbandoned = { at, ...by, reason, ...(why.trim() ? { why: why.trim() } : {}), taken };
       return { overrule: undefined, facts: { ...rest, abandoned: ab, remarks } };
     }
-    return { overrule: { verdict: call === 'passed' ? 'Passed' : 'Didn’t pass', why: `${reason.toLowerCase()}${why.trim() ? `: ${why.trim()}` : ''}`, at, ...by }, facts: { ...rest, remarks } };
+    return { overrule: { verdict: call === 'passed' ? 'Passed' : 'Didn’t pass', why: callWhy(reason, why), at, ...by }, facts: { ...rest, remarks } };
   });
   const takeBack = () => write(cur => {
     const { abandoned: _gone, ...rest } = cur.facts;
@@ -804,7 +804,7 @@ function Act({ s, f, said, can, me, write }: {
         </span>
       )}
       {ending && (
-        <form className="ie-why" aria-label={CALL_WORD[ending.call]} onSubmit={e => { e.preventDefault(); if (!abandonReady(ending.reason, ending.why)) return; callIt(ending.call, ending.reason, ending.why); setEnding(null); }}>
+        <form className="ie-why" aria-label={CALL_WORD[ending.call]} onSubmit={e => { e.preventDefault(); if (!callReady(ending.call, ending.reason, ending.why)) return; callIt(ending.call, ending.reason, ending.why); setEnding(null); }}>
           <div className="chip-row" role="radiogroup" aria-label="How the test ends">
             {(['failed', 'abandoned', 'passed'] as TestCall[]).map(c => (
               <button key={c} type="button" role="radio" aria-checked={ending.call === c} className={'chip' + (ending.call === c ? ' on' : '')} onClick={() => setEnding({ ...ending, call: c })}>{c === 'failed' ? 'Failed' : c === 'abandoned' ? 'Abandoned' : 'Passed'}</button>
@@ -816,7 +816,8 @@ function Act({ s, f, said, can, me, write }: {
             ))}
           </div>
           <input className="text-input" value={ending.why} placeholder={ending.reason === 'Something else' ? 'Say why — required' : 'Anything to add — kept with it'} aria-label="Its reason, in your words" onChange={e => setEnding({ ...ending, why: e.target.value })} />
-          <button type="submit" className="btn btn-primary" disabled={!abandonReady(ending.reason, ending.why)}>{ending.call === 'failed' ? 'Fail it' : ending.call === 'abandoned' ? 'Abandon it' : 'Pass it'}</button>
+          {!callReady(ending.call, ending.reason, ending.why) && <p className="sub" role="status">{ending.call === 'abandoned' && !ending.reason ? 'Pick why it was abandoned.' : 'Say why — “Something else” needs your words.'}</p>}
+          <button type="submit" className="btn btn-primary" disabled={!callReady(ending.call, ending.reason, ending.why)}>{ending.call === 'failed' ? 'Fail it' : ending.call === 'abandoned' ? 'Abandon it' : 'Pass it'}</button>
           <button type="button" className="btn" onClick={() => setEnding(null)}>Keep going</button>
         </form>
       )}

@@ -12,6 +12,11 @@ export type AbandonReason = (typeof ABANDON_REASONS)[number];
 export const abandonReady = (reason: string, why: string): boolean =>
   ABANDON_REASONS.includes(reason as AbandonReason) && (reason !== 'Something else' || why.trim() !== '');
 
+/** Whether a call can be saved (Rowland, 3 November: "anything to add, no, fail it — then there's no save"): failing or passing a
+ *  test needs no reason (one chosen is kept; "Something else" needs its words); abandoning still asks why. */
+export const callReady = (call: TestCall, reason: string, why: string): boolean =>
+  call === 'abandoned' ? abandonReady(reason, why) : reason === '' ? true : abandonReady(reason, why);
+
 const readings = (n: number) => `${n} reading${n === 1 ? '' : 's'}`;
 
 /** The sentence, as the page, the paper and the criterion say it. */
@@ -29,7 +34,10 @@ export const takenUpRemark = 'Test taken up again.';
  *      the tiles, the paper and the criterion — never as one line lower on the page. ---- */
 export type TestCall = 'failed' | 'passed' | 'abandoned';
 export const CALL_WORD: Record<TestCall, string> = { failed: 'Fail the test', abandoned: 'Abandon the test', passed: 'Pass the test' };
-const reasonText = (reason: string, why: string) => `${reason.toLowerCase()}${why.trim() ? `: ${why.trim()}` : ''}`;
+const reasonText = (reason: string, why: string) => (!reason && !why.trim() ? 'no reason given' : `${reason ? reason.toLowerCase() : ''}${why.trim() ? `${reason ? ': ' : ''}${why.trim()}` : ''}`);
+
+/** The reason as the call keeps it. */
+export const callWhy = (reason: string, why: string): string => reasonText(reason, why);
 
 /** What the person called the test, if anything: the call, the reason in words, who and when. */
 export function callOf(s: Pick<ToolStudy, 'facts' | 'overrule'>): { call: TestCall; text: string; by?: string; at: number } | undefined {
