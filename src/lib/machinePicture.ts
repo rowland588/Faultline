@@ -37,3 +37,11 @@ export async function smallPicture(file: Blob): Promise<Blob> {
     URL.revokeObjectURL(url);
   }
 }
+
+/** The machine's picture made small for paper (900 px, as the documents' photos are), or nothing when it has none or it is not on this device. */
+export async function paperPicture(a: Pick<Asset, 'docs'> | undefined): Promise<{ dataUrl: string; w: number; h: number } | undefined> {
+  const d = pictureOf(a);
+  if (!d) return undefined;
+  const { shrinkPicture } = await import('../tools/talk/talkPictures');
+  return shrinkPicture(d.blobKey, 900, 0.8);
+}

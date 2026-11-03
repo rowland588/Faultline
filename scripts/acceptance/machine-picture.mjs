@@ -11,6 +11,11 @@
  *  Ph  the phone: the card and the page, nothing off the side
  */
 import pkg from 'playwright';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { paper } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -121,6 +126,39 @@ if (facts.hasProblem) {
 /* ---- P5 ---- */
 const papers = await page.evaluate(async () => { const { papersOf } = await import('/src/lib/machinePicture.ts'); return papersOf({ docs: [{ id: 'a', name: 'x', blobKey: 'k', mime: 'image/jpeg', savedAt: 1, picture: true }, { id: 'b', name: 'y.pdf', blobKey: 'k2', mime: 'application/pdf', savedAt: 1 }] }).length; });
 ok(papers === 1, 'P5 a machine’s picture is not one of its papers');
+
+/* ---- Q · the Machines tab offers it too (Rowland: "you can have it in both places") ---- */
+await go(`#/lines/${WS}?view=machines`);
+const row = () => main().locator('.pl-machine', { has: page.locator(`[data-machine="${M}"]`) }).or(main().locator(`.pl-machine[data-machine="${M}"]`)).first();
+ok(await row().locator('[data-machine-picture]').count() === 1, 'Q1 the machine’s row on the Machines tab carries its picture control');
+ok(await row().locator('.mpic-thumb').count() === 1, 'Q1 it shows the picture already on the machine (from its page)');
+await row().locator('[data-machine-picture] button', { hasText: 'Take off' }).click(); await page.waitForTimeout(1000);
+r = await rec();
+ok(r.docs.length === 0, 'Q2 Take off on the row removes it', JSON.stringify(r));
+await row().locator('[data-machine-picture] input[type=file]').setInputFiles({ name: 'row.jpg', mimeType: 'image/jpeg', buffer: BLUE });
+await row().locator('.mpic-thumb').waitFor({ timeout: 15000 });
+r = await rec();
+ok(r.docs.length === 1 && r.docs[0].picture, 'Q2 a picture added from the row is kept on the record', JSON.stringify(r));
+
+/* ---- R · the reports carry it ---- */
+const dir = mkdtempSync(join(tmpdir(), 'mp-'));
+const images = f => Number((execFileSync('pdfimages', ['-list', f], { encoding: 'utf8' }).trim().split('\n').length - 2) || 0);
+const make = async (hashIn, label, name) => {
+  await go(hashIn);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), paper(page, label)]);
+  const f = join(dir, name); await dl.saveAs(f); return f;
+};
+const one = await make(`#/lines/${WS}/machine/${encodeURIComponent(M)}`, 'Machine report', 'one.pdf');
+ok(images(one) >= 1, 'R1 the machine report carries the machine’s picture', images(one));
+/* the machine with no picture: none */
+const other = await page.evaluate(async ws => { const db = await import('/src/db.ts'); const { machinesOnLine } = await import('/src/lib/lineRecords.ts'); const l = await db.getWorkspace(ws); return machinesOnLine(l, await db.listAllAssets(), await db.allPaceLines()).map(m => m.name); }, WS);
+const bare = other.find(n => n !== M);
+if (bare) {
+  const f = await make(`#/lines/${WS}/machine/${encodeURIComponent(bare)}`, 'Machine report', 'bare.pdf');
+  ok(images(f) === 0, `R2 a machine with no picture prints none (${bare})`, images(f));
+}
+const all = await make(`#/lines/${WS}?view=machines`, 'Machines report', 'all.pdf');
+ok(images(all) >= 1, 'R3 the line’s Machines report carries it on that machine’s page', images(all));
 
 /* ---- Ph ---- */
 await page.setViewportSize({ width: 375, height: 800 });

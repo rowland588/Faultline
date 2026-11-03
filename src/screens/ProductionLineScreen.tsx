@@ -53,6 +53,7 @@ import type { ToolStudy, StudyTool } from '../lib/study';
 import type { Workspace } from '../types';
 import { useProjects } from '../lib/useProjects';
 import { saveProblemCardsFor, saveProblemsReportFor } from '../lib/problemsPdf';
+import { MachinePicture } from '../ui/MachinePicture';
 import { useLineRecords } from '../lib/useLineRecords';
 import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../lib/useJobFloor';
 import { lineKit } from '../lib/lineRecords';
@@ -725,6 +726,8 @@ function MachineRow({ line, m, may, programs, job }: { line: Workspace; m: LineM
             onBlur={e => { const v = e.target.value.trim(); if (v !== (m.record?.oem ?? '')) void setMachineFacts(line.id, m.name, { oem: v }); }}
             onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
         : m.record?.oem ? <span className="sub pl-oem-said">{m.record.oem}</span> : null}
+      {/* ITS PICTURE, here as on its page (Rowland, 3 November: "you can have it in both places") */}
+      <MachinePicture wsId={line.id} name={m.name} record={m.record} compact />
       <span className="sub pl-machine-on">{[programs.length ? `${programs.length} program${programs.length === 1 ? '' : 's'}, ${programs.filter(isProved).length} proved` : 'no programs', job ? `brought in by ${job}` : ''].filter(Boolean).join(' · ')}</span>
       {may && onList && (
         <span className="lt-acts pl-machine-acts">

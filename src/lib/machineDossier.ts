@@ -6,6 +6,7 @@
  * records for the machines it works on, the register, the studies, the stops timed — and hands each machine to
  * lib/machineDetail, the list of them to lib/factoryMachines, so the paper says what the Factory's Machines, the
  * project's Machines and the machine's own page say, with all the detail behind it. Made on the press, never kept. */
+import { paperPicture } from './machinePicture';
 import {
   allPaceLines, allProjects, getProject, getWorkspace, listAllAssets, listAllPrograms, listAllSnags, listAllStandards, listAllStudies, listAllTests,
   listAssets, listMaterials, listObservations, listPrograms, listStudies, listTestItems, listTests,
@@ -78,10 +79,14 @@ async function linePapers(s: Shared, ws: Workspace, only?: string): Promise<Mach
     const view = lineMachineView(m.name, { ws, assets: s.assets, jobLines: s.jobLines, jobs: s.jobs, programs: s.programs, tests: s.tests, snags: s.snags,
       studies: s.studies, standards: s.standards, stops, now: Date.now(), floor, jobNames, today: s.today });
     const gate = await gateFor(s, m.record?.projectId);
-    out.push(machineDetailPaper({
-      name: m.name, today: s.today, line: ws.name, ...(view ? { view } : {}), snags: s.snags, studies: s.studies,
-      ...(gate && m.record ? { project: { name: gate.project.name, gate, assetId: m.record.id } } : {}),
-    }));
+    const picture = await paperPicture(m.record);
+    out.push({
+      ...machineDetailPaper({
+        name: m.name, today: s.today, line: ws.name, ...(view ? { view } : {}), snags: s.snags, studies: s.studies,
+        ...(gate && m.record ? { project: { name: gate.project.name, gate, assetId: m.record.id } } : {}),
+      }),
+      ...(picture ? { picture } : {}),
+    });
   }
   return out;
 }
@@ -125,7 +130,10 @@ async function machinePaperWith(s: Shared, at: { wsId: string; name: string } | 
     if (!paper && asset) {
       const project = await getProject(at.projectId);
       const gate = isGate(project) ? await gateOf(project, await listAllStandards()) : undefined;
-      if (gate) paper = machineDetailPaper({ name: asset.name.trim(), today: s.today, project: { name: gate.project.name, gate, assetId: asset.id }, snags: s.snags, studies: s.studies });
+      if (gate) {
+        const picture = await paperPicture(asset);
+        paper = { ...machineDetailPaper({ name: asset.name.trim(), today: s.today, project: { name: gate.project.name, gate, assetId: asset.id }, snags: s.snags, studies: s.studies }), ...(picture ? { picture } : {}) };
+      }
     }
   }
   return paper ? { eyebrow: paper.eyebrow, title: paper.name, says: '', groups: [], machines: [paper], foot: `${paper.name} — ${paper.eyebrow.replace(/^MACHINE · /, '')}` } : undefined;

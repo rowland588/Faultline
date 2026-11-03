@@ -43,6 +43,9 @@ export interface MachinePaper {
   tiles?: { label: string; value: string; of?: string; tone: PaperTone }[];
   /** The machine in one sentence, at the foot (the lean page's closing line). */
   closing?: string;
+  /** THE MACHINE'S OWN PICTURE (3 November — Rowland: "make sure that when we do the reports, the pictures are on the reports"), made small
+   *  as a JPEG (lib/machinePicture); the page opens with it under the band. */
+  picture?: { dataUrl: string; w: number; h: number };
 }
 
 /** A row on a list of machines: its name, its status, its line of words and what is next. */

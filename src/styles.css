@@ -15801,3 +15801,5 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .mpic { display: grid; gap: var(--s-2, 8px); }
 .mpic-img { display: block; width: 100%; max-height: 22rem; object-fit: cover; border-radius: var(--radius); background: var(--surface-2); }
 .mpic-acts { display: flex; flex-wrap: wrap; gap: var(--s-2, 8px); }
+.mpic-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2, 8px); }
+.mpic-thumb { display: block; width: 64px; height: 48px; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface-2); }

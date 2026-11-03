@@ -244,8 +244,18 @@ function frontOf(p: MachinesPaper): Block[] {
   return out;
 }
 
+/** The machine's own picture, whole — as wide as the column allows and no taller than a quarter of a page — right under the band. */
+function pictureBlock(pic: NonNullable<MachinePaper['picture']>, name: string): Block {
+  const size = (f: Frame) => { const s = Math.min(f.w / pic.w, (H * 0.27) / pic.h, 1.6); return { w: pic.w * s, h: pic.h * s }; };
+  return box(f => size(f).h + gap(f.density, 'm'), (f, y) => {
+    const z = size(f);
+    try { f.doc.addImage(pic.dataUrl, 'JPEG', f.x, y, z.w, z.h, `machine-${name.slice(0, 16)}`); } catch { /* an unreadable picture: the page still prints */ }
+  }, f => gap(f.density, 'm'));
+}
+
 function machineOf(m: MachinePaper): Block[] {
   const out: Block[] = band(m.eyebrow, m.name, m.facts.length ? [m.facts.join('   ·   ')] : [], m.status);
+  if (m.picture) out.push(pictureBlock(m.picture, m.name));
   if (m.inProject) out.push(text({ text: m.inProject, size: 10.5, style: 'bold', colour: INK2, after: 6 }));
   const gates = m.gates ?? [];
   if (gates.length) {
