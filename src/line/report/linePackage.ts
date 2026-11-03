@@ -19,7 +19,7 @@
 import type { Workspace } from '../../types';
 import type { BundleItem, LineBundle, LinePart } from './lineBundle';
 
-export type PackageKind = 'glance' | 'problems' | 'programs' | 'machines' | 'standards' | 'capacity' | 'study';
+export type PackageKind = 'glance' | 'problems' | 'problemcards' | 'programs' | 'testcards' | 'machines' | 'standards' | 'capacity' | 'study';
 
 export interface PackageSection {
   /** Stable: `glance` · `problems:<line>` · `programs:<line>` · `machines:<line>` · `standards:<line>` · `capacity:<line>` · `study:<key>`. */
@@ -35,21 +35,32 @@ export interface PackageSection {
 }
 
 /** Which of the line's own whole-line papers go in (the records are ticked one by one). */
-export interface PackageFlags { problems: boolean; programs: boolean; machines: boolean }
-export const ALL_IN: PackageFlags = { problems: true, programs: true, machines: true };
+export interface PackageFlags { problems: boolean; problemCards: boolean; programs: boolean; testCards: boolean; machines: boolean }
+export const ALL_IN: PackageFlags = { problems: true, problemCards: true, programs: true, testCards: true, machines: true };
+
+/** What the line holds that the bundle does not count: every problem on it (open and closed, none put away by Start fresh) and the
+ *  tests of its programs, every attempt (3 November — Rowland: "add the closed problems and test cards"). */
+export interface PackageRecords { problemsOn: (lineId: string) => { open: number; closed: number }; testsOn: (part: LinePart) => number }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** THE SECTIONS, in the order they are printed. A paper with nothing to print is left out, never printed empty:
  *  no problem open, no program, no machine, no record ticked. */
-export function packageSections(bundle: LineBundle, picks: ReadonlySet<string>, flags: PackageFlags = ALL_IN): PackageSection[] {
+export function packageSections(bundle: LineBundle, picks: ReadonlySet<string>, flags: PackageFlags = ALL_IN, rec?: PackageRecords): PackageSection[] {
   const out: PackageSection[] = [{ id: 'glance', kind: 'glance', title: 'The line at a glance', what: 'the line in one sentence, what is open, who owes what by when', items: [] }];
   for (const part of bundle.parts) {
     const t = (name: string) => (bundle.dual ? `${part.title} — ${name}` : name);
-    if (flags.problems && part.problems.open > 0) out.push({ id: `problems:${part.line.id}`, kind: 'problems', title: t('Problems'), part, items: [],
-      what: `${plural(part.problems.open, 'problem')} open${part.problems.late ? `, ${part.problems.late} late` : ''}, each with its plan and journey` });
+    const pr = rec?.problemsOn(part.line.id) ?? { open: part.problems.open, closed: 0 };
+    const nProblems = pr.open + pr.closed;
+    if (flags.problems && nProblems > 0) out.push({ id: `problems:${part.line.id}`, kind: 'problems', title: t('Problems'), part, items: [],
+      what: `${plural(pr.open, 'problem')} open${part.problems.late ? `, ${part.problems.late} late` : ''}${pr.closed ? `, ${pr.closed} closed` : ''}, each with its plan and journey` });
+    if (flags.problemCards && nProblems > 0) out.push({ id: `problemcards:${part.line.id}`, kind: 'problemcards', title: t('Problem cards'), part, items: [],
+      what: `${plural(nProblems, 'card')} — a page for each problem, open or closed, for the board` });
     if (flags.programs && part.kit.programs.length) out.push({ id: `programs:${part.line.id}`, kind: 'programs', title: t('Programs'), part, items: [],
       what: `${plural(part.kit.programs.length, 'program')}, machine by machine, every test and how it went` });
+    const nTests = rec?.testsOn(part) ?? 0;
+    if (flags.testCards && nTests > 0) out.push({ id: `testcards:${part.line.id}`, kind: 'testcards', title: t('Test cards'), part, items: [],
+      what: `${plural(nTests, 'test card')} — each test: what was agreed, what was seen, what we do next` });
     if (flags.machines && part.kit.machines.length) out.push({ id: `machines:${part.line.id}`, kind: 'machines', title: t('Machines'), part, items: [],
       what: `${plural(part.kit.machines.length, 'machine')} in full — every test, every program, every step, the studies` });
     const standards = part.items.filter(i => picks.has(i.key) && i.key.startsWith('standard:'));

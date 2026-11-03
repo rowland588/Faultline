@@ -11,6 +11,7 @@ import type { jsPDF } from 'jspdf';
 import type { Snag } from '../../snag/types';
 import type { Workspace } from '../../types';
 import type { ToolStudy } from '../../lib/study';
+import type { Test } from '../../lib/testing';
 import type { StudyContext } from '../../lib/studyLinks';
 import type { ProgramsReading } from '../../lib/programsReport';
 import type { Standard } from '../../tools/linestandard/standard';
@@ -40,6 +41,10 @@ export interface PackageInputs {
   snags: readonly Snag[];
   lineName: (id: string) => string;
   jobName: (id?: string) => string | undefined;
+  /** The tests of the line's programs, every attempt (lib/programJourney attemptsOf) — a card each. */
+  testsOf: (partLineId: string) => readonly Test[];
+  /** A test's project, for its card's band — a line's own test is the line's. */
+  projectOf: (projectId: string, lineId: string) => { name: string; lead?: string };
 }
 
 export interface PackageMade {
@@ -69,10 +74,23 @@ async function sectionDoc(s: PackageSection, i: PackageInputs): Promise<SectionD
     case 'problems': {
       const { problemsReadingFor } = await import('../../lib/problemsPdf');
       const { snagsReportDoc } = await import('../../lib/buildSnagsReport');
-      const mine = i.snags.filter(x => x.workspaceId === line.id && !x.deletedAt && !x.archivedAt && x.status !== 'closed');
+      /* open and closed alike — what was put right is part of what happened; "Start fresh" put-away ones stay away */
+      const mine = i.snags.filter(x => x.workspaceId === line.id && !x.deletedAt && !x.archivedAt);
       if (!mine.length) return undefined;
-      const doc = await snagsReportDoc(problemsReadingFor({ title: `${line.name} — problems`, snags: mine, jobs: [], lineName: i.lineName, jobName: i.jobName }), `${line.name} — problems`);
+      const doc = await snagsReportDoc(problemsReadingFor({ title: `${line.name} — problems`, snags: mine, jobs: [], lineName: i.lineName, jobName: i.jobName }, { closed: true }), `${line.name} — problems`);
       return { doc, brand: true };
+    }
+    case 'problemcards': {
+      const { problemCardsDoc } = await import('../../lib/buildSnagCards');
+      const mine = i.snags.filter(x => x.workspaceId === line.id && !x.deletedAt && !x.archivedAt);
+      if (!mine.length) return undefined;
+      return { doc: await problemCardsDoc(mine.map(snag => ({ line: { snag, assetName: snag.targetAsset?.trim() || 'No machine named' } })), line.name), brand: true };
+    }
+    case 'testcards': {
+      const { testCardsDoc } = await import('../../lib/testCards');
+      const doc = await testCardsDoc(i.testsOf(line.id), pid => i.projectOf(pid, line.id));
+      /* each card's band carries the mark, as one card's does — a picture to the edge */
+      return doc ? { doc, brand: false } : undefined;
     }
     case 'programs': {
       const reading = i.programs.get(line.id);

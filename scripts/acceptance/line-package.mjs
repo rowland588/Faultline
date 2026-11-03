@@ -15,6 +15,9 @@
  *   4  each page leaves with its package page, small — except the line standard's card, a picture to the edge
  *   5  the Summary tab still makes the summary — not the package, and shorter
  *   6  Machines report unticked and one study unticked — those papers gone, the rest kept, the contents following
+ *   6b the closed problems are in (3 November — "add the closed problems and test cards … ensure problems have a report and included"): the
+ *      Problems report holds the open one and the two closed, each with its words; Problem cards a page for each of the three; Test cards a
+ *      card for Program 10's test, landscape, naming it
  *   7  the phone: nothing off the side, both tabs reachable
  *   and no console error anywhere.
  *
@@ -79,8 +82,17 @@ ok(rows.length === order.length && rows.every((r, i) => i === 0 || r.start > row
 const find = (re) => { const r = rows.find(x => re.test(x.title)); return r ? { r, text: pageText(F, r.start) } : undefined; };
 const glance = find(/line at a glance/i);
 ok(glance && /THE LINE AT A GLANCE/.test(glance.text) && /Who owes what by when/.test(pageText(F, glance.r.start) + pageText(F, glance.r.start + 1)), '3 the line at a glance — the tiles, what is open, who owes what; no tool sections in it', glance?.text.slice(0, 160));
-const probs = find(/^Problems/);
-ok(probs && /problems/.test(probs.text) && /seeded snag/.test(pageText(F, probs.r.start)), '3 Problems — the problems report itself, each problem with its plan', probs?.text.slice(0, 160));
+const endOf = r => { const k = rows.indexOf(r); return k >= 0 && rows[k + 1] ? rows[k + 1].start - 1 : full.pages; };
+const textOf = r => { let t = ''; for (let n = r.start; n <= endOf(r); n++) t += ' ' + pageText(F, n); return t; };
+const probs = find(/^Problems$/);
+const probsAll = probs ? textOf(probs.r) : '';
+ok(probs && /problems/.test(probs.text) && /seeded snag 0/.test(probsAll), '3 Problems — the problems report itself, each problem with its plan', probs?.text.slice(0, 160));
+ok(/seeded snag 1/.test(probsAll) && /seeded snag 2/.test(probsAll) && /Closed/.test(probsAll), '3b …the closed problems in it too, said Closed — what was put right is part of what happened', probsAll.slice(0, 300));
+const pcards = find(/^Problem cards/);
+ok(pcards && endOf(pcards.r) - pcards.r.start + 1 === 3 && /seeded snag 0/.test(textOf(pcards.r)) && /seeded snag 2/.test(textOf(pcards.r)), '3b Problem cards — a page for each of the three problems, open and closed', pcards && `${endOf(pcards.r) - pcards.r.start + 1} pages: ${textOf(pcards.r).slice(0, 160)}`);
+const tcards = find(/^Test cards/);
+ok(tcards && /Page\s+\d+ size:\s+841/.test(execFileSync('pdfinfo', ['-f', String(tcards.r.start), '-l', String(tcards.r.start), F], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })) && /Prove Program 10/.test(textOf(tcards.r)), '3b Test cards — Program 10’s test as its own card, landscape, naming it', tcards && textOf(tcards.r).slice(0, 200));
+ok(tcards && !new RegExp(`Package page ${tcards.r.start} of`).test(pageText(F, tcards.r.start)), '4 the test cards, pictures to the edge, carry no package number — their pages are in the contents');
 const progs = find(/^Programs/);
 const progAll = progs ? [0, 1, 2].map(k => pageText(F, progs.r.start + k)).join(' ') : '';
 ok(progs && /PROGRAMS · PRODUCTION LINE/.test(progs.text), '3 Programs — the programs report itself', progs?.text.slice(0, 160));

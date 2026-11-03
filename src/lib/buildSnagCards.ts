@@ -137,7 +137,7 @@ async function jobCard({ row, job }: JobCardRow): Promise<SnagCardData> {
 
 /** Cards for any problems — on a line or on a job — one page each, in the
  *  order given; the same file name as the line's cards. */
-export async function saveProblemCards(items: ({ line: SnagCardRow } | { job: JobCardRow })[], workspace: string, filterNote?: string): Promise<void> {
+export async function problemCardsDoc(items: ({ line: SnagCardRow } | { job: JobCardRow })[], workspace: string, filterNote?: string) {
   const { jsPDF } = await loadPdfLib();
   const { drawSnagCards } = await import('./snagCardPdf');
   const lineSet = await buildSnagCards(items.flatMap(x => ('line' in x ? [x.line] : [])), workspace, filterNote);
@@ -146,6 +146,11 @@ export async function saveProblemCards(items: ({ line: SnagCardRow } | { job: Jo
   for (const x of items) cards.push('line' in x ? lineSet.snags[k++] : await jobCard(x.job));
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   drawSnagCards(doc, { workspace, ...(filterNote ? { filterNote } : {}), now: Date.now(), snags: cards });
+  return doc;
+}
+
+export async function saveProblemCards(items: ({ line: SnagCardRow } | { job: JobCardRow })[], workspace: string, filterNote?: string): Promise<void> {
+  const doc = await problemCardsDoc(items, workspace, filterNote);
   const first = items[0];
   const one = items.length === 1 && first ? ` ${(('line' in first ? first.line.snag.problem : first.job.row.what) || 'item').slice(0, 32)}` : '';
   await deliverPdf(doc, pdfFileName(workspace, `problem${one}`, todayISO()));

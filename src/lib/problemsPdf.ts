@@ -33,11 +33,12 @@ export interface ProblemsScope {
 }
 
 /** THE REPORT's reading for a scope — what is still open in it, read afresh. */
-export function problemsReadingFor(x: ProblemsScope) {
+export function problemsReadingFor(x: ProblemsScope, o: { closed?: boolean } = {}) {
   const r = snagsReading({ snags: x.snags.filter(s => !s.deletedAt && !s.archivedAt), jobs: x.jobs, lineName: x.lineName, jobName: x.jobName,
     became: new Map(), register: true, assetName: x.assetName, stillOf: x.stillOf });
-  const lines = r.lines.map(l => ({ ...l, rows: l.rows.filter(row => row.status !== 'closed') })).filter(l => l.rows.length);
-  const jobs = r.jobs.map(g => ({ ...g, rows: g.rows.filter(row => row.open) })).filter(g => g.rows.length);
+  /* the line's full package keeps the closed ones too (3 November — Rowland: "add the closed problems"): what was put right is part of what happened */
+  const lines = r.lines.map(l => ({ ...l, rows: o.closed ? l.rows : l.rows.filter(row => row.status !== 'closed') })).filter(l => l.rows.length);
+  const jobs = r.jobs.map(g => ({ ...g, rows: o.closed ? g.rows : g.rows.filter(row => row.open) })).filter(g => g.rows.length);
   return { ...r, lines, jobs, moved: [] };
 }
 

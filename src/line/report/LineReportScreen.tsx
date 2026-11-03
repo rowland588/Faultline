@@ -33,7 +33,8 @@ import { dualOf, linesSaid, productionLines } from '../../lib/lines';
 import { todayISO } from '../../lib/weeks';
 import { useSaveOnArrival } from '../../lib/useSaveOnArrival';
 import { PageHeader, ViewTabs } from '../../ui/parts';
-import { ALL_IN, packageSections, packageSays, type PackageFlags } from './linePackage';
+import { ALL_IN, packageSections, packageSays, type PackageFlags, type PackageRecords } from './linePackage';
+import { attemptsOf } from '../../lib/programJourney';
 import { LeanActions, LeanClosing, LeanTiles } from '../../ui/Lean';
 import { stopsOf } from '../../screens/ProductionLineScreen';
 import { nav } from '../../state/useRoute';
@@ -121,16 +122,31 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
     return dual.madeOf.length ? ['Made of', linesSaid(dual.madeOf)] : dual.partOf.length ? ['Part of', dual.partOf.map(w => w.name).join(' and ')] : undefined;
   }, [line, all]);
 
+  /* WHAT THE LINE HOLDS THAT THE BUNDLE DOES NOT COUNT: every problem (open and closed) and the tests of its programs, every attempt */
+  const pkgRec = useMemo<PackageRecords | undefined>(() => (bundle ? {
+    problemsOn: id => { const mine = snags.filter(x => x.workspaceId === id && !x.deletedAt && !x.archivedAt); return { open: mine.filter(x => x.status !== 'closed').length, closed: mine.filter(x => x.status === 'closed').length }; },
+    testsOn: part => new Set(part.kit.programs.flatMap(p => attemptsOf(p, rec.provingTests).map(t => t.id))).size,
+  } : undefined), [bundle, snags, rec.provingTests]);
+  const testsOfLine = useCallback((lineId: string) => {
+    const part = bundle?.parts.find(p => p.line.id === lineId);
+    const seen = new Set<string>();
+    return (part?.kit.programs ?? []).flatMap(p => attemptsOf(p, rec.provingTests)).filter(t => (seen.has(t.id) ? false : (seen.add(t.id), true)));
+  }, [bundle, rec.provingTests]);
+  const projectOf = useCallback((pid: string, lineId: string) => {
+    const j = pid ? rec.jobs.find(x => x.id === pid) : undefined;
+    return j ? { name: j.name, ...(j.lead ? { lead: j.lead } : {}) } : { name: all.find(w => w.id === lineId)?.name ?? 'The line' };
+  }, [rec.jobs, all]);
+
   const make = useCallback(async () => {
     if (!bundle || !line || busy || picks === null) return;
     setBusy(true); setSaid(null);
     try {
       if (full) {
         const [{ deliverBlob }, { makeLinePackage }, { pdfFileName }] = await Promise.all([import('../../lib/savePdf'), import('./linePackagePdf'), import('../../lib/fileName')]);
-        const sections = packageSections(bundle, picks, flags);
+        const sections = packageSections(bundle, picks, flags, pkgRec);
         const names = new Map(all.map(w => [w.id, w.name]));
         const made = await makeLinePackage(sections, { bundle, printed: printedOn(), today, picks, readings, programs, standards: rec.standards, snags, ctx,
-          lineName: id => names.get(id) ?? 'A line', jobName: id => (id ? jobName(id) : undefined), ...(dualWords ? { dual: dualWords } : {}) }, (n, of, title) => setProgress(`Making ${n + 1} of ${of}: ${title}…`));
+          lineName: id => names.get(id) ?? 'A line', jobName: id => (id ? jobName(id) : undefined), testsOf: testsOfLine, projectOf, ...(dualWords ? { dual: dualWords } : {}) }, (n, of, title) => setProgress(`Making ${n + 1} of ${of}: ${title}…`));
         const how = await deliverBlob(made.blob, pdfFileName(line.name, 'full line report', today));
         setSaid(`${how === 'downloaded' ? 'Saved' : 'Ready'} — ${made.pages} pages, ${made.contents.length} papers. ${how === 'downloaded' ? 'Open or send it from the bar below.' : 'Open it from the bar below.'}`);
         return;
@@ -149,7 +165,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
       console.error('line bundle failed', e);
       setSaid('The report could not be made — try again.');
     } finally { setBusy(false); setProgress(null); }
-  }, [bundle, line, busy, picks, readings, programs, rec.standards, ctx, dualWords, today, full, flags, all, snags, jobName]);
+  }, [bundle, line, busy, picks, readings, programs, rec.standards, ctx, dualWords, today, full, flags, all, snags, jobName, pkgRec, testsOfLine, projectOf]);
   useSaveOnArrival(!!bundle && picks !== null && !rec.loading, make);
 
   if (line === undefined || rec.loading) return <div className="wrap pl"><p className="sub">Opening…</p></div>;
@@ -167,13 +183,13 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
       {progress && <p className="sub lr-said" role="status">{progress}</p>}
       {said && <p className="tc-ok lr-said" role="status">{said}</p>}
       {full && picks !== null && (() => {
-        const sections = packageSections(bundle, on, flags);
+        const sections = packageSections(bundle, on, flags, pkgRec);
         return (
           <section className="lr-package" aria-label="The full package" data-package>
             <h2>The package, in order</h2>
             <p className="sub">A cover and contents, then {packageSays(sections)}.</p>
             <ul className="lr-ticks" aria-label="Whole-line papers">
-              {([['problems', 'Problems report', 'every problem open, with its plan and journey'], ['programs', 'Programs report', 'every program, machine by machine, every test and its notes'], ['machines', 'Machines report', 'every machine in full — tests, programs, steps, studies']] as const).map(([k, name, what]) => (
+              {([['problems', 'Problems report', 'every problem, open and closed, with its plan and journey'], ['problemCards', 'Problem cards', 'a card for each problem, open or closed, for the board'], ['programs', 'Programs report', 'every program, machine by machine, every test and its notes'], ['testCards', 'Test cards', 'a card for each test — what was agreed, what was seen, what we do next'], ['machines', 'Machines report', 'every machine in full — tests, programs, steps, studies']] as const).map(([k, name, what]) => (
                 <li key={k}>
                   <label className="lr-tick">
                     <input type="checkbox" checked={flags[k]} aria-label={name} onChange={() => setFlags(f => ({ ...f, [k]: !f[k] }))} />

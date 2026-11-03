@@ -30,24 +30,28 @@ const all = (b: ReturnType<typeof lineBundle>) => new Set(b.parts.flatMap(p => p
 describe('the full package', () => {
   const b = lineBundle(A, records);
   it('is the line at a glance, then every paper the line has, in a fixed order', () => {
-    const ids = packageSections(b, all(b), ALL_IN).map(s => s.kind);
-    expect(ids.slice(0, 4)).toEqual(['glance', 'problems', 'programs', 'machines']);
+    const ids = packageSections(b, all(b), ALL_IN, { problemsOn: () => ({ open: 1, closed: 2 }), testsOn: () => 3 }).map(s => s.kind);
+    expect(ids.slice(0, 6)).toEqual(['glance', 'problems', 'problemcards', 'programs', 'testcards', 'machines']);
     expect(ids).toContain('standards'); expect(ids).toContain('capacity');
     expect(ids.filter(k => k === 'study')).toHaveLength(2);
     expect(ids.indexOf('standards')).toBeLessThan(ids.indexOf('study'));
   });
-  it('says what is in each, as the line has it', () => {
-    const s = packageSections(b, all(b));
-    expect(s.find(x => x.kind === 'problems')?.what).toBe('1 problem open, each with its plan and journey');
+  it('says what is in each, as the line has it — the closed problems and the test cards among them (Rowland, 3 November)', () => {
+    const s = packageSections(b, all(b), ALL_IN, { problemsOn: () => ({ open: 1, closed: 2 }), testsOn: () => 3 });
+    expect(s.find(x => x.kind === 'problems')?.what).toBe('1 problem open, 2 closed, each with its plan and journey');
+    expect(s.find(x => x.kind === 'problemcards')?.what).toContain('3 cards');
+    expect(s.find(x => x.kind === 'testcards')?.what).toContain('3 test cards');
     expect(s.find(x => x.kind === 'programs')?.what).toContain('1 program,');
     expect(s.find(x => x.kind === 'machines')?.what).toContain('1 machine in full');
     expect(s.find(x => x.kind === 'standards')?.what).toContain('All Rounder 2kg');
   });
   it('leaves out what is unticked and what the line does not have', () => {
-    const none = packageSections(b, new Set(), { problems: false, programs: true, machines: false });
+    const none = packageSections(b, new Set(), { ...ALL_IN, problems: false, problemCards: false, testCards: false, machines: false }, { problemsOn: () => ({ open: 1, closed: 2 }), testsOn: () => 3 });
     expect(none.map(s => s.kind)).toEqual(['glance', 'programs']);
     const bare = lineBundle(B, records);
-    expect(packageSections(bare, all(bare)).map(s => s.kind)).toEqual(['glance']);
+    expect(packageSections(bare, all(bare), ALL_IN, { problemsOn: () => ({ open: 0, closed: 0 }), testsOn: () => 0 }).map(s => s.kind)).toEqual(['glance']);
+    /* only closed problems still make a report and cards — what was put right is part of what happened */
+    expect(packageSections(bare, all(bare), ALL_IN, { problemsOn: () => ({ open: 0, closed: 2 }), testsOn: () => 0 }).map(s => s.kind)).toEqual(['glance', 'problems', 'problemcards']);
   });
   it('a dual line says whose each paper is', () => {
     const d = lineBundle(D, records);

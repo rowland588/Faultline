@@ -55,6 +55,36 @@ export async function saveBoardCards(projectId: string, project: { name: string;
   return list.length;
 }
 
+/** A CARD FOR EACH TEST GIVEN, as a document — the line's full package takes it whole (src/line/report/linePackagePdf). The tests may
+ *  belong to different projects (or none, a line's own): each is read against its own project's records, as its card is everywhere. */
+export async function testCardsDoc(tests: readonly Test[], project: (projectId: string) => { name: string; lead?: string }): Promise<import('jspdf').jsPDF | undefined> {
+  if (!tests.length) return undefined;
+  const { loadPdfLib, titlePdf } = await import('./savePdf');
+  const { drawTrialCard } = await import('./trialCardPdf');
+  const { trialCard } = await import('./trialCard');
+  const { shotsOf } = await import('./testReport');
+  const { runLineOf } = await import('./runMoney');
+  const { jsPDF } = await loadPdfLib();
+  const [paceLines, workspaces] = await Promise.all([allPaceLines(), listWorkspaces()]);
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const builtAt = Date.now();
+  const byProject = new Map<string, Test[]>();
+  for (const t of tests) byProject.set(t.projectId, [...(byProject.get(t.projectId) ?? []), t]);
+  let n = 0;
+  for (const [pid, list] of byProject) {
+    const [all, items, assets, studies] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid), listStudies(pid)]);
+    const meta = project(pid);
+    for (const t of list) {
+      if (n++ > 0) doc.addPage('a4', 'landscape');
+      const c = trialCard(t, all, items, assets, studies, runLineOf(t, assets, paceLines, workspaces));
+      const shots = await shotsOf([...(t.media ?? []), ...itemsOf(items, t.id, 'found').flatMap(x => x.media ?? [])]);
+      drawTrialCard(doc, c, { project: meta.name, lead: meta.lead, builtAt, shots });
+    }
+  }
+  titlePdf(doc, 'Test cards');
+  return doc;
+}
+
 export async function saveTestCard(projectId: string, testId: string, project: { name: string; lead?: string }) {
   const { loadPdfLib, deliverPdf } = await import('./savePdf');
   const { drawTrialCard } = await import('./trialCardPdf');
