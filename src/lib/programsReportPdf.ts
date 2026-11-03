@@ -11,7 +11,7 @@
 import { AHEAD_SAYS, WORK_TONE, aheadOfBest, statusSays } from './programStatus';
 import type { jsPDF } from 'jspdf';
 import { badgeOf, type ProgramLine, type ProgramsReading, type ProgTone } from './programsReport';
-import { san, OK, DANGER, BLUE } from './reportKit';
+import { san, OK, DANGER, BLUE, BAND, BAND_EDGE } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { leanClosing } from './report/lean';
 import type { LeanTile } from './lean';
@@ -19,7 +19,7 @@ import { programClosing } from './stageGatePages';
 import { SIZE, box, font, gap, rows, text, wrap } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', AMBER = '#b45309';
+const INK = '#12171c', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', AMBER = '#b45309';
 const TONE: Record<ProgTone, string> = { g: OK, r: DANGER, w: BLUE, a: AMBER, n: MUTED };
 
 const sanLine = (l: ProgramLine): ProgramLine => ({
@@ -42,7 +42,7 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
     head: wrap(f.doc, `${l.what}${l.runs ? ` — runs ${l.runs}` : ''}`, f.w - indent - stateW - 10, 10, 'bold'),
     who: l.who ? wrap(f.doc, l.who, f.w - indent - stateW - 10, 8) : [],
     word: wrap(f.doc, l.word, stateW, 8, 'bold'),
-    note: l.note ? wrap(f.doc, l.note, f.w - indent, 8.5) : [],
+    note: l.note ? wrap(f.doc, l.note, f.w - indent, 9) : [],
     /* LESS WRITING (Rowland, 2 November: "most of that writing is pointless"): what a person reads is the state, the status they typed,
        what was seen, each test's result and the commentary written on it. The statuses said before, the "on the floor" echo, Commission's
        run line and a proof that reads well are off the paper (on the page, one tap away); a proof that is amber or red, or a sign-off (who, when), stays. The criteria's answers and the studies lined up for a test stay: Rowland asked for both (28 and 26 October). */
@@ -50,8 +50,8 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
     proof: l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r' || /^Signed off/.test(l.proof.word)) ? wrap(f.doc, l.proof.word, f.w - indent, 8) : [],
     run: [] as string[],
     /* ITS STATUS SECTION — typed by hand: where the work stands, the best speed, the speed production can run at, the caveats (lib/programStatus) */
-    stat: l.status ? wrap(f.doc, `Status: ${statusSays(l.status, false)}`, f.w - indent, 9.5, 'bold') : [],
-    cav: l.status?.caveats ? wrap(f.doc, `Caveats: ${l.status.caveats}`, f.w - indent, 8.5) : [],
+    stat: l.status ? wrap(f.doc, statusSays(l.status, false), f.w - indent - 22, 10, 'bold') : [],
+    cav: l.status?.caveats ? wrap(f.doc, l.status.caveats, f.w - indent - 22, 9.5, 'bold') : [],
     ahead: aheadOfBest(l.status) ? wrap(f.doc, AHEAD_SAYS, f.w - indent, 8, 'bold') : [],
     /* ITS CRITERIA (docs/PROGRAM-GOAL.md): where they stand — unless signed off, which its proof says — then each with its answer */
     crit: l.criteria && !(l.proof && /^Signed off/.test(l.proof.word)) ? wrap(f.doc, `Criteria: ${l.criteria.says}`, f.w - indent, 8.5, 'bold') : [],
@@ -59,9 +59,12 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
     /* every test of it, first to last, each with the studies lined up for it */
     tests: (l.tests ?? []).map(t => ({ tone: t.tone, badge: t.badge, lines: [...wrap(f.doc, t.text, f.w - indent - 4, 8), ...(t.split ? wrap(f.doc, t.split, f.w - indent - 4, 8) : [])], studies: t.studies.flatMap(x => wrap(f.doc, `Study: ${x}`, f.w - indent - 16, 7.5)), notes: (t.notes ?? []).flatMap(x => wrap(f.doc, `Note: ${x}`, f.w - indent - 12, 8.5)) })),
   });
+  /* THE STATUS BLOCK (Rowland, 3 November: "the caveats are not shown clearly in the pdf report"): the status and the caveats in a pale
+     panel of their own with a teal edge, each under its small heading — what a reader must not miss, not a line among the rest */
+  const statBoxH = (p: { stat: string[]; cav: string[] }) => (p.stat.length || p.cav.length ? 14 + (p.stat.length ? 10 + p.stat.length * 12.5 : 0) + (p.cav.length ? 12 + p.cav.length * 12 : 0) + 10 : 0);
   const height = (f: Frame, l: ProgramLine) => {
     const p = parts(f, l);
-    return 8 + Math.max(p.head.length * 13 + p.who.length * 10, p.word.length * 10, 16) + p.note.length * 11 + p.run.length * 11 + p.stat.length * 12 + p.cav.length * 11 + p.ahead.length * 10 + p.crit.length * 11 + p.each.reduce((n, c) => n + c.lines.length * 10, 0) + (p.earlier.length + p.proving.length + p.proof.length) * 10 + p.tests.reduce((n, t) => n + 9 + t.lines.length * 10 + t.notes.length * 11 + t.studies.length * 9, 0) + 6;
+    return 8 + Math.max(p.head.length * 13 + p.who.length * 10, p.word.length * 10, 16) + (p.note.length ? 14 + p.note.length * 11 : 0) + p.run.length * 11 + statBoxH(p) + p.ahead.length * 10 + p.crit.length * 11 + p.each.reduce((n, c) => n + c.lines.length * 10, 0) + (p.earlier.length + p.proving.length + p.proof.length) * 10 + p.tests.reduce((n, t) => n + 12 + t.lines.length * 10 + t.notes.length * 11 + t.studies.length * 9, 0) + 6;
   };
   for (const g of reading.machines.map(m => ({ ...m, name: san(m.name), lines: m.lines.map(sanLine) }))) {
     /* The machine's name as it is written — a capitalised label lost it to
@@ -86,13 +89,27 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
           /* The day and what it rests on, at the right, in its colour — never the colour alone. */
           font(f.doc, 8, 'bold', TONE[l.tone]); f.doc.text(p.word, f.x + f.w - stateW, y + 15);
           ty = Math.max(ty, y + 16 + p.word.length * 10);
-          if (p.proof.length) { font(f.doc, 8, l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? 'bold' : 'normal', l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? TONE[l.proof.tone] : MUTED); f.doc.text(p.proof, f.x + indent, ty); ty += p.proof.length * 10; }
-          if (p.stat.length) { font(f.doc, 9.5, 'bold', l.status ? TONE[WORK_TONE[l.status.work]] : INK2); f.doc.text(p.stat, f.x + indent, ty); ty += p.stat.length * 12; }
-          if (p.cav.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.cav, f.x + indent, ty); ty += p.cav.length * 11; }
+          if (p.stat.length || p.cav.length) {
+            const bh = statBoxH(p), bx = f.x + indent - 2, bw = f.w - indent + 2;
+            f.doc.setFillColor(BAND); f.doc.roundedRect(bx, ty - 6, bw, bh - 6, 3, 3, 'F');
+            f.doc.setFillColor(BAND_EDGE); f.doc.rect(bx, ty - 6, 2.5, bh - 6, 'F');
+            let by = ty + 4;
+            if (p.stat.length) {
+              font(f.doc, 6.5, 'bold', MUTED); f.doc.text('STATUS', bx + 10, by); by += 10;
+              font(f.doc, 10, 'bold', l.status ? TONE[WORK_TONE[l.status.work]] : INK2); f.doc.text(p.stat, bx + 10, by); by += p.stat.length * 12.5;
+            }
+            if (p.cav.length) {
+              font(f.doc, 6.5, 'bold', MUTED); f.doc.text('CAVEATS — WHAT TO WATCH', bx + 10, by + 2); by += 12;
+              font(f.doc, 9.5, 'bold', INK); f.doc.text(p.cav, bx + 10, by); by += p.cav.length * 12;
+            }
+            ty += bh;
+          }
           if (p.ahead.length) { font(f.doc, 8, 'bold', AMBER); f.doc.text(p.ahead, f.x + indent, ty); ty += p.ahead.length * 10; }
+          /* ITS COMMENTARY, labelled, straight after the status — the words the team wrote about the program */
+          if (p.note.length) { font(f.doc, 6.5, 'bold', MUTED); f.doc.text('NOTE', f.x + indent, ty + 2); font(f.doc, 9, 'normal', INK); f.doc.text(p.note, f.x + indent, ty + 12); ty += 14 + p.note.length * 11; }
+          if (p.proof.length) { font(f.doc, 8, l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? 'bold' : 'normal', l.proof && (l.proof.tone === 'a' || l.proof.tone === 'r') ? TONE[l.proof.tone] : MUTED); f.doc.text(p.proof, f.x + indent, ty); ty += p.proof.length * 10; }
           if (p.crit.length) { font(f.doc, 8.5, 'bold', l.criteria ? TONE[l.criteria.tone] : INK2); f.doc.text(p.crit, f.x + indent, ty); ty += p.crit.length * 11; }
           for (const c of p.each) { font(f.doc, 8, 'normal', c.tone === 'r' || c.tone === 'a' ? TONE[c.tone] : INK2); f.doc.text(c.lines, f.x + indent + 4, ty); ty += c.lines.length * 10; }
-          if (p.note.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.note, f.x + indent, ty); ty += p.note.length * 11; }
           if (p.proving.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.proving, f.x + indent, ty); ty += p.proving.length * 10; }
           /* Its run at speed — the colour only when it fell short or passed. */
           if (p.run.length) { font(f.doc, 8.5, 'bold', l.runTone ? TONE[l.runTone] : INK2); f.doc.text(p.run, f.x + indent, ty); ty += p.run.length * 11; }
@@ -103,6 +120,7 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
               font(f.doc, 8, 'normal', INK2); f.doc.text(t.lines, f.x + indent + 0, ty + 9); ty += 9 + t.lines.length * 10;
               if (t.notes.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(t.notes, f.x + indent + 12, ty); ty += t.notes.length * 11; }
               if (t.studies.length) { font(f.doc, 7.5, 'normal', MUTED); f.doc.text(t.studies, f.x + indent + 12, ty); ty += t.studies.length * 9; }
+              ty += 3;
             }
           }
           if (p.earlier.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.earlier, f.x + indent, ty); }

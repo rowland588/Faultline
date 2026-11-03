@@ -98,7 +98,7 @@ ok(tcards && !new RegExp(`Package page ${tcards.r.start} of`).test(pageText(F, t
 const progs = find(/^Programs/);
 const progAll = progs ? [0, 1, 2].map(k => pageText(F, progs.r.start + k)).join(' ') : '';
 ok(progs && /PROGRAMS · PRODUCTION LINE/.test(progs.text), '3 Programs — the programs report itself', progs?.text.slice(0, 160));
-ok(nows2(progAll).includes(nows2('Status: Doing · Best speed 75 ppm · Production can run at 70 ppm')) && nows2(progAll).includes(nows2('Note:')) && nows2(progAll).includes(nows2('Seal lifted on the third pack at 75')), '3 …with Program 10’s status typed by hand, and the note written on its test’s study, under the test', progAll.slice(0, 200));
+ok(nows2(progAll).includes(nows2('STATUS Doing · Best speed 75 ppm · Production can run at 70 ppm')) && nows2(progAll).includes(nows2('CAVEATS — WHAT TO WATCH Only on the 2 kg film')) && nows2(progAll).includes(nows2('Note:')) && nows2(progAll).includes(nows2('Seal lifted on the third pack at 75')), '3 …with Program 10’s status typed by hand, and the note written on its test’s study, under the test', progAll.slice(0, 200));
 const mach = find(/^Machines/);
 ok(mach && /EVERY MACHINE/.test(mach.text), '3 Machines — every machine in full', mach?.text.slice(0, 160));
 const std = find(/^Line standards/);

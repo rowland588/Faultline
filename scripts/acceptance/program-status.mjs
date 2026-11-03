@@ -73,9 +73,9 @@ ok(/faster than the best speed it has been run at/.test(flat(await section().inn
 const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, 'Programs report')]);
 const f = join(dir, 'programs.pdf'); await dl.saveAs(f);
 const txt = flat(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
-const want = 'Status: Doing · Best speed 75 ppm · Production can run at 80 ppm'.replace(/\s+/g, '');
-const wantCav = 'Caveats: Only on the 2 kg film; check film tension each reel'.replace(/\s+/g, '');
-ok(txt.includes(want) && txt.includes(wantCav) && txt.indexOf(want) < txt.indexOf(wantCav), '4 the report carries the Status line as the module says it, the caveats on their own line under it');
+const want = 'STATUSDoing · Best speed 75 ppm · Production can run at 80 ppm'.replace(/\s+/g, '');
+const wantCav = 'CAVEATS — WHAT TO WATCHOnly on the 2 kg film; check film tension each reel'.replace(/\s+/g, '');
+ok(txt.includes(want) && txt.includes(wantCav) && txt.indexOf(want) < txt.indexOf(wantCav), '4 the report carries the status as the module says it in a block of its own, the caveats under their own heading beneath it (3 Nov: “the caveats are not shown clearly”)');
 ok(txt.includes('faster than the best speed'.replace(/\s+/g, '')), '4 and the amber sentence');
 ok(/1ofd+programswithastatus—1doing/.test(txt) || /1of\d+programswithastatus/.test(txt), '4 and the tally of what people said of their programs');
 
@@ -118,7 +118,7 @@ ok(/Doing/.test(await lsec.innerText()) && /75 ppm/.test(await lsec.innerText())
 const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, 'Programs report')]);
 const f2 = join(dir, 'line-programs.pdf'); await dl2.saveAs(f2);
 const t2 = flat(execFileSync('pdftotext', ['-raw', f2, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
-ok(t2.includes('Status:Doing·Bestspeed75ppm·Productioncanrunat70ppm'), '6 the line’s programs report carries the status');
+ok(t2.includes('STATUSDoing·Bestspeed75ppm·Productioncanrunat70ppm') && t2.includes('CAVEATS—WHATTOWATCHOnlyonthe2kgfilm'), '6 the line’s programs report carries the status');
 ok(t2.includes('Note:') && t2.includes('Seallifted on the third pack at 75'.replace(/\s+/g, '')), '6 and the commentary written on Program 10’s test, under the test');
 
 ok(errs.length === 0, 'no console error', errs.join(' | '));
