@@ -32,14 +32,19 @@ export interface ProblemsScope {
   stillOf?: (s: Snag) => string | undefined;
 }
 
-/** THE REPORT for a scope — what is still open in it, read afresh. */
-export async function saveProblemsReportFor(x: ProblemsScope): Promise<void> {
+/** THE REPORT's reading for a scope — what is still open in it, read afresh. */
+export function problemsReadingFor(x: ProblemsScope) {
   const r = snagsReading({ snags: x.snags.filter(s => !s.deletedAt && !s.archivedAt), jobs: x.jobs, lineName: x.lineName, jobName: x.jobName,
     became: new Map(), register: true, assetName: x.assetName, stillOf: x.stillOf });
   const lines = r.lines.map(l => ({ ...l, rows: l.rows.filter(row => row.status !== 'closed') })).filter(l => l.rows.length);
   const jobs = r.jobs.map(g => ({ ...g, rows: g.rows.filter(row => row.open) })).filter(g => g.rows.length);
+  return { ...r, lines, jobs, moved: [] };
+}
+
+/** THE REPORT for a scope — what is still open in it, read afresh. */
+export async function saveProblemsReportFor(x: ProblemsScope): Promise<void> {
   const { saveSnagsReport } = await import('./buildSnagsReport');
-  await saveSnagsReport({ ...r, lines, jobs, moved: [] }, x.title);
+  await saveSnagsReport(problemsReadingFor(x), x.title);
 }
 
 /** THE CARDS for a scope — one page per problem still open, a line's and a

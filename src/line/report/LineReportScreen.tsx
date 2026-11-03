@@ -32,7 +32,8 @@ import { lineDay } from '../../lib/lineLoss';
 import { dualOf, linesSaid, productionLines } from '../../lib/lines';
 import { todayISO } from '../../lib/weeks';
 import { useSaveOnArrival } from '../../lib/useSaveOnArrival';
-import { PageHeader } from '../../ui/parts';
+import { PageHeader, ViewTabs } from '../../ui/parts';
+import { ALL_IN, packageSections, packageSays, type PackageFlags } from './linePackage';
 import { LeanActions, LeanClosing, LeanTiles } from '../../ui/Lean';
 import { stopsOf } from '../../screens/ProductionLineScreen';
 import { nav } from '../../state/useRoute';
@@ -49,6 +50,12 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const today = todayISO();
+  /* TWO WORLDS (3 November — Rowland: "the line as a short report … or the line full report … prints off the tools, individual reports"):
+     the SUMMARY as it was, and the FULL PACKAGE — each tool's own paper joined behind a cover and contents. */
+  const [mode, setMode] = useState<'summary' | 'full'>(() => (/[?&]full=1/.test(window.location.hash) ? 'full' : 'summary'));
+  const [flags, setFlags] = useState<PackageFlags>(ALL_IN);
+  const [progress, setProgress] = useState<string | null>(null);
+  const full = mode === 'full';
 
   const load = useCallback(async () => {
     const [w, ws, every] = await Promise.all([getWorkspace(wsId), listWorkspaces(), listAllSnags()]);
@@ -74,9 +81,14 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
     return m ? decodeURIComponent(m[1]).split(',').map(k => toolByKey(k)?.label).filter((l): l is string => !!l) : [];
   }, []);
   useEffect(() => {
-    if (bundle && picks === null && keys) setPicks(asked.length ? picksForTools(bundle, asked) : new Set(bundle.parts.flatMap(p => [...defaultPicks(p.items)])));
-  }, [bundle, keys, picks, asked]);
+    if (bundle && picks === null && keys) setPicks(asked.length ? picksForTools(bundle, asked) : full ? new Set(bundle.parts.flatMap(p => p.items.map(i => i.key))) : new Set(bundle.parts.flatMap(p => [...defaultPicks(p.items)])));
+  }, [bundle, keys, picks, asked, full]);
   const on = picks ?? new Set<string>();
+  const switchTo = (m: 'summary' | 'full') => {
+    if (m === mode || !bundle) return;
+    setMode(m);
+    setPicks(m === 'full' ? new Set(bundle.parts.flatMap(p => p.items.map(i => i.key))) : new Set(bundle.parts.flatMap(p => [...defaultPicks(p.items)])));
+  };
   const toggle = (k: string) => setPicks(s => { const n = new Set(s ?? on); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   /* ITS PROGRAMS, machine by machine — read as the line's Programs reads them (lib/lineRecords) */
@@ -113,6 +125,16 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
     if (!bundle || !line || busy || picks === null) return;
     setBusy(true); setSaid(null);
     try {
+      if (full) {
+        const [{ deliverBlob }, { makeLinePackage }, { pdfFileName }] = await Promise.all([import('../../lib/savePdf'), import('./linePackagePdf'), import('../../lib/fileName')]);
+        const sections = packageSections(bundle, picks, flags);
+        const names = new Map(all.map(w => [w.id, w.name]));
+        const made = await makeLinePackage(sections, { bundle, printed: printedOn(), today, picks, readings, programs, standards: rec.standards, snags, ctx,
+          lineName: id => names.get(id) ?? 'A line', jobName: id => (id ? jobName(id) : undefined), ...(dualWords ? { dual: dualWords } : {}) }, (n, of, title) => setProgress(`Making ${n + 1} of ${of}: ${title}…`));
+        const how = await deliverBlob(made.blob, pdfFileName(line.name, 'full line report', today));
+        setSaid(`${how === 'downloaded' ? 'Saved' : 'Ready'} — ${made.pages} pages, ${made.contents.length} papers. ${how === 'downloaded' ? 'Open or send it from the bar below.' : 'Open it from the bar below.'}`);
+        return;
+      }
       const [{ loadPdfLib, deliverPdf, titlePdf }, { drawLineBundle }, { capacityPapersFor }, { pdfFileName }] = await Promise.all([import('../../lib/savePdf'), import('./lineBundlePdf'), import('../../tools/linebalance/capacityPaperLoad'), import('../../lib/fileName')]);
       const { jsPDF } = await loadPdfLib();
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
@@ -126,8 +148,8 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
     } catch (e) {
       console.error('line bundle failed', e);
       setSaid('The report could not be made — try again.');
-    } finally { setBusy(false); }
-  }, [bundle, line, busy, picks, readings, programs, rec.standards, ctx, dualWords, today]);
+    } finally { setBusy(false); setProgress(null); }
+  }, [bundle, line, busy, picks, readings, programs, rec.standards, ctx, dualWords, today, full, flags, all, snags, jobName]);
   useSaveOnArrival(!!bundle && picks !== null && !rec.loading, make);
 
   if (line === undefined || rec.loading) return <div className="wrap pl"><p className="sub">Opening…</p></div>;
@@ -136,12 +158,36 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
   return (
     <div className="wrap pl lr">
       <PageHeader
-        eyebrow={<span className="pl-eyebrow">PRODUCTION LINE · THE LINE REPORT</span>}
-        title={`${line.name} — everything on the line`}
-        says={<span className="pl-says">{bundleSays(bundle, on)}{dualWords ? ` · ${dualWords[0].toLowerCase()} ${dualWords[1]}` : ''}. Tick what goes in; {asked.length ? `every record of ${asked.join(', ')} is in already` : 'the newest of each tool is in already'}. Each tool's own report stays where it was.</span>}
-        primary={{ label: 'Download', disabled: busy || picks === null, run: () => void make() }}
+        eyebrow={<span className="pl-eyebrow">PRODUCTION LINE · {full ? 'THE FULL LINE REPORT' : 'THE LINE REPORT'}</span>}
+        title={`${line.name} — ${full ? 'the full package' : 'everything on the line'}`}
+        says={full ? <span className="pl-says">Every paper below is the report that tool prints on its own, joined behind a cover and contents — nothing is summarised. Untick what should not go to the client.</span> : <span className="pl-says">{bundleSays(bundle, on)}{dualWords ? ` · ${dualWords[0].toLowerCase()} ${dualWords[1]}` : ''}. Tick what goes in; {asked.length ? `every record of ${asked.join(', ')} is in already` : 'the newest of each tool is in already'}. Each tool's own report stays where it was.</span>}
+        primary={{ label: full ? 'Download the full package' : 'Download', disabled: busy || picks === null, run: () => void make() }}
       />
+      <ViewTabs label="Which line report" value={mode} onChange={k => switchTo(k as 'summary' | 'full')} views={[{ key: 'summary', label: 'Summary' }, { key: 'full', label: 'Full package' }]} />
+      {progress && <p className="sub lr-said" role="status">{progress}</p>}
       {said && <p className="tc-ok lr-said" role="status">{said}</p>}
+      {full && picks !== null && (() => {
+        const sections = packageSections(bundle, on, flags);
+        return (
+          <section className="lr-package" aria-label="The full package" data-package>
+            <h2>The package, in order</h2>
+            <p className="sub">A cover and contents, then {packageSays(sections)}.</p>
+            <ul className="lr-ticks" aria-label="Whole-line papers">
+              {([['problems', 'Problems report', 'every problem open, with its plan and journey'], ['programs', 'Programs report', 'every program, machine by machine, every test and its notes'], ['machines', 'Machines report', 'every machine in full — tests, programs, steps, studies']] as const).map(([k, name, what]) => (
+                <li key={k}>
+                  <label className="lr-tick">
+                    <input type="checkbox" checked={flags[k]} aria-label={name} onChange={() => setFlags(f => ({ ...f, [k]: !f[k] }))} />
+                    <span><b>{name}</b><span className="sub">{what}</span></span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <ol className="lr-order" aria-label="Papers in the package">
+              {sections.map(sc => <li key={sc.id} data-section={sc.kind}><b>{sc.title}</b> <span className="sub">{sc.what}</span></li>)}
+            </ol>
+          </section>
+        );
+      })()}
       {bundle.parts.map(part => {
         const reading = readings.get(part.line.id);
         const pr = programs.get(part.line.id);

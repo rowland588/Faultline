@@ -40,11 +40,17 @@ export async function snagPhotos(r: SnagsReading): Promise<Map<string, SnagPhoto
   return out;
 }
 
-export async function saveSnagsReport(r: SnagsReading, title: string): Promise<void> {
+/** The report as a document, not yet handed over — the line's full package takes it whole. */
+export async function snagsReportDoc(r: SnagsReading, title: string) {
   const { jsPDF } = await loadPdfLib();
   const { drawSnagsReport } = await import('./snagsReportPdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const printed = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   await drawSnagsReport(doc, { title, printed, reading: r, photos: await snagPhotos(r) });
+  return doc;
+}
+
+export async function saveSnagsReport(r: SnagsReading, title: string): Promise<void> {
+  const doc = await snagsReportDoc(r, title);
   await deliverPdf(doc, pdfFileName('problems', title.toLowerCase() === 'every problem open' ? 'report' : title, todayISO()));
 }

@@ -18,17 +18,15 @@ import type { Standard } from '../tools/linestandard/standard';
 /** As the card is printed from its own page: "13 Oct 2026". */
 const printedOn = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-/** Every product's card, a page each, in the order given — each under its
- *  place's name. Saved to the device; the bar offers Open and Send. */
-export async function saveStandardCards(groups: { name: string; list: Standard[] }[], fileName: string): Promise<void> {
-  const { loadPdfLib, deliverPdf, titlePdf } = await import('../lib/savePdf');
-  const { pdfFileName } = await import('../lib/fileName');
-  const { todayISO } = await import('../lib/weeks');
+/** The cards as a document, not yet handed over — the line's full package takes it whole (src/line/report/linePackagePdf). */
+export async function standardCardsDoc(groups: { name: string; list: Standard[] }[]): Promise<import('jspdf').jsPDF | undefined> {
+  const { loadPdfLib, titlePdf } = await import('../lib/savePdf');
   const { worksFor } = await import('../tools/linework/WorkBalance');
   const { shiftShortsFor } = await import('../tools/linebalance/ShiftCapacity');
   const { jsPDF } = await loadPdfLib();
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const all = groups.flatMap(g => g.list);
+  if (!all.length) return undefined;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const works = await worksFor(all), shifts = await shiftShortsFor(all);
   const printed = printedOn();
   let first = true;
@@ -41,6 +39,17 @@ export async function saveStandardCards(groups: { name: string; list: Standard[]
     await drawStandards(doc, g.list, g.name, printed, works, shifts);
   }
   titlePdf(doc, `Line standard — ${all.length} product${all.length === 1 ? '' : 's'}`);
+  return doc;
+}
+
+/** Every product's card, a page each, in the order given — each under its
+ *  place's name. Saved to the device; the bar offers Open and Send. */
+export async function saveStandardCards(groups: { name: string; list: Standard[] }[], fileName: string): Promise<void> {
+  const { deliverPdf } = await import('../lib/savePdf');
+  const { pdfFileName } = await import('../lib/fileName');
+  const { todayISO } = await import('../lib/weeks');
+  const doc = await standardCardsDoc(groups);
+  if (!doc) return;
   /* the sheet is a picture edge to edge, with its own heading and mark */
   await deliverPdf(doc, pdfFileName(fileName, 'line standard cards', todayISO()), { brand: false });
 }

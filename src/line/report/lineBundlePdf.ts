@@ -48,6 +48,8 @@ export interface LineBundlePaper {
   capacity: ReadonlyMap<string, CapacityPaper>;
   /** "Made of Line 2a + line 2b" / "Part of 2a 2b" for the band (lib/lines). */
   dual?: [string, string];
+  /** THE LINE AT A GLANCE, for the full package: the tiles, what is open, where, who owes what — and no tool sections (each tool's own paper follows it). */
+  glance?: boolean;
 }
 
 /** WHERE ON THE LINE — a row a machine, every finding under it in its own colour. */
@@ -103,9 +105,9 @@ function partBlocks(p: LineBundlePaper, part: LinePart, d: Density): Block[] {
   const where = whereFor(part, p.picks);
   if (where.length) { out.push(leanHead('Where on the line', `${where.length} machine${where.length === 1 ? '' : 's'} with findings`)); out.push(...whereBlocks(where)); }
 
-  /* EACH TOOL TICKED IN — its own paper's blocks */
-  const picked = part.items.filter(it => p.picks.has(it.key));
-  if (!picked.length) out.push(text({ text: part.items.length ? 'No tool ticked in for this line.' : 'No tool used on this line yet.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
+  /* EACH TOOL TICKED IN — its own paper's blocks (the full package's glance leaves them to their own papers) */
+  const picked = p.glance ? [] : part.items.filter(it => p.picks.has(it.key));
+  if (!picked.length && !p.glance) out.push(text({ text: part.items.length ? 'No tool ticked in for this line.' : 'No tool used on this line yet.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
   let i = 0;
   for (const it of picked) {
     out.push(leanHead(`${it.tool} — ${it.name}`, it.says.length <= 60 ? it.says : undefined));
@@ -134,8 +136,8 @@ function blocksOf(p: LineBundlePaper, d: Density): Block[] {
   const first = p.readings.get(b.parts[0].line.id);
   const whole = b.dual ? p.readings.get(b.line.id) : first;
   const c = whole ? lineClosing(whole) : { text: '', tone: 'n' as LeanTone };
-  const page = bandPage(`PRODUCTION LINE${b.line.lineType ? ` · ${b.line.lineType.toUpperCase()}` : ''} · THE LINE REPORT — EVERYTHING ON THE LINE`, { name: b.line.name }, undefined, undefined,
-    [...(p.dual ? [p.dual] : []), ['Parts', b.dual ? `${b.parts.length - 1} lines, then both together` : 'one line'], ['Tools in', String([...p.picks].length)]]);
+  const page = bandPage(`PRODUCTION LINE${b.line.lineType ? ` · ${b.line.lineType.toUpperCase()}` : ''} · ${p.glance ? 'THE LINE AT A GLANCE' : 'THE LINE REPORT — EVERYTHING ON THE LINE'}`, { name: b.line.name }, undefined, undefined,
+    [...(p.dual ? [p.dual] : []), ['Parts', b.dual ? `${b.parts.length - 1} lines, then both together` : 'one line'], ...(p.glance ? [] : [['Tools in', String([...p.picks].length)] as [string, string]])]);
   const out: Block[] = [leanBand({ ...page, verdict: { text: c.tone === 'r' ? 'Needs you' : c.tone === 'a' ? 'Gaps to close' : 'In hand', tone: c.tone } }, p.printed)];
   for (const part of b.parts) out.push(...partBlocks(p, part, d));
   if (whole) out.push(leanClosing(lineClosing(whole)));
@@ -150,7 +152,7 @@ export async function drawLineBundle(doc: jsPDF, p: LineBundlePaper): Promise<vo
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     font(doc, 7.5, 'normal', MUTED);
-    doc.text(wrap(doc, `${p.bundle.line.name} — the line report, everything on the line  ·  ${p.printed}  ·  each tool's own report has every row`, CW - 60, 7.5)[0] ?? '', M, H - 18);
+    doc.text(wrap(doc, `${p.bundle.line.name} — ${p.glance ? 'the line at a glance' : 'the line report, everything on the line'}  ·  ${p.printed}${p.glance ? '' : '  ·  each tool\'s own report has every row'}`, CW - 60, 7.5)[0] ?? '', M, H - 18);
     doc.text(`${i} of ${pages}`, W - M, H - 18, { align: 'right' });
   }
 }
