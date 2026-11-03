@@ -253,7 +253,8 @@ for (const size of SIZES) {
         from = `section ${s2.gate} programs`;
         for (const k of ['client', 'programs']) {
           add(k, s2.programs.says);
-          for (const l of s2.programs.lines) add(k, l.what, l.word, l.note, l.proving, l.run ? `In Commission: ${l.run}` : '', ...l.earlier.map(e => `Before: ${e}`));
+          /* the programs paper no longer prints the 'On the line', 'In Commission' and 'Before' lines (Rowland, 3 November: "most of that writing is pointless") */
+          for (const l of s2.programs.lines) add(k, l.what, l.word, l.note);
           for (const m of s2.programs.machines) add(k, m.name);
         }
       }
