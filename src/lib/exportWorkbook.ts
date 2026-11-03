@@ -123,7 +123,7 @@ export function exportSheets(projects: ProjectData[], walks: WalkData[], exporte
     const machine = (id?: string) => assets.find(a => a.id === id)?.name ?? '';
     for (const a of assets) {
       rows.Machines.push([name, a.name, a.oem ?? '', d(a.dueOn), d(a.onSiteOn), d(a.installedOn), d(a.runningOn),
-        count(a.docs?.length ?? 0, 'document')]);
+        count((a.docs ?? []).filter(d => !d.picture).length, 'document')]);
     }
 
     const all = live(pd.tests).slice().sort((x, y) =>

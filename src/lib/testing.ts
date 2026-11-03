@@ -43,6 +43,9 @@ export interface DocRef {
   mime: string;
   bytes?: number;
   savedAt: number;
+  /** THE MACHINE'S OWN PICTURE (3 November — Rowland: "the picture of the machines to go in on the lines"): on a machine's `docs`, the
+   *  one image that is the machine itself, not a paper somebody sent. Never listed as a document (lib/machinePicture). */
+  picture?: boolean;
 }
 
 /** ITS FILES IN WORDS — "2 files: GA drawings rev C.pdf, Schematics.pdf" —

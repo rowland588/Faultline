@@ -8,6 +8,7 @@ import type { Program, ProgramState } from '../lib/programs';
 import { lineMachineId, lineOfMachine, machineKey, onlyLineOf, type JobLine } from '../lib/lineRecords';
 import { now, uid } from '../lib/ids';
 import { getDB } from './core';
+import { putBlob } from './blobs';
 import { putAsset, listAllAssets } from './testing';
 import { putProgram, listAllPrograms } from './programs';
 import { allPaceLines } from './pace';
@@ -186,4 +187,24 @@ export async function addProjectMachine(projectId: ID, name: string, more: Pick<
 
 export async function machineJoinsLine(a: Pick<Asset, 'workspaceId' | 'name'>): Promise<void> {
   if (a.workspaceId) await onTheList(a.workspaceId, a.name);
+}
+
+/** A MACHINE'S OWN PICTURE (lib/machinePicture): taken on its page, kept on its record (made on the first), replacing the one
+ *  before. The bytes are the device's store and ride the sync like a problem's photo. Returns the record as it was, for Undo. */
+export async function setMachinePicture(wsId: ID, name: string, file: Blob, fileName = 'machine.jpg'): Promise<Asset> {
+  const { smallPicture } = await import('../lib/machinePicture');
+  const small = await smallPicture(file);
+  const a = await machineRecordFor(wsId, name);
+  const blobKey = `doc-${uid()}`;
+  await putBlob(blobKey, small);
+  const picture = { id: uid(), name: fileName, blobKey, mime: small.type || 'image/jpeg', bytes: small.size, savedAt: now(), picture: true as const };
+  await putAsset({ ...a, docs: [...(a.docs ?? []).filter(d => !d.picture), picture], updatedAt: now() });
+  return a;
+}
+
+/** The picture taken off (the bytes stay on the device until nothing names them, so putting the record back is the whole Undo). */
+export async function clearMachinePicture(wsId: ID, name: string): Promise<Asset> {
+  const a = await machineRecordFor(wsId, name);
+  await putAsset({ ...a, docs: (a.docs ?? []).filter(d => !d.picture), updatedAt: now() });
+  return a;
 }

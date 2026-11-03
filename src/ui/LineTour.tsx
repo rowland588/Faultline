@@ -10,12 +10,13 @@
  * October: "I don't see your machine page"); until then a card opened its
  * problems alone, as a machine not on the line's list still does. Reads only;
  * writes nothing. */
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { Observation, Workspace } from '../types';
 import type { Snag } from '../snag/types';
 import type { Standard } from '../tools/linestandard/standard';
 import type { SnagRow } from '../lib/snagsReport';
-import { getBlob } from '../db';
+import type { Asset } from '../lib/testing';
+import { MachineImg } from './MachinePicture';
 import { hasLabour, labourPerMs, fmtGBP } from '../lib/cost';
 import { lineConstraint, onConstraint, stopMinutes, between, WEEK } from '../lib/intelligence';
 import { machineKey } from '../lib/lineRecords';
@@ -27,20 +28,10 @@ const PRIO_WORD: Record<string, string> = { critical: 'Critical', high: 'High', 
 /* the register's own RAG tag (Rowland, 12 October: priority is RAG, always with its word) */
 const PRIO_CLASS: Record<string, string> = { critical: 'is-r', high: 'is-a', low: 'is-g' };
 
-function Thumb({ blobKey, alt }: { blobKey?: string; alt: string }) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!blobKey) { setUrl(null); return; }
-    let u: string | null = null, live = true;
-    void getBlob(blobKey).then(b => { if (b && live) { u = URL.createObjectURL(b); setUrl(u); } }).catch(() => {});
-    return () => { live = false; if (u) URL.revokeObjectURL(u); };
-  }, [blobKey]);
-  /* no picture, no placeholder — an empty frame is a box to look past */
-  return url ? <img className="tour-img" src={url} alt={alt} loading="lazy" /> : null;
-}
-
-export function LineTour({ line, machines, rows, snags, obs, standards }: {
-  line: Workspace; machines: string[]; rows: SnagRow[]; snags: Snag[]; obs: Observation[]; standards: Standard[];
+export function LineTour({ line, machines, records, rows, obs, standards }: {
+  line: Workspace; machines: string[];
+  /** The machines' records, in the same order — a machine's own picture is on its record (lib/machinePicture). */
+  records?: (Asset | undefined)[]; rows: SnagRow[]; snags?: Snag[]; obs: Observation[]; standards: Standard[];
 }) {
   const now = Date.now();
   const constraint = useMemo(() => lineConstraint(standards.filter(s => !s.deletedAt).map(s => ({ product: s.product, capacity: s.capacity }))), [standards]);
@@ -60,15 +51,19 @@ export function LineTour({ line, machines, rows, snags, obs, standards }: {
     return names.map(name => {
       const k = machineKey(name);
       const mine = rows.filter(r => r.machine && machineKey(r.machine) === k).sort((a, b) => PRIO[a.priority] - PRIO[b.priority]);
-      const photo = snags.filter(s => mine.some(r => r.id === s.id)).map(s => s.detailPhotoKey ?? s.media?.find(m => m.kind === 'photo')?.blobKey).find(Boolean);
+      const record = machines.map((n, i) => (machineKey(n) === k ? records?.[i] : undefined)).find(Boolean);
       const minWeek = stopMinutes(recent.filter(o => machineKey(o.asset) === k)) / WEEKS;
       const on = onConstraint(name, constraint).on;
-      return { name, mine, photo, minWeek, on };
+      return { name, mine, record, minWeek, on };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` by the render
-  }, [names, rows, snags, obs, constraint]);
+  }, [names, machines, records, rows, obs, constraint]);
   /* a machine on the line's list has a page of its own; one only a stop, a station or a problem names opens its problems */
   const listed = new Set(machines.map(machineKey));
+  /* where a card's name and its Open machine go: the machine's page, or — for a name only a problem or a stop uses — its problems */
+  const way = (c: { name: string; mine: SnagRow[] }) => (listed.has(machineKey(c.name))
+    ? `/lines/${encodeURIComponent(line.id)}/machine/${encodeURIComponent(c.name)}`
+    : `/snags?line=${encodeURIComponent(line.id)}${c.mine[0] ? `&open=${encodeURIComponent(c.mine[0].id)}` : ''}`);
   const open = rows.length, crit = rows.filter(r => r.priority === 'critical').length, late = rows.filter(r => r.late).length;
   const worst = [...cards].sort((a, b) => b.mine.length - a.mine.length || b.minWeek - a.minWeek)[0];
   const placed = new Set(cards.flatMap(c => c.mine.map(r => r.id)));
@@ -98,21 +93,23 @@ export function LineTour({ line, machines, rows, snags, obs, standards }: {
       <ol className="tour-strip">
         {cards.map((c, i) => (
           <li key={c.name} data-listed={listed.has(machineKey(c.name)) ? '1' : undefined} className={'tour-card' + (c.on ? ' is-on' : '') + (c.mine.some(r => r.priority === 'critical' || r.late) ? ' is-r' : '')}>
-            <button type="button" className="tour-b" onClick={() => nav(listed.has(machineKey(c.name))
-              ? `/lines/${encodeURIComponent(line.id)}/machine/${encodeURIComponent(c.name)}`
-              : `/snags?line=${encodeURIComponent(line.id)}${c.mine[0] ? `&open=${encodeURIComponent(c.mine[0].id)}` : ''}`)}
-              aria-label={`${i + 1}. ${c.name}${c.on ? ', the constraint' : ''}: ${c.mine.length} problem${c.mine.length === 1 ? '' : 's'} open${listed.has(machineKey(c.name)) ? ' — open its page' : ''}`}>
-              <Thumb blobKey={c.photo} alt={`${c.name} — its newest problem`} />
-              <span className="tour-n"><b>{i + 1}</b> {c.name}{c.on && <em className="lch-tag">constraint</em>}</span>
+            <div className="tour-box">
+              <button type="button" className="tour-b" onClick={() => nav(way(c))}
+                aria-label={`${i + 1}. ${c.name}${c.on ? ', the constraint' : ''}: ${c.mine.length} problem${c.mine.length === 1 ? '' : 's'} open${listed.has(machineKey(c.name)) ? ' — open its page' : ''}`}>
+                {/* THE MACHINE'S OWN PICTURE (3 November — Rowland: "the picture of the machines to go in on the lines"); a problem's photo is the problem's, on its row */}
+                <MachineImg record={c.record} alt={`The ${c.name}`} className="tour-img" />
+                <span className="tour-n"><b>{i + 1}</b> {c.name}{c.on && <em className="lch-tag">constraint</em>}</span>
+              </button>
+              {/* each problem opens itself, straight from the machine (Rowland: "get access to the problems directly to that machine") */}
               <span className="tour-p">
                 {c.mine.length === 0 ? <span className="sub">Nothing open</span>
                   : c.mine.slice(0, 2).map(r => (
-                    <span key={r.id} className="tour-pr">
+                    <button type="button" key={r.id} className="tour-pr" onClick={() => nav(`/snags?line=${encodeURIComponent(line.id)}&open=${encodeURIComponent(r.id)}`)}>
                       <span className={'qsl-prio ' + PRIO_CLASS[r.priority]}>{PRIO_WORD[r.priority]}</span> {r.what}
                       <span className="sub"> · {r.owner ?? 'nobody yet'}{r.due ? ` · ${r.due}` : ''}</span>
-                    </span>
+                    </button>
                   ))}
-                {c.mine.length > 2 && <span className="sub">and {c.mine.length - 2} more</span>}
+                {c.mine.length > 2 && <button type="button" className="tour-pr sub" onClick={() => nav(`/snags?line=${encodeURIComponent(line.id)}&open=${encodeURIComponent(c.mine[2].id)}`)}>and {c.mine.length - 2} more ›</button>}
               </span>
               <span className="tour-m">
                 {c.minWeek >= 1
@@ -120,8 +117,8 @@ export function LineTour({ line, machines, rows, snags, obs, standards }: {
                   : <span className="sub">no stops logged lately</span>}
               </span>
               {/* the way in, said as the Factory board's cards say it (docs/ENTERPRISE-UI.md E2) */}
-              <span className="tour-go" aria-hidden>{listed.has(machineKey(c.name)) ? 'Open machine ›' : 'Its problems ›'}</span>
-            </button>
+              <button type="button" className="tour-go" onClick={() => nav(way(c))}>{listed.has(machineKey(c.name)) ? 'Open machine ›' : 'Its problems ›'}</button>
+            </div>
           </li>
         ))}
       </ol>

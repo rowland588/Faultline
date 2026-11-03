@@ -23,6 +23,7 @@ import { nav } from '../state/useRoute';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { commissioningNarrativePapersInMenus } from '../lib/productStory';
 import { planModel } from '../lib/planModel';
+import { MachinePicture } from '../ui/MachinePicture';
 import { MachineInProject } from '../project/machines/MachineInProject';
 
 export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; name: string;
@@ -104,6 +105,9 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
         {v.oem && !job && <p className="sub">Made by <b>{v.oem}</b></p>}
       </PageHeader>
       {said && <p className="tc-ok" role="status">{said}</p>}
+
+      {/* ITS PICTURE — the machine itself, which the line's strip shows (Rowland, 3 November) */}
+      <MachinePicture wsId={wsId} name={v.name} record={v.record} />
 
       {/* IN ITS PROJECT — what the project working on it now is doing to it, first */}
       {job && assetId && <MachineInProject projectId={job.id} assetId={assetId} onRemoved={() => nav(`/project/${job.id}/machines`)} tail="afterLine" />}

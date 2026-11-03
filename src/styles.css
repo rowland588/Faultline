@@ -13492,19 +13492,24 @@ button.why-src { cursor: pointer; }
 .tour-strip { list-style: none; margin: 0; padding: 0 0 6px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 260px); gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; }
 .tour-card { scroll-snap-align: start; }
 /* a machine's card wears the Factory board's language (docs/ENTERPRISE-UI.md E2 — .fac-card) */
-.tour-b {
+.tour-box, .tour-card { height: 100%; }
+.tour-box {
   display: grid; gap: 6px; align-content: start; width: 100%; height: 100%; padding: 14px 16px;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
-  font: inherit; color: var(--ink); text-align: left; cursor: pointer; box-shadow: var(--shadow);
-  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+  color: var(--ink); text-align: left; box-shadow: var(--shadow);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
-.tour-b:hover { border-color: var(--line-2); box-shadow: var(--shadow-lift); transform: translateY(-1px); }
-.tour-b:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.tour-card.is-on .tour-b { border-color: var(--navy, #12171c); box-shadow: inset 0 0 0 1px var(--navy, #12171c), var(--shadow); }
-.tour-card.is-r .tour-b { border-left: 4px solid var(--st-r); }
+.tour-box:hover { border-color: var(--line-2); box-shadow: var(--shadow-lift); }
+.tour-card.is-on .tour-box { border-color: var(--navy, #12171c); box-shadow: inset 0 0 0 1px var(--navy, #12171c), var(--shadow); }
+.tour-card.is-r .tour-box { border-left: 4px solid var(--st-r); }
+/* the picture and the name open the machine; each problem opens itself; Open machine says it again at the foot */
+.tour-b, .tour-pr, .tour-go { display: grid; gap: 6px; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.tour-b:focus-visible, .tour-pr:focus-visible, .tour-go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.tour-pr { display: block; min-height: 44px; padding: 6px 0; border-top: 1px solid var(--line); }
+.tour-pr:hover { background: var(--surface-2); }
 .tour-img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface-2); }
 .tour-n { font-weight: 700; font-size: var(--t-h3, 18px); letter-spacing: -0.02em; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.tour-go { padding-top: 4px; color: var(--brand); font-weight: 700; font-size: var(--t-detail); }
+.tour-go { display: block; min-height: 44px; padding-top: 4px; color: var(--brand); font-weight: 700; font-size: var(--t-detail); }
 .tour-n b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: var(--radius-round); background: var(--surface-2); font-size: var(--t-label); }
 .tour-p { display: grid; gap: 4px; font-size: var(--t-detail); }
 .tour-m { font-size: var(--t-detail); color: var(--ink-2); }
@@ -15791,3 +15796,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .lr-package h2 { margin: 0 0 4px; }
 .lr-order { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 4px; }
 .lr-order .sub { display: block; }
+
+/* a machine's own picture on its page (ui/MachinePicture) */
+.mpic { display: grid; gap: var(--s-2, 8px); }
+.mpic-img { display: block; width: 100%; max-height: 22rem; object-fit: cover; border-radius: var(--radius); background: var(--surface-2); }
+.mpic-acts { display: flex; flex-wrap: wrap; gap: var(--s-2, 8px); }

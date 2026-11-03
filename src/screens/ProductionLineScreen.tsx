@@ -461,7 +461,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       )}
 
       {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
-      {show('overview') && kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} rows={rows} snags={mine} obs={obs} standards={standards} />}
+      {show('overview') && kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} records={kit.machines.map(m => m.record)} rows={rows} snags={mine} obs={obs} standards={standards} />}
 
       {show('overview') && (<section className="pl-sec" aria-label="Problems on this line">
         <div className="pl-sec-h">
