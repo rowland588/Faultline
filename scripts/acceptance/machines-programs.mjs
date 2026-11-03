@@ -482,7 +482,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   const dir = mkdtempSync(join(tmpdir(), 'lprogs-'));
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
   const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
-  const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
+  const txt = flat(execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   const lost = [t.reading.says, 'PROGRAMS·PRODUCTIONLINE', ...t.programs.map(p => p.what)].filter(w => !txt.includes(w.replace(/\s+/g, '')));
   ok(!lost.length, `9 the line's programs report: its sentence and every program${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
 }
@@ -491,11 +491,12 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
 {
   await go(`#/lines/${WS}`);
   const t = await truth();
-  const dirOv = mkdtempSync(join(tmpdir(), 'lprogs-ov-'));
-  const [dlOv] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
-  const ovFile = join(dirOv, 'programs-overview.pdf'); await dlOv.saveAs(ovFile);
-  const ovTxt = flat(execFileSync('pdftotext', ['-layout', ovFile, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
-  ok(ovTxt.includes(t.reading.says.replace(/\s+/g, '')), '9b line Overview programs report on paper');
+  /* the line's Report ▾ is three entries since 3 November ("the line reports there are many and it's confusing me"): the programs report is a tick on the
+     full package and has its own page's Report ▾ (9), so the Overview no longer offers it twice */
+  await main.locator('.part-menu-b', { hasText: /^Report/ }).first().click();
+  const items = (await page.getByRole('menuitem').allInnerTexts()).map(x => flat(x));
+  await page.keyboard.press('Escape');
+  ok(items.length === 3 && items.every(x => /^Line report/.test(x)) && !items.some(x => /^Programs report/.test(x)), `9b the line Overview's Report ▾ is its three line reports, Programs report not among them (${items.map(x => x.slice(0, 24)).join(' · ')})`);
   await go(`#/lines/${WS}/programs/report?save=1`); await page.waitForTimeout(2500);
   ok(flat(await main.locator('.lpr .part-head h1').innerText()).includes('every program'), '9b programs report page on the line');
   const withJob = t.programs.find(p => p.projectId);
@@ -621,8 +622,9 @@ await page.setViewportSize({ width: 1360, height: 900 });
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
   const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
-  const lost = [j.says, `On the line: ${j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record.word}`].filter(w => !txt.includes(w.replace(/\s+/g, '')));
-  ok(!lost.length, `12h the job's programs report: its count and the line's record beside the floor's${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
+  /* the paper no longer prints the 'On the line: …' echo (Rowland, 3 November: "most of that writing is pointless"); it says the count and the program itself, counted failed */
+  const lost = [j.says, 'PR-12 Express 1.25 kg'].filter(w => !txt.includes(w.replace(/\s+/g, '')));
+  ok(!lost.length, `12h the job's programs report: its count and the program, not counted done${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
 }
 
 /* ---- 13 proved says what showed it (flow audit #21) ---- */
@@ -676,9 +678,10 @@ await page.setViewportSize({ width: 1360, height: 900 });
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
   const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
-  const want = pr.lines.filter(l => l.proof).map(l => l.proof.word.slice(0, 60));
+  /* the 'Proved by its test — …' line is off the paper unless signed off or abnormal (3 November); each proved program is on it by name */
+  const want = pr.lines.filter(l => l.proof).map(l => l.what.slice(0, 40));
   const lost = want.filter(w => !txt.includes(w.replace(/\s+/g, '')));
-  ok(want.length >= 4 && !lost.length, `13e the line's programs report says how each of ${want.length} was proved${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
+  ok(want.length >= 4 && !lost.length, `13e the line's programs report holds each of the ${want.length} proved programs${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
   /* a job's program kept only on its list is proved where it sits: Passed
      in its one form, with what was seen — its test behind it, its line on
      its machine's stage made (it was "Track it here", then "Mark it proved"

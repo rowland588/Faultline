@@ -90,16 +90,22 @@ ok(/1 problem open/.test(await txt()) && /Infeed guard loose/.test(await txt()),
 if (OUT) await page.screenshot({ path: `${OUT}/l-2-line-problem.png` });
 // the line on paper — its report, and a card for each problem open
 const dir = mkdtempSync(join(tmpdir(), 'lines-'));
+/* the line's Problems report and cards are made from the line's Problems page (3 November: the line's Report ▾ is three entries, the single papers
+   are ticks on its package page and live on their own pages) */
+const linePage = page.url();
+const lineId = decodeURIComponent((/#\/lines\/([^/?]+)/.exec(linePage) ?? [])[1] ?? '');
 const pdfOf = async (name, file) => {
-  const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, name, page.locator('.pl'))]);
+  const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, name)]);
   const f = join(dir, file); await d.saveAs(f);
   return { text: execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' '), pages: Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))?.[1]) };
 };
+await page.goto(`${BASE}/#/snags?line=${encodeURIComponent(lineId)}`); await page.waitForTimeout(2500);
 const rep = await pdfOf('Problems report', 'line.pdf');
-ok(/Line 2B — problems/.test(rep.text) && /Infeed guard loose on the bagger/.test(rep.text), '6b the line on paper: its Problems report, its problem on it');
+ok(/Every problem open on Line 2B/.test(rep.text) && /Infeed guard loose on the bagger/.test(rep.text), '6b the line on paper: its Problems report, its problem on it');
 const cards = await pdfOf('Problem cards', 'line-cards.pdf');
 ok(cards.pages === 1 && /Infeed guard loose/.test(cards.text), `6c and a card for each problem open (${cards.pages})`);
 
+await page.goto(linePage); await page.waitForTimeout(2500);
 // tap it → register filtered, editor open
 await page.locator('.pl-row', { hasText: 'Infeed guard loose' }).click(); await page.waitForTimeout(2000);
 ok(/#\/snags\?line=/.test(page.url()) && (await page.locator('.pe').count()) === 1 && (await page.locator('.qsl-g .qsl-gh h2').allInnerTexts()).join('|') === 'Line 2B', `7 tapped: the Problems page on Line 2B, the problem open to work`);
