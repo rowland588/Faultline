@@ -2,7 +2,7 @@
  * October: "on programs they are missing from the reports — need its own
  * report, and added to the main report." */
 import { describe, expect, it } from 'vitest';
-import { badgeOf, programsReading, readingForProgram } from '../programsReport';
+import { badgeOf, programsReading, readingForProgram, studyShort } from '../programsReport';
 import { statusReport } from '../statusReport';
 import { clientReport } from '../clientReport';
 import type { Asset, Test, TestItem } from '../testing';
@@ -277,5 +277,12 @@ describe('readingForProgram', () => {
     const one = readingForProgram(r!, 'pl1');
     expect(one?.lines).toHaveLength(1);
     expect(one?.lines[0]?.what).toBe('CW-1 Finest');
+  });
+});
+
+describe('a study on a test’s line is short', () => {
+  it('keeps one short clause and the verdict, never the whole sentence', () => {
+    const s = { id: 's', tool: 'capability', name: 'x', uses: [], agreed: { readings: { kind: 'ticks', count: 20 } }, facts: {}, startedAt: 0, createdAt: 0, updatedAt: 0 } as unknown as ToolStudy;
+    expect(studyShort(s).length).toBeLessThanOrEqual(110);
   });
 });

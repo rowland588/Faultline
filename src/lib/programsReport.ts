@@ -27,7 +27,7 @@ import { niceDay, todayISO } from './weeks';
 import { answerOf, type AnswerHolder } from './install';
 import type { ToolStudy } from './study';
 import type { Standard } from '../tools/linestandard/standard';
-import { TOOL_NAME, linkedTo, studyLine } from './studyLinks';
+import { TOOL_NAME, linkedTo, studyLine, studySays } from './studyLinks';
 import { programJourney } from './programJourney';
 import { CRITERION_WORD, criteriaOf, criteriaVerdict, passedItLine } from './programCriteria';
 import { judgedByCriteria } from './programs';
@@ -264,6 +264,16 @@ export function badgeOf(l: Pick<ProgramLine, 'bucket' | 'said' | 'word' | 'tone'
   return 'TO DO';
 }
 
+/** A study on a test's line of the paper, short: its verdict word and, where it has one, the first sentence of what it says —
+ *  the whole sentence is on the study's own paper (Rowland, 3 November: "They should shorten study lines"). */
+export function studyShort(st: ToolStudy): string {
+  const full = studyLine(st).text.replace(/\s+/g, ' ').trim();
+  const clause = full.split(/ — | \(/)[0] ?? full;
+  const verdict = (() => { try { return studySays(st).verdict; } catch { return ''; } })();
+  const body = clause.length <= 60 ? clause : `${clause.slice(0, 57).trimEnd()}…`;
+  return verdict && !body.includes(verdict) ? `${body} — ${verdict}` : body;
+}
+
 /** The tests of a program in words, each with the studies lined up for it — "Capability study “60 ppm” — …". */
 function testsOfProgram(p: Program | undefined, tests: Test[], studies: readonly ToolStudy[] | undefined, today: string): ProgramLine['tests'] {
   if (!p) return undefined;
@@ -272,7 +282,7 @@ function testsOfProgram(p: Program | undefined, tests: Test[], studies: readonly
     text: a.text,
     ...(a.split ? { split: a.split } : {}),
     tone: (a.result.tone === 'a' ? 'a' : a.result.tone) as ProgTone,
-    studies: linkedTo([...(studies ?? [])], 'test', a.test.id, 'proof').map(st => `${studyWords(st)} — ${studyLine(st).text}`),
+    studies: linkedTo([...(studies ?? [])], 'test', a.test.id, 'proof').map(st => `${studyWords(st)} — ${studyShort(st)}`),
     ...(n => (n.length ? { notes: n } : {}))(linkedTo([...(studies ?? [])], 'test', a.test.id, 'proof')
       .flatMap(st => (st.facts?.remarks ?? []).filter(r => !r.struck && r.text.trim()))
       .sort((x, y) => x.at - y.at)
