@@ -14694,6 +14694,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
      menu's own papers were under it (control-room.mjs, gate 32) */
   position: absolute; right: 0; top: calc(100% + var(--space-1)); z-index: 85; min-width: 260px; max-width: min(360px, 92vw);
   display: grid; padding: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-lift);
+  /* LONG MENUS SCROLL (3 November — Rowland: "the menu itself doesn't now fit on the screen", with the full package added to Report ▾):
+     the list never runs past the window — ui/parts useMenu sets its max-height to the room below the button as it opens — and what does
+     not fit scrolls inside it */
+  overflow-y: auto; overscroll-behavior: contain;
 }
 /* a menu whose button is at the left of the page hangs from the button's left edge (ui/parts useMenu) */
 .part-menu-list.is-left { right: auto; left: 0; }
@@ -14722,7 +14726,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 @media (max-width: 719px) {
   /* on a phone a menu opens as a panel across the screen, above the bar — never off its edge */
   .part-menu-list { position: fixed; left: var(--space-4); right: var(--space-4); top: auto; max-width: none; min-width: 0;
-    bottom: calc(var(--nv-bar, 62px) + env(safe-area-inset-bottom) + var(--space-3)); }
+    bottom: calc(var(--nv-bar, 62px) + env(safe-area-inset-bottom) + var(--space-3));
+    max-height: calc(100dvh - var(--nv-bar, 62px) - env(safe-area-inset-bottom) - var(--space-6)); }
   .part-head { flex-direction: column; }
   .part-head .pace-head-actions { flex-wrap: wrap; }
   .part-view { min-height: var(--tap); }

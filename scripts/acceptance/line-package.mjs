@@ -19,6 +19,8 @@
  *      Problems report holds the open one and the two closed, each with its words; Problem cards a page for each of the three; Test cards a
  *      card for Program 10's test, landscape, naming it
  *   7  the phone: nothing off the side, both tabs reachable
+ *   8  Report ▾ with all its papers never runs off the window (3 November — "the menu itself doesn't now fit on the screen"): on a short desk
+ *      window and on a phone the list ends inside the window, scrolls inside itself, and the last paper can be reached and pressed
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/line-package.mjs      (SMOKE_BASE, as smoke) */
@@ -134,6 +136,19 @@ ok(!rows3.some(r => /^Machines/.test(r.title)) && !rows3.some(r => /Control char
 await page.setViewportSize({ width: 390, height: 800 }); await go(`#/lines/${LINE}/report?full=1`, 2500);
 const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 ok(over <= 1 && await page.getByRole('tab', { name: 'Full package' }).isVisible() && await page.getByRole('tab', { name: 'Summary' }).isVisible(), `7 the phone: nothing off the side (${over}px), both tabs there`);
+/* 8 · the Report ▾ list fits the window and scrolls */
+for (const [w, h, label] of [[1360, 520, 'a short desk window'], [390, 640, 'a phone']]) {
+  await page.setViewportSize({ width: w, height: h }); await go(`#/lines/${LINE}`, 2500);
+  await page.locator('.pl .part-head .part-menu-b', { hasText: /^Report/ }).click(); await page.waitForTimeout(300);
+  const m = await page.evaluate(() => { const l = document.querySelector('.part-menu-list'); const r = l.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: window.innerHeight, sh: l.scrollHeight, ch: l.clientHeight, oy: getComputedStyle(l).overflowY }; });
+  ok(m.bottom <= m.h + 1 && m.top >= 0 && m.sh > m.ch && /auto|scroll/.test(m.oy), `8 ${label}: the Report list ends inside the window (${Math.round(m.bottom)} of ${m.h}) and scrolls inside itself (${m.sh} in ${m.ch})`, JSON.stringify(m));
+  const items = page.getByRole('menuitem'); const last = items.last();
+  await last.scrollIntoViewIfNeeded(); await page.waitForTimeout(200);
+  const lb = await last.boundingBox();
+  ok(lb && lb.y >= 0 && lb.y + lb.height <= h + 1, `8 ${label}: the last paper (${flat(await last.innerText()).slice(0, 40)}) can be scrolled to and is on the screen`, JSON.stringify(lb));
+  await page.keyboard.press('Escape');
+}
+
 ok(errs.length === 0, 'no console error', errs.join(' | '));
 await b.close();
 console.log(fail ? '\nFAILED' : '\nALL PASSED');

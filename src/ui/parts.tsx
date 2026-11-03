@@ -50,7 +50,12 @@ function useMenu() {
     const list = box.current?.querySelector<HTMLElement>('.part-menu-list');
     if (!open || !list) return;
     list.classList.remove('is-left');
-    if (getComputedStyle(list).position === 'absolute' && list.getBoundingClientRect().left < 8) list.classList.add('is-left');
+    list.style.maxHeight = '';
+    if (getComputedStyle(list).position === 'absolute') {
+      if (list.getBoundingClientRect().left < 8) list.classList.add('is-left');
+      /* never past the bottom of the window: the room below the button, less a margin — the rest scrolls inside the list */
+      list.style.maxHeight = `${Math.max(160, window.innerHeight - list.getBoundingClientRect().top - 12)}px`;
+    }
   }, [open]);
   return { open, setOpen, box, button };
 }
