@@ -115,6 +115,9 @@ export interface Capacity {
   /** What the line should be doing, in the line's own unit per minute — all
    *  the lines together, when there are several. */
   targetPerMin?: number;
+  /** WHAT ONE OF THE LINE'S UNIT WEIGHS, kg (4 November — Rowland: "the rate coming at the human x a weight ... 70 ppm, 6 in a tray, each unit weighs 1.25 kg — it reaches the human
+   *  every so many seconds and weighs so much"). A human's most cannot be measured, so what reaches them is shown as weight in the same time (tools/linebalance/capacityLoad). Absent: nothing said. */
+  unitKg?: number;
   /** THE LINES THAT FEED ONE PLACE, in the order they are drawn. Absent or
    *  empty: one chain of stations, as ever. */
   lanes?: Lane[];

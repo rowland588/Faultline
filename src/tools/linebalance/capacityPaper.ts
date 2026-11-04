@@ -30,6 +30,7 @@ import { cycleWords, fmtBig, fmtN, oneOf } from './capacityWords';
 import { shortSays } from './capacitySays';
 import type { WalkVerdict } from '../../lib/ie/walk';
 import { planToTarget } from './capacityPlan';
+import { loadsOf, loadSays } from './capacityLoad';
 
 export type Tone = 'r' | 'a' | 'n';
 
@@ -131,6 +132,8 @@ export interface CapacityPaper {
   buffers?: { paper: string };
   /** What a pack costs in labour, and one more person at the bottleneck. */
   labour?: { says: string; more?: string };
+  /** THE WEIGHT EACH PERSON HANDLES, IN THE SAME TIME (4 November — Rowland; tools/linebalance/capacityLoad): a line a person station — what reaches them, what it weighs, the kilos an hour. */
+  handled?: { name: string; says: string }[];
   /** WHAT THE BOTTLENECK COSTS A PACK, under the headline (lib/capacity
    *  bottleneckCost) — red when the line is short of its target. */
   money?: { text: string; short: boolean };
@@ -309,6 +312,8 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     ? `The bottleneck is a machine — ${r.limit.station.name.trim() || 'it'}: another person there adds an hour’s cost and no ${r.unit}.` : undefined;
   const unsaid = x.labour.people == null && x.labour.rate == null ? 'how many people are on the line and what one costs an hour are'
     : x.labour.people == null ? 'how many people are on the line is' : 'what one person costs an hour is';
+  /* the weight each person handles, in the same time (capacityLoad) */
+  const handled = loadsOf(r, cap).map(l => ({ name: cap.stations.find(x => x.id === l.stationId)?.name.trim() || 'A person', says: loadSays(l) }));
   const labour = r.line == null ? undefined : says
     ? { says: `${says}${from ? ` (${from})` : ''}`, ...(more ? { more: more.sentence } : machine ? { more: machine } : {}) }
     : { says: `Not worked out — ${unsaid} not said yet.` };
@@ -340,6 +345,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     ...(three ? { three } : {}),
     ...(buffers ? { buffers } : {}),
     ...(labour ? { labour } : {}),
+    ...(handled.length ? { handled } : {}),
     ...(x.work ? { work: { text: x.work.text, lines: x.work.lines.map(l => ({ text: l.text, tone: (l.tone === 'r' || l.tone === 'a' ? l.tone : 'n') as Tone })) } } : {}),
     whatIfs,
     figures: (() => {

@@ -411,6 +411,12 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
     out.push(text({ text: p.labour.says, size: T, colour: INK2, after: p.labour.more ? 4 : gap(d, 'm') }));
     if (p.labour.more) out.push(text({ text: p.labour.more, size: T, colour: INK2, after: gap(d, 'm') }));
   }
+  /* THE WEIGHT A PERSON HANDLES, IN THE SAME TIME (4 November — Rowland: "we can't measure a human's maximum, so we have to illustrate the stress and the weight") */
+  if (p.handled?.length) {
+    out.push(label('The weight each person handles — in the same time'));
+    for (const h of p.handled) out.push(text({ text: `${h.name}: ${h.says}`, size: T, style: 'bold', colour: INK, after: 4 }));
+    out.push(text({ text: 'What reaches them at the line’s speed. No safe limit is claimed here — read it against your site’s manual-handling rule.', size: S, colour: MUTED, after: gap(d, 'm') }));
+  }
 
   /* WHAT WE ARE DOING ABOUT IT — the what-ifs tried, the people's work */
   out.push(label('What we are doing about it'));
@@ -457,6 +463,9 @@ export function productLeanBlocks(p: CapacityPaper, d: Density): Block[] {
   const shiftTbl = p.shift ? shiftTable(p) : undefined;
   out.push(...leanInsights([...page.insights.filter(i => !p.check.includes(i.text)),
     ...(p.labour && p.figures.perPack != null ? [{ text: `What a ${oneOf(p.unit)} costs in labour: ${p.labour.says}`, tone: 'n' as const }] : []),
+    /* THE WEIGHT EACH PERSON HANDLES, IN THE SAME TIME (4 November — Rowland); a person needs no timed speed for it */
+    ...(p.handled?.length ? [...p.handled.map(h => ({ text: `${h.name} — the weight handled in the same time: ${h.says}`, tone: 'n' as const })),
+      { text: 'No safe limit is claimed — read the weight against your site’s manual-handling rule.', tone: 'n' as const }] : []),
     ...(p.work ? [{ text: `The people’s work against takt: ${p.work.text}`, tone: 'n' as const }, ...p.work.lines.map(l => ({ text: l.text, tone: l.tone as 'r' | 'a' | 'g' | 'n' }))] : []),
     ...(p.shift && !shiftTbl ? [{ text: p.shift.sentence, tone: 'n' as const }] : [])]));
   out.push(...checks());

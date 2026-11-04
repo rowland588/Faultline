@@ -3,7 +3,8 @@
  * seven screens for two stations. This is the one card that comes first: how fast the line goes, against what it should, what holds it, each station in its own words with
  * the limit marked, and the one thing to do. Everything else is one tap under "Show the workings". Read from the same result the page and the paper read (analyse,
  * planToTarget) — never a second answer. Pure. */
-import { typedSpeedWords, type CapacityResult } from './capacity';
+import { typedSpeedWords, type Capacity, type CapacityResult } from './capacity';
+import { loadOf, loadSays } from './capacityLoad';
 import type { Plan } from './capacityPlan';
 import { fmtN } from './capacityWords';
 
@@ -15,6 +16,8 @@ export interface GlanceRow {
   can: string;
   /** It is the station that holds the line. */
   holds: boolean;
+  /** The weight that reaches a person in the same time — "A tray weighs 7.5 kg … 5,250 kg an hour" — when the line's unit weight is typed (capacityLoad). */
+  load?: string;
 }
 
 export interface Glance {
@@ -31,14 +34,27 @@ export interface Glance {
   fix?: string;
 }
 
-export function capacityGlance(r: CapacityResult, plan?: Plan): Glance {
+export function capacityGlance(r: CapacityResult, plan?: Plan, cap?: Pick<Capacity, 'unitKg' | 'stations'>): Glance {
   const unit = r.unit.trim() || 'units';
-  const rows: GlanceRow[] = r.ok.map((x, i) => ({
-    name: x.station.name.trim() || `Station ${x.index + 1}`,
-    speed: typedSpeedWords(x.station, i > 0 ? r.ok[i - 1].station.unit : undefined),
-    can: `${fmtN(x.effective)} ${unit}/min`,
-    holds: r.limit?.index === x.index,
-  }));
+  /* EVERY STATION IN ORDER when the capacity is given — a person not yet timed has no speed, so is not counted, but still has the weight reaching them (capacityLoad) */
+  const rows: GlanceRow[] = cap
+    ? cap.stations.map((s, i) => {
+      const x = r.ok.find(o => o.station.id === s.id);
+      const l = loadOf(r, cap, s);
+      return {
+        name: s.name.trim() || `Station ${i + 1}`,
+        speed: typedSpeedWords(s, i > 0 ? cap.stations[i - 1].unit : undefined),
+        can: x ? `${fmtN(x.effective)} ${unit}/min` : 'not timed yet',
+        holds: !!x && r.limit?.index === x.index,
+        ...(l ? { load: loadSays(l) } : {}),
+      };
+    })
+    : r.ok.map((x, i) => ({
+      name: x.station.name.trim() || `Station ${x.index + 1}`,
+      speed: typedSpeedWords(x.station, i > 0 ? r.ok[i - 1].station.unit : undefined),
+      can: `${fmtN(x.effective)} ${unit}/min`,
+      holds: r.limit?.index === x.index,
+    }));
   if (r.line == null) return { state: 'none', against: 'Not enough set up yet to say how fast the line goes', rows };
   const target = r.target;
   const gap = r.gap;

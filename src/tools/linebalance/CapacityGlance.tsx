@@ -16,7 +16,8 @@ export function CapacityGlance({ g, open, onToggle }: { g: Glance; open: boolean
             <li key={x.name} className={x.holds ? 'is-limit' : ''}>
               <span className="cg-n">{x.name}{x.holds && <em className="cg-tag">holds the line</em>}</span>
               <span className="cg-s">{x.speed}</span>
-              <span className="cg-c">can do {x.can}</span>
+              <span className="cg-c">{x.can === 'not timed yet' ? 'not timed yet' : `can do ${x.can}`}</span>
+              {x.load && <span className="cg-load">{x.load}</span>}
             </li>
           ))}
         </ol>

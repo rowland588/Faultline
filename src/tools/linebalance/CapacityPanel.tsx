@@ -47,6 +47,7 @@ import type { Can } from '../../lib/access';
 import { EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, lineIfRaised, makeItSoWords, stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, perMinute, typedPerMinute, chainFactor, chainWords, typedSpeedWords, REST_ALLOWANCE_PCT, shareColours, labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, type Capacity, type CapacityResult, type Lane, type LabourInputs, type RatePer, type Station, type StationResult, type WhatIf, screenCapacity, bottleneckCost, bottleneckCostSays } from './capacity';
 import { fmtN, oneOf, fmtSec, fmtDur, cycleWords, fmtBig } from './capacityWords';
 import { capacityGlance } from './capacityGlance';
+import { loadOf, loadSays } from './capacityLoad';
 import { CapacityGlance } from './CapacityGlance';
 import { paceSays, rateAsTime, type PaceSays, type RateAsTime } from './capacitySays';
 import { useLineStops } from '../../lib/useLineStops';
@@ -129,7 +130,7 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
 
 /* =============================== one station ================================ */
 
-function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned, why, wait, own, coLeft = 0, suggested, say, asTime, factor, lineUnit, patch, move, remove, like, assets, machines = [], open: wantOpen, onToggle, ro }: {
+function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned, why, wait, own, coLeft = 0, suggested, say, load, asTime, factor, lineUnit, patch, move, remove, like, assets, machines = [], open: wantOpen, onToggle, ro }: {
   s: Station; i: number; last: boolean; prevUnit?: string;
   /** Its number on the card, and whether it can move earlier or later in ITS
    *  line — several lines feeding one place number and order each its own. */
@@ -138,6 +139,8 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
   chain?: string;
   planned?: number;
   why?: string; wait: number; own: number; suggested?: number;
+  /** The weight that reaches a person, in the same time (capacityLoad) — said under what reaches them. */
+  load?: string;
   /** Of its own stops, the minutes logged as changeovers and left out of its
    *  running share — they come off the shift on Line capacity's "A shift". */
   coLeft?: number;
@@ -236,6 +239,7 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
           one — a person needs no speed for it — then whether it keeps up, in
           seconds a piece for a person, and how many people would. Shut or
           open, it is the line this card is read by. */}
+      {load && <p className="cap-load" data-load>{load}</p>}
       {(say.arrive || say.verdict || say.paced) && (
         <p className={'cap-feed' + (say.short ? ' is-short' : say.paced ? ' is-paced' : '')}>
           {say.arrive && <span className="cap-st-in">{say.arrive}</span>}
@@ -897,7 +901,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     return () => m.removeEventListener?.('change', on);
   }, []);
   const [workings, setWorkings] = useState(false);
-  const glance = useMemo(() => capacityGlance(r, plan), [r, plan]);
+  const glance = useMemo(() => capacityGlance(r, plan, current), [r, plan, current]);
 
   /* THE LINE, DRAWN — one model for the right-hand pictures (lib/capacityFlow) */
   const fm = useMemo(() => flowModel(current, r, alike), [current, r, alike]);
@@ -1022,6 +1026,14 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
                 onSave={v => (w ? putWhatIf(w.id, { targetPerMin: v }) : commit({ ...cap, targetPerMin: v }))} />
             : <b className="cap-ro-v">{current.targetPerMin != null ? fmtN(current.targetPerMin) : 'not set'}</b>}
         </label>
+        {/* WHAT ONE UNIT WEIGHS (Rowland, 4 November): a person's most cannot be measured, so what reaches them is said in weight over the same time */}
+        <label className="proj-field">
+          <span className="field-label">What one {oneOf(r.unit)} weighs — kg <i className="cw-f-opt">optional — to say the weight a person handles</i></span>
+          {can.edit
+            ? <DraftNumber className="text-input cap-num" value={cap.unitKg} placeholder="e.g. 1.25" label="What one unit weighs, kilograms"
+                onSave={v => commit({ ...cap, unitKg: v })} />
+            : <b className="cap-ro-v">{cap.unitKg != null ? `${cap.unitKg} kg` : 'not set'}</b>}
+        </label>
         {!w && (
           <label className="proj-field">
             <span className="field-label">Planned running hours a week</span>
@@ -1086,7 +1098,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
                     wait={stats[s.id]?.waitMins ?? 0} own={stats[s.id]?.ownMins ?? 0}
                     coLeft={coOff ? stats[s.id]?.changeoverMins ?? 0 : 0}
                     suggested={suggestRunning((stats[s.id]?.ownMins ?? 0) - (coOff ? stats[s.id]?.changeoverMins ?? 0 : 0), cap.plannedHoursPerWeek, stops.weeks)}
-                    say={paceSays(r, s, chainOf[gi2 - 1]?.unit, chainOf[gi2 - 1])} asTime={rateAsTime(r, s, chainOf[gi2 - 1]?.unit)} factor={result(s.id)?.factor ?? chainFactor(chainOf, gi2)} lineUnit={r.unit}
+                    say={paceSays(r, s, chainOf[gi2 - 1]?.unit, chainOf[gi2 - 1])} load={(l => (l ? loadSays(l) : undefined))(loadOf(r, current, s))} asTime={rateAsTime(r, s, chainOf[gi2 - 1]?.unit)} factor={result(s.id)?.factor ?? chainFactor(chainOf, gi2)} lineUnit={r.unit}
                     chain={chainWords(chainOf, gi2)}
                     patch={p => patchStation(s.id, p)} move={by => moveIn(s.id, by)} remove={() => remove(s)} like={() => addLike(s)} assets={assets} machines={machines}
                     open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} ro={!can.edit} />

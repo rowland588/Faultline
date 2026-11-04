@@ -15828,3 +15828,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .cg-fix { margin: 0; display: grid; gap: 2px; padding: var(--s-2, 8px) var(--s-3, 12px); background: var(--surface-2); border-radius: var(--radius-sm); }
 .cg-btn { min-height: 44px; width: 100%; }
 .capx-body[hidden] { display: none; }
+
+/* the weight that reaches a person, in the same time (tools/linebalance/capacityLoad) */
+.cap-load { margin: var(--s-2, 8px) 0; padding: var(--s-2, 8px) var(--s-3, 12px); border-left: 3px solid var(--ink-2); background: var(--surface-2); border-radius: var(--radius-sm); font-weight: 600; }
+.cg-load { font-size: var(--t-detail); font-weight: 700; }

@@ -7,8 +7,20 @@
  *  G3  the page is short while the workings are closed — the set-up, the drawings and the sums not in the way — and "Show the workings and set-up" opens all of them, "Hide" closes
  *  G4  on a wide screen nothing changed: no card, everything open as it was
  *  G5  nothing off the side on the phone, the button a thumb's height
+ *
+ *  and the weight a person handles (4 November — Rowland: "the rate coming at the human x a weight: 70 ppm, 6 in a tray, each unit weighs 1.25 kg — it reaches the human every so many
+ *  seconds and weighs so much ... we can't measure a human's max, so we illustrate the stress and the weight"):
+ *  H1  a packer between the filling and the wrapper, trays of 6, no weight typed: nothing said of weight; the weight typed in its box (1.25) and the packer's card says "A tray weighs 7.5 kg (6 × 1.25 kg) and
+ *      reaches them every 5.1 s — 700 trays and 5,250 kg an hour", kept after a reload
+ *  H2  the same on the phone's card under the packer's row
+ *  H3  on the capacity's paper: The weight each person handles, with the same sentence and no safe limit claimed
  */
 import pkg from 'playwright';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { paper as pressPaper } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -22,7 +34,9 @@ const flat = s => String(s ?? '').replace(/\s+/g, ' ').trim();
 const st = (id, name, kind, unit, contains, o = {}) => ({ id, name, kind, unit, contains, ratePer: 'min', crew: 1, ...o });
 const wrapper = per => st('s2', 'Pallet wrapper (one operator, both lines)', 'people', 'pallets', per, { perCycle: 2, cycleSec: 720, cycleIn: 'min', source: 'timed', allowancePct: 0 });
 const filling = st('s1', 'Lines 2A and 2B filling (together)', 'machine', 'units', 1, { rate: 70, source: 'plate' });
+const packer = (per, o = {}) => st('sp', 'Packer', 'people', 'trays', per, { source: 'estimate', ...o });
 const CAPS = {
+  packer: { name: 'Packer — 70 ppm, 6 a tray', cap: { targetPerMin: 70, stations: [filling, packer(6)] } },
   large: { name: 'Large crate — 2A/2B baskets', cap: { targetPerMin: 70, stations: [filling, wrapper(360)] } },
   tesco: { name: 'Tesco Express — 2A/2B baskets', cap: { targetPerMin: 70, stations: [filling, wrapper(1200)] } },
   mu: { name: "Line 2a and 2b mu's", cap: { targetPerMin: 140, stations: [st('s1', 'Fillers — Line 2A and Line 2B', 'machine', 'units', 1, { rate: 70, crew: 2, source: 'plate' }),
@@ -95,6 +109,34 @@ await desk.page.evaluate(async ([ws, caps]) => { const db = await import('/src/d
 await desk.page.goto(`${BASE}/#/w/${sd2.wsId}/standards/cg-large?at=balance`); await desk.page.locator('.nv-main').waitFor({ timeout: 15000 }); await desk.page.waitForTimeout(2200);
 ok(await desk.page.locator('[data-glance]').count() === 0 && await desk.page.locator('.capx-body').isVisible() && await desk.page.locator('.capx-step').count() >= 2, 'G4 on a wide screen no card, everything open as before');
 ok(desk.errs.length === 0, 'no console errors on the desk', desk.errs.join(' | '));
+/* ---- H · the weight a person handles ---- */
+{
+  const dir = mkdtempSync(join(tmpdir(), 'cgload-'));
+  const d = desk.page;
+  await d.goto(`${BASE}/#/w/${sd2.wsId}/standards/cg-packer?at=balance`); await d.locator('.nv-main').waitFor({ timeout: 15000 }); await d.waitForTimeout(2200);
+  /* the station list needs the packer in it: the seed on the desk context did not write it, so write it and reload */
+  await d.evaluate(async ([ws, c]) => { const db = await import('/src/db.ts'); await db.putStandard({ id: 'cg-packer', projectId: '', workspaceId: ws, product: c.name, capacity: c.cap, marks: [], sort: 7100, createdAt: Date.now(), updatedAt: Date.now() }); }, [sd2.wsId, CAPS.packer]);
+  await d.reload(); await d.locator('.nv-main').waitFor({ timeout: 15000 }); await d.waitForTimeout(2200);
+  ok(await d.locator('[data-load]').count() === 0, 'H1 no unit weight typed: nothing said of weight');
+  const box = d.getByLabel('What one unit weighs, kilograms');
+  ok(await box.count() === 1, 'H1 a box for what one unit weighs, in the line’s set-up');
+  await box.fill('1.25'); await box.blur(); await d.waitForTimeout(900);
+  const said = flat(await d.locator('[data-load]').first().innerText());
+  ok(said === 'A tray weighs 7.5 kg (6 × 1.25 kg) and reaches them every 5.1 s — 700 trays and 5,250 kg an hour.', 'H1 the packer’s card: a tray weighs 7.5 kg, reaches them every 5.1 s, 700 trays and 5,250 kg an hour', said);
+  await d.reload(); await d.locator('.nv-main').waitFor({ timeout: 15000 }); await d.waitForTimeout(2200);
+  ok(await d.locator('[data-load]').count() >= 1 && (await d.getByLabel('What one unit weighs, kilograms').inputValue()) === '1.25', 'H1 kept after a reload');
+  /* the phone's card */
+  await phone.page.evaluate(async ([ws, c]) => { const db = await import('/src/db.ts'); await db.putStandard({ id: 'cg-packer', projectId: '', workspaceId: ws, product: c.name, capacity: { ...c.cap, unitKg: 1.25 }, marks: [], sort: 7100, createdAt: Date.now(), updatedAt: Date.now() }); }, [sd.wsId, CAPS.packer]);
+  await open(phone.page, 'packer');
+  const card = flat(await glance(phone.page).innerText());
+  ok(/Packer/.test(card) && /A tray weighs 7\.5 kg \(6 × 1\.25 kg\) and reaches them every 5\.1 s — 700 trays and 5,250 kg an hour\./.test(card), 'H2 the phone’s card says it under the packer’s row', card);
+  /* the paper */
+  const [dl] = await Promise.all([d.waitForEvent('download', { timeout: 60000 }), pressPaper(d, /^Line capacity — /)]);
+  const f = join(dir, 'cap.pdf'); await dl.saveAs(f);
+  const txt = flat(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }));
+  ok(/Packer — the weight handled in the same time: A tray weighs 7\.5 kg \(6 × 1\.25 kg\) and reaches them every 5\.1 s — 700 trays and 5,250 kg an hour\./.test(txt), 'H3 the paper carries the weight the packer handles in the same time, with the same sentence', txt.slice(0, 400));
+  ok(/No safe limit is claimed/.test(txt), 'H3 and says no safe limit is claimed');
+}
 await b.close();
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASSED');
 process.exit(fail ? 1 : 0);
