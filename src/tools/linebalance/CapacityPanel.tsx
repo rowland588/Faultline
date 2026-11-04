@@ -44,7 +44,7 @@ import { type PillarKey } from '../../lib/pillars';
 import { BoneChips } from '../../ui/ActionSheet';
 import { useAccess } from '../../cloud/access';
 import type { Can } from '../../lib/access';
-import { EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, lineIfRaised, makeItSoWords, stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, perMinute, typedPerMinute, chainFactor, chainWords, typedSpeedWords, REST_ALLOWANCE_PCT, shareColours, labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, type Capacity, type CapacityResult, type Lane, type LabourInputs, type RatePer, type Station, type StationResult, type WhatIf, screenCapacity, bottleneckCost, bottleneckCostSays } from './capacity';
+import { EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, lineIfRaised, makeItSoWords, stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, perMinute, takeAwayWords, typedPerMinute, chainFactor, chainWords, typedSpeedWords, REST_ALLOWANCE_PCT, shareColours, labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, type Capacity, type CapacityResult, type Lane, type LabourInputs, type RatePer, type Station, type StationResult, type WhatIf, screenCapacity, bottleneckCost, bottleneckCostSays } from './capacity';
 import { fmtN, oneOf, fmtSec, fmtDur, cycleWords, fmtBig } from './capacityWords';
 import { capacityGlance } from './capacityGlance';
 import { loadOf, loadSays } from './capacityLoad';
@@ -168,6 +168,7 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
   const open = wantOpen && !ro;
   const cyc = s.rate == null && (s.cycleSec != null || s.perCycle != null);
   /* a person is timed — "one tray every 8 seconds" — so their speed is asked that way first */
+  const [openMove, setOpenMove] = useState(false);
   const [mode, setMode] = useState<'rate' | 'cycle'>(cyc || (s.kind === 'people' && s.rate == null) ? 'cycle' : 'rate');
   const one = oneOf(s.unit);
   const speed = perMinute(s);
@@ -354,6 +355,31 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
           )}
           {s.kind === 'people' && <span className="cap-hint">Use the pace they can keep up all shift — not their best lap.</span>}
         </div>
+
+        {/* THE TIME TO TAKE IT AWAY (4 November — Rowland: "add the time it takes to take pallets away, not just do the job ... at any point when we have a human involved"):
+            seconds a hand spends moving what the station made, once for every so many of its unit; added to each unit's time before the rest allowance */}
+        {(speed != null || s.moveSec != null) && (
+          openMove || s.moveSec != null ? (
+            <div className="proj-field cap-move" data-take-away>
+              <span className="field-label">Time to take it away — seconds</span>
+              <div className="cap-move-row">
+                <DraftNumber className="text-input cap-num" value={s.moveSec} placeholder="30" label={`Seconds to take a ${one} away`}
+                  onSave={v => patch({ moveSec: v != null && v > 0 && v <= 3600 ? v : undefined, ...(v == null || v <= 0 ? { moveEvery: undefined } : {}) })} />
+                <span className="cap-hint">every</span>
+                <DraftNumber className="text-input cap-num" value={s.moveEvery ?? 1} placeholder="1" label={`How many ${s.unit.trim() || 'units'} each trip takes`}
+                  onSave={v => patch({ moveEvery: v != null && v >= 1 && v !== 1 ? v : undefined })} />
+                <span className="cap-hint">{s.moveEvery != null && s.moveEvery > 1 ? (s.unit.trim() || 'units') : one}</span>
+              </div>
+              <span className="cap-hint">
+                {takeAwayWords(s) && speed != null
+                  ? `${takeAwayWords(s)} — already in the speed above, so the line is worked out on ${fmtDur(60 / speed)} a ${one}${s.kind === 'people' ? ' before rest' : ''}.`
+                  : 'The seconds a hand spends moving what this station made — the pallet to the stack — each time. It is added to the time of every one, on top of doing the job. If it overlaps the job, type only the part that does not.'}
+              </span>
+            </div>
+          ) : (
+            <button type="button" className="btn btn-sm cap-move-add" data-take-away-add onClick={() => setOpenMove(true)}>＋ Add time to take it away</button>
+          )
+        )}
 
         {/* A PERSON'S REST ALLOWANCE (docs/CAPACITY.md §1) — added to the
             time timed or typed to give the time to plan on; a standard time

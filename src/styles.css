@@ -8306,6 +8306,9 @@ span.ls-role:hover { border-color: transparent; }
 .cap-unit { font-size: var(--t-detail); color: var(--ink-2); }
 .cap-sel { width: auto; min-width: 110px; }
 .cap-hint { display: block; margin-top: 4px; font-size: var(--t-label); color: var(--muted); }
+.cap-move-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cap-move-row .cap-hint { display: inline; margin: 0; }
+.cap-move-add { margin-top: 8px; min-height: 44px; }
 .cap-sug { display: block; margin-top: 4px; font-size: var(--t-label); text-align: left; }
 .cap-st-f { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
 .cap-st-f .cw-seg .chip { font-size: var(--t-label); }

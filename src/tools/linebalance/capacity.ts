@@ -79,6 +79,12 @@ export interface Station {
    *  monotony. Never on a machine, and never on a standard time from the time
    *  study, which carries its allowances already. */
   allowancePct?: number;
+  /** THE TIME TO TAKE IT AWAY (4 November — Rowland: "I need to add the time it takes to take pallets away, not just do the job,
+   *  and that could happen at any point when we have a human involved"). Seconds a hand spends moving what the station made
+   *  (the pallet to the stack), once for every `moveEvery` of the station's own unit (default 1). Added to the time of each
+   *  unit before the rest allowance, so every sum reads it with no second path (perMinute). Absent: none. */
+  moveSec?: number;
+  moveEvery?: number;
   /** Identical machines or people side by side. Default 1. */
   crew?: number;
   /** WHICH LINE IT IS ON, when several lines feed one place (Capacity.lanes):
@@ -311,9 +317,28 @@ const PER_MIN: Record<RatePer, number> = { sec: 60, min: 1, hour: 1 / 60 };
 export function perMinute(s: Station): number | undefined {
   const typed = typedPerMinute(s);
   if (typed == null) return undefined;
-  if (s.speedIn !== 'before') return typed;
-  return s.contains > 0 ? typed / s.contains : undefined;
+  const own = s.speedIn !== 'before' ? typed : s.contains > 0 ? typed / s.contains : undefined;
+  if (own == null) return undefined;
+  const move = takeAwaySec(s);
+  return move > 0 ? 60 / (60 / own + move) : own;
 }
+
+/** THE SECONDS TO TAKE ONE OF THE STATION'S UNIT AWAY: the trip's time over the units it takes. Nothing for no time, a time
+ *  that is not a number, or a trip of less than one unit (use seconds a unit instead). */
+export function takeAwaySec(s: Pick<Station, 'moveSec' | 'moveEvery'>): number {
+  const t = s.moveSec;
+  if (!(t != null && Number.isFinite(t) && t > 0 && t <= 3600)) return 0;
+  const n = s.moveEvery != null && s.moveEvery >= 1 ? s.moveEvery : 1;
+  return t / n;
+}
+
+/** "30 s to take it away" / "30 s to take every 2 away", for the sheet, the page and the sentence about a person. */
+export function takeAwayWords(s: Pick<Station, 'moveSec' | 'moveEvery' | 'unit'>): string | undefined {
+  if (takeAwaySec(s) <= 0) return undefined;
+  const n = s.moveEvery != null && s.moveEvery >= 1 ? s.moveEvery : 1;
+  return n === 1 ? `${fmtDurShort(s.moveSec as number)} to take it away` : `${fmtDurShort(s.moveSec as number)} to take every ${fmtN(n)} away`;
+}
+const fmtDurShort = (sec: number): string => (sec >= 120 && sec % 60 === 0 ? `${fmtN(sec / 60)} min` : `${fmtN(Math.round(sec * 10) / 10)} s`);
 
 /** THE ILO'S CONSTANT ALLOWANCES, percent: personal needs 5 + basic
  *  fatigue 4 (Kanawaty, Introduction to Work Study, ILO 1992). */

@@ -4,7 +4,7 @@
  * (rateAsTime), a person's pace and whether they keep up (paceSays), the line
  * in one short sentence (shortSays) and what it can make (canMakeWords).
  * Nothing here changes a figure. */
-import { PER_MIN_WORD, allowanceOf, pct, perMinute, planPerMinute, type CapacityResult, type Station } from './capacity';
+import { PER_MIN_WORD, allowanceOf, takeAwayWords, pct, perMinute, planPerMinute, type CapacityResult, type Station } from './capacity';
 import { cycleWords, fmtBig, fmtDur, fmtN, oneOf } from './capacityWords';
 /* ======================== a rate that reads like a time ======================
  * Rowland, 14 October: "counts in pallets, each pallet holds 36 baskets ...
@@ -105,7 +105,8 @@ export function paceSays(r: CapacityResult, s: Station, prevUnit?: string,
   const allow = allowanceOf(s);
   const timedEach = each / (1 + allow);            // as timed or typed
   const unitSaid = before ? (prevUnit as string).trim() : (s.unit.trim() || 'units');
-  const takes = `They take ${fmtDur(allow > 0 ? timedEach : each)} a ${one}${crew > 1 ? ` each, ${crew} of them` : ''}${allow > 0 ? ` — ${fmtDur(each)} with ${fmtN(allow * 100)}% rest` : ''}`;
+  const away = takeAwayWords(s);
+  const takes = `They take ${fmtDur(allow > 0 ? timedEach : each)} a ${one}${away ? ` (${away} included)` : ''}${crew > 1 ? ` each, ${crew} of them` : ''}${allow > 0 ? ` — ${fmtDur(each)} with ${fmtN(allow * 100)}% rest` : ''}`;
   if (!a) {
     return { verdict: people ? `${takes} — ${fmtN(does * k)} a minute.` : `It does ${fmtN(does * k)} ${unitSaid} a minute.`, short: false };
   }

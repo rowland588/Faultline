@@ -44,8 +44,9 @@ export const CAPACITY: Entry[] = [
     complexity: 'XL', value: 'high', valueWhy: 'The line’s own numbers that every other tool reads.',
     status: 'available', form: 'tool', kind: 'standard',
     app: { key: 'linebalance', label: 'Line capacity', says: 'What each station can make, which one limits the line, and what a pack costs in labour', onLine: 'where the line is limited, and the V-curve', reads: 'standard', icon: 'chart', order: 3 }, methods: ['capacity.line-capacity', 'capacity.v-curve', 'capacity.theory-of-constraints', 'lean.standard-work'], scenarios: ['running', 'new', 'money'], words: ['bottleneck', 'rated speed', 'plate speed', 'too slow', 'V curve'],
-    built: { where: ['/balances'], code: ['src/tools/linebalance/capacity.ts', 'src/tools/linebalance/capacityWords.ts', 'src/tools/linebalance/capacitySays.ts', 'src/tools/linebalance/CapacityPanel.tsx'], tests: ['src/tools/linebalance/__tests__/capacity.test.ts'], acceptance: ['line-capacity.mjs', 'list-paper.mjs'] },
-    limits: ['Accumulation between machines is not driven by an acceptance check (FC-046).'],
+    spec: 'knowledge/specs/FC-034-take-away-and-paper.md',
+    built: { where: ['/balances'], code: ['src/tools/linebalance/capacityFlow.ts', 'src/tools/linebalance/capacityPaperPdf.ts', 'src/tools/linebalance/capacity.ts', 'src/tools/linebalance/capacityWords.ts', 'src/tools/linebalance/capacitySays.ts', 'src/tools/linebalance/CapacityPanel.tsx'], tests: ['src/tools/linebalance/__tests__/capacity.test.ts'], acceptance: ['line-capacity.mjs', 'list-paper.mjs', 'capacity-paper-line.mjs'] },
+    limits: ['Accumulation between machines is not driven by an acceptance check (FC-046).', 'A take-away time is a time per trip added to the station’s cycle: a hand that works while the machine runs on (overlap) is typed as only the part that does not overlap; walking distances are FC-004’s.'],
   },
   {
     id: 'FC-035', name: 'Several lines feeding one station', discipline: 'capacity', sub: 'line',

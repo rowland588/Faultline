@@ -25,7 +25,9 @@
  * the limit, not a failure. */
 import { threeCapacities, type CountedShift } from './capacityThree';
 import { bufferView, type BufferIn } from './capacityBuffer';
-import { allowanceOf, analyse, bottleneckCost, bottleneckCostSays, changedWords, compareSays, fmtMoney, labourCost, oneMorePerson, shiftCapacity, screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations, type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station } from './capacity';
+import { flowModel, type FlowModel } from './capacityFlow';
+import { lanesAlike } from './capacityLines';
+import { allowanceOf, takeAwayWords, analyse, bottleneckCost, bottleneckCostSays, changedWords, compareSays, fmtMoney, labourCost, oneMorePerson, shiftCapacity, screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations, type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station } from './capacity';
 import { cycleWords, fmtBig, fmtN, oneOf } from './capacityWords';
 import { shortSays } from './capacitySays';
 import type { WalkVerdict } from '../../lib/ie/walk';
@@ -108,6 +110,8 @@ export interface CapacityPaper {
   targetPct?: number;
   /** Every station counted, in flow order. */
   rows: CapacityPaperRow[];
+  /** The line drawn and the bars beside it — the page's flow model (capacityFlow), drawn again on paper. */
+  flow?: FlowModel;
   /** Several lines feeding one place: the groups the rows fall in, in order. */
   groups?: CapacityPaperGroup[];
   /** The V either side of the bottleneck (lib/capacity vCurve) — with two or more counted. */
@@ -249,7 +253,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
         n: o.index + 1, name: s.name.trim() || `Station ${o.index + 1}`, people: s.kind === 'people', ...(crew ? { crew } : {}),
         unit: `${k === 0 ? `${s.unit.trim() || 'units'} — the line’s unit` : o.chain}${s.kind === 'people' ? ` · ${fmtN(s.crew ?? 1)} ${(s.crew ?? 1) === 1 ? 'person' : 'people'}` : ''}`,
         /* a person's time with their rest allowance said beside it (docs/CAPACITY.md §1) */
-        speed: `${speedWords(s, prevUnit)}${allowanceOf(s) > 0 ? ` + ${fmtN(allowanceOf(s) * 100)}% rest` : ''}`, how: how.text, notPlate: how.notPlate,
+        speed: `${speedWords(s, prevUnit)}${takeAwayWords(s) ? ` + ${takeAwayWords(s)}` : ''}${allowanceOf(s) > 0 ? ` + ${fmtN(allowanceOf(s) * 100)}% rest` : ''}`, how: how.text, notPlate: how.notPlate,
         stops: s.runningPct != null && s.runningPct < 100 ? `${fmtN(100 - s.runningPct)}%` : '—',
         good: s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—',
         perMin: fmtN(o.effective), perHour: fmtN(o.effective * 60),
@@ -336,6 +340,8 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     ...(target != null ? { target: `${fmtN(target)} ${r.unit} a minute` } : {}),
     ...(target != null && r.limit && r.limit.effective > 0 ? { targetPct: (target / r.limit.effective) * 100 } : {}),
     rows,
+    /* THE LINE DRAWN (4 November — "the line drawn is brilliant but isn't shown on the report"): the page's own model, so the two never part */
+    ...(r.ok.length ? { flow: flowModel(cap, r, lanesAlike(cap)) } : {}),
     ...(groups ? { groups } : {}),
     ...(v && r.ok.length >= 2 ? { v: { text: v.sentence, tone: (v.under.length ? 'a' : 'n') as Tone } } : {}),
     ...(x.walk ? { walk: { text: x.walk.sentence, tone: (x.walk.against === 'disagrees' ? 'a' : 'n') as Tone } } : {}),

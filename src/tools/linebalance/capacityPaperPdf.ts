@@ -19,6 +19,7 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from '../..
 import { SIZE, box, font, gap, heading, label, lead, rows, space, text, wrap, type Row } from '../../lib/report/blocks';
 import { san, paperBand } from '../../lib/reportKit';
 import { shareColours } from './capacity';
+import { barGroups, perMinWords, type FlowModel, type FlowNode } from './capacityFlow';
 import { fmtN, oneOf } from './capacityWords';
 import { capacityLean } from './capacityLean';
 import { leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles } from '../../lib/report/lean';
@@ -164,6 +165,147 @@ function vBars(p: CapacityPaper): Block | null {
 function vKey(p: CapacityPaper): Block {
   const words = `Bar: its share of the bottleneck once its own stops count; paler: more while running. Graphite: the bottleneck; teal, lighter with room to spare; amber: under the V agreed. Solid line: 100%, the bottleneck${p.rows.some(r => r.guide != null) ? '; dashed tick: what the V asks of it' : ''}${p.targetPct != null ? `; dotted: the target${(p.targetPct ?? 0) > 100 + 1e-9 ? ', above the bottleneck' : ''}` : ''}.`;
   return text({ text: words, size: S, colour: MUTED, after: 4 });
+}
+
+/* ------------------- the line drawn, and what each station can do ------------------- */
+
+/** THE LINE, DRAWN ON PAPER (4 November — Rowland: "the line drawn is brilliant but isn't shown on the report"): the page's own
+ *  picture (CapacityFlow, one model — capacityFlow flowModel). A box a station in flow order, numbered, an arrow between, the
+ *  bottleneck tagged and heavy-edged, a line's own slowest teal-edged, a station with no speed dashed; several lines are a
+ *  column each, meeting in a pill, then the stations they share; the box at the foot says what the line makes against its
+ *  target (red only when it is short). Boxes wrap four to a row on a single chain so twelve stations stay on a page. */
+function flowBlock(m: FlowModel): Block {
+  const unit = m.unit;
+  const NH = 30, VG = 12, HG = 14, PER = 4;
+  const rate = (x: FlowNode) => (x.perMin == null ? 'no speed yet' : `${perMinWords(x.perMin)} ${unit}/min`);
+  const outLines = (): [string, string] => {
+    const short = m.target != null && m.makes != null && m.makes < m.target - 1e-9;
+    return [m.makes != null ? `${m.laned && !m.shared.length ? 'Together' : 'The line makes'} ${perMinWords(m.makes)} ${unit}/min` : 'Give the stations their speeds',
+      m.target == null ? 'no target set' : m.makes == null ? `target ${perMinWords(m.target)}` : short ? `target ${perMinWords(m.target)} — ${perMinWords(m.target - m.makes)} short` : `target ${perMinWords(m.target)} — met`];
+  };
+  const chainRows = (n: number) => Math.ceil(n / PER);
+  const height = (): number => {
+    const OUT = 36;
+    if (!m.laned) return chainRows(m.columns[0]?.nodes.length ?? 0) * (NH + VG) + OUT + 6;
+    const lanes = Math.max(1, ...m.columns.map(c => c.nodes.length));
+    return 14 + lanes * (NH + VG) + (m.shared.length ? 26 + chainRows(m.shared.length) * (NH + VG) : 8) + OUT + 6;
+  };
+  const node = (f: Frame, x: FlowNode, nx: number, ny: number, w: number, no?: number) => {
+    const d = f.doc;
+    if (x.isLimit) { d.setFillColor(SURF); d.setDrawColor('#12171c'); d.setLineWidth(1.6); }
+    else if (x.isOwnLimit) { d.setFillColor('#ffffff'); d.setDrawColor(BRAND); d.setLineWidth(1.3); }
+    else { d.setFillColor('#ffffff'); d.setDrawColor(x.perMin == null ? MUTED : '#b9c6c8'); d.setLineWidth(0.8); }
+    if (x.perMin == null) d.setLineDashPattern([2, 2], 0);
+    d.roundedRect(nx, ny, w, NH, 4, 4, 'FD'); d.setLineDashPattern([], 0);
+    font(d, T - 0.5, 'bold', INK);
+    const nm = wrap(d, `${no ? `${no}  ` : ''}${x.name}`, w - 10, T - 0.5, 'bold')[0] ?? '';
+    d.text(nm, nx + 5, ny + 12);
+    font(d, S - 0.5, 'normal', x.perMin == null ? MUTED : INK2); d.text(rate(x), nx + 5, ny + 23);
+    if (x.isLimit) { font(d, SIZE.tiny, 'bold', INK); d.text('BOTTLENECK', nx + w - 4, ny + 23, { align: 'right' }); }
+    else if (x.isOwnLimit) { font(d, SIZE.tiny, 'bold', BRAND); d.text('SETS ITS LINE’S PACE', nx + w - 4, ny + 23, { align: 'right' }); }
+  };
+  const arrowR = (f: Frame, x1: number, y: number, x2: number) => {
+    const d = f.doc; d.setDrawColor(MUTED); d.setLineWidth(0.8); d.line(x1, y, x2 - 2, y);
+    d.setFillColor(MUTED); d.triangle(x2, y, x2 - 4, y - 2.5, x2 - 4, y + 2.5, 'F');
+  };
+  const arrowD = (f: Frame, x: number, y1: number, y2: number) => {
+    const d = f.doc; d.setDrawColor(MUTED); d.setLineWidth(0.8); d.line(x, y1, x, y2 - 2);
+    d.setFillColor(MUTED); d.triangle(x, y2, x - 2.5, y2 - 4, x + 2.5, y2 - 4, 'F');
+  };
+  /** A wrapped chain: PER to a row, an arrow between neighbours, a numbered box so the wrap reads in order. */
+  const chain = (f: Frame, nodes: FlowNode[], y0: number, start = 1): number => {
+    const w = (f.w - (PER - 1) * HG) / PER;
+    nodes.forEach((x, i) => {
+      const r = Math.floor(i / PER), c = i % PER;
+      const nx = f.x + c * (w + HG), ny = y0 + r * (NH + VG);
+      node(f, x, nx, ny, w, start + i);
+      if (c < PER - 1 && i < nodes.length - 1) arrowR(f, nx + w, ny + NH / 2, nx + w + HG);
+    });
+    return y0 + chainRows(nodes.length) * (NH + VG);
+  };
+  const out = (f: Frame, y: number) => {
+    const d = f.doc, [a, b] = outLines(), short = m.target != null && m.makes != null && m.makes < m.target - 1e-9;
+    const w = Math.min(f.w, 300), x0 = f.x + (f.w - w) / 2;
+    d.setFillColor(SURF); d.setDrawColor(short ? RED : BRAND); d.setLineWidth(short ? 1.4 : 1); d.roundedRect(x0, y, w, 34, 6, 6, 'FD');
+    font(d, T, 'bold', INK); d.text(a, x0 + w / 2, y + 14, { align: 'center' });
+    font(d, S, 'normal', short ? RED : INK2); d.text(b, x0 + w / 2, y + 26, { align: 'center' });
+  };
+  return box(f => height() + gap(f.density, 'm'), (f, y) => {
+    const d = f.doc;
+    if (!m.laned) {
+      const col = m.columns[0]?.nodes ?? [];
+      const end = chain(f, col, y);
+      if (col.length) arrowD(f, f.x + f.w / 2, end - VG + 1, end + 2);
+      out(f, end + 2);
+      return;
+    }
+    const n = Math.max(1, m.columns.length), g = 10, cw = Math.min(170, (f.w - (n - 1) * g) / n);
+    const span = n * cw + (n - 1) * g, x0 = f.x + (f.w - span) / 2;
+    const lanes = Math.max(1, ...m.columns.map(c => c.nodes.length));
+    m.columns.forEach((c, k) => {
+      const cx = x0 + k * (cw + g);
+      font(d, T - 0.5, 'bold', INK2); d.text(wrap(d, c.name, cw, T - 0.5, 'bold')[0] ?? '', cx + cw / 2, y + 9, { align: 'center' });
+      c.nodes.forEach((x, i) => {
+        const ny = y + 14 + i * (NH + VG);
+        node(f, x, cx, ny, cw);
+        if (i < c.nodes.length - 1) arrowD(f, cx + cw / 2, ny + NH, ny + NH + VG);
+      });
+    });
+    let yy = y + 14 + lanes * (NH + VG);
+    if (m.shared.length) {
+      const pw = Math.min(f.w, 300);
+      d.setFillColor('#ffffff'); d.setDrawColor(BRAND); d.setLineWidth(1); d.roundedRect(f.x + (f.w - pw) / 2, yy, pw, 18, 9, 9, 'FD');
+      font(d, S, 'bold', INK2); d.text(`The lines meet — ${m.sends != null ? `${perMinWords(m.sends)} ${unit}/min arrive` : 'what they send arrives'}`, f.x + f.w / 2, yy + 12, { align: 'center' });
+      yy += 26;
+      yy = chain(f, m.shared, yy, 1);
+    }
+    out(f, yy + 2);
+  }, f => gap(f.density, 'm'));
+}
+
+/** WHAT EACH STATION CAN DO, on paper — the page's bars (CapacityBars, one model — capacityFlow barGroups): a bar a station in the
+ *  line's unit a minute, the line drawn through them at what it actually makes (solid), the target dashed (red only when it is
+ *  short), the colours the V's — the bottleneck graphite, the rest teal, lighter the more they have to spare; the figure in
+ *  words beside each bar. One group a line when several feed in, then where they merge. */
+function barsBlocks(m: FlowModel): Block[] {
+  const NAME = 140, VAL = 128;
+  const out: Block[] = [];
+  for (const g of barGroups(m)) {
+    if (!g.rows.length) continue;
+    const scale = Math.max(1, ...g.rows.map(x => x.perMin ?? 0), g.ref ?? 0, g.target ?? 0) * 1.06;
+    const short = g.target != null && g.ref != null && g.ref < g.target - 1e-9;
+    const geo = (f: Frame) => { const x0 = f.x + NAME + 8, x1 = f.x + f.w - VAL - 6; return { x0, x1, at: (v: number) => x0 + (Math.min(v, scale) / scale) * (x1 - x0) }; };
+    const sub = `${g.refSays ? `${g.refSays} ${m.unit}/min` : ''}${g.target != null ? `${g.refSays ? ' · ' : ''}target ${perMinWords(g.target)}${g.ref != null ? (short ? ` — ${perMinWords(g.target - g.ref)} short` : ' — met') : ''}` : ''}`;
+    out.push({ ...text({ text: g.title, size: T, style: 'bold', colour: INK, after: sub ? 1 : 3 }), keepWithNext: true });
+    if (sub) out.push({ ...text({ text: sub, size: S, colour: short ? RED : MUTED, after: 3 }), keepWithNext: true });
+    const body: Row[] = g.rows.map(x => {
+      const words = x.perMin == null ? 'no speed yet'
+        : x.isInflow ? `${perMinWords(x.perMin)} arrive`
+          : x.isLimit ? `${perMinWords(x.perMin)} — the bottleneck`
+            : x.isOwnLimit ? `${perMinWords(x.perMin)} — sets this line’s pace`
+              : g.ref != null && x.perMin - g.ref > 0.05 ? `${perMinWords(x.perMin)} — ${perMinWords(x.perMin - g.ref)} to spare` : perMinWords(x.perMin);
+      return {
+        h: f => Math.max(wrap(f.doc, x.name, NAME - 4, T, 'bold').length * LH, 12) + 8,
+        draw: (f, y) => {
+          const d = f.doc, q = geo(f), l = wrap(d, x.name, NAME - 4, T, 'bold'), h = Math.max(l.length * LH, 12) + 8;
+          if (x.isLimit) { d.setFillColor(SURF); d.rect(f.x, y, f.w, h, 'F'); d.setFillColor('#12171c'); d.rect(f.x, y, 3, h, 'F'); }
+          font(d, T, 'bold', INK); d.text(l, f.x + (x.isLimit ? 7 : 0), y + 4 + T * 0.92);
+          const pct = x.perMin != null && g.ref ? (x.perMin / g.ref) * 100 : 100;
+          const [deep, light] = x.isInflow ? ['#8a999e', '#c4cdd0'] : shareColours(pct, x.isLimit, false);
+          const by = y + h / 2 - 4, bh = 8;
+          d.setFillColor('#edf1f1'); d.roundedRect(q.x0, by, q.x1 - q.x0, bh, 2.5, 2.5, 'F');
+          if (x.perMin != null) { fillOf(d, deep); d.roundedRect(q.x0, by, Math.max(2, q.at(x.perMin) - q.x0), bh, 2.5, 2.5, 'F'); void light; }
+          if (g.ref != null) { d.setDrawColor(INK); d.setLineWidth(0.9); d.line(q.at(g.ref), y, q.at(g.ref), y + h); }
+          if (g.target != null) { d.setDrawColor(short ? RED : INK2); d.setLineWidth(0.9); d.setLineDashPattern([1, 1.6], 0); d.line(q.at(g.target), y, q.at(g.target), y + h); d.setLineDashPattern([], 0); }
+          font(d, S, x.isLimit ? 'bold' : 'normal', x.perMin == null ? MUTED : INK); d.text(words, f.x + f.w, y + 4 + T * 0.92, { align: 'right' });
+          d.setDrawColor(LINE); d.setLineWidth(0.4); d.line(f.x, y + h - 0.5, f.x + f.w, y + h - 0.5);
+        },
+      };
+    });
+    out.push(rows({ rows: body, after: 's' }));
+  }
+  if (out.length) out.push(text({ text: 'Solid line: what the line actually makes — the bar that ends on it is the bottleneck. Dashed: the target (red only when the line cannot reach it).', size: S, colour: MUTED, after: 4 }));
+  return out;
 }
 
 /* --------------------------- the capacity sheet --------------------------- */
@@ -331,6 +473,13 @@ function buffersBlocks(p: CapacityPaper, d: Density): Block[] {
  *  What it means instead). */
 function limited(p: CapacityPaper, sayV: boolean): Block[] {
   const out: Block[] = [];
+  /* THE LINE DRAWN, then what each station can do — the page's right-hand side, on the paper too */
+  if (p.flow) {
+    out.push(label('The line, drawn'));
+    out.push(flowBlock(p.flow));
+    const bars = barsBlocks(p.flow);
+    if (bars.length) { out.push(label('What each station can do')); out.push(...bars); }
+  }
   if (sayV && p.v) out.push(said('The V-curve:', p.v.text, p.v.tone));
   /* the V drawn, as the screen draws it — along each line, then the place
      they merge, when several lines feed one (lib/capacity LanesView) */
