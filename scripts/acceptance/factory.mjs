@@ -146,7 +146,8 @@ await page.goto(`${BASE}/#/snags?line=${encodeURIComponent((/#\/lines\/([^/?]+)/
 const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), pressPaper(page, 'Problems report')]);
 const f = join(dir, 'line.pdf'); await d.saveAs(f);
 const paper = execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
-ok(/Line 3B \(Packing\) — problems/.test(paper) && /Film splice jams/.test(paper), '8 its Problems report is named with its type');
+/* from the line's Problems page the report is headed for the line by name (the type is on the line's own page and papers) */
+ok(/Every problem open on Line 3B/.test(paper) && /Film splice jams/.test(paper), '8 its Problems report is made for the line, its problem on it');
 
 /* 9 — archived, and restored */
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
