@@ -18,6 +18,7 @@ import type { LeanTile } from './lean';
 import { programClosing } from './stageGatePages';
 import { SIZE, box, font, gap, rows, text, wrap } from './report/blocks';
 import type { ProgramProblemPaper } from './programProblems';
+import { programsSummary, type SummaryRow } from './programsSummary';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#12171c', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', AMBER = '#b45309';
@@ -165,6 +166,63 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
   return out;
 }
 
+/** THE SUMMARY TABLE (4 November — Rowland: "think of a table form ... the program number, the program name, the run speed that we achieved, and the caveat next
+ *  to it ... so somebody can go to a meeting and say, that's where we are. These are the details below it"): one row a program, in the report's order. */
+export function summaryBlocks(reading: ProgramsReading): Block[] {
+  const data: SummaryRow[] = programsSummary({ ...reading, machines: reading.machines.map(m => ({ ...m, lines: m.lines.map(sanLine) })) });
+  if (!data.length) return [];
+  /* the columns: no · program (with its machine and products under it) · status · run speed · can run at · caveat */
+  const cols = { no: 44, prog: 150, st: 64, sp: 62, run: 58 }, PAD = 6;
+  const cavW = (f: Frame) => f.w - (cols.no + cols.prog + cols.st + cols.sp + cols.run) - PAD;
+  const CAV_MAX = 4;
+  const cells = (f: Frame, r: SummaryRow) => {
+    const cav = r.caveat ? wrap(f.doc, san(r.caveat), cavW(f) - 6, 8.5, 'bold') : [];
+    return {
+      no: wrap(f.doc, san(r.no || '—'), cols.no - 4, 9, 'bold'),
+      name: wrap(f.doc, san(r.name), cols.prog - 8, 9.5, 'bold'),
+      sub: wrap(f.doc, san([r.machine, r.runs].filter(Boolean).join(' · ')), cols.prog - 8, 7.5),
+      sp: wrap(f.doc, san(r.runSpeed), cols.sp - 4, 9, 'bold'), run: wrap(f.doc, san(r.canRunAt), cols.run - 4, 9, 'bold'),
+      cav: cav.length > CAV_MAX ? [...cav.slice(0, CAV_MAX - 1), `${cav[CAV_MAX - 1].replace(/\s+\S*$/, '')} …`] : cav,
+    };
+  };
+  const rowH = (f: Frame, r: SummaryRow) => { const c = cells(f, r); return Math.max(24, 10 + c.name.length * 11.5 + c.sub.length * 9.5, 10 + c.sp.length * 11, 8 + c.cav.length * 11) + 6; };
+  const head = (f: Frame, y: number) => {
+    f.doc.setFillColor(BAND); f.doc.roundedRect(f.x, y, f.w, 18, 3, 3, 'F'); f.doc.setFillColor(BAND_EDGE); f.doc.rect(f.x, y, 2.5, 18, 'F');
+    font(f.doc, 7, 'bold', INK2);
+    let x = f.x + 8;
+    for (const [t, w] of [['NO.', cols.no], ['PROGRAM', cols.prog], ['STATUS', cols.st], ['RUN SPEED', cols.sp], ['CAN RUN AT', cols.run], ['CAVEAT — WHAT TO WATCH', cavW(f)]] as [string, number][]) { f.doc.text(t, x, y + 12); x += w; }
+  };
+  const out: Block[] = [
+    { ...text({ text: `SUMMARY — WHERE EACH PROGRAM STANDS · ${data.length} PROGRAM${data.length === 1 ? '' : 'S'}`, size: 8, style: 'bold', colour: BRAND, before: 2, after: 4 }), keepWithNext: true },
+    { ...box(() => 22, (f, y) => head(f, y)), keepWithNext: true },
+    rows({
+      rows: data.map(r => ({
+        h: (f: Frame) => rowH(f, r),
+        draw: (f: Frame, y: number) => {
+          const c = cells(f, r), h = rowH(f, r);
+          f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y + h - 2, f.x + f.w, y + h - 2);
+          let x = f.x + 8;
+          font(f.doc, 9, 'bold', BRAND); f.doc.text(c.no, x, y + 13); x += cols.no;
+          font(f.doc, 9.5, 'bold', INK); f.doc.text(c.name, x, y + 13);
+          if (c.sub.length) { font(f.doc, 7.5, 'normal', MUTED); f.doc.text(c.sub, x, y + 13 + c.name.length * 11.5 - 2); }
+          x += cols.prog;
+          /* the status as a pill in its colour — the one white-on-colour the house allows; grey is an outline with grey words */
+          const w = Math.min(cols.st - 4, 8 + (r.status.word.length > 9 ? 52 : r.status.word.length * 5.6));
+          if (r.status.tone === 'n') { f.doc.setDrawColor(MUTED); f.doc.setLineWidth(0.8); f.doc.roundedRect(x, y + 4, w, 14, 3, 3, 'S'); font(f.doc, 6.5, 'bold', MUTED); }
+          else { f.doc.setFillColor(TONE[r.status.tone]); f.doc.roundedRect(x, y + 4, w, 14, 3, 3, 'F'); font(f.doc, 6.5, 'bold', '#ffffff'); }
+          f.doc.text(r.status.word.toUpperCase().slice(0, 12), x + w / 2, y + 13.2, { align: 'center' });
+          x += cols.st;
+          font(f.doc, 9, 'bold', r.runSpeed === '—' ? MUTED : INK); f.doc.text(c.sp, x, y + 13); x += cols.sp;
+          font(f.doc, 9, 'bold', r.ahead ? AMBER : r.canRunAt === '—' ? MUTED : INK); f.doc.text(c.run, x, y + 13); x += cols.run;
+          if (c.cav.length) { font(f.doc, 8.5, 'bold', INK); f.doc.text(c.cav, x, y + 12); }
+        },
+      })),
+      after: 'm',
+    }),
+  ];
+  return out;
+}
+
 /** THE PROGRAMS REPORT — its own document: the job, the count in words and a
  *  tile per state, then every program machine by machine. */
 export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: string; printed: string; reading: ProgramsReading;
@@ -209,7 +267,7 @@ export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: s
     if (r.statusSays) out.push(text({ text: san(r.statusSays), size: 9, colour: INK2, after: gap(d, 'm') }));
     /* a job with none of its own, and its line's to show, says so in a line —
        never "No programs yet" over the line's */
-    if (r.total || !x.linePrograms?.length) out.push(...programsBlocks(r, d, { problems }));
+    if (r.total || !x.linePrograms?.length) { out.push(...summaryBlocks(r)); out.push(text({ text: 'THE DETAIL — EVERY PROGRAM, MACHINE BY MACHINE', size: 8, style: 'bold', colour: BRAND, before: gap(d, 's'), after: 4 })); out.push(...programsBlocks(r, d, { problems })); }
     for (const lp of x.linePrograms ?? []) {
       out.push({ ...text({ text: `On ${san(lp.line)}, with no project — ${san(lp.reading.says)}`, size: SIZE.h2, style: 'bold', before: gap(d, 's'), after: 4 }), keepWithNext: true });
       out.push(...programsBlocks(lp.reading, d, { problems }));

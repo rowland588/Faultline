@@ -45,6 +45,8 @@ export interface ProgramLine {
    *  on these; paper never prints them. */
   partId?: string; stageId?: string; programId?: string; assetId?: string;
   what: string;
+  /** The speed of its fastest passing test, packs a minute (lib/programJourney bestSpeed) — the speed it has been shown to run at, when its tests say. */
+  testedSpeed?: number;
   /** What it runs — the product or the film, off the Programs page. */
   runs?: string;
   who?: string;
@@ -362,6 +364,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
           ...(p && proved ? (pf => (pf ? { proof: pf } : {}))(proofOf(p, tDetail(p), sDetail(p), x.standards)) : {}),
           earlier,
           ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tDetail(p), sDetail(p), today)),
+          ...(p ? (v => (v != null ? { testedSpeed: v } : {}))(programJourney(p, tDetail(p), today).bestSpeed) : {}),
           ...((proved || judged) && now ? { proving: `on the floor: ${said.word}` } : {}),
           /* THE FLOOR'S STATUS LEADS: the program record's own state beside
              it, so the line's answer is on the job's row too (flow audit #3). */
@@ -380,6 +383,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
         ...criteriaLine(p, tDetail(p), sDetail(p), today, x.standards),
         ...(p.status ? { status: p.status } : {}),
         ...(tt => (tt ? { tests: tt } : {}))(testsOfProgram(p, tDetail(p), sDetail(p), today)),
+        ...(v => (v != null ? { testedSpeed: v } : {}))(programJourney(p, tDetail(p), today).bestSpeed),
         ...(pf => (pf ? { proof: pf } : {}))(proofOf(p, tDetail(p), sDetail(p), x.standards)),
       });
     }

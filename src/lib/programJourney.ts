@@ -72,6 +72,8 @@ export interface Journey {
   /** "Passed at 50 ppm for 60 min on 14 Oct (test 2)" — the fastest pass;
    *  absent with none. */
   best?: string;
+  /** The speed of that fastest pass, packs a minute — what it ran at, else what it netted, else what it aimed at. */
+  bestSpeed?: number;
   /** "3 tests · 2 passed · 1 didn't pass" — absent with none. */
   says?: string;
 }
@@ -176,5 +178,5 @@ function journeyOfAttempts(list: Test[], today: string): Journey {
   const n = (o: Test['outcome']) => attempts.filter(a => a.test.outcome === o).length;
   const says = [`${attempts.length} test${attempts.length === 1 ? '' : 's'}`, n('passed') && `${n('passed')} passed`,
     n('failed') && `${n('failed')} didn’t pass`, n('notRun') && `${n('notRun')} didn’t run`, n('planned') && `${n('planned')} to run`].filter(Boolean).join(' · ');
-  return { attempts, ...(best ? { best } : {}), says };
+  return { attempts, ...(best ? { best } : {}), ...(top && speedOf(top.test) != null ? { bestSpeed: speedOf(top.test) as number } : {}), says };
 }

@@ -141,7 +141,9 @@ const sheet = page.locator('.sheet, [role="dialog"]').last();
 await sheet.locator('textarea').first().fill('Film splice jams at the sealer');
 await sheet.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1500);
 const dir = mkdtempSync(join(tmpdir(), 'factory-'));
-const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), pressPaper(page, 'Problems report', page.locator('.pl'))]);
+/* the line's Problems report is made from its Problems page (3 November: the line's Report ▾ is three entries) */
+await page.goto(`${BASE}/#/snags?line=${encodeURIComponent((/#\/lines\/([^/?]+)/.exec(page.url()) ?? [])[1] ?? '')}`); await page.waitForTimeout(2500);
+const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), pressPaper(page, 'Problems report')]);
 const f = join(dir, 'line.pdf'); await d.saveAs(f);
 const paper = execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 ok(/Line 3B \(Packing\) — problems/.test(paper) && /Film splice jams/.test(paper), '8 its Problems report is named with its type');

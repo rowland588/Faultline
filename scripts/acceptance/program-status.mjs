@@ -79,6 +79,18 @@ ok(txt.includes(want) && txt.includes(wantCav) && txt.indexOf(want) < txt.indexO
 ok(txt.includes('faster than the best speed'.replace(/\s+/g, '')), '4 and the amber sentence');
 ok(/1ofd+programswithastatus—1doing/.test(txt) || /1of\d+programswithastatus/.test(txt), '4 and the tally of what people said of their programs');
 
+/* 4b the summary table at the top (4 November — Rowland: "what we're missing at the top is actually a summary ... a table form ... the program number, the
+   program name, the run speed that we achieved, and the caveat next to it ... somebody can go to a meeting and say, that's where we are") */
+{
+  const i0 = txt.indexOf('SUMMARY—WHEREEACHPROGRAMSTANDS'), i1 = txt.indexOf('THEDETAIL—EVERYPROGRAM');
+  const sum = i0 >= 0 && i1 > i0 ? txt.slice(i0, i1) : '';
+  ok(i0 >= 0 && i1 > i0 && txt.indexOf('Printed') < i0, '4b the report opens with a SUMMARY table, then THE DETAIL below it', `${i0} ${i1}`);
+  ok(/NO\.PROGRAMSTATUSRUNSPEEDCANRUNATCAVEAT—WHATTOWATCH/.test(sum), '4b its columns: number, program, status, run speed, can run at, caveat', sum.slice(0, 120));
+  ok(sum.includes(name.replace(/\s+/g, '').replace(/^[A-Za-z]{1,6}-\d+[A-Za-z]?/, '')) , '4b the program is a row in it by its name', sum.slice(0, 300));
+  ok(sum.includes('DOING') && sum.includes('75ppm') && sum.includes('80ppm') && sum.includes('Onlyonthe2kgfilm'), '4b its row carries the status typed, the best speed 75, can run at 80 and the caveat', sum.slice(0, 600));
+  ok(txt.indexOf('Onlyonthe2kgfilm') < i1, '4b the caveat is read in the summary before the detail');
+}
+
 /* 5 taken off; a client; the phone */
 await section().getByRole('button', { name: 'Change the status' }).click();
 await section().getByRole('button', { name: 'Take the status off' }).click(); await page.waitForTimeout(700);
