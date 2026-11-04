@@ -13,6 +13,7 @@
 import { PageHeader } from '../ui/parts';
 import { APP_TOOLS } from '../catalogue/registry';
 import { ToolCard } from '../ui/ToolCard';
+import { SixMDoor } from '../ui/SixMDoor';
 import { useToolUse, usedSaid } from '../lib/useToolUse';
 import { useMemo, useState } from 'react';
 import { ENTRIES, PROBLEMS, disciplineName, entryById, searchEntries, searchProblems, statusCounts, subName } from '../catalogue';
@@ -96,6 +97,7 @@ export function ToolsScreen() {
             ))}
           </div>
         </div>
+        <p className="sub"><SixMDoor /> Opens the 6M tool: the problem, the six bones, the five whys and the countermeasure board.</p>
         <div className="tc-gal" role="list" aria-label="Every tool you can open">
           {APP_TOOLS.filter(t => !kind || t.kind === kind).map(t => (
             <div key={t.key} role="listitem" className="tc-cell">

@@ -52,6 +52,7 @@ import { between, stopMinutes, WEEK } from '../lib/intelligence';
 import type { ToolStudy, StudyTool } from '../lib/study';
 import type { Workspace } from '../types';
 import { useProjects } from '../lib/useProjects';
+import { SixMDoor } from '../ui/SixMDoor';
 import { MachinePicture } from '../ui/MachinePicture';
 import { useLineRecords } from '../lib/useLineRecords';
 import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../lib/useJobFloor';
@@ -551,6 +552,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               stops): the last four weeks, the machine that stopped the most.
               With stops it opens the ranking; with none, the stopwatch. */}
           {stopsRow}
+          {may && <li className="pl-tool-li"><SixMDoor line={{ id: wsId, name: line.name }} className="btn" /></li>}
           {TOOLS.map(t => {
             const { n, says, tone } = toolSays(t);
             return (
