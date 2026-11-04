@@ -23,6 +23,8 @@ import { planModel } from '../../lib/planModel';
 import { bottlenecksOf, dashOf, FADED_ALPHA, FILLS, LABEL_KEY, LABEL_MODES, labelModeHere, LINES, mapLabel, weightOf, WORD_DIRS, wordsUp, type LabelMode, type ShapeFill, type ShapeLine,
   BOARDS, boardOf, colourOf, copyFor, hasMap, removingSays, type ProductTool, inMapTool, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from './standard';
 import { useStandards } from './StandardsCard';
+import { PersonLabels } from './PersonLabels';
+import { labelsOf, labelsSummary } from './standard';
 import { Sheet } from '../../ui/Sheet';
 import { offerUndo } from '../../ui/Undo';
 import { deleteMap, removeFromTool } from './StandardsCard';
@@ -796,6 +798,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 title={m.label ? `${m.label}${m.task ? ` — ${m.task}` : ''}` : undefined}
                 onPointerDown={e => down(e, m.id)} onClick={e => e.stopPropagation()}>
                 {m.bottleneck && <span className="ls-bn-tag">Bottleneck</span>}
+                {m.kind === 'person' && labelsOf(m).length > 0 && <span className={'ls-lab-tag' + (m.bottleneck ? ' is-high' : '')} title={labelsOf(m).join(' · ')}>{labelsOf(m).join(' · ')}</span>}
                 <MarkIcon kind={m.kind} colour={colourOf(m)} />
                 {(() => { const l = mapLabel(m, labels, people); return l ? <span className={'ls-mark-l' + (labels === 'number' && m.kind === 'person' ? ' is-n' : '')}>{l}</span> : null; })()}
               </button>
@@ -839,13 +842,19 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
               {bottlenecksOf({ marks }).map(b => <p key={b.id} className="ls-bn-words">{b.words}</p>)}
             </div>
           )}
+          {/* WHAT ELSE THE PEOPLE ARE, said once (4 November): "Overburdened — Op 2, Packer" — why people are there, where extra labour may be needed */}
+          {labelsSummary({ marks }).length > 0 && (
+            <div className="ls-lab-sum" role="note">
+              {labelsSummary({ marks }).map(x => <p key={x.label} className="ls-lab-words"><b>{x.label}</b> — {x.who.join(', ')}</p>)}
+            </div>
+          )}
           {thingsOf({ marks }) && <p className="sub ls-things">{thingsOf({ marks })}</p>}
           <h3 className="ls-side-h">Who does what</h3>
           {people.length === 0 && <p className="sub">{ro ? 'Nobody placed on this product yet.' : 'Nobody yet — tap the board where they stand (Person is picked), or select a shape and add an operator to it.'}</p>}
           {ro && people.map((p, i) => (
             <div key={p.id} className={'ls-person' + (p.bottleneck ? ' is-bn' : '')}>
               <span className="ls-pn" style={{ background: colourOf(p) }} aria-hidden>{i + 1}</span>
-              <span className="ls-role">{p.label || 'Unnamed'}{p.bottleneck && <span className="ls-bn-tag is-inline">Bottleneck</span>}</span>
+              <span className="ls-role">{p.label || 'Unnamed'}{p.bottleneck && <span className="ls-bn-tag is-inline">Bottleneck</span>}{labelsOf(p).map(l => <span key={l} className="ls-lab-tag is-inline">{l}</span>)}</span>
               {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s {workFor(p.label)?.untimed ? 'so far — not all timed' : `of ${(workFor(p.label)?.takt ?? work.taktSec).toFixed(1)} s${workFor(p.label)?.piece ?? ''}`}</span>}
               {p.task && <p className="ls-task-r">{p.task}</p>}
             </div>
@@ -867,6 +876,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 onClick={() => saveMarks(marks.map(m => (m.id === p.id ? { ...m, bottleneck: !m.bottleneck || undefined } : m)))}>
                 {p.bottleneck ? 'The bottleneck ✓' : 'The bottleneck?'}
               </button>
+              <PersonLabels mark={p} who={p.label || 'this person'} onChange={labels => saveMarks(marks.map(m => (m.id === p.id ? { ...m, labels } : m)))} />
             </div>
           ))}
           {/* Deleting is the owner's (lib/access) — the database keeps the
@@ -992,6 +1002,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
               <input type="checkbox" checked={!!editingMark.bottleneck} onChange={e => patchMark(editingMark.id, { bottleneck: e.target.checked || undefined })} />
               <span>{editingMark.kind === 'person' ? 'This person is the bottleneck' : `This ${markOf(editingMark.kind).word.toLowerCase()} is the bottleneck`} <span className="opt">said on the map and in Who does what</span></span>
             </label>
+            {editingMark.kind === 'person' && <PersonLabels mark={editingMark} who={editingMark.label || 'this person'} onChange={labels => patchMark(editingMark.id, { labels })} />}
             <div className="snag-editor-foot">
               <button className="btn btn-primary" onClick={() => { void putStandard({ ...s, marks }); setEditing(null); }}>Done</button>
               <button className="btn btn-ghost" style={{ color: 'var(--danger)' }}

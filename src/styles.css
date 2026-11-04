@@ -15832,3 +15832,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* the weight that reaches a person, in the same time (tools/linebalance/capacityLoad) */
 .cap-load { margin: var(--s-2, 8px) 0; padding: var(--s-2, 8px) var(--s-3, 12px); border-left: 3px solid var(--ink-2); background: var(--surface-2); border-radius: var(--radius-sm); font-weight: 600; }
 .cg-load { font-size: var(--t-detail); font-weight: 700; }
+
+/* what else a person is — labels beside the bottleneck (tools/linestandard/PersonLabels) */
+.ls-labels { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; }
+.ls-lab-b { min-height: 30px; padding: 2px 10px; font-size: var(--t-label); }
+@media (pointer: coarse) { .ls-lab-b { min-height: 40px; } }
+.ls-lab-in { flex: 1 1 8rem; min-width: 8rem; max-width: 14rem; min-height: 30px; font-size: var(--t-label); }
+.ls-lab-tag { display: inline-block; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 7px; border: 1px solid var(--ink-2); border-radius: var(--radius-xs); background: var(--surface); color: var(--ink); font-size: var(--t-label); font-weight: 700; }
+.ls-lab-tag.is-inline { margin-left: 6px; vertical-align: middle; }
+.ls-mark .ls-lab-tag { position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%); }
+.ls-mark .ls-lab-tag.is-high { bottom: calc(100% + 22px); }
+.ls-lab-sum { margin: 4px 0 0; display: grid; gap: 2px; }
+.ls-lab-words { margin: 0; }

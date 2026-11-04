@@ -23,7 +23,7 @@
 import { getBlob } from '../../db';
 import { analyse } from '../linebalance/capacity';
 import { shortSays } from '../linebalance/capacitySays';
-import { BOARDS, boardOf, bottlenecksOf, colourOf, dashOf, FADED_ALPHA, firstPara, headcount, isShape, labelModeHere, manyOf, mapLabel, markOf, MARKS, peopleOf, TONES, weightOf, wordsUp, type Standard, type StandardMark } from './standard';
+import { BOARDS, boardOf, bottlenecksOf, withCardLabels, colourOf, dashOf, FADED_ALPHA, firstPara, headcount, isShape, labelModeHere, manyOf, mapLabel, markOf, MARKS, peopleOf, TONES, weightOf, wordsUp, type Standard, type StandardMark } from './standard';
 
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
 export const CARD_W = 1754, CARD_H = 1240;
@@ -249,7 +249,9 @@ export interface CardFacts { shift?: string; money?: string }
  *  the card, under the same number as on the map. */
 export interface CardNote { ref: string; title: string; text: string; colour: string; bottleneck?: boolean; person?: boolean }
 
-export async function renderCard(s: Standard, projectName: string, printed: string, work?: CardWork, facts?: CardFacts): Promise<HTMLCanvasElement> {
+export async function renderCard(s0: Standard, projectName: string, printed: string, work?: CardWork, facts?: CardFacts): Promise<HTMLCanvasElement> {
+  /* each person's labels at the head of what they do (standard.ts withCardLabels) */
+  const s = withCardLabels(s0);
   return (await renderCardWithNotes(s, projectName, printed, work, facts)).canvas;
 }
 

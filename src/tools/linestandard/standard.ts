@@ -221,6 +221,10 @@ export interface StandardMark {
    *  an area named the one that holds the line. Said in words on the map and
    *  in Who does what, never by a state colour. */
   bottleneck?: boolean;
+  /** WHAT ELSE A PERSON IS, in a word or two (4 November — Rowland: "add overburdening of a person ... and product issues ... to highlight why people are there, possible extra labour ...
+   *  let me add what I want as a label for what the person is, not just the bottleneck ... the bottleneck can even be put as an extra labour"): the three quick ones (QUICK_LABELS)
+   *  and any he types. Beside — never instead of — the bottleneck, which stays its own tick. Said in words on the map, in Who does what and on the card; never by a state colour. */
+  labels?: string[];
   /** WHICH WAY A SHAPE'S WORDS RUN (Rowland, 15 October: "it only goes
    *  across, it doesn't let me go upwards, so I have to squeeze things in").
    *  'up': written up the shape's length, read from the bottom, as on a
@@ -293,6 +297,52 @@ export { live as liveStandards };
 /** The people on a map, in the order they were numbered. */
 export function peopleOf(s: Pick<Standard, 'marks'>): StandardMark[] {
   return s.marks.filter(m => m.kind === 'person');
+}
+
+/** THE LABELS OFFERED IN ONE TAP — what a person can be besides the bottleneck. Anything else is typed. */
+export const QUICK_LABELS = ['Overburdened', 'Product issue', 'Extra labour'] as const;
+export const LABEL_MAX = 24;
+const MAX_LABELS = 6;
+
+/** A mark's labels, clean: trimmed, each once whatever its case, at most 24 characters and six a person. */
+export function labelsOf(m: Pick<StandardMark, 'labels'>): string[] {
+  const out: string[] = [];
+  for (const raw of m.labels ?? []) {
+    const t = String(raw ?? '').trim().replace(/\s+/g, ' ').slice(0, LABEL_MAX);
+    if (t && !out.some(o => o.toLowerCase() === t.toLowerCase())) out.push(t);
+    if (out.length >= MAX_LABELS) break;
+  }
+  return out;
+}
+
+/** The label added, or taken off when it is already there (the same word in any case) — undefined when none are left, so the mark carries no empty list. */
+export function toggleLabel(m: Pick<StandardMark, 'labels'>, label: string): string[] | undefined {
+  const cur = labelsOf(m), k = label.trim().toLowerCase();
+  const next = cur.some(x => x.toLowerCase() === k) ? cur.filter(x => x.toLowerCase() !== k) : labelsOf({ labels: [...cur, label] });
+  return next.length ? next : undefined;
+}
+
+/** Who carries each label, for the line under the bottleneck: "Overburdened — Op 2, Packer". People only, in the order the labels first appear. */
+export function labelsSummary(s: Pick<Standard, 'marks'>): { label: string; who: string[] }[] {
+  const out = new Map<string, { label: string; who: string[] }>();
+  for (const [i, m] of s.marks.filter(x => x.kind === 'person').entries()) {
+    for (const l of labelsOf(m)) {
+      const e = out.get(l.toLowerCase()) ?? { label: l, who: [] };
+      e.who.push((m.label ?? '').trim() || `Person ${i + 1}`);
+      out.set(l.toLowerCase(), e);
+    }
+  }
+  return [...out.values()];
+}
+
+/** The card's copy of a standard, with each person's labels written at the head of what they do — so the card measures and wraps them as it does every word, and nothing
+ *  else about it changes. The stored map is untouched. */
+export function withCardLabels(s: Standard): Standard {
+  if (!s.marks.some(m => m.kind === 'person' && labelsOf(m).length)) return s;
+  return { ...s, marks: s.marks.map(m => {
+    const ls = m.kind === 'person' ? labelsOf(m) : [];
+    return ls.length ? { ...m, task: `${ls.join(' · ')}${m.task?.trim() ? ` — ${m.task.trim()}` : ''}` } : m;
+  }) };
 }
 
 /** The bottlenecks said on the map, in words: "Op 2 — packs the trays", "the
