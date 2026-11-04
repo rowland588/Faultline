@@ -135,7 +135,7 @@ export function CalcForm(p: Props) {
   const tileIdx = [...new Set(gridFields.map(f => f.grid as number))];
   const given = money.some(f => p.draft[f.id] !== undefined && p.draft[f.id] !== '');
   const [open, setOpen] = useState(false);
-  const grid = tileIdx.length > 0 && p.part !== 'main' && (
+  const grid = (tileIdx.length > 0 || below.length > 0) && p.part !== 'main' && (
     <div className="calc-grid-wrap">
       {p.total && <p className="calc-grid-total" role="status">{p.total}</p>}
       <div className="calc-tiles-grid" aria-label="The workstations">
