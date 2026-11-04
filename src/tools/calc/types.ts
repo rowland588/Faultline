@@ -56,6 +56,8 @@ export interface Field {
   money?: boolean;
   /** Offered from the line this sits on (its cost model), with the box still typed by hand if the person wants. */
   from?: Offer;
+  /** A number of minutes timed by a Stopped / Running again button: each press-pair adds the minutes here and one to the `stops` field. */
+  timer?: { stops: string };
   /** Shown only when this holds — a choice that changes what is asked. */
   showIf?: (v: Values) => boolean;
 }

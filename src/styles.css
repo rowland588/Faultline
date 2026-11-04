@@ -15110,6 +15110,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .calc-help, .calc-chosen, .calc-from { font-size: var(--t-detail); line-height: 1.35; }
 .calc-chosen b { color: var(--ink-2); }
 .calc-use { align-self: flex-start; text-align: left; }
+.calc-timer { width: 100%; min-height: 44px; margin-top: 4px; font-weight: 600; }
+.calc-timer.is-running { border-color: var(--st-a); color: var(--st-a); }
 .calc-problem { margin: 2px 0 0; }
 .calc-problem.is-warn { font-weight: 600; }
 .calc-choices.ie-kinds { grid-template-columns: 1fr; }

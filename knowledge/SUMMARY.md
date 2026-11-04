@@ -2,14 +2,14 @@
 
 Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write` — never typed. The catalogue test fails when this file is stale.
 
-**237 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
+**238 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 29 tools a person can open on a page of their own. Built inside them: 116 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 31. Not built yet: 43; needing research: 11; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 29 tools a person can open on a page of their own. Built inside them: 117 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 31. Not built yet: 43; needing research: 11; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
 | Available (`available`) | 164 |
-| Partly (`partial`) | 12 |
+| Partly (`partial`) | 13 |
 | Planned (`specified`) | 0 |
 | Not built yet (`to-build`) | 43 |
 | Research first (`research`) | 11 |
@@ -22,7 +22,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Lean manufacturing and waste | 19 | 11 | 2 |  | 5 | 1 |  |
 | Industrial engineering and work measurement | 14 | 8 | 2 |  | 3 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 15 |  |  | 1 | 1 |  |
-| Equipment performance and losses | 10 | 8 |  |  |  |  | 2 |
+| Equipment performance and losses | 11 | 8 | 1 |  |  |  | 2 |
 | Maintenance, reliability and TPM | 11 | 10 |  |  |  | 1 |  |
 | Changeovers | 5 | 2 | 2 |  | 1 |  |  |
 | Commissioning and operational readiness | 13 | 12 |  |  |  | 1 |  |
@@ -48,7 +48,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - **Lean manufacturing and waste** — Value stream and flow 5 · Waste 2 · Standard work 2 · Pull and levelling 4 · 5S and the visual workplace 1 · Mistake-proofing 2 · Improvement events and kata 3
 - **Industrial engineering and work measurement** — Time study 3 · Predetermined motion times 1 · Work sampling 1 · Labour standards and allowances 3 · Method study 3 · Labour productivity 3
 - **Capacity, throughput and bottlenecks** — Line capacity 4 · Line balance 2 · Constraints (TOC) 5 · Queues, WIP and buffers 4 · Load against demand 2
-- **Equipment performance and losses** — The time model and losses 2 · Stops and downtime 5 · Speed and short stops 2 · Losses in money 1
+- **Equipment performance and losses** — The time model and losses 2 · Stops and downtime 6 · Speed and short stops 2 · Losses in money 1
 - **Maintenance, reliability and TPM** — Reliability statistics 3 · Maintainability 1 · TPM routines 2 · Maintenance strategy 4 · Spares 1
 - **Changeovers** — SMED 2 · Sequence and interval 2 · Start-up and release 1
 - **Commissioning and operational readiness** — The stage gate 1 · Acceptance testing 6 · Ramp-up 2 · Readiness and handover 4
@@ -71,7 +71,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 78
+- a tool of its own: 79
 - a mode of another tool: 87
 - a part several tools share: 27
 - a way through several tools: 8

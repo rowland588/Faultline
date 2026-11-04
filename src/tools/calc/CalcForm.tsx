@@ -3,7 +3,7 @@
  * model can fill says what it would put in, and where to give it when the line has none; the money boxes sit apart under "In money
  * — all optional", and nothing waits on them. Typed live: the result beside it is worked out from what is in the boxes, saved a
  * moment after the last key. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { nav } from '../../state/useRoute';
 import { fieldProblems, offered, valuesOf, askedFields, type LineFacts } from './calc';
 import { fmt, gbp } from './format';
@@ -23,6 +23,29 @@ interface Props {
 
 const unitFirst = (f: Field): boolean => !!f.unit && /^£/.test(f.unit);
 const said = (f: Field, n: number): string => (unitFirst(f) ? gbp(n) : `${fmt(n, 2)}${f.unit ? ` ${f.unit}` : ''}`);
+
+/** The stop timer on a minutes box: Stopped starts it, Running again adds the elapsed minutes and counts one stop. Kept on this device only. */
+function StopTimer({ f, p }: { f: Field; p: Props }) {
+  const key = `fl-stop:${location.hash.split('?')[0]}:${f.id}`;
+  const read = (): number | null => { try { const n = Number(localStorage.getItem(key)); return n > 0 ? n : null; } catch { return null; } };
+  const [since, setSince] = useState<number | null>(read);
+  const [, tick] = useState(0);
+  useEffect(() => { if (since === null) return; const t = setInterval(() => tick(x => x + 1), 1000); return () => clearInterval(t); }, [since]);
+  if (p.disabled) return null;
+  const secs = since === null ? 0 : Math.max(0, Math.floor((Date.now() - since) / 1000));
+  const say = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  const press = (): void => {
+    if (since === null) { const t = Date.now(); try { localStorage.setItem(key, String(t)); } catch { /* fine */ } setSince(t); return; }
+    const add = Math.round((Date.now() - since) / 600) / 100;
+    try { localStorage.removeItem(key); } catch { /* fine */ }
+    setSince(null);
+    const cur = Number(p.draft[f.id]) || 0;
+    p.onEdit(f.id, Math.round((cur + add) * 100) / 100);
+    if (f.timer) p.onEdit(f.timer.stops, (Number(p.draft[f.timer.stops]) || 0) + 1);
+    p.onBlur();
+  };
+  return <button type="button" data-timer={f.id} className={'btn calc-timer' + (since !== null ? ' is-running' : '')} onClick={press}>{since === null ? 'Stopped' : `Running again — ${say}`}</button>;
+}
 
 function Box({ f, p }: { f: Field; p: Props }) {
   const raw = p.draft[f.id];
@@ -50,6 +73,7 @@ function Box({ f, p }: { f: Field; p: Props }) {
           {unit}
         </span>
       )}
+      {f.timer && <StopTimer f={f} p={p} />}
       {f.kind === 'choice' && f.optional && !f.default && !p.disabled && raw !== undefined && raw !== '' && (
         <button type="button" className="linkish calc-clear" data-clear={f.id} onClick={() => p.onEdit(f.id, '')}>Clear this choice</button>
       )}

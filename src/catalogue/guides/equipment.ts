@@ -5,6 +5,36 @@
 import type { Guide } from '../guide';
 
 export const EQUIPMENT_GUIDES: Record<string, Guide> = {
+  'FC-241': {
+    intro: 'For a row of workstations in front of you, each stopping now and then, when you want to know which lost the most in kilos or units. Press once when one stops and once when it runs again.',
+    steps: [
+      {
+        step: 'How many workstations',
+        means: 'The number of workstations you are watching, up to thirty. The page shows a set of boxes for exactly that many, each called Workstation 1, 2, 3 unless you name it.',
+        doThis: 'Press New calculation, name the session (“Packing hall, 10:00 to 11:00”), then type how many workstations are in front of you. Type a name for any you want to call by its floor name.',
+        youGet: 'A box for each workstation, with its name, minutes stopped and number of stops.',
+      },
+      {
+        step: 'What is lost, and at what rate',
+        means: 'Each minute a workstation is stopped costs you what it would have made in that minute. Choose the unit the floor counts in — kilos, units, packs, trays, cases or your own word — and say whether the rate is every minute or every hour.',
+        doThis: 'Pick the unit and type the rate lost: kilos a minute at that workstation, or units an hour. If the workstations differ, choose Each its own and give a rate under each. Change the unit later and only the word changes.',
+        youGet: 'The rate every stop is multiplied by, in the unit you chose.',
+      },
+      {
+        step: 'Stopped and Running again',
+        means: 'The button under a workstation’s minutes times its stop. Press Stopped when it stops; the clock runs; press Running again when it restarts and the minutes are added to that workstation and one stop is counted.',
+        doThis: 'Press Stopped on the workstation that has just stopped, and Running again when it restarts. Do it for as many as are stopped at once. Or type the minutes and stops if you timed them another way.',
+        youGet: 'The workstation’s minutes and stops, growing with every press-pair, and the loss worked out beside it.',
+      },
+      {
+        step: 'What it says',
+        means: 'One sentence: how many workstations stopped, for how long, what it cost in your unit and which workstation lost the most. The tiles give the totals, the worst workstation and, if you gave the time you watched, the share of it spent stopped.',
+        doThis: 'Read the sentence, then the order of what each lost. Give what one lost unit is worth to see it in money. Report ▾ makes the paper.',
+        youGet: 'The workstation to look at first, with the figure to say it by.',
+      },
+    ],
+    watch: 'It counts only what was timed, and the loss is the rate you typed times the minutes — a workstation that is not the constraint may catch up, so treat it as a ceiling there.',
+  },
   'FC-058': {
     intro: 'For a machine that keeps stopping, jamming or needing help when nobody can say how often, or whether it is getting better. You stand at it with a phone, run a watch while it runs and tap each event as you see it — nothing is read from the machine.',
     steps: [
