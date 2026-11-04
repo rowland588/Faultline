@@ -93,20 +93,21 @@ function partBlocks(p: LineBundlePaper, part: LinePart, d: Density): Block[] {
   }
 
   /* WHAT IS OPEN — its problems, priority order, the late in red; its programs, machine by machine.
-     The full package's glance (3 November, after "some things look like they repeat") says it in one line and leaves the lists to the
-     Problems and Programs sections that follow — each prints once, in full, where it belongs. */
-  if (p.glance) {
-    const pr0 = p.programs.get(part.line.id);
-    out.push(text({ text: `${part.problems.open ? `${part.problems.open} problem${part.problems.open === 1 ? '' : 's'} open${part.problems.late ? `, ${part.problems.late} late` : ''}` : 'No problem open'} · ${pr0?.says ?? 'no program planned'} — each in full in its own section, listed on the contents.`, size: 9, colour: INK2, after: gap(d, 'm') }));
-  } else {
+     The full package's glance (a page headed "the line at a glance" must show its problems — Rowland, 4 November: "the line at a glance
+     didn't have problems, makes no sense") lists the open problems, one line each, and says its programs in one line, leaving their
+     full lists to the Programs section that follows. */
   out.push(leanHead('Problems open', part.problems.open ? `${part.problems.open} open${part.problems.late ? ` · ${part.problems.late} late` : ''}` : undefined));
   if (!part.problems.rows.length) out.push(text({ text: 'Nothing open on this line.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
   else out.push(...listRows(part.problems.rows.map(r => ({ what: `${PRIORITY_WORD[r.priority]} · ${r.what}`, meta: [r.machine ?? '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · '), right: r.late && r.due ? r.due : r.word, tone: r.late || r.priority === 'critical' ? 'r' : 'n' })), 12, n => `and ${n} more — the line's Problems report has every one`));
+  if (p.glance) {
+    const pr0 = p.programs.get(part.line.id);
+    out.push(leanHead('Programs', pr0 ? pr0.says : undefined));
+    out.push(text({ text: pr0?.lines.length ? 'Every program, machine by machine, with each test and how it went, is in the Programs and Test cards sections that follow.' : 'No program planned on this line.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
+  } else {
   const pr = p.programs.get(part.line.id);
   out.push(leanHead('Programs', pr ? pr.says : undefined));
   if (!pr || !pr.lines.length) out.push(text({ text: 'No program planned on this line.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
   else out.push(...programsBlocks(pr, d));
-
   }
 
   /* WHERE ON THE LINE — only where a finding points at a machine */
