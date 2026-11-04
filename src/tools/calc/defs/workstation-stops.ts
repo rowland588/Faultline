@@ -24,14 +24,12 @@ const slotFields = (i: number): Field[] => {
   const k = i + 1;
   const shown = (v: Values): boolean => count(v) >= k;
   return [
-    { id: wid(i, 'name'), label: `Workstation ${k} — its name`, kind: 'text', optional: true, showIf: shown,
-      ...(i === 0 ? { help: 'Its name on the floor, or leave it and it is called Workstation 1.' } : {}) },
-    { id: wid(i, 'min'), label: `Workstation ${k} — minutes stopped`, unit: 'minutes', kind: 'number', min: 0, optional: true, showIf: shown,
-      timer: { stops: wid(i, 'stops') },
-      ...(i === 0 ? { help: 'Press Stopped when it stops and Running again when it restarts: the time is added here, and one stop is counted. Or type the minutes. Blank means it has not stopped.' } : {}) },
-    { id: wid(i, 'stops'), label: `Workstation ${k} — number of stops`, kind: 'number', min: 0, integer: true, optional: true, showIf: shown },
-    { id: wid(i, 'rate'), label: `Workstation ${k} — lost for every minute stopped`, kind: 'number', min: 0, showIf: v => shown(v) && v.same === 'own',
-      ...(i === 0 ? { help: 'In the unit chosen above, for the period chosen above.' } : {}) },
+    { id: wid(i, 'name'), label: `Workstation ${k} — its name`, kind: 'text', optional: true, showIf: shown, grid: i },
+    { id: wid(i, 'min'), label: `Workstation ${k} — minutes stopped`, unit: 'min', kind: 'number', min: 0, optional: true, showIf: shown, grid: i,
+      timer: { stops: wid(i, 'stops') } },
+    { id: wid(i, 'stops'), label: `Workstation ${k} — number of stops`, unit: 'stops', kind: 'number', min: 0, integer: true, optional: true, showIf: shown, grid: i },
+    { id: wid(i, 'rate'), label: `Workstation ${k} — lost for every minute stopped`, kind: 'number', min: 0, showIf: v => shown(v) && v.same === 'own', grid: i,
+      dynamic: v => ({ unit: `${unitOf(v)} ${v.per === 'hour' ? 'an hour' : 'a minute'}` }) },
   ];
 };
 
@@ -80,14 +78,20 @@ const def: CalcDef = {
     { id: 'same', label: 'The rate lost', kind: 'choice', default: 'same',
       chosen: 'The same for every workstation until you say each has its own.',
       options: [{ value: 'same', label: 'The same for all', help: 'one figure for every workstation' }, { value: 'own', label: 'Each its own', help: 'a figure under each workstation' }] },
-    { id: 'rate', label: 'Lost while it is stopped', unit: 'as chosen above', kind: 'number', min: 0, showIf: v => v.same !== 'own',
-      help: 'How much it would have made in that time: the line’s speed at that workstation, in the unit chosen — kilos a minute, units a minute.' },
-    ...Array.from({ length: MAX_STATIONS }, (_, i) => slotFields(i)).flat(),
+    { id: 'rate', label: 'How much is lost in every minute a workstation is stopped', unit: 'as chosen above', kind: 'number', min: 0, showIf: v => v.same !== 'own',
+      dynamic: v => ({ label: `How many ${unitOf(v)} are lost in every ${v.per === 'hour' ? 'hour' : 'minute'} a workstation is stopped`, unit: `${unitOf(v)} ${v.per === 'hour' ? 'an hour' : 'a minute'}` }),
+      help: 'What it would have made in that time — the speed of the workstation in the unit chosen. Without it the minutes stay minutes and no loss is worked out.' },
     { id: 'watched', label: 'Watched for', unit: 'minutes', kind: 'number', min: 0, optional: true,
       help: 'Optional: how long you watched the workstations in all. It gives the share of that time they were stopped.' },
+    ...Array.from({ length: MAX_STATIONS }, (_, i) => slotFields(i)).flat(),
     { id: 'unitCost', label: 'What one lost unit is worth', unit: '£ a unit', kind: 'number', min: 0, optional: true, money: true,
       help: 'Optional: its margin or its cost. Said as “if it cannot be made up” — a unit lost on a constraint is lost for good; elsewhere the line may catch up.' },
   ],
+  tileSays(v, i): string {
+    const r = rows(v)[i];
+    if (!r || r.min === 0) return 'not stopped';
+    return `${fmt(r.min, 2)} min${r.stops ? ` · ${r.stops} stop${r.stops === 1 ? '' : 's'}` : ''} · ${fmt(r.lost, 2)} ${unitOf(v)} lost`;
+  },
   check(v): Problem[] {
     const out: Problem[] = [];
     const rs = rows(v);
@@ -208,7 +212,7 @@ const def: CalcDef = {
   refused: [
     { name: 'no workstations', inputs: { rate: 5 }, blocked: 'Give “How many workstations”' },
     { name: 'more than thirty', inputs: { n: 31, rate: 5 }, blocked: 'must be at most' },
-    { name: 'no rate for the same-rate case', inputs: session([['A', 3]], { same: 'same' }), blocked: 'Give “Lost while it is stopped”' },
+    { name: 'no rate for the same-rate case', inputs: session([['A', 3]], { same: 'same' }), blocked: 'Give “How much is lost in every minute a workstation is stopped”' },
     { name: 'a workstation without its own rate when each has one', inputs: session([['A', 3]], { same: 'own' }), blocked: 'Give “Workstation 1 — lost for every minute stopped”' },
     { name: 'a negative time', inputs: session([['A', -2]], { same: 'same', rate: 5 }), blocked: 'must be at least' },
   ],

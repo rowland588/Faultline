@@ -19,6 +19,10 @@ interface Props {
   onUse: (id: string, value: number, from: string) => void;
   onBlur: () => void;
   problems: Problem[];
+  /** Only the set-up boxes, or only the station grid (drawn full width by the page). Absent: both. */
+  part?: 'main' | 'grid';
+  /** What the stops have cost so far, said over the grid. */
+  total?: string;
 }
 
 const unitFirst = (f: Field): boolean => !!f.unit && /^£/.test(f.unit);
@@ -47,7 +51,8 @@ function StopTimer({ f, p }: { f: Field; p: Props }) {
   return <button type="button" data-timer={f.id} className={'btn calc-timer' + (since !== null ? ' is-running' : '')} onClick={press}>{since === null ? 'Stopped' : `Running again — ${say}`}</button>;
 }
 
-function Box({ f, p }: { f: Field; p: Props }) {
+function Box({ f: f0, p }: { f: Field; p: Props }) {
+  const f: Field = f0.dynamic ? { ...f0, ...f0.dynamic(valuesOf(p.def, p.draft)) } : f0;
   const raw = p.draft[f.id];
   const text = raw === undefined ? '' : String(raw);
   const mine = p.problems.filter(x => x.field === f.id && (x.block ? text !== '' : true));
@@ -91,15 +96,56 @@ function Box({ f, p }: { f: Field; p: Props }) {
   );
 }
 
+/** One station of the grid: its name, the Stopped button, the minutes and stops it has, and what it has cost so far — small, many to a row. */
+function Tile({ fields, i, p }: { fields: Field[]; i: number; p: Props }) {
+  const v = valuesOf(p.def, p.draft);
+  const dyn = (f: Field): Field => (f.dynamic ? { ...f, ...f.dynamic(v) } : f);
+  const by = (suffix: string): Field | undefined => fields.find(f => f.id.endsWith(suffix));
+  const name = by('_name'), min = by('_min'), stops = by('_stops'), rate = by('_rate');
+  const input = (f: Field, cls: string, ph?: string) => {
+    const g = dyn(f);
+    return (
+      <span className={'calc-tile-in ' + cls} data-field={g.id}>
+        <input className="text-input" inputMode={g.kind === 'number' ? 'decimal' : 'text'} value={p.draft[g.id] === undefined ? '' : String(p.draft[g.id])} disabled={p.disabled}
+          aria-label={g.label} placeholder={ph} data-field-input={g.id} maxLength={g.kind === 'text' ? 40 : 24} onChange={e => p.onEdit(g.id, e.target.value)} onBlur={p.onBlur} />
+        {g.kind === 'number' && g.unit ? <i className="sub">{g.unit}</i> : null}
+      </span>
+    );
+  };
+  const mine = p.problems.filter(x => fields.some(f => f.id === x.field) && (x.block ? true : false));
+  return (
+    <div className="calc-tile" data-tile={i}>
+      {name && input(name, 'calc-tile-name', `Workstation ${i + 1}`)}
+      {min && <StopTimer f={min} p={p} />}
+      <div className="calc-tile-nums">{min && input(min, 'calc-tile-min')}{stops && input(stops, 'calc-tile-stops')}</div>
+      {rate && input(rate, 'calc-tile-rate')}
+      <span className="sub calc-tile-says">{p.def.tileSays?.(v, i)}</span>
+      {mine.map(x => <span key={x.say} className="ie-problem calc-problem" role="status">{x.say}</span>)}
+    </div>
+  );
+}
+
 export function CalcForm(p: Props) {
   const v = valuesOf(p.def, p.draft);
   const asked = askedFields(p.def, v);
-  const plain = asked.filter(f => !f.money), money = asked.filter(f => f.money);
+  const plain = asked.filter(f => !f.money && f.grid === undefined), money = asked.filter(f => f.money);
+  const gridFields = asked.filter(f => !f.money && f.grid !== undefined);
+  const tileIdx = [...new Set(gridFields.map(f => f.grid as number))];
   const given = money.some(f => p.draft[f.id] !== undefined && p.draft[f.id] !== '');
   const [open, setOpen] = useState(false);
+  const grid = tileIdx.length > 0 && p.part !== 'main' && (
+    <div className="calc-grid-wrap">
+      {p.total && <p className="calc-grid-total" role="status">{p.total}</p>}
+      <div className="calc-tiles-grid" aria-label="The workstations">
+        {tileIdx.map(i => <Tile key={i} i={i} fields={gridFields.filter(f => f.grid === i)} p={p} />)}
+      </div>
+    </div>
+  );
+  if (p.part === 'grid') return grid || null;
   return (
     <div className="calc-form" aria-label="The figures">
       {plain.map(f => <Box key={f.id} f={f} p={p} />)}
+      {p.part === undefined && grid}
       {money.length > 0 && (
         <details className="calc-money" open={open || given} onToggle={e => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
           <summary>In money — all optional</summary>

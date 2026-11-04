@@ -58,6 +58,10 @@ export interface Field {
   from?: Offer;
   /** A number of minutes timed by a Stopped / Running again button: each press-pair adds the minutes here and one to the `stops` field. */
   timer?: { stops: string };
+  /** Laid out in the station grid, not the list: the tile this field belongs to (0-based). */
+  grid?: number;
+  /** Words that depend on other answers — “kg lost in every minute stopped” once kilos are chosen. */
+  dynamic?: (v: Values) => Partial<Pick<Field, 'label' | 'unit' | 'help'>>;
   /** Shown only when this holds — a choice that changes what is asked. */
   showIf?: (v: Values) => boolean;
 }
@@ -166,6 +170,8 @@ export interface CalcDef {
   /** Cross-field checks beyond each box's own range (the shape does those). Only called when every box is sound. */
   check?: (v: Values) => Problem[];
   compute: (v: Values) => CalcResult;
+  /** One short line under a station tile in the grid: what that station has cost so far. */
+  tileSays?: (v: Values, tile: number) => string;
   examples: Example[];
   refused: Refused[];
   /** Calculators that carry on from this one, linked from its page. */

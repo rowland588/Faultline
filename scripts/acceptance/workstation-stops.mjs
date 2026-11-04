@@ -94,6 +94,18 @@ for (let i = 0; i < 30; i++) { await type(`w${nn(i)}_min`, i + 1); if (i < 4) aw
 await page.waitForTimeout(900);
 ok((await tiles()).Lost === '5,580', `4 thirty workstations total as worked (465 min × 12): ${(await tiles()).Lost}`);
 
+/* ---- 4b · the grid at a laptop: 22 small tiles, many to a row, and the rate asked in the unit's words */
+await page.locator('[data-field="unit"] [data-value="kg"]').click();
+await type('n', 22); await page.waitForTimeout(500);
+const tilesBox = await page.locator('.calc-tile').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().top)));
+const firstRow = tilesBox.filter(t => t === tilesBox[0]).length;
+ok(tilesBox.length === 22 && firstRow >= 6, `4b 22 tiles, ${firstRow} to a row (not one long list)`);
+ok(/How many kg are lost in every minute a workstation is stopped/i.test(await words('[data-field="rate"] .field-label') ?? ''), '4b the rate is asked in the unit’s words: "How many kg are lost in every minute…"');
+ok(/min · .*kg lost|not stopped/.test(await words('[data-tile="0"] .calc-tile-says') ?? ''), '4b each tile says what that workstation has cost so far');
+await type('n', 30);
+for (let i = 0; i < 30; i++) await type(`w${nn(i)}_min`, i + 1);
+await page.waitForTimeout(600);
+
 /* ---- 5 · the paper */
 const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, / — on paper$/)]);
 const f = join(OUT, 'stops.pdf'); await dl.saveAs(f);

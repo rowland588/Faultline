@@ -31,7 +31,7 @@ The verdict ("429 kg lost"), the sentence, the ranking line, five tiles (Lost, S
 **The report.** The shape's calculation paper from the same result: the band with the verdict, the tiles, *What it says*, the figures put in with their words, how it is worked out workstation by workstation (the first eight, the rest in the totals), the money or what to add, and what it does not claim — one module for page and paper.
 
 ## 8. Manufacturing usability
-Phone first: the Stopped button is the width of the box and 44 px tall; a running timer shows m:ss and survives a reload (kept on this device). Boxes appear for exactly the number of workstations given. The unit changes the word, never the number.
+Phone first: the Stopped button is the width of the box and 44 px tall; a running timer shows m:ss and survives a reload (kept on this device). The workstations are a grid of small tiles (about seven to a row at a laptop, two on a phone), never one long list — Rowland, 4 November: "I put 22 workstations in, and you've literally just put it down on one linear list. I almost just need 22 stop and start buttons, very small"; the rate lost is asked in the unit's own words ("How many kg are lost in every minute a workstation is stopped") — "it hasn't asked me how many kilos are lost in a minute". One tile for exactly the number of workstations given. The unit changes the word, never the number.
 
 ## 9. Failure handling
 Missing workstation count, rate (same-rate case), a workstation's own rate, a negative time, more than 30 — refused in words. No stops yet — said, with no loss. A timer is added only when Running again is pressed, its elapsed time shown while it runs; one left running overnight is the person's to correct by typing.

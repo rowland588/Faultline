@@ -376,8 +376,9 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
         <WhereItSits s={s} can={can} />
       </div>
       {!canEdit && !closed && <p className="sub calc-ro" role="status">You can read this and take its paper; the figures are changed by the people doing the work.</p>}
-      <div className="calc-body">
-        <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} />
+      <div className={'calc-body' + (def.tileSays ? ' has-grid' : '')}>
+        <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part={def.tileSays ? 'main' : undefined} />
+        {def.tileSays && <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part="grid" total={r ? `${r.verdict} · ${r.sentence}` : undefined} />}
         <div className="calc-out">
           {r
             ? <ResultView def={def} run={run} agreed={live} />
