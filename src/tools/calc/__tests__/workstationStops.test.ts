@@ -59,7 +59,14 @@ describe('stops across workstations', () => {
     it('a week asks the hours a week and never guesses; another takes typed hours', () => {
       expect(said({ ...A, horizon: 'week' })).toContain('Give the hours the line runs in a week');
       expect(said({ ...A, horizon: 'week', weekH: 120 })).toContain('Carried on for a week (120 hours): about 25,740 kg lost');
-      expect(said({ ...A, horizon: 'custom', customH: 6 })).toContain('Carried on for 6 hours: about 1,287 kg lost');
+      expect(said({ ...A, horizon: '1', customH: 6 })).toContain('Carried on for 6 hours: about 1,287 kg lost');
+      expect(said({ ...A, customH: 2000 })).toContain('Carried on for 2,000 hours');
+    });
+    it('says how confidence grows: the stops needed at the chosen level, and that minutes alone do not help', () => {
+      const t = said({ ...A, conf: '99' });
+      expect(t).toContain('at 99% it takes 29 stops to be Fair (within ±50%) and 111 to be Firm (within ±25%). You have 6.');
+      expect(said({ ...A, conf: '90' })).toContain('at 90% it takes 13 stops to be Fair');
+      expect(said({ ...A, watched: 2000 })).toContain('You have 6.');
     });
     it('watching longer at the same rate narrows the range', () => {
       const wide = runCalc(def, { ...A, horizon: '8' }).result?.tiles.find(t => t.k === 'Confidence')?.of;

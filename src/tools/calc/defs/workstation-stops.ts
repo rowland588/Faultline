@@ -7,7 +7,7 @@
  * is optional: what a unit lost is worth, said as "if it cannot be made up". Stops and watched time are optional too; a missing one is named. */
 import { niceScale } from '../../../lib/niceScale';
 import { andList, duration, fmt, gbp, pct } from '../format';
-import { project } from '../stopsProjection';
+import { project, stopsForPrecision } from '../stopsProjection';
 import type { CalcDef, CalcMoney, CalcPicture, CalcResult, Field, Inputs, Problem, Values } from '../types';
 
 export const MAX_STATIONS = 30;
@@ -24,7 +24,8 @@ const HORIZONS = [1, 2, 3, 4, 5, 8, 10, 11, 12, 24];
 /** The hours the sample is carried forward over: a chip, the hours a week the line runs, or hours typed. */
 const horizonHours = (v: Values): number | undefined => {
   const h = (v.horizon as string | undefined) ?? '8';
-  const n = h === 'week' ? num(v, 'weekH') : h === 'custom' ? num(v, 'customH') : Number(h);
+  const typed = num(v, 'customH');
+  const n = typed !== undefined && typed > 0 ? typed : h === 'week' ? num(v, 'weekH') : h === 'custom' ? undefined : Number(h);
   return n !== undefined && n > 0 ? n : undefined;
 };
 const horizonSaid = (v: Values, h: number): string => (v.horizon === 'week' ? `a week (${fmt(h, 1)} hours)` : `${fmt(h, 1)} hour${h === 1 ? '' : 's'}`);
@@ -97,10 +98,11 @@ const def: CalcDef = {
       help: 'This is the sample. The longer you watch, the surer the carried-forward figure is. Press Start watching while you press the Stopped buttons, Pause when you leave: come back later, press it again, and the time adds on. Or type the minutes.' },
     { id: 'horizon', label: 'What would it be if it carries on for', kind: 'choice', default: '8', place: 'below',
       chosen: 'A shift of 8 hours until you pick another. The sample is carried forward in proportion to the time watched.',
-      options: [...HORIZONS.map(h => ({ value: String(h), label: `${h} ${h === 1 ? 'hour' : 'hours'}` })), { value: 'week', label: 'A week' }, { value: 'custom', label: 'Another' }] },
+      options: [...HORIZONS.map(h => ({ value: String(h), label: `${h} ${h === 1 ? 'hour' : 'hours'}` })), { value: 'week', label: 'A week' }] },
     { id: 'weekH', label: 'Hours the line runs in a week', unit: 'hours', kind: 'number', min: 0.000001, optional: true, place: 'below', showIf: v => v.horizon === 'week',
       help: 'Asked, never assumed: the days it runs × the hours a day.' },
-    { id: 'customH', label: 'Hours to carry it forward over', unit: 'hours', kind: 'number', min: 0.000001, optional: true, place: 'below', showIf: v => v.horizon === 'custom' },
+    { id: 'customH', label: 'Or type any number of hours', unit: 'hours', kind: 'number', min: 0.000001, optional: true, place: 'below',
+      help: 'Any number — 6, 36, 2000. When a number is here it is used instead of the button picked above; empty it to go back to the button.' },
     { id: 'conf', label: 'How sure to be', kind: 'choice', default: '95', place: 'below', compact: true,
       chosen: '95% until you pick another: the range is one we are that confident the true figure falls in.',
       options: [{ value: '90', label: '90%' }, { value: '95', label: '95%' }, { value: '99', label: '99%' }] },
@@ -160,6 +162,8 @@ const def: CalcDef = {
     else if (proj && !proj.range) more.push(`Carried on for ${horizonSaid(v, H as number)}: about ${fmt(proj.lost, 1)} ${u} lost — but no range can be given because ${proj.noRange}.`);
     else if (proj && proj.range && proj.need && proj.firm) {
       more.push(`Carried on for ${horizonSaid(v, H as number)}: about ${fmt(proj.lost, 1)} ${u} lost — between ${fmt(proj.range.lo, 1)} and ${fmt(proj.range.hi, 1)} ${u} at ${cpct} confidence — from ${fmt(stops, 0)} stop${stops === 1 ? '' : 's'} in ${duration(watched / 60)} of watching.`);
+      const fair = stopsForPrecision(0.5, conf), firm = stopsForPrecision(0.25, conf);
+      more.push(`How confidence grows: at ${cpct} it takes ${fmt(fair, 0)} stops to be Fair (within ±50%) and ${fmt(firm, 0)} to be Firm (within ±25%). You have ${fmt(stops, 0)}. A lower “how sure” needs fewer stops${cpct === '99%' ? `; at 95% Firm needs ${fmt(stopsForPrecision(0.25, 0.95), 0)}` : ''}.`);
       more.push(`Confidence: ${proj.firm}. The range runs from ${fmt(proj.count.lo / stops, 2)}× to ${fmt(proj.count.hi / stops, 2)}× of what the sample says, because so few stops cannot pin the rate down. It rests on the ${fmt(stops, 0)} stop${stops === 1 ? '' : 's'} counted, not on the minutes watched: more minutes with no more stops only lower the rate, they do not tighten the range. ${proj.need.watchMore > 0 ? `About ${fmt(proj.need.stops, 0)} stops — roughly ${duration(proj.need.watchMore / 60)} more watching at this rate — would bring it within ±25%.` : 'Enough stops are in for it to be within ±25%.'}`);
     }
 

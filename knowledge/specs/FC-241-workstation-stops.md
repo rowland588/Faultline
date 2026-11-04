@@ -79,7 +79,7 @@ Rowland, 4 November: *"my sample size of time might be X, but I'll then want to 
 11. The Garwood bounds, the carried-forward figures and the stops needed equal the SciPy cases above — *proved by* `workstationStops.test.ts` and `lib/ie/dist` tests.
 12. A horizon chip changes the figures and the chart's last point; the confidence range is the module's; 90 · 95 · 99% change it — `workstation-stops.mjs` step 8.
 13. A longer time watched narrows the range (60 → 240 min at the same rate): the Watch button adds the elapsed minutes and the record, reopened, keeps them and adds more — `workstation-stops.mjs` step 8.
-14. *A week* asks the hours a week and refuses to guess; *Another* takes typed hours — `workstation-stops.mjs` step 8.
+14. *A week* asks the hours a week and refuses to guess; an always-present *Or type any number of hours* box takes any hours and wins over the button (2,000 is accepted) — `workstation-stops.mjs` step 8.
 15. No stops seen says the upper bound only; stops with no count says why no range — `workstationStops.test.ts`.
 16. The chart is drawn: the sample's line, the two dashed range lines, the observed dot; on the paper too — `workstation-stops.mjs` steps 8–9.
 Not yet proved: the full gate.
