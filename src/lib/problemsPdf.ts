@@ -19,6 +19,7 @@ import { snagsReading } from './snagsReport';
 import type { SnagCardRow, JobCardRow } from './buildSnagCards';
 
 import { isOpenOnLine } from './lineWork';
+import { scopeReader, type ScopeOf } from './problemScope';
 export interface ProblemsScope {
   /** The report's title — "Line 2B — problems", "Line 2 commissioning — problems". */
   title: string;
@@ -30,22 +31,31 @@ export interface ProblemsScope {
   jobName: (id?: string) => string | undefined;
   assetName?: (s: Snag) => string | undefined;
   stillOf?: (s: Snag) => string | undefined;
+  /** Which program and products each is about, in words (lib/problemScope scopeReader). */
+  scopeOf?: (s: Snag) => string | undefined;
 }
 
 /** THE REPORT's reading for a scope — what is still open in it, read afresh. */
 export function problemsReadingFor(x: ProblemsScope, o: { closed?: boolean } = {}) {
   const r = snagsReading({ snags: x.snags.filter(s => !s.deletedAt && !s.archivedAt), jobs: x.jobs, lineName: x.lineName, jobName: x.jobName,
-    became: new Map(), register: true, assetName: x.assetName, stillOf: x.stillOf });
+    became: new Map(), register: true, assetName: x.assetName, stillOf: x.stillOf, scopeOf: x.scopeOf });
   /* the line's full package keeps the closed ones too (3 November — Rowland: "add the closed problems"): what was put right is part of what happened */
   const lines = r.lines.map(l => ({ ...l, rows: o.closed ? l.rows : l.rows.filter(row => row.status !== 'closed') })).filter(l => l.rows.length);
   const jobs = r.jobs.map(g => ({ ...g, rows: o.closed ? g.rows : g.rows.filter(row => row.open) })).filter(g => g.rows.length);
   return { ...r, lines, jobs, moved: [] };
 }
 
+/** Which program and products each problem is about, read through every program on the device (lib/problemScope) — for a paper that is made
+ *  where the page does not hold the programs. */
+export async function scopeOfAll(): Promise<ScopeOf> {
+  const { listAllPrograms } = await import('../db');
+  return scopeReader(await listAllPrograms());
+}
+
 /** THE REPORT for a scope — what is still open in it, read afresh. */
 export async function saveProblemsReportFor(x: ProblemsScope): Promise<void> {
   const { saveSnagsReport } = await import('./buildSnagsReport');
-  await saveSnagsReport(problemsReadingFor(x), x.title);
+  await saveSnagsReport(problemsReadingFor({ ...x, scopeOf: x.scopeOf ?? await scopeOfAll() }), x.title);
 }
 
 /** THE CARDS for a scope — one page per problem still open, a line's and a

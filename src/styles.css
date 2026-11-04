@@ -15803,3 +15803,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .mpic-acts { display: flex; flex-wrap: wrap; gap: var(--s-2, 8px); }
 .mpic-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2, 8px); }
 .mpic-thumb { display: block; width: 64px; height: 48px; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface-2); }
+
+/* the line's crew and hourly rate, typed where the line is set up (ProductionLineScreen) */
+.pl-rate { display: flex; flex-wrap: wrap; gap: var(--s-3, 12px); margin-top: var(--s-2, 8px); }
+.pl-rate-f { display: grid; gap: 4px; flex: 1 1 10rem; max-width: 16rem; }
+.pe-rate { margin-top: var(--s-2, 8px); }

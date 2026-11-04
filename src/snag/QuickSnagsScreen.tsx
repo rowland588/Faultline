@@ -58,6 +58,8 @@ import { useLineRecords } from '../lib/useLineRecords';
 import { LeanClosing } from '../ui/Lean';
 import { registerClosing } from '../lib/problemsLean';
 import { machinesOf } from '../lib/lineRecords';
+import { productsOf, type Program } from '../lib/programs';
+import { scopeReader } from '../lib/problemScope';
 import { WASTES, WASTE_KINDS as WASTE_KINDS_ALL, isWaste, wasteTag } from '../tools/waste/waste';
 import { WastePanel, WasteChips } from '../tools/waste/WastePanel';
 
@@ -236,12 +238,16 @@ export function QuickSnagsScreen() {
      row, the editor, the card, the report and the closing line */
   const costOf = useCallback((s: Snag): ProblemCost | undefined => problemCost(s, s.assetId ? frames.get(s.assetId)?.name : s.targetAsset,
     lines.find(w => w.id === s.workspaceId) ?? shelved.find(w => w.id === s.workspaceId), neckOf(standards, s.workspaceId)), [frames, lines, shelved, standards]);
+  /* the program names a problem's link is read through (lib/problemScope) */
+  const [allPrograms, setAllPrograms] = useState<Program[]>([]);
+  useEffect(() => { let on = true; const load = () => void listAllPrograms().then(p => { if (on) setAllPrograms(p); }); load(); const off = onDataChange(load); return () => { on = false; off(); }; }, []);
+  const scopeOf = useMemo(() => scopeReader(allPrograms), [allPrograms]);
   const reading = useMemo(() => snagsReading({
     snags: narrowed.map(s => (goneLines.has(s.workspaceId) ? { ...s, workspaceId: NO_LINE } : s)), lineName, jobName: liveJobName, became: new Map(), register: true, jobs: jobGroups,
     assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined),
     stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined),
-    costOf,
-  }), [narrowed, lineName, liveJobName, frames, jobGroups, goneLines, costOf]);
+    costOf, scopeOf,
+  }), [narrowed, lineName, liveJobName, frames, jobGroups, goneLines, costOf, scopeOf]);
   const c = reading.counts;
 
   /* What the chosen count shows. */
@@ -390,7 +396,7 @@ export function QuickSnagsScreen() {
     try {
       if (kind === 'report') {
         await saveProblemsReportFor({ title: `${name} — problems`, snags: list, jobs, lineName, jobName,
-          assetName: s => frameName(s), stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined) });
+          assetName: s => frameName(s), stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined), scopeOf });
       } else {
         await saveProblemCardsFor({ name, lineRows: list.map(lineCard), jobRows: jobs.flatMap(g => g.rows.map(row => ({ row, job: g.job }))) });
       }
@@ -399,7 +405,7 @@ export function QuickSnagsScreen() {
       window.alert('Sorry — the PDF could not be made. Please try again.');
     } finally { setBusy(''); }
   };
-  const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: frameName(s) ?? s.targetAsset ?? 'No machine named', ...(costOf(s) || isWaste(s.waste) ? { cost: [isWaste(s.waste) ? `Waste: ${WASTES[s.waste].name}.` : '', costOf(s)?.words ?? ''].filter(Boolean).join(' ') } : {}) });
+  const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: frameName(s) ?? s.targetAsset ?? 'No machine named', ...(scopeOf(s) ? { scope: scopeOf(s) } : {}), ...(costOf(s) || isWaste(s.waste) ? { cost: [isWaste(s.waste) ? `Waste: ${WASTES[s.waste].name}.` : '', costOf(s)?.words ?? ''].filter(Boolean).join(' ') } : {}) });
   const cards = async (list: Snag[]) => {
     if (busy || !list.length) return;
     setBusy('cards');
@@ -564,7 +570,7 @@ export function QuickSnagsScreen() {
                       {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name="camera" size={18} /></span>}
                       <span className="qsl-body">
                         <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
-                        <span className="qsl-meta">{[group === 'who' ? r.line : '', r.machine ?? '', r.waste && group !== 'waste' ? wasteTag(r.waste) : '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>
+                        <span className="qsl-meta">{[group === 'who' ? r.line : '', r.machine ?? '', r.scope ?? '', r.waste && group !== 'waste' ? wasteTag(r.waste) : '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>
                         {r.cost && <span className="qsl-meta qsl-cost">{r.cost.short}</span>}
                         {last
                           ? <span className="qsl-meta preg-last">{r.journey.length} step{r.journey.length === 1 ? '' : 's'} — {last.day}: {last.did}{last.result ? ` → ${last.result}` : ''}</span>
@@ -844,7 +850,7 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
 }) {
   const machine = frame?.name ?? s.targetAsset ?? '';
   const typed = !frame && !!s.targetAsset && !machines.some(m => m.toLowerCase() === s.targetAsset?.trim().toLowerCase());
-  const [linePrograms, setLinePrograms] = useState<{ id: string; what: string }[]>([]);
+  const [linePrograms, setLinePrograms] = useState<{ id: string; what: string; products: string[] }[]>([]);
   useEffect(() => {
     let live = true;
     void Promise.all([listAllPrograms(), allPaceLines(), listAllAssets()]).then(([progs, jl, assets]) => {
@@ -858,15 +864,14 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
           return !name || name === mach;
         })
         : onLine;
-      setLinePrograms(narrowed.slice(0, 16).map(p => ({ id: p.id, what: p.what.trim() || 'Program' })));
+      /* the program it is linked to stays offered whatever the machine says (the link is kept, never hidden) */
+      const chosen = s.programId ? onLine.find(p => p.id === s.programId) : undefined;
+      const shown = narrowed.slice(0, 16);
+      if (chosen && !shown.some(p => p.id === chosen.id)) shown.push(chosen);
+      setLinePrograms(shown.map(p => ({ id: p.id, what: p.what.trim() || 'Program', products: productsOf(p.runs) })));
     });
     return () => { live = false; };
-  }, [s.workspaceId, machine]);
-  const tieProgram = (what: string) => {
-    const tag = what.trim();
-    if (!tag || (s.problem ?? '').includes(tag)) return;
-    put({ problem: (s.problem ?? '').trim() ? `${(s.problem ?? '').trim()} · ${tag}` : tag });
-  };
+  }, [s.workspaceId, machine, s.programId]);
   /* CLOSED ASKS WHAT SHOWS IT IS FIXED — one optional line, kept as the last step of its journey and so on its card
      and the Problems report (FLOW-AUDIT #12: "one tap closes it ... its last step read 'Ran 2 h without a jam, then
      jammed again', and it still closed with nothing asked"). Proof is OPEX's fifth move; the 6M asks "Did it work",
@@ -947,18 +952,41 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
               onSave={v => put({ targetAsset: v.trim() || undefined })} />
           </>}
       </div>
-      {linePrograms.length > 0 && (
-        <div className="pe-f pe-wide"><span className="pe-k">PROGRAM <i className="cw-f-opt">if the fault is on a product run</i></span>
-          <div className="chip-row" role="group" aria-label="Which program">
-            {linePrograms.map(p => (
-              <button key={p.id} type="button" className="chip" onClick={() => tieProgram(p.what)}>{p.what}</button>
-            ))}
-          </div>
-          <button type="button" className="linkish btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(s.workspaceId)}`)}>
-            Every program on {lineName(s.workspaceId)} ›
-          </button>
-        </div>
-      )}
+      {/* THE PROGRAM IT IS ABOUT, AND THE PRODUCTS IT AFFECTS (PROBLEM_PROGRAM.sql — Rowland, 4 November: "link a problem to the program ... pick which
+          products it actually affects ... a program that does three products, but that product is a little bit different"). Neither picked = about the
+          line; a program alone = all of its products; products picked = only those. It is on the Problems report and cards, and under the program on the
+          Programs report, with its pictures. */}
+      {linePrograms.length > 0 && (() => {
+        const prog = linePrograms.find(p => p.id === s.programId);
+        const offered = prog ? prog.products : linePrograms.flatMap(p => p.products).filter((x, i, a) => a.findIndex(y => y.toLowerCase() === x.toLowerCase()) === i);
+        const picked = s.products ?? [];
+        const has = (x: string) => picked.some(y => y.toLowerCase() === x.toLowerCase());
+        const toggle = (x: string) => { const next = has(x) ? picked.filter(y => y.toLowerCase() !== x.toLowerCase()) : [...picked, x]; put({ products: next.length ? next : undefined }); };
+        return (
+          <>
+            <div className="pe-f pe-wide"><span className="pe-k">PROGRAM <i className="cw-f-opt">if the fault is on a program — leave it off when it is about the whole line</i></span>
+              <div className="chip-row" role="group" aria-label="Which program">
+                {linePrograms.map(p => (
+                  <button key={p.id} type="button" className={'chip' + (s.programId === p.id ? ' on' : '')} aria-pressed={s.programId === p.id}
+                    onClick={() => put(s.programId === p.id ? { programId: undefined, products: undefined } : { programId: p.id, products: undefined })}>{p.what}</button>
+                ))}
+              </div>
+              <button type="button" className="linkish btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(s.workspaceId)}`)}>
+                Every program on {lineName(s.workspaceId)} ›
+              </button>
+            </div>
+            {(offered.length > 0 || picked.length > 0) && (
+              <div className="pe-f pe-wide"><span className="pe-k">PRODUCTS IT AFFECTS <i className="cw-f-opt">{prog ? `none picked = every product ${prog.what} makes` : 'none picked = all of them'}</i></span>
+                <div className="chip-row" role="group" aria-label="Which products">
+                  {[...offered, ...picked.filter(x => !offered.some(o => o.toLowerCase() === x.toLowerCase()))].map(x => (
+                    <button key={x} type="button" className={'chip' + (has(x) ? ' on' : '')} aria-pressed={has(x)} onClick={() => toggle(x)}>{x}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
       <label className="pe-f pe-wide"><span className="pe-k">PROJECT <i className="cw-f-opt">if it is for one</i></span>
         <select className="text-input" value={s.projectId ?? ''} aria-label="Which project" onChange={e => put({ projectId: e.target.value || undefined })}>
           <option value="">No project</option>
@@ -995,6 +1023,10 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
             onSave={v => { const n = Number(v.trim().replace(/,/g, '')); put({ heldPacks: v.trim() && Number.isFinite(n) && n >= 0 && n <= 100_000_000 ? n : undefined }); }} /></label>
       </div>
       <p className="pe-cost">{cost ? cost.words : 'Say the minutes, the rejects or the packs on hold to see what it costs — labour for the minutes, and the packs and contribution lost where it stops the line; the rejects at the line’s materials a pack; the product held as money tied up.'}</p>
+      {/* NO HOURLY RATE ON THE LINE: said where it is typed, one tap (Rowland, 4 November: "nowhere for me to put the hourly rate in") */}
+      {cost?.missing.includes('wage') && lines.some(w => w.id === s.workspaceId) && (
+        <button type="button" className="btn btn-sm pe-rate" onClick={() => nav(`/lines/${encodeURIComponent(s.workspaceId)}?view=setup`)}>Add the hourly rate on {lineName(s.workspaceId)} ›</button>
+      )}
 
       <Journey s={s} put={put} />
 

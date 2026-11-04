@@ -20,6 +20,7 @@ import type { SnagCardData, SnagCardPhoto, SnagCardSet } from './snagCardPdf';
 import type { MediaPin } from '../types';
 import type { JobRow } from './snagsReport';
 import { drawMarks } from './testReport';
+import { scopeReader } from './problemScope';
 
 const DAY = 86_400_000;
 const MAX_EDGE = 1400;
@@ -77,7 +78,7 @@ async function photoFrom(key: string | undefined, pin?: { xPct?: number; yPct?: 
   }
 }
 
-export interface SnagCardRow { snag: Snag; asset?: SnagAsset; assetName: string; /** lib/problemCost words, when its minutes are typed (FC-154) */ cost?: string }
+export interface SnagCardRow { snag: Snag; asset?: SnagAsset; assetName: string; /** lib/problemCost words, when its minutes are typed (FC-154) */ cost?: string; /** lib/problemScope words — which program and products */ scope?: string }
 
 /** Everything the drawer needs for a set of snags, photographs and all.
  *  Sequential on purpose: decoding several full-size frames at once is how you
@@ -88,7 +89,7 @@ export async function buildSnagCards(
   filterNote?: string,
 ): Promise<SnagCardSet> {
   const snags: SnagCardData[] = [];
-  for (const { snag, asset, assetName, cost } of rows) {
+  for (const { snag, asset, assetName, cost, scope } of rows) {
     const still = await photoFrom(asset?.stillKey, { xPct: snag.xPct, yPct: snag.yPct });
     /* A quick snag keeps its pictures in `media` (snag/quick): its first photo
        is the close-up when it has no close-up of its own — with its marks. */
@@ -98,6 +99,7 @@ export async function buildSnagCards(
       problem: snag.problem || 'Evidence',
       proposedSolution: snag.proposedSolution || undefined,
       ...(cost ? { cost } : {}),
+      ...(scope ? { scope } : {}),
       status: snag.status,
       statusLabel: SNAG_STATUS_META[snag.status].label,
       owner: snag.owner || '',
@@ -140,7 +142,9 @@ async function jobCard({ row, job }: JobCardRow): Promise<SnagCardData> {
 export async function problemCardsDoc(items: ({ line: SnagCardRow } | { job: JobCardRow })[], workspace: string, filterNote?: string) {
   const { jsPDF } = await loadPdfLib();
   const { drawSnagCards } = await import('./snagCardPdf');
-  const lineSet = await buildSnagCards(items.flatMap(x => ('line' in x ? [x.line] : [])), workspace, filterNote);
+  /* which program and products each is about, read through every program on the device whenever the caller has not said (lib/problemScope) */
+  const scopeOf = scopeReader(await (await import('../db')).listAllPrograms());
+  const lineSet = await buildSnagCards(items.flatMap(x => ('line' in x ? [{ ...x.line, ...(x.line.scope ?? scopeOf(x.line.snag) ? { scope: x.line.scope ?? scopeOf(x.line.snag) } : {}) }] : [])), workspace, filterNote);
   const cards: SnagCardData[] = [];
   let k = 0;
   for (const x of items) cards.push('line' in x ? lineSet.snags[k++] : await jobCard(x.job));

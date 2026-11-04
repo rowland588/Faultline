@@ -634,6 +634,18 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           <dt>Shifts</dt><dd className={facts.shifts ? '' : 'is-n'}>{facts.shifts ?? 'Not said yet — the loss count and capacity a shift need them'}</dd>
           <dt>Crew and cost</dt><dd className={facts.crew || facts.cost ? '' : 'is-n'}>{[facts.crew, facts.cost].filter(Boolean).join(' · ') || 'Not said yet — what a stop costs needs them'}</dd>
         </dl>
+        {/* THE HOURLY RATE, WHERE THE LINE IS SET UP (Rowland, 4 November: "nowhere for me to put the cost of labour per hour ... how are we generating costs on anything?").
+            It was only in a study's setup sheet; here it is typed in place — every cost in the app (a stop, a problem, a pack) is worked from it. */}
+        {may && (
+          <div className="pl-rate" data-line-rate>
+            <label className="pl-rate-f"><span className="pe-k">PEOPLE ON THE LINE</span>
+              <input className="text-input" type="number" inputMode="decimal" min={0} step="1" defaultValue={line.crew ?? ''} key={`crew-${line.crew ?? ''}`} placeholder="e.g. 6" aria-label="People on the line"
+                onBlur={e => { const raw = e.target.value.trim(), v = parseFloat(raw); void updateWorkspace({ ...line, crew: raw && Number.isFinite(v) && v > 0 ? v : undefined }); }} /></label>
+            <label className="pl-rate-f"><span className="pe-k">£ AN HOUR EACH</span>
+              <input className="text-input" type="number" inputMode="decimal" min={0} step="0.01" defaultValue={line.labourRatePerHour ?? ''} key={`rate-${line.labourRatePerHour ?? ''}`} placeholder="e.g. 18.50" aria-label="Labour rate, pounds an hour each"
+                onBlur={e => { const raw = e.target.value.trim(), v = parseFloat(raw); void updateWorkspace({ ...line, labourRatePerHour: raw && Number.isFinite(v) && v > 0 ? v : undefined }); }} /></label>
+          </div>
+        )}
       </section>)}
 
       {show('overview') && reading && <LeanClosing closing={lineClosing(reading)} />}

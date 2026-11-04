@@ -84,6 +84,11 @@ export interface Snag {
    *  looked at; 'none' is the answer "not a waste" (a hazard, a breakdown), told apart from absent, which is "not classed yet". Where it is, how big and what it
    *  costs are the problem's own (machine, minutesPerDay, rejectsPerDay, heldPacks). */
   waste?: WasteKind | 'none';
+  /** THE PROGRAM IT IS ABOUT, and which of its products (PROBLEM_PROGRAM.sql — Rowland, 4 November: "link a problem to the program ... pick which products it
+   *  actually affects"). No program = general, about the line. A program with no products named = all of that program's products; products named = only those
+   *  (a program running three products where one of them is a little different). With no program, products named are any the line makes. */
+  programId?: ID;
+  products?: string[];
   proposedSolution?: string;
   status: SnagStatus;
   owner?: string;            // assignee name (free text)

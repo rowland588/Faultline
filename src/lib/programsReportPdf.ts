@@ -17,6 +17,7 @@ import { leanClosing } from './report/lean';
 import type { LeanTile } from './lean';
 import { programClosing } from './stageGatePages';
 import { SIZE, box, font, gap, rows, text, wrap } from './report/blocks';
+import type { ProgramProblemPaper } from './programProblems';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#12171c', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', AMBER = '#b45309';
@@ -34,10 +35,21 @@ const sanLine = (l: ProgramLine): ProgramLine => ({
 
 /** Each machine's programs, a row each: the program and its state on one
  *  line, what was seen and what was said before under it. */
-export function programsBlocks(reading: ProgramsReading, d: Density, o: { machineLabels?: boolean } = {}): Block[] {
+export function programsBlocks(reading: ProgramsReading, d: Density, o: { machineLabels?: boolean;
+  /** The register's problems that name a program, by program id, with their pictures (lib/programProblems). */
+  problems?: Map<string, ProgramProblemPaper[]> } = {}): Block[] {
   const out: Block[] = [];
   /* the state pill leads the row, big and in its colour; the program after it; the day and what was seen at the right */
   const pillW = 62, stateW = 128, indent = pillW + 12;
+  /* PROBLEMS ON THIS PROGRAM (Rowland, 4 November): a box of its own, a picture and the words a problem */
+  const THUMB = 46;
+  const probsOf = (f: Frame, l: ProgramLine) => ((l.programId ? o.problems?.get(l.programId) : undefined) ?? []).map(x => ({
+    x, lines: wrap(f.doc, san(`${x.what}`), f.w - indent - 22 - (x.photo ? THUMB + 10 : 0), 9, 'bold'),
+    sub: wrap(f.doc, san(`Affects: ${x.products}   ·   ${x.word}${x.owner ? `   ·   ${x.owner}` : ''}`), f.w - indent - 22 - (x.photo ? THUMB + 10 : 0), 8),
+  }));
+  const probH = (p: ReturnType<typeof probsOf>[number]) => Math.max(x_h(p), p.x.photo ? THUMB + 4 : 0) + 6;
+  const x_h = (p: ReturnType<typeof probsOf>[number]) => 12 + p.lines.length * 11 + p.sub.length * 10;
+  const probsBoxH = (f: Frame, l: ProgramLine) => { const ps = probsOf(f, l); return ps.length ? 24 + ps.reduce((n, p) => n + probH(p), 0) + 6 : 0; };
   const parts = (f: Frame, l: ProgramLine) => ({
     head: wrap(f.doc, `${l.what}${l.runs ? ` — runs ${l.runs}` : ''}`, f.w - indent - stateW - 10, 10, 'bold'),
     who: l.who ? wrap(f.doc, l.who, f.w - indent - stateW - 10, 8) : [],
@@ -64,7 +76,7 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
   const statBoxH = (p: { stat: string[]; cav: string[] }) => (p.stat.length || p.cav.length ? 14 + (p.stat.length ? 10 + p.stat.length * 12.5 : 0) + (p.cav.length ? 12 + p.cav.length * 12 : 0) + 10 : 0);
   const height = (f: Frame, l: ProgramLine) => {
     const p = parts(f, l);
-    return 8 + Math.max(p.head.length * 13 + p.who.length * 10, p.word.length * 10, 16) + (p.note.length ? 14 + p.note.length * 11 : 0) + p.run.length * 11 + statBoxH(p) + p.ahead.length * 10 + p.crit.length * 11 + p.each.reduce((n, c) => n + c.lines.length * 10, 0) + (p.earlier.length + p.proving.length + p.proof.length) * 10 + p.tests.reduce((n, t) => n + 12 + t.lines.length * 10 + t.notes.length * 11 + t.studies.length * 9, 0) + 6;
+    return 8 + Math.max(p.head.length * 13 + p.who.length * 10, p.word.length * 10, 16) + (p.note.length ? 14 + p.note.length * 11 : 0) + p.run.length * 11 + statBoxH(p) + p.ahead.length * 10 + p.crit.length * 11 + p.each.reduce((n, c) => n + c.lines.length * 10, 0) + (p.earlier.length + p.proving.length + p.proof.length) * 10 + p.tests.reduce((n, t) => n + 12 + t.lines.length * 10 + t.notes.length * 11 + t.studies.length * 9, 0) + 6 + probsBoxH(f, l);
   };
   for (const g of reading.machines.map(m => ({ ...m, name: san(m.name), lines: m.lines.map(sanLine) }))) {
     /* The machine's name as it is written — a capitalised label lost it to
@@ -123,6 +135,26 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
               ty += 3;
             }
           }
+          /* PROBLEMS ON THIS PROGRAM — a box of its own: each problem with its picture, how serious (a word and its colour), what it affects and whose */
+          const ps = probsOf(f, l);
+          if (ps.length) {
+            const bx = f.x + indent - 2, bw = f.w - indent + 2, bh = probsBoxH(f, l) - 6;
+            f.doc.setFillColor('#ffffff'); f.doc.setDrawColor(BRAND); f.doc.setLineWidth(0.9); f.doc.roundedRect(bx, ty, bw, bh, 3, 3, 'FD');
+            f.doc.setFillColor(BAND); f.doc.roundedRect(bx, ty, bw, 16, 3, 3, 'F');
+            font(f.doc, 7, 'bold', INK2); f.doc.text(`PROBLEMS ON THIS PROGRAM — ${ps.filter(q => q.x.open).length} OPEN OF ${ps.length}`, bx + 9, ty + 11);
+            let py = ty + 22;
+            for (const q of ps) {
+              const rowH = probH(q);
+              if (q.x.photo) { try { f.doc.addImage(q.x.photo.dataUrl, 'JPEG', bx + 8, py, THUMB * Math.min(1.5, q.x.photo.w / q.x.photo.h), THUMB); } catch { /* an unreadable picture: its words still print */ } }
+              const tx = bx + 8 + (q.x.photo ? THUMB * Math.min(1.5, q.x.photo.w / q.x.photo.h) + 10 : 0);
+              const pc = q.x.priority === 'critical' ? DANGER : q.x.priority === 'high' ? AMBER : OK;
+              font(f.doc, 7, 'bold', pc); f.doc.text(q.x.priority.toUpperCase(), tx, py + 8);
+              font(f.doc, 9, 'bold', INK); f.doc.text(q.lines, tx + 44, py + 8);
+              font(f.doc, 8, 'normal', INK2); f.doc.text(q.sub, tx, py + 8 + q.lines.length * 11 + 1);
+              py += rowH;
+            }
+            ty += bh + 6;
+          }
           if (p.earlier.length) { font(f.doc, 8, 'normal', MUTED); f.doc.text(p.earlier, f.x + indent, ty); }
         },
       })),
@@ -148,6 +180,7 @@ export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: s
   money?: LeanTile }): Promise<void> {
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const r = x.reading;
+  const problems = await (await import('./programProblems')).problemsByProgram().catch(() => undefined);
   const name = san(x.name);
   const blocks = (d: Density): Block[] => {
     const out: Block[] = [];
@@ -176,10 +209,10 @@ export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: s
     if (r.statusSays) out.push(text({ text: san(r.statusSays), size: 9, colour: INK2, after: gap(d, 'm') }));
     /* a job with none of its own, and its line's to show, says so in a line —
        never "No programs yet" over the line's */
-    if (r.total || !x.linePrograms?.length) out.push(...programsBlocks(r, d));
+    if (r.total || !x.linePrograms?.length) out.push(...programsBlocks(r, d, { problems }));
     for (const lp of x.linePrograms ?? []) {
       out.push({ ...text({ text: `On ${san(lp.line)}, with no project — ${san(lp.reading.says)}`, size: SIZE.h2, style: 'bold', before: gap(d, 's'), after: 4 }), keepWithNext: true });
-      out.push(...programsBlocks(lp.reading, d));
+      out.push(...programsBlocks(lp.reading, d, { problems }));
     }
     /* THE CLOSING LINE (docs/LEAN-PAGE.md; lib/stageGatePages) — the programs in
        one sentence, as the page closes; the tiles above are its chips */
@@ -202,13 +235,14 @@ export async function drawOneProgramReport(doc: jsPDF, x: { lineName: string; pr
   const line = x.reading.lines[0];
   if (!line) return;
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
+  const problems = await (await import('./programProblems')).problemsByProgram().catch(() => undefined);
   const name = san(line.what);
   const blocks = (d: Density): Block[] => {
     const out: Block[] = [];
     out.push(text({ text: x.eyebrow ?? 'PROGRAM · PRODUCTION LINE', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
     out.push(text({ text: name, size: SIZE.title, style: 'bold', after: 4 }));
     out.push(text({ text: [`On ${san(x.lineName)}`, line.machine ? `Machine: ${san(line.machine)}` : '', `Printed ${san(x.printed)}`].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
-    out.push(...programsBlocks(x.reading, d, { machineLabels: false }));
+    out.push(...programsBlocks(x.reading, d, { machineLabels: false, problems }));
     return out;
   };
   const density = await chooseDensity(base, d => blocks(d));

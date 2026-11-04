@@ -41,6 +41,8 @@ import { lineKit } from '../lib/lineRecords';
 import { useCanStartProjects } from '../cloud/access';
 import { lineProblems, type LineProblems } from '../lib/lineWork';
 import { PageHeader } from '../ui/parts';
+import { useProfile } from '../cloud/admin';
+import { AdminPanel } from '../cloud/AdminPanel';
 import { ControlRoomReports } from '../ui/ControlRoomReports';
 import { lastOpen, type Place } from '../lib/recentPlaces';
 import { liveRecentPlaces } from '../lib/recentPlacesLive';
@@ -75,6 +77,8 @@ export function WorkspaceHome() {
      fills this in); every other paper is the control room's Reports sheet. */
   const roomReport = useRef<(() => Promise<void>) | null>(null);
   const [allPapers, setAllPapers] = useState(false);
+  const { profile } = useProfile();
+  const [team, setTeam] = useState(false);
   /* where this device was last — read when the page opens; the frame notes each place as it is opened */
   const [places, setPlaces] = useState<Place[]>([]);
   /* LINE TALK, one tap from home (20 October: "I open Faultline, talk or type") — start one, or carry on the latest */
@@ -371,13 +375,17 @@ export function WorkspaceHome() {
           button that sat here are the frame's top bar now (ui/Frame), on
           every screen alike — so the control room is a page in the frame
           like any other, and its name says which. */}
+      {/* TEAM & INVITES, where the Factory's other settings are (Rowland, 4 November: "we used to have an invite system ... put that back"): it was only behind the
+          account circle, top right; a super admin finds it here too. The database still lets in only the people invited (allowed_emails). */}
       <PageHeader title="Factory"
         says={factoryLede}
+        more={profile?.is_super ? [{ label: 'Team & invites', run: () => setTeam(true) }] : undefined}
         primary={mayStart ? { label: 'New project', run: () => nav('/projects?new=1') } : undefined}
         papers={jobs.length > 0 || prodLines.length > 0 ? [
           { label: 'Control room report — 1 page', for: 'For the business — every project and line on one A4: where each is, why, who owes what', make: async () => { await roomReport.current?.(); } },
           { label: 'Every report', for: 'The factory’s, each line’s and each project’s papers, in one list', make: () => setAllPapers(true) },
         ] : []} />
+      {profile?.is_super && <AdminPanel open={team} onClose={() => setTeam(false)} />}
       {allPapers && <ControlRoomReports projects={projects} onClose={() => setAllPapers(false)} />}
       {facQuick}
       {factory}

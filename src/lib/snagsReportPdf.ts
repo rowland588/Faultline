@@ -62,6 +62,8 @@ function snagParts(f: Frame, r: SnagRow): Parts {
     from: ((t: string) => (t ? wrap(f.doc, t, tw, 8) : []))(san([r.machine ?? (/^Taken on the move/.test(r.from) ? '' : r.from), r.waste ? wasteTag(r.waste) : '', r.forJob ? `for ${r.forJob}` : ''].filter(Boolean).join(' · '))),
     /* what we will do, then the journey — on a day, what we did and what came of it */
     note: [
+      /* which program and products it is about (lib/problemScope) */
+      ...(r.scope ? wrap(f.doc, san(`Program and products: ${r.scope}`), tw, 8.5, 'bold') : []),
       ...(r.plan ? wrap(f.doc, san(`Plan: ${r.plan}`), tw, 8.5) : []),
       /* what it costs the line a day while it is open (lib/problemCost, FC-154) */
       ...(r.cost ? wrap(f.doc, san(r.cost.words), tw, 8.5) : []),

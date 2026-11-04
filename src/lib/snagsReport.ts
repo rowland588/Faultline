@@ -125,6 +125,8 @@ export interface SnagRow {
   plan?: string;
   /** The machine it is on — the walk's frame, else the one named. */
   machine?: string;
+  /** Which program and products it is about, in words (lib/problemScope); absent when it is about the whole line. */
+  scope?: string; programId?: string; products?: string[];
   /** Its journey, oldest first: on a day, what was done and what came of it. */
   journey: { id: string; day: string; did: string; result?: string }[];
   photo?: string;
@@ -165,7 +167,7 @@ export interface SnagsReading {
 
 const RANK: Record<SnagStatus, number> = { open: 0, in_progress: 1, closed: 2 };
 
-export function snagRow(s: Snag, line: string, assetName?: string, jobName?: string, ref = Date.now(), still?: string, cost?: ProblemCost): SnagRow {
+export function snagRow(s: Snag, line: string, assetName?: string, jobName?: string, ref = Date.now(), still?: string, cost?: ProblemCost, scope?: string): SnagRow {
   const late = isOverdue(s, ref), d = dueInDays(s, ref);
   const age = ageDays(s.raisedAt, ref);
   /* made a fix on its project: said so, never a bare "Closed" (13 October audit) — the fix itself is under its project */
@@ -193,6 +195,9 @@ export function snagRow(s: Snag, line: string, assetName?: string, jobName?: str
     ...(s.proposedSolution?.trim() ? { plan: s.proposedSolution.trim() } : {}),
     ...((assetName ?? s.targetAsset)?.trim() ? { machine: (assetName ?? s.targetAsset ?? '').trim() } : {}),
     ...(cost ? { cost } : {}),
+    ...(scope ? { scope } : {}),
+    ...(s.programId ? { programId: s.programId } : {}),
+    ...(s.products?.length ? { products: s.products } : {}),
     ...(isWaste(s.waste) ? { waste: s.waste } : s.waste === 'none' ? { notWaste: true } : {}),
     journey: [...(s.journey ?? [])].filter(j => j.did?.trim()).sort((a, b) => a.at - b.at)
       .map(j => ({ id: j.id, day: nice(j.at), did: j.did.trim(), ...(j.result?.trim() ? { result: j.result.trim() } : {}) })),
@@ -365,6 +370,8 @@ export interface SnagsInput {
   stillOf?: (s: Snag) => string | undefined;
   /** What a problem costs the line a day while it is open, from its typed minutes and the line's cost model (lib/problemCost). */
   costOf?: (s: Snag) => ProblemCost | undefined;
+  /** Which program and products a problem is about, in words (lib/problemScope scopeReader). */
+  scopeOf?: (s: Snag) => string | undefined;
   jobName: (projectId?: string) => string | undefined;
   became: Map<string, Became>;
   /** Each job's problems and fixes (jobGroup), when the page reads the jobs too. */
@@ -382,7 +389,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 export function snagsReading(x: SnagsInput): SnagsReading {
   const ref = x.today ?? Date.now();
   const all = x.snags.filter(s => !s.deletedAt);
-  const here = all.filter(s => x.register || !isMoved(s)).map(s => snagRow(s, x.lineName(s.workspaceId), x.assetName?.(s), x.jobName(s.projectId), ref, x.stillOf?.(s), x.costOf?.(s)));
+  const here = all.filter(s => x.register || !isMoved(s)).map(s => snagRow(s, x.lineName(s.workspaceId), x.assetName?.(s), x.jobName(s.projectId), ref, x.stillOf?.(s), x.costOf?.(s), x.scopeOf?.(s)));
   const byLine = new Map<string, SnagRow[]>();
   for (const r of here) byLine.set(r.workspaceId, [...(byLine.get(r.workspaceId) ?? []), r]);
   /* still open first, in order of priority — late first within each — then closed */
