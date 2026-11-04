@@ -45,10 +45,11 @@ function StopTimer({ f, p }: { f: Field; p: Props }) {
     setSince(null);
     const cur = Number(p.draft[f.id]) || 0;
     p.onEdit(f.id, Math.round((cur + add) * 100) / 100);
-    if (f.timer) p.onEdit(f.timer.stops, (Number(p.draft[f.timer.stops]) || 0) + 1);
+    const sf = f.timer?.stops;
+    if (sf) p.onEdit(sf, (Number(p.draft[sf]) || 0) + 1);
     p.onBlur();
   };
-  return <button type="button" data-timer={f.id} className={'btn calc-timer' + (since !== null ? ' is-running' : '')} onClick={press}>{since === null ? 'Stopped' : `Running again — ${say}`}</button>;
+  return <button type="button" data-timer={f.id} className={'btn calc-timer' + (since !== null ? ' is-running' : '')} onClick={press}>{since === null ? (f.timer?.start ?? 'Stopped') : `${f.timer?.stop ?? 'Running again'} — ${say}`}</button>;
 }
 
 function Box({ f: f0, p }: { f: Field; p: Props }) {
@@ -63,10 +64,10 @@ function Box({ f: f0, p }: { f: Field; p: Props }) {
     <div className="field calc-field" data-field={f.id}>
       <span className="field-label">{f.label}{f.optional && !f.money ? <i className="sub"> — optional</i> : null}</span>
       {f.kind === 'choice' ? (
-        <div className={(f.options ?? []).length <= 4 ? 'ie-kinds calc-choices' : 'chip-row calc-choices'} role="radiogroup" aria-label={f.label}>
+        <div className={((f.options ?? []).length <= 4 && !f.compact) ? 'ie-kinds calc-choices' : 'chip-row calc-choices'} role="radiogroup" aria-label={f.label}>
           {(f.options ?? []).map(o => {
             const on = (raw ?? f.default) === o.value;
-            return (f.options ?? []).length <= 4
+            return ((f.options ?? []).length <= 4 && !f.compact)
               ? <button key={o.value} type="button" role="radio" aria-checked={on} disabled={p.disabled} data-value={o.value} className={'ie-kind' + (on ? ' on' : '')} onClick={() => p.onEdit(f.id, o.value)}><b>{o.label}</b>{o.help && <small>{o.help}</small>}</button>
               : <button key={o.value} type="button" role="radio" aria-checked={on} disabled={p.disabled} data-value={o.value} title={o.help} className={'chip' + (on ? ' on' : '')} onClick={() => p.onEdit(f.id, o.value)}>{o.label}</button>;
           })}
@@ -128,8 +129,9 @@ function Tile({ fields, i, p }: { fields: Field[]; i: number; p: Props }) {
 export function CalcForm(p: Props) {
   const v = valuesOf(p.def, p.draft);
   const asked = askedFields(p.def, v);
-  const plain = asked.filter(f => !f.money && f.grid === undefined), money = asked.filter(f => f.money);
+  const plain = asked.filter(f => !f.money && f.grid === undefined && f.place !== 'below'), money = asked.filter(f => f.money);
   const gridFields = asked.filter(f => !f.money && f.grid !== undefined);
+  const below = asked.filter(f => !f.money && f.place === 'below');
   const tileIdx = [...new Set(gridFields.map(f => f.grid as number))];
   const given = money.some(f => p.draft[f.id] !== undefined && p.draft[f.id] !== '');
   const [open, setOpen] = useState(false);
@@ -139,6 +141,7 @@ export function CalcForm(p: Props) {
       <div className="calc-tiles-grid" aria-label="The workstations">
         {tileIdx.map(i => <Tile key={i} i={i} fields={gridFields.filter(f => f.grid === i)} p={p} />)}
       </div>
+      {below.length > 0 && <div className="calc-below">{below.map(f => <Box key={f.id} f={f} p={p} />)}</div>}
     </div>
   );
   if (p.part === 'grid') return grid || null;

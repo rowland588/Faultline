@@ -5,8 +5,10 @@
  * a word of your own — lost every minute (or every hour) the workstation is down. What was lost is minutes × the rate, worked per workstation,
  * summed, and ranked. The rate is the floor's own typed figure (its plate speed, its weigher's flow); nothing is read from a machine. Money
  * is optional: what a unit lost is worth, said as "if it cannot be made up". Stops and watched time are optional too; a missing one is named. */
-import { andList, fmt, gbp, pct } from '../format';
-import type { CalcDef, CalcMoney, CalcResult, Field, Inputs, Problem, Values } from '../types';
+import { niceScale } from '../../../lib/niceScale';
+import { andList, duration, fmt, gbp, pct } from '../format';
+import { project } from '../stopsProjection';
+import type { CalcDef, CalcMoney, CalcPicture, CalcResult, Field, Inputs, Problem, Values } from '../types';
 
 export const MAX_STATIONS = 30;
 const nn = (i: number): string => String(i + 1).padStart(2, '0');
@@ -18,6 +20,15 @@ const UNITS: Record<string, string> = { kg: 'kg', units: 'units', packs: 'packs'
 const unitOf = (v: Values): string => (v.unit === 'other' ? text(v, 'other') || 'units' : UNITS[v.unit as string] ?? 'units');
 const perMin = (v: Values): number => (v.per === 'hour' ? 60 : 1);
 const nameOf = (v: Values, i: number): string => text(v, wid(i, 'name')) || `Workstation ${i + 1}`;
+const HORIZONS = [1, 2, 3, 4, 5, 8, 10, 11, 12, 24];
+/** The hours the sample is carried forward over: a chip, the hours a week the line runs, or hours typed. */
+const horizonHours = (v: Values): number | undefined => {
+  const h = (v.horizon as string | undefined) ?? '8';
+  const n = h === 'week' ? num(v, 'weekH') : h === 'custom' ? num(v, 'customH') : Number(h);
+  return n !== undefined && n > 0 ? n : undefined;
+};
+const horizonSaid = (v: Values, h: number): string => (v.horizon === 'week' ? `a week (${fmt(h, 1)} hours)` : `${fmt(h, 1)} hour${h === 1 ? '' : 's'}`);
+const confOf = (v: Values): number => Number((v.conf as string | undefined) ?? '95') / 100;
 const count = (v: Values): number => Math.min(MAX_STATIONS, Math.max(0, Math.floor(num(v, 'n') ?? 0)));
 
 const slotFields = (i: number): Field[] => {
@@ -81,9 +92,18 @@ const def: CalcDef = {
     { id: 'rate', label: 'How much is lost in every minute a workstation is stopped', unit: 'as chosen above', kind: 'number', min: 0, showIf: v => v.same !== 'own',
       dynamic: v => ({ label: `How many ${unitOf(v)} are lost in every ${v.per === 'hour' ? 'hour' : 'minute'} a workstation is stopped`, unit: `${unitOf(v)} ${v.per === 'hour' ? 'an hour' : 'a minute'}` }),
       help: 'What it would have made in that time — the speed of the workstation in the unit chosen. Without it the minutes stay minutes and no loss is worked out.' },
-    { id: 'watched', label: 'Watched for', unit: 'minutes', kind: 'number', min: 0, optional: true,
-      help: 'Optional: how long you watched the workstations in all. It gives the share of that time they were stopped.' },
     ...Array.from({ length: MAX_STATIONS }, (_, i) => slotFields(i)).flat(),
+    { id: 'watched', label: 'Time you have watched all of them', unit: 'minutes', kind: 'number', min: 0, optional: true, place: 'below', timer: { start: 'Start watching', stop: 'Pause watching' },
+      help: 'This is the sample. The longer you watch, the surer the carried-forward figure is. Press Start watching while you press the Stopped buttons, Pause when you leave: come back later, press it again, and the time adds on. Or type the minutes.' },
+    { id: 'horizon', label: 'What would it be if it carries on for', kind: 'choice', default: '8', place: 'below',
+      chosen: 'A shift of 8 hours until you pick another. The sample is carried forward in proportion to the time watched.',
+      options: [...HORIZONS.map(h => ({ value: String(h), label: `${h} ${h === 1 ? 'hour' : 'hours'}` })), { value: 'week', label: 'A week' }, { value: 'custom', label: 'Another' }] },
+    { id: 'weekH', label: 'Hours the line runs in a week', unit: 'hours', kind: 'number', min: 0.000001, optional: true, place: 'below', showIf: v => v.horizon === 'week',
+      help: 'Asked, never assumed: the days it runs × the hours a day.' },
+    { id: 'customH', label: 'Hours to carry it forward over', unit: 'hours', kind: 'number', min: 0.000001, optional: true, place: 'below', showIf: v => v.horizon === 'custom' },
+    { id: 'conf', label: 'How sure to be', kind: 'choice', default: '95', place: 'below', compact: true,
+      chosen: '95% until you pick another: the range is one we are that confident the true figure falls in.',
+      options: [{ value: '90', label: '90%' }, { value: '95', label: '95%' }, { value: '99', label: '99%' }] },
     { id: 'unitCost', label: 'What one lost unit is worth', unit: '£ a unit', kind: 'number', min: 0, optional: true, money: true,
       help: 'Optional: its margin or its cost. Said as “if it cannot be made up” — a unit lost on a constraint is lost for good; elsewhere the line may catch up.' },
   ],
@@ -128,6 +148,21 @@ const def: CalcDef = {
     const quiet = rs.filter(r => r.min === 0);
     if (quiet.length && stopped.length) more.push(`${quiet.length === 1 ? `${quiet[0].name} has` : `${fmt(quiet.length, 0)} workstations have`} not stopped.`);
 
+    /* part 2 — the sample carried forward, and how sure that is (spec Part 2) */
+    const conf = confOf(v), H = horizonHours(v);
+    const stopsMissing = rs.some(r => r.min > 0 && r.stops === 0);
+    const proj = watched && watched > 0 && H ? project({ watchedMin: watched, horizonMin: H * 60, stops, minutes, lost, conf, stopsMissing }) : undefined;
+    const cpct = `${fmt(conf * 100, 0)}%`;
+    if (share !== undefined) more.push(`They were stopped for ${pct(share)} of the ${duration((watched as number) / 60)} watched (${fmt(minutes, 2)} minutes of ${fmt((watched as number) * rs.length, 0)} workstation-minutes).`);
+    if (!watched || watched <= 0) more.push('Give the time you have watched — type it, or press Start watching and Pause — to carry this forward and say how sure it is.');
+    else if (!H) more.push(v.horizon === 'week' ? 'Give the hours the line runs in a week to carry the sample over a week.' : 'Give the hours to carry the sample forward over.');
+    else if (proj && stops === 0 && minutes === 0) more.push(`No stop has been seen in the ${duration(watched / 60)} watched. At ${cpct} confidence fewer than ${fmt(proj.count.hi, 1)} stops would be expected in that time — watch longer to say more.`);
+    else if (proj && !proj.range) more.push(`Carried on for ${horizonSaid(v, H as number)}: about ${fmt(proj.lost, 1)} ${u} lost — but no range can be given because ${proj.noRange}.`);
+    else if (proj && proj.range && proj.need && proj.firm) {
+      more.push(`Carried on for ${horizonSaid(v, H as number)}: about ${fmt(proj.lost, 1)} ${u} lost — between ${fmt(proj.range.lo, 1)} and ${fmt(proj.range.hi, 1)} ${u} at ${cpct} confidence — from ${fmt(stops, 0)} stop${stops === 1 ? '' : 's'} in ${duration(watched / 60)} of watching.`);
+      more.push(`Confidence: ${proj.firm}. The range runs from ${fmt(proj.count.lo / stops, 2)}× to ${fmt(proj.count.hi / stops, 2)}× of what the sample says, because so few stops cannot pin the rate down. ${proj.need.watchMore > 0 ? `About ${fmt(proj.need.stops, 0)} stops — roughly ${duration(proj.need.watchMore / 60)} more watching at this rate — would bring it within ±25%.` : 'Enough stops are in for it to be within ±25%.'}`);
+    }
+
     const cost = num(v, 'unitCost');
     const missing: string[] = [];
     let money: CalcMoney;
@@ -135,12 +170,35 @@ const def: CalcDef = {
       const m = lost * cost;
       money = {
         text: `${fmt(lost, 2)} ${u} lost at ${gbp(cost)} each is ${gbp(m)} if it cannot be made up.${worst ? ` ${worst.name} accounts for ${gbp(worst.lost * cost)}.` : ''}`,
-        figures: [['Lost, if it cannot be made up', gbp(m)], ...(worst ? [[`${worst.name}`, gbp(worst.lost * cost)] as [string, string]] : [])],
+        figures: [['Lost, if it cannot be made up', gbp(m)], ...(worst ? [[`${worst.name}`, gbp(worst.lost * cost)] as [string, string]] : []),
+          ...(proj && H ? [[`If it carries on for ${horizonSaid(v, H)}`, `${gbp(proj.lost * cost)}${proj.range ? ` (${gbp(proj.range.lo * cost)} to ${gbp(proj.range.hi * cost)})` : ''}`] as [string, string]] : [])],
         missing,
       };
     } else {
       missing.push('Give what one lost unit is worth (its margin or its cost) to say the stops in money.');
       money = { missing };
+    }
+
+    let picture: CalcPicture | undefined;
+    if (proj && H && watched) {
+      const wh = watched / 60, xmax = Math.max(H, wh);
+      const at = (x: number, f: number): number => lost * (x / wh) * f;
+      const top = at(xmax, proj.range ? proj.count.hi / Math.max(stops, 1) : 1);
+      const ys = niceScale(0, top, 4), xs = niceScale(0, xmax, 5);
+      const ends = (f: number): [number, number][] => [[0, 0], [xmax, at(xmax, f)]];
+      picture = {
+        title: `${u[0].toUpperCase()}${u.slice(1)} lost if it carries on`,
+        caption: `The solid line is what the ${duration(wh)} watched says, carried forward. ${proj.range ? `The dashed lines are the range we are ${cpct} confident of — ${proj.firm?.toLowerCase()} for this many stops; the more stops are watched, the closer they sit.` : `No range can be drawn yet: ${proj.noRange}.`}`,
+        x: { label: 'hours from the start of watching', min: 0, max: Math.max(xs.max, xmax), ticks: xs.ticks.filter(t => t <= Math.max(xs.max, xmax)), fmt: t => fmt(t, 1) },
+        y: { label: `${u} lost`, min: 0, max: ys.max, ticks: ys.ticks, fmt: t => fmt(t, 0) },
+        lines: [
+          { points: ends(1), mark: 'brand' },
+          ...(proj.range ? [{ points: ends(proj.count.hi / stops), mark: 'muted' as const, dash: true }, { points: ends(proj.count.lo / stops), mark: 'muted' as const, dash: true }] : []),
+        ],
+        verticals: [],
+        horizontals: [],
+        dots: [{ x: wh, y: lost, label: `watched: ${fmt(lost, 1)} ${u}` }, ...(H !== wh ? [{ x: H, y: proj.lost, label: `${fmt(proj.lost, 0)} ${u}` }] : [])],
+      };
     }
 
     const verdict = lost > 0 ? `${fmt(lost, 1)} ${u} lost` : `${fmt(minutes, 1)} minutes stopped`;
@@ -149,24 +207,35 @@ const def: CalcDef = {
       tone: lost > 0 ? 'a' : 'n',
       sentence,
       ...(more.length ? { more } : {}),
+      ...(picture ? { picture } : {}),
       tiles: [
         { k: 'Lost', v: fmt(lost, 2), of: u, n: lost, better: 'lower', fmt: x => `${fmt(x, 2)} ${u}` },
         { k: 'Stopped', v: fmt(minutes, 2), of: 'minutes in all', n: minutes, better: 'lower', fmt: x => `${fmt(x, 2)} minutes` },
         { k: 'Stops', v: stops ? fmt(stops, 0) : '—', of: stops ? 'counted' : 'none counted', ...(stops ? { n: stops, better: 'lower' as const, counted: true } : {}) },
         worst ? { k: 'Worst', v: worst.name, of: `${fmt(worst.lost, 2)} ${u}${worstShare !== undefined ? ` — ${pct(worstShare)}` : ''}` } : { k: 'Worst', v: '—', of: 'none has stopped' },
-        share !== undefined ? { k: 'Stopped share', v: pct(share), of: `of ${fmt(watched as number, 1)} minutes × ${fmt(rs.length, 0)}`, n: share, better: 'lower', fmt: x => pct(x) } : { k: 'Stopped share', v: '—', of: 'give the watched time' },
+        proj && H ? { k: 'If it goes on', v: fmt(proj.lost, 1), of: `${u} in ${horizonSaid(v, H)}`, n: proj.lost, better: 'lower', fmt: x => `${fmt(x, 1)} ${u}` } : { k: 'If it goes on', v: '—', of: watched ? 'give the hours' : 'give the time watched' },
+        proj?.range && proj.firm ? { k: 'Confidence', v: proj.firm, of: `${cpct} range ${fmt(proj.range.lo, 1)} to ${fmt(proj.range.hi, 1)}`, ...(proj.firm === 'Rough' ? { tone: 'a' as const } : {}) } : { k: 'Confidence', v: '—', of: proj ? 'no range yet' : 'give the time watched' },
       ],
       working: [
         { label: 'Each workstation', value: 'minutes stopped × the rate lost ÷ ' + (per === 'hour' ? '60' : '1'), note: 'summed over the workstations' },
         ...ranked.slice(0, 8).map(r => ({ label: r.name, value: `${fmt(r.min, 2)} min → ${fmt(r.lost, 3)} ${u}` + (r.stops ? ` · ${r.stops} stop${r.stops === 1 ? '' : 's'}` : '') })),
         ...(ranked.length > 8 ? [{ label: 'The rest', value: `${ranked.length - 8} more, in the totals` }] : []),
         { label: 'In all', value: `${fmt(minutes, 3)} min → ${fmt(lost, 3)} ${u}` },
+        ...(proj && H ? [
+          { label: 'Carried forward', value: `${fmt(H * 60, 0)} min ÷ ${fmt(watched as number, 2)} min = × ${fmt(proj.factor, 3)}`, note: `${fmt(lost, 2)} ${u} → ${fmt(proj.lost, 2)} ${u}` },
+          ...(proj.range ? [
+            { label: `Stops seen, ${cpct} range (exact Poisson)`, value: `${fmt(stops, 0)} → ${fmt(proj.count.lo, 3)} to ${fmt(proj.count.hi, 3)}`, note: 'Garwood interval; scaled onto the loss' },
+            { label: 'Stops for ±25%', value: `${fmt(proj.need?.stops ?? 0, 0)} stops`, note: '⌈(z ÷ 0.25)²⌉' },
+          ] : []),
+        ] : []),
         ...(share !== undefined ? [{ label: 'Stopped share', value: `${fmt(minutes, 2)} ÷ (${fmt(watched as number, 2)} × ${rs.length}) = ${pct(share, 2)}` }] : []),
       ],
       caveats: [
         'The loss is minutes stopped times the rate you gave. It is the output that was not made while a workstation was down, not a measure of what it could have made — give the rate the workstation really runs at.',
         'A workstation that is not the constraint may catch up, so “lost” is a ceiling there; on the constraint it is gone for good. The money line says so.',
         'It counts only what was timed. Stops nobody pressed for, and slow running, are not in it.',
+        'Carrying the sample forward assumes the time watched is typical of the time it is carried over — the same product, shift and crew. A calm morning does not describe a changeover afternoon.',
+        'The range is the uncertainty in how many stops there will be, taking stops as random at a steady rate. The spread of stop lengths and of the rate lost is not in it, so it is narrower than the whole truth; stops that come in bunches make it wider still. The longer the watch, the better.',
         'Timing runs on this device only: a stop left running when the page is closed is picked up again on reopening, but is not shared with another device until it is stopped.',
       ],
       money,
@@ -183,7 +252,7 @@ const def: CalcDef = {
       expect: {
         verdict: '429 kg lost', tone: 'a',
         sentence: '3 of 4 workstations stopped for 35.75 minutes in all (6 stops), losing 429 kg at 12 kg every minute. Sealer lost the most — 264 kg, 61.5% of it.',
-        tiles: { Lost: '429', Stopped: '35.75', Stops: '6', Worst: 'Sealer', 'Stopped share': '7.4%' },
+        tiles: { Lost: '429', Stopped: '35.75', Stops: '6', Worst: 'Sealer', 'If it goes on': '1,716', Confidence: 'Rough' },
         money: '429 kg lost at £2.10 each is £900.90 if it cannot be made up. Sealer accounts for £554.40.',
       },
     },
@@ -194,7 +263,7 @@ const def: CalcDef = {
       expect: {
         verdict: '330 units lost', tone: 'a',
         sentence: '2 of 2 workstations stopped for 21 minutes in all (3 stops), losing 330 units each at its own rate. Labeller lost the most — 180 units, 54.5% of it.',
-        tiles: { Lost: '330', Stopped: '21', Stops: '3', Worst: 'Labeller', 'Stopped share': '—' },
+        tiles: { Lost: '330', Stopped: '21', Stops: '3', Worst: 'Labeller', 'If it goes on': '—', Confidence: '—' },
       },
     },
     {
@@ -204,8 +273,18 @@ const def: CalcDef = {
       expect: {
         verdict: '0 minutes stopped', tone: 'n',
         sentence: 'None of 2 workstations has stopped yet.',
-        tiles: { Lost: '0', Stopped: '0', Stops: '—', Worst: '—', 'Stopped share': '—' },
+        tiles: { Lost: '0', Stopped: '0', Stops: '—', Worst: '—', 'If it goes on': '—', Confidence: '—' },
         warns: ['No workstation has stopped yet'],
+      },
+    },
+    {
+      name: 'The same case carried forward one hour at 90% confidence — Garwood 2.613 to 11.842 on 6 stops',
+      source: 'SciPy chi-square (scripts/knowledge/cases-stops-extrapolation.py): 214.5 kg, 93.4 to 423.4',
+      inputs: session([['Filler', 8.5, 3], ['Wrapper'], ['Sealer', 22, 2], ['Packer', 5.25, 1]], { unit: 'kg', same: 'same', per: 'min', rate: 12, watched: 120, horizon: '1', conf: '90' }),
+      expect: {
+        verdict: '429 kg lost', tone: 'a',
+        sentence: '3 of 4 workstations stopped for 35.75 minutes in all (6 stops), losing 429 kg at 12 kg every minute. Sealer lost the most — 264 kg, 61.5% of it.',
+        tiles: { 'If it goes on': '214.5', Confidence: 'Rough' },
       },
     },
   ],

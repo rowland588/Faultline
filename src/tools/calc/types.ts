@@ -57,7 +57,11 @@ export interface Field {
   /** Offered from the line this sits on (its cost model), with the box still typed by hand if the person wants. */
   from?: Offer;
   /** A number of minutes timed by a Stopped / Running again button: each press-pair adds the minutes here and one to the `stops` field. */
-  timer?: { stops: string };
+  timer?: { stops?: string; start?: string; stop?: string };
+  /** A choice of few options drawn as small chips, not the big cards (the horizon's and the confidence's). */
+  compact?: boolean;
+  /** Drawn under the station grid, with the picture it steers, not in the set-up. */
+  place?: 'below';
   /** Laid out in the station grid, not the list: the tile this field belongs to (0-based). */
   grid?: number;
   /** Words that depend on other answers — “kg lost in every minute stopped” once kilos are chosen. */

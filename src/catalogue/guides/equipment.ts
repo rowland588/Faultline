@@ -27,6 +27,12 @@ export const EQUIPMENT_GUIDES: Record<string, Guide> = {
         youGet: 'The workstation’s minutes and stops, growing with every press-pair, and the loss worked out beside it.',
       },
       {
+        step: 'Watch, then carry it forward',
+        means: 'What you have seen is a sample. The time you have watched is how big the sample is, and the longer it is, the surer any figure carried forward can be. Pick 2, 3, 5, 10 hours, a week or your own hours and the sample is carried forward in proportion, with the range we are 95% confident of — and a word for how firm it is: Firm, Fair or Rough.',
+        doThis: 'Press Start watching when you begin and Pause when you leave. Come back later, open the same calculation and press Start watching again — the time adds on and the range closes in. Pick the hours to carry it over; for a week, say how many hours the line runs in a week. Change how sure to be (90, 95 or 99%) if the business uses another level.',
+        youGet: 'The kilos (or units) lost over that time with their range, a chart of the line with the range either side, and how many more stops — roughly how many more hours of watching — would make it firm.',
+      },
+      {
         step: 'What it says',
         means: 'One sentence: how many workstations stopped, for how long, what it cost in your unit and which workstation lost the most. The tiles give the totals, the worst workstation and, if you gave the time you watched, the share of it spent stopped.',
         doThis: 'Read the sentence, then the order of what each lost. Give what one lost unit is worth to see it in money. Report ▾ makes the paper.',

@@ -61,7 +61,7 @@ await page.waitForTimeout(800);
 const SAYS = '3 of 4 workstations stopped for 35.75 minutes in all (6 stops), losing 429 kg at 12 kg every minute. Sealer lost the most — 264 kg, 61.5% of it.';
 ok((await words('[data-calc=sentence]')) === SAYS, `1 the sentence is the hand-worked case: "${SAYS.slice(0, 90)}…"`, await words('[data-calc=sentence]'));
 const t1 = await tiles();
-ok(t1.Lost === '429' && t1.Stopped === '35.75' && t1.Stops === '6' && t1.Worst === 'Sealer' && t1['Stopped share'] === '7.4%', `1 the tiles: ${JSON.stringify(t1)}`);
+ok(t1.Lost === '429' && t1.Stopped === '35.75' && t1.Stops === '6' && t1.Worst === 'Sealer' && t1['If it goes on'] === '1,716' && t1.Confidence === 'Rough', `1 the tiles: ${JSON.stringify(t1)}`);
 ok(/£900\.90/.test(await words('[data-calc=money]') ?? ''), '1 the money: £900.90 if it cannot be made up');
 
 /* ---- 2 · the unit and the period */
@@ -111,6 +111,56 @@ const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }
 const f = join(OUT, 'stops.pdf'); await dl.saveAs(f);
 const text = flat(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }));
 ok(/30 of 30 workstations stopped for 465 minutes/.test(text) && /5,580/.test(text), '5 the paper says the sentence and the total');
+
+/* ---- 8 · carried forward, and how sure that is (spec Part 2; SciPy cases) */
+await page.setViewportSize({ width: 1360, height: 900 });
+await go('#/calc/workstation-stops');
+await page.getByRole('button', { name: 'New calculation' }).first().click(); await page.waitForTimeout(400);
+await page.getByLabel('What is it of?').fill('Carried forward');
+await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500);
+const rid2 = decodeURIComponent(page.url().split('/').pop()?.split('?')[0] ?? '');
+await type('n', 4);
+await page.locator('[data-field="unit"] [data-value="kg"]').click();
+await type('rate', 12);
+for (const [i, min, stops] of [[0, 8.5, 3], [2, 22, 2], [3, 5.25, 1]]) { await type(`w${nn(i)}_min`, min); await type(`w${nn(i)}_stops`, stops); }
+await type('watched', 120);
+await page.waitForTimeout(700);
+const more8 = async () => flat(await page.locator('.ie-says').innerText().catch(() => ''));
+const say8 = await more8();
+ok(/Carried on for 8 hours: about 1,716 kg lost — between 629\.7 and 3,735 kg at 95% confidence — from 6 stops in 2 hours of watching\./.test(say8) && /Confidence: Rough\./.test(say8) && /About 62 stops — roughly 18\.7 hours more watching/.test(say8), '8 the sample carried 8 hours: 1,716 kg, 629.7 to 3,735 at 95%, Rough, 62 stops needed (SciPy)', say8);
+ok(await page.locator('[data-field="horizon"] .chip').count() >= 12, '8 the horizon chips: 1 · 2 · 3 · 4 · 5 · 8 · 10 · 11 · 12 · 24 hours, A week, Another');
+await page.locator('[data-field="horizon"] [data-value="1"]').click(); await page.locator('[data-field="conf"] [data-value="90"]').click(); await page.waitForTimeout(600);
+const t8 = await tiles();
+ok(t8['If it goes on'] === '214.5' && /90% range 93\.4 to 423\.4/.test(await words('.calc-tiles') ?? ''), `8 one hour at 90%: 214.5 kg, 93.4 to 423.4 (SciPy) — ${t8['If it goes on']}`);
+await page.locator('[data-field="conf"] [data-value="95"]').click();
+await page.locator('[data-field="horizon"] [data-value="week"]').click(); await page.waitForTimeout(500);
+ok(/Give the hours the line runs in a week/.test(await more8()), '8 A week asks the hours a week and does not guess');
+await type('weekH', 120); await page.waitForTimeout(600);
+ok(/Carried on for a week \(120 hours\): about 25,740 kg lost/.test(await more8()), '8 A week of 120 hours: 25,740 kg');
+await page.locator('[data-field="horizon"] [data-value="8"]').click(); await page.waitForTimeout(500);
+const pic = await page.evaluate(() => ({ lines: document.querySelectorAll('.calc-pic-line').length, dash: document.querySelectorAll('.calc-pic-line.is-dash').length, dots: document.querySelectorAll('.calc-pic-dot').length }));
+ok(pic.lines === 3 && pic.dash === 2 && pic.dots === 2, `8 the chart: the sample’s line, the range as two dashed lines, the observed and the horizon dots (${JSON.stringify(pic)})`);
+const before8 = await words('.calc-tiles');
+await type('watched', 1200);
+for (const [i, min, stops] of [[0, 85, 30], [2, 220, 20], [3, 52.5, 10]]) { await type(`w${nn(i)}_min`, min); await type(`w${nn(i)}_stops`, stops); }
+await page.waitForTimeout(700);
+ok(/95% range 1,309\.5 to 2,208\.8/.test(await words('.calc-tiles') ?? ''), '8 ten times the watching at the same rate: the same 1,716 kg, the range 1,309.5 to 2,208.8, much narrower than 629.7 to 3,735');
+await type('watched', 120);
+for (const [i, min, stops] of [[0, 8.5, 3], [2, 22, 2], [3, 5.25, 1]]) { await type(`w${nn(i)}_min`, min); await type(`w${nn(i)}_stops`, stops); }
+await type('watched', '');
+await page.waitForTimeout(300);
+await page.locator('[data-timer="watched"]').click(); await page.waitForTimeout(3000); await page.locator('[data-timer="watched"]').click(); await page.waitForTimeout(700);
+const w1 = Number(await page.locator('[data-field-input="watched"]').inputValue());
+ok(w1 >= 0.04 && w1 <= 0.08, `8 Start watching … Pause adds the minutes watched (${w1})`);
+await go(`#/calc/workstation-stops/${rid2}`);
+await page.locator('[data-timer="watched"]').click(); await page.waitForTimeout(2500); await page.locator('[data-timer="watched"]').click(); await page.waitForTimeout(700);
+const w2 = Number(await page.locator('[data-field-input="watched"]').inputValue());
+ok(w2 > w1, `8 the record reopened and watched again: the sample grows (${w1} → ${w2})`);
+void before8;
+const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, / — on paper$/)]);
+const f2 = join(OUT, 'carried.pdf'); await dl2.saveAs(f2);
+const text2 = flat(execFileSync('pdftotext', ['-raw', f2, '-'], { encoding: 'utf8' }));
+ok(/Carried on for 8 hours/.test(text2) && /Confidence:/.test(text2), '9 the paper says the carried-forward sentence and the confidence');
 
 /* ---- 6 · the phone */
 await page.setViewportSize({ width: 390, height: 844 });
