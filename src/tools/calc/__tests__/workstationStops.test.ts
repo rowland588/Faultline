@@ -39,11 +39,12 @@ describe('stops across workstations', () => {
   describe('part 2 — carried forward, with the confidence (SciPy cases)', () => {
     const A = { n: 4, ...base, [wid(0, 'min')]: 8.5, [wid(0, 'stops')]: 3, [wid(2, 'min')]: 22, [wid(2, 'stops')]: 2, [wid(3, 'min')]: 5.25, [wid(3, 'stops')]: 1, watched: 120 };
     const said = (i: Record<string, number | string>): string => (runCalc(def, i).result?.more ?? []).join(' ');
-    it('8 hours at 95%: 1,716 kg between 629.7 and 3,735, Rough, 62 stops and about 18.7 hours more', () => {
+    it('8 hours at 95%: 1,716 kg between 629.7 and 3,735, Rough, 66 stops and 20 hours more', () => {
       const t = said({ ...A, horizon: '8' });
       expect(t).toContain('Carried on for 8 hours: about 1,716 kg lost — between 629.7 and 3,735 kg at 95% confidence — from 6 stops in 2 hours of watching.');
       expect(t).toContain('Confidence: Rough.');
-      expect(t).toContain('About 62 stops — roughly 18.7 hours more watching');
+      expect(t).toContain('rests on the 6 stops counted, not on the minutes watched');
+      expect(t).toContain('About 66 stops — roughly 20 hours more watching');
     });
     it('a chip changes the figure and the chart’s end; the confidence changes the range', () => {
       const r1 = runCalc(def, { ...A, horizon: '1', conf: '90' }).result;

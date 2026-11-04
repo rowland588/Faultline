@@ -22,8 +22,9 @@ lo, hi = garwood(N, 0.95)
 for H in (1, 8):
     f = H * 60 / T
     print(f'  {H} h: factor {f}  point {L*f:.2f} kg  lower {L*f*lo/N:.1f}  upper {L*f*hi/N:.1f}  half-width {(hi-lo)/2/N:.4f} of the count')
-print('Stops for +-25% at conf: n = (z/0.25)^2, rounded up')
+print('Stops for +-25% (Firm) and +-50% (Fair): the first n whose exact interval is that narrow')
+def need(p,conf):
+    return next(n for n in range(1,5000) if (garwood(n,conf)[1]-garwood(n,conf)[0])/2/n <= p)
 for conf in (0.90, 0.95, 0.99):
-    z = norm.ppf((1 + conf) / 2)
-    print(f'  conf {conf:.2f}  z {z:.4f}  n {math.ceil((z/0.25)**2)}')
-print('  Case A at 95%: 62 stops at 6 per 120 min -> 62 / 0.05 = 1240 min watched in all, 1120 more')
+    print(f'  conf {conf:.2f}  Firm at {need(0.25,conf)}  Fair at {need(0.5,conf)}')
+print('  Case A at 95%: 66 stops at 6 per 120 min -> 66 / 0.05 = 1320 min watched in all, 1200 more')

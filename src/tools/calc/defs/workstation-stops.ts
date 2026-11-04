@@ -160,7 +160,7 @@ const def: CalcDef = {
     else if (proj && !proj.range) more.push(`Carried on for ${horizonSaid(v, H as number)}: about ${fmt(proj.lost, 1)} ${u} lost — but no range can be given because ${proj.noRange}.`);
     else if (proj && proj.range && proj.need && proj.firm) {
       more.push(`Carried on for ${horizonSaid(v, H as number)}: about ${fmt(proj.lost, 1)} ${u} lost — between ${fmt(proj.range.lo, 1)} and ${fmt(proj.range.hi, 1)} ${u} at ${cpct} confidence — from ${fmt(stops, 0)} stop${stops === 1 ? '' : 's'} in ${duration(watched / 60)} of watching.`);
-      more.push(`Confidence: ${proj.firm}. The range runs from ${fmt(proj.count.lo / stops, 2)}× to ${fmt(proj.count.hi / stops, 2)}× of what the sample says, because so few stops cannot pin the rate down. ${proj.need.watchMore > 0 ? `About ${fmt(proj.need.stops, 0)} stops — roughly ${duration(proj.need.watchMore / 60)} more watching at this rate — would bring it within ±25%.` : 'Enough stops are in for it to be within ±25%.'}`);
+      more.push(`Confidence: ${proj.firm}. The range runs from ${fmt(proj.count.lo / stops, 2)}× to ${fmt(proj.count.hi / stops, 2)}× of what the sample says, because so few stops cannot pin the rate down. It rests on the ${fmt(stops, 0)} stop${stops === 1 ? '' : 's'} counted, not on the minutes watched: more minutes with no more stops only lower the rate, they do not tighten the range. ${proj.need.watchMore > 0 ? `About ${fmt(proj.need.stops, 0)} stops — roughly ${duration(proj.need.watchMore / 60)} more watching at this rate — would bring it within ±25%.` : 'Enough stops are in for it to be within ±25%.'}`);
     }
 
     const cost = num(v, 'unitCost');

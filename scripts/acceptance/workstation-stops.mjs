@@ -127,7 +127,7 @@ await type('watched', 120);
 await page.waitForTimeout(700);
 const more8 = async () => flat(await page.locator('.ie-says').innerText().catch(() => ''));
 const say8 = await more8();
-ok(/Carried on for 8 hours: about 1,716 kg lost — between 629\.7 and 3,735 kg at 95% confidence — from 6 stops in 2 hours of watching\./.test(say8) && /Confidence: Rough\./.test(say8) && /About 62 stops — roughly 18\.7 hours more watching/.test(say8), '8 the sample carried 8 hours: 1,716 kg, 629.7 to 3,735 at 95%, Rough, 62 stops needed (SciPy)', say8);
+ok(/Carried on for 8 hours: about 1,716 kg lost — between 629\.7 and 3,735 kg at 95% confidence — from 6 stops in 2 hours of watching\./.test(say8) && /Confidence: Rough\./.test(say8) && /About 66 stops — roughly 20 hours more watching/.test(say8) && /rests on the 6 stops counted, not on the minutes watched/.test(say8), '8 the sample carried 8 hours: 1,716 kg, 629.7 to 3,735 at 95%, Rough, 66 stops needed (SciPy)', say8);
 ok(await page.locator('[data-field="horizon"] .chip').count() >= 12, '8 the horizon chips: 1 · 2 · 3 · 4 · 5 · 8 · 10 · 11 · 12 · 24 hours, A week, Another');
 await page.locator('[data-field="horizon"] [data-value="1"]').click(); await page.locator('[data-field="conf"] [data-value="90"]').click(); await page.waitForTimeout(600);
 const t8 = await tiles();

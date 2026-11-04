@@ -12,8 +12,18 @@ export function garwood(n: number, conf: number): { lo: number; hi: number } {
   return { lo: n <= 0 ? 0 : poissonLower(n, 1, side), hi: poissonUpper(n, 1, side) };
 }
 
-/** Stops needed for the count's range to come within ± `precision` of itself: ⌈(z / p)²⌉. */
-export const stopsForPrecision = (precision: number, conf: number): number => Math.ceil((normalQuantile((1 + conf) / 2) / precision) ** 2);
+/** Stops needed for the count's range to come within ± `precision` of itself — the first count whose exact (Garwood) interval is that narrow, so the advice
+ *  agrees with the word the page gives (Firm is ±25% by the same interval). The normal approximation ⌈(z / p)²⌉ is a few stops short (62 for 66 at ±25%, 95%). */
+const needed = new Map<string, number>();
+export function stopsForPrecision(precision: number, conf: number): number {
+  const key = `${precision}|${conf}`;
+  const hit = needed.get(key);
+  if (hit !== undefined) return hit;
+  let n = Math.max(1, Math.floor((normalQuantile((1 + conf) / 2) / precision) ** 2 * 0.8));
+  for (; n < 20000; n++) { const g = garwood(n, conf); if ((g.hi - g.lo) / 2 / n <= precision) break; }
+  needed.set(key, n);
+  return n;
+}
 
 /** The words for how firm a range is, by its half-width relative to the count: within ±25% Firm, ±50% Fair, wider Rough. */
 export const firmness = (relHalf: number): 'Firm' | 'Fair' | 'Rough' => (relHalf <= 0.25 ? 'Firm' : relHalf <= 0.5 ? 'Fair' : 'Rough');

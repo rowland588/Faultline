@@ -12,23 +12,29 @@ describe('the exact Poisson interval, as SciPy gives it', () => {
   }
 });
 
-describe('stops for ±25%', () => {
-  it('44, 62 and 107 at 90, 95 and 99%', () => {
-    expect([0.9, 0.95, 0.99].map(c => stopsForPrecision(0.25, c))).toEqual([44, 62, 107]);
+describe('stops for ±25% and ±50%, by the exact interval (SciPy)', () => {
+  it('48, 66 and 111 for Firm at 90, 95 and 99%', () => {
+    expect([0.9, 0.95, 0.99].map(c => stopsForPrecision(0.25, c))).toEqual([48, 66, 111]);
+  });
+  it('13, 18 and 29 for Fair', () => {
+    expect([0.9, 0.95, 0.99].map(c => stopsForPrecision(0.5, c))).toEqual([13, 18, 29]);
+  });
+  it('the stops it advises give the word it promises', () => {
+    for (const c of [0.9, 0.95, 0.99]) { const n = stopsForPrecision(0.25, c), g = garwood(n, c), h = garwood(n - 1, c); expect(firmness((g.hi - g.lo) / 2 / n)).toBe('Firm'); expect(firmness((h.hi - h.lo) / 2 / (n - 1))).not.toBe('Firm'); }
   });
 });
 
 describe('carrying case A forward: four workstations watched 120 min, 6 stops, 35.75 min, 429 kg', () => {
   const base = { watchedMin: 120, stops: 6, minutes: 35.75, lost: 429, conf: 0.95 };
-  it('8 hours is 1,716 kg, 629.7 to 3,735.0, Rough, 62 stops and 1,120 minutes more', () => {
+  it('8 hours is 1,716 kg, 629.7 to 3,735.0, Rough, 66 stops and 1,200 minutes more', () => {
     const p = project({ ...base, horizonMin: 480 });
     expect(p.lost).toBeCloseTo(1716, 6);
     expect(p.range?.lo).toBeCloseTo(629.7, 1);
     expect(p.range?.hi).toBeCloseTo(3735.0, 0);
     expect(p.relHalf).toBeCloseTo(0.9048, 3);
     expect(p.firm).toBe('Rough');
-    expect(p.need?.stops).toBe(62);
-    expect(p.need?.watchMore).toBeCloseTo(1120, 6);
+    expect(p.need?.stops).toBe(66);
+    expect(p.need?.watchMore).toBeCloseTo(1200, 6);
   });
   it('1 hour is 214.5 kg, 78.7 to 466.9', () => {
     const p = project({ ...base, horizonMin: 60 });
