@@ -176,7 +176,7 @@ function vKey(p: CapacityPaper): Block {
  *  target (red only when it is short). Boxes wrap four to a row on a single chain so twelve stations stay on a page. */
 function flowBlock(m: FlowModel): Block {
   const unit = m.unit;
-  const NH = 30, VG = 12, HG = 14, PER = 4;
+  const NH = 26, VG = 9, HG = 14, PER = 4;
   const rate = (x: FlowNode) => (x.perMin == null ? 'no speed yet' : `${perMinWords(x.perMin)} ${unit}/min`);
   const outLines = (): [string, string] => {
     const short = m.target != null && m.makes != null && m.makes < m.target - 1e-9;
@@ -199,10 +199,10 @@ function flowBlock(m: FlowModel): Block {
     d.roundedRect(nx, ny, w, NH, 4, 4, 'FD'); d.setLineDashPattern([], 0);
     font(d, T - 0.5, 'bold', INK);
     const nm = wrap(d, `${no ? `${no}  ` : ''}${x.name}`, w - 10, T - 0.5, 'bold')[0] ?? '';
-    d.text(nm, nx + 5, ny + 12);
-    font(d, S - 0.5, 'normal', x.perMin == null ? MUTED : INK2); d.text(rate(x), nx + 5, ny + 23);
-    if (x.isLimit) { font(d, SIZE.tiny, 'bold', INK); d.text('BOTTLENECK', nx + w - 4, ny + 23, { align: 'right' }); }
-    else if (x.isOwnLimit) { font(d, SIZE.tiny, 'bold', BRAND); d.text('SETS ITS LINE’S PACE', nx + w - 4, ny + 23, { align: 'right' }); }
+    d.text(nm, nx + 5, ny + 10.5);
+    font(d, S - 0.5, 'normal', x.perMin == null ? MUTED : INK2); d.text(rate(x), nx + 5, ny + 20.5);
+    if (x.isLimit) { font(d, SIZE.tiny, 'bold', INK); d.text('BOTTLENECK', nx + w - 4, ny + 20.5, { align: 'right' }); }
+    else if (x.isOwnLimit) { font(d, SIZE.tiny, 'bold', BRAND); d.text('SETS ITS LINE’S PACE', nx + w - 4, ny + 20.5, { align: 'right' }); }
   };
   const arrowR = (f: Frame, x1: number, y: number, x2: number) => {
     const d = f.doc; d.setDrawColor(MUTED); d.setLineWidth(0.8); d.line(x1, y, x2 - 2, y);
@@ -285,11 +285,11 @@ function barsBlocks(m: FlowModel): Block[] {
             : x.isOwnLimit ? `${perMinWords(x.perMin)} — sets this line’s pace`
               : g.ref != null && x.perMin - g.ref > 0.05 ? `${perMinWords(x.perMin)} — ${perMinWords(x.perMin - g.ref)} to spare` : perMinWords(x.perMin);
       return {
-        h: f => Math.max(wrap(f.doc, x.name, NAME - 4, T, 'bold').length * LH, 12) + 8,
+        h: f => Math.max(wrap(f.doc, x.name, NAME - 4, T, 'bold').length * LH, 12) + 4,
         draw: (f, y) => {
-          const d = f.doc, q = geo(f), l = wrap(d, x.name, NAME - 4, T, 'bold'), h = Math.max(l.length * LH, 12) + 8;
+          const d = f.doc, q = geo(f), l = wrap(d, x.name, NAME - 4, T, 'bold'), h = Math.max(l.length * LH, 12) + 4;
           if (x.isLimit) { d.setFillColor(SURF); d.rect(f.x, y, f.w, h, 'F'); d.setFillColor('#12171c'); d.rect(f.x, y, 3, h, 'F'); }
-          font(d, T, 'bold', INK); d.text(l, f.x + (x.isLimit ? 7 : 0), y + 4 + T * 0.92);
+          font(d, T, 'bold', INK); d.text(l, f.x + (x.isLimit ? 7 : 0), y + 2 + T * 0.92);
           const pct = x.perMin != null && g.ref ? (x.perMin / g.ref) * 100 : 100;
           const [deep, light] = x.isInflow ? ['#8a999e', '#c4cdd0'] : shareColours(pct, x.isLimit, false);
           const by = y + h / 2 - 4, bh = 8;
@@ -297,7 +297,7 @@ function barsBlocks(m: FlowModel): Block[] {
           if (x.perMin != null) { fillOf(d, deep); d.roundedRect(q.x0, by, Math.max(2, q.at(x.perMin) - q.x0), bh, 2.5, 2.5, 'F'); void light; }
           if (g.ref != null) { d.setDrawColor(INK); d.setLineWidth(0.9); d.line(q.at(g.ref), y, q.at(g.ref), y + h); }
           if (g.target != null) { d.setDrawColor(short ? RED : INK2); d.setLineWidth(0.9); d.setLineDashPattern([1, 1.6], 0); d.line(q.at(g.target), y, q.at(g.target), y + h); d.setLineDashPattern([], 0); }
-          font(d, S, x.isLimit ? 'bold' : 'normal', x.perMin == null ? MUTED : INK); d.text(words, f.x + f.w, y + 4 + T * 0.92, { align: 'right' });
+          font(d, S, x.isLimit ? 'bold' : 'normal', x.perMin == null ? MUTED : INK); d.text(words, f.x + f.w, y + 2 + T * 0.92, { align: 'right' });
           d.setDrawColor(LINE); d.setLineWidth(0.4); d.line(f.x, y + h - 0.5, f.x + f.w, y + h - 0.5);
         },
       };
@@ -533,7 +533,7 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
 
   /* WHY — where it is limited */
   out.push(label('Where it is limited'));
-  if (p.target) out.push(said('The target:', `${p.target}.`));
+  if (p.target) out.push(said('The target:', `${p.target}${p.groups?.length ? ' — all the lines together' : ''}.`));
   out.push(...limited(p, true));
   if (p.check.length) {
     out.push(label('To check before the sums are trusted', AMBER));

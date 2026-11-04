@@ -89,8 +89,9 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
   const screen = { says: await words('.cap-says'), v: await words('.vc-says'), shift: await words('.shc-says'), cost: await words('.cap-cost-says') };
   const p = await paper(await find(page, 'Report', /^Line capacity — /), 'capacity-one.pdf'); /* Report ▾ (B4) */
   const lost = await missing(p.text, [truth.product, truth.short, truth.sentence, truth.v, ...truth.stations, screen.says, screen.v, screen.shift, screen.cost]);
-  ok(p.pages === 1 && !lost.length && /LINE CAPACITY/.test(p.text) && /the bottleneck/.test(p.text),
-    `1 Line capacity's own page on paper: one page (${p.pages}) — ${truth.short}; the sentence, the V, ${truth.stations.length} stations, a shift and the cost a pack as the screen says them${lost.length ? ` — lost: ${lost.slice(0, 3).join(' | ')}` : ''}`);
+  /* 4 November: the product's page now also draws the line and the bars (capacity-paper-line.mjs) — one page where it fits, two where it does not, nothing cut */
+  ok(p.pages >= 1 && p.pages <= 2 && !lost.length && /LINE CAPACITY/.test(p.text) && /the bottleneck/.test(p.text),
+    `1 Line capacity's own page on paper: ${p.pages} page(s) at most two — ${truth.short}; the sentence, the V, ${truth.stations.length} stations, a shift and the cost a pack as the screen says them${lost.length ? ` — lost: ${lost.slice(0, 3).join(' | ')}` : ''}`);
 }
 
 /* ---- 2 Line capacity's list: every product shown ---- */

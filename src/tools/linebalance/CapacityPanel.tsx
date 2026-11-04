@@ -1046,11 +1046,14 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
             <h3 className="capx-step-h">{can.edit && !w && <span className="capx-n" aria-hidden>2</span>} What the line should do</h3>
       <div className="cap-settings">
         <label className="proj-field">
-          <span className="field-label">Target — {r.unit} a minute</span>
+          <span className="field-label">Target — {r.unit} a minute{current.lanes && current.lanes.length > 1 ? `, all ${current.lanes.length} lines together` : ''}</span>
           {can.edit
-            ? <DraftNumber className="text-input cap-num" value={current.targetPerMin} placeholder="e.g. 66" label="Target, line units a minute"
+            ? <DraftNumber className="text-input cap-num" value={current.targetPerMin} placeholder={current.lanes && current.lanes.length > 1 ? `e.g. ${66 * current.lanes.length}` : 'e.g. 66'} label="Target, line units a minute"
                 onSave={v => (w ? putWhatIf(w.id, { targetPerMin: v }) : commit({ ...cap, targetPerMin: v }))} />
             : <b className="cap-ro-v">{current.targetPerMin != null ? fmtN(current.targetPerMin) : 'not set'}</b>}
+          {current.lanes && current.lanes.length > 1 && (
+            <span className="cap-hint">One number for the whole: what the {current.lanes.length} lines together should make. {current.lanes.length} lines each wanting 75 is {fmtN(75 * current.lanes.length)} here{current.targetPerMin != null ? ` — now ${fmtN(current.targetPerMin)}, which is ${fmtN(current.targetPerMin / current.lanes.length)} a line` : ''}.</span>
+          )}
         </label>
         {/* WHAT ONE UNIT WEIGHS (Rowland, 4 November): a person's most cannot be measured, so what reaches them is said in weight over the same time */}
         <label className="proj-field">
