@@ -95,6 +95,18 @@ ok(pcards && endOf(pcards.r) - pcards.r.start + 1 === 3 && /seeded snag 0/.test(
 const tcards = find(/^Test cards/);
 ok(tcards && /Page\s+\d+ size:\s+841/.test(execFileSync('pdfinfo', ['-f', String(tcards.r.start), '-l', String(tcards.r.start), F], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })) && /Prove Program 10/.test(textOf(tcards.r)), '3b Test cards — Program 10’s test as its own card, landscape, naming it', tcards && textOf(tcards.r).slice(0, 200));
 ok(tcards && !new RegExp(`Package page ${tcards.r.start} of`).test(pageText(F, tcards.r.start)), '4 the test cards, pictures to the edge, carry no package number — their pages are in the contents');
+/* 3c · one home per thing, and every part named (4 November — Rowland: "some things look like they repeat and it's not always clear what I'm looking at") */
+const machS = find(/^Machines$/);
+const machAll = machS ? textOf(machS.r) : '';
+ok(machS && !/Its programs — every test of each|Its programs\s+(none|\d+ programs?)|Its problems and fixes\s+\d+ open|Studies of it — what each found|Its tests — every attempt/i.test(machAll), '3c Machines — each machine’s own status, set-up and what needs doing; its programs, problems and studies are NOT printed again under it', machAll.slice(0, 200));
+ok(/Printed once, in its own section of this package/i.test(machAll), '3c …and each machine says where those are printed once');
+ok((full.text.match(/How to read the status labels/gi) ?? []).length === 1 && !/How to read this report/i.test(full.text), `3c the status key is printed once, on the contents — not on every machine (${(full.text.match(/How to read the status labels/gi) ?? []).length})`);
+const glanceAll = glance ? [0, 1, 2].map(k => pageText(F, glance.r.start + k)).slice(0, endOf(glance.r) - glance.r.start + 1).join(' ') : '';
+ok(glance && endOf(glance.r) - glance.r.start + 1 <= 2 && !/Problems open/.test(glanceAll) && /each in full in its own section/.test(glanceAll), `3c the line at a glance is the line in one sentence and who owes what — not the problems and programs again (${glance ? endOf(glance.r) - glance.r.start + 1 : '?'} pages)`, glanceAll.slice(0, 200));
+const firstStudyP = rows.find(r => /^(Line balance|Capability|Control chart|Analysis|Reliability|Value stream|SMED|Loss count|Work sampling)/.test(r.title));
+ok(firstStudyP && !/A STUDY · MEASURED BY PEOPLE AT THE LINE/.test(full.text) && new RegExp(firstStudyP.title.split(' — ')[0].toUpperCase().replace(/[^A-Z ]/g, '.') + ' · ').test(pageText(F, firstStudyP.start)), `3c a study’s page is headed with its tool, not “A STUDY” (${firstStudyP?.title})`, pageText(F, firstStudyP?.start ?? 1).slice(0, 160));
+ok(/^\s*$/.test('') && /THE LINE\b/.test(pageText(F, 1)) && /PROBLEMS\b/.test(pageText(F, 1)) && /MACHINES\b/.test(pageText(F, 1)) && /STUDIES AND TOOLS/.test(pageText(F, 1) + pageText(F, 2)), '3c the contents are grouped under The line · Problems · Programs and tests · Machines · Line standards and capacity · Studies and tools');
+ok(new RegExp(`Package page ${machS?.r.start} of ${full.pages}\\s+·\\s+Machines`).test(pageText(F, machS?.r.start ?? 1)) && /Package page 1 of \d+\s+·\s+Contents/.test(pageText(F, 1)), '3c every page names its part at the foot — “Package page 14 of 53 · Machines”');
 const progs = find(/^Programs/);
 const progAll = progs ? [0, 1, 2].map(k => pageText(F, progs.r.start + k)).join(' ') : '';
 ok(progs && /PROGRAMS · PRODUCTION LINE/.test(progs.text), '3 Programs — the programs report itself', progs?.text.slice(0, 160));

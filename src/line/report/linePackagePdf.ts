@@ -21,6 +21,7 @@ import type { PackageSection } from './linePackage';
 import { chooseDensity, pour, type Block, type Frame } from '../../lib/report/flow';
 import { box, font, gap, rows, text, wrap } from '../../lib/report/blocks';
 import { leanBand } from '../../lib/report/lean';
+import { statusKeyBlocks } from '../../lib/machinePaperPdf';
 import { bandPage } from '../../lib/lean';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
@@ -106,7 +107,7 @@ async function sectionDoc(s: PackageSection, i: PackageInputs): Promise<SectionD
       const paper = await lineMachinesPaper(line.id);
       if (!paper) return undefined;
       const doc = portrait();
-      await drawMachinesPaper(doc, paper, i.printed);
+      await drawMachinesPaper(doc, paper, i.printed, { inPackage: true });
       return { doc, brand: true };
     }
     case 'standards': {
@@ -125,7 +126,7 @@ async function sectionDoc(s: PackageSection, i: PackageInputs): Promise<SectionD
       if (!it?.study) return undefined;
       const { drawStudies } = await import('../../lib/studiesPdf');
       const doc = portrait();
-      await drawStudies(doc, { title: it.name, printed: i.printed, items: [{ s: it.study as ToolStudy, where: `On ${line.name}` }], standards: i.standards, ...(i.ctx ? { ctx: i.ctx } : {}) });
+      await drawStudies(doc, { title: it.name, eyebrow: `${it.tool.toUpperCase()} · ${line.name.toUpperCase()}`, printed: i.printed, items: [{ s: it.study as ToolStudy, where: `On ${line.name}` }], standards: i.standards, ...(i.ctx ? { ctx: i.ctx } : {}) });
       titlePdf(doc, `${it.tool} — ${it.name}`);
       return { doc, brand: true };
     }
@@ -133,7 +134,7 @@ async function sectionDoc(s: PackageSection, i: PackageInputs): Promise<SectionD
 }
 
 /** The cover and the contents. `offset` is the number of pages the cover takes, so a section's page is right. */
-async function coverDoc(i: PackageInputs, entries: { title: string; what: string; pages: number }[], offset: number): Promise<jsPDF> {
+async function coverDoc(i: PackageInputs, entries: { title: string; what: string; pages: number; group: string }[], offset: number): Promise<jsPDF> {
   const { loadPdfLib } = await import('../../lib/savePdf');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
@@ -147,20 +148,29 @@ async function coverDoc(i: PackageInputs, entries: { title: string; what: string
       [...(i.dual ? [i.dual] : []), ['Papers', String(entries.length)], ['Pages', String(page - 1)]]);
     out.push(leanBand({ ...band, verdict: { text: 'Everything on the line', tone: 'n' } }, i.printed));
     out.push(text({ text: 'What is in this package', size: 11, style: 'bold', colour: BRAND, before: gap(d, 'm'), after: 4 }));
-    out.push(text({ text: 'Each paper after this page is the report that tool prints on its own — nothing is summarised. The page numbers are this package’s; each paper also keeps its own.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
-    out.push(rows({
-      rows: entries.map((e, k) => ({
-        h: (f: Frame) => 10 + wrap(f.doc, e.title, f.w - 70, 10, 'bold').length * 12.5 + wrap(f.doc, e.what, f.w - 70, 8).length * 10,
-        draw: (f: Frame, y: number) => {
-          f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
-          const t = wrap(f.doc, e.title, f.w - 70, 10, 'bold'), w = wrap(f.doc, e.what, f.w - 70, 8);
-          font(f.doc, 10, 'bold', INK); f.doc.text(t, f.x, y + 14);
-          font(f.doc, 8, 'normal', MUTED); f.doc.text(w, f.x, y + 14 + (t.length - 1) * 12.5 + 11);
-          font(f.doc, 10, 'bold', INK2); f.doc.text(e.pages > 1 ? `${starts[k]}–${starts[k] + e.pages - 1}` : String(starts[k]), f.x + f.w, y + 14, { align: 'right' });
-        },
-      })),
-      after: 'm',
-    }));
+    out.push(text({ text: 'Each paper is printed once, in full, in the part it belongs to — the problems in Problems, the programs and their tests in Programs and tests, and so on. Nothing is summarised, and a machine’s pages point to those parts instead of repeating them. The page numbers are this package’s; each paper also keeps its own, and every page names its part at the foot.', size: 8.5, colour: INK2, after: 8 }));
+    let lastGroup = '';
+    entries.forEach((e, k) => {
+      if (e.group !== lastGroup) {
+        lastGroup = e.group;
+        out.push(text({ text: e.group.toUpperCase(), size: 8, style: 'bold', colour: BRAND, before: k ? 8 : 0, after: 1 }));
+      }
+      out.push(rows({
+        rows: [{
+          h: (f: Frame) => 10 + wrap(f.doc, e.title, f.w - 70, 10, 'bold').length * 12.5 + wrap(f.doc, e.what, f.w - 70, 8).length * 10,
+          draw: (f: Frame, y: number) => {
+            f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
+            const t = wrap(f.doc, e.title, f.w - 70, 10, 'bold'), w = wrap(f.doc, e.what, f.w - 70, 8);
+            font(f.doc, 10, 'bold', INK); f.doc.text(t, f.x, y + 14);
+            font(f.doc, 8, 'normal', MUTED); f.doc.text(w, f.x, y + 14 + (t.length - 1) * 12.5 + 11);
+            font(f.doc, 10, 'bold', INK2); f.doc.text(e.pages > 1 ? `${starts[k]}–${starts[k] + e.pages - 1}` : String(starts[k]), f.x + f.w, y + 14, { align: 'right' });
+          },
+        }],
+        after: 's',
+      }));
+    });
+    out.push(box(() => 10, () => { /* a little air before the key */ }));
+    out.push(...statusKeyBlocks());
     out.push(box(() => 14, () => { /* breathing room */ }));
     return out;
   };
@@ -185,7 +195,7 @@ export async function makeLinePackage(sections: readonly PackageSection[], i: Pa
     if (d.brand) stampBrand(d.doc);
     made.push({ s, bytes: bytesOf(d.doc), pages: d.doc.getNumberOfPages(), stamp: d.brand });
   }
-  const entries = made.map(m => ({ title: m.s.title, what: m.s.what, pages: m.pages }));
+  const entries = made.map(m => ({ title: m.s.title, what: m.s.what, pages: m.pages, group: m.s.group }));
   /* the cover takes as many pages as it takes; the contents must be told after one pass */
   let cover = await coverDoc(i, entries, 1);
   if (cover.getNumberOfPages() !== 1) cover = await coverDoc(i, entries, cover.getNumberOfPages());
@@ -206,9 +216,13 @@ export async function makeLinePackage(sections: readonly PackageSection[], i: Pa
   const bare = new Set<number>();
   let at = coverPages;
   for (const m of made) { if (!m.stamp) for (let k = 0; k < m.pages; k++) bare.add(at + k); at += m.pages; }
+  /* the part each page belongs to — named at the foot so a page is never "what am I looking at?" */
+  const partOf: string[] = new Array(coverPages).fill('Contents');
+  for (const m of made) for (let k = 0; k < m.pages; k++) partOf.push(m.s.title);
   all.forEach((pg, k) => {
     if (bare.has(k)) return;
-    const label = `Package page ${k + 1} of ${all.length}`;
+    /* the standard Helvetica of pdf-lib writes WinAnsi only: a tool's name with an arrow in it would stop the whole package */
+    const label = `Package page ${k + 1} of ${all.length}  ·  ${partOf[k] ?? ''}`.replace(/→/g, '>').replace(/[^\x20-\x7E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026]/g, '-').slice(0, 120);
     const { width } = pg.getSize();
     pg.drawText(label, { x: (width - f.widthOfTextAtSize(label, 6.5)) / 2, y: 7, size: 6.5, font: f, color: rgb(0.45, 0.5, 0.52) });
   });

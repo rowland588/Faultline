@@ -161,9 +161,10 @@ const KEY: { word: string; tone: PaperTone; says: string }[] = [
   { word: 'DONE · PASSED', tone: 'g', says: 'finished, passed or fixed' },
   { word: 'NO DAY SET', tone: 'n', says: 'not started, and no day given yet' },
 ];
-function keyAndContents(contents: { title: string; count: string }[]): Block[] {
+/** The five status labels, with their words — drawn once at the front of a machine paper, or once on the full package's cover. */
+export function statusKeyBlocks(): Block[] {
   const out: Block[] = [];
-  out.push(label('How to read this report', INK2));
+  out.push(label('How to read the status labels', INK2));
   out.push(box(() => KEY.length * 17 + 18, (f, y) => {
     f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.8); f.doc.roundedRect(f.x, y, f.w, KEY.length * 17 + 10, 4, 4, 'S');
     KEY.forEach((k, i) => {
@@ -173,6 +174,20 @@ function keyAndContents(contents: { title: string; count: string }[]): Block[] {
     });
   }));
   out.push(text({ text: 'Every status is said in words on its label; the colour only repeats it.', size: 8.5, colour: INK2, after: 12 }));
+  return out;
+}
+function keyAndContents(contents: { title: string; count: string }[], withKey = true): Block[] {
+  const out: Block[] = [];
+  if (withKey) out.push(label('How to read this report', INK2));
+  if (withKey) out.push(box(() => KEY.length * 17 + 18, (f, y) => {
+    f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.8); f.doc.roundedRect(f.x, y, f.w, KEY.length * 17 + 10, 4, 4, 'S');
+    KEY.forEach((k, i) => {
+      const yy = y + 6 + i * 17;
+      pill(f.doc, k.word, k.tone, f.x + 10 + pillW(f.doc, k.word), yy);
+      font(f.doc, 9, 'normal', INK); f.doc.text(k.says, f.x + 150, yy + 9.5);
+    });
+  }));
+  if (withKey) out.push(text({ text: 'Every status is said in words on its label; the colour only repeats it.', size: 8.5, colour: INK2, after: 12 }));
   out.push(label('What is in it', INK2));
   out.push(box(() => contents.length * 15 + 10, (f, y) => {
     contents.forEach((c, i) => {
@@ -253,7 +268,16 @@ function pictureBlock(pic: NonNullable<MachinePaper['picture']>, name: string): 
   }, f => gap(f.density, 'm'));
 }
 
-function machineOf(m: MachinePaper): Block[] {
+/** In the full package these parts are each printed once, in their own section, and are not printed again under every machine. */
+const IN_OWN_SECTION = /^(Its tests|Its programs|Its problems|Studies of it)/;
+const WHERE_ELSE: [RegExp, string][] = [
+  [/^Its tests/, 'Its tests — the Test cards section'],
+  [/^Its programs/, 'Its programs and how each test went — the Programs and Test cards sections'],
+  [/^Its problems/, 'Its problems and fixes — the Problems and Problem cards sections'],
+  [/^Studies of it/, 'Studies that measured it — each printed whole in the studies at the back'],
+];
+
+function machineOf(m: MachinePaper, inPackage = false): Block[] {
   const out: Block[] = band(m.eyebrow, m.name, m.facts.length ? [m.facts.join('   ·   ')] : [], m.status);
   if (m.picture) out.push(pictureBlock(m.picture, m.name));
   if (m.inProject) out.push(text({ text: m.inProject, size: 10.5, style: 'bold', colour: INK2, after: 6 }));
@@ -290,13 +314,20 @@ function machineOf(m: MachinePaper): Block[] {
   }
   /* HOW TO READ IT AND WHAT IS IN IT — then each part under its own numbered band; what has nothing is said once, a
      line each, as the last part — never a heading a "none" */
-  const full = m.sections.filter(x => x.rows.length);
-  const none = m.sections.filter(x => !x.rows.length);
-  out.push(...keyAndContents([...full.map(s => ({ title: s.title, count: s.count })), ...(none.length ? [{ title: 'Nothing on it yet', count: `${none.length} part${none.length === 1 ? '' : 's'}` }] : [])]));
+  const here = (x: { title: string }) => !(inPackage && IN_OWN_SECTION.test(x.title));
+  const full = m.sections.filter(x => x.rows.length && here(x));
+  const elsewhere = inPackage ? m.sections.filter(x => x.rows.length && !here(x)) : [];
+  const none = inPackage ? [] : m.sections.filter(x => !x.rows.length);
+  out.push(...keyAndContents([...full.map(s => ({ title: s.title, count: s.count })), ...(none.length ? [{ title: 'Nothing on it yet', count: `${none.length} part${none.length === 1 ? '' : 's'}` }] : [])], !inPackage));
   full.forEach((s, i) => {
     out.push(sectionHead(i + 1, s.title, s.count, s.intro));
     out.push(s.table ? tableOf(s.rows) : rows({ rows: s.rows.flatMap(cardsOf), after: 'm' }));
   });
+  if (elsewhere.length) {
+    out.push(label('Printed once, in its own section of this package', INK2));
+    for (const x of elsewhere) out.push(text({ text: `•  ${WHERE_ELSE.find(([re]) => re.test(x.title))?.[1] ?? x.title}  (${x.count})`, size: 9.5, colour: INK, after: 4 }));
+    out.push(text({ text: '', after: 8 }));
+  }
   if (none.length) {
     out.push(sectionHead(full.length + 1, 'Nothing on it yet', '', 'The parts of this report with nothing in them for this machine.'));
     for (const x of none) out.push(text({ text: `•  ${x.empty}`, size: 9.5, colour: INK, after: 4 }));
@@ -321,13 +352,13 @@ async function pourOn(doc: jsPDF, build: (d: Density) => Block[]): Promise<void>
 }
 
 /** Draw machines into `doc`: the list first when it has one, then a page a machine. */
-export async function drawMachinesPaper(doc: jsPDF, p: MachinesPaper, printed: string): Promise<void> {
+export async function drawMachinesPaper(doc: jsPDF, p: MachinesPaper, printed: string, opts: { inPackage?: boolean } = {}): Promise<void> {
   let first = true;
   if (p.groups.length) { await pourOn(doc, () => frontOf(p)); first = false; }
   for (const m of p.machines) {
     if (!first) doc.addPage('a4', 'portrait');
     first = false;
-    await pourOn(doc, () => machineOf(m));
+    await pourOn(doc, () => machineOf(m, !!opts.inPackage));
   }
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {

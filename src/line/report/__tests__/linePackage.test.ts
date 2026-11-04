@@ -42,7 +42,7 @@ describe('the full package', () => {
     expect(s.find(x => x.kind === 'problemcards')?.what).toContain('3 cards');
     expect(s.find(x => x.kind === 'testcards')?.what).toContain('3 test cards');
     expect(s.find(x => x.kind === 'programs')?.what).toContain('1 program,');
-    expect(s.find(x => x.kind === 'machines')?.what).toContain('1 machine in full');
+    expect(s.find(x => x.kind === 'machines')?.what).toContain('1 machine — each one’s status, set-up and what needs doing');
     expect(s.find(x => x.kind === 'standards')?.what).toContain('All Rounder 2kg');
   });
   it('leaves out what is unticked and what the line does not have', () => {

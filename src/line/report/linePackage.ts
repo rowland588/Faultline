@@ -19,12 +19,17 @@
 import type { Workspace } from '../../types';
 import type { BundleItem, LineBundle, LinePart } from './lineBundle';
 
+/** The headings the contents are grouped under (4 November): where each paper belongs, so the list reads as a few parts, not 27 papers. */
+export type PackageGroup = 'The line' | 'Problems' | 'Programs and tests' | 'Machines' | 'Line standards and capacity' | 'Studies and tools';
+
 export type PackageKind = 'glance' | 'problems' | 'problemcards' | 'programs' | 'testcards' | 'machines' | 'standards' | 'capacity' | 'study';
 
 export interface PackageSection {
   /** Stable: `glance` · `problems:<line>` · `programs:<line>` · `machines:<line>` · `standards:<line>` · `capacity:<line>` · `study:<key>`. */
   id: string;
   kind: PackageKind;
+  /** The heading it is listed under. */
+  group: PackageGroup;
   /** As the contents say it — "Programs", or "Line 2a — Programs" on a dual line. */
   title: string;
   /** What is in it, in a few words — under the title on the contents. */
@@ -47,29 +52,29 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 /** THE SECTIONS, in the order they are printed. A paper with nothing to print is left out, never printed empty:
  *  no problem open, no program, no machine, no record ticked. */
 export function packageSections(bundle: LineBundle, picks: ReadonlySet<string>, flags: PackageFlags = ALL_IN, rec?: PackageRecords): PackageSection[] {
-  const out: PackageSection[] = [{ id: 'glance', kind: 'glance', title: 'The line at a glance', what: 'the line in one sentence, what is open, who owes what by when', items: [] }];
+  const out: PackageSection[] = [{ id: 'glance', kind: 'glance', group: 'The line', title: 'The line at a glance', what: 'the line in one sentence, what is open, who owes what by when — the full lists follow in their own sections', items: [] }];
   for (const part of bundle.parts) {
     const t = (name: string) => (bundle.dual ? `${part.title} — ${name}` : name);
     const pr = rec?.problemsOn(part.line.id) ?? { open: part.problems.open, closed: 0 };
     const nProblems = pr.open + pr.closed;
-    if (flags.problems && nProblems > 0) out.push({ id: `problems:${part.line.id}`, kind: 'problems', title: t('Problems'), part, items: [],
+    if (flags.problems && nProblems > 0) out.push({ id: `problems:${part.line.id}`, kind: 'problems', group: 'Problems', title: t('Problems'), part, items: [],
       what: `${plural(pr.open, 'problem')} open${part.problems.late ? `, ${part.problems.late} late` : ''}${pr.closed ? `, ${pr.closed} closed` : ''}, each with its plan and journey` });
-    if (flags.problemCards && nProblems > 0) out.push({ id: `problemcards:${part.line.id}`, kind: 'problemcards', title: t('Problem cards'), part, items: [],
+    if (flags.problemCards && nProblems > 0) out.push({ id: `problemcards:${part.line.id}`, kind: 'problemcards', group: 'Problems', title: t('Problem cards'), part, items: [],
       what: `${plural(nProblems, 'card')} — a page for each problem, open or closed, for the board` });
-    if (flags.programs && part.kit.programs.length) out.push({ id: `programs:${part.line.id}`, kind: 'programs', title: t('Programs'), part, items: [],
+    if (flags.programs && part.kit.programs.length) out.push({ id: `programs:${part.line.id}`, kind: 'programs', group: 'Programs and tests', title: t('Programs'), part, items: [],
       what: `${plural(part.kit.programs.length, 'program')}, machine by machine, every test and how it went` });
     const nTests = rec?.testsOn(part) ?? 0;
-    if (flags.testCards && nTests > 0) out.push({ id: `testcards:${part.line.id}`, kind: 'testcards', title: t('Test cards'), part, items: [],
+    if (flags.testCards && nTests > 0) out.push({ id: `testcards:${part.line.id}`, kind: 'testcards', group: 'Programs and tests', title: t('Test cards'), part, items: [],
       what: `${plural(nTests, 'test card')} — each test: what was agreed, what was seen, what we do next` });
-    if (flags.machines && part.kit.machines.length) out.push({ id: `machines:${part.line.id}`, kind: 'machines', title: t('Machines'), part, items: [],
-      what: `${plural(part.kit.machines.length, 'machine')} in full — every test, every program, every step, the studies` });
+    if (flags.machines && part.kit.machines.length) out.push({ id: `machines:${part.line.id}`, kind: 'machines', group: 'Machines', title: t('Machines'), part, items: [],
+      what: `${plural(part.kit.machines.length, 'machine')} — each one’s status, set-up and what needs doing; its programs, problems and studies are printed once, in their own sections` });
     const standards = part.items.filter(i => picks.has(i.key) && i.key.startsWith('standard:'));
-    if (standards.length) out.push({ id: `standards:${part.line.id}`, kind: 'standards', title: t('Line standards'), part, items: standards,
+    if (standards.length) out.push({ id: `standards:${part.line.id}`, kind: 'standards', group: 'Line standards and capacity', title: t('Line standards'), part, items: standards,
       what: `${plural(standards.length, 'card')} with the map and who does what: ${standards.map(s => s.name).join(', ')}` });
     const caps = part.items.filter(i => picks.has(i.key) && i.key.startsWith('capacity:'));
-    if (caps.length) out.push({ id: `capacity:${part.line.id}`, kind: 'capacity', title: t('Line capacity'), part, items: caps,
+    if (caps.length) out.push({ id: `capacity:${part.line.id}`, kind: 'capacity', group: 'Line standards and capacity', title: t('Line capacity'), part, items: caps,
       what: `${caps.map(s => s.name).join(', ')} — the V, the capacity sheet, the bottleneck` });
-    for (const it of part.items) if (it.study && picks.has(it.key)) out.push({ id: it.key, kind: 'study', title: t(`${it.tool} — ${it.name}`), part, items: [it], what: it.says.length <= 90 ? it.says : `${it.says.slice(0, 87)}…` });
+    for (const it of part.items) if (it.study && picks.has(it.key)) out.push({ id: it.key, kind: 'study', group: 'Studies and tools', title: t(`${it.tool} — ${it.name}`), part, items: [it], what: it.says.length <= 90 ? it.says : `${it.says.slice(0, 87)}…` });
   }
   return out;
 }

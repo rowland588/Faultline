@@ -84,6 +84,8 @@ export interface StudyPaperItem {
 }
 
 export interface StudiesPaper {
+  /** The line over the title, in place of "A STUDY · MEASURED BY PEOPLE AT THE LINE" — the full package names the tool ("RELIABILITY · LINE 7"). */
+  eyebrow?: string;
   /** "Capability study — Weight accuracy 400 g", or "Capability studies — Line 7". */
   title: string;
   printed: string;
@@ -831,7 +833,7 @@ function blocksOf(p: StudiesPaper, d: Density): Block[] {
   if (p.lean && p.items.length === 1 && (['capability', 'sampling', 'map', 'reliability', 'chart', 'analysis', 'calc', 'board', 'scored', 'doc'].includes(p.items[0].s.tool) || registerKeyOf(p.items[0].s))) return studyLeanBlocks(p, p.items[0], d);
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return [...smedLeanBlocks(p, p.items[0], d), ...notesTail(p.items[0].s)];
   const out: Block[] = [];
-  out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+  out.push(text({ text: p.eyebrow ?? (p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`), size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
   out.push(text({ text: p.title, size: SIZE.title, style: 'bold', after: 4 }));
   out.push(text({ text: `Printed ${p.printed}`, colour: MUTED, after: gap(d, 'm') }));
   if (!p.items.length) out.push(text({ text: 'No studies here yet.', colour: MUTED }));

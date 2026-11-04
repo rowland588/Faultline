@@ -199,7 +199,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
               ))}
             </ul>
             <ol className="lr-order" aria-label="Papers in the package">
-              {sections.map(sc => <li key={sc.id} data-section={sc.kind}><b>{sc.title}</b> <span className="sub">{sc.what}</span></li>)}
+              {sections.map((sc, k) => <li key={sc.id} data-section={sc.kind} {...(k === 0 || sections[k - 1].group !== sc.group ? { 'data-group': sc.group } : {})}><b>{sc.title}</b> <span className="sub">{sc.what}</span></li>)}
             </ol>
           </section>
         );

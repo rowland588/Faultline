@@ -15867,3 +15867,4 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .calc-tile { gap: 3px; }
 @media (max-width: 720px) { .calc-tile .calc-tile-in .text-input { height: 44px; min-height: 44px; } }
 .calc-below { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 12px; }
+.lr-order li[data-group]::before { content: attr(data-group); display: block; margin-top: 8px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: .04em; }
