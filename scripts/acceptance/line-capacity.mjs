@@ -395,6 +395,8 @@ let TRAY;
 {
   await page.setViewportSize({ width: 390, height: 844 });
   await go(CAP);
+  /* on a phone the page opens on one card (4 November, capacity-glance.mjs); the V, the sheet and the set-up are under Show the workings */
+  await page.getByRole('button', { name: 'Show the workings and set-up' }).click({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(500);
   const t = await truth();
   const rows = await page.locator('.vc-row').evaluateAll(els => els.map(e => e.querySelector('.vc-row-name b')?.textContent + '|' + e.querySelector('.vc-row-val')?.textContent));
   const shown = await page.locator('.vc-rows').isVisible() && !(await page.locator('.vc-box').isVisible());
@@ -793,6 +795,7 @@ let TRAY;
 
   /* on a phone */
   await page.setViewportSize({ width: 375, height: 800 }); await go(CAP);
+  await page.getByRole('button', { name: 'Show the workings and set-up' }).click({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(500);
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(wide <= 1 && (await page.locator('.thr-says').isVisible()), `17e on a phone: the three numbers read, nothing off the side (${wide}px over)`);
   await page.setViewportSize({ width: 1360, height: 900 });

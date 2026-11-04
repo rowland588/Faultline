@@ -46,6 +46,8 @@ import { useAccess } from '../../cloud/access';
 import type { Can } from '../../lib/access';
 import { EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, lineIfRaised, makeItSoWords, stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, perMinute, typedPerMinute, chainFactor, chainWords, typedSpeedWords, REST_ALLOWANCE_PCT, shareColours, labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, type Capacity, type CapacityResult, type Lane, type LabourInputs, type RatePer, type Station, type StationResult, type WhatIf, screenCapacity, bottleneckCost, bottleneckCostSays } from './capacity';
 import { fmtN, oneOf, fmtSec, fmtDur, cycleWords, fmtBig } from './capacityWords';
+import { capacityGlance } from './capacityGlance';
+import { CapacityGlance } from './CapacityGlance';
 import { paceSays, rateAsTime, type PaceSays, type RateAsTime } from './capacitySays';
 import { useLineStops } from '../../lib/useLineStops';
 import { Icon } from '../../ui/Icon';
@@ -884,6 +886,19 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   const lean = useMemo(() => capacityLean(capacityPaper({ product: line.name, line: lineWs?.name ?? '', printed: '', capacity: current,
     labour: labourInputs(cap, mapPeople, lineWs), ...(lineWs?.marginPerPack != null ? { margin: lineWs.marginPerPack } : {}) })), [line.name, lineWs, current, cap, mapPeople]);
 
+  /* ON A PHONE the page opens on the one card (capacityGlance) and the set-up, the drawings and the workings are one tap under it (Rowland, 4 November: "I can't make no
+     sense of it ... it looks really complex"); on a wide screen everything stays open as it was. */
+  const [phone, setPhone] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 719px)').matches);
+  useEffect(() => {
+    const m = window.matchMedia?.('(max-width: 719px)');
+    if (!m) return;
+    const on = () => setPhone(m.matches);
+    m.addEventListener?.('change', on);
+    return () => m.removeEventListener?.('change', on);
+  }, []);
+  const [workings, setWorkings] = useState(false);
+  const glance = useMemo(() => capacityGlance(r, plan), [r, plan]);
+
   /* THE LINE, DRAWN — one model for the right-hand pictures (lib/capacityFlow) */
   const fm = useMemo(() => flowModel(current, r, alike), [current, r, alike]);
   const worth = !w && !r.lanes && limit && r.next && r.line != null
@@ -893,10 +908,10 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     <section className="pace-sec cap capx" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="pace-sec-head">
         <h2 className="pace-sec-title">Where {line.name} is limited</h2>
-        <p className="pace-sec-sub">
+        {!phone && <p className="pace-sec-sub">
           Set the line up — how many lines, what it should do, its stations — and watch it drawn as you type (beside the set-up on a wide
           screen, under it on a phone): where it is held, what each station can do, and the way to the target. A screen to show where to look, not a simulation.
-        </p>
+        </p>}
       </div>
 
       {/* AS RUN, AND EVERY WHAT-IF BESIDE IT. One row; the one on the screen is
@@ -934,6 +949,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       {/* THE TILES (docs/LEAN-PAGE.md) — what the line makes and who holds it,
           the target, against it, labour a pack, the people: the line on the
           screen, as run or the what-if picked, read as its paper reads it */}
+      {phone && <CapacityGlance g={glance} open={workings} onToggle={() => setWorkings(v => !v)} />}
+      <div className="capx-body" hidden={phone && !workings}>
       <LeanTiles tiles={lean.tiles} className="cap-tiles" />
 
       <div className="cap-verdict">
@@ -1265,6 +1282,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
           <Working r={r} />
         </Fold>
       )}
+      </div>
       </div>
     </section>
   );

@@ -15808,3 +15808,23 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .pl-rate { display: flex; flex-wrap: wrap; gap: var(--s-3, 12px); margin-top: var(--s-2, 8px); }
 .pl-rate-f { display: grid; gap: 4px; flex: 1 1 10rem; max-width: 16rem; }
 .pe-rate { margin-top: var(--s-2, 8px); }
+
+/* LINE CAPACITY AT A GLANCE — the one card a phone sees first (tools/linebalance/CapacityGlance) */
+.cg { display: grid; gap: var(--s-3, 12px); padding: var(--s-4, 16px); border: 1px solid var(--line); border-left: 4px solid var(--st-n); border-radius: var(--radius); background: var(--surface); }
+.cg.is-short { border-left-color: var(--st-r); }
+.cg.is-meets { border-left-color: var(--st-g); }
+.cg-top { display: flex; gap: var(--s-4, 16px); flex-wrap: wrap; }
+.cg-fig { display: grid; gap: 2px; }
+.cg-k { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.05em; color: var(--ink-2); }
+.cg-v { font-size: var(--t-h, 22px); font-weight: 800; letter-spacing: -0.02em; }
+.cg-against { margin: 0; font-size: var(--t-body); }
+.cg-against.is-r { color: var(--st-r); font-weight: 600; }
+.cg-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2, 8px); }
+.cg-rows li { display: grid; gap: 2px; padding: var(--s-2, 8px) var(--s-3, 12px); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.cg-rows li.is-limit { border-color: var(--navy, #12171c); box-shadow: inset 0 0 0 1px var(--navy, #12171c); }
+.cg-n { font-weight: 700; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.cg-tag { font-style: normal; font-size: var(--t-label); font-weight: 700; padding: 1px 6px; border-radius: var(--radius-sm); background: var(--surface-2); }
+.cg-s, .cg-c { font-size: var(--t-detail); color: var(--ink-2); }
+.cg-fix { margin: 0; display: grid; gap: 2px; padding: var(--s-2, 8px) var(--s-3, 12px); background: var(--surface-2); border-radius: var(--radius-sm); }
+.cg-btn { min-height: 44px; width: 100%; }
+.capx-body[hidden] { display: none; }

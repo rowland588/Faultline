@@ -98,6 +98,7 @@ let v = await truth();
 
 /* ---- 5 a phone ---- */
 await page.setViewportSize({ width: 375, height: 800 }); await go(CAP);
+await page.getByRole('button', { name: 'Show the workings and set-up' }).click({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(500);
 {
   const wide = await t.wide();
   ok(wide <= 1 && (await page.locator('.bfr-says').isVisible()) && (await page.locator('.bfr-rows').isVisible()), `5 on a phone: the block reads, nothing off the side (${wide}px over)`);
