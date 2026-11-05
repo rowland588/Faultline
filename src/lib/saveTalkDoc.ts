@@ -2,17 +2,18 @@
  * time (decoding many at once is how a phone drops the lot), the paper drawn
  * (lib/talkDocPdf) and handed over the way every Faultline PDF goes out: the
  * share sheet on a phone, a download on a desktop (lib/savePdf). */
-import { loadPdfLib, deliverPdf, titlePdf, type Delivered } from './savePdf';
+import { loadPdfLib, deliverBlob, titlePdf, type Delivered } from './savePdf';
+import { putBlob } from '../db/blobs';
 import { pdfFileName } from './fileName';
 import { todayISO } from './weeks';
 import { shrinkPicture, type Picture } from '../tools/talk/talkPictures';
 import type { TalkDoc } from '../tools/talk/talkAssist';
-import type { TalkTurn } from '../tools/talk/talk';
+import type { TalkTurn, TalkPdf } from '../tools/talk/talk';
 
 /* a photo printed a column wide: 1,400 px keeps it sharp and the file small */
 const EDGE = 1400, QUALITY = 0.82;
 
-export async function saveTalkDoc(doc: TalkDoc, o: { talk: string; line?: string; by?: string; photos: Map<string, TalkTurn> }): Promise<Delivered> {
+export async function saveTalkDoc(doc: TalkDoc, o: { talk: string; line?: string; by?: string; photos: Map<string, TalkTurn>; keep?: (c: TalkPdf) => Promise<void> }): Promise<Delivered> {
   const { jsPDF } = await loadPdfLib();
   const { drawTalkDoc } = await import('../tools/talk/talkDocPdf');
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
@@ -32,5 +33,17 @@ export async function saveTalkDoc(doc: TalkDoc, o: { talk: string; line?: string
     printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
     photos: pictures, taken,
   });
-  return deliverPdf(pdf, pdfFileName(o.line ?? 'Line Talk', doc.title, todayISO()));
+  /* KEPT IN THE APP FIRST, then handed over (5 November — "I don't end up saving it on the app, and that's what I want"): the same file the download is,
+     stored under the talk's answer so it is there again after the page is left, on every device the talk syncs to */
+  const name = pdfFileName(o.line ?? 'Line Talk', doc.title, todayISO());
+  (await import('./reportKit')).stampBrand(pdf);
+  titlePdf(pdf, name.replace(/\.pdf$/i, ''));
+  const blob = pdf.output('blob') as Blob;
+  if (o.keep) {
+    const id = `pdf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    const key = `talkpdf-${id}`;
+    await putBlob(key, blob);
+    await o.keep({ id, key, name, at: Date.now() });
+  }
+  return deliverBlob(blob, name);
 }

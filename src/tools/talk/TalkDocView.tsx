@@ -16,7 +16,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBlobUrl } from '../../lib/useBlobUrl';
 import { BASIS_WORD, DOC_KIND_WORD, figuresIn, type TalkBasis, type TalkDoc, type TalkDocKind } from './talkAssist';
-import type { TalkTurn } from './talk';
+import type { TalkTurn, TalkPdf } from './talk';
+import { getBlob } from '../../db/blobs';
+import { deliverBlob } from '../../lib/savePdf';
 import type { ToolStudy } from '../../lib/study';
 import type { can as canAt } from '../../lib/access';
 import { offerUndo } from '../../ui/Undo';
@@ -30,11 +32,14 @@ function Thumb({ blobKey, label }: { blobKey?: string; label: string }) {
   return url ? <img className="tk-dph-i" src={url} alt={`Photo ${label}`} /> : <span className="tk-dph-none sub">{label} is on another device</span>;
 }
 
-export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onBack }: {
+export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onKeepPdf, onDropPdf, onBack }: {
   s: ToolStudy; t: TalkTurn; doc: TalkDoc; can: ReturnType<typeof canAt>; lineName?: string; me?: string;
   /** Each photo of the talk by its label. */
   photos: Map<string, TalkTurn>;
   onSave: (doc: TalkDoc, first: TalkDoc) => Promise<void>;
+  /** A PDF made of it is kept with the answer, in the app (and one taken off). */
+  onKeepPdf: (c: TalkPdf) => Promise<void>;
+  onDropPdf: (id: string) => Promise<void>;
   onBack: () => void;
 }) {
   const edit = can.edit;
@@ -63,11 +68,20 @@ export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onBa
     try {
       await flush();
       const { saveTalkDoc } = await import('../../lib/saveTalkDoc');
-      await saveTalkDoc(d, { talk: s.name, ...(lineName ? { line: lineName } : {}), ...(me ? { by: me } : {}), photos });
+      await saveTalkDoc(d, { talk: s.name, ...(lineName ? { line: lineName } : {}), ...(me ? { by: me } : {}), photos, ...(edit ? { keep: onKeepPdf } : {}) });
+      setSaid(edit ? 'Saved in the app below, and downloaded' : 'Downloaded');
     } catch (e) {
       console.error('talk document pdf failed', e);
       window.alert('Sorry — the PDF could not be made. Please try again.');
     } finally { setBusy(false); }
+  };
+  const openPdf = async (p: TalkPdf, download: boolean) => {
+    const blob = await getBlob(p.key);
+    if (!blob) { window.alert('This PDF is on another device and has not reached this one yet — try again when the app has synced.'); return; }
+    if (download) { await deliverBlob(blob, p.name); return; }
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener');
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
   const restore = () => {
     if (!t.docFirst) return;
@@ -101,6 +115,22 @@ export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onBa
             <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void print()}>{busy ? 'Making the PDF…' : 'Save as PDF'}</button>
             {edit && t.docFirst && <button type="button" className="btn btn-ghost" onClick={restore}>As Line Talk wrote it</button>}
             {said && <span className="sub" role="status">{said}</span>}
+          </div>
+          {/* THE PDFS KEPT IN THE APP — made once, there until taken off, downloaded again as often as wanted */}
+          <div className="tk-pdfs" data-saved-pdfs aria-label="PDFs saved in the app">
+            <span className="field-label">Saved in the app</span>
+            {(t.pdfs ?? []).length === 0
+              ? <p className="sub">None yet — Save as PDF keeps a copy here as well as downloading it.</p>
+              : <ul className="tk-pdf-l">
+                {[...(t.pdfs ?? [])].sort((a, b) => b.at - a.at).map(p => (
+                  <li key={p.id} data-pdf={p.id}>
+                    <b>{new Date(p.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</b> · <span className="sub">{p.name}</span>{' '}
+                    <button type="button" className="linkish" data-pdf-open={p.id} onClick={() => void openPdf(p, false)}>Open</button> ·{' '}
+                    <button type="button" className="linkish" data-pdf-down={p.id} onClick={() => void openPdf(p, true)}>Download</button>
+                    {can.remove && <> · <button type="button" className="linkish" data-pdf-drop={p.id} onClick={() => { if (window.confirm('Take this saved PDF out of the app? The document itself stays.')) void onDropPdf(p.id); }}>Take off</button></>}
+                  </li>
+                ))}
+              </ul>}
           </div>
         </div>
       </header>

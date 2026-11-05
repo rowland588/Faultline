@@ -434,6 +434,8 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   if (docTurn?.doc) {
     return <TalkDocView s={s} t={docTurn} doc={docTurn.doc} can={can} lineName={line?.name} me={me} photos={photosByLabel}
       onSave={(doc, first) => patchTurn(docTurn.id, { doc, ...(first && !docTurn.docFirst ? { docFirst: first } : {}) })}
+      onKeepPdf={c => patchStudy(s.id, cur => ({ facts: { ...cur.facts, turns: (cur.facts.turns ?? []).map(x => (x.id === docTurn.id ? { ...x, pdfs: [...(x.pdfs ?? []), c] } : x)) } }))}
+      onDropPdf={async id => { const gone = (docTurn.pdfs ?? []).find(p => p.id === id); await patchStudy(s.id, cur => ({ facts: { ...cur.facts, turns: (cur.facts.turns ?? []).map(x => (x.id === docTurn.id ? { ...x, pdfs: (x.pdfs ?? []).filter(p => p.id !== id) } : x)) } })); if (gone) await (await import('../../db/blobs')).deleteBlobs([gone.key]); }}
       onBack={() => nav(`/talk/${s.id}`)} />;
   }
   const canSend = live && !asking && (!!typing.trim() || theirs.length > 0);
@@ -570,6 +572,7 @@ function ReplyRow({ t, live, answeringHere, writing, onAskAgain, onOpen, onStrik
           <span className="tk-doc-k">{DOC_KIND_WORD[d.kind]}</span>
           <b className="tk-doc-t">{d.title}</b>
           <span className="sub">{d.sections.length} section{d.sections.length === 1 ? '' : 's'}{pics ? ` · ${pics} photo${pics === 1 ? '' : 's'}` : ''}{t.docFirst ? ' · edited' : ''}</span>
+          {!!t.pdfs?.length && <span className="sub tk-doc-pdf" data-pdf-count>{t.pdfs.length} PDF{t.pdfs.length === 1 ? '' : 's'} saved</span>}
           <button type="button" className="btn btn-sm btn-primary" onClick={onOpen}>Open — edit and print</button>
         </div>
       )}

@@ -65,7 +65,12 @@ export interface TalkTurn {
   unsure?: string[];
   /** reply: the model that answered. */
   model?: string;
+  /** reply: the PDFs made of its document and kept in the app (5 November — Rowland: "I don't end up saving it on the app, and that's what I want"). */
+  pdfs?: TalkPdf[];
 }
+
+/** A PDF of a Line Talk document, kept: the file is in the media store under `key`. */
+export interface TalkPdf { id: string; key: string; name: string; at: number }
 
 /** The talk's turns, in the order they happened. */
 export const turnsOf = (facts: Pick<StudyFacts, 'turns'>): TalkTurn[] =>
@@ -110,7 +115,7 @@ export const talkName = (lineName: string | undefined, day: string): string => `
  *  (struck is never erased, and the recordings are kept for good) — what
  *  goes up to the cloud with it (cloud/mappers studies mediaKeys). */
 export function talkMediaKeys(facts: Pick<StudyFacts, 'turns'>): { key: string; mime: string }[] {
-  return (facts.turns ?? []).flatMap(t => t.media?.blobKey ? [{ key: t.media.blobKey, mime: t.media.mime }] : []);
+  return (facts.turns ?? []).flatMap(t => [...(t.media?.blobKey ? [{ key: t.media.blobKey, mime: t.media.mime }] : []), ...(t.pdfs ?? []).map(p => ({ key: p.key, mime: 'application/pdf' }))]);
 }
 
 /* ------------------------------------------------ slice 2: asking Line Talk */
