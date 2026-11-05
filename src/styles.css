@@ -15927,3 +15927,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 @media (min-width: 720px) {
   .calc-body:not(.has-grid) .calc-out { position: sticky; top: 112px; max-height: calc(100vh - 128px); overflow-y: auto; }
 }
+
+/* THE LINE, ONE CARD, and a station's four questions (5 November — knowledge/specs/FC-034-build-the-line.md) */
+.cap-line-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }
+.cap-line-f { min-width: 0; }
+.cap-more-d { margin-top: var(--space-2); }
+.cap-more-d > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: var(--space-2); font-weight: 600; }
+.cap-more-d > summary .sub { font-weight: 400; }
+.cap-settings { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-2) 0; }
+.cap-same, .cap-flip { min-height: 44px; font: inherit; cursor: pointer; }
+.cap-same { background: var(--surface); border: 1px solid var(--brand); color: var(--brand); border-radius: var(--radius-pill); padding: 0 var(--space-3); }
+.cap-flip { background: none; border: 0; color: var(--brand); text-decoration: underline; padding: 0; }
+.cap-q { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-3); }

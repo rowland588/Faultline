@@ -130,7 +130,7 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
 
 /* =============================== one station ================================ */
 
-function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned, why, wait, own, coLeft = 0, suggested, say, load, asTime, factor, lineUnit, patch, move, remove, like, assets, machines = [], open: wantOpen, onToggle, ro }: {
+function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned, why, wait, own, coLeft = 0, suggested, say, load, asTime, factor, lineUnit, arrivesEvery, patch, move, remove, like, assets, machines = [], open: wantOpen, onToggle, ro }: {
   s: Station; i: number; last: boolean; prevUnit?: string;
   /** Its number on the card, and whether it can move earlier or later in ITS
    *  line — several lines feeding one place number and order each its own. */
@@ -153,6 +153,8 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
   asTime?: RateAsTime;
   /** How many of the line's unit are in one of its own, when counted. */
   factor?: number; lineUnit: string;
+  /** Seconds between one and the next reaching it, in its own unit — what the stations before it give it (analyse arrivals). */
+  arrivesEvery?: number;
   patch: (p: Partial<Station>) => void; move: (by: -1 | 1) => void; remove: () => void; assets: string[];
   /** ADD ONE LIKE THIS — the next station with this one's unit, people and speed pattern, named by the person. */
   like: () => void;
@@ -168,7 +170,6 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
   const open = wantOpen && !ro;
   const cyc = s.rate == null && (s.cycleSec != null || s.perCycle != null);
   /* a person is timed — "one tray every 8 seconds" — so their speed is asked that way first */
-  const [openMove, setOpenMove] = useState(false);
   const [mode, setMode] = useState<'rate' | 'cycle'>(cyc || (s.kind === 'people' && s.rate == null) ? 'cycle' : 'rate');
   const one = oneOf(s.unit);
   const speed = perMinute(s);
@@ -230,8 +231,9 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
           {s.rate != null ? `${fmtN(s.rate)} ${spUnit} ${PER_WORD[s.ratePer ?? 'min']}`
             : s.perCycle != null || s.cycleSec != null ? cycleWords(s.perCycle ?? 0, s.cycleSec ?? 0, spUnit)
               : 'no speed yet'}
-          {' · '}{s.crew ?? 1} {s.kind === 'people' ? (s.crew === 1 ? 'person' : 'people') : 'of it'}
-          {' · '}{s.runningPct ?? 100}% running · {s.goodPct ?? 100}% good
+          {s.kind === 'people' ? ` · ${s.crew ?? 1} ${(s.crew ?? 1) === 1 ? 'person' : 'people'}` : (s.crew ?? 1) > 1 ? ` · ${s.crew} of it` : ''}
+          {s.moveSec != null && s.moveSec > 0 ? ` · +${fmtN(s.moveSec)} s extra` : ''}
+          {(s.runningPct ?? 100) < 100 ? ` · ${s.runningPct}% running` : ''}{(s.goodPct ?? 100) < 100 ? ` · ${s.goodPct}% good` : ''}
         </p>
       )}
       {/* THE STEP BEFORE, SAID HERE (Rowland, 13 October: "70 a minute. How
@@ -243,12 +245,13 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
       {load && <p className="cap-load" data-load>{load}</p>}
       {(say.arrive || say.verdict || say.paced) && (
         <p className={'cap-feed' + (say.short ? ' is-short' : say.paced ? ' is-paced' : '')}>
-          {say.arrive && <span className="cap-calc">worked out from the station before — not typed</span>}
-          {say.arrive && <span className="cap-st-in">{say.arrive}</span>}
+          {/* THE VERDICT FIRST — does it keep up — then what reaches it, said as worked out, not typed */}
           {say.verdict && <span className="cap-st-says">{say.verdict}</span>}
           {say.needed != null && !ro && (
             <button type="button" className="cw-link cap-crew" onClick={() => patch({ crew: say.needed })}>Make it {say.needed} people</button>
           )}
+          {say.arrive && <span className="cap-calc">arrives — worked out, not typed</span>}
+          {say.arrive && <span className="cap-st-in">{say.arrive}</span>}
           {/* fed straight by a machine or a person, nothing collecting between (docs/CAPACITY.md §1) */}
           {say.paced && <span className="cap-st-paced" role="note">{say.paced}</span>}
         </p>
@@ -268,7 +271,8 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
       )}
 
       {open && <>
-      <div className="cap-grid">
+      <div className="cap-grid cap-q">
+        {/* 2 · WHAT IT COUNTS, AND HOW MANY OF THE ONE BEFORE MAKE ONE */}
         <label className="proj-field">
           <span className="field-label">It counts in</span>
           <DraftText value={s.unit} placeholder="bags, baskets, pallets…" className="text-input" max={30}
@@ -285,25 +289,21 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
                 onSave={v => patch({ contains: v ?? 0 })} />
               <span className="cap-unit">{prevUnit?.trim() || 'of the one before'}</span>
             </span>
-            {/* THE STEP BEFORE READ INTO IT — "1 pallet = 36 baskets = 360
-                units": a wrong number in the chain shows here */}
+            {/* THE STEP BEFORE READ INTO IT — "1 pallet = 36 baskets = 360 units": a wrong number in the chain shows here */}
             {chain && <span className="cap-hint cap-chain">{chain}</span>}
           </label>
         )}
 
+        {/* 3 · HOW FAST — one way at a time, the other a small link; what arrives is one tap away */}
         <div className="proj-field cap-speed">
-          <span className="field-label">How fast it runs</span>
-          {canBefore && (
+          <span className="field-label">{s.kind === 'people' ? 'How long one takes' : 'How fast it runs'}</span>
+          {before && (
             <span className="cw-seg cap-per" role="group" aria-label="Timed per">
               <span className="cap-hint">Timed per</span>
               <button type="button" className={'chip' + (!before ? ' on' : '')} aria-pressed={!before} onClick={() => timePer('own')}>{one}</button>
               <button type="button" className={'chip' + (before ? ' on' : '')} aria-pressed={before} onClick={() => timePer('before')}>{oneOf(prevUnit as string)}</button>
             </span>
           )}
-          <span className="cw-seg" role="group" aria-label="A rate or how long one takes">
-            <button type="button" className={'chip' + (mode === 'rate' ? ' on' : '')} aria-pressed={mode === 'rate'} onClick={() => setMode('rate')}>How many in a time</button>
-            <button type="button" className={'chip' + (mode === 'cycle' ? ' on' : '')} aria-pressed={mode === 'cycle'} onClick={() => setMode('cycle')}>How long one takes</button>
-          </span>
           {mode === 'rate' ? (
             <span className="cap-inline">
               <DraftNumber className="text-input cap-num" value={s.rate} placeholder="70" label="Speed" onSave={v => patch({ rate: v, cycleSec: undefined, perCycle: undefined })} />
@@ -319,8 +319,7 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
               {/* one at a time unless said otherwise: "a tray every 8 seconds" */}
               <DraftNumber className="text-input cap-num" value={s.perCycle ?? 1} placeholder="1" label={`How many ${spUnit} at a time`} onSave={v => patch({ perCycle: v ?? 1, rate: undefined })} />
               <span className="cap-unit">{(s.perCycle ?? 1) === 1 ? spOne : spUnit} every</span>
-              {/* SECONDS OR MINUTES — "it takes 5 minutes to do one pallet":
-                  kept in seconds, shown and typed in what was picked */}
+              {/* SECONDS OR MINUTES — "it takes 5 minutes to do one pallet": kept in seconds, shown and typed in what was picked */}
               <DraftNumber className="text-input cap-num" value={s.cycleSec == null ? undefined : inMin ? Math.round((s.cycleSec / 60) * 1000) / 1000 : s.cycleSec}
                 placeholder={inMin ? '5' : '8'} label={inMin ? 'Minutes each time' : 'Seconds each time'}
                 onSave={v => patch({ cycleSec: v == null ? undefined : inMin ? v * 60 : v, perCycle: s.perCycle ?? 1, rate: undefined })} />
@@ -336,17 +335,23 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
               </select>
             </span>
           )}
-          {/* WHAT THAT COMES TO, said back at once — a slip ("8 trays" for "8
-              bags a tray") shows here, not three tables later */}
+          {/* WHAT ARRIVES IS WORKED OUT ALREADY (Rowland: "the basket receives from them 8.6 s, then it asks me how long one takes — you've just told me"):
+              one tap takes it as this station's own time; the extra below is what it adds */}
+          {arrivesEvery != null && arrivesEvery > 0 && !before && !ro && (
+            <button type="button" className="cw-link cap-same" data-same-pace onClick={() => {
+              if (s.kind === 'people' || mode === 'cycle') { setMode('cycle'); patch({ cycleSec: Math.round(arrivesEvery * 10) / 10, perCycle: 1, rate: undefined, cycleIn: undefined }); }
+              else { setMode('rate'); patch({ rate: Math.round((60 / arrivesEvery) * 10) / 10, ratePer: 'min', cycleSec: undefined, perCycle: undefined }); }
+            }}>Same pace as it arrives — {fmtSec(arrivesEvery)} a {one}</button>
+          )}
+          <button type="button" className="cw-link cap-flip" onClick={() => setMode(mode === 'rate' ? 'cycle' : 'rate')}>{mode === 'rate' ? 'Say it as a time instead' : 'Say it as a rate instead'}</button>
+          {/* WHAT THAT COMES TO, said back at once — a slip shows here, not three tables later */}
           {speed != null && !before && (
             <span className="cap-hint cap-is">
-              {/* under one a minute, said an hour: "12 pallets an hour", not "0.2 pallets a minute" */}
               = {speed < 1 ? `${fmtN(speed * 60)} ${s.unit.trim() || 'units'} an hour` : `${fmtN(speed)} ${s.unit.trim() || 'units'} a minute`}{s.kind === 'people' ? ' each' : ''}
               {factor != null && Math.abs(factor - 1) > 1e-9 ? ` · ${fmtN(speed * factor)} ${lineUnit} a minute` : ''}
               {s.kind === 'people' && s.rate != null ? ` · a ${one} every ${fmtSec(60 / speed)}` : ''}
             </span>
           )}
-          {/* timed per the one before: said in it, then in its own unit and the line's */}
           {speed != null && before && typed != null && (
             <span className="cap-hint cap-is">
               = {fmtN(typed)} {spUnit} a minute{s.kind === 'people' ? ' each' : ''}{s.rate != null ? ` · a ${spOne} every ${fmtSec(60 / typed)}` : ''}
@@ -354,107 +359,103 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
               {factor != null && Math.abs(factor - 1) > 1e-9 ? ` · ${fmtN(speed * factor)} ${lineUnit} a minute` : ''}
             </span>
           )}
-          {s.kind === 'people' && <span className="cap-hint">Use the pace they can keep up all shift — not their best lap.</span>}
         </div>
 
-        {/* THE TIME TO TAKE IT AWAY (4 November — Rowland: "add the time it takes to take pallets away, not just do the job ... at any point when we have a human involved"):
-            seconds a hand spends moving what the station made, once for every so many of its unit; added to each unit's time before the rest allowance */}
-        {(speed != null || s.moveSec != null) && (
-          openMove || s.moveSec != null ? (
-            <div className="proj-field cap-move" data-take-away>
-              <span className="field-label">Time to take it away — seconds</span>
-              <div className="cap-move-row">
-                <DraftNumber className="text-input cap-num" value={s.moveSec} placeholder="30" label={`Seconds to take a ${one} away`}
-                  onSave={v => patch({ moveSec: v != null && v > 0 && v <= 3600 ? v : undefined, ...(v == null || v <= 0 ? { moveEvery: undefined } : {}) })} />
-                <span className="cap-hint">every</span>
-                <DraftNumber className="text-input cap-num" value={s.moveEvery ?? 1} placeholder="1" label={`How many ${s.unit.trim() || 'units'} each trip takes`}
-                  onSave={v => patch({ moveEvery: v != null && v >= 1 && v !== 1 ? v : undefined })} />
-                <span className="cap-hint">{s.moveEvery != null && s.moveEvery > 1 ? (s.unit.trim() || 'units') : one}</span>
-              </div>
-              <span className="cap-hint">
-                {takeAwayWords(s) && speed != null
-                  ? `${takeAwayWords(s)} — already in the speed above, so the line is worked out on ${fmtDur(60 / speed)} a ${one}${s.kind === 'people' ? ' before rest' : ''}.`
-                  : 'The seconds a hand spends moving what this station made — the pallet to the stack — each time. It is added to the time of every one, on top of doing the job. If it overlaps the job, type only the part that does not.'}
-              </span>
-            </div>
-          ) : (
-            <button type="button" className="btn btn-sm cap-move-add" data-take-away-add onClick={() => setOpenMove(true)}>＋ Add time to take it away</button>
-          )
-        )}
-
-        {/* A PERSON'S REST ALLOWANCE (docs/CAPACITY.md §1) — added to the
-            time timed or typed to give the time to plan on; a standard time
-            from the line balance carries its own */}
-        {s.kind === 'people' && s.source !== 'standard' && (
-          <label className="proj-field">
-            <span className="field-label">Rest allowance — %</span>
-            <DraftNumber className="text-input cap-num" value={s.allowancePct ?? REST_ALLOWANCE_PCT} placeholder={String(REST_ALLOWANCE_PCT)} label="Rest allowance, percent"
-              onSave={v => patch({ allowancePct: v == null || v === REST_ALLOWANCE_PCT ? undefined : v })} />
-            <span className="cap-hint">{speed != null
-              ? `Plan on ${(() => { const p = 60 / (speed / (1 + (s.allowancePct ?? REST_ALLOWANCE_PCT) / 100)); return before ? `a ${spOne} every ${fmtDur(p / s.contains)}` : `a ${one} every ${fmtDur(p)}`; })()} — the time with the allowance. `
-              : ''}{REST_ALLOWANCE_PCT}% is the ILO’s on every job: 5% personal needs, 4% basic fatigue. Add for standing, awkward posture, weight lifted, heat, noise or monotony.</span>
-          </label>
-        )}
+        {/* 4 · EXTRA TIME — always on the card (4–5 November; Rowland: "anything extra than that, I add in the extra time bit"): seconds a hand spends
+            on every so many of this station's unit — handling, taking it away — added to the time of each before the rest allowance */}
+        <div className="proj-field cap-move" data-take-away>
+          <span className="field-label">Extra time — seconds</span>
+          <div className="cap-move-row">
+            <DraftNumber className="text-input cap-num" value={s.moveSec} placeholder="0" label={`Seconds of extra time for a ${one}`}
+              onSave={v => patch({ moveSec: v != null && v > 0 && v <= 3600 ? v : undefined, ...(v == null || v <= 0 ? { moveEvery: undefined } : {}) })} />
+            <span className="cap-hint">for every</span>
+            <DraftNumber className="text-input cap-num" value={s.moveEvery ?? 1} placeholder="1" label={`How many ${s.unit.trim() || 'units'} each time the extra time is taken`}
+              onSave={v => patch({ moveEvery: v != null && v >= 1 && v !== 1 ? v : undefined })} />
+            <span className="cap-hint">{s.moveEvery != null && s.moveEvery > 1 ? (s.unit.trim() || 'units') : one}</span>
+          </div>
+          <span className="cap-hint">
+            {takeAwayWords(s) && speed != null
+              ? `${takeAwayWords(s)} — already in the speed above, so the line is worked out on ${fmtDur(60 / speed)} a ${one}${s.kind === 'people' ? ' before rest' : ''}.`
+              : 'Handling, taking it away — added to every one, on top of doing the job. Leave it empty for none.'}
+          </span>
+        </div>
 
         <label className="proj-field">
           <span className="field-label">{s.kind === 'people' ? 'How many people' : 'How many of it'}</span>
           <DraftNumber className="text-input cap-num" value={s.crew ?? 1} placeholder="1" label="Crew" onSave={v => patch({ crew: v })} />
         </label>
+      </div>
 
-        <label className="proj-field">
-          <span className="field-label">Running — % of the time</span>
-          <DraftNumber className="text-input cap-num" value={s.runningPct} placeholder="100" label="Percent of the time it is running" onSave={v => patch({ runningPct: v })} />
-          {suggested != null && suggested < 100 && suggested !== (s.runningPct ?? 100) && (
-            <button className="cw-link cap-sug" onClick={() => patch({ runningPct: suggested })}>
-              Your last 4 weeks of stops say {suggested}%{coLeft > 0 ? ` — ${Math.round(coLeft)} min of changeovers left out, they come off the shift` : ''} — use it
-            </button>
+      {/* EVERYTHING ELSE, CLOSED (5 November — Rowland: "running what %, good % passed, where it came from, the date, stops logged — what's that got to do with anything"):
+          still kept and still read by the sums, out of the way until wanted */}
+      <details className="cap-more-d">
+        <summary>More detail <span className="sub">running %, good %, rest, where the speed came from</span></summary>
+        <div className="cap-grid">
+          {canBefore && !before && (
+            <div className="proj-field">
+              <span className="field-label">Timed per the unit before</span>
+              <button type="button" className="cw-link" onClick={() => timePer('before')}>Time it per {oneOf(prevUnit as string)} instead of per {one}</button>
+            </div>
           )}
-          {suggested == null && own > 0 && !planned && (
-            <span className="cap-hint">{Math.round(own)} min of its own stops in 4 weeks — set planned hours above to turn that into a percentage.</span>
+          {/* A PERSON'S REST ALLOWANCE (docs/CAPACITY.md §1) */}
+          {s.kind === 'people' && s.source !== 'standard' && (
+            <label className="proj-field">
+              <span className="field-label">Rest allowance — %</span>
+              <DraftNumber className="text-input cap-num" value={s.allowancePct ?? REST_ALLOWANCE_PCT} placeholder={String(REST_ALLOWANCE_PCT)} label="Rest allowance, percent"
+                onSave={v => patch({ allowancePct: v == null || v === REST_ALLOWANCE_PCT ? undefined : v })} />
+              <span className="cap-hint">{REST_ALLOWANCE_PCT}% is the ILO’s on every job: 5% personal needs, 4% basic fatigue. Add for standing, awkward posture, weight lifted, heat, noise or monotony.</span>
+            </label>
           )}
-        </label>
-
-        <label className="proj-field">
-          <span className="field-label">Good — % passed on</span>
-          <DraftNumber className="text-input cap-num" value={s.goodPct} placeholder="100" label="Percent it passes on as good" onSave={v => patch({ goodPct: v })} />
-        </label>
-
-        {/* ACCUMULATION after it (docs/CAPACITY.md §4): what can collect before
-            the next station — a conveyor, a table — in its own unit */}
-        {!last && (
           <label className="proj-field">
-            <span className="field-label">Can collect after it — {s.unit || 'its unit'}</span>
-            <DraftNumber className="text-input cap-num" value={s.bufferAfter} placeholder="0" label="How many can collect between it and the next station" onSave={v => patch({ bufferAfter: v })} />
+            <span className="field-label">Running — % of the time</span>
+            <DraftNumber className="text-input cap-num" value={s.runningPct} placeholder="100" label="Percent of the time it is running" onSave={v => patch({ runningPct: v })} />
+            {suggested != null && suggested < 100 && suggested !== (s.runningPct ?? 100) && (
+              <button className="cw-link cap-sug" onClick={() => patch({ runningPct: suggested })}>
+                Your last 4 weeks of stops say {suggested}%{coLeft > 0 ? ` — ${Math.round(coLeft)} min of changeovers left out, they come off the shift` : ''} — use it
+              </button>
+            )}
+            {suggested == null && own > 0 && !planned && (
+              <span className="cap-hint">{Math.round(own)} min of its own stops in 4 weeks — set planned hours to turn that into a percentage.</span>
+            )}
           </label>
-        )}
-      </div>
-
-      <div className="cap-st-f">
-        <span className="cw-seg" role="group" aria-label="How the speed is known">
-          {/* a person is timed, never read off a plate */}
-          {SOURCES.filter(o => s.kind !== 'people' || o.id !== 'plate').map(o => (
-            <button key={o.id} type="button" className={'chip' + ((s.source ?? 'estimate') === o.id ? ' on' : '')}
-              aria-pressed={(s.source ?? 'estimate') === o.id} onClick={() => patch({ source: o.id })}>{o.label}</button>
-          ))}
-        </span>
-        <DraftText value={s.note ?? ''} placeholder="Where that came from — the date, who timed it, how many laps…" className="text-input cap-note" max={160}
-          ariaLabel="Where the speed came from" onSave={v => patch({ note: v || undefined })} />
-        <span className="cap-asset">
-          <DraftText value={s.asset ?? ''} placeholder={`Stops logged as: ${s.name || 'this name'}`} className="text-input" max={60}
-            ariaLabel="The machine name its stops are logged under" onSave={v => patch({ asset: v || undefined })} />
-          {!matched && assets.length > 0 && (
-            <span className="cap-picks">
-              <span className="cap-hint">Your stops log has:</span>
-              {assets.slice(0, 6).map(a => (
-                <button key={a} type="button" className="chip" onClick={() => patch({ asset: a })}>{a}</button>
-              ))}
-            </span>
+          <label className="proj-field">
+            <span className="field-label">Good — % passed on</span>
+            <DraftNumber className="text-input cap-num" value={s.goodPct} placeholder="100" label="Percent it passes on as good" onSave={v => patch({ goodPct: v })} />
+          </label>
+          {!last && (
+            <label className="proj-field">
+              <span className="field-label">Can collect after it — {s.unit || 'its unit'}</span>
+              <DraftNumber className="text-input cap-num" value={s.bufferAfter} placeholder="0" label="How many can collect between it and the next station" onSave={v => patch({ bufferAfter: v })} />
+            </label>
           )}
-        </span>
-        {(wait > 0 || own > 0) && (
-          <span className="cap-hint">Last 4 weeks: {Math.round(own)} min its own stops{coLeft > 0 ? ` (${Math.round(coLeft)} of it changeovers)` : ''} · {Math.round(wait)} min waiting on neighbours</span>
-        )}
-      </div>
+        </div>
+        <div className="cap-st-f">
+          <span className="cw-seg" role="group" aria-label="How the speed is known">
+            {/* a person is timed, never read off a plate */}
+            {SOURCES.filter(o => s.kind !== 'people' || o.id !== 'plate').map(o => (
+              <button key={o.id} type="button" className={'chip' + ((s.source ?? 'estimate') === o.id ? ' on' : '')}
+                aria-pressed={(s.source ?? 'estimate') === o.id} onClick={() => patch({ source: o.id })}>{o.label}</button>
+            ))}
+          </span>
+          <DraftText value={s.note ?? ''} placeholder="Where that came from — the date, who timed it, how many laps…" className="text-input cap-note" max={160}
+            ariaLabel="Where the speed came from" onSave={v => patch({ note: v || undefined })} />
+          <span className="cap-asset">
+            <DraftText value={s.asset ?? ''} placeholder={`Stops logged as: ${s.name || 'this name'}`} className="text-input" max={60}
+              ariaLabel="The machine name its stops are logged under" onSave={v => patch({ asset: v || undefined })} />
+            {!matched && assets.length > 0 && (
+              <span className="cap-picks">
+                <span className="cap-hint">Your stops log has:</span>
+                {assets.slice(0, 6).map(a => (
+                  <button key={a} type="button" className="chip" onClick={() => patch({ asset: a })}>{a}</button>
+                ))}
+              </span>
+            )}
+          </span>
+          {(wait > 0 || own > 0) && (
+            <span className="cap-hint">Last 4 weeks: {Math.round(own)} min its own stops{coLeft > 0 ? ` (${Math.round(coLeft)} of it changeovers)` : ''} · {Math.round(wait)} min waiting on neighbours</span>
+          )}
+        </div>
+      </details>
       </>}
     </li>
   );
@@ -723,7 +724,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
      line's is made on each — one edit, not one per line (15 October: "an
      absolute mess" — the same five stations typed twice). "Make the lines
      different" lets each be changed on its own. */
-  const inStep = !w && !apart && lanesAlike(current);
+  const inStep = !apart && (!w || !!w.product) && lanesAlike(current);
   const laneLists = () => lanes.map(l => current.stations.filter(x => x.lane === l.id));
   const stepIdsOf = (id: string): string[] | undefined => {
     if (!inStep) return undefined;
@@ -1112,65 +1113,72 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
           the way to the target. The rest of the detail follows below. */}
       <div className="capx-grid">
         <div className="capx-in">
-          {can.edit && !w && (
-            <section className="cap-shape capx-step" aria-label="The shape of the line">
-              <h3 className="capx-step-h"><span className="capx-n" aria-hidden>1</span> How many lines feed in?</h3>
-              <div className="cap-shape-q">
-                <span className="cap-seg" role="group" aria-label="Lines feeding in">
-                  {Array.from({ length: Math.min(MAX_LINES, Math.max(6, lanes.length)) }, (_, i) => i + 1).map(n => (
-                    <button key={n} type="button" className={'cap-seg-b' + ((lanes.length || 1) === n ? ' on' : '')} aria-pressed={(lanes.length || 1) === n}
-                      onClick={() => shapeIt(n, shapeK)}>{n}</button>
-                  ))}
-                </span>
-                {lanes.length >= 2 && flow.length > 0 && (
-                  <label className="cap-shape-l"><b>Where do they meet?</b>
-                    <select className="text-input" aria-label="Where the lines merge" value={mergeAt ?? ''}
-                      onChange={e => shapeIt(lanes.length, Number(e.target.value))}>
-                      {flow.map((x, i) => <option key={x.id} value={i + 1}>{i + 1 < flow.length ? `After ${x.name.trim() || `station ${i + 1}`}` : 'They do not meet — each line ends on its own'}</option>)}
-                    </select>
+          {/* THE LINE, ONE CARD (5 November — Rowland: "how many line feeds? two ... then section 2 ... then 3 ... I don't understand what I've done"):
+              how many lines, where they join, what they should make together — one row; the rest closed */}
+          <section className="capx-step cap-line" aria-label="The line">
+            <div className="cap-line-row">
+              {can.edit && !w && (
+                <div className="proj-field cap-line-f">
+                  <span className="field-label">Lines side by side</span>
+                  <span className="cap-seg" role="group" aria-label="Lines feeding in">
+                    {Array.from({ length: Math.min(MAX_LINES, Math.max(6, lanes.length)) }, (_, i) => i + 1).map(n => (
+                      <button key={n} type="button" className={'cap-seg-b' + ((lanes.length || 1) === n ? ' on' : '')} aria-pressed={(lanes.length || 1) === n}
+                        onClick={() => shapeIt(n, shapeK)}>{n}</button>
+                    ))}
+                  </span>
+                </div>
+              )}
+              {can.edit && !w && lanes.length >= 2 && flow.length > 0 && (
+                <label className="proj-field cap-line-f"><span className="field-label">They join</span>
+                  <select className="text-input" aria-label="Where the lines merge" value={mergeAt ?? ''}
+                    onChange={e => shapeIt(lanes.length, Number(e.target.value))}>
+                    {flow.map((x, i) => <option key={x.id} value={i + 1}>{i + 1 < flow.length ? `After ${x.name.trim() || `station ${i + 1}`}` : 'They do not join — each line ends on its own'}</option>)}
+                  </select>
+                </label>
+              )}
+              <label className="proj-field cap-line-f">
+                <span className="field-label">Target — {r.unit} a minute{current.lanes && current.lanes.length > 1 ? `, all ${current.lanes.length} lines together` : ''}</span>
+                {can.edit
+                  ? <DraftNumber className="text-input cap-num" value={current.targetPerMin} placeholder={current.lanes && current.lanes.length > 1 ? `e.g. ${66 * current.lanes.length}` : 'e.g. 66'} label="Target, line units a minute"
+                      onSave={v => (w ? putWhatIf(w.id, { targetPerMin: v }) : commit({ ...cap, targetPerMin: v }))} />
+                  : <b className="cap-ro-v">{current.targetPerMin != null ? fmtN(current.targetPerMin) : 'not set'}</b>}
+              </label>
+            </div>
+            {can.edit && !w && <p className="sub capx-step-say">{lanes.length === 0
+              ? 'One line. Pick 2 or more when lines run side by side and meet at one place — a wrapper, a palletiser.'
+              : flow.length === 0
+                ? `${lanes.length} lines. Type ${lanes[0].name.trim() || 'the first line'}’s stations below${alike ? ' — every line takes them while the lines are the same' : ''}.`
+                : `${lanes.length} lines, ${mergeAt != null && mergeAt < flow.length ? `joining after ${flow[mergeAt - 1]?.name.trim() || `station ${mergeAt}`}` : 'each ending on its own'}.`}</p>}
+            <details className="cap-more-d">
+              <summary>More about the line <span className="sub">what a unit weighs, planned hours{can.edit && !w && lanes.length > 0 ? ', a shared feed' : ''}</span></summary>
+              <div className="cap-settings">
+                {/* WHAT ONE UNIT WEIGHS (Rowland, 4 November): a person's most cannot be measured, so what reaches them is said in weight over the same time */}
+                <label className="proj-field">
+                  <span className="field-label">What one {oneOf(r.unit)} weighs — kg <i className="cw-f-opt">optional — to say the weight a person handles</i></span>
+                  {can.edit
+                    ? <DraftNumber className="text-input cap-num" value={cap.unitKg} placeholder="e.g. 1.25" label="What one unit weighs, kilograms"
+                        onSave={v => commit({ ...cap, unitKg: v })} />
+                    : <b className="cap-ro-v">{cap.unitKg != null ? `${cap.unitKg} kg` : 'not set'}</b>}
+                </label>
+                {!w && (
+                  <label className="proj-field">
+                    <span className="field-label">Planned running hours a week</span>
+                    {can.edit ? <>
+                      <DraftNumber className="text-input cap-num" value={cap.plannedHoursPerWeek} placeholder="e.g. 80" label="Planned hours a week"
+                        onSave={v => commit({ ...cap, plannedHoursPerWeek: v })} />
+                      <span className="cap-hint">Only used to suggest a running % from your stops. Nothing is changed for you.</span>
+                    </> : <b className="cap-ro-v">{cap.plannedHoursPerWeek != null ? fmtN(cap.plannedHoursPerWeek) : 'not set'}</b>}
                   </label>
                 )}
+                {can.edit && !w && lanes.length > 0 && !feedShown && (
+                  <div className="proj-field">
+                    <span className="field-label">A shared feed</span>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFeedAsked(true)}>＋ A shared feed before the lines</button>
+                    <span className="cap-hint">One machine, such as a filler, that every line is fed from.</span>
+                  </div>
+                )}
               </div>
-              <p className="sub capx-step-say">{lanes.length === 0
-                ? 'One line, one chain of stations. Pick 2 or more when several lines run side by side and meet at one place — a wrapper, a palletiser, one person — and type each line’s own stations, then the ones after they meet.'
-                : flow.length === 0
-                  ? `${lanes.length} lines. Type ${lanes[0].name.trim() || 'the first line'}’s stations below${alike ? ' — while the lines are the same, every line takes them' : ''}, then the ones after they meet.`
-                  : `${lanes.length} lines, ${mergeAt != null && mergeAt < flow.length ? `meeting after ${flow[mergeAt - 1]?.name.trim() || `station ${mergeAt}`}` : 'each ending on its own'} — see The line, drawn.`}</p>
-            </section>
-          )}
-          <section className="capx-step" aria-label="What the line should do">
-            <h3 className="capx-step-h">{can.edit && !w && <span className="capx-n" aria-hidden>2</span>} What the line should do</h3>
-      <div className="cap-settings">
-        <label className="proj-field">
-          <span className="field-label">Target — {r.unit} a minute{current.lanes && current.lanes.length > 1 ? `, all ${current.lanes.length} lines together` : ''}</span>
-          {can.edit
-            ? <DraftNumber className="text-input cap-num" value={current.targetPerMin} placeholder={current.lanes && current.lanes.length > 1 ? `e.g. ${66 * current.lanes.length}` : 'e.g. 66'} label="Target, line units a minute"
-                onSave={v => (w ? putWhatIf(w.id, { targetPerMin: v }) : commit({ ...cap, targetPerMin: v }))} />
-            : <b className="cap-ro-v">{current.targetPerMin != null ? fmtN(current.targetPerMin) : 'not set'}</b>}
-          {current.lanes && current.lanes.length > 1 && (
-            <span className="cap-hint">One number for the whole: what the {current.lanes.length} lines together should make. {current.lanes.length} lines each wanting 75 is {fmtN(75 * current.lanes.length)} here{current.targetPerMin != null ? ` — now ${fmtN(current.targetPerMin)}, which is ${fmtN(current.targetPerMin / current.lanes.length)} a line` : ''}.</span>
-          )}
-        </label>
-        {/* WHAT ONE UNIT WEIGHS (Rowland, 4 November): a person's most cannot be measured, so what reaches them is said in weight over the same time */}
-        <label className="proj-field">
-          <span className="field-label">What one {oneOf(r.unit)} weighs — kg <i className="cw-f-opt">optional — to say the weight a person handles</i></span>
-          {can.edit
-            ? <DraftNumber className="text-input cap-num" value={cap.unitKg} placeholder="e.g. 1.25" label="What one unit weighs, kilograms"
-                onSave={v => commit({ ...cap, unitKg: v })} />
-            : <b className="cap-ro-v">{cap.unitKg != null ? `${cap.unitKg} kg` : 'not set'}</b>}
-        </label>
-        {!w && (
-          <label className="proj-field">
-            <span className="field-label">Planned running hours a week</span>
-            {can.edit ? <>
-              <DraftNumber className="text-input cap-num" value={cap.plannedHoursPerWeek} placeholder="e.g. 80" label="Planned hours a week"
-                onSave={v => commit({ ...cap, plannedHoursPerWeek: v })} />
-              <span className="cap-hint">Only used to suggest a running % from your stops. Nothing is changed for you.</span>
-            </> : <b className="cap-ro-v">{cap.plannedHoursPerWeek != null ? fmtN(cap.plannedHoursPerWeek) : 'not set'}</b>}
-          </label>
-        )}
-      </div>
-
+            </details>
           </section>
           <section className="capx-step" aria-label="The stations">
             <h3 className="capx-step-h">{can.edit && !w && <span className="capx-n" aria-hidden>3</span>} {w ? `The stations with ${w.name}, in order` : lanes.length ? 'Each line’s stations, then the ones after they meet' : 'The stations, in the order product goes through them'}</h3>
@@ -1224,7 +1232,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
                     wait={stats[s.id]?.waitMins ?? 0} own={stats[s.id]?.ownMins ?? 0}
                     coLeft={coOff ? stats[s.id]?.changeoverMins ?? 0 : 0}
                     suggested={suggestRunning((stats[s.id]?.ownMins ?? 0) - (coOff ? stats[s.id]?.changeoverMins ?? 0 : 0), cap.plannedHoursPerWeek, stops.weeks)}
-                    say={paceSays(r, s, chainOf[gi2 - 1]?.unit, chainOf[gi2 - 1])} load={(l => (l ? loadSays(l) : undefined))(loadOf(r, current, s))} asTime={rateAsTime(r, s, chainOf[gi2 - 1]?.unit)} factor={result(s.id)?.factor ?? chainFactor(chainOf, gi2)} lineUnit={r.unit}
+                    say={paceSays(r, s, chainOf[gi2 - 1]?.unit, chainOf[gi2 - 1])} load={(l => (l ? loadSays(l) : undefined))(loadOf(r, current, s))} asTime={rateAsTime(r, s, chainOf[gi2 - 1]?.unit)} factor={result(s.id)?.factor ?? chainFactor(chainOf, gi2)} arrivesEvery={r.arrivals[s.id]?.everySec} lineUnit={r.unit}
                     chain={chainWords(chainOf, gi2)}
                     patch={p => patchStation(s.id, p)} move={by => moveIn(s.id, by)} remove={() => remove(s)} like={() => addLike(s)} assets={assets} machines={machines}
                     open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} ro={!can.edit} />
@@ -1260,7 +1268,6 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
               <div className="row-inline cap-lanes-do">
                 <button className="cw-add" onClick={addLane}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add another line, like {lanes[lanes.length - 1].name.trim() || 'the one before'}</button>
                 {lanes.length === 1 && <button className="btn btn-ghost btn-sm" onClick={oneLine}>One line again</button>}
-                {!feedShown && <button className="btn btn-ghost btn-sm" onClick={() => setFeedAsked(true)}>＋ A shared feed before the lines</button>}
               </div>
             )}
           </div>
