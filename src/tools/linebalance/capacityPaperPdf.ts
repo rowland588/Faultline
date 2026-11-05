@@ -188,7 +188,7 @@ function flowBlock(m: FlowModel): Block {
     const OUT = 36;
     if (!m.laned) return chainRows(m.columns[0]?.nodes.length ?? 0) * (NH + VG) + OUT + 6;
     const lanes = Math.max(1, ...m.columns.map(c => c.nodes.length));
-    return 14 + lanes * (NH + VG) + (m.shared.length ? 26 + chainRows(m.shared.length) * (NH + VG) : 8) + OUT + 6;
+    return 14 + lanes * (NH + VG) + (m.shared.length ? 26 + m.shared.length * (NH + VG) : 8) + OUT + 6;
   };
   const node = (f: Frame, x: FlowNode, nx: number, ny: number, w: number, no?: number) => {
     const d = f.doc;
@@ -256,8 +256,17 @@ function flowBlock(m: FlowModel): Block {
       const pw = Math.min(f.w, 300);
       d.setFillColor('#ffffff'); d.setDrawColor(BRAND); d.setLineWidth(1); d.roundedRect(f.x + (f.w - pw) / 2, yy, pw, 18, 9, 9, 'FD');
       font(d, S, 'bold', INK2); d.text(`The lines meet — ${m.sends != null ? `${perMinWords(m.sends)} ${unit}/min arrive` : 'what they send arrives'}`, f.x + f.w / 2, yy + 12, { align: 'center' });
-      yy += 26;
-      yy = chain(f, m.shared, yy, 1);
+      d.setDrawColor(MUTED); d.setLineWidth(0.8);
+      yy += 18;
+      /* the stations they share, one under the other and centred under the meeting, an arrow into each and out of the last — as the page draws them */
+      const sw = Math.min(f.w, 240), sx = f.x + (f.w - sw) / 2;
+      m.shared.forEach(x => {
+        arrowD(f, f.x + f.w / 2, yy, yy + VG);
+        node(f, x, sx, yy + VG, sw);
+        yy += NH + VG;
+      });
+      arrowD(f, f.x + f.w / 2, yy, yy + VG);
+      yy += VG - 6;
     }
     out(f, yy + 2);
   }, f => gap(f.density, 'm'));
