@@ -262,6 +262,23 @@ ok(/OBSERVED[\s\S]*The bagger film is wandering[\s\S]*FAULTLINE RECORD[\s\S]*Gua
 ok(/P1 ·[^\n]*— The infeed guard, bent where the bags catch/.test(txt) && (bytes.match(/\/Subtype\s*\/Image/g) ?? []).length === 1, '9 the photo printed, with its label and caption — the one taken out not', txt);
 ok(/Owner: Dave/.test(txt), '9 an owner where one was said');
 
+/* 9b — THE PDF IS KEPT IN THE APP (5 November — Rowland: "I don't end up saving it on the app, and that's what I want") */
+await settle(900);
+ok(await page.locator('[data-saved-pdfs] [data-pdf]').count() === 1, '9b Save as PDF also kept a copy under "Saved in the app" — one, with its name and when');
+const kept = await page.evaluate(async () => { const db = await import('/src/db.ts'); const all = await db.listStudies?.().catch(() => []); return all?.length ?? -1; });
+void kept;
+const pdfId = await page.locator('[data-saved-pdfs] [data-pdf]').first().getAttribute('data-pdf');
+const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.locator(`[data-pdf-down="${pdfId}"]`).click()]);
+const f2 = join(dir, 'again-' + dl2.suggestedFilename()); await dl2.saveAs(f2);
+ok(readFileSync(f2).length === readFileSync(file).length && /Line 7 — morning walk/.test(pdfText(f2)), '9b the kept copy downloads again, the same file, with no new one made');
+await page.locator('button', { hasText: 'Save as PDF' }).click(); await settle(2500);
+ok(await page.locator('[data-saved-pdfs] [data-pdf]').count() === 2, '9b a second Save as PDF keeps a second copy (each its own, newest first)');
+await page.reload(); await settle(1500);
+ok(await page.locator('[data-saved-pdfs] [data-pdf]').count() === 2, '9b after a reload both are still there');
+page.once('dialog', d => void d.accept());
+await page.locator('[data-pdf-drop]').last().click(); await settle(900);
+ok(await page.locator('[data-saved-pdfs] [data-pdf]').count() === 1, '9b one taken off — the document and the other copy stay');
+
 /* 10 — reloaded; the line's page; the phone */
 await page.locator('button', { hasText: 'Back to the talk' }).click(); await settle(800);
 const before = await kinds();
