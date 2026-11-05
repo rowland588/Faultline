@@ -293,6 +293,7 @@ let TRAY;
   await card.getByRole('button', { name: 'Make it 2 people' }).click(); await page.waitForTimeout(800);
   t = await said();
   ok(t.crew === 2 && t.verdict === 'They take 8 s a tray each, 2 of them — 8.7 s with 9% rest — they keep up, 2.5 s to spare a tray.' && flat(await card.locator('.cap-st-says').innerText()) === t.verdict, '8f Make it 2 people: two of them keep up, with the seconds to spare');
+  await page.evaluate(() => document.querySelectorAll('details.cap-more-d').forEach(d => { d.open = true; }));
   const rest = flat(await card.getByLabel('Rest allowance, percent').locator('xpath=..').innerText());
   ok(await card.getByLabel('Rest allowance, percent').inputValue() === '9' && rest.includes('Plan on a tray every 8.7 s') && rest.includes('5% personal needs, 4% basic fatigue'),
     `8g a person's rest allowance, the ILO's 9% unless changed — the time to plan on said: ${rest.slice(0, 90)}…`);
@@ -308,6 +309,7 @@ let TRAY;
   await card.getByLabel('What it counts in', { exact: true }).fill('pallets'); await card.getByLabel('What it counts in', { exact: true }).press('Enter'); await page.waitForTimeout(400);
   await card.getByLabel('How many of the one before make one of these').fill('36'); await card.getByLabel('How many of the one before make one of these').press('Enter'); await page.waitForTimeout(600);
   ok(flat(await card.locator('.cap-chain').innerText()) === '1 pallet = 36 trays = 288 units', `8h the step before read into it: ${flat(await card.locator('.cap-chain').innerText())}`);
+  await page.evaluate(() => document.querySelectorAll('details.cap-more-d').forEach(d => { d.open = true; }));
   await card.getByRole('group', { name: 'Timed per' }).getByRole('button', { name: 'tray' }).click(); await page.waitForTimeout(400);
   await card.getByLabel('Seconds each time').fill('6'); await card.getByLabel('Seconds each time').press('Enter'); await page.waitForTimeout(800);
   const pal = () => page.evaluate(async id => {
@@ -336,6 +338,7 @@ let TRAY;
   await card.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(300);
   card = main.locator('.cap-st').nth(2);
   await card.getByRole('button', { name: 'Edit' }).click(); await page.waitForTimeout(400);
+  await page.evaluate(() => document.querySelectorAll('details.cap-more-d').forEach(d => { d.open = true; }));
   await card.getByRole('group', { name: 'Timed per' }).getByRole('button', { name: 'pallet' }).click(); await page.waitForTimeout(400);
   await card.getByRole('button', { name: 'How many in a time' }).click(); await page.waitForTimeout(300);
   await card.getByLabel('Speed', { exact: true }).fill('4'); await card.getByLabel('Speed', { exact: true }).press('Enter'); await page.waitForTimeout(800);

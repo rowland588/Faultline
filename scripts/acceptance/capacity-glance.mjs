@@ -118,6 +118,7 @@ ok(desk.errs.length === 0, 'no console errors on the desk', desk.errs.join(' | '
   await d.evaluate(async ([ws, c]) => { const db = await import('/src/db.ts'); await db.putStandard({ id: 'cg-packer', projectId: '', workspaceId: ws, product: c.name, capacity: c.cap, marks: [], sort: 7100, createdAt: Date.now(), updatedAt: Date.now() }); }, [sd2.wsId, CAPS.packer]);
   await d.reload(); await d.locator('.nv-main').waitFor({ timeout: 15000 }); await d.waitForTimeout(2200);
   ok(await d.locator('[data-load]').count() === 0, 'H1 no unit weight typed: nothing said of weight');
+  await d.evaluate(() => document.querySelectorAll('details.cap-more-d').forEach(x => { x.open = true; }));
   const box = d.getByLabel('What one unit weighs, kilograms');
   ok(await box.count() === 1, 'H1 a box for what one unit weighs, in the line’s set-up');
   await box.fill('1.25'); await box.blur(); await d.waitForTimeout(900);

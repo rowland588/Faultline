@@ -45,8 +45,7 @@ ok(idx >= 0, `0 the seeded line has a station with a speed to add a take-away ti
 await go(CAP);
 const card = page.locator('.cap-st').nth(idx);
 await card.getByRole('button', { name: 'Edit', exact: true }).click(); await page.waitForTimeout(500);
-ok(await card.locator('[data-take-away-add]').count() === 1, '1 the station offers "＋ Add time to take it away" (folded under its speed)');
-await card.locator('[data-take-away-add]').click(); await page.waitForTimeout(400);
+ok(await card.locator('[data-take-away]').count() === 1, '1 the station asks for extra time per unit, always in view');
 ok(await card.locator('[data-take-away]').count() === 1, '2 it opens to seconds and "every 1 …"');
 const sec = card.locator('[data-take-away] input').first();
 await sec.fill('30'); await sec.blur(); await page.waitForTimeout(900);

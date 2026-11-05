@@ -38,10 +38,12 @@ const mod = () => page.evaluate(async id => {
 const flat = async sel => ((await page.locator(sel).count()) ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : '');
 
 await put(TWO); await go(CAP);
+await page.evaluate(() => document.querySelectorAll('details.cap-more-d').forEach(d => { d.open = true; }));
 ok(await page.getByRole('button', { name: /A shared feed before the lines/ }).count() === 1, '1 two lines offer "＋ A shared feed before the lines" (nothing drawn before it is asked)');
 ok(await page.locator('.cap-grp', { hasText: 'Before the lines split' }).count() === 0, '1b no feed group until asked');
 
 // through the page
+await page.evaluate(() => document.querySelectorAll('details.cap-more-d').forEach(d => { d.open = true; }));
 await page.getByRole('button', { name: /A shared feed before the lines/ }).click(); await page.waitForTimeout(500);
 ok(await page.locator('.cap-grp', { hasText: 'Before the lines split' }).count() === 1, '2 the group "Before the lines split" appears');
 await page.getByRole('button', { name: /Add a machine to Before the lines split/ }).click(); await page.waitForTimeout(600);
