@@ -155,7 +155,7 @@ const lineId = await page.evaluate(async () => {
 await page.goto(`${BASE}/#/lines/${lineId}`); await settle(1200);
 const tile = page.locator('.pl-tool', { hasText: 'Line Talk' });
 ok(await tile.count() === 1, '1 the line’s page offers Line Talk among its tools');
-ok(/None yet/.test(await tile.innerText()), '1 none yet on the line', await tile.innerText());
+ok(await tile.evaluate(e => !!e.closest('.pl-tools-more')), '1 none yet on the line — listed under Not used on this line yet', await tile.innerText());
 await tile.click(); await settle(800);
 ok(/#\/talk\?line=/.test(page.url()), '1 it opens Line Talk on the line', page.url());
 ok(/Start a Line Talk on Line 7/.test(await page.locator('.tk-new .tk-start').innerText()), '1 Start a Line Talk on Line 7');
