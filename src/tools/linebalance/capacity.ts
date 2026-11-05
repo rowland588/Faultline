@@ -115,6 +115,10 @@ export interface Station {
  *  that happens all the time in manufacturing"). Each is its own chain of
  *  stations (Station.lane); the stations that have no line come after they
  *  merge, one chain for all of them. */
+export const FEED_ZONE = '__feed__';
+/** HOW A SHARED FEED SPLITS BETWEEN THE LINES (FC-034 part 4): to whichever line can take it, or by fixed shares (percent). */
+export interface Split { rule: 'any' | 'shares'; shares?: Record<string, number> }
+
 export interface Lane {
   id: string; name: string;
   /** THIS LINE'S OWN PEOPLE AND RATE (FC-034 part 3, 5 November — Rowland: "rate shown independently, they could be different").
@@ -181,6 +185,10 @@ export interface Capacity {
   labour?: { people?: number; ratePerHour?: number };
   /** The people and rate AFTER the lines merge, when labour is counted line by line (see Lane.labour). */
   labourShared?: { people?: number; ratePerHour?: number };
+  /** The people and rate of the shared feed BEFORE the lines split (see Lane.labour). */
+  labourFeed?: { people?: number; ratePerHour?: number };
+  /** How the feed splits between the lines. Absent: to whichever line can take it. */
+  split?: Split;
 }
 
 export interface WhatIf {
@@ -519,6 +527,9 @@ export interface LaneSection {
   name: string;
   /** The line alone — its stations' own limit, in its own unit a minute. */
   result: CapacityResult;
+  /** With a shared feed before the lines (FC-034 part 4): what the feed actually gives this line, in the line's
+   *  first unit a minute — never more than the line's own limit, `result.line`. */
+  fed?: number;
 }
 
 export interface LanesView {
@@ -529,8 +540,12 @@ export interface LanesView {
   merged?: CapacityResult;
   /** What the lines send together, in the line's unit a minute. */
   sends: number;
-  /** Where the whole is held: the lines themselves, or the place they merge. */
-  heldBy: 'lanes' | 'shared';
+  /** Where the whole is held: the feed before the lines, the lines themselves, or the place they merge. */
+  heldBy: 'feed' | 'lanes' | 'shared';
+  /** The shared feed before the lines split (FC-034 part 4), worked out on its own: in its own start unit a minute. */
+  feed?: CapacityResult;
+  /** The split rule it was worked with. */
+  split?: 'any' | 'shares';
 }
 
 /** THE LINE'S SPEED, as the practice takes it (docs/CAPACITY.md §1 —
@@ -759,13 +774,15 @@ function sentenceOf(r: CapacityResult, cap: Capacity): string {
  * every other reading of a capacity (the dashboard's "can make", the loss
  * count's bottleneck, the labour cost a pack) takes of it. */
 const MERGE_ID = '__merge__';
+const FEEDER_ID = '__feeder__';
 
 function analyseLanes(cap: Capacity): CapacityResult {
   const lanes = cap.lanes ?? [];
   const laneIds = new Set(lanes.map(l => l.id));
   const at = new Map(cap.stations.map((st, i) => [st.id, i]));
   const own = (id: string) => cap.stations.filter(st => st.lane === id);
-  const shared = cap.stations.filter(st => !st.lane || !laneIds.has(st.lane));
+  const feedSt = cap.stations.filter(st => st.lane === FEED_ZONE);
+  const shared = cap.stations.filter(st => st.lane !== FEED_ZONE && (!st.lane || !laneIds.has(st.lane)));
   const nameOf = (l: Lane, i: number) => l.name.trim() || `Line ${String.fromCharCode(65 + (i % 26))}`;
 
   /* a result whose stations are numbered as the whole capacity numbers them,
@@ -780,9 +797,28 @@ function analyseLanes(cap: Capacity): CapacityResult {
     ...(r.limitAtRunning ? { limitAtRunning: global(r.limitAtRunning) } : {}),
   });
 
-  const sections: LaneSection[] = lanes.map((l, i) => ({ id: l.id, name: nameOf(l, i), result: globalise(analyseChain({ stations: own(l.id) })) }));
+  /* A SHARED FEED BEFORE THE LINES SPLIT (FC-034 part 4). Worked out on its own, then handed to every line as a station standing for
+     it, first in the line's chain, so the line's first station says how many of the feed's last unit make one of its own. The lines
+     are worked out with that station unlimited (their own limits), then fed what the split gives them. */
+  let feed: CapacityResult | undefined;
+  let feeder: Station | undefined;
+  let fL = 1, gB = 1, G = 0;
+  const notes0: string[] = [];
+  if (feedSt.length > 0) {
+    feed = globalise(analyseChain({ stations: feedSt }));
+    const last = feed.ok[feed.ok.length - 1];
+    if (last && last.station.id === feedSt[feedSt.length - 1].id && feed.line != null && feed.line > 0) {
+      fL = last.factor;
+      gB = (feed.goodOut ?? feed.line) / feed.line;
+      G = (feed.goodOut ?? feed.line) / fL;
+      feeder = { id: FEEDER_ID, name: last.station.name.trim() || 'The feed', kind: 'machine', unit: last.station.unit.trim() || 'units', contains: 1, rate: 1e9, ratePer: 'min', crew: 1, source: 'plate', runningPct: 100, goodPct: 100 };
+    } else notes0.push('The shared feed before the lines cannot be counted yet (its last station needs a speed), so the lines are worked out on their own.');
+  }
+  const laneChain = (id: string, rate: number): Station[] => (feeder ? [{ ...feeder, rate }, ...own(id)] : own(id));
+  const noFeeder = (r: CapacityResult): CapacityResult => (feeder ? { ...r, ok: r.ok.filter(x => x.station.id !== FEEDER_ID), skipped: r.skipped.filter(x => x.station.id !== FEEDER_ID) } : r);
+  const sections: LaneSection[] = lanes.map((l, i) => ({ id: l.id, name: nameOf(l, i), result: noFeeder(globalise(analyseChain({ stations: laneChain(l.id, 1e9) }))) }));
   const live = sections.filter(x => x.result.ok.length > 0 && x.result.line != null);
-  const notes: string[] = [];
+  const notes: string[] = [...notes0];
   const target = cap.targetPerMin != null && cap.targetPerMin > 0 ? cap.targetPerMin : undefined;
   const unit = (live[0] ?? sections[0])?.result.unit ?? 'units';
   const base: CapacityResult = { unit, ok: [], skipped: [], target, sentence: '', notes, arrivals: {} };
@@ -804,8 +840,37 @@ function analyseLanes(cap: Capacity): CapacityResult {
      fed. The shared station after the merge is compared with what reaches
      it (docs/UPGRADE-AUDIT.md M4); `asked` is the lines' like-for-like at
      their start, which the whole's `line` is kept in, as a chain's is. */
-  const asked = live.reduce((n, x) => n + (x.result.line as number), 0);
-  const sends = live.reduce((n, x) => n + (x.result.goodOut ?? x.result.line ?? 0), 0);
+  let asked = live.reduce((n, x) => n + (x.result.line as number), 0);
+  let sends = live.reduce((n, x) => n + (x.result.goodOut ?? x.result.line ?? 0), 0);
+  /* THE SPLIT: what the feed gives each line. Free to go where it can be taken, the whole is the least of the feed and every
+     line's capacity added; by fixed shares, the least of the feed and each line's capacity over its share. */
+  const rule: 'any' | 'shares' = cap.split?.rule === 'shares' ? 'shares' : 'any';
+  let feedBinds = false;
+  let bindingLane: LaneSection | undefined;
+  if (feeder) {
+    const cs = live.map(x => x.result.line as number);
+    const sumC = cs.reduce((a, b) => a + b, 0);
+    const raw = live.map(x => cap.split?.shares?.[x.id]);
+    const typedShares = rule === 'shares' && raw.every(v => v != null && v > 0);
+    if (rule === 'shares' && !typedShares) notes.push('Fixed shares are not all typed, so the feed is shared equally between the lines.');
+    const tot = typedShares ? (raw as number[]).reduce((a, b) => a + b, 0) : live.length;
+    const p = typedShares ? (raw as number[]).map(v => v / tot) : live.map(() => 1 / live.length);
+    let Tu: number, ts: number[];
+    if (rule === 'any') { Tu = Math.min(G, sumC); ts = G >= sumC ? cs : cs.map(c => (Tu * c) / sumC); feedBinds = G < sumC - 1e-9; }
+    else {
+      const ratios = cs.map((c, k) => c / p[k]);
+      const m = Math.min(...ratios);
+      Tu = Math.min(G, m); ts = p.map(pk => pk * Tu); feedBinds = G < m - 1e-9;
+      bindingLane = live[ratios.indexOf(m)];
+    }
+    live.forEach((x, k) => {
+      x.fed = ts[k];
+      /* fed what the split gives it: its arrivals, a notice not a box */
+      if (ts[k] > 0) Object.assign(base.arrivals, noFeeder(globalise(analyseChain({ stations: laneChain(x.id, ts[k]) }))).arrivals);
+    });
+    sends = live.reduce((n, x, k) => n + ts[k] * ((x.result.goodOut ?? x.result.line ?? 0) / (x.result.line as number)), 0);
+    asked = (Tu * fL) / gB;
+  }
   const goodFrac = asked > 0 ? sends / asked : 1;
   const per = `${unit}/min`;
   const names = (xs: LaneSection[]) => (xs.length <= 2 ? xs.map(x => x.name).join(' and ') : `${xs.slice(0, -1).map(x => x.name).join(', ')} and ${xs[xs.length - 1].name}`);
@@ -838,7 +903,7 @@ function analyseLanes(cap: Capacity): CapacityResult {
     Object.assign(base.arrivals, merged.arrivals);
   }
 
-  const heldBy: 'lanes' | 'shared' = merged?.limit && merged.limit.station.id !== MERGE_ID ? 'shared' : 'lanes';
+  const heldBy: 'feed' | 'lanes' | 'shared' = merged?.limit && merged.limit.station.id !== MERGE_ID ? 'shared' : feeder && feedBinds ? 'feed' : 'lanes';
   /* the whole, like for like at the lines' start: held after the merge, the
      shared station's limit is what reaches it — the lines' start has to feed
      that much more, their rejects put back; held by the lines, their own */
@@ -846,9 +911,10 @@ function analyseLanes(cap: Capacity): CapacityResult {
   const sharedOk = merged ? merged.ok.filter(x => x.station.id !== MERGE_ID) : [];
   const lanesLimit = live.map(x => x.result.limit as StationResult).sort((p, q) => p.effective - q.effective)[0];
   const lanesRun = live.map(x => x.result.limitAtRunning).filter((x): x is StationResult => !!x).sort((p, q) => p.running - q.running)[0];
-  const limit = heldBy === 'shared' ? (merged?.limit as StationResult) : lanesLimit;
+  const limit = heldBy === 'shared' ? (merged?.limit as StationResult) : heldBy === 'feed' && feed?.limit ? feed.limit : bindingLane?.result.limit ? bindingLane.result.limit : lanesLimit;
 
-  base.ok = [...live.flatMap(x => x.result.ok), ...sharedOk];
+  base.unit = feed ? (feed.unit || unit) : unit;
+  base.ok = [...(feed ? feed.ok : []), ...live.flatMap(x => x.result.ok), ...sharedOk];
   base.limit = limit;
   base.limitAtRunning = heldBy === 'shared' ? (merged?.limitAtRunning && merged.limitAtRunning.station.id !== MERGE_ID ? merged.limitAtRunning : limit) : lanesRun ?? limit;
   base.line = total;
@@ -858,7 +924,19 @@ function analyseLanes(cap: Capacity): CapacityResult {
   if (target != null) base.gap = target - total;
   const tgt = target == null ? '' : (base.gap as number) > 0 ? ` — ${fmtN(base.gap as number)} short of the ${fmtN(target)} target` : ` — above the ${fmtN(target)} target`;
   const nm = (x: StationResult) => x.station.name.trim() || `Station ${x.index + 1}`;
-  if (heldBy === 'shared' && limit) {
+  if (feeder && heldBy !== 'shared') {
+    const feedName = feeder.name;
+    const each = live.map(x => `${x.name} up to ${fmtN(x.result.line as number)} (held by ${nm(x.result.limit as StationResult)})`).join(', ');
+    const sumC = live.reduce((n, x) => n + (x.result.line as number), 0);
+    if (rule === 'shares' && bindingLane && !feedBinds) {
+      base.sentence = `Fixed shares: ${bindingLane.name} holds the split — at its share it takes at most ${fmtN(asked)} ${base.unit}/min in all; ${feedName} can supply ${fmtN(G)}. ${each}${tgt}.`;
+    } else if (feedBinds) {
+      base.sentence = `${nm(limit)} holds the feed to ${fmtN(G)} ${base.unit}/min; the lines could take ${fmtN(sumC)} (${each}) — the feed is what limits them${tgt}.`;
+    } else {
+      base.sentence = `${feedName} can supply ${fmtN(G)} ${base.unit}/min; ${each}: together ${fmtN(sumC)} — the lines hold it, the feed has ${fmtN(G - sumC)} to spare${tgt}.`;
+    }
+    if (merged?.limit && merged.limit.station.id === MERGE_ID && merged.next) base.sentence += ` ${nm(merged.next)} can take ${fmtN(merged.next.effective)}, so it is not what limits them.`;
+  } else if (heldBy === 'shared' && limit) {
     /* the shared station's figure is its own, in the unit that arrives at it;
        the whole's headline (like for like at the lines' start, their rejects
        put back) is said beside it when the two differ — "holds to 94 — 90
@@ -873,7 +951,7 @@ function analyseLanes(cap: Capacity): CapacityResult {
     base.sentence = out + room;
   }
   if (base.skipped.length) base.sentence += ` ${base.skipped.length} station${base.skipped.length === 1 ? '' : 's'} not counted yet.`;
-  base.lanes = { sections, ...(merged ? { merged } : {}), sends, heldBy };
+  base.lanes = { sections, ...(merged ? { merged } : {}), sends, heldBy, ...(feed ? { feed, split: rule } : {}) };
   return base;
 }
 
