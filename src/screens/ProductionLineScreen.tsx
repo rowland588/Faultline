@@ -343,6 +343,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         more={[
           /* THE FILMED WALK, FROM THE LINE (20 October, docs/DIRECTION.md): film the line, freeze a
              frame, mark what is wrong on it — no job needed. */
+          /* LINE TALK FROM THE LINE (5 November — Rowland: "I can only get to Line Talk from the main factory page"): on every page of the line */
+          ...(may ? [{ label: 'Talk on this line — Line Talk', run: () => nav(`/talk?line=${encodeURIComponent(wsId)}`) }] : []),
           { label: 'Film the line', run: () => nav(`/w/${wsId}/snags?manage=1`) },
           ...(may ? [{ label: editing ? 'Done editing the line' : 'Edit the line', run: () => setEditing(v => !v) }] : []),
         ]}
@@ -543,6 +545,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
       {show('tools') && (<section className="pl-sec" aria-label="Tools on this line">
         <div className="pl-sec-h"><h2>Tools on this line</h2>
+          {may && <button type="button" className="btn btn-ghost btn-sm pl-talk" onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>Talk on this line ›</button>}
           {/* NEW ▾ — a tool started here is this line's (src/catalogue/registry, docs/STRUCTURE.md §5.2) */}
           {view === 'tools' && may && <MoreMenu label="New" items={APP_TOOLS.filter(t => t.kind === 'study' || t.kind === 'document').map(t => ({ label: t.label, run: () => nav(`${t.to}?line=${encodeURIComponent(wsId)}`) }))} />}
         </div>

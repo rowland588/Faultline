@@ -59,6 +59,8 @@ export function StudyMenus({ s, canEdit, canRemove, onRename, papers = [], extra
 }) {
   const more: MoreItem[] = [
     ...extra,
+    /* LINE TALK FROM THE TOOL (5 November): talk about what this tool found, on its line */
+    ...(canEdit && s.workspaceId ? [{ label: 'Talk about this on the line', run: () => nav(`/talk?line=${encodeURIComponent(s.workspaceId as string)}`) }] : []),
     ...(canEdit ? [{ label: 'Rename', run: onRename }] : []),
     ...(canRemove ? [{ label: 'Delete', danger: true, run: () => void removeStudy(s).then(gone => { if (gone) nav(toolListHref(s)); }) }] : []),
   ];
