@@ -95,6 +95,14 @@ export async function buildSnagCards(
        is the close-up when it has no close-up of its own — with its marks. */
     const first = snag.detailPhotoKey ? undefined : snag.media?.find(m => m.kind === 'photo');
     const detail = await photoFrom(snag.detailPhotoKey ?? first?.blobKey, undefined, first?.pins);
+    /* every other photo it has (Rowland, 4 November: "I have about 5 pictures ... all 5 shown on the report card") */
+    const used = snag.detailPhotoKey ?? first?.blobKey;
+    const more: SnagCardPhoto[] = [];
+    for (const m of snag.media ?? []) {
+      if (m.kind !== 'photo' || m.blobKey === used) continue;
+      const ph = await photoFrom(m.blobKey, undefined, m.pins);
+      if (ph) more.push(ph);
+    }
     snags.push({
       problem: snag.problem || 'Evidence',
       proposedSolution: snag.proposedSolution || undefined,
@@ -114,6 +122,7 @@ export async function buildSnagCards(
       ...(snag.journey?.length ? { journey: [...snag.journey].filter(j => j.did?.trim()).sort((a, b) => a.at - b.at).map(j => ({ day: dateNice(j.at), did: j.did.trim(), ...(j.result?.trim() ? { result: j.result.trim() } : {}) })) } : {}),
       latestUpdateAt: snag.latestUpdateAt ? dateNice(snag.latestUpdateAt) : undefined,
       still, detail,
+      ...(more.length ? { more } : {}),
     });
   }
   return { workspace, filterNote, now: Date.now(), snags };
