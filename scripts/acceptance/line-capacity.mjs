@@ -341,7 +341,7 @@ let TRAY;
   await card.getByRole('button', { name: 'Edit' }).click(); await page.waitForTimeout(400);
   await page.evaluate(() => document.querySelectorAll('details.cap-more-d').forEach(d => { d.open = true; }));
   await card.getByRole('group', { name: 'Timed per' }).getByRole('button', { name: 'pallet' }).click(); await page.waitForTimeout(400);
-  await card.getByRole('button', { name: 'How many in a time' }).click(); await page.waitForTimeout(300);
+  await card.getByRole('button', { name: /Say it as a rate instead/ }).click(); await page.waitForTimeout(300);
   await card.getByLabel('Speed', { exact: true }).fill('4'); await card.getByLabel('Speed', { exact: true }).press('Enter'); await page.waitForTimeout(800);
   const asked = () => page.evaluate(async id => {
     const db = await import('/src/db.ts'); const C = { ...(await import('/src/tools/linebalance/capacity.ts')), ...(await import('/src/tools/linebalance/capacityWords.ts')), ...(await import('/src/tools/linebalance/capacitySays.ts')) };
