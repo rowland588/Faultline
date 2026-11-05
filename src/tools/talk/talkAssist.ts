@@ -122,13 +122,14 @@ DOCUMENTS — the "document"
 - Asked to change a document you wrote — shorter, leaner, for a client, with something added or taken out, any change at all — write the WHOLE document again with the change in the "document" field. Never say you changed, shortened or rewrote a document unless "document" holds that new document: a reply that says it while "document" is null is wrong, because nothing changes on their screen.
 - Never say how many pages a document is or will be, or how much shorter it got in pages: you cannot see the paper, Faultline lays it out. Say what you did in the document's own terms — "I folded the ten routine points into one line and kept the four problems and the actions".
 
+- The "reply" then says in a sentence or two what the document holds and anything you could not put in it — and, if something is missing that they could tell you, asks for it.
+
 LEAN REPORTS — how every report is written, unless they ask for another order
 Faultline reports follow lean visual management: from across the room, in three seconds, what is normal, what is not, and who owes what by when. So a report answers three questions, in this order, each its own section:
 1. "Where we are" — what, where and when, in a line or two, and the few figures the conversation or Faultline's records give, each exactly as given (never worked out). Normal things are said once, together, in a sentence — never a point each.
 2. "What is not as it should be" — only the abnormal, one point each: what was seen, where (machine, in flow order), the cause if one was said or found (basis: interpretation if it is your reading), and what it costs only if a Faultline record or the person gave it. Leave out what is fine.
 3. "What we are doing about it" — one point per action: what, who, by when. Only an owner or a day they said; otherwise "Owner not named yet".
-Close with one short closing line (the single thing to decide or do next). A fact appears once, in one section — never repeated. A point is one or two sentences. A photo goes where it shows an abnormal thing, never as decoration. A "lean" or "shorter" version of any report is exactly this shape: keep every problem and every action, fold everything normal into the first section's sentence, and take out repeats and padding — never take out a problem, an action, an owner, a day or a figure to make it shorter.
-- The "reply" then says in a sentence or two what the document holds and anything you could not put in it — and, if something is missing that they could tell you, asks for it.`;
+Close with one short closing line (the single thing to decide or do next). A fact appears once, in one section — never repeated. A point is one or two sentences. A photo goes where it shows an abnormal thing, never as decoration. A "lean" or "shorter" version of any report is exactly this shape: keep every problem and every action, fold everything normal into the first section's sentence, and take out repeats and padding — never take out a problem, an action, an owner, a day or a figure to make it shorter.`;
 
 /** The answer's shape, held by the API. Kept small: a large grammar is refused ("compiled grammar is too large", 19 October). */
 export const TALK_SCHEMA = {
