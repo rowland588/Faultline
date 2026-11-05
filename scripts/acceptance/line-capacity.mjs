@@ -329,6 +329,7 @@ let TRAY;
   await card.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(300);
   card = main.locator('.cap-st').nth(1);
   await card.getByRole('button', { name: 'Edit' }).click(); await page.waitForTimeout(400);
+  await page.evaluate(() => document.querySelectorAll('details.cap-more-d').forEach(d => { d.open = true; }));
   await card.getByLabel('How many can collect between it and the next station').fill('12'); await card.getByLabel('How many can collect between it and the next station').press('Enter'); await page.waitForTimeout(800);
   q = await pal();
   ok(q.paced === undefined && await main.locator('.cap-st').nth(2).locator('.cap-st-paced').count() === 0, '8l twelve trays can collect before them: not said');
