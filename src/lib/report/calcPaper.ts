@@ -162,7 +162,7 @@ export function calcPaperParts(s: ToolStudy): CalcPaperParts | undefined {
   if (before && b) {
     out.push(leanHead('Before → after'));
     out.push(text({ text: before.result ? `Before (figures saved ${new Date(b.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}${b.by ? ` by ${b.by}` : ''}): ${before.result.sentence}` : 'The saved before cannot be worked out any more.', size: 9, colour: INK2, after: 3 }));
-    const changed = def.inputs.filter(f => String(b.inputs[f.id] ?? '') !== String(agreed.inputs[f.id] ?? ''));
+    const changed = def.inputs.filter(f => !f.hidden && String(b.inputs[f.id] ?? '') !== String(agreed.inputs[f.id] ?? ''));
     if (changed.length) out.push(table(['Figure', 'Before', 'Now'], changed.map(f => [f.label, inputSaid(f, before.values), inputSaid(f, v)]), [0.46, 0.27, 0.27]));
     else out.push(text({ text: 'No figure has changed since it was saved.', size: 8, colour: MUTED, after: 3 }));
   }

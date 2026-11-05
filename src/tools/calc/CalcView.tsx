@@ -127,7 +127,7 @@ export function BeforeBox({ def, agreed, canEdit, ready, onSave, onClear }: { de
             ? <p className="sub calc-before-was" data-calc="before">Before: {was.result.sentence}</p>
             : <p className="sub">The saved before cannot be worked out any more: {was.problems.find(p => p.block)?.say}</p>}
           {(() => {
-            const changed = def.inputs.filter(f => String(b.inputs[f.id] ?? '') !== String(agreed.inputs[f.id] ?? ''));
+            const changed = def.inputs.filter(f => !f.hidden && String(b.inputs[f.id] ?? '') !== String(agreed.inputs[f.id] ?? ''));
             return changed.length
               ? <p className="sub calc-before-ch">Changed: {changed.map(f => `${f.label} ${b.inputs[f.id] === undefined ? 'not given' : valueSaid(f, String(b.inputs[f.id]))} → ${agreed.inputs[f.id] === undefined ? 'not given' : valueSaid(f, String(agreed.inputs[f.id]))}`).join(' · ')}</p>
               : <p className="sub calc-before-ch">Nothing changed since — change a figure to see what moves.</p>;

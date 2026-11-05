@@ -8,6 +8,7 @@
 import { niceScale } from '../../../lib/niceScale';
 import { andList, duration, fmt, gbp, pct } from '../format';
 import { project, stopsForPrecision } from '../stopsProjection';
+import { clusterTest, parseLog, parseSpans } from '../stopsCluster';
 import type { CalcDef, CalcMoney, CalcPicture, CalcResult, Field, Inputs, Problem, Values } from '../types';
 
 export const MAX_STATIONS = 30;
@@ -38,7 +39,7 @@ const slotFields = (i: number): Field[] => {
   return [
     { id: wid(i, 'name'), label: `Workstation ${k} — its name`, kind: 'text', optional: true, showIf: shown, grid: i },
     { id: wid(i, 'min'), label: `Workstation ${k} — minutes stopped`, unit: 'min', kind: 'number', min: 0, optional: true, showIf: shown, grid: i,
-      timer: { stops: wid(i, 'stops') } },
+      timer: { stops: wid(i, 'stops'), log: 'stoplog' } },
     { id: wid(i, 'stops'), label: `Workstation ${k} — number of stops`, unit: 'stops', kind: 'number', min: 0, integer: true, optional: true, showIf: shown, grid: i },
     { id: wid(i, 'rate'), label: `Workstation ${k} — lost for every minute stopped`, kind: 'number', min: 0, showIf: v => shown(v) && v.same === 'own', grid: i,
       dynamic: v => ({ unit: `${unitOf(v)} ${v.per === 'hour' ? 'an hour' : 'a minute'}` }) },
@@ -94,7 +95,7 @@ const def: CalcDef = {
       dynamic: v => ({ label: `How many ${unitOf(v)} are lost in every ${v.per === 'hour' ? 'hour' : 'minute'} a workstation is stopped`, unit: `${unitOf(v)} ${v.per === 'hour' ? 'an hour' : 'a minute'}` }),
       help: 'What it would have made in that time — the speed of the workstation in the unit chosen. Without it the minutes stay minutes and no loss is worked out.' },
     ...Array.from({ length: MAX_STATIONS }, (_, i) => slotFields(i)).flat(),
-    { id: 'watched', label: 'Time you have watched all of them', unit: 'minutes', kind: 'number', min: 0, optional: true, place: 'below', timer: { start: 'Start watching', stop: 'Pause watching' },
+    { id: 'watched', label: 'Time you have watched all of them', unit: 'minutes', kind: 'number', min: 0, optional: true, place: 'below', timer: { start: 'Start watching', stop: 'Pause watching', log: 'watchlog' },
       help: 'This is the sample. The longer you watch, the surer the carried-forward figure is. Press Start watching while you press the Stopped buttons, Pause when you leave: come back later, press it again, and the time adds on. Or type the minutes.' },
     { id: 'horizon', label: 'What would it be if it carries on for', kind: 'choice', default: '8', place: 'below',
       chosen: 'A shift of 8 hours until you pick another. The sample is carried forward in proportion to the time watched.',
@@ -106,6 +107,8 @@ const def: CalcDef = {
     { id: 'conf', label: 'How sure to be', kind: 'choice', default: '95', place: 'below', compact: true,
       chosen: '95% until you pick another: the range is one we are that confident the true figure falls in.',
       options: [{ value: '90', label: '90%' }, { value: '95', label: '95%' }, { value: '99', label: '99%' }] },
+    { id: 'stoplog', label: 'When each stop began', kind: 'text', optional: true, hidden: true },
+    { id: 'watchlog', label: 'The stretches watched', kind: 'text', optional: true, hidden: true },
     { id: 'unitCost', label: 'What one lost unit is worth', unit: '£ a unit', kind: 'number', min: 0, optional: true, money: true,
       help: 'Optional: its margin or its cost. Said as “if it cannot be made up” — a unit lost on a constraint is lost for good; elsewhere the line may catch up.' },
   ],
@@ -153,18 +156,25 @@ const def: CalcDef = {
     /* part 2 — the sample carried forward, and how sure that is (spec Part 2) */
     const conf = confOf(v), H = horizonHours(v);
     const stopsMissing = rs.some(r => r.min > 0 && r.stops === 0);
-    const proj = watched && watched > 0 && H ? project({ watchedMin: watched, horizonMin: H * 60, stops, minutes, lost, conf, stopsMissing }) : undefined;
+    const cluster = watched && watched > 0 ? clusterTest(parseLog(v.stoplog), parseSpans(v.watchlog)) : undefined;
+    const proj = watched && watched > 0 && H ? project({ watchedMin: watched, horizonMin: H * 60, stops, minutes, lost, conf, stopsMissing, ...(cluster?.clustered && cluster.phi ? { phi: cluster.phi } : {}) }) : undefined;
     const cpct = `${fmt(conf * 100, 0)}%`;
     if (share !== undefined) more.push(`They were stopped for ${pct(share)} of the ${duration((watched as number) / 60)} watched (${fmt(minutes, 2)} minutes of ${fmt((watched as number) * rs.length, 0)} workstation-minutes).`);
     if (!watched || watched <= 0) more.push('Give the time you have watched — type it, or press Start watching and Pause — to carry this forward and say how sure it is.');
     else if (!H) more.push(v.horizon === 'week' ? 'Give the hours the line runs in a week to carry the sample over a week.' : 'Give the hours to carry the sample forward over.');
-    else if (proj && stops === 0 && minutes === 0) more.push(`No stop has been seen in the ${duration(watched / 60)} watched. At ${cpct} confidence fewer than ${fmt(proj.count.hi, 1)} stops would be expected in that time — watch longer to say more.`);
+    else if (proj && stops === 0 && minutes === 0 && proj.none) {
+      more.push(`No stop has been seen in the ${duration(watched / 60)} watched. At ${cpct} confidence the rate could still be as high as ${fmt(proj.none.perHour, 2)} an hour (${fmt(proj.none.overHorizon, 1)} stops over ${horizonSaid(v, H as number)}); ${fmt(proj.none.ruleOutHours, 1)} hours of watching with none would rule out one an hour. A quiet watch speaks only for the time it was watched — stops come in bursts as well as singly.`);
+    }
     else if (proj && !proj.range) more.push(`Carried on for ${horizonSaid(v, H as number)}: about ${fmt(proj.lost, 1)} ${u} lost — but no range can be given because ${proj.noRange}.`);
     else if (proj && proj.range && proj.need && proj.firm) {
       more.push(`Carried on for ${horizonSaid(v, H as number)}: about ${fmt(proj.lost, 1)} ${u} lost — between ${fmt(proj.range.lo, 1)} and ${fmt(proj.range.hi, 1)} ${u} at ${cpct} confidence — from ${fmt(stops, 0)} stop${stops === 1 ? '' : 's'} in ${duration(watched / 60)} of watching.`);
       const fair = stopsForPrecision(0.5, conf), firm = stopsForPrecision(0.25, conf);
       more.push(`How confidence grows: at ${cpct} it takes ${fmt(fair, 0)} stops to be Fair (within ±50%) and ${fmt(firm, 0)} to be Firm (within ±25%). You have ${fmt(stops, 0)}. A lower “how sure” needs fewer stops${cpct === '99%' ? `; at 95% Firm needs ${fmt(stopsForPrecision(0.25, 0.95), 0)}` : ''}.`);
-      more.push(`Confidence: ${proj.firm}. The range runs from ${fmt(proj.count.lo / stops, 2)}× to ${fmt(proj.count.hi / stops, 2)}× of what the sample says, because so few stops cannot pin the rate down. It rests on the ${fmt(stops, 0)} stop${stops === 1 ? '' : 's'} counted, not on the minutes watched: more minutes with no more stops only lower the rate, they do not tighten the range. ${proj.need.watchMore > 0 ? `About ${fmt(proj.need.stops, 0)} stops — roughly ${duration(proj.need.watchMore / 60)} more watching at this rate — would bring it within ±25%.` : 'Enough stops are in for it to be within ±25%.'}`);
+      more.push(`The rate seen is ${fmt(proj.rate.perHour, 2)} stops an hour (${fmt(proj.rate.lo, 2)} to ${fmt(proj.rate.hi, 2)} at ${cpct}) from ${fmt(stops, 0)} in ${duration(watched / 60)}. Stops are random even when the rate is right: one stretch of ${horizonSaid(v, H as number)} could see ${fmt(proj.predict.lo, 0)} to ${fmt(proj.predict.hi, 0)} of them${proj.predict.loss ? ` — about ${fmt(proj.predict.loss.lo, 1)} to ${fmt(proj.predict.loss.hi, 1)} ${u}` : ''} (a prediction for one stretch, wider than the range on the average).`);
+      more.push(`Confidence: ${proj.firm}. The range runs from ${fmt(proj.count.lo / stops, 2)}× to ${fmt(proj.count.hi / stops, 2)}× of what the sample says, because so few stops cannot pin the rate down. Its width rests on the ${fmt(stops, 0)} stop${stops === 1 ? '' : 's'} counted — more minutes with no more stops only lower the rate; they do not tighten the range. ${proj.need.watchMore > 0 ? `About ${fmt(proj.need.stops, 0)} stops — roughly ${duration(proj.need.watchMore / 60)} more watching at this rate — would bring it within ±25%.` : 'Enough stops are in for it to be within ±25%.'}`);
+      if (cluster?.clustered && cluster.counts && cluster.phi != null && cluster.p != null) more.push(`The stops came in bursts, not evenly: in ${fmt(cluster.bins as number, 0)} equal parts of the watching they fell ${cluster.counts.join(' · ')} — ${fmt(cluster.phi, 1)} times the spread an even run would show (p ${fmt(cluster.p, 3)}). The range is widened ×${fmt(proj.widened ?? 1, 2)} to allow for it, and a short watch can miss a burst altogether.`);
+      else if (cluster?.why) more.push(`Whether they come in bursts cannot be told yet: ${cluster.why}. The range assumes they arrive independently.`);
+      else if (cluster?.counts && cluster.p != null) more.push(`No sign of bursts: in ${fmt(cluster.bins as number, 0)} equal parts of the watching they fell ${cluster.counts.join(' · ')} (p ${fmt(cluster.p, 2)}), as independent stops would. That says little with so few stops.`);
     }
 
     const cost = num(v, 'unitCost');

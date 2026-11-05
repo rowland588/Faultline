@@ -10,7 +10,7 @@ import { fmt } from './format';
 import type { CalcDef, CalcResult, CalcTile, Field, Inputs, Offer, Problem, Values } from './types';
 
 /** The fields a set of values asks for now — a field with a `showIf` that does not hold is not asked. */
-export const askedFields = (def: CalcDef, v: Values): Field[] => def.inputs.filter(f => !f.showIf || f.showIf(v));
+export const askedFields = (def: CalcDef, v: Values): Field[] => def.inputs.filter(f => !f.hidden && (!f.showIf || f.showIf(v)));
 
 const toNumber = (x: unknown): number | undefined => {
   if (typeof x === 'number') return Number.isFinite(x) ? x : undefined;

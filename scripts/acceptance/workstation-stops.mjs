@@ -127,7 +127,7 @@ await type('watched', 120);
 await page.waitForTimeout(700);
 const more8 = async () => flat(await page.locator('.ie-says').innerText().catch(() => ''));
 const say8 = await more8();
-ok(/Carried on for 8 hours: about 1,716 kg lost — between 629\.7 and 3,735 kg at 95% confidence — from 6 stops in 2 hours of watching\./.test(say8) && /Confidence: Rough\./.test(say8) && /About 66 stops — roughly 20 hours more watching/.test(say8) && /rests on the 6 stops counted, not on the minutes watched/.test(say8), '8 the sample carried 8 hours: 1,716 kg, 629.7 to 3,735 at 95%, Rough, 66 stops needed (SciPy)', say8);
+ok(/Carried on for 8 hours: about 1,716 kg lost — between 629\.7 and 3,735 kg at 95% confidence — from 6 stops in 2 hours of watching\./.test(say8) && /Confidence: Rough\./.test(say8) && /About 66 stops — roughly 20 hours more watching/.test(say8) && /width rests on the 6 stops counted/.test(say8), '8 the sample carried 8 hours: 1,716 kg, 629.7 to 3,735 at 95%, Rough, 66 stops needed (SciPy)', say8);
 ok(await page.locator('[data-field="horizon"] .chip').count() >= 11, '8 the horizon chips: 1 · 2 · 3 · 4 · 5 · 8 · 10 · 11 · 12 · 24 hours, A week, and a box for any hours');
 ok(await page.locator('[data-field="customH"] input').count() === 1, '8 the hours box is always there — any number can be typed');
 await page.locator('[data-field="horizon"] [data-value="1"]').click(); await page.locator('[data-field="conf"] [data-value="90"]').click(); await page.waitForTimeout(600);
@@ -158,6 +158,33 @@ await page.locator('[data-timer="watched"]').click(); await page.waitForTimeout(
 const w2 = Number(await page.locator('[data-field-input="watched"]').inputValue());
 ok(w2 > w1, `8 the record reopened and watched again: the sample grows (${w1} → ${w2})`);
 void before8;
+
+/* ---- 10 · the time watched in the science (5 November — "the observation time should affect the confidence ... clusters ... the science exists") */
+const logs = await page.evaluate(async id => { const st = await (await import('/src/db.ts')).getStudy(id); const i = st?.agreed?.calc?.inputs ?? {}; return { watch: String(i.watchlog ?? ''), stops: String(i.stoplog ?? '') }; }, rid2);
+ok(/^\d+-\d+(;\d+-\d+)*$/.test(logs.watch) && logs.watch.split(';').length >= 2, `10 each press of Pause kept the stretch it watched (${logs.watch.split(';').length} stretches), for the burst test`);
+await page.locator('[data-timer="w01_min"]').click(); await page.waitForTimeout(1200); await page.locator('[data-timer="w01_min"]').click(); await page.waitForTimeout(700);
+const logs2 = await page.evaluate(async id => { const st = await (await import('/src/db.ts')).getStudy(id); return String(st?.agreed?.calc?.inputs?.stoplog ?? ''); }, rid2);
+ok(/^\d+(;\d+)*$/.test(logs2) && logs2.split(';').length === 1, `10 a stop pressed kept the moment it began (${logs2})`);
+ok(await page.locator('[data-field-input="stoplog"], [data-field="stoplog"], [data-field="watchlog"]').count() === 0, '10 the two logs are never drawn as boxes');
+const body10 = flat(await page.locator('.calc-body').innerText());
+ok(/The rate seen is [\d.,]+ stops an hour \([\d.,]+ to [\d.,]+ at 95%\)/.test(body10) && /one stretch of 8 hours could see [\d,]+ to [\d,]+ of them/.test(body10), '10 the rate with its interval and what one stretch could see are said');
+ok(/Whether they come in bursts cannot be told yet: only 0 stops have a moment inside the watching \(1 was pressed while the watch was not running\)/.test(body10), '10 a stop pressed while the watch was stopped is not in the test, and says so');
+/* a record with twenty-four stops timed in bursts: the test finds them and widens the range */
+await page.evaluate(async id => {
+  const db = await import('/src/db.ts'); const st = await db.getStudy(id);
+  const MIN = 60000, t0 = Date.now() - 2000 * MIN;
+  const spans = Array.from({ length: 8 }, (_, i) => `${t0 + i * 100 * MIN}-${t0 + i * 100 * MIN + 10 * MIN}`).join(';');
+  const per = [10, 0, 0, 0, 12, 0, 1, 1];
+  const stops = per.flatMap((c, b) => Array.from({ length: c }, (_, j) => t0 + b * 100 * MIN + (1 + (j % 8)) * MIN)).join(';');
+  st.agreed.calc.inputs = { ...st.agreed.calc.inputs, watched: 80, watchlog: spans, stoplog: stops, w01_stops: 24, w01_min: 48, horizon: '8' };
+  await db.putStudy({ ...st, updatedAt: Date.now() });
+}, rid2);
+await go(`#/calc/workstation-stops/${rid2}`);
+const body11 = flat(await page.locator('.calc-body').innerText());
+ok(/The stops came in bursts, not evenly: in 4 equal parts of the watching they fell 10 · 0 · 12 · 2/.test(body11) && /widened ×/.test(body11), '10 stops bunched in two stretches: bursts found, the range widened, the counts in each part said');
+ok(/stops an hour/.test(body11), '10 the rate is said beside it');
+const ptxt = flat(await (async () => { const [d] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, / — on paper$/)]); const f = join(OUT, 'bursts.pdf'); await d.saveAs(f); return execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }); })());
+ok(/The stops came in bursts/.test(ptxt) && /one stretch of 8 hours could see/.test(ptxt), '10 the paper says the bursts and the stretch’s prediction too');
 const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, / — on paper$/)]);
 const f2 = join(OUT, 'carried.pdf'); await dl2.saveAs(f2);
 const text2 = flat(execFileSync('pdftotext', ['-raw', f2, '-'], { encoding: 'utf8' }));

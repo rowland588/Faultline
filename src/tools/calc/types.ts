@@ -57,7 +57,7 @@ export interface Field {
   /** Offered from the line this sits on (its cost model), with the box still typed by hand if the person wants. */
   from?: Offer;
   /** A number of minutes timed by a Stopped / Running again button: each press-pair adds the minutes here and one to the `stops` field. */
-  timer?: { stops?: string; start?: string; stop?: string };
+  timer?: { stops?: string; start?: string; stop?: string; log?: string };
   /** A choice of few options drawn as small chips, not the big cards (the horizon's and the confidence's). */
   compact?: boolean;
   /** Drawn under the station grid, with the picture it steers, not in the set-up. */
@@ -66,6 +66,8 @@ export interface Field {
   grid?: number;
   /** Words that depend on other answers — “kg lost in every minute stopped” once kilos are chosen. */
   dynamic?: (v: Values) => Partial<Pick<Field, 'label' | 'unit' | 'help'>>;
+  /** Kept on the record but never asked or drawn: what a timer writes for the science (the moment of each stop, the stretches watched). */
+  hidden?: boolean;
   /** Shown only when this holds — a choice that changes what is asked. */
   showIf?: (v: Values) => boolean;
 }

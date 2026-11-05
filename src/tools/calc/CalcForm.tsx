@@ -40,13 +40,17 @@ function StopTimer({ f, p }: { f: Field; p: Props }) {
   const say = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
   const press = (): void => {
     if (since === null) { const t = Date.now(); try { localStorage.setItem(key, String(t)); } catch { /* fine */ } setSince(t); return; }
-    const add = Math.round((Date.now() - since) / 600) / 100;
+    const now = Date.now();
+    const add = Math.round((now - since) / 600) / 100;
     try { localStorage.removeItem(key); } catch { /* fine */ }
     setSince(null);
     const cur = Number(p.draft[f.id]) || 0;
     p.onEdit(f.id, Math.round((cur + add) * 100) / 100);
     const sf = f.timer?.stops;
     if (sf) p.onEdit(sf, (Number(p.draft[sf]) || 0) + 1);
+    /* the moment it began (a stop) or the stretch (a watch), kept for the science — does it come in bursts? (stopsCluster) */
+    const lg = f.timer?.log;
+    if (lg) { const prev = String(p.draft[lg] ?? ''); p.onEdit(lg, `${prev}${prev ? ';' : ''}${sf ? since : `${since}-${now}`}`); }
     p.onBlur();
   };
   return <button type="button" data-timer={f.id} className={'btn calc-timer' + (since !== null ? ' is-running' : '')} onClick={press}>{since === null ? (f.timer?.start ?? 'Stopped') : `${f.timer?.stop ?? 'Running again'} — ${say}`}</button>;

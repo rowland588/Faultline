@@ -43,7 +43,7 @@ describe('stops across workstations', () => {
       const t = said({ ...A, horizon: '8' });
       expect(t).toContain('Carried on for 8 hours: about 1,716 kg lost — between 629.7 and 3,735 kg at 95% confidence — from 6 stops in 2 hours of watching.');
       expect(t).toContain('Confidence: Rough.');
-      expect(t).toContain('rests on the 6 stops counted, not on the minutes watched');
+      expect(t).toContain('width rests on the 6 stops counted');
       expect(t).toContain('About 66 stops — roughly 20 hours more watching');
     });
     it('a chip changes the figure and the chart’s end; the confidence changes the range', () => {
@@ -68,6 +68,12 @@ describe('stops across workstations', () => {
       expect(said({ ...A, conf: '90' })).toContain('at 90% it takes 13 stops to be Fair');
       expect(said({ ...A, watched: 2000 })).toContain('You have 6.');
     });
+    it('the time watched is in the science: the rate, the stretch’s prediction, no stops ruling out', () => {
+      const t = said({ ...A, watched: 120, horizon: '8' });
+      expect(t).toContain('The rate seen is 3 stops an hour (1.1 to 6.53 at 95%) from 6 in 2 hours.');
+      expect(t).toContain('one stretch of 8 hours could see 8 to 52 of them — about 572 to 3,718 kg');
+      expect(t).toContain('Whether they come in bursts cannot be told yet: the watching was typed, not timed');
+    });
     it('watching longer at the same rate narrows the range', () => {
       const wide = runCalc(def, { ...A, horizon: '8' }).result?.tiles.find(t => t.k === 'Confidence')?.of;
       const long = runCalc(def, { ...A, horizon: '8', watched: 1200, [wid(0, 'min')]: 85, [wid(0, 'stops')]: 30, [wid(2, 'min')]: 220, [wid(2, 'stops')]: 20, [wid(3, 'min')]: 52.5, [wid(3, 'stops')]: 10 }).result?.tiles.find(t => t.k === 'Confidence')?.of;
@@ -75,7 +81,7 @@ describe('stops across workstations', () => {
       expect(long).toBe('95% range 1,309.5 to 2,208.8');
     });
     it('no stop seen says the count’s upper bound and carries nothing; no time watched asks for it', () => {
-      expect(said({ n: 2, ...base, watched: 60, horizon: '8' })).toContain('No stop has been seen in the 1 hour watched. At 95% confidence fewer than 3.7 stops');
+      expect(said({ n: 2, ...base, watched: 60, horizon: '8' })).toContain('No stop has been seen in the 1 hour watched. At 95% confidence the rate could still be as high as 3.69 an hour (29.5 stops over 8 hours); 3.7 hours of watching with none would rule out one an hour.');
       expect(said({ n: 2, ...base, [wid(0, 'min')]: 5 })).toContain('Give the time you have watched');
     });
     it('minutes with no stops counted: the point figure and the reason there is no range', () => {
