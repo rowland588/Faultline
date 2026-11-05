@@ -105,6 +105,16 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
       };
       const args = [m.sel, m.text?.source, m.n ?? 1];
       let found = await page.evaluate(look, args);
+      /* A calculation on a phone is three panes to swipe between (Figures · Answer · What if, 5 November): what it must show may be in
+         another pane, so each is opened in turn before it is counted missing. */
+      if (!found.ok && tag === 'phone' && await page.locator('.calc-panes').count()) {
+        for (const pane of ['Figures', 'Answer', 'What if']) {
+          await page.getByRole('tab', { name: pane, exact: true }).click({ timeout: 800 }).catch(() => {});
+          await page.waitForTimeout(150);
+          found = await page.evaluate(look, args);
+          if (found.ok) break;
+        }
+      }
       /* EVERY thing a page must show gets the first one's wait, not only the first (22 October: the front
          door's projects, read from the device after its heading, were missed once under the gate's load —
          five browser jobs at once). Something truly missing still fails, 8 s later. */
