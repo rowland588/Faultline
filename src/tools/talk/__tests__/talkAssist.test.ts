@@ -163,3 +163,16 @@ describe('a conversation, kept quick', () => {
     expect(partialAnswer('')).toEqual({ reply: '', document: false });
   });
 });
+
+describe('what Line Talk is told about reports (5 November — "reduced 13 pages to 6 but I opened the report and it remained")', () => {
+  it('writes every report in the lean shape: where we are, what is not as it should be, what we are doing about it, one closing line', () => {
+    for (const w of ['LEAN REPORTS', '"Where we are"', '"What is not as it should be"', '"What we are doing about it"', 'closing line', 'never take out a problem, an action, an owner, a day or a figure']) expect(TALK_SYSTEM).toContain(w);
+  });
+  it('changes a report by writing the whole document again, and never claims a change the document does not hold', () => {
+    expect(TALK_SYSTEM).toContain('write the WHOLE document again');
+    expect(TALK_SYSTEM).toContain('a reply that says it while "document" is null is wrong');
+  });
+  it('never states a page count — it cannot see the paper', () => {
+    expect(TALK_SYSTEM).toContain('Never say how many pages a document is');
+  });
+});
