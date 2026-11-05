@@ -1115,7 +1115,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         <div className="capx-in">
           {/* THE LINE, ONE CARD (5 November — Rowland: "how many line feeds? two ... then section 2 ... then 3 ... I don't understand what I've done"):
               how many lines, where they join, what they should make together — one row; the rest closed */}
-          <section className="capx-step cap-line" aria-label="The line">
+          <section className="capx-step cap-line cap-shape" aria-label="The line">
             <div className="cap-line-row">
               {can.edit && !w && (
                 <div className="proj-field cap-line-f">
