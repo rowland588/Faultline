@@ -10,7 +10,7 @@
  * with no speed yet is drawn as such, never left out — so a person sees the
  * line take shape as they fill it in. Read from `analyse`; nothing worked out
  * here that the sums do not already say. Pure. */
-import type { Capacity, CapacityResult, Station } from './capacity';
+import { FEED_ZONE, type Capacity, type CapacityResult, type Station } from './capacity';
 
 export interface FlowNode {
   id: string;
@@ -33,6 +33,8 @@ export interface FlowColumn {
   nodes: FlowNode[];
   /** What this line can send on its own, in the line's unit a minute. */
   sends?: number;
+  /** With a shared feed before the lines: what the feed gives this line, never more than it can send. */
+  fed?: number;
 }
 
 export interface FlowModel {
@@ -41,6 +43,12 @@ export interface FlowModel {
   columns: FlowColumn[];
   /** Several lines feeding one place. */
   laned: boolean;
+  /** The shared stations before the lines split (FC-034 part 4); empty when there is no shared feed. */
+  feed: FlowNode[];
+  /** What the feed can supply the lines with, in their first unit a minute. */
+  supplies?: number;
+  /** How it splits: whichever line can take it, or by fixed shares. */
+  split?: 'any' | 'shares';
   /** The stations after the lines merge; empty when they do not merge. */
   shared: FlowNode[];
   /** What the lines send together into the merge. */
@@ -68,7 +76,7 @@ export function flowModel(cap: Capacity, r: CapacityResult, alike = false): Flow
   const base = { unit: r.unit, ...(r.line != null ? { makes: r.line } : {}), ...(cap.targetPerMin != null ? { target: cap.targetPerMin } : {}) };
   if (!lanes.length) {
     const eff = new Map(r.ok.map(x => [x.station.id, x.effective]));
-    return { ...base, laned: false, alike: false, shared: [], columns: [{ id: 'line', name: '', nodes: cap.stations.map(s => node(s, eff.get(s.id))), ...(r.line != null ? { sends: r.line } : {}) }] };
+    return { ...base, laned: false, alike: false, feed: [], shared: [], columns: [{ id: 'line', name: '', nodes: cap.stations.map(s => node(s, eff.get(s.id))), ...(r.line != null ? { sends: r.line } : {}) }] };
   }
   const ids = new Set(lanes.map(l => l.id));
   const columns: FlowColumn[] = lanes.map((l, k) => {
@@ -79,11 +87,14 @@ export function flowModel(cap: Capacity, r: CapacityResult, alike = false): Flow
       id: l.id, name: l.name.trim() || `Line ${String.fromCharCode(65 + (k % 26))}`,
       nodes: cap.stations.filter(s => s.lane === l.id).map(s => node(s, eff.get(s.id), own)),
       ...(sec?.result.line != null ? { sends: sec.result.line } : {}),
+      ...(sec?.fed != null ? { fed: sec.fed } : {}),
     };
   });
+  const effFeed = new Map((r.lanes?.feed?.ok ?? []).map(x => [x.station.id, x.effective]));
+  const feed = cap.stations.filter(s => s.lane === FEED_ZONE).map(s => node(s, effFeed.get(s.id), r.lanes?.feed?.limit?.station.id));
   const effShared = new Map((r.lanes?.merged?.ok ?? []).map(x => [x.station.id, x.effective]));
-  const shared = cap.stations.filter(s => !s.lane || !ids.has(s.lane)).map(s => node(s, effShared.get(s.id)));
-  return { ...base, laned: true, alike, columns, shared, ...(r.lanes ? { sends: r.lanes.sends } : {}) };
+  const shared = cap.stations.filter(s => s.lane !== FEED_ZONE && (!s.lane || !ids.has(s.lane))).map(s => node(s, effShared.get(s.id)));
+  return { ...base, laned: true, alike, columns, feed, shared, ...(r.lanes ? { sends: r.lanes.sends } : {}), ...(r.lanes?.supplies != null ? { supplies: r.lanes.supplies, ...(r.lanes.split ? { split: r.lanes.split } : {}) } : {}) };
 }
 
 /** A FIGURE AS THE FLOOR READS IT — "68.8" not "68.7999", "1,240" not "1240". */
@@ -106,12 +117,14 @@ export function barGroups(m: FlowModel): BarGroup[] {
       ...(m.target != null ? { target: m.target } : {}) }];
   }
   const cols = m.alike ? m.columns.slice(0, 1) : m.columns;
-  const groups: BarGroup[] = cols.map(c => ({
+  const groups: BarGroup[] = m.feed.length ? [{ key: 'feed', title: 'Before the lines split', rows: m.feed.map(row),
+    ...(m.supplies != null ? { ref: m.supplies, refSays: `${m.feed[m.feed.length - 1].name} can supply ${perMinWords(m.supplies)}` } : {}) }] : [];
+  groups.push(...cols.map(c => ({
     key: c.id,
     title: m.alike && m.columns.length > 1 ? `Each line — ${m.columns.map(x => x.name).join(', ')}` : c.name,
     rows: c.nodes.map(row),
-    ...(c.sends != null ? { ref: c.sends, refSays: `${m.alike && m.columns.length > 1 ? 'each line' : c.name} can send ${perMinWords(c.sends)}` } : {}),
-  }));
+    ...(c.sends != null ? { ref: c.sends, refSays: `${m.alike && m.columns.length > 1 ? 'each line' : c.name} can send ${perMinWords(c.sends)}${c.fed != null && Math.abs(c.fed - c.sends) > 0.05 ? ` — fed ${perMinWords(c.fed)}` : ''}` } : {}),
+  })));
   if (m.shared.length) {
     const inflow: BarRow = { id: '__inflow__', index: -1, name: `${m.columns.map(x => x.name).join(' + ')} send`, ...(m.sends != null ? { perMin: m.sends } : {}), isLimit: false, isOwnLimit: false, isInflow: true };
     groups.push({ key: 'merged', title: 'After the lines merge', rows: [inflow, ...m.shared.map(row)],

@@ -57,9 +57,10 @@ whole = 90.
 
 ## 7. Outputs
 Per zone: its limit and what it makes; the system's limit named; a sentence in the form of the purpose above. **The report.**
-The paper's drawn line (`The line, drawn`) shows the three zones — the feed column, a column a line each with its own
-bottleneck tagged, the merge column — and one small table: zone or line · what holds it · what it can make; the
-per-line V pages are not repeated for a split. Nothing else moves.
+The paper's drawn line (`The line, drawn`) shows the three zones — the feed, a pill saying what it supplies, a column a
+line each with its own pace-setter tagged, the merge, the bottleneck, what the line makes — and *What each station can do*
+opens with a group *Before the lines split*; each line's bar group says *can send N — fed M*. One home per thing: no second
+table repeats them, so the paper stays short (two pages for two lines in the acceptance script). Nothing else moves.
 
 ## 8. Manufacturing usability
 Phone first. *Before the lines split* is one quiet button under the first line ("＋ A shared feed before the lines"); when

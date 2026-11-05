@@ -546,6 +546,8 @@ export interface LanesView {
   feed?: CapacityResult;
   /** The split rule it was worked with. */
   split?: 'any' | 'shares';
+  /** What the feed can supply the lines with, in the lines' first unit a minute (good ones only). */
+  supplies?: number;
 }
 
 /** THE LINE'S SPEED, as the practice takes it (docs/CAPACITY.md §1 —
@@ -951,7 +953,7 @@ function analyseLanes(cap: Capacity): CapacityResult {
     base.sentence = out + room;
   }
   if (base.skipped.length) base.sentence += ` ${base.skipped.length} station${base.skipped.length === 1 ? '' : 's'} not counted yet.`;
-  base.lanes = { sections, ...(merged ? { merged } : {}), sends, heldBy, ...(feed ? { feed, split: rule } : {}) };
+  base.lanes = { sections, ...(merged ? { merged } : {}), sends, heldBy, ...(feed ? { feed, split: rule, ...(feeder ? { supplies: G } : {}) } : {}) };
   return base;
 }
 
@@ -1210,6 +1212,7 @@ export interface LabourPart {
   perHour?: number;
 }
 export const SHARED_PART = '__shared__';
+export const FEED_PART = '__feedpart__';
 
 /** WHO AND WHAT, FOR THE COST — typed on this capacity, else the people
  *  placed on the product's line standard, else the line's crew; the rate
@@ -1228,12 +1231,12 @@ export interface LabourInputs {
 }
 
 /** Is the labour counted line by line? Only when asked: several lines and a labour kept for a line or the shared part. */
-export const labourByLine = (cap: Pick<Capacity, 'lanes' | 'labourShared'> | undefined): boolean =>
-  !!cap && (cap.lanes?.length ?? 0) >= 2 && (!!cap.labourShared || (cap.lanes ?? []).some(l => !!l.labour));
+export const labourByLine = (cap: Pick<Capacity, 'lanes' | 'labourShared' | 'labourFeed'> | undefined): boolean =>
+  !!cap && (cap.lanes?.length ?? 0) >= 2 && (!!cap.labourShared || !!cap.labourFeed || (cap.lanes ?? []).some(l => !!l.labour));
 
-const partOf = (cap: Pick<Capacity, 'lanes'>, st: Station): string => (cap.lanes?.some(l => l.id === st.lane) ? (st.lane as string) : SHARED_PART);
+const partOf = (cap: Pick<Capacity, 'lanes'>, st: Station): string => (st.lane === FEED_ZONE ? FEED_PART : cap.lanes?.some(l => l.id === st.lane) ? (st.lane as string) : SHARED_PART);
 
-export function labourInputs(cap: Pick<Capacity, 'labour'> & Partial<Pick<Capacity, 'lanes' | 'labourShared' | 'stations'>> | undefined, mapPeople: number | undefined,
+export function labourInputs(cap: Pick<Capacity, 'labour'> & Partial<Pick<Capacity, 'lanes' | 'labourShared' | 'labourFeed' | 'stations'>> | undefined, mapPeople: number | undefined,
   line?: { crew?: number; labourRatePerHour?: number; labourBurden?: number }): LabourInputs {
   const tp = cap?.labour?.people, tr = cap?.labour?.ratePerHour;
   const lineRate = line?.labourRatePerHour != null && line.labourRatePerHour > 0
@@ -1241,7 +1244,8 @@ export function labourInputs(cap: Pick<Capacity, 'labour'> & Partial<Pick<Capaci
   if (cap && labourByLine(cap as Capacity)) {
     const c = cap as Capacity;
     const lanes = c.lanes ?? [];
-    const defs = [...lanes.map((l, i) => ({ id: l.id, name: l.name.trim() || `Line ${String.fromCharCode(65 + (i % 26))}`, own: l.labour })),
+    const hasFeed = c.stations.some(st => st.lane === FEED_ZONE) || !!c.labourFeed;
+    const defs = [...(hasFeed ? [{ id: FEED_PART, name: 'Before the lines split', own: c.labourFeed }] : []), ...lanes.map((l, i) => ({ id: l.id, name: l.name.trim() || `Line ${String.fromCharCode(65 + (i % 26))}`, own: l.labour })),
       { id: SHARED_PART, name: 'After the lines merge', own: c.labourShared }];
     const parts: LabourPart[] = defs.map(d => {
       const typed = d.own?.people != null && d.own.people >= 0;
@@ -1277,7 +1281,7 @@ export function rateAtStation(li: LabourInputs, cap: Pick<Capacity, 'lanes'>, st
 
 /** The capacity as it is once its stations change: a part whose people were TYPED moves by the people its
  *  stations gained or lost, so a typed count never goes stale beside the stations; the legacy total moves the same way. */
-export function labourAfter(cap: Capacity, stations: Station[], mapPeopleTotal?: number): Pick<Capacity, 'labour' | 'lanes' | 'labourShared'> {
+export function labourAfter(cap: Capacity, stations: Station[], mapPeopleTotal?: number): Pick<Capacity, 'labour' | 'lanes' | 'labourShared' | 'labourFeed'> {
   const next = { ...cap, stations };
   if (labourByLine(cap)) {
     const part = (c: Capacity, id: string) => peopleInStations(c.stations.filter(st => partOf(c, st) === id));
@@ -1285,7 +1289,8 @@ export function labourAfter(cap: Capacity, stations: Station[], mapPeopleTotal?:
       own?.people != null ? { ...own, people: Math.max(0, own.people + part(next, id) - part(cap, id)) } : own;
     return { labour: cap.labour,
       lanes: (cap.lanes ?? []).map(l => (l.labour ? { ...l, labour: bump(l.labour, l.id) } : l)),
-      ...(cap.labourShared ? { labourShared: bump(cap.labourShared, SHARED_PART) } : {}) };
+      ...(cap.labourShared ? { labourShared: bump(cap.labourShared, SHARED_PART) } : {}),
+      ...(cap.labourFeed ? { labourFeed: bump(cap.labourFeed, FEED_PART) } : {}) };
   }
   const delta = peopleInStations(stations) - peopleInStations(cap.stations);
   const base = cap.labour?.people ?? mapPeopleTotal;
@@ -1299,7 +1304,7 @@ export function labourPartsSays(li: LabourInputs, r: CapacityResult): string[] {
   return li.parts.map(x => {
     if (x.perHour == null) return `${x.name}: ${fmtN(x.people)} ${x.people === 1 ? 'person' : 'people'} — what one costs an hour is not said yet.`;
     const sec = r.lanes?.sections.find(y => y.id === x.id);
-    const out = sec ? (sec.result.goodOut ?? sec.result.line) : (r.goodOut ?? r.line);
+    const out = sec ? (sec.fed != null ? sec.fed * ((sec.result.goodOut ?? sec.result.line ?? 0) / (sec.result.line || 1)) : (sec.result.goodOut ?? sec.result.line)) : (r.goodOut ?? r.line);
     const per = out != null && out > 0 && x.perHour > 0 ? `, ${fmtMoney(x.perHour / (out * 60))} a ${one}${sec ? '' : ' on everything the line makes'}` : '';
     return `${x.name}: ${fmtN(x.people)} ${x.people === 1 ? 'person' : 'people'} × ${fmtMoney(x.rate as number)} = ${fmtMoney(x.perHour)} an hour${per}.`;
   });

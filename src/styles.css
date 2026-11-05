@@ -15884,3 +15884,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .cap-cost-part .proj-field { flex: 0 1 180px; }
 .cap-cost-part .cap-num, .cap-cost-parts .cap-num { min-height: 44px; }
 .cap-cost-part-says { margin: 0; }
+
+/* FC-034 part 4 — a shared feed before the lines split, and the arrival notice set apart from the boxes */
+.cap-calc { display: block; font-size: var(--t-label); color: var(--muted); font-style: italic; margin-bottom: 2px; }
+.cap-st-in { border-left: 3px solid var(--line); padding-left: 8px; }
+.cap-split { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; }
+.cap-split .chip { min-height: 44px; }
+.cap-split-f { flex: 0 1 150px; }
+.cap-split .cap-num { min-height: 44px; }

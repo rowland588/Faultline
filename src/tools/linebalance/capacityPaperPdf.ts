@@ -188,7 +188,7 @@ function flowBlock(m: FlowModel): Block {
     const OUT = 36;
     if (!m.laned) return chainRows(m.columns[0]?.nodes.length ?? 0) * (NH + VG) + OUT + 6;
     const lanes = Math.max(1, ...m.columns.map(c => c.nodes.length));
-    return 14 + lanes * (NH + VG) + (m.shared.length ? 26 + m.shared.length * (NH + VG) : 8) + OUT + 6;
+    return (m.feed.length ? m.feed.length * (NH + VG) + 30 : 0) + 14 + lanes * (NH + VG) + (m.shared.length ? 26 + m.shared.length * (NH + VG) : 8) + OUT + 6;
   };
   const node = (f: Frame, x: FlowNode, nx: number, ny: number, w: number, no?: number) => {
     const d = f.doc;
@@ -230,14 +230,29 @@ function flowBlock(m: FlowModel): Block {
     font(d, T, 'bold', INK); d.text(a, x0 + w / 2, y + 14, { align: 'center' });
     font(d, S, 'normal', short ? RED : INK2); d.text(b, x0 + w / 2, y + 26, { align: 'center' });
   };
-  return box(f => height() + gap(f.density, 'm'), (f, y) => {
+  return box(f => height() + gap(f.density, 'm'), (f, y0) => {
     const d = f.doc;
+    let y = y0;
     if (!m.laned) {
       const col = m.columns[0]?.nodes ?? [];
       const end = chain(f, col, y);
       if (col.length) arrowD(f, f.x + f.w / 2, end - VG + 1, end + 2);
       out(f, end + 2);
       return;
+    }
+    /* the shared feed before the lines split: its boxes down the middle, then a pill saying what it supplies, then the lines */
+    if (m.feed.length) {
+      const fw = Math.min(f.w, 240), fx = f.x + (f.w - fw) / 2;
+      m.feed.forEach((x, i) => {
+        const ny = y + i * (NH + VG);
+        node(f, x, fx, ny, fw);
+        if (i < m.feed.length - 1) arrowD(f, f.x + f.w / 2, ny + NH, ny + NH + VG);
+      });
+      const py = y + m.feed.length * (NH + VG) - VG + 4, pw = Math.min(f.w, 300);
+      d.setFillColor('#ffffff'); d.setDrawColor(BRAND); d.setLineWidth(1); d.roundedRect(f.x + (f.w - pw) / 2, py, pw, 18, 9, 9, 'FD');
+      font(d, S, 'bold', INK2); d.text(`The feed splits — ${m.supplies != null ? `${perMinWords(m.supplies)} ${unit}/min supplied` : 'what it supplies'}${m.split === 'shares' ? ', fixed shares' : ''}`, f.x + f.w / 2, py + 12, { align: 'center' });
+      arrowD(f, f.x + f.w / 2, py - 5, py);
+      y = py + 18 + 8;
     }
     const n = Math.max(1, m.columns.length), g = 10, cw = Math.min(170, (f.w - (n - 1) * g) / n);
     const span = n * cw + (n - 1) * g, x0 = f.x + (f.w - span) / 2;

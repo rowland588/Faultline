@@ -44,7 +44,7 @@ import { type PillarKey } from '../../lib/pillars';
 import { BoneChips } from '../../ui/ActionSheet';
 import { useAccess } from '../../cloud/access';
 import type { Can } from '../../lib/access';
-import { EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, lineIfRaised, makeItSoWords, stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, perMinute, takeAwayWords, typedPerMinute, chainFactor, chainWords, typedSpeedWords, REST_ALLOWANCE_PCT, shareColours, labourAfter, labourByLine, labourCost, labourInputs, labourPartsSays, oneMorePerson, rateAtStation, SHARED_PART, whatIfLabour, fmtMoney, type Capacity, type CapacityResult, type Lane, type LabourInputs, type RatePer, type Station, type StationResult, type WhatIf, screenCapacity, bottleneckCost, bottleneckCostSays } from './capacity';
+import { EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, lineIfRaised, makeItSoWords, stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, perMinute, takeAwayWords, typedPerMinute, chainFactor, chainWords, typedSpeedWords, REST_ALLOWANCE_PCT, shareColours, FEED_ZONE, FEED_PART, labourAfter, labourByLine, labourCost, labourInputs, labourPartsSays, oneMorePerson, rateAtStation, SHARED_PART, whatIfLabour, fmtMoney, type Capacity, type CapacityResult, type Lane, type LabourInputs, type RatePer, type Station, type StationResult, type WhatIf, screenCapacity, bottleneckCost, bottleneckCostSays } from './capacity';
 import { fmtN, oneOf, fmtSec, fmtDur, cycleWords, fmtBig } from './capacityWords';
 import { capacityGlance } from './capacityGlance';
 import { loadOf, loadSays } from './capacityLoad';
@@ -243,6 +243,7 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
       {load && <p className="cap-load" data-load>{load}</p>}
       {(say.arrive || say.verdict || say.paced) && (
         <p className={'cap-feed' + (say.short ? ' is-short' : say.paced ? ' is-paced' : '')}>
+          {say.arrive && <span className="cap-calc">worked out from the station before — not typed</span>}
           {say.arrive && <span className="cap-st-in">{say.arrive}</span>}
           {say.verdict && <span className="cap-st-says">{say.verdict}</span>}
           {say.needed != null && !ro && (
@@ -487,11 +488,11 @@ function LabourBox({ r, cap, current, w, rAsRun, li, onSave, onSaveCap, onMore, 
       {byLine && li.parts ? (
         <div className="cap-cost-parts">
           {li.parts.map(x => {
-            const isShared = x.id === SHARED_PART;
-            const own = isShared ? cap.labourShared : cap.lanes?.find(l => l.id === x.id)?.labour;
+            const isShared = x.id === SHARED_PART, isFeed = x.id === FEED_PART;
+            const own = isFeed ? cap.labourFeed : isShared ? cap.labourShared : cap.lanes?.find(l => l.id === x.id)?.labour;
             const save = (patch: { people?: number | undefined; ratePerHour?: number | undefined }) => {
               const next = { ...own, ...patch };
-              onSaveCap(isShared ? { labourShared: next } : { lanes: (cap.lanes ?? []).map(l => (l.id === x.id ? { ...l, labour: next } : l)) });
+              onSaveCap(isFeed ? { labourFeed: next } : isShared ? { labourShared: next } : { lanes: (cap.lanes ?? []).map(l => (l.id === x.id ? { ...l, labour: next } : l)) });
             };
             return (
               <div key={x.id} className="cap-cost-part" role="group" aria-label={`Labour for ${x.name}`}>
@@ -519,10 +520,10 @@ function LabourBox({ r, cap, current, w, rAsRun, li, onSave, onSaveCap, onMore, 
               ? <DraftNumber className="text-input cap-num" value={cap.labour?.ratePerHour} placeholder="e.g. 12.50" label="Pounds an hour for every line" onSave={v => onSave({ ...cap.labour, ratePerHour: v })} />
               : <b className="cap-ro-v">{cap.labour?.ratePerHour != null ? fmtMoney(cap.labour.ratePerHour) : 'not said'}</b>}
           </label>
-          {canEdit && <button type="button" className="btn btn-ghost btn-sm" onClick={() => onSaveCap({ lanes: (cap.lanes ?? []).map(l => { const { labour: _l, ...rest } = l; void _l; return rest; }), labourShared: undefined })}>Count all the lines together again</button>}
+          {canEdit && <button type="button" className="btn btn-ghost btn-sm" onClick={() => onSaveCap({ lanes: (cap.lanes ?? []).map(l => { const { labour: _l, ...rest } = l; void _l; return rest; }), labourShared: undefined, labourFeed: undefined })}>Count all the lines together again</button>}
         </div>
       ) : (<>
-      {many && canEdit && <p className="sub">These are all the people, whichever line. <button type="button" className="cw-link" onClick={() => onSaveCap({ lanes: (cap.lanes ?? []).map(l => ({ ...l, labour: {} })), labourShared: {} })}>Count each line separately</button> — its own people and its own rate.</p>}
+      {many && canEdit && <p className="sub">These are all the people, whichever line. <button type="button" className="cw-link" onClick={() => onSaveCap({ lanes: (cap.lanes ?? []).map(l => ({ ...l, labour: {} })), labourShared: {}, ...(cap.stations.some(x => x.lane === FEED_ZONE) ? { labourFeed: {} } : {}) })}>Count each line separately</button> — its own people and its own rate.</p>}
       <div className="cap-cost-in">
         <label className="proj-field">
           <span className="field-label">People on the line — all of them</span>
@@ -727,20 +728,28 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     const ls = laneLists(), i = ls[0]?.findIndex(x => x.id === id) ?? -1;
     return i < 0 ? undefined : ls.map(l => l[i]?.id).filter((x): x is string => !!x);
   };
-  const groups = lanes.length
-    ? [...lanes.map((l, k) => ({ key: l.id, lane: l, name: l.name.trim() || `Line ${String.fromCharCode(65 + (k % 26))}`, stations: current.stations.filter(x => x.lane === l.id) })),
-       { key: '', lane: undefined as Lane | undefined, name: 'After the lines merge', stations: current.stations.filter(x => !x.lane || !laneIds.has(x.lane)) }]
-    : [{ key: '', lane: undefined as Lane | undefined, name: '', stations: current.stations }];
+  /* the three zones of a line that splits: a shared feed BEFORE the lines, the lines, what is shared AFTER they merge (FC-034 part 4) */
+  const isAfter = (x: Station) => x.lane !== FEED_ZONE && (!x.lane || !laneIds.has(x.lane));
+  const feedStations = current.stations.filter(x => x.lane === FEED_ZONE);
+  const [feedAsked, setFeedAsked] = useState(false);
+  const feedShown = feedStations.length > 0 || feedAsked;
+  type Zone = 'feed' | 'lane' | 'after';
+  const groups: { key: string; lane: Lane | undefined; name: string; stations: Station[]; zone: Zone }[] = lanes.length
+    ? [...(feedShown ? [{ key: FEED_ZONE, lane: undefined as Lane | undefined, name: 'Before the lines split', stations: feedStations, zone: 'feed' as Zone }] : []),
+       ...lanes.map((l, k) => ({ key: l.id, lane: l as Lane | undefined, name: l.name.trim() || `Line ${String.fromCharCode(65 + (k % 26))}`, stations: current.stations.filter(x => x.lane === l.id), zone: 'lane' as Zone })),
+       { key: '', lane: undefined as Lane | undefined, name: 'After the lines merge', stations: current.stations.filter(isAfter), zone: 'after' as Zone }]
+    : [{ key: '', lane: undefined as Lane | undefined, name: '', stations: current.stations, zone: 'after' as Zone }];
   const addTo = (kind: Station['kind'], lane?: string) => {
-    const mine = current.stations.filter(x => (lane ? x.lane === lane : !x.lane || !laneIds.has(x.lane)));
-    const st = { ...blankStation(uid(), kind, lanes.length > 0 ? (!!lane && mine.length === 0) : current.stations.length === 0), ...(lane ? { lane } : {}) };
-    /* in its group's place: after the group's last station, else before the shared ones */
-    const at = mine.length ? current.stations.indexOf(mine[mine.length - 1]) + 1 : lane ? current.stations.findIndex(x => !x.lane || !laneIds.has(x.lane)) : current.stations.length;
+    const mine = current.stations.filter(x => (lane ? x.lane === lane : isAfter(x)));
+    /* the first station of the whole line is counted in its own unit; a line's first, after a shared feed, says how many of the feed's unit make one */
+    const st = { ...blankStation(uid(), kind, lanes.length > 0 ? (!!lane && mine.length === 0 && (lane === FEED_ZONE || feedStations.length === 0)) : current.stations.length === 0), ...(lane ? { lane } : {}) };
+    /* in its group's place: after the group's last station, else before the shared ones (the feed, at the very front) */
+    const at = mine.length ? current.stations.indexOf(mine[mine.length - 1]) + 1 : lane === FEED_ZONE ? 0 : lane ? current.stations.findIndex(isAfter) : current.stations.length;
     const list = [...current.stations]; list.splice(at < 0 ? list.length : at, 0, st);
     /* in step: the same new station on every other line too */
     if (inStep && lane && lane === lanes[0]?.id) for (const l of lanes.slice(1)) {
       const theirs = list.filter(x => x.lane === l.id);
-      const i = theirs.length ? list.indexOf(theirs[theirs.length - 1]) + 1 : list.findIndex(x => !x.lane || !laneIds.has(x.lane));
+      const i = theirs.length ? list.indexOf(theirs[theirs.length - 1]) + 1 : list.findIndex(isAfter);
       list.splice(i < 0 ? list.length : i, 0, { ...st, id: uid(), lane: l.id });
     }
     setStations(list);
@@ -786,7 +795,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     const last = lanes[lanes.length - 1];
     const l = { id: uid(), name: nextLaneName() };
     const copy = current.stations.filter(x => x.lane === last.id).map(x => ({ ...x, id: uid(), lane: l.id }));
-    const firstShared = cap.stations.findIndex(x => !x.lane || !laneIds.has(x.lane));
+    const firstShared = cap.stations.findIndex(x => x.lane !== FEED_ZONE && (!x.lane || !laneIds.has(x.lane)));
     const list = [...cap.stations]; list.splice(firstShared < 0 ? list.length : firstShared, 0, ...copy);
     const before = cap;
     commit({ ...cap, lanes: [...lanes, l], stations: list });
@@ -813,7 +822,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
      October: "it should almost be asking how many lines do you want to do, and
      do they merge at the end"). One tap makes the line N lines, the same first
      stations each, the rest shared; the merge point is one choice. */
-  const flow = lineChain(cap);
+  const flow = lineChain(cap).filter(x => x.lane !== FEED_ZONE);
   const mergeAt = mergeAfterOf(cap);
   const alike = lanesAlike(current);
   const ownCount = lanes.length ? current.stations.filter(x => x.lane === lanes[0].id).length : 0;
@@ -829,7 +838,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     if (!r.lanes) return undefined;
     const g = groups[groups.length - 1];
     const first = g.stations[0];
-    const prev = groups[0].stations.slice(-1)[0];
+    const prev = groups.find(x => x.zone === 'lane')?.stations.slice(-1)[0];
     if (!first) return undefined;
     const say = paceSays(r, first, prev?.unit, prev);
     return [say.arrive, say.verdict].filter(Boolean).join(' ') || undefined;
@@ -1145,7 +1154,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       {groups.map((g, gi) => {
         if (inStep && g.lane && g.lane.id !== lanes[0]?.id) return null;
         /* the unit before a group's first station: a line's none; after they merge, the lines' last */
-        const prefix = !g.lane && lanes.length ? (groups[0].stations.slice(-1)) : [];
+        const firstLane = groups.find(x => x.zone === 'lane');
+        const prefix = g.zone === 'after' && lanes.length ? (firstLane?.stations.slice(-1) ?? []) : g.zone === 'lane' ? feedStations.slice(-1) : [];
         const chainOf = [...prefix, ...g.stations];
         return (
           <div key={g.key || 'shared'} className={'cap-grp' + (lanes.length ? ' has-lanes' : '')} aria-label={g.name || undefined}>
@@ -1158,7 +1168,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
                   ? inStep
                     ? `and ${lanes.slice(1).map(l => l.name.trim() || 'the next line').join(', ')} — the same stations${(v => (v != null ? `, ${fmtN(v)} ${r.unit}/min each` : ''))(r.lanes?.sections.find(x => x.id === g.key)?.result.line)}; a change here is made on every line`
                     : `its own stations${(v => (v != null ? ` — ${fmtN(v)} ${r.unit}/min on its own` : ''))(r.lanes?.sections.find(x => x.id === g.key)?.result.line)}`
-                  : 'where they all come to — one chain for every line'}</span>
+                  : g.zone === 'feed' ? 'every line is fed from here — what the whole flow goes through first' : 'where they all come to — one chain for every line'}</span>
                 {inStep && g.lane && can.edit && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setApart(true)}>Make the lines different</button>}
                 {g.lane && can.edit && !w && <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeLane((g.lane as Lane).id)}>Remove this line</button>}
               </div>
@@ -1179,16 +1189,36 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
                 );
               })}
             </ol>
+            {g.zone === 'feed' && lanes.length > 1 && g.stations.length > 0 && (
+              <div className="cap-split" role="group" aria-label="How the feed splits between the lines">
+                <span className="cap-hint">The feed goes to</span>
+                <span className="cw-seg">
+                  {([['any', 'Whichever line can take it'], ['shares', 'Fixed shares']] as const).map(([k, label]) => (
+                    <button key={k} type="button" className={'chip' + ((cap.split?.rule ?? 'any') === k ? ' on' : '')} aria-pressed={(cap.split?.rule ?? 'any') === k} disabled={!can.edit || !!w}
+                      onClick={() => commit({ ...cap, split: { rule: k, ...(cap.split?.shares ? { shares: cap.split.shares } : {}) } })}>{label}</button>
+                  ))}
+                </span>
+                {cap.split?.rule === 'shares' && lanes.map((l, k) => (
+                  <label key={l.id} className="proj-field cap-split-f">
+                    <span className="field-label">{l.name.trim() || `Line ${String.fromCharCode(65 + (k % 26))}`} gets, %</span>
+                    <DraftNumber className="text-input cap-num" value={cap.split?.shares?.[l.id]} placeholder="e.g. 50" label={`Share of the feed for ${l.name.trim() || `line ${k + 1}`}`}
+                      onSave={v => commit({ ...cap, split: { rule: 'shares', shares: { ...(cap.split?.shares ?? {}), ...(v != null ? { [l.id]: v } : {}) } } })} />
+                  </label>
+                ))}
+                <span className="cap-hint">{cap.split?.rule === 'shares' ? 'The shares are taken as proportions of the feed.' : 'It is shared in proportion to what each line can take.'}</span>
+              </div>
+            )}
             {lanes.length > 0 && can.edit && (
               <div className="row-inline">
-                <button className="cw-add" onClick={() => addTo('machine', g.lane?.id)}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a machine{g.lane ? ` to ${g.name}` : ''}</button>
-                <button className="cw-add" onClick={() => addTo('people', g.lane?.id)}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a person or crew{g.lane ? ` to ${g.name}` : ''}</button>
+                <button className="cw-add" onClick={() => addTo('machine', g.zone === 'feed' ? FEED_ZONE : g.lane?.id)}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a machine{g.lane || g.zone === 'feed' ? ` to ${g.name}` : ''}</button>
+                <button className="cw-add" onClick={() => addTo('people', g.zone === 'feed' ? FEED_ZONE : g.lane?.id)}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a person or crew{g.lane || g.zone === 'feed' ? ` to ${g.name}` : ''}</button>
               </div>
             )}
             {(gi === groups.length - 2 || (inStep && g.lane?.id === lanes[0]?.id)) && lanes.length > 0 && can.edit && !w && (
               <div className="row-inline cap-lanes-do">
                 <button className="cw-add" onClick={addLane}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add another line, like {lanes[lanes.length - 1].name.trim() || 'the one before'}</button>
                 {lanes.length === 1 && <button className="btn btn-ghost btn-sm" onClick={oneLine}>One line again</button>}
+                {!feedShown && <button className="btn btn-ghost btn-sm" onClick={() => setFeedAsked(true)}>＋ A shared feed before the lines</button>}
               </div>
             )}
           </div>

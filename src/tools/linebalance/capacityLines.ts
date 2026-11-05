@@ -16,7 +16,7 @@
  * (each its own copy), keeping all they had; EARLIER makes each line's last
  * stations shared (each keeps its first k), the first line's version kept. Lines of different lengths
  * merge at the first line's point. Pure — the page offers an Undo. */
-import type { Capacity, Lane, Station } from './capacity';
+import { FEED_ZONE, type Capacity, type Lane, type Station } from './capacity';
 
 export const MAX_LINES = 8;
 export const laneLetter = (i: number) => `Line ${String.fromCharCode(65 + (i % 26))}`;
@@ -28,7 +28,7 @@ export function chainOf(cap: Capacity): Station[] {
   if (!lanes.length) return cap.stations;
   const ids = new Set(lanes.map(l => l.id));
   const first = cap.stations.filter(s => s.lane === lanes[0].id);
-  return [...first, ...cap.stations.filter(s => !s.lane || !ids.has(s.lane))];
+  return [...cap.stations.filter(s => s.lane === FEED_ZONE), ...first, ...cap.stations.filter(s => s.lane !== FEED_ZONE && (!s.lane || !ids.has(s.lane)))];
 }
 
 /** Where the lines merge: after the first line's own stations. Undefined with
@@ -61,7 +61,8 @@ export function reshape(cap: Capacity, lines: number, mergeAfter: number, uid: (
      before any station is typed — each line empty, ready for its stations */
   if (!chain.length) return { ...cap, lanes, stations: cap.stations.filter(s => !s.lane || !old.some(l => l.id === s.lane) || lanes.some(l => l.id === s.lane)) };
   const ids = new Set(old.map(l => l.id));
-  let shared = cap.stations.filter(s => !s.lane || !ids.has(s.lane)).map(strip);
+  const feedPart = cap.stations.filter(s => s.lane === FEED_ZONE);
+  let shared = cap.stations.filter(s => s.lane !== FEED_ZONE && (!s.lane || !ids.has(s.lane))).map(strip);
   /* each line's own stations as they stand — a new line a copy of the first's */
   const firstOwn = old.length ? cap.stations.filter(s => s.lane === old[0].id) : chain.slice(0, 0);
   const own: Station[][] = lanes.map((l, i) => {
@@ -82,5 +83,5 @@ export function reshape(cap: Capacity, lines: number, mergeAfter: number, uid: (
     shared = [...own[0].slice(k).map(strip), ...shared];
     own.forEach((o, i) => { own[i] = o.slice(0, k); });
   }
-  return { ...cap, lanes, stations: [...own.flat(), ...shared] };
+  return { ...cap, lanes, stations: [...feedPart, ...own.flat(), ...shared] };
 }

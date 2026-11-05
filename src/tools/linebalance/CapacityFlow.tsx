@@ -35,7 +35,14 @@ export function CapacityFlow({ m, onPick }: { m: FlowModel; onPick?: (index: num
   const x0 = (W - span) / 2;
   const colX = (k: number) => x0 + k * (colW + gap);
   const rows = Math.max(1, ...m.columns.map(c => c.nodes.length));
-  const top = m.laned ? HEAD : 4;
+  /* A SHARED FEED BEFORE THE LINES SPLIT (FC-034 part 4): its boxes in one column down the middle, then a pill saying what it
+     supplies, then the lines — the map of where the bottlenecks are */
+  const feedN = m.feed.length;
+  const feedW = Math.min(W - 2 * PAD, 300), splitH = 30;
+  const feedY = (i: number) => 4 + i * (NH + VG);
+  const splitY = feedN ? feedY(feedN) - VG + 22 : 0;
+  const laneStart = feedN ? splitY + splitH + 22 : 0;
+  const top = laneStart + (m.laned ? HEAD : 4);
   const laneBottom = top + rows * (NH + VG) - VG;
   const mergeH = 30, mergeW = Math.min(W - 2 * PAD, 300);
   const sharedW = Math.min(W - 2 * PAD, 300);
@@ -72,10 +79,11 @@ export function CapacityFlow({ m, onPick }: { m: FlowModel; onPick?: (index: num
   const heads: React.ReactNode[] = [];
   m.columns.forEach((c, k) => {
     const cx = colX(k);
-    if (m.laned) heads.push(<text key={`h${c.id}`} x={cx + colW / 2} y={14} textAnchor="middle" className="cxf-lane">{cut(c.name, colW, 12)}</text>);
+    if (m.laned) heads.push(<text key={`h${c.id}`} x={cx + colW / 2} y={laneStart + 14} textAnchor="middle" className="cxf-lane">{cut(c.name, colW, 12)}</text>);
     if (!c.nodes.length) {
       nodes.push(<g key={`e${c.id}`} className="cxf-node is-none" transform={`translate(${cx},${top})`}><rect width={colW} height={NH} rx={8} /><text x={colW / 2} y={28} textAnchor="middle" className="cxf-rate">no stations yet</text></g>);
     }
+    if (feedN) edges.push(`M${W / 2},${splitY + splitH} C${W / 2},${splitY + splitH + 12} ${cx + colW / 2},${laneStart - 4} ${cx + colW / 2},${laneStart + 1}`);
     c.nodes.forEach((x, i) => {
       const y = top + i * (NH + VG);
       nodes.push(nodeAt(x, cx, y, colW));
@@ -96,6 +104,17 @@ export function CapacityFlow({ m, onPick }: { m: FlowModel; onPick?: (index: num
         <defs>
           <marker id="cxf-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" className="cxf-arrowhead" /></marker>
         </defs>
+        {m.feed.map((x, i) => {
+          if (i > 0) edges.push(`M${W / 2},${feedY(i) - VG} L${W / 2},${feedY(i) - 3}`);
+          return nodeAt(x, (W - feedW) / 2, feedY(i), feedW);
+        })}
+        {feedN > 0 && (
+          <g transform={`translate(${(W - feedW) / 2},${splitY})`} className="cxf-merge">
+            <path d={`M${feedW / 2},${-22} L${feedW / 2},${-3}`} className="cxf-edge" markerEnd="url(#cxf-arrow)" />
+            <rect width={feedW} height={splitH} rx={splitH / 2} />
+            <text x={feedW / 2} y={19.5} textAnchor="middle">{cut(`The feed splits — ${m.supplies != null ? `${perMinWords(m.supplies)} ${unit}/min supplied` : 'what it supplies'}${m.split === 'shares' ? ', fixed shares' : ''}`, feedW - 20, 12)}</text>
+          </g>
+        )}
         {heads}
         {edges.map((d, i) => <path key={i} d={d} className="cxf-edge" markerEnd="url(#cxf-arrow)" />)}
         {nodes}
