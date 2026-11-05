@@ -37,6 +37,7 @@ import { calcByKey, calcGroups } from './registry';
 import { calcSays, dropped, runCalc, startInputs, studyCalc, typedOver, type Run } from './calc';
 import { CalcForm, stillNeeded } from './CalcForm';
 import { BeforeBox, ResultView, WhatIf } from './CalcView';
+import { usePhone } from '../../ui/InstallGrid';
 import type { CalcDef, Inputs } from './types';
 import { PlanPath } from '../criticalpath/PlanPath';
 
@@ -313,6 +314,12 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
   const canEdit = can.edit && !closed;
   const line = useLine(s.workspaceId);
   /* the figures as they are in the boxes now; the record follows a moment after the last key, never a write for every one */
+  /* ON A PHONE the page is three panes to swipe between — the figures, the answer, what if — not one scroll of 3,700 px (Rowland, 5 November: "on the phone everything should be swiping") */
+  const phone = usePhone();
+  type Pane = 'figures' | 'answer' | 'whatif';
+  const [pane, setPane] = useState<Pane>('figures');
+  const PANES: [Pane, string][] = [['figures', 'Figures'], ['answer', 'Answer'], ['whatif', 'What if']];
+  const swipe = useRef<{ x: number; y: number } | null>(null);
   const [draft, setDraft] = useState<Inputs>(agreed.inputs);
   const [src, setSrc] = useState<Record<string, string> | undefined>(agreed.src);
   const queue = useRef<Record<string, { v: string | number | null; from?: string }>>({});
@@ -376,10 +383,37 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
         <WhereItSits s={s} can={can} />
       </div>
       {!canEdit && !closed && <p className="sub calc-ro" role="status">You can read this and take its paper; the figures are changed by the people doing the work.</p>}
-      <div className={'calc-body' + (def.tileSays ? ' has-grid' : '')}>
+      {phone && (
+        <div className="calc-panes" role="tablist" aria-label="Figures, the answer, what if">
+          {PANES.map(([k, label]) => (
+            <button key={k} type="button" role="tab" aria-selected={pane === k} className={'calc-pane-t' + (pane === k ? ' on' : '')} onClick={() => setPane(k)}>{label}</button>
+          ))}
+        </div>
+      )}
+      <div className={'calc-body' + (def.tileSays ? ' has-grid' : '')}
+        onTouchStart={phone ? (e => { const t = e.touches[0]; const typing = (e.target as Element).closest?.('input, textarea, select, table'); swipe.current = t && !typing ? { x: t.clientX, y: t.clientY } : null; }) : undefined}
+        onTouchEnd={phone ? (e => {
+          const t = swipe.current; swipe.current = null; const c = e.changedTouches[0];
+          if (!t || !c) return;
+          const dx = c.clientX - t.x, dy = c.clientY - t.y;
+          if (Math.abs(dx) < 70 || Math.abs(dy) > 60) return;
+          const i = PANES.findIndex(([k]) => k === pane);
+          const j = dx < 0 ? Math.min(PANES.length - 1, i + 1) : Math.max(0, i - 1);
+          if (j !== i) { setPane(PANES[j][0]); window.scrollTo?.({ top: 0 }); }
+        }) : undefined}>
+        {phone && pane === 'figures' && (
+          <button type="button" className={'calc-strip' + (r ? ' is-' + r.tone : '')} onClick={() => setPane('answer')} aria-label="The answer so far — open it">
+            <span className="calc-strip-l">Answer so far</span>
+            <b>{r ? r.verdict : 'Waiting for the figures'}</b>
+            <span aria-hidden>›</span>
+          </button>
+        )}
+        <div className="calc-figs" hidden={phone && pane !== 'figures'}>
         <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part={def.tileSays ? 'main' : undefined} />
         {def.tileSays && <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part="grid" total={r ? `${r.verdict} · ${r.sentence}` : undefined} />}
-        <div className="calc-out">
+        </div>
+        <div className="calc-out" hidden={phone && pane === 'figures'}>
+          <div hidden={phone && pane !== 'answer'}>
           {r
             ? <ResultView def={def} run={run} agreed={live} />
             : (
@@ -388,8 +422,12 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
                 <p className="sub">{needs.length ? `To work it out: ${needs.join(' ')}` : run.problems.filter(p => p.block).map(p => p.say).join(' ')}</p>
               </div>
             )}
+          </div>
+          <div hidden={phone && pane !== 'whatif'}>
           {r && <BeforeBox def={def} agreed={live} canEdit={canEdit} ready={!run.blocked} onSave={saveBefore} onClear={clearBefore} />}
           {r && <WhatIf def={def} draft={draft} run={run} canEdit={canEdit} onMakeIt={makeIt} />}
+          {!r && phone && pane === 'whatif' && <p className="sub">Once the answer is worked out, change a figure here and see it move.</p>}
+          </div>
         </div>
       </div>
       <Commentary s={s} canEdit={can.edit} title="Notes" folded />

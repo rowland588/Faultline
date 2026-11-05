@@ -546,32 +546,52 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           {/* NEW ▾ — a tool started here is this line's (src/catalogue/registry, docs/STRUCTURE.md §5.2) */}
           {view === 'tools' && may && <MoreMenu label="New" items={APP_TOOLS.filter(t => t.kind === 'study' || t.kind === 'document').map(t => ({ label: t.label, run: () => nav(`${t.to}?line=${encodeURIComponent(wsId)}`) }))} />}
         </div>
-        <ul className="pl-tools">
-          {/* THE STOPWATCH AND ITS PARETO, FIRST — the floor's own tool, read
-              from the line's stops as the tour reads them (lib/intelligence
-              stops): the last four weeks, the machine that stopped the most.
-              With stops it opens the ranking; with none, the stopwatch. */}
-          {stopsRow}
-          {may && <li className="pl-tool-li"><SixMDoor line={{ id: wsId, name: line.name }} className="btn" /></li>}
-          {TOOLS.map(t => {
-            const { n, says, tone } = toolSays(t);
-            return (
-              <li key={t.key} className={view === 'tools' ? 'pl-tool-li has-tick' : undefined}>
-                {view === 'tools' && (
-                  <label className="pl-tick"><input type="checkbox" checked={ticked.has(t.key)} aria-label={`Tick ${t.label}`}
-                    onChange={() => setTicked(s => { const n2 = new Set(s); if (n2.has(t.key)) n2.delete(t.key); else n2.add(t.key); return n2; })} /></label>
-                )}
-                <button type="button" className="pl-tool" onClick={() => nav(`${t.to}?line=${encodeURIComponent(wsId)}`)}>
-                  <b>{t.label}</b>
-                  {/* what its latest found — the abnormal part alone in its colour */}
-                  {says && <span className={'pl-tool-says ie-tone is-' + (tone ?? 'n')}>{says}</span>}
-                  <span className="sub">{n ? `${n} on this line` : `None yet — ${t.what}`}</span>
-                  <span className="pl-tool-go" aria-hidden>›</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        {/* WHAT IS IN USE STANDS OUT (Rowland, 5 November: "tools used on this line — you can hardly see it, nothing really stands out"):
+            the tools with records on this line first, each with what it found; the rest a quiet list to start from */}
+        {(() => {
+          const rows = TOOLS.map(t => ({ t, ...toolSays(t) }));
+          const used = rows.filter(x => x.n > 0), unused = rows.filter(x => !(x.n > 0));
+          const tick = (key: string, label: string) => view === 'tools' && (
+            <label className="pl-tick"><input type="checkbox" checked={ticked.has(key)} aria-label={`Tick ${label}`}
+              onChange={() => setTicked(s0 => { const n2 = new Set(s0); if (n2.has(key)) n2.delete(key); else n2.add(key); return n2; })} /></label>
+          );
+          return (
+            <>
+              <h3 className="pl-tools-h">In use on this line <span className="sub">{used.length}</span></h3>
+              <ul className="pl-tools is-used">
+                {/* THE STOPWATCH AND ITS PARETO — the floor's own tool, read from the line's stops: with stops it opens the ranking; with none, the stopwatch. */}
+                {stopsRow}
+                {used.map(({ t, n, says, tone }) => (
+                  <li key={t.key} className={'pl-tool-li' + (view === 'tools' ? ' has-tick' : '')}>
+                    {tick(t.key, t.label)}
+                    <button type="button" className={'pl-tool is-used is-' + (tone ?? 'n')} onClick={() => nav(`${t.to}?line=${encodeURIComponent(wsId)}`)}>
+                      <b>{t.label}</b>
+                      {says && <span className={'pl-tool-says ie-tone is-' + (tone ?? 'n')}>{says}</span>}
+                      <span className="sub">{n} on this line</span>
+                      <span className="pl-tool-go" aria-hidden>›</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {(unused.length > 0 || may) && (
+                <>
+                  <h3 className="pl-tools-h">Not used on this line yet <span className="sub">{unused.length}</span></h3>
+                  <ul className="pl-tools-more">
+                    {may && <li className="pl-tool-li"><SixMDoor line={{ id: wsId, name: line.name }} className="btn" /></li>}
+                    {unused.map(({ t }) => (
+                      <li key={t.key} className={'pl-tool-li' + (view === 'tools' ? ' has-tick' : '')}>
+                        {tick(t.key, t.label)}
+                        <button type="button" className="pl-tool-more" onClick={() => nav(`${t.to}?line=${encodeURIComponent(wsId)}`)}>
+                          <b>{t.label}</b><span className="sub">{t.what}</span><span className="pl-tool-go" aria-hidden>›</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          );
+        })()}
         {view === 'tools' && (() => {
           const chosen = TOOLS.filter(x => ticked.has(x.key));
           const startable = chosen.filter(x => canStartTogether(x.study as string | undefined)).map(x => ({ tool: x.study as StudyTool, label: x.label }));
