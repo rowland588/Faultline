@@ -115,7 +115,12 @@ export interface Station {
  *  that happens all the time in manufacturing"). Each is its own chain of
  *  stations (Station.lane); the stations that have no line come after they
  *  merge, one chain for all of them. */
-export interface Lane { id: string; name: string }
+export interface Lane {
+  id: string; name: string;
+  /** THIS LINE'S OWN PEOPLE AND RATE (FC-034 part 3, 5 November — Rowland: "rate shown independently, they could be different").
+   *  Present (even empty) = the labour is counted line by line; people absent = the people in this line's stations. */
+  labour?: { people?: number; ratePerHour?: number };
+}
 
 export interface Capacity {
   /** What the line should be doing, in the line's own unit per minute — all
@@ -174,6 +179,8 @@ export interface Capacity {
    *  when not typed: the line's own (its crew and rate, Stage 1) or the
    *  line standard's head count stand in, said which. */
   labour?: { people?: number; ratePerHour?: number };
+  /** The people and rate AFTER the lines merge, when labour is counted line by line (see Lane.labour). */
+  labourShared?: { people?: number; ratePerHour?: number };
 }
 
 export interface WhatIf {
@@ -1115,27 +1122,109 @@ export function bottleneckCostSays(k: BottleneckCost, r: Pick<CapacityResult, 'u
     : { text: `${k.station} sets the pace at ${line} ${r.unit} a minute: labour ${fmtMoney(k.perPackNow)} a ${one}. Lifted to ${fmtN(k.then)}${k.next ? `, where ${k.next} would hold it` : ''}, it would be ${fmtMoney(k.perPackThen)} — ${fmtMoney(k.extraPerPack)} a ${one} because of ${k.station}.`, short: false };
 }
 
+/** One part of the labour when it is counted line by line: a line, or what comes after they merge. */
+export interface LabourPart {
+  /** The lane's id, or SHARED_PART for the part after the merge. */
+  id: string; name: string;
+  people: number; peopleFrom: 'typed' | 'stations';
+  rate?: number; rateFrom?: 'typed' | 'all' | 'line';
+  /** £ an hour, when the rate is known. */
+  perHour?: number;
+}
+export const SHARED_PART = '__shared__';
+
 /** WHO AND WHAT, FOR THE COST — typed on this capacity, else the people
  *  placed on the product's line standard, else the line's crew; the rate
  *  typed, else the line's own (its wage × its on-costs, Stage 1). Said where
- *  each came from, so a stand-in is never mistaken for a decision. */
+ *  each came from, so a stand-in is never mistaken for a decision.
+ *  COUNTED LINE BY LINE (several lines, FC-034 part 3): `parts` holds each
+ *  line's and the shared part's people and rate; `people` is their sum and
+ *  `rate` the blend (£ an hour ÷ people), so every sum that takes people ×
+ *  rate reads the same £ an hour. */
 export interface LabourInputs {
-  people?: number; peopleFrom?: 'typed' | 'map' | 'line';
+  people?: number; peopleFrom?: 'typed' | 'map' | 'line' | 'stations';
   rate?: number; rateFrom?: 'typed' | 'line';
+  parts?: LabourPart[];
+  /** Parts with people but no rate anywhere — named, never invented. */
+  noRate?: string[];
 }
-export function labourInputs(cap: Pick<Capacity, 'labour'> | undefined, mapPeople: number | undefined,
+
+/** Is the labour counted line by line? Only when asked: several lines and a labour kept for a line or the shared part. */
+export const labourByLine = (cap: Pick<Capacity, 'lanes' | 'labourShared'> | undefined): boolean =>
+  !!cap && (cap.lanes?.length ?? 0) >= 2 && (!!cap.labourShared || (cap.lanes ?? []).some(l => !!l.labour));
+
+const partOf = (cap: Pick<Capacity, 'lanes'>, st: Station): string => (cap.lanes?.some(l => l.id === st.lane) ? (st.lane as string) : SHARED_PART);
+
+export function labourInputs(cap: Pick<Capacity, 'labour'> & Partial<Pick<Capacity, 'lanes' | 'labourShared' | 'stations'>> | undefined, mapPeople: number | undefined,
   line?: { crew?: number; labourRatePerHour?: number; labourBurden?: number }): LabourInputs {
   const tp = cap?.labour?.people, tr = cap?.labour?.ratePerHour;
+  const lineRate = line?.labourRatePerHour != null && line.labourRatePerHour > 0
+    ? line.labourRatePerHour * (line.labourBurden != null && line.labourBurden > 0 ? line.labourBurden : 1) : undefined;
+  if (cap && labourByLine(cap as Capacity)) {
+    const c = cap as Capacity;
+    const lanes = c.lanes ?? [];
+    const defs = [...lanes.map((l, i) => ({ id: l.id, name: l.name.trim() || `Line ${String.fromCharCode(65 + (i % 26))}`, own: l.labour })),
+      { id: SHARED_PART, name: 'After the lines merge', own: c.labourShared }];
+    const parts: LabourPart[] = defs.map(d => {
+      const typed = d.own?.people != null && d.own.people >= 0;
+      const people = typed ? (d.own?.people ?? 0) : peopleInStations(c.stations.filter(st => partOf(c, st) === d.id));
+      const mine = d.own?.ratePerHour, rate = mine != null && mine > 0 ? mine : tr != null && tr > 0 ? tr : lineRate;
+      const rateFrom: LabourPart['rateFrom'] | undefined = mine != null && mine > 0 ? 'typed' : tr != null && tr > 0 ? 'all' : lineRate != null ? 'line' : undefined;
+      return { id: d.id, name: d.name, people, peopleFrom: typed ? 'typed' : 'stations',
+        ...(rate != null ? { rate, rateFrom, perHour: people * rate } : {}) };
+    });
+    const people = parts.reduce((n, x) => n + x.people, 0);
+    const noRate = parts.filter(x => x.people > 0 && x.rate == null).map(x => x.name);
+    const out: LabourInputs = { parts, noRate, people, peopleFrom: parts.some(x => x.peopleFrom === 'typed') ? 'typed' : 'stations' };
+    if (people > 0 && !noRate.length) {
+      const perHour = parts.reduce((n, x) => n + (x.perHour ?? 0), 0);
+      out.rate = perHour / people; out.rateFrom = parts.every(x => x.rateFrom === 'line') ? 'line' : 'typed';
+    }
+    return out;
+  }
   const out: LabourInputs = {};
   if (tp != null && tp > 0) { out.people = tp; out.peopleFrom = 'typed'; }
   else if (mapPeople != null && mapPeople > 0) { out.people = mapPeople; out.peopleFrom = 'map'; }
   else if (line?.crew != null && line.crew > 0) { out.people = line.crew; out.peopleFrom = 'line'; }
   if (tr != null && tr > 0) { out.rate = tr; out.rateFrom = 'typed'; }
-  else if (line?.labourRatePerHour != null && line.labourRatePerHour > 0) {
-    out.rate = line.labourRatePerHour * (line.labourBurden != null && line.labourBurden > 0 ? line.labourBurden : 1);
-    out.rateFrom = 'line';
-  }
+  else if (lineRate != null) { out.rate = lineRate; out.rateFrom = 'line'; }
   return out;
+}
+
+/** The rate of the part a station is in — what one more person there costs an hour. */
+export function rateAtStation(li: LabourInputs, cap: Pick<Capacity, 'lanes'>, st: Station): number | undefined {
+  const id = partOf(cap, st);
+  return li.parts?.find(x => x.id === id)?.rate ?? li.rate;
+}
+
+/** The capacity as it is once its stations change: a part whose people were TYPED moves by the people its
+ *  stations gained or lost, so a typed count never goes stale beside the stations; the legacy total moves the same way. */
+export function labourAfter(cap: Capacity, stations: Station[], mapPeopleTotal?: number): Pick<Capacity, 'labour' | 'lanes' | 'labourShared'> {
+  const next = { ...cap, stations };
+  if (labourByLine(cap)) {
+    const part = (c: Capacity, id: string) => peopleInStations(c.stations.filter(st => partOf(c, st) === id));
+    const bump = (own: { people?: number; ratePerHour?: number } | undefined, id: string) =>
+      own?.people != null ? { ...own, people: Math.max(0, own.people + part(next, id) - part(cap, id)) } : own;
+    return { labour: cap.labour,
+      lanes: (cap.lanes ?? []).map(l => (l.labour ? { ...l, labour: bump(l.labour, l.id) } : l)),
+      ...(cap.labourShared ? { labourShared: bump(cap.labourShared, SHARED_PART) } : {}) };
+  }
+  const delta = peopleInStations(stations) - peopleInStations(cap.stations);
+  const base = cap.labour?.people ?? mapPeopleTotal;
+  return { labour: { ...cap.labour, ...(base && delta ? { people: Math.max(0, base + delta) } : {}) } };
+}
+
+/** The labour said part by part — each line's people, rate, £ an hour and what a pack costs on what it sends. */
+export function labourPartsSays(li: LabourInputs, r: CapacityResult): string[] {
+  if (!li.parts) return [];
+  const one = oneOf(r.unit);
+  return li.parts.map(x => {
+    if (x.perHour == null) return `${x.name}: ${fmtN(x.people)} ${x.people === 1 ? 'person' : 'people'} — what one costs an hour is not said yet.`;
+    const sec = r.lanes?.sections.find(y => y.id === x.id);
+    const out = sec ? (sec.result.goodOut ?? sec.result.line) : (r.goodOut ?? r.line);
+    const per = out != null && out > 0 && x.perHour > 0 ? `, ${fmtMoney(x.perHour / (out * 60))} a ${one}${sec ? '' : ' on everything the line makes'}` : '';
+    return `${x.name}: ${fmtN(x.people)} ${x.people === 1 ? 'person' : 'people'} × ${fmtMoney(x.rate as number)} = ${fmtMoney(x.perHour)} an hour${per}.`;
+  });
 }
 
 
@@ -1165,7 +1254,7 @@ export interface MorePeople {
  *  line would make, what it would cost, and whether a pack costs more or
  *  less. Nothing when the bottleneck is a machine (a person there adds cost
  *  and no packs) or the cost is not known. */
-export function oneMorePerson(cap: Capacity, r: CapacityResult, people: number | undefined, ratePerHour: number | undefined): MorePeople | undefined {
+export function oneMorePerson(cap: Capacity, r: CapacityResult, people: number | undefined, ratePerHour: number | undefined, newRate?: number): MorePeople | undefined {
   const lim = r.limit;
   const now = labourCost(r, people, ratePerHour);
   if (!lim || lim.station.kind !== 'people' || !now) return undefined;
@@ -1173,7 +1262,8 @@ export function oneMorePerson(cap: Capacity, r: CapacityResult, people: number |
   const crew = station.crew != null && station.crew > 0 ? station.crew : 1;
   const stations = cap.stations.map(s => (s.id === station.id ? { ...s, crew: crew + 1 } : s));
   const r2 = analyse({ ...cap, stations });
-  const then = labourCost(r2, now.people + 1, now.ratePerHour);
+  /* the new person is paid at their own part's rate, so the blend moves with them */
+  const then = labourCost(r2, now.people + 1, newRate != null && newRate > 0 ? (now.perHour + newRate) / (now.people + 1) : now.ratePerHour);
   if (!then) return undefined;
   const nm = station.name.trim() || `Station ${lim.index + 1}`;
   const one = oneOf(r.unit);

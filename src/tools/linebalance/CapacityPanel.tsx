@@ -44,7 +44,7 @@ import { type PillarKey } from '../../lib/pillars';
 import { BoneChips } from '../../ui/ActionSheet';
 import { useAccess } from '../../cloud/access';
 import type { Can } from '../../lib/access';
-import { EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, lineIfRaised, makeItSoWords, stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, perMinute, takeAwayWords, typedPerMinute, chainFactor, chainWords, typedSpeedWords, REST_ALLOWANCE_PCT, shareColours, labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, type Capacity, type CapacityResult, type Lane, type LabourInputs, type RatePer, type Station, type StationResult, type WhatIf, screenCapacity, bottleneckCost, bottleneckCostSays } from './capacity';
+import { EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, lineIfRaised, makeItSoWords, stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, perMinute, takeAwayWords, typedPerMinute, chainFactor, chainWords, typedSpeedWords, REST_ALLOWANCE_PCT, shareColours, labourAfter, labourByLine, labourCost, labourInputs, labourPartsSays, oneMorePerson, rateAtStation, SHARED_PART, whatIfLabour, fmtMoney, type Capacity, type CapacityResult, type Lane, type LabourInputs, type RatePer, type Station, type StationResult, type WhatIf, screenCapacity, bottleneckCost, bottleneckCostSays } from './capacity';
 import { fmtN, oneOf, fmtSec, fmtDur, cycleWords, fmtBig } from './capacityWords';
 import { capacityGlance } from './capacityGlance';
 import { loadOf, loadSays } from './capacityLoad';
@@ -469,19 +469,60 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
  * the line then makes, what it then costs a pack, higher or lower. A what-if
  * says its own. The people and the rate are typed here, or stand in from the
  * line standard's head count and the line's own crew and rate, said which. */
-function LabourBox({ r, cap, current, w, rAsRun, li, onSave, onMore, canEdit }: {
+function LabourBox({ r, cap, current, w, rAsRun, li, onSave, onSaveCap, onMore, canEdit }: {
   r: CapacityResult; cap: Capacity; current: Capacity; w?: WhatIf; rAsRun: CapacityResult;
-  li: LabourInputs; onSave: (labour: Capacity['labour']) => void; onMore?: (stationId: string, crew: number) => void; canEdit: boolean;
+  li: LabourInputs; onSave: (labour: Capacity['labour']) => void; onSaveCap: (patch: Partial<Capacity>) => void; onMore?: (stationId: string, crew: number) => void; canEdit: boolean;
 }) {
   const one = oneOf(r.unit);
+  const byLine = labourByLine(cap);
+  const many = (cap.lanes?.length ?? 0) >= 2;
   const cost = labourCost(r, li.people, li.rate);
-  const more = !w ? oneMorePerson(current, r, li.people, li.rate) : undefined;
+  const more = !w ? oneMorePerson(current, r, li.people, li.rate, r.limit ? rateAtStation(li, current, r.limit.station) : undefined) : undefined;
   const wl = w ? whatIfLabour(cap, rAsRun, current, r, li.people, li.rate) : undefined;
   const fromP = li.peopleFrom === 'map' ? 'placed on the line standard' : li.peopleFrom === 'line' ? 'the line’s crew' : li.peopleFrom === 'typed' ? 'typed here' : 'not said yet';
   const fromR = li.rateFrom === 'line' ? 'the line’s rate, with its on-costs' : li.rateFrom === 'typed' ? 'typed here' : 'not said yet';
   return (
     <section className="cap-cost" aria-label={`What a ${one} costs in labour`}>
       <h3 className="cap-h">What a {one} costs in labour</h3>
+      {byLine && li.parts ? (
+        <div className="cap-cost-parts">
+          {li.parts.map(x => {
+            const isShared = x.id === SHARED_PART;
+            const own = isShared ? cap.labourShared : cap.lanes?.find(l => l.id === x.id)?.labour;
+            const save = (patch: { people?: number | undefined; ratePerHour?: number | undefined }) => {
+              const next = { ...own, ...patch };
+              onSaveCap(isShared ? { labourShared: next } : { lanes: (cap.lanes ?? []).map(l => (l.id === x.id ? { ...l, labour: next } : l)) });
+            };
+            return (
+              <div key={x.id} className="cap-cost-part" role="group" aria-label={`Labour for ${x.name}`}>
+                <b className="cap-cost-part-n">{x.name}</b>
+                <label className="proj-field">
+                  <span className="field-label">People</span>
+                  {canEdit
+                    ? <DraftNumber className="text-input cap-num" value={own?.people ?? x.people} placeholder="e.g. 2" label={`People on ${x.name}`} onSave={v => save({ people: v })} />
+                    : <b className="cap-ro-v">{x.people}</b>}
+                  <span className="cap-hint">{x.peopleFrom === 'typed' ? 'typed here' : 'the people in its stations'}</span>
+                </label>
+                <label className="proj-field">
+                  <span className="field-label">£ an hour, each</span>
+                  {canEdit
+                    ? <DraftNumber className="text-input cap-num" value={own?.ratePerHour ?? (x.rate != null ? Math.round(x.rate * 100) / 100 : undefined)} placeholder="e.g. 12.50" label={`Pounds an hour each on ${x.name}`} onSave={v => save({ ratePerHour: v })} />
+                    : <b className="cap-ro-v">{x.rate != null ? fmtMoney(x.rate) : 'not said'}</b>}
+                  <span className="cap-hint">{x.rateFrom === 'typed' ? 'typed here' : x.rateFrom === 'all' ? 'the rate for every line' : x.rateFrom === 'line' ? 'the line’s rate, with its on-costs' : 'not said yet'}</span>
+                </label>
+              </div>
+            );
+          })}
+          <label className="proj-field">
+            <span className="field-label">£ an hour for any part with none of its own</span>
+            {canEdit
+              ? <DraftNumber className="text-input cap-num" value={cap.labour?.ratePerHour} placeholder="e.g. 12.50" label="Pounds an hour for every line" onSave={v => onSave({ ...cap.labour, ratePerHour: v })} />
+              : <b className="cap-ro-v">{cap.labour?.ratePerHour != null ? fmtMoney(cap.labour.ratePerHour) : 'not said'}</b>}
+          </label>
+          {canEdit && <button type="button" className="btn btn-ghost btn-sm" onClick={() => onSaveCap({ lanes: (cap.lanes ?? []).map(l => { const { labour: _l, ...rest } = l; void _l; return rest; }), labourShared: undefined })}>Count all the lines together again</button>}
+        </div>
+      ) : (<>
+      {many && canEdit && <p className="sub">These are all the people, whichever line. <button type="button" className="cw-link" onClick={() => onSaveCap({ lanes: (cap.lanes ?? []).map(l => ({ ...l, labour: {} })), labourShared: {} })}>Count each line separately</button> — its own people and its own rate.</p>}
       <div className="cap-cost-in">
         <label className="proj-field">
           <span className="field-label">People on the line — all of them</span>
@@ -500,13 +541,17 @@ function LabourBox({ r, cap, current, w, rAsRun, li, onSave, onMore, canEdit }: 
           <span className="cap-hint">{fromR}</span>
         </label>
       </div>
+      </>)}
       {cost ? (
         <p className="cap-cost-says">
           <b>{fmtMoney(cost.perPack)} a {one}</b> — {cost.people} {cost.people === 1 ? 'person' : 'people'} × {fmtMoney(cost.ratePerHour)} = {fmtMoney(cost.perHour)} an hour; the line makes {fmtBig(cost.packsPerHour)} {r.unit} an hour ({fmtN(cost.packsPerHour / 60)} a minute{r.goodOut != null && r.line != null && r.goodOut < r.line - 1e-9 ? ', good ones' : ''}).
         </p>
+      ) : byLine && li.noRate?.length ? (
+        <p className="sub">What one costs an hour is not said for {li.noRate.join(', ')} — give it above and this says what a {one} costs in labour.</p>
       ) : (
         <p className="sub">{r.line == null ? 'Once the stations can be counted, ' : ''}Say how many people are on the line and what one costs an hour, and this says what a {one} costs in labour — and whether one more person pays for themselves.</p>
       )}
+      {byLine && cost && labourPartsSays(li, r).map(t => <p key={t} className="sub cap-cost-part-says">{t}</p>)}
       {more && (
         <p className="cap-cost-more">
           {more.sentence}
@@ -795,8 +840,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     if (w || !can.edit || !plan || !plan.steps.length) return;
     const before = cap;
     const li = labourInputs(cap, mapPeople, lineWs);
-    commit({ ...cap, stations: cap.stations.map(x => (plan.crews[x.id] != null ? { ...x, crew: plan.crews[x.id] } : x)),
-      labour: { ...cap.labour, ...(li.people && plan.people > 0 ? { people: li.people + plan.people } : {}) } });
+    const stations = cap.stations.map(x => (plan.crews[x.id] != null ? { ...x, crew: plan.crews[x.id] } : x));
+    commit({ ...cap, stations, ...labourAfter(cap, stations, li.people) });
     offerUndo(`Put in the crews for ${fmtN(plan.target)} a minute`, async () => commit(before));
   };
 
@@ -1233,10 +1278,11 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         </section>
       ))}
       {r.ok.length > 0 && <LabourBox r={r} cap={cap} current={current} {...(w ? { w } : {})} rAsRun={asRun} li={labourInputs(cap, mapPeople, lineWs)} canEdit={can.edit && !w}
-        onSave={labour => commit({ ...cap, labour })} onMore={(id, crew) => {
+        onSave={labour => commit({ ...cap, labour })} onSaveCap={patch => commit({ ...cap, ...patch })} onMore={(id, crew) => {
           /* The person added is one more on the line too, so the cost a pack after it counts them. */
           const li = labourInputs(cap, mapPeople, lineWs);
-          commit({ ...cap, stations: cap.stations.map(s => (s.id === id ? { ...s, crew } : s)), labour: { ...cap.labour, ...(li.people ? { people: li.people + 1 } : {}) } });
+          const stations = cap.stations.map(s => (s.id === id ? { ...s, crew } : s));
+          commit({ ...cap, stations, ...labourAfter(cap, stations, li.people) });
         }} />}
       {r.ok.length > 0 && !r.lanes && (() => { const acc = accumulation(r, stats); return acc.sentence ? <p className={'vc-says cap-acc' + (acc.rows.some(p => !p.covered) ? ' is-a' : '')}>{acc.sentence}</p> : null; })()}
       {r.ok.length > 0 && !r.lanes && <CapacityBuffers r={r} cap={current} obs={stops.obs} from={stops.from} to={stops.to} weeks={stops.weeks} {...(lineWs ? { ws: lineWs } : {})} />}

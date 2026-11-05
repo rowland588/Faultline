@@ -27,7 +27,7 @@ import { threeCapacities, type CountedShift } from './capacityThree';
 import { bufferView, type BufferIn } from './capacityBuffer';
 import { flowModel, type FlowModel } from './capacityFlow';
 import { lanesAlike } from './capacityLines';
-import { allowanceOf, takeAwayWords, analyse, bottleneckCost, bottleneckCostSays, changedWords, compareSays, fmtMoney, labourCost, oneMorePerson, shiftCapacity, screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations, type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station } from './capacity';
+import { allowanceOf, takeAwayWords, analyse, bottleneckCost, bottleneckCostSays, changedWords, compareSays, fmtMoney, labourCost, labourPartsSays, oneMorePerson, rateAtStation, shiftCapacity, screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations, type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station } from './capacity';
 import { cycleWords, fmtBig, fmtN, oneOf } from './capacityWords';
 import { shortSays } from './capacitySays';
 import type { WalkVerdict } from '../../lib/ie/walk';
@@ -189,7 +189,7 @@ export function labourSays(r: ReturnType<typeof analyse>, li: LabourInputs): str
   return `${fmtMoney(cost.perPack)} a ${one} — ${cost.people} ${cost.people === 1 ? 'person' : 'people'} × ${fmtMoney(cost.ratePerHour)} = ${fmtMoney(cost.perHour)} an hour; the line makes ${fmtBig(cost.packsPerHour)} ${r.unit} an hour (${fmtN(cost.packsPerHour / 60)} a minute${good}).`;
 }
 
-const FROM_PEOPLE: Record<NonNullable<LabourInputs['peopleFrom']>, string> = { typed: 'typed on the capacity', map: 'those placed on the line standard', line: 'the line’s crew' };
+const FROM_PEOPLE: Record<NonNullable<LabourInputs['peopleFrom']>, string> = { typed: 'typed on the capacity', map: 'those placed on the line standard', line: 'the line’s crew', stations: 'the people in its stations, or typed for each line' };
 const FROM_RATE: Record<NonNullable<LabourInputs['rateFrom']>, string> = { typed: 'typed on the capacity', line: 'the line’s, with its on-costs' };
 
 const mins = (m?: number) => (m == null ? '—' : `${fmtN(Math.round(m * 10) / 10)} min`);
@@ -310,7 +310,8 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
   const says = labourSays(r, x.labour);
   const bk = bottleneckCost(r, x.labour.people, x.labour.rate, x.margin);
   const money = bk ? bottleneckCostSays(bk, r) : undefined;
-  const more = oneMorePerson(cap, r, x.labour.people, x.labour.rate);
+  const more = oneMorePerson(cap, r, x.labour.people, x.labour.rate, r.limit ? rateAtStation(x.labour, cap, r.limit.station) : undefined);
+  const partSays = labourPartsSays(x.labour, r).join(' ');
   const from = [x.labour.peopleFrom ? `people: ${FROM_PEOPLE[x.labour.peopleFrom]}` : '', x.labour.rateFrom ? `rate: ${FROM_RATE[x.labour.rateFrom]}` : ''].filter(Boolean).join('; ');
   const machine = says && !more && r.limit && r.limit.station.kind === 'machine'
     ? `The bottleneck is a machine — ${r.limit.station.name.trim() || 'it'}: another person there adds an hour’s cost and no ${r.unit}.` : undefined;
@@ -319,7 +320,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
   /* the weight each person handles, in the same time (capacityLoad) */
   const handled = loadsOf(r, cap).map(l => ({ name: cap.stations.find(x => x.id === l.stationId)?.name.trim() || 'A person', says: loadSays(l) }));
   const labour = r.line == null ? undefined : says
-    ? { says: `${says}${from ? ` (${from})` : ''}`, ...(more ? { more: more.sentence } : machine ? { more: machine } : {}) }
+    ? { says: `${says}${from ? ` (${from})` : ''}${partSays ? ` ${partSays}` : ''}`, ...(more ? { more: more.sentence } : machine ? { more: machine } : {}) }
     : { says: `Not worked out — ${unsaid} not said yet.` };
 
   /* THE WHAT-IFS — each a copy of the line with one thing changed, said

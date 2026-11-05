@@ -15876,3 +15876,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .sc-l { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
 .sc-l li { border-bottom: 1px solid var(--line); padding-bottom: 8px; }
 .sc-n, .sc-a { display: block; overflow-wrap: anywhere; margin-top: 2px; }
+
+/* FC-034 part 3 — labour for each line (knowledge/specs/FC-034-labour-per-line.md) */
+.cap-cost-parts { display: flex; flex-direction: column; gap: 10px; }
+.cap-cost-part { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 18px; padding: 8px 0; border-top: 1px solid var(--line, #d9dede); }
+.cap-cost-part-n { flex: 1 0 100%; }
+.cap-cost-part .proj-field { flex: 0 1 180px; }
+.cap-cost-part .cap-num, .cap-cost-parts .cap-num { min-height: 44px; }
+.cap-cost-part-says { margin: 0; }
