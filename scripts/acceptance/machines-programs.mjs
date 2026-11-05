@@ -494,7 +494,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   /* the line's Report ▾ is three entries since 3 November ("the line reports there are many and it's confusing me"): the programs report is a tick on the
      full package and has its own page's Report ▾ (9), so the Overview no longer offers it twice */
   await main.locator('.part-menu-b', { hasText: /^Report/ }).first().click();
-  const items = (await page.getByRole('menuitem').allInnerTexts()).map(x => flat(x));
+  const items = (await page.getByRole('menuitem').allInnerTexts()).map(x => flat(x)).filter(x => !/^Saved copies/.test(x)); /* the kept papers (5 November) are not a paper */
   await page.keyboard.press('Escape');
   ok(items.length === 3 && items.every(x => /^Line report/.test(x)) && !items.some(x => /^Programs report/.test(x)), `9b the line Overview's Report ▾ is its three line reports, Programs report not among them (${items.map(x => x.slice(0, 24)).join(' · ')})`);
   await go(`#/lines/${WS}/programs/report?save=1`); await page.waitForTimeout(2500);

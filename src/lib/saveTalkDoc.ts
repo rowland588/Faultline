@@ -45,5 +45,5 @@ export async function saveTalkDoc(doc: TalkDoc, o: { talk: string; line?: string
     await putBlob(key, blob);
     await o.keep({ id, key, name, at: Date.now() });
   }
-  return deliverBlob(blob, name);
+  return deliverBlob(blob, name, { keep: false });   /* kept with its answer above — not twice */
 }

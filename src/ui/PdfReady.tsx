@@ -36,7 +36,7 @@ export function PdfReadyHost() {
     <div className="pdfr" role="status" aria-live="polite">
       <span className="pdfr-m">
         <b>{r.filename}</b>
-        <span className="sub">{note ?? (r.saved ? 'Saved to your downloads.' : 'Ready — open it to read or save it.')}</span>
+        <span className="sub">{note ?? (r.saved ? 'Saved to your downloads, and kept in the app under Report ▾ › Saved copies.' : 'Ready — open it to read or save it.')}</span>
       </span>
       <span className="pdfr-acts">
         {/* A real link, so the tap itself opens it — no pop-up to be blocked. */}

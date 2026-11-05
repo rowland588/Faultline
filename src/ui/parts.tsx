@@ -15,6 +15,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 import { LeanTiles } from './Lean';
+import { SavedCopiesSheet, useKeptHere } from './SavedCopies';
 
 /** The five state colours (CLAUDE.md, visual management): late or failed, waiting, under way, done, not started. */
 export type Tone = 'r' | 'a' | 'w' | 'g' | 'n';
@@ -77,6 +78,8 @@ export function ReportMenu({ papers, label = 'Report' }: { papers: Paper[]; labe
   const m = useMenu();
   const id = useId();
   const [making, setMaking] = useState<string | null>(null);
+  const kept = useKeptHere();
+  const [sheet, setSheet] = useState(false);
   if (!papers.length) return null;
   const make = async (p: Paper) => {
     setMaking(p.label);
@@ -95,8 +98,15 @@ export function ReportMenu({ papers, label = 'Report' }: { papers: Paper[]; labe
               {p.for && <span>{p.for}</span>}
             </button>
           ))}
+          {/* WHAT WAS MADE ON THIS PAGE, KEPT (lib/keptPdfs) — only once there is something */}
+          {kept.length > 0 && (
+            <button type="button" role="menuitem" className="part-menu-i" data-saved-copies-open onClick={() => { m.setOpen(false); setSheet(true); }}>
+              <b>Saved copies · {kept.length}</b><span>Papers made here, kept in the app — open, download or take off</span>
+            </button>
+          )}
         </div>
       )}
+      <SavedCopiesSheet open={sheet} onClose={() => setSheet(false)} items={kept} />
     </div>
   );
 }

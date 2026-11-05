@@ -78,7 +78,7 @@ export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onKe
   const openPdf = async (p: TalkPdf, download: boolean) => {
     const blob = await getBlob(p.key);
     if (!blob) { window.alert('This PDF is on another device and has not reached this one yet — try again when the app has synced.'); return; }
-    if (download) { await deliverBlob(blob, p.name); return; }
+    if (download) { await deliverBlob(blob, p.name, { keep: false }); return; }
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank', 'noopener');
     setTimeout(() => URL.revokeObjectURL(url), 60_000);

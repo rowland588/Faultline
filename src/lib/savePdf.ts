@@ -132,7 +132,9 @@ export async function deliverPdf(doc: jsPDF, filename: string, opts: { brand?: b
 
 /** The same route out, for a file the app did not draw — a document the OEM
  *  emailed, saved in the blob store, or the whole export. */
-export async function deliverBlob(blob: Blob, filename: string): Promise<Delivered> {
+export async function deliverBlob(blob: Blob, filename: string, opts: { keep?: boolean } = {}): Promise<Delivered> {
+  /* KEPT WHERE IT WAS MADE (lib/keptPdfs) — before it goes out, so a download that fails or is lost is still in the app */
+  if (opts.keep !== false && (blob.type || 'application/pdf') === 'application/pdf') await (await import('./keptPdfs')).keepPdf(blob, filename);
   const file = new File([blob], filename, { type: blob.type || 'application/pdf' });
   const url = URL.createObjectURL(blob);
   let how: Delivered = 'ready';
