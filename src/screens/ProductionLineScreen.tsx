@@ -576,12 +576,12 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               {(unused.length > 0 || may) && (
                 <>
                   <h3 className="pl-tools-h">Not used on this line yet <span className="sub">{unused.length}</span></h3>
-                  <ul className="pl-tools-more">
+                  <ul className="pl-tools pl-tools-more">
                     {may && <li className="pl-tool-li"><SixMDoor line={{ id: wsId, name: line.name }} className="btn" /></li>}
                     {unused.map(({ t }) => (
                       <li key={t.key} className={'pl-tool-li' + (view === 'tools' ? ' has-tick' : '')}>
                         {tick(t.key, t.label)}
-                        <button type="button" className="pl-tool-more" onClick={() => nav(`${t.to}?line=${encodeURIComponent(wsId)}`)}>
+                        <button type="button" className="pl-tool pl-tool-more" onClick={() => nav(`${t.to}?line=${encodeURIComponent(wsId)}`)}>
                           <b>{t.label}</b><span className="sub">{t.what}</span><span className="pl-tool-go" aria-hidden>›</span>
                         </button>
                       </li>

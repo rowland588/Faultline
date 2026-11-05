@@ -148,12 +148,14 @@ ok(pages >= 1 && pages <= 3, `5 ${pages} page(s) of paper`);
 await page.setViewportSize({ width: 390, height: 844 });
 await go(`#/calc/process-flow/${rid}`);
 ok((await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '6 the phone: nothing off the side');
-const cb = await page.locator('[data-calc-chart] svg').boundingBox();
-ok(cb && cb.width <= 390 && cb.width > 250, `6 the chart fits its box (${Math.round(cb?.width ?? 0)} px wide)`);
 const hs = await page.locator('.calc-form input.text-input').evaluateAll(els => els.filter(e => e.offsetParent).slice(0, 12).map(e => Math.round(e.getBoundingClientRect().height)));
 ok(hs.length > 3 && hs.every(h => h >= 44), `6 the boxes are a thumb’s height (${[...new Set(hs)].join(', ')})`);
 const kh = await page.locator('[data-field="s01_kind"] .chip').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().height)));
 ok(kh.length === 5 && kh.every(h => h >= 44), `6 the five classes are chips a thumb can hit (${[...new Set(kh)].join(', ')})`);
+/* on a phone the page is three panes (Figures · Answer · What if): the chart is in the answer */
+await page.getByRole('tab', { name: 'Answer' }).click().catch(() => {}); await page.waitForTimeout(500);
+const cb = await page.locator('[data-calc-chart] svg').boundingBox();
+ok(cb && cb.width <= 390 && cb.width > 250, `6 the chart fits its box (${Math.round(cb?.width ?? 0)} px wide)`);
 await page.setViewportSize({ width: 1360, height: 900 });
 
 /* ---- 7 · from a Kaizen event's Observe section */
