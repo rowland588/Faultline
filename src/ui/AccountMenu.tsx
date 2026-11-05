@@ -35,7 +35,7 @@ export async function signOutAsked(): Promise<boolean> {
  * included — so Home holds the control room and the jobs, and nothing else. */
 export function AccountMenu() {
   const { session } = useSession();
-  const { profile } = useProfile();
+  const { profile, failed, retry, loading } = useProfile();
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState(false);
 
@@ -57,6 +57,10 @@ export function AccountMenu() {
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
         <p className="sub" style={{ marginBottom: 10 }}>{email}</p>
         <SheetRow label="Control room" hint="every project" onClick={() => { setOpen(false); nav('/room'); }} />
+        {failed && !profile && (
+          <SheetRow label={loading ? 'Checking your admin access…' : 'Couldn’t check your admin access — tap to retry'}
+            hint="Team & invites show once it is checked" onClick={retry} />
+        )}
         {profile?.is_super && (
           <SheetRow label="Team & invites" hint="invite people, see who’s joined"
             onClick={() => { setOpen(false); setTeam(true); }} />

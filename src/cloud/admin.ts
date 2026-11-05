@@ -18,29 +18,31 @@ const norm = (e: string) => e.trim().toLowerCase();
  * does not change mid-visit. */
 let known: { uid: string; profile: Profile | null } | null = null;
 
-export function useProfile(): { profile: Profile | null; loading: boolean } {
+export function useProfile(): { profile: Profile | null; loading: boolean; failed: boolean; retry: () => void } {
   const { session } = useSession();
   const uid = session?.user.id;
   const cached = known && known.uid === uid ? known.profile : null;
   const [profile, setProfile] = useState<Profile | null>(cached);
   const [loading, setLoading] = useState(!cached);
+  const [failed, setFailed] = useState(false);
+  const [tries, setTries] = useState(0);
 
   useEffect(() => {
     let alive = true;
     if (!supabase || !session) { setProfile(null); setLoading(false); return; }
     if (known && known.uid === session.user.id) { setProfile(known.profile); setLoading(false); return; }
-    setLoading(true);
+    setLoading(true); setFailed(false);
     void supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
       .then(({ data, error }) => {
         const p = (data as Profile) ?? null;
         // Only a real answer is remembered — a failed read (no signal) asks again next time.
         if (!error) known = { uid: session.user.id, profile: p };
-        if (alive) { setProfile(p); setLoading(false); }
+        if (alive) { setProfile(p); setLoading(false); setFailed(!!error); }
       });
     return () => { alive = false; };
-  }, [session]);
+  }, [session, tries]);
 
-  return { profile, loading };
+  return { profile, loading, failed, retry: () => setTries(n => n + 1) };
 }
 
 export async function listInvites(): Promise<Invite[]> {
