@@ -594,7 +594,7 @@ let TRAY;
      the page, before the stations — one place for it; no station carries a
      second "Lines merge after this" */
   const first = await page.evaluate(() => { const st = [...document.querySelectorAll('.capx-in .capx-step')]; return st[0]?.getAttribute('aria-label'); });
-  ok(await page.locator('.cap-grp.has-lanes').count() === 0 && first === 'The shape of the line' && await page.locator('.cap-split').count() === 0,
+  ok(await page.locator('.cap-grp.has-lanes').count() === 0 && first === 'The line' && await page.locator('.cap-split').count() === 0,
     '15 a single chain: How many lines feed in? is step 1, above the stations, and no station carries a second door to it');
 
   /* two lines: Line A is what is up to the last station, Line B a copy, the wrapper shared */
