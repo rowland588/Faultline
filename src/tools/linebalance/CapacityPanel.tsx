@@ -44,7 +44,7 @@ import { type PillarKey } from '../../lib/pillars';
 import { BoneChips } from '../../ui/ActionSheet';
 import { useAccess } from '../../cloud/access';
 import type { Can } from '../../lib/access';
-import { EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, lineIfRaised, makeItSoWords, stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, perMinute, takeAwayWords, typedPerMinute, chainFactor, chainWords, typedSpeedWords, REST_ALLOWANCE_PCT, shareColours, FEED_ZONE, FEED_PART, labourAfter, labourByLine, labourCost, labourInputs, labourPartsSays, oneMorePerson, rateAtStation, SHARED_PART, whatIfLabour, fmtMoney, type Capacity, type CapacityResult, type Lane, type LabourInputs, type RatePer, type Station, type StationResult, type WhatIf, screenCapacity, bottleneckCost, bottleneckCostSays } from './capacity';
+import { EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, lineIfRaised, makeItSoWords, stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, perMinute, takeAwayWords, typedPerMinute, chainFactor, chainWords, typedSpeedWords, REST_ALLOWANCE_PCT, shareColours, FEED_ZONE, FEED_PART, labourAfter, labourByLine, productRows, labourCost, labourInputs, labourPartsSays, oneMorePerson, rateAtStation, SHARED_PART, whatIfLabour, fmtMoney, type Capacity, type CapacityResult, type Lane, type LabourInputs, type RatePer, type Station, type StationResult, type WhatIf, screenCapacity, bottleneckCost, bottleneckCostSays } from './capacity';
 import { fmtN, oneOf, fmtSec, fmtDur, cycleWords, fmtBig } from './capacityWords';
 import { capacityGlance } from './capacityGlance';
 import { loadOf, loadSays } from './capacityLoad';
@@ -690,7 +690,9 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     requestAnimationFrame(() => document.getElementById(`cap-st-${s.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   };
   const asRun = useMemo(() => analyse(cap), [cap]);
-  const compare = w ? compareSays(asRun, r, w.name) : undefined;
+  const hasProducts = (cap.whatIfs ?? []).some(x => x.product);
+  const prodRows = useMemo(() => productRows(cap, line.name), [cap, line.name]);
+  const compare = w && !w.product ? compareSays(asRun, r, w.name) : undefined;
   const changed = useMemo(() => (w ? changedWords(cap.stations, current.stations) : []), [cap.stations, w, current.stations]);
   const check = useMemo(() => crossCheck(r, stats), [r, stats]);
   const why = (id: string) => r.skipped.find(x => x.station.id === id)?.why;
@@ -865,6 +867,15 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     setView(id);
     setEditing(null);
   };
+  /* A PRODUCT OF THE LINE (FC-034 part 5): the same stations at this product's speeds — a copy of the one on the screen, named, kept */
+  const addProduct = () => {
+    const id = uid();
+    const n = whatIfs.filter(x => x.product).length + 2;
+    const nw: WhatIf = withWhatIfStations(cap.stations, { id, name: `Product ${n}`, stations: [], product: true, targetPerMin: current.targetPerMin, createdAt: Date.now() }, current.stations.map(s => ({ ...s })));
+    commit({ ...cap, whatIfs: [...whatIfs, nw] });
+    setView(id);
+    setEditing(null);
+  };
   const removeWhatIf = () => {
     if (!w) return;
     const before = cap;
@@ -891,7 +902,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     const dx = c.clientX - t.x, dy = c.clientY - t.y;
     if (Math.abs(dx) < 80 || Math.abs(dy) > 60) return;
     const i = order.indexOf(view);
-    if (dx < 0) { if (i + 1 < order.length) setView(order[i + 1]); else if (can.edit) addWhatIf(); }
+    if (dx < 0) { if (i + 1 < order.length) setView(order[i + 1]); else if (can.edit) { if (whatIfs.some(x => x.product)) addProduct(); else addWhatIf(); } }
     else if (i > 0) setView(order[i - 1]);
   };
 
@@ -1001,16 +1012,47 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       {/* AS RUN, AND EVERY WHAT-IF BESIDE IT. One row; the one on the screen is
           marked; a what-if that is on the board carries the flag. */}
       <div className="cap-tabs" role="tablist" aria-label="The line as run, and what-ifs">
-        <button type="button" role="tab" aria-selected={!w} className={'cap-tab' + (!w ? ' on' : '')} onClick={() => setView('asRun')}>As run</button>
+        <button type="button" role="tab" aria-selected={!w} className={'cap-tab' + (!w ? ' on' : '')} onClick={() => setView('asRun')}>{hasProducts ? (line.name.trim() || 'This product') : 'As run'}</button>
         {whatIfs.map(x => (
           <button key={x.id} type="button" role="tab" aria-selected={w?.id === x.id} className={'cap-tab' + (w?.id === x.id ? ' on' : '')} onClick={() => setView(x.id)}>
             {onBoard(x) && <><Icon name="flag" size="1.15em" /> </>}{x.name}
           </button>
         ))}
+        {can.edit && <button type="button" className="cap-tab is-add" onClick={addProduct} title="The same stations at another product's speeds"><Icon name="plus" size="1.15em" /> Another product</button>}
         {can.edit && <button type="button" className="cap-tab is-add" onClick={addWhatIf} title="A copy of this line to change one thing on"><Icon name="plus" size="1.15em" /> What if</button>}
       </div>
 
-      {w && (
+      {/* ALL THE PRODUCTS ON ONE CARD — a row each: what it makes, what holds it, its target */}
+      {prodRows && (
+        <section className="cap-products" aria-label="All products on this line">
+          <h3 className="cap-h">All products on this line</h3>
+          <ul>
+            {prodRows.map(x => (
+              <li key={x.id} className={(x.id === (w?.id ?? 'asRun') ? 'on ' : '') + (x.target != null && x.r.line != null && x.r.line < x.target - 1e-9 ? 'is-short' : '')}>
+                <button type="button" onClick={() => setView(x.id)} aria-label={`${x.name}: ${x.says}`}>
+                  <b>{x.name}</b><span>{x.says}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {w?.product && (
+        <div className="cap-whatif cap-product">
+          <div className="cap-whatif-h">
+            <span className="field-label">Product</span>
+            {can.edit
+              ? <DraftText value={w.name} placeholder="Name the product — 1.25 kg, 1.75 kg, 2 kg" className="text-input cap-whatif-name" max={60}
+                  ariaLabel="Name of this product" onSave={v => putWhatIf(w.id, { name: v.trim() || w.name })} />
+              : <b className="cap-whatif-name">{w.name}</b>}
+            {can.remove && <button type="button" className="btn btn-ghost btn-sm" onClick={removeWhatIf}>Delete this product</button>}
+          </div>
+          <p className="sub">{changed.length > 0 ? `Different from ${line.name.trim() || 'the first product'}: ${changed.join(' · ')}.` : `Same speeds as ${line.name.trim() || 'the first product'} so far — change the speeds that differ for this product below.`}</p>
+        </div>
+      )}
+
+      {w && !w.product && (
         <div className="cap-whatif">
           <div className="cap-whatif-h">
             <span className="field-label">What if…</span>
@@ -1038,9 +1080,9 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       <LeanTiles tiles={lean.tiles} className="cap-tiles" />
 
       <div className="cap-verdict">
-        <span className="cap-eyebrow">{w ? 'What the sums say — against the line as run' : 'What the sums say'}</span>
-        <p className="cap-says">{w ? compare : r.sentence}</p>
-        {w && r.limit && <p className="cap-sub">{r.sentence}</p>}
+        <span className="cap-eyebrow">{w && !w.product ? 'What the sums say — against the line as run' : 'What the sums say'}</span>
+        <p className="cap-says">{w && !w.product ? compare : r.sentence}</p>
+        {w && !w.product && r.limit && <p className="cap-sub">{r.sentence}</p>}
         {/* WHAT THE BOTTLENECK COSTS A PACK (17 October: "this is the cost per
             pack because of X, including with the people") — the money, said
             under the sums; or what it needs, and where to give it */}
@@ -1330,7 +1372,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       {/* THE DOOR TO THE WORK. As run: raise an action on the limit. A what-if:
           make it so — the action carries the prediction as its why. Only
           where there is a board to raise it on (a 6M line). */}
-      {!board ? null : w ? (
+      {!board || w?.product ? null : w ? (
         w.action && !gone ? (
           <p className="action-raised" role="status">
             <Icon name="flag" size="1.15em" /> On the board{made ? <> — <b>{made.state === 'done' ? `done${made.doneOn ? ` on ${niceDay(made.doneOn)}` : ''}` : made.state === 'waiting' ? 'waiting' : 'to do'}</b>{made.who ? ` · ${made.who}` : ''}{made.due ? ` · due ${niceDay(made.due)}` : ''}</> : null}.

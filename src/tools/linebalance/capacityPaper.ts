@@ -27,7 +27,7 @@ import { threeCapacities, type CountedShift } from './capacityThree';
 import { bufferView, type BufferIn } from './capacityBuffer';
 import { flowModel, type FlowModel } from './capacityFlow';
 import { lanesAlike } from './capacityLines';
-import { allowanceOf, takeAwayWords, analyse, bottleneckCost, bottleneckCostSays, changedWords, compareSays, fmtMoney, labourCost, labourPartsSays, oneMorePerson, rateAtStation, shiftCapacity, screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations, type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station } from './capacity';
+import { allowanceOf, takeAwayWords, analyse, bottleneckCost, bottleneckCostSays, changedWords, compareSays, fmtMoney, labourCost, labourPartsSays, productRows, oneMorePerson, rateAtStation, shiftCapacity, screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations, type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station } from './capacity';
 import { cycleWords, fmtBig, fmtN, oneOf } from './capacityWords';
 import { shortSays } from './capacitySays';
 import type { WalkVerdict } from '../../lib/ie/walk';
@@ -112,6 +112,8 @@ export interface CapacityPaper {
   rows: CapacityPaperRow[];
   /** The line drawn and the bars beside it — the page's flow model (capacityFlow), drawn again on paper. */
   flow?: FlowModel;
+  /** The products of the line (FC-034 part 5): a row each as the All products card says it; each other product's own drawn line. */
+  products?: { name: string; says: string; base: boolean; flow?: FlowModel }[];
   /** Several lines feeding one place: the groups the rows fall in, in order. */
   groups?: CapacityPaperGroup[];
   /** The V either side of the bottleneck (lib/capacity vCurve) — with two or more counted. */
@@ -325,7 +327,8 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
 
   /* THE WHAT-IFS — each a copy of the line with one thing changed, said
      against the line as run, and whether it is on the board. */
-  const whatIfs = (cap.whatIfs ?? []).map(w => {
+  const prows = productRows(cap, x.product);
+  const whatIfs = (cap.whatIfs ?? []).filter(w => !w.product).map(w => {
     const wc = whatIfCapacity(cap, w), wr = analyse(wc);
     const wl = whatIfLabour(cap, r, wc, wr, x.labour.people, x.labour.rate);
     return { name: w.name, says: compareSays(r, wr, w.name), changed: changedWords(cap.stations, whatIfStations(cap.stations, w)), onBoard: !!w.action,
@@ -343,6 +346,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     rows,
     /* THE LINE DRAWN (4 November — "the line drawn is brilliant but isn't shown on the report"): the page's own model, so the two never part */
     ...(r.ok.length ? { flow: flowModel(cap, r, lanesAlike(cap)) } : {}),
+    ...(prows ? { products: prows.map(row => { const w = (cap.whatIfs ?? []).find(q => q.id === row.id); const pc = w ? whatIfCapacity(cap, w) : cap; return { name: row.name, says: row.says, base: row.base, ...(!row.base && row.r.ok.length ? { flow: flowModel(pc, row.r, lanesAlike(pc)) } : {}) }; }) } : {}),
     ...(groups ? { groups } : {}),
     ...(v && r.ok.length >= 2 ? { v: { text: v.sentence, tone: (v.under.length ? 'a' : 'n') as Tone } } : {}),
     ...(x.walk ? { walk: { text: x.walk.sentence, tone: (x.walk.against === 'disagrees' ? 'a' : 'n') as Tone } } : {}),

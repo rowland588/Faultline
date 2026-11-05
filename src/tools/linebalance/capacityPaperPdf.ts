@@ -504,6 +504,16 @@ function limited(p: CapacityPaper, sayV: boolean): Block[] {
     const bars = barsBlocks(p.flow);
     if (bars.length) { out.push(label('What each station can do')); out.push(...bars); }
   }
+  /* THE PRODUCTS OF THE LINE (FC-034 part 5): a row each — what it makes, what holds it, its target — then each other product's own line drawn */
+  if (p.products?.length) {
+    out.push(label('Products on this line'));
+    for (const q of p.products) out.push(text({ text: `${q.name}: ${q.says}`, size: T, style: q.base ? 'bold' : 'normal', colour: INK, after: 3 }));
+    for (const q of p.products) {
+      if (!q.flow) continue;
+      out.push({ ...text({ text: `${q.name} — the line drawn`, size: T, style: 'bold', colour: INK2, after: 2 }), keepWithNext: true });
+      out.push(flowBlock(q.flow));
+    }
+  }
   if (sayV && p.v) out.push(said('The V-curve:', p.v.text, p.v.tone));
   /* the V drawn, as the screen draws it — along each line, then the place
      they merge, when several lines feed one (lib/capacity LanesView) */

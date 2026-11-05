@@ -206,6 +206,8 @@ export interface WhatIf {
    *  line in everything it did not change. Absent on one saved before this. */
   diff?: WhatIfDiff;
   targetPerMin?: number;
+  /** A PRODUCT OF THE LINE (FC-034 part 5): the same stations at this product's speeds — a named variant that is kept, not a change being tried. */
+  product?: boolean;
   createdAt: number;
   /** DECIDED. The action raised on the board to make it real — the what-if
    *  remembers it so the screen can say "on the board" and, once it is done,
@@ -320,6 +322,30 @@ export const whatIfCapacity = (cap: Capacity, w: WhatIf): Capacity =>
     ...(cap.lanes?.length ? { lanes: cap.lanes } : {}) });
 
 export const EMPTY_CAPACITY: Capacity = { stations: [] };
+
+/* ============================ products of a line ============================ */
+
+/** One product of the line, read: the line's own first, then the others. */
+export interface ProductRow { id: string; name: string; base: boolean; r: CapacityResult; target?: number; says: string }
+
+/** What a product makes, what holds it, against its target — one line, the words the All products card and the paper both say. */
+export function productSays(r: CapacityResult, target: number | undefined): string {
+  if (r.line == null) return 'not counted yet';
+  const held = r.limit ? ` · held by ${r.limit.station.name.trim() || `Station ${r.limit.index + 1}`}` : '';
+  const gap = target != null ? r.line < target - 1e-9 ? ` — ${fmtN(target - r.line)} short of ${fmtN(target)}` : ` — meets ${fmtN(target)}` : '';
+  return `${fmtN(r.line)} ${r.unit}/min${held}${gap}`;
+}
+
+/** The line's products as rows, or nothing when it has none (the line is then read as it always was). */
+export function productRows(cap: Capacity, baseName: string): ProductRow[] | undefined {
+  const ps = (cap.whatIfs ?? []).filter(w => w.product);
+  if (!ps.length) return undefined;
+  const rows: ProductRow[] = [];
+  const add = (id: string, name: string, base: boolean, c: Capacity) => { const r = analyse(c); rows.push({ id, name, base, r, ...(c.targetPerMin != null ? { target: c.targetPerMin } : {}), says: productSays(r, c.targetPerMin) }); };
+  add('asRun', baseName.trim() || 'This product', true, cap);
+  ps.forEach((w, i) => add(w.id, w.name.trim() || `Product ${i + 2}`, false, whatIfCapacity(cap, w)));
+  return rows;
+}
 
 /* ================================ speeds =================================== */
 
