@@ -5,7 +5,7 @@ to get Cursor involved … I need everything in the repo so it can understand wh
 a session that ships something updates this page in the same commit.** The rules are `CLAUDE.md`; the product is
 `docs/DIRECTION.md`; this is the state.
 
-## 1. What is live (main `932d8400`, Vercel production READY, faultline.opexelevate.co.uk)
+## 1. What is live (main `469df03f`, Vercel production READY, faultline.opexelevate.co.uk)
 
 - **The factory, its lines and machines.** Factory › Line › Machine, every machine on a line, dual lines
   (`docs/MAP.md`, `docs/STRUCTURE.md`). Problems (the register, priorities, journeys, cost, the eight wastes),
@@ -20,6 +20,7 @@ a session that ships something updates this page in the same commit.** The rules
   check logs, the calculators, the scored registers, the documents, 6M (fishbone, why tree, countermeasures),
   video studies, FC-233 micro-movements (live today), and their papers. Every tool opens from a line, a machine or a
   project; everything says its money or names the missing input.
+- **Tools library — gallery and detail** (`#/tools`, `#/tools/:key`, 6 November, ENTERPRISE-UI E7 slice, `scripts/acceptance/tool-page.mjs`): each catalogue card’s **head row** — kind (one word), FC id, status in words and whether the tool has been used; denser grid on desk; tool page — **meta under the title** (FC · kind · status · used), **What it looks like** on `ep-panel`; on a phone the gallery **scrolls sideways** (a full card and the next card’s edge — TG1).
 - **Line Talk** (`docs/LINE-TALK.md`, `docs/LINE-TALK-TOOLSETS.md`): the phone's own speech recognition into the
   box, Claude's answers through the `assist` gateway, documents with their PDFs kept in the app; and the **toolsets**
   — talk a *flow diagram* (process flow chart), a *spaghetti diagram* (up to four walkers), a *value stream* (the
@@ -32,7 +33,6 @@ a session that ships something updates this page in the same commit.** The rules
 
 **Parallel improvement plan** (domains, agent streams, hygiene): `docs/IMPROVEMENT-ROADMAP.md` — planning only; does not replace this ordered list.
 
-- **Tools gallery and tool detail (6 November, ENTERPRISE-UI E7 slice):** clearer cards — kind, FC id, catalogue status and used on the head row; denser grid on desk; tool page — meta line under the title (FC · kind · status · used), hero on `ep-panel`; on branch `cursor/tools-ui-density-de14`, not on `main` until merged.
 1. **Spaghetti talk accuracy** (Rowland, 6 November: *"it's going to struggle with what I'm saying … there needs to be
    improvements, guaranteed"*). Tested on his own sentence: the order of moves is right, "left"/"right" become place
    names, two pickups merge into one place silently, "drives the truck" is not drawn. The plan proposed, not yet

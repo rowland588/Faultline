@@ -15621,9 +15621,25 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .tp-h3 { margin: 12px 0 4px; font-size: var(--t-detail); }
 .tp-pn { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 6px 0 24px; }
 @media (max-width: 719px) {
-  /* E7 — stack tool cards in one column; no horizontal peek past the frame (docs/STRUCTURE.md phone bar) */
-  .tc-gal { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 0 0 14px; padding: 0; overflow-x: visible; }
-  .tc-cell { min-width: 0; }
+  /* E7 + TG1 — gallery scrolls sideways: one full card width and the next card’s edge (scripts/acceptance/tool-page.mjs §8) */
+  .tc-gal {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 12px;
+    margin: 0 0 14px;
+    padding: 0 0 8px;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tc-gal::-webkit-scrollbar { display: none; }
+  .tc-cell {
+    flex: 0 0 min(307px, calc(100vw - 48px));
+    min-width: min(307px, calc(100vw - 48px));
+    max-width: min(307px, calc(100vw - 48px));
+  }
   .tp-hero, .tp-io { grid-template-columns: 1fr; }
 }
 @media (max-width: 719px) {
