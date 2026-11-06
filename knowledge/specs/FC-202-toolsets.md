@@ -49,9 +49,9 @@ Unit: `src/tools/talk/__tests__/talkSets.test.ts` (the set's schema is small and
 4. The live chart follows each answer; an edit to a step in the draft is kept and sent back with the next turn — *proved by* `talk-toolsets.mjs`.
 5. *Make it* creates one Process flow chart on the talk's line, marked *From a talk* with the link; *Update it* changes that record, never a second; Undo removes it — *proved by* `talk-toolsets.mjs`.
 6. The made chart's paper, downloaded and read back, equals the typed chart's and carries *From a talk* — *proved by* `talk-toolsets.mjs`.
-7. A client sees the draft and the made chart and has no button to make or change either; the phone has nothing off the side and 44 px controls — *proved by* `talk-toolsets.mjs`.
+7. The phone has nothing off the side and 44 px controls — *proved by* `talk-toolsets.mjs`. A client sees the draft and the made chart and has no button to make or change either: the screen takes `can.edit` (`live`) for every control, as the rest of Line Talk does — *not yet driven in a browser* (a talk with no project is always its owner's; a project-linked talk read as a client is for the next slice's run).
 8. The deployed gateway holds the same instructions and schemas as the repo (`rules` fingerprint) and a real answer asked of it for a flow-diagram talk returns a readable capture — *proved by* the read-back and the live check, reported in the commit.
-Not yet proved: hearing in floor noise on a real phone.
+Not yet proved: hearing in floor noise on a real phone; a client driving a project-linked talk in a browser.
 
 ## 12. Maintainability
 One module for the sets (`tools/talk/talkSets`: the set ids, each set's instructions, schema and capture reader — adding a set is one entry there, its mapping and its preview), shared word for word with the gateway by `scripts/sync-assist.mjs`; the mapping from a capture to a calculator's `Inputs` lives beside the calculator (`defs/process-flow` exports it) so the two cannot drift; the words (*From a talk*, the chips) in one place.

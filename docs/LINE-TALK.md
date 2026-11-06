@@ -419,3 +419,8 @@ Rowland, 6 November: *"I don't ask for a lean report ... the reports are always 
 3. **Three seconds — what we are doing.** The next section, an action a point with who and by when (*Owner not named yet* when none was said); *Where we are* last, only if there is anything to say.
 
 Each section has one `icon` (an emoji, on the screen only — paper prints the words, jsPDF has no emoji font) and each point a `state` (problem · watch · action · ok · none) shown as a word in its colour, on screen and on paper, and changeable in Edit. A document written before this has none of them and reads as it did. The shape is `TALK_SCHEMA` (`status`, `icon`, `state`), checked by `checkTalkAnswer`; the gateway copy is made by `scripts/sync-assist.mjs`. `talkAssist.test.ts` and `line-talk-assistant.mjs` (8a–8e) prove it.
+
+
+## Toolsets — 6 November
+
+A talk can be a **flow diagram**: say the path, and the process flow chart draws itself from what was said, then *Make it* creates the tool's own record. The plan for all the sets (flow diagram, spaghetti with several people, value stream, micro-movements) is `docs/LINE-TALK-TOOLSETS.md`; slices T0–T1 are built (`knowledge/specs/FC-202-toolsets.md`, `tools/talk/talkSets`, `TalkDiagram`, `scripts/acceptance/talk-toolsets.mjs`). The assistant writes down what was said and gives the unit as said — Faultline converts and works out everything.

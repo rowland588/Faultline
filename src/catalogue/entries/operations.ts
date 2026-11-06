@@ -488,8 +488,8 @@ export const OPERATIONS: Entry[] = [
     complexity: 'XL', value: 'high', valueWhy: 'The only AI tool, by decision.',
     status: 'available', form: 'tool', kind: 'document',
     app: { key: 'talk', label: 'Line Talk', says: 'Talk or type on the line — your words come up as you speak — add photos, ask questions and ask for reports', onLine: 'talk or type on the line, as in a chat — it answers and writes the reports', reads: 'talk', icon: 'mic', order: 11 }, methods: ['visual.line-talk'], scenarios: ['daily'], words: ['voice', 'talk', 'report', 'AI'],
-    built: { where: ['/talk'], code: ['src/tools/talk/TalkScreen.tsx', 'src/tools/talk/talk.ts'], tests: ['src/tools/talk/__tests__/talk.test.ts', 'src/tools/talk/__tests__/talkAssist.test.ts'], acceptance: ['line-talk.mjs', 'line-talk-assistant.mjs'] },
-    limits: ['Never works out a figure, saves a record or passes a gate — by design.', 'Hearing in floor noise not yet tested on a real phone.'],
+    built: { where: ['/talk'], code: ['src/tools/talk/TalkScreen.tsx', 'src/tools/talk/talk.ts', 'src/tools/talk/talkSets.ts', 'src/tools/talk/TalkDiagram.tsx'], tests: ['src/tools/talk/__tests__/talk.test.ts', 'src/tools/talk/__tests__/talkAssist.test.ts', 'src/tools/talk/__tests__/talkSets.test.ts'], acceptance: ['line-talk.mjs', 'line-talk-assistant.mjs', 'talk-toolsets.mjs'] },
+    limits: ['Never works out a figure, saves a record or passes a gate — by design.', 'Hearing in floor noise not yet tested on a real phone.', 'Toolsets (docs/LINE-TALK-TOOLSETS.md): the flow diagram is built; the spaghetti diagram with several people, the value stream and micro-movements are planned (T2–T4), not built.'],
   },
   {
     id: 'FC-203', name: 'Shift handover log', discipline: 'visual', sub: 'talk',
