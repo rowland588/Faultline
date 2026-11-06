@@ -21,7 +21,7 @@
  *      machines; Tick none / Tick all
  *   5  the paper read back: each record's section under its name, Where on the line naming the
  *      three machines; one unticked and Download again — its section gone from the paper and its
- *      machine gone from Where on the line
+ *      machine drawn in flow with no finding, out of the findings (the line is drawn whole, 6 November)
  *   6  a dual line (Made of 2a + 2b): the studies of 2a under Line 2a, none under Line 2b
  *   7  the phone: nothing off the side, a tick 32px or more tall
  *   and no console error anywhere.
@@ -179,7 +179,9 @@ ok(/EACH ONE, IN THE ORDER CHECKED/i.test(p1.text) && /HISTOGRAM|how the reading
 await page.locator('.lr-tick input[aria-label^="Reliability"]').uncheck(); await page.waitForTimeout(300);
 const p2 = await pdfOf(() => page.getByRole('button', { name: 'Download' }).click());
 ok(!nows(p2.text).includes(nows('Reliability — Capper stops')) && !/Counted side by side/.test(p2.text), '5 Reliability unticked — its section gone from the paper');
-ok(!/\bCapper\b/.test(p2.text.split('Where on the line')[1]?.split(/Capability —/)[0] ?? 'x') && /2 machines with findings/.test(p2.text), '5 …and its machine gone from Where on the line');
+const w2 = p2.text.split('Where on the line')[1]?.split(/Capability —/)[0] ?? 'x';
+/* the line is drawn whole (the machines in flow, 6 November), so the Capper stays as a box — with no finding on it and out of the findings' rows */
+ok((w2.match(/\bCapper\b/g) ?? []).length === 1 && /no finding/.test(w2) && /2 machines with findings/.test(p2.text), '5 …and its machine shows no finding on Where on the line — drawn in flow, out of the findings');
 ok(heads.slice(0, 2).every(h => nows(p2.text).includes(nows(h))), '5 the capability studies kept');
 
 /* ---- 6 · a dual line ---- */
