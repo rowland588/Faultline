@@ -1,3 +1,5 @@
+> **History (moved 6 November 2026).** The 2 October sweep. Its principles live on in docs/LEAN-PAGE.md, docs/SIMPLE.md and the visual-management rules in CLAUDE.md. Kept as a record, not a rule.
+
 # The lean plan for the whole app
 
 *2 October 2026. From a sweep of every screen (66 routes, laptop and phone) and

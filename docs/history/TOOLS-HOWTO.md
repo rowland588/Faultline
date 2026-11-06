@@ -1,3 +1,5 @@
+> **History (moved 6 November 2026).** The 25 October builders' mechanics. A tool is built through the `faultline-tool` skill and `knowledge/STANDARD.md` now; the shapes' acceptance scripts (calc-shape, log-shape, doc-shape, scored-shape, board-shape) are the living how-to. Kept as a record, not a rule.
+
 # How to add a tool of each shape — written 25 October 2026 from the builders' reports
 
 `docs/TOOLS-BUILD-BRIEF.md` is the standard every builder works to; this file is the **mechanics** of the two

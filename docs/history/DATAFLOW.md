@@ -1,3 +1,5 @@
+> **History (moved 6 November 2026).** Written before the blueprint (docs/BLUEPRINT.md) and the steady slices (docs/STEADY.md); the map of what each screen reads is `docs/PAGES.md` and `src/project/projectRead` now. Kept as a record, not a rule.
+
 # Faultline — data flow contract
 
 The map of what every screen shows, where it reads it from, and what must make

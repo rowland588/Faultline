@@ -17,3 +17,8 @@ pdf-preview/
 
 # Agents' throwaway browser-check scripts (deleted when done)
 scripts/_tmp_*
+
+# per-agent dev-server configs (6 November housekeeping): one vite.config.ts, and scripts/sync-vite.config.ts
+*-vite.config.ts
+vite.*.config.ts
+!vite.config.ts

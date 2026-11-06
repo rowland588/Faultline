@@ -1101,6 +1101,22 @@ work, `can.agree` to change what was agreed, `can.remove` to delete. A button
 the database would refuse is a button that lies. A client's rows are never
 pushed (`src/cloud/sync.ts`), so a stray local write cannot stall a sync.
 
+## Housekeeping — 6 November
+
+Rowland: *"make sure the repo is up to date .. no confusing old code or programs."* So the repo holds only what the app
+runs, the gate proves and the records explain; the rest is in git history, not in the tree. What went that day, with
+the reason: the forty local agent branches of 1–2 November (every patch already in `main` — checked with `git cherry`
+and by files that would be lost; the three with files not in `main` were superseded routes: `PROBLEM_WASTE.sql` by the
+waste tag in `linked_obs_ids`, the old `hold` files by the live FC-135, `wow-vite.config.ts` by nothing), the two
+agent worktrees, six per-agent `*-vite.config.ts` at the root (now ignored — one `vite.config.ts`, and
+`scripts/sync-vite.config.ts`), five review screenshots at the root, two dev previews no script loaded any more
+(`FishbonePreview`, `ParetoPanePreview`), the one-shot `lib/line2InstallRelease` (the release was done by hand, 29
+October), four October research scripts folded into the app (`navmap`, `phone-day`, `typing`, `_find`), and three
+documents older than the blueprint moved to `docs/history/` with a note at their head. **The rule from here:** a
+branch is deleted once its patches are in `main`; a script not in the gate list, a file nothing imports and a document
+nothing names is a candidate, and goes with one sentence saying why it was there. Remote branches are a decision of
+Rowland's (117 merged `cursor/*` and `claude/*` branches and five unmerged ones were listed to him that day).
+
 ## Things that will bite
 
 - **A container restart wipes every local branch that was not pushed (1 November).** Twelve agents' worktrees and the
