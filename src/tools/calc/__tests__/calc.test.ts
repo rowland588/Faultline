@@ -124,7 +124,7 @@ describe.each(CALCS.map(c => [c.key, c] as [string, CalcDef]))('the %s calculato
       for (const l of pic.lines) for (const [x, y] of l.points) { expect(Number.isFinite(x) && Number.isFinite(y)).toBe(true); expect(x).toBeGreaterThanOrEqual(pic.x.min - 1e-9); expect(x).toBeLessThanOrEqual(pic.x.max + 1e-9); expect(y).toBeGreaterThanOrEqual(pic.y.min - 1e-9); expect(y).toBeLessThanOrEqual(pic.y.max + 1e-9); }
       for (const d of pic.dots) { expect(d.x).toBeGreaterThanOrEqual(pic.x.min - 1e-9); expect(d.x).toBeLessThanOrEqual(pic.x.max + 1e-9); expect(d.y).toBeGreaterThanOrEqual(pic.y.min - 1e-9); expect(d.y).toBeLessThanOrEqual(pic.y.max + 1e-9); }
       expect(pic.caption.length).toBeGreaterThan(20);
-      expect(pic.x.ticks.length).toBeGreaterThanOrEqual(2);
+      if (!pic.schematic) expect(pic.x.ticks.length).toBeGreaterThanOrEqual(2);
     }
   });
 

@@ -57,6 +57,16 @@ export function CalcPictureView({ pic }: { pic: CalcPicture }) {
         <text className="calc-pic-ax" x={L + w / 2} y={HH - 6} textAnchor="middle">{pic.x.label}</text>
         <text className="calc-pic-ax" x={L} y={11}>{pic.y.label}</text>
       </svg>
+      {pic.legend && pic.legend.length > 0 && (
+        <ul className="calc-pic-key" aria-label="Who each line is">
+          {pic.legend.map(k => (
+            <li key={k.label}>
+              <svg viewBox="0 0 28 8" aria-hidden="true"><line className={'calc-pic-line is-' + k.mark + (k.dash ? ' is-dash' : '')} x1="1" x2="27" y1="4" y2="4" /></svg>
+              <span>{k.label}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <figcaption className="sub calc-pic-cap"><b>{pic.title}.</b> {pic.caption}</figcaption>
     </figure>
   );

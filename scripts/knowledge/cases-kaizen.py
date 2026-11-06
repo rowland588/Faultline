@@ -169,3 +169,30 @@ aw = after_legs * cycles / 1.3 / 60
 print(f"  film at the line: {aw:.4f} min; saves {walk_min-aw:.4f} min = {money((walk_min-aw)/60*25)} a shift")
 # trips: film 84 m of 158 per round, case 56, scale 18
 print(f"  trips per round: film 84 ({84/158:.4%}), cases 56 ({56/158:.4%}), scale 18 ({18/158:.4%})")
+
+print("\n== S3 the spaghetti diagram, several people (FC-004 part 2): three operators from the line, 10 rounds a shift at 1.3 m/s, £25 an hour")
+walkers = {
+    "Operator 1": [("Packing line", 0), ("Film store", 40), ("Packing line", 40), ("Case store", 25), ("Packing line", 25)],
+    "Operator 2": [("Packing line", 0), ("Scale", 9), ("Packing line", 9), ("Film store", 40), ("Packing line", 40)],
+    "Operator 3": [("Packing line", 0), ("Case store", 25), ("Packing line", 25)],
+}
+tot = 0; arrivals = {}; pairs = {}
+for w, st in walkers.items():
+    m = sum(x[1] for x in st); tot += m
+    print(f"  {w}: {len(st)-1} legs, {m} m a round")
+    for i in range(1, len(st)):
+        arrivals[st[i][0]] = arrivals.get(st[i][0], 0) + 1
+        k = tuple(sorted((st[i-1][0], st[i][0])))
+        pairs.setdefault(k, {}).setdefault(w, 0)
+        pairs[k][w] += st[i][1]
+print(f"  together: {sum(len(s)-1 for s in walkers.values())} legs, {tot} m a round; most: {max(walkers, key=lambda w: sum(x[1] for x in walkers[w]))}")
+print(f"  arrivals {sorted(arrivals.items(), key=lambda a: -a[1])}")
+for k, v in pairs.items():
+    if len(v) > 1: print(f"  shared route {k}: walked by {sorted(v)}; {sum(v.values())} m of {tot} ({sum(v.values())/tot:.4%})")
+sh = tot * 10
+print(f"  a shift at 10 rounds each: {sh} m together; {sh/1.3/60:.4f} min; per person: " + ", ".join(f"{w} {sum(x[1] for x in s)*10/1.3/60:.4f}" for w, s in walkers.items()))
+print(f"  money: {sh/1.3/60/60*25:.4f} a shift at £25 an hour")
+from math import hypot
+print("\n== S3b the same on a plan (FC-004 part 2): line (30,0), film store (0,0), scale (30,16)")
+a = hypot(30, 0) * 2; b = hypot(0, 16) * 2
+print(f"  Operator 1 {a} m, Operator 2 {b} m, together {a+b} m; Operator 1 {a/(a+b):.4%}")

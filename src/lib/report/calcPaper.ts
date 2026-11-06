@@ -39,9 +39,9 @@ export function table(header: string[], body: string[][], shares: number[]): Blo
 
 /** The picture the definition describes, drawn on the page — axes, the curve, guides with their words, dots with theirs. */
 export function pictureBlock(pic: CalcPicture): Block {
-  const H = 190;
+  const H = 190, KEY = pic.legend?.length ? 14 : 0;
   return rows({ rows: [{
-    h: () => H + 18,
+    h: () => H + 18 + KEY,
     draw: (fr: Frame, y: number) => {
       const d = fr.doc, L = 44, R = 12, T = 14, B = 26, aw = fr.w - L - R, ah = H - T - B;
       /* a drawing to scale (pic.aspect) takes the largest plot of its shape that fits, so one metre is one length across and up */
@@ -71,6 +71,17 @@ export function pictureBlock(pic: CalcPicture): Block {
         if (p.label) { font(d, 6.5, 'bold', INK2); t(p.label, xs(p.x) + (right(p.x) ? -5 : 5), ys(p.y) + (p.y > 0.5 ? 9 : -4), right(p.x) ? 'right' : 'left'); }
       }
       font(d, 7, 'bold', MUTED); t(pic.x.label, fr.x + L + w / 2, pic.aspect ? y + T + h + 24 : y + H + 8, 'center'); t(pic.y.label, fr.x, y + 8);
+      /* who each line is: its own stroke, then its name, in a row under the plot */
+      if (pic.legend?.length) {
+        let kx = fr.x + L; const ky = (pic.aspect ? y + T + h + 24 : y + H + 8) + 11;
+        for (const k of pic.legend) {
+          d.setDrawColor(k.mark === 'ink' ? INK2 : BRAND); d.setLineWidth(1.6);
+          if (k.dash) d.setLineDashPattern([3, 2.5], 0);
+          d.line(kx, ky - 2, kx + 16, ky - 2); d.setLineDashPattern([], 0);
+          font(d, 7, 'bold', INK2); t(k.label, kx + 20, ky, 'left');
+          kx += 20 + d.getTextWidth(san(k.label)) + 14;
+        }
+      }
     },
   }], after: 's' });
 }

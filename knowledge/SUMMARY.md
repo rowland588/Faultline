@@ -2,14 +2,14 @@
 
 Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write` — never typed. The catalogue test fails when this file is stale.
 
-**238 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
+**239 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 29 tools a person can open on a page of their own. Built inside them: 117 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 31. Not built yet: 43; needing research: 11; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 29 tools a person can open on a page of their own. Built inside them: 118 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 31. Not built yet: 43; needing research: 11; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
 | Available (`available`) | 164 |
-| Partly (`partial`) | 13 |
+| Partly (`partial`) | 14 |
 | Planned (`specified`) | 0 |
 | Not built yet (`to-build`) | 43 |
 | Research first (`research`) | 11 |
@@ -19,7 +19,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
-| Lean manufacturing and waste | 19 | 11 | 2 |  | 5 | 1 |  |
+| Lean manufacturing and waste | 20 | 11 | 3 |  | 5 | 1 |  |
 | Industrial engineering and work measurement | 14 | 8 | 2 |  | 3 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 15 |  |  | 1 | 1 |  |
 | Equipment performance and losses | 11 | 8 | 1 |  |  |  | 2 |
@@ -45,7 +45,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By subdiscipline
 
-- **Lean manufacturing and waste** — Value stream and flow 5 · Waste 2 · Standard work 2 · Pull and levelling 4 · 5S and the visual workplace 1 · Mistake-proofing 2 · Improvement events and kata 3
+- **Lean manufacturing and waste** — Value stream and flow 5 · Waste 3 · Standard work 2 · Pull and levelling 4 · 5S and the visual workplace 1 · Mistake-proofing 2 · Improvement events and kata 3
 - **Industrial engineering and work measurement** — Time study 3 · Predetermined motion times 1 · Work sampling 1 · Labour standards and allowances 3 · Method study 3 · Labour productivity 3
 - **Capacity, throughput and bottlenecks** — Line capacity 4 · Line balance 2 · Constraints (TOC) 5 · Queues, WIP and buffers 4 · Load against demand 2
 - **Equipment performance and losses** — The time model and losses 2 · Stops and downtime 6 · Speed and short stops 2 · Losses in money 1
@@ -72,7 +72,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 ## By the shape it takes
 
 - a tool of its own: 79
-- a mode of another tool: 87
+- a mode of another tool: 88
 - a part several tools share: 27
 - a way through several tools: 8
 - a report or board: 26
@@ -131,3 +131,4 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - FC-235 Calculators — a sum for one situation, saved with its sentence, its money and its paper — 1 modes inside it
 - FC-021 Video time study — the work read from footage — 1 modes inside it
 - FC-062 Autonomous maintenance — CILT checks and abnormality tags — 1 modes inside it
+- FC-004 Spaghetti diagram — walking and transport distance — 1 modes inside it

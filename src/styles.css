@@ -15146,6 +15146,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .calc-pic-val { font-size: var(--t-mark); font-weight: 800; fill: var(--ink); }
 .calc-pic-ax { font-size: var(--t-mark); font-weight: 700; fill: var(--muted); }
 .calc-pic-cap { margin-top: 6px; }
+.calc-pic-key { display: flex; flex-wrap: wrap; gap: 4px 16px; list-style: none; margin: 6px 0 0; padding: 0; font-weight: 700; color: var(--ink-2); }
+.calc-pic-key li { display: inline-flex; align-items: center; gap: 6px; }
+.calc-pic-key svg { width: 28px; height: 8px; overflow: visible; }
 .calc-working > summary, .calc-caveats .ie-checks-h { cursor: pointer; }
 .calc-working > summary { font-weight: 700; color: var(--ink-2); margin-bottom: 6px; }
 .calc-working-t { width: 100%; }

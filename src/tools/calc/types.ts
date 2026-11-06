@@ -114,6 +114,10 @@ export interface CalcPicture {
   verticals: { x: number; label: string }[];
   horizontals: { y: number; label: string }[];
   dots: { x: number; y: number; label: string }[];
+  /** Who each line is, where lines are people (the spaghetti diagram of several walkers): drawn under the plot with the line's own style, never a state colour. */
+  /** True when the drawing is arranged for reading, not measured: it has no ticks and says so. */
+  schematic?: boolean;
+  legend?: { label: string; mark: 'ink' | 'brand'; dash: boolean }[];
 }
 
 /** A chart that is not an x–y plot: the steps of a path down the page, each with its ASME symbol, its words and two figures (the process flow chart,
