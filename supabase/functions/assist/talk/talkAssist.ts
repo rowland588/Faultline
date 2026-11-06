@@ -16,6 +16,8 @@
  * with it — so both hold the same rules. Self-contained on purpose: the
  * gateway runs it under Deno. */
 
+import { SET_INSTRUCTIONS, SET_SCHEMA, TALK_SETS, readCapture, setOf, type TalkCapture, type TalkSet } from './talkSets.ts';
+
 /** How a turn came: spoken on the line, typed, a picture — or the assistant's own earlier answer. */
 export type TalkAskKind = 'said' | 'typed' | 'photo' | 'reply';
 
@@ -35,6 +37,10 @@ export interface TalkAskImage { photo: string; data: string }
 
 export interface TalkAsk {
   task: 'talk';
+  /** The toolset the talk is in (talkSets) — absent is the general walk. */
+  set?: TalkSet;
+  /** The diagram so far as the person has it, in words (talkSets captureAsText) — absent when there is none. */
+  draft?: string;
   /** Faultline's records about the line and the job, in words (lib/talkContext). */
   context: string;
   /** "Wednesday 21 October 2026". */
@@ -49,6 +55,7 @@ export const TALK_LIMITS = {
   turnChars: 12000,
   textChars: 240000,
   contextChars: 24000,
+  draftChars: 12000,
   images: 10,
   imageBytes: 450 * 1024,
 } as const;
@@ -74,7 +81,7 @@ export interface TalkDocSection { heading: string; icon?: string; text: string; 
 /** The one-second answer: how things stand, in a word and its colour, with one short line. */
 export interface TalkStatus { state: Exclude<TalkState, '' | 'action'>; line: string }
 export interface TalkDoc { title: string; kind: TalkDocKind; status?: TalkStatus; sections: TalkDocSection[] }
-export interface TalkAnswer { reply: string; document?: TalkDoc }
+export interface TalkAnswer { reply: string; document?: TalkDoc; capture?: TalkCapture }
 
 /* A CONVERSATION, NOT A FORM. Rowland, 21 October: "We need a full
    conversational system ... like I do with you here, we ask questions to each
@@ -213,6 +220,13 @@ export const TALK_SCHEMA = {
   },
 } as const;
 
+/** The instructions for a set: the general ones, then the set's own. */
+export const talkSystemFor = (set: TalkSet = 'walk'): string => (SET_INSTRUCTIONS[set] ? `${TALK_SYSTEM}\n\n${SET_INSTRUCTIONS[set]}` : TALK_SYSTEM);
+/** The shape of a set's answer — the walk's is TALK_SCHEMA. */
+export const talkSchemaFor = (set: TalkSet = 'walk'): object => SET_SCHEMA[set] ?? TALK_SCHEMA;
+/** Everything the gateway holds as its rules, one text — fingerprinted so the deployed copy is proved the repo's, word for word. */
+export const talkRulesText = (): string => TALK_SYSTEM + JSON.stringify(TALK_SCHEMA) + TALK_SETS.map(k => `${k}:${SET_INSTRUCTIONS[k]}${JSON.stringify(SET_SCHEMA[k] ?? '')}`).join('|');
+
 /** Line Talk's allowance a person a day, refused in its own words (lib/video/gatewayUsage allowance). */
 export const TALK_ALLOWANCE_WORDS = {
   calls: (n: number): string => `That is ${n} answers from Line Talk today — the allowance comes back over the next 24 hours. Everything you say, type and photograph is still kept.`,
@@ -253,7 +267,9 @@ export function readAsk(body: unknown): { ok: true; ask: TalkAsk } | { ok: false
     if (!turns.some(t => t.photo === photo)) return { ok: false, why: 'A picture is not one of this talk’s photos.' };
     images.push({ photo, data });
   }
-  return { ok: true, ask: { task: 'talk', context: str(b.context, TALK_LIMITS.contextChars), today: str(b.today, 60), turns, images } };
+  const set = setOf(b.set);
+  const draft = str(b.draft, TALK_LIMITS.draftChars);
+  return { ok: true, ask: { task: 'talk', ...(set !== 'walk' ? { set } : {}), ...(draft ? { draft } : {}), context: str(b.context, TALK_LIMITS.contextChars), today: str(b.today, 60), turns, images } };
 }
 
 type Block = { type: 'text'; text: string; cache_control?: { type: 'ephemeral' } } | { type: 'image'; source: { type: 'base64'; media_type: 'image/jpeg'; data: string }; cache_control?: { type: 'ephemeral' } };
@@ -289,7 +305,8 @@ export function talkMessages(a: TalkAsk): TalkMessage[] {
   const records = a.context.trim()
     ? `FAULTLINE'S RECORDS — verified data, worked out by Faultline's own formulas from what people measured. Quote them; never recompute them.\n<records>\n${a.context.trim()}\n</records>`
     : 'No Faultline records go with this conversation: it is not on a production line or a project.';
-  put('user', [{ type: 'text', text: `${records}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turns above.` }]);
+  const draft = a.draft ? `\n\nTHE DIAGRAM SO FAR — the person's own version, which they may have changed; build on this, not on your memory of it:\n<diagram>\n${a.draft}\n</diagram>` : '';
+  put('user', [{ type: 'text', text: `${records}${draft}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turns above.` }]);
   return out;
 }
 
@@ -305,7 +322,7 @@ const DOC_KINDS: readonly TalkDocKind[] = ['line-walk', 'summary', 'engineering'
 
 /** Keep an answer only as the schema says it, its words trimmed, every
  *  picture one of this talk's — or nothing, when it cannot be read. */
-export function checkTalkAnswer(raw: unknown, photos: readonly string[]): TalkAnswer | null {
+export function checkTalkAnswer(raw: unknown, photos: readonly string[], set: TalkSet = 'walk'): TalkAnswer | null {
   const o = raw && typeof raw === 'object' ? raw as Record<string, unknown> : null;
   if (!o) return null;
   const reply = str(o.reply, 8000);
@@ -341,8 +358,9 @@ export function checkTalkAnswer(raw: unknown, photos: readonly string[]): TalkAn
     const title = str(d.title, 200);
     if (title || sections.length) document = { title: title || 'Document', kind: DOC_KINDS.find(k => k === d.kind) ?? 'other', ...(status ? { status } : {}), sections };
   }
-  if (!reply && !document) return null;
-  return { reply, ...(document ? { document } : {}) };
+  const capture = readCapture(set, o.capture);
+  if (!reply && !document && !capture) return null;
+  return { reply, ...(document ? { document } : {}), ...(capture ? { capture } : {}) };
 }
 
 /** A document as words — how an earlier one is carried in the conversation,
@@ -381,7 +399,8 @@ export function unsureFigures(answer: TalkAnswer, a: TalkAsk): string[] {
     ...figuresIn(a.context), ...figuresIn(a.today),
   ]);
   const d = answer.document;
-  const said = [answer.reply, ...(d ? [d.title, ...d.sections.flatMap(s => [s.heading, s.text, ...s.points.flatMap(p => [p.text, p.owner, p.due]), ...s.photos.map(p => p.caption)])] : [])].join('\n');
+  const cap = answer.capture;
+  const said = [answer.reply, ...(cap ? [cap.title, ...cap.steps.flatMap(x => [x.what, x.said ?? ''])] : []), ...(d ? [d.title, ...d.sections.flatMap(s => [s.heading, s.text, ...s.points.flatMap(p => [p.text, p.owner, p.due]), ...s.photos.map(p => p.caption)])] : [])].join('\n');
   const out: string[] = [];
   for (const raw of said.matchAll(NUMBER)) {
     const f = asFigure(raw[0]);

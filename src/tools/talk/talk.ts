@@ -20,6 +20,7 @@
 import { niceDay } from '../../lib/weeks';
 import type { StudyFacts } from '../../lib/study';
 import { docAsText, type TalkAskTurn, type TalkDoc } from './talkAssist';
+import type { TalkCapture } from './talkSets';
 
 /** A file a turn keeps — on this device (db putBlob), and in the cloud while
  *  the talk names it (supabase/LINE_TALK.sql). */
@@ -61,6 +62,10 @@ export interface TalkTurn {
   doc?: TalkDoc;
   /** reply: the document as Line Talk first wrote it, kept once it is edited. */
   docFirst?: TalkDoc;
+  /** reply: the diagram it kept from a flow-diagram talk, as it now reads — the person edits it (docs/LINE-TALK-TOOLSETS.md). */
+  capture?: TalkCapture;
+  /** reply: the diagram as Line Talk first kept it, once the person has edited it. */
+  captureFirst?: TalkCapture;
   /** reply: figures in it found in nothing it was given — said beside it, to check. */
   unsure?: string[];
   /** reply: the model that answered. */

@@ -26,6 +26,7 @@ import type { VideoEvent, VideoSource } from '../tools/video/record';
 import type { FootageGone } from '../tools/video/footage';
 import type { ID } from '../types';
 import type { TalkTurn } from '../tools/talk/talk';
+import type { TalkSet } from '../tools/talk/talkSets';
 import type { AgreedHolds, Hold } from '../tools/hold/hold';
 import type { DocPhoto, DocSigned, DocValues } from '../tools/doc/types';
 
@@ -1148,6 +1149,12 @@ export interface StudyFacts {
   /** LINE TALK (lib/talk, docs/LINE-TALK.md): the conversation — each piece
    *  said with its recording and what was heard, each photo, each typed line. */
   turns?: TalkTurn[];
+  /** LINE TALK TOOLSET (docs/LINE-TALK-TOOLSETS.md): what kind of walk this talk is — absent is the general walk that writes reports. */
+  set?: TalkSet;
+  /** The tool record this talk made from its diagram (a Make it), so Update it changes that one and never makes a second. */
+  made?: { id: string; at: number };
+  /** A study made from a Line Talk (Make it): which talk, and when — shown on the study and its paper as *From a talk*. */
+  fromTalk?: { talk: string; at: number };
   /** The footage deleted — its own fact, so it is never undone by a device
    *  still writing the video (lib/video/footage). */
   videoGone?: FootageGone;

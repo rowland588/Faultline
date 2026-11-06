@@ -50,6 +50,8 @@ const path = (rows: [string, FlowKind, number?, number?][], more: Inputs = {}): 
   rows.forEach(([what, kind, min, m], i) => { if (what) out[id(i, 'what')] = what; out[id(i, 'kind')] = kind; if (min !== undefined) out[id(i, 'min')] = min; if (m !== undefined) out[id(i, 'm')] = m; });
   return { ...out, ...more };
 };
+/** A path as the boxes hold it, from steps already classed — how a Line Talk flow diagram fills this calculator (tools/talk, FC-202 toolsets). */
+export const inputsOfSteps = (steps: readonly FlowStep[], more: Inputs = {}): Inputs => path(steps.slice(0, SLOTS).map(s => [s.what, s.kind, s.min, s.kind === 'transport' ? s.m : undefined] as [string, FlowKind, number?, number?]), more);
 /* the knowledge record's tray, oven to despatch pallet (scripts/knowledge/cases-kaizen.py F): 14 steps, 279.5 minutes, 140 metres */
 const TRAY: [string, FlowKind, number?, number?][] = [
   ['Mix and portion', 'operation', 2], ['To the oven', 'transport', 1.5, 30], ['Waiting for the oven', 'delay', 12], ['Bake', 'operation', 3.5], ['Check the core', 'inspection', 1],

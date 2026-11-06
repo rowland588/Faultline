@@ -382,6 +382,7 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
         <p className="sub ie-where">{def.question}</p>
         <WhereItSits s={s} can={can} />
       </div>
+      {s.facts.fromTalk && <p className="sub calc-fromtalk" data-from-talk>From a Line Talk · <a href={`#/talk/${encodeURIComponent(s.facts.fromTalk.talk)}`}>open the talk</a> — its steps were said there; change them here or in the talk and Update it.</p>}
       {!canEdit && !closed && <p className="sub calc-ro" role="status">You can read this and take its paper; the figures are changed by the people doing the work.</p>}
       {phone && (
         <div className="calc-panes" role="tablist" aria-label="Figures, the answer, what if">

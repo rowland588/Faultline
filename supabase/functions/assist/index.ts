@@ -57,7 +57,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk@0.131.0";
 import { allowance, costMicros } from "./video/gatewayUsage.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
-import { TALK_ALLOWANCE_WORDS, TALK_SCHEMA, TALK_SYSTEM, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
+import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
 
 const KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const MODEL = Deno.env.get("ASSIST_MODEL") ?? "claude-opus-5-5";
@@ -91,7 +91,7 @@ const json = (body: unknown, status = 200) =>
 
 type Usage = Record<string, number>;
 /* the instructions and the answer's shape this copy holds, as a fingerprint — never anything secret */
-const rulesPrint = async () => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(TALK_SYSTEM + JSON.stringify(TALK_SCHEMA))))].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+const rulesPrint = async () => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(talkRulesText())))].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
 type Talked =
   | { ok: true; answer: TalkAnswer; unsure: string[]; model: string; usage: Usage; cost: number; seconds: number }
   | { ok: false; off?: boolean; why: string; model?: string; usage?: Usage; cost?: number; detail?: string };
@@ -108,8 +108,8 @@ async function answerTalk(client: Anthropic, ask: TalkAsk, onText?: (soFar: stri
     const params = {
       model: TALK_MODEL, max_tokens: 16000,
       betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
-      output_config: { effort: asksForDocument(ask.turns) ? TALK_EFFORT : TALK_CHAT_EFFORT, format: { type: "json_schema", schema: TALK_SCHEMA } },
-      system: [{ type: "text", text: TALK_SYSTEM, cache_control: { type: "ephemeral" } }],
+      output_config: { effort: asksForDocument(ask.turns) || ask.set ? TALK_EFFORT : TALK_CHAT_EFFORT, format: { type: "json_schema", schema: talkSchemaFor(ask.set) } },
+      system: [{ type: "text", text: talkSystemFor(ask.set), cache_control: { type: "ephemeral" } }],
       messages: talkMessages(ask),
     } as unknown as Parameters<typeof client.beta.messages.create>[0];
     let msg: TalkMsg;
@@ -128,7 +128,7 @@ async function answerTalk(client: Anthropic, ask: TalkAsk, onText?: (soFar: stri
     let raw: unknown = null;
     try { raw = JSON.parse(text); } catch { /* unreadable */ }
     const photos = ask.turns.flatMap(t => (t.kind === "photo" && t.photo ? [t.photo] : []));
-    const answer = checkTalkAnswer(raw, photos);
+    const answer = checkTalkAnswer(raw, photos, ask.set);
     if (!answer) return { ok: false, why: "Line Talk's answer could not be read, so none is kept — ask again.", model, usage, cost };
     return { ok: true, answer, unsure: unsureFigures(answer, ask), model, usage, cost, seconds: Math.round((Date.now() - t0) / 100) / 10 };
   } catch (e) {
@@ -186,8 +186,8 @@ Deno.serve(async (req) => {
     if (!read.ok) return json({ ok: false, why: read.why, rules: await rulesPrint() }, 400);
     const rules = await rulesPrint();
     /* the check asks as the app does — streamed when the app's ask is */
-    if (body.stream === true) return streamTalk(new Anthropic({ apiKey: KEY }), read.ask, async () => undefined, { rules, effort: asksForDocument(read.ask.turns) ? TALK_EFFORT : TALK_CHAT_EFFORT });
-    return json({ ...(await answerTalk(new Anthropic({ apiKey: KEY }), read.ask)), rules, effort: asksForDocument(read.ask.turns) ? TALK_EFFORT : TALK_CHAT_EFFORT });
+    if (body.stream === true) return streamTalk(new Anthropic({ apiKey: KEY }), read.ask, async () => undefined, { rules, effort: asksForDocument(read.ask.turns) || read.ask.set ? TALK_EFFORT : TALK_CHAT_EFFORT });
+    return json({ ...(await answerTalk(new Anthropic({ apiKey: KEY }), read.ask)), rules, effort: asksForDocument(read.ask.turns) || read.ask.set ? TALK_EFFORT : TALK_CHAT_EFFORT });
   }
 
   let body: Record<string, unknown> = {};

@@ -37,7 +37,7 @@
  * a job's. WHERE IT SHOWS: Line Talk in Tools (#/talk, ?line= on one line),
  * a line's page among its tools, the talk itself (#/talk/:id). */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../../db';
+import { deleteStudy, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
 import { useSession } from '../../cloud/session';
 import { displayName } from '../../cloud/team';
@@ -53,6 +53,12 @@ import { ProjectScopeChips } from '../../ui/ProjectScope';
 import { useBlobUrl } from '../../lib/useBlobUrl';
 import { askTurnsOf, isTheirs, notWritten, pendingReply, photoLabels, photosToSend, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from './talk';
 import { DOC_KIND_WORD, TALK_LIMITS, type TalkAskImage } from './talkAssist';
+import { SET_WORD, TALK_SETS, captureAsText, setOf, type TalkSet } from './talkSets';
+import { TalkDiagram, flowInputs } from './TalkDiagram';
+import processFlow from '../calc/defs/process-flow';
+import type { ToolStudy as CalcStudy } from '../../lib/study';
+import { studyHref } from '../../lib/studyLinks';
+import { usePhone } from '../../ui/InstallGrid';
 import { NO_SIGNAL, askTalk, type SoFar } from './talkAsk';
 import { pictureForAssistant } from './talkPictures';
 import { useTalkContext } from '../../screens/useTalkContext';
@@ -387,14 +393,17 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
       const data = t.media ? await pictureForAssistant(t.media.blobKey, TALK_LIMITS.imageBytes) : undefined;
       if (photo && data) images.push({ photo, data });
     }
-    const r = await askTalk({ task: 'talk', context: contextRef.current?.text ?? '', today: longDay(), turns: askTurnsOf(asked), images },
+    /* a toolset talk sends its set, and the diagram as the person now has it, so the assistant builds on theirs */
+    const set = setOf(cur.length ? (await getStudy(s.id))?.facts.set : undefined);
+    const lastCap = [...cur].reverse().find(t => t.kind === 'reply' && t.capture && t.id !== replyId)?.capture;
+    const r = await askTalk({ task: 'talk', ...(set !== 'walk' ? { set } : {}), ...(lastCap && set !== 'walk' ? { draft: captureAsText(lastCap) } : {}), context: contextRef.current?.text ?? '', today: longDay(), turns: askTurnsOf(asked), images },
       p => setWriting({ id: replyId, ...p }));
     if (r.ok) {
       const d = r.answer.document;
       await patchTurn(replyId, {
         text: r.answer.reply || (d ? `Here is the ${DOC_KIND_WORD[d.kind].toLowerCase()}.` : ''),
-        ...(d ? { doc: d } : {}), ...(r.unsure.length ? { unsure: r.unsure } : {}), ...(r.model ? { model: r.model } : {}),
-      }, ['answering', 'why', 'docFirst', ...(d ? [] : ['doc' as const]), ...(r.unsure.length ? [] : ['unsure' as const])]);
+        ...(d ? { doc: d } : {}), ...(r.answer.capture ? { capture: r.answer.capture } : {}), ...(r.unsure.length ? { unsure: r.unsure } : {}), ...(r.model ? { model: r.model } : {}),
+      }, ['answering', 'why', 'docFirst', 'captureFirst', ...(d ? [] : ['doc' as const]), ...(r.answer.capture ? [] : ['capture' as const]), ...(r.unsure.length ? [] : ['unsure' as const])]);
     } else {
       /* nothing said is lost: the question stays, the answer says why it is not here, and is asked again */
       await patchTurn(replyId, r.offline ? { answering: 'waiting', why: r.why } : { answering: 'failed', why: r.why });
@@ -429,6 +438,59 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
     offerUndo(struck ? 'Struck — kept, and left out of the talk' : 'Brought back', async () => { await patchTurn(t.id, struck ? {} : { struck: true }, struck ? ['struck'] : []); });
   };
 
+  /* ---- THE TOOLSET (docs/LINE-TALK-TOOLSETS.md): the kind of walk, the diagram it draws, and Make it ---- */
+  const phone = usePhone();
+  const set = setOf(s.facts.set);
+  const [view, setView] = useState<'talk' | 'diagram'>('talk');
+  const [making, setMaking] = useState(false);
+  const capTurn = useMemo(() => [...turns].reverse().find(t => t.kind === 'reply' && t.capture), [turns]);
+  const capture = capTurn?.capture;
+  const madeId = s.facts.made?.id;
+  const [madeAlive, setMadeAlive] = useState(false);
+  useEffect(() => {
+    let on = true;
+    if (!madeId) { setMadeAlive(false); return; }
+    void getStudy(madeId).then(x => { if (on) setMadeAlive(!!x); });
+    return () => { on = false; };
+  }, [madeId, s.updatedAt]);
+  const pickSet = (k: TalkSet) => patchStudy(s.id, cur => {
+    const { set: _was, ...rest } = cur.facts; void _was;
+    return { facts: k === 'walk' ? rest : { ...rest, set: k } };
+  });
+  const editCapture = (c: NonNullable<typeof capture>) => capTurn ? patchTurn(capTurn.id, { capture: c, ...(capTurn.captureFirst ? {} : capTurn.capture ? { captureFirst: capTurn.capture } : {}) }) : Promise.resolve();
+  const sayWhen = () => `the Line Talk of ${niceDay(todayISO())}`;
+  const makeIt = async () => {
+    if (!capture || making || !live) return;
+    setMaking(true);
+    try {
+      const t = now();
+      const { inputs, src } = flowInputs(capture, sayWhen());
+      const made: CalcStudy = { id: uid(), tool: 'calc', name: `${capture.title.trim() || 'Flow diagram'}${s.workspaceId ? '' : ' (from a talk)'}`, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}),
+        agreed: { calc: { key: processFlow.key, inputs, src } }, facts: { fromTalk: { talk: s.id, at: t } }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
+      await putStudy(made);
+      await patchStudy(s.id, cur => ({ facts: { ...cur.facts, made: { id: made.id, at: t } } }));
+      offerUndo('Made a Process flow chart from this talk', async () => {
+        const restore = await deleteStudy(made.id);
+        await patchStudy(s.id, cur => { const { made: _m, ...rest } = cur.facts; void _m; return { facts: rest }; });
+        void restore;
+      });
+    } finally { setMaking(false); }
+  };
+  const updateIt = async () => {
+    if (!capture || !madeId || making || !live) return;
+    setMaking(true);
+    try {
+      const { inputs, src } = flowInputs(capture, sayWhen());
+      await patchStudy(madeId, cur => {
+        const a = cur.agreed?.calc;
+        if (!a) return {};
+        /* the steps are the talk's; every other figure on the chart (the money, the before) stays the person's */
+        const keep = Object.fromEntries(Object.entries(a.inputs).filter(([k]) => !/^s\d\d_/.test(k)));
+        const keepSrc = Object.fromEntries(Object.entries(a.src ?? {}).filter(([k]) => !/^s\d\d_/.test(k)));
+        return { agreed: { ...cur.agreed, calc: { ...a, inputs: { ...keep, ...inputs }, src: { ...keepSrc, ...src } } } };
+      });
+    } finally { setMaking(false); }
+  };
   const docTurn = docId ? turns.find(t => t.id === docId && t.kind === 'reply' && t.doc) : undefined;
   const photosByLabel = useMemo(() => new Map(turns.filter(t => t.kind === 'photo').map(t => [labels.get(t.id) ?? '', t])), [turns, labels]);
   if (docTurn?.doc) {
@@ -468,7 +530,23 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
         <StudyMenus s={s} canEdit={can.edit} canRemove={can.remove} onRename={() => setNaming(true)} />
       </header>
 
-      <ol className="tk-turns" aria-label="The talk">
+      {live && (
+        <div className="tk-sets" role="group" aria-label="What kind of walk is this">
+          {TALK_SETS.map(k => <button key={k} type="button" className={'chip' + (set === k ? ' on' : '')} aria-pressed={set === k} title={SET_WORD[k].says} data-set={k} onClick={() => void pickSet(k)}>{SET_WORD[k].name}</button>)}
+        </div>
+      )}
+      {set === 'flow' && phone && (
+        <div className="tk-views" role="tablist" aria-label="Talk or diagram">
+          <button type="button" role="tab" aria-selected={view === 'talk'} className={'tk-view' + (view === 'talk' ? ' on' : '')} onClick={() => setView('talk')}>Talk</button>
+          <button type="button" role="tab" aria-selected={view === 'diagram'} className={'tk-view' + (view === 'diagram' ? ' on' : '')} data-view-diagram onClick={() => setView('diagram')}>Diagram{capture ? ` · ${capture.steps.length}` : ''}</button>
+        </div>
+      )}
+      {set === 'flow' && (!phone || view === 'diagram') && (
+        <TalkDiagram capture={capture ?? { set: 'flow', title: '', steps: [] }} canEdit={live} madeId={madeAlive ? madeId : undefined} busy={making}
+          onEdit={c => void editCapture(c)} onMake={() => void makeIt()} onUpdate={() => void updateIt()} onOpen={() => { if (madeId) nav(studyHref({ id: madeId, tool: 'calc', ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) })); }} />
+      )}
+
+      <ol className="tk-turns" aria-label="The talk" hidden={set === 'flow' && phone && view === 'diagram'}>
         {turns.length === 0 && <li className="tk-empty sub">Nothing said yet. Tap the microphone and say what you see — your words come up in the box, then Send. Or type a question; add a photo whenever it helps, and ask for a report when you are done.</li>}
         {turns.map(t => t.kind === 'reply' ? (
           <ReplyRow key={t.id} t={t} live={live} answeringHere={asking === t.id} writing={writing?.id === t.id ? writing : undefined}

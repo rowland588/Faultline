@@ -82,7 +82,7 @@ export async function askTalk(ask: TalkAsk, onPartial?: (p: SoFar) => void): Pro
     if (d.off) return { ok: false, off: true, why };
     if (!d.ok) return { ok: false, why };
     /* read again here — a picture it names must be one of this talk's */
-    const answer = checkTalkAnswer(d.answer, photos);
+    const answer = checkTalkAnswer(d.answer, photos, ask.set);
     if (!answer) return { ok: false, why: 'Line Talk’s answer could not be read, so none is kept — ask again.' };
     const unsure = Array.isArray(d.unsure) ? d.unsure.filter((x): x is string => typeof x === 'string').slice(0, 12) : [];
     return { ok: true, answer, unsure, ...(typeof d.model === 'string' ? { model: d.model } : {}) };

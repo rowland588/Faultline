@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 export const VIDEO_SHARED = ['record', 'visionCore', 'gatewayUsage'];
-export const TALK_SHARED = ['talkAssist'];
+export const TALK_SHARED = ['talkSets', 'talkAssist'];
 export const forDeno = (src, from = 'src/tools/video') => `// COPIED FROM ${from} by scripts/sync-assist.mjs — edit the source, then run it.\n${src.replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'")}`;
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
