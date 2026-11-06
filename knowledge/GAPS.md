@@ -325,3 +325,6 @@ quality.
 
 ## The Toyota Business Practices wording and the cause-selection references (2 November)
 `knowledge/specs/FC-148-why-tree.md` rests on Ishikawa (1982), Ohno (1988), Liker (2004) and ASQ's cause-and-effect guidance for the order brainstorm → select → verify → drill. None was found in a primary source in the session that wrote it; the web sources it cites (Wikipedia, Mind Tools, Kainexus, ThinkReliability) were read. Check the books before the knowledge record `rca/fishbone-5whys.md` is extended.
+
+## FC-233 micro-movements — 7 November
+The therbligs' names, codes and the folding of seventeen to fourteen, and the grouping into working motion, checking, motion to question and allowed time, were written from the textbooks' standard account (Barnes 1980; Niebel & Freivalds 2014 ch. 4) **from knowledge — the books were not read** in this container. Textbooks group *position* and *inspect* differently; the choice is named on the page and in the specification. To close: read Barnes ch. on the therbligs and Niebel ch. 4 and compare the codes and groups.

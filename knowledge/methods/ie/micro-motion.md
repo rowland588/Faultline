@@ -108,8 +108,4 @@ that fills a shift and wears a wrist.
 - [textbook] Gilbreth, F.B. and Gilbreth, L.M. (1917), *Applied Motion Study*, Sturgis & Walton (from knowledge).
 
 ## In Faultline
-Not built (FC-233). The video study holds the footage and marks element
-boundaries on it (`src/tools/video`); FC-233 would let the two hands'
-motions be marked on a short element frame by frame, draw the two-hand
-chart with the holds and idles counted, name the principles broken, and
-estimate the saving.
+Built as the calculator `micro-movements` (FC-233, `knowledge/specs/FC-233-micro-movements.md`): up to 24 elements in order, each a therblig (fourteen classes, Gilbreth's seventeen folded), on a hand (left, right, both, whole body), with seconds only if timed or said; two elements on opposite hands marked together share a moment; the cycle, the shares in working motion, motion to question and checking or allowed time, what each hand holds and has nothing listed for, the labour on the motion to question, and the two-handed chart on the page and the paper. No predetermined-time table and no estimated second. Not built: marking the hands' motions on the video study's frames; naming the principles of motion economy against the chart; Line Talk's set (T4). The video study (`src/tools/video`) still holds the footage.

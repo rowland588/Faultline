@@ -10,7 +10,7 @@ import type { LeanTile, LeanTone } from '../lean';
 import type { ToolStudy } from '../study';
 import { INK2, MUTED, LINE, BRAND, WARN, san } from '../reportKit';
 import { askedFields, beforeRun, inputSaid, studyCalc, tilesSince } from '../../tools/calc/calc';
-import type { CalcChart, CalcPicture } from '../../tools/calc/types';
+import type { CalcChart, CalcHands, CalcPicture } from '../../tools/calc/types';
 import { symbolShape } from '../../tools/flow/symbols';
 import { font, label, rows, text, wrap, type Row } from './blocks';
 import { leanHead } from './lean';
@@ -123,6 +123,46 @@ export function chartBlock(chart: CalcChart): Block {
   return rows({ header: head, rows: chart.rows.map(row), after: 'm' });
 }
 
+/** A two-handed chart (micro-movements, FC-233): a row to a moment, each element a box with its therblig's code in its hand's lane, its words and seconds beside — the same description the
+ *  screen draws. Working motion has a heavy solid line, motion to question a dashed one, the rest a thin one. A row is as tall as its longest words. */
+export function handsBlock(chart: CalcHands): Block {
+  const NUMW = 18, SECW = 34, LH = 9, MIN = 24;
+  const laneW = (f: Frame): number => (f.w - NUMW - SECW) / chart.lanes.length;
+  const wordsOf = (f: Frame, what: string) => wrap(f.doc, what, laneW(f) - 36, 7.5);
+  const hOf = (f: Frame, r: CalcHands['rows'][number]): number => Math.max(MIN, ...r.cells.map(c => wordsOf(f, san(c.what)).length * LH + 12));
+  const head: Row = {
+    h: () => 14,
+    draw: (fr, y) => {
+      font(fr.doc, 7.5, 'bold', MUTED);
+      fr.doc.text(san(chart.head[0]), fr.x, y + 9);
+      chart.lanes.forEach((l, i) => fr.doc.text(san(l), fr.x + NUMW + i * laneW(fr) + 2, y + 9));
+      fr.doc.text(san(chart.head[1]), fr.x + fr.w, y + 9, { align: 'right' });
+    },
+  };
+  const row = (r: CalcHands['rows'][number]): Row => ({
+    h: f => hOf(f, r),
+    draw: (fr, y) => {
+      const d = fr.doc, hh = hOf(fr, r);
+      font(d, 8, 'normal', MUTED); d.text(`${r.n}.`, fr.x, y + 12);
+      for (const c of r.cells) {
+        const x = fr.x + NUMW + c.lane * laneW(fr) + 2;
+        d.setDrawColor(INK2); d.setFillColor('#ffffff');
+        d.setLineWidth(c.style === 'working' ? 1.6 : c.style === 'question' ? 1 : 0.6);
+        d.setLineDashPattern(c.style === 'question' ? [2.5, 1.8] : [], 0);
+        d.roundedRect(x, y + 3, 22, 12, 1.5, 1.5, 'FD');
+        d.setLineDashPattern([], 0);
+        font(d, 6.5, 'bold', INK2); d.text(san(c.code), x + 11, y + 11, { align: 'center' });
+        font(d, 6.5, 'normal', MUTED); d.text(san(c.sec), x + 11, y + 22, { align: 'center' });
+        font(d, 7.5, 'normal', INK2);
+        wordsOf(fr, san(c.what)).forEach((l, k) => d.text(l, x + 26, y + 9 + k * LH));
+      }
+      font(d, 8, 'normal', INK2); d.text(san(r.sec), fr.x + fr.w, y + 12, { align: 'right' });
+      d.setDrawColor(LINE); d.setLineWidth(0.4); d.line(fr.x, y + hh, fr.x + fr.w, y + hh);
+    },
+  });
+  return rows({ header: head, rows: chart.rows.map(row), after: 'm' });
+}
+
 export interface CalcPaperParts {
   eyebrow: string;
   verdict: { text: string; tone: LeanTone };
@@ -154,6 +194,7 @@ export function calcPaperParts(s: ToolStudy): CalcPaperParts | undefined {
     const more = [...(r.more ?? []), ...run.problems.filter(p => !p.block).map(p => `Check: ${p.say}`)];
     if (more.length) { out.push(label('What else it says')); for (const m of more) out.push(text({ text: m, size: 8.5, colour: m.startsWith('Check:') ? WARN : INK2, after: 2 })); }
     if (r.picture) { out.push(leanHead(r.picture.title)); out.push(pictureBlock(r.picture)); out.push(text({ text: r.picture.caption, size: 8, colour: MUTED, after: 4 })); }
+    if (r.hands) { out.push(leanHead(r.hands.title)); out.push(handsBlock(r.hands)); out.push(text({ text: r.hands.caption, size: 8, colour: MUTED, after: 4 })); }
     if (r.chart) { out.push(leanHead(r.chart.title)); out.push(chartBlock(r.chart)); out.push(text({ text: r.chart.caption, size: 8, colour: MUTED, after: 4 })); }
   } else out.push(text({ text: `Not worked out yet: ${run.problems.filter(p => p.block).map(p => p.say).join(' ')}`, size: 9, colour: WARN, after: 4 }));
 

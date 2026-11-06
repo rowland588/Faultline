@@ -130,6 +130,18 @@ export interface CalcChart {
   rows: { n: number; symbol: 'O' | 'T' | 'I' | 'D' | 'S'; what: string; time: string; distance: string }[];
 }
 
+/** A two-handed (simo) chart, FC-233: one row to a moment down the page, the elements of that moment in their lane (left hand · right hand · both hands or whole body), each a box with
+ *  its therblig's code and words, drawn by its style (never a state colour). Drawn from the one description by the screen (tools/calc/CalcHands) and the paper (lib/report/calcPaper). */
+export interface CalcHands {
+  title: string;
+  caption: string;
+  /** The lane heads: three (left hand, right hand, both hands or whole body), or one when no element is of one hand. */
+  lanes: string[];
+  /** Heads of the first and last columns. */
+  head: [string, string];
+  rows: { n: number; sec: string; cells: { lane: number; code: string; what: string; style: 'working' | 'question' | 'plain'; sec: string }[] }[];
+}
+
 export interface CalcResult {
   /** The band's verdict, a few words: "8 kanbans". */
   verdict: string;
@@ -147,6 +159,8 @@ export interface CalcResult {
   picture?: CalcPicture;
   /** Or a chart of steps down the page, where the method's picture is that (the process flow chart). */
   chart?: CalcChart;
+  /** Or a two-handed chart (micro-movements, FC-233). */
+  hands?: CalcHands;
   /** The lean page's closing line: where are we, why, and what is being done. */
   closing: string;
 }
