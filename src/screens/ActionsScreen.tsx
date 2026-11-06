@@ -30,7 +30,8 @@ const ONLY_WORD: Record<Only, string> = { all: 'Everything', late: 'Late', prior
 /* what opens in the record's drawer, as on Needs you (screens/ProjectDashboardScreen) */
 const IN_DRAWER = new Set(['test', 'fix', 'install', 'setup', 'handover']);
 
-function open(a: ProjectAction) {
+/** What an action opens — the register's problem, the record's drawer, or its place on the plan. The Factory's four questions open one the same way. */
+export function openAction(a: ProjectAction) {
   if (a.snagId) { nav(`/snags?open=${encodeURIComponent(a.snagId)}`); return; }
   const x = a.item;
   if (!x) return;
@@ -113,7 +114,7 @@ function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name
           <ul className="lt-rows">
             {g.rows.map(a => (
               <li key={a.key} className={'lt-li act-li' + (a.late ? ' is-late' : a.soon ? ' is-soon' : '')} data-action={a.key}>
-                <button type="button" className="lt-row" onClick={() => open(a)}>
+                <button type="button" className="lt-row" onClick={() => openAction(a)}>
                   <b className="lt-what">{a.what}</b>
                   <span className="lt-says act-meta">
                     {a.priority && <PriorityPill priority={a.priority} />}

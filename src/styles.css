@@ -10839,10 +10839,10 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 /* LOOK E (docs/LOOK.md §2) — the rail is the navy frame: the mark, the name and the tagline at its head,
    an icon a line, the line you are on in the press colour, the Factory-online chip at its foot. The one
    dark fill with light words; nothing inside the page or on paper is. */
-.nv-rail-head { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 14px; }
+.nv-rail-head { display: flex; flex-direction: column; gap: 6px; padding: 4px 8px 16px; }
 .nv-rail-brand { display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 0; cursor: pointer; color: var(--nav-ink); text-align: left; }
 .nv-rail-brand .logo-mark { border-radius: var(--radius-sm); flex: none; }
-.nv-rail-name { font-family: var(--display); font-size: var(--t-page); font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.nv-rail-name { font-family: var(--display); font-size: var(--t-h); font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
 .nv-rail-tag { margin: 0; font-size: var(--t-label); color: var(--nav-dim); line-height: 1.35; }
 .nv-rail .nv-grp-l { color: var(--nav-dim); }
 .nv-rail .nv-ri { color: var(--nav-muted); }
@@ -11328,7 +11328,7 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .nv-main { background: var(--canvas); }
 .nv-main .wrap { overflow-x: clip; max-width: 100%; }
 .ep-panel {
-  margin: 0 0 18px; padding: 16px 18px 18px; border-radius: var(--radius);
+  margin: 0 0 16px; padding: 18px 20px 20px; border-radius: var(--radius);
   background: var(--surface); border: 1px solid var(--line);
   box-shadow: var(--shadow);
 }
@@ -11481,9 +11481,9 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .pl-edit-f { flex: 1 1 200px; display: flex; flex-direction: column; gap: 2px; font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); }
 .pl-edit-f .text-input { margin: 0; font-weight: 400; }
 .fac-says { margin-top: 0; }
-.fac-floor { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.fac-floor { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
 .fac-card {
-  width: 100%; height: 100%; display: flex; flex-direction: column; gap: 6px; padding: 14px 16px;
+  width: 100%; height: 100%; display: flex; flex-direction: column; gap: 6px; padding: 18px 20px;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-align: left;
   font: inherit; color: var(--ink); cursor: pointer; box-shadow: var(--shadow);
   transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
@@ -16223,3 +16223,77 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .attach-add .btn { min-height: 44px; }
 .attach-linkform { display: flex; flex-direction: column; gap: var(--space-2); }
 .calc-tile .attach-btn { margin-top: var(--space-1); }
+
+/* ============================================================ THE FOUR QUESTIONS ON THE FACTORY
+   docs/LOOK.md §1, look E (6 November; polished the same evening — Rowland: "Keep the existing structure,
+   colours, navigation and four-question approach. Bring the visual quality up a level through spacing,
+   typography, alignment, card consistency and responsive design … established enterprise software").
+   One card language: a white card, a hairline, the house corner, 20px inside; one type scale: a 13px
+   label, a 15px row, a 24px figure; an 8px rhythm between things; colour only on the state, with its word. */
+.fq-hero { margin: 16px 0 16px; padding: 4px 24px 18px; border-radius: var(--radius);
+  background: var(--nav); color: var(--nav-ink); }
+.fq-hero .pace-head { padding: 18px 0 12px; margin-bottom: 0; align-items: center; }
+.fq-hero .pace-eyebrow { margin: 0 0 2px; color: var(--nav-dim); letter-spacing: 0; text-transform: none; font-size: var(--t-detail); font-weight: 500; }
+.fq-hero .pace-title { color: var(--nav-ink); font-size: var(--t-page); font-weight: 700; letter-spacing: -0.02em; }
+.fq-hero .pace-lede { margin-top: 6px; color: var(--nav-muted); max-width: 80ch; font-size: var(--t-body); line-height: 1.5; }
+.fq-hero .btn { min-height: var(--tap); background: transparent; border-color: color-mix(in srgb, var(--nav-ink) 28%, transparent); color: var(--nav-ink); box-shadow: none; font-weight: 600; }
+.fq-hero .btn:hover { background: color-mix(in srgb, var(--nav-ink) 8%, transparent); }
+.fq-hero .btn-primary { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.fq-hero .btn-primary:hover { background: var(--brand-2); border-color: var(--brand-2); }
+.fq-hero .fac-quick { margin: 0; padding: 12px 0 0; gap: 6px 4px; background: none; border: 0; border-top: 1px solid color-mix(in srgb, var(--nav-ink) 12%, transparent); box-shadow: none; border-radius: 0; }
+.fq-hero .fac-quick .btn, .fq-hero .chip { min-height: 34px; padding: 0 12px; font-size: var(--t-detail); font-weight: 600; border-radius: var(--radius-sm); background: transparent; border: 1px solid transparent; color: var(--nav-muted); }
+.fq-hero .fac-quick .fd-talk-start { color: var(--nav-ink); border-color: color-mix(in srgb, var(--nav-ink) 28%, transparent); }
+.fq-hero .fac-quick .btn:hover, .fq-hero .chip:hover { background: color-mix(in srgb, var(--nav-ink) 8%, transparent); color: var(--nav-ink); }
+.fq-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0 0 16px; }
+.fq-card { display: flex; align-items: flex-start; gap: 14px; min-width: 0; padding: 18px 20px; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); color: var(--ink); font: inherit;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease; }
+.fq-card:hover { border-color: var(--line-2); box-shadow: var(--shadow-lift); }
+.fq-card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.fq-ic { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink-2); }
+.fq-card.is-r .fq-ic { background: color-mix(in srgb, var(--st-r) 10%, var(--surface)); color: var(--st-r); }
+.fq-card.is-a .fq-ic { background: color-mix(in srgb, var(--st-a) 12%, var(--surface)); color: var(--st-a); }
+.fq-card.is-g .fq-ic { background: color-mix(in srgb, var(--st-g) 10%, var(--surface)); color: var(--st-g); }
+.fq-card-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fq-card .fq-d { margin-top: auto; }
+.fq-card-body { height: 100%; }
+.fq-k { font-size: var(--t-detail); font-weight: 600; color: var(--muted); line-height: 1.3; }
+.fq-v { font-size: var(--t-page); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fq-of { display: block; margin-top: 2px; font-size: var(--t-detail); font-weight: 500; color: var(--muted); letter-spacing: 0; line-height: 1.3; }
+.fq-d { font-size: var(--t-detail); font-weight: 600; color: var(--ink-2); }
+.fq-card.is-r .fq-d { color: var(--st-r); } .fq-card.is-a .fq-d { color: var(--st-a); } .fq-card.is-g .fq-d { color: var(--st-g); }
+.fq-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin: 0 0 16px; align-items: start; }
+.fq-lines { min-width: 0; } .fq-lines .fac-home { margin: 0; }
+.fq-panel { min-width: 0; margin: 0; padding: 18px 20px 12px; }
+.fq-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.fq-h2 { margin: 0; font-size: var(--t-body); font-weight: 700; letter-spacing: -0.01em; }
+.fq-all { background: none; border: 0; padding: 0; font: inherit; font-size: var(--t-detail); font-weight: 600; color: var(--accent); cursor: pointer; white-space: nowrap; }
+.fq-all:hover { text-decoration: underline; }
+.fq-rows { list-style: none; margin: 0; padding: 0; }
+.fq-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 10px 0; background: none; border: 0; border-top: 1px solid var(--line-row); text-align: left; cursor: pointer; font: inherit; font-size: var(--t-detail); color: var(--ink); }
+.fq-rows > li:first-child .fq-row { border-top: 0; }
+.fq-row:hover .fq-row-main b { color: var(--accent); }
+.fq-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fq-row-main b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fq-row-sub { font-size: var(--t-label); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fq-pill { flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 64px; height: 24px; padding: 0 10px; border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 600; white-space: nowrap; background: var(--surface-2); color: var(--ink-2); }
+.fq-pill.is-r { background: color-mix(in srgb, var(--st-r) 10%, var(--surface)); color: var(--st-r); }
+.fq-pill.is-a { background: color-mix(in srgb, var(--st-a) 12%, var(--surface)); color: var(--st-a); }
+.fq-pill.is-g { background: color-mix(in srgb, var(--st-g) 10%, var(--surface)); color: var(--st-g); }
+.fq-money { flex: none; min-width: 84px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; } .fq-money.is-r { color: var(--st-r); } .fq-money.is-n { color: var(--muted); font-weight: 500; }
+.fq-who { flex: none; display: inline-flex; align-items: center; gap: 8px; min-width: 110px; justify-content: flex-end; font-size: var(--t-label); font-weight: 500; color: var(--ink-2); white-space: nowrap; }
+.fq-who.is-a { color: var(--st-a); font-weight: 600; }
+.fq-who i { width: 24px; height: 24px; border-radius: var(--radius-round); background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-style: normal; font-size: var(--t-mark); font-weight: 700; letter-spacing: 0.02em; }
+.fq-none, .fq-foot { margin: 8px 0 6px; font-size: var(--t-detail); line-height: 1.5; color: var(--muted); }
+.fq-foot { border-top: 1px solid var(--line-row); padding-top: 10px; }
+@media (max-width: 1099px) { .fq-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fq-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 719px) {
+  .fq-hero { padding: 0 16px 14px; margin-top: 12px; }
+  .fq-hero .pace-head { flex-direction: column; align-items: stretch; gap: 10px; padding: 16px 0 10px; }
+  .fq-hero .pace-head-actions { justify-content: flex-start; }
+  .fq-cards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; } .fq-card { padding: 14px; gap: 10px; } .fq-ic { width: 34px; height: 34px; } .fq-v { font-size: var(--t-h); }
+  .fq-grid { gap: 12px; } .fq-panel { padding: 16px 16px 10px; }
+  .fq-row { gap: 10px; align-items: flex-start; padding: 10px 0; } .fq-pill { margin-top: 2px; min-width: 0; }
+  .fq-row-main b, .fq-row-sub { white-space: normal; overflow-wrap: anywhere; }
+  .fq-money { min-width: 0; } .fq-who { min-width: 0; max-width: 38%; } .fq-who span { overflow: hidden; text-overflow: ellipsis; }
+}

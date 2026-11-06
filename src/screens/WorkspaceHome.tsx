@@ -52,6 +52,9 @@ import { useLooking } from '../tools/gemba/useLooking';
 import { lookingShort } from '../tools/gemba/looking';
 import '../tools/gemba/looking.css';
 import { niceDay, todayISO } from '../lib/weeks';
+import { useFactoryQuestions } from '../lib/useFactoryQuestions';
+import { greeting } from '../lib/factoryQuestions';
+import { QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
 
 /* What a workspace card must answer: "what's in here?" — for ALL content, not
  * one kind of it. Counting only time observations made a workspace full of
@@ -339,9 +342,12 @@ export function WorkspaceHome() {
     </section>
   );
 
-  const factoryLede = prodLines.length
+  /* THE FOUR QUESTIONS (docs/LOOK.md §1, look E — 6 November): what's going wrong, what needs doing, who's
+     responsible, did it work — the hero's sentence, the four cards and the answers under them */
+  const questions = useFactoryQuestions(jobs, prodLines);
+  const factoryLede = questions?.sentence ?? (prodLines.length
     ? 'Open a line — programs, problems and tools live there. The board below is what needs you across projects.'
-    : 'Add your production lines first; everything else hangs off them.';
+    : 'Add your production lines first; everything else hangs off them.');
 
   const facQuick = (
     <nav className="fac-quick home-talk" aria-label="On the factory">
@@ -378,7 +384,8 @@ export function WorkspaceHome() {
           like any other, and its name says which. */}
       {/* TEAM & INVITES, where the Factory's other settings are (Rowland, 4 November: "we used to have an invite system ... put that back"): it was only behind the
           account circle, top right; a super admin finds it here too. The database still lets in only the people invited (allowed_emails). */}
-      <PageHeader title="Factory"
+      <section className="fq-hero" aria-label="The factory today">
+      <PageHeader title="Factory" eyebrow={greeting(new Date().getHours())}
         says={factoryLede}
         more={profile?.is_super ? [{ label: 'Team & invites', run: () => setTeam(true) }] : undefined}
         primary={mayStart ? { label: 'New project', run: () => nav('/projects?new=1') } : undefined}
@@ -389,7 +396,9 @@ export function WorkspaceHome() {
       {profile?.is_super && <AdminPanel open={team} onClose={() => setTeam(false)} />}
       {allPapers && <ControlRoomReports projects={projects} onClose={() => setAllPapers(false)} />}
       {facQuick}
-      {factory}
+      </section>
+      <QuestionCards q={questions} />
+      <QuestionPanels q={questions} lines={factory} />
 
       {jobs.length > 0 || prodLines.length > 0
         ? <JobsBoard projects={jobs} reportRef={roomReport} />
