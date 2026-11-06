@@ -150,7 +150,7 @@ export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onKe
         const free = labels.filter(l => !x.photos.some(p => p.photo === l));
         return (
           <section key={i} className="tk-dsec" data-section={i}>
-            {edit ? <input className="text-input tk-dh" value={x.heading} aria-label="Section heading" onChange={e => sec(i, y => ({ ...y, heading: e.target.value }))} /> : <h2 className="ln-h">{x.icon && <span className="tk-dicon" aria-hidden>{x.icon} </span>}{x.heading}</h2>}
+            {edit ? <span className="tk-dh-w">{x.icon && <span className="tk-dicon" aria-hidden>{x.icon}</span>}<input className="text-input tk-dh" value={x.heading} aria-label="Section heading" onChange={e => sec(i, y => ({ ...y, heading: e.target.value }))} /></span> : <h2 className="ln-h">{x.icon && <span className="tk-dicon" aria-hidden>{x.icon} </span>}{x.heading}</h2>}
             {edit
               ? <textarea className="text-input tk-dtext" rows={Math.min(8, Math.max(2, Math.ceil(x.text.length / 80)))} value={x.text} placeholder="A few words to open the section (optional)" aria-label="Section words" onChange={e => sec(i, y => ({ ...y, text: e.target.value }))} />
               : x.text && <p className="tk-dtext-r">{x.text}</p>}

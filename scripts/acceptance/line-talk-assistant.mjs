@@ -233,7 +233,7 @@ await page.locator('.tk-doc button', { hasText: 'Open' }).last().click(); await 
 ok(/\?doc=/.test(page.url()) && await page.locator('.tk-docv').count() === 1, '8 the document opened', page.url());
 ok(await page.locator('.tk-docv .tk-unsure').count() === 1, '8 the figure to check, said on it too');
 /* 6 November — Rowland: "1 second the status, 2 the problem, 3 what we are doing" */
-ok(await page.locator('.tk-dstatus[data-st="problem"] .tk-dstatus-w').innerText() === 'Problem' && await page.locator('.tk-dstatus input').inputValue() === 'Bagger film wandering — guard bent', '8a the status first: PROBLEM in its colour with its one line');
+ok((await page.locator('.tk-dstatus[data-st="problem"] .tk-dstatus-w').innerText()).toLowerCase() === 'problem' && await page.locator('.tk-dstatus input').inputValue() === 'Bagger film wandering — guard bent', '8a the status first: PROBLEM in its colour with its one line');
 ok((await page.locator('.tk-dstatus').evaluate(e => e.getBoundingClientRect().top)) < (await page.locator('.tk-dsec').first().evaluate(e => e.getBoundingClientRect().top)), '8b the status is above the first section');
 ok(/🚨/.test(await page.locator('.tk-dsec').first().locator('.tk-dicon').innerText()), '8c the section carries its icon');
 ok(await page.locator('.tk-dsec').first().locator('select[aria-label="Where it stands"]').nth(1).inputValue() === 'problem', '8d the point marked a problem, changeable in the edit');

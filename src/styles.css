@@ -15958,3 +15958,5 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .tk-dstate[data-st="problem"] { color: var(--st-r); }
 .tk-dstate[data-st="action"] { color: var(--st-w); }
 .tk-dpt[data-state="problem"] { border-left: 3px solid var(--st-r); padding-left: var(--space-2); }
+.tk-dh-w { display: flex; align-items: center; gap: var(--space-2); }
+.tk-dh-w .tk-dh { flex: 1 1 auto; min-width: 0; }
