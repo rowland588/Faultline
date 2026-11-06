@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { configDefaults, defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -14,6 +14,8 @@ const BUILD_STAMP = process.env.FAULTLINE_BUILD_STAMP
 
 export default defineConfig({
   define: { __BUILD_STAMP__: JSON.stringify(BUILD_STAMP) },
+  /* tests run on this checkout only — never on the copies agents leave under .claude/worktrees (ignored by git, absent in CI), which read these files with their own, older rules */
+  test: { exclude: [...configDefaults.exclude, '.claude/**'] },
   /* the dev server's first look for the libraries to pre-bundle starts at the
      app's one page, never at every .html below the checkout — a checkout that
      holds other copies of the app (.claude/worktrees) had it crawl all of them
