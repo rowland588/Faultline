@@ -216,10 +216,10 @@ ok(await page.locator('.tk-chip').count() === 4, '7 four shortcuts to the usual 
 await chip.click();
 const asked7 = (await page.locator('.tk-type textarea').inputValue()).trim();
 ok(/^Write a line-walk report/.test(asked7), '7 a shortcut is only words in the box', asked7);
-plan.push({ a: { reply: 'Here is the line-walk report, with P1 and P2 beside what they show.', document: { title: 'Line 7 — walk', kind: 'line-walk', sections: [
-  { heading: 'What was seen', text: 'A walk from the bagger to the checkweigher.', points: [
+plan.push({ a: { reply: 'Here is the line-walk report, with P1 and P2 beside what they show.', document: { title: 'Line 7 — walk', kind: 'line-walk', status: { state: 'problem', line: 'Bagger film wandering — guard bent' }, sections: [
+  { heading: 'What was seen', icon: '🚨', text: 'A walk from the bagger to the checkweigher.', points: [
     { text: 'The bagger film is wandering to the left, at about 62 a minute.', basis: 'observed', owner: '', due: '' },
-    { text: 'Guard on the infeed bent — critical, owner Dave.', basis: 'record', owner: 'Dave', due: '' },
+    { text: 'Guard on the infeed bent — critical, owner Dave.', basis: 'record', state: 'problem', owner: 'Dave', due: '' },
     { text: 'The film may be about 15 mm off centre.', basis: 'interpretation', owner: '', due: '' },
   ], photos: [{ photo: 'P1', caption: 'The infeed guard' }, { photo: 'P2', caption: 'The bagger film' }] },
 ] } }, extra: { unsure: ['15'] } });
@@ -232,6 +232,12 @@ ok((asks.at(-1)?.turns.at(-1)?.text ?? '') === asked7, '7 asked in the shortcut�
 await page.locator('.tk-doc button', { hasText: 'Open' }).last().click(); await settle(800);
 ok(/\?doc=/.test(page.url()) && await page.locator('.tk-docv').count() === 1, '8 the document opened', page.url());
 ok(await page.locator('.tk-docv .tk-unsure').count() === 1, '8 the figure to check, said on it too');
+/* 6 November — Rowland: "1 second the status, 2 the problem, 3 what we are doing" */
+ok(await page.locator('.tk-dstatus[data-st="problem"] .tk-dstatus-w').innerText() === 'Problem' && await page.locator('.tk-dstatus input').inputValue() === 'Bagger film wandering — guard bent', '8a the status first: PROBLEM in its colour with its one line');
+ok((await page.locator('.tk-dstatus').evaluate(e => e.getBoundingClientRect().top)) < (await page.locator('.tk-dsec').first().evaluate(e => e.getBoundingClientRect().top)), '8b the status is above the first section');
+ok(/🚨/.test(await page.locator('.tk-dsec').first().locator('.tk-dicon').innerText()), '8c the section carries its icon');
+ok(await page.locator('.tk-dsec').first().locator('select[aria-label="Where it stands"]').nth(1).inputValue() === 'problem', '8d the point marked a problem, changeable in the edit');
+ok(!/lean/i.test(await page.locator('.tk-dtitle').inputValue()), '8e the title never calls it a lean report');
 await page.locator('.tk-dtitle').fill('Line 7 — morning walk');
 await page.locator('input[aria-label="Caption for P1"]').fill('The infeed guard, bent where the bags catch');
 await page.locator('.tk-dsec').first().locator('button', { hasText: 'Add a point' }).click();

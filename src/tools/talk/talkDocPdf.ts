@@ -11,14 +11,33 @@ import { chooseDensity, pour, type Block, type Frame } from '../../lib/report/fl
 import { SIZE, box, font, gap, heading, rows, text, wrap } from '../../lib/report/blocks';
 import { leanBand } from '../../lib/report/lean';
 import { bandPage } from '../../lib/lean';
-import { INK, INK2, LINE, MUTED } from '../../lib/reportKit';
-import { BASIS_WORD, DOC_KIND_WORD, type TalkBasis, type TalkDoc } from './talkAssist';
+import { DANGER, INK, INK2, LINE, MUTED, OK, WARN, BLUE } from '../../lib/reportKit';
+import { BASIS_WORD, DOC_KIND_WORD, STATE_WORD, type TalkBasis, type TalkDoc, type TalkState, type TalkStatus } from './talkAssist';
 import type { Picture } from './talkPictures';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const TAG_W = 74;
 /* where a point comes from — told apart by words and a shade of grey, never a state colour */
 const TAG_FILL: Record<TalkBasis, string> = { observed: '#eef3f3', record: '#e3eced', interpretation: '#f6f7f7' };
+
+/* the state colours, each beside its word (visual management: one colour, one meaning) */
+const STATE_INK: Record<Exclude<TalkState, ''>, string> = { ok: OK, watch: WARN, problem: DANGER, action: BLUE };
+
+/** THE FIRST SECOND — how things stand: a bar in the state's colour, its word large, then one short line. */
+function statusBanner(st: TalkStatus): Block {
+  const lay = (f: Frame) => wrap(f.doc, st.line, f.w - 130, 13, 'bold');
+  return box(
+    f => Math.max(34, 14 + lay(f).length * 16) + gap(f.density, 'm'),
+    (f, y) => {
+      const d = f.doc, l = lay(f), h = Math.max(34, 14 + l.length * 16);
+      d.setFillColor('#f4f6f6'); d.rect(f.x, y, f.w, h, 'F');
+      d.setFillColor(STATE_INK[st.state]); d.rect(f.x, y, 6, h, 'F');
+      font(d, 15, 'bold', STATE_INK[st.state]); d.text(STATE_WORD[st.state].toUpperCase(), f.x + 16, y + h / 2 + 5);
+      font(d, 13, 'bold', INK); l.forEach((s, i) => d.text(s, f.x + 118, y + 20 + i * 16));
+    },
+    f => gap(f.density, 'm'),
+  );
+}
 
 export interface TalkDocPaper {
   doc: TalkDoc;
@@ -40,12 +59,13 @@ function point(p: TalkDoc['sections'][number]['points'][number]): Block {
   const lay = (f: Frame) => ({ t: wrap(f.doc, p.text, f.w - TAG_W - 10, SIZE.body), m: meta ? wrap(f.doc, meta, f.w - TAG_W - 10, SIZE.small, 'bold') : [] });
   return rows({
     rows: [{
-      h: (f: Frame) => { const l = lay(f); return 7 + Math.max(1, l.t.length) * 12.4 + l.m.length * 11 + 3; },
+      h: (f: Frame) => { const l = lay(f); return Math.max(p.state ? 32 : 0, 7 + Math.max(1, l.t.length) * 12.4 + l.m.length * 11 + 3); },
       draw: (f: Frame, top: number) => {
         const l = lay(f), d = f.doc;
         d.setDrawColor(LINE); d.setLineWidth(0.5); d.line(f.x, top, f.x + f.w, top);
         d.setFillColor(TAG_FILL[p.basis]); d.roundedRect(f.x, top + 4, TAG_W - 6, 12, 3, 3, 'F');
         font(d, SIZE.tiny, 'bold', INK2); d.text(BASIS_WORD[p.basis].toUpperCase(), f.x + 4, top + 12.4);
+        if (p.state) { font(d, SIZE.tiny, 'bold', STATE_INK[p.state]); d.text(STATE_WORD[p.state].toUpperCase(), f.x + 4, top + 27); }
         font(d, SIZE.body, 'normal', INK); l.t.forEach((s, i) => d.text(s, f.x + TAG_W, top + 13 + i * 12.4));
         font(d, SIZE.small, 'bold', MUTED); l.m.forEach((s, i) => d.text(s, f.x + TAG_W, top + 13 + l.t.length * 12.4 + i * 11));
       },
@@ -86,6 +106,7 @@ function blocksOf(p: TalkDocPaper): Block[] {
   const page = bandPage(`${DOC_KIND_WORD[p.doc.kind]} · Line Talk`, { name: p.doc.title }, undefined, undefined,
     [['Line', p.line ?? 'Not on a line'], ...(p.by ? [['By', p.by] as [string, string]] : []), ['From', p.talk]]);
   out.push(leanBand(page, p.printed));
+  if (p.doc.status) out.push(statusBanner(p.doc.status));
   out.push(text({ text: 'Each point says where it comes from: OBSERVED — said, typed or photographed on the line; FAULTLINE RECORD — Faultline’s own records, worked out by its formulas; ASSESSMENT — Line Talk’s reading, to be checked.', size: SIZE.small, colour: MUTED, after: 10 }));
   for (const s of p.doc.sections) {
     /* a long heading wraps, never cut (docs/REPORTS.md §2.1) */

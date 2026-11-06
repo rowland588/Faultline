@@ -15939,3 +15939,22 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .cap-same { background: var(--surface); border: 1px solid var(--brand); color: var(--brand); border-radius: var(--radius-pill); padding: 0 var(--space-3); }
 .cap-flip { background: none; border: 0; color: var(--brand); text-decoration: underline; padding: 0; }
 .cap-q { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-3); }
+
+/* LINE TALK'S REPORT, SEEN IN THREE SECONDS (5 November — Rowland: "1 second the status, 2 the problem, 3 what we are doing") */
+.tk-dstatus { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-3); margin: 0 0 var(--space-3); background: var(--surface); border-left: 6px solid var(--st-n); border-radius: var(--radius); box-shadow: var(--shadow); }
+.tk-dstatus[data-st="ok"] { border-left-color: var(--st-g); }
+.tk-dstatus[data-st="watch"] { border-left-color: var(--st-a); }
+.tk-dstatus[data-st="problem"] { border-left-color: var(--st-r); }
+.tk-dstatus-w { font-size: var(--t-h2, 1.25rem); text-transform: uppercase; letter-spacing: 0.04em; color: var(--st-n-ink); }
+.tk-dstatus[data-st="ok"] .tk-dstatus-w { color: var(--st-g); }
+.tk-dstatus[data-st="watch"] .tk-dstatus-w { color: var(--st-a); }
+.tk-dstatus[data-st="problem"] .tk-dstatus-w { color: var(--st-r); }
+.tk-dstatus-l { font-weight: 700; flex: 1 1 220px; min-width: 0; }
+.tk-dstatus .text-input { flex: 1 1 220px; min-width: 0; }
+.tk-dicon { vertical-align: -0.05em; }
+.tk-dstate { display: inline-block; font-size: var(--t-small); font-weight: 700; text-transform: uppercase; padding: 0 var(--space-2); border-radius: var(--radius-pill); border: 1px solid currentColor; color: var(--st-n-ink); }
+.tk-dstate[data-st="ok"] { color: var(--st-g); }
+.tk-dstate[data-st="watch"] { color: var(--st-a); }
+.tk-dstate[data-st="problem"] { color: var(--st-r); }
+.tk-dstate[data-st="action"] { color: var(--st-w); }
+.tk-dpt[data-state="problem"] { border-left: 3px solid var(--st-r); padding-left: var(--space-2); }

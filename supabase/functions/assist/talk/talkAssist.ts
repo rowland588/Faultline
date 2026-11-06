@@ -64,10 +64,16 @@ export const BASIS_WORD: Record<TalkBasis, string> = {
   observed: 'Observed', record: 'Faultline record', interpretation: 'Assessment',
 };
 
-export interface TalkDocPoint { text: string; basis: TalkBasis; owner: string; due: string }
+/** Where a point stands on the board — told in a word beside its colour, never by colour alone ('' = no marker). */
+export type TalkState = '' | 'ok' | 'watch' | 'problem' | 'action';
+export const STATE_WORD: Record<Exclude<TalkState, ''>, string> = { ok: 'OK', watch: 'Watch', problem: 'Problem', action: 'Action' };
+export interface TalkDocPoint { text: string; basis: TalkBasis; owner: string; due: string; state?: TalkState }
 export interface TalkDocPhoto { photo: string; caption: string }
-export interface TalkDocSection { heading: string; text: string; points: TalkDocPoint[]; photos: TalkDocPhoto[] }
-export interface TalkDoc { title: string; kind: TalkDocKind; sections: TalkDocSection[] }
+/** icon: one emoji that says what the section is at a glance — on the screen only; paper prints the words. */
+export interface TalkDocSection { heading: string; icon?: string; text: string; points: TalkDocPoint[]; photos: TalkDocPhoto[] }
+/** The one-second answer: how things stand, in a word and its colour, with one short line. */
+export interface TalkStatus { state: Exclude<TalkState, '' | 'action'>; line: string }
+export interface TalkDoc { title: string; kind: TalkDocKind; status?: TalkStatus; sections: TalkDocSection[] }
 export interface TalkAnswer { reply: string; document?: TalkDoc }
 
 /* A CONVERSATION, NOT A FORM. Rowland, 21 October: "We need a full
@@ -125,12 +131,19 @@ DOCUMENTS — the "document"
 
 - The "reply" then says in a sentence or two what the document holds and anything you could not put in it — and, if something is missing that they could tell you, asks for it.
 
-LEAN REPORTS — how every report is written, unless they ask for another order
-Faultline reports follow lean visual management: from across the room, in three seconds, what is normal, what is not, and who owes what by when. So a report answers three questions, in this order, each its own section:
-1. "Where we are" — what, where and when, in a line or two, and the few figures the conversation or Faultline's records give, each exactly as given (never worked out). Normal things are said once, together, in a sentence — never a point each.
-2. "What is not as it should be" — only the abnormal, one point each: what was seen, where (machine, in flow order), the cause if one was said or found (basis: interpretation if it is your reading), and what it costs only if a Faultline record or the person gave it. Leave out what is fine.
-3. "What we are doing about it" — one point per action: what, who, by when. Only an owner or a day they said; otherwise "Owner not named yet".
-Close with one short closing line (the single thing to decide or do next). A fact appears once, in one section — never repeated. A point is one or two sentences. A photo goes where it shows an abnormal thing, never as decoration. A "lean" or "shorter" version of any report is exactly this shape: keep every problem and every action, fold everything normal into the first section's sentence, and take out repeats and padding — never take out a problem, an action, an owner, a day or a figure to make it shorter.`;
+HOW EVERY REPORT IS WRITTEN — lean visual management, always, without being asked
+Every report is built to lean visual management: from across the room, in three seconds, what is normal, what is not, and who owes what by when. They never have to ask for it, so NEVER call a report "lean", and never put "lean" or "visual management" in a title, heading or reply unless they said it first. The title names what the report is about — the line, what was done, the day ("Line 2A — walk, 5 Nov").
+It is read in three seconds, in this order — the document's "status" and then its sections are built for exactly that:
+- ONE SECOND — how things stand. The document's "status": "state" ok (all as it should be), watch (something to keep an eye on or waiting on someone) or problem (something wrong or failed), and "line": one short sentence, at most twelve words, that a person can read from across the room ("Line 2A running — wrapper down since 10:40"). Decide the state from the facts only; the worst thing found sets it.
+- TWO SECONDS — what is wrong. The first section, "What is not as it should be": only the abnormal, one point each, the worst first: what was seen, where (machine, in flow order), the cause if one was said or found (basis: interpretation if it is your reading), and what it costs only if a Faultline record or the person gave it. Leave out what is fine.
+- THREE SECONDS — what we are doing about it. The next section, "What we are doing about it": one point per action: what, who, by when. Only an owner or a day they said; otherwise "Owner not named yet".
+- Then, only if there is anything to say, a last section "Where we are" with what, where and when and the few figures the conversation or Faultline's records give, each exactly as given (never worked out); normal things are said once, together, in a sentence — never a point each. A line that is all fine has a short report: the status "ok" and that section.
+Close with one short closing line (the single thing to decide or do next). A fact appears once, in one section — never repeated. A point is one or two sentences, plain and punchy, the abnormal thing first. A photo goes where it shows an abnormal thing, never as decoration.
+MAKE IT SEEN, NOT JUST READ — it must bring the conversation to life:
+- Every section has an "icon": ONE emoji that says what it is at a glance (📍 where we are, 🚨 what is wrong, ✅ what is fine, 🔧 an action, 📸 pictures, ⏱️ time, 💷 cost). Never decoration twice over; never more than one.
+- Every point has a "state": "problem" for something wrong or failed, "watch" for something to keep an eye on or waiting on someone, "action" for something to be done, "ok" for something confirmed fine that is worth saying, and "" when none fits. The state is told in a word beside its colour, so decide it from the facts, never to look busy.
+- Short beats long: a reader should find the worst thing in one glance. Put the worst problem first in its section.
+A "shorter" version of any report is exactly this shape: keep every problem and every action, fold everything normal into the first section's sentence, and take out repeats and padding — never take out a problem, an action, an owner, a day or a figure to make it shorter.`;
 
 /** The answer's shape, held by the API. Kept small: a large grammar is refused ("compiled grammar is too large", 19 October). */
 export const TALK_SCHEMA = {
@@ -145,27 +158,35 @@ export const TALK_SCHEMA = {
         {
           type: 'object',
           additionalProperties: false,
-          required: ['title', 'kind', 'sections'],
+          required: ['title', 'kind', 'status', 'sections'],
           properties: {
             title: { type: 'string' },
+            status: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['state', 'line'],
+              properties: { state: { type: 'string', enum: ['ok', 'watch', 'problem'] }, line: { type: 'string' } },
+            },
             kind: { type: 'string', enum: ['line-walk', 'summary', 'engineering', 'punch-list', 'other'] },
             sections: {
               type: 'array',
               items: {
                 type: 'object',
                 additionalProperties: false,
-                required: ['heading', 'text', 'points', 'photos'],
+                required: ['heading', 'icon', 'text', 'points', 'photos'],
                 properties: {
                   heading: { type: 'string' },
+                  icon: { type: 'string' },
                   text: { type: 'string' },
                   points: {
                     type: 'array',
                     items: {
                       type: 'object',
                       additionalProperties: false,
-                      required: ['text', 'basis', 'owner', 'due'],
+                      required: ['text', 'basis', 'state', 'owner', 'due'],
                       properties: {
                         text: { type: 'string' },
+                        state: { type: 'string', enum: ['', 'ok', 'watch', 'problem', 'action'] },
                         basis: { type: 'string', enum: ['observed', 'record', 'interpretation'] },
                         owner: { type: 'string' },
                         due: { type: 'string' },
@@ -273,6 +294,13 @@ export function talkMessages(a: TalkAsk): TalkMessage[] {
 }
 
 const BASES: readonly TalkBasis[] = ['observed', 'record', 'interpretation'];
+const STATES: readonly TalkState[] = ['', 'ok', 'watch', 'problem', 'action'];
+/** A section's icon: one picture-character, or nothing — never a word or a run of them. */
+export function iconOf(v: unknown): string {
+  const t = typeof v === 'string' ? v.trim() : '';
+  const first = [...t][0] ?? '';
+  return /\p{Extended_Pictographic}/u.test(first) ? t.slice(0, 8) : '';
+}
 const DOC_KINDS: readonly TalkDocKind[] = ['line-walk', 'summary', 'engineering', 'punch-list', 'other'];
 
 /** Keep an answer only as the schema says it, its words trimmed, every
@@ -284,17 +312,22 @@ export function checkTalkAnswer(raw: unknown, photos: readonly string[]): TalkAn
   const d = o.document && typeof o.document === 'object' ? o.document as Record<string, unknown> : null;
   let document: TalkDoc | undefined;
   if (d) {
+    const st = d.status && typeof d.status === 'object' ? d.status as Record<string, unknown> : null;
+    const stState = (['ok', 'watch', 'problem'] as const).find(k => k === st?.state);
+    const status: TalkStatus | undefined = st && stState ? { state: stState, line: str(st.line, 200) } : undefined;
     const sections = (Array.isArray(d.sections) ? d.sections : []).slice(0, 40).map(r => {
       const s = r && typeof r === 'object' ? r as Record<string, unknown> : {};
       const seen = new Set<string>();
       return {
         heading: str(s.heading, 200),
+        icon: iconOf(s.icon),
         text: str(s.text, 8000),
         points: (Array.isArray(s.points) ? s.points : []).slice(0, 80).flatMap(x => {
           const p = x && typeof x === 'object' ? x as Record<string, unknown> : {};
           const text = str(p.text, 2000);
           const basis = BASES.find(k => k === p.basis) ?? 'interpretation';
-          return text ? [{ text, basis, owner: str(p.owner, 120), due: str(p.due, 60) }] : [];
+          const state = STATES.find(k => k === p.state) ?? '';
+          return text ? [{ text, basis, state, owner: str(p.owner, 120), due: str(p.due, 60) }] : [];
         }),
         photos: (Array.isArray(s.photos) ? s.photos : []).flatMap(x => {
           const p = x && typeof x === 'object' ? x as Record<string, unknown> : {};
@@ -306,7 +339,7 @@ export function checkTalkAnswer(raw: unknown, photos: readonly string[]): TalkAn
       };
     }).filter(s => s.heading || s.text || s.points.length || s.photos.length);
     const title = str(d.title, 200);
-    if (title || sections.length) document = { title: title || 'Document', kind: DOC_KINDS.find(k => k === d.kind) ?? 'other', sections };
+    if (title || sections.length) document = { title: title || 'Document', kind: DOC_KINDS.find(k => k === d.kind) ?? 'other', ...(status ? { status } : {}), sections };
   }
   if (!reply && !document) return null;
   return { reply, ...(document ? { document } : {}) };
@@ -317,10 +350,11 @@ export function checkTalkAnswer(raw: unknown, photos: readonly string[]): TalkAn
 export function docAsText(d: TalkDoc): string {
   return [
     `[The document written: ${DOC_KIND_WORD[d.kind]} — ${d.title}]`,
+    d.status ? `Status: ${STATE_WORD[d.status.state]} — ${d.status.line}` : '',
     ...d.sections.flatMap(s => [
       s.heading ? `## ${s.heading}` : '',
       s.text,
-      ...s.points.map(p => `- ${p.text} (${BASIS_WORD[p.basis]}${p.owner ? `; owner ${p.owner}` : ''}${p.due ? `; due ${p.due}` : ''})`),
+      ...s.points.map(p => `- ${p.state ? `[${STATE_WORD[p.state]}] ` : ''}${p.text} (${BASIS_WORD[p.basis]}${p.owner ? `; owner ${p.owner}` : ''}${p.due ? `; due ${p.due}` : ''})`),
       ...s.photos.map(p => `[${p.photo}: ${p.caption}]`),
     ]),
   ].filter(Boolean).join('\n');

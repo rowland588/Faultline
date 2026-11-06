@@ -408,3 +408,14 @@ nothing written down, nothing asked (`assist_usage` empty).
 - **On his phone, still to see:** whether its browser listens (if not, the
   keyboard's microphone is said within six seconds); how the replies read on
   the floor.
+
+
+## Every report is lean, and seen in three seconds — 6 November
+
+Rowland, 6 November: *"I don't ask for a lean report ... the reports are always lean ... visual management ... 1 second the status, 2 the problem, 3 what we are doing ... pictures, emojis, visuals."* So a report is **never labelled "lean"** (the prompt forbids the word in a title, heading or reply unless the person said it) and is built so:
+
+1. **One second — the status.** The document's `status` (ok · watch · problem) and one short line, drawn as a banner above the first section: the state's colour, its word large (never colour alone), the line beside it. On paper it sits under the band.
+2. **Two seconds — what is wrong.** The first section, the abnormal only, worst first; a point marked *Problem* has a red edge and its word.
+3. **Three seconds — what we are doing.** The next section, an action a point with who and by when (*Owner not named yet* when none was said); *Where we are* last, only if there is anything to say.
+
+Each section has one `icon` (an emoji, on the screen only — paper prints the words, jsPDF has no emoji font) and each point a `state` (problem · watch · action · ok · none) shown as a word in its colour, on screen and on paper, and changeable in Edit. A document written before this has none of them and reads as it did. The shape is `TALK_SCHEMA` (`status`, `icon`, `state`), checked by `checkTalkAnswer`; the gateway copy is made by `scripts/sync-assist.mjs`. `talkAssist.test.ts` and `line-talk-assistant.mjs` (8a–8e) prove it.

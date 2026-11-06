@@ -15,7 +15,7 @@
  * lib/saveTalkDoc, the report engine and the house look). */
 import { useEffect, useRef, useState } from 'react';
 import { useBlobUrl } from '../../lib/useBlobUrl';
-import { BASIS_WORD, DOC_KIND_WORD, figuresIn, type TalkBasis, type TalkDoc, type TalkDocKind } from './talkAssist';
+import { BASIS_WORD, DOC_KIND_WORD, STATE_WORD, figuresIn, type TalkBasis, type TalkDoc, type TalkDocKind, type TalkState } from './talkAssist';
 import type { TalkTurn, TalkPdf } from './talk';
 import { getBlob } from '../../db/blobs';
 import { deliverBlob } from '../../lib/savePdf';
@@ -25,6 +25,7 @@ import { offerUndo } from '../../ui/Undo';
 
 const KINDS = Object.keys(DOC_KIND_WORD) as TalkDocKind[];
 const BASES = Object.keys(BASIS_WORD) as TalkBasis[];
+const STATE_OPTS: TalkState[] = ['', 'ok', 'watch', 'problem', 'action'];
 const docWords = (d: TalkDoc) => [d.title, ...d.sections.flatMap(s => [s.heading, s.text, ...s.points.flatMap(p => [p.text, p.owner, p.due]), ...s.photos.map(p => p.caption)])].join('\n');
 
 function Thumb({ blobKey, label }: { blobKey?: string; label: string }) {
@@ -135,21 +136,34 @@ export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onKe
         </div>
       </header>
 
+      {/* THE FIRST SECOND — how things stand, in a word and its colour (lean visual management 1-2-3) */}
+      {d.status && (
+        <div className="tk-dstatus" data-st={d.status.state} role="status">
+          <b className="tk-dstatus-w">{STATE_WORD[d.status.state]}</b>
+          {edit
+            ? <input className="text-input" value={d.status.line} aria-label="Status line" onChange={e => change(x => (x.status ? { ...x, status: { ...x.status, line: e.target.value } } : x))} />
+            : <span className="tk-dstatus-l">{d.status.line}</span>}
+        </div>
+      )}
+
       {d.sections.map((x, i) => {
         const free = labels.filter(l => !x.photos.some(p => p.photo === l));
         return (
           <section key={i} className="tk-dsec" data-section={i}>
-            {edit ? <input className="text-input tk-dh" value={x.heading} aria-label="Section heading" onChange={e => sec(i, y => ({ ...y, heading: e.target.value }))} /> : <h2 className="ln-h">{x.heading}</h2>}
+            {edit ? <input className="text-input tk-dh" value={x.heading} aria-label="Section heading" onChange={e => sec(i, y => ({ ...y, heading: e.target.value }))} /> : <h2 className="ln-h">{x.icon && <span className="tk-dicon" aria-hidden>{x.icon} </span>}{x.heading}</h2>}
             {edit
               ? <textarea className="text-input tk-dtext" rows={Math.min(8, Math.max(2, Math.ceil(x.text.length / 80)))} value={x.text} placeholder="A few words to open the section (optional)" aria-label="Section words" onChange={e => sec(i, y => ({ ...y, text: e.target.value }))} />
               : x.text && <p className="tk-dtext-r">{x.text}</p>}
             <ul className="tk-dpts">
               {x.points.map((p, j) => (
-                <li key={j} className="tk-dpt" data-basis={p.basis}>
+                <li key={j} className="tk-dpt" data-basis={p.basis} data-state={p.state || undefined}>
                   {edit ? (
                     <>
                       <select className="text-input tk-dbasis" value={p.basis} aria-label="Where it comes from" onChange={e => sec(i, y => ({ ...y, points: y.points.map((q, k) => (k === j ? { ...q, basis: e.target.value as TalkBasis } : q)) }))}>
                         {BASES.map(b => <option key={b} value={b}>{BASIS_WORD[b]}</option>)}
+                      </select>
+                      <select className="text-input tk-dbasis" value={p.state ?? ''} aria-label="Where it stands" onChange={e => sec(i, y => ({ ...y, points: y.points.map((q, k) => (k === j ? { ...q, state: e.target.value as TalkState } : q)) }))}>
+                        {STATE_OPTS.map(o => <option key={o} value={o}>{o ? STATE_WORD[o] : 'No marker'}</option>)}
                       </select>
                       <textarea className="text-input" rows={Math.max(1, Math.ceil(p.text.length / 70))} value={p.text} aria-label="The point" onChange={e => sec(i, y => ({ ...y, points: y.points.map((q, k) => (k === j ? { ...q, text: e.target.value } : q)) }))} />
                       <span className="tk-dpt-m">
@@ -159,7 +173,7 @@ export function TalkDocView({ s, t, doc, can, lineName, me, photos, onSave, onKe
                       </span>
                     </>
                   ) : (
-                    <><span className="tk-dbasis-r">{BASIS_WORD[p.basis]}</span> {p.text}{p.owner ? ` · Owner: ${p.owner}` : ''}{p.due ? ` · Due: ${p.due}` : ''}</>
+                    <>{p.state && <span className="tk-dstate" data-st={p.state}>{STATE_WORD[p.state]}</span>} <span className="tk-dbasis-r">{BASIS_WORD[p.basis]}</span> {p.text}{p.owner ? ` · Owner: ${p.owner}` : ''}{p.due ? ` · Due: ${p.due}` : ''}</>
                   )}
                 </li>
               ))}

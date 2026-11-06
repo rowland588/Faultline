@@ -85,7 +85,7 @@ describe('the conversation in the model’s terms', () => {
     const objects: unknown[] = [];
     const walk = (o: unknown) => { if (o && typeof o === 'object') { if ((o as { type?: string }).type === 'object') objects.push(o); Object.values(o).forEach(walk); } };
     walk(TALK_SCHEMA);
-    expect(objects.length).toBe(5);
+    expect(objects.length).toBe(6); // + the status
     for (const o of objects as { additionalProperties: unknown; required: string[]; properties: object }[]) {
       expect(o.additionalProperties).toBe(false);
       expect(o.required.sort()).toEqual(Object.keys(o.properties).sort());
@@ -166,7 +166,14 @@ describe('a conversation, kept quick', () => {
 
 describe('what Line Talk is told about reports (5 November — "reduced 13 pages to 6 but I opened the report and it remained")', () => {
   it('writes every report in the lean shape: where we are, what is not as it should be, what we are doing about it, one closing line', () => {
-    for (const w of ['LEAN REPORTS', '"Where we are"', '"What is not as it should be"', '"What we are doing about it"', 'closing line', 'never take out a problem, an action, an owner, a day or a figure']) expect(TALK_SYSTEM).toContain(w);
+    for (const w of ['HOW EVERY REPORT IS WRITTEN', '"Where we are"', '"What is not as it should be"', '"What we are doing about it"', 'closing line', 'never take out a problem, an action, an owner, a day or a figure']) expect(TALK_SYSTEM).toContain(w);
+  });
+  it('is lean without being asked, and never labels a report so (6 November — "I don\'t ask for a lean report ... the reports are always lean")', () => {
+    expect(TALK_SYSTEM).toContain('NEVER call a report "lean"');
+    expect(TALK_SYSTEM).toContain('without being asked');
+  });
+  it('is built for three seconds — status, problem, action — and made to be seen (6 November — "1 second the status, 2 the problem, 3 what we are doing")', () => {
+    for (const w of ['ONE SECOND', 'TWO SECONDS', 'THREE SECONDS', '"status"', '"icon"', '"state"']) expect(TALK_SYSTEM).toContain(w);
   });
   it('changes a report by writing the whole document again, and never claims a change the document does not hold', () => {
     expect(TALK_SYSTEM).toContain('write the WHOLE document again');
@@ -174,5 +181,21 @@ describe('what Line Talk is told about reports (5 November — "reduced 13 pages
   });
   it('never states a page count — it cannot see the paper', () => {
     expect(TALK_SYSTEM).toContain('Never say how many pages a document is');
+  });
+});
+
+describe('a document’s status, icons and point states (6 November)', () => {
+  const raw = (extra: object) => ({ reply: 'ok', document: { title: 'Line 2A — walk', kind: 'line-walk', sections: [{ heading: 'What is not as it should be', icon: '🚨', text: '', points: [{ text: 'Wrapper down', basis: 'observed', state: 'problem', owner: '', due: '' }, { text: 'x', basis: 'observed', state: 'nonsense', owner: '', due: '' }], photos: [] }], ...extra } });
+  it('keeps a status with its word and line, an icon and a point’s state', () => {
+    const a = checkTalkAnswer(raw({ status: { state: 'problem', line: 'Wrapper down since 10:40' } }), []);
+    expect(a?.document?.status).toEqual({ state: 'problem', line: 'Wrapper down since 10:40' });
+    expect(a?.document?.sections[0].icon).toBe('🚨');
+    expect(a?.document?.sections[0].points.map(p => p.state)).toEqual(['problem', '']);
+  });
+  it('drops a status that is not one of the three, and an icon that is a word', () => {
+    const a = checkTalkAnswer(raw({ status: { state: 'purple', line: 'x' } }), []);
+    expect(a?.document?.status).toBeUndefined();
+    const b = checkTalkAnswer(raw({ sections: [{ heading: 'h', icon: 'wrench', text: 't', points: [], photos: [] }] }), []);
+    expect(b?.document?.sections[0].icon).toBe('');
   });
 });
