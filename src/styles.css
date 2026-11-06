@@ -371,6 +371,7 @@ button { font-family: inherit; }
 .sheet-head { position: sticky; top: -8px; z-index: 3; margin: -8px -14px 0; padding: 8px 14px 0; background: var(--surface); }
 /* E6 — sheet header reads as a panel strip (ENTERPRISE-UI), tokens only */
 .sheet-head.ep-drawer-head { border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); padding-bottom: 10px; margin-bottom: 0; }
+.sheet-head.ep-drawer-head .sheet-title { color: var(--ink); letter-spacing: -0.01em; }
 .sheet-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .sheet-head-row .sheet-title { flex: 1; min-width: 0; }
 .sheet-x { flex: none; display: grid; place-items: center; width: 40px; height: 40px; margin: -6px -6px 0 0; border: 0; border-radius: var(--radius-round); background: transparent; color: var(--muted); cursor: pointer; }
@@ -10463,6 +10464,19 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
   margin: 6px 52px 2px 0; font-family: var(--display); font-size: var(--t-h); line-height: 1.22;
   font-weight: 700; letter-spacing: -0.015em; color: var(--ink); overflow-wrap: anywhere;
 }
+/* E6 — the drawer's title is the same panel strip as a sheet head (tokens only).
+   The strip bleeds to the drawer's edges; the close keeps its corner. */
+.rd > .rd-title {
+  box-sizing: border-box;
+  width: calc(100% + 44px);
+  margin: 4px -22px 14px;
+  padding: 6px 58px 12px 22px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-2) 55%, var(--surface));
+}
+@media (max-width: 1099px) {
+  .rd > .rd-title { width: calc(100% + 32px); margin-left: -16px; margin-right: -16px; padding-left: 16px; }
+}
 .rd-sub { margin: 0 0 14px; font-size: var(--t-detail); color: var(--muted); overflow-wrap: anywhere; }
 
 /* The floor's actions, first. */
@@ -11251,10 +11265,15 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .nv-main .ep-tool-band .ln-sub { color: var(--ink-2); }
 .nv-main .ep-tool-band .ln-facts dt { color: var(--muted); }
 .nv-main .ep-tool-band .ln-facts dd { color: var(--ink); }
-.nv-main .ep-tool-band .ln-verdict { border-color: var(--line); }
+/* A neutral verdict is a quiet chip on the white panel. Late and failed stay the strong red;
+   at risk and done keep their own fills (the rules further down). More specific than the
+   fresh look's trace and brand edge, so those stay on the other bands. */
+.nv-main .ep-tool-band .ln-verdict { border-color: var(--line); background: var(--surface-2); }
+.nv-main .ep-tool-band .ln-verdict b { color: var(--ink); }
 .nv-main .ep-tool-band .ln-verdict.is-r b { color: var(--on-dark); }
 .nv-main .ep-tool-band .ln-verdict.is-a b { color: var(--st-a); }
 .nv-main .ep-tool-band .ln-verdict.is-g b { color: var(--st-g); }
+.nv-main .ep-tool-band .ln-band-acts .btn:not(.btn-primary) { background: var(--surface); color: var(--ink); border-color: var(--line); }
 .status-pill {
   display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px;
   border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 700; line-height: 1.4;
@@ -14072,6 +14091,19 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .ln-tile.is-r { border-top-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 6%, var(--surface)); }
 .ln-tile.is-r .ln-v { color: var(--st-r); }
 .ln-tile.is-none .ln-v { color: var(--st-n-ink); }
+/* E6 — figures on a study sit on one white panel under the band. A tile keeps
+   its state on the top edge; a neutral one is the quiet fill. The strip's
+   hairline becomes the panel's border. */
+.nv-main .ie .ln-tiles {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px;
+  margin: 0 0 14px;
+}
+.nv-main .ie .ln-tiles > .ln-tile { box-shadow: none; }
+.nv-main .ie .ln-tiles > .ln-tile.is-n { background: var(--surface-2); }
 
 .ln-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; margin: 0 0 14px; }
 .ln-panel { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px 14px;
@@ -14079,6 +14111,8 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .ln-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; margin: 0 0 10px; padding-bottom: 8px;
   font-size: var(--t-h); font-weight: 800; color: var(--ink); letter-spacing: -0.01em; border-bottom: 1px solid var(--line); position: relative; }
 .ln-panel > .ln-h::after { content: ''; position: absolute; left: 0; bottom: -1px; width: 52px; height: 2px; background: var(--brand); }
+/* E6 — a study's panel header is the same quiet rule as a sheet head */
+.nv-main .ie .ln-panel > .ln-h::after { content: none; }
 .ln-panel .ie-pic { margin: 0; border: 0; padding: 0; box-shadow: none; background: none; }
 .ln-panel .ie-says { padding: 0; }
 .ln-plan-p { margin: 0 0 14px; }
@@ -14139,6 +14173,7 @@ button.ln-row:hover { background: var(--surface-2); }
 
 @media (max-width: 1099px) {
   .ln-band { padding: 14px 14px 16px; }
+  .nv-main .ep-tool-band.ln-band { padding: 14px 14px 16px; }
   .ln-title, .ln-band .ie-name { font-size: var(--t-page); }
   .ln-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .ln-tile { padding: 8px 10px 10px; }
@@ -14215,6 +14250,14 @@ button.ln-row:hover { background: var(--surface-2); }
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 30'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%2322c3d6' stop-opacity='0'/%3E%3Cstop offset='.68' stop-color='%2322c3d6' stop-opacity='.42'/%3E%3Cstop offset='1' stop-color='%2322c3d6' stop-opacity='.12'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 22 H430 L441 3 L453 28 L462 22 H640' fill='none' stroke='url(%23g)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") right -60px bottom 0 / 640px 30px no-repeat, var(--shell);
   border-left: 4px solid var(--brand);
   box-shadow: 0 1px 2px rgba(18, 23, 28, 0.05), 0 14px 32px -22px rgba(18, 23, 28, 0.28);
+}
+/* E6 — a study's band stays the white panel. The trace and the brand edge above
+   stay on the verdict, a product's band, the control room and the closing line. */
+.nv-main .ep-tool-band.ln-band {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  color: var(--ink);
 }
 .ln-close { background: var(--shell); }
 /* the control room's drifting glow was light on dark; on the pale band it is left out */

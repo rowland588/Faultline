@@ -13,10 +13,11 @@ import type { ReactNode } from 'react';
 import { arrow, changeTone, type LeanAction, type LeanInsight, type LeanPage, type LeanTile, type LeanTone, type LeanTrend } from '../lib/lean';
 
 /** THE BAND — what this is, its title (the tool's own name control when it
- *  has one), where, and the day, the shift and the rate on the right. */
-export function LeanBand({ page, title, children }: { page: LeanPage; title?: ReactNode; children?: ReactNode }) {
+ *  has one), where, and the day, the shift and the rate on the right.
+ *  `className` marks a study's band as the enterprise panel (E6, `.ep-tool-band`). */
+export function LeanBand({ page, title, children, className }: { page: LeanPage; title?: ReactNode; children?: ReactNode; className?: string }) {
   return (
-    <header className="ln-band">
+    <header className={'ln-band' + (className ? ' ' + className : '')}>
       <div className="ln-band-main">
         <small className="ln-eyebrow">{page.eyebrow}</small>
         {title ?? <h1 className="ln-title">{page.title}</h1>}

@@ -56,7 +56,7 @@ export function Sheet({ open, onClose, title, children }: {
             it than the screen holds — a card preview, a long editor — grew to
             the top, leaving no page around it to tap; its head stays put as it
             scrolls, the × always there. */}
-        <div className="sheet-head">
+        <div className="sheet-head ep-drawer-head">
           <div className="sheet-grip" />
           <div className="sheet-head-row">
             {title ? <div className="sheet-title">{title}</div> : <span />}
