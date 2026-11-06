@@ -258,7 +258,11 @@ a problem, an unproved program or a study names), and who owes what by when
 (`actionsOn` — every open problem, every program to prove, the late first).
 What goes in is ticked (`defaultPicks` — the newest of each tool); the page
 (`screens/LineReportScreen`, `#/lines/:ws/report`) and the paper
-(`lib/lineBundlePdf`) read the same shape. The paper prints each tool's
+(`lib/lineBundlePdf`) read the same shape. **The summary** (not the full
+package) opens as the lean page (`docs/LEAN-PAGE.md`): the band, the tiles,
+where on the line as the one picture, what it means, who owes what, the
+closing line; the problems, the programs and each ticked tool's own blocks
+follow as the records. The paper prints each tool's
 section with the blocks that tool's own paper prints (`studiesPdf
 studyBlocks`, `capacityPaperPdf productLeanBlocks`, `programsReportPdf
 programsBlocks`), so a section can never say other than the single report

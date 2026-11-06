@@ -1,0 +1,11 @@
+/* The line summary, read as the lean page (docs/LEAN-PAGE.md). The full package keeps the boxed part. */
+.lr-part.lr-lean { margin: 8px 0 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.lr-part.lr-lean > h2 { margin: 16px 0 8px; }
+.lr-flow { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; padding: 0; list-style: none; }
+.lr-flow-m { flex: 1 1 96px; max-width: 168px; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px 10px; border: 1px solid var(--line); border-top: 3px solid var(--line-2); border-radius: var(--radius); background: var(--surface); }
+.lr-flow-m b { font-size: var(--t-detail); line-height: 1.3; overflow-wrap: anywhere; }
+.lr-flow-m span { font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.lr-flow-m.is-r { border-top-color: var(--st-r); }
+.lr-flow-m.is-a { border-top-color: var(--st-a); }
+.lr-lean .ln-ins .lr-looked,
+.lr-lean .ln-ins .lr-spread { display: block; }

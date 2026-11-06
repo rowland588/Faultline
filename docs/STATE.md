@@ -48,7 +48,10 @@ a session that ships something updates this page in the same commit.** The rules
    listing talk-made studies.
 4. **Lean 3-2-1 reports across every paper** (Rowland, 6 November: *"having lean principle reports is important for
    us … as a priority"*): the one-second · two-second · three-second reading (`docs/LEAN-PAGE.md`) applied to every
-   report that is not yet the lean page.
+   report that is not yet the lean page. The **line summary** (`#/lines/:ws/report`, Summary, and its paper
+   `lineBundlePdf` — not the full package) is the first: band, tiles, where on the line as the one picture, what it
+   means, who owes what, the closing line, then the records. On this branch until it is merged; not live. Other papers
+   are unchanged.
 5. **Attachments A2+** — pictures, videos and links on every tool (`docs/ATTACHMENTS.md`); Rowland: a nice-to-have.
 6. Smaller: spoken number words ("forty") are flagged *unsure* by the grounded check (phones usually write digits);
    the tests' and fixes' evidence doors still use the phone's own camera, not the live one; FC-233's therblig names

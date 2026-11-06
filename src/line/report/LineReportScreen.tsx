@@ -38,8 +38,67 @@ import { attemptsOf } from '../../lib/programJourney';
 import { LeanActions, LeanClosing, LeanTiles } from '../../ui/Lean';
 import { stopsOf } from '../../screens/ProductionLineScreen';
 import { nav } from '../../state/useRoute';
+import './lineReport.css';
 
 const printedOn = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+const MARK: Record<LeanTone, string> = { r: '✕', a: '!', g: '✓', n: '·' };
+
+/** The one picture — machines in flow, then the findings that point at them. */
+function LinePicture({ machines, where, title }: { machines: string[]; where: WhereRow[]; title: string }) {
+  const names = pictureNames(machines, where);
+  const toneOf = (name: string): LeanTone => {
+    const row = where.find(w => w.machine.toLowerCase() === name.toLowerCase());
+    if (!row?.findings.length) return 'n';
+    return row.findings.some(f => f.tone === 'r') ? 'r' : row.findings.some(f => f.tone === 'a') ? 'a' : 'n';
+  };
+  if (!names.length && !where.length) return <p className="sub">No finding points at a machine.</p>;
+  return (
+    <div className="lr-pic">
+      {names.length > 0 && (
+        <ol className="lr-flow" aria-label="The machines in flow">
+          {names.map(name => {
+            const n = where.find(w => w.machine.toLowerCase() === name.toLowerCase())?.findings.length ?? 0;
+            return (
+              <li key={name} className={'lr-flow-m is-' + toneOf(name)}>
+                <b>{name}</b>
+                <span>{n ? `${n} finding${n === 1 ? '' : 's'}` : 'no finding'}</span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {where.length > 0 && (
+        <div className="lr-where" role="table" aria-label={`Where on ${title}`}>
+          {where.map(w => (
+            <div key={w.machine} className="lr-where-row" role="row">
+              <b role="rowheader">{w.machine}</b>
+              <span role="cell">{w.findings.map((f, i) => <span key={i} className={'lr-find is-' + f.tone}><i>{f.from}: </i>{f.says}</span>)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** What it means — the same sentences as the paper, with the looking and the spread marked for the gate. */
+function MeansList({ insights, looking, spread }: { insights: LeanInsight[]; looking?: { says: string; more: string }; spread?: readonly string[] }) {
+  if (!insights.length) return null;
+  return (
+    <ul className="ln-ins">
+      {insights.map(x => {
+        const look = !!looking && (x.text === looking.says || x.text === looking.more);
+        const sp = !!spread?.includes(x.text);
+        return (
+          <li key={x.text} className={'ie-cap is-' + x.tone}>
+            <span className="ln-mark" aria-hidden>{MARK[x.tone]}</span>
+            <span className={look ? 'lr-looked' : sp ? 'lr-spread' : undefined} {...(x.text === looking?.says ? { 'data-looking': '' } : {})} {...(sp ? { 'data-spread': '' } : {})}>{x.text}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 export function LineReportScreen({ wsId }: { wsId: string }) {
   const rec = useLineRecords();
@@ -204,15 +263,20 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
           </section>
         );
       })()}
+      {!full && (() => {
+        const whole = readings.get(bundle.dual ? line.id : bundle.parts[0].line.id);
+        if (!whole) return null;
+        const closing = lineClosing(whole);
+        const page = summaryPage(bundle, { picks: on.size, tone: closing.tone, ...(dualWords ? { dual: dualWords } : {}), ...(whole.looking ? { lookingFact: whole.looking.fact } : {}) });
+        return <LeanBand page={{ ...page, facts: [...page.facts, ['Printed', printedOn()]] }} />;
+      })()}
       {bundle.parts.map(part => {
         const reading = readings.get(part.line.id);
         const pr = programs.get(part.line.id);
-        return (
-          <section key={part.line.id} className="lr-part" aria-label={part.title}>
-            <h2>{part.title}{part.title === 'Both lines together' ? <span className="sub"> · what was run on {line.name} itself</span> : null}</h2>
-            {reading && <LeanTiles tiles={lineTiles(reading)} className="sg-tiles" />}
-            {reading?.looking && <p className="sub lr-looked" data-looking>{reading.looking.says} <span>{reading.looking.more}</span></p>}
-            {reading?.spread?.map((x, i) => <p key={i} className="sub lr-spread" data-spread>{x}</p>)}
+        const where = whereFor(part, on);
+        const programsSays = pr?.says ?? 'no program planned';
+        const goesIn = (
+          <>
             <h3 className="lr-h">What goes in{part.items.length > 1 && (
               <span className="lr-all">
                 <button type="button" className="cw-link" onClick={() => setPicks(new Set([...on, ...part.items.map(i => i.key)]))}>Tick all</button>
@@ -233,21 +297,57 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
                   ))}
                 </ul>
               )}
-            <h3 className="lr-h">Problems and programs</h3>
-            <p className="sub">{part.problems.open ? `${part.problems.open} problem${part.problems.open === 1 ? '' : 's'} open${part.problems.late ? ` · ${part.problems.late} late` : ''}` : 'No problem open'} · {pr?.says ?? 'no program planned'}</p>
-            {whereFor(part, on).length > 0 && (<>
-              <h3 className="lr-h">Where on the line</h3>
-              <div className="lr-where" role="table" aria-label={`Where on ${part.title}`}>
-                {whereFor(part, on).map(w => (
-                  <div key={w.machine} className="lr-where-row" role="row">
-                    <b role="rowheader">{w.machine}</b>
-                    <span role="cell">{w.findings.map((f, i) => <span key={i} className={'lr-find is-' + f.tone}><i>{f.from}: </i>{f.says}</span>)}</span>
+          </>
+        );
+        return (
+          <section key={part.line.id} className={'lr-part' + (full ? '' : ' lr-lean')} aria-label={part.title}>
+            <h2>{part.title}{part.title === 'Both lines together' ? <span className="sub"> · what was run on {line.name} itself</span> : null}</h2>
+            {reading && <LeanTiles tiles={lineTiles(reading)} className="sg-tiles" />}
+            {full ? (
+              <>
+                {reading?.looking && <p className="sub lr-looked" data-looking>{reading.looking.says} <span>{reading.looking.more}</span></p>}
+                {reading?.spread?.map((x, i) => <p key={i} className="sub lr-spread" data-spread>{x}</p>)}
+                {goesIn}
+                <h3 className="lr-h">Problems and programs</h3>
+                <p className="sub">{problemsLine(part)} · {programsSays}</p>
+                {where.length > 0 && (<>
+                  <h3 className="lr-h">Where on the line</h3>
+                  <div className="lr-where" role="table" aria-label={`Where on ${part.title}`}>
+                    {where.map(w => (
+                      <div key={w.machine} className="lr-where-row" role="row">
+                        <b role="rowheader">{w.machine}</b>
+                        <span role="cell">{w.findings.map((f, i) => <span key={i} className={'lr-find is-' + f.tone}><i>{f.from}: </i>{f.says}</span>)}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </>)}
-            <h3 className="lr-h">Who owes what by when</h3>
-            <LeanActions actions={part.actions} empty="Nothing owed on this line — no problem open, every program proved." />
+                </>)}
+                <h3 className="lr-h">Who owes what by when</h3>
+                <LeanActions actions={part.actions} empty="Nothing owed on this line — no problem open, every program proved." />
+              </>
+            ) : (
+              <>
+                <div className="ln-grid">
+                  <LeanPanel title="Where on the line">
+                    <LinePicture machines={part.kit.machines.map(m => m.name)} where={where} title={part.title} />
+                  </LeanPanel>
+                  <LeanPanel title="What it means">
+                    <MeansList insights={summaryMeans({
+                      ...(reading?.looking ? { looking: reading.looking } : {}),
+                      ...(reading?.spread?.length ? { spread: reading.spread } : {}),
+                      problems: problemsLine(part),
+                      programs: programsSays,
+                      programsTone: reading?.programs.late ? 'r' : reading && reading.programs.n > reading.programs.proved ? 'a' : 'n',
+                      picked: part.items.filter(it => on.has(it.key)).map(it => ({ tool: it.tool, says: it.says, tone: it.tone })),
+                    })} looking={reading?.looking} spread={reading?.spread} />
+                  </LeanPanel>
+                </div>
+                <h3 className="lr-h">Problems and programs</h3>
+                <p className="sub">{problemsLine(part)} · {programsSays}</p>
+                <h3 className="lr-h">Who owes what by when</h3>
+                <LeanActions actions={part.actions} empty="Nothing owed on this line — no problem open, every program proved." />
+                {goesIn}
+              </>
+            )}
           </section>
         );
       })}

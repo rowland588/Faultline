@@ -36,7 +36,7 @@ import type { SnagRow } from '../../lib/snagsReport';
 import { studyLine, studyTitle, type StudyContext } from '../../lib/studyLinks';
 import { capacitySays } from '../../lib/together';
 import { byFloor } from '../../lib/lines';
-import type { LeanAction, LeanTone } from '../../lib/lean';
+import { bandPage, type LeanAction, type LeanInsight, type LeanPage, type LeanTone } from '../../lib/lean';
 import { APP_TOOLS } from '../../catalogue/registry';
 import { niceDay } from '../../lib/weeks';
 import { calcTitle } from '../../tools/calc/calc';
@@ -211,6 +211,74 @@ export function lineBundle(line: Workspace, r: BundleRecords): LineBundle {
   const made = (line.madeOf ?? []).map(id => r.lines.find(w => w.id === id && !w.archived)).filter((w): w is Workspace => !!w).sort(byFloor);
   if (!made.length) return { line, parts: [partFor(line, line.name, r)], dual: false };
   return { line, parts: [...made.map(w => partFor(w, w.name, r)), partFor(line, 'Both lines together', r)], dual: true };
+}
+
+/** How fresh the looking is, in the house tone — stale red, fading amber, fresh green. The words are the module's. */
+export function lookingTone(says: string): LeanTone {
+  return /stale/.test(says) ? 'r' : /fading/.test(says) ? 'a' : 'g';
+}
+
+/** "2 problems open · 1 late" — the same line the page and the paper use. */
+export function problemsLine(p: Pick<LinePart, 'problems'>): string {
+  const n = p.problems.open;
+  return n ? `${n} problem${n === 1 ? '' : 's'} open${p.problems.late ? ` · ${p.problems.late} late` : ''}` : 'No problem open';
+}
+
+/** The machines in flow, then any machine a finding names that the list does not. "Whole line" is not a box. */
+export function pictureNames(machines: readonly string[], where: readonly { machine: string }[]): string[] {
+  const names = machines.map(n => n.trim()).filter(n => n && n.toLowerCase() !== 'whole line');
+  for (const w of where) {
+    const name = w.machine.trim();
+    if (name && !names.some(n => n.toLowerCase() === name.toLowerCase())) names.push(name);
+  }
+  return names;
+}
+
+/** WHAT IT MEANS on the line summary — sentences the line already says, six at most.
+ *  How fresh the looking is, a fix offered across the lines, the problems and the
+ *  programs, then the ticked records that are off, worst first. Nothing is worked out here. */
+export function summaryMeans(m: {
+  looking?: { says: string; more: string };
+  spread?: readonly string[];
+  problems: string;
+  programs: string;
+  programsTone: LeanTone;
+  picked: readonly { tool: string; says: string; tone: LeanTone }[];
+}): LeanInsight[] {
+  const out: LeanInsight[] = [];
+  const push = (text: string, tone: LeanTone) => {
+    const t = text.trim();
+    if (!t || out.length >= 6 || out.some(x => x.text === t)) return;
+    out.push({ text: t, tone });
+  };
+  if (m.looking) {
+    push(m.looking.says, lookingTone(m.looking.says));
+    push(m.looking.more, 'n');
+  }
+  for (const s of m.spread ?? []) push(s, 'n');
+  const problemTone: LeanTone = /late/.test(m.problems) ? 'r' : m.problems.startsWith('No problem') ? 'g' : 'a';
+  push(m.problems, problemTone);
+  push(m.programs, m.programsTone);
+  const rank = (t: LeanTone) => (t === 'r' ? 0 : t === 'a' ? 1 : 2);
+  const picked = m.picked.map((it, i) => ({ it, i })).sort((a, b) => rank(a.it.tone) - rank(b.it.tone) || a.i - b.i);
+  for (const { it } of picked) push(`${it.tool}: ${it.says}`, it.tone);
+  return out;
+}
+
+/** The summary's band — the same words on the screen and on the paper. The day it was printed is added by the paper. */
+export function summaryPage(b: LineBundle, o: { picks: number; tone: LeanTone; dual?: [string, string]; lookingFact?: string }): LeanPage {
+  return bandPage(
+    `PRODUCTION LINE${b.line.lineType ? ` · ${b.line.lineType.toUpperCase()}` : ''} · THE LINE REPORT — EVERYTHING ON THE LINE`,
+    { name: b.line.name },
+    o.tone === 'r' ? 'Needs you' : o.tone === 'a' ? 'Gaps to close' : 'In hand',
+    o.tone,
+    [
+      ...(o.dual ? [o.dual] : []),
+      ['Parts', b.dual ? `${b.parts.length - 1} lines, then both together` : 'one line'],
+      ['Tools in', String(o.picks)],
+      ...(o.lookingFact ? [['Last looked at', o.lookingFact] as [string, string]] : []),
+    ],
+  );
 }
 
 /** What the report holds, in a line: "3 tools · 4 problems open · 2 programs to prove" — of every part. */

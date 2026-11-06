@@ -2,7 +2,7 @@
  * a line's parts, where on the line a finding points, what goes in by
  * default, who owes what; a dual line as its lines then both together. */
 import { describe, expect, it } from 'vitest';
-import { actionsOn, bundleSays, defaultPicks, itemsOn, lineBundle, picksForTools, whereFor, whereOnLine } from '../lineBundle';
+import { actionsOn, bundleSays, defaultPicks, itemsOn, lineBundle, pictureNames, picksForTools, problemsLine, summaryMeans, whereFor, whereOnLine } from '../lineBundle';
 import type { Workspace } from '../../../types';
 import type { Snag } from '../../../snag/types';
 import type { Program } from '../../../lib/programs';
@@ -90,6 +90,29 @@ describe('everything on the line', () => {
     expect(dual.parts[2].where).toEqual([{ machine: 'Conveyor', findings: [{ from: 'Problem', says: 'Shared conveyor jams — Open · 3 days', tone: 'n' }] }]);
     expect(bundleSays(one, defaultPicks(one.parts[0].items))).toBe('3 tools · 2 problems open · 1 program to prove');
     expect(bundleSays(dual, new Set([...dual.parts.flatMap(p => [...defaultPicks(p.items)])]))).toBe('4 tools · 3 problems open · 2 programs to prove · 2 lines and both together');
+  });
+  it('what it means is the sentences already said, six at most, the off records first', () => {
+    const part = lineBundle(A, records).parts[0];
+    expect(problemsLine(part)).toBe('2 problems open');
+    expect(pictureNames(['Whole line', 'Pick and Place'], part.where)).toEqual(['Pick and Place']);
+    expect(pictureNames(['Destaker'], [{ machine: 'Conveyor' }])).toEqual(['Destaker', 'Conveyor']);
+    const xs = summaryMeans({
+      looking: { says: 'Line 2a not looked at for 16 days — stale', more: 'Not looked at lately: Destaker.' },
+      problems: problemsLine(part),
+      programs: '2 programs · 1 to do',
+      programsTone: 'a',
+      picked: [
+        { tool: 'Capability', says: 'capable', tone: 'g' },
+        { tool: 'Reliability', says: 'stopping', tone: 'r' },
+        { tool: 'Line capacity', says: 'short', tone: 'a' },
+        { tool: 'SMED', says: 'long', tone: 'n' },
+      ],
+    });
+    expect(xs).toHaveLength(6);
+    expect(xs[0]).toMatchObject({ text: 'Line 2a not looked at for 16 days — stale', tone: 'r' });
+    expect(xs.map(x => x.text)).toContain('Reliability: stopping');
+    expect(xs.map(x => x.text)).not.toContain('SMED: long');
+    expect(xs.findIndex(x => x.text.startsWith('Reliability'))).toBeLessThan(xs.findIndex(x => x.text.startsWith('Line capacity')));
   });
   it('an archived line drops out of a dual line\'s parts', () => {
     const b = lineBundle(D, { ...records, lines: [A, { ...B, archived: true }, D] });
