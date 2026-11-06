@@ -196,3 +196,20 @@ from math import hypot
 print("\n== S3b the same on a plan (FC-004 part 2): line (30,0), film store (0,0), scale (30,16)")
 a = hypot(30, 0) * 2; b = hypot(0, 16) * 2
 print(f"  Operator 1 {a} m, Operator 2 {b} m, together {a+b} m; Operator 1 {a/(a+b):.4%}")
+
+print("\n== V1 the value stream said aloud (FC-001, Line Talk set 'vs'): six steps, the stream's own rules (src/tools/valuestream/steps.ts flowFigures)")
+# (name, kind, cycle s, wait s, value as SAID or None)
+vs = [
+    ("Release the run to the line", "operation", 600, 4 * 3600, None),
+    ("Issue the film and cases", "move", 900, 2 * 3600, "waste"),
+    ("Bag and seal", "operation", 90, 0, "adds"),
+    ("Check the weight", "check", 30, 0, "needed"),
+    ("Pack into the case", "operation", 240, 1800, None),
+    ("Stack on the pallet", "operation", 300, 2 * 3600, "needed"),
+]
+cyc = sum(s[2] for s in vs); wait = sum(s[3] for s in vs); lead = cyc + wait
+adds = sum(s[2] for s in vs if s[4] == "adds"); needed = sum(s[2] for s in vs if s[4] == "needed")
+waste = sum(s[2] for s in vs if s[4] == "waste") + wait   # a wait is waste
+unmarked = sum(1 for s in vs if s[4] is None)
+print(f"  cycle {cyc} s, waits {wait} s, lead {lead} s = {lead/3600:.4f} h; adds {adds} s, needed {needed} s, waste {waste} s; % value added {adds/lead:.4%}; not classified {unmarked}")
+print(f"  longest wait {max(s[3] for s in vs)} s ({[s[0] for s in vs if s[3]==max(x[3] for x in vs)][0]})")

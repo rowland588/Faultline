@@ -169,7 +169,7 @@ const t2 = await p2.evaluate(async lineId => {
 }, lineId);
 await p2.goto(`${BASE}/#/talk/${t2}`); await p2.waitForTimeout(1800);
 const chips = await p2.locator('.tk-sets .chip').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().height)));
-ok(chips.length === 3 && chips.every(h => h >= 36), '7 the kinds of walk on the phone', chips.join(','));
+ok(chips.length === 4 && chips.every(h => h >= 36), '7 the kinds of walk on the phone', chips.join(','));
 ok(await p2.locator('[data-diagram]').count() === 0 && await p2.locator('.tk-turns').isVisible(), '7 the talk first, the diagram a tab away');
 await p2.locator('[data-view-diagram]').click(); await p2.waitForTimeout(600);
 ok(await p2.locator('[data-diagram]').count() === 1 && !(await p2.locator('.tk-turns').isVisible()), '7 the Diagram tab shows the chart and rests the talk');

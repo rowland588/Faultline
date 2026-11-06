@@ -5,7 +5,9 @@ import { FLOW_KINDS } from '../../flow/processFlow';
 import { runCalc } from '../../calc/calc';
 import processFlow, { inputsOfSteps } from '../../calc/defs/process-flow';
 import { TALK_SYSTEM, checkTalkAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, type TalkAsk } from '../talkAssist';
-import { CAPTURE_FLOW_KINDS, FLOW_SCHEMA, FLOW_STEPS_MAX, SET_INSTRUCTIONS, SPAG_SCHEMA, SPAG_STEPS_MAX, SPAG_WALKERS_MAX, captureAsText, captureCount, captureWords, readSpagCapture, readFlowCapture, setOf } from '../talkSets';
+import { CAPTURE_FLOW_KINDS, FLOW_SCHEMA, FLOW_STEPS_MAX, SET_INSTRUCTIONS, SPAG_SCHEMA, SPAG_STEPS_MAX, SPAG_WALKERS_MAX, VS_KINDS, VS_SCHEMA, VS_STEPS_MAX, captureAsText, captureCount, captureWords, readSpagCapture, readFlowCapture, readVsCapture, setOf } from '../talkSets';
+import { flowFigures } from '../../valuestream/steps';
+import { vsAgreed, vsFlow } from '../vsMap';
 import { STEPS_MAX, WALKERS_MAX, walkersFigures } from '../../spaghetti/walkers';
 import spaghettiWalkers from '../../calc/defs/spaghetti-walkers';
 import { spagInputs } from '../TalkSpag';
@@ -256,5 +258,127 @@ describe('the spaghetti draft goes back, and its figures are checked', () => {
     expect(unsureFigures(answer, ask('Operator 1 goes to the film store, forty metres, that is 40 metres'))).toEqual([]);
     expect(unsureFigures(answer, ask('Operator 1 goes to the film store')).length).toBeGreaterThan(0);
     expect(captureWords(answer.capture!).join(' ')).toContain('40 metres');
+  });
+});
+
+/* ------------------------------------------------------------------ the value stream set (FC-001 as filled by Line Talk; scripts/knowledge/cases-kaizen.py V1) */
+
+/** The case V1 as a person SAYS it: some times in minutes, some in hours, a value only where they classed the step */
+export const SAID_VS = {
+  title: 'Maris Piper 2 kg, run released to pallet away', supplier: 'Planning', customer: 'Despatch', demandPerDay: null,
+  steps: [
+    { name: 'Release the run to the line', kind: 'operation', who: ['Planning'], where: 'Office', cycle: 10, cycleUnit: 'minutes', wait: 4, waitUnit: 'hours', value: '', batch: null },
+    { name: 'Issue the film and cases', kind: 'move', who: ['Stores', 'Forklift driver'], where: 'Stores', cycle: 15, cycleUnit: 'minutes', wait: 2, waitUnit: 'hours', value: 'waste', batch: null },
+    { name: 'Bag and seal', kind: 'operation', who: ['Machine'], where: 'Bagger', cycle: 90, cycleUnit: 'seconds', wait: null, waitUnit: '', value: 'adds', batch: null },
+    { name: 'Check the weight', kind: 'check', who: ['Machine'], where: 'Checkweigher', cycle: 30, cycleUnit: 'seconds', wait: null, waitUnit: '', value: 'needed', batch: null },
+    { name: 'Pack into the case', kind: 'operation', who: ['Op 2'], where: 'Case packer', cycle: 4, cycleUnit: 'minutes', wait: 30, waitUnit: 'minutes', value: '', batch: null },
+    { name: 'Stack on the pallet', kind: 'operation', who: ['Op 3'], where: 'Palletiser', cycle: 5, cycleUnit: 'minutes', wait: 2, waitUnit: 'hours', value: 'needed', batch: null },
+  ],
+};
+
+describe('the value stream set — what the assistant is told and how it answers', () => {
+  it('has a closed shape, its own instructions, and is a set the wire can name', () => {
+    const bad: string[] = [];
+    const walk = (o: unknown, path: string): void => {
+      if (!o || typeof o !== 'object') return;
+      const x = o as Record<string, unknown>;
+      if (x.type === 'object') {
+        if (x.additionalProperties !== false) bad.push(`${path}: not closed`);
+        const props = Object.keys((x.properties ?? {}) as object), req = (x.required ?? []) as string[];
+        if (props.some(p => !req.includes(p))) bad.push(`${path}: a field is optional`);
+      }
+      for (const [k, v] of Object.entries(x)) walk(v, `${path}.${k}`);
+    };
+    walk(VS_SCHEMA, 'vs');
+    expect(bad).toEqual([]);
+    expect(talkSchemaFor('vs')).toBe(VS_SCHEMA);
+    expect(setOf('vs')).toBe('vs');
+    expect(talkSystemFor('vs')).toContain(SET_INSTRUCTIONS.vs);
+    expect(talkRulesText()).toContain(SET_INSTRUCTIONS.vs);
+  });
+  it('tells the assistant to write down, never to class a step or work out a time', () => {
+    const s = SET_INSTRUCTIONS.vs;
+    expect(s).toMatch(/NEVER class a step for them/);
+    expect(s).toMatch(/NEVER convert, add up or estimate/);
+    expect(s).toMatch(/never a person's name/);
+    expect(s).toMatch(/do NOT convert it — ask how many hours/);
+  });
+  it('its kinds are the value stream tool’s own', () => {
+    expect([...VS_KINDS]).toEqual(['operation', 'move', 'check', 'wait', 'store']);
+  });
+});
+
+describe('reading a value stream capture', () => {
+  it('converts minutes and hours to seconds in code, and keeps a value only where it was said', () => {
+    const c = readVsCapture(SAID_VS)!;
+    expect(c.steps.map(s => [s.cycleSec, s.waitSec, s.value])).toEqual([[600, 14400, undefined], [900, 7200, 'waste'], [90, undefined, 'adds'], [30, undefined, 'needed'], [240, 1800, undefined], [300, 7200, 'needed']]);
+    expect(c.steps[0].said).toBe('10 minutes, waits 4 hours');
+    expect([c.supplier, c.customer, c.demandPerDay]).toEqual(['Planning', 'Despatch', undefined]);
+  });
+  it('reads its own output as itself — the gateway reads an answer and the app reads it again', () => {
+    const once = readVsCapture(SAID_VS);
+    expect(readVsCapture(JSON.parse(JSON.stringify(once)))).toEqual(once);
+  });
+  it('never fills a time that was not said, drops a step with no kind, names an unnamed step, holds the limits', () => {
+    const c = readVsCapture({ title: '', supplier: '', customer: '', demandPerDay: 9600, steps: [
+      { name: '', kind: 'operation', who: [' Op 1 ', ''], where: '', cycle: null, cycleUnit: '', wait: null, waitUnit: '', value: '', batch: null },
+      { name: 'no kind', kind: 'dance', who: [], where: '', cycle: 5, cycleUnit: 'seconds', wait: null, waitUnit: '', value: '', batch: null },
+      { name: 'odd value', kind: 'check', who: [], where: '', cycle: -3, cycleUnit: 'seconds', wait: null, waitUnit: '', value: 'great', batch: 9600 },
+    ] })!;
+    expect(c.steps.length).toBe(2);
+    expect(c.steps[0]).toEqual({ name: 'Step 1', kind: 'operation', who: ['Op 1'], where: '' });
+    expect(c.steps[1]).toEqual({ name: 'odd value', kind: 'check', who: [], where: '', batch: 9600 });
+    expect(c.demandPerDay).toBe(9600);
+    const many = Array.from({ length: 40 }, (_, i) => ({ name: `s${i}`, kind: 'operation', who: [], where: '', cycle: 1, cycleUnit: 'seconds', wait: null, waitUnit: '', value: '', batch: null }));
+    expect(readVsCapture({ title: '', supplier: '', customer: '', demandPerDay: null, steps: many })?.steps.length).toBe(VS_STEPS_MAX);
+    expect(readVsCapture({ title: '', steps: [] })).toBeUndefined();
+    expect(readVsCapture(null)).toBeUndefined();
+  });
+  it('is read off an answer for its set', () => {
+    const got = checkTalkAnswer({ reply: 'Who does the QA check?', capture: SAID_VS }, [], 'vs')?.capture;
+    expect(got?.set === 'vs' ? got.steps.length : -1).toBe(6);
+  });
+});
+
+describe('the example fills the value stream tool as its own steps would', () => {
+  const cap = readVsCapture(SAID_VS)!;
+  it('six steps said aloud work out to the case V1 figures (lead 9.1 h, 0.27% value added, 2 not classified)', () => {
+    const flow = vsFlow(cap);
+    const f = flowFigures(flow, vsAgreed(cap));
+    expect(f.steps).toBe(6);
+    expect(f.leadSec).toBe(32760);
+    expect([f.addsSec, f.neededSec, f.wasteSec]).toEqual([90, 330, 31500]);
+    expect(f.pce).toBeCloseTo(0.0027473, 6);
+    expect(f.unmarked).toBe(2);
+    expect(f.biggestWait?.step.name).toBe('Release the run to the line');
+    expect(f.biggestWait?.sec).toBe(14400);
+    expect(flow.every(s => s.source === 'typed')).toBe(true);
+    expect(flow.map(s => s.order)).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+  it('a value the tool will not give a kind is dropped, never forced', () => {
+    const c = readVsCapture({ title: '', supplier: '', customer: '', demandPerDay: null, steps: [{ name: 'Walk to stores', kind: 'move', who: ['Op 2'], where: 'Stores', cycle: 60, cycleUnit: 'seconds', wait: null, waitUnit: '', value: 'adds', batch: null }] })!;
+    expect(c.steps[0].value).toBe('adds');
+    expect(vsFlow(c)[0].value).toBeUndefined();
+  });
+  it('the agreed part is a line’s map with the supplier and customer as said, and what was typed on the map stays', () => {
+    expect(vsAgreed(cap)).toEqual({ scope: 'line', supplier: 'Planning', customer: 'Despatch' });
+    expect(vsAgreed(cap, { scope: 'line', pieceCost: 0.8, availableSecPerDay: 57600, customer: 'Old' })).toEqual({ scope: 'line', pieceCost: 0.8, availableSecPerDay: 57600, supplier: 'Planning', customer: 'Despatch' });
+  });
+  it('Update it keeps a step’s id and what was added to it on the map, and drops a time the talk no longer says', () => {
+    const first = vsFlow(cap);
+    const onMap = first.map((s, i) => (i === 2 ? { ...s, info: 'the board', burst: true, queue: 40 } : s));
+    const again = vsFlow({ ...cap, steps: cap.steps.map((s, i) => (i === 2 ? { name: s.name, kind: s.kind, who: s.who, where: s.where } : s)) }, onMap);
+    expect(again.map(s => s.id)).toEqual(first.map(s => s.id));
+    expect(again[2]).toMatchObject({ info: 'the board', burst: true, queue: 40 });
+    expect(again[2].cycleSec).toBeUndefined();
+    expect(again[2].value).toBeUndefined();
+  });
+  it('the draft goes back as words, every step with what was said and what was classed', () => {
+    const w = captureAsText(cap);
+    expect(w).toContain('[The value stream so far: Maris Piper 2 kg, run released to pallet away — from Planning to Despatch — 6 steps]');
+    expect(w).toContain('2. Issue the film and cases — move, Stores + Forklift driver at Stores, cycle 900 s, waits after 7200 s, classed waste');
+    expect(w).toContain('1. Release the run to the line — operation, Planning at Office, cycle 600 s, waits after 14400 s, not classed');
+    expect(captureCount(cap)).toBe(6);
+    expect(captureWords(cap).join(' ')).toContain('10 minutes, waits 4 hours');
   });
 });

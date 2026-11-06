@@ -77,7 +77,7 @@ const { lineId, talkId } = await page.evaluate(async () => {
 await page.goto(`${BASE}/#/talk/${talkId}`); await settle(1500);
 
 /* 1 — the kind of walk */
-ok(await page.locator('[data-set]').count() === 3, '1 three kinds of walk to choose from');
+ok(await page.locator('[data-set]').count() === 4, '1 four kinds of walk to choose from');
 await page.locator('[data-set=spag]').click(); await settle(500);
 ok(await page.locator('[data-set=spag]').getAttribute('aria-pressed') === 'true' && (await talkOf(talkId)).facts.set === 'spag', '1 Spaghetti diagram chosen — and kept on the talk');
 ok(await diagram().count() === 1 && /Nothing to draw yet/.test(await diagram().innerText()) && /Operator 1 goes to the film store/.test(await diagram().innerText()), '1 an empty diagram says what to say first, in his own words');
@@ -178,7 +178,7 @@ const t2 = await p2.evaluate(async ([lineId, c]) => {
 }, [lineId, cap(OP1, OP2, OP3)]);
 await p2.goto(`${BASE}/#/talk/${t2}`); await p2.waitForTimeout(1800);
 const chips = await p2.locator('.tk-sets .chip').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().height)));
-ok(chips.length === 3 && chips.every(h => h >= 36), '7 the kinds of walk on the phone', chips.join(','));
+ok(chips.length === 4 && chips.every(h => h >= 36), '7 the kinds of walk on the phone', chips.join(','));
 ok(await p2.locator('[data-diagram]').count() === 0 && await p2.locator('.tk-turns').isVisible(), '7 the talk first, the diagram a tab away');
 await p2.locator('[data-view-diagram]').click(); await p2.waitForTimeout(600);
 ok(await p2.locator('[data-diagram]').count() === 1 && !(await p2.locator('.tk-turns').isVisible()), '7 the Diagram tab shows the diagram and rests the talk');

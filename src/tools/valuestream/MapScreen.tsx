@@ -179,6 +179,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
           {lineName ? 'what is done, and who does it' : 'not on a line yet — put it on its line below'} · started {niceDay(isoDay(s.startedAt))}{s.product ? <> · <b>{s.product}</b></> : null}</p>
         <WhereItSits s={s} can={can} />
       </div>
+      {s.facts.fromTalk && <p className="sub calc-fromtalk" data-from-talk>From a Line Talk · <a href={`#/talk/${encodeURIComponent(s.facts.fromTalk.talk)}`}>open the talk</a> — its steps were said there; change them here or in the talk and Update it.</p>}
 
       {walking && (
         <WalkIt people={lanesKnown.people} places={lanesKnown.places} onDone={() => { walkUndo.current = []; setWalking(false); }} again={carried} tally={classCounts(list)}

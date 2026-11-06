@@ -113,7 +113,7 @@ Unchanged. It is the default set, and its documents now follow the 1-2-3 lean ru
 | **T0** | the pipeline: a toolset on a talk (kept, changeable, chips), the set's schema and instructions in the gateway, `capture` read and checked, the live picture pane, *Make it* / *Update it* / Undo, *From a talk* on the made study, the grounded check on a capture | unit: capture reader, schema size, set choice; `talk-toolsets.mjs` |
 | **T1** | **Flow diagram** on the pipeline (process flow chart: capture → the calculator's `Inputs`) | the record's tray talked step by step = the typed chart's figures; paper read back |
 | **T2** *(built 6 November)* | **Spaghetti, several people**: the tool's part 2 (walkers, per-walker and together figures, schematic and to-scale pictures, paper), then its set | hand-worked 2–4 walker cases (`scripts/knowledge/cases-kaizen.py`); the talk of the Rowland example = the typed record |
-| **T3** | **Value stream** on the pipeline (capture → steps; who/where lanes from what was said) | a stream talked end to end = the map's lead time, VA share and paper |
+| **T3** *(built 6 November: set `vs`, `talk-valuestream.mjs`)* | **Value stream** on the pipeline (capture → steps; who/where lanes from what was said) | a stream talked end to end = the map's lead time, VA share and paper |
 | **T4** | **Micro-movements**: FC-233's specification and tool (therbligs, two-handed chart), then its set | independent cases; the FLT cycle talked and timed |
 | **T5** | Toolsets hub: *Talk this* on each tool's page and the line's Tools, the chooser's wording, the line report listing talk-made studies, docs and gate lines | journeys not longer; structure |
 

@@ -56,6 +56,8 @@ import { DOC_KIND_WORD, TALK_LIMITS, type TalkAskImage } from './talkAssist';
 import { SET_WORD, TALK_SETS, captureAsText, captureCount, setOf, type TalkCapture, type TalkSet } from './talkSets';
 import { TalkDiagram, flowInputs } from './TalkDiagram';
 import { TalkSpag, spagInputs } from './TalkSpag';
+import { TalkVs } from './TalkVs';
+import { vsAgreed, vsFlow } from './vsMap';
 import spaghettiWalkers from '../calc/defs/spaghetti-walkers';
 import processFlow from '../calc/defs/process-flow';
 import type { ToolStudy as CalcStudy } from '../../lib/study';
@@ -462,13 +464,25 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const editCapture = (c: TalkCapture) => capTurn ? patchTurn(capTurn.id, { capture: c, ...(capTurn.captureFirst ? {} : capTurn.capture ? { captureFirst: capTurn.capture } : {}) }) : Promise.resolve();
   const sayWhen = () => `the Line Talk of ${niceDay(todayISO())}`;
   const calcKey = set === 'spag' ? spaghettiWalkers.key : processFlow.key;
-  const inputsOf = (c: TalkCapture) => (c.set === 'spag' ? spagInputs(c, sayWhen()) : flowInputs(c, sayWhen()));
-  const openMade = () => { if (madeId) nav(studyHref({ id: madeId, tool: 'calc', agreed: { calc: { key: calcKey, inputs: {} } }, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) })); };
+  const inputsOf = (c: Exclude<TalkCapture, { set: 'vs' }>) => (c.set === 'spag' ? spagInputs(c, sayWhen()) : flowInputs(c, sayWhen()));
+  const openMade = () => { if (madeId) nav(studyHref(set === 'vs' ? { id: madeId, tool: 'map', ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) } : { id: madeId, tool: 'calc', agreed: { calc: { key: calcKey, inputs: {} } }, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) })); };
   const makeIt = async () => {
     if (!capture || making || !live) return;
     setMaking(true);
     try {
       const t = now();
+      if (capture.set === 'vs') {
+        /* the Value stream tool's own record: a line's map, its steps as said, each one's value only as the person classed it */
+        const map: ToolStudy = { id: uid(), tool: 'map', name: `${capture.title.trim() || 'Value stream'}${s.workspaceId ? '' : ' (from a talk)'}`, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}),
+          agreed: { map: vsAgreed(capture) }, facts: { flow: vsFlow(capture), fromTalk: { talk: s.id, at: t } }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
+        await putStudy(map);
+        await patchStudy(s.id, cur => ({ facts: { ...cur.facts, made: { id: map.id, at: t } } }));
+        offerUndo('Made a Value stream map from this talk', async () => {
+          await deleteStudy(map.id);
+          await patchStudy(s.id, cur => { const { made: _m, ...rest } = cur.facts; void _m; return { facts: rest }; });
+        });
+        return;
+      }
       const { inputs, src } = inputsOf(capture);
       const made: CalcStudy = { id: uid(), tool: 'calc', name: `${capture.title.trim() || (capture.set === 'spag' ? 'Spaghetti diagram' : 'Flow diagram')}${s.workspaceId ? '' : ' (from a talk)'}`, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}),
         agreed: { calc: { key: calcKey, inputs, src } }, facts: { fromTalk: { talk: s.id, at: t } }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
@@ -485,6 +499,12 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
     if (!capture || !madeId || making || !live) return;
     setMaking(true);
     try {
+      if (capture.set === 'vs') {
+        const c = capture;
+        /* the steps are the talk's (each keeping its id and what was added to it on the map); the money, the day's seconds and every other part of the map stay the person's */
+        await patchStudy(madeId, cur => ({ agreed: { ...cur.agreed, map: vsAgreed(c, cur.agreed?.map) }, facts: { ...cur.facts, flow: vsFlow(c, cur.facts.flow ?? []) } }));
+        return;
+      }
       const { inputs, src } = inputsOf(capture);
       const mine = capture.set === 'spag' ? /^w\d_/ : /^s\d\d_/;
       await patchStudy(madeId, cur => {
@@ -549,6 +569,10 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
       )}
       {set === 'flow' && (!phone || view === 'diagram') && (
         <TalkDiagram capture={capture?.set === 'flow' ? capture : { set: 'flow', title: '', steps: [] }} canEdit={live} madeId={madeAlive ? madeId : undefined} busy={making}
+          onEdit={c => void editCapture(c)} onMake={() => void makeIt()} onUpdate={() => void updateIt()} onOpen={openMade} />
+      )}
+      {set === 'vs' && (!phone || view === 'diagram') && (
+        <TalkVs capture={capture?.set === 'vs' ? capture : { set: 'vs', title: '', supplier: '', customer: '', steps: [] }} canEdit={live} madeId={madeAlive ? madeId : undefined} busy={making}
           onEdit={c => void editCapture(c)} onMake={() => void makeIt()} onUpdate={() => void updateIt()} onOpen={openMade} />
       )}
       {set === 'spag' && (!phone || view === 'diagram') && (
