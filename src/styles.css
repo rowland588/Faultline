@@ -16297,3 +16297,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .fq-row-main b, .fq-row-sub { white-space: normal; overflow-wrap: anywhere; }
   .fq-money { min-width: 0; } .fq-who { min-width: 0; max-width: 38%; } .fq-who span { overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* THE JOURNEY ON A LINE (docs/LOOK.md §0–1, L2): the question over each group of panels, and a problem's cost on its row */
+.pl-q { margin: 24px 0 -14px; font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.pl-q + .pl-sec, .pl-q + .pl-looked { margin-top: 22px; }
+.pl-row-cost { font-size: var(--t-detail); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-row-cost.is-r { color: var(--st-r); } .pl-row-cost.is-n { color: var(--muted); font-weight: 500; }
+.pl-spread.is-none .yk-none { margin: 0; max-width: 80ch; }

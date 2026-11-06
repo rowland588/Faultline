@@ -25,6 +25,7 @@
  *     is counted by (lib/portfolio jobItems).
  *
  * Pure: the caller hands in the records and today. */
+import type { ProblemCost } from './problemCost';
 import type { Snag } from '../snag/types';
 import { dueToInput } from '../snag/types';
 import type { Program } from './programs';
@@ -53,10 +54,12 @@ export const isOpenOnLine = (s: Snag, wsId: string): boolean =>
  *  line's card on the control room and the line's own page both say. */
 export interface LineProblems { rows: SnagRow[]; open: number; critical: number; late: number }
 
-export function lineProblems(snags: readonly Snag[], line: { id: string; name: string }, o: { ref?: number; jobName?: (id: string) => string | undefined; assetName?: (s: Snag) => string | undefined } = {}): LineProblems {
+export function lineProblems(snags: readonly Snag[], line: { id: string; name: string }, o: { ref?: number; jobName?: (id: string) => string | undefined; assetName?: (s: Snag) => string | undefined;
+  /** What it costs the line a day (lib/problemCost) — the line's page prices its rows as the register does (look E, L2). */
+  costOf?: (s: Snag) => ProblemCost | undefined } = {}): LineProblems {
   const ref = o.ref ?? Date.now();
   const rows = snags.filter(s => isOpenOnLine(s, line.id))
-    .map(s => snagRow(s, line.name, o.assetName?.(s), s.projectId ? o.jobName?.(s.projectId) : undefined, ref))
+    .map(s => snagRow(s, line.name, o.assetName?.(s), s.projectId ? o.jobName?.(s.projectId) : undefined, ref, undefined, o.costOf?.(s)))
     .sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt);
   return { rows, open: rows.length, critical: rows.filter(r => r.priority === 'critical').length, late: rows.filter(r => r.late).length };
 }

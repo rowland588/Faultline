@@ -41,7 +41,8 @@ import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone } from '../li
 import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../tools/linestandard/standard';
 import { lineProblems, lineProblemsSaid } from '../lib/lineWork';
 import { lineClosing, lineTiles, type LineReading } from '../lib/lineLean';
-import { lineDay } from '../lib/lineLoss';
+import { lineDay, neckOf } from '../lib/lineLoss';
+import { problemCost } from '../lib/problemCost';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
 import { balanceSays } from './LineToolsScreen';
 import { studyLine } from './StudiesScreen';
@@ -170,7 +171,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   /* its problems as rows, in priority order — the project each is for
      named; read by the one rule the control room's card and its numbers
      use (lib/lineWork lineProblems), so the three cannot disagree */
-  const probs = useMemo(() => lineProblems(mine, { id: wsId, name: line?.name ?? 'This line' }, { jobName: id => projects.find(p => p.id === id)?.name, assetName: s => walkAssets.find(a => a.id === s.assetId)?.name }), [mine, projects, line, wsId, walkAssets]);
+  /* priced as the register prices them (lib/problemCost): the minutes typed on the problem, the line's own cost model, its bottleneck — what's going wrong, by what it costs (look E, L2) */
+  const probs = useMemo(() => lineProblems(mine, { id: wsId, name: line?.name ?? 'This line' }, { jobName: id => projects.find(p => p.id === id)?.name, assetName: s => walkAssets.find(a => a.id === s.assetId)?.name,
+    costOf: s => problemCost(s, s.assetId ? walkAssets.find(a => a.id === s.assetId)?.name : s.targetAsset, line ?? undefined, neckOf(standards, wsId)) }), [mine, projects, line, wsId, walkAssets, standards]);
   const rows: SnagRow[] = probs.rows;
   const jobs = projects.filter(p => jobIds.includes(p.id));
   const facts = line ? lineFacts(line) : {};
@@ -399,46 +402,14 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       {/* WHERE IT STANDS, COUNTED (lib/lineLean) — the tiles its report prints */}
       {show('overview') && reading && <LeanTiles tiles={lineTiles(reading)} className="pl-tiles" />}
 
-      {/* HOW FRESH THE LOOKING IS (FC-199, tools/gemba) — days since anyone looked at the line and at each machine, and what the looking found */}
-      {show('overview') && <LineLooking wsId={wsId} />}
 
-      {/* A PROVED FIX OFFERED TO EVERY LINE WITH THE SAME MACHINE (FC-155, tools/yokoten) — what this line proved, and what was offered to it */}
-      {show('overview') && <SpreadFixes wsId={wsId} />}
 
-      {/* HOW THIS LINE IS SEEN (docs/ADVANCED-TOOLS.md §5A) — walk, video study, Line Talk; the sums stay in Tools. */}
-      {show('overview') && (
-        <section className="pl-sec pl-see" aria-label="How this line is seen">
-          <div className="pl-sec-h"><h2>See it on the line</h2></div>
-          <p className="sub pl-see-lede">How this line is seen. The sums stay in the tools.</p>
-          <ul className="pl-see-doors">
-            <li>
-              <button type="button" className="pl-see-door" onClick={() => nav(walkAssets.length ? `/w/${wsId}/line` : `/w/${wsId}/snags?manage=1`)}>
-                <b>Walk the line</b>
-                <span className="sub">You mark the frame; nothing is sent to a model.</span>
-                <span className="pl-tool-go" aria-hidden>›</span>
-              </button>
-            </li>
-            <li>
-              <button type="button" className="pl-see-door" onClick={() => nav(`/video?line=${encodeURIComponent(wsId)}`)}>
-                <b>Film the work</b>
-                <span className="sub">Times are read on the phone; naming the work from the frames is optional Claude, off until ticked.</span>
-                <span className="pl-tool-go" aria-hidden>›</span>
-              </button>
-            </li>
-            <li>
-              <button type="button" className="pl-see-door" onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>
-                <b>Talk it</b>
-                <span className="sub">Line Talk answers through the app; what you said is kept either way.</span>
-                <span className="pl-tool-go" aria-hidden>›</span>
-              </button>
-            </li>
-          </ul>
-        </section>
-      )}
 
-      {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
-      {show('overview') && kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} records={kit.machines.map(m => m.record)} rows={rows} snags={mine} obs={obs} standards={standards} />}
 
+
+      {/* THE JOURNEY (docs/LOOK.md §0–1, look E — L2, 6 November): what's going wrong (the problems by what they cost, where on the line), what needs doing
+          (the programs to prove, each with its day), did it work (the fixes proved here by their own before → after), then how the line is seen and its facts. */}
+      {show('overview') && <p className="pl-q" aria-hidden>What’s going wrong</p>}
       {show('overview') && (<section className="pl-sec" aria-label="Problems on this line">
         <div className="pl-sec-h">
           <h2>Problems</h2>
@@ -458,6 +429,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
                     <span className="preg-right">
                       <span className={'status-pill qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span>
                       {r.due && <span className={'qsl-dueword ' + TONE_CLASS[r.dueTone ?? 'n']}>{r.due}</span>}
+                      {/* what it costs the line a day, as the register's row says it (FC-154) — the money that says which problem first */}
+                      <span className={'pl-row-cost' + (r.cost?.labour || r.cost?.contribution || r.cost?.materials ? ' is-r' : ' is-n')}>{r.cost ? r.cost.short : 'not priced'}</span>
                     </span>
                   </button>
                 </li>
@@ -465,7 +438,9 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
             </ul>
           )}
       </section>)}
-
+      {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
+      {show('overview') && kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} records={kit.machines.map(m => m.record)} rows={rows} snags={mine} obs={obs} standards={standards} />}
+      {show('overview') && <p className="pl-q" aria-hidden>What needs doing</p>}
       {/* ITS MACHINES, IN FLOW ORDER (Stage 2) — the line's list, the one every
           picker reads (the stopwatch, the walk, a problem), each with who made it
           and its programs; a machine a job brought in says which job. Named here
@@ -548,6 +523,41 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           )}
       </section>)}
 
+      {show('overview') && <p className="pl-q" aria-hidden>Did it work</p>}
+      {/* A PROVED FIX OFFERED TO EVERY LINE WITH THE SAME MACHINE (FC-155, tools/yokoten) — what this line proved, and what was offered to it */}
+      {show('overview') && <SpreadFixes wsId={wsId} />}
+      {/* HOW FRESH THE LOOKING IS (FC-199, tools/gemba) — days since anyone looked at the line and at each machine, and what the looking found */}
+      {show('overview') && <LineLooking wsId={wsId} />}
+      {/* HOW THIS LINE IS SEEN (docs/ADVANCED-TOOLS.md §5A) — walk, video study, Line Talk; the sums stay in Tools. */}
+      {show('overview') && (
+        <section className="pl-sec pl-see" aria-label="How this line is seen">
+          <div className="pl-sec-h"><h2>See it on the line</h2></div>
+          <p className="sub pl-see-lede">How this line is seen. The sums stay in the tools.</p>
+          <ul className="pl-see-doors">
+            <li>
+              <button type="button" className="pl-see-door" onClick={() => nav(walkAssets.length ? `/w/${wsId}/line` : `/w/${wsId}/snags?manage=1`)}>
+                <b>Walk the line</b>
+                <span className="sub">You mark the frame; nothing is sent to a model.</span>
+                <span className="pl-tool-go" aria-hidden>›</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" className="pl-see-door" onClick={() => nav(`/video?line=${encodeURIComponent(wsId)}`)}>
+                <b>Film the work</b>
+                <span className="sub">Times are read on the phone; naming the work from the frames is optional Claude, off until ticked.</span>
+                <span className="pl-tool-go" aria-hidden>›</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" className="pl-see-door" onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>
+                <b>Talk it</b>
+                <span className="sub">Line Talk answers through the app; what you said is kept either way.</span>
+                <span className="pl-tool-go" aria-hidden>›</span>
+              </button>
+            </li>
+          </ul>
+        </section>
+      )}
       {show('tools') && (<section className="pl-sec" aria-label="Tools on this line">
         <div className="pl-sec-h"><h2>Tools on this line</h2>
           {may && <button type="button" className="btn btn-ghost btn-sm pl-talk" onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>Talk on this line ›</button>}

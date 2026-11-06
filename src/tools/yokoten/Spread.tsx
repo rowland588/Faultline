@@ -62,7 +62,14 @@ function Received({ row }: { row: OfferRow }) {
 /** The line's page: nothing when this line has proved nothing to spread and been offered nothing. */
 export function SpreadFixes({ wsId }: { wsId: string }) {
   const read = useYokoten(wsId);
-  if (!read || (!read.proved.length && !read.received.length)) return null;
+  if (!read) return null;
+  /* NOTHING PROVED YET — said, never a hole (docs/LOOK.md §0: no improvement claimed without evidence, no dead end): what proves one, and where */
+  if (!read.proved.length && !read.received.length) return (
+    <section className="pl-sec pl-spread is-none" aria-label="Fixes spread across the lines">
+      <div className="pl-sec-h"><h2>Spread what works</h2></div>
+      <p className="sub yk-none">No fix proved on this line yet. A countermeasure done, then the same number counted again — a shift counted, a changeover timed, a capability measured — is what proves one; it then shows here with its before → after, and is offered to every line with the same machine.</p>
+    </section>
+  );
   return (
     <section className="pl-sec pl-spread" aria-label="Fixes spread across the lines">
       <div className="pl-sec-h"><h2>Spread what works</h2></div>
