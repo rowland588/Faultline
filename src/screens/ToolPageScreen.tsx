@@ -77,12 +77,18 @@ export function ToolPageScreen({ toolKey }: { toolKey: string }) {
         says={tool?.says ?? entry.problem}
         primary={tool && open ? { label: `Start one`, run: () => nav(tool.key === 'talk' ? tool.to : `${tool.to}?add=1`) } : undefined}
         more={tool ? [{ label: `See mine`, run: () => nav(tool.to) }, { label: 'All the tools', run: () => nav('/tools') }] : [{ label: 'All the tools', run: () => nav('/tools') }]}
-      />
+      >
+        <p className="pace-meta tc-page-meta">
+          <span className="tc-page-id" data-entry-id>{entry.id}</span>
+          {tool && <span className="tc-page-kind">{KIND_WORDS[tool.kind]}</span>}
+          <span className={`et-st is-${TONE[entry.status]}`} data-tool-status>{STATUS_WORDS[entry.status]}</span>
+          {said && <span className="tc-page-used">{said}{used?.latest ? ` · latest: ${used.latest}` : ''}</span>}
+        </p>
+      </PageHeader>
 
-      <section className="tp-hero" aria-label="What it looks like">
+      <section className="tp-hero ep-panel" aria-label="What it looks like">
         {tool ? <ToolPicture tool={tool} big /> : <span className="tc-pic is-big"><span className="tc-pic-none">{entry.id}</span></span>}
         <div className="tp-hero-side">
-          <p className="tp-status"><span className={`et-st is-${TONE[entry.status]}`}>{STATUS_WORDS[entry.status]}</span>{said && <span className="tc-used">{said}{used?.latest ? ` · latest: ${used.latest}` : ''}</span>}</p>
           <p className="tp-problem">{entry.problem}</p>
           {mark && <p className="sub">You came by <b>{mark.id} {mark.name}</b> — a mode of this tool, listed below.</p>}
           {!tool && <p className="sub">{entry.status === 'specified' ? 'Planned — specified, not built yet.' : entry.status === 'research' ? 'Needs research before it can be specified.' : entry.status === 'left-out' ? 'Left out on purpose — see why below.' : 'Not built yet — it has no Start. The nearest built tools are on its routes below.'}</p>}

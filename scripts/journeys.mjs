@@ -173,8 +173,10 @@ await run('J2 a tool on its own', 390, async (D, J) => {
   /* since E1 (29 October, docs/ENTERPRISE-UI.md) the Factory is the board of lines — its Use a tool row folded
      into the Tools chip, so a tool on its own starts from Tools (one tap more, agreed in LONGER below) */
   await press(D, J, 'Factory: Tools', D.page.locator('main .fac-quick').getByRole('button', { name: 'Tools', exact: true })); await orient(D, J, 'Tools');
-  await press(D, J, 'Tools: Capability', D.page.locator('main .et-now').getByRole('button', { name: 'Open Capability', exact: true })); await orient(D, J, 'Capability');
-  await press(D, J, 'New capability study', btn(D, 'New capability study'));
+  /* E7: gallery stacks — open Capability from its card (aria-label from ui/ToolCard) */
+  await press(D, J, 'Tools: Capability', D.page.getByRole('button', { name: /^Capability — what it is for$/ })); await orient(D, J, 'Capability');
+  /* Start one → /capability?add=1 opens New in the sheet (StudiesScreen) */
+  await press(D, J, 'Start one', D.page.getByRole('button', { name: 'Start one', exact: true })); await orient(D, J, 'Capability');
   await type(D, J, 'What is it of?', D.page.getByLabel('What is it of?'), 'Fill weight 400 g');
   await type(D, J, 'On which machine?', D.page.getByLabel(/On which machine/), 'Ishida checkweigher');
   await press(D, J, 'Start it', btn(D, 'Start it')); await orient(D, J, 'Capability');
@@ -374,7 +376,7 @@ const LONGER = {
   'J7c a line problem moved into a project (desk) [desk]': 'a problem is the line\'s — the Factory board › the line › Problems',
   /* 29–30 October — Enterprise UI E1 (docs/ENTERPRISE-UI.md): the Factory is the board of lines; its Use a tool
      row folded into the Tools chip, so a tool on its own is Factory › Tools › the tool — one tap more */
-  'J2 a tool on its own [phone]': 'the Factory is the board of lines — a tool starts from its Tools chip',
+  'J2 a tool on its own [phone]': 'the Factory is the board of lines — a tool starts from its Tools chip; E7 opens the tool from its gallery card then Start one',
 };
 const base = JSON.parse(readFileSync(new URL('../docs/structure/journeys-baseline.json', import.meta.url), 'utf8')).walks;
 let fail = 0;

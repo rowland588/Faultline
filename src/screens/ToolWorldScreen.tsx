@@ -9,6 +9,7 @@ import { useMemo } from 'react';
 import { PageHeader } from '../ui/parts';
 import { ToolCard } from '../ui/ToolCard';
 import { useToolUse, usedSaid } from '../lib/useToolUse';
+import { entryById } from '../catalogue';
 import { DISCIPLINES, STATUS_WORDS, type Entry, type Status } from '../catalogue/types';
 import { toolCounts } from '../catalogue/counts';
 import { worldById, worldEntries, worldRoutes, worldTools, WORLDS } from '../catalogue/worlds';
@@ -52,11 +53,21 @@ export function ToolWorldScreen({ worldId }: { worldId: string }) {
         <h2 className="ln-h">The tools</h2>
         {!tools.length && <p className="sub" data-no-tools>No tool of its own opens in {world.name} yet — what it holds is below, with what each is and where it stands.</p>}
         <div className="tc-gal" role="list" aria-label={`The ${world.name} tools you can open`}>
-          {tools.map(t => (
-            <div key={t.key} role="listitem" className="tc-cell">
-              <ToolCard tool={t} said={usedSaid(use?.[t.key])} onOpen={() => nav(`/tools/${t.key}`)} onList={() => nav(t.to)} />
-            </div>
-          ))}
+          {tools.map(t => {
+            const e = entryById(t.id);
+            return (
+              <div key={t.key} role="listitem" className="tc-cell">
+                <ToolCard
+                  tool={t}
+                  statusWord={e ? STATUS_WORDS[e.status] : undefined}
+                  statusTone={e ? TONE[e.status] : undefined}
+                  said={usedSaid(use?.[t.key])}
+                  onOpen={() => nav(`/tools/${t.key}`)}
+                  onList={() => nav(t.to)}
+                />
+              </div>
+            );
+          })}
         </div>
       </section>
 

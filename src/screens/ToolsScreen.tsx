@@ -99,11 +99,21 @@ export function ToolsScreen() {
         </div>
         <p className="sub"><SixMDoor /> Opens the 6M tool: the problem, the six bones, the five whys and the countermeasure board.</p>
         <div className="tc-gal" role="list" aria-label="Every tool you can open">
-          {APP_TOOLS.filter(t => !kind || t.kind === kind).map(t => (
-            <div key={t.key} role="listitem" className="tc-cell">
-              <ToolCard tool={t} said={usedSaid(use?.[t.key])} onOpen={() => nav(`/tools/${t.key}`)} onList={() => nav(t.to)} />
-            </div>
-          ))}
+          {APP_TOOLS.filter(t => !kind || t.kind === kind).map(t => {
+            const e = entryById(t.id);
+            return (
+              <div key={t.key} role="listitem" className="tc-cell">
+                <ToolCard
+                  tool={t}
+                  statusWord={e ? STATUS_WORDS[e.status] : undefined}
+                  statusTone={e ? TONE[e.status] : undefined}
+                  said={usedSaid(use?.[t.key])}
+                  onOpen={() => nav(`/tools/${t.key}`)}
+                  onList={() => nav(t.to)}
+                />
+              </div>
+            );
+          })}
         </div>
         <h2 className="ln-h et-all-h">Or find one by the problem</h2>
       </section>

@@ -32,6 +32,7 @@ a session that ships something updates this page in the same commit.** The rules
 
 **Parallel improvement plan** (domains, agent streams, hygiene): `docs/IMPROVEMENT-ROADMAP.md` — planning only; does not replace this ordered list.
 
+- **Tools gallery and tool detail (6 November, ENTERPRISE-UI E7 slice):** clearer cards — kind, FC id, catalogue status and used on the head row; denser grid on desk; tool page — meta line under the title (FC · kind · status · used), hero on `ep-panel`; on branch `cursor/tools-ui-density-de14`, not on `main` until merged.
 1. **Spaghetti talk accuracy** (Rowland, 6 November: *"it's going to struggle with what I'm saying … there needs to be
    improvements, guaranteed"*). Tested on his own sentence: the order of moves is right, "left"/"right" become place
    names, two pickups merge into one place silently, "drives the truck" is not drawn. The plan proposed, not yet

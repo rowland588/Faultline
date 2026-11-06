@@ -1,7 +1,7 @@
 {
- "measured": "2026-10-24",
- "by": "scripts/journeys.mjs (gate 55)",
- "on": "main 68f2be8 (B7d), the smoke seed (src/dev/seed.ts), clock 15 Oct 2026 10:00 London",
+ "measured": "2026-11-06",
+ "by": "scripts/journeys.mjs — J2 phone after ENTERPRISE-UI E7 (stacked Tools gallery)",
+ "on": "the smoke seed (src/dev/seed.ts), clock 15 Oct 2026 10:00 London",
  "before": "docs/structure/journeys-baseline-2026-10-22.json — the 22 October baseline, kept as it was",
  "desk": "1360x900",
  "phone": "390x844",
@@ -132,15 +132,25 @@
   {
    "name": "J2 a tool on its own",
    "device": "phone",
-   "taps": 4,
+   "taps": 5,
    "entries": 8,
-   "screens": 2,
+   "screens": 4,
    "hunts": 2,
    "orient": [
     {
      "expected": "Factory",
      "said": "Factory",
      "right": true
+    },
+    {
+     "expected": "Tools",
+     "said": "Factory › Tools",
+     "right": true
+    },
+    {
+     "expected": "Capability",
+     "said": "Factory › Tools",
+     "right": false
     },
     {
      "expected": "Capability",
@@ -154,8 +164,9 @@
     }
    ],
    "steps": [
-    "↓ Factory: Use a tool — Capability",
-    "New capability study",
+    "Factory: Tools",
+    "↓ Tools: Capability",
+    "Start one",
     "⌨ What is it of?",
     "⌨ On which machine?",
     "Start it",
