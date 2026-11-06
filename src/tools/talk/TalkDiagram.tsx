@@ -74,20 +74,26 @@ export function TalkDiagram({ capture, canEdit, madeId, busy, onEdit, onMake, on
           </ol>
           {n >= FLOW_STEPS_MAX && <p className="sub">A chart holds {FLOW_STEPS_MAX} steps — a longer path is a second chart.</p>}
         </>}
-      {canEdit && n > 0 && (
-        <div className="tk-dmake" role="group" aria-label="Make the chart">
-          {madeId
-            ? <>
-              <button type="button" className="btn btn-primary" data-update disabled={busy} onClick={onUpdate}>Update it</button>
-              <button type="button" className="btn btn-ghost" data-open-made onClick={onOpen}>Open it</button>
-              <span className="sub">The process flow chart on this line is made from this talk — Update it carries your changes into that one chart.</span>
-            </>
-            : <>
-              <button type="button" className="btn btn-primary" data-make disabled={busy} onClick={onMake}>Make it</button>
-              <span className="sub">Makes a Process flow chart on this line from these steps — with its figures, its page and its paper. You can keep talking and Update it.</span>
-            </>}
-        </div>
-      )}
+      <MakeBar canEdit={canEdit && n > 0} madeId={madeId} busy={busy} what="Process flow chart" onMake={onMake} onUpdate={onUpdate} onOpen={onOpen} />
     </section>
+  );
+}
+
+/** Make it / Update it / Open it — the same three taps under every set's diagram (the tool's record is made on the talk's line, and one talk makes one). */
+export function MakeBar({ canEdit, madeId, busy, what, onMake, onUpdate, onOpen }: { canEdit: boolean; madeId?: string; busy: boolean; what: string; onMake: () => void; onUpdate: () => void; onOpen: () => void }) {
+  if (!canEdit) return null;
+  return (
+    <div className="tk-dmake" role="group" aria-label={`Make the ${what.toLowerCase()}`}>
+      {madeId
+        ? <>
+          <button type="button" className="btn btn-primary" data-update disabled={busy} onClick={onUpdate}>Update it</button>
+          <button type="button" className="btn btn-ghost" data-open-made onClick={onOpen}>Open it</button>
+          <span className="sub">The {what} on this line is made from this talk — Update it carries your changes into that one record.</span>
+        </>
+        : <>
+          <button type="button" className="btn btn-primary" data-make disabled={busy} onClick={onMake}>Make it</button>
+          <span className="sub">Makes a {what} on this line from this diagram — with its figures, its page and its paper. You can keep talking and Update it.</span>
+        </>}
+    </div>
   );
 }

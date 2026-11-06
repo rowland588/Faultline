@@ -15,7 +15,7 @@
  * with it — so both hold the same rules. Self-contained on purpose: the
  * gateway runs it under Deno. */
 
-import { SET_INSTRUCTIONS, SET_SCHEMA, TALK_SETS, readCapture, setOf, type TalkCapture, type TalkSet } from './talkSets';
+import { SET_INSTRUCTIONS, SET_SCHEMA, TALK_SETS, captureWords, readCapture, setOf, type TalkCapture, type TalkSet } from './talkSets';
 
 /** How a turn came: spoken on the line, typed, a picture — or the assistant's own earlier answer. */
 export type TalkAskKind = 'said' | 'typed' | 'photo' | 'reply';
@@ -399,7 +399,7 @@ export function unsureFigures(answer: TalkAnswer, a: TalkAsk): string[] {
   ]);
   const d = answer.document;
   const cap = answer.capture;
-  const said = [answer.reply, ...(cap ? [cap.title, ...cap.steps.flatMap(x => [x.what, x.said ?? ''])] : []), ...(d ? [d.title, ...d.sections.flatMap(s => [s.heading, s.text, ...s.points.flatMap(p => [p.text, p.owner, p.due]), ...s.photos.map(p => p.caption)])] : [])].join('\n');
+  const said = [answer.reply, ...(cap ? captureWords(cap) : []), ...(d ? [d.title, ...d.sections.flatMap(s => [s.heading, s.text, ...s.points.flatMap(p => [p.text, p.owner, p.due]), ...s.photos.map(p => p.caption)])] : [])].join('\n');
   const out: string[] = [];
   for (const raw of said.matchAll(NUMBER)) {
     const f = asFigure(raw[0]);
