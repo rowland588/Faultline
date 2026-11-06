@@ -2,10 +2,11 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "finder",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 5173
+      "name": "faultline",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5191", "--strictPort", "--host", "127.0.0.1"],
+      "env": { "VITE_SUPABASE_URL": "https://testproj.supabase.co", "VITE_SUPABASE_ANON_KEY": "testkey" },
+      "port": 5191
     }
   ]
 }

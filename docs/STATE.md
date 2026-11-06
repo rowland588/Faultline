@@ -65,6 +65,12 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 4. What lives outside the repo — and how it is reached
 
+**The connections are in the repo.** Supabase and Vercel are reached through MCP: Claude Code reads `.mcp.json`,
+Cursor reads `.cursor/mcp.json` (both point at the same Supabase project; Cursor's adds Vercel). Sign in once when
+the editor asks; after that `apply_migration`, `execute_sql`, `deploy_edge_function`, `get_deployment` and the rest
+work from either tool, so an agent in Cursor can deploy the gateway, run a migration and read a build's state itself —
+never say "I cannot operate production" before checking those tools are on. The secrets never pass through either.
+
 | Thing | Where | How |
 |---|---|---|
 | Production | Vercel project `faultline` (team `rowlandglew35-7130s-projects`), builds `main` | done only when the production deployment is READY; `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are its environment variables |

@@ -38,6 +38,7 @@ repo's law, in Rowland's words); the state is in **`docs/STATE.md`**; the produc
 | The designs | `docs/` — each named in `CLAUDE.md`; `docs/history/` is what was replaced |
 | The proofs | `scripts/acceptance/*.mjs` (Playwright, one per finished story), `scripts/smoke.mjs`, `scripts/inventory.mjs`, `scripts/journeys.mjs`, `scripts/gate.sh` |
 | The database | `supabase/*.sql` — a history, never replayed; a change is a new file applied with its read-back. `supabase/functions/assist` is the Line Talk gateway, whose `talk/` and `video/` folders are copied from `src/tools/` by `scripts/sync-assist.mjs` |
+| The connections | `.mcp.json` (Claude Code) and `.cursor/mcp.json` (Cursor): Supabase (project `eqdigvzbljofxznqtfia`) and Vercel (project `faultline`) over MCP — sign in once; then migrations, the gateway deploy and the build's state are done from the editor, as `docs/STATE.md` §4 says |
 | The brand | `scripts/brand-assets.mjs`, `index.html`, `public/` |
 
 ## Git
