@@ -30,6 +30,8 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
 
+**Parallel improvement plan** (domains, agent streams, hygiene): `docs/IMPROVEMENT-ROADMAP.md` — planning only; does not replace this ordered list.
+
 1. **Spaghetti talk accuracy** (Rowland, 6 November: *"it's going to struggle with what I'm saying … there needs to be
    improvements, guaranteed"*). Tested on his own sentence: the order of moves is right, "left"/"right" become place
    names, two pickups merge into one place silently, "drives the truck" is not drawn. The plan proposed, not yet
