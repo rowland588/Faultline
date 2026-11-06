@@ -5,9 +5,11 @@
  * seen (its first frame and a play arrow) and plays in the app; on paper it is a link that opens it here. A page address with ?media=<id> opens that
  * attachment straight away — that is what a video on paper links to. */
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ToolStudy } from '../lib/study';
 import { patchStudy } from '../db';
-import { captureMedia, pickExistingMedia } from '../lib/media';
+import { captureMedia, pickExistingMedia, savePhotoBlob, saveVideoBlob } from '../lib/media';
+import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
 import { uid, now } from '../lib/ids';
 import { attachLink, attachName, attachSaid, attachmentsOf, asMedia, cleanUrl, fromMedia, hostOf, type Attachment } from '../lib/attachments';
 import { studyHref } from '../lib/studyLinks';
@@ -55,7 +57,13 @@ export function AttachSheet({ s, target, name, canEdit, by, open, onClose, openF
   useEffect(() => { if (openFirst) setViewing(openFirst); }, [openFirst]);
 
   const add = (more: Attachment[]) => more.length ? change(s.id, l => [...l, ...more]) : Promise.resolve();
+  /* THE LIVE CAMERA (Rowland, 6 November: "live picture, live video"): the app's own camera opens on the sheet, a shutter for pictures and a record button for
+     clips, and stays open for the next; a phone that cannot give one falls back to the phone's own camera for a picture and the gallery for a clip */
+  const [live, setLive] = useState<'photo' | 'video' | null>(null);
+  const canLive = videoCaptureSupported();
+  const keep = async (make: () => Promise<Parameters<typeof fromMedia>[0]>) => { const m = await make(); await add([fromMedia(m, target, by)]); };
   const photo = async () => {
+    if (canLive) { setLive('photo'); return; }
     setBusy('Opening the camera…');
     try { const m = await captureMedia('photo', { gallery: false }); if (m) await add([fromMedia(m, target, by)]); } finally { setBusy(''); }
   };
@@ -118,6 +126,7 @@ export function AttachSheet({ s, target, name, canEdit, by, open, onClose, openF
           {canEdit && (
             <div className="attach-add" role="group" aria-label="Add">
               <button type="button" className="btn" data-attach-photo disabled={!!busy} onClick={() => void photo()}><Icon name="camera" size="1.1em" /> Take a photo</button>
+              {canLive && <button type="button" className="btn" data-attach-film disabled={!!busy} onClick={() => setLive('video')}><Icon name="video" size="1.1em" /> Film a clip</button>}
               <button type="button" className="btn" data-attach-files disabled={!!busy} onClick={() => void files()}><Icon name="plus" size="1.1em" /> Photos or videos</button>
               <button type="button" className="btn" data-attach-link disabled={!!busy} onClick={() => setLinking(v => !v)}><Icon name="link" size="1.1em" /> A link</button>
             </div>
@@ -132,6 +141,9 @@ export function AttachSheet({ s, target, name, canEdit, by, open, onClose, openF
           )}
         </div>
       </Sheet>
+      {live && createPortal(
+        <VideoRecorder start={live} onPhoto={b => void keep(() => savePhotoBlob(b))} onCapture={b => void keep(() => saveVideoBlob(b))} onClose={() => setLive(null)} />,
+        document.body)}
       {open && viewedMedia && viewed && <EvidenceViewer media={viewedMedia} onClose={() => setViewing(undefined)} {...(canEdit ? { onRemove: () => { setViewing(undefined); remove(viewed); } } : {})} />}
     </>
   );

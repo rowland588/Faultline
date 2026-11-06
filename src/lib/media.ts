@@ -141,3 +141,8 @@ async function saveEvidence(kind: 'photo' | 'video', raw: Blob): Promise<MediaRe
 export function saveVideoBlob(blob: Blob): Promise<MediaRef> {
   return saveEvidence('video', blob);
 }
+
+/** A picture snapped from the in-app live camera, saved the same way a chosen photo is. */
+export function savePhotoBlob(blob: Blob): Promise<MediaRef> {
+  return saveEvidence('photo', blob);
+}

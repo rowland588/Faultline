@@ -597,6 +597,12 @@ body:has(.sheet-scrim, .ig-scrim) .toast { top: calc(12px + env(safe-area-inset-
 .rec-btn-stop { width: 68px; height: 68px; border: 4px solid var(--surface); background: var(--surface); position: relative; }
 .rec-btn-stop::after { content: ''; position: absolute; inset: 22px; background: #ff3b30; border-radius: var(--radius-sm); }
 .rec-done { position: absolute; right: 16px; }
+.rec-btn-snap { width: 68px; height: 68px; border: 4px solid var(--surface); background: var(--surface); box-shadow: inset 0 0 0 4px var(--shell); }
+.rec-modes { position: relative; z-index: 2; display: flex; justify-content: center; gap: 4px; padding: 8px 16px 0; background: color-mix(in srgb, var(--shell) 40%, transparent); }
+.rec-mode { min-height: 44px; min-width: 88px; padding: 0 18px; border: none; background: transparent; color: var(--on-dark); font-weight: 700; font-size: var(--t-label); border-radius: var(--radius-pill); cursor: pointer; }
+.rec-mode.on { background: var(--surface); color: var(--ink); }
+.rec-flash { position: absolute; inset: 0; z-index: 3; background: var(--surface); opacity: 0; pointer-events: none; animation: rec-snap 0.25s ease-out; }
+@keyframes rec-snap { 0% { opacity: 0.85; } 100% { opacity: 0; } }
 
 /* ---------- analyse: question picker ---------- */
 .q-list { display: flex; flex-direction: column; gap: 10px; }

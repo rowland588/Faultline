@@ -153,7 +153,7 @@ const h = await p2.locator('.calc-tile [data-attach-open]').evaluateAll(els => e
 ok(h.length === 4 && h.every(x => x >= 43), '9 the tiles’ buttons a thumb’s height on the phone', h.join(','));
 await p2.locator('.calc-tile[data-tile="2"] [data-attach-open]').click(); await p2.waitForTimeout(600);
 const bh = await p2.locator('[data-attach-sheet="w03"] .attach-add .btn').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().height)));
-ok(bh.length === 3 && bh.every(x => x >= 43), '9 the sheet’s three buttons a thumb’s height', bh.join(','));
+ok(bh.length >= 3 && bh.every(x => x >= 43), '9 the sheet’s buttons (Take a photo, Film a clip, Photos or videos, A link) a thumb’s height', bh.join(','));
 const wide = await p2.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 ok(wide <= 1, '9 nothing off the side', String(wide));
 

@@ -43,8 +43,12 @@ const MAX_CLIP_MS = 4 * 60 * 1000;
 const fmtElapsed = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 
 /** Full-screen live camera; each Record→Stop produces one clip via onCapture,
- *  and the preview stays live so the next one starts immediately. */
-export function VideoRecorder({ onCapture, onClose }: { onCapture: (blob: Blob) => void; onClose: () => void }) {
+ *  and the preview stays live so the next one starts immediately.
+ *
+ *  With `onPhoto` it is a live camera for pictures too (Rowland, 6 November: "it needs to be a live action — live picture, live video"): a Photo / Video
+ *  switch above the shutter, the shutter snapping a still from the live picture in Photo mode, one tap and the camera stays open for the next. `start` says
+ *  which it opens on. Without `onPhoto` it is exactly the video recorder it was. */
+export function VideoRecorder({ onCapture, onPhoto, start: startMode = 'video', onClose }: { onCapture: (blob: Blob) => void; onPhoto?: (blob: Blob) => void; start?: 'photo' | 'video'; onClose: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -52,12 +56,17 @@ export function VideoRecorder({ onCapture, onClose }: { onCapture: (blob: Blob) 
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [clips, setClips] = useState(0);
+  const [photos, setPhotos] = useState(0);
+  const [mode, setMode] = useState<'photo' | 'video'>(onPhoto ? startMode : 'video');
+  const [flash, setFlash] = useState(0);
   const [error, setError] = useState('');
   const [capped, setCapped] = useState(false);
 
   useEffect(() => {
     let alive = true;
+    /* sound is wanted for a clip, but a picture needs none: a phone that will not give the microphone still gives the camera */
     navigator.mediaDevices.getUserMedia({ video: VIDEO, audio: true })
+      .catch(() => navigator.mediaDevices.getUserMedia({ video: VIDEO }))
       .then(stream => {
         if (!alive) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
@@ -104,6 +113,16 @@ export function VideoRecorder({ onCapture, onClose }: { onCapture: (blob: Blob) 
     recorderRef.current?.stop();
     setRecording(false);
   };
+  /* a still from the live picture: the frame as the lens sees it now, kept as a JPEG */
+  const snap = () => {
+    const v = videoRef.current;
+    if (!v || !onPhoto || !v.videoWidth) return;
+    const c = document.createElement('canvas');
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    c.getContext('2d')?.drawImage(v, 0, 0);
+    c.toBlob(b => { if (b && b.size > 0) { onPhoto(b); setPhotos(n => n + 1); setFlash(n => n + 1); } }, 'image/jpeg', 0.9);
+  };
+  const saved = [photos ? `${photos} photo${photos === 1 ? '' : 's'}` : '', clips ? `${clips} clip${clips === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
 
   return (
     <div className="rec-stage">
@@ -116,15 +135,25 @@ export function VideoRecorder({ onCapture, onClose }: { onCapture: (blob: Blob) 
       )}
 
       {recording && <div className="rec-badge"><span className="rec-dot" aria-hidden />REC {fmtElapsed(elapsed)}</div>}
-      {!recording && clips > 0 && <div className="rec-tally">{clips} clip{clips === 1 ? '' : 's'} saved{capped ? ' — that one stopped at 4 minutes, the longest a clip can be' : ''} — keep filming or tap Done</div>}
+      {!recording && saved && <div className="rec-tally">{saved} saved{capped ? ' — that clip stopped at 4 minutes, the longest a clip can be' : ''} — keep going or tap Done</div>}
+      {flash > 0 && <span key={flash} className="rec-flash" aria-hidden />}
 
+      {onPhoto && !error && !recording && (
+        <div className="rec-modes" role="tablist" aria-label="Photo or video">
+          {(['photo', 'video'] as const).map(k => (
+            <button key={k} type="button" role="tab" aria-selected={mode === k} data-rec-mode={k} className={'rec-mode' + (mode === k ? ' on' : '')} onClick={() => setMode(k)}>{k === 'photo' ? 'Photo' : 'Video'}</button>
+          ))}
+        </div>
+      )}
       <div className="rec-controls">
         {!error && (
-          recording
-            ? <button className="rec-btn rec-btn-stop" onClick={stop} aria-label="Stop recording" />
-            : <button className="rec-btn rec-btn-shutter" onClick={start} aria-label="Start recording" />
+          mode === 'photo' && onPhoto
+            ? <button className="rec-btn rec-btn-snap" data-rec-snap onClick={snap} aria-label="Take the picture" />
+            : recording
+              ? <button className="rec-btn rec-btn-stop" data-rec-stop onClick={stop} aria-label="Stop recording" />
+              : <button className="rec-btn rec-btn-shutter" data-rec-start onClick={start} aria-label="Start recording" />
         )}
-        <button className="btn btn-primary rec-done" onClick={onClose}>{clips > 0 ? `Done · ${clips} clip${clips === 1 ? '' : 's'}` : 'Cancel'}</button>
+        <button className="btn btn-primary rec-done" data-rec-done onClick={onClose}>{saved ? `Done · ${saved}` : 'Cancel'}</button>
       </div>
     </div>
   );
