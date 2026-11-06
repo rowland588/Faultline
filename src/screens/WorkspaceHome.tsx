@@ -41,6 +41,7 @@ import { lineKit } from '../lib/lineRecords';
 import { useCanStartProjects } from '../cloud/access';
 import { lineProblems, type LineProblems } from '../lib/lineWork';
 import { PageHeader } from '../ui/parts';
+import { EmptyState } from '../ui/EmptyState';
 import { useProfile } from '../cloud/admin';
 import { AdminPanel } from '../cloud/AdminPanel';
 import { ControlRoomReports } from '../ui/ControlRoomReports';
@@ -276,10 +277,10 @@ export function WorkspaceHome() {
         )}
       </div>
       {prodLines.length === 0 ? (
-        <div className="fac-empty">
-          <p>Set up your factory first — your production lines, each with its name and its type. Every project, problem and tool then hangs off one of them.</p>
-          <button className="btn btn-primary" onClick={() => nav('/factory?add=1')}>Set up your factory</button>
-        </div>
+        <EmptyState className="blank-list" title="No lines yet"
+          action={<button className="btn btn-primary" onClick={() => nav('/factory?add=1')}>Set up your factory</button>}>
+          Set up your factory first — your production lines, each with its name and its type. Every project, problem and tool then hangs off one of them.
+        </EmptyState>
       ) : (
         <>
           <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>

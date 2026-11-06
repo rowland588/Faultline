@@ -74,7 +74,7 @@ const saidSaved = async () => (await page.locator('.fac-saved').innerText().catc
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3500);
 const t1 = await txt();
 ok(/Lines/.test(t1) && /Set up your factory first/.test(t1), '1 control room: Lines, none yet — set it up first');
-ok(/LINES Set up your factory/i.test(await rail()), '1b the page: Lines › Set up your factory');
+ok(/LINES (No lines yet )?Set up your factory/i.test(await rail()), '1b the page: Lines › (No lines yet) › Set up your factory');
 
 /* 2 — three lines, one after another, the type kept for the next */
 await page.locator('.nv-main').getByRole('button', { name: 'Set up your factory', exact: true }).click(); await page.waitForTimeout(1200);

@@ -30,6 +30,7 @@ import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
 import { snagRow } from '../lib/snagsReport';
 import { PageHeader } from '../ui/parts';
+import { EmptyState } from '../ui/EmptyState';
 import { useCanStartProjects } from '../cloud/access';
 import { useSession } from '../cloud/session';
 import { useProfile } from '../cloud/admin';
@@ -221,10 +222,10 @@ export function FactoryScreen() {
       )}
 
       {lines.length === 0 && !adding && (
-        <div className="fac-empty">
-          <p>No lines yet. Set up your factory first — add your production lines, each with its name and its type. Then every project, problem and tool hangs off one.</p>
-          {may && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>Add lines</button>}
-        </div>
+        <EmptyState className="blank-list" title="No lines yet"
+          action={may ? <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>Add lines</button> : undefined}>
+          Set up your factory first — add your production lines, each with its name and its type. Then every project, problem and tool hangs off one.
+        </EmptyState>
       )}
 
       {lines.length > 0 && (

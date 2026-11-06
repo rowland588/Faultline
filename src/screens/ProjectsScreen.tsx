@@ -22,6 +22,7 @@ const KINDS: { key: string; label: string }[] = [...METHODS.map(m => ({ key: m.k
 const kindLabel = (p: Parameters<typeof kindOf>[0]): string => { const m = methodOfProject(p); return m ? (methodByKey(m)?.name ?? m) : methodOf(p).label; };
 import { methodOf, MODELS, planModel, type PlanModel } from '../lib/planModel';
 import { FilterBar, RecordRow, RecordRows } from '../ui/parts';
+import { EmptyState } from '../ui/EmptyState';
 import { useLineRecords } from '../lib/useLineRecords';
 import { STORE_WORDS, addPaceLine, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange, updateProject } from '../db';
 import { lineKey, liveProductionLines } from '../lib/lines';
@@ -337,33 +338,21 @@ export function ProjectsScreen() {
           next move. */}
       {projects.length === 0 && !adding ? (
         archived.length > 0 ? (
-          <div className="card proj-empty">
-            <h2 className="proj-empty-title">Everything is archived</h2>
-            <p className="sub">
-              Nothing is lost — {archived.length === 1 ? 'one project is' : `all ${archived.length} projects are`} in the
-              archive below, with everything they hold. {mayStart ? 'Restore whichever you want back, or start a new one.' : 'Its owner can bring it back.'}
-            </p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
+          <EmptyState className="blank-list" title="Everything is archived"
+            action={<>
               <button className="btn btn-ghost" onClick={() => setShowArchive(true)}>Open the archive</button>
               {mayStart && <button className="btn btn-primary" onClick={() => setAdding(true)}>Start a project</button>}
-            </div>
-          </div>
+            </>}>
+            Nothing is lost — {archived.length === 1 ? 'one project is' : `all ${archived.length} projects are`} in the
+            archive below, with everything they hold. {mayStart ? 'Restore whichever you want back, or start a new one.' : 'Its owner can bring it back.'}
+          </EmptyState>
         ) : (
-          <div className="card proj-empty">
-            <h2 className="proj-empty-title">No projects yet</h2>
-            {mayStart ? <>
-              <p className="sub">
-                Prove with Programs on the line first — no project required. Start Performance (6M) when fault-finding
-                and Actions need a project, or wait to be invited to somebody else’s: a project you are invited to
-                appears here the next time the app syncs.
-              </p>
-              <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => setAdding(true)}>
-                Start a project
-              </button>
-            </> : (
-              <p className="sub">You’ll see the projects you’ve been invited to here, the next time the app syncs.</p>
-            )}
-          </div>
+          <EmptyState className="blank-list" title="No projects yet"
+            action={mayStart ? <button className="btn btn-primary" onClick={() => setAdding(true)}>Start a project</button> : undefined}>
+            {mayStart
+              ? 'Prove with Programs on the line first — no project required. Start Performance (6M) when fault-finding and Actions need a project, or wait to be invited to somebody else’s: a project you are invited to appears here the next time the app syncs.'
+              : 'You’ll see the projects you’ve been invited to here, the next time the app syncs.'}
+          </EmptyState>
         )
       ) : !adding && (() => {
         /* each project's lines — Your factory's name, or the project's own for a line not in the factory yet */

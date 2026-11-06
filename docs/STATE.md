@@ -31,6 +31,8 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
 
+**Phone, the other scopes** (E7, 6 November, branch `cursor/e7-phone-scopes-de14`, not on `main`): at a viewport of 719px and under, Factory home, Set up, a line’s Overview, Projects and Problems stack their panels and stay inside the frame. The one thumb bar is the same. The tools gallery keeps the sideways scroll from the tools slice.
+
 **Parallel improvement plan** (domains, agent streams, hygiene): `docs/IMPROVEMENT-ROADMAP.md` — planning only; does not replace this ordered list.
 
 1. **Spaghetti talk accuracy** (Rowland, 6 November: *"it's going to struggle with what I'm saying … there needs to be
