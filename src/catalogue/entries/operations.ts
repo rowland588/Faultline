@@ -905,7 +905,15 @@ export const OPERATIONS: Entry[] = [
     food: 'Topping, garnishing, tray loading at high volume.',
     depends: ['FC-021', 'FC-028'],
     complexity: 'M', value: 'low', valueWhy: 'For the highest-volume hand work only.',
-    status: 'to-build', form: 'mode', partOf: 'FC-021', methods: ['ie.micro-motion'], scenarios: ['people'], words: ['therbligs', 'motion study'],
+    status: 'available', form: 'mode', partOf: 'FC-021', methods: ['ie.micro-motion'], scenarios: ['people'], words: ['therbligs', 'motion study', 'micro-movements', 'two-handed chart', 'simo chart', 'forklift'],
+    built: { where: ['/calc/micro-movements'], code: [...CALC_CODE, 'src/tools/calc/defs/micro-movements.ts', 'src/tools/calc/CalcHands.tsx', 'src/tools/calc/calcHands.css', 'src/tools/micro/micro.ts'], tests: [...CALC_TESTS, 'src/tools/micro/__tests__/micro.test.ts'], acceptance: ['calc-shape.mjs', 'micro-movements.mjs'] },
+    spec: 'knowledge/specs/FC-233-micro-movements.md',
+    limits: [
+      'The seconds are always typed or said — from a stopwatch or the video study; there is no predetermined-time table (MTM-1, MOST are licensed) and nothing is estimated. An element with no seconds is counted and left out of the cycle.',
+      'The motions are not read from footage: marking the hands’ motions on the video study’s frames is a later slice (FC-021), and Line Talk’s micro-movements set (T4) is not built — the calculator exports inputsOfElements for it.',
+      'The four groups (working motion, checking, motion to question, allowed time) are Faultline’s own choice, named on the page; the therbligs are Gilbreth’s seventeen folded to fourteen from the textbooks’ standard account, not checked against the books themselves (knowledge/GAPS.md).',
+      'Up to 24 elements; two elements share a moment only when marked together and on opposite hands. The money is labour on the seconds that are only motion to question; a hold done while the other hand works is counted, not priced.',
+    ],
   },
   {
     id: 'FC-234', name: 'Condition checks by a person — temperatures, wear, noise on a route', discipline: 'maintenance', sub: 'tpm',

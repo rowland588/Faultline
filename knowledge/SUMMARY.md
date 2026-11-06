@@ -4,14 +4,14 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **239 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 29 tools a person can open on a page of their own. Built inside them: 118 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 31. Not built yet: 43; needing research: 11; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 29 tools a person can open on a page of their own. Built inside them: 119 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 31. Not built yet: 42; needing research: 11; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
-| Available (`available`) | 164 |
+| Available (`available`) | 165 |
 | Partly (`partial`) | 14 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 43 |
+| Not built yet (`to-build`) | 42 |
 | Research first (`research`) | 11 |
 | Left out on purpose (`left-out`) | 7 |
 
@@ -20,7 +20,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Discipline | Entries | Available | Partly | Planned | Not built yet | Research first | Left out on purpose |
 |---|---|---|---|---|---|---|---|
 | Lean manufacturing and waste | 20 | 11 | 3 |  | 5 | 1 |  |
-| Industrial engineering and work measurement | 14 | 8 | 2 |  | 3 | 1 |  |
+| Industrial engineering and work measurement | 14 | 9 | 2 |  | 2 | 1 |  |
 | Capacity, throughput and bottlenecks | 17 | 15 |  |  | 1 | 1 |  |
 | Equipment performance and losses | 11 | 8 | 1 |  |  |  | 2 |
 | Maintenance, reliability and TPM | 11 | 10 |  |  |  | 1 |  |

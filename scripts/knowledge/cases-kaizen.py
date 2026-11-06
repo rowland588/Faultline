@@ -196,3 +196,48 @@ from math import hypot
 print("\n== S3b the same on a plan (FC-004 part 2): line (30,0), film store (0,0), scale (30,16)")
 a = hypot(30, 0) * 2; b = hypot(0, 16) * 2
 print(f"  Operator 1 {a} m, Operator 2 {b} m, together {a+b} m; Operator 1 {a/(a+b):.4%}")
+
+print("\n== M micro-movements (FC-233): Gilbreth's therbligs, the two-handed chart and its cycle (Barnes 1980; Niebel & Freivalds 2014 ch. 4). Seconds are typed for the case, not norms.")
+# groups: working = reach grasp move position release use; check = inspect; question = search select plan hold avoidable-delay; allowed = unavoidable-delay rest
+GROUP = {"reach":"working","grasp":"working","move":"working","position":"working","release":"working","use":"working","inspect":"check",
+         "search":"question","select":"question","plan":"question","hold":"question","avoidable":"question","unavoidable":"allowed","rest":"allowed"}
+def moment_class(els):                      # a moment is working if any timed element is, to-question if every timed element is, else other
+    g = [GROUP[c] for c, s in els if s is not None]
+    if not g: return "untimed"
+    if "working" in g: return "working"
+    return "question" if all(x == "question" for x in g) else "other"
+def run_micro(name, moments, cycles, rate, shifts):
+    secs = {"working":0, "question":0, "other":0}; n = 0; held = {"left":0, "right":0}; nothing = {"left":0, "right":0}; own = {"left":0, "right":0}
+    for m in moments:                       # m = list of (cls, hand, seconds)
+        n += len(m)
+        t = [s for c, h, s in m if s is not None]
+        sl = max(t) if t else None
+        cl = moment_class([(c, s) for c, h, s in m])
+        if sl is not None: secs[cl] += sl
+        for c, h, s in m:
+            for side in ("left", "right"):
+                if h in (side, "both") and s is not None: own[side] += s
+            if c == "hold" and h in held and len(m) == 2 and s is not None:
+                other = [x for x in m if x[1] != h][0]
+                if GROUP[other[0]] == "working": held[h] += s
+        if len(m) == 1 and m[0][1] in ("left", "right") and sl is not None:
+            nothing["right" if m[0][1] == "left" else "left"] += sl
+    cyc = sum(secs.values())
+    print(f"  {name}: {n} elements in {len(moments)} moments; cycle {cyc:.4f} s")
+    for k in secs: print(f"    {k}: {secs[k]:.4f} s = {secs[k]/cyc:.4%}")
+    print(f"    own seconds {own}; held while the other hand works {held}; nothing listed {nothing}")
+    q = secs["question"] * cycles
+    print(f"    money: {secs['question']:.4f} s x {cycles} a shift = {q/60:.4f} min = {money(q/3600*rate)} a shift at £{rate}/h; {shifts} shifts {money(q/3600*rate*shifts)}")
+print("  M1 an FLT driver moves one box from goods-in to the chiller (whole body), 40 boxes a shift, £15 an hour, 5 shifts")
+run_micro("M1", [[(c, "whole", s)] for c, s in [("reach",14),("search",9),("inspect",4),("position",6),("grasp",5),("move",22),("unavoidable",12),("position",8),("release",7),("avoidable",6)]], 40, 15, 5)
+print("  M2 a bench packer, a pouch into a tray: pairs share a moment; 4,000 cycles a shift, £14.40 an hour, 5 shifts")
+run_micro("M2", [
+  [("reach","right",0.8), ("reach","left",0.6)],
+  [("grasp","right",0.5), ("grasp","left",0.5)],
+  [("move","right",1.2), ("hold","left",1.2)],
+  [("position","right",0.7), ("hold","left",0.7)],
+  [("release","right",0.3), ("hold","left",0.3)],
+  [("move","both",1.0)],
+  [("inspect","right",0.9)],
+  [("avoidable","right",0.8)],
+], 4000, 14.40, 5)

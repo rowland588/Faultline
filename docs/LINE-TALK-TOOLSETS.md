@@ -83,7 +83,7 @@ QA checks, it goes to the pallet …" — who does it, where, the kind of step, 
 record on the line, its steps filled; the grid, the lead-time figures, the money and the paper are the tool's own. Classing a step
 (VA/NE/NV) is **only ever what the person said** — the assistant never classes a step for them; unclassified is shown as the tool shows it.
 
-### 4.4 Micro-movements (FC-233, **not built** — its own specification first)
+### 4.4 Micro-movements (FC-233 — the tool is built (7 November, `knowledge/specs/FC-233-micro-movements.md`, `/calc/micro-movements`, exports `inputsOfElements`); **this set is not built (T4)**)
 **Says:** "he reaches for the box, grips it, lifts, turns, walks two steps, sets it down, releases." For an individual's hands, or a
 forklift driver's cycle. **Draft:** the elements in order, each classed by Gilbreth's therblig (reach, grasp, move, position, release,
 hold, inspect, delay …) and, only if timed or said, its seconds; hands as two columns (the two-handed chart). **Figures:** the cycle's

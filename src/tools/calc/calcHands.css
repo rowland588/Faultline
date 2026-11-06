@@ -1,0 +1,13 @@
+/* FC-233 — the two-handed chart. Line and letter carry the kind of motion; no state colour is used. */
+.calc-hands { margin: 0; }
+.calc-hands-svg { width: 100%; height: auto; display: block; max-width: 640px; }
+.ch-head { font-size: 10px; font-weight: 700; fill: var(--muted); }
+.ch-row { stroke: var(--line); stroke-width: 0.6; }
+.ch-box { fill: var(--surface); stroke: var(--ink); stroke-width: 1; }
+.ch-box.is-working { fill: var(--surface-2); stroke-width: 2.2; }
+.ch-box.is-question { stroke-width: 1.4; stroke-dasharray: 4 3; }
+.ch-code { font-size: 9px; font-weight: 700; fill: var(--ink); pointer-events: none; }
+.ch-sec { font-size: 9px; fill: var(--ink-2); font-variant-numeric: tabular-nums; }
+.ch-what { font-size: 10.5px; fill: var(--ink); }
+.ch-n { font-size: 11px; fill: var(--muted); }
+.ch-fig { font-size: 12px; fill: var(--ink-2); font-variant-numeric: tabular-nums; }
