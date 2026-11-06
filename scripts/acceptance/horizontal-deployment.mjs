@@ -96,7 +96,9 @@ ok(!(await page.locator('.pl-spread .yk-fix').filter({ hasText: 'Clean the jaws'
 ok((await page.locator('.pl-spread .yk-foot').innerText()).includes('A fix copied is a rumour') && (await page.locator('.pl-spread .yk-foot').innerText()).includes('No money is said'), '1 the page says a copied fix is checked on each line and names the money that is not said');
 ok((await page.locator('.pl-tiles .ln-tile').count()) === 4, '1 the four tiles are still four');
 await go(`#/lines/${made.Y9}`); await page.waitForTimeout(600);
-ok((await page.locator('.pl-spread').count()) === 0, '1 a line with nothing to spread and nothing offered shows no section');
+/* 6 November (docs/LOOK.md §0, L2): a line with nothing proved says so and what proves one — never a hole, no fix listed */
+ok((await page.locator('.pl-spread.is-none').count()) === 1 && (await page.locator('.pl-spread .yk-fix').count()) === 0 && /No fix proved on this line yet/.test(await page.locator('.pl-spread .yk-none').innerText()),
+  '1 a line with nothing to spread and nothing offered says no fix proved yet, and lists none');
 
 /* 1b — the project's method page: the Horizontal deployment row (PDCA's Act) says it and opens the line */
 await go(`#/project/${made.project}`);
