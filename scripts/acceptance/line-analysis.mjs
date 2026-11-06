@@ -179,7 +179,7 @@ ok(/EACH ONE, IN THE ORDER CHECKED/i.test(p1.text) && /HISTOGRAM|how the reading
 await page.locator('.lr-tick input[aria-label^="Reliability"]').uncheck(); await page.waitForTimeout(300);
 const p2 = await pdfOf(() => page.getByRole('button', { name: 'Download' }).click());
 ok(!nows(p2.text).includes(nows('Reliability — Capper stops')) && !/Counted side by side/.test(p2.text), '5 Reliability unticked — its section gone from the paper');
-const w2 = p2.text.split('Where on the line')[1]?.split(/Capability —/)[0] ?? 'x';
+const w2 = p2.text.split('Where on the line')[1]?.split(/What it means/)[0] ?? 'x';
 /* the line is drawn whole (the machines in flow, 6 November), so the Capper stays as a box — with no finding on it and out of the findings' rows */
 ok((w2.match(/\bCapper\b/g) ?? []).length === 1 && /no finding/.test(w2) && /2 machines with findings/.test(p2.text), '5 …and its machine shows no finding on Where on the line — drawn in flow, out of the findings');
 ok(heads.slice(0, 2).every(h => nows(p2.text).includes(nows(h))), '5 the capability studies kept');
