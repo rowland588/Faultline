@@ -99,7 +99,7 @@ ok(/heavy solid line is working motion/.test(cap1) && /dashed box is motion to q
 
 /* ---- 2 · the paper */
 const p1 = await pdfText('truck.pdf', () => pressPaper(page, / — on paper$/));
-ok(p1.text.includes('Truck 1: 10 elements. The cycle takes 93 s') && p1.text.includes('The longest is “Drive to the chiller” — 22 s'), '2 the paper says the sentence');
+ok(p1.text.includes('Truck 1: 10 elements. The cycle takes 93 s') && p1.text.includes('The longest is “Drive to the chiller” - 22 s'), '2 the paper says the sentence');
 ok(FLT.every(([w]) => p1.text.includes(w)), '2 every element is on the paper');
 ok(/TE reach, G grasp, TL move/.test(p1.text) && /dashed box is motion to question/.test(p1.text), '2 the chart’s caption and the letters on the paper');
 ok(p1.text.includes('£2.50') && p1.text.includes('£12.50'), '2 the money on paper');

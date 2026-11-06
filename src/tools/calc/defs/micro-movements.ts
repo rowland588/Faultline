@@ -260,7 +260,7 @@ const def: CalcDef = {
     },
   ],
   refused: [
-    { name: 'one element only', inputs: inputsOfElements({ elements: [{ what: 'Drive to the pallet', cls: 'reach', hand: 'whole', sec: 5 }] }), blocked: 'Choose “Element 2 is a”' },
+    { name: 'a minus time on the second element', inputs: inputsOfElements({ elements: [{ what: 'Reach', cls: 'reach', hand: 'right', sec: 2 }, { what: 'Grasp', cls: 'grasp', hand: 'right', sec: -1 }] }), blocked: '“Element 2 takes” must be at least 0' },
     { name: 'a minus time', inputs: inputsOfElements({ elements: [{ what: 'Reach', cls: 'reach', hand: 'right', sec: -2 }, { what: 'Grasp', cls: 'grasp', hand: 'right', sec: 1 }] }), blocked: '“Element 1 takes” must be at least 0' },
   ],
   see: [{ key: 'process-flow', why: 'the path of the thing, step by step, when the question is the route and not the body’s motion' }],

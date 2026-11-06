@@ -50,7 +50,7 @@ Unit: `src/tools/micro/__tests__/micro.test.ts` (cases M1 and M2, moments and pa
 2. Case M2's moments (13 elements in 8), cycle (6.2 s), shares (72.6% · 12.9% · 14.5%), the left hand's 2.2 s held while the right works, its 1.7 s with nothing listed, and the money (53.3 min, £12.80, £64.00) equal the hand-worked figures — `micro.test.ts`, `micro-movements.mjs`.
 3. With no seconds the elements are counted, no cycle, share or money is given and the page says so; one untimed element among timed ones is named and left out — `micro.test.ts`, `micro-movements.mjs`.
 4. Both cases typed through the real boxes give the page's sentence, tiles, hand lines and money; the chart has a row per moment with each element's code, words and seconds in its column and the three styles; the paper read back carries the sentence, every element and the chart's caption — `micro-movements.mjs`, `calc-shape.mjs`.
-5. Refused in words: one element only (the second is asked for); a minus seconds — `calc.test.ts`.
+5. Refused in words: a minus seconds on the first or the second element — `calc.test.ts`, `calc-shape.mjs`; one element only is not a result — the second element's class is a needed box, so the shape's blank-box test names it — `calc.test.ts`.
 6. A pair that is not one left and one right is taken in sequence and said — `micro.test.ts`, `micro-movements.mjs`.
 7. Nothing in the tool supplies a time, a table or an AI answer; the page and the paper say so — `micro-movements.mjs` (the caveat read on the page and the paper) and `micro.test.ts` (no element is given seconds the input did not have).
 8. The phone: nothing off the side, controls 44 px, the chart inside its box — `micro-movements.mjs`.
