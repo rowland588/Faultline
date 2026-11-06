@@ -15,6 +15,14 @@ person sees, take the pictures on live and on the change (`--shots`,
 the data adds its lines and its seed; a check tests the drawn thing, never the
 box it sits in.
 
+## Where we are — read `docs/STATE.md`
+
+**`docs/STATE.md` is the one page that says where the product stands** — what is live, what is in flight and next,
+what was decided, and what lives outside the repo and how it is reached (Rowland, 6 November: *"I need everything in
+the repo so it can understand where we are exactly"*). A session that ships something updates it in the same commit.
+`AGENTS.md` and `.cursor/rules/faultline.mdc` are the one-page way in for any agent or person, whatever the tool;
+this file stays the rules in full.
+
 ## The direction comes first — 20 October
 
 **Read `docs/DIRECTION.md` before anything else**; where an older document

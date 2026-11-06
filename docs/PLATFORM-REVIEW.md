@@ -1,3 +1,5 @@
+> **History.** This is the AI-platform direction of 18–19 October, ended by Rowland on 20 October (`docs/DIRECTION.md`, which overrides it). Nothing in it is a rule or a plan now; it is kept as the record of what was tried and why it stopped. Do not read it first.
+
 # Faultline as a configurable, AI-driven platform — decision document
 
 **18 October 2026.** Your brief: *"determine the best route to finishing

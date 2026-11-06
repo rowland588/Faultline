@@ -1,3 +1,5 @@
+> **History.** This is the AI-platform direction of 18–19 October, ended by Rowland on 20 October (`docs/DIRECTION.md`, which overrides it). Nothing in it is a rule or a plan now; it is kept as the record of what was tried and why it stopped. Do not read it first.
+
 # Platform status — where the configurable-methods work stands
 
 **Read this first at the start of every session**, then the code. The design
