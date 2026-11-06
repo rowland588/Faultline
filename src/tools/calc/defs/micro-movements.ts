@@ -183,8 +183,8 @@ const def: CalcDef = {
     const hands: CalcHands = {
       title: 'The two-handed chart',
       caption: 'Each row is one moment of the cycle, in order; two elements in one row go on at the same time, one on each hand, and the row lasts as long as the longer of them. A box with a heavy solid line is working motion, a dashed box is motion to question (search, select, plan, hold, avoidable delay), a thin box is checking or allowed time. The letters are Gilbreth’s: TE reach, G grasp, TL move, P position, RL release, U use, I inspect, SH search, ST select, Pn plan, H hold, AD avoidable delay, UD unavoidable delay, R rest.',
-      lanes: twoLanes ? ['Left hand', 'Right hand', 'Both hands or whole body'] : [text(v, 'who') || 'The whole cycle'],
-      head: ['Moment', 'Seconds'],
+      lanes: twoLanes ? ['Left hand', 'Right hand', 'Both or whole body'] : [text(v, 'who') || 'The whole cycle'],
+      head: ['No.', 'Seconds'],
       rows: f.moments.map((mm, i) => ({
         n: i + 1, sec: mm.sec === undefined ? '—' : fmt(mm.sec, 2),
         cells: mm.els.map(k => {

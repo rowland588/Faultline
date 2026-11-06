@@ -87,7 +87,7 @@ ok(t1.Cycle === '93 s' && t1['Working motion'] === '66.7%' && t1['To question'] 
 const MONEY1 = '15 s of the cycle is only motion to question × 40 cycles a shift = 10 min a shift — £2.50 labour at £15.00 an hour, £12.50 over 5 shifts a week.';
 ok((await words('[data-calc=money]')) === MONEY1, `1 the money: ${MONEY1}`, await words('[data-calc=money]'));
 const c1 = await chartNow();
-ok(c1.heads.join('|') === 'Moment|Truck 1|Seconds', `1 the chart has one lane, headed by the truck: ${c1.heads.join(' | ')}`);
+ok(c1.heads.join('|') === 'No.|Truck 1|Seconds', `1 the chart has one lane, headed by the truck: ${c1.heads.join(' | ')}`);
 ok(c1.rows.length === 10 && c1.rows.every(r => r.cells.length === 1 && r.cells[0].lane === 0), '1 a row an element (10), each in the one lane');
 ok(c1.rows.map(r => r.cells[0].code).join(' ') === 'TE SH I P G TL UD P RL AD', `1 the codes in order: ${c1.rows.map(r => r.cells[0].code).join(' ')}`);
 const st = s => c1.rows.filter(r => r.cells[0].style === s).length;
@@ -133,16 +133,17 @@ ok(/Right hand: 6\.2 s in its 8 elements\./.test(says2) && /A hand that holds wh
 const MONEY2 = '0.8 s of the cycle is only motion to question × 4,000 cycles a shift = 53.3 min a shift — £12.80 labour at £14.40 an hour, £64.00 over 5 shifts a week.';
 ok((await words('[data-calc=money]')) === MONEY2, `3 the money: ${MONEY2}`, await words('[data-calc=money]'));
 const c2 = await chartNow();
-ok(c2.heads.join('|') === 'Moment|Left hand|Right hand|Both hands or whole body|Seconds', `3 three lanes: ${c2.heads.join(' | ')}`);
+ok(c2.heads.join('|') === 'No.|Left hand|Right hand|Both or whole body|Seconds', `3 three lanes: ${c2.heads.join(' | ')}`);
 ok(c2.rows.length === 8 && c2.rows.reduce((n, r) => n + r.cells.length, 0) === 13, '3 8 rows, 13 boxes — the pairs share a row');
 ok(c2.rows.slice(0, 5).every(r => r.cells.length === 2 && r.cells.some(c => c.lane === 0) && r.cells.some(c => c.lane === 1)), '3 rows 1–5 hold the left hand’s box and the right hand’s side by side');
 ok(c2.rows.slice(0, 5).map(r => r.sec).join(' ') === '0.8 0.5 1.2 0.7 0.3', `3 each row lasts the longer of its two: ${c2.rows.slice(0, 5).map(r => r.sec).join(' ')}`);
 ok(c2.rows[2].cells.find(c => c.lane === 0)?.code === 'H' && c2.rows[2].cells.find(c => c.lane === 0)?.style === 'question', '3 the left hand’s hold is a dashed box (to question) while the right’s move is heavy', JSON.stringify(c2.rows[2]));
 ok(c2.rows[5].cells[0].lane === 2 && c2.rows[5].cells[0].code === 'TL' && c2.rows[6].cells[0].lane === 1 && c2.rows[6].cells[0].code === 'I', '3 the both-hands move in the third lane, the check in the right hand’s');
+if (process.env.MICRO_SHOTS) await page.locator('[data-calc-hands]').screenshot({ path: join(process.env.MICRO_SHOTS, 'packer-chart.png') });
 const p2 = await pdfText('packer.pdf', () => pressPaper(page, / — on paper$/));
 ok(p2.text.includes('Packer 1: 13 elements in 8 moments') && p2.text.includes('Left hand: 4.3 s in its 6 elements'), '3 the paper says the sentence and the left hand');
 ok(PACKER.every(([w]) => p2.text.includes(w)), '3 every element is on the paper');
-ok(p2.text.includes('£12.80') && p2.text.includes('£64.00') && /Left hand/.test(p2.text) && /Both hands or whole body/.test(p2.text), '3 the money and the three lanes on paper');
+ok(p2.text.includes('£12.80') && p2.text.includes('£64.00') && /Left hand/.test(p2.text) && /Both or whole body/.test(p2.text), '3 the money and the three lanes on paper');
 ok(p2.pages >= 1 && p2.pages <= 4, `3 ${p2.pages} page(s) of paper`);
 
 /* ---- 4 · named but not timed */
