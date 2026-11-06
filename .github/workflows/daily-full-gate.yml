@@ -1,0 +1,67 @@
+# Full gate once a day on main — docs/STATE.md §4, CLAUDE.md “The gate”.
+# Replaces relying on an external scheduled task alone: checks out main, one dev
+# server on 5191, same checkout for change and “live” (paper parity is same tree).
+name: Daily full gate
+
+on:
+  schedule:
+    # 05:46 UTC — matches 05:46 Europe/London when the UK is on GMT (winter).
+    - cron: '46 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-full-gate
+  cancel-in-progress: false
+
+jobs:
+  full-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Chromium executable for acceptance scripts
+        run: |
+          echo "CHROMIUM=$(node --input-type=module -e "import { chromium } from 'playwright'; process.stdout.write(chromium.executablePath());")" >> "$GITHUB_ENV"
+
+      - name: Start dev server (port 5191)
+        run: |
+          VITE_SUPABASE_URL=https://testproj.supabase.co VITE_SUPABASE_ANON_KEY=testkey \
+            npx vite --port 5191 --strictPort --host 127.0.0.1 &
+          for i in $(seq 1 90); do
+            if curl -sf "http://127.0.0.1:5191/" >/dev/null 2>&1; then
+              echo "Dev server ready after ${i}s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Dev server did not become ready in time"
+          exit 1
+
+      - name: Full gate
+        run: scripts/gate.sh full "$GITHUB_WORKSPACE" 5191 "$GITHUB_WORKSPACE" 5191 "$RUNNER_TEMP/gate-out"
+        env:
+          SMOKE_SUPABASE_REF: testproj
+
+      - name: Upload gate log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-full-${{ github.run_id }}
+          path: ${{ runner.temp }}/gate-out/
+          if-no-files-found: warn

@@ -542,14 +542,12 @@ failure, `summary.txt` the one answer:
   `main` regardless**, so what the quick gate gives up (a layout bug on odd
   data; a sync race — both found only there, 11 October and gate 14) is
   caught within the day, never silently. A full gate red on `main` is the
-  first job of the next session. **The daily run is a scheduled task since
-  24 October** (Rowland: "Go" — *Faultline daily full gate*, 05:46
-  Europe/London, a fresh session each day that checks out `origin/main`,
-  starts one dev server on 5191 and runs `scripts/gate.sh full` with the
-  checkout as both sides, then reports — the commit, "N passed, F failed",
-  every failure's quoted line, and whether the paper comparison ran; it
-  changes nothing and pushes nothing). Its report arrives as a push and an
-  e-mail; a red one is read before any other work.
+  first job of the next session. **The daily run** is GitHub Actions **Daily full gate**
+  (`.github/workflows/daily-full-gate.yml`, 05:46 UTC ≈ 05:46 Europe/London in winter):
+  checks out `main`, one dev server on 5191, `scripts/gate.sh full` with the checkout
+  as both sides, uploads logs as a workflow artifact; Rowland may still run a parallel
+  Claude-scheduled job that reports by push and e-mail. Either way: a red run on `main`
+  is the first job of the next session.
 
 Never edit the checkout while its gate runs: the dev server reloads under
 the tests and the failures that follow are not the change's (gate 37, 23
