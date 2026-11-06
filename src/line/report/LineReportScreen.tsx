@@ -20,7 +20,7 @@ import { getWorkspace, listAllSnags, listObservations, listWorkspaces, onDataCha
 import { useLineRecords } from '../../lib/useLineRecords';
 import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../../lib/useJobFloor';
 import { lineProgramsReading } from '../../lib/lineRecords';
-import { bundleSays, defaultPicks, lineBundle, picksForTools, whereFor, type LineBundle } from './lineBundle';
+import { bundleSays, defaultPicks, lineBundle, picksForTools, pictureNames, problemsLine, summaryMeans, summaryPage, whereFor, type LineBundle, type WhereRow } from './lineBundle';
 import { toolByKey } from '../../catalogue/registry';
 import { useLooking } from '../../tools/gemba/useLooking';
 import { spreadSentences, useYokotenMany } from '../../tools/yokoten/useYokoten';
@@ -35,7 +35,8 @@ import { useSaveOnArrival } from '../../lib/useSaveOnArrival';
 import { PageHeader, ViewTabs } from '../../ui/parts';
 import { ALL_IN, packageSections, packageSays, type PackageFlags, type PackageRecords } from './linePackage';
 import { attemptsOf } from '../../lib/programJourney';
-import { LeanActions, LeanClosing, LeanTiles } from '../../ui/Lean';
+import { LeanActions, LeanBand, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
+import type { LeanInsight, LeanTone } from '../../lib/lean';
 import { stopsOf } from '../../screens/ProductionLineScreen';
 import { nav } from '../../state/useRoute';
 import './lineReport.css';
