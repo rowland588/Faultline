@@ -17,6 +17,7 @@ import { factoryMachines, factoryMachinesPaper, type InProject } from '../lib/fa
 import { gateOwed, projectMachineRows } from '../project/machines/machines';
 import { todayISO } from '../lib/weeks';
 import { PageHeader } from '../ui/parts';
+import { EmptyState } from '../ui/EmptyState';
 import { nav } from '../state/useRoute';
 
 export function FactoryMachinesScreen() {
@@ -87,10 +88,10 @@ export function FactoryMachinesScreen() {
         ]} />
       {said && <p className="tc-ok" role="status">{said}</p>}
       {!rec.lines.length && (
-        <div className="fac-empty">
-          <p>Set up your factory first — your lines, in floor order. Then name each line’s machines on its Machines tab.</p>
-          <button type="button" className="btn btn-primary" onClick={() => nav('/factory?add=1')}>Set up your factory</button>
-        </div>
+        <EmptyState className="blank-list" title="No lines yet"
+          action={<button type="button" className="btn btn-primary" onClick={() => nav('/factory?add=1')}>Set up your factory</button>}>
+          Set up your factory first — your lines, in floor order. Then name each line’s machines on its Machines tab.
+        </EmptyState>
       )}
       {r.groups.map(g => (
         <section key={g.line.id} className="pl-sec fmc-line" aria-label={`Machines on ${g.line.name}`}>

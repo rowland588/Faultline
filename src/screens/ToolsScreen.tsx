@@ -11,6 +11,7 @@
  * Read-only, for everyone. Loaded on its own (the router's lazy import), so
  * the catalogue's words never weigh on the rest of the app. */
 import { PageHeader } from '../ui/parts';
+import { EmptyState } from '../ui/EmptyState';
 import { APP_TOOLS } from '../catalogue/registry';
 import { ToolCard } from '../ui/ToolCard';
 import { SixMDoor } from '../ui/SixMDoor';
@@ -167,8 +168,14 @@ export function ToolsScreen() {
 
       <section aria-label="The tools">
         <h2 className="ln-h">{words ? `Catalogued entries that match — ${found.length}` : status || disc ? plural(found.length, 'catalogued entry', 'catalogued entries') : 'Every catalogued method and part, by discipline'}</h2>
-        {!found.length && <p className="sub">Nothing matches{words ? ` “${words}”` : ''}. Try the problem in other words, or a tool’s number (FC-012).</p>}
-        {words || status || disc
+        {!found.length && (words
+          ? (
+            <EmptyState className="blank-list" title={`Nothing matches “${words}”`}>
+              Try the problem in other words, or a tool’s number (FC-012).
+            </EmptyState>
+          )
+          : <p className="sub">Nothing matches. Try the problem in other words, or a tool’s number (FC-012).</p>)}
+        {!!found.length && (words || status || disc
           ? <ul className="et-list">{found.map(e => <Row key={e.id} e={e} open={open === e.id} onToggle={() => setOpen(open === e.id ? null : e.id)} onOpen={setOpen} />)}</ul>
           : DISCIPLINES.map(d => {
               const list = found.filter(e => e.discipline === d.id);
@@ -178,7 +185,7 @@ export function ToolsScreen() {
                   <ul className="et-list">{list.map(e => <Row key={e.id} e={e} open={open === e.id} onToggle={() => setOpen(open === e.id ? null : e.id)} onOpen={setOpen} />)}</ul>
                 </div>
               ) : null;
-            })}
+            }))}
       </section>
     </div>
   );
