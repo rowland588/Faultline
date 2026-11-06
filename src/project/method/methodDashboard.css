@@ -1,30 +1,38 @@
-/* THE METHOD PROJECT'S DASHBOARD (MethodDashboard). Light; a state colour only beside its word; house tokens only. */
-.mdash { display: grid; gap: 14px; margin: 0 0 18px; padding: 16px 18px; border: 1px solid color-mix(in srgb, var(--brand) 28%, var(--line)); border-left: 5px solid var(--brand); border-radius: var(--radius);
-  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--brand-sky) 12%, var(--surface)) 0%, var(--surface) 70%); box-shadow: var(--shadow); min-width: 0; }
-.mdash.is-r { border-left-color: var(--st-r); }
-.mdash.is-a { border-left-color: var(--st-a); }
-.mdash.is-g { border-left-color: var(--st-g); }
-.mdash-says { margin: 0; font-size: var(--t-h); line-height: 1.4; color: var(--ink); }
+/* THE METHOD PROJECT'S DASHBOARD (MethodDashboard). Look E (docs/LOOK.md, L3 — 6 November): one white card in the house
+   language, the journey as a strip of steps, two columns — what the tools are showing (what's going wrong) and what needs
+   attention with the one next step (what needs doing). A state colour only beside its word; house tokens only. */
+.mdash { display: grid; gap: 16px; margin: 0 0 16px; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); box-shadow: var(--shadow); min-width: 0; }
+.mdash > .mdash-says { margin: 0; padding-left: 14px; border-left: 3px solid var(--line-2); font-size: var(--t-h); line-height: 1.4; color: var(--ink); letter-spacing: -0.01em; }
+.mdash.is-r > .mdash-says { border-left-color: var(--st-r); }
+.mdash.is-a > .mdash-says { border-left-color: var(--st-a); }
+.mdash.is-g > .mdash-says { border-left-color: var(--st-g); }
+.mdash.is-w > .mdash-says { border-left-color: var(--st-w); }
 .mdash-journey { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; counter-reset: none; }
-.mdash-step { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); min-width: 0; }
-.mdash-step.is-here { border-color: var(--brand); box-shadow: var(--shadow); }
-.mdash-step.is-done { background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); }
-.mdash-n { grid-row: span 2; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: var(--radius-round); background: var(--brand); color: var(--surface); font-weight: 800; font-size: var(--t-label); }
-.mdash-name { font-weight: 800; font-size: var(--t-body); color: var(--ink); overflow-wrap: anywhere; }
-.mdash-state { grid-column: 2; font-size: var(--t-label); color: var(--ink-2); }
-.mdash-cols { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-.mdash-col { min-width: 0; }
-.mdash-h { margin: 0 0 6px; font-size: var(--t-label); letter-spacing: .08em; text-transform: uppercase; color: var(--brand); }
+.mdash-step { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--canvas); min-width: 0; }
+.mdash-step.is-here { border-color: var(--brand); background: var(--surface); box-shadow: inset 0 0 0 1px var(--brand); }
+.mdash-step.is-done { background: color-mix(in srgb, var(--st-g) 6%, var(--surface)); }
+.mdash-n { grid-row: span 2; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: var(--radius-round); background: var(--surface-2); color: var(--ink-2); font-size: var(--t-label); font-weight: 700; font-variant-numeric: tabular-nums; }
+.mdash-step.is-here .mdash-n { background: var(--brand); color: var(--on-brand); }
+.mdash-step.is-done .mdash-n { background: var(--st-g); color: var(--on-dark); }
+.mdash-name { font-weight: 600; font-size: var(--t-detail); color: var(--ink); overflow-wrap: anywhere; }
+.mdash-state { grid-column: 2; font-size: var(--t-label); color: var(--muted); }
+.mdash-step.is-here .mdash-state { color: var(--ink-2); }
+.mdash-cols { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; align-items: start; padding-top: 4px; border-top: 1px solid var(--line-row); }
+.mdash-col { min-width: 0; padding-top: 12px; }
+.mdash-h { margin: 0 0 8px; font-size: var(--t-label); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .mdash-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.mdash-f { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--line); border-left: 4px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface); }
+.mdash-f { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface); }
 .mdash-f.is-r { border-left-color: var(--st-r); } .mdash-f.is-a { border-left-color: var(--st-a); } .mdash-f.is-g { border-left-color: var(--st-g); } .mdash-f.is-w { border-left-color: var(--st-w); }
-.mdash-where { font-size: var(--t-label); font-weight: 800; color: var(--ink-2); letter-spacing: .04em; }
-.mdash-f .mdash-says { font-size: var(--t-body); font-weight: 600; }
-.mdash-meta { font-size: var(--t-label); color: var(--ink-2); }
-.mdash-meta b { color: var(--ink); }
-.mdash-a { padding: 8px 10px; border: 1px solid var(--line); border-left: 4px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface); font-size: var(--t-detail); }
+.mdash-where { font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.mdash-f .mdash-says { font-size: var(--t-detail); font-weight: 600; color: var(--ink); line-height: 1.45; }
+.mdash-meta { font-size: var(--t-label); color: var(--muted); }
+.mdash-meta b { color: var(--ink-2); }
+.mdash-meta .linkish { color: var(--accent); font-weight: 600; }
+.mdash-a { padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface); font-size: var(--t-detail); line-height: 1.45; }
 .mdash-a.is-r { border-left-color: var(--st-r); } .mdash-a.is-a { border-left-color: var(--st-a); }
-.mdash-next { margin: 10px 0 0; font-size: var(--t-body); color: var(--ink); }
+.mdash-next { margin: 12px 0 0; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--accent-soft); font-size: var(--t-detail); color: var(--ink); }
+.mdash-next b { font-weight: 600; }
 .mdash-close { margin: 0; }
 .mdash-act { margin: 0; }
-@media (max-width: 720px) { .mdash-cols { grid-template-columns: 1fr; } .mdash { padding: 12px; } }
+@media (max-width: 720px) { .mdash-cols { grid-template-columns: 1fr; gap: 8px; } .mdash { padding: 16px; } }
