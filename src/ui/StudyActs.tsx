@@ -86,7 +86,7 @@ export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary }:
   const offer = canEdit ? shareOffer(s) : undefined;
   const items: MoreItem[] | undefined = offer ? [...(extra ?? []), { label: 'Use these readings in…', run: () => setSharing(true), disabled: !offer.targets.length, ...(offer.targets.length ? {} : { hint: offer.why }) }] : extra;
   return (
-    <LeanBand page={page} title={<StudyName s={s} naming={naming} onDone={() => setNaming(false)} />}>
+    <LeanBand className="ep-tool-band" page={page} title={<StudyName s={s} naming={naming} onDone={() => setNaming(false)} />}>
       <StudyMenus s={s} canEdit={canEdit} canRemove={canRemove} onRename={() => setNaming(true)} extra={items} primary={primary}
         papers={[{ label: `${what} — on paper`, for: 'What it is, where it sits, what it says and its figures', make: paper }]} />
       {sharing && <ShareReadings s={s} onClose={() => setSharing(false)} />}
