@@ -243,7 +243,7 @@ await page.locator('input[aria-label="Caption for P1"]').fill('The infeed guard,
 await page.locator('.tk-dsec').first().locator('button', { hasText: 'Add a point' }).click();
 const added = page.locator('.tk-dsec').first().locator('.tk-dpt').last();
 await added.locator('textarea').fill('Dave to fit the new guard.');
-await added.locator('select').selectOption('record');
+await added.getByLabel('Where it comes from').selectOption('record');
 await page.locator('.tk-dph[data-photo=P2] button', { hasText: 'Take the photo out' }).click();
 ok(await waitFor(async () => /Kept/.test(await page.locator('.tk-dacts').innerText())), '8 kept as it is changed');
 await page.reload(); await settle(1500);
