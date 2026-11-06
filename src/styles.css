@@ -514,7 +514,12 @@ body:has(.sheet-scrim, .ig-scrim) .toast { top: calc(12px + env(safe-area-inset-
 .ev-thumb { position: relative; flex: none; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--line); overflow: hidden; background: var(--surface-2); cursor: pointer; }
 .ev-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ev-ph { display: grid; place-items: center; width: 100%; height: 100%; font-size: var(--t-h); }
-.ev-play { position: absolute; inset: 0; display: grid; place-items: center; color: var(--on-dark); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); font-size: var(--t-h); }
+.ev-play { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+/* THE PLAY ARROW, SEEN (6 November — "all we have is a very slight line box"): it was white on a pale tile; now a graphite disc with the arrow in it, on any picture or none */
+.ev-play-b { display: grid; place-items: center; width: 1.9em; height: 1.9em; max-width: 70%; max-height: 70%; border-radius: var(--radius-round); background: var(--shell); color: var(--on-dark); border: 2px solid var(--surface); box-shadow: var(--shadow); font-size: var(--t-h); }
+.ev-play-b svg { fill: currentColor; stroke: currentColor; }   /* the arrow was an outline, a hair of a line — now solid */
+.ev-thumb.is-video { background: var(--shell); }
+.ev-thumb.is-video .ev-ph { color: var(--on-dark); opacity: 0; }
 .ev-viewer { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.9); display: grid; place-items: center; }
 .ev-close { position: absolute; top: 14px; right: 16px; width: 44px; height: 44px; border-radius: var(--radius-round); border: none; background: rgba(255, 255, 255, 0.15); color: var(--on-dark); font-size: var(--t-h); cursor: pointer; }
 .ev-remove {
@@ -15976,3 +15981,19 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .tk-dstep-said { flex-basis: 100%; }
 .tk-dmake { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
 .tk-dmake .btn { min-height: 44px; }
+
+/* PICTURES, VIDEOS AND LINKS on a part of a tool (6 November — docs/ATTACHMENTS.md) */
+.attach-btn { display: flex; align-items: center; gap: var(--space-1); min-height: 44px; width: 100%; padding: 0 var(--space-2); background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius-sm); font: inherit; color: var(--muted); cursor: pointer; }
+.attach-btn.has { border-style: solid; color: var(--ink); }
+.attach-btn-t { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-1); font-weight: 600; }
+.attach-sheet { display: flex; flex-direction: column; gap: var(--space-3); }
+.attach-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.attach-item { display: flex; gap: var(--space-3); align-items: flex-start; }
+.attach-link { display: grid; place-items: center; width: 72px; height: 72px; flex: none; border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--brand); }
+.attach-meta { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; flex: 1 1 auto; }
+.attach-url { color: var(--brand); overflow-wrap: anywhere; }
+.attach-acts { display: flex; gap: var(--space-3); }
+.attach-add { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.attach-add .btn { min-height: 44px; }
+.attach-linkform { display: flex; flex-direction: column; gap: var(--space-2); }
+.calc-tile .attach-btn { margin-top: var(--space-1); }

@@ -24,6 +24,7 @@ import { bandPage, type LeanTone } from '../../lib/lean';
 import { listRows } from '../../lib/lineReportPdf';
 import { programsBlocks } from '../../lib/programsReportPdf';
 import { studyBlocks, type StudiesPaper } from '../../lib/studiesPdf';
+import { preloadAttachPictures } from '../../lib/report/attachPaper';
 import { productLeanBlocks } from '../../tools/linebalance/capacityPaperPdf';
 import { PRIORITY_WORD } from '../../lib/snagsReport';
 import { headcount } from '../../tools/linestandard/standard';
@@ -154,6 +155,8 @@ function blocksOf(p: LineBundlePaper, d: Density): Block[] {
 }
 
 export async function drawLineBundle(doc: jsPDF, p: LineBundlePaper): Promise<void> {
+  /* the pictures the ticked studies carry (docs/ATTACHMENTS.md), read before the paper is poured */
+  await preloadAttachPictures(p.bundle.parts.flatMap(pt => pt.items.flatMap(it => (it.study ? [it.study] : []))));
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const density = await chooseDensity(base, dd => blocksOf(p, dd));
   await pour({ ...base, density, dry: false }, blocksOf(p, density), () => doc.addPage('a4', 'portrait'));

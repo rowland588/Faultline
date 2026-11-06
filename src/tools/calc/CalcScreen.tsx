@@ -34,7 +34,8 @@ import { UsedFor, WhereItSits, useBetter } from '../../ui/StudyPlace';
 import { raisedFrom } from '../losses/lossLean';
 import { useLine } from '../linework/WorkBalance';
 import { calcByKey, calcGroups } from './registry';
-import { calcSays, dropped, runCalc, startInputs, studyCalc, typedOver, type Run } from './calc';
+import { calcSays, dropped, runCalc, startInputs, studyCalc, typedOver, valuesOf, type Run } from './calc';
+import { AttachButton } from '../../ui/AttachSheet';
 import { CalcForm, stillNeeded } from './CalcForm';
 import { BeforeBox, ResultView, WhatIf } from './CalcView';
 import { usePhone } from '../../ui/InstallGrid';
@@ -411,7 +412,8 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
         )}
         <div className="calc-figs" hidden={phone && pane !== 'figures'}>
         <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part={def.tileSays ? 'main' : undefined} />
-        {def.tileSays && <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part="grid" total={r ? `${r.verdict} · ${r.sentence}` : undefined} />}
+        {def.tileSays && <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part="grid" total={r ? `${r.verdict} · ${r.sentence}` : undefined}
+          tileExtra={def.tileTarget && def.tileName ? (i => <AttachButton s={s} target={def.tileTarget?.(i)} name={def.tileName?.(valuesOf(def, draft), i) ?? `Part ${i + 1}`} canEdit={canEdit} by={me} />) : undefined} />}
         </div>
         <div className="calc-out" hidden={phone && pane === 'figures'}>
           <div hidden={phone && pane !== 'answer'}>

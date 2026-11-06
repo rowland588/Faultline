@@ -53,7 +53,7 @@ function fieldRows(pairs: { label: string; value: string; blank: boolean }[]): B
 }
 
 /** A photo whole — as wide as the column and no taller than a third of a page — its caption under it. */
-function photo(caption: string, pic: Picture | undefined): Block {
+export function photo(caption: string, pic: Picture | undefined): Block {
   const MAXH = 250;
   const size = (f: Frame) => (pic ? (() => { const s = Math.min(f.w / pic.w, MAXH / pic.h, 1.4); return { w: pic.w * s, h: pic.h * s }; })() : { w: f.w, h: 40 });
   const cap = (f: Frame) => wrap(f.doc, caption, f.w, SIZE.small);

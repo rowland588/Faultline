@@ -7,6 +7,7 @@ import { putBlob } from '../db';
 import { uid, now } from './ids';
 import { sniffMime, withUsableMime } from './mime';
 import { prepareVideoForImport, fitVideo, CLOUD_FILE_LIMIT } from './transcode';
+import { posterOf } from './videoPoster';
 
 /** Open the device's file picker.
  *
@@ -126,12 +127,11 @@ async function saveEvidence(kind: 'photo' | 'video', raw: Blob): Promise<MediaRe
   const blobKey = `blob-${uid()}`;
   await putBlob(blobKey, blob);
   let thumbKey: string | undefined;
-  if (kind === 'photo') {
-    const thumb = await makePhotoThumb(blob);
-    if (thumb) {
-      thumbKey = `thumb-${uid()}`;
-      await putBlob(thumbKey, thumb);
-    }
+  /* a small picture of it: a photo's own, a clip's first frame (lib/videoPoster) — so a list draws something to look at, not an empty tile */
+  const thumb = kind === 'photo' ? await makePhotoThumb(blob) : await posterOf(blob).catch(() => null);
+  if (thumb) {
+    thumbKey = `thumb-${uid()}`;
+    await putBlob(thumbKey, thumb);
   }
   return { id: uid(), kind, blobKey, thumbKey, mime: blob.type || (kind === 'photo' ? 'image/jpeg' : 'video/mp4'), capturedAt: now() };
 }

@@ -27,6 +27,7 @@ import type { FootageGone } from '../tools/video/footage';
 import type { ID } from '../types';
 import type { TalkTurn } from '../tools/talk/talk';
 import type { TalkSet } from '../tools/talk/talkSets';
+import type { Attachment } from './attachments';
 import type { AgreedHolds, Hold } from '../tools/hold/hold';
 import type { DocPhoto, DocSigned, DocValues } from '../tools/doc/types';
 
@@ -1167,6 +1168,8 @@ export interface StudyFacts {
   /** A DOCUMENT's photos (src/tools/doc): an id-keyed list, so two phones adding photos to one document both keep theirs; the files are
    *  in the media store and go to the cloud with the document (cloud/mappers studies mediaKeys, supabase/DOC_PHOTOS.sql). */
   docPhotos?: DocPhoto[];
+  /** PICTURES, VIDEOS AND LINKS on any tool (lib/attachments, docs/ATTACHMENTS.md): an id-keyed list merged across devices, a removal struck — each aimed at a part of the study or the whole of it. */
+  attach?: Attachment[];
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same

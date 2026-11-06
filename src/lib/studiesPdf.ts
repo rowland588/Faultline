@@ -60,6 +60,7 @@ import { analysisClosing, analysisFigures, analysisGrids, analysisPicture, analy
 import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } from '../tools/chart/chart';
 import { neckOf } from './lineLoss';
 import { calcPaperParts } from './report/calcPaper';
+import { attachTail, preloadAttachPictures } from './report/attachPaper';
 import { docPaperParts, type DocPaperExtras } from './report/docPaper';
 import { scoredPaperBlocks } from './report/scoredPaper';
 import { boardPaperBlocks } from './report/boardPaper';
@@ -190,8 +191,10 @@ function histBlock(f: SampleFigures, a: AgreedReadings): Block | undefined {
 /** THE NOTES WRITTEN ON A STUDY, as its paper ends (Rowland, 2 November: "ensure commentary is on every tool and is onto reports") — under any tool's
  *  own blocks, only when there are some; capability and reliability print theirs inside their own blocks, so they are left out here. */
 export function notesTail(s: ToolStudy): Block[] {
-  if (s.tool === 'capability' || s.tool === 'reliability') return [];
-  return (s.facts.remarks ?? []).some(r => !r.struck) ? [label('Notes'), ...remarksBlocks(s.facts.remarks)] : [];
+  /* pictures, videos and links last (docs/ATTACHMENTS.md): every tool's paper ends with what was put on it */
+  const attached = attachTail(s);
+  if (s.tool === 'capability' || s.tool === 'reliability') return attached;
+  return [...((s.facts.remarks ?? []).some(r => !r.struck) ? [label('Notes'), ...remarksBlocks(s.facts.remarks)] : []), ...attached];
 }
 
 /** The capability study's paper: its figures, then the notes written while it ran (Rowland, 2 November) — only when there are some. */
@@ -851,6 +854,8 @@ function blocksOf(p: StudiesPaper, d: Density): Block[] {
 
 /** Draw the studies into `doc` (A4 portrait), every page footed. */
 export async function drawStudies(doc: jsPDF, p: StudiesPaper): Promise<void> {
+  /* the pictures the studies carry, made small before the paper is poured (lib/report/attachPaper) */
+  await preloadAttachPictures(p.items.map(i => i.s));
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const density = await chooseDensity(base, d => blocksOf(p, d));
   await pour({ ...base, density, dry: false }, blocksOf(p, density), () => doc.addPage('a4', 'portrait'));

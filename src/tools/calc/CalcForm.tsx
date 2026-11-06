@@ -3,7 +3,7 @@
  * model can fill says what it would put in, and where to give it when the line has none; the money boxes sit apart under "In money
  * — all optional", and nothing waits on them. Typed live: the result beside it is worked out from what is in the boxes, saved a
  * moment after the last key. */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { nav } from '../../state/useRoute';
 import { fieldProblems, offered, valuesOf, askedFields, type LineFacts } from './calc';
 import { fmt, gbp } from './format';
@@ -23,6 +23,8 @@ interface Props {
   part?: 'main' | 'grid';
   /** What the stops have cost so far, said over the grid. */
   total?: string;
+  /** Something under each tile of the grid — the button for its pictures, videos and links (ui/AttachSheet). */
+  tileExtra?: (tile: number) => ReactNode;
 }
 
 const unitFirst = (f: Field): boolean => !!f.unit && /^£/.test(f.unit);
@@ -125,6 +127,7 @@ function Tile({ fields, i, p }: { fields: Field[]; i: number; p: Props }) {
       <div className="calc-tile-nums">{min && input(min, 'calc-tile-min')}{stops && input(stops, 'calc-tile-stops')}</div>
       {rate && input(rate, 'calc-tile-rate')}
       <span className="sub calc-tile-says">{p.def.tileSays?.(v, i)}</span>
+      {p.tileExtra?.(i)}
       {mine.map(x => <span key={x.say} className="ie-problem calc-problem" role="status">{x.say}</span>)}
     </div>
   );

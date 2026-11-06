@@ -178,6 +178,9 @@ export interface CalcDef {
   compute: (v: Values) => CalcResult;
   /** One short line under a station tile in the grid: what that station has cost so far. */
   tileSays?: (v: Values, tile: number) => string;
+  /** Pictures, videos and links can be put on each tile of the grid (ui/AttachSheet): the tile's name for the sheet and the paper, and its id — `w03` — for the list (lib/attachments `target`). */
+  tileName?: (v: Values, tile: number) => string;
+  tileTarget?: (tile: number) => string;
   examples: Example[];
   refused: Refused[];
   /** Calculators that carry on from this one, linked from its page. */

@@ -13,6 +13,8 @@ import type { CalcDef, CalcMoney, CalcPicture, CalcResult, Field, Inputs, Proble
 
 export const MAX_STATIONS = 30;
 const nn = (i: number): string => String(i + 1).padStart(2, '0');
+/** A workstation's id for its pictures, videos and links: w01 … w30 (the list's `target`). */
+export const wtarget = (i: number): string => `w${nn(i)}`;
 export const wid = (i: number, part: 'name' | 'min' | 'stops' | 'rate'): string => `w${nn(i)}_${part}`;
 const num = (v: Values, k: string): number | undefined => v[k] as number | undefined;
 const text = (v: Values, k: string): string => (typeof v[k] === 'string' ? (v[k] as string).trim() : '');
@@ -112,6 +114,8 @@ const def: CalcDef = {
     { id: 'unitCost', label: 'What one lost unit is worth', unit: '£ a unit', kind: 'number', min: 0, optional: true, money: true,
       help: 'Optional: its margin or its cost. Said as “if it cannot be made up” — a unit lost on a constraint is lost for good; elsewhere the line may catch up.' },
   ],
+  tileName: (v, i) => nameOf(v, i),
+  tileTarget: wtarget,
   tileSays(v, i): string {
     const r = rows(v)[i];
     if (!r || r.min === 0) return 'not stopped';

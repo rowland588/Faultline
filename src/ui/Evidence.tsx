@@ -1,6 +1,7 @@
 import type { MediaPin, MediaRef } from '../types';
 import type { Test, TestItem } from '../lib/testing';
 import { useBlobUrl, useBlobSource } from '../lib/useBlobUrl';
+import { useVideoPoster } from '../lib/videoPoster';
 import { uid } from '../lib/ids';
 import { VideoPlayer } from '../tools/video/VideoPlayer';
 import { Icon } from './Icon';
@@ -45,18 +46,21 @@ export function EvidenceThumb({ media, onClick, size = 54, still }: {
    *  box on the Fixes page), where a button in a button is not allowed. */
   still?: boolean;
 }) {
-  const url = useBlobUrl(media.thumbKey ?? (media.kind === 'photo' ? media.blobKey : undefined));
+  const saved = useBlobUrl(media.thumbKey ?? (media.kind === 'photo' ? media.blobKey : undefined));
+  /* a clip saved before posters were made: its first frame, read once on this device */
+  const poster = useVideoPoster(media.blobKey, media.kind === 'video' && !saved);
+  const url = saved ?? poster;
   const marks = pinsOf(media).length;
   const inner = <>
     {url ? <img src={url} alt="" /> : <span className="ev-ph" aria-hidden><Icon name={media.kind === 'video' ? 'play' : 'camera'} size="1em" /></span>}
-    {media.kind === 'video' && <span className="ev-play" aria-hidden><Icon name="play" size="1em" /></span>}
+    {media.kind === 'video' && <span className="ev-play" aria-hidden><span className="ev-play-b"><Icon name="play" size="1em" /></span></span>}
     {/* What is pointed at on it — the count only; the marks and their words
         are in the picture when it opens. */}
     {marks > 0 && <span className="ev-marks" aria-hidden>{marksWord(marks)}</span>}
   </>;
-  if (still) return <span className="ev-thumb" style={{ width: size, height: size }} aria-hidden>{inner}</span>;
+  if (still) return <span className={'ev-thumb' + (media.kind === 'video' ? ' is-video' : '')} style={{ width: size, height: size }} aria-hidden>{inner}</span>;
   return (
-    <button type="button" className="ev-thumb" style={{ width: size, height: size }} onClick={onClick}
+    <button type="button" className={'ev-thumb' + (media.kind === 'video' ? ' is-video' : '')} style={{ width: size, height: size }} onClick={onClick}
       aria-label={media.kind === 'video' ? 'Play the clip' : `Open the photo${marks ? ` — ${marksWord(marks)}` : ''}`}>
       {inner}
     </button>
