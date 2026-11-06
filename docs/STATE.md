@@ -26,6 +26,8 @@ a session that ships something updates this page in the same commit.** The rules
   — talk a *flow diagram* (process flow chart), a *spaghetti diagram* (up to four walkers), a *value stream* (the
   Value stream tool's own map) and Make it / Update it / Undo makes the tool's own record. Gateway **v18**, rules
   fingerprint `08f542070ed1de5c` (must equal the repo's; see §4).
+- **The look, L3 — a method project's dashboard** in the card language (6 November): the sentence with its state edge, the
+  journey strip with *you are here*, what the tools are showing, what needs attention, the next step.
 - **The look, L2 — a line's page on the journey** (`docs/LOOK.md` §0–1, 6 November): the Overview in the journey's
   order — what's going wrong (the problems priced a day, the line machine by machine), what needs doing (the programs
   and their days), did it work (the fixes proved, or "none yet" and what proves one), then the ways of seeing and the
@@ -53,7 +55,7 @@ a session that ships something updates this page in the same commit.** The rules
    (what's going wrong · what needs doing · who's responsible · did it work) in look E — the Factory's greeting hero
    and four question cards first (L1), then a line (L2), a project (L3), a problem and the register (L4), the tools'
    tiles as icon cards with their change (L5), the papers' tokens (L6), the phone (L7). Each slice its own gate and
-   its own merge; `docs/STATE.md` §1 says which is live (L0–L2 live; L3 a project next).
+   its own merge; `docs/STATE.md` §1 says which is live (L0–L3 live; L4 the problem and the register next).
 
 1. **Spaghetti talk accuracy** (Rowland, 6 November: *"it's going to struggle with what I'm saying … there needs to be
    improvements, guaranteed"*). Tested on his own sentence: the order of moves is right, "left"/"right" become place
