@@ -1007,7 +1007,6 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
         <button type="button" className="btn btn-sm pe-rate" onClick={() => nav(`/lines/${encodeURIComponent(s.workspaceId)}?view=setup`)}>Add the hourly rate on {lineName(s.workspaceId)} ›</button>
       )}
 
-      <Journey s={s} put={put} />
 
 
       <p className="pe-q" aria-hidden>What needs doing</p>
@@ -1047,6 +1046,8 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
           </div>
         </form>
       )}
+
+      <Journey s={s} put={put} />
 
       <div className="qsl-x-acts">
         {/* SAVE — every box is kept as it is left; this keeps the one being typed in and closes the problem, saying so */}
