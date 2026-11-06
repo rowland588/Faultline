@@ -17,6 +17,7 @@
  * red), and what to do next (take a problem; open a tool on this line). */
 import { APP_TOOLS } from '../catalogue/registry';
 import { MoreMenu, PageHeader } from '../ui/parts';
+import { EmptyState } from '../ui/EmptyState';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { LineTour } from '../ui/LineTour';
 import { LineLooking } from '../tools/gemba/LookedAt';
@@ -477,7 +478,11 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingUp(true)}>Order and names ›</button>}
         </div>
         {!kit?.machines.length
-          ? <p className="sub">No machines listed yet{may ? ' — name them below, in flow order.' : '.'}</p>
+          ? (
+            <EmptyState className="blank-list" title="No machines listed yet">
+              {may ? 'Name them below, in flow order.' : null}
+            </EmptyState>
+          )
           : (
             <>
               {/* the Planner table head, as Set up's lines table says its columns (docs/ENTERPRISE-UI.md E2) */}

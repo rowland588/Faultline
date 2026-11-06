@@ -74,8 +74,12 @@ export function LineTour({ line, machines, records, rows, obs, standards }: {
     return (
       <section className="pl-sec tour" aria-label="The line, machine by machine">
         <div className="pl-sec-h"><h2>The line, machine by machine</h2></div>
-        <p className="tour-says">{`${line.name}: no machines named yet, ${open ? `${open} problem${open === 1 ? '' : 's'} open${crit ? ` (${crit} critical)` : ''}${late ? `, ${late} late` : ''}` : 'nothing open'}.`}</p>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/lines/${encodeURIComponent(line.id)}?view=machines`)}>Name its machines ›</button>
+        <div className="empty blank-list">
+          <div className="tour-says empty-title">{`${line.name}: no machines named yet, ${open ? `${open} problem${open === 1 ? '' : 's'} open${crit ? ` (${crit} critical)` : ''}${late ? `, ${late} late` : ''}` : 'nothing open'}.`}</div>
+          <div className="empty-action">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/lines/${encodeURIComponent(line.id)}?view=machines`)}>Name its machines ›</button>
+          </div>
+        </div>
       </section>
     );
   }

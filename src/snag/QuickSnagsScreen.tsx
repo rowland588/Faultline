@@ -47,6 +47,7 @@ import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
 import { PageHeader } from '../ui/parts';
+import { EmptyState } from '../ui/EmptyState';
 import { DateInput } from '../ui/DateInput';
 import { DraftArea, DraftText } from '../ui/Draft';
 import type { MediaRef, Project, Workspace } from '../types';
@@ -524,10 +525,10 @@ export function QuickSnagsScreen() {
       </>}
 
       {snags && here.length === 0 && (
-        <div className="qsl-empty">
-          <p><b>{away.length ? 'A fresh start.' : 'No problems yet.'}</b> Write the first — press <b>Problem</b>, say what is wrong, take a picture if it helps.</p>
-          <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
-        </div>
+        <EmptyState className="qsl-empty blank-list" title={away.length ? 'A fresh start.' : 'No problems yet.'}
+          action={<button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>}>
+          Write the first — press <b>Problem</b>, say what is wrong, take a picture if it helps.
+        </EmptyState>
       )}
       {snags && (here.length > 0 || anyJobRows) && !groups.length && !shownJobs.length && <p className="sub">None here — try Open, or every line and project.</p>}
 
