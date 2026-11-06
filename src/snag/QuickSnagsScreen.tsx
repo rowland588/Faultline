@@ -894,6 +894,7 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
   const roots = sixm.filter(j => j.canEdit);
   return (
     <div className="qsl-x pe" role="region" aria-label={`Work on: ${s.problem || 'this problem'}`}>
+      <p className="pe-q" aria-hidden>What’s going wrong</p>
       <label className="pe-f pe-wide"><span className="pe-k">WHAT IS THE PROBLEM</span>
         <DraftArea value={s.problem ?? ''} rows={2} className="text-input pe-what" ariaLabel="What is the problem" onSave={v => put({ problem: v })} /></label>
 
@@ -901,21 +902,6 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
         <div className="chip-row" role="group" aria-label="Priority">
           {PRIOS.map(k => <button key={k} type="button" className={'chip qs-prio is-' + k + ((s.priority ?? 'low') === k ? ' on' : '')} aria-pressed={(s.priority ?? 'low') === k} onClick={() => put({ priority: k })}>{PRIORITY_WORD[k]}</button>)}
         </div></div>
-      <div className="pe-f"><span className="pe-k">WHERE IT STANDS</span>
-        <div className="chip-row" role="group" aria-label="Where it stands">
-          {(['open', 'in_progress', 'closed'] as SnagStatus[]).map(k => <button key={k} type="button" className={'chip' + (s.status === k ? ' on' : '')} aria-pressed={s.status === k} onClick={() => setStatus(k)}>{SNAG_STATUS_META[k].label}</button>)}
-        </div></div>
-      {closing && (
-        <form className="pe-f pe-wide pe-close" role="group" aria-label="Close it" onSubmit={e => { e.preventDefault(); close(); }}>
-          <span className="pe-k">WHAT SHOWS IT IS FIXED? <i className="cw-f-opt">if something does — a day, a count, a photo</i></span>
-          {lastStep && <p className="sub pe-close-last">Its last step, {dayOf(lastStep.at)}: {lastStep.did}{lastStep.result ? ` → ${lastStep.result}` : ''}</p>}
-          <input className="text-input" value={proof} maxLength={240} autoFocus placeholder="e.g. A full shift on 2kg film with no jam" aria-label="What shows it is fixed" onChange={e => setProof(e.target.value)} />
-          <div className="qsl-x-acts">
-            <button type="submit" className="btn btn-primary">Close it</button>
-            <button type="button" className="btn btn-ghost" onClick={() => { setClosing(false); setProof(''); }}>Not yet</button>
-          </div>
-        </form>
-      )}
 
       <p className="sub pe-anchor-lede">Anchor it on the line — area, machine and program when it matters.</p>
       <div className="pe-row">
@@ -994,19 +980,11 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           {s.projectId && !projects.some(p => p.id === s.projectId) && <option value={s.projectId}>{jobName(s.projectId) ?? 'A project no longer here'}</option>}
         </select></label>
-      <div className="pe-row">
-        <label className="pe-f"><span className="pe-k">WHOSE</span>
-          <DraftText value={s.owner ?? ''} placeholder="Whose is it?" className="text-input" max={60} ariaLabel="Whose is it" onSave={v => put({ owner: v.trim() || undefined })} /></label>
-        <label className="pe-f"><span className="pe-k">DUE</span>
-          <DateInput className="text-input" value={dueToInput(s.dueAt)} aria-label="Due date" onCommit={v => put({ dueAt: dueFromInput(v) })} /></label>
-      </div>
 
       <div className="pe-f pe-wide"><span className="pe-k">PHOTOS <i className="cw-f-opt">tap one to mark it</i></span>
         <Evidence media={s.media ?? []} kind="found" onView={onView} onAdd={async refs => put(cur => ({ media: [...(cur.media ?? []), ...refs] }))} />
       </div>
 
-      <label className="pe-f pe-wide"><span className="pe-k">WHAT WE WILL DO</span>
-        <DraftArea value={s.proposedSolution ?? ''} rows={2} placeholder="The plan — what will put it right" className="text-input" ariaLabel="What we will do" onSave={v => put({ proposedSolution: v || undefined })} /></label>
       {/* WHICH OF THE EIGHT WASTES IT IS (FC-005, the waste walk) — the class; the size and the cost are the three boxes below */}
       <WasteChips value={s.waste} onPick={v => put({ waste: v })} />
       {/* WHAT IT COSTS THE LINE while it is open — one number asked, the money one output beside it; a missing line input
@@ -1031,6 +1009,16 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
 
       <Journey s={s} put={put} />
 
+
+      <p className="pe-q" aria-hidden>What needs doing</p>
+      <label className="pe-f pe-wide"><span className="pe-k">WHAT WE WILL DO</span>
+        <DraftArea value={s.proposedSolution ?? ''} rows={2} placeholder="The plan — what will put it right" className="text-input" ariaLabel="What we will do" onSave={v => put({ proposedSolution: v || undefined })} /></label>
+      <div className="pe-row">
+        <label className="pe-f"><span className="pe-k">WHOSE</span>
+          <DraftText value={s.owner ?? ''} placeholder="Whose is it?" className="text-input" max={60} ariaLabel="Whose is it" onSave={v => put({ owner: v.trim() || undefined })} /></label>
+        <label className="pe-f"><span className="pe-k">DUE</span>
+          <DateInput className="text-input" value={dueToInput(s.dueAt)} aria-label="Due date" onCommit={v => put({ dueAt: dueFromInput(v) })} /></label>
+      </div>
       {/* ITS ROOT CAUSE — a problem seen on the floor made the head of a fish on its line's 6M job (FLOW-AUDIT #13) */}
       {rootOf
         ? <p className="pe-said pe-root">Taken to 6M on {rootOf.job} — <button type="button" className="linkish" onClick={() => nav(`/project/${rootOf.jobId}/fishbone?${rootOf.line ? `line=${encodeURIComponent(rootOf.line)}&` : ''}problem=${encodeURIComponent(s.caseId ?? '')}`)}>its fishbone ›</button></p>
@@ -1043,6 +1031,22 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
                 : <p className="sub pe-said">No 6M project on {lineName(s.workspaceId)} yet.{onStart && <> <button type="button" className="linkish" disabled={starting} onClick={onStart}>Start one to find its root cause ›</button></>}</p>}
           </div>
         )}
+      <p className="pe-q" aria-hidden>Did it work</p>
+      <div className="pe-f"><span className="pe-k">WHERE IT STANDS</span>
+        <div className="chip-row" role="group" aria-label="Where it stands">
+          {(['open', 'in_progress', 'closed'] as SnagStatus[]).map(k => <button key={k} type="button" className={'chip' + (s.status === k ? ' on' : '')} aria-pressed={s.status === k} onClick={() => setStatus(k)}>{SNAG_STATUS_META[k].label}</button>)}
+        </div></div>
+      {closing && (
+        <form className="pe-f pe-wide pe-close" role="group" aria-label="Close it" onSubmit={e => { e.preventDefault(); close(); }}>
+          <span className="pe-k">WHAT SHOWS IT IS FIXED? <i className="cw-f-opt">if something does — a day, a count, a photo</i></span>
+          {lastStep && <p className="sub pe-close-last">Its last step, {dayOf(lastStep.at)}: {lastStep.did}{lastStep.result ? ` → ${lastStep.result}` : ''}</p>}
+          <input className="text-input" value={proof} maxLength={240} autoFocus placeholder="e.g. A full shift on 2kg film with no jam" aria-label="What shows it is fixed" onChange={e => setProof(e.target.value)} />
+          <div className="qsl-x-acts">
+            <button type="submit" className="btn btn-primary">Close it</button>
+            <button type="button" className="btn btn-ghost" onClick={() => { setClosing(false); setProof(''); }}>Not yet</button>
+          </div>
+        </form>
+      )}
 
       <div className="qsl-x-acts">
         {/* SAVE — every box is kept as it is left; this keeps the one being typed in and closes the problem, saying so */}
