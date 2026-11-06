@@ -5,7 +5,7 @@ to get Cursor involved … I need everything in the repo so it can understand wh
 a session that ships something updates this page in the same commit.** The rules are `CLAUDE.md`; the product is
 `docs/DIRECTION.md`; this is the state.
 
-## 1. What is live (main `469df03f`, Vercel production READY, faultline.opexelevate.co.uk)
+## 1. What is live (main at the look's L0 commit, 6 November, Vercel production READY, faultline.opexelevate.co.uk)
 
 - **The factory, its lines and machines.** Factory › Line › Machine, every machine on a line, dual lines
   (`docs/MAP.md`, `docs/STRUCTURE.md`). Problems (the register, priorities, journeys, cost, the eight wastes),
@@ -26,14 +26,26 @@ a session that ships something updates this page in the same commit.** The rules
   — talk a *flow diagram* (process flow chart), a *spaghetti diagram* (up to four walkers), a *value stream* (the
   Value stream tool's own map) and Make it / Update it / Undo makes the tool's own record. Gateway **v18**, rules
   fingerprint `08f542070ed1de5c` (must equal the repo's; see §4).
+- **The look, L0 — the shell** (`docs/LOOK.md`, 6 November): look E's frame — the navy rail with the mark, the tagline,
+  an icon a menu line, the page you are on in blue, the *Factory online* chip (`ui/SyncChip`); the navy phone bar with
+  the raised ＋; Inter; blue as the press colour; the cool canvas, white cards, the new neutrals as tokens. Every page
+  wears it; the pages themselves are not yet laid out on the four questions (L1–L7 below).
+- **Cursor's slices of 6 November, all on `main`**: the phone's other scopes (E7), the study chrome (E6), the empty
+  states, the lean line summary (`#/lines/:ws/report` Summary and its paper), the daily full gate on GitHub Actions.
 - **Attachments**: pictures, videos and links on a workstation of the stops chart, on its paper, with the app's own
   live camera (`docs/ATTACHMENTS.md`, A0–A1 built; proved on Chromium's fake camera only, not yet on a real phone).
 
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
 
-**Phone, the other scopes** (E7, 6 November, branch `cursor/e7-phone-scopes-de14`, not on `main`): at a viewport of 719px and under, Factory home, Set up, a line’s Overview, Projects and Problems stack their panels and stay inside the frame. The one thumb bar is the same. The tools gallery keeps the sideways scroll from the tools slice.
+**Phone, the other scopes** (E7, 6 November — on `main`, live): at a viewport of 719px and under, Factory home, Set up, a line’s Overview, Projects and Problems stack their panels and stay inside the frame. The one thumb bar is the same. The tools gallery keeps the sideways scroll from the tools slice.
 
 **Parallel improvement plan** (domains, agent streams, hygiene): `docs/IMPROVEMENT-ROADMAP.md` — planning only; does not replace this ordered list.
+
+0. **The look, L1–L7** (`docs/LOOK.md` §4 — go given 6 November, in flight): every page laid out on the four questions
+   (what's going wrong · what needs doing · who's responsible · did it work) in look E — the Factory's greeting hero
+   and four question cards first (L1), then a line (L2), a project (L3), a problem and the register (L4), the tools'
+   tiles as icon cards with their change (L5), the papers' tokens (L6), the phone (L7). Each slice its own gate and
+   its own merge; `docs/STATE.md` §1 says which is live.
 
 1. **Spaghetti talk accuracy** (Rowland, 6 November: *"it's going to struggle with what I'm saying … there needs to be
    improvements, guaranteed"*). Tested on his own sentence: the order of moves is right, "left"/"right" become place
@@ -52,7 +64,7 @@ a session that ships something updates this page in the same commit.** The rules
    us … as a priority"*): the one-second · two-second · three-second reading (`docs/LEAN-PAGE.md`) applied to every
    report that is not yet the lean page. The **line summary** (`#/lines/:ws/report`, Summary, and its paper
    `lineBundlePdf` — not the full package) is the first: band, tiles, where on the line as the one picture, what it
-   means, who owes what, the closing line, then the records. On this branch until it is merged; not live. Other papers
+   means, who owes what, the closing line, then the records. Live since 6 November. Other papers
    are unchanged.
 5. **Attachments A2+** — pictures, videos and links on every tool (`docs/ATTACHMENTS.md`); Rowland: a nice-to-have.
 6. Smaller: spoken number words ("forty") are flagged *unsure* by the grounded check (phones usually write digits);

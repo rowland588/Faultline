@@ -31,7 +31,7 @@ const M = 64;
 const NAVY = '#12171c', BLUE = '#0c7489', BAND_FILL = '#eef3f3', INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', SOFT = '#f2f5f5';
 /* The app's own face, as on every screen and every other PDF; the system
    faces only if it has not loaded. */
-const FONT = '"Instrument Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const FONT = '"Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 async function photoOf(key?: string): Promise<HTMLImageElement | null> {
   if (!key) return null;
@@ -260,7 +260,7 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
   /* The photo first: nothing below waits on anything once drawing starts. A
      canvas draws in whatever face is loaded at that instant, so the app's own
      is asked for first — or the card came out in the system face. */
-  await Promise.all(['500', '700', '800'].map(w => document.fonts?.load(`${w} 20px "Instrument Sans Variable"`))).catch(() => undefined);
+  await Promise.all(['500', '700', '800'].map(w => document.fonts?.load(`${w} 20px "Inter Variable"`))).catch(() => undefined);
   const img = await photoOf(s.photoKey);
   const cv = document.createElement('canvas');
   cv.width = CARD_W; cv.height = CARD_H;

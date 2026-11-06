@@ -4,8 +4,8 @@ import App from './App';
 import { startSync } from './cloud/sync';
 /* The type is bundled, not fetched: this app has to look like itself on a
    factory floor with no signal. Variable weight axis only — one file a family. */
-import '@fontsource-variable/instrument-sans/wght.css';
-import '@fontsource-variable/schibsted-grotesk/wght.css';
+/* Inter — the face of the app since look E (docs/LOOK.md, 6 November). */
+import '@fontsource-variable/inter/wght.css';
 /* Outfit — the face of the NAME: the landing's wordmark, the install icon's, Home's and every PDF's. */
 import '@fontsource-variable/outfit/wght.css';
 import './styles.css';

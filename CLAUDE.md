@@ -1306,6 +1306,20 @@ about tests and it holds everywhere: if something needs a new noun to explain
 it, look again — four of this app's five lists already carry dates, owners and
 states, and most "we need to store X" turns out to be "we have never drawn X".
 
+## The look — 6 November
+
+**Read `docs/LOOK.md` before touching a token, the frame, a card, a pill or the order of a page.** Rowland, 6
+November, after the design canvas (looks A–E on the app's own screens): *"no like this"* — a reference dashboard with
+a navy sidebar, icon cards with their change, pills, progress bars and a greeting hero — then look E, *"yes alot
+better"*, with two rules: *"Faultline is an operational improvement system, not just a reporting dashboard … what's
+going wrong, what needs doing, who's responsible and whether the improvement has actually worked"*, and *"this is not
+jsut factory page its evey page"*. So **every page answers the four questions in that order**, and wears look E: the
+navy frame (the rail and the phone's bar — the one dark fill with light words), what you press blue (`--brand`
+`#2563eb`), the under-way violet kept and said with its word, Inter, white cards on a cool canvas, the mark unchanged.
+Built in slices L0–L7 (the doc's table), each live on its own; L0, the shell, shipped 6 November. The paragraphs
+below on the 17 October look are its history: the five state colours, light paper and the rules of visual management
+stand; the spruce press colour, the graphite frame and the warm paper are superseded.
+
 ## Visual management — the rules every screen and PDF follows
 
 **The name is settled; the look was made fresh on 17 October.** Reviewed

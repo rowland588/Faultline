@@ -38,6 +38,8 @@ import { usePrograms } from '../lib/usePrograms';
 import { machineRecord } from '../lib/machineRecord';
 import { todayISO } from '../lib/weeks';
 import { Icon } from './Icon';
+import { LogoMark } from './Logo';
+import { SyncChip } from './SyncChip';
 import { Sheet } from './Sheet';
 import { ReportsSheet } from './ReportsSheet';
 import { ScopeTabs } from './ScopeTabs';
@@ -401,7 +403,16 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage 
   return (
     <>
       <aside className="nv-rail" aria-label="Menu">
+        {/* LOOK E (docs/LOOK.md): the mark, the name and the tagline at the head of the navy frame */}
+        <div className="nv-rail-head">
+          <button type="button" className="nv-rail-brand" onClick={() => nav('/')} aria-label="Faultline — the factory">
+            <LogoMark size={34} id="rail" />
+            <span className="nv-rail-name">Faultline</span>
+          </button>
+          <p className="nv-rail-tag">The Operational Improvement System</p>
+        </div>
         <RailList groups={bar ? [] : menu} go={go} />
+        <SyncChip onOpen={() => nav('/room')} />
       </aside>
       {tabs.length > 0 && (
         <ScopeTabs label={`${kind === 'line' ? line?.name ?? 'This line' : kind === 'project' ? project?.name ?? 'This project' : 'The factory'} — its pages`} tabs={tabs} go={go} />
@@ -445,7 +456,9 @@ function RailList({ groups, go }: { groups: RailGroup[]; go: (l: RailLine) => vo
           {g.lines.map(l => (
             <button key={l.key} type="button" className={'nv-ri' + (l.on ? ' is-on' : '') + (l.sub ? ' is-sub' : '') + (l.key === 'place' ? ' is-place' : '') + (l.problem || (l.late && l.failed) ? ' is-wrap' : '')}
               onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
-              <span className={'nv-sq is-' + l.state + (l.bare ? ' is-bare' : '')} aria-hidden />
+              {l.icon && l.bare
+                ? <Icon name={l.icon} size={18} />
+                : <span className={'nv-sq is-' + l.state + (l.bare ? ' is-bare' : '')} aria-hidden />}
               <span className="nv-ri-l">{l.label}</span>
               {!!l.n && (
                 <span className="nv-n">{l.n}{!!l.late && <> · <i>{l.late} late</i></>}{!!l.failed && <> · <i>{l.failed} failed</i></>}{!!l.problem && <> · <i className="is-a">{l.problem} a problem</i></>}</span>

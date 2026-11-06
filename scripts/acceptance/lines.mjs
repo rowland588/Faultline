@@ -56,7 +56,8 @@ ok(/#\/lines\//.test(page.url()) && (await page.locator('h1').innerText()) === '
 if (OUT) await page.screenshot({ path: `${OUT}/l-1-line.png` });
 /* the line is a scope of its own (docs/STRUCTURE.md B2); since 23 October the menu never changes — Factory lit inside
    a line — and the line's own pages are tabs across the top; the bar starts with the way back, ‹ Factory */
-const rail = (await page.locator('.nv-rail').innerText()).replace(/\s+/g, ' ');
+/* the menu's lines only — the rail's head (the mark, the tagline) and its foot (the sync chip) are the frame's, not the menu's (look E, 6 November) */
+const rail = (await page.locator('.nv-rail .nv-ri').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim()).join(' ');
 const tabs = (await page.locator('.nv-tabs .nv-tab-l').allInnerTexts()).join(' · ');
 const lit = (await page.locator('.nv-rail .nv-ri.is-on').allInnerTexts()).join();   /* the line named under Factory, lit (27 October) */
 const said = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();

@@ -160,7 +160,7 @@ await go(`#/project/${sd.pacedProjectId}/actions`);
 await go('#/actions');
 {
   await openActionFolds();
-  const rail = flat(await page.locator('.nv-rail').innerText());
+  const rail = flat((await page.locator('.nv-rail .nv-ri').allInnerTexts()).join(' '));   /* the menu's lines only — the rail's head and sync chip are the frame's (look E) */
   ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Projects Tools Factory reports' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Factory' && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action at its address — no Actions on the menu, the Factory lit', `${page.url()} | ${rail}`);
   const all = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(t.whats.every(w => all.includes(flat(w))) && all.length > t.n, `8 every project's actions — ${t.name}'s ${t.n} among ${all.length}`);
