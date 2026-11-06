@@ -16,6 +16,39 @@ So the look is two things at once: **the dress** (E's sidebar, cards, pills, typ
 every page** (the four questions). Neither is done without the other. The canvas: `claude.ai/artifact/CQuPcoUXMVyqbCf98seUnM`,
 page *E · Dashboard* (E-Factory, E-Phone, E-Problem, E-Projects).
 
+## 0. The journey is the product — Rowland, 6 November
+
+> *"Don't let the designer turn Faultline into a beautiful reporting application. Its real value is helping people
+> move from identifying a factory problem to delivering and proving an improvement. The interface should make that
+> journey feel effortless."*
+>
+> *"The journey is the product. Faultline takes a person from seeing a problem on a production line, through
+> identifying and delivering the right countermeasure, to proving that the improvement has worked. Every screen,
+> card, row, action and tool exists to move that journey forward. No dead ends. No meaningless metrics. No
+> improvements claimed without evidence."*
+>
+> *"It should aim for the usability of great modern SaaS, the analytical depth of specialist Lean Six Sigma
+> software, and the presentation quality of a premium business intelligence platform. The journey: simple, intuitive
+> and action-oriented. The tools: technically capable, visually rich and professionally designed. The reports:
+> exceptional presentation quality, suitable for management reviews and boardroom discussions."*
+
+So the four questions below are not four reports side by side; they are one path, and every slice of the look is
+held to it:
+
+- **Every row is a door to the next step**, never a line item. A problem's row opens the problem with its cost and
+  offers the countermeasure; an action's row opens where it is done; a proved fix shows the number that proved it.
+  Nothing stops at "here is a figure".
+- **The middle question carries the weight.** *What needs doing* — the countermeasure, who, by when — is where the
+  work happens, and gets the most room and the clearest who-and-when on every scope.
+- **"Did it work" closes the loop visibly.** A countermeasure with no proof yet says so and offers the proof (count
+  the next shift, time it again); an improvement is never claimed without its before → after on the same number.
+- **Nothing to admire.** No decorative chart, no figure without a next step; a chart earns its place only where it
+  tells somebody what to do next. A metric that moves no step is taken off.
+- **A line and a project keep the same path**, so the journey feels the same wherever it starts; a tool opens from
+  the step that needs it, not only from the library.
+- **Three bars, one each**: the journey as simple as the best SaaS; the tools as deep as specialist Lean Six Sigma
+  software (`knowledge/STANDARD.md` already holds them to it); the papers fit for a management review or a board.
+
 ## 1. The four questions — the order of every page
 
 Every page a person lands on answers, in this order, before anything else:

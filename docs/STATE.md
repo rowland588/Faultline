@@ -26,6 +26,10 @@ a session that ships something updates this page in the same commit.** The rules
   — talk a *flow diagram* (process flow chart), a *spaghetti diagram* (up to four walkers), a *value stream* (the
   Value stream tool's own map) and Make it / Update it / Undo makes the tool's own record. Gateway **v18**, rules
   fingerprint `08f542070ed1de5c` (must equal the repo's; see §4).
+- **The look, L1 — the Factory on the four questions** (`docs/LOOK.md` §0–1, 6 November): the greeting hero, the four
+  cards each a door, the answers under them (problems by cost, actions with who and by when, the lines, the fixes
+  proved by their before → after); `lib/factoryQuestions` the one reader. The rule over every later slice is §0,
+  *the journey is the product*.
 - **The look, L0 — the shell** (`docs/LOOK.md`, 6 November): look E's frame — the navy rail with the mark, the tagline,
   an icon a menu line, the page you are on in blue, the *Factory online* chip (`ui/SyncChip`); the navy phone bar with
   the raised ＋; Inter; blue as the press colour; the cool canvas, white cards, the new neutrals as tokens. Every page

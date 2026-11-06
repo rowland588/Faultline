@@ -174,7 +174,9 @@ const truth = await page.evaluate(async ws => {
 }, LINE7);
 ok(!!truth.loss && tiles['Loss count']?.says === truth.loss && tiles['Loss count']?.n === `${truth.losses} on this line`, `10b Loss count says its latest shift: "${tiles['Loss count']?.says}" · ${tiles['Loss count']?.n}`);
 ok(!!truth.cap && tiles['Line capacity']?.says === truth.cap, `10c Line capacity says what limits it: "${tiles['Line capacity']?.says}"`);
-ok(/^None yet — /.test(tiles['Capability']?.n ?? '') && !tiles['Capability']?.says, `10d a tool with none says so: "${tiles['Capability']?.n}"`);
+/* 5 November (tools-panes): a tool with none sits under "Not used on this line yet" with what it is for, no finding */
+const unusedCap = await page.locator('.pl-tools-more .pl-tool', { hasText: /^Capability/ }).count();
+ok(unusedCap === 1 && !!tiles['Capability']?.n && !tiles['Capability']?.says, `10d a tool with none sits under Not used yet with what it is for, no finding: "${tiles['Capability']?.n}"`);
 const jobsOn = await page.locator('.pl-job').evaluateAll(els => els.map(e => ({ name: e.querySelector('b')?.textContent, w: e.querySelector('.pl-ot')?.textContent, r: e.querySelector('.pl-job-ot .sub')?.textContent?.trim() })));
 ok(jobsOn.length > 0 && jobsOn.every(j => verdicts[j.name ?? ''] && verdicts[j.name ?? ''].w === j.w && verdicts[j.name ?? ''].r === j.r),
   `10e each job its verdict, the control room's own: ${jobsOn.map(j => `${j.name}: ${j.w} — ${j.r}`).join(' | ')}`);

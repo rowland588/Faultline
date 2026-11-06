@@ -1316,7 +1316,12 @@ going wrong, what needs doing, who's responsible and whether the improvement has
 jsut factory page its evey page"*. So **every page answers the four questions in that order**, and wears look E: the
 navy frame (the rail and the phone's bar — the one dark fill with light words), what you press blue (`--brand`
 `#2563eb`), the under-way violet kept and said with its word, Inter, white cards on a cool canvas, the mark unchanged.
-Built in slices L0–L7 (the doc's table), each live on its own; L0, the shell, shipped 6 November. The paragraphs
+**And the rule over the look (the same evening): *"The journey is the product … Every screen, card, row,
+action and tool exists to move that journey forward. No dead ends. No meaningless metrics. No improvements claimed
+without evidence"* — `docs/LOOK.md` §0: every row a door to the next step, *what needs doing* carrying the weight,
+*did it work* closing the loop with its before → after, nothing drawn to admire; the journey as simple as the best
+SaaS, the tools as deep as specialist Lean Six Sigma software, the papers fit for a board.** Built in slices L0–L7
+(the doc's table), each live on its own; L0, the shell, and L1, the Factory on the four questions, shipped 6 November. The paragraphs
 below on the 17 October look are its history: the five state colours, light paper and the rules of visual management
 stand; the spruce press colour, the graphite frame and the warm paper are superseded.
 

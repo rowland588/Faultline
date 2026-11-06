@@ -117,8 +117,10 @@ await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 const cards = await page.locator('.fac-card').evaluateAll(els => els.map(el => `${el.querySelector('.fac-card-name')?.textContent}|${el.querySelector('.fac-card-type')?.textContent}`));
 ok(cards.join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `6 the control room's Your factory, in floor order: ${cards.join(' / ')}`);
 ok(/3 lines · 2 Packing · 1 Filling/.test(await txt()), '6b the control room says the factory');
+/* 6 November (docs/LOOK.md §1): the hero and the four questions first, the Lines the first panel of the answers */
 const firstSec = await page.locator('.nv-main section').first().getAttribute('aria-label');
-ok(firstSec === 'Lines', `6c the factory's Lines are the first thing on the control room (${firstSec})`);
+const linesSec = await page.locator('.nv-main .fq-lines section').first().getAttribute('aria-label');
+ok(firstSec === 'The factory today' && linesSec === 'Lines', `6c the factory today first, then the four questions, the Lines the first answer panel (${firstSec} · ${linesSec})`);
 /* the rail is the factory's own pages since B2 (docs/STRUCTURE.md §5.2), its lines one tap away in the context bar's switcher — in floor order */
 await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(600);
 const swLines = await page.locator('.nv-sw .nv-sw-g').nth(1).locator('.nv-sw-i b').allInnerTexts();

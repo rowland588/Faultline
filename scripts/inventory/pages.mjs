@@ -29,7 +29,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Line Talk — start one, or carry on the latest', sel: '.home-talk .fd-talk-start', text: /Start a Line Talk/ },
     { what: 'carry on the latest Line Talk', sel: '.home-talk .fd-talk-on', text: /^Carry on: / },
     /* the page header since B3: the band's two report buttons are its Report ▾ */
-    { what: 'the page header — Report ▾ with the control room report and every report', sel: '.home > .part-head .part-menu-b', text: /^Report/ },
+    { what: 'the page header — Report ▾ with the control room report and every report', sel: '.home .fq-hero > .part-head .part-menu-b', text: /^Report/ },
     /* one name, Factory (27 October — Rowland: "Where is factory? ... I didn't pick a line"): the lines headed Lines, each card saying Open */
     { what: 'Lines — every line', sel: '.fac-home .home-sec-title', text: /^Lines$/ },
     { what: 'every line, each card saying Open <line> ›', sel: '.fac-floor .fac-card-go', text: /^Open .* ›$/ },
