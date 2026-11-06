@@ -8993,10 +8993,14 @@ button.gt-mtrack { appearance: none; display: block; align-self: stretch; height
 /* On a phone the header is tighter, so the tabs and the work under it start
    where the thumb is, not a screen down. */
 @media (max-width: 719px) {
-  .pace-head { padding: 14px 0 12px; margin-bottom: 14px; gap: 10px; }
+  /* The header is a column already (above). Keep the title and its doors
+     inside the frame: a long name wraps, the doors wrap under it. */
+  .pace-head { padding: 14px 0 12px; margin-bottom: 14px; gap: 10px; min-width: 0; max-width: 100%; }
+  .pace-head-main { max-width: 100%; }
+  .pace-title, .pace-lede, .pace-head .pl-says, .pace-head .pl-eyebrow { overflow-wrap: anywhere; }
   /* The job page's doors — Meeting notes, Reports — a row of small buttons,
      not two full-height ones under the name. */
-  .pace-head-actions { flex-wrap: wrap; gap: 6px; }
+  .pace-head-actions { flex-wrap: wrap; gap: 6px; max-width: 100%; min-width: 0; }
   .pace-head-actions .btn { min-height: 38px; padding: 0 14px; font-size: var(--t-detail); }
 }
 
@@ -11117,7 +11121,26 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .nv-main .qsl-reg .qsl-row:hover { border-color: var(--line-2); }
 .nv-main .qsl-reg .qsl-row.is-open, .nv-main .qsl-reg .qsl-row.is-picked { background: var(--surface-2); }
 .nv-main .qsl-reg .qsl-open { padding-top: 8px; padding-bottom: 8px; }
-@media (max-width: 719px) { .nv-main .qsl-reg .qsl-g { padding: 10px 10px 12px; } .nv-main .qsl-reg .qsl-row { padding-right: 8px; } }
+@media (max-width: 719px) {
+  /* Problems — the groups, the filters and each row stack inside the frame.
+     The state and the day drop under the words; a select is a full row. */
+  .qsl, .qsl-g, .qsl-rows, .qsl-row, .qsl-open, .qsl-body, .qsl-head, .qsl-gh, .qsl-tools, .qsl-bar, .qsl-x { min-width: 0; max-width: 100%; }
+  .nv-main .qsl-reg .qsl-g { padding: 10px 10px 12px; max-width: 100%; min-width: 0; }
+  .nv-main .qsl-reg .qsl-row { padding-right: 8px; min-width: 0; max-width: 100%; }
+  .qsl-open { flex-wrap: wrap; align-items: flex-start; }
+  .qsl-body { flex: 1 1 10rem; }
+  .qsl-what, .qsl-meta, .qsl-says, .qsl-fixline, .qsl-path { overflow-wrap: anywhere; }
+  /* Two classes: the single-class rules for the day, the selects and the
+     facts grid are written further down and would otherwise win. */
+  .qsl .qsl-dueword { white-space: normal; }
+  .qsl .qsl-state { max-width: 100%; }
+  .qsl-gh { align-items: flex-start; }
+  .qsl .qsl-gh-pdf { margin-left: 0; }
+  .qsl-tools { align-items: stretch; }
+  .qsl .qsl-sel, .qsl .qsl-search, .qsl .qsl-bar .qsl-sel { flex: 1 1 100%; width: 100%; max-width: 100%; }
+  .qsl-x-facts, .qsl-x-acts, .qsl-x-pics { min-width: 0; max-width: 100%; }
+  .qsl .qsl-x-facts { grid-template-columns: minmax(0, 1fr); }
+}
 .qs-mach-other { margin-top: 6px; max-width: 320px; }
 .chip.qs-prio.is-critical.on { background: var(--st-r); border-color: var(--st-r); color: var(--on-dark); }
 .chip.qs-prio.is-high.on { background: color-mix(in srgb, var(--st-a) 18%, var(--surface)); border-color: var(--st-a); color: var(--st-a); }
@@ -11139,9 +11162,11 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .preg-right { display: grid; justify-items: end; gap: 2px; flex: none; margin-left: auto; text-align: right; white-space: nowrap; }
 .preg-right .qsl-state { max-width: none; }
 @media (max-width: 719px) {
+  .preg-row { min-width: 0; max-width: 100%; }
   .preg-row .qsl-open { flex-wrap: wrap; row-gap: 4px; }
   .preg-right { flex: 1 1 100%; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 4px 10px; margin-left: 0; text-align: left; white-space: normal; }
-  .preg-right .qsl-state { text-align: left; }
+  .preg-right .qsl-state { text-align: left; max-width: 100%; }
+  .preg-row .qsl-dueword { white-space: normal; }
 }
 .pe textarea, .pe input { font-family: inherit; }
 .preg-last { color: var(--ink-2); }
@@ -11332,9 +11357,17 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
    stacked buttons (FLOW-AUDIT.md, 11): the name, then its two doors in a
    row under it. And under the band it follows, the head sits closer. */
 @media (max-width: 719px) {
-  .fac-home .home-sec-head { flex-wrap: wrap; gap: 6px 12px; }
-  .fac-home .pl-sec-acts { flex-wrap: nowrap; }
+  /* Factory home — the lines panel and the projects panel stay inside the
+     frame. The doors under a heading wrap; they do not run off the side. */
+  .fac-home.ep-panel, .home-projects { max-width: 100%; min-width: 0; }
+  .fac-home .home-sec-head, .home-projects .home-sec-head { flex-wrap: wrap; align-items: flex-start; gap: 6px 12px; }
+  .fac-home .pl-sec-acts { flex-wrap: wrap; max-width: 100%; }
   .fac-home .pl-sec-acts .btn { min-height: 40px; padding: 6px 12px; }
+  .fac-quick { max-width: 100%; min-width: 0; }
+  .fac-card, .fac-floor > li { min-width: 0; max-width: 100%; }
+  .fac-card-name, .fac-card-type, .fac-card-machines, .fac-card-meta, .fac-card-projects, .fac-card-worst, .fac-card-looked, .fac-card-go, .fac-card-state, .fac-says {
+    overflow-wrap: anywhere;
+  }
   .jb + .fac-home, .jb .fac-home { margin-top: 4px; }
   .home .pace-head { gap: 8px; }
 }
@@ -11347,7 +11380,11 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .pl-facts dt { font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); }
 .pl-facts dd { margin: 0; }
 .pl-facts dd.is-n { color: var(--muted); }
-@media (max-width: 719px) { .pl-facts { grid-template-columns: 1fr; } .pl-facts dd { margin-bottom: 6px; } }
+@media (max-width: 719px) {
+  .pl-facts { grid-template-columns: minmax(0, 1fr); max-width: 100%; min-width: 0; }
+  .pl-facts dt, .pl-facts dd { min-width: 0; overflow-wrap: anywhere; }
+  .pl-facts dd { margin-bottom: 6px; }
+}
 /* merge two lines (BLUEPRINT §6.7) */
 .fac-merge { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .fac-merge h2 { margin: 0 0 2px; font-size: var(--t-h3, 18px); }
@@ -11420,16 +11457,38 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .fac-on .is-n { color: var(--muted); }
 .fac-acts { display: inline-flex; gap: 6px; margin-left: auto; }
 @media (max-width: 719px) {
-  .fac-fields { flex: 1 1 100%; order: 3; }
-  .fac-on { flex: 1 1 auto; order: 4; }
-  .fac-acts { order: 5; }
-  .fac-floor { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Set up — one line is a stack: name, machines, what is on it, the doors.
+     The board's cards are one column, so a long machine list stays on the card. */
+  .fac-plan.ep-panel, .fac-add, .fac-merge, .fac-empty, .fac-lines, .fac-line { max-width: 100%; min-width: 0; }
+  .fac-line { align-items: stretch; }
+  .fac-fields { flex: 1 1 100%; order: 3; min-width: 0; }
+  .fac-box { flex: 1 1 100%; max-width: 100%; }
+  .fac-on { flex: 1 1 100%; order: 4; max-width: 100%; }
+  .fac-on, .fac-job, .fac-machines-flow, .fac-machines-empty { overflow-wrap: anywhere; min-width: 0; }
+  .fac-acts { order: 5; flex-wrap: wrap; margin-left: 0; max-width: 100%; }
+  /* The machines row's indent is set again further down; the line scopes it. */
+  .fac-line > .fac-machines, .fac-line > .fac-flow { order: 6; flex: 1 1 100%; padding-left: 0; max-width: 100%; min-width: 0; }
+  .fac-line .fac-machines-go { margin-left: 0; }
+  .fac-add-row { max-width: 100%; }
+  .fac-add-row .text-input, .fac-add-row .btn { flex: 1 1 100%; min-width: 0; max-width: 100%; }
+  .fac-floor { grid-template-columns: minmax(0, 1fr); }
   .fac-move { flex-direction: row; gap: 6px; }
   .fac-mv { width: 40px; height: 34px; font-size: var(--t-label); }
 }
 @media (max-width: 719px) {
-  .pl-row { flex-wrap: wrap; }
+  /* A line's Overview — each panel is one column. A tool card, a problem
+     row and the see-it doors stay inside the panel. */
+  .pl-sec, .pl-looked, .pl-see, .pl-spread, .pl-edit, .pl-rows, .pl-new { max-width: 100%; min-width: 0; }
+  .pl-sec-h { align-items: flex-start; max-width: 100%; }
+  .pl-sec-h h2, .pl-sec-aside, .pl-says { overflow-wrap: anywhere; min-width: 0; }
+  .pl-sec-acts { flex-wrap: wrap; max-width: 100%; }
+  .pl-row { flex-wrap: wrap; align-items: flex-start; min-width: 0; max-width: 100%; }
+  .pl-row .qsl-state, .pl-row .qsl-dueword { white-space: normal; max-width: 100%; }
   .pl-row .preg-right { flex: 1 1 100%; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 4px 10px; margin-left: 0; text-align: left; white-space: normal; }
+  .pl .pl-tools, .pl .pl-tools-more, .pl .pl-jobs, .pl .pl-see-doors { grid-template-columns: minmax(0, 1fr); }
+  .pl .pl-tool, .pl .pl-see-door, .pl .pl-job { grid-template-columns: minmax(0, 1fr) auto; min-width: 0; max-width: 100%; }
+  .pl-tool .sub, .pl-tool b, .pl-tool-says, .pl-see-door .sub, .pl-see-door b, .pl-job .sub, .pl-job b { overflow-wrap: anywhere; min-width: 0; }
+  .pl .pl-edit-f, .pl .pl-new .text-input { flex: 1 1 100%; min-width: 0; max-width: 100%; }
 }
 @media (max-width: 719px) { .pj-step { grid-template-columns: 1fr auto; } .pj-step .pj-did, .pj-step .pj-res { grid-column: 1 / -1; } .pj-add .btn { grid-column: 1 / -1; } }
 .qsl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 6px; }
