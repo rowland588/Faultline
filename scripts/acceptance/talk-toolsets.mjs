@@ -125,7 +125,7 @@ ok(/^the Line Talk of /.test(made.agreed.calc.src?.s01_what ?? '') && made.agree
 ok((await talkOf(talkId)).facts.made?.id === made.id, '4 the talk remembers the chart it made');
 ok(await waitFor(async () => await diagram().locator('[data-update]').count() === 1 && await diagram().locator('[data-make]').count() === 0), '4 now Update it, and Open it — never a second Make it');
 await diagram().locator('[data-open-made]').click(); await settle(1500);
-ok(/#\/calc\/process-flow/.test(page.url()) || /calc/.test(page.url()), '4 Open it lands on the chart', page.url());
+ok(new RegExp(`#/calc/process-flow/${made.id}`).test(page.url()), '4 Open it lands on the chart', page.url());
 ok(await page.locator('[data-from-talk]').count() === 1, '4 the chart says it is from a Line Talk');
 ok((await page.locator('.ie-calc').innerText()).replace(/\s+/g, ' ').includes(SENTENCE), '4 and says the typed tray’s sentence on its own page');
 

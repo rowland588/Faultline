@@ -543,7 +543,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
       )}
       {set === 'flow' && (!phone || view === 'diagram') && (
         <TalkDiagram capture={capture ?? { set: 'flow', title: '', steps: [] }} canEdit={live} madeId={madeAlive ? madeId : undefined} busy={making}
-          onEdit={c => void editCapture(c)} onMake={() => void makeIt()} onUpdate={() => void updateIt()} onOpen={() => { if (madeId) nav(studyHref({ id: madeId, tool: 'calc', ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) })); }} />
+          onEdit={c => void editCapture(c)} onMake={() => void makeIt()} onUpdate={() => void updateIt()} onOpen={() => { if (madeId) nav(studyHref({ id: madeId, tool: 'calc', agreed: { calc: { key: processFlow.key, inputs: {} } }, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) })); }} />
       )}
 
       <ol className="tk-turns" aria-label="The talk" hidden={set === 'flow' && phone && view === 'diagram'}>
