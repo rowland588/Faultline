@@ -1,0 +1,52 @@
+# HOUSEKEEPING — delete the branches that are done (6 November 2026, Rowland: "delete old branches too").
+# Run by hand from the Actions tab (or the API). Keeps main and the branch named in `keep`. Every other branch
+# whose commits are all in main is deleted. A branch with commits NOT in main is kept unless `include_unmerged`
+# is true — and then it is tagged archive/<name> first, so nothing is ever unreachable.
+name: Prune branches
+on:
+  workflow_dispatch:
+    inputs:
+      include_unmerged:
+        description: Also delete branches with commits not in main (each is tagged archive/<name> first)
+        type: boolean
+        default: false
+      keep:
+        description: Branches to keep besides main (space-separated)
+        default: claude/faultline-connection-1vx7kt
+      dry_run:
+        description: Only list what would go
+        type: boolean
+        default: false
+permissions:
+  contents: write
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Prune
+        env:
+          KEEP: ${{ inputs.keep }}
+          UNMERGED: ${{ inputs.include_unmerged }}
+          DRY: ${{ inputs.dry_run }}
+        run: |
+          set -e
+          git config user.name "faultline-housekeeping"; git config user.email "housekeeping@users.noreply.github.com"
+          git fetch --prune origin
+          gone=0; kept=0
+          for b in $(git branch -r | sed 's#^ *origin/##' | grep -v '^HEAD'); do
+            [ "$b" = main ] && continue
+            case " $KEEP " in *" $b "*) echo "keep   $b"; kept=$((kept+1)); continue;; esac
+            if git merge-base --is-ancestor "origin/$b" origin/main; then
+              echo "delete $b (all in main)"
+            elif [ "$UNMERGED" = true ]; then
+              echo "delete $b (not in main — tagged archive/$(basename $b))"
+              [ "$DRY" = true ] || { git tag -f "archive/$(basename $b)" "origin/$b"; git push -q origin "refs/tags/archive/$(basename $b)"; }
+            else
+              echo "keep   $b (has commits not in main)"; kept=$((kept+1)); continue
+            fi
+            [ "$DRY" = true ] || git push -q origin --delete "$b"
+            gone=$((gone+1))
+          done
+          echo "== $gone deleted, $kept kept"
