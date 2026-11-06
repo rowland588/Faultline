@@ -127,7 +127,8 @@ ok((raw.match(/\/Subtype \/Image/g) ?? []).length >= 2, '6 the photo and the cli
 /* 7 — the link from paper opens the clip */
 await page.goto(`${BASE}/#/calc/workstation-stops/${id}?media=clip-1`); await settle(1800);
 ok(await page.locator('.ev-viewer video').count() === 1, '7 the paper’s link opens the clip in the viewer at once');
-await page.keyboard.press('Escape'); await settle(300);
+await page.keyboard.press('Escape'); await settle(500);
+ok(await page.locator('.ev-viewer').count() === 0, '7 Escape leaves nothing open over the page');
 
 /* 8 — taken off, with Undo */
 await page.goto(`${BASE}/#/calc/workstation-stops/${id}`); await settle(1500);

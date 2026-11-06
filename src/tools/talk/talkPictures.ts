@@ -11,7 +11,12 @@ export interface Picture { dataUrl: string; w: number; h: number }
  *  nothing when it is not on this device or cannot be read. */
 export async function shrinkPicture(blobKey: string, edge: number, quality: number): Promise<Picture | undefined> {
   const blob = await getBlob(blobKey);
-  if (!blob || !blob.type.startsWith('image/')) return undefined;
+  return blob ? shrinkBlob(blob, edge, quality) : undefined;
+}
+
+/** The same for a picture already in hand (a clip's first frame made on the spot, lib/videoPoster). */
+export async function shrinkBlob(blob: Blob, edge: number, quality: number): Promise<Picture | undefined> {
+  if (!blob.type.startsWith('image/')) return undefined;
   const url = URL.createObjectURL(blob);
   try {
     const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('decode')); i.src = url; });

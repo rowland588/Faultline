@@ -8,7 +8,9 @@ import type { ToolStudy } from '../study';
 import { attachName, attachmentsOf, hostOf, paperUrl, type Attachment } from '../attachments';
 import { studyHref } from '../studyLinks';
 import { studyCalc } from '../../tools/calc/calc';
-import { shrinkPicture, type Picture } from '../../tools/talk/talkPictures';
+import { getBlob } from '../../db';
+import { posterOf } from '../videoPoster';
+import { shrinkBlob, shrinkPicture, type Picture } from '../../tools/talk/talkPictures';
 import { INK2, MUTED, LINE, BRAND } from '../reportKit';
 import { SIZE, box, font, gap, text, wrap } from './blocks';
 import { leanHead } from './lean';
@@ -23,8 +25,13 @@ export async function preloadAttachPictures(studies: readonly Pick<ToolStudy, 'f
     for (const a of attachmentsOf(s)) {
       if (pics.has(a.id) || a.kind === 'link') continue;
       const key = a.kind === 'photo' ? a.blobKey : a.thumbKey;
-      if (!key) continue;
-      const p = await shrinkPicture(key, a.kind === 'photo' ? 900 : 480, 0.8).catch(() => undefined);
+      let p = key ? await shrinkPicture(key, a.kind === 'photo' ? 900 : 480, 0.8).catch(() => undefined) : undefined;
+      /* a clip saved before posters were made: its first frame, made now from the file on this device */
+      if (!p && a.kind === 'video' && a.blobKey) {
+        const file = await getBlob(a.blobKey).catch(() => undefined);
+        const frame = file ? await posterOf(file, 480).catch(() => null) : null;
+        p = frame ? await shrinkBlob(frame, 480, 0.8) : undefined;
+      }
       if (p) pics.set(a.id, p);
     }
   }

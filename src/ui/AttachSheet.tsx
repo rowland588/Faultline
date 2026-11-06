@@ -87,7 +87,7 @@ export function AttachSheet({ s, target, name, canEdit, by, open, onClose, openF
   const viewedMedia = viewed ? asMedia(viewed) : undefined;
   return (
     <>
-      <Sheet open={open} onClose={onClose} title={`${name} — pictures, videos and links`}>
+      <Sheet open={open} onClose={() => { setViewing(undefined); onClose(); }} title={`${name} — pictures, videos and links`}>
         <div className="attach-sheet" data-attach-sheet={target ?? ''}>
           {list.length === 0 && <p className="sub">Nothing here yet. A picture of the stop, a clip of it happening, or a link to a video — each prints with this part on the report.</p>}
           <ul className="attach-list">
@@ -132,7 +132,7 @@ export function AttachSheet({ s, target, name, canEdit, by, open, onClose, openF
           )}
         </div>
       </Sheet>
-      {viewedMedia && viewed && <EvidenceViewer media={viewedMedia} onClose={() => setViewing(undefined)} {...(canEdit ? { onRemove: () => { setViewing(undefined); remove(viewed); } } : {})} />}
+      {open && viewedMedia && viewed && <EvidenceViewer media={viewedMedia} onClose={() => setViewing(undefined)} {...(canEdit ? { onRemove: () => { setViewing(undefined); remove(viewed); } } : {})} />}
     </>
   );
 }
