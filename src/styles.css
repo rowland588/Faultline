@@ -16610,3 +16610,34 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .ws-measure > .ie-body:not(.ie-entry-first) { order: 4; margin-bottom: 12px; }
   .ws-measure > .ie-says { order: 5; } .ws-measure > .ns-row, .ws-measure > .ie-limits-act { order: 6; }
 }
+
+/* ============================================================ THE DATA TABLE, EVERY TOOL'S (docs/TOOLS-DESIGN.md §2.6, 7 November)
+   One table: a pale header row, hairlines between rows (no grid of boxes), numbers tabular, the first column the row's name. */
+.ie-tbl th, .ie-tbl td { border: 0; border-bottom: 1px solid var(--line-row); padding: 9px 12px; }
+.ie-tbl thead th { background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: var(--t-label); font-weight: 600; color: var(--ink-2); }
+.ie-tbl thead th:first-child { border-top-left-radius: var(--radius-sm); } .ie-tbl thead th:last-child { border-top-right-radius: var(--radius-sm); }
+.ie-tbl tbody th { font-weight: 600; color: var(--ink); }
+.ie-tbl tbody tr:hover th, .ie-tbl tbody tr:hover td { background: var(--surface-2); }
+
+/* ============================================================ T2 — THE CALCULATOR WORKSPACE (docs/TOOLS-DESIGN.md §4, 7 November)
+   Presentation only. The figures a property panel (labels in sentence case, the help quiet and two lines until the box is in use); the
+   answer the canvas: the figures strip, What it says as a panel, the picture lifted, the working as the data table, the money a callout,
+   what it does not say quiet at the foot. */
+.ie-calc .calc-form { border: 0; box-shadow: var(--elev); padding: 16px; gap: 14px; }
+.ie-calc .calc-form::before { content: "The figures"; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.ie-calc .calc-field .field-label { text-transform: none; letter-spacing: 0; font-size: var(--t-detail); font-weight: 600; color: var(--ink); }
+.ie-calc .calc-field .text-input { min-height: 36px; }
+.ie-calc .calc-help, .ie-calc .calc-chosen { font-size: var(--t-label); color: var(--muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.ie-calc .calc-field:focus-within .calc-help, .ie-calc .calc-field:focus-within .calc-chosen, .ie-calc .calc-field:hover .calc-help, .ie-calc .calc-field:hover .calc-chosen { -webkit-line-clamp: unset; display: block; }
+.ie-calc .calc-result .ie-says { margin: 0; padding: 14px 16px 12px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
+.ie-calc .calc-result .ie-says::before { content: "What it says"; display: block; margin-bottom: 6px; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.ie-calc .calc-result .ie-say { font-weight: 600; color: var(--ink); }
+.ie-calc .calc-picbox { border: 0; box-shadow: var(--elev); background: var(--surface); padding: 14px; }
+.ie-calc .calc-working { padding: 12px 14px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
+.ie-calc .calc-working > summary { font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.ie-calc .calc-working-t th, .ie-calc .calc-working-t td { background: transparent; }
+.ie-calc .calc-money-out { border-top: 0; padding: 12px 16px; border-radius: var(--radius); background: color-mix(in srgb, var(--brand) 5%, var(--surface)); box-shadow: inset 3px 0 0 var(--brand); }
+.ie-calc .calc-money-say { font-weight: 600; color: var(--ink); }
+.ie-calc .calc-caveats { padding: 0 4px; }
+.ie-calc .calc-caveats li { color: var(--muted); }
+.ie-calc .calc-body:not(.has-grid) .calc-out { padding: 2px 6px 10px; margin: -2px -6px 0; }
