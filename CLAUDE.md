@@ -1156,6 +1156,13 @@ Rowland's (117 merged `cursor/*` and `claude/*` branches and five unmerged ones 
   same pass (`src/cloud/sync.ts`, the push). Never go back to a plain upsert
   for an edited row. The engine keeps a trace of every decision
   (`syncTrace()`); the harness prints both devices' when a scenario fails.
+- **A dev server kept running across a wide edit embeds no PDF font (7 November).** After forty paper files had their
+  colours mapped under the running server, `loadPdfLib` left the family at Helvetica on that server only — the brand
+  fonts' `?url` imports failed inside the stale module graph, `embedBrandFonts` swallowed it, and `report-stress` read
+  12 papers as "lost" facts (san said "-" and "Lukasz", the paper printed "−" and "Łukasz"). A clean checkout of main on
+  a second server passed; restarting the server made the branch pass too. The rule: after editing many files at once,
+  restart the dev server before the gate, and treat a sudden run of "lost" facts with special letters as the font, not
+  the paper.
 - **A dev server kept running across a `git checkout` serves the old module.**
   The live checkout for paper parity (`fl-live`, `origin/main`) was moved from
   one commit to the next under its running server; Vite missed the change to
