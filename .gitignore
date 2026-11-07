@@ -22,3 +22,6 @@ scripts/_tmp_*
 *-vite.config.ts
 vite.*.config.ts
 !vite.config.ts
+
+# a session's own throwaway helpers (screenshots to look at a page) — never part of the tree
+scripts/_*.mjs
