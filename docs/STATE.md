@@ -12,6 +12,14 @@ a session that ships something updates this page in the same commit.** The rules
   drawn once, the methods as pills, the five stages numbered, the sign-in a plain card beside them (`screens/Landing`,
   `scripts/acceptance/landing.mjs`). **The tools' workspaces, T1–T2 (7 November, `docs/TOOLS-DESIGN.md`)**: the measurement
   tools and the calculators — presentation only, every calculation kept.
+- **Documents as a template library (7 November).** Rowland: *"you see the templates visible like a library ... that's the
+  library that you want to pick ... it could be very, very powerful"*. The Documents hub shows every form as a template card —
+  a small page drawn from its own parts, what it is for, Use this template — with Find a template (`src/tools/doc/DocScreen`
+  DocThumb, `doc.css` dl-*). Presentation only; the ten forms are as they were. **Next, at his word: more forms, in his scope
+  only** — operations and continuous improvement: Lean, Six Sigma, industrial engineering, communication and leadership (*"I'm
+  not a health and safety individual … it's all about operational and continuous improvements"*): no H&S risk assessments or
+  technical/food-safety assessments. Each new form goes through the `faultline-tool` skill (a definition in
+  `src/tools/doc/defs/`, its spec and worked examples, `doc-shape.mjs` walks it with no change).
 - **The Tools page, tools only (7 November).** Rowland: *"you've split down every single functionality within its tool and
   then called each functionality a tool"*. 28 tools (Problems and Actions are the menu's pages; 6M is a tool), each card saying
   what it holds; Line Talk and 6M as doors; *What we have and what we need to build* tool by tool — 119 ways of using them built,

@@ -131,9 +131,11 @@ function DocHub() {
   const paper = useListPaper(shown, lineName ? `Documents — ${lineName}` : inP.project && scope === 'project' ? `Documents — ${inP.project.name}` : 'Documents');
   const by = (key: string) => shown.filter(s => s.agreed?.doc?.def === key);
   const query = onLine ? `?line=${encodeURIComponent(onLine)}` : inP.id ? `?project=${encodeURIComponent(inP.id)}` : '';
+  const [find, setFind] = useState('');
+  const q = find.trim().toLowerCase();
   return (
     <div className="wrap qsl ie-list doc-hub">
-      <PageHeader title="Documents" says={<span className="sub">A page the team agrees — a charter, a SIPOC, what the customer needs, an 8D report. Fill in the boxes, see what is still needed and what it says, have it agreed by name and date, and print it.</span>}
+      <PageHeader title="Documents" says={<span className="sub">A library of templates for running and improving operations — pick one, fill in its boxes, see what is still needed, have it agreed by name and date, and print it.</span>}
         papers={shown.length ? [{ label: 'Documents — every one shown', for: 'each with what it says and the boxes filled in', make: paper }] : []} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
       {onLine && (
@@ -142,32 +144,66 @@ function DocHub() {
           <button type="button" className="chip" onClick={() => nav('/doc')}>All lines</button>
         </div>
       )}
-      {docGroups().map(g => (
-        <Section key={g.group} title={g.group} count={`${g.docs.length} kind${g.docs.length === 1 ? '' : 's'} of document`} label={g.group}>
-          <ul className="calc-cards">
-            {g.docs.map(c => {
-              const mine = by(c.key), latest = mine[0];
-              return (
-                <li key={c.key}>
-                  <button type="button" className="calc-card" data-doc-card={c.key} onClick={() => nav(`/doc/${c.key}${query}`)}>
-                    <b>{c.title}</b>
-                    <span className="sub">{c.says}</span>
-                    <span className={'calc-card-n' + (mine.length ? '' : ' is-none')}>{mine.length ? `${mine.length} saved` : 'none saved yet'}</span>
-                    {latest && <span className="sub calc-card-latest">{latest.name}: {docSays(latest).verdict}</span>}
-                    <span className="pl-tool-go" aria-hidden>›</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </Section>
-      ))}
+      {/* THE LIBRARY (7 November — Rowland: "when you open it, you see the templates visible like a library ... that's the library that
+          you want to pick"): every kind a template — a small page drawn from its own parts, what it is for, how many are saved, and
+          Use this template to start one at once. Presentation only: the definitions and the records are as they were. */}
+      <label className="dl-find">
+        <span className="field-label">Find a template</span>
+        <input className="text-input" type="search" value={find} placeholder="e.g. lesson, 8D, charter" aria-label="Find a template" onChange={e => setFind(e.target.value)} />
+      </label>
+      {docGroups().map(g => {
+        const docs = g.docs.filter(c => !q || `${c.title} ${c.says} ${c.group}`.toLowerCase().includes(q));
+        return docs.length ? (
+          <Section key={g.group} title={g.group} count={`${docs.length} template${docs.length === 1 ? '' : 's'}`} label={g.group}>
+            <ul className="dl-cards">
+              {docs.map(c => {
+                const mine = by(c.key), latest = mine[0];
+                return (
+                  <li key={c.key}>
+                    <div className="calc-card dl-card" data-doc-card={c.key}>
+                      <button type="button" className="dl-open" onClick={() => nav(`/doc/${c.key}${query}`)} aria-label={`${c.title} — the template and the saved ones`}>
+                        <DocThumb def={c} />
+                        <b className="dl-title">{c.title}</b>
+                        <span className="sub dl-says">{c.says}</span>
+                      </button>
+                      <div className="dl-foot">
+                        <span className={'calc-card-n' + (mine.length ? '' : ' is-none')}>{mine.length ? `${mine.length} saved` : 'none saved yet'}</span>
+                        {latest && <span className="sub calc-card-latest">{latest.name}: {docSays(latest).verdict}</span>}
+                        <button type="button" className="btn btn-sm btn-primary dl-use" onClick={() => nav(`/doc/${c.key}${query ? `${query}&add=1` : '?add=1'}`)}>Use this template</button>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </Section>
+        ) : null;
+      })}
+      {q && !docGroups().some(g => g.docs.some(c => `${c.title} ${c.says} ${c.group}`.toLowerCase().includes(q))) && <p className="sub">No template matches “{find}”.</p>}
       <Section title="Saved documents" count={`${shown.length}`} label="Saved documents">
         {list && shown.length === 0
           ? <p className="sub qsl-empty-p">{onLine ? `None on ${lineName} yet.` : inP.id && scope !== 'all' ? `None ${scope === 'project' ? 'on' : 'on the lines of'} ${inP.project?.name ?? 'this project'} yet.` : 'None yet — pick a kind above, name it, and fill in the boxes.'}</p>
           : <ul className="lt-rows">{shown.map(s => <DocListRow key={s.id} s={s} withTitle />)}</ul>}
       </Section>
     </div>
+  );
+}
+
+/** A template drawn as a small page: its title, then its own parts in order — a heading and a bar for each box — so a person sees
+ *  what is inside before picking it. Read from the definition; nothing typed here. */
+function DocThumb({ def }: { def: DocDef }) {
+  const parts = def.sections.slice(0, 5), more = def.sections.length - parts.length;
+  return (
+    <span className="dl-page" aria-hidden>
+      <span className="dl-page-t">{def.title}</span>
+      {parts.map(sec => (
+        <span key={sec.id} className="dl-page-s">
+          <span className="dl-page-h">{sec.title}</span>
+          {Array.from({ length: Math.min(3, Math.max(1, sec.items.length)) }, (_, i) => <span key={i} className={'dl-page-bar' + (i === 2 ? ' is-short' : '')} />)}
+        </span>
+      ))}
+      {more > 0 && <span className="dl-page-more">+ {more} more part{more === 1 ? '' : 's'}</span>}
+    </span>
   );
 }
 
