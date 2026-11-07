@@ -16583,14 +16583,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
    buttons at the top of the page not long card taking up large sections ... hate the tools section on the page"). The doors a row of buttons
    under the header; what was proved and how fresh the looking is side by side; on the Overview the tools not used yet a row of chips (their
    cards stay on the Tools tab). Presentation only. */
-.wrap.pl .pl-sec.pl-doorbar { padding: 0; border: 0; background: none; box-shadow: none; margin: 0 0 12px; }
+.wrap.pl .pl-sec.pl-doorbar { padding: 0; border: 0; background: none; box-shadow: none; margin: 0 0 12px; min-width: 0; max-width: 100%; overflow: hidden; }
 .pl-doorbar-h { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.pl-doorbar .pl-see-doors { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; grid-template-columns: none; }
+.pl-doorbar .pl-see-doors { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; grid-template-columns: none; min-width: 0; max-width: 100%; }
 .pl-doorbar .pl-see-door { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--elev); color: var(--ink); font: inherit; font-size: var(--t-detail); cursor: pointer; width: auto; }
 .pl-doorbar .pl-see-door:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--line)); color: var(--brand); }
 .pl-doorbar .pl-see-door.is-first { background: var(--brand); border-color: var(--brand); color: var(--surface); }
 .pl-doorbar .pl-see-door.is-first:hover { color: var(--surface); background: color-mix(in srgb, var(--brand) 88%, var(--ink)); }
 .pl-doorbar .pl-see-door b { font-weight: 600; }
+.pl-doorbar .pl-see-door, .pl-doorbar .pl-see-doors { position: relative; }
 .pl-doorbar .pl-see-door .sub, .pl-doorbar .pl-see-door .pl-tool-go { display: none; }
 .pl-doorbar .pl-see-lede { margin: 6px 0 0; font-size: var(--t-label); color: var(--muted); }
 .pl-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
@@ -16625,7 +16626,6 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .pl-sec.is-glance .pl-tools.is-used .pl-tool.is-a { box-shadow: inset 3px 0 0 var(--st-a); }
 .pl-sec.is-glance .pl-stops-li { position: relative; display: block; }
 .pl-sec.is-glance .pl-stops-li .pl-time { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); margin: 0; }
-.pl-sec.is-glance .pl-stops-li .pl-tool > .sub { display: none; }
 @media (max-width: 719px) {
   .pl-sec.is-glance .pl-tools.is-used .pl-tool { grid-template-columns: minmax(0, 1fr) 16px; gap: 2px 8px; }
   .pl-sec.is-glance .pl-tools.is-used .pl-tool > b { grid-column: 1; grid-row: 1; }
