@@ -238,15 +238,16 @@ await run('J4 stage gate: a failed re-test to a fix', 390, async (D, J) => {
   J.steps.push('[the fix is on Problems]');
 });
 
+/* (7 November, X1: the rail is narrower, so at 1360 the fish is drawn, not laid out in lanes — a cause is a .fb-mark there, a .fb-row in the lanes) */
 /* J5 — a 6M week (desk): on Line 7 pace, the biggest loss to its problem on the fishbone, a cause, a countermeasure with who and when, seen on Actions. */
 await run('J5 6M: loss to cause to countermeasure', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/project/${D.sd.pacedProjectId}`); await settle(D.page); await orient(D, J, 'Line 7 pace');
   await nav(D, J, 'Fishbone'); await orient(D, J, 'Line 7 pace');
   await press(D, J, 'Breakdown: Find the root cause', D.page.locator('main').getByRole('button', { name: /Find the root cause/ }).first());
-  await press(D, J, 'the suggested cause: Breakdown — Mechanical on the Basketer', D.page.locator('main button.fb-row').filter({ hasText: 'Mechanical on the Basketer' }).first());
+  await press(D, J, 'the suggested cause: Breakdown — Mechanical on the Basketer', D.page.locator('main button.fb-row, main button.fb-mark').filter({ hasText: 'Mechanical on the Basketer' }).first());
   await press(D, J, 'Confirmed', D.page.locator('.sheet button.cs-seg-b').filter({ hasText: 'Confirmed' }).first());
   await press(D, J, 'Add to the fishbone', btn(D, 'Add to the fishbone'));
-  await press(D, J, 'the cause, now on the fishbone', D.page.locator('main button.fb-row').filter({ hasText: 'Mechanical on the Basketer' }).first());
+  await press(D, J, 'the cause, now on the fishbone', D.page.locator('main button.fb-row, main button.fb-mark').filter({ hasText: 'Mechanical on the Basketer' }).first());
   await press(D, J, '+ Add a fix', btn(D, '+ Add a fix'));
   const S = D.page.locator('.sheet').last();
   await type(D, J, 'What has to be done', S.getByLabel(/What has to be done/i), 'Replace the Basketer guide rail bearings');
