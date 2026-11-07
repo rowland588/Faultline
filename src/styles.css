@@ -16620,15 +16620,13 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ie-tbl tbody tr:hover th, .ie-tbl tbody tr:hover td { background: var(--surface-2); }
 
 /* ============================================================ T2 — THE CALCULATOR WORKSPACE (docs/TOOLS-DESIGN.md §4, 7 November)
-   Presentation only. The figures a property panel (labels in sentence case, the help quiet and two lines until the box is in use); the
+   Presentation only. The figures a property panel (labels in sentence case, the help quiet and whole — never growing under the pointer, which moves the boxes below it); the
    answer the canvas: the figures strip, What it says as a panel, the picture lifted, the working as the data table, the money a callout,
    what it does not say quiet at the foot. */
 .ie-calc .calc-form { border: 0; box-shadow: var(--elev); padding: 16px; gap: 14px; }
 .ie-calc .calc-form::before { content: "The figures"; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
 .ie-calc .calc-field .field-label { text-transform: none; letter-spacing: 0; font-size: var(--t-detail); font-weight: 600; color: var(--ink); }
-.ie-calc .calc-field .text-input { min-height: 36px; }
-.ie-calc .calc-help, .ie-calc .calc-chosen { font-size: var(--t-label); color: var(--muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.ie-calc .calc-field:focus-within .calc-help, .ie-calc .calc-field:focus-within .calc-chosen, .ie-calc .calc-field:hover .calc-help, .ie-calc .calc-field:hover .calc-chosen { -webkit-line-clamp: unset; display: block; }
+.ie-calc .calc-help, .ie-calc .calc-chosen { font-size: var(--t-label); color: var(--muted); }
 .ie-calc .calc-result .ie-says { margin: 0; padding: 14px 16px 12px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
 .ie-calc .calc-result .ie-says::before { content: "What it says"; display: block; margin-bottom: 6px; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
 .ie-calc .calc-result .ie-say { font-weight: 600; color: var(--ink); }
