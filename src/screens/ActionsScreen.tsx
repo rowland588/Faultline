@@ -96,7 +96,8 @@ function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name
         eyebrow={<span className="pl-eyebrow">{every ? 'CONTROL ROOM · EVERY PROJECT AND LINE' : 'ACTIONS · WHO IS DOING WHAT'}</span>}
         title="Actions"
         says={<span className="sub">{every ? 'Everything every project owes, and every problem on a line with no project — what, why, where, who and by when. Tap one to change it where it is kept.' : 'Everything the project owes, from wherever it was raised — what, why, where, who and by when. Tap one to change it where it is kept.'}</span>}
-        papers={[{ label: 'The action list', for: 'every open action as seen here — for the meeting', disabled: !!printing, make: () => paper() }]}
+        papers={[{ label: 'The action list', for: 'every open action as seen here — for the meeting', disabled: !!printing, make: () => paper() },
+          { label: 'The action list — Excel', for: 'the same rows as a workbook to sort, filter and add to', make: () => void import('../lib/listXlsx').then(m => m.saveXlsx([m.actionsSheet(read.rows, every)], title, 'actions', read.today)) }]}
       />
       <LeanTiles tiles={actionTiles(read.rows, read.done, read.today)} className="act-tiles" />
       <div className="chip-row qsl-f" role="group" aria-label="Seen by">

@@ -202,6 +202,14 @@ await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: '
   await page.locator('[data-board-col="late"] .act-card').first().click(); await page.waitForTimeout(1200);
   ok((await page.locator('aside.rd').count()) === 1, '8b a card opens its record over the board');
   await page.locator('aside.rd .rd-x').click(); await page.waitForTimeout(800);
+  /* the action list to Excel — the real button, read back */
+  const [dl] = await Promise.all([page.waitForEvent('download'), paper(page, 'The action list — Excel')]);
+  const { unzipSync, strFromU8 } = await import('fflate');
+  const { readFileSync } = await import('node:fs');
+  const xml = strFromU8(unzipSync(readFileSync(await dl.path()))['xl/worksheets/sheet1.xml']);
+  ok(/\.xlsx$/.test(dl.suggestedFilename()) && (xml.match(/<row /g) ?? []).length === truth.open + 1 && xml.includes('Project') && xml.includes('Late'), `8b The action list — Excel: a header and every open action (${(xml.match(/<row /g) ?? []).length - 1}), each with its project`);
+  await page.locator('[data-board-col="late"] .act-card').first().click(); await page.waitForTimeout(1200);
+  await page.locator('aside.rd .rd-x').click(); await page.waitForTimeout(800);
   await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(400);
   ok(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) <= 1, '8b the board on a phone: the columns stacked, nothing off the side');
   await page.setViewportSize({ width: 1360, height: 900 });

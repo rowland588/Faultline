@@ -167,6 +167,18 @@ ok(text.includes(t.norm(lineName)) && /ACTIONS · WHO IS DOING WHAT/.test(text),
 ok(['Wrapper film snaps at the jaw', 'Checkweigher drifts after lunch', 'Case erector jams on new cases', 'Re-train nights on the film splice'].every(w => text.includes(w)) && text.includes('Sam') && text.includes('Priya'), '6 every open action on it, with who');
 ok(/late - was/.test(text) && /LATE 1 past the day agreed/.test(text) && /DONE THIS WEEK 2/.test(text) && !text.includes('Bagger photo-eye dirty'), '6 late said with its day, the late and what was done this week counted (the done kept off the open list)');
 ok(/Waits for: Wrapper film snaps at the jaw/.test(text) && /Waits for: Case erector jams on new cases/.test(text), '6 what each waits for, on its row of the paper');
+/* 6b · the same rows to Excel (7 November, the enterprise basics) — the real button, the workbook unzipped and read back */
+{
+  const [dl] = await Promise.all([page.waitForEvent('download'), paper(page, 'Action tracker — Excel')]);
+  const { unzipSync, strFromU8 } = await import('fflate');
+  const { readFileSync } = await import('node:fs');
+  const files = unzipSync(readFileSync(await dl.path()));
+  const xml = strFromU8(files['xl/worksheets/sheet1.xml']);
+  const rows = (xml.match(/<row /g) ?? []).length;
+  const expected = await page.evaluate(async WS => { const L = await import('/src/line/actions/lineActions.ts'); const db = await import('/src/db.ts'); return L.trackerRows(await db.listAllSnags(), WS, Date.now(), { withDone: true }).length; }, WS);
+  ok(/\.xlsx$/.test(dl.suggestedFilename()) && rows === expected + 1 && ['Action', 'Waits for', 'Wrapper film snaps at the jaw', 'Case erector jams on new cases', 'Priya'].every(w => xml.includes(w)) && /<autoFilter/.test(xml),
+    `6b Action tracker — Excel: ${dl.suggestedFilename()}, a header and ${rows - 1} rows (the tracker's ${expected}, done included), what each waits for, a filter on every column`);
+}
 
 /* ---- 7 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(800);
