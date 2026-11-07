@@ -130,6 +130,28 @@ await page.keyboard.type('pack'); await page.waitForTimeout(300);
 const first = flat(await page.locator('.jt-list [role=option]').first().innerText());
 await page.keyboard.press('Enter'); await page.waitForTimeout(1500);
 ok(/Packing Hall/.test(first) && !(await page.locator('.jt').isVisible()) && page.url() !== `${BASE}/#/room`, `8 two letters and Enter: ${first.slice(0, 40)} opened`);
+/* 8b — search across records (7 November): a problem by its words, opened in the panel over the page; a machine by its name */
+{
+  const pr = await page.evaluate(async () => { const db = await import('/src/db.ts'); const lines = new Set((await db.listWorkspaces()).map(w => w.id)); return (await db.listAllSnags()).find(s => !s.deletedAt && !s.archivedAt && lines.has(s.workspaceId) && s.problem.split(' ').length >= 3); });
+  const word = pr.problem.split(' ').find(w => w.length >= 5) ?? pr.problem.split(' ')[0];
+  const here = page.url();
+  await page.keyboard.press('Control+k'); await page.waitForTimeout(400);
+  await page.keyboard.type(word); await page.waitForTimeout(400);
+  const row = page.locator('.jt-list [role=option]', { has: page.locator('.jt-k', { hasText: /^Problem$/ }) }).filter({ hasText: pr.problem }).first();
+  ok(await row.count() === 1, `8b "${word}" finds the problem "${pr.problem}" among the results, marked Problem`);
+  await row.click(); await page.waitForTimeout(1200);
+  ok(page.url() === here && (await page.locator(`[data-problem-panel="${pr.id}"]`).count()) === 1, '8b chosen, it opens in the panel over the page you were on');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(600);
+  const m = await page.evaluate(async () => { const db = await import('/src/db.ts'); const a = (await db.listAllAssets()).find(x => !x.deletedAt && x.name.length >= 4); return a?.name; });
+  if (m) {
+    await page.keyboard.press('Control+k'); await page.waitForTimeout(400);
+    await page.keyboard.type(m); await page.waitForTimeout(400);
+    const mrow = page.locator('.jt-list [role=option]', { has: page.locator('.jt-k', { hasText: /^Machine$/ }) }).first();
+    const said = (await mrow.count()) ? flat(await mrow.innerText()) : '';
+    if (said) { await mrow.click(); await page.waitForTimeout(1500); }
+    ok(said.includes(m) && /#\/lines\/[^/]+\/machine\//.test(page.url()), `8b a machine by its name ("${m}") opens its page on its line (${page.url().split('#')[1] ?? ''})`);
+  }
+}
 
 /* 9 — the demo stays out of the factory */
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2500);

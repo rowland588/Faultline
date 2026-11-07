@@ -94,6 +94,10 @@ a session that ships something updates this page in the same commit.** The rules
   at the top, machine cards as a simple header, Tools redone), then the record panel, planning (the projects' board), problems
   and projects, the tools, reports, phone review.
 
+- **Search across records (7 November — the enterprise basics).** The top bar's search (⌘K) finds the factory's machines (opening
+  their page on the line) and its problems by their words (opening in the panel over the page), beside the lines, projects,
+  products and tools; a problem only once something is typed and only on a real match of its words (`lib/jumpTo`, `ui/JumpTo`).
+
 - **Lists to Excel (7 November — the enterprise basics).** A line's action tracker and the Actions pages carry *— Excel* in Report ▾
   beside their paper: the same rows as a real workbook (frozen header, a filter on every column, dates as dates), by the app's own
   writer (`lib/xlsxWrite`, `lib/listXlsx`). The whole-app export (`lib/exportAll`) stays as it was.

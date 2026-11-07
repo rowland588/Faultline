@@ -6,7 +6,9 @@
  * letters in order. Pure. */
 import { APP_TOOLS } from '../catalogue/registry';
 
-export interface Place { kind: 'line' | 'job' | 'product' | 'tool' | 'page'; label: string; sub?: string; href: string }
+export interface Place { kind: 'line' | 'job' | 'product' | 'tool' | 'page' | 'machine' | 'problem'; label: string; sub?: string; href: string;
+  /** A problem opens in the panel over the page (snag/ProblemPanel), its id here; href is where it lives when there is no panel. */
+  problemId?: string }
 
 export const TOOL_PLACES: Place[] = [
   { kind: 'page', label: 'Home', sub: 'start a project or use a tool', href: '#/' },
@@ -39,9 +41,13 @@ export function matchScore(q: string, text: string): number {
   return i === a.replace(/ /g, '').length ? 10 : 0;
 }
 
+/** SEARCH ACROSS RECORDS (7 November — the enterprise basics): a problem is found by its words once something is typed, and only
+ *  by a real match of them (a word start or the words inside it), never by letters scattered through a long sentence; a machine
+ *  by its name or its line. The places a person goes to most still rank first on an equal match. */
 export function jumpTo(q: string, places: readonly Place[], max = 12): Place[] {
-  const rank: Record<Place['kind'], number> = { line: 5, job: 4, page: 3, tool: 3, product: 2 };
+  const rank: Record<Place['kind'], number> = { line: 5, job: 4, page: 3, tool: 3, machine: 2.5, product: 2, problem: 1 };
+  const typed = norm(q).length > 0;
   return places.map(p => ({ p, s: Math.max(matchScore(q, p.label), p.sub ? matchScore(q, p.sub) * 0.6 : 0) }))
-    .filter(x => x.s > 0).sort((x, y) => y.s - x.s || rank[y.p.kind] - rank[x.p.kind] || x.p.label.localeCompare(y.p.label))
+    .filter(x => x.s > 0 && (x.p.kind !== 'problem' || (typed && matchScore(q, x.p.label) >= 40))).sort((x, y) => y.s - x.s || rank[y.p.kind] - rank[x.p.kind] || x.p.label.localeCompare(y.p.label))
     .slice(0, max).map(x => x.p);
 }
