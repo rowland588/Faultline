@@ -155,13 +155,15 @@
      three radii, one box. Every word on every screen is one of these. */
   --t-label: 12px;      /* a label, an eyebrow, a count */
   --t-detail: 13.5px;   /* the detail under a name */
-  --t-body: 15px;       /* the body of the work */
+  --t-body: 14px;       /* the body of the work — 14 as Fluent's (7 November, docs/ENTERPRISE-UX.md polish) */
   --t-h: 18px;          /* a heading in the page */
   --t-page: 24px;       /* the page's name, the band's sentence */
   --t-num: 32px;        /* a number read across a room */
   --t-mark: 9px;        /* a mark on a drawing — an axis figure, a tag on a chart — never a word to read (B7) */
-  --radius: 14px;       /* a box — a card (LOOK E) */
-  --radius-sm: 10px;    /* an input, a button or a chip inside a box; pills are 999px */
+  --radius: 8px;        /* a box — a card; Fluent's corner (7 November, docs/ENTERPRISE-UX.md polish — it was 14) */
+  --radius-sm: 6px;     /* an input, a button or a chip inside a box; pills are 999px */
+  --elev: 0 1.6px 3.6px color-mix(in srgb, var(--ink) 12%, transparent), 0 0.3px 0.9px color-mix(in srgb, var(--ink) 10%, transparent); /* Fluent's card elevation */
+  --elev-hover: 0 3.2px 7.2px color-mix(in srgb, var(--ink) 13%, transparent), 0 0.6px 1.8px color-mix(in srgb, var(--ink) 11%, transparent);
   --radius-lg: var(--radius);
   --radius-xs: 4px;     /* a tag, a tick, a tiny mark (B7) */
   --radius-pill: 999px; /* a pill — a chip, a state */
@@ -16482,3 +16484,57 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .nv-bi.is-on .nv-bi-ic { background: var(--accent-soft); }
 .nv-bi.is-plus { color: var(--ink); }
 .nv-bi.is-plus .nv-bi-ic { box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--brand) 70%, transparent), 0 0 0 4px var(--surface); }
+
+/* ============================================================ X1 POLISH — as Fluent finishes things (7 November — Rowland: "close but it still
+   missing the polish that Microsoft system would have .. polish it up"). Corners of 8 and 6; cards lifted by a soft elevation, not outlined;
+   buttons 600 weight on a 6 corner; the greeting on a wash that bleeds across the top of the page, not in a box; the figures quiet with plain
+   icons; Needs you now as preview cards; the Lines as list rows with a leading icon; normal recedes — only the abnormal carries colour. */
+.btn { border-radius: var(--radius-sm); font-weight: 600; padding: 0 16px; }
+.nv-main:has(.fq-hero) { background:
+  radial-gradient(55% 340px at 82% 0, color-mix(in srgb, var(--brand) 13%, transparent), transparent 70%),
+  radial-gradient(50% 300px at 45% 0, var(--accent-soft), transparent 75%), var(--canvas); background-repeat: no-repeat; }
+.home .fq-hero { background: none; border: 0; padding: 28px 0 6px; margin: 0 0 18px; }
+.home .fq-hero .pace-title { font-weight: 600; }
+.home .fq-hero .fac-quick .btn, .home .fq-hero .chip { background: color-mix(in srgb, var(--surface) 80%, transparent); border-color: var(--line); }
+.fq-cards { border: 0; box-shadow: var(--elev); border-radius: var(--radius); }
+.fq-card { padding: 16px 20px; gap: 12px; }
+.fq-ic, .fq-card.is-r .fq-ic, .fq-card.is-a .fq-ic, .fq-card.is-g .fq-ic { width: 20px; height: 20px; background: none; color: var(--muted); margin-top: 1px; }
+.fq-k { font-size: var(--t-label); color: var(--muted); font-weight: 500; }
+.fq-v { font-size: var(--t-page); font-weight: 600; }
+.fq-of { display: inline; margin-left: 4px; font-size: var(--t-detail); }
+.fq-d { font-size: var(--t-label); font-weight: 500; color: var(--muted); }
+.fq-card.is-g .fq-d { color: var(--muted); }
+.fq-rec { border: 0; box-shadow: var(--elev); gap: 10px; padding: 14px 16px; }
+.fq-rec:hover { box-shadow: var(--elev-hover); border: 0; }
+.fq-rec-ic, .fq-rec.is-r .fq-rec-ic, .fq-rec.is-a .fq-rec-ic { width: 26px; height: 26px; background: var(--surface-2); color: var(--ink-2); }
+.fq-rec-kind b, .fq-rec.is-r .fq-rec-kind b, .fq-rec.is-a .fq-rec-kind b { color: var(--ink); }
+.fq-rec.is-r .fq-rec-kind small { color: var(--st-r); font-weight: 600; } .fq-rec.is-a .fq-rec-kind small { color: var(--st-a); font-weight: 600; }
+.fq-rec-what { flex: 1; min-height: 72px; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-2); font-size: var(--t-body); }
+.fq-rec-foot { padding-top: 2px; border-top: 0; }
+.fq-panel, .fq-lines .fac-home.ep-panel { border: 0; box-shadow: var(--elev); }
+.fq-pill { height: 22px; min-width: 0; padding: 0 8px; border-radius: var(--radius-xs); font-size: var(--t-label); }
+.fq-row { min-height: 48px; padding: 8px 0; }
+/* the lines, as list rows */
+.fq-lines .fac-card { padding: 10px 4px 10px 10px; gap: 14px; }
+.fac-card-id { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 10px; row-gap: 0; align-items: center; }
+.fac-card-ic { grid-row: 1 / span 3; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--brand-2); }
+.fq-lines .fac-card-name { font-size: var(--t-body); font-weight: 600; }
+.fq-lines .fac-card-type { color: var(--muted); font-weight: 400; }
+.fq-lines .fac-card-state { font-weight: 400; color: var(--ink-2); }
+.fq-lines .fac-card-state.is-g { color: var(--ink-2); }
+.fq-lines .fac-card-state.is-g::before { background: var(--st-g); }
+.fq-lines .fac-card-state.is-n::before { background: var(--st-n); }
+.fq-lines .fac-card-state.is-r, .fq-lines .fac-card-state.is-a { font-weight: 600; }
+.fq-lines .fac-card-info { color: var(--muted); }
+.fq-lines .fac-card-meta, .fq-lines .fac-card-looked, .fq-lines .fac-card-projects { color: var(--muted); }
+.fq-lines .fac-card.is-r, .fq-lines .fac-card.is-a { border-left-color: transparent; }
+.fq-lines .fac-floor-head { padding-left: 56px; }
+@media (min-width: 720px) { .fq-lines .fac-floor-head { grid-template-columns: minmax(118px, 1.1fr) minmax(96px, 0.55fr) minmax(0, 2fr) minmax(150px, 1.1fr) 16px; } }
+.fq-projects .jb-hero { border: 0; box-shadow: var(--elev); }
+.fq-projects .jb-stat { border-radius: var(--radius-sm); }
+.fq-lines .fac-card-state.is-r { color: var(--st-r); } .fq-lines .fac-card-state.is-a { color: var(--st-a); }
+.fq-projects .jb-hero { padding: 18px 20px 16px; }
+.fq-projects .jb-eyebrow { letter-spacing: 0.04em; font-weight: 600; color: var(--muted); }
+.fq-projects .jb-says { max-width: 70ch; font-family: var(--font); font-size: var(--t-h); font-weight: 600; letter-spacing: -0.01em; animation: none; }
+.fq-projects .jb-stat { background: var(--surface-2); border-color: transparent; animation: none; }
+.fq-projects .jb-stat:hover { background: var(--surface); border-color: var(--line-2); transform: none; }

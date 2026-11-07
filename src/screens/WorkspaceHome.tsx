@@ -308,6 +308,7 @@ export function WorkspaceHome() {
                   <button className={'fac-card is-' + st.tone} data-line={w.name} onClick={() => nav(`/lines/${w.id}`)}>
                     {/* a row of the board (docs/ENTERPRISE-UX.md X1): who it is · where it stands · the worst thing open · the rest */}
                     <span className="fac-card-id">
+                      <span className="fac-card-ic" aria-hidden><Icon name="machine" size={18} /></span>
                       <span className="fac-card-head">
                         <b className="fac-card-name">{w.name}</b>
                       </span>
