@@ -7,6 +7,8 @@
 import { PACE, type PaceKind } from '../../spaghetti/spaghetti';
 import { WALKER_STYLES, WALKERS_MAX, STEPS_MAX, keyOf, sceneOf, walkersFigures, walkersShift, toScale, type Walker } from '../../spaghetti/walkers';
 import { andList, fmt, gbp, pct, plural } from '../format';
+import { BOARDS } from '../../linestandard/standard';
+import { boardWalks, metresPerUnit, namesOf, pathsOf, readBoard, scaleSaid } from '../../spaghetti/board';
 import type { CalcDef, CalcMoney, CalcPicture, CalcResult, Field, Inputs, Problem, Values } from '../types';
 
 const LAYOUT_MAX = 12;
@@ -22,16 +24,19 @@ const walkerShown = (v: Values, k: number): boolean => k === 0 || !!text(v, wid(
 
 const walkerFields = (k: number): Field[] => {
   const w = k + 1;
+  const drawn = (v: Values): boolean => boardWalks(readBoard(v.board));
   const out: Field[] = [{
-    id: wid(k, 'label'), label: w === 1 ? 'Walker 1 — who' : `Walker ${w}`, kind: 'text', optional: true, showIf: v => walkerShown(v, k),
+    id: wid(k, 'label'), label: w === 1 ? 'Walker 1 — who' : `Walker ${w}`, kind: 'text', optional: true, showIf: v => walkerShown(v, k), quietIf: drawn,
     ...(k === 0 ? { help: 'A label — “Operator 1”, “the forklift” — never a name. Each walker is the places they went, in order.' } : {}),
   }];
   for (let i = 0; i < STEPS_MAX; i++) {
     const shown = (v: Values): boolean => walkerShown(v, k) && (i === 0 || !!text(v, sid(k, i - 1, 'name')));
     const named = (v: Values): boolean => shown(v) && !!text(v, sid(k, i, 'name'));
-    out.push({ id: sid(k, i, 'name'), label: i === 0 ? `Walker ${w}: where they start` : `Walker ${w}: place ${i + 1}`, kind: 'text', optional: true, showIf: shown,
+    out.push({ id: sid(k, i, 'name'), label: i === 0 ? `Walker ${w}: where they start` : `Walker ${w}: place ${i + 1}`, kind: 'text', optional: true, showIf: shown, quietIf: drawn,
       ...(k === 0 && i === 0 ? { help: 'The first place — “Packing line”. Then each place in the order walked, back to the line included. Each appears once the one above is named.' } : {}) });
     if (i > 0) out.push({ id: sid(k, i, 'm'), label: `Walker ${w}: metres walked to place ${i + 1}`, unit: 'm', kind: 'number', min: 0, optional: true, showIf: named,
+      /* drawn on the board: the box is named by its move, and is only for a metres measured on the floor */
+      dynamic: v => (drawn(v) ? { label: `${text(v, wid(k, 'label')) || `Walker ${w}`}, move ${i}: ${text(v, sid(k, i - 1, 'name'))} → ${text(v, sid(k, i, 'name'))} — metres measured`, help: i === 1 && k === 0 ? 'Leave blank to use the straight line on the board; type a metres measured with a tape or a wheel and it is used instead.' : undefined } : {}),
       ...(k === 0 && i === 1 ? { help: 'Only if it was paced, measured or said. Leave it blank if not: the move is counted, and the diagram says it is not to scale.' } : {}) });
   }
   return out;
@@ -41,11 +46,12 @@ const layoutFields = (): Field[] => {
   const out: Field[] = [];
   for (let i = 0; i < LAYOUT_MAX; i++) {
     const shown = (v: Values): boolean => i === 0 || !!text(v, lid(i - 1, 'name'));
+    const quietIf = (v: Values): boolean => boardWalks(readBoard(v.board));
     const named = (v: Values): boolean => shown(v) && !!text(v, lid(i, 'name'));
-    out.push({ id: lid(i, 'name'), label: i === 0 ? 'Layout: a place’s name, as written above' : `Layout: place ${i + 1}`, kind: 'text', optional: true, showIf: shown,
+    out.push({ id: lid(i, 'name'), label: i === 0 ? 'Layout: a place’s name, as written above' : `Layout: place ${i + 1}`, kind: 'text', optional: true, showIf: shown, quietIf,
       ...(i === 0 ? { help: 'Optional. To draw to scale, give every place walked its position on the plan — metres east and north of one corner. Names are matched to the places above.' } : {}) });
-    out.push({ id: lid(i, 'x'), label: `Layout ${i + 1}: metres east`, unit: 'm', kind: 'number', min: 0, max: 5000, optional: true, showIf: named });
-    out.push({ id: lid(i, 'y'), label: `Layout ${i + 1}: metres north`, unit: 'm', kind: 'number', min: 0, max: 5000, optional: true, showIf: named });
+    out.push({ id: lid(i, 'x'), label: `Layout ${i + 1}: metres east`, unit: 'm', kind: 'number', min: 0, max: 5000, optional: true, showIf: named, quietIf });
+    out.push({ id: lid(i, 'y'), label: `Layout ${i + 1}: metres north`, unit: 'm', kind: 'number', min: 0, max: 5000, optional: true, showIf: named, quietIf });
   }
   return out;
 };
@@ -81,6 +87,35 @@ export function inputsOfWalkers(walkers: readonly { label: string; steps: readon
   return { ...out, ...more };
 };
 
+/** The picture of a walk drawn on the board: the board itself — its areas and the places walked, each person's path in their own style —
+ *  in metres when the scale is set (to scale, ticks every few metres), else in the board's own units, as drawn and said not to scale. */
+function boardPicture(b: NonNullable<ReturnType<typeof readBoard>>, labels: string[], legend: NonNullable<CalcPicture['legend']>): CalcPicture {
+  const k = metresPerUnit(b), W = BOARDS[b.shape].w, H = BOARDS[b.shape].h, f = k ?? 1;
+  const at = (x: number, y: number): [number, number] => [(x / 100) * W * f, (H - (y / 100) * H) * f];
+  const names = namesOf(b);
+  const paths = pathsOf(b);
+  const seen = new Set<string>(), dots: CalcPicture['dots'] = [];
+  for (const p of paths) for (const pt of p.points) if (!seen.has(pt.id)) { seen.add(pt.id); const [x, y] = at(pt.x, pt.y); dots.push({ x, y, label: pt.name }); }
+  const areas = b.marks.filter(m => m.kind === 'area').map(m => {
+    const [x0, y1] = at(m.x - (m.w ?? 0) / 2, m.y - (m.h ?? 0) / 2), [x1, y0] = at(m.x + (m.w ?? 0) / 2, m.y + (m.h ?? 0) / 2);
+    return { x0, y0, x1, y1, label: names.get(m.id) as string };
+  });
+  const st = tick(Math.max(W, H) * f);
+  const ticks = (span: number): number[] => { const o: number[] = []; for (let t = 0; t <= span + 1e-9; t += st) o.push(t); return o; };
+  const who = andList(labels.map((l, i) => `${l} ${WALKER_STYLES[i].word}`));
+  return {
+    aspect: W / H,
+    title: k ? 'The walk on the board, to scale' : 'The walk on the board, as drawn (not to scale)',
+    caption: k
+      ? `The board as drawn, to one scale across and up (metres from its bottom-left corner): the areas, the places walked, and each move a straight line between the two places it joins. One style a person: ${who}.`
+      : `NOT TO SCALE — the board as drawn, with no scale set; the moves are counted. One style a person: ${who}.`,
+    x: k ? { label: 'Metres across the board', min: 0, max: W * f, ticks: ticks(W * f), fmt: x => fmt(x, 0) } : { label: 'Not to scale', min: 0, max: W, ticks: [], fmt: () => '' },
+    y: k ? { label: 'Metres up', min: 0, max: H * f, ticks: ticks(H * f), fmt: y => fmt(y, 0) } : { label: '', min: 0, max: H, ticks: [], fmt: () => '' },
+    lines: paths.map(p => ({ points: p.points.map(pt => at(pt.x, pt.y)), mark: WALKER_STYLES[p.walker].mark, dash: WALKER_STYLES[p.walker].dash })),
+    verticals: [], horizontals: [], dots, legend, areas, ...(k ? {} : { schematic: true }),
+  };
+}
+
 const metres = (m: number): string => (m >= 1000 ? `${fmt(m / 1000, 1)} km` : `${fmt(m, 0)} m`);
 const mins = (m: number): string => `${fmt(m, 1)} min`;
 const tick = (span: number): number => [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000].find(s => span / s <= 6) ?? 5000;
@@ -93,7 +128,9 @@ const def: CalcDef = {
   says: 'Up to four people’s paths on one diagram: the moves and metres each makes and all together, who walks most, the busiest place and the routes more than one person walks',
   question: 'Where do these people walk, who walks most, and which routes could be shared or removed?',
   group: 'Flow and lead time',
+  drawn: 'spaghetti-board',
   inputs: [
+    { id: 'board', label: 'The board', kind: 'text', optional: true, hidden: true },
     ...Array.from({ length: WALKERS_MAX }, (_, k) => walkerFields(k)).flat(),
     ...layoutFields(),
     { id: 'rounds', label: 'How many times each walks this round in a shift', unit: 'rounds', kind: 'number', min: 0.001, optional: true,
@@ -119,6 +156,8 @@ const def: CalcDef = {
     const f = walkersFigures(ws);
     if (!f.complete && f.m > 0) out.push({ say: `${f.missing} of ${f.legs} moves have no length yet, so the metres below are the ones given and the moves are counted for everyone.` });
     if (!f.complete && num(v, 'rounds') !== undefined) out.push({ say: 'Rounds a shift are given, but not every move has a length — the shift in minutes and money waits for them.' });
+    const bd = readBoard(v.board);
+    if (boardWalks(bd) && bd && !metresPerUnit(bd)) out.push({ say: 'The walk is drawn on the board but no scale is set, so the moves are counted, not measured. Set the scale — two taps and the metres between them — to have every move’s length.' });
     const placed = ws.flatMap(w => w.steps).some(s => s.x !== undefined && s.y !== undefined);
     if (placed && !toScale(ws)) out.push({ say: 'Not every place walked has a position on the layout, so the picture is a schematic, not to scale. Give each place its position to draw it to scale.' });
     if (f.legs > 0 && f.walkers.every(w => w.legList.every(l => l.source === 'straight'))) out.push({ say: 'Every move is a straight line between positions — a floor on the distance walked, since a person goes round a guard.' });
@@ -147,11 +186,17 @@ const def: CalcDef = {
     }
     if (f.routes[0]) more.push(`Ask of each shared route: could what is fetched be staged where it is used, or could one person fetch for both?`);
     if (shift) more.push(`A shift of ${fmt(shift.rounds, shift.rounds % 1 ? 1 : 0)} ${shift.rounds === 1 ? 'round' : 'rounds'} each: ${metres(shift.shiftM)} ${many ? 'together' : ''} — ${mins(shift.minutes)} of walking at ${fmt(shift.ms, 1)} m/s${v.pace === 'timed' ? ' (timed on the floor)' : ` (${PACE[v.pace as 'loaded' | 'unloaded'].label})`}${many ? `: ${shift.perWalker.map(p => `${p.label} ${mins(p.minutes)}`).join(' · ')}` : ''}.`);
-    if (!sc.toScale) more.push('The picture is a schematic — not to scale. Give every place its position on the layout to draw it to scale.');
+    const drawnOn = readBoard(v.board);
+    if (drawnOn && boardWalks(drawnOn)) {
+      const said = scaleSaid(drawnOn);
+      more.push(said ? `Drawn on the board. ${said} A move’s metres are the straight line between the two places unless a measured one was typed.` : 'Drawn on the board, with no scale set: the picture is as drawn, not to scale, and the moves are counted.');
+    } else if (!sc.toScale) more.push('The picture is a schematic — not to scale. Give every place its position on the layout to draw it to scale.');
 
     const legend = f.walkers.map((w, k) => ({ label: w.label, mark: WALKER_STYLES[k].mark, dash: WALKER_STYLES[k].dash }));
     let picture: CalcPicture | undefined;
-    if (sc.lines.length) {
+    const bd = readBoard(v.board);
+    if (bd && boardWalks(bd)) picture = boardPicture(bd, f.walkers.map(w => w.label), legend);
+    else if (sc.lines.length) {
       const wn = sc.window;
       const st = tick(Math.max(wn.x1 - wn.x0, wn.y1 - wn.y0));
       const ticks = (a: number, b: number): number[] => { const o: number[] = []; for (let t = Math.ceil(a / st) * st; t <= b + 1e-9; t += st) o.push(t); return o; };

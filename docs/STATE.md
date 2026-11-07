@@ -54,6 +54,13 @@ a session that ships something updates this page in the same commit.** The rules
 - **Attachments**: pictures, videos and links on a workstation of the stops chart, on its paper, with the app's own
   live camera (`docs/ATTACHMENTS.md`, A0–A1 built; proved on Chromium's fake camera only, not yet on a real phone).
 
+- **The spaghetti diagram drawn on a board (7 November, FC-004 part 3 — Rowland: *"a blank page … put people there and click the
+  person to the objects I have on the map, as I do that lines are created"*).** On the several-walkers diagram: draw areas,
+  place pins, the Line standard's icons and people; a scale by two taps and a length; tap a person, Walk, then the places — each
+  tap a move and a line. It fills the calculator's boxes, so the figures, money and paper are the same; a measured metres typed
+  over a move wins. Doors: the one-person list's *Draw it on a board*, a Line standard's More ▾ › *Walk on this map*. A photo
+  under the board is not built yet. `knowledge/specs/FC-004-spaghetti-board.md`, `scripts/acceptance/spaghetti-board.mjs`.
+
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
 
 **Phone, the other scopes** (E7, 6 November — on `main`, live): at a viewport of 719px and under, Factory home, Set up, a line’s Overview, Projects and Problems stack their panels and stay inside the frame. The one thumb bar is the same. The tools gallery keeps the sideways scroll from the tools slice.
@@ -66,15 +73,7 @@ a session that ships something updates this page in the same commit.** The rules
    tiles as icon cards with their change (L5), the papers' tokens (L6), the phone (L7). Each slice its own gate and
    its own merge; `docs/STATE.md` §1 says which is live (L0–L7 live — the look is built; the rule in §0 applies to every page touched from here).
 
-1. **The spaghetti diagram drawn on a board** (Rowland, 7 November: *"spaghetti diagram wont work through speech …
-   would work better if I was similar to line standard — a blank page, draw the line or area out, put people there and
-   click the person to the objects I have on the map, as I do that lines are created"*). Specified, not built, waiting
-   for go: `knowledge/specs/FC-004-spaghetti-board.md` — the Line standard's board (plain or a photo, its shapes and
-   icons, plus a place pin) on the spaghetti record, a scale set by two taps and a length, a walk tapped person → places
-   with a line a move, the metres straight-line from the scale (typed over wins), the existing FC-242 figures, money and
-   paper unchanged; Walk on this map from a product's Line standard. The talk set stays a second way in; the plan below
-   for its accuracy is parked behind it.
-2. **Spaghetti talk accuracy** (parked behind the board, 7 November) (Rowland, 6 November: *"it's going to struggle with what I'm saying … there needs to be
+1. **Spaghetti talk accuracy** (parked behind the board, now built — 7 November) (Rowland, 6 November: *"it's going to struggle with what I'm saying … there needs to be
    improvements, guaranteed"*). Tested on his own sentence: the order of moves is right, "left"/"right" become place
    names, two pickups merge into one place silently, "drives the truck" is not drawn. The plan proposed, not yet
    given go: places keep their identity (new place / back to a place, merge or split with a tap); left and right

@@ -45,6 +45,15 @@ export function CalcPictureView({ pic }: { pic: CalcPicture }) {
             <text className="calc-pic-lab" x={xs(g.x) + (right(g.x) ? -4 : 4)} y={T + 11} textAnchor={right(g.x) ? 'end' : 'start'}>{g.label}</text>
           </g>
         ))}
+        {(pic.areas ?? []).map((a, i) => {
+          const x = xs(Math.min(a.x0, a.x1)), y = ys(Math.max(a.y0, a.y1));
+          return (
+            <g key={`a${i}`} className="calc-pic-area">
+              <rect x={x} y={y} width={Math.abs(xs(a.x1) - xs(a.x0))} height={Math.abs(ys(a.y1) - ys(a.y0))} rx={3} />
+              <text x={x + 5} y={y + 13}>{a.label}</text>
+            </g>
+          );
+        })}
         {pic.lines.map((l, i) => (
           <polyline key={i} className={'calc-pic-line is-' + (l.mark ?? 'brand') + (l.dash ? ' is-dash' : '')} fill="none" points={l.points.map(([x, y]) => `${xs(x).toFixed(1)},${ys(y).toFixed(1)}`).join(' ')} />
         ))}

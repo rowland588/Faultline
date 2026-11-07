@@ -1,0 +1,48 @@
+/* The spaghetti board (FC-004 part 3) — the Line standard's board, with a scale and walks. Tokens only. */
+.sb { display: grid; gap: 8px; margin: 0 0 16px; min-width: 0; }
+.sb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.sb-head h2 { margin: 0; font-size: var(--t-h); }
+.sb-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.sb-tool { min-height: 44px; padding: 0 14px; border-radius: var(--radius-sm); border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.sb-tool.on { background: var(--accent-soft); border-color: var(--brand); color: var(--brand-2); }
+.sb-walkbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--brand); border-radius: var(--radius-sm); background: var(--accent-soft); }
+.sb-walkbar span { flex: 1 1 auto; }
+.sb-walkbar .btn { min-height: 44px; }
+.sb-hint { margin: 0; }
+.sb-say { margin: 0; color: var(--st-a); font-weight: 600; }
+.sb-scale { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+.sb-scale .btn { min-height: 44px; }
+.sb-board { width: 100%; min-width: 0; touch-action: pan-x pan-y pinch-zoom; }
+.sb-board.is-placing { cursor: crosshair; }
+.sb-svg { display: block; max-width: 100%; height: auto; user-select: none; -webkit-user-select: none; }
+.sb-ground { fill: var(--surface); stroke: var(--line-2); stroke-width: 1; }
+.sb-area rect:first-child { fill: var(--surface-2); stroke: var(--muted); stroke-width: 1.5; cursor: grab; }
+.sb-area-l { fill: var(--ink-2); font-size: var(--t-label); font-weight: 700; pointer-events: none; }
+.sb-size { fill: var(--surface); stroke: var(--brand); stroke-width: 1.5; cursor: nwse-resize; touch-action: none; }
+.sb-mark { cursor: grab; touch-action: none; }
+.sb-hit { fill: transparent; }
+.sb-pin { fill: var(--surface); stroke: var(--ink-2); stroke-width: 2.5; }
+.sb-pin-c { fill: var(--ink-2); }
+.sb-ic-p.is-ink { fill: var(--ink-2); } .sb-ic-p.is-brand { fill: var(--brand); }
+.sb-mark.is-on .sb-hit { fill: var(--accent-soft); stroke: var(--brand); stroke-width: 2; }
+.sb-mark-l { fill: var(--ink); font-size: var(--t-label); font-weight: 700; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; pointer-events: none; }
+.sb-path { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
+.sb-path.is-ink { stroke: var(--ink-2); } .sb-path.is-brand { stroke: var(--brand); } .sb-path.is-dash { stroke-dasharray: 8 6; }
+.sb-step circle { fill: var(--surface); stroke: var(--muted); stroke-width: 1; }
+.sb-step text { fill: var(--ink-2); font-size: var(--t-mark); font-weight: 700; pointer-events: none; }
+.sb-step { pointer-events: none; }
+.sb-tick { fill: var(--brand); }
+.sb-scale-l { stroke: var(--brand); stroke-width: 2; stroke-dasharray: 5 4; }
+.sb-scale-said { margin: 0; }
+.sb-moves { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sb-moves li { display: grid; gap: 2px; font-size: var(--t-small); color: var(--ink-2); }
+.sb-moves b { color: var(--ink); }
+.sb-note { margin: 0; }
+.sb-icons { display: grid; gap: 6px; margin-bottom: 12px; }
+.sb-icons .sub { margin: 0; }
+.sb-icon-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.sb-icon { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); font: inherit; cursor: pointer; }
+.sb-sheet { display: grid; gap: 10px; }
+.sb-sheet .btn { min-height: 44px; }
+.sb-door { width: 100%; margin: 0 0 16px; text-align: left; }
+.sb-from { margin: 0; }

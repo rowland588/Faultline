@@ -15335,6 +15335,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .calc-pic-line { stroke-width: 2.5; stroke: var(--brand); stroke-linejoin: round; }
 .calc-pic-line.is-ink { stroke: var(--ink-2); } .calc-pic-line.is-muted { stroke: var(--muted); } .calc-pic-line.is-dash { stroke-dasharray: 5 4; }
 .calc-pic-dot { fill: var(--ink-2); }
+.calc-pic-area rect { fill: var(--surface-2); stroke: var(--muted); stroke-width: 1; }
+.calc-pic-area text { fill: var(--muted); font-size: var(--t-mark); }
 .calc-pic-tick { font-size: var(--t-mark); fill: var(--muted); }
 .calc-pic-lab { font-size: var(--t-mark); font-weight: 700; fill: var(--ink-2); }
 .calc-pic-val { font-size: var(--t-mark); font-weight: 800; fill: var(--ink); }

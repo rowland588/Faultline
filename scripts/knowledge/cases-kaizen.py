@@ -258,3 +258,21 @@ run_micro("M2", [
   [("inspect","right",0.9)],
   [("avoidable","right",0.8)],
 ], 4000, 14.40, 5)
+
+print("\n== S4 the spaghetti diagram drawn on a board (FC-004 part 3): positions in percent of the board, a scale by two taps and a length")
+import math
+BW, BH = 16, 9  # the wide board's units (tools/linestandard/standard BOARDS.wide)
+def units(p): return (p[0] / 100 * BW, p[1] / 100 * BH)
+def mpu(a, b, m): (ax, ay), (bx, by) = units(a), units(b); return m / math.hypot(bx - ax, by - ay)
+k = mpu((25, 50), (75, 50), 16)
+(px, py), (qx, qy) = units((25, 25)), units((50, 25 + 400 / 9))
+print(f"  (a) taps half the width apart = 16 m -> {k} m a unit, the board {BW*k} m across; a move 4 units each way = {math.hypot(qx-px, qy-py)*k:.4f} m")
+k = mpu((0, 50), (100, 50), 64)
+def en(p): u = units(p); return (u[0] * k, (BH - u[1]) * k)
+P = {"line": en((75, 80)), "film": en((12.5, 80)), "case": en((75, 100 * 3.8 / 36)), "scale": en((89.0625, 80))}
+d = lambda a, b: math.hypot(P[a][0] - P[b][0], P[a][1] - P[b][1])
+walks = [["line","film","line","case","line"], ["line","scale","line","film","line"], ["line","case","line"]]
+each = [sum(d(w[i-1], w[i]) for i in range(1, len(w))) for w in walks]
+print(f"  (b) S3 placed: {k} m a unit; line {P['line']}, film {P['film']}, case {P['case']}, scale {P['scale']}")
+print(f"      each {[round(x, 4) for x in each]} = {sum(each):.4f} m a round (S3: 130 + 98 + 50 = 278)")
+print(f"  (c) Operator 1's first move measured 46 m instead of the straight 40: {sum(each) - 40 + 46:.4f} m")

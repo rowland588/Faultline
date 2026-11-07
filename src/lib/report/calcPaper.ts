@@ -8,7 +8,7 @@
  * (docs/REPORTS.md): every block measures itself with the real font. */
 import type { LeanTile, LeanTone } from '../lean';
 import type { ToolStudy } from '../study';
-import { INK2, MUTED, LINE, BRAND, WARN, san } from '../reportKit';
+import { INK2, MUTED, LINE, BRAND, WARN, SURF2, san } from '../reportKit';
 import { askedFields, beforeRun, inputSaid, studyCalc, tilesSince } from '../../tools/calc/calc';
 import type { CalcChart, CalcHands, CalcPicture } from '../../tools/calc/types';
 import { symbolShape } from '../../tools/flow/symbols';
@@ -39,7 +39,8 @@ export function table(header: string[], body: string[][], shares: number[]): Blo
 
 /** The picture the definition describes, drawn on the page — axes, the curve, guides with their words, dots with theirs. */
 export function pictureBlock(pic: CalcPicture): Block {
-  const H = 190, KEY = pic.legend?.length ? 14 : 0;
+  /* a drawing of a board (areas drawn) is given room to be read — the board is the picture */
+  const H = pic.areas?.length ? 330 : 190, KEY = pic.legend?.length ? 14 : 0;
   return rows({ rows: [{
     h: () => H + 18 + KEY,
     draw: (fr: Frame, y: number) => {
@@ -59,6 +60,12 @@ export function pictureBlock(pic: CalcPicture): Block {
       for (const g of pic.horizontals) { d.line(fr.x + L, ys(g.y), fr.x + L + w, ys(g.y)); font(d, 6.5, 'bold', INK2); t(g.label, fr.x + L + w - 2, ys(g.y) - 2, 'right'); }
       for (const g of pic.verticals) { d.line(xs(g.x), y + T, xs(g.x), y + T + h); font(d, 6.5, 'bold', INK2); t(g.label, xs(g.x) + (right(g.x) ? -3 : 3), y + T + 8, right(g.x) ? 'right' : 'left'); }
       d.setLineDashPattern([], 0);
+      /* the areas as drawn on the board, behind the paths, each with its name in its top-left corner */
+      for (const a of pic.areas ?? []) {
+        const ax = xs(Math.min(a.x0, a.x1)), ay = ys(Math.max(a.y0, a.y1)), aw2 = Math.abs(xs(a.x1) - xs(a.x0)), ah2 = Math.abs(ys(a.y1) - ys(a.y0));
+        d.setFillColor(SURF2); d.setDrawColor(MUTED); d.setLineWidth(0.6); d.rect(ax, ay, aw2, ah2, 'FD');
+        font(d, 6.5, 'normal', MUTED); t(a.label, ax + 3, ay + 8, 'left');
+      }
       for (const l of pic.lines) {
         d.setDrawColor(l.mark === 'ink' ? INK2 : l.mark === 'muted' ? MUTED : BRAND); d.setLineWidth(1.6);
         if (l.dash) d.setLineDashPattern([3, 2.5], 0);

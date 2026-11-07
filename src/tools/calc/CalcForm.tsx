@@ -135,7 +135,7 @@ function Tile({ fields, i, p }: { fields: Field[]; i: number; p: Props }) {
 
 export function CalcForm(p: Props) {
   const v = valuesOf(p.def, p.draft);
-  const asked = askedFields(p.def, v);
+  const asked = askedFields(p.def, v).filter(f => !f.quietIf?.(v));
   const plain = asked.filter(f => !f.money && f.grid === undefined && f.place !== 'below'), money = asked.filter(f => f.money);
   const gridFields = asked.filter(f => !f.money && f.grid !== undefined);
   const below = asked.filter(f => !f.money && f.place === 'below');

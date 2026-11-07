@@ -41,6 +41,7 @@ import { BeforeBox, ResultView, WhatIf } from './CalcView';
 import { usePhone } from '../../ui/InstallGrid';
 import type { CalcDef, Inputs } from './types';
 import { PlanPath } from '../criticalpath/PlanPath';
+import { SpaghettiBoard } from '../spaghetti/SpaghettiBoard';
 
 const OWNER = canAt('owner');
 
@@ -219,6 +220,13 @@ function CalcList({ calcKey }: { calcKey: string }) {
           <button type="button" className="chip" onClick={() => nav(`/calc/${def.key}`)}>All lines</button>
         </div>
       )}
+      {def.key === 'spaghetti' && (
+        <button type="button" className="calc-card sb-door" data-board-door onClick={() => nav(`/calc/spaghetti-walkers${back}${back ? '&' : '?'}add=1`)}>
+          <b>Draw it on a board</b>
+          <span className="sub">Draw the line or the area as you see it, put the people and the places on it, then tap a person and the places they go — each tap a line. Up to four people.</span>
+          <span className="pl-tool-go" aria-hidden>›</span>
+        </button>
+      )}
       {list && groups.length === 0 && (
         <div className="qsl-empty">
           <p>{onLine ? `None on ${lineName} yet.` : `No ${def.title.toLowerCase()} yet. Say what it is of, put in the figures, and the answer is worked out as you type.`}</p>
@@ -375,6 +383,8 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
   const makeIt = (field: string, value: string) => { edit(field, value); flush(); };
 
   const page = bandPage(def.title, s, r?.verdict, r?.tone, [['Catalogue', def.fc]]);
+  /* the spaghetti board (FC-004 part 3): the whole width at a desk, the figures' pane on a phone */
+  const drawnBoard = <SpaghettiBoard draft={draft} canEdit={canEdit} onPatch={patch => { for (const [k, v] of Object.entries(patch)) edit(k, v === null ? '' : v); }} />;
   const live = { ...agreed, inputs: draft, ...(src ? { src } : {}) };
   return (
     <div className="wrap ie ie-calc" data-calc-record={def.key}>
@@ -392,6 +402,7 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
           ))}
         </div>
       )}
+      {!phone && def.drawn === 'spaghetti-board' && drawnBoard}
       <div className={'calc-body' + (def.tileSays ? ' has-grid' : '')}
         onTouchStart={phone ? (e => { const t = e.touches[0]; const typing = (e.target as Element).closest?.('input, textarea, select, table'); swipe.current = t && !typing ? { x: t.clientX, y: t.clientY } : null; }) : undefined}
         onTouchEnd={phone ? (e => {
@@ -411,6 +422,7 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
           </button>
         )}
         <div className="calc-figs" hidden={phone && pane !== 'figures'}>
+        {phone && def.drawn === 'spaghetti-board' && drawnBoard}
         <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part={def.tileSays ? 'main' : undefined} />
         {def.tileSays && <CalcForm def={def} draft={draft} src={src} disabled={!canEdit} line={line ? { ...line, name: line.name } : undefined} onEdit={(f, v) => edit(f, v)} onUse={(f, v, from) => edit(f, v, from)} onBlur={flush} problems={run.problems} part="grid" total={r ? `${r.verdict} · ${r.sentence}` : undefined}
           tileExtra={def.tileTarget && def.tileName ? (i => <AttachButton s={s} target={def.tileTarget?.(i)} name={def.tileName?.(valuesOf(def, draft), i) ?? `Part ${i + 1}`} canEdit={canEdit} by={me} />) : undefined} />}

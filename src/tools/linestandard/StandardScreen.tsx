@@ -702,7 +702,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         </div>
         {/* the tool shell (B4): its card in Report ▾ — the preview sheet, then Download — and Copy in More ▾ */}
         <div className="ls-head-actions">
-          <MoreMenu items={ro ? [] : [{ label: 'Copy to another product', run: () => setCopying(true) }]} />
+          <MoreMenu items={ro ? [] : [{ label: 'Copy to another product', run: () => setCopying(true) }, { label: 'Walk on this map — spaghetti diagram', run: () => void import('../spaghetti/walkOnMap').then(m => m.walkOnMap(s)) }]} />
           <ReportMenu papers={[{ label: `Line standard card — ${s.product}`, for: 'A4 landscape — the map with who does what, then its notes in full', make: () => setPrinting(true) }]} />
         </div>
       </header>

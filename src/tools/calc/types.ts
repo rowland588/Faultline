@@ -68,6 +68,8 @@ export interface Field {
   dynamic?: (v: Values) => Partial<Pick<Field, 'label' | 'unit' | 'help'>>;
   /** Kept on the record but never asked or drawn: what a timer writes for the science (the moment of each stop, the stretches watched). */
   hidden?: boolean;
+  /** Kept and read, but not drawn as a box while this holds — the board fills it (the spaghetti's layout, FC-004 part 3). */
+  quietIf?: (v: Values) => boolean;
   /** Shown only when this holds — a choice that changes what is asked. */
   showIf?: (v: Values) => boolean;
 }
@@ -118,6 +120,8 @@ export interface CalcPicture {
   /** True when the drawing is arranged for reading, not measured: it has no ticks and says so. */
   schematic?: boolean;
   legend?: { label: string; mark: 'ink' | 'brand'; dash: boolean }[];
+  /** Areas drawn behind the lines, each with its name — the line or a store as drawn on the spaghetti board (FC-004 part 3), in the plot's own units. */
+  areas?: { x0: number; y0: number; x1: number; y1: number; label: string }[];
 }
 
 /** A chart that is not an x–y plot: the steps of a path down the page, each with its ASME symbol, its words and two figures (the process flow chart,
@@ -201,6 +205,8 @@ export interface CalcDef {
   tileTarget?: (tile: number) => string;
   examples: Example[];
   refused: Refused[];
+  /** A drawing the page shows above the figures and that fills them: the spaghetti board (tools/spaghetti/SpaghettiBoard, FC-004 part 3). */
+  drawn?: 'spaghetti-board';
   /** Calculators that carry on from this one, linked from its page. */
   see?: { key: string; why: string }[];
 }
