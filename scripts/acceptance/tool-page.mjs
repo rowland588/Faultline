@@ -37,7 +37,7 @@ const mk = async vp => {
 const D = await mk({ width: 1360, height: 900 });
 const page = D.page;
 const go = async h => { await page.waitForFunction(() => !(history.state && history.state.flPanel), null, { timeout: 5000 }).catch(() => {}); await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2200); };
-const mod = await (async () => { await go('#/tools'); return page.evaluate(async () => { const r = await import('/src/catalogue/registry.ts'); const c = await import('/src/catalogue/index.ts'); return { tools: r.APP_TOOLS.map(t => ({ key: t.key, label: t.label, says: t.says, kind: t.kind, id: t.id })), cap: c.entryById('FC-094') ? { q: c.entryById('FC-094').questions, problem: c.entryById('FC-094').problem, food: c.entryById('FC-094').food } : null, modes: c.ENTRIES.filter(e => e.partOf === 'FC-094' && e.status !== 'left-out').length, planned: c.ENTRIES.find(e => e.status === 'to-build' && !e.partOf)?.id }; }); })();
+const mod = await (async () => { await go('#/tools'); return page.evaluate(async () => { const r = await import('/src/catalogue/registry.ts'); const c = await import('/src/catalogue/index.ts'); return { tools: (await import('/src/catalogue/counts.ts')).GALLERY_TOOLS.map(t => ({ key: t.key, label: t.label, says: t.says, kind: t.kind, id: t.id })), cap: c.entryById('FC-094') ? { q: c.entryById('FC-094').questions, problem: c.entryById('FC-094').problem, food: c.entryById('FC-094').food } : null, modes: c.ENTRIES.filter(e => e.partOf === 'FC-094' && e.status !== 'left-out').length, planned: c.ENTRIES.find(e => e.status === 'to-build' && !e.partOf)?.id }; }); })();
 const N = mod.tools.length;
 
 /* 1 */

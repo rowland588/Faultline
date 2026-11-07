@@ -10,6 +10,7 @@ import { useEffect, useMemo } from 'react';
 import { PageHeader } from '../ui/parts';
 import { ToolPicture } from '../ui/ToolCard';
 import { APP_TOOLS, toolByKey, type AppTool } from '../catalogue/registry';
+import { GALLERY_TOOLS } from '../catalogue/counts';
 import { ENTRIES, PROBLEMS, disciplineName, entryById, subName } from '../catalogue';
 import { FORM_WORDS, KIND_PLACE, STATUS_WORDS, type Entry, type Status } from '../catalogue/types';
 import { useToolUse, usedSaid } from '../lib/useToolUse';
@@ -37,9 +38,9 @@ export function ToolPageScreen({ toolKey }: { toolKey: string }) {
   const use = useToolUse();
   const modes = useMemo(() => (entry ? ENTRIES.filter(e => e.partOf === entry.id && e.status !== 'left-out') : []), [entry]);
   const routes = useMemo(() => (entry ? PROBLEMS.filter(p => p.steps.some(s => s.ids.includes(entry.id))) : []), [entry]);
-  const i = tool ? APP_TOOLS.findIndex(t => t.key === tool.key) : -1;
-  const prev = i > 0 ? APP_TOOLS[i - 1] : i === 0 ? APP_TOOLS[APP_TOOLS.length - 1] : undefined;
-  const next = i >= 0 ? APP_TOOLS[(i + 1) % APP_TOOLS.length] : undefined;
+  const i = tool ? GALLERY_TOOLS.findIndex(t => t.key === tool.key) : -1;
+  const prev = i > 0 ? GALLERY_TOOLS[i - 1] : i === 0 ? GALLERY_TOOLS[GALLERY_TOOLS.length - 1] : undefined;
+  const next = i >= 0 ? GALLERY_TOOLS[(i + 1) % GALLERY_TOOLS.length] : undefined;
 
   /* the scroll through the tools: ← and → move between them */
   useEffect(() => {
@@ -157,7 +158,7 @@ export function ToolPageScreen({ toolKey }: { toolKey: string }) {
       {tool && prev && next && (
         <nav className="tp-pn" aria-label="The other tools">
           <button type="button" className="btn btn-ghost" onClick={() => nav(`/tools/${prev.key}`)}>‹ {prev.label}</button>
-          <span className="sub">{i + 1} of {APP_TOOLS.length} · ← → move between tools</span>
+          <span className="sub">{i + 1} of {GALLERY_TOOLS.length} · ← → move between tools</span>
           <button type="button" className="btn btn-ghost" onClick={() => nav(`/tools/${next.key}`)}>{next.label} ›</button>
         </nav>
       )}
