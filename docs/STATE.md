@@ -26,6 +26,7 @@ a session that ships something updates this page in the same commit.** The rules
   — talk a *flow diagram* (process flow chart), a *spaghetti diagram* (up to four walkers), a *value stream* (the
   Value stream tool's own map) and Make it / Update it / Undo makes the tool's own record. Gateway **v18**, rules
   fingerprint `08f542070ed1de5c` (must equal the repo's; see §4).
+- **The look, L5 — the tools' pages** (7 November): the lean page's tiles, panels and closing line in the card language.
 - **The look, L4 — a problem on the journey** (6 November): its editor's boxes under the three questions — what's going
   wrong (words, priority, where, evidence, waste, cost), what needs doing (the plan, whose, by when, its root cause),
   did it work (where it stands, closed with its proof, the journey); the register's rows in the card language.
@@ -58,7 +59,7 @@ a session that ships something updates this page in the same commit.** The rules
    (what's going wrong · what needs doing · who's responsible · did it work) in look E — the Factory's greeting hero
    and four question cards first (L1), then a line (L2), a project (L3), a problem and the register (L4), the tools'
    tiles as icon cards with their change (L5), the papers' tokens (L6), the phone (L7). Each slice its own gate and
-   its own merge; `docs/STATE.md` §1 says which is live (L0–L4 live; L5 the tools' pages next).
+   its own merge; `docs/STATE.md` §1 says which is live (L0–L5 live; L6 the papers next).
 
 1. **Spaghetti talk accuracy** (Rowland, 6 November: *"it's going to struggle with what I'm saying … there needs to be
    improvements, guaranteed"*). Tested on his own sentence: the order of moves is right, "left"/"right" become place
