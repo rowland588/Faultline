@@ -388,6 +388,8 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
       /* ITS MACHINES — a tab of their own, each opening its page (Rowland, 27 October: "I don't see your machine page") */
       plain('machines', 'Machines', lineHref(wsId, 'machines'), here, 'machine'),
       counted('problems', 'Problems', `/snags?line=${encodeURIComponent(wsId)}`, here, { problems: counts.problems }, ['problems'], 'flag'),
+      /* ITS ACTION TRACKER — every problem on the line, who, by when, and its Gantt (7 November — Rowland: "every line has its own action tracker") */
+      plain('actions', 'Actions', lineHref(wsId, 'actions'), here, 'list'),
       counted('programs', 'Programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
       plain('tools', 'Tools', lineHref(wsId, 'tools'), here, 'chart'),
       plain('logs', 'Logs', lineHref(wsId, 'logs'), here, 'time'),
@@ -540,7 +542,7 @@ export const plusLine = (): RailLine => ({ key: 'plus', label: 'Problem', on: fa
 export function hereIn(route: Route, scope: 'home' | 'factory' | 'line' | 'project'): string {
   const tool = ['lineTools', 'studies', 'study', 'videos', 'videoStudy', 'talks', 'talk'].includes(route.name);
   if (scope === 'line') {
-    if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['machines', 'tools', 'projects', 'setup', 'logs'].includes(v) ? v : 'overview'; }
+    if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['machines', 'actions', 'tools', 'projects', 'setup', 'logs'].includes(v) ? v : 'overview'; }
     /* a machine's own page sits under the line's Machines (27 October: "I do not see a machine page") */
     if (route.name === 'lineMachine') return 'machines';
     if (route.name === 'lineReport') return 'overview';

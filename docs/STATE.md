@@ -12,6 +12,12 @@ a session that ships something updates this page in the same commit.** The rules
   drawn once, the methods as pills, the five stages numbered, the sign-in a plain card beside them (`screens/Landing`,
   `scripts/acceptance/landing.mjs`). **The tools' workspaces, T1–T2 (7 November, `docs/TOOLS-DESIGN.md`)**: the measurement
   tools and the calculators — presentation only, every calculation kept.
+- **Every line has its own action tracker (7 November).** Rowland: *"every line has its own action tracker. Action tracker
+  automatically populates a Gantt chart … a really classic, simple action tracker … automated by problems"*. A line's
+  **Actions** tab (`src/line/actions`): every problem on the line a row at once — what, who, due, status, priority, edited where
+  it sits as the problem's own (no new record) — and the Gantt drawn from the same rows (raised → due, late red with its tail to
+  today, today's line); *Add an action* raises a problem on the line; Report ▾ › Action tracker is the project's meeting paper for
+  the line (`scripts/acceptance/line-actions.mjs`).
 - **Documents as a template library (7 November).** Rowland: *"you see the templates visible like a library ... that's the
   library that you want to pick ... it could be very, very powerful"*. The Documents hub shows every form as a template card —
   a small page drawn from its own parts, what it is for, Use this template — with Find a template (`src/tools/doc/DocScreen`

@@ -15,6 +15,7 @@
  *
  * The page answers, in order: where the line is (its problems, the late in
  * red), and what to do next (take a problem; open a tool on this line). */
+import { LineActions } from '../line/actions/LineActions';
 import { APP_TOOLS } from '../catalogue/registry';
 import { MoreMenu, PageHeader } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
@@ -129,8 +130,8 @@ export function stopsOf(obs: Observation[]): { n: number; minutes: number; worst
 
 /** A LINE'S PAGES (docs/STRUCTURE.md §5.1, B2): its overview — everything, as before — and, on
  *  ?view=, one of its pages alone: the tools used on it, its projects, its set-up. */
-export type LineView = 'overview' | 'machines' | 'tools' | 'logs' | 'projects' | 'setup';
-export const LINE_VIEWS: readonly LineView[] = ['overview', 'machines', 'tools', 'logs', 'projects', 'setup'];
+export type LineView = 'overview' | 'machines' | 'actions' | 'tools' | 'logs' | 'projects' | 'setup';
+export const LINE_VIEWS: readonly LineView[] = ['overview', 'machines', 'actions', 'tools', 'logs', 'projects', 'setup'];
 
 export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string; view?: LineView }) {
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
@@ -342,6 +343,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           { label: 'Line report — 1 page', for: 'the short one: the line, its tiles, problems, machines, programs and what its tools found', disabled: busy || !reading, make: printLine },
           { label: 'Line report — everything on the line', for: dual.madeOf.length ? 'each line it is made of, then both together — every tool used, programs, problems, who owes what' : 'every tool used on the line, its programs, its problems, where on the line, who owes what — tick what goes in', make: () => nav(savingAt(`/lines/${wsId}/report`)) },
           { label: 'Line report — full package', for: 'the long one, to send: every paper joined behind a cover — problems and their cards, programs and every test, machines, line standards with their maps, Line capacity, each tool\u2019s report; tick what goes in', make: () => nav(savingAt(`/lines/${wsId}/report?full=1`)) },
+          /* THE ACTION TRACKER ON PAPER (7 November): the project's meeting paper, for this line's tracker */
+          ...(view === 'actions' ? [{ label: 'Action tracker', for: 'every action open on the line — what, who, by when, late in red — and what was done in the last 30 days', disabled: busy, make: () => void import('../line/actions/lineActionsPaper').then(m => m.saveLineActionsPdf(wsId, line.name)) }] : []),
           ...(view === 'machines' ? [{ label: 'Machines report — every machine in full', for: 'each machine on the line: where it is up to, every test and every attempt, every program and its tests, every step, its problems and what was done, the studies', disabled: busy, make: printMachines }] : []),
         ]}
         more={[
@@ -558,6 +561,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           </ul>
         </section>
       )}
+      {/* THE LINE'S ACTION TRACKER (7 November — line/actions): its problems as a classic tracker with the Gantt drawn from it */}
+      {view === 'actions' && <LineActions wsId={wsId} lineName={line.name} />}
       {show('tools') && (<section className="pl-sec" aria-label="Tools on this line">
         <div className="pl-sec-h"><h2>Tools on this line</h2>
           {may && <button type="button" className="btn btn-ghost btn-sm pl-talk" onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>Talk on this line ›</button>}

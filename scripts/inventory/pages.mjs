@@ -66,6 +66,15 @@ export const PAGES = (sd, cap) => [
     { what: 'the closing line', sel: '.lr .ln-close' },
   ] },
   /* A LINE'S MACHINES — a tab of their own (27 October — Rowland: "I don't see your machine page"), each name opening its page */
+  /* THE LINE'S ACTION TRACKER (7 November, src/line/actions): every problem on the line a row, its Gantt drawn from the rows */
+  { name: 'A line — its action tracker', path: `#/lines/${sd.wsId}?view=actions`, must: [
+    { what: 'Actions lit among the line\u2019s tabs', sel: '.nv-tabs .nv-tab[aria-current="page"] .nv-tab-l', text: /^Actions$/ },
+    { what: 'the tracker\u2019s sentence', sel: '[data-la-says]', text: /open on|Nothing open/ },
+    { what: 'the five tiles', sel: '.lat-tiles .ln-tile', n: 5 },
+    { what: 'Add an action', sel: 'input[aria-label="Add an action"]' },
+    { what: 'a row each problem on the line, with who, due, status and priority', sel: '[data-la-row] select[aria-label^="Status"]', n: 1 },
+    { what: 'the Gantt on the row — a bar or a point, and today\u2019s line', sel: '[data-la-row] .lat-today', n: 1 },
+  ] },
   { name: 'A line — its machines', path: `#/lines/${sd.wsId}?view=machines`, must: [
     { what: 'Machines on, among the line\'s tabs', sel: '.nv-tabs .nv-tab.is-on', text: /^Machines/ },
     { what: 'the machines in flow order, each with who made it and its programs', sel: '.pl-machines > li', n: 2 },

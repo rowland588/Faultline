@@ -1,0 +1,60 @@
+/* A LINE'S ACTION TRACKER — the classic table with its Gantt on the same rows (lineActions.ts). The five state colours with
+   their words (CLAUDE.md, visual management): late red, due soon amber, planned the under-way violet, done a quiet green,
+   no day grey; the priority's RAG only on its own cell. */
+.lat-says { margin: 4px 0 10px; font-weight: 600; color: var(--ink); }
+.lat-tiles { margin-bottom: 12px; }
+.lat-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 12px; }
+.lat-add { display: flex; gap: 8px; flex: 1; min-width: 260px; max-width: 640px; }
+.lat-add .text-input { flex: 1; min-height: 40px; }
+.lat-done { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-detail); color: var(--ink-2); }
+.lat-empty { padding: 16px 0; }
+
+.lat-grid { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow-x: auto; }
+.lat-row { display: grid; grid-template-columns: minmax(220px, 2.2fr) 130px 150px 110px 104px minmax(320px, 3fr); align-items: center; border-bottom: 1px solid var(--line-row, var(--line)); min-width: 1040px; }
+.lat-row:last-child { border-bottom: 0; }
+.lat-row > [role="cell"], .lat-row > [role="columnheader"] { padding: 8px 10px; min-width: 0; }
+.lat-head { position: sticky; top: 0; z-index: 1; background: var(--surface-2); font-size: var(--t-label); font-weight: 600; color: var(--ink-2); }
+.lat-head .lat-c-gantt { padding: 0; align-self: stretch; }
+.lat-weeks { position: relative; display: block; height: 100%; min-height: 34px; }
+.lat-week { position: absolute; top: 0; bottom: 0; padding: 9px 0 0 4px; border-left: 1px solid var(--line); font-weight: 500; color: var(--muted); white-space: nowrap; }
+.lat-c-what { display: flex; flex-direction: column; gap: 2px; }
+.lat-what { padding: 0; border: 0; background: none; text-align: left; font: inherit; font-weight: 600; color: var(--ink); cursor: pointer; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.lat-what:hover { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+.lat-mc { font-size: var(--t-label); }
+.lat-in { width: 100%; min-height: 34px; padding: 4px 8px; font-size: var(--t-detail); }
+.lat-c-due { display: flex; flex-direction: column; gap: 3px; }
+.lat-state { font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.lat-state.is-late { color: var(--st-r); }
+.lat-state.is-soon { color: var(--st-a); }
+.lat-state.is-done { color: var(--st-g); }
+.lat-pr.is-critical { color: var(--st-r); font-weight: 600; }
+.lat-pr.is-high { color: var(--st-a); font-weight: 600; }
+.lat-row.is-late { box-shadow: inset 3px 0 0 var(--st-r); }
+.lat-row.is-done .lat-what { color: var(--muted); font-weight: 500; }
+
+.lat-c-gantt { position: relative; align-self: stretch; min-height: 48px; }
+.lat-row > .lat-c-gantt { padding: 0; }
+.lat-today { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid var(--brand); opacity: .7; }
+.lat-b { position: absolute; top: 50%; height: 14px; margin-top: -7px; border-radius: 4px; background: var(--st-w); min-width: 4px; }
+.lat-b.is-soon { background: var(--st-a); }
+.lat-b.is-late { background: var(--st-r); }
+.lat-b.is-done { background: color-mix(in srgb, var(--st-g) 45%, var(--surface)); }
+.lat-b.is-nodate { background: var(--st-n); }
+.lat-tail { position: absolute; top: 50%; height: 4px; margin-top: -2px; background: repeating-linear-gradient(90deg, var(--st-r) 0 6px, transparent 6px 10px); }
+.lat-pt { position: absolute; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--st-n); }
+.lat-pt-w { position: absolute; left: 12px; top: -5px; padding: 0 4px; background: var(--surface); border-radius: 3px; font-size: var(--t-label); color: var(--muted); white-space: nowrap; }
+.lat-key { margin-top: 8px; }
+.lat-k { display: inline-block; width: 14px; height: 8px; border-radius: 2px; vertical-align: middle; background: var(--st-w); }
+.lat-k.is-late { background: var(--st-r); } .lat-k.is-soon { background: var(--st-a); } .lat-k.is-done { background: color-mix(in srgb, var(--st-g) 45%, var(--surface)); }
+.lat-k-today { display: inline-block; width: 0; height: 12px; border-left: 2px solid var(--brand); vertical-align: middle; }
+
+/* A PHONE: each action a card (what, who, due, status, priority), its Gantt bar under it across the same weeks */
+@media (max-width: 719px) {
+  .lat-grid { border: 0; background: none; overflow: visible; }
+  .lat-head { display: none; }
+  .lat-row { min-width: 0; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  .lat-row > [role="cell"] { padding: 0; }
+  .lat-c-what, .lat-c-gantt { grid-column: 1 / -1; }
+  .lat-in { min-height: 44px; }
+  .lat-c-gantt { min-height: 28px; border-top: 1px solid var(--line-row, var(--line)); margin-top: 4px; }
+}
