@@ -110,6 +110,18 @@ a session that ships something updates this page in the same commit.** The rules
    tiles as icon cards with their change (L5), the papers' tokens (L6), the phone (L7). Each slice its own gate and
    its own merge; `docs/STATE.md` §1 says which is live (L0–L7 live — the look is built; the rule in §0 applies to every page touched from here).
 
+0b. **The enterprise programme — "do them all go" (Rowland, 7 November).** Asked whether the app is a credible global
+   enterprise SaaS product, the answer was *not yet — deep and correct, but inconsistent in finish*; four steps were proposed and
+   he said do them all, in this order, each slice merged live on its own with its before/after pictures:
+   1. **Finish the look** — `docs/ENTERPRISE-UX.md` X2 (the line page: its doors as buttons at the top, simple machine cards,
+      Tools redone, short labels in place of paragraphs), X3 record panel, X4 planning, X5 projects and problems, X8 the phone;
+      `docs/TOOLS-DESIGN.md` T3–T7 (timed studies, registers, maps and boards, logs, documents). Cut the words: labels, not
+      sentences, where a sentence is not the finding.
+   2. **Headline tool graphics** — one hero picture per tool at the control chart's and the Gantt's standard.
+   3. **Enterprise basics** — user and team admin, notifications, an audit trail, search across records, Excel export,
+      onboarding with a demo factory (SSO waits on Rowland's choice of provider).
+   4. **AI as a selling point** — his decision first: it would change the 20 October rule (the voice and the camera only).
+
 1. **Line Talk is finished as it stands — no new voice work (7 November).** Rowland: *"we can leave the spaghetti as it
    is, and we just leave now the line talk with what we've already made, as long as what we've made is completed."* So
    the voice work stops where it is: Line Talk (talk or type on the line, photos, answers, documents and their PDF) and
