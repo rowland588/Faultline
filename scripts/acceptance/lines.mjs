@@ -108,7 +108,9 @@ ok(cards.pages === 1 && /Infeed guard loose/.test(cards.text), `6c and a card fo
 
 await page.goto(linePage); await page.waitForTimeout(2500);
 // tap it → register filtered, editor open
-await page.locator('.pl-row', { hasText: 'Infeed guard loose' }).click(); await page.waitForTimeout(2000);
+await page.locator('.pl-row', { hasText: 'Infeed guard loose' }).click(); await page.waitForTimeout(1200);
+ok(/#\/lines\//.test(page.url()) && /Infeed guard loose/.test(await page.locator('[data-problem-panel] textarea').first().inputValue()), '7 tapped: the problem opens in the panel over the line (X3)');
+await page.getByRole('button', { name: 'Open the full record ›' }).click(); await page.waitForTimeout(2000);
 ok(/#\/snags\?line=/.test(page.url()) && (await page.locator('.pe').count()) === 1 && (await page.locator('.qsl-g .qsl-gh h2').allInnerTexts()).join('|') === 'Line 2B', `7 tapped: the Problems page on Line 2B, the problem open to work`);
 // tools
 await page.goBack(); await page.waitForTimeout(1500);

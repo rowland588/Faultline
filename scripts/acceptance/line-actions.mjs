@@ -104,8 +104,14 @@ ok((await page.locator(`[data-la-row="${made.open}"] input[aria-label^="Who"]`).
 await page.getByLabel('Add an action').fill('Re-train nights on the film splice'); await page.getByRole('button', { name: 'Add', exact: true }).click(); await page.waitForTimeout(900);
 const added = await page.evaluate(async WS => { const db = await import('/src/db.ts'); return (await db.listAllSnags()).filter(s => s.workspaceId === WS && s.problem === 'Re-train nights on the film splice').map(s => s.id); }, WS);
 ok(added.length === 1 && (await page.locator(`[data-la-row="${added[0]}"]`).count()) === 1, '5 Add an action makes one problem on the line, and it is a row at once');
-await page.locator(`[data-la-row="${made.late}"] .lat-what`).click(); await page.waitForTimeout(1500);
-ok(/#\/snags\?/.test(page.url()) && page.url().includes(made.late), `5 an action's words open the problem on Problems (${page.url().split('#')[1].slice(0, 60)}…)`);
+await page.locator(`[data-la-row="${made.late}"] .lat-what`).click(); await page.waitForTimeout(1000);
+const panel = page.locator(`[data-problem-panel="${made.late}"]`);
+ok(/view=actions/.test(page.url()) && (await panel.count()) === 1 && (await panel.getByLabel('What is going wrong').inputValue()) === 'Wrapper film snaps at the jaw' && /3 days late/.test(await t.words('[data-pp-said]')), `5 an action's words open the problem in the panel over the tracker (X3): "${await t.words('[data-pp-said]')}"`);
+/* edited in the panel — the tracker under it follows */
+await panel.getByRole('button', { name: 'Doing', exact: true }).click(); await page.waitForTimeout(700);
+ok((await page.evaluate(async id => { const db = await import('/src/db.ts'); return (await db.listAllSnags()).find(x => x.id === id)?.status; }, made.late)) === 'in_progress' && (await page.locator(`[data-la-row="${made.late}"] select[aria-label^="Status"]`).inputValue()) === 'in_progress', '5 its status changed in the panel is the problem\'s own, the tracker\'s row following');
+await page.getByRole('button', { name: 'Open the full record ›' }).click(); await page.waitForTimeout(1800);
+ok(/#\/snags\?/.test(page.url()) && page.url().includes(made.late), `5 Open the full record › lands on Problems with it open (${page.url().split('#')[1].slice(0, 60)}…)`);
 
 /* ---- 5b · what waits for what (7 November — Rowland: "build in dependencies from the gantt or the problem page, either one
  * populates the other, give options to the user if both ways are allowed") ---- */

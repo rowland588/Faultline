@@ -11,6 +11,7 @@
  * or the ones nobody has. A row opens its own record, where it is changed
  * (one door per record). Paper: the list for the meeting, and each person's
  * own (lib/projectActionsPdf). */
+import { openProblem } from '../snag/ProblemPanel';
 import { useMemo, useState } from 'react';
 import { useProject, useProjects } from '../lib/useProjects';
 import { useEveryAction, useProjectActions, type ProjectActionsRead } from '../lib/useProjectActions';
@@ -32,7 +33,7 @@ const IN_DRAWER = new Set(['test', 'fix', 'install', 'setup', 'handover']);
 
 /** What an action opens — the register's problem, the record's drawer, or its place on the plan. The Factory's four questions open one the same way. */
 export function openAction(a: ProjectAction) {
-  if (a.snagId) { nav(`/snags?open=${encodeURIComponent(a.snagId)}`); return; }
+  if (a.snagId) { openProblem(a.snagId); return; }
   const x = a.item;
   if (!x) return;
   const projectId = x.jobId;

@@ -15,6 +15,7 @@
  *
  * The page answers, in order: where the line is (its problems, the late in
  * red), and what to do next (take a problem; open a tool on this line). */
+import { openProblem } from '../snag/ProblemPanel';
 import { Icon } from '../ui/Icon';
 import { lineHref } from '../ui/rail';
 import { LineActions } from '../line/actions/LineActions';
@@ -462,7 +463,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
             <ul className="pl-rows">
               {rows.map(r => (
                 <li key={r.id}>
-                  <button type="button" className={'pl-row' + (r.late ? ' is-late' : '')} onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}&open=${encodeURIComponent(r.id)}`)}>
+                  <button type="button" className={'pl-row' + (r.late ? ' is-late' : '')} onClick={() => openProblem(r.id)}>
                     <span className="pl-row-main">
                       <span className="qsl-what"><span className={'status-pill qsl-prio ' + PRIO_CLASS[r.priority]}>{PRIORITY_WORD[r.priority]}</span>{r.what}</span>
                       <span className="qsl-meta">{[r.machine ?? '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · ')}</span>

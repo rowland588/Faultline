@@ -9,11 +9,11 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { addSnag, listAllSnags, listSnagAssets, onDataChange, patchSnag, setSnagsStatus } from '../../db';
 import { dueFromInput, dueToInput, type Snag, type SnagStatus } from '../../snag/types';
 import { uid } from '../../lib/ids';
-import { nav } from '../../state/useRoute';
 import { LeanTiles } from '../../ui/Lean';
 import type { LeanTile } from '../../lib/lean';
 import { Icon } from '../../ui/Icon';
 import { LinkSheet } from './Depends';
+import { openProblem } from '../../snag/ProblemPanel';
 import { holdsUp } from './depends';
 import { DAY, barOf, ganttSpan, trackerRows, trackerSays, trackerSummary, type TrackerRow } from './lineActions';
 import './lineActions.css';
@@ -144,7 +144,7 @@ export function LineActions({ wsId, lineName }: { wsId: string; lineName: string
             return (
               <div key={r.id} className={`lat-row is-${r.state}`} role="row" data-la-row={r.id} data-state={r.state}>
                 <span role="cell" className="lat-c-what">
-                  <button type="button" className="lat-what" onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}&open=${encodeURIComponent(r.id)}`)} title="Open the problem">{r.what}</button>
+                  <button type="button" className="lat-what" onClick={() => openProblem(r.id)} title="Open the problem">{r.what}</button>
                   {r.machine && <span className="sub lat-mc">{r.machine}</span>}
                   {(() => { const held = holdsUp(snags, r.id); return (r.after.length > 0 || held.length > 0) && (
                     <span className="lat-deps" data-la-deps={r.id}>

@@ -94,6 +94,11 @@ a session that ships something updates this page in the same commit.** The rules
   at the top, machine cards as a simple header, Tools redone), then the record panel, planning (the projects' board), problems
   and projects, the tools, reports, phone review.
 
+- **A problem opens in the panel over the page (7 November, docs/ENTERPRISE-UX.md X3).** From a line's tracker, its Overview,
+  the Factory's lists and Actions, a problem opens in the right-hand drawer — its words, status, priority, whose, due, the plan,
+  the latest, what it waits for and its journey edited in place — and × puts you back; *Open the full record ›* goes to Problems.
+  `src/snag/ProblemPanel.tsx`.
+
 - **What waits for what on a line's actions (7 November — Rowland: *"build in dependencies from the gantt or the problem page,
   either one populates the other, give options to the user if both ways are allowed"*).** One link kept on the action that waits
   (`Snag.after`, carried as `after:<id>` in `linked_obs_ids` — no column); set from a tracker row's *Link* (both ways round), by

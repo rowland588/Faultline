@@ -765,7 +765,10 @@ const ids = await page.evaluate(async () => {
   }, ids.l2c);
   await page.setViewportSize({ width: 390, height: 844 });
   await go(`#/lines/${ids.l2c}`);
-  await page.locator('.pl-row', { hasText: 'Low one at the end of the line' }).first().click(); await page.waitForTimeout(2600);
+  await page.locator('.pl-row', { hasText: 'Low one at the end of the line' }).first().click(); await page.waitForTimeout(1200);
+  /* X3 (7 November): the row opens the problem in the panel over the line; Open the full record › is the way to its editor */
+  ok(new RegExp(`#/lines/${ids.l2c}`).test(page.url()) && /Low one at the end of the line/.test(await page.locator('[data-problem-panel] textarea').first().inputValue()), '18 from the line: the problem opens in the panel over the line, the line still under it');
+  await page.getByRole('button', { name: 'Open the full record ›' }).click(); await page.waitForTimeout(2600);
   const r = row('Low one at the end of the line');
   const box = await r.evaluate(el => ({ top: el.getBoundingClientRect().top, onPage: el.getBoundingClientRect().top + window.scrollY, h: window.innerHeight }));
   ok(/#\/snags\?line=/.test(page.url()) && (await r.locator('.pe').count()) === 1 && box.onPage > box.h && box.top >= 0 && box.top < box.h / 3,

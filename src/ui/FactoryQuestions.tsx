@@ -3,6 +3,7 @@
  * top, each a door, and under them the answers — the problems by what they cost, the actions with who and by
  * when, the fixes proved by their own before → after. Every figure is lib/factoryQuestions'; the rows are the
  * register's, Actions' and the lines' own. */
+import { openProblem } from '../snag/ProblemPanel';
 import type { ReactNode } from 'react';
 import { nav } from '../state/useRoute';
 import { Icon, type IconName } from './Icon';
@@ -60,7 +61,7 @@ function WrongRows({ rows, open, priced }: { rows: WrongRow[]; open: number; pri
       <ul className="fq-rows">
         {rows.map(r => (
           <li key={r.id}>
-            <button type="button" className="fq-row" onClick={() => nav(`/snags?open=${encodeURIComponent(r.id)}`)}>
+            <button type="button" className="fq-row" onClick={() => openProblem(r.id)}>
               <span className={`fq-pill is-${r.late ? 'r' : TONE[r.priority]}`}>{r.late ? 'Late' : PRIORITY[r.priority]}</span>
               <span className="fq-row-main">
                 <b>{r.what}</b>
@@ -147,7 +148,7 @@ export function NeedsYou({ q }: { q: FourQuestions | null }) {
   type Rec = { key: string; kind: string; tone: 'r' | 'a' | 'n'; when: string; what: string; where: string; who: string; icon: 'warning' | 'check'; go: () => void };
   const recs: Rec[] = [];
   for (const r of q.wrong.top.slice(0, 1)) recs.push({ key: `p${r.id}`, kind: r.late ? 'Late problem' : `${PRIORITY[r.priority]} problem`, tone: r.late || r.priority === 'critical' ? 'r' : r.priority === 'high' ? 'a' : 'n',
-    when: r.pounds ? `${fmtGBP(r.pounds)} a day` : 'not priced yet', what: r.what, where: r.line, who: r.owner ?? 'nobody yet', icon: 'warning', go: () => nav(`/snags?open=${encodeURIComponent(r.id)}`) });
+    when: r.pounds ? `${fmtGBP(r.pounds)} a day` : 'not priced yet', what: r.what, where: r.line, who: r.owner ?? 'nobody yet', icon: 'warning', go: () => openProblem(r.id) });
   for (const a of q.doing.top) {
     if (recs.length >= 3) break;
     recs.push({ key: `a${a.key}`, kind: a.late ? 'Late action' : a.soon ? 'Due this week' : 'Action', tone: a.late ? 'r' : a.soon ? 'a' : 'n',

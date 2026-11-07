@@ -46,6 +46,7 @@ import { ScopeTabs } from './ScopeTabs';
 import { ControlRoomReports } from './ControlRoomReports';
 import { QuickSnagHost, openQuickSnag, useCanTakeProblem } from '../snag/QuickSnag';
 import { ContextBar } from './ContextBar';
+import { ProblemPanelHost } from '../snag/ProblemPanel';
 import { notePlace } from '../lib/recentPlaces';
 import { LineReports } from './ControlRoomReports';
 import { scopeOf, type Scope } from '../lib/scope';
@@ -138,6 +139,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
       <ScopeFrame scope={scope} project={project} projects={projects} lines={lines} here={here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} />
       <main className="nv-main">{children}</main>
       <QuickSnagHost wsId={route.wsId ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={projectId} />
+      <ProblemPanelHost />
     </div>
   );
 }
