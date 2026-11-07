@@ -94,6 +94,10 @@ a session that ships something updates this page in the same commit.** The rules
   at the top, machine cards as a simple header, Tools redone), then the record panel, planning (the projects' board), problems
   and projects, the tools, reports, phone review.
 
+- **X2 the line page and X5 the Problems register (7 November, docs/ENTERPRISE-UX.md).** The line's doors a row of buttons
+  under its header, Spread what works and Eyes on the line side by side, the tools in use a table; the register's groups one
+  bordered list with hairline rows. Presentation only.
+
 - **Reports polished and words kept off words (7 November, docs/ENTERPRISE-UX.md X7 first pass).** Every paper's band, figures,
   headings, tables, badges and closing line to an Office finish, the lean page kept; the fishbone's causes wrap to two lines and
   keep their tags off the bones; the plan's Today never on a month's name; the closing line's red mark is "!", not a cross.

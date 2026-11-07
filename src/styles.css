@@ -16633,3 +16633,16 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .pl-sec.is-glance .pl-tools.is-used .pl-tool > .sub { grid-column: 1; grid-row: 3; text-align: left; }
   .pl-sec.is-glance .pl-tools.is-used .pl-tool > .pl-tool-go { grid-column: 2; grid-row: 1 / span 3; }
 }
+
+/* ============================================================ X5 — THE PROBLEMS REGISTER AS A TABLE (7 November, docs/ENTERPRISE-UX.md). Each
+   group's problems one list with hairlines between the rows, not a stack of boxes; the pictures smaller, the priority and the state at the
+   row's ends; the abnormal still carries its colour with its word. Presentation only. */
+.nv-main .qsl-reg .qsl-rows { gap: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.nv-main .qsl-reg .qsl-row { border: 0; border-bottom: 1px solid var(--line-row, var(--line)); border-radius: 0; margin: 0; padding: 0 14px 0 6px; }
+.nv-main .qsl-reg .qsl-row:last-child { border-bottom: 0; }
+.nv-main .qsl-reg .qsl-row:hover { background: var(--surface-2); border-color: var(--line-row, var(--line)); }
+.nv-main .qsl-reg .qsl-open { padding: 9px 6px 9px 0; gap: 10px; }
+.nv-main .qsl-reg .qsl-nopic, .nv-main .qsl-reg .qsl-open img { width: 36px; height: 36px; border-radius: var(--radius-sm); }
+.nv-main .qsl-reg .qsl-what { font-size: var(--t-body); }
+.nv-main .qsl-reg .qsl-meta { font-size: var(--t-label); }
+.nv-main .qsl-reg .qsl-g { box-shadow: var(--elev); border: 0; }
