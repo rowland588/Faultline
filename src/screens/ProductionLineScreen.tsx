@@ -15,6 +15,8 @@
  *
  * The page answers, in order: where the line is (its problems, the late in
  * red), and what to do next (take a problem; open a tool on this line). */
+import { Icon } from '../ui/Icon';
+import { lineHref } from '../ui/rail';
 import { LineActions } from '../line/actions/LineActions';
 import { APP_TOOLS } from '../catalogue/registry';
 import { MoreMenu, PageHeader } from '../ui/parts';
@@ -402,6 +404,42 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       )}
 
 
+      {/* THE LINE'S DOORS, AT THE TOP (7 November, docs/ENTERPRISE-UX.md X2 — Rowland: "why we need buttons at the top of the page not
+          long card taking up large sections of the page"): how the line is seen — time a stop, walk it, film the work, talk it — a row of
+          buttons under the header, each saying what it does in its title; the sums stay in the tools (docs/ADVANCED-TOOLS.md §5A). */}
+      {show('overview') && (
+        <section className="pl-sec pl-see pl-doorbar" aria-label="How this line is seen">
+          <h2 className="pl-doorbar-h">See it on the line</h2>
+          <ul className="pl-see-doors">
+            <li>
+              <button type="button" className="pl-see-door is-first" title="The stopwatch and its Pareto — every stop timed on the line" onClick={() => nav(`/w/${wsId}/capture`)}>
+                <Icon name="time" size={16} /><b>Time a stop</b>
+              </button>
+            </li>
+            <li>
+              <button type="button" className="pl-see-door" title="You mark the frame; nothing is sent to a model." onClick={() => nav(walkAssets.length ? `/w/${wsId}/line` : `/w/${wsId}/snags?manage=1`)}>
+                <Icon name="route" size={16} /><b>Walk the line</b><span className="sr-only">You mark the frame; nothing is sent to a model.</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" className="pl-see-door" title="Times are read on the phone; naming the work from the frames is optional Claude, off until ticked." onClick={() => nav(`/video?line=${encodeURIComponent(wsId)}`)}>
+                <Icon name="video" size={16} /><b>Film the work</b><span className="sr-only">Times are read on the phone; naming the work from the frames is optional Claude, off until ticked.</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" className="pl-see-door" title="Line Talk answers through the app; what you said is kept either way." onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>
+                <Icon name="mic" size={16} /><b>Talk it</b><span className="sr-only">Line Talk answers through the app; what you said is kept either way.</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" className="pl-see-door" title="Every problem on the line, who and by when, and its Gantt" onClick={() => nav(lineHref(wsId, 'actions'))}>
+                <Icon name="list" size={16} /><b>Action tracker</b>
+              </button>
+            </li>
+          </ul>
+          <p className="sub pl-see-lede">How this line is seen. The sums stay in the tools.</p>
+        </section>
+      )}
       {/* WHERE IT STANDS, COUNTED (lib/lineLean) — the tiles its report prints */}
       {show('overview') && reading && <LeanTiles tiles={lineTiles(reading)} className="pl-tiles" />}
 
@@ -528,42 +566,17 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
       {show('overview') && <p className="pl-q" aria-hidden>Did it work</p>}
       {/* A PROVED FIX OFFERED TO EVERY LINE WITH THE SAME MACHINE (FC-155, tools/yokoten) — what this line proved, and what was offered to it */}
-      {show('overview') && <SpreadFixes wsId={wsId} />}
-      {/* HOW FRESH THE LOOKING IS (FC-199, tools/gemba) — days since anyone looked at the line and at each machine, and what the looking found */}
-      {show('overview') && <LineLooking wsId={wsId} />}
-      {/* HOW THIS LINE IS SEEN (docs/ADVANCED-TOOLS.md §5A) — walk, video study, Line Talk; the sums stay in Tools. */}
+      {/* side by side at a desk (X2): what this line proved and how fresh the looking is — two short panels, not two long ones */}
       {show('overview') && (
-        <section className="pl-sec pl-see" aria-label="How this line is seen">
-          <div className="pl-sec-h"><h2>See it on the line</h2></div>
-          <p className="sub pl-see-lede">How this line is seen. The sums stay in the tools.</p>
-          <ul className="pl-see-doors">
-            <li>
-              <button type="button" className="pl-see-door" onClick={() => nav(walkAssets.length ? `/w/${wsId}/line` : `/w/${wsId}/snags?manage=1`)}>
-                <b>Walk the line</b>
-                <span className="sub">You mark the frame; nothing is sent to a model.</span>
-                <span className="pl-tool-go" aria-hidden>›</span>
-              </button>
-            </li>
-            <li>
-              <button type="button" className="pl-see-door" onClick={() => nav(`/video?line=${encodeURIComponent(wsId)}`)}>
-                <b>Film the work</b>
-                <span className="sub">Times are read on the phone; naming the work from the frames is optional Claude, off until ticked.</span>
-                <span className="pl-tool-go" aria-hidden>›</span>
-              </button>
-            </li>
-            <li>
-              <button type="button" className="pl-see-door" onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>
-                <b>Talk it</b>
-                <span className="sub">Line Talk answers through the app; what you said is kept either way.</span>
-                <span className="pl-tool-go" aria-hidden>›</span>
-              </button>
-            </li>
-          </ul>
-        </section>
+        <div className="pl-duo">
+          <SpreadFixes wsId={wsId} />
+          {/* HOW FRESH THE LOOKING IS (FC-199, tools/gemba) — days since anyone looked at the line and at each machine, and what the looking found */}
+          <LineLooking wsId={wsId} />
+        </div>
       )}
       {/* THE LINE'S ACTION TRACKER (7 November — line/actions): its problems as a classic tracker with the Gantt drawn from it */}
       {view === 'actions' && <LineActions wsId={wsId} lineName={line.name} />}
-      {show('tools') && (<section className="pl-sec" aria-label="Tools on this line">
+      {show('tools') && (<section className={'pl-sec' + (view === 'tools' ? '' : ' is-glance')} aria-label="Tools on this line">
         <div className="pl-sec-h"><h2>Tools on this line</h2>
           {may && <button type="button" className="btn btn-ghost btn-sm pl-talk" onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>Talk on this line ›</button>}
           {/* NEW ▾ — a tool started here is this line's (src/catalogue/registry, docs/STRUCTURE.md §5.2) */}

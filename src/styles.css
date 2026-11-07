@@ -16578,3 +16578,58 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .hd-tool h4 { margin: 8px 0 4px 20px; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
 .hd-tool .et-list, .hd-group .et-list { margin: 0 0 12px 20px; }
 .hd-group { margin-top: 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 0 12px; }
+
+/* ============================================================ X2 — THE LINE PAGE (7 November, docs/ENTERPRISE-UX.md — Rowland: "why we need
+   buttons at the top of the page not long card taking up large sections ... hate the tools section on the page"). The doors a row of buttons
+   under the header; what was proved and how fresh the looking is side by side; on the Overview the tools not used yet a row of chips (their
+   cards stay on the Tools tab). Presentation only. */
+.wrap.pl .pl-sec.pl-doorbar { padding: 0; border: 0; background: none; box-shadow: none; margin: 0 0 12px; }
+.pl-doorbar-h { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pl-doorbar .pl-see-doors { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; grid-template-columns: none; }
+.pl-doorbar .pl-see-door { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--elev); color: var(--ink); font: inherit; font-size: var(--t-detail); cursor: pointer; width: auto; }
+.pl-doorbar .pl-see-door:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--line)); color: var(--brand); }
+.pl-doorbar .pl-see-door.is-first { background: var(--brand); border-color: var(--brand); color: var(--surface); }
+.pl-doorbar .pl-see-door.is-first:hover { color: var(--surface); background: color-mix(in srgb, var(--brand) 88%, var(--ink)); }
+.pl-doorbar .pl-see-door b { font-weight: 600; }
+.pl-doorbar .pl-see-door .sub, .pl-doorbar .pl-see-door .pl-tool-go { display: none; }
+.pl-doorbar .pl-see-lede { margin: 6px 0 0; font-size: var(--t-label); color: var(--muted); }
+.pl-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.pl-duo > * { margin: 0; min-width: 0; }
+.pl-sec.is-glance .pl-tools-more { display: flex; flex-wrap: wrap; gap: 6px; grid-template-columns: none; }
+.pl-sec.is-glance .pl-tools-more .pl-tool-li { width: auto; }
+.pl-sec.is-glance .pl-tools-more .pl-tool { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: var(--radius-pill); border: 1px solid var(--line); background: var(--surface); box-shadow: none; width: auto; }
+.pl-sec.is-glance .pl-tools-more .pl-tool .sub, .pl-sec.is-glance .pl-tools-more .pl-tool .pl-tool-go { display: none; }
+.pl-sec.is-glance .pl-tools-more .pl-tool b { font-weight: 500; font-size: var(--t-detail); }
+.pl-sec.is-glance .pl-tools-more .btn { min-height: 36px; border-radius: var(--radius-pill); font-size: var(--t-detail); }
+@media (max-width: 1099px) {
+  .pl-duo { grid-template-columns: 1fr; }
+  .pl-doorbar .pl-see-doors { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .pl-doorbar .pl-see-door { min-height: 44px; white-space: nowrap; }
+  .pl-sec.is-glance .pl-tools-more .pl-tool, .pl-sec.is-glance .pl-tools-more .btn { min-height: 44px; }
+}
+/* the tools in use, on the Overview: a table — a row each, its name, what it found (in its state's colour, with its words), how many on
+   the line — the cards stay on the Tools tab */
+.pl-sec.is-glance .pl-tools.is-used { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); grid-template-columns: none; }
+.pl-sec.is-glance .pl-tools.is-used > li { width: auto; border-bottom: 1px solid var(--line-row, var(--line)); }
+.pl-sec.is-glance .pl-tools.is-used > li:last-child { border-bottom: 0; }
+.pl-sec.is-glance .pl-tools.is-used .pl-tool { display: grid; grid-template-columns: 180px minmax(0, 1fr) 120px 16px; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 8px 14px; border: 0; border-radius: 0; box-shadow: none; background: none; text-align: left; }
+.pl-sec.is-glance .pl-tools.is-used .pl-tool:hover { background: var(--surface-2); }
+.pl-sec.is-glance .pl-tools.is-used .pl-tool > b { font-size: var(--t-detail); grid-column: 1; grid-row: 1; }
+.pl-sec.is-glance .pl-tools.is-used .pl-tool > .pl-tool-says { grid-column: 2; grid-row: 1; }
+.pl-sec.is-glance .pl-tools.is-used .pl-tool > .sub { grid-column: 3; grid-row: 1; }
+.pl-sec.is-glance .pl-tools.is-used .pl-tool > .pl-tool-go { grid-column: 4; grid-row: 1; }
+.pl-sec.is-glance .pl-tool.is-used { min-height: 44px; border-left-width: 0; }
+.pl-sec.is-glance .pl-tools.is-used .pl-tool-says { font-size: var(--t-detail); margin: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+.pl-sec.is-glance .pl-tools.is-used .pl-tool > .sub { font-size: var(--t-label); text-align: right; }
+.pl-sec.is-glance .pl-tools.is-used .pl-tool.is-r { box-shadow: inset 3px 0 0 var(--st-r); }
+.pl-sec.is-glance .pl-tools.is-used .pl-tool.is-a { box-shadow: inset 3px 0 0 var(--st-a); }
+.pl-sec.is-glance .pl-stops-li { position: relative; display: block; }
+.pl-sec.is-glance .pl-stops-li .pl-time { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); margin: 0; }
+.pl-sec.is-glance .pl-stops-li .pl-tool > .sub { display: none; }
+@media (max-width: 719px) {
+  .pl-sec.is-glance .pl-tools.is-used .pl-tool { grid-template-columns: minmax(0, 1fr) 16px; gap: 2px 8px; }
+  .pl-sec.is-glance .pl-tools.is-used .pl-tool > b { grid-column: 1; grid-row: 1; }
+  .pl-sec.is-glance .pl-tools.is-used .pl-tool > .pl-tool-says { grid-column: 1; grid-row: 2; -webkit-line-clamp: 2; }
+  .pl-sec.is-glance .pl-tools.is-used .pl-tool > .sub { grid-column: 1; grid-row: 3; text-align: left; }
+  .pl-sec.is-glance .pl-tools.is-used .pl-tool > .pl-tool-go { grid-column: 2; grid-row: 1 / span 3; }
+}
