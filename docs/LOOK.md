@@ -103,7 +103,7 @@ Each slice is live on its own (its gate, `main`, Vercel READY) and changes no re
 
 | Slice | What it does | Gate |
 |---|---|---|
-| **L0 — the shell** (built 6 November) | tokens (`src/styles.css` `:root`), the navy rail with the mark, the tagline, icons and the *Factory online* chip (`ui/Frame`, `ui/SyncChip`), the top bar beside it, the navy phone bar with the raised ＋, Inter bundled, the card, button and pill parts on the new tokens | quick: types, lint, tests, build, smoke, inventory, journeys, structure, where-am-i, snags, factory, lines, tool-page |
+| **L0 — the shell** (built 6 November; L1–L7 built 6–7 November — what each did is in `docs/STATE.md` §1) | tokens (`src/styles.css` `:root`), the navy rail with the mark, the tagline, icons and the *Factory online* chip (`ui/Frame`, `ui/SyncChip`), the top bar beside it, the navy phone bar with the raised ＋, Inter bundled, the card, button and pill parts on the new tokens | quick: types, lint, tests, build, smoke, inventory, journeys, structure, where-am-i, snags, factory, lines, tool-page |
 | **L1 — the Factory** | the greeting hero, the four question cards as doors, the answers under them (problems by cost, actions with who and when, before → after, the lines) | factory, control-room, line-is-home, gemba, inventory |
 | **L2 — a line** | the four questions as the line's bands, its machines in flow under *what's going wrong*, Tools *in use* as cards | lines, line-hub, line-report, tools-panes |
 | **L3 — a project** | the dashboard on the four questions, the method's journey as a progress bar, the sections as cards | method-dashboard, methods, actions |
@@ -112,5 +112,7 @@ Each slice is live on its own (its gate, `main`, Vercel READY) and changes no re
 | **L6 — the papers** | the same tokens in `lib/reportKit` and every paper's band, tiles and pills (light, never dark) | GATE_PAPERS=1 and paper parity |
 | **L7 — the phone** | the navy header card on the Factory, the two-up cards, the sheets | the phone steps of every script above |
 
-The look is finished when every page reads in the four questions and nothing on it wears the old tokens; `docs/STATE.md`
-says which slice is live.
+**Where it stands (7 November):** L0–L7 are live. The Factory, a line, a method project's dashboard and a problem's editor
+read in the four questions; the shell, the tools' pages, the papers and the phone wear look E. What remains is the
+same rule applied as each page is next touched: a row a door to the next step, nothing drawn to admire, no
+improvement claimed without its before → after.

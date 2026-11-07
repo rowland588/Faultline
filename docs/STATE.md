@@ -26,6 +26,8 @@ a session that ships something updates this page in the same commit.** The rules
   — talk a *flow diagram* (process flow chart), a *spaghetti diagram* (up to four walkers), a *value stream* (the
   Value stream tool's own map) and Make it / Update it / Undo makes the tool's own record. Gateway **v18**, rules
   fingerprint `08f542070ed1de5c` (must equal the repo's; see §4).
+- **The look, L7 — the phone** (7 November): every page of L0–L6 checked at 390 px — the navy bar with the raised ＋,
+  the hero stacking, the cards two-up, the rows wrapping, nothing off the side; no page needed more than it had.
 - **The look, L6 — every paper on the new tokens** (7 November): the press colour blue, the frame navy, the cool neutrals,
   light as ever; the five state colours, people's colours and the mark untouched. Known red on `report-stress`: the
   ordinary product's Line capacity paper runs to 2 pages (pre-existing, on `main` too).
@@ -58,11 +60,11 @@ a session that ships something updates this page in the same commit.** The rules
 
 **Parallel improvement plan** (domains, agent streams, hygiene): `docs/IMPROVEMENT-ROADMAP.md` — planning only; does not replace this ordered list.
 
-0. **The look, L1–L7** (`docs/LOOK.md` §4 — go given 6 November, in flight): every page laid out on the four questions
+0. **The look** (`docs/LOOK.md` — L0–L7 live, 7 November; the rule in §0, *the journey is the product*, applies to every page touched from here): every page laid out on the four questions
    (what's going wrong · what needs doing · who's responsible · did it work) in look E — the Factory's greeting hero
    and four question cards first (L1), then a line (L2), a project (L3), a problem and the register (L4), the tools'
    tiles as icon cards with their change (L5), the papers' tokens (L6), the phone (L7). Each slice its own gate and
-   its own merge; `docs/STATE.md` §1 says which is live (L0–L6 live; L7 the phone next).
+   its own merge; `docs/STATE.md` §1 says which is live (L0–L7 live — the look is built; the rule in §0 applies to every page touched from here).
 
 1. **Spaghetti talk accuracy** (Rowland, 6 November: *"it's going to struggle with what I'm saying … there needs to be
    improvements, guaranteed"*). Tested on his own sentence: the order of moves is right, "left"/"right" become place
