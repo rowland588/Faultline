@@ -287,6 +287,7 @@ export function WorkspaceHome() {
       ) : (
         <>
           <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
+          <div className="fac-floor-head" aria-hidden><span>Line</span><span>Where it stands</span><span>The worst thing open</span><span>Programs · projects · looked at</span></div>
           <ul className="fac-floor" aria-label="The lines, in floor order">
             {prodLines.map(w => {
               const c = counts[w.id];
@@ -305,9 +306,14 @@ export function WorkspaceHome() {
               return (
                 <li key={w.id}>
                   <button className={'fac-card is-' + st.tone} data-line={w.name} onClick={() => nav(`/lines/${w.id}`)}>
-                    <div className="fac-card-head">
-                      <b className="fac-card-name">{w.name}</b>
-                    </div>
+                    {/* a row of the board (docs/ENTERPRISE-UX.md X1): who it is · where it stands · the worst thing open · the rest */}
+                    <span className="fac-card-id">
+                      <span className="fac-card-head">
+                        <b className="fac-card-name">{w.name}</b>
+                      </span>
+                      <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
+                      <span className="fac-card-machines">{machineSaid}</span>
+                    </span>
                     {st.tone === 'r' && c && (c.problems.critical || c.problems.late)
                       ? (
                         <span className="fac-card-state is-r">
@@ -317,19 +323,19 @@ export function WorkspaceHome() {
                         </span>
                       )
                       : <span className={'fac-card-state is-' + st.tone}>{st.word}</span>}
-                    <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
-                    <span className="fac-card-machines">{machineSaid}</span>
-                    <span className="fac-card-projects">{on ? `Projects: ${on}` : 'No project on it'}</span>
-                    {(() => { const lk = looked?.find(x => x.id === w.id)?.looking; return lk ? <span className={'fac-card-looked is-' + lk.level}>{lookingShort(lk)}</span> : null; })()}
-                    {c?.worst && <span className={'fac-card-worst' + (c.worst.red ? ' is-r' : '')}>{c.worst.what}<span className="sub"> · {c.worst.owner ?? 'nobody yet'}{c.worst.due ? ` · ${c.worst.due}` : ''}</span></span>}
-                    {(todo > 0 || k.late || dual || rate) ? (
-                      <span className="fac-card-meta">
-                        {todo > 0 ? `${todo} program${todo === 1 ? '' : 's'} to prove` : ''}
-                        {k.late ? <>{todo > 0 ? ' · ' : ''}<b className="is-r">{k.late} late</b></> : null}
-                        {dual ? <>{todo > 0 || k.late ? ' · ' : ''}<span className="fac-dual">{dual}</span></> : null}
-                        {rate ? <>{todo > 0 || k.late || dual ? ' · ' : ''}{rate}</> : null}
-                      </span>
-                    ) : null}
+                    {c?.worst ? <span className={'fac-card-worst' + (c.worst.red ? ' is-r' : '')}>{c.worst.what}<span className="sub"> · {c.worst.owner ?? 'nobody yet'}{c.worst.due ? ` · ${c.worst.due}` : ''}</span></span> : <span className="fac-card-worst is-none">Nothing open</span>}
+                    <span className="fac-card-info">
+                      {(todo > 0 || k.late || dual || rate) ? (
+                        <span className="fac-card-meta">
+                          {todo > 0 ? `${todo} program${todo === 1 ? '' : 's'} to prove` : ''}
+                          {k.late ? <>{todo > 0 ? ' · ' : ''}<b className="is-r">{k.late} late</b></> : null}
+                          {dual ? <>{todo > 0 || k.late ? ' · ' : ''}<span className="fac-dual">{dual}</span></> : null}
+                          {rate ? <>{todo > 0 || k.late || dual ? ' · ' : ''}{rate}</> : null}
+                        </span>
+                      ) : null}
+                      <span className="fac-card-projects">{on ? `Projects: ${on}` : 'No project on it'}</span>
+                      {(() => { const lk = looked?.find(x => x.id === w.id)?.looking; return lk ? <span className={'fac-card-looked is-' + lk.level}>{lookingShort(lk)}</span> : null; })()}
+                    </span>
                     {/* the way in, named (27 October, where-am-i D: each card saying what a tap does) */}
                     <span className="fac-card-go">Open {w.name} ›</span>
                   </button>
@@ -398,11 +404,8 @@ export function WorkspaceHome() {
       {facQuick}
       </section>
       <QuestionCards q={questions} />
-      <QuestionPanels q={questions} lines={factory} />
-
-      {jobs.length > 0 || prodLines.length > 0
-        ? <JobsBoard projects={jobs} reportRef={roomReport} />
-        : null}
+      <QuestionPanels q={questions} lines={factory}
+        projects={jobs.length > 0 || prodLines.length > 0 ? <JobsBoard projects={jobs} reportRef={roomReport} /> : null} />
 
       {/* ONE LIST OF JOBS. The project cards that sat here listed the same
           jobs the control room lists, a second time. Rowland agreed they go

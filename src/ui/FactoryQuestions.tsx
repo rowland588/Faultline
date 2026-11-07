@@ -115,23 +115,30 @@ function WorkedRows({ q }: { q: FourQuestions }) {
   );
 }
 
-/** The answers under the cards: what's going wrong | what needs doing, then the lines | did it work. */
-export function QuestionPanels({ q, lines }: { q: FourQuestions | null; lines: ReactNode }) {
+/** THE WORKING AREA (docs/ENTERPRISE-UX.md X1, 7 November — Rowland: "factory page — terrible layout when showing the lines"):
+ *  at a desk the lines and the projects are the main column and the answers — what's going wrong, what needs doing, did it
+ *  work — a rail beside them; on a phone one column in the order the questions are asked (styles: .fq-grid). */
+export function QuestionPanels({ q, lines, projects }: { q: FourQuestions | null; lines: ReactNode; projects?: ReactNode }) {
   return (
     <div className="fq-grid">
-      <Panel id="fq-wrong" title="What’s going wrong — by what it costs" all={{ label: 'All problems', to: '/snags' }}>
-        {q ? <WrongRows rows={q.wrong.top} open={q.wrong.open} priced={q.wrong.priced} /> : <p className="fq-none">Reading…</p>}
-      </Panel>
-      <Panel id="fq-doing" title="What needs doing — who, by when" all={{ label: 'All actions', to: '/actions' }}>
-        {q ? <DoingRows rows={q.doing.top} /> : <p className="fq-none">Reading…</p>}
-        {q && q.who.people.length > 0 && (
-          <p className="fq-foot" id="fq-who">{q.who.people.slice(0, 4).map(p => `${p.name} ${p.open}${p.late ? ` (${p.late} late)` : ''}`).join(' · ')}{q.who.nobody ? ` · nobody yet ${q.who.nobody}` : ''}</p>
-        )}
-      </Panel>
-      <div className="fq-lines">{lines}</div>
-      <Panel id="fq-worked" title="Did it work — before → after, on the same number">
-        {q ? <WorkedRows q={q} /> : <p className="fq-none">Reading…</p>}
-      </Panel>
+      <div className="fq-main">
+        <div className="fq-lines">{lines}</div>
+        {projects && <div className="fq-projects">{projects}</div>}
+      </div>
+      <aside className="fq-side" aria-label="The answers">
+        <Panel id="fq-wrong" title="What’s going wrong — by what it costs" all={{ label: 'All problems', to: '/snags' }}>
+          {q ? <WrongRows rows={q.wrong.top} open={q.wrong.open} priced={q.wrong.priced} /> : <p className="fq-none">Reading…</p>}
+        </Panel>
+        <Panel id="fq-doing" title="What needs doing — who, by when" all={{ label: 'All actions', to: '/actions' }}>
+          {q ? <DoingRows rows={q.doing.top} /> : <p className="fq-none">Reading…</p>}
+          {q && q.who.people.length > 0 && (
+            <p className="fq-foot" id="fq-who">{q.who.people.slice(0, 4).map(p => `${p.name} ${p.open}${p.late ? ` (${p.late} late)` : ''}`).join(' · ')}{q.who.nobody ? ` · nobody yet ${q.who.nobody}` : ''}</p>
+          )}
+        </Panel>
+        <Panel id="fq-worked" title="Did it work — before → after, on the same number">
+          {q ? <WorkedRows q={q} /> : <p className="fq-none">Reading…</p>}
+        </Panel>
+      </aside>
     </div>
   );
 }
