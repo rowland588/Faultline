@@ -4,16 +4,18 @@
  * method and scenario ... reflecting real status". Driven in a real browser:
  *
  *   1  from the menu, Tools (the library — "Every tool" before B5; the front door's link before 23 October); the lede's counts as the catalogue says
- *   2  the counts are the filters: each status's chip its count, and tapped,
- *      exactly those tools, each saying its status in words
+ *      — tools only (7 November, Rowland: "you've split down every single functionality within its tool and then called each
+ *      functionality a tool"): one number of tools, never the catalogue's entries; Problems and Actions not cards; Line Talk a card
+ *      and a door
+ *   2  what we have and what we need to build: a row for every tool saying what it holds as catalogue/counts holdings says, opened
+ *      to Built and To build; the new tools not started; the other groups with their counts — every entry in one place
  *   3  the problem in the floor's words — "we're rejecting too many": where to
  *      start (the rejects route first), the tools in the module's order, the
  *      reject rate (FC-098) among the first five, available since W1, opened — its
  *      problem, what it does not do yet, Open it landing on the capability study
  *   4  a number — "FC-95": the one tool; opened, Open it lands on the
  *      capability study
- *   5  a route's tool opened from the route; a discipline chosen — its tools
- *      only; a tool left out on purpose says why
+ *   5  a route's tool opened from the route; a tool left out on purpose says why
  *   6  the phone — nothing off the side, a tool opened inside the screen
  *
  * Fails on any console error.
@@ -47,14 +49,15 @@ const flat = x => (x ?? '').replace(/\s+/g, ' ').trim();
 const cat = (fn, ...args) => page.evaluate(async ([fn, args]) => {
   const C = await import('/src/catalogue/index.ts'); const T = await import('/src/catalogue/types.ts');
   const ids = es => es.map(e => e.id);
-  if (fn === 'counts') { const K = await import('/src/catalogue/counts.ts'); return { total: C.ENTRIES.length, disciplines: T.DISCIPLINES.length, s: C.statusCounts(), t: K.toolCounts() }; }
+  if (fn === 'counts') { const K = await import('/src/catalogue/counts.ts'); const h = K.holdings(); return { total: C.ENTRIES.length, t: K.toolCounts(), gallery: K.GALLERY_TOOLS.map(t => t.key), held: h.tools.map(x => ({ id: x.id, built: x.built.length, toBuild: x.toBuild.length })), newTools: h.newTools.map(e => e.id), parts: h.parts.length }; }
   if (fn === 'search') return { problems: C.searchProblems(args[0]).map(p => p.id), entries: ids(C.searchEntries(args[0])) };
   if (fn === 'discipline') return ids(C.ENTRIES.filter(e => e.discipline === args[0]));
   if (fn === 'entry') { const e = C.entryById(args[0]); return e && { id: e.id, name: e.name, status: T.STATUS_WORDS[e.status], problem: e.problem, decided: e.decided ?? null }; }
   if (fn === 'words') return T.STATUS_WORDS;
   return null;
 }, [fn, args]);
-const rows = async () => page.locator('.et-row').evaluateAll(els => els.map(e => ({ id: e.getAttribute('data-id'), st: e.querySelector('.et-st')?.textContent?.trim() })));
+const M = 'section[aria-label="What matches"] ';
+const rows = async () => page.locator(M + '.et-row').evaluateAll(els => els.map(e => ({ id: e.getAttribute('data-id'), st: e.querySelector('.et-st')?.textContent?.trim() })));
 
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
@@ -65,23 +68,30 @@ await page.locator('.nv-rail .nv-ri', { hasText: /^Tools$/ }).click(); await pag
 const c = await cat('counts');
 const lede = flat(await page.locator('.et-lede').innerText());
 ok(page.url().endsWith('#/tools') && (await page.locator('h1').innerText()) === 'Tools', `1 the menu opens Tools, the library (${page.url().split('#')[1]})`);
-ok(lede.includes(`${c.t.tools} tools you can open. Inside them, ${c.t.inside} methods are built`) && lede.includes(`${c.t.parts} more things are built into the app but are not tools`) && lede.includes(`${c.t.notBuilt} methods are planned or not built yet, ${c.t.research} need research first, ${c.t.leftOut} are left out on purpose`) && lede.includes(`${c.t.entries} entries — not a count of tools`) && c.t.tools < 38 && c.t.tools + c.t.inside + c.t.parts + c.t.notBuilt + c.t.research + c.t.leftOut === c.total,
-  `1 the lede counts tools truly — ${c.t.tools} tools, ${c.t.inside} methods inside them, ${c.t.parts} parts that are not tools, adding up to ${c.total}: "${lede.slice(0, 200)}…"`);
-ok((await page.locator('.et-route-b').count()) >= 20 && (await rows()).length === c.total, `1 every route to start from, and every tool by discipline (${(await rows()).length})`);
+const toBuildInside = c.held.reduce((n, x) => n + x.toBuild, 0);
+ok(lede.startsWith(`${c.t.tools} tools. Inside them, ${c.t.inside} ways of using them are built and ${toBuildInside} more`) && lede.includes(`${c.newTools.length} new tools are planned and not started`) && !lede.includes(String(c.total)) && !/available/i.test(lede),
+  `1 the lede says the tools, never the catalogue's ${c.total} entries: "${lede.slice(0, 160)}…"`);
+const cards = await page.locator('.et-now .tc-card').evaluateAll(els => els.map(e => e.getAttribute('data-tool')));
+ok(JSON.stringify(cards) === JSON.stringify(c.gallery) && !cards.includes('problems') && !cards.includes('actions') && cards.includes('talk') && c.t.tools === cards.length + 1,
+  `1 a card for every tool (${cards.length}) and the 6M door make ${c.t.tools}; Problems and Actions are not cards; Line Talk is`);
+ok((await page.locator('.et-doors [data-door="talk"]').count()) === 1 && (await page.locator('.et-doors [data-sixm-door]').count()) === 1, '1 two doors at the top — Line Talk and the 6M');
+ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and no discipline box — they counted entries as tools');
 
-/* ---- 2 · the counts are the filters ---- */
+/* ---- 2 · what we have and what we need to build ---- */
 {
-  const W = await cat('words');
-  const chips = await page.locator('.et-status .chip').allInnerTexts();
-  const want = ['All ' + c.total, ...Object.keys(c.s).map(k => `${W[k]} ${c.s[k]}`)];
-  ok(JSON.stringify(chips.map(flat)) === JSON.stringify(want), `2 the chips are the counts: ${chips.map(flat).join(' · ')}`);
-  await page.locator('.et-status .chip[data-status="available"]').click(); await page.waitForTimeout(300);
-  const av = await rows();
-  ok(av.length === c.s.available && av.every(r => r.st === W.available), `2 Available tapped: ${av.length} tools, each saying "${W.available}"`);
-  await page.locator('.et-status .chip[data-status="left-out"]').click(); await page.waitForTimeout(300);
-  const lo = await rows();
-  ok(lo.length === c.s['left-out'] && lo.every(r => r.st === W['left-out']), `2 Left out on purpose: ${lo.length}`);
-  await page.locator('.et-status .chip').first().click(); await page.waitForTimeout(300);
+  const rows2 = await page.locator('.hd-tool').evaluateAll(els => els.map(e => ({ id: e.getAttribute('data-tool-id'), n: e.querySelector('.hd-n')?.textContent?.trim() })));
+  const said = x => [x.built ? `${x.built} way${x.built === 1 ? '' : 's'} of using it built` : '', x.toBuild ? `${x.toBuild} to build` : ''].filter(Boolean).join(' · ') || 'the tool itself';
+  ok(rows2.length === c.held.length && rows2.every((r, i) => r.id === c.held[i].id && r.n === said(c.held[i])), `2 a row for every tool saying what it holds — ${rows2.slice(0, 3).map(r => r.n).join(' | ')}…`);
+  const cap = c.held.find(x => x.id === 'FC-094');
+  await page.locator('.hd-tool[data-tool-id="FC-094"] summary').click(); await page.waitForTimeout(300);
+  const built = await page.locator('.hd-tool[data-tool-id="FC-094"] h4').allInnerTexts();
+  const n = await page.locator('.hd-tool[data-tool-id="FC-094"] .et-row').count();
+  ok(JSON.stringify(built) === JSON.stringify(cap.toBuild ? ['Built', 'To build'] : ['Built']) && n === cap.built + cap.toBuild, `2 Capability opened: Built and To build, ${n} entries`);
+  const groups = await page.locator('.hd-group').evaluateAll(els => els.map(e => ({ g: e.getAttribute('data-group'), n: Number(e.querySelector('.hd-n')?.textContent), open: e.open })));
+  const want = { new: c.newTools.length, parts: c.parts, research: c.t.research, 'left-out': c.t.leftOut };
+  ok(groups.length === 4 && groups.every(g => want[g.g] === g.n) && groups[0].g === 'new' && groups[0].open, `2 New tools — planned, not started (${want.new}, open), then parts ${want.parts}, research ${want.research}, left out ${want['left-out']}`);
+  const all = c.held.reduce((n, x) => n + x.built + x.toBuild, 0) + c.newTools.length + c.parts + c.t.research + c.t.leftOut + c.t.tools;
+  ok(all === c.total, `2 every catalogue entry in one place: ${all} of ${c.total}`);
 }
 
 /* ---- 3 · the problem in the floor's words ---- */
@@ -94,13 +104,13 @@ ok((await page.locator('.et-route-b').count()) >= 20 && (await rows()).length ==
   const shown = (await rows()).map(r => r.id);
   ok(JSON.stringify(shown.slice(0, 10)) === JSON.stringify(t.entries.slice(0, 10)) && shown.length === t.entries.length, `3 the tools in the module's order: ${shown.slice(0, 6).join(', ')}… (${shown.length})`);
   const e = await cat('entry', 'FC-098');
-  ok(shown.slice(0, 5).includes('FC-098') && (await page.locator('.et-row[data-id="FC-098"] .et-st').innerText()) === e.status, `3 the reject rate among the first five, "${e.status}"`);
-  await page.locator('.et-row[data-id="FC-098"] .et-row-h').click(); await page.waitForTimeout(300);
-  const body = flat(await page.locator('.et-row[data-id="FC-098"] .et-body').innerText());
+  ok(shown.slice(0, 5).includes('FC-098') && (await page.locator(M + '.et-row[data-id="FC-098"] .et-st').innerText()) === e.status, `3 the reject rate among the first five, "${e.status}"`);
+  await page.locator(M + '.et-row[data-id="FC-098"] .et-row-h').click(); await page.waitForTimeout(300);
+  const body = flat(await page.locator(M + '.et-row[data-id="FC-098"] .et-body').innerText());
   /* since W1 (24 October) the reject rate is built: available, its limits said under "What it does not do yet", Open it landing on the capability study */
-  ok(body.includes(e.problem) && /^Available$/.test(e.status) && /What it does not do yet/.test(body) && /Each run is one count of made and rejected/.test(body) && (await page.locator('.et-row[data-id="FC-098"]').getByRole('button', { name: 'Open it' }).count()) === 1,
+  ok(body.includes(e.problem) && /^Available$/.test(e.status) && /What it does not do yet/.test(body) && /Each run is one count of made and rejected/.test(body) && (await page.locator(M + '.et-row[data-id="FC-098"]').getByRole('button', { name: 'Open it' }).count()) === 1,
     `3 opened: its problem, "${e.status}", what it does not do yet, Open it`);
-  await page.locator('.et-row[data-id="FC-098"]').getByRole('button', { name: 'Open it' }).click(); await page.waitForTimeout(1500);
+  await page.locator(M + '.et-row[data-id="FC-098"]').getByRole('button', { name: 'Open it' }).click(); await page.waitForTimeout(1500);
   ok(/#\/capability$/.test(page.url()), `3 Open it lands on the capability study (${page.url().split('#')[1]})`);
   await page.goto(`${BASE}/#/tools`); await page.waitForTimeout(1500);
 }
@@ -110,8 +120,8 @@ ok((await page.locator('.et-route-b').count()) >= 20 && (await rows()).length ==
   await page.getByLabel('What’s the problem?').fill('FC-95'); await page.waitForTimeout(400);
   const r = await rows();
   ok(r.length === 1 && r[0].id === 'FC-095', `4 "FC-95": the one tool — ${r.map(x => x.id).join(', ')}`);
-  await page.locator('.et-row[data-id="FC-095"] .et-row-h').click(); await page.waitForTimeout(300);
-  await page.locator('.et-row[data-id="FC-095"]').getByRole('button', { name: 'Open it' }).click(); await page.waitForTimeout(1500);
+  await page.locator(M + '.et-row[data-id="FC-095"] .et-row-h').click(); await page.waitForTimeout(300);
+  await page.locator(M + '.et-row[data-id="FC-095"]').getByRole('button', { name: 'Open it' }).click(); await page.waitForTimeout(1500);
   ok(/#\/capability$/.test(page.url()) && (await page.locator('h1').first().innerText()).includes('Capability'), `4 Open it lands on the capability study (${page.url().split('#')[1]})`);
 }
 
@@ -123,15 +133,10 @@ ok((await page.locator('.et-route-b').count()) >= 20 && (await rows()).length ==
   const id = flat(await chip.locator('b').innerText());
   await chip.click(); await page.waitForTimeout(600);
   ok((await page.locator(`.et-row[data-id="${id}"].is-open .et-body`).count()) === 1, `5 a route's first tool, ${id}, opened from the route`);
-  await page.getByLabel('Discipline').selectOption('spc'); await page.waitForTimeout(400);
-  const spc = await cat('discipline', 'spc');
-  const r = (await rows()).map(x => x.id);
-  ok(JSON.stringify([...r].sort()) === JSON.stringify([...spc].sort()), `5 statistical process control chosen: its ${spc.length} tools only`);
-  await page.getByLabel('Discipline').selectOption(''); await page.waitForTimeout(300);
   const left = await cat('entry', 'FC-231');
   await page.getByLabel('What’s the problem?').fill('FC-231'); await page.waitForTimeout(400);
-  await page.locator('.et-row[data-id="FC-231"] .et-row-h').click(); await page.waitForTimeout(300);
-  const body = flat(await page.locator('.et-row[data-id="FC-231"] .et-body').innerText());
+  await page.locator(M + '.et-row[data-id="FC-231"] .et-row-h').click(); await page.waitForTimeout(300);
+  const body = flat(await page.locator(M + '.et-row[data-id="FC-231"] .et-body').innerText());
   ok(left.decided && body.includes('Why it is left out') && body.includes(flat(left.decided).slice(0, 50)), `5 ${left.id} ${left.name}: why it is left out, said`);
 }
 
@@ -142,15 +147,15 @@ ok((await page.locator('.et-route-b').count()) >= 20 && (await rows()).length ==
   await page.getByLabel('What’s the problem?').fill('changeovers take too long'); await page.waitForTimeout(400);
   const first = (await rows())[0];
   /* centred first, as a thumb scrolls it — the app's top and bottom bars are fixed on a phone */
-  const head = page.locator(`.et-row[data-id="${first.id}"] .et-row-h`);
+  const head = page.locator(M + `.et-row[data-id="${first.id}"] .et-row-h`);
   await head.evaluate(e => e.scrollIntoView({ block: 'center' }));
   await head.click(); await page.waitForTimeout(300);
   /* the rows as drawn: each tall enough for its name and its status in words, none over the next
      (22 October: a class name shared with the timeline squashed every row to 24 px) */
-  const drawn = await page.locator('.et-row').evaluateAll(els => els.slice(0, 8).map(e => { const r = e.getBoundingClientRect(), st = e.querySelector('.et-st')?.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: r.height, stIn: !!st && st.bottom <= r.bottom + 0.5 && st.height > 0 }; }));
+  const drawn = await page.locator(M + '.et-row').evaluateAll(els => els.slice(0, 8).map(e => { const r = e.getBoundingClientRect(), st = e.querySelector('.et-st')?.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: r.height, stIn: !!st && st.bottom <= r.bottom + 0.5 && st.height > 0 }; }));
   ok(drawn.every((r, i) => r.h >= 40 && r.stIn && (i === 0 || r.top >= drawn[i - 1].bottom - 0.5)), `6 the rows on a phone: each ${Math.round(Math.min(...drawn.map(r => r.h)))}px or taller, its status inside it, none over the next`);
   const wide = await page.evaluate(() => document.scrollingElement.scrollWidth);
-  const inside = await page.locator(`.et-row[data-id="${first.id}"]`).evaluate(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= 390; });
+  const inside = await page.locator(M + `.et-row[data-id="${first.id}"]`).evaluate(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= 390; });
   ok(wide <= 390 && inside, `6 the phone: "changeovers take too long" → ${first.id} opened inside the screen (page ${wide}px wide)`);
 }
 

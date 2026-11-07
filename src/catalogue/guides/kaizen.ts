@@ -154,4 +154,34 @@ export const KAIZEN_GUIDES: Record<string, Guide> = {
     ],
     watch: 'Draw what the product really does, not what the procedure says it should do — and do not call a planned storage waste. The delays and the long transports are the questions; the chill that the product needs is not.',
   },
+  'FC-017': {
+    intro: 'For a team that wants to improve a little every day rather than in bursts: one challenge, the line as it is now, the next target condition, and small experiments toward it — each with what you expect before you run it. It is the Improvement Kata project, started from New project.',
+    steps: [
+      {
+        step: 'The storyboard',
+        means: 'Four boxes side by side, as the board on the wall has them: the Challenge (where the team is heading), the Current condition (how the line works today, with its measure), the Target condition (the next state to reach, and by when) and the Obstacles (what stands in the way, and the one being worked on now).',
+        doThis: 'Write each box in the team’s own words. Put the measure under the current condition and a day under the target. Name one obstacle as the one being addressed now.',
+        youGet: 'The board filled in, each box saying what is not written yet until it is.',
+      },
+      {
+        step: 'Add an experiment',
+        means: 'One small step toward the target. Before it runs you say what you will try and what you expect; after it runs you say what happened and what you learned.',
+        doThis: 'Press Add an experiment, write the step and what you expect, run it on the line, then come back and write what happened and what you learned.',
+        youGet: 'The experiments table — expected against what happened, matched or not, the latest lesson on top.',
+      },
+      {
+        step: 'The five coaching questions',
+        means: 'The coach’s five questions (Rother): what is the target condition, what is the actual condition now, what obstacles are in the way and which one now, what is your next step and what do you expect, and when can we go and see what we learned.',
+        doThis: 'Ask them at the board each day. Each is answered from what is written; one with no answer says so — write it.',
+        youGet: 'The day’s coaching conversation on one page, and whether the routine is being kept (the pulse).',
+      },
+      {
+        step: 'Report ▾ › Kata storyboard',
+        means: 'The storyboard on paper, for the wall or the meeting.',
+        doThis: 'Open Report ▾ and choose the Kata storyboard.',
+        youGet: 'The four boxes, the experiments and the coaching questions as one paper.',
+      },
+    ],
+    watch: 'One big change a month is not kata. Keep the experiments small and daily, and write what you expect before you run one — an experiment with no expectation teaches nothing.',
+  },
 };

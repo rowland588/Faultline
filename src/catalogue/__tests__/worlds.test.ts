@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { WORLDS, unplaced, worldById, worldEntries, worldOfTool, worldRoutes, worldTools } from '../worlds';
 import { DISCIPLINES } from '../types';
-import { APP_TOOLS } from '../registry';
+import { APP_TOOLS, MENU_PAGES } from '../registry';
 import { ENTRIES } from '../index';
 
 describe('the worlds', () => {
@@ -36,7 +36,7 @@ describe('the worlds', () => {
     expect(worldOfTool({ id: 'FC-094' })?.id).toBe('statistics');
     expect(worldOfTool({ id: 'FC-001' })?.id).toBe('lean');
     const total = WORLDS.reduce((n, w) => n + worldTools(w).length, 0);
-    expect(total).toBe(APP_TOOLS.length);
+    expect(total).toBe(APP_TOOLS.length - MENU_PAGES.size);   // every card in one world; Problems and Actions are the menu's, in none (7 November)
   });
 
   it('count entries per world to the whole catalogue', () => {

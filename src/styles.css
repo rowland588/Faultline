@@ -16558,3 +16558,23 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ie-calc .calc-caveats { padding: 0 4px; }
 .ie-calc .calc-caveats li { color: var(--muted); }
 .ie-calc .calc-body:not(.has-grid) .calc-out { padding: 2px 6px 10px; margin: -2px -6px 0; }
+
+/* ============================================================ THE TOOLS PAGE, TOOLS ONLY (7 November)
+   Rowland: "you've split down every single functionality within its tool and then called each functionality a tool ... I can't
+   tell what we have and what we need to build". One number (the tools), two doors (Line Talk, 6M), each card saying what it
+   holds, and What we have and what we need to build — tool by tool, then the new tools, folded. */
+.et-doors { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 16px; }
+.et-door, .et-doors .btn { min-height: 44px; font-weight: 600; }
+.tc-holds { display: block; margin-top: 6px; font-size: var(--t-label); font-weight: 600; color: var(--ink-2); }
+.hd { margin-top: 24px; }
+.hd-tools { list-style: none; margin: 8px 0 12px; padding: 0; border-top: 1px solid var(--line); }
+.hd-tool { border-bottom: 1px solid var(--line-row, var(--line)); }
+.hd-tool > details > summary, .hd-group > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 4px; cursor: pointer; list-style: none; }
+.hd-tool > details > summary::-webkit-details-marker, .hd-group > summary::-webkit-details-marker { display: none; }
+.hd-tool > details > summary::before, .hd-group > summary::before { content: "›"; color: var(--muted); font-weight: 700; width: 12px; flex: none; transition: transform .15s; }
+.hd-tool > details[open] > summary::before, .hd-group[open] > summary::before { transform: rotate(90deg); }
+.hd-tool > details > summary b, .hd-group > summary b { flex: 1; min-width: 0; color: var(--ink); }
+.hd-n { font-size: var(--t-detail); color: var(--ink-2); text-align: right; }
+.hd-tool h4 { margin: 8px 0 4px 20px; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.hd-tool .et-list, .hd-group .et-list { margin: 0 0 12px 20px; }
+.hd-group { margin-top: 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 0 12px; }

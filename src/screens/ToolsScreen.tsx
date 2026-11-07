@@ -12,16 +12,16 @@
  * the catalogue's words never weigh on the rest of the app. */
 import { PageHeader } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
-import { APP_TOOLS } from '../catalogue/registry';
+import { toolByKey } from '../catalogue/registry';
 import { ToolCard } from '../ui/ToolCard';
 import { SixMDoor } from '../ui/SixMDoor';
 import { useToolUse, usedSaid } from '../lib/useToolUse';
 import { useMemo, useState } from 'react';
-import { ENTRIES, PROBLEMS, disciplineName, entryById, searchEntries, searchProblems, statusCounts, subName } from '../catalogue';
-import { DISCIPLINES, FORM_WORDS, KINDS, STATUSES, STATUS_WORDS, type Entry, type Kind, type ProblemRoute, type Status } from '../catalogue/types';
+import { ENTRIES, PROBLEMS, disciplineName, entryById, searchEntries, searchProblems, subName } from '../catalogue';
+import { FORM_WORDS, KINDS, STATUS_WORDS, type Entry, type Kind, type ProblemRoute, type Status } from '../catalogue/types';
 import { nav, useRoute } from '../state/useRoute';
 import { WORLDS, worldEntries, worldTools } from '../catalogue/worlds';
-import { insideByTool, toolCounts } from '../catalogue/counts';
+import { GALLERY_TOOLS, holdings, toolCounts, type ToolHolds } from '../catalogue/counts';
 import { ToolPicture } from '../ui/ToolCard';
 
 /** The state colours, one meaning each: built is done (a quiet green);
@@ -36,8 +36,6 @@ const plural = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? o
 
 export function ToolsScreen() {
   const [q, setQ] = useState('');
-  const [status, setStatus] = useState<Status | ''>('');
-  const [disc, setDisc] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const here = useRoute();
   /* a tool's page sends you to the problem routes it sits on (?route=) */
@@ -46,31 +44,32 @@ export function ToolsScreen() {
   const use = useToolUse();
 
   const counts = useMemo(() => toolCounts(), []);
-  const byTool = useMemo(() => { const by = insideByTool(); return APP_TOOLS.filter(t => by[t.id] > 0).sort((a, b) => by[b.id] - by[a.id]).slice(0, 3).map(t => `${t.label} holds ${by[t.id]}`).join(', ').replace(/, ([^,]*)$/, ' and $1'); }, []);
+  const held = useMemo(() => holdings(), []);
+  const holdsOf = useMemo(() => new Map(held.tools.map(h => [h.id, h])), [held]);
+  const toBuildInside = held.tools.reduce((n, t) => n + t.toBuild.length, 0);
   const words = q.trim();
   const routes = useMemo(() => (words ? searchProblems(words).slice(0, 3) : []), [words]);
-  /* what the words and the discipline match; the status chips count it and filter it */
-  const matched = useMemo(() => {
-    const scope = disc ? ENTRIES.filter(e => e.discipline === disc) : ENTRIES;
-    return words ? searchEntries(words, scope) : scope;
-  }, [words, disc]);
-  const shown = statusCounts(matched);
-  const found = status ? matched.filter(e => e.status === status) : matched;
+  const found = useMemo(() => (words ? searchEntries(words, ENTRIES) : []), [words]);
   const picked = route ? PROBLEMS.find(p => p.id === route) : undefined;
+  const talk = toolByKey('talk');
 
   return (
     <div className="wrap et">
-      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3) — the library has no paper and no one thing to do: its title
-          and what it holds */}
+      {/* THE PAGE HEADER — one number, the tools (Rowland, 7 November: "you've split down every single functionality within its tool
+          and then called each functionality a tool ... I can't tell what we have and what we need to build"; catalogue/counts) */}
       <PageHeader title="Tools" says={<span className="et-lede">
-        {counts.tools} tools you can open. Inside them, {counts.inside} methods are built — {byTool}. {counts.parts} more things are built into the
-        app but are not tools (Problems, Actions, reports, the stage gate). {counts.notBuilt} methods are planned or not built yet,{' '}
-        {counts.research} need research first, {counts.leftOut} are left out on purpose. The list lower down is every method and part the
-        catalogue knows — {counts.entries} entries — not a count of tools.
+        {counts.tools} tools. Inside them, {plural(counts.inside, 'way of using them is', 'ways of using them are')} built and {toBuildInside} more{' '}
+        {toBuildInside === 1 ? 'is' : 'are'} planned. {plural(held.newTools.length, 'new tool is', 'new tools are')} planned and not started — all of it listed under
+        What we have and what we need to build.
       </span>} />
 
-      {/* THE WORLDS (docs/TOOLS-WORLDS.md — Rowland, 30 October: "tool worlds, not just tools but their own ecosystem"): a doorway
-          for each way of working, read from the catalogue's disciplines, one tap to its home */}
+      {/* THE TWO DOORS — talk on the line, and the 6M */}
+      <div className="et-doors">
+        {talk && <button type="button" className="btn et-door" data-door="talk" onClick={() => nav(talk.to)}>Line Talk — talk or type on the line ›</button>}
+        <SixMDoor />
+      </div>
+
+      {/* THE WORLDS (docs/TOOLS-WORLDS.md) — a doorway for each way of working, counted in tools */}
       <section className="wd-row" aria-label="The worlds">
         <h2 className="ln-h">The worlds</h2>
         <div className="wd-cards" role="list">
@@ -81,7 +80,7 @@ export function ToolsScreen() {
                 <span className="wd-pics" aria-hidden>{ts.slice(0, 3).map(t => <ToolPicture key={t.key} tool={t} />)}</span>
                 <b className="wd-name">{w.name}</b>
                 <span className="wd-line">{w.line}</span>
-                <span className="wd-nums">{plural(c.tools, 'tool')} · {plural(c.inside + c.parts, 'method')} built · {c.notBuilt} not built</span>
+                <span className="wd-nums">{plural(c.tools, 'tool')} · {c.notBuilt} {c.notBuilt === 1 ? 'thing' : 'things'} to build</span>
               </button>
             );
           })}
@@ -92,16 +91,15 @@ export function ToolsScreen() {
         <div className="tc-gal-h">
           <h2 className="ln-h">The tools</h2>
           <div className="chip-row" role="radiogroup" aria-label="Kind of tool">
-            <button type="button" role="radio" aria-checked={!kind} className={'chip' + (!kind ? ' on' : '')} onClick={() => setKind('')}>All {APP_TOOLS.length}</button>
-            {KINDS.filter(k => APP_TOOLS.some(t => t.kind === k)).map(k => (
-              <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(kind === k ? '' : k)}>{KIND_CHIP[k]} {APP_TOOLS.filter(t => t.kind === k).length}</button>
+            <button type="button" role="radio" aria-checked={!kind} className={'chip' + (!kind ? ' on' : '')} onClick={() => setKind('')}>All {GALLERY_TOOLS.length}</button>
+            {KINDS.filter(k => GALLERY_TOOLS.some(t => t.kind === k)).map(k => (
+              <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(kind === k ? '' : k)}>{KIND_CHIP[k]} {GALLERY_TOOLS.filter(t => t.kind === k).length}</button>
             ))}
           </div>
         </div>
-        <p className="sub"><SixMDoor /> Opens the 6M tool: the problem, the six bones, the five whys and the countermeasure board.</p>
         <div className="tc-gal" role="list" aria-label="Every tool you can open">
-          {APP_TOOLS.filter(t => !kind || t.kind === kind).map(t => {
-            const e = entryById(t.id);
+          {GALLERY_TOOLS.filter(t => !kind || t.kind === kind).map(t => {
+            const e = entryById(t.id), h = holdsOf.get(t.id);
             return (
               <div key={t.key} role="listitem" className="tc-cell">
                 <ToolCard
@@ -109,6 +107,7 @@ export function ToolsScreen() {
                   statusWord={e ? STATUS_WORDS[e.status] : undefined}
                   statusTone={e ? TONE[e.status] : undefined}
                   said={usedSaid(use?.[t.key])}
+                  holds={h ? holdsSaid(h) || undefined : undefined}
                   onOpen={() => nav(`/tools/${t.key}`)}
                   onList={() => nav(t.to)}
                 />
@@ -116,47 +115,32 @@ export function ToolsScreen() {
             );
           })}
         </div>
-        <h2 className="ln-h et-all-h">Or find one by the problem</h2>
       </section>
 
+      {/* FIND ONE BY THE PROBLEM — the floor's words, the routes and what matches */}
+      <h2 className="ln-h et-all-h">Or find one by the problem</h2>
       <label className="et-search">
         <span className="field-label">What’s the problem?</span>
         <input className="text-input" type="search" value={q} placeholder="e.g. we’re rejecting too many, or FC-098" aria-label="What’s the problem?"
           onChange={e => { setQ(e.target.value); setRoute(null); }} />
       </label>
-
-      {/* THE COUNTS ARE THE FILTERS (simplicity, rule 1) */}
-      <h2 className="ln-h et-all-h">The catalogue — every method and part, by status <span className="sub">(not a count of tools)</span></h2>
-      <div className="chip-row et-status" role="radiogroup" aria-label="Status">
-        <button type="button" role="radio" aria-checked={!status} className={'chip' + (!status ? ' on' : '')} onClick={() => setStatus('')}>
-          All {STATUSES.reduce((n, s) => n + shown[s], 0)}
-        </button>
-        {STATUSES.map(s => (
-          <button key={s} type="button" role="radio" aria-checked={status === s} data-status={s} className={'chip' + (status === s ? ' on' : '')} onClick={() => setStatus(status === s ? '' : s)}>
-            {STATUS_WORDS[s]} {shown[s]}
-          </button>
-        ))}
-      </div>
-      <label className="et-disc">
-        <span className="field-label">Discipline</span>
-        <select className="text-input" value={disc} onChange={e => setDisc(e.target.value)} aria-label="Discipline">
-          <option value="">Every discipline</option>
-          {DISCIPLINES.map(d => <option key={d.id} value={d.id}>{d.name} ({ENTRIES.filter(e => e.discipline === d.id).length})</option>)}
-        </select>
-      </label>
-
-      {/* WHERE TO START — the problem routes that meet the words, or every one
-          when nothing is typed */}
       {words ? (
-        routes.length > 0 && (
-          <section className="et-routes" aria-label="Where to start">
-            <h2 className="ln-h">Where to start</h2>
-            {routes.map(p => <Route key={p.id} p={p} onOpen={id => setOpen(id)} />)}
+        <>
+          {routes.length > 0 && (
+            <section className="et-routes" aria-label="Where to start">
+              <h2 className="ln-h">Where to start</h2>
+              {routes.map(p => <Route key={p.id} p={p} onOpen={id => setOpen(id)} />)}
+            </section>
+          )}
+          <section aria-label="What matches">
+            <h2 className="ln-h">What matches — {found.length}</h2>
+            {found.length
+              ? <ul className="et-list">{found.map(e => <Row key={e.id} e={e} open={open === e.id} onToggle={() => setOpen(open === e.id ? null : e.id)} onOpen={setOpen} />)}</ul>
+              : <EmptyState className="blank-list" title={`Nothing matches “${words}”`}>Try the problem in other words, or a number (FC-012).</EmptyState>}
           </section>
-        )
+        </>
       ) : (
         <section className="et-routes" aria-label="Start from the problem">
-          <h2 className="ln-h">Start from the problem</h2>
           <div className="et-route-list">
             {PROBLEMS.map(p => (
               <button key={p.id} type="button" className={'et-route-b' + (route === p.id ? ' on' : '')} aria-expanded={route === p.id} onClick={() => setRoute(route === p.id ? null : p.id)}>{p.title}</button>
@@ -166,28 +150,48 @@ export function ToolsScreen() {
         </section>
       )}
 
-      <section aria-label="The tools">
-        <h2 className="ln-h">{words ? `Catalogued entries that match — ${found.length}` : status || disc ? plural(found.length, 'catalogued entry', 'catalogued entries') : 'Every catalogued method and part, by discipline'}</h2>
-        {!found.length && (words
-          ? (
-            <EmptyState className="blank-list" title={`Nothing matches “${words}”`}>
-              Try the problem in other words, or a tool’s number (FC-012).
-            </EmptyState>
-          )
-          : <p className="sub">Nothing matches. Try the problem in other words, or a tool’s number (FC-012).</p>)}
-        {!!found.length && (words || status || disc
-          ? <ul className="et-list">{found.map(e => <Row key={e.id} e={e} open={open === e.id} onToggle={() => setOpen(open === e.id ? null : e.id)} onOpen={setOpen} />)}</ul>
-          : DISCIPLINES.map(d => {
-              const list = found.filter(e => e.discipline === d.id);
-              return list.length ? (
-                <div key={d.id} className="et-group">
-                  <h3>{d.name} <span className="sub">{list.length}</span></h3>
-                  <ul className="et-list">{list.map(e => <Row key={e.id} e={e} open={open === e.id} onToggle={() => setOpen(open === e.id ? null : e.id)} onOpen={setOpen} />)}</ul>
-                </div>
-              ) : null;
-            }))}
+      {/* WHAT WE HAVE AND WHAT WE NEED TO BUILD — tool by tool, then the new tools, then the rest; every entry in one place */}
+      <section className="hd" aria-label="What we have and what we need to build">
+        <h2 className="ln-h">What we have and what we need to build</h2>
+        <p className="sub">Each tool and what is inside it — built, and still to build. Then the new tools planned and not started.</p>
+        <ul className="hd-tools">
+          {held.tools.map(h => {
+            const e = entryById(h.id);
+            if (!e) return null;
+            return (
+              <li key={h.id} className="hd-tool" data-tool-id={h.id}>
+                <details>
+                  <summary><b>{shortName(e.name)}</b><span className="hd-n">{holdsSaid(h) || 'the tool itself'}</span></summary>
+                  {h.built.length > 0 && <><h4>Built</h4><ul className="et-list">{h.built.map(x => <Row key={x.id} e={x} open={open === x.id} onToggle={() => setOpen(open === x.id ? null : x.id)} onOpen={setOpen} />)}</ul></>}
+                  {h.toBuild.length > 0 && <><h4>To build</h4><ul className="et-list">{h.toBuild.map(x => <Row key={x.id} e={x} open={open === x.id} onToggle={() => setOpen(open === x.id ? null : x.id)} onOpen={setOpen} />)}</ul></>}
+                  {!h.built.length && !h.toBuild.length && <p className="sub">The tool itself — nothing more planned inside it.</p>}
+                </details>
+              </li>
+            );
+          })}
+        </ul>
+        <Group id="new" title="New tools — planned, not started" list={held.newTools} open={open} setOpen={setOpen} startOpen />
+        <Group id="parts" title="Built into the app — not tools (Problems, Actions, reports, the stage gate…)" list={held.parts} open={open} setOpen={setOpen} />
+        <Group id="research" title="Needs research first" list={ENTRIES.filter(e => e.status === 'research')} open={open} setOpen={setOpen} />
+        <Group id="left-out" title="Left out on purpose" list={ENTRIES.filter(e => e.status === 'left-out')} open={open} setOpen={setOpen} />
       </section>
     </div>
+  );
+}
+
+/** A tool's name as the floor says it: before the dash. */
+const shortName = (name: string): string => name.split(' — ')[0];
+/** What a tool holds, in words. */
+const holdsSaid = (h: ToolHolds): string =>
+  [h.built.length ? `${plural(h.built.length, 'way of using it', 'ways of using it')} built` : '', h.toBuild.length ? `${h.toBuild.length} to build` : ''].filter(Boolean).join(' · ');
+
+/** One list of the catalogue, folded under its heading with its count. */
+function Group({ id, title, list, open, setOpen, startOpen }: { id: string; title: string; list: Entry[]; open: string | null; setOpen: (id: string | null) => void; startOpen?: boolean }) {
+  return (
+    <details className="hd-group" data-group={id} open={startOpen}>
+      <summary><b>{title}</b><span className="hd-n">{list.length}</span></summary>
+      <ul className="et-list">{list.map(e => <Row key={e.id} e={e} open={open === e.id} onToggle={() => setOpen(open === e.id ? null : e.id)} onOpen={setOpen} />)}</ul>
+    </details>
   );
 }
 
@@ -214,7 +218,11 @@ function Route({ p, onOpen }: { p: ProblemRoute; onOpen: (id: string) => void })
 
 function Chip({ e, onOpen }: { e: Entry; onOpen: (id: string) => void }) {
   return (
-    <button type="button" className={`et-chip is-${TONE[e.status]}`} onClick={() => { onOpen(e.id); requestAnimationFrame(() => document.getElementById(`et-${e.id}`)?.scrollIntoView({ block: 'center' })); }}>
+    <button type="button" className={`et-chip is-${TONE[e.status]}`} onClick={() => {
+      onOpen(e.id);
+      /* the entry's row in What we have and what we need to build — its fold opened, scrolled to */
+      requestAnimationFrame(() => { const row = document.querySelector<HTMLElement>(`.hd [data-id="${e.id}"]`); const d = row?.closest('details'); if (d) d.open = true; row?.scrollIntoView({ block: 'center' }); });
+    }}>
       <b>{e.id}</b> {e.name} · {STATUS_WORDS[e.status]}
     </button>
   );
@@ -224,7 +232,7 @@ function Row({ e, open, onToggle, onOpen }: { e: Entry; open: boolean; onToggle:
   const to = opens(e);
   const parent = e.partOf ? entryById(e.partOf) : undefined;
   return (
-    <li id={`et-${e.id}`} className={'et-row' + (open ? ' is-open' : '')} data-id={e.id} data-status={e.status}>
+    <li className={'et-row' + (open ? ' is-open' : '')} data-id={e.id} data-status={e.status}>
       <button type="button" className="et-row-h" aria-expanded={open} onClick={onToggle}>
         <span className="et-id">{e.id}</span>
         <span className="et-name">{e.name}</span>

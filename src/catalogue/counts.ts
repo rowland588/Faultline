@@ -8,8 +8,22 @@
  * control room, the stage gate, reports). Nothing is typed here: every figure is counted from the catalogue, so a new tool or
  * method moves them by being catalogued, and the three always add up to what is built. */
 import { ENTRIES } from './index';
-import { APP_TOOLS } from './registry';
+import { APP_TOOLS, MENU_PAGES } from './registry';
+export { MENU_PAGES } from './registry';
 import type { Entry } from './types';
+
+/* WHAT A TOOL IS — once and for all (Rowland, 7 November: "you've split down every single functionality within its tool and then
+ * called each functionality a tool ... I can't tell what we have and what we need to build"). A tool is what a person opens on a
+ * page of its own and runs on a line — the registry's app tools, with two corrections:
+ *   - Problems and Actions are the menu's own pages (CLAUDE.md, "How many tools — said truly": parts of the app, not tools). They
+ *     stay in the registry so the frame can start one; they are never counted or shown as tools.
+ *   - 6M is a tool (Rowland, 4 November: "6M is not just a project tool, it's just a tool") with its own door (ui/SixMDoor), not a
+ *     registry card; what is built inside it (the fishbone, the five whys) is inside a tool. */
+export const DOOR_TOOLS: ReadonlySet<string> = new Set(['FC-146']);
+/** The tools shown as cards: the registry less the menu's pages. */
+export const GALLERY_TOOLS = APP_TOOLS.filter(t => !MENU_PAGES.has(t.id));
+/** Every tool's catalogue number: the cards and the doors. */
+export const TOOL_IDS: ReadonlySet<string> = new Set([...GALLERY_TOOLS.map(t => t.id), ...DOOR_TOOLS]);
 
 const built = (e: Entry): boolean => e.status === 'available' || e.status === 'partial';
 
@@ -26,12 +40,12 @@ export function ownerOf(e: Entry): string | undefined {
 const OWNERS = new Map<string, string | undefined>();
 
 function workOutOwner(e: Entry): string | undefined {
-  const ids = new Set(APP_TOOLS.map(t => t.id));
+  const ids = TOOL_IDS;
   if (ids.has(e.id)) return e.id;
   let p = e.partOf ? ENTRIES.find(x => x.id === e.partOf) : undefined;
   for (let up = p?.partOf; up; up = p?.partOf) p = ENTRIES.find(x => x.id === up);
   if (p && ids.has(p.id)) return p.id;
-  for (const t of APP_TOOLS) {
+  for (const t of GALLERY_TOOLS) {
     const own = ENTRIES.find(x => x.id === t.id);
     const dir = own?.built?.code.map(c => /^src\/tools\/[^/]+\//.exec(c)?.[0]).find(Boolean);
     if (dir && e.built?.code.some(c => c.startsWith(dir))) return t.id;
@@ -58,7 +72,7 @@ export interface ToolCounts {
 
 /** The truthful counts for a set of entries (the whole catalogue, or one world's). */
 export function toolCounts(entries: readonly Entry[] = ENTRIES): ToolCounts {
-  const tools = new Set(APP_TOOLS.map(t => t.id));
+  const tools = TOOL_IDS;
   let inside = 0, parts = 0, notBuilt = 0, research = 0, leftOut = 0, open = 0;
   for (const e of entries) {
     if (e.status === 'left-out') leftOut++;
@@ -79,4 +93,24 @@ export function insideByTool(): Record<string, number> {
     if (o && o !== e.id && built(e)) out[o] = (out[o] ?? 0) + 1;
   }
   return out;
+}
+
+/** One tool and what it holds — what is built inside it and what is still to build inside it. */
+export interface ToolHolds { id: string; built: Entry[]; toBuild: Entry[] }
+
+/** What we have and what we still need to build, tool by tool: each tool's built and not-built entries (research and left out
+ *  are neither), the tools in the gallery's order and 6M after them; then the new tools not started (a not-built entry no tool
+ *  owns), and the built parts of the app that are not tools. Every entry built or to build lands in exactly one place. */
+export function holdings(): { tools: ToolHolds[]; newTools: Entry[]; parts: Entry[] } {
+  const order = [...GALLERY_TOOLS.map(t => t.id), ...DOOR_TOOLS];
+  const by = new Map<string, ToolHolds>(order.map(id => [id, { id, built: [], toBuild: [] }]));
+  const newTools: Entry[] = [], parts: Entry[] = [];
+  for (const e of ENTRIES) {
+    if (e.status === 'research' || e.status === 'left-out' || TOOL_IDS.has(e.id)) continue;
+    const o = ownerOf(e), h = o ? by.get(o) : undefined;
+    if (built(e)) { if (h) h.built.push(e); else parts.push(e); }
+    else if (h) h.toBuild.push(e);
+    else newTools.push(e);
+  }
+  return { tools: order.flatMap(id => { const h = by.get(id); return h ? [h] : []; }), newTools, parts };
 }

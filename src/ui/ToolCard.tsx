@@ -22,13 +22,15 @@ export function ToolPicture({ tool, big }: { tool: Pick<AppTool, 'key' | 'label'
   );
 }
 
-export function ToolCard({ tool, statusWord, statusTone, said, onOpen, onList }: {
+export function ToolCard({ tool, statusWord, statusTone, said, holds, onOpen, onList }: {
   tool: AppTool;
   /** Catalogue status in words — always beside the colour (CLAUDE.md). */
   statusWord?: string;
   /** Matches `.et-st.is-*` — g built, w partly / planned, n not built yet. */
   statusTone?: 'g' | 'w' | 'n';
   said?: string;
+  /** What it holds — "26 ways of using it built · 1 to build" (catalogue/counts holdings). */
+  holds?: string;
   onOpen: () => void;
   onList?: () => void;
 }) {
@@ -51,6 +53,7 @@ export function ToolCard({ tool, statusWord, statusTone, said, onOpen, onList }:
         <span className="tc-body">
           <b className="tc-name">{tool.label}</b>
           <span className="tc-says">{tool.says}</span>
+          {holds && <span className="tc-holds">{holds}</span>}
         </span>
       </button>
     </div>

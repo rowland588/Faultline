@@ -9,7 +9,7 @@
 import { ENTRIES } from './index';
 import { PROBLEMS } from './problems';
 import { ownerOf } from './counts';
-import { APP_TOOLS, type AppTool } from './registry';
+import { APP_TOOLS, MENU_PAGES, type AppTool } from './registry';
 import { DISCIPLINES, type Entry, type ProblemRoute } from './types';
 
 export interface World {
@@ -89,7 +89,8 @@ function workOutToolWorld(t: Pick<AppTool, 'id'>): World | undefined {
 }
 
 /** The tools a person can open that belong to the world, in the floor's order. */
-export const worldTools = (w: World): AppTool[] => APP_TOOLS.filter(t => worldOfTool(t)?.id === w.id);
+/** A world's tools — the cards, never the menu's own pages (Problems, Actions; catalogue/counts MENU_PAGES). */
+export const worldTools = (w: World): AppTool[] => APP_TOOLS.filter(t => !MENU_PAGES.has(t.id) && worldOfTool(t)?.id === w.id);
 
 /** The world's own problem routes: those whose steps lean on the world's disciplines (at least half of the
  *  entries they name — a route across worlds, like "the line won't make its target", is told once, where most of it is). */

@@ -434,9 +434,13 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'Tools — the library', path: '#/tools', must: [
     { what: 'the problem, asked first', sel: '.et-search input' },
-    { what: 'the counts that are the filters — six statuses and All', sel: '.et-status .chip', n: 7 },
+    /* 7 November (Rowland: "you've split down every single functionality within its tool and then called each functionality a
+       tool"): the status chips and the discipline box are off — they counted catalogue entries as tools. The doors, what each card
+       holds, and What we have and what we need to build — tool by tool — are on. */
+    { what: 'the two doors — Line Talk and the 6M', sel: '.et-doors [data-door="talk"], .et-doors .btn', n: 2 },
     { what: 'start from the problem — every route', sel: '.et-route-b', n: 20 },
-    { what: 'every tool by discipline, each with its status in words', sel: '.et-row .et-st', n: 200 },
+    { what: 'what we have and what we need to build — a row for every tool', sel: '.hd-tools .hd-tool', n: 28 },
+    { what: 'the new tools planned and not started, the parts that are not tools, research and left out — each folded with its count', sel: '.hd-group .hd-n', n: 4 },
     /* the eleven a person can open, one tap each — the factory's tools since the rail stopped listing them (23 October, docs/STRUCTURE.md B2) */
     /* since 30 October (docs/TOOLS-SHOWCASE.md, TG1) the rows are the gallery: a card each, with its picture, its one line and use, opening its page; Open › its list */
     { what: 'the gallery — a card for every tool a person can open', sel: '.et-now .tc-card', n: 19 },

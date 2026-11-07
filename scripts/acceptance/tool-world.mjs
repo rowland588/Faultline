@@ -55,7 +55,7 @@ await cards.first().waitFor({ timeout: 15000 });
 ok((await cards.count()) === 5 && mod.worlds.length === 5, '1 five worlds on Tools', await cards.count());
 for (const w of mod.worlds) {
   const t = flat(await page.locator(`.wd-card[data-world="${w.id}"]`).innerText());
-  ok(t.includes(w.name) && t.includes(w.line) && t.includes(`${w.t.tools} tool${w.t.tools === 1 ? '' : 's'} · ${w.t.inside + w.t.parts} method${w.t.inside + w.t.parts === 1 ? '' : 's'} built · ${w.t.notBuilt} not built`) && w.t.tools === w.tools.length, `1 ${w.name}: its line and "${w.t.tools} tools · ${w.t.inside + w.t.parts} methods built · ${w.t.notBuilt} not built"`, t);
+  ok(t.includes(w.name) && t.includes(w.line) && t.includes(`${w.t.tools} tool${w.t.tools === 1 ? '' : 's'} · ${w.t.notBuilt} ${w.t.notBuilt === 1 ? 'thing' : 'things'} to build`) && w.t.tools >= w.tools.length, `1 ${w.name}: its line and "${w.t.tools} tools · ${w.t.notBuilt} things to build" — counted in tools (7 November)`, t);
 }
 ok((await page.locator('.wd-card .tc-pic').count()) >= 5, '1 the cards carry the real tools’ pictures');
 ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), '1 nothing off the side at desk');

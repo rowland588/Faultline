@@ -12,6 +12,13 @@ a session that ships something updates this page in the same commit.** The rules
   drawn once, the methods as pills, the five stages numbered, the sign-in a plain card beside them (`screens/Landing`,
   `scripts/acceptance/landing.mjs`). **The tools' workspaces, T1–T2 (7 November, `docs/TOOLS-DESIGN.md`)**: the measurement
   tools and the calculators — presentation only, every calculation kept.
+- **The Tools page, tools only (7 November).** Rowland: *"you've split down every single functionality within its tool and
+  then called each functionality a tool"*. 28 tools (Problems and Actions are the menu's pages; 6M is a tool), each card saying
+  what it holds; Line Talk and 6M as doors; *What we have and what we need to build* tool by tool — 119 ways of using them built,
+  4 to build inside them, 38 new tools planned and not started, 32 parts of the app, 11 research, 7 left out
+  (`src/catalogue/counts` holdings). FC-017 (the Kata) brought up to what was built: partly built, as the Improvement Kata
+  project. The live Claude gateway checked the same day: a chat, a report and a flow-diagram walk answered correctly, its
+  instructions the repo's (`08f542070ed1de5c`).
 - **The factory, its lines and machines.** Factory › Line › Machine, every machine on a line, dual lines
   (`docs/MAP.md`, `docs/STRUCTURE.md`). Problems (the register, priorities, journeys, cost, the eight wastes),
   Actions, Programs and tests (the Prove engine, on the line with no project), the reports and the line's full package.

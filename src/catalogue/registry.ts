@@ -33,6 +33,10 @@ export const APP_TOOLS: readonly AppTool[] = ENTRIES
   .map(e => ({ ...e.app, id: e.id, kind: e.kind, starts: startsOf(e) as Starts, to: e.built.where[0] }))
   .sort((a, b) => a.order - b.order);
 
+/** The menu's own pages — Problems and Actions are in the registry so the frame can start one, but they are places of the app,
+ *  never tools (CLAUDE.md, "How many tools — said truly"; Rowland, 7 November). Counted and shown as tools nowhere. */
+export const MENU_PAGES: ReadonlySet<string> = new Set(['FC-154', 'FC-194']);
+
 /** The app's tools of one kind — a scope's Tools, Products or Logs. */
 export const toolsOfKind = (kind: Kind): AppTool[] => APP_TOOLS.filter(t => t.kind === kind);
 

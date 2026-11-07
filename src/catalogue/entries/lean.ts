@@ -263,7 +263,9 @@ export const LEAN: Entry[] = [
     food: 'A team leader’s daily improvement on give-away.',
     depends: ['FC-146', 'FC-201'],
     complexity: 'M', value: 'low', valueWhy: 'A coaching routine more than a calculation.',
-    status: 'to-build', form: 'workflow', methods: ['lean.toyota-kata'], scenarios: ['daily', 'project'],
+    status: 'partial', form: 'workflow', methods: ['lean.toyota-kata'], scenarios: ['daily', 'project'],
+    built: { where: ['/projects?method=kata'], code: ['src/project/method/shapes/kata.tsx', 'src/lib/kataBoard.ts', 'src/lib/report/kataPaper.ts'], tests: ['src/lib/__tests__/kataBoard.test.ts', 'src/lib/__tests__/kataInsight.test.ts'], acceptance: ['method-kata.mjs', 'method-report-kata.mjs'] },
+    limits: ['Built as the Improvement Kata project (docs/METHODS.md §16): the storyboard, the experiments with what was expected and what happened, the five coaching questions answered from the board, the pulse, its paper — 7 November, the catalogue brought up to what was built on 1 November.', 'No specification to knowledge/STANDARD.md yet, so it stays partly built here; the measure is trended by the weekly number (FC-201).', 'It is a project of the app (one of the eight methods), not a tool of its own.'],
   },
   {
     id: 'FC-018', name: 'Lean maturity assessment', discipline: 'lean', sub: 'kaizen',
