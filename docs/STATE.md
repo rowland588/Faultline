@@ -89,26 +89,21 @@ a session that ships something updates this page in the same commit.** The rules
    tiles as icon cards with their change (L5), the papers' tokens (L6), the phone (L7). Each slice its own gate and
    its own merge; `docs/STATE.md` §1 says which is live (L0–L7 live — the look is built; the rule in §0 applies to every page touched from here).
 
-1. **Spaghetti talk accuracy** (parked behind the board, now built — 7 November) (Rowland, 6 November: *"it's going to struggle with what I'm saying … there needs to be
-   improvements, guaranteed"*). Tested on his own sentence: the order of moves is right, "left"/"right" become place
-   names, two pickups merge into one place silently, "drives the truck" is not drawn. The plan proposed, not yet
-   given go: places keep their identity (new place / back to a place, merge or split with a tap); left and right
-   anchored once (facing the machine); a leg says carrying or empty, walking or driving, a vehicle its own mover;
-   a floor plan or photo to drag the places onto with one known distance setting the scale (the metres from the
-   calculator, never the assistant); replay (a dot walks the path, a sentence a leg); and a test set of ~20 real
-   narrated walks with hand-drawn answers, scored, before it is called good.
-2. **T4 — the micro-movements Line Talk set**: the FC-233 calculator is live; its talk set (instructions, schema,
-   reader, a `TalkMicro` view, make/update, `talk-micro.mjs`, gateway redeploy and a real answer checked) is not built.
-   The definition exports `inputsOfElements` for it.
-3. **T5 — the toolsets hub**: "Talk this" on a tool and on the line's Tools, the chooser's wording, the line report
-   listing talk-made studies.
-4. **Lean 3-2-1 reports across every paper** (Rowland, 6 November: *"having lean principle reports is important for
+1. **Line Talk is finished as it stands — no new voice work (7 November).** Rowland: *"we can leave the spaghetti as it
+   is, and we just leave now the line talk with what we've already made, as long as what we've made is completed."* So
+   the voice work stops where it is: Line Talk (talk or type on the line, photos, answers, documents and their PDF) and
+   its three sets — flow diagram, spaghetti diagram, value stream — stay, checked complete that day (`line-talk`,
+   `line-talk-assistant`, `talk-toolsets`, `talk-spaghetti`, `talk-valuestream` all pass; the live `assist` gateway
+   the repo's file for file). **Dropped, not parked:** the spaghetti talk-accuracy plan (the board, FC-004 part 3, is
+   how a spaghetti is drawn now), the micro-movements talk set (T4; FC-233 stays a typed tool) and the toolsets hub
+   (T5, "Talk this" on every tool). Nothing new is built for voice unless Rowland asks again.
+2. **Lean 3-2-1 reports across every paper** (Rowland, 6 November: *"having lean principle reports is important for
    us … as a priority"*): the one-second · two-second · three-second reading (`docs/LEAN-PAGE.md`) applied to every
    report that is not yet the lean page. The **line summary** (`#/lines/:ws/report`, Summary, and its paper
    `lineBundlePdf` — not the full package) is the first: band, tiles, where on the line as the one picture, what it
    means, who owes what, the closing line, then the records. Live since 6 November. Other papers
    are unchanged.
-5. **Attachments A2+** — pictures, videos and links on every tool (`docs/ATTACHMENTS.md`); Rowland: a nice-to-have.
+3. **Attachments A2+** — pictures, videos and links on every tool (`docs/ATTACHMENTS.md`); Rowland: a nice-to-have.
 6. Smaller: spoken number words ("forty") are flagged *unsure* by the grounded check (phones usually write digits);
    the tests' and fixes' evidence doors still use the phone's own camera, not the live one; FC-233's therblig names
    and groups are from knowledge, not checked against Barnes or Niebel (`knowledge/GAPS.md`).

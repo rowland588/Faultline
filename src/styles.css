@@ -10675,7 +10675,7 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
  * under way, green all done, grey not started; the count beside it is the
  * work and stays neutral, only its late part is red and says "late".
  * ========================================================================= */
-:root { --nv-top: calc(56px + env(safe-area-inset-top)); --nv-rail: 236px; --nv-bar: 62px; }
+:root { --nv-top: calc(56px + env(safe-area-inset-top)); --nv-rail: 236px; --nv-bar: 67px; }
 
 .nv { min-height: 100vh; min-height: 100dvh; }
 
@@ -14856,7 +14856,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 @media (max-width: 719px) {
   /* on a phone a menu opens as a panel across the screen, above the bar — never off its edge */
   .part-menu-list { position: fixed; left: var(--space-4); right: var(--space-4); top: auto; max-width: none; min-width: 0;
-    bottom: calc(var(--nv-bar, 62px) + env(safe-area-inset-bottom) + var(--space-3));
+    bottom: calc(var(--nv-bar, 67px) + env(safe-area-inset-bottom) + var(--space-3));
     max-height: calc(100dvh - var(--nv-bar, 62px) - env(safe-area-inset-bottom) - var(--space-6)); }
   .part-head { flex-direction: column; }
   .part-head .pace-head-actions { flex-wrap: wrap; }
@@ -16399,7 +16399,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .home .fq-hero .pace-title { font-size: var(--t-page); }
 }
 /* the phone's bar, white as the top bar and the rail are (X1, 7 November): the icons in ink, the page you are on in the press colour */
-.nv-bar { background: var(--surface); border-top: 1px solid var(--line); color: var(--ink-2); box-shadow: none; }
+.nv-bar { background: var(--surface); border-top: 1px solid var(--line); color: var(--ink-2); box-shadow: none; box-sizing: border-box; height: calc(var(--nv-bar) + env(safe-area-inset-bottom)); } /* its height IS --nv-bar: everything that sits on the bar reads that token (7 November: the white bar grew to 67 while the token said 62, and Line Talk's box sat 5 px under it) */
 .nv-bi { color: var(--ink-2); }
 .nv-bi.is-on { color: var(--brand-2); }
 .nv-bi.is-on .nv-bi-ic { background: var(--accent-soft); }
