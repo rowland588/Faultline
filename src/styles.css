@@ -16540,3 +16540,73 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fq-projects .jb-says { max-width: 70ch; font-family: var(--font); font-size: var(--t-h); font-weight: 600; letter-spacing: -0.01em; animation: none; }
 .fq-projects .jb-stat { background: var(--surface-2); border-color: transparent; animation: none; }
 .fq-projects .jb-stat:hover { background: var(--surface); border-color: var(--line-2); transform: none; }
+
+/* ============================================================ T1 — THE MEASUREMENT WORKSPACE (docs/TOOLS-DESIGN.md §2, 7 November)
+   Capability, the control chart and the analysis: at a desk the canvas (the chart) first and widest, What it says beside it as a panel, the
+   entry (the pad, the checks) under it in the same column; the next step and the limits there too; everything else full width below.
+   Presentation only — the same elements, the same order in the page's code, placed by the grid. On a phone one column as before. */
+@media (min-width: 1100px) {
+  .ws-measure { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 360px); column-gap: 20px; align-items: start; grid-auto-flow: row dense; }
+  .ws-measure > * { grid-column: 1 / -1; min-width: 0; }
+  .ws-measure > .ie-body:not(.ie-entry-first) { display: contents; }
+  .ws-measure > .ie-body:not(.ie-entry-first) > .ie-pic { grid-column: 1; grid-row: span 6; order: 4; margin: 0 0 16px; }
+  .ws-measure > .ie-says { grid-column: 2; order: 5; }
+  .ws-measure > .ns-row, .ws-measure > .ie-limits-act { grid-column: 2; order: 6; }
+  .ws-measure > .ie-body:not(.ie-entry-first) > :not(.ie-pic) { grid-column: 2; order: 7; min-width: 0; }
+  .ws-measure > .part-head, .ws-measure > .ln-band, .ws-measure > :first-child { order: 1; }
+  .ws-measure > .ln-under { order: 2; }
+  .ws-measure > .ie-strip, .ws-measure > .ie-entry-first { order: 3; }
+  .ws-measure > :not(.ie-body):not(.ie-says):not(.ns-row):not(.ie-limits-act):not(.ln-under):not(.ie-strip):not(:first-child) { order: 10; }
+}
+/* What it says — a panel: the sentence, then the findings as a list you scan, each with its dot and its words, what it means muted */
+.ws-measure .ie-says { margin: 0 0 12px; padding: 14px 16px 12px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
+.ws-measure .ie-says::before { content: "What it says"; display: block; margin-bottom: 6px; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.ws-measure .ie-say { font-weight: 600; max-width: none; }
+.ws-measure .ie-signals { gap: 0; margin-top: 8px; border-top: 1px solid var(--line-row); }
+.ws-measure .ie-signal { position: relative; padding: 7px 0 7px 16px; border-bottom: 1px solid var(--line-row); line-height: 1.4; }
+.ws-measure .ie-signal::before { content: ""; position: absolute; left: 2px; top: 13px; width: 7px; height: 7px; border-radius: var(--radius-round); background: var(--st-n); }
+.ws-measure .ie-signal.is-r::before { background: var(--st-r); } .ws-measure .ie-signal.is-a::before { background: var(--st-a); } .ws-measure .ie-signal.is-g::before { background: var(--st-g); }
+.ws-measure .ie-signal b, .ws-measure .ie-signal.is-r b, .ws-measure .ie-signal.is-a b { display: block; color: var(--ink); font-weight: 600; }
+.ws-measure .ie-signal .sub { display: block; }
+.ws-measure .ie-more { margin: 6px 0 0; }
+/* the canvas — the instrument, lifted, no box in a box */
+.ws-measure .ie-pic { border: 0; border-left: 0; background: var(--surface); box-shadow: var(--elev); padding: 16px; }
+/* the entry — its own panel in the side column */
+@media (min-width: 1100px) {
+  .ws-measure > .ie-body > :not(.ie-pic) { padding: 14px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
+  .ws-measure > .ns-row { margin: 0 0 12px; }
+  .ws-measure > .ie-limits-act { margin: 0 0 12px; }
+}
+/* the figures strip, every tool's (docs/TOOLS-DESIGN.md §2.2): one lifted strip, the figures parted by hairlines, one height; only the
+   abnormal figure carries colour — a rule along its top and its number */
+.ln-tiles.ie-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin: 0 0 16px; padding: 0;
+  border: 0; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); overflow: hidden; }
+.ln-tiles.ie-strip .ln-tile { margin: 0; padding: 14px 18px; border: 0; border-left: 1px solid var(--line-row); border-radius: 0; box-shadow: none; background: none; min-width: 0; }
+.ln-tiles.ie-strip .ln-tile:first-child { border-left: 0; }
+.ln-tiles.ie-strip .ln-tile.is-r { box-shadow: inset 0 3px 0 var(--st-r); } .ln-tiles.ie-strip .ln-tile.is-a { box-shadow: inset 0 3px 0 var(--st-a); }
+.ln-tiles.ie-strip .ln-tile.is-g, .ln-tiles.ie-strip .ln-tile.is-r, .ln-tiles.ie-strip .ln-tile.is-a { background: none; }
+.ln-tiles.ie-strip .ln-v { font-size: var(--t-page); font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
+.ln-tiles.ie-strip .ln-tile.is-g .ln-v { color: var(--ink); }
+.ln-tiles.ie-strip .ln-k { font-size: var(--t-label); font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); }
+/* What it says — the sentence in ink; its state once, down the panel's edge */
+.ws-measure .ie-say, .ws-measure .ie-say.is-r, .ws-measure .ie-say.is-a, .ws-measure .ie-say.is-g { color: var(--ink); }
+.ws-measure .ie-says:has(.ie-say.is-r) { box-shadow: var(--elev), inset 3px 0 0 var(--st-r); }
+.ws-measure .ie-says:has(.ie-say.is-a) { box-shadow: var(--elev), inset 3px 0 0 var(--st-a); }
+.ws-measure .ie-says:has(.ie-say.is-g) { box-shadow: var(--elev), inset 3px 0 0 var(--st-g); }
+/* the canvas at reading size: a chart grows to its region but its words stay the size they were drawn for */
+@media (min-width: 1100px) { .ws-measure .ie-pic svg { display: block; max-width: 760px; margin-inline: auto; } }
+.ws-measure > .ie-body > :not(.ie-pic) { border-left: 0; }
+@media (max-width: 719px) {
+  .ln-tiles.ie-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ln-tiles.ie-strip .ln-tile:nth-child(odd) { border-left: 0; }
+  .ln-tiles.ie-strip .ln-tile:nth-child(n+3) { border-top: 1px solid var(--line-row); }
+}
+/* on a phone too, the canvas before what it says (docs/TOOLS-DESIGN.md §2.3) — the same elements, reordered */
+@media (max-width: 1099px) {
+  .ws-measure { display: flex; flex-direction: column; }
+  .ws-measure > * { order: 10; }
+  .ws-measure > :first-child { order: 1; } .ws-measure > .ln-under { order: 2; }
+  .ws-measure > .ie-entry-first, .ws-measure > .ie-strip { order: 3; }
+  .ws-measure > .ie-body:not(.ie-entry-first) { order: 4; margin-bottom: 12px; }
+  .ws-measure > .ie-says { order: 5; } .ws-measure > .ns-row, .ws-measure > .ie-limits-act { order: 6; }
+}

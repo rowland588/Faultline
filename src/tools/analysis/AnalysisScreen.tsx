@@ -78,7 +78,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
 
   const page = bandPage(a ? KIND_WORDS[a.kind].name : 'Analysis', s, said?.verdict, said?.tone);
   return (
-    <div className="wrap ie ie-analysis">
+    <div className="wrap ie ie-analysis ws-measure">
       <StudyBand page={page} s={s} what="Analysis" canEdit={can.edit && !closed} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where">{s.machine ? <><b>{s.machine}</b> · </> : null}started {niceDay(isoDay(s.startedAt))}</p>

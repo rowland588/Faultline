@@ -106,7 +106,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
   const entry = a && !closed && !abandoned && can.edit ? (a.kind === 'rejects' ? <RunsCapture f={f} onAdd={add} /> : a.kind === 'faults' ? <FaultsCapture a={a} f={f} onAdd={add} />
     : <Capture a={a} f={f} readings={readings} onAdd={add} onAddMany={addMany} onStrike={id => strike(id, true)} onFate={setFate} />) : null;
   return (
-    <div className="wrap ie">
+    <div className="wrap ie ie-capability ws-measure">
       {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6; lib/ie/sampleLean): the
           band with the verdict, the tiles in the strip's place, the action
           plan and the closing line */}

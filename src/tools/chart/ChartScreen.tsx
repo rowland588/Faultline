@@ -92,7 +92,7 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
   const entry = a && f && !closed && can.edit ? <ChartPad a={a} f={f} readings={readings} onAdd={add} onAddMany={addMany} onNote={note} onStrike={rid => strike(rid, true)} /> : null;
   const page = bandPage('Control chart', s, said?.verdict, said?.tone);
   return (
-    <div className="wrap ie ie-chart">
+    <div className="wrap ie ie-chart ws-measure">
       <StudyBand page={page} s={s} what="Control chart" canEdit={can.edit && !closed} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where">{s.machine ? <><b>{s.machine}</b> · </> : null}started {niceDay(isoDay(s.startedAt))}</p>

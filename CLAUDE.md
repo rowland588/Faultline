@@ -1345,6 +1345,16 @@ frame of look E is superseded on screen (paper keeps its own band). Every page i
 each shown at 1440 and 390 and held to its quality gate; the four questions, the five state colours with their words and
 light paper stand.
 
+## Every tool's workspace — 7 November
+
+**Read `docs/TOOLS-DESIGN.md` before building or changing how a tool looks or is used.** Rowland, 7 November: *"a world-class design
+standard for the entire Faultline Tools environment … Do not define, invent, remove or change the tool functionality … every tool should
+look and feel like something a specialist manufacturing consultancy would confidently charge customers to use."* The audit of the 29
+tools, the anatomy (band · figures strip · the canvas first and widest · *What it says* beside it · entry · the data table · the record's
+life), the rules for charts, tables, interaction, interpretation and the phone, and the slices T1–T7 by family. Presentation only: a
+tool's calculation, record and workflow are never changed to make it look better. New tools are built to it from the start (the
+`faultline-tool` skill, step 4).
+
 ## Visual management — the rules every screen and PDF follows
 
 **The name is settled; the look was made fresh on 17 October.** Reviewed

@@ -91,6 +91,12 @@ needs is built or its absence is in the scope.
 
 ## 4. Build the complete, scoped tool — with its report
 
+**Its workspace to `docs/TOOLS-DESIGN.md`** (Rowland, 7 November: *"every tool should look and feel like something a specialist
+manufacturing consultancy would confidently charge customers to use"*): the band, the figures strip, the canvas first and widest,
+*What it says* beside it as a panel with its findings as a list, the entry its own panel, the data table, then notes, used for, the
+action plan and the closing line — its own canvas drawn for its method, the system's tokens only. The specification says *The
+workspace* under *The report*; the acceptance script takes the page at 1440 and 390.
+
 Pure, tested arithmetic in the tool's own folder, `src/tools/<key>/` (docs/STEADY.md S3 — older tools still in `src/lib/ie/` until moved with `scripts/moves.mjs`), the sentences in
 the module; the page and the paper from the same module; access checked
 (`can.edit`, `can.agree`, `can.remove`); money from the one cost model or the
