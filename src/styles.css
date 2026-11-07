@@ -16322,19 +16322,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fq-card:first-child { border-left: 0; }
 .fq-card:hover { background: var(--surface-2); box-shadow: none; border-color: var(--line-row); }
 .fq-ic { width: 36px; height: 36px; }
-.fq-grid { gap: 16px; }
-.fq-main, .fq-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .fq-panel, .fq-lines .fac-home.ep-panel { box-shadow: none; }
 .fq-projects .jb { margin: 0; }
 .fq-projects .jb-hero { box-shadow: none; border: 1px solid var(--line); }
 .fq-projects .jb-glow { display: none; }
-@media (min-width: 1100px) { .fq-grid { grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); } }
-@media (max-width: 1099px) {
-  .fq-grid { display: flex; flex-direction: column; }
-  .fq-main, .fq-side { display: contents; }
-  #fq-wrong { order: 1; } #fq-doing { order: 2; } .fq-lines { order: 3; } #fq-worked { order: 4; } .fq-projects { order: 5; }
-  .fq-card:nth-child(3) { border-left: 0; } .fq-card:nth-child(n+3) { border-top: 1px solid var(--line-row); }
-}
+@media (max-width: 1099px) { .fq-card:nth-child(3) { border-left: 0; } .fq-card:nth-child(n+3) { border-top: 1px solid var(--line-row); } }
 /* the lines, a row each — name, type and machines | where it stands | the worst thing open | programs, projects, when looked at | › */
 .fq-lines .fac-floor { display: block; margin: 6px 0 0; }
 .fq-lines .fac-floor > li + li { border-top: 1px solid var(--line-row); }
@@ -16391,3 +16383,102 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
    evidence, the waste, what it costs), what needs doing (the plan, whose, by when, its root cause), did it work (where it stands, closed with its proof, the journey) */
 .pe-q { margin: 6px 0 -4px; padding-top: 10px; border-top: 1px solid var(--line-2); font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
 .pe > .pe-q:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+
+/* ============================================================ THE SHELL, AS MICROSOFT 365 DRAWS IT
+   docs/ENTERPRISE-UX.md X1 (7 November — Rowland, with Microsoft 365's home as the picture: "we want the app to look like how
+   Microsoft would look like if it built it"). A white top bar across the whole window — the mark and Faultline in the press colour,
+   where you are, the search in the middle, Problem and you on the right; under it, a narrow white rail of icons, each with its word,
+   the page you are on marked by its icon in the press colour and a bar at its edge; the work on a near-white canvas. The navy frame
+   of look E (6 November) is superseded on screen; paper keeps its own band. */
+:root { --nv-rail: 76px; --nv-top: calc(48px + env(safe-area-inset-top)); }
+@media (min-width: 1100px) {
+  .nv-top { margin-left: 0; z-index: 32; height: var(--nv-top); padding-left: 14px; }
+  .nv-top .nv-mark { display: inline-flex; margin-right: 10px; }
+  .nv-top .nv-name { display: inline; font-family: var(--font); font-size: var(--t-body); font-weight: 600; color: var(--brand-2); letter-spacing: 0; }
+  .nv-rail {
+    top: var(--nv-top); width: var(--nv-rail); padding: 10px 6px 12px; gap: 2px;
+    background: var(--surface); color: var(--ink-2); border-right: 1px solid var(--line);
+  }
+  .nv-rail .nv-rail-head { display: none; }
+  .nv-rail .nv-grp { gap: 2px; }
+  .nv-rail .nv-grp-l { display: none; }
+  .nv-rail .nv-ri {
+    position: relative; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    min-height: 58px; padding: 8px 2px 6px; border-radius: var(--radius-sm); color: var(--ink-2); background: none; font-weight: 500; text-align: center;
+  }
+  .nv-rail .nv-ri .icon { width: 20px; height: 20px; color: var(--ink-2); }
+  .nv-rail .nv-ri-l { flex: none; width: 100%; font-size: var(--t-label); line-height: 1.15; }
+  .nv-rail .nv-ri:hover { background: var(--surface-2); color: var(--ink); }
+  .nv-rail .nv-ri.is-on { background: none; color: var(--brand-2); font-weight: 600; }
+  .nv-rail .nv-ri.is-on .icon { color: var(--brand); }
+  .nv-rail .nv-ri.is-on::before { content: ""; position: absolute; left: -6px; top: 14px; bottom: 14px; width: 3px; border-radius: var(--radius-xs); background: var(--brand); }
+  .nv-rail .nv-ri.is-sub, .nv-rail .nv-ri.is-sub.is-place { padding-left: 2px; font-size: inherit; }
+  .nv-rail .nv-ri.is-sub .nv-ri-l { font-size: var(--t-mark); }
+  .nv-rail .nv-n { position: absolute; top: 4px; right: 10px; min-width: 18px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink-2); font-size: var(--t-mark); font-weight: 700; line-height: 16px; }
+  .nv-rail .nv-ri.is-on .nv-n { color: var(--brand-2); }
+  .nv-rail .nv-n i { display: none; }
+  .nv-rail .nv-sq { display: none; }
+  .nv-rail > .nv-grp.is-foot { padding-top: 8px; }
+  .nv-rail .nv-sync { flex-direction: column; align-items: center; gap: 4px; padding: 8px 2px; background: none; color: var(--ink-2); border-radius: var(--radius-sm); }
+  .nv-rail .nv-sync:hover { background: var(--surface-2); }
+  .nv-rail .nv-sync-l { font-size: var(--t-mark); font-weight: 600; text-align: center; }
+  .nv-rail .nv-sync-s { display: none; }
+  .nv-main { margin-left: var(--nv-rail); }
+  .nv-tabs { margin-left: var(--nv-rail); }
+  /* the search in the middle of the bar, as Microsoft 365's; Problem a plain primary, no glow */
+  .nv-top .nv-gap { display: none; }
+  .nv-top .nv-jump { margin: 0 auto; width: min(460px, 34vw); justify-content: flex-start; gap: 8px; height: 34px; padding: 0 12px;
+    background: var(--surface-2); border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--muted); font-weight: 400; box-shadow: none; }
+  .nv-top .nv-jump:hover { background: var(--surface); border-color: var(--line-2); }
+  .nv-top .nv-jump .nv-jump-k { margin-left: auto; }
+  .nv-top .qs-top { box-shadow: none; min-height: 34px; height: 34px; }
+  .nv-rail .nv-ri-l { white-space: normal; overflow: visible; text-overflow: clip; }
+}
+
+/* THE FACTORY, AS MICROSOFT 365'S HOME IS LAID OUT (docs/ENTERPRISE-UX.md X1, 7 November): a soft wash behind a large, light greeting and the
+   page's actions; the four figures as one strip; Needs you now — three cards, as recommended files are; the Lines as the quick-access list;
+   the three answers side by side; the projects' board last. One column on a phone. */
+.home .fq-hero { position: relative; margin: 8px 0 16px; padding: 28px 28px 20px; border-radius: var(--radius);
+  background: radial-gradient(70% 140% at 88% -10%, color-mix(in srgb, var(--brand) 16%, transparent), transparent 62%),
+              radial-gradient(60% 120% at 55% 0%, var(--accent-soft), transparent 70%), var(--surface);
+  border: 1px solid var(--line); }
+.home .fq-hero .pace-title { font-size: calc(var(--t-page) * 1.2); font-weight: 600; letter-spacing: -0.02em; }
+.home .fq-hero .pace-eyebrow { font-size: var(--t-body); }
+.fq-sec-h { margin: 24px 0 10px; font-size: var(--t-body); font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+.fq-recs { margin: 0 0 8px; }
+.fq-rec-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.fq-rec { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 12px; padding: 16px 18px 14px; text-align: left; font: inherit; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; transition: border-color 0.12s ease, box-shadow 0.12s ease; }
+.fq-rec:hover { border-color: var(--line-2); box-shadow: var(--shadow-lift); }
+.fq-rec:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.fq-rec-head { display: flex; align-items: center; gap: 10px; }
+.fq-rec-ic { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-round); background: var(--surface-2); color: var(--ink-2); }
+.fq-rec.is-r .fq-rec-ic { background: color-mix(in srgb, var(--st-r) 10%, var(--surface)); color: var(--st-r); }
+.fq-rec.is-a .fq-rec-ic { background: color-mix(in srgb, var(--st-a) 12%, var(--surface)); color: var(--st-a); }
+.fq-rec-kind { display: flex; flex-direction: column; min-width: 0; }
+.fq-rec-kind b { font-size: var(--t-detail); font-weight: 600; }
+.fq-rec.is-r .fq-rec-kind b { color: var(--st-r); } .fq-rec.is-a .fq-rec-kind b { color: var(--st-a); }
+.fq-rec-kind small { font-size: var(--t-label); color: var(--muted); }
+.fq-rec-what { flex: 1; font-size: var(--t-body); font-weight: 500; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.fq-rec-foot { display: flex; justify-content: space-between; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line-row); font-size: var(--t-label); color: var(--muted); }
+.fq-rec-where { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fq-rec-who { flex: none; font-weight: 600; color: var(--ink-2); }
+.fq-grid { display: flex; flex-direction: column; gap: 16px; margin: 16px 0; }
+.fq-answers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.fq-answers .fq-panel { margin: 0; }
+@media (max-width: 1099px) {
+  .fq-rec-list { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .fq-answers { grid-template-columns: minmax(0, 1fr); }
+  .fq-grid .fq-lines { order: 2; } .fq-answers { order: 1; } .fq-projects { order: 3; }
+}
+@media (max-width: 719px) {
+  .home .fq-hero { padding: 18px 16px 14px; }
+  .home .fq-hero .pace-title { font-size: var(--t-page); }
+}
+/* the phone's bar, white as the top bar and the rail are (X1, 7 November): the icons in ink, the page you are on in the press colour */
+.nv-bar { background: var(--surface); border-top: 1px solid var(--line); color: var(--ink-2); box-shadow: none; }
+.nv-bi { color: var(--ink-2); }
+.nv-bi.is-on { color: var(--brand-2); }
+.nv-bi.is-on .nv-bi-ic { background: var(--accent-soft); }
+.nv-bi.is-plus { color: var(--ink); }
+.nv-bi.is-plus .nv-bi-ic { box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--brand) 70%, transparent), 0 0 0 4px var(--surface); }

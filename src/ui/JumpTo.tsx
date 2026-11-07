@@ -51,7 +51,7 @@ export function JumpTo() {
   return (
     <>
       <button type="button" className="nv-jump" onClick={() => setOpen(true)} aria-label="Jump to a line, project, product or tool (Ctrl K)">
-        <Icon name="pointer" size="1.05em" /><span className="nv-jump-l">Jump to…</span><kbd className="nv-jump-k">⌘K</kbd>
+        <Icon name="search" size="1.05em" /><span className="nv-jump-l">Search lines, projects and tools</span><kbd className="nv-jump-k">⌘K</kbd>
       </button>
       {open && (
         <div className="jt-scrim" onClick={() => setOpen(false)}>

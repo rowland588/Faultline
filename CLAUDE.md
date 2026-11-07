@@ -1333,6 +1333,18 @@ SaaS, the tools as deep as specialist Lean Six Sigma software, the papers fit fo
 below on the 17 October look are its history: the five state colours, light paper and the rules of visual management
 stand; the spruce press colour, the graphite frame and the warm paper are superseded.
 
+## The shell and the pages, as Microsoft would build them — 7 November
+
+**Read `docs/ENTERPRISE-UX.md` before touching a page's layout, a shared part or the frame.** Rowland, 7 November: *"I want
+Faultline to look and feel like a premium enterprise software product … comparable to Microsoft Teams, Microsoft Planner,
+Microsoft 365 and Linear"*; then, shown a first attempt that kept the navy frame: *"the factory page looks nothing like the
+clean version in the picture … we want the app to look like how Microsoft would look like if it built it."* So the frame is
+**Microsoft 365's**: a white top bar across the window (the mark and *Faultline* in the press colour, where you are, the
+search in the middle, Problem and you), a narrow white icon rail with each icon's word, the phone's bar white — the navy
+frame of look E is superseded on screen (paper keeps its own band). Every page is redone in slices X1–X8 (the doc's table),
+each shown at 1440 and 390 and held to its quality gate; the four questions, the five state colours with their words and
+light paper stand.
+
 ## Visual management — the rules every screen and PDF follows
 
 **The name is settled; the look was made fresh on 17 October.** Reviewed

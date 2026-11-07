@@ -54,7 +54,7 @@ import '../tools/gemba/looking.css';
 import { niceDay, todayISO } from '../lib/weeks';
 import { useFactoryQuestions } from '../lib/useFactoryQuestions';
 import { greeting } from '../lib/factoryQuestions';
-import { QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
+import { NeedsYou, QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
 
 /* What a workspace card must answer: "what's in here?" — for ALL content, not
  * one kind of it. Counting only time observations made a workspace full of
@@ -404,6 +404,7 @@ export function WorkspaceHome() {
       {facQuick}
       </section>
       <QuestionCards q={questions} />
+      <NeedsYou q={questions} />
       <QuestionPanels q={questions} lines={factory}
         projects={jobs.length > 0 || prodLines.length > 0 ? <JobsBoard projects={jobs} reportRef={roomReport} /> : null} />
 

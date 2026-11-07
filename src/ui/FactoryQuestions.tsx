@@ -115,30 +115,62 @@ function WorkedRows({ q }: { q: FourQuestions }) {
   );
 }
 
-/** THE WORKING AREA (docs/ENTERPRISE-UX.md X1, 7 November — Rowland: "factory page — terrible layout when showing the lines"):
- *  at a desk the lines and the projects are the main column and the answers — what's going wrong, what needs doing, did it
- *  work — a rail beside them; on a phone one column in the order the questions are asked (styles: .fq-grid). */
+/** THE WORKING AREA (docs/ENTERPRISE-UX.md X1, 7 November — Rowland, with Microsoft 365's home as the picture): the Lines as the
+ *  quick-access list, the three answers side by side under them, the projects' board last; on a phone the answers come first. */
 export function QuestionPanels({ q, lines, projects }: { q: FourQuestions | null; lines: ReactNode; projects?: ReactNode }) {
   return (
     <div className="fq-grid">
-      <div className="fq-main">
-        <div className="fq-lines">{lines}</div>
-        {projects && <div className="fq-projects">{projects}</div>}
-      </div>
-      <aside className="fq-side" aria-label="The answers">
-        <Panel id="fq-wrong" title="What’s going wrong — by what it costs" all={{ label: 'All problems', to: '/snags' }}>
+      <div className="fq-lines">{lines}</div>
+      <div className="fq-answers" aria-label="The answers">
+        <Panel id="fq-wrong" title="What’s going wrong" all={{ label: 'All problems', to: '/snags' }}>
           {q ? <WrongRows rows={q.wrong.top} open={q.wrong.open} priced={q.wrong.priced} /> : <p className="fq-none">Reading…</p>}
         </Panel>
-        <Panel id="fq-doing" title="What needs doing — who, by when" all={{ label: 'All actions', to: '/actions' }}>
+        <Panel id="fq-doing" title="What needs doing" all={{ label: 'All actions', to: '/actions' }}>
           {q ? <DoingRows rows={q.doing.top} /> : <p className="fq-none">Reading…</p>}
           {q && q.who.people.length > 0 && (
             <p className="fq-foot" id="fq-who">{q.who.people.slice(0, 4).map(p => `${p.name} ${p.open}${p.late ? ` (${p.late} late)` : ''}`).join(' · ')}{q.who.nobody ? ` · nobody yet ${q.who.nobody}` : ''}</p>
           )}
         </Panel>
-        <Panel id="fq-worked" title="Did it work — before → after, on the same number">
+        <Panel id="fq-worked" title="Did it work — before → after">
           {q ? <WorkedRows q={q} /> : <p className="fq-none">Reading…</p>}
         </Panel>
-      </aside>
+      </div>
+      {projects && <div className="fq-projects">{projects}</div>}
     </div>
+  );
+}
+
+/** NEEDS YOU NOW — the three things to do first, as Microsoft 365's home shows what was recommended (docs/ENTERPRISE-UX.md X1): the dearest or
+ *  most urgent problem, then the actions that are late, each a card that opens its record. Drawn from the same answers the lists below read. */
+export function NeedsYou({ q }: { q: FourQuestions | null }) {
+  if (!q) return null;
+  type Rec = { key: string; kind: string; tone: 'r' | 'a' | 'n'; when: string; what: string; where: string; who: string; icon: 'warning' | 'check'; go: () => void };
+  const recs: Rec[] = [];
+  for (const r of q.wrong.top.slice(0, 1)) recs.push({ key: `p${r.id}`, kind: r.late ? 'Late problem' : `${PRIORITY[r.priority]} problem`, tone: r.late || r.priority === 'critical' ? 'r' : r.priority === 'high' ? 'a' : 'n',
+    when: r.pounds ? `${fmtGBP(r.pounds)} a day` : 'not priced yet', what: r.what, where: r.line, who: r.owner ?? 'nobody yet', icon: 'warning', go: () => nav(`/snags?open=${encodeURIComponent(r.id)}`) });
+  for (const a of q.doing.top) {
+    if (recs.length >= 3) break;
+    recs.push({ key: `a${a.key}`, kind: a.late ? 'Late action' : a.soon ? 'Due this week' : 'Action', tone: a.late ? 'r' : a.soon ? 'a' : 'n',
+      when: a.late && a.due ? `was due ${niceDay(a.due)}` : a.due ? `by ${niceDay(a.due)}` : 'no day agreed', what: a.what, where: [a.where, a.project?.name].filter(Boolean).join(' · '), who: a.who ?? 'nobody yet', icon: 'check', go: () => openAction(a) });
+  }
+  if (!recs.length) return null;
+  return (
+    <section className="fq-recs" aria-label="Needs you now">
+      <h2 className="fq-sec-h">Needs you now</h2>
+      <ul className="fq-rec-list">
+        {recs.map(r => (
+          <li key={r.key}>
+            <button type="button" className={`fq-rec is-${r.tone}`} onClick={r.go}>
+              <span className="fq-rec-head">
+                <span className="fq-rec-ic" aria-hidden><Icon name={r.icon} size={16} /></span>
+                <span className="fq-rec-kind"><b>{r.kind}</b><small>{r.when}</small></span>
+              </span>
+              <span className="fq-rec-what">{r.what}</span>
+              <span className="fq-rec-foot"><span className="fq-rec-where">{r.where || 'The factory'}</span><span className="fq-rec-who">{r.who}</span></span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

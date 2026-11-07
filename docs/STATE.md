@@ -61,6 +61,13 @@ a session that ships something updates this page in the same commit.** The rules
   over a move wins. Doors: the one-person list's *Draw it on a board*, a Line standard's More ▾ › *Walk on this map*. A photo
   under the board is not built yet. `knowledge/specs/FC-004-spaghetti-board.md`, `scripts/acceptance/spaghetti-board.mjs`.
 
+- **The Microsoft 365 shell and the Factory (7 November, docs/ENTERPRISE-UX.md X1 — Rowland: *"we want the app to look like how
+  Microsoft would look like if it built it"*).** A white top bar with the search in the middle, a narrow white icon rail, the
+  phone's bar white; the Factory as Microsoft 365's home — a soft wash behind the greeting, the figures, *Needs you now* (three
+  cards), the Lines as a table, the three answers side by side, the projects' board last. Next: X2 a line (its doors as buttons
+  at the top, machine cards as a simple header, Tools redone), then the record panel, planning (the projects' board), problems
+  and projects, the tools, reports, phone review.
+
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
 
 **Phone, the other scopes** (E7, 6 November — on `main`, live): at a viewport of 719px and under, Factory home, Set up, a line’s Overview, Projects and Problems stack their panels and stay inside the frame. The one thumb bar is the same. The tools gallery keeps the sideways scroll from the tools slice.
