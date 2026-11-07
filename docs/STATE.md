@@ -7,6 +7,11 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 1. What is live (main at the look's L0 commit, 6 November, Vercel production READY, faultline.opexelevate.co.uk)
 
+- **The landing page, modern and minimal (7 November).** Rowland: *"a new landing page something really modern but
+  minimalistic"* — white, a faint dot field, the mark and *How it works* at the top, the name large on the mark's trace
+  drawn once, the methods as pills, the five stages numbered, the sign-in a plain card beside them (`screens/Landing`,
+  `scripts/acceptance/landing.mjs`). **The tools' workspaces, T1–T2 (7 November, `docs/TOOLS-DESIGN.md`)**: the measurement
+  tools and the calculators — presentation only, every calculation kept.
 - **The factory, its lines and machines.** Factory › Line › Machine, every machine on a line, dual lines
   (`docs/MAP.md`, `docs/STRUCTURE.md`). Problems (the register, priorities, journeys, cost, the eight wastes),
   Actions, Programs and tests (the Prove engine, on the line with no project), the reports and the line's full package.

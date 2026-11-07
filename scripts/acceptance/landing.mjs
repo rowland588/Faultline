@@ -14,7 +14,7 @@
  *   6  the how-it-works page (public/how-it-works.html, static): the descriptor, the eight methods, the five lifecycle parts in
  *      order, every picture loading, none of the old words (control room for change, 3P, Lever tree), nothing off the
  *      side at 1360 and 390
- *   5  at a desk the five stages sit beside the sign-in; on a phone the sign-in is first, the five below it, nothing
+ *   5  at a desk the sign-in sits beside the name and the five stages, on the first screen (7 November, the minimal page); on a phone the sign-in is first, the five below it, nothing
  *      off the side at 320, 390 and 1360
  *   and no console error.
  *
@@ -81,7 +81,7 @@ ok((await page.locator('.door-card-h').innerText()) === 'Welcome back', '4 and b
 /* 5 — desk: beside; phone: sign-in first */
 const box = async sel => page.locator(sel).first().boundingBox();
 const [s, c] = [await box('.door-steps'), await box('.door-card')];
-ok(s && c && c.x > s.x + s.width - 4 && Math.abs(c.y - s.y) < 200, '5 at a desk the five stages sit beside the sign-in', JSON.stringify({ s, c }));
+ok(s && c && c.x > s.x + s.width - 4 && c.y < 900 && c.y + c.height > 0, '5 at a desk the sign-in sits beside the name and the five stages, on the first screen (the minimal page, 7 November: the card at the name\u2019s height)', JSON.stringify({ s, c }));
 ok((await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 1, '5 nothing off the side at 1360');
 await ctx.close();
 for (const w of [390, 320]) {

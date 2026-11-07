@@ -40,7 +40,7 @@ export function measure() {
 }
 
 /** The ceilings — only ever lowered. */
-const CEILING = { fontSizes: 4, hex: 79, rgba: 125, radii: 6, breakpoints: 4, inline: 508 };   // 6 November (look E, L0): hex 94 → 79 (the old warm neutrals folded into the new tokens). 29 October: hex 99 → 94 (cyan one-offs folded into the spruce tokens). B7 (24 October): breakpoints 28 → 4 (719/720 and 1099/1100, the two edges of phone · tablet · desk); fontSizes 52 → 4 (the six type tokens and --t-mark; the four em sizes that size against their parent stay); radii 27 → 6 (--radius, --radius-sm, --radius-lg and the three B7 added — xs for a tag, pill, round — the six raw left are 0, inherit and shorthand corners built of tokens)
+const CEILING = { fontSizes: 3, hex: 71, rgba: 112, radii: 6, breakpoints: 4, inline: 508 };   // 7 November (the minimal landing page): hex 79 → 71, rgba 125 → 112, fontSizes 4 → 3 (the old door's mist, sheen and glass gone). 6 November (look E, L0): hex 94 → 79 (the old warm neutrals folded into the new tokens). 29 October: hex 99 → 94 (cyan one-offs folded into the spruce tokens). B7 (24 October): breakpoints 28 → 4 (719/720 and 1099/1100, the two edges of phone · tablet · desk); fontSizes 52 → 4 (the six type tokens and --t-mark; the four em sizes that size against their parent stay); radii 27 → 6 (--radius, --radius-sm, --radius-lg and the three B7 added — xs for a tag, pill, round — the six raw left are 0, inherit and shorthand corners built of tokens)
 
 describe('the ratchet: raw style values only come down', () => {
   const now = measure();

@@ -27,18 +27,23 @@
  * Projects are one of the five, not the page's subject. The sign-in stays one
  * glance from the name: beside the five on a desk, first on a phone.
  *
+ * MODERN AND MINIMAL (7 November — Rowland: "a new landing page something really modern but minimalistic"). The mist,
+ * the sheen and the glinting button are gone: white with a faint dot field fading from the top right, the mark and the
+ * name, the house's blue for what you press, Inter, the trace drawn once under the name and then still. What it says is
+ * unchanged — the descriptor, the sentence, the eight methods, the five stages, the sign-in, Opex Elevate.
+ *
  * The pulse is the mark's own trace (ui/Logo) drawn across the page: a flat
  * line, a tremor, the fault. It, the sheen and the mist all hold still for
  * anybody who has asked for less motion.
  */
 import { useState } from 'react';
-import '@fontsource-variable/outfit';
 import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
 import { METHODS } from '../lib/methods';
+import { LogoMark } from '../ui/Logo';
 
 /* Flat, a small tremor, the fault, and flat again — across the full width. */
-const TRACE = 'M0 80 H360 L374 72 L388 88 L400 80 H430 L458 14 L490 150 L514 50 L532 96 L546 80 H1000';
+const TRACE = 'M0 14 H150 L156 11 L162 17 L168 14 H182 L194 2 L208 26 L218 6 L226 18 L232 14 H420';
 
 export function Landing() {
   const [mode, setMode] = useState<'in' | 'up'>('in');
@@ -71,38 +76,28 @@ export function Landing() {
 
   return (
     <div className="door">
-      <div className="door-mist" aria-hidden>
-        <span className="door-m1" /><span className="door-m2" /><span className="door-m3" />
-      </div>
+      <header className="door-top">
+        <LogoMark size={28} id="door" />
+        <span className="door-word" aria-hidden>Faultline</span>
+        <a className="door-how" href="/how-it-works.html">How it works</a>
+      </header>
 
       <main className="door-main">
-        <div className="door-stage">
-          <svg className="door-pulse" viewBox="0 0 1000 160" preserveAspectRatio="none" aria-hidden>
-            <defs>
-              <linearGradient id="door-beat-g" x1="0" x2="1" y1="0" y2="0">
-                <stop offset="0" stopColor="#7fdbe4" stopOpacity="0" />
-                <stop offset="0.5" stopColor="#1fb6c9" />
-                <stop offset="1" stopColor="#7fdbe4" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path className="door-trace" d={TRACE} />
-            <path className="door-beat" d={TRACE} pathLength={1000} />
-          </svg>
+        <section className="door-hero">
+          <p className="door-descriptor">The Operational Improvement System</p>
           <h1 className="door-name">Faultline</h1>
-        </div>
+          <svg className="door-trace-svg" viewBox="0 0 420 28" preserveAspectRatio="xMinYMid meet" aria-hidden>
+            <path className="door-trace" d={TRACE} pathLength={1000} />
+          </svg>
+          <p className="door-lede">
+            Find the opportunities on your production lines, diagnose what is going wrong, apply the
+            method that fixes it, organise the delivery and verify the result.
+          </p>
+          <p className="door-methods" aria-label="The eight methods a project can run">
+            {METHODS.map(m => <span key={m.key}>{m.name}</span>)}
+          </p>
+        </section>
 
-        <h2 className="door-descriptor">The Operational Improvement System</h2>
-        <p className="door-lede">
-          Find the opportunities on your production lines, diagnose what is going wrong, apply the
-          method that fixes it, organise the delivery and verify the result.
-        </p>
-        <p className="door-methods" aria-label="The eight methods a project can run">
-          {METHODS.map((m, i) => (
-            <span key={m.key}>{i > 0 && <i className="door-sep" aria-hidden />}{m.name}</span>
-          ))}
-        </p>
-
-        <div className="door-grid">
         <form className="door-card" onSubmit={e => { e.preventDefault(); void submit(); }}>
           <h2 className="door-card-h">{mode === 'in' ? 'Welcome back' : 'Create your account'}</h2>
           <label className="door-f">
@@ -153,10 +148,11 @@ export function Landing() {
             <span>A before and after on the same number, every finding in money, and the papers to hand over.</span>
           </li>
         </ol>
-        </div>
-
-        <p className="door-parent">An <b>Opex Elevate</b> product</p>
       </main>
+
+      <footer className="door-foot">
+        <p className="door-parent">An <b>Opex Elevate</b> product</p>
+      </footer>
     </div>
   );
 }
