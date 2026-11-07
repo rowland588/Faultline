@@ -40,11 +40,12 @@ export interface SnagPhoto { dataUrl: string; w: number; h: number }
 
 function thumb(doc: jsPDF, p: SnagPhoto | undefined, x: number, y: number): void {
   doc.setDrawColor(LINE); doc.setLineWidth(0.5);
-  if (!p) { doc.roundedRect(x, y, THUMB, THUMB, 3, 3, 'S'); return; }
+  /* no picture: a quiet tile, not an empty outlined box (X7, 7 November) */
+  if (!p) { doc.setFillColor('#f6f8fb'); doc.roundedRect(x, y, THUMB, THUMB, 2.5, 2.5, 'F'); return; }
   /* Fitted inside the square, its shape kept — a tall frame is never stretched. */
   const s = Math.min(THUMB / p.w, THUMB / p.h), w = p.w * s, h = p.h * s;
   try { doc.addImage(p.dataUrl, 'JPEG', x + (THUMB - w) / 2, y + (THUMB - h) / 2, w, h); } catch { /* an unreadable picture: the words still print */ }
-  doc.roundedRect(x, y, THUMB, THUMB, 3, 3, 'S');
+  doc.roundedRect(x, y, THUMB, THUMB, 2.5, 2.5, 'S');
 }
 
 interface Parts { prio?: Priority; what: string[]; from: string[]; note: string[]; right: { t: string; c: string; bold?: boolean }[] }

@@ -196,7 +196,8 @@ function DrawnFish({ view, can, width, fixes, room, onCause, onSuggestion, onAdd
   room?: number;
 }) {
   const coarse = coarsePointer();
-  const rowH = coarse ? 44 : 34;
+  /* a rib's row holds two lines of a cause's words at a desk too (7 November — Rowland: "make sure words don't spill over on anything ... the fishbone didn't look good"): it was 34, one line cut with "…" */
+  const rowH = 44;
   const headH = view.says && view.measure ? 196 : 172;
   const L = useMemo(() => layoutFish(view.bones, width, {
     rowH, headH, labelH: coarse ? 64 : 46, minHeight: room || undefined,

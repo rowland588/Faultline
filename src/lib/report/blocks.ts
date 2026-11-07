@@ -5,7 +5,7 @@
  * nothing is ever given a height it might not fit in. The type sizes, leading
  * and gaps are here once, so every report is one family. */
 import type { jsPDF } from 'jspdf';
-import { BRAND, INK, LINE, MUTED, pdfFamily, san } from '../reportKit';
+import { INK, MUTED, pdfFamily, san } from '../reportKit';
 import type { Block, Density, Frame } from './flow';
 
 /* ------------------------------- the tokens ------------------------------- */
@@ -87,9 +87,8 @@ export function heading(title: string, says?: string, o: { size?: number } = {})
       s.forEach(line => { f.doc.text(line, f.x, yy + SIZE.body * 0.92); yy += lead(SIZE.body, f.density); });
       yy += gap(f.density, 's');
       const ry = yy;
-      const accent = Math.min(52, f.w * 0.2);
-      f.doc.setDrawColor(BRAND); f.doc.setLineWidth(2); f.doc.line(f.x, ry, f.x + accent, ry);
-      f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.8); f.doc.line(f.x + accent, ry, f.x + f.w, ry);
+      /* a full hairline under the heading, as a document's (X7, 7 November) — the blue stub went */
+      f.doc.setDrawColor('#cbd5e1'); f.doc.setLineWidth(0.6); f.doc.line(f.x, ry, f.x + f.w, ry);
     },
   };
 }

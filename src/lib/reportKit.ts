@@ -32,9 +32,13 @@ export const SHELL = '#0b1a33', SHELL_2 = '#132544', SHELL_MUTED = '#8fa3c0';
  *  band (styles.css), and flips to this when a screen page is printed. */
 export const BAND = '#f4f6f9', BAND_EDGE = BRAND, BAND_LINE = '#e6eaf0';
 /** Draw the band's ground: the pale fill and its teal edge. */
-export function paperBand(d: Doc, x: number, y: number, w: number, h: number, r = 7): void {
-  d.setFillColor(BAND); d.roundedRect(x, y, w, h, r, r, 'F');
-  d.setFillColor(BAND_EDGE); d.roundedRect(x, y, 4, h, 2, 2, 'F');
+/* POLISHED AS AN OFFICE DOCUMENT IS (7 November, docs/ENTERPRISE-UX.md X7 — Rowland: "the report should look also highly polished as
+   Microsoft would build it, we still follow our lean visual management"): the band a crisp pale block with the press colour as a thin rule
+   along its top — no rounded slab, no stripe down its side; still light, still the band. `r` is kept for the callers that pass one. */
+export function paperBand(d: Doc, x: number, y: number, w: number, h: number, r = 0): void {
+  void r;
+  d.setFillColor(BAND); d.rect(x, y, w, h, 'F');
+  d.setFillColor(BAND_EDGE); d.rect(x, y, w, 1.6, 'F');
 }
 export const OK = '#15803d', WARN = '#b45309', DANGER = '#c4281c', BLUE = '#6d28d9';
 /** The validated chart pair — actual vs target (target is also dashed, so the
@@ -219,14 +223,14 @@ export function table(
   let cx = x;
   for (const c of cols) { xs.push(cx); cx += c.width * w; }
 
-  setFont(d, 6.5, 'bold', MUTED);
+  /* the header row on a pale fill, as a Word table's (X7) */
+  d.setFillColor(SURF2); d.rect(x, y - 8.5, w, 13, 'F');
+  setFont(d, 6.5, 'bold', INK2);
   cols.forEach((c, i) => {
-    const tx = c.align === 'right' ? xs[i] + c.width * w - 6 : xs[i];
+    const tx = c.align === 'right' ? xs[i] + c.width * w - 6 : xs[i] + 4;
     d.text(c.head.toUpperCase(), tx, y, { align: c.align === 'right' ? 'right' : 'left' });
   });
-  let cy = y + 5;
-  d.setDrawColor(LINE); d.setLineWidth(0.6);
-  d.line(x, cy, x + w, cy);
+  let cy = y + 4.5;
 
   for (const row of rows) {
     if (cy + 16 > maxY) break;                    // never spill past the panel
@@ -237,7 +241,7 @@ export function table(
       const tx = c.align === 'right' ? xs[i] + c.width * w - 6 : xs[i];
       d.text(fit(d, cell.text, c.width * w - 10), tx, cy, { align: c.align === 'right' ? 'right' : 'left' });
     });
-    d.setDrawColor('#efede6'); d.setLineWidth(0.4);
+    d.setDrawColor(LINE); d.setLineWidth(0.4);
     d.line(x, cy + 4, x + w, cy + 4);
   }
   return cy;

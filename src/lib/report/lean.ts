@@ -15,7 +15,9 @@ import type { Block, Frame } from './flow';
 
 const LINE2 = '#cbd5e1', GREY = '#6b7588', BAR = '#98a5ab';
 const TONE: Record<LeanTone, string> = { r: DANGER, a: WARN, g: OK, n: GREY };
-const wash = (t: LeanTone): string | undefined => (t === 'g' ? '#f1f8f3' : t === 'r' ? '#fcf1f0' : undefined);
+const wash = (t: LeanTone): string | undefined => (t === 'g' ? '#f1f8f3' : t === 'r' ? '#fcf1f0' : t === 'a' ? '#fdf6ec' : undefined);
+/** A figure's card on paper (X7): the faintest cool grey, as Office's. */
+const TILE = '#f6f8fb';
 
 /* -------------------------------------------------------------- the band */
 
@@ -45,7 +47,7 @@ export function leanBand(p: LeanPage, printed: string): Block {
       const d = f.doc, l = lay(f), PAD = padOf(f);
       paperBand(d, f.x, y, f.w, l.h);
       let yy = y + PAD + 7;
-      font(d, 7.5, 'bold', MUTED); d.text(san(p.eyebrow.toUpperCase()), f.x + PAD, yy);
+      font(d, 7.5, 'bold', BRAND); d.text(san(p.eyebrow.toUpperCase()), f.x + PAD, yy);
       yy += 6;
       font(d, 19, 'bold', INK); l.title.forEach(s => { yy += 19; d.text(s, f.x + PAD, yy); yy += 3; });
       font(d, 9.5, 'bold', INK2); l.sub.forEach(s => { yy += 12; d.text(s, f.x + PAD, yy); });
@@ -53,14 +55,14 @@ export function leanBand(p: LeanPage, printed: string): Block {
         font(d, 8.5, 'bold', '#ffffff');
         const tw = Math.min(l.lw, Math.max(...l.said.map(s => d.getTextWidth(s))) + 16);
         const fill = TONE[p.verdict.tone];
-        d.setFillColor(fill); d.roundedRect(f.x + PAD, yy + 7, tw, l.pill, 7.5, 7.5, 'F');
+        d.setFillColor(fill); d.roundedRect(f.x + PAD, yy + 7, tw, l.pill, 2.5, 2.5, 'F');
         l.said.forEach((s, i) => d.text(s, f.x + PAD + 8, yy + 17.5 + i * 10.5));
       }
       /* the facts on the right */
       let fy = y + PAD + 7;
       const fx = f.x + f.w - FW - PAD;
       l.fl.forEach(({ k, v }) => {
-        font(d, 7.5, 'bold', MUTED); d.text(san(k), fx, fy);
+        font(d, 7.5, 'normal', MUTED); d.text(san(k), fx, fy);
         font(d, 8, 'bold', INK); v.forEach((s, i) => d.text(s, fx + 50, fy + i * 10));
         fy += Math.max(1, v.length) * 10 + 3;
       });
@@ -106,10 +108,11 @@ export function leanTiles(tiles: LeanTile[]): Block {
         const h = l.rh[ri];
         r.forEach((e, i) => {
           const x = f.x + i * (l.tw + GAP), tone = e.t.tone ?? 'n';
-          const fill = wash(tone);
-          d.setDrawColor(LINE); d.setLineWidth(0.6);
-          if (fill) { d.setFillColor(fill); d.roundedRect(x, ry, l.tw, h, 4, 4, 'FD'); } else d.roundedRect(x, ry, l.tw, h, 4, 4, 'S');
-          d.setFillColor(tone === 'n' ? LINE2 : TONE[tone]); d.rect(x + 0.3, ry + 0.3, l.tw - 0.6, 3, 'F');
+          /* a card as Office draws a figure (X7): a pale fill, square-ish corners, no outline; only the abnormal one carries its colour,
+             as a mark down its left edge and in its number — normal recedes */
+          const fill = tone === 'r' || tone === 'a' ? wash(tone) : TILE;
+          d.setFillColor(fill ?? TILE); d.roundedRect(x, ry, l.tw, h, 2.5, 2.5, 'F');
+          if (tone === 'r' || tone === 'a') { d.setFillColor(TONE[tone]); d.rect(x, ry, 2.2, h, 'F'); }
           let yy = ry + l.pad + 7;
           font(d, 6.8, 'bold', MUTED); d.text(san(e.t.k.toUpperCase()), x + 8, yy);
           font(d, 17, 'bold', tone === 'r' || tone === 'a' ? TONE[tone] : e.t.v === '—' ? GREY : INK);
@@ -142,9 +145,7 @@ export function leanHead(title: string, aside?: string): Block {
       font(d, 11, 'bold', INK); d.text(san(title), f.x, y + 11 - k);
       if (aside) { font(d, 7.5, 'normal', MUTED); d.text(san(aside), f.x + f.w, y + 11 - k, { align: 'right' }); }
       const ry = y + 15.5 - k;
-      const accent = Math.min(48, f.w * 0.22);
-      d.setDrawColor(BRAND); d.setLineWidth(2); d.line(f.x, ry, f.x + accent, ry);
-      d.setDrawColor(LINE); d.setLineWidth(0.7); d.line(f.x + accent, ry, f.x + f.w, ry);
+      d.setDrawColor(LINE2); d.setLineWidth(0.6); d.line(f.x, ry, f.x + f.w, ry);
     },
   };
 }
@@ -312,15 +313,13 @@ export function leanClosing(c: { text: string; tone: LeanTone }): Block {
     after: () => 6,
     draw: (f, y) => {
       const d = f.doc, l = lines(f), h = hOf(f);
-      paperBand(d, f.x, y, f.w, h);
-      d.setDrawColor(BRAND); d.setLineWidth(1.4);
-      d.line(f.x + 6, y + 3.5, f.x + Math.min(44, f.w * 0.18), y + 3.5);
+      d.setFillColor(TILE); d.roundedRect(f.x, y, f.w, h, 2.5, 2.5, 'F');
       const cx = f.x + 22, cy = y + h / 2;
       d.setFillColor(TONE[c.tone]); d.circle(cx, cy, 9, 'F');
       d.setDrawColor('#ffffff'); d.setLineWidth(1.7);
       if (c.tone === 'g') { d.line(cx - 4, cy, cx - 1, cy + 3.2); d.line(cx - 1, cy + 3.2, cx + 4.5, cy - 3.6); }
-      else if (c.tone === 'r') { d.line(cx - 3.6, cy - 3.6, cx + 3.6, cy + 3.6); d.line(cx + 3.6, cy - 3.6, cx - 3.6, cy + 3.6); }
-      else if (c.tone === 'a') { d.line(cx, cy - 4.5, cx, cy + 1); d.setFillColor('#ffffff'); d.circle(cx, cy + 3.8, 0.9, 'F'); }
+      /* red is "!" as amber is, never a cross — a cross on a bar reads as a button to close it (7 November) */
+      else if (c.tone === 'r' || c.tone === 'a') { d.line(cx, cy - 4.5, cx, cy + 1); d.setFillColor('#ffffff'); d.circle(cx, cy + 3.8, 0.9, 'F'); }
       else { d.setFillColor('#ffffff'); d.circle(cx, cy, 1.8, 'F'); }
       font(d, 9.5, 'bold', INK);
       const ty = y + (h - l.length * LH) / 2 + 8.5;

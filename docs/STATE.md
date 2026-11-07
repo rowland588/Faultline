@@ -68,6 +68,10 @@ a session that ships something updates this page in the same commit.** The rules
   at the top, machine cards as a simple header, Tools redone), then the record panel, planning (the projects' board), problems
   and projects, the tools, reports, phone review.
 
+- **Reports polished and words kept off words (7 November, docs/ENTERPRISE-UX.md X7 first pass).** Every paper's band, figures,
+  headings, tables, badges and closing line to an Office finish, the lean page kept; the fishbone's causes wrap to two lines and
+  keep their tags off the bones; the plan's Today never on a month's name; the closing line's red mark is "!", not a cross.
+
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
 
 **Phone, the other scopes** (E7, 6 November — on `main`, live): at a viewport of 719px and under, Factory home, Set up, a line’s Overview, Projects and Problems stack their panels and stay inside the frame. The one thumb bar is the same. The tools gallery keeps the sideways scroll from the tools slice.

@@ -139,7 +139,7 @@ const pillPath = (doc: jsPDF, x: number, py: number, w: number, h: number, tone:
   doc.setLineWidth(tone === 'none' ? 0.6 : 0.9);
   if (tone === 'none') doc.setLineDashPattern([2, 1.5], 0); else doc.setLineDashPattern([], 0);
   doc.setDrawColor(c.stroke);
-  if (c.fill) { doc.setFillColor(c.fill); doc.roundedRect(x, py, w, h, 3, 3, 'FD'); } else doc.roundedRect(x, py, w, h, 3, 3, 'S');
+  doc.setFillColor(c.fill || '#f6f8fb'); doc.roundedRect(x, py, w, h, 2.5, 2.5, 'F');
   doc.setLineDashPattern([], 0);
   font(doc, 7, 'bold', c.text);
   doc.text(text, x + w / 2, py + h / 2 + 2.4, { align: 'center' });
@@ -150,7 +150,7 @@ const cellPath = (doc: jsPDF, c: CellTone, x: number, y: number, w = 14, h = 10)
   /* Late is drawn heavier than done — the abnormal stands out. */
   doc.setDrawColor(cc.stroke); doc.setLineWidth(c === 'late' ? 1.8 : 0.9);
   if (c === 'none') doc.setLineDashPattern([1.5, 1.5], 0);
-  if (cc.fill) { doc.setFillColor(cc.fill); doc.roundedRect(x, y, w, h, 2, 2, 'FD'); } else doc.roundedRect(x, y, w, h, 2, 2, 'S');
+  doc.setFillColor(cc.fill || '#f6f8fb'); doc.roundedRect(x, y, w, h, 2, 2, 'F');
   doc.setLineDashPattern([], 0);
 };
 
@@ -228,8 +228,9 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
   const otH = (f: Frame) => 34 + otLines(f).rest.length * 12 + paceH(otPace(f)) + 6;
   out.push(box(f => otH(f) + gap(f.density, 'm'), (f, y) => {
     const l = otLines(f), c = ON_TARGET[ot.tone], h = otH(f);
-    f.doc.setFillColor(c.fill); f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(ot.tone === 'behind' ? 1.6 : 0.8);
-    f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'FD');
+    /* the answer first, on a soft wash with its colour down the left edge — not a heavy outlined box (X7, 7 November) */
+    f.doc.setFillColor(c.fill); f.doc.roundedRect(f.x, y, f.w, h, 2.5, 2.5, 'F');
+    f.doc.setFillColor(c.stroke); f.doc.rect(f.x, y, 3, h, 'F');
     font(f.doc, 7.5, 'bold', MUTED); f.doc.text('ARE WE ON TARGET?', f.x + 14, y + 14);
     font(f.doc, 12.5, 'bold', c.text); f.doc.text(ot.word, f.x + 14, y + 30);
     font(f.doc, 9.5, 'normal', INK2); f.doc.text(l.first, f.x + 14 + l.ww, y + 30);
@@ -305,10 +306,8 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     r.gates.forEach((g, i) => {
       /* A tile is a wash — a test that did not pass is the late red's. */
       const x = f.x + i * (gw(f) + 8), c = GATE_COLOUR[g.tone === 'failed' ? 'late' : g.tone];
-      f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(1);
-      if (c.fill && g.tone !== 'done') { f.doc.setFillColor(c.fill); f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'FD'); }
-      else if (g.tone === 'done') { f.doc.setFillColor('#e9f5ef'); f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'FD'); }
-      else f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'S');
+      /* a filled card, no outline (X7): the wash says the state, the word says it again */
+      f.doc.setFillColor(g.tone === 'done' ? '#eef6f1' : c.fill || '#f6f8fb'); f.doc.roundedRect(x, y, gw(f), h, 2.5, 2.5, 'F');
       font(f.doc, 11, 'bold', g.tone === 'done' ? OK : c.text === MUTED ? INK2 : c.text); f.doc.text(g.label, x + 7, y + 15);
       font(f.doc, 8, 'normal', INK2); f.doc.text(ls[i], x + 7, y + 27);
     });
@@ -828,8 +827,8 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
     const otPace = (f: Frame) => paceLines(f, ot.pace);
     out.push(box(f => 36 + otLines(f).length * 12 + paceH(otPace(f)) + gap(f.density, 'm'), (f, y) => {
       const c = ON_TARGET[ot.tone], l = otLines(f), h = 30 + l.length * 12 + paceH(otPace(f));
-      f.doc.setFillColor(c.fill); f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(ot.tone === 'behind' ? 1.6 : 0.8);
-      f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'FD');
+      f.doc.setFillColor(c.fill); f.doc.roundedRect(f.x, y, f.w, h, 2.5, 2.5, 'F');
+      f.doc.setFillColor(c.stroke); f.doc.rect(f.x, y, 3, h, 'F');
       font(f.doc, 7.5, 'bold', MUTED); f.doc.text('WHERE WE ARE', f.x + 14, y + 13);
       font(f.doc, 12.5, 'bold', c.text); f.doc.text(ot.word, f.x + 14, y + 27);
       font(f.doc, 9.5, 'normal', INK2); f.doc.text(l, f.x + 14, y + 39);
@@ -844,9 +843,7 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
       s.gates.forEach((g, i) => {
         const x = f.x + i * (gw(f) + 8), c = GATE_COLOUR[g.tone === 'failed' ? 'late' : g.tone];
         f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(1);
-        if (g.tone === 'done') { f.doc.setFillColor('#e9f5ef'); f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'FD'); }
-        else if (c.fill) { f.doc.setFillColor(c.fill); f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'FD'); }
-        else f.doc.roundedRect(x, y, gw(f), h, 5, 5, 'S');
+        f.doc.setFillColor(g.tone === 'done' ? '#eef6f1' : c.fill || '#f6f8fb'); f.doc.roundedRect(x, y, gw(f), h, 2.5, 2.5, 'F');
         font(f.doc, 11, 'bold', g.tone === 'done' ? OK : c.text === MUTED ? INK2 : c.text); f.doc.text(g.label, x + 7, y + 15);
         font(f.doc, 8, 'normal', INK2); f.doc.text(ls[i], x + 7, y + 27);
       });

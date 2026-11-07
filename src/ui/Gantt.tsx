@@ -482,7 +482,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, paceAt, projectId, 
                 {g.months.map(m => <span key={m.label + m.start} style={{ left: m.start * px, width: m.span * px }}>{m.span * px >= 30 ? m.label : ''}</span>)}
               </div>
               {/* WHERE AM I: a pill at the head of today's column. */}
-              {g.today != null && <span className="gt-todaypill" style={{ left: (g.today + 0.5) * px }}>Today</span>}
+              {g.today != null && <span className={'gt-todaypill' + (scale === 'day' ? '' : ' is-low')} style={{ left: (g.today + 0.5) * px }}>Today</span>}
               {scale === 'day' ? (
                 <div className="gt-days">
                   {g.dayList.map(d => (

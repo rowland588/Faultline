@@ -24,8 +24,10 @@ export function table(header: string[], body: string[][], shares: number[]): Blo
     h: f => Math.max(...cells(f, row, bold).map(l => l.length), 1) * LH + 5,
     draw: (fr, y) => {
       let x = fr.x;
+      /* the header row on a pale fill, as a Word table's (X7) */
+      if (bold) { fr.doc.setFillColor(SURF2); fr.doc.rect(fr.x - 4, y, fr.w + 4, Math.max(...cells(fr, row, bold).map(l => l.length), 1) * LH + 3, 'F'); }
       cells(fr, row, bold).forEach((ls, i) => {
-        font(fr.doc, 8, bold ? 'bold' : 'normal', bold ? MUTED : INK2);
+        font(fr.doc, 8, bold ? 'bold' : 'normal', bold ? INK2 : INK2);
         ls.forEach((l, k) => fr.doc.text(l, x, y + 8 + k * LH));
         x += fr.w * shares[i];
       });

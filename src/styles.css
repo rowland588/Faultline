@@ -9893,7 +9893,7 @@ button.prp-go:hover { background: color-mix(in srgb, var(--ink) 4%, transparent)
 }
 .fb-mark:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); z-index: 5; }
 .fb-mark:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; z-index: 5; }
-.fb-mark-t { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fb-mark-t { flex: 1 1 auto; min-width: 0; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.2; }
 .fb-mark.is-confirmed .fb-mark-t { font-weight: 600; }
 .fb-mark.is-suspected { color: var(--ink-2); }
 .fb-mark.is-root .fb-mark-t { font-weight: 700; color: var(--ink); }
@@ -10025,8 +10025,8 @@ button.fb-mini-lab:focus-visible { outline: 2px solid var(--accent); }
 .fb-mark-tags { display: contents; }
 .fb-mark.is-two { flex-wrap: wrap; align-content: flex-end; row-gap: 4px; padding-bottom: 4px; }
 .fb-mark.is-two .fb-mark-t { flex: 1 1 calc(100% - 20px); }
-.fb-mark.is-two .fb-mark-tags { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; min-width: 0; padding-left: 20px; }
-.fb-mark.is-two .fb-fix { max-width: none; }
+.fb-mark.is-two .fb-mark-tags { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; min-width: 0; padding-left: 20px; overflow: hidden; }
+.fb-mark.is-two .fb-fix { flex: 0 1 auto; max-width: 100%; }
 .fb-mark.is-two.is-sugg .fb-mark-t { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .fb-row-fix { display: block; margin-top: 2px; }
 .fb-row-fix .fb-fix { font-size: var(--t-label); padding: 2px 9px; }
@@ -11774,6 +11774,8 @@ button.gt-fixlab small { font-size: var(--t-label); }
   padding: 1px 9px; border-radius: var(--radius-pill); background: var(--brand); color: var(--on-dark); box-shadow: 0 0 0 2px var(--surface-2);
   font-size: var(--t-label); font-weight: 800; line-height: 16px; letter-spacing: 0.02em; white-space: nowrap;
 }
+/* with no row of days (Fit, Weeks) the pill sits under the months, never on a month's name (7 November — "make sure words don't spill over") */
+.gt-todaypill.is-low { top: 32px; }
 /* "Next" is said in words — ink, outlined, never a state's colour. */
 .gt-next {
   display: inline-block; margin-right: 7px; padding: 0 6px; border: 1.5px solid var(--ink); border-radius: var(--radius-xs); vertical-align: 1px;

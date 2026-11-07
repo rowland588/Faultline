@@ -83,8 +83,9 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
         if (p.crit.length) { font(f.doc, 8.5, 'bold', DANGER); f.doc.text(p.crit, f.x, ty); ty += p.crit.length * 10.5; }
         if (p.next.length) { font(f.doc, 8.5, 'normal', j.nextLate ? DANGER : MUTED); f.doc.text(p.next, f.x, ty); }
         /* The verdict, a pill on the right in its colour, the word in it. */
-        f.doc.setFillColor(c.fill); f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(j.tone === 'behind' ? 1.2 : 0.7);
-        f.doc.roundedRect(f.x + f.w - pillW, y + 5, pillW, 15, 7, 7, 'FD');
+        /* a badge as Office draws one (X7): a soft fill, a small corner, no outline — the word in its colour */
+        f.doc.setFillColor(c.fill);
+        f.doc.roundedRect(f.x + f.w - pillW, y + 5, pillW, 15, 2.5, 2.5, 'F');
         font(f.doc, 8, 'bold', c.text); f.doc.text(j.word, f.x + f.w - pillW / 2, y + 15.2, { align: 'center' });
       },
     })),

@@ -102,7 +102,7 @@ export function LeanTrend({ trend }: { trend: LeanTrend }) {
   );
 }
 
-const MARK: Record<LeanTone, string> = { r: '✕', a: '!', g: '✓', n: '·' };
+const MARK: Record<LeanTone, string> = { r: '!', a: '!', g: '✓', n: '·' };
 
 /** WHAT IT MEANS — the module's sentences, each marked. */
 export function LeanInsights({ insights, className }: { insights: LeanInsight[]; className?: string }) {

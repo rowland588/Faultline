@@ -11,7 +11,7 @@
 import { AHEAD_SAYS, WORK_TONE, aheadOfBest, statusSays } from './programStatus';
 import type { jsPDF } from 'jspdf';
 import { badgeOf, type ProgramLine, type ProgramsReading, type ProgTone } from './programsReport';
-import { san, OK, DANGER, BLUE, BAND, BAND_EDGE } from './reportKit';
+import { san, OK, DANGER, BLUE, BAND, SURF2 } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { leanClosing } from './report/lean';
 import type { LeanTile } from './lean';
@@ -94,7 +94,7 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
           if (l.bucket === 'failed' || l.bucket === 'late') { f.doc.setFillColor(DANGER); f.doc.rect(f.x - 5, y + 3, 2.5, h - 5, 'F'); }
           /* THE STATE, FIRST AND BIG: a pill in its colour with its word — the one white-on-colour the house allows. */
           const badge = badgeOf(l);
-          f.doc.setFillColor(TONE[l.tone]); f.doc.roundedRect(f.x, y + 5, pillW, 15, 3, 3, 'F');
+          f.doc.setFillColor(TONE[l.tone]); f.doc.roundedRect(f.x, y + 5, pillW, 15, 2, 2, 'F');
           font(f.doc, badge.length > 8 ? 6.5 : 7.5, 'bold', '#ffffff'); f.doc.text(badge, f.x + pillW / 2, y + 15.2, { align: 'center' });
           font(f.doc, 10, 'bold', INK2); f.doc.text(p.head, f.x + indent, y + 16);
           let ty = y + 16 + p.head.length * 13 - 3;
@@ -105,7 +105,6 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
           if (p.stat.length || p.cav.length) {
             const bh = statBoxH(p), bx = f.x + indent - 2, bw = f.w - indent + 2;
             f.doc.setFillColor(BAND); f.doc.roundedRect(bx, ty - 6, bw, bh - 6, 3, 3, 'F');
-            f.doc.setFillColor(BAND_EDGE); f.doc.rect(bx, ty - 6, 2.5, bh - 6, 'F');
             let by = ty + 4;
             if (p.stat.length) {
               font(f.doc, 6.5, 'bold', MUTED); f.doc.text('STATUS', bx + 10, by); by += 10;
@@ -187,7 +186,7 @@ export function summaryBlocks(reading: ProgramsReading): Block[] {
   };
   const rowH = (f: Frame, r: SummaryRow) => { const c = cells(f, r); return Math.max(24, 10 + c.name.length * 11.5 + c.sub.length * 9.5, 10 + c.sp.length * 11, 8 + c.cav.length * 11) + 6; };
   const head = (f: Frame, y: number) => {
-    f.doc.setFillColor(BAND); f.doc.roundedRect(f.x, y, f.w, 18, 3, 3, 'F'); f.doc.setFillColor(BAND_EDGE); f.doc.rect(f.x, y, 2.5, 18, 'F');
+    f.doc.setFillColor(SURF2); f.doc.rect(f.x, y, f.w, 18, 'F');
     font(f.doc, 7, 'bold', INK2);
     let x = f.x + 8;
     for (const [t, w] of [['NO.', cols.no], ['PROGRAM', cols.prog], ['STATUS', cols.st], ['RUN SPEED', cols.sp], ['CAN RUN AT', cols.run], ['CAVEAT — WHAT TO WATCH', cavW(f)]] as [string, number][]) { f.doc.text(t, x, y + 12); x += w; }
@@ -257,8 +256,9 @@ export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: s
       const tw = (f.w - (tiles.length - 1) * 8) / tiles.length;
       tiles.forEach((t, i) => {
         const tx = f.x + i * (tw + 8), c = t.n ? t.c : MUTED;
-        f.doc.setDrawColor(t.n ? c : LINE); f.doc.setLineWidth(t.n && (t.c === DANGER) ? 1.4 : 0.8);
-        f.doc.roundedRect(tx, y, tw, 40, 5, 5, 'S');
+        /* a figure's card as Office draws one (X7): a pale fill, no outline; only a red count carries its colour down its edge */
+        f.doc.setFillColor(t.n && t.c === DANGER ? '#fcf1f0' : '#f6f8fb'); f.doc.roundedRect(tx, y, tw, 40, 2.5, 2.5, 'F');
+        if (t.n && t.c === DANGER) { f.doc.setFillColor(DANGER); f.doc.rect(tx, y, 2.2, 40, 'F'); }
         font(f.doc, 16, 'bold', c); f.doc.text(String(t.n), tx + 9, y + 20);
         font(f.doc, 8, 'normal', t.n ? INK2 : MUTED); f.doc.text(t.word, tx + 9, y + 33);
       });

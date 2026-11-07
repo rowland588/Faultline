@@ -87,7 +87,7 @@ with screenshots at 1440 and 390 shown to Rowland, and the quality gate below an
 | **X4** | **Planning** — Actions as List · Board (by state) · Timeline · People views; due dates, overdue and blocked said the same way everywhere; the project's own Actions the same views | |
 | **X5** | **Projects and problems** — the register as a table with the record panel; a project's page as a workspace with its method's sections as a list, not boxes | |
 | **X6** | **The tools' working environments** — a tool's page as a workspace (inputs left, the picture and figures right, the table under), the gallery as a catalogue table with a picture on hover | |
-| **X7** | **Reports** — the papers' presentation (cover, contents, a consistent page head, tables, charts) as a consultancy deliverable | |
+| **X7** | **Reports** — the papers' presentation as a consultancy deliverable. **First pass built 7 November** (Rowland: *"the report should look also highly polished as Microsoft would build it, we still follow our lean visual management"*): in the shared parts every paper uses — the band a crisp pale block with the press colour as a thin rule along its top (no rounded slab, no stripe down its side), the eyebrow in the press colour; the figures filled cards with no outline and no bar across the top, only the abnormal one marked by its colour down its left edge and in its number; section headings over a full hairline (the blue stub gone); tables with a pale header row; badges with small corners and soft fills; the closing line a soft block, red said with "!" not a cross (a cross read as a close button). The client and programs reports' own tiles and boxes the same. Paper parity kept (68 the same, nothing lost). Next: each paper's own tables and covers, the full package's contents | first pass 7 Nov |
 | **X8** | **Phone and desk review** — every page at 390, 768, 1280 and 1440 | |
 
 ## The quality gate — asked of every screen before it is called done
@@ -96,3 +96,11 @@ Does it look like premium enterprise software? Is the information hierarchy imme
 balanced and properly spaced? Are related functions logically connected? Can users complete common tasks without
 unnecessary navigation? Are interactive elements consistent? Does it work beautifully at different screen sizes? Does
 it feel like part of one coherent product? — *"Do not mark work complete just because the code compiles."*
+
+## Words never on words — 7 November
+
+Rowland: *"make sure words don't spill over on anything — diagrams, visuals; noticed the fishbone didn't look good."* The fishbone's ribs
+are 44 px at every width (they were 34 at a desk): a cause's words wrap to two lines instead of being cut to one with "…", and its tags
+stay inside its box, never across a bone. The plan's *Today* sits under the months when there is no row of days, never on a month's name.
+Checked by measuring every text box on 34 pages at 1440 and 390 (`scripts/_overlap.mjs`, a working script) — no words on words but the
+plan's pinned column over dates scrolled under it, which is how a timeline scrolls.
