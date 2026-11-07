@@ -7,7 +7,7 @@ import { SIZE, font, heading, label, text } from './blocks';
 import { checkOf, dayWords, daysOf, eventSays, type Answers } from '../kaizenEvent';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', AMBER = '#b45309', RED = '#c4281c', GREEN = '#15803d';
+const INK2 = '#475569', MUTED = '#64748b', AMBER = '#b45309', RED = '#c4281c', GREEN = '#15803d';
 
 export interface KaizenPaperIn { project: string; printed: string; today: string; answers: Answers }
 

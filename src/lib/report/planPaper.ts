@@ -8,7 +8,7 @@ import type { Plan } from '../../tools/plan/planInputs';
 import { hoursWords } from '../../tools/plan/schedule';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', AMBER = '#b45309', RED = '#c4281c';
+const INK2 = '#475569', MUTED = '#64748b', AMBER = '#b45309', RED = '#c4281c';
 
 export interface PlanPaperIn { line: string; printed: string; plan: Plan }
 

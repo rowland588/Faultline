@@ -25,7 +25,7 @@ import { capacityLean } from './capacityLean';
 import { leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles } from '../../lib/report/lean';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', SURF = '#eef2f8';
+const INK = '#0f172a', INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', BRAND = '#2563eb', SURF = '#eef2f7';
 /** The house's red and amber on paper (lib/report/lossTable, lib/factoryPdf). */
 const RED = '#c4281c', AMBER = '#b45309';
 const toneInk = (t?: Tone) => (t === 'r' ? RED : t === 'a' ? AMBER : INK2);
@@ -44,8 +44,8 @@ function band(headline: string, sentence: string, short: boolean): Block {
     const p = parts(f), h = height(f);
     paperBand(f.doc, f.x, y, f.w, h, 6);
     if (short) { f.doc.setFillColor(RED); f.doc.roundedRect(f.x, y, 4, h, 2, 2, 'F'); }
-    font(f.doc, 11, 'bold', '#0f1417'); f.doc.text(p.h, f.x + 15, y + 17);
-    if (p.s.length) { font(f.doc, T, 'normal', '#323d43'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2); }
+    font(f.doc, 11, 'bold', '#0f172a'); f.doc.text(p.h, f.x + 15, y + 17);
+    if (p.s.length) { font(f.doc, T, 'normal', '#475569'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2); }
   }, f => gap(f.density, 'm'));
 }
 
@@ -80,7 +80,7 @@ function said(lead_: string, words: string, tone: Tone = 'n', o: { indent?: numb
 
 /* ------------------------------- the V, drawn ------------------------------ */
 
-/** A colour as jsPDF takes it — "#12171c" or "rgb(12,116,137)". */
+/** A colour as jsPDF takes it — "#0b1a33" or "rgb(12,116,137)". */
 function fillOf(doc: jsPDF, css: string, as: 'fill' | 'draw' = 'fill'): void {
   const m = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(css.replace(/\s/g, ''));
   if (as === 'fill') { if (m) doc.setFillColor(+m[1], +m[2], +m[3]); else doc.setFillColor(css); }
@@ -138,13 +138,13 @@ function vBars(p: CapacityPaper): Block | null {
     draw: (f, y) => {
       const g = geo(f), h = rowH(f, r), l = name(f, r);
       const [deep, light] = shareColours(r.pct ?? 0, r.limit, r.under);
-      if (r.limit) { f.doc.setFillColor(SURF); f.doc.rect(f.x, y, f.w, h, 'F'); f.doc.setFillColor('#12171c'); f.doc.rect(f.x, y, 3, h, 'F'); }
+      if (r.limit) { f.doc.setFillColor(SURF); f.doc.rect(f.x, y, f.w, h, 'F'); f.doc.setFillColor('#0b1a33'); f.doc.rect(f.x, y, 3, h, 'F'); }
       const ty = y + 4 + T * 0.92;
       font(f.doc, T, 'bold', INK); f.doc.text(l, f.x + (r.limit ? 7 : 0), ty);
       font(f.doc, S, 'normal', MUTED); f.doc.text(`${r.perMin} ${p.unit}/min`, f.x + (r.limit ? 7 : 0), ty + l.length * LH - 1);
       /* the bar: paler to what it does while running, then its share once its stops count */
       const by = y + h / 2 - 5, bh = 10;
-      f.doc.setFillColor('#edf1f1'); f.doc.roundedRect(g.x0, by, g.x1 - g.x0, bh, 3, 3, 'F');
+      f.doc.setFillColor('#eef2f7'); f.doc.roundedRect(g.x0, by, g.x1 - g.x0, bh, 3, 3, 'F');
       if ((r.runningPct ?? 0) > (r.pct ?? 0) + 0.5) { fillOf(f.doc, light); f.doc.roundedRect(g.x0, by, Math.max(2, g.at(r.runningPct ?? 0) - g.x0), bh, 3, 3, 'F'); }
       fillOf(f.doc, deep); f.doc.roundedRect(g.x0, by, Math.max(2, g.at(r.pct ?? 0) - g.x0), bh, 3, 3, 'F');
       marks(f, y, h, r);
@@ -192,7 +192,7 @@ function flowBlock(m: FlowModel): Block {
   };
   const node = (f: Frame, x: FlowNode, nx: number, ny: number, w: number, no?: number) => {
     const d = f.doc;
-    if (x.isLimit) { d.setFillColor(SURF); d.setDrawColor('#12171c'); d.setLineWidth(1.6); }
+    if (x.isLimit) { d.setFillColor(SURF); d.setDrawColor('#0b1a33'); d.setLineWidth(1.6); }
     else if (x.isOwnLimit) { d.setFillColor('#ffffff'); d.setDrawColor(BRAND); d.setLineWidth(1.3); }
     else { d.setFillColor('#ffffff'); d.setDrawColor(x.perMin == null ? MUTED : '#b9c6c8'); d.setLineWidth(0.8); }
     if (x.perMin == null) d.setLineDashPattern([2, 2], 0);
@@ -312,12 +312,12 @@ function barsBlocks(m: FlowModel): Block[] {
         h: f => Math.max(wrap(f.doc, x.name, NAME - 4, T, 'bold').length * LH, 12) + 4,
         draw: (f, y) => {
           const d = f.doc, q = geo(f), l = wrap(d, x.name, NAME - 4, T, 'bold'), h = Math.max(l.length * LH, 12) + 4;
-          if (x.isLimit) { d.setFillColor(SURF); d.rect(f.x, y, f.w, h, 'F'); d.setFillColor('#12171c'); d.rect(f.x, y, 3, h, 'F'); }
+          if (x.isLimit) { d.setFillColor(SURF); d.rect(f.x, y, f.w, h, 'F'); d.setFillColor('#0b1a33'); d.rect(f.x, y, 3, h, 'F'); }
           font(d, T, 'bold', INK); d.text(l, f.x + (x.isLimit ? 7 : 0), y + 2 + T * 0.92);
           const pct = x.perMin != null && g.ref ? (x.perMin / g.ref) * 100 : 100;
           const [deep, light] = x.isInflow ? ['#8a999e', '#c4cdd0'] : shareColours(pct, x.isLimit, false);
           const by = y + h / 2 - 4, bh = 8;
-          d.setFillColor('#edf1f1'); d.roundedRect(q.x0, by, q.x1 - q.x0, bh, 2.5, 2.5, 'F');
+          d.setFillColor('#eef2f7'); d.roundedRect(q.x0, by, q.x1 - q.x0, bh, 2.5, 2.5, 'F');
           if (x.perMin != null) { fillOf(d, deep); d.roundedRect(q.x0, by, Math.max(2, q.at(x.perMin) - q.x0), bh, 2.5, 2.5, 'F'); void light; }
           if (g.ref != null) { d.setDrawColor(INK); d.setLineWidth(0.9); d.line(q.at(g.ref), y, q.at(g.ref), y + h); }
           if (g.target != null) { d.setDrawColor(short ? RED : INK2); d.setLineWidth(0.9); d.setLineDashPattern([1, 1.6], 0); d.line(q.at(g.target), y, q.at(g.target), y + h); d.setLineDashPattern([], 0); }

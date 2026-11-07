@@ -14,7 +14,7 @@ import { factoryClosing, factoryTiles } from './factoryLean';
 import { fmtGBP } from './cost';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', DANGER = '#c4281c';
+const INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', BRAND = '#2563eb', DANGER = '#c4281c';
 
 const pad = (f: Frame) => (f.density === 'compact' ? 4 : 7);
 
@@ -32,7 +32,7 @@ function blocksOf(r: FactoryReading, d: Density): Block[] {
   out.push(box(f => 14 + saysLines(f).length * 14 + gap(f.density, 'm'), (f, y) => {
     const l = saysLines(f), h = 10 + l.length * 14;
     paperBand(f.doc, f.x, y, f.w, h, 6);
-    font(f.doc, 11, 'bold', '#0f1417'); f.doc.text(l, f.x + 14, y + 17);
+    font(f.doc, 11, 'bold', '#0f172a'); f.doc.text(l, f.x + 14, y + 17);
   }, f => gap(f.density, 'm')));
   out.push(leanTiles(factoryTiles(r)));
 

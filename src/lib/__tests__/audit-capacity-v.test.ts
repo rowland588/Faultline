@@ -46,7 +46,7 @@ describe('AUDIT V — the guide and the shares', () => {
     expect(v.limit?.name).toBe('B');
   });
   it('shareColours: the bottleneck graphite, under the V amber, else teal lightening to 250% — finite strings for every share', () => {
-    expect(shareColours(100, true, false)[0]).toBe('#12171c');
+    expect(shareColours(100, true, false)[0]).toBe('#0b1a33');
     expect(shareColours(100, false, true)[0]).toBe('#b45309');
     const at = (pct: number) => shareColours(pct, false, false)[0];
     expect(at(100)).toBe('rgb(12,116,137)');

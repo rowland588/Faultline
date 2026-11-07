@@ -8,6 +8,6 @@
  *
  * A hex, not a CSS variable, because charts are also drawn into printed and
  * exported copies where a variable would not resolve. */
-export const LOSS = '#3c474c';
+export const LOSS = '#475569';
 /** The biggest — the vital few — stands out by weight, not by a new hue. */
-export const LOSS_TOP = '#0f1417';
+export const LOSS_TOP = '#0f172a';

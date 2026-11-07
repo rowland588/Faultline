@@ -14,7 +14,7 @@ import type { Block, Density, Frame } from './flow';
 import { drawQr } from '../qr';
 
 const QS = 50, QGAP = 14;
-const MUTED = '#59666c', INK = '#0f1417';
+const MUTED = '#64748b', INK = '#0f172a';
 
 export function codeHeader(o: { eyebrow: string; title: string; line: string; colour: string; link?: string; at?: Date }, d: Density): Block[] {
   if (!o.link) {

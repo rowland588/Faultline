@@ -14,7 +14,7 @@ import { box, font, rows, text, wrap, SIZE, type Row } from './blocks';
 import type { Block } from './flow';
 
 const T = 8.5, LH = 11;
-const STEP = '#0c7489';
+const STEP = '#2563eb';
 
 const niceStep = (max: number, parts = 4): number => {
   const raw = max / parts, p = 10 ** Math.floor(Math.log10(Math.max(raw, 1e-9))), m = raw / p;
@@ -85,8 +85,8 @@ export function relKindsBlocks(f: RelFigures): Block[] {
       draw: (fr, y) => {
         const ty = y + 4 + T * 0.92, bw = fr.w * 0.3, bx = fr.x + fr.w * 0.3;
         font(fr.doc, T, 'bold', INK); fr.doc.text(wrap(fr.doc, k.kind, fr.w * 0.28, T, 'bold')[0] ?? '', fr.x, ty);
-        fr.doc.setFillColor('#edf1f1'); fr.doc.rect(bx, y + 5, bw, 6, 'F');
-        fr.doc.setFillColor('#3c474c'); fr.doc.rect(bx, y + 5, Math.max(0.8, bw * k.share), 6, 'F');
+        fr.doc.setFillColor('#eef2f7'); fr.doc.rect(bx, y + 5, bw, 6, 'F');
+        fr.doc.setFillColor('#475569'); fr.doc.rect(bx, y + 5, Math.max(0.8, bw * k.share), 6, 'F');
         font(fr.doc, T, 'normal', INK2); fr.doc.text(`${k.n} · ${Math.round(k.share * 100)}% · one every ${span(k.mtbfH)}`, fr.x + fr.w, ty, { align: 'right' });
         fr.doc.setDrawColor(LINE); fr.doc.setLineWidth(0.4); fr.doc.line(fr.x, y + LH + 4.5, fr.x + fr.w, y + LH + 4.5);
       },

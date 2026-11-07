@@ -76,7 +76,7 @@ import { relChartBlock, relDaysBlocks, relKindsBlocks, relTogetherBlocks, remark
 
 import { todayISO } from './weeks';
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', DANGER = '#c4281c', AMBER = '#b45309', BAR = '#c3cfcf';
+const INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', BRAND = '#2563eb', DANGER = '#c4281c', AMBER = '#b45309', BAR = '#cbd5e1';
 
 export interface StudyPaperItem {
   s: ToolStudy;

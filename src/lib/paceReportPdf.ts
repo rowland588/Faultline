@@ -147,7 +147,7 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
   const grid = scale.ticks;
   d.setLineWidth(0.4);
   for (const g of grid) {
-    d.setDrawColor('#eef3f3'); d.setLineDashPattern([2, 2], 0);
+    d.setDrawColor('#f4f6f9'); d.setLineDashPattern([2, 2], 0);
     d.line(pL, py(g), pR, py(g));
     d.setLineDashPattern([], 0);
     setFont(d, 6, 'normal', MUTED);
@@ -1309,7 +1309,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
     setFont(d, 7, 'normal', MUTED);
     d.text(fit(d, [s.line, s.owner, `${s.days}d`].filter(Boolean).join(' · '), 94),
       lwX + colW - 12, sy, { align: 'right' });
-    d.setDrawColor('#eef3f3'); d.setLineWidth(0.4);
+    d.setDrawColor('#f4f6f9'); d.setLineWidth(0.4);
     d.line(lwX + 12, sy + 5, lwX + colW - 12, sy + 5);
     sy += 17;
   }

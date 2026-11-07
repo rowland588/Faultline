@@ -15,7 +15,7 @@ import { reusedSays } from '../../tools/linework/standardData';
 import type { Block, Frame } from './flow';
 import { SIZE, font, label, rows, space, text, wrap } from './blocks';
 
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', DANGER = '#c4281c', WORK = '#3c474c', WORK_BG = '#dde6e6', WALK_BG = '#edf1f1';
+const INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', DANGER = '#c4281c', WORK = '#475569', WORK_BG = '#e6eaf0', WALK_BG = '#eef2f7';
 const LH = 9, BAR = 11;
 const m = (v: number) => `£${v < 1 ? v.toFixed(3) : v.toFixed(2)}`;
 
@@ -104,7 +104,7 @@ function chart(r: CombinationRow): Block {
         for (const g of r.tl.segs) if (g.sec > 0) box(g.kind === 'machine' ? 'machine' : g.kind, g.start, g.end, g.kind === 'machine' ? 1 : 0, g.name);
         if (r.tl.personWaits > 0.05) box('wait', r.tl.personEnd, r.tl.cycle, 0, 'waits');
         if (r.tl.machineWaits > 0.05) box('wait', r.tl.machineEnd, r.tl.personEnd, 1, 'waits');
-        if (r.takt != null) { d.setDrawColor('#0f1417'); d.setLineWidth(0.9); d.setLineDashPattern([2, 1.6], 0); d.line(X(r.takt), y + 2, X(r.takt), lane(1) + BAR + 3); d.setLineDashPattern([], 0); }
+        if (r.takt != null) { d.setDrawColor('#0f172a'); d.setLineWidth(0.9); d.setLineDashPattern([2, 1.6], 0); d.line(X(r.takt), y + 2, X(r.takt), lane(1) + BAR + 3); d.setLineDashPattern([], 0); }
         font(d, 6.5, 'normal', MUTED); d.text('0', X(0), lane(1) + BAR + 11); d.text(secs(r.tl.cycle), X(r.tl.cycle), lane(1) + BAR + 11, { align: 'center' });
         if (r.takt != null) d.text(`takt ${secs(r.takt)}`, Math.min(X(r.takt) + 3, fr.x + fr.w - 40), y + 6);
       },

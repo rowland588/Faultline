@@ -18,7 +18,7 @@ import {
 } from './plan';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const BRAND = '#0c7489';
+const BRAND = '#2563eb';
 const dayWord = (n: number): string => `${n} ${n === 1 ? 'day' : 'days'}`;
 
 export interface PlanPaperInput { name: string; lead?: string; reading: PlanReading; money: PlanMoney; watch: number; projectId?: string; link?: string }

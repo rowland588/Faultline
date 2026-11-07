@@ -19,7 +19,7 @@ export function installPlan(n: number, H: number, M: number): { sheets: number; 
   return { sheets, per: Math.ceil(n / sheets) };
 }
 const IN_TONE: Record<NonNullable<PaceReportData['installation']>['rows'][number]['steps'][number]['tone'], string> = {
-  done: OK, problem: DANGER, asking: WARN, late: DANGER, ahead: '#edf1f1',
+  done: OK, problem: DANGER, asking: WARN, late: DANGER, ahead: '#eef2f7',
 };
 
 export const installHeight = (rows: number): number => IN_HEAD + rows * IN_ROW + IN_FOOT;
@@ -69,11 +69,11 @@ export function installSheet(d: Doc, data: PaceReportData, page: number, pages: 
       r.journey.forEach((g, k) => {
         const px = x0 + k * (pw + 3), py = y + 26;
         const red = g.tone === 'late' || g.tone === 'failed';
-        const col = g.tone === 'done' ? OK : g.tone === 'going' ? BRAND : red ? DANGER : g.tone === 'problem' ? WARN : g.tone === 'ahead' ? '#c7d1d2' : '#e1e7e7';
+        const col = g.tone === 'done' ? OK : g.tone === 'going' ? BRAND : red ? DANGER : g.tone === 'problem' ? WARN : g.tone === 'ahead' ? '#cbd5e1' : '#e6eaf0';
         if (g.tone === 'done') { d.setFillColor(OK); d.roundedRect(px, py, pw, 10, 3, 3, 'F'); }
-        else if (g.tone === 'none') { d.setFillColor('#f2f5f5'); d.roundedRect(px, py, pw, 10, 3, 3, 'F'); }
+        else if (g.tone === 'none') { d.setFillColor('#f4f6f9'); d.roundedRect(px, py, pw, 10, 3, 3, 'F'); }
         else { d.setDrawColor(col); d.setLineWidth(1); d.setFillColor(red ? '#fdf2f0' : g.tone === 'problem' ? '#f7eedb' : g.tone === 'going' ? '#e3f4f6' : '#ffffff'); d.roundedRect(px + 0.5, py + 0.5, pw - 1, 9, 3, 3, 'FD'); }
-        setFont(d, 5.6, 'bold', g.tone === 'done' ? '#ffffff' : g.tone === 'none' ? MUTED : col === '#c7d1d2' ? INK2 : col);
+        setFont(d, 5.6, 'bold', g.tone === 'done' ? '#ffffff' : g.tone === 'none' ? MUTED : col === '#cbd5e1' ? INK2 : col);
         d.text(fit(d, g.label, pw - 3), px + pw / 2, py + 6.8, { align: 'center' });
       });
     } else {

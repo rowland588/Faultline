@@ -7,7 +7,7 @@ import { SIZE, font, heading, label, space, text } from './blocks';
 import { charterOf, dayWords, gatesOf, gatesSay, RESULTS } from '../../project/method/shapes/dmaicModel';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', AMBER = '#b45309';
+const INK2 = '#475569', MUTED = '#64748b', AMBER = '#b45309';
 
 export interface CharterIn {
   project: string; printed: string;

@@ -35,7 +35,7 @@ import { PRIORITY_WORD } from '../../lib/snagsReport';
 import { headcount } from '../../tools/linestandard/standard';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
+const INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0';
 const TONE: Record<LeanTone, string> = { g: '#15803d', a: '#b45309', r: '#c4281c', n: '#6b7588' };
 
 export interface LineBundlePaper {

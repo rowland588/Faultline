@@ -22,11 +22,11 @@ import { programsBlocks } from './programsReportPdf';
 import { moveLines } from './story';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
+const INK = '#0f172a', INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0';
 /* The app's own state colours, so paper and screen say the same thing in the
    same colour: one red (the day has gone), one amber (waiting), one indigo
    (under way, still ahead), one green (done — and quiet). */
-const BRAND = '#0c7489', SHELL = '#12171c', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
+const BRAND = '#2563eb', SHELL = '#0b1a33', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
 const DONE_WASH = '#e3efe9';
 
 /* Late and a problem said apart — Rowland, 6 October: never "late or a
@@ -37,7 +37,7 @@ const GATE_COLOUR: Record<GateTone, { fill?: string; stroke: string; text: strin
   late: { fill: '#fdf2f0', stroke: DANGER, text: DANGER, word: GATE_TONE_WORD.late },
   problem: { fill: '#f7eedb', stroke: AMBER, text: AMBER, word: GATE_TONE_WORD.problem },
   failed: { fill: DANGER, stroke: DANGER, text: '#ffffff', word: GATE_TONE_WORD.failed },
-  ahead: { stroke: '#b9c4c7', text: INK2, word: GATE_TONE_WORD.ahead },
+  ahead: { stroke: '#cbd5e1', text: INK2, word: GATE_TONE_WORD.ahead },
   none: { stroke: '#d6dddf', text: MUTED, word: GATE_TONE_WORD.none },
 };
 /* ARE WE ON TARGET? — the box at the top of the first page, in the state's
@@ -46,7 +46,7 @@ const ON_TARGET: Record<OnTargetTone, { fill: string; stroke: string; text: stri
   behind: { fill: '#fdf2f0', stroke: DANGER, text: DANGER },
   risk: { fill: '#f7eedb', stroke: AMBER, text: AMBER },
   on: { fill: '#eef6f1', stroke: '#9cc4af', text: OK },
-  none: { fill: '#f4f6fa', stroke: '#c7d1d2', text: MUTED },
+  none: { fill: '#f4f6fa', stroke: '#cbd5e1', text: MUTED },
 };
 /* THE PACE SAYS WHEN (lib/pace) — under the answer, in the answer's box: the
    sentence and its working, wrapped to the box. Amber and bold only when it
@@ -67,7 +67,7 @@ const CELL_COLOUR: Record<CellTone, { fill?: string; stroke: string }> = {
   late: { fill: '#fdf2f0', stroke: DANGER },
   asking: { fill: '#fff7e6', stroke: AMBER },
   booked: { fill: '#eeedfa', stroke: BOOKED },
-  ahead: { stroke: '#b9c4c7' },
+  ahead: { stroke: '#cbd5e1' },
   none: { stroke: '#e3e9f1' },
 };
 const FIX_COLOUR: Record<string, string> = { late: DANGER, notRun: DANGER, soon: AMBER, ahead: BOOKED, done: OK };

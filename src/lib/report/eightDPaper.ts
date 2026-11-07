@@ -7,7 +7,7 @@ import { SIZE, font, heading, label, rows, text, wrap, lead, type Row } from './
 import { DISCIPLINES, actionRows, allStates, closingLine, disciplineLines, isNotPairs, type Ans } from '../eightD';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK = '#1b2328', INK2 = '#323d43', MUTED = '#59666c', LINE = '#c9d1d4';
+const INK = '#1b2328', INK2 = '#475569', MUTED = '#64748b', LINE = '#c9d1d4';
 
 export interface EightDIn { project: string; printed: string; answers: Ans }
 

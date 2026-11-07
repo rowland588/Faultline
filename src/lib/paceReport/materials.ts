@@ -137,7 +137,7 @@ export function materialsSheet(d: Doc, data: PaceReportData, page: number, pages
        (ahead), green only once it is in (done): one colour, one meaning. */
     r.covered.forEach((on, c) => {
       const cx = gridX + c * wkW;
-      d.setFillColor(on ? (r.here ? OK : BLUE) : '#edf1f1');
+      d.setFillColor(on ? (r.here ? OK : BLUE) : '#eef2f7');
       d.setDrawColor('#ffffff'); d.setLineWidth(0.6);
       d.rect(cx + 0.5, y - rowH + 6, wkW - 1, rowH - 2.5, 'FD');
 

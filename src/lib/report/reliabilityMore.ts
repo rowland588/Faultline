@@ -16,7 +16,7 @@ import { GROWTH_CAVEATS, growthRows, growthSays, type GrowthFigures } from '../.
 import { conditionalSays, replaceSays, weibullInsights, weibullPlot, weibullRows, weibullSays, type WeibullFit } from '../../tools/reliability/weibull';
 import { mins, plural } from '../../tools/reliability/words';
 
-const STEP = '#0c7489', WAIT = '#b45309', WHOLE = '#c3cfcf';
+const STEP = '#2563eb', WAIT = '#b45309', WHOLE = '#cbd5e1';
 const T = 8.5, LH = 11;
 
 const hm = (ms: number): string => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -108,7 +108,7 @@ export function reasonTable(rs: readonly ReasonRow[], by: 'wait' | 'clear'): Blo
         f.doc.text(mins(r.waitMin), f.x + f.w * 0.64, ty, { align: 'right' });
         f.doc.text(mins(r.clearMin), f.x + f.w * 0.78, ty, { align: 'right' });
         const bx = f.x + f.w * 0.82, bw = f.w * 0.18;
-        f.doc.setFillColor('#edf1f1'); f.doc.rect(bx, y + 4, bw, 6, 'F');
+        f.doc.setFillColor('#eef2f7'); f.doc.rect(bx, y + 4, bw, 6, 'F');
         f.doc.setFillColor(by === 'wait' ? WAIT : INK2); f.doc.rect(bx, y + 4, Math.max(0.8, (key(r) / max) * bw), 6, 'F');
         f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.4); f.doc.line(f.x, y + LH + 5.5, f.x + f.w, y + LH + 5.5);
       },

@@ -20,15 +20,15 @@ import { leanClosing, leanTiles } from './report/lean';
 import type { LinesDay } from './lineLoss';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
-const BRAND = '#0c7489', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
+const INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0';
+const BRAND = '#2563eb', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
 
 /* The verdict's colours — the status report's, so the two pages read alike. */
 const TONE: Record<OnTargetTone, { fill: string; stroke: string; text: string }> = {
   behind: { fill: '#fdf2f0', stroke: DANGER, text: DANGER },
   risk: { fill: '#f7eedb', stroke: AMBER, text: AMBER },
   on: { fill: '#eef6f1', stroke: '#9cc4af', text: OK },
-  none: { fill: '#f4f6fa', stroke: '#c7d1d2', text: MUTED },
+  none: { fill: '#f4f6fa', stroke: '#cbd5e1', text: MUTED },
 };
 
 function fitLine(doc: jsPDF, t: string, w: number): string {
@@ -56,7 +56,7 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
   out.push(box(f => 14 + saysLines(f).length * 14 + gap(f.density, 'm'), (f, y) => {
     const l = saysLines(f), h = 10 + l.length * 14;
     paperBand(f.doc, f.x, y, f.w, h, 6);
-    font(f.doc, 11, 'bold', '#0f1417'); f.doc.text(l, f.x + 14, y + 17);
+    font(f.doc, 11, 'bold', '#0f172a'); f.doc.text(l, f.x + 14, y + 17);
   }, f => gap(f.density, 'm')));
   out.push(leanTiles(r.tiles));
 

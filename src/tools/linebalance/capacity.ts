@@ -1765,7 +1765,7 @@ export interface VCurve { points: VPoint[]; under: VPoint[]; limit?: VPoint; sen
  *  palest from 250%.
  *  `[deep, light]` for a column's gradient. */
 export function shareColours(pct: number, isLimit: boolean, under: boolean): [string, string] {
-  if (isLimit) return ['#12171c', '#33414b'];
+  if (isLimit) return ['#0b1a33', '#475569'];
   if (under) return ['#b45309', '#e09a52'];
   const t = Math.max(0, Math.min(1, (pct - 100) / 150));
   const mix = (a: number[], b: number[], k: number) => `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(',')})`;

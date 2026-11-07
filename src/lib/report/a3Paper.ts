@@ -11,7 +11,7 @@ import type { A3Block, A3Sheet } from '../../project/method/shapes/a3Model';
 import { CM_COLUMNS } from '../../project/method/shapes/a3Model';
 
 const W = 1190.55, H = 841.89, M = 36, GUTTER = 28, FOOT = 26;
-const INK2 = '#323d43', AMBER = '#b45309';
+const INK2 = '#475569', AMBER = '#b45309';
 export interface A3PaperIn { project: string; printed: string; sheet: A3Sheet }
 
 const NOT_WRITTEN = 'Not written yet.';

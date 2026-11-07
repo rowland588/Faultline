@@ -15,7 +15,7 @@ import { bandPage, type LeanTone } from './lean';
 import { lineClosing, lineTiles, type LineReading } from './lineLean';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
+const INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0';
 type ReadyTone = 'g' | 'a' | 'r' | 'w' | 'n';
 const TONE: Record<ReadyTone, string> = { g: '#15803d', a: '#b45309', r: '#c4281c', w: '#6d28d9', n: '#6b7588' };
 

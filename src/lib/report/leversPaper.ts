@@ -9,7 +9,7 @@ import type { Levers } from '../intelligence/levers';
 import type { PeriodWaterfall } from '../intelligence/waterfall';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', AMBER = '#b45309';
+const INK2 = '#475569', MUTED = '#64748b', AMBER = '#b45309';
 
 export interface LeversPaperIn { line: string; printed: string; unit: string; constraint?: string; fall: PeriodWaterfall; levers: Levers; weeks: number }
 

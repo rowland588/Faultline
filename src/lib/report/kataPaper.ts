@@ -7,7 +7,7 @@ import { SIZE, font, heading, label, text } from './blocks';
 import { storyboard, ROW_LABELS } from '../kataBoard';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', AMBER = '#b45309';
+const INK2 = '#475569', MUTED = '#64748b', AMBER = '#b45309';
 
 export interface KataPaperIn { project: string; printed: string; answers: Record<string, string>; todayISO: string }
 

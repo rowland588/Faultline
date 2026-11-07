@@ -13,7 +13,7 @@ import { bandPage } from './lean';
 import { actionTiles, actionsClosing, byPerson, PRIORITY_WORD, type DoneThing, type ProjectAction } from './projectActions';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', RED = '#c4281c', AMBER = '#b45309';
+const INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', RED = '#c4281c', AMBER = '#b45309';
 
 export interface ActionsPaper {
   project: string;

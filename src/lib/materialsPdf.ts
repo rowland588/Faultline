@@ -17,7 +17,7 @@ import { niceDay } from './weeks';
 import { san, paperBand } from './reportKit';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489';
+const INK = '#0f172a', INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', BRAND = '#2563eb';
 const RED = '#c4281c';
 const T = 8.5, S = 7.5, LH = 10.6, LS = 9.4;
 
@@ -29,8 +29,8 @@ function band(headline: string, says: string, late: boolean): Block {
     paperBand(f.doc, f.x, y, f.w, h, 6);
     /* late: the band's edge in red, as the screen's late border is */
     if (late) { f.doc.setFillColor(RED); f.doc.roundedRect(f.x, y, 4, h, 2, 2, 'F'); }
-    font(f.doc, 11, 'bold', '#0f1417'); f.doc.text(p.h, f.x + 15, y + 17);
-    font(f.doc, T, 'normal', '#323d43'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2);
+    font(f.doc, 11, 'bold', '#0f172a'); f.doc.text(p.h, f.x + 15, y + 17);
+    font(f.doc, T, 'normal', '#475569'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2);
   }, f => gap(f.density, 'm'));
 }
 

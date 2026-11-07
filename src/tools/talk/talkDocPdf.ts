@@ -18,7 +18,7 @@ import type { Picture } from './talkPictures';
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const TAG_W = 74;
 /* where a point comes from — told apart by words and a shade of grey, never a state colour */
-const TAG_FILL: Record<TalkBasis, string> = { observed: '#eef3f3', record: '#e3eced', interpretation: '#f6f7f7' };
+const TAG_FILL: Record<TalkBasis, string> = { observed: '#f4f6f9', record: '#eef2f7', interpretation: '#f4f6f9' };
 
 /* the state colours, each beside its word (visual management: one colour, one meaning) */
 const STATE_INK: Record<Exclude<TalkState, ''>, string> = { ok: OK, watch: WARN, problem: DANGER, action: BLUE };

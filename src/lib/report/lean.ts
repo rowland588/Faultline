@@ -13,7 +13,7 @@ import { BRAND, DANGER, INK, INK2, LINE, MUTED, OK, WARN, paperBand, san } from 
 import { SIZE, font, rows, text, wrap, type Row } from './blocks';
 import type { Block, Frame } from './flow';
 
-const LINE2 = '#c7d1d2', GREY = '#6b7588', BAR = '#98a5ab';
+const LINE2 = '#cbd5e1', GREY = '#6b7588', BAR = '#98a5ab';
 const TONE: Record<LeanTone, string> = { r: DANGER, a: WARN, g: OK, n: GREY };
 const wash = (t: LeanTone): string | undefined => (t === 'g' ? '#f1f8f3' : t === 'r' ? '#fcf1f0' : undefined);
 

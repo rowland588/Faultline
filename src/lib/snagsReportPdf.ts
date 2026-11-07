@@ -29,7 +29,7 @@ import { SIZE, font, gap, rows, text, wrap } from './report/blocks';
 import { placesSays, wasteTag } from '../tools/waste/waste';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489';
+const INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', BRAND = '#2563eb';
 const TONE: Record<SnagTone, string> = { g: OK, r: DANGER, w: BLUE, a: WARN, n: MUTED };
 const THUMB = 42, RIGHT = 150;
 /* PRIORITY, RAG — Rowland's own: Critical red, High amber, Low green, the word always with it */

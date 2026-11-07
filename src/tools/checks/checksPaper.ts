@@ -20,7 +20,7 @@ import type { LogCtx } from './hold';
 import { judgedBy } from './RoundParts';
 import { deviceOf, kindCell, registerOf, registerSays, warningNote } from './register';
 
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', DANGER = '#c4281c', BAR = '#c3cfcf';
+const INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', DANGER = '#c4281c', BAR = '#cbd5e1';
 
 function table(header: string[], body: string[][], shares: number[], red?: (i: number) => boolean): Block {
   const LH = 9;

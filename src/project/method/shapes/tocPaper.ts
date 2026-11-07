@@ -8,7 +8,7 @@ import { SIZE, font, heading, label, text } from '../../../lib/report/blocks';
 import { tocPasses, tocSteps, type TocRecords, type TocStep } from './tocModel';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', AMBER = '#b45309';
+const INK2 = '#475569', MUTED = '#64748b', AMBER = '#b45309';
 
 export interface TocPaperIn { project: string; printed: string; answers: Record<string, string>; steps: TocStep[] }
 

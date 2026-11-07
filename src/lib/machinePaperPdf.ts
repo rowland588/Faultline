@@ -23,7 +23,7 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489';
+const INK = '#0f172a', INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', BRAND = '#2563eb';
 /* the five state colours as words are drawn on paper (CLAUDE.md, visual management) */
 const TONE: Record<PaperTone, string> = { r: '#c4281c', a: '#b45309', w: '#6d28d9', g: '#15803d', n: '#6b7588' };
 
@@ -94,7 +94,7 @@ function cardOf(r: PaperRow, cont = false) {
       if (!p.detail.length) return;
       y += 4;
       p.detail.forEach((d, i) => {
-        if (i) { f.doc.setDrawColor('#edf1f1'); f.doc.setLineWidth(0.5); f.doc.line(x, y - 1, x + w, y - 1); }
+        if (i) { f.doc.setDrawColor('#eef2f7'); f.doc.setLineWidth(0.5); f.doc.line(x, y - 1, x + w, y - 1); }
         y += 2;
         font(f.doc, 8.3, 'bold', INK2); f.doc.text(d.label, x, y + 8);
         const vx = x + LABEL_W;
@@ -123,7 +123,7 @@ function tableOf(list: PaperRow[]): Block {
     h: () => 20,
     draw: (f: Frame, y: number) => {
       const c = cols(f);
-      f.doc.setFillColor('#eef3f3'); f.doc.rect(f.x, y, f.w, 18, 'F');
+      f.doc.setFillColor('#f4f6f9'); f.doc.rect(f.x, y, f.w, 18, 'F');
       font(f.doc, 8, 'bold', INK2);
       f.doc.text('WHAT NEEDS DOING', f.x + 6, y + 12); f.doc.text('WHO HAS IT', f.x + c.what + 4, y + 12);
       f.doc.text('BY WHEN', f.x + c.what + c.who + 4, y + 12); f.doc.text('STATUS', f.x + f.w - 6, y + 12, { align: 'right' });

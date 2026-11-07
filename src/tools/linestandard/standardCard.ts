@@ -28,7 +28,7 @@ import { BOARDS, boardOf, bottlenecksOf, withCardLabels, colourOf, dashOf, FADED
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
 export const CARD_W = 1754, CARD_H = 1240;
 const M = 64;
-const NAVY = '#12171c', BLUE = '#0c7489', BAND_FILL = '#eef3f3', INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', SOFT = '#f2f5f5';
+const NAVY = '#0b1a33', BLUE = '#2563eb', BAND_FILL = '#f4f6f9', INK = '#0f172a', INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', SOFT = '#f4f6f9';
 /* The app's own face, as on every screen and every other PDF; the system
    faces only if it has not loaded. */
 const FONT = '"Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
@@ -146,7 +146,7 @@ function bnTag(ctx: CanvasRenderingContext2D, cx: number, top: number, size: num
   ctx.font = `800 ${size}px ${FONT}`;
   const text = 'BOTTLENECK', tw = ctx.measureText(text).width, h = size * 1.55, w = tw + size * 1.1;
   const x = left ? cx : cx - w / 2;
-  ctx.fillStyle = '#0f1417'; round(ctx, x, top, w, h, 4); ctx.fill();
+  ctx.fillStyle = '#0f172a'; round(ctx, x, top, w, h, 4); ctx.fill();
   ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'middle'; ctx.fillText(text, x + size * 0.55, top + h / 2 + 1); ctx.textBaseline = 'alphabetic';
   return { x, y: top, w, h };
 }
@@ -347,7 +347,7 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
     const k = Math.min(mapW / b.w, mapH / b.h);
     iw = b.w * k; ih = b.h * k; ix = mapX + (mapW - iw) / 2; iy = top + (mapH - ih) / 2;
     ctx.fillStyle = '#f7f9fc'; ctx.fillRect(ix, iy, iw, ih);
-    ctx.strokeStyle = '#e1e7e7'; ctx.lineWidth = 1;
+    ctx.strokeStyle = '#e6eaf0'; ctx.lineWidth = 1;
     for (let x = ix; x < ix + iw; x += 40) { ctx.beginPath(); ctx.moveTo(x, iy); ctx.lineTo(x, iy + ih); ctx.stroke(); }
     for (let y = iy; y < iy + ih; y += 40) { ctx.beginPath(); ctx.moveTo(ix, y); ctx.lineTo(ix + iw, y); ctx.stroke(); }
   }
@@ -396,7 +396,7 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
   for (const t of tags) taken.push(t.box);
   /* the marks, then the tags */
   for (const { m, cx, cy } of icons) {
-    if (m.bottleneck) { ctx.beginPath(); ctx.arc(cx, cy, r + 7, 0, Math.PI * 2); ctx.strokeStyle = '#0f1417'; ctx.lineWidth = 4; ctx.stroke(); }
+    if (m.bottleneck) { ctx.beginPath(); ctx.arc(cx, cy, r + 7, 0, Math.PI * 2); ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 4; ctx.stroke(); }
     drawIcon(ctx, m.kind, cx, cy, r, colourOf(m));
   }
   for (const t of tags) t.draw();
@@ -573,7 +573,7 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
   ctx.strokeStyle = LINE; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(M, fy); ctx.lineTo(CARD_W - M, fy); ctx.stroke();
   ctx.fillStyle = MUTED; ctx.font = `600 22px ${FONT}`;
   ctx.fillText('Agreed by', M, fy + 54);
-  ctx.strokeStyle = '#99a6ab'; ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#8fa3c0'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(M + 132, fy + 56); ctx.lineTo(M + 520, fy + 56); ctx.stroke();
   ctx.fillText('Date', M + 560, fy + 54);
   ctx.beginPath(); ctx.moveTo(M + 630, fy + 56); ctx.lineTo(M + 830, fy + 56); ctx.stroke();

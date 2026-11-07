@@ -21,7 +21,7 @@ import type { ProgramProblemPaper } from './programProblems';
 import { programsSummary, type SummaryRow } from './programsSummary';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK = '#12171c', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', AMBER = '#b45309';
+const INK = '#0b1a33', INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', BRAND = '#2563eb', AMBER = '#b45309';
 const TONE: Record<ProgTone, string> = { g: OK, r: DANGER, w: BLUE, a: AMBER, n: MUTED };
 
 const sanLine = (l: ProgramLine): ProgramLine => ({

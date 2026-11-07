@@ -159,7 +159,7 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
       d.text(p.t, rx, y, { align: 'right' });
       rx -= d.getTextWidth(p.t);
     }
-    d.setFillColor('#edf1f1');
+    d.setFillColor('#eef2f7');
     d.roundedRect(M, y + 6, CW, 6, 3, 3, 'F');
     const doneW = done ? Math.max(6, CW * done / total) : 0;
     if (done) { d.setFillColor('#a9cdbb'); d.roundedRect(M, y + 6, doneW, 6, 3, 3, 'F'); }

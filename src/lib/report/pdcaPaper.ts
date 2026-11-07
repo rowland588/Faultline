@@ -7,7 +7,7 @@ import { SIZE, font, heading, label, text } from './blocks';
 import { cyclesOf, cycleLine } from '../methodPdca';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c';
+const INK2 = '#475569', MUTED = '#64748b';
 
 export interface PdcaPaperIn { project: string; printed: string; answers: Record<string, string> }
 

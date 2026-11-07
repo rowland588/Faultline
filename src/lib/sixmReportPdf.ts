@@ -63,10 +63,10 @@ export * from './sixmReport';
 /* ================================== the paper ================================== */
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', RIB = '#b9c4c7';
-const BRAND = '#0c7489';
+const INK = '#0f172a', INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0', RIB = '#cbd5e1';
+const BRAND = '#2563eb';
 /* The app's five state colours — the same values the stage-gate report uses. */
-const OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9', GREY = '#b9c4c7';
+const OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9', GREY = '#cbd5e1';
 const TONE: Record<Tone, { fill?: string; stroke: string; text: string; weight: number }> = {
   failed: { fill: DANGER, stroke: DANGER, text: '#ffffff', weight: 1 },
   late: { fill: '#fdf2f0', stroke: DANGER, text: DANGER, weight: 1.6 },
@@ -784,7 +784,7 @@ function drawFish(f: Frame, y: number, p: ProblemRep, l: FishLayout): void {
   const hh = l.head.h, hy = spineY - hh / 2;
   /* light on paper (reportKit paperBand), its edge the brand's teal, its words graphite */
   paperBand(doc, hx, hy, HEAD_W, hh, 9);
-  doc.setDrawColor('#d6dfdf'); doc.setLineWidth(0.6); doc.roundedRect(hx, hy, HEAD_W, hh, 9, 9, 'S');
+  doc.setDrawColor('#e6eaf0'); doc.setLineWidth(0.6); doc.roundedRect(hx, hy, HEAD_W, hh, 9, 9, 'S');
   font(doc, SIZE.tiny, 'bold', MUTED); doc.text(`PROBLEM ${p.n}`, hx + 9, hy + 13);
   font(doc, 9.5, 'bold', INK); doc.text(l.head.lines, hx + 9, hy + 25);
   let yy = hy + 25 + l.head.lines.length * 11.5;

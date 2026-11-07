@@ -17,12 +17,12 @@ export type Doc = jsPDF;
    The same colours as the screen (styles.css :root) — graphite ink, fresh
    paper, the landing's cyan-teal for the brand, graphite for the dark frame
    (the fresh look, 17 October), green only for done. When one moves, the other moves with it. */
-export const INK = '#0f1417', INK2 = '#3c474c', MUTED = '#78858a', LINE = '#e1e7e7';
-export const ACCENT = '#0b7285', BRAND = '#0c7489', SURF2 = '#edf1f1';
+export const INK = '#0f172a', INK2 = '#475569', MUTED = '#64748b', LINE = '#e6eaf0';
+export const ACCENT = '#1d4ed8', BRAND = '#2563eb', SURF2 = '#eef2f7';
 export const GOLD = '#a97822';
 /** The dark frame a masthead or a verdict block is drawn on — on the
  *  screen. On paper, see BAND. */
-export const SHELL = '#12171c', SHELL_2 = '#1b2229', SHELL_MUTED = '#9aa7ae';
+export const SHELL = '#0b1a33', SHELL_2 = '#132544', SHELL_MUTED = '#8fa3c0';
 /** THE BAND ON PAPER — light, so it prints. Rowland, 17 October: "I see
  *  that you're doing black background with white writing. Will this have
  *  an effect on printing? ... Usually not." A dark band does print from a
@@ -30,7 +30,7 @@ export const SHELL = '#12171c', SHELL_2 = '#1b2229', SHELL_MUTED = '#9aa7ae';
  *  printer and worse on a copy. So on paper every band is a pale fill with
  *  a teal edge down its left and graphite words; the screen keeps its dark
  *  band (styles.css), and flips to this when a screen page is printed. */
-export const BAND = '#eef3f3', BAND_EDGE = BRAND, BAND_LINE = '#d6dfdf';
+export const BAND = '#f4f6f9', BAND_EDGE = BRAND, BAND_LINE = '#e6eaf0';
 /** Draw the band's ground: the pale fill and its teal edge. */
 export function paperBand(d: Doc, x: number, y: number, w: number, h: number, r = 7): void {
   d.setFillColor(BAND); d.roundedRect(x, y, w, h, r, r, 'F');
