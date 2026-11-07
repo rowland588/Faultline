@@ -32,7 +32,7 @@ const jobInstruction: DocDef = {
   question: 'How do we teach this task so everyone does it right?',
   signoff: { word: 'Agreed', ready: 'Ready to agree', by: 'the supervisor', ask: 'Agree the breakdown', back: 'Reopen the breakdown' },
   sections: [
-    { id: 'job', title: 'The job', help: 'What is taught, to what standard, by whom.', items: [
+    { id: 'job', title: 'The task', help: 'What is taught, to what standard, by whom.', items: [
       { id: 'title', kind: 'text', label: 'The job', required: true, example: 'Splice the film reel on the wrapper', help: 'The task, as the floor names it.' },
       { id: 'where', kind: 'text', label: 'Machine and line', example: 'Ilapak flow wrapper, Line 3', offer: ctx => (ctx.lineName ? { value: ctx.lineName, words: `${ctx.lineName} — this document’s line` } : undefined) },
       { id: 'standard', kind: 'text', label: 'The standard it is taught to', example: 'The Line 3 standard for the Ilapak', help: 'The line standard or the procedure the job is done to. The breakdown teaches the standard; it is not the standard.' },
