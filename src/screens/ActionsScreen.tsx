@@ -24,9 +24,12 @@ import { openRecord } from '../ui/RecordDrawer';
 import { planHref } from '../lib/plan';
 import { nav } from '../state/useRoute';
 
-type View = 'person' | 'date' | 'where' | 'project';
+type View = 'person' | 'date' | 'where' | 'project' | 'board';
 type Only = 'all' | 'late' | 'priority' | 'nobody';
-const VIEW_WORD: Record<View, string> = { person: 'Who', date: 'When', where: 'Where', project: 'Project' };
+const VIEW_WORD: Record<View, string> = { person: 'Who', date: 'When', where: 'Where', project: 'Project', board: 'Board' };
+/** THE BOARD (docs/ENTERPRISE-UX.md X4, 7 November — Planner's board by due date): the When groups as columns, every column drawn even
+ *  when empty so the board keeps its shape, a card an action. */
+const BOARD_COLS: { key: string; label: string }[] = [{ key: 'late', label: 'Late' }, { key: 'week', label: 'Due in the next 7 days' }, { key: 'later', label: 'Later' }, { key: 'none', label: 'No date agreed' }];
 const ONLY_WORD: Record<Only, string> = { all: 'Everything', late: 'Late', priority: 'Critical and high', nobody: 'Nobody yet' };
 /* what opens in the record's drawer, as on Needs you (screens/ProjectDashboardScreen) */
 const IN_DRAWER = new Set(['test', 'fix', 'install', 'setup', 'handover']);
@@ -68,7 +71,7 @@ function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name
 
   const shown = useMemo(() => (read?.rows ?? []).filter(a =>
     only === 'late' ? a.late : only === 'priority' ? a.priority === 'critical' || a.priority === 'high' : only === 'nobody' ? !a.who : true), [read, only]);
-  const groups: ActionGroup[] = useMemo(() => (view === 'person' ? byPerson(shown) : view === 'date' ? byDate(shown, read.today) : view === 'project' ? byProject(shown) : byWhere(shown)), [view, shown, read]);
+  const groups: ActionGroup[] = useMemo(() => (view === 'person' ? byPerson(shown) : view === 'date' || view === 'board' ? byDate(shown, read.today) : view === 'project' ? byProject(shown) : byWhere(shown)), [view, shown, read]);
   const closing = actionsClosing(read.rows);
   const title = name ?? 'Every project and line';
 
@@ -107,7 +110,27 @@ function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name
         ))}
       </div>
       {!shown.length && <p className="qsl-empty">{read.rows.length ? `None ${only === 'late' ? 'late' : only === 'nobody' ? 'without a name' : 'critical or high'}.` : every ? 'Nothing owed on any project or line.' : 'Nothing owed on the project.'}</p>}
-      {groups.map(g => (
+      {view === 'board' && shown.length > 0 && (
+        <div className="act-board" role="list" aria-label="Actions by when they are due">
+          {BOARD_COLS.map(c => {
+            const g = groups.find(x => x.key === c.key);
+            return (
+              <section key={c.key} className={`act-col is-${c.key}`} role="listitem" aria-label={c.label} data-board-col={c.key}>
+                <h3 className="act-col-h">{c.label} <span className="act-col-n">{g?.rows.length ?? 0}</span></h3>
+                {(g?.rows ?? []).map(a => (
+                  <button key={a.key} type="button" className={'act-card' + (a.late ? ' is-late' : a.soon ? ' is-soon' : '')} data-action={a.key} onClick={() => openAction(a)}>
+                    <b className="act-card-w">{a.what}</b>
+                    <span className="act-card-m">{a.priority && <PriorityPill priority={a.priority} />}{[every ? a.project?.name ?? 'On the line' : '', a.where].filter(Boolean).join(' · ')}</span>
+                    <span className="act-card-f"><span>{a.who || 'nobody yet'}</span><WhenPill a={a} /></span>
+                  </button>
+                ))}
+                {!(g?.rows.length) && <p className="sub act-col-empty">None</p>}
+              </section>
+            );
+          })}
+        </div>
+      )}
+      {view !== 'board' && groups.map(g => (
         <Fold key={g.key || 'none'} id={`act-${view}-${g.key || 'none'}`} title={g.label} start={g.rows.length <= 8}
           says={<>{g.rows.length} open{g.late ? <> · <b className="act-late">{g.late} late</b></> : null}{view === 'person' && g.key && (
             <> · <button type="button" className="cw-link act-own" disabled={!!printing} onClick={e => { e.stopPropagation(); void paper(g.label); }} aria-label={`${g.label}’s actions on paper (PDF)`}>{printing === g.label ? 'Making…' : 'Their list'}</button></>

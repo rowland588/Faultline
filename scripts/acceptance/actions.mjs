@@ -191,6 +191,22 @@ await go('#/actions');
   } else ok(false, '8 a project row to open on Every action');
 }
 
+/* ---- 8b the board (docs/ENTERPRISE-UX.md X4, 7 November) — the same rows as four columns by when they are due ---- */
+await go('#/actions');
+await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Board' }).click(); await page.waitForTimeout(500);
+{
+  const cols = await page.locator('[data-board-col]').evaluateAll(els => els.map(e => ({ k: e.getAttribute('data-board-col'), n: e.querySelectorAll('.act-card').length, said: Number(e.querySelector('.act-col-n')?.textContent ?? -1) })));
+  const truth = await page.evaluate(async () => { const tile = k => Number([...document.querySelectorAll('.act-tiles .ln-tile')].find(e => e.querySelector('.ln-k')?.textContent?.trim().toLowerCase() === k)?.querySelector('.ln-v')?.textContent ?? -1); return { open: tile('open'), late: tile('late'), week: tile('this week'), none: tile('no date') }; });
+  ok(cols.map(c => c.k).join(',') === 'late,week,later,none' && cols.every(c => c.n === c.said), `8b the board: four columns, each counting its cards (${JSON.stringify(cols)})`);
+  ok(cols.reduce((x, c) => x + c.n, 0) === truth.open && cols[0].n === truth.late && cols[1].n === truth.week && cols[3].n === truth.none, `8b the board holds every open action, its columns the tiles' late, this week and no date (${JSON.stringify(truth)})`);
+  await page.locator('[data-board-col="late"] .act-card').first().click(); await page.waitForTimeout(1200);
+  ok((await page.locator('aside.rd').count()) === 1, '8b a card opens its record over the board');
+  await page.locator('aside.rd .rd-x').click(); await page.waitForTimeout(800);
+  await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(400);
+  ok(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) <= 1, '8b the board on a phone: the columns stacked, nothing off the side');
+  await page.setViewportSize({ width: 1360, height: 900 });
+}
+
 /* ---- 7 the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 });
 await go(`#/project/${PID}/actions`);

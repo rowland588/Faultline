@@ -16646,3 +16646,23 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .nv-main .qsl-reg .qsl-what { font-size: var(--t-body); }
 .nv-main .qsl-reg .qsl-meta { font-size: var(--t-label); }
 .nv-main .qsl-reg .qsl-g { box-shadow: var(--elev); border: 0; }
+
+/* ACTIONS AS A BOARD (docs/ENTERPRISE-UX.md X4, 7 November — Planner's board by due date): four columns, a card an action; late red
+   down its edge with its word in the pill, due soon amber, the rest quiet. On a phone the columns stack. */
+.act-board { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 12px; align-items: start; margin-top: 8px; overflow-x: auto; }
+.act-col { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: var(--radius); background: var(--surface-2); min-width: 0; }
+.act-col-h { margin: 0 2px 2px; display: flex; align-items: center; gap: 8px; font-size: var(--t-detail); font-weight: 700; color: var(--ink); }
+.act-col.is-late .act-col-h { color: var(--st-r); }
+.act-col-n { padding: 0 8px; border-radius: var(--radius-pill); background: var(--surface); font-size: var(--t-label); font-weight: 600; color: var(--ink-2); }
+.act-card { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--elev); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.act-card:hover { border-color: var(--brand); }
+.act-card.is-late { box-shadow: inset 3px 0 0 var(--st-r), var(--elev); }
+.act-card.is-soon { box-shadow: inset 3px 0 0 var(--st-a), var(--elev); }
+.act-card-w { font-weight: 600; line-height: 1.35; }
+.act-card-m { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--t-label); color: var(--ink-2); }
+.act-card-f { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: var(--t-label); color: var(--ink-2); }
+.act-col-empty { margin: 4px 2px; }
+@media (max-width: 719px) {
+  .act-board { grid-template-columns: 1fr; overflow: visible; }
+  .act-card { min-height: 44px; }
+}
