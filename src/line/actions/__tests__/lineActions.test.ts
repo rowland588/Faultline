@@ -31,7 +31,7 @@ describe('a line’s action tracker — the line’s problems, automatically', (
   });
   it('counts and says it in one sentence', () => {
     const r = trackerRows(S, 'L7', T, { withDone: true });
-    expect(trackerSummary(r)).toEqual({ open: 4, late: 1, soon: 1, noOwner: 1, noDate: 1, done: 1 });
+    expect(trackerSummary(r)).toEqual({ open: 4, late: 1, soon: 1, noOwner: 1, noDate: 1, done: 1, held: 0, clash: 0 });
     expect(trackerSays(r, 'Line 7')).toBe('4 actions open on Line 7, 1 late (Sam), 1 due within a week. 1 with nobody on it and 1 with no day.');
     expect(trackerSays([], 'Line 7')).toBe('Nothing open on Line 7. Raise a problem on the line and it is on this tracker at once.');
   });

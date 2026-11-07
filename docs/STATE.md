@@ -94,6 +94,12 @@ a session that ships something updates this page in the same commit.** The rules
   at the top, machine cards as a simple header, Tools redone), then the record panel, planning (the projects' board), problems
   and projects, the tools, reports, phone review.
 
+- **What waits for what on a line's actions (7 November — Rowland: *"build in dependencies from the gantt or the problem page,
+  either one populates the other, give options to the user if both ways are allowed"*).** One link kept on the action that waits
+  (`Snag.after`, carried as `after:<id>` in `linked_obs_ids` — no column); set from a tracker row's *Link* (both ways round), by
+  dragging a bar's end onto another bar (which first?), or in the problem's editor; drawn as arrows on the Gantt, a day that cannot
+  be kept said in amber words, a loop refused; on the tracker's paper. `src/line/actions/depends.ts`, `line-actions.mjs` step 5b.
+
 - **X2 the line page and X5 the Problems register (7 November, docs/ENTERPRISE-UX.md).** The line's doors a row of buttons
   under its header, Spread what works and Eyes on the line side by side, the tools in use a table; the register's groups one
   bordered list with hairline rows. Presentation only.

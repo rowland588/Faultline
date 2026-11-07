@@ -63,6 +63,7 @@ import { productsOf, type Program } from '../lib/programs';
 import { scopeReader } from '../lib/problemScope';
 import { WASTES, WASTE_KINDS as WASTE_KINDS_ALL, isWaste, wasteTag } from '../tools/waste/waste';
 import { WastePanel, WasteChips } from '../tools/waste/WastePanel';
+import { DependsBlock } from '../line/actions/Depends';
 
 /** A change to one problem: its fields, or worked out from the row as it is stored (db patchSnag). */
 type SnagChange = Partial<Snag> | ((stored: Snag) => Partial<Snag>);
@@ -1018,6 +1019,8 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
         <label className="pe-f"><span className="pe-k">DUE</span>
           <DateInput className="text-input" value={dueToInput(s.dueAt)} aria-label="Due date" onCommit={v => put({ dueAt: dueFromInput(v) })} /></label>
       </div>
+      {/* WHAT IT WAITS FOR AND WHAT IT HOLDS UP — the same links the line's Gantt draws (line/actions/depends) */}
+      <DependsBlock id={s.id} />
       {/* ITS ROOT CAUSE — a problem seen on the floor made the head of a fish on its line's 6M job (FLOW-AUDIT #13) */}
       {rootOf
         ? <p className="pe-said pe-root">Taken to 6M on {rootOf.job} — <button type="button" className="linkish" onClick={() => nav(`/project/${rootOf.jobId}/fishbone?${rootOf.line ? `line=${encodeURIComponent(rootOf.line)}&` : ''}problem=${encodeURIComponent(s.caseId ?? '')}`)}>its fishbone ›</button></p>

@@ -8,8 +8,10 @@
  *
  * The Gantt is drawn from the same rows: a bar from the day it was raised to its due day (to the day it closed when closed),
  * today's line across them, late in red, done a quiet green, a row with no due day a point at its start saying so. Nothing is
- * worked out that a person did not type: no durations guessed, no dependencies invented. */
+ * worked out that a person did not type: no durations guessed, no dependencies invented — what waits for what is said by a
+ * person (depends.ts, 7 November), on the Gantt, a row or the problem itself, and drawn as an arrow between the bars. */
 import type { Snag, SnagStatus } from '../../snag/types';
+import { depSays, waitsFor } from './depends';
 
 export const DAY = 86_400_000;
 const startOfDay = (t: number): number => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
@@ -33,6 +35,12 @@ export interface TrackerRow {
   /** Days late (due before today, not done), else 0. */
   lateBy: number;
   machine?: string;
+  /** The actions on the line it waits for (depends.ts) — the Gantt's arrows come into this row from theirs. */
+  after: string[];
+  /** How many of those are not done yet. */
+  waiting: number;
+  /** Its day cannot be kept for what it waits for — in words (depends.ts depSays). */
+  clash?: string;
 }
 
 const PRIO_RANK = { critical: 0, high: 1, low: 2 } as const;
@@ -53,18 +61,20 @@ export function trackerRows(snags: readonly Snag[], wsId: string, today: number,
       id: s.id, what: s.problem, owner: s.owner?.trim() ?? '', priority: s.priority ?? 'low', status: s.status,
       start: startOfDay(s.raisedAt), ...(due != null ? { due } : {}), ...(done && s.closedAt != null ? { closed: startOfDay(s.closedAt) } : {}),
       state, lateBy, ...(opts.machineOf?.(s) ? { machine: opts.machineOf(s) } : {}),
+      after: waitsFor(snags, s.id).map(p => p.id), ...(() => { const d = depSays(snags, s.id, today); return { waiting: d.waiting.length, ...(d.clash ? { clash: d.clash } : {}) }; })(),
     });
   }
   const rank = (r: TrackerRow) => (r.state === 'done' ? 2 : r.state === 'late' ? 0 : 1);
   return rows.sort((a, b) => rank(a) - rank(b) || (a.due ?? Infinity) - (b.due ?? Infinity) || PRIO_RANK[a.priority] - PRIO_RANK[b.priority] || a.start - b.start);
 }
 
-export interface TrackerSummary { open: number; late: number; soon: number; noOwner: number; noDate: number; done: number }
+export interface TrackerSummary { open: number; late: number; soon: number; noOwner: number; noDate: number; done: number; held: number; clash: number }
 export function trackerSummary(rows: readonly TrackerRow[]): TrackerSummary {
   const open = rows.filter(r => r.state !== 'done');
   return {
     open: open.length, late: open.filter(r => r.state === 'late').length, soon: open.filter(r => r.state === 'soon').length,
     noOwner: open.filter(r => !r.owner).length, noDate: open.filter(r => r.due == null).length, done: rows.length - open.length,
+    held: open.filter(r => r.waiting > 0).length, clash: open.filter(r => r.clash).length,
   };
 }
 
@@ -79,7 +89,8 @@ export function trackerSays(rows: readonly TrackerRow[], line: string): string {
   parts.push(s.late ? `${s.late} late (${lateWho.slice(0, 3).join(', ')}${lateWho.length > 3 ? ' …' : ''})` : 'none late');
   if (s.soon) parts.push(`${s.soon} due within a week`);
   const gaps = [s.noOwner ? `${s.noOwner} with nobody on it` : '', s.noDate ? `${s.noDate} with no day` : ''].filter(Boolean);
-  return `${parts.join(', ')}.${gaps.length ? ` ${gaps.join(' and ')}.` : ''}`;
+  const order = [s.held ? `${s.held} waiting on another action` : '', s.clash ? `${s.clash} cannot keep its day for what it waits for` : ''].filter(Boolean);
+  return `${parts.join(', ')}.${gaps.length ? ` ${gaps.join(' and ')}.` : ''}${order.length ? ` ${order.join('; ')}.` : ''}`;
 }
 
 /** The Gantt's span: from the earliest open start (at most 8 weeks back, at least a week before today) to the latest due

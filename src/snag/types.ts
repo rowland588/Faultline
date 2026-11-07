@@ -89,6 +89,10 @@ export interface Snag {
    *  (a program running three products where one of them is a little different). With no program, products named are any the line makes. */
   programId?: ID;
   products?: string[];
+  /** WHAT IT WAITS FOR — the problems on the same line that must be done before it can be (line/actions/depends; Rowland, 7
+   *  November: "dependencies from the gantt or the problem page, either one populates the other"). "Holds up" is this read the
+   *  other way, never stored twice. Carried to the cloud as after:<id> entries in linked_obs_ids, no column. */
+  after?: ID[];
   proposedSolution?: string;
   status: SnagStatus;
   owner?: string;            // assignee name (free text)

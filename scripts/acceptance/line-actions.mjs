@@ -11,6 +11,12 @@
  *   4  edited where it sits and kept as the problem's own: who typed, a day moved (the state following), the priority, Done (gone,
  *      then under Show done); kept after a reload; the sentence moving with each
  *   5  Add an action: a new row and a new problem on the line (one record); its words open the problem on Problems
+ *  5b  what waits for what (7 November — "dependencies from the gantt or the problem page, either one populates the other, give
+ *      options to the user if both ways are allowed"; src/line/actions/depends): a row's Link offering both ways round, one ticked
+ *      under This holds up… and kept on the one that waits; a loop refused in words; each row saying Waits for / Holds up and the
+ *      Gantt's arrow between the bars; a bar's end dragged onto another asking which is done first, the link made, its day that
+ *      cannot be kept said in words and the arrow amber, the sentence saying both; the problem's own editor showing the same
+ *      links and clash, one taken off there and one made the other way round, the Gantt following
  *   6  Report ▾ › Action tracker read back — the line, every open action with who and its day, late said, what was done
  *   7  the phone: each action a card, nothing off the side, the boxes a thumb's height
  *
@@ -101,12 +107,60 @@ ok(added.length === 1 && (await page.locator(`[data-la-row="${added[0]}"]`).coun
 await page.locator(`[data-la-row="${made.late}"] .lat-what`).click(); await page.waitForTimeout(1500);
 ok(/#\/snags\?/.test(page.url()) && page.url().includes(made.late), `5 an action's words open the problem on Problems (${page.url().split('#')[1].slice(0, 60)}…)`);
 
+/* ---- 5b · what waits for what (7 November — Rowland: "build in dependencies from the gantt or the problem page, either one
+ * populates the other, give options to the user if both ways are allowed") ---- */
+await t.go(`#/lines/${WS}?view=actions`, 2500);
+const recAfter = id => page.evaluate(async id => { const db = await import('/src/db.ts'); return (await db.listAllSnags()).find(x => x.id === id)?.after ?? []; }, id);
+const depTruth = id => page.evaluate(async ([WS, id]) => { const D = await import('/src/line/actions/depends.ts'); const db = await import('/src/db.ts'); const s = await db.listAllSnags(); return { clash: D.depSays(s, id, Date.now()).clash ?? '', holds: D.holdsUp(s, id).map(k => k.problem), waits: D.waitsFor(s, id).map(k => k.problem) }; }, [WS, id]);
+/* from a row, the other way round: the film snaps HOLDS UP the case erector */
+await page.getByRole('button', { name: 'Link — Wrapper film snaps at the jaw' }).click(); await page.waitForTimeout(500);
+ok((await page.locator('.dep-dirs .chip').allInnerTexts()).join('|') === 'This waits for…|This holds up…', '5b Link offers both ways round — This waits for… · This holds up…');
+await page.locator('.dep-dirs .chip', { hasText: 'This holds up…' }).click();
+await page.locator(`[data-dep-opt="${made.open}"] input`).click(); await page.waitForTimeout(700);
+ok(JSON.stringify(await recAfter(made.open)) === JSON.stringify([made.late]), '5b ticked under This holds up… — the link kept on the case erector, the one that waits');
+/* a loop refused in words */
+await page.locator('.dep-sheet').getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(400);
+await page.getByRole('button', { name: 'Link — Case erector jams on new cases' }).click(); await page.waitForTimeout(400);
+await page.locator('.dep-dirs .chip', { hasText: 'This holds up…' }).click();
+await page.locator(`[data-dep-opt="${made.late}"] input`).click(); await page.waitForTimeout(600);
+ok(/circle/.test(await t.words('.dep-refused')) && JSON.stringify(await recAfter(made.late)) === '[]', `5b a loop refused: "${await t.words('.dep-refused')}"`);
+await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+ok(/Waits for Wrapper film snaps at the jaw/.test(await t.words(`[data-la-deps="${made.open}"]`)) && /Holds up Case erector jams on new cases/.test(await t.words(`[data-la-deps="${made.late}"]`)), '5b each row says it — Waits for … on the one, Holds up … on the other');
+ok((await page.locator(`[data-la-link="${made.late}>${made.open}"]`).count()) === 1, '5b the Gantt draws the arrow from the end of one bar to the start of the next');
+/* dragged on the Gantt: the checkweigher's bar end onto the case erector — which first? */
+const h = await page.locator(`[data-la-handle="${made.doing}"]`).boundingBox();
+const target = await page.locator(`[data-la-row="${made.open}"] .lat-c-gantt`).boundingBox();
+await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2); await page.mouse.down();
+await page.mouse.move(target.x + 40, target.y + target.height / 2, { steps: 8 }); await page.mouse.up(); await page.waitForTimeout(500);
+ok((await page.locator('[data-dep-way]').count()) === 2 && /Case erector jams on new cases.+waits for.+Checkweigher drifts after lunch/.test(await t.words('[data-dep-way="pair-ab"]')), '5b a bar dragged onto another asks which is done first — both ways offered');
+await page.locator('[data-dep-way="pair-ab"]').click(); await page.waitForTimeout(800);
+ok(JSON.stringify((await recAfter(made.open)).sort()) === JSON.stringify([made.late, made.doing].sort()), '5b the drag made the link on the case erector');
+let dt = await depTruth(made.open);
+ok(dt.clash && (await t.words(`[data-la-clash="${made.open}"]`)) === dt.clash && (await page.locator(`[data-la-link="${made.doing}>${made.open}"].is-clash`).count()) === 1, `5b its day cannot be kept — said in words and the arrow amber: "${dt.clash}"`);
+tr = await page.evaluate(async ([WS, name]) => { const L = await import('/src/line/actions/lineActions.ts'); const db = await import('/src/db.ts'); return L.trackerSays(L.trackerRows(await db.listAllSnags(), WS, Date.now()), name); }, [WS, lineName]);
+ok((await t.words('[data-la-says]')) === tr && /waiting on another action/.test(tr) && /cannot keep its day/.test(tr), `5b the sentence says it: "${tr}"`);
+/* the problem's own editor — the same links, and changed there */
+await t.go(`#/snags?line=${encodeURIComponent(WS)}&open=${encodeURIComponent(made.open)}`, 2500);
+const blk = `[data-dep-block="${made.open}"]`;
+ok((await page.locator(`${blk} [data-dep-chip]`).count()) === 2 && (await t.words(`${blk} .dep-clash`)) === dt.clash, '5b the problem\'s editor shows what it waits for and the same clash');
+await page.getByRole('button', { name: 'Waits for — Checkweigher drifts after lunch — take the link off' }).click(); await page.waitForTimeout(600);
+dt = await depTruth(made.open);
+ok(JSON.stringify(await recAfter(made.open)) === JSON.stringify([made.late]) && (await page.locator(`${blk} [data-dep-chip]`).count()) === 1 && (await t.words(`${blk} .dep-clash`)) === dt.clash, `5b taken off in the editor — the record, its chips and the clash follow ("${dt.clash}")`);
+await page.locator(blk).getByRole('button', { name: /Link to another action/ }).click(); await page.waitForTimeout(400);
+await page.locator('.dep-dirs .chip', { hasText: 'This holds up…' }).click();
+await page.locator(`[data-dep-opt="${raised}"] input`).click(); await page.waitForTimeout(600);
+await page.locator('.dep-sheet').getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(500);
+ok(JSON.stringify(await recAfter(raised)) === JSON.stringify([made.open]) && /Raised from the Problem button/.test(await t.words(`${blk} .dep-lines`)), '5b linked from the editor the other way round — Holds up');
+await t.go(`#/lines/${WS}?view=actions`, 2500);
+ok((await page.locator(`[data-la-link="${made.open}>${raised}"]`).count()) === 1 && (await page.locator(`[data-la-link="${made.doing}>${made.open}"]`).count()) === 0, '5b the Gantt follows what the editor did');
+
 /* ---- 6 · the paper ---- */
 await t.go(`#/lines/${WS}?view=actions`, 2500);
 const text = await t.pdfText(() => paper(page, 'Action tracker'), 'tracker');
 ok(text.includes(t.norm(lineName)) && /ACTIONS · WHO IS DOING WHAT/.test(text), '6 the paper names the line and is its action tracker');
 ok(['Wrapper film snaps at the jaw', 'Checkweigher drifts after lunch', 'Case erector jams on new cases', 'Re-train nights on the film splice'].every(w => text.includes(w)) && text.includes('Sam') && text.includes('Priya'), '6 every open action on it, with who');
 ok(/late - was/.test(text) && /LATE 1 past the day agreed/.test(text) && /DONE THIS WEEK 2/.test(text) && !text.includes('Bagger photo-eye dirty'), '6 late said with its day, the late and what was done this week counted (the done kept off the open list)');
+ok(/Waits for: Wrapper film snaps at the jaw/.test(text) && /Waits for: Case erector jams on new cases/.test(text), '6 what each waits for, on its row of the paper');
 
 /* ---- 7 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(800);

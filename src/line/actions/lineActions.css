@@ -58,3 +58,51 @@
   .lat-in { min-height: 44px; }
   .lat-c-gantt { min-height: 28px; border-top: 1px solid var(--line-row, var(--line)); margin-top: 4px; }
 }
+
+/* WHAT WAITS FOR WHAT (depends.ts): the row's words and Link, the arrows between the bars, a bar's end to drag from */
+.lat-grid { position: relative; }
+.lat-deps { display: flex; flex-direction: column; gap: 1px; font-size: var(--t-label); color: var(--ink-2); }
+.lat-deps > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lat-clash { font-size: var(--t-label); font-weight: 600; color: var(--st-a); }
+.lat-link { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; margin-left: -6px; border: 0; border-radius: var(--radius-sm); background: none; font: inherit; font-size: var(--t-label); color: var(--muted); cursor: pointer; }
+.lat-link:hover, .lat-link:focus-visible { color: var(--brand); background: var(--surface-2); }
+.lat-links { position: absolute; top: 0; left: 0; z-index: 2; pointer-events: none; overflow: visible; }
+.lat-ln { fill: none; stroke: var(--ink-2); stroke-width: 1.5; opacity: .75; }
+.lat-ln.is-clash { stroke: var(--st-a); opacity: 1; stroke-width: 2; }
+.lat-ln.is-drag { stroke: var(--brand); stroke-dasharray: 5 4; opacity: 1; }
+.lat-links marker path { fill: var(--ink-2); }
+.lat-h { position: absolute; top: 50%; right: -7px; width: 12px; height: 12px; margin-top: -6px; border-radius: var(--radius-round); background: var(--surface); border: 2px solid var(--brand); cursor: crosshair; opacity: 0; touch-action: none; z-index: 3; }
+.lat-pt .lat-h { right: auto; left: 3px; }
+.lat-row:hover .lat-h, .lat-grid.is-dragging .lat-h, .lat-h:focus-visible { opacity: 1; }
+.lat-grid.is-dragging { user-select: none; }
+.lat-k-ln { display: inline-block; width: 18px; height: 0; border-top: 1.5px solid var(--ink-2); vertical-align: middle; }
+
+/* the link sheet — both ways round */
+.dep-sheet { display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 16px; }
+.dep-help { margin: 0; }
+.dep-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); max-height: 50vh; overflow-y: auto; }
+.dep-list li + li { border-top: 1px solid var(--line-row, var(--line)); }
+.dep-opt { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; cursor: pointer; }
+.dep-opt input { width: 18px; height: 18px; flex: none; }
+.dep-pair { display: grid; gap: 10px; }
+.dep-way { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; min-height: 64px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.dep-way:first-child { border-color: var(--brand); }
+.dep-way:hover { background: var(--surface-2); }
+.dep-refused { margin: 0; color: var(--st-r); font-weight: 600; }
+
+/* the problem editor's block */
+.dep-lines { display: flex; flex-direction: column; gap: 6px; }
+.dep-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dep-k { min-width: 76px; font-size: var(--t-label); font-weight: 600; color: var(--ink-2); }
+.dep-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 10px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--surface-2); font-size: var(--t-detail); }
+.dep-chip.is-done { color: var(--muted); }
+.dep-x { display: inline-grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--radius-round); background: none; color: var(--muted); cursor: pointer; }
+.dep-x:hover { color: var(--st-r); background: var(--surface); }
+.dep-clash { margin: 0; font-weight: 600; color: var(--st-a); }
+
+@media (max-width: 719px) {
+  .lat-links, .lat-h { display: none; }
+  .lat-link { min-height: 44px; }
+  .lat-deps > span { white-space: normal; }
+  .dep-x { width: 44px; height: 44px; }
+}
