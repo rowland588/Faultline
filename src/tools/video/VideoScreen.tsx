@@ -448,7 +448,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   const figuresTitle = kind === 'balance' ? 'The line balance' : kind === 'cycles' ? 'The cycles at each box' : `${KIND_WORD[kind]} — read as movement at each box`;
 
   return (
-    <div className="wrap vid-study" data-state={job.state}>
+    <div className="wrap vid-study ws-video" data-state={job.state}>
       {/* THE TOOL SHELL (docs/STRUCTURE.md §5.5, B4): the tool, the record's name, where it stands; its
           report in Report ▾ (it was a button saying Report), Delete the study in More ▾. Its list is the
           context bar's Video study, where Every video study was a button here. */}
@@ -610,10 +610,12 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
           )}
           <Takt v={v} disabled={!can.edit} onSave={d => void patchV({ demand: d })} />
           <Pace v={v} f={f} disabled={!can.edit} onSave={p => void patchV(p)} />
-          <h3>What it says</h3>
-          <ul className="vid-findings" aria-label="What it says">
-            {findings(f, rateOf).map((x, i) => <li key={i} className={`is-${x.kind}`} data-kind={x.kind}><span className="field-label">{FINDING_WORD[x.kind]}</span> <span className={x.tone !== 'n' ? `ie-tone is-${x.tone}` : ''}>{x.text}</span></li>)}
-          </ul>
+          <div className="vid-says">
+            <h3>What it says</h3>
+            <ul className="vid-findings" aria-label="What it says">
+              {findings(f, rateOf).map((x, i) => <li key={i} className={`is-${x.kind}`} data-kind={x.kind}><span className="field-label">{FINDING_WORD[x.kind]}</span> <span className={x.tone !== 'n' ? `ie-tone is-${x.tone}` : ''}>{x.text}</span></li>)}
+            </ul>
+          </div>
           <Ask f={f} />
         </section>
       )}

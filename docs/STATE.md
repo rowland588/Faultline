@@ -98,6 +98,11 @@ a session that ships something updates this page in the same commit.** The rules
   it says); a check log's *last four weeks* as a calendar beside the round (`tools/checks/calendar`); a document's reading *As it
   reads*, a lifted page held in view beside the boxes. With T1–T4 every family of tool now has its workspace (docs/TOOLS-DESIGN.md §4).
 
+- **The video study's workspace (8 November).** Presentation only (`.ws-video`): each part a lifted panel, full width in its order (the
+  footage, the check of it, the reading, the review, the line balance); the review's list of events scrolls inside its own box under the
+  timeline at a desk, so the line balance is no longer 2,000 px down (the page 6,200 → 5,100 px at 1440); *What it says* a panel of its
+  own, a row a finding with its tag. The check of the footage was tried in a side column and kept full width: its table is too wide.
+
 - **The tools' workspaces T3–T4, first passes (8 November, docs/TOOLS-DESIGN.md).** Work sampling and SMED: the canvas first,
   What it says a panel with its dots. Every register record: *The register at a glance* — the module's own table as the `.dt` table
   (the standard's data table, first drawn here), a row jumping to its card.
@@ -164,8 +169,8 @@ a session that ships something updates this page in the same commit.** The rules
    now. This isn't going to be a sellable product immediately. It's for myself. So I need to keep it simple and slick."* So **not built**
    (do not start them without his word): user and team admin, push notifications to a closed phone, SSO, the onboarding demo factory,
    AI as a selling point. What was built of the basics stays as it is (Excel export, search, the audit trail, the bell). **What remains is
-   presentation only**: the tools' workspaces T4–T7 and the video study (docs/TOOLS-DESIGN.md — layout, never what a tool does; every tool
-   in it is already built and working), then a light polish where a page is cluttered.
+   presentation only**: the tools' workspaces T4–T7 and the video study — **all done 8 November** (docs/TOOLS-DESIGN.md — layout, never what
+   a tool does; every tool in it is already built and working); left, a light polish where a page is cluttered.
 
 0c. **The enterprise programme — "do them all go" (Rowland, 7 November; narrowed by 0b above).** Asked whether the app is a credible global
    enterprise SaaS product, the answer was *not yet — deep and correct, but inconsistent in finish*; four steps were proposed and

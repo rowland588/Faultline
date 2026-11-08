@@ -16777,3 +16777,18 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .lg-roundp > .lg-cal { grid-column: 2; grid-row: 1 / span 6; position: sticky; top: 108px; }
 }
 @media (max-width: 1099px) { .lg-roundp { display: flex; flex-direction: column; } .lg-roundp > .lg-cal { order: 9; } }
+
+/* ============================================================ T-video — THE VIDEO STUDY (docs/TOOLS-DESIGN.md §4, 8 November)
+   Presentation only, the same elements in the same order. Each part a lifted panel, full width and in its order (the check of the
+   footage is a wide table of its own, so it is never put in a side column); at a desk the review's list scrolls inside its own box
+   under the timeline, so the line balance is not 2,000 px below; What it says a panel of its own under the figures, a row a finding. */
+.ws-video .vid-panel { border: 0; box-shadow: var(--elev); padding: 16px; margin: 0 0 16px; }
+.ws-video .vid-says { margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+.ws-video .vid-says h3 { margin: 0 0 6px; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.ws-video .vid-findings { gap: 0; }
+.ws-video .vid-findings li { padding: 7px 0; border-radius: 0; background: transparent; border-bottom: 1px solid var(--line-row, var(--line)); line-height: 1.45; }
+.ws-video .vid-findings li:last-child { border-bottom: 0; }
+.ws-video .vid-findings li.is-proposed { border: 0; border-bottom: 1px dashed var(--line); }
+@media (min-width: 1100px) {
+  .ws-video .vid-events { max-height: 70vh; overflow: auto; padding-right: 4px; }
+}
