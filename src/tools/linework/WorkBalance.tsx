@@ -298,7 +298,7 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
     ...(lineUnit ? { lineUnit } : {}), setSteps, setStep, onAgree: () => setAgreeing(true), goLens };
 
   return (
-    <div className="wb">
+    <div className="wb ws-map">
       {/* THE TILES (docs/LEAN-PAGE.md) — the people and what the work needs,
           the takt and where it came from, the bottleneck person against their
           takt, labour a pack, and what the bottleneck loses a minute; they

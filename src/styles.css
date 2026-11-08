@@ -16703,9 +16703,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
    Presentation only, the same elements placed. What it says is a panel (the sentence in ink, the findings with their dots) as on the
    measurement studies. Work sampling at a desk: the live moment first and full width, then its shares — the canvas — with What it
    says beside them. SMED: its grid and ladder first (the canvas needs the width), What it says under them, the rest after. */
-.ws-timed .ie-says { margin: 0 0 16px; padding: 14px 16px 12px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
-.ws-timed .ie-says::before { content: "What it says"; display: block; margin-bottom: 6px; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
-.ws-timed .ie-say { font-weight: 600; max-width: none; }
+.ws-map .ie-says, .ws-timed .ie-says { margin: 0 0 16px; padding: 14px 16px 12px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
+.ws-map .ie-says::before, .ws-timed .ie-says::before { content: "What it says"; display: block; margin-bottom: 6px; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.ws-map .ie-say, .ws-timed .ie-say { font-weight: 600; max-width: none; }
 .ws-timed .ie-signals { gap: 0; margin-top: 8px; border-top: 1px solid var(--line-row); }
 .ws-timed .ie-signal { position: relative; padding: 7px 0 7px 16px; border-bottom: 1px solid var(--line-row); line-height: 1.4; }
 .ws-timed .ie-signal::before { content: ""; position: absolute; left: 2px; top: 13px; width: 7px; height: 7px; border-radius: var(--radius-round); background: var(--st-n); }
@@ -16739,3 +16739,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .dt tfoot td { font-weight: 600; background: var(--surface-2); }
 .fm-card.is-lit { box-shadow: 0 0 0 2px var(--brand), var(--elev); transition: box-shadow .2s; }
 @media (max-width: 719px) { .dt { min-width: 640px; } .dt td { padding: 12px 10px; } }
+
+/* ============================================================ T5 — MAPS AND BOARDS (docs/TOOLS-DESIGN.md §4, 8 November)
+   One order across them: the figures, the map (the canvas), then What it says as a panel — the value stream map and the line balance put
+   their sentences above the picture before. Presentation only, the same elements placed. The value stream's tiles keep the method's own
+   VA · NE · NV colours (Rowland, 11 October). */
+.ws-map.vs-page, .ws-map.wb { display: flex; flex-direction: column; }
+.ws-map.vs-page > .ie-says { order: 1; }
+.ws-map.vs-page > .vs ~ *:not(.ie-says) { order: 2; }
+.ws-map.wb > .ie-says, .ws-map.wb > .wb-cost { order: 1; }
+.ws-map.wb > .ie-pic ~ *:not(.ie-says):not(.wb-cost) { order: 2; }
+.ws-map.wb > .wb-cost { margin-bottom: 16px; }
+.ws-map.wb > .wb-legend { order: 0; }

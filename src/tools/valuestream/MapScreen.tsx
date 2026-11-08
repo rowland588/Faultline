@@ -159,7 +159,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   const [laneBy, setLaneBy] = useState<LaneBy>(laneByDefault(a));
 
   return (
-    <div className="wrap ie vs-page">
+    <div className="wrap ie vs-page ws-map">
       {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6): the band; the seven cards
           stay its tiles, in the method's colours; the action plan and the
           closing line (lib/ie/flowLean) at its foot */}
