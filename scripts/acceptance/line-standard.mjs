@@ -367,9 +367,11 @@ const crowd = await page.evaluate(async ([ws, shape]) => {
   await page.goto(`${BASE}/#/w/${sd.wsId}/standards/${longId}`); await page.waitForTimeout(2000);
   if (await page.locator('.pdfr-x').count()) await page.locator('.pdfr-x').click();
   const g0 = (await recL()).marks.find(m => m.id === 's-grade');
+  await page.locator('.ls-shape-t', { hasText: 'Grading' }).scrollIntoViewIfNeeded(); await page.waitForTimeout(200);
   const gt = await page.locator('.ls-shape-t', { hasText: 'Grading' }).boundingBox();
   await page.mouse.click(gt.x + 4, gt.y + 4); await page.waitForTimeout(300);
-  ok(await page.locator('.ls-handle').count() === 8, '14h a selected shape has a handle on every side and corner (8)');
+  { const hn = await page.locator('.ls-handle').count(); const atPt = await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? `${e.tagName}.${String(e.className?.baseVal ?? e.className)}` : ''; }, [gt.x + 4, gt.y + 4]);
+    ok(hn === 8, `14h a selected shape has a handle on every side and corner (8)${hn === 8 ? '' : ` — ${hn} found; the tap landed on ${atPt}`}`); }
   const he = await page.locator('.ls-handle.is-e').boundingBox();
   await page.mouse.move(he.x + 8, he.y + 8); await page.mouse.down(); await page.mouse.move(he.x + 88, he.y + 8, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(800);
   const g1 = (await recL()).marks.find(m => m.id === 's-grade');

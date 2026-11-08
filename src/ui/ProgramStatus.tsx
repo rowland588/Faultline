@@ -46,13 +46,13 @@ export function ProgramStatusSection({ program, edit, ensure }: {
       <div className="pgs-h">
         <span className="pgs-t">Status</span>
         {s && <span className={'status-pill is-' + WORK_TONE[s.work]}>{WORK_WORD[s.work]}</span>}
+        {!s && !open && <span className="sub pgs-none">Nothing said yet</span>}
         {s?.bestSpeed != null && <span className="pgs-f"><span className="sub">Best speed</span> <b>{speedWord(s.bestSpeed)}</b></span>}
         {s?.runAt != null && <span className="pgs-f"><span className="sub">Production can run at</span> <b>{speedWord(s.runAt)}</b></span>}
-        {edit && !open && <button type="button" className="cw-link pgs-edit" onClick={begin}>{s ? 'Change the status' : 'Set the status'}</button>}
+        {edit && !open && <button type="button" className="cw-link pgs-edit" onClick={begin} title="Where the work stands, the best speed run, the speed production can run at, any caveats">{s ? 'Change the status' : 'Set the status'}</button>}
       </div>
       {s?.caveats && <p className="pgs-cav"><span className="sub">Caveats</span> {s.caveats}</p>}
       {aheadOfBest(s) && <p className="pgs-warn">{AHEAD_SAYS}</p>}
-      {!s && !open && <p className="sub pgs-none">Nothing said yet — where the work stands, the best speed run, the speed production can run at, any caveats.</p>}
       {open && (
         <form className="pgs-form" onSubmit={e => { e.preventDefault(); void keep(); }}>
           <div className="chip-row" role="radiogroup" aria-label="Where the work stands">
