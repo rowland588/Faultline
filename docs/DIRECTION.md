@@ -98,7 +98,37 @@ disagrees, this wins):
   data · the project's `method` field · New project and the sections · stage
   gate's doors · the tools.
 
+## The AI may operate Faultline — 8 November
+
+Rowland, 8 November: *"We are building intelligence around the application I have, not building another application
+around the intelligence … The AI must not simply answer questions. It must be capable of using the actual
+application."* Faultline has **two modes over one application**: **Manual Mode** — the application as built, complete
+and needing no AI — and **AI Mode** — a conversation, typed or spoken, in which the AI **operates Faultline through
+approved capabilities**: typed, tested operations in `src/capabilities/`, built on the same data functions, tool
+modules and report makers Manual Mode uses, each with validated inputs, a defined result, a permission check, error
+handling and an audit record.
+
+1. **The AI acts as the signed-in person, never as more.** Every capability checks the person's access as the screens
+   do, and the database's row-level security remains the final authority.
+2. **Reading is free; writing is confirmed.** Anything that creates or changes a record is shown first and done only
+   when the person confirms — automatic confirmation may later be switched on capability by capability, only at
+   Rowland's word.
+3. **The AI never deletes a record and never marks evidence Verified.** Every item it records says how it is known —
+   observed, reported, measured, calculated, hypothesised, verified or unknown — and only a person sets verified.
+4. **The AI never works out a figure.** Sums are the calculators' and the tools' modules', as in Manual Mode.
+5. **The AI never builds methods, templates or tools.** A task it does often may be proposed as a new native
+   capability, and becomes code only through the tool standard, its tests, the gate and Rowland's approval.
+6. **Claude only, through the `assist` gateway** — the key on the server, an allowance a person a day; no new AI,
+   speech or embedding provider is added without Rowland's word.
+7. **AI Mode is switched off without touching Manual Mode**, and Manual Mode never waits on it.
+
+The design is [`docs/AI-MODE.md`](AI-MODE.md).
+
 ## The AI — one tool: Line Talk
+
+*Superseded in part, 8 November (above): the AI may now operate Faultline through approved capabilities. Line Talk
+stays as built and its engine is reused by AI Mode; "never works out a figure" and "never a builder of methods,
+templates or tools" stand.*
 
 Rowland, 20 October: *"Isn't AI a tool? ... I see it as being a tool rather
 than a main driving function of the app."* So the AI is **one tool among the
@@ -120,6 +150,9 @@ walk, the video study and the evidence actually call a model is
 [`docs/ADVANCED-TOOLS.md`](ADVANCED-TOOLS.md) (29 October).
 
 ## The only AI: voice and the camera — 20 October, later the same day
+
+*History: since 8 November the AI also drafts the Story's chapter (S3), reads and splits a client's brief (S6–S7) and
+operates Faultline in AI Mode. The deletions recorded here stand.*
 
 Rowland: *"Are we removing the AI generation tool and report system? I think
 we should — the only AI is the voice and the camera video system."* Asked
