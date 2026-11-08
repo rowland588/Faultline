@@ -6,6 +6,7 @@
  *
  * The key is an app tool's ("capability") or any entry's number ("FC-098"): a mode shows its parent
  * tool's page with itself marked, a planned entry its own page saying so, with no Start. */
+import { aiMark, aiOf } from '../catalogue/aiTools';
 import { useEffect, useMemo } from 'react';
 import { PageHeader } from '../ui/parts';
 import { ToolPicture } from '../ui/ToolCard';
@@ -83,10 +84,19 @@ export function ToolPageScreen({ toolKey }: { toolKey: string }) {
           <span className="tc-page-id" data-entry-id>{entry.id}</span>
           {tool && <span className="tc-page-kind">{KIND_WORDS[tool.kind]}</span>}
           <span className={`et-st is-${TONE[entry.status]}`} data-tool-status>{STATUS_WORDS[entry.status]}</span>
+          {tool && aiMark(tool.key) && <span className="ai-mark" data-ai-mark>{aiMark(tool.key)}</span>}
           {said && <span className="tc-page-used">{said}{used?.latest ? ` · latest: ${used.latest}` : ''}</span>}
         </p>
       </PageHeader>
 
+      {/* THE AI IN IT (catalogue/aiTools) — said plainly on the tool's own page: what it does, what it sends, what it never does */}
+      {tool && aiOf(tool.key).map(a => (
+        <section key={a.id} className="ai-say" aria-label={`The AI in it — ${a.name}`} data-ai-say={a.id}>
+          <p className="ai-say-h"><span className="ai-mark">AI</span> {a.name}</p>
+          <p>{a.does}</p>
+          <p className="sub"><b>Sends:</b> {a.sends} <b>Never:</b> {a.never}</p>
+        </section>
+      ))}
       <section className="tp-hero ep-panel" aria-label="What it looks like">
         {tool ? <ToolPicture tool={tool} big /> : <span className="tc-pic is-big"><span className="tc-pic-none">{entry.id}</span></span>}
         <div className="tp-hero-side">

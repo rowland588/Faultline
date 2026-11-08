@@ -3,6 +3,7 @@
  * Home's "one to try" (CLAUDE.md rule 5: never four lookalikes). The picture is the real tool taken
  * from the real app (public/tools/<key>.png, scripts/tool-pictures.mjs); a tool whose picture is
  * not there yet draws its icon on a quiet tile, so the card is never broken. */
+import { aiMark } from '../catalogue/aiTools';
 import { useState } from 'react';
 import { Icon, type IconName } from './Icon';
 import type { AppTool } from '../catalogue/registry';
@@ -43,6 +44,7 @@ export function ToolCard({ tool, statusWord, statusTone, said, holds, onOpen, on
           <span className="tc-catid">{tool.id}</span>
         </span>
         <div className="tc-head-mid">
+          {aiMark(tool.key) && <span className="ai-mark" data-ai-mark title="Uses AI — see the AI toolbox on Tools">{aiMark(tool.key)}</span>}
           {statusWord && <span className={`et-st is-${tone}`}>{statusWord}</span>}
           {said && <span className="tc-used">{said}</span>}
         </div>

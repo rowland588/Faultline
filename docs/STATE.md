@@ -98,6 +98,12 @@ a session that ships something updates this page in the same commit.** The rules
   it says); a check log's *last four weeks* as a calendar beside the round (`tools/checks/calendar`); a document's reading *As it
   reads*, a lifted page held in view beside the boxes. With T1–T4 every family of tool now has its workspace (docs/TOOLS-DESIGN.md §4).
 
+- **The AI toolbox (8 November).** Rowland: *"Go ahead with a AI toolbox"*. Tools has a shelf of its own — every place a model is used
+  (Line Talk; talking a process flow chart, spaghetti diagram or value stream in; the video study's Name the work from the frames; the
+  voice note in a form), each saying what it does, what it sends and to whom, and what it never does; those tools wear an AI mark on
+  their cards and own pages (`src/catalogue/aiTools`, `scripts/acceptance/ai-toolbox.mjs`). The tools that link (docs/AI-TOOLBOX.md §2)
+  wait for his choice.
+
 - **Every tool in plain English, and four calculators out as tools (8 November).** Rowland: *"the tool needs enough information, as in
   description, next to it, for the user to understand this tool will help me do this. In plain English"*; *"calculators in there that
   are obviously hidden that's not the purpose"*. Each tool's line on the Tools page and its own page now starts *Use it to …*; the

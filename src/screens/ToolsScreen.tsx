@@ -10,6 +10,7 @@
  *
  * Read-only, for everyone. Loaded on its own (the router's lazy import), so
  * the catalogue's words never weigh on the rest of the app. */
+import { AI_TOOLS } from '../catalogue/aiTools';
 import { PageHeader } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
 import { toolByKey } from '../catalogue/registry';
@@ -68,6 +69,29 @@ export function ToolsScreen() {
         {talk && <button type="button" className="btn et-door" data-door="talk" onClick={() => nav(talk.to)}>Line Talk — talk or type on the line ›</button>}
         <SixMDoor />
       </div>
+
+      {/* THE AI TOOLBOX (catalogue/aiTools; docs/AI-TOOLBOX.md — Rowland, 8 November: "should be in an AI tool box itself ... so we know
+          that they use AI") — every place a model is used, what it does, what it sends and to whom, what it never does */}
+      <section className="ai-box" aria-label="The AI toolbox" data-ai-box>
+        <div className="ai-box-h">
+          <h2 className="ln-h">The AI toolbox</h2>
+          <p className="sub">Everything in Faultline that uses AI, in one place. The AI listens, watches and writes — it never works out a figure: every number is a formula’s.</p>
+        </div>
+        <div className="ai-cards" role="list">
+          {AI_TOOLS.map(a => (
+            <div key={a.id} role="listitem" className="ai-card" data-ai-tool={a.id}>
+              <p className="ai-card-h"><span className="ai-mark">AI</span> <b>{a.name}</b></p>
+              <p className="ai-does">{a.does}</p>
+              <dl className="ai-dl">
+                <dt>Sends</dt><dd>{a.sends}</dd>
+                <dt>Never</dt><dd>{a.never}</dd>
+                {a.where && <><dt>Where</dt><dd>{a.where}</dd></>}
+              </dl>
+              {a.to && <button type="button" className="btn btn-sm" onClick={() => nav(a.to as string)}>{a.id === 'video-name' ? 'Video studies ›' : 'Open Line Talk ›'}</button>}
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* THE WORLDS (docs/TOOLS-WORLDS.md) — a doorway for each way of working, counted in tools */}
       <section className="wd-row" aria-label="The worlds">

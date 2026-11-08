@@ -1,4 +1,4 @@
-# The AI toolbox and the tools that link — 8 November (design, waiting for Rowland's go)
+# The AI toolbox and the tools that link — 8 November (§1 built the same day at Rowland's go; §2 waits for his choice)
 
 Rowland, 8 November: *"I'm a consultant that goes into factories ... it's actually only going to be a single use, or maybe a few
 people using it ... This is not going to be people who are operating this on the ground floor ... when I said about enterprise was

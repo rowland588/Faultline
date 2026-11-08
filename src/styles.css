@@ -16792,3 +16792,22 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 @media (min-width: 1100px) {
   .ws-video .vid-events { max-height: 70vh; overflow: auto; padding-right: 4px; }
 }
+
+/* ============================================================ THE AI TOOLBOX (catalogue/aiTools, docs/AI-TOOLBOX.md, 8 November)
+   A shelf of its own on Tools and a small mark wherever an AI tool's name shows. The mark is the brand's own ink on a pale wash with
+   its word — never a state colour (CLAUDE.md, visual management), never a colour alone. */
+.ai-mark { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: var(--radius-pill); border: 1px solid var(--brand); color: var(--brand); background: var(--surface); font-size: var(--t-label); font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+.ai-box { margin: 0 0 20px; padding: 16px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
+.ai-box-h .ln-h { margin: 0 0 4px; }
+.ai-box-h .sub { margin: 0 0 12px; }
+.ai-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.ai-card { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
+.ai-card-h { margin: 0; display: flex; align-items: center; gap: 8px; }
+.ai-does { margin: 0; line-height: 1.45; }
+.ai-dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: var(--t-detail); color: var(--ink-2); }
+.ai-dl dt { font-weight: 600; color: var(--muted); }
+.ai-dl dd { margin: 0; }
+.ai-card .btn { align-self: flex-start; min-height: 44px; margin-top: auto; }
+.ai-say { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: var(--radius-sm); background: var(--surface); }
+.ai-say p { margin: 0 0 4px; }
+.ai-say-h { display: flex; align-items: center; gap: 8px; font-weight: 600; }
