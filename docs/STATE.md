@@ -94,6 +94,12 @@ a session that ships something updates this page in the same commit.** The rules
   at the top, machine cards as a simple header, Tools redone), then the record panel, planning (the projects' board), problems
   and projects, the tools, reports, phone review.
 
+- **For you — the bell (8 November, the enterprise basics: notifications).** In the top bar on every page: asked once, on this
+  device, which name is yours on the actions (they name people as typed); then a count of what is yours late or due by tomorrow
+  (red when late) and a panel — Late, Due today or tomorrow, The rest of this week — from the Actions page's own rows, each opening
+  its record. `lib/forYou`, `ui/ForYou`, `scripts/acceptance/for-you.mjs`. Pushed to a phone when closed is not built yet (the
+  push channel exists for notes' reminders, `supabase/functions/remind`).
+
 - **Who changed what on a problem — the audit trail (8 November, the enterprise basics).** `supabase/PROBLEM_HISTORY.sql`, applied
   live and read back: a table written only by a trigger on the problems (security definer, never callable by a device), the person,
   the moment and for each field a person sees what it was and became; a sync's own touch is not a change; a line's members read

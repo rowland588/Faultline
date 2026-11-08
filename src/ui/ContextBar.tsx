@@ -14,6 +14,7 @@ import { matchScore, type Scope } from '../lib/scope';
 import { LogoMark } from './Logo';
 import { Icon } from './Icon';
 import { AccountMenu } from './AccountMenu';
+import { ForYouButton } from './ForYou';
 import { JumpTo } from './JumpTo';
 import { GuideButton } from './GuideButton';
 import { QuickSnagButton } from '../snag/QuickSnag';
@@ -74,6 +75,7 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
       {toolId && <GuideButton toolId={toolId} />}
       <JumpTo />
       <QuickSnagButton projectId={projectId} />
+      <ForYouButton />
       <AccountMenu />
       {open && <Switcher scope={scope} projects={projects} lines={lines} onClose={() => setOpen(false)} />}
     </header>

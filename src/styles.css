@@ -16666,3 +16666,25 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .act-board { grid-template-columns: 1fr; overflow: visible; }
   .act-card { min-height: 44px; }
 }
+
+/* THE BELL — For you (ui/ForYou, lib/forYou; 8 November): a round button in the top bar with a count of what is yours late or due
+   by tomorrow — red when any is late, the brand's blue otherwise; its panel the record panel's frame. */
+.nv-bell { position: relative; display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none; border: 0; border-radius: var(--radius-round); background: none; color: var(--ink-2); cursor: pointer; }
+.nv-bell:hover, .nv-bell:focus-visible { background: var(--surface-2); color: var(--ink); }
+.nv-bell-n { position: absolute; top: 3px; right: 1px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--brand); color: var(--on-brand); font-size: var(--t-label); font-weight: 700; line-height: 18px; text-align: center; }
+.nv-bell.is-late .nv-bell-n { background: var(--st-r); }
+.fy { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px 24px; }
+.fy-h { margin: 0; font-size: var(--t-h); }
+.fy-g { display: flex; flex-direction: column; gap: 6px; }
+.fy-gh { margin: 0; display: flex; align-items: center; gap: 8px; font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); }
+.fy-g.is-late .fy-gh { color: var(--st-r); }
+.fy-g.is-soon .fy-gh { color: var(--st-a); }
+.fy-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.fy-list li + li { border-top: 1px solid var(--line-row, var(--line)); }
+.fy-row { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; min-height: 44px; padding: 10px 12px; border: 0; background: var(--surface); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.fy-row:hover { background: var(--surface-2); }
+.fy-m { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--t-label); color: var(--ink-2); }
+.fy-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line-row, var(--line)); }
+.fy-who { display: flex; flex-direction: column; gap: 12px; }
+.fy-type { display: flex; gap: 8px; }
+.fy-type .text-input { flex: 1; min-height: 44px; }
