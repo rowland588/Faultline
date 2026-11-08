@@ -11,8 +11,8 @@ export interface Place { kind: 'line' | 'job' | 'product' | 'tool' | 'page' | 'm
   problemId?: string }
 
 export const TOOL_PLACES: Place[] = [
-  { kind: 'page', label: 'Home', sub: 'start a project or use a tool', href: '#/' },
-  { kind: 'page', label: 'Control room', href: '#/room' },
+  { kind: 'page', label: 'Home', sub: 'the story', href: '#/' },
+  { kind: 'page', label: 'Lines', sub: 'the board of lines', href: '#/room' },
   { kind: 'page', label: 'Problems — every line and project', href: '#/snags' },
   { kind: 'page', label: 'Lines — the factory’s', href: '#/factory' },
   { kind: 'page', label: 'Programs', href: '#/programs' },

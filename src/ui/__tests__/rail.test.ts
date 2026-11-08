@@ -61,9 +61,10 @@ describe('which line is on, from the address alone', () => {
     expect(here('#/w/ws/standards/s1?at=balance')).toBe('linebalance');
   });
 
-  it('one home, the factory: #/ and #/room are the same page (23 October)', () => {
-    expect(here('#/')).toBe('home');
-    expect(here('#/start')).toBe('home');
+  it('one home, the Story: #/ and #/story light Story, the board of lines (#/room) Lines (23 October, one home; 8 November S5, home is the Story)', () => {
+    expect(here('#/')).toBe('story');
+    expect(here('#/story')).toBe('story');
+    expect(here('#/start')).toBe('story');
     expect(here('#/room')).toBe('home');
     expect(here('#/projects')).toBe('projects');
     expect(controlRoom('home').on).toBe(true);
@@ -116,21 +117,21 @@ describe('the factory\'s rail: its pages, nothing else', () => {
   /* the line is home (27 October — Rowland: "I do not need ... machines ... Programs ... I think the line's own list should
      cover it"): the board of lines, the projects, Set up (the lines themselves) and the tools — every line's machines,
      programs and problems are on the line, every project's actions on the project */
-  it('Overview · Projects · Set up · Tools, Reports at the foot — five, however many lines and projects (27 October)', () => {
-    expect(said(factoryGroups('home', 3))).toEqual(['Overview', 'Projects', 'Set up', 'Tools', 'Reports']);
-    expect(said(factoryGroups('home', 50))).toHaveLength(5);
-    expect(all(factoryGroups('home', 3)).map(l => l.to)).toEqual(['/room', '/projects', '/factory', '/tools', undefined]);
+  it('Story · Lines · Projects · Set up · Tools, Reports at the foot — six, however many lines and projects (27 October; S5 the Story)', () => {
+    expect(said(factoryGroups('home', 3))).toEqual(['Story', 'Lines', 'Projects', 'Set up', 'Tools', 'Reports']);
+    expect(said(factoryGroups('home', 50))).toHaveLength(6);
+    expect(all(factoryGroups('home', 3)).map(l => l.to)).toEqual(['/', '/room', '/projects', '/factory', '/tools', undefined]);
     expect(all(factoryGroups('home', 3)).find(l => l.key === 'projects')?.n).toBe(3);
   });
   it('lights the page you are on', () => {
-    for (const [hash, label] of [['#/room', 'Overview'], ['#/', 'Overview'], ['#/factory', 'Set up'], ['#/projects', 'Projects'], ['#/tools', 'Tools'], ['#/capability', 'Tools'], ['#/smed', 'Tools']] as const)
+    for (const [hash, label] of [['#/room', 'Lines'], ['#/', 'Story'], ['#/story', 'Story'], ['#/factory', 'Set up'], ['#/projects', 'Projects'], ['#/tools', 'Tools'], ['#/capability', 'Tools'], ['#/smed', 'Tools']] as const)
       expect(all(factoryGroups(hereIn(parseRoute(hash), 'factory'), 3)).filter(l => l.on).map(l => l.label), hash).toEqual([label]);
   });
 });
 
 describe('still small as it grows (docs/STRUCTURE.md §19, 4)', () => {
-  it('the factory\'s rail is 5 lines with 50 projects; a line\'s 10 and the way up, whatever is on it (Machines its own on each since 27 October; Actions, the line\'s action tracker, 7 November)', () => {
-    expect(all(factoryGroups('home', 50))).toHaveLength(5);
+  it('the factory\'s rail is 6 lines with 50 projects (the Story among them, S5); a line\'s 10 and the way up, whatever is on it (Machines its own on each since 27 October; Actions, the line\'s action tracker, 7 November)', () => {
+    expect(all(factoryGroups('home', 50))).toHaveLength(6);
     expect(all(lineGroups('w1', 'overview', { problems: { n: 300, late: 40 }, projects: 50 })).filter(l => l.key !== 'up')).toHaveLength(10);
   });
 });
@@ -220,7 +221,7 @@ describe('the menu is the same on every page', () => {
   it('Factory · Projects · Tools, Reports at the foot — in the factory, a line and a project alike (Problems and Actions are the line\'s and the project\'s, 27 October)', () => {
     for (const kind of ['factory', 'line', 'project'] as const)
       expect(said(menuGroups('', kind)), kind).toEqual(['Factory', 'Projects', 'Tools', 'Factory reports']);
-    expect(all(menuGroups('', 'factory')).map(l => l.to)).toEqual(['/room', '/projects', '/tools', undefined]);
+    expect(all(menuGroups('', 'factory')).map(l => l.to)).toEqual(['/', '/projects', '/tools', undefined]);
   });
   it('lights Factory inside a line and on the factory\'s own pages, Projects inside a project, else the page itself', () => {
     const lit = (here: string, kind: 'factory' | 'line' | 'project') => all(menuGroups(here, kind)).filter(l => l.on).map(l => l.label);
@@ -291,8 +292,11 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'reports', counts: {}, late: 0, machines: [] })).filter(l => l.on).map(l => l.label)).toEqual(['Reports']);
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'reports', counts: {}, late: 0 })).filter(l => l.on).map(l => l.label)).toEqual([]);
   });
-  it('the factory: Overview · Story · Set up — the old lists of every machine, program, problem and action under it, lighting the Factory', () => {
-    expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Overview', '/room', false], ['Story', '/story', false], ['Set up', '/factory', true]]);
+  it('the factory: Story · Lines · Set up (S5, home is the Story) — the old lists of every machine, program, problem and action under it, lighting the Factory', () => {
+    expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Story', '/', false], ['Lines', '/room', false], ['Set up', '/factory', true]]);
+    expect(factoryTabs(hereOf(parseRoute('#/'))).filter(l => l.on).map(l => l.label)).toEqual(['Story']);
+    expect(factoryTabs(hereOf(parseRoute('#/story'))).filter(l => l.on).map(l => l.label)).toEqual(['Story']);
+    expect(factoryTabs(hereOf(parseRoute('#/room'))).filter(l => l.on).map(l => l.label)).toEqual(['Lines']);
     expect([...FACTORY_PAGES]).toEqual(['home', 'story', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
   });
 });

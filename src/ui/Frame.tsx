@@ -72,7 +72,7 @@ function projectOf(route: Route, chainProject?: string): string | undefined {
      P2): the rail's tools open with ?project=, and the page keeps the
      project's rail. Outside one, the control room's, as before. */
   if (TOOL_LISTS.has(route.name)) return route.query.get(PROJECT_KEY) ?? undefined;
-  if (route.name === 'home' || route.name === 'start' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || RECORDS.has(route.name)) return undefined;
+  if (route.name === 'home' || route.name === 'room' || route.name === 'start' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || RECORDS.has(route.name)) return undefined;
   return route.id;
 }
 

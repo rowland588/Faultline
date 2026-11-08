@@ -15,7 +15,7 @@ const P = 'p1', W = 'w1';
 const KEPT: [string, string, Record<string, string | undefined>?][] = [
   /* one home, the factory (23 October): #/ and its old addresses open it */
   ['', 'home'], ['#/', 'home'], ['#/start', 'home'], ['#/methods', 'home'], ['#/design', 'home'],
-  ['#/room', 'home'], ['#/guide', 'guide'], ['#/s/tok', 'share', { id: 'tok' }],
+  ['#/room', 'room'], ['#/guide', 'guide'], ['#/s/tok', 'share', { id: 'tok' }],
   ['#/portfolio', 'portfolio'], ['#/projects', 'projects'], ['#/snags', 'quickSnags'],
   [`#/lines/${W}`, 'lineHome', { wsId: W }], [`#/lines/${W}/programs/report`, 'lineProgramsReport', { wsId: W }],
   [`#/lines/${W}/program/pr1/report`, 'lineProgramReport', { wsId: W, id: 'pr1' }], [`#/lines/${W}/report`, 'lineReport', { wsId: W }],

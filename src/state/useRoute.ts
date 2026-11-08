@@ -11,7 +11,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
-  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'lineProgramsReport' | 'lineProgramReport';
+  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'lineProgramsReport' | 'lineProgramReport';
 
 export interface Route {
   name: RouteName;
@@ -66,8 +66,10 @@ export function parseRoute(hash: string): Route {
      one home, a fixed menu). #/ is the factory — every project and line at once, what was the control
      room, which keeps its address #/room; the front door that stood at #/ is gone (its start a project
      is on Projects, its tools on Tools, its places carried on on the Factory page). */
+  /* HOME IS THE STORY (8 November, docs/STORY.md S5): #/ is the client's story, the page opened in front of them; the board
+     of lines is the Factory's LINES tab at #/room (its old address kept — every link to the control room still lands on it). */
   if (segs.length === 0) return { name: 'home', query };
-  if (segs[0] === 'room') return { name: 'home', query };
+  if (segs[0] === 'room') return { name: 'room', query };
   if (segs[0] === 'guide') return { name: 'guide', query }; // public — no workspace, no session
   /* A share link: #/s/<token> opens one picture or clip for somebody with no
      account (src/cloud/shares.ts). Public, like the guide. The token is taken

@@ -33,7 +33,8 @@ function clientShown(lines: readonly Workspace[]): string {
   try { const c = localStorage.getItem(CLIENT_KEY) ?? ''; return clients.includes(c) ? c : clients[0]; } catch { return clients[0]; }
 }
 
-export function StoryScreen() {
+/** HOME IS THE STORY (S5): `present` draws the same page full screen with no frame — the meeting itself — from #/?present=1. */
+export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   const { projects } = useProjects();
   const [all, setAll] = useState<Workspace[] | null>(null);
   const [studies, setStudies] = useState<ToolStudy[] | null>(null);
@@ -103,9 +104,47 @@ export function StoryScreen() {
     await deliverBlob(blob, name, { keep: false });
   };
   useSaveOnArrival(!!last, () => { if (last) void paperFor(last, chapters); });
+  /* PRESENT: Escape leaves the meeting and goes back to the page in its frame */
+  useEffect(() => {
+    if (!present) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') nav('/'); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [present]);
 
   if (all === null || studies === null) return <div className="wrap st"><p className="sub">Reading the story…</p></div>;
   const ag = story?.agreed?.story;
+
+  if (present) {
+    return (
+      <div className="st-present" data-story-present>
+        <button type="button" className="btn btn-ghost st-present-exit" onClick={() => nav('/')} aria-label="Exit the presentation (Escape)">× Exit</button>
+        <header className="st-present-head">
+          <p className="st-present-client">{client || 'The factory'}</p>
+          <p className="st-present-brief">{ag ? ag.brief : client ? `${client}’s story has not started yet.` : 'The story has not started yet.'}</p>
+          {ag && <p className="st-present-says">{storySays(ag, chapters)}</p>}
+        </header>
+        {ag && snapshot && (
+          <div className="st-present-figs" role="list" aria-label="The four figures">
+            {storyTiles(snapshot).map(t => (
+              <div key={t.k} className="st-present-fig" role="listitem" data-tone={t.tone ?? 'n'}>
+                <span className="st-present-k">{t.k}</span>
+                <b className="st-present-v" data-words={/^[£\d—]/.test(t.v) ? undefined : ''}>{t.v}</b>
+                {t.of && <span className="st-present-of">{t.of}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+        {ag && (last ? (
+          <section className="st-present-ch" aria-label="The latest chapter" data-chapter={chapters.length}>
+            <p className="st-present-n">Chapter {chapters.length} · {dayWordYear(last.at)}</p>
+            <h1 className="st-present-h">{last.headline}</h1>
+            <div className="st-present-body">{last.narrative.map((p, i) => <p key={i}>{p}</p>)}</div>
+          </section>
+        ) : <p className="st-present-none">No chapter yet — Run an update writes the first.</p>)}
+      </div>
+    );
+  }
 
   return (
     <div className="wrap st" data-story={story?.id ?? ''}>
@@ -115,6 +154,8 @@ export function StoryScreen() {
         papers={last ? [{ label: 'Story report — the latest chapter', for: 'for the client: the story so far, this update, every finding in money, what is being done and what is proved', make: () => paperFor(last, chapters) }, { label: 'Story slides — the latest chapter', for: 'the same chapter as a 16:9 deck to open in PowerPoint and present: the cover, the four figures, this update, where the money is, what we have found, what is being done, what is proved, next', make: () => deckFor(last, chapters) }] : []}
         more={ag ? [
           ag.closedAt ? { label: 'Reopen the engagement', run: () => story && void save({ ...story, agreed: { story: { ...ag, closedAt: undefined } } }) } : { label: 'Close the engagement', run: () => story && void save({ ...story, agreed: { story: { ...ag, closedAt: Date.now() } } }) },
+          /* PRESENT (S5): the same page full screen, no frame — the meeting itself */
+          { label: 'Present', hint: 'full screen, the figures large — for the room', run: () => nav('/?present=1') },
           { label: 'Lines and set up', run: () => nav('/room') },
         ] : []} />
       {said && <p className="sub st-said" role="status">{said}</p>}
@@ -125,6 +166,8 @@ export function StoryScreen() {
           <p className="sub">The brief, in the client’s words — what you were asked to find out. Every update from here continues from it.</p>
           <textarea className="text-input st-brief" rows={2} value={brief} onChange={e => setBrief(e.target.value)} placeholder="e.g. Why are we losing output in the packing hall?" aria-label="The brief" maxLength={300} />
           <div className="st-acts"><button type="button" className="btn btn-primary" disabled={!brief.trim()} onClick={() => void start()}>Start the story</button></div>
+          {/* HOME IS THE STORY (S5): a factory with no story yet still has its lines one tap away */}
+          <p className="sub st-lines-link"><button type="button" className="linkish" onClick={() => nav('/room')}>See the lines ›</button></p>
         </section>
       ) : (
         <>

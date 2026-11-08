@@ -16859,3 +16859,39 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .st-money { margin-left: auto; font-weight: 600; white-space: nowrap; }
 .st-snap-b { margin-top: 10px; min-height: 44px; }
 @media (max-width: 719px) { .st-ch-h { grid-template-columns: 1fr; } .st-paras li { flex-direction: column; } }
+.st-lines-link { margin: 12px 0 0; }
+.st-lines-link .linkish { min-height: 44px; }
+
+/* PRESENT (docs/STORY.md S5) — the Story full screen, no frame: the meeting itself. The figures read across a room; every
+   size is the house's tokens scaled, never a number of its own; the tone of a figure is the five state colours with its words. */
+.st-present { position: fixed; inset: 0; z-index: 50; overflow: auto; padding: 48px clamp(24px, 6vw, 96px) 64px; background: var(--canvas); color: var(--ink); display: flex; flex-direction: column; gap: 40px; }
+.st-present-exit { position: fixed; top: 16px; right: 16px; min-height: 44px; z-index: 1; }
+.st-present-head { display: flex; flex-direction: column; gap: 8px; max-width: 70ch; }
+.st-present-client { margin: 0; font-size: var(--t-page); font-weight: 700; color: var(--brand); letter-spacing: .02em; text-transform: uppercase; }
+.st-present-brief { margin: 0; font-size: calc(var(--t-num) * 1.25); font-weight: 700; line-height: 1.15; }
+.st-present-says { margin: 0; font-size: var(--t-h); color: var(--muted); }
+.st-present-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.st-present-fig { display: flex; flex-direction: column; gap: 6px; padding: 24px 28px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); border-top: 4px solid var(--line-2); }
+.st-present-fig[data-tone="r"] { border-top-color: var(--st-r); }
+.st-present-fig[data-tone="a"] { border-top-color: var(--st-a); }
+.st-present-fig[data-tone="g"] { border-top-color: var(--st-g); }
+.st-present-k { font-size: var(--t-h); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.st-present-v { font-size: calc(var(--t-num) * 2); font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.st-present-v[data-words] { font-size: calc(var(--t-num) * 1.25); line-height: 1.15; } /* a name, not a figure — Biggest loss says the machine */
+.st-present-fig[data-tone="r"] .st-present-v { color: var(--st-r); }
+.st-present-fig[data-tone="g"] .st-present-v { color: var(--st-g); }
+.st-present-of { font-size: var(--t-h); color: var(--ink-2); line-height: 1.35; }
+.st-present-ch { max-width: 80ch; }
+.st-present-n { margin: 0 0 8px; font-size: var(--t-h); font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: .03em; }
+.st-present-h { margin: 0 0 20px; font-size: calc(var(--t-num) * 1.5); font-weight: 700; line-height: 1.15; }
+.st-present-body p { margin: 0 0 16px; font-size: calc(var(--t-h) * 1.35); line-height: 1.5; }
+.st-present-none { font-size: var(--t-h); color: var(--muted); }
+@media (max-width: 719px) {
+  .st-present { padding: 64px 16px 40px; gap: 24px; }
+  .st-present-brief { font-size: var(--t-num); }
+  .st-present-v { font-size: calc(var(--t-num) * 1.4); }
+  .st-present-v[data-words] { font-size: var(--t-page); }
+  .st-present-h { font-size: var(--t-page); }
+  .st-present-body p { font-size: var(--t-h); }
+  .st-present-fig { padding: 18px 20px; }
+}

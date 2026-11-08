@@ -123,8 +123,9 @@ const KEY_OF: Record<string, string> = {
  *  which job it is under. */
 export function hereOf(route: Route): string {
   switch (route.name) {
-    case 'home': return 'home';
-    case 'story': return 'story';
+    /* HOME IS THE STORY (8 November, docs/STORY.md S5): #/ and #/story light Story; the board of lines (#/room) lights Lines */
+    case 'home': case 'story': return 'story';
+    case 'room': return 'home';
     case 'start': return 'start';
     case 'projects': case 'methodPage': return 'projects';
     case 'quickSnags': return 'quicksnags';
@@ -292,7 +293,7 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
     ? [{ key: 'place', label: place.name, to: place.to, on: true, state: 'n', bare: true, sub: true, under, icon: under === 'home' ? 'machine' : 'board' }] : []);
   return [{
     lines: [
-      { key: 'home', label: 'Factory', to: '/room', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
+      { key: 'home', label: 'Factory', to: '/', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
       ...placed('home'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
       ...placed('projects'),
@@ -345,7 +346,8 @@ export function scopeTabs(groups: RailGroup[]): RailLine[] {
   return lines.filter(kept).map(l => (lit && l.key === lit ? { ...l, on: true } : l));
 }
 
-/** THE FACTORY'S OWN TABS — the board of lines and Set up, where the lines themselves are added, named, typed,
+/** THE FACTORY'S OWN TABS — the Story, the board of lines and Set up (HOME IS THE STORY, 8 November, docs/STORY.md S5: #/ is
+ *  the client's story, the page opened in front of them; the board of lines is the LINES tab at its old address #/room), where the lines themselves are added, named, typed,
  *  ordered and archived (27 October — Rowland: "Why do I need lines when I've got setup? Yeah, put the lines in the
  *  setup because it's factory setup ... I don't need the machines anymore because I've got it already on the lines.
  *  Programs. I don't need that because it already exists on the lines"). Every machine, program and problem is on its
@@ -357,19 +359,20 @@ const OFF_THE_MENU = new Set(['allmachines', 'lineprograms', 'quicksnags', 'alla
  *  a word that is not true there (Factory › Problems, Factory › Programs …). */
 export const OFF_THE_MENU_NAME: Record<string, string> = { allmachines: 'Machines', lineprograms: 'Programs', quicksnags: 'Problems', allactions: 'Actions' };
 export const factoryTabs = (here: string): RailLine[] => [
-  plain('home', 'Overview', '/room', here, 'home'),
-  /* THE STORY (8 November, docs/STORY.md): the client's continuous journey, the page opened in front of them */
-  plain('story', 'Story', '/story', here, 'board'),
+  /* THE STORY (8 November, docs/STORY.md): the client's continuous journey, the page opened in front of them — home */
+  plain('story', 'Story', '/', here, 'board'),
+  plain('home', 'Lines', '/room', here, 'home'),
   plain('factory', 'Set up', '/factory', here, 'machine'),
 ];
 
-/** THE FACTORY'S PAGES — the board of lines, the projects, Set up and the tools. */
+/** THE FACTORY'S PAGES — the Story (home), the board of lines, the projects, Set up and the tools. */
 export function factoryGroups(here: string, projects = 0): RailGroup[] {
   return [{
     lines: [
       /* the old lists of every machine, program, problem and action light the Factory's Overview: the menu says where
          you are though no door here leads to them */
-      { ...controlRoom(here), label: 'Overview', icon: 'list', ...(OFF_THE_MENU.has(here) ? { on: true } : {}) },
+      plain('story', 'Story', '/', here, 'board'),
+      { ...controlRoom(here), label: 'Lines', icon: 'list', ...(OFF_THE_MENU.has(here) ? { on: true } : {}) },
       { ...plain('projects', 'Projects', '/projects', here, 'board'), n: projects || undefined },
       plain('factory', 'Set up', '/factory', here, 'machine'),
       plain('tools', 'Tools', '/tools', here, 'chart'),

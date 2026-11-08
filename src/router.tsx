@@ -166,6 +166,8 @@ export function Router() {
      are outside it — they are not the app. THE RECORD'S DRAWER sits beside
      every screen (ui/RecordDrawer): a step, a test or a fix opens over the
      page you are on when the route says so (?open=<id>), and closes back to it. */
+  /* PRESENT (docs/STORY.md S5): the Story full screen — the meeting itself — with no frame around it; Exit or Escape returns to #/ */
+  if (route.name === 'home' && route.query.get('present') === '1') return <><AutoConvert /><Suspense fallback={<BootSplash />}><StoryScreen present /></Suspense></>;
   return (
     <>
       <AutoConvert />
@@ -204,7 +206,8 @@ function app(route: Route) {
   if (route.name === 'factory') return <FactoryScreen />;
   if (route.name === 'factoryMachines') return <FactoryMachinesScreen />;
   if (route.name === 'allActions') return <EveryActionScreen />;
-  if (route.name === 'story') return <StoryScreen />;
+  /* HOME IS THE STORY (S5): #/ and its alias #/story; the board of lines is #/room, the Lines tab */
+  if (route.name === 'home' || route.name === 'story') return <StoryScreen />;
   if (route.name === 'tools') return <ToolsScreen />;
   if (route.name === 'toolWorld' && route.key) return <ToolWorldScreen key={route.key} worldId={route.key} />;
   if (route.name === 'methodPage' && route.key) return <MethodPageScreen key={route.key} methodKey={route.key} />;
@@ -327,7 +330,7 @@ function app(route: Route) {
   if (route.name === 'paceReport') return route.query.get('project') ? <PaceExecReport /> : <GoHome />;
 
   return (
-    route.name === 'home' || !route.wsId
+    route.name === 'room' || !route.wsId
       ? <WorkspaceHome />
       : (
         <WorkspaceProvider wsId={route.wsId}>

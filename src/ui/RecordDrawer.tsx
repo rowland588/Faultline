@@ -84,7 +84,7 @@ const PROBLEM = 'problem';
  *  problem) is not one of ours, so the 6M surfaces are left alone. A frame of
  *  the filmed walk ('asset') opens the fixes pinned on it, with &job=. */
 const RECORD_ROUTES = new Set<RouteName>([
-  'home', 'projectDashboard', 'projectSetup', 'fixes', 'install', 'gateSetup', 'handover', 'day',
+  'home', 'room', 'projectDashboard', 'projectSetup', 'fixes', 'install', 'gateSetup', 'handover', 'day',
   /* The plan, since it became a page of its own: "Tap a row to open it" set
      ?open= and nothing opened. */
   'plan', 'testing', 'test', 'trialCard', 'notes', 'materials', 'programs', 'clientReport', 'asset',
@@ -160,7 +160,7 @@ export function closeRecord(): void {
  *  a record is open, and keeps the trail "For <parent> ›" walks back along. */
 export function RecordDrawerHost({ route }: { route: Route }) {
   const id = RECORD_ROUTES.has(route.name) ? route.query.get(OPEN) : null;
-  const projectId = route.query.get(JOB) ?? (route.name === 'home' ? undefined : route.id);
+  const projectId = route.query.get(JOB) ?? (route.name === 'home' || route.name === 'room' ? undefined : route.id);
   const [trail, setTrail] = useState<string[]>([]);
   useEffect(() => { if (!id) { pushed = 0; setTrail([]); } }, [id]);
   if (!id || !projectId) return null;

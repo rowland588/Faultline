@@ -42,7 +42,7 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
     : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name ?? 'A line'
       : projects.find(p => p.id === scope.projectId)?.name ?? 'A project';
   /* where the place's name goes — its own first page */
-  const home = scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/room';
+  const home = scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/'; // the Factory's first page is the Story (S5)
   const [open, setOpen] = useState(false);
   const under = scope.kind === 'line' || scope.kind === 'project';
   return (
@@ -114,7 +114,7 @@ function Switcher({ scope, projects, lines, onClose }: { scope: Scope; projects:
           onKeyDown={e => { if (e.key === 'Enter' && best) go(best); }} />
         {!words && (
           <div className="nv-sw-g">
-            <button type="button" className={'nv-sw-i' + (on('factory') ? ' is-on' : '')} onClick={() => go('/room')}><b>Factory</b><span>every line and project at once</span></button>
+            <button type="button" className={'nv-sw-i' + (on('factory') ? ' is-on' : '')} onClick={() => go('/')}><b>Factory</b><span>the story, every line and project at once</span></button>
           </div>
         )}
         {shownLines.length > 0 && <p className="nv-sw-h">Lines</p>}

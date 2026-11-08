@@ -41,7 +41,7 @@ describe('the ordinary routes still parse', () => {
   const cases: [string, Record<string, unknown>][] = [
     /* one home, the factory — #/ and #/room alike (23 October) */
     ['#/',                          { name: 'home' }],
-    ['#/room',                      { name: 'home' }],
+    ['#/room',                      { name: 'room' }],
     ['#/start',                     { name: 'home' }],
     ['#/guide',                     { name: 'guide' }],
     ['#/portfolio',                 { name: 'portfolio' }],
