@@ -28,11 +28,15 @@ describe('how a default tool stands', () => {
   });
 
   it('a calculator’s row opens at its own address, inside the Calculators hub, and New starts that calculator', () => {
-    const h = howTool('FC-003');                                  // the process flow chart — a calculator (Kaizen event, Observe)
+    const h = howTool('FC-128');                                  // the cost of poor quality — a calculator
     expect(h.how).toBe('inside');
-    expect(openable(h)?.to).toBe('/calc/process-flow');
+    expect(openable(h)?.to).toBe('/calc/copq');
     expect(openable(h)?.key).toBe('calc');
     expect(toolStateWord(h)).toBe('A mode of Calculators');
+    /* the process flow chart is a calculator that is a tool of its own since 8 November: its row opens it as one */
+    const pf = howTool('FC-003');
+    expect(openable(pf)?.to).toBe('/calc/process-flow');
+    expect(openable(pf)?.key).toBe('processflow');
     expect(openable(howTool('FC-215'))?.to).toBe('/calc/critical-path');   // every built calculator opens the same way
     expect(openable(howTool('FC-128'))?.to).toBe('/calc/copq');
   });

@@ -920,7 +920,8 @@ export const OPERATIONS: Entry[] = [
     food: 'Topping, garnishing, tray loading at high volume; a forklift driver moving one box.',
     depends: ['FC-021', 'FC-028'],
     complexity: 'M', value: 'low', valueWhy: 'For the highest-volume hand work only.',
-    status: 'available', form: 'mode', partOf: 'FC-021', methods: ['ie.micro-motion'], scenarios: ['people'], words: ['therbligs', 'motion study', 'micro-movements', 'two-handed chart', 'simo chart', 'forklift'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['ie.micro-motion'], scenarios: ['people'], words: ['therbligs', 'motion study', 'micro-movements', 'two-handed chart', 'simo chart', 'forklift'],
+    app: { key: 'micro', label: 'Micro-movements', says: 'Use it to break a short, repeated task into each movement of the hands or a truck, and see which movements could go', onLine: 'each movement of a short task, and which could go', reads: 'calc:micro-movements', icon: 'person', order: 10.5 },
     built: { where: ['/calc/micro-movements'], code: [...CALC_CODE, 'src/tools/calc/defs/micro-movements.ts', 'src/tools/calc/CalcHands.tsx', 'src/tools/calc/calcHands.css', 'src/tools/micro/micro.ts'], tests: [...CALC_TESTS, 'src/tools/micro/__tests__/micro.test.ts'], acceptance: ['calc-shape.mjs', 'micro-movements.mjs'] },
     spec: 'knowledge/specs/FC-233-micro-movements.md',
     limits: [

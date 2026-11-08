@@ -4,7 +4,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **239 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 28 tools a person can open on a page of their own. Built inside them: 119 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 22; needing research: 11; left out on purpose: 27. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 32 tools a person can open on a page of their own. Built inside them: 115 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 22; needing research: 11; left out on purpose: 27. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
@@ -71,8 +71,8 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 ## By the shape it takes
 
-- a tool of its own: 79
-- a mode of another tool: 88
+- a tool of its own: 80
+- a mode of another tool: 87
 - a part several tools share: 27
 - a way through several tools: 8
 - a report or board: 26
@@ -149,6 +149,5 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 - FC-119 Type 1 gauge study — one reference measured again and again — 1 modes inside it
 - FC-124 Defect tally at the line — a check sheet by type — 1 modes inside it
 - FC-235 Calculators — a sum for one situation, saved with its sentence, its money and its paper — 1 modes inside it
-- FC-021 Video time study — the work read from footage — 1 modes inside it
 - FC-062 Autonomous maintenance — CILT checks and abnormality tags — 1 modes inside it
 - FC-004 Spaghetti diagram — walking and transport distance — 1 modes inside it

@@ -89,7 +89,10 @@ export interface AppFace {
   /** What it is for on a line's page — absent when it is not listed there. */
   onLine?: string;
   /** The record whose latest the line's page reads for it. */
-  reads?: 'standard' | 'balance' | 'capability' | 'map' | 'changeover' | 'sampling' | 'losses' | 'reliability' | 'chart' | 'analysis' | 'calc' | 'doc' | 'log' | 'talk' | 'video' | 'holds' | 'deploy' | 'daily' | 'fault-tree';
+  reads?: 'standard' | 'balance' | 'capability' | 'map' | 'changeover' | 'sampling' | 'losses' | 'reliability' | 'chart' | 'analysis' | 'calc' | 'doc' | 'log' | 'talk' | 'video' | 'holds' | 'deploy' | 'daily' | 'fault-tree'
+    /** a calculator that is a tool of its own (Rowland, 8 November: "calculators in there that are obviously hidden that's not the
+     *  purpose"): its studies are the calculators' records of these definitions (src/catalogue/calcTools) */
+    | `calc:${string}`;
   /** The rail's icon (ui/Icon). */
   icon: string;
   /** Its place in the list — the floor's order: who stands where, then the people, the machines, the studies, the camera, the talk. */

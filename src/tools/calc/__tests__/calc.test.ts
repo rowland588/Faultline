@@ -7,6 +7,8 @@
  * method is proved separately (lib/ie/__tests__/…) against SciPy or a textbook, never against its own output. */
 import { describe, expect, it } from 'vitest';
 import { entryById } from '../../../catalogue';
+import { calcOwner } from '../../../catalogue/calcTools';
+import { APP_TOOLS } from '../../../catalogue/registry';
 import { CALCS, calcByKey, calcGroups } from '../registry';
 import { askedFields, beforeRun, calcSays, calcTitle, offered, runCalc, startInputs, studyCalc, tilesSince, typedOver, valuesOf, whatIf } from '../calc';
 import type { CalcDef, Inputs } from '../types';
@@ -32,7 +34,10 @@ describe.each(CALCS.map(c => [c.key, c] as [string, CalcDef]))('the %s calculato
     const e = entryById(def.fc);
     expect(e, `${def.fc} is in the catalogue`).toBeDefined();
     expect(e?.built?.where ?? [], `${def.fc} built.where`).toContain(`/calc/${def.key}`);
-    expect(e?.app, 'a single calculator has no face of its own — the hub is the app tool').toBeUndefined();
+    /* a calculator has no face of its own — the hub is the app tool — unless it is one of the calculators that are tools of their own
+       (catalogue/calcTools, 8 November), whose face reads only its own records */
+    if (calcOwner(def.key)) expect(APP_TOOLS.some(t => t.reads === calcOwner(def.key)), `${def.key}'s own tool`).toBe(true);
+    else expect(e?.app, 'a single calculator has no face of its own — the hub is the app tool').toBeUndefined();
     expect(def.title.trim().length).toBeGreaterThan(3);
     expect(def.says.length).toBeGreaterThan(10);
     expect(def.question.endsWith('?')).toBe(true);

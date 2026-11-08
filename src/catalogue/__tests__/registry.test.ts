@@ -27,8 +27,8 @@ describe('every tool says how its records behave', () => {
 });
 
 describe('the app\'s tools, from the catalogue', () => {
-  it('are the twenty-nine a person can open, each built, available or partly, at an address the router answers', () => {
-    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Control chart', 'Analysis', 'Calculators', 'Documents', 'Optimising settings', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Video study', 'Line Talk', 'Check logs', 'Problems register', 'Actions', 'Equipment criticality', 'Impact and effort', 'Pugh matrix', 'Process FMEA', 'Control plan', 'Fault tree', 'Maintenance measures', 'Product on hold', 'Skills matrix', 'Operational readiness']);
+  it('are the thirty-three a person can open (the four calculators that are tools of their own since 8 November among them), each built, available or partly, at an address the router answers', () => {
+    expect(APP_TOOLS.map(t => t.label)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Control chart', 'Analysis', 'Calculators', 'Documents', 'Optimising settings', 'Value stream', 'Process flow chart', 'Spaghetti diagram', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Stops across workstations', 'Video study', 'Micro-movements', 'Line Talk', 'Check logs', 'Problems register', 'Actions', 'Equipment criticality', 'Impact and effort', 'Pugh matrix', 'Process FMEA', 'Control plan', 'Fault tree', 'Maintenance measures', 'Product on hold', 'Skills matrix', 'Operational readiness']);
     for (const t of APP_TOOLS) {
       const e = ENTRIES.find(x => x.id === t.id)!;
       expect(['available', 'partial'], t.id).toContain(e.status);
@@ -55,11 +55,15 @@ describe('the app\'s tools, from the catalogue', () => {
       ['calc', 'Calculators', '/calc', 'calc', 'sums saved for this line, each with what it says'],
       ['doc', 'Documents', '/doc', 'doc', 'documents saved for this line, each with where it stands'],
       ['valuestream', 'Value stream', '/value-stream', 'map', 'every step, who does it, the waits'],
+      ['processflow', 'Process flow chart', '/calc/process-flow', 'calc:process-flow', 'one product followed step by step, its moves and its waits'],
+      ['spaghetti', 'Spaghetti diagram', '/calc/spaghetti', 'calc:spaghetti', 'where people walk, how far, and what it costs'],
       ['changeover', 'SMED', '/smed', 'changeover', 'a changeover timed and cut down'],
       ['sampling', 'Work sampling', '/sampling', 'sampling', 'what people are doing, at random moments'],
       ['losses', 'Loss count', '/losses', 'losses', 'a shift’s losses, in minutes and pounds'],
       ['reliability', 'Reliability', '/reliability', 'reliability', 'a machine watched running: MTBF and the failure rate'],
+      ['workstops', 'Stops across workstations', '/calc/workstation-stops', 'calc:workstation-stops', 'every stop at each workstation, timed, and what it cost'],
       ['video', 'Video study', '/video', 'video', 'the line filmed, the work at each station read from the footage'],
+      ['micro', 'Micro-movements', '/calc/micro-movements', 'calc:micro-movements', 'each movement of a short task, and which could go'],
       ['talk', 'Line Talk', '/talk', 'talk', 'talk or type on the line, as in a chat — it answers and writes the reports'],
       ['holds', 'Product on hold', '/holds', 'holds', 'what is on hold, since when, and what is tied up'],
     ]);

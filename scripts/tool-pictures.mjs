@@ -52,6 +52,12 @@ const TOOLS = [
   { key: 'calc', of: 'A calculator — an acceptance-sampling plan: what it protects, with its operating-characteristic curve',
     route: s => `#/calc/oc-curve/${s.calcOcId}`, parts: ['.calc-tiles', '.calc-picbox'],
     css: '.calc-body{display:block !important}.calc-form{display:none !important}.calc-picbox{max-width:680px !important;margin:0 auto !important}' },
+  ...[['spaghetti', 'spaghetti-walkers', 'A spaghetti diagram — three operators’ walks drawn, the metres and the busiest place'],
+    ['processflow', 'process-flow', 'A process flow chart — a tray from oven to despatch, each step’s symbol, the waits and the moves'],
+    ['micro', 'micro-movements', 'Micro-movements — a forklift’s cycle movement by movement, working against motion to question'],
+    ['workstops', 'workstation-stops', 'Stops across workstations — four workstations timed, what each stop has cost']].map(([key, def, of]) => ({ key, of,
+    route: s => `#/calc/${def}/${s.calcIds[key]}`, parts: ['.calc-tiles', '.calc-picbox'],
+    css: '.calc-body{display:block !important}.calc-form{display:none !important}.calc-picbox{max-width:760px !important;margin:0 auto !important}' })),
   { key: 'doc', of: 'A document — a project charter ready to agree: the status, the gap and the worth as tiles, the sentence it says and the team table',
     route: s => `#/doc/charter/${s.docCharterId}`, parts: ['.ln-band', '.doc-tiles', '[data-doc=sentence]', '[data-doc-table="The team"]'],
     css: '.doc-body{display:block !important}.doc-form{display:none !important}.doc-out{max-width:760px !important;margin:0 auto !important}.doc-sign{display:none !important}' },
@@ -220,7 +226,12 @@ function PICTURE_SEEDS_FN() {
     const rsDef = SCORED.find(d => d.key === 'rsm'), rsm = newScoredStudy(rsDef, { name: 'Line 7 — filler give-away', workspaceId: wsId, now: t });
     rsm.agreed = { scored: { key: 'rsm', rows: rsDef.examples[0].rows.map(r => ({ ...r })), rsm: { ...rsDef.examples[0].rsm } } };
     await putStudy(rsm);
-    return { rsmId: rsm.id, faultId: fault.id, cplanId: cplan.id, fmeaId: fmea.id, readinessId: readiness.id, skillsId: skillsStudy.id, criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
+    /* the calculators that are tools of their own (8 November): a record of each from its definition's first worked example */
+    const { CALCS } = await import('/src/tools/calc/registry.ts');
+    const calcOf = async (key, name) => { const d = CALCS.find(c => c.key === key); const st = { id: uid(), tool: 'calc', name, workspaceId: wsId, agreed: { calc: { key, inputs: { ...d.examples[0].inputs } } }, facts: {}, uses: [], startedAt: t, createdAt: t, updatedAt: t }; await putStudy(st); return st.id; };
+    const calcIds = { spaghetti: await calcOf('spaghetti-walkers', 'Packing line — three operators'), processflow: await calcOf('process-flow', 'Tray, oven to despatch'),
+      micro: await calcOf('micro-movements', 'FLT moving one box'), workstops: await calcOf('workstation-stops', 'Four workstations, one hour') };
+    return { calcIds, rsmId: rsm.id, faultId: fault.id, cplanId: cplan.id, fmeaId: fmea.id, readinessId: readiness.id, skillsId: skillsStudy.id, criticalityId: crit.id, impactEffortId: pick.id, pughId: pugh.id, maintenanceId: maint.id, capacityRoute: `#/w/${wsId}/standards/${capId}?at=balance`, standardRoute: `#/w/${wsId}/standards/${stdId}` };
   };
 }
 

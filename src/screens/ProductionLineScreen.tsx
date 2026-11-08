@@ -15,6 +15,7 @@
  *
  * The page answers, in order: where the line is (its problems, the late in
  * red), and what to do next (take a problem; open a tool on this line). */
+import { calcToolOf, isCalcTool } from '../catalogue/calcTools';
 import { openProblem } from '../snag/ProblemPanel';
 import { Icon } from '../ui/Icon';
 import { lineHref } from '../ui/rail';
@@ -81,14 +82,16 @@ const PRIO_CLASS: Record<Priority, string> = { critical: 'is-r', high: 'is-a', l
  *  (src/catalogue/registry), those it lists on a line, in the floor's order. A video study is a line
  *  balance read from footage (lib/video/record): it has its own row since 23 October (Rowland: "I add a
  *  tool to a line it doesn't go there" — it went, counted under Line balance, with no row of its own). */
-export const TOOLS: { key: string; label: string; to: string; study?: StudyTool | 'video'; standard?: true; what: string }[] = APP_TOOLS
+export const TOOLS: { key: string; label: string; to: string; study?: StudyTool | 'video' | `calc:${string}`; standard?: true; what: string }[] = APP_TOOLS
   .filter(t => t.onLine && t.reads)
-  .map(t => ({ key: t.key, label: t.label, to: t.to, ...(t.reads === 'standard' ? { standard: true as const } : { study: t.reads as StudyTool | 'video' }), what: t.onLine as string }));
+  .map(t => ({ key: t.key, label: t.label, to: t.to, ...(t.reads === 'standard' ? { standard: true as const } : { study: t.reads as StudyTool | 'video' | `calc:${string}` }), what: t.onLine as string }));
 
 /** A tool's own uses among a line's or a project's studies — a video study is a balance study with
  *  footage, so it is the video's and never the line balance's. */
-export const usesOfTool = (study: StudyTool | 'video' | RegisterKey, studies: ToolStudy[]): ToolStudy[] =>
-  studies.filter(s => !s.deletedAt && (study === 'video' ? !!s.facts?.video : isRegisterKey(study) ? registerKeyOf(s) === study : s.tool === study && !s.facts?.video));
+export const usesOfTool = (study: StudyTool | 'video' | RegisterKey | `calc:${string}`, studies: ToolStudy[]): ToolStudy[] =>
+  studies.filter(s => !s.deletedAt && (study === 'video' ? !!s.facts?.video : isRegisterKey(study) ? registerKeyOf(s) === study
+    /* a calculator that is a tool of its own reads only its own records; Calculators the rest (catalogue/calcTools) */
+    : isCalcTool(study) || study === 'calc' ? s.tool === 'calc' && calcToolOf(s) === study : s.tool === study && !s.facts?.video));
 
 export type LineTool = typeof TOOLS[number];
 

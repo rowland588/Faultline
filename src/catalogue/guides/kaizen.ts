@@ -106,6 +106,42 @@ export const KAIZEN_GUIDES: Record<string, Guide> = {
     ],
     watch: 'One person’s one round may not be typical: follow several and say the range. A straight line is a floor, not the way walked — type the metres where it is further. And walking is not all waste: some of it carries needed material.',
   },
+  'FC-233': {
+    intro: 'For a short task done over and over — loading a tray, topping a product, a forklift moving one box — when you want to see each movement of the hands (or the truck) and which of them could go.',
+    steps: [
+      {
+        step: 'Whose cycle is it',
+        means: 'The study is of ONE short cycle of one person or one truck, watched until you can see it the same way each time. Give it a label, never a name — “Packer 1”, “Truck 3”.',
+        doThis: 'Press New calculation under Micro-movements and type the label. Watch the cycle on the floor, or on the video study’s footage, a few times before you write anything.',
+        youGet: 'A saved study ready for its first movement. Nothing is made up: it stays empty until you type one.',
+      },
+      {
+        step: 'Element 1 is a',
+        means: 'Each movement is one of the classic kinds (Gilbreth’s): reach, grasp, move, position, release, use — the working ones — and search, select, hold, plan, delay — the ones to question. Each kind’s meaning is under it.',
+        doThis: 'For each movement in order, tap the kind that fits and, if it helps, say what happens in a few words (“reach for the lid”). Then say which hand does it — left, right, both — or the truck.',
+        youGet: 'The movement on the chart in its lane, and the next movement’s boxes below it.',
+      },
+      {
+        step: 'Element 1 takes, and happens',
+        means: 'How many seconds the movement takes — from a stopwatch or the video study — and whether it happens at the same time as the one above (on the other hand) or after it.',
+        doThis: 'Type the seconds where you have them; leave a box empty if not, and the page says which are not timed. Mark two movements on opposite hands as at the same time when they really are.',
+        youGet: 'The cycle in seconds, the share of it that is working motion and the share that is motion to question, and what each hand is holding while the other works.',
+      },
+      {
+        step: 'In money',
+        means: 'The seconds spent only on motion to question, times how often the cycle is done in a shift, at what an hour of the person costs.',
+        doThis: 'Open In money and type how many times a shift the cycle is done, the hourly cost (the line’s own is offered) and the shifts a week. Every box is optional.',
+        youGet: 'The labour a shift and a week on movements that could go — or the one sentence saying what to add.',
+      },
+      {
+        step: 'On paper',
+        means: 'The two-handed chart, every movement with its kind and seconds, the shares and the money, and what it does not claim.',
+        doThis: 'Open Report ▾ and take it to the team; ask of each movement to question whether it can go, be combined or be made easier.',
+        youGet: 'A page with the same figures as the screen.',
+      },
+    ],
+    watch: 'Time a cycle that is typical, not the best one you saw. And a hold is not always waste — sometimes it is the only way to do the job safely: question it, do not just remove it.',
+  },
   'FC-003': {
     intro: 'For following one thing — a tray, a pallet, an ingredient — from where it starts to where it ends, and seeing how many of its steps change it and how many only move it, check it or let it wait.',
     steps: [

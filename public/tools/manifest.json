@@ -11,6 +11,30 @@
     "of": "A calculator — an acceptance-sampling plan: what it protects, with its operating-characteristic curve",
     "takenFrom": "baf6098"
   },
+  "spaghetti": {
+    "w": 960,
+    "h": 600,
+    "of": "A spaghetti diagram — three operators’ walks drawn, the metres and the busiest place",
+    "takenFrom": "0e1d35fa"
+  },
+  "processflow": {
+    "w": 960,
+    "h": 600,
+    "of": "A process flow chart — a tray from oven to despatch, each step’s symbol, the waits and the moves",
+    "takenFrom": "0e1d35fa"
+  },
+  "micro": {
+    "w": 960,
+    "h": 600,
+    "of": "Micro-movements — a forklift’s cycle movement by movement, working against motion to question",
+    "takenFrom": "0e1d35fa"
+  },
+  "workstops": {
+    "w": 960,
+    "h": 600,
+    "of": "Stops across workstations — four workstations timed, what each stop has cost",
+    "takenFrom": "0e1d35fa"
+  },
   "doc": {
     "w": 960,
     "h": 600,
