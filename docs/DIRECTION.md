@@ -287,3 +287,9 @@ So, until he says otherwise:
    cannot describe it yet), the same way the look was chosen on 6 November; nothing is removed until the shape is agreed.
 4. **His business is Streamline Synergy**; Faultline is his tool. (The brand on the landing page — Opex Elevate — is not changed until
    he says.)
+
+The canvas of the reshape, the same day: `claude.ai/artifact/6bEZavbkRCTJbtmRpXoYYp` — three shapes for the first page, on placeholder
+figures (no client's data): **A · The engagement** (home is the client: found so far in money, the three findings that matter, the lines
+being studied, what happens next), **B · Today on the floor** (home is the working cockpit: which line, carry on, the tools reached for
+most, the open findings), **C · Present** (one tap turns the work into the client's story: what was found, what it costs, being fixed,
+proved, where the money is). Waiting for his pick; nothing is built until then.
