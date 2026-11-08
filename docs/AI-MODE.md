@@ -202,3 +202,5 @@ against what was asked. No brief is never a stopper.
 - **Computer vision** beyond the video study's *Name the work from the frames*. The video study's motion reading is
   the foundation; a spaghetti diagram from video needs a person tracked and the floor calibrated, and rules for
   consent and how long footage is kept, before anything is built.
+- **Video intelligence (Phase 6)** — a spaghetti diagram and time and motion from a fixed camera: designed in
+  `docs/VISION.md` (on-device person tracking, a floor homography, consent and retention, slices V1–V5); not built.
