@@ -18,7 +18,7 @@ export const CALC: Entry[] = [
     status: 'available', form: 'tool', kind: 'study',
     methods: ['lean.kanban-supermarket', 'planning.safety-stock', 'quality.acceptance-sampling-attributes', 'capacity.littles-law'],
     scenarios: ['planning', 'quality', 'money', 'running'], words: ['calculator', 'sum', 'what if', 'sizing', 'formula'],
-    app: { key: 'calc', label: 'Calculators', says: 'Sums for one situation — kanbans, safety stock, a sampling plan, lead time — saved with their sentence, their money and a paper', onLine: 'sums saved for this line, each with what it says', reads: 'calc', icon: 'hash', order: 4.7 },
+    app: { key: 'calc', label: 'Calculators', says: 'Use it for a quick worked sum — kanban size, safety stock, a sampling plan, lead time — kept with what it means, its money and a paper', onLine: 'sums saved for this line, each with what it says', reads: 'calc', icon: 'hash', order: 4.7 },
     built: { where: ['/calc'], code: CALC_CODE, tests: CALC_TESTS, acceptance: ['calc-shape.mjs'] },
     spec: 'knowledge/specs/FC-235-calculators.md',
     limits: ['It lists only the calculators built so far; each is proved on its own (its entry, its definition, its independent cases) and the rest of the catalogue’s sums are added the same way.', 'A saved before is one copy of the figures: a second change reads against it until a new one is saved. Two saved calculations of one calculator are not compared with each other.', 'Results are always worked out again from the figures and the definition as it is now — a calculator improved later changes what an old saved calculation says, never its figures.'],

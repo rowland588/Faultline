@@ -41,7 +41,7 @@ export const IE: Entry[] = [
     depends: ['FC-019', 'FC-032'],
     complexity: 'XL', value: 'high', valueWhy: 'Evidence that can be reviewed; many cycles at once.',
     status: 'available', form: 'tool', kind: 'study',
-    app: { key: 'video', label: 'Video study', says: 'Film the line: the work at each station read from the footage, reviewed, worked out as a line balance', onLine: 'the line filmed, the work at each station read from the footage', reads: 'video', icon: 'camera', order: 10 }, methods: ['ie.video-time-study'], scenarios: ['people', 'running'], words: ['film', 'camera', 'footage'],
+    app: { key: 'video', label: 'Video study', says: 'Use it to film the line and have the work at each station read from the footage — then review it and see the line balance (uses AI when you ask it to name the work)', onLine: 'the line filmed, the work at each station read from the footage', reads: 'video', icon: 'camera', order: 10 }, methods: ['ie.video-time-study'], scenarios: ['people', 'running'], words: ['film', 'camera', 'footage'],
     built: { where: ['/video'], code: ['src/tools/video/VideoScreen.tsx', 'src/tools/video/extract.ts', 'src/tools/video/study.ts', 'src/tools/video/reportPdf.ts', 'src/tools/video/pace.css'],
       tests: ['src/tools/video/__tests__/video.test.ts', 'src/tools/video/__tests__/standard.test.ts', 'src/tools/video/__tests__/assess.test.ts'], acceptance: ['video-study.mjs', 'video-fit.mjs', 'video-check.mjs', 'video-standard.mjs'] },
     spec: 'knowledge/specs/FC-021-video-time-study.md',
@@ -58,7 +58,7 @@ export const IE: Entry[] = [
     depends: ['FC-037', 'FC-146'],
     complexity: 'M', value: 'high', valueWhy: 'Cheap evidence about people’s time, with honest margins.',
     status: 'available', form: 'tool', kind: 'study',
-    app: { key: 'sampling', label: 'Work sampling', says: 'What people are doing at random moments, with margins', onLine: 'what people are doing, at random moments', reads: 'sampling', icon: 'people', order: 7 }, methods: ['ie.work-sampling', 'stats.confidence-intervals'], scenarios: ['people', 'running'], words: ['activity sampling', 'idle', 'waiting'],
+    app: { key: 'sampling', label: 'Work sampling', says: 'Use it to find out what people are really doing — working, waiting, walking — by noting it at random moments through the shift', onLine: 'what people are doing, at random moments', reads: 'sampling', icon: 'people', order: 7 }, methods: ['ie.work-sampling', 'stats.confidence-intervals'], scenarios: ['people', 'running'], words: ['activity sampling', 'idle', 'waiting'],
     built: { where: ['/sampling'], code: ['src/tools/sampling/SamplingScreen.tsx', 'src/tools/sampling/sampling.ts'], tests: ['src/tools/sampling/__tests__/sampling.test.ts'], acceptance: ['work-sampling.mjs'] },
   },
   {
