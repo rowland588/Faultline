@@ -34,7 +34,7 @@ import { UsedFor, WhereItSits, useBetter } from '../../ui/StudyPlace';
 import { raisedFrom } from '../losses/lossLean';
 import { useLine } from '../linework/WorkBalance';
 import { calcByKey, calcGroups } from './registry';
-import { calcSays, dropped, runCalc, startInputs, studyCalc, typedOver, valuesOf, type Run } from './calc';
+import { calcSays, dropped, newCalcStudy, runCalc, studyCalc, typedOver, valuesOf, type Run } from './calc';
 import { AttachButton } from '../../ui/AttachSheet';
 import { CalcForm, stillNeeded } from './CalcForm';
 import { BeforeBox, ResultView, WhatIf } from './CalcView';
@@ -265,8 +265,7 @@ function NewCalc({ open, def, onClose, onLine, project }: { open: boolean; def: 
     setBusy(true);
     try {
       const t = now();
-      const s: ToolStudy = { id: uid(), tool: 'calc', name: name.trim(), ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}),
-        agreed: { calc: { key: def.key, inputs: startInputs(def) } }, facts: {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
+      const s: ToolStudy = newCalcStudy(def, { id: uid(), name: name.trim(), now: t, ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}) });
       await putStudy(s);
       setName(''); onClose();
       nav(studyHref(s));

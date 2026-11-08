@@ -6,7 +6,7 @@ import { uid } from '../../lib/ids';
 import { niceDay } from '../../lib/weeks';
 import type { LeanTile, LeanTone } from '../../lib/lean';
 import type { ToolStudy } from '../../lib/study';
-import { docByKey } from './registry';
+import { docDefOf } from './custom';
 import { brief } from './figures/words';
 import type { DocColumn, DocCtx, DocDef, DocField, DocItem, DocList, DocPhoto, DocPhotos, DocProblem, DocResult, DocRow, DocSection, DocSigned, DocValues } from './types';
 
@@ -248,12 +248,12 @@ export const studyPhotos = (s: Pick<ToolStudy, 'facts'>): DocPhoto[] => s.facts?
 /** The document a record is, read now — undefined when its definition is not in this build. */
 export function studyDoc(s: Pick<ToolStudy, 'agreed' | 'facts'>, ctx: DocCtx = EMPTY_CTX(new Date().toISOString().slice(0, 10))): DocRun | undefined {
   const a = s.agreed?.doc;
-  const def = docByKey(a?.def);
+  const def = docDefOf(s);
   return a && def ? runDoc(def, studyRaw(s), studyPhotos(s), ctx, a.signed) : undefined;
 }
 
 /** The record's name for what it is: the definition's title. */
-export const docTitle = (s: Pick<ToolStudy, 'agreed'>): string => docByKey(s.agreed?.doc?.def)?.title ?? 'Document';
+export const docTitle = (s: Pick<ToolStudy, 'agreed'> & Partial<Pick<ToolStudy, 'facts'>>): string => docDefOf(s)?.title ?? 'Document';
 
 /** What a record says in one place — the line's tile, the list's row, the line report: sentence, verdict and tone. */
 export function docSays(s: Pick<ToolStudy, 'agreed' | 'facts'>, ctx?: DocCtx): { text: string; tone: LeanTone; verdict: string } {
@@ -266,9 +266,9 @@ export function docSays(s: Pick<ToolStudy, 'agreed' | 'facts'>, ctx?: DocCtx): {
 }
 
 /** A new record of a definition: named, on a line or a project or neither, with what the definition starts with. */
-export function newDocStudy(def: DocDef, o: { name: string; workspaceId?: string; projectId?: string; now: number }): ToolStudy {
+export function newDocStudy(def: DocDef, o: { name: string; workspaceId?: string; projectId?: string; now: number; id?: string }): ToolStudy {
   return {
-    id: uid(), tool: 'doc', name: o.name,
+    id: o.id ?? uid(), tool: 'doc', name: o.name,
     ...(o.workspaceId ? { workspaceId: o.workspaceId } : {}), ...(o.projectId ? { projectId: o.projectId } : {}),
     agreed: { doc: { def: def.key } },
     facts: { ...(def.start && Object.keys(def.start).length ? { docValues: { ...def.start } } : {}) },

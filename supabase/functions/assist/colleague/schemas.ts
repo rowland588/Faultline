@@ -23,6 +23,24 @@ const obj = (properties: Record<string, unknown>, required: string[] = []) => ({
   additionalProperties: false,
 });
 
+const COLUMN = obj({
+  name: str('A name: lower-case words joined by underscores', 40),
+  label: str('Its words', 120),
+  type: { type: 'string', enum: ['text', 'number', 'choice'] },
+  unit: str('Its unit', 20),
+  options: { type: 'array', maxItems: 30, items: { type: 'string', maxLength: 80 } },
+  required: { type: 'boolean' },
+}, ['label', 'type']);
+const FIELD = obj({
+  name: str('A name: lower-case words joined by underscores; made from the label when left out', 40),
+  label: str('Its words, as the person says them', 120),
+  type: { type: 'string', enum: ['text', 'number', 'choice', 'list'] },
+  unit: str('Its unit, e.g. "min"', 20),
+  options: { type: 'array', maxItems: 30, items: { type: 'string', maxLength: 80 }, description: 'A choice\'s options' },
+  columns: { type: 'array', maxItems: 12, items: COLUMN, description: 'A list\'s columns' },
+  required: { type: 'boolean', description: 'Needed before it is made' },
+}, ['label', 'type']);
+
 export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   // ── Reads: run at once ───────────────────────────────────────────────────────
   {
@@ -92,6 +110,22 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     description: 'The tool records (studies, logs, calculations) on a line or in a project, each with what it found in the tool\'s own sentence.',
     input_schema: obj({ lineId: str('The line\'s id', 80), projectId: str('The project\'s id', 80) }),
   },
+  {
+    name: 'tool_catalogue',
+    kind: 'read',
+    description: 'The tools that can be filled by talking — SMED, the calculators, the documents, the check logs and the registers — each with its kind, key, title and what it is for. Give key (and kind) for that one tool with its fields (name, label, type, unit, required). Use it to pick the tool that fits what the person describes and to know what to ask for.',
+    input_schema: obj({
+      words: str('Words for what the person describes, e.g. "changeover"', 120),
+      key: str('One tool\'s key, for its fields', 80),
+      kind: { type: 'string', enum: ['calc', 'doc', 'check', 'scored', 'smed'], description: 'The kind of tool' },
+    }),
+  },
+  {
+    name: 'draft_state',
+    kind: 'read',
+    description: 'What a draft being built in this conversation holds: each field captured with its value and how it is known (and what a correction replaced), what is still missing, and a custom sheet\'s metrics as Faultline works them. With no draftId, every draft in the conversation. Use it when the person asks what has been captured or what is missing.',
+    input_schema: obj({ draftId: str('The draft\'s id; every draft when left out', 80) }),
+  },
   // ── Local: change only the conversation or the device, no confirmation ───────
   {
     name: 'recall',
@@ -146,6 +180,72 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     kind: 'local',
     description: 'Offer a page of the app to open (an href from a ref, starting "/").',
     input_schema: obj({ href: str('The page, e.g. "/lines/abc"', 300) }, ['href']),
+  },
+  {
+    name: 'start_draft',
+    kind: 'local',
+    description: 'Start filling an existing tool from the conversation (from tool_catalogue): a draft kept on the conversation, never a record until make_record is confirmed. Its line and project default to the current thread\'s. Returns its draftId, its fields and what is missing.',
+    input_schema: obj({
+      kind: { type: 'string', enum: ['calc', 'doc', 'check', 'scored', 'smed'], description: 'The kind of tool' },
+      key: str('The tool\'s key', 80),
+      title: str('A name for this one, e.g. "Line 2A changeovers"', 120),
+      lineId: str('The line it is on', 80),
+      projectId: str('The project it is in', 80),
+    }, ['kind', 'key']),
+  },
+  {
+    name: 'fill_draft',
+    kind: 'local',
+    description: 'Put what the person said into a draft\'s fields — every value exactly as they said it, with how it is known; never a value they did not give, never a figure you worked out. A value given again for a field is a correction: it replaces the old one, which is kept beside it. Returns what was kept, corrected, refused and what is still missing.',
+    input_schema: obj({
+      draftId: str('The draft\'s id', 80),
+      values: {
+        type: 'array', minItems: 1, maxItems: 30,
+        items: obj({
+          field: str('The field\'s name', 80),
+          value: { description: 'The value as said: a number in the field\'s unit, words, a choice\'s value — or, for a list field, one row (an object of its columns, or words for its first column) to ADD, or an array of rows to REPLACE the list', anyOf: [{ type: 'string', maxLength: 2000 }, { type: 'number' }, { type: 'object', additionalProperties: { type: ['string', 'number'] } }, { type: 'array', maxItems: 200, items: { anyOf: [{ type: 'string', maxLength: 400 }, { type: 'number' }, { type: 'object', additionalProperties: { type: ['string', 'number'] } }] } }] },
+          how: { type: 'string', enum: HOW_KNOWN_SAID, description: 'How it is known' },
+          said: str('The person\'s own words for it', 300),
+        }, ['field', 'value', 'how']),
+      },
+    }, ['draftId', 'values']),
+  },
+  {
+    name: 'adapt_draft',
+    kind: 'local',
+    description: 'Add fields or sections to THIS record only (the tool itself is unchanged), or leave out one of the tool\'s own optional fields. A field the tool needs is never taken off.',
+    input_schema: obj({
+      draftId: str('The draft\'s id', 80),
+      add: {
+        type: 'array', maxItems: 20,
+        items: obj({ section: str('The section it goes under', 80), field: FIELD }, ['field']),
+      },
+      remove: { type: 'array', maxItems: 20, items: { type: 'string', maxLength: 80 }, description: 'Names of fields to take off' },
+    }, ['draftId']),
+  },
+  {
+    name: 'create_sheet',
+    kind: 'local',
+    description: 'When no tool fits, build a custom sheet the person described: sections of fields, and metrics Faultline works out itself — a sum, average, ratio (first ÷ second; unit "%" for a percentage), difference (first − second) or count over named fields (a list field\'s number column as "list.column"). No formulas. A draft until make_record is confirmed.',
+    input_schema: obj({
+      title: str('The sheet\'s title', 120),
+      purpose: str('What it is for, in a sentence', 400),
+      sections: {
+        type: 'array', minItems: 1, maxItems: 12,
+        items: obj({ title: str('The section\'s title', 120), fields: { type: 'array', minItems: 1, maxItems: 30, items: FIELD } }, ['title', 'fields']),
+      },
+      metrics: {
+        type: 'array', maxItems: 12,
+        items: obj({
+          name: str('The metric\'s name', 80),
+          kind: { type: 'string', enum: ['sum', 'average', 'ratio', 'difference', 'count'] },
+          of: { type: 'array', minItems: 1, maxItems: 20, items: { type: 'string', maxLength: 80 }, description: 'The field names it reads, in order' },
+          unit: str('Its unit, e.g. "%" or "min"', 20),
+        }, ['name', 'kind', 'of']),
+      },
+      lineId: str('The line it is on', 80),
+      projectId: str('The project it is in', 80),
+    }, ['title', 'purpose', 'sections']),
   },
   // ── Writes: shown as a card, run only when the person confirms ───────────────
   {
@@ -237,5 +337,11 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       projectId: str('The project the conversation is on — narrows first', 80),
       client: str('A client by name, when no line or project is in hand', 120),
     }, ['words']),
+  },
+  {
+    name: 'make_record',
+    kind: 'write',
+    description: 'Make a draft into a real record through the app\'s own functions, once its essentials are captured — the person sees a card and confirms. On a draft already made, it updates that record with only what changed in the conversation since. Never say it is saved until the result says so.',
+    input_schema: obj({ draftId: str('The draft\'s id', 80) }, ['draftId']),
   },
 ];

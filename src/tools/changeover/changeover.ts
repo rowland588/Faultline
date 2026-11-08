@@ -52,6 +52,19 @@ import { labourPerHour } from '../../lib/cost';
 import type { Tone } from '../capability/sample';
 import { dur } from '../valuestream/steps';
 
+/* --------------------------------------------------------------- a new one */
+
+/** A NEW SMED's record — as SMED's New makes one (screens/StudiesScreen NewStudy) and AI Mode's make_record: a changeover from one
+ *  product to the next, named for both, on its line and project when known, on the product's line standard when it has one,
+ *  with no element yet. */
+export function newChangeoverStudy(o: { id: string; from?: string; to?: string; now: number; workspaceId?: string; projectId?: string; standardId?: string; name?: string }): ToolStudy {
+  return {
+    id: o.id, tool: 'changeover', name: o.name ?? `${o.from ?? 'a product'} → ${o.to ?? 'a product'}`, ...(o.to ? { product: o.to } : {}),
+    ...(o.workspaceId ? { workspaceId: o.workspaceId } : {}), ...(o.projectId ? { projectId: o.projectId } : {}), ...(o.standardId ? { standardId: o.standardId } : {}),
+    facts: { ...(o.from !== undefined ? { fromProduct: o.from } : {}), ...(o.to !== undefined ? { toProduct: o.to } : {}), sequence: [] }, uses: [], startedAt: o.now, createdAt: o.now, updatedAt: o.now,
+  };
+}
+
 /* --------------------------------------------------------------- basics */
 
 const sorted = (seq: ChangeoverStep[] | undefined): ChangeoverStep[] => [...(seq ?? [])].sort((a, b) => a.order - b.order);

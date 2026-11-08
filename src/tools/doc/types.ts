@@ -230,3 +230,25 @@ export interface DocPhoto { id: string; field: string; blobKey: string; mime: st
 
 /** Where a document is signed — the agreement is the owner's (the database keeps `agreed` for anyone else on a project). */
 export interface DocSigned { by: string; at: number }
+
+/* ------------------------------------------------------------------ a custom sheet (AI Mode, 8 November) */
+
+/** A box of a custom sheet: one of four plain kinds; a list's columns are boxes too (never a list in a list). */
+export interface CustomField {
+  id: string;
+  label: string;
+  type: 'text' | 'number' | 'choice' | 'list';
+  unit?: string;
+  options?: string[];
+  /** A list's columns. */
+  columns?: { id: string; label: string; type: 'text' | 'number' | 'choice'; unit?: string; options?: string[] }[];
+  required?: boolean;
+}
+export interface CustomSection { id: string; title: string; fields: CustomField[] }
+/** A metric worked out BY CODE from the sheet's numbers — never an expression, never the AI's: one of five kinds over named boxes
+ *  (a number box by its id, or a list's number column as `list.column` — every row's). */
+export interface CustomMetric { id: string; name: string; kind: 'sum' | 'average' | 'ratio' | 'difference' | 'count'; of: string[]; unit?: string }
+/** A CUSTOM SHEET's structure, kept on its own record (facts.customDef): the sheet the person described in AI Mode — Rowland,
+ *  8 November: "construct new working studies, documentation, data capture structures, metric definitions and reports based on
+ *  what I describe". One record's own: it changes no definition and no other record. */
+export interface CustomDef { title: string; purpose: string; sections: CustomSection[]; metrics?: CustomMetric[] }

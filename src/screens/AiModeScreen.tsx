@@ -36,8 +36,11 @@ import { pictureForAssistant } from '../tools/talk/talkPictures';
 import { photoLabels } from '../tools/talk/talk';
 import { TALK_LIMITS } from '../tools/talk/talkAssist';
 import { useBlobUrl } from '../lib/useBlobUrl';
-import { CAPABILITIES, capabilityByName, runCall } from '../capabilities/registry';
-import type { CapCall, CapCtx, CapRef } from '../capabilities/types';
+import { CAPABILITIES, capabilityByName, previewCall, runCall } from '../capabilities/registry';
+import type { CapCall, CapCtx, CapRef, ColleagueDraft } from '../capabilities/types';
+import { captured, metricsOf, missing, toolTitle, valueWords } from '../capabilities/drafts';
+import { studyHref } from '../lib/studyLinks';
+import { can as canAt } from '../lib/access';
 import {
   HOW_WORD, WHO, appendAction, appendTurn, changeThreads, changeTurn, conversationTitle, currentThread, factsOfConversation, focusText, gatewayTurns,
   isConversation, newConversation, parkedThreads, setCurrent, sourcesOf, turnsOfConversation, unansweredTurns, uniqueRefs, addRefs,
@@ -345,7 +348,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       const end = await colleagueLoop({
         turns: gatewayTurns(asked, named),
         ...(images.length ? { images } : {}),
-        focus: async () => focusText(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [], { names: nameOf, photos: photosKeys }),
+        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); return focusText(f.threads ?? [], { names: nameOf, photos: photosKeys, drafts: f.drafts ?? [] }); },
         today: longDay(),
         conversationId: cid,
         preferences: preferencesText,
@@ -487,7 +490,21 @@ function Conversation({ id, start, onMade, onList, onNew }: {
 
   const keepOk = keep === 'held' || keep === 'away';
   const buttonOk = button === 'ready';
-  const panel = <ContextPanel cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} />;
+  /* MAKE IT from the panel — the same write card flow as the colleague's make_record: what it will do said first, Do it runs it
+     through runCall confirmed, and what happened is kept on the conversation's actions */
+  const makeFromPanel = {
+    preview: (d: ColleagueDraft) => previewCall(ctx(), { id: uid(), name: 'make_record', input: { draftId: d.id } }),
+    run: async (d: ColleagueDraft) => {
+      const cid = sid.current;
+      const callId = uid();
+      const r = await runCall(ctx(), { id: callId, name: 'make_record', input: { draftId: d.id } }, { confirmed: true });
+      if (cid) await appendAction(patchStudy, cid, { callId, name: 'make_record', title: 'Make it a record', status: r.ok ? 'done' : 'failed', says: r.ok ? r.says : r.why, refs: r.ok ? r.refs : [], at: Date.now() });
+      return r;
+    },
+  };
+  const drafts = facts?.drafts ?? [];
+  const panel = <ContextPanel cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)}
+    drafts={drafts} make={makeFromPanel} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
   return (
     <>
@@ -740,8 +757,14 @@ function WriteCard({ u, live, hands, onCard }: { u: Used; live: boolean; hands: 
 
 /* ================================================================ the context */
 
-function ContextPanel({ cur, parked, sources, nameOf, onBack }: {
+type MakeFlow = {
+  preview: (d: ColleagueDraft) => Promise<{ ok: true; title: string; says: string } | { ok: false; why: string }>;
+  run: (d: ColleagueDraft) => Promise<{ ok: true; says: string } | { ok: false; why: string }>;
+};
+
+function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, onSay }: {
   cur?: Thread; parked: Thread[]; sources: CapRef[]; nameOf: (k: 'line' | 'project' | 'problem' | 'story', id: string) => string | undefined; onBack: (t: Thread) => void;
+  drafts: ColleagueDraft[]; make: MakeFlow; onSay: (words: string) => void;
 }) {
   const place = (s: ThreadScope, refs: readonly CapRef[]): CapRef[] => [
     ...(s.lineId ? [{ kind: 'line' as const, id: s.lineId, label: nameOf('line', s.lineId) ?? refs.find(r => r.kind === 'line' && r.id === s.lineId)?.label ?? 'The line', href: `/lines/${encodeURIComponent(s.lineId)}` }] : []),
@@ -767,6 +790,12 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack }: {
           </>
         ) : <p className="sub ai-ctx-none">Nothing yet — say what you are looking at, and it becomes the subject here.</p>}
       </section>
+      {drafts.length > 0 && (
+        <section className="ai-ctx-s" aria-label="Being built" data-ctx-built>
+          <p className="ai-ctx-h">Being built · {drafts.length}</p>
+          {[...drafts].sort((a, b) => b.at - a.at).map(d => <DraftBox key={d.id} d={d} make={make} onSay={onSay} />)}
+        </section>
+      )}
       <section className="ai-ctx-s" aria-label="Parked" data-ctx-parked>
         <p className="ai-ctx-h">Parked{parked.length ? ` · ${parked.length}` : ''}</p>
         {parked.length ? (
@@ -784,6 +813,74 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack }: {
         <p className="ai-ctx-h">Sources{sources.length ? ` · ${sources.length}` : ''}</p>
         {sources.length ? <RefChips refs={sources} label="Every record read or changed" /> : <p className="sub ai-ctx-none">Every record Faultline reads or changes in this conversation is listed here.</p>}
       </section>
+    </div>
+  );
+}
+
+/* ================================================================ being built */
+
+const OWNER_CAN = canAt('owner');
+
+/** A TOOL BEING FILLED FROM THE CONVERSATION — its fields as understood, each with how it is known (a correction shows what it
+ *  replaced, struck), what is still missing as chips that start the sentence in the box, a custom sheet's metrics as Faultline
+ *  works them, and Make it (the write card flow) — or Open it once it is a record. A client is offered no Make it. */
+function DraftBox({ d, make, onSay }: { d: ColleagueDraft; make: MakeFlow; onSay: (words: string) => void }) {
+  const jobCan = useAccess(d.scope.projectId ?? '');
+  const can = d.scope.projectId ? jobCan : OWNER_CAN;
+  const got = captured(d), need = missing(d), ms = metricsOf(d);
+  const [ask, setAsk] = useState<{ says: string } | { why: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState<{ text: string; bad: boolean } | null>(null);
+  const start = async () => { setSaid(null); const p = await make.preview(d); setAsk(p.ok ? { says: p.says } : { why: p.why }); };
+  const doIt = async () => {
+    setBusy(true);
+    try { const r = await make.run(d); setSaid(r.ok ? { text: r.says, bad: false } : { text: r.why, bad: true }); setAsk(null); } finally { setBusy(false); }
+  };
+  const open = async () => { if (!d.studyId) return; const s = await getStudy(d.studyId); if (s && !s.deletedAt) nav(studyHref(s)); else setSaid({ text: 'That record is not on this device any more.', bad: true }); };
+  return (
+    <div className="ai-draft" data-draft={d.id} data-draft-kind={d.kind} data-draft-status={d.status}>
+      <p className="ai-draft-t"><b>{d.title}</b><span className="sub">{toolTitle(d.kind, d.key, d.structure)} · {d.status === 'made' ? 'a record' : 'a draft — nothing kept as a record yet'}</span></p>
+      {got.length > 0 ? (
+        <ul className="ai-draft-f" aria-label="What it has understood">
+          {got.map(c => (
+            <li key={c.field.name} data-field={c.field.name}>
+              <span className="ai-draft-k">{c.field.label}{c.field.added ? ' · added to this one' : ''}</span>
+              <span className="ai-draft-v">{(c.entry.earlier ?? []).slice(-1).map((e, i) => <s key={i} data-earlier>{valueWords(c.field, e.value)}</s>)}{c.words}</span>
+              <span className="ai-how" data-how={c.entry.how}>{HOW_WORD[c.entry.how]}</span>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="sub ai-ctx-none">Nothing filled in yet — say it and it goes in here, with how it is known.</p>}
+      {ms.length > 0 && (
+        <ul className="ai-draft-m" aria-label="Worked out by Faultline" data-draft-metrics>
+          {ms.map(m => <li key={m.metric.id} data-metric={m.metric.name}><span className="ai-draft-k">{m.metric.name} — worked out by Faultline</span><span className="ai-draft-v">{m.value !== undefined ? m.said : `waits on ${m.missing.join(', ')}`}</span></li>)}
+        </ul>
+      )}
+      {need.length > 0 ? (
+        <>
+          <p className="ai-ctx-h">Still missing</p>
+          <div className="ai-draft-miss" role="group" aria-label="Still missing">
+            {need.map(f => <button key={f.name} type="button" className="chip" data-missing={f.name} onClick={() => onSay(`${f.label}: `)}>{f.label}</button>)}
+          </div>
+        </>
+      ) : d.status === 'draft' && <p className="sub ai-ctx-none">Everything it needs is there.</p>}
+      {ask && 'says' in ask && (
+        <div className="ai-card is-waiting" data-draft-card>
+          <p className="ai-card-k">Faultline asks to</p>
+          <p className="ai-card-p">{ask.says}</p>
+          <div className="ai-card-acts">
+            <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void doIt()}>Do it</button>
+            <button type="button" className="btn" onClick={() => setAsk(null)}>Not now</button>
+          </div>
+        </div>
+      )}
+      {ask && 'why' in ask && <p className="sub ai-draft-ask is-off" role="status">{ask.why}</p>}
+      {said && <p className={'ai-draft-ask' + (said.bad ? ' is-off' : '')} role="status">{said.text}</p>}
+      <div className="ai-draft-acts">
+        {can.edit && !ask && need.length === 0 && <button type="button" className={'btn' + (d.status === 'draft' ? ' btn-primary' : '')} data-make onClick={() => void start()}>{d.status === 'made' ? 'Update the record' : 'Make it'}</button>}
+        {d.status === 'made' && d.studyId && <button type="button" className="btn" data-open-made onClick={() => void open()}>Open it ›</button>}
+      </div>
+      {!can.edit && <p className="sub ai-ctx-none" data-draft-readonly>You can read this here; the people doing the work on the project make it a record.</p>}
     </div>
   );
 }

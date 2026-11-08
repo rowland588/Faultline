@@ -12,7 +12,8 @@
  *
  * Pure, but for the few lines at the foot that write a conversation through db (patchStudy, putStudy) — read the same on
  * the screen and in the tests. */
-import type { CapRef, ColleagueAction, ColleagueThread, HowKnown, ThreadNote, ThreadScope } from '../capabilities/types';
+import type { CapRef, ColleagueAction, ColleagueDraft, ColleagueThread, HowKnown, ThreadNote, ThreadScope } from '../capabilities/types';
+import { draftSaid } from '../capabilities/drafts';
 import type { TalkTurn } from '../tools/talk/talk';
 import type { StudyFacts, ToolStudy } from '../lib/study';
 
@@ -49,7 +50,7 @@ export type DoneAction = ColleagueAction;
 export type ColleagueTurn = TalkTurn & { used?: Used[]; suggestions?: string[] };
 
 /** A conversation's facts — the study's, with what AI Mode keeps on them. */
-export type ColleagueFacts = StudyFacts & { colleague?: boolean; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[] };
+export type ColleagueFacts = StudyFacts & { colleague?: boolean; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
 
 export const WHO = 'Faultline';
 
@@ -135,7 +136,7 @@ export function scopeSaid(scope: ThreadScope, names: (kind: 'line' | 'project' |
 
 /** THE FOCUS AS THE GATEWAY READS IT — the current thread with its place and notes, then the parked ones by title, then
  *  the photos the person can have attached by key. */
-export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string }[] } = {}): string {
+export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string }[]; drafts?: readonly ColleagueDraft[] } = {}): string {
   const cur = currentThread(threads);
   const parked = parkedThreads(threads);
   const lines: string[] = [];
@@ -146,6 +147,12 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
   } else lines.push('Current: nothing yet — the person has not said what this is about.');
   if (parked.length) lines.push(`Parked: ${parked.map(t => `${t.title} [thread ${t.id}]`).join('; ')}`);
   if (opts.photos?.length) lines.push(`Photos in this conversation: ${opts.photos.map(p => `${p.label} = photoKey ${p.key}`).join('; ')}`);
+  /* what is being built from the conversation (docs/AI-MODE.md, Building tools in conversation): each draft with its id, what is
+     captured and how known, and what is missing — the newest six, a long one cut */
+  for (const d of [...(opts.drafts ?? [])].sort((a, b) => b.at - a.at).slice(0, 6)) {
+    const w = draftSaid(d);
+    lines.push(`Being built [draft ${d.id}]: ${w.length > 900 ? `${w.slice(0, 897)}…` : w}`);
+  }
   return lines.join('\n');
 }
 

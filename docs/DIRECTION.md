@@ -116,8 +116,17 @@ handling and an audit record.
 3. **The AI never deletes a record and never marks evidence Verified.** Every item it records says how it is known —
    observed, reported, measured, calculated, hypothesised, verified or unknown — and only a person sets verified.
 4. **The AI never works out a figure.** Sums are the calculators' and the tools' modules', as in Manual Mode.
-5. **The AI never builds methods, templates or tools.** A task it does often may be proposed as a new native
-   capability, and becomes code only through the tool standard, its tests, the gate and Rowland's approval.
+5. **The AI may populate, adapt and create working records** — a tool filled from the conversation, fields added to
+   one record, a custom sheet of sections, fields and code-worked metrics — always as a draft shown with how each value
+   is known, saved only when the person confirms, through the same functions Manual Mode uses; it never changes the
+   app's code, its tools' definitions or its methods, and a repeated pattern becomes native code only through the tool
+   standard, its tests, the gate and Rowland's approval. Rowland, 8 November: *"The conversation itself should become
+   the mechanism through which the application is populated … A. Populate existing tools … B. Adapt existing tools —
+   add fields, questions, metrics, categories or sections. C. Create new tools and documentation — construct new
+   working studies, documentation, data capture structures, metric definitions and reports based on what I describe …
+   The AI must not invent measurements … Calculations by Faultline's deterministic logic … show me what it has
+   understood and populated, and confirm before committing."* (It replaced "the AI never builds methods, templates or
+   tools", the same day; `docs/AI-MODE.md`, Building tools in conversation.)
 6. **Claude only, through the `assist` gateway** — the key on the server, an allowance a person a day; no new AI,
    speech or embedding provider is added without Rowland's word.
 7. **AI Mode is switched off without touching Manual Mode**, and Manual Mode never waits on it.

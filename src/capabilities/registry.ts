@@ -7,13 +7,14 @@ import { openPage, parkFocus, recordObservation, setFocus, startTimer } from './
 import { recall, rememberPreference } from './memory';
 import { addPhotoToProblem, raiseProblem, startProject, updateProblem } from './writes';
 import { factoryMapCap, resolveCap } from './factory';
+import { adaptDraftCap, createSheet, draftState, fillDraftCap, makeRecord, startDraft, toolCatalogue } from './build';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
-  find, lineState, listProblems, overdueActions, projectState, storyState, listCalculators, runCalculator, toolRecords,
+  find, lineState, listProblems, overdueActions, projectState, storyState, listCalculators, runCalculator, toolRecords, toolCatalogue, draftState,
   recall,
-  setFocus, parkFocus, recordObservation, startTimer, openPage,
-  raiseProblem, updateProblem, startProject, saveCalculation, addPhotoToProblem, rememberPreference,
+  setFocus, parkFocus, recordObservation, startTimer, openPage, startDraft, fillDraftCap, adaptDraftCap, createSheet,
+  raiseProblem, updateProblem, startProject, saveCalculation, addPhotoToProblem, rememberPreference, makeRecord,
   /* the factory knowledge (docs/FACTORY-KNOWLEDGE.md F2) */
   factoryMapCap, resolveCap,
 ];
