@@ -37,6 +37,8 @@ export interface Used {
   preview?: string;
   /** A write: the inputs the person is shown on its card. */
   input?: Record<string, unknown>;
+  /** A write answered out loud: the words said back that answered it ("yes, do it"), shown on its card. */
+  said?: string;
   at: number;
 }
 

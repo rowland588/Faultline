@@ -33,29 +33,51 @@ export function pickVoice(voices: readonly Pick<SpeechSynthesisVoice, 'lang' | '
 }
 
 let speakingNow = false;
+/* the utterance being said, held here: a browser that loses its last reference to one (Chrome) never says it ended */
+let current: SpeechSynthesisUtterance | null = null;
+let cutShort: (() => void) | null = null;
+const listeners = new Set<(on: boolean) => void>();
+const tell = (on: boolean) => { for (const f of listeners) f(on); };
 
-/** Say it; `onDone` when it has been said (or could not be). Cancels anything still being said. */
-export function speak(text: string, onDone?: () => void): void {
+/** Told when speaking starts and stops — the screen's "Speaking…". */
+export function onSpeaking(f: (on: boolean) => void): () => void { listeners.add(f); return () => { listeners.delete(f); }; }
+
+/** Say it; `onDone(finished)` when it has been said to the end (true), or was cut short or could not be said (false).
+ *  Cancels anything still being said. */
+export function speak(text: string, onDone?: (finished: boolean) => void): void {
   const s = synth();
   const words = speakable(text);
-  if (!s || !words || typeof SpeechSynthesisUtterance === 'undefined') { onDone?.(); return; }
-  s.cancel();
+  if (!s || !words || typeof SpeechSynthesisUtterance === 'undefined') { onDone?.(false); return; }
+  stopSpeaking();
   const u = new SpeechSynthesisUtterance(words.slice(0, 4000));
   const voices = s.getVoices();
   const i = pickVoice(voices);
   if (i >= 0) { u.voice = voices[i]; u.lang = voices[i].lang; } else u.lang = 'en-GB';
   u.rate = 1.02;
-  speakingNow = true;
   let done = false;
-  const end = () => { if (done) return; done = true; speakingNow = false; onDone?.(); };
-  u.onend = end;
-  u.onerror = end;
+  const end = (finished: boolean) => {
+    if (done) return;
+    done = true;
+    if (current === u) { current = null; cutShort = null; speakingNow = false; tell(false); }
+    onDone?.(finished);
+  };
+  current = u;
+  cutShort = () => end(false);
+  speakingNow = true;
+  tell(true);
+  u.onend = () => end(current === u);
+  u.onerror = () => end(false);
   s.speak(u);
 }
 
-/** Stop speaking at once — the person has started talking. */
+/** Stop speaking at once — the person has started talking, typed, tapped or pressed. What was being said counts as cut
+ *  short (told at once — some browsers never fire its end after a cancel), so nothing opens after it. */
 export function stopSpeaking(): void {
-  speakingNow = false;
+  const cut = cutShort;
+  cutShort = null;
+  cut?.();
+  current = null;
+  if (speakingNow) { speakingNow = false; tell(false); }
   try { synth()?.cancel(); } catch { /* nothing to stop */ }
 }
 
@@ -66,4 +88,4 @@ export const SPEAK_KEY = 'faultline.aiSpeak';
 export const CONVERSATION_KEY = 'faultline.aiConversation';
 
 /** What the Conversation switch promises — said on the screen, honestly. */
-export const CONVERSATION_SAID = 'Conversation: after each reply is spoken, the microphone opens again so you can answer without a tap. It works while the screen is on — it stops when the phone locks or Faultline goes out of sight.';
+export const CONVERSATION_SAID = 'Conversation: after each reply is spoken, the microphone opens again so you can answer without a tap; the screen is kept on, and a headset’s button starts and stops listening where the phone passes it on. It works while the screen is on — it stops when the phone locks or Faultline goes out of sight.';

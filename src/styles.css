@@ -17076,6 +17076,26 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-said { margin: 0; }
 .ai-said.is-r { color: var(--st-r); }
 .ai-hint { margin: 0; font-size: var(--t-label); }
+/* on the floor (colleague/floor): the screen kept on, the headset button, listening and speaking said in words */
+.ai-floor { margin: 0; padding: 6px 16px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: var(--t-detail); color: var(--ink-2); border-bottom: 1px solid var(--line); }
+.ai-floor-i { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+.ai-floor-i.is-a { color: var(--st-a); }
+.ai-state { margin: 0; display: flex; align-items: center; gap: 8px; font-size: var(--t-detail); font-weight: 700; color: var(--brand); }
+.ai-state .sub { font-weight: 400; }
+.ai-state.is-speaking { color: var(--ink); }
+.ai-state .linkish { margin-left: auto; min-height: 44px; }
+.ai-pulse { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); animation: aiPulse 1.2s ease-in-out infinite; }
+@keyframes aiPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
+@media (prefers-reduced-motion: reduce) { .ai-pulse { animation: none; } }
+.ai-card-said { margin: 4px 0 0; font-size: var(--t-detail); font-weight: 700; color: var(--ink); }
+.ai-card-acts { flex-wrap: wrap; align-items: center; }
+.ai-card-say { flex-basis: 100%; }
+.ai-check-in { display: flex; flex-direction: column; gap: 12px; }
+.ai-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ai-checks-i { display: flex; align-items: flex-start; gap: 8px; }
+.ai-checks-i > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ai-checks-i.is-g > svg { color: var(--st-g); }
+.ai-checks-i.is-a > svg { color: var(--st-a); }
 
 /* the context: now on, parked, sources */
 .ai-ctx-in { display: flex; flex-direction: column; gap: 20px; }

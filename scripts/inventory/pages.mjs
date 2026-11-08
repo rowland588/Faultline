@@ -457,6 +457,8 @@ export const PAGES = (sd, cap) => [
     { what: 'three example chips', sel: '.ai-empty .ai-sug', n: 3 },
     { what: 'the box with Send', sel: '.ai-type' },
     { what: 'the door in the top bar', sel: '.ai-door' },
+    /* Phase 4, on the floor: Speak replies, Conversation, Sounds and Before you walk the floor sit under it */
+    { what: 'More ▾ — the voice and the floor check', sel: '.ai-head-acts .part-menu-b' },
   ] },
   { name: 'How AI Mode is used', path: '#/ai/usage', must: [
     /* 8 November, docs/AI-MODE.md §9 (phase 5b): what it costs, what the colleague did, candidates for code — the seed has no
