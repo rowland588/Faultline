@@ -9,7 +9,7 @@ import { allPaceLines, listAllPaceTodos, listAllSnags, listAllStandards, listAll
 import { neckOf } from './lineLoss';
 import { problemCost } from './problemCost';
 import { isOpenOnLine } from './lineWork';
-import { useEveryAction } from './useProjectActions';
+import { loadEveryAction, useEveryAction } from './useProjectActions';
 import type { ProjectAction } from './projectActions';
 import { provedFixes, type ProvedFix } from '../tools/yokoten/yokoten';
 import type { WrongRow } from './factoryQuestions';
@@ -31,25 +31,35 @@ export function useFactoryRead(projects: Project[], lines: readonly Workspace[])
   const key = lines.map(w => `${w.id}:${w.name}:${w.labourRatePerHour ?? ''}:${w.packsPerMin ?? ''}:${w.marginPerPack ?? ''}:${w.materialsPerPack ?? ''}:${w.crew ?? ''}`).join('|');
   useEffect(() => {
     let on = true; let t: number | undefined;
-    const load = () => void Promise.all([listAllSnags(), listAllStandards(), allPaceLines(), listAllPaceTodos(), listAllStudies()]).then(([snags, standards, pl, todos, studies]) => {
-      if (!on) return;
-      const ref = Date.now();
-      const wrong: Omit<WrongRow, 'pounds'>[] = [];
-      for (const w of lines) {
-        const neck = neckOf(standards, w.id);
-        for (const s of snags) {
-          if (!isOpenOnLine(s, w.id)) continue;
-          const cost = problemCost(s, s.targetAsset, w, neck);
-          wrong.push({ id: s.id, what: s.problem, line: w.name, priority: s.priority ?? 'low', late: isOverdue(s, ref), ...(s.owner ? { owner: s.owner } : {}), ...(cost ? { cost } : {}) });
-        }
-      }
-      const proved = provedFixes(todos, pl, studies, lines.map(w => ({ id: w.id, name: w.name, machines: w.assets ?? [], ...(w.madeOf?.length ? { madeOf: w.madeOf } : {}) })));
-      setRead({ wrong, proved, studies: studies.filter(s => !s.deletedAt), snags });
-    });
+    const load = () => void loadFactoryParts(lines).then(got => { if (on) setRead(got); });
     load();
     const off = onDataChange(() => { window.clearTimeout(t); t = window.setTimeout(load, 150); });
     return () => { on = false; window.clearTimeout(t); off(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the lines by their cost facts
   }, [key]);
   return read && actions ? { ...read, actions: actions.rows, today: actions.today } : null;
+}
+
+/** What the Factory page and the Story read besides the actions: the open problems on these lines priced by each line's own cost
+ *  model, the fixes proved on them, every study. Read once — the hook above keeps it fresh; AI Mode's story_state reads it too. */
+export async function loadFactoryParts(lines: readonly Workspace[]): Promise<Omit<FactoryRead, 'actions' | 'today'>> {
+  const [snags, standards, pl, todos, studies] = await Promise.all([listAllSnags(), listAllStandards(), allPaceLines(), listAllPaceTodos(), listAllStudies()]);
+  const ref = Date.now();
+  const wrong: Omit<WrongRow, 'pounds'>[] = [];
+  for (const w of lines) {
+    const neck = neckOf(standards, w.id);
+    for (const s of snags) {
+      if (!isOpenOnLine(s, w.id)) continue;
+      const cost = problemCost(s, s.targetAsset, w, neck);
+      wrong.push({ id: s.id, what: s.problem, line: w.name, priority: s.priority ?? 'low', late: isOverdue(s, ref), ...(s.owner ? { owner: s.owner } : {}), ...(cost ? { cost } : {}) });
+    }
+  }
+  const proved = provedFixes(todos, pl, studies, lines.map(w => ({ id: w.id, name: w.name, machines: w.assets ?? [], ...(w.madeOf?.length ? { madeOf: w.madeOf } : {}) })));
+  return { wrong, proved, studies: studies.filter(s => !s.deletedAt), snags };
+}
+
+/** The whole factory read once, no hook. */
+export async function loadFactoryRead(projects: readonly Project[], lines: readonly Workspace[]): Promise<FactoryRead> {
+  const [parts, actions] = await Promise.all([loadFactoryParts(lines), loadEveryAction(projects)]);
+  return { ...parts, actions: actions.rows, today: actions.today };
 }

@@ -648,10 +648,10 @@ export interface AgreedStory {
    *  words came to be the brief: read in code (pdf.js, mammoth, plain text), by the assistant (a photo or a scanned page), or not read. */
   briefFile?: StoryBriefFile;
   /** THE ASKS (S7) — the brief as the questions the client asked, in order; their evidence is worked out every time (lib/storyAsks). */
-  asks?: StoryAsk[];
+  asks?: BriefAsk[];
 }
 export interface StoryBriefFile { mediaId: string; name: string; mime: string; bytes: number; readBy: 'code' | 'assistant' | 'none' }
-export interface StoryAsk {
+export interface BriefAsk {
   id: string;
   text: string;
   /** The sentence of the brief it came from, quoted. */

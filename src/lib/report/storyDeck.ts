@@ -87,6 +87,24 @@ export async function makeStoryDeck(i: StoryDeckInputs): Promise<Blob> {
     sl.addText(part.map(p => ({ text: p, options: { breakLine: true, paraSpaceAfter: 10 } })), { x: M, y: 1.15, w: W - 2 * M, h: H - 1.15 - 0.6, fontFace: 'Calibri', fontSize: 15, color: INK, valign: 'top', fit: 'shrink' });
   }
 
+  /* 3b · WHAT YOU ASKED (S9, docs/STORY.md §7.3) — a slide an ask, in their order: asked · found · being done · proved · still to
+     show, as the rules matched them on the day; a story with no asks has none of these */
+  (s.asks ?? []).forEach((a, k) => {
+    const sl = slide(`Ask ${k + 1}`, a.says);
+    sl.addText(a.text, { x: M, y: 1.0, w: W - 2 * M, h: 0.5, fontFace: 'Calibri', fontSize: 17, bold: true, color: INK, fit: 'shrink' });
+    if (a.from) sl.addText(`Asked: “${a.from}”`, { x: M, y: 1.45, w: W - 2 * M, h: 0.4, fontFace: 'Calibri', fontSize: 11, italic: true, color: INK2, fit: 'shrink' });
+    const col = (x: number, w: number, title: string, items: string[], none: string, colour: string) => {
+      sl.addText(title.toUpperCase(), { x, y: 1.95, w, h: 0.3, fontFace: 'Calibri', fontSize: 10, bold: true, color: MUTED, charSpacing: 1 });
+      sl.addText(items.length ? items.slice(0, 6).map(t => ({ text: t, options: { bullet: true, breakLine: true, paraSpaceAfter: 4, color: colour } })) : [{ text: none, options: { color: MUTED } }],
+        { x, y: 2.25, w, h: H - 2.25 - 0.6, fontFace: 'Calibri', fontSize: 11, valign: 'top', fit: 'shrink' });
+    };
+    const cw = (W - 2 * M - 0.3 * 3) / 4;
+    col(M, cw, 'Found', a.found.map(f => `${f.what} — ${f.where}${f.money ? ` · ${f.money}` : ''}`), 'Nothing answers it yet.', INK);
+    col(M + (cw + 0.3), cw, 'Being done', a.doing.map(d => `${d.what} — ${d.who || 'nobody yet'}${d.due ? `, ${d.late ? 'was due' : 'due'} ${dayWord(Date.parse(d.due))}` : ''}`), 'Nothing owed on it yet.', INK);
+    col(M + 2 * (cw + 0.3), cw, 'Proved', a.proved.map(p => `${p.what}: ${p.proof}`), 'No fix proved on it yet.', GREEN);
+    col(M + 3 * (cw + 0.3), cw, 'Still to show', a.missing, 'Nothing missing.', AMBER);
+  });
+
   /* 4 · WHERE THE MONEY IS */
   const priced = s.findings.filter(f => f.poundsDay != null).slice(0, 8);
   if (priced.length) {

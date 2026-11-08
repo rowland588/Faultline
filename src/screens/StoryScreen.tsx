@@ -11,7 +11,8 @@ import { listAllStudies, listWorkspaces, onDataChange, putStudy } from '../db';
 import type { Workspace } from '../types';
 import type { StoryChapter, ToolStudy } from '../lib/study';
 import { useProjects } from '../lib/useProjects';
-import { productionLines, clientsOf } from '../lib/lines';
+import { productionLines } from '../lib/lines';
+import { clientShown, storyOfClient } from '../lib/storyPick';
 import { useFactoryRead } from '../lib/useFactoryRead';
 import { assembledNarrative, dayWord, dayWordYear, draftChapter, linesOfClient, sinceOf, sinceSentence, snapshotOf, storySays, storyTiles, unsureIn } from '../lib/clientStory';
 import { uid } from '../lib/ids';
@@ -24,15 +25,6 @@ import { nav } from '../state/useRoute';
 import { askStory, storyAskOf } from '../tools/story/storyAsk';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
-const CLIENT_KEY = 'faultline.client';
-
-/** The client the Story is of: the one picked on the Factory page when the lines name more than one, else the one they name. */
-function clientShown(lines: readonly Workspace[]): string {
-  const clients = clientsOf(lines);
-  if (clients.length <= 1) return clients[0] ?? '';
-  try { const c = localStorage.getItem(CLIENT_KEY) ?? ''; return clients.includes(c) ? c : clients[0]; } catch { return clients[0]; }
-}
-
 /** HOME IS THE STORY (S5): `present` draws the same page full screen with no frame — the meeting itself — from #/?present=1. */
 export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   const { projects } = useProjects();
@@ -44,7 +36,7 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   const client = clientShown(prodLines);
   const lines = useMemo(() => linesOfClient(prodLines, client), [prodLines, client]);
   const read = useFactoryRead(projects, lines);
-  const story = useMemo(() => (studies ?? []).filter(s => s.tool === 'story' && s.agreed?.story && (s.agreed.story.client ?? '').trim().toLowerCase() === client.trim().toLowerCase()).sort((a, b) => (a.agreed?.story?.closedAt ? 1 : 0) - (b.agreed?.story?.closedAt ? 1 : 0) || b.startedAt - a.startedAt)[0], [studies, client]);
+  const story = useMemo(() => storyOfClient(studies ?? [], client), [studies, client]);
   const chapters = useMemo(() => (story?.facts.chapters ?? []).filter(c => c.approvedAt).sort((a, b) => a.at - b.at), [story]);
   const last = chapters[chapters.length - 1];
   const snapshot = useMemo(() => (read ? snapshotOf({ at: Date.now(), lines, wrong: read.wrong, actions: read.actions, proved: read.proved, studies: read.studies, today: read.today }) : null), [read, lines]);

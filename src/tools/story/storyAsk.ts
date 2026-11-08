@@ -42,6 +42,19 @@ export function snapshotText(s: StorySnapshot, since: StorySince): string {
   for (const p of s.provedFixes) lines.push(`  - ${p.what} · ${p.line}, ${p.machine} · ${p.proof}`);
   lines.push('');
   lines.push(`TOOLS USED ON THE LINES: ${s.toolsUsed.length ? s.toolsUsed.map(t => `${t.label} (${t.n})`).join(', ') : 'none yet'}.`);
+  /* THE CLIENT'S ASKS (S9, docs/STORY.md §7.3) — each with what answered it by the rules (lib/storyAsks), so the chapter can be
+     written ask by ask; a story with no asks sends nothing here */
+  if (s.asks?.length) {
+    lines.push('');
+    lines.push('THE CLIENT\'S ASKS, in their order (asked · found · being done · proved · still to show), matched to the records by rules:');
+    s.asks.forEach((a, k) => {
+      lines.push(`  ASK ${k + 1}: ${a.text}${a.from ? ` (the brief: "${a.from}")` : ''} — ${a.says}`);
+      for (const f of a.found) lines.push(`    found: ${f.what} · ${f.where}${f.money ? ` · ${f.money}` : ''}`);
+      for (const d of a.doing) lines.push(`    being done: ${d.what} · ${d.who || 'nobody yet'} · ${d.due ? `${d.late ? 'was due' : 'due'} ${dayWord(Date.parse(d.due))}` : 'no day agreed'}`);
+      for (const p of a.proved) lines.push(`    proved: ${p.what} · ${p.where} · ${p.proof}`);
+      for (const m of a.missing) lines.push(`    still to show: ${m}`);
+    });
+  }
   return lines.join('\n').slice(0, STORY_LIMITS.text);
 }
 

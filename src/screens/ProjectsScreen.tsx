@@ -12,6 +12,7 @@
 import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
+import { modelOfMethod, putProjectOnLines } from '../lib/newProject';
 import { METHODS, methodByKey, methodOfProject, type MethodKey } from '../lib/methods';
 import { MethodPicture } from '../ui/MethodPicture';
 
@@ -24,8 +25,8 @@ import { methodOf, MODELS, planModel, type PlanModel } from '../lib/planModel';
 import { FilterBar, RecordRow, RecordRows } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
 import { useLineRecords } from '../lib/useLineRecords';
-import { STORE_WORDS, addPaceLine, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange, updateProject } from '../db';
-import { lineKey, liveProductionLines } from '../lib/lines';
+import { STORE_WORDS, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange, updateProject } from '../db';
+import { liveProductionLines } from '../lib/lines';
 import type { Workspace } from '../types';
 import { useCanStartProjects } from '../cloud/access';
 import { useAccessByJob } from '../ui/JobsBoard';
@@ -166,7 +167,7 @@ export function ProjectsScreen() {
     return h.get('model') === 'commissioning' ? 'stage-gate' : null;
   };
   const [method, setMethod] = useState<MethodKey | null>(() => fromAddress(q));
-  const model: PlanModel | null = method ? (method === 'stage-gate' ? 'commissioning' : 'board') : null;
+  const model: PlanModel | null = method ? modelOfMethod(method) : null;
   /* ?new=1 ARRIVING WHILE THE PAGE IS OPEN — a link to start a project followed from Projects itself
      (the address changes, the page stays): open New, with the method the link names (B5) */
   useEffect(() => {
@@ -198,7 +199,7 @@ export function ProjectsScreen() {
     /* the lines picked from the factory become the project's lines, each
        naming its factory line — never a second line of the same name */
     const picked = factory.filter(w => onLines.includes(w.id));
-    for (const [i, w] of picked.entries()) await addPaceLine({ projectId: p.id, key: lineKey(w.name), name: w.name, workspaceId: w.id, sort: i + 1 });
+    await putProjectOnLines(p.id, picked);
     setName(''); setLead(''); setHandover(''); setAdding(false); setMethod(null); setOnLines([]);
     /* Straight into the job. A commissioning project starts with its machines
        and its first test, on the Testing screen; it used to land on Lines &

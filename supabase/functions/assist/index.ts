@@ -1,11 +1,21 @@
-/* ASSIST — the gateway between Faultline and Claude. Two tasks:
+/* ASSIST — the gateway between Faultline and Claude. Its tasks:
  *
  *   video-label  the camera's AI: the video study's "Name the work from the
  *                frames" (docs/VIDEO.md);
  *   talk         Line Talk's assistant (docs/LINE-TALK.md, slice 2): the
  *                conversation — what was said, typed and photographed — with
  *                Faultline's records about the line, answered in words, and a
- *                document written when one is asked for.
+ *                document written when one is asked for;
+ *   story        the Story's chapter drafted from its snapshot (docs/STORY.md §5);
+ *   colleague    AI Mode's colleague (docs/AI-MODE.md, 8 November): the
+ *                conversation, with Faultline's capabilities as Claude's tools —
+ *                every call it proposes checked here against the capabilities'
+ *                schemas (colleague/schemas, copied from src/capabilities), only
+ *                the ones that pass sent to the device, which runs reads at once
+ *                and writes only when the person confirms; every call proposed,
+ *                refused and answered written to ai_actions (supabase/AI_ACTIONS.sql);
+ *   brief-read   the client's brief typed out from photographs of its pages;
+ *   brief-asks   what the brief asks for, each with its exact quote (STORY S6–S7).
  *
  * Rowland, 20 October: "a simple, reliable, ChatGPT-style manufacturing
  * assistant inside Faultline, powered by our existing Claude API
@@ -17,6 +27,10 @@
  *     → { ok: true, labels, model } | { ok: false, why } | { off: true, why }
  *   { task: 'talk', context, today, turns, images }   (lib/talkAssist TalkAsk)
  *     → { ok: true, answer, unsure, model } | { ok: false, why } | { off: true, why }
+ *   { task: 'colleague', turns, images, focus, today, conversationId?, pending? }
+ *     → { ok: true, reply, calls?, assistant?, suggestions?, unsure?, model } | { ok: false, why } | { off: true, why }
+ *     (pending = { assistant: the `assistant` handed out last time, results: what running its calls gave })
+ *   { task: 'brief-read', pages } → { ok: true, text, model };  { task: 'brief-asks', brief } → { ok: true, asks, model }
  *   … with stream: true (the app, 21 October) → text/event-stream: the reply
  *     so far as it is written, { partial, document }, then the same final
  *     object — a refusal before the model is asked still comes as JSON
@@ -53,11 +67,14 @@
  * the frames; ASSIST_TALK_MODEL for the talk, ASSIST_TALK_EFFORT for a
  * document asked of it, ASSIST_TALK_CHAT_EFFORT for the conversation). */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk@0.131.0";
 import { allowance, costMicros } from "./video/gatewayUsage.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
 import { STORY_SCHEMA, STORY_SYSTEM, checkStoryAnswer, readStoryAsk, storyUser, unsureStory } from "./story/storyAssist.ts";
+import { BRIEF_ALLOWANCE_WORDS, BRIEF_ASKS_SCHEMA, BRIEF_ASKS_SYSTEM, BRIEF_OFF, BRIEF_READ_SCHEMA, BRIEF_READ_SYSTEM, briefAsksUser, briefReadUser, checkAsks, checkBriefText, readBrief, readBriefPages } from "./story/briefAssist.ts";
+import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, COLLEAGUE_SYSTEM, checkCalls, colleagueMessages, colleagueReply, colleagueTools, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
+import { CAPABILITY_SCHEMAS } from "./colleague/schemas.ts";
 import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
 
 const KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -84,6 +101,21 @@ const TALK_LIMIT = {
   calls: Number(Deno.env.get("ASSIST_TALK_DAILY_CALLS") ?? 60) || 60,
   micros: Math.round((Number(Deno.env.get("ASSIST_TALK_DAILY_USD") ?? 5) || 5) * 1_000_000),
 };
+/* AI MODE's colleague (docs/AI-MODE.md): answered quickly, as a person answers; its own allowance; switched off by
+   ASSIST_COLLEAGUE_ENABLED=false without touching anything else */
+const COLLEAGUE_EFFORT = Deno.env.get("ASSIST_COLLEAGUE_EFFORT") ?? "low";
+const COLLEAGUE_LIMIT = {
+  calls: Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_CALLS") ?? 120) || 120,
+  micros: Math.round((Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_USD") ?? 8) || 8) * 1_000_000),
+};
+/* THE STORY's brief, read from its pages and asked of (S6–S7): both tasks share one allowance */
+const BRIEF_EFFORT = Deno.env.get("ASSIST_BRIEF_EFFORT") ?? "medium";
+const BRIEF_LIMIT = {
+  calls: Number(Deno.env.get("ASSIST_BRIEF_DAILY_CALLS") ?? 20) || 20,
+  micros: Math.round((Number(Deno.env.get("ASSIST_BRIEF_DAILY_USD") ?? 3) || 3) * 1_000_000),
+};
+const BRIEF_TASKS = ["brief-read", "brief-asks"];
+const TASKS = ["video-label", "talk", "story", "colleague", ...BRIEF_TASKS];
 const url = Deno.env.get("SUPABASE_URL")!;
 const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
 const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -174,6 +206,118 @@ function streamTalk(client: Anthropic, ask: TalkAsk, done: (r: Talked) => Promis
   return new Response(body, { headers: { ...CORS, "Content-Type": "text/event-stream", "Cache-Control": "no-store" } });
 }
 
+/* THE AUDIT — one ai_actions row for each call proposed, refused and answered (supabase/AI_ACTIONS.sql), written with
+   the service role. A table not there yet, or a write that fails, never fails the turn. */
+// deno-lint-ignore no-explicit-any
+type Admin = SupabaseClient<any, any, any>;
+type AuditRow = { call_id: string; capability: string; kind: string | null; input: unknown; status: "proposed" | "refused" | "done" | "failed" | "declined"; says: string | null };
+async function audit(admin: Admin, userId: string, conversationId: string | undefined, rows: AuditRow[]): Promise<void> {
+  if (!rows.length) return;
+  try {
+    const { error } = await admin.from("ai_actions").insert(rows.map(r => ({ user_id: userId, conversation_id: conversationId ?? null, ...r })));
+    if (error) console.warn("ai_actions not written", error.message?.slice(0, 200));
+  } catch (e) { console.warn("ai_actions not written", e instanceof Error ? e.message.slice(0, 200) : String(e).slice(0, 200)); }
+}
+const kindOf = (name: string): string | null => CAPABILITY_SCHEMAS.find(s => s.name === name)?.kind ?? null;
+
+/* AI MODE'S COLLEAGUE: one answer — the conversation and any rounds of calls in it, asked of Claude with the
+   capabilities as its tools. A call that passes the check goes to the device with the colleague's message as
+   `assistant`, to come back with what it gave; a round where every call was refused is asked again here at once, the
+   refusals answered to the model as errors, so a refused call never reaches the device. */
+async function answerColleague(client: Anthropic, admin: Admin, userId: string, first: ColleagueAsk): Promise<Response> {
+  const keep = async (model: string, usage: Usage, ok: boolean) => {
+    await admin.from("assist_usage").insert({ user_id: userId, task: "colleague", model, input_tokens: (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0), output_tokens: usage.output_tokens ?? 0, cost_micros: costMicros(model, usage), ok });
+  };
+  /* what running the last round's calls gave, as the device says */
+  if (first.pending) {
+    const asked = first.pending.carry.content.filter(c => c.type === "tool_use");
+    await audit(admin, userId, first.conversationId, first.pending.results.flatMap(r => {
+      const call = asked.find(c => c.id === r.id);
+      if (!call) return [];
+      return [{ call_id: r.id, capability: String(call.name), kind: kindOf(String(call.name)), input: call.input ?? null, status: r.declined ? "declined" as const : r.ok ? "done" as const : "failed" as const, says: r.says.slice(0, 2000) || null }];
+    }));
+  }
+  const tools = colleagueTools(CAPABILITY_SCHEMAS);
+  let ask = first;
+  try {
+    for (let tries = 0; tries < 3; tries++) {
+      const msg = await client.beta.messages.create({
+        model: TALK_MODEL, max_tokens: 4000,
+        betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+        output_config: { effort: COLLEAGUE_EFFORT },
+        system: [{ type: "text", text: COLLEAGUE_SYSTEM, cache_control: { type: "ephemeral" } }],
+        tools, tool_choice: { type: "auto" },
+        messages: colleagueMessages(ask),
+      } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
+      const model = msg.model ?? TALK_MODEL;
+      const content = (Array.isArray(msg.content) ? msg.content : []) as ColleagueBlock[];
+      await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal");
+      if (msg.stop_reason === "refusal") return json({ ok: false, why: "AI Mode would not answer that one. What you said is kept." });
+      if (msg.stop_reason === "max_tokens") return json({ ok: false, why: "The answer ran longer than AI Mode gives at once — ask for one part at a time." });
+      if (msg.stop_reason === "tool_use") {
+        const { calls, refused } = checkCalls(content, CAPABILITY_SCHEMAS);
+        await audit(admin, userId, ask.conversationId, [
+          ...calls.map(c => ({ call_id: c.id, capability: c.name, kind: c.kind, input: c.input ?? null, status: "proposed" as const, says: null })),
+          ...refused.map((r: ColleagueRefusal) => ({ call_id: r.id, capability: r.name.slice(0, 80), kind: kindOf(r.name), input: content.find(c => c.id === r.id)?.input ?? null, status: "refused" as const, says: r.why })),
+        ]);
+        const carry = nextCarry(ask, content, refused);
+        if (carry.rounds.length >= COLLEAGUE_LIMITS.rounds - 1 || new TextEncoder().encode(JSON.stringify(carry)).length > COLLEAGUE_LIMITS.carryBytes)
+          return json({ ok: false, why: "AI Mode went round too many times on this one — ask it a narrower question. What you said is kept." });
+        if (calls.length) {
+          const { reply } = colleagueReply(content);
+          return json({ ok: true, reply, calls: calls.map(c => ({ id: c.id, name: c.name, input: c.input })), assistant: carry, model });
+        }
+        /* every call refused: told why, asked again, never sent to the device */
+        ask = { ...ask, pending: { carry, results: [] } };
+        continue;
+      }
+      const { reply, suggestions } = colleagueReply(content);
+      if (!reply) return json({ ok: false, why: "AI Mode's answer could not be read, so none is kept — ask again." });
+      return json({ ok: true, reply, ...(suggestions.length ? { suggestions } : {}), unsure: unsureColleague(reply, ask), model });
+    }
+    return json({ ok: false, why: "AI Mode kept asking for things Faultline does not offer — ask again, in other words. What you said is kept." });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300);
+    if (e instanceof Anthropic.RateLimitError) return json({ ok: false, why: "AI Mode is busy — ask again in a minute. What you said is kept." });
+    if (e instanceof Anthropic.AuthenticationError) return json({ off: true, why: "AI Mode's key is not accepted, so it cannot answer just now — Manual Mode does everything meanwhile." });
+    console.error("colleague failed", detail);
+    return json({ ok: false, why: "AI Mode could not answer just now — ask again. What you said is kept." });
+  }
+}
+
+/* THE STORY'S BRIEF — read from its pages, or asked what it asks for; each answer held to its schema and read again */
+async function answerBrief(client: Anthropic, admin: Admin, userId: string, task: string, body: Record<string, unknown>): Promise<Response> {
+  const read = task === "brief-read" ? readBriefPages(body) : null;
+  const brief = task === "brief-asks" ? readBrief(body) : null;
+  if (read && !read.ok) return json({ ok: false, why: read.why }, 400);
+  if (brief && !brief.ok) return json({ ok: false, why: brief.why }, 400);
+  try {
+    const msg = await client.beta.messages.create({
+      model: TALK_MODEL, max_tokens: read ? 16000 : 4000,
+      betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+      output_config: { effort: read ? BRIEF_EFFORT : "low", format: { type: "json_schema", schema: read ? BRIEF_READ_SCHEMA : BRIEF_ASKS_SCHEMA } },
+      system: [{ type: "text", text: read ? BRIEF_READ_SYSTEM : BRIEF_ASKS_SYSTEM, cache_control: { type: "ephemeral" } }],
+      messages: [{ role: "user", content: read && read.ok ? briefReadUser(read.pages) : briefAsksUser(brief && brief.ok ? brief.brief : "") }],
+    } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
+    const model = msg.model ?? TALK_MODEL;
+    const text = (Array.isArray(msg.content) ? msg.content : []).map((b: { type?: string; text?: string }) => (b?.type === "text" ? b.text ?? "" : "")).join("");
+    let raw: unknown = null;
+    try { raw = JSON.parse(text); } catch { /* unreadable */ }
+    const got = msg.stop_reason === "refusal" ? null : read ? checkBriefText(raw) : checkAsks(raw, brief && brief.ok ? brief.brief : "");
+    const ok = Array.isArray(got) ? got.length > 0 : !!got;
+    const usage = msg.usage ?? {};
+    await admin.from("assist_usage").insert({ user_id: userId, task, model, input_tokens: (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0), output_tokens: usage.output_tokens ?? 0, cost_micros: costMicros(model, usage), ok });
+    if (msg.stop_reason === "max_tokens") return json({ ok: false, why: "The brief is longer than can be read at once — send fewer pages at a time." });
+    if (!ok) return json({ ok: false, why: read ? "The pages could not be read — take the photographs again, flat and in good light, or type the brief in." : "No ask could be found with its words in the brief — write the asks by hand." });
+    return json(read ? { ok: true, text: got, model } : { ok: true, asks: got, model });
+  } catch (e) {
+    if (e instanceof Anthropic.RateLimitError) return json({ ok: false, why: "The assistant is busy — try again in a minute." });
+    if (e instanceof Anthropic.AuthenticationError) return json({ off: true, why: BRIEF_OFF });
+    console.error("brief failed", e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300));
+    return json({ ok: false, why: "The assistant could not read the brief just now — try again, or type it in." });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, why: "POST only" }, 405);
@@ -201,21 +345,39 @@ Deno.serve(async (req) => {
   try { body = (await req.json()) ?? {}; } catch { /* no body */ }
   const task = String(body.task ?? "");
   /* each task says it is off in its own words — the work named by hand, or the talk kept unanswered */
-  if (!KEY) return json({ off: true, why: task === "talk" ? "Line Talk's assistant is not switched on for this app yet — everything you say, type and photograph is kept." : "Naming the work from the frames is not switched on for this app yet — name it as you review; everything else works the same." });
+  if (!KEY) return json({ off: true, why: task === "talk" ? "Line Talk's assistant is not switched on for this app yet — everything you say, type and photograph is kept." : task === "colleague" ? COLLEAGUE_OFF : BRIEF_TASKS.includes(task) ? BRIEF_OFF : task === "story" ? "The assistant is not switched on for this app yet — the chapter is written from the records' words." : "Naming the work from the frames is not switched on for this app yet — name it as you review; everything else works the same." });
+  /* AI Mode switched off on its own, everything else as it is */
+  if (task === "colleague" && Deno.env.get("ASSIST_COLLEAGUE_ENABLED") === "false") return json({ off: true, why: COLLEAGUE_OFF });
 
   /* whose session — a signed-in person only */
   const auth = req.headers.get("Authorization") ?? "";
   const asThem = createClient(url, anon, { global: { headers: { Authorization: auth } }, auth: { persistSession: false } });
   const { data: { user } } = await asThem.auth.getUser();
   if (!user) return json({ ok: false, why: "Sign in to use the assistant." }, 401);
-  if (task !== "video-label" && task !== "talk" && task !== "story") return json({ ok: false, why: "The assistant answers a Line Talk, names the work in a video study's frames and drafts the Story's chapter; nothing else — the method builder it served was taken out on 20 October." }, 400);
+  if (!TASKS.includes(task)) return json({ ok: false, why: "The assistant answers a Line Talk and AI Mode, names the work in a video study's frames, drafts the Story's chapter and reads its brief; nothing else — the method builder it served was taken out on 20 October." }, 400);
 
   /* the allowance, from this person's own last day of this task */
   const since = new Date(Date.now() - 86_400_000).toISOString();
-  const { data: rows, error: noTable } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", user.id).eq("task", task).gte("at", since);
+  const { data: rows, error: noTable } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", user.id).in("task", BRIEF_TASKS.includes(task) ? BRIEF_TASKS : [task]).gte("at", since);
   /* no allowance to keep, no assistant: it never runs without its cost control (supabase/ASSIST_USAGE.sql) */
-  if (noTable) return json({ off: true, why: task === "talk" ? "Line Talk's allowance is not set up yet, so it cannot answer — everything you say, type and photograph is kept." : "The allowance for naming the work is not set up yet — name it as you review until it is." });
+  if (noTable) return json({ off: true, why: task === "colleague" ? COLLEAGUE_OFF : BRIEF_TASKS.includes(task) ? BRIEF_OFF : task === "talk" ? "Line Talk's allowance is not set up yet, so it cannot answer — everything you say, type and photograph is kept." : "The allowance for naming the work is not set up yet — name it as you review until it is." });
   const client = new Anthropic({ apiKey: KEY });
+
+  /* AI MODE'S COLLEAGUE */
+  if (task === "colleague") {
+    const read = readColleagueAsk(body);
+    if (!read.ok) return json({ ok: false, why: read.why }, 400);
+    const left = allowance(rows ?? [], Date.now(), COLLEAGUE_LIMIT, COLLEAGUE_ALLOWANCE_WORDS);
+    if (!left.ok) return json({ ok: false, why: left.why });
+    return answerColleague(client, admin, user.id, read.ask);
+  }
+
+  /* THE STORY'S BRIEF */
+  if (BRIEF_TASKS.includes(task)) {
+    const left = allowance(rows ?? [], Date.now(), BRIEF_LIMIT, BRIEF_ALLOWANCE_WORDS);
+    if (!left.ok) return json({ ok: false, why: left.why });
+    return answerBrief(client, admin, user.id, task, body);
+  }
 
   /* LINE TALK */
   if (task === "talk") {

@@ -6,7 +6,7 @@
  * the fixes proved, the tools used), what has changed SINCE the chapter before (by the records' ids, never a guess), and a NARRATIVE in
  * plain English — assembled here from the modules' own sentences, or drafted by the assistant (S3) — the consultant's to edit before
  * he approves it. Pure: records in, the chapter's parts out; every figure is a reader's, nothing is invented. */
-import type { ToolStudy, StoryChapter, StorySince, StorySnapshot, AgreedStory } from './study';
+import type { ToolStudy, StoryChapter, StorySince, StorySnapshot, AgreedStory, StoryAskEvidence } from './study';
 import type { ProjectAction } from './projectActions';
 import type { ProvedFix } from '../tools/yokoten/yokoten';
 import { wrongOf, doingOf, sentenceOf, whoOf, type WrongRow } from './factoryQuestions';
@@ -118,11 +118,35 @@ export function headlineOf(s: StorySnapshot, since: StorySince): string {
   return 'Nothing open on the register';
 }
 
+/** THE BRIEF IN A LINE — its first sentence (an uploaded brief runs to pages; S6): what the header, the presentation and the first
+ *  paragraph say of it. Empty when there is no brief. */
+export function briefLine(brief: string, max = 200): string {
+  const first = (brief ?? '').split(/\n+/).map(x => x.trim()).find(Boolean) ?? '';
+  const sentence = first.match(/^.*?[.?!](?=\s|$)/)?.[0] ?? first;
+  if (sentence.length <= max) return sentence;
+  const cut = sentence.slice(0, max);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), max - 20)).replace(/[\s,;:]+$/, '')}…`;
+}
+
+/** An ask's paragraph in the chapter (S9) — the rules' own words: what was found, what is being done, what is proved, what is still to
+ *  show. */
+export function askParagraph(a: StoryAskEvidence, k: number): string {
+  const late = a.doing.filter(d => d.late).length;
+  const bits = [
+    a.found.length ? `found ${a.found.slice(0, 2).map(f => f.what).join('; ')}${a.found.length > 2 ? ` and ${a.found.length - 2} more` : ''}` : 'nothing on the lines answers it yet',
+    a.doing.length ? `${plural(a.doing.length, 'action')} under way${late ? `, ${late} late` : ''}` : '',
+    a.proved.length ? `proved: ${a.proved.map(p => `${p.what} — ${p.proof}`).join('; ')}` : '',
+    a.missing.length ? `still to show: ${a.missing[0].replace(/[.]+$/, '')}` : '',
+  ].filter(Boolean);
+  return `Ask ${k + 1} — ${a.text.replace(/[.?!]+$/, '')}: ${bits.join('; ')}.`;
+}
+
 /** THE NARRATIVE ASSEMBLED from the modules' own sentences — the chapter's words when the assistant is off, and the facts it is held
  *  to when it is on. Paragraphs: where we are · what is new · the biggest loss · what happens next · what is proved. */
 export function assembledNarrative(brief: string, s: StorySnapshot, since: StorySince): string[] {
   const out: string[] = [];
-  out.push(`${brief ? `${brief.replace(/[.?!]+$/, '')}. ` : ''}${storySentence(s)}`);
+  const b = briefLine(brief);
+  out.push(`${b ? `${b.replace(/[.?!…]+$/, '')}. ` : ''}${storySentence(s)}`);
   if (since.from) {
     const bits = [
       since.newFindings.length ? `${plural(since.newFindings.length, 'new finding')}: ${since.newFindings.slice(0, 3).map(f => f.what).join('; ')}${since.newFindings.length > 3 ? ` and ${since.newFindings.length - 3} more` : ''}` : '',
@@ -132,6 +156,8 @@ export function assembledNarrative(brief: string, s: StorySnapshot, since: Story
     ].filter(Boolean);
     out.push(bits.length ? `Since ${dayWord(since.from)}: ${bits.join('; ')}.` : `Nothing has changed on the register since ${dayWord(since.from)}.`);
   }
+  /* BY ASK (S9): a paragraph each, in the asks' order, when the brief has them */
+  (s.asks ?? []).forEach((a, k) => out.push(askParagraph(a, k)));
   const top = s.findings[0];
   if (top) out.push(`The biggest loss is ${top.what} on ${top.line}${top.machine ? ` (${top.machine})` : ''}${top.words ? ` — ${top.words.replace(/[.]+$/, '')}` : top.poundsDay != null ? ` — ${fmtGBP(top.poundsDay)} a day` : ''}.${s.findings.length > 1 ? ` ${plural(s.findings.length - 1, 'other problem')} ${s.findings.length - 1 === 1 ? 'is' : 'are'} open behind it.` : ''}`);
   const late = s.actions.filter(a => a.late);
@@ -170,6 +196,11 @@ export function snapshotFigures(s: StorySnapshot): Set<string> {
   for (const p of s.provedFixes) for (const x of figuresIn(`${p.what} ${p.proof}`)) out.add(x);
   for (const a of s.actions) for (const x of figuresIn(a.what)) out.add(x);
   for (const t of s.toolsUsed) add(t.n);
+  /* the asks' counts and the figures in their words (S9) */
+  for (const a of s.asks ?? []) {
+    add(a.found.length); add(a.doing.length); add(a.doing.filter(d => d.late).length); add(a.proved.length); add(a.missing.length);
+    for (const x of figuresIn([a.text, a.from ?? '', ...a.found.map(f => `${f.what} ${f.money ?? ''}`), ...a.proved.map(p => `${p.what} ${p.proof}`), ...a.missing].join(' '))) out.add(x);
+  }
   return out;
 }
 

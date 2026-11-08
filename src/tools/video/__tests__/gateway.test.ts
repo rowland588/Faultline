@@ -34,7 +34,15 @@ describe('the gateway’s copies', () => {
     }
     /* Line Talk's assistant and its toolsets (tools/talk): the same rules on both sides; each file shared with the gateway, its relative imports given the .ts Deno asks for (scripts/sync-assist.mjs forDeno) */
     /* the Story's chapter (tools/story/storyAssist, docs/STORY.md §5), the same way */
-    for (const f of ['storyAssist']) {
+    /* AI Mode's colleague and the capabilities it may call (docs/AI-MODE.md): the gateway's check of every call is these schemas */
+    for (const [dir, f] of [['src/tools/colleague', 'colleagueAssist'], ['src/capabilities', 'schemas']]) {
+      const src = readFileSync(join(root, dir, `${f}.ts`), 'utf8').replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'");
+      const copy = readFileSync(join(root, 'supabase/functions/assist/colleague', `${f}.ts`), 'utf8');
+      expect(copy.split('\n')[0]).toBe(`// COPIED FROM ${dir} by scripts/sync-assist.mjs — edit the source, then run it.`);
+      expect(copy.split('\n').slice(1).join('\n'), `colleague/${f}.ts differs from its copy — run node scripts/sync-assist.mjs`).toBe(src);
+    }
+    /* and the Story's brief, read and asked of (STORY S6–S7) */
+    for (const f of ['storyAssist', 'briefAssist']) {
       const src = readFileSync(join(root, 'src/tools/story', `${f}.ts`), 'utf8').replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'");
       const copy = readFileSync(join(root, 'supabase/functions/assist/story', `${f}.ts`), 'utf8');
       expect(copy.split('\n').slice(1).join('\n'), `story/${f}.ts differs from its copy — run node scripts/sync-assist.mjs`).toBe(src);

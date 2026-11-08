@@ -16,6 +16,7 @@ import { SyncDetail } from '../cloud/CloudPanel';
 import { useProjects } from '../lib/useProjects';
 import { readBrand } from '../lib/brand';
 import { BrandSheet } from './BrandSheet';
+import { setAiMode, useAiMode } from '../colleague/aiMode';
 
 /** Sign out, after asking — the one way out, wherever it is pressed. Home's
  *  account row and its sheet signed out in one tap, with no question, and
@@ -41,6 +42,7 @@ export function AccountMenu() {
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState(false);
   const [brand, setBrand] = useState(false);
+  const aiOn = useAiMode();
 
   if (!cloudConfigured || !session) return null;
   const email = session.user.email ?? 'signed in';
@@ -63,6 +65,9 @@ export function AccountMenu() {
         {/* YOUR BRAND (8 November, docs/STORY.md S1): who prepares the papers — on the foot of every one and on every cover */}
         <SheetRow label="Your brand" hint={readBrand() ? `${readBrand()?.name}${readBrand()?.business ? ` · ${readBrand()?.business}` : ''}` : 'your name and business on every paper'}
           onClick={() => { setOpen(false); setBrand(true); }} />
+        {/* AI MODE (8 November): Ask Faultline in the top bar, on or off on this device — Manual Mode is the same either way */}
+        <SheetRow label={`AI Mode — ${aiOn ? 'On' : 'Off'}`} hint={aiOn ? 'Ask Faultline is in the top bar — tap to turn it off' : 'off on this device — tap to turn it on'}
+          onClick={() => setAiMode(!aiOn)} />
         {failed && !profile && (
           <SheetRow label={loading ? 'Checking your admin access…' : 'Couldn’t check your admin access — tap to retry'}
             hint="Team & invites show once it is checked" onClick={retry} />

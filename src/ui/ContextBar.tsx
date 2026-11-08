@@ -20,6 +20,7 @@ import { GuideButton } from './GuideButton';
 import { QuickSnagButton } from '../snag/QuickSnag';
 import { Sheet } from './Sheet';
 import { lineHref } from './rail';
+import { AiDoor } from '../colleague/AiDoor';
 
 export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines }: {
   scope: Scope;
@@ -74,6 +75,8 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
       <span className="nv-gap" aria-hidden />
       {toolId && <GuideButton toolId={toolId} />}
       <JumpTo />
+      {/* AI MODE's door (src/colleague, 8 November): Ask Faultline, carrying where you are */}
+      <AiDoor scope={scope} />
       <QuickSnagButton projectId={projectId} />
       <ForYouButton />
       <AccountMenu />

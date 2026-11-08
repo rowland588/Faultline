@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listAllSnags, listPaceTodos, listWorkspaces, onDataChange, type PaceTodoRow } from '../db';
 import type { Project } from '../types';
-import { useJobInputs } from './useJobInputs';
+import { loadJobInputs, useJobInputs, type JobInputs } from './useJobInputs';
 import { everyAction, projectActions, type DoneThing, type ProjectAction, type RegisterProblem } from './projectActions';
 import { owedAndDone, registerRow, useProjectRead } from '../project/projectRead';
 import { todayISO } from './weeks';
@@ -34,14 +34,10 @@ export function useEveryAction(projects: Project[]): ProjectActionsRead | null {
   const ids = projects.map(p => p.id).join('|');
   useEffect(() => {
     let alive = true;
-    const load = () => void Promise.all([listAllSnags(), listWorkspaces(), Promise.all(projects.map(p => listPaceTodos(p.id)))]).then(async ([snags, ws, todos]) => {
-      /* a line's own problems are the factory's lines' — never a project's walk nor the demo line (lib/lines) */
-      const lines = new Set((await liveProductionLines(ws)).map(w => w.id));
+    const load = () => void loadActionParts(projects).then(got => {
       if (!alive) return;
-      setSteps(new Map(projects.map((p, i) => [p.id, todos[i]])));
-      const name = new Map(ws.map(w => [w.id, w.name]));
-      const mine = snags.filter(s => !s.deletedAt && (s.projectId ? true : lines.has(s.workspaceId)));
-      setRegister(mine.map(s => registerRow(s, id => name.get(id))));
+      setSteps(got.steps);
+      setRegister(got.register);
     });
     load();
     const off = onDataChange(load);
@@ -50,9 +46,29 @@ export function useEveryAction(projects: Project[]): ProjectActionsRead | null {
   }, [ids]);
   return useMemo(() => {
     if (!inputs || !register || !steps) return null;
-    const today = todayISO();
-    const each = projects.map(p => ({ id: p.id, name: p.name,
-      ...owedAndDone(inputs.gate.find(j => j.project.id === p.id), inputs.paced.find(j => j.project.id === p.id), steps.get(p.id) ?? [], register.filter(r => r.projectId === p.id), today) }));
-    return { rows: everyAction(each, register, today), done: each.flatMap(e => e.done), today };
+    return everyActionOf(projects, inputs, register, steps, todayISO());
   }, [projects, inputs, register, steps]);
+}
+
+/** What every project's actions are read from besides its method's records: each project's own actions, and the register's problems —
+ *  a line's own problems the factory's lines' only, never a project's walk nor the demo line (lib/lines). */
+export async function loadActionParts(projects: readonly Project[]): Promise<{ steps: Map<string, PaceTodoRow[]>; register: RegisterProblem[] }> {
+  const [snags, ws, todos] = await Promise.all([listAllSnags(), listWorkspaces(), Promise.all(projects.map(p => listPaceTodos(p.id)))]);
+  const lines = new Set((await liveProductionLines(ws)).map(w => w.id));
+  const name = new Map(ws.map(w => [w.id, w.name]));
+  const mine = snags.filter(s => !s.deletedAt && (s.projectId ? true : lines.has(s.workspaceId)));
+  return { steps: new Map(projects.map((p, i) => [p.id, todos[i]])), register: mine.map(s => registerRow(s, id => name.get(id))) };
+}
+
+/** Every project's actions and every line's own problems, from what was read — the one rule the hook and AI Mode share. */
+export function everyActionOf(projects: readonly Project[], inputs: JobInputs, register: readonly RegisterProblem[], steps: ReadonlyMap<string, PaceTodoRow[]>, today: string): ProjectActionsRead {
+  const each = projects.map(p => ({ id: p.id, name: p.name,
+    ...owedAndDone(inputs.gate.find(j => j.project.id === p.id), inputs.paced.find(j => j.project.id === p.id), steps.get(p.id) ?? [], register.filter(r => r.projectId === p.id), today) }));
+  return { rows: everyAction(each, register, today), done: each.flatMap(e => e.done), today };
+}
+
+/** The control room's Actions, read once (no hook) — what AI Mode's overdue_actions says (src/capabilities). */
+export async function loadEveryAction(projects: readonly Project[], today: string = todayISO()): Promise<ProjectActionsRead> {
+  const [inputs, parts] = await Promise.all([loadJobInputs(projects), loadActionParts(projects)]);
+  return everyActionOf(projects, inputs, parts.register, parts.steps, today);
 }

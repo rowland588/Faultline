@@ -9,7 +9,7 @@ import { font, rows, text, wrap } from './blocks';
 import { leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles } from './lean';
 import { bandPage, type LeanAction } from '../lean';
 import { preparedByBlocks } from './cover';
-import { DANGER, INK, INK2, LINE, MUTED, WARN } from '../reportKit';
+import { DANGER, INK, INK2, LINE, MUTED, OK, WARN } from '../reportKit';
 import { fmtGBP } from '../cost';
 import { dayWord, dayWordYear, storySentence, storyTiles, unsureIn } from '../clientStory';
 
@@ -36,6 +36,22 @@ export function storyBlocks(i: StoryPaperInputs): Block[] {
   for (const p of c.narrative) out.push(text({ text: p, size: 9.5, colour: INK, after: 6 }));
   const unsure = unsureIn(c.narrative, s);
   if (unsure.length) out.push(text({ text: `Check: ${unsure.map(u => (/^\d+$/.test(u) && Number(u) >= 100 ? `£${Number(u).toLocaleString('en-GB')}` : u)).join(', ')} — not among the figures the tools recorded.`, size: 8, colour: WARN, after: 8 }));
+
+  /* WHAT YOU ASKED (S9, docs/STORY.md §7.3) — a section an ask, in the asks' order: asked (the brief's own sentence) · found · being
+     done · proved · still to show, as the rules matched them the day of the update. A story with no asks prints none of this. */
+  (s.asks ?? []).forEach((a, k) => {
+    out.push(leanHead(`Ask ${k + 1} — ${a.text}`, a.says));
+    if (a.from) out.push(text({ text: `Asked: “${a.from}”`, size: 9, colour: INK2, after: 4 }));
+    const part = (label: string, items: string[], none: string, colour = INK) => {
+      out.push(text({ text: label, size: 8, style: 'bold', colour: MUTED, after: 2 }));
+      if (!items.length) out.push(text({ text: none, size: 8.5, colour: MUTED, after: 4 }));
+      items.forEach((x, i) => out.push(text({ text: x, size: 8.5, colour, indent: 10, bullet: '•', after: i === items.length - 1 ? 4 : 1 })));
+    };
+    part('FOUND', a.found.map(f => `${f.what} — ${f.where}${f.money ? ` · ${f.money}` : ''}`), 'Nothing on the lines answers it yet.');
+    part('BEING DONE', a.doing.map(d => `${d.what} — ${d.who || 'nobody yet'}${d.due ? `, ${d.late ? 'was due' : 'due'} ${dayWord(Date.parse(d.due))}` : ''}${d.late ? ' · late' : ''}`), 'Nothing owed on it yet.');
+    part('PROVED', a.proved.map(p => `${p.what} — ${p.where}: ${p.proof}`), 'No fix proved on it yet.', OK);
+    part('STILL TO SHOW', a.missing, 'Nothing missing — the records answer it.', WARN);
+  });
 
   /* WHAT WE HAVE FOUND */
   out.push(leanHead('What we have found', `${plural(s.findings.length, 'problem')} open${s.found.costDay != null ? ` · ${fmtGBP(s.found.costDay)} a day` : ''}`));

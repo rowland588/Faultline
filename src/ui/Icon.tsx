@@ -70,6 +70,8 @@ const ICONS = {
   refresh: <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.75 4.25v4.25H15.5" />,
   pointer: <path d="M5.5 4.5 18.5 11l-5.75 1.75L10 18.5z" />,
   search: <><circle cx="10.75" cy="10.75" r="6.25" /><path d="m15.5 15.5 4.75 4.75" /></>,
+  /* AI MODE's door (src/colleague): a four-point spark and a small one beside it */
+  spark: <><path d="M10 3.75c.5 3.6 2.15 5.25 5.75 5.75-3.6.5-5.25 2.15-5.75 5.75-.5-3.6-2.15-5.25-5.75-5.75 3.6-.5 5.25-2.15 5.75-5.75z" /><path d="M17.5 14.25c.25 1.75 1 2.5 2.75 2.75-1.75.25-2.5 1-2.75 2.75-.25-1.75-1-2.5-2.75-2.75 1.75-.25 2.5-1 2.75-2.75z" /></>,
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof ICONS;
