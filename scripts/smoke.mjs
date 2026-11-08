@@ -58,7 +58,8 @@ console.log('seeded:', JSON.stringify(seeded));
 if (bootErrors.length) console.log('errors during boot/seed:', bootErrors);
 
 const ROUTES = [
-  ['home', '#/room'], ['the front door at home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
+  /* since 8 November (docs/STORY.md S5) #/ is the Story — the one home — and the board of lines is the Factory's Lines tab at #/room; #/?present=1 the Story full screen */
+  ['home — the Story', '#/'], ['home — the Story, Present mode', '#/?present=1'], ['the board of lines — the Factory\'s Lines tab', '#/room'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
   ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['control charts', '#/chart'], ['analyses', '#/analysis'], ['calculators', '#/calc'], ['documents', '#/doc'], ['charters', '#/doc/charter'], ['8D reports', '#/doc/eight-d'], ['kanban sizing, saved ones', '#/calc/kanban'], ['scored registers — the hub', '#/scored'], ['equipment criticality — its list', '#/scored/criticality'], ['value stream maps', '#/value-stream'], ['SMED', '#/smed'], ['SMED, an old link', '#/changeover'], ['work sampling', '#/sampling'], ['reliability studies', '#/reliability'], ['pace report', '#/pace-report'], ['process FMEA — its list', '#/scored/fmea'], ['control plan — its list', '#/scored/control-plan'], ['fault tree — its list', '#/scored/fault-tree'], ['optimising settings — its list', '#/scored/rsm'],
   ['project dashboard', `#/project/${seeded.projectId}`],
   /* THE FRONT DOOR: what you need, what is under way, the three kinds of change, the tools */
@@ -142,7 +143,7 @@ const ROUTES = [
   ['fixes — a fix open', `#/project/${seeded.projectId}/fixes?open=${seeded.fixId}`],
   ['install — a step open', `#/project/${seeded.projectId}/install?open=${seeded.stepId}`],
   ['testing — a test open', `#/project/${seeded.projectId}/testing?open=${seeded.testId}`],
-  ['home — a fix open', `#/?open=${seeded.fixId}&job=${seeded.projectId}`],
+  ['the board — a fix open', `#/room?open=${seeded.fixId}&job=${seeded.projectId}`],
   /* A machine opened whole (ui/MachinePanel, docs/FLOW.md item 2) — over
      the front page and over the plan. */
   ['a machine open', `#/project/${seeded.projectId}?open=${seeded.machineId}`],
@@ -203,7 +204,7 @@ const ROUTES = [
   ['your factory — the lines, edited', '#/factory'],
   /* every tool, the directory (src/catalogue) — and found by the problem */
   ['every tool — the directory', '#/tools'],
-  ['the story — the client’s journey', '#/story'],
+  ['the story — the client’s journey, its old address (an alias of #/)', '#/story'],
   /* a method's own page (docs/METHODS.md §15) */
   ['a method — its own page', '#/methods/dmaic'],
   ['your factory — adding lines', '#/factory?add=1'],

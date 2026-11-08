@@ -38,16 +38,17 @@ await page.route('**/functions/v1/assist', async r => {
 await page.evaluate(async () => { const { setBrandForTest } = await import('/src/lib/brand.ts'); setBrandForTest({ name: 'Rowland Glew', business: 'Streamline Synergy' }); });
 
 /* ---- 1 · the page ---- */
-await t.go('#/', 3000);
+/* since S5 (8 November) #/ IS the Story and the board of lines is the Lines tab at #/room; #/story stays an alias */
+await t.go('#/room', 3000);
 await page.locator('.nv-tabs .nv-tab', { hasText: 'Story' }).click(); await page.waitForTimeout(2500);
-ok(/#\/story/.test(page.url()), '1 the Story tab on the Factory opens #/story');
+ok(/#\/(story)?(\?.*)?$/.test(page.url()) && /^Story$/.test((await page.locator('.nv-tabs .nv-tab.is-on').innerText()).trim()), `1 the Story tab on the Factory's Lines opens the Story — the one home (${page.url().split('#')[1]})`);
 const tiles = await page.locator('.st-tiles .ln-tile').evaluateAll(es => es.map(e => e.querySelector('.ln-k')?.textContent?.trim()));
 ok(JSON.stringify(tiles) === JSON.stringify(['Found so far', 'Biggest loss', 'Being fixed', 'Proved']), `1 the four figures: ${tiles.join(' · ')}`);
 const lede = await t.words('.pace-lede');
 ok(/Why is Line 7 losing output\?/.test(lede) && /1 chapter since/.test(lede), `1 the brief and the chapters said: "${lede}"`);
 /* the figures are the module's from the same readers: the open problems on the Factory page's card equal the Found tile's count */
 const foundOf = await t.words('.st-tiles .ln-tile:first-child .ln-of');
-await t.go('#/', 2500);
+await t.go('#/room', 2500);
 const wrongCard = (await t.words('.fq-cards .fq-v')).trim().split(/\s+/)[0];
 await t.go('#/story', 2500);
 ok(new RegExp(`^${wrongCard.trim()} problems? open`).test(foundOf), `1 Found so far counts the Factory page's open problems (${wrongCard} → "${foundOf}")`);

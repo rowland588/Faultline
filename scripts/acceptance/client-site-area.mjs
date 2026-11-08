@@ -28,7 +28,8 @@ for (const [w, area] of [[a, 'Packing hall'], [b, 'Packing hall'], [c, 'Despatch
 await page.reload(); await page.waitForTimeout(2500);
 ok((await page.getByLabel(`${c.name}'s area`, { exact: true }).inputValue()) === 'Despatch' && (await page.getByLabel(`${a.name}'s client`, { exact: true }).inputValue()) === 'Northfield Foods', '1 client, site and area typed on Set up the lines, kept after a reload');
 
-await t.go('#/', 3000);
+/* the Factory page titled by the client is the board of lines — the Factory's Lines tab at #/room since 8 November (S5) */
+await t.go('#/room', 3000);
 const title = await t.words('.part-head h1');
 const places = await page.locator('.fac-place-h').allInnerTexts();
 const inPacking = await page.locator('.fac-place[data-place="Hull › Packing hall"] .fac-card-name').allInnerTexts();
@@ -39,13 +40,13 @@ await t.go(`#/lines/${a.id}?view=setup`, 3000);
 const area = page.getByLabel("The line's area", { exact: true });
 ok((await area.inputValue()) === 'Packing hall', '3 the line\'s own Set up shows its area');
 await area.fill('Despatch'); await area.press('Enter'); await page.waitForTimeout(800);
-await t.go('#/', 3000);
+await t.go('#/room', 3000);
 const inDespatch = await page.locator('.fac-place[data-place="Hull › Despatch"] .fac-card-name').allInnerTexts();
 ok(inDespatch.includes(a.name), `3 moved there, ${a.name} is under Hull › Despatch on the Factory page`);
 
 await t.go('#/factory', 2500);
 await type(c.name, 'client', 'Acme Bakery'); await type(c.name, 'site', 'Leeds');
-await t.go('#/', 3000);
+await t.go('#/room', 3000);
 const chips = await page.locator('.fac-clients .chip').allInnerTexts();
 ok((await t.words('.part-head h1')) === 'Factory' && JSON.stringify(chips) === JSON.stringify(['Every client', 'Acme Bakery', 'Northfield Foods']), `4 two clients: titled Factory, the chips ${chips.join(' · ')}`);
 await page.locator('.fac-clients .chip', { hasText: 'Acme Bakery' }).click(); await page.waitForTimeout(600);
@@ -55,7 +56,7 @@ await page.reload(); await page.waitForTimeout(3000);
 ok((await page.locator('.fac-card-name').count()) === 1, '4 the client picked is kept after a reload');
 await page.locator('.fac-clients .chip', { hasText: 'Every client' }).click(); await page.waitForTimeout(500);
 
-await page.setViewportSize({ width: 390, height: 844 }); await t.go('#/', 2500);
+await page.setViewportSize({ width: 390, height: 844 }); await t.go('#/room', 2500);
 ok((await t.wide()) <= 1, '5 the phone: nothing off the side');
 
 await t.finish('Client, site and area accepted: typed on Set up the lines and on a line, the Factory page titled by the client with its lines under their site and area, a client picked when there are two.');

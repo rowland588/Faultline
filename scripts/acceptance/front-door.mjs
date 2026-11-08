@@ -6,7 +6,7 @@
  * From an empty device:
  *
  *   1  #/ is the Factory page — its name, the menu (Factory · Projects · Problems · Actions · Tools,
- *      Reports at the foot) with Factory lit, its own tabs (Overview · Lines · Machines · Programs — Machines since 27 October) and the bar
+ *      Reports at the foot) with Factory lit, its own tabs (Story · Lines · Set up since 8 November, S5 — #/ the Story, #/room the board) and the bar
  *      saying Factory › Overview; no question, no front door
  *   2  Projects from the menu: New project offers the eight methods (M3, 31 October); the stage gate is one of them;
  *      commissioning project made opens with its own tabs, the menu the same with Projects
@@ -50,13 +50,14 @@ const bar = async () => flat(await page.locator('.nv-ctx').innerText().catch(() 
 const h1 = async () => flat(await page.locator('.nv-main h1').first().innerText().catch(() => ''));
 const MENU = 'Factory · Projects · Tools · Factory reports';
 
-/* 1 — an empty device: #/ is the Factory page */
+/* 1 — an empty device: #/ is the Story, the one home (8 November, docs/STORY.md S5); the board of lines is the Factory's Lines tab at #/room */
 await go('#/');
-ok(await h1() === 'Factory', '1 #/ is the Factory page', await h1());
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Factory', '1 the menu, Factory lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
-ok((await tabs()).join(' · ') === 'Overview · Story · Set up' && await tabOn() === 'Overview', '1 the factory\'s own tabs, Overview on (27 October: the lines set up in Set up; every line\'s machines and programs on the line; 8 November: the Story between them, docs/STORY.md)', (await tabs()).join(' · '));
-ok(/^Factory ›? ?Overview$/.test((await bar()).replace(/\s*›\s*/g, ' › ').replace('Factory › Overview', 'Factory › Overview')) || /Factory.*Overview/.test(await bar()), '1 the bar says Factory › Overview', await bar());
+ok((await tabs()).join(' · ') === 'Story · Lines · Set up' && await tabOn() === 'Story', '1 the factory\'s own tabs, Story on (27 October: the lines set up in Set up; every line\'s machines and programs on the line; 8 November: Home is the Story, the board its Lines tab, docs/STORY.md S5)', (await tabs()).join(' · '));
+ok(/Factory.*Story/.test(await bar()) || /^Factory$/.test(await bar()), '1 the bar says Factory › Story', await bar());
 ok(await page.locator('.fd-ask, .fd-lib, .fd-tools').count() === 0 && !/What do you need to get done/.test(await page.locator('.nv-main').innerText()), '1 no front door, no question');
+await go('#/room');
+ok(await h1() === 'Factory' && await tabOn() === 'Lines' && (await lit()).join() === 'Factory', '1 #/room is the Factory page — the board of lines, its Lines tab on, Factory lit', `${await h1()} | ${await tabOn()}`);
 
 /* 2 — Projects from the menu: a project made, its tabs, the way back */
 await page.locator('.nv-rail .nv-ri', { hasText: 'Projects' }).click(); await page.waitForTimeout(800);
@@ -102,25 +103,26 @@ ok(/^Factory › Line 9/.test(await bar()), '3 the bar starts with the way back:
 await page.locator('.nv-tabs .nv-tab', { hasText: 'Programs' }).click(); await page.waitForTimeout(900);
 ok(await tabOn() === 'Programs' && /line=/.test(page.url()) && (await lit()).join() === 'Line 9', '3 its Programs tab, still in the line', `${await tabOn()} | ${page.url()}`);
 await page.getByRole('button', { name: 'Back to the factory' }).click(); await page.waitForTimeout(900);
-ok(await h1() === 'Factory' && (await lit()).join() === 'Factory', '3 ‹ Factory lands on the Factory page', await h1());
+ok((await lit()).join() === 'Factory' && /^(Story|Lines)$/.test(await tabOn()) && (await menu()).join(' · ') === MENU, '3 ‹ Factory lands on the Factory — the Story, or its Lines (8 November, S5)', `${await tabOn()} | ${page.url()}`);
 
-/* 4 — where you were, one tap back */
+/* 4 — where you were, one tap back (the board at #/room carries it) */
+await go('#/room');
 const places = (await page.locator('.fd-places li').allInnerTexts()).map(flat);
-ok(places.some(p => /Line 4 new case packer/.test(p)) && places.some(p => /^Line 9/.test(p)), '4 the Factory page carries the project and the line you were in', places.join(' | '));
+ok(places.some(p => /Line 4 new case packer/.test(p)) && places.some(p => /^Line 9/.test(p)), '4 the Factory\'s Lines page carries the project and the line you were in', places.join(' | '));
 await page.locator('.fd-places li', { hasText: 'Line 4 new case packer' }).locator('button').click(); await page.waitForTimeout(1000);
 ok(/#\/project\//.test(page.url()) && (await lit()).join() === 'Line 4 new case packer', '4 one tap back into the project', page.url());
 
-/* 5 — old links land on the Factory page */
+/* 5 — old links land on the Factory (the one home: the Story since 8 November, S5) */
 for (const old of ['#/start', '#/methods', '#/design?say=Line%202%20keeps%20stopping']) {
   await go(old);
-  ok(await h1() === 'Factory', `5 an old link (${old}) lands on the Factory page`, await h1());
+  ok((await lit()).join() === 'Factory' && /^(Story|Lines)$/.test(await tabOn()), `5 an old link (${old}) lands on the Factory`, `${await tabOn()} | ${page.url()}`);
 }
 
 /* 6 — the phone */
 await page.setViewportSize({ width: 390, height: 800 });
 const BAR_FACTORY = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
 const BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* project-scoped bar (A3) */
-for (const [h, want] of [['#/', BAR_FACTORY], ['#/projects', BAR_FACTORY], ['#/factory', BAR_FACTORY], [projectAt, BAR_PROJECT]]) {
+for (const [h, want] of [['#/', BAR_FACTORY], ['#/room', BAR_FACTORY], ['#/projects', BAR_FACTORY], ['#/factory', BAR_FACTORY], [projectAt, BAR_PROJECT]]) {
   await go(h);
   const five = (await page.locator('.nv-bar .nv-bi').allInnerTexts()).map(flat).join(' · ');
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

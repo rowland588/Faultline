@@ -83,7 +83,8 @@ const names = await page.evaluate(async ([ws, pid]) => {
   ok(m.said.indexOf(names.job) === m.said.indexOf('Projects') + 1 && m.lit.join() === names.job, `A3 inside a project: its name under Projects, lit (${m.said.join(' · ')} — lit ${m.lit.join()})`);
   await go(`#/lines/${WS}`);
   await page.locator('.nv-rail .nv-ri', { hasText: 'Factory' }).first().click(); await page.waitForTimeout(1500);
-  ok(/#\/room$/.test(page.url()), `A4 Factory in the menu goes up to the factory (${page.url().split('#')[1]})`);
+  /* the menu's Factory lands on the one home — the Story at #/ since 8 November (S5); the board is its Lines tab, #/room */
+  ok(/#\/$/.test(page.url()) && /^Story$/.test(await tabOn()), `A4 Factory in the menu goes up to the factory — the Story, the one home (${page.url().split('#')[1]})`);
 }
 
 /* ---- B · a line's Programs and Problems stay on the line ---- */
@@ -128,7 +129,7 @@ const names = await page.evaluate(async ([ws, pid]) => {
 /* ---- D · one name, Factory ---- */
 {
   await go('#/room');
-  ok(flat(await main().locator('.fac-home .home-sec-title').innerText()) === 'Lines', 'D1 the factory\'s lines are headed Lines');
+  ok(flat(await main().locator('.fac-home .home-sec-title').innerText()) === 'Lines' && await tabOn() === 'Lines', 'D1 the factory\'s lines are headed Lines — the Factory\'s Lines tab, #/room (8 November, S5)');
   const go1 = flat(await main().locator('.fac-card', { hasText: names.line }).first().locator('.fac-card-go').innerText());
   ok(go1 === `Open ${names.line} ›`, `D2 each card says what a tap does (${go1})`);
   await go('#/factory');

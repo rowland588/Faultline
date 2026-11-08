@@ -126,7 +126,8 @@ async function nav(D, J, label) {
   return press(D, J, `switcher: ${label}`, D.page.locator('.nv-sw .nv-sw-i').filter({ has: D.page.locator('b', { hasText: new RegExp(`^${esc(label)}$`) }) }));
 }
 const btn = (D, name) => D.page.getByRole('button', { name, exact: false });
-/** The control room's own ways in: a line's card under Your factory, a project's row (its name goes in). */
+/** The control room's own ways in — the board of lines, the Factory's Lines tab at #/room since 8 November (docs/STORY.md S5;
+ *  #/ is the Story): a line's card under Lines, a project's row (its name goes in). */
 const lineCard = (D, name) => D.page.locator('main button.fac-card').filter({ has: D.page.locator('.fac-card-name', { hasText: new RegExp(`^${esc(name)}$`) }) });
 const projectRow = (D, name) => D.page.locator('main button.jb-lab').filter({ has: D.page.locator('.jb-name', { hasText: new RegExp(`^${esc(name)}$`) }) });
 const text = (D, t) => D.page.getByText(t, { exact: false });
@@ -170,9 +171,10 @@ await run('J1 across factory, line and project', 390, async (D, J) => { await J1
 /* J2 — a tool on its own, on the floor (phone): from Home, a capability study with no line or project — set up, three readings, the verdict read. */
 await run('J2 a tool on its own', 390, async (D, J) => {
   await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
-  /* since E1 (29 October, docs/ENTERPRISE-UI.md) the Factory is the board of lines — its Use a tool row folded
-     into the Tools chip, so a tool on its own starts from Tools (one tap more, agreed in LONGER below) */
-  await press(D, J, 'Factory: Tools', D.page.locator('main .fac-quick').getByRole('button', { name: 'Tools', exact: true })); await orient(D, J, 'Tools');
+  /* since E1 (29 October, docs/ENTERPRISE-UI.md) the Factory's Use a tool row folded into its Tools chip, so a tool on its
+     own starts from Tools (one tap more, agreed in LONGER below); since S5 (8 November, docs/STORY.md) Home is the Story and
+     the board of lines its Lines tab, so Tools is the menu's — on the phone its bar — still one tap */
+  await nav(D, J, 'Tools'); await orient(D, J, 'Tools');
   /* E7: gallery stacks — open Capability from its card (aria-label from ui/ToolCard) */
   await press(D, J, 'Tools: Capability', D.page.getByRole('button', { name: /^Capability — what it is for$/ })); await orient(D, J, 'Capability');
   /* Start one → /capability?add=1 opens New in the sheet (StudiesScreen) */
@@ -218,7 +220,8 @@ await run('J3 a tool in context', 390, async (D, J) => { await J3(D, J); });
    (26 October, four tabs, and a stage gate's Actions are a door from Now — the fix is a row of its Problems; 27 October: the gates are the
    Plan tab's, the Machines tab the machines). */
 await run('J4 stage gate: a failed re-test to a fix', 390, async (D, J) => {
-  await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
+  /* from the board of lines — the Factory's Lines tab, #/room since 8 November (S5), where the projects' rows are */
+  await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Factory');
   await press(D, J, 'the row: Line 2 commissioning', projectRow(D, 'Line 2 commissioning')); await orient(D, J, 'Line 2 commissioning');
   /* the gates are the Plan tab's since 27 October — one row of tabs, Plan's own row on its pages */
   await nav(D, J, 'Gates'); await orient(D, J, 'Line 2 commissioning');
@@ -314,7 +317,8 @@ await run('J7b every late action, by person (desk)', 1360, async (D, J) => {
   if (!opened) throw new Error('Every action: a row does not open its record');
 });
 await run('J7c a line problem moved into a project (desk)', 1360, async (D, J) => {
-  await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Factory');
+  /* from the Factory board — the Lines tab, #/room since 8 November (S5) */
+  await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Factory');
   await press(D, J, 'the Factory board: Line 7 — smoke test', D.page.locator('main .fac-card').filter({ hasText: 'Line 7 — smoke test' }).first()); await orient(D, J, 'Line 7');
   await nav(D, J, 'Problems'); await orient(D, J, 'Problems');
   await press(D, J, 'the problem on Line 7 — smoke test', D.page.locator('main button.qsl-open').filter({ hasText: 'seeded snag 0' }).first());
@@ -336,8 +340,10 @@ await run('J8 the Monday pack', 1360, async (D, J) => {
   /* Line 7's line report */
   await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
   await paperOf(D, J, /^Line report/);
-  /* the control room's */
+  /* the control room's — the menu's Factory lands on the Story since 8 November (S5), the board one tap on, its Lines tab:
+     one tap more than the 6 November baseline, written into it with this reason */
   await nav(D, J, 'Control room'); await orient(D, J, 'Factory');
+  await nav(D, J, 'Lines'); await orient(D, J, 'Factory');
   await paperOf(D, J, /^Control room report/);
 });
 
@@ -377,7 +383,7 @@ const LONGER = {
   'J7c a line problem moved into a project (desk) [desk]': 'a problem is the line\'s — the Factory board › the line › Problems',
   /* 29–30 October — Enterprise UI E1 (docs/ENTERPRISE-UI.md): the Factory is the board of lines; its Use a tool
      row folded into the Tools chip, so a tool on its own is Factory › Tools › the tool — one tap more */
-  'J2 a tool on its own [phone]': 'the Factory is the board of lines — a tool starts from its Tools chip; E7 opens the tool from its gallery card then Start one',
+  'J2 a tool on its own [phone]': 'the Factory is the board of lines — a tool starts from Tools (the Factory\'s chip until S5, the menu\'s bar since); E7 opens the tool from its gallery card then Start one',
 };
 const base = JSON.parse(readFileSync(new URL('../docs/structure/journeys-baseline.json', import.meta.url), 'utf8')).walks;
 let fail = 0;

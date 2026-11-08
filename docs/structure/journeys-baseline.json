@@ -1,6 +1,6 @@
 {
  "measured": "2026-11-06",
- "by": "scripts/journeys.mjs — J2 phone after ENTERPRISE-UI E7 (stacked Tools gallery)",
+ "by": "scripts/journeys.mjs — J2 phone after ENTERPRISE-UI E7 (stacked Tools gallery); J8 +1 tap on 8 November (docs/STORY.md S5: the menu's Factory lands on the Story, the Control room report is on its Lines tab)",
  "on": "the smoke seed (src/dev/seed.ts), clock 15 Oct 2026 10:00 London",
  "before": "docs/structure/journeys-baseline-2026-10-22.json — the 22 October baseline, kept as it was",
  "desk": "1360x900",
@@ -524,7 +524,7 @@
   {
    "name": "J8 the Monday pack",
    "device": "desk",
-   "taps": 13,
+   "taps": 14,
    "entries": 0,
    "screens": 6,
    "hunts": 1,
@@ -551,7 +551,12 @@
     },
     {
      "expected": "Factory",
-     "said": "Factory › Overview",
+     "said": "Factory › Story",
+     "right": true
+    },
+    {
+     "expected": "Factory",
+     "said": "Factory › Lines",
      "right": true
     }
    ],
@@ -570,6 +575,7 @@
     "Report ▾: /^Line report/",
     "[file: Line-7-line-report-2026-10-15.pdf]",
     "rail: Factory",
+    "tab: Lines",
     "Report ▾",
     "Report ▾: /^Control room report/",
     "[file: Control-room-report-2026-10-15.pdf]"

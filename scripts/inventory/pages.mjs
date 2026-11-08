@@ -18,14 +18,24 @@
  * studio, a method, a project on one — were taken off on 20 October with
  * the builder itself: docs/DIRECTION.md.) */
 export const PAGES = (sd, cap) => [
-  /* THE FACTORY — THE ONE HOME (23 October: "What's the point of home? ... The control room, is it
-     required?"; one home, a fixed menu): #/ and #/room; what was the control room, with where you were,
+  /* THE ONE HOME IS THE STORY (8 November, docs/STORY.md S5): #/ the Story (#/story an alias), the board of lines the Factory's
+     Lines tab at #/room; the tabs Story · Lines · Set up, the menu's Factory landing on the Story. The home row here checks the
+     frame only — the Story's own things are The Story's row below, so nothing heavy is opened twice. */
+  { name: 'The Story — the one home', path: '#/', must: [
+    { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
+    { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
+    { what: 'the Factory\'s tabs — Story · Lines · Set up', sel: '.nv-tabs .nv-tab', n: 3 },
+    { what: 'its own tabs — Story · Lines · Set up, Story on (8 November, S5: Home is the Story)', sel: '.nv-tabs .nv-tab.is-on', text: /^Story$/ },
+    { what: 'the Story\'s header — Run an update the one primary', sel: '.part-head .btn-primary', text: /Run an update/ },
+  ] },
+  /* THE BOARD OF LINES (23 October: "What's the point of home? ... The control room, is it required?"; one home, a fixed menu —
+     and since 8 November the Factory's Lines tab at #/room, moved whole from #/): what was the control room, with where you were,
      Line Talk, and the menu and its own tabs that say where you are */
-  { name: 'Factory — the one home', path: '#/', must: [
+  { name: 'Factory › Lines — the board', path: '#/room', must: [
     { what: 'its heading', sel: '.home h1', text: /^Factory$/ },
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
     { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
-    { what: 'its own tabs — Overview · Story · Set up, Overview on (27 October: every line\'s machines and programs on the line)', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
+    { what: 'its own tabs — Story · Lines · Set up, Lines on (8 November, S5; 27 October: every line\'s machines and programs on the line)', sel: '.nv-tabs .nv-tab.is-on', text: /^Lines$/ },
     { what: 'Line Talk — start one, or carry on the latest', sel: '.home-talk .fd-talk-start', text: /Start a Line Talk/ },
     { what: 'carry on the latest Line Talk', sel: '.home-talk .fd-talk-on', text: /^Carry on: / },
     /* the page header since B3: the band's two report buttons are its Report ▾ */
@@ -440,8 +450,10 @@ export const PAGES = (sd, cap) => [
     { what: 'a state in each of the five colours, with its word', sel: '.parts p .part-tag', n: 5 },
     { what: 'the app\'s eleven tools, from the catalogue', sel: '.parts .part-row', n: 14 },
   ] },
-  { name: 'The Story', path: '#/story', must: [
-    /* 8 November, docs/STORY.md: the client's continuous journey — the brief, the four figures, since the last update, the chapters */
+  { name: 'The Story', path: '#/', must: [
+    /* 8 November, docs/STORY.md: the client's continuous journey — the brief, the four figures, since the last update, the chapters;
+       at #/ since S5 (#/story an alias) */
+    { what: 'the Story tab on, the Factory lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Story$/ },
     { what: 'the brief and the chapters said', sel: '.pace-lede', text: /Why is Line 7 losing output\?/ },
     { what: 'the four figures — found so far · biggest loss · being fixed · proved', sel: '.st-tiles .ln-tile', n: 4 },
     { what: 'since the last update', sel: '[data-story-since]' },

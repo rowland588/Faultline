@@ -32,8 +32,8 @@ const tap = async (what, loc) => {
 };
 const type = async (what, loc, text) => { await loc.fill(text); typed++; say(`  type ${typed}: ${what} = "${text}"`); };
 
-say('STEP 1 — open the app (empty device)');
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
+say('STEP 1 — open the app (empty device) — the board of lines, the Factory\'s Lines tab (#/room since 8 November; #/ is the Story)');
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 say(`  screen: ${await shot('home')} · on screen: ${JSON.stringify(await see())}`);
 
 say('STEP 2 — set up a line');
@@ -116,7 +116,7 @@ await page.waitForTimeout(1500);
 say(`  screen: ${await shot('analyse')} · says: ${JSON.stringify((await page.locator('.wrap').innerText()).replace(/\s+/g, ' ').slice(0, 400))}`);
 await page.goto(`${BASE}/#/lines/${wsId}`); await page.waitForTimeout(1500);
 say(`  the line's page: ${await shot('line-after')} · says: ${JSON.stringify((await page.locator('.wrap').innerText()).replace(/\s+/g, ' ').slice(0, 600))}`);
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(1500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(1500);
 say(`  the control room: ${await shot('home-after')} · says: ${JSON.stringify((await page.locator('.wrap').innerText()).replace(/\s+/g, ' ').slice(0, 600))}`);
 
 say(`\nTOTAL: ${taps} taps, ${typed} typed fields, ${log.filter(l => l.includes('DEAD END')).length} dead ends`);

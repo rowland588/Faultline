@@ -104,7 +104,7 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
 /* ---- B2 · 1 every page: the place named, the menu the same everywhere, the scope's own pages its tabs within their size ----
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
-const LIMIT = { factory: 3, line: 8, project: 18 };   /* the factory: Overview · Story · Set up (27 October, the line is home; 8 November, the Story) */
+const LIMIT = { factory: 3, line: 8, project: 18 };   /* the factory: Story · Lines · Set up (27 October, the line is home; 8 November, the Story is home — S5, the board its Lines tab) */
 const MENU = 'Factory · Projects · Tools · Factory reports';
 const ONE_BAR_FACTORY = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
 const ONE_BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* stage-gate project phone bar (A3) */
