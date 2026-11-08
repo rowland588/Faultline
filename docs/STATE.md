@@ -291,6 +291,7 @@ a session that ships something updates this page in the same commit.** The rules
    means, who owes what, the closing line, then the records. Live since 6 November. Other papers
    are unchanged.
 3. **Attachments A2+** — pictures, videos and links on every tool (`docs/ATTACHMENTS.md`); Rowland: a nice-to-have.
+4. **Video intelligence, Phase 6 — designed, not built (8 November)** — a spaghetti diagram and time and motion from a camera on a tripod: `docs/VISION.md` (on-device person tracking recommended, a floor homography, consent, retention, slices V1–V5, Rowland's decisions in §13); nothing built until he says go.
 6. Smaller: spoken number words ("forty") are flagged *unsure* by the grounded check (phones usually write digits);
    the tests' and fixes' evidence doors still use the phone's own camera, not the live one; FC-233's therblig names
    and groups are from knowledge, not checked against Barnes or Niebel (`knowledge/GAPS.md`).
