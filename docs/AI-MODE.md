@@ -89,6 +89,8 @@ export interface CapCall { id: string; name: string; input: unknown }
 | read | `list_calculators` | the calculators there are and what each needs |
 | read | `run_calculator` | a calculator's own sums on given figures — its sentence and figures, nothing kept |
 | read | `tool_records` | a tool's records on a line or project and what each found, in the tool's own sentence |
+| read | `factory_map` | the client's sites › areas › lines › machines, each machine's kind, model and serial with how each is known — only the client of the line or project in hand (docs/FACTORY-KNOWLEDGE.md F2) |
+| read | `resolve` | words the person said ("the scales", "line two", "packaging") into one, several or none of the client's lines, machines, areas or sites — used before acting on anything named; none is said, never assumed |
 | local | `set_focus` | makes a thread the current subject |
 | local | `park_focus` | parks the current thread to come back to |
 | local | `record_observation` | a note on the current thread, saying how it is known |

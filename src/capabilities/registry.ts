@@ -5,12 +5,15 @@ import { find, lineState, listProblems, overdueActions, projectState, storyState
 import { listCalculators, runCalculator, saveCalculation } from './calculators';
 import { openPage, parkFocus, recordObservation, setFocus, startTimer } from './locals';
 import { addPhotoToProblem, raiseProblem, startProject, updateProblem } from './writes';
+import { factoryMapCap, resolveCap } from './factory';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
   find, lineState, listProblems, overdueActions, projectState, storyState, listCalculators, runCalculator, toolRecords,
   setFocus, parkFocus, recordObservation, startTimer, openPage,
   raiseProblem, updateProblem, startProject, saveCalculation, addPhotoToProblem,
+  /* the factory knowledge (docs/FACTORY-KNOWLEDGE.md F2) */
+  factoryMapCap, resolveCap,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);
