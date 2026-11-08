@@ -16715,7 +16715,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .ws-timed.ws { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 380px); column-gap: 20px; align-items: start; grid-auto-flow: row dense; }
   .ws-timed.ws > * { grid-column: 1 / -1; min-width: 0; }
   .ws-timed.ws > .ws-shares { grid-column: 1; }
-  .ws-timed.ws > .ie-says { grid-column: 2; position: sticky; top: 72px; }
+  .ws-timed.ws > .ie-says { grid-column: 2; position: sticky; top: 108px; }
 }
 .ws-timed.co { display: flex; flex-direction: column; }
 .ws-timed.co > .ie-says { order: 1; }
@@ -16751,3 +16751,29 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ws-map.wb > .ie-pic ~ *:not(.ie-says):not(.wb-cost) { order: 2; }
 .ws-map.wb > .wb-cost { margin-bottom: 16px; }
 .ws-map.wb > .wb-legend { order: 0; }
+
+/* ============================================================ T6 — LOGS (docs/TOOLS-DESIGN.md §4, 8 November)
+   The round as before; beside it at a desk the last four weeks as a calendar (tools/checks/LogCalendar), under it on a phone. A cell a day:
+   green all passed, red with how many did not, grey nothing done, faded before the log began — always with its word on hover. */
+.lg-cal { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); margin-bottom: 16px; }
+.lg-cal .lg-h2 { margin: 0; }
+.lg-cal-g { display: flex; flex-direction: column; gap: 4px; }
+.lg-cal-r { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.lg-cal-hd span { text-align: center; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.lg-cal-d { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; aspect-ratio: 1 / 1; min-height: 34px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--line); font-size: var(--t-label); color: var(--ink-2); }
+.lg-cal-n { font-weight: 600; }
+.lg-cal-c { font-size: var(--t-mark); font-weight: 700; }
+.lg-cal-d.is-ok { background: color-mix(in srgb, var(--st-g) 16%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 40%, var(--surface)); color: var(--st-g); }
+.lg-cal-d.is-bad { background: color-mix(in srgb, var(--st-r) 14%, var(--surface)); border-color: var(--st-r); color: var(--st-r); }
+.lg-cal-d.is-none { background: var(--surface); border-style: dashed; color: var(--st-n-ink); }
+.lg-cal-d.is-before, .lg-cal-d.is-future { background: none; border-color: transparent; color: var(--muted); opacity: .55; }
+.lg-cal-say { margin: 4px 0 0; }
+.lg-cal-key { margin: 0; font-size: var(--t-label); }
+.lg-cal-k { display: inline-block; width: 10px; height: 10px; border-radius: var(--radius-xs); vertical-align: middle; border: 1px solid var(--line); }
+.lg-cal-k.is-ok { background: color-mix(in srgb, var(--st-g) 30%, var(--surface)); } .lg-cal-k.is-bad { background: var(--st-r); } .lg-cal-k.is-none { border-style: dashed; }
+@media (min-width: 1100px) {
+  .lg-roundp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 320px); column-gap: 20px; align-items: start; grid-auto-flow: row dense; }
+  .lg-roundp > * { grid-column: 1; min-width: 0; }
+  .lg-roundp > .lg-cal { grid-column: 2; grid-row: 1 / span 6; position: sticky; top: 108px; }
+}
+@media (max-width: 1099px) { .lg-roundp { display: flex; flex-direction: column; } .lg-roundp > .lg-cal { order: 9; } }

@@ -29,6 +29,8 @@ import { logActions, logClosing, logInsights, logSays, logTiles } from './says';
 import { PassAllSheet, RoundCard, type RoundProps } from './RoundParts';
 import { passAllLabel, passAllOffered, passAllPlan } from './passAll';
 import { HistoryPanel } from './HistoryPanel';
+import { LogCalendar } from './LogCalendar';
+import { logOf } from './checks';
 import { ChecksPanel } from './ChecksEditor';
 import { useLogCtx, useNow, useSnags } from './useLogData';
 import { logHref } from './registry';
@@ -104,6 +106,7 @@ function Log({ s, def, can, me }: { s: ToolStudy; def: NonNullable<ReturnType<ty
       ]} />
       {tab === 'round' && (
         <div className="lg-roundp" data-tab="round">
+          <LogCalendar log={logOf(s)} results={s.facts.results} def={def} now={Date.now()} />
           {log0(s).length === 0 && <p className="sub" data-none-checks>Nothing is on the list to check yet — see The checks.</p>}
           {log0(s).length > 0 && (
             <section aria-label="Due now" className="lg-sec">

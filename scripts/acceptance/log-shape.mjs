@@ -491,6 +491,12 @@ if (!SKIP.has('S4')) {
     const x = e.expect, inWeek = e.nowMin <= 7 * 1440;
     const tiles = Object.fromEntries((await tilesOnPage(dp)).map(t => [t[0], t[1]]));
     const says = flat(await dp.locator('[data-says]').innerText());
+    /* T6 (8 November): the last four weeks beside the round — its sentence the calendar module's own counts, done and not passing */
+    {
+      const cal = await dp.evaluate(async ([sid, key]) => { const db = await import('/src/db.ts'); const C = await import('/src/tools/checks/calendar.ts'); const R = await import('/src/tools/checks/registry.ts'); const st = await db.getStudy(sid); const def = R.defOf(key); const c = C.logCalendar(st.agreed.log, st.facts.results, def, Date.now()); return { done: c.done, bad: c.bad }; }, [made.id, e.key]);
+      const calSays = flat(await dp.locator('[data-cal-says]').innerText());
+      ok(calSays.startsWith(`${cal.done} done on`) && (cal.bad ? calSays.includes(`${cal.bad} did not pass`) : !/did not pass/.test(calSays)) && (await dp.locator('[data-cal-day]').count()) === 28, `${tag}: the last four weeks — 28 days, "${calSays}" as the calendar module counts`);
+    }
     if (inWeek && x.expected !== undefined) ok(tiles['done on time'] === `${x.onTime} of ${x.expected}`, `${tag}: "Done on time" is ${x.onTime} of ${x.expected} as hand-worked`, tiles['done on time']);
     if (inWeek && x.missed !== undefined) ok(tiles['missed'] === String(x.missed), `${tag}: ${x.missed} missed`, tiles['missed']);
     if (inWeek && x.failed !== undefined) ok(tiles['failed'] === String(x.failed), `${tag}: ${x.failed} failed`, tiles['failed']);

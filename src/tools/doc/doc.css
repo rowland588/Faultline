@@ -73,3 +73,14 @@
   .dl-page { height: 128px; }
   .dl-use { min-height: 44px; }
 }
+
+/* T7 — THE DOCUMENT WORKSPACE (docs/TOOLS-DESIGN.md §4, 8 November): the reading beside the boxes is the document as it reads — a lifted
+   white page with its own margin, held in view at a desk while the boxes scroll (and scrolling inside itself when it is the longer), so
+   each word typed is seen landing on the page. Presentation only; the same reading (ReadingView) the paper prints. */
+.doc-out { padding: 22px 26px 26px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
+.doc-out::before { content: "As it reads"; display: block; margin: -6px 0 2px; font-size: var(--t-label); font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
+.doc-sec { border: 0; box-shadow: var(--elev); }
+@media (min-width: 1100px) {
+  .doc-out { position: sticky; top: 108px; max-height: calc(100vh - 124px); overflow: auto; }
+}
+@media (max-width: 719px) { .doc-out { padding: 16px; } }
