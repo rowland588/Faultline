@@ -155,7 +155,15 @@ a session that ships something updates this page in the same commit.** The rules
    tiles as icon cards with their change (L5), the papers' tokens (L6), the phone (L7). Each slice its own gate and
    its own merge; `docs/STATE.md` §1 says which is live (L0–L7 live — the look is built; the rule in §0 applies to every page touched from here).
 
-0b. **The enterprise programme — "do them all go" (Rowland, 7 November).** Asked whether the app is a credible global
+0b. **Narrowed, 8 November — the look, not the machinery.** Rowland: *"It was more about the look and feel of an enterprise model rather
+   than the fully loaded components ... We do not need push notifications ... user and team admin. Keep it very basic for myself right
+   now. This isn't going to be a sellable product immediately. It's for myself. So I need to keep it simple and slick."* So **not built**
+   (do not start them without his word): user and team admin, push notifications to a closed phone, SSO, the onboarding demo factory,
+   AI as a selling point. What was built of the basics stays as it is (Excel export, search, the audit trail, the bell). **What remains is
+   presentation only**: the tools' workspaces T4–T7 and the video study (docs/TOOLS-DESIGN.md — layout, never what a tool does; every tool
+   in it is already built and working), then a light polish where a page is cluttered.
+
+0c. **The enterprise programme — "do them all go" (Rowland, 7 November; narrowed by 0b above).** Asked whether the app is a credible global
    enterprise SaaS product, the answer was *not yet — deep and correct, but inconsistent in finish*; four steps were proposed and
    he said do them all, in this order, each slice merged live on its own with its before/after pictures:
    1. **Finish the look** — `docs/ENTERPRISE-UX.md` X2 (the line page: its doors as buttons at the top, simple machine cards,
