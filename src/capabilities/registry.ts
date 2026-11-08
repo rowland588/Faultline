@@ -5,12 +5,13 @@ import { find, lineState, listProblems, overdueActions, projectState, storyState
 import { listCalculators, runCalculator, saveCalculation } from './calculators';
 import { openPage, parkFocus, recordObservation, setFocus, startTimer } from './locals';
 import { addPhotoToProblem, raiseProblem, startProject, updateProblem } from './writes';
+import { adaptDraftCap, createSheet, draftState, fillDraftCap, makeRecord, startDraft, toolCatalogue } from './build';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
-  find, lineState, listProblems, overdueActions, projectState, storyState, listCalculators, runCalculator, toolRecords,
-  setFocus, parkFocus, recordObservation, startTimer, openPage,
-  raiseProblem, updateProblem, startProject, saveCalculation, addPhotoToProblem,
+  find, lineState, listProblems, overdueActions, projectState, storyState, listCalculators, runCalculator, toolRecords, toolCatalogue, draftState,
+  setFocus, parkFocus, recordObservation, startTimer, openPage, startDraft, fillDraftCap, adaptDraftCap, createSheet,
+  raiseProblem, updateProblem, startProject, saveCalculation, addPhotoToProblem, makeRecord,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);

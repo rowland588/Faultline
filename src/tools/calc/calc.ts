@@ -156,6 +156,16 @@ export function startInputs(def: CalcDef): Inputs {
   return out;
 }
 
+/** A NEW CALCULATION'S RECORD — as the calculator's New makes one (CalcScreen NewCalc) and AI Mode's make_record and
+ *  save_calculation (src/capabilities): named, on a line or a project or neither, its inputs the definition's own starting
+ *  points with any given laid over them. */
+export function newCalcStudy(def: CalcDef, o: { id: string; name: string; workspaceId?: string; projectId?: string; now: number; inputs?: Inputs }): ToolStudy {
+  return {
+    id: o.id, tool: 'calc', name: o.name, ...(o.workspaceId ? { workspaceId: o.workspaceId } : {}), ...(o.projectId ? { projectId: o.projectId } : {}),
+    agreed: { calc: { key: def.key, inputs: { ...startInputs(def), ...(o.inputs ?? {}) } } }, facts: {}, uses: [], startedAt: o.now, createdAt: o.now, updatedAt: o.now,
+  };
+}
+
 /** An input as the paper and the page say it: "2.4 hours", "£0.85 a unit", "15%", a choice by its label. */
 export function inputSaid(f: Field, v: Values): string {
   const x = v[f.id];

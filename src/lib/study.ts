@@ -29,7 +29,7 @@ import type { TalkTurn } from '../tools/talk/talk';
 import type { TalkSet } from '../tools/talk/talkSets';
 import type { Attachment } from './attachments';
 import type { AgreedHolds, Hold } from '../tools/hold/hold';
-import type { DocPhoto, DocSigned, DocValues } from '../tools/doc/types';
+import type { CustomDef, DocPhoto, DocSigned, DocValues } from '../tools/doc/types';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
@@ -1247,6 +1247,9 @@ export interface StudyFacts {
   /** A DOCUMENT's photos (src/tools/doc): an id-keyed list, so two phones adding photos to one document both keep theirs; the files are
    *  in the media store and go to the cloud with the document (cloud/mappers studies mediaKeys, supabase/DOC_PHOTOS.sql). */
   docPhotos?: DocPhoto[];
+  /** A CUSTOM SHEET's structure (src/tools/doc/custom; AI Mode, 8 November): the sections, boxes and code-worked metrics of a
+   *  document described in conversation — this record's own, read by the document shape as its definition (docDefOf). */
+  customDef?: CustomDef;
   /** PICTURES, VIDEOS AND LINKS on any tool (lib/attachments, docs/ATTACHMENTS.md): an id-keyed list merged across devices, a removal struck — each aimed at a part of the study or the whole of it. */
   attach?: Attachment[];
 }

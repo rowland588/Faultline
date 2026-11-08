@@ -3,7 +3,7 @@
  * record the way the calculator's New does (tools/calc/CalcScreen NewCalc), so it shows in Manual Mode with its sentence and paper. */
 import { getProject, getWorkspace, putStudy } from '../db';
 import { CALCS, calcByKey } from '../tools/calc/registry';
-import { inputSaid, runCalc, startInputs } from '../tools/calc/calc';
+import { inputSaid, newCalcStudy, runCalc, startInputs } from '../tools/calc/calc';
 import type { CalcDef, Field, Inputs } from '../tools/calc/types';
 import type { ToolStudy } from '../lib/study';
 import { studyHref } from '../lib/studyLinks';
@@ -96,10 +96,7 @@ export const saveCalculation: Capability = {
     if (input.projectId && (!p || p.deletedAt)) return { ok: false, why: 'There is no project with that id on this device — find it by name first.' };
     const t = ctx.now;
     /* as the calculator's New makes one (tools/calc/CalcScreen NewCalc), with the figures in */
-    const s: ToolStudy = {
-      id: uid(), tool: 'calc', name: input.name?.trim() || def.title, ...(line ? { workspaceId: line.id } : {}), ...(p ? { projectId: p.id } : {}),
-      agreed: { calc: { key: def.key, inputs: got.inputs } }, facts: {}, uses: [], startedAt: t, createdAt: t, updatedAt: t,
-    };
+    const s: ToolStudy = newCalcStudy(def, { id: uid(), name: input.name?.trim() || def.title, now: t, inputs: got.inputs, ...(line ? { workspaceId: line.id } : {}), ...(p ? { projectId: p.id } : {}) });
     await putStudy(s);
     const r = runCalc(def, got.inputs);
     const href = studyHref(s);

@@ -38,7 +38,7 @@ import { useAccess, useCanStartProjects } from '../cloud/access';
 import { can as canOf } from '../lib/access';
 import { rateForCount } from '../ui/ShiftLosses';
 import { dur, flowFigures, share } from '../tools/valuestream/steps';
-import { changeoverFigures, changeoverSays, figuresOf, mins, mustComeIn } from '../tools/changeover/changeover';
+import { changeoverFigures, changeoverSays, figuresOf, mins, mustComeIn, newChangeoverStudy } from '../tools/changeover/changeover';
 import { samplingSays } from '../tools/sampling/sampling';
 import { plural, relAll, span, studyReliabilitySays } from '../tools/reliability/reliability';
 import { chartFigures, chartSays } from '../tools/chart/chart';
@@ -476,9 +476,7 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
       if (isChange) {
         const from = name.trim(), to = machine.trim();
         const std = standards.find(x => !x.deletedAt && x.product.trim().toLowerCase() === to.toLowerCase());
-        const s: ToolStudy = { id: uid(), tool, name: `${from} → ${to}`, product: to,
-          ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}), ...(std ? { standardId: std.id } : {}),
-          facts: { fromProduct: from, toProduct: to, sequence: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
+        const s: ToolStudy = newChangeoverStudy({ id: uid(), from, to, now: t, ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}), ...(std ? { standardId: std.id } : {}) });
         await putStudy(s);
         setName(''); setMachine(''); onClose();
         nav(studyHref(s));

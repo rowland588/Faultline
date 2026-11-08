@@ -82,7 +82,7 @@ describe('runCall', () => {
     const { reg, a } = await seedTwoLines();
     const client = ctx({ level: 'client' });
     for (const c of reg.CAPABILITIES.filter(x => x.kind === 'read')) {
-      const input = c.name === 'find' ? { words: 'line' } : c.name === 'line_state' ? { lineId: a.id } : c.name === 'tool_records' ? { lineId: a.id } : c.name === 'project_state' ? null : c.name === 'run_calculator' ? null : {};
+      const input = c.name === 'find' ? { words: 'line' } : c.name === 'line_state' ? { lineId: a.id } : c.name === 'tool_records' ? { lineId: a.id } : c.name === 'project_state' || c.name === 'run_calculator' || c.name === 'draft_state' ? null : {};
       if (input === null) continue;
       expect((await reg.runCall(client, call(c.name, input), { confirmed: false })).ok, c.name).toBe(true);
     }

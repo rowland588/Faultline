@@ -53,11 +53,11 @@ export function scoredSays(s: Pick<ToolStudy, 'agreed'> & Partial<Pick<ToolStudy
   return r ? { text: r.sentence, verdict: r.verdict, tone: r.tone } : { text: `Add ${x.def.noun ?? 'machine'}s and score them.`, verdict: 'Not scored', tone: 'n' };
 }
 
-export function newScoredStudy(def: ScoredDef, o: { name: string; workspaceId: string; projectId?: string; now: number }): ToolStudy {
+export function newScoredStudy(def: ScoredDef, o: { name: string; workspaceId: string; projectId?: string; now: number; id?: string }): ToolStudy {
   const start = def.matrix?.start();
   const cards = def.register?.start();
   return {
-    id: uid(),
+    id: o.id ?? uid(),
     tool: 'scored',
     name: o.name,
     workspaceId: o.workspaceId,

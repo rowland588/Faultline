@@ -36,6 +36,7 @@ import { StudyBand, removeStudy, StudyRowName } from '../../ui/StudyActs';
 import { UsedFor, WhereItSits, useBetter } from '../../ui/StudyPlace';
 import { raisedFrom } from '../losses/lossLean';
 import { docByKey, docGroups } from './registry';
+import { CUSTOM_KEY, CUSTOM_LIST_DEF, docDefOf } from './custom';
 import { docSays, newDocStudy, runDoc, studyPhotos, studyRaw, withValue } from './doc';
 import { useDocCtx } from './context';
 import { DocForm } from './DocForm';
@@ -83,7 +84,7 @@ function DocListRow({ s, withTitle }: { s: ToolStudy; withTitle: boolean }) {
   const may = s.projectId ? jobCan : OWNER;
   const [naming, setNaming] = useState(false);
   const said = docSays(s);
-  const def = docByKey(s.agreed?.doc?.def);
+  const def = docDefOf(s);
   if (naming) return <li className="lt-li is-naming" data-study={s.id}><StudyRowName s={s} onDone={() => setNaming(false)} /></li>;
   return (
     <li className="lt-li" data-study={s.id}>
@@ -210,12 +211,14 @@ function DocThumb({ def }: { def: DocDef }) {
 /* ------------------------------------------------------- one kind's list */
 
 function DocList({ docKey }: { docKey: string }) {
-  const def = docByKey(docKey);
+  /* a custom sheet carries its own boxes: its kind's page lists them, and New is AI Mode's (it is built in conversation) */
+  const custom = docKey === CUSTOM_KEY;
+  const def = custom ? CUSTOM_LIST_DEF : docByKey(docKey);
   const list = useDocs();
   const { shown: all, onLine, inP, scope, setScope } = useShown(list);
   const lines = useFactoryLines(onLine);
   const mayP = useAccess(inP.id ?? '');
-  const mayAdd = !inP.id || mayP.edit;
+  const mayAdd = !custom && (!inP.id || mayP.edit);
   const [adding, setAdding] = useState(() => asked('add') === '1');
   const shown = all.filter(s => s.agreed?.doc?.def === docKey);
   const lineName = onLine ? lines.find(l => l.id === onLine)?.name ?? 'this line' : undefined;
@@ -326,7 +329,7 @@ function DocRecord({ id }: { id: string }) {
         <button type="button" className="btn" onClick={() => nav('/doc')}>Every document</button></div>
     );
   }
-  const def = docByKey(s.agreed?.doc?.def);
+  const def = docDefOf(s);
   if (!def) {
     return (
       <div className="wrap ie"><h1>{s.name || 'A document'}</h1><p className="sub">{s.agreed?.doc ? 'Its kind of document isn’t in this version of the app — a newer build has it. Nothing has been lost: what was typed is kept.' : 'It has no kind of document yet.'}</p>
@@ -422,6 +425,12 @@ function Record({ s, def, can, me }: { s: ToolStudy; def: DocDef; can: ReturnTyp
       <StudyBand page={page} s={s} what={def.title} canEdit={can.edit && !closed} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where">{def.question}</p>
+        {def.key === CUSTOM_KEY && s.facts.customDef && (
+          <p className="sub doc-custom" data-doc-custom>
+            A custom sheet, built in AI Mode for this record: {s.facts.customDef.sections.map(x => `${x.title} (${x.fields.map(f => f.label).join(', ')})`).join(' · ')}
+            {(s.facts.customDef.metrics ?? []).length ? <> — metrics worked out by Faultline: {(s.facts.customDef.metrics ?? []).map(m => m.name).join(', ')}</> : null}.
+          </p>
+        )}
         <WhereItSits s={s} can={can} />
       </div>
       <SignBox def={def} run={run} canAgree={can.agree && !closed} canEdit={can.edit} {...(me ? { me } : {})} onSign={sign} onUnsign={unsign} />
