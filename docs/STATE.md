@@ -148,6 +148,15 @@ a session that ships something updates this page in the same commit.** The rules
   evidence verified, never works out a figure and never builds methods, templates or tools. Voice is the phone's own, in and out.
   The Story's brief uploaded and split into asks (S6–S7, tasks `brief-read` and `brief-asks`) beside it. Proved by
   `scripts/acceptance/ai-mode.mjs` and `story-brief.mjs`. Off by the device's switch or `ASSIST_COLLEAGUE_ENABLED` on the server.
+- **AI Mode's memory — phase 5a (8 November, docs/AI-MODE.md §9).** *Personal*: **How I work** — the person's words, methods,
+  report style and anything to always remember, four boxes of at most 1,900 characters in all, kept on the profile
+  (`supabase/PREFERENCES.sql` — `profiles.preferences` and `set_my_preferences`; **written, not yet applied**) and cached on the
+  device (`lib/preferences`); the sheet `ui/PreferencesSheet` from the account menu and AI Mode's More ▾; sent with every question
+  and placed by the gateway beside the threads (`colleagueAssist` readColleagueAsk / colleagueMessages — **the gateway needs
+  redeploying**); the write capability `remember_preference` adds a line when the person says yes to its card. *Project*: the read
+  capability `recall` searches earlier AI Mode and Line Talk conversations in code, best and newest first, never across clients.
+  *Technical*: `knowledge/` and the calculators. Recording is not training. Unit tests: `src/lib/__tests__/preferences.test.ts`,
+  `src/capabilities/__tests__/memory.test.ts`, the gateway's and the loop's.
 - **The AI toolbox (8 November).** Rowland: *"Go ahead with a AI toolbox"*. Tools has a shelf of its own — every place a model is used
   (Line Talk; talking a process flow chart, spaghetti diagram or value stream in; the video study's Name the work from the frames; the
   voice note in a form), each saying what it does, what it sends and to whom, and what it never does; those tools wear an AI mark on

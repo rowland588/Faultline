@@ -89,6 +89,7 @@ export interface CapCall { id: string; name: string; input: unknown }
 | read | `list_calculators` | the calculators there are and what each needs |
 | read | `run_calculator` | a calculator's own sums on given figures — its sentence and figures, nothing kept |
 | read | `tool_records` | a tool's records on a line or project and what each found, in the tool's own sentence |
+| read | `recall` | searches the earlier conversations (AI Mode's and Line Talk's) in code — never across clients (§9) |
 | local | `set_focus` | makes a thread the current subject |
 | local | `park_focus` | parks the current thread to come back to |
 | local | `record_observation` | a note on the current thread, saying how it is known |
@@ -99,6 +100,7 @@ export interface CapCall { id: string; name: string; input: unknown }
 | write | `start_project` | starts a project of one of the eight methods on a line |
 | write | `save_calculation` | keeps a calculator's figures as a record |
 | write | `add_photo_to_problem` | puts a photo from the conversation on a problem |
+| write | `remember_preference` | adds a line to the person's own How I work (§9) — a card saying exactly what will be added |
 
 A new capability is added in `src/capabilities` with its schema in `schemas.ts`, its unit tests and its card's
 wording. It is built on the functions Manual Mode already uses — never a second data model.
@@ -171,13 +173,37 @@ long conversation.
 
 ## 9. Memory and learning
 
-- **Project intelligence is the records** — problems, studies, actions, the Story. The colleague reads them; it keeps
-  no second copy.
-- **Personal** — how a person likes to work — is a preferences record, later.
-- **Technical** — the methods and the industry — is `knowledge/`.
-- **A task done often** may be proposed as a new native capability, and becomes one only through review: the tool
-  standard, its tests, the gate and Rowland's approval. Recording a conversation is not training, and retrieving a
-  record is not learning.
+Three kinds of memory, each kept where it already lives — none of them a model's.
+
+- **Personal — How I work** (built 8 November, phase 5a). The person's own words in four boxes: *The words I use* ("the
+  line" for a production line, the CW for the checkweigher, a machine's nickname), *How I like to work*, *How I like a
+  report*, *Always remember* — at most 1,900 characters in the boxes, 2,000 with their labels. Kept on the profile
+  (`profiles.preferences`, written only through `set_my_preferences`, security definer, the caller's own row —
+  `supabase/PREFERENCES.sql`, the shape of `BRAND.sql`) and cached on the device (`lib/preferences`, read from the
+  profile by `cloud/admin` useProfile; a profile read before the column exists leaves the device's copy alone). Typed in
+  the **How I work** sheet (`ui/PreferencesSheet`) from the account menu and from AI Mode's More ▾; or added a line at a
+  time when the person says "remember I call the checkweigher the CW" — the colleague proposes `remember_preference`, a
+  **write**: its card says exactly what will be added and under which box, and nothing is kept until Do it. The colleague
+  is sent it with every question (`preferences` on the request; the gateway's `readColleagueAsk` holds it to 2,000
+  characters and `colleagueMessages` puts it after the newest turn, beside the threads, as *HOW ROWLAND WORKS — his own
+  words; follow them unless they conflict with the rules*). It is what he told it, never a fact about a factory, and
+  Manual Mode never reads it.
+- **Project — the records, and recall.** Problems, studies, actions, the Story: the colleague reads them through the
+  capabilities and keeps no second copy. What was *said* is the conversations themselves — AI Mode's (`talk` studies with
+  `facts.colleague`) and Line Talk's — and **`recall`** searches them in code (no model, no index): each subject's title,
+  its notes with how each was known, the person's own turns, and Line Talk's turns, scored by the search box's own
+  `matchScore` (`lib/jumpTo` — a real match, never scattered letters; for a question with other words, the words of
+  three letters and more that matter), best first and newest first among equals, each with its day, its conversation
+  and a link to open it (`/ai?c=<id>`, or the Line Talk). **Never across clients**: when the conversation in hand is on
+  a line (its current subject's line or project), only conversations about that client's lines come back — a subject on
+  another client's line is left out, a conversation's turns only when every line it touched is this client's — and a
+  conversation about no line is the person's own and comes back. The conversation in hand is never searched. The
+  colleague is told to use it whenever the person refers back ("what did we say about…", "last week").
+- **Technical — the methods and the industry** — is `knowledge/` and the calculators (`list_calculators`,
+  `run_calculator`): the figures are always theirs.
+- **Recording is not training.** Nothing said in AI Mode or Line Talk changes a model, and retrieving a record is not
+  learning. **A task done often** may be proposed as a new native capability, and becomes one only through review: the
+  tool standard, its tests, the gate and Rowland's approval.
 
 ## 10. The brief
 
@@ -198,7 +224,7 @@ against what was asked. No brief is never a stopper.
 
 - **Always listening** — a conversation that hears with the screen off or the phone locked.
 - **A native wrapper** — only if field-testing shows it is needed.
-- **Semantic search** — no embedding provider without Rowland's word; `find` reads names.
+- **Semantic search** — no embedding provider without Rowland's word; `find` reads names and `recall` reads words.
 - **Computer vision** beyond the video study's *Name the work from the frames*. The video study's motion reading is
   the foundation; a spaghetti diagram from video needs a person tracked and the floor calibrated, and rules for
   consent and how long footage is kept, before anything is built.
