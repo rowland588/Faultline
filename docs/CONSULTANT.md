@@ -1,4 +1,4 @@
-# Faultline as Rowland's consultancy instrument — the bigger shape (8 November, a design to agree; nothing built)
+# Faultline as Rowland's consultancy instrument — the bigger shape (8 November; cut back the same day at his word)
 
 Rowland, 8 November, after three home-page options were drawn: *"No ... we need to think bigger ... We have great tools. We do have a
 great user interface. What is missing is the customer. And how the app operates to service the customer. The customer is me ... when I
@@ -72,3 +72,21 @@ Plus **Present**: any of these on screen, full page, no menus, for the meeting i
 - Which papers does he hand clients today, and how often? An example of one he is proud of would set the standard.
 - Does the fee belong in the app (benefits against fee, ROI), or stay outside it?
 - Does the client ever log in to see it, or is everything handed over as papers and Present?
+
+## 7. His answers, and the shape cut back — the same day
+
+Rowland: *"I actually think it went too far off."* His answers: a client may have **more than one site** in an engagement — *"Yes,
+possibly"*; an engagement **holds several projects and studies** — *"Yes"*; the papers he hands clients are **sporadic** — *"Got no idea"*
+(so reports stay on demand, never a schedule the app imposes); **no fee** in the app; the client logging in to a client view is for
+later — *"don't do number 5 yet. We need to concentrate on what's good for me."*
+
+So what stands, smallest first:
+
+- **K1 · Client, site and area on the lines** — what he builds when he walks in: *"I go in, I build what I see, an area, production lines
+  within the area."* Each line says its client, its site and its area (words on the line, like its type — no new record); Set up the
+  lines asks them; the Factory page is titled by the client and shows the lines site by site, area by area; with more than one client,
+  the client is picked at the top of the Factory page. Nothing else moves.
+- **K2 · The engagement** — the client's brief holding its projects and studies, on its sites. Designed after K1 is in use.
+- Then, only when he asks: what is worth what (identified → realised), the engagement's papers, Present.
+
+Dropped: the fee and benefits against it, scheduled reporting, the client logging in.
