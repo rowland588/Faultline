@@ -187,7 +187,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
   const when = whenIn(seq);
 
   return (
-    <div className="wrap ie co">
+    <div className="wrap ie co ws-timed">
       {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6; lib/ie/changeoverLean):
           the band, the tiles in the strip's place — every figure it held
           among them, the money with them — the action plan and the closing

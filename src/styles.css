@@ -16698,3 +16698,25 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .now-door, .fq-all, .mp-tool, .tc-open, .tour-b, .lt-zoom-b, .lt-zoom-n, .pl-eyebrow-a { display: inline-flex; align-items: center; }
   .mp-tool, .wc-text { text-align: left; }
 }
+
+/* ============================================================ T3 — THE TIMED STUDIES (docs/TOOLS-DESIGN.md §4, 8 November)
+   Presentation only, the same elements placed. What it says is a panel (the sentence in ink, the findings with their dots) as on the
+   measurement studies. Work sampling at a desk: the live moment first and full width, then its shares — the canvas — with What it
+   says beside them. SMED: its grid and ladder first (the canvas needs the width), What it says under them, the rest after. */
+.ws-timed .ie-says { margin: 0 0 16px; padding: 14px 16px 12px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
+.ws-timed .ie-says::before { content: "What it says"; display: block; margin-bottom: 6px; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+.ws-timed .ie-say { font-weight: 600; max-width: none; }
+.ws-timed .ie-signals { gap: 0; margin-top: 8px; border-top: 1px solid var(--line-row); }
+.ws-timed .ie-signal { position: relative; padding: 7px 0 7px 16px; border-bottom: 1px solid var(--line-row); line-height: 1.4; }
+.ws-timed .ie-signal::before { content: ""; position: absolute; left: 2px; top: 13px; width: 7px; height: 7px; border-radius: var(--radius-round); background: var(--st-n); }
+.ws-timed .ie-signal.is-r::before { background: var(--st-r); } .ws-timed .ie-signal.is-a::before { background: var(--st-a); } .ws-timed .ie-signal.is-g::before { background: var(--st-g); }
+.ws-timed .ws-shares { padding: 16px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); margin-bottom: 16px; }
+@media (min-width: 1100px) {
+  .ws-timed.ws { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 380px); column-gap: 20px; align-items: start; grid-auto-flow: row dense; }
+  .ws-timed.ws > * { grid-column: 1 / -1; min-width: 0; }
+  .ws-timed.ws > .ws-shares { grid-column: 1; }
+  .ws-timed.ws > .ie-says { grid-column: 2; position: sticky; top: 72px; }
+}
+.ws-timed.co { display: flex; flex-direction: column; }
+.ws-timed.co > .ie-says { order: 1; }
+.ws-timed.co > .ie-pic ~ *:not(.ie-says) { order: 2; }

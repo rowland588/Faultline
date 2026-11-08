@@ -77,8 +77,8 @@ and that is said in the commit — and ends with before and after at 1440 and 39
 | Slice | Family | What | Status |
 |---|---|---|---|
 | **T1** | Measurement studies | the canvas first beside *What it says*, the entry under it, the findings a list with dots, the readings a `.dt` table | in progress |
-| **T2** | Calculators | the figures in groups as a side panel, the answer and its picture as the canvas, the what-if beside it | |
-| **T3** | Timed studies | the live control at the top of the canvas, the grid as the canvas, the interpretation panel | |
+| **T2** | Calculators | the figures in groups as a side panel, the answer and its picture as the canvas, the what-if beside it | built 7 November |
+| **T3** | Timed studies | the live control at the top of the canvas, the grid as the canvas, the interpretation panel | **first pass 8 November** (`.ws-timed`): What it says a panel with its dots; work sampling — the live moment first, its shares the canvas with What it says beside them at a desk; SMED — the grid and ladder first, What it says under them. Reliability (its watch already first) and the loss count (its lean page already in panels) unchanged; the video study next |
 | **T4** | Registers | the record as a table workspace with the matrix or tree as its canvas, the list page with a preview of each | |
 | **T5** | Maps and boards | one order of figures, canvas, says across the five | |
 | **T6** | Logs | the round as now; at a desk the history as a calendar beside it | |

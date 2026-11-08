@@ -90,7 +90,7 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
   }));
 
   return (
-    <div className="wrap ie ws">
+    <div className="wrap ie ws ws-timed">
       {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6; lib/ie/samplingLean): the
           band, the tiles in the strip's place — the biggest share not the
           work in money too — the action plan and the closing line */}
