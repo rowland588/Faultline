@@ -16688,3 +16688,13 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fy-who { display: flex; flex-direction: column; gap: 12px; }
 .fy-type { display: flex; gap: 8px; }
 .fy-type .text-input { flex: 1; min-height: 44px; }
+
+/* X8, THE PHONE REVIEW (8 November — scripts/audit.mjs --fit over 450 screens: nothing off the side, no words cut; 199 controls
+   under a fingertip). The shared parts a thumb presses most are made a thumb's height on a phone: a fold's toggle, a project's
+   doors on Now, a panel's All ›, a method page's tools, a tool card's Open, a fishbone cause's words, the line tour's buttons,
+   the zoom. A timeline's bars and a heatmap's cells keep their drawn size — the size is the data. */
+@media (max-width: 719px) {
+  .fold-toggle, .now-door, .fq-all, .mp-tool, .tc-open, .wc-text, .tour-b, .lt-zoom-b, .lt-zoom-n, .pl-eyebrow-a { min-height: 44px; }
+  .now-door, .fq-all, .mp-tool, .tc-open, .tour-b, .lt-zoom-b, .lt-zoom-n, .pl-eyebrow-a { display: inline-flex; align-items: center; }
+  .mp-tool, .wc-text { text-align: left; }
+}
