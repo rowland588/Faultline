@@ -33,6 +33,8 @@ import { methodOf } from '../lib/planModel';
 import { linesOfClient, sinceOf, sinceSentence, snapshotOf, storySentence, storyTiles } from '../lib/clientStory';
 import { loadFactoryRead } from '../lib/useFactoryRead';
 import { clientShown, storyOfClient } from '../lib/storyPick';
+import { storyAsksState } from '../lib/storyAsks';
+import { askRecordsOf } from '../lib/storyAskRecords';
 import { studyHref, studyLine, studyTitle } from '../lib/studyLinks';
 import { TOOLS, stopsOf, toolSaysOf } from '../screens/ProductionLineScreen';
 import { checkObject, ID } from './check';
@@ -242,10 +244,16 @@ export const storyState: Capability = {
     const story = storyOfClient(studies.filter(s => !s.deletedAt), client);
     const chapters = (story?.facts.chapters ?? []).filter(c => c.approvedAt).sort((a, b) => a.at - b.at);
     const since = sinceOf(snapshot, chapters[chapters.length - 1]?.snapshot);
-    const says = `${story ? '' : `No story has been started for ${client || 'the factory'} yet — these are the figures it would start from. `}${storySentence(snapshot)} ${sinceSentence(since)}`;
+    /* THE BRIEF AND ITS ASKS (docs/STORY.md S8) — each ask's evidence by the Story page's own rules (lib/storyAsks), so the
+       colleague can say what the client asked, what answers it and what is still to show */
+    const brief = story?.agreed?.story
+      ? storyAsksState(story.agreed.story, askRecordsOf({ lines, snapshot, actions: read.actions, snags: read.snags, studies: read.studies, standards: await listAllStandards() }))
+      : undefined;
+    const says = `${story ? '' : `No story has been started for ${client || 'the factory'} yet — these are the figures it would start from. `}${storySentence(snapshot)} ${sinceSentence(since)}${brief ? ` ${brief.says}` : ''}`;
     return {
       ok: true, says,
-      data: { client: client || 'the factory', tiles: storyTiles(snapshot).map(t => ({ figure: t.k, value: t.v, ...(t.of ? { of: t.of } : {}) })), chapters: chapters.length, since: sinceSentence(since) },
+      data: { client: client || 'the factory', tiles: storyTiles(snapshot).map(t => ({ figure: t.k, value: t.v, ...(t.of ? { of: t.of } : {}) })), chapters: chapters.length, since: sinceSentence(since),
+        ...(brief ? { brief: brief.brief, asks: brief.asks, alsoFound: brief.alsoFound } : {}) },
       refs: [{ kind: 'story', id: story?.id ?? 'story', label: story?.name ?? 'The story', href: '/story' }],
     };
   },

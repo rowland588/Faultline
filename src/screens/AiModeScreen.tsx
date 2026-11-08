@@ -26,7 +26,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { nav, useRoute } from '../state/useRoute';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useProjects } from '../lib/useProjects';
-import { Icon } from '../ui/Icon';
+import { Icon, type IconName } from '../ui/Icon';
 import { MoreMenu } from '../ui/parts';
 import { Sheet } from '../ui/Sheet';
 import { Ear, NOTHING_HEARD, joinWords, recognitionOf, troubleSaid, type Trouble } from '../tools/talk/hearing';
@@ -534,6 +534,9 @@ function RefChips({ refs, label = 'Records' }: { refs: readonly CapRef[]; label?
   );
 }
 
+/** A step's mark: done ticked, failed or dropped a warning, the rest a look. */
+const stepIcon = (st: Used['status']): IconName => (st === 'done' ? 'check' : st === 'failed' || st === 'dropped' ? 'warning' : 'search');
+
 function ReplyTurn({ t, here, words, live, onCard, onSuggest, onAgain }: {
   t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void;
 }) {
@@ -553,7 +556,7 @@ function ReplyTurn({ t, here, words, live, onCard, onSuggest, onAgain }: {
           <ul className="ai-steps" aria-label="What it looked at">
             {steps.map(u => (
               <li key={u.callId} className={'ai-step is-' + u.status} data-step={u.name}>
-                <Icon name={u.status === 'done' ? 'check' : u.status === 'failed' || u.status === 'dropped' ? 'warning' : 'search'} size={14} />
+                <Icon name={stepIcon(u.status)} size={14} />
                 <span className="ai-step-w"><b>{u.title}</b> — {u.says}</span>
                 <RefChips refs={u.refs} />
               </li>

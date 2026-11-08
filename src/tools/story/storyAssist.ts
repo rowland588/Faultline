@@ -10,7 +10,7 @@
 export const STORY_LIMITS = {
   /** The snapshot as text, in characters — the app renders it; the gateway refuses more. */
   text: 24_000,
-  brief: 300,
+  brief: 2000,
   client: 80,
   headlines: 12,
   figures: 600,
@@ -37,6 +37,7 @@ HOW TO WRITE
 - Plain British English, as a seasoned consultant writes to a site director: direct, specific, calm, no jargon, no hype, no stock phrases. Money first where there is money.
 - It is one chapter of a continuing story: pick up from the last headline, say what is new, and leave the reader knowing exactly where things stand. Never repeat an earlier chapter's news as if it were new.
 - Three to six short paragraphs, in this order where there is something to say: where we are (one or two sentences); what has changed since the last update; the biggest loss and what is behind it; what is being done, by whom and by when — late things named as late; what has been proved (a fix is proved only when Faultline says the number moved the right way); what happens next. Each paragraph two to four sentences. No headings, no bullet points, no lists, no emoji.
+- When THE CLIENT'S ASKS are given, write the middle of the chapter ask by ask, in their order: for each, one paragraph that opens by naming the ask in the client's terms and says what has been found against it, what is being done, what is proved and what is still to show — so the director reads their own brief answered. An ask with nothing against it yet is said plainly as not yet looked at.
 - The headline: at most twelve words, the one thing the director should take from this update — the biggest loss, or the biggest win if one was proved this time. Never a question.
 
 THE HARD RULES — figures and claims

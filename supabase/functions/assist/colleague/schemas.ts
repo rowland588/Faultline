@@ -68,7 +68,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'story_state',
     kind: 'read',
-    description: 'The client\'s story so far: the four figures (found, biggest loss, being fixed, proved) and what has happened since the last update.',
+    description: 'The client\'s story so far: the four figures (found, biggest loss, being fixed, proved), what has happened since the last update, and the client\'s brief with each of its asks and the evidence against it (found, being done, proved, still to show — the tool that would show it).',
     input_schema: obj({}),
   },
   {
