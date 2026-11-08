@@ -33,7 +33,7 @@ import type { DocPhoto, DocSigned, DocValues } from '../tools/doc/types';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
-export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk', 'reliability', 'chart', 'analysis', 'calc', 'log', 'ledger', 'doc', 'scored', 'board', 'run'] as const;
+export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk', 'reliability', 'chart', 'analysis', 'calc', 'log', 'ledger', 'doc', 'scored', 'board', 'run', 'story'] as const;
 export type StudyTool = typeof STUDY_TOOLS[number];
 
 export const isStudyTool = (v: unknown): v is StudyTool => (STUDY_TOOLS as readonly unknown[]).includes(v);
@@ -634,7 +634,53 @@ export interface LogTag { id: string; checkId: string; at: number; by?: string; 
 
 /** What it is judged against, by tool — each tool its own key, so a new tool
  *  adds one and changes none. */
+/* THE STORY (8 November, docs/STORY.md; supabase/STORY.sql) — one record a client: the brief, and a chapter each time an update is run.
+ * A chapter freezes what was true that day (its snapshot — the figures as the Factory page's readers said them) and says it in words
+ * (its narrative — assembled from the modules' sentences, or drafted by the assistant, and the consultant's to edit). */
+export interface AgreedStory {
+  /** The client, as the lines name it (Workspace.clientName). */
+  client: string;
+  /** The brief, in the client's words — "Why are we losing output in the packing hall?" */
+  brief: string;
+  startedAt: number;
+  closedAt?: number;
+}
+export interface StoryFinding { id: string; what: string; line: string; machine?: string; priority: 'critical' | 'high' | 'low'; late: boolean; owner?: string; poundsDay?: number; words?: string }
+export interface StoryAction { what: string; who: string; due?: string; late: boolean; where?: string; kind: string }
+export interface StoryProved { id: string; what: string; machine: string; line: string; proof: string }
+export interface StorySnapshot {
+  at: number;
+  lines: number;
+  found: { open: number; critical: number; late: number; priced: number; costDay?: number };
+  fixing: { open: number; late: number; nobody: number };
+  proved: number;
+  /** Every open finding, worst first (lib/factoryQuestions wrongOf's order). */
+  findings: StoryFinding[];
+  /** The actions, late first (doingOf's order), the first dozen. */
+  actions: StoryAction[];
+  provedFixes: StoryProved[];
+  /** The tools used on the client's lines: a label and how many records. */
+  toolsUsed: { tool: string; label: string; n: number }[];
+}
+export interface StorySince { from?: number; newFindings: StoryFinding[]; closed: number; newProved: StoryProved[]; newTools: number; costDayBefore?: number }
+export interface StoryChapter {
+  id: string;
+  /** When the update was run. */
+  at: number;
+  /** The chapter before's `at`, or the story's start. */
+  from: number;
+  headline: string;
+  narrative: string[];
+  snapshot: StorySnapshot;
+  since: StorySince;
+  /** Who wrote the first draft. */
+  by: 'assembled' | 'assistant';
+  approvedAt?: number;
+}
+
 export interface StudyAgreed {
+  /** THE STORY (docs/STORY.md). */
+  story?: AgreedStory;
   readings?: AgreedReadings;
   /** W2 — a control chart's agreement (knowledge/specs/FC-086-charts.md). */
   chart?: AgreedChart;
@@ -1078,6 +1124,8 @@ export interface Tap { id: string; at: number; who: string; activity: string; by
 /** What people put in, by tool. Every list is keyed by `id`, so two phones
  *  adding to one study both keep what they added (docs/BUILD.md, 2b). */
 export interface StudyFacts {
+  /** THE STORY's chapters, oldest first (docs/STORY.md). */
+  chapters?: StoryChapter[];
   /** FC-135 — the holds on a line's register (tools/hold): each its own entry, so two phones raising holds both keep theirs. */
   holds?: Hold[];
   readings?: StudyReading[];

@@ -131,7 +131,7 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
 }
 
 /** Each tool's name, as a study of it is called on screen and on paper. */
-export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Line balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count', talk: 'Line Talk', chart: 'Control chart', analysis: 'Analysis', reliability: 'Reliability study', log: 'Check log', scored: 'Scored register', board: 'Board', doc: 'Document' };
+export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { story: 'Story', capability: 'Capability study', balance: 'Line balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count', talk: 'Line Talk', chart: 'Control chart', analysis: 'Analysis', reliability: 'Reliability study', log: 'Check log', scored: 'Scored register', board: 'Board', doc: 'Document' };
 
 /** "Capability study — Weight accuracy 400 g · Weigher 2"; a calculator by its own title: "Kanban sizing — Trays to the packer". */
 export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'> & Partial<Pick<ToolStudy, 'agreed'>>): string =>
@@ -148,6 +148,8 @@ export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'pro
     if (s.projectId) return `/project/${s.projectId}/standard/${s.standardId}${at}`;
     if (s.workspaceId) return `/w/${s.workspaceId}/standards/${s.standardId}${at}`;
   }
+  /* the Story (docs/STORY.md) is one page of the Factory */
+  if (s.tool === 'story') return '/story';
   if (s.tool === 'map') return `/value-stream/${s.id}`;
   /* a calculator is /calc/<which>/<id> (FC-235) */
   if (s.tool === 'calc') return `/calc/${encodeURIComponent(s.agreed?.calc?.key ?? '')}/${s.id}`;

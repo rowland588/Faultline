@@ -64,6 +64,7 @@ const MapScreen = lazy(() => import('./tools/valuestream/MapScreen').then(m => (
 const ChangeoverScreen = lazy(() => import('./tools/changeover/ChangeoverScreen').then(m => ({ default: m.ChangeoverScreen })));
 const AnalysisScreen = lazy(() => import('./tools/analysis/AnalysisScreen').then(m => ({ default: m.AnalysisScreen })));
 const CalcScreen = lazy(() => import('./tools/calc/CalcScreen').then(m => ({ default: m.CalcScreen })));
+const StoryScreen = lazy(() => import('./screens/StoryScreen').then(m => ({ default: m.StoryScreen })));
 const DocScreen = lazy(() => import('./tools/doc/DocScreen').then(m => ({ default: m.DocScreen })));
 const ScoredScreen = lazy(() => import('./tools/scored/ScoredScreen').then(m => ({ default: m.ScoredScreen })));
 const RegisterScreen = lazy(() => import('./tools/registers/RegisterScreen').then(m => ({ default: m.RegisterScreen })));
@@ -203,6 +204,7 @@ function app(route: Route) {
   if (route.name === 'factory') return <FactoryScreen />;
   if (route.name === 'factoryMachines') return <FactoryMachinesScreen />;
   if (route.name === 'allActions') return <EveryActionScreen />;
+  if (route.name === 'story') return <StoryScreen />;
   if (route.name === 'tools') return <ToolsScreen />;
   if (route.name === 'toolWorld' && route.key) return <ToolWorldScreen key={route.key} worldId={route.key} />;
   if (route.name === 'methodPage' && route.key) return <MethodPageScreen key={route.key} methodKey={route.key} />;

@@ -148,6 +148,7 @@ export interface Seeded {
   calcLittleId: string;
   /** DOCUMENTS (FC-240): the charter's worked example on Line 7 (ready to agree), the SIPOC's on no line, the 8D report's on Line 7 (src/tools/doc/defs examples). */
   docCharterId: string;
+  storyId: string;
   docSipocId: string;
   docEightDId: string;
   analysisGaugeId: string;
@@ -1195,6 +1196,20 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     await putStudy({ id: docSipocId, tool: 'doc', name: 'Slicing and packing', agreed: { doc: { def: 'sipoc' } }, facts: { docValues: ex('sipoc') }, uses: [], startedAt: t - 86_400_000, createdAt: t, updatedAt: t });
     await putStudy({ id: docEightDId, tool: 'doc', name: 'Leaking seals, lane 3', workspaceId: ws.id, agreed: { doc: { def: 'eight-d' } }, facts: { docValues: ex('eight-d') }, uses: [], startedAt: t - 7_200_000, createdAt: t, updatedAt: t });
   }
+  /* THE STORY (8 November, docs/STORY.md): the factory's — the smoke seed's lines name no client — with one approved chapter, so the
+     Story page, its report and the scripts have a chapter to read; its snapshot is a small literal, the shape lib/clientStory writes. */
+  const storyId = uid();
+  {
+    const at = t - 4 * 86_400_000;
+    const snapshot = { at, lines: 3, found: { open: 1, critical: 0, late: 0, priced: 0 }, fixing: { open: 4, late: 1, nobody: 1 }, proved: 0,
+      findings: [{ id: 'seed-f1', what: 'seeded snag 0', line: ws.name, priority: 'low' as const, late: false, owner: 'Dave' }],
+      actions: [{ what: 'Changeover 2kg → 1.25kg', who: 'Ilapak UK', due: '2026-11-02', late: true, kind: 'Test' }, { what: 'Train the night shift on the splice', who: 'Rob Scott', due: '2026-11-06', late: false, kind: 'Action' }],
+      provedFixes: [], toolsUsed: [{ tool: 'capability', label: 'Capability study', n: 1 }, { tool: 'changeover', label: 'SMED', n: 1 }] };
+    await putStudy({ id: storyId, tool: 'story', name: 'The factory — the story', agreed: { story: { client: '', brief: 'Why is Line 7 losing output?', startedAt: t - 14 * 86_400_000 } },
+      facts: { chapters: [{ id: uid(), at, from: t - 14 * 86_400_000, headline: 'The line is held by its wrapper; the first week’s findings', by: 'assembled' as const, approvedAt: at,
+        narrative: ['Why is Line 7 losing output. 3 lines running. 1 problem open; 1 action late — Ilapak UK has 1; no fix proved yet.', 'The biggest loss is seeded snag 0 on Line 7 — with Dave; the wrapper holds the line and the first week was spent timing its stops.'],
+        snapshot, since: { newFindings: snapshot.findings, closed: 0, newProved: [], newTools: 2 } }] }, uses: [], startedAt: t - 14 * 86_400_000, createdAt: t, updatedAt: t });
+  }
   /* THE GAUGE STUDIES AND THE SHAPE (W3c, knowledge/specs/FC-119-gauge.md and FC-114-fitting.md): a bench scale read fifty times on its 500.0 g
      test weight, a probe at five references, the daily check weight over 25 days, and the minutes between short stops — the specifications'
      independent cases (cases-w3c.py). Quick sessions, no line. */
@@ -1374,7 +1389,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id, methodProjectId: methodic.id, methodProjectIds: { ...methodProjectIds, 'stage-gate': proj.id },
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, reliabilityLineIds, reliabilityFamilyId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, analysisGaugeId, analysisRangeId, analysisDriftId, analysisShapeId, calcKanbanId, calcOcId, calcLittleId, docCharterId, docSipocId, docEightDId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, reliabilityLineIds, reliabilityFamilyId, chartId, analysisId, analysisGroupsId, analysisTableId, analysisRelateId, analysisGaugeId, analysisRangeId, analysisDriftId, analysisShapeId, calcKanbanId, calcOcId, calcLittleId, docCharterId, docSipocId, docEightDId, storyId,
     line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }

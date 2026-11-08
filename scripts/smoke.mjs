@@ -203,6 +203,7 @@ const ROUTES = [
   ['your factory — the lines, edited', '#/factory'],
   /* every tool, the directory (src/catalogue) — and found by the problem */
   ['every tool — the directory', '#/tools'],
+  ['the story — the client’s journey', '#/story'],
   /* a method's own page (docs/METHODS.md §15) */
   ['a method — its own page', '#/methods/dmaic'],
   ['your factory — adding lines', '#/factory?add=1'],

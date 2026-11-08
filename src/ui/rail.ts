@@ -124,6 +124,7 @@ const KEY_OF: Record<string, string> = {
 export function hereOf(route: Route): string {
   switch (route.name) {
     case 'home': return 'home';
+    case 'story': return 'story';
     case 'start': return 'start';
     case 'projects': case 'methodPage': return 'projects';
     case 'quickSnags': return 'quicksnags';
@@ -350,13 +351,15 @@ export function scopeTabs(groups: RailGroup[]): RailLine[] {
  *  Programs. I don't need that because it already exists on the lines"). Every machine, program and problem is on its
  *  line's page; the pages that listed them all (#/machines, #/programs, #/snags, #/actions) keep their addresses for
  *  old links and the Every report sheet, and light the Factory. */
-export const FACTORY_PAGES = new Set(['home', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
+export const FACTORY_PAGES = new Set(['home', 'story', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
 const OFF_THE_MENU = new Set(['allmachines', 'lineprograms', 'quicksnags', 'allactions']);
 /** What the context bar calls those pages — lit as the Overview in the menu, but never named "Overview" in the bar,
  *  a word that is not true there (Factory › Problems, Factory › Programs …). */
 export const OFF_THE_MENU_NAME: Record<string, string> = { allmachines: 'Machines', lineprograms: 'Programs', quicksnags: 'Problems', allactions: 'Actions' };
 export const factoryTabs = (here: string): RailLine[] => [
   plain('home', 'Overview', '/room', here, 'home'),
+  /* THE STORY (8 November, docs/STORY.md): the client's continuous journey, the page opened in front of them */
+  plain('story', 'Story', '/story', here, 'board'),
   plain('factory', 'Set up', '/factory', here, 'machine'),
 ];
 

@@ -440,6 +440,14 @@ export const PAGES = (sd, cap) => [
     { what: 'a state in each of the five colours, with its word', sel: '.parts p .part-tag', n: 5 },
     { what: 'the app\'s eleven tools, from the catalogue', sel: '.parts .part-row', n: 14 },
   ] },
+  { name: 'The Story', path: '#/story', must: [
+    /* 8 November, docs/STORY.md: the client's continuous journey — the brief, the four figures, since the last update, the chapters */
+    { what: 'the brief and the chapters said', sel: '.pace-lede', text: /Why is Line 7 losing output\?/ },
+    { what: 'the four figures — found so far · biggest loss · being fixed · proved', sel: '.st-tiles .ln-tile', n: 4 },
+    { what: 'since the last update', sel: '[data-story-since]' },
+    { what: 'the chapters, the seeded one among them', sel: '.st-ch', n: 1 },
+    { what: 'Run an update', sel: '.part-head .btn-primary', text: /Run an update/ },
+  ] },
   { name: 'Tools — the library', path: '#/tools', must: [
     { what: 'the problem, asked first', sel: '.et-search input' },
     /* 7 November (Rowland: "you've split down every single functionality within its tool and then called each functionality a
