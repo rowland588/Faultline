@@ -87,7 +87,7 @@ export function ToolsScreen() {
                 <dt>Never</dt><dd>{a.never}</dd>
                 {a.where && <><dt>Where</dt><dd>{a.where}</dd></>}
               </dl>
-              {a.to && <button type="button" className="btn btn-sm" onClick={() => nav(a.to as string)}>{a.id === 'video-name' ? 'Video studies ›' : 'Open Line Talk ›'}</button>}
+              {a.to && <button type="button" className="btn btn-sm" onClick={() => nav(a.to as string)}>{a.id === 'video-name' ? 'Video studies ›' : a.id === 'story-draft' ? 'Open the Story ›' : 'Open Line Talk ›'}</button>}
             </div>
           ))}
         </div>

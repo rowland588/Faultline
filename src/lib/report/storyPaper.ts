@@ -9,7 +9,7 @@ import { font, rows, text, wrap } from './blocks';
 import { leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles } from './lean';
 import { bandPage, type LeanAction } from '../lean';
 import { preparedByBlocks } from './cover';
-import { BRAND, INK, INK2, LINE, MUTED } from '../reportKit';
+import { DANGER, INK, INK2, LINE, MUTED, WARN } from '../reportKit';
 import { fmtGBP } from '../cost';
 import { dayWord, dayWordYear, storySentence, storyTiles, unsureIn } from '../clientStory';
 
@@ -35,7 +35,7 @@ export function storyBlocks(i: StoryPaperInputs): Block[] {
   out.push(leanHead(`This update — ${dayWordYear(c.at)}`, c.by === 'assistant' ? 'drafted by the assistant, edited by the consultant' : undefined));
   for (const p of c.narrative) out.push(text({ text: p, size: 9.5, colour: INK, after: 6 }));
   const unsure = unsureIn(c.narrative, s);
-  if (unsure.length) out.push(text({ text: `Check: ${unsure.map(u => (/^\d+$/.test(u) && Number(u) >= 100 ? `£${Number(u).toLocaleString('en-GB')}` : u)).join(', ')} — not among the figures the tools recorded.`, size: 8, colour: '#b45309', after: 8 }));
+  if (unsure.length) out.push(text({ text: `Check: ${unsure.map(u => (/^\d+$/.test(u) && Number(u) >= 100 ? `£${Number(u).toLocaleString('en-GB')}` : u)).join(', ')} — not among the figures the tools recorded.`, size: 8, colour: WARN, after: 8 }));
 
   /* WHAT WE HAVE FOUND */
   out.push(leanHead('What we have found', `${plural(s.findings.length, 'problem')} open${s.found.costDay != null ? ` · ${fmtGBP(s.found.costDay)} a day` : ''}`));
@@ -50,10 +50,10 @@ export function storyBlocks(i: StoryPaperInputs): Block[] {
         font(d, 9.5, 'bold', INK); d.text(t, fr.x, y + 13);
         let yy = y + 13 + (t.length - 1) * 12;
         if (f.words) { const w = wrap(d, f.words, fr.w - 110, 8); font(d, 8, 'normal', INK2); d.text(w, fr.x, yy + 11); yy += w.length * 10; }
-        font(d, 8, 'bold', f.priority === 'critical' || f.late ? '#c4281c' : INK2);
+        font(d, 8, 'bold', f.priority === 'critical' || f.late ? DANGER : INK2);
         d.text(`${f.line}${f.machine ? ` · ${f.machine}` : ''}`, fr.x + fr.w, y + 13, { align: 'right' });
         font(d, 9.5, 'bold', INK); d.text(f.poundsDay != null ? `${fmtGBP(f.poundsDay)} a day` : 'not priced', fr.x + fr.w, y + 25, { align: 'right' });
-        if (f.late || f.owner) { font(d, 7.5, 'normal', f.late ? '#c4281c' : MUTED); d.text(`${f.late ? 'late' : ''}${f.late && f.owner ? ' · ' : ''}${f.owner ?? ''}`, fr.x + fr.w, y + 35, { align: 'right' }); }
+        if (f.late || f.owner) { font(d, 7.5, 'normal', f.late ? DANGER : MUTED); d.text(`${f.late ? 'late' : ''}${f.late && f.owner ? ' · ' : ''}${f.owner ?? ''}`, fr.x + fr.w, y + 35, { align: 'right' }); }
       },
     })),
     after: 'm',
@@ -102,6 +102,5 @@ export async function makeStoryPaper(i: StoryPaperInputs): Promise<jsPDF> {
   /* page numbers at the foot */
   const pages = doc.getNumberOfPages();
   for (let p = 1; p <= pages; p++) { doc.setPage(p); font(doc, 7, 'normal', MUTED); doc.text(`${i.story.client || 'The story'} · chapter ${i.chapters.filter(x => x.approvedAt && x.at <= i.chapter.at).length || 1} · page ${p} of ${pages}`, W / 2, H - 14, { align: 'center' }); }
-  void BRAND;
   return doc;
 }

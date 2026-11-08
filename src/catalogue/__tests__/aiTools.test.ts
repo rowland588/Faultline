@@ -5,7 +5,7 @@ import { APP_TOOLS } from '../registry';
 
 describe('the AI toolbox', () => {
   it('lists each place a model is used, each saying what it does, what it sends and what it never does', () => {
-    expect(AI_TOOLS.map(a => a.id)).toEqual(['talk', 'talk-in', 'video-name', 'voice-note']);
+    expect(AI_TOOLS.map(a => a.id)).toEqual(['talk', 'talk-in', 'video-name', 'story-draft', 'voice-note']);
     for (const a of AI_TOOLS) for (const k of ['does', 'sends', 'never'] as const) expect(a[k].length, `${a.id} ${k}`).toBeGreaterThan(20);
   });
   it('marks only tools that exist', () => {

@@ -291,9 +291,9 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'reports', counts: {}, late: 0, machines: [] })).filter(l => l.on).map(l => l.label)).toEqual(['Reports']);
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'reports', counts: {}, late: 0 })).filter(l => l.on).map(l => l.label)).toEqual([]);
   });
-  it('the factory: Overview · Set up — the old lists of every machine, program, problem and action under it, lighting the Factory', () => {
-    expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Overview', '/room', false], ['Set up', '/factory', true]]);
-    expect([...FACTORY_PAGES]).toEqual(['home', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
+  it('the factory: Overview · Story · Set up — the old lists of every machine, program, problem and action under it, lighting the Factory', () => {
+    expect(factoryTabs('factory').map(l => [l.label, l.to, l.on])).toEqual([['Overview', '/room', false], ['Story', '/story', false], ['Set up', '/factory', true]]);
+    expect([...FACTORY_PAGES]).toEqual(['home', 'story', 'factory', 'allmachines', 'lineprograms', 'quicksnags', 'allactions']);
   });
 });
 

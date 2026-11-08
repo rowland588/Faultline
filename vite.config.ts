@@ -20,7 +20,7 @@ export default defineConfig({
      app's one page, never at every .html below the checkout — a checkout that
      holds other copies of the app (.claude/worktrees) had it crawl all of them
      and never finish, so a fresh cache served nothing (19 October) */
-  optimizeDeps: { entries: ['index.html'] },
+  optimizeDeps: { entries: ['index.html'], include: ['pptxgenjs'] },   /* the deck's library pre-bundled, so the first Slides never reloads the page (docs/STORY.md S4) */
   build: {
     rollupOptions: {
       output: {

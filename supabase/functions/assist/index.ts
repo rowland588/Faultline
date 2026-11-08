@@ -57,6 +57,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk@0.131.0";
 import { allowance, costMicros } from "./video/gatewayUsage.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
+import { STORY_SCHEMA, STORY_SYSTEM, checkStoryAnswer, readStoryAsk, storyUser, unsureStory } from "./story/storyAssist.ts";
 import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
 
 const KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -73,6 +74,12 @@ const LIMIT = {
 const TALK_MODEL = Deno.env.get("ASSIST_TALK_MODEL") ?? MODEL;
 const TALK_EFFORT = Deno.env.get("ASSIST_TALK_EFFORT") ?? "medium";
 const TALK_CHAT_EFFORT = Deno.env.get("ASSIST_TALK_CHAT_EFFORT") ?? "low";
+/* THE STORY's chapter (docs/STORY.md §5): written with care, a few a day */
+const STORY_EFFORT = Deno.env.get("ASSIST_STORY_EFFORT") ?? "medium";
+const STORY_LIMIT = {
+  calls: Number(Deno.env.get("ASSIST_STORY_DAILY_CALLS") ?? 20) || 20,
+  micros: Math.round((Number(Deno.env.get("ASSIST_STORY_DAILY_USD") ?? 3) || 3) * 1_000_000),
+};
 const TALK_LIMIT = {
   calls: Number(Deno.env.get("ASSIST_TALK_DAILY_CALLS") ?? 60) || 60,
   micros: Math.round((Number(Deno.env.get("ASSIST_TALK_DAILY_USD") ?? 5) || 5) * 1_000_000),
@@ -201,7 +208,7 @@ Deno.serve(async (req) => {
   const asThem = createClient(url, anon, { global: { headers: { Authorization: auth } }, auth: { persistSession: false } });
   const { data: { user } } = await asThem.auth.getUser();
   if (!user) return json({ ok: false, why: "Sign in to use the assistant." }, 401);
-  if (task !== "video-label" && task !== "talk") return json({ ok: false, why: "The assistant answers a Line Talk and names the work in a video study's frames; nothing else — the method builder it served was taken out on 20 October." }, 400);
+  if (task !== "video-label" && task !== "talk" && task !== "story") return json({ ok: false, why: "The assistant answers a Line Talk, names the work in a video study's frames and drafts the Story's chapter; nothing else — the method builder it served was taken out on 20 October." }, 400);
 
   /* the allowance, from this person's own last day of this task */
   const since = new Date(Date.now() - 86_400_000).toISOString();
@@ -224,6 +231,35 @@ Deno.serve(async (req) => {
     const r = await answerTalk(client, read.ask);
     await keep(r);
     return r.ok ? json({ ok: true, answer: r.answer, unsure: r.unsure, model: r.model }) : json(r.off ? { off: true, why: r.why } : { ok: false, why: r.why });
+  }
+
+  /* THE STORY'S CHAPTER (docs/STORY.md §5): the snapshot as text, the brief and the headlines before; a headline and paragraphs back,
+     held to the schema, every figure not among the snapshot's returned as unsure — the page marks it, the consultant approves */
+  if (task === "story") {
+    const read = readStoryAsk(body);
+    if (!read.ok) return json({ ok: false, why: read.why }, 400);
+    const left = allowance(rows ?? [], Date.now(), STORY_LIMIT, { calls: n => `${n} chapters drafted in a day is the allowance — this one is written from the records' words.`, spent: usd => `The day's allowance for drafting chapters is spent ($${usd}) — this one is written from the records' words.` });
+    if (!left.ok) return json({ ok: false, why: left.why });
+    try {
+      const msg = await client.beta.messages.create({
+        model: TALK_MODEL, max_tokens: 6000,
+        betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+        output_config: { effort: STORY_EFFORT, format: { type: "json_schema", schema: STORY_SCHEMA } },
+        system: [{ type: "text", text: STORY_SYSTEM, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: storyUser(read.ask) }],
+      } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Record<string, number> };
+      const cost = costMicros(msg.model ?? TALK_MODEL, msg.usage ?? {});
+      const text = (Array.isArray(msg.content) ? msg.content : []).map((b: { type?: string; text?: string }) => (b?.type === "text" ? b.text ?? "" : "")).join("");
+      let raw: unknown = null;
+      try { raw = JSON.parse(text); } catch { /* unreadable */ }
+      const answer = checkStoryAnswer(raw);
+      await admin.from("assist_usage").insert({ user_id: user.id, task, model: msg.model ?? TALK_MODEL, input_tokens: (msg.usage?.input_tokens ?? 0) + (msg.usage?.cache_read_input_tokens ?? 0) + (msg.usage?.cache_creation_input_tokens ?? 0), output_tokens: msg.usage?.output_tokens ?? 0, cost_micros: cost, ok: !!answer });
+      if (msg.stop_reason === "refusal") return json({ ok: false, why: "The assistant would not write this one — the chapter is written from the records' words." });
+      if (!answer) return json({ ok: false, why: "The assistant's draft could not be read — the chapter is written from the records' words." });
+      return json({ ok: true, headline: answer.headline, narrative: answer.narrative, unsure: unsureStory(answer, read.ask), model: msg.model ?? TALK_MODEL });
+    } catch (e) {
+      return json({ ok: false, why: "The assistant could not answer just now — the chapter is written from the records' words.", detail: e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300) });
+    }
   }
 
   /* A VIDEO STUDY'S FRAMES (docs/VIDEO.md): a few small JPEGs of the events the

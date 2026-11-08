@@ -46,6 +46,13 @@ export const AI_TOOLS: readonly AiTool[] = [
     where: 'On a video study, under The reading: tick Name the work from the frames.',
   },
   {
+    id: 'story-draft', name: 'Write the chapter', tools: [], to: '/story',
+    does: 'When you Run an update on the Story, drafts the chapter — the headline and the paragraphs — in plain English for the client, from the figures the tools recorded; you edit it before you approve.',
+    sends: 'The chapter’s snapshot (every figure with where it comes from), the brief and the headlines of the chapters before, to Claude (Anthropic) through Faultline’s gateway.',
+    never: 'Adds a figure the tools did not record — one that slips in is marked Check this — or approves anything: you do.',
+    where: 'On the Story: Run an update.',
+  },
+  {
     id: 'voice-note', name: 'Voice note in a form', tools: [],
     does: 'Say a fix, what was found or how a test went, and it is read into the boxes of the form you are on — shown beside what it would change for you to put in or not.',
     sends: 'The recording of what you said, to Google’s Gemini through Faultline’s server.',

@@ -21,6 +21,7 @@ import { DraftArea, DraftText } from '../ui/Draft';
 import { useSaveOnArrival } from '../lib/useSaveOnArrival';
 import { fmtGBP } from '../lib/cost';
 import { nav } from '../state/useRoute';
+import { askStory, storyAskOf } from '../tools/story/storyAsk';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const CLIENT_KEY = 'faultline.client';
@@ -51,6 +52,10 @@ export function StoryScreen() {
   const [brief, setBrief] = useState('');
   const [said, setSaid] = useState('');
   const [open, setOpen] = useState<string | null>(null);
+  /* the assistant's draft (S3): asked after the assembled one is shown; its words replace the paragraphs when it answers, unless
+     the consultant has already typed; what went wrong is said in a line and the assembled words stand */
+  const [asking, setAsking] = useState<string>('');
+  const [touched, setTouched] = useState(false);
 
   const save = async (s: ToolStudy) => { await putStudy({ ...s, updatedAt: Date.now() }); };
   const start = async () => {
@@ -59,7 +64,18 @@ export function StoryScreen() {
     await putStudy({ id: uid(), tool: 'story', name: `${client || 'The factory'} — the story`, agreed: { story: { client, brief: brief.trim(), startedAt: t } }, facts: { chapters: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t });
     setBrief('');
   };
-  const run = () => { if (story?.agreed?.story && snapshot) setDraft(draftChapter(uid(), story.agreed.story, chapters, snapshot)); };
+  const run = () => {
+    if (!story?.agreed?.story || !snapshot) return;
+    const d = draftChapter(uid(), story.agreed.story, chapters, snapshot);
+    setDraft(d); setTouched(false); setAsking('Asking the assistant for a draft — the records’ words stand meanwhile…');
+    void askStory(storyAskOf(story.agreed.story, chapters, d)).then(r => {
+      if (!r.ok) { setAsking(r.why); return; }
+      setAsking('');
+      setDraft(cur => (cur && cur.id === d.id && !touchedRef.current ? { ...cur, headline: r.answer.headline, narrative: r.answer.narrative, by: 'assistant' } : cur));
+    });
+  };
+  const touchedRef = { current: touched };
+  touchedRef.current = touched;
   const approve = async () => {
     if (!story || !draft) return;
     const done = { ...draft, approvedAt: Date.now(), narrative: draft.narrative.map(p => p.trim()).filter(Boolean) };
@@ -75,6 +91,17 @@ export function StoryScreen() {
     const doc = await makeStoryPaper({ story: story.agreed.story, chapters: all, chapter: c, printed: dayWordYear(Date.now()) });
     await deliverPdf(doc, `Story — ${story.agreed.story.client || 'the factory'} — ${dayWord(c.at).replace(/ /g, '-')}.pdf`);
   };
+  /* THE SLIDES (S4): the same chapter as a 16:9 deck, kept under Saved copies and handed over */
+  const deckFor = async (c: StoryChapter, all: readonly StoryChapter[]) => {
+    if (!story?.agreed?.story) return;
+    const { makeStoryDeck } = await import('../lib/report/storyDeck');
+    const { deliverBlob } = await import('../lib/savePdf');
+    const { keepPdf } = await import('../lib/keptPdfs');
+    const blob = await makeStoryDeck({ story: story.agreed.story, chapters: all, chapter: c });
+    const name = `Story — ${story.agreed.story.client || 'the factory'} — ${dayWord(c.at).replace(/ /g, '-')}.pptx`;
+    await keepPdf(blob, name);
+    await deliverBlob(blob, name, { keep: false });
+  };
   useSaveOnArrival(!!last, () => { if (last) void paperFor(last, chapters); });
 
   if (all === null || studies === null) return <div className="wrap st"><p className="sub">Reading the story…</p></div>;
@@ -85,7 +112,7 @@ export function StoryScreen() {
       <PageHeader eyebrow="THE STORY" title={client || 'The story'}
         says={ag ? <span>{ag.brief} <span className="sub">· {storySays(ag, chapters)}</span></span> : client ? `${client}’s story has not started yet.` : 'Name the client on the lines (Set up the lines) and the story is theirs.'}
         primary={ag && !ag.closedAt ? { label: 'Run an update', run, disabled: !snapshot || !!draft } : undefined}
-        papers={last ? [{ label: 'Story report — the latest chapter', for: 'for the client: the story so far, this update, every finding in money, what is being done and what is proved', make: () => paperFor(last, chapters) }] : []}
+        papers={last ? [{ label: 'Story report — the latest chapter', for: 'for the client: the story so far, this update, every finding in money, what is being done and what is proved', make: () => paperFor(last, chapters) }, { label: 'Story slides — the latest chapter', for: 'the same chapter as a 16:9 deck to open in PowerPoint and present: the cover, the four figures, this update, where the money is, what we have found, what is being done, what is proved, next', make: () => deckFor(last, chapters) }] : []}
         more={ag ? [
           ag.closedAt ? { label: 'Reopen the engagement', run: () => story && void save({ ...story, agreed: { story: { ...ag, closedAt: undefined } } }) } : { label: 'Close the engagement', run: () => story && void save({ ...story, agreed: { story: { ...ag, closedAt: Date.now() } } }) },
           { label: 'Lines and set up', run: () => nav('/room') },
@@ -108,18 +135,19 @@ export function StoryScreen() {
           {draft && (
             <section className="ep-panel st-draft" aria-label="The next chapter" data-story-draft>
               <p className="pp-eyebrow">Chapter {chapters.length + 1} · {dayWordYear(draft.at)} · drafted from the records{draft.by === 'assistant' ? ' by the assistant' : ''} — yours to edit</p>
-              <DraftText value={draft.headline} className="text-input st-headline" max={160} ariaLabel="The chapter’s headline" onSave={v => setDraft(d => (d ? { ...d, headline: v.trim() || d.headline } : d))} />
+              {asking && <p className="sub st-asking" data-story-asking role="status">{asking}</p>}
+              <DraftText value={draft.headline} className="text-input st-headline" max={160} ariaLabel="The chapter’s headline" onSave={v => { setTouched(true); setDraft(d => (d ? { ...d, headline: v.trim() || d.headline } : d)); }} />
               <ol className="st-paras">
                 {draft.narrative.map((p, i) => (
                   <li key={i}>
-                    <DraftArea value={p} rows={3} className="text-input" ariaLabel={`Paragraph ${i + 1}`} onSave={v => setDraft(d => (d ? { ...d, narrative: d.narrative.map((x, k) => (k === i ? v : x)) } : d))} />
+                    <DraftArea value={p} rows={3} className="text-input" ariaLabel={`Paragraph ${i + 1}`} onSave={v => { setTouched(true); setDraft(d => (d ? { ...d, narrative: d.narrative.map((x, k) => (k === i ? v : x)) } : d)); }} />
                     <button type="button" className="linkish st-para-x" aria-label={`Take paragraph ${i + 1} out`} onClick={() => setDraft(d => (d ? { ...d, narrative: d.narrative.filter((_, k) => k !== i) } : d))}>Take out</button>
                   </li>
                 ))}
               </ol>
               <div className="st-acts">
                 <button type="button" className="btn btn-sm" onClick={() => setDraft(d => (d ? { ...d, narrative: [...d.narrative, ''] } : d))}>Add a paragraph</button>
-                <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDraft(d => (d && ag ? { ...d, narrative: assembledNarrative(ag.brief, d.snapshot, d.since) } : d))}>Back to the records’ words</button>
+                <button type="button" className="btn btn-sm btn-ghost" onClick={() => { setTouched(true); setAsking(''); setDraft(d => (d && ag ? { ...d, narrative: assembledNarrative(ag.brief, d.snapshot, d.since), by: 'assembled' } : d)); }}>Back to the records’ words</button>
               </div>
               {(() => { const u = unsureIn(draft.narrative, draft.snapshot); return u.length ? <p className="st-unsure" data-story-unsure>Check this: {u.join(', ')} — not among the figures the tools recorded.</p> : null; })()}
               <Snapshot c={draft} />
@@ -149,7 +177,7 @@ export function StoryScreen() {
                       <div className="st-ch-body">
                         {c.narrative.map((p, i) => <p key={i}>{p}</p>)}
                         <Snapshot c={c} folded />
-                        <div className="st-acts"><button type="button" className="btn btn-sm" onClick={() => void paperFor(c, chapters)}>Report for this chapter</button></div>
+                        <div className="st-acts"><button type="button" className="btn btn-sm" onClick={() => void paperFor(c, chapters)}>Report for this chapter</button><button type="button" className="btn btn-sm" data-story-slides onClick={() => void deckFor(c, chapters)}>Slides for this chapter</button></div>
                       </div>
                     )}
                   </li>

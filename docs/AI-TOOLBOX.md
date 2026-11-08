@@ -13,17 +13,18 @@ designed here before anything is built.
 
 ## 1. The AI toolbox — what uses AI, on a shelf of its own
 
-**Today** the AI is in four places, each already Claude through the `assist` gateway (voice notes in a form's boxes: Gemini, `api/voice`):
+**Today** the AI is in five places, each already Claude through the `assist` gateway (voice notes in a form's boxes: Gemini, `api/voice`):
 
 | Where | What the AI does | What it never does |
 |---|---|---|
 | Line Talk | answers what you say on the line, asks back, makes the walk's report | a figure — every number is a formula's |
 | Line Talk's toolsets | fills the process flow chart, the spaghetti diagram and the value stream from what you say | classes a step VA · NE · NV for you |
 | Video study — *Name the work from the frames* | names what a person is doing in sampled frames, when you tick it | times anything — the reading is measured |
+| The Story — *Write the chapter* (8 November, docs/STORY.md S3) | drafts the chapter's headline and paragraphs from the snapshot's figures when you Run an update | adds a figure the tools did not record (one that slips in is marked *Check this*), or approves anything |
 | A form's voice note | turns what you said into the box's words | — |
 
-**The design:** Tools gets a third shelf beside *The worlds* — **AI tools** — with a card each for Line Talk (and its three toolsets),
-the video study's naming and the voice note, each saying in one line what it sends, to whom (Claude, through Faultline's gateway),
+**The design (built 8 November, `src/catalogue/aiTools`, `scripts/acceptance/ai-toolbox.mjs`):** Tools gets a third shelf beside *The worlds* — **AI tools** — with a card each for Line Talk (and its three toolsets),
+the video study's naming, the Story's chapter and the voice note, each saying in one line what it sends, to whom (Claude, through Faultline's gateway),
 and what it never does. A tool that uses AI wears a small **AI** mark wherever its name shows (its card, its band, its paper's
 foot), so it is never mistaken for one of the formula tools. The ordinary tools stay as they are: no AI in a figure, ever.
 

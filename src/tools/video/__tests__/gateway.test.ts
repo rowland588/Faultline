@@ -33,6 +33,12 @@ describe('the gateway’s copies', () => {
       expect(back, `video/${f}.ts differs from its copy — run node scripts/sync-assist.mjs`).toBe(src);
     }
     /* Line Talk's assistant and its toolsets (tools/talk): the same rules on both sides; each file shared with the gateway, its relative imports given the .ts Deno asks for (scripts/sync-assist.mjs forDeno) */
+    /* the Story's chapter (tools/story/storyAssist, docs/STORY.md §5), the same way */
+    for (const f of ['storyAssist']) {
+      const src = readFileSync(join(root, 'src/tools/story', `${f}.ts`), 'utf8').replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'");
+      const copy = readFileSync(join(root, 'supabase/functions/assist/story', `${f}.ts`), 'utf8');
+      expect(copy.split('\n').slice(1).join('\n'), `story/${f}.ts differs from its copy — run node scripts/sync-assist.mjs`).toBe(src);
+    }
     for (const f of ['talkSets', 'talkAssist']) {
       const src = readFileSync(join(root, 'src/tools/talk', `${f}.ts`), 'utf8').replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'");
       const copy = readFileSync(join(root, 'supabase/functions/assist/talk', `${f}.ts`), 'utf8');

@@ -19,6 +19,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 export const VIDEO_SHARED = ['record', 'visionCore', 'gatewayUsage'];
 export const TALK_SHARED = ['talkSets', 'talkAssist'];
+export const STORY_SHARED = ['storyAssist'];
 export const forDeno = (src, from = 'src/tools/video') => `// COPIED FROM ${from} by scripts/sync-assist.mjs — edit the source, then run it.\n${src.replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'")}`;
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -28,5 +29,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const tout = join(root, 'supabase/functions/assist/talk');
   mkdirSync(tout, { recursive: true });
   for (const f of TALK_SHARED) writeFileSync(join(tout, `${f}.ts`), forDeno(readFileSync(join(root, 'src/tools/talk', `${f}.ts`), 'utf8'), 'src/tools/talk'));
-  console.log(`copied ${VIDEO_SHARED.length} files to supabase/functions/assist/video and ${TALK_SHARED.length} to supabase/functions/assist/talk`);
+  const sout = join(root, 'supabase/functions/assist/story');
+  mkdirSync(sout, { recursive: true });
+  for (const f of STORY_SHARED) writeFileSync(join(sout, `${f}.ts`), forDeno(readFileSync(join(root, 'src/tools/story', `${f}.ts`), 'utf8'), 'src/tools/story'));
+  console.log(`copied ${VIDEO_SHARED.length} files to supabase/functions/assist/video, ${TALK_SHARED.length} to supabase/functions/assist/talk and ${STORY_SHARED.length} to supabase/functions/assist/story`);
 }

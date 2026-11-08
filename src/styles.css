@@ -16839,7 +16839,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .st-paras li { display: flex; gap: 8px; align-items: flex-start; }
 .st-paras textarea { flex: 1; line-height: 1.5; font: inherit; font-size: var(--t-body); }
 .st-para-x { flex: none; white-space: nowrap; min-height: 44px; }
-.st-unsure { margin: 12px 0 0; padding: 8px 12px; border-radius: var(--radius-sm); background: #fff4e5; color: var(--st-a); font-weight: 600; }
+.st-unsure { margin: 12px 0 0; padding: 8px 12px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--st-a) 12%, var(--surface)); color: var(--st-a); font-weight: 600; }
 .st-approve { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
 .st-chapters .ln-h { margin: 6px 0 10px; }
 .st-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }

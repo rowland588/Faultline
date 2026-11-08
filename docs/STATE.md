@@ -103,7 +103,12 @@ a session that ships something updates this page in the same commit.** The rules
   applied and read back): the brief, and a chapter each Run an update — the snapshot frozen from the Factory page's own readers
   (`lib/useFactoryRead`, shared with the four questions), what changed since by the records' ids, the words assembled from the modules'
   sentences and his to edit, a stray figure marked *Check this*, approved and printed (`lib/report/storyPaper`, the cover with who it is
-  for and who prepared it). The Story is a tab on the Factory (`#/story`). Next: S3 the assistant's draft, S4 slides, S5 Home is the Story.
+  for and who prepared it). The Story is a tab on the Factory (`#/story`). **S3 (8 November):** Run an update asks the assistant — Claude
+  through the `assist` gateway, task `story` (deployed, version 19; the rules shared by `scripts/sync-assist.mjs` from `tools/story/storyAssist`)
+  — for the headline and paragraphs; the assembled draft shows first and is kept when the assistant refuses, is off or has no signal; a
+  figure not in the snapshot is marked *Check this*; 20 chapters a day the allowance; an AI toolbox card says it. **S4 (8 November):**
+  the chapter as slides (`lib/report/storyDeck`, pptxgenjs, eight 16:9 slides from the same snapshot), from Report ▾ and on each chapter,
+  kept under Saved copies. Next: S5 Home is the Story (`#/` the Story, the board of lines a tab).
 
 - **Your brand on every paper (8 November, docs/STORY.md S1).** Rowland: *"is the first page our app name and business name and name of
   consultant"*. The account menu's *Your brand* — name, business, strapline, contact line, logo (`ui/BrandSheet`), kept on the profile

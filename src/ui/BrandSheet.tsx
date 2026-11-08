@@ -46,7 +46,7 @@ export function BrandSheet({ open, onClose }: { open: boolean; onClose: () => vo
           <div className="brand-logo-row">
             {b.logo ? <img className="brand-logo" src={b.logo} alt="Your logo" /> : <span className="sub">None yet</span>}
             <input ref={file} type="file" accept="image/png,image/jpeg" hidden aria-label="Choose a logo"
-              onChange={async e => { const f = e.target.files?.[0]; if (f) put('logo', await logoDataUrl(f)); e.target.value = ''; }} />
+              onChange={async e => { const input = e.target, f = input.files?.[0]; input.value = ''; if (f) put('logo', await logoDataUrl(f)); }} />
             <button type="button" className="btn btn-sm" onClick={() => file.current?.click()}>{b.logo ? 'Change the logo' : 'Add a logo'}</button>
             {b.logo && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setB(x => { const { logo: _l, ...rest } = x; return rest; })}>Take it off</button>}
           </div>
