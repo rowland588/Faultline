@@ -165,7 +165,7 @@ the browser cannot do what the floor needs.
 ## 8. Cost
 
 A router puts native first: what a capability or a page answers is answered without a model where it can be. The
-gateway's allowance caps a person's day, and every call is logged to `assist_usage`. Before a budget is set we measure
+gateway's allowance caps a person's day, and every call is logged to `assist_usage` — read back on `#/ai/usage` (§9). Before a budget is set we measure
 the cost per turn and per task, how well the cached instructions are reused, and how fast the context grows over a
 long conversation.
 
@@ -178,6 +178,29 @@ long conversation.
 - **A task done often** may be proposed as a new native capability, and becomes one only through review: the tool
   standard, its tests, the gate and Rowland's approval. Recording a conversation is not training, and retrieving a
   record is not learning.
+
+**Learning — built 8 November (phase 5b), `#/ai/usage` (`src/screens/AiUsageScreen.tsx`).** Rowland: *"when we ask to
+do something in the app, we learn what was done and we actually want to replicate it with code as much as possible —
+this keeps AI costs lower and the app becomes more intelligent over time"*; and *"nothing should automatically become
+production code … recording conversations is not the same as training a model."*
+
+- **What is recorded** — nothing new. The gateway already writes `assist_usage` (every answer: task, model, tokens,
+  cost in millionths of a dollar, read or not) and `ai_actions` (every call proposed, refused, done, failed or
+  declined); the conversations are the `talk` studies on the device. A person reads only their own rows (RLS).
+- **What is measured** (`src/colleague/usage.ts`, pure, tested) — answers and cost by task and by day over 30 days,
+  an answer's cost, today against each task's allowance (the gateway's defaults), and a colleague request's cost only
+  where the device holds the requests (said as at most — `assist_usage` has no request id, so answers from another
+  device are in the cost and not the count). Money in dollars as the gateway prices it; pounds only when
+  `VITE_USD_TO_GBP` is set on the build — never a guessed rate.
+- **What is found** (`src/colleague/learning.ts`, pure, tested on hand-built rows) — the same capability steps in the
+  same order (locals left out), the same calculator by key, the same question (its words normalised), each three times
+  or more in 30 days; and a write declined more often than not (the colleague proposing it wrongly). Each is said in a
+  sentence with its count and evidence and a native home: a page, a saved view, a calculator's kept figures, a new
+  capability, or the colleague's instructions. **Copy as a note** is the only action.
+- **How a candidate becomes code** — by a person: it is written up as a proposal, built through the tool standard
+  (`faultline-tool` and `knowledge/STANDARD.md` for a tool; `src/capabilities` with its schema, its tests and its card
+  for a capability), proved by its tests and the gate, and shipped only on Rowland's approval. Nothing on the page
+  writes, and nothing is ever turned into code by itself.
 
 ## 10. The brief
 

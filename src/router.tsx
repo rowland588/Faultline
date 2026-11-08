@@ -66,6 +66,7 @@ const AnalysisScreen = lazy(() => import('./tools/analysis/AnalysisScreen').then
 const CalcScreen = lazy(() => import('./tools/calc/CalcScreen').then(m => ({ default: m.CalcScreen })));
 const StoryScreen = lazy(() => import('./screens/StoryScreen').then(m => ({ default: m.StoryScreen })));
 const AiModeScreen = lazy(() => import('./screens/AiModeScreen').then(m => ({ default: m.AiModeScreen })));
+const AiUsageScreen = lazy(() => import('./screens/AiUsageScreen').then(m => ({ default: m.AiUsageScreen })));
 const DocScreen = lazy(() => import('./tools/doc/DocScreen').then(m => ({ default: m.DocScreen })));
 const ScoredScreen = lazy(() => import('./tools/scored/ScoredScreen').then(m => ({ default: m.ScoredScreen })));
 const RegisterScreen = lazy(() => import('./tools/registers/RegisterScreen').then(m => ({ default: m.RegisterScreen })));
@@ -211,6 +212,8 @@ function app(route: Route) {
   if (route.name === 'home' || route.name === 'story') return <StoryScreen />;
   /* AI MODE (8 November, src/colleague) — the colleague's conversation; the door is in the top bar, not the menu */
   if (route.name === 'ai') return <AiModeScreen />;
+  /* how AI Mode is used — its cost, what the colleague did, candidates for code (docs/AI-MODE.md §9) */
+  if (route.name === 'aiUsage') return <AiUsageScreen />;
   if (route.name === 'tools') return <ToolsScreen />;
   if (route.name === 'toolWorld' && route.key) return <ToolWorldScreen key={route.key} worldId={route.key} />;
   if (route.name === 'methodPage' && route.key) return <MethodPageScreen key={route.key} methodKey={route.key} />;

@@ -17125,3 +17125,34 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .ai-list-b .icon { font-size: var(--t-body); }
   .ai-timer-l { display: none; }
 }
+
+/* HOW AI MODE IS USED (#/ai/usage, screens/AiUsageScreen — 8 November, docs/AI-MODE.md §9): its cost, what the colleague
+   did, candidates for code. Tokens only; no state colour but the allowance's amber and red, each with its words. */
+.ai-box-foot { margin: 12px 0 0; font-size: var(--t-detail); }
+.aiu-line { margin: 0 0 12px; color: var(--ink); }
+.aiu-sec { margin: 0 0 20px; padding: 16px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
+.aiu-sec .sub { margin: 0 0 12px; }
+.aiu-h3 { margin: 16px 0 8px; font-size: var(--t-body); font-weight: 600; color: var(--ink); }
+.aiu-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0 0 10px; }
+.aiu-tile { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
+.aiu-tile b { font-size: var(--t-h); color: var(--ink); font-variant-numeric: tabular-nums; }
+.aiu-tile span { font-size: var(--t-label); color: var(--muted); }
+.aiu-list { margin: 0 0 8px; padding-left: 18px; font-size: var(--t-detail); }
+.aiu-list li { margin: 2px 0; overflow-wrap: anywhere; }
+.aiu-list li.is-near { color: var(--st-a); }
+.aiu-list li.is-spent { color: var(--st-r); }
+.aiu-table { width: 100%; border-collapse: collapse; font-size: var(--t-detail); display: block; overflow-x: auto; }
+.aiu-table th, .aiu-table td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line-row); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.aiu-table th { color: var(--muted); font-weight: 500; font-size: var(--t-label); }
+.aiu-bars { display: block; width: 100%; height: 72px; }
+.aiu-bars rect { fill: var(--freq); }
+.aiu-bars line { stroke: var(--line); stroke-width: 1; }
+.aiu-axis { display: flex; justify-content: space-between; margin: 2px 0 0; font-size: var(--t-label); color: var(--muted); }
+.aiu-cands { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.aiu-cand { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
+.aiu-cand-s { margin: 0; color: var(--ink); }
+.aiu-cand-home { margin: 0; font-size: var(--t-detail); color: var(--muted); overflow-wrap: anywhere; }
+.aiu-cand details { font-size: var(--t-detail); }
+.aiu-cand-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.aiu-cand-acts .btn { min-height: 44px; }
+.aiu-note { width: 100%; min-height: 120px; font: inherit; font-size: var(--t-label); }

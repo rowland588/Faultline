@@ -11,7 +11,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
-  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai';
+  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage';
 
 export interface Route {
   name: RouteName;
@@ -122,6 +122,8 @@ export function parseRoute(hash: string): Route {
   /* THE STORY — the client's continuous journey (docs/STORY.md), one page of the Factory */
   if (segs[0] === 'story') return { name: 'story', query };
   /* AI MODE (8 November, src/colleague): a conversation with the colleague, ?line= / ?project= where it was opened, ?c= one conversation */
+  /* HOW AI MODE IS USED (phase 5b): what it cost, what the colleague did, what could be code instead */
+  if (segs[0] === 'ai' && segs[1] === 'usage') return { name: 'aiUsage', query };
   if (segs[0] === 'ai') return { name: 'ai', query };
   if (segs[0] === 'tools') return segs[1] ? { name: 'toolPage', key: decodeURIComponent(segs[1]), query } : { name: 'tools', query };
   /* THE PARTS every page is built from, on one page (docs/STRUCTURE.md §7) — in development */

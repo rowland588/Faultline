@@ -458,6 +458,16 @@ export const PAGES = (sd, cap) => [
     { what: 'the box with Send', sel: '.ai-type' },
     { what: 'the door in the top bar', sel: '.ai-door' },
   ] },
+  { name: 'How AI Mode is used', path: '#/ai/usage', must: [
+    /* 8 November, docs/AI-MODE.md §9 (phase 5b): what it costs, what the colleague did, candidates for code — the seed has no
+       cloud, so the page says it is not signed in and reads what the device holds */
+    { what: 'the AI MODE eyebrow', sel: '.part-head .pace-eyebrow', text: /AI MODE/ },
+    { what: 'its title', sel: '.part-head .pace-title', text: /How AI Mode is used/ },
+    { what: 'not signed in, said in a line', sel: '[data-aiu-none]', text: /Not signed in/ },
+    { what: 'its three parts — cost, what the colleague did, candidates for code', sel: '.aiu-sec .ln-h', n: 3 },
+    { what: 'the money said in dollars, no rate guessed', sel: '[data-aiu-cost] .sub', text: /US dollars|In pounds/ },
+    { what: 'candidates are proposals only', sel: '[data-aiu-candidates] .sub', text: /Proposals only/ },
+  ] },
   { name: 'The Story', path: '#/', must: [
     /* 8 November, docs/STORY.md: the client's continuous journey — the brief, the four figures, since the last update, the chapters;
        at #/ since S5 (#/story an alias) */
@@ -474,6 +484,7 @@ export const PAGES = (sd, cap) => [
        tool"): the status chips and the discipline box are off — they counted catalogue entries as tools. The doors, what each card
        holds, and What we have and what we need to build — tool by tool — are on. */
     { what: 'the two doors — Line Talk and the 6M', sel: '.et-doors [data-door="talk"], .et-doors .btn', n: 2 },
+    { what: 'the AI toolbox\'s way to how AI Mode is used', sel: '[data-ai-usage-link]', text: /How AI Mode is used/ },
     { what: 'start from the problem — every route', sel: '.et-route-b', n: 20 },
     { what: 'what we have and what we need to build — a row for every tool', sel: '.hd-tools .hd-tool', n: 28 },
     { what: 'the new tools planned and not started, the parts that are not tools, research and left out — each folded with its count', sel: '.hd-group .hd-n', n: 4 },
