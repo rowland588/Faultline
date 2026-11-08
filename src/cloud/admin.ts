@@ -1,11 +1,12 @@
 /* Superadmin & invites. All of this is a thin client over the `profiles` and
  * `allowed_emails` tables — RLS does the real gatekeeping, so a non-super caller
  * simply gets empty lists or a permission error, never elevated access. */
+import { cacheBrand } from '../lib/brand';
 import { useEffect, useState } from 'react';
 import { supabase } from './client';
 import { useSession } from './session';
 
-export interface Profile { id: string; email: string | null; is_super: boolean; created_at: string }
+export interface Profile { id: string; email: string | null; is_super: boolean; created_at: string; brand?: unknown }
 export interface Invite { email: string; created_at: string }
 
 const norm = (e: string) => e.trim().toLowerCase();
@@ -37,6 +38,8 @@ export function useProfile(): { profile: Profile | null; loading: boolean; faile
         const p = (data as Profile) ?? null;
         // Only a real answer is remembered — a failed read (no signal) asks again next time.
         if (!error) known = { uid: session.user.id, profile: p };
+        /* the consultant's brand rides on the profile (lib/brand, supabase/BRAND.sql) — kept on this device for the papers */
+        if (!error) cacheBrand(p?.brand ?? null);
         if (alive) { setProfile(p); setLoading(false); setFailed(!!error); }
       });
     return () => { alive = false; };

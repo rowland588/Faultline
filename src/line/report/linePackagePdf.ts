@@ -21,6 +21,7 @@ import type { PackageSection } from './linePackage';
 import { chooseDensity, pour, type Block, type Frame } from '../../lib/report/flow';
 import { box, font, gap, rows, text, wrap } from '../../lib/report/blocks';
 import { leanBand } from '../../lib/report/lean';
+import { preparedByBlocks } from '../../lib/report/cover';
 import { statusKeyBlocks } from '../../lib/machinePaperPdf';
 import { bandPage } from '../../lib/lean';
 
@@ -147,6 +148,8 @@ async function coverDoc(i: PackageInputs, entries: { title: string; what: string
     const band = bandPage(`PRODUCTION LINE${b.line.lineType ? ` · ${b.line.lineType.toUpperCase()}` : ''} · THE FULL LINE REPORT`, { name: b.line.name }, undefined, undefined,
       [...(i.dual ? [i.dual] : []), ['Papers', String(entries.length)], ['Pages', String(page - 1)]]);
     out.push(leanBand({ ...band, verdict: { text: 'Everything on the line', tone: 'n' } }, i.printed));
+    /* who it is for and who prepared it (8 November, lib/report/cover — the consultant's brand) */
+    out.push(...preparedByBlocks({ client: b.line.clientName, today: i.printed }));
     out.push(text({ text: 'What is in this package', size: 11, style: 'bold', colour: BRAND, before: gap(d, 'm'), after: 4 }));
     out.push(text({ text: 'Each paper is printed once, in full, in the part it belongs to — the problems in Problems, the programs and their tests in Programs and tests, and so on. Nothing is summarised, and a machine’s pages point to those parts instead of repeating them. The page numbers are this package’s; each paper also keeps its own, and every page names its part at the foot.', size: 8.5, colour: INK2, after: 8 }));
     let lastGroup = '';

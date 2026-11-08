@@ -16817,3 +16817,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fac-clients { margin-left: auto; }
 .fac-place + .fac-place { margin-top: 18px; }
 .fac-place-h { margin: 6px 0 8px; font-size: var(--t-label); font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+
+/* YOUR BRAND (8 November, docs/STORY.md S1 — ui/BrandSheet) */
+.brand-sheet { display: flex; flex-direction: column; gap: 12px; }
+.brand-sheet .field { display: flex; flex-direction: column; gap: 4px; }
+.brand-logo-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.brand-logo { max-height: 56px; max-width: 160px; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 4px; background: var(--surface); }
+.brand-foot-preview { padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-2); }
+.sheet-acts { display: flex; gap: 8px; margin-top: 4px; }

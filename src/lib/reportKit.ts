@@ -9,6 +9,7 @@
  *
  * Everything here draws; nothing here decides what to draw.
  */
+import { brandFoot } from './brand';
 import type { jsPDF } from 'jspdf';
 
 export type Doc = jsPDF;
@@ -308,5 +309,13 @@ export function stampBrand(d: Doc): void {
     const right = W - 14 * k;
     d.text(word, right, top + size * 0.72, { align: 'right' });
     drawMark(d, right - tw - 4 * k - size, top, size);
+    /* WHO PREPARED IT (8 November, lib/brand): the consultant's name and business at the foot of every page, small and quiet,
+       so a paper forwarded on still says whose work it is */
+    const foot = brandFoot();
+    if (foot) {
+      const H = d.internal.pageSize.getHeight();
+      setFont(d, 6.5 * k, 'normal', MUTED);
+      d.text(san(foot), 14 * k, H - 6 * k);
+    }
   }
 }

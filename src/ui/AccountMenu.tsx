@@ -14,6 +14,8 @@ import { useProfile } from '../cloud/admin';
 import { AdminPanel } from '../cloud/AdminPanel';
 import { SyncDetail } from '../cloud/CloudPanel';
 import { useProjects } from '../lib/useProjects';
+import { readBrand } from '../lib/brand';
+import { BrandSheet } from './BrandSheet';
 
 /** Sign out, after asking — the one way out, wherever it is pressed. Home's
  *  account row and its sheet signed out in one tap, with no question, and
@@ -38,6 +40,7 @@ export function AccountMenu() {
   const { profile, failed, retry, loading } = useProfile();
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState(false);
+  const [brand, setBrand] = useState(false);
 
   if (!cloudConfigured || !session) return null;
   const email = session.user.email ?? 'signed in';
@@ -57,6 +60,9 @@ export function AccountMenu() {
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
         <p className="sub" style={{ marginBottom: 10 }}>{email}</p>
         <SheetRow label="Control room" hint="every project" onClick={() => { setOpen(false); nav('/room'); }} />
+        {/* YOUR BRAND (8 November, docs/STORY.md S1): who prepares the papers — on the foot of every one and on every cover */}
+        <SheetRow label="Your brand" hint={readBrand() ? `${readBrand()?.name}${readBrand()?.business ? ` · ${readBrand()?.business}` : ''}` : 'your name and business on every paper'}
+          onClick={() => { setOpen(false); setBrand(true); }} />
         {failed && !profile && (
           <SheetRow label={loading ? 'Checking your admin access…' : 'Couldn’t check your admin access — tap to retry'}
             hint="Team & invites show once it is checked" onClick={retry} />
@@ -74,6 +80,7 @@ export function AccountMenu() {
         <SheetRow label="Sign out" danger onClick={logout} />
       </Sheet>
       {profile?.is_super && <AdminPanel open={team} onClose={() => setTeam(false)} />}
+      {brand && <BrandSheet open={brand} onClose={() => setBrand(false)} />}
     </>
   );
 }
