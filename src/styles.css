@@ -17084,7 +17084,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-state .sub { font-weight: 400; }
 .ai-state.is-speaking { color: var(--ink); }
 .ai-state .linkish { margin-left: auto; min-height: 44px; }
-.ai-pulse { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); animation: aiPulse 1.2s ease-in-out infinite; }
+.ai-pulse { flex: none; width: 10px; height: 10px; border-radius: var(--radius-round); background: var(--brand); animation: aiPulse 1.2s ease-in-out infinite; }
 @keyframes aiPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
 @media (prefers-reduced-motion: reduce) { .ai-pulse { animation: none; } }
 .ai-card-said { margin: 4px 0 0; font-size: var(--t-detail); font-weight: 700; color: var(--ink); }

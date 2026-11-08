@@ -452,7 +452,7 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'AI Mode — Ask Faultline', path: '#/ai', must: [
     /* 8 November, docs/AI-MODE.md: the colleague — the conversation, its context and its door */
-    { what: 'the AI MODE eyebrow', sel: '.ai-eyebrow', text: /AI Mode/i },
+    { what: 'the AI MODE eyebrow', sel: '.ai-eyebrow', text: /AI MODE/ },
     { what: 'the empty conversation saying what it does', sel: '.ai-empty-h', text: /Ask Faultline/ },
     { what: 'three example chips', sel: '.ai-empty .ai-sug', n: 3 },
     { what: 'the box with Send', sel: '.ai-type' },

@@ -485,6 +485,8 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   const manualHref = cur?.scope.lineId ? `/lines/${encodeURIComponent(cur.scope.lineId)}` : cur?.scope.projectId ? `/project/${encodeURIComponent(cur.scope.projectId)}` : '/';
   const noCaps = CAPABILITIES.length === 0;
 
+  const keepOk = keep === 'held' || keep === 'away';
+  const buttonOk = button === 'ready';
   const panel = <ContextPanel cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} />;
 
   return (
@@ -515,8 +517,8 @@ function Conversation({ id, start, onMade, onList, onNew }: {
         </header>
         {talkOn && (
           <p className="ai-floor" data-ai-floor aria-live="polite">
-            {keepSaid(keep) && <span className={'ai-floor-i' + (keep === 'held' || keep === 'away' ? '' : ' is-a')} data-keep={keep}><Icon name={keep === 'held' || keep === 'away' ? 'check' : 'warning'} size={13} />{keepSaid(keep)}</span>}
-            {buttonSaid(button) && <span className={'ai-floor-i' + (button === 'ready' ? '' : ' is-a')} data-button={button}><Icon name={button === 'ready' ? 'check' : 'warning'} size={13} />{buttonSaid(button)}</span>}
+            {keepSaid(keep) && <span className={'ai-floor-i' + (keep === 'held' || keep === 'away' ? '' : ' is-a')} data-keep={keep}><Icon name={keepOk ? 'check' : 'warning'} size={13} />{keepSaid(keep)}</span>}
+            {buttonSaid(button) && <span className={'ai-floor-i' + (button === 'ready' ? '' : ' is-a')} data-button={button}><Icon name={buttonOk ? 'check' : 'warning'} size={13} />{buttonSaid(button)}</span>}
           </p>
         )}
         {timers.ended.map(t => (
