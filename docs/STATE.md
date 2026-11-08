@@ -94,6 +94,10 @@ a session that ships something updates this page in the same commit.** The rules
   at the top, machine cards as a simple header, Tools redone), then the record panel, planning (the projects' board), problems
   and projects, the tools, reports, phone review.
 
+- **The tools' workspaces T3–T4, first passes (8 November, docs/TOOLS-DESIGN.md).** Work sampling and SMED: the canvas first,
+  What it says a panel with its dots. Every register record: *The register at a glance* — the module's own table as the `.dt` table
+  (the standard's data table, first drawn here), a row jumping to its card.
+
 - **The phone review, first pass (8 November, docs/ENTERPRISE-UX.md X8).** 450 screens audited: nothing off the side, no words
   cut, every sheet closes; small controls 199 → 86, the shared ones a thumb's height.
 

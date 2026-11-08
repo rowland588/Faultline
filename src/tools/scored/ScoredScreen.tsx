@@ -28,7 +28,7 @@ import { ChecklistEditor } from './ChecklistEditor';
 import { lineDay } from '../../lib/lineLoss';
 import { scoredByKey, scoredGroups } from './registry';
 import { newScoredStudy, scoredSays, scoredTitle, studyScored } from './scored';
-import type { ScoredDef, ScoredField } from './types';
+import type { ScoredDef, ScoredField, ScoredTable } from './types';
 
 const OWNER = canAt('owner');
 
@@ -318,6 +318,7 @@ function Record({ s, def, can, onPatch }: {
               : <PughEditor draft={{ rows, criteria, datum }} table={x?.table} leaders={x?.leaders} canEdit={canEdit} onChange={setMatrix} />}
         </Section>
       )}
+      {def.register && x?.table && x.table.rows.length > 0 && <RegisterGlance table={x.table} ids={ranked.map(r => r.id)} />}
       {def.register && (
         <Section title={def.register.asks.noun === 'failure mode' ? 'Rate each failure mode' : def.key === 'fault-tree' ? 'The tree' : def.key === 'rsm' ? 'The runs' : `The ${def.register.asks.noun}s`}>
           <RegisterEditor def={def} rows={rows} canEdit={canEdit} study={liveStudy} studies={beside} onChange={setRows} rate={rate} onRate={setRate}
@@ -367,5 +368,39 @@ function Record({ s, def, can, onPatch }: {
       <p className="sub">Started {niceDay(isoDay(s.startedAt))}</p>
       <Commentary s={s} canEdit={can.edit} title="Notes" folded />
     </div>
+  );
+}
+
+/** THE REGISTER AT A GLANCE (docs/TOOLS-DESIGN.md T4, 8 November) — the register as a table workspace above its cards: every row in the
+ *  module's own order, from the same table its paper prints (def.register.analyse table), so the two never part. A row whose card is on
+ *  the page jumps to it and lights it. Presentation only. */
+function RegisterGlance({ table, ids }: { table: ScoredTable; ids: string[] }) {
+  const jump = (i: number) => {
+    const id = ids[i]; if (!id || ids.length !== table.rows.length) return;
+    const el = document.querySelector<HTMLElement>(`[data-fmea-row="${CSS.escape(id)}"], [data-scored-row="${CSS.escape(id)}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.classList.add('is-lit'); window.setTimeout(() => el.classList.remove('is-lit'), 1600);
+  };
+  const canJump = ids.length === table.rows.length;
+  const num = (h: string) => /^(#|S|O|D|RPN|n|Score)$/.test(h);
+  return (
+    <section className="dt-wrap scored-glance" aria-label="The register at a glance" data-scored-glance>
+      <h2 className="dt-title">The register at a glance <span className="sub">{table.rows.length} {table.rows.length === 1 ? 'row' : 'rows'}{canJump ? ' — tap one to go to it' : ''}</span></h2>
+      <div className="dt-scroll">
+        <table className="dt">
+          <thead><tr>{table.head.map(h => <th key={h} className={num(h) ? 'is-num' : undefined}>{h}</th>)}</tr></thead>
+          <tbody>
+            {table.rows.map((r, i) => (
+              <tr key={i} className={canJump ? 'is-link' : undefined} onClick={canJump ? () => jump(i) : undefined} tabIndex={canJump ? 0 : undefined}
+                onKeyDown={canJump ? e => { if (e.key === 'Enter') jump(i); } : undefined} data-glance-row={ids[i] ?? i}>
+                {r.map((c, j) => <td key={j} className={num(table.head[j] ?? '') ? 'is-num' : /LATE|none yet/.test(c) ? 'is-flag' : undefined}>{c}</td>)}
+              </tr>
+            ))}
+          </tbody>
+          {table.foot.length > 0 && <tfoot>{table.foot.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}>{c}</td>)}</tr>)}</tfoot>}
+        </table>
+      </div>
+    </section>
   );
 }

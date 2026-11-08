@@ -90,6 +90,14 @@ let worked;
   ok(t.tiles.every(([k, v], i) => tiles[i]?.toLowerCase().includes(k.toLowerCase()) && tiles[i]?.includes(v)) && tiles.length === 5, `2 five tiles as the module says: ${tiles.join(' | ')}`);
   ok(((await words('.ln-close')) ?? '').includes(t.closing) && /^1 High — 7 failure modes rated, 5 still to act on\.$/.test(t.closing), `2 the closing line: ${t.closing}`);
   ok((await page.locator('section.fm-card').count()) === 7, '2 a card each — seven');
+  /* T4 (8 November): the register at a glance — the module's own table (the one its paper prints) above the cards, a row a mode in its order; a row jumps to its card */
+  {
+    const glance = await page.locator('[data-glance-row]').evaluateAll(rs => rs.map(r => [...r.querySelectorAll('td')].map(c => c.textContent.trim())));
+    const tbl = await page.evaluate(async sid => { const { getStudy } = await import('/src/db.ts'); const { studyScored } = await import('/src/tools/scored/scored.ts'); return studyScored(await getStudy(sid))?.table?.rows; }, worked);
+    ok(JSON.stringify(glance) === JSON.stringify(tbl) && glance[0][1] === 'Coding · Wrong date code' && glance[0][7] === 'High', `2 the register at a glance: the module's table, ${glance.length} rows, High first (${glance[0].slice(1, 2).join('')})`);
+    await page.locator('[data-glance-row]').nth(0).click(); await page.waitForTimeout(700);
+    ok(await page.locator('section.fm-card.is-lit input[aria-label^="Failure mode"]').inputValue() === 'Wrong date code', '2 a row of it jumps to its card and lights it');
+  }
   const aps = await page.locator('section.fm-card').evaluateAll(cs => cs.map(c => [c.querySelector('input[aria-label^="Failure mode"]').value, c.querySelector('.fm-ap').dataset.ap, c.querySelector('.fm-ap').textContent]));
   const want = { 'Seal does not hold': 'M', 'Wrong film reel loaded': 'M', 'Print smudged': 'L', 'Metal detector misses a test piece': 'M', 'Wrong date code': 'H', 'Underweight pack': 'L', 'Film splice not seen': 'M' };
   ok(aps.every(([n, ap, word]) => ap === want[n] && word === { H: 'High', M: 'Medium', L: 'Low' }[ap]), `2 each card carries its priority as a word: ${aps.map(([n, ap]) => `${n.split(' ').slice(0, 2).join(' ')} ${ap}`).join(' · ')}`);

@@ -16720,3 +16720,22 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ws-timed.co { display: flex; flex-direction: column; }
 .ws-timed.co > .ie-says { order: 1; }
 .ws-timed.co > .ie-pic ~ *:not(.ie-says) { order: 2; }
+
+/* THE DATA TABLE — .dt (docs/TOOLS-DESIGN.md §2.6, §3 Tables; first drawn 8 November for T4's register at a glance): one table style for a
+   tool's rows — a pale header 12 px semibold, rows a thumb's height, hairlines between, numbers right and tabular, the table scrolling
+   inside its own box (its header pinned) so a wide register never pushes the page off a phone. */
+.dt-wrap { margin: 0 0 16px; padding: 14px 16px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--elev); }
+.dt-title { margin: 0 0 10px; font-size: var(--t-body); font-weight: 700; color: var(--ink); }
+.dt-title .sub { margin-left: 6px; font-weight: 400; font-size: var(--t-label); }
+.dt-scroll { overflow: auto; max-height: 560px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.dt { width: 100%; border-collapse: collapse; font-size: var(--t-detail); }
+.dt th { position: sticky; top: 0; z-index: 1; padding: 8px 10px; background: var(--surface-2); border-bottom: 1px solid var(--line); text-align: left; font-size: var(--t-label); font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.dt td { padding: 10px; border-bottom: 1px solid var(--line-row, var(--line)); vertical-align: top; color: var(--ink); line-height: 1.4; }
+.dt tbody tr:last-child td { border-bottom: 0; }
+.dt .is-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dt td.is-flag { color: var(--st-a); font-weight: 600; }
+.dt tr.is-link { cursor: pointer; }
+.dt tr.is-link:hover td, .dt tr.is-link:focus-visible td { background: var(--surface-2); }
+.dt tfoot td { font-weight: 600; background: var(--surface-2); }
+.fm-card.is-lit { box-shadow: 0 0 0 2px var(--brand), var(--elev); transition: box-shadow .2s; }
+@media (max-width: 719px) { .dt { min-width: 640px; } .dt td { padding: 12px 10px; } }
