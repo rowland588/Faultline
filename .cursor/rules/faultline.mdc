@@ -7,5 +7,6 @@ not Claude-specific), `docs/STATE.md` (where the product is now), `docs/DIRECTIO
 or its report is built only through `.claude/skills/faultline-tool/SKILL.md` and `knowledge/STANDARD.md`: the
 specification first, independent cases, an acceptance script, the catalogue kept truthful. Nothing is done until the
 gate passes and the change is on `main` and built by Vercel; say "on a branch, not live" otherwise. Write what changed
-where the next reader looks (`docs/PAGES.md`, the gate list in `CLAUDE.md`, `docs/STATE.md`). No AI in a figure; every
-finding in money from the one cost model; one word per thing; paper is light. Nothing new is built until Rowland says go.
+where the next reader looks (`docs/PAGES.md`, the gate list in `CLAUDE.md`, `docs/STATE.md`). No AI in a figure; two modes over
+one app — Manual Mode needs no AI, AI Mode operates it only through `src/capabilities/`, writes confirmed
+(`docs/AI-MODE.md`); every finding in money from the one cost model; one word per thing; paper is light. Nothing new is built until Rowland says go.

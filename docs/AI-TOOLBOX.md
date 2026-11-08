@@ -13,7 +13,7 @@ designed here before anything is built.
 
 ## 1. The AI toolbox — what uses AI, on a shelf of its own
 
-**Today** the AI is in five places, each already Claude through the `assist` gateway (voice notes in a form's boxes: Gemini, `api/voice`):
+**Today** the AI is in seven places, each already Claude through the `assist` gateway (voice notes in a form's boxes: Gemini, `api/voice`):
 
 | Where | What the AI does | What it never does |
 |---|---|---|
@@ -21,6 +21,8 @@ designed here before anything is built.
 | Line Talk's toolsets | fills the process flow chart, the spaghetti diagram and the value stream from what you say | classes a step VA · NE · NV for you |
 | Video study — *Name the work from the frames* | names what a person is doing in sampled frames, when you tick it | times anything — the reading is measured |
 | The Story — *Write the chapter* (8 November, docs/STORY.md S3) | drafts the chapter's headline and paragraphs from the snapshot's figures when you Run an update | adds a figure the tools did not record (one that slips in is marked *Check this*), or approves anything |
+| AI Mode — the colleague (8 November, `docs/AI-MODE.md`) | talks with you, typed or spoken, and operates Faultline through the approved capabilities in `src/capabilities/` — reads at once, writes shown as a card and done only when you confirm | deletes a record, marks evidence verified, works out a figure (the calculators do), or does anything you may not |
+| The Story's brief (8 November, `docs/STORY.md` S6–S7) | reads a photographed or image-only brief into text (`brief-read`) and splits a brief into asks, each quoting it (`brief-asks`), for you to approve line by line | an ask the brief does not say, or one kept without your approval; a brief that reads as text is read in code |
 | A form's voice note | turns what you said into the box's words | — |
 
 **The design (built 8 November, `src/catalogue/aiTools`, `scripts/acceptance/ai-toolbox.mjs`):** Tools gets a third shelf beside *The worlds* — **AI tools** — with a card each for Line Talk (and its three toolsets),

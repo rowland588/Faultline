@@ -16,9 +16,10 @@ repo's law, in Rowland's words); the state is in **`docs/STATE.md`**; the produc
    `knowledge/specs/TEMPLATE.md` *before code*, validate formulas with independent cases (`scripts/knowledge/*.py`),
    build with its report, prove with an acceptance script, update the catalogue truthfully
    (`node scripts/catalogue.mjs summary --write`, `check`).
-5. **No AI in a figure.** The only AI is the voice (Line Talk, through the `assist` gateway, Claude only) and the
-   camera. Line Talk writes down what was said; it never works out, classes, estimates or saves. Every number on a
-   screen or paper comes from a formula in `src/`.
+5. **No AI in a figure; two modes over one app.** Every number on a screen or paper comes from a formula in `src/`. The AI
+   is Claude only, through the `assist` gateway. Since 8 November it may operate the app in **AI Mode** — only through
+   the approved capabilities in `src/capabilities/`, as the signed-in person, every write confirmed, never deleting,
+   never marking evidence verified — while **Manual Mode** stays complete without it (`docs/AI-MODE.md`).
 6. **Everything derives a cost** from the one cost model (`knowledge/MONEY.md`); a missing input is named, never
    invented, and never blocks the tool.
 7. **One word, one place, one colour.** A page is *Problems*, *Actions*, *Tools*; a project, never a job; a client,

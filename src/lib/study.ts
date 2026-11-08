@@ -644,6 +644,35 @@ export interface AgreedStory {
   brief: string;
   startedAt: number;
   closedAt?: number;
+  /** THE BRIEF AS A FILE (S6, docs/STORY.md §7.1) — kept as media on this device (db putBlob under `mediaId`); `readBy` says how its
+   *  words came to be the brief: read in code (pdf.js, mammoth, plain text), by the assistant (a photo or a scanned page), or not read. */
+  briefFile?: StoryBriefFile;
+  /** THE ASKS (S7) — the brief as the questions the client asked, in order; their evidence is worked out every time (lib/storyAsks). */
+  asks?: StoryAsk[];
+}
+export interface StoryBriefFile { mediaId: string; name: string; mime: string; bytes: number; readBy: 'code' | 'assistant' | 'none' }
+export interface StoryAsk {
+  id: string;
+  text: string;
+  /** The sentence of the brief it came from, quoted. */
+  from?: string;
+  order: number;
+  /** Its scope, picked on the chips: line ids, machine names, product names, tool keys (the frame's — lib/catalogue registry). */
+  lines?: string[];
+  machines?: string[];
+  products?: string[];
+  tools?: string[];
+  done?: boolean;
+}
+/** AN ASK'S EVIDENCE, frozen on a chapter (S9) — as lib/storyAsks askEvidence said it that day, in words. */
+export interface StoryAskEvidence {
+  id: string; text: string; from?: string;
+  found: { id: string; what: string; where: string; money?: string }[];
+  doing: { what: string; who: string; due?: string; late: boolean }[];
+  proved: { id: string; what: string; where: string; proof: string }[];
+  missing: string[];
+  /** The asks' counts in one line: "3 found · 2 being done, 1 late · 1 proved · 1 still to show". */
+  says: string;
 }
 export interface StoryFinding { id: string; what: string; line: string; machine?: string; priority: 'critical' | 'high' | 'low'; late: boolean; owner?: string; poundsDay?: number; words?: string }
 export interface StoryAction { what: string; who: string; due?: string; late: boolean; where?: string; kind: string }
@@ -661,6 +690,8 @@ export interface StorySnapshot {
   provedFixes: StoryProved[];
   /** The tools used on the client's lines: a label and how many records. */
   toolsUsed: { tool: string; label: string; n: number }[];
+  /** The brief's asks and what answered each that day (S9); absent on a story with no asks. */
+  asks?: StoryAskEvidence[];
 }
 export interface StorySince { from?: number; newFindings: StoryFinding[]; closed: number; newProved: StoryProved[]; newTools: number; costDayBefore?: number }
 export interface StoryChapter {

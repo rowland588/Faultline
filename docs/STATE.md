@@ -133,6 +133,21 @@ a session that ships something updates this page in the same commit.** The rules
   words already used; the Factory page is titled by the client when every line is one client's, shows the lines under their
   *site › area*, and with two clients offers *Every client* and each (kept on this device). Next, when he asks: K2 the engagement.
 
+- **AI Mode — the colleague (8 November, docs/AI-MODE.md).** Rowland: *"We are building intelligence around the application I
+  have, not building another application around the intelligence"*; then the mandate, *"Take the wheel … Two modes … Manual Mode …
+  AI Mode … Both modes must use the same underlying records, business logic, permissions and capabilities."* Built in this
+  session's slices: **two modes over one application** — Manual Mode the app as it was, AI Mode at `#/ai` (`screens/AiModeScreen`,
+  `src/colleague/`), a conversation typed or spoken in which Claude operates the app only through **capabilities**
+  (`src/capabilities/` — `registry.ts` runCall: validate → the person's access → a write only when confirmed → run; `schemas.ts`
+  the tool definitions; reads `find`, `line_state`, `list_problems`, `overdue_actions`, `project_state`, `story_state`,
+  `list_calculators`, `run_calculator`, `tool_records`; locals `set_focus`, `park_focus`, `record_observation`, `start_timer`,
+  `open_page`; writes `raise_problem`, `update_problem`, `start_project`, `save_calculation`, `add_photo_to_problem`). The gateway's
+  task `colleague` (signed in, 120 calls a day, every call checked against the schemas, an audit row in `ai_actions` —
+  `supabase/AI_ACTIONS.sql`, additive); the conversation a `talk` study with `facts.colleague`, its threads (current · parked ·
+  closed, every note saying how it is known, verified only by a person) and its actions. The AI never deletes, never marks
+  evidence verified, never works out a figure and never builds methods, templates or tools. Voice is the phone's own, in and out.
+  The Story's brief uploaded and split into asks (S6–S7, tasks `brief-read` and `brief-asks`) beside it. Proved by
+  `scripts/acceptance/ai-mode.mjs` and `story-brief.mjs`. Off by the device's switch or `ASSIST_COLLEAGUE_ENABLED` on the server.
 - **The AI toolbox (8 November).** Rowland: *"Go ahead with a AI toolbox"*. Tools has a shelf of its own — every place a model is used
   (Line Talk; talking a process flow chart, spaghetti diagram or value stream in; the video study's Name the work from the frames; the
   voice note in a form), each saying what it does, what it sends and to whom, and what it never does; those tools wear an AI mark on
