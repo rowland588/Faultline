@@ -94,6 +94,9 @@ a session that ships something updates this page in the same commit.** The rules
   at the top, machine cards as a simple header, Tools redone), then the record panel, planning (the projects' board), problems
   and projects, the tools, reports, phone review.
 
+- **The phone review, first pass (8 November, docs/ENTERPRISE-UX.md X8).** 450 screens audited: nothing off the side, no words
+  cut, every sheet closes; small controls 199 → 86, the shared ones a thumb's height.
+
 - **For you — the bell (8 November, the enterprise basics: notifications).** In the top bar on every page: asked once, on this
   device, which name is yours on the actions (they name people as typed); then a count of what is yours late or due by tomorrow
   (red when late) and a panel — Late, Due today or tomorrow, The rest of this week — from the Actions page's own rows, each opening
