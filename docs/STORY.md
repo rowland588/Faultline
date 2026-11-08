@@ -114,3 +114,53 @@ writes a record: he approves.
 | **S5 · Home is the Story** — built 8 November | `#/` renders the Story (`#/story` an alias); the board of lines at `#/room` is the Factory's **Lines** tab, the tabs Story · Lines · Set up; the menu's Factory goes to `#/`; Present (`#/?present=1`) the Story full screen with no frame, Escape or × back; the empty state's *Start the story* and *See the lines ›*; the inventory's rows and PAGES.md follow | smoke, the inventory, journeys, structure, `story.mjs` |
 
 Each lands on its own, green, merged to `main`, live. Nothing in the tools, the records or their papers changes to make it.
+
+## 7. The brief — uploaded, read into asks, and every finding assigned to it (S6–S9; designed 8 November)
+
+Rowland, 8 November, opening the Story: *"it says write down the brief. So here's two intelligent things that need to happen. One, if a
+brief is available to upload, allow a brief to be uploaded … then use AI for possible steps … any information within the tools … assign it
+directly to the brief … Here's the proof. Here's the evidence … If we can build it with code, of course, build it with code. If not, then
+not."* And the rule over it: *"don't let this be any stopper … I don't always get all the information I need. So if I don't have a brief, I
+don't have a brief … It'll tell me no brief … nothing happens, nothing builds."*
+
+**What is code and what is Claude — settled.** Everything that can be a rule is a rule: reading a PDF, a Word file or a text file into words
+(pdf.js, mammoth, plain text, in the browser); typed lines as asks; matching every record to an ask by the line, machine, product and tool it
+carries and a name in the ask's words; what is found, being done, proved and still missing for each ask; the chapter, the paper and the slides
+laid out by ask. Claude, through the `assist` gateway and never writing a figure, in exactly two places: **reading a photo or a scanned page
+of a brief into text** (task `brief-read`), and **splitting a prose brief into asks** (task `brief-asks`, three to eight, each quoting the
+sentence it came from) — both shown to the consultant and kept only when approved. With the gateway off or no signal, the lines are typed and
+everything else is unchanged.
+
+**No brief is never a stopper.** The Story says *No brief yet* in one line and works exactly as S2–S5 built it: the four figures, the
+chapters, the report, the slides, all from the records. A brief adds the layer *asked → found → done → proved* on top; nothing waits on it.
+
+### 7.1 The record
+`AgreedStory.brief` stays the text. Added: `briefFile?: { mediaId, name, mime, bytes, readBy: 'code' | 'assistant' | 'none' }` (the file as media
+on the story record, the same store the tools use — `docs/ATTACHMENTS.md`); `asks?: StoryAsk[]` — `{ id, text, from?: string (the sentence quoted
+from the brief), order, lines?: string[], machines?: string[], products?: string[], tools?: string[], done?: boolean }`. An ask's scope is picked
+once (chips: the client's lines, their machines and products, the tools) or read from its words by `askScopeFromWords` — a line's or machine's
+name appearing in the ask. Nothing else is stored: the evidence is worked out from the records every time (`askEvidence`), never written down.
+
+### 7.2 The page
+Under the brief: **Write it · Upload it** (PDF, Word, text, a photo). An uploaded file shows its name and *Read as text* with the words in a box
+to check; a photo or a PDF with no text layer offers *Read it with the assistant* (said as AI, the AI toolbox card). **The asks**: a list under
+the brief, each a row — its words, its scope chips, and the four counts in words (*3 found · 2 being done, 1 late · 1 proved · the wrapper
+not measured yet*); *Split the brief into asks* (the assistant, approved line by line) or *＋ Add an ask*; drag to reorder, edit in place,
+delete with Undo. A row opens the ask: what we found (the records, each opening), what is being done (actions with who and when), what is
+proved (before → after), **what is still missing** — the tool that would show it, named (*no measurement on the wrapper — Line capacity or
+SMED would show it*), with *Start it on Line 2A ›*. **Also found**: every record matching no ask, one tap to assign. The four figures at the
+top stay the whole engagement's.
+
+### 7.3 The papers
+The chapter's draft, the story report and the slides gain a section an ask, in the asks' order: *Asked* (the quoted sentence) · *Found* ·
+*Being done* · *Proved* · *Still to show*. The assistant's draft (S3) is given the asks and their evidence as part of the snapshot and told to
+write by ask; its figures are checked the same way (`unsureStory`). A story with no asks prints as today.
+
+### 7.4 The slices
+| Slice | What ships | Proof |
+|---|---|---|
+| **S6 · The brief uploaded** | Upload it (PDF · Word · text · photo) kept as media on the story; text read in code (pdf.js, mammoth); a photo or image-only PDF read by the assistant (task `brief-read`, the words shown to approve); *No brief yet* in a line and nothing blocked | `story-brief.mjs` (a PDF and a .docx uploaded and read back as text; a photo read by the mocked gateway; no brief) |
+| **S7 · The brief as asks** | `asks` on the record; ＋ Add an ask; *Split the brief into asks* (task `brief-asks`, each quoting its sentence, approved before kept); edit, reorder, delete with Undo; the scope chips and `askScopeFromWords` | `story-brief.mjs`, `clientStory.test.ts` |
+| **S8 · The evidence by rules** | `askEvidence` — records, problems, actions and proved fixes matched by line · machine · product · tool · a name in the words; found · being done · proved · still missing (the tool named); *Also found* to assign | `story-brief.mjs`, unit tests on the matcher |
+| **S9 · The papers by ask** | the chapter, `storyPaper` and `storyDeck` a section an ask; the assistant given the asks; the AI toolbox card for the brief | `story.mjs` extended, `ai-toolbox.mjs` |
+

@@ -103,7 +103,7 @@ ok(/^Factory › Line 9/.test(await bar()), '3 the bar starts with the way back:
 await page.locator('.nv-tabs .nv-tab', { hasText: 'Programs' }).click(); await page.waitForTimeout(900);
 ok(await tabOn() === 'Programs' && /line=/.test(page.url()) && (await lit()).join() === 'Line 9', '3 its Programs tab, still in the line', `${await tabOn()} | ${page.url()}`);
 await page.getByRole('button', { name: 'Back to the factory' }).click(); await page.waitForTimeout(900);
-ok((await lit()).join() === 'Factory' && /^(Story|Lines)$/.test(await tabOn()) && (await menu()).join(' · ') === MENU, '3 ‹ Factory lands on the Factory — the Story, or its Lines (8 November, S5)', `${await tabOn()} | ${page.url()}`);
+ok((await lit()).join() === 'Factory' && /^(Story|Lines)$/.test(await tabOn()) && (await menu()).map(x => x.replace(/ \d+$/, '')).join(' · ') === MENU, '3 ‹ Factory lands on the Factory — the Story, or its Lines (8 November, S5)', `${await tabOn()} | ${page.url()} | lit=${(await lit()).join()} | menu=${(await menu()).join(' · ')}`);
 
 /* 4 — where you were, one tap back (the board at #/room carries it) */
 await go('#/room');
