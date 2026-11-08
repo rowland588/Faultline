@@ -293,3 +293,5 @@ figures (no client's data): **A · The engagement** (home is the client: found s
 being studied, what happens next), **B · Today on the floor** (home is the working cockpit: which line, carry on, the tools reached for
 most, the open findings), **C · Present** (one tap turns the work into the client's story: what was found, what it costs, being fixed,
 proved, where the money is). Waiting for his pick; nothing is built until then.
+
+He answered *"No ... we need to think bigger"*: the shape under the pages comes first — the client, the site and its areas, the engagement, the benefits register and real client reporting, in `docs/CONSULTANT.md`.
