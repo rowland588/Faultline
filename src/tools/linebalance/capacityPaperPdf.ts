@@ -530,11 +530,14 @@ function limited(p: CapacityPaper, sayV: boolean): Block[] {
     }
     if (sayV && p.walk) out.push(said('The bottleneck, walked:', p.walk.text, p.walk.tone));
   } else {
-    const vb = vBars(p);
+    /* the drawn line's bars stand for the V and the sheet when the page asks for the room (noSheet) */
+    const vb = p.noSheet ? null : vBars(p);
     if (vb) { out.push(vb); out.push(vKey(p)); }
     if (sayV && p.walk) out.push(said('The bottleneck, walked:', p.walk.text, p.walk.tone));
-    out.push({ ...space('s'), keepWithNext: true });   // travels with the sheet, never strands the label
-    out.push(sheet(p));
+    if (!p.noSheet) {
+      out.push({ ...space('s'), keepWithNext: true });   // travels with the sheet, never strands the label
+      out.push(sheet(p));
+    }
   }
   return out;
 }
@@ -742,7 +745,23 @@ export async function drawCapacityPaper(doc: jsPDF, papers: CapacityPaper[], o: 
      would cost a page the paper leaves it to the screen, which always says it. */
   const fit = async (q: CapacityPaper) => { const d = await chooseDensity(base, x => productLeanBlocks(q, x)); return (await pour({ ...base, density: d, dry: true }, productLeanBlocks(q, d), () => undefined)).pages; };
   const bareOf = (q: CapacityPaper): CapacityPaper => { const c: CapacityPaper = { ...q }; delete c.three; delete c.buffers; return c; };
-  const first: CapacityPaper | undefined = one && (papers[0]?.three || papers[0]?.buffers) && (await fit(papers[0])) > (await fit(bareOf(papers[0]))) ? bareOf(papers[0]) : papers[0];
+  /* ...and since the line is drawn with a bar a station (4 November, FC-034 part 2), the capacity sheet under the V says the
+     same speeds a third time: when the page would still run over, it too is left to the screen (8 November — the ordinary
+     seed's product had run to two pages). The first form that fits a page wins; none fitting, the fewest pages — the fullest of those. */
+  const forms = (q: CapacityPaper): CapacityPaper[] => {
+    const out = [q];
+    const drawn = !!q.flow && !q.groups?.length;
+    if (drawn) out.push({ ...q, noSheet: true });
+    if (q.three || q.buffers) { out.push(bareOf(q)); if (drawn) out.push({ ...bareOf(q), noSheet: true }); }
+    return out;
+  };
+  let first: CapacityPaper | undefined = papers[0];
+  if (one && papers[0]) {
+    const fs = forms(papers[0]);
+    const pages = await Promise.all(fs.map(fit));
+    const i = pages.findIndex(n => n <= 1);
+    first = i >= 0 ? fs[i] : fs[pages.indexOf(Math.min(...pages))];
+  }
   const build = (d: Density): Block[] => (one ? productLeanBlocks(first as CapacityPaper, d)
     /* the first product follows the front where it stands — kept whole
        overleaf, it left the front alone on a page */

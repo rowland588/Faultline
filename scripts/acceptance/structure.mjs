@@ -104,7 +104,7 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
 /* ---- B2 · 1 every page: the place named, the menu the same everywhere, the scope's own pages its tabs within their size ----
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
-const LIMIT = { factory: 2, line: 8, project: 18 };   /* the factory: Overview · Set up (27 October, the line is home) */
+const LIMIT = { factory: 3, line: 8, project: 18 };   /* the factory: Overview · Story · Set up (27 October, the line is home; 8 November, the Story) */
 const MENU = 'Factory · Projects · Tools · Factory reports';
 const ONE_BAR_FACTORY = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
 const ONE_BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* stage-gate project phone bar (A3) */
@@ -147,7 +147,7 @@ for (const width of [1360, 390]) {
   }
   const tag = width > 900 ? 'desk' : 'phone';
   ok(!unnamed.length, `B2 1 ${tag}: every page in PAGES.md names its place — Home, the factory, a line or a project`, unnamed.join(' | '));
-  if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page and naming the line or project you are in, a scope’s own pages its tabs within their size (factory 4, line 8, project 18)', over.join(' | '));
+  if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page and naming the line or project you are in, a scope’s own pages its tabs within their size (factory 3, line 8, project 18)', over.join(' | '));
   else ok(!offBar.length && (bars.all?.size ?? 0) <= 3, `B2 1 phone: the factory or project bar on every page — ${[...(bars.all ?? [])].join(' / ')}`, offBar.join(' | '));
   await ctx.close();
 }

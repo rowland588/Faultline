@@ -54,7 +54,7 @@ const MENU = 'Factory · Projects · Tools · Factory reports';
 await go('#/');
 ok(await h1() === 'Factory', '1 #/ is the Factory page', await h1());
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Factory', '1 the menu, Factory lit', `${(await menu()).join(' · ')} | ${(await lit()).join()}`);
-ok((await tabs()).join(' · ') === 'Overview · Set up' && await tabOn() === 'Overview', '1 the factory\'s own tabs, Overview on (27 October: the lines set up in Set up; every line\'s machines and programs on the line)', (await tabs()).join(' · '));
+ok((await tabs()).join(' · ') === 'Overview · Story · Set up' && await tabOn() === 'Overview', '1 the factory\'s own tabs, Overview on (27 October: the lines set up in Set up; every line\'s machines and programs on the line; 8 November: the Story between them, docs/STORY.md)', (await tabs()).join(' · '));
 ok(/^Factory ›? ?Overview$/.test((await bar()).replace(/\s*›\s*/g, ' › ').replace('Factory › Overview', 'Factory › Overview')) || /Factory.*Overview/.test(await bar()), '1 the bar says Factory › Overview', await bar());
 ok(await page.locator('.fd-ask, .fd-lib, .fd-tools').count() === 0 && !/What do you need to get done/.test(await page.locator('.nv-main').innerText()), '1 no front door, no question');
 

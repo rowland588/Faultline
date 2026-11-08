@@ -25,7 +25,7 @@ export const PAGES = (sd, cap) => [
     { what: 'its heading', sel: '.home h1', text: /^Factory$/ },
     { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
     { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Tools · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
-    { what: 'its own tabs — Overview · Set up, Overview on (27 October: every line\'s machines and programs on the line)', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
+    { what: 'its own tabs — Overview · Story · Set up, Overview on (27 October: every line\'s machines and programs on the line)', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
     { what: 'Line Talk — start one, or carry on the latest', sel: '.home-talk .fd-talk-start', text: /Start a Line Talk/ },
     { what: 'carry on the latest Line Talk', sel: '.home-talk .fd-talk-on', text: /^Carry on: / },
     /* the page header since B3: the band's two report buttons are its Report ▾ */

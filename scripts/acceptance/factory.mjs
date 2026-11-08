@@ -67,7 +67,8 @@ let fail = 0; const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`)
 const txt = async () => (await page.locator('.nv-main').innerText()).replace(/\s+/g, ' ');
 const rail = async () => (await page.locator('.nv').innerText()).replace(/\s+/g, ' ');
 /** the factory's lines, in the order shown: "name|type" */
-const order = async () => page.locator('.fac-line').evaluateAll(els => els.map(el => [...el.querySelectorAll('input')].map(i => i.value).join('|')));
+/* the name and the type — the client, site and area boxes beside them (8 November, K1) are client-site-area.mjs's */
+const order = async () => page.locator('.fac-line').evaluateAll(els => els.map(el => [...el.querySelectorAll('input')].slice(0, 2).map(i => i.value).join('|')));
 const saidSaved = async () => (await page.locator('.fac-saved').innerText().catch(() => '')).trim();
 
 /* 1 — empty: the factory first */

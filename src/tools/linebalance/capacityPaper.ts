@@ -112,6 +112,9 @@ export interface CapacityPaper {
   rows: CapacityPaperRow[];
   /** The line drawn and the bars beside it — the page's flow model (capacityFlow), drawn again on paper. */
   flow?: FlowModel;
+  /** ONE PRODUCT IS ONE PAGE: when the drawn line's bars already say every station's speed and the page would still run over, the
+   *  V and the capacity sheet are left to the screen (set by drawCapacityPaper for room, never by a reader). */
+  noSheet?: boolean;
   /** The products of the line (FC-034 part 5): a row each as the All products card says it; each other product's own drawn line. */
   products?: { name: string; says: string; base: boolean; flow?: FlowModel }[];
   /** Several lines feeding one place: the groups the rows fall in, in order. */
