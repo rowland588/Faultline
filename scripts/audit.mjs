@@ -112,7 +112,8 @@ for (const vp of [{ name: 'desk', width: 1280, height: 900, hasTouch: false }, {
   page.on('dialog', d => void d.dismiss().catch(() => {}));
   page.on('download', d => void d.cancel().catch(() => {}));
   await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
-  const seeded = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
+  /* seeded as smoke seeds (its ROUTES name the check logs it makes) */
+  const seeded = await page.evaluate(async () => { const { seedForSmokeTest, seedChecksForTest } = await import('/src/dev/seed.ts'); const sd = await seedForSmokeTest(); return { ...sd, logs: await seedChecksForTest(sd.wsId, sd.projectId) }; });
   const ROUTES = new Function('seeded', `return ${routesSrc}`)(seeded);
 
   for (const [name, hash] of ROUTES) {
