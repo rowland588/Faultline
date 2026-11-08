@@ -231,3 +231,27 @@ Earlier sequence (still true where not superseded):
 5. Then deepen the tools that were used, close the evidence → cause → action
    → proof thread where it breaks, and add a tool only when a real problem
    needs one.
+
+## How a tool is really used — 8 November
+
+Rowland, 8 November, the scenario: *"The site director says to the user, go into that area and find out why we are losing so much
+output ... Nobody knows what's going on. So the user goes to the area, they open up the app ... the line, what they're looking at,
+and then they go, right, as I stand here observing, what tools do I have available to show this is what's happening? I can see over
+there that people are stopping. I can see over there that machines are stopping. I can see over there that material's not good ...
+I can see machines that are broken."* And: *"sometimes you get told ... I want to go do a SMED activity ... a process flow map ...
+value stream mapping. So, of course, these tools are also very much independently"*; *"observing, using the tools to gather
+information, which then make reports, which then ... we can start building actions"*; *"when I say root cause, I don't mean
+everything needs to go down a fishbone ... We can't tie everything into a linear approach ... Sometimes it's about just discovery.
+Sometimes it's about quantification and saying, look, these are our problems ... where we're losing ... why we're losing. Doesn't
+necessarily always lead to do a root cause analysis."*
+
+So, for every design from here:
+
+1. **Two ways in, both first-class.** *At the line, observing* — the line open, the question "what am I seeing?" (people stopping,
+   machines stopping, material not good, a machine broken, people walking, product waiting …) answered with the tools that show it;
+   and *by name* — "I'm here to do a SMED", straight to the tool, alone or on the line. Neither goes through the other.
+2. **Not a funnel.** Discovery, quantification, a report and actions are each an end in themselves. Root cause (6M, the five whys,
+   a fault tree) is offered when it is wanted, never the step the app pushes everyone towards.
+3. **Gather → report → act.** What was gathered on the line becomes the line's report (the one-page, the summary, the full package)
+   and its actions, from wherever the tools were used, in whatever order.
+4. **The user is the person observing** — a consultant or an engineer in the area, one person or a few, not the operators.
