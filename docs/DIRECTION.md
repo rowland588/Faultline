@@ -266,3 +266,24 @@ this area ... all the reports become synchronized ... you can remove, you can pu
 constraining anybody."* So: the tools stay in their categories; each says in plain English what it will help you do; a tool hidden
 inside another (the calculators that are tools in their own right) comes out; no method, step or gate ever stops a person doing
 another first; any tool is linked to a line or a project, taken off and put back, and every report reads what is linked.
+
+## Faultline is Rowland's own consultant's tool — 8 November (real, not a scenario)
+
+Rowland, 8 November: *"Until I say differently, fault line is for me. I'm a consultant. It is for me to go into businesses and operate
+efficiently and wow them with how I do my job. It's a tool for me ... everything you see right now in Faultline is actually a live
+client ... I've been using Faultline now for 3 weeks ... I wouldn't feel comfortable opening up the factory page in front of the
+current client ... I think it's too busy. I think it is relatively confusing. Doesn't look anything really like a Microsoft interface
+would ... It's more like a library of everything that's happening ... it feels as if the entire thing needs a bit of a reshape to
+service me. Rowland Glew, Faultline, designer and owner. My business is Streamline Synergy. That's who I am. Faultline is my tool."*
+
+So, until he says otherwise:
+
+1. **The user is Rowland, a consultant in a client's factory** — one person, his tool, used live with clients. Not a team product,
+   not a factory's own system; nothing is designed for a second organisation.
+2. **Every page must be one he would open in front of the client** — calm, clear, few things, the client's own story; never a
+   library of everything that has happened. A page's size does not grow with a year of records: the current and the open first,
+   the rest one tap away.
+3. **The reshape is designed before it is built** — shown on Faultline's own screens as options for him to react to (he has said he
+   cannot describe it yet), the same way the look was chosen on 6 November; nothing is removed until the shape is agreed.
+4. **His business is Streamline Synergy**; Faultline is his tool. (The brand on the landing page — Opex Elevate — is not changed until
+   he says.)
