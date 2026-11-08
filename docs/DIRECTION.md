@@ -255,3 +255,14 @@ So, for every design from here:
 3. **Gather → report → act.** What was gathered on the line becomes the line's report (the one-page, the summary, the full package)
    and its actions, from wherever the tools were used, in whatever order.
 4. **The user is the person observing** — a consultant or an engineer in the area, one person or a few, not the operators.
+
+**The same day, after a "What are you seeing?" chooser was proposed — no chooser, and nothing locked.** Rowland: *"I'm not after a
+redesign of the app ... we don't have to structure the app into ... ask the question, what are you here for? ... It's just using
+them categories ... As long as ... the tool needs enough information, as in description, next to it, for the user to understand this
+tool will help me do this. In plain English"*; *"if we've got calculators in there that are obviously hidden that's not the
+purpose"*; *"If they're doing a DMAIC ... if they want to jump to measure, it's up to them ... We don't lock them in. If we lock
+anybody in on anything, it loses its power"*; *"You see a tool ... link that tool ... I'm going to use these three tools within
+this area ... all the reports become synchronized ... you can remove, you can put them back ... adaptable, agile, fluid. It's not
+constraining anybody."* So: the tools stay in their categories; each says in plain English what it will help you do; a tool hidden
+inside another (the calculators that are tools in their own right) comes out; no method, step or gate ever stops a person doing
+another first; any tool is linked to a line or a project, taken off and put back, and every report reads what is linked.
