@@ -46,6 +46,20 @@ export const AI_TOOLS: readonly AiTool[] = [
     where: 'On a video study, under The reading: tick Name the work from the frames.',
   },
   {
+    id: 'colleague', name: 'Ask Faultline — AI Mode', tools: [], to: '/ai',
+    does: 'Talk or type to a manufacturing colleague that reads your real records, asks back, keeps track of what you are looking into, and does the work in the app through its approved capabilities — raising a problem, starting a project, running a calculator — each shown to you first.',
+    sends: 'What you say and photograph in the conversation, the subject in hand and what its capabilities read from your records for this answer, to Claude (Anthropic) through Faultline’s gateway; every step it asks for is recorded.',
+    never: 'Writes anything you have not pressed Do it on, deletes a record, marks evidence verified, or works out a figure — the calculators and tools do the sums.',
+    where: 'Ask Faultline in the top bar, from any page — it starts on the line or project you are on.',
+  },
+  {
+    id: 'brief-read', name: 'Read the brief', tools: [], to: '/story',
+    does: 'On the Story, reads a photographed or scanned brief into words, and splits a long brief into the client’s asks, each quoting the sentence it came from — for you to check before anything is kept.',
+    sends: 'The brief’s pages as small pictures, or its words, to Claude (Anthropic) through Faultline’s gateway. A PDF with text, a Word file or a text file is read on your device with no AI.',
+    never: 'Keeps an ask you have not ticked, or invents one the brief does not say.',
+    where: 'On the Story: Upload it · Read it with the assistant · Split the brief into asks.',
+  },
+  {
     id: 'story-draft', name: 'Write the chapter', tools: [], to: '/story',
     does: 'When you Run an update on the Story, drafts the chapter — the headline and the paragraphs — in plain English for the client, from the figures the tools recorded; you edit it before you approve.',
     sends: 'The chapter’s snapshot (every figure with where it comes from), the brief and the headlines of the chapters before, to Claude (Anthropic) through Faultline’s gateway.',

@@ -18,7 +18,7 @@ await t.seed();
 await t.go('#/tools', 3000);
 
 const cards = await page.locator('[data-ai-tool]').evaluateAll(es => es.map(e => e.getAttribute('data-ai-tool')));
-ok(JSON.stringify(cards) === JSON.stringify(['talk', 'talk-in', 'video-name', 'story-draft', 'voice-note']), `1 the AI toolbox, a card each: ${cards.join(', ')}`);
+ok(JSON.stringify(cards) === JSON.stringify(['talk', 'talk-in', 'video-name', 'colleague', 'brief-read', 'story-draft', 'voice-note']), `1 the AI toolbox, a card each: ${cards.join(', ')}`);
 const each = await page.locator('[data-ai-tool]').evaluateAll(es => es.every(e => /Sends/.test(e.innerText) && /Never/.test(e.innerText)));
 ok(each && /never works out a figure/.test(await t.words('[data-ai-box]')), '1 each card says what it sends and what it never does; the box says the AI never works out a figure');
 

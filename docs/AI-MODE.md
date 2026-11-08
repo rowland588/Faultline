@@ -74,7 +74,7 @@ export interface CapCall { id: string; name: string; input: unknown }
   definitions, JSON Schema with `additionalProperties: false`. The registry's test checks the names and kinds agree.
 - **Kinds.** *read* runs at once. *local* changes only the conversation or the device (the focus, a timer, a page
   opened) and needs no confirmation. *write* creates or changes a record: shown first as a card with its preview, run
-  only on Confirm; declined, the colleague is told it was declined.
+  only on Do it (the card's Not now declines); declined, the colleague is told it was declined.
 
 ### The capabilities
 
