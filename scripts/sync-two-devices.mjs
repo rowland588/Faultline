@@ -579,7 +579,7 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   const l = laptop.page;
   await syncViaUI(laptop);
   await settle(laptop, { timeout: 60_000 });
-  await go(l, '/');
+  await go(l, '/room');   /* the board of lines and their projects — home is the Story since S5 */
   check(await seen(l, 'Line 7 new wrapper'), 'the laptop’s Home shows the job');
   await go(l, `/project/${pid}/install`);
   const cell = await l.getByRole('button', { name: /Case packer — Positioned and levelled/ }).getAttribute('aria-label').catch(() => null);

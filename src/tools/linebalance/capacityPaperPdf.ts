@@ -537,6 +537,11 @@ function limited(p: CapacityPaper, sayV: boolean): Block[] {
     if (!p.noSheet) {
       out.push({ ...space('s'), keepWithNext: true });   // travels with the sheet, never strands the label
       out.push(sheet(p));
+    } else {
+      /* the sheet left out for the room still leaves its words: a station's time to take it away (FC-034 part 2) is
+         said in a line, so nothing typed is lost from the paper */
+      const away = p.rows.filter(r => / to take /.test(r.speed)).map(r => `${r.name} — ${r.speed}`);
+      if (away.length) out.push(said('Taken away:', away.join('; ')));
     }
   }
   return out;

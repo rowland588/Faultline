@@ -325,7 +325,7 @@ await go(`#/lines/${sd.wsId}`);
 /* the front door that listed the tools is gone (23 October, one home): the library is Tools in the menu */
 await go('#/');
 await page.locator('.nv-rail .nv-ri', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1500);
-ok(page.url().endsWith('#/tools') && /Reliability/.test(await page.locator('.et-row').allInnerTexts().then(r => r.join(' | '))), '9 the menu\'s Tools lists it among the tools', page.url());
+ok(page.url().endsWith('#/tools') && /Reliability/.test(await page.locator('[data-tool]').allInnerTexts().then(r => r.join(' | '))), '9 the menu\'s Tools lists it among the tools', page.url());
 
 /* ---- 10 the phone ---- */
 {

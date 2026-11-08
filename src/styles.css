@@ -16969,6 +16969,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .ai-door { width: 44px; height: 44px; padding: 0; justify-content: center; }
   .ai-door-l { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
+/* the narrowest phones (375 px): the door gives up 6 px of width so the top bar never runs off the side; still 44 px tall */
+@media (max-width: 400px) { .ai-door { width: 38px; } }
 
 .ai-off { max-width: 640px; padding-top: 32px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 

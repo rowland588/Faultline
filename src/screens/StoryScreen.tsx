@@ -27,6 +27,7 @@ import { askStory, storyAskOf } from '../tools/story/storyAsk';
 import { askRecordsOf } from '../lib/storyAskRecords';
 import { withAsks } from '../lib/storyAsks';
 import { AsksPanel, BriefPanel } from './StoryBrief';
+import { CloudPanel } from '../cloud/CloudPanel';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 /** HOME IS THE STORY (S5): `present` draws the same page full screen with no frame — the meeting itself — from #/?present=1. */
@@ -235,6 +236,9 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
           </section>
         </>
       )}
+      {/* THE CLOUD, AS ON THE LINES TAB: home is the Story (S5), so a row the cloud refused, a file too big for it or work
+          not backed up yet is said here too — never only one tab away */}
+      <CloudPanel />
     </div>
   );
 }

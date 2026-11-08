@@ -113,7 +113,7 @@ ok(fresh.edge === '1px' && fresh.says !== (rowStyle.c), '1 L1: fresh is neutral 
 ok(!(await page.locator('.pl-looked .lk-machines').count()) || /Cartoner|Wrapper/.test(await page.locator('.pl-looked .lk-machines').innerText()), '1 L1: only the machines nobody has looked at are named');
 
 /* 2 — the factory's cards */
-await go('#/');
+await go('#/room');
 await page.waitForSelector('.fac-card[data-line="Gemba L3"]', { timeout: 15000 });
 const short = { L1: 'Looked at yesterday', L2: 'Last looked at 9 days ago — fading', L3: 'Not looked at for 16 days — stale', L4: 'Nothing recorded of anyone looking — stale' };
 for (const k of ['L1', 'L2', 'L3', 'L4']) {
