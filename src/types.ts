@@ -57,6 +57,11 @@ export interface Workspace {
    *  factory's own words ("Packing", "Processing"), and where it sits on the
    *  floor: the order lines are listed in everywhere (lib/lines). */
   lineType?: string;
+  /** Whose line it is, which of their sites, which area of it (8 November, docs/CONSULTANT.md K1 — supabase/CLIENT_SITE_AREA.sql):
+   *  words on the line, never a record; the Factory page groups and titles by them. */
+  clientName?: string;
+  siteName?: string;
+  areaName?: string;
   floorOrder?: number;
   /** A DUAL LINE (supabase/DUAL_LINES.sql — Rowland, 23 October: "2a 2b are 2
    *  lines but they happen to be a dual line"): the factory lines this line is

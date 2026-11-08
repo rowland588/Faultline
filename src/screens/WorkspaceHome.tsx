@@ -34,7 +34,7 @@ import { useProjects } from '../lib/useProjects';
 import { inArchivedProject, listAllStudies, onDataChange, projectsOnWorkspace } from '../db';
 import { lineRates, rateShort, WEEK } from '../lib/intelligence';
 import { isDemo, dualOf, dualSaid } from '../lib/lines';
-import { factorySays, liveProductionLines, productionLines } from '../lib/lines';
+import { clientsOf, factorySays, linesByPlace, liveProductionLines, productionLines } from '../lib/lines';
 import { JobsBoard } from '../ui/JobsBoard';
 import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
@@ -263,6 +263,15 @@ export function WorkspaceHome() {
   const prodLines = productionLines((list ?? []).filter(w => w.id !== pendingDel?.id && (liveIds === null || liveIds.has(w.id))));
   /* HOW FRESH THE LOOKING IS, a line at a time (FC-199, tools/gemba) — the silence made visible on the board */
   const looked = useLooking(prodLines.map(w => w.id));
+  /* WHOSE LINES (8 November, docs/CONSULTANT.md K1): with more than one client named on the lines, the Lines are shown a client at a
+     time (picked here, kept on this device); with one, the page is titled by it; the lines sit under their site and area. */
+  const clients = clientsOf(prodLines);
+  const [client, setClient] = useState<string>(() => { try { return localStorage.getItem('faultline.client') ?? ''; } catch { return ''; } });
+  const picked = clients.length > 1 && clients.includes(client) ? client : '';
+  const pickClient = (c: string) => { setClient(c); try { localStorage.setItem('faultline.client', c); } catch { /* private mode */ } };
+  const oneClient = clients.length === 1 && prodLines.every(w => w.clientName?.trim() === clients[0]) ? clients[0] : '';
+  const shownLines = picked ? prodLines.filter(w => w.clientName?.trim() === picked) : prodLines;
+  const byPlace = linesByPlace(shownLines);
   /* ON A PHONE THE ANSWER COMES FIRST (FLOW-AUDIT.md, 11): the first screen
      held the title, New project and the factory's cards, and the headline
      began at the foot of it, under the Problem button. The line cards go
@@ -270,7 +279,13 @@ export function WorkspaceHome() {
   const factory = (
     <section className="home-spaces fac-home ep-panel" aria-label="Lines">
       <div className="home-sec-head">
-        <h2 className="home-sec-title">Lines</h2>
+        <h2 className="home-sec-title">Lines{picked ? ` — ${picked}` : ''}</h2>
+        {clients.length > 1 && (
+          <div className="chip-row fac-clients" role="radiogroup" aria-label="Whose lines">
+            <button type="button" role="radio" aria-checked={!picked} className={'chip' + (!picked ? ' on' : '')} onClick={() => pickClient('')}>Every client</button>
+            {clients.map(c => <button key={c} type="button" role="radio" aria-checked={picked === c} className={'chip' + (picked === c ? ' on' : '')} onClick={() => pickClient(c)}>{c}</button>)}
+          </div>
+        )}
         {/* THE LINES THEMSELVES ARE SET UP IN SET UP (27 October — Rowland: "put the lines in the setup because it's
             factory setup"); every line's programs, problems and machines are on the line's own page */}
         {prodLines.length > 0 && (
@@ -288,8 +303,11 @@ export function WorkspaceHome() {
         <>
           <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
           <div className="fac-floor-head" aria-hidden><span>Line</span><span>Where it stands</span><span>The worst thing open</span><span>Programs · projects · looked at</span></div>
-          <ul className="fac-floor" aria-label="The lines, in floor order">
-            {prodLines.map(w => {
+          {byPlace.map(g => (
+          <div key={g.place || '-'} className="fac-place" data-place={g.place}>
+          {(byPlace.length > 1 || g.place) && <h3 className="fac-place-h">{g.place || 'No site or area said'}</h3>}
+          <ul className="fac-floor" aria-label={g.place ? `The lines in ${g.place}` : 'The lines, in floor order'}>
+            {g.lines.map(w => {
               const c = counts[w.id];
               const on = belongs?.[w.id];
               /* THE BOARD (27 October — "which line needs me?"; 29 October E1 — Planner cards on a Teams canvas) */
@@ -344,6 +362,8 @@ export function WorkspaceHome() {
               );
             })}
           </ul>
+          </div>
+          ))}
         </>
       )}
     </section>
@@ -392,7 +412,7 @@ export function WorkspaceHome() {
       {/* TEAM & INVITES, where the Factory's other settings are (Rowland, 4 November: "we used to have an invite system ... put that back"): it was only behind the
           account circle, top right; a super admin finds it here too. The database still lets in only the people invited (allowed_emails). */}
       <section className="fq-hero" aria-label="The factory today">
-      <PageHeader title="Factory" eyebrow={greeting(new Date().getHours())}
+      <PageHeader title={oneClient || 'Factory'} eyebrow={greeting(new Date().getHours())}
         says={factoryLede}
         more={profile?.is_super ? [{ label: 'Team & invites', run: () => setTeam(true) }] : undefined}
         primary={mayStart ? { label: 'New project', run: () => nav('/projects?new=1') } : undefined}

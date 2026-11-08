@@ -86,6 +86,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         packs_per_min: w.packsPerMin ?? null, margin_per_pack: w.marginPerPack ?? null, materials_per_pack: w.materialsPerPack ?? null,
         last_category: w.lastCategory ?? null, last_asset: w.lastAsset ?? null,
         line_type: w.lineType ?? null, floor_order: w.floorOrder ?? null, made_of: w.madeOf?.length ? w.madeOf : null,
+        client_name: w.clientName ?? null, site_name: w.siteName ?? null, area_name: w.areaName ?? null,
         archived: !!w.archived, created_at: w.createdAt, updated_at: w.updatedAt ?? w.createdAt, deleted_at: null,
       };
     },
@@ -99,6 +100,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       packsPerMin: n(r.packs_per_min), marginPerPack: n(r.margin_per_pack), materialsPerPack: n(r.materials_per_pack),
       lastCategory: (r.last_category as string) ?? undefined, lastAsset: (r.last_asset as string) ?? undefined,
       lineType: (r.line_type as string) ?? undefined, floorOrder: n(r.floor_order),
+      ...(r.client_name ? { clientName: String(r.client_name) } : {}), ...(r.site_name ? { siteName: String(r.site_name) } : {}), ...(r.area_name ? { areaName: String(r.area_name) } : {}),
       ...(Array.isArray(r.made_of) && r.made_of.length ? { madeOf: (r.made_of as unknown[]).map(String) } : {}),
       archived: !!r.archived, createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),

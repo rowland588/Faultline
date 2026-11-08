@@ -16811,3 +16811,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-say { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: var(--radius-sm); background: var(--surface); }
 .ai-say p { margin: 0 0 4px; }
 .ai-say-h { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+
+/* CLIENT, SITE AND AREA on the Factory page (8 November, docs/CONSULTANT.md K1): the lines under their site and area; a client picked
+   when the lines name more than one. */
+.fac-clients { margin-left: auto; }
+.fac-place + .fac-place { margin-top: 18px; }
+.fac-place-h { margin: 6px 0 8px; font-size: var(--t-label); font-weight: 600; color: var(--muted); letter-spacing: .02em; }

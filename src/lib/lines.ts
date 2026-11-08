@@ -220,3 +220,27 @@ export function lineFacts(w: Workspace): { shifts?: string; crew?: string; cost?
     ...(short ? { short } : {}),
   };
 }
+
+/* CLIENT, SITE AND AREA (8 November, docs/CONSULTANT.md K1 — Rowland: "I go in, I build what I see, an area, production lines within
+ * the area"): words on each line, never a record. These read them. */
+
+/** The words already used for one of the three, for a box's list — the factory's own, in order. */
+export function placeWordsOffered(lines: readonly Workspace[], key: 'clientName' | 'siteName' | 'areaName'): string[] {
+  return [...new Set(lines.map(w => w[key]?.trim()).filter((t): t is string => !!t))].sort((a, b) => a.localeCompare(b));
+}
+
+/** The clients the lines name, in order. */
+export const clientsOf = (lines: readonly Workspace[]): string[] => placeWordsOffered(lines, 'clientName');
+
+/** Where a line is, in words: "Site 1 › Packing hall" — site and area only; empty when neither is said. */
+export function placeOf(w: Pick<Workspace, 'siteName' | 'areaName'>): string {
+  return [w.siteName?.trim(), w.areaName?.trim()].filter(Boolean).join(' › ');
+}
+
+/** The lines grouped by where they are, site then area, each group keeping the lines' own order; lines that say neither come last
+ *  under an empty place. One group (and that group's place empty) when nothing is said — the board as before. */
+export function linesByPlace<T extends Pick<Workspace, 'siteName' | 'areaName'>>(lines: readonly T[]): { place: string; lines: T[] }[] {
+  const groups = new Map<string, T[]>();
+  for (const w of lines) { const p = placeOf(w); groups.set(p, [...(groups.get(p) ?? []), w]); }
+  return [...groups.entries()].sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b))).map(([place, ls]) => ({ place, lines: ls }));
+}

@@ -25,7 +25,7 @@ import {
   archiveWorkspace, deleteWorkspace, mergeLinesUndoable, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
   listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, restoreWorkspace, updateWorkspace, workspaceContents,
 } from '../db';
-import { addLineToFactory, factorySays, lineFacts, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked, dualOf, dualSaid } from '../lib/lines';
+import { addLineToFactory, factorySays, lineFacts, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked, dualOf, dualSaid, placeWordsOffered } from '../lib/lines';
 import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
 import { snagRow } from '../lib/snagsReport';
@@ -204,6 +204,9 @@ export function FactoryScreen() {
       {saved && <p className="fac-saved" role="status">Saved — {saved}</p>}
 
       <datalist id="fac-types">{types.map(t => <option key={t} value={t} />)}</datalist>
+      <datalist id="fac-clients">{placeWordsOffered(lines ?? [], 'clientName').map(t => <option key={t} value={t} />)}</datalist>
+      <datalist id="fac-sites">{placeWordsOffered(lines ?? [], 'siteName').map(t => <option key={t} value={t} />)}</datalist>
+      <datalist id="fac-areas">{placeWordsOffered(lines ?? [], 'areaName').map(t => <option key={t} value={t} />)}</datalist>
 
       {adding && may && (
         <form className="fac-add" aria-label="Add lines" onSubmit={e => { e.preventDefault(); void add(); }}>
@@ -252,6 +255,13 @@ export function FactoryScreen() {
                     onCommit={v => { if (v) void put(w, { name: v }, `${w.name} is now ${v}`); }} />
                   <CommitBox value={w.lineType ?? ''} label={`${w.name}'s type`} list="fac-types" placeholder="Type — e.g. Packing" disabled={!may}
                     onCommit={v => void put(w, { lineType: v || undefined }, v ? `${w.name} is a ${v} line` : `${w.name} has no type`)} />
+                  {/* whose, which site, which area (8 November, docs/CONSULTANT.md K1) — words on the line, the box offering those used */}
+                  <CommitBox value={w.clientName ?? ''} label={`${w.name}'s client`} list="fac-clients" placeholder="Client" disabled={!may}
+                    onCommit={v => void put(w, { clientName: v || undefined }, v ? `${w.name} is ${v}'s` : `${w.name} has no client`)} />
+                  <CommitBox value={w.siteName ?? ''} label={`${w.name}'s site`} list="fac-sites" placeholder="Site" disabled={!may}
+                    onCommit={v => void put(w, { siteName: v || undefined }, v ? `${w.name} is at ${v}` : `${w.name} has no site`)} />
+                  <CommitBox value={w.areaName ?? ''} label={`${w.name}'s area`} list="fac-areas" placeholder="Area — e.g. Packing hall" disabled={!may}
+                    onCommit={v => void put(w, { areaName: v || undefined }, v ? `${w.name} is in ${v}` : `${w.name} has no area`)} />
                 </span>
                 {/* its machines in flow order — always shown; names and order on the line's Machines tab (Stage 2) */}
                 {(() => {

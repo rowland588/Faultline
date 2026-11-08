@@ -39,7 +39,7 @@ import { canStartTogether } from '../lib/startStudy';
 import { getWorkspace, listAllSnags, listObservations, listSnagAssets, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
 import { methodOf } from '../lib/planModel';
 import { useCanStartProjects } from '../cloud/access';
-import { dualOf, lineFacts, lineTypesOffered, linesSaid, productionLines } from '../lib/lines';
+import { dualOf, lineFacts, lineTypesOffered, linesSaid, placeWordsOffered, productionLines } from '../lib/lines';
 import { WorkspaceProvider } from '../state/WorkspaceProvider';
 import { StudySetupSheet } from '../ui/StudySetupSheet';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone } from '../lib/snagsReport';
@@ -383,6 +383,15 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
           </label>
           <datalist id="pl-types">{types.map(t => <option key={t} value={t} />)}</datalist>
+          {/* whose line, which of their sites, which area (8 November, docs/CONSULTANT.md K1) */}
+          {([['clientName', 'Client', 'e.g. Northfield Foods', 'client'], ['siteName', 'Site', 'e.g. Hull', 'site'], ['areaName', 'Area', 'e.g. Packing hall', 'area']] as const).map(([k, label, eg, word]) => (
+            <label key={k} className="pl-edit-f"><span>{label}</span>
+              <input className="text-input" defaultValue={line[k] ?? ''} maxLength={80} list={`pl-${word}s`} placeholder={eg} aria-label={`The line's ${word}`}
+                onBlur={e => { const v = e.target.value.trim(); if (v !== (line[k] ?? '')) void save({ [k]: v || undefined }, v ? `${word}: ${v}` : `no ${word}`); }}
+                onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+              <datalist id={`pl-${word}s`}>{placeWordsOffered(lines, k).map(t => <option key={t} value={t} />)}</datalist>
+            </label>
+          ))}
           {/* MADE OF — the connector (23 October): tick the lines this one is made of; untick to undo. */}
           <fieldset className="pl-edit-f pl-madeof">
             <legend>Made of</legend>
