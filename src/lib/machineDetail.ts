@@ -31,6 +31,7 @@ import { niceDay, isoDay } from './weeks';
 import type { MachinePaper, PaperDetail, PaperRow, PaperSection, PaperTone } from './machinePaper';
 import { attemptDetail, attemptFromLine, itemDetail, withSplit, runWords, statusWord, whenWords, type PlainKind } from './machinePlain';
 import { statusTone } from './machinePaper';
+import { identityFacts } from './factoryKnowledge';
 
 export interface DetailInput {
   name: string;
@@ -112,7 +113,7 @@ export function machineDetailPaper(i: DetailInput): MachinePaper {
       const progs = (reading?.lines ?? []).filter(l => l.assetId === asset.id);
       const handed = m.at.startsWith('Handed over');
       status = handed ? 'Handed over' : ASSET_STATE_WORD[assetStateOf(asset)];
-      facts = [m.oem ? `Made by ${m.oem}` : '', m.arrival, i.line ? `On ${i.line}` : ''].filter(Boolean);
+      facts = [m.oem ? `Made by ${m.oem}` : '', ...identityFacts(asset), m.arrival, i.line ? `On ${i.line}` : ''].filter(Boolean);
       inProject = `Going through ${i.project.name} — an installation project — ${handed ? m.at.toLowerCase() : m.at.startsWith('at ') ? `up to ${m.at.slice(3)}` : m.at}.`;
       gates = m.gates.map(g => ({ label: g.label, says: g.says, tone: ({ done: 'g', going: 'w', late: 'r', problem: 'a', failed: 'r', ahead: 'n', none: 'n' } as const)[g.tone] }));
 
@@ -241,7 +242,7 @@ export function machineDetailPaper(i: DetailInput): MachinePaper {
   const v = i.view;
   if (v) {
     if (!i.project) {
-      facts = [v.says, v.oem ? `Made by ${v.oem}` : ''].filter(Boolean);
+      facts = [v.says, v.oem ? `Made by ${v.oem}` : '', ...identityFacts(v.record)].filter(Boolean);
       sections.push({ title: 'Its programs', count: v.programs.length ? plural(v.programs.length, 'program') : 'none', intro: 'Each program for this machine on its line — what it runs, where it stands, and every test run of it.',
         rows: v.programs.map(programRow), empty: 'No programs on it.' });
     }

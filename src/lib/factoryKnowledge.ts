@@ -192,6 +192,14 @@ export function identityFacts(a: Pick<Asset, 'kind' | 'model' | 'serial'> | unde
   return [a.kind?.trim() ? `Kind: ${a.kind.trim()}` : '', a.model?.trim() ? `Model ${a.model.trim()}` : '', a.serial?.trim() ? `Serial ${a.serial.trim()}` : ''].filter(Boolean);
 }
 
+/** A MACHINE NAME THAT WAS REPLACED on a line: what replaced it and the day — the old record kept, its name off the line's list
+ *  (so its page, asked for by the old name, says where it went). */
+export function replacedOf(wsId: string, name: string, assets: readonly Asset[]): { by: Asset; on?: string } | undefined {
+  const old = assets.find(a => (a.workspaceId ?? '') === wsId && !a.deletedAt && !!a.replacedBy && machineKey(a.name) === machineKey(name));
+  const by = old ? assets.find(a => a.id === old.replacedBy && !a.deletedAt) : undefined;
+  return old && by ? { by, ...(old.known?.replacedBy?.at ? { on: dayOf(old.known.replacedBy.at) } : {}) } : undefined;
+}
+
 /* ── words → things ── */
 
 export interface Candidate {

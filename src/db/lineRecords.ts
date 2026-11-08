@@ -7,6 +7,7 @@ import type { Asset } from '../lib/testing';
 import type { Program, ProgramState } from '../lib/programs';
 import { lineMachineId, lineOfMachine, machineKey, onlyLineOf, type JobLine } from '../lib/lineRecords';
 import { now, uid } from '../lib/ids';
+import { confirmedBy, kindWord } from '../lib/factoryKnowledge';
 import { getDB } from './core';
 import { putBlob } from './blobs';
 import { putAsset, listAllAssets } from './testing';
@@ -206,5 +207,28 @@ export async function setMachinePicture(wsId: ID, name: string, file: Blob, file
 export async function clearMachinePicture(wsId: ID, name: string): Promise<Asset> {
   const a = await machineRecordFor(wsId, name);
   await putAsset({ ...a, docs: (a.docs ?? []).filter(d => !d.picture), updatedAt: now() });
+  return a;
+}
+
+/** WHAT A MACHINE IS, said by a person on its page (8 November, docs/FACTORY-KNOWLEDGE.md F1): its kind, model and serial,
+ *  each changed one confirmed — by them, now (lib/factoryKnowledge confirmedBy); a value taken off is '' (null in the cloud) and
+ *  how it was known goes with it. On its record, made on the first word said of it. Returns the record as it was, for Undo. */
+export async function setMachineIdentity(wsId: ID, name: string, patch: Partial<Pick<Asset, 'kind' | 'model' | 'serial'>>, by?: string): Promise<Asset> {
+  const a = await machineRecordFor(wsId, name);
+  const at = now();
+  const next: Asset = { ...a, ...(a.known ? { known: { ...a.known } } : {}) };
+  let changed = false;
+  for (const field of ['kind', 'model', 'serial'] as const) {
+    if (!(field in patch)) continue;
+    const raw = (patch[field] ?? '').trim();
+    const v = field === 'kind' ? kindWord(raw) : raw;
+    if (v === (a[field] ?? '').trim()) continue;
+    changed = true;
+    next[field] = v;
+    const known = { ...(next.known ?? {}) };
+    if (v) known[field] = confirmedBy(by, at); else delete known[field];
+    next.known = known;
+  }
+  if (changed) await putAsset({ ...next, updatedAt: at });
   return a;
 }
