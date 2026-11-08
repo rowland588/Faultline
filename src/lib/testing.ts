@@ -31,7 +31,7 @@
  * One field that quietly follows the result around always reports that
  * everything went to plan.
  */
-import type { ID, MediaRef } from '../types';
+import type { ID, Known, MediaRef } from '../types';
 import { readProduct, runsOpen, runsUnderWay, type ProductRun, type RunAgreed, type RunDay } from './run';
 
 /** A file somebody was sent — an OEM report, a spec, a drawing. The bytes ride
@@ -136,6 +136,18 @@ export interface Asset {
    *  its line already held, put away into the one kept — its id. Kept, never
    *  deleted, so a merge can be read back and undone. */
   mergedInto?: ID;
+
+  /** WHAT IT IS (8 November, docs/FACTORY-KNOWLEDGE.md F1 — supabase/MACHINE_KNOWLEDGE.sql): its kind in the factory's words
+   *  (scale, checkweigher, mixer, case packer — lib/factoryKnowledge KINDS), its model and serial. '' is a value cleared on
+   *  this device (sent to the cloud as null), read as not said. */
+  kind?: string;
+  model?: string;
+  serial?: string;
+  /** How each of those (and its name, maker) is known — lib/factoryKnowledge howSaid. */
+  known?: Known;
+  /** A MACHINE REPLACED: the record that replaced it. This one is kept, never deleted, and read as history — its studies,
+   *  problems and programs stay on it. */
+  replacedBy?: ID;
 
   sort: number;
   updatedAt: number;
