@@ -19,9 +19,13 @@ export function briefKindOf(name: string, mime: string): BriefKind {
   return 'other';
 }
 
+/* a byte-order mark and a no-break space, written as escapes so no invisible letter sits in the source */
+const BOM = new RegExp('^\\uFEFF');
+const TRAIL = new RegExp('[ \\t\\u00A0]+\\n', 'g');
+
 /** Words as a person would read them: no byte-order mark, one kind of line end, no runs of blank lines, no trailing spaces. Pure. */
 export function plainText(raw: string): string {
-  return raw.replace(/^﻿/, '').replace(/\r\n?/g, '\n').replace(/[ \t ]+\n/g, '\n').replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  return raw.replace(BOM, '').replace(/\r\n?/g, '\n').replace(TRAIL, '\n').replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /** The words of a brief worth keeping — fewer than this and a PDF is taken to be a scan with no text layer. */

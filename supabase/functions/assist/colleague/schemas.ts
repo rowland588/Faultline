@@ -29,7 +29,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     name: 'find',
     kind: 'read',
     description: 'Find lines, machines, projects, problems and tools by words, the way the app\'s search does. Use it to turn a name the person said into a record id before anything else.',
-    input_schema: obj({ words: str('What to look for, e.g. "line 3 wrapper"', 120) }, ['words']),
+    input_schema: obj({ words: str('What to look for, e.g. "line 3 wrapper"', 120), client: str('Only this client\'s lines', 120) }, ['words']),
   },
   {
     name: 'line_state',

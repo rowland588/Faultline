@@ -16896,6 +16896,46 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .st-present-fig { padding: 18px 20px; }
 }
 
+/* THE BRIEF AND ITS ASKS (8 November, docs/STORY.md §7 — screens/StoryBrief) */
+.stb-brief, .stb-asks { padding: 16px 20px; margin-bottom: 18px; }
+.stb-brief-text { margin: 0 0 6px; white-space: pre-wrap; max-height: 220px; overflow: auto; line-height: 1.5; }
+.stb-file { margin: 0 0 8px; }
+.stb-box { width: 100%; font: inherit; line-height: 1.5; margin: 6px 0; }
+.stb-said { color: var(--ink-2); }
+.stb-hint { align-self: center; }
+.stb-ai { margin-left: 6px; padding: 1px 7px; border-radius: var(--radius-pill); border: 1px solid var(--line); font-size: var(--t-label); color: var(--muted); font-weight: 600; }
+.stb-list { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.stb-prop { display: flex; gap: 10px; align-items: flex-start; }
+.stb-tick input { width: 22px; height: 22px; margin-top: 10px; }
+.stb-prop-body { flex: 1; min-width: 0; }
+.stb-prop-body .text-input { width: 100%; }
+.stb-quote { margin: 4px 0 0; font-style: italic; }
+.stb-ask { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.stb-ask.is-open { border-color: var(--brand); }
+.stb-ask-h { display: flex; align-items: flex-start; gap: 8px; }
+.stb-ask-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; background: none; border: none; padding: 10px 12px; font: inherit; color: var(--ink); cursor: pointer; min-height: 44px; }
+.stb-ask-tools { display: flex; align-items: center; gap: 4px; padding: 8px 10px 0 0; }
+.stb-ask-tools button { min-height: 36px; }
+.stb-ask-body { padding: 0 12px 12px; border-top: 1px solid var(--line); }
+.stb-ask-edit { width: 100%; margin: 10px 0 4px; }
+.stb-scope { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 10px; }
+.stb-scope .chip-row { gap: 6px; align-items: center; }
+.stb-chip { min-height: 36px; }
+.stb-ev { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.stb-ev h3, .stb-also h3, .stb-snap-asks h3 { margin: 0 0 6px; font-size: var(--t-label); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.stb-ev ul, .stb-also ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.stb-ev li.is-r { color: var(--st-r); }
+.stb-ev li.is-g b { color: var(--st-g); }
+.stb-ev li.is-a { color: var(--st-a); }
+.stb-add { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+.stb-add .text-input { flex: 1; min-width: 200px; }
+.stb-also { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+.stb-assign { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 6px; }
+.stb-undo { margin: 6px 0 0; }
+.stb-snap-asks { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.stb-snap-asks ol { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.stb-snap-missing { display: block; color: var(--st-a); }
+
 /* ============================================================ AI MODE (8 November — src/colleague, screens/AiModeScreen)
    Two modes over one application: AI Mode is a conversation in which the colleague works Faultline through approved steps.
    Drawn as Microsoft 365's Copilot pane is: at a desk three columns inside the frame — the conversations, the conversation,
@@ -16977,7 +17017,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-step-w { flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
 .ai-step-w b { color: var(--ink); font-weight: 600; }
 .ai-step-refused { margin: 0; display: flex; align-items: center; gap: 6px; }
-.ai-refs { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.ai-refs { display: inline-flex; flex-wrap: wrap; gap: 6px; max-width: 100%; min-width: 0; }
+.ai-ref-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-ref .icon, .ai-ref-k { flex: none; }
 .ai-ref {
   display: inline-flex; align-items: center; gap: 5px; min-height: 28px; max-width: 100%; padding: 2px 8px 2px 4px; border: 1px solid var(--line-2); border-radius: var(--radius-pill);
   background: var(--surface); color: var(--ink); font: inherit; font-size: var(--t-label); font-weight: 600; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -17002,7 +17044,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-card-acts { display: flex; gap: 8px; margin-top: 6px; }
 .ai-card-s { margin: 4px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--t-detail); }
 .ai-card-s.is-done { color: var(--ink); }
-.ai-card-s.is-done > .icon { color: var(--st-g); }
+.ai-card-s.is-done > .icon { flex: none; color: var(--st-g); }
+.ai-card-s-w { flex: 1 1 240px; min-width: 0; overflow-wrap: anywhere; }
 
 /* a figure to check, and what to say next */
 .ai-unsure { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -17019,7 +17062,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-compose { position: sticky; bottom: 0; z-index: 4; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
 .ai-compose > * { width: 100%; max-width: 780px; margin-left: auto; margin-right: auto; }
 .ai-type { display: flex; align-items: flex-end; gap: 6px; }
-.ai-box { flex: 1; min-width: 0; min-height: 44px; resize: none; line-height: 1.4; }
+.ai-box { flex: 1; min-width: 0; min-height: 44px; margin: 0; padding: 11px 14px; resize: none; line-height: 1.4; font: inherit; font-size: var(--t-body); }
 .ai-compose.is-on .ai-box { border-color: var(--brand); }
 .ai-icon { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; padding: 0; }
 .ai-mic.is-on { background: var(--brand); border-color: var(--brand); color: var(--on-dark); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 22%, transparent); }
@@ -17040,6 +17083,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-how.is-verified { background: color-mix(in srgb, var(--st-g) 12%, var(--surface)); color: var(--st-g); }
 .ai-parked li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line-row); font-size: var(--t-detail); }
 .ai-parked li > span { min-width: 0; overflow-wrap: anywhere; }
+.ai-parked .btn { flex: none; white-space: nowrap; }
 
 /* the conversations */
 .ai-new { width: 100%; justify-content: center; gap: 6px; }

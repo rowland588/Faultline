@@ -11,6 +11,7 @@
  *   4  a problem raised on the line: Since the last update says 1 new finding with no reload; the next draft says it too
  *   5  Close the engagement — no Run an update, said closed; Reopen
  *   6  the phone: nothing off the side, the tiles and the chapters there
+ *   S9 a story with no asks: no ask's section on the paper or the chapter (the asks themselves: story-brief.mjs)
  *
  *   node scripts/acceptance/story.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
@@ -83,6 +84,8 @@ ok((await page.locator('.st-ch').count()) === 2 && /chapter 2/i.test(await t.wor
 for (const [what, re] of [['the client and the brief', /Why is Line 7 losing output\?/], ['Prepared by', /Prepared by Rowland Glew, Streamline Synergy/], ['the headline', /The wrapper is the limit/], ['What we have found', /What we have found/], ['What is being done', /What is being done/], ['What is proved', /What is proved/], ['the story so far', /The story so far/], ['what the figures rest on', /What the figures rest on/]]) {
   ok(re.test(text), `3 the report says ${what}`);
 }
+/* S9 (docs/STORY.md §7.3): a story with no asks prints exactly as before — no ask's section, the brief's own sentence as ever */
+ok(!/Ask 1 -|STILL TO SHOW/.test(text) && (await page.locator('[data-story-snapshot-asks]').count()) === 0, '3 S9: no asks on the brief — no ask sections on the paper or the chapter');
 
 /* ---- 3b · the slides (S4): the chapter as a deck, read back ---- */
 {

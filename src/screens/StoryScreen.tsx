@@ -7,14 +7,15 @@
  * and APPROVE; approving keeps it and makes its report (lib/report/storyPaper), kept under Saved copies. A figure in the words that the
  * snapshot does not hold is marked "check this" beside it; nothing is printed unmarked. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { listAllStudies, listWorkspaces, onDataChange, putStudy } from '../db';
+import { listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStudy } from '../db';
 import type { Workspace } from '../types';
-import type { StoryChapter, ToolStudy } from '../lib/study';
+import type { AgreedStory, StoryChapter, ToolStudy } from '../lib/study';
+import type { Standard } from '../tools/linestandard/standard';
 import { useProjects } from '../lib/useProjects';
 import { productionLines } from '../lib/lines';
 import { clientShown, storyOfClient } from '../lib/storyPick';
 import { useFactoryRead } from '../lib/useFactoryRead';
-import { assembledNarrative, dayWord, dayWordYear, draftChapter, linesOfClient, sinceOf, sinceSentence, snapshotOf, storySays, storyTiles, unsureIn } from '../lib/clientStory';
+import { assembledNarrative, briefLine, dayWord, dayWordYear, draftChapter, linesOfClient, sinceOf, sinceSentence, snapshotOf, storySays, storyTiles, unsureIn } from '../lib/clientStory';
 import { uid } from '../lib/ids';
 import { PageHeader } from '../ui/parts';
 import { LeanTiles } from '../ui/Lean';
@@ -23,6 +24,9 @@ import { useSaveOnArrival } from '../lib/useSaveOnArrival';
 import { fmtGBP } from '../lib/cost';
 import { nav } from '../state/useRoute';
 import { askStory, storyAskOf } from '../tools/story/storyAsk';
+import { askRecordsOf } from '../lib/storyAskRecords';
+import { withAsks } from '../lib/storyAsks';
+import { AsksPanel, BriefPanel } from './StoryBrief';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 /** HOME IS THE STORY (S5): `present` draws the same page full screen with no frame — the meeting itself — from #/?present=1. */
@@ -30,7 +34,8 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   const { projects } = useProjects();
   const [all, setAll] = useState<Workspace[] | null>(null);
   const [studies, setStudies] = useState<ToolStudy[] | null>(null);
-  const load = useCallback(async () => { const [ws, st] = await Promise.all([listWorkspaces(), listAllStudies()]); setAll(ws); setStudies(st.filter(s => !s.deletedAt)); }, []);
+  const [standards, setStandards] = useState<Standard[]>([]);
+  const load = useCallback(async () => { const [ws, st, std] = await Promise.all([listWorkspaces(), listAllStudies(), listAllStandards()]); setAll(ws); setStudies(st.filter(s => !s.deletedAt)); setStandards(std); }, []);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   const prodLines = useMemo(() => productionLines(all ?? []), [all]);
   const client = clientShown(prodLines);
@@ -41,6 +46,8 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   const last = chapters[chapters.length - 1];
   const snapshot = useMemo(() => (read ? snapshotOf({ at: Date.now(), lines, wrong: read.wrong, actions: read.actions, proved: read.proved, studies: read.studies, today: read.today }) : null), [read, lines]);
   const since = useMemo(() => (snapshot ? sinceOf(snapshot, last?.snapshot) : null), [snapshot, last]);
+  /* THE RECORDS THE BRIEF'S ASKS ARE MATCHED AGAINST (S8) — the same readers, every tool record on the client's lines */
+  const askRecords = useMemo(() => (read && snapshot ? askRecordsOf({ lines, snapshot, actions: read.actions, snags: read.snags, studies: read.studies, standards }) : null), [read, snapshot, lines, standards]);
   const [draft, setDraft] = useState<StoryChapter | null>(null);
   const [brief, setBrief] = useState('');
   const [said, setSaid] = useState('');
@@ -51,15 +58,17 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   const [touched, setTouched] = useState(false);
 
   const save = async (s: ToolStudy) => { await putStudy({ ...s, updatedAt: Date.now() }); };
+  const saveStory = async (next: AgreedStory) => { if (story) await save({ ...story, agreed: { ...story.agreed, story: next } }); };
+  /* NO BRIEF IS NEVER A STOPPER (S6): the story starts with one or without */
   const start = async () => {
-    if (!brief.trim()) return;
     const t = Date.now();
     await putStudy({ id: uid(), tool: 'story', name: `${client || 'The factory'} — the story`, agreed: { story: { client, brief: brief.trim(), startedAt: t } }, facts: { chapters: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t });
     setBrief('');
   };
   const run = () => {
     if (!story?.agreed?.story || !snapshot) return;
-    const d = draftChapter(uid(), story.agreed.story, chapters, snapshot);
+    /* the brief's asks and what answered each, frozen on the chapter (S9); a story with no asks drafts as before */
+    const d = draftChapter(uid(), story.agreed.story, chapters, askRecords ? withAsks(snapshot, story.agreed.story, askRecords) : snapshot);
     setDraft(d); setTouched(false); setAsking('Asking the assistant for a draft — the records’ words stand meanwhile…');
     void askStory(storyAskOf(story.agreed.story, chapters, d)).then(r => {
       if (!r.ok) { setAsking(r.why); return; }
@@ -113,7 +122,7 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
         <button type="button" className="btn btn-ghost st-present-exit" onClick={() => nav('/')} aria-label="Exit the presentation (Escape)">× Exit</button>
         <header className="st-present-head">
           <p className="st-present-client">{client || 'The factory'}</p>
-          <p className="st-present-brief">{ag ? ag.brief : client ? `${client}’s story has not started yet.` : 'The story has not started yet.'}</p>
+          <p className="st-present-brief">{ag ? (briefLine(ag.brief) || 'No brief yet — the story works on the records alone.') : client ? `${client}’s story has not started yet.` : 'The story has not started yet.'}</p>
           {ag && <p className="st-present-says">{storySays(ag, chapters)}</p>}
         </header>
         {ag && snapshot && (
@@ -141,7 +150,7 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   return (
     <div className="wrap st" data-story={story?.id ?? ''}>
       <PageHeader eyebrow="THE STORY" title={client || 'The story'}
-        says={ag ? <span>{ag.brief} <span className="sub">· {storySays(ag, chapters)}</span></span> : client ? `${client}’s story has not started yet.` : 'Name the client on the lines (Set up the lines) and the story is theirs.'}
+        says={ag ? <span>{briefLine(ag.brief) || 'No brief yet.'} <span className="sub">· {storySays(ag, chapters)}</span></span> : client ? `${client}’s story has not started yet.` : 'Name the client on the lines (Set up the lines) and the story is theirs.'}
         primary={ag && !ag.closedAt ? { label: 'Run an update', run, disabled: !snapshot || !!draft } : undefined}
         papers={last ? [{ label: 'Story report — the latest chapter', for: 'for the client: the story so far, this update, every finding in money, what is being done and what is proved', make: () => paperFor(last, chapters) }, { label: 'Story slides — the latest chapter', for: 'the same chapter as a 16:9 deck to open in PowerPoint and present: the cover, the four figures, this update, where the money is, what we have found, what is being done, what is proved, next', make: () => deckFor(last, chapters) }] : []}
         more={ag ? [
@@ -155,9 +164,9 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
       {!ag ? (
         <section className="ep-panel st-start" aria-label="Start the story">
           <h2 className="ln-h">Start the story{client ? ` of ${client}` : ''}</h2>
-          <p className="sub">The brief, in the client’s words — what you were asked to find out. Every update from here continues from it.</p>
+          <p className="sub">The brief, in the client’s words — what you were asked to find out. Every update from here continues from it. No brief yet? Start without one — it can be written or uploaded later, and the story works on the records alone.</p>
           <textarea className="text-input st-brief" rows={2} value={brief} onChange={e => setBrief(e.target.value)} placeholder="e.g. Why are we losing output in the packing hall?" aria-label="The brief" maxLength={300} />
-          <div className="st-acts"><button type="button" className="btn btn-primary" disabled={!brief.trim()} onClick={() => void start()}>Start the story</button></div>
+          <div className="st-acts"><button type="button" className="btn btn-primary" onClick={() => void start()}>{brief.trim() ? 'Start the story' : 'Start the story with no brief'}</button></div>
           {/* HOME IS THE STORY (S5): a factory with no story yet still has its lines one tap away */}
           <p className="sub st-lines-link"><button type="button" className="linkish" onClick={() => nav('/room')}>See the lines ›</button></p>
         </section>
@@ -165,6 +174,10 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
         <>
           {snapshot && <LeanTiles tiles={storyTiles(snapshot)} className="ie-strip st-tiles" />}
           {since && !draft && <p className="st-since" data-story-since>{sinceSentence(since)}{!ag.closedAt ? ' Run an update to write the next chapter.' : ''}</p>}
+
+          {/* THE BRIEF AND ITS ASKS (S6–S8) — written or uploaded, split into what the client asked, each with its evidence by the rules */}
+          {!draft && <BriefPanel ag={ag} save={saveStory} canEdit={!ag.closedAt} />}
+          {!draft && <AsksPanel ag={ag} save={saveStory} records={askRecords} canEdit={!ag.closedAt} />}
 
           {/* THE DRAFT — the next chapter, his to edit before he approves it */}
           {draft && (
@@ -232,6 +245,19 @@ function Snapshot({ c, folded }: { c: StoryChapter; folded?: boolean }) {
   const [show, setShow] = useState(!folded);
   if (!show) return <button type="button" className="linkish st-snap-b" onClick={() => setShow(true)}>What this chapter rests on — {plural(s.findings.length, 'finding')}, {plural(s.actions.length, 'action')}, {plural(s.provedFixes.length, 'fix', 'fixes')} proved ›</button>;
   return (
+    <>
+    {s.asks?.length ? (
+      <div className="stb-snap-asks" data-story-snapshot-asks>
+        <h3>What the client asked</h3>
+        <ol>
+          {s.asks.map((a, k) => (
+            <li key={a.id}><b>Ask {k + 1} — {a.text}</b> <span className="sub">· {a.says}</span>
+              {a.missing.length > 0 && <span className="sub stb-snap-missing"> Still to show: {a.missing.join(' ')}</span>}
+            </li>
+          ))}
+        </ol>
+      </div>
+    ) : null}
     <div className="st-snap" data-story-snapshot>
       <div className="st-snap-col">
         <h3>What we have found <span className="sub">{s.found.costDay != null ? `${fmtGBP(s.found.costDay)} a day` : ''}</span></h3>
@@ -252,5 +278,6 @@ function Snapshot({ c, folded }: { c: StoryChapter; folded?: boolean }) {
         {s.provedFixes.length === 0 ? <p className="sub">No fix proved yet.</p> : <ul className="st-proved">{s.provedFixes.map(p => <li key={p.id} className="is-g"><b>{p.what}</b><span className="sub"> · {p.line} · {p.proof}</span></li>)}</ul>}
       </div>
     </div>
+    </>
   );
 }

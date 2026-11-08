@@ -93,7 +93,7 @@ describe('the brief’s asks', () => {
 
 describe('the brief read in code', () => {
   it('reads plain text as a person would', () => {
-    expect(plainText('﻿Why are we\r\nlosing output?  \r\n\r\n\r\n\r\nAnd   why nights?  ')).toBe('Why are we\nlosing output?\n\nAnd why nights?');
+    expect(plainText('\uFEFFWhy are we\r\nlosing output?  \r\n\r\n\r\n\r\nAnd   why nights?  ')).toBe('Why are we\nlosing output?\n\nAnd why nights?');
   });
   it('knows a file by its type and its name', () => {
     expect(briefKindOf('Brief.PDF', '')).toBe('pdf');

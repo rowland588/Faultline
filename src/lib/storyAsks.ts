@@ -160,11 +160,12 @@ export function asksEvidence(story: Pick<AgreedStory, 'asks'>, r: AskRecords): {
   const taken = { f: new Set<string>(), r: new Set<string>(), p: new Set<string>() };
   for (const e of asks) { e.found.findings.forEach(f => taken.f.add(f.id)); e.found.records.forEach(x => taken.r.add(x.id)); e.proved.forEach(p => taken.p.add(p.id)); }
   const lineOf = (name: string) => r.lines.find(l => low(l.name) === low(name));
-  const alsoFound: AlsoFound[] = !asks.length ? [] : [
-    ...r.findings.filter(f => !taken.f.has(f.id)).map(f => ({ kind: 'finding' as const, id: f.id, what: f.what, line: f.line, ...(lineOf(f.line) ? { lineId: lineOf(f.line)!.id } : {}), ...(f.machine ? { machine: f.machine } : {}), href: `/snags?open=${encodeURIComponent(f.id)}` })),
-    ...r.records.filter(x => !taken.r.has(x.id)).map(x => ({ kind: 'record' as const, id: x.id, what: x.title, ...(x.lineId ? { lineId: x.lineId, line: r.lines.find(l => l.id === x.lineId)?.name } : {}), ...(x.machine ? { machine: x.machine } : {}), href: x.href })),
-    ...r.proved.filter(p => !taken.p.has(p.id)).map(p => ({ kind: 'proved' as const, id: p.id, what: `${p.what} — proved`, line: p.line, ...(lineOf(p.line) ? { lineId: lineOf(p.line)!.id } : {}), machine: p.machine, href: lineOf(p.line) ? `/lines/${lineOf(p.line)!.id}` : '/room' })),
-  ];
+  const alsoFound: AlsoFound[] = [];
+  if (asks.length) {
+    for (const f of r.findings) if (!taken.f.has(f.id)) { const l = lineOf(f.line); alsoFound.push({ kind: 'finding', id: f.id, what: f.what, line: f.line, ...(l ? { lineId: l.id } : {}), ...(f.machine ? { machine: f.machine } : {}), href: `/snags?open=${encodeURIComponent(f.id)}` }); }
+    for (const x of r.records) if (!taken.r.has(x.id)) alsoFound.push({ kind: 'record', id: x.id, what: x.title, ...(x.lineId ? { lineId: x.lineId, line: r.lines.find(l => l.id === x.lineId)?.name } : {}), ...(x.machine ? { machine: x.machine } : {}), href: x.href });
+    for (const p of r.proved) if (!taken.p.has(p.id)) { const l = lineOf(p.line); alsoFound.push({ kind: 'proved', id: p.id, what: `${p.what} — proved`, line: p.line, ...(l ? { lineId: l.id } : {}), machine: p.machine, href: l ? `/lines/${l.id}` : '/room' }); }
+  }
   return { asks, alsoFound };
 }
 

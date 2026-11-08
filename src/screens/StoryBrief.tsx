@@ -15,7 +15,7 @@
  *                found · being done · proved · still to show; Also found — what answers no ask, one tap to assign. */
 import { useMemo, useRef, useState } from 'react';
 import { putBlob } from '../db';
-import type { AgreedStory, BriefAsk, StoryBriefFile, ToolStudy } from '../lib/study';
+import type { AgreedStory, BriefAsk, StoryBriefFile } from '../lib/study';
 import { asksEvidence, assignTo, scopeOf, type AskEvidence, type AskRecords, type AskScope } from '../lib/storyAsks';
 import { APP_TOOLS, toolLabel } from '../catalogue/registry';
 import { uid } from '../lib/ids';

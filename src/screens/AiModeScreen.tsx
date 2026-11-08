@@ -163,8 +163,13 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     kind === 'line' ? lines.find(l => l.id === x)?.name : kind === 'project' ? projects.find(p => p.id === x)?.name : undefined, [lines, projects]);
 
   /* ---- the record: made on the first Send ---- */
-  const ensure = async (): Promise<string> => {
-    if (sid.current) return sid.current;
+  const making = useRef<Promise<string> | null>(null);
+  const ensure = (): Promise<string> => {
+    if (sid.current) return Promise.resolve(sid.current);
+    making.current ??= make();
+    return making.current;
+  };
+  const make = async (): Promise<string> => {
     const t = Date.now();
     const s = newConversation({ id: uid(), at: t, name: `AI Mode — ${niceDay(todayISO())}`, ...(session?.user.id ? { ownerId: session.user.id } : {}), ...(start ? { thread: { id: uid(), ...start } } : {}) });
     await putStudy(s);
@@ -335,10 +340,11 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   };
 
   const sending = useRef(false);
-  const send = async (words?: string) => {
-    if (sending.current || asking) return;
+  const send = (words?: string): Promise<void> => {
+    if (sending.current || asking) return Promise.resolve();
     sending.current = true;
-    try {
+    /* one Send at a time; the flag let go however it ends */
+    return (async () => {
       stopSpeaking();
       const text = (words ?? (ear.current ? await stopListening() : typingRef.current)).trim();
       const cid = await ensure();
@@ -347,7 +353,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
         setBox(''); setSaid(null);
       }
       await ask(cid);
-    } finally { sending.current = false; }
+    })().finally(() => { sending.current = false; });
   };
 
   /* BACK TO THIS — a parked thread made current through the set_focus capability, as the colleague does it */
@@ -510,7 +516,7 @@ function cardRows(input: Record<string, unknown> | undefined): { k: string; v: s
   if (!input) return [];
   return Object.entries(input).flatMap(([k, v]) => {
     if (!(k in KEY_WORD) || v === undefined || v === null || v === '') return [];
-    const s = typeof v === 'string' ? (k === 'status' ? STATUS_WORD[v] ?? v : k === 'how' ? v[0].toUpperCase() + v.slice(1) : v) : typeof v === 'number' ? String(v) : Array.isArray(v) ? v.join(', ') : '';
+    const s = typeof v === 'string' ? (k === 'status' ? STATUS_WORD[v] ?? v : k === 'how' || k === 'priority' ? v[0].toUpperCase() + v.slice(1) : v) : typeof v === 'number' ? String(v) : Array.isArray(v) ? v.join(', ') : '';
     return s ? [{ k: KEY_WORD[k], v: s }] : [];
   });
 }
@@ -521,7 +527,7 @@ function RefChips({ refs, label = 'Records' }: { refs: readonly CapRef[]; label?
     <span className="ai-refs" role="group" aria-label={label}>
       {uniqueRefs(refs).slice(0, 8).map(r => (
         <button key={`${r.kind}:${r.id}`} type="button" className="ai-ref" data-ref={`${r.kind}:${r.id}`} onClick={() => nav(r.href)} title={`Open ${r.label} in Manual Mode`}>
-          <span className="ai-ref-k">{r.kind === 'page' ? 'Page' : r.kind[0].toUpperCase() + r.kind.slice(1)}</span>{r.label}<Icon name="chevron" size={12} />
+          <span className="ai-ref-k">{r.kind === 'page' ? 'Page' : r.kind[0].toUpperCase() + r.kind.slice(1)}</span><span className="ai-ref-l">{r.label}</span><Icon name="chevron" size={12} />
         </button>
       ))}
     </span>
@@ -587,7 +593,7 @@ function WriteCard({ u, live, onCard }: { u: Used; live: boolean; onCard: (callI
         </div>
       )}
       {u.status === 'waiting' && !live && <p className="sub ai-card-s">This was waiting when the page closed — nothing was done. Ask again if it is still wanted.</p>}
-      {u.status === 'done' && <p className="ai-card-s is-done"><Icon name="check" size={14} />{u.says} <RefChips refs={u.refs} label="Open it" /></p>}
+      {u.status === 'done' && <p className="ai-card-s is-done"><Icon name="check" size={14} /><span className="ai-card-s-w">{u.says}</span><RefChips refs={u.refs} label="Open it" /></p>}
       {u.status === 'declined' && <p className="sub ai-card-s">You said not now — nothing was written.</p>}
       {u.status === 'failed' && <p className="ai-card-s is-off">{u.says}</p>}
     </div>

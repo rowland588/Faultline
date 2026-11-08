@@ -33,7 +33,7 @@ export interface AskRecordInputs {
 export function askRecordsOf(i: AskRecordInputs): AskRecords {
   const ids = new Set(i.lines.map(l => l.id));
   const products = new Map<string, Set<string>>();
-  const addProduct = (lineId: string | undefined, p: string | undefined) => { if (!lineId || !p?.trim()) return; (products.get(lineId) ?? products.set(lineId, new Set()).get(lineId)!).add(p.trim()); };
+  const addProduct = (lineId: string | undefined, p: string | undefined) => { if (!lineId || !p?.trim()) return; const set = products.get(lineId) ?? new Set<string>(); set.add(p.trim()); products.set(lineId, set); };
   const live = i.standards.filter(s => !(s as { deletedAt?: number }).deletedAt && s.workspaceId && ids.has(s.workspaceId));
   for (const s of live) addProduct(s.workspaceId, s.product);
   const snagProducts = new Map(i.snags.map(s => [s.id, s.products ?? []]));
