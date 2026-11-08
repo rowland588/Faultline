@@ -43,7 +43,11 @@ import {
 } from '../colleague/conversation';
 import { colleagueLoop, invokeColleague, type Prepared, type Step } from '../colleague/colleagueAsk';
 import { setAiMode, useAiMode, useDeviceFlag } from '../colleague/aiMode';
-import { CONVERSATION_KEY, CONVERSATION_SAID, SPEAK_KEY, canSpeak, speak, stopSpeaking } from '../colleague/voice';
+import { CONVERSATION_KEY, CONVERSATION_SAID, SPEAK_KEY, canSpeak, isSpeaking, onSpeaking, speak, stopSpeaking } from '../colleague/voice';
+import {
+  EARCON_KEY, FLOOR_LIMIT, HeadsetButton, SAY_TO_ANSWER, ScreenKeeper, buttonSaid, cardPrompt, earcon, floorCheck, keepSaid, phaseOf, pressAction,
+  realEnv, reopenAfterSpeech, shouldBargeIn, spokenAnswer, unspoken, type ButtonState, type CheckItem, type KeepState,
+} from '../colleague/floor';
 import { leftSaid, useTimers } from '../colleague/timers';
 import type { ToolStudy } from '../lib/study';
 
@@ -195,6 +199,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     const e = ear.current;
     if (!e) return typingRef.current;
     ear.current = null; setListening(false); stopQuiet();
+    if (voiceRef.current.soundOn) earcon('stop');
     const c = await e.stop();
     const text = joinWords(base.current, c.words);
     setBox(text);
@@ -209,10 +214,33 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     if (!Rec) { setSaid({ text: troubleSaid('unsupported') }); box.current?.focus(); return; }
     base.current = typingRef.current.trim();
     const e: Ear = new Ear(Rec, {
-      onWords: h => { if (ear.current !== e) return; stopQuiet(); spoken.current = true; setBox(joinWords(base.current, h.final, h.interim)); },
+      onWords: h => {
+        if (ear.current !== e) return;
+        stopQuiet();
+        /* BARGE-IN — words heard while a reply is spoken stop the reply at once */
+        if (shouldBargeIn(isSpeaking(), h)) stopSpeaking();
+        /* SAID YES — a card waiting is answered only by a whole phrase of the strict list, its words finished */
+        const card = hearFor.current;
+        if (card && waits.current.has(card) && !h.interim.trim()) {
+          const m = spokenAnswer(h.final);
+          if (m) {
+            hearFor.current = null;
+            ear.current = null; e.abort(); setListening(false);
+            if (voiceRef.current.soundOn) earcon('stop');
+            setBox(base.current);
+            setSaid(null);
+            answerCard(card, m.answer === 'yes', m.said);
+            return;
+          }
+          if (h.final.trim()) setSaid({ text: `Heard “${h.final.trim()}” — to answer the card say “yes, do it” or “not now”, or tap Do it or Not now.` });
+        }
+        spoken.current = true;
+        setBox(joinWords(base.current, h.final, h.interim));
+      },
       onTrouble: t => onTrouble.current(t, e),
     }, 'en-GB', /Android/i.test(navigator.userAgent), () => document.visibilityState === 'hidden');
     ear.current = e;
+    if (voiceRef.current.soundOn) earcon('start');
     setListening(true);
     e.start();
     stopQuiet();
@@ -236,8 +264,34 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   /* ---- out loud ---- */
   const [speakOn, setSpeakOn] = useDeviceFlag(SPEAK_KEY, false);
   const [talkOn, setTalkOn] = useDeviceFlag(CONVERSATION_KEY, false);
-  const voiceRef = useRef({ speakOn, talkOn });
-  voiceRef.current = { speakOn, talkOn };
+  const [soundOn, setSoundOn] = useDeviceFlag(EARCON_KEY, true);
+  const voiceRef = useRef({ speakOn, talkOn, soundOn });
+  voiceRef.current = { speakOn, talkOn, soundOn };
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => onSpeaking(setSpeaking), []);
+  /** After something is said: the microphone again, if it was said to the end and Conversation is on. */
+  const reopen = (finished: boolean) => {
+    if (reopenAfterSpeech({ finished, talkOn: voiceRef.current.talkOn, visible: document.visibilityState === 'visible', listening: !!ear.current })) startRef.current();
+  };
+
+  /* ---- ON THE FLOOR (colleague/floor): while Conversation is on, the screen kept on and the headset's button taken ---- */
+  const [keep, setKeep] = useState<KeepState>('off');
+  const [button, setButton] = useState<ButtonState>('off');
+  const pressRef = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    if (!talkOn) return;
+    const env = realEnv();
+    const k = new ScreenKeeper(env, setKeep);
+    const b = new HeadsetButton(env, () => pressRef.current(), setButton);
+    void k.hold();
+    void b.take();
+    /* a phone that wanted a touch before the silent sound may play: the next touch wakes the button */
+    const wake = () => { if (b.now === 'needs-tap') void b.wake(); };
+    document.addEventListener('pointerdown', wake);
+    return () => { document.removeEventListener('pointerdown', wake); k.letGo(); b.letGo(); };
+  }, [talkOn]);
+  const [checking, setChecking] = useState<CheckItem[] | 'running' | null>(null);
+  const runCheck = async () => { setChecking('running'); setChecking(await floorCheck(realEnv())); };
 
   /* ---- photos: kept the moment they are picked, labelled P1, P2 … ---- */
   const photoIn = useRef<HTMLInputElement>(null);
@@ -253,9 +307,16 @@ function Conversation({ id, start, onMade, onList, onNew }: {
 
   /* ---- ASKING — the client loop (colleague/colleagueAsk) ---- */
   const [asking, setAsking] = useState<string | null>(null);
-  const [words, setWords] = useState('');
+  const [words, setWordsState] = useState('');
+  const wordsRef = useRef('');
+  const setWords = (w: string) => { wordsRef.current = w; setWordsState(w); };
   const waits = useRef(new Map<string, (yes: boolean) => void>());
   const [, setWaitTick] = useState(0);
+  /* the card the microphone is listening for a "yes, do it" on; what each card was answered with out loud; what of
+     this turn's words has been spoken already (before a card) */
+  const hearFor = useRef<string | null>(null);
+  const saidFor = useRef(new Map<string, string>());
+  const spokenSoFar = useRef('');
 
   const ask = async (cid: string) => {
     if (asking) return;
@@ -267,7 +328,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     const rid = was?.id ?? replyId;
     if (was) await changeTurn(patchStudy, cid, rid, t => ({ ...t, answering: 'waiting', at, why: undefined, used: [] }));
     else await appendTurn(patchStudy, cid, { id: rid, at, who: WHO, kind: 'reply', answering: 'waiting', used: [] });
-    setAsking(rid); setWords('');
+    setAsking(rid); setWords(''); spokenSoFar.current = '';
     try {
       const asked = before.filter(t => t.id !== rid);
       const named = photoLabels(asked);
@@ -299,10 +360,21 @@ function Conversation({ id, start, onMade, onList, onNew }: {
           const preview = c.preview ? await c.preview(ctx(), v.input) : c.title;
           return { ok: true, title: c.title, preview, input: (v.input ?? {}) as Record<string, unknown> };
         },
-        confirm: step => new Promise<boolean>(res => { waits.current.set(step.call.id, res); setWaitTick(n => n + 1); }),
+        confirm: step => new Promise<boolean>(res => {
+          waits.current.set(step.call.id, res); setWaitTick(n => n + 1);
+          /* HANDS-FREE: with Conversation on, the card is said out loud, ending "Shall I do it?", and the microphone opens
+             for the answer — matched in code on a strict list of whole phrases, never by the model */
+          if (!voiceRef.current.talkOn) return;
+          hearFor.current = step.call.id;
+          const before = unspoken(wordsRef.current, spokenSoFar.current);
+          spokenSoFar.current = wordsRef.current;
+          if (voiceRef.current.speakOn && canSpeak()) speak(cardPrompt(before, { title: step.title, ...(step.preview ? { preview: step.preview } : {}) }), reopen);
+          else reopen(true);
+        }),
         onStep: async (step: Step) => {
+          const by = saidFor.current.get(step.call.id);
           const u: Used = { callId: step.call.id, name: step.call.name, title: step.title, kind: step.kind, status: step.status, says: step.says, refs: step.refs,
-            ...(step.preview ? { preview: step.preview } : {}), ...(step.input ? { input: step.input } : {}), at: Date.now() };
+            ...(step.preview ? { preview: step.preview } : {}), ...(step.input ? { input: step.input } : {}), ...(by ? { said: by } : {}), at: Date.now() };
           steps.set(u.callId, u);
           await changeTurn(patchStudy, cid, rid, t => ({ ...t, used: [...steps.values()] }));
           if (step.status === 'done' && step.refs.length) await changeThreads(patchStudy, cid, ts => addRefs(ts, step.refs));
@@ -316,9 +388,10 @@ function Conversation({ id, start, onMade, onList, onNew }: {
           const { answering: _a, why: _w, ...rest } = t; void _a; void _w;
           return { ...rest, text: end.reply || 'Done.', ...(end.suggestions.length ? { suggestions: end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.model ? { model: end.model } : {}) };
         });
-        if (voiceRef.current.speakOn && end.reply) {
-          speak(end.reply, () => { if (voiceRef.current.talkOn && document.visibilityState === 'visible' && !ear.current) startRef.current(); });
-        }
+        /* the reply said out loud — what was not said already before a card — and, in Conversation, the microphone after */
+        const rest = end.reply ? unspoken(end.reply, spokenSoFar.current) : '';
+        if (voiceRef.current.speakOn && rest) speak(rest, reopen);
+        else if (voiceRef.current.speakOn && end.reply) reopen(true);
       } else {
         await changeTurn(patchStudy, cid, rid, t => ({ ...t, ...(end.reply ? { text: end.reply } : {}), answering: end.offline ? 'waiting' : 'failed', why: end.why }));
       }
@@ -328,13 +401,20 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     } finally {
       for (const [, res] of waits.current) res(false);
       waits.current.clear();
+      hearFor.current = null;
       setAsking(null); setWords('');
     }
   };
-  const answerCard = (callId: string, yes: boolean) => {
+  /** A card answered — by a tap, or by the words said back (`said`, shown on the card as "Said: …"). */
+  const answerCard = (callId: string, yes: boolean, said?: string) => {
     const res = waits.current.get(callId);
     if (!res) return;
     waits.current.delete(callId);
+    if (hearFor.current === callId) hearFor.current = null;
+    /* answered while the card was still being said: the rest is cut short, and nothing opens after it */
+    stopSpeaking();
+    /* kept for the step's next telling (done, declined or failed), which writes it onto the card */
+    if (said) saidFor.current.set(callId, said);
     setWaitTick(n => n + 1);
     res(yes);
   };
@@ -354,6 +434,19 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       }
       await ask(cid);
     })().finally(() => { sending.current = false; });
+  };
+
+  /* THE HEADSET'S BUTTON — one press: listen; stop and send; stop the reply and listen; or nothing while it works */
+  pressRef.current = () => {
+    const phase = phaseOf({ talkOn: voiceRef.current.talkOn, listening: !!ear.current, speaking: isSpeaking(), asking: !!asking });
+    const card = [...waits.current.keys()].pop();
+    switch (pressAction(phase, ear.current ? typingRef.current : '', !!asking, !!card)) {
+      case 'listen': if (card) hearFor.current = card; startRef.current(); break;
+      case 'interrupt': stopSpeaking(); startRef.current(); break;
+      case 'send': void send(); break;
+      case 'stop': void stopListening(); break;
+      case 'none': setSaid({ text: 'Faultline is working on it — press again once it has answered.' }); break;
+    }
   };
 
   /* BACK TO THIS — a parked thread made current through the set_focus capability, as the colleague does it */
@@ -407,11 +500,19 @@ function Conversation({ id, start, onMade, onList, onNew }: {
               { label: 'New conversation', run: onNew },
               ...(canSpeak() ? [{ label: `Speak replies — ${speakOn ? 'On' : 'Off'}`, hint: 'the colleague’s replies read out by this device’s own voice', run: () => { if (speakOn) stopSpeaking(); setSpeakOn(!speakOn); } }] : []),
               { label: `Conversation — ${talkOn ? 'On' : 'Off'}`, hint: CONVERSATION_SAID, run: () => { setTalkOn(!talkOn); if (!talkOn && !speakOn && canSpeak()) setSpeakOn(true); } },
+              { label: `Sounds — ${soundOn ? 'On' : 'Off'}`, hint: 'a short, quiet tone when listening starts and stops', run: () => setSoundOn(!soundOn) },
+              { label: 'Before you walk the floor', hint: 'check the microphone, speech recognition, a British voice, the screen kept on and the headset button', run: () => void runCheck() },
               { label: 'Back to Manual Mode', hint: 'the page this is about', run: () => nav(manualHref) },
               { label: 'Turn AI Mode off', hint: 'on this device — Manual Mode is unchanged', run: () => setAiMode(false) },
             ]} />
           </div>
         </header>
+        {talkOn && (
+          <p className="ai-floor" data-ai-floor aria-live="polite">
+            {keepSaid(keep) && <span className={'ai-floor-i' + (keep === 'held' || keep === 'away' ? '' : ' is-a')} data-keep={keep}><Icon name={keep === 'held' || keep === 'away' ? 'check' : 'warning'} size={13} />{keepSaid(keep)}</span>}
+            {buttonSaid(button) && <span className={'ai-floor-i' + (button === 'ready' ? '' : ' is-a')} data-button={button}><Icon name={button === 'ready' ? 'check' : 'warning'} size={13} />{buttonSaid(button)}</span>}
+          </p>
+        )}
         {timers.ended.map(t => (
           <p key={t.id} className="ai-rung" role="alert" data-timer-ended>The timer for “{t.label}” has ended. <button type="button" className="linkish" onClick={() => timers.dismiss(t.id)}>Dismiss</button></p>
         ))}
@@ -434,12 +535,19 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} t={t} here={asking === t.id} words={asking === t.id ? words : ''} live={waits.current} onCard={answerCard} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} t={t} here={asking === t.id} words={asking === t.id ? words : ''} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
         <div className={'ai-compose' + (listening ? ' is-on' : '')} role="group" aria-label="Ask Faultline">
           {said && <p className={'sub ai-said' + (said.bad ? ' is-r' : '')} role="status">{said.text}</p>}
+          {listening && <p className="ai-state is-listening" role="status" data-ai-listening><span className="ai-pulse" aria-hidden />Listening…<span className="sub"> what you say comes up in the box</span></p>}
+          {!listening && speaking && (
+            <p className="ai-state is-speaking" role="status" data-ai-speaking>
+              <Icon name="spark" size={13} />Speaking…
+              <button type="button" className="linkish" onClick={() => { stopSpeaking(); if (talkOn) startListening(); }}>{talkOn ? 'Stop and talk' : 'Stop'}</button>
+            </p>
+          )}
           <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
             <button type="button" className="btn ai-icon" aria-label="Add a photo" title="Add a photo" onClick={() => photoIn.current?.click()}><Icon name="camera" size="1.2em" /></button>
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
@@ -455,14 +563,30 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             <button type="submit" className="btn btn-primary ai-send" disabled={!canSend}>Send</button>
           </form>
           <p className="sub ai-hint" aria-live="polite">{listening ? 'Listening — your words come up in the box. Put anything right, then Send.'
-            : waitingCard ? 'Faultline is waiting for your answer on the card above — Do it or Not now.'
+            : waitingCard ? `Faultline is waiting for your answer on the card above — Do it or Not now.${talkOn ? ' Or say “yes, do it” or “not now”.' : ''}`
             : asking ? 'Faultline is working on it…'
-            : talkOn ? 'Conversation is on: after each reply is spoken the microphone opens again, while the screen is on.'
+            : talkOn ? `Conversation is on: after each reply is spoken the microphone opens again.${button === 'ready' ? ' Press your headset’s button to talk, again to send.' : ''} ${FLOOR_LIMIT}`
             : 'Nothing is changed until you tap Do it on a card.'}</p>
         </div>
       </section>
       <aside className="ai-ctx" aria-label="What this conversation is on">{panel}</aside>
       <Sheet open={ctxSheet} onClose={() => setCtxSheet(false)} title="What this is on">{panel}</Sheet>
+      <Sheet open={checking !== null} onClose={() => setChecking(null)} title="Before you walk the floor">
+        <div className="ai-check-in" data-floor-check>
+          <p className="sub">{FLOOR_LIMIT}</p>
+          {checking === 'running' ? <p className="sub" role="status">Checking this phone…</p> : (
+            <ul className="ai-checks">
+              {(checking ?? []).map(c => (
+                <li key={c.key} className={'ai-checks-i' + (c.ok ? ' is-g' : ' is-a')} data-check={c.key} data-ok={c.ok ? 'yes' : 'no'}>
+                  <Icon name={c.ok ? 'check' : 'warning'} size={15} />
+                  <span><b>{c.label}</b><span className="sub">{c.said}</span></span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button type="button" className="btn" disabled={checking === 'running'} onClick={() => void runCheck()}>Check again</button>
+        </div>
+      </Sheet>
     </>
   );
 }
@@ -537,8 +661,8 @@ function RefChips({ refs, label = 'Records' }: { refs: readonly CapRef[]; label?
 /** A step's mark: done ticked, failed or dropped a warning, the rest a look. */
 const stepIcon = (st: Used['status']): IconName => (st === 'done' ? 'check' : st === 'failed' || st === 'dropped' ? 'warning' : 'search');
 
-function ReplyTurn({ t, here, words, live, onCard, onSuggest, onAgain }: {
-  t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void;
+function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain }: {
+  t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void;
 }) {
   const used = t.used ?? [];
   const steps = used.filter(u => u.kind !== 'write');
@@ -563,7 +687,7 @@ function ReplyTurn({ t, here, words, live, onCard, onSuggest, onAgain }: {
             ))}
           </ul>
         )}
-        {cards.map(u => <WriteCard key={u.callId} u={u} live={live.has(u.callId)} onCard={onCard} />)}
+        {cards.map(u => <WriteCard key={u.callId} u={u} live={live.has(u.callId)} hands={hands} onCard={onCard} />)}
         {!t.answering && !!t.unsure?.length && (
           <p className="ai-unsure" data-ai-unsure>{t.unsure.map(x => <span key={x} className="ai-check">Check this: {x}</span>)}<span className="sub"> — not in what Faultline holds or what you said.</span></p>
         )}
@@ -578,7 +702,7 @@ function ReplyTurn({ t, here, words, live, onCard, onSuggest, onAgain }: {
 }
 
 /** A WRITE, ASKED — what it will do, the inputs that matter, Do it · Not now; then what happened. */
-function WriteCard({ u, live, onCard }: { u: Used; live: boolean; onCard: (callId: string, yes: boolean) => void }) {
+function WriteCard({ u, live, hands, onCard }: { u: Used; live: boolean; hands: boolean; onCard: (callId: string, yes: boolean) => void }) {
   const rows = cardRows(u.input);
   if (u.status === 'refused') {
     return <p className="ai-step-refused sub" data-card-refused={u.name}><Icon name="warning" size={14} /> <b>{u.title}</b> — not offered: {u.says}</p>;
@@ -589,10 +713,12 @@ function WriteCard({ u, live, onCard }: { u: Used; live: boolean; onCard: (callI
       <p className="ai-card-t">{u.title}</p>
       {u.preview && <p className="ai-card-p">{u.preview}</p>}
       {rows.length > 0 && <dl className="ai-card-rows">{rows.map(r => <div key={r.k}><dt>{r.k}</dt><dd>{r.v}</dd></div>)}</dl>}
+      {u.said && <p className="ai-card-said" data-card-said>Said: {u.said}</p>}
       {u.status === 'waiting' && live && (
         <div className="ai-card-acts">
           <button type="button" className="btn btn-primary" onClick={() => onCard(u.callId, true)}>Do it</button>
           <button type="button" className="btn" onClick={() => onCard(u.callId, false)}>Not now</button>
+          {hands && <span className="sub ai-card-say">{SAY_TO_ANSWER}</span>}
         </div>
       )}
       {u.status === 'waiting' && !live && <p className="sub ai-card-s">This was waiting when the page closed — nothing was done. Ask again if it is still wanted.</p>}

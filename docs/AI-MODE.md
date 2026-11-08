@@ -162,6 +162,52 @@ Talk. Out: the phone's own voice (the browser's speech synthesis) — no new spe
 listening while the screen is on, not when the phone is locked. A native wrapper is built only if field-testing shows
 the browser cannot do what the floor needs.
 
+### On the floor — Phase 4 (8 November)
+
+Rowland walks a factory with a Bluetooth headset, the phone in a hand or a pocket, and talks. **The honest limit: a web
+page cannot listen with the phone locked or Faultline out of sight**, and the page says so (`FLOOR_LIMIT`). What the web
+platform allows is built in `src/colleague/floor.ts`, each part detected and said in words where the phone does not
+offer it; the parts that touch the phone take an `env` so the tests hand them a fake one.
+
+- **Conversation** (More ▾, a device setting) is the session. While it is on: after each reply is spoken the
+  microphone opens again — only when the reply was said **to the end** (`reopenAfterSpeech`; a reply cut short by
+  typing, Send, a tap or a press opens nothing — `speak` tells `finished`), and Speak replies is turned on with it.
+- **Screen kept on** — the Screen Wake Lock (`ScreenKeeper`) held while Conversation is on, taken again on
+  `visibilitychange` when Faultline is back in sight (a phone lets it go when the page is hidden), let go when
+  Conversation ends. A line under the header says *Screen kept on*, or *This phone will not keep the screen on — keep
+  it awake yourself*.
+- **The headset's button** — the Media Session API (`HeadsetButton`): `play`, `pause`, `nexttrack` and `previoustrack`
+  (each where offered) are one press; a silent looping sound (a WAV of zero samples made in code, `silentWav`) makes
+  Faultline the phone's media for the moment, stopped and the handlers cleared when Conversation ends. A press
+  (`pressAction`): listen; while listening, stop and **send** what was heard (only stop when nothing was heard or
+  Faultline is working); while a reply is spoken, stop it and listen; while a card waits, open the microphone for the
+  answer; otherwise nothing, said. The line under the header says *Headset button: press to talk, press again to send*,
+  *tap the screen once to wake it* (a phone that wants a touch before a sound may play — the next touch wakes it), or
+  *This phone does not pass a headset's button to a web page — tap the microphone*.
+- **Listening, seen and heard** — *Listening…* with a pulse drawn in CSS (no second microphone stream, no level
+  meter), the words so far in the box; *Speaking…* with *Stop and talk*; a short tone (120 ms, quiet, WebAudio —
+  rising as listening starts, falling as it stops), switchable as **Sounds** in More ▾ (`faultline.aiEarcon`, on by
+  default).
+- **Barge-in** — words heard while a reply is spoken stop it at once (`shouldBargeIn`, cancelling the speech); a press
+  or a tap of the microphone does the same. The microphone is not held open while Faultline speaks — on a loudspeaker it
+  would hear itself — so on the floor barge-in is the button.
+- **Hands-free confirm** — while a write card waits and Conversation is on, the colleague says what it has said so far
+  and the card's sentence, ending **"Shall I do it?"** (`cardPrompt`), and the microphone opens. The words said back
+  are matched **in code**, never by the model, on a strict list of whole phrases (`spokenAnswer`, case and punctuation
+  aside): **yes, do it · do it · go ahead** confirm; **no · not now** decline; anything else — "yes", "do it later",
+  "go ahead and check the wrapper" — answers nothing and says which words do. The card then shows **Said: yes, do it**
+  (`Used.said`, kept on the turn). The rest of the reply after the card is spoken without repeating what was said
+  (`unspoken`).
+- **Before you walk the floor** (More ▾) — run when asked (`floorCheck`): microphone allowed (the permission, else the
+  microphone opened for a moment), speech recognition present, a British voice present (naming the voice it would use),
+  the screen kept on (a lock taken and let go), the headset button (the media session offered) — each yes or no in a
+  sentence with what to do, and the limit above.
+
+**Needs a real phone to prove** (no script can): the wake lock holding on Android Chrome and iOS Safari; a Bluetooth
+headset's button reaching the page through the silent sound — and whether the phone's speech recognition taking the
+microphone pauses that sound and hands the button back to another app; the tone being audible and short in the
+headset; a British voice on the device.
+
 ## 8. Cost
 
 A router puts native first: what a capability or a page answers is answered without a model where it can be. The

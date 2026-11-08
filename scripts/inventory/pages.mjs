@@ -457,6 +457,8 @@ export const PAGES = (sd, cap) => [
     { what: 'three example chips', sel: '.ai-empty .ai-sug', n: 3 },
     { what: 'the box with Send', sel: '.ai-type' },
     { what: 'the door in the top bar', sel: '.ai-door' },
+    /* Phase 4, on the floor: Speak replies, Conversation, Sounds and Before you walk the floor sit under it */
+    { what: 'More ▾ — the voice and the floor check', sel: '.ai-head-acts .part-menu-b' },
   ] },
   { name: 'The Story', path: '#/', must: [
     /* 8 November, docs/STORY.md: the client's continuous journey — the brief, the four figures, since the last update, the chapters;
