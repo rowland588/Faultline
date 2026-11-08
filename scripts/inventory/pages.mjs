@@ -137,7 +137,6 @@ export const PAGES = (sd, cap) => [
     { what: 'Eyes on the line — when anyone last looked, in words', sel: '.pl-looked .lk-says', text: /(looked at|not looked at|nothing recorded)/i },
     { what: 'what the looking found, and that only what is recorded counts', sel: '.pl-looked .lk-foot', text: /recorded in the app/ },
     { what: 'See it on the line — Walk the line, Film the work, Talk it', sel: '.pl-see .pl-see-door b', n: 3 },
-    { what: 'how this line is seen — the lede under the doors', sel: '.pl-see-lede', text: /How this line is seen/ },
     /* its papers in Report ▾ since B3 — the line report, the problems report and the problem cards, each named */
     { what: 'Report ▾ — the line report among its papers', sel: '.pl .part-head .part-menu-b', text: /^Report/ },
     { what: 'the closing line', sel: '.pl > .ln-close' },

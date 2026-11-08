@@ -733,9 +733,8 @@ function JobRow({ v, i, open, onToggle, onEnter, into, span, today, tip, setTip,
               that read as broken. It says what it needs. */}
           {empty ? (
             <span className="jb-empty">
-              {v.method === 'commissioning'
-                ? (edit ? 'Nothing dated yet — add the machines and when they are due.' : 'Nothing dated yet.')
-                : (edit ? 'No action has a due date yet — write them on the board.' : 'No action has a due date yet.')}
+              {/* 8 November, the polish: said once in three words — the button says what to do */}
+              Nothing dated yet
               {(edit || v.method !== 'commissioning') && (
                 <button className="btn btn-ghost btn-sm" onClick={() => nav(v.method === 'commissioning' ? `/project/${v.id}/testing` : `/project/${v.id}/board`)}>
                   {v.method === 'commissioning' ? 'Add them ›' : 'Open the board ›'}

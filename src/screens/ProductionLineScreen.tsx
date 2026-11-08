@@ -442,7 +442,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               </button>
             </li>
           </ul>
-          <p className="sub pl-see-lede">How this line is seen. The sums stay in the tools.</p>
         </section>
       )}
       {/* WHERE IT STANDS, COUNTED (lib/lineLean) — the tiles its report prints */}

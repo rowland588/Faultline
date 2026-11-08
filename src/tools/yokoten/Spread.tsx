@@ -67,7 +67,7 @@ export function SpreadFixes({ wsId }: { wsId: string }) {
   if (!read.proved.length && !read.received.length) return (
     <section className="pl-sec pl-spread is-none" aria-label="Fixes spread across the lines">
       <div className="pl-sec-h"><h2>Spread what works</h2></div>
-      <p className="sub yk-none">No fix proved on this line yet. A countermeasure done, then the same number counted again — a shift counted, a changeover timed, a capability measured — is what proves one; it then shows here with its before → after, and is offered to every line with the same machine.</p>
+      <p className="sub yk-none">No fix proved on this line yet. When a fix’s before → after moves the right way, it shows here and is offered to every line with the same machine.</p>
     </section>
   );
   return (
