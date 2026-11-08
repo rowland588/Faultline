@@ -412,6 +412,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
               { label: 'How I work', hint: 'what Faultline always knows about how you work — sent with every question', run: () => setPrefsSheet(true) },
               ...(canSpeak() ? [{ label: `Speak replies — ${speakOn ? 'On' : 'Off'}`, hint: 'the colleague’s replies read out by this device’s own voice', run: () => { if (speakOn) stopSpeaking(); setSpeakOn(!speakOn); } }] : []),
               { label: `Conversation — ${talkOn ? 'On' : 'Off'}`, hint: CONVERSATION_SAID, run: () => { setTalkOn(!talkOn); if (!talkOn && !speakOn && canSpeak()) setSpeakOn(true); } },
+              { label: 'How AI Mode is used', hint: 'what it cost, what it did, what could be answered with no AI', run: () => nav('/ai/usage') },
               { label: 'Back to Manual Mode', hint: 'the page this is about', run: () => nav(manualHref) },
               { label: 'Turn AI Mode off', hint: 'on this device — Manual Mode is unchanged', run: () => setAiMode(false) },
             ]} />

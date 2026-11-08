@@ -91,6 +91,8 @@ export function ToolsScreen() {
             </div>
           ))}
         </div>
+        {/* HOW AI MODE IS USED (docs/AI-MODE.md §9): its cost, what it did, and what could be answered with no AI */}
+        <p className="ai-box-foot"><a href="#/ai/usage" data-ai-usage-link>How AI Mode is used — what it costs and what could be answered with no AI ›</a></p>
       </section>
 
       {/* THE WORLDS (docs/TOOLS-WORLDS.md) — a doorway for each way of working, counted in tools */}

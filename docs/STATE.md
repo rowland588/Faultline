@@ -157,6 +157,16 @@ a session that ships something updates this page in the same commit.** The rules
   capability `recall` searches earlier AI Mode and Line Talk conversations in code, best and newest first, never across clients.
   *Technical*: `knowledge/` and the calculators. Recording is not training. Unit tests: `src/lib/__tests__/preferences.test.ts`,
   `src/capabilities/__tests__/memory.test.ts`, the gateway's and the loop's.
+- **How AI Mode is used — learning and cost (8 November, phase 5b, docs/AI-MODE.md §9).** Rowland: *"we learn what was done and we
+  actually want to replicate it with code as much as possible — this keeps AI costs lower"*; *"nothing should automatically become
+  production code"*. `#/ai/usage` (`screens/AiUsageScreen`, from AI Mode's More ▾ and a link under the AI toolbox on Tools) reads the
+  person's own `assist_usage` and `ai_actions` rows (no new table, nothing written): the last 30 days' answers and cost by task and
+  by day, an answer's cost, a colleague request's only where the device holds the requests (said as at most), today against each
+  allowance; dollars as the gateway prices them, pounds only when `VITE_USD_TO_GBP` is set. Then what the colleague did (proposed ·
+  done · declined · failed · refused, the share of writes accepted, the refused calls) and **candidates for code**
+  (`src/colleague/learning` — the same steps, calculator or question three times or more, a write mostly declined), each with its
+  evidence, a native home and Copy as a note — proposals only. Unit-tested (`colleague/__tests__/learning`, `usage`); in the
+  inventory; no browser acceptance script yet (the seed has no cloud — signed out, the page says so in a line).
 - **The AI toolbox (8 November).** Rowland: *"Go ahead with a AI toolbox"*. Tools has a shelf of its own — every place a model is used
   (Line Talk; talking a process flow chart, spaghetti diagram or value stream in; the video study's Name the work from the frames; the
   voice note in a form), each saying what it does, what it sends and to whom, and what it never does; those tools wear an AI mark on
