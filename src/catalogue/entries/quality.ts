@@ -49,7 +49,8 @@ export const QUALITY: Entry[] = [
     food: 'Tray seal leaks at one corner (one jaw).',
     depends: ['FC-124', 'FC-147'],
     complexity: 'M', value: 'medium', valueWhy: 'Points straight at the cause’s location.',
-    status: 'to-build', form: 'mode', partOf: 'FC-124', methods: ['quality.defect-concentration'], scenarios: ['quality'],
+    status: 'left-out', form: 'mode', partOf: 'FC-124', methods: ['quality.defect-concentration'], scenarios: ['quality'],
+    decided: 'Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on where on the pack, first-pass yield, sensory and QFD: "Don’t think we need that." — docs/STATE.md 0d.',
   },
   {
     id: 'FC-127', name: 'First pass and rolled throughput yield', discipline: 'quality', sub: 'defects',
@@ -61,7 +62,8 @@ export const QUALITY: Entry[] = [
     food: 'Bake, cool, slice, pack with mis-sliced loaves reworked.',
     depends: ['FC-128', 'FC-159'],
     complexity: 'S', value: 'medium', valueWhy: 'Exposes rework.',
-    status: 'to-build', form: 'report', methods: ['quality.fpy-rty'], scenarios: ['quality'], words: ['right first time', 'RFT', 'FPY'],
+    status: 'left-out', form: 'report', methods: ['quality.fpy-rty'], scenarios: ['quality'], words: ['right first time', 'RFT', 'FPY'],
+    decided: 'Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on where on the pack, first-pass yield, sensory and QFD: "Don’t think we need that." — docs/STATE.md 0d.',
   },
   {
     id: 'FC-128', name: 'Cost of poor quality', discipline: 'quality', sub: 'cost',
@@ -205,7 +207,8 @@ export const QUALITY: Entry[] = [
     food: 'Film, trays, labels, ingredients.',
     depends: ['FC-129', 'FC-051'],
     complexity: 'M', value: 'medium', valueWhy: 'Evidence for the supplier conversation.',
-    status: 'to-build', form: 'report', methods: ['quality.supplier-quality'], scenarios: ['quality'],
+    status: 'left-out', form: 'report', methods: ['quality.supplier-quality'], scenarios: ['quality'],
+    decided: 'Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on where on the pack, first-pass yield, sensory and QFD: "Don’t think we need that." — docs/STATE.md 0d.',
   },
   {
     id: 'FC-137', name: 'Sensory difference test — the triangle test', discipline: 'quality', sub: 'product',
@@ -217,7 +220,8 @@ export const QUALITY: Entry[] = [
     food: 'Ingredient substitutions; recipe changes.',
     depends: ['FC-121'],
     complexity: 'S', value: 'low', valueWhy: 'Specialist but cheap.',
-    status: 'to-build', form: 'tool', kind: 'study', methods: ['quality.sensory-difference'], scenarios: ['quality'],
+    status: 'left-out', form: 'tool', kind: 'study', methods: ['quality.sensory-difference'], scenarios: ['quality'],
+    decided: 'Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on where on the pack, first-pass yield, sensory and QFD: "Don’t think we need that." — docs/STATE.md 0d.',
   },
   {
     id: 'FC-138', name: 'DMAIC as a kind of change', discipline: 'sixsigma', sub: 'dmaic',
@@ -353,7 +357,8 @@ export const QUALITY: Entry[] = [
     food: 'New pack design.',
     depends: ['FC-140'],
     complexity: 'L', value: 'low', valueWhy: 'For new products, not running lines.',
-    status: 'to-build', form: 'tool', kind: 'document', methods: ['sixsigma.qfd'], scenarios: ['project'],
+    status: 'left-out', form: 'tool', kind: 'document', methods: ['sixsigma.qfd'], scenarios: ['project'],
+    decided: 'Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on where on the pack, first-pass yield, sensory and QFD: "Don’t think we need that." — docs/STATE.md 0d.',
   },
   {
     id: 'FC-146', name: '6M — a running line made to perform better', discipline: 'rca', sub: 'causes',

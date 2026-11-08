@@ -4,16 +4,16 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 **239 entries** across 23 disciplines, behind them **179 method records** (`knowledge/methods/`) and **22 problem routes**.
 
-**How many tools:** 28 tools a person can open on a page of their own. Built inside them: 119 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 33. Not built yet: 41; needing research: 11; left out on purpose: 7. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
+**How many tools:** 28 tools a person can open on a page of their own. Built inside them: 119 methods. Built into the app but not tools (Problems, Actions, reports, the stage gate): 32. Not built yet: 22; needing research: 11; left out on purpose: 27. The table below counts *entries* — methods and parts as well as tools — so its "Available" is not a count of tools.
 
 | Status | Entries |
 |---|---|
 | Available (`available`) | 165 |
-| Partly (`partial`) | 15 |
+| Partly (`partial`) | 14 |
 | Planned (`specified`) | 0 |
-| Not built yet (`to-build`) | 41 |
+| Not built yet (`to-build`) | 22 |
 | Research first (`research`) | 11 |
-| Left out on purpose (`left-out`) | 7 |
+| Left out on purpose (`left-out`) | 27 |
 
 ## By discipline
 
@@ -29,17 +29,17 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 | Statistical process control and capability | 17 | 17 |  |  |  |  |  |
 | Statistical analysis | 15 | 15 |  |  |  |  |  |
 | Measurement systems | 6 | 6 |  |  |  |  |  |
-| Quality engineering and defects | 14 | 8 |  |  | 4 | 2 |  |
-| Six Sigma and DMAIC | 8 | 6 | 1 |  | 1 |  |  |
+| Quality engineering and defects | 14 | 8 |  |  |  | 2 | 4 |
+| Six Sigma and DMAIC | 8 | 6 | 1 |  |  |  | 1 |
 | Root cause and problem solving | 10 | 9 | 1 |  |  |  |  |
 | Yield, give-away and materials | 6 | 3 |  |  | 3 |  |  |
 | Packaging, filling and weighing | 7 | 6 |  |  |  | 1 |  |
-| Food safety, hygiene and traceability | 11 | 5 |  |  | 4 | 2 |  |
-| Production planning and scheduling | 8 | 2 |  |  | 6 |  |  |
+| Food safety, hygiene and traceability | 11 | 5 |  |  |  | 2 | 4 |
+| Production planning and scheduling | 8 | 2 |  |  |  |  | 6 |
 | Cost and operational performance | 6 | 5 |  |  |  |  | 1 |
-| Visual and daily management | 15 | 9 | 2 |  | 4 |  |  |
+| Visual and daily management | 15 | 9 | 2 |  |  |  | 4 |
 | Ergonomics, layout and automation | 6 | 1 |  |  | 5 |  |  |
-| Projects and continuous improvement | 11 | 3 | 1 |  | 3 |  | 4 |
+| Projects and continuous improvement | 11 | 3 |  |  | 3 |  | 5 |
 | Skills and training | 4 | 3 | 1 |  |  |  |  |
 | Energy, water and environment | 4 |  |  |  | 3 | 1 |  |
 
@@ -95,7 +95,27 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 ## Left out on purpose
 
 - FC-050 OEE, OOE and TEEP as figures — Rowland, 10 October: "We will not have Internet of anything ... there is no OEE (typed by hand, its availability is a guess)" — docs/LEAN40.md.
+- FC-126 Where on the pack — the defect concentration diagram — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on where on the pack, first-pass yield, sensory and QFD: "Don’t think we need that." — docs/STATE.md 0d.
+- FC-127 First pass and rolled throughput yield — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on where on the pack, first-pass yield, sensory and QFD: "Don’t think we need that." — docs/STATE.md 0d.
+- FC-136 Supplier quality — incoming checks and supplier PPM — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on where on the pack, first-pass yield, sensory and QFD: "Don’t think we need that." — docs/STATE.md 0d.
+- FC-137 Sensory difference test — the triangle test — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on where on the pack, first-pass yield, sensory and QFD: "Don’t think we need that." — docs/STATE.md 0d.
+- FC-145 QFD — the house of quality — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on where on the pack, first-pass yield, sensory and QFD: "Don’t think we need that." — docs/STATE.md 0d.
+- FC-168 HACCP plan — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; "Food safety, HACCP, traceability. No, we don’t need that." — docs/STATE.md 0d.
+- FC-173 Environmental monitoring — Listeria zones and trends — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; "Food safety, HACCP, traceability. No, we don’t need that." — docs/STATE.md 0d.
+- FC-174 Traceability exercise, timed — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; "Food safety, HACCP, traceability. No, we don’t need that." — docs/STATE.md 0d.
+- FC-176 Cooling curves — time to temperature — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; "Food safety, HACCP, traceability. No, we don’t need that." — docs/STATE.md 0d.
+- FC-180 Scheduling rules — due date, shortest first, Johnson’s rule — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; "I don’t really understand why we would be making a planning and scheduling tool." — docs/STATE.md 0d.
+- FC-181 Runners, repeaters and strangers — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; "I don’t really understand why we would be making a planning and scheduling tool." — docs/STATE.md 0d.
+- FC-182 Batch size and campaign length (EOQ, EPQ) — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; "I don’t really understand why we would be making a planning and scheduling tool." — docs/STATE.md 0d.
+- FC-184 Crewing a shift — heads, absence and cover — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; "I don’t really understand why we would be making a planning and scheduling tool." — docs/STATE.md 0d.
+- FC-185 Plan attainment — made against planned — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; "I don’t really understand why we would be making a planning and scheduling tool." — docs/STATE.md 0d.
+- FC-186 Forecast accuracy — error and bias — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; "I don’t really understand why we would be making a planning and scheduling tool." — docs/STATE.md 0d.
 - FC-192 The case for the change — what a project is worth — Rowland, 17 October: "This is a tool for a one man consultant — if we do all 6 it becomes a full business tool, so don't do any of them" — built and taken off the same evening (docs/BLUEPRINT.md §6; docs/CASE.md keeps the design).
+- FC-196 Hour-by-hour production board — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on daily management: "No, we don’t need that either." — docs/STATE.md 0d.
+- FC-197 SQDC daily board — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on daily management: "No, we don’t need that either." — docs/STATE.md 0d.
+- FC-200 Leader standard work — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on daily management: "No, we don’t need that either." — docs/STATE.md 0d.
+- FC-203 Shift handover log — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; on daily management: "No, we don’t need that either." — docs/STATE.md 0d.
+- FC-213 Lever tree — a number to hit — Rowland, 8 November: "I’m a consultant that goes into factories ... it’s actually only going to be a single use, or maybe a few people using it ... This is not going to be people who are operating this on the ground floor"; "we put lever tree hidden ... We wasn’t going to pursue lever tree as a project method." — docs/STATE.md 0d.
 - FC-216 Risk register — Rowland, 17 October: "This is a tool for a one man consultant — if we do all 6 it becomes a full business tool, so don't do any of them" — the issue and risk logs are the Problems register and its Critical (docs/BLUEPRINT.md §6).
 - FC-217 Decision and change log — Rowland, 17 October — one of the six project-management pieces declined (docs/BLUEPRINT.md §6, item 13).
 - FC-218 Benefits realised — what a change was worth — Rowland, 17 October — declined with the business case (docs/BLUEPRINT.md §6, item 12).
