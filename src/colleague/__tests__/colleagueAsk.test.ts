@@ -107,6 +107,17 @@ describe('the client loop', () => {
     await colleagueLoop({ ...ask, focus: () => `round ${++n}` }, r.deps);
     expect(r.bodies.map(b => b.focus)).toEqual(['round 1', 'round 2']);
   });
+
+  it('sends How I work with every round, read once; nothing when nothing is saved', async () => {
+    let reads = 0;
+    const r = rig([{ ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: {} }] }, { ok: true, reply: 'Done.' }]);
+    await colleagueLoop({ ...ask, preferences: () => { reads++; return 'The words I use:\nthe CW is the checkweigher'; } }, r.deps);
+    expect(reads).toBe(1);
+    expect(r.bodies.map(b => b.preferences)).toEqual(['The words I use:\nthe CW is the checkweigher', 'The words I use:\nthe CW is the checkweigher']);
+    const none = rig([{ ok: true, reply: 'Hi.' }]);
+    await colleagueLoop({ ...ask, preferences: () => '  ' }, none.deps);
+    expect('preferences' in none.bodies[0]).toBe(false);
+  });
 });
 
 describe('readAnswer', () => {

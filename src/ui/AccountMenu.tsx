@@ -16,6 +16,8 @@ import { SyncDetail } from '../cloud/CloudPanel';
 import { useProjects } from '../lib/useProjects';
 import { readBrand } from '../lib/brand';
 import { BrandSheet } from './BrandSheet';
+import { readPreferences } from '../lib/preferences';
+import { PreferencesSheet } from './PreferencesSheet';
 import { setAiMode, useAiMode } from '../colleague/aiMode';
 
 /** Sign out, after asking — the one way out, wherever it is pressed. Home's
@@ -42,6 +44,7 @@ export function AccountMenu() {
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState(false);
   const [brand, setBrand] = useState(false);
+  const [prefs, setPrefs] = useState(false);
   const aiOn = useAiMode();
 
   if (!cloudConfigured || !session) return null;
@@ -65,6 +68,9 @@ export function AccountMenu() {
         {/* YOUR BRAND (8 November, docs/STORY.md S1): who prepares the papers — on the foot of every one and on every cover */}
         <SheetRow label="Your brand" hint={readBrand() ? `${readBrand()?.name}${readBrand()?.business ? ` · ${readBrand()?.business}` : ''}` : 'your name and business on every paper'}
           onClick={() => { setOpen(false); setBrand(true); }} />
+        {/* HOW I WORK (8 November, docs/AI-MODE.md Memory): what AI Mode's colleague is always told about you */}
+        <SheetRow label="How I work" hint={readPreferences() ? 'what AI Mode always knows about how you work — change it' : 'your words, methods and reports, for AI Mode'}
+          onClick={() => { setOpen(false); setPrefs(true); }} />
         {/* AI MODE (8 November): Ask Faultline in the top bar, on or off on this device — Manual Mode is the same either way */}
         <SheetRow label={`AI Mode — ${aiOn ? 'On' : 'Off'}`} hint={aiOn ? 'Ask Faultline is in the top bar — tap to turn it off' : 'off on this device — tap to turn it on'}
           onClick={() => setAiMode(!aiOn)} />
@@ -86,6 +92,7 @@ export function AccountMenu() {
       </Sheet>
       {profile?.is_super && <AdminPanel open={team} onClose={() => setTeam(false)} />}
       {brand && <BrandSheet open={brand} onClose={() => setBrand(false)} />}
+      {prefs && <PreferencesSheet open={prefs} onClose={() => setPrefs(false)} />}
     </>
   );
 }

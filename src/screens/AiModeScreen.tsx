@@ -29,6 +29,8 @@ import { useProjects } from '../lib/useProjects';
 import { Icon, type IconName } from '../ui/Icon';
 import { MoreMenu } from '../ui/parts';
 import { Sheet } from '../ui/Sheet';
+import { PreferencesSheet } from '../ui/PreferencesSheet';
+import { preferencesText } from '../lib/preferences';
 import { Ear, NOTHING_HEARD, joinWords, recognitionOf, troubleSaid, type Trouble } from '../tools/talk/hearing';
 import { pictureForAssistant } from '../tools/talk/talkPictures';
 import { photoLabels } from '../tools/talk/talk';
@@ -285,6 +287,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
         focus: async () => focusText(factsOfConversation((await getStudy(cid)) as ToolStudy).threads ?? [], { names: nameOf, photos: photosKeys }),
         today: longDay(),
         conversationId: cid,
+        preferences: preferencesText,
       }, {
         invoke: invokeColleague,
         describe: name => { const c = capabilityByName(name); return c ? { kind: c.kind, title: c.title } : undefined; },
@@ -375,6 +378,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   }, [newest]);
 
   const [ctxSheet, setCtxSheet] = useState(false);
+  const [prefsSheet, setPrefsSheet] = useState(false);
   const timers = useTimers();
   const firstLine = lines[0]?.name;
   const examples = [
@@ -405,6 +409,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             <button type="button" className="btn ai-list-b" onClick={onList}><Icon name="list" size="1.05em" />Conversations</button>
             <MoreMenu items={[
               { label: 'New conversation', run: onNew },
+              { label: 'How I work', hint: 'what Faultline always knows about how you work — sent with every question', run: () => setPrefsSheet(true) },
               ...(canSpeak() ? [{ label: `Speak replies — ${speakOn ? 'On' : 'Off'}`, hint: 'the colleague’s replies read out by this device’s own voice', run: () => { if (speakOn) stopSpeaking(); setSpeakOn(!speakOn); } }] : []),
               { label: `Conversation — ${talkOn ? 'On' : 'Off'}`, hint: CONVERSATION_SAID, run: () => { setTalkOn(!talkOn); if (!talkOn && !speakOn && canSpeak()) setSpeakOn(true); } },
               { label: 'Back to Manual Mode', hint: 'the page this is about', run: () => nav(manualHref) },
@@ -463,6 +468,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       </section>
       <aside className="ai-ctx" aria-label="What this conversation is on">{panel}</aside>
       <Sheet open={ctxSheet} onClose={() => setCtxSheet(false)} title="What this is on">{panel}</Sheet>
+      {prefsSheet && <PreferencesSheet open={prefsSheet} onClose={() => setPrefsSheet(false)} />}
     </>
   );
 }

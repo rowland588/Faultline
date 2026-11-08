@@ -27,6 +27,8 @@ export interface ColleagueBody {
   turns: GatewayTurn[];
   images?: { photo: string; data: string }[];
   focus?: string;
+  /** How I work (lib/preferences) — the person's own words, sent with every question; absent when nothing is saved. */
+  preferences?: string;
   today: string;
   conversationId?: string;
   pending?: { assistant: unknown; results: CallResult[] };
@@ -117,6 +119,8 @@ export interface LoopAsk {
   focus: () => Promise<string> | string;
   today: string;
   conversationId?: string;
+  /** How I work — read once per question (lib/preferences preferencesText), so a line remembered meanwhile goes next time. */
+  preferences?: () => string;
 }
 
 export type LoopEnd =
@@ -132,10 +136,11 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
   const words: string[] = [];
   const unsure = new Set<string>();
   const text = () => words.filter(Boolean).join('\n\n');
+  const prefs = ask.preferences?.().trim() ?? '';
   for (let round = 1; round <= MAX_ROUNDS; round++) {
     const body: ColleagueBody = {
       task: 'colleague', turns: ask.turns, ...(ask.images?.length ? { images: ask.images } : {}),
-      focus: await ask.focus(), today: ask.today, ...(ask.conversationId ? { conversationId: ask.conversationId } : {}), ...(pending ? { pending } : {}),
+      focus: await ask.focus(), ...(prefs ? { preferences: prefs } : {}), today: ask.today, ...(ask.conversationId ? { conversationId: ask.conversationId } : {}), ...(pending ? { pending } : {}),
     };
     const a = await deps.invoke(body);
     if (!a.ok) return { ...a, rounds: round, ...(words.length ? { reply: text() } : {}) };

@@ -16826,6 +16826,12 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .brand-foot-preview { padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-2); }
 .sheet-acts { display: flex; gap: 8px; margin-top: 4px; }
 
+/* HOW I WORK (8 November, docs/AI-MODE.md Memory — ui/PreferencesSheet) */
+.prefs-sheet { display: flex; flex-direction: column; gap: 12px; }
+.prefs-sheet .field { display: flex; flex-direction: column; gap: 4px; }
+.prefs-box { min-height: 72px; resize: vertical; font: inherit; }
+.prefs-over { color: var(--st-r); }
+
 /* ============================================================ THE STORY (8 November, docs/STORY.md — screens/StoryScreen) */
 .st-said { margin: -6px 0 12px; }
 .st-start { padding: 18px 20px; }

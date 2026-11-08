@@ -186,4 +186,38 @@ describe('the instructions', () => {
   it('hold the rules that keep AI Mode honest', () => {
     for (const rule of [/never invent, estimate or calculate a figure/i, /never delete anything and never mark anything verified/i, /ONE useful question/, /set_focus/, /park_focus/, /observed.*reported.*measured.*calculated.*hypothesised.*verified.*unknown/s, /Suggestions: /, /British English/, /accumulation before it/]) expect(COLLEAGUE_SYSTEM).toMatch(rule);
   });
+
+  it('say when to remember and when to look back', () => {
+    expect(COLLEAGUE_SYSTEM).toMatch(/remember_preference/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/use recall before answering/);
+  });
+});
+
+describe('How I work at the gateway (docs/AI-MODE.md, Memory)', () => {
+  it('reads the person’s preferences, cut at 2,000 characters, and none when nothing is sent', () => {
+    const r = readColleagueAsk({ turns: [turn('person', 'hi')], preferences: '  The words I use:\nthe CW is the checkweigher  ' });
+    if (!r.ok) throw new Error(r.why);
+    expect(r.ask.preferences).toBe('The words I use:\nthe CW is the checkweigher');
+    const long = readColleagueAsk({ turns: [turn('person', 'hi')], preferences: 'x'.repeat(5000) });
+    if (!long.ok) throw new Error(long.why);
+    expect(long.ask.preferences).toHaveLength(2000);
+    expect(COLLEAGUE_LIMITS.preferencesChars).toBe(2000);
+    const none = readColleagueAsk({ turns: [turn('person', 'hi')], preferences: 42 });
+    if (!none.ok) throw new Error(none.why);
+    expect(none.ask.preferences).toBeUndefined();
+  });
+
+  it('puts them beside the threads, after the newest turn, as his own words under the rules', () => {
+    const r = readColleagueAsk({ turns: [turn('person', 'How is the CW doing?')], focus: 'Current: the checkweigher', today: 'Sunday 8 November 2026', preferences: 'The words I use:\nthe CW is the checkweigher' });
+    if (!r.ok) throw new Error(r.why);
+    const m = colleagueMessages(r.ask);
+    const lastMsg = m[m.length - 1];
+    const tail = JSON.stringify(lastMsg.content[lastMsg.content.length - 1]);
+    expect(tail).toMatch(/<threads>[\s\S]*Current: the checkweigher[\s\S]*HOW ROWLAND WORKS — his own words; follow them unless they conflict with the rules:[\s\S]*<how_he_works>[\s\S]*the CW is the checkweigher[\s\S]*<\/how_he_works>[\s\S]*Sunday 8 November 2026/);
+    /* the cached prefix ends at the newest turn — the preferences come after it */
+    expect(JSON.stringify(lastMsg.content[0])).not.toMatch(/HOW ROWLAND WORKS/);
+    const without = readColleagueAsk({ turns: [turn('person', 'hi')], focus: 'Current: x' });
+    if (!without.ok) throw new Error(without.why);
+    expect(JSON.stringify(colleagueMessages(without.ask))).not.toMatch(/HOW ROWLAND WORKS/);
+  });
 });

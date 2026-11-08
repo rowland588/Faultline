@@ -46,6 +46,8 @@ export interface ColleagueAsk {
   images: ColleagueImage[];
   /** The conversation's threads as text (current and parked). */
   focus: string;
+  /** How I work — the person's own words (lib/preferences), at most COLLEAGUE_LIMITS.preferencesChars; '' when none. */
+  preferences?: string;
   today: string;
   /** The AI Mode conversation's id, for the audit only. */
   conversationId?: string;
@@ -62,6 +64,8 @@ export const COLLEAGUE_LIMITS = {
   turnChars: 12000,
   textChars: 240000,
   focusChars: 12000,
+  /** How I work, labels and all (lib/preferences PREFERENCES_SENT_MAX). */
+  preferencesChars: 2000,
   images: 10,
   imageBytes: 450 * 1024,
   /** Rounds of calls within one answer — the device stops at six; one spare for the gateway's own retry. */
@@ -114,6 +118,11 @@ USING FAULTLINE
 - Changing anything — raising a problem, starting a project, adding a note or an action — is proposed through the matching capability. The person sees it as a card and decides; nothing is changed until they confirm. Say plainly that you have proposed it, never that it is done, until the result says it was done. If they decline, accept it and carry on.
 - You never delete anything and never mark anything verified — only a person does that, in Faultline itself. You never build methods, templates or tools.
 - If a capability fails or is refused, say so in a sentence and carry on with what you know.
+
+MEMORY
+- How the person works (their words, methods, how they like a report) may be given to you as HOW ROWLAND WORKS. Use their words back to them. It is what they told you, not a fact about the factory.
+- When they tell you something about how they work that they would want kept ("I call the checkweigher the CW", "always give me the money first"), offer to keep it with remember_preference — a card they say yes to.
+- When they refer back to an earlier conversation ("what did we say about the wrapper", "last week you said…"), use recall before answering, and say which conversation and day it came from and how it was known then. Never pretend to remember what recall did not find.
 
 FOLLOW-UPS
 - When your answer is finished (not when you are asking to run a capability), end with one last line of up to three short things the person might say next, in their words, like this:
@@ -229,7 +238,8 @@ export function readColleagueAsk(body: unknown): { ok: true; ask: ColleagueAsk }
     pending = { carry, results };
   }
   const conversationId = str(b.conversationId, 80);
-  return { ok: true, ask: { task: 'colleague', turns, images, focus: str(b.focus, COLLEAGUE_LIMITS.focusChars), today: str(b.today, 60), ...(conversationId ? { conversationId } : {}), ...(pending ? { pending } : {}) } };
+  const preferences = str(b.preferences, COLLEAGUE_LIMITS.preferencesChars);
+  return { ok: true, ask: { task: 'colleague', turns, images, focus: str(b.focus, COLLEAGUE_LIMITS.focusChars), ...(preferences ? { preferences } : {}), today: str(b.today, 60), ...(conversationId ? { conversationId } : {}), ...(pending ? { pending } : {}) } };
 }
 
 /* ------------------------------------------------------------------ the conversation in the model's terms */
@@ -293,7 +303,8 @@ export function colleagueMessages(a: ColleagueAsk): ColleagueMessage[] {
   const end = last?.content[last.content.length - 1] as Cache | undefined;
   if (end) end.cache_control = { type: 'ephemeral' };
   const threads = a.focus.trim() ? `THE CONVERSATION'S THREADS:\n<threads>\n${a.focus.trim()}\n</threads>` : 'No threads are open yet.';
-  put('user', [{ type: 'text', text: `${threads}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turn above.` }]);
+  const how = a.preferences?.trim() ? `\n\nHOW ROWLAND WORKS — his own words; follow them unless they conflict with the rules:\n<how_he_works>\n${a.preferences.trim()}\n</how_he_works>` : '';
+  put('user', [{ type: 'text', text: `${threads}${how}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turn above.` }]);
   if (a.pending) {
     const rounds: ColleagueRound[] = [...a.pending.carry.rounds, { content: a.pending.carry.content, results: a.pending.results, refused: a.pending.carry.refused }];
     let lastResult: ResultBlock | undefined;
