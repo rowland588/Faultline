@@ -85,6 +85,8 @@ const scoredFields = (def: ScoredDef): DraftField[] => [
 export const SMED_FIELDS: readonly DraftField[] = [
   { name: 'current', label: 'How long a changeover takes now', type: 'number', unit: 'min', min: 0, required: true, section: 'The changeover', help: 'As the floor says it — reported until the changeover is timed element by element.' },
   { name: 'target', label: 'The minutes it must come in at', type: 'number', unit: 'min', min: 0, required: true, section: 'The changeover', help: 'The target the changeover is judged against.' },
+  { name: 'machineCount', label: 'How many machines are on the line', type: 'number', min: 0, integer: true, section: 'The line', help: 'As said — their names go under the machines when they are said.' },
+  { name: 'productCount', label: 'How many products it changes between', type: 'number', min: 0, integer: true, section: 'The line', help: 'As said — their names go under the products when they are said.' },
   { name: 'fromProduct', label: 'The product changed from', type: 'text', section: 'The changeover' },
   { name: 'toProduct', label: 'The product changed to', type: 'text', section: 'The changeover' },
   { name: 'machines', label: 'The machines on the line', type: 'list', section: 'The line', columns: [{ name: 'name', label: 'Machine', type: 'text', required: true }] },
@@ -452,6 +454,8 @@ export function applyDraft(s: ToolStudy, d: ColleagueDraft, now: number, names?:
         if (f && e && wants(k)) words.push(remark(d, k, `${text(f, e)} — ${HOW_SAID_WORD[e.how]}${e.said ? ` (“${e.said}”)` : ''}.`, now));
       };
       say('current', (f, e) => `A changeover takes about ${valueWords(f, e.value)} now`);
+      say('machineCount', (_f, e) => `${e.value} machine${e.value === 1 ? ' is' : 's are'} on the line`);
+      say('productCount', (_f, e) => `The line changes between ${e.value} product${e.value === 1 ? '' : 's'}`);
       say('machines', (f, e) => `The machines on the line: ${valueWords(f, e.value)}`);
       say('notes', (_f, e) => String(e.value));
       out = withRemarks(out, words);

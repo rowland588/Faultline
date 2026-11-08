@@ -685,7 +685,6 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, onSa
 /* ================================================================ being built */
 
 const OWNER_CAN = canAt('owner');
-const lowerFirst = (x: string) => (/^[A-Z][a-z]/.test(x) ? x.charAt(0).toLowerCase() + x.slice(1) : x);
 
 /** A TOOL BEING FILLED FROM THE CONVERSATION — its fields as understood, each with how it is known (a correction shows what it
  *  replaced, struck), what is still missing as chips that start the sentence in the box, a custom sheet's metrics as Faultline
@@ -726,7 +725,7 @@ function DraftBox({ d, make, onSay }: { d: ColleagueDraft; make: MakeFlow; onSay
         <>
           <p className="ai-ctx-h">Still missing</p>
           <div className="ai-draft-miss" role="group" aria-label="Still missing">
-            {need.map(f => <button key={f.name} type="button" className="chip" data-missing={f.name} onClick={() => onSay(`The ${lowerFirst(f.label)} is `)}>{f.label}</button>)}
+            {need.map(f => <button key={f.name} type="button" className="chip" data-missing={f.name} onClick={() => onSay(`${f.label}: `)}>{f.label}</button>)}
           </div>
         </>
       ) : d.status === 'draft' && <p className="sub ai-ctx-none">Everything it needs is there.</p>}

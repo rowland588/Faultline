@@ -188,7 +188,7 @@ describe('the record is exactly what the tool’s New makes', () => {
     expect(s?.agreed?.calc?.inputs).not.toHaveProperty('supplier');
     const l = adaptDraft(draft('check', 'metal-detection', { scope: { lineId: 'w1' } }), [{ field: { name: 'reject_bin', label: 'Reject bin locked', type: 'text' } }], []).draft;
     const log = toRecord(l, { id: 's7', now: NOW });
-    expect(log?.agreed?.log?.checks.at(-1)).toMatchObject({ name: 'Reject bin locked', kind: 'passfail' });
+    expect(log?.agreed?.log?.checks.slice(-1)[0]).toMatchObject({ name: 'Reject bin locked', kind: 'passfail' });
   });
   it('made again: only what the conversation changed is written — an edit in Manual Mode stays', () => {
     const def = calcByKey('kanban');
