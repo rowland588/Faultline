@@ -17,6 +17,7 @@ import { DateInput } from '../ui/DateInput';
 import { DraftArea, DraftText } from '../ui/Draft';
 import { nav } from '../state/useRoute';
 import { DependsBlock } from '../line/actions/Depends';
+import { readHistory, rowSaid, type HistoryRead } from './problemHistory';
 import './problemPanel.css';
 
 let opener: ((id: string) => void) | null = null;
@@ -124,10 +125,41 @@ function Body({ s, where, edit, onClose }: { s: Snag; where: { line: string; mac
         </div>
       )}
 
+      <History id={s.id} at={s.updatedAt} />
+
       <div className="pp-foot">
         <button type="button" className="btn btn-primary" onClick={full}>Open the full record ›</button>
         <span className="sub">Pictures, what it costs, which waste, the program, its journey and closing it with what shows it is fixed.</span>
       </div>
+    </div>
+  );
+}
+
+/** WHO CHANGED WHAT, AND WHEN (supabase/PROBLEM_HISTORY.sql) — kept by the database, read here; asked again when the problem
+ *  changes on this device (its updatedAt), so a change just made shows once it has reached the cloud. */
+function History({ id, at }: { id: string; at: number }) {
+  const [h, setH] = useState<HistoryRead | null>(null);
+  const [all, setAll] = useState(false);
+  useEffect(() => {
+    let live = true;
+    const t = window.setTimeout(() => { void readHistory(id).then(r => { if (live) setH(r); }); }, 1500);
+    return () => { live = false; window.clearTimeout(t); };
+  }, [id, at]);
+  const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return (
+    <div className="pp-f" data-pp-history>
+      <span className="pp-k">History</span>
+      {!h ? <p className="sub">Reading who changed what…</p>
+        : 'none' in h ? <p className="sub">{h.none === 'no-cloud' ? 'Who changed what is kept in the cloud — this device is not signed in to it.' : 'The history could not be read just now — no signal, or try again in a moment.'}</p>
+          : !h.rows.length ? <p className="sub">No change recorded yet — the history is kept from 8 November 2026.</p>
+            : (
+              <>
+                <ol className="pp-history">
+                  {(all ? h.rows : h.rows.slice(0, 6)).map((r, i) => <li key={`${r.at}-${i}`}><span>{rowSaid(r)}</span><span className="sub">{when(r.at)}</span></li>)}
+                </ol>
+                {h.rows.length > 6 && <button type="button" className="linkish" onClick={() => setAll(a => !a)}>{all ? 'Show fewer' : `Show all ${h.rows.length}`}</button>}
+              </>
+            )}
     </div>
   );
 }

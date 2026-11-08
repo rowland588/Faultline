@@ -37,3 +37,7 @@
 .pp .pp-title.text-input { font-size: var(--t-h); font-weight: 700; border-color: transparent; background: none; box-shadow: none; }
 .pp .pp-title.text-input:hover { border-color: var(--line); }
 .pp .pp-title.text-input:focus { border-color: var(--brand); background: var(--surface); }
+.pp-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pp-history li { display: flex; justify-content: space-between; gap: 12px; font-size: var(--t-detail); }
+.pp-history li .sub { flex: none; font-size: var(--t-label); }
+@media (max-width: 719px) { .pp-history li { flex-direction: column; gap: 0; } }

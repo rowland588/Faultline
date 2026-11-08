@@ -94,6 +94,12 @@ a session that ships something updates this page in the same commit.** The rules
   at the top, machine cards as a simple header, Tools redone), then the record panel, planning (the projects' board), problems
   and projects, the tools, reports, phone review.
 
+- **Who changed what on a problem — the audit trail (8 November, the enterprise basics).** `supabase/PROBLEM_HISTORY.sql`, applied
+  live and read back: a table written only by a trigger on the problems (security definer, never callable by a device), the person,
+  the moment and for each field a person sees what it was and became; a sync's own touch is not a change; a line's members read
+  their line's, nobody writes, edits or deletes it; a failure in it never stops a problem being saved (proved in a rolled-back
+  transaction). The problem panel's **History** says it in sentences (`snag/problemHistory`). Kept from 8 November 2026.
+
 - **Search across records (7 November — the enterprise basics).** The top bar's search (⌘K) finds the factory's machines (opening
   their page on the line) and its problems by their words (opening in the panel over the page), beside the lines, projects,
   products and tools; a problem only once something is typed and only on a real match of its words (`lib/jumpTo`, `ui/JumpTo`).
