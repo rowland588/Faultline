@@ -450,6 +450,14 @@ export const PAGES = (sd, cap) => [
     { what: 'a state in each of the five colours, with its word', sel: '.parts p .part-tag', n: 5 },
     { what: 'the app\'s eleven tools, from the catalogue', sel: '.parts .part-row', n: 14 },
   ] },
+  { name: 'AI Mode — Ask Faultline', path: '#/ai', must: [
+    /* 8 November, docs/AI-MODE.md: the colleague — the conversation, its context and its door */
+    { what: 'the AI MODE eyebrow', sel: '.ai-eyebrow', text: /AI Mode/i },
+    { what: 'the empty conversation saying what it does', sel: '.ai-empty-h', text: /Ask Faultline/ },
+    { what: 'three example chips', sel: '.ai-empty .ai-sug', n: 3 },
+    { what: 'the box with Send', sel: '.ai-type' },
+    { what: 'the door in the top bar', sel: '.ai-door' },
+  ] },
   { name: 'The Story', path: '#/', must: [
     /* 8 November, docs/STORY.md: the client's continuous journey — the brief, the four figures, since the last update, the chapters;
        at #/ since S5 (#/story an alias) */
