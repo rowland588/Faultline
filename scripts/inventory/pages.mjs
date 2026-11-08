@@ -103,6 +103,8 @@ export const PAGES = (sd, cap) => [
     /* its paper (27 October — Rowland: "still no report abilities"; "all you've done is headlines") */
     { what: 'Report ▾ with its machine report', sel: '.lmc .part-head .part-menu-b', text: /^Report/ },
     { what: 'what it is in a sentence — whose, projects, programs, problems, stops', sel: '.lmc-says', text: /With .* · worked on by/ },
+    /* WHAT IT IS (8 November, docs/FACTORY-KNOWLEDGE.md F1): kind, model and serial, each saying how it is known */
+    { what: 'what it is — kind, model and serial, each saying how it is known', sel: '.lmc-ident .lmc-ident-row .lmc-ident-how', n: 3 },
     /* THE PROJECT'S PART, FIRST — "it's going through a stage gate process and it's up to these things. It has these tests ... these programs" */
     { what: 'its status in plain words', sel: '.mpg-in-project .cw-handover .mpg-at', text: /^(Not here yet|On site|Installed|Running|Handed over)$/ },
     /* "an installation project" since 29 October (docs/FAULTLINE-FAULT-MODEL.md — the stage gate's user-facing name) */

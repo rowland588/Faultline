@@ -216,4 +216,26 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       photoKey: str('The photo\'s key on the device', 120),
     }, ['problemId', 'photoKey']),
   },
+  // ── The factory knowledge (docs/FACTORY-KNOWLEDGE.md F2): reads, run at once ──
+  {
+    name: 'factory_map',
+    kind: 'read',
+    description: 'The client\'s factory as Faultline holds it: sites, areas, lines and each line\'s machines, each machine with its kind, model and serial and how each is known (confirmed, reported, from a document, inferred, recorded, unknown). Only the client of the line or project in hand; with none, every client whose lines the person can see, each its own group.',
+    input_schema: obj({
+      lineId: str('The line the conversation is on', 80),
+      projectId: str('The project the conversation is on', 80),
+      client: str('A client by name, when no line or project is in hand', 120),
+    }),
+  },
+  {
+    name: 'resolve',
+    kind: 'read',
+    description: 'Turn what the person called something ("the scales", "the mixer", "Line 2", "line two", "packaging") into the lines, machines, areas or sites it could mean, from the client\'s factory map: match one (use it), several (ask which, naming them) or none (it is not known in Faultline — offer to add it, never assume it exists). Use before acting on any machine, line, area or process the person names.',
+    input_schema: obj({
+      words: str('Exactly what the person called it', 200),
+      lineId: str('The line the conversation is on — narrows first', 80),
+      projectId: str('The project the conversation is on — narrows first', 80),
+      client: str('A client by name, when no line or project is in hand', 120),
+    }, ['words']),
+  },
 ];

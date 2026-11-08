@@ -10,6 +10,19 @@ export type Millis = number; // epoch ms (Date.now())
 export type Measure = 'count' | 'time' | 'cost'; // cost = idle-labour £, ranks like time
 export type DimensionKey = 'asset' | 'category' | 'subcategory' | 'shift';
 
+/* ============ HOW A THING ABOUT THE FACTORY IS KNOWN (8 November, docs/FACTORY-KNOWLEDGE.md F1) ============
+ * Per field of a machine or a line: confirmed (a person said it is right — only a person sets it) · reported (said in a
+ * conversation) · document (taken from a document, with its words) · inferred (proposed, e.g. a kind guessed from a name, not
+ * confirmed). A field with no entry is simply unknown. Read in words by lib/factoryKnowledge howSaid. */
+export type KnownHow = 'confirmed' | 'reported' | 'document' | 'inferred';
+export interface KnownFact {
+  how: KnownHow;
+  source?: { kind: 'conversation' | 'document' | 'person'; id?: string; quote?: string; label?: string };
+  at: Millis;
+  by?: string;
+}
+export type Known = Record<string, KnownFact>;
+
 /* ============ WORKSPACE — top-level isolation container ============ */
 export interface Workspace {
   id: ID;
@@ -68,6 +81,9 @@ export interface Workspace {
    *  made of. Absent or empty: an ordinary line. Each of them says it is part
    *  of this one (lib/lines dualOf). */
   madeOf?: string[];
+  /** How each of the line's own words is known (supabase/MACHINE_KNOWLEDGE.sql) — e.g. its clientName reported in a
+   *  conversation; absent: as typed on the page, said as nothing more. */
+  known?: Known;
   schemaVersion: number; // starts at 1 (migration guard)
 }
 

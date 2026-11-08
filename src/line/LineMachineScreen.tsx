@@ -25,6 +25,8 @@ import { commissioningNarrativePapersInMenus } from '../lib/productStory';
 import { planModel } from '../lib/planModel';
 import { MachinePicture } from '../ui/MachinePicture';
 import { MachineInProject } from '../project/machines/MachineInProject';
+import { MachineIdentity } from './MachineIdentity';
+import { replacedOf } from '../lib/factoryKnowledge';
 
 export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; name: string;
   /** The project the address came from — the page is drawn inside it, its way back the project's Machines. */
@@ -56,9 +58,14 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
 
   if (rec.loading || line === undefined) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!line || !v) {
+    /* a machine replaced (docs/FACTORY-KNOWLEDGE.md): its old name says what replaced it, and when */
+    const gone = line ? replacedOf(wsId, name, rec.machines) : undefined;
     return (
       <div className="wrap pace lmc-gone">
         <p className="sub">{line ? `${name} is not on ${line.name} any more.` : 'That line is not here any more.'}</p>
+        {gone && line && (
+          <p className="lmc-replaced" data-replaced-by>Replaced by <button type="button" className="cw-link" onClick={() => nav(`/lines/${encodeURIComponent(wsId)}/machine/${encodeURIComponent(gone.by.name.trim())}`)}>{gone.by.name}</button>{gone.on ? ` on ${gone.on}` : ''}.</p>
+        )}
         <button type="button" className="btn btn-primary" onClick={() => nav(line ? `/lines/${wsId}` : '/')}>{line ? `Back to ${line.name}` : 'Back to the factory'}</button>
       </div>
     );
@@ -108,6 +115,9 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
 
       {/* ITS PICTURE — the machine itself, which the line's strip shows (Rowland, 3 November) */}
       <MachinePicture wsId={wsId} name={v.name} record={v.record} />
+
+      {/* WHAT IT IS — kind, model, serial, each with how it is known; what it replaced (docs/FACTORY-KNOWLEDGE.md F1) */}
+      <MachineIdentity wsId={wsId} name={v.name} record={v.record} assets={rec.machines} {...(inProject ? { inProject } : {})} />
 
       {/* IN ITS PROJECT — what the project working on it now is doing to it, first */}
       {job && assetId && <MachineInProject projectId={job.id} assetId={assetId} onRemoved={() => nav(`/project/${job.id}/machines`)} tail="afterLine" />}

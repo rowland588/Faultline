@@ -15595,6 +15595,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* A machine on its line (line/LineMachineScreen) — gone from the line */
 .lmc-gone .sub { margin-top: var(--space-5); }
 .lmc-gone .btn { margin-top: var(--space-3); }
+/* What it is (line/MachineIdentity, 8 November) — kind, model, serial, each with how it is known */
+.lmc-ident-list { margin: 0; }
+.lmc-ident-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 8px 2px; border-bottom: 1px solid var(--line); }
+.lmc-ident-row dt, .lmc-ident-row > span { min-width: 6em; font-weight: 600; }
+.lmc-ident-row dd { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; }
+.lmc-ident-row input { flex: 1 1 14em; min-height: 44px; max-width: 100%; }
+.lmc-ident-how { font-size: var(--t-detail); }
+.lmc-ident-acts { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
+.lmc-replaced { margin: var(--space-2) 0; }
 .lp-up { margin: var(--space-1) 0 var(--space-2); }
 /* where am I (27 October) — a machine's name opens its page; a project's machine opens it on its line; a line's card says Open */
 .pl-machine-name { color: var(--brand); text-decoration: none; }

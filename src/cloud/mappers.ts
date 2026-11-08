@@ -2,7 +2,7 @@
  * every synced entity, plus which media blob keys each one references. The sync
  * engine iterates MAPS; nothing here touches the network. */
 import type { SyncKind } from '../db';
-import type { Workspace, Observation, Case, Project } from '../types';
+import type { Workspace, Observation, Case, Project, Known, KnownFact } from '../types';
 import type { PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow } from '../db';
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
@@ -73,6 +73,20 @@ const signedOffFromRow = (v: unknown): { signedOff?: SignOff } => {
   return by.length ? { signedOff: { by, on: o.on, at: Number(o.at) || 0 } } : {};
 };
 
+/* HOW EACH THING IS KNOWN (MACHINE_KNOWLEDGE.sql, docs/FACTORY-KNOWLEDGE.md) — a field's entry kept only when it is the
+   shape this build reads; an empty map is null in the cloud and nothing here. */
+const KNOWN_HOW = ['confirmed', 'reported', 'document', 'inferred'];
+const knownFromRow = (v: unknown): { known?: Known } => {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
+  const out: Known = {};
+  for (const [field, f] of Object.entries(v as Record<string, unknown>)) {
+    const o = f as Partial<KnownFact> | null;
+    if (o && typeof o === 'object' && KNOWN_HOW.includes(o.how as string) && typeof o.at === 'number') out[field] = o as KnownFact;
+  }
+  return Object.keys(out).length ? { known: out } : {};
+};
+const knownToRow = (k: Known | undefined): Known | null => (k && Object.keys(k).length ? k : null);
+
 export const MAPS: Record<SyncKind, EntityMap> = {
   workspaces: {
     clock: l => (l as Workspace).updatedAt ?? (l as Workspace).createdAt,
@@ -87,6 +101,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         last_category: w.lastCategory ?? null, last_asset: w.lastAsset ?? null,
         line_type: w.lineType ?? null, floor_order: w.floorOrder ?? null, made_of: w.madeOf?.length ? w.madeOf : null,
         client_name: w.clientName ?? null, site_name: w.siteName ?? null, area_name: w.areaName ?? null,
+        /* sent only once the line carries it (MACHINE_KNOWLEDGE.sql): a cloud without the column takes every other line as before */
+        ...(w.known !== undefined ? { known: knownToRow(w.known) } : {}),
         archived: !!w.archived, created_at: w.createdAt, updated_at: w.updatedAt ?? w.createdAt, deleted_at: null,
       };
     },
@@ -102,6 +118,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       lineType: (r.line_type as string) ?? undefined, floorOrder: n(r.floor_order),
       ...(r.client_name ? { clientName: String(r.client_name) } : {}), ...(r.site_name ? { siteName: String(r.site_name) } : {}), ...(r.area_name ? { areaName: String(r.area_name) } : {}),
       ...(Array.isArray(r.made_of) && r.made_of.length ? { madeOf: (r.made_of as unknown[]).map(String) } : {}),
+      ...knownFromRow(r.known),
       archived: !!r.archived, createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),
   },
@@ -427,6 +444,13 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         installed_on: a.installedOn ?? null, running_on: a.runningOn ?? null,
         docs: a.docs ?? null, note: a.note ?? null, sort: a.sort,
         merged_into: a.mergedInto ?? null,
+        /* WHAT IT IS (MACHINE_KNOWLEDGE.sql) — each sent only once the record carries it ('' cleared here is null there), so a
+           cloud without the columns takes every machine nobody has described, exactly as before */
+        ...(a.kind !== undefined ? { kind: a.kind.trim() || null } : {}),
+        ...(a.model !== undefined ? { model: a.model.trim() || null } : {}),
+        ...(a.serial !== undefined ? { serial: a.serial.trim() || null } : {}),
+        ...(a.known !== undefined ? { known: knownToRow(a.known) } : {}),
+        ...(a.replacedBy !== undefined ? { replaced_by: a.replacedBy || null } : {}),
         updated_at: a.updatedAt, deleted_at: a.deletedAt ?? null,
       };
     },
@@ -442,6 +466,11 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       docs: (r.docs as Asset['docs']) ?? undefined,
       note: (r.note as string) ?? undefined,
       ...(r.merged_into ? { mergedInto: r.merged_into as string } : {}),
+      ...(typeof r.kind === 'string' && r.kind.trim() ? { kind: r.kind.trim() } : {}),
+      ...(typeof r.model === 'string' && r.model.trim() ? { model: r.model.trim() } : {}),
+      ...(typeof r.serial === 'string' && r.serial.trim() ? { serial: r.serial.trim() } : {}),
+      ...knownFromRow(r.known),
+      ...(r.replaced_by ? { replacedBy: r.replaced_by as string } : {}),
       sort: Number(r.sort) || 0,
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     } satisfies Asset),
