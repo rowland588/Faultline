@@ -142,7 +142,7 @@ const kz = sd.methodProjectIds['kaizen-event'];
 await go(`#/project/${kz}`);
 const row = page.locator('li, .rec-row').filter({ hasText: 'Spaghetti diagram' }).first();
 const rt = flat(await row.innerText());
-ok(/A mode of Calculators/.test(rt) && !/Not built yet/.test(rt), `7 Observe lists the Spaghetti diagram as built, a mode of Calculators — "${rt.slice(0, 90)}"`);
+ok(/Built/.test(rt) && !/Not built yet|A mode of/.test(rt), `7 Observe lists the Spaghetti diagram as built, a tool of its own since 8 November — "${rt.slice(0, 90)}"`);
 await page.getByRole('button', { name: /^New — Spaghetti diagram/ }).click(); await page.waitForTimeout(1500);
 ok(/#\/calc\/spaghetti/.test(page.url()) && /project=/.test(page.url()), `7 New starts it in the project (${page.url().split('#')[1]})`);
 await page.getByLabel('What is it of?').fill('Packing hall packer'); await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500);

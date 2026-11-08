@@ -163,7 +163,7 @@ const kz = sd.methodProjectIds['kaizen-event'];
 await go(`#/project/${kz}`);
 const row = page.locator('.pmethod .lt-li').filter({ hasText: 'Process flow chart' }).first();
 const rt = flat(await row.innerText());
-ok(/A mode of Calculators/.test(rt) && !/Not built yet/.test(rt), `7 Observe lists the Process flow chart as built, a mode of Calculators — "${rt.slice(0, 90)}"`);
+ok(/Built/.test(rt) && !/Not built yet|A mode of/.test(rt), `7 Observe lists the Process flow chart as built, a tool of its own since 8 November — "${rt.slice(0, 90)}"`);
 await page.getByRole('button', { name: /^New — Process flow chart/ }).click(); await page.waitForTimeout(1500);
 ok(/#\/calc\/process-flow/.test(page.url()) && /project=/.test(page.url()), `7 New starts it in the project (${page.url().split('#')[1]})`);
 ok((await page.getByLabel('What is it of?').count()) === 1 && /it is the project’s/.test(await words('.ie-for') ?? ''), '7 the new sheet is for the project');
