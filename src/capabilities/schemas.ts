@@ -93,6 +93,15 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   },
   // ── Local: change only the conversation or the device, no confirmation ───────
   {
+    name: 'recall',
+    kind: 'read',
+    description: 'Look back through the person\'s earlier conversations — AI Mode\'s (each subject, the notes with how each was known, what the person said) and Line Talk\'s — for these words, the best match first and the newest first among equals, each with its day and conversation. Use it whenever the person refers back ("what did we say about the wrapper", "last week you said", "remind me what we found"), before answering from memory. Only the conversations about this client\'s lines come back.',
+    input_schema: obj({
+      words: str('What to look for, e.g. "wrapper film splice"', 120),
+      limit: { type: 'integer', minimum: 1, maximum: 20, description: 'How many to bring back; 8 by default' },
+    }, ['words']),
+  },
+  {
     name: 'set_focus',
     kind: 'local',
     description: 'Make a subject the current thread of the conversation (an existing thread with the same scope or title, else a new one); the one that was current is parked. Use whenever the subject changes.',
@@ -187,6 +196,15 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       projectId: str('The project it is in', 80),
       name: str('A name for it', 120),
     }, ['key', 'inputs']),
+  },
+  {
+    name: 'remember_preference',
+    kind: 'write',
+    description: 'Keep something about how the person works in their How I work, so every later conversation is told it — the words they use ("I call the checkweigher the CW"), how they like to work, how they like a report, or anything they want always remembered. Use it when they say "remember …" or tell you something they would want kept; quote their own words. They see a card and decide.',
+    input_schema: obj({
+      text: str('What to remember, in the person\'s own words', 300),
+      about: { type: 'string', enum: ['words', 'methods', 'reports', 'always'], description: 'words = the words they use; methods = how they like to work; reports = how they like a report; always = anything else (the default)' },
+    }, ['text']),
   },
   {
     name: 'add_photo_to_problem',
