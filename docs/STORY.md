@@ -68,8 +68,12 @@ Chapter 1 · 21 October — …
 - One story per client; the client picked on the Factory page is the story shown. A closed story (*Close the engagement*) stays and
   a new one can start on the same client.
 
-**Home (S5):** `#/` becomes the Story page; the board of lines is the **Lines** tab beside it (`#/lines`), Set up the third tab. The
-menu's *Factory* lands on the Story. Every page's size stays the same on day 365: the chapters fold to the latest three, *All chapters ›*.
+**Home (S5, built 8 November):** `#/` is the Story page (`screens/StoryScreen`; `#/story` stays as an alias) — Rowland: *"we also need
+to change the factory page.. we need a page for me possibly the story page … you take the wheel and design everything for me."* The
+board of lines (`screens/WorkspaceHome` — the line cards, Needs you now, what's going wrong, the client · site · area groups, the
+chips) is the **Lines** tab beside it at `#/room`, Set up the third: the Factory's tabs are **Story · Lines · Set up**. The menu's
+*Factory* lands on the Story. **Present** is `#/?present=1` — the Story full screen with no frame, the four figures large, the latest
+chapter readable across a room, × or Escape back to `#/`. With no story yet the page offers *Start the story* and *See the lines ›*. Every page's size stays the same on day 365: the chapters fold to the latest three, *All chapters ›*.
 
 ## 4. The papers (S1, S2, S4)
 
@@ -107,6 +111,6 @@ writes a record: he approves.
 | **S2 · The Story** | `supabase/STORY.sql`; the record; `lib/story` (the snapshot from the readers, the difference since the last chapter, the assembled narrative); the Story page at `#/story` (a tab on the Factory: Overview · Story · Set up) with Run an update → edit → Approve; the story report with its cover; Saved copies | `scripts/acceptance/story.mjs` |
 | **S3 · Written by the assistant** — built 8 November | the `story` task in the gateway (`supabase/functions/assist`, deployed from the repo, version 19; `tools/story/storyAssist` the shared rules, synced by `scripts/sync-assist.mjs`; `tools/story/storyAsk` the app's side), the assembled draft shown at once and the assistant's headline and paragraphs taking its place when they come (*Written by the assistant — check it, then approve*), a figure not in the snapshot marked *Check this*, a refusal or no signal leaving the records' words, an allowance of 20 a day; the AI toolbox card *Write the chapter* | `story.mjs` (the assistant answered by the script), `ai-toolbox.mjs`, `tools/story/__tests__/storyAssist.test.ts`, `gateway.test.ts` (the copies equal) |
 | **S4 · Slides** — built 8 November | pptxgenjs 4.0.1 (`lib/report/storyDeck`, eight 16:9 slides from the chapter's snapshot — the same figures as the paper); Report ▾ › *Story slides — the latest chapter* and *Slides* on each chapter; kept under Saved copies with the paper | `story.mjs` (the deck read back: its slides, the headline, the brand, the money) |
-| **S5 · Home is the Story** | `#/` the Story, Lines a tab (`#/lines`), Present full screen; the scripts and PAGES.md follow | smoke, inventory, journeys, structure |
+| **S5 · Home is the Story** — built 8 November | `#/` renders the Story (`#/story` an alias); the board of lines at `#/room` is the Factory's **Lines** tab, the tabs Story · Lines · Set up; the menu's Factory goes to `#/`; Present (`#/?present=1`) the Story full screen with no frame, Escape or × back; the empty state's *Start the story* and *See the lines ›*; the inventory's rows and PAGES.md follow | smoke, the inventory, journeys, structure, `story.mjs` |
 
 Each lands on its own, green, merged to `main`, live. Nothing in the tools, the records or their papers changes to make it.

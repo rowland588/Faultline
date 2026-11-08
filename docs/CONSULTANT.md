@@ -89,4 +89,7 @@ So what stands, smallest first:
 - **K2 · The engagement** — the client's brief holding its projects and studies, on its sites. Designed after K1 is in use.
 - Then, only when he asks: what is worth what (identified → realised), the engagement's papers, Present.
 
+*8 November:* the Story took the home — `#/` is the Story page and the board of lines (K1's client · site · area groups on it) is the
+Factory's **Lines** tab at `#/room`; *Present* is built as `#/?present=1` (docs/STORY.md S5). K1 itself is unchanged.
+
 Dropped: the fee and benefits against it, scheduled reporting, the client logging in.

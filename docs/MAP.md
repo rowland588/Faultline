@@ -28,7 +28,9 @@ a door changes this page first, in the same commit. The map it replaces is
   one row of tabs: the project's (Now · Plan · Machines · Problems · Reports ·
   More); the gates, the timeline and Programs are Plan's own row, shown only
   on Plan's pages.
-- **The Factory is the board of lines.** It counts the lines and opens them,
+- **The Factory is the board of lines.** *(Since 8 November the Factory opens on
+  the Story — docs/STORY.md S5 — and the board is its Lines tab at `#/room`;
+  the rule below stands for the board.)* It counts the lines and opens them,
   lists the projects, sets up the lines, and holds the tools library and the
   factory's reports. It does not list any line's machines, programs or
   problems itself.
@@ -39,7 +41,8 @@ a door changes this page first, in the same commit. The map it replaces is
 
 | Place | Address | What is on it |
 |---|---|---|
-| **Factory** | `#/room` | the board: a card for each line, showing where it stands in a word and its colour, its worst problem, who has it and when it's due, and its projects; then the projects |
+| **Factory** (home) | `#/` | **since 8 November (docs/STORY.md S5)** the Story — the consultant's page opened in front of the client: the four figures, since the last update, the chapters; `#/story` an alias; `#/?present=1` the same full screen with no frame. The tabs across the top: Story · Lines · Set up |
+| Factory › **Lines** | `#/room` | the board: a card for each line, showing where it stands in a word and its colour, its worst problem, who has it and when it's due, and its projects; then the projects (this was the home at `#/` from 23 October to 8 November — moved whole to the Lines tab, nothing on it changed) |
 | Factory › **Set up** | `#/factory` | the lines themselves: add, name, type, order, archive, merge |
 | Factory › Projects | `#/projects` | every project |
 | Factory › Tools | `#/tools` | the library of tools |
