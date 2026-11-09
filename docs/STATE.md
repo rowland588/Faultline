@@ -150,13 +150,30 @@ a session that ships something updates this page in the same commit.** The rules
   `scripts/acceptance/ai-mode.mjs` and `story-brief.mjs`. Off by the device's switch or `ASSIST_COLLEAGUE_ENABLED` on the server.
 - **AI Mode's memory — phase 5a (8 November, docs/AI-MODE.md §9).** *Personal*: **How I work** — the person's words, methods,
   report style and anything to always remember, four boxes of at most 1,900 characters in all, kept on the profile
-  (`supabase/PREFERENCES.sql` — `profiles.preferences` and `set_my_preferences`; **written, not yet applied**) and cached on the
+  (`supabase/PREFERENCES.sql` — `profiles.preferences` and `set_my_preferences`; applied and read back 8 November) and cached on the
   device (`lib/preferences`); the sheet `ui/PreferencesSheet` from the account menu and AI Mode's More ▾; sent with every question
-  and placed by the gateway beside the threads (`colleagueAssist` readColleagueAsk / colleagueMessages — **the gateway needs
-  redeploying**); the write capability `remember_preference` adds a line when the person says yes to its card. *Project*: the read
+  and placed by the gateway beside the threads (`colleagueAssist` readColleagueAsk / colleagueMessages — the gateway is version 21, 9 November); the write capability `remember_preference` adds a line when the person says yes to its card. *Project*: the read
   capability `recall` searches earlier AI Mode and Line Talk conversations in code, best and newest first, never across clients.
   *Technical*: `knowledge/` and the calculators. Recording is not training. Unit tests: `src/lib/__tests__/preferences.test.ts`,
   `src/capabilities/__tests__/memory.test.ts`, the gateway's and the loop's.
+- **Building tools in conversation — A populate · B adapt · C create (8–9 November, docs/AI-MODE.md; DIRECTION.md rule 5).**
+  Rowland: *"The conversation itself should become the mechanism through which the application is populated."* A draft on the AI
+  Mode conversation (`facts.drafts`) fills a tool from what is said — every calculator, document, check log, the box-ranked registers
+  and SMED — its fields read from the tool's own definition, each value with how it is known and the earlier value kept when
+  corrected; *Being built* in the context panel says what is captured and what is missing; `adapt_draft` adds fields to that record
+  only; `create_sheet` makes a custom sheet (a `doc` record with its structure in `facts.customDef`, metrics worked by code — sum,
+  average, ratio, difference, count); `make_record` (confirmed) makes it through each tool's own New (`newCalcStudy`,
+  `newChangeoverStudy`, `newDocStudy`, `newScoredStudy`, `newLogStudy`), so Manual Mode opens and edits it. Proved by
+  `scripts/acceptance/ai-build.mjs` (Rowland's 42 → 25 minute changeover conversation becoming a SMED study).
+- **Factory knowledge F1–F2 (8–9 November, docs/FACTORY-KNOWLEDGE.md).** Rowland: *"Faultline must understand the factory it is
+  working in."* A machine's kind, model and serial, each with how it is known (`supabase/MACHINE_KNOWLEDGE.sql` on
+  `commission_assets` and `workspaces.known`, applied and read back), shown and edited on the machine's page and printed on its
+  report; the capabilities `factory_map` and `resolve` and the gateway's rule *never assume* — one match used, several asked, none
+  said not known. F3 (onboarding by conversation on the drafts), F4 (factory documents with their quotes) and F5 (a machine replaced,
+  conflicts and outdated documents) are next.
+- **Voice on the floor — phase 4 (8 November, docs/AI-MODE.md §7).** The phone's own microphone first (no headset needed): the screen
+  kept on, Listening… and Speaking… said, a card answered by "yes, do it" / "not now" in code, *Before you walk the floor* checks the
+  phone; a headset's button works where the phone passes it on. What needs a real phone to prove is listed in §7.
 - **How AI Mode is used — learning and cost (8 November, phase 5b, docs/AI-MODE.md §9).** Rowland: *"we learn what was done and we
   actually want to replicate it with code as much as possible — this keeps AI costs lower"*; *"nothing should automatically become
   production code"*. `#/ai/usage` (`screens/AiUsageScreen`, from AI Mode's More ▾ and a link under the AI toolbox on Tools) reads the
