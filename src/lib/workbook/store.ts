@@ -45,6 +45,7 @@ export class MemoryStore implements WorkbookStore {
 }
 
 type Dir = FileSystemDirectoryHandle;
+const PUT_STALL_MS = 60_000;
 /** The browser's private file storage, under workbooks/<id>/ — keys with "/" become folders. */
 export class OpfsStore implements WorkbookStore {
   constructor(private id: string) {}
@@ -56,7 +57,14 @@ export class OpfsStore implements WorkbookStore {
     }
     return d;
   }
+  /** A write the device's storage never answers (a private window keeps it in memory, and a very large workbook can fill it) fails in
+   *  words after a minute, never hangs. */
   async put(key: string, data: Uint8Array): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const stalled = new Promise<never>((_, no) => { timer = setTimeout(() => no(new Error('This device’s storage stopped answering. A private (incognito) window keeps it in memory, which a workbook this size can fill — open Faultline in a normal window and attach it again.')), PUT_STALL_MS); });
+    try { await Promise.race([this.write(key, data), stalled]); } finally { clearTimeout(timer); }
+  }
+  private async write(key: string, data: Uint8Array): Promise<void> {
     const parts = key.split('/'), name = parts.pop() ?? key;
     const d = await this.dir(parts, true);
     if (!d) throw new Error('The device’s storage refused the workbook.');

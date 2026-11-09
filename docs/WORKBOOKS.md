@@ -50,6 +50,40 @@ counted and named. `.xls` (the old binary format) and `.xlsb` are refused in wor
 (`scripts/workbook/make-workbook.mjs`); `scripts/acceptance/workbook.mjs` attaching generated workbooks of increasing size in the browser,
 measuring time and memory. The sizes reached are recorded below.
 
-## Measured
+## Measured (10 November)
 
-(filled in from the acceptance runs)
+Workbooks written by the generator (a downtime log of nine columns — dates, text, numbers, formulas with saved values — a products sheet,
+a hidden lookups sheet), attached through AI Mode's attach control in Chromium on this machine (4 cores, 15 GB), each answer checked against
+the generator's own totals. Memory is the browser's renderer processes, measured from outside.
+
+| Workbook | Rows | Read in | Renderers at most (before) | Every figure equal to the generator's |
+|---|---|---|---|---|
+| 57 MB | 1,400,000 | 13 s | 1.15 GB (0.68 GB) | yes — by reason, by month, by line, the 933 “n/a” cells named |
+| 143 MB | 3,500,000 | 33 s | 1.24 GB (0.77 GB) | yes |
+| 286 MB | 7,000,000 | 65 s | 1.41 GB (0.57 GB) | yes |
+| **575 MB** | **14,000,000** | **120 s** | **1.47 GB (0.68 GB)** | **yes** — the largest read |
+
+About 4.8 MB of workbook a second; memory grows little with size, because cells go to storage a chunk at a time. The same reader in Node
+read the 575 MB file with its own memory flat at about 1 GB at most. Asking a 14-million-row sheet a question takes seconds.
+
+**Proved in the browser** (`scripts/acceptance/workbook.mjs`): the 57 MB workbook read, asked by reason, month and line, the rows behind a
+finding with their cells; no request carried the file (the largest to the gateway 6 KB); asked again after a reload with no second attach;
+said not on this device when its storage was cleared; a read stopped part way said partial; a read left by a reload said interrupted; two
+tabs reading two workbooks at once, each right; an old .xls refused in words; the phone.
+
+## What it does not do, and the limits found
+
+- **A private (incognito) window.** The browser keeps its storage in memory there; a workbook of hundreds of megabytes can fill it (in the
+  tests a 575 MB one stopped at 99% in such a window). A storage write that is not answered within a minute fails the read in words, saying
+  to use a normal window — never a hang. A reader the browser stops (out of memory) is caught by its heartbeat stopping and said the same.
+- **Another device.** The cells stay where they were read; on another device the workbook is said to be read elsewhere, to attach it there.
+- **A phone.** Measured on a laptop-sized machine only; a phone has much less memory and storage. Not measured.
+- **Formulas are not recalculated** — the value Excel saved is used and said to be Excel's; a formula with no saved value counts as blank and
+  is counted. A workbook saved by a program that saves no values (some exports) is said to have formulas with no saved value.
+- **Not read:** pivot tables' own layouts (their source data is), external links' targets, data connections, a Power Pivot data model,
+  macros, charts, comments — each listed by the profile. `.xls` and `.xlsb` are refused in words.
+- **The header** is found as the first row that is mostly words with data under it, and said; a sheet laid out differently (headers of
+  numbers such as years, several tables on one sheet) may be read with the wrong header — the profile says the row it used and the colleague
+  is told to ask. Several tables on one sheet are read as one.
+- **Repeated rows** are counted in the first 4,000,000 rows of a sheet and said so beyond that; distinct values of a text column up to
+  200,000, after which the column's top values and variants are not given.

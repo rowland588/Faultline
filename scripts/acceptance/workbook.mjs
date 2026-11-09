@@ -31,7 +31,8 @@ const make = (name, rows, seed = 7) => {
 /* the browser's memory, from outside it: the largest total of its renderer processes while the workbook is read */
 const rss = () => { try { return execSync('ps -eo rss,args', { encoding: 'utf8' }).split('\n').filter(l => /chrom/i.test(l) && /--type=renderer/.test(l)).reduce((t, l) => t + Number(l.trim().split(/\s+/)[0] || 0), 0) / 1024; } catch { return 0; } };
 
-const t = await openApp({ width: 1440, height: 900 });
+/* the size measurements run in an on-disk profile, as a person's own browser keeps its storage; a fresh context keeps it in memory */
+const t = await openApp({ width: 1440, height: 900, ...(process.env.WB_SIZES_ONLY ? { profile: mkdtempSync(join(tmpdir(), 'wbprofile-')) } : {}) });
 const { page, ok } = t;
 await t.seed();
 const CORS = { 'access-control-allow-origin': '*' };
@@ -56,10 +57,11 @@ const readOne = async (w, label) => {
   const t0 = Date.now(); let peak = 0;
   const base = rss();
   const timer = setInterval(() => { peak = Math.max(peak, rss()); }, 250);
+  const tell = setInterval(() => { void page.evaluate(() => document.querySelector('[data-workbook]')?.textContent ?? '(no card)').then(x => console.log(`  … ${Math.round((Date.now() - t0) / 1000)} s: ${x.slice(0, 110)}`)).catch(() => undefined); }, 30_000);
   await attach(w.f);
   const name = w.f.split('/').pop();
   await page.waitForFunction(n => { const c = document.querySelector('[data-workbook]'); return !!c && (c.getAttribute('data-workbook') === 'read' || c.getAttribute('data-workbook') === 'failed') && (c.textContent ?? '').includes(n); }, name, { timeout: 30 * 60_000, polling: 500 });
-  clearInterval(timer);
+  clearInterval(timer); clearInterval(tell);
   const secs = (Date.now() - t0) / 1000;
   const said = await t.words('[data-workbook]');
   console.log(`MEASURED  ${label}: ${w.mb.toFixed(1)} MB, ${w.exp.rows.toLocaleString('en-GB')} rows — read in ${secs.toFixed(1)} s; the browser's renderers at most ${Math.round(peak)} MB (${Math.round(base)} MB before)`);

@@ -18,12 +18,16 @@ const SESSION = {
 };
 const IGNORE = /Supabase|net::ERR|Failed to fetch|ERR_FAILED|aborted|WebSocket|tunnel|Download the React DevTools/i;
 
-export async function openApp({ width = 1360, height = 900 } = {}) {
-  const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
-  const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width, height }, locale: 'en-GB', acceptDownloads: true });
+export async function openApp({ width = 1360, height = 900, profile } = {}) {
+  /* profile: a folder for an ON-DISK browser profile, as a person's own browser has — a fresh context keeps the browser's private file
+     storage in memory (private mode), which a workbook of hundreds of megabytes would not fit (docs/WORKBOOKS.md, measured) */
+  const opts = { serviceWorkers: 'block', viewport: { width, height }, locale: 'en-GB', acceptDownloads: true };
+  const exe = process.env.CHROMIUM ?? '/opt/pw-browsers/chromium';
+  const ctx = profile ? await chromium.launchPersistentContext(profile, { executablePath: exe, ...opts }) : await (await chromium.launch({ executablePath: exe })).newContext(opts);
+  const browser = profile ? { close: () => ctx.close(), on: (...a) => ctx.on(...a) } : ctx.browser();
   await ctx.route('**://*.supabase.co/**', r => r.abort());
   await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* private mode */ } }, [`sb-${REF}-auth-token`, SESSION]);
-  const page = await ctx.newPage();
+  const page = profile ? ctx.pages()[0] ?? await ctx.newPage() : await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
   page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errors.push(`console: ${m.text().slice(0, 200)}`); });
