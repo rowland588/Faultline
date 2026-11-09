@@ -16827,6 +16827,32 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fac-place + .fac-place { margin-top: 18px; }
 .fac-place-h { margin: 6px 0 8px; font-size: var(--t-label); font-weight: 600; color: var(--muted); letter-spacing: .02em; }
 
+/* AREAS on the Factory's Lines tab and an area's page (9 November, lib/areas): an area a section — its name, its sentence, Open the
+   area › and its report — its lines under it. The sentence is the work, neutral; only its late carries red, said in words. */
+.fac-area-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.fac-area-head .fac-place-h { margin-bottom: 2px; font-size: var(--t-body); color: var(--ink); }
+.fac-area-client { font-size: var(--t-detail); color: var(--muted); }
+.fac-area-acts { margin-left: auto; display: inline-flex; gap: 14px; flex-wrap: wrap; }
+.fac-area-acts .cw-link { min-height: 44px; display: inline-flex; align-items: center; }
+.fac-area-says { margin: 0 0 8px; font-size: var(--t-detail); color: var(--ink-2); line-height: 1.45; overflow-wrap: anywhere; }
+.fac-area-says.is-r { color: var(--st-r); }
+.ar-page .ar-sec { margin-top: 22px; }
+.ar-page .ar-sec > h2 { margin: 0 0 8px; font-size: var(--t-h3, 1.05rem); }
+.ar-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ar-row { width: 100%; text-align: left; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 12px; min-height: 44px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; }
+.ar-row:hover { border-color: var(--brand); }
+.ar-row.is-r { border-left: 3px solid var(--st-r); }
+.ar-row.is-a { border-left: 3px solid var(--st-a); }
+.ar-row-what { font-weight: 600; overflow-wrap: anywhere; }
+.ar-row-state { font-size: var(--t-detail); color: var(--muted); text-align: right; }
+.ar-row-state.is-r { color: var(--st-r); font-weight: 600; }
+.ar-row-meta { grid-column: 1 / -1; font-size: var(--t-detail); color: var(--muted); overflow-wrap: anywhere; }
+.ar-machines { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; }
+.ar-machines .chip { min-height: 44px; }
+.ar-line-h { margin: 10px 0 6px; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
+@media (max-width: 640px) { .ar-row { grid-template-columns: minmax(0, 1fr); } .ar-row-state { text-align: left; } .fac-area-acts { margin-left: 0; } }
+
 /* YOUR BRAND (8 November, docs/STORY.md S1 — ui/BrandSheet) */
 .brand-sheet { display: flex; flex-direction: column; gap: 12px; }
 .brand-sheet .field { display: flex; flex-direction: column; gap: 4px; }
@@ -17236,3 +17262,4 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .aiu-cand-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .aiu-cand-acts .btn { min-height: 44px; }
 .aiu-note { width: 100%; min-height: 120px; font: inherit; font-size: var(--t-label); }
+.ar-more { min-height: 44px; margin-top: 6px; }

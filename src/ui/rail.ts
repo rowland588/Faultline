@@ -125,7 +125,8 @@ export function hereOf(route: Route): string {
   switch (route.name) {
     /* HOME IS THE STORY (8 November, docs/STORY.md S5): #/ and #/story light Story; the board of lines (#/room) lights Lines */
     case 'home': case 'story': return 'story';
-    case 'room': return 'home';
+    /* an area of the factory and its report light the Lines tab they are opened from (9 November, lib/areas) */
+    case 'room': case 'area': case 'areaReport': return 'home';
     case 'start': return 'start';
     case 'projects': case 'methodPage': return 'projects';
     case 'quickSnags': return 'quicksnags';

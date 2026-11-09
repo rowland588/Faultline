@@ -32,14 +32,17 @@ import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 import { useProjects } from '../lib/useProjects';
 import { inArchivedProject, listAllStudies, onDataChange, projectsOnWorkspace } from '../db';
-import { lineRates, rateShort, WEEK } from '../lib/intelligence';
 import { isDemo, dualOf, dualSaid } from '../lib/lines';
 import { clientsOf, factorySays, linesByPlace, liveProductionLines, productionLines } from '../lib/lines';
 import { JobsBoard } from '../ui/JobsBoard';
 import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
 import { useCanStartProjects } from '../cloud/access';
-import { lineProblems, type LineProblems } from '../lib/lineWork';
+import { lineProblems } from '../lib/lineWork';
+import { FactoryLineCard, useLineRates, type LineCardContents } from '../ui/FactoryLineCard';
+import { areaHref, areaKey, areasOf, areaSays, type AreaLineFacts } from '../lib/areas';
+import { itemsOn } from '../line/report/lineBundle';
+import { LATELY_MS } from '../line/report/areaBundle';
 import { PageHeader } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
 import { useProfile } from '../cloud/admin';
@@ -59,22 +62,7 @@ import { NeedsYou, QuestionCards, QuestionPanels } from '../ui/FactoryQuestions'
 /* What a workspace card must answer: "what's in here?" — for ALL content, not
  * one kind of it. Counting only time observations made a workspace full of
  * walk videos and snags read "0 observations", i.e. "your work is gone". */
-interface WsContents { obs: number; videos: number;
-  /** Its problems open, critical and late — lib/lineWork lineProblems, the
-   *  count the line's own page and the control room's numbers use. */
-  problems: Pick<LineProblems, 'open' | 'critical' | 'late'>; cases?: number;
-  /** The worst thing on it — the register's first row (critical, then late, then newest), who has it and when. */
-  worst?: { what: string; owner?: string; due?: string; red: boolean } }
-
-/** WHERE A LINE STANDS, in a word and its colour — the factory's board (27 October: "which line needs me?"). Red: a
- *  critical or late problem; amber: problems open; green: nothing open. Always with its words beside it. */
-function lineState(c: WsContents | undefined): { word: string; tone: 'r' | 'a' | 'g' | 'n' } {
-  if (!c) return { word: '…', tone: 'n' };
-  const p = c.problems;
-  if (p.critical || p.late) return { word: [p.late ? `${p.late} late` : '', p.critical ? `${p.critical} critical` : ''].filter(Boolean).join(' · '), tone: 'r' };
-  if (p.open) return { word: `${p.open} problem${p.open === 1 ? '' : 's'} open`, tone: 'a' };
-  return { word: 'Nothing late', tone: 'g' };
-}
+interface WsContents extends LineCardContents { obs: number; videos: number; cases?: number }
 
 export function WorkspaceHome() {
   /* REPORT ▾ (B3): the control room report is made from the board's own reading (ui/JobsBoard
@@ -172,6 +160,8 @@ export function WorkspaceHome() {
      line, and an empty map says every one of them is loose — so an empty map
      used as "not read yet" would flash the whole list on every load. */
   const [belongs, setBelongs] = useState<Record<string, string> | null>(null);
+  /* the same, a list of names a line — what an area's sentence counts (lib/areas areaSays) */
+  const [projOn, setProjOn] = useState<Record<string, string[]>>({});
   const jobsKey = projects.map(p => `${p.id}:${p.name}`).join('|');
 
   // Re-reads whenever a sync finishes, so data pulled in the background (e.g.
@@ -224,8 +214,10 @@ export function WorkspaceHome() {
       const ws = list ?? [];
       /* every live job each line is on — a line of the factory can be on several (13 October) */
       const names = new Map(projects.map(p => [p.id, p.name]));
-      const pairs = await Promise.all(ws.map(async w => [w.id, (await projectsOnWorkspace(w.id)).map(id => names.get(id)).filter(Boolean).join(', ')] as const));
-      if (alive) setBelongs(Object.fromEntries(pairs.filter(([, v]) => v)));
+      const named = await Promise.all(ws.map(async w => [w.id, (await projectsOnWorkspace(w.id)).map(id => names.get(id)).filter((n): n is string => !!n)] as const));
+      if (!alive) return;
+      setBelongs(Object.fromEntries(named.filter(([, v]) => v.length).map(([k, v]) => [k, v.join(', ')])));
+      setProjOn(Object.fromEntries(named));
     })();
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the jobs' names, by key: the list is a new array every render
@@ -244,22 +236,7 @@ export function WorkspaceHome() {
   /* WHAT EACH LINE CAN PLAN ON — its counted shifts over six weeks, read by
      the same function as its capacity panel (lib/intelligence lineRates), so
      the card and the panel cannot disagree (docs/upgrade-plan.md, O) */
-  const [rateOf, setRateOf] = useState<Record<string, string>>({});
-  useEffect(() => {
-    let on = true;
-    const load = async () => {
-      const from = Date.now() - 6 * WEEK;
-      const counts = (await listAllStudies()).filter(x => x.tool === 'losses' && !x.deletedAt && x.facts.losses && (x.facts.losses.from ?? 0) >= from);
-      const by = new Map<string, typeof counts>();
-      for (const c of counts) if (c.workspaceId) (by.get(c.workspaceId) ?? by.set(c.workspaceId, []).get(c.workspaceId))?.push(c);
-      const out: Record<string, string> = {};
-      for (const [id, cs] of by) { const t = rateShort(lineRates(cs.map(c => ({ id: c.id, count: c.facts.losses })))); if (t) out[id] = t; }
-      if (on) setRateOf(out);
-    };
-    void load();
-    const off = onDataChange(() => { void load(); });
-    return () => { on = false; off(); };
-  }, []);
+  const rateOf = useLineRates();
   const prodLines = productionLines((list ?? []).filter(w => w.id !== pendingDel?.id && (liveIds === null || liveIds.has(w.id))));
   /* HOW FRESH THE LOOKING IS, a line at a time (FC-199, tools/gemba) — the silence made visible on the board */
   const looked = useLooking(prodLines.map(w => w.id));
@@ -276,6 +253,45 @@ export function WorkspaceHome() {
      held the title, New project and the factory's cards, and the headline
      began at the foot of it, under the Problem button. The line cards go
      under the band there; at a desk the factory still leads. */
+  /* AREAS (lib/areas): when any line names its area, the board is the areas, each with its lines; one area a client when the
+     lines name more than one client and none is picked. Unchanged for a factory that names no area. */
+  const withClient = clients.length > 1 && !picked;
+  const areaGroups = shownLines.some(w => w.areaName?.trim()) ? { ...areasOf(shownLines, withClient), withClient } : null;
+  /* ONE LINE AS AN AREA COUNTS IT — the same readers its card reads (lib/areas AreaLineFacts) */
+  const now = Date.now();
+  const factsOf = (w: Workspace): AreaLineFacts => {
+    const c = counts[w.id];
+    const k = lineKit(w, rec.machines, rec.programs, rec.jobLines);
+    return {
+      name: w.name, open: c?.problems.open ?? 0, late: c?.problems.late ?? 0, critical: c?.problems.critical ?? 0,
+      ...(c?.worst ? { worst: { what: c.worst.what, red: c.worst.red } } : {}),
+      programs: k.programs.length, proved: k.proved, programsLate: k.late,
+      projects: projOn[w.id] ?? [],
+      toolsLately: itemsOn(w, { standards: rec.standards, studies: rec.studies }).filter(it => now - it.at <= LATELY_MS).length,
+    };
+  };
+  const floor = (lines: Workspace[], label: string) => (
+    <ul className="fac-floor" aria-label={label}>
+      {lines.map(w => {
+        const c = counts[w.id];
+        /* THE BOARD (27 October — "which line needs me?"; 29 October E1 — Planner cards on a Teams canvas) */
+        const k = lineKit(w, rec.machines, rec.programs, rec.jobLines);
+        const named = k.machines.filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line');
+        const machineSaid = named.length
+          ? (k.flow || named.map(m => (m.record?.oem ? `${m.name} (${m.record.oem})` : m.name)).join(' → '))
+          : 'No machines named yet';
+        const lk = looked?.find(x => x.id === w.id)?.looking;
+        return (
+          <li key={w.id}>
+            <FactoryLineCard w={w} c={c} machineSaid={machineSaid} todo={k.programs.length - k.proved} late={k.late}
+              /* a dual line's words keep their own element (.fac-dual), as Your factory's rows say them */
+              dual={dualSaid(dualOf(w, prodLines))} rate={rateOf[w.id]} projects={belongs?.[w.id]}
+              looked={lk ? { text: lookingShort(lk), level: lk.level } : undefined} />
+          </li>
+        );
+      })}
+    </ul>
+  );
   const factory = (
     <section className="home-spaces fac-home ep-panel" aria-label="Lines">
       <div className="home-sec-head">
@@ -303,65 +319,41 @@ export function WorkspaceHome() {
         <>
           <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
           <div className="fac-floor-head" aria-hidden><span>Line</span><span>Where it stands</span><span>The worst thing open</span><span>Programs · projects · looked at</span></div>
-          {byPlace.map(g => (
+          {areaGroups ? (
+            <>
+              {/* AREAS (9 November — Rowland: "on factory page we need area.. then each area will have lines in them"; lib/areas):
+                  each area a section — its name, what is happening in it in a sentence, the way into it and its report — its lines under it */}
+              {areaGroups.areas.map(g => {
+                const says = areaSays(g.lines.map(factsOf));
+                return (
+                  <div key={areaKey(g.id)} className="fac-place fac-area" data-place={g.title} data-area={areaKey(g.id)}>
+                    <div className="fac-area-head">
+                      <h3 className="fac-place-h">{g.title}</h3>
+                      {g.id.client && areaGroups.withClient ? <span className="fac-area-client">{g.id.client}</span> : null}
+                      <span className="fac-area-acts">
+                        <button type="button" className="cw-link fac-area-open" onClick={() => nav(areaHref(g.id))}>Open the area ›</button>
+                        <button type="button" className="cw-link fac-area-report" onClick={() => nav(`${areaHref(g.id, true)}&save=1`)}>Area report</button>
+                      </span>
+                    </div>
+                    <p className={'fac-area-says is-' + says.tone}>{says.text}</p>
+                    {floor(g.lines, `The lines in ${g.title}`)}
+                  </div>
+                );
+              })}
+              {areaGroups.noArea.length > 0 && (
+                <div className="fac-place fac-noarea" data-place="">
+                  <div className="fac-area-head">
+                    <h3 className="fac-place-h">No area yet</h3>
+                    <span className="fac-area-acts"><button type="button" className="cw-link" onClick={() => nav('/factory')}>Set up the lines ›</button></span>
+                  </div>
+                  {floor(areaGroups.noArea, 'The lines with no area yet')}
+                </div>
+              )}
+            </>
+          ) : byPlace.map(g => (
           <div key={g.place || '-'} className="fac-place" data-place={g.place}>
           {(byPlace.length > 1 || g.place) && <h3 className="fac-place-h">{g.place || 'No site or area said'}</h3>}
-          <ul className="fac-floor" aria-label={g.place ? `The lines in ${g.place}` : 'The lines, in floor order'}>
-            {g.lines.map(w => {
-              const c = counts[w.id];
-              const on = belongs?.[w.id];
-              /* THE BOARD (27 October — "which line needs me?"; 29 October E1 — Planner cards on a Teams canvas) */
-              const st = lineState(c);
-              const k = lineKit(w, rec.machines, rec.programs, rec.jobLines);
-              const named = k.machines.filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line');
-              const machineSaid = named.length
-                ? (k.flow || named.map(m => (m.record?.oem ? `${m.name} (${m.record.oem})` : m.name)).join(' → '))
-                : 'No machines named yet';
-              const todo = k.programs.length - k.proved;
-              /* a dual line's words keep their own element (.fac-dual), as Your factory's rows say them */
-              const dual = dualSaid(dualOf(w, prodLines));
-              const rate = rateOf[w.id];
-              return (
-                <li key={w.id}>
-                  <button className={'fac-card is-' + st.tone} data-line={w.name} onClick={() => nav(`/lines/${w.id}`)}>
-                    {/* a row of the board (docs/ENTERPRISE-UX.md X1): who it is · where it stands · the worst thing open · the rest */}
-                    <span className="fac-card-id">
-                      <span className="fac-card-ic" aria-hidden><Icon name="machine" size={18} /></span>
-                      <span className="fac-card-head">
-                        <b className="fac-card-name">{w.name}</b>
-                      </span>
-                      <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
-                      <span className="fac-card-machines">{machineSaid}</span>
-                    </span>
-                    {st.tone === 'r' && c && (c.problems.critical || c.problems.late)
-                      ? (
-                        <span className="fac-card-state is-r">
-                          {c.problems.critical > 0 && <b className="is-r">{c.problems.critical} critical</b>}
-                          {c.problems.critical > 0 && c.problems.late > 0 && ' · '}
-                          {c.problems.late > 0 && <b className="is-r">{c.problems.late} late</b>}
-                        </span>
-                      )
-                      : <span className={'fac-card-state is-' + st.tone}>{st.word}</span>}
-                    {c?.worst ? <span className={'fac-card-worst' + (c.worst.red ? ' is-r' : '')}>{c.worst.what}<span className="sub"> · {c.worst.owner ?? 'nobody yet'}{c.worst.due ? ` · ${c.worst.due}` : ''}</span></span> : <span className="fac-card-worst is-none">Nothing open</span>}
-                    <span className="fac-card-info">
-                      {(todo > 0 || k.late || dual || rate) ? (
-                        <span className="fac-card-meta">
-                          {todo > 0 ? `${todo} program${todo === 1 ? '' : 's'} to prove` : ''}
-                          {k.late ? <>{todo > 0 ? ' · ' : ''}<b className="is-r">{k.late} late</b></> : null}
-                          {dual ? <>{todo > 0 || k.late ? ' · ' : ''}<span className="fac-dual">{dual}</span></> : null}
-                          {rate ? <>{todo > 0 || k.late || dual ? ' · ' : ''}{rate}</> : null}
-                        </span>
-                      ) : null}
-                      <span className="fac-card-projects">{on ? `Projects: ${on}` : 'No project on it'}</span>
-                      {(() => { const lk = looked?.find(x => x.id === w.id)?.looking; return lk ? <span className={'fac-card-looked is-' + lk.level}>{lookingShort(lk)}</span> : null; })()}
-                    </span>
-                    {/* the way in, named (27 October, where-am-i D: each card saying what a tap does) */}
-                    <span className="fac-card-go">Open {w.name} ›</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          {floor(g.lines, g.place ? `The lines in ${g.place}` : 'The lines, in floor order')}
           </div>
           ))}
         </>
