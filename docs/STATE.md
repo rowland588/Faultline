@@ -169,8 +169,23 @@ a session that ships something updates this page in the same commit.** The rules
   working in."* A machine's kind, model and serial, each with how it is known (`supabase/MACHINE_KNOWLEDGE.sql` on
   `commission_assets` and `workspaces.known`, applied and read back), shown and edited on the machine's page and printed on its
   report; the capabilities `factory_map` and `resolve` and the gateway's rule *never assume* — one match used, several asked, none
-  said not known. F3 (onboarding by conversation on the drafts), F4 (factory documents with their quotes) and F5 (a machine replaced,
-  conflicts and outdated documents) are next.
+  said not known.
+- **Factory knowledge F3–F5 (9 November, docs/FACTORY-KNOWLEDGE.md §6¾) — built on branch `factory-f345`, not merged yet.** Rowland:
+  *"We're onboarding a new customer … let's start with packaging"*; *"Document upload … trace extracted information back to its
+  source"*; *"That machine has now been replaced … never rely on outdated documentation without checking"*. A **factory draft** on the
+  AI Mode conversation (`facts.drafts`, kind `factory`) holds the client's sites › areas › lines › machines as said
+  (`add_to_factory_draft`, local) or read from a document, each value reported with the words or from its document with the exact
+  quote; *Being built* shows the tree, what is new against what Faultline holds for that client only (matched, never doubled), a
+  value that differs from the recorded one side by side with a pick, a document older than a recorded change flagged; `make_record`
+  makes the lines through `addLineToFactory` (client · site · area words, how known) and the machines through `machineOntoLine` and
+  `setMachineIdentity`. A document uploaded in AI Mode (the box's document button) is kept as a **factory source** (the custom-sheet
+  shape of a `doc` record, its file as media, its words, what was taken from it); a CSV register is read by rules in code, a PDF / Word
+  / text file's words in code and asked of the gateway's new task **`factory-read`**, a photo or scan read by it — every quote checked
+  against the words on the server and again on the device; an .xlsx is refused in words (no spreadsheet reader in the app — save as
+  CSV). `replace_machine` (write, confirmed) puts the new machine in the old one's place on the line and keeps the old record with
+  `replaced_by`. No database change. **The gateway must be redeployed** (`supabase/functions/assist`: the `factory-read` task, the
+  colleague's new rules and two capabilities) before the colleague can use them live. Proved by
+  `scripts/acceptance/factory-onboarding.mjs` (Customer X Foods onboarded, a register read, a bagger replaced).
 - **Voice on the floor — phase 4 (8 November, docs/AI-MODE.md §7).** The phone's own microphone first (no headset needed): the screen
   kept on, Listening… and Speaking… said, a card answered by "yes, do it" / "not now" in code, *Before you walk the floor* checks the
   phone; a headset's button works where the phone passes it on. What needs a real phone to prove is listed in §7.

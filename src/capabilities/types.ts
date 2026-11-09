@@ -68,7 +68,7 @@ export interface ColleagueAction { callId: string; name: string; title: string; 
  * person confirms make_record; then it is a real record, made through the same functions Manual Mode's New uses. */
 
 /** The tool shapes a draft can fill. 'custom' is a sheet described in the conversation (a document of its own structure). */
-export type DraftKind = 'calc' | 'doc' | 'check' | 'scored' | 'smed' | 'custom';
+export type DraftKind = 'calc' | 'doc' | 'check' | 'scored' | 'smed' | 'custom' | 'factory';
 /** A row of a list (a document's list, a register's rows, a changeover's elements), its cells by column name. */
 export type DraftRow = Record<string, string | number>;
 export type DraftValue = string | number | DraftRow[];
@@ -124,7 +124,51 @@ export interface ColleagueDraft {
   madeValues?: Record<string, DraftValue>;
   /** The thread it was started on. */
   threadId?: string;
+  /** F3 — a factory being onboarded: the client, its sites › areas › lines › machines as said (kind 'factory', key 'factory'). */
+  factory?: FactoryDraftBody;
   at: number;
+}
+
+/* ── A FACTORY DRAFT (9 November; docs/FACTORY-KNOWLEDGE.md F3–F5) ──
+ * Rowland, 8 November: "We're onboarding a new customer … two factories … let's start with packaging"; "propose structured records
+ * for review and approval, retain the source documents and trace extracted information back to its source". A factory said in the
+ * conversation, or read from a document, held as a TREE of nodes (a flat list with each node's parent) until make_record makes the
+ * lines and machines through lib/lines and db/lineRecords. Every value keeps how it is known: reported (said in the conversation,
+ * with the words) or document (with the document and its exact words). Never 'confirmed' — only a person on a machine's page. */
+export type FactoryLevel = 'site' | 'area' | 'line' | 'machine';
+export interface FactorySource { kind: 'conversation' | 'document'; id?: string; quote?: string; label?: string; /** the document's own day, YYYY-MM-DD, when typed or read */ day?: string }
+export interface FactoryFact {
+  value: string;
+  how: 'reported' | 'document';
+  /** The words it was said in (a conversation). */
+  said?: string;
+  source?: FactorySource;
+  at: number;
+  /** What was said before a correction, newest last — kept, never lost. */
+  earlier?: Omit<FactoryFact, 'earlier'>[];
+}
+/** A machine's facts, by the names the record keeps them under (maker is the record's oem). */
+export type FactoryField = 'kind' | 'model' | 'serial' | 'maker';
+export interface FactoryNode {
+  id: string;
+  level: FactoryLevel;
+  /** The node it sits under: a site for an area, an area (or a site) for a line, a line for a machine. */
+  parent?: string;
+  name: FactoryFact;
+  facts?: Partial<Record<FactoryField, FactoryFact>>;
+  /** From a document: waiting for the person's word (pending), kept, or left out. Absent: said in the conversation. */
+  review?: 'pending' | 'kept' | 'out';
+  /** Where a value differs from what Faultline holds, the person's pick: keep what is recorded, or take the new. By field
+   *  (a machine's kind · model · serial · maker; a line's site · area). */
+  picks?: Partial<Record<FactoryField | 'site' | 'area', 'recorded' | 'new'>>;
+  /** Once made: the line's or the machine record's id, and when. */
+  made?: { id: string; at: number };
+}
+export interface FactoryDraftBody {
+  client: FactoryFact;
+  nodes: FactoryNode[];
+  /** The documents read into it (factory sources — a document record each). */
+  sources?: { id: string; label: string; day?: string }[];
 }
 
 /** A device timer (start_timer), kept in localStorage under TIMERS_KEY; TIMERS_EVENT is dispatched on window when it changes. */

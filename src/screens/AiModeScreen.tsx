@@ -55,6 +55,11 @@ import {
 } from '../colleague/floor';
 import { leftSaid, useTimers } from '../colleague/timers';
 import type { ToolStudy } from '../lib/study';
+import type { CapResult } from '../capabilities/types';
+import { factoryDraftFor, takeDocument } from '../capabilities/factoryBuild';
+import type { FactoryOp } from '../capabilities/factoryDraft';
+import { readFactoryDocument } from '../colleague/factorySource';
+import { FactoryDocSheet, FactoryDraftBox, type DocPicked } from '../colleague/AiFactory';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -310,6 +315,28 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     }
   };
 
+  /* ---- A FACTORY DOCUMENT (docs/FACTORY-KNOWLEDGE.md F4): picked, read, kept as a factory source, its proposals on the draft ---- */
+  const docIn = useRef<HTMLInputElement>(null);
+  const [docPicked, setDocPicked] = useState<DocPicked | null>(null);
+  const pickDoc = (file: File) => {
+    const fd = factoryDraftFor(facts?.drafts ?? []);
+    const line = cur?.scope.lineId ? lines.find(l => l.id === cur.scope.lineId) : undefined;
+    setDocPicked({ file, client: fd?.factory?.client.value ?? line?.clientName ?? '' });
+  };
+  const readDoc = async (file: File, client: string, day: string): Promise<{ ok: boolean; says: string }> => {
+    const cid = await ensure();
+    const r = await readFactoryDocument(file, file.name);
+    if (!r.ok) return { ok: false, says: r.why };
+    const t = await takeDocument({ ...ctx(), conversationId: cid }, {
+      client, file: { name: file.name, blob: file, mime: file.type }, text: r.text, readBy: r.readBy,
+      ...(day ? { day } : r.day ? { day: r.day, ...(r.dayQuote ? { dayQuote: r.dayQuote } : {}) } : {}), items: r.items, ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}),
+    });
+    if (!t.ok) return { ok: false, says: t.why };
+    const src = await getStudy(t.sourceId);
+    await appendAction(patchStudy, cid, { callId: uid(), name: 'factory_source', title: 'Read a factory document', status: 'done', says: t.says, refs: src ? [{ kind: 'study', id: src.id, label: src.name, href: studyHref(src) }] : [], at: Date.now() });
+    return { ok: true, says: [t.says, ...r.notes, ...t.refused].join(' ') };
+  };
+
   /* ---- ASKING — the client loop (colleague/colleagueAsk) ---- */
   const [asking, setAsking] = useState<string | null>(null);
   const [words, setWordsState] = useState('');
@@ -503,8 +530,11 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     },
   };
   const drafts = facts?.drafts ?? [];
+  /* a factory draft's buttons (keep, leave out, pick) go through the same door as the colleague's add_to_factory_draft */
+  const actOn = (draftId: string, items: FactoryOp[]): Promise<CapResult> => runCall(ctx(), { id: uid(), name: 'add_to_factory_draft', input: { draftId, items } }, { confirmed: false });
+  const canMakeFactory = !projectHere || canAt(access.level).edit;
   const panel = <ContextPanel cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)}
-    drafts={drafts} make={makeFromPanel} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
+    drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
   return (
     <>
@@ -576,6 +606,8 @@ function Conversation({ id, start, onMade, onList, onNew }: {
           <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
             <button type="button" className="btn ai-icon" aria-label="Add a photo" title="Add a photo" onClick={() => photoIn.current?.click()}><Icon name="camera" size="1.2em" /></button>
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
+            <button type="button" className="btn ai-icon" aria-label="Add a factory document" title="Add a factory document — an equipment register, an asset list, a layout" onClick={() => docIn.current?.click()} data-add-doc><Icon name="document" size="1.2em" /></button>
+            <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xls,text/csv,application/pdf,image/*" hidden aria-label="Choose a factory document" onChange={e => { const f = e.target.files?.[0]; if (f) pickDoc(f); e.target.value = ''; }} />
             <textarea ref={box} className="text-input ai-box" rows={typing.length > 140 ? 4 : typing.length > 60 || typing.includes('\n') ? 2 : 1} value={typing} maxLength={4000}
               placeholder={listening ? 'Listening — talk…' : 'Ask Faultline, or tell it what you see…'} aria-label="Ask Faultline"
               onChange={e => { const er = ear.current; if (er) { ear.current = null; er.abort(); setListening(false); stopQuiet(); } stopSpeaking(); setBox(e.target.value); }}
@@ -597,6 +629,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       <aside className="ai-ctx" aria-label="What this conversation is on">{panel}</aside>
       <Sheet open={ctxSheet} onClose={() => setCtxSheet(false)} title="What this is on">{panel}</Sheet>
       {prefsSheet && <PreferencesSheet open={prefsSheet} onClose={() => setPrefsSheet(false)} />}
+      <FactoryDocSheet picked={docPicked} onClose={() => setDocPicked(null)} read={readDoc} />
       <Sheet open={checking !== null} onClose={() => setChecking(null)} title="Before you walk the floor">
         <div className="ai-check-in" data-floor-check>
           <p className="sub">{FLOOR_LIMIT}</p>
@@ -762,9 +795,9 @@ type MakeFlow = {
   run: (d: ColleagueDraft) => Promise<{ ok: true; says: string } | { ok: false; why: string }>;
 };
 
-function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, onSay }: {
+function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act, canMakeFactory, onSay }: {
   cur?: Thread; parked: Thread[]; sources: CapRef[]; nameOf: (k: 'line' | 'project' | 'problem' | 'story', id: string) => string | undefined; onBack: (t: Thread) => void;
-  drafts: ColleagueDraft[]; make: MakeFlow; onSay: (words: string) => void;
+  drafts: ColleagueDraft[]; make: MakeFlow; act: (draftId: string, items: FactoryOp[]) => Promise<CapResult>; canMakeFactory: boolean; onSay: (words: string) => void;
 }) {
   const place = (s: ThreadScope, refs: readonly CapRef[]): CapRef[] => [
     ...(s.lineId ? [{ kind: 'line' as const, id: s.lineId, label: nameOf('line', s.lineId) ?? refs.find(r => r.kind === 'line' && r.id === s.lineId)?.label ?? 'The line', href: `/lines/${encodeURIComponent(s.lineId)}` }] : []),
@@ -793,7 +826,9 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, onSa
       {drafts.length > 0 && (
         <section className="ai-ctx-s" aria-label="Being built" data-ctx-built>
           <p className="ai-ctx-h">Being built · {drafts.length}</p>
-          {[...drafts].sort((a, b) => b.at - a.at).map(d => <DraftBox key={d.id} d={d} make={make} onSay={onSay} />)}
+          {[...drafts].sort((a, b) => b.at - a.at).map(d => (d.kind === 'factory'
+            ? <FactoryDraftBox key={d.id} d={d} make={make} act={items => act(d.id, items)} canMake={canMakeFactory} />
+            : <DraftBox key={d.id} d={d} make={make} onSay={onSay} />))}
         </section>
       )}
       <section className="ai-ctx-s" aria-label="Parked" data-ctx-parked>

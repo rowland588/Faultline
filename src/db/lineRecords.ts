@@ -2,7 +2,7 @@
  * Stage 2). A machine's name is on the line's list (`workspace.assets`, the
  * one every picker reads); its record carries what more is known. These keep
  * the two together, so nothing else has to. */
-import type { ID, Workspace } from '../types';
+import type { ID, KnownFact, Workspace } from '../types';
 import type { Asset } from '../lib/testing';
 import type { Program, ProgramState } from '../lib/programs';
 import { lineMachineId, lineOfMachine, machineKey, onlyLineOf, type JobLine } from '../lib/lineRecords';
@@ -212,23 +212,51 @@ export async function clearMachinePicture(wsId: ID, name: string): Promise<Asset
 
 /** WHAT A MACHINE IS, said by a person on its page (8 November, docs/FACTORY-KNOWLEDGE.md F1): its kind, model and serial,
  *  each changed one confirmed — by them, now (lib/factoryKnowledge confirmedBy); a value taken off is '' (null in the cloud) and
- *  how it was known goes with it. On its record, made on the first word said of it. Returns the record as it was, for Undo. */
-export async function setMachineIdentity(wsId: ID, name: string, patch: Partial<Pick<Asset, 'kind' | 'model' | 'serial'>>, by?: string): Promise<Asset> {
+ *  how it was known goes with it. On its record, made on the first word said of it. Returns the record as it was, for Undo.
+ *  `how` (F3, 9 November): a field said in a conversation or read from a document keeps THAT as how it is known — reported or
+ *  from a document, with its words — never confirmed; and its maker (the record's oem) can be said the same way. */
+export async function setMachineIdentity(wsId: ID, name: string, patch: Partial<Pick<Asset, 'kind' | 'model' | 'serial' | 'oem'>>, by?: string,
+  how?: Partial<Record<'kind' | 'model' | 'serial' | 'oem', KnownFact>>): Promise<Asset> {
   const a = await machineRecordFor(wsId, name);
   const at = now();
   const next: Asset = { ...a, ...(a.known ? { known: { ...a.known } } : {}) };
   let changed = false;
-  for (const field of ['kind', 'model', 'serial'] as const) {
+  for (const field of ['kind', 'model', 'serial', 'oem'] as const) {
     if (!(field in patch)) continue;
     const raw = (patch[field] ?? '').trim();
     const v = field === 'kind' ? kindWord(raw) : raw;
     if (v === (a[field] ?? '').trim()) continue;
     changed = true;
-    next[field] = v;
+    if (field === 'oem') next.oem = v || undefined; else next[field] = v;
     const known = { ...(next.known ?? {}) };
-    if (v) known[field] = confirmedBy(by, at); else delete known[field];
+    if (v) known[field] = how?.[field] ?? confirmedBy(by, at); else delete known[field];
     next.known = known;
   }
   if (changed) await putAsset({ ...next, updatedAt: at });
   return a;
+}
+
+/** A MACHINE REPLACED ON ITS LINE (9 November, docs/FACTORY-KNOWLEDGE.md F5 — Rowland: "That machine has now been replaced. The
+ *  new machine is a different model"): a NEW record on the same line, in the old one's place in the flow, with what it is said
+ *  (kind, model, serial, maker — each with how it is known); the old record KEPT, never deleted, with `replacedBy` naming the new
+ *  one and how that is known (who said it, when); the line's list carrying the new name where the old one stood. The old record's
+ *  studies, problems and programs stay on it, read as its history. Returns both records (the old as it was). */
+export async function replaceLineMachine(wsId: ID, oldName: string, next: { name: string } & Partial<Pick<Asset, 'kind' | 'model' | 'serial' | 'oem'>>,
+  fact: KnownFact): Promise<{ old: Asset; made: Asset }> {
+  const old = await machineRecordFor(wsId, oldName);
+  const newName = next.name.trim();
+  const ws = await (await getDB()).get('workspaces', wsId) as Workspace | undefined;
+  /* the line's list: the new name where the old one stood */
+  const list = (ws?.assets ?? []).filter(x => machineKey(x) !== machineKey(newName));
+  const at = list.findIndex(x => machineKey(x) === machineKey(oldName));
+  const listed = at < 0 ? [...list, newName] : [...list.slice(0, at), newName, ...list.slice(at + 1)];
+  await patchWorkspaceRecord(wsId, { assets: listed });
+  const made = await machineRecordFor(wsId, newName);
+  await putAsset({ ...made, sort: old.sort, updatedAt: now() });
+  const patch: Partial<Pick<Asset, 'kind' | 'model' | 'serial' | 'oem'>> = {};
+  const how: Partial<Record<'kind' | 'model' | 'serial' | 'oem', KnownFact>> = {};
+  for (const f of ['kind', 'model', 'serial', 'oem'] as const) if (next[f]?.trim()) { patch[f] = next[f]; how[f] = fact; }
+  if (Object.keys(patch).length) await setMachineIdentity(wsId, newName, patch, fact.by, how);
+  await putAsset({ ...old, replacedBy: made.id, known: { ...(old.known ?? {}), replacedBy: fact }, updatedAt: now() });
+  return { old, made: (await listAllAssets()).find(a => a.id === made.id) ?? made };
 }

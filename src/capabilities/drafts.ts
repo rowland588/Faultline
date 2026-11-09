@@ -35,6 +35,7 @@ import { newScoredStudy } from '../tools/scored/scored';
 import type { ScoredDef } from '../tools/scored/types';
 import { newChangeoverStudy } from '../tools/changeover/changeover';
 import { uid } from '../lib/ids';
+import { FACTORY_KEY, FACTORY_TOOL, factoryDraftSaid } from './factoryDraft';
 import type { ColleagueDraft, DraftEntry, DraftField, DraftKind, DraftRow, DraftValue, HowKnown } from './types';
 
 /* ================================================================== THE FIELD MAPS — read from the definitions */
@@ -134,6 +135,7 @@ export function baseFields(kind: DraftKind, key: string, structure?: CustomDef):
     case 'scored': { const d = scoredByKey(key); return d && fillableScored(d) ? scoredFields(d) : undefined; }
     case 'smed': return key === SMED_KEY ? SMED_FIELDS.map(f => ({ ...f })) : undefined;
     case 'custom': return structure ? customFields(structure) : undefined;
+    case 'factory': return key === FACTORY_KEY ? [] : undefined;
   }
 }
 
@@ -146,6 +148,7 @@ export function toolTitle(kind: DraftKind, key: string, structure?: CustomDef): 
     case 'scored': return scoredByKey(key)?.title ?? key;
     case 'smed': return SMED_TITLE;
     case 'custom': return structure?.title || 'Custom sheet';
+    case 'factory': return FACTORY_TOOL;
   }
 }
 
@@ -372,6 +375,8 @@ export function toRecord(d: ColleagueDraft, o: RecordOpts): ToolStudy | undefine
       const from = textAt(d, 'fromProduct'), to = textAt(d, 'toProduct');
       return applyDraft(newChangeoverStudy({ id: o.id, name: d.title, now: o.now, ...(from !== undefined ? { from } : {}), ...(to !== undefined ? { to } : {}), ...where, ...(o.standardId ? { standardId: o.standardId } : {}) }), d, o.now);
     }
+    /* a factory is made line by line and machine by machine (./factoryBuild), never as one record */
+    case 'factory': return undefined;
   }
 }
 
@@ -391,6 +396,7 @@ export function applyDraft(s: ToolStudy, d: ColleagueDraft, now: number, names?:
   const own = fields.filter(f => !f.added);
   let out: ToolStudy = { ...s, updatedAt: now };
   switch (d.kind) {
+    case 'factory': return s;
     case 'calc': {
       const def = calcByKey(d.key);
       const inputs = { ...(out.agreed?.calc?.inputs ?? (def ? startInputs(def) : {})) };
@@ -466,13 +472,14 @@ export function applyDraft(s: ToolStudy, d: ColleagueDraft, now: number, names?:
 }
 
 /** Where a made record opens in Manual Mode — the same addresses lib/studyLinks studyHref gives. */
-export const draftNoun = (d: Pick<ColleagueDraft, 'kind'>): string => ({ calc: 'calculation', doc: 'document', check: 'check log', scored: 'register', smed: 'SMED study', custom: 'sheet' })[d.kind];
+export const draftNoun = (d: Pick<ColleagueDraft, 'kind'>): string => ({ calc: 'calculation', doc: 'document', check: 'check log', scored: 'register', smed: 'SMED study', custom: 'sheet', factory: 'factory' })[d.kind];
 
 /** The draft's values as they were made — kept on the draft so a later make changes only what changed since. */
 export const madeSnapshot = (d: ColleagueDraft): Record<string, DraftValue> => plain(d);
 
 /** A draft as the colleague is told it — the fields captured (with how known), what is missing, the metrics. */
 export function draftSaid(d: ColleagueDraft): string {
+  if (d.kind === 'factory') return factoryDraftSaid(d);
   const got = captured(d), need = missing(d), ms = metricsOf(d);
   return [
     `${d.title} (${toolTitle(d.kind, d.key, d.structure)}, ${d.status === 'made' ? 'made' : 'draft'}).`,
