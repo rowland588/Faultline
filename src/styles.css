@@ -10698,6 +10698,12 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 button.nv-crumb { background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; font: inherit; font-size: var(--t-detail); color: var(--muted); }
 button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .nv-up { display: inline-flex; align-items: center; gap: 4px; }
+.nv-back {
+  flex: none; display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 10px 0 6px; margin-right: 4px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--t-detail); font-weight: 600; cursor: pointer;
+}
+.nv-back:hover { background: var(--surface-2); }
 .nv-page { color: var(--ink-2); font-weight: 600; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
 .nv-sep { flex: none; color: var(--line-2); font-size: var(--t-detail); }
 .nv-job {
@@ -10724,6 +10730,16 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
   .nv-up { padding: 0 6px 0 0; }
   .nv-up { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap); min-height: var(--tap); padding: 0; }
   .nv-ctx .nv-page.is-last { max-width: 38vw; }
+  /* on a phone Back is the arrow alone, a thumb's width; with it shown, the up crumb (‹ Factory / ‹ Projects) gives way to it —
+     the place's name beside it still opens its first page */
+  .nv-back { width: 44px; height: 44px; padding: 0; margin: 0; justify-content: center; border: 0; background: none; }
+  .nv-back-l { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .nv-top:has(.nv-back) .nv-up, .nv-top:has(.nv-back) .nv-up + .nv-sep { display: none; }
+  /* with Back in the bar, a tool's page (How it works beside the search) still fits a 375 px phone */
+  .nv-top:has(.nv-back) { gap: 3px; }
+  /* and Go to is its arrow alone (it still says "Go to another line or project" to a screen reader) */
+  .nv-top:has(.nv-back) .nv-goto-l { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .nv-top:has(.nv-back) .nv-goto { padding: 5px 6px; }
 }
 /* the place's name, a crumb (27 October) — the switcher beside it is Go to ▾ */
 .nv-here {

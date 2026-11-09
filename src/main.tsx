@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { startTrail } from './state/navHistory';
 import { startSync } from './cloud/sync';
 /* The type is bundled, not fetched: this app has to look like itself on a
    factory floor with no signal. Variable weight axis only — one file a family. */
@@ -16,6 +17,8 @@ startSync();
 
 // One record of a machine on its line (lib/machineMerge) — settled on this
 // device when it starts, whether or not it syncs.
+/* the way back (state/navHistory): the pages visited this session, for the top bar's Back */
+startTrail();
 void import('./db/machineMerge').then(m => m.oneRecordPerMachine()).catch(() => { /* tried again on the next start */ });
 
 // Fetch a newer build in the BACKGROUND so the next time the app is opened it's
