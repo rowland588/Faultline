@@ -467,7 +467,7 @@ export const PAGES = (sd, cap) => [
        cloud, so the page says it is not signed in and reads what the device holds */
     { what: 'the AI MODE eyebrow', sel: '.part-head .pace-eyebrow', text: /AI MODE/ },
     { what: 'its title', sel: '.part-head .pace-title', text: /How AI Mode is used/ },
-    { what: 'no cloud here, said in a line (not signed in, offline or not reached)', sel: '[data-aiu-none]', text: /Not signed in|could not be reached|offline|No signal/ },
+    { what: 'no cloud here, said in a line (not signed in, offline, not reached or not read)', sel: '.aiu-line', text: /Not signed in|could not be reached|could not be read|No signal/ },
     { what: 'its three parts — cost, what the colleague did, candidates for code', sel: '.aiu-sec .ln-h', n: 3 },
     { what: 'the money said in dollars, no rate guessed', sel: '[data-aiu-cost] .sub', text: /US dollars|In pounds/ },
     { what: 'candidates are proposals only', sel: '[data-aiu-candidates] .sub', text: /Proposals only/ },
