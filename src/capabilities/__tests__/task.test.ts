@@ -82,7 +82,8 @@ describe('understand_task — the task read from the line’s own evidence', () 
 describe('keep_task and task_state — the task carried through the conversation', () => {
   it('kept on the current subject; a stop timed after it began marks the step done since, and the next step moves on', async () => {
     const { run, db, line, now, stop, threads } = await seed();
-    const k = await run('keep_task', { goal: 'Understand why Line 2A is losing production time', lineId: line.id, task: 'losttime' });
+    /* the task begins a minute ago; the stop is timed a second ago — inside the four weeks whatever the clock reads next */
+    const k = await run('keep_task', { goal: 'Understand why Line 2A is losing production time', lineId: line.id, task: 'losttime' }, now - 60_000);
     expect(k.ok).toBe(true);
     const t = (await threads()).find(x => x.status === 'current');
     expect(t?.task).toMatchObject({ goal: 'Understand why Line 2A is losing production time', kind: 'losttime', lineId: line.id, steps: ['stops', 'losses', 'linebalance', 'reliability', 'sixm'] });
@@ -92,7 +93,7 @@ describe('keep_task and task_state — the task carried through the conversation
     expect(s.next?.key).toBe('stops');
     expect(s.steps.some(x => x.sinceTask)).toBe(false);
 
-    const at = Math.max(Date.now(), now + 1);
+    const at = Date.now() - 1000;
     await db.addObservation({ ...stop(at, 'Wrapper', 'Film break', 0), endedAt: undefined, timing: 'instant' });
     const later = await run('task_state', {}, now + 2 * 60 * 60_000);
     s = data<{ steps: Step[]; next?: { key: string } }>(later);
