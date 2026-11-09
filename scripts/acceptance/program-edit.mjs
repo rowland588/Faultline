@@ -76,7 +76,7 @@ for (const [k, v] of Object.entries(arguments_)) await page.locator(`input[aria-
 ok(await page.locator('input[aria-label^="Net rate target"]').count() === 1 && /judged on it only when you give one/.test(flat(await page.locator('.ptx-panel').first().innerText())), '1a the form says what Aiming for is (the speed it is set to) and offers Net rate target as a second, optional aim');
 await page.getByRole('button', { name: 'Save', exact: true }).first().click(); await page.waitForTimeout(3500);
 /* the page opens on what needs you and a passed program leaves it — All shows it; the row's Prove fold is closed until opened (the Programs redesign, 28 October) — open every one, the test's steps are inside */
-const openProve = async () => { await page.locator('.pp-chip', { hasText: /^All/ }).first().click().catch(() => {}); await page.waitForTimeout(300); for (const h of await page.locator('.pgr-prove-h[aria-expanded=false]').all()) await h.click().catch(() => {}); await page.waitForTimeout(300); };
+const openProve = async () => { await page.locator('.pp-chip', { hasText: /^All/ }).first().click().catch(() => {}); await page.waitForTimeout(300); for (let i = 0; i < 40; i++) { const shut = page.locator('.pgr-prove-h[aria-expanded=false]'); if (!(await shut.count())) break; await shut.first().click().catch(() => {}); await page.waitForTimeout(80); }  /* always the first still shut — .all()'s nth() shifts as each opens */ await page.waitForTimeout(300); };
 await openProve();
 const stepLoc = page.locator('.ptx-step', { hasText: 'aiming 75 ppm' });
 const row = page.locator('li.pgr', { has: stepLoc }).first();

@@ -29,7 +29,7 @@ const page = await ctx.newPage();
 const errs = [];
 page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text()); });
 page.on('pageerror', e => errs.push(e.message));
-const openProve = async () => { await page.locator('.pp-chip', { hasText: /^All/ }).first().click().catch(() => {}); await page.waitForTimeout(300); for (const h of await page.locator('.pgr-prove-h[aria-expanded=false]').all()) await h.click().catch(() => {}); await page.waitForTimeout(300); }; /* the page opens on what needs you, and a row's Prove fold is closed until opened (28 October) */
+const openProve = async () => { await page.locator('.pp-chip', { hasText: /^All/ }).first().click().catch(() => {}); await page.waitForTimeout(300); for (let i = 0; i < 40; i++) { const shut = page.locator('.pgr-prove-h[aria-expanded=false]'); if (!(await shut.count())) break; await shut.first().click().catch(() => {}); await page.waitForTimeout(80); }  /* always the first still shut: .all() is a list of nth() that shifts as each opens, and skipped every other row */ await page.waitForTimeout(300); }; /* the page opens on what needs you, and a row's Prove fold is closed until opened (28 October) */
 const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); };
 await go('#/room');
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
@@ -59,6 +59,8 @@ const listed = await page.locator('.sl .sl-row').allInnerTexts();
 ok(['60 ppm', '75 ppm'].every(n => listed.some(l => l.includes(n))) && listed.length === names.length, '3 every study lined up is listed under Proved by', listed.join(' || '));
 /* on the program: under its test */
 await go(`#/project/${sd.projectId}/programs`); await openProve();
+/* the row draws its studies a moment after the fold opens — wait for them, never read too early */
+await page.locator('.ptx-studies .chip', { hasText: '75 ppm' }).first().waitFor({ timeout: 8000 }).catch(() => {});
 const chips = await page.locator('.ptx-studies .chip').allInnerTexts();
 ok(chips.includes('60 ppm') && chips.includes('75 ppm'), '3 the program’s row lists the studies under its test', chips.join(' | '));
 await page.locator('.ptx-studies .chip', { hasText: '75 ppm' }).first().click();
