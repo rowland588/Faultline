@@ -82,13 +82,14 @@ describe('runCall', () => {
     const { reg, a } = await seedTwoLines();
     const client = ctx({ level: 'client' });
     for (const c of reg.CAPABILITIES.filter(x => x.kind === 'read')) {
-      const input = c.name === 'find' || c.name === 'resolve' ? { words: 'line' } : c.name === 'line_state' ? { lineId: a.id } : c.name === 'tool_records' ? { lineId: a.id } : c.name === 'recall' ? { words: 'film' } : c.name === 'project_state' || c.name === 'run_calculator' || c.name === 'draft_state' ? null : {};
+      const input = c.name === 'find' || c.name === 'resolve' || c.name === 'resolve_record' || c.name === 'plan_work' ? { words: 'line' } : c.name === 'line_state' ? { lineId: a.id } : c.name === 'tool_records' ? { lineId: a.id } : c.name === 'recall' ? { words: 'film' } : c.name === 'project_state' || c.name === 'run_calculator' || c.name === 'draft_state' ? null : {};
       if (input === null) continue;
       expect((await reg.runCall(client, call(c.name, input), { confirmed: false })).ok, c.name).toBe(true);
     }
     const writes: [string, unknown][] = [
       ['raise_problem', { lineId: a.id, words: 'x', priority: 'low', how: 'observed' }], ['update_problem', { problemId: 'pa1', owner: 'Jo' }],
       ['start_project', { name: 'P', method: 'pdca', lineIds: [a.id] }], ['save_calculation', { key: 'kanban', inputs: {} }], ['add_photo_to_problem', { problemId: 'pa1', photoKey: 'k' }],
+      ['link_to_project', { projectId: 'nope', problemId: 'pa1' }],
     ];
     for (const [name, input] of writes) {
       const r = await reg.runCall(client, call(name, input), { confirmed: true });

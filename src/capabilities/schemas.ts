@@ -390,4 +390,42 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     description: 'Make a draft into a real record through the app\'s own functions, once its essentials are captured — the person sees a card and confirms. On a draft already made, it updates that record with only what changed in the conversation since. On a factory draft it makes its lines (with their client, site and area) and puts its machines on them, matching what Faultline already holds — held while a document\'s proposal waits for the person\'s word or a difference is not picked. Never say it is saved until the result says so.',
     input_schema: obj({ draftId: str('The draft\'s id', 80) }, ['draftId']),
   },
+  // ── Understanding the app, the person's aim and where the work belongs (9 November, docs/AI-CONTEXT.md) ──────
+  {
+    name: 'describe_faultline',
+    kind: 'read',
+    description: 'What Faultline is now, read from the app itself: its kinds of record and how they relate (a problem is on a line and maybe a machine and a project; a tool record may be on a line, in a project, on a machine, or standalone; an area is words on its lines …), the capabilities THIS person can use here (with why when one is not open to them), the tools with what each needs and gives, and the eight methods. Use it when unsure whether Faultline can do something or where a record belongs — never claim a capability that is not listed as available.',
+    input_schema: obj({ about: { type: 'string', enum: ['records', 'capabilities', 'tools', 'methods', 'all'], description: 'Which part; all by default' }, name: str('Only the ones whose name has these words', 80) }),
+  },
+  {
+    name: 'plan_work',
+    kind: 'read',
+    description: 'When the person says what they want to do ("I want to carry out an observation analysis", "analyse the changeover on the packer", "a downtime analysis"): the kind of work it is, the tools that do it, what the conversation already knows (line, machine, project, standalone or talk), what already exists (records of those tools on the line, the line\'s projects, drafts in hand, open problems that sound the same), and the ONE question to ask next — or none. Ask only that question, in your own words; never a list.',
+    input_schema: obj({ words: str('What they want to do, in their words', 300), lineId: str('The line, when known', 80), projectId: str('The project, when known', 80), machine: str('The machine, when known', 120) }, ['words']),
+  },
+  {
+    name: 'resolve_record',
+    kind: 'read',
+    description: 'Work out which record the person means — an area ("the packing hall"), a line, a machine, a project ("the Line 4 improvement project", "the existing project"), a problem, or a tool record / investigation ("the changeover study", "the investigation we did yesterday") — from this conversation\'s own subjects first ("that line", "the previous investigation"), then by name, only within the client in hand. Returns one (use it), several (ask which, naming them) or none (say it is not known — never guess, never make a second one).',
+    input_schema: obj({ words: str('Their words, exactly', 200), kind: { type: 'string', enum: ['area', 'line', 'machine', 'project', 'problem', 'study'], description: 'The kind of record, when they said it' }, lineId: str('The line in hand', 80), projectId: str('The project in hand', 80) }, ['words']),
+  },
+  {
+    name: 'update_context',
+    kind: 'local',
+    description: 'Keep the current subject\'s context as the conversation settles it: what the person is trying to do (objective); whether it is just talk (learning, a what-if, a test — nothing to keep), standalone work (kept on its line, in no project — they said so, so do not ask again) or in a project; the line, project or machine — a CORRECTION ("no, Line 3", "not that project") moves the drafts not yet made with it; the record the work is in; a decision, an assumption, or a question still open and later its answer. Only what was said or settled — never a guess.',
+    input_schema: obj({
+      objective: str('What they are trying to do, in their words', 300),
+      mode: { type: 'string', enum: ['talk', 'standalone', 'project'], description: 'talk = nothing to keep; standalone = in no project; project = in the project given' },
+      lineId: str('The line (from resolve or resolve_record)', 80), projectId: str('The project (from resolve_record)', 80), machine: str('The machine, by its name on the line', 120),
+      studyId: str('The tool record the work is in', 80), problemId: str('The problem it is about', 80),
+      decision: str('A decision made', 300), assumption: str('An assumption being made', 300), question: str('A question still open', 300),
+      answered: obj({ question: str('The question', 300), answer: str('Its answer', 300) }, ['question', 'answer']),
+    }),
+  },
+  {
+    name: 'link_to_project',
+    kind: 'write',
+    description: 'Put an existing tool record or problem into a project — the person sees a card and confirms. Only a project on the same line; a record is in one project at a time (moving it out of another is said on the card). Use when they ask to connect work to a project, after resolve_record has found both.',
+    input_schema: obj({ projectId: str('The project', 80), studyId: str('The tool record', 80), problemId: str('The problem', 80) }, ['projectId']),
+  },
 ];

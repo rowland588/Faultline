@@ -52,13 +52,32 @@ export interface CapCall { id: string; name: string; input: unknown }
 /* ── The conversation's own record (a `studies` row, tool 'talk', facts.colleague) — the parts the capabilities write ── */
 
 export interface ThreadNote { id: string; text: string; how: HowKnown; at: number; photo?: string }
-export interface ThreadScope { lineId?: string; projectId?: string; problemId?: string; storyId?: string }
+export interface ThreadScope {
+  lineId?: string; projectId?: string; problemId?: string; storyId?: string;
+  /** The machine it is about, by its name on the line (9 November, the conversation's context). */
+  machine?: string;
+  /** The record the work is in — a study, a log, a calculation — once there is one (9 November). */
+  studyId?: string;
+}
+/** WHAT KIND OF WORK A SUBJECT IS (9 November — Rowland: "Not every conversation is a project … A conversation must not be forced into
+ *  a project simply because Faultline has project functionality"):
+ *    talk        a conversation only — learning, a what-if, a test; nothing is to be kept as a record
+ *    standalone  work kept on its line (or on none), in no project — the person said so, so no project is asked about again
+ *    project     work in the project the scope names
+ *  Absent: not decided — the colleague asks only when it matters (a record is about to be made and the line has projects). */
+export type ThreadMode = 'talk' | 'standalone' | 'project';
+/** Something settled or still open in a subject: a decision, an assumption, a question waiting for its answer. */
+export interface ThreadPoint { id: string; kind: 'decision' | 'assumption' | 'question'; text: string; at: number; answered?: string }
 export interface ColleagueThread {
   id: string; title: string; status: 'current' | 'parked' | 'closed';
   scope: ThreadScope;
   notes: ThreadNote[];
   refs: CapRef[];
   at: number;
+  /** What the person is trying to do, in their words ("cut the changeover on the Filler to 25 minutes"). */
+  objective?: string;
+  mode?: ThreadMode;
+  points?: ThreadPoint[];
 }
 export interface ColleagueAction { callId: string; name: string; title: string; status: 'done' | 'declined' | 'failed'; says: string; refs: CapRef[]; at: number }
 

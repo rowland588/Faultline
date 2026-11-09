@@ -54,10 +54,13 @@ export const setFocus: Capability = {
     let made: ColleagueThread | undefined, parked: string | undefined, again = false;
     await writeThreads(c.s.id, cur => {
       const open = cur.filter(t => t.status !== 'closed');
-      const hit = open.find(t => sameScope(t.scope, scope)) ?? open.find(t => t.title.trim().toLowerCase() === input.title.toLowerCase());
+      /* its own title first, then a subject on the same place (9 November: "Back to the Filler changeover" finds it by name) */
+      const hit = open.find(t => t.title.trim().toLowerCase() === input.title.trim().toLowerCase()) ?? open.find(t => sameScope(t.scope, scope));
       parked = cur.find(t => t.status === 'current' && t.id !== hit?.id)?.title;
-      again = !!hit;
-      made = hit ? { ...hit, status: 'current', at: ctx.now } : { id: uid(), title: input.title, status: 'current', scope, notes: [], refs: scopeRefs(scope), at: ctx.now };
+      /* a subject that is only its place so far — opened on a line, nothing said of it — takes the name of what it becomes */
+      const bare = !!hit && !hit.notes.length && !hit.objective && !hit.mode && !(hit.points ?? []).length && !hit.scope.studyId && hit.title.trim().toLowerCase() !== input.title.trim().toLowerCase();
+      again = !!hit && !bare;
+      made = hit ? { ...hit, ...(bare ? { title: input.title.trim() } : {}), status: 'current', at: ctx.now } : { id: uid(), title: input.title, status: 'current', scope, notes: [], refs: scopeRefs(scope), at: ctx.now };
       const rest = cur.filter(t => t.id !== made?.id).map(t => (t.status === 'current' ? { ...t, status: 'parked' as const, at: ctx.now } : t));
       return [...rest, made];
     });

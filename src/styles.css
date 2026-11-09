@@ -17184,6 +17184,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-ctx-h { margin: 0; font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .ai-ctx-t { margin: 0; font-size: var(--t-body); font-weight: 700; color: var(--ink); }
 .ai-ctx-none { margin: 0; }
+/* the subject's aim, its kind of work, its machine, what was decided and what is still to answer (9 November) */
+.ai-ctx-aim { margin: 0; display: flex; gap: 8px; align-items: baseline; font-size: var(--t-detail); color: var(--ink); overflow-wrap: anywhere; }
+.ai-ctx-k { flex: none; font-size: var(--t-label); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.ai-mode-chip { margin: 0; align-self: flex-start; padding: 3px 10px; border-radius: var(--radius-pill); border: 1px dashed var(--line-2); background: var(--surface); color: var(--ink-2); font-size: var(--t-label); font-weight: 600; }
+.ai-mode-chip.is-project { border-style: solid; border-color: var(--brand); color: var(--brand-2); background: var(--accent-soft); }
+.ai-mode-chip.is-standalone { border-style: solid; color: var(--ink); }
+.ai-mode-chip.is-talk { border-style: solid; background: var(--surface-2); }
+.ai-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ai-points li { display: flex; gap: 8px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--line-row); font-size: var(--t-detail); color: var(--ink); overflow-wrap: anywhere; }
 .ai-notes, .ai-parked { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .ai-notes li { display: flex; align-items: baseline; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line-row); font-size: var(--t-detail); color: var(--ink); }
 .ai-how { flex: none; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink-2); font-size: var(--t-label); font-weight: 600; }

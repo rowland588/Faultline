@@ -375,3 +375,7 @@ function must be redeployed** for the colleague to use them.
   consent and how long footage is kept, before anything is built.
 - **Video intelligence (Phase 6)** — a spaghetti diagram and time and motion from a fixed camera: designed in
   `docs/VISION.md` (on-device person tracking, a floor homography, consent and retention, slices V1–V5); not built.
+
+## Understanding the app and where work belongs (9 November)
+
+Read `docs/AI-CONTEXT.md`: the application model (`src/capabilities/appModel.ts`), `describe_faultline`, `plan_work`, `resolve_record`, `update_context` and `link_to_project` (`src/capabilities/understand.ts`), a subject's aim and kind of work (just talk · standalone · in a project), the duplicate checks and the destination on every card. `scripts/acceptance/ai-context.mjs` proves the twelve journeys.

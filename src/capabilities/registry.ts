@@ -9,6 +9,7 @@ import { addPhotoToProblem, raiseProblem, startProject, updateProblem } from './
 import { factoryMapCap, resolveCap } from './factory';
 import { addToFactoryDraft, replaceMachine } from './factoryBuild';
 import { adaptDraftCap, createSheet, draftState, fillDraftCap, makeRecord, startDraft, toolCatalogue } from './build';
+import { describeFaultline, linkToProject, planWork, resolveRecord, updateContext } from './understand';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
@@ -20,6 +21,8 @@ export const CAPABILITIES: readonly Capability[] = [
   factoryMapCap, resolveCap,
   /* onboarding a factory and keeping it current (F3–F5) */
   addToFactoryDraft, replaceMachine,
+  /* understanding the app, the person's aim and where the work belongs (9 November, docs/AI-CONTEXT.md) */
+  describeFaultline, planWork, resolveRecord, updateContext, linkToProject,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);

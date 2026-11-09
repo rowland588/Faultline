@@ -27,6 +27,7 @@ import {
 } from './drafts';
 import type { CapCtx, CapResult, Capability, ColleagueDraft, ColleagueThread, DraftField, DraftKind } from './types';
 import { lineRef, plural, projectRef } from './util';
+import { alikeRecords, destinationOf, modeOf, recordSaid } from './understand';
 
 /* ------------------------------------------------------------------ the conversation's drafts (./draftStore) */
 
@@ -66,7 +67,9 @@ export const toolCatalogue: Capability = {
 async function scopeFor(s: ToolStudy, input: { lineId?: string; projectId?: string }): Promise<{ ok: true; scope: ColleagueDraft['scope']; lineName?: string; threadId?: string } | { ok: false; why: string }> {
   const threads = (Array.isArray((s.facts as { threads?: unknown }).threads) ? (s.facts as { threads: ColleagueThread[] }).threads : []);
   const cur = threads.find(t => t.status === 'current');
-  const lineId = input.lineId ?? cur?.scope.lineId, projectId = input.projectId ?? cur?.scope.projectId;
+  /* standalone work or just talk takes no project from the subject (9 November — "a conversation must not be forced into a project") */
+  const free = cur?.mode === 'standalone' || cur?.mode === 'talk';
+  const lineId = input.lineId ?? cur?.scope.lineId, projectId = input.projectId ?? (free ? undefined : cur?.scope.projectId);
   const [line, p] = await Promise.all([lineId ? getWorkspace(lineId) : undefined, projectId ? getProject(projectId) : undefined]);
   if (input.lineId && !line) return { ok: false, why: 'There is no line with that id on this device — find it by name first.' };
   if (input.projectId && (!p || p.deletedAt)) return { ok: false, why: 'There is no project with that id on this device — find it by name first.' };
@@ -88,6 +91,9 @@ export const startDraft: Capability = {
     const sc = await scopeFor(c.s, input);
     if (!sc.ok) return sc;
     const tool = toolTitle(input.kind, input.key);
+    /* never a second draft of the same tool for the same place in one conversation — the one in hand is carried on */
+    const had = draftsOf(c.s).find(x => x.status === 'draft' && x.kind === input.kind && x.key === input.key && x.scope.lineId === sc.scope.lineId && x.scope.projectId === sc.scope.projectId);
+    if (had) return { ok: true, says: `“${had.title}” (${tool}) is already being built here — carrying on with it rather than starting a second. ${missingSaid(had)}`, data: { draftId: had.id, fields: fieldsForColleague(fieldsOf(had)), missing: missing(had).map(f => f.name), again: true }, refs: [] };
     const d: ColleagueDraft = {
       id: uid(), kind: input.kind, key: input.key, title: input.title?.trim() || `${tool}${sc.lineName ? ` — ${sc.lineName}` : ''}`, scope: sc.scope, values: {},
       status: 'draft', ...(sc.threadId ? { threadId: sc.threadId } : {}), at: ctx.now,
@@ -328,6 +334,12 @@ export const makeRecord: Capability = {
     const [line, p] = await Promise.all([d.scope.lineId ? getWorkspace(d.scope.lineId) : undefined, d.scope.projectId ? getProject(d.scope.projectId) : undefined]);
     const where = `${line ? ` on ${line.name}` : ' on no line'}${p ? `, in ${p.name}` : ''}`;
     const need = missing(d);
+    /* WHERE IT GOES, AND WHAT IS ALREADY THERE (9 November — "present the proposed destination and relationship clearly … never create
+       duplicate records"): the line with its area, the project or that it is in none, and records of the same tool alike in name */
+    const dest = await destinationOf(d.scope, modeOf(got.s, d.threadId));
+    const shape = toRecord(d, { id: 'preview', now: Date.now() });
+    const twins = d.status === 'made' || !shape ? [] : await alikeRecords(d, shape.tool, shape.agreed?.calc?.key);
+    const twinSaid = twins.length ? ` ${line?.name ?? 'The line'} already has ${twins.slice(0, 3).map(recordSaid).join(', ')} — this makes another; say if you would rather carry on with ${twins.length === 1 ? 'that one' : 'one of those'}.` : '';
     if (d.status === 'made' && d.studyId) {
       const ch = changedSinceMade(d);
       const fs = fieldsOf(d);
@@ -336,7 +348,7 @@ export const makeRecord: Capability = {
         : `Nothing has changed in the conversation since “${d.title}” was made.`;
     }
     const got2 = captured(d);
-    return `Make a ${toolTitle(d.kind, d.key, d.structure)} ${draftNoun(d)} called “${d.title}”${where}, with ${got2.length ? got2.map(x => `${x.field.label.toLowerCase()} ${x.words}`).join('; ') : 'nothing filled in yet'}.${need.length ? ` Still missing: ${need.map(f => f.label).join(', ')}.` : ''}`;
+    return `Make a ${toolTitle(d.kind, d.key, d.structure)} ${draftNoun(d)} called “${d.title}” ${dest}, with ${got2.length ? got2.map(x => `${x.field.label.toLowerCase()} ${x.words}`).join('; ') : 'nothing filled in yet'}.${need.length ? ` Still missing: ${need.map(f => f.label).join(', ')}.` : ''}${twinSaid}`;
   },
   async run(ctx, input: { draftId: string }): Promise<CapResult> {
     const got = await draftIn(ctx, input.draftId);
@@ -364,6 +376,8 @@ export const makeRecord: Capability = {
     if (!s) return { ok: false, why: `“${d.title}” cannot be made — its tool is not in this version of the app.` };
     await putStudy(s);
     await putDraft(got.s, { ...d, status: 'made', studyId: s.id, madeValues: madeSnapshot(d) });
+    /* the subject it was built on now has its record — "that investigation" finds it */
+    if (d.threadId) await patchStudy(got.s.id, cur => ({ facts: { ...cur.facts, threads: ((cur.facts as { threads?: ColleagueThread[] }).threads ?? []).map(t => (t.id === d.threadId && !t.scope.studyId ? { ...t, scope: { ...t.scope, studyId: s.id } } : t)) } as ToolStudy['facts'] }));
     const href = studyHref(s);
     return { ok: true, says: `Made “${s.name}”${line ? ` on ${line.name}` : ''} — it opens in Faultline like any ${draftNoun(d)}.`, data: { id: s.id, href }, refs: [{ kind: 'study', id: s.id, label: s.name, href }, ...refs] };
   },

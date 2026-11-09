@@ -19,6 +19,7 @@ import { checkObject, DAY_PATTERN, ID } from './check';
 import { mayEdit, mayStartProjects } from './access';
 import { HOW_SAID, type CapCtx, type CapResult, type Capability, type HowKnown } from './types';
 import { lineRef, notFound, problemRef, projectRef } from './util';
+import { alikeProblems, alikeProjects } from './understand';
 
 type Priority = 'low' | 'high' | 'critical';
 const PRIORITIES: readonly Priority[] = ['low', 'high', 'critical'];
@@ -46,8 +47,10 @@ export const raiseProblem: Capability = {
   }),
   allowed: (ctx: CapCtx, input: RaiseIn) => mayEdit(ctx, input.projectId),
   async preview(_ctx, input: RaiseIn) {
-    const [line, p] = await Promise.all([getWorkspace(input.lineId), input.projectId ? getProject(input.projectId) : undefined]);
-    return `Raise a ${PRIORITY_WORD[input.priority]} problem on ${line?.name ?? 'the line'}${input.machine ? `, on the ${input.machine}` : ''}${p ? ` for ${p.name}` : ''}: “${input.words}” — ${HOW_WORDS[input.how].toLowerCase()}${input.owner ? ` With ${input.owner}` : ' Nobody on it yet'}${input.due ? `, due ${niceDay(input.due)}` : ''}.`;
+    const [line, p, twins] = await Promise.all([getWorkspace(input.lineId), input.projectId ? getProject(input.projectId) : undefined, alikeProblems(input.lineId, input.words)]);
+    /* an open problem that already says this is named on the card — the person decides, nothing raised twice by default (9 November) */
+    const twin = twins.length ? ` ${line?.name ?? 'The line'} already has an open problem like this: ${twins.slice(0, 2).map(t => `“${t.problem}”`).join(', ')} — this raises another.` : '';
+    return `Raise a ${PRIORITY_WORD[input.priority]} problem on ${line?.name ?? 'the line'}${input.machine ? `, on the ${input.machine}` : ''}${p ? ` for ${p.name}` : ', in no project'}: “${input.words}” — ${HOW_WORDS[input.how].toLowerCase()}${input.owner ? ` With ${input.owner}` : ' Nobody on it yet'}${input.due ? `, due ${niceDay(input.due)}` : ''}.${twin}`;
   },
   async run(ctx, input: RaiseIn): Promise<CapResult> {
     const line = await getWorkspace(input.lineId);
@@ -131,13 +134,17 @@ export const startProject: Capability = {
   }),
   allowed: (ctx: CapCtx) => mayStartProjects(ctx),
   async preview(_ctx, input: StartIn) {
-    const lines = await Promise.all(input.lineIds.map(id => getWorkspace(id)));
-    return `Start a ${methodByKey(input.method)?.name ?? input.method} project called “${input.name}” on ${lines.map((w, i) => w?.name ?? `an unknown line (${input.lineIds[i]})`).join(' and ')}.`;
+    const [lines, twins] = await Promise.all([Promise.all(input.lineIds.map(id => getWorkspace(id))), alikeProjects(input.name, input.lineIds)]);
+    const twin = twins.length ? ` Already on these lines: ${twins.slice(0, 3).map(p => `“${p.name}”`).join(', ')} — say if the work belongs in ${twins.length === 1 ? 'that one' : 'one of those'} instead.` : '';
+    return `Start a ${methodByKey(input.method)?.name ?? input.method} project called “${input.name}” on ${lines.map((w, i) => w?.name ?? `an unknown line (${input.lineIds[i]})`).join(' and ')}.${twin}`;
   },
   async run(_ctx, input: StartIn): Promise<CapResult> {
     const lines = await Promise.all(input.lineIds.map(id => getWorkspace(id)));
     const missing = input.lineIds.filter((_, i) => !lines[i]);
     if (missing.length) return { ok: false, why: `There is no line with the id ${missing.join(', ')} on this device — find each line by name first.` };
+    /* never a second project of the same name on the same line (9 November — "never create duplicate records") */
+    const twin = (await alikeProjects(input.name, input.lineIds)).find(p => p.name.trim().toLowerCase() === input.name.trim().toLowerCase());
+    if (twin) return { ok: false, why: `“${twin.name}” is already a project on ${lines.length === 1 ? lines[0]?.name : 'these lines'} — nothing was started. Use that one, or give the new one a different name.` };
     /* New project's own steps: the next colour of the palette, the plan model the method needs, then the lines picked */
     const all = await ensureProjects();
     const p = await createProject(input.name, COLORS[all.length % COLORS.length], undefined, undefined, modelOfMethod(input.method), input.method);

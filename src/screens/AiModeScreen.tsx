@@ -42,7 +42,7 @@ import { captured, metricsOf, missing, toolTitle, valueWords } from '../capabili
 import { studyHref } from '../lib/studyLinks';
 import { can as canAt } from '../lib/access';
 import {
-  HOW_WORD, WHO, appendAction, appendTurn, changeThreads, changeTurn, conversationTitle, currentThread, factsOfConversation, focusText, gatewayTurns,
+  HOW_WORD, MODE_WORD, WHO, appendAction, appendTurn, changeThreads, changeTurn, conversationTitle, currentThread, factsOfConversation, focusText, gatewayTurns,
   isConversation, newConversation, parkedThreads, setCurrent, sourcesOf, turnsOfConversation, unansweredTurns, uniqueRefs, addRefs,
   type ColleagueTurn, type Thread, type ThreadScope, type Used,
 } from '../colleague/conversation';
@@ -82,6 +82,14 @@ export function AiModeScreen() {
      while its first Send makes its record (the address is then quietly given its id, for a reload) */
   const [open, setOpen] = useState<{ key: string; id?: string }>(() => ({ key: uid(), ...(route.query.get('c') ? { id: route.query.get('c') as string } : {}) }));
   const [listSheet, setListSheet] = useState(false);
+  /* arriving from another line or project while AI Mode is open (the door pressed on a line's page with the page kept): a new
+     conversation on it — never the one in hand carried on under a place it was not about (9 November) */
+  const placeQ = lineQ || projectQ ? `${lineQ}|${projectQ}` : '';
+  const lastPlace = useRef(placeQ);
+  useEffect(() => {
+    if (placeQ && placeQ !== lastPlace.current) setOpen({ key: uid() });
+    lastPlace.current = placeQ || lastPlace.current;
+  }, [placeQ]);
   const start = useMemo((): { title: string; scope: ThreadScope } | undefined => {
     if (lineQ) { const l = lines.find(x => x.id === lineQ); return l ? { title: l.name, scope: { lineId: l.id } } : undefined; }
     if (projectQ) { const p = projects.find(x => x.id === projectQ); return p ? { title: p.name, scope: { projectId: p.id } } : undefined; }
@@ -856,6 +864,7 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
     ...(s.projectId ? [{ kind: 'project' as const, id: s.projectId, label: nameOf('project', s.projectId) ?? refs.find(r => r.kind === 'project' && r.id === s.projectId)?.label ?? 'The project', href: `/project/${encodeURIComponent(s.projectId)}` }] : []),
     ...(s.problemId ? [{ kind: 'problem' as const, id: s.problemId, label: refs.find(r => r.kind === 'problem' && r.id === s.problemId)?.label ?? 'The problem', href: refs.find(r => r.kind === 'problem' && r.id === s.problemId)?.href ?? `/snags?open=${encodeURIComponent(s.problemId)}` }] : []),
     ...(s.storyId ? [{ kind: 'story' as const, id: s.storyId, label: 'The Story', href: '/' }] : []),
+    ...refs.filter(r => r.kind === 'study' && r.id === s.studyId).slice(0, 1),
   ];
   return (
     <div className="ai-ctx-in">
@@ -864,7 +873,18 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
         {cur ? (
           <>
             <p className="ai-ctx-t">{cur.title}</p>
+            {cur.objective && <p className="ai-ctx-aim" data-ctx-aim><span className="ai-ctx-k">Aim</span>{cur.objective}</p>}
+            {/* what kind of work it is (9 November): just talk, standalone or in the project — said, so nobody wonders where it will go */}
+            <p className={'ai-mode-chip' + (cur.mode ? ` is-${cur.mode}` : '')} data-ctx-mode={cur.mode ?? 'open'}>{cur.mode ? MODE_WORD[cur.mode] : 'Not settled — project or standalone'}</p>
             <RefChips refs={place(cur.scope, cur.refs)} label="Where it is" />
+            {cur.scope.machine && <p className="ai-ctx-aim" data-ctx-machine><span className="ai-ctx-k">Machine</span>{cur.scope.machine}</p>}
+            {(cur.points ?? []).length > 0 && (
+              <ul className="ai-points" data-ctx-points>
+                {(cur.points ?? []).map(p => (
+                  <li key={p.id} data-point={p.kind}><span className="ai-ctx-k">{p.kind === 'decision' ? 'Decided' : p.kind === 'assumption' ? 'Assumed' : p.answered ? 'Answered' : 'To answer'}</span><span>{p.text}{p.answered ? ` — ${p.answered}` : ''}</span></li>
+                ))}
+              </ul>
+            )}
             {cur.notes.length > 0 ? (
               <ul className="ai-notes">
                 {cur.notes.map(n => (

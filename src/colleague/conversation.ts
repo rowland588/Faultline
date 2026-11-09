@@ -119,6 +119,16 @@ export function sourcesOf(turns: readonly ColleagueTurn[], actions: readonly Don
   return uniqueRefs([...turns.flatMap(t => (t.used ?? []).filter(u => u.status === 'done').flatMap(u => u.refs)), ...actions.filter(a => a.status === 'done').flatMap(a => a.refs)]);
 }
 
+/** What kind of work a subject is, as the gateway is told it and the context panel says it. */
+export const MODE_SAID: Record<NonNullable<Thread['mode']> | 'open', string> = {
+  talk: 'just a conversation — nothing to keep as a record',
+  standalone: 'standalone — kept on its line, in no project (the person said so; do not ask again)',
+  project: 'in the project named',
+  open: 'not settled — ask about a project only when a record is about to be made and the line has one',
+};
+/** The same, as the panel's chip says it. */
+export const MODE_WORD: Record<NonNullable<Thread['mode']>, string> = { talk: 'Just talking — nothing kept', standalone: 'Standalone — in no project', project: 'In the project' };
+
 /** How it is known, in words — on the note's pill. */
 export const HOW_WORD: Record<HowKnown, string> = {
   observed: 'Observed', reported: 'Reported', measured: 'Measured', calculated: 'Calculated', hypothesised: 'Hypothesised', verified: 'Verified', unknown: 'Unknown',
@@ -131,6 +141,8 @@ export function scopeSaid(scope: ThreadScope, names: (kind: 'line' | 'project' |
   if (scope.projectId) bits.push(`project ${names('project', scope.projectId) ?? scope.projectId} [${scope.projectId}]`);
   if (scope.problemId) bits.push(`problem ${names('problem', scope.problemId) ?? scope.problemId} [${scope.problemId}]`);
   if (scope.storyId) bits.push(`story ${names('story', scope.storyId) ?? scope.storyId} [${scope.storyId}]`);
+  if (scope.machine) bits.push(`machine ${scope.machine}`);
+  if (scope.studyId) bits.push(`record [${scope.studyId}]`);
   return bits.join(' · ');
 }
 
@@ -143,9 +155,15 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
   if (cur) {
     const where = scopeSaid(cur.scope, opts.names);
     lines.push(`Current: ${cur.title}${where ? ` (${where})` : ''} [thread ${cur.id}]`);
+    /* what it is for and what kind of work it is (9 November, docs/AI-CONTEXT.md) — settled once, never asked again */
+    if (cur.objective) lines.push(`  Aim: ${cur.objective}`);
+    lines.push(`  Kind of work: ${MODE_SAID[cur.mode ?? 'open']}`);
     for (const n of cur.notes.slice(-12)) lines.push(`  - ${n.text} (${HOW_WORD[n.how].toLowerCase()})`);
+    for (const p of (cur.points ?? []).slice(-10)) lines.push(`  ${p.kind === 'question' ? (p.answered ? `Answered: ${p.text} — ${p.answered}` : `Still to answer: ${p.text}`) : `${p.kind === 'decision' ? 'Decided' : 'Assumed'}: ${p.text}`}`);
+    const touched = cur.refs.filter(r => r.kind !== 'page').slice(-8);
+    if (touched.length) lines.push(`  Records touched: ${touched.map(r => `${r.kind} ${r.label} [${r.id}]`).join('; ')}`);
   } else lines.push('Current: nothing yet — the person has not said what this is about.');
-  if (parked.length) lines.push(`Parked: ${parked.map(t => `${t.title} [thread ${t.id}]`).join('; ')}`);
+  if (parked.length) lines.push(`Parked: ${parked.map(t => `${t.title}${scopeSaid(t.scope, opts.names) ? ` (${scopeSaid(t.scope, opts.names)})` : ''}${t.mode ? ` — ${MODE_SAID[t.mode]}` : ''} [thread ${t.id}]`).join('; ')}`);
   if (opts.photos?.length) lines.push(`Photos in this conversation: ${opts.photos.map(p => `${p.label} = photoKey ${p.key}`).join('; ')}`);
   /* what is being built from the conversation (docs/AI-MODE.md, Building tools in conversation): each draft with its id, what is
      captured and how known, and what is missing — the newest six, a long one cut */

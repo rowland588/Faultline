@@ -22,7 +22,7 @@ import { lineRef, notFound, plural } from './util';
 type Scope = { ok: true; clients?: string[]; near: string[]; what: string } | { ok: false; why: string };
 
 /** Whose factory this call may see, and the lines the conversation is on. */
-async function scopeOf(input: { lineId?: string; projectId?: string; client?: string }, all: readonly Workspace[]): Promise<Scope> {
+export async function scopeOf(input: { lineId?: string; projectId?: string; client?: string }, all: readonly Workspace[]): Promise<Scope> {
   const named = input.client?.trim().toLowerCase();
   const nameOf = (k: string) => all.find(w => clientKey(w) === k)?.clientName?.trim() || 'the lines that name no client';
   if (input.lineId) {
