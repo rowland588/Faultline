@@ -57,7 +57,7 @@ describe('the connectors', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const tools = (r.data as { tools: { key: string; capture?: unknown }[] }).tools;
-    expect(tools.map(x => x.key).sort()).toEqual(['changeover', 'linework', 'reliability', 'sampling', 'stops', 'workstops']);
+    expect(tools.map(x => x.key).sort()).toEqual(['changeover', 'linework', 'reliability', 'sampling', 'stops', 'valuestream', 'workstops']);
     expect(Object.keys((r.data as { intents: object }).intents)).toEqual(['report', 'fill', 'measure', 'calculate', 'analyse', 'investigate']);
   }, 60_000);
 });
@@ -187,6 +187,25 @@ describe('a live measurement — confirmed once, then captured as the capture sc
     const splice = steps.find(x => x.name === 'Splice');
     expect(splice?.laps?.map(l => [l.sec, !!l.struck])).toEqual([[15, true], [20, false]]);
     expect(steps.some(x => x.who === 'Op 2' && (x.laps ?? []).some(l => !l.struck))).toBe(false);
+  }, 60_000);
+
+  it('the value stream walked: each step ended as said with its time, VA only on an operation, the latest taken back and the clock back on it', async () => {
+    const { run, tick, db, a } = await seed();
+    expect((await run('start_measurement', { tool: 'valuestream', lineId: a.id, name: 'Run released to pallet' })).ok).toBe(true);
+    const study = (await db.listStudiesForLine(a.id)).find(x => x.tool === 'map')!;
+    expect(study.agreed?.map?.scope).toBe('line');
+    expect((await run('capture_event', { event: 'step', name: 'Weigh' })).ok).toBe(false);   // not begun
+    tick(500); await run('capture_event', { event: 'begin' });
+    tick(30_000); await run('capture_event', { event: 'step', name: 'Weigh and bag', who: 'Op 1', where: 'Bagger', value: 'adds' });
+    tick(12_000); await run('capture_event', { event: 'step', name: 'Carry to the wrapper', who: 'Op 1', kind: 'move', value: 'adds' });
+    tick(8_000); await run('capture_event', { event: 'step', name: 'Wrong' });
+    await run('undo_capture', {});
+    tick(4_000); await run('capture_event', { event: 'finish', name: 'Wrap', who: 'Op 2', value: 'needed' });
+    const flow = [...((await db.getStudy(study.id))?.facts.flow ?? [])].sort((x, y) => x.order - y.order);
+    expect(flow.map(x => [x.name, x.cycleSec, x.kind, x.value ?? null, x.lane])).toEqual([
+      ['Weigh and bag', 30, 'operation', 'adds', 'Op 1'], ['Carry to the wrapper', 12, 'move', null, 'Op 1'], ['Wrap', 12, 'operation', 'needed', 'Op 2'],
+    ]);
+    expect(flow.every(x => x.source === 'timed')).toBe(true);
   }, 60_000);
 
   it('one measurement at a time, and a client may not start one', async () => {

@@ -73,7 +73,7 @@ export const CONNECTORS: readonly ToolConnector[] = [
   { key: 'calc', owns: s => s.tool === 'calc', fill: { kind: 'calc' }, report: 'paper' },
   { key: 'doc', owns: s => s.tool === 'doc', fill: { kind: 'doc' }, report: 'paper' },
   { key: 'rsm', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'rsm', fillBy: ['fill_register (each run’s response)'], report: 'paper', byHand: 'Its factors and design are agreed on its page, which lays out the runs.' },
-  { key: 'valuestream', owns: s => s.tool === 'map', diagram: 'vs', report: 'paper' },
+  { key: 'valuestream', owns: s => s.tool === 'map', diagram: 'vs', capture: 'valuestream', report: 'paper' },
   { key: 'processflow', owns: calcOf('process-flow'), diagram: 'flow', fill: { kind: 'calc', keys: ['process-flow'] }, report: 'paper' },
   { key: 'spaghetti', owns: s => s.tool === 'calc' && (s.agreed?.calc?.key === 'spaghetti' || s.agreed?.calc?.key === 'spaghetti-walkers'), diagram: 'spag', fill: { kind: 'calc', keys: ['spaghetti', 'spaghetti-walkers'] }, report: 'paper' },
   { key: 'changeover', owns: s => s.tool === 'changeover', fill: { kind: 'smed' }, capture: 'changeover', report: 'paper' },

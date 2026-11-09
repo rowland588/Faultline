@@ -78,7 +78,7 @@ record is a card, as before. A client fills nothing.
 
 ## 4. Live measurement
 
-A measurement is one authorised session of one capture tool, kept on the AI Mode conversation (`facts.measures`). Six tools
+A measurement is one authorised session of one capture tool, kept on the AI Mode conversation (`facts.measures`). Seven tools
 capture today, each adapter writing what its screen's buttons write:
 
 - **Stops timed** (line): *stopped* (machine, reason) starts the line's stopwatch (`activeTimer`, as the capture screen's
@@ -90,6 +90,9 @@ capture today, each adapter writing what its screen's buttons write:
   the first good piece.
 - **Stops across workstations**: *stopped* / *running* on a workstation — its minutes and one stop, as its own button does.
 - **Line balance**: the stopwatch's *start* (a person, an element), *lap*, *next* element, *interrupted*, *stop* — each lap on its element as the balance's own timer keeps it; Undo strikes the lap.
+- **Value stream walk**: *begin*, then each *step* as it ends (what was done; who, where, operation · move · check; VA · NE · NV only
+  when the person says it — a move or a check is never VA, the map's own rule), *finish* — each a timed step on the map as its own
+  Time the steps writes it; Undo takes the step off and the clock goes back to the one now running.
 
 **Time**: each event is stamped at the moment the person's words were heard (`CapCtx.saidAt`, their turn's time), not when the
 reply came back. **Undo** strikes or takes back what the event wrote, as the tool's Undo does; **correct** takes it back and writes
@@ -135,7 +138,6 @@ camera through the conversation is the next part of this architecture, not built
 
 ## 9. Not yet
 
-- The value stream's stopwatch as a capture adapter (its map is filled by `draw_diagram` vs).
 - Filling the tools whose work is drawing or filming by hand — the spaghetti board's taps, the line standard's shapes, a video
   study's footage — said by `tool_guide` as done on the page (`byHand`).
 - The camera as a capture.

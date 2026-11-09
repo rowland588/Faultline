@@ -20,7 +20,8 @@
  * that the tool itself would not take back; no figure is worked out here — the tools work out what the events mean. */
 import { addObservation, getStudy, getWorkspace, listObservations, patchStudy, patchWorkspaceRecord, putStudy, softDeleteObservation } from '../../db';
 import type { Observation, Workspace } from '../../types';
-import type { ChangeoverSide, ChangeoverStep, RelEvent, ToolStudy } from '../../lib/study';
+import type { ChangeoverSide, ChangeoverStep, FlowStep, RelEvent, ToolStudy } from '../../lib/study';
+import { laneByDefault, valuesFor } from '../../tools/valuestream/steps';
 import { started, stopped } from '../../tools/reliability/lineWatch';
 import { countersOf } from '../../tools/reliability/reliability';
 import { takeNow } from '../../tools/sampling/sampling';
@@ -34,7 +35,7 @@ import { balanceStudyFor } from '../../tools/linework/balanceLink';
 import { standardFor } from '../fill';
 import { uid } from '../../lib/ids';
 
-export const MEASURE_TOOLS = ['stops', 'reliability', 'sampling', 'changeover', 'workstops', 'balance'] as const;
+export const MEASURE_TOOLS = ['stops', 'reliability', 'sampling', 'changeover', 'workstops', 'balance', 'valuestream'] as const;
 export type MeasureTool = typeof MEASURE_TOOLS[number];
 
 /** One thing captured in a session — what was said, when, and the record it wrote (to review, undo or correct it). */
@@ -83,6 +84,10 @@ export interface CaptureInput {
   side?: ChangeoverSide;
   workstation?: string;
   note?: string;
+  /** valuestream: where the step is done, its kind (operation · move · check), and VA · NE · NV as said. */
+  where?: string;
+  kind?: 'operation' | 'move' | 'check';
+  value?: 'adds' | 'needed' | 'waste';
 }
 
 /** What a session may be started with — only what was said. */
@@ -399,6 +404,77 @@ const changeover: CaptureAdapter = {
   href: m => `/smed/${m.studyId}`,
 };
 
+/* ================================================================== The value stream walked (its own stopwatch, tools/valuestream WalkIt) */
+const VALUE_WORD = { adds: 'VA', needed: 'NE', waste: 'NV' } as const;
+const valuestream: CaptureAdapter = {
+  tool: 'valuestream', label: 'Value stream walk', needsLine: true,
+  says: 'The value stream walked with its stopwatch: each step ended as it is said — what was done, who, where, and VA · NE · NV when said — its time the time since the step before, as the map’s Time the steps keeps it.',
+  events: [
+    { event: 'begin', says: 'the first step begins — the clock starts' },
+    { event: 'step', says: 'the step just ended, by what was done (who, where, its kind and VA · NE · NV when said); the next starts at once', needs: ['name'] },
+    { event: 'finish', says: 'the last step ends — the walk is timed', needs: ['name'] },
+  ],
+  async start(input, at) {
+    let s = input.studyId ? await getStudy(input.studyId) : undefined;
+    if (input.studyId && (!s || s.tool !== 'map' || s.deletedAt)) return { ok: false, why: 'That is not a value stream map on this device.' };
+    if (!s) {
+      if (!input.lineId) return { ok: false, why: 'A value stream is walked on a line — say which.' };
+      /* as New value stream map makes one on a line (screens/StudiesScreen) */
+      s = { id: uid(), tool: 'map', name: input.name?.trim() || '', workspaceId: input.lineId, agreed: { map: { scope: 'line' as const } }, facts: {}, uses: [], startedAt: at, createdAt: at, updatedAt: at } as ToolStudy;
+      await putStudy(s);
+    }
+    const m: Measurement = { id: uid(), tool: 'valuestream', label: `Walking ${studyTitle(s)}`, studyId: s.id, ...(s.workspaceId ? { lineId: s.workspaceId } : {}), startedAt: at, events: [] };
+    return { ok: true, m, says: `Ready to walk ${studyTitle(s)} — say when the first step begins, then what each step was as it ends (and VA, NE or NV if you can tell).`, href: studyHref(s) };
+  },
+  async record(m, ev, at) {
+    if (!m.studyId) return { ok: false, why: 'No map.' };
+    if (ev.event === 'begin') {
+      const e: MeasureEvent = { id: uid(), at, event: 'begin', says: `The walk began at ${hm(at)}`, input: ev };
+      return { ok: true, m: withEvent(m, e, { since: at }), says: `The clock is running from ${hm(at)} — say each step as it ends.`, event: e };
+    }
+    if (ev.event === 'step' || ev.event === 'finish') {
+      const since = m.open?.since;
+      if (since === undefined) return { ok: false, why: 'The clock is not running — say when the first step begins.' };
+      const name = ev.name?.trim();
+      if (!name) return { ok: false, why: 'Say what the step was.' };
+      const kind = ev.kind ?? 'operation';
+      /* the map's own rule (steps.valuesFor): a move or a check is never VA — a value the kind cannot take is left off */
+      const value = ev.value && valuesFor(kind).includes(ev.value) ? ev.value : undefined;
+      const who = ev.who?.trim(), where = (ev.where ?? ev.machine)?.trim();
+      const s0 = await getStudy(m.studyId);
+      const byWho = laneByDefault(s0?.agreed?.map) === 'who';
+      const step: FlowStep = { id: uid(), order: 0, name, ...(who ? { who: [who] } : {}), ...(where ? { where } : {}), lane: (byWho ? who : where) || who || where || 'Not said',
+        kind, ...(value ? { value } : {}), cycleSec: +((at - since) / 1000).toFixed(1), source: 'timed' };
+      await patchStudy(m.studyId, cur => {
+        const flow = cur.facts.flow ?? [];
+        return { facts: { ...cur.facts, flow: [...flow, { ...step, order: flow.reduce((n, x) => Math.max(n, x.order), -1) + 1 }] } };
+      });
+      const e: MeasureEvent = { id: uid(), at, event: ev.event, says: `${name} — ${clockOf(at - since)}${value ? ` · ${VALUE_WORD[value]}` : ''}${who ? ` (${who})` : ''}`, ref: { kind: 'step', id: step.id }, input: ev };
+      const open = ev.event === 'finish' ? {} : { since: at };
+      return { ok: true, m: withEvent(m, e, open), says: ev.event === 'finish' ? `The last step, ${name}, took ${clockOf(at - since)} — the walk is timed; the map adds up the lead time.` : `${name}: ${clockOf(at - since)}${value ? `, ${VALUE_WORD[value]}` : ', not classified'}. The next step is running.`, event: e };
+    }
+    return { ok: false, why: `The value stream walk takes begin, step or finish — not “${ev.event}”.` };
+  },
+  async undo(m, e) {
+    if (!m.studyId) return { ok: false, why: 'No map.' };
+    if (e.ref?.kind === 'step') {
+      const id = e.ref.id;
+      await patchStudy(m.studyId, cur => ({ facts: { ...cur.facts, flow: (cur.facts.flow ?? []).filter(x => x.id !== id) } }));
+      /* as the walk's Undo the last step: its time goes back to the step now running */
+      const latest = !m.events.some(x => !x.struck && x.at > e.at && (x.event === 'step' || x.event === 'finish'));
+      const before = m.events.filter(x => !x.struck && x.id !== e.id && x.at < e.at && (x.event === 'begin' || x.event === 'step')).sort((a, b) => b.at - a.at)[0];
+      return { ok: true, m: latest && before ? { ...m, open: { since: before.at } } : m, says: `Taken back: ${e.says}.` };
+    }
+    if (e.event === 'begin') return { ok: true, m: { ...m, open: {} }, says: 'Taken back: the walk’s start.' };
+    return { ok: false, why: 'Nothing to take back.' };
+  },
+  async end(m, at) {
+    const n = m.events.filter(e => !e.struck && e.ref?.kind === 'step').length;
+    return { ok: true, m: { ...m, endedAt: at, open: {} }, says: `Walk ended. ${n} step${n === 1 ? '' : 's'} timed — the map shows the lead time, the value added and the waste.` };
+  },
+  href: m => `/value-stream/${m.studyId}`,
+};
+
 /* ================================================================== Stops across workstations */
 const WS_KEY = 'workstation-stops';
 const wsIndex = (s: ToolStudy, name: string | undefined): number => {
@@ -593,7 +669,7 @@ const balanceCap: CaptureAdapter = {
   href: m => m.href ?? `/balance/${m.studyId}`,
 };
 
-export const CAPTURE_ADAPTERS: Record<MeasureTool, CaptureAdapter> = { stops, reliability, sampling, changeover, workstops, balance: balanceCap };
+export const CAPTURE_ADAPTERS: Record<MeasureTool, CaptureAdapter> = { stops, reliability, sampling, changeover, workstops, balance: balanceCap, valuestream };
 export const adapterOf = (tool: string): CaptureAdapter | undefined => (MEASURE_TOOLS as readonly string[]).includes(tool) ? CAPTURE_ADAPTERS[tool as MeasureTool] : undefined;
 
 /** The session's events as a review lists them: in order, struck ones said so. */

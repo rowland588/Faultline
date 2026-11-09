@@ -485,6 +485,7 @@ const CAPTURE_FIELDS = {
   count: { kind: 'string', label: 'what was counted', max: 60 }, who: { kind: 'string', label: 'who', max: 60 }, activity: { kind: 'string', label: 'what they were doing', max: 60 },
   name: { kind: 'string', label: 'the element', max: 160 }, side: { kind: 'enum', label: 'internal or external', values: ['internal', 'external'] },
   workstation: { kind: 'string', label: 'the workstation', max: 80 }, note: { kind: 'string', label: 'a note', max: 300 },
+  where: { kind: 'string', label: 'where', max: 120 }, kind: { kind: 'enum', label: 'the kind of step', values: ['operation', 'move', 'check'] }, value: { kind: 'enum', label: 'VA, NE or NV', values: ['adds', 'needed', 'waste'] },
 } as const;
 const checkCapture = (raw: unknown): Checked<CaptureInput> => {
   const people = isObj(raw) && Array.isArray(raw.people) ? raw.people : undefined;

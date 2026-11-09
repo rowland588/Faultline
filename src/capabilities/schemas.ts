@@ -530,9 +530,9 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'start_measurement',
     kind: 'write',
-    description: 'Start a LIVE measurement with a tool’s own capture — the person confirms ONCE; from then on capture_event records each event as it is said, with no card, until end_measurement. tool stops: Stops timed on a line (lineId) — stopped (machine, reason), running, count. tool reliability: a machine watched (studyId to carry on, or machine and the things counted, e.g. ["stop", "failure"]) — event (count, reason), running, pause, resume. tool sampling: work sampling (studyId, or who and activities) — moment (people: [{ who, activity }]). tool changeover: SMED timed (studyId, or from / to products) — begin (the last good piece), element (the element just finished, by name; who; side), finish (the first good piece). tool workstops: stops across workstations (studyId, or workstations by name) — stopped (workstation), running (workstation). tool balance: an operation timed on the Line balance’s stopwatch (studyId, or lineId and product) — start (who, name), lap, next (name, who if it changes), interrupted, stop. The tool’s page is shown beside the conversation and fills as events are captured.',
+    description: 'Start a LIVE measurement with a tool’s own capture — the person confirms ONCE; from then on capture_event records each event as it is said, with no card, until end_measurement. tool stops: Stops timed on a line (lineId) — stopped (machine, reason), running, count. tool reliability: a machine watched (studyId to carry on, or machine and the things counted, e.g. ["stop", "failure"]) — event (count, reason), running, pause, resume. tool sampling: work sampling (studyId, or who and activities) — moment (people: [{ who, activity }]). tool changeover: SMED timed (studyId, or from / to products) — begin (the last good piece), element (the element just finished, by name; who; side), finish (the first good piece). tool workstops: stops across workstations (studyId, or workstations by name) — stopped (workstation), running (workstation). tool balance: an operation timed on the Line balance’s stopwatch (studyId, or lineId and product) — start (who, name), lap, next (name, who if it changes), interrupted, stop. tool valuestream: the value stream walked with the map’s stopwatch (studyId, or lineId) — begin; step (name; who, where, kind operation · move · check, value adds · needed · waste ONLY when said — never judge it); finish (name of the last step). The tool’s page is shown beside the conversation and fills as events are captured.',
     input_schema: obj({
-      tool: { type: 'string', enum: ['stops', 'reliability', 'sampling', 'changeover', 'workstops', 'balance'] },
+      tool: { type: 'string', enum: ['stops', 'reliability', 'sampling', 'changeover', 'workstops', 'balance', 'valuestream'] },
       lineId: str('The line', 80), studyId: str('A record of that tool to carry on', 80), machine: str('The machine', 120), name: str('A name for it', 120),
       counts: { type: 'array', maxItems: 6, items: { type: 'string', maxLength: 60 } },
       who: { type: 'array', maxItems: 12, items: { type: 'string', maxLength: 60 } },
@@ -553,6 +553,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       people: { type: 'array', maxItems: 12, items: obj({ who: str('Who', 60), activity: str('What they were doing', 60) }, ['who', 'activity']) },
       name: str('The element just finished, in their words', 160), side: { type: 'string', enum: ['internal', 'external'] },
       workstation: str('The workstation, by name or number', 80), note: str('A note', 300),
+      where: str('Where the step is done (valuestream)', 120), kind: { type: 'string', enum: ['operation', 'move', 'check'] }, value: { type: 'string', enum: ['adds', 'needed', 'waste'], description: 'VA (adds) · NE (needed) · NV (waste), only when said' },
     }, ['event']),
   },
   {
@@ -570,6 +571,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       as: obj({
         event: str('The event', 40), machine: str('The machine', 120), reason: str('Why', 160), count: str('What was counted', 60), who: str('Who', 60), activity: str('What they were doing', 60),
         name: str('The element', 160), side: { type: 'string', enum: ['internal', 'external'] }, workstation: str('The workstation', 80), note: str('A note', 300),
+        where: str('Where', 120), kind: { type: 'string', enum: ['operation', 'move', 'check'] }, value: { type: 'string', enum: ['adds', 'needed', 'waste'] },
       }, ['event']),
     }, ['as']),
   },
