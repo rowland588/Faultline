@@ -138,8 +138,15 @@ ok((await t.wide()) <= 0 && past.length === 0, `6 nothing off the side at 390 ($
 ok(await page.locator('.ai-strip').isVisible() && /parked/.test(await t.words('.ai-strip')), `6 the strip says what it is on and what is parked: "${await t.words('.ai-strip')}"`);
 const small = await page.evaluate(() => [...document.querySelectorAll('.ai-main button, .nv-top .ai-door')].filter(b => b.offsetParent && b.getBoundingClientRect().height < 44).map(b => b.textContent?.trim().slice(0, 30) || b.getAttribute('aria-label')));
 ok(small.length === 0, `6 every press 44 px or more${small.length ? ` — ${small.join(' · ')}` : ''}`);
-const box = await page.locator('.ai-compose').boundingBox(), bar = await page.locator('.nv-bar').boundingBox();
-ok(!!box && !!bar && box.y + box.height <= bar.y + 1, '6 the box sits above the phone’s bar');
+/* a conversation takes the whole phone, as a chat does (9 November — Rowland: "much like WhatsApp … rather than this very small
+   little window"): the menu's bar gives way, the box at the foot of the screen, the way out the top bar's Back */
+const box = await page.locator('.ai-compose').boundingBox();
+ok(!!box && box.y + box.height <= 844 + 1 && box.y + box.height >= 844 - 6 && !(await page.locator('.nv-bar').isVisible()), `6 the box sits at the foot of the phone, the menu’s bar giving way (${box ? Math.round(box.y + box.height) : '—'} of 844)`);
+await page.locator('.ai-plus').click(); await page.waitForTimeout(300);
+const menu = await page.locator('[data-attach-menu] [role=menuitem]').allInnerTexts();
+ok(menu.length === 3 && /Take a photo/.test(menu[0]) && /Photos/.test(menu[1]) && /factory document/.test(menu[2]), `6 ＋ offers a photo taken, photos and a factory document: ${menu.map(x => x.split('\n')[0]).join(' · ')}`);
+await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+ok((await page.locator('[data-attach-menu]').count()) === 0, '6 Escape puts the ＋ menu away');
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ai-390.png` });
 await page.locator('.ai-strip').click(); await page.waitForTimeout(600);
 ok(await page.locator('.sheet [data-ctx-parked]').isVisible(), '6 the strip opens what it is on, parked and the sources in a sheet');

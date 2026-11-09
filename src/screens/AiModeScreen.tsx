@@ -16,7 +16,7 @@
  *
  * WHICH RECORD: a study of tool `talk`, facts.colleague (no new table). WHERE IT SHOWS: here; the door is the top bar's
  * Ask Faultline (src/colleague/AiDoor), never a line of the menu. */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
@@ -502,6 +502,30 @@ function Conversation({ id, start, onMade, onList, onNew }: {
 
   const [ctxSheet, setCtxSheet] = useState(false);
   const [prefsSheet, setPrefsSheet] = useState(false);
+  /* THE BOX, as a chat's (9 November — Rowland: "a user interface much like I have with you … wide open text screen … add a picture,
+     add a document at the bottom … much like WhatsApp"): the words over a row of presses — ＋ (a photo taken, photos, a factory
+     document), the microphone and Send; the box grows with what is typed; at a desk the context can be put away for a wide page */
+  const camIn = useRef<HTMLInputElement>(null);
+  const [attach, setAttach] = useState(false);
+  const attachRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!attach) return;
+    const away = (e: PointerEvent) => { if (!attachRef.current?.contains(e.target as Node)) setAttach(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setAttach(false); };
+    document.addEventListener('pointerdown', away); document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', away); document.removeEventListener('keydown', esc); };
+  }, [attach]);
+  const pickFrom = (el: HTMLInputElement | null) => { setAttach(false); el?.click(); };
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+  }, [typing]);
+  const [wide, setWide] = useState(() => { try { return localStorage.getItem('fl-ai-wide') === '1'; } catch { return false; } });
+  const toggleWide = () => setWide(w => { try { localStorage.setItem('fl-ai-wide', w ? '0' : '1'); } catch { /* this visit only */ } return !w; });
+  const hour = new Date().getHours();
+  const hello = `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}${me ? `, ${me.split(' ')[0]}` : ''}`;
   const timers = useTimers();
   const firstLine = lines[0]?.name;
   const examples = [
@@ -538,8 +562,9 @@ function Conversation({ id, start, onMade, onList, onNew }: {
 
   return (
     <>
-      <section className="ai-main" aria-label="The conversation">
+      <section className={'ai-main' + (wide ? ' is-wide' : '')} aria-label="The conversation">
         <header className="ai-head">
+          <span className="ai-head-av" aria-hidden><Icon name="spark" size={16} /></span>
           <div className="ai-head-main">
             <p className="ai-eyebrow"><Icon name="spark" size={13} />AI MODE</p>
             <h1 className="ai-title" data-ai-title>{title}</h1>
@@ -549,6 +574,9 @@ function Conversation({ id, start, onMade, onList, onNew }: {
               <span key={t.id} className="ai-timer" role="timer" aria-label={`${t.label} — ${leftSaid(t.endsAt - timers.now)} left`} data-timer><Icon name="time" size={14} />{leftSaid(t.endsAt - timers.now)}<span className="ai-timer-l">{t.label}</span></span>
             ))}
             <button type="button" className="btn ai-list-b" onClick={onList}><Icon name="list" size="1.05em" />Conversations</button>
+            <button type="button" className="btn ai-ctx-b" aria-pressed={!wide} onClick={toggleWide} title={wide ? 'Show what this conversation is on, what is parked and the sources' : 'Put the context away for a wider conversation'}>
+              <Icon name="board" size="1.05em" />{wide ? 'Show context' : 'Hide context'}
+            </button>
             <MoreMenu items={[
               { label: 'New conversation', run: onNew },
               { label: 'How I work', hint: 'what Faultline always knows about how you work — sent with every question', run: () => setPrefsSheet(true) },
@@ -582,10 +610,12 @@ function Conversation({ id, start, onMade, onList, onNew }: {
         <ol className="ai-turns" ref={scroller} aria-label="The conversation" aria-live="polite">
           {turns.length === 0 && (
             <li className="ai-empty">
-              <p className="ai-empty-h">Ask Faultline about your lines, problems, projects and tools.</p>
+              <span className="ai-empty-av" aria-hidden><Icon name="spark" size={26} /></span>
+              <p className="ai-empty-g">{hello}</p>
+              <p className="ai-empty-h">Ask Faultline about {cur?.title ?? 'your lines'} — its problems, projects and tools.</p>
               <p className="sub">It reads what Faultline holds, works figures out with the app’s own calculators, says how each thing is known, and changes nothing until you tap Do it.{noCaps ? ' (Its steps are not loaded on this copy yet.)' : ''}</p>
               <div className="ai-sugs" role="group" aria-label="Try one">
-                {examples.map(x => <button key={x} type="button" className="chip ai-sug" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
+                {examples.map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
               </div>
             </li>
           )}
@@ -604,20 +634,42 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             </p>
           )}
           <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
-            <button type="button" className="btn ai-icon" aria-label="Add a photo" title="Add a photo" onClick={() => photoIn.current?.click()}><Icon name="camera" size="1.2em" /></button>
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
-            <button type="button" className="btn ai-icon" aria-label="Add a factory document" title="Add a factory document — an equipment register, an asset list, a layout" onClick={() => docIn.current?.click()} data-add-doc><Icon name="document" size="1.2em" /></button>
+            <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xls,text/csv,application/pdf,image/*" hidden aria-label="Choose a factory document" onChange={e => { const f = e.target.files?.[0]; if (f) pickDoc(f); e.target.value = ''; }} />
-            <textarea ref={box} className="text-input ai-box" rows={typing.length > 140 ? 4 : typing.length > 60 || typing.includes('\n') ? 2 : 1} value={typing} maxLength={4000}
+            <textarea ref={box} className="ai-box" rows={1} value={typing} maxLength={4000}
               placeholder={listening ? 'Listening — talk…' : 'Ask Faultline, or tell it what you see…'} aria-label="Ask Faultline"
               onChange={e => { const er = ear.current; if (er) { ear.current = null; er.abort(); setListening(false); stopQuiet(); } stopSpeaking(); setBox(e.target.value); }}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia?.('(pointer: fine)').matches) { e.preventDefault(); if (canSend) void send(); } }} />
-            <button type="button" className={'btn ai-icon ai-mic' + (listening ? ' is-on' : '')} aria-pressed={listening}
-              aria-label={listening ? 'Stop listening' : 'Talk into the box'} title={listening ? 'Stop listening' : 'Talk into the box'}
-              onClick={() => { if (listening) void stopListening(); else startListening(); }}>
-              <Icon name={listening ? 'stop' : 'mic'} size="1.25em" />
-            </button>
-            <button type="submit" className="btn btn-primary ai-send" disabled={!canSend}>Send</button>
+            <div className="ai-tools">
+              <div className="ai-attach" ref={attachRef}>
+                <button type="button" className={'ai-tb ai-plus' + (attach ? ' is-on' : '')} aria-haspopup="menu" aria-expanded={attach}
+                  aria-label="Add — a photo or a factory document" title="Add a photo or a factory document" onClick={() => setAttach(a => !a)}>
+                  <Icon name="plus" size="1.3em" />
+                </button>
+                {attach && (
+                  <div className="ai-attach-m" role="menu" aria-label="Add to the conversation" data-attach-menu>
+                    <button type="button" role="menuitem" className="ai-attach-i" onClick={() => pickFrom(camIn.current)}>
+                      <span className="ai-attach-ic"><Icon name="camera" size="1.15em" /></span><span><b>Take a photo</b><span className="sub">with this device’s camera</span></span>
+                    </button>
+                    <button type="button" role="menuitem" className="ai-attach-i" onClick={() => pickFrom(photoIn.current)}>
+                      <span className="ai-attach-ic"><Icon name="photo" size="1.15em" /></span><span><b>Photos</b><span className="sub">one or several from your pictures</span></span>
+                    </button>
+                    <button type="button" role="menuitem" className="ai-attach-i" data-add-doc onClick={() => pickFrom(docIn.current)}>
+                      <span className="ai-attach-ic"><Icon name="document" size="1.15em" /></span><span><b>A factory document</b><span className="sub">an equipment register, an asset list, a layout</span></span>
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button type="button" className="ai-tb" aria-label="Add a photo" title="Add a photo" onClick={() => photoIn.current?.click()}><Icon name="camera" size="1.2em" /></button>
+              <span className="ai-tools-gap" />
+              <button type="button" className={'ai-tb ai-mic' + (listening ? ' is-on' : '')} aria-pressed={listening}
+                aria-label={listening ? 'Stop listening' : 'Talk into the box'} title={listening ? 'Stop listening' : 'Talk into the box'}
+                onClick={() => { if (listening) void stopListening(); else startListening(); }}>
+                <Icon name={listening ? 'stop' : 'mic'} size="1.25em" />
+              </button>
+              <button type="submit" className="ai-send" aria-label="Send" title="Send" disabled={!canSend}><Icon name="arrowUp" size="1.25em" /></button>
+            </div>
           </form>
           <p className="sub ai-hint" aria-live="polite">{listening ? 'Listening — your words come up in the box. Put anything right, then Send.'
             : waitingCard ? `Faultline is waiting for your answer on the card above — Do it or Not now.${talkOn ? ' Or say “yes, do it” or “not now”.' : ''}`

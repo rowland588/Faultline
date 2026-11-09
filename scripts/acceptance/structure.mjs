@@ -140,6 +140,9 @@ for (const width of [1360, 390]) {
     const place = got.rail.filter(l => l.place).map(l => l.l);
     const placeOk = kind === 'line' || kind === 'project' ? place.length === 1 && place[0] === got.scope : place.length === 0;
     if (width > 900 && (menu !== MENU || !placeOk || got.tabs.length > LIMIT[kind])) over.push(`${pg.name} (${kind}): menu ${menu}; place ${place.join() || 'none'}; tabs ${got.tabs.length} — ${got.tabs.join(', ')}`);
+    /* AI Mode's conversation takes the whole phone, as a chat does (9 November — Rowland: "much like WhatsApp"); its bar gives way
+       and ai-mode.mjs proves the box at the foot of the screen and the way out by the top bar */
+    if (width < 900 && pg.path.startsWith('#/ai') && !pg.path.startsWith('#/ai/') && !got.bar) continue;
     if (width < 900) {
       (bars.all ??= new Set()).add(got.bar);
       if (!BAR_OK.has(got.bar)) offBar.push(`${pg.name}: ${got.bar}`);

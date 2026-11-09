@@ -489,6 +489,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the empty conversation saying what it does', sel: '.ai-empty-h', text: /Ask Faultline/ },
     { what: 'three example chips', sel: '.ai-empty .ai-sug', n: 3 },
     { what: 'the box with Send', sel: '.ai-type' },
+    /* 9 November, the box as a chat's: ＋ for a photo taken, photos or a factory document, and the round Send */
+    { what: '＋ — a photo taken, photos or a factory document', sel: '.ai-type .ai-plus' }, { what: 'the round Send', sel: '.ai-type .ai-send' },
+    { what: 'the greeting over the empty conversation', sel: '.ai-empty-g', text: /^Good (morning|afternoon|evening)/ },
     { what: 'the door in the top bar', sel: '.ai-door' },
     /* Phase 4, on the floor: Speak replies, Conversation, Sounds and Before you walk the floor sit under it */
     { what: 'More ▾ — the voice and the floor check', sel: '.ai-head-acts .part-menu-b' },
