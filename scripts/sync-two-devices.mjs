@@ -413,8 +413,16 @@ async function addLine(page, placeholder, value) {
 async function takePhoto(page, jpeg) {
   await openEvidence(page);
   const [fc] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Camera', exact: true }).first().click()]);
+  /* Waited for by what it does — the test gaining the photo — never a fixed
+     pause: on a page still busy after a reload (scenario 9) the save took
+     about a second, and an 800 ms sleep read the row before it, so "the phone
+     holds the new photo" failed on a photo that was held a moment later. The
+     same as attachPdf below. */
+  const tid = page.url().match(/testing\/([^/?#]+)/)?.[1];
+  const before = tid ? ((await testRow(page, tid))?.media?.length ?? 0) : 0;
   await fc.setFiles({ name: 'IMG_0412.jpg', mimeType: 'image/jpeg', buffer: jpeg });
-  await page.waitForTimeout(800);
+  if (tid) await waitFor(async () => ((await testRow(page, tid))?.media?.length ?? 0) > before, 8000);
+  else await page.waitForTimeout(800);
 }
 async function attachPdf(page, name, bytes) {
   const tid = page.url().match(/testing\/([^/?#]+)/)?.[1];
