@@ -7,7 +7,9 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 1. What is live (main at the look's L0 commit, 6 November, Vercel production READY, faultline.opexelevate.co.uk)
 
-- **Areas on the Factory, and the area report (9 November — branch `areas`, not yet on `main`).** Rowland: *"we now have areas
+- **Back, to where you were (9 November, live).** Rowland: *"never send you back to where you was .. instead of the classic back"*. The top bar's **Back** walks this session's own trail of pages (`state/navHistory`) as a browser's Back does — shown only when there is somewhere to go back to; ‹ Factory / ‹ Projects still go up; on a phone the arrow alone, the up crumb giving way, the bar fitting 375 px. `scripts/acceptance/back.mjs`.
+- **The brief uploaded from Start the story (9 November, live).** *Upload a brief* beside Start the story: the file starts the story and goes to the brief's own reader. `story-brief.mjs` step 11.
+- **Areas on the Factory, and the area report (9 November, live).** Rowland: *"we now have areas
   in set up. So on factory page we need area.. then each area will have lines in them we need area reports show everything
   happening in the area"*. An area is a group of the factory's lines by the words on them (`lib/areas` — no record, no database
   change, never a fourth scope). The Lines tab (`#/room`) is an area a section — its sentence, *Open the area ›*, *Area report* —
