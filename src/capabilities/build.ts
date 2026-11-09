@@ -12,6 +12,8 @@
  * Locals change only the conversation's draft (facts.drafts on the AI Mode conversation): nothing is a record until the person
  * says yes to make_record's card. Pure work is in ./drafts. */
 import { getProject, getStudy, getWorkspace, listAllStandards, patchStudy, putStudy } from '../db';
+import { conversation, draftIn, draftsOf, putDraft, writeDrafts } from './draftStore';
+import { factoryPreview, factoryState, makeFactory } from './factoryBuild';
 import type { ToolStudy } from '../lib/study';
 import { studyHref } from '../lib/studyLinks';
 import { uid } from '../lib/ids';
@@ -26,31 +28,9 @@ import {
 import type { CapCtx, CapResult, Capability, ColleagueDraft, ColleagueThread, DraftField, DraftKind } from './types';
 import { lineRef, plural, projectRef } from './util';
 
-/* ------------------------------------------------------------------ the conversation's drafts */
+/* ------------------------------------------------------------------ the conversation's drafts (./draftStore) */
 
-export const draftsOf = (s: Pick<ToolStudy, 'facts'>): ColleagueDraft[] => {
-  const d = (s.facts as { drafts?: unknown }).drafts;
-  return Array.isArray(d) ? d as ColleagueDraft[] : [];
-};
-
-async function conversation(ctx: CapCtx): Promise<{ ok: true; s: ToolStudy } | { ok: false; why: string }> {
-  if (!ctx.conversationId) return { ok: false, why: 'This needs a conversation to keep it in, and there is none open.' };
-  const s = await getStudy(ctx.conversationId);
-  if (!s || s.tool !== 'talk' || !(s.facts as { colleague?: boolean }).colleague) return { ok: false, why: 'The conversation is not on this device any more.' };
-  return { ok: true, s };
-}
-
-/** The drafts written back, worked out from the stored row so nothing written meanwhile is lost. */
-const writeDrafts = (id: string, change: (cur: ColleagueDraft[]) => ColleagueDraft[]) =>
-  patchStudy(id, cur => ({ facts: { ...cur.facts, drafts: change(draftsOf(cur)) } as ToolStudy['facts'] }));
-
-async function draftIn(ctx: CapCtx, draftId: string): Promise<{ ok: true; s: ToolStudy; d: ColleagueDraft } | { ok: false; why: string }> {
-  const c = await conversation(ctx);
-  if (!c.ok) return c;
-  const d = draftsOf(c.s).find(x => x.id === draftId);
-  return d ? { ok: true, s: c.s, d } : { ok: false, why: 'There is no draft with that id in this conversation — start one first, or ask for the draft state.' };
-}
-const putDraft = (s: ToolStudy, d: ColleagueDraft) => writeDrafts(s.id, cur => cur.map(x => (x.id === d.id ? d : x)));
+export { draftsOf } from './draftStore';
 
 const missingSaid = (d: ColleagueDraft): string => { const m = missing(d); return m.length ? `Still missing: ${m.map(f => f.label).join(', ')}.` : 'Everything it needs is there — it can be made when the person says so.'; };
 
@@ -147,6 +127,7 @@ export const fillDraftCap: Capability = {
   async run(ctx, input: { draftId: string; values: FillItem[] }): Promise<CapResult> {
     const got = await draftIn(ctx, input.draftId);
     if (!got.ok) return got;
+    if (got.d.kind === 'factory') return { ok: false, why: 'A factory draft is filled with add_to_factory_draft — its sites, areas, lines and machines.' };
     const r = fillDraft(got.d, input.values, ctx.now);
     if (r.kept.length || r.corrected.length) await putDraft(got.s, r.draft);
     if (!r.kept.length && !r.corrected.length) return { ok: false, why: `Nothing was kept. ${r.refused.join(' ')}` };
@@ -224,6 +205,7 @@ export const adaptDraftCap: Capability = {
   async run(ctx, input: { draftId: string; add: { section?: string; field: DraftField }[]; remove: string[] }): Promise<CapResult> {
     const got = await draftIn(ctx, input.draftId);
     if (!got.ok) return got;
+    if (got.d.kind === 'factory') return { ok: false, why: 'A factory draft has no fields to add — say its sites, areas, lines and machines with add_to_factory_draft.' };
     const r = adaptDraft(got.d, input.add, input.remove);
     if (!r.added.length && !r.removed.length) return { ok: false, why: `Nothing was changed. ${r.refused.join(' ')}` };
     await putDraft(got.s, r.draft);
@@ -306,9 +288,11 @@ export const draftState: Capability = {
     const all = draftsOf(c.s);
     const list = input.draftId ? all.filter(d => d.id === input.draftId) : all;
     if (!list.length) return input.draftId ? { ok: false, why: 'There is no draft with that id in this conversation.' } : { ok: true, says: 'Nothing is being built in this conversation yet.', data: [], refs: [] };
+    const factories = new Map<string, { says: string; data: unknown }>();
+    for (const d of list) if (d.kind === 'factory') factories.set(d.id, await factoryState(d));
     return {
-      ok: true, says: list.map(draftSaid).join('\n'),
-      data: list.map(d => ({
+      ok: true, says: list.map(d => factories.get(d.id)?.says ?? draftSaid(d)).join('\n'),
+      data: list.map(d => factories.get(d.id)?.data ?? ({
         draftId: d.id, title: d.title, kind: d.kind, key: d.key, status: d.status, ...(d.studyId ? { studyId: d.studyId } : {}),
         captured: captured(d).map(x => ({ field: x.field.name, value: x.entry.value, how: x.entry.how, ...(x.entry.earlier?.length ? { earlier: x.entry.earlier.map(e => e.value) } : {}) })),
         missing: missing(d).map(f => f.name),
@@ -340,6 +324,7 @@ export const makeRecord: Capability = {
     const got = await draftIn(ctx, input.draftId);
     if (!got.ok) return got.why;
     const d = got.d;
+    if (d.kind === 'factory') return factoryPreview(d);
     const [line, p] = await Promise.all([d.scope.lineId ? getWorkspace(d.scope.lineId) : undefined, d.scope.projectId ? getProject(d.scope.projectId) : undefined]);
     const where = `${line ? ` on ${line.name}` : ' on no line'}${p ? `, in ${p.name}` : ''}`;
     const need = missing(d);
@@ -357,6 +342,7 @@ export const makeRecord: Capability = {
     const got = await draftIn(ctx, input.draftId);
     if (!got.ok) return got;
     const d = got.d;
+    if (d.kind === 'factory') return makeFactory(ctx, got.s, d);
     const need = missing(d);
     if (need.length) return { ok: false, why: `“${d.title}” cannot be made yet — it still needs: ${need.map(f => f.label).join(', ')}.` };
     const [line, p] = await Promise.all([d.scope.lineId ? getWorkspace(d.scope.lineId) : undefined, d.scope.projectId ? getProject(d.scope.projectId) : undefined]);

@@ -21,7 +21,7 @@ export interface UsageRow {
 }
 
 /** The tasks the gateway answers (supabase/functions/assist TASKS), in the order the page lists them. */
-export const TASKS = ['colleague', 'talk', 'story', 'brief-read', 'brief-asks', 'video-label'] as const;
+export const TASKS = ['colleague', 'talk', 'story', 'brief-read', 'brief-asks', 'factory-read', 'video-label'] as const;
 
 export const TASK_WORDS: Record<string, string> = {
   colleague: 'AI Mode — the colleague',
@@ -29,12 +29,13 @@ export const TASK_WORDS: Record<string, string> = {
   story: 'The Story — writing the chapter',
   'brief-read': 'The brief — read from its pages',
   'brief-asks': 'The brief — split into asks',
+  'factory-read': 'Factory documents — read for what they hold',
   'video-label': 'Video study — naming the work',
 };
 export const taskWords = (task: string): string => TASK_WORDS[task] ?? task;
 
 /** Each task's allowance a day as the gateway sets it by default (supabase/functions/assist/index.ts — LIMIT, TALK_LIMIT,
- *  STORY_LIMIT, COLLEAGUE_LIMIT, BRIEF_LIMIT). The two brief tasks share one. The server may be set otherwise, so the page
+ *  STORY_LIMIT, COLLEAGUE_LIMIT, BRIEF_LIMIT, FACTORY_READ_LIMIT). The two brief tasks share one. The server may be set otherwise, so the page
  *  says these are the defaults. */
 export interface AllowanceDefault { tasks: string[]; calls: number; usd: number }
 export const ALLOWANCES: readonly AllowanceDefault[] = [
@@ -42,6 +43,7 @@ export const ALLOWANCES: readonly AllowanceDefault[] = [
   { tasks: ['talk'], calls: 60, usd: 5 },
   { tasks: ['story'], calls: 20, usd: 3 },
   { tasks: ['brief-read', 'brief-asks'], calls: 20, usd: 3 },
+  { tasks: ['factory-read'], calls: 20, usd: 3 },
   { tasks: ['video-label'], calls: 25, usd: 3 },
 ];
 
