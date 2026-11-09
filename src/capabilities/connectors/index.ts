@@ -65,7 +65,7 @@ const calcOf = (key: string) => (s: ToolStudy): boolean => s.tool === 'calc' && 
 export const CONNECTORS: readonly ToolConnector[] = [
   { key: 'stops', capture: 'stops', report: 'none', byHand: 'Its Pareto and the loss count read the stops; the line report prints them.' },
   { key: 'linestandard', fillBy: ['start_study (standard)', 'place_people'], report: 'page', byHand: 'The board is drawn by hand on its page; its card is under Report ▾ there.' },
-  { key: 'linework', owns: s => s.tool === 'balance' && !s.facts?.video, fillBy: ['start_study (balance)', 'time_elements'], report: 'page', byHand: 'The people’s work is timed with the page’s own stopwatch; its paper is under Report ▾.' },
+  { key: 'linework', owns: s => s.tool === 'balance' && !s.facts?.video, capture: 'balance', fillBy: ['start_study (balance)', 'time_elements'], report: 'page', byHand: 'The people’s work is timed with the page’s own stopwatch; its paper is under Report ▾.' },
   { key: 'linebalance', fillBy: ['start_study (capacity)', 'set_capacity'], report: 'page', byHand: 'Stations and speeds are set on the page; its paper is under Report ▾ there.' },
   { key: 'capability', owns: s => s.tool === 'capability', readings: true, fillBy: ['start_study (capability)', 'add_readings'], report: 'paper' },
   { key: 'chart', owns: s => s.tool === 'chart', readings: true, fillBy: ['start_study (chart)', 'add_readings'], report: 'paper' },

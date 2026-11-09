@@ -83,7 +83,7 @@ const STUDY_WORD: Record<StartTool, string> = {
   register: 'a register', board: 'the maintenance board', balance: 'a Line balance', capacity: 'a product’s Line capacity', standard: 'a product’s line standard',
 };
 /** The product's line standard on the line — found by name, else made as Line capacity's New makes it (screens/LineToolsScreen). */
-async function standardFor(lineId: string, projectId: string | undefined, product: string, at: number, capacity: boolean): Promise<Standard> {
+export async function standardFor(lineId: string, projectId: string | undefined, product: string, at: number, capacity: boolean): Promise<Standard> {
   const had = (await listStandardsForLine(lineId)).find(x => !x.deletedAt && same(x.product, product));
   if (had) {
     if (capacity && !had.capacity) { const s = { ...had, capacity: { stations: [] } }; await putStandard(s); return s; }

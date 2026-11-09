@@ -531,15 +531,16 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'start_measurement',
     kind: 'write',
-    description: 'Start a LIVE measurement with a tool’s own capture — the person confirms ONCE; from then on capture_event records each event as it is said, with no card, until end_measurement. tool stops: Stops timed on a line (lineId) — stopped (machine, reason), running, count. tool reliability: a machine watched (studyId to carry on, or machine and the things counted, e.g. ["stop", "failure"]) — event (count, reason), running, pause, resume. tool sampling: work sampling (studyId, or who and activities) — moment (people: [{ who, activity }]). tool changeover: SMED timed (studyId, or from / to products) — begin (the last good piece), element (the element just finished, by name; who; side), finish (the first good piece). tool workstops: stops across workstations (studyId, or workstations by name) — stopped (workstation), running (workstation). The tool’s page is shown beside the conversation and fills as events are captured.',
+    description: 'Start a LIVE measurement with a tool’s own capture — the person confirms ONCE; from then on capture_event records each event as it is said, with no card, until end_measurement. tool stops: Stops timed on a line (lineId) — stopped (machine, reason), running, count. tool reliability: a machine watched (studyId to carry on, or machine and the things counted, e.g. ["stop", "failure"]) — event (count, reason), running, pause, resume. tool sampling: work sampling (studyId, or who and activities) — moment (people: [{ who, activity }]). tool changeover: SMED timed (studyId, or from / to products) — begin (the last good piece), element (the element just finished, by name; who; side), finish (the first good piece). tool workstops: stops across workstations (studyId, or workstations by name) — stopped (workstation), running (workstation). tool balance: an operation timed on the Line balance’s stopwatch (studyId, or lineId and product) — start (who, name), lap, next (name, who if it changes), interrupted, stop. The tool’s page is shown beside the conversation and fills as events are captured.',
     input_schema: obj({
-      tool: { type: 'string', enum: ['stops', 'reliability', 'sampling', 'changeover', 'workstops'] },
+      tool: { type: 'string', enum: ['stops', 'reliability', 'sampling', 'changeover', 'workstops', 'balance'] },
       lineId: str('The line', 80), studyId: str('A record of that tool to carry on', 80), machine: str('The machine', 120), name: str('A name for it', 120),
       counts: { type: 'array', maxItems: 6, items: { type: 'string', maxLength: 60 } },
       who: { type: 'array', maxItems: 12, items: { type: 'string', maxLength: 60 } },
       activities: { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 60 } },
       from: str('Changed from (product)', 120), to: str('Changed to (product)', 120),
       workstations: { type: 'array', maxItems: 30, items: { type: 'string', maxLength: 80 } },
+      product: str('The product whose work is timed (balance)', 120),
     }, ['tool']),
   },
   {

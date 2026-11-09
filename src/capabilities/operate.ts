@@ -449,6 +449,7 @@ const START_FIELDS = {
   lineId: ID('the line'), studyId: ID('the record to carry on'), machine: { kind: 'string', label: 'the machine', max: 120 }, name: { kind: 'string', label: 'a name', max: 120 },
   counts: { kind: 'strings', label: 'the things counted', max: 6 }, who: { kind: 'strings', label: 'the people watched', max: 12 }, activities: { kind: 'strings', label: 'what a tap can say', max: 10 },
   from: { kind: 'string', label: 'the product changed from', max: 120 }, to: { kind: 'string', label: 'the product changed to', max: 120 }, workstations: { kind: 'strings', label: 'the workstations', max: 30 },
+  product: { kind: 'string', label: 'the product timed', max: 120 },
 } as const;
 export const startMeasurement: Capability = {
   name: 'start_measurement', title: 'Start the measurement', kind: 'write',

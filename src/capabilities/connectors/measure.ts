@@ -30,9 +30,11 @@ import { newCalcStudy } from '../../tools/calc/calc';
 import { wid, MAX_STATIONS } from '../../tools/calc/defs/workstation-stops';
 import { studyHref, studyTitle } from '../../lib/studyLinks';
 import { shiftAtTime } from '../../lib/shifts';
+import { balanceStudyFor } from '../../tools/linework/balanceLink';
+import { standardFor } from '../fill';
 import { uid } from '../../lib/ids';
 
-export const MEASURE_TOOLS = ['stops', 'reliability', 'sampling', 'changeover', 'workstops'] as const;
+export const MEASURE_TOOLS = ['stops', 'reliability', 'sampling', 'changeover', 'workstops', 'balance'] as const;
 export type MeasureTool = typeof MEASURE_TOOLS[number];
 
 /** One thing captured in a session — what was said, when, and the record it wrote (to review, undo or correct it). */
@@ -44,7 +46,7 @@ export interface MeasureEvent {
   /** In words, as the review lists it: "Wrapper — film break, stopped". */
   says: string;
   /** What it wrote: an observation's id, an event's id, a step's id, a tap's id, a workstation's add. */
-  ref?: { kind: 'obs' | 'timer' | 'relEvent' | 'relFix' | 'tap' | 'moment' | 'step' | 'ws'; id: string; field?: string; add?: number; stops?: number; log?: string };
+  ref?: { kind: 'obs' | 'timer' | 'relEvent' | 'relFix' | 'tap' | 'moment' | 'step' | 'ws' | 'lap'; id: string; field?: string; add?: number; stops?: number; log?: string; step?: string; from?: number; who?: string; name?: string };
   input?: CaptureInput;
   struck?: boolean;
 }
@@ -58,8 +60,10 @@ export interface Measurement {
   startedAt: number;
   endedAt?: number;
   events: MeasureEvent[];
+  /** The tool's page for this session, when its address is not the tool's plain one (a Line balance lives on its line standard). */
+  href?: string;
   /** What is running now: a SMED element since a moment; workstations stopped since moments. */
-  open?: { since?: number; ws?: Record<string, number> };
+  open?: { since?: number; ws?: Record<string, number>; who?: string; name?: string };
   threadId?: string;
 }
 
@@ -98,6 +102,8 @@ export interface StartInput {
   to?: string;
   /** workstops: the workstations' names. */
   workstations?: string[];
+  /** balance: the product whose Line balance is timed. */
+  product?: string;
 }
 
 export interface CaptureAdapter {
@@ -502,7 +508,92 @@ const workstops: CaptureAdapter = {
   href: m => `/calc/${WS_KEY}/${m.studyId}`,
 };
 
-export const CAPTURE_ADAPTERS: Record<MeasureTool, CaptureAdapter> = { stops, reliability, sampling, changeover, workstops };
+
+/* ================================================================== the Line balance's stopwatch */
+/** One lap on an element — the element made when it is first timed, as the balance's own timer does (screens WorkBalance). */
+const lapOn = async (studyId: string, who: string, name: string, sec: number, at: number, me?: string, foreign?: boolean): Promise<{ lapId: string; stepId: string }> => {
+  const lapId = uid();
+  let stepId = '';
+  await patchStudy(studyId, cur => {
+    const steps = [...(cur.facts.steps ?? [])];
+    let k = steps.findIndex(x => same(x.who, who) && same(x.name, name));
+    if (k < 0) { steps.push({ id: uid(), order: steps.reduce((m, x) => Math.max(m, x.order), -1) + 1, who, name }); k = steps.length - 1; }
+    stepId = steps[k].id;
+    steps[k] = { ...steps[k], laps: [...(steps[k].laps ?? []), { id: lapId, sec: +sec.toFixed(1), at, ...(me ? { who: me } : {}), ...(foreign ? { foreign: true } : {}) }] };
+    return { facts: { ...cur.facts, steps } };
+  });
+  return { lapId, stepId };
+};
+const balanceCap: CaptureAdapter = {
+  tool: 'balance', label: 'Line balance', needsLine: false,
+  says: 'An operation timed element by element on the stopwatch — each lap the time between what is said — for each person’s load against the takt.',
+  events: [
+    { event: 'start', says: 'the stopwatch starts on an element: who does it and what it is', needs: ['who', 'name'] },
+    { event: 'lap', says: 'the element is done once more — a lap, and the next starts at once' },
+    { event: 'next', says: 'the element is done and the next one starts (who, if it changes, and what)', needs: ['name'] },
+    { event: 'interrupted', says: 'that lap was not normal work — kept, counted for nothing' },
+    { event: 'stop', says: 'the last lap ends and the stopwatch stops' },
+  ],
+  async start(input, at) {
+    let s = input.studyId ? await getStudy(input.studyId) : undefined;
+    if (input.studyId && (!s || s.tool !== 'balance' || s.facts?.video || s.deletedAt)) return { ok: false, why: 'That is not a Line balance on this device.' };
+    if (!s) {
+      if (!input.lineId || !input.product) return { ok: false, why: 'Say the line and the product whose work is timed (or the Line balance).' };
+      const std = await standardFor(input.lineId, undefined, input.product, at, true);
+      s = balanceStudyFor(std, { id: uid(), at });
+      await putStudy(s);
+    }
+    const m: Measurement = { id: uid(), tool: 'balance', label: `Timing ${s.name}`, studyId: s.id, href: studyHref(s), ...(s.workspaceId ? { lineId: s.workspaceId } : {}), startedAt: at, events: [], open: {} };
+    return { ok: true, m, says: `Ready to time ${s.name} — say who and what to start, then “lap” each time it is done, or the next element’s name.`, href: studyHref(s) };
+  },
+  async record(m, ev, at, me) {
+    if (!m.studyId) return { ok: false, why: 'No study.' };
+    const o = m.open ?? {};
+    if (ev.event === 'start') {
+      const who = ev.who?.trim(), name = ev.name?.trim();
+      if (!who || !name) return { ok: false, why: 'Say who does it and what the element is.' };
+      const e: MeasureEvent = { id: uid(), at, event: 'start', says: `${who} — ${name}: started at ${hm(at)}`, input: ev };
+      return { ok: true, m: withEvent(m, e, { since: at, who, name }), says: `Timing ${who}: ${name}.`, event: e };
+    }
+    if (o.since === undefined || !o.who || !o.name) return { ok: false, why: 'The stopwatch is not running — say who and which element to start.' };
+    const sec = (at - o.since) / 1000;
+    if (sec <= 0.2) return { ok: false, why: 'Too quick to be a lap.' };
+    const done = await lapOn(m.studyId, o.who, o.name, sec, at, me, ev.event === 'interrupted');
+    const ref = { kind: 'lap' as const, id: done.lapId, step: done.stepId, from: o.since, who: o.who, name: o.name };
+    if (ev.event === 'lap' || ev.event === 'interrupted') {
+      const e: MeasureEvent = { id: uid(), at, event: ev.event, says: `${o.who} — ${o.name}: ${sec.toFixed(1)} s${ev.event === 'interrupted' ? ' (interrupted, not counted)' : ''}`, ref, input: ev };
+      return { ok: true, m: withEvent(m, e, { ...o, since: at }), says: `${o.name}: ${sec.toFixed(1)} s${ev.event === 'interrupted' ? ', kept as interrupted' : ''}. Timing it again.`, event: e };
+    }
+    if (ev.event === 'next') {
+      const name = ev.name?.trim();
+      if (!name) return { ok: false, why: 'Name the next element.' };
+      const who = ev.who?.trim() || o.who;
+      const e: MeasureEvent = { id: uid(), at, event: 'next', says: `${o.who} — ${o.name}: ${sec.toFixed(1)} s; then ${who} — ${name}`, ref, input: ev };
+      return { ok: true, m: withEvent(m, e, { since: at, who, name }), says: `${o.name}: ${sec.toFixed(1)} s. Now ${who}: ${name}.`, event: e };
+    }
+    if (ev.event === 'stop') {
+      const e: MeasureEvent = { id: uid(), at, event: 'stop', says: `${o.who} — ${o.name}: ${sec.toFixed(1)} s; stopwatch stopped`, ref, input: ev };
+      return { ok: true, m: withEvent(m, e, {}), says: `${o.name}: ${sec.toFixed(1)} s. The stopwatch is stopped.`, event: e };
+    }
+    return { ok: false, why: `The Line balance takes start, lap, next, interrupted or stop — not “${ev.event}”.` };
+  },
+  async undo(m, e) {
+    if (!m.studyId || e.ref?.kind !== 'lap') return e.event === 'start' ? { ok: true, m: { ...m, open: {} }, says: 'Taken back: the stopwatch is stopped.' } : { ok: false, why: 'Nothing to take back.' };
+    const { id, step, from } = e.ref;
+    /* struck, never erased — as the balance's own Undo keeps a mistimed lap */
+    await patchStudy(m.studyId, cur => ({ facts: { ...cur.facts, steps: (cur.facts.steps ?? []).map(x => (x.id !== step ? x : { ...x, laps: (x.laps ?? []).map(l => (l.id === id ? { ...l, struck: true } : l)) })) } }));
+    const latest = !m.events.some(x => !x.struck && x.at > e.at && x.ref?.kind === 'lap');
+    /* the latest lap taken back: the clock runs again on that element from where its lap began */
+    return { ok: true, m: latest && from !== undefined ? { ...m, open: { since: from, who: e.ref.who, name: e.ref.name } } : m, says: `Struck: ${e.says}.${latest ? ' The clock runs from where that lap began.' : ''}` };
+  },
+  async end(m, at) {
+    const n = m.events.filter(e => !e.struck && e.ref?.kind === 'lap').length;
+    return { ok: true, m: { ...m, endedAt: at, open: {} }, says: `Timing ended. ${n} lap${n === 1 ? '' : 's'} timed in this session — the Line balance works out each person’s load against the takt.` };
+  },
+  href: m => m.href ?? `/balance/${m.studyId}`,
+};
+
+export const CAPTURE_ADAPTERS: Record<MeasureTool, CaptureAdapter> = { stops, reliability, sampling, changeover, workstops, balance: balanceCap };
 export const adapterOf = (tool: string): CaptureAdapter | undefined => (MEASURE_TOOLS as readonly string[]).includes(tool) ? CAPTURE_ADAPTERS[tool as MeasureTool] : undefined;
 
 /** The session's events as a review lists them: in order, struck ones said so. */
