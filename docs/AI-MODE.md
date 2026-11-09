@@ -379,3 +379,7 @@ function must be redeployed** for the colleague to use them.
 ## Understanding the app and where work belongs (9 November)
 
 Read `docs/AI-CONTEXT.md`: the application model (`src/capabilities/appModel.ts`), `describe_faultline`, `plan_work`, `resolve_record`, `update_context` and `link_to_project` (`src/capabilities/understand.ts`), a subject's aim and kind of work (just talk · standalone · in a project), the duplicate checks and the destination on every card. `scripts/acceptance/ai-context.mjs` proves the twelve journeys.
+
+## Voice (9 November)
+
+Read `docs/VOICE.md`: dictation's Cancel and Done, the voice conversation (`colleague/VoiceMode`) over this same engine — `spoken: true` on the request, the end of a turn by `turnEnd`, the reply said sentence by sentence, interruption, talk-over with a headset, the states and settings — and why it is the web app, not a native wrapper, for now.

@@ -32,6 +32,8 @@ export interface ColleagueBody {
   today: string;
   conversationId?: string;
   pending?: { assistant: unknown; results: CallResult[] };
+  /** The person is listening — the voice conversation: the colleague answers for the ear (docs/VOICE.md). */
+  spoken?: boolean;
 }
 export interface CallResult { id: string; ok: boolean; says: string; data?: unknown; declined?: boolean }
 
@@ -121,6 +123,8 @@ export interface LoopAsk {
   conversationId?: string;
   /** How I work — read once per question (lib/preferences preferencesText), so a line remembered meanwhile goes next time. */
   preferences?: () => string;
+  /** The voice conversation is open: answered for the ear. */
+  spoken?: boolean;
 }
 
 export type LoopEnd =
@@ -141,6 +145,7 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     const body: ColleagueBody = {
       task: 'colleague', turns: ask.turns, ...(ask.images?.length ? { images: ask.images } : {}),
       focus: await ask.focus(), ...(prefs ? { preferences: prefs } : {}), today: ask.today, ...(ask.conversationId ? { conversationId: ask.conversationId } : {}), ...(pending ? { pending } : {}),
+      ...(ask.spoken ? { spoken: true } : {}),
     };
     const a = await deps.invoke(body);
     if (!a.ok) return { ...a, rounds: round, ...(words.length ? { reply: text() } : {}) };

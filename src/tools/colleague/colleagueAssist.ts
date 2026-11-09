@@ -51,7 +51,13 @@ export interface ColleagueAsk {
   /** The AI Mode conversation's id, for the audit only. */
   conversationId?: string;
   pending?: ColleaguePending;
+  /** The person is listening, not reading — the voice conversation (docs/VOICE.md): answered for the ear. */
+  spoken?: boolean;
 }
+
+/** HOW A SPOKEN REPLY IS WRITTEN — the voice conversation (9 November, docs/VOICE.md: "The spoken response should be natural and
+ *  concise"). Added to the turn only when the person is listening; the same rules, the same capabilities, the same conversation. */
+export const SPOKEN_NOTE = 'THE PERSON IS LISTENING, NOT READING — they are in a voice conversation, maybe on the floor with a headset. Answer as you would out loud: two to four short sentences, the most important thing first; no lists, headings, tables, symbols or ids; a figure said as words a person says ("about forty-two minutes"), and only one or two of them; offer the detail rather than giving it ("shall I go through the stops one by one?"). Ask at most one question, at the end. The written words stay in the chat for them to read later.';
 
 /** A capability as Claude sees it (src/capabilities/schemas.ts CAPABILITY_SCHEMAS). */
 export interface CapabilitySchema { name: string; kind: 'read' | 'write' | 'local'; description: string; input_schema: object }
@@ -290,7 +296,7 @@ export function readColleagueAsk(body: unknown): { ok: true; ask: ColleagueAsk }
   }
   const conversationId = str(b.conversationId, 80);
   const preferences = str(b.preferences, COLLEAGUE_LIMITS.preferencesChars);
-  return { ok: true, ask: { task: 'colleague', turns, images, focus: str(b.focus, COLLEAGUE_LIMITS.focusChars), ...(preferences ? { preferences } : {}), today: str(b.today, 60), ...(conversationId ? { conversationId } : {}), ...(pending ? { pending } : {}) } };
+  return { ok: true, ask: { task: 'colleague', turns, images, focus: str(b.focus, COLLEAGUE_LIMITS.focusChars), ...(preferences ? { preferences } : {}), today: str(b.today, 60), ...(conversationId ? { conversationId } : {}), ...(pending ? { pending } : {}), ...(b.spoken === true ? { spoken: true } : {}) } };
 }
 
 /* ------------------------------------------------------------------ the conversation in the model's terms */
@@ -355,7 +361,8 @@ export function colleagueMessages(a: ColleagueAsk): ColleagueMessage[] {
   if (end) end.cache_control = { type: 'ephemeral' };
   const threads = a.focus.trim() ? `THE CONVERSATION'S THREADS:\n<threads>\n${a.focus.trim()}\n</threads>` : 'No threads are open yet.';
   const how = a.preferences?.trim() ? `\n\nHOW ROWLAND WORKS — his own words; follow them unless they conflict with the rules:\n<how_he_works>\n${a.preferences.trim()}\n</how_he_works>` : '';
-  put('user', [{ type: 'text', text: `${threads}${how}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turn above.` }]);
+  const ear = a.spoken ? `\n\n${SPOKEN_NOTE}` : '';
+  put('user', [{ type: 'text', text: `${threads}${how}${ear}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turn above.` }]);
   if (a.pending) {
     const rounds: ColleagueRound[] = [...a.pending.carry.rounds, { content: a.pending.carry.content, results: a.pending.results, refused: a.pending.carry.refused }];
     let lastResult: ResultBlock | undefined;

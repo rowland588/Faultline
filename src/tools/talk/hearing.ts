@@ -122,6 +122,9 @@ export class Ear {
   private wait: ReturnType<typeof setTimeout> | null = null;
   private ended: (() => void) | null = null;
   private stopping: Promise<Cut> | null = null;
+  /** Write the words down on the phone itself (the Web Speech API's processLocally, where the browser offers it — AI Mode's voice
+   *  settings, colleague/voicePrefs). */
+  local = false;
 
   /** `away`: whether the page is out of sight — a phone refuses its hearing
    *  then (the screen locked, another app in front), and that is waited out,
@@ -153,6 +156,7 @@ export class Ear {
     r.continuous = !this.oneAtATime;
     r.interimResults = true;
     r.maxAlternatives = 1;
+    if (this.local) (r as Recognition & { processLocally?: boolean }).processLocally = true;
     r.onresult = e => {
       if (this.rec !== r) return;
       this.results = e.results;
