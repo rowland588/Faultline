@@ -14,6 +14,7 @@ export type WorkerIn =
   | { t: 'forget'; job: number; id: string };
 export type WorkerOut =
   | { t: 'progress'; job: number; stage: string; done: number; total: number }
+  | { t: 'beat'; job: number }
   | { t: 'done'; job: number; value: unknown }
   | { t: 'fail'; job: number; why: string };
 
@@ -38,6 +39,8 @@ const post = (m: WorkerOut): void => (self as unknown as { postMessage(m: Worker
 self.onmessage = async (e: MessageEvent<WorkerIn>) => {
   const m = e.data;
   if (m.t === 'stop') { const s = signals.get(m.id); if (s) s.stopped = true; return; }
+  /* a beat every few seconds while any job runs, so the app can tell a slow read or question from one the browser has stopped */
+  const beat = setInterval(() => post({ t: 'beat', job: m.job }), 5000);
   try {
     if (m.t === 'read') {
       const signal = { stopped: false };
@@ -53,6 +56,6 @@ self.onmessage = async (e: MessageEvent<WorkerIn>) => {
     else if (m.t === 'rows') post({ t: 'done', job: m.job, value: await sourceRows(st(m.id), await profileOf(m.id), m.q) });
     else if (m.t === 'forget') { await st(m.id).remove(); stores.delete(m.id); memory.delete(m.id); post({ t: 'done', job: m.job, value: true }); }
   } catch (err) {
-    post({ t: 'fail', job: 'job' in m ? m.job : 0, why: err instanceof Error ? err.message : String(err) });
-  }
+    post({ t: 'fail', job: m.job, why: err instanceof Error ? err.message : String(err) });
+  } finally { clearInterval(beat); }
 };

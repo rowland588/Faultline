@@ -23,19 +23,38 @@ export function workbookId(f: { name: string; size: number; lastModified?: numbe
   return `wb-${h.toString(36)}-${f.size.toString(36)}`;
 }
 
+/** How long the worker may be silent while it works before it is said to have stopped. */
+const STALL_MS = 60_000;
+
 /** A message to the worker, before its job number is put on. */
 type JobMsg = WorkerIn extends infer U ? (U extends { job: number } ? Omit<U, 'job'> : never) : never;
 
 class WorkerBackend implements WorkbookBackend {
   private w: Worker | null = null;
   private job = 0;
-  private waits = new Map<number, { ok: (v: unknown) => void; no: (e: Error) => void; progress?: (p: Progress) => void }>();
+  private waits = new Map<number, { ok: (v: unknown) => void; no: (e: Error) => void; progress?: (p: Progress) => void; heard: number }>();
+  private watch: ReturnType<typeof setInterval> | null = null;
+  /** A worker the browser has stopped (out of memory, most often) sends no error: one silent for a minute while it works is said to have
+   *  stopped, ended, and every question waiting on it answered — never left reading for ever. */
+  private watchdog(): void {
+    if (this.watch) return;
+    this.watch = setInterval(() => {
+      if (!this.waits.size) { if (this.watch) clearInterval(this.watch); this.watch = null; return; }
+      const quiet = [...this.waits.values()].every(w => Date.now() - w.heard > STALL_MS);
+      if (!quiet) return;
+      this.w?.terminate(); this.w = null;
+      for (const [, w] of this.waits) w.no(new Error('The workbook reader stopped without finishing — the browser may have run out of memory for a workbook this size. It was not read; nothing was kept from it.'));
+      this.waits.clear();
+    }, 5000);
+  }
   private worker(): Worker {
     if (this.w) return this.w;
     this.w = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
     this.w.onmessage = (e: MessageEvent<WorkerOut>) => {
       const m = e.data, wt = this.waits.get(m.job);
       if (!wt) return;
+      wt.heard = Date.now();
+      if (m.t === 'beat') return;
       if (m.t === 'progress') { wt.progress?.({ stage: m.stage, done: m.done, total: m.total }); return; }
       this.waits.delete(m.job);
       if (m.t === 'done') wt.ok(m.value); else wt.no(new Error(m.why));
@@ -45,7 +64,8 @@ class WorkerBackend implements WorkbookBackend {
   }
   private ask<T>(m: JobMsg, progress?: (p: Progress) => void, transfer?: Transferable[]): Promise<T> {
     const job = (this.job += 1);
-    return new Promise<T>((ok, no) => { this.waits.set(job, { ok: v => ok(v as T), no, ...(progress ? { progress } : {}) }); this.worker().postMessage({ ...m, job } as WorkerIn, transfer ?? []); });
+    this.watchdog();
+    return new Promise<T>((ok, no) => { this.waits.set(job, { ok: v => ok(v as T), no, heard: Date.now(), ...(progress ? { progress } : {}) }); this.worker().postMessage({ ...m, job } as WorkerIn, transfer ?? []); });
   }
   read(id: string, name: string, file: File, onProgress?: (p: Progress) => void): Promise<WorkbookProfile> { return this.ask({ t: 'read', id, name, file }, onProgress); }
   stop(id: string): void { this.w?.postMessage({ t: 'stop', id } satisfies WorkerIn); }
