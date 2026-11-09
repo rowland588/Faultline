@@ -57,7 +57,8 @@ const readOne = async (w, label) => {
   const base = rss();
   const timer = setInterval(() => { peak = Math.max(peak, rss()); }, 250);
   await attach(w.f);
-  await page.waitForSelector('[data-workbook="read"], [data-workbook="failed"]', { timeout: 30 * 60_000 });
+  const name = w.f.split('/').pop();
+  await page.waitForFunction(n => { const c = document.querySelector('[data-workbook]'); return !!c && (c.getAttribute('data-workbook') === 'read' || c.getAttribute('data-workbook') === 'failed') && (c.textContent ?? '').includes(n); }, name, { timeout: 30 * 60_000, polling: 500 });
   clearInterval(timer);
   const secs = (Date.now() - t0) / 1000;
   const said = await t.words('[data-workbook]');
@@ -68,7 +69,7 @@ const sizes = (process.env.WB_ROWS ?? '1400000').split(',').map(Number);
 
 if (process.env.WB_SIZES_ONLY) {
   for (const [i, rows] of sizes.entries()) {
-    await t.go('#/ai', 2500);
+    await t.go('#/ai', 500); await page.reload(); await page.waitForTimeout(2500);
     const w = make(`size-${rows}.xlsx`, rows, 11 + i);
     const r = await readOne(w, `size ${i + 1}`);
     ok(/^Read “/.test(r.said) && new RegExp(`Downtime ${w.exp.rows.toLocaleString('en-GB')} rows`).test(r.said), `size ${i + 1}: ${w.mb.toFixed(0)} MB read whole: "${r.said.slice(0, 120)}"`);

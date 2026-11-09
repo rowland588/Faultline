@@ -2,7 +2,7 @@
  * of value per cell — so a sheet of millions of rows is written as it is read and read back a chunk at a time, never whole. In the browser
  * it is the origin's private file storage (OPFS), on this device only; in the tests, memory. */
 
-export const CHUNK = 65_536;
+export const CHUNK = 32_768;
 
 /** What a cell is. A text's value is its string id; a date's is milliseconds (UTC); an error's is its error id. */
 export const Kind = { Blank: 0, Num: 1, Str: 2, Bool: 3, Err: 4, Date: 5 } as const;
