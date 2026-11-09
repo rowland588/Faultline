@@ -7,6 +7,13 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 1. What is live (main at the look's L0 commit, 6 November, Vercel production READY, faultline.opexelevate.co.uk)
 
+- **The model for each AI task (9 November).** Rowland: *"we want quality output but lowest cost"*. Each task of the `assist`
+  gateway has its own model setting (`supabase/functions/assist/index.ts`, the top): Line Talk (`ASSIST_TALK_MODEL`), the Story
+  (`ASSIST_STORY_MODEL`), a brief read from a photo (`ASSIST_BRIEF_READ_MODEL`) and a factory document (`ASSIST_FACTORY_READ_MODEL`) on
+  **Claude Sonnet 5.5** ($2 / $10 a million tokens); a brief split into asks (`ASSIST_BRIEF_ASKS_MODEL`) and video labels
+  (`ASSIST_MODEL`) on **Claude Haiku 5.5** ($0.10 / $0.50); AI Mode's colleague (`ASSIST_COLLEAGUE_MODEL`) on **Claude Opus 5.5**
+  ($4 / $20) until Sonnet is proved on it. A Haiku call sends no refusal fallback (Haiku takes none). The cost of each is on the
+  AI usage page (`#/ai/usage`) by task; a task whose words fall short is raised by its setting, no code change.
 - **Back, to where you were (9 November, live).** Rowland: *"never send you back to where you was .. instead of the classic back"*. The top bar's **Back** walks this session's own trail of pages (`state/navHistory`) as a browser's Back does — shown only when there is somewhere to go back to; ‹ Factory / ‹ Projects still go up; on a phone the arrow alone, the up crumb giving way, the bar fitting 375 px. `scripts/acceptance/back.mjs`.
 - **The brief uploaded from Start the story (9 November, live).** *Upload a brief* beside Start the story: the file starts the story and goes to the brief's own reader. `story-brief.mjs` step 11.
 - **Areas on the Factory, and the area report (9 November, live).** Rowland: *"we now have areas

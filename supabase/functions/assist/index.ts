@@ -83,7 +83,27 @@ import { FACTORY_READ_ALLOWANCE_WORDS, FACTORY_READ_OFF, FACTORY_READ_SCHEMA, FA
 import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
 
 const KEY = Deno.env.get("ANTHROPIC_API_KEY");
-const MODEL = Deno.env.get("ASSIST_MODEL") ?? "claude-opus-5-5";
+/* THE MODEL FOR EACH TASK (9 November — Rowland: "we want quality output but lowest cost"): the cheapest model that holds
+   the quality each task needs, every one a setting of its own so it can be raised or lowered without a deploy of code.
+   Prices ($ per million tokens in / out, video/gatewayUsage PRICES): Opus 5.5 4 / 20 · Sonnet 5.5 2 / 10 · Haiku 5.5 0.10 / 0.50.
+   Every figure is still a formula's and every quote and capability call is checked in code, so a cheaper model risks
+   weaker words, never a wrong number. */
+const OPUS = "claude-opus-5-5", SONNET = "claude-sonnet-5-5", HAIKU = "claude-haiku-5-5";
+/* naming the work in a few frames of a video study: short labels — Haiku */
+const MODEL = Deno.env.get("ASSIST_MODEL") ?? HAIKU;
+/* AI Mode's colleague: picks capabilities, asks before writing — the most judgement, Opus until Sonnet is proved on it */
+const COLLEAGUE_MODEL = Deno.env.get("ASSIST_COLLEAGUE_MODEL") ?? OPUS;
+/* the Story's chapter: business writing from the records' words — Sonnet */
+const STORY_MODEL = Deno.env.get("ASSIST_STORY_MODEL") ?? SONNET;
+/* a brief photographed or scanned: its words typed out exactly — Sonnet; split into asks, each quote checked in code — Haiku */
+const BRIEF_READ_MODEL = Deno.env.get("ASSIST_BRIEF_READ_MODEL") ?? SONNET;
+const BRIEF_ASKS_MODEL = Deno.env.get("ASSIST_BRIEF_ASKS_MODEL") ?? HAIKU;
+/* a factory document read for what it holds, every quote checked in code — Sonnet */
+const FACTORY_READ_MODEL = Deno.env.get("ASSIST_FACTORY_READ_MODEL") ?? SONNET;
+/* the server-side fallback on a refusal (the "default" form) is offered by Opus 5.5 and Sonnet 5.5 — not by Haiku 5.5, which
+   takes no fallbacks parameter: a Haiku call goes without it and a refusal is said as one */
+const fallbackFor = (model: string): Record<string, unknown> =>
+  model.startsWith("claude-haiku") ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" };
 /* naming the work in a few frames is light work */
 const ASK_EFFORT = Deno.env.get("ASSIST_ASK_EFFORT") ?? "low";
 const LIMIT = {
@@ -93,7 +113,8 @@ const LIMIT = {
 /* a document asked of a talk is written with care; the conversation itself is
    answered quickly, as a person answers (Rowland, 21 October: "a full
    conversational system ... like I do with you here") */
-const TALK_MODEL = Deno.env.get("ASSIST_TALK_MODEL") ?? MODEL;
+/* Line Talk: the conversation and the documents it writes — Sonnet */
+const TALK_MODEL = Deno.env.get("ASSIST_TALK_MODEL") ?? SONNET;
 const TALK_EFFORT = Deno.env.get("ASSIST_TALK_EFFORT") ?? "medium";
 const TALK_CHAT_EFFORT = Deno.env.get("ASSIST_TALK_CHAT_EFFORT") ?? "low";
 /* THE STORY's chapter (docs/STORY.md §5): written with care, a few a day */
@@ -157,7 +178,7 @@ async function answerTalk(client: Anthropic, ask: TalkAsk, onText?: (soFar: stri
   try {
     const params = {
       model: TALK_MODEL, max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+      ...fallbackFor(TALK_MODEL),
       output_config: { effort: asksForDocument(ask.turns) || ask.set ? TALK_EFFORT : TALK_CHAT_EFFORT, format: { type: "json_schema", schema: talkSchemaFor(ask.set) } },
       system: [{ type: "text", text: talkSystemFor(ask.set), cache_control: { type: "ephemeral" } }],
       messages: talkMessages(ask),
@@ -253,14 +274,14 @@ async function answerColleague(client: Anthropic, admin: Admin, userId: string, 
   try {
     for (let tries = 0; tries < 3; tries++) {
       const msg = await client.beta.messages.create({
-        model: TALK_MODEL, max_tokens: 4000,
-        betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+        model: COLLEAGUE_MODEL, max_tokens: 4000,
+        ...fallbackFor(COLLEAGUE_MODEL),
         output_config: { effort: COLLEAGUE_EFFORT },
         system: [{ type: "text", text: COLLEAGUE_SYSTEM, cache_control: { type: "ephemeral" } }],
         tools, tool_choice: { type: "auto" },
         messages: colleagueMessages(ask),
       } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
-      const model = msg.model ?? TALK_MODEL;
+      const model = msg.model ?? COLLEAGUE_MODEL;
       const content = (Array.isArray(msg.content) ? msg.content : []) as ColleagueBlock[];
       await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal");
       if (msg.stop_reason === "refusal") return json({ ok: false, why: "AI Mode would not answer that one. What you said is kept." });
@@ -300,17 +321,18 @@ async function answerColleague(client: Anthropic, admin: Admin, userId: string, 
 async function answerBrief(client: Anthropic, admin: Admin, userId: string, task: string, body: Record<string, unknown>): Promise<Response> {
   const read = task === "brief-read" ? readBriefPages(body) : null;
   const brief = task === "brief-asks" ? readBrief(body) : null;
+  const briefModel = read ? BRIEF_READ_MODEL : BRIEF_ASKS_MODEL;
   if (read && !read.ok) return json({ ok: false, why: read.why }, 400);
   if (brief && !brief.ok) return json({ ok: false, why: brief.why }, 400);
   try {
     const msg = await client.beta.messages.create({
-      model: TALK_MODEL, max_tokens: read ? 16000 : 4000,
-      betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+      model: briefModel, max_tokens: read ? 16000 : 4000,
+      ...fallbackFor(briefModel),
       output_config: { effort: read ? BRIEF_EFFORT : "low", format: { type: "json_schema", schema: read ? BRIEF_READ_SCHEMA : BRIEF_ASKS_SCHEMA } },
       system: [{ type: "text", text: read ? BRIEF_READ_SYSTEM : BRIEF_ASKS_SYSTEM, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: read && read.ok ? briefReadUser(read.pages) : briefAsksUser(brief && brief.ok ? brief.brief : "") }],
     } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
-    const model = msg.model ?? TALK_MODEL;
+    const model = msg.model ?? briefModel;
     const text = (Array.isArray(msg.content) ? msg.content : []).map((b: { type?: string; text?: string }) => (b?.type === "text" ? b.text ?? "" : "")).join("");
     let raw: unknown = null;
     try { raw = JSON.parse(text); } catch { /* unreadable */ }
@@ -336,13 +358,13 @@ async function answerFactoryRead(client: Anthropic, admin: Admin, userId: string
   if (!read.ok) return json({ ok: false, why: read.why }, 400);
   try {
     const msg = await client.beta.messages.create({
-      model: TALK_MODEL, max_tokens: read.pages ? 24000 : 12000,
-      betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+      model: FACTORY_READ_MODEL, max_tokens: read.pages ? 24000 : 12000,
+      ...fallbackFor(FACTORY_READ_MODEL),
       output_config: { effort: FACTORY_READ_EFFORT, format: { type: "json_schema", schema: FACTORY_READ_SCHEMA } },
       system: [{ type: "text", text: FACTORY_READ_SYSTEM, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: factoryReadUser(read) }],
     } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
-    const model = msg.model ?? TALK_MODEL;
+    const model = msg.model ?? FACTORY_READ_MODEL;
     const text = (Array.isArray(msg.content) ? msg.content : []).map((b: { type?: string; text?: string }) => (b?.type === "text" ? b.text ?? "" : "")).join("");
     let raw: unknown = null;
     try { raw = JSON.parse(text); } catch { /* unreadable */ }
@@ -455,21 +477,21 @@ Deno.serve(async (req) => {
     if (!left.ok) return json({ ok: false, why: left.why });
     try {
       const msg = await client.beta.messages.create({
-        model: TALK_MODEL, max_tokens: 6000,
-        betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+        model: STORY_MODEL, max_tokens: 6000,
+        ...fallbackFor(STORY_MODEL),
         output_config: { effort: STORY_EFFORT, format: { type: "json_schema", schema: STORY_SCHEMA } },
         system: [{ type: "text", text: STORY_SYSTEM, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: storyUser(read.ask) }],
       } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Record<string, number> };
-      const cost = costMicros(msg.model ?? TALK_MODEL, msg.usage ?? {});
+      const cost = costMicros(msg.model ?? STORY_MODEL, msg.usage ?? {});
       const text = (Array.isArray(msg.content) ? msg.content : []).map((b: { type?: string; text?: string }) => (b?.type === "text" ? b.text ?? "" : "")).join("");
       let raw: unknown = null;
       try { raw = JSON.parse(text); } catch { /* unreadable */ }
       const answer = checkStoryAnswer(raw);
-      await admin.from("assist_usage").insert({ user_id: user.id, task, model: msg.model ?? TALK_MODEL, input_tokens: (msg.usage?.input_tokens ?? 0) + (msg.usage?.cache_read_input_tokens ?? 0) + (msg.usage?.cache_creation_input_tokens ?? 0), output_tokens: msg.usage?.output_tokens ?? 0, cost_micros: cost, ok: !!answer });
+      await admin.from("assist_usage").insert({ user_id: user.id, task, model: msg.model ?? STORY_MODEL, input_tokens: (msg.usage?.input_tokens ?? 0) + (msg.usage?.cache_read_input_tokens ?? 0) + (msg.usage?.cache_creation_input_tokens ?? 0), output_tokens: msg.usage?.output_tokens ?? 0, cost_micros: cost, ok: !!answer });
       if (msg.stop_reason === "refusal") return json({ ok: false, why: "The assistant would not write this one — the chapter is written from the records' words." });
       if (!answer) return json({ ok: false, why: "The assistant's draft could not be read — the chapter is written from the records' words." });
-      return json({ ok: true, headline: answer.headline, narrative: answer.narrative, unsure: unsureStory(answer, read.ask), model: msg.model ?? TALK_MODEL });
+      return json({ ok: true, headline: answer.headline, narrative: answer.narrative, unsure: unsureStory(answer, read.ask), model: msg.model ?? STORY_MODEL });
     } catch (e) {
       return json({ ok: false, why: "The assistant could not answer just now — the chapter is written from the records' words.", detail: e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300) });
     }
@@ -488,7 +510,7 @@ Deno.serve(async (req) => {
   try {
     const msg = await client.beta.messages.create({
       model: MODEL, max_tokens: 4000,
-      betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+      ...fallbackFor(MODEL),
       output_config: { effort: ASK_EFFORT, format: { type: "json_schema", schema: VISION_SCHEMA } },
       system: [{ type: "text", text: VISION_SYSTEM, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: visionUser(String(body.objective ?? ""), vEvents, vFrames) }],

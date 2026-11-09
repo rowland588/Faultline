@@ -214,7 +214,7 @@ were.
   as `unsure`. An allowance a person a day — 60 answers and $5
   (`ASSIST_TALK_DAILY_CALLS`, `ASSIST_TALK_DAILY_USD`) — kept in
   `assist_usage` apart from the camera's. The model and effort are
-  configuration (`ASSIST_TALK_MODEL`, `ASSIST_TALK_EFFORT`, medium). The
+  configuration (`ASSIST_TALK_MODEL` — Claude Sonnet 5.5 since 9 November, for quality at half Opus's price — `ASSIST_TALK_EFFORT`, medium). The
   conversation is cached up to its newest turn, so a long talk is not paid
   for twice.
 - **A document** is a card in the conversation (its kind, title, sections,

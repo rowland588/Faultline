@@ -130,7 +130,7 @@ and sends again with `pending` — until a reply with no calls, at most six roun
 On the server the gateway: answers only a signed-in person; keeps the allowance (`ASSIST_COLLEAGUE_DAILY_CALLS`, 120
 a day, $8); **refuses any call whose name is not in the schemas or whose input fails them** — the call is dropped and
 the model told; writes an audit row to `ai_actions` (service role) for each call proposed and each result received.
-The model is `TALK_MODEL`, low effort for chat, Claude tool use with the schemas, the instructions cached. The
+The model is `COLLEAGUE_MODEL` (`ASSIST_COLLEAGUE_MODEL`, Claude Opus 5.5 — the most judgement of any task; see docs/STATE.md, the model for each task), low effort for chat, Claude tool use with the schemas, the instructions cached. The
 instructions (`COLLEAGUE_SYSTEM`, `src/tools/colleague/colleagueAssist.ts`, copied to the gateway by
 `scripts/sync-assist.mjs`) make it the manufacturing colleague: natural, challenging an assumption, one useful
 question back, saying how each thing is known, never inventing or working out a figure (it uses the calculator
