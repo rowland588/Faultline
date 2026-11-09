@@ -752,6 +752,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             ))}
             {work && !workOpen && <button type="button" className="btn ai-work-b" data-work-show onClick={() => setWorkOpen(true)}><Icon name="board" size="1.05em" />Show the work</button>}
             <button type="button" className="btn ai-list-b" onClick={onList}><Icon name="list" size="1.05em" />Conversations</button>
+            <button type="button" className="btn ai-new-b" onClick={onNew}><Icon name="plus" size="1.05em" />New conversation</button>
             <button type="button" className="btn ai-ctx-b" aria-pressed={!wide} onClick={toggleWide} title={wide ? 'Show what this conversation is on, what is parked and the sources' : 'Put the context away for a wider conversation'}>
               <Icon name="board" size="1.05em" />{wide ? 'Show context' : 'Hide context'}
             </button>

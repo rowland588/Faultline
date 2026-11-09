@@ -17025,6 +17025,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .ai-head-av { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: var(--radius-round); background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: var(--on-dark); }
 .ai-ctx-b { display: none; }
+.ai-new-b { display: none; }
 .ai-head-main { flex: 1; min-width: 0; }
 .ai-eyebrow { margin: 0; display: inline-flex; align-items: center; gap: 5px; font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; color: var(--brand-2); }
 .ai-title { margin: 2px 0 0; font-size: var(--t-h); font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -17277,7 +17278,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   /* the work open: the list goes to its button, the context stays where the person reads what is being built */
   .ai:has(.ai-work.is-open) { grid-template-columns: minmax(340px, 1fr) 280px minmax(420px, 1.25fr); }
   .ai:has(.ai-work.is-open) .ai-list { display: none; }
-  .ai:has(.ai-work.is-open) .ai-list-b { display: inline-flex; }
+  .ai:has(.ai-work.is-open) .ai-list-b, .ai:has(.ai-work.is-open) .ai-new-b { display: inline-flex; }
   .ai-work.is-open { position: static; inset: auto; z-index: auto; border-left: 1px solid var(--line); min-height: 0; }
   .ai-work-back { display: none; }
   .ai-measure { margin: 0 32px 8px; }

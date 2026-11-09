@@ -167,7 +167,7 @@ ok(/Filler/.test(back) && (await page.locator('[data-ctx-current] [data-ctx-mode
 ok(/SMED or the schedule/.test(await t.words('[data-ctx-parked]')), '7 the what-if parked, not lost');
 
 /* ---- 8 · a correction ---- */
-await page.getByRole('button', { name: 'New conversation' }).first().click(); await page.waitForTimeout(800);
+await page.getByRole('button', { name: 'New conversation' }).filter({ visible: true }).first().click(); await page.waitForTimeout(800);
 await say('Losses on Line 7', [{ name: 'set_focus', input: { title: 'Losses on Line 7', scope: { lineId: W.seven } } }, { name: 'update_context', input: { projectId: W.project } }, { name: 'start_draft', input: { kind: 'smed', key: 'smed', title: 'Changeover — other line' } }], 'Started.');
 const cid = await convId();
 b = await say('No — I meant the other Line 7, the smoke test one', [{ name: 'update_context', input: { lineId: W.smoke } }], x => result(x)?.says ?? '');
