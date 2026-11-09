@@ -11,7 +11,8 @@
  * docs/DIRECTION.md.) AI Mode's colleague (src/tools/colleague/
  * colleagueAssist, 8 November — docs/AI-MODE.md) and the capabilities it may
  * call (src/capabilities/schemas, the gateway's check of every call) go into
- * supabase/functions/assist/colleague; the Story's brief (src/tools/story/
+ * supabase/functions/assist/colleague, with the factory documents' reading (src/capabilities/factoryRead, task
+ * `factory-read`, 9 November — docs/FACTORY-KNOWLEDGE.md F4); the Story's brief (src/tools/story/
  * briefAssist) beside its chapter in supabase/functions/assist/story.
  *
  *   node scripts/sync-assist.mjs */
@@ -25,7 +26,7 @@ export const VIDEO_SHARED = ['record', 'visionCore', 'gatewayUsage'];
 export const TALK_SHARED = ['talkSets', 'talkAssist'];
 export const STORY_SHARED = ['storyAssist', 'briefAssist'];
 /* [folder in src, file] — each copied into supabase/functions/assist/colleague */
-export const COLLEAGUE_SHARED = [['src/tools/colleague', 'colleagueAssist'], ['src/capabilities', 'schemas']];
+export const COLLEAGUE_SHARED = [['src/tools/colleague', 'colleagueAssist'], ['src/capabilities', 'schemas'], ['src/capabilities', 'factoryRead']];
 export const forDeno = (src, from = 'src/tools/video') => `// COPIED FROM ${from} by scripts/sync-assist.mjs — edit the source, then run it.\n${src.replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'")}`;
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

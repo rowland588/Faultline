@@ -151,7 +151,9 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
      captured and how known, and what is missing — the newest six, a long one cut */
   for (const d of [...(opts.drafts ?? [])].sort((a, b) => b.at - a.at).slice(0, 6)) {
     const w = draftSaid(d);
-    lines.push(`Being built [draft ${d.id}]: ${w.length > 900 ? `${w.slice(0, 897)}…` : w}`);
+    /* a factory's tree is longer than a tool's fields — it is given more room */
+    const max = d.kind === 'factory' ? 3000 : 900;
+    lines.push(`Being built [draft ${d.id}]: ${w.length > max ? `${w.slice(0, max - 3)}…` : w}`);
   }
   return lines.join('\n');
 }

@@ -15,7 +15,10 @@
  *                and writes only when the person confirms; every call proposed,
  *                refused and answered written to ai_actions (supabase/AI_ACTIONS.sql);
  *   brief-read   the client's brief typed out from photographs of its pages;
- *   brief-asks   what the brief asks for, each with its exact quote (STORY S6–S7).
+ *   brief-asks   what the brief asks for, each with its exact quote (STORY S6–S7);
+ *   factory-read a factory document (an equipment register, an asset list, a layout) — its words or photographs of its
+ *                pages — read for the sites, areas, lines and machines it names, each with the EXACT words it came from,
+ *                every quote checked here against the words (colleague/factoryRead, docs/FACTORY-KNOWLEDGE.md F4).
  *
  * Rowland, 20 October: "a simple, reliable, ChatGPT-style manufacturing
  * assistant inside Faultline, powered by our existing Claude API
@@ -31,6 +34,7 @@
  *     → { ok: true, reply, calls?, assistant?, suggestions?, unsure?, model } | { ok: false, why } | { off: true, why }
  *     (pending = { assistant: the `assistant` handed out last time, results: what running its calls gave })
  *   { task: 'brief-read', pages } → { ok: true, text, model };  { task: 'brief-asks', brief } → { ok: true, asks, model }
+ *   { task: 'factory-read', text } | { task: 'factory-read', pages } → { ok: true, text, day?, dayQuote?, items, dropped, model }
  *   … with stream: true (the app, 21 October) → text/event-stream: the reply
  *     so far as it is written, { partial, document }, then the same final
  *     object — a refusal before the model is asked still comes as JSON
@@ -75,6 +79,7 @@ import { STORY_SCHEMA, STORY_SYSTEM, checkStoryAnswer, readStoryAsk, storyUser, 
 import { BRIEF_ALLOWANCE_WORDS, BRIEF_ASKS_SCHEMA, BRIEF_ASKS_SYSTEM, BRIEF_OFF, BRIEF_READ_SCHEMA, BRIEF_READ_SYSTEM, briefAsksUser, briefReadUser, checkAsks, checkBriefText, readBrief, readBriefPages } from "./story/briefAssist.ts";
 import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, COLLEAGUE_SYSTEM, checkCalls, colleagueMessages, colleagueReply, colleagueTools, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
 import { CAPABILITY_SCHEMAS } from "./colleague/schemas.ts";
+import { FACTORY_READ_ALLOWANCE_WORDS, FACTORY_READ_OFF, FACTORY_READ_SCHEMA, FACTORY_READ_SYSTEM, checkFactoryRead, factoryReadUser, readFactoryAsk } from "./colleague/factoryRead.ts";
 import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
 
 const KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -115,7 +120,13 @@ const BRIEF_LIMIT = {
   micros: Math.round((Number(Deno.env.get("ASSIST_BRIEF_DAILY_USD") ?? 3) || 3) * 1_000_000),
 };
 const BRIEF_TASKS = ["brief-read", "brief-asks"];
-const TASKS = ["video-label", "talk", "story", "colleague", ...BRIEF_TASKS];
+/* FACTORY DOCUMENTS (docs/FACTORY-KNOWLEDGE.md F4): read for what they hold, a few a day */
+const FACTORY_READ_EFFORT = Deno.env.get("ASSIST_FACTORY_READ_EFFORT") ?? "medium";
+const FACTORY_READ_LIMIT = {
+  calls: Number(Deno.env.get("ASSIST_FACTORY_READ_DAILY_CALLS") ?? 20) || 20,
+  micros: Math.round((Number(Deno.env.get("ASSIST_FACTORY_READ_DAILY_USD") ?? 3) || 3) * 1_000_000),
+};
+const TASKS = ["video-label", "talk", "story", "colleague", ...BRIEF_TASKS, "factory-read"];
 const url = Deno.env.get("SUPABASE_URL")!;
 const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
 const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -318,6 +329,39 @@ async function answerBrief(client: Anthropic, admin: Admin, userId: string, task
   }
 }
 
+/* A FACTORY DOCUMENT — its words or its pages, read for the sites, areas, lines and machines it names; every item's quote checked
+   against the words (the document's, or the transcription the answer carries when it came from pages); nothing is written */
+async function answerFactoryRead(client: Anthropic, admin: Admin, userId: string, body: Record<string, unknown>): Promise<Response> {
+  const read = readFactoryAsk(body);
+  if (!read.ok) return json({ ok: false, why: read.why }, 400);
+  try {
+    const msg = await client.beta.messages.create({
+      model: TALK_MODEL, max_tokens: read.pages ? 24000 : 12000,
+      betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+      output_config: { effort: FACTORY_READ_EFFORT, format: { type: "json_schema", schema: FACTORY_READ_SCHEMA } },
+      system: [{ type: "text", text: FACTORY_READ_SYSTEM, cache_control: { type: "ephemeral" } }],
+      messages: [{ role: "user", content: factoryReadUser(read) }],
+    } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
+    const model = msg.model ?? TALK_MODEL;
+    const text = (Array.isArray(msg.content) ? msg.content : []).map((b: { type?: string; text?: string }) => (b?.type === "text" ? b.text ?? "" : "")).join("");
+    let raw: unknown = null;
+    try { raw = JSON.parse(text); } catch { /* unreadable */ }
+    const got = msg.stop_reason === "refusal" ? null : checkFactoryRead(raw, read.text);
+    const ok = !!got && got.items.length > 0;
+    const usage = msg.usage ?? {};
+    await admin.from("assist_usage").insert({ user_id: userId, task: "factory-read", model, input_tokens: (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0), output_tokens: usage.output_tokens ?? 0, cost_micros: costMicros(model, usage), ok });
+    if (msg.stop_reason === "max_tokens") return json({ ok: false, why: "The document is longer than can be read at once — send it in parts." });
+    if (!got) return json({ ok: false, why: "The document could not be read — say what is in it in the conversation instead." });
+    if (!got.items.length) return json({ ok: false, why: got.dropped ? "Nothing could be traced to the document's own words, so nothing is proposed from it." : "No site, area, line or machine was found in the document." });
+    return json({ ok: true, text: got.text, ...(got.day ? { day: got.day, dayQuote: got.dayQuote } : {}), items: got.items, dropped: got.dropped, model });
+  } catch (e) {
+    if (e instanceof Anthropic.RateLimitError) return json({ ok: false, why: "The assistant is busy — try again in a minute." });
+    if (e instanceof Anthropic.AuthenticationError) return json({ off: true, why: FACTORY_READ_OFF });
+    console.error("factory-read failed", e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300));
+    return json({ ok: false, why: "The assistant could not read the document just now — try again, or say what is in it." });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, why: "POST only" }, 405);
@@ -345,7 +389,7 @@ Deno.serve(async (req) => {
   try { body = (await req.json()) ?? {}; } catch { /* no body */ }
   const task = String(body.task ?? "");
   /* each task says it is off in its own words — the work named by hand, or the talk kept unanswered */
-  if (!KEY) return json({ off: true, why: task === "talk" ? "Line Talk's assistant is not switched on for this app yet — everything you say, type and photograph is kept." : task === "colleague" ? COLLEAGUE_OFF : BRIEF_TASKS.includes(task) ? BRIEF_OFF : task === "story" ? "The assistant is not switched on for this app yet — the chapter is written from the records' words." : "Naming the work from the frames is not switched on for this app yet — name it as you review; everything else works the same." });
+  if (!KEY) return json({ off: true, why: task === "talk" ? "Line Talk's assistant is not switched on for this app yet — everything you say, type and photograph is kept." : task === "colleague" ? COLLEAGUE_OFF : BRIEF_TASKS.includes(task) ? BRIEF_OFF : task === "factory-read" ? FACTORY_READ_OFF : task === "story" ? "The assistant is not switched on for this app yet — the chapter is written from the records' words." : "Naming the work from the frames is not switched on for this app yet — name it as you review; everything else works the same." });
   /* AI Mode switched off on its own, everything else as it is */
   if (task === "colleague" && Deno.env.get("ASSIST_COLLEAGUE_ENABLED") === "false") return json({ off: true, why: COLLEAGUE_OFF });
 
@@ -354,13 +398,13 @@ Deno.serve(async (req) => {
   const asThem = createClient(url, anon, { global: { headers: { Authorization: auth } }, auth: { persistSession: false } });
   const { data: { user } } = await asThem.auth.getUser();
   if (!user) return json({ ok: false, why: "Sign in to use the assistant." }, 401);
-  if (!TASKS.includes(task)) return json({ ok: false, why: "The assistant answers a Line Talk and AI Mode, names the work in a video study's frames, drafts the Story's chapter and reads its brief; nothing else — the method builder it served was taken out on 20 October." }, 400);
+  if (!TASKS.includes(task)) return json({ ok: false, why: "The assistant answers a Line Talk and AI Mode, names the work in a video study's frames, drafts the Story's chapter, reads its brief and reads factory documents; nothing else — the method builder it served was taken out on 20 October." }, 400);
 
   /* the allowance, from this person's own last day of this task */
   const since = new Date(Date.now() - 86_400_000).toISOString();
   const { data: rows, error: noTable } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", user.id).in("task", BRIEF_TASKS.includes(task) ? BRIEF_TASKS : [task]).gte("at", since);
   /* no allowance to keep, no assistant: it never runs without its cost control (supabase/ASSIST_USAGE.sql) */
-  if (noTable) return json({ off: true, why: task === "colleague" ? COLLEAGUE_OFF : BRIEF_TASKS.includes(task) ? BRIEF_OFF : task === "talk" ? "Line Talk's allowance is not set up yet, so it cannot answer — everything you say, type and photograph is kept." : "The allowance for naming the work is not set up yet — name it as you review until it is." });
+  if (noTable) return json({ off: true, why: task === "colleague" ? COLLEAGUE_OFF : BRIEF_TASKS.includes(task) ? BRIEF_OFF : task === "factory-read" ? FACTORY_READ_OFF : task === "talk" ? "Line Talk's allowance is not set up yet, so it cannot answer — everything you say, type and photograph is kept." : "The allowance for naming the work is not set up yet — name it as you review until it is." });
   const client = new Anthropic({ apiKey: KEY });
 
   /* AI MODE'S COLLEAGUE */
@@ -370,6 +414,13 @@ Deno.serve(async (req) => {
     const left = allowance(rows ?? [], Date.now(), COLLEAGUE_LIMIT, COLLEAGUE_ALLOWANCE_WORDS);
     if (!left.ok) return json({ ok: false, why: left.why });
     return answerColleague(client, admin, user.id, read.ask);
+  }
+
+  /* A FACTORY DOCUMENT */
+  if (task === "factory-read") {
+    const left = allowance(rows ?? [], Date.now(), FACTORY_READ_LIMIT, FACTORY_READ_ALLOWANCE_WORDS);
+    if (!left.ok) return json({ ok: false, why: left.why });
+    return answerFactoryRead(client, admin, user.id, body);
   }
 
   /* THE STORY'S BRIEF */

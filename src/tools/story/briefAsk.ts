@@ -16,7 +16,10 @@ const NO_CLOUD = 'The assistant needs the cloud — this device is not signed in
 const NO_SIGNAL = 'No signal — type the brief, or ask again when the signal is back.';
 const NOT_NOW = 'The assistant could not answer just now — type the brief, or ask again.';
 
-async function call(body: Record<string, unknown>): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; why: string; off?: boolean; offline?: boolean }> {
+/** One task asked of the gateway, whatever goes wrong said in words — `say` the words for this task (the brief's by default; the
+ *  factory documents' reading uses the same door, docs/FACTORY-KNOWLEDGE.md F4). */
+export async function askAssist(body: Record<string, unknown>, say: { cloud: string; signal: string; notNow: string } = { cloud: NO_CLOUD, signal: NO_SIGNAL, notNow: NOT_NOW }): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; why: string; off?: boolean; offline?: boolean }> {
+  const NO_CLOUD = say.cloud, NO_SIGNAL = say.signal, NOT_NOW = say.notNow;
   if (!supabase) return { ok: false, off: true, why: NO_CLOUD };
   if (typeof navigator !== 'undefined' && !navigator.onLine) return { ok: false, offline: true, why: NO_SIGNAL };
   try {
@@ -41,7 +44,7 @@ async function call(body: Record<string, unknown>): Promise<{ ok: true; data: Re
 
 /** A photo or a scanned brief's pages, read into words by the assistant. */
 export async function readBriefPages(pages: readonly string[]): Promise<BriefAsked<string>> {
-  const r = await call({ task: 'brief-read', pages: pages.slice(0, BRIEF_ASK_LIMITS.pages) });
+  const r = await askAssist({ task: 'brief-read', pages: pages.slice(0, BRIEF_ASK_LIMITS.pages) });
   if (!r.ok) return r;
   const text = typeof r.data.text === 'string' ? r.data.text.trim() : '';
   return text ? { ok: true, value: text } : { ok: false, why: 'The assistant found no words on the pages — type the brief instead.' };
@@ -50,7 +53,7 @@ export async function readBriefPages(pages: readonly string[]): Promise<BriefAsk
 /** A prose brief split into asks, each with the sentence of the brief it came from. A quote not found in the brief is dropped, never
  *  shown as the client's words. */
 export async function splitBrief(brief: string): Promise<BriefAsked<{ text: string; from: string }[]>> {
-  const r = await call({ task: 'brief-asks', brief: brief.slice(0, BRIEF_ASK_LIMITS.brief) });
+  const r = await askAssist({ task: 'brief-asks', brief: brief.slice(0, BRIEF_ASK_LIMITS.brief) });
   if (!r.ok) return r;
   const raw = Array.isArray(r.data.asks) ? r.data.asks : [];
   const squash = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();

@@ -7,6 +7,7 @@ import { openPage, parkFocus, recordObservation, setFocus, startTimer } from './
 import { recall, rememberPreference } from './memory';
 import { addPhotoToProblem, raiseProblem, startProject, updateProblem } from './writes';
 import { factoryMapCap, resolveCap } from './factory';
+import { addToFactoryDraft, replaceMachine } from './factoryBuild';
 import { adaptDraftCap, createSheet, draftState, fillDraftCap, makeRecord, startDraft, toolCatalogue } from './build';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
@@ -17,6 +18,8 @@ export const CAPABILITIES: readonly Capability[] = [
   raiseProblem, updateProblem, startProject, saveCalculation, addPhotoToProblem, rememberPreference, makeRecord,
   /* the factory knowledge (docs/FACTORY-KNOWLEDGE.md F2) */
   factoryMapCap, resolveCap,
+  /* onboarding a factory and keeping it current (F3–F5) */
+  addToFactoryDraft, replaceMachine,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);

@@ -35,7 +35,7 @@ describe('the gateway’s copies', () => {
     /* Line Talk's assistant and its toolsets (tools/talk): the same rules on both sides; each file shared with the gateway, its relative imports given the .ts Deno asks for (scripts/sync-assist.mjs forDeno) */
     /* the Story's chapter (tools/story/storyAssist, docs/STORY.md §5), the same way */
     /* AI Mode's colleague and the capabilities it may call (docs/AI-MODE.md): the gateway's check of every call is these schemas */
-    for (const [dir, f] of [['src/tools/colleague', 'colleagueAssist'], ['src/capabilities', 'schemas']]) {
+    for (const [dir, f] of [['src/tools/colleague', 'colleagueAssist'], ['src/capabilities', 'schemas'], ['src/capabilities', 'factoryRead']]) {
       const src = readFileSync(join(root, dir, `${f}.ts`), 'utf8').replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'");
       const copy = readFileSync(join(root, 'supabase/functions/assist/colleague', `${f}.ts`), 'utf8');
       expect(copy.split('\n')[0]).toBe(`// COPIED FROM ${dir} by scripts/sync-assist.mjs — edit the source, then run it.`);
