@@ -17274,8 +17274,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-measure-list li.is-struck .ai-measure-s { text-decoration: line-through; color: var(--ink-3); }
 .ai-measure-at { color: var(--ink-3); font-variant-numeric: tabular-nums; }
 @media (min-width: 1100px) {
-  .ai:has(.ai-work.is-open) { grid-template-columns: 248px minmax(340px, 1fr) minmax(420px, 1.25fr); }
-  .ai:has(.ai-work.is-open) .ai-ctx { display: none; }
+  /* the work open: the list goes to its button, the context stays where the person reads what is being built */
+  .ai:has(.ai-work.is-open) { grid-template-columns: minmax(340px, 1fr) 280px minmax(420px, 1.25fr); }
+  .ai:has(.ai-work.is-open) .ai-list { display: none; }
+  .ai:has(.ai-work.is-open) .ai-list-b { display: inline-flex; }
   .ai-work.is-open { position: static; inset: auto; z-index: auto; border-left: 1px solid var(--line); min-height: 0; }
   .ai-work-back { display: none; }
   .ai-measure { margin: 0 32px 8px; }
@@ -17296,6 +17298,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   /* the context put away: the conversation takes the room */
   .ai:has(.ai-main.is-wide) { grid-template-columns: 248px minmax(0, 1fr) 0; }
   .ai:has(.ai-main.is-wide) .ai-ctx { display: none; }
+  .ai:has(.ai-main.is-wide):has(.ai-work.is-open) { grid-template-columns: minmax(340px, 1fr) minmax(420px, 1.25fr); }
 }
 /* a phone: the box pinned above the bar, every press a thumb's size */
 @media (max-width: 1099px) {
