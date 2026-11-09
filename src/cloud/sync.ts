@@ -216,13 +216,27 @@ const isMissingColumn = (e: { code?: string; message?: string }) =>
  * Downloads try flat first, then the capturer's legacy per-user folder, then
  * our own — media uploaded before workspaces became shared lives under
  * `${uploaderUid}/${key}` and must keep working without re-uploading. */
+/* A FILE THAT CAME DOWN DURING THIS PASS IS ALREADY UP TOO. `uploaded` takes
+   what came down (FROM_CLOUD_KEY) once, at the start of a pass; the drain runs
+   beside the pass, so a file landing after that — a clip's small poster comes
+   down in a moment — was found on the device by the same pass when it pushed
+   the row that names it, and sent straight back up from the laptop that had
+   only downloaded it (sync-two-devices, scenario 4: the laptop back online,
+   its merged test naming the phone's new clip; "thumb-…×2", 9 November). So
+   every file fetched this session is known here, at once, and never sent. */
+const cameDown = new Set<string>();
+/** Whether this device fetched the file from the cloud this session — exported for its test. */
+export const fetchedFromCloud = (key: string): boolean => cameDown.has(key);
+
 async function uploadMedia(_uid: string, keys: MediaKey[], uploaded: Set<string>, wanted: Set<string>, tooBig: Map<string, number>): Promise<void> {
   const sb = supabase!;
   for (const { key, mime } of keys) {
     if (!key) continue;
     if (uploaded.has(key) || tooBig.has(key)) continue;
+    if (cameDown.has(key)) { uploaded.add(key); continue; }
     wanted.add(key);
     const raw = await getBlob(key);
+    if (raw && cameDown.has(key)) { uploaded.add(key); wanted.delete(key); continue; }   // landed while we looked
     if (!raw) { uploaded.add(key); continue; }         // referenced but gone locally — skip
     // Send a real content type. Storage echoes this back on download, so an
     // octet-stream here is what makes the clip unplayable on every OTHER device.
@@ -264,7 +278,9 @@ async function downloadOne(uid: string, key: string, owner?: string, mime?: stri
     if (!error && data) {
       // Re-derive the type from the bytes: what comes back off the wire is often
       // application/octet-stream, which no <video> or <img> will render.
-      await putBlob(key, await withUsableMime(data, mime));
+      const typed = await withUsableMime(data, mime);
+      cameDown.add(key);   // before the bytes are local: a pass's upload must never see them first (below)
+      await putBlob(key, typed);
       return 'got';
     }
     if (!isNotThere(error)) absentEverywhere = false;
