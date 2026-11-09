@@ -185,15 +185,21 @@ export function picksForTools(b: LineBundle, labels: readonly string[]): Set<str
 /** WHO OWES WHAT BY WHEN — every open problem and every program to prove, the late first. */
 export function actionsOn(kit: LineKit, problems: readonly SnagRow[], today = todayISO(), checks: readonly LeanAction[] = []): LeanAction[] {
   const out: LeanAction[] = [...checks];
-  for (const p of problems) out.push({ what: p.what, ...(p.owner ? { who: p.owner } : {}), ...(p.due ? { due: p.due } : {}), state: p.late ? 'Late' : p.status === 'in_progress' ? 'In hand' : 'Open', tone: p.late || p.priority === 'critical' ? 'r' : p.priority === 'high' ? 'a' : 'n', from: 'Problem' });
-  for (const p of kit.programs) {
-    if (isProved(p)) continue;
-    const late = standingOf(p, today) === 'overdue';
-    out.push({ what: `Prove program ${p.what}`, ...(p.from ? { who: p.from } : {}), ...(p.testOn ? { due: niceDay(p.testOn) } : {}), state: late ? 'Late' : p.testOn ? 'Booked' : 'No test day', tone: late ? 'r' : p.testOn ? 'n' : 'a', from: 'Programs' });
-  }
-  const rank = (a: LeanAction) => (a.tone === 'r' ? 0 : a.tone === 'a' ? 1 : 2);
-  return out.sort((a, b) => rank(a) - rank(b));
+  for (const p of problems) out.push(problemAction(p));
+  for (const p of kit.programs) if (!isProved(p)) out.push(programAction(p, today));
+  return out.sort((a, b) => actionRank(a) - actionRank(b));
 }
+/** One open problem as a row of who owes what — the line report's and the area report's. */
+export function problemAction(p: SnagRow): LeanAction {
+  return { what: p.what, ...(p.owner ? { who: p.owner } : {}), ...(p.due ? { due: p.due } : {}), state: p.late ? 'Late' : p.status === 'in_progress' ? 'In hand' : 'Open', tone: p.late || p.priority === 'critical' ? 'r' : p.priority === 'high' ? 'a' : 'n', from: 'Problem' };
+}
+/** One program still to prove as a row of who owes what. */
+export function programAction(p: Program, today = todayISO()): LeanAction {
+  const late = standingOf(p, today) === 'overdue';
+  return { what: `Prove program ${p.what}`, ...(p.from ? { who: p.from } : {}), ...(p.testOn ? { due: niceDay(p.testOn) } : {}), state: late ? 'Late' : p.testOn ? 'Booked' : 'No test day', tone: late ? 'r' : p.testOn ? 'n' : 'a', from: 'Programs' };
+}
+/** The late (red) first, then the amber, then the rest — the order of who owes what. */
+export const actionRank = (a: Pick<LeanAction, 'tone'>): number => (a.tone === 'r' ? 0 : a.tone === 'a' ? 1 : 2);
 
 function partFor(line: Workspace, title: string, r: BundleRecords): LinePart {
   const today = r.today ?? todayISO();
