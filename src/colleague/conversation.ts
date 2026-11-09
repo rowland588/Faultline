@@ -131,7 +131,7 @@ export const MODE_WORD: Record<NonNullable<Thread['mode']>, string> = { talk: 'J
 
 /** How it is known, in words — on the note's pill. */
 export const HOW_WORD: Record<HowKnown, string> = {
-  observed: 'Observed', reported: 'Reported', measured: 'Measured', calculated: 'Calculated', hypothesised: 'Hypothesised', verified: 'Verified', unknown: 'Unknown',
+  observed: 'Observed', reported: 'Reported', measured: 'Measured', imported: 'Imported', calculated: 'Calculated', estimated: 'Estimated', hypothesised: 'Hypothesised', verified: 'Verified', unknown: 'Unknown',
 };
 
 /** A scope said in words — "line Line 3 · project Wrapper uptime". `names` turns an id into a name where one is known. */
@@ -148,7 +148,7 @@ export function scopeSaid(scope: ThreadScope, names: (kind: 'line' | 'project' |
 
 /** THE FOCUS AS THE GATEWAY READS IT — the current thread with its place and notes, then the parked ones by title, then
  *  the photos the person can have attached by key. */
-export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string }[]; drafts?: readonly ColleagueDraft[] } = {}): string {
+export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string }[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[] } = {}): string {
   const cur = currentThread(threads);
   const parked = parkedThreads(threads);
   const lines: string[] = [];
@@ -160,10 +160,14 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
     lines.push(`  Kind of work: ${MODE_SAID[cur.mode ?? 'open']}`);
     for (const n of cur.notes.slice(-12)) lines.push(`  - ${n.text} (${HOW_WORD[n.how].toLowerCase()})`);
     for (const p of (cur.points ?? []).slice(-10)) lines.push(`  ${p.kind === 'question' ? (p.answered ? `Answered: ${p.text} — ${p.answered}` : `Still to answer: ${p.text}`) : `${p.kind === 'decision' ? 'Decided' : 'Assumed'}: ${p.text}`}`);
+    /* the task being worked, and a step handed to the person (10 November, docs/AI-TASK.md, docs/AI-TOOL-INTELLIGENCE.md) */
+    if (cur.task) lines.push(`  Task: ${cur.task.goal} — steps ${cur.task.steps.join(' → ')} (task_state reads where it stands)`);
+    if (cur.awaiting) lines.push(`  Handed over to the person: ${cur.awaiting.does} (${cur.awaiting.tool}) — “${cur.awaiting.handover}” (handover_state reads whether it is done)`);
     const touched = cur.refs.filter(r => r.kind !== 'page').slice(-8);
     if (touched.length) lines.push(`  Records touched: ${touched.map(r => `${r.kind} ${r.label} [${r.id}]`).join('; ')}`);
   } else lines.push('Current: nothing yet — the person has not said what this is about.');
   if (parked.length) lines.push(`Parked: ${parked.map(t => `${t.title}${scopeSaid(t.scope, opts.names) ? ` (${scopeSaid(t.scope, opts.names)})` : ''}${t.mode ? ` — ${MODE_SAID[t.mode]}` : ''} [thread ${t.id}]`).join('; ')}`);
+  if (opts.imports?.length) lines.push(`Files read in code (imported evidence): ${opts.imports.map(i => `“${i.name}” [${i.id}], ${i.rows.length} rows`).join('; ')} — pareto with importId`);
   if (opts.photos?.length) lines.push(`Photos in this conversation: ${opts.photos.map(p => `${p.label} = photoKey ${p.key}`).join('; ')}`);
   /* what is being built from the conversation (docs/AI-MODE.md, Building tools in conversation): each draft with its id, what is
      captured and how known, and what is missing — the newest six, a long one cut */

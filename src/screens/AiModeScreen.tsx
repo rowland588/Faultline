@@ -65,6 +65,9 @@ import type { CapResult } from '../capabilities/types';
 import { factoryDraftFor, takeDocument } from '../capabilities/factoryBuild';
 import type { FactoryOp } from '../capabilities/factoryDraft';
 import { readFactoryDocument } from '../colleague/factorySource';
+import { readXlsx } from '../lib/xlsxRead';
+import { csvRows, downtimeTable } from '../capabilities/intel/pareto';
+import { keepImport } from '../capabilities/intel/caps';
 import { FactoryDocSheet, FactoryDraftBox, type DocPicked } from '../colleague/AiFactory';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -396,7 +399,24 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   /* ---- A FACTORY DOCUMENT (docs/FACTORY-KNOWLEDGE.md F4): picked, read, kept as a factory source, its proposals on the draft ---- */
   const docIn = useRef<HTMLInputElement>(null);
   const [docPicked, setDocPicked] = useState<DocPicked | null>(null);
-  const pickDoc = (file: File) => {
+  /* A DOWNTIME FILE (10 November, docs/AI-TOOL-INTELLIGENCE.md): a CSV or Excel sheet with a reason column and minutes or counts is read
+     here, in code, and kept on the conversation as IMPORTED evidence — never written into the line's timed stops, never sent to a model
+     to read. Any other file is a factory document, as before. */
+  const [imported, setImported] = useState<string | null>(null);
+  const tryDowntime = async (file: File): Promise<boolean> => {
+    if (!/\.(csv|xlsx|xls|tsv|txt)$/i.test(file.name)) return false;
+    const sheets = /\.xlsx?$/i.test(file.name) ? readXlsx(await file.arrayBuffer()).map(x => x.rows) : [csvRows(await file.text())];
+    const table = sheets.map(rows => downtimeTable(rows)).find(t => t && t.rows.length);
+    if (!table) return false;
+    const cid = await ensure();
+    const k = await keepImport({ ...ctx(), conversationId: cid }, { name: file.name, ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...table });
+    if (!k.ok) { setImported(k.why); return true; }
+    await appendAction(patchStudy, cid, { callId: uid(), name: 'import_table', title: 'Read a downtime file', status: 'done', says: k.says, refs: [], at: Date.now() });
+    setImported(k.says);
+    return true;
+  };
+  const pickDoc = (file: File) => { void tryDowntime(file).then(took => { if (!took) pickFactoryDoc(file); }).catch(() => pickFactoryDoc(file)); };
+  const pickFactoryDoc = (file: File) => {
     const fd = factoryDraftFor(facts?.drafts ?? []);
     const line = cur?.scope.lineId ? lines.find(l => l.id === cur.scope.lineId) : undefined;
     setDocPicked({ file, client: fd?.factory?.client.value ?? line?.clientName ?? '' });
@@ -470,7 +490,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       const end = await colleagueLoop({
         turns: gatewayTurns(asked, named),
         ...(images.length ? { images } : {}),
-        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); return focusText(f.threads ?? [], { names: nameOf, photos: photosKeys, drafts: f.drafts ?? [] }); },
+        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); return focusText(f.threads ?? [], { names: nameOf, photos: photosKeys, drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [] }); },
         today: longDay(),
         conversationId: cid,
         preferences: preferencesText,
@@ -823,6 +843,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xls,text/csv,application/pdf,image/*" hidden aria-label="Choose a factory document" onChange={e => { const f = e.target.files?.[0]; if (f) pickDoc(f); e.target.value = ''; }} />
+            {imported && <p className="ai-imported" data-imported role="status">{imported} <button type="button" className="b ghost" aria-label="Close" onClick={() => setImported(null)}>×</button></p>}
             <textarea ref={box} className="ai-box" rows={1} value={typing} maxLength={4000}
               placeholder={listening ? 'Listening — talk…' : 'Ask Faultline, or tell it what you see…'} aria-label="Ask Faultline"
               onChange={e => { const er = ear.current; if (er) { ear.current = null; er.abort(); setListening(false); stopQuiet(); } stopSpeaking(); setBox(e.target.value); }}
@@ -1098,6 +1119,17 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
             <p className="ai-ctx-t">{cur.title}</p>
             {cur.objective && <p className="ai-ctx-aim" data-ctx-aim><span className="ai-ctx-k">Aim</span>{cur.objective}</p>}
             {cur.task && <TaskCard task={cur.task} onSay={onSay} />}
+            {cur.awaiting && (
+              <div className="ai-await" data-ctx-await={cur.awaiting.tool}>
+                <p className="ai-ctx-k">Over to you</p>
+                <p className="ai-await-do">{cur.awaiting.handover}</p>
+                <p className="ai-await-why">I can’t do this part on the screen. Tell me when it’s done and I’ll read what it says.</p>
+                <div className="ai-await-acts">
+                  <button type="button" className="b ghost" data-await-open onClick={() => nav(cur.awaiting?.href ?? '/')}>Open the page</button>
+                  <button type="button" className="b" data-await-done onClick={() => onSay('Done — I’ve finished that on the page.')}>I’ve done it</button>
+                </div>
+              </div>
+            )}
             {/* what kind of work it is (9 November): just talk, standalone or in the project — said, so nobody wonders where it will go */}
             <p className={'ai-mode-chip' + (cur.mode ? ` is-${cur.mode}` : '')} data-ctx-mode={cur.mode ?? 'open'}>{cur.mode ? MODE_WORD[cur.mode] : 'Not settled — project or standalone'}</p>
             <RefChips refs={place(cur.scope, cur.refs)} label="Where it is" />

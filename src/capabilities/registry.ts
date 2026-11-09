@@ -12,6 +12,7 @@ import { adaptDraftCap, createSheet, draftState, fillDraftCap, makeRecord, start
 import { describeFaultline, linkToProject, planWork, resolveRecord, updateContext } from './understand';
 import { OPERATE } from './operate';
 import { TASK } from './task';
+import { INTEL } from './intel/caps';
 import { FILL } from './fill';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
@@ -29,6 +30,7 @@ export const CAPABILITIES: readonly Capability[] = [
   /* operating the application through the tool connectors (10 November, docs/AI-OPERATING.md) */
   ...OPERATE,
   ...TASK,
+  ...INTEL,
   /* the Fill part for every tool a draft does not cover (10 November, docs/AI-OPERATING.md §2) */
   ...FILL,
 ];

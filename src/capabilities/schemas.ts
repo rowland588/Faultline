@@ -12,7 +12,7 @@ export interface CapabilitySchema {
   input_schema: Record<string, unknown>;
 }
 
-const HOW_KNOWN_SAID = ['observed', 'reported', 'measured', 'calculated', 'hypothesised', 'unknown'];
+const HOW_KNOWN_SAID = ['observed', 'reported', 'measured', 'imported', 'calculated', 'estimated', 'hypothesised', 'unknown'];
 
 const str = (description: string, maxLength = 400) => ({ type: 'string', description, maxLength });
 const obj = (properties: Record<string, unknown>, required: string[] = []) => ({
@@ -710,5 +710,47 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     kind: 'read',
     description: 'Where the kept task stands, read from the real records: each step known \u00b7 old \u00b7 not done, what each found in its tool\u2019s own words, which were done since the task began, and the next step. Use when they ask where they are, after a step is done, and when they come back to the task.',
     input_schema: obj({}),
+  },
+  // ── Tool intelligence (10 November, docs/AI-TOOL-INTELLIGENCE.md) ─────────────────────────────────────────────────────
+  {
+    name: 'tool_intel',
+    kind: 'read',
+    description: 'What a tool does and cannot do, when to use it and what instead, what it needs, how much is enough, how each input can be got (and which ways are not possible yet), and each OPERATION’s level: 1 by conversation, 2 by conversation with evidence, 3 with the person on the page (what they must do, and the hand-over words), 4 not supported (why, and the manual way). Read it before choosing how to get evidence, and before telling the person what you can or cannot do with a tool.',
+    input_schema: obj({ tool: str('The tool’s key (stops, capability, spaghetti, linestandard …)', 40) }, ['tool']),
+  },
+  {
+    name: 'assess_evidence',
+    kind: 'read',
+    description: 'For a tool on a line: what Faultline already holds (its records and their age, or the stops and how sure they are), what it still needs, whether that is enough, and the best way to get the rest. Run it before asking the person for any figure — never ask for figures to be typed where the records or a live measurement can give them.',
+    input_schema: obj({ tool: str('The tool’s key', 40), lineId: str('The line', 80) }, ['tool']),
+  },
+  {
+    name: 'pareto',
+    kind: 'read',
+    description: 'Rank where the time goes from every source there is, each KEPT APART by how it is known and never added together: the line’s stops timed by stopwatch (measured), typed after the fact (reported), tapped as instants (counted — how often, no minutes), a downtime file read in code (importId — imported), and figures the person said in this conversation (reported: each reason with minutes and/or stops, exactly as said, never estimated). Says which source leads and by what (time lost, or only how often), the share and the vital few, each line’s own leader when several, the period and how it moved, how sure (thin, fair, solid) and what would make it enough, frequency without duration and duration without frequency, and any figures that do not agree. With nothing to rank it says so and how to get it. Never draw a Pareto from the problem as said.',
+    input_schema: obj({
+      lineId: str('The line', 80), lineIds: { type: 'array', maxItems: 8, items: { type: 'string', maxLength: 80 }, description: 'Several lines, each kept as its own' },
+      days: { type: 'integer', minimum: 1, maximum: 365, description: 'Days back; 28 by default' }, from: str('From, YYYY-MM-DD', 10), to: str('To, YYYY-MM-DD', 10),
+      importId: str('A downtime file read in this conversation (import_table)', 80),
+      reported: { type: 'array', maxItems: 40, description: 'Figures the person SAID, as said', items: obj({ category: str('The reason, in their words', 80), minutes: { type: 'number', minimum: 0, description: 'Minutes lost, when said' }, stops: { type: 'integer', minimum: 0, description: 'How many times, when said' } }, ['category']) },
+    }),
+  },
+  {
+    name: 'import_table',
+    kind: 'read',
+    description: 'The downtime files attached in this conversation and read in code — each with its id, the columns found (reason, minutes, count, line, date), the rows read and the rows left out with why. Use pareto with its importId to rank it.',
+    input_schema: obj({ importId: str('One file read', 80) }),
+  },
+  {
+    name: 'hand_over',
+    kind: 'local',
+    description: 'A level-3 operation (tool_intel) only the person can do — drawing, dragging, placing on the page, filming, looking at footage, measuring a distance, checking on the floor: opens the page beside the conversation, keeps the step on the subject, and returns exactly what they are to do. Say it plainly — you cannot press buttons, draw or select on the screen — and what happens when they are done.',
+    input_schema: obj({ tool: str('The tool’s key', 40), op: str('The operation’s id from tool_intel', 40), studyId: str('The record, when the page is a record’s', 80), lineId: str('The line', 80) }, ['tool', 'op']),
+  },
+  {
+    name: 'handover_state',
+    kind: 'read',
+    description: 'Whether the step handed over has been done — read from the record (changed since it was handed over), never assumed. done: clear once it has moved and you have read it.',
+    input_schema: obj({ done: { type: 'string', enum: ['keep', 'clear'] } }),
   },
 ];

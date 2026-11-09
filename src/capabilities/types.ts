@@ -8,9 +8,9 @@ import type { Access } from '../lib/access';
 import type { CustomDef } from '../tools/doc/types';
 
 /** How a thing is known. Only a person sets 'verified'. */
-export type HowKnown = 'observed' | 'reported' | 'measured' | 'calculated' | 'hypothesised' | 'verified' | 'unknown';
+export type HowKnown = 'observed' | 'reported' | 'measured' | 'imported' | 'calculated' | 'estimated' | 'hypothesised' | 'verified' | 'unknown';
 /** What a capability may record: every way of knowing but 'verified'. */
-export const HOW_SAID: readonly Exclude<HowKnown, 'verified'>[] = ['observed', 'reported', 'measured', 'calculated', 'hypothesised', 'unknown'];
+export const HOW_SAID: readonly Exclude<HowKnown, 'verified'>[] = ['observed', 'reported', 'measured', 'imported', 'calculated', 'estimated', 'hypothesised', 'unknown'];
 
 export interface CapRef { kind: 'line' | 'machine' | 'project' | 'problem' | 'study' | 'story' | 'action' | 'report' | 'page'; id: string; label: string; href: string }
 
@@ -88,7 +88,14 @@ export interface ColleagueThread {
   points?: ThreadPoint[];
   /** The task being worked (10 November, docs/AI-TASK.md) — its goal, its line, its steps in order; progress is read from the records. */
   task?: ColleagueTask;
+  /** A step handed to the person (10 November, docs/AI-TOOL-INTELLIGENCE.md): what they are to do on which page, and when it was handed —
+   *  handover_state reads whether the record moved since. */
+  awaiting?: ColleagueAwaiting;
 }
+export interface ColleagueAwaiting { tool: string; op: string; does: string; handover: string; href: string; studyId?: string; lineId?: string; at: number }
+/** A downtime file read in code (intel/pareto downtimeTable), kept on the conversation as IMPORTED evidence — never written into the
+ *  line's timed stops. */
+export interface ColleagueImport { id: string; name: string; at: number; lineId?: string; columns: { reason: string; minutes?: string; count?: string; line?: string; date?: string }; rows: { category: string; mins?: number; events?: number; line?: string; at?: number }[]; skipped: string[] }
 /** A TASK the person is taking through to an outcome (10 November — Rowland: "The user describes the work. Faultline works out how to
  *  support it."): its goal in their words, its kind (capabilities/task ROUTES), its line, the tools it goes through in order (keys),
  *  and when it began — a step's progress is never stored, it is read from the line's records each time. */

@@ -17428,3 +17428,12 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .vm-set-limit { margin: 0; }
 .ai-voice { color: var(--brand-2); }
 .ai-dict-x { margin-left: auto; }
+
+/* AI Mode — a step handed to the person (docs/AI-TOOL-INTELLIGENCE.md) and a file read in code */
+.ai-await { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--st-a); border-left-width: 4px; border-radius: 8px; background: var(--card, #fff); }
+.ai-await-do { margin: 4px 0; font-weight: 600; }
+.ai-await-why { margin: 4px 0 8px; color: var(--muted, #5b6472); font-size: 13px; }
+.ai-await-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.ai-await-acts .b { min-height: 44px; }
+.ai-imported { margin: 6px 0; padding: 8px 10px; border-radius: 8px; background: var(--canvas, #f4f6f9); font-size: 13px; overflow-wrap: anywhere; }
+.ai-imported .b { min-height: 32px; padding: 0 8px; }
