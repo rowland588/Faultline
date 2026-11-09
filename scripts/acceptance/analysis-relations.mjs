@@ -110,6 +110,8 @@ await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeT
 let groups;
 {
   groups = await start('Give-away by shift');
+  /* the questions draw a moment after the sheet opens — wait for all fourteen, never read too early (failed 2 of 3 full gates) */
+  await page.waitForFunction(() => document.querySelectorAll('[role=radiogroup][aria-label="What do you want to know?"] .ie-kind').length >= 14, null, { timeout: 10000 }).catch(() => {});
   const kinds = await all('[role=radiogroup][aria-label="What do you want to know?"] .ie-kind');
   ok(kinds.length === 14 && /^Do these groups really differ/.test(kinds[8]) && /^Is one thing linked to the other/.test(kinds[11]) && /^Does one thing move with another/.test(kinds[10]), `1 the three new questions offered with the four: ${kinds.map(k => k.split('?')[0]).join(' · ')}`);
   await page.getByRole('radio', { name: /Do these groups really differ/ }).click();
