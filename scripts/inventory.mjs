@@ -70,6 +70,8 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
   const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
   /* the check logs (src/tools/checks): one of each kind on the seeded line, metal detection in the seeded project */
   sd.checkLogs = await page.evaluate(async ([ws, pj]) => (await import('/src/dev/seed.ts')).seedChecksForTest(ws, pj), [sd.wsId, sd.projectId]);
+  /* areas (9 November, lib/areas): the seed's lines in two areas of one site — words on the lines, kept apart from the smoke seed */
+  sd.areas = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedAreasForTest());
   const cap = await page.evaluate(async () => {
     const s = await (await import('/src/dev/capacitySeeds.ts')).seedCapacityFor('huge');
     const db = await import('/src/db.ts');

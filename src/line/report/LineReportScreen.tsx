@@ -15,20 +15,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Workspace } from '../../types';
 import type { Snag } from '../../snag/types';
-import type { Observation } from '../../types';
-import { getWorkspace, listAllSnags, listObservations, listWorkspaces, onDataChange, projectsOnWorkspace } from '../../db';
+import { getWorkspace, listAllSnags, listWorkspaces, onDataChange } from '../../db';
 import { useLineRecords } from '../../lib/useLineRecords';
-import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../../lib/useJobFloor';
-import { lineProgramsReading } from '../../lib/lineRecords';
 import { bundleSays, defaultPicks, lineBundle, picksForTools, pictureNames, problemsLine, summaryMeans, summaryPage, whereFor, type LineBundle, type WhereRow } from './lineBundle';
 import { toolByKey } from '../../catalogue/registry';
-import { useLooking } from '../../tools/gemba/useLooking';
-import { spreadSentences, useYokotenMany } from '../../tools/yokoten/useYokoten';
-import { lookingReading } from '../../tools/gemba/looking';
-import type { LineReading } from '../../lib/lineLean';
-import { scopeCounts } from '../../tools/checks/owed';
 import { lineClosing, lineTiles } from '../../lib/lineLean';
-import { lineDay } from '../../lib/lineLoss';
+import { useLineObs, usePartReadings } from './usePartReadings';
 import { dualOf, linesSaid, productionLines } from '../../lib/lines';
 import { todayISO } from '../../lib/weeks';
 import { useSaveOnArrival } from '../../lib/useSaveOnArrival';
@@ -37,7 +29,6 @@ import { ALL_IN, packageSections, packageSays, type PackageFlags, type PackageRe
 import { attemptsOf } from '../../lib/programJourney';
 import { LeanActions, LeanBand, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import type { LeanInsight, LeanTone } from '../../lib/lean';
-import { stopsOf } from '../../screens/ProductionLineScreen';
 import { nav } from '../../state/useRoute';
 import './lineReport.css';
 
@@ -106,8 +97,6 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
   const [all, setAll] = useState<Workspace[]>([]);
   const [snags, setSnags] = useState<Snag[]>([]);
-  const [obs, setObs] = useState<Map<string, Observation[]>>(new Map());
-  const [jobsOn, setJobsOn] = useState<Map<string, number>>(new Map());
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const today = todayISO();
@@ -121,12 +110,10 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
   const load = useCallback(async () => {
     const [w, ws, every] = await Promise.all([getWorkspace(wsId), listWorkspaces(), listAllSnags()]);
     setLine(w ?? null); setAll(ws); setSnags(every);
-    const ids = [wsId, ...(w?.madeOf ?? [])];
-    const [o, j] = await Promise.all([Promise.all(ids.map(id => listObservations(id))), Promise.all(ids.map(id => projectsOnWorkspace(id)))]);
-    setObs(new Map(ids.map((id, i) => [id, o[i]])));
-    setJobsOn(new Map(ids.map((id, i) => [id, j[i].length])));
   }, [wsId]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
+  /* the stops timed on the line (and a dual line's lines) and the projects on each — src/line/report/usePartReadings */
+  const { obs, jobsOn } = useLineObs(useMemo(() => (line ? [wsId, ...(line.madeOf ?? [])] : [wsId]), [wsId, line]));
 
   const jobName = useCallback((id: string) => rec.jobs.find(j => j.id === id)?.name, [rec.jobs]);
   const ctx = useMemo(() => ({ observations: [...obs.values()].flat(), workspaces: all }), [obs, all]);
@@ -152,30 +139,9 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
   };
   const toggle = (k: string) => setPicks(s => { const n = new Set(s ?? on); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
-  /* ITS PROGRAMS, machine by machine — read as the line's Programs reads them (lib/lineRecords) */
-  const partIds = useMemo(() => bundle?.parts.map(p => p.line.id) ?? [], [bundle]);
-  const floor = useJobFloor(useMemo(() => projectsOnLines(partIds, rec.jobLines, pid => rec.jobs.some(j => j.id === pid && !j.archivedAt)), [partIds, rec.jobLines, rec.jobs]));
-  const stageOnly = useMemo(() => stageOnlyByLine(floor.stageOnly ?? [], rec.machines, rec.jobLines), [floor, rec.machines, rec.jobLines]);
-  const jobNames = useMemo(() => new Map(rec.jobs.map(j => [j.id, j.name])), [rec.jobs]);
-  const programs = useMemo(() => new Map((bundle?.parts ?? []).map(p => [p.line.id, lineProgramsReading([{ id: p.line.id, name: p.line.name, machines: p.kit.machines, programs: p.kit.programs }], today,
-    { floor, jobName: jobNames, tests: rec.provingTests, studies: rec.studies, standards: rec.standards, stageOnly: new Map([[p.line.id, (stageOnly.get(p.line.id) ?? []).map(x => x.line)]]) })] as const)), [bundle, today, floor, jobNames, rec.provingTests, rec.studies, rec.standards, stageOnly]);
-
-  /* how fresh the looking is, a part at a time (FC-199, tools/gemba) */
-  const looked = useLooking(partIds);
-  const spreadOf = useYokotenMany(partIds);
-  const checkCounts = useMemo(() => new Map((bundle?.parts ?? []).map(p => [p.line.id, scopeCounts(rec.studies.filter(x => !x.deletedAt && x.workspaceId === p.line.id), Date.now())] as const)), [bundle, rec.studies]);
-  /* EACH PART AS THE ONE-PAGE LINE REPORT READS IT (lib/lineLean) — the same tiles and closing line */
-  const readings = useMemo(() => new Map((bundle?.parts ?? []).map(p => {
-    const s = stopsOf(obs.get(p.line.id) ?? []);
-    const r: LineReading = { name: p.line.name, problems: { open: p.problems.open, late: p.problems.late, critical: p.problems.critical },
-      programs: { n: p.kit.programs.length, proved: p.kit.proved, late: p.kit.late, onStage: (stageOnly.get(p.line.id) ?? []).length },
-      stops: { n: s.n, minutes: s.minutes, ...(s.worst ? { worst: s.worst } : {}) }, day: lineDay(p.line), jobs: jobsOn.get(p.line.id) ?? 0,
-      /* the line's check logs (src/tools/checks): the tile and the closing line the line's page says */
-      ...(checkCounts.get(p.line.id)?.logs ? { checks: checkCounts.get(p.line.id) } : {}),
-      ...(() => { const lk = looked?.find(x => x.id === p.line.id); return lk ? { looking: lookingReading(p.line.name, lk.looking) } : {}; })(),
-      ...(() => { const sp = spreadSentences(spreadOf?.get(p.line.id)); return sp.length ? { spread: sp } : {}; })() };
-    return [p.line.id, r] as const;
-  })), [bundle, obs, stageOnly, jobsOn, checkCounts, looked, spreadOf]);
+  /* each part as the one-page line report reads it, and its programs machine by machine (usePartReadings — the area report's too) */
+  const parts = useMemo(() => bundle?.parts ?? [], [bundle]);
+  const { readings, programs } = usePartReadings(parts, obs, jobsOn, rec, today);
 
   const dualWords = useMemo<[string, string] | undefined>(() => {
     const dual = line ? dualOf(line, productionLines(all)) : { madeOf: [], partOf: [] };

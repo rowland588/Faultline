@@ -46,6 +46,7 @@ import { ScopeTabs } from './ScopeTabs';
 import { ControlRoomReports } from './ControlRoomReports';
 import { QuickSnagHost, openQuickSnag, useCanTakeProblem } from '../snag/QuickSnag';
 import { ContextBar } from './ContextBar';
+import { areaFromQuery, areaHref, areaTitle } from '../lib/areas';
 import { ProblemPanelHost } from '../snag/ProblemPanel';
 import { notePlace } from '../lib/recentPlaces';
 import { LineReports } from './ControlRoomReports';
@@ -136,7 +137,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
 
   return (
     <div className="nv">
-      <ScopeFrame scope={scope} project={project} projects={projects} lines={lines} here={here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} />
+      <ScopeFrame scope={scope} project={project} projects={projects} lines={lines} here={here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} area={areaCrumbs(route)} />
       <main className="nv-main">{children}</main>
       <QuickSnagHost wsId={route.wsId ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={projectId} />
       <ProblemPanelHost />
@@ -144,9 +145,18 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   );
 }
 
+/** AN AREA'S PAGE OR ITS REPORT (9 November, lib/areas) — Factory › Hull › Packing hall [› Area report]. */
+function areaCrumbs(route: Route): { name: string; to: string; report: boolean } | undefined {
+  if (route.name !== 'area' && route.name !== 'areaReport') return undefined;
+  const a = areaFromQuery(route.query);
+  return a ? { name: areaTitle(a), to: areaHref(a), report: route.name === 'areaReport' } : undefined;
+}
+
 /** THE CONTEXT BAR AND THE SCOPE'S RAIL — one of three, by the scope (docs/STRUCTURE.md §5.2). */
-function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, toolId, wsId, reading }: {
+function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, toolId, wsId, reading, area }: {
   scope: Scope; project?: Project; projects: Project[]; lines: Workspace[]; here: string; toolName?: string; toolTo?: string; toolId?: string; wsId?: string; reading: boolean;
+  /** An area of the factory (lib/areas): its name in the bar in place of the tab's, and its report's after it. */
+  area?: { name: string; to: string; report: boolean };
 }) {
   const all = useMemo(() => (project && !projects.some(p => p.id === project.id) ? [...projects, project] : projects), [projects, project]);
   const [page, setPage] = useState<string | undefined>(undefined);
@@ -160,7 +170,7 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, t
   /* WHERE YOU WERE (lib/recentPlaces, B5): a project's or a line's page, noted on this device for Home */
   const scopeName = scope.kind === 'project' ? project?.name : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name : undefined;
   /* the factory's old lists light the Overview in the menu but are named for what they are in the bar */
-  const shown = (scope.kind === 'factory' ? OFF_THE_MENU_NAME[here] : undefined) ?? page;
+  const shown = area?.name ?? (scope.kind === 'factory' ? OFF_THE_MENU_NAME[here] : undefined) ?? page;
   const placePage = toolName ?? shown;
   useEffect(() => {
     if (reading || !scopeName || (scope.kind !== 'project' && scope.kind !== 'line')) return;
@@ -168,7 +178,7 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, t
   }, [reading, scopeName, placePage, scope.kind]);
   return (
     <>
-      <ContextBar scope={scope} page={shown} tool={toolName && toolName !== shown ? toolName : undefined} toolTo={toolTo} toolId={toolId} projects={all} lines={lines} projectId={project?.id}
+      <ContextBar scope={scope} page={shown} tool={area?.report ? 'Area report' : toolName && toolName !== shown ? toolName : undefined} toolTo={area?.report ? undefined : toolTo} toolId={toolId} projects={all} lines={lines} projectId={project?.id}
         onLines={scope.kind === 'project' ? onLines : undefined} />
       {reading ? <NavChrome groups={[]} bar={[]} />
         : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={said} />

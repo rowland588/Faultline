@@ -11,7 +11,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
-  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage';
+  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage';
 
 export interface Route {
   name: RouteName;
@@ -70,6 +70,8 @@ export function parseRoute(hash: string): Route {
      of lines is the Factory's LINES tab at #/room (its old address kept — every link to the control room still lands on it). */
   if (segs.length === 0) return { name: 'home', query };
   if (segs[0] === 'room') return { name: 'room', query };
+  /* AN AREA OF THE FACTORY (9 November, lib/areas): a group of its lines, by the words on them — ?site=…&area=… (&client=) */
+  if (segs[0] === 'area') return { name: segs[1] === 'report' ? 'areaReport' : 'area', query };
   if (segs[0] === 'guide') return { name: 'guide', query }; // public — no workspace, no session
   /* A share link: #/s/<token> opens one picture or clip for somebody with no
      account (src/cloud/shares.ts). Public, like the guide. The token is taken

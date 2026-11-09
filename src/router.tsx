@@ -52,6 +52,8 @@ const ProjectMachinesScreen = lazy(() => import('./project/machines/ProjectMachi
 const ProductionLineScreen = lazy(() => import('./screens/ProductionLineScreen').then(m => ({ default: m.ProductionLineScreen })));
 const MethodReportScreen = lazy(() => import('./project/method/MethodReportScreen').then(m => ({ default: m.MethodReportScreen })));
 const LineReportScreen = lazy(() => import('./line/report/LineReportScreen').then(m => ({ default: m.LineReportScreen })));
+const AreaScreen = lazy(() => import('./line/area/AreaScreen').then(m => ({ default: m.AreaScreen })));
+const AreaReportScreen = lazy(() => import('./line/report/AreaReportScreen').then(m => ({ default: m.AreaReportScreen })));
 const LineProgramsReportScreen = lazy(() => import('./line/LineProgramsReportScreen').then(m => ({ default: m.LineProgramsReportScreen })));
 const LineProgramReportScreen = lazy(() => import('./line/LineProgramReportScreen').then(m => ({ default: m.LineProgramReportScreen })));
 const LineMachineScreen = lazy(() => import('./line/LineMachineScreen').then(m => ({ default: m.LineMachineScreen })));
@@ -197,6 +199,9 @@ function app(route: Route) {
   if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
   /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October, lib/lineBundle) */
   if (route.name === 'lineReport' && route.wsId) return <LineReportScreen key={route.wsId} wsId={route.wsId} />;
+  /* AN AREA OF THE FACTORY AND ITS REPORT (9 November, lib/areas) — a group of its lines, keyed on what the address names */
+  if (route.name === 'area') return <AreaScreen key={route.query.toString()} route={route} />;
+  if (route.name === 'areaReport') return <AreaReportScreen key={route.query.toString()} route={route} />;
   if (route.name === 'lineProgramsReport' && route.wsId) return <LineProgramsReportScreen key={route.wsId} wsId={route.wsId} />;
   if (route.name === 'lineProgramReport' && route.wsId && route.id) return <LineProgramReportScreen key={`${route.wsId}:${route.id}`} wsId={route.wsId} programId={route.id} />;
   /* A MACHINE ON ITS LINE — everything ever done to it (docs/STAGEGATE-RESEARCH.md §5, slice 4) */

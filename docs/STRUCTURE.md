@@ -885,3 +885,18 @@ lineReport; `lib/scope`; the rail lights Overview), reached from the line's
 Report ▾ and made on arrival; nothing on the rail, no address changed. Step 2
 of the combined report; step 0 above. `line-report.mjs` proves it.
 
+**Areas — 9 November.** Rowland: *"we now have areas in set up. So on factory page we need area.. then each area will have lines
+in them we need area reports show everything happening in the area."* An area is a **group of lines of the factory scope** — the
+lines whose words (`clientName · siteName · areaName`, K1) say that site and area; `lib/areas` reads them (`areasOf`, `inArea`,
+`areaHref`, `areaSays`, `areaTiles`). It is **not a fourth scope** (no rail, no tabs, no switcher entry, no record, no table, no
+database change): `#/area?site=…&area=…` (`&client=` when the lines name more than one client) and `#/area/report?…` are factory pages
+(`lib/scope` FACTORY), they light the Factory's **Lines** tab (`ui/rail hereOf` → `home`), and the context bar says *Factory ›
+Hull › Packing hall* (› *Area report*) (`ui/Frame areaCrumbs`). The Lines tab (`screens/WorkspaceHome`) is an area a section once any
+line names its area — the area's name, its sentence, *Open the area ›*, *Area report* — with the lines naming none under *No area
+yet* and *Set up the lines ›*; a factory naming no area is drawn as before. The line card is one component for the board and the
+area (`ui/FactoryLineCard`). One number everywhere: the area's sentence and tiles are the sums of what its lines' own readers count
+(`lineProblems`, `lineKit`, `itemsOn`), and the area's page and report read the area through `src/line/report/areaBundle` — each line
+by `lineBundle` exactly as its line report does, a dual line of the area as its lines and then *both lines together*, its lines not
+printed again on their own. The paper (`areaBundlePdf`) prints each part with the line report's own `summaryReading` and
+`summaryDetail`, then THE AREA TOGETHER. `scripts/acceptance/areas.mjs` proves it.
+

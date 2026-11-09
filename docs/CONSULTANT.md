@@ -92,4 +92,9 @@ So what stands, smallest first:
 *8 November:* the Story took the home — `#/` is the Story page and the board of lines (K1's client · site · area groups on it) is the
 Factory's **Lines** tab at `#/room`; *Present* is built as `#/?present=1` (docs/STORY.md S5). K1 itself is unchanged.
 
+*9 November:* **areas** (Rowland: *"on factory page we need area.. then each area will have lines in them we need area reports show
+everything happening in the area"*) — still words on the lines, still no record: the Lines tab an area a section with its sentence,
+an area's own page (`#/area?site=…&area=…`) and the **Area report** (each line's part as its line report prints it, then the area
+together). `lib/areas`, docs/STRUCTURE.md §20 (Areas), docs/MAP.md.
+
 Dropped: the fee and benefits against it, scheduled reporting, the client logging in.

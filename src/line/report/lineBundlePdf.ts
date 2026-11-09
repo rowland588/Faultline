@@ -197,7 +197,7 @@ function linePicture(machines: string[], where: WhereRow[]): Block[] {
 }
 
 /** The lean reading of one part — tiles, the picture, what it means, who owes what. */
-function summaryReading(p: LineBundlePaper, part: LinePart, _d: Density): Block[] {
+export function summaryReading(p: LineBundlePaper, part: LinePart, _d: Density): Block[] {
   const out: Block[] = [];
   const reading = p.readings.get(part.line.id);
   if (p.bundle.dual) out.push(leanHead(part.title, part.title === 'Both lines together' ? `what was run on ${p.bundle.line.name} itself` : undefined));
@@ -221,7 +221,7 @@ function summaryReading(p: LineBundlePaper, part: LinePart, _d: Density): Block[
 }
 
 /** The records behind the reading — problems, programs, each ticked tool's own blocks. */
-function summaryDetail(p: LineBundlePaper, part: LinePart, d: Density): Block[] {
+export function summaryDetail(p: LineBundlePaper, part: LinePart, d: Density): Block[] {
   const out: Block[] = [];
   out.push(leanHead(p.bundle.dual ? part.title : 'The records', p.bundle.dual ? 'the records' : undefined));
   out.push(leanHead('Problems open', part.problems.open ? `${part.problems.open} open${part.problems.late ? ` · ${part.problems.late} late` : ''}` : undefined));
