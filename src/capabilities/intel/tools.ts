@@ -58,6 +58,7 @@ const stops: ToolIntel = {
     { id: 'import', does: 'Read a downtime spreadsheet into a Pareto', level: 2, how: ['import_table', 'pareto'], needs: 'a CSV or Excel file with a reason column and minutes or counts' },
     { id: 'assess', does: 'Say whether the evidence is enough, and what is missing', level: 1, how: ['assess_evidence'] },
     { id: 'report', does: 'Print the stops — they are on the line report', level: 1, how: ['make_report'] },
+    { id: 'sensors', does: 'Read the stops from the machine’s own signals', level: 4, why: 'Faultline is measured by people, not sensors — no machine is read. The manual way: time them live (start_measurement) or on the line’s Stops timed page' },
   ],
 };
 
@@ -155,6 +156,7 @@ const changeover: ToolIntel = {
     { id: 'time-live', does: 'Time the elements as they are said', level: 2, how: ['start_measurement', 'capture_event', 'correct_capture', 'end_measurement'], needs: 'a changeover happening, each element said as it ends' },
     { id: 'fill', does: 'Build it from what is said — the elements, the target', level: 1, how: ['start_draft', 'fill_draft', 'make_record'] },
     { id: 'grid', does: 'Arrange elements in parallel lanes on the grid', level: 3, how: ['show_work'], interaction: ['drag'], page: 'record', handover: 'On the SMED grid, drag the elements done at the same time into one column, then tell me.', after: 'the new changeover time as the page works it', why: 'Parallel work is arranged on the grid by hand' },
+    { id: 'from-footage', does: 'Time a changeover from footage', level: 4, why: 'A changeover is not measured from footage yet (docs/VIDEO-DESIGN.md). The manual way: time it live, element by element, on the SMED page or by saying each element as it ends' },
   ],
 };
 
@@ -317,6 +319,7 @@ const linestandard: ToolIntel = {
     describe, open, report,
     { id: 'people', does: 'Put the people on with their tasks and labels', level: 1, how: ['start_study', 'place_people'] },
     { id: 'place', does: 'Place people, machines and areas where they stand', level: 3, how: ['show_work'], interaction: ['drag', 'position', 'draw'], page: 'record', handover: 'The people are in a row on the board — drag each to where they stand, draw the areas, then tell me.', after: 'the card', why: 'Positions on the board are the person’s; nothing places them by conversation' },
+    { id: 'from-photo', does: 'Lay out the board from a photo of the floor or a whiteboard', level: 4, why: 'A photo is not read into the board. The manual way: place the people on the board by hand (the place step)' },
   ],
 };
 
@@ -352,6 +355,7 @@ const capability: ToolIntel = {
     ...common,
     { id: 'readings', does: 'Add readings as they are said', level: 2, how: ['start_study', 'add_readings'], needs: 'readings measured on the product, said one by one or as a list' },
     { id: 'analyse', does: 'Run the statistics on its readings', level: 1, how: ['run_analysis'] },
+    { id: 'photo-reading', does: 'Take a reading off a photo of a gauge, scale or display', level: 4, why: 'A photo is never a measurement here. The manual way: read the gauge and say or type the figure — it is kept as measured by the person' },
   ],
 };
 
@@ -477,7 +481,7 @@ const spaghetti: ToolIntel = {
   fields: [{ name: 'each walker (role) and their places', required: true, routes: ['conversation', 'drawing'] }, { name: 'each leg’s distance', required: false, routes: ['manual', 'conversation', 'drawing'] }, { name: 'rounds a shift, the walking pace', required: false, routes: ['conversation'] }, { name: 'metres, minutes, money', required: false, routes: ['records'], derived: true }],
   assumptions: ['A schematic is said NOT TO SCALE'], quality: ['Measured legs: metres; none: moves counted only, said so'],
   acquire: [{ route: 'conversation', status: 'supported', how: 'draw_diagram (spag) from the walks said' }, { route: 'drawing', status: 'supported', how: 'The board: a layout, pins, a scale, tapped walks (by hand)' }, { route: 'manual', status: 'supported', how: 'Paced or measured and said' }, noSheet('legs'), noPhoto],
-  ops: [...common, { id: 'draw', does: 'Make the record of the walks from what is said — a schematic, not to scale', level: 1, how: ['draw_diagram'] }, { id: 'board', does: 'Draw the layout and tap the walks to scale', level: 3, how: ['show_work', 'read_record'], interaction: ['draw', 'position', 'measure-distance'], page: 'record', handover: 'On Draw it on a board: draw the area, pin the places, set the scale with two taps and a measured distance, then tap each walk — tell me when done.', after: 'the metres and money as the board works them', why: 'A layout and a scale are drawn by hand' }],
+  ops: [...common, { id: 'draw', does: 'Make the record of the walks from what is said — a schematic, not to scale', level: 1, how: ['draw_diagram'] }, { id: 'board', does: 'Draw the layout and tap the walks to scale', level: 3, how: ['show_work', 'read_record'], interaction: ['draw', 'position', 'measure-distance'], page: 'record', handover: 'On Draw it on a board: draw the area, pin the places, set the scale with two taps and a measured distance, then tap each walk — tell me when done.', after: 'the metres and money as the board works them', why: 'A layout and a scale are drawn by hand' }, { id: 'from-footage', does: 'Work out the walks and their distances from footage or a photo', level: 4, why: 'Walks are not read from footage or photos. The manual way: say the walks, or draw them on the board' }],
 };
 
 const micro: ToolIntel = {
@@ -505,6 +509,7 @@ const video: ToolIntel = {
     { id: 'film', does: 'Film or upload the footage', level: 3, how: ['show_work'], interaction: ['film'], page: 'record', handover: 'Film the work from a fixed place (the page says where and how long) or upload a clip, then tell me.', after: 'whether the footage is fit, and the cycles', why: 'The camera is the person’s; the conversation cannot film' },
     { id: 'review', does: 'Review each cycle on the footage', level: 3, how: ['show_work', 'read_record'], interaction: ['review-visual'], page: 'record', handover: 'On the footage, accept or move each boundary — only you can see the picture.', after: 'the reviewed cycles', why: 'The AI is not given the footage; it never claims to have watched it' },
     { id: 'name-work', does: 'Name the work from the frames (Claude)', level: 3, how: ['show_work'], interaction: ['select-on-screen'], page: 'record', handover: 'Tick Name the work from the frames on the study — it says what it sends.', after: 'the names, for you to check', why: 'Offered and ticked on the page only' },
+    { id: 'watch-in-chat', does: 'Watch footage in the conversation and say what it shows', level: 4, why: 'AI Mode is not given footage. The manual way: the video study reads it on its own page, and Name the work from the frames is ticked there' },
   ],
 };
 

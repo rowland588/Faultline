@@ -37,6 +37,11 @@ refuses a connector without one. Each definition carries:
 | 3 | Assisted human interaction | What the person does (`interaction`: draw, drag, position, select on screen, review footage, film, measure a distance, observe, inspect), on which `page`, the `handover` words, what is read back `after`, and `why` the AI cannot |
 | 4 | Not supported today | `why`, and the manual way |
 
+Of the 204 operations, 164 are level 1, 16 level 2, 18 level 3 and six level 4 — what is genuinely not possible today, each with why
+and the manual way: reading stops from a machine's own signals (Faultline is measured by people, not sensors), timing a changeover from
+footage, taking a reading off a photo of a gauge, laying out a line standard from a photo, working out walks from footage or a photo, and
+watching footage in the conversation.
+
 A level is said of an operation, never of a whole tool. For example, the line standard's people are **level 1** (`place_people`), but
 placing them on the board is **level 3** (drag and position). A capability study's readings are **level 2** (`add_readings`, which
 needs readings measured on the product). A video study's review is **level 3**, because the AI is not given the footage and never
@@ -125,6 +130,11 @@ time lost, with hours and seconds converted. Counts are found by stops, occurren
 ## 5. How it is proved
 
 - `src/capabilities/__tests__/intel.test.ts`: every definition true to the code (§1).
+- `src/capabilities/__tests__/intel-ops.test.ts`: every tool, as the assistant meets its limits, through the real capabilities —
+  `tool_intel` says each of the 35 tools with every operation and its level; every level 1 or 2 operation is refused a hand-over
+  (the AI does it); every level 3 is handed over with its page, what to do, *I can't do this part* and what is read back; every level 4
+  is refused with *That is not supported yet* and the manual way; and "why this line is struggling" is read as lost time with one next
+  step.
 - `src/capabilities/__tests__/pareto.test.ts`: **the ten scenarios**, each worked by hand:
   1. History: 66 stops over 22 days, solid, 154 of 198 minutes.
   2. Figures said: reported, never timed.

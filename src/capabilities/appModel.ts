@@ -125,7 +125,7 @@ export interface Activity {
 }
 
 export const ACTIVITIES: readonly Activity[] = [
-  { id: 'losttime', word: 'Lost production time — where the line’s time goes', words: ['losing', 'lost', 'lose', 'loss', 'production', 'efficiency', 'uptime', 'underperforming', 'productivity', 'wasted'], tools: ['stops', 'losses', 'linebalance', 'reliability'], needsLine: true },
+  { id: 'losttime', word: 'Lost production time — where the line’s time goes', words: ['losing', 'lost', 'lose', 'loss', 'production', 'efficiency', 'uptime', 'underperforming', 'productivity', 'wasted', 'struggling', 'struggle'], tools: ['stops', 'losses', 'linebalance', 'reliability'], needsLine: true },
   { id: 'observe', word: 'An observation — watching the line', words: ['observation', 'observe', 'watch', 'gemba', 'walk', 'look', 'see', 'floor', 'audit', 'waste'], tools: ['talk', 'sampling', 'stops', 'video', 'valuestream'], needsLine: true,
     which: 'What do you want to come away with — what people are doing (work sampling), what stops the line and for how long (stops timed), a walk you talk through and write up (Line Talk), or the work filmed (video study)?' },
   { id: 'downtime', word: 'Downtime — what stops the line', words: ['downtime', 'stop', 'stoppage', 'breakdown', 'availability', 'jam', 'fault', 'mtbf', 'mttr'], tools: ['stops', 'losses', 'reliability', 'workstops'], needsLine: true,
