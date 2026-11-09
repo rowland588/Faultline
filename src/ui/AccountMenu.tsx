@@ -71,8 +71,8 @@ export function AccountMenu() {
         {/* HOW I WORK (8 November, docs/AI-MODE.md Memory): what AI Mode's colleague is always told about you */}
         <SheetRow label="How I work" hint={readPreferences() ? 'what AI Mode always knows about how you work — change it' : 'your words, methods and reports, for AI Mode'}
           onClick={() => { setOpen(false); setPrefs(true); }} />
-        {/* AI MODE (8 November): Ask Faultline in the top bar, on or off on this device — Manual Mode is the same either way */}
-        <SheetRow label={`AI Mode — ${aiOn ? 'On' : 'Off'}`} hint={aiOn ? 'Ask Faultline is in the top bar — tap to turn it off' : 'off on this device — tap to turn it on'}
+        {/* AI MODE (8 November): Ask Luna in the top bar, on or off on this device — Manual Mode is the same either way */}
+        <SheetRow label={`AI Mode — ${aiOn ? 'On' : 'Off'}`} hint={aiOn ? 'Ask Luna is in the top bar — tap to turn her off' : 'off on this device — tap to turn it on'}
           onClick={() => setAiMode(!aiOn)} />
         {failed && !profile && (
           <SheetRow label={loading ? 'Checking your admin access…' : 'Couldn’t check your admin access — tap to retry'}

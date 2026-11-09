@@ -6,6 +6,24 @@ application."* And, the same day, the mandate: *"Faultline is an operational imp
 a Jarvis-like manufacturing colleague … Two modes … Manual Mode … AI Mode … Both modes must use the same underlying
 records, business logic, permissions and capabilities."*
 
+## Luna — the AI colleague's name, permanently (10 November)
+
+Rowland, 10 November: *"The AI assistant will be called LUNA. Luna is the female AI operational colleague within Faultline …
+This is now the permanent AI identity for Faultline: Luna."* **Faultline is the operational improvement system; Luna is its AI
+colleague.** The identity is in the instructions Claude is sent, not only on the screen: `COLLEAGUE_SYSTEM`
+(`src/tools/colleague/colleagueAssist.ts`) opens *"You are Luna, the AI colleague within Faultline … not as Claude, and not as a
+generic AI assistant"*, with her manner (intelligent, approachable, confident, observant, naturally conversational — a
+knowledgeable manufacturing colleague, never a chatbot or a character) and her name used only where it fits; Line Talk's
+`TALK_SYSTEM` is Luna answering in Line Talk, in every walk set; the spoken note is Luna's. `src/tools/colleague/__tests__/luna.test.ts`
+holds the app's copy and the gateway's to it, and the gateway's check (`x-check-key`, a task other than talk) returns a `colleague`
+fingerprint of AI Mode's instructions beside Line Talk's `rules`. On screen: *Ask Luna* is the top bar's door, the conversation
+greets *— I'm Luna*, the box says *Ask Luna, or tell her what you see…*, the waiting says *Luna is working on it…* / *Luna is
+answering…*, the voice screen *Luna is listening*, *Luna is thinking…*, *Luna's voice*. **AI Mode** stays the mode's name (Manual Mode ·
+AI Mode); **Line Talk** stays the tool's. The voice is unchanged — the phone's own female voice through the browser
+(`colleague/speech`, `voicePrefs`), nothing replaced. Never rename Faultline, and never call Luna "the assistant" or "the colleague"
+on a new screen.
+
+
 The rules are in `docs/DIRECTION.md`, *The AI may operate Faultline — 8 November*. This page is the design: how the
 pieces fit, what each one checks, and what is not built yet.
 

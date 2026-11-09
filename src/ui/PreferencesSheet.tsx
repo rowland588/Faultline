@@ -24,7 +24,7 @@ export function PreferencesSheet({ open, onClose }: { open: boolean; onClose: ()
   return (
     <Sheet open={open} onClose={onClose} title="How I work">
       <div className="prefs-sheet" data-prefs-sheet>
-        <p className="sub">In your own words, what Faultline’s colleague in AI Mode should always know about how you work. It goes with every question you ask there; nothing else reads it. {have ? 'Change it any time.' : 'Nothing is sent until you save it.'}</p>
+        <p className="sub">In your own words, what Luna, Faultline’s AI colleague, should always know about how you work. It goes with every question you ask there; nothing else reads it. {have ? 'Change it any time.' : 'Nothing is sent until you save it.'}</p>
         {PREFERENCE_FIELDS.map(f => (
           <label key={f.key} className="field">
             <span className="field-label">{f.label}</span>

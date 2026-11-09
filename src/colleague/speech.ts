@@ -153,6 +153,6 @@ export function voiceStep(s: VoiceState, e: VoiceEvent): VoiceState {
 /** Each state in words — what the screen says under the orb. */
 export const VOICE_SAID: Record<VoiceState, string> = {
   idle: 'Microphone off — tap to talk', initialising: 'Getting ready…', listening: 'Listening', transcribing: 'Listening — go on',
-  processing: 'Thinking…', preparing: 'Getting the answer ready', speaking: 'Speaking — tap to interrupt', interrupted: 'Stopped — go ahead',
+  processing: 'Luna is thinking…', preparing: 'Getting the answer ready', speaking: 'Speaking — tap to interrupt', interrupted: 'Stopped — go ahead',
   recovering: 'Reconnecting…', error: 'Stopped', ended: 'Conversation ended',
 };

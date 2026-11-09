@@ -77,7 +77,7 @@ import { allowance, costMicros } from "./video/gatewayUsage.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
 import { STORY_SCHEMA, STORY_SYSTEM, checkStoryAnswer, readStoryAsk, storyUser, unsureStory } from "./story/storyAssist.ts";
 import { BRIEF_ALLOWANCE_WORDS, BRIEF_ASKS_SCHEMA, BRIEF_ASKS_SYSTEM, BRIEF_OFF, BRIEF_READ_SCHEMA, BRIEF_READ_SYSTEM, briefAsksUser, briefReadUser, checkAsks, checkBriefText, readBrief, readBriefPages } from "./story/briefAssist.ts";
-import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, COLLEAGUE_SYSTEM, checkCalls, colleagueMessages, colleagueReply, colleagueTools, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
+import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, COLLEAGUE_SYSTEM, checkCalls, colleagueRulesText, colleagueMessages, colleagueReply, colleagueTools, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
 import { CAPABILITY_SCHEMAS } from "./colleague/schemas.ts";
 import { FACTORY_READ_ALLOWANCE_WORDS, FACTORY_READ_OFF, FACTORY_READ_SCHEMA, FACTORY_READ_SYSTEM, checkFactoryRead, factoryReadUser, readFactoryAsk } from "./colleague/factoryRead.ts";
 import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
@@ -162,7 +162,10 @@ const json = (body: unknown, status = 200) =>
 
 type Usage = Record<string, number>;
 /* the instructions and the answer's shape this copy holds, as a fingerprint — never anything secret */
-const rulesPrint = async () => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(talkRulesText())))].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+const printOf = async (text: string) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)))].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+const rulesPrint = () => printOf(talkRulesText());
+/* AI Mode's instructions and capabilities this copy sends Claude (Luna's identity among them), as a fingerprint too */
+const colleaguePrint = () => printOf(colleagueRulesText(CAPABILITY_SCHEMAS));
 type Talked =
   | { ok: true; answer: TalkAnswer; unsure: string[]; model: string; usage: Usage; cost: number; seconds: number }
   | { ok: false; off?: boolean; why: string; model?: string; usage?: Usage; cost?: number; detail?: string };
@@ -398,7 +401,7 @@ Deno.serve(async (req) => {
     if (!KEY) return json({ off: true, why: "No key is saved for the assistant." });
     let body: Record<string, unknown> = {};
     try { body = (await req.json()) ?? {}; } catch { /* no body */ }
-    if (body.task !== "talk") return json({ ok: false, why: "The check asks a talk only.", rules: await rulesPrint() }, 400);
+    if (body.task !== "talk") return json({ ok: false, why: "The check asks a talk only.", rules: await rulesPrint(), colleague: await colleaguePrint() }, 400);
     const read = readAsk(body);
     if (!read.ok) return json({ ok: false, why: read.why, rules: await rulesPrint() }, 400);
     const rules = await rulesPrint();

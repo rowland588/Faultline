@@ -441,8 +441,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               </button>
             </li>
             <li>
-              <button type="button" className="pl-see-door" title="Line Talk answers through the app; what you said is kept either way." onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>
-                <Icon name="mic" size={16} /><b>Talk it</b><span className="sr-only">Line Talk answers through the app; what you said is kept either way.</span>
+              <button type="button" className="pl-see-door" title="Luna, Faultline’s AI colleague, answers through the app; what you said is kept either way." onClick={() => nav(`/talk?line=${encodeURIComponent(wsId)}`)}>
+                <Icon name="mic" size={16} /><b>Talk it</b><span className="sr-only">Luna, Faultline’s AI colleague, answers through the app; what you said is kept either way.</span>
               </button>
             </li>
             <li>

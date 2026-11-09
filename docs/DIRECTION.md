@@ -131,6 +131,10 @@ handling and an audit record.
    speech or embedding provider is added without Rowland's word.
 7. **AI Mode is switched off without touching Manual Mode**, and Manual Mode never waits on it.
 
+**The AI is Luna (Rowland, 10 November — "This is now the permanent AI identity for Faultline: Luna").** Faultline is the
+operational improvement system; Luna is its AI colleague, in AI Mode and in Line Talk — her name in the instructions Claude is sent,
+not only on the screen (`docs/AI-MODE.md`, Luna).
+
 The design is [`docs/AI-MODE.md`](AI-MODE.md).
 
 ## The AI — one tool: Line Talk

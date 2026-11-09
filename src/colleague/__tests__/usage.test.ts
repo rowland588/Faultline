@@ -23,7 +23,7 @@ describe('readUsage', () => {
   });
   it('by task in the gateway\'s order, each with its cost per answer', () => {
     expect(u.byTask.map(t => t.task)).toEqual(['colleague', 'talk', 'brief-read', 'brief-asks']);
-    expect(u.byTask[0]).toMatchObject({ calls: 3, failed: 1, micros: 60_000, perCallMicros: 20_000, words: 'AI Mode — the colleague' });
+    expect(u.byTask[0]).toMatchObject({ calls: 3, failed: 1, micros: 60_000, perCallMicros: 20_000, words: 'AI Mode — Luna' });
   });
   it('by day: every day of the window, a quiet day at 0, the newest last', () => {
     expect(u.byDay).toHaveLength(30);
@@ -40,7 +40,7 @@ describe('todayAgainst', () => {
   const $ = moneyOf().say;
   it('the last 24 hours against each allowance used, the two brief tasks sharing one', () => {
     const t = todayAgainst(rows, NOW, $);
-    expect(t.map(a => a.words)).toEqual(['AI Mode — the colleague']);
+    expect(t.map(a => a.words)).toEqual(['AI Mode — Luna']);
     expect(t[0].said).toBe('3 of 120 answers · $0.06 of $8.00');
     const all = todayAgainst(rows, NOW + 3 * D - 2 * H, $, true);
     expect(all.find(a => a.tasks.includes('brief-read'))?.calls).toBe(0);

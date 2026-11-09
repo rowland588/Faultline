@@ -82,7 +82,7 @@ export function VoiceMode(p: VoiceModeProps) {
   const muted = p.state === 'idle';
   const muteIcon = muted ? 'mic' : 'stop';
   return (
-    <div className="vm" data-voice-mode data-voice-state={p.state} role="dialog" aria-modal="true" aria-label="Voice conversation with Faultline">
+    <div className="vm" data-voice-mode data-voice-state={p.state} role="dialog" aria-modal="true" aria-label="Voice conversation with Luna">
       <header className="vm-top">
         <div className="vm-top-main">
           <p className="vm-eyebrow"><Icon name="spark" size={13} />VOICE</p>
@@ -92,7 +92,7 @@ export function VoiceMode(p: VoiceModeProps) {
       </header>
 
       <div className="vm-stage">
-        <button type="button" className="vm-orb-b" onClick={speaking ? p.onInterrupt : p.onTap} aria-label={speaking ? 'Interrupt Faultline' : p.state === 'idle' ? 'Talk' : 'Faultline is listening'} data-voice-orb>
+        <button type="button" className="vm-orb-b" onClick={speaking ? p.onInterrupt : p.onTap} aria-label={speaking ? 'Interrupt Luna' : p.state === 'idle' ? 'Talk' : 'Luna is listening'} data-voice-orb>
           <div className={`vm-orb is-${p.state}`} ref={orb} aria-hidden>
             <span className="vm-ring r1" /><span className="vm-ring r2" /><span className="vm-ring r3" />
             <span className="vm-core" />
@@ -102,7 +102,7 @@ export function VoiceMode(p: VoiceModeProps) {
         <div className={'vm-wave' + (live ? ' is-in' : speaking ? ' is-out' : '')} ref={bars} aria-hidden>
           {Array.from({ length: BARS }, (_, i) => <span key={i} />)}
         </div>
-        <p className={'vm-words' + (live ? ' is-heard' : '')} data-voice-words>{words || (live ? 'Say what you need — pause and Faultline answers.' : '')}</p>
+        <p className={'vm-words' + (live ? ' is-heard' : '')} data-voice-words>{words || (live ? 'Say what you need — pause and Luna answers.' : '')}</p>
         {p.note && <p className="vm-note" role="alert" data-voice-note>{p.note}</p>}
       </div>
 
@@ -134,13 +134,13 @@ export function VoiceSettings({ prefs, setPrefs, route }: { prefs: VoicePrefs; s
   return (
     <div className="vm-set" data-voice-settings>
       <label className="vm-set-row">
-        <span className="vm-set-k">Faultline’s voice</span>
+        <span className="vm-set-k">Luna’s voice</span>
         {shown.length ? (
           <select className="input" value={prefs.voiceURI ?? ''} onChange={e => setPrefs({ voiceURI: e.target.value || undefined })} data-voice-pick>
             <option value="">British English, the phone’s own</option>
             {shown.map(v => <option key={v.uri} value={v.uri}>{v.name} — {v.lang}{v.local ? '' : ' (needs signal)'}</option>)}
           </select>
-        ) : <span className="sub">This phone lists no voices yet — Faultline uses its default.</span>}
+        ) : <span className="sub">This phone lists no voices yet — Luna uses its default voice.</span>}
       </label>
       <label className="vm-set-row">
         <span className="vm-set-k">How fast it speaks — {prefs.rate.toFixed(2)}×</span>
@@ -152,12 +152,12 @@ export function VoiceSettings({ prefs, setPrefs, route }: { prefs: VoicePrefs; s
           {(['short', 'normal', 'long'] as const).map(k => <button key={k} type="button" className={'chip' + (prefs.pause === k ? ' is-on' : '')} aria-pressed={prefs.pause === k} onClick={() => setPrefs({ pause: k })} data-voice-pause={k}>{k === 'short' ? 'A moment' : k === 'normal' ? 'Two seconds' : 'Longer'}</button>)}
         </div>
       </div>
-      <div className="vm-set-row" role="group" aria-label="Talk over Faultline">
-        <span className="vm-set-k">Talk over Faultline while it speaks</span>
+      <div className="vm-set-row" role="group" aria-label="Talk over Luna">
+        <span className="vm-set-k">Talk over Luna while she speaks</span>
         <div className="vm-chips">
           {(['auto', 'on', 'off'] as const).map(k => <button key={k} type="button" className={'chip' + (prefs.talkOver === k ? ' is-on' : '')} aria-pressed={prefs.talkOver === k} onClick={() => setPrefs({ talkOver: k })} data-voice-talkover={k}>{k === 'auto' ? 'With a headset' : k === 'on' ? 'Always' : 'Never — tap to interrupt'}</button>)}
         </div>
-        <span className="sub">On the phone’s speaker Faultline can hear itself, so tapping is safer; with a headset you can just talk.</span>
+        <span className="sub">On the phone’s speaker Luna can hear herself, so tapping is safer; with a headset you can just talk.</span>
       </div>
       <div className="vm-set-row">
         <span className="vm-set-k">Where your words are written down</span>
@@ -166,10 +166,10 @@ export function VoiceSettings({ prefs, setPrefs, route }: { prefs: VoicePrefs; s
         {local === 'downloadable' && <button type="button" className="btn" onClick={() => void installOnDevice().then(ok => { if (ok) { setLocal('available'); setPrefs({ onDevice: true }); } })}>Fetch the phone’s model</button>}
       </div>
       <div className="vm-set-row">
-        <span className="vm-set-k">Where you hear Faultline</span>
-        <span className="sub" data-voice-route>{route.headset ? `Through ${route.name ?? 'your headset'} — the phone sends Faultline’s voice to it.` : route.known ? 'Through the phone — connect a Bluetooth headset and the phone sends Faultline’s voice to it.' : 'Through whatever the phone is playing to — a Bluetooth headset when one is connected.'} A web page cannot pick the speaker; the phone decides, as it does for music.</span>
+        <span className="vm-set-k">Where you hear Luna</span>
+        <span className="sub" data-voice-route>{route.headset ? `Through ${route.name ?? 'your headset'} — the phone sends Luna’s voice to it.` : route.known ? 'Through the phone — connect a Bluetooth headset and the phone sends Luna’s voice to it.' : 'Through whatever the phone is playing to — a Bluetooth headset when one is connected.'} A web page cannot pick the speaker; the phone decides, as it does for music.</span>
       </div>
-      <p className="sub vm-set-limit">Faultline listens only while this screen is on and in front. Nothing of your voice is recorded or kept — only the words, in the conversation.</p>
+      <p className="sub vm-set-limit">Luna listens only while this screen is on and in front. Nothing of your voice is recorded or kept — only the words, in the conversation.</p>
     </div>
   );
 }

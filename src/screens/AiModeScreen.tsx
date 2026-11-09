@@ -15,7 +15,7 @@
  * switch), it says so with the way to turn it on.
  *
  * WHICH RECORD: a study of tool `talk`, facts.colleague (no new table). WHERE IT SHOWS: here; the door is the top bar's
- * Ask Faultline (src/colleague/AiDoor), never a line of the menu. */
+ * Ask Luna (src/colleague/AiDoor), never a line of the menu. */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { useSession } from '../cloud/session';
@@ -112,7 +112,7 @@ export function AiModeScreen() {
     return (
       <div className="wrap ai-off" data-ai-off>
         <h1 className="pace-title">AI Mode is off</h1>
-        <p className="pace-lede">Faultline works the same without it — every page, tool and paper is here in Manual Mode. Turned on, Ask Faultline sits in the top bar: a colleague who reads the lines, problems and tools for you, and changes nothing until you say so.</p>
+        <p className="pace-lede">Faultline works the same without it — every page, tool and paper is here in Manual Mode. Turned on, Luna — Faultline’s AI colleague — sits in the top bar as Ask Luna: she reads the lines, problems and tools for you, and changes nothing until you say so.</p>
         <button type="button" className="btn btn-primary" onClick={() => setAiMode(true)}><Icon name="spark" size="1.05em" />Turn AI Mode on</button>
       </div>
     );
@@ -615,7 +615,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       }
     } catch (e) {
       console.warn('AI Mode could not ask', e);
-      await changeTurn(patchStudy, cid, rid, t => ({ ...t, answering: 'failed', why: 'Faultline could not answer just now — ask again. What you said is kept.' }));
+      await changeTurn(patchStudy, cid, rid, t => ({ ...t, answering: 'failed', why: 'Luna could not answer just now — ask again. What you said is kept.' }));
     } finally {
       for (const [, res] of waits.current) res(false);
       waits.current.clear();
@@ -770,7 +770,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   ];
   const canSend = !asking && (!!typing.trim() || (!!study && unansweredTurns(turns).length > 0));
   const waitingCard = turns.some(t => (t.used ?? []).some(u => u.status === 'waiting' && waits.current.has(u.callId)));
-  const title = facts ? conversationTitle(facts, 'Ask Faultline') : start?.title ?? 'Ask Faultline';
+  const title = facts ? conversationTitle(facts, 'Luna') : start?.title ?? 'Luna';
   const manualHref = cur?.scope.lineId ? `/lines/${encodeURIComponent(cur.scope.lineId)}` : cur?.scope.projectId ? `/project/${encodeURIComponent(cur.scope.projectId)}` : '/';
   const noCaps = CAPABILITIES.length === 0;
 
@@ -823,8 +823,8 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             </button>
             <MoreMenu items={[
               { label: 'New conversation', run: onNew },
-              { label: 'How I work', hint: 'what Faultline always knows about how you work — sent with every question', run: () => setPrefsSheet(true) },
-              ...(canSpeak() ? [{ label: `Speak replies — ${speakOn ? 'On' : 'Off'}`, hint: 'the colleague’s replies read out by this device’s own voice', run: () => { if (speakOn) stopSpeaking(); setSpeakOn(!speakOn); } }] : []),
+              { label: 'How I work', hint: 'what Luna always knows about how you work — sent with every question', run: () => setPrefsSheet(true) },
+              ...(canSpeak() ? [{ label: `Speak replies — ${speakOn ? 'On' : 'Off'}`, hint: 'Luna’s replies read out by this device’s own voice', run: () => { if (speakOn) stopSpeaking(); setSpeakOn(!speakOn); } }] : []),
               { label: `Conversation — ${talkOn ? 'On' : 'Off'}`, hint: CONVERSATION_SAID, run: () => { setTalkOn(!talkOn); if (!talkOn && !speakOn && canSpeak()) setSpeakOn(true); } },
               { label: 'How AI Mode is used', hint: 'what it cost, what it did, what could be answered with no AI', run: () => nav('/ai/usage') },
               { label: `Sounds — ${soundOn ? 'On' : 'Off'}`, hint: 'a short, quiet tone when listening starts and stops', run: () => setSoundOn(!soundOn) },
@@ -856,9 +856,9 @@ function Conversation({ id, start, onMade, onList, onNew }: {
           {turns.length === 0 && (
             <li className="ai-empty">
               <span className="ai-empty-av" aria-hidden><Icon name="spark" size={26} /></span>
-              <p className="ai-empty-g">{hello}</p>
-              <p className="ai-empty-h">Ask Faultline about {cur?.title ?? 'your lines'} — its problems, projects and tools.</p>
-              <p className="sub">It reads what Faultline holds, works figures out with the app’s own calculators, says how each thing is known, and changes nothing until you tap Do it.{noCaps ? ' (Its steps are not loaded on this copy yet.)' : ''}</p>
+              <p className="ai-empty-g">{hello} — I’m Luna.</p>
+              <p className="ai-empty-h" data-luna>Ask Luna about {cur?.title ?? 'your lines'} — its problems, projects and tools.</p>
+              <p className="sub">I’m Faultline’s AI colleague. I read what Faultline holds, work figures out with the app’s own calculators, say how each thing is known, and change nothing until you tap Do it.{noCaps ? ' (Its steps are not loaded on this copy yet.)' : ''}</p>
               <div className="ai-sugs" role="group" aria-label="Try one">
                 {examples.map(x => <button key={x} type="button" className="chip ai-sug is-start" onClick={() => { setBox(x); box.current?.focus(); }}>{x}</button>)}
               </div>
@@ -869,7 +869,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
-        <div className={'ai-compose' + (listening ? ' is-on' : '')} role="group" aria-label="Ask Faultline">
+        <div className={'ai-compose' + (listening ? ' is-on' : '')} role="group" aria-label="Ask Luna">
           {said && <p className={'sub ai-said' + (said.bad ? ' is-r' : '')} role="status">{said.text}</p>}
           {listening && !voice && (
             <p className="ai-state is-listening" role="status" data-ai-listening><span className="ai-pulse" aria-hidden />Listening…<span className="sub"> what you say comes up in the box</span>
@@ -896,7 +896,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             )}
             {imported && <p className="ai-imported" data-imported role="status">{imported} <button type="button" className="b ghost" aria-label="Close" onClick={() => setImported(null)}>×</button></p>}
             <textarea ref={box} className="ai-box" rows={1} value={typing} maxLength={4000}
-              placeholder={listening ? 'Listening — talk…' : 'Ask Faultline, or tell it what you see…'} aria-label="Ask Faultline"
+              placeholder={listening ? 'Listening — talk…' : 'Ask Luna, or tell her what you see…'} aria-label="Ask Luna"
               onChange={e => { const er = ear.current; if (er) { ear.current = null; er.abort(); setListening(false); stopQuiet(); } stopSpeaking(); setBox(e.target.value); }}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia?.('(pointer: fine)').matches) { e.preventDefault(); if (canSend) void send(); } }} />
             <div className="ai-tools">
@@ -1051,7 +1051,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain }: 
       <span className="ai-avatar" aria-hidden><Icon name="spark" size={15} /></span>
       <div className="ai-turn-b">
         <span className="ai-meta">{WHO} · {hhmm(t.at)}</span>
-        {t.answering === 'waiting' && here && (words ? <Words text={words} /> : <p className="sub ai-thinking"><span className="ai-dots" aria-hidden><i /><i /><i /></span>Working on it…</p>)}
+        {t.answering === 'waiting' && here && (words ? <Words text={words} /> : <p className="sub ai-thinking"><span className="ai-dots" aria-hidden><i /><i /><i /></span>Luna is working on it…</p>)}
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Faultline could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {!t.answering && t.text && <Words text={t.text} />}

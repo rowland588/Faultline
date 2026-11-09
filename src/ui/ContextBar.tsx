@@ -80,7 +80,7 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
       <span className="nv-gap" aria-hidden />
       {toolId && <GuideButton toolId={toolId} />}
       <JumpTo />
-      {/* AI MODE's door (src/colleague, 8 November): Ask Faultline, carrying where you are */}
+      {/* AI MODE's door (src/colleague, 8 November): Ask Luna, carrying where you are */}
       <AiDoor scope={scope} />
       <QuickSnagButton projectId={projectId} />
       <ForYouButton />

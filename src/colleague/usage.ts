@@ -24,7 +24,7 @@ export interface UsageRow {
 export const TASKS = ['colleague', 'talk', 'story', 'brief-read', 'brief-asks', 'factory-read', 'video-label'] as const;
 
 export const TASK_WORDS: Record<string, string> = {
-  colleague: 'AI Mode — the colleague',
+  colleague: 'AI Mode — Luna',
   talk: 'Line Talk',
   story: 'The Story — writing the chapter',
   'brief-read': 'The brief — read from its pages',

@@ -1382,7 +1382,7 @@ tool's calculation, record and workflow are never changed to make it look better
 
 ## AI Mode — 8 November
 
-**Read `docs/AI-MODE.md` before touching AI Mode, a capability or the gateway's `colleague` task.** The contract: the AI
+**The AI colleague is Luna (10 November, permanent):** Faultline is the operational improvement system; Luna is its AI colleague — her identity in the system instructions Claude is sent (`COLLEAGUE_SYSTEM`, `TALK_SYSTEM`, `luna.test.ts`), *Ask Luna* on screen, the phone's own female voice unchanged (`docs/AI-MODE.md`, Luna). **Read `docs/AI-MODE.md` before touching AI Mode, a capability or the gateway's `colleague` task.** The contract: the AI
 works only through **capabilities** (`src/capabilities/` — `registry.ts` runs a call: validate → the person's access →
 a write refused unless confirmed → run; `schemas.ts` the tool definitions the gateway copies); the gateway's task
 `colleague` refuses any call not in the schemas and writes the audit to `ai_actions`; the conversation is a `talk`

@@ -3,7 +3,7 @@
  * reads run at once, a write is a card and runs only on the person's tap. Driven in a real browser on the smoke seed, the
  * `assist` gateway answered by the script round by round:
  *
- *   1  the door: Ask Faultline in the top bar on a line, opening #/ai?line= with the line as what it is on now
+ *   1  the door: Ask Luna in the top bar on a line, opening #/ai?line= with the line as what it is on now
  *   2  a question answered: the gateway sent the conversation, the focus, today and the conversation's id; its call
  *      (list_problems) run at once — the step said under the turn with the records as chips — and the result sent back
  *      with the opaque `assistant` unchanged; the reply, a figure to check, the follow-ups (one tapped into the box)
@@ -40,7 +40,7 @@ const send = async words => { await page.locator('.ai-box').fill(words); await p
 /* ---- 1 · the door ---- */
 const lineName = await page.evaluate(async id => (await (await import('/src/db.ts')).getWorkspace(id))?.name, sd.wsId);
 await t.go(`#/lines/${encodeURIComponent(sd.wsId)}`, 2500);
-ok((await page.locator('.nv-top .ai-door').count()) === 1 && /Ask Faultline/.test(await t.words('.nv-top .ai-door')), '1 Ask Faultline is in the top bar');
+ok((await page.locator('.nv-top .ai-door').count()) === 1 && /Ask Luna/.test(await t.words('.nv-top .ai-door')), '1 Ask Luna is in the top bar');
 await page.locator('.nv-top .ai-door').click(); await page.waitForTimeout(2000);
 ok(page.url().includes(`#/ai?line=${encodeURIComponent(sd.wsId)}`), `1 the door opens AI Mode on the line (${page.url().split('#')[1]})`);
 ok((await t.words('[data-ctx-current] .ai-ctx-t')) === lineName && (await t.words('[data-ai-title]')) === lineName, `1 a new conversation starts on ${lineName}`);

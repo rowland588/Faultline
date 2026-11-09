@@ -208,7 +208,7 @@ const W3 = 'The checkweigher is kicking out the odd bag. The guide rail at the i
 ok(await waitFor(async () => await boxText() === W3), '3 both sentences in the box', await boxText());
 await mic().click();
 ok(await waitFor(async () => !(await listening())) && await boxText() === W3, '3 stopped — the words stay in the box', await boxText());
-ok((await page.locator('.tk-send').innerText()).trim() === 'Send' && await hint() === 'Send, and Line Talk answers.', '3 Send, said', await hint());
+ok((await page.locator('.tk-send').innerText()).trim() === 'Send' && await hint() === 'Send, and Luna answers.', '3 Send, said', await hint());
 const W3b = 'The checkweigher is kicking out the odd bag. The guide rail at the infeed looks bent — Ishida to check.';
 await page.locator('.tk-box').fill(W3b);
 await send();
@@ -232,7 +232,7 @@ ok(await waitFor(async () => (await mine()).at(-1)?.words === 'the case packer i
 ok(await waitFor(async () => await answers() === 3), '4 answered');
 await page.locator('.tk-bar input[type=file]').setInputFiles(photo);
 ok(await waitFor(async () => await page.locator('.tk-turn[data-kind=photo] img.tk-photo-i').count() === 1), '4 the photo in the conversation where it was taken');
-ok(await hint() === 'Send asks Line Talk about what you have added since its last answer.', '4 Send, for the photo', await hint());
+ok(await hint() === 'Send asks Luna about what you have added since its last answer.', '4 Send, for the photo', await hint());
 await page.locator('.tk-box').fill('Ask Dave about the spare belt.');
 await send();
 ok(await waitFor(async () => (await mine()).at(-1)?.words === 'Ask Dave about the spare belt.' && (await mine()).at(-1)?.kind === 'typed'), '4 a line typed — sent as typed');
@@ -335,7 +335,7 @@ await page.goto(`${BASE}/#/lines/${lineId}`); await settle(1200);
 const t11 = await page.locator('.pl-tool', { hasText: 'Line Talk' }).innerText();
 ok(/1 on this line/.test(t11) && new RegExp(`Line 7 — ${today}: ${n10} pieces said · 1 photo · ${typed10} typed · 8 answers`).test(t11), '11 the line’s page says its Line Talk', t11);
 await page.goto(`${BASE}/#/talk`); await settle(800);
-ok(/Tap the microphone and your words come up in the box as you speak; Send, and Line Talk answers\./.test(await page.locator('.pl-says').innerText()), '11 every Line Talk says how it works', await page.locator('.pl-says').innerText());
+ok(/Tap the microphone and your words come up in the box as you speak; Send, and Luna answers\./.test(await page.locator('.pl-says').innerText()), '11 every Line Talk says how it works', await page.locator('.pl-says').innerText());
 const row = await page.locator('.lt-row').first().innerText();
 ok(new RegExp(`${n10} pieces said`).test(row) && /Line 7/.test(row), '11 every Line Talk lists it, with its line', row);
 await page.setViewportSize({ width: 390, height: 780 });

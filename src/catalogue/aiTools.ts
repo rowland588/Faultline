@@ -46,11 +46,11 @@ export const AI_TOOLS: readonly AiTool[] = [
     where: 'On a video study, under The reading: tick Name the work from the frames.',
   },
   {
-    id: 'colleague', name: 'Ask Faultline — AI Mode', tools: [], to: '/ai',
-    does: 'Talk or type to a manufacturing colleague that reads your real records, asks back, keeps track of what you are looking into, and does the work in the app through its approved capabilities — raising a problem, starting a project, running a calculator — each shown to you first.',
+    id: 'colleague', name: 'Luna — AI Mode', tools: [], to: '/ai',
+    does: 'Talk or type to Luna, Faultline’s AI colleague — a manufacturing colleague who reads your real records, asks back, keeps track of what you are looking into, and does the work in the app through its approved capabilities — raising a problem, starting a project, running a calculator — each shown to you first.',
     sends: 'What you say and photograph in the conversation, the subject in hand and what its capabilities read from your records for this answer, to Claude (Anthropic) through Faultline’s gateway; every step it asks for is recorded.',
     never: 'Writes anything you have not pressed Do it on, deletes a record, marks evidence verified, or works out a figure — the calculators and tools do the sums.',
-    where: 'Ask Faultline in the top bar, from any page — it starts on the line or project you are on.',
+    where: 'Ask Luna in the top bar, from any page — it starts on the line or project you are on.',
   },
   {
     id: 'brief-read', name: 'Read the brief', tools: [], to: '/story',

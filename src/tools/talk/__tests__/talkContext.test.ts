@@ -55,6 +55,6 @@ describe('what Line Talk is told about the line', () => {
 
   it('said in a line — what went in', () => {
     expect(contextSaid(IN)).toBe('Line 7: 3 machines · 2 open problems · 1 program to prove · 2 tool findings · 1 project');
-    expect(contextSaid({ problems: [], programs: [], tools: [], jobs: [] })).toBe('Not on a line or a project — Line Talk answers from the conversation alone.');
+    expect(contextSaid({ problems: [], programs: [], tools: [], jobs: [] })).toBe('Not on a line or a project — Luna answers from the conversation alone.');
   });
 });

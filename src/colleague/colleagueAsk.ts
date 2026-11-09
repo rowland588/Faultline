@@ -16,8 +16,8 @@ import type { GatewayTurn } from './conversation';
 
 export const MAX_ROUNDS = 6;
 
-export const NO_SIGNAL = 'No signal — Faultline answers when the signal is back. What you said is kept.';
-export const NOT_NOW = 'Faultline could not answer just now — ask again. What you said is kept.';
+export const NO_SIGNAL = 'No signal — Luna answers when the signal is back. What you said is kept.';
+export const NOT_NOW = 'Luna could not answer just now — ask again. What you said is kept.';
 export const NO_CLOUD = 'AI Mode needs the cloud, and this copy of Faultline is not connected to it. What you type is kept, and Manual Mode works as ever.';
 export const TOO_MANY = `I stopped after ${MAX_ROUNDS} steps without finishing — say "carry on" and I will pick it up from here.`;
 

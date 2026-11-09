@@ -1,6 +1,6 @@
 /* AI MODE, ON OR OFF — a switch on this device (the account menu's AI Mode row).
  *
- * On by default. Off, the top bar's Ask Faultline door is hidden and #/ai says AI Mode is off, with the way to turn it
+ * On by default. Off, the top bar's Ask Luna door is hidden and #/ai says AI Mode is off, with the way to turn it
  * on; Manual Mode — the app as built — is the same either way and never needs it. Kept in localStorage (one device's
  * preference, like the bell's name); every reader hears a change at once by the 'faultline-ai-mode' event. */
 import { useEffect, useState } from 'react';

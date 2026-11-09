@@ -406,7 +406,7 @@ export async function floorCheck(e: FloorEnv, voiceWaitMs = 1500): Promise<Check
 }
 
 /** The honest limit, said with the check. */
-export const FLOOR_LIMIT = 'Faultline listens only while the screen is on and Faultline is in front — not with the phone locked or in a pocket with the screen off.';
+export const FLOOR_LIMIT = 'Luna listens only while the screen is on and Faultline is in front — not with the phone locked or in a pocket with the screen off.';
 
 /** The device setting for the sound. */
 export const EARCON_KEY = 'faultline.aiEarcon';

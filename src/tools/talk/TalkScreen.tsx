@@ -148,7 +148,7 @@ export function TalksScreen() {
         <div className="pace-head-main">
           <p className="pl-eyebrow">LINE TALK{line ? <> · <a href={`#/lines/${encodeURIComponent(line.id)}`} className="pl-fac">{line.name} ›</a></> : null}</p>
           <h1>Line Talk</h1>
-          <p className="pl-says">Talk or type on the line, add photos, ask questions and ask for reports — Line Talk answers from what you said and what Faultline holds about the line. Tap the microphone and your words come up in the box as you speak; Send, and Line Talk answers. Everything is kept, and a talk can be opened and carried on any day.</p>
+          <p className="pl-says">Talk or type on the line, add photos, ask questions and ask for reports — Luna, Faultline’s AI colleague, answers from what you said and what Faultline holds about the line. Tap the microphone and your words come up in the box as you speak; Send, and Luna answers. Everything is kept, and a talk can be opened and carried on any day.</p>
         </div>
       </header>
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
@@ -607,9 +607,9 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
           </form>
           {/* what got in the way says what to do — said once, not twice */}
           {(listening || !said) && <p className="sub tk-hint" aria-live="polite">{listening ? 'Listening — your words come up in the box as you talk. Put anything right, then Send.'
-            : asking ? 'Line Talk is answering — what you say and photograph meanwhile is kept for the next answer.'
-            : typing.trim() ? 'Send, and Line Talk answers.'
-            : theirs.length ? 'Send asks Line Talk about what you have added since its last answer.'
+            : asking ? 'Luna is answering — what you say and photograph meanwhile is kept for the next answer.'
+            : typing.trim() ? 'Send, and Luna answers.'
+            : theirs.length ? 'Send asks Luna about what you have added since its last answer.'
             : 'Tap the microphone and talk, or type — add a photo whenever it helps.'}</p>}
         </div>
       )}
@@ -648,7 +648,7 @@ function ReplyRow({ t, live, answeringHere, writing, onAskAgain, onOpen, onStrik
         ? writing?.reply
           /* its words as they are written, the way a chat shows them */
           ? <div className="tk-writing" aria-live="polite"><Said text={writing.reply} /></div>
-          : <p className="sub tk-wait">{writing?.document ? 'Line Talk is writing the document…' : 'Line Talk is answering…'}</p>
+          : <p className="sub tk-wait">{writing?.document ? 'Line Talk is writing the document…' : 'Luna is answering…'}</p>
         : <p className="sub tk-wait">{t.why ?? 'Not answered yet.'} {live && <button type="button" className="linkish" onClick={onAskAgain}>Ask again</button>}</p>)}
       {t.answering === 'failed' && <p className="sub is-r tk-fail">Not answered — {t.why ?? 'Line Talk could not answer.'} {live && <button type="button" className="linkish" onClick={onAskAgain}>Ask again</button>}</p>}
       {!t.answering && t.text && <Said text={t.text} />}

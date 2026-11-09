@@ -84,7 +84,7 @@ const n = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : 
 
 /** What went in, in a line — "Line 7: 4 machines · 3 open problems · 2 programs to prove · 5 tool findings · 1 job". */
 export function contextSaid(c: TalkContextIn): string {
-  if (!c.line && !c.job) return 'Not on a line or a project — Line Talk answers from the conversation alone.';
+  if (!c.line && !c.job) return 'Not on a line or a project — Luna answers from the conversation alone.';
   const machines = c.machines?.trim() ? c.machines.split(' → ').length : 0;
   const parts = c.line ? [
     n(machines, 'machine'), n(c.problems.length, 'open problem'), n(c.programs.length, 'program', 'programs') + ' to prove',
