@@ -13,7 +13,7 @@
  *                sentence, ticked and edited, nothing kept until Keep these), edited in place, moved up and down, deleted with Undo;
  *                each with its scope chips (or the names in its words) and its evidence by the rules (lib/storyAsks askEvidence):
  *                found · being done · proved · still to show; Also found — what answers no ask, one tap to assign. */
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { putBlob } from '../db';
 import type { AgreedStory, BriefAsk, StoryBriefFile } from '../lib/study';
 import { asksEvidence, assignTo, scopeOf, type AskEvidence, type AskRecords, type AskScope } from '../lib/storyAsks';
@@ -31,7 +31,7 @@ const READ_BY: Record<StoryBriefFile['readBy'], string> = { code: 'read as text 
 type Save = (next: AgreedStory) => Promise<void>;
 
 /** THE BRIEF — written, or uploaded and read. */
-export function BriefPanel({ ag, save, canEdit }: { ag: AgreedStory; save: Save; canEdit: boolean }) {
+export function BriefPanel({ ag, save, canEdit, firstFile, onFirstFile }: { ag: AgreedStory; save: Save; canEdit: boolean; firstFile?: File | null; onFirstFile?: () => void }) {
   const [writing, setWriting] = useState(false);
   const [words, setWords] = useState('');
   const [up, setUp] = useState<{ file: Omit<StoryBriefFile, 'readBy'>; read: BriefRead; text: string; by: StoryBriefFile['readBy']; typing?: boolean } | null>(null);
@@ -49,6 +49,13 @@ export function BriefPanel({ ag, save, canEdit }: { ag: AgreedStory; save: Save;
     setWriting(false);
     setUp({ file: { mediaId, name: f.name, mime: f.type || 'application/octet-stream', bytes: f.size }, read, text: read.ok ? read.text : '', by: read.ok ? 'code' : 'none' });
   };
+  /* a file chosen on Start the story, before this panel existed: read it here once, as Upload it would */
+  useEffect(() => {
+    if (!firstFile || !canEdit) return;
+    onFirstFile?.();
+    void onFile(firstFile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstFile]);
   const askAssistant = async () => {
     if (!up || up.read.ok || !('pages' in up.read)) return;
     setBusy('The assistant is reading the pages…');

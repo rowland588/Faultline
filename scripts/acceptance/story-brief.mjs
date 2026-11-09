@@ -17,6 +17,7 @@
  *   9  the papers by ask (S9): Run an update — the asks in the request to the assistant and a paragraph an ask in the draft; Approve —
  *      the report read back with Ask 1's section (Asked · Found · Being done · Proved · Still to show); the slides with an ask's slide
  *  10  the phone: nothing off the side, the asks there
+ *  11  no story yet: Upload a brief on Start the story — the story started, the file read in code into the box, used
  *
  *   node scripts/acceptance/story-brief.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
@@ -201,5 +202,19 @@ for (const h of ['FOUND', 'BEING DONE', 'PROVED', 'STILL TO SHOW']) ok(text.incl
 /* ---- 10 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 }); await t.go('#/', 2500);
 ok((await t.wide()) <= 1 && (await page.locator('[data-ask]').count()) === 2 && (await page.locator('[data-story-brief]').count()) === 1, '10 the phone: nothing off the side, the brief and the asks there');
+
+/* ---- 11 · no story yet: the brief uploaded from Start the story (9 November — "there is not ability to upload a brief in the story page") ---- */
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.evaluate(async () => { const db = await import('/src/db.ts'); for (const s of (await db.listAllStudies()).filter(x => x.tool === 'story' && !x.deletedAt)) await db.putStudy({ ...s, deletedAt: Date.now(), updatedAt: Date.now() }); });
+await t.go('#/', 2500);
+ok((await page.locator('[data-story-start-upload]').count()) === 1 && (await page.locator('[data-story-brief]').count()) === 0, '11 no story yet: Start the story offers Upload a brief beside its own button');
+await page.locator('[data-story-start-file-input]').setInputFiles({ name: 'client-brief.txt', mimeType: 'text/plain', buffer: Buffer.from('Why are the packing lines in Area B short of their target?') });
+await brief().locator('[data-story-brief-box]').waitFor({ timeout: 15000 }).catch(() => {});
+ok((await brief().locator('[data-story-brief-box]').inputValue().catch(() => '')) === 'Why are the packing lines in Area B short of their target?', '11 the file starts the story and is read in code into the box to check');
+await useIt();
+{
+  const s = await storyRec();
+  ok(/Area B short of their target/.test(s?.agreed?.story?.brief ?? '') && s?.agreed?.story?.briefFile?.name === 'client-brief.txt', '11 used: the story has the brief and the file named on it');
+}
 
 await t.finish('The brief accepted: none is no stopper; a text file, a PDF and a Word file read in code, a photo read by the assistant only when asked; the brief split into asks with their quotes, kept only when approved; each ask’s evidence by the rules; what answers none assigned with a tap; the chapter, the report and the slides by ask.');
