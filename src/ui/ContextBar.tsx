@@ -8,7 +8,8 @@
  * project, found by typing — is its own button, Go to ▾ (27 October: the name was the switcher, and a
  * tap meant to go to the line opened a list instead). The mark is Home. */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { nav } from '../state/useRoute';
+import { goBack, nav } from '../state/useRoute';
+import { canGoBack, onTrail } from '../state/navHistory';
 import type { Project, Workspace } from '../types';
 import { matchScore, type Scope } from '../lib/scope';
 import { LogoMark } from './Logo';
@@ -46,12 +47,16 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
   const home = scope.kind === 'line' ? lineHref(scope.wsId) : scope.kind === 'project' ? `/project/${scope.projectId}` : '/'; // the Factory's first page is the Story (S5)
   const [open, setOpen] = useState(false);
   const under = scope.kind === 'line' || scope.kind === 'project';
+  const back = useCanGoBack();
   return (
     <header className="nv-top">
       <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label="Faultline — the factory">
         <LogoMark size={28} id="nv" />
         <span className="nv-name">Faultline</span>
       </button>
+      {/* BACK — to the page you were on (9 November, state/navHistory): shown whenever this session has one to go back to;
+          ‹ Factory / ‹ Projects beside it still go UP to the scope's top */}
+      {back && <button type="button" className="nv-back" onClick={() => goBack(home)} aria-label="Back — to the page you were on" title="Back to the page you were on"><Icon name="chevronLeft" size={16} /><span className="nv-back-l">Back</span></button>}
       <nav className="nv-ctx" aria-label="You are in">
         {/* THE WAY BACK, ALWAYS SAID (23 October): ‹ Factory from a line, ‹ Projects from a project */}
         {under && <><button type="button" className="nv-crumb nv-up" onClick={() => nav(scope.kind === 'project' ? '/projects' : '/room')} aria-label={scope.kind === 'project' ? 'Back to Projects' : 'Back to the factory'}><Icon name="chevronLeft" size={14} /><span className="nv-up-l">{scope.kind === 'project' ? 'Projects' : 'Factory'}</span></button><span className="nv-sep" aria-hidden>›</span></>}
@@ -140,4 +145,11 @@ function Switcher({ scope, projects, lines, onClose }: { scope: Scope; projects:
       </div>
     </Sheet>
   );
+}
+
+/** Whether this session has a page to go back to — follows the trail as the page moves (state/navHistory). */
+function useCanGoBack(): boolean {
+  const [can, setCan] = useState(canGoBack);
+  useEffect(() => onTrail(() => setCan(canGoBack())), []);
+  return can;
 }

@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../types';
 import { afterPanelBack } from '../ui/backCloses';
+import { canGoBack, markReplace } from './navHistory';
 
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
@@ -344,6 +345,7 @@ export const nav = (to: string | { page: string; [key: string]: unknown }): void
 export const navReplace = (to: string): void => {
   const hash = to.startsWith('#') ? to : '#' + to;
   afterPanelBack(() => {
+    markReplace();
     history.replaceState(null, '', hash);
     window.dispatchEvent(new HashChangeEvent('hashchange'));
   });
@@ -352,7 +354,8 @@ export const navReplace = (to: string): void => {
 /** Go back to wherever you came from, with a safe fallback if there's no history
  *  (deep link / hard refresh). Used by the secondary pages' back button. */
 export const goBack = (fallback: string): void => {
-  if (window.history.length > 1) window.history.back();
+  /* only back to a page of this app visited in this session (state/navHistory) — never out of the app to wherever the tab was */
+  if (canGoBack()) window.history.back();
   else nav(fallback);
 };
 

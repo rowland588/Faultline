@@ -131,7 +131,17 @@ for (const [h, want] of [['#/', BAR_FACTORY], ['#/room', BAR_FACTORY], ['#/proje
 await go('#/projects');
 const proj = page.locator('.nv-main a, .nv-main button', { hasText: 'Line 4 new case packer' }).first();
 await proj.click(); await page.waitForTimeout(1200);
-ok(await page.locator('.nv-tabs .nv-tab').count() > 3 && await page.getByRole('button', { name: 'Back to Projects' }).isVisible(), '6 the phone: a project\'s tabs across the top, ‹ Projects in the bar');
+/* the way back on a phone (9 November, state/navHistory): Back to the page you came from when there is one — here Projects, as
+   ‹ Projects would — else ‹ Projects; pressed, it lands on Projects either way */
+{
+  const tabs = await page.locator('.nv-tabs .nv-tab').count() > 3;
+  const back = page.getByRole('button', { name: 'Back — to the page you were on' });
+  const up = page.getByRole('button', { name: 'Back to Projects' });
+  const way = (await back.isVisible().catch(() => false)) ? back : up;
+  const shown = await way.isVisible().catch(() => false);
+  await way.click().catch(() => {}); await page.waitForTimeout(1200);
+  ok(tabs && shown && /#\/projects/.test(page.url()), '6 the phone: a project\'s tabs across the top, the way back in the bar landing on Projects', page.url());
+}
 
 ok(errs.length === 0, 'no console error', errs.join(' | '));
 await b.close();
