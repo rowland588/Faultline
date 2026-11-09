@@ -13,6 +13,8 @@
  * the registry). */
 
 /** A kind of record the app keeps, and how it hangs on the others. */
+import { stems } from '../catalogue/index';
+
 export interface RecordKind {
   kind: string;
   /** The word on screen. */
@@ -123,6 +125,7 @@ export interface Activity {
 }
 
 export const ACTIVITIES: readonly Activity[] = [
+  { id: 'losttime', word: 'Lost production time — where the line’s time goes', words: ['losing', 'lost', 'lose', 'loss', 'production', 'efficiency', 'uptime', 'underperforming', 'productivity', 'wasted'], tools: ['stops', 'losses', 'linebalance', 'reliability'], needsLine: true },
   { id: 'observe', word: 'An observation — watching the line', words: ['observation', 'observe', 'watch', 'gemba', 'walk', 'look', 'see', 'floor', 'audit', 'waste'], tools: ['talk', 'sampling', 'stops', 'video', 'valuestream'], needsLine: true,
     which: 'What do you want to come away with — what people are doing (work sampling), what stops the line and for how long (stops timed), a walk you talk through and write up (Line Talk), or the work filmed (video study)?' },
   { id: 'downtime', word: 'Downtime — what stops the line', words: ['downtime', 'stop', 'stoppage', 'breakdown', 'availability', 'jam', 'fault', 'mtbf', 'mttr'], tools: ['stops', 'losses', 'reliability', 'workstops'], needsLine: true,
@@ -158,4 +161,10 @@ export function dayWindow(words: string): { from: number; to: number } | undefin
   if (/\blast week\b/.test(w)) return { from: 7, to: 13 };
   if (/\bthis week\b|\bthe other day\b|\brecently\b/.test(w)) return { from: 0, to: 7 };
   return undefined;
+}
+
+/** The kinds of work a person's words read as, the best match first (the catalogue's stems). */
+export function activitiesFor(words: string): Activity[] {
+  const said = new Set(stems(words));
+  return ACTIVITIES.map(a => ({ a, n: stems(a.words.join(' ')).filter(w => said.has(w)).length })).filter(x => x.n > 0).sort((x, y) => y.n - x.n).map(x => x.a);
 }

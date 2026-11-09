@@ -97,9 +97,11 @@ describe('plan_work — the kind of work, what is known, and the one question', 
   it('on a line with its project: the tools told apart first; standalone said — no project asked again', async () => {
     const f = await seed();
     const { run } = await withConversation(f, { title: 'Line 4', scope: { lineId: f.l4.id } });
-    const p = data<{ ask: string; projectsOnLine: { name: string }[] }>(await run('plan_work', { words: 'a downtime analysis' }));
+    const p = data<{ ask: string; recommend: { key: string }; projectsOnLine: { name: string }[] }>(await run('plan_work', { words: 'a downtime analysis' }));
     expect(p.projectsOnLine.map(x => x.name)).toEqual(['Line 4 improvement']);
-    expect(p.ask).toMatch(/stops timed|reliability/);
+    /* the task leads (10 November): never "which tool?" — the line's evidence recommends where to start */
+    expect(p.recommend.key).toBe('stops');
+    expect(p.ask).toMatch(/^Start with Stops timed — /);
     await run('update_context', { mode: 'standalone' });
     const s = data<{ ask: string | null; missing: string[] }>(await run('plan_work', { words: 'analyse the changeover on the Filler', machine: 'Filler' }));
     expect(s.missing).not.toContain('project or standalone');

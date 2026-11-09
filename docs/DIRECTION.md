@@ -337,3 +337,15 @@ most, the open findings), **C · Present** (one tap turns the work into the clie
 proved, where the money is). Waiting for his pick; nothing is built until then.
 
 He answered *"No ... we need to think bigger"*: the shape under the pages comes first — the client, the site and its areas, the engagement, the benefits register and real client reporting, in `docs/CONSULTANT.md`.
+
+## The task-led application — 10 November
+
+Rowland: *"The user should not have to navigate Faultline to find the functionality they need … They should simply tell Faultline
+what they are doing, what they have observed, what they want to investigate, or what they want to achieve … The application should
+adapt to the user's task, rather than forcing the user to adapt to the application's structure."* And: *"One application, one
+intelligence"* — the application stays the system of record; the AI is the primary way in, using its real functions, never
+simulating, inventing data, bypassing its logic or making disconnected copies; Manual Mode and every page keep working on the same
+records. So AI Mode **leads with the task**: it understands it from the line's own evidence, says what is known and what is not,
+recommends the one next step with its reason — never a menu of tools — keeps the task and its progress across the conversation, and
+carries it to an outcome. `docs/AI-TASK.md` is the design; `src/capabilities/task.ts` the code.
+

@@ -86,7 +86,13 @@ export interface ColleagueThread {
   objective?: string;
   mode?: ThreadMode;
   points?: ThreadPoint[];
+  /** The task being worked (10 November, docs/AI-TASK.md) — its goal, its line, its steps in order; progress is read from the records. */
+  task?: ColleagueTask;
 }
+/** A TASK the person is taking through to an outcome (10 November — Rowland: "The user describes the work. Faultline works out how to
+ *  support it."): its goal in their words, its kind (capabilities/task ROUTES), its line, the tools it goes through in order (keys),
+ *  and when it began — a step's progress is never stored, it is read from the line's records each time. */
+export interface ColleagueTask { goal: string; kind?: string; lineId?: string; steps: string[]; startedAt: number }
 export interface ColleagueAction { callId: string; name: string; title: string; status: 'done' | 'declined' | 'failed'; says: string; refs: CapRef[]; at: number }
 
 /* ── A DRAFT — a tool being filled from the conversation (8 November; docs/AI-MODE.md, Building tools in conversation) ──

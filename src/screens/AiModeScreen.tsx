@@ -39,6 +39,7 @@ import { useBlobUrl } from '../lib/useBlobUrl';
 import { CAPABILITIES, capabilityByName, previewCall, runCall } from '../capabilities/registry';
 import type { CapCall, CapCtx, CapRef, ColleagueDraft } from '../capabilities/types';
 import { runningMeasure } from '../capabilities/operate';
+import { evidenceFor, nextStep, routeOfTask, type TaskStep } from '../capabilities/task';
 import { WORK_PANE, paneSrc } from '../lib/pane';
 import { captured, metricsOf, missing, toolTitle, valueWords } from '../capabilities/drafts';
 import { studyHref } from '../lib/studyLinks';
@@ -1042,6 +1043,41 @@ type MakeFlow = {
   run: (d: ColleagueDraft) => Promise<{ ok: true; says: string } | { ok: false; why: string }>;
 };
 
+/* THE TASK (10 November, docs/AI-TASK.md — Rowland: "The user describes the work. Faultline works out how to support it."): the steps of
+   the task kept on this subject, in the order the method takes them, each saying where it stands as the line's own records say it —
+   done, done since the task began, old, not done — and the next one, which the person can start by saying so. Read live: a stop timed or
+   a study made anywhere in the app moves it. */
+const TASK_WORD: Record<TaskStep['status'], string> = { known: 'Done', old: 'Old', missing: 'Not done' };
+function TaskCard({ task, onSay }: { task: NonNullable<Thread['task']>; onSay: (words: string) => void }) {
+  const [steps, setSteps] = useState<TaskStep[] | null>(null);
+  useEffect(() => {
+    if (!task.lineId) { setSteps([]); return; }
+    let live = true;
+    const read = () => { void evidenceFor(task.lineId as string, routeOfTask(task), Date.now(), task.startedAt).then(ev => { if (live) setSteps(ev?.steps ?? []); }); };
+    read();
+    const off = onDataChange(read);
+    return () => { live = false; off(); };
+  }, [task]);
+  const next = steps ? nextStep(steps) : undefined;
+  const done = steps?.filter(x => x.status === 'known').length ?? 0;
+  return (
+    <div className="ai-task" data-ctx-task>
+      <p className="ai-ctx-k">The task{steps ? ` · ${done} of ${steps.length} known` : ''}</p>
+      {!task.lineId ? <p className="sub ai-ctx-none">Which line it is on is still to say.</p> : !steps ? <p className="sub ai-ctx-none">Reading the line…</p> : (
+        <ol className="ai-task-steps">
+          {steps.map(st => (
+            <li key={st.key} className={'ai-task-step is-' + st.status + (st === next ? ' is-next' : '')} data-task-step={st.key} data-task-status={st.status}>
+              <span className="ai-task-word">{st === next ? 'Next' : TASK_WORD[st.status]}{st.sinceTask ? ' · this task' : ''}</span>
+              <span className="ai-task-body"><a href={`#${st.href}`}>{st.label}</a>{st.finding ? <span className="sub"> — {st.finding}</span> : null}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {next && <button type="button" className="btn ai-task-go" data-task-go onClick={() => onSay(`Let’s do the next step — ${next.label}.`)}>Next: {next.label}</button>}
+    </div>
+  );
+}
+
 function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act, canMakeFactory, onSay }: {
   cur?: Thread; parked: Thread[]; sources: CapRef[]; nameOf: (k: 'line' | 'project' | 'problem' | 'story', id: string) => string | undefined; onBack: (t: Thread) => void;
   drafts: ColleagueDraft[]; make: MakeFlow; act: (draftId: string, items: FactoryOp[]) => Promise<CapResult>; canMakeFactory: boolean; onSay: (words: string) => void;
@@ -1061,6 +1097,7 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
           <>
             <p className="ai-ctx-t">{cur.title}</p>
             {cur.objective && <p className="ai-ctx-aim" data-ctx-aim><span className="ai-ctx-k">Aim</span>{cur.objective}</p>}
+            {cur.task && <TaskCard task={cur.task} onSay={onSay} />}
             {/* what kind of work it is (9 November): just talk, standalone or in the project — said, so nobody wonders where it will go */}
             <p className={'ai-mode-chip' + (cur.mode ? ` is-${cur.mode}` : '')} data-ctx-mode={cur.mode ?? 'open'}>{cur.mode ? MODE_WORD[cur.mode] : 'Not settled — project or standalone'}</p>
             <RefChips refs={place(cur.scope, cur.refs)} label="Where it is" />

@@ -37,8 +37,9 @@ import { checkObject, ID } from './check';
 import { anyone, mayEdit, mayStartProjects } from './access';
 import { conversation, draftsOf, writeDrafts } from './draftStore';
 import { scopeOf } from './factory';
-import { ACTIVITIES, POINTING, RECORD_KINDS, STOPS_TOOL, dayWindow, type Activity } from './appModel';
+import { POINTING, RECORD_KINDS, STOPS_TOOL, activitiesFor, dayWindow } from './appModel';
 import { CAPABILITY_SCHEMAS } from './schemas';
+import { evidenceFor, nextStep, routeFor, type TaskStep } from './task';
 import type { CapCtx, CapRef, CapResult, Capability, ColleagueDraft, ColleagueThread, ThreadMode, ThreadPoint, ThreadScope } from './types';
 import { lineRef, notFound, plural, problemRef, projectRef } from './util';
 
@@ -143,10 +144,7 @@ interface PlanIn { words: string; lineId?: string; projectId?: string; machine?:
 interface ToolOffer { key: string; label: string; says: string; page?: string; existing: { id: string; name: string; day: string; project?: string; href: string }[] }
 
 /** The activities the words name, best first — then the catalogue's own search for what no activity names. */
-export function activitiesFor(words: string): Activity[] {
-  const said = new Set(stems(words));
-  return ACTIVITIES.map(a => ({ a, n: stems(a.words.join(' ')).filter(w => said.has(w)).length })).filter(x => x.n > 0).sort((x, y) => y.n - x.n).map(x => x.a);
-}
+export { activitiesFor };
 
 export const planWork: Capability = {
   name: 'plan_work', title: 'Work out what is wanted', kind: 'read',
@@ -200,6 +198,7 @@ export const planWork: Capability = {
     /* THE ONE QUESTION — the first thing that is truly missing, in the order a colleague would ask it */
     const missingNow: string[] = [];
     let ask: string | undefined;
+    let recommend: TaskStep | undefined;
     if (mode === 'talk') ask = undefined;
     else if (needsLine && !line) {
       missingNow.push('line');
@@ -207,12 +206,12 @@ export const planWork: Capability = {
       const clients = new Set(visible.map(clientKey));
       const named = (w: Workspace) => `${w.name}${clients.size > 1 ? ` (${w.clientName?.trim() || 'no client named'})` : ''}`;
       ask = visible.length > 1 && visible.length <= 8 ? `Which line — ${visible.map(named).join(', ')}?` : clients.size > 1 ? 'Which client’s factory, and which line?' : 'Which line is this on?';
-    } else if (act && act.tools.length > 1 && act.which && !offers.some(o => o.existing.length)) {
-      missingNow.push('which tool');
-      ask = act.which;
     } else if (needsMachine && !machine) {
       missingNow.push('machine');
       ask = machines.length ? `Which machine — ${machines.slice(0, 8).join(', ')}${machines.length > 8 ? ' …' : ''}?` : 'Which machine is it on?';
+    } else if (act && line && act.tools.length > 1 && !offers.some(o => o.existing.length) && (recommend = nextStep((await evidenceFor(line.id, routeFor(act), ctx.now))?.steps ?? []))) {
+      /* THE TASK LEADS (10 November, docs/AI-TASK.md): never "which tool?" — the line's own evidence says where to start */
+      ask = `Start with ${recommend.label} — ${recommend.why}${recommend.status === 'old' ? ' (what is there is more than four weeks old)' : ''}. Shall I set it up?`;
     } else if (offers.some(o => o.existing.length)) {
       const o = offers.find(x => x.existing.length) as ToolOffer;
       ask = `${line?.name ?? 'The line'} already has ${o.label} “${o.existing[0].name}” from ${o.existing[0].day} — carry on with that one, or start a new one?`;
@@ -233,7 +232,7 @@ export const planWork: Capability = {
     return {
       ok: true, says,
       data: {
-        activity: act ? { id: act.id, word: act.word, which: act.which ?? null } : null, tools: offers, known, missing: missingNow, ask: ask ?? null,
+        activity: act ? { id: act.id, word: act.word } : null, ...(recommend ? { recommend: { key: recommend.key, label: recommend.label, why: recommend.why, status: recommend.status } } : {}), tools: offers, known, missing: missingNow, ask: ask ?? null,
         line: line ? { id: line.id, name: line.name, site: line.siteName ?? null, area: line.areaName ?? null, client: line.clientName ?? null } : null,
         projectsOnLine: onLine.map(p => ({ id: p.id, name: p.name, method: p.method ?? null })), mode: mode ?? null,
         drafts: drafts.map(d => ({ id: d.id, title: d.title })), similarProblems: alikeProblems.map(p => ({ id: p.id, words: p.problem, priority: PRIORITY_WORD[p.priority ?? 'low'] })),

@@ -693,4 +693,23 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     description: 'Write the answers to a project’s method questions — its method sheet, section by section (DMAIC’s charter and phases, PDCA’s plan, an 8D’s disciplines, an A3’s blocks …), each by its question id or words, the answer as the person said or agreed it. project_state names the method; the questions are on the project’s page.',
     input_schema: obj({ projectId: str('The project', 80), answers: { type: 'array', minItems: 1, maxItems: 30, items: obj({ field: str('The question — its id or its words', 120), text: str('The answer, as said', 4000) }, ['field', 'text']) } }, ['projectId', 'answers']),
   },
+  // ── The task-led application (10 November, docs/AI-TASK.md) ──────────────────────────────────────────────────────────
+  {
+    name: 'understand_task',
+    kind: 'read',
+    description: 'When the person says what they are doing, what they have seen, what they want to investigate or achieve — "I think we\u2019re losing too much production time on this line", "rejects are up on the sealer" — read the task on its line: what Faultline already holds that bears on it (each tool\u2019s own finding, the stops of the last four weeks, the open problems and what they cost, the 6M work), what is old and what is missing, and the ONE next step with why, in the order the method takes it. Recommend that step in a sentence; never offer a menu of tools. Run it before choosing any tool for a task.',
+    input_schema: obj({ words: str('What they are doing or want, in their words', 400), lineId: str('The line, when known', 80), machine: str('The machine, when said', 120) }, ['words']),
+  },
+  {
+    name: 'keep_task',
+    kind: 'local',
+    description: 'Keep the task on the current subject once the person agrees to work on it: goal (their words), lineId, task (the kind understand_task named), steps (the tools in order, by key — understand_task\u2019s route when left out). Its progress is then read from the records as they are made; parking the subject parks the task.',
+    input_schema: obj({ goal: str('The task, in their words', 300), lineId: str('The line', 80), task: str('The kind of task, from understand_task', 40), steps: { type: 'array', maxItems: 8, items: { type: 'string', maxLength: 40 } } }, ['goal']),
+  },
+  {
+    name: 'task_state',
+    kind: 'read',
+    description: 'Where the kept task stands, read from the real records: each step known \u00b7 old \u00b7 not done, what each found in its tool\u2019s own words, which were done since the task began, and the next step. Use when they ask where they are, after a step is done, and when they come back to the task.',
+    input_schema: obj({}),
+  },
 ];

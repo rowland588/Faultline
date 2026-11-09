@@ -11,6 +11,7 @@ import { addToFactoryDraft, replaceMachine } from './factoryBuild';
 import { adaptDraftCap, createSheet, draftState, fillDraftCap, makeRecord, startDraft, toolCatalogue } from './build';
 import { describeFaultline, linkToProject, planWork, resolveRecord, updateContext } from './understand';
 import { OPERATE } from './operate';
+import { TASK } from './task';
 import { FILL } from './fill';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
@@ -27,6 +28,7 @@ export const CAPABILITIES: readonly Capability[] = [
   describeFaultline, planWork, resolveRecord, updateContext, linkToProject,
   /* operating the application through the tool connectors (10 November, docs/AI-OPERATING.md) */
   ...OPERATE,
+  ...TASK,
   /* the Fill part for every tool a draft does not cover (10 November, docs/AI-OPERATING.md §2) */
   ...FILL,
 ];
