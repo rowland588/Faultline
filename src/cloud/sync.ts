@@ -22,6 +22,7 @@
  *    persistent retry queues drained on every sync. Before, one network blip
  *    left a clip as "not on this device yet" forever, because retry only
  *    happened if its ROW changed again — which it never did. */
+import { inPane } from '../lib/pane';
 import { supabase, cloudConfigured } from './client';
 import { MAPS, SYNC_KINDS, type MediaKey } from './mappers';
 import { withUsableMime } from '../lib/mime';
@@ -1373,6 +1374,8 @@ let started = false;
 let timer: number | undefined;
 export function startSync() {
   if (started || typeof window === 'undefined' || !cloudConfigured || !supabase) return;
+  /* the work pane inside AI Mode syncs nothing of its own: the window around it does, told of every write it makes (lib/pane) */
+  if (inPane()) return;
   started = true;
 
   // The mechanism: writes push themselves…

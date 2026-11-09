@@ -38,6 +38,8 @@ import { TALK_LIMITS } from '../tools/talk/talkAssist';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { CAPABILITIES, capabilityByName, previewCall, runCall } from '../capabilities/registry';
 import type { CapCall, CapCtx, CapRef, ColleagueDraft } from '../capabilities/types';
+import { runningMeasure } from '../capabilities/operate';
+import { WORK_PANE, paneSrc } from '../lib/pane';
 import { captured, metricsOf, missing, toolTitle, valueWords } from '../capabilities/drafts';
 import { studyHref } from '../lib/studyLinks';
 import { can as canAt } from '../lib/access';
@@ -179,8 +181,14 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   /* a project the conversation is on: the person's level there, as the screens know it — a client writes nothing */
   const projectHere = cur?.scope.projectId ?? '';
   const access = useAccess(projectHere);
+  /* when the person's newest words were heard — a live measurement stamps its event then (docs/AI-OPERATING.md §4) */
+  const saidAt = useRef<number | undefined>(undefined);
+  /* THE WORK PANE (lib/pane): the real page the conversation is working on, beside it */
+  const [work, setWork] = useState<CapRef | null>(null);
+  const [workOpen, setWorkOpen] = useState(false);
+  const showWork = useCallback((r: CapRef | undefined) => { if (r) { setWork(r); setWorkOpen(true); } }, []);
   const ctx = useCallback((): CapCtx => ({
-    now: Date.now(), ...(email ? { email } : {}), ...(me ? { me } : {}), ...(sid.current ? { conversationId: sid.current } : {}),
+    now: Date.now(), ...(saidAt.current ? { saidAt: saidAt.current } : {}), ...(email ? { email } : {}), ...(me ? { me } : {}), ...(sid.current ? { conversationId: sid.current } : {}),
     ...(session?.user.id ? { userId: session.user.id } : {}), ...(projectHere ? { level: access.level } : {}),
   }), [email, me, session?.user.id, projectHere, access.level]);
 
@@ -424,6 +432,8 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     const replyId = uid(), at = Date.now();
     const before = turnsOfConversation(factsOfConversation((await getStudy(cid)) as ToolStudy));
     if (!unansweredTurns(before).length && !before.some(t => t.kind === 'reply' && t.answering)) return;
+    /* the moment the newest words were said — a measured event is stamped then, not when the answer comes */
+    saidAt.current = unansweredTurns(before).reduce<number | undefined>((m, t) => (m === undefined || t.at > m ? t.at : m), undefined);
     /* a reply not given before is asked again in its place */
     const was = [...before].reverse().find(t => t.kind === 'reply' && !!t.answering && !t.struck);
     const rid = was?.id ?? replyId;
@@ -467,7 +477,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       }, {
         invoke: invokeColleague,
         describe: name => { const c = capabilityByName(name); return c ? { kind: c.kind, title: c.title } : undefined; },
-        run: (call, confirmed) => runCall(ctx(), call, { confirmed }),
+        run: async (call, confirmed) => { const r = await runCall(ctx(), call, { confirmed }); if (r.ok && r.show) showWork(r.show); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study')); return r; },
         prepare: async (call): Promise<Prepared> => {
           const c = capabilityByName(call.name);
           if (!c) return { ok: false, title: call.name, why: 'Faultline has no such step.' };
@@ -693,6 +703,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       const cid = sid.current;
       const callId = uid();
       const r = await runCall(ctx(), { id: callId, name: 'make_record', input: { draftId: d.id } }, { confirmed: true });
+      if (r.ok) showWork(r.refs.find(x => x.kind === 'study'));
       if (cid) await appendAction(patchStudy, cid, { callId, name: 'make_record', title: 'Make it a record', status: r.ok ? 'done' : 'failed', says: r.ok ? r.says : r.why, refs: r.ok ? r.refs : [], at: Date.now() });
       return r;
     },
@@ -701,6 +712,12 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   /* a factory draft's buttons (keep, leave out, pick) go through the same door as the colleague's add_to_factory_draft */
   const actOn = (draftId: string, items: FactoryOp[]): Promise<CapResult> => runCall(ctx(), { id: uid(), name: 'add_to_factory_draft', input: { draftId, items } }, { confirmed: false });
   const canMakeFactory = !projectHere || canAt(access.level).edit;
+  /* THE MEASUREMENT RUNNING in this conversation (capabilities/operate — confirmed once, then captured as said): its strip, review,
+     undo and end are the same capabilities the colleague uses, pressed here with no AI */
+  const measure = study ? runningMeasure(study) : undefined;
+  const [reviewing, setReviewing] = useState(false);
+  const undoEvent = async (eventId?: string) => { const r = await runCall(ctx(), { id: uid(), name: 'undo_capture', input: eventId ? { eventId } : {} }, { confirmed: false }); setSaid(r.ok ? { text: r.says } : { text: r.why, bad: true }); };
+  const endMeasure = async () => { const r = await runCall(ctx(), { id: uid(), name: 'end_measurement', input: {} }, { confirmed: false }); setSaid(r.ok ? { text: r.says } : { text: r.why, bad: true }); if (r.ok) showWork(r.show); };
   const panel = <ContextPanel cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
@@ -717,6 +734,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             {timers.running.slice(0, 1).map(t => (
               <span key={t.id} className="ai-timer" role="timer" aria-label={`${t.label} — ${leftSaid(t.endsAt - timers.now)} left`} data-timer><Icon name="time" size={14} />{leftSaid(t.endsAt - timers.now)}<span className="ai-timer-l">{t.label}</span></span>
             ))}
+            {work && !workOpen && <button type="button" className="btn ai-work-b" data-work-show onClick={() => setWorkOpen(true)}><Icon name="board" size="1.05em" />Show the work</button>}
             <button type="button" className="btn ai-list-b" onClick={onList}><Icon name="list" size="1.05em" />Conversations</button>
             <button type="button" className="btn ai-ctx-b" aria-pressed={!wide} onClick={toggleWide} title={wide ? 'Show what this conversation is on, what is parked and the sources' : 'Put the context away for a wider conversation'}>
               <Icon name="board" size="1.05em" />{wide ? 'Show context' : 'Hide context'}
@@ -740,6 +758,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             {buttonSaid(button) && <span className={'ai-floor-i' + (button === 'ready' ? '' : ' is-a')} data-button={button}><Icon name={buttonOk ? 'check' : 'warning'} size={13} />{buttonSaid(button)}</span>}
           </p>
         )}
+        {measure && <MeasureStrip m={measure} onUndo={() => void undoEvent()} onReview={() => setReviewing(true)} onEnd={() => void endMeasure()} onShow={() => setWorkOpen(true)} />}
         {timers.ended.map(t => (
           <p key={t.id} className="ai-rung" role="alert" data-timer-ended>The timer for “{t.label}” has ended. <button type="button" className="linkish" onClick={() => timers.dismiss(t.id)}>Dismiss</button></p>
         ))}
@@ -829,6 +848,10 @@ function Conversation({ id, start, onMade, onList, onNew }: {
         </div>
       </section>
       <aside className="ai-ctx" aria-label="What this conversation is on">{panel}</aside>
+      {work && <WorkPane work={work} open={workOpen} onClose={() => setWorkOpen(false)} onGone={() => { setWork(null); setWorkOpen(false); }} />}
+      <Sheet open={reviewing} onClose={() => setReviewing(false)} title={measure ? `${measure.label} — what has been captured` : 'What has been captured'}>
+        {measure && <MeasureReview m={measure} onUndo={id => void undoEvent(id)} />}
+      </Sheet>
       <Sheet open={ctxSheet} onClose={() => setCtxSheet(false)} title="What this is on">{panel}</Sheet>
       {prefsSheet && <PreferencesSheet open={prefsSheet} onClose={() => setPrefsSheet(false)} />}
       <FactoryDocSheet picked={docPicked} onClose={() => setDocPicked(null)} read={readDoc} />
@@ -1136,5 +1159,59 @@ function DraftBox({ d, make, onSay }: { d: ColleagueDraft; make: MakeFlow; onSay
       </div>
       {!can.edit && <p className="sub ai-ctx-none" data-draft-readonly>You can read this here; the people doing the work on the project make it a record.</p>}
     </div>
+  );
+}
+
+/* ================================================================ the work and the measurement */
+
+/** THE WORK PANE (lib/pane; docs/AI-OPERATING.md) — the real page of what the conversation is working on: the tool's own page, its
+ *  capture screen, its report made on arrival. The same app on the same data, redrawn as each write lands. At a desk beside the
+ *  conversation; on a phone over it, with the way back to the conversation at its top. */
+function WorkPane({ work, open, onClose, onGone }: { work: CapRef; open: boolean; onClose: () => void; onGone: () => void }) {
+  return (
+    <aside className={'ai-work' + (open ? ' is-open' : '')} aria-label={`The work — ${work.label}`} data-work data-work-href={work.href}>
+      <header className="ai-work-h">
+        <button type="button" className="btn ai-work-back" onClick={onClose} aria-label="Back to the conversation"><Icon name="chevronLeft" size="1.05em" />Conversation</button>
+        <b className="ai-work-t">{work.label}</b>
+        <button type="button" className="btn ai-work-full" onClick={() => nav(work.href.replace(/([?&])save=1(&|$)/, (_m, a: string, b: string) => (b ? a : '')).replace(/[?&]$/, ''))}>Open the page</button>
+        <button type="button" className="btn ai-work-x" onClick={onGone} aria-label="Close the work"><Icon name="close" size="1.05em" /></button>
+      </header>
+      <iframe key={work.href} className="ai-work-f" name={WORK_PANE} title={work.label} src={paneSrc(work.href)} data-work-frame />
+    </aside>
+  );
+}
+
+const hmOf = (t: number): string => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+type MeasureLike = { label: string; startedAt: number; events: { id: string; at: number; says: string; struck?: boolean }[] };
+/** The measurement running — what it is, how many are captured, the last one; Undo, Review and End are one press each. */
+function MeasureStrip({ m, onUndo, onReview, onEnd, onShow }: { m: MeasureLike; onUndo: () => void; onReview: () => void; onEnd: () => void; onShow: () => void }) {
+  const live = m.events.filter(e => !e.struck);
+  const last = [...live].sort((a, b) => b.at - a.at)[0];
+  return (
+    <div className="ai-measure" role="status" data-measure>
+      <span className="ai-measure-dot" aria-hidden />
+      <span className="ai-measure-l"><b>{m.label}</b><span className="sub"> since {hmOf(m.startedAt)} · {live.length} captured{last ? ` · last: ${last.says}` : ' · say each event as it happens'}</span></span>
+      <span className="ai-measure-acts">
+        <button type="button" className="btn btn-sm" onClick={onShow}>Show</button>
+        <button type="button" className="btn btn-sm" disabled={!live.length} onClick={onUndo} data-measure-undo>Undo</button>
+        <button type="button" className="btn btn-sm" onClick={onReview} data-measure-review>Review</button>
+        <button type="button" className="btn btn-sm" onClick={onEnd} data-measure-end>End</button>
+      </span>
+    </div>
+  );
+}
+/** Every event captured, in order, each with its time — one taken back said so; any one can be taken back. */
+function MeasureReview({ m, onUndo }: { m: MeasureLike; onUndo: (id: string) => void }) {
+  if (!m.events.length) return <p className="sub">Nothing captured yet.</p>;
+  return (
+    <ol className="ai-measure-list" data-measure-list>
+      {[...m.events].sort((a, b) => a.at - b.at).map(e => (
+        <li key={e.id} className={e.struck ? 'is-struck' : ''} data-measure-event={e.id}>
+          <span className="ai-measure-at">{hmOf(e.at)}</span>
+          <span className="ai-measure-s">{e.says}{e.struck ? ' — taken back' : ''}</span>
+          {!e.struck && <button type="button" className="btn btn-sm" onClick={() => onUndo(e.id)}>Take back</button>}
+        </li>
+      ))}
+    </ol>
   );
 }

@@ -42,13 +42,13 @@ import { isRegisterStudy } from '../tools/registers/kinds';
 /** THE STUDY ON PAPER (lib/studiesPdf) — on its own, on a line or on a job: what it is, where it
  *  sits, its sentence and its table (docs/AUDIT.md, bar 3). Made from the tool shell's Report ▾
  *  (docs/STRUCTURE.md §5.5, B4), where the PDF beside "where it sits" was. */
-export function useStudyPaper(s: ToolStudy): () => Promise<void> {
-  const { projects } = useProjects();
+export function useStudyPaper(s: ToolStudy): (() => Promise<void>) & { ready: boolean } {
+  const { projects, loading } = useProjects();
   const lines = useFactoryLines(s.workspaceId);
   const line = lines.find(l => l.id === s.workspaceId);
   const job = projects.find(p => p.id === s.projectId);
   const where = `${line ? `On ${line.name}` : 'On no line'} · ${job ? `attached to ${job.name}` : 'on no project'}`;
-  return async () => {
+  const make = async () => {
     try {
       const [{ saveStudiesPdf }, { listAllStandards, listAllStudies, listWorkspaces, listObservations, listStudiesForLine, listPaceTodos, listTests, listAllSnags }, { studyTitle }] = await Promise.all([
         import('../lib/studiesPdf'), import('../db'), import('../lib/studyLinks')]);
@@ -70,6 +70,8 @@ export function useStudyPaper(s: ToolStudy): () => Promise<void> {
       window.alert('Sorry — the PDF could not be made. Please try again.');
     }
   };
+  /* ready once the projects are read, so the paper says where it sits — what ?save=1 waits for (StudyBand) */
+  return Object.assign(make, { ready: !loading });
 }
 
 export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {

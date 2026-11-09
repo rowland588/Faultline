@@ -26,9 +26,14 @@ export interface CapCtx {
   /** The level the screen already knows for this person (cloud/access useAccess), which wins when given — e.g. the AI screen
    *  open on a project they were invited to as a client. */
   level?: Access;
+  /** When the person's latest words were heard (their turn's time) — a live measurement stamps an event at the moment it was said,
+   *  not when the reply came back (docs/AI-OPERATING.md §4). */
+  saidAt?: number;
 }
 
-export type CapResult = { ok: true; says: string; data?: unknown; refs: CapRef[] } | { ok: false; why: string };
+/** `show` — the record or page the work is in, opened in AI Mode's work pane beside the conversation (lib/pane; docs/AI-OPERATING.md):
+ *  the real tool page, never a summary of it. */
+export type CapResult = { ok: true; says: string; data?: unknown; refs: CapRef[]; show?: CapRef } | { ok: false; why: string };
 export type Checked<T = any> = { ok: true; input: T } | { ok: false; why: string };   // eslint-disable-line @typescript-eslint/no-explicit-any
 export type Allowed = { ok: true } | { ok: false; why: string };
 

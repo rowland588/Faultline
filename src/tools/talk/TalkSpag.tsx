@@ -6,18 +6,13 @@
 import { useMemo } from 'react';
 import { ResultView } from '../calc/CalcView';
 import { runCalc } from '../calc/calc';
-import spaghettiWalkers, { inputsOfWalkers } from '../calc/defs/spaghetti-walkers';
+import spaghettiWalkers from '../calc/defs/spaghetti-walkers';
 import { SPAG_STEPS_MAX, SPAG_WALKERS_MAX, type SpagCapture, type SpagCaptureStep, type SpagCaptureWalker } from './talkSets';
 import { DraftNumber } from '../../ui/Draft';
 import { MakeBar } from './TalkDiagram';
 
-/** The calculator's boxes from a capture — each marked as said in the talk. */
-export function spagInputs(c: SpagCapture, source: string): { inputs: Record<string, number | string>; src: Record<string, string> } {
-  const inputs = inputsOfWalkers(c.walkers.map(w => ({ label: w.label, steps: w.steps.map(s => ({ place: s.place, ...(s.m !== undefined ? { m: s.m } : {}) })) }))) as Record<string, number | string>;
-  const src: Record<string, string> = {};
-  for (const k of Object.keys(inputs)) src[k] = source;
-  return { inputs, src };
-}
+import { spagInputs } from './diagramRecord';
+export { spagInputs };
 
 export function TalkSpag({ capture, canEdit, madeId, busy, onEdit, onMake, onUpdate, onOpen }: {
   capture: SpagCapture;

@@ -248,14 +248,16 @@ describe('the capabilities: start, fill, ask, make', () => {
     expect(studies[0].agreed?.changeover).toEqual({ minutes: 25 });
     expect(studies[0].facts.sequence?.map(x => x.name)).toEqual(['Cleaning', 'Waiting for engineering']);
     expect(studies[0].facts.remarks?.[0].text).toContain('45 min');
-    /* made: the draft knows it, and a second make updates the same record with only what changed */
+    /* made: the draft knows it — and (10 November, docs/AI-OPERATING.md: "confirm once", "see the real study … being populated")
+       what is said of it now goes straight into the same record, shown, with only what changed */
     expect((await run('make_record', { draftId }, true)).ok).toBe(false);   /* nothing changed since */
-    await run('fill_draft', { draftId, values: [{ field: 'target', value: 20, how: 'reported' }] });
-    const up = await run('make_record', { draftId }, true);
-    expect(up.ok && up.says).toMatch(/Updated/);
+    const up = await run('fill_draft', { draftId, values: [{ field: 'target', value: 20, how: 'reported' }] });
+    expect(up.ok && up.says).toMatch(/in “|Into “/);
+    expect(up.ok && up.show?.id).toBe(studies[0].id);
     const again = (await db.listAllStudies()).filter(s => s.tool === 'changeover');
     expect(again).toHaveLength(1);
     expect(again[0].agreed?.changeover).toEqual({ minutes: 20 });
+    expect((await run('make_record', { draftId }, true)).ok).toBe(false);   /* already carried in */
   }, 60_000);
 
   it('a custom sheet: built, filled, its metric worked out by code, made as a document of its own structure', async () => {

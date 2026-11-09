@@ -147,7 +147,7 @@ export function onLocalWrite(fn: () => void): () => void {
 }
 export function signalWrite(): void {
   for (const fn of writeListeners) { try { fn(); } catch { /* listener's problem */ } }
-  signalData();
+  signalData('w');
 }
 
 /* ---------- data-changed signal ----------
@@ -160,6 +160,7 @@ export function signalWrite(): void {
  * made on this device. */
 const dataListeners = new Set<() => void>();
 export function onDataChange(fn: () => void): () => void {
+  theChannel();
   dataListeners.add(fn);
   return () => { dataListeners.delete(fn); };
 }
@@ -176,8 +177,34 @@ let dataPending = false;
    record just planned, a row a sync brought down all mean a fresh read. */
 let version = 0;
 export const dataVersion = (): number => version;
-export function signalData(): void {
+/* THE SAME SIGNAL ACROSS WINDOWS (10 November, docs/AI-OPERATING.md — the work pane): AI Mode shows the real tool page beside the
+   conversation in a frame of its own, so a write made by the conversation redraws the page in the frame and a tap made on the page
+   redraws the conversation's side. Another tab of the app is told the same. Only told, never written to: each window reads IndexedDB. */
+let channel: BroadcastChannel | null | undefined;
+const theChannel = (): BroadcastChannel | null => {
+  if (channel !== undefined) return channel;
+  try {
+    channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('faultline-data');
+    /* a write made in another window is this device's own: the window that syncs is told, as for its own writes (a pull is not) */
+    if (channel) channel.onmessage = (e: MessageEvent) => {
+      version++;
+      if (e.data === 'w') for (const fn of writeListeners) { try { fn(); } catch { /* listener's problem */ } }
+      heard();
+    };
+  } catch { channel = null; }
+  return channel;
+};
+function heard(): void {
+  if (dataPending) return;
+  dataPending = true;
+  setTimeout(() => {
+    dataPending = false;
+    for (const fn of dataListeners) { try { fn(); } catch { /* listener's problem */ } }
+  }, 0);
+}
+export function signalData(kind: 'w' | 'd' = 'd'): void {
   version++;
+  try { theChannel()?.postMessage(kind); } catch { /* a window that cannot post still redraws itself */ }
   if (dataPending) return;
   dataPending = true;
   setTimeout(() => {

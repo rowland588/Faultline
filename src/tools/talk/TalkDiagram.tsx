@@ -6,18 +6,13 @@
 import { useMemo } from 'react';
 import { ResultView } from '../calc/CalcView';
 import { runCalc } from '../calc/calc';
-import processFlow, { inputsOfSteps } from '../calc/defs/process-flow';
+import processFlow from '../calc/defs/process-flow';
 import { FLOW_KINDS, FLOW_WORD } from '../flow/processFlow';
 import { FLOW_STEPS_MAX, type FlowCapture, type FlowCaptureStep } from './talkSets';
 import { DraftNumber } from '../../ui/Draft';
 
-/** The chart's boxes from a capture — the calculator's own mapping, each box marked as said in the talk. */
-export function flowInputs(c: FlowCapture, source: string): { inputs: Record<string, number | string>; src: Record<string, string> } {
-  const inputs = inputsOfSteps(c.steps) as Record<string, number | string>;
-  const src: Record<string, string> = {};
-  for (const k of Object.keys(inputs)) src[k] = source;
-  return { inputs, src };
-}
+import { flowInputs } from './diagramRecord';
+export { flowInputs };
 
 export function TalkDiagram({ capture, canEdit, madeId, busy, onEdit, onMake, onUpdate, onOpen }: {
   capture: FlowCapture;

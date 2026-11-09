@@ -4,6 +4,7 @@
  * The front door is invite-only and there is no way around it: signed out means
  * the Landing (sign in / create account, and only invited emails can register).
  * Once signed in the session is cached locally, so the app still works offline. */
+import { inPane } from './lib/pane';
 import { lazy, Suspense, useEffect } from 'react';
 import { useProject } from './lib/useProjects';
 import { useRoute, navReplace } from './state/useRoute';
@@ -172,6 +173,13 @@ export function Router() {
      page you are on when the route says so (?open=<id>), and closes back to it. */
   /* PRESENT (docs/STORY.md S5): the Story full screen — the meeting itself — with no frame around it; Exit or Escape returns to #/ */
   if (route.name === 'home' && route.query.get('present') === '1') return <><AutoConvert /><Suspense fallback={<BootSplash />}><StoryScreen present /></Suspense></>;
+  /* THE WORK PANE (lib/pane): the real page AI Mode is working on, beside the conversation — the page alone, no menu or top bar */
+  if (inPane()) return (
+    <>
+      <main className="work-pane-page"><Suspense fallback={<BootSplash />}>{app(route)}</Suspense></main>
+      <RecordDrawerHost route={route} />
+    </>
+  );
   return (
     <>
       <AutoConvert />

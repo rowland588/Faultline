@@ -359,6 +359,10 @@ The gateway carries the new schemas and instructions (`node scripts/sync-assist.
 live only once the `assist` function is redeployed from the repo — version 24 (9 November) carries everything to date,
 the AI-context capabilities and the voice's `spoken` note included.
 
+## 10½. Operating the application (10 November)
+
+The tool connectors, the kinds of work, live measurement and the work pane: `docs/AI-OPERATING.md`.
+
 ## 11. Rollback
 
 - AI Mode has a switch on each device; off, `#/ai` says so and Manual Mode is untouched.

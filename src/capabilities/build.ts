@@ -25,7 +25,7 @@ import {
   adaptDraft, applyDraft, baseFields, captured, changedSinceMade, draftNoun, draftSaid, FIELD_NAME, fieldsForColleague, fieldsOf, fillableTools, fillDraft,
   madeSnapshot, metricsOf, missing, nameOf, toolTitle, toRecord, type FillItem,
 } from './drafts';
-import type { CapCtx, CapResult, Capability, ColleagueDraft, ColleagueThread, DraftField, DraftKind } from './types';
+import type { CapCtx, CapRef, CapResult, Capability, ColleagueDraft, ColleagueThread, DraftField, DraftKind } from './types';
 import { lineRef, plural, projectRef } from './util';
 import { alikeRecords, destinationOf, modeOf, recordSaid } from './understand';
 
@@ -137,12 +137,27 @@ export const fillDraftCap: Capability = {
     const r = fillDraft(got.d, input.values, ctx.now);
     if (r.kept.length || r.corrected.length) await putDraft(got.s, r.draft);
     if (!r.kept.length && !r.corrected.length) return { ok: false, why: `Nothing was kept. ${r.refused.join(' ')}` };
+    /* A RECORD ALREADY MADE fills as it is talked about (10 November, docs/AI-OPERATING.md — Rowland: "I want to be able to see the
+       real study and its information being populated"; "confirm once"): the person said yes to it when it was made, so what is said
+       of it now goes straight into it — only the fields the conversation changed, what was edited on its page kept — and its page
+       is shown filling. A client, or somebody who may not change it, still only fills the draft. */
+    const made = r.draft.status === 'made' && r.draft.studyId ? await getStudy(r.draft.studyId) : undefined;
+    if (made && !made.deletedAt && (await mayEdit(ctx, made.projectId)).ok) {
+      const ch = changedSinceMade(r.draft);
+      if (ch.length) {
+        await patchStudy(made.id, cur => applyDraft(cur, r.draft, ctx.now, ch));
+        await putDraft(got.s, { ...r.draft, madeValues: madeSnapshot(r.draft) });
+      }
+      const href = studyHref(made);
+      const ref: CapRef = { kind: 'study', id: made.id, label: made.name, href };
+      return { ok: true, says: `${[r.kept.length ? `Into “${made.name}”: ${r.kept.join(', ')}.` : '', r.corrected.length ? `Corrected in “${made.name}” (the earlier value kept beside it): ${r.corrected.join('; ')}.` : '', r.refused.length ? `Not kept: ${r.refused.join(' ')}` : ''].filter(Boolean).join(' ')} Its page shows it.`, data: { draftId: r.draft.id, studyId: made.id, changed: ch }, refs: [ref], show: ref };
+    }
     const parts = [
       r.kept.length ? `Kept: ${r.kept.join(', ')}.` : '',
       r.corrected.length ? `Corrected (the earlier value kept beside it): ${r.corrected.join('; ')}.` : '',
       r.refused.length ? `Not kept: ${r.refused.join(' ')}` : '',
       missingSaid(r.draft),
-      r.draft.status === 'made' ? 'It is already a record — make it again to carry these into it.' : '',
+      r.draft.status === 'made' ? 'It is already a record — its owner carries these into it.' : '',
     ].filter(Boolean);
     const ms = metricsOf(r.draft).filter(m => m.value !== undefined);
     if (ms.length) parts.push(`Faultline works out: ${ms.map(m => `${m.metric.name} ${m.said}`).join('; ')}.`);

@@ -56,13 +56,12 @@ import { useBlobUrl } from '../../lib/useBlobUrl';
 import { askTurnsOf, isTheirs, notWritten, pendingReply, photoLabels, photosToSend, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from './talk';
 import { DOC_KIND_WORD, TALK_LIMITS, type TalkAskImage } from './talkAssist';
 import { SET_WORD, TALK_SETS, captureAsText, captureCount, setOf, type TalkCapture, type TalkSet } from './talkSets';
-import { TalkDiagram, flowInputs } from './TalkDiagram';
-import { TalkSpag, spagInputs } from './TalkSpag';
+import { TalkDiagram } from './TalkDiagram';
+import { TalkSpag } from './TalkSpag';
 import { TalkVs } from './TalkVs';
-import { vsAgreed, vsFlow } from './vsMap';
+import { DIAGRAM_WORD, diagramRecord, diagramUpdate } from './diagramRecord';
 import spaghettiWalkers from '../calc/defs/spaghetti-walkers';
 import processFlow from '../calc/defs/process-flow';
-import type { ToolStudy as CalcStudy } from '../../lib/study';
 import { studyHref } from '../../lib/studyLinks';
 import { usePhone } from '../../ui/InstallGrid';
 import { NO_SIGNAL, askTalk, type SoFar } from './talkAsk';
@@ -466,34 +465,19 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const editCapture = (c: TalkCapture) => capTurn ? patchTurn(capTurn.id, { capture: c, ...(capTurn.captureFirst ? {} : capTurn.capture ? { captureFirst: capTurn.capture } : {}) }) : Promise.resolve();
   const sayWhen = () => `the Line Talk of ${niceDay(todayISO())}`;
   const calcKey = set === 'spag' ? spaghettiWalkers.key : processFlow.key;
-  const inputsOf = (c: Exclude<TalkCapture, { set: 'vs' }>) => (c.set === 'spag' ? spagInputs(c, sayWhen()) : flowInputs(c, sayWhen()));
   const openMade = () => { if (madeId) nav(studyHref(set === 'vs' ? { id: madeId, tool: 'map', ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) } : { id: madeId, tool: 'calc', agreed: { calc: { key: calcKey, inputs: {} } }, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}) })); };
   const makeIt = async () => {
     if (!capture || making || !live) return;
     setMaking(true);
     try {
       const t = now();
-      if (capture.set === 'vs') {
-        /* the Value stream tool's own record: a line's map, its steps as said, each one's value only as the person classed it */
-        const map: ToolStudy = { id: uid(), tool: 'map', name: `${capture.title.trim() || 'Value stream'}${s.workspaceId ? '' : ' (from a talk)'}`, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}),
-          agreed: { map: vsAgreed(capture) }, facts: { flow: vsFlow(capture), fromTalk: { talk: s.id, at: t } }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
-        await putStudy(map);
-        await patchStudy(s.id, cur => ({ facts: { ...cur.facts, made: { id: map.id, at: t } } }));
-        offerUndo('Made a Value stream map from this talk', async () => {
-          await deleteStudy(map.id);
-          await patchStudy(s.id, cur => { const { made: _m, ...rest } = cur.facts; void _m; return { facts: rest }; });
-        });
-        return;
-      }
-      const { inputs, src } = inputsOf(capture);
-      const made: CalcStudy = { id: uid(), tool: 'calc', name: `${capture.title.trim() || (capture.set === 'spag' ? 'Spaghetti diagram' : 'Flow diagram')}${s.workspaceId ? '' : ' (from a talk)'}`, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}),
-        agreed: { calc: { key: calcKey, inputs, src } }, facts: { fromTalk: { talk: s.id, at: t } }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
+      /* one module for Line Talk's Make it and AI Mode's draw_diagram (tools/talk/diagramRecord) */
+      const made = diagramRecord(capture, { id: uid(), at: t, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}), source: sayWhen(), from: { talk: s.id, at: t } });
       await putStudy(made);
       await patchStudy(s.id, cur => ({ facts: { ...cur.facts, made: { id: made.id, at: t } } }));
-      offerUndo(`Made a ${capture.set === 'spag' ? 'Spaghetti diagram' : 'Process flow chart'} from this talk`, async () => {
-        const restore = await deleteStudy(made.id);
+      offerUndo(`Made a ${DIAGRAM_WORD[capture.set]} from this talk`, async () => {
+        await deleteStudy(made.id);
         await patchStudy(s.id, cur => { const { made: _m, ...rest } = cur.facts; void _m; return { facts: rest }; });
-        void restore;
       });
     } finally { setMaking(false); }
   };
@@ -501,22 +485,9 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
     if (!capture || !madeId || making || !live) return;
     setMaking(true);
     try {
-      if (capture.set === 'vs') {
-        const c = capture;
-        /* the steps are the talk's (each keeping its id and what was added to it on the map); the money, the day's seconds and every other part of the map stay the person's */
-        await patchStudy(madeId, cur => ({ agreed: { ...cur.agreed, map: vsAgreed(c, cur.agreed?.map) }, facts: { ...cur.facts, flow: vsFlow(c, cur.facts.flow ?? []) } }));
-        return;
-      }
-      const { inputs, src } = inputsOf(capture);
-      const mine = capture.set === 'spag' ? /^w\d_/ : /^s\d\d_/;
-      await patchStudy(madeId, cur => {
-        const a = cur.agreed?.calc;
-        if (!a) return {};
-        /* the steps are the talk's; every other figure on the record (the money, the layout, the before) stays the person's */
-        const keep = Object.fromEntries(Object.entries(a.inputs).filter(([k]) => !mine.test(k)));
-        const keepSrc = Object.fromEntries(Object.entries(a.src ?? {}).filter(([k]) => !mine.test(k)));
-        return { agreed: { ...cur.agreed, calc: { ...a, inputs: { ...keep, ...inputs }, src: { ...keepSrc, ...src } } } };
-      });
+      const c = capture;
+      /* the steps are the talk's; every other figure on the record (the money, the layout, the before) stays the person's */
+      await patchStudy(madeId, cur => diagramUpdate(c, cur, sayWhen()));
     } finally { setMaking(false); }
   };
   const docTurn = docId ? turns.find(t => t.id === docId && t.kind === 'reply' && t.doc) : undefined;

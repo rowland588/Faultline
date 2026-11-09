@@ -23,6 +23,7 @@ import type { LeanPage } from '../lib/lean';
 import { LeanBand } from './Lean';
 import { MoreMenu, ReportMenu, type MoreItem, type Paper } from './parts';
 import { useStudyPaper } from './StudyPlace';
+import { useSaveOnArrival } from '../lib/useSaveOnArrival';
 import { ShareReadings } from './ShareReadings';
 import { shareOffer } from '../lib/sharedReadings';
 
@@ -80,6 +81,8 @@ export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary }:
   const [naming, setNaming] = useState(false);
   const [sharing, setSharing] = useState(false);
   const paper = useStudyPaper(s);
+  /* ?save=1 — every tool's record makes its own paper on arrival (docs/AI-OPERATING.md: AI Mode's make_report opens it so) */
+  useSaveOnArrival(paper.ready, paper);
   /* USE THESE READINGS IN… (knowledge/specs/FC-094-shared-readings.md): Capability, Control chart and Analysis start from one
      another's readings — one mechanism here, so the three tools have it from one place; shown disabled, with its reason, when
      there is nothing to share, and never to a client */
