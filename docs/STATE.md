@@ -206,7 +206,7 @@ a session that ships something updates this page in the same commit.** The rules
   against the words on the server and again on the device; an .xlsx is refused in words (no spreadsheet reader in the app — save as
   CSV). `replace_machine` (write, confirmed) puts the new machine in the old one's place on the line and keeps the old record with
   `replaced_by`. No database change. The gateway carries the `factory-read` task, the colleague's new rules and two capabilities
-  (deployed; since 9 November it is version 24). Proved by
+  (deployed; since 10 November it is version 25 — the operating capabilities, every fill capability and the value stream walk). Proved by
   `scripts/acceptance/factory-onboarding.mjs` (Customer X Foods onboarded, a register read, a bagger replaced).
 - **Voice on the floor — phase 4 (8 November, docs/AI-MODE.md §7).** The phone's own microphone first (no headset needed): the screen
   kept on, Listening… and Speaking… said, a card answered by "yes, do it" / "not now" in code, *Before you walk the floor* checks the
