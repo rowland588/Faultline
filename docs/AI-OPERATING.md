@@ -32,7 +32,7 @@ Each part is **the tool's own code**, never a copy:
 | Part | What it is | Where it comes from |
 |---|---|---|
 | **Describe** | what the tool is for, what it needs, what it gives | the catalogue entry (`src/catalogue`) |
-| **Fill** | a structured record filled from the conversation | a draft of the tool's own shape (`capabilities/drafts`), a diagram said aloud (`tools/talk/diagramRecord` — Line Talk's own Make it), or readings added (`add_readings`) |
+| **Fill** | a structured record filled from the conversation | the capability its connector names (`fillBy`): a draft of the tool's own shape (`capabilities/drafts`), a diagram said aloud (`tools/talk/diagramRecord` — Line Talk's own Make it), a record started as its New makes it and filled through its own store (`capabilities/fill` — §2a), or readings added (`add_readings`) |
 | **Capture** | a live measurement | an adapter in `connectors/measure.ts` writing exactly what the tool's capture screen writes |
 | **Read** | the record's finding and data | the tool's own sentence (`lib/studyLinks studyLine`) and its readings and notes (`readRecord`) |
 | **Report** | the tool's paper | made on arrival at its page (`?save=1`, `ui/StudyActs` StudyBand → `lib/useSaveOnArrival`), or its page's Report ▾ |
@@ -40,6 +40,28 @@ Each part is **the tool's own code**, never a copy:
 A part a tool does not have is said (`byHand`: how it is done on the page), never claimed. **A new tool is one entry here** (and
 its catalogue entry): `tool_guide` and `describe_faultline` tell the colleague of it, and the same capabilities run its parts. The
 unit test fails if a tool a person can open has no connector, or a connector claims a capture with no adapter.
+
+## 2a. Filling every tool (10 November)
+
+`src/capabilities/fill.ts` — each capability writes what the tool's own page writes, and the tool's own reader then reads it:
+
+| Capability | The tool | What it writes |
+|---|---|---|
+| `start_study` | capability, control chart, analysis, loss count, product on hold, every scored register, the maintenance board, a product's line standard, Line capacity, Line balance | the record as its New makes it (the loss count by `ui/ShiftLosses newLossCount`, the balance by `balanceStudyFor`), shown in the work pane |
+| `add_readings` | capability (every kind: a measurement, pass/fail, rejects of made, faults, a rate), chart, analysis (arms, groups, pairs) | each reading in the tool's own shape |
+| `count_shift` | loss count | made, rejects, the rate, the planned minutes (a change with its why) |
+| `fill_register` | every scored register (criticality, FMEA, Pugh, skills, readiness, fault tree, control plan, impact–effort, hygienic design, RSM) | its rows, ranked by its own definition; a box out of range refused |
+| `raise_hold` · `decide_hold` | product on hold | the register's own hold and decision |
+| `record_check` | every check log | a pass, a reading or a fail — a fail raises its problem as the round does |
+| `time_elements` · `set_capacity` | Line balance · Line capacity | timed elements; stations, speeds and the target |
+| `place_people` | line standard | people on the board with their task and labels |
+| `add_cause` · `fishbone_state` | 6M | a cause on its bone, confirmed only with what the check found |
+| `add_journey_step` | Problems | a step on a problem's journey |
+| `answer_method` | every method sheet (PDCA, DMAIC, 8D, A3, Kaizen event, Kata, ToC) | the sheet's own answer, one note a question |
+
+**Confirm once a record**: a capability with a `target` (the record it writes into) runs with no card once the person has said yes to
+that record — when it was made, started or raised through a card (`facts.authorised` on the conversation). A write into any other
+record is a card, as before. A client fills nothing.
 
 ## 3. The kinds of work — said apart
 
@@ -56,7 +78,7 @@ unit test fails if a tool a person can open has no connector, or a connector cla
 
 ## 4. Live measurement
 
-A measurement is one authorised session of one capture tool, kept on the AI Mode conversation (`facts.measures`). Five tools
+A measurement is one authorised session of one capture tool, kept on the AI Mode conversation (`facts.measures`). Six tools
 capture today, each adapter writing what its screen's buttons write:
 
 - **Stops timed** (line): *stopped* (machine, reason) starts the line's stopwatch (`activeTimer`, as the capture screen's
@@ -67,6 +89,7 @@ capture today, each adapter writing what its screen's buttons write:
 - **SMED**: *begin* at the last good piece, *element* (the element just finished, by name) a timed `ChangeoverStep`, *finish* at
   the first good piece.
 - **Stops across workstations**: *stopped* / *running* on a workstation — its minutes and one stop, as its own button does.
+- **Line balance**: the stopwatch's *start* (a person, an element), *lap*, *next* element, *interrupted*, *stop* — each lap on its element as the balance's own timer keeps it; Undo strikes the lap.
 
 **Time**: each event is stamped at the moment the person's words were heard (`CapCtx.saidAt`, their turn's time), not when the
 reply came back. **Undo** strikes or takes back what the event wrote, as the tool's Undo does; **correct** takes it back and writes
@@ -103,6 +126,8 @@ camera through the conversation is the next part of this architecture, not built
   the Analysis tool's own sentence; add_readings, read_record; draw_diagram equal to Line Talk's Make it and keeping the person's
   other figures on update; write_document a Line Talk with its figures to check; make_report's addresses; plan_investigation.
 - `src/capabilities/__tests__/drafts.test.ts` — a made record filled as it is talked about.
+- `src/capabilities/__tests__/fill.test.ts` — every fill capability against the tool's own reader, and confirm once.
+- `scripts/acceptance/ai-investigate.mjs` — one investigation end to end in one conversation (§10).
 - `scripts/acceptance/ai-operate.mjs` — in the browser with the gateway played by the script: a measurement started with one card,
   the line's capture screen in the pane, events captured with no card and on the line, the strip's Undo, Review and End; readings
   into a study shown in the pane; the Analysis's own sentence; a report made and kept; a document and a flow diagram made and
@@ -110,7 +135,15 @@ camera through the conversation is the next part of this architecture, not built
 
 ## 9. Not yet
 
-- Fill for Line capacity, the loss count, the line balance's timings, the line standard's board, FMEA and the other card
-  registers — said by `tool_guide` as done on the page (`byHand`).
-- The line balance's stopwatch and the value stream's stopwatch as capture adapters.
+- The value stream's stopwatch as a capture adapter (its map is filled by `draw_diagram` vs).
+- Filling the tools whose work is drawing or filming by hand — the spaghetti board's taps, the line standard's shapes, a video
+  study's footage — said by `tool_guide` as done on the page (`byHand`).
 - The camera as a capture.
+
+## 10. One investigation, end to end
+
+`plan_investigation` (the method's sections, each with its tools and its own questions) → `start_project` (a card) →
+`answer_method` (no card — the project was said yes to) → `start_study` (a card) and `add_readings` (no card) →
+`start_measurement` (one card) and spoken events → `run_analysis` (the Analysis's own sentence) → `raise_problem` (a card) with who
+and by when, `add_journey_step` (no card) → `make_report` project and line — the app's own reports, made on arrival from the records.
+Every record is the app's own and opens by hand on its own page. `scripts/acceptance/ai-investigate.mjs` walks it.
