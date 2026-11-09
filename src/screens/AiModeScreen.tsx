@@ -477,7 +477,19 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       }, {
         invoke: invokeColleague,
         describe: name => { const c = capabilityByName(name); return c ? { kind: c.kind, title: c.title } : undefined; },
-        run: async (call, confirmed) => { const r = await runCall(ctx(), call, { confirmed }); if (r.ok && r.show) showWork(r.show); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study')); return r; },
+        run: async (call, confirmed) => {
+          const r = await runCall(ctx(), call, { confirmed });
+          if (r.ok && r.show) showWork(r.show); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study'));
+          /* the record a confirmed write made or wrote into is now said yes to — later fills of it go straight in */
+          if (r.ok && confirmed) {
+            const d = (r.data ?? {}) as { studyId?: string; standardId?: string; id?: string };
+            const c = capabilityByName(call.name);
+            const ids = [c?.target?.(call.input), d.studyId, d.standardId, call.name === 'make_record' ? d.id : undefined, r.show?.kind === 'study' ? r.show.id : undefined,
+              ...(call.name === 'start_project' ? r.refs.filter(x => x.kind === 'project').map(x => x.id) : [])].filter((x): x is string => !!x);
+            if (ids.length) await patchStudy(cid, cur => { const had = ((cur.facts as { authorised?: string[] }).authorised ?? []); return { facts: { ...cur.facts, authorised: [...new Set([...had, ...ids])].slice(-200) } as ToolStudy['facts'] }; });
+          }
+          return r;
+        },
         prepare: async (call): Promise<Prepared> => {
           const c = capabilityByName(call.name);
           if (!c) return { ok: false, title: call.name, why: 'Faultline has no such step.' };
@@ -486,7 +498,10 @@ function Conversation({ id, start, onMade, onList, onNew }: {
           const a = await c.allowed(ctx(), v.input);
           if (!a.ok) return { ok: false, title: c.title, why: a.why };
           const preview = c.preview ? await c.preview(ctx(), v.input) : c.title;
-          return { ok: true, title: c.title, preview, input: (v.input ?? {}) as Record<string, unknown> };
+          /* CONFIRM ONCE (docs/AI-OPERATING.md): a write into a record the person already said yes to in this conversation goes in */
+          const target = c.target?.(v.input);
+          const said = target ? ((factsOfConversation((await getStudy(cid)) as ToolStudy) as { authorised?: string[] }).authorised ?? []).includes(target) : false;
+          return { ok: true, title: c.title, preview, input: (v.input ?? {}) as Record<string, unknown>, ...(said ? { authorised: true } : {}) };
         },
         confirm: step => new Promise<boolean>(res => {
           waits.current.set(step.call.id, res); setWaitTick(n => n + 1);

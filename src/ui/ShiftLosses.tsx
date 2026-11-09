@@ -82,19 +82,24 @@ export async function rateForCount(workspaceId?: string, std?: Pick<Standard, 'c
 
 /** Start a count of the shift that has just run on this line, and open it. */
 export async function countAShift(line: Workspace, projectId?: string): Promise<void> {
-  const t = now();
+  const s = await newLossCount(line, projectId, now());
+  await putStudy(s);
+  nav(studyHref(s));
+}
+
+/** THE NEW COUNT ITSELF — the shift that has just run on the line, its rate from the line's one rated product — as the page's Count a
+ *  shift makes it, and AI Mode's start_study (docs/AI-OPERATING.md): one maker, never two. */
+export async function newLossCount(line: Workspace, projectId: string | undefined, t: number): Promise<ToolStudy> {
   /* one product with a capacity (or an agreed rate) on the line: its standard */
   const rated = (await listStandardsForLine(line.id)).filter(s => !s.deletedAt && ((s.capacity?.stations.length ?? 0) > 0 || (s.capacity?.targetPerMin ?? 0) > 0));
   const std = rated.length === 1 ? rated[0] : undefined;
   /* on the line's job when the line is one job's — else a count on the line */
   const job = projectId ?? (await chainForWorkspace(line.id))?.projectId;
-  const s: ToolStudy = {
+  return {
     id: uid(), tool: 'losses', name: 'Loss count', workspaceId: line.id, ...(job ? { projectId: job } : {}),
     ...(std ? { standardId: std.id, product: std.product } : {}),
     facts: { losses: firstCount(line.shifts ?? [], await rateForCount(line.id, std), t) }, uses: [], startedAt: t, createdAt: t, updatedAt: t,
   };
-  await putStudy(s);
-  nav(studyHref(s));
 }
 
 /** THE LINE'S LATEST SHIFT in one line, and the door to count one. `name`:

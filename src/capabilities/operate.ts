@@ -30,6 +30,7 @@ import { savingAt } from '../lib/useSaveOnArrival';
 import { uid } from '../lib/ids';
 import { APP_TOOLS } from '../catalogue/registry';
 import { METHODS, methodByKey, type MethodKey } from '../lib/methods';
+import { fieldsOf } from '../lib/methodSheet';
 import { analysisFigures, analysisSays } from '../tools/analysis/analysis';
 import type { AgreedAnalysis } from '../lib/study';
 import { checkTalkAnswer, figuresIn } from '../tools/talk/talkAssist';
@@ -339,6 +340,7 @@ export const writeDocument: Capability = {
 interface DiagramIn { set: 'flow' | 'spag' | 'vs'; capture: TalkCapture; lineId?: string; projectId?: string; studyId?: string }
 export const drawDiagram: Capability = {
   name: 'draw_diagram', title: 'Make the diagram', kind: 'write',
+  target: (i: { studyId?: string }) => i.studyId,
   validate: raw => {
     if (!isObj(raw)) return { ok: false, why: 'The request is not an object.' };
     const set = setOf(raw.set);
@@ -372,22 +374,45 @@ export const drawDiagram: Capability = {
 };
 
 /* ================================================================== add_readings */
-interface ReadingsIn { studyId: string; values?: number[]; arm?: string; ok?: boolean[]; note?: string }
+interface ReadingIn { value?: number; ok?: boolean; made?: number; rejected?: number; inspected?: number; faults?: number; arm?: string; with?: number; xs?: number[]; group?: number; product?: string; head?: number; note?: string }
+interface ReadingsIn { studyId: string; values?: number[]; arm?: string; ok?: boolean[]; note?: string; readings?: ReadingIn[] }
+/** One reading as said, in the shape its tool keeps (lib/study StudyReading) — only the boxes it has, each a number as said. */
+function readingIn(x: unknown): ReadingIn | string {
+  if (!isObj(x)) return 'Each reading is an object of its boxes.';
+  const out: ReadingIn = {};
+  for (const k of ['value', 'with', 'made', 'rejected', 'inspected', 'faults', 'group', 'head'] as const) {
+    if (x[k] === undefined) continue;
+    if (typeof x[k] !== 'number' || !Number.isFinite(x[k] as number)) return `${k} is a number, as said.`;
+    out[k] = x[k] as number;
+  }
+  if (typeof x.ok === 'boolean') out.ok = x.ok;
+  if (Array.isArray(x.xs)) { const xs = nums(x.xs, 5); if (!xs) return 'xs are the drivers’ numbers, in order.'; out.xs = xs; }
+  for (const k of ['arm', 'product', 'note'] as const) if (str(x[k], 300)) out[k] = str(x[k], 300);
+  if (out.made !== undefined && out.rejected !== undefined && out.rejected > out.made) return 'More rejected than made — check the counts.';
+  return Object.keys(out).length ? out : 'A reading needs at least one box.';
+}
 export const addReadings: Capability = {
   name: 'add_readings', title: 'Add the readings', kind: 'write',
+  target: (i: { studyId?: string }) => i.studyId,
   validate: raw => {
     if (!isObj(raw)) return { ok: false, why: 'The request is not an object.' };
     const studyId = str(raw.studyId, 80);
     if (!studyId) return { ok: false, why: 'Say which record the readings go in.' };
     const values = raw.values === undefined ? undefined : nums(raw.values, 500);
     const okList = Array.isArray(raw.ok) && raw.ok.length <= 500 && raw.ok.every(x => typeof x === 'boolean') ? raw.ok as boolean[] : undefined;
-    if (!values && !okList) return { ok: false, why: 'Give the readings as numbers (or good / failed as true / false), exactly as said.' };
-    return { ok: true, input: { studyId, ...(values ? { values } : {}), ...(okList ? { ok: okList } : {}), ...(str(raw.arm, 40) ? { arm: str(raw.arm, 40) } : {}), ...(str(raw.note, 300) ? { note: str(raw.note, 300) } : {}) } };
+    let readings: ReadingIn[] | undefined;
+    if (Array.isArray(raw.readings)) {
+      if (raw.readings.length > 500) return { ok: false, why: 'At most 500 readings at once.' };
+      readings = [];
+      for (const x of raw.readings) { const r = readingIn(x); if (typeof r === 'string') return { ok: false, why: r }; readings.push(r); }
+    }
+    if (!values && !okList && !readings?.length) return { ok: false, why: 'Give the readings as numbers (or good / failed as true / false, or each as its boxes), exactly as said.' };
+    return { ok: true, input: { studyId, ...(values ? { values } : {}), ...(okList ? { ok: okList } : {}), ...(readings ? { readings } : {}), ...(str(raw.arm, 40) ? { arm: str(raw.arm, 40) } : {}), ...(str(raw.note, 300) ? { note: str(raw.note, 300) } : {}) } };
   },
   allowed: async (ctx, input: ReadingsIn) => { const e = await editable(ctx, input.studyId); return e.ok ? { ok: true } : e; },
   async preview(_ctx, input: ReadingsIn) {
     const s = await getStudy(input.studyId);
-    const n = (input.values?.length ?? 0) + (input.ok?.length ?? 0);
+    const n = (input.values?.length ?? 0) + (input.ok?.length ?? 0) + (input.readings?.length ?? 0);
     return `Add ${plural(n, 'reading')} to ${s ? studyTitle(s) : 'the record'}${input.arm ? ` (${input.arm})` : ''}, each exactly as said — the tool works out what they mean.`;
   },
   async run(ctx, input: ReadingsIn): Promise<CapResult> {
@@ -399,6 +424,7 @@ export const addReadings: Capability = {
     const add: StudyReading[] = [
       ...(input.values ?? []).map((v, k) => ({ id: uid(), value: v, at: t + k, ...(ctx.me ? { who: ctx.me } : {}), ...(input.arm ? { arm: input.arm } : {}), ...(k === 0 && input.note ? { note: input.note } : {}) })),
       ...(input.ok ?? []).map((v, k) => ({ id: uid(), ok: v, at: t + 1000 + k, ...(ctx.me ? { who: ctx.me } : {}) })),
+      ...(input.readings ?? []).map((x, k) => ({ id: uid(), at: t + 2000 + k, ...(ctx.me ? { who: ctx.me } : {}), ...x })),
     ];
     await patchStudy(s.id, cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), ...add] } }));
     const now = await getStudy(s.id);
@@ -424,6 +450,7 @@ const START_FIELDS = {
   lineId: ID('the line'), studyId: ID('the record to carry on'), machine: { kind: 'string', label: 'the machine', max: 120 }, name: { kind: 'string', label: 'a name', max: 120 },
   counts: { kind: 'strings', label: 'the things counted', max: 6 }, who: { kind: 'strings', label: 'the people watched', max: 12 }, activities: { kind: 'strings', label: 'what a tap can say', max: 10 },
   from: { kind: 'string', label: 'the product changed from', max: 120 }, to: { kind: 'string', label: 'the product changed to', max: 120 }, workstations: { kind: 'strings', label: 'the workstations', max: 30 },
+  product: { kind: 'string', label: 'the product timed', max: 120 },
 } as const;
 export const startMeasurement: Capability = {
   name: 'start_measurement', title: 'Start the measurement', kind: 'write',
@@ -592,12 +619,13 @@ export const planInvestigation: Capability = {
         const how: Intent = c?.capture ? 'measure' : c?.fill || c?.diagram ? 'fill' : c?.readings ? 'analyse' : t.key === 'calc' ? 'calculate' : 'report';
         return { key: t.key, label: t.label, how, ...(used.length ? { already: used.slice(0, 3).map(s => ({ id: s.id, title: studyTitle(s) })) } : {}) };
       });
-      return { section: sec.name, what: sec.what, tools };
+      const asks = fieldsOf(method.key, sec.name).map(f => ({ id: f.id, question: f.label }));
+      return { section: sec.name, what: sec.what, tools, ...(asks.length ? { asks } : {}) };
     });
     const firstTools = act ? act.tools.map((k: string) => APP_TOOLS.find(t => t.key === k)?.label ?? k) : [];
     return {
       ok: true,
-      says: `${method.name} for this: ${steps.map(s => `${s.section}${s.tools.length ? ` (${s.tools.map(t => t.label).join(', ')})` : ''}`).join(' → ')}. ${firstTools.length ? `For “${act?.word}” start with ${firstTools.join(' or ')}. ` : ''}The project report brings every tool’s finding together at the end (make_report project).${project ? '' : ' It is a project with this method (start_project), on the line — offered, never assumed.'}`,
+      says: `${method.name} for this: ${steps.map(s => `${s.section}${s.tools.length ? ` (${s.tools.map(t => t.label).join(', ')})` : ''}`).join(' → ')}. ${firstTools.length ? `For “${act?.word}” start with ${firstTools.join(' or ')}. ` : ''}Each section’s questions are answered with answer_method. The project report brings every tool’s finding together at the end (make_report project).${project ? '' : ' It is a project with this method (start_project), on the line — offered, never assumed.'}`,
       data: { method: { key: method.key, name: method.name, question: method.question }, steps, ...(act ? { activity: { id: act.id, word: act.word, tools: act.tools } } : {}), methods: METHODS.map(m => ({ key: m.key, name: m.name, question: m.question })), ending: 'make_report what: project' },
       refs: project ? [projectRef(project)] : [],
     };

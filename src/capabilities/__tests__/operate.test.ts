@@ -40,6 +40,13 @@ describe('the connectors', () => {
       if (c.capture) expect(CAPTURE_ADAPTERS[c.capture], c.key).toBeDefined();
       expect(con.partsOf(c)).toContain('read');
     }
+    /* every tool filled from the conversation, or captured live — only the video study (the camera, docs/AI-OPERATING.md §7) is neither */
+    const noFill = con.CONNECTORS.filter(c => !con.partsOf(c).includes('fill')).map(c => c.key).sort();
+    expect(noFill).toEqual(['reliability', 'sampling', 'stops', 'video']);
+    for (const k of noFill.filter(k => k !== 'video')) expect(con.connectorOf(k)?.capture, k).toBeDefined();
+    /* every capability a connector names to fill it is one the registry runs */
+    const { capabilityByName } = await import('../registry');
+    for (const c of con.CONNECTORS) for (const f of c.fillBy ?? []) expect(capabilityByName(f.split(' ')[0]), `${c.key}: ${f}`).toBeDefined();
     /* a calculator that is a tool of its own is that tool's record, not just a calculation */
     expect(con.connectorForStudy({ id: 'x', tool: 'calc', name: 'x', agreed: { calc: { key: 'workstation-stops', inputs: {} } }, facts: {}, uses: [], startedAt: 0, createdAt: 0, updatedAt: 0 })?.key).toBe('workstops');
   }, 60_000);
@@ -50,7 +57,7 @@ describe('the connectors', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const tools = (r.data as { tools: { key: string; capture?: unknown }[] }).tools;
-    expect(tools.map(x => x.key).sort()).toEqual(['changeover', 'reliability', 'sampling', 'stops', 'workstops']);
+    expect(tools.map(x => x.key).sort()).toEqual(['changeover', 'linework', 'reliability', 'sampling', 'stops', 'workstops']);
     expect(Object.keys((r.data as { intents: object }).intents)).toEqual(['report', 'fill', 'measure', 'calculate', 'analyse', 'investigate']);
   }, 60_000);
 });
@@ -158,6 +165,28 @@ describe('a live measurement — confirmed once, then captured as the capture sc
     inp = (await db.getStudy(study.id))?.agreed?.calc?.inputs ?? {};
     expect([inp.w02_min, inp.w02_stops]).toEqual([0, 0]);
     expect((await run('capture_event', { event: 'stopped', workstation: 'Labeller' })).ok).toBe(false);
+  }, 60_000);
+
+  it('the Line balance’s stopwatch: elements timed lap by lap, an interrupted lap kept for nothing, the latest struck and the clock back on it', async () => {
+    const { run, tick, db, a } = await seed();
+    const s = await run('start_measurement', { tool: 'balance', lineId: a.id, product: 'Maris 2kg' });
+    expect(s.ok).toBe(true);
+    const study = (await db.listStudiesForLine(a.id)).find(x => x.tool === 'balance')!;
+    expect(study.standardId).toBeDefined();
+    expect((await run('capture_event', { event: 'lap' })).ok).toBe(false);   // not started
+    tick(500); await run('capture_event', { event: 'start', who: 'Op 1', name: 'Load the film' });
+    tick(42_000); await run('capture_event', { event: 'lap' });
+    tick(40_000); await run('capture_event', { event: 'interrupted' });
+    tick(44_000); await run('capture_event', { event: 'next', name: 'Splice' });
+    tick(15_000); await run('capture_event', { event: 'next', who: 'Op 2', name: 'Stack' });
+    await run('undo_capture', {});
+    tick(5_000); await run('capture_event', { event: 'stop' });
+    const steps = (await db.getStudy(study.id))?.facts.steps ?? [];
+    const load = steps.find(x => x.name === 'Load the film');
+    expect(load?.laps?.map(l => [l.sec, !!l.foreign])).toEqual([[42, false], [40, true], [44, false]]);
+    const splice = steps.find(x => x.name === 'Splice');
+    expect(splice?.laps?.map(l => [l.sec, !!l.struck])).toEqual([[15, true], [20, false]]);
+    expect(steps.some(x => x.who === 'Op 2' && (x.laps ?? []).some(l => !l.struck))).toBe(false);
   }, 60_000);
 
   it('one measurement at a time, and a client may not start one', async () => {
