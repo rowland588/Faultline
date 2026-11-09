@@ -43,8 +43,8 @@ async function scopeOf(input: { lineId?: string; projectId?: string; client?: st
     }
   }
   if (named !== undefined) {
-    if (!all.some(w => clientKey(w) === named)) return { ok: false, why: `No line names a client called ${input.client}.` };
-    return { ok: true, clients: [named], near: [], what: nameOf(named) };
+    /* a client with no line yet (being onboarded) has an empty factory — said so, never another client's */
+    return { ok: true, clients: [named], near: [], what: all.some(w => clientKey(w) === named) ? nameOf(named) : (input.client?.trim() ?? '') };
   }
   return { ok: true, near: [], what: 'every client whose lines you can see' };
 }

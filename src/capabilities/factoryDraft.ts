@@ -136,6 +136,16 @@ const machineFacts = (op: FactoryOp, how: FactoryHow, now: number, was?: Factory
   return out;
 };
 
+/** A node given new facts: unchanged when they are the same; otherwise a node made already is opened again (its record is matched
+ *  by its name, so it is updated, never doubled), and a document's new facts on it wait for the person's word. */
+function reopened(n: FactoryNode, facts: FactoryNode['facts'], how: FactoryHow): FactoryNode {
+  if (JSON.stringify(facts ?? {}) === JSON.stringify(n.facts ?? {})) return n;
+  if (!n.made) return { ...n, ...(facts ? { facts } : {}) };
+  const { made: _made, ...rest } = n;
+  void _made;
+  return { ...rest, ...(facts ? { facts } : {}), ...(how.how === 'document' ? { review: 'pending' as const } : {}) };
+}
+
 /** APPLY — each operation on the draft, in order, with how it is known; what was done and what was refused, in words. Pure. */
 export function applyFactoryOps(body0: FactoryDraftBody, ops: readonly FactoryOp[], how: FactoryHow, now: number, newId: () => string): OpsResult {
   let b: FactoryDraftBody = { ...body0, nodes: [...body0.nodes] };
@@ -159,9 +169,10 @@ export function applyFactoryOps(body0: FactoryDraftBody, ops: readonly FactoryOp
         b = { ...b, nodes: p.nodes };
         const same = b.nodes.find(n => n.level === op.level && sameName(op.level, n.name.value, name) && (n.parent ?? '') === (p.id ?? ''));
         if (same) {
-          const next = { ...same, ...(op.level === 'machine' ? { facts: machineFacts(op, how, now, same.facts) } : {}) };
-          /* a document proposal for something already said keeps the words it came from, and still waits for a word */
-          put(next);
+          const facts = op.level === 'machine' ? machineFacts(op, how, now, same.facts) : same.facts;
+          /* something already made, said again with new facts, is compared with its record afresh — and when the new facts come
+             from a document, they wait for the person's word */
+          put(reopened(same, facts, how));
           done.push(`${name} was already in the draft${op.level === 'machine' && FACTORY_FIELDS.some(f => op[f]) ? ' — its facts kept' : ''}`);
           continue;
         }
@@ -178,7 +189,7 @@ export function applyFactoryOps(body0: FactoryDraftBody, ops: readonly FactoryOp
         if (typeof n === 'string') { refused.push(n); continue; }
         if (n.level !== 'machine') { refused.push(`Only a machine has a kind, model, serial and maker — “${name}” is a ${LEVEL_WORD[n.level]}.`); continue; }
         if (!FACTORY_FIELDS.some(f => op[f]?.trim())) { refused.push(`Say what is set on “${name}”: its kind, model, serial or maker.`); continue; }
-        put({ ...n, facts: machineFacts(op, how, now, n.facts) });
+        put(reopened(n, machineFacts(op, how, now, n.facts), how));
         done.push(`${name}: ${FACTORY_FIELDS.filter(f => op[f]?.trim()).map(f => `${FIELD_WORD[f]} ${f === 'kind' ? kindWord(op[f] as string) : op[f]?.trim()}`).join(', ')}`);
         continue;
       }

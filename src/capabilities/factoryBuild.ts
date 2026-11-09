@@ -241,11 +241,13 @@ export async function makeFactory(ctx: CapCtx, s: ToolStudy, d: ColleagueDraft):
     made.set(m.node.id, rec.id);
     machines++;
   }
-  /* 4 · a source document on no line yet: on the first line made or matched from it */
-  const firstLine = [...made.entries()].map(([id, x]) => (v.all.find(y => y.node.id === id)?.node.level === 'line' ? x : undefined)).find(Boolean);
+  /* 4 · a source document on no line yet: on the first line it describes that is now in Faultline */
+  const fromSource = (n: (typeof body.nodes)[number], srcId: string) => n.name.source?.id === srcId || FACTORY_FIELDS.some(f => n.facts?.[f]?.source?.id === srcId);
   for (const src of body.sources ?? []) {
     const doc = await getStudy(src.id);
-    if (doc && !doc.workspaceId && firstLine) await patchStudy(doc.id, cur => ({ ...cur, workspaceId: firstLine }));
+    if (!doc || doc.workspaceId) continue;
+    const lineId = body.nodes.filter(n => fromSource(n, src.id)).map(n => (n.level === 'line' ? n.id : n.level === 'machine' ? n.parent : undefined)).map(lineOfNode).find(Boolean);
+    if (lineId) await patchStudy(doc.id, cur => ({ ...cur, workspaceId: lineId }));
   }
   const nodes = body.nodes.map(n => (made.has(n.id) && !n.made ? { ...n, made: { id: made.get(n.id) as string, at } } : n));
   await putDraft(s, { ...d, status: 'made', factory: { ...body, nodes } });

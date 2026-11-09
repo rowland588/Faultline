@@ -17,7 +17,7 @@ let n = 0;
 const id = () => `n${++n}`;
 const said = { how: 'reported' as const, source: { kind: 'conversation' as const, id: 'conv', label: 'AI' } };
 const empty = (client = 'Customer X Foods'): FactoryDraftBody => ({ client: { value: client, how: 'reported', at: NOW }, nodes: [] });
-const ws = (o: Partial<Workspace> & { id: string; name: string }): Workspace => ({ color: '#000', createdAt: 1, updatedAt: 1, categories: [], subcategories: {}, assets: [], schemaVersion: 1, ...o });
+const ws = (o: Partial<Workspace> & { id: string; name: string }): Workspace => ({ color: '#000', createdAt: 1, updatedAt: 1, categories: [], subcategories: {}, assets: [], shifts: [], schemaVersion: 1, ...o } as Workspace);
 
 describe('the factory draft — said into a tree, nothing invented', () => {
   it('Rowland’s onboarding: two factories, the main one’s five areas, Packaging Lines 1–3 with their machines', () => {
