@@ -355,8 +355,9 @@ the record* and *Open it ›*. `scripts/acceptance/ai-build.mjs` proves it. A **
 uploaded with the box's document button (the gateway's `factory-read` task where code cannot read it), and made by `make_record`;
 `scripts/acceptance/factory-onboarding.mjs` proves it.
 
-The gateway carries the new schemas and instructions (`node scripts/sync-assist.mjs` copies them); **the `assist`
-function must be redeployed** for the colleague to use them.
+The gateway carries the new schemas and instructions (`node scripts/sync-assist.mjs` copies them); a change to them is
+live only once the `assist` function is redeployed from the repo — version 24 (9 November) carries everything to date,
+the AI-context capabilities and the voice's `spoken` note included.
 
 ## 11. Rollback
 
