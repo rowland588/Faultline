@@ -210,7 +210,7 @@ a session that ships something updates this page in the same commit.** The rules
   against the words on the server and again on the device; an .xlsx is refused in words (no spreadsheet reader in the app — save as
   CSV). `replace_machine` (write, confirmed) puts the new machine in the old one's place on the line and keeps the old record with
   `replaced_by`. No database change. The gateway carries the `factory-read` task, the colleague's new rules and two capabilities
-  (deployed; since 10 November it is version 26 — the operating capabilities, every fill capability, the value stream walk, the task-led capabilities and the tool intelligence; read back: a call with no person refused, 401, and the Line Talk rules fingerprint 08f542070ed1de5c equal to the repo's). Proved by
+  (deployed; since 10 November it is version 27 — the operating capabilities, every fill capability, the value stream walk, the task-led capabilities, the tool intelligence, the workbook capabilities and Luna's identity in AI Mode's and Line Talk's instructions; read back: a call with no person refused, 401, and both fingerprints equal to the repo's — Line Talk's rules 6ef40eb81a3edc5c, AI Mode's instructions and capabilities 4cdedb41e0d384ac). Proved by
   `scripts/acceptance/factory-onboarding.mjs` (Customer X Foods onboarded, a register read, a bagger replaced).
 - **Voice on the floor — phase 4 (8 November, docs/AI-MODE.md §7).** The phone's own microphone first (no headset needed): the screen
   kept on, Listening… and Speaking… said, a card answered by "yes, do it" / "not now" in code, *Before you walk the floor* checks the

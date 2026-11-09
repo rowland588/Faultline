@@ -374,7 +374,7 @@ uploaded with the box's document button (the gateway's `factory-read` task where
 `scripts/acceptance/factory-onboarding.mjs` proves it.
 
 The gateway carries the new schemas and instructions (`node scripts/sync-assist.mjs` copies them); a change to them is
-live only once the `assist` function is redeployed from the repo — version 26 (10 November) carries everything to date — the task-led capabilities and the tool intelligence included,
+live only once the `assist` function is redeployed from the repo — version 27 (10 November) carries everything to date — the task-led capabilities, the tool intelligence, the workbook capabilities and Luna's identity included (its check returns `colleague` 4cdedb41e0d384ac and `rules` 6ef40eb81a3edc5c, both equal to the repo's),
 the AI-context capabilities and the voice's `spoken` note included.
 
 ## 10½. Operating the application (10 November)
