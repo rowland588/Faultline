@@ -684,4 +684,10 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     description: 'Put the people on a product’s line standard (standardId): each by their label (a role or number, never a name), what they do (task), labels (Overburdened, Product issue, Extra labour or the person’s own), bottleneck. New people go in a row on the board for the person to drag to where they stand; one named again is changed.',
     input_schema: obj({ standardId: str('The line standard', 80), people: { type: 'array', minItems: 1, maxItems: 30, items: obj({ label: str('Op 1, the team leader', 40), task: str('What they do', 200), labels: { type: 'array', maxItems: 6, items: { type: 'string', maxLength: 24 } }, bottleneck: { type: 'boolean' } }, ['label']) } }, ['standardId', 'people']),
   },
+  {
+    name: 'answer_method',
+    kind: 'write',
+    description: 'Write the answers to a project’s method questions — its method sheet, section by section (DMAIC’s charter and phases, PDCA’s plan, an 8D’s disciplines, an A3’s blocks …), each by its question id or words, the answer as the person said or agreed it. project_state names the method; the questions are on the project’s page.',
+    input_schema: obj({ projectId: str('The project', 80), answers: { type: 'array', minItems: 1, maxItems: 30, items: obj({ field: str('The question — its id or its words', 120), text: str('The answer, as said', 4000) }, ['field', 'text']) } }, ['projectId', 'answers']),
+  },
 ];

@@ -30,6 +30,7 @@ import { savingAt } from '../lib/useSaveOnArrival';
 import { uid } from '../lib/ids';
 import { APP_TOOLS } from '../catalogue/registry';
 import { METHODS, methodByKey, type MethodKey } from '../lib/methods';
+import { fieldsOf } from '../lib/methodSheet';
 import { analysisFigures, analysisSays } from '../tools/analysis/analysis';
 import type { AgreedAnalysis } from '../lib/study';
 import { checkTalkAnswer, figuresIn } from '../tools/talk/talkAssist';
@@ -618,12 +619,13 @@ export const planInvestigation: Capability = {
         const how: Intent = c?.capture ? 'measure' : c?.fill || c?.diagram ? 'fill' : c?.readings ? 'analyse' : t.key === 'calc' ? 'calculate' : 'report';
         return { key: t.key, label: t.label, how, ...(used.length ? { already: used.slice(0, 3).map(s => ({ id: s.id, title: studyTitle(s) })) } : {}) };
       });
-      return { section: sec.name, what: sec.what, tools };
+      const asks = fieldsOf(method.key, sec.name).map(f => ({ id: f.id, question: f.label }));
+      return { section: sec.name, what: sec.what, tools, ...(asks.length ? { asks } : {}) };
     });
     const firstTools = act ? act.tools.map((k: string) => APP_TOOLS.find(t => t.key === k)?.label ?? k) : [];
     return {
       ok: true,
-      says: `${method.name} for this: ${steps.map(s => `${s.section}${s.tools.length ? ` (${s.tools.map(t => t.label).join(', ')})` : ''}`).join(' → ')}. ${firstTools.length ? `For “${act?.word}” start with ${firstTools.join(' or ')}. ` : ''}The project report brings every tool’s finding together at the end (make_report project).${project ? '' : ' It is a project with this method (start_project), on the line — offered, never assumed.'}`,
+      says: `${method.name} for this: ${steps.map(s => `${s.section}${s.tools.length ? ` (${s.tools.map(t => t.label).join(', ')})` : ''}`).join(' → ')}. ${firstTools.length ? `For “${act?.word}” start with ${firstTools.join(' or ')}. ` : ''}Each section’s questions are answered with answer_method. The project report brings every tool’s finding together at the end (make_report project).${project ? '' : ' It is a project with this method (start_project), on the line — offered, never assumed.'}`,
       data: { method: { key: method.key, name: method.name, question: method.question }, steps, ...(act ? { activity: { id: act.id, word: act.word, tools: act.tools } } : {}), methods: METHODS.map(m => ({ key: m.key, name: m.name, question: m.question })), ending: 'make_report what: project' },
       refs: project ? [projectRef(project)] : [],
     };

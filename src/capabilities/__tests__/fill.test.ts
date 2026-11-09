@@ -185,6 +185,25 @@ describe('holds, checks, the line balance, capacity, 6M and the journey', () => 
   }, 60_000);
 });
 
+describe('answer_method — the method sheet’s own boxes', () => {
+  it('a PDCA project answered by question words and id; a question not on the sheet said', async () => {
+    const { run, db, a } = await seed();
+    const sheet = await import('../../lib/methodSheet');
+    const r = await run('start_project', { name: 'Seal rejects', method: 'pdca', lineIds: [a.id] });
+    if (!r.ok) throw new Error(r.why);
+    const pid = (r.data as { id: string }).id;
+    const f = sheet.fieldsOf('pdca', 'Plan')[0]!;
+    const w = await run('answer_method', { projectId: pid, answers: [{ field: f.label, text: 'Seal rejects at 2.1% against 0.5%.' }, { field: 'not a question', text: 'x' }] });
+    expect(w.ok).toBe(true);
+    if (w.ok) expect(w.says).toMatch(/Not a question of its sheet: not a question/);
+    const kept = (await db.listTestItems(pid)).find(x => x.testId === sheet.answerScope('pdca', f.id));
+    expect(kept?.what).toBe('Seal rejects at 2.1% against 0.5%.');
+    await run('answer_method', { projectId: pid, answers: [{ field: f.id, text: 'Changed.' }] });
+    expect((await db.listTestItems(pid)).filter(x => x.testId === sheet.answerScope('pdca', f.id))).toHaveLength(1);
+    expect((await run('answer_method', { projectId: pid, answers: [] })).ok).toBe(false);
+  }, 60_000);
+});
+
 describe('confirm once — the loop', () => {
   it('a write into a record already said yes to runs with no card; any other asks', async () => {
     const { colleagueLoop } = await import('../../colleague/colleagueAsk');

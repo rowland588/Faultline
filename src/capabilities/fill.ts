@@ -23,7 +23,7 @@
  *   add_journey_step  a step on a problem's journey: what was done and what came of it
  * Every value only as said; nothing worked out here — the tools work out what it means. A write is a card; once the person has said yes
  * to a record in this conversation, later fills of THAT record go straight in (registry, confirm once — Rowland, 10 November). */
-import { getCase, getStudy, getWorkspace, listCases, listStandardsForLine, patchCase, patchStudy, putStandard, putStudy, getStandard, getSnag, updateSnag } from '../db';
+import { getProject, listTestItems, putTestItem, getCase, getStudy, getWorkspace, listCases, listStandardsForLine, patchCase, patchStudy, putStandard, putStudy, getStandard, getSnag, updateSnag } from '../db';
 import type { AgreedAnalysis, AgreedChart, AgreedReadings, BalanceStep, LogResult, ScoredCriterion, ScoredRow, StudyReading, ToolStudy } from '../lib/study';
 import type { Standard } from '../tools/linestandard/standard';
 import type { Station } from '../tools/linebalance/capacity';
@@ -42,6 +42,8 @@ import { defOf as logDefOf } from '../tools/checks/registry';
 import { addResult, newResult, recordFailure } from '../tools/checks/store';
 import { verdictOf, logOf } from '../tools/checks/checks';
 import { ctxFrom } from '../tools/checks/ctx';
+import { SHEETS, answerScope, hasSheet } from '../lib/methodSheet';
+import { methodOfProject, type MethodKey } from '../lib/methods';
 import { checkObject, ID } from './check';
 import { mayEdit } from './access';
 import type { CapCtx, CapRef, CapResult, Capability, Checked } from './types';
@@ -645,6 +647,50 @@ export const placePeople: Capability = {
   },
 };
 
-export const FILL: readonly Capability[] = [placePeople, startStudy, countShift, fillRegister, raiseHold, decideHold, recordCheck, timeElements, setCapacity, addCause, fishboneState, addJourneyStep];
+
+/* ================================================================== a project's method sheet */
+interface AnswerIn { projectId: string; answers: { field: string; text: string }[] }
+/** Every question a method's sheet asks, section by section (lib/methodSheet SHEETS). */
+const sheetFields = (method: MethodKey) => Object.entries(SHEETS[method] ?? {}).flatMap(([section, fs]) => fs.map(f => ({ section, ...f })));
+export const answerMethod: Capability = {
+  name: 'answer_method', title: 'Answer the method’s questions', kind: 'write',
+  target: (i: { projectId?: string }) => i.projectId,
+  validate: raw => {
+    if (!isObj(raw) || !str(raw.projectId)) return { ok: false, why: 'Say which project.' };
+    const answers = (Array.isArray(raw.answers) ? raw.answers : []).flatMap(a => (isObj(a) && str(a.field, 120) && typeof a.text === 'string' ? [{ field: str(a.field, 120) as string, text: (a.text as string).trim().slice(0, 4000) }] : []));
+    if (!answers.length) return { ok: false, why: 'Give the answers — each its question (id or words) and the answer as said.' };
+    return { ok: true, input: { projectId: str(raw.projectId) as string, answers } };
+  },
+  allowed: async (ctx, i: AnswerIn) => mayEdit(ctx, i.projectId),
+  async preview(_ctx, i: AnswerIn) {
+    const p = await getProject(i.projectId);
+    const m = p ? methodOfProject(p) : undefined;
+    const fs = m ? sheetFields(m) : [];
+    return `On ${p?.name ?? 'the project'}'s ${m ?? 'method'} sheet: ${i.answers.map(a => `${fs.find(f => same(f.id, a.field) || same(f.label, a.field))?.label ?? a.field} — “${a.text.slice(0, 80)}${a.text.length > 80 ? '…' : ''}”`).join('; ')}.`;
+  },
+  async run(ctx, i: AnswerIn): Promise<CapResult> {
+    const p = await getProject(i.projectId);
+    if (!p || p.deletedAt) return notFound('project');
+    const m = methodOfProject(p);
+    if (!m || !hasSheet(m)) return { ok: false, why: `${p.name} has no method sheet to answer.` };
+    const fs = sheetFields(m);
+    const items = (await listTestItems(p.id)).filter(x => x.kind === 'note' && !x.deletedAt);
+    const done: string[] = [], unknown: string[] = [];
+    for (const a of i.answers) {
+      const f = fs.find(x => same(x.id, a.field) || same(x.label, a.field));
+      if (!f) { unknown.push(a.field); continue; }
+      const scope = answerScope(m, f.id);
+      const had = items.find(x => x.testId === scope);
+      /* the sheet's own save: one project note a question (MethodSheet useSaveAnswer) */
+      await putTestItem(had ? { ...had, what: a.text, updatedAt: ctx.now } : { id: uid(), projectId: p.id, testId: scope, kind: 'note', what: a.text, sort: ctx.now, createdAt: ctx.now, updatedAt: ctx.now });
+      done.push(`${f.section}: ${f.label}`);
+    }
+    if (!done.length) return { ok: false, why: `None of those is a question of the ${m} sheet. Its questions: ${fs.slice(0, 12).map(f => f.label).join('; ')}.` };
+    const ref: CapRef = { kind: 'project', id: p.id, label: p.name, href: `/project/${p.id}` };
+    return { ok: true, says: `Written on ${p.name}: ${done.join('; ')}.${unknown.length ? ` Not a question of its sheet: ${unknown.join(', ')}.` : ''}`, data: { written: done.length }, refs: [ref], show: ref };
+  },
+};
+
+export const FILL: readonly Capability[] = [answerMethod, placePeople, startStudy, countShift, fillRegister, raiseHold, decideHold, recordCheck, timeElements, setCapacity, addCause, fishboneState, addJourneyStep];
 
 export const _types = undefined as unknown as StudyReading;

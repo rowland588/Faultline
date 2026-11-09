@@ -484,7 +484,8 @@ function Conversation({ id, start, onMade, onList, onNew }: {
           if (r.ok && confirmed) {
             const d = (r.data ?? {}) as { studyId?: string; standardId?: string; id?: string };
             const c = capabilityByName(call.name);
-            const ids = [c?.target?.(call.input), d.studyId, d.standardId, call.name === 'make_record' ? d.id : undefined, r.show?.kind === 'study' ? r.show.id : undefined].filter((x): x is string => !!x);
+            const ids = [c?.target?.(call.input), d.studyId, d.standardId, call.name === 'make_record' ? d.id : undefined, r.show?.kind === 'study' ? r.show.id : undefined,
+              ...(call.name === 'start_project' ? r.refs.filter(x => x.kind === 'project').map(x => x.id) : [])].filter((x): x is string => !!x);
             if (ids.length) await patchStudy(cid, cur => { const had = ((cur.facts as { authorised?: string[] }).authorised ?? []); return { facts: { ...cur.facts, authorised: [...new Set([...had, ...ids])].slice(-200) } as ToolStudy['facts'] }; });
           }
           return r;
