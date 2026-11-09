@@ -7,6 +7,10 @@ import { IDBFactory } from 'fake-indexeddb';
 import type { CapCtx, ColleagueThread } from '../types';
 import type { ToolStudy } from '../../lib/study';
 
+/* no cloud in a unit test, wherever it runs — Vercel's build carries the real project's address and key, and the live database
+   rightly refuses a call with no one signed in (the cloud's half is lib/preferences' own test, with the client mocked) */
+vi.mock('../../cloud/client', () => ({ supabase: null }));
+
 const store = new Map<string, string>();
 beforeEach(() => {
   vi.stubGlobal('indexedDB', new IDBFactory());
