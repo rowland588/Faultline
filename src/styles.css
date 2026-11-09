@@ -17442,3 +17442,5 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-await-acts .b { min-height: 44px; }
 .ai-imported { margin: 6px 0; padding: 8px 10px; border-radius: var(--radius); background: var(--canvas); font-size: var(--t-detail); overflow-wrap: anywhere; }
 .ai-imported .b { min-height: 32px; padding: 0 8px; }
+.ai-wb { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.ai-wb .b { min-height: 44px; }

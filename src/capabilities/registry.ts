@@ -13,6 +13,7 @@ import { describeFaultline, linkToProject, planWork, resolveRecord, updateContex
 import { OPERATE } from './operate';
 import { TASK } from './task';
 import { INTEL } from './intel/caps';
+import { WORKBOOK } from './workbook';
 import { FILL } from './fill';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
@@ -31,6 +32,7 @@ export const CAPABILITIES: readonly Capability[] = [
   ...OPERATE,
   ...TASK,
   ...INTEL,
+  ...WORKBOOK,
   /* the Fill part for every tool a draft does not cover (10 November, docs/AI-OPERATING.md §2) */
   ...FILL,
 ];

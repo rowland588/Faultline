@@ -95,6 +95,8 @@ export interface ColleagueThread {
 export interface ColleagueAwaiting { tool: string; op: string; does: string; handover: string; href: string; studyId?: string; lineId?: string; at: number }
 /** A downtime file read in code (intel/pareto downtimeTable), kept on the conversation as IMPORTED evidence — never written into the
  *  line's timed stops. */
+/** A workbook attached in AI Mode (docs/WORKBOOKS.md) — its summary only; its cells stay in this device's private storage. */
+export interface ColleagueWorkbook { id: string; name: string; bytes: number; at: number; status: 'reading' | 'ready' | 'partial' | 'failed' | 'interrupted'; why?: string; sheets?: { name: string; state: string; rows: number; columns: number }[]; seconds?: number }
 export interface ColleagueImport { id: string; name: string; at: number; lineId?: string; columns: { reason: string; minutes?: string; count?: string; line?: string; date?: string }; rows: { category: string; mins?: number; events?: number; line?: string; at?: number }[]; skipped: string[] }
 /** A TASK the person is taking through to an outcome (10 November — Rowland: "The user describes the work. Faultline works out how to
  *  support it."): its goal in their words, its kind (capabilities/task ROUTES), its line, the tools it goes through in order (keys),

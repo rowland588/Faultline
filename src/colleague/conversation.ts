@@ -148,7 +148,7 @@ export function scopeSaid(scope: ThreadScope, names: (kind: 'line' | 'project' |
 
 /** THE FOCUS AS THE GATEWAY READS IT — the current thread with its place and notes, then the parked ones by title, then
  *  the photos the person can have attached by key. */
-export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string }[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[] } = {}): string {
+export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string }[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[] } = {}): string {
   const cur = currentThread(threads);
   const parked = parkedThreads(threads);
   const lines: string[] = [];
@@ -167,6 +167,7 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
     if (touched.length) lines.push(`  Records touched: ${touched.map(r => `${r.kind} ${r.label} [${r.id}]`).join('; ')}`);
   } else lines.push('Current: nothing yet — the person has not said what this is about.');
   if (parked.length) lines.push(`Parked: ${parked.map(t => `${t.title}${scopeSaid(t.scope, opts.names) ? ` (${scopeSaid(t.scope, opts.names)})` : ''}${t.mode ? ` — ${MODE_SAID[t.mode]}` : ''} [thread ${t.id}]`).join('; ')}`);
+  if (opts.workbooks?.length) lines.push(`Workbooks attached (read on this device, asked with workbook_profile, query_workbook and workbook_rows): ${opts.workbooks.map(w => `“${w.name}” [${w.id}] ${w.status}${w.sheets?.length ? ` — ${w.sheets.map(x => `${x.name} ${x.rows} rows`).join(', ')}` : ''}`).join('; ')}`);
   if (opts.imports?.length) lines.push(`Files read in code (imported evidence): ${opts.imports.map(i => `“${i.name}” [${i.id}], ${i.rows.length} rows`).join('; ')} — pareto with importId`);
   if (opts.photos?.length) lines.push(`Photos in this conversation: ${opts.photos.map(p => `${p.label} = photoKey ${p.key}`).join('; ')}`);
   /* what is being built from the conversation (docs/AI-MODE.md, Building tools in conversation): each draft with its id, what is

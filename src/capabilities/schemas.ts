@@ -753,4 +753,38 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     description: 'Whether the step handed over has been done — read from the record (changed since it was handed over), never assumed. done: clear once it has moved and you have read it.',
     input_schema: obj({ done: { type: 'string', enum: ['keep', 'clear'] } }),
   },
+  // ── Workbooks attached in the conversation, read on the device (10 November, docs/WORKBOOKS.md) ────────────────────────────────────
+  {
+    name: 'workbook_profile',
+    kind: 'read',
+    description: 'What an Excel workbook attached in this conversation holds — read on the person’s device, never sent to you: its sheets (hidden ones said), the header row found on each and what is above it, every column with its type (number, text, date, yes/no, mixed), blanks, words in number columns, errors, formulas and those with no value saved by Excel (Faultline never recalculates Excel), repeated rows, the same name written more than one way, hidden columns, tables, defined names, the columns that link sheets, and what is in the file but NOT read (pivot tables, external links, connections, a data model, macros, charts). Run it first, before any question of the workbook. With sheet, that one sheet in full.',
+    input_schema: obj({ workbookId: str('The workbook (from the threads); the newest when left out', 80), sheet: str('One sheet in full, by name', 120) }),
+  },
+  {
+    name: 'query_workbook',
+    kind: 'read',
+    description: 'Ask the workbook a question, worked by Faultline’s code over EVERY row of a sheet (never a sample, never by you): filters, up to three columns to group by, a date column grouped by day, week, month or year, and measures — sum, avg, min, max, count (of rows, or of a column’s filled cells) and distinct. Answers with each group’s figures, the totals, a source cell for each group, the cells it could not use (a word in a column being added up — counted and named), and notes (formulas, two spellings matched by a filter). Quote its figures exactly with what they are of; every figure about the workbook comes from here. Text filters ignore case and stray spaces, and say when that matched more than one spelling.',
+    input_schema: obj({
+      workbookId: str('The workbook; the newest when left out', 80),
+      sheet: str('The sheet, by name', 120),
+      filters: { type: 'array', maxItems: 8, items: obj({ column: str('The column, by its header (or letter)', 120), op: { type: 'string', enum: ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'] }, value: { type: ['string', 'number'] }, values: { type: 'array', maxItems: 50, items: { type: ['string', 'number'] } }, from: { type: ['string', 'number'], description: 'between: from (a date as YYYY-MM-DD)' }, to: { type: ['string', 'number'], description: 'between: to' } }, ['column', 'op']) },
+      groupBy: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 120 } },
+      time: obj({ column: str('A date column', 120), by: { type: 'string', enum: ['day', 'week', 'month', 'year'] } }, ['column', 'by']),
+      measures: { type: 'array', minItems: 1, maxItems: 6, items: obj({ op: { type: 'string', enum: ['sum', 'avg', 'min', 'max', 'count', 'distinct'] }, column: str('The column (count may have none: rows)', 120) }, ['op']) },
+      order: obj({ by: { anyOf: [{ type: 'string', enum: ['group'] }, { type: 'integer', minimum: 0, maximum: 5 }], description: '"group", or a measure’s position (0 for the first)' }, desc: { type: 'boolean' } }, ['by']),
+      limit: { type: 'integer', minimum: 1, maximum: 50, description: 'Groups shown; 25 by default' },
+    }, ['sheet', 'measures']),
+  },
+  {
+    name: 'workbook_rows',
+    kind: 'read',
+    description: 'The source rows behind a finding — the rows of a sheet that match the filters, each cell with its reference (Downtime!E1204), so the person can find them in Excel. Use it when they ask to see the data behind a figure, or to check what a column holds before saying what it means.',
+    input_schema: obj({
+      workbookId: str('The workbook; the newest when left out', 80),
+      sheet: str('The sheet, by name', 120),
+      filters: { type: 'array', maxItems: 8, items: obj({ column: str('The column', 120), op: { type: 'string', enum: ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'] }, value: { type: ['string', 'number'] }, values: { type: 'array', maxItems: 50, items: { type: ['string', 'number'] } }, from: { type: ['string', 'number'] }, to: { type: ['string', 'number'] } }, ['column', 'op']) },
+      columns: { type: 'array', maxItems: 12, items: { type: 'string', maxLength: 120 } },
+      limit: { type: 'integer', minimum: 1, maximum: 20 },
+    }, ['sheet']),
+  },
 ];

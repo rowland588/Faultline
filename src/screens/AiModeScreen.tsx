@@ -68,6 +68,9 @@ import { readFactoryDocument } from '../colleague/factorySource';
 import { readXlsx } from '../lib/xlsxRead';
 import { csvRows, downtimeTable } from '../capabilities/intel/pareto';
 import { keepImport } from '../capabilities/intel/caps';
+import { noteWorkbook, settleWorkbooks } from '../capabilities/workbook';
+import { workbooks, workbookId, type Progress } from '../lib/workbook/client';
+import type { ColleagueWorkbook } from '../capabilities/types';
 import { FactoryDocSheet, FactoryDraftBox, type DocPicked } from '../colleague/AiFactory';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -415,7 +418,48 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     setImported(k.says);
     return true;
   };
-  const pickDoc = (file: File) => { void tryDowntime(file).then(took => { if (!took) pickFactoryDoc(file); }).catch(() => pickFactoryDoc(file)); };
+  /* A WORKBOOK (docs/WORKBOOKS.md): an .xlsx of any size is read on this device in a background worker — never uploaded, never sent to
+     the model — its progress shown here with a Stop; the colleague then asks it with workbook_profile, query_workbook and workbook_rows.
+     A small one that is a downtime table is also kept as imported downtime, as before. */
+  const [wb, setWb] = useState<{ id: string; name: string; p?: Progress; said?: string; bad?: boolean } | null>(null);
+  const wbRunning = useRef(new Set<string>());
+  const wbList: ColleagueWorkbook[] = useMemo(() => ((facts as { workbooks?: ColleagueWorkbook[] } | undefined)?.workbooks ?? []), [facts]);
+  useEffect(() => { if (sid.current && wbList.some(w => w.status === 'reading' && !wbRunning.current.has(w.id))) void settleWorkbooks(ctx(), wbRunning.current); }, [wbList, ctx]);
+  const readWorkbookFile = async (file: File) => {
+    const id = workbookId(file);
+    const cid = await ensure();
+    const c = { ...ctx(), conversationId: cid };
+    const had = wbList.find(w => w.id === id && (w.status === 'ready' || w.status === 'partial'));
+    if (had) {
+      try { await workbooks().profile(id); setWb({ id, name: file.name, said: `“${file.name}” is already read here — ask about it.` }); return; } catch { /* not on this device: read it again */ }
+    }
+    const base: ColleagueWorkbook = { id, name: file.name, bytes: file.size, at: Date.now(), status: 'reading' };
+    wbRunning.current.add(id);
+    await noteWorkbook(c, base);
+    setWb({ id, name: file.name, p: { stage: 'opening it', done: 0, total: 1 } });
+    try {
+      const p = await workbooks().read(id, file.name, file, prog => setWb(x => (x && x.id === id ? { ...x, p: prog } : x)));
+      const sheets = p.sheets.map(x => ({ name: x.name, state: x.state, rows: x.rows, columns: x.columns.length }));
+      const said = `Read “${file.name}” on this device in ${p.seconds.toLocaleString('en-GB')} s: ${sheets.map(x => `${x.name} ${x.rows.toLocaleString('en-GB')} rows`).join(', ')}${p.status === 'partial' ? ' — only PART of it was read' : ''}. It stays on this device; ask about it.`;
+      await noteWorkbook(c, { ...base, status: p.status, sheets, seconds: p.seconds, ...(p.status === 'partial' ? { why: p.sheets.filter(x => x.why).map(x => `${x.name}: ${x.why}`).join(' ') } : {}) });
+      await appendAction(patchStudy, cid, { callId: uid(), name: 'workbook_read', title: 'Read a workbook', status: 'done', says: said, refs: [], at: Date.now() });
+      setWb({ id, name: file.name, said });
+    } catch (e) {
+      const why = e instanceof Error ? e.message : String(e);
+      await noteWorkbook(c, { ...base, status: 'failed', why });
+      setWb({ id, name: file.name, said: `“${file.name}” could not be read: ${why}`, bad: true });
+    } finally { wbRunning.current.delete(id); }
+  };
+  const stopWorkbook = () => { if (wb) workbooks().stop(wb.id); };
+  const pickDoc = (file: File) => {
+    if (/\.(xls|xlsb)$/i.test(file.name)) { setImported(`“${file.name}” is an older Excel format (${/xlsb$/i.test(file.name) ? '.xlsb' : '.xls'}) — open it in Excel, save it as .xlsx and attach that.`); return; }
+    if (/\.(xlsx|xlsm)$/i.test(file.name)) {
+      void readWorkbookFile(file);
+      if (file.size <= 8 * 1024 * 1024) void tryDowntime(file).catch(() => false);
+      return;
+    }
+    void tryDowntime(file).then(took => { if (!took) pickFactoryDoc(file); }).catch(() => pickFactoryDoc(file));
+  };
   const pickFactoryDoc = (file: File) => {
     const fd = factoryDraftFor(facts?.drafts ?? []);
     const line = cur?.scope.lineId ? lines.find(l => l.id === cur.scope.lineId) : undefined;
@@ -490,7 +534,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       const end = await colleagueLoop({
         turns: gatewayTurns(asked, named),
         ...(images.length ? { images } : {}),
-        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); return focusText(f.threads ?? [], { names: nameOf, photos: photosKeys, drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [] }); },
+        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); return focusText(f.threads ?? [], { names: nameOf, photos: photosKeys, drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] }); },
         today: longDay(),
         conversationId: cid,
         preferences: preferencesText,
@@ -842,7 +886,14 @@ function Conversation({ id, start, onMade, onList, onNew }: {
           <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
-            <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xls,text/csv,application/pdf,image/*" hidden aria-label="Choose a factory document" onChange={e => { const f = e.target.files?.[0]; if (f) pickDoc(f); e.target.value = ''; }} />
+            <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,image/*" hidden aria-label="Choose a factory document" onChange={e => { const f = e.target.files?.[0]; if (f) pickDoc(f); e.target.value = ''; }} />
+            {wb && (
+              <div className="ai-imported ai-wb" data-workbook={wb.p ? 'reading' : wb.bad ? 'failed' : 'read'} role="status">
+                {wb.p
+                  ? <><span>Reading “{wb.name}” on this device — {wb.p.stage}, <b data-workbook-pct>{Math.min(99, Math.floor((wb.p.done / Math.max(1, wb.p.total)) * 100))}%</b></span> <button type="button" className="b ghost" data-workbook-stop onClick={stopWorkbook}>Stop</button></>
+                  : <><span data-workbook-said>{wb.said}</span> <button type="button" className="b ghost" aria-label="Close" onClick={() => setWb(null)}>×</button></>}
+              </div>
+            )}
             {imported && <p className="ai-imported" data-imported role="status">{imported} <button type="button" className="b ghost" aria-label="Close" onClick={() => setImported(null)}>×</button></p>}
             <textarea ref={box} className="ai-box" rows={1} value={typing} maxLength={4000}
               placeholder={listening ? 'Listening — talk…' : 'Ask Faultline, or tell it what you see…'} aria-label="Ask Faultline"
