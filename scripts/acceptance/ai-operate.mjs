@@ -176,7 +176,7 @@ await round('Why does the wrapper keep stopping? Let’s investigate properly', 
 ]);
 const inv = asks.at(-1)?.pending?.results ?? [];
 ok(inv[0]?.ok && /Define/.test(inv[0].says) && /Control/.test(inv[0].says) && /project report/.test(inv[0].says), '5 plan_investigation gives the method’s sections with their tools, ending in the project report');
-ok(inv[1]?.ok && (inv[1].data?.tools ?? []).length === 5 && /Stops timed/.test(inv[1].says), '5 tool_guide says which tools measure live');
+ok(inv[1]?.ok && (inv[1].data?.tools ?? []).length === 7 && /Stops timed/.test(inv[1].says), '5 tool_guide says which tools measure live');
 ok(asks.every(a => a.task === 'colleague'), '5 one colleague: every answer from the one gateway task');
 
 /* ---- 6 · the phone ---- */
