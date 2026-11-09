@@ -84,7 +84,9 @@ export function readAnswer(data: unknown): GatewayAnswer {
 }
 
 /** What a write's card needs before it is shown: may this person make it, and what will it do. */
-export type Prepared = { ok: true; title: string; preview: string; input: Record<string, unknown> } | { ok: false; title: string; why: string };
+/** `authorised`: the write goes into a record the person already said yes to in this conversation — confirm once (10 November,
+ *  docs/AI-OPERATING.md): no card, run at once, said under the turn as done. */
+export type Prepared = { ok: true; title: string; preview: string; input: Record<string, unknown>; authorised?: boolean } | { ok: false; title: string; why: string };
 
 /** A capability used in a round, as the screen is told it. */
 export interface Step {
@@ -181,6 +183,11 @@ async function doCall(call: CapCall, deps: LoopDeps): Promise<CallResult> {
   if (!p.ok) {
     await deps.onStep({ call, title: p.title, kind: 'write', status: 'refused', says: p.why, refs: [] });
     return { id: call.id, ok: false, says: p.why };
+  }
+  if (p.authorised) {
+    const r = await deps.run(call, true);
+    await deps.onStep({ call, title: p.title, kind: 'write', status: r.ok ? 'done' : 'failed', says: said(r), preview: p.preview, input: p.input, refs: r.ok ? r.refs : [] });
+    return { id: call.id, ok: r.ok, says: said(r), ...(r.ok && r.data !== undefined ? { data: r.data } : {}) };
   }
   const waiting: Step = { call, title: p.title, kind: 'write', status: 'waiting', says: p.preview, preview: p.preview, input: p.input, refs: [] };
   await deps.onStep(waiting);

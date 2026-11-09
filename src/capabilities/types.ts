@@ -50,6 +50,9 @@ export interface Capability {
   /** A write: what will happen, in a sentence, BEFORE it runs. */
   preview?(ctx: CapCtx, input: any): Promise<string>;   // eslint-disable-line @typescript-eslint/no-explicit-any
   run(ctx: CapCtx, input: any): Promise<CapResult>;   // eslint-disable-line @typescript-eslint/no-explicit-any
+  /** A write into one existing record: which (its id). Once the person has said yes to that record in this conversation, later
+   *  writes into it go without a card (confirm once — docs/AI-OPERATING.md). */
+  target?(input: any): string | undefined;   // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export interface CapCall { id: string; name: string; input: unknown }

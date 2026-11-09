@@ -339,6 +339,7 @@ export const writeDocument: Capability = {
 interface DiagramIn { set: 'flow' | 'spag' | 'vs'; capture: TalkCapture; lineId?: string; projectId?: string; studyId?: string }
 export const drawDiagram: Capability = {
   name: 'draw_diagram', title: 'Make the diagram', kind: 'write',
+  target: (i: { studyId?: string }) => i.studyId,
   validate: raw => {
     if (!isObj(raw)) return { ok: false, why: 'The request is not an object.' };
     const set = setOf(raw.set);
@@ -372,22 +373,45 @@ export const drawDiagram: Capability = {
 };
 
 /* ================================================================== add_readings */
-interface ReadingsIn { studyId: string; values?: number[]; arm?: string; ok?: boolean[]; note?: string }
+interface ReadingIn { value?: number; ok?: boolean; made?: number; rejected?: number; inspected?: number; faults?: number; arm?: string; with?: number; xs?: number[]; group?: number; product?: string; head?: number; note?: string }
+interface ReadingsIn { studyId: string; values?: number[]; arm?: string; ok?: boolean[]; note?: string; readings?: ReadingIn[] }
+/** One reading as said, in the shape its tool keeps (lib/study StudyReading) — only the boxes it has, each a number as said. */
+function readingIn(x: unknown): ReadingIn | string {
+  if (!isObj(x)) return 'Each reading is an object of its boxes.';
+  const out: ReadingIn = {};
+  for (const k of ['value', 'with', 'made', 'rejected', 'inspected', 'faults', 'group', 'head'] as const) {
+    if (x[k] === undefined) continue;
+    if (typeof x[k] !== 'number' || !Number.isFinite(x[k] as number)) return `${k} is a number, as said.`;
+    out[k] = x[k] as number;
+  }
+  if (typeof x.ok === 'boolean') out.ok = x.ok;
+  if (Array.isArray(x.xs)) { const xs = nums(x.xs, 5); if (!xs) return 'xs are the drivers’ numbers, in order.'; out.xs = xs; }
+  for (const k of ['arm', 'product', 'note'] as const) if (str(x[k], 300)) out[k] = str(x[k], 300);
+  if (out.made !== undefined && out.rejected !== undefined && out.rejected > out.made) return 'More rejected than made — check the counts.';
+  return Object.keys(out).length ? out : 'A reading needs at least one box.';
+}
 export const addReadings: Capability = {
   name: 'add_readings', title: 'Add the readings', kind: 'write',
+  target: (i: { studyId?: string }) => i.studyId,
   validate: raw => {
     if (!isObj(raw)) return { ok: false, why: 'The request is not an object.' };
     const studyId = str(raw.studyId, 80);
     if (!studyId) return { ok: false, why: 'Say which record the readings go in.' };
     const values = raw.values === undefined ? undefined : nums(raw.values, 500);
     const okList = Array.isArray(raw.ok) && raw.ok.length <= 500 && raw.ok.every(x => typeof x === 'boolean') ? raw.ok as boolean[] : undefined;
-    if (!values && !okList) return { ok: false, why: 'Give the readings as numbers (or good / failed as true / false), exactly as said.' };
-    return { ok: true, input: { studyId, ...(values ? { values } : {}), ...(okList ? { ok: okList } : {}), ...(str(raw.arm, 40) ? { arm: str(raw.arm, 40) } : {}), ...(str(raw.note, 300) ? { note: str(raw.note, 300) } : {}) } };
+    let readings: ReadingIn[] | undefined;
+    if (Array.isArray(raw.readings)) {
+      if (raw.readings.length > 500) return { ok: false, why: 'At most 500 readings at once.' };
+      readings = [];
+      for (const x of raw.readings) { const r = readingIn(x); if (typeof r === 'string') return { ok: false, why: r }; readings.push(r); }
+    }
+    if (!values && !okList && !readings?.length) return { ok: false, why: 'Give the readings as numbers (or good / failed as true / false, or each as its boxes), exactly as said.' };
+    return { ok: true, input: { studyId, ...(values ? { values } : {}), ...(okList ? { ok: okList } : {}), ...(readings ? { readings } : {}), ...(str(raw.arm, 40) ? { arm: str(raw.arm, 40) } : {}), ...(str(raw.note, 300) ? { note: str(raw.note, 300) } : {}) } };
   },
   allowed: async (ctx, input: ReadingsIn) => { const e = await editable(ctx, input.studyId); return e.ok ? { ok: true } : e; },
   async preview(_ctx, input: ReadingsIn) {
     const s = await getStudy(input.studyId);
-    const n = (input.values?.length ?? 0) + (input.ok?.length ?? 0);
+    const n = (input.values?.length ?? 0) + (input.ok?.length ?? 0) + (input.readings?.length ?? 0);
     return `Add ${plural(n, 'reading')} to ${s ? studyTitle(s) : 'the record'}${input.arm ? ` (${input.arm})` : ''}, each exactly as said — the tool works out what they mean.`;
   },
   async run(ctx, input: ReadingsIn): Promise<CapResult> {
@@ -399,6 +423,7 @@ export const addReadings: Capability = {
     const add: StudyReading[] = [
       ...(input.values ?? []).map((v, k) => ({ id: uid(), value: v, at: t + k, ...(ctx.me ? { who: ctx.me } : {}), ...(input.arm ? { arm: input.arm } : {}), ...(k === 0 && input.note ? { note: input.note } : {}) })),
       ...(input.ok ?? []).map((v, k) => ({ id: uid(), ok: v, at: t + 1000 + k, ...(ctx.me ? { who: ctx.me } : {}) })),
+      ...(input.readings ?? []).map((x, k) => ({ id: uid(), at: t + 2000 + k, ...(ctx.me ? { who: ctx.me } : {}), ...x })),
     ];
     await patchStudy(s.id, cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), ...add] } }));
     const now = await getStudy(s.id);

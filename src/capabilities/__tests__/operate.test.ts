@@ -40,6 +40,13 @@ describe('the connectors', () => {
       if (c.capture) expect(CAPTURE_ADAPTERS[c.capture], c.key).toBeDefined();
       expect(con.partsOf(c)).toContain('read');
     }
+    /* every tool filled from the conversation, or captured live — only the video study (the camera, docs/AI-OPERATING.md §7) is neither */
+    const noFill = con.CONNECTORS.filter(c => !con.partsOf(c).includes('fill')).map(c => c.key).sort();
+    expect(noFill).toEqual(['reliability', 'sampling', 'stops', 'video']);
+    for (const k of noFill.filter(k => k !== 'video')) expect(con.connectorOf(k)?.capture, k).toBeDefined();
+    /* every capability a connector names to fill it is one the registry runs */
+    const { capabilityByName } = await import('../registry');
+    for (const c of con.CONNECTORS) for (const f of c.fillBy ?? []) expect(capabilityByName(f.split(' ')[0]), `${c.key}: ${f}`).toBeDefined();
     /* a calculator that is a tool of its own is that tool's record, not just a calculation */
     expect(con.connectorForStudy({ id: 'x', tool: 'calc', name: 'x', agreed: { calc: { key: 'workstation-stops', inputs: {} } }, facts: {}, uses: [], startedAt: 0, createdAt: 0, updatedAt: 0 })?.key).toBe('workstops');
   }, 60_000);

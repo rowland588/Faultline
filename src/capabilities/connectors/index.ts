@@ -50,6 +50,8 @@ export interface ToolConnector {
   /** Readings can be added to its record and asked of (add_readings, run_analysis). */
   readings?: boolean;
   capture?: MeasureTool;
+  /** The capabilities that fill its records from the conversation (capabilities/fill, operate), in the order they are used. */
+  fillBy?: readonly string[];
   report: ReportWay;
   /** The camera: the video study (docs/VIDEO.md) — its footage read by movement, its events named, reviewed, the line balance from them. */
   camera?: boolean;
@@ -62,39 +64,40 @@ const calcOf = (key: string) => (s: ToolStudy): boolean => s.tool === 'calc' && 
 /** THE TABLE — every tool a person can open, plus Stops timed. The parts listed are the parts built and proved. */
 export const CONNECTORS: readonly ToolConnector[] = [
   { key: 'stops', capture: 'stops', report: 'none', byHand: 'Its Pareto and the loss count read the stops; the line report prints them.' },
-  { key: 'linestandard', report: 'page', byHand: 'The board is drawn by hand on its page; its card is under Report ▾ there.' },
-  { key: 'linework', owns: s => s.tool === 'balance' && !s.facts?.video, report: 'page', byHand: 'The people’s work is timed with the page’s own stopwatch; its paper is under Report ▾.' },
-  { key: 'linebalance', report: 'page', byHand: 'Stations and speeds are set on the page; its paper is under Report ▾ there.' },
-  { key: 'capability', owns: s => s.tool === 'capability', readings: true, report: 'paper' },
-  { key: 'chart', owns: s => s.tool === 'chart', readings: true, report: 'paper' },
-  { key: 'analysis', owns: s => s.tool === 'analysis', readings: true, report: 'paper' },
+  { key: 'linestandard', fillBy: ['start_study (standard)', 'place_people'], report: 'page', byHand: 'The board is drawn by hand on its page; its card is under Report ▾ there.' },
+  { key: 'linework', owns: s => s.tool === 'balance' && !s.facts?.video, fillBy: ['start_study (balance)', 'time_elements'], report: 'page', byHand: 'The people’s work is timed with the page’s own stopwatch; its paper is under Report ▾.' },
+  { key: 'linebalance', fillBy: ['start_study (capacity)', 'set_capacity'], report: 'page', byHand: 'Stations and speeds are set on the page; its paper is under Report ▾ there.' },
+  { key: 'capability', owns: s => s.tool === 'capability', readings: true, fillBy: ['start_study (capability)', 'add_readings'], report: 'paper' },
+  { key: 'chart', owns: s => s.tool === 'chart', readings: true, fillBy: ['start_study (chart)', 'add_readings'], report: 'paper' },
+  { key: 'analysis', owns: s => s.tool === 'analysis', readings: true, fillBy: ['start_study (analysis)', 'add_readings', 'run_analysis'], report: 'paper' },
   { key: 'calc', owns: s => s.tool === 'calc', fill: { kind: 'calc' }, report: 'paper' },
   { key: 'doc', owns: s => s.tool === 'doc', fill: { kind: 'doc' }, report: 'paper' },
-  { key: 'rsm', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'rsm', report: 'paper', byHand: 'The runs are typed on its page.' },
+  { key: 'rsm', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'rsm', fillBy: ['fill_register (each run’s response)'], report: 'paper', byHand: 'Its factors and design are agreed on its page, which lays out the runs.' },
   { key: 'valuestream', owns: s => s.tool === 'map', diagram: 'vs', report: 'paper' },
   { key: 'processflow', owns: calcOf('process-flow'), diagram: 'flow', fill: { kind: 'calc', keys: ['process-flow'] }, report: 'paper' },
   { key: 'spaghetti', owns: s => s.tool === 'calc' && (s.agreed?.calc?.key === 'spaghetti' || s.agreed?.calc?.key === 'spaghetti-walkers'), diagram: 'spag', fill: { kind: 'calc', keys: ['spaghetti', 'spaghetti-walkers'] }, report: 'paper' },
   { key: 'changeover', owns: s => s.tool === 'changeover', fill: { kind: 'smed' }, capture: 'changeover', report: 'paper' },
   { key: 'sampling', owns: s => s.tool === 'sampling', capture: 'sampling', report: 'paper' },
-  { key: 'losses', owns: s => s.tool === 'losses', report: 'paper', byHand: 'A shift is counted on its page (the good packs, the breaks).' },
+  { key: 'losses', owns: s => s.tool === 'losses', fillBy: ['start_study (losses)', 'count_shift'], report: 'paper' },
   { key: 'reliability', owns: s => s.tool === 'reliability', capture: 'reliability', report: 'paper' },
   { key: 'workstops', owns: calcOf('workstation-stops'), fill: { kind: 'calc', keys: ['workstation-stops'] }, capture: 'workstops', report: 'paper' },
   { key: 'video', owns: s => !!s.facts?.video, camera: true, report: 'page', byHand: 'Footage is filmed or uploaded and reviewed on the video study’s page; its report is there.' },
   { key: 'micro', owns: calcOf('micro-movements'), fill: { kind: 'calc', keys: ['micro-movements'] }, report: 'paper' },
-  { key: 'talk', owns: s => s.tool === 'talk' && !(s.facts as { colleague?: boolean }).colleague, report: 'page', byHand: 'A document written in AI Mode is kept as a Line Talk; its PDF is on its page.' },
-  { key: 'logs', owns: s => s.tool === 'log', fill: { kind: 'check' }, report: 'paper', byHand: 'The checks themselves are done on the log’s round.' },
-  { key: 'criticality', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'criticality', fill: { kind: 'scored', keys: ['criticality'] }, report: 'paper' },
-  { key: 'impact-effort', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'impact-effort', fill: { kind: 'scored', keys: ['impact-effort'] }, report: 'paper' },
-  { key: 'pugh', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'pugh', report: 'paper', byHand: 'The matrix is scored on its page.' },
-  { key: 'fmea', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'fmea', report: 'paper', byHand: 'Each failure mode is a card rated on its page.' },
-  { key: 'control-plan', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'control-plan', report: 'paper', byHand: 'The plan’s rows are typed on its page.' },
-  { key: 'fault-tree', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'fault-tree', report: 'paper', byHand: 'The tree is built on its page.' },
-  { key: 'maintenance', owns: s => s.tool === 'board', report: 'paper', byHand: 'The month’s hours are typed on its page.' },
-  { key: 'holds', report: 'paper', byHand: 'A hold is raised and decided on its page.' },
-  { key: 'skills', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'skills', report: 'paper', byHand: 'The matrix is filled on its page.' },
-  { key: 'readiness', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'readiness', report: 'paper', byHand: 'Each item is marked on its page.' },
-  { key: 'problems', report: 'page' },
-  { key: 'actions', report: 'page' },
+  { key: 'talk', owns: s => s.tool === 'talk' && !(s.facts as { colleague?: boolean }).colleague, fillBy: ['write_document'], report: 'page', byHand: 'A document written in AI Mode is kept as a Line Talk; its PDF is on its page.' },
+  { key: 'logs', owns: s => s.tool === 'log', fill: { kind: 'check' }, fillBy: ['start_draft (check)', 'record_check'], report: 'paper', byHand: 'A scored audit is answered question by question on the log’s round.' },
+  { key: 'criticality', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'criticality', fill: { kind: 'scored', keys: ['criticality'] }, fillBy: ['start_study (register)', 'fill_register'], report: 'paper' },
+  { key: 'impact-effort', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'impact-effort', fill: { kind: 'scored', keys: ['impact-effort'] }, fillBy: ['start_study (register)', 'fill_register'], report: 'paper' },
+  { key: 'pugh', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'pugh', fillBy: ['start_study (register)', 'fill_register (criteria, datum, each option’s marks)'], report: 'paper' },
+  { key: 'fmea', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'fmea', fillBy: ['start_study (register)', 'fill_register (each failure mode’s fmea)'], report: 'paper' },
+  { key: 'control-plan', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'control-plan', fillBy: ['start_study (register)', 'fill_register (each characteristic’s plan)'], report: 'paper', byHand: 'A row is linked to a check log or an FMEA on its page.' },
+  { key: 'fault-tree', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'fault-tree', fillBy: ['start_study (register)', 'fill_register (each event’s tree: under, gate, p)'], report: 'paper' },
+  { key: 'maintenance', owns: s => s.tool === 'board', fillBy: ['start_study (board)', 'fill_register (settings.reactiveHours)'], report: 'paper', byHand: 'The rest it reads from the line’s planned-maintenance log and reliability studies.' },
+  { key: 'holds', owns: s => s.tool === 'ledger' && !!s.agreed?.holds, fillBy: ['start_study (holds)', 'raise_hold', 'decide_hold'], report: 'paper' },
+  { key: 'skills', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'skills', fillBy: ['start_study (register)', 'fill_register (tasks as criteria, each person’s levels)'], report: 'paper' },
+  { key: 'readiness', owns: s => s.tool === 'scored' && s.agreed?.scored?.key === 'readiness', fillBy: ['start_study (register)', 'fill_register'], report: 'paper' },
+  { key: 'problems', fillBy: ['raise_problem', 'update_problem', 'add_journey_step'], report: 'page' },
+  { key: 'sixm', fillBy: ['fishbone_state', 'add_cause'], report: 'page', byHand: 'A 6M problem is opened from the Pareto, the constraint or something seen on its page; its causes are then filled here.' },
+  { key: 'actions', fillBy: ['update_problem (owner, due, priority, status)', 'add_journey_step'], report: 'page' },
 ];
 
 export const connectorOf = (key: string): ToolConnector | undefined => CONNECTORS.find(c => c.key === key);
@@ -108,7 +111,7 @@ export const connectorForStudy = (s: ToolStudy): ToolConnector | undefined => {
 export function partsOf(c: ToolConnector): string[] {
   return [
     'describe',
-    ...(c.fill || c.diagram ? ['fill'] : []),
+    ...(c.fill || c.diagram || c.fillBy?.length ? ['fill'] : []),
     ...(c.capture ? ['capture'] : []),
     'read',
     ...(c.report !== 'none' ? ['report'] : []),
@@ -119,7 +122,7 @@ export function partsOf(c: ToolConnector): string[] {
 export interface ToolGuide {
   key: string; label: string; says: string; needs: string; gives: string; kind?: string; page?: string;
   parts: string[];
-  fill?: string; capture?: { tool: MeasureTool; events: { event: string; says: string; needs?: string[] }[] }; readings?: boolean;
+  fill?: string; fillBy?: string[]; capture?: { tool: MeasureTool; events: { event: string; says: string; needs?: string[] }[] }; readings?: boolean;
   report?: ReportWay; camera?: boolean; byHand?: string;
 }
 export function toolGuide(c: ToolConnector, t?: AppTool): ToolGuide {
@@ -132,6 +135,7 @@ export function toolGuide(c: ToolConnector, t?: AppTool): ToolGuide {
     ...(c.fill ? { fill: `a ${c.fill.kind} draft${c.fill.keys ? ` (${c.fill.keys.join(', ')})` : ''} — start_draft, fill_draft, make_record` } : {}),
     ...(c.diagram ? { fill: `said aloud as a diagram — draw_diagram with set “${c.diagram}”` } : {}),
     ...(cap ? { capture: { tool: cap.tool, events: cap.events.map(x => ({ event: x.event, says: x.says, ...(x.needs ? { needs: x.needs as string[] } : {}) })) } } : {}),
+    ...(c.fillBy?.length ? { fillBy: [...c.fillBy] } : {}),
     ...(c.readings ? { readings: true } : {}),
     report: c.report, ...(c.camera ? { camera: true } : {}), ...(c.byHand ? { byHand: c.byHand } : {}),
   };
