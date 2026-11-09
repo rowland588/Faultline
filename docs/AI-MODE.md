@@ -104,13 +104,15 @@ export interface CapCall { id: string; name: string; input: unknown }
 | local | `fill_draft` | values as said, each checked against its field, with how it is known; a correction keeps what it replaced |
 | local | `adapt_draft` | fields added to this record only, or its own optional ones left out (B) |
 | local | `create_sheet` | a custom sheet of sections, fields and code-worked metrics (C) |
+| local | `add_to_factory_draft` | a client's sites › areas › lines › machines as said, into the conversation's factory draft — add, set, rename, move, remove, keep or leave out a document's proposal, pick recorded or new; never invents, a machine always on a line (docs/FACTORY-KNOWLEDGE.md F3) |
 | write | `raise_problem` | raises a problem on the register, on its line |
 | write | `update_problem` | changes a problem's words, owner, due day, priority or state (never deletes) |
 | write | `start_project` | starts a project of one of the eight methods on a line |
 | write | `save_calculation` | keeps a calculator's figures as a record |
 | write | `add_photo_to_problem` | puts a photo from the conversation on a problem |
 | write | `remember_preference` | adds a line to the person's own How I work (§9) — a card saying exactly what will be added |
-| write | `make_record` | a draft made a record through the tool's own New — or, made already, updated with only what the conversation changed |
+| write | `make_record` | a draft made a record through the tool's own New — or, made already, updated with only what the conversation changed; a factory draft made as its lines (`addLineToFactory`, client · site · area) and machines (`machineOntoLine`, `setMachineIdentity`, how each is known), matched not doubled, held while a document's proposal waits or a difference is unpicked |
+| write | `replace_machine` | a machine on a line replaced: the new record in its place, the old kept with Replaced by and how that is known (F5) |
 
 A new capability is added in `src/capabilities` with its schema in `schemas.ts`, its unit tests and its card's
 wording. It is built on the functions Manual Mode already uses — never a second data model.
@@ -348,7 +350,10 @@ the essentials are there, and never said to be saved until the result says so.
 **On the screen** the context (and the phone's sheet) shows **Being built** — each draft with its fields, how each is
 known, a correction's earlier value struck, a custom sheet's metrics, **Still missing** as chips that start the
 sentence in the box, and **Make it** (the same preview and the same `runCall` as the colleague's card) — then *Update
-the record* and *Open it ›*. `scripts/acceptance/ai-build.mjs` proves it.
+the record* and *Open it ›*. `scripts/acceptance/ai-build.mjs` proves it. A **factory** being onboarded is a draft of its own kind
+(docs/FACTORY-KNOWLEDGE.md §6¾): a tree of sites, areas, lines and machines, filled by `add_to_factory_draft`, read from a document
+uploaded with the box's document button (the gateway's `factory-read` task where code cannot read it), and made by `make_record`;
+`scripts/acceptance/factory-onboarding.mjs` proves it.
 
 The gateway carries the new schemas and instructions (`node scripts/sync-assist.mjs` copies them); **the `assist`
 function must be redeployed** for the colleague to use them.

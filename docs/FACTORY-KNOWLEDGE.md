@@ -111,8 +111,63 @@ camera adds observations, never a second model of the factory.
   can see, each its own group, each candidate saying whose. **The gateway's rules** (`COLLEAGUE_SYSTEM`, *THE FACTORY — NEVER
   ASSUME*): resolve first; one → use it, several → ask which naming them, none → say it is not known and offer to add it;
   say how each fact is known.
-- Not built yet: `replace_machine` (F5) — `replaced_by` is read and shown, but nothing in the app sets it yet; the workspaces'
-  `known` is carried by the sync but nothing writes it yet (F3's drafts will).
+- Built since (§6¾): `replace_machine` (F5) sets `replaced_by`; F3's make writes the workspaces' `known`.
+
+## 6¾. What is built (F3–F5, 9 November)
+
+- **The factory draft** (`src/capabilities/factoryDraft.ts`, pure; its shape `FactoryDraftBody` in `capabilities/types`) — a draft of
+  kind `factory` on the AI Mode conversation's `facts.drafts`, beside the tool drafts: the client, and a flat list of nodes (site,
+  area, line, machine) each with its parent, its name and — a machine — its kind, model, serial and maker, every value a
+  `FactoryFact` (`reported` with the words said, or `document` with the document, its day and the exact quote), a correction keeping
+  what it replaced. `applyFactoryOps` — add (parents named in the same breath are added; a machine with no line is refused: "a
+  machine is on a line, always"), set, rename, move, remove (from the draft only — never a record), keep, leave out (a document's
+  proposal, a machine kept keeping its line, a line left out leaving its machines), pick. `factoryView` — the draft against
+  `factoryMap` for **this client only**: a line matched by its name ("Line 2" and "line two" one; "Packaging Line 1" and
+  "Packaging Line 2" two), a machine by its name on that line — matched, never doubled; a value that differs from the recorded one a
+  **conflict** (recorded and offered side by side, each with where it came from and its day) that holds Make it until picked; a
+  document dated before a recorded change **flagged**; a machine the document names that was replaced since **out of date**, never
+  made; sites and areas with no line **held** on the draft. `toMake` — the new lines, the new machines on lines that exist, the matched
+  ones to bring up to date.
+- **The capabilities** (`src/capabilities/factoryBuild.ts`) — `add_to_factory_draft` (local; the first call names the client and
+  starts the draft); `make_record` on a factory draft (write, confirmed; a client-level person refused): the lines through
+  `lib/lines addLineToFactory` with their client · site · area words and `Workspace.known` (reported or from a document), the
+  machines through `machineOntoLine` and `db/lineRecords setMachineIdentity` — which now takes how each field is known (never
+  *confirmed* from a conversation) and the maker (`oem`); a matched machine gets only what it lacks, or what the person picked;
+  `replace_machine` (write, confirmed): `db/lineRecords replaceLineMachine` — the new record in the old one's place in the flow, its
+  kind · model · serial · maker reported, the old record kept with `replacedBy` and `known.replacedBy` (who, when, the words), the
+  line's list carrying the new name; the new name must differ (its model, say), so both pages stand. `draft_state` on a factory says
+  the tree against Faultline. The conversation's drafts are read and written by `capabilities/draftStore` (shared with the tool
+  drafts).
+- **Factory sources** (F4) — the box's document button in AI Mode (`colleague/AiFactory` FactoryDocSheet: whose factory, its date) →
+  `colleague/factorySource readFactoryDocument`: a **CSV register read by rules** (`colleague/factoryRegister` — the header row naming
+  a Line and a Machine / Equipment / Asset column, then Type, Make, Model, Serial, Site, Area; each row one machine, the row itself its
+  quote; a row with no line said and left out; a "Date: …" line before the header the register's day); a **PDF, Word or text file's
+  words read in code** (the brief's readers, `tools/story/briefText`) and asked of the gateway's **`factory-read`** task; a **photo or
+  scan** read by it (it types the pages out and quotes from what it typed). `capabilities/factoryRead` (shared with the gateway by
+  `scripts/sync-assist.mjs`) holds its rules, schema and `checkFactoryRead` — an item whose quote is not in the words, or a value not
+  in its quote, is dropped, on the server and again on the device. An **Excel workbook is not read** — no spreadsheet reader is in the
+  app; the person is told to save it as CSV. `takeDocument` keeps the document as a **factory source**: the custom-sheet shape of a
+  `doc` record (`FACTORY_SOURCE_DEF` — whose factory, the file, its date, how it was read, its words, *What was taken from it* a row an
+  item with its quote), the file itself as the record's media (`facts.docPhotos`, field `source-file`, which the cloud's media rule
+  already takes — no SQL), so the document's page, list, paper, rename and delete read it unchanged; it is put on the first line made
+  from it. The custom shape was chosen over a new definition in `tools/doc/defs` because a definition would be a tool in the catalogue
+  with worked examples for `doc-shape.mjs`; a source is a record of evidence, not a tool. Its items go on the client's factory draft
+  as proposals **from a document, waiting for the person's word**, each keep or leave out (or *Keep all*), approved line by line
+  before Make it.
+- **Being built** (`colleague/AiFactory` FactoryDraftBox, in AI Mode's context panel and the phone's sheet) — the client, the counts
+  (new lines, new machines, already in Faultline, waiting, made), the tree site › area › line › machine, each with its state in a word
+  (New · In Faultline · Made · From a document — keep it? · Left out · Out of date), how it is known and the words it came from, a
+  machine's facts with a corrected value struck; a conflict as *Faultline holds …* against *You said / The document says …* with *Keep
+  … · Take …*; a flag in words; what is held; *Before it can be made*; Make it (the same write card) — its buttons go through
+  `add_to_factory_draft` and `make_record`, the colleague's own door.
+- **The gateway's rules** (`COLLEAGUE_SYSTEM`, *ONBOARDING A FACTORY*, *FACTORY DOCUMENTS*, *A MACHINE REPLACED*): one useful question
+  at a time; never invent a site, line or machine or a fact not said; resolve before adding; offer make_record when a level is
+  complete; say what a document gave with its words and never that anything is kept until it is; an older document said so;
+  replace_machine proposed as a card. `factory_map` / `resolve` for a client with no line yet say *Nothing of … is in Faultline yet*
+  (they refused it before).
+- Not built: a document uploaded from a line's Set up (only AI Mode's box takes one); reading `.xlsx`; an empty area on the Factory
+  page (an area is held on the draft until it has a line, §2.5). Proved by `scripts/acceptance/factory-onboarding.mjs` and
+  `src/capabilities/__tests__/factoryOnboarding.test.ts`.
 
 ## 7. The order
 
@@ -120,8 +175,8 @@ camera adds observations, never a second model of the factory.
 |---|---|---|
 | F1 | `MACHINE_KNOWLEDGE.sql`, mappers, the machine page's kind · model · serial and how known — **built 8 Nov; the SQL to apply, then the full gate** | full gate (touches sync) |
 | F2 | `factory_map` and `resolve` capabilities + the gateway rules — **built 8 Nov; the gateway to redeploy** | F1 |
-| F3 | factory drafts (conversation onboarding) and Make it through `lib/lines` | the tool-population drafts |
-| F4 | Factory sources: upload, read in code / by the gateway, extract with quotes, approve | F3 |
-| F5 | replace a machine; conflicts and outdated documents | F1–F4 |
+| F3 | factory drafts (conversation onboarding) and Make it through `lib/lines` — **built 9 Nov (branch `factory-f345`)** | the tool-population drafts |
+| F4 | Factory sources: upload, read in code / by the gateway, extract with quotes, approve — **built 9 Nov; the gateway to redeploy** | F3 |
+| F5 | replace a machine; conflicts and outdated documents — **built 9 Nov** | F1–F4 |
 
 Each slice ships live on its own with its acceptance script.
