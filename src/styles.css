@@ -6213,6 +6213,11 @@ button.sn-p:hover, button.sn-p:focus-visible { text-decoration: underline; }
 .sn-p.is-g { color: var(--ink-2); }
 .sn.is-compact { display: block; margin: 2px 0 0; font-size: var(--t-label); line-height: 1.35; font-weight: 500; }
 
+/* a tablet: the tiles share the width rather than run past the edge */
+@media (max-width: 1099px) {
+  .vd-tiles { width: 100%; }
+  .vd-tile { flex: 1 1 0; min-width: 0; }
+}
 @media (max-width: 719px) {
   .vd { gap: 14px; padding: 17px 18px; border-radius: var(--radius); }
   .vd-tiles { width: 100%; }

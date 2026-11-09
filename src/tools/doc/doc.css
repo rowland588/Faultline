@@ -39,8 +39,9 @@
 .doc-sign-h { margin: 0; }
 .doc-sign .btn { align-self: flex-start; min-height: 44px; }
 .doc-ro, .doc-reads { margin-top: 8px; }
+/* a tablet (below 1100 px) is too narrow for the boxes and the reading side by side: the reading goes under the boxes */
+@media (max-width: 1099px) { .doc-body { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 719px) {
-  .doc-body { grid-template-columns: minmax(0, 1fr); }
   .doc-sec { padding: 12px; }
 }
 
