@@ -7,6 +7,15 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 1. What is live (main at the look's L0 commit, 6 November, Vercel production READY, faultline.opexelevate.co.uk)
 
+- **Areas on the Factory, and the area report (9 November — branch `areas`, not yet on `main`).** Rowland: *"we now have areas
+  in set up. So on factory page we need area.. then each area will have lines in them we need area reports show everything
+  happening in the area"*. An area is a group of the factory's lines by the words on them (`lib/areas` — no record, no database
+  change, never a fourth scope). The Lines tab (`#/room`) is an area a section — its sentence, *Open the area ›*, *Area report* —
+  with *No area yet* for the rest; the area's page `#/area?site=…&area=…` (Factory › site › area, the Lines tab lit) says it in a
+  sentence and tiles, its lines as the board's cards, what needs doing and the programs to prove across its lines (each row naming
+  its line and opening its record, live), its projects, the tools used, its machines line by line; **Report ▾ › Area report**
+  (`#/area/report`, made on arrival) is the line report's parts one after another — a dual line once — then *The area together*
+  (`src/line/report/areaBundle`, `areaBundlePdf`, `AreaReportScreen`; `scripts/acceptance/areas.mjs`).
 - **The landing page, modern and minimal (7 November).** Rowland: *"a new landing page something really modern but
   minimalistic"* — white, a faint dot field, the mark and *How it works* at the top, the name large on the mark's trace
   drawn once, the methods as pills, the five stages numbered, the sign-in a plain card beside them (`screens/Landing`,

@@ -17,7 +17,7 @@
  */
 import { docByKey } from '../tools/doc/registry';
 import {
-  createWorkspace, updateWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
+  createWorkspace, updateWorkspace, listWorkspaces, addObservation, addSegment, addSnagAsset, addSnag, addCase,
   createProject, updateProject, addPaceLine, putPaceTodo,
   putPaceWin, putTreeNode, putAsset, putTest, putTestItem, putBlob,
   putTarget, putReadings, putMaterials, putPrograms, putStandard, putStudy, getStudy,
@@ -1447,4 +1447,21 @@ export async function seedWhyTreeProblem(o: { projectId: string; lineId: string;
   };
   await addCase(problem);
   return { problemId: problem.id, trainingCauseId: 'wt-training', spliceCauseId: 'wt-splice' };
+}
+
+/** AREAS (9 November, lib/areas): the smoke seed's lines put in two areas of one site — Line 7 — smoke test and Line 7 in
+ *  Hull › Packing hall, Line 2A — capacity in Hull › Despatch — as words on the lines, for the inventory and the areas acceptance
+ *  script. Kept apart from seedForSmokeTest so every line and its paper read as they always did (the paper parity). No client is
+ *  named, so the Factory page keeps its title. */
+export async function seedAreasForTest(): Promise<{ site: string; packing: string; despatch: string; packingIds: string[]; despatchIds: string[] }> {
+  const ws = (await listWorkspaces()).filter(w => !w.archived);
+  const site = 'Hull', packing = 'Packing hall', despatch = 'Despatch';
+  const packingIds: string[] = [], despatchIds: string[] = [];
+  for (const w of ws) {
+    const area = w.name === 'Line 7 — smoke test' || w.name === 'Line 7' ? packing : w.name === 'Line 2A — capacity' ? despatch : undefined;
+    if (!area) continue;
+    await updateWorkspace({ ...w, siteName: site, areaName: area });
+    (area === packing ? packingIds : despatchIds).push(w.id);
+  }
+  return { site, packing, despatch, packingIds, despatchIds };
 }
