@@ -81,6 +81,16 @@ import { sourceSaid } from '../lib/data/sources';
 import type { Chart, ConvReport, DataResult } from '../lib/data/outputs';
 import { ChartCard, ReportCard } from '../colleague/AiOutputs';
 import { figuresSaid, markFigures } from '../colleague/figureCheck';
+import { liveEntries, notebookText, readNotebooks, strikeMeaning, type Notebook } from '../colleague/notebook';
+import { getWorkspace } from '../db/workspaces';
+
+/** The notebook Luna is told with each turn: the client of the subject's line, and the person's own (docs/LUNA-NEXT.md L3). */
+async function notebookFor(threads: readonly Thread[]): Promise<string> {
+  const line = currentThread(threads)?.scope.lineId;
+  const client = line ? (await getWorkspace(line))?.clientName?.trim() ?? '' : '';
+  const nb = await readNotebooks(client);
+  return notebookText(nb.own, nb.client);
+}
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -621,7 +631,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       const end = await colleagueLoop({
         turns: gatewayTurns(asked, named),
         ...(images.length ? { images } : {}),
-        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); const wf = f as WalkFacts; const files = (await allSources()).slice(0, 12).map(x => sourceSaid(x)); return focusText(f.threads ?? [], { names: nameOf, photos: photosKeys, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] }); },
+        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); const wf = f as WalkFacts; const files = (await allSources()).slice(0, 12).map(x => sourceSaid(x)); const nb = await notebookFor(f.threads ?? []); return focusText(f.threads ?? [], { ...(nb ? { notebook: nb } : {}), names: nameOf, photos: photosKeys, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] }); },
         today: longDay(),
         conversationId: cid,
         preferences: preferencesText,
@@ -1342,6 +1352,7 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
           </>
         ) : <p className="sub ai-ctx-none">Nothing yet — say what you are looking at, and it becomes the subject here.</p>}
       </section>
+      <NotebookBox lineId={cur?.scope.lineId} />
       {drafts.length > 0 && (
         <section className="ai-ctx-s" aria-label="Being built" data-ctx-built>
           <p className="ai-ctx-h">Being built · {drafts.length}</p>
@@ -1368,6 +1379,40 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
         {sources.length ? <RefChips refs={sources} label="Every record read or changed" /> : <p className="sub ai-ctx-none">Every record Faultline reads or changes in this conversation is listed here.</p>}
       </section>
     </div>
+  );
+}
+
+/* ================================================================ what their words mean */
+
+/** WHAT LUNA KNOWS ABOUT THEIR WORDS (docs/LUNA-NEXT.md L3): the notebook of the subject's client and the person's own, each entry with
+ *  Take off (struck, kept — the person's own hand, no card needed). Shown only when it holds something. */
+function NotebookBox({ lineId }: { lineId?: string }) {
+  const [nb, setNb] = useState<{ client: string; own?: Notebook; cl?: Notebook }>({ client: '' });
+  useEffect(() => {
+    let live = true;
+    const load = async () => {
+      const client = lineId ? (await getWorkspace(lineId))?.clientName?.trim() ?? '' : '';
+      const r = await readNotebooks(client);
+      if (live) setNb({ client, ...(r.own ? { own: r.own } : {}), ...(r.client ? { cl: r.client } : {}) });
+    };
+    void load();
+    const off = onDataChange(() => void load());
+    return () => { live = false; off(); };
+  }, [lineId]);
+  const rows = [...liveEntries(nb.cl).map(e => ({ e, nb: nb.cl as Notebook })), ...liveEntries(nb.own).map(e => ({ e, nb: nb.own as Notebook }))];
+  if (!rows.length) return null;
+  return (
+    <section className="ai-ctx-s" aria-label="What your words mean" data-ctx-notebook>
+      <p className="ai-ctx-h">{nb.cl ? `What words mean for ${nb.client}` : 'What your words mean'} · {rows.length}</p>
+      <ul className="ai-points">
+        {rows.map(({ e, nb: n }) => (
+          <li key={e.id} data-meaning={e.term}>
+            <span className="ai-ctx-k">{e.term}</span><span>{e.means}{n === nb.own && nb.cl ? <span className="sub"> · yours, everywhere</span> : null}</span>
+            <button type="button" className="linkish" data-meaning-off onClick={() => void strikeMeaning(n.id, e.id, Date.now())}>Take off</button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

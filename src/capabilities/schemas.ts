@@ -381,6 +381,24 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     }, ['a', 'b', 'title']),
   },
   {
+    name: 'note_meaning',
+    kind: 'write',
+    description: 'Remember what a word, a name, a file or a way of counting means for this client — "downtime means unplanned stops only", "Celox is Line 4", "the product master holds costs and rates", "a shift is 7.5 hours here". Shown as a card; kept only on the person\'s yes, in the client\'s notebook (the line\'s client, or the subject\'s), or their own with own true when it holds wherever they work. Offer it when they explain a word or correct how you read one — once, in their words. Never note a guess of yours.',
+    input_schema: obj({ term: str('The word, name or file as they say it', 80), means: str('What it means, in their words', 300), kind: { type: 'string', enum: ['word', 'name', 'source', 'rule'] }, lineId: str('A line of the client', 80), client: str('The client', 120), own: { type: 'boolean', description: 'Their own notebook — true wherever they work' } }, ['term', 'means']),
+  },
+  {
+    name: 'notebook',
+    kind: 'read',
+    description: 'What the client\'s notebook (and the person\'s own) says their words mean, with each entry\'s id. The notebook is also sent with every turn; read it when a word is unclear or to take one off.',
+    input_schema: obj({ lineId: str('A line of the client', 80), client: str('The client', 120) }, []),
+  },
+  {
+    name: 'forget_meaning',
+    kind: 'write',
+    description: 'Take an entry off the notebook when the person says it is wrong or no longer true — a card; struck, never deleted.',
+    input_schema: obj({ entryId: str('The entry id, from notebook', 80) }, ['entryId']),
+  },
+  {
     name: 'work_out',
     kind: 'local',
     description: 'Do arithmetic through Faultline, never in your head — a difference, a share, a percentage, a per-week or per-shift rate, a conversion (minutes to hours). An expression of numbers with + − × ÷ and brackets, every number taken from a result, a step or what the person said (a few constants are allowed: 60, 24, 7, 52, 100, 365 …). Its answer is Faultline\'s, so the figure checks; a number it rests on that nothing holds is named, and the figure is marked. Write the figure as it gives it.',

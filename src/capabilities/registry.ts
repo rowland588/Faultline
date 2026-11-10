@@ -19,6 +19,7 @@ import { WALK } from './walk';
 import { DATA } from './data';
 import { DIG } from './dig';
 import { workOut } from './workout';
+import { NOTEBOOK } from './notebook';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
@@ -45,6 +46,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...DATA,
   /* the analyst's moves: what changed and where, two results side by side, arithmetic through Faultline (docs/LUNA-NEXT.md) */
   ...DIG, workOut,
+  /* what a client's words mean, confirmed by the person (docs/LUNA-NEXT.md L3) */
+  ...NOTEBOOK,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);
