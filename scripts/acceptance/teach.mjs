@@ -39,7 +39,8 @@ await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringi
 const page = await ctx.newPage();
 page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
 page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errors.push(`console: ${m.text().slice(0, 200)}`); });
-const go = async h => { await page.goto(`${BASE}/${h}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); };
+const openFolds = async (pg = page) => { for (let n = 0; n < 60; n++) { const t = pg.locator('.doc-form .fold:not(.is-open) .fold-toggle').first(); if (!(await t.count())) break; await t.click(); } }; // a document's sections are folds (docs/DESIGN.md): open them all before typing
+const go = async h => { await page.goto(`${BASE}/${h}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); await openFolds(); };
 const words = async sel => ((await page.locator(sel).count()) ? flat(await page.locator(sel).first().innerText()) : null);
 const tilesOf = async () => Object.fromEntries(await page.locator('.doc-tiles .ln-tile').evaluateAll(els => els.map(e => [e.querySelector('.ln-k')?.textContent?.trim(), e.querySelector('.ln-v')?.textContent?.trim()])));
 const pdf = async name => {

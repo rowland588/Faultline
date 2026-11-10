@@ -4,6 +4,7 @@
  * the run; nothing is worked out here. */
 import { useState } from 'react';
 import { LeanTiles } from '../../ui/Lean';
+import { Fold } from '../../ui/Fold';
 import { niceDay, isoDay } from '../../lib/weeks';
 import type { DocRun } from './doc';
 import type { DocDef } from './types';
@@ -73,12 +74,14 @@ export function ReadingView({ run }: { run: DocRun }) {
         </section>
       ))}
       {(r.working ?? []).length > 0 && (
-        <details className="calc-working doc-working" open>
-          <summary>How it is worked out</summary>
-          <table className="ie-tbl calc-working-t doc-working-t">
-            <tbody>{(r.working ?? []).map(w => <tr key={w.label}><th scope="row">{w.label}</th><td>{w.value}{w.note ? <small>{w.note}</small> : null}</td></tr>)}</tbody>
-          </table>
-        </details>
+        /* the working is for whoever checks the sums — one line until it is wanted (docs/DESIGN.md, progressive disclosure) */
+        <div className="calc-working doc-working">
+          <Fold id="doc.working" title="How it is worked out" says={`${(r.working ?? []).length} step${(r.working ?? []).length === 1 ? '' : 's'} of the sum`} start={false}>
+            <table className="ie-tbl calc-working-t doc-working-t">
+              <tbody>{(r.working ?? []).map(w => <tr key={w.label}><th scope="row">{w.label}</th><td>{w.value}{w.note ? <small>{w.note}</small> : null}</td></tr>)}</tbody>
+            </table>
+          </Fold>
+        </div>
       )}
       <div className="calc-money-out doc-money" aria-label="In money">
         <span className="ie-checks-h">In money</span>
