@@ -37,6 +37,7 @@
  *      finished answer kept in their place — one answer, on the talk
  *   and no console error anywhere. */
 import pkg from 'playwright';
+import { openLineMore } from '../lib/lineMore.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -291,7 +292,7 @@ const before = await kinds();
 await page.reload(); await settle(1500);
 ok(JSON.stringify(await kinds()) === JSON.stringify(before) && before.filter(k => k === 'reply').length === 7, '10 reloaded: the conversation as it was left — every answer', JSON.stringify(before));
 ok(/7 answers · 1 document/.test(await page.locator('.tk-sum').innerText()), '10 the talk in a line counts its answers and its document', await page.locator('.tk-sum').innerText());
-await page.goto(`${BASE}/#/lines/${lineId}`); await settle(1200);
+await page.goto(`${BASE}/#/lines/${lineId}`); await settle(1200); await openLineMore(page);   /* its tools are in More about this line (10 November) */
 ok(/7 answers · 1 document/.test(await page.locator('.pl-tool', { hasText: 'Line Talk' }).innerText()), '10 the line’s page says them', await page.locator('.pl-tool', { hasText: 'Line Talk' }).innerText());
 await page.setViewportSize({ width: 390, height: 780 });
 await page.goto(`${BASE}/#/talk/${talkId}`); await settle(1500);

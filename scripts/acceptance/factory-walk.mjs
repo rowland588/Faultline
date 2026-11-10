@@ -21,6 +21,7 @@
  *
  *   node scripts/acceptance/factory-walk.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openLineMore } from '../lib/lineMore.mjs';
 
 const t = await openApp({ width: 1440, height: 900, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'] });
 const { page, ok } = t;
@@ -168,7 +169,7 @@ ok(await dsec.count() === 1 && /no lines in it yet/i.test(await dsec.innerText()
 await t.go(`#/area?site=Hull&area=Dispatch`, 2500);
 ok(/DEPARTMENT/.test(await t.words('.pl-eyebrow')) && /No lines in it yet/.test(await t.words('main')), '6 Dispatch’s own page: DEPARTMENT, no lines in it yet');
 ok(await page.locator('[data-walk-photos]').count() === 0, '6 the photo taken in Dispatch is not on its page — not filed there');
-await t.go(`#/lines/${L3}`, 2800);
+await t.go(`#/lines/${L3}`, 2800); await openLineMore(page);   /* Photos from walks is in More about this line (10 November) */
 const lp = page.locator('[data-walk-photos]');
 ok(await lp.count() === 1 && await lp.locator('[data-walk-photo]').count() === 1 && /Taken at Hull › Packing hall › Line 3 › Bagger/.test(await lp.innerText()) && /the catch is broken/.test(await lp.innerText()), '6 Line 3’s page: the photo filed to its Bagger, where it was taken and why');
 ok(await lp.locator(`[data-walk-photo="${p2.key}"]`).count() === 0, '6 the unfiled Dispatch photo is not on Line 3’s page');
@@ -204,7 +205,7 @@ await page.setViewportSize({ width: 390, height: 844 });
 await t.go(`#/ai?c=${encodeURIComponent(c.id)}`, 2500);
 const camH = await page.locator('[data-camera]').evaluate(e => e.getBoundingClientRect().height).catch(() => 0);
 ok(camH >= 40 && (await t.wide()) <= 0, `phone: the camera button ${Math.round(camH)} px, nothing off the side (${await t.wide()} px)`);
-await t.go(`#/lines/${L3}`, 2800);
+await t.go(`#/lines/${L3}`, 2800); await openLineMore(page);
 ok(await page.locator('[data-walk-photo]').count() === 1 && (await t.wide()) <= 0, `phone: Line 3’s walk photos, nothing off the side (${await t.wide()} px)`);
 const small = await page.evaluate(() => [...document.querySelectorAll('[data-walk-photos] button')].filter(b => b.offsetParent && b.getBoundingClientRect().height < 44).map(b => b.textContent?.trim().slice(0, 30)));
 ok(small.length === 0, `phone: every press in the walk photos 44 px or more${small.length ? ` — ${small.join(' · ')}` : ''}`);

@@ -17732,3 +17732,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .inv-reply { margin: 6px 0; white-space: pre-wrap; }
 .inv-marks { margin: 4px 0 0; padding-left: 18px; }
 .inv-marks .is-g b { color: var(--st-g); } .inv-marks .is-r b { color: var(--st-r); }
+
+/* LINE PAGE, SIMPLER (10 November) — Carry on under the tiles: a plain list, a hairline between rows, no card; the fold is the shared .fl-fold */
+.pl-carry-rows { list-style: none; margin: 0; padding: 0; }
+.pl-carry-rows > li + li { border-top: 1px solid var(--line-row); }
+.pl-carry-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; align-items: center; min-height: 44px; padding: 10px 0; border: 0; background: none; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.pl-carry-row:hover .pl-carry-name, .pl-carry-row:focus-visible .pl-carry-name { color: var(--brand); }
+.pl-carry-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pl-carry-tool { grid-column: 1; font-size: var(--t-detail); color: var(--muted); }
+.pl-carry-name { grid-column: 1; min-width: 0; overflow-wrap: anywhere; }
+.pl-carry-says { grid-column: 1; font-size: var(--t-detail); line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
+.pl-carry-says.is-n, .pl-carry-says.is-w, .pl-carry-says.is-g { color: var(--ink); font-weight: 400; }
+.pl-carry-go { grid-column: 2; grid-row: 1 / span 3; color: var(--muted); font-size: var(--t-h); }

@@ -173,22 +173,28 @@ export const PAGES = (sd, cap) => [
     { what: 'the menu names the line under Factory, lit', sel: '.nv-rail .nv-ri.is-place.is-on', desk: true },
     { what: 'the bar — the line a crumb, and Go to ▾ the picker', sel: '.nv-top .nv-goto', text: /^Go to/ },
     { what: 'its tabs — Overview · Machines · Problems · Programs · Tools · Set up', sel: '.nv-tabs .nv-tab', n: 6 },
+    /* SIMPLER (10 November — Rowland: "Too busy … Tools obvious. Continue obvious"): Carry on under the tiles, every record in use one tap
+       into itself; everything after the machines in one fold, More about this line, shut by default — the inventory opens every shut .fold
+       first, so the parts inside it (Time a stop beside Stops timed, the stopwatch among the tools, Eyes on the line) are still checked here */
+    { what: 'Carry on — the records in use on this line, each one tap into itself', sel: '.pl [data-carry-on] [data-carry]' },
+    { what: 'Carry on — All tools on this line ›', sel: '.pl [data-carry-on] button', text: /^All tools on this line/ },
+    { what: 'More about this line — one fold for the rest', sel: '.pl [data-fold="line-more"] .fold-t', text: /^More about this line$/ },
     { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
     /* its machines and only them (27 October — Line 2a's two read as six, Line capacity's stations counted as machines). This
        line names none, so the strip says so and where they are named; a line with machines is walked by line-is-home.mjs H1 */
     { what: 'a card a machine — none named here, so said, with the way to name them', sel: '.tour .tour-says', text: /no machines named yet/ },
     { what: 'Name its machines ›', sel: '.tour button', text: /^Name its machines/ },
     /* the floor's two acts first, and the stopwatch among the tools (16 October, docs/UPGRADE-AUDIT.md F1) */
-    { what: 'Time a stop, beside Stops timed (off the header, 27 October)', sel: '.pl-stops-li .pl-time' },
+    { what: 'Time a stop, beside Stops timed (off the header, 27 October) — in More about this line since 10 November', sel: '.pl-stops-li .pl-time' },
     /* the filmed walk from the line, no job needed (20 October, docs/DIRECTION.md) — in More ▾ since B3 (one primary on the page header,
        docs/STRUCTURE.md §5.4: seven buttons squeezed the line's name into a column 50 px wide), beside Edit the line */
     { what: 'More ▾ — Film the line and Edit the line', sel: '.pl .part-head .part-menu-b', text: /^More/ },
-    { what: 'the stopwatch and its Pareto, among the tools', sel: '.pl-tool.is-stops' },
+    { what: 'the stopwatch and its Pareto, among the tools — in More about this line since 10 November', sel: '.pl-tool.is-stops' },
     /* the line is the hub (17 October, BLUEPRINT Stage 3; lib/lineLean). Its products, ready or not, came off on
        23 October — Rowland: "You've invented products ... The program is the product"; a program says its products */
     { what: 'the four tiles — problems, programs, stops, a day of the line', sel: '.pl-tiles .ln-tile', n: 4 },
     /* HOW FRESH THE LOOKING IS (31 October, FC-199 tools/gemba): days since anyone looked at the line, its level in words, what the looking found */
-    { what: 'Eyes on the line — when anyone last looked, in words', sel: '.pl-looked .lk-says', text: /(looked at|not looked at|nothing recorded)/i },
+    { what: 'Eyes on the line — when anyone last looked, in words (in More about this line since 10 November)', sel: '.pl-looked .lk-says', text: /(looked at|not looked at|nothing recorded)/i },
     { what: 'what the looking found, and that only what is recorded counts', sel: '.pl-looked .lk-foot', text: /recorded in the app/ },
     { what: 'See it on the line — Walk the line, Film the work, Talk it', sel: '.pl-see .pl-see-door b', n: 3 },
     /* its papers in Report ▾ since B3 — the line report, the problems report and the problem cards, each named */

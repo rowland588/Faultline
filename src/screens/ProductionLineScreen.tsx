@@ -23,6 +23,7 @@ import { LineActions } from '../line/actions/LineActions';
 import { APP_TOOLS } from '../catalogue/registry';
 import { MoreMenu, PageHeader } from '../ui/parts';
 import { EmptyState } from '../ui/EmptyState';
+import { Fold } from '../ui/Fold';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { LineTour } from '../ui/LineTour';
 import { LineLooking } from '../tools/gemba/LookedAt';
@@ -50,9 +51,9 @@ import { lineClosing, lineTiles, type LineReading } from '../lib/lineLean';
 import { lineDay, neckOf } from '../lib/lineLoss';
 import { problemCost } from '../lib/problemCost';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
-import { balanceSays } from './LineToolsScreen';
+import { balanceSays, openOf } from './LineToolsScreen';
 import { studyLine } from './StudiesScreen';
-import { currentLosses } from '../lib/studyLinks';
+import { currentLosses, studyHref } from '../lib/studyLinks';
 import { useJobInputs } from '../lib/useJobInputs';
 import { portfolio, type JobView } from '../lib/portfolio';
 import type { Observation } from '../types';
@@ -99,25 +100,32 @@ export type LineTool = typeof TOOLS[number];
 /** WHAT A TOOL'S LATEST FOUND ON A LINE, in its own words — the line's page
  *  tile and its report (FLOW-AUDIT.md, 10), and what Line Talk's assistant is
  *  told the line's tools found (screens/useTalkContext). */
-export function toolSaysOf(t: LineTool, d: { standards: Standard[]; studies: ToolStudy[]; obs: Observation[]; line: Workspace | null | undefined; wsId: string }): { n: number; says?: string; tone?: string } {
+/** What a tool's latest found, and — for Carry on (10 November) — the record it speaks of: its name, the finding
+ *  apart from the name, where that record itself opens and when it was last changed. One reader for both. */
+export type ToolSaid = { n: number; says?: string; tone?: string; name?: string; finding?: string; href?: string; at?: number };
+
+export function toolSaysOf(t: LineTool, d: { standards: Standard[]; studies: ToolStudy[]; obs: Observation[]; line: Workspace | null | undefined; wsId: string }): ToolSaid {
   const { standards, studies, obs, line, wsId } = d;
   if (t.standard) {
     const own = standards.filter(t.key === 'linebalance' ? inCapacityTool : inMapTool).sort((a, b) => b.updatedAt - a.updatedAt);
     const s = own[0];
     if (!s) return { n: 0 };
-    if (t.key === 'linebalance') { const b = balanceSays(s); return { n: own.length, says: `${s.product}: ${b.text}`, tone: b.short ? 'r' : 'n' }; }
+    const rec = { name: s.product, href: openOf(s, t.key === 'linebalance' ? 'balance' : 'map'), at: s.updatedAt };
+    if (t.key === 'linebalance') { const b = balanceSays(s); return { n: own.length, says: `${s.product}: ${b.text}`, tone: b.short ? 'r' : 'n', finding: b.text, ...rec }; }
     const people = headcount(s), things = thingsOf(s);
-    return { n: own.length, says: `${s.product}: ${people || things ? [`${people} ${people === 1 ? 'person' : 'people'}`, things].filter(Boolean).join(' · ') : 'nothing placed yet'}` };
+    const placed = people || things ? [`${people} ${people === 1 ? 'person' : 'people'}`, things].filter(Boolean).join(' · ') : 'nothing placed yet';
+    return { n: own.length, says: `${s.product}: ${placed}`, finding: placed, ...rec };
   }
   const own = t.study ? usesOfTool(t.study, studies).sort((a, b) => b.startedAt - a.startedAt) : [];
   /* a loss count: the latest shift counted, as the line's card says it */
   const s = (t.study === 'losses' ? currentLosses(own, wsId) : undefined) ?? own[0];
   if (!s) return { n: 0 };
+  const rec = { name: s.name, href: studyHref(s), at: s.updatedAt };
   /* a Line Talk is said as its conversation stands (lib/talk) */
-  if (t.study === 'talk') return { n: own.length, says: `${s.name}: ${talkSaid(turnsOf(s.facts))}` };
+  if (t.study === 'talk') { const talked = talkSaid(turnsOf(s.facts)); return { n: own.length, says: `${s.name}: ${talked}`, finding: talked, ...rec }; }
   const said = studyLine(s, t.study === 'losses' && line ? { observations: obs, workspaces: [line] } : undefined);
   /* a loss count's sentence names its shift itself */
-  return { n: own.length, says: t.study === 'losses' ? said.text : `${s.name}: ${said.text}`, tone: said.tone };
+  return { n: own.length, says: t.study === 'losses' ? said.text : `${s.name}: ${said.text}`, finding: said.text, tone: said.tone, ...rec };
 }
 
 /** A LINE'S STOPS, the last four weeks — the count, the minutes (overlaps on
@@ -456,6 +464,36 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       )}
       {/* WHERE IT STANDS, COUNTED (lib/lineLean) — the tiles its report prints */}
       {show('overview') && reading && <LeanTiles tiles={lineTiles(reading)} className="pl-tiles" />}
+      {/* CARRY ON (10 November — Rowland: "the line pages are difficult also, busy … Tools obvious. Continue obvious. Everything is too
+          busy"): straight under the tiles, the records in use on this line, newest first — each tool's record the one Tools on this line
+          speaks of (toolSaysOf, one reader), its finding in the same words — one tap into THAT record, never its list */}
+      {show('overview') && (() => {
+        const carry = TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.n > 0 && x.said.href).sort((a, b) => (b.said.at ?? 0) - (a.said.at ?? 0));
+        return (
+          <section className="pl-sec pl-carry" aria-label="Carry on" data-carry-on>
+            <div className="pl-sec-h">
+              <h2>Carry on</h2>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(lineHref(wsId, 'tools'))}>All tools on this line ›</button>
+            </div>
+            {carry.length === 0
+              ? <p className="sub pl-carry-none">No tool in use on this line yet — start one from the line’s Tools.</p>
+              : (
+                <ul className="pl-carry-rows">
+                  {carry.slice(0, 5).map(({ t, said }) => (
+                    <li key={t.key}>
+                      <button type="button" className={'pl-carry-row is-' + (said.tone ?? 'n')} data-carry={t.key} aria-label={`Carry on with ${t.label} — ${said.name ?? ''}${said.finding ? `: ${said.finding}` : ''}`} onClick={() => nav(said.href as string)}>
+                        <span className="pl-carry-tool">{t.label}</span>
+                        <b className="pl-carry-name">{said.name}</b>
+                        {said.finding && <span className={'pl-carry-says ie-tone is-' + (said.tone ?? 'n')}>{said.finding}</span>}
+                        <span className="pl-carry-go" aria-hidden>›</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </section>
+        );
+      })()}
 
 
 
@@ -495,6 +533,10 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       </section>)}
       {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
       {show('overview') && kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} records={kit.machines.map(m => m.record)} rows={rows} snags={mine} obs={obs} standards={standards} />}
+      {/* MORE ABOUT THIS LINE (10 November — Rowland: "too busy … Things need to be simplified"): on the Overview everything after the
+          machines — Programs, Spread what works, Eyes on the line, Photos from walks, Tools on this line, Logs, Projects, The line — in one
+          fold, shut until opened (ui/Fold), each part unchanged inside it; on the line's other tabs they stand as before */}
+      {(() => { const body = (<>
       {show('overview') && <p className="pl-q" aria-hidden>What needs doing</p>}
       {/* ITS MACHINES, IN FLOW ORDER (Stage 2) — the line's list, the one every
           picker reads (the stopwatch, the walk, a problem), each with who made it
@@ -722,6 +764,10 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         )}
       </section>)}
 
+      </>);
+      return view === 'overview'
+        ? <Fold id="line-more" title="More about this line" says="Programs, spread what works, eyes on the line, all tools, logs, projects, set-up" start={false}>{body}</Fold>
+        : body; })()}
       {show('overview') && reading && <LeanClosing closing={lineClosing(reading)} />}
       {settingUp && <WorkspaceProvider wsId={wsId}><StudySetupSheet onClose={() => setSettingUp(false)} /></WorkspaceProvider>}
     </div>
