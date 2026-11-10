@@ -17704,3 +17704,25 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .today-method + .today-method { margin-top: 10px; }
 .today-method-h { margin: 0 0 4px; font-size: var(--t-label); }
 @media (max-width: 719px) { .today-luna-box .btn { padding: 0 14px; } }
+
+/* THE LINES FIRST ON THE FACTORY (10 November): each area its own card with its name large, its lines under it */
+.fac-first { margin: 16px 0 20px; }
+.fac-first .fac-area, .fac-first .fac-noarea { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+.fac-first .fac-area-head .fac-place-h { font-size: var(--t-h); font-weight: 700; }
+.fac-first .fac-area-says { font-size: var(--t-body); }
+.fq-grid.is-nolines { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1100px) { .fq-grid.is-nolines .fq-answers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; } }
+
+/* THE STORY'S WAY IN (10 November): large words, then four doors */
+.st-intro { padding: 28px 4px 8px; }
+.st-intro-hi { margin: 0; font-size: var(--t-body); color: var(--muted); }
+.st-intro-h { margin: 4px 0 10px; font-size: var(--t-num); line-height: 1.15; letter-spacing: -0.01em; color: var(--ink); }
+.st-intro-what { margin: 0 0 20px; max-width: 760px; font-size: var(--t-h); line-height: 1.5; color: var(--ink-2); }
+.st-doors { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.st-door { display: grid; gap: 4px; align-content: start; text-align: left; min-height: 96px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink); text-decoration: none; font: inherit; cursor: pointer; }
+.st-door:hover { border-color: var(--brand); }
+.st-door svg { color: var(--brand); }
+.st-door b { font-size: var(--t-h); }
+.st-door span { font-size: var(--t-body); color: var(--ink-2); line-height: 1.4; }
+.st .pace-lede { font-size: var(--t-h); }
+@media (max-width: 719px) { .st-intro { padding-top: 16px; } .st-intro-h { font-size: var(--t-page); } }

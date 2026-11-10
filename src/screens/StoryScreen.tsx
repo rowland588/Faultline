@@ -28,11 +28,15 @@ import { askRecordsOf } from '../lib/storyAskRecords';
 import { withAsks } from '../lib/storyAsks';
 import { AsksPanel, BriefPanel } from './StoryBrief';
 import { CloudPanel } from '../cloud/CloudPanel';
+import { useAiMode } from '../colleague/aiMode';
+import { setLunaPanel } from '../colleague/lunaPanel';
+import { Icon } from '../ui/Icon';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 /** HOME IS THE STORY (S5): `present` draws the same page full screen with no frame — the meeting itself — from #/?present=1. */
 export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   const { projects } = useProjects();
+  const ai = useAiMode();
   const [all, setAll] = useState<Workspace[] | null>(null);
   const [studies, setStudies] = useState<ToolStudy[] | null>(null);
   const [standards, setStandards] = useState<Standard[]>([]);
@@ -154,6 +158,19 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
 
   return (
     <div className="wrap st" data-story={story?.id ?? ''}>
+      {/* THE WAY IN (10 November — Rowland: "the story page … small written … this is the main access point to the app, very poor
+          introduction"): what Faultline is and what this page is, in large words, and the four doors a person comes in for */}
+      <section className="st-intro" aria-label="Welcome" data-story-intro>
+        <p className="st-intro-hi">{new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}</p>
+        <h1 className="st-intro-h">{client ? `${client} — the story so far` : 'Faultline — the story so far'}</h1>
+        <p className="st-intro-what">Faultline is the operational improvement system: find where the line loses, fix it with a method, and prove it with the same number. This page is the story of that work — what was asked, what has been found, what is being done and what is proved.</p>
+        <div className="st-doors">
+          <a className="st-door" href="#/room" data-story-door="lines"><Icon name="machine" size={20} /><b>The lines</b><span>{lines.length} {lines.length === 1 ? 'line' : 'lines'}{new Set(lines.map(l => l.areaName?.trim()).filter(Boolean)).size ? ` in ${new Set(lines.map(l => l.areaName?.trim()).filter(Boolean)).size} areas` : ''} — which one needs you</span></a>
+          <a className="st-door" href="#/today" data-story-door="today"><Icon name="time" size={20} /><b>Today</b><span>What wants you today, worked out from the actions and problems</span></a>
+          <a className="st-door" href="#/projects" data-story-door="projects"><Icon name="board" size={20} /><b>Projects</b><span>{projects.filter(p => !p.archivedAt).length} under way — each a method with its tools</span></a>
+          {ai && <button type="button" className="st-door" onClick={() => setLunaPanel('open')} data-story-door="luna"><Icon name="spark" size={20} /><b>Ask Luna</b><span>Talk it through — she works the app with you</span></button>}
+        </div>
+      </section>
       <PageHeader eyebrow="THE STORY" title={client || 'The story'}
         says={ag ? <span>{briefLine(ag.brief) || 'No brief yet.'} <span className="sub">· {storySays(ag, chapters)}</span></span> : client ? `${client}’s story has not started yet.` : 'Name the client on the lines (Set up the lines) and the story is theirs.'}
         primary={ag && !ag.closedAt ? { label: 'Run an update', run, disabled: !snapshot || !!draft } : undefined}

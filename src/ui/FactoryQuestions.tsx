@@ -120,8 +120,8 @@ function WorkedRows({ q }: { q: FourQuestions }) {
  *  quick-access list, the three answers side by side under them, the projects' board last; on a phone the answers come first. */
 export function QuestionPanels({ q, lines, projects }: { q: FourQuestions | null; lines: ReactNode; projects?: ReactNode }) {
   return (
-    <div className="fq-grid">
-      <div className="fq-lines">{lines}</div>
+    <div className={'fq-grid' + (lines ? '' : ' is-nolines')}>
+      {lines ? <div className="fq-lines">{lines}</div> : null}
       <div className="fq-answers" aria-label="The answers">
         <Panel id="fq-wrong" title="What’s going wrong" all={{ label: 'All problems', to: '/snags' }}>
           {q ? <WrongRows rows={q.wrong.top} open={q.wrong.open} priced={q.wrong.priced} /> : <p className="fq-none">Reading…</p>}

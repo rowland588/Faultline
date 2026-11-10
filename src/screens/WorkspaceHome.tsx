@@ -448,9 +448,13 @@ export function WorkspaceHome() {
       {allPapers && <ControlRoomReports projects={projects} onClose={() => setAllPapers(false)} />}
       {facQuick}
       </section>
-      <QuestionCards q={questions} />
+      {/* THE AREAS AND LINES FIRST (10 November — Rowland: "its very busy, that busy that i cant sometimes see the obvious like areas
+          and lines"): the page is the board of lines, so they come straight under its name; what needs you, the four figures, the
+          answers and the projects follow, nothing taken off */}
+      <div className="fq-lines fac-first">{factory}</div>
       <NeedsYou q={questions} />
-      <QuestionPanels q={questions} lines={factory}
+      <QuestionCards q={questions} />
+      <QuestionPanels q={questions} lines={null}
         projects={jobs.length > 0 || prodLines.length > 0 ? <JobsBoard projects={jobs} reportRef={roomReport} /> : null} />
 
       {/* ONE LIST OF JOBS. The project cards that sat here listed the same
