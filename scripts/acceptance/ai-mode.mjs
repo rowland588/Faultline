@@ -118,6 +118,26 @@ ok((await t.words('[data-ctx-current] .ai-ctx-t')) === lineName && (await page.l
 await page.reload(); await page.waitForTimeout(2500);
 ok((await t.words('[data-ctx-current] .ai-ctx-t')) === lineName && (await page.locator('[data-card-status="done"]').count()) === 1, '4 kept after a reload — the threads and the card');
 ok((await page.locator('.ai-conv').count()) >= 1, '4 the conversation is listed on the left');
+/* each earlier conversation's options (10 November — Rowland: "earlier conversations can't delete them, need options") */
+{
+  const row = page.locator('.ai-list .ai-conv-row').first();
+  const before = await page.locator('.ai-list .ai-conv').count();
+  await row.locator('.ai-conv-more').click(); await page.waitForTimeout(300);
+  const opts = await row.locator('.ai-conv-menu [role="menuitem"]').allInnerTexts();
+  ok(opts.join('|') === 'Open|Rename|Delete', `4 ⋯ on an earlier conversation offers Open, Rename and Delete: ${opts.join(' · ')}`);
+  await row.locator('.ai-conv-menu').getByRole('menuitem', { name: 'Rename' }).click(); await page.waitForTimeout(300);
+  await page.locator('.ai-list .ai-conv-name input').fill('Bagger jams walk');
+  await page.locator('.ai-list .ai-conv-name').getByRole('button', { name: 'Save' }).click(); await page.waitForTimeout(900);
+  ok((await page.locator('.ai-list .ai-conv b').first().innerText()) === 'Bagger jams walk', '4 Rename — the conversation called what the person typed');
+  page.once('dialog', d => void d.accept());
+  await page.locator('.ai-list .ai-conv-row').first().locator('.ai-conv-more').click(); await page.waitForTimeout(300);
+  await page.locator('.ai-list [data-conv-delete]').first().click(); await page.waitForTimeout(1200);
+  ok((await page.locator('.ai-list .ai-conv').count()) === before - 1, `4 Delete — asked, then gone from the list (${before} → ${await page.locator('.ai-list .ai-conv').count()})`);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click(); await page.waitForTimeout(1200);
+  ok((await page.locator('.ai-list .ai-conv').count()) === before && (await page.locator('.ai-list .ai-conv b').allInnerTexts()).includes('Bagger jams walk'), '4 Undo — the conversation back, its name kept');
+  await page.locator('.ai-list .ai-conv', { hasText: 'Bagger jams walk' }).click(); await page.waitForTimeout(1500);
+  ok((await page.locator('.ai-turn').count()) >= 6, '4 opened again, every turn still there');
+}
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ai-1440.png` });
 
 /* ---- 5 · the switch ---- */

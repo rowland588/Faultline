@@ -18,7 +18,8 @@
  * Ask Luna (src/colleague/AiDoor), never a line of the menu. */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
+import { deleteStudy, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
+import { offerUndo } from '../ui/Undo';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { useAccess } from '../cloud/access';
@@ -134,7 +135,7 @@ export function AiModeScreen() {
     setListSheet(false);
     try { history.replaceState(null, '', id ? `#/ai?c=${encodeURIComponent(id)}` : '#/ai'); } catch { /* the page still follows */ }
   };
-  const list = <ConversationList all={all} openId={open.id} onPick={pick} />;
+  const list = <ConversationList all={all} openId={open.id} onPick={pick} onGone={id => { if (id === open.id) pick(); }} />;
   return (
     <div className="ai" data-ai>
       <aside className="ai-list" aria-label="Conversations">{list}</aside>
@@ -147,7 +148,24 @@ export function AiModeScreen() {
   );
 }
 
-function ConversationList({ all, openId, onPick }: { all: ToolStudy[] | null; openId?: string; onPick: (id?: string) => void }) {
+/* EARLIER CONVERSATIONS, EACH WITH ITS OPTIONS (10 November — Rowland: "earlier conversations can't delete them, need options"):
+   ⋯ on a row opens Rename (typed over in its place; the person's name wins over the subject's) and Delete (asked first, then
+   offered back with Undo — the conversation whole, its turns and threads; the records it made stay where they are). */
+function ConversationList({ all, openId, onPick, onGone }: { all: ToolStudy[] | null; openId?: string; onPick: (id?: string) => void; onGone: (id: string) => void }) {
+  const [menu, setMenu] = useState<string | null>(null);
+  const [naming, setNaming] = useState<{ id: string; text: string } | null>(null);
+  const rename = async (id: string, text: string) => {
+    setNaming(null);
+    const name = text.trim().slice(0, 80);
+    await patchStudy(id, cur => ({ name: name || cur.name, facts: { ...cur.facts, named: name || undefined } as ToolStudy['facts'] }));
+  };
+  const remove = async (s: ToolStudy, title: string) => {
+    setMenu(null);
+    if (!window.confirm(`Delete the conversation “${title}”? What was said in it goes with it — anything it made (problems, studies, reports) stays where it is.`)) return;
+    const undo = await deleteStudy(s.id);
+    onGone(s.id);
+    offerUndo(`Conversation “${title}” deleted`, undo);
+  };
   return (
     <>
       <button type="button" className="btn ai-new" onClick={() => onPick()}><Icon name="plus" size="1.05em" />New conversation</button>
@@ -156,12 +174,32 @@ function ConversationList({ all, openId, onPick }: { all: ToolStudy[] | null; op
         <ul className="ai-convs">
           {all.map(s => {
             const f = factsOfConversation(s);
+            const title = conversationTitle(f, s.name);
+            if (naming?.id === s.id) {
+              return (
+                <li key={s.id} className="ai-conv-row">
+                  <form className="ai-conv-name" onSubmit={e => { e.preventDefault(); void rename(s.id, naming.text); }}>
+                    <input autoFocus aria-label="The conversation's name" value={naming.text} maxLength={80} onChange={e => setNaming({ id: s.id, text: e.target.value })} onKeyDown={e => { if (e.key === 'Escape') setNaming(null); }} />
+                    <button type="submit" className="btn btn-primary">Save</button>
+                    <button type="button" className="btn" onClick={() => setNaming(null)}>Cancel</button>
+                  </form>
+                </li>
+              );
+            }
             return (
-              <li key={s.id}>
+              <li key={s.id} className="ai-conv-row">
                 <button type="button" className={'ai-conv' + (s.id === openId ? ' is-on' : '')} aria-current={s.id === openId ? 'true' : undefined} data-conv={s.id} onClick={() => onPick(s.id)}>
-                  <b>{conversationTitle(f, s.name)}</b>
+                  <b>{title}</b>
                   <span>{niceDay(todayISO(new Date(s.updatedAt)))} · {hhmm(s.updatedAt)}</span>
                 </button>
+                <button type="button" className="ai-conv-more" aria-label={`Options for “${title}”`} aria-haspopup="menu" aria-expanded={menu === s.id} data-conv-more={s.id} onClick={() => setMenu(m => (m === s.id ? null : s.id))}>⋯</button>
+                {menu === s.id && (
+                  <div className="ai-conv-menu" role="menu" aria-label={`Options for “${title}”`} onKeyDown={e => { if (e.key === 'Escape') setMenu(null); }}>
+                    <button type="button" role="menuitem" onClick={() => { setMenu(null); onPick(s.id); }}>Open</button>
+                    <button type="button" role="menuitem" onClick={() => { setMenu(null); setNaming({ id: s.id, text: title }); }}>Rename</button>
+                    <button type="button" role="menuitem" className="is-danger" data-conv-delete={s.id} onClick={() => void remove(s, title)}>Delete</button>
+                  </div>
+                )}
               </li>
             );
           })}

@@ -50,7 +50,7 @@ export type DoneAction = ColleagueAction;
 export type ColleagueTurn = TalkTurn & { used?: Used[]; suggestions?: string[] };
 
 /** A conversation's facts — the study's, with what AI Mode keeps on them. */
-export type ColleagueFacts = StudyFacts & { colleague?: boolean; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
+export type ColleagueFacts = StudyFacts & { colleague?: boolean; /** The name the person gave it (Rename) — wins over the subject's. */ named?: string; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
 
 import { placeSaid, type WalkStop } from '../lib/walk';
 
@@ -222,6 +222,7 @@ export function unansweredTurns(turns: readonly ColleagueTurn[]): ColleagueTurn[
 
 /** A conversation's title — the current thread's, else its first words, else the day. */
 export function conversationTitle(f: ColleagueFacts, fallback: string): string {
+  if (typeof f.named === 'string' && f.named.trim()) return f.named.trim();
   const cur = currentThread(f.threads ?? []);
   if (cur) return cur.title;
   const first = turnsOfConversation(f).find(t => t.kind === 'typed' || t.kind === 'said');

@@ -17276,6 +17276,17 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-conv:hover { background: var(--surface-2); }
 .ai-conv.is-on { background: var(--accent-soft); }
 .ai-conv.is-on b { color: var(--brand-2); }
+/* each earlier conversation's options (⋯ — Open, Rename, Delete) */
+.ai-conv-row { position: relative; display: flex; align-items: stretch; gap: 2px; }
+.ai-conv-row .ai-conv { flex: 1; min-width: 0; }
+.ai-conv-more { flex: none; width: 44px; min-height: 44px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--muted); font: inherit; font-size: var(--t-body); cursor: pointer; }
+.ai-conv-more:hover, .ai-conv-more[aria-expanded="true"] { background: var(--surface-2); color: var(--ink); }
+.ai-conv-menu { position: absolute; right: 0; top: 100%; z-index: 85; min-width: 160px; display: grid; padding: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-lift); }
+.ai-conv-menu button { min-height: 44px; padding: 0 var(--space-3); border: 0; border-radius: var(--radius-sm); background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.ai-conv-menu button:hover { background: var(--surface-2); }
+.ai-conv-menu button.is-danger { color: var(--st-r); }
+.ai-conv-name { display: flex; flex-wrap: wrap; gap: var(--space-1); padding: var(--space-1) 0; width: 100%; }
+.ai-conv-name input { flex: 1 1 100%; min-height: 44px; padding: 0 var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; background: var(--surface); color: var(--ink); }
 
 /* THE WORK (docs/AI-OPERATING.md): the real page the conversation is working on, and a measurement that is running */
 .work-pane-page { min-height: 100vh; min-height: 100dvh; background: var(--canvas); }

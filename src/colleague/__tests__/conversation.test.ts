@@ -93,6 +93,7 @@ describe('a new conversation', () => {
     expect(isConversation(s)).toBe(true);
     expect(isConversation({ tool: 'talk', facts: { turns: [] } })).toBe(false);
     expect(conversationTitle(s.facts, 'x')).toBe('Line 3');
+    expect(conversationTitle({ ...s.facts, named: '  Bagger jams  ' } as never, 'x')).toBe('Bagger jams');
     const bare = newConversation({ id: 's2', at: 5, name: 'n' });
     expect(conversationTitle({ ...bare.facts, turns: [{ id: 'a', at: 1, kind: 'typed', text: 'What is late across the lines?' }] } as never, 'x')).toBe('What is late across the lines?');
   });
