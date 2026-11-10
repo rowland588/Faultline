@@ -255,6 +255,8 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
 }
 
 /* ---- 8 a person, as the floor says them ---- */
+/* the line-wide analysis sits under the records in "The line as a whole" (ui/Fold, shut until opened — 10 November, tools-carry-on.mjs): opened before its parts are read */
+const openWhole = async () => { const f = page.locator('[data-fold="line-whole"]').first(); await f.waitFor({ timeout: 10000 }).catch(() => {}); if ((await f.count()) && !(await f.evaluate(e => e.classList.contains('is-open')))) { await f.locator('.fold-toggle').click(); await page.waitForTimeout(1500); } };
 const flat = x => (x ?? '').replace(/\s+/g, ' ').trim();
 let TRAY;
 {
@@ -828,7 +830,7 @@ let TRAY;
     return ws.id;
   });
   const MIX = `#/balances?line=${MIXWS}`;
-  const openMix = async () => { const d = page.locator('.lch-mix'); await d.waitFor({ timeout: 10000 }); if (!(await d.evaluate(e => e.open))) await d.locator('summary').click(); await page.waitForTimeout(300); };
+  const openMix = async () => { await openWhole(); const d = page.locator('.lch-mix'); await d.waitFor({ timeout: 10000 }); if (!(await d.evaluate(e => e.open))) await d.locator('summary').click(); await page.waitForTimeout(300); };
   const truth = () => page.evaluate(async id => {
     const db = await import('/src/db.ts'); const M = await import('/src/tools/linebalance/capacityMix.ts');
     const ps = (await db.listStandardsForLine(id)).filter(p => !p.deletedAt);

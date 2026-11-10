@@ -49,7 +49,9 @@ const hall = await page.evaluate(async () => (await import('/src/lib/demo.ts')).
 const name = await page.evaluate(async id => (await (await import('/src/db.ts')).getWorkspace(id))?.name, hall);
 
 /* 1 — the capacity reference */
-await page.goto(`${BASE}/#/balances?line=${hall}`); await page.waitForTimeout(3500);
+/* the line-wide analysis sits under the records in "The line as a whole" (ui/Fold, shut until opened — 10 November, tools-carry-on.mjs): opened before its parts are read */
+const openWhole = async () => { const f = page.locator('[data-fold="line-whole"]').first(); await f.waitFor({ timeout: 10000 }).catch(() => {}); if ((await f.count()) && !(await f.evaluate(e => e.classList.contains('is-open')))) { await f.locator('.fold-toggle').click(); await page.waitForTimeout(1500); } };
+await page.goto(`${BASE}/#/balances?line=${hall}`); await page.waitForTimeout(3500); await openWhole();
 const hero = flat(await page.locator('.lch-hero').innerText());
 ok(hero.length > 20, `1 the answer first: "${hero.slice(0, 90)}…"`);
 ok(await page.locator('.lch-mx .mx').count() === 3, '1 theoretical · demonstrated · plannable');
@@ -160,7 +162,7 @@ ok(!/Demo —/.test(await page.locator('.nv-main').innerText()), '9 Your factory
 /* 10 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });
 for (const [p, what] of [[`#/balances?line=${hall}`, 'the capacity panel'], [`#/lines/${hall}`, 'the line and its tour']]) {
-  await page.goto(`${BASE}/${p}`); await page.waitForTimeout(3000);
+  await page.goto(`${BASE}/${p}`); await page.waitForTimeout(3000); if (p.startsWith('#/balances')) await openWhole();
   const sw = await page.evaluate(() => document.documentElement.scrollWidth);
   ok(sw <= 391, `10 phone: ${what}, nothing off the side (${sw}px)`);
 }

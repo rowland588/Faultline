@@ -38,7 +38,9 @@ await page.evaluate(async ([ws, cap]) => {
   await db.putStudy({ id: crypto.randomUUID(), tool: 'changeover', name: 'How the line runs', workspaceId: ws, facts: { running: { shiftsPerDay: 2, hoursPerShift: 8, breakMin: 30, daysPerWeek: 5 } }, uses: [], startedAt: now + 5, createdAt: now + 5, updatedAt: now + 5 });
 }, [WS, { targetPerMin: 120, stations: [station({ id: 'fil', name: 'Filler', rate: 130 }), station({ id: 'bag', name: 'Bagger', rate: 120 })] }]);
 const PAGE = `#/balances?line=${WS}`;
-const open = async () => { await page.goto(`${BASE}/#/room`); await go(PAGE, 2800); const d = page.locator('details.lch-lev:has(.lch-lev-rows)').first(); if (!(await d.evaluate(e => e.open))) await d.locator('> summary').click(); await page.waitForTimeout(400); };
+/* the line-wide analysis sits under the records in "The line as a whole" (ui/Fold, shut until opened — 10 November, tools-carry-on.mjs): opened before its parts are read */
+const openWhole = async () => { const f = page.locator('[data-fold="line-whole"]').first(); await f.waitFor({ timeout: 10000 }).catch(() => {}); if ((await f.count()) && !(await f.evaluate(e => e.classList.contains('is-open')))) { await f.locator('.fold-toggle').click(); await page.waitForTimeout(1500); } };
+const open = async () => { await page.goto(`${BASE}/#/room`); await go(PAGE, 2800); await openWhole(); const d = page.locator('details.lch-lev:has(.lch-lev-rows)').first(); if (!(await d.evaluate(e => e.open))) await d.locator('> summary').click(); await page.waitForTimeout(400); };
 const slide = async (name, v) => { await page.locator(`input[aria-label="Take ${name} down by"]`).evaluate((el, val) => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, String(val)); el.dispatchEvent(new Event('input', { bubbles: true })); }, v); await page.waitForTimeout(300); };
 const truth = pct => page.evaluate(async ([ws, pct, spwOff]) => {
   const db = await import('/src/db.ts'); const R = await import('/src/lib/lineRead.ts'); const I = await import('/src/lib/intelligence/index.ts');
