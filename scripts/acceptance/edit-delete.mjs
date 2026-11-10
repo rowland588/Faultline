@@ -207,7 +207,9 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
   const reads = () => db((D, id) => D.listReadings(id), sd.pacedProjectId);
   const n0 = (await reads()).length;
   await go(`#/project/${sd.pacedProjectId}?view=data`);
-  const x = main().locator('button[aria-label^="Remove "][aria-label*=" on 20"]').first();
+  /* the readings are in their fold since 10 November (docs/DESIGN.md) — opened where they are needed */
+  if (!(await page.locator('[data-fold="nm-latest"].is-open').count())) { await page.locator('[data-fold="nm-latest"] .fold-toggle').click(); await page.waitForTimeout(300); }
+  const x =main().locator('button[aria-label^="Remove "][aria-label*=" on 20"]').first();
   const label = await x.getAttribute('aria-label');
   await x.click(); await page.waitForTimeout(900);
   ok((await reads()).length === n0 - 1 && /Deleted the reading of /.test(await page.locator('body').innerText()), `D2 a reading deleted (${label}): said, Undo offered`);

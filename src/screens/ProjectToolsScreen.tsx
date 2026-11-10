@@ -22,6 +22,7 @@ import { nav } from '../state/useRoute';
 import { APP_TOOLS, type AppTool } from '../catalogue/registry';
 import { methodOfProject } from '../lib/methods';
 import { PageHeader, RecordRow, RecordRows } from '../ui/parts';
+import { Fold } from '../ui/Fold';
 import { planModel } from '../lib/planModel';
 import { usePaceLines } from '../lib/usePaceLines';
 import { PaceSnags } from './PaceSnags';
@@ -55,6 +56,15 @@ export function ProjectToolsScreen({ projectId }: { projectId: string }) {
   const total = rows.reduce((n, r) => n + (r.n ?? 0), 0);
   const used = rows.filter(r => r.n).length;
   const evidence = planModel(project) !== 'commissioning';
+  const inUse = rows.filter(r => r.n);
+  const others = rows.filter(r => !r.n);
+  const toolRow = ({ t, n, latest }: (typeof rows)[number]) => (
+    <RecordRow key={t.key} what={t.label}
+      says={n ? `${n} in this project` : n === 0 ? 'None yet' : undefined}
+      where={latest ? `Latest: ${latest}` : t.says}
+      onOpen={() => nav(inProject(t.to, projectId))}
+      aside={can.edit && t.key !== 'talk' ? <button type="button" className="btn btn-sm" aria-label={`New — ${t.label}`} onClick={() => nav(inProject(`${t.to}?add=1`, projectId))}>New</button> : undefined} />
+  );
   return (
     <div className="wrap ptools">
       <PageHeader
@@ -64,15 +74,22 @@ export function ProjectToolsScreen({ projectId }: { projectId: string }) {
           + (evidence ? ' Each use, and the line filmed below, is the project’s evidence.' : '')}
         more={can.edit ? APP_TOOLS.map(t => ({ label: `New — ${t.label}`, run: () => nav(inProject(t.to, projectId)) })) : []}
       />
-      <RecordRows label="The tools in this project">
-        {rows.map(({ t, n, latest }) => (
-          <RecordRow key={t.key} what={t.label}
-            says={n ? `${n} in this project` : n === 0 ? 'None yet' : undefined}
-            where={latest ? `Latest: ${latest}` : t.says}
-            onOpen={() => nav(inProject(t.to, projectId))}
-            aside={can.edit && t.key !== 'talk' ? <button type="button" className="btn btn-sm" aria-label={`New — ${t.label}`} onClick={() => nav(inProject(`${t.to}?add=1`, projectId))}>New</button> : undefined} />
-        ))}
-      </RecordRows>
+      {/* WHAT IS IN USE HERE FIRST (docs/DESIGN.md, 10 November — "the page shows what matters; the rest is one tap
+          away"): the tools this project has used, each with its count and latest; every other tool a row in the fold
+          under them, each with New — nothing taken off, the list only split by whether it is used here. */}
+      {inUse.length > 0 && (
+        <RecordRows label="The tools in this project">
+          {inUse.map(toolRow)}
+        </RecordRows>
+      )}
+      {others.length > 0 && (
+        <Fold id="ptools-others" start={!inUse.length} title={inUse.length ? 'Every other tool' : 'The tools'}
+          says={`${others.length} not used in this project yet${can.edit ? ' — each starts here with New, and is the project’s' : ''}`}>
+          <RecordRows label={inUse.length ? 'Every other tool' : 'The tools in this project'}>
+            {others.map(toolRow)}
+          </RecordRows>
+        </Fold>
+      )}
       {methodOfProject(project) && methodOfProject(project) !== 'stage-gate' && (
         <section className="pace-sec ptools-sixm" aria-label="The 6M tool">
           <div className="pace-sec-head">

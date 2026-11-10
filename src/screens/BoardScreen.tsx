@@ -39,6 +39,7 @@ import { todayISO } from '../lib/weeks';
 import type { PaceAction } from '../lib/actionShapes';
 import type { NodeStatus } from '../db';
 import { Icon } from '../ui/Icon';
+import { Fold } from '../ui/Fold';
 
 const STATUS: Record<NodeStatus, string> = {
   n: 'To do', w: 'In progress', a: 'Waiting', r: 'Late', g: 'Done',
@@ -190,6 +191,10 @@ export function BoardScreen({ projectId }: { projectId: string }) {
               ))}
             </div>
           )}
+          {/* NARROWING THE BOARD IN A FOLD (docs/DESIGN.md, 10 November): the lines stay chips above the lanes; by bone, by
+              who and done shown or hidden are one tap away — open by itself while one of them narrows the board. */}
+          <Fold id="bd6-narrow" title="Narrow the board" start={filtered}
+            says={filtered ? [bone != null && PILLARS.find(p => p.key === bone)?.label, owner && (owner === NOBODY ? 'nobody named' : owner), hideDone && 'done hidden'].filter(Boolean).join(' · ') : 'by bone, by who, done shown or hidden'}>
           <div className="bd6-frow" role="group" aria-label="Bone">
             <span className="bd6-fk">Bone</span>
             <button className={'chip is-all' + (bone == null ? ' on' : '')} aria-pressed={bone == null} onClick={() => setBone(null)}>All six</button>
@@ -215,6 +220,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
               <button className="cw-link" onClick={() => { setBone(null); setOwner(null); setHideDone(false); }}>Show everything</button>
             )}
           </div>
+          </Fold>
         </div>
       )}
 
@@ -228,41 +234,9 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         </p>
       )}
 
-      {shownAreas.map(a => (
-        <section key={a.id || 'whole'} className="bd-area">
-          <header className="bd-area-h">
-            <h2 className="bd-area-t">{a.name}</h2>
-            <span className="bd-area-n">
-              {a.total} action{a.total === 1 ? '' : 's'} · {a.done} done{a.late > 0 && <> · <b className="in-late">{a.late} late</b></>}
-            </span>
-          </header>
-          <div className={'bd6-lanes' + (bone != null ? ' is-one' : '')}>
-            {a.columns.map(c => (
-              <section key={c.key} className={'bd6-lane' + (c.rows.length === 0 ? ' is-empty' : '')} aria-label={`${a.name} — ${c.label}`}>
-                <header className="bd6-lane-h">
-                  <h3 className="bd6-lane-t">{c.label}</h3>
-                  <span className="bd6-lane-n">{c.rows.length}</span>
-                  <span className="bd6-lane-s">{c.blurb}</span>
-                </header>
-                <div className="bd6-lane-b">
-                  {c.rows.map(x => (
-                    <Card key={x.uid} a={x} impact={x.uid ? impacts.get(x.uid) : undefined}
-                      cause={x.causeRef ? causes.get(x.causeRef) : undefined} onOpen={() => open(x)} />
-                  ))}
-                  {can.edit && (
-                    <button className="bd-add" onClick={() => add(c.key, a.lineId)} aria-label={`Add an action — ${a.name}, ${c.label}`}>
-                      <Icon name="plus" size="1.15em" /> Add
-                    </button>
-                  )}
-                </div>
-              </section>
-            ))}
-          </div>
-        </section>
-      ))}
-
       {/* Never lose a row: an action written before the board, or on the list
-          without a bone, is shown here until it is given one. */}
+          without a bone, is shown here until it is given one — above the lanes since 10 November, what needs
+          attention first (docs/DESIGN.md). */}
       {unsorted.length > 0 && (
         <section className="bd-unsorted">
           <h2 className="bd-area-t">Not on the board yet</h2>
@@ -285,6 +259,40 @@ export function BoardScreen({ projectId }: { projectId: string }) {
           </ul>
         </section>
       )}
+
+      {shownAreas.map((a, ai) => (
+        <section key={a.id || 'whole'} className="bd-area">
+          <header className="bd-area-h">
+            <h2 className="bd-area-t">{a.name}</h2>
+            <span className="bd-area-n">
+              {a.total} action{a.total === 1 ? '' : 's'} · {a.done} done{a.late > 0 && <> · <b className="in-late">{a.late} late</b></>}
+            </span>
+          </header>
+          <div className={'bd6-lanes' + (bone != null ? ' is-one' : '')}>
+            {a.columns.map(c => (
+              <section key={c.key} className={'bd6-lane' + (c.rows.length === 0 ? ' is-empty' : '')} aria-label={`${a.name} — ${c.label}`}>
+                <header className="bd6-lane-h">
+                  <h3 className="bd6-lane-t">{c.label}</h3>
+                  <span className="bd6-lane-n">{c.rows.length}</span>
+                  {/* what a bone means, said once — on the first line's lanes, not again under every line */}
+                  {ai === 0 && <span className="bd6-lane-s">{c.blurb}</span>}
+                </header>
+                <div className="bd6-lane-b">
+                  {c.rows.map(x => (
+                    <Card key={x.uid} a={x} impact={x.uid ? impacts.get(x.uid) : undefined}
+                      cause={x.causeRef ? causes.get(x.causeRef) : undefined} onOpen={() => open(x)} />
+                  ))}
+                  {can.edit && (
+                    <button className="bd-add" onClick={() => add(c.key, a.lineId)} aria-label={`Add an action — ${a.name}, ${c.label}`}>
+                      <Icon name="plus" size="1.15em" /> Add
+                    </button>
+                  )}
+                </div>
+              </section>
+            ))}
+          </div>
+        </section>
+      ))}
 
       {editing && <ActionSheet editing={editing} lines={ax.lines} impact={impacts.get(editing.step.id)} onClose={() => setEditing(null)} />}
     </div>

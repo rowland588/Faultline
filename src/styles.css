@@ -17733,3 +17733,28 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .inv-marks { margin: 4px 0 0; padding-left: 18px; }
 .inv-marks .is-g b { color: var(--st-g); } .inv-marks .is-r b { color: var(--st-r); }
 
+
+/* PROJECT PAGES, CALM (10 November) — docs/DESIGN.md: a list of records is rows with a hairline between, never a card a
+   row inside a card; filters sit on the canvas, not in a box. A late row keeps its red edge, its word in its pill. */
+.ptools .lt-li, .act .fold-b .act-li, .now-owe .act-li, .now-block .act-li {
+  border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none;
+}
+.ptools .lt-li > .lt-row { box-shadow: none; }
+.act .fold-b .lt-rows, .now-owe .lt-rows, .now-block .lt-rows { gap: 0; }
+.act .fold-b .act-li.is-late, .now-owe .act-li.is-late, .now-block .act-li.is-late { border-left: 3px solid var(--st-r); }
+.nv-main .act .fold-b .lt-row, .nv-main .jn .fold-b .lt-row, .nv-main .now-ahead .lt-row, .nv-main .now-owe .lt-row,
+.nv-main .now-block .lt-row, .nv-main .ptools .lt-row {
+  border-top: 0; border-right: 0; border-radius: 0; background: transparent;
+}
+.nv-main .jn .fold-b .lt-row, .nv-main .now-ahead .lt-row { border-bottom: 1px solid var(--line); }
+.act .chip-row.qsl-f { padding: 0; margin: 0 0 var(--space-3); background: none; border: 0; box-shadow: none; }
+.ptools > .fold { margin-top: var(--space-5); }
+/* Commission's Needs you: one list, hairline rows with the state's edge and its word — not a tinted card a row */
+.cg-needs .nd-list { gap: 0; }
+.cg-needs .nd-row, .cg-needs .nd-row.is-failed, .cg-needs .nd-row.is-late {
+  border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent;
+}
+.projects-screen .part-row { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
+.projects-screen .part-row > .lt-row { border-top: 0; border-right: 0; border-radius: 0; background: transparent; }
+.bd6-filters > .fold { margin: var(--space-2) 0 0; }
+.bd6 .bd-unsorted { margin: var(--space-3) 0 var(--space-5); }

@@ -30,6 +30,7 @@ import { openRecord } from '../../ui/RecordDrawer';
 import { planHref } from '../../lib/plan';
 import { nav, navReplace } from '../../state/useRoute';
 import { blockers, jobFiguresOf, lookAhead, machinesOf, nowSays, owedFirst, type NowMachine } from './now';
+import { Fold } from '../../ui/Fold';
 
 /* what opens in the record's drawer, as on Needs you and Actions */
 const IN_DRAWER = new Set(['test', 'fix', 'install', 'setup', 'handover']);
@@ -119,6 +120,23 @@ export function NowBody({ projectId }: { projectId: string }) {
     if (l.go) nav(`/project/${projectId}/${l.go}`);
   };
 
+  const day = (d: (typeof ahead.days)[number]) => (
+    <div key={d.date} className={'now-day' + (d.today ? ' is-today' : '')} data-now-day={d.date}>
+      <h3 className="now-dh">{d.label}{d.today ? ' · today' : ''}</h3>
+      <ul className="lt-rows">
+        {d.lines.slice(0, DAY_MOST).map((l, i) => (
+          <li key={i} className={'lt-li jn-li is-' + l.tone}>
+            <button type="button" className="lt-row" onClick={() => openLine(l)}>
+              <b className="lt-what">{l.text}</b>
+              {(l.kind || l.detail) && <span className="lt-says">{[l.kind, l.detail].filter(Boolean).join(' · ')}</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {d.lines.length > DAY_MOST && <p className="sub now-more">{d.lines.length - DAY_MOST} more on this day — <button type="button" className="cw-link" onClick={() => nav(dayHref(projectId, d.date))}>open the day</button></p>}
+    </div>
+  );
+
   return (
     <div className="now">
       <p className="sub now-says">{nowSays(machines, block, rows)}</p>
@@ -171,33 +189,7 @@ export function NowBody({ projectId }: { projectId: string }) {
         )}
       </section>
 
-      {/* 4 · TODAY AND THE NEXT TWO WEEKS — what the day and the journey say ahead (project/journey) */}
-      <section className="qsl-g now-ahead" aria-label="Today and the next two weeks">
-        <div className="qsl-gh">
-          <h2>Today and the next two weeks</h2>
-          <span className="sub">{ahead.days.length ? `${ahead.days.reduce((n, d) => n + d.lines.length, 0)} things on ${ahead.days.length} day${ahead.days.length === 1 ? '' : 's'}` : 'Nothing dated in the next two weeks'}</span>
-          <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/journey`)}>Journey ›</button>
-          <button type="button" className="cw-link now-today" onClick={() => nav(dayHref(projectId))}>Today — {dayWord}</button>
-        </div>
-        {ahead.days.map(d => (
-          <div key={d.date} className={'now-day' + (d.today ? ' is-today' : '')} data-now-day={d.date}>
-            <h3 className="now-dh">{d.label}{d.today ? ' · today' : ''}</h3>
-            <ul className="lt-rows">
-              {d.lines.slice(0, DAY_MOST).map((l, i) => (
-                <li key={i} className={'lt-li jn-li is-' + l.tone}>
-                  <button type="button" className="lt-row" onClick={() => openLine(l)}>
-                    <b className="lt-what">{l.text}</b>
-                    {(l.kind || l.detail) && <span className="lt-says">{[l.kind, l.detail].filter(Boolean).join(' · ')}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {d.lines.length > DAY_MOST && <p className="sub now-more">{d.lines.length - DAY_MOST} more on this day — <button type="button" className="cw-link" onClick={() => nav(dayHref(projectId, d.date))}>open the day</button></p>}
-          </div>
-        ))}
-      </section>
-
-      {/* 5 · WHAT YOU OWE — late first; everything on Actions */}
+      {/* 4 · WHAT YOU OWE — before the days ahead: what needs attention first (docs/DESIGN.md) — late first; everything on Actions */}
       <section className="qsl-g now-owe" aria-label="What you owe">
         <div className="qsl-gh">
           <h2>What you owe</h2>
@@ -221,6 +213,25 @@ export function NowBody({ projectId }: { projectId: string }) {
           </ul>
         )}
         {owe.more > 0 && <p className="sub now-more">{owe.more} more on <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/actions`)}>Actions ›</button></p>}
+      </section>
+
+      {/* 5 · TODAY AND THE NEXT TWO WEEKS — what the day and the journey say ahead (project/journey) */}
+      <section className="qsl-g now-ahead" aria-label="Today and the next two weeks">
+        <div className="qsl-gh">
+          <h2>Today and the next two weeks</h2>
+          <span className="sub">{ahead.days.length ? `${ahead.days.reduce((n, d) => n + d.lines.length, 0)} things on ${ahead.days.length} day${ahead.days.length === 1 ? '' : 's'}` : 'Nothing dated in the next two weeks'}</span>
+          <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/journey`)}>Journey ›</button>
+          <button type="button" className="cw-link now-today" onClick={() => nav(dayHref(projectId))}>Today — {dayWord}</button>
+        </div>
+        {/* TODAY SHOWN, THE DAYS AFTER IT IN A FOLD (docs/DESIGN.md, 10 November): what is on today is the page's to say;
+            the two weeks ahead are one tap away, a line saying how many things on how many days. */}
+        {ahead.days.filter(d => d.today).map(day)}
+        {ahead.days.some(d => !d.today) && (
+          <Fold id="now-ahead-days" title={ahead.days.some(d => d.today) ? 'The days after today' : 'The next two weeks'} start={false}
+            says={(rest => `${rest.reduce((n, d) => n + d.lines.length, 0)} things on ${rest.length} day${rest.length === 1 ? '' : 's'}, the next ${rest[0].label}`)(ahead.days.filter(d => !d.today))}>
+            {ahead.days.filter(d => !d.today).map(day)}
+          </Fold>
+        )}
       </section>
 
       {(() => {

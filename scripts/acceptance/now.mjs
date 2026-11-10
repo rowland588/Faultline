@@ -105,6 +105,8 @@ ok(/\/machine\//.test(page.url()), '4 a machine row opens its machine’s page',
 /* 5 · today and the next two weeks */
 await go(NOW);
 const today = await page.evaluate(async () => (await import('/src/lib/weeks.ts')).todayISO?.() ?? new Date().toISOString().slice(0, 10)).catch(() => new Date().toISOString().slice(0, 10));
+/* the days after today are in their fold since 10 November (docs/DESIGN.md) — opened to read them */
+if (await page.locator('[data-fold="now-ahead-days"]:not(.is-open) .fold-toggle').count()) { await page.locator('[data-fold="now-ahead-days"] .fold-toggle').click(); await page.waitForTimeout(300); }
 const days = await page.locator('.now-ahead .now-day').evaluateAll(els => els.map(e => ({ d: e.getAttribute('data-now-day'), n: e.querySelectorAll('.jn-li').length, more: !!e.querySelector('.now-more') })));
 const end = new Date(new Date(`${today}T12:00:00Z`).getTime() + 14 * 864e5).toISOString().slice(0, 10);
 ok(days.length > 0 && days.every(x => x.d >= today && x.d <= end), '5 every day inside today and the next two weeks', JSON.stringify(days));

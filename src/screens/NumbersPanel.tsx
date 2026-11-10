@@ -11,6 +11,7 @@
  * The chart appears as soon as there is a reading. That is the whole of what
  * Rowland asked for: "is there a way for users to set their measurements and
  * then a graph will appear". */
+import { Fold } from '../ui/Fold';
 import { AddFold } from '../ui/AddFold';
 import { useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
@@ -307,9 +308,11 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
       </AddFold>}
 
 
+      {/* THE READINGS THEMSELVES IN A FOLD (docs/DESIGN.md, 10 November): the charts above say what they mean; the rows
+          they are drawn from — each put right or taken off where it sits — are one tap away, never the page's length. */}
       {newest.length > 0 && (
-        <div className="card nm-card">
-          <div className="field-label">Latest in</div>
+        <Fold id="nm-latest" title="The readings" start={false}
+          says={`The ${newest.length === 1 ? "latest reading" : `${newest.length} latest readings`}, the newest ${shortDay(newest[0].at)} — ${can.edit ? "each put right or taken off where it sits" : "each as it was taken"}`}>
           <ul className="nm-list">
             {newest.map(r => (
               <li key={r.id} className="nm-row">
@@ -334,7 +337,7 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
               </li>
             ))}
           </ul>
-        </div>
+        </Fold>
       )}
     </>
   );
