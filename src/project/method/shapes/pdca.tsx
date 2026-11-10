@@ -53,7 +53,13 @@ const AT: Partial<Record<string, { ids: string[]; why: string }>> = {
   standard: { ids: ['FC-006'], why: 'The line standard is where the new way is written down.' },
 };
 
+import { useLunaAnswers } from '../../../colleague/lunaAnswers';
+import { fieldsOf } from '../../../lib/methodSheet';
+import { isLunaDraft, LunaMark } from '../../../colleague/LunaMark';
+
 export function PdcaBoard({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
+  /* what Luna wrote on the board, marked where it stands (W5) — cycle 1's boxes are the sheet's own questions */
+  const luna = useLunaAnswers(projectId, QUARTERS.flatMap(name => fieldsOf('pdca', name).map(f => ({ id: f.id, label: f.label }))));
   const cycles = cyclesOf(answers);
   const latest = cycles[cycles.length - 1].n;
   const [sel, setSel] = useState<number | null>(null);
@@ -98,10 +104,13 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool }: ShapePr
               {q.fields.map(fl => {
                 const key = cycleKey(fl.id, n), value = c.answers[fl.id] ?? '';
                 const at = AT[fl.id];
+                const mark = key === fl.id ? luna.get(fl.id) : undefined;
+                const fromLuna = isLunaDraft(mark, value);
                 return (
-                  <label key={fl.id} className="msheet-f">
+                  <label key={fl.id} className={'msheet-f' + (fromLuna ? ' is-luna' : '')} data-luna-answer={fromLuna ? fl.id : undefined}>
                     <span className="msheet-q">{fl.label}</span>
                     <span className="msheet-hint">{fl.hint}</span>
+                    {fromLuna && <LunaMark mark={mark} canEdit={canEdit} onNot={() => save(key, '', fl.label)} />}
                     {canEdit
                       ? (fl.line
                         ? <input className="text-input msheet-in" defaultValue={value} key={`${key}:${value}`} aria-label={fl.label} onBlur={e => save(key, e.target.value.trim(), fl.label)} />

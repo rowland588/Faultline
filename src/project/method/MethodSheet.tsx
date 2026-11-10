@@ -10,6 +10,8 @@ import type { MethodKey } from '../../lib/methods';
 import { howTool, openable, toolStateWord } from './methodTools';
 import { uid } from '../../lib/ids';
 import { offerUndo } from '../../ui/Undo';
+import { useLunaAnswers } from '../../colleague/lunaAnswers';
+import { isLunaDraft, LunaMark } from '../../colleague/LunaMark';
 
 export function useAnswers(projectId: string, method: MethodKey): { answers: Record<string, string>; items: Map<string, TestItem> } {
   const [items, setItems] = useState<Map<string, TestItem>>(new Map());
@@ -48,6 +50,8 @@ export function MethodSheet({ projectId, method, section, answers, items, canEdi
   onTool: (id: string) => void;
 }) {
   const fields = fieldsOf(method, section);
+  /* what Luna wrote here and the person has not looked at yet — marked where it stands (W5) */
+  const luna = useLunaAnswers(projectId, fields);
   if (!fields.length) return null;
   const st = sectionState(method, section, answers);
   const save = (field: string, what: string) => {
@@ -65,10 +69,13 @@ export function MethodSheet({ projectId, method, section, answers, items, canEdi
       {fields.map(fl => {
         const value = answers[fl.id] ?? '';
         const tools = (fl.tools ?? []).map(id => ({ id, h: howTool(id) })).filter(x => x.h.how !== 'unknown' && x.h.how !== 'notyet');
+        const mark = luna.get(fl.id);
+        const fromLuna = isLunaDraft(mark, value);
         return (
-          <label key={fl.id} className="msheet-f">
+          <label key={fl.id} className={'msheet-f' + (fromLuna ? ' is-luna' : '')} data-luna-answer={fromLuna ? fl.id : undefined}>
             <span className="msheet-q">{fl.label}</span>
             <span className="msheet-hint">{fl.hint}</span>
+            {fromLuna && <LunaMark mark={mark} canEdit={canEdit} onNot={() => save(fl.id, '')} />}
             {canEdit
               ? (fl.line
                 ? <input className="text-input msheet-in" defaultValue={value} key={value} aria-label={fl.label} onBlur={e => save(fl.id, e.target.value.trim())} />
