@@ -92,12 +92,13 @@ function ScoredHub() {
       <PageHeader title="Scored registers" says="Machines and countermeasures ranked on agreed scales — criticality, impact and effort — and the Pugh matrix for choosing between solutions." />
       {groups.map(g => (
         <Section key={g.group} title={g.group}>
-          <ul className="pl-tool">
+          <ul className="hub-kinds">
             {g.defs.map(d => {
               const n = shown.filter(s => s.agreed?.scored?.key === d.key).length;
               return (
                 <li key={d.key}><button type="button" className="pl-tool-card" onClick={() => nav(`/scored/${d.key}`)}>
-                  <b>{d.title}</b><span className="sub">{d.says}</span><span className="sub">{n ? `${n} saved` : 'None yet'}</span>
+                  <b>{d.title}</b><span className="sub">{d.says}</span><span className={'calc-card-n' + (n ? '' : ' is-none')}>{n ? `${n} saved` : 'None yet'}</span>
+                  <span className="pl-tool-go" aria-hidden>›</span>
                 </button></li>
               );
             })}

@@ -51,6 +51,8 @@ const moduleSays = area => page.evaluate(async area => {
   return { says: areaSays(b.facts).text, tiles: areaTiles(b.facts).map(x => `${x.k} ${x.v}`), lines: b.lines.map(w => w.name), actions: b.actions.length, otherLines: all.filter(w => !b.lines.some(x => x.id === w.id)).map(w => w.name) };
 }, area);
 const norm = s => s.replace(/\s+/g, ' ').trim();
+/* the secondary sections sit in ui/Fold, shut on arrival (10 November, docs/DESIGN.md) — opened here before they are read */
+const openFolds = async scope => { for (let i = 0; i < 20; i++) { const b = page.locator(`${scope} .fold:not(.is-open) .fold-toggle`).first(); if (!(await b.count())) break; await b.click(); await page.waitForTimeout(150); } };
 const PACKING = { site: ar.site, area: ar.packing }, DESPATCH = { site: ar.site, area: ar.despatch };
 
 /* ---- 1 · the Lines tab ---- */
@@ -88,11 +90,13 @@ ok(norm(await t.words('.ar-page .part-head .ar-says')) === (await moduleSays(PAC
 await row.click(); await page.waitForTimeout(2000);
 ok((await page.evaluate(() => location.hash)).includes(`open=${raised}`), '2 its row opens the problem on its line\'s Problems');
 await page.goBack(); await page.waitForTimeout(2500);
+await openFolds('.ar-page');
 const tools = await page.locator('.ar-tools .ar-row').count();
 ok(tools > 0 && (await page.locator('.ar-machines .chip').count()) > 0, `2 the tools used on its lines (${tools}) and its machines, line by line`);
 
 /* ---- 3 · the area report, made on arrival ---- */
 const text = await t.pdfText(() => paper(page, 'Area report'), 'area');
+await openFolds('.ar-report');
 ok(/#\/area\/report\?/.test(await page.evaluate(() => location.hash)) && (await page.locator('.ar-report .lr-part').count()) >= 3, '3 Report ▾ › Area report opens the report page, a part a line and the area together');
 const flat = text.replace(/\s+/g, ' ');
 ok(/AREA · THE AREA REPORT/.test(flat) && /Client Northfield Foods/.test(flat) && /Site Hull/.test(flat) && /Area Packing hall/.test(flat), '3 the band names the client, the site and the area');

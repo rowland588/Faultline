@@ -146,7 +146,7 @@ function CalcHub() {
       )}
       {calcGroups().map(g => (
         <Section key={g.group} title={g.group} count={`${g.calcs.length} calculator${g.calcs.length === 1 ? '' : 's'}`} label={g.group}>
-          <ul className="calc-cards">
+          <ul className="hub-kinds">
             {g.calcs.map(c => {
               const mine = by(c.key), latest = mine[0];
               return (

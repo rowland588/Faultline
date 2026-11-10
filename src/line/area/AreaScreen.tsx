@@ -15,6 +15,7 @@ import { nav } from '../../state/useRoute';
 import { PageHeader } from '../../ui/parts';
 import { EmptyState } from '../../ui/EmptyState';
 import { LeanTiles } from '../../ui/Lean';
+import { Fold } from '../../ui/Fold';
 import { FactoryLineCard, useLineRates } from '../../ui/FactoryLineCard';
 import { areaFromQuery, areaHref, areaSays, areaTiles } from '../../lib/areas';
 import { departmentFor, type Department } from '../../lib/departments';
@@ -79,6 +80,7 @@ export function AreaScreen({ route }: { route: Route }) {
   const toProve = bundle.actions.filter(a => a.kind === 'program');
   const tools = bundle.parts.flatMap(p => p.items.map(it => ({ it, p }))).sort((x, y) => y.it.at - x.it.at);
   const toolsShown = allTools ? tools : tools.slice(0, TOOLS_FIRST);
+  const machineCount = bundle.parts.reduce((n, p) => n + p.kit.machines.filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line').length, 0);
 
   return (
     <div className="wrap ar-page" data-area={bundle.title}>
@@ -91,6 +93,13 @@ export function AreaScreen({ route }: { route: Route }) {
         papers={[{ label: 'Area report', for: 'Everything happening in the area — each line’s part, then the area together', make: () => nav(`${areaHref(area, true)}&save=1`), disabled: !bundle.lines.length }]}
       />
       <LeanTiles tiles={areaTiles(bundle.facts)} className="sg-tiles" />
+
+      <section className="ar-sec" aria-label="What needs doing">
+        <h2>What needs doing</h2>
+        {todo.length
+          ? <ul className="ar-rows ar-todo">{todo.map(a => <ActionRow key={a.key} a={a} />)}</ul>
+          : <p className="sub">Nothing open on any line of the area — no problem open, no check owed.</p>}
+      </section>
 
       <section className="ar-sec fq-lines fac-home ep-panel" aria-label="Its lines">
         <h2>Its lines</h2>
@@ -122,13 +131,6 @@ export function AreaScreen({ route }: { route: Route }) {
       </section>
 
       {dept && <WalkPhotos query={{ departmentId: dept.id }} title="Photos from walks" />}
-      <section className="ar-sec" aria-label="What needs doing">
-        <h2>What needs doing</h2>
-        {todo.length
-          ? <ul className="ar-rows ar-todo">{todo.map(a => <ActionRow key={a.key} a={a} />)}</ul>
-          : <p className="sub">Nothing open on any line of the area — no problem open, no check owed.</p>}
-      </section>
-
       <section className="ar-sec" aria-label="Programs to prove">
         <h2>Programs to prove</h2>
         {toProve.length
@@ -136,17 +138,18 @@ export function AreaScreen({ route }: { route: Route }) {
           : <p className="sub">Every program on the area&rsquo;s lines is proved, or none is planned.</p>}
       </section>
 
-      <section className="ar-sec" aria-label="Projects on its lines">
-        <h2>Projects on its lines</h2>
+      <Fold id="area-projects" title="Projects on its lines" start={false} says={bundle.projects.length ? `${bundle.projects.length} project${bundle.projects.length === 1 ? '' : 's'} — ${bundle.projects.slice(0, 2).map(j => j.name).join(', ')}${bundle.projects.length > 2 ? ' …' : ''}` : 'None on its lines'}>
+        <section className="ar-sec" aria-label="Projects on its lines">
         {bundle.projects.length
           ? <ul className="ar-rows ar-projects">{bundle.projects.map(j => (
             <li key={j.id}><button type="button" className="ar-row" onClick={() => nav(`/project/${j.id}`)}><span className="ar-row-what">{j.name}</span><span className="ar-row-meta">on {j.lines.join(', ')}</span></button></li>
           ))}</ul>
           : <p className="sub">No project on any line of the area.</p>}
       </section>
+      </Fold>
 
-      <section className="ar-sec" aria-label="Tools used on its lines">
-        <h2>Tools used on its lines</h2>
+      <Fold id="area-tools" title="Tools used on its lines" start={false} says={tools.length ? `${tools.length} record${tools.length === 1 ? '' : 's'}, the newest ${tools[0].it.tool} on ${tools[0].p.line.name}` : 'No tool used yet'}>
+        <section className="ar-sec" aria-label="Tools used on its lines">
         {tools.length
           ? <><ul className="ar-rows ar-tools">{toolsShown.map(({ it, p }) => (
             <li key={it.key}><button type="button" className={'ar-row is-' + it.tone} onClick={() => nav(itemHref(it, p.line.id))}>
@@ -158,9 +161,10 @@ export function AreaScreen({ route }: { route: Route }) {
             {tools.length > TOOLS_FIRST && <button type="button" className="cw-link ar-more" onClick={() => setAllTools(v => !v)}>{allTools ? 'Show the newest only' : `Show all ${tools.length}`}</button>}</>
           : <p className="sub">No tool used on the area&rsquo;s lines yet.</p>}
       </section>
+      </Fold>
 
-      <section className="ar-sec" aria-label="Its machines">
-        <h2>Its machines, line by line</h2>
+      <Fold id="area-machines" title="Its machines, line by line" start={false} says={`${machineCount} machine${machineCount === 1 ? '' : 's'} on ${bundle.lines.length} line${bundle.lines.length === 1 ? '' : 's'}`}>
+        <section className="ar-sec" aria-label="Its machines">
         {bundle.bundles.flatMap(b => b.parts.map(p => {
           const ms = p.kit.machines.filter(m => m.name.trim() && m.name.trim().toLowerCase() !== 'whole line');
           return (
@@ -173,6 +177,7 @@ export function AreaScreen({ route }: { route: Route }) {
           );
         }))}
       </section>
+      </Fold>
     </div>
   );
 }

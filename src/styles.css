@@ -17733,3 +17733,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .inv-marks { margin: 4px 0 0; padding-left: 18px; }
 .inv-marks .is-g b { color: var(--st-g); } .inv-marks .is-r b { color: var(--st-r); }
 
+
+/* LINE TABS AND HUBS, CALM (10 November) — docs/DESIGN.md: a hub is a calm list of its kinds (name, one line, how many saved),
+   rows with a hairline between, each row a door; never a wall of cards. Scored registers and Calculators. */
+.hub-kinds { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.hub-kinds > li { border-bottom: 1px solid var(--line); }
+.hub-kinds .calc-card, .hub-kinds .pl-tool-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--space-3); row-gap: 2px; align-items: baseline; width: 100%; height: auto; min-height: 44px; padding: var(--space-3) var(--space-6) var(--space-3) 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; font: inherit; color: var(--ink); cursor: pointer; touch-action: manipulation; }
+.hub-kinds .calc-card:hover, .hub-kinds .pl-tool-card:hover { background: color-mix(in srgb, var(--brand) 4%, transparent); }
+.hub-kinds .calc-card:focus-visible, .hub-kinds .pl-tool-card:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.hub-kinds b { grid-column: 1; grid-row: 1; font-size: var(--t-body); }
+.hub-kinds .sub { grid-column: 1 / -1; font-size: var(--t-detail); }
+.hub-kinds .calc-card-n { grid-column: 2; grid-row: 1; white-space: nowrap; }
+.hub-kinds .pl-tool-go { position: absolute; right: var(--space-2); top: 50%; transform: translateY(-50%); grid-row: auto; grid-column: auto; }
