@@ -17750,3 +17750,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .mt-list { gap: 0; border-top: 1px solid var(--line); }
 .mt-list > .mt-row { box-shadow: none; border-radius: 0; background: transparent; border-bottom: 1px solid var(--line); }
 .mt-list > .mt-row.is-here, .mt-list > .mt-row.is-pg-proved { background: transparent; }
+/* A machine's own sections and the Programs page's lines: a heading and a hairline, not a card each — and never a card inside the
+   fold's card (docs/DESIGN.md, principle 4). The project's part on a machine (mpg-*) is the project's and keeps its own look. */
+.nv-main .wrap.lmc :is(.lmc-projects, .lmc-problems, .lmc-programs, .lmc-studies, .lmc-stops, .lmc-ident).pl-sec,
+.nv-main .wrap.lp .pl-sec.lp-line { background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; padding: var(--space-3) 0 0; }
+.nv-main .wrap.lmc .fold-b > .pl-sec { border-top: 0; margin-top: 0; }
