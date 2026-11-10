@@ -24,6 +24,8 @@ export interface ColumnProfile {
 export interface SheetProfile {
   index: number; name: string; state: 'visible' | 'hidden' | 'veryHidden'; dimension?: string;
   headerRow: number; above: string[]; rows: number; blankRows: number; chunks: number;
+  /** Of the blank rows, those holding only formulas that show nothing. */
+  formulaRows?: number;
   columns: ColumnProfile[]; hiddenColumns: string[]; merged: number;
   formulas: number; formulasNoValue: number; errors: number;
   duplicateRows: number; duplicatesChecked: number;
@@ -111,7 +113,7 @@ class SheetBuilder {
   private chunk = 0;
   private pending: Promise<void>[] = [];
   private seen = new Set<number>();
-  rows = 0; blankRows = 0; dups = 0; dupChecked = 0; formulas = 0; noValue = 0; errors = 0;
+  rows = 0; blankRows = 0; formulaRows = 0; dups = 0; dupChecked = 0; formulas = 0; noValue = 0; errors = 0;
   above: string[] = [];
   refersTo = new Set<string>();
 
@@ -123,7 +125,8 @@ class SheetBuilder {
     return c.v ?? '';
   }
   private isText = (c: RawCell): boolean => (c.t === 's' || c.t === 'inlineStr' || c.t === 'str') && this.cellText(c).trim() !== '';
-  private filled = (r: RawRow): RawCell[] => r.cells.filter(c => c.v !== undefined || (c.text ?? '') !== '');
+  /* a cell holds something when it has a value — a formula showing nothing is saved by Excel as an empty value, and is nothing */
+  private filled = (r: RawRow): RawCell[] => r.cells.filter(c => (c.v !== undefined && c.v !== '') || (c.text ?? '') !== '');
 
   private slot(col: number, name?: string): Slot {
     let s = this.slots.get(col);
@@ -133,16 +136,18 @@ class SheetBuilder {
     return s;
   }
 
-  /** The header: the first of the opening rows that is mostly words, with at least two, and a row of data after it. */
+  /** The header: of the opening rows that are mostly words, with at least two and a row of data after them, the one that names the
+   *  most columns (the earliest of equals) — so a title row above the header ("HOUR BY HOUR — ARCHIVE", a note beside it) is said as
+   *  what is above it, never taken for the header (10 November — a real workbook read with every column "Column B", "Column W"). */
   private decide(): void {
     const rows = this.head;
-    let at = -1;
+    let at = -1, most = 0;
     for (let i = 0; i < rows.length; i += 1) {
       const f = this.filled(rows[i]);
       if (f.length < 2) continue;
       const words = f.filter(this.isText).length;
       const next = rows[i + 1] ? this.filled(rows[i + 1]).length : 0;
-      if (words / f.length >= 0.6 && next >= Math.max(1, Math.ceil(f.length / 2))) { at = i; break; }
+      if (words / f.length >= 0.6 && next >= Math.max(1, Math.ceil(f.length / 2)) && words > most) { at = i; most = words; }
     }
     const used = new Map<string, number>();
     if (at >= 0) {
@@ -168,7 +173,8 @@ class SheetBuilder {
   private data(r: RawRow): void {
     const cells = this.filled(r);
     const hasF = r.cells.some(c => c.hasF);
-    if (!cells.length && !hasF) { this.blankRows += 1; return; }
+    /* a row whose cells hold nothing — formulas showing blank included (a template dragged to the foot of the sheet) — is not data */
+    if (!cells.length) { this.blankRows += 1; if (hasF) this.formulaRows += 1; return; }
     const p = this.pos;
     this.rowNums[p] = r.row;
     const parts: number[] = [];
@@ -349,7 +355,7 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
       for (const c of f.columns) c.hidden = hidden.has(c.slot);
       const dim = tagsOf(sc.head, 'dimension')[0]?.attrs('ref');
       profiles.push({
-        ...base, ...(dim ? { dimension: dim } : {}), headerRow: f.headerRow, above: b.above, rows: b.rows, blankRows: b.blankRows, chunks: f.chunks, columns: f.columns,
+        ...base, ...(dim ? { dimension: dim } : {}), headerRow: f.headerRow, above: b.above, rows: b.rows, blankRows: b.blankRows, ...(b.formulaRows ? { formulaRows: b.formulaRows } : {}), chunks: f.chunks, columns: f.columns,
         hiddenColumns: [...hidden].sort((x, y) => x - y).slice(0, 50).map(colName), merged: tagsOf(sc.tail, 'mergeCell').length,
         formulas: b.formulas, formulasNoValue: b.noValue, errors: b.errors, duplicateRows: b.dups, duplicatesChecked: b.dupChecked,
         refersTo: [...b.refersTo].filter(n => n !== s.name).slice(0, 20), read: !stopped, ...(stopped ? { why: 'Stopped part way: only the rows before the stop are read.' } : {}),

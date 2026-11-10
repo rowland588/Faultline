@@ -46,7 +46,9 @@ describe('a workbook asked in the conversation', () => {
     expect(r.says).toMatch(/“Lookups” \(hidden\)/);
     expect(r.says).toMatch(/F “Minutes” — number, \d+ blank, \d+ not numbers/);
     expect(r.says).toMatch(/C “Line” — text, .*written more than one way: “Line 3” ×[\d,]+ \/ “line 3 ” ×\d+/);
-    expect(r.says).toMatch(/formulas \(e\.g\. =F\d+\*60\), \d+ with no saved value/);
+    /* how many cells formulas work out, never a formula's text (10 November — "I see the actual formulas when I ask a question") */
+    expect(r.says).toMatch(/worked out by formulas \(\d+ with no saved value\)/);
+    expect(r.says).not.toMatch(/=F\d+\*60/);
     expect(r.says).toMatch(/In the file but NOT read: A pivot table’s cache/);
     expect(r.says).toMatch(/Links: “Machine” on Downtime and Products/);
   }, 60_000);

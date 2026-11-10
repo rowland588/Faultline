@@ -67,19 +67,21 @@ const colSaid = (c: ColumnProfile, rows: number): string => {
   if (c.counts.error) bits.push(`${n(c.counts.error)} errors (${Object.keys(c.errors ?? {}).join(', ')})`);
   if (c.min !== undefined && c.max !== undefined) bits.push(c.type === 'date' ? `${new Date(c.min).toISOString().slice(0, 10)} to ${new Date(c.max).toISOString().slice(0, 10)}` : `${n(c.min)} to ${n(c.max)}`);
   if (c.distinct !== undefined && c.type === 'text') bits.push(`${n(c.distinct)} different${c.distinct <= 12 && c.top ? `: ${c.top.map(t => t[0]).join(', ')}` : ''}`);
-  if (c.formulas) bits.push(`${n(c.formulas)} formulas (e.g. =${c.formula ?? ''})${c.formulasNoValue ? `, ${n(c.formulasNoValue)} with no saved value` : ''}`);
+  /* how many cells are worked out by a formula — never the formula's text: it is the workbook's working, not its data, and read out it buries the answer */
+  if (c.formulas) bits.push(`${n(c.formulas)} worked out by formulas${c.formulasNoValue ? ` (${n(c.formulasNoValue)} with no saved value)` : ''}`);
   if (c.variants?.length) bits.push(`written more than one way: ${c.variants.map(v => v.map(x => `“${x[0]}” ×${n(x[1])}`).join(' / ')).join('; ')}`);
   if (c.hidden) bits.push('hidden');
   if (!c.named) bits.push('no header');
   return `${c.letter} “${c.name}” — ${bits.join(', ')}${rows ? '' : ''}`;
 };
-function sheetSaid(s: SheetProfile, full: boolean): string {
+/** One sheet as Luna is told it — its rows, header, what is wrong and each column (exported for its test). */
+export function sheetSaid(s: SheetProfile, full: boolean): string {
   if (!s.read && !s.rows) return `“${s.name}” (${s.state}) — not read: ${s.why ?? ''}`;
   const head = `“${s.name}”${s.state !== 'visible' ? ` (${s.state === 'veryHidden' ? 'very hidden' : 'hidden'})` : ''} — ${plural(s.rows, 'row')} of data under the header in row ${s.headerRow}${s.above.length ? ` (above it: ${s.above.join(' / ')})` : ''}${s.read ? '' : ` — PARTIAL: ${s.why}`}`;
   const issues = [
     s.duplicateRows ? `${plural(s.duplicateRows, 'row')} repeated exactly${s.duplicatesChecked < s.rows ? ` (in the first ${n(s.duplicatesChecked)} checked)` : ''}` : '',
     s.formulasNoValue ? `${plural(s.formulasNoValue, 'formula')} with no saved value (Faultline does not recalculate Excel)` : '',
-    s.blankRows ? `${plural(s.blankRows, 'blank row')} skipped` : '',
+    s.blankRows ? `${plural(s.blankRows, 'blank row')} skipped${s.formulaRows ? ` (${n(s.formulaRows)} of them hold only formulas showing nothing)` : ''}` : '',
     s.merged ? `${plural(s.merged, 'merged range')}` : '',
     s.refersTo.length ? `formulas refer to ${s.refersTo.map(x => `“${x}”`).join(', ')}` : '',
     s.tables.length ? `tables: ${s.tables.join(', ')}` : '',
