@@ -60,12 +60,16 @@ export const PAGES = (sd, cap) => [
     { what: 'each line: when anyone last looked at it', sel: '.fac-floor .fac-card-looked', text: /^(Looked at|Last looked at|Not looked at|Nothing recorded)/ },
     { what: 'each line\'s projects, or none', sel: '.fac-floor .fac-card-projects', text: /^(Projects: |No project on it)/ },
     { what: 'Set up the lines', sel: '.fac-home .pl-sec-acts .btn', text: /^Set up the lines$/ },
-    { what: 'this week, across every line and project', sel: '.jb-week' },
-    { what: 'the projects on one timeline', sel: '.jb-gantt', desk: true },
+    /* EVERY PROJECT, ONE FOLD (10 November — Rowland: "these dashboards are going to be cleaner. Too busy … Everything is too busy"):
+       the control-room band, who owes what, no date agreed, this week and the timeline are inside "Every project — the control
+       room" (ui/Fold, shut until opened); the inventory opens every shut .fold first, as on every page — the closing line stays outside */
+    { what: 'every project in one fold — Every project — the control room, its one line the band\'s sentence', sel: '[data-fold="control-room"] .fold-t', text: /^Every project — the control room$/ },
+    { what: 'this week, across every line and project (inside the fold)', sel: '.jb-week' },
+    { what: 'the projects on one timeline (inside the fold)', sel: '.jb-gantt', desk: true },
     /* the lean page (17 October, slice 5; lib/roomLean): each number in the band says what it is of, the money is the slips' cost, and the board closes on one line */
-    { what: 'what each number in the band is of', sel: '.jb-hero .jb-of', n: 3 },
-    { what: 'what the slips cost', sel: '.jb-stat.is-money' },
-    { what: 'the closing line', sel: '.jb > .ln-close' },
+    { what: 'what each number in the band is of (inside the fold)', sel: '.jb-hero .jb-of', n: 3 },
+    { what: 'what the slips cost (inside the fold)', sel: '.jb-stat.is-money' },
+    { what: 'the closing line, last, outside the fold', sel: '.jb > .ln-close' },
   ] },
   /* AREAS (9 November — Rowland: "on factory page we need area.. then each area will have lines in them we need area reports show
      everything happening in the area"; lib/areas): the Lines tab an area a section; the area's own page and its report */

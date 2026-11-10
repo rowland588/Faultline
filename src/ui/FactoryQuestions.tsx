@@ -77,6 +77,10 @@ function WrongRows({ rows, open, priced }: { rows: WrongRow[]; open: number; pri
   );
 }
 
+/* THREE ROWS AN ANSWER (10 November — Rowland: "Too busy. Things need to be simplified"): each answer shows its first three, the
+   rest one tap away under its All … link */
+const ANSWER_ROWS = 3;
+
 function DoingRows({ rows }: { rows: ProjectAction[] }) {
   if (!rows.length) return <p className="fq-none">Nothing owed.</p>;
   return (
@@ -101,7 +105,7 @@ function WorkedRows({ q }: { q: FourQuestions }) {
   if (!q.worked.proved.length) return <p className="fq-none">No fix proved yet — a countermeasure done, then the same number counted again, is what proves one.</p>;
   return (
     <ul className="fq-rows">
-      {q.worked.proved.slice(0, 5).map(f => (
+      {q.worked.proved.slice(0, ANSWER_ROWS).map(f => (
         <li key={f.id}>
           <button type="button" className="fq-row" onClick={() => nav(f.projectId ? `/project/${f.projectId}` : `/lines/${f.lineId}`)}>
             <span className="fq-pill is-g">Held</span>
@@ -124,10 +128,10 @@ export function QuestionPanels({ q, lines, projects }: { q: FourQuestions | null
       {lines ? <div className="fq-lines">{lines}</div> : null}
       <div className="fq-answers" aria-label="The answers">
         <Panel id="fq-wrong" title="What’s going wrong" all={{ label: 'All problems', to: '/snags' }}>
-          {q ? <WrongRows rows={q.wrong.top} open={q.wrong.open} priced={q.wrong.priced} /> : <p className="fq-none">Reading…</p>}
+          {q ? <WrongRows rows={q.wrong.top.slice(0, ANSWER_ROWS)} open={q.wrong.open} priced={q.wrong.priced} /> : <p className="fq-none">Reading…</p>}
         </Panel>
         <Panel id="fq-doing" title="What needs doing" all={{ label: 'All actions', to: '/actions' }}>
-          {q ? <DoingRows rows={q.doing.top} /> : <p className="fq-none">Reading…</p>}
+          {q ? <DoingRows rows={q.doing.top.slice(0, ANSWER_ROWS)} /> : <p className="fq-none">Reading…</p>}
           {q && q.who.people.length > 0 && (
             <p className="fq-foot" id="fq-who">{q.who.people.slice(0, 4).map(p => `${p.name} ${p.open}${p.late ? ` (${p.late} late)` : ''}`).join(' · ')}{q.who.nobody ? ` · nobody yet ${q.who.nobody}` : ''}</p>
           )}

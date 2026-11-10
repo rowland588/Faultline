@@ -17766,3 +17766,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .doc-form .fold-h { flex-wrap: wrap; gap: 0 var(--space-3); padding: 0 0 var(--space-2); }
   .doc-form .fold-s { white-space: normal; }
 }
+/* FACTORY, CALMER (10 November) — Rowland: "Too busy. Things need to be simplified". The projects' board is one fold (ui/Fold,
+   "Every project — the control room") under the three answers: it spans the page as they do, the closing line under it */
+.fq-grid > .fq-projects { align-self: stretch; }
+.fq-projects .jb > .fold { margin: 0; }
