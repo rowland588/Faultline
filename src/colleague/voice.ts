@@ -25,11 +25,29 @@ const synth = (): Synth | undefined => (typeof window !== 'undefined' && 'speech
 /** Whether this device can speak at all. */
 export const canSpeak = (): boolean => !!synth() && typeof SpeechSynthesisUtterance !== 'undefined';
 
-/** The voice: British English first, then any English. */
+/* LUNA'S VOICE IS A WOMAN'S (10 November — Rowland, on a laptop: "The voice is male … I changed it in my laptop settings to female,
+   but it hasn't changed in the app"): a browser keeps its own list of voices, and the first British one is often a man's (Windows'
+   "Microsoft George"), so a female voice is looked for by the names the systems give theirs. A voice picked in her voice settings
+   always wins (voicePrefs). */
+const FEMALE = /female|woman|hazel|susan|libby|sonia|maisie|mia|abbi|bella|hollie|olivia|kate|serena|stephanie|martha|fiona|moira|tessa|karen|samantha|victoria|allison|ava|susan|zira|aria|jenny|michelle|emma|ana\b|natasha|clara|emily|amy|catherine|google uk english female/i;
+const MALE = /\bmale\b|george|ryan|thomas|alfie|elliot|ethan|noah|oliver|daniel|arthur|guy|david|mark|james|fred|alex\b|aaron|gordon|google uk english male/i;
+const isFemale = (name: string) => FEMALE.test(name) && !/\bmale\b/i.test(name.replace(/female/ig, ''));
+
+/** The voice: a British woman's first, then any English woman's, then the device's default if it is English and not a man's, then
+ *  British English, then any English. */
 export function pickVoice(voices: readonly Pick<SpeechSynthesisVoice, 'lang' | 'name' | 'default'>[]): number {
-  const gb = voices.findIndex(v => /^en[-_]GB/i.test(v.lang));
-  if (gb >= 0) return gb;
-  return voices.findIndex(v => /^en/i.test(v.lang));
+  const gb = (v: { lang: string }) => /^en[-_]GB/i.test(v.lang);
+  const en = (v: { lang: string }) => /^en/i.test(v.lang);
+  const tries: ((v: Pick<SpeechSynthesisVoice, 'lang' | 'name' | 'default'>) => boolean)[] = [
+    v => gb(v) && isFemale(v.name),
+    v => en(v) && isFemale(v.name),
+    v => en(v) && v.default && !MALE.test(v.name),
+    v => gb(v) && !MALE.test(v.name),
+    gb,
+    en,
+  ];
+  for (const t of tries) { const i = voices.findIndex(t); if (i >= 0) return i; }
+  return -1;
 }
 
 let speakingNow = false;

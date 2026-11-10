@@ -11,6 +11,11 @@ describe('voice', () => {
     expect(pickVoice([{ lang: 'fr-FR', name: 'a', default: true }, { lang: 'en-US', name: 'b', default: false }, { lang: 'en-GB', name: 'c', default: false }])).toBe(2);
     expect(pickVoice([{ lang: 'de-DE', name: 'a', default: true }, { lang: 'en-US', name: 'b', default: false }])).toBe(1);
     expect(pickVoice([{ lang: 'de-DE', name: 'a', default: true }])).toBe(-1);
+    /* Luna's voice is a woman's — a laptop listing Microsoft George first (10 November) */
+    expect(pickVoice([{ lang: 'en-GB', name: 'Microsoft George - English (United Kingdom)', default: false }, { lang: 'en-GB', name: 'Microsoft Hazel - English (United Kingdom)', default: false }])).toBe(1);
+    expect(pickVoice([{ lang: 'en-GB', name: 'Google UK English Male', default: false }, { lang: 'en-GB', name: 'Google UK English Female', default: false }])).toBe(1);
+    expect(pickVoice([{ lang: 'en-GB', name: 'Daniel', default: false }, { lang: 'en-US', name: 'Samantha', default: false }])).toBe(1);
+    expect(pickVoice([{ lang: 'en-GB', name: 'Microsoft George', default: false }, { lang: 'en-US', name: 'Microsoft Guy', default: true }])).toBe(0);
   });
 });
 
