@@ -17888,3 +17888,16 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .pl-carry-says { grid-column: 1; font-size: var(--t-detail); line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
 .pl-carry-says.is-n, .pl-carry-says.is-w, .pl-carry-says.is-g { color: var(--ink); font-weight: 400; }
 .pl-carry-go { grid-column: 2; grid-row: 1 / span 3; color: var(--muted); font-size: var(--t-h); }
+
+/* TOOL RECORDS, CALM (10 November) — docs/DESIGN.md: a record's secondary parts on the canvas, not in boxes. An action plan with
+   nothing in it one quiet line (ui/Lean LeanPlan); notes with nothing written the box under its word (ui/Commentary); the
+   secondary blocks of a busy record in the one fold (ui/Fold). */
+.ln-plan-quiet { margin: var(--space-3) 0 var(--space-5); padding: var(--space-3) 0 0; border-top: 1px solid var(--line-row); font-size: var(--t-detail); }
+.ln-plan-quiet b { color: var(--ink); font-weight: 600; }
+.cmt-quiet { margin: var(--space-3) 0 var(--space-5); padding: var(--space-3) 0 0; border-top: 1px solid var(--line-row); }
+.cmt-quiet .cmt-h { margin: 0 0 var(--space-2); font-size: var(--t-body); font-weight: 600; color: var(--ink); }
+.cmt-quiet > .sub { margin: 0 0 var(--space-2); }
+.cmt-quiet .rl-rem:empty { display: none; }
+.rec-fold { margin: var(--space-3) 0; }
+/* a cost that waits on a missing input says so as a line on the canvas, not a box (the line balance's What it costs) */
+.wb-cost.is-n { background: none; border: 0; border-top: 1px solid var(--line-row); border-radius: 0; box-shadow: none; padding: var(--space-3) 0 0; }

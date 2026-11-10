@@ -44,7 +44,7 @@ import { capacityForCount } from '../../ui/ShiftLosses';
 import { constraintShare, lineConstraint, type ConstraintShare, type LineConstraint } from '../../lib/intelligence';
 import { lossLean, lossPart, raisedFrom } from './lossLean';
 import { SpeedLossPanel } from './SpeedLossPanel';
-import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../../ui/Lean';
+import { LeanPlan, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../../ui/Lean';
 
 const OWNER = canAt('owner');
 
@@ -167,18 +167,17 @@ function Losses({ s, line, obs, rate, can, me, constraint, counts }: { s: ToolSt
       </div>
       {f.enough && f.bars.length > 0 && <LeanPanel title="Top causes" className="ln-solo"><div className="lf-tab"><CauseTable f={f} branches={branches} onOpen={setViewing} onC={onC} /></div></LeanPanel>}
       {f.enough && f.split && <SpeedLossPanel s={s} f={f} editable={editable} />}
-      <div className="ln-grid">
-        <LeanPanel title="What it means">
+      {/* with no action yet, what it means across and the plan one quiet line under it (docs/DESIGN.md — no empty box) */}
+      <div className={lean.actions.length ? 'ln-grid' : 'ln-stack'}>
+        <LeanPanel title="What it means" className={lean.actions.length ? '' : 'ln-solo'}>
           <div className="ie-says">
             <p className={'ie-say is-' + said.tone}>{said.text}</p>
             {s.overrule && <p className="ie-say ie-over"><b>{s.overrule.verdict}</b> · overruled{s.overrule.by ? ` by ${s.overrule.by}` : ''} — {s.overrule.why}</p>}
             <LeanInsights insights={lean.insights} />
           </div>
         </LeanPanel>
-        <LeanPanel title="Action plan" className="ln-plan-p">
-          <LeanActions actions={lean.actions} empty={lean.actionsEmpty}
+        <LeanPlan className="" actions={lean.actions} empty={lean.actionsEmpty}
             onOpen={a => { if (s.projectId && a.open) nav(recordHref(s.projectId, { kind: a.open.kind, ref: a.open.ref })); }} />
-        </LeanPanel>
       </div>
       <LeanClosing closing={lean.closing} />
 

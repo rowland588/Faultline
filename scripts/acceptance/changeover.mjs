@@ -102,7 +102,12 @@ const truth = sid => page.evaluate(async sid => {
     rungs: { now: C.mins(l.now.elapsedSec), separated: C.mins(l.separated.elapsedSec), converted: C.mins(l.converted.elapsedSec), streamlined: C.mins(l.streamlined.elapsedSec) },
     planCols: plan.cols.map(c => c.ids.length), planElapsed: C.mins(plan.elapsedSec), f };
 }, sid);
-const says = async () => (await page.locator('.ie-says p.ie-say').allTextContents()).map(x => x.replace(/\s+/g, ' ').trim());
+/* the money, the kinds of work and how often sit in the record's one fold (docs/DESIGN.md, 10 November) — opened as a person would */
+const says = async () => {
+  const t = page.locator('.ie-says [data-fold="smed-more"]:not(.is-open) .fold-toggle');
+  if (await t.count()) { await t.first().click(); await page.waitForTimeout(200); }
+  return (await page.locator('.ie-says p.ie-say').allTextContents()).map(x => x.replace(/\s+/g, ' ').trim());
+};
 
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());

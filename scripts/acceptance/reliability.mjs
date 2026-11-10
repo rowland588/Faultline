@@ -79,7 +79,10 @@ await page.clock.install();
 const errs = [];
 page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text()); });
 page.on('pageerror', e => errs.push(e.message));
-const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); await openLineMore(page); };  /* a line's Overview: More about this line opened first, as a person would (10 November) */
+/* the deeper readings (repair times, calls, growth, a part that wears, the days) sit in the record's one fold (docs/DESIGN.md,
+   10 November) — opened as a person would, the choice then kept on this device for every page after */
+const openMore = async (pg = page) => { for (const t of await pg.locator('[data-fold="rel-more"]:not(.is-open) .fold-toggle').all()) { await t.click(); await pg.waitForTimeout(150); } };
+const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); await openLineMore(page); await openMore(); };
 const shot = async name => { if (SHOTS) await page.screenshot({ path: join(SHOTS, `${name}.png`), fullPage: true }); };
 const pdfText = async click => {
   const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), click()]);
@@ -117,7 +120,7 @@ const truth = id => page.evaluate(async sid => {
     agreed: a, stretches: (s.facts.watch ?? []).length, events: (s.facts.events ?? []).length, remarks: (s.facts.remarks ?? []).filter(r => !r.struck).map(r => r.text) };
 }, id);
 const screenTiles = async () => (await page.locator('.rl-counted .ie-strip .ln-tile').evaluateAll(els => els.map(e => [e.querySelector('.ln-k')?.textContent?.trim(), e.querySelector('.ln-v')?.textContent?.trim()])));
-const seeFor = async title => { await page.locator('.rl-seen').getByRole('button', { name: title, exact: true }).click(); await page.waitForTimeout(250); };
+const seeFor = async title => { await page.locator('.rl-seen').getByRole('button', { name: title, exact: true }).click(); await page.waitForTimeout(250); await openMore(); };
 const countBtn = name => page.locator('.rl-buttons').getByRole('button', { name: `Tap a ${name}`, exact: true });
 
 /* ---- 1 the rail, the list ---- */
@@ -512,6 +515,7 @@ const lineCost = { crew: 4, labourRatePerHour: 12, labourBurden: 1.25, packsPerM
     ok(Math.abs(t.r.median - 2) < 0.3 && Math.abs(t.r.mean - 2.6) < 0.3 && t.r.helped === 2, '12 by hand: median 2 min, mean 2.6 min, two with a help stamp', JSON.stringify(t.r));
     ok(Math.abs(t.downH * 60 - 13) < 0.5 && Math.abs((t.watchedH - t.hours) * 60 - 13) < 0.5, '12 the running time is the watch less the stops’ 13 minutes', JSON.stringify({ h: t.hours, w: t.watchedH, d: t.downH }));
     ok(JSON.stringify(await screenTiles()) === JSON.stringify(t.tiles) && t.tiles.some(x => x[0] === 'Repair time') && t.tiles.some(x => x[0] === 'Available'), '12 every tile — Repair time and Available among them — as the module says', JSON.stringify(await screenTiles()));
+    await openMore();
     ok(flat(await page.locator('[data-repair]').innerText()) === t.repairSays && /^5 of 5 stops timed: typically/.test(t.repairSays), '12 the repair sentence as the module says', await page.locator('[data-repair]').innerText());
     const ins = (await page.locator('.rl-repair-p .ln-ins li').allInnerTexts()).map(flat);
     ok(t.repairIns.length >= 2 && t.repairIns.every(x => ins.some(y => y.includes(x))), '12 what it means as the module says', `${ins.join(' | ')} vs ${t.repairIns.join(' | ')}`);

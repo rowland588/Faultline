@@ -34,7 +34,7 @@ import { TOOL_WORDS } from '../../screens/StudiesScreen';
 import { walkVerdict } from '../../lib/ie/walk';
 import { analyse } from '../linebalance/capacity';
 import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
-import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
+import { LeanPlan, LeanClosing, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { momentsAt, personRate, samplingClosing, samplingTiles } from './samplingLean';
 import { raisedFrom } from '../losses/lossLean';
@@ -122,9 +122,7 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
           <Commentary s={s} canEdit={can.edit} title="Notes" folded />
           <UsedFor s={s} can={can} me={me} />
           <Act s={s} a={a} taps={taps} text={said.text} can={can} me={me} />
-          <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
-            <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from its biggest share." />
-          </LeanPanel>
+          <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from its biggest share." />
           <LeanClosing closing={samplingClosing(a, taps, said, rate)} />
         </>
       )}

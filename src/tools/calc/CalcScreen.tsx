@@ -28,7 +28,7 @@ import { studyHref } from '../../lib/studyLinks';
 import { PageHeader, Section } from '../../ui/parts';
 import { Sheet } from '../../ui/Sheet';
 import { ProjectScopeChips } from '../../ui/ProjectScope';
-import { LeanActions, LeanClosing, LeanPanel } from '../../ui/Lean';
+import { LeanPlan, LeanClosing } from '../../ui/Lean';
 import { StudyBand, removeStudy, StudyRowName } from '../../ui/StudyActs';
 import { UsedFor, WhereItSits, useBetter } from '../../ui/StudyPlace';
 import { raisedFrom } from '../losses/lossLean';
@@ -446,9 +446,7 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
       </div>
       <Commentary s={s} canEdit={can.edit} title="Notes" folded />
       <UsedFor s={s} can={can} me={me} />
-      <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
-        <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from what it found." />
-      </LeanPanel>
+      <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from what it found." />
       {r && <LeanClosing closing={{ text: r.closing, tone: r.tone }} />}
       {s.createdAt && <p className="sub calc-when">Started {niceDay(isoDay(s.startedAt))}{s.updatedAt ? ` · last changed ${niceDay(isoDay(s.updatedAt))}` : ''}.</p>}
     </div>

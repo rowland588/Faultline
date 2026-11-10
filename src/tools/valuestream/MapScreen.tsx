@@ -35,7 +35,7 @@ import { KIND_WORD, StepFacts, VALUE_CODE, VALUE_WORD, ValueStreamGrid, WalkIt }
 import { offerUndo } from '../../ui/Undo';
 import { UsedFor, useBetter, WhereItSits } from '../../ui/StudyPlace';
 import { StudyBand } from '../../ui/StudyActs';
-import { LeanActions, LeanClosing, LeanPanel } from '../../ui/Lean';
+import { LeanPlan, LeanClosing } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { flowClosing, flowMoneyTiles } from './flowLean';
 import { raisedFrom } from '../losses/lossLean';
@@ -267,9 +267,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
 
 
       {/* WHAT WE ARE DOING ABOUT IT — what was raised from a step's wait or waste */}
-      <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
-        <LeanActions actions={raisedFrom(s, steps, tests, step => list.find(x => x.id === step)?.name)} empty="Nothing raised from it yet — tap a red step's wait or waste and Make it better." />
-      </LeanPanel>
+      <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests, step => list.find(x => x.id === step)?.name)} empty="Nothing raised from it yet — tap a red step's wait or waste and Make it better." />
       <Commentary s={s} canEdit={can.edit} title="Notes" folded="menu" open={noting} />
       <UsedFor s={s} can={can} me={me} />
       <LeanClosing closing={flowClosing(f, a)} />
