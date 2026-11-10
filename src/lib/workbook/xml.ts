@@ -29,7 +29,7 @@ export function cellRef(ref: string): { col: number; row: number } {
 export function colName(n: number): string { let s = ''; for (n += 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s; return s; }
 
 export interface RawCell { col: number; t: string; s: number; v?: string; f?: string; hasF: boolean; text?: string }
-export interface RawRow { row: number; cells: RawCell[] }
+export interface RawRow { row: number; cells: RawCell[]; /** Hidden — by a filter, or by hand. */ hidden?: boolean }
 
 const CELL = /<c\b([^>]*?)(\/>|>([\s\S]*?)<\/c>)/g;
 const V = /<v>([\s\S]*?)<\/v>/;
@@ -56,7 +56,7 @@ function parseRow(xml: string, rowTag: string, next: number): RawRow {
     if (t === 'inlineStr' && inner) { let x = ''; T.lastIndex = 0; for (let tm = T.exec(inner); tm; tm = T.exec(inner)) x += tm[1] ?? ''; text = unX(unescapeXml(x)); }
     cells.push({ col, t, s, ...(vm ? { v: unescapeXml(vm[1]) } : {}), ...(fm && fm[1] ? { f: unescapeXml(fm[1]) } : {}), hasF: !!fm, ...(text !== undefined ? { text } : {}) });
   }
-  return { row, cells };
+  return { row, cells, ...(/^(1|true)$/.test(attr(rowTag, 'hidden') ?? '') ? { hidden: true } : {}) };
 }
 
 /** A worksheet scanned as it streams: `head` is everything before the rows (columns, hidden flags), `tail` after them (merged cells). */

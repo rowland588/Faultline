@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { zipSync, strToU8 } from 'fflate';
 import { readWorkbook } from '../read';
+import { runQuery } from '../query';
 import { MemoryStore } from '../store';
 import type { ByteSource } from '../zip';
 import { sheetSaid } from '../../../capabilities/workbook';
@@ -21,18 +22,20 @@ const cellXml = (r: number, c: number, v: Cell): string => {
   const val = v.v === undefined ? '' : `<v>${esc(String(v.v))}</v>`;
   return `<c r="${ref}"${typeof v.v === 'string' ? ' t="str"' : ''}><f>${esc(v.f)}</f>${val}</c>`;
 };
-const sheetXml = (rows: [number, Cell[]][]): string =>
+type Filter = { ref: string; colId: number; hidden: Set<number> };
+const sheetXml = (rows: [number, Cell[]][], f?: Filter): string =>
   `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${
-    rows.map(([r, cells]) => `<row r="${r}">${cells.map((v, c) => (v === '' ? '' : cellXml(r, c, v))).join('')}</row>`).join('')
-  }</sheetData></worksheet>`;
+    rows.map(([r, cells]) => `<row r="${r}"${f?.hidden.has(r) ? ' hidden="1"' : ''}>${cells.map((v, c) => (v === '' ? '' : cellXml(r, c, v))).join('')}</row>`).join('')
+  }</sheetData>${f ? `<autoFilter ref="${f.ref}"><filterColumn colId="${f.colId}"><filters><dateGroupItem year="2026" month="10" dateTimeGrouping="month"/></filters></filterColumn></autoFilter>` : ''}</worksheet>`;
+const absRef = (ref: string): string => ref.split(':').map(x => x.replace(/^([A-Z]+)(\d+)$/, '$$$1$$$2')).join(':');
 
-function workbook(sheets: { name: string; rows: [number, Cell[]][] }[]): Uint8Array {
+function workbook(sheets: { name: string; rows: [number, Cell[]][]; filter?: Filter }[]): Uint8Array {
   const files: Record<string, Uint8Array> = {
     '[Content_Types].xml': strToU8('<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>'),
-    'xl/workbook.xml': strToU8(`<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s, i) => `<sheet name="${esc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>`),
+    'xl/workbook.xml': strToU8(`<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s, i) => `<sheet name="${esc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets><definedNames>${sheets.map((s, i) => (s.filter ? `<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">'${esc(s.name)}'!${absRef(s.filter.ref)}</definedName>` : '')).join('')}</definedNames></workbook>`),
     'xl/_rels/workbook.xml.rels': strToU8(`<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}</Relationships>`),
   };
-  sheets.forEach((s, i) => { files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(sheetXml(s.rows)); });
+  sheets.forEach((s, i) => { files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(sheetXml(s.rows, s.filter)); });
   return zipSync(files);
 }
 const bytes = (b: Uint8Array): ByteSource => ({ size: b.length, read: async (s, e) => b.subarray(s, e) });
@@ -74,6 +77,26 @@ describe('a site’s workbook read as it is', () => {
     const said = sheetSaid(p.sheets[0], true);
     expect(said).toMatch(/3 rows of data under the header in row 4/);
     expect(said).toMatch(/5,000 of them hold only formulas showing nothing/);
+  });
+
+  it('a filter on the archive (on Date, Rowland’s): its header the filter’s first row, the rows it hides counted, each row Shown by the filter yes or no — so a question can be asked of what was on screen', async () => {
+    /* the filter's range starts at the header row 3 — even with a longer, wordier title above it */
+    const titled: [number, Cell[]][] = [[1, ['HOUR BY HOUR — ARCHIVE', 'values only', 'no formulas', 'copied weekly', 'by the shift lead', 'do not edit', 'see REF', 'and the rota']], ...archive.slice(1)];
+    const hidden = new Set(Array.from({ length: 20 }, (_, i) => 4 + i));
+    const store = new MemoryStore();
+    const p = await readWorkbook(bytes(workbook([{ name: 'HBH Archive', rows: titled, filter: { ref: 'A3:G33', colId: 1, hidden } }])), store, { id: 'f', name: 'copy.xlsx' });
+    const s = p.sheets[0];
+    expect(s.headerRow).toBe(3);
+    expect(s.columns.slice(0, 7).map(c => c.name)).toEqual(HEAD);
+    expect(s.rows).toBe(30);
+    expect(s.filter).toEqual({ ref: 'A3:G33', on: ['Date'], hiddenRows: 20 });
+    expect(s.columns.find(c => c.name === 'Shown by the filter')?.type).toBe('yes/no');
+    const all = await runQuery(store, p, { sheet: 'HBH Archive', measures: [{ op: 'sum', column: 'Minutes' }] });
+    const shown = await runQuery(store, p, { sheet: 'HBH Archive', filters: [{ column: 'Shown by the filter', op: 'eq', value: 'yes' }], measures: [{ op: 'sum', column: 'Minutes' }] });
+    expect(all.rowsMatched).toBe(30);
+    expect(shown.rowsMatched).toBe(10);
+    expect(shown.totals[0]).toBe(Array.from({ length: 10 }, (_, i) => 30 + i).reduce((a, b) => a + b, 0));
+    expect(sheetSaid(s, true)).toMatch(/A filter is on \(A3:G33, on Date\): 20 of the 30 rows are hidden by it/);
   });
 
   it('what Luna is told never quotes a formula — only how many cells are worked out by one', async () => {

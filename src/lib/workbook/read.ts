@@ -26,6 +26,9 @@ export interface SheetProfile {
   headerRow: number; above: string[]; rows: number; blankRows: number; chunks: number;
   /** Of the blank rows, those holding only formulas that show nothing. */
   formulaRows?: number;
+  /** A filter on the sheet (Excel's AutoFilter): the range it covers, the columns it filters on, and the data rows it hides. Every row
+   *  carries "Shown by the filter" (yes/no), so a question can be asked of what the person was looking at or of every row. */
+  filter?: { ref: string; on: string[]; hiddenRows: number };
   columns: ColumnProfile[]; hiddenColumns: string[]; merged: number;
   formulas: number; formulasNoValue: number; errors: number;
   duplicateRows: number; duplicatesChecked: number;
@@ -117,7 +120,10 @@ class SheetBuilder {
   above: string[] = [];
   refersTo = new Set<string>();
 
-  constructor(private sheet: number, private store: WorkbookStore, private strings: StringTable, private dates: Set<number>, private epoch: number) {}
+  hiddenRows = 0;
+  private shown?: Slot;
+  get hasFilter(): boolean { return !!this.shown; }
+  constructor(private sheet: number, private store: WorkbookStore, private strings: StringTable, private dates: Set<number>, private epoch: number, private filterRow?: number) {}
 
   private cellText(c: RawCell): string {
     if (c.t === 's') return this.strings.list[Number(c.v)] ?? '';
@@ -149,6 +155,8 @@ class SheetBuilder {
       const next = rows[i + 1] ? this.filled(rows[i + 1]).length : 0;
       if (words / f.length >= 0.6 && next >= Math.max(1, Math.ceil(f.length / 2)) && words > most) { at = i; most = words; }
     }
+    /* a filter on the sheet starts at its header: Excel's own word for which row names the columns */
+    if (this.filterRow) { const fi = rows.findIndex(r => r.row === this.filterRow); if (fi >= 0 && this.filled(rows[fi]).length) at = fi; }
     const used = new Map<string, number>();
     if (at >= 0) {
       for (let i = 0; i < at; i += 1) { const t = this.filled(rows[i]).map(c => this.cellText(c).trim()).filter(Boolean).join(' · '); if (t) this.above.push(t.slice(0, 200)); }
@@ -161,6 +169,7 @@ class SheetBuilder {
         this.slot(c.col, n);
       }
     } else this.header = 0;
+    if (this.filterRow) this.shown = this.slot(16_383, 'Shown by the filter');
     for (const r of rows) if (r.row > this.header) this.data(r);
     this.head = [];
   }
@@ -205,6 +214,10 @@ class SheetBuilder {
       else if (kind === Kind.Str) { s.c.text += 1; const d = s.distinct; if (d) { const was = d.get(val); if (was !== undefined) d.set(val, was + 1); else if (d.size < DISTINCT_CAP) d.set(val, 1); else s.distinct = null; } }
       else if (kind === Kind.Bool) s.c.bool += 1;
       else { s.c.error += 1; this.errors += 1; s.errors.set(val, (s.errors.get(val) ?? 0) + 1); }
+    }
+    if (this.shown) {
+      const sh = this.shown; sh.kinds[p] = Kind.Bool; sh.vals[p] = r.hidden ? 0 : 1; sh.c.bool += 1;
+      if (r.hidden) this.hiddenRows += 1;
     }
     if (this.dupChecked < DUP_CAP && parts.length) {
       this.dupChecked += 1;
@@ -282,6 +295,14 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
   const sheets = sheetTags.map((s, i) => ({ index: i, name: s.attrs('name') ?? `Sheet ${i + 1}`, state: (s.attrs('state') ?? 'visible') as SheetProfile['state'], part: wbRels.get(s.attrs('r:id') ?? '') ?? '' }));
   const names = tagsOf(wbXml, 'definedName').map(d => { const local = d.attrs('localSheetId'); return { name: d.attrs('name') ?? '', ref: d.inner.replace(/&amp;/g, '&').trim(), ...(local !== undefined ? { sheet: sheets[Number(local)]?.name } : {}), hidden: /^(1|true)$/.test(d.attrs('hidden') ?? '') }; }).filter(n => !n.name.startsWith('_xlnm._FilterDatabase'));
   const dates = dateStyles((await get('xl/styles.xml')) ?? '');
+  /* each sheet's filter, as Excel names it in the workbook (_xlnm._FilterDatabase, one a sheet): its range, so its first row is the header */
+  const filters = new Map<number, { ref: string; row: number }>();
+  for (const d of tagsOf(wbXml, 'definedName')) {
+    if (d.attrs('name') !== '_xlnm._FilterDatabase') continue;
+    const local = Number(d.attrs('localSheetId')); const ref = d.inner.replace(/&amp;/g, '&').trim().replace(/^.*!/, '').replace(/\$/g, '');
+    const m = /^[A-Z]+(\d+)/.exec(ref);
+    if (Number.isInteger(local) && m) filters.set(local, { ref, row: Number(m[1]) });
+  }
 
   /* what is in the file but is not read — said, never ignored */
   const notRead: WorkbookProfile['notRead'] = [];
@@ -343,7 +364,8 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
     const empty = { headerRow: 0, above: [], rows: 0, blankRows: 0, chunks: 0, columns: [], formulas: 0, formulasNoValue: 0, errors: 0, duplicateRows: 0, duplicatesChecked: 0, refersTo: [] };
     if (opts.signal?.stopped) { partial = true; profiles.push({ ...base, ...empty, read: false, why: 'Stopped before this sheet was read.' }); continue; }
     if (!e) { profiles.push({ ...base, ...empty, read: false, why: /chartsheet/.test(s.part) ? 'A chart sheet — it holds a chart, not cells.' : 'Its part is missing from the file.' }); continue; }
-    const b = new SheetBuilder(s.index, store, strings, dates, epoch);
+    const fl = filters.get(s.index);
+    const b = new SheetBuilder(s.index, store, strings, dates, epoch, fl?.row);
     const sc = new SheetScanner(r => b.row(r));
     try {
       for await (const t of entryText(src, e, { signal: opts.signal, onRead: x => opts.onProgress?.({ stage: s.name, done: before + x, total }) })) { sc.feed(t); await b.drain(); }
@@ -354,8 +376,13 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
       for (const c of tagsOf(sc.head, 'col')) if (/^(1|true)$/.test(c.attrs('hidden') ?? '')) for (let i = Number(c.attrs('min')) - 1; i < Number(c.attrs('max')) && i < 16_384; i += 1) hidden.add(i);
       for (const c of f.columns) c.hidden = hidden.has(c.slot);
       const dim = tagsOf(sc.head, 'dimension')[0]?.attrs('ref');
+      /* the filter's own tag (after the rows) says which columns it filters on — by their place in its range */
+      const af = tagsOf(sc.tail, 'autoFilter')[0];
+      const afRef = af?.attrs('ref') ?? fl?.ref;
+      const on = af && afRef ? tagsOf(sc.tail, 'filterColumn').map(c => { const slot = cellRef(afRef.split(':')[0]).col + Number(c.attrs('colId') ?? 0); return f.columns.find(x => x.slot === slot)?.name ?? colName(slot); }) : [];
+      const filter = afRef && b.hasFilter ? { ref: afRef, on, hiddenRows: b.hiddenRows } : undefined;
       profiles.push({
-        ...base, ...(dim ? { dimension: dim } : {}), headerRow: f.headerRow, above: b.above, rows: b.rows, blankRows: b.blankRows, ...(b.formulaRows ? { formulaRows: b.formulaRows } : {}), chunks: f.chunks, columns: f.columns,
+        ...base, ...(dim ? { dimension: dim } : {}), headerRow: f.headerRow, above: b.above, rows: b.rows, blankRows: b.blankRows, ...(b.formulaRows ? { formulaRows: b.formulaRows } : {}), ...(filter ? { filter } : {}), chunks: f.chunks, columns: f.columns,
         hiddenColumns: [...hidden].sort((x, y) => x - y).slice(0, 50).map(colName), merged: tagsOf(sc.tail, 'mergeCell').length,
         formulas: b.formulas, formulasNoValue: b.noValue, errors: b.errors, duplicateRows: b.dups, duplicatesChecked: b.dupChecked,
         refersTo: [...b.refersTo].filter(n => n !== s.name).slice(0, 20), read: !stopped, ...(stopped ? { why: 'Stopped part way: only the rows before the stop are read.' } : {}),

@@ -79,6 +79,7 @@ export function sheetSaid(s: SheetProfile, full: boolean): string {
   if (!s.read && !s.rows) return `“${s.name}” (${s.state}) — not read: ${s.why ?? ''}`;
   const head = `“${s.name}”${s.state !== 'visible' ? ` (${s.state === 'veryHidden' ? 'very hidden' : 'hidden'})` : ''} — ${plural(s.rows, 'row')} of data under the header in row ${s.headerRow}${s.above.length ? ` (above it: ${s.above.join(' / ')})` : ''}${s.read ? '' : ` — PARTIAL: ${s.why}`}`;
   const issues = [
+    s.filter ? `A filter is on (${s.filter.ref}${s.filter.on.length ? `, on ${s.filter.on.join(', ')}` : ''}): ${s.filter.hiddenRows ? `${n(s.filter.hiddenRows)} of the ${n(s.rows)} rows are hidden by it` : 'it hides no rows'} — every figure counts all rows unless filtered on “Shown by the filter” = yes; ask whether they want only what the filter shows` : '',
     s.duplicateRows ? `${plural(s.duplicateRows, 'row')} repeated exactly${s.duplicatesChecked < s.rows ? ` (in the first ${n(s.duplicatesChecked)} checked)` : ''}` : '',
     s.formulasNoValue ? `${plural(s.formulasNoValue, 'formula')} with no saved value (Faultline does not recalculate Excel)` : '',
     s.blankRows ? `${plural(s.blankRows, 'blank row')} skipped${s.formulaRows ? ` (${n(s.formulaRows)} of them hold only formulas showing nothing)` : ''}` : '',
