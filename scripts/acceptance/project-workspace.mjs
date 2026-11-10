@@ -56,6 +56,9 @@ const onProject = async () => NAMES[flat(await page.locator('.nv-top .nv-ctx .nv
 const railLine = label => page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: new RegExp(`^${label}$`) }) });
 const openTool = async name => {
   await railLine('Tools').click(); await page.waitForTimeout(1200);
+  /* a tool not used in the project yet is a row in the fold under those that are, since 10 November (docs/DESIGN.md) */
+  const row = page.locator('main button.lt-row').filter({ has: page.locator('.lt-what', { hasText: new RegExp(`^${name}$`) }) });
+  if (!(await row.count()) && await page.locator('[data-fold="ptools-others"]:not(.is-open) .fold-toggle').count()) { await page.locator('[data-fold="ptools-others"] .fold-toggle').click(); await page.waitForTimeout(300); }
   await page.locator('main button.lt-row').filter({ has: page.locator('.lt-what', { hasText: new RegExp(`^${name}$`) }) }).click(); await page.waitForTimeout(1500);
 };
 const factoryRail = async () => { const r = await rail(); return /Factory/.test(r) && !r.includes(NAME) && !/Fishbone/.test(r); };

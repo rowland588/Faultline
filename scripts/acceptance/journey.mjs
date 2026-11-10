@@ -240,6 +240,8 @@ ok(s.label === t.label && sameDays(t, s), `6 a link to a range opens on it: ${t.
 await go(`#/project/${PID}`);
 t = await truth('thisAndNext');
 await page.locator('.now-ahead').waitFor({ timeout: 15000 });
+/* the days after today are in their fold since 10 November (docs/DESIGN.md) — opened to count them */
+if (await page.locator('[data-fold="now-ahead-days"]:not(.is-open) .fold-toggle').count()) { await page.locator('[data-fold="now-ahead-days"] .fold-toggle').click(); await page.waitForTimeout(300); }
 ok(await page.locator('.jn-week').count() === 0 && await page.locator('.now-ahead .now-day').count() > 0, '7 the front page says the weeks ahead once — Now’s next two weeks, no second week line');
 await page.locator('.now-ahead .qsl-gh button', { hasText: 'Journey ›' }).click(); await page.waitForTimeout(1500);
 ok(page.url().includes(`/journey?from=${t.range.from}&to=${t.range.to}`), '7 Journey › lands on this week and next');

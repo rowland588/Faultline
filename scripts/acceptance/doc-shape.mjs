@@ -326,6 +326,8 @@ ok(nows(lt).includes(nows('Reduce give-away on Line 3')) && nows(lt).includes(no
 
 /* ---- inside a project: New is the project's ---- */
 await go(`#/project/${sd.projectId}/tools`);
+/* the tools not used in the project yet are in their fold since 10 November (docs/DESIGN.md) — opened to find the row */
+if (await page.locator('[data-fold="ptools-others"]:not(.is-open) .fold-toggle').count()) { await page.locator('[data-fold="ptools-others"] .fold-toggle').click(); await page.waitForTimeout(300); }
 ok((await page.locator('.nv-main').getByText('Documents', { exact: true }).count()) >= 1, 'P a project’s Tools lists Documents (one entry, from the catalogue’s registry)');
 await go(`#/doc/charter?project=${sd.projectId}`);
 ok((await page.locator('.ip-scope .chip').count()) >= 2, 'P opened in a project: the scope chips say whose');

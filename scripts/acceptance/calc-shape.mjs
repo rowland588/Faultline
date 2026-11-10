@@ -282,6 +282,8 @@ ok(/Before → after|Before to after/.test(lt) && /How it is worked out/.test(lt
 
 /* ---- inside a project: the project's Tools lists Calculators, and one made there is the project's, on its line ---- */
 await go(`#/project/${sd.projectId}/tools`);
+/* the tools not used in the project yet are in their fold since 10 November (docs/DESIGN.md) — opened to find the row */
+if (await page.locator('[data-fold="ptools-others"]:not(.is-open) .fold-toggle').count()) { await page.locator('[data-fold="ptools-others"] .fold-toggle').click(); await page.waitForTimeout(300); }
 const pTool = page.locator('.nv-main').getByText('Calculators', { exact: true }).first();
 ok((await pTool.count()) === 1, 'P a project’s Tools lists Calculators (one entry, from the catalogue’s registry)');
 await go(`#/calc/littles-law?project=${sd.projectId}`);

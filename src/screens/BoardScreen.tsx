@@ -39,6 +39,7 @@ import { todayISO } from '../lib/weeks';
 import type { PaceAction } from '../lib/actionShapes';
 import type { NodeStatus } from '../db';
 import { Icon } from '../ui/Icon';
+import { Fold } from '../ui/Fold';
 
 const STATUS: Record<NodeStatus, string> = {
   n: 'To do', w: 'In progress', a: 'Waiting', r: 'Late', g: 'Done',
@@ -190,6 +191,10 @@ export function BoardScreen({ projectId }: { projectId: string }) {
               ))}
             </div>
           )}
+          {/* NARROWING THE BOARD IN A FOLD (docs/DESIGN.md, 10 November): the lines stay chips above the lanes; by bone, by
+              who and done shown or hidden are one tap away — open by itself while one of them narrows the board. */}
+          <Fold id="bd6-narrow" title="Narrow the board" start={filtered}
+            says={filtered ? [bone != null && PILLARS.find(p => p.key === bone)?.label, owner && (owner === NOBODY ? 'nobody named' : owner), hideDone && 'done hidden'].filter(Boolean).join(' · ') : 'by bone, by who, done shown or hidden'}>
           <div className="bd6-frow" role="group" aria-label="Bone">
             <span className="bd6-fk">Bone</span>
             <button className={'chip is-all' + (bone == null ? ' on' : '')} aria-pressed={bone == null} onClick={() => setBone(null)}>All six</button>
@@ -215,6 +220,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
               <button className="cw-link" onClick={() => { setBone(null); setOwner(null); setHideDone(false); }}>Show everything</button>
             )}
           </div>
+          </Fold>
         </div>
       )}
 
@@ -228,7 +234,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         </p>
       )}
 
-      {shownAreas.map(a => (
+      {shownAreas.map((a, ai) => (
         <section key={a.id || 'whole'} className="bd-area">
           <header className="bd-area-h">
             <h2 className="bd-area-t">{a.name}</h2>
@@ -242,7 +248,8 @@ export function BoardScreen({ projectId }: { projectId: string }) {
                 <header className="bd6-lane-h">
                   <h3 className="bd6-lane-t">{c.label}</h3>
                   <span className="bd6-lane-n">{c.rows.length}</span>
-                  <span className="bd6-lane-s">{c.blurb}</span>
+                  {/* what a bone means, said once — on the first line's lanes, not again under every line */}
+                  {ai === 0 && <span className="bd6-lane-s">{c.blurb}</span>}
                 </header>
                 <div className="bd6-lane-b">
                   {c.rows.map(x => (
@@ -262,7 +269,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
       ))}
 
       {/* Never lose a row: an action written before the board, or on the list
-          without a bone, is shown here until it is given one. */}
+          without a bone, is shown here until it is given one */}
       {unsorted.length > 0 && (
         <section className="bd-unsorted">
           <h2 className="bd-area-t">Not on the board yet</h2>
