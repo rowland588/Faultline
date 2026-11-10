@@ -45,6 +45,7 @@ page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) er
 let failed = 0;
 const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) failed++; };
 const flat = x => (x ?? '').replace(/\s+/g, ' ').trim();
+const unfold = async (pg, id) => { const f = pg.locator(`[data-fold="${id}"]`); if (await f.count() && !(await f.evaluate(e => e.classList.contains('is-open')))) { await f.locator('.fold-toggle').click(); await pg.waitForTimeout(250); } };   // a fold opened where its contents are read (10 November, docs/DESIGN.md)
 /* the catalogue's own answers, from the module the page reads */
 const cat = (fn, ...args) => page.evaluate(async ([fn, args]) => {
   const C = await import('/src/catalogue/index.ts'); const T = await import('/src/catalogue/types.ts');
@@ -79,6 +80,7 @@ ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and
 
 /* ---- 2 · what we have and what we need to build ---- */
 {
+  await unfold(page, 'tools-holdings');   // in a fold below the tools since 10 November
   const rows2 = await page.locator('.hd-tool').evaluateAll(els => els.map(e => ({ id: e.getAttribute('data-tool-id'), n: e.querySelector('.hd-n')?.textContent?.trim() })));
   const said = x => [x.built ? `${x.built} way${x.built === 1 ? '' : 's'} of using it built` : '', x.toBuild ? `${x.toBuild} to build` : ''].filter(Boolean).join(' · ') || 'the tool itself';
   ok(rows2.length === c.held.length && rows2.every((r, i) => r.id === c.held[i].id && r.n === said(c.held[i])), `2 a row for every tool saying what it holds — ${rows2.slice(0, 3).map(r => r.n).join(' | ')}…`);
@@ -97,6 +99,7 @@ ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and
 /* ---- 3 · the problem in the floor's words ---- */
 {
   const q = 'we’re rejecting too many';
+  await unfold(page, 'tools-find');
   await page.getByLabel('What’s the problem?').fill(q); await page.waitForTimeout(500);
   const t = await cat('search', q);
   const routes = await page.locator('.et-route').evaluateAll(els => els.map(e => e.getAttribute('data-route')));
@@ -128,6 +131,7 @@ ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and
 /* ---- 5 · a route's tool, a discipline, a tool left out ---- */
 {
   await page.goto(`${BASE}/#/tools`); await page.waitForTimeout(1500);
+  await unfold(page, 'tools-find');
   await page.locator('.et-route-b', { hasText: 'We’re rejecting too many' }).click(); await page.waitForTimeout(300);
   const chip = page.locator('.et-route .et-chip').first();
   const id = flat(await chip.locator('b').innerText());
@@ -144,6 +148,7 @@ ok(!(await page.locator('.et-status, .et-disc').count()), '1 no status chips and
 {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${BASE}/#/tools`); await page.waitForTimeout(1600);
+  await unfold(page, 'tools-find');
   await page.getByLabel('What’s the problem?').fill('changeovers take too long'); await page.waitForTimeout(400);
   const first = (await rows())[0];
   /* centred first, as a thumb scrolls it — the app's top and bottom bars are fixed on a phone */

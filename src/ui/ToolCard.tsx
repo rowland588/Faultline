@@ -23,7 +23,7 @@ export function ToolPicture({ tool, big }: { tool: Pick<AppTool, 'key' | 'label'
   );
 }
 
-export function ToolCard({ tool, statusWord, statusTone, said, holds, onOpen, onList }: {
+export function ToolCard({ tool, statusWord, statusTone, said, holds, onOpen, onList, row }: {
   tool: AppTool;
   /** Catalogue status in words — always beside the colour (CLAUDE.md). */
   statusWord?: string;
@@ -34,8 +34,31 @@ export function ToolCard({ tool, statusWord, statusTone, said, holds, onOpen, on
   holds?: string;
   onOpen: () => void;
   onList?: () => void;
+  /** One calm row of a list (Tools, 10 November — docs/DESIGN.md): a small picture, the name, one line of what it is for and what
+   *  it holds; the status only when it is not built, whether it has been used, Open ›. The kind and the number are on its page. */
+  row?: boolean;
 }) {
   const tone = statusTone ?? 'n';
+  if (row) {
+    return (
+      <div className="tc-card is-row" data-tool={tool.key} data-status-tone={tone}>
+        <button type="button" className="tc-main" aria-label={`${tool.label} — what it is for`} onClick={onOpen}>
+          <ToolPicture tool={tool} />
+          <span className="tc-body">
+            <b className="tc-name">{tool.label}</b>
+            <span className="tc-says">{tool.says}</span>
+            {holds && <span className="tc-holds">{holds}</span>}
+          </span>
+        </button>
+        <span className="tc-side">
+          {aiMark(tool.key) && <span className="ai-mark" data-ai-mark title="Uses AI — see the AI toolbox on Tools">{aiMark(tool.key)}</span>}
+          {statusWord && tone !== 'g' && <span className={`et-st is-${tone}`}>{statusWord}</span>}
+          {said && <span className="tc-used">{said}</span>}
+          {onList && <button type="button" className="tc-open" aria-label={`Open ${tool.label} list`} onClick={onList}>Open ›</button>}
+        </span>
+      </div>
+    );
+  }
   return (
     <div className="tc-card" data-tool={tool.key} data-status-tone={tone}>
       <div className="tc-head">

@@ -56,12 +56,12 @@
   "first": 10
  },
  "phone · Tools — the library": {
-  "height": 9401,
-  "boxes": 252,
-  "headings": 21,
-  "controls": 313,
+  "height": 3693,
+  "boxes": 1,
+  "headings": 1,
+  "controls": 69,
   "sizes": 4,
-  "first": 6
+  "first": 2
  },
  "phone · Scored registers — the hub": {
   "height": 8196,
@@ -72,12 +72,12 @@
   "first": 4
  },
  "desk · Tools — the library": {
-  "height": 8020,
-  "boxes": 45,
-  "headings": 21,
-  "controls": 313,
+  "height": 1739,
+  "boxes": 1,
+  "headings": 1,
+  "controls": 69,
   "sizes": 4,
-  "first": 8
+  "first": 2
  },
  "phone · A document — a charter ready to agree": {
   "height": 7832,
@@ -120,12 +120,12 @@
   "first": 3
  },
  "phone · Tools — a tool’s own page": {
-  "height": 6225,
-  "boxes": 14,
-  "headings": 15,
-  "controls": 22,
+  "height": 1569,
+  "boxes": 1,
+  "headings": 2,
+  "controls": 9,
   "sizes": 4,
-  "first": 5
+  "first": 3
  },
  "phone · The parts": {
   "height": 5539,
@@ -360,12 +360,12 @@
   "first": 9
  },
  "desk · Tools — a tool’s own page": {
-  "height": 3440,
-  "boxes": 14,
-  "headings": 15,
-  "controls": 22,
+  "height": 986,
+  "boxes": 1,
+  "headings": 2,
+  "controls": 9,
   "sizes": 4,
-  "first": 5
+  "first": 3
  },
  "phone · Documents — the hub": {
   "height": 3379,

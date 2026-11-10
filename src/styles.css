@@ -17733,3 +17733,53 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .inv-marks { margin: 4px 0 0; padding-left: 18px; }
 .inv-marks .is-g b { color: var(--st-g); } .inv-marks .is-r b { color: var(--st-r); }
 
+
+/* TOOLS, CALM (10 November) — docs/DESIGN.md (Rowland: "Tools obvious"). The library opens on the tools themselves: one list, a row a
+   tool (a small picture, its name, one line of what it is for, what it holds), a hairline between, each a door; everything else — the
+   problem routes, the kinds, the worlds, the AI toolbox, what we have and need to build — in ui/Fold, shut, drawn as a heading and a
+   hairline, never a box around a box. A tool's own page: its name, what it is for and Start one first; the rest in the same folds. */
+.et .et-lede { display: block; max-width: 80ch; margin-top: var(--space-2); padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; color: var(--ink-2); line-height: 1.55; }
+.et .et-doors { margin: var(--space-3) 0 var(--space-5); }
+.et .et-now { margin: 0 0 var(--space-5); padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.tc-kind-now { margin: 0 0 var(--space-2); color: var(--ink-2); font-size: var(--t-detail); }
+.tc-gal.is-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-5); margin: 0; padding: 0; overflow: visible; border-top: 1px solid var(--line); }
+.tc-gal.is-list .tc-cell { min-width: 0; max-width: none; flex: none; border-bottom: 1px solid var(--line); }
+.tc-card.is-row { flex-direction: row; align-items: center; gap: var(--space-3); height: auto; border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
+.tc-card.is-row:hover, .tc-card.is-row:focus-within { box-shadow: none; background: var(--tool-row-hover); }
+.tc-card.is-row .tc-main { flex-direction: row; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-1); min-height: 56px; }
+.tc-card.is-row .tc-pic { flex: none; width: 64px; aspect-ratio: 16 / 10; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.tc-card.is-row .tc-body { padding: 0; gap: 2px; min-width: 0; }
+.tc-card.is-row .tc-says { -webkit-line-clamp: 1; }
+.tc-card.is-row .tc-holds { color: var(--muted); font-size: var(--t-label); }
+.tc-side { display: flex; flex: none; align-items: center; gap: var(--space-2); padding-right: var(--space-1); }
+.tc-side .tc-used { margin: 0; white-space: nowrap; }
+.tc-card.is-row .tc-open { box-shadow: none; }
+.et > .fold, .tp-calm > .fold { margin: 0; background: none; box-shadow: none; border-radius: 0; overflow: visible; border-top: 1px solid var(--line); }
+.et > .fold:last-of-type, .tp-calm > .fold:last-of-type { border-bottom: 1px solid var(--line); }
+.et > .fold > .fold-h, .tp-calm > .fold > .fold-h { padding-left: 0; padding-right: 0; }
+.et > .fold > .fold-b, .tp-calm > .fold > .fold-b { padding: 0 0 var(--space-4); }
+.et > .fold .et-search { margin-top: 0; }
+.et > .fold .wd-row { margin: 0; }
+.et > .fold .ai-box { margin: 0; padding: 0; background: none; box-shadow: none; border-radius: 0; }
+.et > .fold .ai-box-sub { margin: 0 0 var(--space-3); }
+.et > .fold .ai-cards { gap: 0 var(--space-5); }
+.et > .fold .ai-card { padding: var(--space-3) 0; background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; }
+.et > .fold .hd { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.et > .fold .hd > .sub { margin-top: 0; }
+.tp-calm .tp-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--space-5); margin: var(--space-2) 0 var(--space-5); }
+.tp-calm .tp-hero .tc-pic.is-big { box-shadow: none; }
+.tp-calm .tp-sec { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.tp-calm .tp-use .ln-h { margin: 0 0 var(--space-2); }
+.tp-calm .tp-pn { margin-top: var(--space-5); }
+@media (max-width: 719px) {
+  .tc-gal.is-list { display: flex; flex-direction: column; overflow: visible; padding: 0; gap: 0; }
+  .tc-gal.is-list .tc-cell { flex: none; min-width: 0; max-width: none; }
+  .tc-card.is-row { gap: var(--space-2); }
+  .tc-card.is-row .tc-pic { width: 48px; }
+  .tc-card.is-row .tc-says { -webkit-line-clamp: 2; }
+  .tc-side { flex-direction: column; align-items: flex-end; gap: var(--space-1); }
+  .tc-side .tc-used { display: none; }
+  .tp-calm .tp-hero { grid-template-columns: 1fr; gap: var(--space-3); }
+  .tp-calm .tp-hero .tc-pic.is-big { max-height: 180px; }
+  .tp-calm .pace-head-actions .btn, .tp-calm .pace-head-actions .part-menu-b, .tp-calm .tp-pn .btn { min-height: 44px; }
+}

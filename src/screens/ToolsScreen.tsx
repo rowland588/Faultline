@@ -24,6 +24,7 @@ import { nav, useRoute } from '../state/useRoute';
 import { WORLDS, worldEntries, worldTools } from '../catalogue/worlds';
 import { GALLERY_TOOLS, holdings, toolCounts, type ToolHolds } from '../catalogue/counts';
 import { ToolPicture } from '../ui/ToolCard';
+import { Fold, openFold } from '../ui/Fold';
 
 /** The state colours, one meaning each: built is done (a quiet green);
  *  partly built or specified is under way; not built, research and left out
@@ -40,7 +41,20 @@ export function ToolsScreen() {
   const [open, setOpen] = useState<string | null>(null);
   const here = useRoute();
   /* a tool's page sends you to the problem routes it sits on (?route=) */
-  const [route, setRoute] = useState<string | null>(() => { const r = here.query.get('route'); return r && PROBLEMS.some(p => p.id === r) ? r : null; });
+  const [route, setRoute] = useState<string | null>(() => {
+    const r = here.query.get('route');
+    if (!(r && PROBLEMS.some(p => p.id === r))) return null;
+    openFold('tools-find');   /* a route sent from a tool's page lands with its way through open */
+    return r;
+  });
+  /* a route's tool opened: its row in What we have and what we need to build — that fold opened (remounted on the stored choice), the
+     row opened and scrolled to */
+  const [hdKey, setHdKey] = useState(0);
+  const pick = (id: string) => {
+    setOpen(id);
+    openFold('tools-holdings'); setHdKey(k => k + 1);
+    setTimeout(() => { const row = document.querySelector<HTMLElement>(`.hd [data-id="${id}"]`); const d = row?.closest('details'); if (d) d.open = true; row?.scrollIntoView({ block: 'center' }); }, 60);
+  };
   const [kind, setKind] = useState<Kind | ''>('');
   const use = useToolUse();
 
@@ -70,69 +84,25 @@ export function ToolsScreen() {
         <SixMDoor />
       </div>
 
-      {/* THE AI TOOLBOX (catalogue/aiTools; docs/AI-TOOLBOX.md — Rowland, 8 November: "should be in an AI tool box itself ... so we know
-          that they use AI") — every place a model is used, what it does, what it sends and to whom, what it never does */}
-      <section className="ai-box" aria-label="The AI toolbox" data-ai-box>
-        <div className="ai-box-h">
-          <h2 className="ln-h">The AI toolbox</h2>
-          <p className="sub">Everything in Faultline that uses AI, in one place. The AI listens, watches and writes — it never works out a figure: every number is a formula’s.</p>
-        </div>
-        <div className="ai-cards" role="list">
-          {AI_TOOLS.map(a => (
-            <div key={a.id} role="listitem" className="ai-card" data-ai-tool={a.id}>
-              <p className="ai-card-h"><span className="ai-mark">AI</span> <b>{a.name}</b></p>
-              <p className="ai-does">{a.does}</p>
-              <dl className="ai-dl">
-                <dt>Sends</dt><dd>{a.sends}</dd>
-                <dt>Never</dt><dd>{a.never}</dd>
-                {a.where && <><dt>Where</dt><dd>{a.where}</dd></>}
-              </dl>
-              {a.to && <button type="button" className="btn btn-sm" onClick={() => nav(a.to as string)}>{a.id === 'video-name' ? 'Video studies ›' : a.id === 'story-draft' ? 'Open the Story ›' : 'Open Line Talk ›'}</button>}
-            </div>
-          ))}
-        </div>
-        {/* HOW AI MODE IS USED (docs/AI-MODE.md §9): its cost, what it did, and what could be answered with no AI */}
-        <p className="ai-box-foot"><a href="#/ai/usage" data-ai-usage-link>How AI Mode is used — what it costs and what could be answered with no AI ›</a></p>
-      </section>
-
-      {/* THE WORLDS (docs/TOOLS-WORLDS.md) — a doorway for each way of working, counted in tools */}
-      <section className="wd-row" aria-label="The worlds">
-        <h2 className="ln-h">The worlds</h2>
-        <div className="wd-cards" role="list">
-          {WORLDS.map(w => {
-            const es = worldEntries(w), ts = worldTools(w), c = toolCounts(es);
-            return (
-              <button key={w.id} type="button" role="listitem" className="wd-card" data-world={w.id} onClick={() => nav(`/tools/world/${w.id}`)}>
-                <span className="wd-pics" aria-hidden>{ts.slice(0, 3).map(t => <ToolPicture key={t.key} tool={t} />)}</span>
-                <b className="wd-name">{w.name}</b>
-                <span className="wd-line">{w.line}</span>
-                <span className="wd-nums">{plural(c.tools, 'tool')} · {c.notBuilt} {c.notBuilt === 1 ? 'thing' : 'things'} to build</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
+      {/* THE TOOLS, FIRST AND CALM (10 November, docs/DESIGN.md — Rowland: "Tools obvious"): one list of the tools a person can open,
+          each a row — its picture small, its name, what it is for, what it holds — opening its page; Open › its list. The kind, the
+          number and the status are on the tool's own page; the status shows here only when a tool is not built. */}
       <section className="et-now" aria-label="Use one now">
-        <div className="tc-gal-h">
-          <h2 className="ln-h">The tools</h2>
-          <div className="chip-row" role="radiogroup" aria-label="Kind of tool">
-            <button type="button" role="radio" aria-checked={!kind} className={'chip' + (!kind ? ' on' : '')} onClick={() => setKind('')}>All {GALLERY_TOOLS.length}</button>
-            {KINDS.filter(k => GALLERY_TOOLS.some(t => t.kind === k)).map(k => (
-              <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(kind === k ? '' : k)}>{KIND_CHIP[k]} {GALLERY_TOOLS.filter(t => t.kind === k).length}</button>
-            ))}
-          </div>
-        </div>
-        <div className="tc-gal" role="list" aria-label="Every tool you can open">
+        {kind && (
+          <p className="tc-kind-now">Showing {KIND_CHIP[kind].toLowerCase()} — {GALLERY_TOOLS.filter(t => t.kind === kind).length} of {GALLERY_TOOLS.length}{' '}
+            <button type="button" className="linkish" onClick={() => setKind('')}>Show all</button></p>
+        )}
+        <div className="tc-gal is-list" role="list" aria-label="Every tool you can open">
           {GALLERY_TOOLS.filter(t => !kind || t.kind === kind).map(t => {
             const e = entryById(t.id), h = holdsOf.get(t.id);
             return (
               <div key={t.key} role="listitem" className="tc-cell">
                 <ToolCard
+                  row
                   tool={t}
                   statusWord={e ? STATUS_WORDS[e.status] : undefined}
                   statusTone={e ? TONE[e.status] : undefined}
-                  said={usedSaid(use?.[t.key])}
+                  said={use?.[t.key]?.n ? usedSaid(use[t.key]) : undefined /* used is said; not used yet is the quiet normal */}
                   holds={h ? holdsSaid(h) || undefined : undefined}
                   onOpen={() => nav(`/tools/${t.key}`)}
                   onList={() => nav(t.to)}
@@ -143,64 +113,120 @@ export function ToolsScreen() {
         </div>
       </section>
 
+      {/* EVERYTHING ELSE — kept, each in the one fold, shut until wanted (docs/DESIGN.md, progressive disclosure) */}
       {/* FIND ONE BY THE PROBLEM — the floor's words, the routes and what matches */}
-      <h2 className="ln-h et-all-h">Or find one by the problem</h2>
-      <label className="et-search">
-        <span className="field-label">What’s the problem?</span>
-        <input className="text-input" type="search" value={q} placeholder="e.g. we’re rejecting too many, or FC-098" aria-label="What’s the problem?"
-          onChange={e => { setQ(e.target.value); setRoute(null); }} />
-      </label>
-      {words ? (
-        <>
-          {routes.length > 0 && (
-            <section className="et-routes" aria-label="Where to start">
-              <h2 className="ln-h">Where to start</h2>
-              {routes.map(p => <Route key={p.id} p={p} onOpen={id => setOpen(id)} />)}
+      <Fold id="tools-find" title="Find one by the problem" says={`Say it in your words — or start from one of ${PROBLEMS.length} problems, each with its way through`} start={false}>
+        <label className="et-search">
+          <span className="field-label">What’s the problem?</span>
+          <input className="text-input" type="search" value={q} placeholder="e.g. we’re rejecting too many, or FC-098" aria-label="What’s the problem?"
+            onChange={e => { setQ(e.target.value); setRoute(null); }} />
+        </label>
+        {words ? (
+          <>
+            {routes.length > 0 && (
+              <section className="et-routes" aria-label="Where to start">
+                <h3 className="ln-h">Where to start</h3>
+                {routes.map(p => <Route key={p.id} p={p} onOpen={pick} />)}
+              </section>
+            )}
+            <section aria-label="What matches">
+              <h3 className="ln-h">What matches — {found.length}</h3>
+              {found.length
+                ? <ul className="et-list">{found.map(e => <Row key={e.id} e={e} open={open === e.id} onToggle={() => setOpen(open === e.id ? null : e.id)} onOpen={setOpen} />)}</ul>
+                : <EmptyState className="blank-list" title={`Nothing matches “${words}”`}>Try the problem in other words, or a number (FC-012).</EmptyState>}
             </section>
-          )}
-          <section aria-label="What matches">
-            <h2 className="ln-h">What matches — {found.length}</h2>
-            {found.length
-              ? <ul className="et-list">{found.map(e => <Row key={e.id} e={e} open={open === e.id} onToggle={() => setOpen(open === e.id ? null : e.id)} onOpen={setOpen} />)}</ul>
-              : <EmptyState className="blank-list" title={`Nothing matches “${words}”`}>Try the problem in other words, or a number (FC-012).</EmptyState>}
+          </>
+        ) : (
+          <section className="et-routes" aria-label="Start from the problem">
+            <div className="et-route-list">
+              {PROBLEMS.map(p => (
+                <button key={p.id} type="button" className={'et-route-b' + (route === p.id ? ' on' : '')} aria-expanded={route === p.id} onClick={() => setRoute(route === p.id ? null : p.id)}>{p.title}</button>
+              ))}
+            </div>
+            {picked && <Route p={picked} onOpen={pick} />}
           </section>
-        </>
-      ) : (
-        <section className="et-routes" aria-label="Start from the problem">
-          <div className="et-route-list">
-            {PROBLEMS.map(p => (
-              <button key={p.id} type="button" className={'et-route-b' + (route === p.id ? ' on' : '')} aria-expanded={route === p.id} onClick={() => setRoute(route === p.id ? null : p.id)}>{p.title}</button>
+        )}
+      </Fold>
+
+      {/* THE KINDS — the list narrowed to one kind of tool */}
+      <Fold id="tools-kinds" title="By kind" says={KINDS.filter(k => GALLERY_TOOLS.some(t => t.kind === k)).map(k => `${KIND_CHIP[k]} ${GALLERY_TOOLS.filter(t => t.kind === k).length}`).join(' · ')} start={false}>
+        <div className="chip-row" role="radiogroup" aria-label="Kind of tool">
+          <button type="button" role="radio" aria-checked={!kind} className={'chip' + (!kind ? ' on' : '')} onClick={() => setKind('')}>All {GALLERY_TOOLS.length}</button>
+          {KINDS.filter(k => GALLERY_TOOLS.some(t => t.kind === k)).map(k => (
+            <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(kind === k ? '' : k)}>{KIND_CHIP[k]} {GALLERY_TOOLS.filter(t => t.kind === k).length}</button>
+          ))}
+        </div>
+      </Fold>
+
+      {/* THE WORLDS (docs/TOOLS-WORLDS.md) — a doorway for each way of working, counted in tools */}
+      <Fold id="tools-worlds" title="The worlds" says={WORLDS.map(w => w.name).join(', ')} start={false}>
+        <section className="wd-row" aria-label="The worlds">
+          <div className="wd-cards" role="list">
+            {WORLDS.map(w => {
+              const es = worldEntries(w), ts = worldTools(w), c = toolCounts(es);
+              return (
+                <button key={w.id} type="button" role="listitem" className="wd-card" data-world={w.id} onClick={() => nav(`/tools/world/${w.id}`)}>
+                  <span className="wd-pics" aria-hidden>{ts.slice(0, 3).map(t => <ToolPicture key={t.key} tool={t} />)}</span>
+                  <b className="wd-name">{w.name}</b>
+                  <span className="wd-line">{w.line}</span>
+                  <span className="wd-nums">{plural(c.tools, 'tool')} · {c.notBuilt} {c.notBuilt === 1 ? 'thing' : 'things'} to build</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      </Fold>
+
+      {/* THE AI TOOLBOX (catalogue/aiTools; docs/AI-TOOLBOX.md — Rowland, 8 November: "should be in an AI tool box itself ... so we know
+          that they use AI") — every place a model is used, what it does, what it sends and to whom, what it never does */}
+      <Fold id="tools-ai" title="The AI toolbox" says={`${AI_TOOLS.length} places Faultline uses AI — what each sends and what it never does`} start={false}>
+        <section className="ai-box" aria-label="The AI toolbox" data-ai-box>
+          <p className="sub ai-box-sub">Everything in Faultline that uses AI, in one place. The AI listens, watches and writes — it never works out a figure: every number is a formula’s.</p>
+          <div className="ai-cards" role="list">
+            {AI_TOOLS.map(a => (
+              <div key={a.id} role="listitem" className="ai-card" data-ai-tool={a.id}>
+                <p className="ai-card-h"><span className="ai-mark">AI</span> <b>{a.name}</b></p>
+                <p className="ai-does">{a.does}</p>
+                <dl className="ai-dl">
+                  <dt>Sends</dt><dd>{a.sends}</dd>
+                  <dt>Never</dt><dd>{a.never}</dd>
+                  {a.where && <><dt>Where</dt><dd>{a.where}</dd></>}
+                </dl>
+                {a.to && <button type="button" className="btn btn-sm" onClick={() => nav(a.to as string)}>{a.id === 'video-name' ? 'Video studies ›' : a.id === 'story-draft' ? 'Open the Story ›' : 'Open Line Talk ›'}</button>}
+              </div>
             ))}
           </div>
-          {picked && <Route p={picked} onOpen={id => setOpen(id)} />}
+          {/* HOW AI MODE IS USED (docs/AI-MODE.md §9): its cost, what it did, and what could be answered with no AI */}
+          <p className="ai-box-foot"><a href="#/ai/usage" data-ai-usage-link>How AI Mode is used — what it costs and what could be answered with no AI ›</a></p>
         </section>
-      )}
+      </Fold>
 
       {/* WHAT WE HAVE AND WHAT WE NEED TO BUILD — tool by tool, then the new tools, then the rest; every entry in one place */}
-      <section className="hd" aria-label="What we have and what we need to build">
-        <h2 className="ln-h">What we have and what we need to build</h2>
-        <p className="sub">Each tool and what is inside it — built, and still to build. Then the new tools planned and not started.</p>
-        <ul className="hd-tools">
-          {held.tools.map(h => {
-            const e = entryById(h.id);
-            if (!e) return null;
-            return (
-              <li key={h.id} className="hd-tool" data-tool-id={h.id}>
-                <details>
-                  <summary><b>{shortName(e.name)}</b><span className="hd-n">{holdsSaid(h) || 'the tool itself'}</span></summary>
-                  {h.built.length > 0 && <><h4>Built</h4><ul className="et-list">{h.built.map(x => <Row key={x.id} e={x} open={open === x.id} onToggle={() => setOpen(open === x.id ? null : x.id)} onOpen={setOpen} />)}</ul></>}
-                  {h.toBuild.length > 0 && <><h4>To build</h4><ul className="et-list">{h.toBuild.map(x => <Row key={x.id} e={x} open={open === x.id} onToggle={() => setOpen(open === x.id ? null : x.id)} onOpen={setOpen} />)}</ul></>}
-                  {!h.built.length && !h.toBuild.length && <p className="sub">The tool itself — nothing more planned inside it.</p>}
-                </details>
-              </li>
-            );
-          })}
-        </ul>
-        <Group id="new" title="New tools — planned, not started" list={held.newTools} open={open} setOpen={setOpen} startOpen />
-        <Group id="parts" title="Built into the app — not tools (Problems, Actions, reports, the stage gate…)" list={held.parts} open={open} setOpen={setOpen} />
-        <Group id="research" title="Needs research first" list={ENTRIES.filter(e => e.status === 'research')} open={open} setOpen={setOpen} />
-        <Group id="left-out" title="Left out on purpose" list={ENTRIES.filter(e => e.status === 'left-out')} open={open} setOpen={setOpen} />
-      </section>
+      <Fold key={hdKey} id="tools-holdings" title="What we have and what we need to build" says={`${counts.inside} built inside the tools · ${toBuildInside} to build · ${plural(held.newTools.length, 'new tool', 'new tools')} planned`} start={false}>
+        <section className="hd" aria-label="What we have and what we need to build">
+          <p className="sub">Each tool and what is inside it — built, and still to build. Then the new tools planned and not started.</p>
+          <ul className="hd-tools">
+            {held.tools.map(h => {
+              const e = entryById(h.id);
+              if (!e) return null;
+              return (
+                <li key={h.id} className="hd-tool" data-tool-id={h.id}>
+                  <details>
+                    <summary><b>{shortName(e.name)}</b><span className="hd-n">{holdsSaid(h) || 'the tool itself'}</span></summary>
+                    {h.built.length > 0 && <><h4>Built</h4><ul className="et-list">{h.built.map(x => <Row key={x.id} e={x} open={open === x.id} onToggle={() => setOpen(open === x.id ? null : x.id)} onOpen={setOpen} />)}</ul></>}
+                    {h.toBuild.length > 0 && <><h4>To build</h4><ul className="et-list">{h.toBuild.map(x => <Row key={x.id} e={x} open={open === x.id} onToggle={() => setOpen(open === x.id ? null : x.id)} onOpen={setOpen} />)}</ul></>}
+                    {!h.built.length && !h.toBuild.length && <p className="sub">The tool itself — nothing more planned inside it.</p>}
+                  </details>
+                </li>
+              );
+            })}
+          </ul>
+          <Group id="new" title="New tools — planned, not started" list={held.newTools} open={open} setOpen={setOpen} startOpen />
+          <Group id="parts" title="Built into the app — not tools (Problems, Actions, reports, the stage gate…)" list={held.parts} open={open} setOpen={setOpen} />
+          <Group id="research" title="Needs research first" list={ENTRIES.filter(e => e.status === 'research')} open={open} setOpen={setOpen} />
+          <Group id="left-out" title="Left out on purpose" list={ENTRIES.filter(e => e.status === 'left-out')} open={open} setOpen={setOpen} />
+        </section>
+      </Fold>
     </div>
   );
 }
@@ -244,11 +270,7 @@ function Route({ p, onOpen }: { p: ProblemRoute; onOpen: (id: string) => void })
 
 function Chip({ e, onOpen }: { e: Entry; onOpen: (id: string) => void }) {
   return (
-    <button type="button" className={`et-chip is-${TONE[e.status]}`} onClick={() => {
-      onOpen(e.id);
-      /* the entry's row in What we have and what we need to build — its fold opened, scrolled to */
-      requestAnimationFrame(() => { const row = document.querySelector<HTMLElement>(`.hd [data-id="${e.id}"]`); const d = row?.closest('details'); if (d) d.open = true; row?.scrollIntoView({ block: 'center' }); });
-    }}>
+    <button type="button" className={`et-chip is-${TONE[e.status]}`} onClick={() => onOpen(e.id)}>
       <b>{e.id}</b> {e.name} · {STATUS_WORDS[e.status]}
     </button>
   );

@@ -24,6 +24,7 @@ const IGNORE = /Supabase|net::ERR|Failed to fetch|ERR_FAILED|aborted|WebSocket|t
 let fail = 0;
 const ok = (c, m, d) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}${!c && d ? ` — ${String(d).slice(0, 400)}` : ''}`); if (!c) fail++; };
 const flat = s => String(s ?? '').replace(/\s+/g, ' ').trim();
+const unfold = async (pg, id) => { const f = pg.locator(`[data-fold="${id}"]`); if (await f.count() && !(await f.evaluate(e => e.classList.contains('is-open')))) { await f.locator('.fold-toggle').click(); await pg.waitForTimeout(250); } };   // a fold opened where its contents are read (10 November, docs/DESIGN.md)
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
 const mk = async vp => {
@@ -50,6 +51,7 @@ const mod = await page.evaluate(async () => {
 const S = mod.worlds.find(w => w.id === 'statistics');
 
 /* 1 */
+await unfold(page, 'tools-worlds');   // the worlds are in a fold below the tools since 10 November
 const cards = page.locator('.wd-card');
 await cards.first().waitFor({ timeout: 15000 });
 ok((await cards.count()) === 5 && mod.worlds.length === 5, '1 five worlds on Tools', await cards.count());
@@ -59,7 +61,7 @@ for (const w of mod.worlds) {
 }
 ok((await page.locator('.wd-card .tc-pic').count()) >= 5, '1 the cards carry the real tools’ pictures');
 ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), '1 nothing off the side at desk');
-ok((await page.locator('.et-now .tc-card').count()) >= 15, '1 the gallery of every tool is still below the worlds');
+ok((await page.locator('.et-now .tc-card').count()) >= 15, '1 the list of every tool is still on Tools, first (10 November)');
 
 /* 2 */
 await page.locator('.wd-card[data-world="statistics"]').click(); await page.waitForTimeout(1800);
