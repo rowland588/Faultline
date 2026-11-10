@@ -32,10 +32,11 @@ describe('the client loop', () => {
   it('runs a read at once and sends its result back with pending, then ends on a reply with no calls', async () => {
     const r = rig([
       { ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: 'L3' } }], assistant: { opaque: 1 } },
-      { ok: true, reply: 'Four are open.', suggestions: ['Which is oldest?'], unsure: ['45'], model: 'm' },
+      { ok: true, reply: 'Four are open, 45 minutes between them; 4 of them on Line 3.', suggestions: ['Which is oldest?'], model: 'm' },
     ]);
     const end = await colleagueLoop(ask, r.deps);
-    expect(end).toMatchObject({ ok: true, reply: 'Four are open.', suggestions: ['Which is oldest?'], unsure: ['45'], rounds: 2 });
+    /* every figure checked on the device (docs/LUNA-NEXT.md L1): 45 is in nothing the step gave or the person said; 4 and 3 are small counts */
+    expect(end).toMatchObject({ ok: true, reply: 'Four are open, 45 minutes between them; 4 of them on Line 3.', suggestions: ['Which is oldest?'], unsure: ['45'], checked: 1, rounds: 2 });
     expect(r.ran).toEqual([{ call: { id: 'c1', name: 'list_problems', input: { lineId: 'L3' } }, confirmed: false }]);
     expect(r.bodies[0]).toMatchObject({ task: 'colleague', focus: 'Current: Line 3', today: 'Sunday 8 November 2026' });
     expect(r.bodies[0].pending).toBeUndefined();

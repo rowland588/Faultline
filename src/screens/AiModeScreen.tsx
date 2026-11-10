@@ -80,6 +80,7 @@ import { allSources, outputsOfConversation, outputsText, registerFile } from '..
 import { sourceSaid } from '../lib/data/sources';
 import type { Chart, ConvReport, DataResult } from '../lib/data/outputs';
 import { ChartCard, ReportCard } from '../colleague/AiOutputs';
+import { figuresSaid, markFigures } from '../colleague/figureCheck';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -682,7 +683,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       if (end.ok) {
         await changeTurn(patchStudy, cid, rid, t => {
           const { answering: _a, why: _w, ...rest } = t; void _a; void _w;
-          return { ...rest, text: end.reply || 'Done.', ...(end.suggestions.length ? { suggestions: end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.model ? { model: end.model } : {}) };
+          return { ...rest, text: end.reply || 'Done.', ...(end.suggestions.length ? { suggestions: end.suggestions } : {}), ...(end.unsure.length ? { unsure: end.unsure } : {}), ...(end.checked ? { checked: end.checked } : {}), ...(end.model ? { model: end.model } : {}) };
         });
         /* the reply said out loud — what was not said already before a card — and, in Conversation, the microphone after */
         if (spokenNow && voiceOn.current) {
@@ -1070,7 +1071,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
 /* ================================================================ the turns */
 
 /* AN ANSWER'S WORDS — paragraphs, lists of lines starting "- " or "1.", **bold**; drawn by React, never as HTML */
-function Words({ text }: { text: string }) {
+function Words({ text, check }: { text: string; check?: readonly string[] }) {
   const parts: ({ list: string[]; ordered: boolean } | { para: string })[] = [];
   for (const line of text.split('\n')) {
     const item = /^\s*([-•*]|\d+[.)])\s+(.*)$/.exec(line);
@@ -1081,7 +1082,9 @@ function Words({ text }: { text: string }) {
     } else if (line.trim()) { if (last && 'para' in last && last.para) last.para += `\n${line}`; else parts.push({ para: line }); }
     else parts.push({ para: '' });
   }
-  const bold = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((x, i) => (x.startsWith('**') && x.endsWith('**') && x.length > 4 ? <b key={i}>{x.slice(2, -2)}</b> : x));
+  /* a figure to check marked where it stands — the words kept, the mark saying why */
+  const marked = (t: string, k: string | number) => (check?.length ? markFigures(t, check).map((x, j) => (x.check ? <mark key={`${k}-${j}`} className="ai-fig-check" data-ai-fig-check title="Not in Faultline’s working or what you said — check this">{x.text}</mark> : x.text)) : t);
+  const bold = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((x, i) => (x.startsWith('**') && x.endsWith('**') && x.length > 4 ? <b key={i}>{marked(x.slice(2, -2), i)}</b> : <span key={i}>{marked(x, i)}</span>));
   return (
     <div className="ai-words">
       {parts.filter(p => !('para' in p) || p.para).map((p, i) => ('list' in p
@@ -1160,7 +1163,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
         {t.answering === 'waiting' && here && (words ? <Words text={words} /> : <p className="sub ai-thinking" data-ai-working><span className="ai-dots" aria-hidden><i /><i /><i /></span>Luna is working on it…{steps.length > 0 && <span className="ai-working-now"> {steps[steps.length - 1].title}</span>}</p>)}
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Faultline could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
-        {!t.answering && t.text && <Words text={t.text} />}
+        {!t.answering && t.text && <Words text={t.text} check={t.unsure} />}
         {/* HER WORKING, PUT AWAY (10 November — Rowland: "All I want to see basically is Luna working, and then what? … I see everything that she
             asks to look for … It's all a bit messy"): while she works, one line of what she is doing; once she has answered, her answer first
             and every step folded under one line, open to anyone who wants to check how she got there */}
@@ -1186,8 +1189,17 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
           return rep ? <ReportCard key={r.id} report={rep} version={Number(v) || rep.version} latest={(Number(v) || rep.version) === rep.version && lastRef?.id === r.id} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} /> : null;
         })}
         {cards.map(u => <WriteCard key={u.callId} u={u} live={live.has(u.callId)} hands={hands} onCard={onCard} />)}
+        {/* EVERY FIGURE CHECKED (docs/LUNA-NEXT.md L1): the count looked for in Faultline's working, and those found nowhere marked in the
+            words above and named here */}
+        {!t.answering && t.checked !== undefined && !t.unsure?.length && figuresSaid({ checked: t.checked, unsure: [] }) && (
+          <p className="ai-figs is-ok sub" data-ai-figures="ok"><Icon name="check" size={13} /> {figuresSaid({ checked: t.checked, unsure: [] })}</p>
+        )}
         {!t.answering && !!t.unsure?.length && (
-          <p className="ai-unsure" data-ai-unsure>{t.unsure.map(x => <span key={x} className="ai-check">Check this: {x}</span>)}<span className="sub"> — not in what Faultline holds or what you said.</span></p>
+          <p className="ai-unsure" data-ai-unsure>
+            {t.checked !== undefined && <span className="ai-figs-k" data-ai-figures="check">{figuresSaid({ checked: Math.max(t.checked, t.unsure.length), unsure: t.unsure })}</span>}
+            {t.unsure.map(x => <span key={x} className="ai-check">Check this: {x}</span>)}
+            {t.checked === undefined && <span className="sub"> — not in what Faultline holds or what you said.</span>}
+          </p>
         )}
         {!t.answering && !!t.suggestions?.length && (
           <div className="ai-sugs" role="group" aria-label="Say next">

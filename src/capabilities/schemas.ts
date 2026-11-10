@@ -356,6 +356,37 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     }, ['source', 'title', 'measures']),
   },
   {
+    name: 'explain_change',
+    kind: 'read',
+    description: 'WHAT CHANGED, AND WHERE — the analyst\'s first move for "why is downtime up?", "what changed since last month?", "why are rejects worse this week?". A measure (sum of a number field, or a count) of any source over two periods: the total before and after, and for every field it can be broken by (named in by, else every field of words with a few values) each value\'s before, after and change, ranked by how much of the total change it carries; the field that concentrates the change most; then within its biggest mover, the next field down. Worked by Faultline\'s code, kept as a result (before · after · change) to chart or report. Say its findings with its figures; never explain a change you have not run this for. Two periods of different lengths are not alike — say so, or pick equal ones.',
+    input_schema: obj({
+      source: str('The source id', 120), sheet: str('A workbook\'s sheet', 120), title: str('What is measured ("Downtime minutes on Line 3")', 120),
+      measure: obj({ op: { type: 'string', enum: ['sum', 'count'] }, column: str('The number field to add up (count may have none: rows)', 120) }, ['op']),
+      date: str('The date field the periods are read on', 120),
+      before: obj({ from: str('YYYY-MM-DD', 10), to: str('YYYY-MM-DD', 10), label: str('How to say it ("October", "last week")', 40) }, ['from', 'to']),
+      after: obj({ from: str('YYYY-MM-DD', 10), to: str('YYYY-MM-DD', 10), label: str('How to say it', 40) }, ['from', 'to']),
+      by: { type: 'array', maxItems: 6, items: { type: 'string', maxLength: 120 }, description: 'The fields to break it by — leave out to look at every field of words with a few values' },
+      filters: { type: 'array', maxItems: 8, items: obj({ column: str('The field', 120), op: { type: 'string', enum: ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'] }, value: { type: ['string', 'number'] }, values: { type: 'array', maxItems: 50, items: { type: ['string', 'number'] } }, from: { type: ['string', 'number'] }, to: { type: ['string', 'number'] } }, ['column', 'op']) },
+      unit: str('The unit of the measure ("min", "packs")', 20),
+    }, ['source', 'title', 'measure', 'date', 'before', 'after']),
+  },
+  {
+    name: 'join_results',
+    kind: 'read',
+    description: 'Put two results side by side, matched by their labels — a budget sheet\'s minutes by reason against the stops the line timed, last month\'s file against this month\'s, a workbook against Faultline\'s own records. Each matched label with both values and the difference (second − first); the labels on one side only are named, never matched by a near spelling. When the person says two labels are the same thing ("Film change is our Reel change"), pass them as rules — never guess one. Kept as a result to chart (compare) or report.',
+    input_schema: obj({
+      a: str('The first result id', 40), b: str('The second result id', 40), title: str('What the comparison is', 120),
+      measureA: { type: 'integer', minimum: 0, maximum: 5 }, measureB: { type: 'integer', minimum: 0, maximum: 5 },
+      rules: { type: 'array', maxItems: 40, items: obj({ a: str('A label of the first', 120), b: str('The label of the second the person said is the same', 120) }, ['a', 'b']) },
+    }, ['a', 'b', 'title']),
+  },
+  {
+    name: 'work_out',
+    kind: 'local',
+    description: 'Do arithmetic through Faultline, never in your head — a difference, a share, a percentage, a per-week or per-shift rate, a conversion (minutes to hours). An expression of numbers with + − × ÷ and brackets, every number taken from a result, a step or what the person said (a few constants are allowed: 60, 24, 7, 52, 100, 365 …). Its answer is Faultline\'s, so the figure checks; a number it rests on that nothing holds is named, and the figure is marked. Write the figure as it gives it.',
+    input_schema: obj({ what: str('What the figure is ("the Sealer\'s share of the loss")', 160), expression: str('The sum in numbers only ("264 / 429 * 100")', 400), unit: str('Its unit', 30), places: { type: 'integer', minimum: 0, maximum: 6 } }, ['what', 'expression']),
+  },
+  {
     name: 'make_chart',
     kind: 'local',
     description: 'Draw a chart of a result — shown in the conversation with its download (SVG and PNG). Drawn only from a result\'s figures, never from words. Use it when the person asks for a graph or chart.',

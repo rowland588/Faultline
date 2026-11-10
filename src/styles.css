@@ -17124,6 +17124,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* a figure to check, and what to say next */
 .ai-unsure { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .ai-check { padding: 3px 10px; border-radius: var(--radius-pill); background: var(--fill-warn); color: var(--st-a); font-size: var(--t-label); font-weight: 700; }
+.ai-figs { margin: 0; display: flex; align-items: center; gap: 6px; }
+.ai-figs.is-ok > svg { color: var(--st-g); }
+.ai-figs-k { font-size: var(--t-label); font-weight: 700; color: var(--st-a); }
+.ai-fig-check { background: var(--fill-warn); color: inherit; text-decoration: underline dotted var(--st-a); text-underline-offset: 3px; padding: 0 1px; }
 .ai-sugs { display: flex; flex-wrap: wrap; gap: 8px; }
 .ai-sug { min-height: 34px; text-align: left; white-space: normal; }
 

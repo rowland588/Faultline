@@ -142,6 +142,56 @@ async function resolveId(id: string, ctx: CapCtx): Promise<Resolved | { why: str
   return 'why' in d ? d : { kind: 'dataset', dataset: d };
 }
 
+/* ------------------------------------------------------------------ a question of any source, for the other capabilities (dig.ts) */
+export interface SourceField { name: string; type: string; distinct?: number; unique?: boolean }
+export type Asked = { ok: true; result: QueryResult; name: string; sheet?: string; kind: 'workbook' | 'dataset'; id: string; sourceId?: string; limits: string[] } | { ok: false; why: string; cannot?: CapResult };
+
+/** What a source holds, field by field (its type, how many values) — the sheet's when it is a workbook. */
+export async function fieldsOfSource(ctx: CapCtx, source: string, sheet?: string): Promise<{ ok: true; fields: SourceField[]; sheet?: string; name: string } | { ok: false; why: string }> {
+  const r = await resolveId(source, ctx);
+  if ('why' in r) return { ok: false, why: r.why };
+  if (r.kind === 'workbook') {
+    let p;
+    try { p = await workbooks().profile(r.fileId); } catch { return { ok: false, why: `“${r.name}” is in the register, but its cells are not on this device — attach the file here to ask it.` }; }
+    const sh = sheet ? p.sheets.find(x => x.name.toLowerCase() === sheet.toLowerCase()) : p.sheets.filter(x => x.read).length === 1 ? p.sheets.find(x => x.read) : undefined;
+    if (!sh) return { ok: false, why: sheet ? `“${r.name}” has no sheet “${sheet}” — it has ${p.sheets.map(x => x.name).join(', ')}.` : `“${r.name}” has ${p.sheets.length} sheets (${p.sheets.map(x => x.name).join(', ')}) — say which.` };
+    return { ok: true, name: r.name, sheet: sh.name, fields: sh.columns.map(c => ({ name: c.name, type: c.type, ...(c.distinct !== undefined ? { distinct: c.distinct } : {}), ...(c.unique ? { unique: true } : {}) })) };
+  }
+  const cov = fieldCoverage(r.dataset);
+  return { ok: true, name: r.dataset.name, fields: cov.map(c => ({ name: c.name, type: c.type, distinct: c.type === 'text' || c.type === 'yes/no' ? new Set(r.dataset.rows.map(row => row[r.dataset.fields.findIndex(f => f.name === c.name)]).filter(v => v !== null && v !== '')).size : undefined })) };
+}
+
+/** One question of a source, worked by its own code — the result, or why it cannot be (a field it does not hold: `cannot`). */
+export async function askSource(ctx: CapCtx, source: string, sheet: string | undefined, q: Omit<Query, 'sheet'>): Promise<Asked> {
+  const r = await resolveId(source, ctx);
+  if ('why' in r) return { ok: false, why: r.why };
+  if (r.kind === 'workbook') {
+    let p;
+    try { p = await workbooks().profile(r.fileId); } catch { return { ok: false, why: `“${r.name}” is in the register, but its cells are not on this device — attach the file here to ask it.` }; }
+    const sh = sheet ? p.sheets.find(x => x.name.toLowerCase() === sheet.toLowerCase()) : p.sheets.filter(x => x.read).length === 1 ? p.sheets.find(x => x.read) : undefined;
+    if (!sh) return { ok: false, why: sheet ? `“${r.name}” has no sheet “${sheet}” — it has ${p.sheets.map(x => x.name).join(', ')}.` : `“${r.name}” has ${p.sheets.length} sheets (${p.sheets.map(x => x.name).join(', ')}) — say which.` };
+    const miss = missingFields({ fields: sh.columns.map(cl => ({ name: cl.name, type: 'text' as const, means: '' })) }, q);
+    if (miss.length) return { ok: false, why: 'cannot', cannot: cannot(r.name, miss, sh.columns.map(cl => cl.name), []) };
+    try { return { ok: true, result: await workbooks().query(r.fileId, { ...q, sheet: sh.name }), name: r.name, sheet: sh.name, kind: 'workbook', id: r.fileId, ...(r.source ? { sourceId: r.source.id } : {}), limits: [] }; } catch (e) { return { ok: false, why: e instanceof Error ? e.message : String(e) }; }
+  }
+  const miss = missingFields(r.dataset, q);
+  if (miss.length) return { ok: false, why: 'cannot', cannot: cannot(r.dataset.name, miss, r.dataset.fields.map(f => f.name), r.dataset.limits) };
+  try { return { ok: true, result: runTable(r.dataset, q), name: r.dataset.name, kind: 'dataset', id: r.dataset.id, ...(r.source ? { sourceId: r.source.id } : {}), limits: r.dataset.limits }; } catch (e) { return { ok: false, why: e instanceof TableError ? e.message : String(e) }; }
+}
+
+/** A result kept on the conversation (a question asked by another capability — a change, a join), with its id. */
+export async function keepResult(ctx: CapCtx, r: Omit<DataResult, 'id' | 'at'>): Promise<DataResult | { why: string }> {
+  const c = await conversation(ctx);
+  if (!c.ok) return { why: c.why };
+  const kept: DataResult = { ...r, id: `R${uid().slice(0, 6)}`, at: ctx.now, result: { ...r.result, groups: r.result.groups.slice(0, GROUPS_KEPT) } };
+  await writeOutputs(c.s.id, o => ({ results: [...o.results, kept].slice(-RESULTS_KEPT) }));
+  return kept;
+}
+export const resultsOfConversation = async (ctx: CapCtx): Promise<Map<string, DataResult>> => {
+  const c = await conversation(ctx);
+  return c.ok ? resultMap(outputsOf(c.s)) : new Map();
+};
+
 /* ── list_sources ── */
 export const listSources: Capability = {
   name: 'list_sources', title: 'What there is to look at', kind: 'read',

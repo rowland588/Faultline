@@ -13,6 +13,7 @@
 import { supabase } from '../cloud/client';
 import type { CapCall, CapRef, CapResult } from '../capabilities/types';
 import type { GatewayTurn } from './conversation';
+import { checkFigures, type FigureSource } from './figureCheck';
 
 export const MAX_ROUNDS = 6;
 
@@ -130,19 +131,27 @@ export interface LoopAsk {
 }
 
 export type LoopEnd =
-  | { ok: true; reply: string; suggestions: string[]; unsure: string[]; model?: string; rounds: number; capped?: boolean }
+  | { ok: true; reply: string; suggestions: string[]; unsure: string[]; checked: number; model?: string; rounds: number; capped?: boolean }
   | { ok: false; why: string; off?: boolean; offline?: boolean; reply?: string; rounds: number };
 
-const said = (r: CapResult): string => (r.ok ? r.says : r.why);
+const saidOf = (r: CapResult): string => (r.ok ? r.says : r.why);
 
 /** THE CLIENT LOOP — send, run what is asked (writes only on the person's word), send back, until the colleague answers
  *  with no calls or six rounds have gone. */
 export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopEnd> {
   let pending: ColleagueBody['pending'];
   const words: string[] = [];
-  const unsure = new Set<string>();
+  const held: FigureSource[] = [];
   const text = () => words.filter(Boolean).join('\n\n');
   const prefs = ask.preferences?.().trim() ?? '';
+  /* every figure in the answer looked for in what Faultline worked out for it, what the person said, the subject and today
+     (docs/LUNA-NEXT.md L1) — on the device, where every step's result is, to the rounding each figure is written at */
+  const said = [
+    ...ask.turns.filter(t => t.role === 'person').map(t => `${t.text} ${t.at}`), ask.today,
+    /* what earlier steps worked out (a colleague turn's last line, its steps in brackets) — never Luna's own earlier words */
+    ...ask.turns.filter(t => t.role === 'colleague').flatMap(t => t.text.split('\n').filter(l => l.startsWith('['))),
+  ];
+  const checkedEnd = async (reply: string) => checkFigures(reply, held, [...said, await ask.focus(), prefs]);
   for (let round = 1; round <= MAX_ROUNDS; round++) {
     const body: ColleagueBody = {
       task: 'colleague', turns: ask.turns, ...(ask.images?.length ? { images: ask.images } : {}),
@@ -152,14 +161,14 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     const a = await deps.invoke(body);
     if (!a.ok) return { ...a, rounds: round, ...(words.length ? { reply: text() } : {}) };
     if (a.reply.trim()) { words.push(a.reply.trim()); deps.onWords?.(text()); }
-    for (const u of a.unsure ?? []) unsure.add(u);
-    if (!a.calls?.length) return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: [...unsure], ...(a.model ? { model: a.model } : {}), rounds: round };
+    if (!a.calls?.length) { const c = await checkedEnd(text()); return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(a.model ? { model: a.model } : {}), rounds: round }; }
     if (round === MAX_ROUNDS) {
       words.push(TOO_MANY);
-      return { ok: true, reply: text(), suggestions: ['Carry on'], unsure: [...unsure], ...(a.model ? { model: a.model } : {}), rounds: round, capped: true };
+      const c = await checkedEnd(text());
+      return { ok: true, reply: text(), suggestions: ['Carry on'], unsure: c.unsure, checked: c.checked, ...(a.model ? { model: a.model } : {}), rounds: round, capped: true };
     }
     const results: CallResult[] = [];
-    for (const call of a.calls) results.push(await doCall(call, deps));
+    for (const call of a.calls) { const r = await doCall(call, deps); results.push(r); if (r.ok) held.push({ says: r.says, data: r.data }); }
     pending = { assistant: a.assistant ?? null, results };
   }
   /* not reached — the last round returns above */
@@ -175,8 +184,8 @@ async function doCall(call: CapCall, deps: LoopDeps): Promise<CallResult> {
   }
   if (d.kind !== 'write') {
     const r = await deps.run(call, false);
-    await deps.onStep({ call, title: d.title, kind: d.kind, status: r.ok ? 'done' : 'failed', says: said(r), refs: r.ok ? r.refs : [] });
-    return { id: call.id, ok: r.ok, says: said(r), ...(r.ok && r.data !== undefined ? { data: r.data } : {}) };
+    await deps.onStep({ call, title: d.title, kind: d.kind, status: r.ok ? 'done' : 'failed', says: saidOf(r), refs: r.ok ? r.refs : [] });
+    return { id: call.id, ok: r.ok, says: saidOf(r), ...(r.ok && r.data !== undefined ? { data: r.data } : {}) };
   }
   /* A WRITE: checked first — one the person may not make never becomes a card */
   const p = await deps.prepare(call);
@@ -186,8 +195,8 @@ async function doCall(call: CapCall, deps: LoopDeps): Promise<CallResult> {
   }
   if (p.authorised) {
     const r = await deps.run(call, true);
-    await deps.onStep({ call, title: p.title, kind: 'write', status: r.ok ? 'done' : 'failed', says: said(r), preview: p.preview, input: p.input, refs: r.ok ? r.refs : [] });
-    return { id: call.id, ok: r.ok, says: said(r), ...(r.ok && r.data !== undefined ? { data: r.data } : {}) };
+    await deps.onStep({ call, title: p.title, kind: 'write', status: r.ok ? 'done' : 'failed', says: saidOf(r), preview: p.preview, input: p.input, refs: r.ok ? r.refs : [] });
+    return { id: call.id, ok: r.ok, says: saidOf(r), ...(r.ok && r.data !== undefined ? { data: r.data } : {}) };
   }
   const waiting: Step = { call, title: p.title, kind: 'write', status: 'waiting', says: p.preview, preview: p.preview, input: p.input, refs: [] };
   await deps.onStep(waiting);
@@ -197,6 +206,6 @@ async function doCall(call: CapCall, deps: LoopDeps): Promise<CallResult> {
     return { id: call.id, ok: false, declined: true, says: 'The person said not now; nothing was written.' };
   }
   const r = await deps.run(call, true);
-  await deps.onStep({ ...waiting, status: r.ok ? 'done' : 'failed', says: said(r), refs: r.ok ? r.refs : [] });
-  return { id: call.id, ok: r.ok, says: said(r), ...(r.ok && r.data !== undefined ? { data: r.data } : {}) };
+  await deps.onStep({ ...waiting, status: r.ok ? 'done' : 'failed', says: saidOf(r), refs: r.ok ? r.refs : [] });
+  return { id: call.id, ok: r.ok, says: saidOf(r), ...(r.ok && r.data !== undefined ? { data: r.data } : {}) };
 }

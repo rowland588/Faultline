@@ -17,6 +17,8 @@ import { WORKBOOK } from './workbook';
 import { FILL } from './fill';
 import { WALK } from './walk';
 import { DATA } from './data';
+import { DIG } from './dig';
+import { workOut } from './workout';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
@@ -41,6 +43,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...WALK,
   /* every source asked one way; results, charts and reports built in the conversation (10 November, docs/CONVERSATIONAL-DATA.md) */
   ...DATA,
+  /* the analyst's moves: what changed and where, two results side by side, arithmetic through Faultline (docs/LUNA-NEXT.md) */
+  ...DIG, workOut,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);
