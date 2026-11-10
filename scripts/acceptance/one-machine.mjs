@@ -20,6 +20,7 @@
  *
  *   node scripts/acceptance/one-machine.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openLineMore } from '../lib/lineMore.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -39,7 +40,7 @@ const page = await ctx.newPage();
 const errs = [];
 page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text()); });
 page.on('pageerror', e => errs.push(e.message));
-const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); };
+const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); await openLineMore(page); };  /* a line's Overview: More about this line opened first, as a person would (10 November) */
 
 await go('#/room');
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());

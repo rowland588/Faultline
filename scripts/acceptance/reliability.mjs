@@ -50,6 +50,7 @@
  *
  *   node scripts/acceptance/reliability.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openLineMore } from '../lib/lineMore.mjs';
 import { paper as pressPaper } from '../lib/pageHeader.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
@@ -78,7 +79,7 @@ await page.clock.install();
 const errs = [];
 page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text()); });
 page.on('pageerror', e => errs.push(e.message));
-const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); };
+const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); await openLineMore(page); };  /* a line's Overview: More about this line opened first, as a person would (10 November) */
 const shot = async name => { if (SHOTS) await page.screenshot({ path: join(SHOTS, `${name}.png`), fullPage: true }); };
 const pdfText = async click => {
   const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), click()]);

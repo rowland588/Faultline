@@ -39,6 +39,7 @@
  *      the phone's own bar, long words kept inside it
  *   and no console error anywhere, and nothing sent to a voice service. */
 import pkg from 'playwright';
+import { openLineMore } from '../lib/lineMore.mjs';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -152,7 +153,7 @@ const lineId = await page.evaluate(async () => {
 });
 
 /* 1 — opened from the line's page, started on the line; the box */
-await page.goto(`${BASE}/#/lines/${lineId}`); await settle(1200);
+await page.goto(`${BASE}/#/lines/${lineId}`); await settle(1200); await openLineMore(page);   /* its tools are in More about this line (10 November) */
 const tile = page.locator('.pl-tool', { hasText: 'Line Talk' });
 ok(await tile.count() === 1, '1 the line’s page offers Line Talk among its tools');
 ok(await tile.evaluate(e => !!e.closest('.pl-tools-more')), '1 none yet on the line — listed under Not used on this line yet', await tile.innerText());
@@ -331,7 +332,7 @@ const n10 = (await mine()).filter(t => t.kind === 'said').length;
 const typed10 = (await mine()).filter(t => t.kind === 'typed').length;
 
 /* 11 — the line, every Line Talk, the phone */
-await page.goto(`${BASE}/#/lines/${lineId}`); await settle(1200);
+await page.goto(`${BASE}/#/lines/${lineId}`); await settle(1200); await openLineMore(page);   /* its tools are in More about this line (10 November) */
 const t11 = await page.locator('.pl-tool', { hasText: 'Line Talk' }).innerText();
 ok(/1 on this line/.test(t11) && new RegExp(`Line 7 — ${today}: ${n10} pieces said · 1 photo · ${typed10} typed · 8 answers`).test(t11), '11 the line’s page says its Line Talk', t11);
 await page.goto(`${BASE}/#/talk`); await settle(800);

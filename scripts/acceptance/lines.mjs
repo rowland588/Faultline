@@ -25,6 +25,7 @@
  *
  *   node scripts/acceptance/lines.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openLineMore } from '../lib/lineMore.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -63,6 +64,7 @@ const lit = (await page.locator('.nv-rail .nv-ri.is-on').allInnerTexts()).join()
 const said = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();
 ok(rail === 'Factory Line 2B Projects Tools Factory reports' && lit === 'Line 2B' && tabs === 'Overview · Machines · Problems · Actions · Programs · Tools · Set up' && /^Factory › Line 2B › Overview Go to$/.test(said + (await page.locator('.nv-top .nv-goto').innerText()).replace(/^/, ' ').trimEnd()),
   `3 the menu with Factory lit (${rail} | ${lit}), the line's tabs (${tabs}), the bar saying ${said}`);
+await openLineMore(page);   /* its tools, Stops timed among them, are in More about this line (10 November) */
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
 // THE STOPWATCH FROM THE LINE (docs/UPGRADE-AUDIT.md F1): Stops timed first among the tools, none yet, Time a stop beside it (off the header since 27 October)
 ok(/None yet — the stopwatch/.test(await page.locator('.pl-tool.is-stops').innerText()), '4a Stops timed, first tool: none yet');
@@ -120,7 +122,7 @@ await page.getByRole('button', { name: 'New line capacity' }).first().click(); a
 const capLine = await page.locator('.sheet, [role="dialog"]').last().locator('select').first().evaluate(el => el.options[el.selectedIndex]?.text);
 ok(capLine === 'Line 2B', `9 New line capacity starts on ${capLine}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
-await page.goto(`${BASE}/#/lines/${page.url().match(/line=([^&]+)/)?.[1] ?? ''}`); await page.waitForTimeout(1500);
+await page.goto(`${BASE}/#/lines/${page.url().match(/line=([^&]+)/)?.[1] ?? ''}`); await page.waitForTimeout(1500); await openLineMore(page);
 await page.locator('.pl-tool', { hasText: 'SMED' }).click(); await page.waitForTimeout(2000);
 ok(/#\/smed\?line=/.test(page.url()) && /None on Line 2B yet/.test(await txt()), `10 SMED on the line: none yet, said so`);
 await page.getByRole('button', { name: /New SMED|New/ }).first().click(); await page.waitForTimeout(800);
@@ -133,7 +135,7 @@ ok(/Line 2B No type yet .*1 problem open/.test(await txt()), '12 the control roo
 if (OUT) await page.screenshot({ path: `${OUT}/l-3-control.png` });
 // phone
 await page.setViewportSize({ width: 390, height: 844 });
-await page.goto(`${BASE}/#/lines/${(await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces())[0].id))}`); await page.waitForTimeout(2000);
+await page.goto(`${BASE}/#/lines/${(await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces())[0].id))}`); await page.waitForTimeout(2000); await openLineMore(page);
 const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 ok(wide <= 1, `13 phone: nothing off the side (${wide}px)`);
 if (OUT) await page.screenshot({ path: `${OUT}/l-4-phone.png` });

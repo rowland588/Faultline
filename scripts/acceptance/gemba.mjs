@@ -19,6 +19,7 @@
  *   node scripts/acceptance/gemba.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
 import { openMethodSections } from '../lib/methodFolds.mjs';
+import { openLineMore } from '../lib/lineMore.mjs';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -44,7 +45,7 @@ const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
 page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errors.push(`console: ${m.text().slice(0, 200)}`); });
-const go = async (h, ms = 1800) => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(ms); };
+const go = async (h, ms = 1800) => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(ms); await openLineMore(page); };  /* a line's Overview: More about this line opened first, as a person would (10 November) */
 await go('#/room');
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 

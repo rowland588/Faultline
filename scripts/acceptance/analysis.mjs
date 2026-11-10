@@ -25,6 +25,7 @@
  *
  * Fails on any console error.   node scripts/acceptance/analysis.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openLineMore } from '../lib/lineMore.mjs';
 import { paper as pressPaper } from '../lib/pageHeader.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
@@ -59,7 +60,7 @@ page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) er
 let failed = 0;
 const ok = (c, m, extra) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}${!c && extra ? ` — ${extra}` : ''}`); if (!c) failed++; };
 const flat = x => (x ?? '').replace(/\s+/g, ' ').trim();
-const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2000); };
+const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2000); await openLineMore(page); };  /* a line's Overview: More about this line opened first, as a person would (10 November) */
 const words = async sel => ((await page.locator(sel).count()) ? flat(await page.locator(sel).first().innerText()) : null);
 const all = async sel => (await page.locator(sel).allInnerTexts()).map(flat);
 const studyId = () => decodeURIComponent(page.url().split('/analysis/')[1]?.split('?')[0] ?? '');

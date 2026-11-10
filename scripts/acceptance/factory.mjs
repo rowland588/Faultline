@@ -45,6 +45,7 @@
  *
  *   node scripts/acceptance/factory.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openLineMore } from '../lib/lineMore.mjs';   /* a line's Overview: Projects and The line are in More about this line (10 November) */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -184,7 +185,7 @@ if (OUT) await page.screenshot({ path: `${OUT}/f-4-phone-control.png` });
 await page.setViewportSize({ width: 1360, height: 900 });
 const idOf = async name => page.evaluate(async n => (await (await import('/src/db.ts')).listWorkspaces()).find(w => w.name === n && !w.archived)?.id, name);
 const line1 = await idOf('Line 1');
-await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
+await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000); await openLineMore(page);
 ok(/Projects on this line/.test(await txt()) && /No project on this line now/.test(await txt()), '13 a line\'s page: Jobs on this line — none yet, said so');
 await page.getByRole('button', { name: 'Start a project on this line ›' }).click(); await page.waitForTimeout(1500);
 ok(/#\/projects\?new=1&line=/.test(page.url()), `13b Start a job on this line: ${page.url().split('#')[1].slice(0, 30)}…`);
@@ -223,7 +224,7 @@ await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
 ok((await order()).at(-1) === 'Line 9|' && (await order()).length === 5, `18 Line 9 is in the factory, at the end: ${(await order()).join(' / ')}`);
 const row1 = page.locator('.fac-line[data-line="Line 1"]');
 ok(/on Line 1 performance/.test(await row1.innerText()) && (await row1.getByRole('button', { name: 'Archive' }).count()) === 0, '18b Line 1 says its job, and is not archived from under it');
-await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
+await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000); await openLineMore(page);
 if (OUT) await page.screenshot({ path: `${OUT}/f-8-line-jobs.png` });
 const jobsSec = (await page.getByRole('region', { name: 'Projects on this line' }).innerText()).replace(/\s+/g, ' ');
 ok(/Line 1 performance Performance \(6M\)/.test(jobsSec), `19 Line 1's page: its job — ${jobsSec}`);
@@ -266,7 +267,7 @@ ok((await order()).at(-1) === 'Line 10|' && (await order()).length === 6, `23 a 
 await page.evaluate(async p => { const P = await import('/src/db/projects.ts'); await P.archiveProject(p); }, pid);
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
 ok((await order()).some(x => x.startsWith('Line 1|')) && !/Line 1 performance/.test(await txt()), `24 Line 1 performance archived: Line 1 still in the factory, the job's name gone from it (${(await order()).length} lines)`);
-await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
+await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000); await openLineMore(page);
 ok(/No project on this line now/.test(await txt()) && !/Line 1 performance/.test(await rail()), '25 the line\'s page: no job on it now, none on the rail');
 await page.goto(`${BASE}/#/w/${line1}/capture`); await page.waitForTimeout(2500);
 /* a tool on the line is the line's since B2: the line's own rail, the bar naming the line */
@@ -278,7 +279,7 @@ const opts2 = await page.locator('.sheet, [role="dialog"]').last().locator('sele
 ok(opts2.includes('Line 1') && !opts2.some(o => /performance/.test(o)), `26b a tool's Which line still offers Line 1 (${opts2.length} lines)`);
 
 /* 27-30 — Stage 1: the factory holds the line's facts; two lines merged (BLUEPRINT §7) */
-await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
+await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000); await openLineMore(page);
 const facts = async () => (await page.getByRole('region', { name: 'The line', exact: true }).innerText()).replace(/\s+/g, ' ');
 ok(/Shifts Not said yet/.test(await facts()) && /Crew and cost Not said yet/.test(await facts()), `27 the line's facts, unsaid, said so: ${(await facts()).slice(0, 90)}`);
 await page.getByRole('button', { name: 'Set up the line ›' }).click(); await page.waitForTimeout(900);

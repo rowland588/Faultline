@@ -22,6 +22,7 @@
  *
  *   node scripts/acceptance/line-hub.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openLineMore } from '../lib/lineMore.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -40,7 +41,7 @@ const page = await ctx.newPage();
 const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/supabase|net::|Failed to fetch|DevTools/i.test(m.text())) errs.push(m.text().slice(0, 150)); });
 let fail = 0; const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail++; };
 const flat = s => (s ?? '').replace(/\s+/g, ' ').trim();
-const go = async (hash, wait = 2500) => { await page.goto(`${BASE}/${hash}`); await page.waitForTimeout(wait); };
+const go = async (hash, wait = 2500) => { await page.goto(`${BASE}/${hash}`); await page.waitForTimeout(wait); await openLineMore(page); };  /* a line's Overview: More about this line opened first, as a person would (10 November) */
 const dir = mkdtempSync(join(tmpdir(), 'line-hub-'));
 
 await go('#/room', 3000);
@@ -68,7 +69,7 @@ ok(await page.locator('.pl > .ln-close').count() === 1, 'the closing line');
 ok(!/product/i.test(flat(await page.locator('.pl > .ln-close').innerText())), 'the closing line says nothing of products');
 const tabs = (await page.locator('.nv-tabs .nv-tab-l, .nv-rail a, .nv-rail button').allInnerTexts()).map(flat);
 ok(!tabs.includes('Products'), `the line's pages have no Products (${[...new Set(tabs)].filter(Boolean).join(' · ')})`);
-const order = await page.evaluate(() => [...document.querySelectorAll('.pl > .pl-sec')].map(s => s.getAttribute('aria-label')));
+const order = await page.evaluate(() => [...document.querySelectorAll('.pl > .pl-sec, .pl > [data-fold="line-more"] > .fold-b > .pl-sec')].map(s => s.getAttribute('aria-label')));
 /* the machines are their own tab since 27 October ("I don't see your machine page"); the Overview has them machine by machine, then programs */
 ok(!order.includes('Products on this line') && !order.includes('Machines on this line') && order.includes('The line, machine by machine') && order.indexOf('The line, machine by machine') < order.indexOf('Programs on this line'), `the page — the line machine by machine, then programs (${order.join(' · ')})`);
 ok(tabs.includes('Machines'), 'the line has a Machines tab');

@@ -71,6 +71,7 @@
  *
  *   node scripts/acceptance/line-capacity.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openLineMore } from '../lib/lineMore.mjs';
 import { paper as pressPaper, more as pressMore } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 
@@ -94,7 +95,7 @@ page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) er
 
 let failed = 0;
 const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) failed++; };
-const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2200); };
+const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2200); await openLineMore(page); };  /* a line's Overview: More about this line opened first, as a person would (10 November) */
 const words = async sel => ((await page.locator(sel).count()) ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : '');
 
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);

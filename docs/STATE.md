@@ -298,6 +298,13 @@ a session that ships something updates this page in the same commit.** The rules
   under its header, Spread what works and Eyes on the line side by side, the tools in use a table; the register's groups one
   bordered list with hairline rows. Presentation only.
 
+- **The line page, simpler (10 November — Rowland: *"the line pages are difficult also, busy … Tools obvious. Continue obvious.
+  Everything is too busy"*).** The Overview is the header and its doors, the four tiles, **Carry on** (the records in use on the
+  line, newest first, each one tap into that record — `toolSaysOf` now also says which record, its link and when it changed),
+  Problems, the machines, then **More about this line** — one `ui/Fold`, shut by default, holding Programs, Spread what works,
+  Eyes on the line, Photos from walks, Tools, Logs, Projects and The line unchanged — and the closing line. Nothing removed; the
+  other tabs as before. `scripts/acceptance/line-simple.mjs`; scripts that read inside the fold open it (`scripts/lib/lineMore.mjs`).
+
 - **Reports polished and words kept off words (7 November, docs/ENTERPRISE-UX.md X7 first pass).** Every paper's band, figures,
   headings, tables, badges and closing line to an Office finish, the lean page kept; the fishbone's causes wrap to two lines and
   keep their tags off the bones; the plan's Today never on a month's name; the closing line's red mark is "!", not a cross.

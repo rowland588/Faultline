@@ -159,11 +159,16 @@ async function run(name, width, fn) {
 async function J1(D, J) {
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Factory');
   await press(D, J, 'Your factory: Line 7', lineCard(D, 'Line 7')); await orient(D, J, 'Line 7');
+  /* since 10 November (the line page, simpler — Rowland: "Too busy … Tools obvious. Continue obvious") the line's projects are in
+     More about this line, one fold shut by default: opened first, one tap; Carry on takes the tap back below */
+  if (!(await D.page.locator('main [data-fold="line-more"].is-open').count())) await press(D, J, 'More about this line', D.page.locator('main [data-fold="line-more"] .fold-toggle'));
   await press(D, J, 'Projects on this line: Line 7 pace', D.page.locator('main').getByText('Line 7 pace', { exact: true })); await orient(D, J, 'Line 7 pace');
   await nav(D, J, 'Fishbone'); await orient(D, J, 'Line 7 pace');
   await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
-  await press(D, J, 'Tools on this line: Line capacity', D.page.locator('main').getByRole('button', { name: /^Line capacity/ })); await orient(D, J, 'Line 7');
-  await press(D, J, 'Maris Piper 2kg', D.page.locator('main button.lt-row').filter({ hasText: 'Maris Piper 2kg' })); await orient(D, J, 'Line 7');
+  /* Carry on, under the line's tiles: the record in use, one tap into Maris Piper 2kg's Line capacity itself — the list was a tap more */
+  await press(D, J, 'Carry on: Line capacity — Maris Piper 2kg', D.page.locator('main [data-carry="linebalance"]').filter({ hasText: 'Maris Piper 2kg' })); await orient(D, J, 'Line 7');
+  await D.page.locator('main').getByText('Maris Piper 2kg').first().waitFor({ timeout: 8000 });
+  J.steps.push('[on Maris Piper 2kg\'s Line capacity]');
   await nav(D, J, 'Control room'); await orient(D, J, 'Factory');
 }
 /* J1 — across the factory, a line and a project (desk): from the control room, Line 7; the 6M project running on it;
@@ -215,10 +220,12 @@ async function J3(D, J) {
   J.steps.push('[on the project\'s SMED list]');
   /* and from Line 7 */
   await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
-  await press(D, J, 'Tools on this line: SMED', D.page.locator('main').getByRole('button', { name: /^SMED/ }).first()); await orient(D, J, 'Line 7');
-  const there = await D.page.locator('main button.lt-row').filter({ hasText: 'Maris Piper 2kg' }).count();
-  J.steps.push(there ? '[on Line 7\'s SMED list]' : '[NOT on Line 7\'s SMED list as it opens]');
-  if (!there) await look(D, J, 'J3 Line 7 SMED list');
+  /* since 10 November the line's Carry on is the way back to it (the line page, simpler): the SMED just made, newest on the line,
+     one tap into the record itself — Tools on this line, which listed it, is in More about this line */
+  await press(D, J, 'Carry on: SMED — Maris Piper 2kg', D.page.locator('main [data-carry="changeover"]').filter({ hasText: 'Maris Piper 2kg' })); await orient(D, J, 'Line 7');
+  const there = /#\/smed\/[^?/]+/.test(D.page.url()) && await D.page.locator('main').getByText(/Maris Piper 2kg/).count();
+  J.steps.push(there ? '[on the SMED itself, from Line 7]' : '[NOT on the SMED from Line 7]');
+  if (!there) await look(D, J, 'J3 Line 7 SMED');
 }
 await run('J3 a tool in context', 1360, async (D, J) => { await J3(D, J); });
 

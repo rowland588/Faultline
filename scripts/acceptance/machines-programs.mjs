@@ -54,6 +54,7 @@
  *
  *   node scripts/acceptance/machines-programs.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openLineMore } from '../lib/lineMore.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -83,7 +84,7 @@ page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) er
 let failed = 0;
 const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) failed++; };
 /* a sheet closed by Escape takes its history entry off a moment later — wait for it, or it lands on top of the goto (CLAUDE.md) */
-const go = async h => { await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 3000 }).catch(() => {}); await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2200); };
+const go = async h => { await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 3000 }).catch(() => {}); await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2200); await openLineMore(page); };  /* a line's Overview: More about this line opened first, as a person would (10 November) */
 const flat = s => (s ?? '').replace(/\s+/g, ' ').trim();
 const ensureProve = async row => {
   await row.scrollIntoViewIfNeeded();
