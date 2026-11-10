@@ -17640,3 +17640,19 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .luna-changed { margin: 12px 20px 0; display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: var(--radius-sm); background: var(--surface); font-size: var(--t-detail); color: var(--ink-2); }
 .luna-changed-orb { flex: none; width: 20px; height: 20px; display: grid; place-items: center; border-radius: var(--radius-round); background: var(--accent-soft); color: var(--brand); }
 @media (min-width: 1100px) { .luna-changed { margin-left: calc(var(--nv-rail) + 20px); } }
+
+/* THE CASE FILE (colleague/CaseFile, W4): a line on a project's (or line's) pages when it has been worked with Luna; opened, the file */
+.case-bar { margin: 12px 20px 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.case-bar-h { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; color: var(--ink); }
+.case-bar-k { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--accent-soft); color: var(--brand); font-size: var(--t-label); font-weight: 700; }
+.case-bar-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-detail); }
+.case-bar-more { flex: none; color: var(--brand); font-size: var(--t-detail); font-weight: 600; }
+.case-file { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 12px; border-top: 1px solid var(--line); }
+.case-file .sub { margin: 6px 0 0; }
+.case-row { margin: 0; display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; font-size: var(--t-detail); }
+.case-row.is-wait b { color: var(--st-a); }
+.case-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.case-list li { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; font-size: var(--t-detail); }
+.case-file .btn { align-self: flex-start; min-height: 44px; }
+@media (min-width: 1100px) { .case-bar { margin-left: calc(var(--nv-rail) + 20px); } }
+@media (max-width: 719px) { .case-row, .case-list li { grid-template-columns: 1fr; gap: 0; } .case-bar-more { display: none; } }

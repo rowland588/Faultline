@@ -17,7 +17,7 @@
  * WHICH RECORD: a study of tool `talk`, facts.colleague (no new table). WHERE IT SHOWS: here; the door is the top bar's
  * Ask Luna (src/colleague/AiDoor), never a line of the menu. */
 import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { deskWide, setLunaPanel } from '../colleague/lunaPanel';
+import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen } from '../colleague/lunaPanel';
 import { scopeOf } from '../lib/scope';
 import { inAgreedScope } from '../capabilities/scope';
 import { createPortal } from 'react-dom';
@@ -125,10 +125,17 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page }
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   /* WHICH CONVERSATION — the one the address names, else a new one; a session key keeps a conversation's working state
      while its first Send makes its record (the address is then quietly given its id, for a reload) */
-  const [open, setOpen] = useState<{ key: string; id?: string }>(() => ({ key: uid(), ...(route.query.get('c') ? { id: route.query.get('c') as string } : {}) }));
+  const [open, setOpen] = useState<{ key: string; id?: string }>(() => { const asked = route.query.get('c') ?? peekPendingOpen(); return { key: uid(), ...(asked ? { id: asked } : {}) }; });
   const [listSheet, setListSheet] = useState(false);
   const shownRef = useRef(shown); shownRef.current = shown;
   const slotRef = useRef(slot); slotRef.current = slot;
+  /* a conversation asked for from a page (the case file's Continue with Luna, W4) — opened in the panel */
+  useEffect(() => { takePendingOpen(); }, []);
+  useEffect(() => {
+    const on = (e: Event) => { const id = (e as CustomEvent<string>).detail; takePendingOpen(); if (id) setOpen(o => (o.id === id ? o : { key: uid(), id })); };
+    window.addEventListener(OPEN_EVENT, on);
+    return () => window.removeEventListener(OPEN_EVENT, on);
+  }, []);
   /* a conversation named by the address while the screen is alive (a link to #/ai?c=…, the exam's Open the exam conversation) — opened */
   const cQ = route.query.get('c') ?? '';
   const lastC = useRef(cQ);

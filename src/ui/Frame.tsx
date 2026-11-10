@@ -40,6 +40,7 @@ import { todayISO } from '../lib/weeks';
 import { Icon } from './Icon';
 import { LunaSlot } from '../colleague/LunaHost';
 import { LunaChanged } from '../colleague/LunaChanged';
+import { CaseBar } from '../colleague/CaseFile';
 import { deskWide, lunaPanel, setLunaPanel, useLunaPanel } from '../colleague/lunaPanel';
 import { useAiMode } from '../colleague/aiMode';
 import { LogoMark } from './Logo';
@@ -156,7 +157,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   return (
     <div className={'nv' + (lunaHere ? ` has-luna is-luna-${panel}` : '')}>
       <ScopeFrame scope={scope} project={project} projects={projects} lines={lines} here={here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} area={areaCrumbs(route)} />
-      <main className="nv-main">{lunaHere && <LunaChanged route={route} />}{children}</main>
+      <main className="nv-main">{aiOn && <CaseBar scope={scope} />}{lunaHere && <LunaChanged route={route} />}{children}</main>
       {lunaHere && (
         <aside className={'luna-panel is-' + panel} aria-label="Luna" data-luna-panel={panel}>
           <LunaSlot kind="panel" className="luna-slot-panel" />

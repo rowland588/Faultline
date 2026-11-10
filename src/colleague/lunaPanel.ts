@@ -30,3 +30,17 @@ export function useLunaPanel(): PanelState {
 }
 /** A desk wide enough for the page and Luna side by side. */
 export const deskWide = (): boolean => typeof window !== 'undefined' && window.matchMedia('(min-width: 1100px)').matches;
+
+/** Open Luna beside the page on a conversation (the case file's Continue with Luna): the panel opened, the conversation brought in by
+ *  AI Mode's screen, which listens for it ('faultline-luna-open'). */
+export const OPEN_EVENT = 'faultline-luna-open';
+let pending: string | undefined;
+/** The conversation asked for before Luna was alive — taken once by AI Mode's screen as it starts. */
+export const takePendingOpen = (): string | undefined => { const p = pending; pending = undefined; return p; };
+/** Read without taking — a start-up that may run twice reads it, then takes it once it has started. */
+export const peekPendingOpen = (): string | undefined => pending;
+export function openLunaOn(conversationId: string): void {
+  pending = conversationId;
+  setLunaPanel('open');
+  window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: conversationId }));
+}
