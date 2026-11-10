@@ -131,6 +131,13 @@ const btn = (D, name) => D.page.getByRole('button', { name, exact: false });
 const lineCard = (D, name) => D.page.locator('main button.fac-card').filter({ has: D.page.locator('.fac-card-name', { hasText: new RegExp(`^${esc(name)}$`) }) });
 const projectRow = (D, name) => D.page.locator('main button.jb-lab').filter({ has: D.page.locator('.jb-name', { hasText: new RegExp(`^${esc(name)}$`) }) });
 const text = (D, t) => D.page.getByText(t, { exact: false });
+/** The projects' rows are inside one fold since 10 November ("Every project — the control room", shut until opened — Rowland: "Too
+ *  busy"): opening it is a tap, counted as one. */
+async function openBoard(D, J) {
+  const t = D.page.locator('[data-fold="control-room"] .fold-toggle');
+  await t.waitFor({ timeout: 15000 });
+  if (!(await D.page.locator('[data-fold="control-room"].is-open').count())) await press(D, J, 'Every project — the control room', t);
+}
 
 async function run(name, width, fn) {
   if (ONLY && !name.startsWith(ONLY)) return;
@@ -222,6 +229,7 @@ await run('J3 a tool in context', 390, async (D, J) => { await J3(D, J); });
 await run('J4 stage gate: a failed re-test to a fix', 390, async (D, J) => {
   /* from the board of lines — the Factory's Lines tab, #/room since 8 November (S5), where the projects' rows are */
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Factory');
+  await openBoard(D, J);
   await press(D, J, 'the row: Line 2 commissioning', projectRow(D, 'Line 2 commissioning')); await orient(D, J, 'Line 2 commissioning');
   /* the gates are the Plan tab's since 27 October — one row of tabs, Plan's own row on its pages */
   await nav(D, J, 'Gates'); await orient(D, J, 'Line 2 commissioning');
@@ -265,6 +273,7 @@ await run('J5 6M: loss to cause to countermeasure', 1360, async (D, J) => {
 /* J6 — a lever tree month (desk): on Line 2B to 60 ppm, the condition off track, its action and who owes it, and the number's next reading. */
 await run('J6 lever tree: what is off track', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Factory');
+  await openBoard(D, J);
   await press(D, J, 'the row: Line 2B to 60 ppm', projectRow(D, 'Line 2B to 60 ppm')); await orient(D, J, 'Line 2B to 60 ppm');
   await nav(D, J, 'Tree'); await orient(D, J, 'Line 2B to 60 ppm');
   const off = (await D.page.locator('main').innerText()).replace(/\s+/g, ' ');
@@ -331,6 +340,7 @@ await run('J7c a line problem moved into a project (desk)', 1360, async (D, J) =
 /* J8 — the Monday pack (desk): the stage gate's one-page status, the 6M report, Line 7's line report, the control room report. */
 await run('J8 the Monday pack', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Factory');
+  await openBoard(D, J);
   await press(D, J, 'the row: Line 2 commissioning', projectRow(D, 'Line 2 commissioning')); await orient(D, J, 'Line 2 commissioning');
   /* Report ▾ on the project's header makes the paper on its report page at once (B3) */
   await paperOf(D, J, /^Status report/);

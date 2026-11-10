@@ -825,6 +825,8 @@ for (const size of CR_SIZES) {
   try {
     await page.goto(`${BASE}/#/snags`); await page.waitForTimeout(500);
     await page.goto(`${BASE}/#/room`);
+    /* the board is one fold since 10 November ("Every project — the control room", shut until opened) */
+    await page.locator('[data-fold="control-room"] .fold-toggle').waitFor({ timeout: 30000 }); if (!(await page.locator('[data-fold="control-room"].is-open').count())) { await page.locator('[data-fold="control-room"] .fold-toggle').click(); await page.waitForTimeout(400); }
     await page.locator('.jb-says').filter({ hasNotText: 'Reading every job' }).waitFor({ timeout: 30000 });
     await page.waitForTimeout(1500);
     /* the money tile reads the jobs' lines from Your factory — wait for it */

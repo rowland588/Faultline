@@ -62,6 +62,7 @@ import { accessOf, can as canOf, type Can } from '../lib/access';
 import { roomClosing, roomMoney, roomTiles } from '../lib/roomLean';
 import { useJobsDays } from '../lib/useFactoryLines';
 import { LeanClosing } from './Lean';
+import { Fold } from './Fold';
 
 const PCT = (n: number) => `${(n * 100).toFixed(3)}%`;
 const OPEN_KEY = 'faultline.jobs.open';
@@ -340,7 +341,11 @@ export function JobsBoard({ projects, after, reportRef }: {
   };
   const pick = (f: Focus) => setFocus(cur => (cur && JSON.stringify(cur) === JSON.stringify(f) ? null : f));
 
-  if (!pf) return <><section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">Every line and project</p><h1 className="jb-says">Reading every project…</h1></div></section>{after}</>;
+  /* While it reads, the same fold in the same place — so it is one fold, never one swapped for another under a tap */
+  if (!pf) {
+    const reading = <section className="jb is-loading" aria-busy="true"><Fold id="control-room" title="Every project — the control room" says="Reading every project…" start={false}><div className="jb-hero"><p className="jb-eyebrow">Every line and project</p><h1 className="jb-says">Reading every project…</h1></div></Fold></section>;
+    return after ? <>{reading}{after}</> : reading;
+  }
   /* No job, and no line with anything to chase: the factory is the page. */
   if (pf.jobs.length === 0 && pf.lines.length === 0) return <>{after}</>;
 
@@ -350,6 +355,11 @@ export function JobsBoard({ projects, after, reportRef }: {
 
   return (
     <section className={'jb' + (still ? ' is-still' : '')} aria-label="All projects">
+      {/* EVERY PROJECT, FOLDED (10 November — Rowland: "these dashboards are going to be cleaner. Too busy … Everything is too
+          busy"): the control-room band, who owes what, no date agreed, this week across every line and project and the projects'
+          timeline are one fold, shut until opened (ui/Fold, remembered on this device) — nothing in it changed or taken off; its
+          one line is the band's own sentence, and the closing line stays outside it, last */}
+      <Fold id="control-room" title="Every project — the control room" says={pf.says} start={false}>
       {/* ------------------------------ the band ------------------------------ */}
       <header className="jb-hero" style={glow}>
         <span className="jb-glow" aria-hidden />
@@ -517,6 +527,7 @@ export function JobsBoard({ projects, after, reportRef }: {
           <span className="jb-key-say">Tap a dot to see what it is.</span>
         </p>
       </div>}
+      </Fold>
       {/* THE CLOSING LINE — the board in one sentence, the slips in money */}
       <LeanClosing closing={roomClosing(pf, money)} />
     </section>

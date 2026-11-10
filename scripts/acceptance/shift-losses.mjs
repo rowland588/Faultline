@@ -322,6 +322,8 @@ await page.setViewportSize({ width: 1360, height: 900 });
   await go(`${P}?view=lines`);
   ok(((await words('.lc-shift .lc-bal-t')) ?? '').toLowerCase() === card.line.text.toLowerCase(), `6 the line's card: "${await words('.lc-shift .lc-bal-t')}"`);
   await go('#/room');
+  /* the projects' board is one fold since 10 November ("Every project — the control room", shut until opened) */
+  await page.locator('[data-fold="control-room"] .fold-toggle').waitFor({ timeout: 30000 }); if (!(await page.locator('[data-fold="control-room"].is-open').count())) { await page.locator('[data-fold="control-room"] .fold-toggle').click(); await page.waitForTimeout(400); }
   await page.locator('.jb-row').filter({ hasText: 'Line 7 pace' }).locator('.jb-chev-b').first().click(); await page.waitForTimeout(1200);
   ok(((await words('.jb-loss-t')) ?? '') === card.line.text, `6 the control room: under Line 7's gap — "${await words('.jb-loss-t')}"`);
   /* the fishbone: the latest count's biggest explained bars, each on its bone */

@@ -17732,3 +17732,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .inv-reply { margin: 6px 0; white-space: pre-wrap; }
 .inv-marks { margin: 4px 0 0; padding-left: 18px; }
 .inv-marks .is-g b { color: var(--st-g); } .inv-marks .is-r b { color: var(--st-r); }
+
+/* FACTORY, CALMER (10 November) — Rowland: "Too busy. Things need to be simplified". The projects' board is one fold (ui/Fold,
+   "Every project — the control room") under the three answers: it spans the page as they do, the closing line under it */
+.fq-grid > .fq-projects { align-self: stretch; }
+.fq-projects .jb > .fold { margin: 0; }

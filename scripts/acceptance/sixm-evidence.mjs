@@ -165,6 +165,8 @@ const reHash = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   if (await row.count()) { await row.click(); await page.waitForTimeout(1500); }
   ok(new RegExp(`/fishbone\\?(.*&)?problem=${reHash(h.id)}`).test(decodeURIComponent(page.url())), '9 the row opens the problem on its fishbone');
   await go('#/room');
+  /* the projects' board is one fold since 10 November ("Every project — the control room", shut until opened) */
+  await page.locator('[data-fold="control-room"] .fold-toggle').waitFor({ timeout: 30000 }); if (!(await page.locator('[data-fold="control-room"].is-open').count())) { await page.locator('[data-fold="control-room"] .fold-toggle').click(); await page.waitForTimeout(400); }
   await page.locator('.jb-week').first().waitFor({ timeout: 10000 }).catch(() => {});
   const wk = page.locator('.jb-week .jb-wl-row').filter({ hasText: h.what }).first();
   ok((await wk.count()) === 1 && /is-late/.test(await wk.getAttribute('class') ?? ''), `9 the control room's This week, late: "${(await wk.count()) ? (await wk.innerText()).replace(/\s+/g, ' ') : ''}"`);

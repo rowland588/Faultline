@@ -61,6 +61,9 @@ const LINE7 = sd.line7WsId;
 /* the board as it stands, read from the screen */
 const board = async () => {
   await go('#/room');
+  /* the board is one fold since 10 November ("Every project — the control room", shut until opened — Rowland: "Too busy") */
+  await page.locator('[data-fold="control-room"] .fold-toggle').waitFor({ timeout: 30000 });
+  if (!(await page.locator('[data-fold="control-room"].is-open').count())) { await page.locator('[data-fold="control-room"] .fold-toggle').click(); await page.waitForTimeout(400); }
   await page.locator('.jb-says').filter({ hasNotText: 'Reading every project' }).waitFor({ timeout: 30000 });
   await page.waitForTimeout(1200);
   /* every party, not the first five */
