@@ -26,6 +26,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { savingAt } from '../lib/useSaveOnArrival';
 import { LineTour } from '../ui/LineTour';
 import { LineLooking } from '../tools/gemba/LookedAt';
+import { WalkPhotos } from '../ui/WalkPhotos';
 import { SpreadFixes } from '../tools/yokoten/Spread';
 import { spreadSentences, useYokoten } from '../tools/yokoten/useYokoten';
 import { useLooking } from '../tools/gemba/useLooking';
@@ -587,6 +588,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           <LineLooking wsId={wsId} />
         </div>
       )}
+      {/* PHOTOS FROM WALKS (10 November, docs/FACTORY-WALK.md) — filed to this line or a machine on it on a confirmed card, the one photograph */}
+      {show('overview') && <WalkPhotos query={{ lineId: wsId }} />}
       {/* THE LINE'S ACTION TRACKER (7 November — line/actions): its problems as a classic tracker with the Gantt drawn from it */}
       {view === 'actions' && <LineActions wsId={wsId} lineName={line.name} />}
       {show('tools') && (<section className={'pl-sec' + (view === 'tools' ? '' : ' is-glance')} aria-label="Tools on this line">

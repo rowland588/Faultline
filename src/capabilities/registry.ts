@@ -15,6 +15,7 @@ import { TASK } from './task';
 import { INTEL } from './intel/caps';
 import { WORKBOOK } from './workbook';
 import { FILL } from './fill';
+import { WALK } from './walk';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
@@ -35,6 +36,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...WORKBOOK,
   /* the Fill part for every tool a draft does not cover (10 November, docs/AI-OPERATING.md §2) */
   ...FILL,
+  /* the factory walk: where the person is, the photos taken on it, filed by confirmed links (10 November, docs/FACTORY-WALK.md) */
+  ...WALK,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);

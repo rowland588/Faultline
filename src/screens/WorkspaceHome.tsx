@@ -40,7 +40,9 @@ import { lineKit } from '../lib/lineRecords';
 import { useCanStartProjects } from '../cloud/access';
 import { lineProblems } from '../lib/lineWork';
 import { FactoryLineCard, useLineRates, type LineCardContents } from '../ui/FactoryLineCard';
-import { areaHref, areaKey, areasOf, areaSays, type AreaLineFacts } from '../lib/areas';
+import { areaHref, areaKey, areasOf, areaSays, areaTitle, type AreaLineFacts } from '../lib/areas';
+import { departmentArea, departmentsOf, departmentsWithoutLines } from '../lib/departments';
+import { addDepartment } from '../db/departments';
 import { itemsOn } from '../line/report/lineBundle';
 import { LATELY_MS } from '../line/report/areaBundle';
 import { PageHeader } from '../ui/parts';
@@ -256,7 +258,35 @@ export function WorkspaceHome() {
   /* AREAS (lib/areas): when any line names its area, the board is the areas, each with its lines; one area a client when the
      lines name more than one client and none is picked. Unchanged for a factory that names no area. */
   const withClient = clients.length > 1 && !picked;
-  const areaGroups = shownLines.some(w => w.areaName?.trim()) ? { ...areasOf(shownLines, withClient), withClient } : null;
+  /* A DEPARTMENT WITH NO LINE YET (10 November, docs/FACTORY-WALK.md, lib/departments): Dispatch is an area in its own right, listed
+     with its words like the areas the lines make, saying it has no lines yet — nothing is made under it */
+  const depts = departmentsOf(rec.studies ?? []).filter(d => !picked || (d.facts.client ?? '').trim() === picked);
+  const lineAreas = areasOf(shownLines, withClient);
+  const emptyDepts = departmentsWithoutLines(depts, new Set(lineAreas.areas.map(g => areaKey(g.id))), withClient)
+    .map(d => { const id = departmentArea(d.facts, withClient); return { id, title: areaTitle(id), lines: [] as Workspace[] }; });
+  const areaGroups = shownLines.some(w => w.areaName?.trim()) || emptyDepts.length
+    ? { areas: [...lineAreas.areas, ...emptyDepts].sort((x, y) => x.title.localeCompare(y.title)), noArea: lineAreas.noArea, withClient } : null;
+  const [deptName, setDeptName] = useState<string | null>(null);
+  const [deptSite, setDeptSite] = useState('');
+  const [deptWhy, setDeptWhy] = useState('');
+  const makeDept = async () => {
+    const r = await addDepartment({ area: deptName ?? '', site: deptSite, ...(picked || oneClient ? { client: picked || oneClient } : {}) });
+    if (!r.ok) { setDeptWhy(r.why); return; }
+    setDeptName(null); setDeptSite(''); setDeptWhy('');
+  };
+  const deptForm = (
+    <div className="fac-dept-add" data-dept-add>
+      {deptName === null
+        ? <button type="button" className="cw-link" onClick={() => setDeptName('')}>＋ A department</button>
+        : <form className="fac-dept-form" onSubmit={e => { e.preventDefault(); void makeDept(); }}>
+            <input className="text-input" value={deptName} onChange={e => setDeptName(e.target.value)} placeholder="Its name — such as Dispatch" aria-label="The department’s name" maxLength={80} autoFocus />
+            <input className="text-input" value={deptSite} onChange={e => setDeptSite(e.target.value)} placeholder="Its site (optional)" aria-label="The department’s site" maxLength={80} />
+            <button type="submit" className="btn btn-primary" disabled={!deptName.trim()}>Add the department</button>
+            <button type="button" className="btn" onClick={() => { setDeptName(null); setDeptWhy(''); }}>Cancel</button>
+            {deptWhy && <span className="ie-problem" role="status">{deptWhy}</span>}
+          </form>}
+    </div>
+  );
   /* ONE LINE AS AN AREA COUNTS IT — the same readers its card reads (lib/areas AreaLineFacts) */
   const now = Date.now();
   const factsOf = (w: Workspace): AreaLineFacts => {
@@ -335,8 +365,9 @@ export function WorkspaceHome() {
                         <button type="button" className="cw-link fac-area-report" onClick={() => nav(`${areaHref(g.id, true)}&save=1`)}>Area report</button>
                       </span>
                     </div>
-                    <p className={'fac-area-says is-' + says.tone}>{says.text}</p>
-                    {floor(g.lines, `The lines in ${g.title}`)}
+                    {g.lines.length ? <p className={'fac-area-says is-' + says.tone}>{says.text}</p>
+                      : <p className="fac-area-says is-n" data-dept-empty>A department of its own — no lines in it yet. Its lines, machines and photos join it as they are found.</p>}
+                    {g.lines.length > 0 && floor(g.lines, `The lines in ${g.title}`)}
                   </div>
                 );
               })}
@@ -349,13 +380,14 @@ export function WorkspaceHome() {
                   {floor(areaGroups.noArea, 'The lines with no area yet')}
                 </div>
               )}
+              {deptForm}
             </>
-          ) : byPlace.map(g => (
+          ) : <>{byPlace.map(g => (
           <div key={g.place || '-'} className="fac-place" data-place={g.place}>
           {(byPlace.length > 1 || g.place) && <h3 className="fac-place-h">{g.place || 'No site or area said'}</h3>}
           {floor(g.lines, g.place ? `The lines in ${g.place}` : 'The lines, in floor order')}
           </div>
-          ))}
+          ))}{deptForm}</>}
         </>
       )}
     </section>

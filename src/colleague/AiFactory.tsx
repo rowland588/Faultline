@@ -117,6 +117,7 @@ export function FactoryDraftBox({ d, make, act, canMake }: { d: ColleagueDraft; 
           c.matchedLines + c.matchedMachines ? `${c.matchedLines + c.matchedMachines} already in Faultline` : '', c.pending ? `${c.pending} waiting for your word` : '', c.made ? `${c.made} made` : ''].filter(Boolean).join(' · ') || 'Nothing said yet — say its sites, areas, lines and machines.'}
       </p>
       {v.roots.length > 0 && <ul className="ai-fd-tree" aria-label="The factory as said">{v.roots.map(x => <Node key={x.node.id} x={x} busy={busy} doAct={items => void doAct(items)} />)}</ul>}
+      {v.departments.length > 0 && <p className="sub" data-fd-depts>Departments with no line yet — made as departments of their own: {v.departments.map(x => x.said).join(', ')}.</p>}
       {v.held.length > 0 && <p className="sub" data-fd-held>Held on the draft until a line is made in them: {v.held.join(', ')}.</p>}
       {pending.length > 1 && <button type="button" className="btn btn-sm" disabled={busy} data-keep-all onClick={() => void doAct(pending.map(x => opOf(x, 'keep')))}>Keep all {pending.length} from the document</button>}
       {v.blockers.length > 0 && (

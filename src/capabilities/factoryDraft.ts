@@ -278,8 +278,10 @@ export interface FactoryView {
   roots: ViewNode[];
   all: ViewNode[];
   counts: { newLines: number; matchedLines: number; newMachines: number; matchedMachines: number; pending: number; conflicts: number; made: number };
-  /** Sites and areas with no line yet — held on the draft until a line is made in them. */
+  /** Sites with no line and no department yet — held on the draft until one is made in them. */
   held: string[];
+  /** Areas with no line (10 November, docs/FACTORY-WALK.md): made as departments of their own — Dispatch with nothing under it. */
+  departments: { name: string; site?: string; said: string; node: string }[];
   blockers: string[];
 }
 
@@ -357,7 +359,9 @@ export function factoryView(d: Pick<ColleagueDraft, 'factory'>, ex: FactoryExist
   };
   const roots = b.nodes.filter(n => !n.parent || !nodeById(b, n.parent)).map(view);
   const live = all.filter(v => v.state !== 'out');
-  const held = live.filter(v => (v.node.level === 'site' || v.node.level === 'area') && !hasLine(v)).map(v => (v.node.level === 'area' && v.path.site ? `${v.node.name.value} (${v.path.site})` : v.node.name.value));
+  const emptyAreas = live.filter(v => v.node.level === 'area' && v.state !== 'pending' && v.state !== 'made' && !hasLine(v));
+  const departments = emptyAreas.map(v => ({ name: v.node.name.value, ...(v.path.site ? { site: v.path.site } : {}), said: v.path.site ? `${v.node.name.value} (${v.path.site})` : v.node.name.value, node: v.node.id }));
+  const held = live.filter(v => v.node.level === 'site' && !hasLine(v) && !emptyAreas.some(a => a.path.site === v.node.name.value)).map(v => v.node.name.value);
   const pending = all.filter(v => v.state === 'pending').length;
   const open = all.filter(v => v.state !== 'out' && v.state !== 'replaced' && v.state !== 'made').flatMap(v => v.conflicts.filter(c => !c.pick).map(c => ({ v, c })));
   const blockers = [
@@ -375,7 +379,7 @@ export function factoryView(d: Pick<ColleagueDraft, 'factory'>, ex: FactoryExist
       matchedMachines: all.filter(v => v.node.level === 'machine' && v.state === 'in-faultline').length,
       pending, conflicts: open.length, made: all.filter(v => v.state === 'made').length,
     },
-    held, blockers,
+    held, departments, blockers,
   };
 }
 function hasLine(v: ViewNode): boolean { return v.children.some(c => c.state !== 'out' && (c.node.level === 'line' || hasLine(c))); }

@@ -48,7 +48,7 @@ const fmtElapsed = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floo
  *  With `onPhoto` it is a live camera for pictures too (Rowland, 6 November: "it needs to be a live action — live picture, live video"): a Photo / Video
  *  switch above the shutter, the shutter snapping a still from the live picture in Photo mode, one tap and the camera stays open for the next. `start` says
  *  which it opens on. Without `onPhoto` it is exactly the video recorder it was. */
-export function VideoRecorder({ onCapture, onPhoto, start: startMode = 'video', onClose }: { onCapture: (blob: Blob) => void; onPhoto?: (blob: Blob) => void; start?: 'photo' | 'video'; onClose: () => void }) {
+export function VideoRecorder({ onCapture, onPhoto, start: startMode = 'video', photoOnly = false, onClose }: { onCapture: (blob: Blob) => void; onPhoto?: (blob: Blob) => void; start?: 'photo' | 'video'; /** pictures only — no Photo / Video switch (AI Mode's camera on a walk) */ photoOnly?: boolean; onClose: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -138,7 +138,7 @@ export function VideoRecorder({ onCapture, onPhoto, start: startMode = 'video', 
       {!recording && saved && <div className="rec-tally">{saved} saved{capped ? ' — that clip stopped at 4 minutes, the longest a clip can be' : ''} — keep going or tap Done</div>}
       {flash > 0 && <span key={flash} className="rec-flash" aria-hidden />}
 
-      {onPhoto && !error && !recording && (
+      {onPhoto && !photoOnly && !error && !recording && (
         <div className="rec-modes" role="tablist" aria-label="Photo or video">
           {(['photo', 'video'] as const).map(k => (
             <button key={k} type="button" role="tab" aria-selected={mode === k} data-rec-mode={k} className={'rec-mode' + (mode === k ? ' on' : '')} onClick={() => setMode(k)}>{k === 'photo' ? 'Photo' : 'Video'}</button>

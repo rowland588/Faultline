@@ -315,6 +315,51 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       photoKey: str('The photo\'s key on the device', 120),
     }, ['problemId', 'photoKey']),
   },
+  // ── The factory walk (10 November, docs/FACTORY-WALK.md): where the person is, and the photos taken on the way ──
+  {
+    name: 'set_position',
+    kind: 'local',
+    description: 'Say where the person IS on the factory floor — when they say "I\'m at line 3 now", "walking into Dispatch", "at the bagger". A line by its id (from resolve or find), a machine on it by name, or a department or area in their words (or its id). Where they are is NOT what they are talking about: it never changes the subject — the current thread stays, and the open threads whose place is here come back for you to offer (switch only if the person wants). Photos taken after it are stamped with this place. Never set it from a guess or from what a photo seems to show.',
+    input_schema: obj({
+      lineId: str('The line\'s id', 80),
+      machine: str('A machine on that line, by name', 120),
+      departmentId: str('A department\'s id', 80),
+      area: str('The department or area in the person\'s words, when no id', 120),
+      site: str('Its site', 120),
+      said: str('What the person said, word for word', 300),
+    }),
+  },
+  {
+    name: 'walk_state',
+    kind: 'read',
+    description: 'The walk so far: where the person is now, the stops in order with the photos taken at each, the photos taken before any place was said, and which photos are filed to what. Use it before suggesting where a photo belongs.',
+    input_schema: obj({}),
+  },
+  {
+    name: 'file_photo',
+    kind: 'write',
+    description: 'File one photo from this conversation to a line, a machine on a line, a department, a problem or a project — the same photograph linked, never copied; it stays on the walk too and shows on that record\'s page. Only when the person has said what it belongs to, or confirms your suggestion; where it was taken is not what it shows, so never file from the stamp alone and never guess an uncertain relationship — ask, or leave it on the walk. Say what the photo shows only in the person\'s words. The person sees a card and decides.',
+    input_schema: obj({
+      photoKey: str('The photo\'s key (from the photos listed)', 120),
+      to: { type: 'string', enum: ['line', 'machine', 'department', 'problem', 'project'] },
+      lineId: str('The line (for line or machine)', 80),
+      machine: str('The machine on that line, by its name in Faultline', 120),
+      departmentId: str('The department', 80),
+      problemId: str('The problem', 80),
+      projectId: str('The project', 80),
+      why: str('Why it belongs there, in the person\'s words', 300),
+    }, ['photoKey', 'to']),
+  },
+  {
+    name: 'add_department',
+    kind: 'write',
+    description: 'Record a department of the factory (Dispatch, Goods in, Despatch, Stores…) as a record of its own, even with no lines, machines or equipment in it yet — nothing is made under it. Use it when the person names a department Faultline does not hold and wants it kept. Found, never doubled, when it is already there. The person sees a card and decides.',
+    input_schema: obj({
+      area: str('Its name, as the floor says it', 120),
+      site: str('Its site', 120),
+      client: str('Its client', 120),
+    }, ['area']),
+  },
   // ── The factory knowledge (docs/FACTORY-KNOWLEDGE.md F2): reads, run at once ──
   {
     name: 'factory_map',

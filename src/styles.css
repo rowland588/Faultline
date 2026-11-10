@@ -16857,6 +16857,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fac-area-acts { margin-left: auto; display: inline-flex; gap: 14px; flex-wrap: wrap; }
 .fac-area-acts .cw-link { min-height: 44px; display: inline-flex; align-items: center; }
 .fac-area-says { margin: 0 0 8px; font-size: var(--t-detail); color: var(--ink-2); line-height: 1.45; overflow-wrap: anywhere; }
+.fac-dept-add { margin: 8px 0 4px; }
+.fac-dept-add .cw-link { min-height: 44px; display: inline-flex; align-items: center; }
+.fac-dept-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fac-dept-form .text-input { flex: 1 1 200px; min-height: 44px; }
+.fac-dept-form .btn { min-height: 44px; }
 .fac-area-says.is-r { color: var(--st-r); }
 .ar-page .ar-sec { margin-top: 22px; }
 .ar-page .ar-sec > h2 { margin: 0 0 8px; font-size: var(--t-h3, 1.05rem); }
@@ -17056,6 +17061,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-bubble { max-width: min(85%, 600px); padding: 10px 16px; border-radius: var(--radius-xl) var(--radius-xl) var(--radius-xs) var(--radius-xl); background: var(--accent-soft); color: var(--ink); line-height: 1.5; overflow-wrap: anywhere; }
 .ai-bubble p { margin: 0; white-space: pre-wrap; }
 .ai-photo { display: block; max-width: 100%; max-height: 260px; border-radius: var(--radius-sm); }
+.ai-photo-at { margin: 6px 0 0; font-size: var(--t-detail); color: var(--muted); overflow-wrap: anywhere; }
 .ai-bubble .ai-photo + p { margin-top: 8px; }
 .ai-turn.is-struck { opacity: 0.55; }
 .ai-turn.is-colleague { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; align-items: start; }
@@ -17514,3 +17520,14 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-imported .b { min-height: 32px; padding: 0 8px; }
 .ai-wb { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .ai-wb .b { min-height: 44px; }
+
+/* PHOTOS FROM WALKS (10 November, docs/FACTORY-WALK.md; ui/WalkPhotos) — the photographs filed to this page, each with where and when */
+.walk-photos { margin-top: 22px; }
+.walk-photos h2 { display: flex; align-items: baseline; gap: 8px; }
+.walk-photos-n { font-size: var(--t-detail); color: var(--muted); font-weight: 600; }
+.walk-photos-l { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.walk-photo { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
+.walk-photo-t { display: flex; flex-direction: column; gap: 2px; font-size: var(--t-detail); color: var(--ink-2); min-width: 0; overflow-wrap: anywhere; }
+.walk-photo-c { color: var(--ink); }
+.walk-photo-by { color: var(--muted); }
+.walk-photo-t .cw-link { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; }

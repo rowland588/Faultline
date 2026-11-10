@@ -90,6 +90,7 @@ describe('runCall', () => {
       ['raise_problem', { lineId: a.id, words: 'x', priority: 'low', how: 'observed' }], ['update_problem', { problemId: 'pa1', owner: 'Jo' }],
       ['start_project', { name: 'P', method: 'pdca', lineIds: [a.id] }], ['save_calculation', { key: 'kanban', inputs: {} }], ['add_photo_to_problem', { problemId: 'pa1', photoKey: 'k' }],
       ['link_to_project', { projectId: 'nope', problemId: 'pa1' }],
+      ['add_department', { area: 'Dispatch' }], ['file_photo', { photoKey: 'k', to: 'line', lineId: a.id }],
       ['start_measurement', { tool: 'stops', lineId: a.id }], ['draw_diagram', { set: 'flow', capture: { title: 'x', steps: [{ what: 'Cook', kind: 'operation', time: 2, timeUnit: 'minutes', dist: null, distUnit: '' }] } }],
     ];
     for (const [name, input] of writes) {

@@ -30,6 +30,8 @@ import { applyFactoryOps, FACTORY_FIELDS, FACTORY_KEY, FACTORY_TOOL, factoryView
 import { sameText, type FactoryReadItem } from './factoryRead';
 import type { CapCtx, CapRef, CapResult, Capability, ColleagueDraft, FactoryFact, FactoryField, FactoryLevel } from './types';
 import { lineRef, plural } from './util';
+import { addDepartment, listDepartments } from '../db/departments';
+import { departmentFor } from '../lib/departments';
 
 const OPS: readonly FactoryOpKind[] = ['add', 'set', 'rename', 'move', 'remove', 'keep', 'leave_out', 'pick'];
 const LEVELS: readonly FactoryLevel[] = ['site', 'area', 'line', 'machine'];
@@ -50,6 +52,7 @@ export function viewSaid(v: FactoryView): string {
   const c = v.counts;
   return [
     `${v.client || 'The client'}: ${[c.newLines ? `${plural(c.newLines, 'new line')}` : '', c.newMachines ? `${plural(c.newMachines, 'new machine')}` : '', c.matchedLines + c.matchedMachines ? `${c.matchedLines + c.matchedMachines} already in Faultline (matched, not doubled)` : '', c.made ? `${c.made} made` : ''].filter(Boolean).join(', ') || 'nothing said yet'}.`,
+    v.departments.length ? `Departments with no line yet, made as departments of their own: ${v.departments.map(x => x.said).join(', ')}.` : '',
     v.held.length ? `Held on the draft until a line is made in them: ${v.held.join(', ')}.` : '',
     ...v.all.flatMap(x => x.flags),
     v.blockers.length ? `Before it can be made: ${v.blockers.join(' ')}` : c.newLines + c.newMachines + v.all.filter(x => x.state === 'in-faultline').length ? 'It can be made when the person says so.' : '',
@@ -157,13 +160,14 @@ export async function factoryPreview(d: ColleagueDraft): Promise<string> {
   const lines = plan.lines.map(l => `${l.node.name.value}${where(l) ? ` (${where(l)})` : ''}${machinesOn(l.node.id).length ? ` with ${machinesOn(l.node.id).map(m => m.node.name.value).join(', ')}` : ''}`);
   const onOld = plan.machines.filter(m => !plan.lines.some(l => l.node.id === m.node.parent));
   const ups = plan.updates;
-  if (!lines.length && !onOld.length && !ups.length) return `Nothing new to make for ${v.client} — everything said is already made or in Faultline.`;
+  if (!lines.length && !onOld.length && !ups.length && !v.departments.length) return `Nothing new to make for ${v.client} — everything said is already made or in Faultline.`;
   const how = v.all.some(x => x.node.name.how === 'document') ? 'each value saying how it is known — reported in this conversation, or from its document with the words it came from' : 'each value marked as reported in this conversation';
   return [
     `Make ${v.client}’s factory in Faultline, ${how}:`,
     lines.length ? `${plural(lines.length, 'new line')} — ${lines.join('; ')}.` : '',
     onOld.length ? `On lines already in Faultline: ${onOld.map(m => `${m.node.name.value} on ${m.path.line}`).join(', ')}.` : '',
     ups.length ? `Already in Faultline, matched not doubled (only what each lacks, or what you picked, is written): ${ups.map(x => x.node.name.value).join(', ')}.` : '',
+    v.departments.length ? `Departments with no line yet, made as departments of their own: ${v.departments.map(x => x.said).join(', ')}.` : '',
     v.held.length ? `Held on the draft until a line is made in them: ${v.held.join(', ')}.` : '',
   ].filter(Boolean).join(' ');
 }
@@ -174,7 +178,9 @@ export async function makeFactory(ctx: CapCtx, s: ToolStudy, d: ColleagueDraft):
   const v = factoryView(d, ex);
   if (v.blockers.length) return { ok: false, why: `${d.title} cannot be made yet. ${v.blockers.join(' ')}` };
   const plan = toMake(v);
-  if (!plan.lines.length && !plan.machines.length && !plan.updates.length) return { ok: false, why: `Nothing new to make for ${v.client} — everything said is already made or in Faultline.` };
+  const depts = await listDepartments();
+  const newDepts = v.departments.filter(x => !departmentFor(depts, { area: x.name, ...(x.site ? { site: x.site } : {}), client: v.client }));
+  if (!plan.lines.length && !plan.machines.length && !plan.updates.length && !newDepts.length) return { ok: false, why: `Nothing new to make for ${v.client} — everything said is already made or in Faultline.` };
   const body = d.factory as NonNullable<ColleagueDraft['factory']>;
   const made = new Map<string, string>();   // node id → line id or machine record id
   const at = ctx.now;
@@ -249,12 +255,25 @@ export async function makeFactory(ctx: CapCtx, s: ToolStudy, d: ColleagueDraft):
     const lineId = body.nodes.filter(n => fromSource(n, src.id)).map(n => (n.level === 'line' ? n.id : n.level === 'machine' ? n.parent : undefined)).map(lineOfNode).find(Boolean);
     if (lineId) await patchStudy(doc.id, cur => ({ ...cur, workspaceId: lineId }));
   }
+  /* 5 · the areas with no line: departments of their own (lib/departments) — found, never doubled; nothing made under them */
+  let deptsMade = 0;
+  for (const x of v.departments) {
+    const node = body.nodes.find(n => n.id === x.node);
+    if (!node) continue;
+    const siteNode = siteFact(v.all.find(y => y.node.id === x.node) as ViewNode, 'site');
+    const r = await addDepartment({ area: x.name, ...(x.site ? { site: x.site } : {}), client: v.client }, { area: knownOf(node.name, ctx), client: knownOf(body.client, ctx), ...(siteNode ? { site: knownOf(siteNode, ctx) } : {}) });
+    if (!r.ok) continue;
+    if (r.made) deptsMade++;
+    made.set(x.node, r.id);
+  }
   const nodes = body.nodes.map(n => (made.has(n.id) && !n.made ? { ...n, made: { id: made.get(n.id) as string, at } } : n));
   await putDraft(s, { ...d, status: 'made', factory: { ...body, nodes } });
   const newLines = plan.lines.length;
   const says = [
-    `Made in Faultline for ${v.client}: ${[newLines ? plural(newLines, 'new line') : '', machines ? `${plural(machines, 'machine')} put on ${newLines ? 'them' : 'their lines'} with what each is` : ''].filter(Boolean).join(' and ') || 'the lines already there brought up to date'}.`,
+    `Made in Faultline for ${v.client}: ${[newLines ? plural(newLines, 'new line') : '', machines ? `${plural(machines, 'machine')} put on ${newLines ? 'them' : 'their lines'} with what each is` : ''].filter(Boolean).join(' and ') || (deptsMade ? 'its departments' : 'the lines already there brought up to date')}.`,
+    deptsMade ? `${plural(deptsMade, 'department')} with no line yet made as ${deptsMade === 1 ? 'a department' : 'departments'} of ${deptsMade === 1 ? 'its' : 'their'} own (${v.departments.map(x => x.name).join(', ')}) — nothing made under ${deptsMade === 1 ? 'it' : 'them'}.` : '',
     plan.updates.length ? `${plan.updates.length} already in Faultline were matched, not doubled.` : '',
+    v.departments.length ? `Departments with no line yet, made as departments of their own: ${v.departments.map(x => x.said).join(', ')}.` : '',
     v.held.length ? `Held on the draft until a line is made in them: ${v.held.join(', ')}.` : '',
   ].filter(Boolean).join(' ');
   return { ok: true, says, data: { lines: refs.map(r => r.id), machines }, refs };

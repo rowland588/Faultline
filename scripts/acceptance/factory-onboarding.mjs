@@ -85,7 +85,9 @@ ok((await page.locator(box).count()) === 1 && /a draft — nothing kept as a rec
 ok((await page.locator(`${box} [data-fd-level="site"]`).count()) === 2 && (await page.locator(`${box} [data-fd-level="area"]`).count()) === 5, '1 two sites and five areas in the tree');
 ok(/Reported/.test(await t.words(`${node('Packaging', 'area')} [data-fd-how]`)), '1 each with how it is known — reported');
 const held1 = await t.words(`${box} [data-fd-held]`);
-ok(/Held on the draft until a line is made in them: .*Preparation \(Main factory\).*Second factory/.test(held1), `1 areas and a site with no line held: "${held1.slice(0, 120)}"`);
+const depts1 = await t.words(`${box} [data-fd-depts]`);
+/* an area with no line is a department of its own (10 November, docs/FACTORY-WALK.md); a site with nothing in it is held */
+ok(/Departments with no line yet — made as departments of their own: .*Preparation \(Main factory\)/.test(depts1) && /Held on the draft until a line is made in them: .*Second factory/.test(held1), `1 areas with no line as departments, a site with none held: "${depts1.slice(0, 120)}" · "${held1.slice(0, 80)}"`);
 ok(!(await db()).lines.some(l => l.clientName === CLIENT), '1 nothing made yet');
 ok(/What lines are in Packaging/.test(await lastReply()), '1 the colleague asks one question back');
 

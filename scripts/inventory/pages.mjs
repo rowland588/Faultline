@@ -65,6 +65,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Open the area › on each', sel: '.fac-area .fac-area-open', text: /^Open the area ›$/, n: 2 },
     { what: 'its report on each', sel: '.fac-area .fac-area-report', text: /^Area report$/, n: 2 },
     { what: 'each area\'s lines under it', sel: '.fac-area .fac-floor .fac-card-go', n: 3 },
+    { what: '＋ A department, by hand (docs/FACTORY-WALK.md)', sel: '[data-dept-add] .cw-link', text: /^＋ A department$/ },
   ] },
   { name: 'An area — its page', path: '#/area?site=Hull&area=Packing%20hall', must: [
     { what: 'the area\'s name as the title', sel: '.ar-page .part-head h1', text: /^Hull › Packing hall/ },

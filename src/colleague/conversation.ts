@@ -52,6 +52,8 @@ export type ColleagueTurn = TalkTurn & { used?: Used[]; suggestions?: string[] }
 /** A conversation's facts — the study's, with what AI Mode keeps on them. */
 export type ColleagueFacts = StudyFacts & { colleague?: boolean; turns?: ColleagueTurn[]; threads?: Thread[]; actions?: DoneAction[]; drafts?: ColleagueDraft[] };
 
+import { placeSaid, type WalkStop } from '../lib/walk';
+
 export const WHO = 'Faultline';
 
 /** The facts of a study, read as a conversation's. */
@@ -148,7 +150,7 @@ export function scopeSaid(scope: ThreadScope, names: (kind: 'line' | 'project' |
 
 /** THE FOCUS AS THE GATEWAY READS IT — the current thread with its place and notes, then the parked ones by title, then
  *  the photos the person can have attached by key. */
-export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string }[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[] } = {}): string {
+export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string; said?: string }[]; position?: WalkStop; trail?: readonly WalkStop[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[] } = {}): string {
   const cur = currentThread(threads);
   const parked = parkedThreads(threads);
   const lines: string[] = [];
@@ -169,7 +171,11 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
   if (parked.length) lines.push(`Parked: ${parked.map(t => `${t.title}${scopeSaid(t.scope, opts.names) ? ` (${scopeSaid(t.scope, opts.names)})` : ''}${t.mode ? ` — ${MODE_SAID[t.mode]}` : ''} [thread ${t.id}]`).join('; ')}`);
   if (opts.workbooks?.length) lines.push(`Workbooks attached (read on this device, asked with workbook_profile, query_workbook and workbook_rows): ${opts.workbooks.map(w => `“${w.name}” [${w.id}] ${w.status}${w.sheets?.length ? ` — ${w.sheets.map(x => `${x.name} ${x.rows} rows`).join(', ')}` : ''}`).join('; ')}`);
   if (opts.imports?.length) lines.push(`Files read in code (imported evidence): ${opts.imports.map(i => `“${i.name}” [${i.id}], ${i.rows.length} rows`).join('; ')} — pareto with importId`);
-  if (opts.photos?.length) lines.push(`Photos in this conversation: ${opts.photos.map(p => `${p.label} = photoKey ${p.key}`).join('; ')}`);
+  /* THE WALK (10 November, docs/FACTORY-WALK.md): where the person is — not what they are talking about — and the stops so far */
+  if (opts.position) lines.push(`Where the person is: ${placeSaid(opts.position) || 'a place not named'} (${opts.position.how === 'picked' ? 'picked on the screen' : 'said'} at ${new Date(opts.position.at).toTimeString().slice(0, 5)})${opts.position.lineId ? ` [line ${opts.position.lineId}]` : ''}${opts.position.departmentId ? ` [department ${opts.position.departmentId}]` : ''}`);
+  else lines.push('Where the person is: not said — ask only if it matters, never guess it.');
+  if (opts.trail && opts.trail.length > 1) lines.push(`The walk so far: ${opts.trail.slice(-8).map(x => `${placeSaid(x)} ${new Date(x.at).toTimeString().slice(0, 5)}`).join(' → ')}`);
+  if (opts.photos?.length) lines.push(`Photos in this conversation: ${opts.photos.map(p => p.said ?? `${p.label} = photoKey ${p.key}`).join('; ')}`);
   /* what is being built from the conversation (docs/AI-MODE.md, Building tools in conversation): each draft with its id, what is
      captured and how known, and what is missing — the newest six, a long one cut */
   for (const d of [...(opts.drafts ?? [])].sort((a, b) => b.at - a.at).slice(0, 6)) {

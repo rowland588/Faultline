@@ -17,6 +17,7 @@
  * WHICH RECORD: a study of tool `talk`, facts.colleague (no new table). WHERE IT SHOWS: here; the door is the top bar's
  * Ask Luna (src/colleague/AiDoor), never a line of the menu. */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
@@ -72,6 +73,8 @@ import { noteWorkbook, settleWorkbooks } from '../capabilities/workbook';
 import { workbooks, workbookId, type Progress } from '../lib/workbook/client';
 import type { ColleagueWorkbook } from '../capabilities/types';
 import { FactoryDocSheet, FactoryDraftBox, type DocPicked } from '../colleague/AiFactory';
+import { photoSaid, placeSaid, type WalkFacts, type WalkStop, type WalkTurn } from '../lib/walk';
+import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -421,13 +424,16 @@ function Conversation({ id, start, onMade, onList, onNew }: {
 
   /* ---- photos: kept the moment they are picked, labelled P1, P2 … ---- */
   const photoIn = useRef<HTMLInputElement>(null);
-  const addPhotos = async (files: File[]) => {
+  /* A PHOTO IS STAMPED WITH WHERE AND WHEN (10 November, docs/FACTORY-WALK.md): the place the person last said they were, the moment
+     it was taken — kept on the photo's turn of this conversation, the one photograph, never copied */
+  const addPhotos = async (files: Blob[]) => {
     const cid = await ensure();
     for (const f of files) {
       if (!f.type.startsWith('image/')) continue;
       const at = Date.now(), blobKey = `talk-${uid()}`;
       await putBlob(blobKey, f);
-      await appendTurn(patchStudy, cid, { id: uid(), at, ...(me ? { who: me } : {}), kind: 'photo', media: { blobKey, mime: f.type || 'image/jpeg', capturedAt: at } });
+      const here = ((await getStudy(cid))?.facts as WalkFacts | undefined)?.position;
+      await appendTurn(patchStudy, cid, { id: uid(), at, ...(me ? { who: me } : {}), kind: 'photo', media: { blobKey, mime: f.type || 'image/jpeg', capturedAt: at }, ...(here ? { where: here } : {}) } as WalkTurn);
     }
   };
 
@@ -561,12 +567,12 @@ function Conversation({ id, start, onMade, onList, onNew }: {
         const data = t.media ? await pictureForAssistant(t.media.blobKey, TALK_LIMITS.imageBytes) : undefined;
         if (photo && data) images.push({ photo, data });
       }
-      const photosKeys = asked.filter(x => x.kind === 'photo' && x.media).map(x => ({ label: named.get(x.id) ?? 'P0', key: x.media?.blobKey ?? '' }));
+      const photosKeys = asked.filter(x => x.kind === 'photo' && x.media).map(x => ({ label: named.get(x.id) ?? 'P0', key: x.media?.blobKey ?? '', said: photoSaid(named.get(x.id) ?? 'P0', x as WalkTurn) }));
       const steps = new Map<string, Used>();
       const end = await colleagueLoop({
         turns: gatewayTurns(asked, named),
         ...(images.length ? { images } : {}),
-        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); return focusText(f.threads ?? [], { names: nameOf, photos: photosKeys, drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] }); },
+        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); const wf = f as WalkFacts; return focusText(f.threads ?? [], { names: nameOf, photos: photosKeys, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] }); },
         today: longDay(),
         conversationId: cid,
         preferences: preferencesText,
@@ -785,6 +791,11 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     return () => { document.removeEventListener('pointerdown', away); document.removeEventListener('keydown', esc); };
   }, [attach]);
   const pickFrom = (el: HTMLInputElement | null) => { setAttach(false); el?.click(); };
+  /* THE LIVE CAMERA ON A WALK (10 November, docs/FACTORY-WALK.md): the app's own camera full screen (tools/video/VideoRecorder, as the
+     attach sheet's), each picture kept at once and stamped with where the person is; the camera stays open for the next. Where the
+     browser has no live camera, the phone's own camera through the file box, as before. */
+  const [camera, setCamera] = useState(false);
+  const takePhoto = () => { setAttach(false); if (videoCaptureSupported()) setCamera(true); else camIn.current?.click(); };
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -833,7 +844,8 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   const [reviewing, setReviewing] = useState(false);
   const undoEvent = async (eventId?: string) => { const r = await runCall(ctx(), { id: uid(), name: 'undo_capture', input: eventId ? { eventId } : {} }, { confirmed: false }); setSaid(r.ok ? { text: r.says } : { text: r.why, bad: true }); };
   const endMeasure = async () => { const r = await runCall(ctx(), { id: uid(), name: 'end_measurement', input: {} }, { confirmed: false }); setSaid(r.ok ? { text: r.says } : { text: r.why, bad: true }); if (r.ok) showWork(r.show); };
-  const panel = <ContextPanel cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)}
+  const walkF = facts as (WalkFacts | undefined);
+  const panel = <ContextPanel cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
   return (
@@ -941,7 +953,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
                 </button>
                 {attach && (
                   <div className="ai-attach-m" role="menu" aria-label="Add to the conversation" data-attach-menu>
-                    <button type="button" role="menuitem" className="ai-attach-i" onClick={() => pickFrom(camIn.current)}>
+                    <button type="button" role="menuitem" className="ai-attach-i" data-take-photo onClick={takePhoto}>
                       <span className="ai-attach-ic"><Icon name="camera" size="1.15em" /></span><span><b>Take a photo</b><span className="sub">with this device’s camera</span></span>
                     </button>
                     <button type="button" role="menuitem" className="ai-attach-i" onClick={() => pickFrom(photoIn.current)}>
@@ -953,7 +965,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
                   </div>
                 )}
               </div>
-              <button type="button" className="ai-tb" aria-label="Add a photo" title="Add a photo" onClick={() => photoIn.current?.click()}><Icon name="camera" size="1.2em" /></button>
+              <button type="button" className="ai-tb" data-camera aria-label="Take a photo" title="Take a photo" onClick={takePhoto}><Icon name="camera" size="1.2em" /></button>
               <span className="ai-tools-gap" />
               <button type="button" className={'ai-tb ai-mic' + (listening ? ' is-on' : '')} aria-pressed={listening}
                 aria-label={listening ? 'Stop listening' : 'Talk into the box'} title={listening ? 'Stop listening' : 'Talk into the box'}
@@ -979,6 +991,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       <Sheet open={ctxSheet} onClose={() => setCtxSheet(false)} title="What this is on">{panel}</Sheet>
       {prefsSheet && <PreferencesSheet open={prefsSheet} onClose={() => setPrefsSheet(false)} />}
       <FactoryDocSheet picked={docPicked} onClose={() => setDocPicked(null)} read={readDoc} />
+      {camera && createPortal(<VideoRecorder start="photo" photoOnly onPhoto={b => void addPhotos([b])} onCapture={() => undefined} onClose={() => setCamera(false)} />, document.body)}
       {voice && (
         <VoiceMode state={vState} title={title} heard={listening ? typing : ''} saying={saying} note={vNote} route={route} prefs={vPrefs} setPrefs={setVPrefs}
           heardTick={heardTick} cardWaiting={waitingCard} onTap={voiceTap} onInterrupt={voiceInterrupt} onMute={voiceMute}
@@ -1030,6 +1043,7 @@ function Words({ text }: { text: string }) {
 
 function PersonTurn({ t, label }: { t: ColleagueTurn; label?: string }) {
   const url = useBlobUrl(t.media?.blobKey);
+  const wt = t as WalkTurn;
   const w = (t.text ?? t.heard ?? '').trim();
   return (
     <li className={'ai-turn is-person' + (t.struck ? ' is-struck' : '')} data-turn={t.id} data-kind={t.kind}>
@@ -1037,6 +1051,10 @@ function PersonTurn({ t, label }: { t: ColleagueTurn; label?: string }) {
       <div className="ai-bubble">
         {t.kind === 'photo' && (url ? <img className="ai-photo" src={url} alt={t.text || `Photo ${label ?? ''}`} /> : <span className="sub">The photo is on another device.</span>)}
         {w && <p>{w}</p>}
+        {/* where it was taken and what it is filed to (10 November, docs/FACTORY-WALK.md) */}
+        {t.kind === 'photo' && (wt.where || wt.filed?.length) ? (
+          <p className="ai-photo-at" data-photo-at>{wt.where ? <>Taken at {placeSaid(wt.where)}</> : null}{wt.filed?.length ? <>{wt.where ? ' · ' : ''}Filed to {wt.filed.map(l => l.label).join(', ')}</> : null}</p>
+        ) : null}
       </div>
     </li>
   );
@@ -1184,7 +1202,8 @@ function TaskCard({ task, onSay }: { task: NonNullable<Thread['task']>; onSay: (
   );
 }
 
-function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act, canMakeFactory, onSay }: {
+function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act, canMakeFactory, onSay, here, trail }: {
+  here?: WalkStop; trail?: readonly WalkStop[];
   cur?: Thread; parked: Thread[]; sources: CapRef[]; nameOf: (k: 'line' | 'project' | 'problem' | 'story', id: string) => string | undefined; onBack: (t: Thread) => void;
   drafts: ColleagueDraft[]; make: MakeFlow; act: (draftId: string, items: FactoryOp[]) => Promise<CapResult>; canMakeFactory: boolean; onSay: (words: string) => void;
 }) {
@@ -1197,6 +1216,14 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
   ];
   return (
     <div className="ai-ctx-in">
+      {/* WHERE YOU ARE (10 November, docs/FACTORY-WALK.md) — the place, not the subject; the walk's stops under it */}
+      {here && (
+        <section className="ai-ctx-s" aria-label="Where you are" data-ctx-here>
+          <p className="ai-ctx-h">Where you are</p>
+          <p className="ai-ctx-t">{placeSaid(here) || 'A place not named'}</p>
+          <p className="sub">Since {hhmm(here.at)}{(trail?.length ?? 0) > 1 ? ` · the walk: ${(trail ?? []).slice(-5).map(x => x.machine || x.line || x.area || '').filter(Boolean).join(' → ')}` : ''}</p>
+        </section>
+      )}
       <section className="ai-ctx-s" aria-label="Now on" data-ctx-current>
         <p className="ai-ctx-h">Now on</p>
         {cur ? (

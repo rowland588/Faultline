@@ -191,13 +191,18 @@ describe('the capabilities: note, make, replace, read a document', () => {
     const draftId = a.ok ? (a.data as { draftId: string }).draftId : '';
     /* Brook Dairy's line of the same name is not this client's — a new line, never matched to theirs */
     expect(a.ok && (a.data as { counts: { newLines: number } }).counts.newLines).toBe(1);
-    expect(a.ok && a.says).toMatch(/Held on the draft until a line is made in them: Mixing \(Main factory\)/);
+    expect(a.ok && a.says).toMatch(/Departments with no line yet, made as departments of their own: Mixing \(Main factory\)/);
     const refusedAsClient = await run('make_record', { draftId }, true, { ...ctx, level: 'client' });
     expect(refusedAsClient.ok).toBe(false);
     const p = await reg.previewCall(ctx, { id: 'p', name: 'make_record', input: { draftId } });
     expect(p.ok && p.says).toMatch(/Make Customer X Foods’s factory in Faultline.*1 new line — Packaging Line 1 \(Main factory › Packaging\) with Weighing scale, Metal detector/);
     const m = await run('make_record', { draftId }, true);
     expect(m.ok && m.says).toMatch(/Made in Faultline for Customer X Foods: 1 new line and 2 machines/);
+    /* the area with no line is a department of its own (docs/FACTORY-WALK.md), nothing made under it */
+    expect(m.ok && m.says).toMatch(/1 department with no line yet made as a department of its own \(Mixing\)/);
+    const dl = await (await import('../../db/departments')).listDepartments();
+    expect(dl.map(x => x.facts.area)).toEqual(['Mixing']);
+    expect(dl[0].facts).toMatchObject({ site: 'Main factory', client: 'Customer X Foods' });
     const all = await db.listWorkspaces();
     const made = all.filter(w => w.name === 'Packaging Line 1');
     expect(made).toHaveLength(2);

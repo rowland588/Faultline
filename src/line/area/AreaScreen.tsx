@@ -9,7 +9,7 @@
  * on its lines, the late first, each naming its line and opening its record, and the programs to prove; who's responsible — on
  * every row; did it work — the projects on its lines and the tools used, newest first, each opening its record. Then its machines,
  * line by line. Report ▾ holds the Area report. */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Route } from '../../state/useRoute';
 import { nav } from '../../state/useRoute';
 import { PageHeader } from '../../ui/parts';
@@ -17,6 +17,10 @@ import { EmptyState } from '../../ui/EmptyState';
 import { LeanTiles } from '../../ui/Lean';
 import { FactoryLineCard, useLineRates } from '../../ui/FactoryLineCard';
 import { areaFromQuery, areaHref, areaSays, areaTiles } from '../../lib/areas';
+import { departmentFor, type Department } from '../../lib/departments';
+import { listDepartments } from '../../db/departments';
+import { onDataChange } from '../../db';
+import { WalkPhotos } from '../../ui/WalkPhotos';
 import { dualOf, dualSaid, productionLines } from '../../lib/lines';
 import { studyHref } from '../../lib/studyLinks';
 import { useLooking } from '../../tools/gemba/useLooking';
@@ -56,6 +60,15 @@ export function AreaScreen({ route }: { route: Route }) {
   const rateOf = useLineRates();
   const [allTools, setAllTools] = useState(false);
   const looked = useLooking(useMemo(() => bundle?.lines.map(w => w.id) ?? [], [bundle]));
+  /* THE DEPARTMENT OF THESE WORDS, when it is a record (10 November, docs/FACTORY-WALK.md, lib/departments) — Dispatch with no line */
+  const [dept, setDept] = useState<Department | undefined>();
+  useEffect(() => {
+    let live = true;
+    const load = () => void listDepartments().then(l => { if (live) setDept(area ? departmentFor(l, area) : undefined); });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [area]);
 
   if (!area) return <div className="wrap ar-page"><EmptyState title="No area named">This address names no area. <button type="button" className="cw-link" onClick={() => nav('/room')}>The factory&rsquo;s lines ›</button></EmptyState></div>;
   if (loading || !bundle) return <div className="wrap ar-page"><p className="sub">Opening…</p></div>;
@@ -70,7 +83,7 @@ export function AreaScreen({ route }: { route: Route }) {
   return (
     <div className="wrap ar-page" data-area={bundle.title}>
       <PageHeader
-        eyebrow={<span className="pl-eyebrow">AREA{bundle.client ? ` · ${bundle.client.toUpperCase()}` : ''}</span>}
+        eyebrow={<span className="pl-eyebrow">{dept ? 'DEPARTMENT' : 'AREA'}{bundle.client ? ` · ${bundle.client.toUpperCase()}` : ''}</span>}
         title={bundle.title}
         state={{ tone: says.tone, word: says.tone === 'r' ? 'Needs you' : says.tone === 'a' ? 'Gaps to close' : says.tone === 'g' ? 'In hand' : 'Nothing yet' }}
         says={<span className={'ar-says is-' + says.tone}>{says.text}</span>}
@@ -82,7 +95,9 @@ export function AreaScreen({ route }: { route: Route }) {
       <section className="ar-sec fq-lines fac-home ep-panel" aria-label="Its lines">
         <h2>Its lines</h2>
         {!bundle.lines.length
-          ? <EmptyState title="No line in this area">No line says it is in {bundle.title}. <button type="button" className="cw-link" onClick={() => nav('/factory')}>Set up the lines ›</button></EmptyState>
+          ? (dept
+            ? <EmptyState title="No lines in it yet">{dept.facts.area} is a department of its own — its lines, machines and photos join it as they are found. <button type="button" className="cw-link" onClick={() => nav('/factory')}>Set up the lines ›</button></EmptyState>
+            : <EmptyState title="No line in this area">No line says it is in {bundle.title}. <button type="button" className="cw-link" onClick={() => nav('/factory')}>Set up the lines ›</button></EmptyState>)
           : (
             <ul className="fac-floor" aria-label={`The lines in ${bundle.title}`}>
               {bundle.lines.map(w => {
@@ -106,6 +121,7 @@ export function AreaScreen({ route }: { route: Route }) {
           )}
       </section>
 
+      {dept && <WalkPhotos query={{ departmentId: dept.id }} title="Photos from walks" />}
       <section className="ar-sec" aria-label="What needs doing">
         <h2>What needs doing</h2>
         {todo.length
