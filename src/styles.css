@@ -17732,3 +17732,17 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .inv-reply { margin: 6px 0; white-space: pre-wrap; }
 .inv-marks { margin: 4px 0 0; padding-left: 18px; }
 .inv-marks .is-g b { color: var(--st-g); } .inv-marks .is-r b { color: var(--st-r); }
+
+/* TOOL LISTS, CARRY ON FIRST (10 November) — a tool's list page (screens/LineToolsScreen): under the line's name the
+   records come first under a plain "Carry on" heading, the one worked on last first with its primary Carry on ›; the
+   line-wide analysis follows in the one folding card (ui/Fold, its own styles), "The line as a whole"
+   (Rowland: "Tools obvious. Continue obvious. Everything is too busy"). */
+.lt-carry { margin: 4px 0 12px; }
+.lt-carry-h { margin: 0 0 6px; font-family: var(--display); font-size: var(--t-h); font-weight: 600; color: var(--ink); }
+.lt-carry .lt-li.is-last-worked { box-shadow: inset 3px 0 0 var(--brand); }
+.lt-carry-go { flex: none; margin-right: 8px; white-space: nowrap; }
+@media (max-width: 719px) {
+  .lt-carry .lt-li { flex-wrap: wrap; }
+  .lt-carry .lt-li.is-last-worked .lt-carry-go { min-height: 44px; margin: 0 12px 10px; flex: 1 1 100%; justify-content: center; }
+  .lt-carry .lt-acts button { min-height: 44px; display: inline-flex; align-items: center; }
+}

@@ -48,7 +48,9 @@ const ids = await page.evaluate(async ([ws, sid, prods]) => {
   return out;
 }, [WS, SID, PRODUCTS.map(([n, r]) => [n, r])]);
 const PAGE = `#/balances?line=${WS}`;
-const open = async () => { await page.goto(`${BASE}/#/room`); await go(PAGE, 2800); const d = page.locator('details.pln').first(); if (!(await d.evaluate(e => e.open))) await d.locator('> summary').click(); await page.waitForTimeout(400); };
+/* the line-wide analysis sits under the records in "The line as a whole" (ui/Fold, shut until opened — 10 November, tools-carry-on.mjs): opened before its parts are read */
+const openWhole = async () => { const f = page.locator('[data-fold="line-whole"]').first(); await f.waitFor({ timeout: 10000 }).catch(() => {}); if ((await f.count()) && !(await f.evaluate(e => e.classList.contains('is-open')))) { await f.locator('.fold-toggle').click(); await page.waitForTimeout(1500); } };
+const open = async () => { await page.goto(`${BASE}/#/room`); await go(PAGE, 2800); await openWhole(); const d = page.locator('details.pln').first(); if (!(await d.evaluate(e => e.open))) await d.locator('> summary').click(); await page.waitForTimeout(400); };
 const setRun = () => page.evaluate(async ws => { const db = await import('/src/db.ts'); const now = Date.now(); await db.putStudy({ id: crypto.randomUUID(), tool: 'changeover', name: 'How the line runs', workspaceId: ws, facts: { running: { shiftsPerDay: 2, hoursPerShift: 8, breakMin: 30, daysPerWeek: 5 } }, uses: [], startedAt: now + 5, createdAt: now + 5, updatedAt: now + 5 }); }, WS);
 const setWs = p => page.evaluate(async ([id, p]) => { const db = await import('/src/db.ts'); const w = await db.getWorkspace(id); await db.updateWorkspace({ ...w, ...p }); }, [WS, p]);
 const truth = () => page.evaluate(async ([ws, from]) => {
@@ -154,7 +156,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
 /* ---- 9 a client ---- */
 await page.evaluate(async ([ids, pid]) => { const db = await import('/src/db.ts'); for (const id of ids) { const st = await db.getStandard(id); await db.putStandard({ ...st, projectId: pid }); } }, [ids, sd.projectId]);
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
-await go(`#/balances?line=${WS}&project=${sd.projectId}`, 2800);
+await go(`#/balances?line=${WS}&project=${sd.projectId}`, 2800); await openWhole();
 {
   const open = page.locator('details.pln').first();
   if (await open.count() && !(await open.evaluate(e => e.open))) await open.locator('> summary').click();

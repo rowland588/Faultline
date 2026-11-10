@@ -15,6 +15,7 @@
  * BelongsTo), and an attached one shows in that job's line standard too. */
 import { PageHeader } from '../ui/parts';
 import { LineCapacityHero } from '../ui/LineCapacityHero';
+import { Fold } from '../ui/Fold';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addLineToFactory, asked } from '../lib/lines';
 import { deleteStudy, listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStandard } from '../db';
@@ -221,10 +222,23 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
             <h2>{groupName(k)}</h2>
             <span className="sub">{rows.length} product{rows.length === 1 ? '' : 's'}</span>
           </div>
-          {/* WHAT THE LINE CAN MAKE (docs/upgrade-plan.md, C) — the line's
-              answer above its products: what its counted shifts proved, where it
-              is held, what changed, where the time went */}
-          {tool === 'balance' && k.startsWith('ws:') && <LineCapacityHero wsId={k.slice(3)} products={rows} lineName={groupName(k)} />}
+          {/* CARRY ON FIRST (Rowland, 10 November: "i have to navigate all the way to the bottom just to
+              continue the tool i was using … Tools obvious. Continue obvious. Everything is too busy"): the
+              records you work in come straight under the line's name, the one worked on last first with its
+              Carry on ›, the rest in the order they were; the line-wide analysis follows, folded until opened. */}
+          {(() => {
+            const touched = (s: Standard) => Math.max(s.updatedAt ?? 0, tool === 'work' ? currentBalance(studies, s.id)?.updatedAt ?? 0 : 0);
+            const newest = rows.reduce<Standard | undefined>((a, s) => (!a || touched(s) > touched(a) ? s : a), undefined);
+            const ordered = newest ? [newest, ...rows.filter(s => s.id !== newest.id)] : rows;
+            return (
+              <div className="lt-carry">
+                <h3 className="lt-carry-h">Carry on</h3>
+                <ul className="lt-rows">
+                  {ordered.map(s => <ToolRow key={s.id} s={s} tool={tool} job={jobName(s.projectId)} all={list ?? []} studies={studies} first={s.id === newest?.id} />)}
+                </ul>
+              </div>
+            );
+          })()}
           {(() => {
             /* THE LINE'S CHANGEOVER — its newest, in one line, one tap to it:
                the minutes, the external work inside, how often each product runs. */
@@ -238,9 +252,15 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
               </button>
             ) : null;
           })()}
-          <ul className="lt-rows">
-            {rows.map(s => <ToolRow key={s.id} s={s} tool={tool} job={jobName(s.projectId)} all={list ?? []} studies={studies} />)}
-          </ul>
+          {/* WHAT THE LINE CAN MAKE (docs/upgrade-plan.md, C) — the line's answer across its products: what its
+              counted shifts proved, where it is held, what changed, where the time went. Under the records since
+              10 November, in the app's one folding card (ui/Fold): shut on every width until opened, the choice kept
+              on this device — one choice for every line. */}
+          {tool === 'balance' && k.startsWith('ws:') && (
+            <Fold id="line-whole" title="The line as a whole" says="what the counted shifts proved, where the time went, where and when it stops, the week's questions" start={false}>
+              <LineCapacityHero wsId={k.slice(3)} products={rows} lineName={groupName(k)} />
+            </Fold>
+          )}
         </section>
       ))}
       <NewOne open={adding} tool={tool} lines={factory} list={list ?? []} onClose={() => setAdding(false)} onLine={lineF.startsWith('ws:') ? lineF.slice(3) : undefined}
@@ -255,7 +275,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
  *  takes this tool off the product and keeps the other (lib/standard
  *  afterRemoving), with Undo. On a job the job's access says who may (the
  *  owner deletes, the team renames); on a line with no job, the line's people. */
-function ToolRow({ s, tool, job, all, studies }: { s: Standard; tool: LineTool; job?: string; all: Standard[]; studies: ToolStudy[] }) {
+function ToolRow({ s, tool, job, all, studies, first }: { s: Standard; tool: LineTool; job?: string; all: Standard[]; studies: ToolStudy[]; first?: boolean }) {
   const jobCan = useAccess(s.projectId ?? '');
   const may = s.projectId ? jobCan : canOf('owner');
   const [naming, setNaming] = useState(false);
@@ -294,13 +314,15 @@ function ToolRow({ s, tool, job, all, studies }: { s: Standard; tool: LineTool; 
     </li>
   );
   return (
-    <li className="lt-li">
+    <li className={'lt-li' + (first ? ' is-last-worked' : '')}>
       <button type="button" className="lt-row" onClick={() => nav(openOf(s, tool))}>
         <b className="lt-what">{s.product}</b>
         <span className={'lt-says' + (said.short ? ' is-short' : '')}>{said.text}</span>
         {/* WHERE IT BELONGS — on a job, or a tool on the line alone. */}
         <span className="lt-where">{job ? <>On <b>{job}</b></> : s.workspaceId ? 'On no project' : ''}</span>
       </button>
+      {/* the one worked on last — the way back into it, pressed first */}
+      {first && <button type="button" className="btn btn-primary lt-carry-go" onClick={() => nav(openOf(s, tool))} aria-label={`Carry on with ${s.product}`}>Carry on ›</button>}
       {(may.edit || may.remove) && (
         <span className="lt-acts">
           {may.edit && <button type="button" className="cw-link" onClick={() => setNaming(true)} aria-label={`Rename ${s.product}`}>Rename</button>}
