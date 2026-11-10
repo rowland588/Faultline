@@ -17746,6 +17746,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .lt-carry .lt-li { flex-wrap: wrap; }
   .lt-carry .lt-li.is-last-worked .lt-carry-go { min-height: 44px; margin: 0 12px 10px; flex: 1 1 100%; justify-content: center; }
   .lt-carry .lt-acts button { min-height: 44px; display: inline-flex; align-items: center; }
+}
 
 /* DOCUMENTS AND LINE TALK, CALM (10 November) — docs/DESIGN.md. A document's sections are a heading line and a hairline, not a box:
    each the app's one fold (ui/Fold) saying how far it is written, the section in hand open; a list's rows are hairline-parted, never a
