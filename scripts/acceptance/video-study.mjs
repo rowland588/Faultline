@@ -129,6 +129,8 @@ await page.getByRole('button', { name: 'Read the footage' }).click();
 await page.locator('.vid-study[data-state="review"]').waitFor({ timeout: 240000 }).catch(() => {});
 const readSec = (Date.now() - t0) / 1000;
 ok(/Ready for review/.test(await txt()) && /pieces? of work found at 3 of 3 stations/.test(await txt()), '2a read on the device, its state on the record: ready for review', (await txt()).slice(0, 600));
+/* what the footage can tell you is a line in the record's one fold (docs/DESIGN.md, 10 November) — opened as a person would */
+{ const t = page.locator('section.vid-fit [data-fold="video-claims"]:not(.is-open) .fold-toggle'); if (await t.count()) { await t.click(); await page.waitForTimeout(200); } }
 const fitRead = (await page.locator('section.vid-fit').innerText()).replace(/\s+/g, ' ');
 ok(/^Is this footage fit for the study\? .*This footage suits line balance, with 1 thing to watch\./.test(fitRead) && /Reviewed by a person Watch — 0 of \d+ confirmed/.test(fitRead)
   && /Steady over every frame read/.test(await page.locator('section.vid-fit [data-check="steady"]').textContent().catch(() => ''))

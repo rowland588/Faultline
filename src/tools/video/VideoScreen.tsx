@@ -495,7 +495,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
             </label>
           </div>
         )}
-        <FitView a={fit} />
+        <FitView a={fit} folded />
         {obj.meanwhile && obj.readiness !== 'measured' && <p className="sub vid-meanwhile">Meanwhile, by hand: <button type="button" className="linkish" onClick={() => nav(obj.meanwhile?.path ?? '/')}>{obj.meanwhile.tool}</button> — {obj.meanwhile.why}.</p>}
         <FilmPlan p={plan} />
       </section>

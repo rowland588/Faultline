@@ -26,6 +26,7 @@
  * Nothing worked out is stored: every figure and sentence comes from
  * lib/ie/changeover on each render. A chip writes on its tap; a box writes
  * when it is left, never on a keystroke. */
+import { Fold } from '../../ui/Fold';
 import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStudy, getWorkspace, listStandardsForLine, onDataChange, patchStudy, putStandard } from '../../db';
@@ -217,10 +218,18 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
         <p className={'ie-say' + (said.tone === 'r' ? ' is-r' : '')}>{said.text}</p>
         {said.lines.filter(x => x.tone !== 'r').map(x => <p key={x.text} className={'ie-say ie-cap is-' + x.tone}>{x.text}</p>)}
         {f.enough && <p className={'ie-say ie-cap co-ladder is-' + ladderSays(l).tone}>{ladderSays(l).text}</p>}
-        {f.enough && functionSays(seq) && <p className="ie-say ie-cap co-fns is-n">{functionSays(seq)}</p>}
-        {cost.text && <p className="ie-say ie-cap co-cost is-n">{cost.text}</p>}
-        {cost.scale && <ScaleTable scale={cost.scale} />}
-        <p className={'ie-say ie-cap co-interval is-' + ivSaid.tone}>{ivSaid.text}</p>
+        {/* THE DETAIL BEHIND THE FINDING in the record's one fold (docs/DESIGN.md, 10 November): the kinds of work, the money
+            and its scale, and how often each product can run — one line saying what is inside; an abnormal interval stays out */}
+        {ivSaid.tone !== 'n' && <p className={'ie-say ie-cap co-interval is-' + ivSaid.tone}>{ivSaid.text}</p>}
+        <div className="rec-fold">
+          <Fold id="smed-more" title="The money, the work and how often" start={false}
+            says={[cost.text ? 'what the changeovers cost' : 'what they cost — how the line runs is not said yet', f.enough && functionSays(seq) ? 'the kinds of work' : '', ivSaid.tone === 'n' ? 'how often each product can run' : ''].filter(Boolean).join(' · ')}>
+            {f.enough && functionSays(seq) && <p className="ie-say ie-cap co-fns is-n">{functionSays(seq)}</p>}
+            {cost.text && <p className="ie-say ie-cap co-cost is-n">{cost.text}</p>}
+            {cost.scale && <ScaleTable scale={cost.scale} />}
+            {ivSaid.tone === 'n' && <p className={'ie-say ie-cap co-interval is-' + ivSaid.tone}>{ivSaid.text}</p>}
+          </Fold>
+        </div>
       </div>
 
       {/* THE GRID — who does what, in sequence; as timed, or the plan. */}

@@ -28,6 +28,7 @@ import { getStudy, listAllStandards, listAllStudies, onDataChange, patchStudy } 
 import { neckOf } from '../../lib/lineLoss';
 import type { Standard } from '../linestandard/standard';
 import { useAccess } from '../../cloud/access';
+import { Fold } from '../../ui/Fold';
 import { useSession } from '../../cloud/session';
 import { displayName } from '../../cloud/team';
 import { can as canAt } from '../../lib/access';
@@ -529,6 +530,7 @@ function Counted({ item, items, line, where, one, study, canEdit }: { item: RelI
   const trend = relTrend(c, f);
   const wear = wearOf(c, f, study.facts.lives);
   const dayMin = line ? lineDay({ name: line.name, packsPerMin: line.packsPerMin, marginPerPack: line.marginPerPack, shifts: line.shifts }).minutes : undefined;
+  const deeper = [item.r && 'Repair times', item.k && 'Calls for help', item.g && 'Reliability growth', wear && 'A part that wears', f.days.length > 0 && 'Day by day'].filter((x): x is string => !!x);
   return (
     <section className="rl-counted" data-count={c.id} aria-label={countTitle(c)}>
       {!one && <h2 className="rl-counted-h">{countTitle(c)}</h2>}
@@ -550,12 +552,21 @@ function Counted({ item, items, line, where, one, study, canEdit }: { item: RelI
         {trend && <LeanPanel title={trend.title} className="ln-solo"><LeanTrend trend={trend} /></LeanPanel>}
       </div>
       {f.kinds.length > 0 && <Kinds f={f} event={c.event} />}
-      {item.r && <RepairPanel item={item} f={f} />}
-      {item.k && <CallsPanel item={item} f={f} line={line} where={where} shifts={line?.shifts} />}
-      {item.g && <GrowthPanel g={item.g} points={f.points} event={c.event} />}
-      {wear && <WearPanel sid={study.id} c={c} v={wear} canEdit={canEdit} line={dayMin ? { dayHours: dayMin / 60 } : undefined} />}
+      {/* THE DEEPER READINGS in the one fold (docs/DESIGN.md, 10 November — the finding and its graphs first; repair
+          times, calls, growth, a part that wears and the days one tap away, named in the fold's line) */}
+      {deeper.length > 0 && (
+        <div className="rec-fold">
+          <Fold id="rel-more" title={`More on the ${plural(c.event)}`} says={deeper.join(' · ')} start={false}>
+            {item.r && <RepairPanel item={item} f={f} />}
+            {item.k && <CallsPanel item={item} f={f} line={line} where={where} shifts={line?.shifts} />}
+            {item.g && <GrowthPanel g={item.g} points={f.points} event={c.event} />}
+            {wear && <WearPanel sid={study.id} c={c} v={wear} canEdit={canEdit} line={dayMin ? { dayHours: dayMin / 60 } : undefined} />}
+            {f.days.length > 0 && <Days f={f} title={countTitle(c)} />}
+          </Fold>
+        </div>
+      )}
+      {/* what it costs, after the deeper readings and never folded — the money stays in sight */}
       {cost.downMinPerH !== undefined && <p className="sub rl-cost">What it costs: {costWords(cost)}.</p>}
-      {f.days.length > 0 && <Days f={f} title={countTitle(c)} />}
     </section>
   );
 }
