@@ -1,6 +1,6 @@
 {
  "measured": "2026-11-06",
- "by": "scripts/journeys.mjs — J2 phone after ENTERPRISE-UI E7 (stacked Tools gallery); J8 +1 tap on 8 November (docs/STORY.md S5: the menu's Factory lands on the Story, the Control room report is on its Lines tab)",
+ "by": "scripts/journeys.mjs — J2 phone after ENTERPRISE-UI E7 (stacked Tools gallery); J8 +1 tap on 8 November (docs/STORY.md S5: the menu's Factory lands on the Story, the Control room report is on its Lines tab); J4 phone, J6 and J8 desk +1 tap on 10 November (docs/DESIGN.md — Rowland: \"these dashboards are going to be cleaner. Too busy … take control\": the Factory's Lines tab keeps the control room's board in one closed fold, Every project — the control room, so a project's row there is one tap further)",
  "on": "the smoke seed (src/dev/seed.ts), clock 15 Oct 2026 10:00 London",
  "before": "docs/structure/journeys-baseline-2026-10-22.json — the 22 October baseline, kept as it was",
  "desk": "1360x900",
@@ -294,7 +294,7 @@
   {
    "name": "J4 stage gate: a failed re-test to a fix",
    "device": "phone",
-   "taps": 10,
+   "taps": 11,
    "entries": 1,
    "screens": 8,
    "hunts": 2,
@@ -383,7 +383,7 @@
   {
    "name": "J6 lever tree: what is off track",
    "device": "desk",
-   "taps": 5,
+   "taps": 6,
    "entries": 2,
    "screens": 3,
    "hunts": 2,
@@ -524,7 +524,7 @@
   {
    "name": "J8 the Monday pack",
    "device": "desk",
-   "taps": 14,
+   "taps": 15,
    "entries": 0,
    "screens": 6,
    "hunts": 1,
