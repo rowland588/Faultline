@@ -104,9 +104,7 @@ await page.getByLabel('Its name', { exact: true }).fill('Packing — shaky camer
 await page.getByRole('button', { name: 'Start the study' }).click();
 await page.locator('.vid-study').waitFor({ timeout: 15000 }).catch(() => {});
 const sid = page.url().split('/video/')[1]?.split('?')[0];
-/* what the footage can tell you is a line in the record's one fold (docs/DESIGN.md, 10 November) — opened as a person would */
-const openClaims = async () => { const t = page.locator('section.vid-fit [data-fold="video-claims"]:not(.is-open) .fold-toggle'); if (await t.count()) { await t.click(); await page.waitForTimeout(200); } };
-const fitPanel = async () => { await openClaims(); return flat(await page.locator('section.vid-fit').innerText()); };
+const fitPanel = async () => flat(await page.locator('section.vid-fit').innerText());
 ok(/cannot be timed for line balance: the camera — shook/.test(await fitPanel()) && await page.getByLabel('Where was the phone', { exact: true }).inputValue() === 'side-raised',
   '3 the study’s page says the same, and keeps where the phone was', (await fitPanel()).slice(0, 400));
 

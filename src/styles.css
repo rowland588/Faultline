@@ -17744,3 +17744,5 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .cmt-quiet > .sub { margin: 0 0 var(--space-2); }
 .cmt-quiet .rl-rem:empty { display: none; }
 .rec-fold { margin: var(--space-3) 0; }
+/* a cost that waits on a missing input says so as a line on the canvas, not a box (the line balance's What it costs) */
+.wb-cost.is-n { background: none; border: 0; border-top: 1px solid var(--line-row); border-radius: 0; box-shadow: none; padding: var(--space-3) 0 0; }
