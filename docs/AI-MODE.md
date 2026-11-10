@@ -6,6 +6,12 @@ application."* And, the same day, the mandate: *"Faultline is an operational imp
 a Jarvis-like manufacturing colleague … Two modes … Manual Mode … AI Mode … Both modes must use the same underlying
 records, business logic, permissions and capabilities."*
 
+**Her page as futuristic as her voice (10 November — Rowland: "I want the AI assistant page to be more futuristic like the AI speech
+page").** The voice screen's glow behind the conversation; Luna a living orb on the empty page, beside each reply and in the head,
+turning and breathing while she works; glass for the head, the side panels, the start cards and the box (lit while listening); the
+person's words a lit glass bubble; a moving line while she thinks; Send an orb. Replies are signed *Luna* on screen (the turn's stored
+`who` unchanged). Presentation only (`styles.css`, the AI MODE, AS FUTURISTIC AS ITS VOICE block); motion off where the phone asks for less.
+
 ## Luna — the AI colleague's name, permanently (10 November)
 
 Rowland, 10 November: *"The AI assistant will be called LUNA. Luna is the female AI operational colleague within Faultline …
