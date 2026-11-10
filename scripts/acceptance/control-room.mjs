@@ -242,8 +242,10 @@ const pos = await page.evaluate(() => {
 /* 6 November (docs/LOOK.md §1, look E) — the four questions first on the Factory (the hero, then the four cards
    under the frame), then their answers and the Lines board, then the control-room band; 29 October's "Lines board
    first" stands as: the board before the band */
-ok(pos.cardsN === 4 && pos.cards > pos.frame && pos.cards - pos.frame < 420 && pos.fac > pos.cards && pos.says > pos.fac && !pos.fabOverHeadline && pos.wide <= 1,
-  `11a the four questions first: ${pos.cardsN} cards at ${Math.round(pos.cards)}px (${Math.round(pos.cards - pos.frame)}px under the frame), the Lines board after (${Math.round(pos.fac)}px), the band after that (${Math.round(pos.says)}px), the bar’s ＋ off it`);
+/* 10 November (Rowland: "its very busy … i cant sometimes see the obvious like areas and lines"): the areas and lines first, straight
+   under the page's name; the four cards after them, the control-room band after that */
+ok(pos.cardsN === 4 && pos.fac > pos.frame && pos.fac - pos.frame < 420 && pos.cards > pos.fac && pos.says > pos.cards && !pos.fabOverHeadline && pos.wide <= 1,
+  `11a the areas and lines first: the Lines board at ${Math.round(pos.fac)}px (${Math.round(pos.fac - pos.frame)}px under the frame), the ${pos.cardsN} cards after (${Math.round(pos.cards)}px), the band after that (${Math.round(pos.says)}px), the bar’s ＋ off it`);
 const bar = await page.locator('.nv-bar .nv-bi .nv-bi-l').allInnerTexts();
 /* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Tools · More (27 October) */
 ok(bar.join(' · ') === 'Factory · Projects · Problem · Tools · More', `11b the bar: ${bar.join(' · ')}`);
