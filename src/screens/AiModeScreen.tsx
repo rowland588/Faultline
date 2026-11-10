@@ -19,6 +19,7 @@
 import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { deskWide, setLunaPanel } from '../colleague/lunaPanel';
 import { scopeOf } from '../lib/scope';
+import { inAgreedScope } from '../capabilities/scope';
 import { createPortal } from 'react-dom';
 import { deleteStudy, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { offerUndo } from '../ui/Undo';
@@ -708,7 +709,9 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock }: {
           const preview = c.preview ? await c.preview(ctx(), v.input) : c.title;
           /* CONFIRM ONCE (docs/AI-OPERATING.md): a write into a record the person already said yes to in this conversation goes in */
           const target = c.target?.(v.input);
-          const said = target ? ((factsOfConversation((await getStudy(cid)) as ToolStudy) as { authorised?: string[] }).authorised ?? []).includes(target) : false;
+          const authorised = ((factsOfConversation((await getStudy(cid)) as ToolStudy) as { authorised?: string[] }).authorised ?? []);
+          /* said yes to before, or a capture step inside an investigation the person agreed (work_within, W3) — a receipt, not a card */
+          const said = (target ? authorised.includes(target) : false) || await inAgreedScope(call.name, v.input as Record<string, unknown>, authorised);
           return { ok: true, title: c.title, preview, input: (v.input ?? {}) as Record<string, unknown>, ...(said ? { authorised: true } : {}) };
         },
         confirm: step => new Promise<boolean>(res => {
@@ -725,7 +728,7 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock }: {
         }),
         onStep: async (step: Step) => {
           const by = saidFor.current.get(step.call.id);
-          const u: Used = { callId: step.call.id, name: step.call.name, title: step.title, kind: step.kind, status: step.status, says: step.says, refs: step.refs,
+          const u: Used = { callId: step.call.id, name: step.call.name, title: step.title, kind: step.kind, status: step.status, says: step.says, refs: step.refs, ...(step.auto ? { auto: true } : {}),
             ...(step.preview ? { preview: step.preview } : {}), ...(step.input ? { input: step.input } : {}), ...(by ? { said: by } : {}), at: Date.now() };
           steps.set(u.callId, u);
           await changeTurn(patchStudy, cid, rid, t => ({ ...t, used: [...steps.values()] }));
@@ -951,7 +954,18 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock }: {
   const walkF = facts as (WalkFacts | undefined);
   /* the conversation's results, charts and reports (docs/CONVERSATIONAL-DATA.md) — drawn on the turns that made them */
   const outs: Outs = useMemo(() => { const o = outputsOfConversation({ facts: (facts ?? {}) } as ToolStudy); return { results: new Map(o.results.map(r => [r.id, r])), charts: new Map(o.charts.map(c => [c.id, c])), reports: o.reports, ...(me ? { by: me } : {}) }; }, [facts, me]);
-  const panel = <ContextPanel cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []}
+  /* the investigations agreed in this conversation (work_within, W3) — each with Stop */
+  const agreedIds = (facts as { authorised?: string[] } | undefined)?.authorised ?? [];
+  const agreed = projects.filter(p => agreedIds.includes(p.id)).map(p => ({ id: p.id, name: p.name }));
+  /* Stop: the agreement withdrawn — the project, and every record inside it said yes to through it, ask again */
+  const stopAgreed = async (pid: string) => {
+    if (!study) return;
+    const had = ((factsOfConversation((await getStudy(study.id)) as ToolStudy) as { authorised?: string[] }).authorised ?? []);
+    const inside = new Set<string>([pid]);
+    for (const x of had) if (x !== pid && (await getStudy(x))?.projectId === pid) inside.add(x);
+    await patchStudy(study.id, c => ({ facts: { ...c.facts, authorised: ((c.facts as { authorised?: string[] }).authorised ?? []).filter(x => !inside.has(x)) } as ToolStudy['facts'] }));
+  };
+  const panel = <ContextPanel agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
   return (
@@ -1245,7 +1259,12 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
           const lastRef = [...made].reverse().find(x => x.kind === 'convreport' && x.id.startsWith(`${id}@`));
           return rep ? <ReportCard key={r.id} report={rep} version={Number(v) || rep.version} latest={(Number(v) || rep.version) === rep.version && lastRef?.id === r.id} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} /> : null;
         })}
-        {cards.map(u => <WriteCard key={u.callId} u={u} live={live.has(u.callId)} hands={hands} onCard={onCard} />)}
+        {/* RECEIPTS (W3): a write that went in without a card — said yes to before, or inside the agreed investigation — one line
+            each, what landed and where; a card only for what was asked */}
+        {cards.filter(u => u.auto && u.status === 'done').map(u => (
+          <p key={u.callId} className="ai-receipt" data-receipt={u.name}><Icon name="check" size={13} /><span><b>{u.title}</b> — {u.says}</span><RefChips refs={u.refs} label="Where it landed" /></p>
+        ))}
+        {cards.filter(u => !(u.auto && u.status === 'done')).map(u => <WriteCard key={u.callId} u={u} live={live.has(u.callId)} hands={hands} onCard={onCard} />)}
         {/* EVERY FIGURE CHECKED (docs/LUNA-NEXT.md L1): the count looked for in Faultline's working, and those found nowhere marked in the
             words above and named here */}
         {!t.answering && t.checked !== undefined && !t.unsure?.length && figuresSaid({ checked: t.checked, unsure: [] }) && (
@@ -1338,8 +1357,10 @@ function TaskCard({ task, onSay }: { task: NonNullable<Thread['task']>; onSay: (
   );
 }
 
-function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act, canMakeFactory, onSay, here, trail }: {
+function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act, canMakeFactory, onSay, here, trail, agreed = [], onStop }: {
   here?: WalkStop; trail?: readonly WalkStop[];
+  /** Investigations agreed in this conversation (W3): captured into without a card, each with Stop. */
+  agreed?: { id: string; name: string }[]; onStop?: (projectId: string) => void;
   cur?: Thread; parked: Thread[]; sources: CapRef[]; nameOf: (k: 'line' | 'project' | 'problem' | 'story', id: string) => string | undefined; onBack: (t: Thread) => void;
   drafts: ColleagueDraft[]; make: MakeFlow; act: (draftId: string, items: FactoryOp[]) => Promise<CapResult>; canMakeFactory: boolean; onSay: (words: string) => void;
 }) {
@@ -1358,6 +1379,16 @@ function ContextPanel({ cur, parked, sources, nameOf, onBack, drafts, make, act,
           <p className="ai-ctx-h">Where you are</p>
           <p className="ai-ctx-t">{placeSaid(here) || 'A place not named'}</p>
           <p className="sub">Since {hhmm(here.at)}{(trail?.length ?? 0) > 1 ? ` · the walk: ${(trail ?? []).slice(-5).map(x => x.machine || x.line || x.area || '').filter(Boolean).join(' → ')}` : ''}</p>
+        </section>
+      )}
+      {agreed.length > 0 && (
+        <section className="ai-ctx-s ai-agreed" aria-label="Agreed" data-ctx-agreed>
+          {agreed.map(a => (
+            <p key={a.id} className="ai-agreed-l" data-agreed={a.id}>
+              <span><b>Working within {a.name}</b><span className="sub"> — capturing into it as we go; anything consequential still asks.</span></span>
+              <button type="button" className="btn btn-sm" data-agreed-stop onClick={() => onStop?.(a.id)}>Stop</button>
+            </p>
+          ))}
         </section>
       )}
       <section className="ai-ctx-s" aria-label="Now on" data-ctx-current>

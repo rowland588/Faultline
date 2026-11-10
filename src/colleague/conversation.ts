@@ -40,6 +40,8 @@ export interface Used {
   input?: Record<string, unknown>;
   /** A write answered out loud: the words said back that answered it ("yes, do it"), shown on its card. */
   said?: string;
+  /** Went in without a card (said yes to before, or inside an agreed investigation — W3): shown as a receipt. */
+  auto?: boolean;
   at: number;
 }
 

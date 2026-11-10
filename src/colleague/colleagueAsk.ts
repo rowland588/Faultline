@@ -99,6 +99,8 @@ export interface Step {
   refs: CapRef[];
   preview?: string;
   input?: Record<string, unknown>;
+  /** A write that went in without a card — said yes to before, or inside an agreed investigation (W3): shown as a receipt. */
+  auto?: boolean;
 }
 
 export interface LoopDeps {
@@ -195,7 +197,7 @@ async function doCall(call: CapCall, deps: LoopDeps): Promise<CallResult> {
   }
   if (p.authorised) {
     const r = await deps.run(call, true);
-    await deps.onStep({ call, title: p.title, kind: 'write', status: r.ok ? 'done' : 'failed', says: saidOf(r), preview: p.preview, input: p.input, refs: r.ok ? r.refs : [] });
+    await deps.onStep({ call, title: p.title, kind: 'write', status: r.ok ? 'done' : 'failed', says: saidOf(r), preview: p.preview, input: p.input, refs: r.ok ? r.refs : [], auto: true });
     return { id: call.id, ok: r.ok, says: saidOf(r), ...(r.ok && r.data !== undefined ? { data: r.data } : {}) };
   }
   const waiting: Step = { call, title: p.title, kind: 'write', status: 'waiting', says: p.preview, preview: p.preview, input: p.input, refs: [] };

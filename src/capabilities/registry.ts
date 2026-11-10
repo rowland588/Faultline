@@ -20,6 +20,7 @@ import { DATA } from './data';
 import { DIG } from './dig';
 import { workOut } from './workout';
 import { NOTEBOOK } from './notebook';
+import { SCOPE } from './scope';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
@@ -48,6 +49,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...DIG, workOut,
   /* what a client's words mean, confirmed by the person (docs/LUNA-NEXT.md L3) */
   ...NOTEBOOK,
+  /* working within an agreed investigation — capture without a card inside it (docs/LUNA-WORKSPACE.md W3) */
+  ...SCOPE,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);

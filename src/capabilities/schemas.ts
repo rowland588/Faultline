@@ -393,6 +393,12 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     input_schema: obj({ words: str('Words in its title', 120) }, []),
   },
   {
+    name: 'work_within',
+    kind: 'write',
+    description: 'Ask once to work within an investigation (a project): a card; on the person\'s yes, the capture steps that write INTO that project — start_study, add_readings, time_elements, count_shift, record_check, set_capacity, place_people, add_cause, add_journey_step, answer_method, start_measurement, fill_register, write_document, draw_diagram — go in without a card for the rest of the conversation, each shown as a receipt. Offer it when the person has agreed an investigation and you are about to capture a lot into it ("shall I just fill it in as we go?"). Consequential steps (problems raised or closed, holds decided, links, replacements, anything outside the project) still ask every time. Never assume it: ask, once.',
+    input_schema: obj({ projectId: str('The project — the investigation agreed', 80) }, ['projectId']),
+  },
+  {
     name: 'note_meaning',
     kind: 'write',
     description: 'Remember what a word, a name, a file or a way of counting means for this client — "downtime means unplanned stops only", "Celox is Line 4", "the product master holds costs and rates", "a shift is 7.5 hours here". Shown as a card; kept only on the person\'s yes, in the client\'s notebook (the line\'s client, or the subject\'s), or their own with own true when it holds wherever they work. Offer it when they explain a word or correct how you read one — once, in their words. Never note a guess of yours.',
