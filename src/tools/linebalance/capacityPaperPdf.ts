@@ -495,29 +495,62 @@ function buffersBlocks(p: CapacityPaper, d: Density): Block[] {
  *  when several feed one), the bottleneck walked, the capacity sheet a row a
  *  station. `sayV`: the V's sentence beside it (the lean page says it under
  *  What it means instead). */
+/** A page break: the flow ends the page it is on and carries on on a fresh one (an insert with nothing of its own to draw) — so each
+ *  product's page always starts at the top, never under the last of the one before. */
+const PAGE_BREAK: Block = { height: () => 0, draw: () => undefined, insert: () => undefined };
+const ownPage = (b: Block): Block[] => [PAGE_BREAK, b];
+
+/** ONE PRODUCT AS ITS TAB SHOWS IT (10 November — Rowland, on his dual line: "each page to have its own line drawing and explanation, so
+ *  what each station can do, then with the commentary. Very simple, very clean … identical" to the screen): its name and what it says,
+ *  the line drawn, and a bar a station under it — the three that belong together, never apart. */
+function productPage(name: string, says: string, flow: FlowModel): Block[] {
+  const bars = barsBlocks(flow);
+  return [
+    ...ownPage({ ...text({ text: name, size: SIZE.title - 4, style: 'bold', colour: INK, after: 3 }), keepWithNext: true }),
+    { ...text({ text: says, size: T + 0.5, colour: INK2, after: 8 }), keepWithNext: true },
+    { ...label('The line, drawn'), keepWithNext: true },
+    flowBlock(flow),
+    ...(bars.length ? [{ ...label('What each station can do'), keepWithNext: true }, ...bars] : []),
+  ];
+}
+
+/** THE FIGURES, STATION BY STATION — each line's V and capacity sheet, at the back when the line is drawn (the drawing and its bars say the
+ *  speeds on each product's page; the sheet is kept for the figures, never in the way of them). */
+function appendixBlocks(p: CapacityPaper, sayV: boolean): Block[] {
+  if (!p.flow || !p.groups?.length || !p.rows.length) return [];
+  const out: Block[] = [...ownPage({ ...leanHead('The figures, station by station', `${p.product} — each line’s stations as the capacity sheet has them`), keepWithNext: true })];
+  const { targetPct: _all, ...rest } = p;
+  for (const g of p.groups) {
+    const gp: CapacityPaper = { ...rest, rows: p.rows.filter(r => r.group === g.name), ...(g.targetPct != null ? { targetPct: g.targetPct } : {}) };
+    out.push({ ...label(`${g.name} — ${g.says}`), keepWithNext: true });
+    if (g.v) out.push(said('The V-curve:', g.v.text, g.v.tone));
+    out.push(sheet(gp));
+  }
+  if (sayV && p.walk) out.push(said('The bottleneck, walked:', p.walk.text, p.walk.tone));
+  return out;
+}
+
 function limited(p: CapacityPaper, sayV: boolean): Block[] {
   const out: Block[] = [];
   /* THE LINE DRAWN, then what each station can do — the page's right-hand side, on the paper too */
   if (p.flow) {
-    out.push(label('The line, drawn'));
+    out.push({ ...label('The line, drawn'), keepWithNext: true });
     out.push(flowBlock(p.flow));
     const bars = barsBlocks(p.flow);
-    if (bars.length) { out.push(label('What each station can do')); out.push(...bars); }
+    if (bars.length) { out.push({ ...label('What each station can do'), keepWithNext: true }); out.push(...bars); }
   }
-  /* THE PRODUCTS OF THE LINE (FC-034 part 5): a row each — what it makes, what holds it, its target — then each other product's own line drawn */
+  /* THE PRODUCTS OF THE LINE (FC-034 part 5): a row each — what it makes, what holds it, its target. Each other product's own page comes
+     after this one's (otherPages), its drawing, its bars and its words together */
   if (p.products?.length) {
     out.push(label('Products on this line'));
     for (const q of p.products) out.push(text({ text: `${q.name}: ${q.says}`, size: T, style: q.base ? 'bold' : 'normal', colour: INK, after: 3 }));
-    for (const q of p.products) {
-      if (!q.flow) continue;
-      out.push({ ...text({ text: `${q.name} — the line drawn`, size: T, style: 'bold', colour: INK2, after: 2 }), keepWithNext: true });
-      out.push(flowBlock(q.flow));
-    }
   }
   if (sayV && p.v) out.push(said('The V-curve:', p.v.text, p.v.tone));
-  /* the V drawn, as the screen draws it — along each line, then the place
-     they merge, when several lines feed one (lib/capacity LanesView) */
-  if (p.groups?.length) {
+  /* the V drawn, as the screen draws it — along each line, then the place they merge, when several lines feed one (lib/capacity
+     LanesView). A drawn line keeps it for the back (appendixBlocks): its bars already say each station's speed beside its drawing. */
+  if (p.groups?.length && p.flow) {
+    /* at the back */
+  } else if (p.groups?.length) {
     const { targetPct: _all, ...rest } = p;
     for (const g of p.groups) {
       const gp: CapacityPaper = { ...rest, rows: p.rows.filter(r => r.group === g.name), ...(g.targetPct != null ? { targetPct: g.targetPct } : {}) };
@@ -622,6 +655,7 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
     out.push(said('The people’s work against takt:', p.work.text));
     for (const l of p.work.lines) out.push(text({ text: l.text, size: T, colour: toneInk(l.tone), indent: 10, bullet: '·', after: 3 }));
   }
+  out.push(...otherPages(p), ...appendixBlocks(p, true));
   return own ? out : withHead(p, where, out, keep);
 }
 
@@ -681,7 +715,13 @@ export function productLeanBlocks(p: CapacityPaper, d: Density): Block[] {
     if (w.labour) out.push(text({ text: w.labour, size: S, colour: MUTED, indent: 10, after: 5 }));
   }
   out.push(leanClosing(page.closing));
+  out.push(...otherPages(p), ...appendixBlocks(p, false));
   return out;
+}
+
+/** Each other product of the line on a page of its own — as its tab shows it. */
+function otherPages(p: CapacityPaper): Block[] {
+  return (p.products ?? []).filter(q => !q.base && q.flow).flatMap(q => productPage(q.name, q.says, q.flow as FlowModel));
 }
 
 /** One of many: under its name, kept on one page when the whole of it fits a page. */

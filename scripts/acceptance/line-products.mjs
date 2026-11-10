@@ -82,7 +82,17 @@ try { const [d] = await Promise.all([page.waitForEvent('download', { timeout: 60
   const txt = execFileSync('pdftotext', ['-layout', f, '-']).toString().replace(/\s+/g, ' ');
   const pages = execFileSync('pdfinfo', [f]).toString().match(/Pages:\s+(\d+)/)?.[1];
   console.log('   paper:', txt.match(/Products on this line.{0,260}/i)?.[0]);
-  ok(/Products on this line/i.test(txt) && /1\.75 kg: /.test(txt) && /2 kg: /.test(txt) && /1\.75 kg — the line drawn/.test(txt) && /2 kg — the line drawn/.test(txt), `6 the paper carries Products on this line and each product's drawn line (${pages} pages)`);
+  ok(/Products on this line/i.test(txt) && /1\.75 kg: /.test(txt) && /2 kg: /.test(txt), `6 the paper carries Products on this line (${pages} pages)`);
+  /* EACH PRODUCT A PAGE OF ITS OWN, as its tab shows it (10 November — Rowland: "each page to have its own line drawing and explanation, so
+     what each station can do, then with the commentary … identical" to the screen): its name, its sentence, its line drawn and its bars,
+     on one page — never a drawing here and its bars somewhere else */
+  const byPage = execFileSync('pdftotext', ['-layout', f, '-']).toString().split('\f').map(t => t.replace(/\s+/g, ' '));
+  for (const nm of ['1.75 kg', '2 kg']) {
+    const row = a.rows.find(x => x.name === nm);
+    const pg = byPage.findIndex(t => new RegExp(`^\\s*${nm.replace('.', '\\.')} `).test(t.replace(/^.*?Faultline\s*/, '')));
+    const t = pg >= 0 ? byPage[pg] : '';
+    ok(pg > 0 && /the line, drawn/i.test(t) && /what each station can do/i.test(t) && (!row || t.includes(row.says.replace(/\s+/g, ' '))), `6c ${nm} on a page of its own (page ${pg + 1}): its sentence, its line drawn and what each station can do together`);
+  }
   ok(a.rows.every(x => txt.includes(x.says.replace(/\s+/g, ' '))), '6b the paper says each row as the card does');
 } catch (e) { ok(false, '6 the paper: ' + e.message); }
 

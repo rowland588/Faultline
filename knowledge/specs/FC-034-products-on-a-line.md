@@ -86,3 +86,10 @@ Not yet proved: the full gate and paper parity.
 
 ## 12. Maintainability
 One place a product is read (`productRows`); the scenario mechanism is shared with what-ifs.
+
+### The paper, product by product (10 November)
+**Asked for:** Rowland, 10 November, on his dual line (P- 09 All rounder 2kg on Line A and Line B, with P - 05, P - 06 and P - 10): *"On the HTML, it's really nice because it does the drawing, the line drawing, then it just basically gives a really small section of exactly what's happening … But then the report does all the drawings separately, and then all of the bar graphs separate as well. You can't really tell what belongs to what graph … I want each page to have its own line drawing and explanation, so what each station can do, then with the commentary. Very simple, very clean, very cut … identical"* to the screen.
+
+**Scope.** (1) The first product's page as its tab: the band and tiles, *The line, drawn*, *What each station can do* straight under it, then what it means and the action plan. (2) **Each other product on a page of its own** (a hard page break, never under the last of the one before): its name, its sentence as the All products card says it, its line drawn and its bars — the three together. (3) A drawn line made of several lines keeps each line's V and capacity sheet at the back, under *The figures, station by station* — every figure kept, none in the way; a line not drawn keeps them where they were. **Chosen:** the order the screen shows; the sheet at the back rather than dropped (CLAUDE.md rule 1 — nothing removed).
+
+**Acceptance criteria.** 1. Each other product on its own page with its sentence, *The line, drawn* and *What each station can do* — `line-products.mjs` 6c. 2. Every row of the All products card still on the paper — `line-products.mjs` 6b. 3. The papers of a single line and of split lines unchanged in what they carry — `capacity-paper-line.mjs`, `split-lines.mjs`, `list-paper.mjs`, `report-stress.mjs`.
