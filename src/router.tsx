@@ -69,6 +69,8 @@ const AnalysisScreen = lazy(() => import('./tools/analysis/AnalysisScreen').then
 const CalcScreen = lazy(() => import('./tools/calc/CalcScreen').then(m => ({ default: m.CalcScreen })));
 const StoryScreen = lazy(() => import('./screens/StoryScreen').then(m => ({ default: m.StoryScreen })));
 const AiModeScreen = lazy(() => import('./screens/AiModeScreen').then(m => ({ default: m.AiModeScreen })));
+import { LunaHost, LunaSlot } from './colleague/LunaHost';
+import { aiModeOn, useAiMode } from './colleague/aiMode';
 const AiUsageScreen = lazy(() => import('./screens/AiUsageScreen').then(m => ({ default: m.AiUsageScreen })));
 const LunaExamScreen = lazy(() => import('./screens/LunaExamScreen').then(m => ({ default: m.LunaExamScreen })));
 const DocScreen = lazy(() => import('./tools/doc/DocScreen').then(m => ({ default: m.DocScreen })));
@@ -141,6 +143,7 @@ export function Router() {
   usePersistRoute(route.wsId);
 
   const { session, loading } = useSession();
+  const aiOn = useAiMode();
 
   // A build with no backend can't offer accounts. Say so — never fall through to
   // an unauthenticated app, and never ask the user to supply credentials.
@@ -186,6 +189,7 @@ export function Router() {
       <AutoConvert />
       <Frame route={route}><Suspense fallback={<BootSplash />}>{app(route)}</Suspense></Frame>
       <RecordDrawerHost route={route} />
+      <LunaHost route={route} on={aiOn} />
     </>
   );
 }
@@ -225,7 +229,9 @@ function app(route: Route) {
   /* HOME IS THE STORY (S5): #/ and its alias #/story; the board of lines is #/room, the Lines tab */
   if (route.name === 'home' || route.name === 'story') return <StoryScreen />;
   /* AI MODE (8 November, src/colleague) — the colleague's conversation; the door is in the top bar, not the menu */
-  if (route.name === 'ai') return <AiModeScreen />;
+  /* Luna is mounted once beside the router (colleague/LunaHost) and drawn here — her conversation, answers in flight, cards waiting and
+     voice carry on while the person goes elsewhere (docs/LUNA-WORKSPACE.md W1); switched off, the screen alone says so */
+  if (route.name === 'ai') return aiModeOn() ? <LunaSlot /> : <AiModeScreen />;
   /* how AI Mode is used — its cost, what the colleague did, candidates for code (docs/AI-MODE.md §9) */
   if (route.name === 'aiUsage') return <AiUsageScreen />;
   if (route.name === 'aiExam') return <LunaExamScreen />;

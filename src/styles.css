@@ -17587,3 +17587,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-sec-k { display: inline-block; margin-right: 6px; font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: var(--t-small); letter-spacing: .03em; }
 .ai-sec-k.is-finding, .ai-sec-k.is-summary { color: var(--ink); }
 .ai-sec-h { color: var(--ink); }
+
+/* LUNA PERSISTS ACROSS THE APP (colleague/LunaHost, docs/LUNA-WORKSPACE.md W1): her one node moved between the slot on screen and the
+   parking place; the wrappers take no room of their own, so #/ai lays out exactly as before */
+.luna-slot-page, .luna-host { display: contents; }
+.luna-parking { display: none; }

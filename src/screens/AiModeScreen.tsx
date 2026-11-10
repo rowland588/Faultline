@@ -25,7 +25,7 @@ import { displayName } from '../cloud/team';
 import { useAccess } from '../cloud/access';
 import { uid } from '../lib/ids';
 import { niceDay, todayISO } from '../lib/weeks';
-import { nav, useRoute } from '../state/useRoute';
+import { nav, useRoute, type Route } from '../state/useRoute';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useProjects } from '../lib/useProjects';
 import { Icon, type IconName } from '../ui/Icon';
@@ -103,9 +103,14 @@ const isDesk = () => { try { return window.matchMedia('(min-width: 1100px)').mat
 
 /* ======================================================================== the page */
 
-export function AiModeScreen() {
-  const route = useRoute();
+/** AI Mode's screen. Mounted once by colleague/LunaHost and kept alive across the app (docs/LUNA-WORKSPACE.md W1): `route` is the last
+ *  address it was shown at, `shown` whether it is on screen now (it writes the address only then), `slot` where it is drawn. With AI
+ *  Mode off the router draws it alone, saying so. */
+export function AiModeScreen({ route: given, shown = true, slot = 'page' }: { route?: Route; shown?: boolean; slot?: 'page' | 'panel' } = {}) {
+  const here = useRoute();
+  const route = given ?? here;
   const on = useAiMode();
+  void slot;
   const lines = useFactoryLines();
   const { projects } = useProjects();
   const lineQ = route.query.get('line') ?? '';
@@ -117,6 +122,15 @@ export function AiModeScreen() {
      while its first Send makes its record (the address is then quietly given its id, for a reload) */
   const [open, setOpen] = useState<{ key: string; id?: string }>(() => ({ key: uid(), ...(route.query.get('c') ? { id: route.query.get('c') as string } : {}) }));
   const [listSheet, setListSheet] = useState(false);
+  const shownRef = useRef(shown); shownRef.current = shown;
+  const slotRef = useRef(slot); slotRef.current = slot;
+  /* a conversation named by the address while the screen is alive (a link to #/ai?c=…, the exam's Open the exam conversation) — opened */
+  const cQ = route.query.get('c') ?? '';
+  const lastC = useRef(cQ);
+  useEffect(() => {
+    if (cQ && cQ !== lastC.current && cQ !== open.id) setOpen({ key: uid(), id: cQ });
+    lastC.current = cQ;
+  }, [cQ, open.id]);
   /* arriving from another line or project while AI Mode is open (the door pressed on a line's page with the page kept): a new
      conversation on it — never the one in hand carried on under a place it was not about (9 November) */
   const placeQ = lineQ || projectQ ? `${lineQ}|${projectQ}` : '';
@@ -144,7 +158,7 @@ export function AiModeScreen() {
   const pick = (id?: string) => {
     setOpen({ key: uid(), ...(id ? { id } : {}) });
     setListSheet(false);
-    try { history.replaceState(null, '', id ? `#/ai?c=${encodeURIComponent(id)}` : '#/ai'); } catch { /* the page still follows */ }
+    if (shownRef.current && slotRef.current === 'page') try { history.replaceState(null, '', id ? `#/ai?c=${encodeURIComponent(id)}` : '#/ai'); } catch { /* the page still follows */ }
   };
   const list = <ConversationList all={all} openId={open.id} onPick={pick} onGone={id => { if (id === open.id) pick(); }} />;
   return (
@@ -152,7 +166,8 @@ export function AiModeScreen() {
       <aside className="ai-list" aria-label="Conversations">{list}</aside>
       <Conversation key={open.key} id={open.id} start={open.id ? undefined : start} onMade={id => {
         setOpen(o => ({ ...o, id }));
-        try { history.replaceState(null, '', `#/ai?c=${encodeURIComponent(id)}`); } catch { /* kept for this visit */ }
+        /* the address is the conversation's only while it is the page on screen — never another page's address rewritten */
+        if (shownRef.current && slotRef.current === 'page' && /^#\/ai(\?|$)/.test(window.location.hash)) try { history.replaceState(null, '', `#/ai?c=${encodeURIComponent(id)}`); } catch { /* kept for this visit */ }
       }} onList={() => setListSheet(true)} onNew={() => pick()} />
       <Sheet open={listSheet} onClose={() => setListSheet(false)} title="Conversations">{list}</Sheet>
     </div>
