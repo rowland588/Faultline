@@ -234,32 +234,6 @@ export function BoardScreen({ projectId }: { projectId: string }) {
         </p>
       )}
 
-      {/* Never lose a row: an action written before the board, or on the list
-          without a bone, is shown here until it is given one — above the lanes since 10 November, what needs
-          attention first (docs/DESIGN.md). */}
-      {unsorted.length > 0 && (
-        <section className="bd-unsorted">
-          <h2 className="bd-area-t">Not on the board yet</h2>
-          <p className="sub">
-            {unsorted.length} action{unsorted.length === 1 ? ' has' : 's have'} no bone{can.edit ? ' — say which it is.' : '.'}
-          </p>
-          <ul className="bd-un-list">
-            {unsorted.map(s => (
-              <li key={s.id} className="bd-un">
-                <button className="bd-un-t" onClick={() => setEditing({ step: s, isNew: false })}>{s.what || 'Untitled'}</button>
-                {can.edit && (
-                  <span className="cw-seg bd6-un-seg" role="group" aria-label={`Which bone — ${s.what || 'this action'}`}>
-                    {PILLARS.map(p => (
-                      <button key={p.key} className="chip" title={p.blurb} onClick={() => void putPaceTodo({ ...s, pillar: p.key })}>{p.label}</button>
-                    ))}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       {shownAreas.map((a, ai) => (
         <section key={a.id || 'whole'} className="bd-area">
           <header className="bd-area-h">
@@ -293,6 +267,31 @@ export function BoardScreen({ projectId }: { projectId: string }) {
           </div>
         </section>
       ))}
+
+      {/* Never lose a row: an action written before the board, or on the list
+          without a bone, is shown here until it is given one */}
+      {unsorted.length > 0 && (
+        <section className="bd-unsorted">
+          <h2 className="bd-area-t">Not on the board yet</h2>
+          <p className="sub">
+            {unsorted.length} action{unsorted.length === 1 ? ' has' : 's have'} no bone{can.edit ? ' — say which it is.' : '.'}
+          </p>
+          <ul className="bd-un-list">
+            {unsorted.map(s => (
+              <li key={s.id} className="bd-un">
+                <button className="bd-un-t" onClick={() => setEditing({ step: s, isNew: false })}>{s.what || 'Untitled'}</button>
+                {can.edit && (
+                  <span className="cw-seg bd6-un-seg" role="group" aria-label={`Which bone — ${s.what || 'this action'}`}>
+                    {PILLARS.map(p => (
+                      <button key={p.key} className="chip" title={p.blurb} onClick={() => void putPaceTodo({ ...s, pillar: p.key })}>{p.label}</button>
+                    ))}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {editing && <ActionSheet editing={editing} lines={ax.lines} impact={impacts.get(editing.step.id)} onClose={() => setEditing(null)} />}
     </div>

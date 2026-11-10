@@ -17757,4 +17757,3 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .projects-screen .part-row { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
 .projects-screen .part-row > .lt-row { border-top: 0; border-right: 0; border-radius: 0; background: transparent; }
 .bd6-filters > .fold { margin: var(--space-2) 0 0; }
-.bd6 .bd-unsorted { margin: var(--space-3) 0 var(--space-5); }
