@@ -1157,20 +1157,26 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, ou
       <span className={'ai-avatar ai-orb' + (t.answering === 'waiting' && here ? ' is-thinking' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={15} /></span></span>
       <div className="ai-turn-b">
         <span className="ai-meta">Luna · {hhmm(t.at)}</span>
-        {t.answering === 'waiting' && here && (words ? <Words text={words} /> : <p className="sub ai-thinking"><span className="ai-dots" aria-hidden><i /><i /><i /></span>Luna is working on it…</p>)}
+        {t.answering === 'waiting' && here && (words ? <Words text={words} /> : <p className="sub ai-thinking" data-ai-working><span className="ai-dots" aria-hidden><i /><i /><i /></span>Luna is working on it…{steps.length > 0 && <span className="ai-working-now"> {steps[steps.length - 1].title}</span>}</p>)}
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Faultline could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {!t.answering && t.text && <Words text={t.text} />}
-        {steps.length > 0 && (
-          <ul className="ai-steps" aria-label="What it looked at">
-            {steps.map(u => (
-              <li key={u.callId} className={'ai-step is-' + u.status} data-step={u.name}>
-                <Icon name={stepIcon(u.status)} size={14} />
-                <span className="ai-step-w"><b>{u.title}</b> — {u.says}</span>
-                <RefChips refs={u.refs} />
-              </li>
-            ))}
-          </ul>
+        {/* HER WORKING, PUT AWAY (10 November — Rowland: "All I want to see basically is Luna working, and then what? … I see everything that she
+            asks to look for … It's all a bit messy"): while she works, one line of what she is doing; once she has answered, her answer first
+            and every step folded under one line, open to anyone who wants to check how she got there */}
+        {steps.length > 0 && !(t.answering === 'waiting' && here) && (
+          <details className="ai-working" data-ai-steps>
+            <summary>How Luna worked it out · {steps.length} step{steps.length === 1 ? '' : 's'}</summary>
+            <ul className="ai-steps" aria-label="What it looked at">
+              {steps.map(u => (
+                <li key={u.callId} className={'ai-step is-' + u.status} data-step={u.name}>
+                  <Icon name={stepIcon(u.status)} size={14} />
+                  <span className="ai-step-w"><b>{u.title}</b> — {u.says}</span>
+                  <RefChips refs={u.refs} />
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
         {outs && made.map(r => {
           const [id, v] = r.id.split('@');

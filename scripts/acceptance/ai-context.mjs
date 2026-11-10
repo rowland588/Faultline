@@ -84,6 +84,7 @@ let b = await say('I want to carry out an observation analysis', [{ name: 'plan_
 const p1 = dataOf(b);
 ok(p1.activity?.id === 'observe' && /Which line/.test(p1.ask ?? '') && (p1.missing ?? []).includes('line'), `1 plan_work reads an observation and asks one thing: "${p1.ask}"`);
 ok(/Line 7 \(Acme Foods\)/.test(p1.ask ?? '') && /Line 7 Brook \(Brook Dairy\)/.test(p1.ask ?? ''), '1 two clients in sight: each line offered says whose — never one list of two businesses');
+await page.evaluate(() => document.querySelectorAll('details[data-ai-steps]').forEach(d => { d.open = true; }));
 ok((await page.locator('[data-step="plan_work"]').count()) === 1 && /observation/i.test(await t.words('[data-step="plan_work"]')), '1 the step said under the turn');
 await page.screenshot({ path: process.env.AI_SHOTS ? `${process.env.AI_SHOTS}/ctx-1.png` : '/dev/null' }).catch(() => undefined);
 
@@ -140,6 +141,7 @@ await answered(n + 1);
 const made = (await db(d => d.listAllStudies())).find(s => s.tool === 'changeover' && s.name === 'Filler changeover test');
 ok(!!made && made.workspaceId === W.seven && !made.projectId, '5 made on Line 7, in no project');
 await say('What else is open there?', [{ name: 'list_problems', input: { lineId: W.seven } }, { name: 'tool_records', input: { lineId: W.seven } }], 'Two things are open.');
+await page.evaluate(() => document.querySelectorAll('details[data-ai-steps]').forEach(d => { d.open = true; }));
 ok(/Film breaks on the wrapper/.test(await t.words('[data-step="list_problems"]')) && /Filler changeover test/.test(await t.words('[data-step="tool_records"]')), '9 the problems and the tool records on the line, each said');
 b = await say('Actually, connect this to the Line 7 improvement project', [{ name: 'resolve_record', input: { words: 'Line 7 improvement project', kind: 'project' } }, { name: 'link_to_project', input: { projectId: W.project, studyId: made?.id } }], 'Proposed.');
 await page.waitForSelector('[data-card="link_to_project"][data-card-status="waiting"]', { timeout: 10000 }).catch(() => undefined);

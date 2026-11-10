@@ -17277,6 +17277,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-conv.is-on { background: var(--accent-soft); }
 .ai-conv.is-on b { color: var(--brand-2); }
 /* each earlier conversation's options (⋯ — Open, Rename, Delete) */
+/* Luna's working, folded under her answer */
+.ai-working { margin-top: var(--space-2); }
+.ai-working > summary { cursor: pointer; font-size: var(--t-label); color: var(--muted); min-height: 32px; display: flex; align-items: center; gap: var(--space-1); }
+.ai-working > summary:hover { color: var(--ink); }
+.ai-working-now { color: var(--muted); }
 /* FC-241 part 6: a bar a workstation — what it lost, and how often it stopped beside it */
 .calc-bars { margin: 0; display: grid; gap: var(--space-2); }
 .calc-bars-h { font-weight: 600; color: var(--ink); }

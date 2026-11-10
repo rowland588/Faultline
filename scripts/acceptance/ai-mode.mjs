@@ -58,6 +58,11 @@ ok(a0?.task === 'colleague' && a0.turns?.at(-1)?.text === 'What is open on this 
   `2 asked once with the conversation, the focus ("${(a0?.focus ?? '').split('\n')[0]}"), today and the conversation's id`);
 ok(a1?.conversationId === a0?.conversationId && JSON.stringify(a1?.pending?.assistant) === JSON.stringify({ v: 1, rounds: ['r1'] }) && a1.pending.results?.[0]?.id === 'c1' && a1.pending.results[0].ok === true,
   '2 the read run at once and sent back with the gateway’s assistant unchanged');
+/* her working is folded under her answer (10 November — "All I want to see basically is Luna working, and then what?"): closed, after the
+   words, and open to whoever wants it */
+const fold = page.locator('[data-ai-steps]').last();
+ok((await fold.count()) === 1 && !(await fold.evaluate(d => d.open)) && (await fold.evaluate(d => { const words = d.parentElement?.querySelector('.ai-words'); return !!words && !!(words.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING); })), '2 her working folded under her answer — closed, the answer first');
+await fold.locator('summary').click(); await page.waitForTimeout(200);
 const step = await t.words('[data-step="list_problems"]');
 ok(step.length > 10 && (await page.locator('[data-step="list_problems"] .ai-ref').count()) >= 1, `2 the step said under the turn with its records: "${step.slice(0, 90)}"`);
 ok((await page.locator('.ai-turn.is-colleague .ai-words b').first().innerText()) === 'open problems' && (await page.locator('.ai-turn.is-colleague .ai-words li').count()) === 2, '2 the reply drawn with its bold and its list');
