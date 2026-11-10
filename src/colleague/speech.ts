@@ -116,6 +116,29 @@ export function isEcho(heard: string, speaking: string): boolean {
   return h.length >= 2 ? inIt / h.length >= 0.7 : s.has(h[0] ?? "");
 }
 
+/** Whether words heard just AFTER the voice stopped are its own last words arriving late from the recogniser, and not the
+ *  person's answer: a run of three or more of its words in its own order, or its very last one or two words — never a short
+ *  answer that merely shares a word with the question ("the wrapper" after "the wrapper or the filler?"). */
+export function isEchoTail(heard: string, said: string): boolean {
+  const h = heard.toLowerCase().match(/[a-z0-9']+/g) ?? [];
+  if (!h.length) return true;
+  const s = said.toLowerCase().match(/[a-z0-9']+/g) ?? [];
+  if (!s.length) return false;
+  if (h.length <= 2) return h.join(' ') === s.slice(-h.length).join(' ');
+  let best = 0;
+  for (let i = 0; i < s.length; i++) {
+    let k = 0;
+    while (k < h.length && i + k < s.length && s[i + k] === h[k]) k++;
+    best = Math.max(best, k);
+    for (let j = 1; j < h.length && best < h.length; j++) {
+      let m = 0;
+      while (j + m < h.length && i + m < s.length && s[i + m] === h[j + m]) m++;
+      best = Math.max(best, m);
+    }
+  }
+  return best >= 3 && best / h.length >= 0.6;
+}
+
 /* ================================================================ the conversation's states */
 
 export const VOICE_STATES = ['idle', 'initialising', 'listening', 'transcribing', 'processing', 'preparing', 'speaking', 'interrupted', 'recovering', 'error', 'ended'] as const;

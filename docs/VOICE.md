@@ -80,6 +80,30 @@ a refusal, a busy microphone or no signal are each said in words with the keyboa
 - **On the floor**: the screen kept on and the headset's button taken while the voice screen is open (as Conversation does); a
   headset paired or dropped said; out of sight — paused and said, carried on with a tap.
 
+### Luna does not hear herself (10 November)
+
+Rowland, 10 November: *"When the AI speaks it hears its own voice, this then causes issues."* Three causes, each fixed:
+
+- **The phone's own microphone was taken for a headset.** Android names its built-in microphone *Headset earpiece* (and
+  *Speakerphone*); the headset test matched the word, so *With a headset* (the default) kept the microphone open while Luna spoke
+  through the phone's speaker. Now a device is a headset only when its name says so and is not the phone's own (`voicePrefs`
+  `isHeadset` — earpiece, speaker, built-in, internal, default are never one). On the speaker the microphone is closed while she
+  speaks; tap to interrupt, as the setting has always said.
+- **Her words were checked against the one sentence being said.** A phone hands its recogniser's words over late — a sentence
+  said a moment ago still arriving while the next is spoken, or after she has stopped. Now everything she said in the last minute
+  is kept (`voice` `saidLately`) and words heard while she speaks, or within 2.5 s after (`ECHO_TAIL_MS`), are checked against
+  all of it — in the voice screen and in Conversation alike. Just after she stops, only her own phrasing (a run of three or more
+  of her words in her order, or her very last words) counts as hers (`speech` `isEchoTail`), so a short real answer — *"the
+  wrapper"* to *"the wrapper or the filler?"* — is still the person's. Words judged hers are cut from what the recogniser holds
+  (`Ear.cut`), so they are never joined to what the person says next, and their end finishing a moment late is known as hers too.
+- **The microphone opened the instant she stopped.** It now opens 600 ms after (`REOPEN_AFTER_MS`) — the speaker still ringing,
+  the voice's end said a little early — and the voice screen says *Listening* only when it has; a mute, a tap or a new reply in
+  that moment cancels it.
+
+Proved by `src/colleague/__tests__/echo.test.ts` and `scripts/acceptance/voice.mjs` B4b (her own words fed back while she speaks
+and after she stops send nothing and do not cut her off; *"the wrapper"* said just after is sent alone). Not measurable here: a
+real phone's speaker in a real room — Rowland's Samsung is the test.
+
 ## 4. Privacy — where speech goes
 
 - **The sound of the voice** goes only to the browser's speech service: in Chrome on Android, Google's (usually over the network);

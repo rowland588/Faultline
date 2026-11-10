@@ -51,9 +51,9 @@ import {
 } from '../colleague/conversation';
 import { colleagueLoop, invokeColleague, type Prepared, type Step } from '../colleague/colleagueAsk';
 import { setAiMode, useAiMode, useDeviceFlag } from '../colleague/aiMode';
-import { CONVERSATION_KEY, CONVERSATION_SAID, SPEAK_KEY, canSpeak, isSpeaking, onSpeaking, queueActive, queueClose, queuePush, queueStart, speak, stopSpeaking } from '../colleague/voice';
+import { CONVERSATION_KEY, CONVERSATION_SAID, SPEAK_KEY, canSpeak, inEchoWindow, isSpeaking, onSpeaking, saidLately, queueActive, queueClose, queuePush, queueStart, speak, stopSpeaking } from '../colleague/voice';
 import { VoiceMode } from '../colleague/VoiceMode';
-import { forSpeech, isEcho, nextChunks, turnEnd, turnWait, voiceCommand, voiceStep } from '../colleague/speech';
+import { forSpeech, isEcho, isEchoTail, nextChunks, turnEnd, turnWait, voiceCommand, voiceStep } from '../colleague/speech';
 import { listenWhileSpeaking, useAudioRoute, useVoicePrefs } from '../colleague/voicePrefs';
 import {
   EARCON_KEY, FLOOR_LIMIT, HeadsetButton, SAY_TO_ANSWER, ScreenKeeper, buttonSaid, cardPrompt, earcon, floorCheck, keepSaid, phaseOf, pressAction,
@@ -76,6 +76,10 @@ import { FactoryDocSheet, FactoryDraftBox, type DocPicked } from '../colleague/A
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 const QUIET_MS = 6000;
+/** How long after Luna stops before the microphone opens again (her speaker still ringing, its end said a little early). */
+const REOPEN_AFTER_MS = 600;
+/** How long words judged to be Luna's own are remembered, for their end arriving late. */
+const ECHO_LATE_MS = 4000;
 const isDesk = () => { try { return window.matchMedia('(min-width: 1100px)').matches; } catch { return true; } };
 
 /* ======================================================================== the page */
@@ -234,6 +238,11 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   const [vNote, setVNote] = useState('');
   const [saying, setSaying] = useState('');
   const sayingRef = useRef('');
+  /* the microphone waiting to open again after Luna stops (reopen) — cancelled by anything the person does first */
+  const reopenTimer = useRef<number | null>(null);
+  /* her own words heard back lately — so their end, finished by the recogniser a moment after, is known as hers too */
+  const echoSeen = useRef<{ text: string; at: number } | null>(null);
+  const cancelReopen = () => { if (reopenTimer.current !== null) { window.clearTimeout(reopenTimer.current); reopenTimer.current = null; } };
   const lastHeard = useRef(0);
   const turnTimer = useRef<number | null>(null);
   const clearTurn = () => { if (turnTimer.current !== null) { window.clearTimeout(turnTimer.current); turnTimer.current = null; } };
@@ -252,6 +261,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   const quiet = useRef<number | null>(null);
   const stopQuiet = () => { if (quiet.current !== null) { window.clearTimeout(quiet.current); quiet.current = null; } };
   const stopListening = async (): Promise<string> => {
+    cancelReopen();
     const e = ear.current;
     if (!e) return typingRef.current;
     ear.current = null; setListening(false); stopQuiet();
@@ -269,6 +279,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     void stopListening(); setSaid({ text: troubleSaid(t), bad: t !== 'network' });
   };
   const startListening = (o: { keepSpeaking?: boolean } = {}) => {
+    cancelReopen();
     if (!o.keepSpeaking) stopSpeaking();
     setSaid(null);
     const Rec = recognitionOf(window);
@@ -281,10 +292,21 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     const e: Ear = new Ear(Rec, {
       onWords: h => {
         if (ear.current !== e) return;
+        /* LUNA'S OWN VOICE coming back through the microphone — while she speaks, or a moment after, its words late from the
+           recogniser — is not the person: ignored, in the voice screen and in Conversation alike (colleague/voice saidLately) */
+        {
+          const heardNow = joinWords(h.final, h.interim), hers = `${saidLately()} ${sayingRef.current}`;
+          /* her words still forming when the window closed, finished a moment later, are still hers */
+          const late = !inEchoWindow() && echoSeen.current && Date.now() - echoSeen.current.at < ECHO_LATE_MS && !!h.final.trim() && isEchoTail(h.final, echoSeen.current.text);
+          if (late || (inEchoWindow() && (isSpeaking() ? isEcho(heardNow, hers) : isEchoTail(heardNow, hers)))) {
+            echoSeen.current = { text: joinWords(echoSeen.current && Date.now() - echoSeen.current.at < ECHO_LATE_MS ? echoSeen.current.text : '', heardNow), at: Date.now() };
+            /* taken out of what has been heard, so it is never joined to what the person says next */
+            if (h.final.trim()) e.cut();
+            return;
+          }
+        }
         stopQuiet();
         if (voiceOn.current) {
-          /* the voice conversation: its own voice coming back through the microphone is not the person — ignored */
-          if (isSpeaking() && isEcho(joinWords(h.final, h.interim), sayingRef.current)) return;
           if (isSpeaking() && shouldBargeIn(true, h)) { stopSpeaking(); vMove({ type: 'interrupt' }); }
           vMove({ type: 'recovered' });
           vMove({ type: 'heard', words: joinWords(h.final, h.interim) });
@@ -358,14 +380,24 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   const [speaking, setSpeaking] = useState(false);
   useEffect(() => onSpeaking(on => {
     setSpeaking(on);
+    if (on) cancelReopen();
     if (!on || !voiceOn.current) return;
     vMove({ type: 'speak-start' });
     /* talk over it: with a headset (or when the person said always) the microphone stays open while Faultline speaks */
     if (listenWhileSpeaking(vPrefsRef.current, routeRef.current) && !ear.current) startRef.current({ keepSpeaking: true });
   }), []);
   /** After something is said: the microphone again, if it was said to the end and Conversation is on. */
-  const reopen = (finished: boolean) => {
-    if (reopenAfterSpeech({ finished, talkOn: voiceRef.current.talkOn, visible: document.visibilityState === 'visible', listening: !!ear.current })) startRef.current();
+  const reopen = (finished: boolean, then?: () => void) => {
+    /* a moment after she stops — the phone's speaker still ringing, its end said a little early — so the first thing the
+       microphone hears is not the last of her own words; `then` (the voice screen's "listening") only when it does open, and
+       a mute, a tap or a new reply in the meantime cancels it */
+    cancelReopen();
+    reopenTimer.current = window.setTimeout(() => {
+      reopenTimer.current = null;
+      if (isSpeaking()) return;
+      then?.();
+      if (reopenAfterSpeech({ finished, talkOn: voiceRef.current.talkOn, visible: document.visibilityState === 'visible', listening: !!ear.current })) startRef.current();
+    }, REOPEN_AFTER_MS);
   };
 
   /* ---- ON THE FLOOR (colleague/floor): while Conversation is on, the screen kept on and the headset's button taken ---- */
@@ -510,7 +542,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
        spoken words the voice has been handed. */
     const spokenNow = voiceOn.current;
     let vUpTo = 0;
-    const vDone = (finished: boolean) => { vMove({ type: 'speak-end' }); if (finished) reopen(true); };
+    const vDone = (finished: boolean) => { if (finished) reopen(true, () => vMove({ type: 'speak-end' })); else vMove({ type: 'speak-end' }); };
     const vFeed = (w: string, done: boolean) => {
       if (!spokenNow || !voiceOn.current) return;
       const n = nextChunks(w, vUpTo, done);
@@ -687,6 +719,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     startListening();
   };
   const closeVoice = async () => {
+    cancelReopen();
     clearTurn();
     stopSpeaking();
     voiceOn.current = false;
@@ -704,6 +737,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   const voiceInterrupt = () => { clearTurn(); stopSpeaking(); vMove({ type: 'interrupt' }); startListening(); };
   const voiceMute = () => {
     if (vState === 'idle') { setVNote(''); vMove({ type: 'unmute' }); startListening(); return; }
+    cancelReopen();
     clearTurn();
     stopSpeaking();
     if (ear.current) void stopListening();

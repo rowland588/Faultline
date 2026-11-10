@@ -12,6 +12,7 @@
  *       "and" not taken as the end; the end of the turn sent into the SAME conversation with spoken = true, the reply in the chat
  *   B2  the reply said sentence by sentence (the first before the next round's words), no markdown, no ids, no Suggestions line;
  *       Speaking; Listening again by itself when the last piece ends
+ *   B4b Luna's own voice heard back while she speaks and just after — never the person; a short real answer still theirs
  *   B3  interrupted by a tap while speaking: speech stopped at once (nothing more said), Interrupted then Listening; a new turn sent
  *   B4  mute and unmute; "stop" said only clears; a refusal of the microphone an error said in words
  *   B5  a change of subject and back across voice and text: the same conversation's threads; Chat closes the screen with every
@@ -188,6 +189,38 @@ await page.locator('[data-voice-mute]').click(); await page.waitForTimeout(500);
 ok((await state()) === 'error' && /allow/i.test(await t.words('[data-voice-note]')), `B4 the microphone refused: an error said in words ("${(await t.words('[data-voice-note]')).slice(0, 70)}")`);
 await page.evaluate(() => { window.__earRefused = false; });
 await page.locator('[data-voice-main]').click(); await waitState('listening');
+
+/* ---- B4b · Luna does not hear herself (10 November — Rowland: "When the AI speaks it hears its own voice, this then causes
+   issues"): with the microphone open while she speaks, her own words coming back are never taken for the person — not while
+   she speaks, not a moment after — and a short real answer just after is still the person's, sent with nothing of hers in it ---- */
+await page.getByRole('button', { name: 'Voice settings' }).click(); await page.waitForTimeout(400);
+await page.locator('[data-voice-talkover="on"]').click(); await page.waitForTimeout(150);
+await page.keyboard.press('Escape'); await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 3000 }).catch(() => undefined); await page.waitForTimeout(300);
+await page.evaluate(() => { window.__speakMs = 2500; });
+const herQ = 'The wrapper has stopped twice this shift. Is it the wrapper or the filler that worries you most?';
+plan = [() => ({ ok: true, reply: herQ })];
+const n5 = asks.length;
+await say('what about the wrapper'); await page.waitForTimeout(2600);
+ok(asks.length === n5 + 1, 'B4b the question sent');
+await page.waitForFunction(() => window.speechSynthesis.speaking && window.__ear?.running, null, { timeout: 8000 }).catch(() => undefined);
+const speakingHeard = await page.evaluate(() => window.speechSynthesis.speaking && !!window.__ear?.running);
+await say('has stopped twice this shift', false); await page.waitForTimeout(150);
+await say('the wrapper has stopped twice this shift'); await page.waitForTimeout(600);
+const stillSaying = await page.evaluate(() => window.speechSynthesis.speaking);
+ok(speakingHeard && stillSaying && ['speaking', 'listening'].includes(await state()) && asks.length === n5 + 1, `B4b her own words heard back while she speaks: not the person — she carries on (${await state()}, listening while she spoke: ${speakingHeard}, still speaking: ${stillSaying}, ${asks.length - n5 - 1} sent)`);
+await page.waitForFunction(() => !window.speechSynthesis.speaking, null, { timeout: 12000 }).catch(() => undefined);
+await page.waitForTimeout(200);
+await say('the filler that worries you most'); await page.waitForTimeout(2800);
+ok(asks.length === n5 + 1, `B4b her last words arriving after she stopped: nothing sent (${asks.length - n5 - 1} sent)`);
+plan = [() => ({ ok: true, reply: 'The wrapper then.' })];
+await say('the wrapper'); await page.waitForTimeout(2800);
+const answerSent = asks.at(-1)?.turns?.at(-1)?.text ?? '';
+ok(asks.length === n5 + 2 && /^the wrapper\.?$/i.test(answerSent.trim()), `B4b the person's short answer just after is theirs, nothing of hers joined to it ("${answerSent}")`);
+await waitState('listening', 6000);
+await page.getByRole('button', { name: 'Voice settings' }).click(); await page.waitForTimeout(400);
+await page.locator('[data-voice-talkover="auto"]').click(); await page.waitForTimeout(150);
+await page.keyboard.press('Escape'); await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 3000 }).catch(() => undefined); await page.waitForTimeout(300);
+await page.evaluate(() => { window.__speakMs = 400; });
 
 /* ---- B5 · across voice and text, one conversation ---- */
 plan = [() => ({ ok: true, reply: '', calls: [{ id: 'f1', name: 'set_focus', input: { title: 'How to approach a changeover analysis' } }], assistant: { v: 1 } }), () => ({ ok: true, reply: 'Time it element by element first.' })];

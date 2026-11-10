@@ -33,11 +33,23 @@ export function pickVoice(voices: readonly Pick<SpeechSynthesisVoice, 'lang' | '
 }
 
 let speakingNow = false;
+/* WHAT SHE SAID LATELY (10 November — Rowland: "When the AI speaks it hears its own voice, this then causes issues"): every piece
+   said in the last minute, and when the voice last stopped. A phone hands its recogniser's words over late — a sentence said a
+   moment ago still arriving while the next is spoken, or after the voice has stopped — so the words heard are checked against
+   all of it, while speaking and for a moment after. */
+let said: { at: number; text: string }[] = [];
+let stoppedAt = 0;
+/** How long after the voice stops its own words can still come back through the recogniser. */
+export const ECHO_TAIL_MS = 2500;
+/** Everything said in the last minute, as one text (speakable words). */
+export const saidLately = (now = Date.now()): string => said.filter(x => now - x.at < 60_000).map(x => x.text).join(' ');
+/** Whether the voice is speaking now, or stopped so lately that its own words may still be heard back. */
+export const inEchoWindow = (now = Date.now()): boolean => speakingNow || (stoppedAt > 0 && now - stoppedAt < ECHO_TAIL_MS);
 /* the utterance being said, held here: a browser that loses its last reference to one (Chrome) never says it ended */
 let current: SpeechSynthesisUtterance | null = null;
 let cutShort: (() => void) | null = null;
 const listeners = new Set<(on: boolean) => void>();
-const tell = (on: boolean) => { for (const f of listeners) f(on); };
+const tell = (on: boolean) => { if (!on) stoppedAt = Date.now(); for (const f of listeners) f(on); };
 
 /** Told when speaking starts and stops — the screen's "Speaking…". */
 export function onSpeaking(f: (on: boolean) => void): () => void { listeners.add(f); return () => { listeners.delete(f); }; }
@@ -81,6 +93,7 @@ function sayOne(text: string, onDone?: (finished: boolean) => void): void {
     if (current === u) { current = null; cutShort = null; speakingNow = false; tell(false); }
     onDone?.(finished);
   };
+  said = [...said.filter(x => Date.now() - x.at < 60_000), { at: Date.now(), text: words }];
   current = u;
   cutShort = () => end(false);
   speakingNow = true;

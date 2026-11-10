@@ -120,6 +120,11 @@ export const ON_DEVICE_SAID: Record<OnDevice, string> = {
 
 export interface AudioRoute { headset: boolean; name?: string; known: boolean }
 const HEADSET = /bluetooth|headset|head-set|hands.?free|earbud|buds|airpods|headphone|\bbt\b|sco/i;
+/* the phone's OWN microphone and speaker, whatever their words: Android names its built-in microphone "Headset earpiece" and
+   "Speakerphone" (10 November — Rowland: "When the AI speaks it hears its own voice") — never a headset */
+const BUILT_IN = /earpiece|speaker|built.?in|internal|default|communications/i;
+/** Whether a device's name is a headset the person wears — so the phone's speaker is not what the microphone hears. */
+export const isHeadset = (label: string): boolean => HEADSET.test(label) && !BUILT_IN.test(label);
 
 /** What is plugged in or paired — known only once the microphone has been allowed (before that the device gives no names). */
 export async function audioRoute(): Promise<AudioRoute> {
@@ -129,7 +134,7 @@ export async function audioRoute(): Promise<AudioRoute> {
     const ds = (await md.enumerateDevices()).filter(d => d.kind === 'audioinput' || d.kind === 'audiooutput');
     const named = ds.filter(d => d.label);
     if (!named.length) return { headset: false, known: false };
-    const h = named.find(d => HEADSET.test(d.label));
+    const h = named.find(d => isHeadset(d.label));
     return h ? { headset: true, name: h.label.replace(/\s*\([^)]*\)\s*$/, ''), known: true } : { headset: false, known: true };
   } catch { return { headset: false, known: false }; }
 }
