@@ -144,7 +144,7 @@ const box = await page.locator('.ai-compose').boundingBox();
 ok(!!box && box.y + box.height <= 844 + 1 && box.y + box.height >= 844 - 6 && !(await page.locator('.nv-bar').isVisible()), `6 the box sits at the foot of the phone, the menu’s bar giving way (${box ? Math.round(box.y + box.height) : '—'} of 844)`);
 await page.locator('.ai-plus').click(); await page.waitForTimeout(300);
 const menu = await page.locator('[data-attach-menu] [role=menuitem]').allInnerTexts();
-ok(menu.length === 3 && /Take a photo/.test(menu[0]) && /Photos/.test(menu[1]) && /factory document/.test(menu[2]), `6 ＋ offers a photo taken, photos and a factory document: ${menu.map(x => x.split('\n')[0]).join(' · ')}`);
+ok(menu.length === 3 && /Take a photo/.test(menu[0]) && /Photos/.test(menu[1]) && /spreadsheet/.test(menu[2]) && /Excel/.test(menu[2]), `6 ＋ offers a photo taken, photos and a file or spreadsheet (Excel, CSV, a factory document): ${menu.map(x => x.split('\n')[0]).join(' · ')}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(200);
 ok((await page.locator('[data-attach-menu]').count()) === 0, '6 Escape puts the ＋ menu away');
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ai-390.png` });

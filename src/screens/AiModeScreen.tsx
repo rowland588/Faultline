@@ -944,7 +944,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
           <form className="ai-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
             <input ref={camIn} type="file" accept="image/*" capture="environment" hidden aria-label="Take a photo with the camera" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
-            <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,image/*" hidden aria-label="Choose a factory document" onChange={e => { const f = e.target.files?.[0]; if (f) pickDoc(f); e.target.value = ''; }} />
+            <input ref={docIn} type="file" accept=".csv,.pdf,.docx,.txt,.md,.xlsx,.xlsm,.xls,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" hidden aria-label="Choose a factory document" onChange={e => { const f = e.target.files?.[0]; if (f) pickDoc(f); e.target.value = ''; }} />
             {wb && (
               <div className="ai-imported ai-wb" data-workbook={wb.p ? 'reading' : wb.bad ? 'failed' : 'read'} role="status">
                 {wb.p
@@ -972,7 +972,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
                       <span className="ai-attach-ic"><Icon name="photo" size="1.15em" /></span><span><b>Photos</b><span className="sub">one or several from your pictures</span></span>
                     </button>
                     <button type="button" role="menuitem" className="ai-attach-i" data-add-doc onClick={() => pickFrom(docIn.current)}>
-                      <span className="ai-attach-ic"><Icon name="document" size="1.15em" /></span><span><b>A factory document</b><span className="sub">an equipment register, an asset list, a layout</span></span>
+                      <span className="ai-attach-ic"><Icon name="document" size="1.15em" /></span><span><b>A file or spreadsheet</b><span className="sub">Excel or CSV figures to ask about, or a factory document (PDF, Word)</span></span>
                     </button>
                   </div>
                 )}
