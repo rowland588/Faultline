@@ -8,6 +8,8 @@ export type FieldSpec =
   | { kind: 'enum'; required?: boolean; values: readonly string[]; label: string }
   | { kind: 'strings'; required?: boolean; min?: number; max?: number; label: string }
   | { kind: 'record'; required?: boolean; label: string }
+  | { kind: 'bool'; required?: boolean; label: string }
+  | { kind: 'num'; required?: boolean; label: string; min?: number; max?: number }
   | { kind: 'object'; required?: boolean; label: string; fields: Record<string, FieldSpec> };
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -47,6 +49,13 @@ export function checkObject(raw: unknown, fields: Record<string, FieldSpec>, wha
         v = list;
         break;
       }
+      case 'bool':
+        if (typeof v !== 'boolean') return { ok: false, why: `${cap(f.label)} must be true or false.` };
+        break;
+      case 'num':
+        if (typeof v !== 'number' || !Number.isFinite(v)) return { ok: false, why: `${cap(f.label)} must be a number.` };
+        if ((f.min !== undefined && v < f.min) || (f.max !== undefined && v > f.max)) return { ok: false, why: `${cap(f.label)} must be between ${f.min ?? '−∞'} and ${f.max ?? '∞'}.` };
+        break;
       case 'record':
         if (!isObj(v) || Object.values(v).some(x => typeof x !== 'number' && typeof x !== 'string')) return { ok: false, why: `${cap(f.label)} must be named figures, each a number or words.` };
         break;

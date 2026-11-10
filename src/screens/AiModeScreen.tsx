@@ -75,6 +75,10 @@ import type { ColleagueWorkbook } from '../capabilities/types';
 import { FactoryDocSheet, FactoryDraftBox, type DocPicked } from '../colleague/AiFactory';
 import { photoSaid, placeSaid, type WalkFacts, type WalkStop, type WalkTurn } from '../lib/walk';
 import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
+import { allSources, outputsOfConversation, outputsText, registerFile } from '../capabilities/data';
+import { sourceSaid } from '../lib/data/sources';
+import type { Chart, ConvReport, DataResult } from '../lib/data/outputs';
+import { ChartCard, ReportCard } from '../colleague/AiOutputs';
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -452,6 +456,8 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     const cid = await ensure();
     const k = await keepImport({ ...ctx(), conversationId: cid }, { name: file.name, ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...table });
     if (!k.ok) { setImported(k.why); return true; }
+    /* ONE IDENTITY A FILE: an Excel file is in the register as its workbook (readWorkbookFile); only a CSV or text table is registered here */
+    if (!/\.(xlsx|xlsm|xls)$/i.test(file.name)) await registerFile({ ...ctx(), conversationId: cid }, { fileId: k.id, fileName: file.name, kind: 'table', bytes: file.size, status: 'ready', sheets: [{ name: file.name, rows: table.rows.length, columns: [{ name: 'reason', type: 'text' }, { name: 'minutes', type: 'number' }, { name: 'events', type: 'number' }, { name: 'line', type: 'text' }, { name: 'date', type: 'date' }] }], ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}) });
     await appendAction(patchStudy, cid, { callId: uid(), name: 'import_table', title: 'Read a downtime file', status: 'done', says: k.says, refs: [], at: Date.now() });
     setImported(k.says);
     return true;
@@ -480,8 +486,12 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       const sheets = p.sheets.map(x => ({ name: x.name, state: x.state, rows: x.rows, columns: x.columns.length }));
       const said = `Read “${file.name}” on this device in ${p.seconds.toLocaleString('en-GB')} s: ${sheets.map(x => `${x.name} ${x.rows.toLocaleString('en-GB')} rows`).join(', ')}${p.status === 'partial' ? ' — only PART of it was read' : ''}. It stays on this device; ask about it.`;
       await noteWorkbook(c, { ...base, status: p.status, sheets, seconds: p.seconds, ...(p.status === 'partial' ? { why: p.sheets.filter(x => x.why).map(x => `${x.name}: ${x.why}`).join(' ') } : {}) });
-      await appendAction(patchStudy, cid, { callId: uid(), name: 'workbook_read', title: 'Read a workbook', status: 'done', says: said, refs: [], at: Date.now() });
-      setWb({ id, name: file.name, said });
+      /* THE REGISTER (docs/CONVERSATIONAL-DATA.md): the file kept as a record of its own — its identity, its original name, what it holds —
+         so it can be named, described and asked for by name in any later conversation; its cells stay on this device */
+      const src = await registerFile(c, { fileId: id, fileName: file.name, kind: 'workbook', bytes: file.size, status: p.status, sheets: p.sheets.filter(x => x.read).map(x => ({ name: x.name, rows: x.rows, columns: x.columns.map(cl => ({ name: cl.name, type: cl.type })) })), notRead: p.notRead.map(x => x.what), ...(cur?.scope.lineId ? { lineId: cur.scope.lineId } : {}), ...(cur?.scope.projectId ? { projectId: cur.scope.projectId } : {}) });
+      const named = src ? ` It is in the register as “${src.facts.name}” [source ${src.id}] — name it as you like.` : '';
+      await appendAction(patchStudy, cid, { callId: uid(), name: 'workbook_read', title: 'Read a workbook', status: 'done', says: said + named, refs: [], at: Date.now() });
+      setWb({ id, name: file.name, said: said + named });
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
       await noteWorkbook(c, { ...base, status: 'failed', why });
@@ -572,7 +582,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       const end = await colleagueLoop({
         turns: gatewayTurns(asked, named),
         ...(images.length ? { images } : {}),
-        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); const wf = f as WalkFacts; return focusText(f.threads ?? [], { names: nameOf, photos: photosKeys, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] }); },
+        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); const wf = f as WalkFacts; const files = (await allSources()).slice(0, 12).map(x => sourceSaid(x)); return focusText(f.threads ?? [], { names: nameOf, photos: photosKeys, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] }); },
         today: longDay(),
         conversationId: cid,
         preferences: preferencesText,
@@ -845,6 +855,8 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   const undoEvent = async (eventId?: string) => { const r = await runCall(ctx(), { id: uid(), name: 'undo_capture', input: eventId ? { eventId } : {} }, { confirmed: false }); setSaid(r.ok ? { text: r.says } : { text: r.why, bad: true }); };
   const endMeasure = async () => { const r = await runCall(ctx(), { id: uid(), name: 'end_measurement', input: {} }, { confirmed: false }); setSaid(r.ok ? { text: r.says } : { text: r.why, bad: true }); if (r.ok) showWork(r.show); };
   const walkF = facts as (WalkFacts | undefined);
+  /* the conversation's results, charts and reports (docs/CONVERSATIONAL-DATA.md) — drawn on the turns that made them */
+  const outs: Outs = useMemo(() => { const o = outputsOfConversation({ facts: (facts ?? {}) } as ToolStudy); return { results: new Map(o.results.map(r => [r.id, r])), charts: new Map(o.charts.map(c => [c.id, c])), reports: o.reports, ...(me ? { by: me } : {}) }; }, [facts, me]);
   const panel = <ContextPanel cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;
 
@@ -911,7 +923,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
             </li>
           )}
           {turns.map(t => t.kind === 'reply'
-            ? <ReplyTurn key={t.id} t={t} here={asking === t.id} words={asking === t.id ? words : ''} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
+            ? <ReplyTurn key={t.id} outs={outs} t={t} here={asking === t.id} words={asking === t.id ? words : ''} live={waits.current} hands={talkOn} onCard={(c, y) => answerCard(c, y)} onSuggest={x => { setBox(x); box.current?.focus(); }} onAgain={() => sid.current && void ask(sid.current)} />
             : <PersonTurn key={t.id} t={t} label={labels.get(t.id)} />)}
         </ol>
 
@@ -1076,7 +1088,8 @@ function cardRows(input: Record<string, unknown> | undefined): { k: string; v: s
   });
 }
 
-function RefChips({ refs, label = 'Records' }: { refs: readonly CapRef[]; label?: string }) {
+function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; label?: string }) {
+  const refs = all.filter(r => r.kind !== 'chart' && r.kind !== 'convreport');
   if (!refs.length) return null;
   return (
     <span className="ai-refs" role="group" aria-label={label}>
@@ -1092,10 +1105,13 @@ function RefChips({ refs, label = 'Records' }: { refs: readonly CapRef[]; label?
 /** A step's mark: done ticked, failed or dropped a warning, the rest a look. */
 const stepIcon = (st: Used['status']): IconName => (st === 'done' ? 'check' : st === 'failed' || st === 'dropped' ? 'warning' : 'search');
 
-function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain }: {
-  t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void;
+interface Outs { results: ReadonlyMap<string, DataResult>; charts: ReadonlyMap<string, Chart>; reports: readonly ConvReport[]; by?: string }
+function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain, outs }: {
+  t: ColleagueTurn; here: boolean; words: string; live: ReadonlyMap<string, unknown>; hands: boolean; onCard: (callId: string, yes: boolean) => void; onSuggest: (x: string) => void; onAgain: () => void; outs?: Outs;
 }) {
   const used = t.used ?? [];
+  /* what this turn made — a chart as the version it made, a report as its newest (docs/CONVERSATIONAL-DATA.md) */
+  const made = used.flatMap(u => u.refs).filter(r => r.kind === 'chart' || r.kind === 'convreport').filter((r, i, all) => all.findIndex(x => x.kind === r.kind && x.id === r.id) === i);
   const steps = used.filter(u => u.kind !== 'write');
   const cards = used.filter(u => u.kind === 'write');
   return (
@@ -1118,6 +1134,13 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain }: 
             ))}
           </ul>
         )}
+        {outs && made.map(r => {
+          const [id, v] = r.id.split('@');
+          if (r.kind === 'chart') { const c = outs.charts.get(id); return c ? <ChartCard key={r.id} chart={c} version={Number(v) || c.versions.length} results={outs.results} /> : null; }
+          const rep = outs.reports.find(x => x.id === id);
+          const lastRef = [...made].reverse().find(x => x.kind === 'convreport' && x.id.startsWith(`${id}@`));
+          return rep ? <ReportCard key={r.id} report={rep} version={Number(v) || rep.version} latest={(Number(v) || rep.version) === rep.version && lastRef?.id === r.id} results={outs.results} charts={outs.charts} {...(outs.by ? { by: outs.by } : {})} /> : null;
+        })}
         {cards.map(u => <WriteCard key={u.callId} u={u} live={live.has(u.callId)} hands={hands} onCard={onCard} />)}
         {!t.answering && !!t.unsure?.length && (
           <p className="ai-unsure" data-ai-unsure>{t.unsure.map(x => <span key={x} className="ai-check">Check this: {x}</span>)}<span className="sub"> — not in what Faultline holds or what you said.</span></p>

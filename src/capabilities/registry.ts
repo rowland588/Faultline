@@ -16,6 +16,7 @@ import { INTEL } from './intel/caps';
 import { WORKBOOK } from './workbook';
 import { FILL } from './fill';
 import { WALK } from './walk';
+import { DATA } from './data';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
@@ -38,6 +39,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...FILL,
   /* the factory walk: where the person is, the photos taken on it, filed by confirmed links (10 November, docs/FACTORY-WALK.md) */
   ...WALK,
+  /* every source asked one way; results, charts and reports built in the conversation (10 November, docs/CONVERSATIONAL-DATA.md) */
+  ...DATA,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);

@@ -12,7 +12,9 @@ export type HowKnown = 'observed' | 'reported' | 'measured' | 'imported' | 'calc
 /** What a capability may record: every way of knowing but 'verified'. */
 export const HOW_SAID: readonly Exclude<HowKnown, 'verified'>[] = ['observed', 'reported', 'measured', 'imported', 'calculated', 'estimated', 'hypothesised', 'unknown'];
 
-export interface CapRef { kind: 'line' | 'machine' | 'project' | 'problem' | 'study' | 'story' | 'action' | 'report' | 'page'; id: string; label: string; href: string }
+/** `chart` and `convreport`: a chart or a report made in the conversation (lib/data/outputs), its id `C…@version` / `D…@version` — drawn as a card
+ *  in the conversation, never a chip that opens a page. */
+export interface CapRef { kind: 'line' | 'machine' | 'project' | 'problem' | 'study' | 'story' | 'action' | 'report' | 'page' | 'chart' | 'convreport'; id: string; label: string; href: string }
 
 export interface CapCtx {
   email?: string;

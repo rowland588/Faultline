@@ -150,7 +150,7 @@ export function scopeSaid(scope: ThreadScope, names: (kind: 'line' | 'project' |
 
 /** THE FOCUS AS THE GATEWAY READS IT — the current thread with its place and notes, then the parked ones by title, then
  *  the photos the person can have attached by key. */
-export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string; said?: string }[]; position?: WalkStop; trail?: readonly WalkStop[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[] } = {}): string {
+export function focusText(threads: readonly Thread[], opts: { names?: Parameters<typeof scopeSaid>[1]; photos?: { label: string; key: string; said?: string }[]; outputs?: string; files?: readonly string[]; position?: WalkStop; trail?: readonly WalkStop[]; drafts?: readonly ColleagueDraft[]; imports?: readonly { id: string; name: string; rows: readonly unknown[] }[]; workbooks?: readonly { id: string; name: string; status: string; sheets?: readonly { name: string; rows: number }[] }[] } = {}): string {
   const cur = currentThread(threads);
   const parked = parkedThreads(threads);
   const lines: string[] = [];
@@ -175,6 +175,10 @@ export function focusText(threads: readonly Thread[], opts: { names?: Parameters
   if (opts.position) lines.push(`Where the person is: ${placeSaid(opts.position) || 'a place not named'} (${opts.position.how === 'picked' ? 'picked on the screen' : 'said'} at ${new Date(opts.position.at).toTimeString().slice(0, 5)})${opts.position.lineId ? ` [line ${opts.position.lineId}]` : ''}${opts.position.departmentId ? ` [department ${opts.position.departmentId}]` : ''}`);
   else lines.push('Where the person is: not said — ask only if it matters, never guess it.');
   if (opts.trail && opts.trail.length > 1) lines.push(`The walk so far: ${opts.trail.slice(-8).map(x => `${placeSaid(x)} ${new Date(x.at).toTimeString().slice(0, 5)}`).join(' → ')}`);
+  /* WHAT THERE IS AND WHAT WE HAVE MADE (docs/CONVERSATIONAL-DATA.md) — the files in the register and this conversation's results, charts
+     and reports, newest first: what a name, "that" or "the other file" can point at */
+  if (opts.files?.length) lines.push(`Files in the register (ask with query_data by their source id; resolve_source when the person names one):\n${opts.files.map(f => `  ${f}`).join('\n')}`);
+  if (opts.outputs) lines.push(`Made in this conversation (newest first):\n${opts.outputs.split('\n').map(l => `  ${l}`).join('\n')}`);
   if (opts.photos?.length) lines.push(`Photos in this conversation: ${opts.photos.map(p => p.said ?? `${p.label} = photoKey ${p.key}`).join('; ')}`);
   /* what is being built from the conversation (docs/AI-MODE.md, Building tools in conversation): each draft with its id, what is
      captured and how known, and what is missing — the newest six, a long one cut */

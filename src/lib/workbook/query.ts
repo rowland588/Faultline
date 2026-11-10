@@ -56,7 +56,7 @@ export function columnOf(s: SheetProfile, name: string): ColumnProfile {
 }
 
 const iso = (ms: number): string => { const d = new Date(ms); const t = d.toISOString(); return d.getUTCHours() || d.getUTCMinutes() || d.getUTCSeconds() ? t.slice(0, 16).replace('T', ' ') : t.slice(0, 10); };
-function bucket(ms: number, by: 'day' | 'week' | 'month' | 'year'): string {
+export function bucket(ms: number, by: 'day' | 'week' | 'month' | 'year'): string {
   const d = new Date(ms);
   if (by === 'year') return String(d.getUTCFullYear());
   if (by === 'month') return d.toISOString().slice(0, 7);

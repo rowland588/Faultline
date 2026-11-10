@@ -34,12 +34,25 @@ export async function settleWorkbooks(ctx: CapCtx, running: ReadonlySet<string>)
 const n = (x: number): string => x.toLocaleString('en-GB', { maximumFractionDigits: 2 });
 const plural = (k: number, w: string): string => `${n(k)} ${w}${k === 1 ? '' : 's'}`;
 
-/** Which workbook: the one named, else the newest read in this conversation. */
+/** A workbook in the register read in another conversation, its cells on this device. */
+async function reachable(fileId: string): Promise<ColleagueWorkbook | undefined> {
+  const s = (await (await import('./data')).allSources()).find(x => x.facts.fileId === fileId);
+  return s && s.facts.kind === 'workbook' ? { id: s.facts.fileId, name: s.facts.name, bytes: s.facts.bytes, at: s.at, status: s.facts.status === 'reading' ? 'interrupted' : s.facts.status } : undefined;
+}
+
+/** Which workbook: the one named (its id, or its register id), else the only one read in this conversation — never the newest of several. */
 async function pick(ctx: CapCtx, id?: string): Promise<{ ok: true; w: ColleagueWorkbook; p: WorkbookProfile } | { ok: false; why: string }> {
   const c = await conversation(ctx);
   if (!c.ok) return { ok: false, why: c.why };
   const all = workbooksOf(c.s);
-  const w = id ? all.find(x => x.id === id) : [...all].reverse().find(x => x.status === 'ready' || x.status === 'partial') ?? all[all.length - 1];
+  /* an id may be the register's (lib/data/sources) — the file's own id is under it */
+  const key = id ? ((await import('./data')).allSources().then(l => l.find(s => s.id === id || s.id === id.replace(/^file:/, ''))?.facts.fileId ?? id)) : undefined;
+  const want = key ? await key : undefined;
+  /* NEVER THE NEWEST BECAUSE IT IS NEWEST (10 November, docs/CONVERSATIONAL-DATA.md — "It must not silently select an arbitrary
+     file"): with no workbook named, only a conversation holding one usable workbook has an answer; with several, the colleague asks */
+  const usable = all.filter(x => x.status === 'ready' || x.status === 'partial');
+  if (!want && usable.length > 1) return { ok: false, why: `This conversation has ${usable.length} workbooks — ${usable.map(x => `“${x.name}” [${x.id}]`).join(', ')}. Ask the person which, naming each; never pick one.` };
+  const w = want ? (all.find(x => x.id === want) ?? (await reachable(want))) : usable[0] ?? all[all.length - 1];
   if (!w) return { ok: false, why: id ? `No workbook ${id} in this conversation.` : 'No workbook has been attached in this conversation. The person attaches one (.xlsx) with the + button.' };
   if (w.status === 'reading') return { ok: false, why: `“${w.name}” is still being read — wait for it to finish (its progress is shown in the conversation).` };
   if (w.status === 'failed' || w.status === 'interrupted') return { ok: false, why: `“${w.name}” was not read: ${w.why ?? 'it failed'}.` };

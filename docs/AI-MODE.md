@@ -412,3 +412,11 @@ Read `docs/AI-CONTEXT.md`: the application model (`src/capabilities/appModel.ts`
 ## Voice (9 November)
 
 Read `docs/VOICE.md`: dictation's Cancel and Done, the voice conversation (`colleague/VoiceMode`) over this same engine — `spoken: true` on the request, the end of a turn by `turnEnd`, the reply said sentence by sentence, interruption, talk-over with a headset, the states and settings — and why it is the web app, not a native wrapper, for now.
+
+
+## Conversational data — 10 November
+
+Luna asks any source one way — a registered file (a workbook or a table, each with its own name and identity) or the line's own records
+as tables — through `list_sources`, `resolve_source`, `name_source`, `source_fields` and `query_data`; keeps each answer as a result;
+draws charts from results only (`make_chart`, `refine_chart`, versions kept); and builds reports and presentations section by section
+(`build_report`) with every figure checked against its results. The design, the rules and what proves it: `docs/CONVERSATIONAL-DATA.md`.

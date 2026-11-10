@@ -17531,3 +17531,20 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .walk-photo-c { color: var(--ink); }
 .walk-photo-by { color: var(--muted); }
 .walk-photo-t .cw-link { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; }
+
+/* WHAT A CONVERSATION MAKES (10 November, docs/CONVERSATIONAL-DATA.md; colleague/AiOutputs) — a chart drawn from a result, a report built
+   section by section, each with its download */
+.ai-out { margin: 10px 0 4px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); min-width: 0; }
+.ai-chart-img { display: block; width: 100%; height: auto; max-width: 720px; border-radius: var(--radius-sm); }
+.ai-out-cap { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; min-width: 0; overflow-wrap: anywhere; }
+.ai-out-k { font-size: var(--t-detail); font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 0; }
+.ai-out-t { margin: 2px 0 8px; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+.ai-out-note { color: var(--muted); }
+.ai-out-line { margin: 6px 0; }
+.ai-out-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.ai-out-acts .btn { min-height: 44px; }
+.ai-report-l { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: var(--t-detail); color: var(--ink-2); }
+.ai-report-l li { overflow-wrap: anywhere; }
+.ai-sec-k { display: inline-block; margin-right: 6px; font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: var(--t-small); letter-spacing: .03em; }
+.ai-sec-k.is-finding, .ai-sec-k.is-summary { color: var(--ink); }
+.ai-sec-h { color: var(--ink); }
