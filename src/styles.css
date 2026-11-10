@@ -17770,3 +17770,25 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
    "Every project — the control room") under the three answers: it spans the page as they do, the closing line under it */
 .fq-grid > .fq-projects { align-self: stretch; }
 .fq-projects .jb > .fold { margin: 0; }
+
+/* LINE TABS AND HUBS, CALM (10 November) — docs/DESIGN.md: a hub is a calm list of its kinds (name, one line, how many saved),
+   rows with a hairline between, each row a door; never a wall of cards. Scored registers and Calculators. */
+.hub-kinds { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.hub-kinds > li { border-bottom: 1px solid var(--line); }
+.hub-kinds .calc-card, .hub-kinds .pl-tool-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--space-3); row-gap: 2px; align-items: baseline; width: 100%; height: auto; min-height: 44px; padding: var(--space-3) var(--space-6) var(--space-3) 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; font: inherit; color: var(--ink); cursor: pointer; touch-action: manipulation; }
+.hub-kinds .calc-card:hover, .hub-kinds .pl-tool-card:hover { background: color-mix(in srgb, var(--brand) 4%, transparent); }
+.hub-kinds .calc-card:focus-visible, .hub-kinds .pl-tool-card:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.hub-kinds b { grid-column: 1; grid-row: 1; font-size: var(--t-body); }
+.hub-kinds .sub { grid-column: 1 / -1; font-size: var(--t-detail); }
+.hub-kinds .calc-card-n { grid-column: 2; grid-row: 1; white-space: nowrap; }
+.hub-kinds .pl-tool-go { position: absolute; right: var(--space-2); top: 50%; transform: translateY(-50%); grid-row: auto; grid-column: auto; }
+/* Materials (and a project's embedded Programs): one list, a row a thing with a hairline between — the state kept as the row's
+   coloured edge and its word, never a card a row. The late red tint stays: the abnormal stands out. */
+.mt-list { gap: 0; border-top: 1px solid var(--line); }
+.mt-list > .mt-row { box-shadow: none; border-radius: 0; background: transparent; border-bottom: 1px solid var(--line); }
+.mt-list > .mt-row.is-here, .mt-list > .mt-row.is-pg-proved { background: transparent; }
+/* A machine's own sections and the Programs page's lines: a heading and a hairline, not a card each — and never a card inside the
+   fold's card (docs/DESIGN.md, principle 4). The project's part on a machine (mpg-*) is the project's and keeps its own look. */
+.nv-main .wrap.lmc :is(.lmc-projects, .lmc-problems, .lmc-programs, .lmc-studies, .lmc-stops, .lmc-ident).pl-sec,
+.nv-main .wrap.lp .pl-sec.lp-line { background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; padding: var(--space-3) 0 0; }
+.nv-main .wrap.lmc .fold-b > .pl-sec { border-top: 0; margin-top: 0; }

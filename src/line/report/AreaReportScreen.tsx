@@ -9,6 +9,7 @@ import type { Route } from '../../state/useRoute';
 import { nav } from '../../state/useRoute';
 import { PageHeader } from '../../ui/parts';
 import { EmptyState } from '../../ui/EmptyState';
+import { Fold } from '../../ui/Fold';
 import { LeanActions, LeanBand, LeanClosing, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { areaFromQuery, areaHref, areaSays, areaTiles } from '../../lib/areas';
@@ -87,9 +88,12 @@ export function AreaReportScreen({ route }: { route: Route }) {
           {b.parts.map(part => {
             const reading = readings.get(part.line.id);
             const pr = programs.get(part.line.id);
+            const inHere = part.items.filter(i => on.has(i.key)).length;
             return (
-              <section key={part.line.id} className="lr-part lr-lean" aria-label={partName(b, part)} data-part={part.line.name}>
-                <h2>{part.title}{part.title === 'Both lines together' ? <span className="sub"> · what was run on {b.line.name} itself</span> : null}</h2>
+              <Fold key={part.line.id} id={`ar-rep-${part.line.id}`} start={false}
+                title={part.title === 'Both lines together' ? `Both lines together — what was run on ${b.line.name} itself` : part.title}
+                says={`${problemsLine(part)} · ${inHere} of ${part.items.length} tool record${part.items.length === 1 ? '' : 's'} going in`}>
+              <section className="lr-part lr-lean" aria-label={partName(b, part)} data-part={part.line.name}>
                 {reading && <LeanTiles tiles={lineTiles(reading)} className="sg-tiles" />}
                 <h3 className="lr-h">Problems and programs</h3>
                 <p className="sub">{problemsLine(part)} · {pr?.says ?? 'no program planned'}</p>
@@ -111,6 +115,7 @@ export function AreaReportScreen({ route }: { route: Route }) {
                     </ul>
                   )}
               </section>
+              </Fold>
             );
           })}
         </div>
