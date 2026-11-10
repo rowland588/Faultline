@@ -88,6 +88,7 @@ const part = main().locator('.mpg-in-project');
 ok(await part.count() === 1 && flat(await part.locator('.mpg-in').innerText()).startsWith(`Going through ${proj}`), `H3 the project's part first: "Going through ${proj} …"`);
 ok(await part.locator('.mpg-step').count() === 4 && await part.locator('.mpg-at').count() === 1, 'H3 its status and its four gates');
 ok(await part.locator('.mpg-open').count() === 1 && await part.locator('.mpg-tests').count() === 1 && await part.locator('.mpg-side').count() === 1, 'H3 what is open on it, its tests, its programs');
+for (const f of ['lmc-programs', 'lmc-studies']) { const b = page.locator(`.lmc .fold[data-fold="${f}"]:not(.is-open) .fold-toggle`); if (await b.count()) { await b.click(); await page.waitForTimeout(200); } }   /* the secondary sections sit in ui/Fold, shut on arrival (10 November, docs/DESIGN.md) */
 ok(await main().locator('.lmc-studies').count() === 1 && await main().locator('.lmc-stops').count() === 1, 'H3 then the line\'s: the studies of it, its stops');
 ok(await page.locator('.nv-tab[aria-current="page"]', { hasText: 'Machines' }).count() === 1, "H3 the project's frame, its Machines tab lit");
 const back = main().locator('.part-back').first();

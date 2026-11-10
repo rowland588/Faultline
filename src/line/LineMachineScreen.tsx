@@ -19,6 +19,7 @@ import { useLineRecords } from '../lib/useLineRecords';
 import { projectsOnLines, useJobFloor } from '../lib/useJobFloor';
 import { lineMachineView, STOP_DAYS } from '../lib/lineMachine';
 import { todayISO } from '../lib/weeks';
+import { Fold } from '../ui/Fold';
 import { PageHeader } from '../ui/parts';
 import { nav } from '../state/useRoute';
 import { savingAt } from '../lib/useSaveOnArrival';
@@ -142,22 +143,6 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
           )}
       </section>
 
-      <section className="pl-sec lmc-programs" aria-label="Its programs">
-        <div className="pl-sec-h"><h2>{job ? 'The line’s own programs on it' : 'Its programs'}</h2><span className="sub">{lineProgs.length || 'none'}</span></div>
-        {lineProgs.length === 0
-          ? <p className="sub">{job ? `None besides ${job.name}’s, above.` : 'No programs on it. Plan one on the line’s Programs.'}</p>
-          : (
-            <ol className="pl-machines">
-              {lineProgs.map(l => (
-                <li key={(l.programId ?? l.partId ?? l.what)} className="pl-machine">
-                  <b>{l.what}</b><span className={'status-pill is-' + l.tone}>{l.word}</span>{l.runs && <span className="sub">{l.runs}</span>}
-                </li>
-              ))}
-            </ol>
-          )}
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}`)}>Every program on {line.name} ›</button>
-      </section>
-
       <section className="pl-sec lmc-problems" aria-label="Its problems">
         <div className="pl-sec-h"><h2>Its problems</h2><span className="sub">{v.problems.length ? `${openProblems} open of ${v.problems.length}` : 'none'}</span></div>
         {v.problems.length === 0
@@ -174,6 +159,29 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
           )}
       </section>
 
+      {/* SECONDARY, IN THE ONE FOLD (10 November, docs/DESIGN.md): its programs, then the studies of it and its stops — a line each
+          saying what is inside, shut on arrival; its picture, what it is, its projects and its problems stay first */}
+      <Fold id="lmc-programs" start={false} title={job ? 'The line’s own programs on it' : 'Its programs'}
+        says={lineProgs.length ? `${lineProgs.length} program${lineProgs.length === 1 ? '' : 's'} — ${lineProgs.slice(0, 2).map(l => `${l.what} ${l.word.toLowerCase()}`).join(', ')}${lineProgs.length > 2 ? ' …' : ''}` : 'None on it'}>
+      <section className="pl-sec lmc-programs" aria-label="Its programs">
+        <div className="pl-sec-h"><h2>{job ? 'The line’s own programs on it' : 'Its programs'}</h2><span className="sub">{lineProgs.length || 'none'}</span></div>
+        {lineProgs.length === 0
+          ? <p className="sub">{job ? `None besides ${job.name}’s, above.` : 'No programs on it. Plan one on the line’s Programs.'}</p>
+          : (
+            <ol className="pl-machines">
+              {lineProgs.map(l => (
+                <li key={(l.programId ?? l.partId ?? l.what)} className="pl-machine">
+                  <b>{l.what}</b><span className={'status-pill is-' + l.tone}>{l.word}</span>{l.runs && <span className="sub">{l.runs}</span>}
+                </li>
+              ))}
+            </ol>
+          )}
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}`)}>Every program on {line.name} ›</button>
+      </section>
+      </Fold>
+
+      <Fold id="lmc-studies" start={false} title="Studies of it and its stops"
+        says={`${v.studies.length ? `${v.studies.length} ${v.studies.length === 1 ? 'study' : 'studies'}` : 'No study'} · ${v.stops.n ? `${v.stops.n} ${v.stops.n === 1 ? 'stop' : 'stops'} timed in ${STOP_DAYS} days` : `no stop timed in ${STOP_DAYS} days`}`}>
       <section className="pl-sec lmc-studies" aria-label="Studies of it">
         <div className="pl-sec-h"><h2>Studies of it</h2><span className="sub">{v.studies.length || 'none'}</span></div>
         {v.studies.length === 0
@@ -193,6 +201,7 @@ export function LineMachineScreen({ wsId, name, inProject }: { wsId: string; nam
         <div className="pl-sec-h"><h2>Its stops</h2></div>
         <p className="sub">{v.stops.n ? `${v.stops.n} ${v.stops.n === 1 ? 'stop' : 'stops'} timed in the last ${STOP_DAYS} days — ${v.stops.minutes} minutes.` : `No stops timed on it in the last ${STOP_DAYS} days.`}</p>
       </section>
+      </Fold>
 
       {/* After every line section — itself and the closing line (STAGEGATE-AESTHETIC C3). */}
       {job && assetId && <MachineInProject projectId={job.id} assetId={assetId} onRemoved={() => nav(`/project/${job.id}/machines`)} tail="only" />}

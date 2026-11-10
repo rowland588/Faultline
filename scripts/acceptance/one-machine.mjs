@@ -181,6 +181,7 @@ ok(/^Factory/.test(bar8) && !/Projects/.test(bar8) && await page.locator('.nv-ta
 const says = flat(await page.locator('.lmc-says').innerText());
 ok(/^With .+ · worked on by 1 project · 1 program · no problem open/.test(says), '8 what it is in a sentence — whose, the project, its programs', says);
 ok(/Domino UK/.test(flat(await page.locator('.lmc').innerText())), '8 who made it');
+for (const f of ['lmc-programs', 'lmc-studies']) { const b = page.locator(`.lmc .fold[data-fold="${f}"]:not(.is-open) .fold-toggle`); if (await b.count()) { await b.click(); await page.waitForTimeout(200); } }   /* the secondary sections sit in ui/Fold, shut on arrival (10 November, docs/DESIGN.md) */
 ok(/Date code layout B/.test(flat(await page.locator('.lmc-programs').innerText())), '8 its program, as the line reads it');
 ok(/Coder stops/.test(flat(await page.locator('.lmc-studies').innerText())), '8 the study of it');
 await page.locator('.lmc-proj .cw-link').first().click();

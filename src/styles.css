@@ -17745,3 +17745,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .hub-kinds .sub { grid-column: 1 / -1; font-size: var(--t-detail); }
 .hub-kinds .calc-card-n { grid-column: 2; grid-row: 1; white-space: nowrap; }
 .hub-kinds .pl-tool-go { position: absolute; right: var(--space-2); top: 50%; transform: translateY(-50%); grid-row: auto; grid-column: auto; }
+/* Materials (and a project's embedded Programs): one list, a row a thing with a hairline between — the state kept as the row's
+   coloured edge and its word, never a card a row. The late red tint stays: the abnormal stands out. */
+.mt-list { gap: 0; border-top: 1px solid var(--line); }
+.mt-list > .mt-row { box-shadow: none; border-radius: 0; background: transparent; border-bottom: 1px solid var(--line); }
+.mt-list > .mt-row.is-here, .mt-list > .mt-row.is-pg-proved { background: transparent; }
