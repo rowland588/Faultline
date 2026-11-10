@@ -86,3 +86,34 @@ describe('work_out — arithmetic through Faultline', () => {
     expect((await reg.runCall(ctx(), call('work_out', { what: 'x', expression: 'minutes * 2' }), { confirmed: false })).ok).toBe(false);
   });
 });
+
+describe('refresh_report — a report that stays current', () => {
+  it('asks every result again, says what moved, marks words that no longer match; made like it in another conversation', async () => {
+    const { reg, w, ctx, db } = await seed();
+    const q = await reg.runCall(ctx(), call('query_data', { source: `stops:${w.id}`, title: 'Downtime by category', groupBy: ['category'], measures: [{ op: 'sum', column: 'minutes' }], filters: [{ column: 'day', op: 'between', from: '2026-11-02', to: '2026-11-08' }] }), { confirmed: false });
+    const rid = q.ok ? (q.data as { resultId: string }).resultId : '';
+    const c = await reg.runCall(ctx(), call('make_chart', { resultId: rid, title: 'Downtime by category' }), { confirmed: false });
+    expect(c.ok && c.says).toMatch(/What it shows \(drawn on it\): Jam is the biggest: 35 of the 48 shown \(72.9%\)\./);
+    const chartId = c.ok ? (c.data as { chartId: string }).chartId : '';
+    const b = await reg.runCall(ctx(), call('build_report', { title: 'Weekly downtime', op: 'add', section: { kind: 'chart', heading: 'By category', chartId } }), { confirmed: false });
+    const reportId = b.ok ? (b.data as { reportId: string }).reportId : '';
+    await reg.runCall(ctx(), call('build_report', { reportId, op: 'add', section: { kind: 'finding', heading: 'Jam', text: 'Jam took 35 of the 48 minutes.', evidence: [rid] } }), { confirmed: false });
+    /* a stop timed since */
+    await db.addObservation({ id: 'late', workspaceId: w.id, category: 'Jam', asset: 'Bagger', startedAt: at(7), durationMs: 10 * 60_000, timing: 'stopwatch', count: 1, media: [], createdAt: at(7), updatedAt: at(7) } as never);
+    const r = await reg.runCall(ctx(), call('refresh_report', { reportId }), { confirmed: false });
+    expect(r.ok && r.says).toMatch(/Brought “Weekly downtime” up to date \[report D\w+\] v4: 1 of 1 result asked again of the data as it is now\. Moved: “Downtime by category” 48 → 58\. Check this — words that no longer match their results: “Jam” \(35, 48\)\./);
+    const facts = (await db.getStudy('conv'))?.facts as unknown as { reports: { id: string; version: number; sections: { kind: string; chartId?: string; evidence?: string[] }[] }[]; charts: { id: string; versions: { resultId: string }[] }[] };
+    const rep = facts.reports.find(x => x.id === reportId);
+    const fresh = (r.ok ? (r.data as { results: Record<string, string> }).results : {})[rid];
+    expect(rep?.version).toBe(4);
+    expect(rep?.sections[1].evidence).toEqual([fresh]);
+    expect(facts.charts.find(x => x.id === rep?.sections[0].chartId)?.versions[0].resultId).toBe(fresh);
+    /* another conversation of the same client: listed, and made like it */
+    const t = Date.now();
+    await db.putStudy({ id: 'conv2', tool: 'talk', name: 'Talk 2', facts: { colleague: true, turns: [] } as never, uses: [], startedAt: t, createdAt: t, updatedAt: t });
+    const e = await reg.runCall(ctx({ conversationId: 'conv2' }), call('earlier_reports', {}), { confirmed: false });
+    expect(e.ok && e.says).toMatch(/“Weekly downtime” — report, 2 sections, .* \[report D\w+, conversation conv\]/);
+    const like = await reg.runCall(ctx({ conversationId: 'conv2' }), call('refresh_report', { reportId, fromConversation: 'conv', title: 'Weekly downtime — this week' }), { confirmed: false });
+    expect(like.ok && like.says).toMatch(/Made “Weekly downtime — this week” like the earlier report \[report D\w+\] v1: 1 of 1 result asked again/);
+  });
+});

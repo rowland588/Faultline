@@ -29,7 +29,7 @@ import { uid } from '../lib/ids';
 import { fieldCoverage, missingFields, runTable, TableError, type Dataset, type Field } from '../lib/data/table';
 import { problemsDataset, readingsDataset, stopsDataset, testsDataset } from '../lib/data/datasets';
 import { matchSources, resolveSource, sourceSaid, sourcesOf, suggestName, type Source, type SourceFacts, type SourceSheet } from '../lib/data/sources';
-import { applyReportOp, chartNow, seriesOf, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportOp, type ReportSection } from '../lib/data/outputs';
+import { applyReportOp, chartNow, checkSection, seriesOf, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportOp, type ReportSection } from '../lib/data/outputs';
 import { anyone, mayEdit } from './access';
 import { conversation } from './draftStore';
 import { checkObject, ID } from './check';
@@ -396,7 +396,7 @@ function chartSays(c: Chart, results: ReadonlyMap<string, DataResult>, change: s
   const spec = chartNow(c);
   const s = seriesOf(spec, results);
   if ('why' in s) return { ok: false, why: s.why };
-  return { ok: true, says: `Chart ${c.id} v${c.versions.length} — ${change}: ${s.labels.map((l, i) => `${l} ${s.values[i] === null ? 'not recorded' : `${s.values[i]}${s.unit === '%' ? '%' : ''}`}`).join(', ')}.${s.notes.length ? ` ${s.notes.join(' ')}` : ''} It is shown in the conversation with its download.`, refs: [{ kind: 'chart', id: `${c.id}@${c.versions.length}`, label: spec.title, href: '' }], data: { chartId: c.id, version: c.versions.length } };
+  return { ok: true, says: `Chart ${c.id} v${c.versions.length} — ${change}: ${s.labels.map((l, i) => `${l} ${s.values[i] === null ? 'not recorded' : `${s.values[i]}${s.unit === '%' ? '%' : ''}`}`).join(', ')}.${s.finding ? ` What it shows (drawn on it): ${s.finding}` : ''}${s.notes.length ? ` ${s.notes.join(' ')}` : ''} It is shown in the conversation with its download.`, refs: [{ kind: 'chart', id: `${c.id}@${c.versions.length}`, label: spec.title, href: '' }], data: { chartId: c.id, version: c.versions.length } };
 }
 
 export const makeChart: Capability = {
@@ -529,4 +529,134 @@ export function outputsText(o: Required<DataFacts>): string {
 }
 export const outputsOfConversation = outputsOf;
 
-export const DATA: readonly Capability[] = [listSources, resolveSourceCap, nameSource, sourceFields, queryData, makeChart, refineChart, buildReport, outputsState];
+/* ── refresh_report (docs/LUNA-NEXT.md L5) ── */
+/** The clients a conversation's subjects are about — to keep one client's report from being copied into another's conversation. */
+async function clientsOf(s: ToolStudy | undefined): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (const t of ((s?.facts as { threads?: { scope?: { lineId?: string } }[] } | undefined)?.threads ?? [])) {
+    const w = t.scope?.lineId ? await getWorkspace(t.scope.lineId) : undefined;
+    if (w?.clientName?.trim()) out.add(w.clientName.trim().toLowerCase());
+  }
+  return out;
+}
+interface RefreshIn { reportId: string; fromConversation?: string; title?: string }
+export const refreshReport: Capability = {
+  name: 'refresh_report', title: 'Bring the report up to date', kind: 'local',
+  validate: raw => checkObject(raw, { reportId: { kind: 'string', label: 'the report', required: true, max: 40 }, fromConversation: { kind: 'string', label: 'the earlier conversation it is in', max: 80 }, title: { kind: 'string', label: 'the new report\'s title', max: 140 } }),
+  allowed: anyone,
+  async run(ctx, input: RefreshIn): Promise<CapResult> {
+    const here = await conversation(ctx);
+    if (!here.ok) return here;
+    const away = input.fromConversation && input.fromConversation !== here.s.id ? await getStudy(input.fromConversation) : undefined;
+    if (input.fromConversation && input.fromConversation !== here.s.id) {
+      if (!away || away.deletedAt || away.tool !== 'talk' || !(away.facts as { colleague?: boolean }).colleague) return { ok: false, why: 'That earlier conversation is not on this device.' };
+      const [a, b] = [await clientsOf(away), await clientsOf(here.s)];
+      if (a.size && b.size && ![...a].some(x => b.has(x))) return { ok: false, why: 'That report is another client’s — it is never copied into this one.' };
+    }
+    const src = outputsOf(away ?? here.s);
+    const rep = src.reports.find(r => r.id === input.reportId);
+    if (!rep) return { ok: false, why: `There is no report ${input.reportId} in ${away ? 'that conversation' : 'this conversation'}.` };
+    const oldRes = resultMap(src), oldCharts = chartMap(src);
+    /* every result the report rests on, asked again of the data as it is now */
+    const used = new Set<string>();
+    for (const sec of rep.sections) {
+      if (sec.resultId) used.add(sec.resultId);
+      for (const e of sec.evidence ?? []) used.add(e);
+      const c = sec.chartId ? oldCharts.get(sec.chartId) : undefined;
+      if (c) { used.add(chartNow(c).resultId); if (chartNow(c).compareResultId) used.add(chartNow(c).compareResultId as string); }
+    }
+    const map = new Map<string, string>();
+    const moved: string[] = [], kept: string[] = [];
+    const joins: DataResult[] = [];
+    const tot = (r: { result: QueryResult }) => r.result.totals.map(v => (typeof v === 'number' ? Math.round(v * 100) / 100 : v ?? 'not recorded')).join(', ');
+    for (const id of used) {
+      const r = oldRes.get(id);
+      if (!r) continue;
+      const q = r.query as Record<string, unknown>;
+      if (q.join) { joins.push(r); continue; }
+      let fresh: DataResult | undefined, why = '';
+      if (q.explain) {
+        const { explainChange } = await import('./dig');
+        const x = await explainChange.run(ctx, q.explain);
+        const nid = x.ok ? (x.data as { resultId?: string }).resultId : undefined;
+        if (nid) fresh = resultMap(outputsOf((await getStudy(here.s.id)) as ToolStudy)).get(nid); else why = x.ok ? 'nothing to keep' : x.why;
+      } else {
+        const { sheet, ...qq } = q as Omit<Query, 'sheet'> & { sheet?: string };
+        const a = await askSource(ctx, r.source.kind === 'workbook' ? r.source.sourceId ?? r.source.id : r.source.id, sheet ?? r.source.sheet, qq as Omit<Query, 'sheet'>);
+        if (a.ok) { const k = await keepResult(ctx, { title: r.title, source: r.source, query: r.query, result: a.result, from: r.id }); if (!('why' in k)) fresh = k; else why = k.why; }
+        else why = a.why === 'cannot' ? 'its source no longer holds a field it asks' : a.why;
+      }
+      if (fresh) { map.set(id, fresh.id); if (tot(fresh) !== tot(r)) moved.push(`“${r.title}” ${tot(r)} → ${tot(fresh)}`); }
+      else kept.push(`“${r.title}” (${why})`);
+    }
+    for (const r of joins) {
+      const j = (r.query as { join: { a: string; b: string; measureA: number; measureB: number; rules: { a: string; b: string }[] } }).join;
+      const now = resultMap(outputsOf((await getStudy(here.s.id)) as ToolStudy));
+      const a = now.get(map.get(j.a) ?? '') ?? oldRes.get(j.a), b = now.get(map.get(j.b) ?? '') ?? oldRes.get(j.b);
+      const { joinResults } = await import('../lib/data/join');
+      const x = a && b ? joinResults(a, b, j.measureA, j.measureB, j.rules) : { why: 'its two results are gone' };
+      if ('why' in x) { kept.push(`“${r.title}” (${x.why})`); continue; }
+      const k = await keepResult(ctx, { title: r.title, source: r.source, query: { join: { ...j, a: a?.id, b: b?.id } }, result: x.result, from: r.id });
+      if (!('why' in k)) { map.set(r.id, k.id); if (tot(k) !== tot(r)) moved.push(`“${r.title}” ${tot(r)} → ${tot(k)}`); }
+    }
+    /* the charts drawn again from the new results, the sections pointed at them and their figures checked again */
+    const cur = outputsOf((await getStudy(here.s.id)) as ToolStudy);
+    const res = resultMap(cur);
+    const newCharts: Chart[] = [];
+    const chartFor = new Map<string, string>();
+    for (const sec of rep.sections) {
+      const c = sec.chartId ? oldCharts.get(sec.chartId) : undefined;
+      if (!c || chartFor.has(c.id)) continue;
+      const spec = chartNow(c);
+      const next: ChartSpec = { ...spec, resultId: map.get(spec.resultId) ?? spec.resultId, ...(spec.compareResultId ? { compareResultId: map.get(spec.compareResultId) ?? spec.compareResultId } : {}) };
+      if (!res.has(next.resultId)) { const old = oldRes.get(spec.resultId); if (old) res.set(old.id, old); }
+      const nc: Chart = { id: `C${uid().slice(0, 6)}`, versions: [next], at: ctx.now };
+      newCharts.push(nc); chartFor.set(c.id, nc.id);
+    }
+    /* a result kept as it was (not asked again) still stands behind its sections — carried over from the earlier conversation */
+    for (const id of used) if (!map.has(id) && !res.has(id)) { const old = oldRes.get(id); if (old) res.set(id, old); }
+    const charts = new Map([...chartMap(cur), ...newCharts.map(c => [c.id, c] as const)]);
+    const sections: ReportSection[] = [];
+    for (const sec of rep.sections) {
+      const moved2: ReportSection = { ...sec, ...(sec.resultId ? { resultId: map.get(sec.resultId) ?? sec.resultId } : {}), ...(sec.evidence ? { evidence: sec.evidence.map(e => map.get(e) ?? e) } : {}), ...(sec.chartId ? { chartId: chartFor.get(sec.chartId) ?? sec.chartId } : {}) };
+      const c = checkSection(moved2, res, charts);
+      sections.push(c.ok ? c.s : moved2);
+    }
+    const carried = [...used].filter(id => !map.has(id) && !cur.results.some(r => r.id === id)).map(id => oldRes.get(id)).filter((r): r is DataResult => !!r);
+    const same = !away;
+    const next: ConvReport = same
+      ? { ...rep, ...(input.title?.trim() ? { title: input.title.trim() } : {}), sections, updated: ctx.now, version: rep.version + 1 }
+      : { id: `D${uid().slice(0, 6)}`, title: input.title?.trim() || rep.title, form: rep.form, sections, at: ctx.now, updated: ctx.now, version: 1 };
+    await writeOutputs(here.s.id, o => ({ results: [...o.results, ...carried].slice(-RESULTS_KEPT), charts: [...o.charts, ...newCharts].slice(-40), reports: [...o.reports.filter(r => r.id !== next.id), next] }));
+    const flagged = sections.filter(x => x.unbacked?.length);
+    return {
+      ok: true,
+      says: `${same ? `Brought “${next.title}” up to date` : `Made “${next.title}” like the earlier report`} [report ${next.id}] v${next.version}: ${map.size} of ${used.size} result${used.size === 1 ? '' : 's'} asked again of the data as it is now.${moved.length ? ` Moved: ${moved.join('; ')}.` : ' No figure behind it has moved.'}${kept.length ? ` Kept as before: ${kept.join('; ')}.` : ''}${flagged.length ? ` Check this — words that no longer match their results: ${flagged.map(x => `“${x.heading}” (${x.unbacked?.join(', ')})`).join('; ')}. Rewrite them from the new results (build_report replace).` : ''}`,
+      refs: [{ kind: 'convreport', id: `${next.id}@${next.version}`, label: next.title, href: '' }],
+      data: { reportId: next.id, version: next.version, results: Object.fromEntries(map) },
+    };
+  },
+};
+
+/* ── earlier_reports ── */
+export const earlierReports: Capability = {
+  name: 'earlier_reports', title: 'Reports made before', kind: 'read',
+  validate: raw => checkObject(raw ?? {}, { words: { kind: 'string', label: 'words in its title', max: 120 } }),
+  allowed: anyone,
+  async run(ctx, input: { words?: string }): Promise<CapResult> {
+    const here = ctx.conversationId ? await getStudy(ctx.conversationId) : undefined;
+    const mine = await clientsOf(here);
+    const words = (input.words ?? '').toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const out: { conversation: string; id: string; title: string; updated: number; sections: number; form: string }[] = [];
+    for (const s of await listAllStudies()) {
+      if (s.deletedAt || s.tool !== 'talk' || !(s.facts as { colleague?: boolean }).colleague) continue;
+      const theirs = await clientsOf(s);
+      if (mine.size && theirs.size && ![...theirs].some(x => mine.has(x))) continue;
+      for (const r of outputsOf(s).reports) if (!words.length || words.some(w => r.title.toLowerCase().includes(w))) out.push({ conversation: s.id, id: r.id, title: r.title, updated: r.updated, sections: r.sections.length, form: r.form });
+    }
+    out.sort((a, b) => b.updated - a.updated);
+    return { ok: true, refs: [], says: out.length ? `Reports made before (newest first): ${out.slice(0, 10).map(r => `“${r.title}” — ${r.form}, ${r.sections} sections, ${new Date(r.updated).toISOString().slice(0, 10)} [report ${r.id}${r.conversation === ctx.conversationId ? ', this conversation' : `, conversation ${r.conversation}`}]`).join('; ')}.` : 'No report has been made before for this client.', data: { reports: out.slice(0, 20) } };
+  },
+};
+
+export const DATA: readonly Capability[] = [listSources, resolveSourceCap, nameSource, sourceFields, queryData, makeChart, refineChart, buildReport, outputsState, refreshReport, earlierReports];

@@ -82,6 +82,11 @@ export interface Series {
   notes: string[];
   measure: string;
   total: number | null;
+  /** WHAT IT SHOWS, worked by code (docs/LUNA-NEXT.md L5): the biggest and its share, a line's first-to-last change, how many beat a
+   *  target, the gap to the comparison — drawn on the chart and said with it. */
+  finding?: string;
+  /** The value the finding is about, marked on the chart. */
+  mark?: number;
 }
 
 const numOf = (v: number | string | null | undefined): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
@@ -124,7 +129,47 @@ export function seriesOf(spec: ChartSpec, results: ReadonlyMap<string, DataResul
   }
   if (spec.target !== undefined) notes.push(`${spec.targetLabel ?? 'Target'}: ${spec.target}${unit ? ` ${unit}` : ''}.`);
   for (const n of res.notes) notes.push(n);
-  return { labels: rows.map(x => x.label), values, ...(compare ? { compare } : {}), unit, notes: [...new Set(notes)], measure: res.measures[mi], total: spec.percent ? 100 : shown };
+  const out: Series = { labels: rows.map(x => x.label), values, ...(compare ? { compare } : {}), unit, notes: [...new Set(notes)], measure: res.measures[mi], total: spec.percent ? 100 : shown };
+  const f = findingOf(spec, out);
+  return f ? { ...out, finding: f.text, ...(f.mark !== undefined ? { mark: f.mark } : {}) } : out;
+}
+
+const fw = (v: number, unit: string) => `${Math.abs(v) >= 1000 ? Math.round(v).toLocaleString('en-GB') : String(Math.round(v * 10) / 10)}${unit === '%' ? '%' : unit ? ` ${unit}` : ''}`;
+const pc = (v: number) => `${Math.round(v * 10) / 10}%`;
+
+/** What a chart shows, in one sentence, worked by code from the series it draws. Undefined when there is nothing to say (one value, or
+ *  nothing recorded). */
+export function findingOf(spec: Pick<ChartSpec, 'type' | 'target' | 'targetLabel' | 'compareLabel' | 'percent'>, s: Pick<Series, 'labels' | 'values' | 'compare' | 'unit'>): { text: string; mark?: number } | undefined {
+  const pts = s.values.map((v, i) => ({ i, v, l: s.labels[i] })).filter((p): p is { i: number; v: number; l: string } => p.v !== null);
+  if (pts.length < 2) return undefined;
+  const u = s.unit;
+  if (spec.type === 'line') {
+    const a = pts[0], b = pts[pts.length - 1];
+    const hi = pts.reduce((m, p) => (p.v > m.v ? p : m));
+    const ch = b.v - a.v;
+    return { text: `From ${fw(a.v, u)} (${a.l}) to ${fw(b.v, u)} (${b.l}) — ${ch === 0 ? 'no change' : `${ch > 0 ? 'up' : 'down'} ${fw(Math.abs(ch), u)}${a.v ? ` (${pc((Math.abs(ch) / Math.abs(a.v)) * 100)})` : ''}`}; the highest ${fw(hi.v, u)} at ${hi.l}.`, mark: hi.i };
+  }
+  if (spec.target !== undefined) {
+    const over = pts.filter(p => p.v > (spec.target as number));
+    return { text: `${over.length} of ${pts.length} above the ${(spec.targetLabel ?? 'target').toLowerCase()} of ${fw(spec.target, u)}${over.length ? ` — the furthest ${over.reduce((m, p) => (p.v > m.v ? p : m)).l}` : ''}.`, ...(over.length ? { mark: over.reduce((m, p) => (p.v > m.v ? p : m)).i } : {}) };
+  }
+  if (s.compare) {
+    const pairs = pts.filter(p => s.compare?.[p.i] !== null && s.compare?.[p.i] !== undefined).map(p => ({ ...p, d: p.v - (s.compare?.[p.i] as number) }));
+    if (!pairs.length) return undefined;
+    const big = pairs.reduce((m, p) => (Math.abs(p.d) > Math.abs(m.d) ? p : m));
+    const higher = pairs.filter(p => p.d > 0).length;
+    return { text: `Higher than ${(spec.compareLabel ?? 'the comparison').toLowerCase()} in ${higher} of ${pairs.length}; the biggest difference ${big.l}, ${big.d >= 0 ? '+' : '−'}${fw(Math.abs(big.d), u)}.`, mark: big.i };
+  }
+  const tot = pts.reduce((a, p) => a + Math.max(0, p.v), 0);
+  const top = pts.reduce((m, p) => (p.v > m.v ? p : m));
+  if (spec.type === 'pareto' && tot > 0) {
+    const sorted = [...pts].sort((a, b) => b.v - a.v);
+    let run = 0, k = 0;
+    while (k < sorted.length && run / tot < 0.8) { run += Math.max(0, sorted[k].v); k++; }
+    return { text: `${k === 1 ? sorted[0].l : `The top ${k} (${sorted.slice(0, k).map(p => p.l).join(', ')})`} make${k === 1 ? 's' : ''} up ${pc((run / tot) * 100)} of the ${fw(tot, u)} shown.`, mark: top.i };
+  }
+  if (u === '%' && spec.percent) return { text: `${top.l} is the biggest: ${fw(top.v, '%')} of what is shown.`, mark: top.i };
+  return { text: `${top.l} is the biggest: ${fw(top.v, u)}${tot > 0 && top.v > 0 ? ` of the ${fw(tot, u)} shown (${pc((top.v / tot) * 100)})` : ''}.`, mark: top.i };
 }
 
 /** What changed between two versions of a chart, in words — "percentages; Shift 3 left out". */

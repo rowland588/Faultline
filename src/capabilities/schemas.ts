@@ -381,6 +381,18 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     }, ['a', 'b', 'title']),
   },
   {
+    name: 'refresh_report',
+    kind: 'local',
+    description: 'Bring a report up to date, or make a new one like an earlier one ("run last month\'s report again", "make it like the one we did for October"). Every result it rests on is asked again of the data as it is now (the same question, the same source), its charts drawn again from the new results, and every finding\'s figures checked again — words that no longer match are marked Check this; rewrite them with build_report replace from the new results, never leave old figures standing. In this conversation it becomes the report\'s next version; from an earlier conversation (fromConversation, from earlier_reports) it is a new report here. Another client\'s report is never copied.',
+    input_schema: obj({ reportId: str('The report id', 40), fromConversation: str('The earlier conversation it is in', 80), title: str('The new report\'s title', 140) }, ['reportId']),
+  },
+  {
+    name: 'earlier_reports',
+    kind: 'read',
+    description: 'The reports made before in AI Mode for this client (and this conversation), newest first, each with its id and conversation — to bring one up to date or make another like it with refresh_report.',
+    input_schema: obj({ words: str('Words in its title', 120) }, []),
+  },
+  {
     name: 'note_meaning',
     kind: 'write',
     description: 'Remember what a word, a name, a file or a way of counting means for this client — "downtime means unplanned stops only", "Celox is Line 4", "the product master holds costs and rates", "a shift is 7.5 hours here". Shown as a card; kept only on the person\'s yes, in the client\'s notebook (the line\'s client, or the subject\'s), or their own with own true when it holds wherever they work. Offer it when they explain a word or correct how you read one — once, in their words. Never note a guess of yours.',

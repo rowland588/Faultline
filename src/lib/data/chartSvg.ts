@@ -23,10 +23,11 @@ export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string;
   const title = esc(cut(spec.title, 80));
   const head = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="Inter, Arial, sans-serif" role="img" aria-label="${title}"><rect width="${W}" height="${H}" fill="#ffffff"/><text x="20" y="28" font-size="16" font-weight="700" fill="${INK}">${title}</text>`;
   const unit = s.unit ? ` (${esc(s.unit)})` : '';
-  const sub = `<text x="20" y="48" font-size="11.5" fill="${MUTED}">${esc(cut(`${spec.yLabel ?? s.measure}${unit}`, 100))}</text>`;
+  /* what it shows, worked by code (lib/data/outputs findingOf), under the title — the chart says its own finding */
+  const sub = `<text x="20" y="48" font-size="11.5" fill="${MUTED}">${esc(cut(`${spec.yLabel ?? s.measure}${unit}`, 100))}</text>${s.finding ? `<text x="20" y="${spec.type === 'pie' ? 68 : 66}" font-size="12.5" font-weight="600" fill="${INK2}" data-finding="1">${esc(cut(s.finding, 110))}</text>` : ''}`;
   if (spec.type === 'pie') return head + sub + pie(s) + '</svg>';
   const horizontal = spec.type === 'bar';
-  const L = horizontal ? 170 : 64, R = spec.type === 'pareto' ? 56 : 24, T = 66, B = horizontal ? 40 : 86;
+  const L = horizontal ? 170 : 64, R = spec.type === 'pareto' ? 56 : 24, T = s.finding ? 84 : 66, B = horizontal ? 40 : 86;
   const pw = W - L - R, ph = H - T - B;
   const vals = [...s.values, ...(s.compare ?? []), ...(spec.target !== undefined && !spec.percent ? [spec.target] : spec.target !== undefined ? [spec.target] : [])].filter((v): v is number => v !== null);
   const max = niceMax(Math.max(0, ...vals));
@@ -68,7 +69,8 @@ export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string;
           ? `<rect x="${Math.min(zero, p)}" y="${at}" width="${Math.abs(p - zero)}" height="${bw}" fill="${colour}" rx="2"/><text x="${Math.max(zero, p) + 5}" y="${at + bw / 2 + 4}" font-size="10.5" fill="${INK2}">${label}</text>`
           : `<rect x="${at}" y="${Math.min(zero, p)}" width="${bw}" height="${Math.abs(p - zero)}" fill="${colour}" rx="2"/><text x="${at + bw / 2}" y="${Math.min(zero, p) - 5}" font-size="10.5" fill="${INK2}" text-anchor="middle">${label}</text>`;
       };
-      out += draw(v, c0, spec.type === 'pareto' && i === 0 ? INK : BRAND);
+      /* the value the finding is about, marked in the house's ink — the rest in the press colour */
+      out += draw(v, c0, (spec.type === 'pareto' && i === 0) || (!two && s.mark === i) ? INK : BRAND);
       if (two) out += draw(s.compare?.[i] ?? null, c0 + bw + 4, MUTED);
     });
   }
@@ -109,7 +111,7 @@ export function chartSvg(spec: ChartSpec, s: Series, o: { compareLabel?: string;
 }
 
 function pie(s: Series): string {
-  const cx = 230, cy = 225, r = 140;
+  const cx = 230, cy = 236, r = 140;
   const vals = s.values.map(v => (v !== null && v > 0 ? v : 0));
   const tot = vals.reduce((a, v) => a + v, 0);
   if (!tot) return `<text x="20" y="90" font-size="13" fill="${MUTED}">Nothing above zero to draw.</text>`;
