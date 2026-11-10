@@ -24,6 +24,7 @@ const fill = async (n, v) => { await box(n).fill(v); await box(n).blur(); await 
 /* 1 */
 await go(`#/project/${K}`, 2000);
 await page.waitForSelector('.kata', { timeout: 20000 });
+await t.openSections();   // every section opened, so 'no default boxes' is read in them, not in a shut fold (docs/DESIGN.md)
 ok((await board.locator('.kata-cell').count()) === 4, '1 the storyboard has its four cells');
 ok((await page.locator('.pmethod-sec .msheet-q').count()) === 0, '1 the default boxes are not drawn under the sections — the board is the interface');
 ok(JSON.stringify(await board.locator('.kata-coach-q b').allInnerTexts()) === JSON.stringify(mod.qs.map((q, i) => `${i + 1}. ${q}`)), '1 the five coaching questions as the module words them');

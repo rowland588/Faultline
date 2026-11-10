@@ -1,11 +1,11 @@
 {
  "phone · A method project — its sections": {
-  "height": 15573,
-  "boxes": 65,
-  "headings": 13,
-  "controls": 183,
+  "height": 7761,
+  "boxes": 13,
+  "headings": 8,
+  "controls": 75,
   "sizes": 5,
-  "first": 10
+  "first": 4
  },
  "phone · A document — an 8D report with its photos": {
   "height": 13230,
@@ -24,12 +24,12 @@
   "first": 6
  },
  "desk · A method project — its sections": {
-  "height": 11209,
-  "boxes": 65,
-  "headings": 13,
-  "controls": 183,
+  "height": 5315,
+  "boxes": 13,
+  "headings": 8,
+  "controls": 75,
   "sizes": 5,
-  "first": 14
+  "first": 7
  },
  "phone · Methods — a method’s own page": {
   "height": 10008,

@@ -43,7 +43,8 @@ export function openFold(id: string): void {
 
 export function Fold({ id, title, says, start = true, need = false, children }: {
   id: string;
-  title: string;
+  /** Its name — words, or a span carrying a page's own heading class (a method's section). */
+  title: ReactNode;
   /** What the card would tell you if you opened it, in one line. */
   says?: ReactNode;
   /** Open the first time, before anybody has chosen. */

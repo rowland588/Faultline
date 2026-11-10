@@ -16,6 +16,7 @@
  *   3  criticality unchanged on the page: a new ranking opens with its example, five machines, two class A
  */
 import pkg from 'playwright';
+import { openMethodSections } from '../lib/methodFolds.mjs';
 import { paper as pressPaper } from '../lib/pageHeader.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
@@ -385,7 +386,7 @@ for (const def of await page.evaluate(async () => (await import('/src/tools/scor
 
   /* the method page: DMAIC's Improve section lists it as built, with New, and New opens the sheet in the project */
   await go(`#/project/${sd.methodProjectId}`);
-  await page.waitForSelector('.pmethod');
+  await page.waitForSelector('.pmethod'); await openMethodSections(page);  // a method page opens on the section in hand, the rest folded (docs/DESIGN.md) — opened to read them
   const mrow = page.locator('.pmethod .lt-li', { hasText: new RegExp(def.title) }).first();
   ok(/Built/.test(await mrow.innerText()) && !/Not built/.test(await mrow.innerText()), `2 ${tag}: the DMAIC method page lists ${def.title} as Built (${flat(await mrow.innerText()).slice(0, 60)})`);
   await mrow.locator('button', { hasText: /^New$/ }).click(); await page.waitForTimeout(800);

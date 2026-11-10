@@ -20,6 +20,7 @@
  *
  *   node scripts/acceptance/methods.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openMethodSections } from '../lib/methodFolds.mjs';   // a method page opens on the section in hand, the rest folded (docs/DESIGN.md) — every one opened to read its rows
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -79,13 +80,13 @@ for (const m of ORDER.filter(x => x !== 'Stage gate')) {
 
 /* 3 — honesty, on DMAIC */
 await go(made['DMAIC']);
-await page.waitForSelector('.pmethod');
+await page.waitForSelector('.pmethod'); await openMethodSections(page);
 /* DMAIC's tools may all be built (1 November: the documents, registers and analyses) — so the honesty is read across every method made here, DMAIC's rows first */
 const readRows = () => page.locator('.pmethod .lt-li').evaluateAll(els => els.map(e => ({ what: e.querySelector('.lt-what')?.textContent ?? '', where: e.querySelector('.lt-where')?.textContent ?? '', btn: !!e.querySelector('button.btn') })));
 let rows = await readRows();
 for (const m of Object.keys(made)) {
   if (rows.some(r => /Not built yet|Specified|Research/i.test(r.where))) break;
-  await go(made[m]); await page.waitForSelector('.pmethod'); rows = rows.concat(await readRows());
+  await go(made[m]); await page.waitForSelector('.pmethod'); await openMethodSections(page); rows = rows.concat(await readRows());
 }
 const notYet = rows.filter(r => /Not built yet|Specified|Research/i.test(r.where));
 ok(rows.length > 20 && notYet.every(r => !r.btn), `3 a tool not built says so and has no New (${notYet.length} of ${rows.length}; with every default tool built none is left to show — methodTools.test.ts holds the not-built word)`);
@@ -96,7 +97,7 @@ ok(rows.some(r => r.where === 'Built' && r.btn), '3 a built tool is a row with N
    6M tabs (Fishbone, Board, Lines, Results); the 6M tool is one door under Tools and lights Tools while you are on its pages */
 const tabs = async () => (await page.locator('.nv-tabs .nv-tab .nv-tab-l').allInnerTexts()).map(flat);
 for (const m of ['PDCA', 'DMAIC', 'Theory of Constraints']) {
-  await go(made[m]); await page.waitForSelector('.pmethod');
+  await go(made[m]); await page.waitForSelector('.pmethod'); await openMethodSections(page);
   const t = await tabs();
   ok(t.join(' · ') === 'Overview · Actions · Journey · Problems · Tools · Notes · Details', `3b ${m}: the project's own tabs`, t.join(' · '));
 }
@@ -107,12 +108,12 @@ await page.locator('.ptools-sixm .lt-row', { hasText: 'Fishbone' }).first().clic
 ok(/\/fishbone/.test(page.url()), '3b the Fishbone opens in the project', page.url());
 const lit = (await page.locator('.nv-tabs .nv-tab.is-on .nv-tab-l').allInnerTexts()).map(flat);
 ok(lit.join() === 'Tools' && !(await tabs()).includes('Fishbone'), '3b …and Tools is the tab that is lit, no Fishbone tab', lit.join());
-await go(made['DMAIC']); await page.waitForSelector('.pmethod');
+await go(made['DMAIC']); await page.waitForSelector('.pmethod'); await openMethodSections(page);
 await page.locator('.pmethod .lt-li', { hasText: '6M — a running line made to perform better' }).first().locator('.lt-row').click();
 await page.waitForTimeout(1500);
 ok(/\/fishbone/.test(page.url()), '3b the 6M row on a section opens the fishbone, where the method places it', page.url());
 
-await go(made['DMAIC']); await page.waitForSelector('.pmethod');
+await go(made['DMAIC']); await page.waitForSelector('.pmethod'); await openMethodSections(page);
 
 /* 4 — New starts a tool in the project, counted back */
 const proj = made['DMAIC'].split('/').pop();
@@ -121,13 +122,13 @@ await row.getByRole('button', { name: /^New —/ }).click();
 await page.waitForTimeout(1500);
 ok(page.url().includes(`project=${proj}`) || page.url().includes(proj), '4 New opened the tool in the project', page.url());
 await go(made['DMAIC']);
-await page.waitForSelector('.pmethod');
+await page.waitForSelector('.pmethod'); await openMethodSections(page);
 await page.locator('.pmethod .pmethod-add button').first().click();
 ok((await page.locator('.pmethod .pmethod-add-list .chip').count()) >= 10, '4 Add a tool offers the tools', await page.locator('.pmethod .pmethod-add-list .chip').count());
 
 /* 4a — a document is a mode of Documents: its row says so, and New starts that very kind in the project (FC-240) */
 await go(made['DMAIC']);
-await page.waitForSelector('.pmethod');
+await page.waitForSelector('.pmethod'); await openMethodSections(page);
 const charterRow = page.locator('.pmethod .lt-li', { hasText: 'Project charter' }).first();
 ok(/A mode of Documents/.test(flat(await charterRow.innerText())), '4a Project charter is "A mode of Documents"', flat(await charterRow.innerText()));
 await charterRow.getByRole('button', { name: /^New —/ }).click();
@@ -142,7 +143,7 @@ const kinds = (await page.locator('.proj-list .part-filters .chip').allInnerText
 ok(/DMAIC/.test(kinds) && /Stage gate/.test(kinds), '4b the Projects chips are the methods, with their counts', kinds);
 ok((await page.locator('.proj-list li.part-row', { hasText: 'Line 7 seal failures' }).first().innerText()).includes('DMAIC'), '4b a method project’s row names its method');
 await go(`#/project/${sd.methodProjectId}`);
-await page.waitForSelector('.pmethod');
+await page.waitForSelector('.pmethod'); await openMethodSections(page);
 const usedRows = await page.locator('.pmethod .lt-li', { hasText: '1 use in this project' }).count();
 ok(usedRows >= 1 && /1 tool used here/.test(await page.locator('.pmethod').innerText()), `4b the seeded study counted on the method's rows (${usedRows} rows say 1 use) and on its sections`);
 ok(/1 use of tools in this project/.test(flat(await page.locator('.pmethod .pace-lede').innerText())), '4b the header says how many uses', await page.locator('.pmethod .pace-lede').innerText());
@@ -162,7 +163,7 @@ const OPENS = [
   { m: '8D', what: 'Product on hold', where: /^Built$/, route: /#\/holds\?.*add=1/, sheet: '[data-sheet="new-holds"]' },
 ];
 for (const o of OPENS) {
-  await go(made[o.m]); await page.waitForSelector('.pmethod');
+  await go(made[o.m]); await page.waitForSelector('.pmethod'); await openMethodSections(page);
   const r = page.locator('.pmethod .lt-li', { hasText: o.what }).first();
   ok(o.where.test(flat(await r.locator('.lt-where').innerText().catch(() => ''))), `5b ${o.m}: "${o.what}" says what it is`, await r.locator('.lt-where').innerText().catch(() => 'no row'));
   await r.getByRole('button', { name: /^New —/ }).click(); await page.waitForTimeout(1500);
@@ -173,7 +174,7 @@ for (const o of OPENS) {
 /* 6 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });
 await go(made['PDCA']);
-await page.waitForSelector('.pmethod');
+await page.waitForSelector('.pmethod'); await openMethodSections(page);
 const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 ok(over <= 1, `6 the phone: nothing off the side (${over}px)`);
 

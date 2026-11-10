@@ -13,6 +13,7 @@
 
  *   node scripts/acceptance/weekly-number.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openMethodSections } from '../lib/methodFolds.mjs';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -127,7 +128,7 @@ const keep = async (pid) => page.evaluate(async (pid) => {
   await db.putReadings([42, 41, 35, 47, 44, 46, 49, 52].map((value, i) => ({ id: crypto.randomUUID(), projectId: pid, lineId: `line-${pid}`, measureId: `m-${pid}`, at: day(i), value, createdAt: Date.now() + i, updatedAt: Date.now() + i })));
 }, pid);
 for (const [fc, name, pid] of [['FC-201', 'The team’s own weekly number, proved', MPs.kata], ['FC-117', 'The team’s own weekly number, trended', MPs.a3]]) {
-  await page.goto(`${BASE}/#/project/${pid}`); await page.waitForTimeout(2500);
+  await page.goto(`${BASE}/#/project/${pid}`); await page.waitForTimeout(2500); await openMethodSections(page);  // a method page opens on the section in hand, the rest folded (docs/DESIGN.md) — opened to read them
   const t0 = await rowText(name);
   ok(/No measure set yet — the project’s owner sets what the team’s number is on its Setup\./.test(t0), `4 ${fc}: with no measure the row says where to set it — "${t0.slice(0, 150)}"`);
   await keep(pid); await page.waitForTimeout(1200);

@@ -139,7 +139,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
 
 /* ---- 7 · from a Kaizen event's Observe section */
 const kz = sd.methodProjectIds['kaizen-event'];
-await go(`#/project/${kz}`);
+await go(`#/project/${kz}`); await t.openSections();  // a method page opens on the section in hand, the rest folded (docs/DESIGN.md) — opened to read them
 const row = page.locator('li, .rec-row').filter({ hasText: 'Spaghetti diagram' }).first();
 const rt = flat(await row.innerText());
 ok(/Built/.test(rt) && !/Not built yet|A mode of/.test(rt), `7 Observe lists the Spaghetti diagram as built, a tool of its own since 8 November — "${rt.slice(0, 90)}"`);
