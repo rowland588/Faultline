@@ -326,7 +326,7 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
   const phone = usePhone();
   type Pane = 'figures' | 'answer' | 'whatif';
   const [pane, setPane] = useState<Pane>('figures');
-  const PANES: [Pane, string][] = [['figures', 'Figures'], ['answer', 'Answer'], ['whatif', 'What if']];
+  const PANES: [Pane, string][] = [['figures', 'Figures'], ['answer', def?.answerTab ?? 'Answer'], ['whatif', 'What if']];
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const [draft, setDraft] = useState<Inputs>(agreed.inputs);
   const [src, setSrc] = useState<Record<string, string> | undefined>(agreed.src);

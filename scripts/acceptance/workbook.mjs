@@ -97,9 +97,11 @@ ok(new RegExp(`^Read “Plant 2 downtime\\.xlsx” on this device in [\\d.]+ s: 
 ok(biggestPost - before < 2_000_000 && biggestPost < 2_000_000, `1 nothing of the file sent anywhere — the largest request body was ${Math.round(biggestPost / 1024)} KB`);
 
 /* ---- 2 · ASK ---- */
-await round('What does this workbook contain?', [calls(['p', 'workbook_profile', {}]), then('It is a downtime log …')]);
-const p = result('p');
-ok(p?.ok && /“Downtime” — [\d,]+ rows of data under the header in row 3 \(above it: Line downtime log — Plant 2\)/.test(p.says) && /written more than one way: “Line 3”/.test(p.says) && /with no saved value/.test(p.says) && /NOT read: A pivot table’s cache/.test(p.says), '2 what it holds and what is wrong with it, said by Faultline');
+await round('What does this workbook contain?', [calls(['p', 'workbook_profile', {}], ['pd', 'workbook_profile', { sheet: 'Downtime' }]), then('It is a downtime log …')]);
+const p = result('p'), pd = result('pd');
+/* the map — every sheet in a line and the connections found from the values (10 November) — then one sheet in full */
+ok(p?.ok && /THE MAP — 3 sheets/.test(p.says) && /- “Downtime”: [\d,]+ rows, header row 3/.test(p.says) && /- “Lookups” \(hidden\)/.test(p.says) && /CONNECTIONS found from the values/.test(p.says) && /NOT read: A pivot table’s cache/.test(p.says), '2 the map: every sheet in a line, the connections, what is not read');
+ok(pd?.ok && /“Downtime” — [\d,]+ rows of data under the header in row 3 \(above it: Line downtime log — Plant 2\)/.test(pd.says) && /written more than one way: “Line 3”/.test(pd.says) && /with no saved value/.test(pd.says) && !/=F\d+\*60/.test(pd.says), '2 one sheet in full: what is wrong with it, said by Faultline, no formula quoted');
 ok(asks.at(-1).focus && /Workbooks attached .*“Plant 2 downtime\.xlsx” \[wb-[^\]]+\] ready — Downtime [\d]+ rows/.test(asks.at(-1).focus), '2 the gateway is told the workbook is attached — its summary, never its cells');
 await round('Where are we losing the most production time?', [calls(['q', 'query_workbook', { sheet: 'Downtime', groupBy: ['Reason'], measures: [{ op: 'sum', column: 'Minutes' }, { op: 'count' }] }]), then('Bag presentation, by a distance …')]);
 const q = result('q');

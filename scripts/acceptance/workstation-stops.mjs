@@ -190,6 +190,46 @@ const f2 = join(OUT, 'carried.pdf'); await dl2.saveAs(f2);
 const text2 = flat(execFileSync('pdftotext', ['-raw', f2, '-'], { encoding: 'utf8' }));
 ok(/Carried on for 8 hours/.test(text2) && /Confidence:/.test(text2), '9 the paper says the carried-forward sentence and the confidence');
 
+/* ---- 12 · what each workstation costs and how often it stops; A week with no hours; Results on its own pane (spec Part 6 — Rowland,
+   10 November, on a live Cellox test: "I can't see what each section is actually costing us … the frequency … I put a week, and the graph
+   just completely disappeared … get the visuals on a tab where I can just flick") */
+await page.setViewportSize({ width: 1360, height: 900 });
+await go('#/calc/workstation-stops');
+await page.getByRole('button', { name: 'New calculation' }).first().click(); await page.waitForTimeout(400);
+await page.getByLabel('What is it of?').fill('Cellox feeding — live');
+await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500);
+const rid12 = decodeURIComponent(page.url().split('/').pop()?.split('?')[0] ?? '');
+await type('n', 4);
+await page.locator('[data-field="unit"] [data-value="kg"]').click();
+await type('rate', 12);
+for (const [i, name, min, stops] of [[0, 'Filler', 8.5, 3], [2, 'Sealer', 22, 2], [3, 'Packer', 5.25, 1]]) { await type(`w${nn(i)}_name`, name); await type(`w${nn(i)}_min`, min); await type(`w${nn(i)}_stops`, stops); }
+await type('w02_name', 'Wrapper');
+await type('watched', 120);
+await page.locator('.calc-money > summary').click(); await page.waitForTimeout(200);
+await type('unitCost', 2.1);
+await page.waitForTimeout(800);
+const barRows = await page.locator('[data-calc-bars] .calc-bars-r').evaluateAll(els => els.map(e => e.innerText.replace(/\s+/g, ' ').trim()));
+ok(barRows.length === 3 && /^Sealer/.test(barRows[0]) && /264 kg · £554\.40/.test(barRows[0]) && /2 stops · 11 min each/.test(barRows[0]) && /^Filler/.test(barRows[1]) && /3 stops · 2\.83 min each/.test(barRows[1]) && /^Packer/.test(barRows[2]), `12 a bar a workstation, ranked by loss, its stops beside it: ${barRows.join(' | ')}`);
+const says12 = flat(await page.locator('.ie-says').innerText().catch(() => ''));
+ok(/By how often: Filler stopped most — 3 times, 2\.83 min a stop on average/.test(says12) && /Filler stops often but briefly; Sealer's loss comes from fewer, longer stops/.test(says12), '12 frequency against loss said, by hand');
+await page.locator('[data-field="horizon"] [data-value="week"]').click(); await page.waitForTimeout(700);
+const t12 = await tiles();
+ok((await page.locator('.calc-picbox').filter({ hasText: 'lost so far' }).count()) === 1 && /give the hours a week/.test(flat(await page.locator('.calc-tiles').innerText())), `12 A week with no hours: the chart stays over the time watched and the tile asks for the hours (${t12['If it goes on']})`);
+await type('weekH', 120); await page.waitForTimeout(700);
+ok((await page.locator('.calc-picbox').filter({ hasText: 'lost if it carries on' }).count()) === 1, '12 the hours typed — carried over the week');
+const ptxt12 = flat(await (async () => { const [d] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, / — on paper$/)]); const f = join(OUT, 'bars.pdf'); await d.saveAs(f); return execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }); })());
+ok(/What each workstation lost, and how often it stopped/.test(ptxt12) && /Sealer/.test(ptxt12) && /2 stops · 11 min each/.test(ptxt12) && /3 stops · 2\.83 min each/.test(ptxt12), '12 the paper carries the bars, every workstation’s line');
+await page.locator('[data-field="horizon"] [data-value="8"]').click(); await page.waitForTimeout(400);
+await page.setViewportSize({ width: 390, height: 844 });
+await go(`#/calc/workstation-stops/${rid12}`);
+const panes = await page.locator('.calc-pane-t').allInnerTexts();
+ok(panes.join('|') === 'Figures|Results|What if', `12 on a phone the panes are ${panes.join(' · ')}`);
+ok(await page.locator('[data-field="w01_min"]').isVisible() && !(await page.locator('[data-calc-bars]').isVisible()), '12 the stations on the first pane, the bars not');
+await page.locator('.calc-pane-t', { hasText: 'Results' }).click(); await page.waitForTimeout(500);
+ok(await page.locator('[data-calc-bars]').isVisible() && !(await page.locator('[data-field="w01_min"]').isVisible()), '12 Results: the bars, one tap away');
+ok((await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '12 nothing off the side on Results');
+await page.locator('.calc-pane-t', { hasText: 'Figures' }).click(); await page.waitForTimeout(300);
+
 /* ---- 6 · the phone */
 await page.setViewportSize({ width: 390, height: 844 });
 await go(`#/calc/workstation-stops/${rid}`);

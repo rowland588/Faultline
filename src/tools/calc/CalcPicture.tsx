@@ -1,7 +1,7 @@
 /* A CALCULATOR'S PICTURE, ON THE SCREEN — drawn from the one description (CalcPicture in ./types) that the paper draws too
  * (lib/report/calcPaper), so the two cannot part. Plain axes, the curve, guides with their words, dots with theirs; no
  * colour carries a meaning (the brand's teal is the curve, graphite the guides) and every mark has its words beside it. */
-import type { CalcPicture } from './types';
+import type { CalcPicture, CalcBars } from './types';
 
 const W = 440, H = 280, L = 54, R = 18, T = 20, B = 44;
 
@@ -80,3 +80,29 @@ export function CalcPictureView({ pic }: { pic: CalcPicture }) {
     </figure>
   );
 }
+
+/** A bar a row, a measure and a second beside it on its own scale, each with its figure in words (FC-241 part 6). The paper draws the
+ *  same description (lib/report/calcPaper barsBlock). */
+export function CalcBarsView({ bars }: { bars: CalcBars }) {
+  const maxA = Math.max(...bars.rows.map(r => r.a), 0) || 1;
+  const maxB = Math.max(...bars.rows.map(r => r.b ?? 0), 0) || 1;
+  return (
+    <figure className="calc-bars" aria-label={bars.title}>
+      <figcaption className="calc-bars-h">{bars.title}</figcaption>
+      <div className="calc-bars-key"><span className="calc-bar-k is-a" />{bars.a}{bars.b && <><span className="calc-bar-k is-b" />{bars.b}</>}</div>
+      <ol className="calc-bars-l">
+        {bars.rows.map(r => (
+          <li key={r.label} className="calc-bars-r" data-bar={r.label}>
+            <div className="calc-bars-n"><b>{r.label}</b>{r.note && <span>{r.note}</span>}</div>
+            <div className="calc-bars-v">
+              <div className="calc-bar"><svg className="calc-bar-f" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><rect className="is-a" width={Math.max(0.5, (100 * r.a) / maxA)} height="8" rx="1" /></svg><span className="calc-bar-t">{r.aText}</span></div>
+              {bars.b && <div className="calc-bar"><svg className="calc-bar-f" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><rect className="is-b" width={Math.max(0.5, (100 * (r.b ?? 0)) / maxB)} height="8" rx="1" /></svg><span className="calc-bar-t">{r.bText}</span></div>}
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p className="sub calc-bars-c">{bars.caption}</p>
+    </figure>
+  );
+}
+

@@ -17277,6 +17277,25 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ai-conv.is-on { background: var(--accent-soft); }
 .ai-conv.is-on b { color: var(--brand-2); }
 /* each earlier conversation's options (⋯ — Open, Rename, Delete) */
+/* FC-241 part 6: a bar a workstation — what it lost, and how often it stopped beside it */
+.calc-bars { margin: 0; display: grid; gap: var(--space-2); }
+.calc-bars-h { font-weight: 600; color: var(--ink); }
+.calc-bars-key { display: flex; align-items: center; gap: var(--space-2); font-size: var(--t-label); color: var(--muted); }
+.calc-bar-k { display: inline-block; width: 12px; height: 8px; border-radius: var(--radius-xs); }
+.calc-bar-k.is-a { background: var(--brand); }
+.calc-bar-k.is-b { background: var(--st-n); }
+.calc-bars-l { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.calc-bars-r { display: grid; grid-template-columns: minmax(96px, 30%) 1fr; gap: var(--space-2); align-items: center; padding-bottom: var(--space-1); border-bottom: 1px solid var(--line); }
+.calc-bars-n { display: grid; min-width: 0; }
+.calc-bars-n b { font-size: var(--t-detail); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calc-bars-n span { font-size: var(--t-label); color: var(--muted); }
+.calc-bars-v { display: grid; gap: 3px; min-width: 0; }
+.calc-bar { display: grid; grid-template-columns: 1fr; position: relative; min-height: 18px; }
+.calc-bar-f { display: block; width: 100%; height: 8px; }
+.calc-bar-f rect.is-a { fill: var(--brand); }
+.calc-bar-f rect.is-b { fill: var(--st-n); }
+.calc-bar-t { font-size: var(--t-label); color: var(--ink-2, var(--ink)); }
+.calc-bars-c { margin: 0; }
 .ai-conv-row { position: relative; display: flex; align-items: stretch; gap: 2px; }
 .ai-conv-row .ai-conv { flex: 1; min-width: 0; }
 .ai-conv-more { flex: none; width: 44px; min-height: 44px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--muted); font: inherit; font-size: var(--t-body); cursor: pointer; }

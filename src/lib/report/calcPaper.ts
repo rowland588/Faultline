@@ -10,7 +10,7 @@ import type { LeanTile, LeanTone } from '../lean';
 import type { ToolStudy } from '../study';
 import { INK2, MUTED, LINE, BRAND, WARN, SURF2, san } from '../reportKit';
 import { askedFields, beforeRun, inputSaid, studyCalc, tilesSince } from '../../tools/calc/calc';
-import type { CalcChart, CalcHands, CalcPicture } from '../../tools/calc/types';
+import type { CalcBars, CalcChart, CalcHands, CalcPicture } from '../../tools/calc/types';
 import { symbolShape } from '../../tools/flow/symbols';
 import { font, label, rows, text, wrap, type Row } from './blocks';
 import { leanHead } from './lean';
@@ -172,6 +172,31 @@ export function handsBlock(chart: CalcHands): Block {
   return rows({ header: head, rows: chart.rows.map(row), after: 'm' });
 }
 
+/** A bar a row on paper, the second figure's bar beside the first on its own scale — the same description the screen draws. */
+export function barsBlock(b: CalcBars): Block {
+  const NAMEW = 0.3, LH = 11;
+  const maxA = Math.max(...b.rows.map(r => r.a), 0) || 1;
+  const maxB = Math.max(...b.rows.map(r => r.b ?? 0), 0) || 1;
+  const rowH = b.b ? LH * 2 + 6 : LH + 6;
+  const row = (r: CalcBars['rows'][number]): Row => ({
+    h: () => rowH,
+    draw: (fr, y) => {
+      const d = fr.doc, nameW = fr.w * NAMEW, barX = fr.x + nameW + 6, barW = (fr.w - nameW - 6) * 0.5;
+      font(d, 8, 'bold', INK2); d.text(san(r.label), fr.x, y + 9);
+      if (r.note) { font(d, 6.5, 'normal', MUTED); d.text(san(r.note), fr.x, y + 18); }
+      d.setFillColor(BRAND); d.rect(barX, y + 3, Math.max(0.5, (barW * r.a) / maxA), 7, 'F');
+      font(d, 7.5, 'normal', INK2); d.text(san(r.aText), barX + barW + 6, y + 9);
+      if (b.b) {
+        d.setFillColor(MUTED); d.rect(barX, y + 3 + LH, Math.max(0.5, (barW * (r.b ?? 0)) / maxB), 7, 'F');
+        font(d, 7.5, 'normal', MUTED); d.text(san(r.bText ?? ''), barX + barW + 6, y + 9 + LH);
+      }
+      d.setDrawColor(LINE); d.setLineWidth(0.4); d.line(fr.x, y + rowH - 1, fr.x + fr.w, y + rowH - 1);
+    },
+  });
+  const head: Row = { h: () => 12, draw: (fr, y) => { font(fr.doc, 7.5, 'bold', MUTED); fr.doc.text(san(`Workstation · ${b.a}${b.b ? ` · ${b.b}` : ''}`), fr.x, y + 8); } };
+  return rows({ header: head, rows: b.rows.map(row), after: 'm' });
+}
+
 export interface CalcPaperParts {
   eyebrow: string;
   verdict: { text: string; tone: LeanTone };
@@ -202,6 +227,7 @@ export function calcPaperParts(s: ToolStudy): CalcPaperParts | undefined {
   if (r) {
     const more = [...(r.more ?? []), ...run.problems.filter(p => !p.block).map(p => `Check: ${p.say}`)];
     if (more.length) { out.push(label('What else it says')); for (const m of more) out.push(text({ text: m, size: 8.5, colour: m.startsWith('Check:') ? WARN : INK2, after: 2 })); }
+    if (r.bars) { out.push(leanHead(r.bars.title)); out.push(barsBlock(r.bars)); out.push(text({ text: r.bars.caption, size: 8, colour: MUTED, after: 4 })); }
     if (r.picture) { out.push(leanHead(r.picture.title)); out.push(pictureBlock(r.picture)); out.push(text({ text: r.picture.caption, size: 8, colour: MUTED, after: 4 })); }
     if (r.hands) { out.push(leanHead(r.hands.title)); out.push(handsBlock(r.hands)); out.push(text({ text: r.hands.caption, size: 8, colour: MUTED, after: 4 })); }
     if (r.chart) { out.push(leanHead(r.chart.title)); out.push(chartBlock(r.chart)); out.push(text({ text: r.chart.caption, size: 8, colour: MUTED, after: 4 })); }

@@ -9,7 +9,7 @@ import { niceScale } from '../../../lib/niceScale';
 import { andList, duration, fmt, gbp, pct } from '../format';
 import { project, stopsForPrecision } from '../stopsProjection';
 import { clusterTest, parseLog, parseSpans } from '../stopsCluster';
-import type { CalcDef, CalcMoney, CalcPicture, CalcResult, Field, Inputs, Problem, Values } from '../types';
+import type { CalcBars, CalcDef, CalcMoney, CalcPicture, CalcResult, Field, Inputs, Problem, Values } from '../types';
 
 export const MAX_STATIONS = 30;
 const nn = (i: number): string => String(i + 1).padStart(2, '0');
@@ -80,6 +80,7 @@ const def: CalcDef = {
   says: 'Time every stop on up to 30 workstations and say what each minute cost — kilos, units or packs',
   question: 'Which workstation is losing the most, and how much has the stopped time cost in what it should have made?',
   group: 'Stops and losses',
+  answerTab: 'Results',
   inputs: [
     { id: 'n', label: 'How many workstations', kind: 'number', min: 1, max: MAX_STATIONS, integer: true,
       help: 'Up to 30. The boxes for each appear below.' },
@@ -154,6 +155,19 @@ const def: CalcDef = {
 
     const more: string[] = [];
     if (ranked.length > 1) more.push(`In order of what was lost: ${andList(ranked.slice(0, 5).map(r => `${r.name} ${fmt(r.lost, 2)} ${u}`))}${ranked.length > 5 ? ` and ${ranked.length - 5} more` : ''}.`);
+    /* part 6 — how often against how much (Rowland, 10 November: "I might capture a long loss, however, the frequency was twice … it's the
+       frequency of the stops that matters as well"): the most frequent and the biggest loser, each stop's average length, said from the counts */
+    const counted = stopped.filter(r => r.stops > 0);
+    const often = [...counted].sort((a, b) => b.stops - a.stops || b.lost - a.lost || a.i - b.i)[0];
+    const avg = (r: Row): number => r.min / r.stops;
+    if (often && worst && worst.stops > 0) {
+      if (often.i === worst.i) more.push(`${worst.name} both stopped most often (${fmt(worst.stops, 0)} stop${worst.stops === 1 ? '' : 's'}, ${fmt(avg(worst), 2)} min each on average) and lost the most.`);
+      else {
+        const pattern = avg(often) < avg(worst) / 2 ? ` ${often.name} stops often but briefly; ${worst.name}'s loss comes from fewer, longer stops — the two need different fixes (the frequent ones a cause that keeps coming back, the long ones how fast it is put right).` : '';
+        more.push(`By how often: ${often.name} stopped most — ${fmt(often.stops, 0)} times, ${fmt(avg(often), 2)} min a stop on average, ${fmt(often.lost, 2)} ${u} lost. By how much: ${worst.name} lost the most from ${fmt(worst.stops, 0)} stop${worst.stops === 1 ? '' : 's'}, ${fmt(avg(worst), 2)} min a stop.${pattern}`);
+      }
+    }
+    if (stopped.some(r => r.stops === 0)) more.push(`${andList(stopped.filter(r => r.stops === 0).map(r => r.name))} ${stopped.filter(r => r.stops === 0).length === 1 ? 'has' : 'have'} minutes typed but no stops counted, so how often cannot be said there.`);
     const quiet = rs.filter(r => r.min === 0);
     if (quiet.length && stopped.length) more.push(`${quiet.length === 1 ? `${quiet[0].name} has` : `${fmt(quiet.length, 0)} workstations have`} not stopped.`);
 
@@ -197,7 +211,30 @@ const def: CalcDef = {
       money = { missing };
     }
 
+    /* part 6 — a bar a workstation, ranked by what it lost, its stops beside it: what each costs, never one running total */
+    const unitCost = num(v, 'unitCost');
+    const bars: CalcBars | undefined = ranked.length ? {
+      title: 'What each workstation lost, and how often it stopped',
+      caption: `Ranked by what was lost. The second bar is how many times it stopped${often ? ` — ${often.name} the most often` : ''}. A long bar of stops with a short loss is many brief stops; the other way round, a few long ones.`,
+      a: `${u} lost`, ...(counted.length ? { b: 'stops' } : {}),
+      rows: ranked.map(r => ({ label: r.name, a: r.lost, aText: `${fmt(r.lost, 2)} ${u}${unitCost !== undefined ? ` · ${gbp(r.lost * unitCost)}` : ''}`, ...(counted.length ? { b: r.stops, bText: r.stops ? `${fmt(r.stops, 0)} stop${r.stops === 1 ? '' : 's'} · ${fmt(avg(r), 2)} min each` : 'none counted' } : {}), note: `${fmt(r.min, 2)} min stopped` })),
+    } : undefined;
+
     let picture: CalcPicture | undefined;
+    if (!proj && watched && watched > 0 && lost > 0 && !H) {
+      /* a week (or hours) picked with no hours given: the chart stays, over the time watched, and asks for the hours — never vanishes */
+      const wh = watched / 60;
+      const ys = niceScale(0, lost, 4), xs = niceScale(0, wh, 4);
+      picture = {
+        title: `${u[0].toUpperCase()}${u.slice(1)} lost so far`,
+        caption: v.horizon === 'week' ? 'Type the hours the line runs in a week (the box under A week) to carry this forward over a week — until then the chart shows the time watched.' : 'Give the hours to carry this forward over — until then the chart shows the time watched.',
+        x: { label: 'hours from the start of watching', min: 0, max: Math.max(xs.max, wh), ticks: xs.ticks, fmt: t => fmt(t, 1) },
+        y: { label: `${u} lost`, min: 0, max: ys.max, ticks: ys.ticks, fmt: t => fmt(t, 0) },
+        lines: [{ points: [[0, 0], [wh, lost]], mark: 'brand' }],
+        verticals: [], horizontals: [],
+        dots: [{ x: wh, y: lost, label: `watched: ${fmt(lost, 1)} ${u}` }],
+      };
+    }
     if (proj && H && watched) {
       const wh = watched / 60, xmax = Math.max(H, wh);
       const at = (x: number, f: number): number => lost * (x / wh) * f;
@@ -226,12 +263,13 @@ const def: CalcDef = {
       sentence,
       ...(more.length ? { more } : {}),
       ...(picture ? { picture } : {}),
+      ...(bars ? { bars } : {}),
       tiles: [
         { k: 'Lost', v: fmt(lost, 2), of: u, n: lost, better: 'lower', fmt: x => `${fmt(x, 2)} ${u}` },
         { k: 'Stopped', v: fmt(minutes, 2), of: 'minutes in all', n: minutes, better: 'lower', fmt: x => `${fmt(x, 2)} minutes` },
         { k: 'Stops', v: stops ? fmt(stops, 0) : '—', of: stops ? 'counted' : 'none counted', ...(stops ? { n: stops, better: 'lower' as const, counted: true } : {}) },
         worst ? { k: 'Worst', v: worst.name, of: `${fmt(worst.lost, 2)} ${u}${worstShare !== undefined ? ` — ${pct(worstShare)}` : ''}` } : { k: 'Worst', v: '—', of: 'none has stopped' },
-        proj && H ? { k: 'If it goes on', v: fmt(proj.lost, 1), of: `${u} in ${horizonSaid(v, H)}`, n: proj.lost, better: 'lower', fmt: x => `${fmt(x, 1)} ${u}` } : { k: 'If it goes on', v: '—', of: watched ? 'give the hours' : 'give the time watched' },
+        proj && H ? { k: 'If it goes on', v: fmt(proj.lost, 1), of: `${u} in ${horizonSaid(v, H)}`, n: proj.lost, better: 'lower', fmt: x => `${fmt(x, 1)} ${u}` } : { k: 'If it goes on', v: '—', of: watched ? (v.horizon === 'week' ? 'give the hours a week' : 'give the hours') : 'give the time watched' },
         proj?.range && proj.firm ? { k: 'Confidence', v: proj.firm, of: `${cpct} range ${fmt(proj.range.lo, 1)} to ${fmt(proj.range.hi, 1)}`, ...(proj.firm === 'Rough' ? { tone: 'a' as const } : {}) } : { k: 'Confidence', v: '—', of: proj ? 'no range yet' : 'give the time watched' },
       ],
       working: [

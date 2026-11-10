@@ -124,6 +124,16 @@ export interface CalcPicture {
   areas?: { x0: number; y0: number; x1: number; y1: number; label: string }[];
 }
 
+/** A row of two bars a thing — a measure and, beside it, a second on its own scale (the loss and the stops at each workstation). */
+export interface CalcBars {
+  title: string;
+  caption: string;
+  /** What each bar measures, in words ("kg lost", "stops"). */
+  a: string;
+  b?: string;
+  rows: { label: string; a: number; aText: string; b?: number; bText?: string; note?: string }[];
+}
+
 /** A chart that is not an x–y plot: the steps of a path down the page, each with its ASME symbol, its words and two figures (the process flow chart,
  *  FC-003). Drawn from the one description by the screen (tools/calc/CalcChart) and the paper (lib/report/calcPaper), so the two cannot part. */
 export interface CalcChart {
@@ -165,6 +175,9 @@ export interface CalcResult {
   chart?: CalcChart;
   /** Or a two-handed chart (micro-movements, FC-233). */
   hands?: CalcHands;
+  /** Bars a row, each row two figures on their own scales (FC-241 part 6 — what each workstation lost and how often it stopped), drawn by the
+   *  screen and the paper from this one description. */
+  bars?: CalcBars;
   /** The lean page's closing line: where are we, why, and what is being done. */
   closing: string;
 }
@@ -183,6 +196,8 @@ export interface Example {
 export interface Refused { name: string; inputs: Inputs; blocked: string }
 
 export interface CalcDef {
+  /** What the phone's second pane is called for this tool — "Results" where the answer is mostly charts (FC-241). Absent: "Answer". */
+  answerTab?: string;
   /** The address and the record's key: lower-case words with hyphens. */
   key: string;
   /** The catalogue entry whose tool this is — its `built.where` includes `/calc/<key>`. */

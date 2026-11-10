@@ -90,3 +90,37 @@ describe('stops across workstations', () => {
     });
   });
 });
+
+/* PART 6 (spec §Part 6, Rowland, 10 November on a live Cellox test: "I can't see what each section is actually costing us … it's the
+   frequency of the stops that matters as well … I put a week, and the graph just completely disappeared") */
+describe('stops across workstations — what each costs, how often it stops', () => {
+  const caseA = { n: 4, ...base, [wid(0, 'name')]: 'Filler', [wid(0, 'min')]: 8.5, [wid(0, 'stops')]: 3, [wid(1, 'name')]: 'Wrapper', [wid(2, 'name')]: 'Sealer', [wid(2, 'min')]: 22, [wid(2, 'stops')]: 2, [wid(3, 'name')]: 'Packer', [wid(3, 'min')]: 5.25, [wid(3, 'stops')]: 1, watched: 120 };
+  it('criterion 21: a bar a workstation ranked by its loss, its stops beside it; the frequency read by hand', () => {
+    const r = runCalc(def, caseA).result!;
+    expect(r.bars?.rows.map(b => [b.label, b.a, b.b, b.aText, b.bText])).toEqual([
+      ['Sealer', 264, 2, '264 kg', '2 stops · 11 min each'],
+      ['Filler', 102, 3, '102 kg', '3 stops · 2.83 min each'],
+      ['Packer', 63, 1, '63 kg', '1 stop · 5.25 min each'],
+    ]);
+    expect(r.bars?.title).toBe('What each workstation lost, and how often it stopped');
+    expect(r.more?.join(' ')).toContain('By how often: Filler stopped most — 3 times, 2.83 min a stop on average, 102 kg lost. By how much: Sealer lost the most from 2 stops, 11 min a stop. Filler stops often but briefly; Sealer\'s loss comes from fewer, longer stops');
+  });
+  it('with a unit’s worth, each bar says its money too', () => {
+    const r = runCalc(def, { ...caseA, unitCost: 2.1 }).result!;
+    expect(r.bars?.rows[0].aText).toBe('264 kg · £554.40');
+  });
+  it('one workstation both most frequent and biggest loser is said once', () => {
+    const r = runCalc(def, { n: 2, ...base, [wid(0, 'name')]: 'A', [wid(0, 'min')]: 20, [wid(0, 'stops')]: 5, [wid(1, 'name')]: 'B', [wid(1, 'min')]: 2, [wid(1, 'stops')]: 1 }).result!;
+    expect(r.more?.join(' ')).toContain('A both stopped most often (5 stops, 4 min each on average) and lost the most.');
+  });
+  it('criterion 22: A week with no hours keeps a chart over the time watched and asks for the hours', () => {
+    const r = runCalc(def, { ...caseA, horizon: 'week' }).result!;
+    expect(r.picture?.title).toBe('Kg lost so far');
+    expect(r.picture?.x.max).toBeGreaterThanOrEqual(2);
+    expect(r.picture?.caption).toMatch(/Type the hours the line runs in a week/);
+    expect(r.tiles.find(t => t.k === 'If it goes on')?.of).toBe('give the hours a week');
+    const w = runCalc(def, { ...caseA, horizon: 'week', weekH: 120 }).result!;
+    expect(w.picture?.title).toBe('Kg lost if it carries on');
+  });
+  it('the phone’s second pane is Results for this tool', () => { expect(def.answerTab).toBe('Results'); });
+});

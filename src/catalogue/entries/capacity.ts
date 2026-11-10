@@ -283,7 +283,7 @@ export const CAPACITY: Entry[] = [
     questions: ['Which workstation lost the most?', 'What did the stopped time cost in what it should have made?'],
     method: 'Stopped time by workstation, each timed with one press; lost output = minutes × the rate; ranked.',
     inputs: 'The workstations (up to 30), each stop timed or typed, the rate lost in the unit chosen, optionally the watched time and a unit’s worth.',
-    outputs: 'Minutes, stops and output lost by workstation and in all, the worst one, the sample carried forward to 1–24 hours or a week with its exact confidence range and a chart, the money if it cannot be made up.',
+    outputs: 'Minutes, stops and output lost by workstation and in all, a bar a workstation with its stops beside it and how often against how much said, the worst one, the sample carried forward to 1–24 hours or a week with its exact confidence range and a chart, the money if it cannot be made up.',
     food: 'Twelve hand-pack stations; five weighers at 600 an hour each.',
     depends: ['FC-051'],
     complexity: 'S', value: 'medium', valueWhy: 'A quick floor tally of stops across a row of stations in the unit the floor counts in.',
