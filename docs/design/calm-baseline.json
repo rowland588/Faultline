@@ -1,20 +1,4 @@
 {
- "phone · A method project — its sections": {
-  "height": 7761,
-  "boxes": 13,
-  "headings": 8,
-  "controls": 75,
-  "sizes": 5,
-  "first": 4
- },
- "phone · A document — an 8D report with its photos": {
-  "height": 13230,
-  "boxes": 27,
-  "headings": 12,
-  "controls": 113,
-  "sizes": 4,
-  "first": 5
- },
  "phone · A video study": {
   "height": 11487,
   "boxes": 36,
@@ -22,14 +6,6 @@
   "controls": 141,
   "sizes": 6,
   "first": 6
- },
- "desk · A method project — its sections": {
-  "height": 5315,
-  "boxes": 13,
-  "headings": 8,
-  "controls": 75,
-  "sizes": 5,
-  "first": 7
  },
  "phone · Methods — a method’s own page": {
   "height": 10008,
@@ -39,93 +15,21 @@
   "sizes": 6,
   "first": 4
  },
- "desk · A document — an 8D report with its photos": {
-  "height": 9815,
-  "boxes": 25,
-  "headings": 12,
-  "controls": 113,
-  "sizes": 4,
-  "first": 7
- },
- "phone · An area — its report": {
-  "height": 9620,
-  "boxes": 18,
-  "headings": 13,
-  "controls": 41,
+ "phone · A method project — its sections": {
+  "height": 7761,
+  "boxes": 13,
+  "headings": 8,
+  "controls": 75,
   "sizes": 5,
-  "first": 10
- },
- "phone · Tools — the library": {
-  "height": 3693,
-  "boxes": 1,
-  "headings": 1,
-  "controls": 69,
-  "sizes": 4,
-  "first": 2
- },
- "phone · Scored registers — the hub": {
-  "height": 8196,
-  "boxes": 6,
-  "headings": 6,
-  "controls": 10,
-  "sizes": 4,
   "first": 4
  },
- "desk · Tools — the library": {
-  "height": 1739,
-  "boxes": 1,
-  "headings": 1,
-  "controls": 69,
-  "sizes": 4,
-  "first": 2
- },
- "phone · A document — a charter ready to agree": {
-  "height": 7832,
-  "boxes": 18,
-  "headings": 8,
-  "controls": 46,
-  "sizes": 4,
-  "first": 5
- },
- "phone · Factory › Lines — the board": {
-  "height": 7722,
-  "boxes": 15,
-  "headings": 16,
-  "controls": 76,
-  "sizes": 8,
-  "first": 6
- },
- "phone · Factory › Lines — its areas": {
-  "height": 7722,
-  "boxes": 15,
-  "headings": 16,
-  "controls": 76,
-  "sizes": 8,
-  "first": 6
- },
  "desk · Line capacity — two lines into one wrapper": {
-  "height": 6897,
-  "boxes": 30,
+  "height": 6894,
+  "boxes": 29,
   "headings": 12,
   "controls": 122,
   "sizes": 7,
   "first": 12
- },
- "phone · Reliability study — repairs, growth, calls and a part that wears": {
-  "height": 6819,
-  "boxes": 13,
-  "headings": 11,
-  "controls": 39,
-  "sizes": 7,
-  "first": 3
- },
- "phone · Tools — a tool’s own page": {
-  "height": 1569,
-  "boxes": 1,
-  "headings": 2,
-  "controls": 9,
-  "sizes": 4,
-  "first": 3
  },
  "phone · The parts": {
   "height": 5539,
@@ -143,13 +47,21 @@
   "sizes": 4,
   "first": 5
  },
- "desk · An area — its report": {
-  "height": 5457,
-  "boxes": 18,
-  "headings": 13,
-  "controls": 41,
-  "sizes": 6,
-  "first": 18
+ "desk · A method project — its sections": {
+  "height": 5315,
+  "boxes": 13,
+  "headings": 8,
+  "controls": 75,
+  "sizes": 5,
+  "first": 7
+ },
+ "phone · Reliability study — repairs, growth, calls and a part that wears": {
+  "height": 5139,
+  "boxes": 9,
+  "headings": 6,
+  "controls": 40,
+  "sizes": 7,
+  "first": 3
  },
  "desk · A video study": {
   "height": 5078,
@@ -159,38 +71,6 @@
   "sizes": 6,
   "first": 9
  },
- "phone · Materials": {
-  "height": 5007,
-  "boxes": 24,
-  "headings": 6,
-  "controls": 85,
-  "sizes": 5,
-  "first": 10
- },
- "desk · A document — a charter ready to agree": {
-  "height": 4935,
-  "boxes": 16,
-  "headings": 8,
-  "controls": 46,
-  "sizes": 4,
-  "first": 7
- },
- "desk · Factory › Lines — the board": {
-  "height": 4932,
-  "boxes": 15,
-  "headings": 16,
-  "controls": 86,
-  "sizes": 10,
-  "first": 8
- },
- "desk · Factory › Lines — its areas": {
-  "height": 4932,
-  "boxes": 15,
-  "headings": 16,
-  "controls": 93,
-  "sizes": 11,
-  "first": 8
- },
  "phone · The project report — a method project": {
   "height": 4859,
   "boxes": 11,
@@ -198,30 +78,6 @@
   "controls": 4,
   "sizes": 5,
   "first": 8
- },
- "phone · An area — its page": {
-  "height": 4795,
-  "boxes": 8,
-  "headings": 9,
-  "controls": 36,
-  "sizes": 6,
-  "first": 10
- },
- "desk · Reliability study — repairs, growth, calls and a part that wears": {
-  "height": 4604,
-  "boxes": 11,
-  "headings": 11,
-  "controls": 39,
-  "sizes": 8,
-  "first": 3
- },
- "phone · A SMED": {
-  "height": 4490,
-  "boxes": 16,
-  "headings": 2,
-  "controls": 55,
-  "sizes": 6,
-  "first": 4
  },
  "phone · Tools — a world’s home (Statistics)": {
   "height": 4404,
@@ -239,21 +95,29 @@
   "sizes": 6,
   "first": 4
  },
- "phone · Programs": {
-  "height": 4361,
-  "boxes": 22,
-  "headings": 11,
-  "controls": 59,
-  "sizes": 5,
-  "first": 7
+ "phone · A SMED": {
+  "height": 4302,
+  "boxes": 15,
+  "headings": 1,
+  "controls": 56,
+  "sizes": 7,
+  "first": 4
  },
- "phone · Tools — a 6M project": {
-  "height": 4124,
-  "boxes": 34,
-  "headings": 2,
-  "controls": 67,
-  "sizes": 5,
-  "first": 8
+ "phone · Factory › Lines — the board": {
+  "height": 4242,
+  "boxes": 8,
+  "headings": 9,
+  "controls": 35,
+  "sizes": 7,
+  "first": 6
+ },
+ "phone · Factory › Lines — its areas": {
+  "height": 4242,
+  "boxes": 8,
+  "headings": 9,
+  "controls": 35,
+  "sizes": 7,
+  "first": 6
  },
  "phone · Set up — the factory's lines": {
   "height": 4111,
@@ -263,29 +127,21 @@
   "sizes": 4,
   "first": 8
  },
- "phone · A line — its own page": {
-  "height": 3950,
-  "boxes": 18,
-  "headings": 13,
-  "controls": 42,
-  "sizes": 6,
-  "first": 11
- },
- "phone · Reliability study": {
-  "height": 3870,
-  "boxes": 11,
-  "headings": 9,
+ "phone · A document — an 8D report with its photos": {
+  "height": 4062,
+  "boxes": 7,
+  "headings": 2,
   "controls": 18,
-  "sizes": 7,
-  "first": 5
- },
- "phone · Calculators — the hub": {
-  "height": 3845,
-  "boxes": 1,
-  "headings": 13,
-  "controls": 28,
   "sizes": 5,
-  "first": 4
+  "first": 3
+ },
+ "phone · Programs": {
+  "height": 3932,
+  "boxes": 16,
+  "headings": 11,
+  "controls": 59,
+  "sizes": 5,
+  "first": 6
  },
  "desk · Methods — a method’s own page": {
   "height": 3777,
@@ -295,37 +151,45 @@
   "sizes": 6,
   "first": 7
  },
+ "phone · Reliability study": {
+  "height": 3770,
+  "boxes": 9,
+  "headings": 7,
+  "controls": 19,
+  "sizes": 7,
+  "first": 5
+ },
+ "phone · Tools — the library": {
+  "height": 3693,
+  "boxes": 1,
+  "headings": 1,
+  "controls": 69,
+  "sizes": 5,
+  "first": 2
+ },
  "phone · Line balance — one product": {
-  "height": 3689,
-  "boxes": 11,
+  "height": 3680,
+  "boxes": 10,
   "headings": 3,
   "controls": 49,
   "sizes": 5,
   "first": 4
  },
  "desk · Line capacity — one line": {
-  "height": 3568,
-  "boxes": 19,
+  "height": 3565,
+  "boxes": 18,
   "headings": 9,
   "controls": 63,
   "sizes": 8,
   "first": 12
  },
  "phone · Control chart": {
-  "height": 3553,
-  "boxes": 7,
-  "headings": 2,
+  "height": 3526,
+  "boxes": 6,
+  "headings": 1,
   "controls": 69,
   "sizes": 6,
   "first": 5
- },
- "phone · The 6M board": {
-  "height": 3505,
-  "boxes": 20,
-  "headings": 23,
-  "controls": 50,
-  "sizes": 5,
-  "first": 7
  },
  "phone · New project": {
   "height": 3482,
@@ -335,22 +199,6 @@
   "sizes": 4,
   "first": 3
  },
- "phone · A machine — its one page, on its line": {
-  "height": 3472,
-  "boxes": 24,
-  "headings": 11,
-  "controls": 24,
-  "sizes": 5,
-  "first": 8
- },
- "phone · A stage-gate project — its front page, Now": {
-  "height": 3462,
-  "boxes": 13,
-  "headings": 12,
-  "controls": 36,
-  "sizes": 5,
-  "first": 6
- },
  "desk · The project report — a method project": {
   "height": 3455,
   "boxes": 11,
@@ -359,13 +207,29 @@
   "sizes": 6,
   "first": 9
  },
- "desk · Tools — a tool’s own page": {
-  "height": 986,
+ "phone · Calculators — the hub": {
+  "height": 3450,
   "boxes": 1,
-  "headings": 2,
-  "controls": 9,
-  "sizes": 4,
-  "first": 3
+  "headings": 13,
+  "controls": 28,
+  "sizes": 5,
+  "first": 4
+ },
+ "phone · The 6M board": {
+  "height": 3401,
+  "boxes": 20,
+  "headings": 23,
+  "controls": 42,
+  "sizes": 5,
+  "first": 7
+ },
+ "phone · An area — its page": {
+  "height": 3396,
+  "boxes": 8,
+  "headings": 4,
+  "controls": 24,
+  "sizes": 6,
+  "first": 9
  },
  "phone · Documents — the hub": {
   "height": 3379,
@@ -376,8 +240,8 @@
   "first": 7
  },
  "phone · Line balance — Times": {
-  "height": 3376,
-  "boxes": 8,
+  "height": 3367,
+  "boxes": 7,
   "headings": 5,
   "controls": 34,
   "sizes": 4,
@@ -399,29 +263,37 @@
   "sizes": 6,
   "first": 15
  },
- "phone · Reliability study — a line watch (every machine on one clock)": {
-  "height": 3299,
-  "boxes": 10,
-  "headings": 7,
-  "controls": 14,
-  "sizes": 7,
-  "first": 5
- },
- "desk · Programs": {
-  "height": 3211,
-  "boxes": 22,
-  "headings": 11,
-  "controls": 59,
+ "phone · An area — its report": {
+  "height": 3301,
+  "boxes": 9,
+  "headings": 5,
+  "controls": 4,
   "sizes": 5,
   "first": 10
  },
- "phone · Results — a 6M project": {
-  "height": 3207,
-  "boxes": 8,
-  "headings": 4,
-  "controls": 49,
-  "sizes": 8,
-  "first": 9
+ "phone · A document — a charter ready to agree": {
+  "height": 3297,
+  "boxes": 7,
+  "headings": 2,
+  "controls": 14,
+  "sizes": 5,
+  "first": 3
+ },
+ "desk · Journey — a stage-gate project": {
+  "height": 3251,
+  "boxes": 5,
+  "headings": 1,
+  "controls": 71,
+  "sizes": 6,
+  "first": 6
+ },
+ "phone · Reliability study — a line watch (every machine on one clock)": {
+  "height": 3210,
+  "boxes": 7,
+  "headings": 5,
+  "controls": 15,
+  "sizes": 7,
+  "first": 5
  },
  "phone · Problems": {
   "height": 3206,
@@ -431,53 +303,53 @@
   "sizes": 4,
   "first": 5
  },
- "desk · Journey — a stage-gate project": {
-  "height": 3191,
+ "phone · A machine — its one page, on its line": {
+  "height": 3156,
+  "boxes": 18,
+  "headings": 8,
+  "controls": 22,
+  "sizes": 5,
+  "first": 7
+ },
+ "desk · Programs": {
+  "height": 3099,
   "boxes": 16,
-  "headings": 1,
-  "controls": 71,
+  "headings": 11,
+  "controls": 59,
   "sizes": 5,
   "first": 8
  },
  "phone · Analysis — which shape fits": {
-  "height": 3106,
-  "boxes": 7,
-  "headings": 2,
+  "height": 3079,
+  "boxes": 6,
+  "headings": 1,
   "controls": 60,
   "sizes": 6,
   "first": 5
  },
- "desk · Materials": {
-  "height": 3093,
-  "boxes": 24,
+ "desk · Reliability study — repairs, growth, calls and a part that wears": {
+  "height": 3053,
+  "boxes": 7,
   "headings": 6,
-  "controls": 85,
-  "sizes": 6,
-  "first": 13
+  "controls": 40,
+  "sizes": 8,
+  "first": 3
  },
  "phone · Analysis — is the gauge fit (bias and linearity)": {
-  "height": 3077,
-  "boxes": 6,
-  "headings": 2,
+  "height": 3050,
+  "boxes": 5,
+  "headings": 1,
   "controls": 77,
   "sizes": 6,
   "first": 4
  },
  "phone · A capability study": {
-  "height": 3035,
-  "boxes": 7,
-  "headings": 3,
+  "height": 3006,
+  "boxes": 5,
+  "headings": 2,
   "controls": 29,
   "sizes": 6,
   "first": 4
- },
- "desk · An area — its page": {
-  "height": 2958,
-  "boxes": 8,
-  "headings": 9,
-  "controls": 36,
-  "sizes": 7,
-  "first": 11
  },
  "phone · Line standard — long notes, tall shapes": {
   "height": 2901,
@@ -487,45 +359,21 @@
   "sizes": 6,
   "first": 2
  },
- "desk · Calculators — the hub": {
-  "height": 2874,
-  "boxes": 1,
-  "headings": 13,
-  "controls": 28,
+ "phone · A stage-gate project — its front page, Now": {
+  "height": 2812,
+  "boxes": 6,
+  "headings": 6,
+  "controls": 27,
   "sizes": 5,
   "first": 5
  },
- "desk · Tools — a 6M project": {
-  "height": 2795,
-  "boxes": 34,
-  "headings": 2,
-  "controls": 67,
-  "sizes": 5,
-  "first": 13
- },
  "phone · Analysis — is the gauge fit (Type 1)": {
-  "height": 2787,
-  "boxes": 8,
-  "headings": 2,
+  "height": 2760,
+  "boxes": 7,
+  "headings": 1,
   "controls": 70,
   "sizes": 6,
   "first": 6
- },
- "phone · Analysis — counts in a table": {
-  "height": 2772,
-  "boxes": 7,
-  "headings": 2,
-  "controls": 24,
-  "sizes": 5,
-  "first": 5
- },
- "desk · A SMED": {
-  "height": 2764,
-  "boxes": 15,
-  "headings": 2,
-  "controls": 55,
-  "sizes": 6,
-  "first": 4
  },
  "phone · A line — its tools": {
   "height": 2746,
@@ -535,61 +383,45 @@
   "sizes": 5,
   "first": 5
  },
- "desk · Control chart": {
-  "height": 2714,
+ "phone · Analysis — counts in a table": {
+  "height": 2745,
   "boxes": 6,
-  "headings": 2,
-  "controls": 69,
-  "sizes": 6,
+  "headings": 1,
+  "controls": 24,
+  "sizes": 5,
   "first": 5
  },
- "phone · Analysis — do groups differ": {
-  "height": 2703,
-  "boxes": 6,
-  "headings": 2,
-  "controls": 49,
-  "sizes": 6,
-  "first": 4
- },
  "phone · Line balance — Order of work": {
-  "height": 2686,
-  "boxes": 11,
+  "height": 2677,
+  "boxes": 10,
   "headings": 1,
   "controls": 23,
   "sizes": 4,
   "first": 4
  },
  "phone · Line balance — Improve": {
-  "height": 2686,
-  "boxes": 11,
+  "height": 2677,
+  "boxes": 10,
   "headings": 3,
   "controls": 38,
   "sizes": 4,
   "first": 4
  },
- "phone · Line capacity — what a line can make": {
-  "height": 2674,
-  "boxes": 4,
-  "headings": 4,
-  "controls": 42,
+ "phone · Analysis — do groups differ": {
+  "height": 2676,
+  "boxes": 5,
+  "headings": 1,
+  "controls": 49,
   "sizes": 6,
   "first": 4
  },
- "desk · Actions — the factory": {
-  "height": 2645,
-  "boxes": 21,
+ "desk · Control chart": {
+  "height": 2675,
+  "boxes": 5,
   "headings": 1,
-  "controls": 56,
-  "sizes": 5,
-  "first": 11
- },
- "phone · All together — one product": {
-  "height": 2633,
-  "boxes": 12,
-  "headings": 4,
-  "controls": 11,
-  "sizes": 4,
-  "first": 8
+  "controls": 69,
+  "sizes": 6,
+  "first": 5
  },
  "phone · A check log — the round": {
   "height": 2626,
@@ -599,6 +431,22 @@
   "sizes": 6,
   "first": 7
  },
+ "desk · Actions — the factory": {
+  "height": 2625,
+  "boxes": 7,
+  "headings": 1,
+  "controls": 56,
+  "sizes": 6,
+  "first": 8
+ },
+ "phone · All together — one product": {
+  "height": 2624,
+  "boxes": 11,
+  "headings": 4,
+  "controls": 11,
+  "sizes": 4,
+  "first": 8
+ },
  "phone · A Line Talk document": {
   "height": 2624,
   "boxes": 3,
@@ -607,13 +455,29 @@
   "sizes": 3,
   "first": 2
  },
+ "phone · The Story": {
+  "height": 2618,
+  "boxes": 6,
+  "headings": 5,
+  "controls": 16,
+  "sizes": 5,
+  "first": 1
+ },
  "desk · Line balance — one product": {
-  "height": 2621,
-  "boxes": 11,
+  "height": 2612,
+  "boxes": 10,
   "headings": 3,
   "controls": 49,
   "sizes": 5,
   "first": 5
+ },
+ "desk · A SMED": {
+  "height": 2612,
+  "boxes": 14,
+  "headings": 1,
+  "controls": 56,
+  "sizes": 7,
+  "first": 4
  },
  "desk · A loss count": {
   "height": 2603,
@@ -640,28 +504,12 @@
   "first": 10
  },
  "phone · Analysis — what moves with what": {
-  "height": 2571,
-  "boxes": 7,
-  "headings": 2,
+  "height": 2544,
+  "boxes": 6,
+  "headings": 1,
   "controls": 23,
   "sizes": 5,
   "first": 5
- },
- "phone · Analysis — is the gauge fit (stability)": {
-  "height": 2531,
-  "boxes": 6,
-  "headings": 2,
-  "controls": 45,
-  "sizes": 6,
-  "first": 4
- },
- "phone · Analysis": {
-  "height": 2528,
-  "boxes": 6,
-  "headings": 2,
-  "controls": 47,
-  "sizes": 6,
-  "first": 4
  },
  "phone · A value stream map": {
   "height": 2520,
@@ -671,14 +519,6 @@
   "sizes": 7,
   "first": 3
  },
- "desk · A stage-gate project — its front page, Now": {
-  "height": 2512,
-  "boxes": 8,
-  "headings": 12,
-  "controls": 36,
-  "sizes": 6,
-  "first": 9
- },
  "phone · The Story — the one home": {
   "height": 2512,
   "boxes": 5,
@@ -687,37 +527,29 @@
   "sizes": 5,
   "first": 1
  },
- "phone · The Story": {
-  "height": 2512,
+ "phone · Analysis — is the gauge fit (stability)": {
+  "height": 2504,
   "boxes": 5,
-  "headings": 5,
-  "controls": 15,
-  "sizes": 5,
-  "first": 1
- },
- "desk · A machine — its one page, on its line": {
-  "height": 2464,
-  "boxes": 24,
-  "headings": 11,
-  "controls": 24,
+  "headings": 1,
+  "controls": 45,
   "sizes": 6,
-  "first": 16
+  "first": 4
  },
- "desk · A line — its own page": {
-  "height": 2460,
-  "boxes": 18,
+ "phone · Analysis": {
+  "height": 2501,
+  "boxes": 5,
+  "headings": 1,
+  "controls": 47,
+  "sizes": 6,
+  "first": 4
+ },
+ "desk · Calculators — the hub": {
+  "height": 2471,
+  "boxes": 1,
   "headings": 13,
-  "controls": 42,
-  "sizes": 7,
-  "first": 15
- },
- "phone · Work sampling": {
-  "height": 2428,
-  "boxes": 8,
-  "headings": 4,
-  "controls": 21,
-  "sizes": 4,
-  "first": 6
+  "controls": 28,
+  "sizes": 5,
+  "first": 5
  },
  "desk · Documents — the hub": {
   "height": 2418,
@@ -726,6 +558,14 @@
   "controls": 31,
   "sizes": 7,
   "first": 10
+ },
+ "phone · Work sampling": {
+  "height": 2401,
+  "boxes": 7,
+  "headings": 3,
+  "controls": 21,
+  "sizes": 4,
+  "first": 6
  },
  "phone · A line — its report, everything on the line": {
   "height": 2390,
@@ -736,8 +576,8 @@
   "first": 10
  },
  "desk · All together — one product": {
-  "height": 2373,
-  "boxes": 12,
+  "height": 2364,
+  "boxes": 11,
   "headings": 4,
   "controls": 11,
   "sizes": 5,
@@ -752,20 +592,20 @@
   "first": 8
  },
  "phone · Commission": {
-  "height": 2354,
-  "boxes": 15,
+  "height": 2333,
+  "boxes": 10,
   "headings": 3,
   "controls": 34,
   "sizes": 4,
-  "first": 11
+  "first": 8
  },
- "desk · Reliability study": {
-  "height": 2339,
-  "boxes": 10,
-  "headings": 9,
-  "controls": 18,
-  "sizes": 7,
-  "first": 7
+ "phone · Materials": {
+  "height": 2330,
+  "boxes": 7,
+  "headings": 2,
+  "controls": 31,
+  "sizes": 5,
+  "first": 9
  },
  "phone · Today — the Journey on one day": {
   "height": 2293,
@@ -783,37 +623,37 @@
   "sizes": 4,
   "first": 4
  },
- "desk · Reliability study — a line watch (every machine on one clock)": {
-  "height": 2262,
-  "boxes": 9,
-  "headings": 7,
-  "controls": 14,
-  "sizes": 8,
-  "first": 6
- },
- "phone · Actions — the factory": {
-  "height": 2247,
-  "boxes": 18,
-  "headings": 1,
-  "controls": 31,
-  "sizes": 4,
-  "first": 8
- },
  "phone · Journey — a stage-gate project": {
-  "height": 2238,
-  "boxes": 16,
+  "height": 2249,
+  "boxes": 5,
   "headings": 1,
   "controls": 30,
-  "sizes": 4,
+  "sizes": 5,
   "first": 6
  },
- "phone · A calculation — kanbans for trays, with its saved before": {
-  "height": 2206,
-  "boxes": 3,
-  "headings": 2,
-  "controls": 17,
+ "desk · Factory › Lines — the board": {
+  "height": 2235,
+  "boxes": 8,
+  "headings": 9,
+  "controls": 35,
+  "sizes": 8,
+  "first": 8
+ },
+ "desk · Factory › Lines — its areas": {
+  "height": 2235,
+  "boxes": 8,
+  "headings": 9,
+  "controls": 35,
+  "sizes": 8,
+  "first": 8
+ },
+ "phone · Actions — the factory": {
+  "height": 2228,
+  "boxes": 7,
+  "headings": 1,
+  "controls": 31,
   "sizes": 5,
-  "first": 3
+  "first": 8
  },
  "phone · A check log — a value route": {
   "height": 2195,
@@ -839,6 +679,22 @@
   "sizes": 4,
   "first": 4
  },
+ "desk · Reliability study": {
+  "height": 2184,
+  "boxes": 8,
+  "headings": 7,
+  "controls": 19,
+  "sizes": 7,
+  "first": 7
+ },
+ "phone · A calculation — kanbans for trays, with its saved before": {
+  "height": 2179,
+  "boxes": 2,
+  "headings": 1,
+  "controls": 17,
+  "sizes": 5,
+  "first": 3
+ },
  "phone · A check log — a scored audit": {
   "height": 2159,
   "boxes": 7,
@@ -848,12 +704,28 @@
   "first": 8
  },
  "phone · Journey — a 6M project": {
-  "height": 2119,
-  "boxes": 15,
+  "height": 2129,
+  "boxes": 5,
   "headings": 1,
   "controls": 28,
-  "sizes": 4,
+  "sizes": 5,
   "first": 6
+ },
+ "desk · A machine — its one page, on its line": {
+  "height": 2125,
+  "boxes": 18,
+  "headings": 8,
+  "controls": 22,
+  "sizes": 6,
+  "first": 17
+ },
+ "desk · An area — its page": {
+  "height": 2123,
+  "boxes": 8,
+  "headings": 4,
+  "controls": 24,
+  "sizes": 7,
+  "first": 9
  },
  "desk · The client report — a stage-gate project": {
   "height": 2115,
@@ -862,6 +734,22 @@
   "controls": 18,
   "sizes": 4,
   "first": 5
+ },
+ "desk · Reliability study — a line watch (every machine on one clock)": {
+  "height": 2106,
+  "boxes": 6,
+  "headings": 5,
+  "controls": 15,
+  "sizes": 8,
+  "first": 6
+ },
+ "desk · Journey — a 6M project": {
+  "height": 2094,
+  "boxes": 5,
+  "headings": 1,
+  "controls": 42,
+  "sizes": 6,
+  "first": 6
  },
  "phone · A line — its logs": {
   "height": 2093,
@@ -879,14 +767,6 @@
   "sizes": 6,
   "first": 7
  },
- "desk · The 6M board": {
-  "height": 2075,
-  "boxes": 20,
-  "headings": 23,
-  "controls": 50,
-  "sizes": 5,
-  "first": 15
- },
  "phone · Today": {
   "height": 2064,
   "boxes": 4,
@@ -895,17 +775,9 @@
   "sizes": 4,
   "first": 5
  },
- "desk · Analysis — is the gauge fit (bias and linearity)": {
-  "height": 2059,
-  "boxes": 6,
-  "headings": 2,
-  "controls": 77,
-  "sizes": 6,
-  "first": 6
- },
  "desk · Line balance — Times": {
-  "height": 2057,
-  "boxes": 8,
+  "height": 2048,
+  "boxes": 7,
   "headings": 5,
   "controls": 34,
   "sizes": 4,
@@ -919,77 +791,109 @@
   "sizes": 5,
   "first": 2
  },
+ "desk · Analysis — is the gauge fit (bias and linearity)": {
+  "height": 2020,
+  "boxes": 5,
+  "headings": 1,
+  "controls": 77,
+  "sizes": 6,
+  "first": 6
+ },
+ "desk · An area — its report": {
+  "height": 1986,
+  "boxes": 9,
+  "headings": 5,
+  "controls": 4,
+  "sizes": 6,
+  "first": 13
+ },
+ "phone · A calculation — what a sampling plan protects, with its curve": {
+  "height": 1981,
+  "boxes": 2,
+  "headings": 1,
+  "controls": 15,
+  "sizes": 5,
+  "first": 3
+ },
+ "phone · Results — a 6M project": {
+  "height": 1979,
+  "boxes": 7,
+  "headings": 4,
+  "controls": 8,
+  "sizes": 8,
+  "first": 9
+ },
  "desk · Analysis — do groups differ": {
-  "height": 2016,
-  "boxes": 6,
-  "headings": 2,
+  "height": 1977,
+  "boxes": 5,
+  "headings": 1,
   "controls": 49,
   "sizes": 6,
   "first": 6
  },
  "desk · Actions — a 6M project": {
-  "height": 2013,
-  "boxes": 15,
+  "height": 1974,
+  "boxes": 7,
   "headings": 1,
   "controls": 41,
+  "sizes": 6,
+  "first": 8
+ },
+ "desk · The 6M board": {
+  "height": 1973,
+  "boxes": 20,
+  "headings": 23,
+  "controls": 42,
   "sizes": 5,
-  "first": 10
+  "first": 15
  },
  "desk · Analysis — is the gauge fit (Type 1)": {
-  "height": 2011,
-  "boxes": 6,
-  "headings": 2,
+  "height": 1972,
+  "boxes": 5,
+  "headings": 1,
   "controls": 70,
   "sizes": 6,
   "first": 5
  },
  "desk · Analysis — which shape fits": {
-  "height": 2011,
-  "boxes": 6,
-  "headings": 2,
+  "height": 1972,
+  "boxes": 5,
+  "headings": 1,
   "controls": 60,
   "sizes": 6,
   "first": 5
  },
- "phone · A calculation — what a sampling plan protects, with its curve": {
-  "height": 2008,
-  "boxes": 3,
-  "headings": 2,
-  "controls": 15,
-  "sizes": 5,
-  "first": 3
- },
- "desk · A capability study": {
-  "height": 2007,
-  "boxes": 7,
-  "headings": 3,
-  "controls": 29,
-  "sizes": 6,
-  "first": 6
- },
- "desk · Journey — a 6M project": {
-  "height": 2001,
-  "boxes": 15,
-  "headings": 1,
-  "controls": 42,
-  "sizes": 5,
-  "first": 9
- },
  "phone · Line balance — Person and machine": {
-  "height": 1972,
-  "boxes": 7,
+  "height": 1963,
+  "boxes": 6,
   "headings": 0,
   "controls": 19,
   "sizes": 4,
   "first": 4
  },
- "desk · Results — a 6M project": {
-  "height": 1893,
-  "boxes": 16,
-  "headings": 4,
-  "controls": 49,
-  "sizes": 8,
-  "first": 19
+ "desk · A stage-gate project — its front page, Now": {
+  "height": 1960,
+  "boxes": 7,
+  "headings": 6,
+  "controls": 27,
+  "sizes": 6,
+  "first": 8
+ },
+ "desk · A capability study": {
+  "height": 1954,
+  "boxes": 5,
+  "headings": 2,
+  "controls": 29,
+  "sizes": 6,
+  "first": 6
+ },
+ "phone · A line — its own page": {
+  "height": 1903,
+  "boxes": 10,
+  "headings": 5,
+  "controls": 16,
+  "sizes": 6,
+  "first": 10
  },
  "desk · A Line Talk document": {
   "height": 1884,
@@ -1000,36 +904,12 @@
   "first": 2
  },
  "desk · A calculation — kanbans for trays, with its saved before": {
-  "height": 1873,
-  "boxes": 9,
-  "headings": 3,
+  "height": 1834,
+  "boxes": 8,
+  "headings": 2,
   "controls": 16,
   "sizes": 4,
   "first": 6
- },
- "phone · Actions — a 6M project": {
-  "height": 1861,
-  "boxes": 14,
-  "headings": 1,
-  "controls": 23,
-  "sizes": 4,
-  "first": 8
- },
- "desk · Analysis — counts in a table": {
-  "height": 1840,
-  "boxes": 6,
-  "headings": 2,
-  "controls": 24,
-  "sizes": 5,
-  "first": 6
- },
- "phone · Install": {
-  "height": 1818,
-  "boxes": 13,
-  "headings": 3,
-  "controls": 22,
-  "sizes": 4,
-  "first": 12
  },
  "desk · Line standard — long notes, tall shapes": {
   "height": 1812,
@@ -1039,43 +919,43 @@
   "sizes": 6,
   "first": 5
  },
- "desk · Analysis": {
-  "height": 1805,
-  "boxes": 6,
-  "headings": 2,
-  "controls": 47,
-  "sizes": 6,
+ "phone · Install": {
+  "height": 1808,
+  "boxes": 9,
+  "headings": 3,
+  "controls": 22,
+  "sizes": 5,
+  "first": 9
+ },
+ "desk · Analysis — counts in a table": {
+  "height": 1801,
+  "boxes": 5,
+  "headings": 1,
+  "controls": 24,
+  "sizes": 5,
   "first": 6
  },
  "desk · Line balance — Order of work": {
-  "height": 1799,
-  "boxes": 11,
+  "height": 1790,
+  "boxes": 10,
   "headings": 1,
   "controls": 23,
   "sizes": 4,
   "first": 8
  },
- "desk · Line capacity — what a line can make": {
-  "height": 1789,
-  "boxes": 2,
-  "headings": 4,
-  "controls": 42,
-  "sizes": 6,
-  "first": 5
- },
- "phone · Actions — a stage-gate project": {
+ "phone · Actions — a 6M project": {
   "height": 1782,
-  "boxes": 13,
+  "boxes": 7,
   "headings": 1,
-  "controls": 21,
-  "sizes": 4,
+  "controls": 23,
+  "sizes": 5,
   "first": 8
  },
- "desk · Analysis — is the gauge fit (stability)": {
-  "height": 1771,
-  "boxes": 6,
-  "headings": 2,
-  "controls": 45,
+ "desk · Analysis": {
+  "height": 1766,
+  "boxes": 5,
+  "headings": 1,
+  "controls": 47,
   "sizes": 6,
   "first": 6
  },
@@ -1103,6 +983,14 @@
   "sizes": 5,
   "first": 8
  },
+ "desk · Tools — the library": {
+  "height": 1739,
+  "boxes": 1,
+  "headings": 1,
+  "controls": 69,
+  "sizes": 5,
+  "first": 2
+ },
  "desk · A value stream map": {
   "height": 1737,
   "boxes": 13,
@@ -1111,13 +999,13 @@
   "sizes": 6,
   "first": 12
  },
- "desk · Line balance — Improve": {
-  "height": 1733,
-  "boxes": 11,
-  "headings": 3,
-  "controls": 38,
-  "sizes": 4,
-  "first": 8
+ "desk · Analysis — is the gauge fit (stability)": {
+  "height": 1732,
+  "boxes": 5,
+  "headings": 1,
+  "controls": 45,
+  "sizes": 6,
+  "first": 6
  },
  "phone · Stops timed — Capture": {
   "height": 1725,
@@ -1127,21 +1015,21 @@
   "sizes": 4,
   "first": 2
  },
- "desk · A calculation — what a sampling plan protects, with its curve": {
-  "height": 1710,
+ "desk · Line balance — Improve": {
+  "height": 1724,
   "boxes": 10,
   "headings": 3,
-  "controls": 13,
-  "sizes": 5,
-  "first": 6
+  "controls": 38,
+  "sizes": 4,
+  "first": 8
  },
- "desk · Analysis — what moves with what": {
-  "height": 1699,
-  "boxes": 6,
-  "headings": 2,
-  "controls": 23,
+ "phone · Actions — a stage-gate project": {
+  "height": 1702,
+  "boxes": 7,
+  "headings": 1,
+  "controls": 21,
   "sizes": 5,
-  "first": 5
+  "first": 8
  },
  "phone · The Pareto": {
   "height": 1694,
@@ -1159,6 +1047,14 @@
   "sizes": 5,
   "first": 8
  },
+ "desk · A calculation — what a sampling plan protects, with its curve": {
+  "height": 1671,
+  "boxes": 9,
+  "headings": 2,
+  "controls": 13,
+  "sizes": 5,
+  "first": 6
+ },
  "phone · Timeline — the Gantt": {
   "height": 1661,
   "boxes": 11,
@@ -1166,6 +1062,22 @@
   "controls": 27,
   "sizes": 5,
   "first": 9
+ },
+ "desk · Analysis — what moves with what": {
+  "height": 1660,
+  "boxes": 5,
+  "headings": 1,
+  "controls": 23,
+  "sizes": 5,
+  "first": 5
+ },
+ "phone · Scored registers — the hub": {
+  "height": 1655,
+  "boxes": 1,
+  "headings": 6,
+  "controls": 10,
+  "sizes": 5,
+  "first": 6
  },
  "desk · Problems — a stage-gate project": {
   "height": 1649,
@@ -1192,20 +1104,28 @@
   "first": 7
  },
  "desk · Actions — a stage-gate project": {
-  "height": 1640,
-  "boxes": 15,
+  "height": 1637,
+  "boxes": 7,
   "headings": 1,
   "controls": 30,
-  "sizes": 5,
-  "first": 11
+  "sizes": 6,
+  "first": 8
  },
- "phone · Projects": {
-  "height": 1594,
-  "boxes": 12,
-  "headings": 1,
-  "controls": 23,
-  "sizes": 3,
-  "first": 6
+ "desk · A document — an 8D report with its photos": {
+  "height": 1634,
+  "boxes": 5,
+  "headings": 2,
+  "controls": 18,
+  "sizes": 5,
+  "first": 5
+ },
+ "desk · A document — a charter ready to agree": {
+  "height": 1595,
+  "boxes": 5,
+  "headings": 2,
+  "controls": 14,
+  "sizes": 5,
+  "first": 5
  },
  "phone · A 6M project — its front page": {
   "height": 1591,
@@ -1223,13 +1143,29 @@
   "sizes": 5,
   "first": 12
  },
- "desk · Commission": {
-  "height": 1546,
-  "boxes": 13,
-  "headings": 3,
-  "controls": 53,
+ "desk · The Story": {
+  "height": 1580,
+  "boxes": 6,
+  "headings": 5,
+  "controls": 16,
   "sizes": 6,
-  "first": 16
+  "first": 6
+ },
+ "phone · Projects": {
+  "height": 1574,
+  "boxes": 2,
+  "headings": 1,
+  "controls": 23,
+  "sizes": 3,
+  "first": 3
+ },
+ "phone · Tools — a tool’s own page": {
+  "height": 1569,
+  "boxes": 1,
+  "headings": 2,
+  "controls": 9,
+  "sizes": 5,
+  "first": 3
  },
  "desk · A line — its report, everything on the line": {
   "height": 1542,
@@ -1239,15 +1175,23 @@
   "sizes": 6,
   "first": 14
  },
- "desk · The Story — the one home": {
-  "height": 1492,
-  "boxes": 5,
-  "headings": 5,
-  "controls": 15,
+ "desk · Commission": {
+  "height": 1525,
+  "boxes": 8,
+  "headings": 3,
+  "controls": 53,
   "sizes": 6,
-  "first": 6
+  "first": 11
  },
- "desk · The Story": {
+ "desk · Materials": {
+  "height": 1518,
+  "boxes": 7,
+  "headings": 2,
+  "controls": 31,
+  "sizes": 6,
+  "first": 9
+ },
+ "desk · The Story — the one home": {
   "height": 1492,
   "boxes": 5,
   "headings": 5,
@@ -1287,10 +1231,18 @@
   "sizes": 5,
   "first": 9
  },
+ "desk · A line — its own page": {
+  "height": 1452,
+  "boxes": 10,
+  "headings": 5,
+  "controls": 16,
+  "sizes": 7,
+  "first": 12
+ },
  "desk · Work sampling": {
-  "height": 1435,
-  "boxes": 7,
-  "headings": 4,
+  "height": 1396,
+  "boxes": 6,
+  "headings": 3,
   "controls": 21,
   "sizes": 4,
   "first": 9
@@ -1311,14 +1263,6 @@
   "sizes": 6,
   "first": 9
  },
- "desk · Scored registers — the hub": {
-  "height": 1339,
-  "boxes": 6,
-  "headings": 6,
-  "controls": 10,
-  "sizes": 4,
-  "first": 11
- },
  "desk · A check log — a scored audit": {
   "height": 1314,
   "boxes": 6,
@@ -1326,6 +1270,14 @@
   "controls": 11,
   "sizes": 6,
   "first": 9
+ },
+ "phone · Tools — a 6M project": {
+  "height": 1311,
+  "boxes": 1,
+  "headings": 2,
+  "controls": 11,
+  "sizes": 5,
+  "first": 3
  },
  "desk · Programs — a stage-gate project": {
   "height": 1297,
@@ -1343,6 +1295,14 @@
   "sizes": 6,
   "first": 8
  },
+ "desk · Results — a 6M project": {
+  "height": 1245,
+  "boxes": 15,
+  "headings": 4,
+  "controls": 8,
+  "sizes": 8,
+  "first": 19
+ },
  "phone · Can this phone film a long study?": {
   "height": 1245,
   "boxes": 7,
@@ -1350,14 +1310,6 @@
   "controls": 6,
   "sizes": 4,
   "first": 10
- },
- "desk · Line balance — Person and machine": {
-  "height": 1228,
-  "boxes": 7,
-  "headings": 0,
-  "controls": 19,
-  "sizes": 4,
-  "first": 5
  },
  "desk · Line standard — a map": {
   "height": 1228,
@@ -1374,6 +1326,14 @@
   "controls": 3,
   "sizes": 4,
   "first": 4
+ },
+ "desk · Line balance — Person and machine": {
+  "height": 1219,
+  "boxes": 6,
+  "headings": 0,
+  "controls": 19,
+  "sizes": 4,
+  "first": 5
  },
  "desk · A line — its tools": {
   "height": 1214,
@@ -1399,13 +1359,29 @@
   "sizes": 4,
   "first": 3
  },
+ "desk · Scored registers — the hub": {
+  "height": 1206,
+  "boxes": 1,
+  "headings": 6,
+  "controls": 10,
+  "sizes": 5,
+  "first": 6
+ },
  "desk · Install": {
-  "height": 1205,
-  "boxes": 11,
+  "height": 1191,
+  "boxes": 7,
   "headings": 3,
   "controls": 30,
+  "sizes": 6,
+  "first": 10
+ },
+ "phone · Line capacity — what a line can make": {
+  "height": 1187,
+  "boxes": 1,
+  "headings": 3,
+  "controls": 14,
   "sizes": 5,
-  "first": 13
+  "first": 4
  },
  "phone · A line — its machines": {
   "height": 1179,
@@ -1447,14 +1423,6 @@
   "sizes": 5,
   "first": 12
  },
- "desk · Projects": {
-  "height": 1069,
-  "boxes": 12,
-  "headings": 1,
-  "controls": 23,
-  "sizes": 3,
-  "first": 12
- },
  "desk · The factory’s machines": {
   "height": 1066,
   "boxes": 7,
@@ -1471,6 +1439,14 @@
   "sizes": 4,
   "first": 8
  },
+ "desk · Projects": {
+  "height": 1049,
+  "boxes": 2,
+  "headings": 1,
+  "controls": 23,
+  "sizes": 3,
+  "first": 3
+ },
  "desk · Timeline — the Gantt": {
   "height": 1046,
   "boxes": 11,
@@ -1479,11 +1455,35 @@
   "sizes": 7,
   "first": 12
  },
+ "desk · Tools — a 6M project": {
+  "height": 1001,
+  "boxes": 1,
+  "headings": 2,
+  "controls": 11,
+  "sizes": 5,
+  "first": 3
+ },
+ "desk · Tools — a tool’s own page": {
+  "height": 986,
+  "boxes": 1,
+  "headings": 2,
+  "controls": 9,
+  "sizes": 5,
+  "first": 3
+ },
  "desk · A line — its logs": {
   "height": 985,
   "boxes": 2,
   "headings": 2,
   "controls": 20,
+  "sizes": 5,
+  "first": 4
+ },
+ "phone · Line balance — every product": {
+  "height": 937,
+  "boxes": 1,
+  "headings": 3,
+  "controls": 10,
   "sizes": 5,
   "first": 4
  },
@@ -1527,13 +1527,21 @@
   "sizes": 4,
   "first": 7
  },
+ "desk · Line capacity — what a line can make": {
+  "height": 900,
+  "boxes": 1,
+  "headings": 3,
+  "controls": 14,
+  "sizes": 5,
+  "first": 4
+ },
  "desk · Line balance — every product": {
   "height": 900,
   "boxes": 1,
-  "headings": 2,
-  "controls": 9,
-  "sizes": 4,
-  "first": 3
+  "headings": 3,
+  "controls": 10,
+  "sizes": 5,
+  "first": 4
  },
  "desk · AI Mode — Luna": {
   "height": 900,
@@ -1694,14 +1702,6 @@
   "controls": 5,
   "sizes": 4,
   "first": 2
- },
- "phone · Line balance — every product": {
-  "height": 844,
-  "boxes": 1,
-  "headings": 2,
-  "controls": 9,
-  "sizes": 4,
-  "first": 3
  },
  "phone · AI Mode — Luna": {
   "height": 844,
