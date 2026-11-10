@@ -695,7 +695,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       case 'interrupt': stopSpeaking(); startRef.current(); break;
       case 'send': void send(); break;
       case 'stop': void stopListening(); break;
-      case 'none': setSaid({ text: 'Faultline is working on it — press again once it has answered.' }); break;
+      case 'none': setSaid({ text: 'Luna is working on it — press again once she has answered.' }); break;
     }
   };
 
@@ -966,7 +966,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
           </form>
           <p className="sub ai-hint" aria-live="polite">{listening ? 'Listening — your words come up in the box. Put anything right, then Send.'
             : waitingCard ? `Faultline is waiting for your answer on the card above — Do it or Not now.${talkOn ? ' Or say “yes, do it” or “not now”.' : ''}`
-            : asking ? 'Faultline is working on it…'
+            : asking ? 'Luna is working on it…'
             : talkOn ? `Conversation is on: after each reply is spoken the microphone opens again.${button === 'ready' ? ' Press your headset’s button to talk, again to send.' : ''} ${FLOOR_LIMIT}`
             : 'Nothing is changed until you tap Do it on a card.'}</p>
         </div>
@@ -1084,7 +1084,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain }: 
     <li className={'ai-turn is-colleague' + (t.struck ? ' is-struck' : '')} data-turn={t.id} data-kind="reply">
       <span className={'ai-avatar ai-orb' + (t.answering === 'waiting' && here ? ' is-thinking' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={15} /></span></span>
       <div className="ai-turn-b">
-        <span className="ai-meta">{WHO} · {hhmm(t.at)}</span>
+        <span className="ai-meta">Luna · {hhmm(t.at)}</span>
         {t.answering === 'waiting' && here && (words ? <Words text={words} /> : <p className="sub ai-thinking"><span className="ai-dots" aria-hidden><i /><i /><i /></span>Luna is working on it…</p>)}
         {t.answering === 'waiting' && !here && <p className="sub ai-line">{t.why ?? 'Not answered yet.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}
         {t.answering === 'failed' && <p className="sub ai-line is-off" data-ai-failed>{t.why ?? 'Faultline could not answer.'} <button type="button" className="linkish" onClick={onAgain}>Ask again</button></p>}

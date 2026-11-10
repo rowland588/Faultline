@@ -17434,6 +17434,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   box-shadow: 0 0 14px color-mix(in srgb, var(--brand) 40%, transparent); }
 .ai-send:hover:not(:disabled) { box-shadow: 0 0 20px color-mix(in srgb, var(--brand) 55%, transparent); }
 
+/* the desk's two side panels — the conversations and the context — glass over the same glow, so the page reads as one space */
+@media (min-width: 1100px) {
+  .ai-list, .ai-ctx { background: color-mix(in srgb, var(--surface) 62%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-color: color-mix(in srgb, var(--brand) 12%, var(--line)); }
+}
+.ai-ctx-h, .ai-list-h { letter-spacing: 0.1em; color: color-mix(in srgb, var(--brand-2) 55%, var(--muted)); }
 @keyframes ai-orb-spin { to { transform: rotate(360deg); } }
 @keyframes ai-orb-breathe { 0%, 100% { transform: scale(1); opacity: .55; } 50% { transform: scale(1.08); opacity: .2; } }
 @keyframes ai-orb-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.18); } }
