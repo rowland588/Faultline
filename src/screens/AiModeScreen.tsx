@@ -705,6 +705,8 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
               ...(call.name === 'start_project' ? r.refs.filter(x => x.kind === 'project').map(x => x.id) : []),
               ...(call.name === 'raise_problem' ? r.refs.filter(x => x.kind === 'problem').map(x => x.id) : [])].filter((x): x is string => !!x);
             if (ids.length) await patchStudy(cid, cur => { const had = ((cur.facts as { authorised?: string[] }).authorised ?? []); return { facts: { ...cur.facts, authorised: [...new Set([...had, ...ids])].slice(-200) } as ToolStudy['facts'] }; });
+            /* an investigation agreed (work_within, W3) is kept on its own list — only that yes lets capture steps go in without a card */
+            if (call.name === 'work_within' && typeof (call.input as { projectId?: unknown } | undefined)?.projectId === 'string') { const pid = (call.input as { projectId: string }).projectId; await patchStudy(cid, cur => ({ facts: { ...cur.facts, agreed: [...new Set([...(((cur.facts as { agreed?: string[] }).agreed) ?? []), pid])] } as ToolStudy['facts'] })); }
           }
           return r;
         },
@@ -718,9 +720,10 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
           const preview = c.preview ? await c.preview(ctx(), v.input) : c.title;
           /* CONFIRM ONCE (docs/AI-OPERATING.md): a write into a record the person already said yes to in this conversation goes in */
           const target = c.target?.(v.input);
-          const authorised = ((factsOfConversation((await getStudy(cid)) as ToolStudy) as { authorised?: string[] }).authorised ?? []);
+          const cf = factsOfConversation((await getStudy(cid)) as ToolStudy) as { authorised?: string[]; agreed?: string[] };
+          const authorised = cf.authorised ?? [];
           /* said yes to before, or a capture step inside an investigation the person agreed (work_within, W3) — a receipt, not a card */
-          const said = (target ? authorised.includes(target) : false) || await inAgreedScope(call.name, v.input as Record<string, unknown>, authorised);
+          const said = (target ? authorised.includes(target) : false) || await inAgreedScope(call.name, v.input as Record<string, unknown>, cf.agreed ?? []);
           return { ok: true, title: c.title, preview, input: (v.input ?? {}) as Record<string, unknown>, ...(said ? { authorised: true } : {}) };
         },
         confirm: step => new Promise<boolean>(res => {
@@ -973,7 +976,7 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
   /* the conversation's results, charts and reports (docs/CONVERSATIONAL-DATA.md) — drawn on the turns that made them */
   const outs: Outs = useMemo(() => { const o = outputsOfConversation({ facts: (facts ?? {}) } as ToolStudy); return { results: new Map(o.results.map(r => [r.id, r])), charts: new Map(o.charts.map(c => [c.id, c])), reports: o.reports, ...(me ? { by: me } : {}) }; }, [facts, me]);
   /* the investigations agreed in this conversation (work_within, W3) — each with Stop */
-  const agreedIds = (facts as { authorised?: string[] } | undefined)?.authorised ?? [];
+  const agreedIds = (facts as { agreed?: string[] } | undefined)?.agreed ?? [];
   const agreed = projects.filter(p => agreedIds.includes(p.id)).map(p => ({ id: p.id, name: p.name }));
   /* Stop: the agreement withdrawn — the project, and every record inside it said yes to through it, ask again */
   const stopAgreed = async (pid: string) => {
@@ -981,7 +984,7 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
     const had = ((factsOfConversation((await getStudy(study.id)) as ToolStudy) as { authorised?: string[] }).authorised ?? []);
     const inside = new Set<string>([pid]);
     for (const x of had) if (x !== pid && (await getStudy(x))?.projectId === pid) inside.add(x);
-    await patchStudy(study.id, c => ({ facts: { ...c.facts, authorised: ((c.facts as { authorised?: string[] }).authorised ?? []).filter(x => !inside.has(x)) } as ToolStudy['facts'] }));
+    await patchStudy(study.id, c => ({ facts: { ...c.facts, agreed: ((c.facts as { agreed?: string[] }).agreed ?? []).filter(x => x !== pid), authorised: ((c.facts as { authorised?: string[] }).authorised ?? []).filter(x => !inside.has(x)) } as ToolStudy['facts'] }));
   };
   const panel = <ContextPanel agreed={agreed} onStop={id => void stopAgreed(id)} cur={cur} parked={parked} sources={sources} nameOf={nameOf} onBack={t => void backTo(t)} {...(walkF?.position ? { here: walkF.position } : {})} trail={walkF?.walk ?? []}
     drafts={drafts} make={makeFromPanel} act={actOn} canMakeFactory={canMakeFactory} onSay={x => { setBox(x); setCtxSheet(false); window.setTimeout(() => box.current?.focus(), 0); }} />;

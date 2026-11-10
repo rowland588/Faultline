@@ -105,7 +105,7 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
    Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
    rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
 const LIMIT = { factory: 3, line: 8, project: 18 };   /* the factory: Story · Lines · Set up (27 October, the line is home; 8 November, the Story is home — S5, the board its Lines tab) */
-const MENU = 'Factory · Projects · Tools · Factory reports';
+const MENU = 'Today · Factory · Projects · Tools · Factory reports';   /* Today first since 10 November (W7) */
 const ONE_BAR_FACTORY = 'Factory · Projects · Problem · Tools · More';   /* Problems the line's, 27 October */
 const ONE_BAR_PROJECT = 'Now · Programs · Problem · Timeline · More';   /* stage-gate project phone bar (A3) */
 const ONE_BAR_6M = 'Overview · Programs · Problem · Timeline · More';   /* 6M / lever-tree project phone bar */
@@ -176,7 +176,7 @@ for (const width of [1360, 390]) {
   });
   await go('#/room');
   const rail = await page.locator('.nv-rail .nv-ri').count();
-  ok(rail === 4, `B2 3 the menu with 30 more lines and 50 more projects: ${rail} lines, as ever (Factory · Projects · Tools · Factory reports since 28 October)`);
+  ok(rail === 5, `B2 3 the menu with 30 more lines and 50 more projects: ${rail} lines, as ever (Today · Factory · Projects · Tools · Factory reports — Today since 10 November)`);
   const found = [];
   for (const [name, keys] of [['Scale line 29', '29'], ['Scale project 47', '47'], ['Line 7 pace', 'pac'], ['Line 2 commissioning', 'com']]) {
     await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(400);

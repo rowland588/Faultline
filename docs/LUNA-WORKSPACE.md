@@ -125,3 +125,5 @@ Nothing is removed from the menu; no scope's tabs change. The phone keeps its fi
 | W7 | Today (LUNA-FIRST U1), then the home on his word (U5) | the entry |
 
 W1 is invisible and carries the risk; W2 is where it starts to feel like one product.
+
+**Built, 10 November: W1–W7** (docs/STATE.md, Luna in the workspace). U5 — `#/` becoming Today — waits for Rowland's word.

@@ -3,14 +3,14 @@
  * Significant or consequential changes must still have appropriate safeguards").
  *
  *   work_within  write  a card: "Work within <project>" — on the person's yes the project is agreed for this conversation (its id kept in
- *                       the conversation's `authorised`, the same list a record said yes to is kept in, docs/AI-OPERATING.md confirm once)
+ *                       the conversation's `agreed` — its own list, apart from `authorised` (a record said yes to, docs/AI-OPERATING.md confirm once), so a project merely made on a card is never agreed)
  *
  * From then the CAPTURE steps below go in without a card when what they write is IN that project — a study of it (studyId → its
  * projectId), a new study made in it (projectId), its method's answers, its fishbone's causes, its line standard's people. Each is still
  * checked by its capability (validate → the person's access → run), still audited, still shown as a receipt in the conversation.
  * Everything else asks every time, agreed or not — raising, closing or reassigning a problem, a product's hold decided, linking,
  * replacing, starting a project, the factory's structure, the notebook, a file's name — and nothing deletes. The person can stop it
- * any time (the panel's Stop): the project leaves `authorised`. */
+ * any time (the panel's Stop): the project leaves `agreed` and its records leave `authorised`. */
 import { getStudy, getStandard } from '../db';
 import { getProject } from '../db/projects';
 import { mayEdit } from './access';
