@@ -1,5 +1,18 @@
 # Faultline — how work gets delivered here
 
+## Simple to use — the permanent design philosophy (10 November)
+
+**Read `docs/DESIGN.md` before building or changing any screen.** Rowland, 10 November: *"Faultline is a sophisticated operational
+improvement system, but it should feel remarkably simple to use. The complexity should exist underneath the interface, not be pushed
+onto the user … This is now a permanent design principle for Faultline."* Every page answers at a glance where you are, what you are
+looking at, what matters, what needs attention and what you can do next. Simplicity over density; one clear starting point; the
+essential first and the rest in `ui/Fold` (the one fold), a detail page or the record; cards only where they group a thing acted on as
+one; one type scale, one spacing rhythm, one header, one fold, one primary; AI Mode the simplest place in the app. **Before a screen is
+finished: could it say the same more clearly, with less clutter and less effort? If yes, simplify it** — measured by
+`node scripts/calm.mjs --check docs/design/calm-baseline.json`, which fails a page that got busier. Simplifying never deletes (rule 1
+below): what leaves the first view moves into a fold, a detail page or the record, and PAGES.md says where. A new feature does not
+earn a place on a page by existing; it earns it by being what that page is for.
+
 ## The memory is the repo
 
 The builder keeps nothing between sessions — only what is written here
