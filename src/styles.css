@@ -17380,6 +17380,70 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
    turns while thinking and pulses with each word said; the words heard or said under it; four presses at the foot. The orb's colour
    is the brand's (what you press) — never a state hue; the state is said in words under it. --lvl (0–1) is set by the page from real
    events: words heard, words said. Tokens only; every press 44 px. */
+/* AI MODE, AS FUTURISTIC AS ITS VOICE (10 November — Rowland: "I want the AI assistant page to be more futuristic like the AI
+   speech page"): the voice screen's glow behind the conversation, Luna as a living orb — on the empty page, beside each reply,
+   in the head — breathing while she works, glass for the head, the cards and the box, and Send an orb of its own. Presentation
+   only: every control, word and record as before; motion off where the phone asks for less. */
+.ai { background: radial-gradient(120% 70% at 50% 0%, var(--accent-soft), var(--canvas) 58%); }
+.ai-main { position: relative; isolation: isolate; }
+.ai-main::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(60% 45% at 50% 42%, color-mix(in srgb, var(--brand) 9%, transparent), transparent 70%),
+    radial-gradient(40% 30% at 85% 10%, color-mix(in srgb, var(--brand-2) 7%, transparent), transparent 70%); }
+.ai-head { background: color-mix(in srgb, var(--surface) 72%, transparent); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: 1px solid color-mix(in srgb, var(--brand) 14%, var(--line)); }
+.ai-eyebrow { letter-spacing: 0.12em; background: linear-gradient(90deg, var(--brand), var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ai-eyebrow svg { color: var(--brand); }
+
+/* the orb — the voice screen's core and rings, small */
+.ai-orb { position: relative; flex: none; display: grid; place-items: center; background: none; box-shadow: none; color: var(--on-dark); }
+.ai-orb-core { position: absolute; inset: 14%; display: grid; place-items: center; border-radius: var(--radius-round);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--brand) 50%, var(--surface)), var(--brand) 55%, var(--brand-2));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--brand) 45%, transparent), inset 0 -3px 8px color-mix(in srgb, var(--brand-2) 60%, transparent); }
+.ai-orb-r { position: absolute; inset: 0; border-radius: var(--radius-round); border: 1.5px solid color-mix(in srgb, var(--brand) 32%, transparent); }
+.ai-orb-r.r2 { inset: -18%; opacity: .45; }
+.ai-orb-r.r3 { inset: -40%; opacity: .25; }
+.ai-head-av.ai-orb { width: 38px; height: 38px; }
+.ai-avatar.ai-orb { width: 32px; height: 32px; margin-top: 2px; }
+.ai-orb.is-thinking .ai-orb-r.r1 { border-color: transparent; border-top-color: var(--brand); border-right-color: color-mix(in srgb, var(--brand) 45%, transparent); animation: ai-orb-spin 1s linear infinite; }
+.ai-orb.is-thinking .ai-orb-r.r2 { animation: ai-orb-breathe 1.6s ease-in-out infinite; }
+.ai-orb.is-thinking .ai-orb-core { animation: ai-orb-glow 1.6s ease-in-out infinite; }
+
+/* the empty page: the big orb breathing, the greeting in the brand's light */
+.ai-empty-av.ai-orb.is-big { width: 92px; height: 92px; margin: 34px 0 18px; background: none; box-shadow: none; }
+.ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 6%; box-shadow: 0 0 32px color-mix(in srgb, var(--brand) 45%, transparent), 0 0 80px color-mix(in srgb, var(--brand) 18%, transparent), inset 0 -6px 16px color-mix(in srgb, var(--brand-2) 60%, transparent); }
+.ai-empty-av.ai-orb.is-big .ai-orb-r { animation: ai-orb-breathe 3.2s ease-in-out infinite; }
+.ai-empty-av.ai-orb.is-big .ai-orb-r.r2 { animation-delay: .4s; } .ai-empty-av.ai-orb.is-big .ai-orb-r.r3 { animation-delay: .8s; }
+.ai-empty-g { background: linear-gradient(100deg, var(--ink) 30%, var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ai-sug.is-start { background: color-mix(in srgb, var(--surface) 78%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--line)); transition: border-color .15s, box-shadow .15s, transform .15s; }
+.ai-sug.is-start:hover { box-shadow: var(--elev), 0 0 0 3px color-mix(in srgb, var(--brand) 12%, transparent), 0 8px 24px color-mix(in srgb, var(--brand) 14%, transparent); transform: translateY(-1px); }
+
+/* the conversation: the person's words a lit glass bubble, Luna's thinking a moving line */
+.ai-bubble { background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 14%, var(--surface)), color-mix(in srgb, var(--brand-2) 10%, var(--surface)));
+  border: 1px solid color-mix(in srgb, var(--brand) 20%, transparent); box-shadow: 0 4px 18px color-mix(in srgb, var(--brand) 10%, transparent); }
+.ai-thinking { position: relative; padding-bottom: 6px; }
+.ai-thinking::after { content: ''; position: absolute; left: 0; bottom: 0; width: 160px; max-width: 100%; height: 2px; border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, transparent, var(--brand), var(--brand-2), transparent); background-size: 200% 100%; animation: ai-scan 1.4s linear infinite; }
+
+/* the box: glass, lit at its edge when it has the person's attention or is listening */
+.ai-type { background: color-mix(in srgb, var(--surface) 80%, transparent); backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border-color: color-mix(in srgb, var(--brand) 22%, var(--line-2)); box-shadow: var(--elev), 0 10px 32px color-mix(in srgb, var(--brand) 10%, transparent); }
+.ai-type:focus-within { box-shadow: var(--elev), 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent), 0 10px 36px color-mix(in srgb, var(--brand) 18%, transparent); }
+.ai-compose.is-on .ai-type { animation: ai-listen 1.8s ease-in-out infinite; }
+.ai-send:not(:disabled) { background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--brand) 55%, var(--surface)), var(--brand) 55%, var(--brand-2));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--brand) 40%, transparent); }
+.ai-send:hover:not(:disabled) { box-shadow: 0 0 20px color-mix(in srgb, var(--brand) 55%, transparent); }
+
+@keyframes ai-orb-spin { to { transform: rotate(360deg); } }
+@keyframes ai-orb-breathe { 0%, 100% { transform: scale(1); opacity: .55; } 50% { transform: scale(1.08); opacity: .2; } }
+@keyframes ai-orb-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.18); } }
+@keyframes ai-scan { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@keyframes ai-listen { 0%, 100% { box-shadow: var(--elev), 0 0 0 2px color-mix(in srgb, var(--brand) 30%, transparent); } 50% { box-shadow: var(--elev), 0 0 0 6px color-mix(in srgb, var(--brand) 10%, transparent), 0 0 30px color-mix(in srgb, var(--brand) 22%, transparent); } }
+@media (prefers-reduced-motion: reduce) {
+  .ai-orb .ai-orb-r, .ai-orb .ai-orb-core, .ai-thinking::after, .ai-compose.is-on .ai-type { animation: none !important; }
+  .ai-sug.is-start:hover { transform: none; }
+}
+
 .vm { position: fixed; inset: 0; z-index: 45; display: flex; flex-direction: column; background: radial-gradient(120% 80% at 50% 38%, var(--accent-soft), var(--canvas) 62%); color: var(--ink); padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
 .vm-top { display: flex; align-items: center; gap: 12px; padding: 14px 18px; }
 .vm-top-main { flex: 1; min-width: 0; }

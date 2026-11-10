@@ -324,7 +324,9 @@ export const resolveRecord: Capability = {
 
     /* 2 · A DAY SAID — "the machine we looked at yesterday": the subjects of the person's other conversations in that window */
     if (window) {
-      const dayMs = 864e5, start = new Date(todayISO()).getTime() - window.to * dayMs, end = new Date(todayISO()).getTime() - (window.from - 1) * dayMs;
+      /* the day counted from the capability's own clock (ctx.now), never the wall's — the same answer in a test and on the floor */
+      const today = new Date(todayISO(new Date(ctx.now))).getTime();
+      const dayMs = 864e5, start = today - window.to * dayMs, end = today - (window.from - 1) * dayMs;
       for (const conv of studies.filter(x => x.tool === 'talk' && (x.facts as { colleague?: boolean }).colleague && x.id !== ctx.conversationId && !x.deletedAt)) {
         for (const t of threadsOf(conv).filter(t => t.at >= start && t.at < end)) {
           const when = niceDay(todayISO(new Date(t.at)));

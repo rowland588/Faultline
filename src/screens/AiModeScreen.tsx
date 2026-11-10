@@ -840,7 +840,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
     <>
       <section className={'ai-main' + (wide ? ' is-wide' : '')} aria-label="The conversation">
         <header className="ai-head">
-          <span className="ai-head-av" aria-hidden><Icon name="spark" size={16} /></span>
+          <span className={'ai-head-av ai-orb' + (asking ? ' is-thinking' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={16} /></span></span>
           <div className="ai-head-main">
             <p className="ai-eyebrow"><Icon name="spark" size={13} />AI MODE</p>
             <h1 className="ai-title" data-ai-title>{title}</h1>
@@ -889,7 +889,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
         <ol className="ai-turns" ref={scroller} aria-label="The conversation" aria-live="polite">
           {turns.length === 0 && (
             <li className="ai-empty">
-              <span className="ai-empty-av" aria-hidden><Icon name="spark" size={26} /></span>
+              <span className="ai-empty-av ai-orb is-big" aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><i className="ai-orb-r r3" /><span className="ai-orb-core"><Icon name="spark" size={30} /></span></span>
               <p className="ai-empty-g">{hello} — I’m Luna.</p>
               <p className="ai-empty-h" data-luna>Ask Luna about {cur?.title ?? 'your lines'} — its problems, projects and tools.</p>
               <p className="sub">I’m Faultline’s AI colleague. I read what Faultline holds, work figures out with the app’s own calculators, say how each thing is known, and change nothing until you tap Do it.{noCaps ? ' (Its steps are not loaded on this copy yet.)' : ''}</p>
@@ -1082,7 +1082,7 @@ function ReplyTurn({ t, here, words, live, hands, onCard, onSuggest, onAgain }: 
   const cards = used.filter(u => u.kind === 'write');
   return (
     <li className={'ai-turn is-colleague' + (t.struck ? ' is-struck' : '')} data-turn={t.id} data-kind="reply">
-      <span className="ai-avatar" aria-hidden><Icon name="spark" size={15} /></span>
+      <span className={'ai-avatar ai-orb' + (t.answering === 'waiting' && here ? ' is-thinking' : '')} aria-hidden><i className="ai-orb-r r1" /><i className="ai-orb-r r2" /><span className="ai-orb-core"><Icon name="spark" size={15} /></span></span>
       <div className="ai-turn-b">
         <span className="ai-meta">{WHO} · {hhmm(t.at)}</span>
         {t.answering === 'waiting' && here && (words ? <Words text={words} /> : <p className="sub ai-thinking"><span className="ai-dots" aria-hidden><i /><i /><i /></span>Luna is working on it…</p>)}
