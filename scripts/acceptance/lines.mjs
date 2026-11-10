@@ -62,7 +62,7 @@ const rail = (await page.locator('.nv-rail .nv-ri').allInnerTexts()).map(t => t.
 const tabs = (await page.locator('.nv-tabs .nv-tab-l').allInnerTexts()).join(' · ');
 const lit = (await page.locator('.nv-rail .nv-ri.is-on').allInnerTexts()).join();   /* the line named under Factory, lit (27 October) */
 const said = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();
-ok(rail === 'Factory Line 2B Projects Tools Factory reports' && lit === 'Line 2B' && tabs === 'Overview · Machines · Problems · Actions · Programs · Tools · Set up' && /^Factory › Line 2B › Overview Go to$/.test(said + (await page.locator('.nv-top .nv-goto').innerText()).replace(/^/, ' ').trimEnd()),
+ok(rail === 'Today Factory Line 2B Projects Tools Factory reports' && lit === 'Line 2B' && tabs === 'Overview · Machines · Problems · Actions · Programs · Tools · Set up' && /^Factory › Line 2B › Overview Go to$/.test(said + (await page.locator('.nv-top .nv-goto').innerText()).replace(/^/, ' ').trimEnd()),
   `3 the menu with Factory lit (${rail} | ${lit}), the line's tabs (${tabs}), the bar saying ${said}`);
 await openLineMore(page);   /* its tools, Stops timed among them, are in More about this line (10 November) */
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
