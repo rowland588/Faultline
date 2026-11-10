@@ -49,7 +49,7 @@ ok((await page.locator('.ai-empty .ai-sug').count()) === 3, '1 the empty convers
 /* ---- 2 · a question answered through a read ---- */
 plan = [
   () => ({ ok: true, reply: '', calls: [{ id: 'c1', name: 'list_problems', input: { lineId: sd.wsId } }], assistant: { v: 1, rounds: ['r1'] }, model: 'test' }),
-  () => ({ ok: true, reply: 'These are the **open problems** on the line:\n- the wrapper film\n- the labeller', suggestions: ['Which is the oldest?', 'Raise one for the film'], unsure: ['45'], model: 'test' }),
+  () => ({ ok: true, reply: 'These are the **open problems** on the line:\n- the wrapper film, about 45 minutes a day\n- the labeller', suggestions: ['Which is the oldest?', 'Raise one for the film'], model: 'test' }),
 ];
 await send('What is open on this line?');
 await answered(1);
@@ -66,7 +66,7 @@ await fold.locator('summary').click(); await page.waitForTimeout(200);
 const step = await t.words('[data-step="list_problems"]');
 ok(step.length > 10 && (await page.locator('[data-step="list_problems"] .ai-ref').count()) >= 1, `2 the step said under the turn with its records: "${step.slice(0, 90)}"`);
 ok((await page.locator('.ai-turn.is-colleague .ai-words b').first().innerText()) === 'open problems' && (await page.locator('.ai-turn.is-colleague .ai-words li').count()) === 2, '2 the reply drawn with its bold and its list');
-ok(/Check this: 45/.test(await t.words('[data-ai-unsure]')), '2 a figure not in the records said as Check this');
+ok(/Check this: 45/.test(await t.words('[data-ai-unsure]')) && (await page.locator('.ai-turn.is-colleague mark[data-ai-fig-check]').first().innerText()) === '45', '2 a figure not in the records said as Check this — counted under the answer and marked in its words (checked on the device, docs/LUNA-NEXT.md L1)');
 await page.locator('.ai-sug', { hasText: 'Raise one for the film' }).click();
 ok((await page.locator('.ai-box').inputValue()) === 'Raise one for the film', '2 a follow-up tapped goes into the box');
 if (SHOTS) await page.screenshot({ path: `${SHOTS}/ai-1440-read.png` });
