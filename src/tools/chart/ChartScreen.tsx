@@ -23,7 +23,7 @@ import { ReadingsPaste } from '../../ui/ReadingsPaste';
 import { UnitField } from '../../ui/UnitField';
 import { subgroupOf } from '../../lib/pasteReadings';
 import { WhereItSits, UsedFor, useBetter, planEmpty } from '../../ui/StudyPlace';
-import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
+import { LeanPlan, LeanClosing, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { raisedFrom } from '../losses/lossLean';
 import { ALL_RULES, RULE_WORDS, WESTERN_ELECTRIC, type Rule } from '../../lib/ie/charts';
@@ -132,9 +132,7 @@ function Chart({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           </p>
           <Commentary s={s} canEdit={can.edit} title="Notes" folded />
           <UsedFor s={s} can={can} me={me} />
-          <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
-            <LeanActions actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'a signal')} />
-          </LeanPanel>
+          <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'a signal')} />
           <LeanClosing closing={chartClosing(f, a, said)} />
         </>
       )}

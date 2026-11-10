@@ -1,7 +1,7 @@
 /* COMMENTARY / NOTES ON A STUDY — one mechanism for every tool that keeps remarks (facts.remarks): written where the
  * work is done, kept with when and who, edited where it sits, taken off with Undo, and on the paper. Moved out of the
  * reliability screen on 2 November so the capability study (a live test) can carry notes too. */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { patchStudy } from '../db';
 import { now, uid } from '../lib/ids';
 import { niceDay, isoDay } from '../lib/weeks';
@@ -31,8 +31,10 @@ export function Commentary({ s, canEdit, me, title = 'Commentary', hint, folded 
     if (folded === 'menu') return null;
     return canEdit ? <p className="cmt-fold"><button type="button" className="cw-link" onClick={() => setAsking(true)}>Add a note</button></p> : null;
   }
-  return (
-    <LeanPanel title={title} className="ln-solo rl-remarks">
+  /* NOTHING WRITTEN YET — the box to write in under its word, on the canvas, not a card at the foot of the page (docs/DESIGN.md,
+     10 November: fewer boxes); once there is a note, the panel that holds them */
+  const body: ReactNode = (
+    <>
       {!live.length && <p className="sub">{canEdit ? (hint ?? 'Nothing written yet — what was seen at the machine, what was tried, what to look at next.') : 'Nothing written yet.'}</p>}
       <ul className="rl-rem">
         {live.map(r => (
@@ -76,7 +78,11 @@ export function Commentary({ s, canEdit, me, title = 'Commentary', hint, folded 
           <button type="submit" className="btn" disabled={!text.trim()}>Add</button>
         </form>
       )}
-    </LeanPanel>
+    </>
   );
+  /* never a component made here — the box would be made afresh on every key and lose what is typed */
+  return live.length || off.length
+    ? <LeanPanel title={title} className="ln-solo rl-remarks">{body}</LeanPanel>
+    : <section className="rl-remarks cmt-quiet" aria-label={title}><h2 className="cmt-h">{title}</h2>{body}</section>;
 }
 

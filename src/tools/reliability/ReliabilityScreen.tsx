@@ -48,7 +48,7 @@ import { ReasonsEditor } from './ReasonsEditor';
 import { DEFAULT_CALL_REASONS, DEFAULT_STOP_REASONS, downSpans, MAX_REASONS, stopsOf } from './repair';
 import { lineDay } from '../../lib/lineLoss';
 import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
-import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../../ui/Lean';
+import { LeanPlan, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { raisedFrom } from '../losses/lossLean';
 import { useFactoryLines } from '../../lib/useFactoryLines';
@@ -147,9 +147,7 @@ function Reliability({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canA
           <Commentary s={s} canEdit={can.edit} me={me} />
           <UsedFor s={s} can={can} me={me} />
           <Act s={s} items={items} text={said.text} tone={said.tone} can={can} me={me} />
-          <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
-            <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from its figures." />
-          </LeanPanel>
+          <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from its figures." />
           <LeanClosing closing={relClosings(items, line)} />
         </>
       )}

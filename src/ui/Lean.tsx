@@ -136,6 +136,17 @@ export function LeanActions({ actions, empty, onOpen }: { actions: LeanAction[];
   );
 }
 
+/** A RECORD'S ACTION PLAN (docs/DESIGN.md, 10 November — fewer boxes): with actions, the panel and its table, as
+ *  before; with none, one quiet line saying so and how to raise one — never an empty box at the foot of the page. */
+export function LeanPlan({ actions, empty, onOpen, className = 'ln-solo' }: { actions: LeanAction[]; empty: string; onOpen?: (a: LeanAction) => void; className?: string }) {
+  if (!actions.length) return <p className="sub ln-plan-p ln-plan-quiet" data-plan="none"><b>Action plan</b> · {empty}</p>;
+  return (
+    <LeanPanel title="Action plan" className={`${className} ln-plan-p`.trim()}>
+      <LeanActions actions={actions} empty={empty} {...(onOpen ? { onOpen } : {})} />
+    </LeanPanel>
+  );
+}
+
 /** THE CLOSING LINE — the one sentence, in the graphite band at the foot. */
 export function LeanClosing({ closing }: { closing: { text: string; tone: LeanTone } }) {
   return <p className={'ln-close is-' + closing.tone}><span className="ln-close-mark" aria-hidden>{MARK[closing.tone]}</span><span>{closing.text}</span></p>;

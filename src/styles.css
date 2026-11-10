@@ -17733,3 +17733,14 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .inv-marks { margin: 4px 0 0; padding-left: 18px; }
 .inv-marks .is-g b { color: var(--st-g); } .inv-marks .is-r b { color: var(--st-r); }
 
+
+/* TOOL RECORDS, CALM (10 November) — docs/DESIGN.md: a record's secondary parts on the canvas, not in boxes. An action plan with
+   nothing in it one quiet line (ui/Lean LeanPlan); notes with nothing written the box under its word (ui/Commentary); the
+   secondary blocks of a busy record in the one fold (ui/Fold). */
+.ln-plan-quiet { margin: var(--space-3) 0 var(--space-5); padding: var(--space-3) 0 0; border-top: 1px solid var(--line-row); font-size: var(--t-detail); }
+.ln-plan-quiet b { color: var(--ink); font-weight: 600; }
+.cmt-quiet { margin: var(--space-3) 0 var(--space-5); padding: var(--space-3) 0 0; border-top: 1px solid var(--line-row); }
+.cmt-quiet .cmt-h { margin: 0 0 var(--space-2); font-size: var(--t-body); font-weight: 600; color: var(--ink); }
+.cmt-quiet > .sub { margin: 0 0 var(--space-2); }
+.cmt-quiet .rl-rem:empty { display: none; }
+.rec-fold { margin: var(--space-3) 0; }

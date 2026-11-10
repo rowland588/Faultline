@@ -48,7 +48,7 @@ import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, SmedFunction, S
 import type { Workspace } from '../../types';
 import { UsedFor, useBetter, WhereItSits } from '../../ui/StudyPlace';
 import { StudyBand } from '../../ui/StudyActs';
-import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
+import { LeanPlan, LeanClosing, LeanTiles } from '../../ui/Lean';
 import { smedLean } from './changeoverLean';
 import { raisedFrom } from '../losses/lossLean';
 import { recordHref } from '../../lib/studyLinks';
@@ -347,9 +347,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
 
       {/* WHAT WE ARE DOING ABOUT IT — what was raised from an element, then
           every element's plan in its SMED action's words */}
-      <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
-        <LeanActions actions={lean.actions} empty={lean.actionsEmpty} />
-      </LeanPanel>
+      <LeanPlan className="ln-solo" actions={lean.actions} empty={lean.actionsEmpty} />
       <Commentary s={s} canEdit={can.edit} title="Notes" folded />
       <UsedFor s={s} can={can} me={me} />
       <LeanClosing closing={lean.closing} />

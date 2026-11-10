@@ -22,7 +22,7 @@ import { StudyBand } from '../../ui/StudyActs';
 import { ReadingsPaste } from '../../ui/ReadingsPaste';
 import { UnitField } from '../../ui/UnitField';
 import { WhereItSits, UsedFor, useBetter, planEmpty } from '../../ui/StudyPlace';
-import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
+import { LeanPlan, LeanClosing, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { useLine } from '../linework/WorkBalance';
 import { raisedFrom } from '../losses/lossLean';
@@ -117,9 +117,7 @@ function Analysis({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
           </p>
           <Commentary s={s} canEdit={can.edit} title="Notes" folded />
           <UsedFor s={s} can={can} me={me} />
-          <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
-            <LeanActions actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'what it found')} />
-          </LeanPanel>
+          <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'what it found')} />
           <LeanClosing closing={analysisClosing(f, a, said)} />
         </>
       )}

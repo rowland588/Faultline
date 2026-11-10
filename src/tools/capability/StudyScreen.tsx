@@ -32,7 +32,7 @@ import { StudyBand } from '../../ui/StudyActs';
 import { Commentary } from '../../ui/Commentary';
 import { ABANDON_REASONS, CALL_WORD, callReady, callWhy, callOf, callRemark, callSays, takenUpRemark, type TestCall } from '../../lib/abandon';
 import { WhereItSits, UsedFor, BackToTest, useBetter, planEmpty } from '../../ui/StudyPlace';
-import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
+import { LeanPlan, LeanClosing, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { sampleClosing, sampleTiles } from './sampleLean';
 import { modeNotes, packersTne, spreadSays } from './sample';
@@ -146,9 +146,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           </p>
           <UsedFor s={s} can={can} me={me} />
           <Act s={s} f={f} said={said} can={can} me={me} write={write} />
-          <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
-            <LeanActions actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'its own figures')} />
-          </LeanPanel>
+          <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty={planEmpty(s, 'its own figures')} />
           <LeanClosing closing={sampleClosing(f, a, said)} />
         </>
       )}
