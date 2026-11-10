@@ -10,7 +10,7 @@ import { readWorkbook } from '../read';
 import { runQuery } from '../query';
 import { MemoryStore } from '../store';
 import type { ByteSource } from '../zip';
-import { sheetSaid } from '../../../capabilities/workbook';
+import { sheetSaid, sheetLine, linkSaid } from '../../../capabilities/workbook';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const col = (n: number) => { let s = ''; for (n += 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s; return s; };
@@ -104,5 +104,76 @@ describe('a site’s workbook read as it is', () => {
     const said = sheetSaid(p.sheets[0], true);
     expect(said).not.toMatch(/=IF|ISOWEEKNUM|IF\(/);
     expect(said).toMatch(/Week” — .*3 worked out by formulas/);
+  });
+});
+
+/* THREE SHEETS NOT LINKED BY ANY FORMULA (10 November — Rowland: "Even if the sheets aren't linked … the product master is … the product
+ * costings and the product rates … then I've attached the budget … It's understanding the connections between names of products, the
+ * costings"). The master names each SKU once (as a number), the budget plans by SKU, the log repeats SKUs and has one the master lacks. */
+const MASTER: [number, Cell[]][] = [
+  [1, ['PRODUCT MASTER — costings and rates']],
+  [2, ['SKU', 'Product', '£ per pack', 'Rate ppm']],
+  [3, [1001, 'Maris Piper 2kg', 0.4, 60]],
+  [4, [1002, 'King Edward 2.5kg', 0.5, 50]],
+  [5, [1003, 'Baby Potatoes 1kg', 0.8, 70]],
+  [6, [1004, 'Salad Potatoes 750g', 0.9, 65]],
+];
+const BUDGET: [number, Cell[]][] = [
+  [1, ['Month', 'SKU', 'Planned packs']],
+  [2, [46296, 1001, 100000]], [3, [46296, 1002, 80000]], [4, [46296, 1003, 50000]],
+  [5, [46327, 1001, 110000]], [6, [46327, 1002, 85000]], [7, [46327, 1003, 55000]],
+];
+/* the log: SKU, minutes down, packs lost — 1001 three times, 1002 twice, 1003 once, and 1999 (not in the master) once */
+const LOG_ROWS: [number, number, number][] = [[1001, 30, 1800], [1001, 20, 1200], [1002, 45, 2250], [1003, 10, 700], [1001, 15, 900], [1002, 5, 250], [1999, 12, 600]];
+const LOG: [number, Cell[]][] = [[1, ['Date', 'SKU', 'Minutes', 'Packs lost']], ...LOG_ROWS.map(([sku, m, p], i): [number, Cell[]] => [2 + i, [46300 + i, sku, m, p]])];
+
+describe('the whole workbook understood: what each sheet is and how they connect, from their values', () => {
+  const load = async () => { const store = new MemoryStore(); const p = await readWorkbook(bytes(workbook([{ name: 'HBH Archive', rows: LOG }, { name: 'PRODUCT MASTER', rows: MASTER }, { name: 'FY27 Budget', rows: BUDGET }])), store, { id: 'x', name: 'bob.xlsx' }); return { store, p }; };
+
+  it('the master’s SKU lists each value once; the log’s and the budget’s repeat', async () => {
+    const { p } = await load();
+    const col = (sh: string, c: string) => p.sheets.find(x => x.name === sh)!.columns.find(x => x.name === c)!;
+    expect(col('PRODUCT MASTER', 'SKU').unique).toBe(true);
+    expect(col('PRODUCT MASTER', 'Product').unique).toBe(true);
+    expect(col('HBH Archive', 'SKU').unique).toBeFalsy();
+    expect(col('FY27 Budget', 'SKU').unique).toBeFalsy();
+  });
+
+  it('the connections are found from the SKUs themselves — log to master and budget to master — and the minutes link to nothing', async () => {
+    const { p } = await load();
+    const said = p.links.map(l => `${l.a}.${l.column}~${l.b}.${l.bColumn ?? l.column}:${l.shared}:${l.key ?? ''}`).sort();
+    expect(said).toContain('HBH Archive.SKU~PRODUCT MASTER.SKU:3:PRODUCT MASTER');
+    expect(said).toContain('PRODUCT MASTER.SKU~FY27 Budget.SKU:3:PRODUCT MASTER');
+    expect(p.links.some(l => l.column === 'Minutes' || l.bColumn === 'Minutes')).toBe(false);
+    expect(linkSaid(p.links.find(l => l.a === 'HBH Archive')!)).toBe('“HBH Archive”.SKU ↔ “PRODUCT MASTER”.SKU (3 values shared, 75% of the smaller list; “PRODUCT MASTER” lists each once — the master)');
+    expect(sheetLine(p.sheets.find(x => x.name === 'PRODUCT MASTER')!)).toMatch(/4 rows, header row 2; columns \(4\): SKU, Product, £ per pack, Rate ppm; each value once in: SKU, Product/);
+  });
+
+  it('a question across sheets: the log’s minutes by the master’s product name, and the packs lost priced at the master’s £ a pack — the unknown SKU left blank and said', async () => {
+    const { store, p } = await load();
+    const r = await runQuery(store, p, {
+      sheet: 'HBH Archive',
+      lookups: [{ as: 'Product', sheet: 'PRODUCT MASTER', match: 'SKU', on: 'SKU', take: 'Product' }, { as: 'Std £ a pack', sheet: 'PRODUCT MASTER', match: 'SKU', on: 'SKU', take: '£ per pack' }],
+      calcs: [{ as: 'Lost £', a: 'Packs lost', op: '*', b: 'Std £ a pack' }],
+      groupBy: ['Product'],
+      measures: [{ op: 'sum', column: 'Minutes' }, { op: 'sum', column: 'Lost £' }],
+      order: { by: 0, desc: true },
+    });
+    const by = Object.fromEntries(r.groups.map(g => [g.key[0], g.values]));
+    /* by hand: Maris Piper 30+20+15 = 65 min, (1800+1200+900) × 0.40 = £1,560; King Edward 45+5 = 50 min, 2500 × 0.50 = £1,250;
+       Baby 10 min, 700 × 0.80 = £560; SKU 1999 not in the master: 12 min, no price */
+    expect(by['Maris Piper 2kg']).toEqual([65, 1560]);
+    expect(by['King Edward 2.5kg']).toEqual([50, 1250]);
+    expect(by['Baby Potatoes 1kg']).toEqual([10, 560]);
+    expect(by['(blank)']).toEqual([12, null]);
+    expect(r.totals).toEqual([137, 3370]);
+    expect(r.notes.join(' ')).toMatch(/1 rows had a value not found for “Product” \(e\.g\. “1999”\) — left blank, never guessed/);
+    expect(r.notes.join(' ')).toMatch(/“Lost £” is “Packs lost” × “Std £ a pack”/);
+  });
+
+  it('the budget against the master: planned packs by product name, the budget’s SKU found in the master', async () => {
+    const { store, p } = await load();
+    const r = await runQuery(store, p, { sheet: 'FY27 Budget', lookups: [{ as: 'Product', sheet: 'PRODUCT MASTER', match: 'SKU', on: 'SKU', take: 'Product' }], groupBy: ['Product'], measures: [{ op: 'sum', column: 'Planned packs' }] });
+    expect(Object.fromEntries(r.groups.map(g => [g.key[0], g.values[0]]))).toEqual({ 'Maris Piper 2kg': 210000, 'King Edward 2.5kg': 165000, 'Baby Potatoes 1kg': 105000 });
   });
 });

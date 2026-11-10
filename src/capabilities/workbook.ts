@@ -74,6 +74,28 @@ const colSaid = (c: ColumnProfile, rows: number): string => {
   if (!c.named) bits.push('no header');
   return `${c.letter} “${c.name}” — ${bits.join(', ')}${rows ? '' : ''}`;
 };
+/** One sheet in a line, for the map — what it holds, by its own columns, so what it IS can be read from it: a list naming each thing
+ *  once (a master), dated rows (a log), months or periods (a plan). */
+export function sheetLine(s: SheetProfile): string {
+  if (!s.read && !s.rows) return `“${s.name}” — not read: ${s.why ?? ''}`;
+  const real = s.columns.filter(c => c.type !== 'empty' && c.name !== 'Shown by the filter');
+  const once = real.filter(c => c.unique).map(c => c.name);
+  const dates = real.filter(c => c.type === 'date' && c.min !== undefined && c.max !== undefined);
+  const span = dates.length ? `${new Date(Math.min(...dates.map(d => d.min ?? 0))).toISOString().slice(0, 10)} to ${new Date(Math.max(...dates.map(d => d.max ?? 0))).toISOString().slice(0, 10)}` : '';
+  const shown = real.slice(0, 14).map(c => c.name).join(', ');
+  return [
+    `“${s.name}”${s.state !== 'visible' ? ` (${s.state === 'veryHidden' ? 'very hidden' : 'hidden'})` : ''}: ${plural(s.rows, 'row')}${s.headerRow ? `, header row ${s.headerRow}` : ', no header found'}`,
+    `columns (${real.length}): ${shown}${real.length > 14 ? ` +${real.length - 14} more` : ''}`,
+    once.length ? `each value once in: ${once.slice(0, 4).join(', ')}` : '',
+    span ? `dates ${span}` : '',
+    s.filter ? `a filter on ${s.filter.on.join(', ') || 'it'} hides ${n(s.filter.hiddenRows)} rows` : '',
+    !s.read ? `PARTIAL: ${s.why}` : '',
+  ].filter(Boolean).join('; ');
+}
+/** A connection in words — which column on which sheet holds the same values as which on the other, and which is the master. */
+export const linkSaid = (l: { a: string; b: string; column: string; bColumn?: string; shared: number; overlap: number; key?: string }): string =>
+  `“${l.a}”.${l.column} ↔ “${l.b}”.${l.bColumn ?? l.column} (${n(l.shared)} values shared, ${Math.round(l.overlap * 100)}% of the smaller list${l.key ? `; “${l.key}” lists each once — the master` : ''})`;
+
 /** One sheet as Luna is told it — its rows, header, what is wrong and each column (exported for its test). */
 export function sheetSaid(s: SheetProfile, full: boolean): string {
   if (!s.read && !s.rows) return `“${s.name}” (${s.state}) — not read: ${s.why ?? ''}`;
@@ -107,19 +129,21 @@ const workbookProfile: Capability = {
     const want = input.sheet?.toLowerCase();
     const sheets = want ? p.sheets.filter(s => s.name.toLowerCase() === want) : p.sheets;
     if (input.sheet && !sheets.length) return { ok: false, why: `No sheet “${input.sheet}” — the sheets are ${p.sheets.map(s => `“${s.name}”`).join(', ')}.` };
-    const full = sheets.filter(s => s.read || s.rows).length <= 3 || !!input.sheet;
     const lines = [
-      `“${p.name}” [${w.id}] — ${(p.bytes / 1e6).toFixed(1)} MB, read on this device in ${n(p.seconds)} s${p.status === 'partial' ? ' — PARTIAL: not every sheet was read in full; say so before any figure' : ''}. Dates: ${p.date1904 ? '1904 system' : '1900 system'}.`,
-      ...sheets.map(s => sheetSaid(s, full)),
-      ...(p.links.length ? [`Links: ${p.links.map(l => `“${l.column}” on ${l.a} and ${l.b} (${Math.round(l.overlap * 100)}% of values shared)`).join('; ')}.`] : []),
+      `“${p.name}” [${w.id}] — ${(p.bytes / 1e6).toFixed(1)} MB, every sheet and row read on this device in ${n(p.seconds)} s${p.status === 'partial' ? ' — PARTIAL: not every sheet was read in full; say so before any figure' : ''}. Dates: ${p.date1904 ? '1904 system' : '1900 system'}.`,
+      ...(input.sheet ? sheets.map(s => sheetSaid(s, true)) : [`THE MAP — ${plural(p.sheets.length, 'sheet')}, each in a line (ask for one by name for every column):`, ...sheets.map(s => `- ${sheetLine(s)}`)]),
+      ...(p.links.length ? [`CONNECTIONS found from the values (not from formulas): ${p.links.map(linkSaid).join('; ')}.`] : ['CONNECTIONS: no two sheets share a column of values — any link between them is the person’s to say.']),
       ...(p.names.length ? [`Defined names: ${p.names.slice(0, 12).map(x => `${x.name} = ${x.ref}`).join('; ')}.`] : []),
       ...(p.notRead.length ? [`In the file but NOT read: ${p.notRead.map(x => `${x.what} — ${x.detail}`).join(' · ')}`] : []),
       'Every figure comes from query_workbook. The header row and each column’s meaning are Faultline’s reading — where a meaning, unit or definition is not plain, ask the person.',
     ];
     let says = lines.join('\n');
-    if (says.length > 3900) says = `${says.slice(0, 3800)}\n… (more — ask workbook_profile for one sheet by name)`;
-    const data = { id: w.id, name: p.name, status: p.status, sheets: sheets.map(s => ({ name: s.name, state: s.state, rows: s.rows, headerRow: s.headerRow, read: s.read, columns: s.columns.map(c => ({ name: c.name, letter: c.letter, type: c.type, blank: c.counts.blank })) })) };
-    return { ok: true, says, data: JSON.stringify(data).length < 11_000 ? data : { id: w.id, name: p.name, status: p.status, sheets: data.sheets.map(s => ({ name: s.name, rows: s.rows, columns: s.columns.map(c => c.name) })) }, refs: [] };
+    if (says.length > 3900) says = `${says.slice(0, 3800)}\n… (more — ask workbook_profile for one sheet by name; every sheet is in the data below)`;
+    const data = { id: w.id, name: p.name, status: p.status, sheets: sheets.map(s => ({ name: s.name, state: s.state, rows: s.rows, headerRow: s.headerRow, read: s.read, columns: s.columns.map(c => ({ name: c.name, letter: c.letter, type: c.type, blank: c.counts.blank, ...(c.unique ? { eachOnce: true } : {}) })) })), links: p.links };
+    /* the data carries every sheet's columns — trimmed to names, then to the first 40 a sheet, never a sheet left out */
+    const names = { id: w.id, name: p.name, status: p.status, sheets: data.sheets.map(s => ({ name: s.name, rows: s.rows, columns: s.columns.map(c => c.name) })), links: p.links };
+    const short = { ...names, sheets: names.sheets.map(s => ({ ...s, columns: s.columns.slice(0, 40), ...(s.columns.length > 40 ? { more: s.columns.length - 40 } : {}) })) };
+    return { ok: true, says, data: JSON.stringify(data).length < 11_000 ? data : JSON.stringify(names).length < 11_000 ? names : short, refs: [] };
   },
 };
 
@@ -146,12 +170,38 @@ function readFilters(v: unknown): Filter[] | string {
   }
   return out;
 }
+function readLookups(v: unknown): NonNullable<Query['lookups']> | string {
+  if (v === undefined) return [];
+  if (!Array.isArray(v) || v.length > 4) return 'lookups is a list of at most four';
+  const out: NonNullable<Query['lookups']> = [];
+  for (const l of v) {
+    const o = l && typeof l === 'object' ? l as Record<string, unknown> : {};
+    if (!['as', 'sheet', 'match', 'on', 'take'].every(k => typeof o[k] === 'string' && (o[k] as string).trim())) return 'each lookup needs as, sheet, match (this sheet’s column), on (that sheet’s column) and take (that sheet’s column to bring back)';
+    out.push({ as: String(o.as), sheet: String(o.sheet), match: String(o.match), on: String(o.on), take: String(o.take) });
+  }
+  return out;
+}
+function readCalcs(v: unknown): NonNullable<Query['calcs']> | string {
+  if (v === undefined) return [];
+  if (!Array.isArray(v) || v.length > 4) return 'calcs is a list of at most four';
+  const out: NonNullable<Query['calcs']> = [];
+  for (const c of v) {
+    const o = c && typeof c === 'object' ? c as Record<string, unknown> : {};
+    if (typeof o.as !== 'string' || typeof o.a !== 'string' || !['*', '/', '+', '-'].includes(String(o.op)) || !(typeof o.b === 'string' || (typeof o.b === 'number' && Number.isFinite(o.b)))) return 'each calc needs as, a (a column), op (* / + -) and b (a column or a number)';
+    out.push({ as: o.as, a: o.a, op: o.op as '*', b: o.b as string | number });
+  }
+  return out;
+}
 type QIn = Query & { workbookId?: string };
 function readQuery(raw: unknown): { ok: true; input: QIn } | { ok: false; why: string } {
   const o = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
   if (typeof o.sheet !== 'string' || !o.sheet) return { ok: false, why: 'sheet is needed — its name' };
   const filters = readFilters(o.filters);
   if (typeof filters === 'string') return { ok: false, why: filters };
+  const lookups = readLookups(o.lookups);
+  if (typeof lookups === 'string') return { ok: false, why: lookups };
+  const calcs = readCalcs(o.calcs);
+  if (typeof calcs === 'string') return { ok: false, why: calcs };
   const groupBy = o.groupBy === undefined ? [] : o.groupBy;
   if (!Array.isArray(groupBy) || groupBy.length > 3 || !groupBy.every(g => typeof g === 'string')) return { ok: false, why: 'groupBy is up to three column names' };
   const ms = Array.isArray(o.measures) ? o.measures : [];
@@ -177,7 +227,7 @@ function readQuery(raw: unknown): { ok: true; input: QIn } | { ok: false; why: s
   }
   const limit = o.limit === undefined ? 25 : Number(o.limit);
   if (!Number.isInteger(limit) || limit < 1 || limit > 50) return { ok: false, why: 'limit is 1 to 50' };
-  return { ok: true, input: { sheet: o.sheet, filters, groupBy: groupBy as string[], ...(time ? { time } : {}), measures, ...(order ? { order } : {}), limit, ...(typeof o.workbookId === 'string' ? { workbookId: o.workbookId } : {}) } };
+  return { ok: true, input: { sheet: o.sheet, ...(lookups.length ? { lookups } : {}), ...(calcs.length ? { calcs } : {}), filters, groupBy: groupBy as string[], ...(time ? { time } : {}), measures, ...(order ? { order } : {}), limit, ...(typeof o.workbookId === 'string' ? { workbookId: o.workbookId } : {}) } };
 }
 
 const fmt = (v: number | string | null): string => (v === null ? '—' : typeof v === 'number' ? n(v) : v);

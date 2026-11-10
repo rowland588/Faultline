@@ -42,15 +42,24 @@ describe('a workbook asked in the conversation', () => {
     const r = await run('workbook_profile', {});
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.says).toMatch(/“Downtime” — 12,000 rows of data under the header in row 3 \(above it: Line downtime log — Plant 2\)/);
-    expect(r.says).toMatch(/“Lookups” \(hidden\)/);
-    expect(r.says).toMatch(/F “Minutes” — number, \d+ blank, \d+ not numbers/);
-    expect(r.says).toMatch(/C “Line” — text, .*written more than one way: “Line 3” ×[\d,]+ \/ “line 3 ” ×\d+/);
-    /* how many cells formulas work out, never a formula's text (10 November — "I see the actual formulas when I ask a question") */
-    expect(r.says).toMatch(/worked out by formulas \(\d+ with no saved value\)/);
-    expect(r.says).not.toMatch(/=F\d+\*60/);
+    /* with no sheet: THE MAP — every sheet in a line, the connections found from the values */
+    expect(r.says).toMatch(/THE MAP — 3 sheets/);
+    expect(r.says).toMatch(/- “Downtime”: 12,000 rows, header row 3; columns \(9\): Date, Shift, Line, Machine, Reason, Minutes/);
+    expect(r.says).toMatch(/- “Products”: 50 rows/);
+    expect(r.says).toMatch(/- “Lookups” \(hidden\)/);
+    expect(r.says).toMatch(/CONNECTIONS found from the values \(not from formulas\): .*“Downtime”\.Reason ↔ “Lookups”\.Column A/);
+    expect(r.says).toMatch(/“Downtime”\.Machine ↔ “Products”\.Machine/);
     expect(r.says).toMatch(/In the file but NOT read: A pivot table’s cache/);
-    expect(r.says).toMatch(/Links: “Machine” on Downtime and Products/);
+    /* with a sheet: that sheet in full — what is wrong, and how many cells formulas work out, never a formula's text (10 November — "I see
+       the actual formulas when I ask a question") */
+    const d = await run('workbook_profile', { sheet: 'Downtime' });
+    expect(d.ok).toBe(true);
+    if (!d.ok) return;
+    expect(d.says).toMatch(/“Downtime” — 12,000 rows of data under the header in row 3 \(above it: Line downtime log — Plant 2\)/);
+    expect(d.says).toMatch(/F “Minutes” — number, \d+ blank, \d+ not numbers/);
+    expect(d.says).toMatch(/C “Line” — text, .*written more than one way: “Line 3” ×[\d,]+ \/ “line 3 ” ×\d+/);
+    expect(d.says).toMatch(/worked out by formulas \(\d+ with no saved value\)/);
+    expect(d.says).not.toMatch(/=F\d+\*60/);
   }, 60_000);
 
   it('query_workbook: minutes by reason over every row, as the generator counted them; the words it could not add named with their cells', async () => {

@@ -46,7 +46,13 @@ describe('a workbook read from the file, a part at a time', () => {
     expect(p.tables).toEqual([{ name: 'ProductRates', sheet: 'Products', ref: 'A1:C51', columns: ['Product', 'Machine', 'Rate per min'] }]);
     expect(p.notRead.map(n => n.what)).toContain('A pivot table’s cache');
     expect(p.notRead.find(n => n.what === 'A pivot table’s cache')!.detail).toMatch(/built from Downtime!A3:I30003/);
-    expect(p.links).toEqual([expect.objectContaining({ a: 'Downtime', b: 'Products', column: 'Machine', overlap: 1 })]);
+    /* found from the values: the machines the log and the products table share, and the log's reasons in the hidden list of reasons
+       (its column has no header — matched by what it holds, the list naming each reason once) */
+    expect(p.links).toEqual(expect.arrayContaining([
+      expect.objectContaining({ a: 'Downtime', b: 'Products', column: 'Machine', overlap: 1 }),
+      expect.objectContaining({ a: 'Downtime', b: 'Lookups', column: 'Reason', bColumn: 'Column A', shared: 8, overlap: 1, key: 'Lookups' }),
+    ]));
+    expect(p.links).toHaveLength(2);
   });
 
   it('what is wrong with the data: blanks, words in the minutes, formulas with no saved value, errors, repeated rows, a line written two ways', () => {

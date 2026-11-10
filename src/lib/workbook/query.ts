@@ -10,8 +10,16 @@ import { colName } from './xml';
 export type Op = 'eq' | 'ne' | 'in' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'contains' | 'blank' | 'notblank';
 export interface Filter { column: string; op: Op; value?: string | number; values?: (string | number)[]; from?: string | number; to?: string | number }
 export type Measure = { op: 'sum' | 'avg' | 'min' | 'max' | 'distinct'; column: string } | { op: 'count'; column?: string };
+/** A value looked up on another sheet by what this row holds — "the product's £ per pack from PRODUCT MASTER": this sheet's `match`
+ *  column found in that sheet's `on` column, its `take` column brought back as a column of this question, named `as`. */
+export interface Lookup { as: string; sheet: string; match: string; on: string; take: string }
+/** A sum worked on each row from two columns (or a column and a number) — "minutes × £ a minute" — named `as`. */
+export interface Calc { as: string; a: string; op: '*' | '/' | '+' | '-'; b: string | number }
 export interface Query {
   sheet: string;
+  /** Values from other sheets, worked first; then the row sums, in order (a sum may use a looked-up value or an earlier sum). */
+  lookups?: Lookup[];
+  calcs?: Calc[];
   filters?: Filter[];
   groupBy?: string[];
   time?: { column: string; by: 'day' | 'week' | 'month' | 'year' };
@@ -122,21 +130,102 @@ async function chunkCols(store: WorkbookStore, sheet: number, need: number[], ch
 interface Acc { key: string[]; rows: number; refs: number[]; sum: number[]; n: number[]; min: number[]; max: number[]; set: (Set<string> | null)[] }
 const DISTINCT_CAP = 100_000, GROUP_CAP = 50_000;
 
+/** A value as the text a key is matched by — a product written "SKU 1024 ", 1024 or "sku 1024" on two sheets is matched by its words. */
+const keyText = (k: number, v: number, str: string[]): string => (k === Kind.Str || k === Kind.Err ? norm(str[v] ?? '') : k === Kind.Num ? String(v) : k === Kind.Date ? iso(v) : k === Kind.Bool ? (v ? 'yes' : 'no') : '');
+
+/** Every row of one sheet's `on` column with its `take` value — the lookup table, read a chunk at a time. */
+async function lookupTable(store: WorkbookStore, p: WorkbookProfile, l: Lookup, str: string[]): Promise<{ map: Map<string, [number, number]>; conflicts: number; sheet: SheetProfile; take: ColumnProfile; on: ColumnProfile }> {
+  const ls = sheetOf(p, l.sheet);
+  const on = columnOf(ls, l.on), take = columnOf(ls, l.take);
+  const map = new Map<string, [number, number]>();
+  let conflicts = 0;
+  for (let ch = 0; ch < ls.chunks; ch += 1) {
+    const rb = await store.get(rowsKey(ls.index, ch));
+    if (!rb) throw new QueryError(`Part of “${ls.name}” is missing from this device’s storage — attach the workbook again.`);
+    const n = rb.byteLength / 4;
+    const cols = await chunkCols(store, ls.index, [on.slot, take.slot], ch, n);
+    const a = cols.get(on.slot) ?? cols.blank, b = cols.get(take.slot) ?? cols.blank;
+    for (let i = 0; i < n; i += 1) {
+      const k = keyText(a.kinds[i], a.vals[i], str);
+      if (!k) continue;
+      const was = map.get(k);
+      if (!was) map.set(k, [b.kinds[i], b.vals[i]]);
+      else if (was[0] !== b.kinds[i] || was[1] !== b.vals[i]) conflicts += 1;
+    }
+  }
+  return { map, conflicts, sheet: ls, take, on };
+}
+
 /** Run a question over every row of a sheet. */
 export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Query): Promise<QueryResult> {
   const s = sheetOf(p, q.sheet);
   const str = await stringsOf(store, p);
   const measures = q.measures.length ? q.measures : [{ op: 'count' as const }];
   const spelled: Spelled[] = [];
-  const filters = (q.filters ?? []).map(f => { const c = columnOf(s, f.column); return { c, pred: predicate(f, c, str, spelled) }; });
-  const groups = (q.groupBy ?? []).map(g => columnOf(s, g));
-  const time = q.time ? { c: columnOf(s, q.time.column), by: q.time.by } : null;
-  const mcols = measures.map(m => (m.column ? columnOf(s, m.column) : null));
+  /* the columns this question makes: each looked-up value and each row sum, a column of its own (a slot below zero) */
+  type Virtual = { col: ColumnProfile; fill: (at: (slot: number) => { kinds: Int8Array; vals: Float64Array }, n: number) => { kinds: Int8Array; vals: Float64Array } };
+  const virtual: Virtual[] = [];
+  const vnotes: string[] = [];
+  const realNeed = new Set<number>();
+  const own = (name: string): ColumnProfile => {
+    const v = virtual.find(x => norm(x.col.name) === norm(name));
+    if (v) return v.col;
+    const c = columnOf(s, name);
+    if (c.slot >= 0) realNeed.add(c.slot);
+    return c;
+  };
+  const pseudo = (name: string, type: ColumnProfile['type'], letter: string, slot: number): ColumnProfile =>
+    ({ slot, letter, name, named: true, type, counts: { number: 0, text: 0, date: 0, bool: 0, error: 0, blank: 0 }, formulas: 0, formulasNoValue: 0, hidden: false });
+  for (const l of q.lookups ?? []) {
+    if (virtual.some(v => norm(v.col.name) === norm(l.as)) || s.columns.some(c => norm(c.name) === norm(l.as))) throw new QueryError(`“${l.as}” is already a column — give the looked-up value another name.`);
+    const match = own(l.match);
+    const t = await lookupTable(store, p, l, str);
+    const col = pseudo(l.as, t.take.type, match.letter, -1 - virtual.length);
+    let missed = 0; const missing = new Set<string>();
+    virtual.push({ col, fill: (at, n) => {
+      const src = at(match.slot); const kinds = new Int8Array(n), vals = new Float64Array(n);
+      for (let i = 0; i < n; i += 1) {
+        const k = keyText(src.kinds[i], src.vals[i], str);
+        if (!k) continue;
+        const hit = t.map.get(k);
+        if (hit) { kinds[i] = hit[0]; vals[i] = hit[1]; } else { missed += 1; if (missing.size < 5) missing.add(String(cellValue(src.kinds[i], src.vals[i], str))); }
+      }
+      return { kinds, vals };
+    } });
+    vnotes.push(`“${l.as}” is “${t.take.name}” from “${t.sheet.name}”, found by “${match.name}” in its “${t.on.name}” (${t.map.size.toLocaleString('en-GB')} there).`);
+    if (t.conflicts) vnotes.push(`“${t.sheet.name}” lists ${t.conflicts.toLocaleString('en-GB')} ${t.on.name} more than once with a different “${t.take.name}” — the first is used; say which is right if it matters.`);
+    vnotes.push(`@missed:${virtual.length - 1}`);
+    (virtual[virtual.length - 1] as Virtual & { missed: () => [number, string[]] }).missed = () => [missed, [...missing]];
+  }
+  for (const c of q.calcs ?? []) {
+    if (virtual.some(v => norm(v.col.name) === norm(c.as)) || s.columns.some(x => norm(x.name) === norm(c.as))) throw new QueryError(`“${c.as}” is already a column — give the sum another name.`);
+    const a = own(c.a);
+    const b = typeof c.b === 'number' ? null : own(c.b);
+    for (const x of [a, b]) if (x && x.type !== 'number' && x.type !== 'mixed') throw new QueryError(`“${x.name}” holds ${x.type === 'empty' ? 'nothing' : x.type}, not numbers — it cannot be used in a sum.`);
+    const col = pseudo(c.as, 'number', a.letter, -1 - virtual.length);
+    const k = typeof c.b === 'number' ? c.b : 0;
+    virtual.push({ col, fill: (at, n) => {
+      const xa = at(a.slot), xb = b ? at(b.slot) : null; const kinds = new Int8Array(n), vals = new Float64Array(n);
+      for (let i = 0; i < n; i += 1) {
+        if (xa.kinds[i] !== Kind.Num || (xb && xb.kinds[i] !== Kind.Num)) continue;
+        const u = xa.vals[i], w = xb ? xb.vals[i] : k;
+        const r = c.op === '*' ? u * w : c.op === '/' ? (w === 0 ? NaN : u / w) : c.op === '+' ? u + w : u - w;
+        if (Number.isFinite(r)) { kinds[i] = Kind.Num; vals[i] = r; }
+      }
+      return { kinds, vals };
+    } });
+    vnotes.push(`“${c.as}” is “${a.name}” ${c.op === '*' ? '×' : c.op === '/' ? '÷' : c.op} ${b ? `“${b.name}”` : String(c.b)}, worked on each row where both are numbers.`);
+  }
+  const col = (name: string): ColumnProfile => own(name);
+  const filters = (q.filters ?? []).map(f => { const c = col(f.column); return { c, pred: predicate(f, c, str, spelled) }; });
+  const groups = (q.groupBy ?? []).map(g => col(g));
+  const time = q.time ? { c: col(q.time.column), by: q.time.by } : null;
+  const mcols = measures.map(m => (m.column ? col(m.column) : null));
   for (const [i, m] of measures.entries()) {
     const mc = mcols[i];
     if ((m.op === 'sum' || m.op === 'avg') && mc && mc.type !== 'number' && mc.type !== 'mixed') throw new QueryError(`“${mc.name}” holds ${mc.type === 'empty' ? 'nothing' : mc.type}, not numbers — it cannot be ${m.op === 'sum' ? 'added up' : 'averaged'}.`);
   }
-  const need = [...new Set([...filters.map(f => f.c.slot), ...groups.map(g => g.slot), ...(time ? [time.c.slot] : []), ...mcols.filter((c): c is ColumnProfile => !!c).map(c => c.slot)])];
+  const need = [...realNeed];
   const acc = new Map<string, Acc>();
   const total: Acc = { key: [], rows: 0, refs: [], sum: measures.map(() => 0), n: measures.map(() => 0), min: measures.map(() => Infinity), max: measures.map(() => -Infinity), set: measures.map(m => (m.op === 'distinct' ? new Set() : null)) };
   const skipped = measures.map(() => ({ count: 0, refs: [] as number[] }));
@@ -149,6 +238,7 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     const rows = new Int32Array(rb.buffer.slice(rb.byteOffset, rb.byteOffset + rb.byteLength));
     const cols = await chunkCols(store, s.index, need, ch, rows.length);
     const at = (slot: number) => cols.get(slot) ?? cols.blank;
+    for (const v of virtual) cols.set(v.col.slot, v.fill(at, rows.length));
     for (let i = 0; i < rows.length; i += 1) {
       scanned += 1;
       let ok = true;
@@ -191,7 +281,7 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
     const x = m.op === 'min' ? a.min[j] : a.max[j];
     return c?.type === 'date' ? iso(x) : round(x);
   });
-  const refCol = mcols.find((c): c is ColumnProfile => !!c) ?? groups[0] ?? time?.c ?? s.columns[0];
+  const refCol = mcols.find((c): c is ColumnProfile => !!c && c.slot >= 0) ?? mcols.find((c): c is ColumnProfile => !!c) ?? groups[0] ?? time?.c ?? s.columns[0];
   let list: Group[] = [...acc.values()].map(a => ({ key: a.key, values: valuesOf(a), rows: a.rows, refs: a.refs.map(r => `${s.name}!${refCol?.letter ?? 'A'}${r}`) }));
   const ord = q.order ?? (groups.length || time ? (time && !groups.length ? { by: 'group' as const } : { by: 0, desc: true }) : { by: 'group' as const });
   list.sort((x, y) => {
@@ -203,12 +293,18 @@ export async function runQuery(store: WorkbookStore, p: WorkbookProfile, q: Quer
   const groupsTotal = list.length;
   list = list.slice(0, Math.min(200, q.limit ?? 50));
   const mName = (m: Measure, j: number): string => { const mc = mcols[j]; return mc ? `${m.op} of ${mc.name}` : 'rows'; };
-  const notes: string[] = [];
+  const notes: string[] = vnotes.flatMap(t => {
+    const m = /^@missed:(\d+)$/.exec(t);
+    if (!m) return [t];
+    const v = virtual[Number(m[1])] as Virtual & { missed?: () => [number, string[]] };
+    const [k, ex] = v.missed?.() ?? [0, []];
+    return k ? [`${k.toLocaleString('en-GB')} rows had a value not found for “${v.col.name}” (e.g. ${ex.map(x => `“${x}”`).join(', ')}) — left blank, never guessed.`] : [];
+  });
   if (timeSkipped && time) notes.push(`${timeSkipped.toLocaleString('en-GB')} matching rows have no date in “${time.c.name}” and are left out of the ${time.by}s.`);
   if (capped) notes.push(`More than ${GROUP_CAP.toLocaleString('en-GB')} groups — the rest were not counted; group by fewer columns.`);
   for (const [j, m] of measures.entries()) if (m.op === 'distinct' && (total.set[j]?.size ?? 0) >= DISTINCT_CAP) notes.push(`The distinct count of “${mcols[j]?.name ?? ''}” stops at ${DISTINCT_CAP.toLocaleString('en-GB')}.`);
   for (const sp of spelled) if (sp.ids.size > 1) notes.push(`The filter on “${sp.column}” matched ${sp.ids.size} spellings, taken together: ${[...sp.ids].map(id => `“${str[id]}”`).join(', ')} — say if they are not the same thing.`);
-  const fm = mcols.filter((c): c is ColumnProfile => !!c && c.formulas > 0);
+  const fm = mcols.filter((c): c is ColumnProfile => !!c && c.slot >= 0 && c.formulas > 0);
   for (const c of fm) notes.push(`“${c.name}” is worked out by formulas in the workbook (${c.formulas.toLocaleString('en-GB')}) — the values used are the ones Excel saved${c.formulasNoValue ? `; ${c.formulasNoValue.toLocaleString('en-GB')} have no saved value and count as blank` : ''}.`);
   return {
     sheet: s.name, rowsScanned: scanned, rowsMatched: matched, groups: list, groupsTotal, totals: valuesOf(total),

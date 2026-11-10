@@ -8,6 +8,8 @@ import { SheetScanner, SharedStringsScanner, tagsOf, colName, cellRef, type RawR
 import { CHUNK, Kind, chunkKey, rowsKey, packChunk, putJson, type WorkbookStore } from './store';
 
 export const PROFILE_VERSION = 1;
+/** Whole numbers kept a column, for the links between sheets. */
+const NUM_CAP = 50_000;
 
 export type ColumnType = 'number' | 'text' | 'date' | 'yes/no' | 'mixed' | 'empty';
 export interface ColumnProfile {
@@ -18,6 +20,8 @@ export interface ColumnProfile {
   formulas: number; formulasNoValue: number; formula?: string;
   errors?: Record<string, number>;
   hidden: boolean;
+  /** Every filled cell holds a different value (three or more) — the column names one thing a row, as a master list's product code does. */
+  unique?: boolean;
   /** The same text written more than one way ("Line 3" · "line 3 "), with how often each. */
   variants?: [string, number][][];
 }
@@ -41,7 +45,10 @@ export interface WorkbookProfile {
   sheets: SheetProfile[];
   names: { name: string; ref: string; sheet?: string; hidden: boolean }[];
   tables: { name: string; sheet: string; ref: string; columns: string[] }[];
-  links: { a: string; b: string; column: string; shared: number; overlap: number }[];
+  /** Columns on two sheets holding the same values — found from the values, never from names or formulas: `column` on sheet a, `bColumn`
+   *  on sheet b (the same when absent), the values shared, and the share of the smaller list found in the other. `key` is the sheet whose
+   *  column lists each value once (a master list), when one does. */
+  links: { a: string; b: string; column: string; bColumn?: string; shared: number; overlap: number; key?: string }[];
   notRead: { what: string; detail: string }[];
 }
 
@@ -103,7 +110,7 @@ function hashRow(parts: number[]): number {
 const DUP_CAP = 4_000_000, DISTINCT_CAP = 200_000;
 const EXCEL_EPOCH = Date.UTC(1899, 11, 30), EPOCH_1904 = Date.UTC(1904, 0, 1);
 
-interface Slot { col: number; name: string; named: boolean; kinds: Int8Array; vals: Float64Array; c: ColumnProfile['counts']; min: number; max: number; distinct: Map<number, number> | null; formulas: number; noValue: number; formula?: string; errors: Map<number, number> }
+interface Slot { col: number; name: string; named: boolean; kinds: Int8Array; vals: Float64Array; c: ColumnProfile['counts']; min: number; max: number; distinct: Map<number, number> | null; nums: Set<number> | null; numRepeat: boolean; formulas: number; noValue: number; formula?: string; errors: Map<number, number> }
 
 /** One sheet streamed into the store, its profile kept as it goes. */
 class SheetBuilder {
@@ -137,7 +144,7 @@ class SheetBuilder {
   private slot(col: number, name?: string): Slot {
     let s = this.slots.get(col);
     if (s) return s;
-    s = { col, name: name ?? `Column ${colName(col)}`, named: !!name, kinds: new Int8Array(CHUNK), vals: new Float64Array(CHUNK), c: { number: 0, text: 0, date: 0, bool: 0, error: 0, blank: 0 }, min: Infinity, max: -Infinity, distinct: new Map(), formulas: 0, noValue: 0, errors: new Map() };
+    s = { col, name: name ?? `Column ${colName(col)}`, named: !!name, kinds: new Int8Array(CHUNK), vals: new Float64Array(CHUNK), c: { number: 0, text: 0, date: 0, bool: 0, error: 0, blank: 0 }, min: Infinity, max: -Infinity, distinct: new Map(), nums: new Set(), numRepeat: false, formulas: 0, noValue: 0, errors: new Map() };
     this.slots.set(col, s); this.order.push(s);
     return s;
   }
@@ -210,7 +217,15 @@ class SheetBuilder {
       if (kind === Kind.Blank) continue;
       s.kinds[p] = kind; s.vals[p] = val;
       parts.push(c.col, kind, val);
-      if (kind === Kind.Num || kind === Kind.Date) { if (val < s.min) s.min = val; if (val > s.max) s.max = val; if (kind === Kind.Num) s.c.number += 1; else s.c.date += 1; }
+      if (kind === Kind.Num || kind === Kind.Date) {
+        if (val < s.min) s.min = val; if (val > s.max) s.max = val;
+        if (kind === Kind.Num) {
+          s.c.number += 1;
+          /* whole numbers kept (to a cap) — a product code written as a number is matched to another sheet's by its values */
+          const ns = s.nums;
+          if (ns) { if (!Number.isInteger(val)) s.nums = null; else if (ns.has(val)) s.numRepeat = true; else if (ns.size < NUM_CAP) ns.add(val); else s.nums = null; }
+        } else s.c.date += 1;
+      }
       else if (kind === Kind.Str) { s.c.text += 1; const d = s.distinct; if (d) { const was = d.get(val); if (was !== undefined) d.set(val, was + 1); else if (d.size < DISTINCT_CAP) d.set(val, 1); else s.distinct = null; } }
       else if (kind === Kind.Bool) s.c.bool += 1;
       else { s.c.error += 1; this.errors += 1; s.errors.set(val, (s.errors.get(val) ?? 0) + 1); }
@@ -268,6 +283,9 @@ class SheetBuilder {
         const variants = [...by.values()].filter(g => g.length > 1).sort((a, b) => b.reduce((t, x) => t + x[1], 0) - a.reduce((t, x) => t + x[1], 0)).slice(0, 5);
         if (variants.length) out.variants = variants;
       } else if (s.c.text) { out.distinctCapped = true; }
+      const textOnce = s.distinct && s.c.text >= 3 && !s.c.number && s.distinct.size === s.c.text;
+      const numOnce = s.nums && !s.numRepeat && s.c.number >= 3 && !s.c.text;
+      if (textOnce || numOnce) out.unique = true;
       return out;
     });
     return { columns, chunks: this.chunk, headerRow: this.header };
@@ -275,6 +293,15 @@ class SheetBuilder {
 
   /** The distinct string ids of a text column, for the links between sheets. */
   distinctOf(col: number): Map<number, number> | null { return this.slots.get(col)?.distinct ?? null; }
+  /** A column's values as the words they are matched by — text as written (case and spacing aside), a whole number as its digits. */
+  valuesOf(col: number, str: string[]): Set<string> | null {
+    const sl = this.slots.get(col);
+    if (!sl) return null;
+    const out = new Set<string>();
+    if (sl.c.text) { if (!sl.distinct) return null; for (const id of sl.distinct.keys()) { const t = norm(str[id] ?? ''); if (t) out.add(t); } }
+    if (sl.c.number) { if (!sl.nums) return sl.c.text ? out : null; for (const v of sl.nums) out.add(String(v)); }
+    return out.size ? out : null;
+  }
 }
 
 /** Read a workbook into the store and say what is in it. Never throws for a damaged sheet: that sheet is said unread and the rest go on. */
@@ -396,19 +423,34 @@ export async function readWorkbook(src: ByteSource, store: WorkbookStore, opts: 
     before += e.compressed;
   }
 
-  /* links: a text column of one sheet whose values are found in a column of the same name on another */
+  /* LINKS — columns on two sheets holding the same things, found from their values, never from their names or formulas (10 November —
+     Rowland: "Even if the sheets aren't linked … the product master is … the product costings and the product rates … It's understanding
+     the connections between names of products, the costings"). A pair counts when at least three values are shared and half the smaller
+     list is in the other, AND either the two columns have the same name or one of them lists each value once (a master list) — so a log's
+     minutes never "link" to another sheet's head counts by chance. */
   const links: WorkbookProfile['links'] = [];
+  const vals = new Map<string, Set<string> | null>();
+  const valuesFor = (pi: number, c: ColumnProfile): Set<string> | null => {
+    const k = `${pi}:${c.slot}`;
+    if (!vals.has(k)) vals.set(k, c.type === 'text' || c.type === 'number' || c.type === 'mixed' ? builders.get(profiles[pi].index)?.valuesOf(c.slot, strings.list) ?? null : null);
+    return vals.get(k) ?? null;
+  };
   for (let i = 0; i < profiles.length; i += 1) for (let j = i + 1; j < profiles.length; j += 1) {
     for (const a of profiles[i].columns) for (const c of profiles[j].columns) {
-      if (a.type !== 'text' || c.type !== 'text' || norm(a.name) !== norm(c.name) || !a.named) continue;
-      const da = builders.get(profiles[i].index)?.distinctOf(a.slot), db = builders.get(profiles[j].index)?.distinctOf(c.slot);
-      if (!da || !db || !da.size || !db.size) continue;
+      const sameName = a.named && c.named && norm(a.name) === norm(c.name);
+      if (!sameName && !a.unique && !c.unique) continue;
+      const da = valuesFor(i, a), db = valuesFor(j, c);
+      if (!da || !db || da.size < 3 || db.size < 3) continue;
       const [small, large] = da.size <= db.size ? [da, db] : [db, da];
-      let shared = 0; for (const k of small.keys()) if (large.has(k)) shared += 1;
+      let shared = 0; for (const k of small) if (large.has(k)) shared += 1;
       const overlap = shared / small.size;
-      if (overlap >= 0.5) links.push({ a: profiles[i].name, b: profiles[j].name, column: a.name, shared, overlap: Math.round(overlap * 1000) / 1000 });
+      if (shared < 3 || overlap < 0.5) continue;
+      const key = a.unique && !c.unique ? profiles[i].name : c.unique && !a.unique ? profiles[j].name : undefined;
+      links.push({ a: profiles[i].name, b: profiles[j].name, column: a.name, ...(norm(a.name) !== norm(c.name) ? { bColumn: c.name } : {}), shared, overlap: Math.round(overlap * 1000) / 1000, ...(key ? { key } : {}) });
     }
   }
+  links.sort((x, y) => y.shared - x.shared);
+  links.splice(40);
 
   /* the strings kept in chunks */
   const stringChunks = Math.ceil(strings.list.length / STRING_CHUNK);
