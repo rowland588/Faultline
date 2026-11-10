@@ -75,6 +75,7 @@ ok(page.url().includes(P) && /loss/i.test(page.url()), `3 the card opens the Los
 
 /* ---- 4 the questions, kept ---- */
 await go(`#/project/${P}`, 2000);
+await t.openSections();   // the section in hand is open, the rest one line each (docs/DESIGN.md) — opened to read them
 const sec = n => page.locator(`.pmethod-sec[aria-label="${n}"]`);
 const box = (s, q) => sec(s).locator('.msheet-f', { has: page.locator('.msheet-q', { hasText: new RegExp('^' + q + '$') }) }).locator('.msheet-in');
 ok((await sec('Identify the constraint').locator('.msheet-q').count()) === 2 && (await sec('Exploit it').locator('.msheet-q').count()) === 2 && (await sec('Go again').locator('.msheet-q').count()) === 2, '4 the extra questions are asked (2 · 2 · 3 · 2 · 2)');

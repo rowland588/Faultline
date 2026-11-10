@@ -21,6 +21,7 @@ import { methodByKey, methodOfProject, type MethodSection } from '../../lib/meth
 import type { ToolStudy } from '../../lib/study';
 import type { Standard } from '../../tools/linestandard/standard';
 import { PageHeader, RecordRow, RecordRows } from '../../ui/parts';
+import { Fold } from '../../ui/Fold';
 import { GuideFold, StepMeans } from '../../ui/StepGuide';
 import { MethodSheet, useAnswers, useSaveAnswer } from './MethodSheet';
 import { SHAPES } from './shapes';
@@ -42,6 +43,7 @@ import { numbersSays } from '../../lib/measureProof';
 import { useProjectSpread } from '../../tools/yokoten/useYokoten';
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const slug = (w: string) => w.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 /** The 6M tool inside a method (S4, 1 November): it has no page of its own in the catalogue's registry — its pages are the project's Fishbone, Board and Results — so its rows open the fishbone. */
 const SIXM_IDS = new Set(['FC-146', 'FC-147', 'FC-148']);
@@ -74,7 +76,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
   /* FC-155, a proved fix offered to every line with the same machine: the project's lines, read for its row (tools/yokoten) */
   const spread = useProjectSpread(projectId);
   const method = project ? methodByKey(methodOfProject(project) ?? 'pdca') : undefined;
-  const { answers, items } = useAnswers(projectId, method?.key ?? 'pdca');
+  const { answers, items, ready } = useAnswers(projectId, method?.key ?? 'pdca');
   const saveAnswer = useSaveAnswer(projectId, method?.key ?? 'pdca', items);
   const evidence = useProjectEvidence(projectId);
   const studyCtx = useStudyContext(evidence?.studies ?? []);
@@ -110,11 +112,26 @@ export function MethodScreen({ projectId }: { projectId: string }) {
       {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} save={saveAnswer} onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} /> : null; })()}
       {method.sections.map((s, i) => {
         const lit = usedIn(s);
+        /* THE METHOD PAGE, CALM (10 November, docs/DESIGN.md): the section the project is in open, every other one line —
+           how far it is and which tools it holds; nothing taken away, each section's questions and tools inside its fold. The fold is
+           drawn afresh once the answers have been read (they arrive after the first draw), so the open one is the section in hand —
+           and never snaps shut under somebody writing in it after that. */
+        const here = !!dash.sections[i]?.here;
+        const st = sectionState(method.key, s.name, answers);
+        const names = s.tools.map(id => { const h = howTool(id); return (h.how === 'unknown' ? id : h.entry.name).split(' — ')[0]; });
+        const foldSays = [
+          here ? 'You are here' : '',
+          st.fields ? `${st.word} · ${st.written} of ${st.fields} written` : '',
+          lit ? `${plural(lit, 'tool')} used` : '',
+          names.length ? names.slice(0, 2).join(', ') + (names.length > 2 ? ` +${names.length - 2} more` : '') : '',
+        ].filter(Boolean).join(' · ');
         return (
-          <section key={s.name} className="part-sec pmethod-sec" aria-label={s.name}>
+          <section key={s.name} className={'part-sec pmethod-sec' + (here ? ' is-here' : '')} aria-label={s.name}>
+            <Fold key={ready ? 'read' : 'reading'} id={`method-sec-${method.key}-${slug(s.name)}`} start={here} need={here}
+              title={<span className="pace-sec-title">{i + 1}. {s.name}</span>}
+              says={foldSays}>
             <div className="pace-sec-head">
-              <h2 className="pace-sec-title">{i + 1}. {s.name}</h2>
-              <p className="pace-sec-sub">{s.what}{(() => { const st = sectionState(method.key, s.name, answers); return st.fields ? ` · ${st.word}: ${st.written} of ${st.fields} written` : ''; })()}{lit ? ` · ${plural(lit, 'tool')} used here` : ''}</p>
+              <p className="pace-sec-sub">{s.what}{st.fields ? ` · ${st.word}: ${st.written} of ${st.fields} written` : ''}{lit ? ` · ${plural(lit, 'tool')} used here` : ''}</p>
               {s.note && <p className="chip-hint">{s.note}</p>}
               {(() => { const g = guideOfSection(method.key, s.name); return g ? <GuideFold summary="What this step means"><StepMeans means={g.means} doThis={g.doThis} youGet={g.youGet} /></GuideFold> : null; })()}
             </div>
@@ -158,12 +175,15 @@ export function MethodScreen({ projectId }: { projectId: string }) {
                 )}
               </p>
             )}
+            </Fold>
           </section>
         );
       })}
       {also.length > 0 && (
         <section className="part-sec pmethod-sec" aria-label="Also used here">
-          <div className="pace-sec-head"><h2 className="pace-sec-title">Also used here</h2>
+          <Fold id="method-sec-also" start={false} title={<span className="pace-sec-title">Also used here</span>}
+            says={`${plural(also.length, 'tool')} the method does not list · ${also.slice(0, 2).map(t => t.label).join(', ')}${also.length > 2 ? ` +${also.length - 2} more` : ''}`}>
+          <div className="pace-sec-head">
             <p className="pace-sec-sub">Tools used in this project that the method does not list.</p></div>
           <RecordRows label="Also used here">
             {also.map(t => (
@@ -172,6 +192,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
                 onOpen={() => nav(inProject(t.to, projectId))} />
             ))}
           </RecordRows>
+          </Fold>
         </section>
       )}
     </div>

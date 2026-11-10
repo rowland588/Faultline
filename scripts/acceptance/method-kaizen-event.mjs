@@ -28,6 +28,7 @@ const fillBox = async (loc, v) => { await loc.fill(v); await loc.blur(); await p
 /* ---- 1 the questions ---- */
 await go(`#/project/${KE}`, 1800);
 await page.waitForSelector('.kz', { timeout: 20000 });
+await t.openSections();   // the section in hand is open, the rest one line each (docs/DESIGN.md) — opened to read them
 const asked = await page.locator('.msheet-q').allInnerTexts();
 for (const q of ['Who is the sponsor?', 'The measure, and its target', 'The dates', 'The measure after the changes', 'Who has been trained in it', 'What the week bought', 'The baseline', 'Is the gain still holding?'])
   ok(asked.includes(q), `1 the method asks “${q}”`);

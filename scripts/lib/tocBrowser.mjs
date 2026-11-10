@@ -7,6 +7,7 @@
  *     await t.seed();                      // the smoke seed; returns its ids
  *     await t.finish('what held');         // errors checked, browser closed, exit code set */
 import pkg from 'playwright';
+import { openMethodSections } from './methodFolds.mjs';
 const { chromium } = pkg;
 
 export const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
@@ -40,6 +41,8 @@ export async function openApp({ width = 1360, height = 900, profile, args } = {}
     await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
     return page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
   };
+  /** A method project's sections opened by their folds (every one, or those named) — methodFolds.mjs. */
+  t.openSections = names => openMethodSections(page, names);
   t.wide = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   /** The PDF a button makes, as plain text (pdftotext), whitespace and dashes normalised. */
   t.pdfText = async (press, name = 'paper') => {

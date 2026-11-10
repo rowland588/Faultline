@@ -16,6 +16,7 @@
  *
  *   node scripts/acceptance/horizontal-deployment.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openMethodSections } from '../lib/methodFolds.mjs';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -102,7 +103,7 @@ ok((await page.locator('.pl-spread.is-none').count()) === 1 && (await page.locat
 
 /* 1b — the project's method page: the Horizontal deployment row (PDCA's Act) says it and opens the line */
 await go(`#/project/${made.project}`);
-await page.waitForSelector('.pmethod-sec');
+await page.waitForSelector('.pmethod-sec'); await openMethodSections(page);  // a method page opens on the section in hand, the rest folded (docs/DESIGN.md) — opened to read them
 const row = page.locator('.pmethod-sec .lt-row', { hasText: 'Horizontal deployment' });
 ok((await row.count()) === 1, '1b the project’s Act lists Horizontal deployment once');
 ok(flat(await row.locator('.lt-says').innerText()) === 'Splice guide proved on Yoko 3 — 3 lines with the Wrapper, 3 not yet answered.', '1b it says the fix and how many lines are not yet answered', await row.locator('.lt-says').innerText());

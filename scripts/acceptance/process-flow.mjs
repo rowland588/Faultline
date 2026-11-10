@@ -15,6 +15,7 @@
  *
  *   node scripts/acceptance/process-flow.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openMethodSections } from '../lib/methodFolds.mjs';
 import { paper as pressPaper } from '../lib/pageHeader.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
@@ -160,7 +161,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
 
 /* ---- 7 · from a Kaizen event's Observe section */
 const kz = sd.methodProjectIds['kaizen-event'];
-await go(`#/project/${kz}`);
+await go(`#/project/${kz}`); await openMethodSections(page);  // a method page opens on the section in hand, the rest folded (docs/DESIGN.md) — opened to read them
 const row = page.locator('.pmethod .lt-li').filter({ hasText: 'Process flow chart' }).first();
 const rt = flat(await row.innerText());
 ok(/Built/.test(rt) && !/Not built yet|A mode of/.test(rt), `7 Observe lists the Process flow chart as built, a tool of its own since 8 November — "${rt.slice(0, 90)}"`);
@@ -170,7 +171,7 @@ ok((await page.getByLabel('What is it of?').count()) === 1 && /it is the project
 await page.getByLabel('What is it of?').fill('Packing hall tray'); await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500);
 const mine = await page.evaluate(async pid => (await (await import('/src/db.ts')).listStudies(pid)).filter(s => s.tool === 'calc' && s.agreed?.calc?.key === 'process-flow').map(s => s.name), kz);
 ok(mine.includes('Packing hall tray'), '7 the chart is the project’s own', JSON.stringify(mine));
-await go(`#/project/${kz}`);
+await go(`#/project/${kz}`); await openMethodSections(page);
 const after = flat(await page.locator('.pmethod .lt-li').filter({ hasText: 'Process flow chart' }).first().innerText());
 ok(/1 use in this project/.test(after), `7 and its row counts it: "${after.slice(0, 120)}"`);
 

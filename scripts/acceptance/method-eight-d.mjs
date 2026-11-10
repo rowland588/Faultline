@@ -44,6 +44,7 @@ await go(`#/project/${P}`, 2200);
 }
 /* 3 — the method's questions are still asked, and D1 */
 {
+  await t.openSections(['D0']);   // the section in hand is open, the rest one line each (docs/DESIGN.md) — opened to read them
   const qs = await page.locator('.pmethod-sec[aria-label^="D0"] .msheet-q').allInnerTexts();
   ok(qs[0] === 'Who raised it, and their reference' && qs.includes('The symptom') && qs.includes('The emergency response'), `3 D0 asks who raised it, when, the symptom, the response (${qs.length} boxes)`);
   const team = page.locator('.pmethod-sec[aria-label^="D0"]').getByLabel('The team', { exact: true });

@@ -13,8 +13,10 @@ import { offerUndo } from '../../ui/Undo';
 import { useLunaAnswers } from '../../colleague/lunaAnswers';
 import { isLunaDraft, LunaMark } from '../../colleague/LunaMark';
 
-export function useAnswers(projectId: string, method: MethodKey): { answers: Record<string, string>; items: Map<string, TestItem> } {
+export function useAnswers(projectId: string, method: MethodKey): { answers: Record<string, string>; items: Map<string, TestItem>; ready: boolean } {
   const [items, setItems] = useState<Map<string, TestItem>>(new Map());
+  /* the answers have been read once — before then every section reads as not started */
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     let live = true;
     const load = () => void listTestItems(projectId).then(rows => {
@@ -22,6 +24,7 @@ export function useAnswers(projectId: string, method: MethodKey): { answers: Rec
       const m = new Map<string, TestItem>();
       for (const i of rows) if (i.kind === 'note' && !i.deletedAt && i.testId.startsWith(`method:${method}:`)) m.set(i.testId, i);
       setItems(m);
+      setReady(true);
     });
     load();
     const off = onDataChange(load);
@@ -29,7 +32,7 @@ export function useAnswers(projectId: string, method: MethodKey): { answers: Rec
   }, [projectId, method]);
   const answers: Record<string, string> = {};
   for (const [scope, i] of items) answers[scope.split(':').slice(2).join(':')] = i.what;
-  return { answers, items };
+  return { answers, items, ready };
 }
 
 /** Write one answer of the method's sheet — shared by the boxes under each section and by a method's own shape. */

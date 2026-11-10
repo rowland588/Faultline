@@ -7630,7 +7630,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .door-methods { margin: 22px 0 0; display: flex; flex-wrap: wrap; gap: 6px; max-width: 600px; }
 .door-methods span { display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-pill); font-size: var(--t-label); font-weight: 500; color: var(--ink-2); background: var(--surface); }
 .door-steps { grid-area: steps; min-width: 0; list-style: none; margin: 0; padding: 0; counter-reset: door-step; border-top: 1px solid var(--line); }
-.door-steps li { counter-increment: door-step; display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 8px; row-gap: 2px; padding: 16px 0; border-bottom: 1px solid var(--line-row, var(--line)); }
+.door-steps li { counter-increment: door-step; display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 8px; row-gap: 2px; padding: 16px 0; border-bottom: 1px solid var(--line-row); }
 .door-steps li::before { content: counter(door-step, decimal-leading-zero); grid-row: span 2; font-size: var(--t-detail); font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
 .door-steps b { font-size: var(--t-body); font-weight: 600; color: var(--ink); }
 .door-steps span { font-size: var(--t-detail); line-height: 1.5; color: var(--ink-2); }
@@ -16599,7 +16599,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .tc-holds { display: block; margin-top: 6px; font-size: var(--t-label); font-weight: 600; color: var(--ink-2); }
 .hd { margin-top: 24px; }
 .hd-tools { list-style: none; margin: 8px 0 12px; padding: 0; border-top: 1px solid var(--line); }
-.hd-tool { border-bottom: 1px solid var(--line-row, var(--line)); }
+.hd-tool { border-bottom: 1px solid var(--line-row); }
 .hd-tool > details > summary, .hd-group > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 4px; cursor: pointer; list-style: none; }
 .hd-tool > details > summary::-webkit-details-marker, .hd-group > summary::-webkit-details-marker { display: none; }
 .hd-tool > details > summary::before, .hd-group > summary::before { content: "›"; color: var(--muted); font-weight: 700; width: 12px; flex: none; transition: transform .15s; }
@@ -16642,7 +16642,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* the tools in use, on the Overview: a table — a row each, its name, what it found (in its state's colour, with its words), how many on
    the line — the cards stay on the Tools tab */
 .pl-sec.is-glance .pl-tools.is-used { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); grid-template-columns: none; }
-.pl-sec.is-glance .pl-tools.is-used > li { width: auto; border-bottom: 1px solid var(--line-row, var(--line)); }
+.pl-sec.is-glance .pl-tools.is-used > li { width: auto; border-bottom: 1px solid var(--line-row); }
 .pl-sec.is-glance .pl-tools.is-used > li:last-child { border-bottom: 0; }
 .pl-sec.is-glance .pl-tools.is-used .pl-tool { display: grid; grid-template-columns: 180px minmax(0, 1fr) 120px 16px; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 8px 14px; border: 0; border-radius: 0; box-shadow: none; background: none; text-align: left; }
 .pl-sec.is-glance .pl-tools.is-used .pl-tool:hover { background: var(--surface-2); }
@@ -16669,9 +16669,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
    group's problems one list with hairlines between the rows, not a stack of boxes; the pictures smaller, the priority and the state at the
    row's ends; the abnormal still carries its colour with its word. Presentation only. */
 .nv-main .qsl-reg .qsl-rows { gap: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
-.nv-main .qsl-reg .qsl-row { border: 0; border-bottom: 1px solid var(--line-row, var(--line)); border-radius: 0; margin: 0; padding: 0 14px 0 6px; }
+.nv-main .qsl-reg .qsl-row { border: 0; border-bottom: 1px solid var(--line-row); border-radius: 0; margin: 0; padding: 0 14px 0 6px; }
 .nv-main .qsl-reg .qsl-row:last-child { border-bottom: 0; }
-.nv-main .qsl-reg .qsl-row:hover { background: var(--surface-2); border-color: var(--line-row, var(--line)); }
+.nv-main .qsl-reg .qsl-row:hover { background: var(--surface-2); border-color: var(--line-row); }
 .nv-main .qsl-reg .qsl-open { padding: 9px 6px 9px 0; gap: 10px; }
 .nv-main .qsl-reg .qsl-nopic, .nv-main .qsl-reg .qsl-open img { width: 36px; height: 36px; border-radius: var(--radius-sm); }
 .nv-main .qsl-reg .qsl-what { font-size: var(--t-body); }
@@ -16711,11 +16711,11 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fy-g.is-late .fy-gh { color: var(--st-r); }
 .fy-g.is-soon .fy-gh { color: var(--st-a); }
 .fy-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.fy-list li + li { border-top: 1px solid var(--line-row, var(--line)); }
+.fy-list li + li { border-top: 1px solid var(--line-row); }
 .fy-row { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; min-height: 44px; padding: 10px 12px; border: 0; background: var(--surface); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
 .fy-row:hover { background: var(--surface-2); }
 .fy-m { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--t-label); color: var(--ink-2); }
-.fy-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line-row, var(--line)); }
+.fy-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line-row); }
 .fy-who { display: flex; flex-direction: column; gap: 12px; }
 .fy-type { display: flex; gap: 8px; }
 .fy-type .text-input { flex: 1; min-height: 44px; }
@@ -16761,7 +16761,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .dt-scroll { overflow: auto; max-height: 560px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
 .dt { width: 100%; border-collapse: collapse; font-size: var(--t-detail); }
 .dt th { position: sticky; top: 0; z-index: 1; padding: 8px 10px; background: var(--surface-2); border-bottom: 1px solid var(--line); text-align: left; font-size: var(--t-label); font-weight: 600; color: var(--ink-2); white-space: nowrap; }
-.dt td { padding: 10px; border-bottom: 1px solid var(--line-row, var(--line)); vertical-align: top; color: var(--ink); line-height: 1.4; }
+.dt td { padding: 10px; border-bottom: 1px solid var(--line-row); vertical-align: top; color: var(--ink); line-height: 1.4; }
 .dt tbody tr:last-child td { border-bottom: 0; }
 .dt .is-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dt td.is-flag { color: var(--st-a); font-weight: 600; }
@@ -16817,7 +16817,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ws-video .vid-says { margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
 .ws-video .vid-says h3 { margin: 0 0 6px; font-size: var(--t-label); font-weight: 600; color: var(--muted); }
 .ws-video .vid-findings { gap: 0; }
-.ws-video .vid-findings li { padding: 7px 0; border-radius: 0; background: transparent; border-bottom: 1px solid var(--line-row, var(--line)); line-height: 1.45; }
+.ws-video .vid-findings li { padding: 7px 0; border-radius: 0; background: transparent; border-bottom: 1px solid var(--line-row); line-height: 1.45; }
 .ws-video .vid-findings li:last-child { border-bottom: 0; }
 .ws-video .vid-findings li.is-proposed { border: 0; border-bottom: 1px dashed var(--line); }
 @media (min-width: 1100px) {
@@ -16921,7 +16921,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .st-snap { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .st-snap h3 { margin: 0 0 6px; font-size: var(--t-label); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 .st-snap ul { list-style: none; margin: 0 0 12px; padding: 0; }
-.st-snap li { padding: 7px 0; border-bottom: 1px solid var(--line-row, var(--line)); display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; line-height: 1.4; }
+.st-snap li { padding: 7px 0; border-bottom: 1px solid var(--line-row); display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; line-height: 1.4; }
 .st-snap li.is-r b { color: var(--st-r); }
 .st-snap li.is-g b { color: var(--st-g); }
 .st-money { margin-left: auto; font-weight: 600; white-space: nowrap; }
@@ -17733,3 +17733,38 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .inv-marks { margin: 4px 0 0; padding-left: 18px; }
 .inv-marks .is-g b { color: var(--st-g); } .inv-marks .is-r b { color: var(--st-r); }
 
+
+/* METHOD PAGE, CALM (10 November) — docs/DESIGN.md. A method project's page (project/method/MethodScreen): the section the
+   project is in open, every other a line in ui/Fold saying how far it is and which tools it holds; a section is a heading
+   and a hairline, never a box; a question is a label, a box and a hairline, never a card; a tool a plain row; the dashboard
+   the one card at the top, its journey a strip and its findings and attention lines with a state edge, no card inside it. */
+.pmethod .pmethod-sec { margin: 0; }
+.pmethod .pmethod-sec > .fold { margin: 0; background: transparent; border-radius: 0; box-shadow: none; overflow: visible; border-top: 1px solid var(--line); }
+.pmethod .pmethod-sec:last-child > .fold { border-bottom: 1px solid var(--line); }
+.pmethod .pmethod-sec > .fold > .fold-h { padding: var(--space-3) 0; min-height: 44px; align-items: center; }
+.pmethod .pmethod-sec > .fold > .fold-h .fold-toggle { align-items: center; min-height: 44px; }
+.pmethod .pmethod-sec > .fold > .fold-h .pace-sec-title { margin: 0; font-size: var(--t-h); font-weight: 700; color: var(--ink); }
+.pmethod .pmethod-sec.is-here > .fold > .fold-h .fold-s { color: var(--ink-2); }
+.pmethod .pmethod-sec > .fold > .fold-b { padding: 0 0 var(--space-5); }
+.pmethod .pmethod-sec .pace-sec-head { margin-bottom: var(--space-3); }
+.pmethod .pmethod-sec .pace-sec-sub { margin: 0; }
+.pmethod .msheet { gap: 0; margin: 0 0 var(--space-3); }
+.pmethod .msheet-f { padding: var(--space-3) 0; border: 0; border-bottom: 1px solid var(--line-row); border-radius: 0; background: transparent; box-shadow: none; }
+.pmethod .msheet-f:last-child { border-bottom: 0; }
+.pmethod .pmethod-sec .lt-rows { gap: 0; }
+.pmethod .pmethod-sec .part-row { border: 0; border-bottom: 1px solid var(--line-row); border-radius: 0; background: transparent; box-shadow: none; }
+.pmethod .pmethod-sec .part-row > .lt-row { box-shadow: none; min-height: 44px; }
+.pmethod .pmethod-sec .part-row > .btn { min-height: 44px; }
+.pmethod .pmethod-add .btn { min-height: 44px; }
+.pmethod .mdash-step { padding: var(--space-2) 0 0; border: 0; border-top: 3px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
+.pmethod .mdash-step.is-here { border-top-color: var(--brand); background: transparent; box-shadow: none; }
+.pmethod .mdash-step.is-done { border-top-color: var(--st-g); background: transparent; }
+.pmethod .mdash-f, .pmethod .mdash-a { padding: var(--space-1) 0 var(--space-1) var(--space-3); border: 0; border-left: 3px solid var(--line-2); border-radius: 0; background: transparent; }
+.pmethod .mdash-f.is-r, .pmethod .mdash-a.is-r { border-left-color: var(--st-r); }
+.pmethod .mdash-f.is-a, .pmethod .mdash-a.is-a { border-left-color: var(--st-a); }
+.pmethod .mdash-f.is-g { border-left-color: var(--st-g); }
+.pmethod .mdash-f.is-w { border-left-color: var(--st-w); }
+@media (max-width: 719px) {
+  .pmethod .pmethod-sec > .fold > .fold-h { padding: var(--space-2) 0; }
+  .pmethod .pmethod-sec > .fold > .fold-h .fold-s { white-space: normal; }
+}

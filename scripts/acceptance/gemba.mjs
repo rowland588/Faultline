@@ -18,6 +18,7 @@
  *
  *   node scripts/acceptance/gemba.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { openMethodSections } from '../lib/methodFolds.mjs';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -153,7 +154,7 @@ const proj = await page.evaluate(async (ids) => {
   return { kata: kata.id, kaizen: kaizen.id };
 }, { L1: made.L1, L2: made.L2, L3: made.L3 });
 await go(`#/project/${proj.kata}`);
-await page.waitForSelector('.pmethod-sec');
+await page.waitForSelector('.pmethod-sec'); await openMethodSections(page);  // a method page opens on the section in hand, the rest folded (docs/DESIGN.md) — opened to read them
 const kataRow = page.locator('.pmethod-sec .lt-row', { hasText: 'Gemba walk' });
 ok((await kataRow.count()) === 1, '4 the Kata’s Experiment toward it lists the Gemba walk once');
 const kataSays = flat(await kataRow.locator('.lt-says').innerText());
@@ -163,7 +164,7 @@ await kataRow.click();
 await page.waitForTimeout(1200);
 ok(page.url().endsWith(`#/lines/${made.L3}`), '4 the row opens the stalest line', page.url());
 await go(`#/project/${proj.kaizen}`);
-await page.waitForSelector('.pmethod-sec');
+await page.waitForSelector('.pmethod-sec'); await openMethodSections(page);
 const kzRow = page.locator('.pmethod-sec .lt-row', { hasText: 'Gemba walk' });
 ok(flat(await kzRow.locator('.lt-says').innerText()) === S.L1, '4 the Kaizen event’s Observe row on a fresh line says so, neutral', await kzRow.locator('.lt-says').innerText());
 ok(!(await kzRow.locator('.lt-says').getAttribute('class'))?.match(/is-[ra]/), '4 fresh carries no colour');

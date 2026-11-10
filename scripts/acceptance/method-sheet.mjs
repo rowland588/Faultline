@@ -26,6 +26,7 @@ for (const m of sheets) {
   if (m.key === 'stage-gate' || m.key === 'pdca' || await page.evaluate(async k => (await import('/src/project/method/shapes/index.ts')).SHAPES[k]?.sectionBoxes === 'none', m.key)) continue;   // a method whose board is the whole interface asks its questions there (its own acceptance script)
   await go(`#/project/${ids[m.key]}`, 1800);
   await page.waitForSelector('.pmethod', { timeout: 20000 });
+  await t.openSections();   // the section in hand is open, the rest one line each (docs/DESIGN.md) — every one opened to read it
   const got = await page.locator('.pmethod-sec').evaluateAll(els => els.map(e => ({ name: e.getAttribute('aria-label'), qs: [...e.querySelectorAll('.msheet-q')].map(q => q.textContent?.trim()) })));
   const want = m.sections.map(s => ({ name: s.name, qs: s.fields }));
   ok(JSON.stringify(got.filter(g => want.some(w => w.name === g.name))) === JSON.stringify(want), `1 ${m.key}: every section asks its own questions (${want.reduce((n, s) => n + s.qs.length, 0)} boxes)`);

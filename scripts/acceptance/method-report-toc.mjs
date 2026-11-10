@@ -57,6 +57,7 @@ await page.evaluate(async P => {
 }, P);
 await go(`#/project/${P}`, 2500);
 await page.waitForSelector('.toc-card', { timeout: 20000 });
+await t.openSections();   // the section in hand is open, the rest one line each (docs/DESIGN.md) — opened to read them
 const sec = n => page.locator(`.pmethod-sec[aria-label="${n}"]`);
 const box = (s, q) => sec(s).locator('.msheet-f', { has: page.locator('.msheet-q', { hasText: new RegExp('^' + q + '$') }) }).locator('.msheet-in');
 const write = async (s, q, v) => { const b = box(s, q); await b.fill(v); await b.blur(); await page.waitForTimeout(450); };
