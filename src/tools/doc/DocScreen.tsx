@@ -434,7 +434,8 @@ function Record({ s, def, can, me }: { s: ToolStudy; def: DocDef; can: ReturnTyp
         <WhereItSits s={s} can={can} />
       </div>
       <SignBox def={def} run={run} canAgree={can.agree && !closed} canEdit={can.edit} {...(me ? { me } : {})} onSign={sign} onUnsign={unsign} />
-      {!canEdit && !closed && !signed && <p className="sub doc-ro" role="status">You can read this and take its paper; the words are changed by the people doing the work.</p>}
+      {/* said once: the agreement box says it where there is one */}
+      {!def.signoff && !canEdit && !closed && !signed && <p className="sub doc-ro" role="status">You can read this and take its paper; the words are changed by the people doing the work.</p>}
       {def.reads && ctx && !ctx.problems && <p className="sub doc-reads" role="status">{def.reads}</p>}
       <div className="doc-body">
         <DocForm def={def} draft={draft} read={run.values} photos={photos} ctx={world} disabled={!canEdit} problems={run.problems} names={names}

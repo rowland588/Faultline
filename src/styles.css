@@ -17733,3 +17733,23 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .inv-marks { margin: 4px 0 0; padding-left: 18px; }
 .inv-marks .is-g b { color: var(--st-g); } .inv-marks .is-r b { color: var(--st-r); }
 
+
+/* DOCUMENTS AND LINE TALK, CALM (10 November) — docs/DESIGN.md. A document's sections are a heading line and a hairline, not a box:
+   each the app's one fold (ui/Fold) saying how far it is written, the section in hand open; a list's rows are hairline-parted, never a
+   card inside the section; the working under the reading a fold of its own on the reading's page, not a second box. Tokens only. */
+.doc-form { gap: 0; }
+.doc-form .doc-sec { display: block; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.doc-form .fold { margin: 0; overflow: visible; background: none; border-radius: 0; box-shadow: none; border-top: 1px solid var(--line); }
+.doc-form .doc-sec:last-child .fold { border-bottom: 1px solid var(--line); }
+.doc-form .fold-h, .doc-working .fold-h { align-items: center; padding: 0 var(--space-1); }
+.doc-form .fold-toggle, .doc-working .fold-toggle { align-items: center; min-height: 44px; }
+.doc-form .fold-t { font-size: var(--t-h); }
+.doc-form .fold-b { display: flex; flex-direction: column; gap: var(--space-3); padding: 0 var(--space-1) var(--space-5); }
+.doc-form .doc-row { border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; padding: var(--space-2) 0 0; }
+.doc-form .doc-list, .doc-form .doc-photos { border-top: 0; padding-top: var(--space-2); }
+.doc-working .fold { margin: 0; overflow: visible; background: none; border-radius: 0; box-shadow: none; border-top: 1px solid var(--line); }
+.doc-working .fold-b { padding: 0 0 var(--space-2); }
+@media (max-width: 640px) {
+  .doc-form .fold-h { flex-wrap: wrap; gap: 0 var(--space-3); padding: 0 0 var(--space-2); }
+  .doc-form .fold-s { white-space: normal; }
+}

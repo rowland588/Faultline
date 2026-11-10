@@ -51,7 +51,8 @@ async function device(width, access) {
 const { page } = await device(1360);
 let asked = '', answer = true;
 page.on('dialog', d => { asked = d.message(); void (answer ? d.accept() : d.dismiss()); });
-const go = async h => { await page.goto(`${BASE}/${h}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); };
+const openFolds = async (pg = page) => { for (let n = 0; n < 60; n++) { const t = pg.locator('.doc-form .fold:not(.is-open) .fold-toggle').first(); if (!(await t.count())) break; await t.click(); } }; // a document's sections are folds (docs/DESIGN.md): open them all before typing
+const go = async h => { await page.goto(`${BASE}/${h}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); await openFolds(); };
 const words = async sel => ((await page.locator(sel).count()) ? flat(await page.locator(sel).first().innerText()) : null);
 const pdf = async (pg, name, label) => {
   const [d] = await Promise.all([pg.waitForEvent('download', { timeout: 60000 }), pressPaper(pg, label)]);
@@ -108,7 +109,7 @@ async function started(d, name, qs = '') {
   await go(`#/doc/${d.key}${qs}`);
   await page.getByRole('button', { name: `New ${d.noun}` }).first().click(); await page.waitForTimeout(400);
   await page.getByLabel('What is it of?').fill(name);
-  await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500);
+  await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500); await openFolds();
   return recordId();
 }
 
@@ -159,7 +160,7 @@ for (const d of defs) {
   ok(flat(await page.locator('h1').first().innerText()) === d.title && (await words('.pace-lede'))?.includes(d.question), `${tag} a its page: ${d.title}, and the question it answers`);
   await page.getByRole('button', { name: `New ${d.noun}` }).first().click(); await page.waitForTimeout(400);
   await page.getByLabel('What is it of?').fill(`Acceptance — ${d.title}`);
-  await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500);
+  await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500); await openFolds();
   const id0 = recordId();
   ok(page.url().includes(`/doc/${d.key}/`) && id0.length > 8, `${tag} a started: ${page.url().split('#')[1]}`);
   ok(/Draft/.test((await words('[data-doc=sign]')) ?? '') && /0 of \d+ needed boxes/.test((await words('[data-doc=sign]')) ?? ''), `${tag} a a new document is a Draft saying how much is filled: "${(await words('[data-doc=sign]'))?.slice(0, 90)}"`);
@@ -167,7 +168,7 @@ for (const d of defs) {
   const needsText = (await words('[data-doc=needs]')) ?? '';
   ok(required.every(i => needsText.includes(i.label)), `${tag} a …and names every needed box (${required.length}): ${required.map(i => i.label).slice(0, 3).join(' · ')}…`, needsText);
   ok((await page.locator('[data-doc=sentence]').count()) === 0 && (await page.locator('[data-doc=waiting]').count()) === 1, `${tag} a nothing is said before there is something to say`);
-  for (const sec of d.sections) ok((await page.locator(`[data-doc-section="${sec.id}"] h2`).first().innerText()) === sec.title, `${tag} a section “${sec.title}”`);
+  for (const sec of d.sections) ok((await page.locator(`[data-doc-section="${sec.id}"] .fold-t`).first().innerText()) === sec.title, `${tag} a section “${sec.title}”, a fold saying how far it is written`);
 
   /* b · every example, through the real boxes */
   let full;
@@ -330,7 +331,7 @@ await go(`#/doc/charter?project=${sd.projectId}`);
 ok((await page.locator('.ip-scope .chip').count()) >= 2, 'P opened in a project: the scope chips say whose');
 await page.getByRole('button', { name: 'New charter' }).first().click(); await page.waitForTimeout(400);
 ok(/^For .+ — it is the project’s/.test((await words('[data-for-project]')) ?? ''), `P New says it is for the project: "${await words('[data-for-project]')}"`);
-await page.getByLabel('What is it of?').fill('Project charter'); await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500);
+await page.getByLabel('What is it of?').fill('Project charter'); await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500); await openFolds();
 const made = await dbGet(recordId());
 ok(made?.projectId === sd.projectId && made.tool === 'doc' && made.agreed.doc.def === 'charter', 'P the document made there is the project’s');
 await page.locator('[data-offer=lead]').count().then(n => ok(n === 1, `P the project’s lead is offered for the Lead box: "${n ? flat(page.url()) && 'one button' : 'none'}"`));

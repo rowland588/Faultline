@@ -13,6 +13,7 @@ import { openApp } from '../lib/tocBrowser.mjs';
 
 const t = await openApp();
 const { page, ok, go, words } = t;
+const openFolds = async (pg = page) => { for (let n = 0; n < 60; n++) { const f = pg.locator('.doc-form .fold:not(.is-open) .fold-toggle').first(); if (!(await f.count())) break; await f.click(); } }; // a document's sections are folds (docs/DESIGN.md): open them all before reading its boxes
 const sd = await t.seed();
 const ID = sd.methodProjectIds.dmaic;
 const PROBLEM = 'Seal failures on Line 7, 4% of packs since September';
@@ -32,7 +33,7 @@ ok((await ins.getByRole('button', { name: 'Start the charter' }).count()) === 1,
 await ins.getByRole('button', { name: 'Start the charter' }).click(); await page.waitForTimeout(1200);
 ok(/#\/doc\/charter/.test(page.url()) && page.url().includes(ID), `2 Start opens the charter list in the project (${page.url().split('#')[1]})`);
 await page.getByLabel('What is it of?').fill('Line 7 seals — charter');
-await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1600);
+await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1600); await openFolds();
 const offP = page.locator('[data-offer=problem]'), offS = page.locator('[data-offer=scopeIn]');
 ok((await offP.count()) === 1 && (await offP.innerText()).includes('Seal failures on Line 7') && /method sheet/.test(await offP.innerText()), `2 the problem box offers the sheet's words, saying where from (${(await offP.innerText()).slice(0, 110)})`);
 ok((await offS.count()) === 1 && /Define’s scope/.test(await offS.innerText()), '2 the scope box offers Define’s scope');
@@ -47,7 +48,7 @@ await go(`#/project/${ID}`, 2000);
 await page.waitForSelector('.dm', { timeout: 20000 });
 await box('The problem statement').fill('Seal failures on Line 7, 5% of packs since October'); await box('The problem statement').blur(); await page.waitForTimeout(800);
 await page.locator('#dm-define [data-insert="charter"]').getByRole('button', { name: /^Open Documents/ }).click(); await page.waitForTimeout(1500);
-await page.getByText('Line 7 seals — charter', { exact: true }).first().click(); await page.waitForTimeout(1800);
+await page.getByText('Line 7 seals — charter', { exact: true }).first().click(); await page.waitForTimeout(1800); await openFolds();
 const again = page.locator('[data-offer=problem]');
 ok((await again.count()) === 1 && (await again.innerText()).includes('5% of packs since October'), '3 change the sheet and the offer says the new words (it is read, not copied)');
 

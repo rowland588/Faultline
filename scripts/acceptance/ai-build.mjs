@@ -24,6 +24,7 @@ import { paper as pressPaper } from '../lib/pageHeader.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
+const openFolds = async (pg = page) => { for (let n = 0; n < 60; n++) { const f = pg.locator('.doc-form .fold:not(.is-open) .fold-toggle').first(); if (!(await f.count())) break; await f.click(); } }; // a document's sections are folds (docs/DESIGN.md): open them all before reading its boxes
 const sd = await t.seed();
 const CORS = { 'access-control-allow-origin': '*' };
 const asks = [];
@@ -170,7 +171,7 @@ await page.locator(`[data-draft="${sheetDraft}"] [data-draft-card]`).getByRole('
 await page.waitForSelector(`[data-draft="${sheetDraft}"][data-draft-status="made"]`, { timeout: 8000 }).catch(() => undefined);
 const sheet = (await dbStudies()).find(s => s.tool === 'doc' && s.name === 'Downtime capture sheet');
 ok(!!sheet && sheet.agreed?.doc?.def === 'custom' && sheet.facts?.customDef?.metrics?.length === 2 && sheet.facts?.docValues?.planned === 450, '5 made: a document of its own structure, the values in it');
-await page.locator(`[data-draft="${sheetDraft}"] [data-open-made]`).click(); await page.waitForTimeout(2500);
+await page.locator(`[data-draft="${sheetDraft}"] [data-open-made]`).click(); await page.waitForTimeout(2500); await openFolds();
 ok(page.url().includes(`/doc/custom/${sheet?.id}`) && (await page.locator('[data-doc-custom]').count()) === 1, '5 opened in Manual Mode as a document, saying it is a custom sheet');
 const docPage = t.norm(await page.locator('.nv-main').innerText());
 ok(/Share of the shift down/.test(docPage) && /10%/.test(docPage) && (await page.locator('input[aria-label], .doc-body input').count()) > 0, '5 its boxes on the page to edit, its metric worked out beside them');

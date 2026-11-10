@@ -4,8 +4,9 @@
  * caption. Typed live: the reading beside it is worked out from what is in the boxes, saved a moment after the last key. */
 import { useRef } from 'react';
 import { useBlobUrl } from '../../lib/useBlobUrl';
+import { Fold } from '../../ui/Fold';
 import { askedSections, isList, isPhotos, isScalar, newRow } from './doc';
-import type { DocColumn, DocCtx, DocDef, DocField, DocList, DocPhoto, DocPhotos, DocProblem, DocRow, DocValues } from './types';
+import type { DocColumn, DocCtx, DocDef, DocField, DocItem, DocList, DocPhoto, DocPhotos, DocProblem, DocRow, DocSection, DocValues } from './types';
 
 export interface FormProps {
   def: DocDef;
@@ -145,15 +146,41 @@ function PhotosBox({ b, p }: { b: DocPhotos; p: FormProps }) {
   );
 }
 
+/** How far a section is written, from what is read in its boxes: how many of its boxes hold something, and how many needed ones
+ *  are still empty. Read for its fold's line; nothing is kept. */
+function sectionWritten(sec: DocSection, read: DocValues, photos: readonly DocPhoto[]): { filled: number; total: number; needed: number } {
+  const has = (it: DocItem): boolean => (isScalar(it) ? read[it.id] !== undefined && read[it.id] !== ''
+    : isList(it) ? Array.isArray(read[it.id]) && (read[it.id] as DocRow[]).length > 0
+      : photos.some(ph => ph.field === it.id && !ph.struck));
+  let filled = 0, needed = 0;
+  for (const it of sec.items) { const h = has(it); if (h) filled++; else if (it.required) needed++; }
+  return { filled, total: sec.items.length, needed };
+}
+
+/** The fold's one line: how far the section is written. */
+function sectionSays(w: { filled: number; total: number; needed: number }): string {
+  const how = w.filled === 0 ? 'Not started' : w.filled === w.total ? 'Written' : `${w.filled} of ${w.total} filled in`;
+  return w.needed ? `${how} · ${w.needed} needed still` : how;
+}
+
+/* THE DOCUMENT, CALM (10 November, docs/DESIGN.md — Rowland: "a beautifully simple interface supported by sophisticated
+   engineering"): each section is one line in the app's one fold, saying how far it is written; the section in hand — the first with a
+   needed box still empty (on a document with nothing in it yet, the first) — opens, the rest wait shut. Every box is where it was, one
+   tap away; the reading beside them and the paper are unchanged. */
 export function DocForm(p: FormProps) {
+  const secs = askedSections(p.def, p.read);
+  const said = secs.map(sec => sectionWritten(sec, p.read, p.photos));
+  const inHand = said.findIndex(w => w.needed > 0);
+  const open = inHand >= 0 ? inHand : said.every(w => w.filled === 0) ? 0 : -1;
   return (
     <div className="doc-form" aria-label="The document">
-      {askedSections(p.def, p.read).map(sec => (
-        <section key={sec.id} className="doc-sec" data-doc-section={sec.id} aria-label={sec.title}>
-          <h2 className="ln-h doc-sec-h">{sec.title}</h2>
-          {sec.help && <p className="sub doc-sec-help">{sec.help}</p>}
-          {sec.items.map(it => (isScalar(it) ? <Scalar key={it.id} f={it} p={p} /> : isList(it) ? <ListBox key={it.id} l={it} p={p} /> : isPhotos(it) ? <PhotosBox key={it.id} b={it} p={p} /> : null))}
-        </section>
+      {secs.map((sec, i) => (
+        <div key={sec.id} className="doc-sec" data-doc-section={sec.id} aria-label={sec.title}>
+          <Fold id={`doc.${p.def.key}.${sec.id}`} title={sec.title} says={sectionSays(said[i])} start={false} need={i === open}>
+            {sec.help && <p className="sub doc-sec-help">{sec.help}</p>}
+            {sec.items.map(it => (isScalar(it) ? <Scalar key={it.id} f={it} p={p} /> : isList(it) ? <ListBox key={it.id} l={it} p={p} /> : isPhotos(it) ? <PhotosBox key={it.id} b={it} p={p} /> : null))}
+          </Fold>
+        </div>
       ))}
     </div>
   );
