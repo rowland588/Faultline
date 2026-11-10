@@ -9,7 +9,7 @@
  *   5  ← → and the foot move between the tools, wrapping, "n of 15"
  *   6  a mode's number opens its parent's page with itself marked; a planned entry its own page, no Start
  *   7  an unknown key says so; a route sent from a page preselects it on Tools
- *   8  the phone — the gallery scrolls sideways, a card and the edge of the next, nothing off the side
+ *   8  the phone — the tools one calm list (10 November, docs/DESIGN.md: a row a tool, one column, each a thumb's height), nothing off the side
  *
  *   node scripts/acceptance/tool-page.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
@@ -23,6 +23,7 @@ const IGNORE = /Supabase|net::ERR|Failed to fetch|ERR_FAILED|aborted|WebSocket|t
 let fail = 0;
 const ok = (c, m, d) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}${!c && d ? ` — ${String(d).slice(0, 400)}` : ''}`); if (!c) fail++; };
 const flat = s => String(s ?? '').replace(/\s+/g, ' ').trim();
+const unfold = async (pg, id) => { const f = pg.locator(`[data-fold="${id}"]`); if (await f.count() && !(await f.evaluate(e => e.classList.contains('is-open')))) { await f.locator('.fold-toggle').click(); await pg.waitForTimeout(250); } };   // a fold opened where its contents are read (10 November, docs/DESIGN.md)
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
 const mk = async vp => {
@@ -54,6 +55,7 @@ ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth
 /* 2 */
 const chip = n => page.locator('[aria-label="Kind of tool"] .chip', { hasText: n });
 const studies = mod.tools.filter(t => t.kind === 'study').length;
+await unfold(page, 'tools-kinds');   // the kinds are in a fold below the list since 10 November
 await chip(/^Studies/).click(); await page.waitForTimeout(200);
 ok((await cards.count()) === studies && /Studies\s+\d+/.test(flat(await chip(/^Studies/).innerText())) && flat(await chip(/^Studies/).innerText()).endsWith(String(studies)), `2 Studies — ${studies} cards, the chip says so`, await cards.count());
 await chip(/^All/).click(); await page.waitForTimeout(200);
@@ -64,6 +66,7 @@ const cap = mod.tools.find(t => t.key === 'capability');
 await page.locator('.tc-card[data-tool="capability"] .tc-main').click(); await page.waitForTimeout(1800);
 ok(/#\/tools\/capability$/.test(page.url()), '3 a card opens the tool’s own page', page.url());
 ok(flat(await page.locator('.pace-head h1').innerText()) === cap.label && flat(await page.locator('.pace-lede').innerText()) === cap.says, '3 its name and what it is for');
+for (const f of ['tool-io', 'tool-inside', 'tool-stands']) await unfold(page, f);   // the rest of the page is in folds since 10 November
 const qs = (await page.locator('.tp-qs li').allInnerTexts()).map(flat);
 ok(JSON.stringify(qs) === JSON.stringify(mod.cap.q), '3 the questions it answers, the catalogue’s', qs.join(' | '));
 ok(flat(await page.locator('.tp-sec[aria-label="What you can use it for"] .tp-lede').innerText()) === flat(mod.cap.problem), '3 the problem in the floor’s words');
@@ -104,7 +107,7 @@ ok((await page.getByRole('button', { name: 'Start one', exact: true }).count()) 
 /* 7 */
 await go('#/tools/nonsense');
 ok(/Tool not found/.test(await page.locator('.pace-head h1').innerText()), '7 an unknown key says so');
-await go('#/tools/capability'); await page.locator('.tp-routes button').first().click(); await page.waitForTimeout(1500);
+await go('#/tools/capability'); await unfold(page, 'tool-routes'); await page.locator('.tp-routes button').first().click(); await page.waitForTimeout(1500);
 ok(/#\/tools\?route=/.test(page.url()) && (await page.locator('.et-route').count()) === 1, '7 a route from the page opens on Tools, preselected', page.url());
 
 ok(!D.errs.length, `no console error at desk${D.errs.length ? `: ${D.errs.slice(0, 3).join(' | ')}` : ''}`);
@@ -113,9 +116,12 @@ await D.ctx.close();
 /* 8 */
 const P = await mk({ width: 375, height: 760 });
 await P.page.goto(`${BASE}/#/tools`); await P.page.waitForTimeout(2500);
-const m8 = await P.page.evaluate(() => { const g = document.querySelector('.tc-gal'); const c = g.querySelectorAll('.tc-cell'); const r = c[0].getBoundingClientRect(), r2 = c[1].getBoundingClientRect();
-  return { scrolls: g.scrollWidth > g.clientWidth + 8, first: Math.round(r.width), second: Math.round(r2.left), vw: innerWidth, page: document.documentElement.scrollWidth > innerWidth + 1 }; });
-ok(m8.scrolls && m8.first < m8.vw && m8.second < m8.vw, `8 the gallery scrolls sideways, a card and the edge of the next (${m8.first}px wide, next at ${m8.second} of ${m8.vw})`, JSON.stringify(m8));
+/* since 10 November (docs/DESIGN.md — "Tools obvious") the tools are one calm list, not a sideways gallery: every tool a row in one
+   column, inside the screen, each a thumb's height, its page and its list each one press */
+const m8 = await P.page.evaluate(() => { const c = [...document.querySelectorAll('.et-now .tc-cell')]; const rs = c.map(x => x.getBoundingClientRect());
+  const presses = [...document.querySelectorAll('.et-now .tc-main, .et-now .tc-open')].map(b => b.getBoundingClientRect().height);
+  return { n: c.length, oneCol: new Set(rs.map(r => Math.round(r.left))).size === 1, inside: rs.every(r => r.left >= 0 && r.right <= innerWidth + 0.5), stacked: rs.every((r, i) => i === 0 || r.top >= rs[i - 1].bottom - 0.5), minPress: Math.round(Math.min(...presses)), page: document.documentElement.scrollWidth > innerWidth + 1 }; });
+ok(m8.n === N && m8.oneCol && m8.inside && m8.stacked && m8.minPress >= 44, `8 the tools one list on the phone — ${m8.n} rows in one column, inside the screen, every press ${m8.minPress}px or more`, JSON.stringify(m8));
 ok(!m8.page, '8 nothing off the side of the page');
 await P.page.goto(`${BASE}/#/tools/capability`); await P.page.waitForTimeout(2200);
 ok(!(await P.page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), '8 a tool’s page, nothing off the side');

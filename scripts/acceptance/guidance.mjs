@@ -26,6 +26,7 @@ const IGNORE = /Supabase|net::ERR|Failed to fetch|ERR_FAILED|aborted|Download th
 let fail = 0;
 const ok = (c, what, detail) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${what}${!c && detail ? ` — ${String(detail).slice(0, 600)}` : ''}`); if (!c) fail++; };
 const flat = s => String(s ?? '').replace(/\s+/g, ' ').trim();
+const unfold = async (pg, id) => { const f = pg.locator(`[data-fold="${id}"]`); if (await f.count() && !(await f.evaluate(e => e.classList.contains('is-open')))) { await f.locator('.fold-toggle').click(); await pg.waitForTimeout(250); } };   // a fold opened where its contents are read (10 November, docs/DESIGN.md)
 
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const ctx = await b.newContext({ viewport: { width: 1360, height: 900 } });
@@ -101,10 +102,12 @@ ok(!/#\/methods/.test(page.url()) || /Factory|Lines/.test(await page.locator('.p
 /* 4 — a tool's page, and the bar's How it works */
 await go('#/tools/capability');
 await page.waitForSelector('.tp', { timeout: 30000 });
+await unfold(page, 'tool-how');   // How it works is in a fold on a tool's page since 10 November
 const toolSteps = await page.locator('.tp-sec[aria-label="How it works, step by step"] .sg-steps').first().evaluate(ol => [...ol.querySelectorAll(':scope > .sg-step')].map(li => ({ n: li.querySelector('.sg-name')?.textContent?.trim(), l: [...li.querySelectorAll('dt')].map(d => d.textContent?.trim()).join('|') })));
 ok(toolSteps.length >= 4 && toolSteps.every(s => s.l === 'What it means|What to do|What you get'), `4 Capability’s page: How it works — ${toolSteps.length} steps, each the three parts (${toolSteps.map(s => s.n).join(' · ').slice(0, 120)})`);
 await go('#/tools/reliability');
 await page.waitForSelector('.tp', { timeout: 30000 });
+await unfold(page, 'tool-how');
 ok((await page.locator('.tp-sec[aria-label="How it works, step by step"] details.sg-fold').count()) >= 3, '4 Reliability’s page: its modes’ steps are folded under its own');
 await page.locator('.tp-sec[aria-label="How it works, step by step"] details.sg-fold summary').first().click();
 ok((await page.locator('.tp-sec[aria-label="How it works, step by step"] details.sg-fold[open] .sg-step').count()) >= 2, '4 …and a mode opens to its own steps');

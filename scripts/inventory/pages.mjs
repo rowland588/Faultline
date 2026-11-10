@@ -548,8 +548,8 @@ export const PAGES = (sd, cap) => [
     { what: 'the new tools planned and not started, the parts that are not tools, research and left out — each folded with its count', sel: '.hd-group .hd-n', n: 4 },
     /* the eleven a person can open, one tap each — the factory's tools since the rail stopped listing them (23 October, docs/STRUCTURE.md B2) */
     /* since 30 October (docs/TOOLS-SHOWCASE.md, TG1) the rows are the gallery: a card each, with its picture, its one line and use, opening its page; Open › its list */
-    { what: 'the gallery — a card for every tool a person can open', sel: '.et-now .tc-card', n: 19 },
-    { what: 'each card with its picture or its drawn tile', sel: '.et-now .tc-card .tc-pic', n: 19 },
+    { what: 'the tools, first — a row for every tool a person can open (one calm list since 10 November, docs/DESIGN.md; the rest in folds the inventory opens)', sel: '.et-now .tc-card', n: 19 },
+    { what: 'each row with its picture or its drawn tile', sel: '.et-now .tc-card .tc-pic', n: 19 },
     /* THE WORLDS (31 October, docs/TOOLS-WORLDS.md W0): a doorway for each way of working, read from the catalogue's disciplines */
     { what: 'the worlds — a card each of the five, with the real tools’ pictures and what is built', sel: '.wd-card', n: 5 },
     { what: 'a world’s card says how much of it is built', sel: '.wd-card .wd-nums', n: 5 },

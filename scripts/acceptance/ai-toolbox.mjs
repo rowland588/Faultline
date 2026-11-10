@@ -14,8 +14,10 @@ import { openApp } from '../lib/tocBrowser.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
+const unfold = async (pg, id) => { const f = pg.locator(`[data-fold="${id}"]`); if (await f.count() && !(await f.evaluate(e => e.classList.contains('is-open')))) { await f.locator('.fold-toggle').click(); await pg.waitForTimeout(250); } };   // a fold opened where its contents are read (10 November, docs/DESIGN.md)
 await t.seed();
 await t.go('#/tools', 3000);
+await unfold(page, 'tools-ai');   // the AI toolbox is in a fold below the tools since 10 November (remembered on this device after)
 
 const cards = await page.locator('[data-ai-tool]').evaluateAll(es => es.map(e => e.getAttribute('data-ai-tool')));
 ok(JSON.stringify(cards) === JSON.stringify(['talk', 'talk-in', 'video-name', 'colleague', 'brief-read', 'story-draft', 'voice-note']), `1 the AI toolbox, a card each: ${cards.join(', ')}`);
@@ -32,10 +34,12 @@ await t.go('#/tools/capability', 2500);
 ok((await page.locator('[data-ai-mark], [data-ai-say]').count()) === 0, '3 the capability study\'s page says none');
 
 await t.go('#/tools', 2500);
+await unfold(page, 'tools-ai');
 await page.locator('[data-ai-tool="talk"] button').click(); await page.waitForTimeout(1500);
 ok(/#\/talk/.test(page.url()), `4 Open Line Talk lands on Line Talk (${page.url().split('#')[1]})`);
 
 await page.setViewportSize({ width: 390, height: 844 }); await t.go('#/tools', 2500);
+await unfold(page, 'tools-ai');
 const cols = await page.locator('[data-ai-tool]').evaluateAll(es => new Set(es.map(e => Math.round(e.getBoundingClientRect().left))).size);
 ok(cols === 1 && (await t.wide()) <= 1, `5 the phone: one column (${cols}), nothing off the side`);
 
