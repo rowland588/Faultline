@@ -137,7 +137,11 @@ await page.locator('[data-workbook-stop]').click();
 await page.waitForSelector('[data-workbook="read"]', { timeout: 120000 });
 const said5 = await t.words('[data-workbook]');
 ok(/only PART of it was read/.test(said5), `5 stopped part way: said partial — "${said5.slice(0, 120)}"`);
-await round('What is in the second one?', [calls(['p5', 'workbook_profile', {}]), then('…')]);
+/* "the second one" names a workbook: with two in the conversation, none is picked for Luna (docs/CONVERSATIONAL-DATA.md) — she names it */
+const secondId = await page.evaluate(async () => { const db = await import('/src/db.ts'); const c = (await db.listAllStudies()).filter(x => (x.facts?.workbooks ?? []).some(w => w.name === 'second.xlsx')).sort((a, b) => b.updatedAt - a.updatedAt)[0]; return c?.facts.workbooks.find(w => w.name === 'second.xlsx')?.id ?? ''; });
+await round('Which one do you mean?', [calls(['n5', 'workbook_profile', {}]), then('…')]);
+ok(result('n5') && !result('n5').ok && /Ask the person which, naming each; never pick one/.test(result('n5').why ?? result('n5').says ?? ''), '5 two workbooks and none named: refused — asked which, never picked');
+await round('What is in the second one?', [calls(['p5', 'workbook_profile', { workbookId: secondId }]), then('…')]);
 ok(/PARTIAL/.test(result('p5')?.says ?? ''), '5 the profile says PARTIAL — never complete');
 
 /* ---- 6 · INTERRUPTED ---- */
