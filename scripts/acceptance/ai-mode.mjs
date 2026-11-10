@@ -42,7 +42,11 @@ const lineName = await page.evaluate(async id => (await (await import('/src/db.t
 await t.go(`#/lines/${encodeURIComponent(sd.wsId)}`, 2500);
 ok((await page.locator('.nv-top .ai-door').count()) === 1 && /Ask Luna/.test(await t.words('.nv-top .ai-door')), '1 Ask Luna is in the top bar');
 await page.locator('.nv-top .ai-door').click(); await page.waitForTimeout(2000);
-ok(page.url().includes(`#/ai?line=${encodeURIComponent(sd.wsId)}`), `1 the door opens AI Mode on the line (${page.url().split('#')[1]})`);
+/* since W2 (docs/LUNA-WORKSPACE.md) the door opens Luna BESIDE the page, the line page staying the work; Full screen is AI Mode's page */
+ok(page.url().includes(`#/lines/${encodeURIComponent(sd.wsId)}`) && (await page.locator('[data-luna-panel] [data-ai]').count()) === 1, `1 the door opens Luna beside the line's page (${page.url().split('#')[1]})`);
+ok((await t.words('[data-luna-panel] [data-ai-title]')) === lineName, '1 beside the line, a new conversation starts on it');
+await page.locator('[data-luna-full]').click(); await page.waitForTimeout(2000);
+ok(page.url().includes(`#/ai?line=${encodeURIComponent(sd.wsId)}`) && (await page.locator('[data-luna-panel]').count()) === 0, `1 Full screen opens AI Mode on the line (${page.url().split('#')[1]})`);
 ok((await t.words('[data-ctx-current] .ai-ctx-t')) === lineName && (await t.words('[data-ai-title]')) === lineName, `1 a new conversation starts on ${lineName}`);
 ok((await page.locator('.ai-empty .ai-sug').count()) === 3, '1 the empty conversation offers three examples');
 

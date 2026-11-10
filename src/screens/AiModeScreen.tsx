@@ -16,7 +16,9 @@
  *
  * WHICH RECORD: a study of tool `talk`, facts.colleague (no new table). WHERE IT SHOWS: here; the door is the top bar's
  * Ask Luna (src/colleague/AiDoor), never a line of the menu. */
-import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { deskWide, setLunaPanel } from '../colleague/lunaPanel';
+import { scopeOf } from '../lib/scope';
 import { createPortal } from 'react-dom';
 import { deleteStudy, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { offerUndo } from '../ui/Undo';
@@ -106,11 +108,13 @@ const isDesk = () => { try { return window.matchMedia('(min-width: 1100px)').mat
 /** AI Mode's screen. Mounted once by colleague/LunaHost and kept alive across the app (docs/LUNA-WORKSPACE.md W1): `route` is the last
  *  address it was shown at, `shown` whether it is on screen now (it writes the address only then), `slot` where it is drawn. With AI
  *  Mode off the router draws it alone, saying so. */
-export function AiModeScreen({ route: given, shown = true, slot = 'page' }: { route?: Route; shown?: boolean; slot?: 'page' | 'panel' } = {}) {
+export function AiModeScreen({ route: given, shown = true, slot = 'page', page }: { route?: Route; shown?: boolean; slot?: 'page' | 'panel'; page?: Route } = {}) {
   const here = useRoute();
   const route = given ?? here;
   const on = useAiMode();
-  void slot;
+  /* beside a page (the panel, docs/LUNA-WORKSPACE.md W2): the page's line or project starts a new conversation, and Luna is told what
+     is on the screen beside her */
+  const pageScope = page ? scopeOf(page) : undefined;
   const lines = useFactoryLines();
   const { projects } = useProjects();
   const lineQ = route.query.get('line') ?? '';
@@ -139,11 +143,15 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page' }: { ro
     if (placeQ && placeQ !== lastPlace.current) setOpen({ key: uid() });
     lastPlace.current = placeQ || lastPlace.current;
   }, [placeQ]);
+  const panelLine = slot === 'panel' && pageScope?.kind === 'line' ? pageScope.wsId : '';
+  const panelProject = slot === 'panel' && pageScope?.kind === 'project' ? pageScope.projectId : '';
   const start = useMemo((): { title: string; scope: ThreadScope } | undefined => {
+    if (panelLine) { const l = lines.find(x => x.id === panelLine); return l ? { title: l.name, scope: { lineId: l.id } } : undefined; }
+    if (panelProject) { const p = projects.find(x => x.id === panelProject); return p ? { title: p.name, scope: { projectId: p.id } } : undefined; }
     if (lineQ) { const l = lines.find(x => x.id === lineQ); return l ? { title: l.name, scope: { lineId: l.id } } : undefined; }
     if (projectQ) { const p = projects.find(x => x.id === projectQ); return p ? { title: p.name, scope: { projectId: p.id } } : undefined; }
     return undefined;
-  }, [lineQ, projectQ, lines, projects]);
+  }, [lineQ, projectQ, panelLine, panelProject, lines, projects]);
 
   if (!on) {
     return (
@@ -161,17 +169,32 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page' }: { ro
     if (shownRef.current && slotRef.current === 'page') try { history.replaceState(null, '', id ? `#/ai?c=${encodeURIComponent(id)}` : '#/ai'); } catch { /* the page still follows */ }
   };
   const list = <ConversationList all={all} openId={open.id} onPick={pick} onGone={id => { if (id === open.id) pick(); }} />;
+  const pageName = pageScope?.kind === 'line' ? lines.find(x => x.id === pageScope.wsId)?.name : pageScope?.kind === 'project' ? projects.find(x => x.id === pageScope.projectId)?.name : undefined;
+  const screen = slot === 'panel' && page ? `${pageName ? `${pageName} — ` : ''}the page at ${typeof window !== 'undefined' ? window.location.hash : ''}${pageScope?.kind === 'line' ? ` [line ${pageScope.wsId}]` : pageScope?.kind === 'project' ? ` [project ${pageScope.projectId}]` : ''}` : undefined;
+  const full = () => { setLunaPanel('closed'); nav(open.id ? `/ai?c=${encodeURIComponent(open.id)}` : panelLine ? `/ai?line=${encodeURIComponent(panelLine)}` : panelProject ? `/ai?project=${encodeURIComponent(panelProject)}` : '/ai'); };
   return (
-    <div className="ai" data-ai>
+    <LunaPlace.Provider value={slot}>
+    <div className={'ai' + (slot === 'panel' ? ' is-panel' : '')} data-ai data-ai-slot={slot}>
       <aside className="ai-list" aria-label="Conversations">{list}</aside>
-      <Conversation key={open.key} id={open.id} start={open.id ? undefined : start} onMade={id => {
+      <Conversation key={open.key} id={open.id} start={open.id ? undefined : start} screen={screen} dock={slot === 'panel' ? { onFull: full, onClose: () => setLunaPanel('closed') } : undefined} onMade={id => {
         setOpen(o => ({ ...o, id }));
         /* the address is the conversation's only while it is the page on screen — never another page's address rewritten */
         if (shownRef.current && slotRef.current === 'page' && /^#\/ai(\?|$)/.test(window.location.hash)) try { history.replaceState(null, '', `#/ai?c=${encodeURIComponent(id)}`); } catch { /* kept for this visit */ }
       }} onList={() => setListSheet(true)} onNew={() => pick()} />
       <Sheet open={listSheet} onClose={() => setListSheet(false)} title="Conversations">{list}</Sheet>
     </div>
+    </LunaPlace.Provider>
   );
+}
+
+/** Where Luna is drawn — the page (#/ai) or the panel beside a page; a record's chip and the work follow it (W2). */
+const LunaPlace = createContext<'page' | 'panel'>('page');
+
+/** A record opened from the conversation: the page itself becomes the work and Luna stays — beside it on a desk, a bar at the foot on a
+ *  phone (docs/LUNA-WORKSPACE.md W2). Never navigates her away. */
+function openAsWork(href: string): void {
+  setLunaPanel(deskWide() ? 'open' : 'min');
+  nav(href);
 }
 
 /* EARLIER CONVERSATIONS, EACH WITH ITS OPTIONS (10 November — Rowland: "earlier conversations can't delete them, need options"):
@@ -239,9 +262,14 @@ function ConversationList({ all, openId, onPick, onGone }: { all: ToolStudy[] | 
 
 type Said = { text: string; bad?: boolean } | null;
 
-function Conversation({ id, start, onMade, onList, onNew }: {
+function Conversation({ id, start, onMade, onList, onNew, screen, dock }: {
   id?: string; start?: { title: string; scope: ThreadScope }; onMade: (id: string) => void; onList: () => void; onNew: () => void;
+  /** Beside a page: what is on the screen beside the conversation, said to Luna with each turn. */
+  screen?: string;
+  /** Drawn as the panel beside a page: its way to full screen and to close. */
+  dock?: { onFull: () => void; onClose: () => void };
 }) {
+  const screenRef = useRef(screen); screenRef.current = screen;
   const { session } = useSession();
   const email = session?.user.email ?? undefined;
   const me = displayName(email) || undefined;
@@ -268,7 +296,9 @@ function Conversation({ id, start, onMade, onList, onNew }: {
   /* THE WORK PANE (lib/pane): the real page the conversation is working on, beside it */
   const [work, setWork] = useState<CapRef | null>(null);
   const [workOpen, setWorkOpen] = useState(false);
-  const showWork = useCallback((r: CapRef | undefined) => { if (r) { setWork(r); setWorkOpen(true); } }, []);
+  const panelRef = useRef(!!dock); panelRef.current = !!dock;
+  /* beside a page on a desk, the page itself is the work — never a framed copy (W2); on #/ai and on a phone, the work pane as before */
+  const showWork = useCallback((r: CapRef | undefined) => { if (!r) return; if (panelRef.current && deskWide()) { nav(r.href); return; } setWork(r); setWorkOpen(true); }, []);
   const ctx = useCallback((): CapCtx => ({
     now: Date.now(), ...(saidAt.current ? { saidAt: saidAt.current } : {}), ...(email ? { email } : {}), ...(me ? { me } : {}), ...(sid.current ? { conversationId: sid.current } : {}),
     ...(session?.user.id ? { userId: session.user.id } : {}), ...(projectHere ? { level: access.level } : {}),
@@ -646,7 +676,7 @@ function Conversation({ id, start, onMade, onList, onNew }: {
       const end = await colleagueLoop({
         turns: gatewayTurns(asked, named),
         ...(images.length ? { images } : {}),
-        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); const wf = f as WalkFacts; const files = (await allSources()).slice(0, 12).map(x => sourceSaid(x)); const nb = await notebookFor(f.threads ?? []); return focusText(f.threads ?? [], { ...(nb ? { notebook: nb } : {}), names: nameOf, photos: photosKeys, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] }); },
+        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); const wf = f as WalkFacts; const files = (await allSources()).slice(0, 12).map(x => sourceSaid(x)); const nb = await notebookFor(f.threads ?? []); return focusText(f.threads ?? [], { ...(nb ? { notebook: nb } : {}), ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, photos: photosKeys, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] }); },
         today: longDay(),
         conversationId: cid,
         preferences: preferencesText,
@@ -938,6 +968,8 @@ function Conversation({ id, start, onMade, onList, onNew }: {
               <span key={t.id} className="ai-timer" role="timer" aria-label={`${t.label} — ${leftSaid(t.endsAt - timers.now)} left`} data-timer><Icon name="time" size={14} />{leftSaid(t.endsAt - timers.now)}<span className="ai-timer-l">{t.label}</span></span>
             ))}
             {work && !workOpen && <button type="button" className="btn ai-work-b" data-work-show onClick={() => setWorkOpen(true)}><Icon name="board" size="1.05em" />Show the work</button>}
+            {dock && <button type="button" className="btn ai-full-b" data-luna-full onClick={dock.onFull} title="Luna full width, the conversations beside"><Icon name="arrowUp" size="1.05em" />Full screen</button>}
+            {dock && <button type="button" className="btn ai-close-b" data-luna-close onClick={dock.onClose} aria-label="Put Luna away"><Icon name="close" size="1.05em" /></button>}
             <button type="button" className="btn ai-list-b" onClick={onList}><Icon name="list" size="1.05em" />Conversations</button>
             <button type="button" className="btn ai-new-b" onClick={onNew}><Icon name="plus" size="1.05em" />New conversation</button>
             <button type="button" className="btn ai-ctx-b" aria-pressed={!wide} onClick={toggleWide} title={wide ? 'Show what this conversation is on, what is parked and the sources' : 'Put the context away for a wider conversation'}>
@@ -1160,7 +1192,7 @@ function RefChips({ refs: all, label = 'Records' }: { refs: readonly CapRef[]; l
   return (
     <span className="ai-refs" role="group" aria-label={label}>
       {uniqueRefs(refs).slice(0, 8).map(r => (
-        <button key={`${r.kind}:${r.id}`} type="button" className="ai-ref" data-ref={`${r.kind}:${r.id}`} onClick={() => nav(r.href)} title={`Open ${r.label} in Manual Mode`}>
+        <button key={`${r.kind}:${r.id}`} type="button" className="ai-ref" data-ref={`${r.kind}:${r.id}`} onClick={() => openAsWork(r.href)} title={`Open ${r.label} — Luna stays beside it`}>
           <span className="ai-ref-k">{r.kind === 'page' ? 'Page' : r.kind[0].toUpperCase() + r.kind.slice(1)}</span><span className="ai-ref-l">{r.label}</span><Icon name="chevron" size={12} />
         </button>
       ))}

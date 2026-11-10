@@ -1,0 +1,32 @@
+/* LUNA BESIDE THE PAGE (10 November, docs/LUNA-WORKSPACE.md W2 — Rowland: "Luna becoming a persistent panel within the application, with
+ * the actual working page alongside her"). Whether her panel is open beside the page, kept on this device like AI Mode's own switch:
+ *   'closed'  the app as built — Manual Mode exactly as ever
+ *   'open'    beside the page on a desk; over it as a sheet on a phone
+ *   'min'     on a phone: the page in front, Luna one tap away in a bar at the foot (still answering, still listening) — set when she
+ *             opens a record for the person to see; on a desk it reads as open.
+ * Every reader hears a change at once ('faultline-luna-panel'). Pure but for localStorage and the event. */
+import { useEffect, useState } from 'react';
+
+export type PanelState = 'closed' | 'open' | 'min';
+const KEY = 'faultline.lunaPanel';
+const EVENT = 'faultline-luna-panel';
+
+export function lunaPanel(): PanelState {
+  try { const v = localStorage.getItem(KEY); return v === 'open' || v === 'min' ? v : 'closed'; } catch { return 'closed'; }
+}
+export function setLunaPanel(s: PanelState): void {
+  try { localStorage.setItem(KEY, s); } catch { /* followed for this visit by the event */ }
+  window.dispatchEvent(new Event(EVENT));
+}
+export function useLunaPanel(): PanelState {
+  const [s, set] = useState(lunaPanel);
+  useEffect(() => {
+    const read = () => set(lunaPanel());
+    window.addEventListener(EVENT, read);
+    window.addEventListener('storage', read);
+    return () => { window.removeEventListener(EVENT, read); window.removeEventListener('storage', read); };
+  }, []);
+  return s;
+}
+/** A desk wide enough for the page and Luna side by side. */
+export const deskWide = (): boolean => typeof window !== 'undefined' && window.matchMedia('(min-width: 1100px)').matches;

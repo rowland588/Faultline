@@ -19,7 +19,7 @@
  * Every URL is unchanged. The frame reads the route; it never owns one.
  */
 import { isMethodAnswer } from '../lib/methodSheet';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, useHash } from '../state/useRoute';
 import type { Project, Workspace } from '../types';
@@ -38,6 +38,9 @@ import { usePrograms } from '../lib/usePrograms';
 import { machineRecord } from '../lib/machineRecord';
 import { todayISO } from '../lib/weeks';
 import { Icon } from './Icon';
+import { LunaSlot } from '../colleague/LunaHost';
+import { deskWide, lunaPanel, setLunaPanel, useLunaPanel } from '../colleague/lunaPanel';
+import { useAiMode } from '../colleague/aiMode';
 import { LogoMark } from './Logo';
 import { SyncChip } from './SyncChip';
 import { Sheet } from './Sheet';
@@ -135,10 +138,35 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
     : undefined;
   const reading = (projectId && !project && (loading || (route.wsId && chain === null))) || (record && recordOf === undefined);
 
+  /* LUNA BESIDE THE PAGE (docs/LUNA-WORKSPACE.md W2): her panel, open or put away to a bar on a phone — never on #/ai, where she is the
+     page; never with AI Mode off. Closed, the frame is exactly as before. */
+  const panel = useLunaPanel();
+  const aiOn = useAiMode();
+  const lunaHere = aiOn && panel !== 'closed' && route.name !== 'ai';
+  /* on a phone, going to another page while Luna fills the screen brings the page to the front, Luna a bar at the foot — the person
+     went there to see it (the floor: one thing at a time) */
+  const pageHash = useHash();
+  const firstHash = useRef(pageHash);
+  useEffect(() => {
+    if (pageHash === firstHash.current) return;
+    firstHash.current = pageHash;
+    if (lunaPanel() === 'open' && !deskWide()) setLunaPanel('min');
+  }, [pageHash]);
   return (
-    <div className="nv">
+    <div className={'nv' + (lunaHere ? ` has-luna is-luna-${panel}` : '')}>
       <ScopeFrame scope={scope} project={project} projects={projects} lines={lines} here={here} toolName={toolName} toolTo={toolTo} toolId={tool?.id} wsId={route.wsId} reading={!!reading} area={areaCrumbs(route)} />
       <main className="nv-main">{children}</main>
+      {lunaHere && (
+        <aside className={'luna-panel is-' + panel} aria-label="Luna" data-luna-panel={panel}>
+          <LunaSlot kind="panel" className="luna-slot-panel" />
+          {panel === 'min' && (
+            <button type="button" className="luna-min" data-luna-min onClick={() => setLunaPanel('open')}>
+              <span className="luna-min-orb" aria-hidden><Icon name="spark" size={14} /></span>
+              <span className="luna-min-l">Luna</span><span className="luna-min-s">tap to talk</span>
+            </button>
+          )}
+        </aside>
+      )}
       <QuickSnagHost wsId={route.wsId ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={projectId} />
       <ProblemPanelHost />
     </div>

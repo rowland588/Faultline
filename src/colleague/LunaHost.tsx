@@ -64,5 +64,5 @@ export function LunaHost({ route, on }: { route: Route; on: boolean }) {
     node.toggleAttribute('data-luna-shown', to !== parking);
   });
   if (!alive || !on) return null;
-  return createPortal(<Suspense fallback={null}><AiModeScreen route={aiRoute ?? route} shown={!!kind} slot={kind} /></Suspense>, node);
+  return createPortal(<Suspense fallback={null}><AiModeScreen route={aiRoute ?? route} shown={!!kind} slot={kind ?? 'page'} page={route.name === 'ai' ? undefined : route} /></Suspense>, node);
 }
