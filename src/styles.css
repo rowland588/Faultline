@@ -17663,3 +17663,44 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .msheet-luna > span { flex: 1 1 220px; }
 .msheet-luna .btn { min-height: 36px; }
 @media (max-width: 1099px) { .msheet-luna .btn { min-height: 44px; } }
+
+/* THE VOICE BAR (colleague/VoiceMode bar, W6): talking with Luna over any page — the work stays in view; light, as every screen */
+.vm-bar { position: fixed; z-index: 70; left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow); }
+.vm-bar-orb { flex: none; width: 48px; height: 48px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.vm-bar-orb .vm-orb { width: 40px; height: 40px; }
+.vm-bar-w { flex: 1; min-width: 0; }
+.vm-bar-s { margin: 0; font-size: var(--t-label); font-weight: 700; color: var(--brand); }
+.vm-bar-words { margin: 2px 0 0; font-size: var(--t-detail); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vm-bar-words.is-heard { color: var(--ink-2); font-style: italic; }
+.vm-bar-acts { flex: none; display: flex; align-items: center; gap: 6px; }
+.vm-bar-b { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.vm-bar-b.is-main { background: var(--brand); border-color: var(--brand); color: var(--on-dark); }
+.vm-bar-b.is-end { color: var(--st-r); }
+@media (min-width: 1100px) {
+  .vm-bar { left: calc(var(--nv-rail) + 24px); right: 24px; bottom: 20px; max-width: 760px; }
+  .nv.has-luna ~ .vm-bar, body:has(.nv.has-luna) .vm-bar { right: 444px; }
+}
+@media (max-width: 719px) { .vm-bar-b.is-main span { display: none; } }
+
+/* TODAY (10 November, docs/LUNA-WORKSPACE.md W7) — the briefing, Luna's box, the lines, carry on, the projects */
+.today-brief-list, .today-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.today-brief-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; min-height: 48px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: inherit; text-decoration: none; }
+.today-brief-row.is-r { border-left: 4px solid var(--st-r); }
+.today-brief-row.is-a { border-left: 4px solid var(--st-a); }
+.today-brief-row.is-g { border-left: 4px solid var(--st-g); }
+.today-brief-says { flex: 1; min-width: 0; }
+.today-luna { margin: 18px 0; display: grid; gap: 10px; }
+.today-luna-box { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-xl); }
+.today-luna-orb { display: inline-flex; color: var(--brand); }
+.today-luna-in { flex: 1; min-width: 0; min-height: 44px; border: 0; background: transparent; font: inherit; outline: none; }
+.today-luna-box .btn { min-height: 44px; border-radius: var(--radius-xl); }
+.today-luna-sugg { display: flex; flex-wrap: wrap; gap: 8px; }
+.today-luna-sugg .chip { min-height: 44px; }
+.today-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 18px; }
+.today-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; min-width: 0; }
+.today-h { font-size: var(--t-label); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 10px; }
+.today-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); }
+.today-row b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.today-method + .today-method { margin-top: 10px; }
+.today-method-h { margin: 0 0 4px; font-size: var(--t-label); }
+@media (max-width: 719px) { .today-luna-box .btn { padding: 0 14px; } }

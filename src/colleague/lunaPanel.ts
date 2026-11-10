@@ -44,3 +44,16 @@ export function openLunaOn(conversationId: string): void {
   setLunaPanel('open');
   window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: conversationId }));
 }
+
+/** Ask Luna something from another page (Today's box, 10 November, docs/LUNA-WORKSPACE.md W7): the panel opened and the words sent into
+ *  the open conversation through its own Send — kept until the conversation is there to take them. */
+export const SAY_EVENT = 'faultline-luna-say';
+let pendingSay: string | undefined;
+export const takePendingSay = (): string | undefined => { const p = pendingSay; pendingSay = undefined; return p; };
+export function askLuna(words: string): void {
+  const w = words.trim();
+  if (!w) return;
+  pendingSay = w;
+  setLunaPanel('open');
+  window.dispatchEvent(new Event(SAY_EVENT));
+}

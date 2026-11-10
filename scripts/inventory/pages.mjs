@@ -28,6 +28,16 @@ export const PAGES = (sd, cap) => [
     { what: 'its own tabs — Story · Lines · Set up, Story on (8 November, S5: Home is the Story)', sel: '.nv-tabs .nv-tab.is-on', text: /^Story$/ },
     { what: 'the Story\'s header — Run an update the one primary', sel: '.part-head .btn-primary', text: /Run an update/ },
   ] },
+  /* TODAY (10 November, docs/LUNA-WORKSPACE.md W7 — the person's day; the menu's first line): the briefing worked out by code, Luna's
+     box (AI Mode on), the lines in words, the projects by method */
+  { name: 'Today', path: '#/today', must: [
+    { what: 'the menu — Today first and lit', sel: '.nv-rail .nv-ri.is-on', text: /^Today$/, desk: true },
+    { what: 'the greeting', sel: '[data-today] .pace-title', text: /^Good (morning|afternoon|evening)$/ },
+    { what: 'the briefing — one to three things that want you, each a door', sel: '[data-brief]', n: 1 },
+    { what: 'Luna\'s box (AI Mode on)', sel: '[data-today-ask]' },
+    { what: 'the lines, each in words', sel: '[data-today-line]', n: 1 },
+    { what: 'the projects under way by method', sel: '[data-today-projects] .today-method-h', n: 1 },
+  ] },
   /* THE BOARD OF LINES (23 October: "What's the point of home? ... The control room, is it required?"; one home, a fixed menu —
      and since 8 November the Factory's Lines tab at #/room, moved whole from #/): what was the control room, with where you were,
      Line Talk, and the menu and its own tabs that say where you are */

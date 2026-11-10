@@ -393,14 +393,16 @@ function useProjectsOnLine(wsId: string, projects: Project[]): number {
  *  mark and the switcher's first; every line and project is in the switcher. */
 function FactoryNav({ projects, here, onPage }: { projects: Project[]; here: string; onPage: (g: RailGroup[]) => void }) {
   const groups = factoryGroups(here, projects.length);
-  return <NavChrome groups={groups} kind="factory" home={projects} onPage={onPage} />;
+  return <NavChrome groups={groups} kind="factory" home={projects} onPage={onPage} here={here} />;
 }
 
 /* ------------------------------------------------------------------------- */
 /*  THE CHROME — the rail on a laptop, the bar and its sheet on a phone      */
 /* ------------------------------------------------------------------------- */
 
-function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage }: {
+function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage, here }: {
+  /** The page on, when the scope's own pages do not name it (Today, W7). */
+  here?: string;
   groups: RailGroup[]; project?: Project; model?: PlanModel; bar?: RailLine[];
   /** Off a project: the control room's jobs, for its Reports. */
   home?: Project[];
@@ -414,7 +416,7 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage 
   const may = useCanTakeProblem(project?.id);
   /* ONE MENU, NEVER CHANGING (23 October) — the scope's own pages are tabs across the top */
   const all = groups.flatMap(g => g.lines);
-  const onKey = all.find(l => l.on && l.key !== 'up')?.key ?? '';
+  const onKey = here === 'today' ? 'today' : all.find(l => l.on && l.key !== 'up')?.key ?? '';
   /* the place you are in, named in the menu under Factory or Projects (27 October: "Where am I?") */
   const place = kind === 'line' && line ? { name: line.name, to: lineHref(line.id) } : kind === 'project' && project ? { name: project.name, to: `/project/${project.id}` } : undefined;
   const menu = menuGroups(onKey, kind, kind === 'factory' ? all.find(l => l.key === 'projects')?.n ?? 0 : 0, place);

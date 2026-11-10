@@ -148,6 +148,8 @@ ok(['processing', 'preparing', 'speaking'].includes(await state()), `B1 then thi
 
 /* ---- B2 · said sentence by sentence ---- */
 await page.waitForFunction(() => window.__spoken.length >= 1, null, { timeout: 8000 }).catch(() => undefined);
+/* what had been said when the next round's answer went back is recorded as that answer goes — wait for it before reading it */
+for (let i = 0; i < 40 && !spokenAtRound.length; i++) await page.waitForTimeout(150);
 const firstSaid = (await spoken())[0] ?? '';
 ok(firstSaid.startsWith('Line 7 has two open problems.') && !/costing most/.test(firstSaid) && (spokenAtRound[0] ?? 0) >= 1, `B2 the first sentences said while the rest was still being worked out: "${firstSaid}" (${spokenAtRound[0]} said when the next round's answer came)`);
 await page.waitForFunction(() => window.__spoken.some(x => /Shall I time it\?/.test(x)), null, { timeout: 8000 }).catch(() => undefined);

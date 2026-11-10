@@ -17,7 +17,7 @@
  * WHICH RECORD: a study of tool `talk`, facts.colleague (no new table). WHERE IT SHOWS: here; the door is the top bar's
  * Ask Luna (src/colleague/AiDoor), never a line of the menu. */
 import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen } from '../colleague/lunaPanel';
+import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, SAY_EVENT, takePendingSay } from '../colleague/lunaPanel';
 import { scopeOf } from '../lib/scope';
 import { inAgreedScope } from '../capabilities/scope';
 import { createPortal } from 'react-dom';
@@ -184,7 +184,7 @@ export function AiModeScreen({ route: given, shown = true, slot = 'page', page }
     <LunaPlace.Provider value={slot}>
     <div className={'ai' + (slot === 'panel' ? ' is-panel' : '')} data-ai data-ai-slot={slot}>
       <aside className="ai-list" aria-label="Conversations">{list}</aside>
-      <Conversation key={open.key} id={open.id} start={open.id ? undefined : start} screen={screen} dock={slot === 'panel' ? { onFull: full, onClose: () => setLunaPanel('closed') } : undefined} onMade={id => {
+      <Conversation key={open.key} id={open.id} start={open.id ? undefined : start} screen={screen} shown={shown} dock={slot === 'panel' ? { onFull: full, onClose: () => setLunaPanel('closed') } : undefined} onMade={id => {
         setOpen(o => ({ ...o, id }));
         /* the address is the conversation's only while it is the page on screen — never another page's address rewritten */
         if (shownRef.current && slotRef.current === 'page' && /^#\/ai(\?|$)/.test(window.location.hash)) try { history.replaceState(null, '', `#/ai?c=${encodeURIComponent(id)}`); } catch { /* kept for this visit */ }
@@ -270,12 +270,14 @@ function ConversationList({ all, openId, onPick, onGone }: { all: ToolStudy[] | 
 
 type Said = { text: string; bad?: boolean } | null;
 
-function Conversation({ id, start, onMade, onList, onNew, screen, dock }: {
+function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = true }: {
   id?: string; start?: { title: string; scope: ThreadScope }; onMade: (id: string) => void; onList: () => void; onNew: () => void;
   /** Beside a page: what is on the screen beside the conversation, said to Luna with each turn. */
   screen?: string;
   /** Drawn as the panel beside a page: its way to full screen and to close. */
   dock?: { onFull: () => void; onClose: () => void };
+  /** On screen now (a page or a panel), else parked while the person works elsewhere. */
+  shown?: boolean;
 }) {
   const screenRef = useRef(screen); screenRef.current = screen;
   const { session } = useSession();
@@ -806,6 +808,15 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock }: {
     })().finally(() => { sending.current = false; });
   };
 
+  /* WORDS FROM ANOTHER PAGE (Today's box, W7): sent through this same Send once the conversation is here — never twice */
+  const sendRef = useRef(send); sendRef.current = send;
+  useEffect(() => {
+    const take = () => { const w = takePendingSay(); if (w) void sendRef.current(w); };
+    const t = window.setTimeout(take, 0);
+    window.addEventListener(SAY_EVENT, take);
+    return () => { window.clearTimeout(t); window.removeEventListener(SAY_EVENT, take); };
+  }, []);
+
   /* THE HEADSET'S BUTTON — one press: listen; stop and send; stop the reply and listen; or nothing while it works */
   pressRef.current = () => {
     const phase = phaseOf({ talkOn: voiceRef.current.talkOn, listening: !!ear.current, speaking: isSpeaking(), asking: !!asking });
@@ -1124,7 +1135,7 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock }: {
       {voice && (
         <VoiceMode state={vState} title={title} heard={listening ? typing : ''} saying={saying} note={vNote} route={route} prefs={vPrefs} setPrefs={setVPrefs}
           heardTick={heardTick} cardWaiting={waitingCard} onTap={voiceTap} onInterrupt={voiceInterrupt} onMute={voiceMute}
-          onChat={() => void closeVoice()} onEnd={() => void closeVoice()} />
+          onChat={() => void closeVoice()} onEnd={() => void closeVoice()} bar={!!dock || !shown} />
       )}
       <Sheet open={checking !== null} onClose={() => setChecking(null)} title="Before you walk the floor">
         <div className="ai-check-in" data-floor-check>

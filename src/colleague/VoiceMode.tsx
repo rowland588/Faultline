@@ -11,6 +11,7 @@
  * End, and the voice settings in a sheet. What the phone cannot do (pick the speaker, listen with the screen off) is said, not
  * offered. */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '../ui/Icon';
 import { Sheet } from '../ui/Sheet';
 import { onPulse } from './voice';
@@ -38,6 +39,10 @@ export interface VoiceModeProps {
   onMute: () => void;
   onChat: () => void;
   onEnd: () => void;
+  /** Beside a page, or with Luna parked while the person works elsewhere (docs/LUNA-WORKSPACE.md W6): a bar at the foot of the
+   *  screen over whatever page is open — the orb small, the words, Mute, Talk or Interrupt, Full screen, End — so the work stays in
+   *  view while talking. Drawn outside Luna's own box (a portal), so it shows wherever she is. Full screen is the immersive voice. */
+  bar?: boolean;
 }
 
 const BARS = 28;
@@ -48,6 +53,10 @@ export function VoiceMode(p: VoiceModeProps) {
   const level = useRef(0);
   const history = useRef<number[]>(Array(BARS).fill(0));
   const [settings, setSettings] = useState(false);
+  /* the bar opened full screen (W6) — Chat or Escape puts it back to the bar */
+  const [full, setFull] = useState(false);
+  /* the full screen drawn over everything from the bar (outside Luna's box), else where it always was */
+  const wrap = (el: React.ReactElement) => (p.bar ? createPortal(el, document.body) : el);
 
   /* the level is raised by events — a word heard, a word said — and falls away between them; the frame only draws it */
   const bump = (n: number) => { level.current = Math.min(1, level.current + n); };
@@ -70,10 +79,10 @@ export function VoiceMode(p: VoiceModeProps) {
     return () => cancelAnimationFrame(raf);
   }, []);
   useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && !settings) p.onEnd(); };
+    const esc = (e: KeyboardEvent) => { if (e.key !== 'Escape' || settings) return; if (p.bar && full) setFull(false); else p.onEnd(); };
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
-  }, [p, settings]);
+  }, [p, settings, full]);
 
   const speaking = p.state === 'speaking' || p.state === 'preparing';
   const live = p.state === 'listening' || p.state === 'transcribing' || p.state === 'interrupted';
@@ -81,7 +90,30 @@ export function VoiceMode(p: VoiceModeProps) {
   const words = live ? p.heard : p.saying;
   const muted = p.state === 'idle';
   const muteIcon = muted ? 'mic' : 'stop';
-  return (
+  if (p.bar && !full) {
+    return createPortal(
+      <div className="vm-bar" data-voice-mode data-voice-bar data-voice-state={p.state} role="region" aria-label="Voice conversation with Luna">
+        <button type="button" className="vm-bar-orb" onClick={speaking ? p.onInterrupt : p.onTap} aria-label={speaking ? 'Interrupt Luna' : p.state === 'idle' ? 'Talk' : 'Luna is listening'} data-voice-orb>
+          <div className={`vm-orb is-${p.state}`} ref={orb} aria-hidden><span className="vm-ring r1" /><span className="vm-core" /></div>
+        </button>
+        <div className="vm-bar-w">
+          <p className="vm-bar-s" role="status" aria-live="polite" data-voice-said>{said}</p>
+          <p className={'vm-bar-words' + (live ? ' is-heard' : '')} data-voice-words>{words || (live ? 'Say what you need — pause and Luna answers.' : p.title)}</p>
+          {p.note && <p className="vm-note" role="alert" data-voice-note>{p.note}</p>}
+        </div>
+        <div className="vm-bar-acts">
+          <button type="button" className="vm-bar-b" onClick={p.onMute} aria-pressed={muted} data-voice-mute aria-label={muted ? 'Unmute' : 'Mute'} title={muted ? 'Unmute' : 'Mute'}><Icon name={muteIcon} size="1.15em" /></button>
+          <button type="button" className="vm-bar-b is-main" onClick={speaking ? p.onInterrupt : p.onTap} disabled={p.state === 'processing'} data-voice-main>
+            <Icon name={speaking ? 'stop' : 'mic'} size="1.15em" /><span>{speaking ? 'Interrupt' : p.state === 'processing' ? 'Thinking…' : live && p.heard.trim() ? 'Done' : live ? 'Listening' : 'Talk'}</span>
+          </button>
+          <button type="button" className="vm-bar-b" onClick={() => setFull(true)} data-voice-full aria-label="Voice full screen" title="Full screen"><Icon name="arrowUp" size="1.15em" /></button>
+          <button type="button" className="vm-bar-b is-end" onClick={p.onEnd} data-voice-end aria-label="End the voice conversation" title="End"><Icon name="close" size="1.15em" /></button>
+        </div>
+      </div>,
+      document.body,
+    );
+  }
+  return wrap((
     <div className="vm" data-voice-mode data-voice-state={p.state} role="dialog" aria-modal="true" aria-label="Voice conversation with Luna">
       <header className="vm-top">
         <div className="vm-top-main">
@@ -113,7 +145,7 @@ export function VoiceMode(p: VoiceModeProps) {
         <button type="button" className="vm-act is-main" onClick={speaking ? p.onInterrupt : p.onTap} disabled={p.state === 'processing'} data-voice-main>
           <Icon name={speaking ? 'stop' : 'mic'} size="1.35em" /><span>{speaking ? 'Interrupt' : p.state === 'processing' ? 'Thinking…' : live && p.heard.trim() ? 'Done — answer' : live ? 'Listening' : 'Talk'}</span>
         </button>
-        <button type="button" className="vm-act" onClick={p.onChat} data-voice-chat><Icon name="list" size="1.25em" /><span>Chat</span></button>
+        <button type="button" className="vm-act" onClick={() => { if (p.bar && full) { setFull(false); return; } p.onChat(); }} data-voice-chat><Icon name="list" size="1.25em" /><span>Chat</span></button>
         <button type="button" className="vm-act is-end" onClick={p.onEnd} data-voice-end><Icon name="close" size="1.25em" /><span>End</span></button>
       </footer>
 
@@ -121,7 +153,7 @@ export function VoiceMode(p: VoiceModeProps) {
         <VoiceSettings prefs={p.prefs} setPrefs={p.setPrefs} route={p.route} />
       </Sheet>
     </div>
-  );
+  ));
 }
 
 /** The few settings that matter, each saying what this phone offers. */

@@ -125,6 +125,7 @@ export function hereOf(route: Route): string {
   switch (route.name) {
     /* HOME IS THE STORY (8 November, docs/STORY.md S5): #/ and #/story light Story; the board of lines (#/room) lights Lines */
     case 'home': case 'story': return 'story';
+    case 'today': return 'today';
     /* an area of the factory and its report light the Lines tab they are opened from (9 November, lib/areas) */
     case 'room': case 'area': case 'areaReport': return 'home';
     case 'start': return 'start';
@@ -294,6 +295,8 @@ export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', p
     ? [{ key: 'place', label: place.name, to: place.to, on: true, state: 'n', bare: true, sub: true, under, icon: under === 'home' ? 'machine' : 'board' }] : []);
   return [{
     lines: [
+      /* TODAY FIRST (10 November, docs/LUNA-WORKSPACE.md W7): the person's day — what wants them, Luna's box, the lines, the projects */
+      plain('today', 'Today', '/today', here, 'time'),
       { key: 'home', label: 'Factory', to: '/', on: (f && FACTORY_PAGES.has(here)) || (kind === 'line' && !named), state: 'n', bare: true, icon: 'home' },
       ...placed('home'),
       { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || (kind === 'project' && !named), n: projects || undefined },
