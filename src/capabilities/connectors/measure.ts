@@ -18,7 +18,7 @@
  * Every event is kept on the session with the record it wrote (`ref`), so it can be reviewed, undone (struck, its write taken back
  * the way the tool's own Undo does) or corrected (the old one undone, the new one written at the same moment). Nothing is deleted
  * that the tool itself would not take back; no figure is worked out here — the tools work out what the events mean. */
-import { addObservation, getStudy, getWorkspace, listObservations, patchStudy, patchWorkspaceRecord, putStudy, softDeleteObservation } from '../../db';
+import { addObservation, getStudy, getWorkspace, listObservations, patchStudy, patchWorkspaceRecord, putStudy, softDeleteObservation, updateObservation } from '../../db';
 import type { Observation, Workspace } from '../../types';
 import type { ChangeoverSide, ChangeoverStep, FlowStep, RelEvent, ToolStudy } from '../../lib/study';
 import { laneByDefault, valuesFor } from '../../tools/valuestream/steps';
@@ -125,6 +125,10 @@ export interface CaptureAdapter {
   record(m: Measurement, ev: CaptureInput, at: number, me?: string): Promise<{ ok: true; m: Measurement; says: string; event: MeasureEvent } | { ok: false; why: string }>;
   /** Take back what an event wrote. */
   undo(m: Measurement, e: MeasureEvent): Promise<{ ok: true; m: Measurement; says: string } | { ok: false; why: string }>;
+  /** Put an event right IN PLACE where the tool can — its times kept (10 November: a finished stop's reason corrected after the line
+   *  ran again was taken back whole and reopened with no end, found by the bagger investigation exam). Absent or `undefined`: the
+   *  correction takes it back and writes it again. */
+  correct?(m: Measurement, e: MeasureEvent, as: CaptureInput): Promise<{ ok: true; m: Measurement; says: string; event: MeasureEvent } | { ok: false; why: string } | undefined>;
   end(m: Measurement, at: number): Promise<{ ok: true; m: Measurement; says: string }>;
   /** Where the work is seen: the tool's own page for the session. */
   href(m: Measurement): string;
@@ -206,6 +210,24 @@ const stops: CaptureAdapter = {
       return { ok: true, m, says: `Taken back: ${e.says}.` };
     }
     return { ok: false, why: 'That event wrote nothing that can be taken back.' };
+  },
+  /* a stop already kept (the line ran again): its machine and reason changed on the timed stop itself, its start, end and minutes kept;
+     a stop still being timed, or a count, goes back and is written again as before */
+  async correct(m, e, as) {
+    if (e.event !== 'stopped' || e.ref?.kind !== 'timer' || !m.lineId || (as.event && as.event !== 'stopped')) return undefined;
+    const ws = await getWorkspace(m.lineId);
+    if (ws?.activeTimer && String(ws.activeTimer.startedAt) === e.ref.id) return undefined;
+    const o = (await listObservations(m.lineId)).find(x => !x.deletedAt && String(x.startedAt) === e.ref?.id);
+    if (!o) return undefined;
+    const machine = as.machine?.trim() || o.asset, reason = as.reason?.trim() || o.category;
+    await updateObservation({ ...o, asset: machine, category: reason, ...(as.note ? { note: as.note } : {}), updatedAt: Date.now() });
+    const input = { ...e.input, ...as, machine, reason };
+    const ev: MeasureEvent = { ...e, id: uid(), says: `${machine} — ${reason}, stopped at ${hm(e.at)}`, input };
+    const mm = { ...m, events: [...m.events.map(x => (x.id === e.id ? { ...x, struck: true } : x)), ev].sort((a, b) => a.at - b.at) };
+    /* the stop's end names it too */
+    const end = mm.events.find(x => !x.struck && x.event === 'running' && x.ref?.kind === 'obs' && x.ref.id === o.id);
+    const mm2 = end ? { ...mm, events: mm.events.map(x => (x === end ? { ...x, says: `${machine} — ${reason}: ${clockOf(o.durationMs)}` } : x)) } : mm;
+    return { ok: true, m: mm2, says: `${machine} — ${reason}, ${clockOf(o.durationMs)} from ${hm(o.startedAt)}`, event: ev };
   },
   async end(m, at) {
     const ws = m.lineId ? await getWorkspace(m.lineId) : undefined;

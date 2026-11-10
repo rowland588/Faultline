@@ -12,6 +12,7 @@ import { buildExam, examLine, type Exam, type Graded } from '../colleague/exam/b
 import { runExam, type ExamFacts, type ExamRun } from '../colleague/exam/run';
 import type { Observation } from '../types';
 import type { Snag } from '../snag/types';
+import { InvestigationExam } from '../colleague/exam/InvestigationExam';
 
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -74,6 +75,7 @@ export function LunaExamScreen() {
           <button type="button" className="b ghost" onClick={() => nav(`/ai?c=${encodeURIComponent(last.conversationId)}`)}>Open the exam conversation</button>
         </section>
       )}
+      <InvestigationExam />
       <section className="card" data-exam-history>
         <h2 className="h3">Scores so far</h2>
         {runs.length

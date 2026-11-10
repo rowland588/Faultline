@@ -28,7 +28,11 @@ const toNum = (s: string): number => Number(s.replace(/[,%]/g, ''));
 
 /** Every number in a text, read the one way ("1,716" is 1716). */
 export function numbersIn(text: string): number[] {
-  return (text.match(NUM) ?? []).map(toNum).filter(Number.isFinite);
+  const out = (text.match(NUM) ?? []).map(toNum).filter(Number.isFinite);
+  /* a figure in pence ("35p", "12.5p a pack") is the pounds it is too (10 November — the bagger investigation exam: "300 packs at 35p"
+     worked out as 300 × 0.35 was refused, its 0.35 found nowhere) */
+  for (const m of text.matchAll(/(?<![\p{L}\d.,_])(\d+(?:\.\d+)?)\s?p(?![\p{L}\d_])/gu)) { const n = Number(m[1]); if (Number.isFinite(n)) out.push(n, Math.round(n * 1e6) / 1e8); }
+  return out;
 }
 
 /** Every number a value holds, deep — and a query result's shares of its own totals (what can honestly be read off it). */

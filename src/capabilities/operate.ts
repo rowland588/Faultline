@@ -554,6 +554,16 @@ export const correctCapture: Capability = {
   },
   allowed: async ctx => { const a = await sessionAllowed(ctx); return a.ok ? { ok: true } : a; },
   async run(ctx, input: { eventId?: string; as: CaptureInput }): Promise<CapResult> {
+    /* put right in place where the tool can (a finished stop keeps its times — measure.ts stops.correct) */
+    const s0 = await sessionAllowed(ctx);
+    if (!s0.ok) return s0;
+    const ad0 = adapterOf(s0.m.tool);
+    const e0 = input.eventId ? s0.m.events.find(x => x.id === input.eventId) : [...s0.m.events].filter(x => !x.struck && x.event !== 'running').sort((x, y) => y.at - x.at)[0];
+    if (ad0?.correct && e0 && !e0.struck) {
+      const c = await ad0.correct(s0.m, e0, input.as);
+      if (c && !c.ok) return c;
+      if (c?.ok) { await writeMeasure(s0.conv.id, c.m); return { ok: true, says: `Put right — ${c.says}`, data: { was: e0.id, now: c.event.id }, refs: [] }; }
+    }
     const r = await takeBack(ctx, input.eventId);
     if (!r.ok) return r;
     const ad = adapterOf(r.m.tool);

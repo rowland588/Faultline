@@ -17726,3 +17726,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .st-door span { font-size: var(--t-body); color: var(--ink-2); line-height: 1.4; }
 .st .pace-lede { font-size: var(--t-h); }
 @media (max-width: 719px) { .st-intro { padding-top: 16px; } .st-intro-h { font-size: var(--t-page); } }
+
+/* THE BAGGER INVESTIGATION EXAM (10 November) */
+.inv-res > li { padding: 12px 0; border-bottom: 1px solid var(--line-row); }
+.inv-reply { margin: 6px 0; white-space: pre-wrap; }
+.inv-marks { margin: 4px 0 0; padding-left: 18px; }
+.inv-marks .is-g b { color: var(--st-g); } .inv-marks .is-r b { color: var(--st-r); }

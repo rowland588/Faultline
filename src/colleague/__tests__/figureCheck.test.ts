@@ -1,7 +1,7 @@
 /* EVERY FIGURE CHECKED (docs/LUNA-NEXT.md L1): figures in an answer found in Faultline's working to the rounding written; a figure found
  * nowhere marked; the things that are not figures left alone. */
 import { describe, it, expect } from 'vitest';
-import { checkFigures, figuresSaid, markFigures } from '../figureCheck';
+import { checkFigures, figuresSaid, markFigures, numbersIn } from '../figureCheck';
 
 const result = { resultId: 'R1', result: { measures: ['sum of minutes'], groups: [{ key: ['Sealer'], values: [264] }, { key: ['Filler'], values: [96.75] }, { key: ['Bagger'], values: [68.25] }], totals: [429] } };
 
@@ -31,5 +31,13 @@ describe('the marks and the line', () => {
     expect(figuresSaid({ checked: 6, unsure: [] })).toBe('All 6 figures checked against Faultline’s working.');
     expect(figuresSaid({ checked: 6, unsure: ['1,250', '7'] })).toBe('2 of 6 figures to check — not in Faultline’s working or what you said.');
     expect(figuresSaid({ checked: 0, unsure: [] })).toBeUndefined();
+  });
+});
+
+describe('pence said are pounds too (10 November)', () => {
+  it('reads "35p" as 35 and 0.35, and leaves a word ending in p alone', () => {
+    expect(numbersIn('300 packs at 35p')).toEqual(expect.arrayContaining([300, 35, 0.35]));
+    expect(numbersIn('12.5p a pack')).toEqual(expect.arrayContaining([12.5, 0.125]));
+    expect(numbersIn('a 3D map')).toEqual([]);
   });
 });

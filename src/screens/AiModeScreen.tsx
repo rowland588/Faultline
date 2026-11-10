@@ -19,7 +19,7 @@
 import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, SAY_EVENT, takePendingSay } from '../colleague/lunaPanel';
 import { scopeOf } from '../lib/scope';
-import { inAgreedScope } from '../capabilities/scope';
+import { conversationFocus, noteConfirmed, prepareCall, recordStep } from '../colleague/turnRules';
 import { createPortal } from 'react-dom';
 import { deleteStudy, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { offerUndo } from '../ui/Undo';
@@ -50,8 +50,8 @@ import { captured, metricsOf, missing, toolTitle, valueWords } from '../capabili
 import { studyHref } from '../lib/studyLinks';
 import { can as canAt } from '../lib/access';
 import {
-  HOW_WORD, MODE_WORD, WHO, appendAction, appendTurn, changeThreads, changeTurn, conversationTitle, currentThread, factsOfConversation, focusText, gatewayTurns,
-  isConversation, newConversation, parkedThreads, setCurrent, sourcesOf, turnsOfConversation, unansweredTurns, uniqueRefs, addRefs,
+  HOW_WORD, MODE_WORD, WHO, appendAction, appendTurn, changeThreads, changeTurn, conversationTitle, currentThread, factsOfConversation, gatewayTurns,
+  isConversation, newConversation, parkedThreads, setCurrent, sourcesOf, turnsOfConversation, unansweredTurns, uniqueRefs,
   type ColleagueTurn, type Thread, type ThreadScope, type Used,
 } from '../colleague/conversation';
 import { colleagueLoop, invokeColleague, type Prepared, type Step } from '../colleague/colleagueAsk';
@@ -79,21 +79,12 @@ import type { ColleagueWorkbook } from '../capabilities/types';
 import { FactoryDocSheet, FactoryDraftBox, type DocPicked } from '../colleague/AiFactory';
 import { photoSaid, placeSaid, type WalkFacts, type WalkStop, type WalkTurn } from '../lib/walk';
 import { VideoRecorder, videoCaptureSupported } from '../tools/video/VideoRecorder';
-import { allSources, outputsOfConversation, outputsText, registerFile } from '../capabilities/data';
-import { sourceSaid } from '../lib/data/sources';
+import { outputsOfConversation, registerFile } from '../capabilities/data';
 import type { Chart, ConvReport, DataResult } from '../lib/data/outputs';
 import { ChartCard, ReportCard } from '../colleague/AiOutputs';
 import { figuresSaid, markFigures } from '../colleague/figureCheck';
-import { liveEntries, notebookText, readNotebooks, strikeMeaning, type Notebook } from '../colleague/notebook';
+import { liveEntries, readNotebooks, strikeMeaning, type Notebook } from '../colleague/notebook';
 import { getWorkspace } from '../db/workspaces';
-
-/** The notebook Luna is told with each turn: the client of the subject's line, and the person's own (docs/LUNA-NEXT.md L3). */
-async function notebookFor(threads: readonly Thread[]): Promise<string> {
-  const line = currentThread(threads)?.scope.lineId;
-  const client = line ? (await getWorkspace(line))?.clientName?.trim() ?? '' : '';
-  const nb = await readNotebooks(client);
-  return notebookText(nb.own, nb.client);
-}
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -686,7 +677,7 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
       const end = await colleagueLoop({
         turns: gatewayTurns(asked, named),
         ...(images.length ? { images } : {}),
-        focus: async () => { const f = factsOfConversation((await getStudy(cid)) as ToolStudy); const wf = f as WalkFacts; const files = (await allSources()).slice(0, 12).map(x => sourceSaid(x)); const nb = await notebookFor(f.threads ?? []); return focusText(f.threads ?? [], { ...(nb ? { notebook: nb } : {}), ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, photos: photosKeys, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] }); },
+        focus: () => conversationFocus(cid, { ...(screenRef.current ? { screen: screenRef.current } : {}), names: nameOf, photos: photosKeys }),
         today: longDay(),
         conversationId: cid,
         preferences: preferencesText,
@@ -697,35 +688,12 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
         run: async (call, confirmed) => {
           const r = await runCall(ctx(), call, { confirmed });
           if (r.ok && r.show) showWork(r.show); else if (r.ok && call.name === 'make_record') showWork(r.refs.find(x => x.kind === 'study'));
-          /* the record a confirmed write made or wrote into is now said yes to — later fills of it go straight in */
-          if (r.ok && confirmed) {
-            const d = (r.data ?? {}) as { studyId?: string; standardId?: string; id?: string };
-            const c = capabilityByName(call.name);
-            const ids = [c?.target?.(call.input), d.studyId, d.standardId, call.name === 'make_record' ? d.id : undefined, r.show?.kind === 'study' ? r.show.id : undefined,
-              ...(call.name === 'start_project' ? r.refs.filter(x => x.kind === 'project').map(x => x.id) : []),
-              ...(call.name === 'raise_problem' ? r.refs.filter(x => x.kind === 'problem').map(x => x.id) : [])].filter((x): x is string => !!x);
-            if (ids.length) await patchStudy(cid, cur => { const had = ((cur.facts as { authorised?: string[] }).authorised ?? []); return { facts: { ...cur.facts, authorised: [...new Set([...had, ...ids])].slice(-200) } as ToolStudy['facts'] }; });
-            /* an investigation agreed (work_within, W3) is kept on its own list — only that yes lets capture steps go in without a card */
-            if (call.name === 'work_within' && typeof (call.input as { projectId?: unknown } | undefined)?.projectId === 'string') { const pid = (call.input as { projectId: string }).projectId; await patchStudy(cid, cur => ({ facts: { ...cur.facts, agreed: [...new Set([...(((cur.facts as { agreed?: string[] }).agreed) ?? []), pid])] } as ToolStudy['facts'] })); }
-          }
+          /* the record a confirmed write made or wrote into is now said yes to — later fills of it go straight in (colleague/turnRules) */
+          if (r.ok && confirmed) await noteConfirmed(cid, call, r);
           return r;
         },
-        prepare: async (call): Promise<Prepared> => {
-          const c = capabilityByName(call.name);
-          if (!c) return { ok: false, title: call.name, why: 'Faultline has no such step.' };
-          const v = c.validate(call.input);
-          if (!v.ok) return { ok: false, title: c.title, why: v.why };
-          const a = await c.allowed(ctx(), v.input);
-          if (!a.ok) return { ok: false, title: c.title, why: a.why };
-          const preview = c.preview ? await c.preview(ctx(), v.input) : c.title;
-          /* CONFIRM ONCE (docs/AI-OPERATING.md): a write into a record the person already said yes to in this conversation goes in */
-          const target = c.target?.(v.input);
-          const cf = factsOfConversation((await getStudy(cid)) as ToolStudy) as { authorised?: string[]; agreed?: string[] };
-          const authorised = cf.authorised ?? [];
-          /* said yes to before, or a capture step inside an investigation the person agreed (work_within, W3) — a receipt, not a card */
-          const said = (target ? authorised.includes(target) : false) || await inAgreedScope(call.name, v.input as Record<string, unknown>, cf.agreed ?? []);
-          return { ok: true, title: c.title, preview, input: (v.input ?? {}) as Record<string, unknown>, ...(said ? { authorised: true } : {}) };
-        },
+        /* validated, allowed, its preview — and whether it goes in without a card (confirm once; Work within) — colleague/turnRules */
+        prepare: (call): Promise<Prepared> => prepareCall(ctx(), cid, call),
         confirm: step => new Promise<boolean>(res => {
           waits.current.set(step.call.id, res); setWaitTick(n => n + 1);
           /* HANDS-FREE: with Conversation on, the card is said out loud, ending "Shall I do it?", and the microphone opens
@@ -740,13 +708,7 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
         }),
         onStep: async (step: Step) => {
           const by = saidFor.current.get(step.call.id);
-          const u: Used = { callId: step.call.id, name: step.call.name, title: step.title, kind: step.kind, status: step.status, says: step.says, refs: step.refs, ...(step.auto ? { auto: true } : {}),
-            ...(step.preview ? { preview: step.preview } : {}), ...(step.input ? { input: step.input } : {}), ...(by ? { said: by } : {}), at: Date.now() };
-          steps.set(u.callId, u);
-          await changeTurn(patchStudy, cid, rid, t => ({ ...t, used: [...steps.values()] }));
-          if (step.status === 'done' && step.refs.length) await changeThreads(patchStudy, cid, ts => addRefs(ts, step.refs));
-          if (step.kind === 'write' && (step.status === 'done' || step.status === 'declined' || step.status === 'failed'))
-            await appendAction(patchStudy, cid, { callId: u.callId, name: u.name, title: u.title, status: step.status, says: u.says, refs: u.refs, at: u.at });
+          await recordStep(cid, rid, steps, step, by);
         },
         onWords: w => { setWords(w); vFeed(w, false); },
       });
