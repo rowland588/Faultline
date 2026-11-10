@@ -7789,17 +7789,18 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 /* ---- A card that folds (ui/Fold) — the Overview's cards, each saying its
    answer in one line when shut. The card inside keeps its rows and loses its
    own frame and heading, which the fold now carries. ---- */
-.fold { margin: 14px 0; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+/* calm by design (10 November, docs/DESIGN.md): a fold is a section with a hairline above, not a box */
+.fold { margin: var(--space-5) 0 0; border-top: 1px solid var(--line); background: none; }
 .fold-h {
-  display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 14px 16px;
+  display: flex; align-items: baseline; gap: 10px; width: 100%; padding: var(--space-3) 0; min-height: 44px;
 }
 .fold-toggle {
   display: inline-flex; align-items: baseline; gap: 10px; flex: 1; min-width: 0;
   font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer; padding: 0;
 }
-.fold-h:hover { background: color-mix(in srgb, var(--brand) 4%, transparent); }
+.fold-h:hover .fold-t { color: var(--brand); }
 .fold-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
-.fold-t { font-family: var(--display); font-size: var(--t-body); font-weight: 700; color: var(--ink); white-space: nowrap; }
+.fold-t { font-family: var(--display); font-size: var(--t-h); font-weight: 600; color: var(--ink); white-space: nowrap; }
 .fold-s { flex: 1; min-width: 0; font-size: var(--t-detail); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fold-chev {
   flex: none; align-self: center; width: 9px; height: 9px; margin-left: auto;
@@ -7807,7 +7808,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
   transform: rotate(45deg) translateY(-3px); transition: transform 160ms ease;
 }
 .fold.is-open .fold-chev { transform: rotate(-135deg) translateY(-1px); }
-.fold-b { padding: 0 16px 14px; }
+.fold-b { padding: 0 0 var(--space-4); }
 .fold-b > .jr, .fold-b > .og, .fold-b > .tl { margin: 0; padding: 0; border: 0; box-shadow: none; background: none; border-radius: 0; }
 .fold-b .jr-head, .fold-b > .og > .og-head, .fold-b > .tl > .tl-head { display: none; }
 @media (max-width: 719px) {
