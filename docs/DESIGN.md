@@ -73,10 +73,8 @@ are in the table below, kept current as each is simplified.
 
 | Page | Before (desk · phone height; boxes; first-screen items) | What is wrong | What is being done |
 |---|---|---|---|
-| A method project — its sections | 11,209 · 15,573 px; 65 boxes; 14 | every section open, every question box and tool card shown at once | the section you are in open; the others a line each in a fold; tool cards as rows |
 | Tools — the library | 8,020 · 9,401 px; 252 boxes and 313 controls on a phone | every tool, world, mode and holding drawn as cards on one page | **done, 10 November** — the tools one calm list first (a row each); the problem routes, the kinds, the worlds, the AI toolbox and "what we have and need" each in a fold, shut. Now 1,739 · 3,693 px; 1 box; 69 controls; 2 first-screen items. A tool’s own page: 3,440 · 6,225 → 986 · 1,569 px, its purpose and Start one first, the rest in five folds (`tools-calm.mjs`) |
 | A method project — its sections | 11,209 · 15,573 px; 65 boxes; 14 | every section open, every question box and tool card shown at once | **done (10 November)**: the section you are in open, the others a line each in `ui/Fold` (how far, which tools); questions and tools as rows, no card inside a card — 5,315 · 7,825 px, 13 boxes, 7 first-screen items (`method-calm.mjs`); the method boards (DMAIC's gates, the A3, PDCA…) kept as they are and next |
-| Tools — the library | 8,020 · 9,401 px; 252 boxes and 313 controls on a phone | every tool, world, mode and holding drawn as cards on one page | the tools as one calm list; worlds, holdings and "what we have and need" in folds |
 | Factory › Lines | 4,932 · 7,722 px; 11 type sizes | the control-room tail below the lines | (agent) the tail in one fold, the answers capped at three rows |
 | A line — its own page | 2,460 · 3,950 px; 15 on the first screen | ten sections all open | (agent) tiles, Carry on, problems, machines; the rest in "More about this line" |
 | A tool's list (Line capacity) | 3,568 px at a desk | the line-wide analysis above the records you work in | (agent) Carry on first, "The line as a whole" in a fold |
