@@ -30,7 +30,7 @@ const today = async (ms = 3500) => { await t.go('#/today', 300); await page.relo
 /* ---- 1 · no business ---- */
 await today(3000);
 ok((await page.locator('[data-today-lines]').count()) === 1 && (await page.locator('[data-today-business]').count()) === 0
-  && /^What wants you today/.test(await t.words('[data-today] .pace-lede')), `1 no business: Today as it was ("${(await t.words('[data-today] .pace-lede')).slice(0, 60)}")`);
+  && /^(What wants you today|What do you want to understand or get done)/.test(await t.words('[data-today] .pace-lede')), `1 no business: Today as it was ("${(await t.words('[data-today] .pace-lede')).slice(0, 60)}")`);
 
 /* a crew and wage on a Packing hall line, 30 minutes of stops this week; a problem on a Despatch line; one owed by Sam past its day */
 const P = areas.packingIds[0], D = areas.despatchIds[0];
@@ -104,8 +104,9 @@ const want4 = await page.evaluate(async ids => {
   const r = lossesOnDevice(ls, (await Promise.all(ls.map(l => db.listObservations(l.id)))).flat(), weekStart(now), now + 1);
   return Object.fromEntries(ids.map(id => [id, lossShort(r.find(x => x.workspaceId === id)) ?? 'no stop timed this week']));
 }, losses4.map(l => l.id));
-ok(/Your lines this week/.test(await t.words('[data-today-lines] .today-h')) && losses4.length >= 1 && losses4.every(l => l.loss === want4[l.id]) && losses4.some(l => /min lost · £/.test(l.loss)),
-  `4 a manager: each line's loss this week as the module says (${losses4.map(l => l.loss).join(' · ')})`);
+const head4 = await t.words('[data-today-lines] .today-h');
+ok(/Your lines this week/i.test(head4) && losses4.length >= 1 && losses4.every(l => l.loss === want4[l.id]) && losses4.some(l => /min lost · £/.test(l.loss)),
+  `4 a manager: each line's loss this week as the module says (${losses4.map(l => l.loss).join(' · ')}; wanted ${losses4.map(l => want4[l.id]).join(' · ')}; heading "${head4}")`);
 ok((await page.locator('[data-today-people] [data-today-person="Sam"]').count()) === 1, `4 what their people owe, by name (${await t.words('[data-today-people]')})`);
 
 /* ---- 5 · Luna's business_summary ---- */

@@ -111,7 +111,7 @@ export function TodayScreen() {
   return (
     <div className="wrap today" data-today>
       <PageHeader eyebrow={niceDay(todayISO(), { weekday: 'short' })} title={`${greeting(new Date().getHours())}${firstName() ? `, ${firstName()}` : ''}`}
-        says={homeSays(lens, scope, biz.org?.name)} />
+        says={!lens && ai ? 'What do you want to understand or get done? Ask Luna — or start from what wants you below.' : homeSays(lens, scope, biz.org?.name)} />
 
       {/* LUNA IS THE FRONT DOOR (11 November, F1): her box first — the question, the box, voice beside it, suggestions from the real state */}
       {ai && (
