@@ -61,4 +61,17 @@ and how often a capability was searched for and which (the `server_tool_use` blo
 
 Each run is added here with its date, the deployed gateway version, the score and every turn marked wrong with why.
 
+### 11 November, 17:16 — the first run on GitHub Actions (assist v32, before the rename and streaming reached it), two runs
+
+**11 of 13 turns right in each run (33 of 35 marks); about 3 minutes a run; 35–37 asks, median 4.6–4.8 s, p90 5.9–6.3 s.**
+None of the four turns marked wrong was a mistake by Luna; all were the exam's own doing, fixed the same evening:
+
+- *unknown-machine* (both runs): she called `resolve` for "the bagger in packing", found two baggers and asked which one. The mark
+  only counted `resolve_record`, `factory_map`, `find`, `plan_work` and `line` as looking. `resolve` now counts.
+- *not-allowed* (run 1): she said "I can't do either of those". The mark matched the curly apostrophe only. Both now count.
+- *agree* (run 2): run 2 ran on run 1's records, so she found run 1's project, put the work in it and refused to make a second
+  project of the same name, which is right. Each run now opens its own browser and seeds afresh.
+
+So on this exam the live model was right on every turn the exam meant to test.
+
 *No real run yet.*
