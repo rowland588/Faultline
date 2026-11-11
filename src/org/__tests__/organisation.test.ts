@@ -7,7 +7,7 @@ import { accessOf, accessOfRole } from '../../lib/access';
 import type { Workspace } from '../../types';
 
 const line = (name: string, siteName?: string, areaName?: string): Workspace =>
-  ({ id: name, name, siteName, areaName, color: '', createdAt: 0, updatedAt: 0, categories: [], subcategories: {}, assets: [], shifts: [] });
+  ({ id: name, name, siteName, areaName, color: '', createdAt: 0, updatedAt: 0, categories: [], subcategories: {}, assets: [], shifts: [], schemaVersion: 1 });
 const m = (email: string, role: OrgMember['role'], sites: string[] = [], areas: string[] = []): OrgMember => newMember('o1', email, role, { sites, areas }, 'u1', 1);
 
 describe('the business — roles and scope (docs/ORGANISATION.md)', () => {
