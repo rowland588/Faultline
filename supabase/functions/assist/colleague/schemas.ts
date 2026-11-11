@@ -339,7 +339,13 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     name: 'source_fields',
     kind: 'read',
     description: 'What a source holds — every field with its type and how many rows actually record it, what is worked out and how, and what the source cannot hold (e.g. no downtime classification, no shift recorded). Use it before answering a question whose field you have not seen, and to tell available, calculable, missing and not-recorded apart.',
-    input_schema: obj({ source: str('The source id (a file\'s, or stops:/tests:/problems:/readings:…)', 120), sheet: str('A workbook\'s sheet', 120) }, ['source']),
+    input_schema: obj({ source: str('The source id (a file\'s, or stops:/tests:/problems:/readings:/production:…)', 120), sheet: str('A workbook\'s sheet', 120) }, ['source']),
+  },
+  {
+    name: 'production_gap',
+    kind: 'read',
+    description: 'Why a line or the business missed target — from the production data the business\'s OWN system (its MES or ERP) sent through a data connection: delivered against target by line, day and shift, the shortfalls largest first, the downtime by the system\'s own reasons, and the gap in units and in money through the app\'s cost model (the units short at the line\'s contribution a pack; the downtime\'s idle labour, kept apart) — every figure worked by the app\'s code, each missing input named. Say the figures are system data (how known: system) from the named connection, never measured and never what a person said; never mix them with reported or estimated figures. "Yesterday" is passed as its date (from = to). With no day it reads the latest day the system sent. Finer questions: query_data on source production:<line id> or production:all.',
+    input_schema: obj({ lineId: str('The line; none = every line', 80), from: str('First day, YYYY-MM-DD', 10), to: str('Last day, YYYY-MM-DD', 10) }),
   },
   {
     name: 'query_data',
