@@ -39,11 +39,24 @@ import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagStatus 
 import { pinSnag, recall, remember } from './quick';
 import { addLineToFactory, liveProductionLines, machineOntoLine } from '../lib/lines';
 import { factoryLinesOf, type JobLine } from '../lib/lineRecords';
+import type { ToolLink } from './toolLink';
 
 /* ---- one way in, from anywhere: the button, the FAB, a row on the page ---- */
-type Opener = (s?: Snag) => void;
+/** RAISED FROM INSIDE A TOOL (docs/TOOL-PROBLEMS.md — Rowland, 11 November: "raise a problem from inside the tool … a specific station or a
+ *  specific place, specific asset, where it's then held within the tool"): the same sheet, its line, project and machine already said, the
+ *  pictures already on that part offered to go with it (the same files — a reference, never a copy), and the tool record it is held by. */
+export interface RaiseFrom {
+  tool: ToolLink;
+  /** "Stops across workstations — Cellox trial › Sealer", said at the top of the sheet. */
+  said: string;
+  workspaceId?: string;
+  projectId?: string;
+  machine?: string;
+  media?: MediaRef[];
+}
+type Opener = (s?: Snag, from?: RaiseFrom) => void;
 let opener: Opener | null = null;
-export const openQuickSnag: Opener = s => opener?.(s);
+export const openQuickSnag: Opener = (s, from) => opener?.(s, from);
 
 /** MAY THIS PERSON TAKE A PROBLEM HERE? Inside a project only if they may
  *  change its work (lib/access can.edit): a client's rows are never sent
@@ -66,30 +79,33 @@ export function QuickSnagButton({ projectId }: { projectId?: string }) {
 
 /** Mounted once, in the frame. Starts on the line and job you are in. */
 export function QuickSnagHost({ wsId, projectId }: { wsId?: string; projectId?: string }) {
-  const [open, setOpen] = useState<{ snag?: Snag; n: number } | null>(null);
+  const [open, setOpen] = useState<{ snag?: Snag; from?: RaiseFrom; n: number } | null>(null);
   useEffect(() => {
-    opener = s => setOpen(o => ({ snag: s, n: (o?.n ?? 0) + 1 }));
+    opener = (s, from) => setOpen(o => ({ snag: s, from, n: (o?.n ?? 0) + 1 }));
     return () => { opener = null; };
   }, []);
   return (
     <>
       {/* the round button over the page went on 23 October: on a phone ＋ sits in the bar (ui/rail
           menuBar), at a desk Problem is in the context bar (docs/STRUCTURE.md §5.3, D6) */}
-      {open && <QuickSnagSheet key={open.n} snag={open.snag} wsId={wsId} projectId={projectId} onClose={() => setOpen(null)} />}
+      {open && <QuickSnagSheet key={open.n} snag={open.snag} from={open.from} wsId={from(open.from, wsId)} projectId={open.from ? open.from.projectId : projectId} onClose={() => setOpen(null)} />}
     </>
   );
 }
+
+/** The line a problem raised from a tool starts on: the tool record's, else the page's. */
+const from = (f: RaiseFrom | undefined, wsId?: string): string | undefined => f?.workspaceId ?? wsId;
 
 const NEW_LINE = '__new__';
 /** The line not said yet — a job on several lines asks which (FLOW-AUDIT #5). */
 const ASK = '';
 
-function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
-  snag?: Snag; wsId?: string; projectId?: string; onClose: () => void;
+function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
+  snag?: Snag; from?: RaiseFrom; wsId?: string; projectId?: string; onClose: () => void;
 }) {
   const { projects } = useProjects();
   const [lines, setLines] = useState<Workspace[] | null>(null);
-  const [media, setMedia] = useState<MediaRef[]>(snag?.media ?? []);
+  const [media, setMedia] = useState<MediaRef[]>(snag?.media ?? raised?.media ?? []);
   const [words, setWords] = useState(snag?.problem ?? '');
   /* WHICH LINE — decided once the lines are read: its own; the line this page is on; THE JOB'S OWN LINE when a
      job is open, never the last line used (FLOW-AUDIT #5: "a problem taken inside Line 2 commissioning is filed on
@@ -98,10 +114,10 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   const [linePicked, setLinePicked] = useState(!!snag);
   const [jobLines, setJobLines] = useState<JobLine[]>([]);
   const [newLine, setNewLine] = useState('');
-  const [machine, setMachine] = useState(snag?.targetAsset ?? '');
+  const [machine, setMachine] = useState(snag?.targetAsset ?? raised?.machine ?? '');
   /* ITS PRIORITY — Critical · High · Low (lib/snagsReport); on a job it is the problem's flag there. */
   const [priority, setPriority] = useState<'critical' | 'high' | 'low'>(snag?.priority ?? 'low');
-  const [project, setProject] = useState(snag ? (snag.projectId ?? '') : (projectId ?? recall('project')));
+  const [project, setProject] = useState(snag ? (snag.projectId ?? '') : raised ? (raised.projectId ?? '') : (projectId ?? recall('project')));
   const [status, setStatus] = useState<SnagStatus>(snag?.status ?? 'open');
   const [owner, setOwner] = useState(snag?.owner ?? '');
   const [due, setDue] = useState(dueToInput(snag?.dueAt));
@@ -195,6 +211,8 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
       const fields = {
         workspaceId, problem: words.trim(), media, targetAsset: machine.trim() || undefined, projectId: project || undefined, priority,
       };
+      /* raised from a tool: held by that record (snag/toolLink), and whose and by when asked at once */
+      const fromTool = raised && !snag ? { tools: [{ ...raised.tool, raised: true as const }], owner: owner.trim() || undefined, dueAt: dueFromInput(due) } : {};
       let kept: Snag;
       if (snag) {
         /* what this sheet shows, patched into the row as it is stored now — a journey step or a mark
@@ -206,13 +224,13 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
           closedAt: status === 'closed' ? (cur.closedAt ?? t) : undefined,
         })) ?? { ...snag, ...fields };
       } else {
-        kept = { id: uid(), ...fields, status: 'open', raisedAt: t, updatedAt: t };
+        kept = { id: uid(), ...fields, ...fromTool, status: 'open', raisedAt: t, updatedAt: t };
         await addSnag(kept);
       }
       /* a machine typed here joins its line's list — every machine is on a line (lib/lines) */
       if (workspaceId && workspaceId !== NEW_LINE) await machineOntoLine(workspaceId, machine);
       remember('line', workspaceId); remember('project', project);
-      if (another) { setWords(''); setMedia([]); setSaved(n => n + 1); } else onClose();
+      if (another && !raised) { setWords(''); setMedia([]); setSaved(n => n + 1); } else onClose();
     } finally { setBusy(false); }
   };
 
@@ -224,8 +242,14 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   };
 
   return (
-    <Sheet open onClose={onClose} title={snag ? 'The problem' : 'Problem — spot an issue'}>
-      <div className="qs">
+    <Sheet open onClose={onClose} title={snag ? 'The problem' : raised ? 'Raise a problem here' : 'Problem — spot an issue'}>
+      <div className="qs" {...(raised ? { 'data-raise-from': raised.tool.studyId } : {})}>
+        {raised && !snag && (
+          <p className="sub qs-from" data-qs-from>
+            Raised from <b>{raised.said}</b> — it is held there and on Problems.
+            {(raised.media?.length ?? 0) > 0 && <> {raised.media?.length === 1 ? 'The picture on it goes with it' : `The ${raised.media?.length} pictures and clips on it go with it`} — tap one to take it off.</>}
+          </p>
+        )}
         <Evidence media={media} kind="found" onView={setViewing}
           onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
         <label className="cw-f cw-f-wide"><span>WHAT’S WRONG</span>
@@ -302,6 +326,14 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
             ))}
           </div>
         </div>
+        {raised && !snag && (
+          <div className="qs-row">
+            <label className="cw-f"><span>WHOSE</span>
+              <input value={owner} maxLength={60} placeholder="Name" aria-label="Whose is it" onChange={e => setOwner(e.target.value)} /></label>
+            <label className="cw-f"><span>BY WHEN</span>
+              <input type="date" value={due} aria-label="By when" onChange={e => setDue(e.target.value)} /></label>
+          </div>
+        )}
         {snag && <>
           <div className="qs-mach" role="group" aria-label="Status">
             <span className="qs-l">STATUS</span>
@@ -329,7 +361,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
             ? <button type="button" className="btn qs-del" onClick={() => void remove()}>Delete</button>
             : <button type="button" className="btn" onClick={onClose}>{saved ? 'Done' : 'Cancel'}</button>}
           <span style={{ flex: 1 }} />
-          {!snag && <button type="button" className="btn" disabled={!ready} onClick={() => void save(true)}>Save and take another</button>}
+          {!snag && !raised && <button type="button" className="btn" disabled={!ready} onClick={() => void save(true)}>Save and take another</button>}
           <button type="button" className="btn btn-primary" disabled={!ready} onClick={() => void save(false)}>Save</button>
         </div>
       </div>

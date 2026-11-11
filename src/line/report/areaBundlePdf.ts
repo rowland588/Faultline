@@ -21,6 +21,7 @@ import { bandPage, type LeanTone } from '../../lib/lean';
 import { listRows } from '../../lib/lineReportPdf';
 import { PRIORITY_WORD } from '../../lib/snagsReport';
 import { preloadAttachPictures } from '../../lib/report/attachPaper';
+import { preloadToolProblems } from '../../lib/report/toolProblemsPaper';
 import { areaSays, areaTiles } from '../../lib/areas';
 import { dualOf, linesSaid } from '../../lib/lines';
 import { summaryDetail, summaryReading, type LineBundlePaper } from './lineBundlePdf';
@@ -103,6 +104,7 @@ function blocksOf(p: AreaBundlePaper, d: Density): Block[] {
 
 export async function drawAreaBundle(doc: jsPDF, p: AreaBundlePaper): Promise<void> {
   await preloadAttachPictures(p.area.parts.flatMap(pt => pt.items.flatMap(it => (it.study && p.picks.has(it.key) ? [it.study] : []))));
+  await preloadToolProblems();
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const density = await chooseDensity(base, dd => blocksOf(p, dd));
   await pour({ ...base, density, dry: false }, blocksOf(p, density), () => doc.addPage('a4', 'portrait'));

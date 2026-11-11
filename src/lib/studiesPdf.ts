@@ -61,6 +61,7 @@ import { chartClosing, chartFigures, chartSays, chartTiles, type ChartFigures } 
 import { neckOf } from './lineLoss';
 import { calcPaperParts } from './report/calcPaper';
 import { attachTail, preloadAttachPictures } from './report/attachPaper';
+import { preloadToolProblems, problemsTail } from './report/toolProblemsPaper';
 import { docPaperParts, type DocPaperExtras } from './report/docPaper';
 import { scoredPaperBlocks } from './report/scoredPaper';
 import { boardPaperBlocks } from './report/boardPaper';
@@ -192,7 +193,8 @@ function histBlock(f: SampleFigures, a: AgreedReadings): Block | undefined {
  *  own blocks, only when there are some; capability and reliability print theirs inside their own blocks, so they are left out here. */
 export function notesTail(s: ToolStudy): Block[] {
   /* pictures, videos and links last (docs/ATTACHMENTS.md): every tool's paper ends with what was put on it */
-  const attached = attachTail(s);
+  /* and the problems raised on it or linked to it (docs/TOOL-PROBLEMS.md), each under its part, before the pictures */
+  const attached = [...problemsTail(s), ...attachTail(s)];
   if (s.tool === 'capability' || s.tool === 'reliability') return attached;
   return [...((s.facts.remarks ?? []).some(r => !r.struck) ? [label('Notes'), ...remarksBlocks(s.facts.remarks)] : []), ...attached];
 }
@@ -856,6 +858,7 @@ function blocksOf(p: StudiesPaper, d: Density): Block[] {
 export async function drawStudies(doc: jsPDF, p: StudiesPaper): Promise<void> {
   /* the pictures the studies carry, made small before the paper is poured (lib/report/attachPaper) */
   await preloadAttachPictures(p.items.map(i => i.s));
+  await preloadToolProblems();
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const density = await chooseDensity(base, d => blocksOf(p, d));
   await pour({ ...base, density, dry: false }, blocksOf(p, density), () => doc.addPage('a4', 'portrait'));

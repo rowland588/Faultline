@@ -74,12 +74,12 @@ async function sectionDoc(s: PackageSection, i: PackageInputs): Promise<SectionD
       return { doc, brand: true };
     }
     case 'problems': {
-      const { problemsReadingFor, scopeOfAll } = await import('../../lib/problemsPdf');
+      const { problemsReadingFor, scopeOfAll, toolOfAll } = await import('../../lib/problemsPdf');
       const { snagsReportDoc } = await import('../../lib/buildSnagsReport');
       /* open and closed alike — what was put right is part of what happened; "Start fresh" put-away ones stay away */
       const mine = i.snags.filter(x => x.workspaceId === line.id && !x.deletedAt && !x.archivedAt);
       if (!mine.length) return undefined;
-      const doc = await snagsReportDoc(problemsReadingFor({ title: `${line.name} — problems`, snags: mine, jobs: [], lineName: i.lineName, jobName: i.jobName, scopeOf: await scopeOfAll() }, { closed: true }), `${line.name} — problems`);
+      const doc = await snagsReportDoc(problemsReadingFor({ title: `${line.name} — problems`, snags: mine, jobs: [], lineName: i.lineName, jobName: i.jobName, scopeOf: await scopeOfAll(), toolOf: await toolOfAll() }, { closed: true }), `${line.name} — problems`);
       return { doc, brand: true };
     }
     case 'problemcards': {

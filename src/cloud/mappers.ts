@@ -18,6 +18,7 @@ import { talkMediaKeys } from '../tools/talk/talk';
 import { docMediaKeys } from '../tools/doc/doc';
 import { attachMediaKeys } from '../lib/attachments';
 import { AFTER_TAG, afterOfTags, afterToTags } from '../line/actions/depends';
+import { isToolTag, toolLinksOfTags, toolLinksToTags } from '../snag/toolLink';
 
 type Row = Record<string, unknown>;
 
@@ -195,7 +196,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         raised_at: s.raisedAt, due_at: s.dueAt ?? null,
         latest_update: s.latestUpdate ?? null, latest_update_at: s.latestUpdateAt ?? null,
         closed_at: s.closedAt ?? null, close_note: s.closeNote ?? null,
-        detail_photo_key: s.detailPhotoKey ?? null, fixed_photo_key: s.fixedPhotoKey ?? null, linked_obs_ids: [...(s.linkedObsIds ?? []), ...(s.waste ? [WASTE_TAG + s.waste] : []), ...afterToTags(s.after)],
+        detail_photo_key: s.detailPhotoKey ?? null, fixed_photo_key: s.fixedPhotoKey ?? null, linked_obs_ids: [...(s.linkedObsIds ?? []), ...(s.waste ? [WASTE_TAG + s.waste] : []), ...afterToTags(s.after), ...toolLinksToTags(s.tools)],
         media: s.media ?? null, project_id: s.projectId ?? null, sent: s.sent ?? null,
         updated_at: s.updatedAt ?? s.raisedAt, deleted_at: s.deletedAt ?? null };
     },
@@ -215,13 +216,14 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       ...(Array.isArray(r.products) && r.products.length ? { products: r.products as string[] } : {}),
       ...wasteOfRow(r.linked_obs_ids),
       ...afterOfTags(r.linked_obs_ids),
+      ...toolLinksOfTags(r.linked_obs_ids),
       proposedSolution: (r.proposed_solution as string) ?? undefined, status: r.status as Snag['status'],
       owner: (r.owner as string) ?? undefined, raisedAt: Number(r.raised_at), dueAt: n(r.due_at),
       latestUpdate: (r.latest_update as string) ?? undefined, latestUpdateAt: n(r.latest_update_at),
       closedAt: n(r.closed_at),
       closeNote: (r.close_note as string) ?? undefined, detailPhotoKey: (r.detail_photo_key as string) ?? undefined,
       fixedPhotoKey: (r.fixed_photo_key as string) ?? undefined,
-      linkedObsIds: ((r.linked_obs_ids as string[]) ?? undefined)?.filter(x => !x.startsWith(WASTE_TAG) && !x.startsWith(AFTER_TAG)),
+      linkedObsIds: ((r.linked_obs_ids as string[]) ?? undefined)?.filter(x => !x.startsWith(WASTE_TAG) && !x.startsWith(AFTER_TAG) && !isToolTag(x)),
       ...(Array.isArray(r.media) ? { media: r.media as Snag['media'] } : {}),
       ...(r.project_id ? { projectId: r.project_id as string } : {}),
       ...(Array.isArray(r.sent) ? { sent: r.sent as Snag['sent'] } : {}),

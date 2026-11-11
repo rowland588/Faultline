@@ -220,6 +220,8 @@ export const PAGES = (sd, cap) => [
     { what: 'the box — minutes a day it costs the line (24 October, FC-154)', sel: '[aria-label="Minutes a day it costs the line"]' },
     { what: 'the boxes — rejects a day because of it, packs on hold because of it (FC-154 part 2)', sel: '[aria-label="Rejects a day because of it"], [aria-label="Packs on hold because of it"]', n: 2 },
     { what: 'what that is in money, or the ask', sel: '.pe-cost' },
+    /* 11 November, docs/TOOL-PROBLEMS.md: the tool records it was raised from or is linked to — and the way to link one */
+    { what: 'its tool records — Link to a tool record…', sel: '[data-tool-links] .tp-link-rec', text: /^Link to a tool record/ },
   ] },
   /* a stage-gate project's front page is Now since 26 October (docs/STAGEGATE-RESEARCH.md §4 — Rowland: "9 are still to many
      tabs"): Needs you, where each machine is and the week line were here; Now says them — What you owe and Blocking handover

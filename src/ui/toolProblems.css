@@ -1,0 +1,29 @@
+/* PROBLEMS HELD INSIDE A TOOL (ToolProblems.tsx, docs/TOOL-PROBLEMS.md) — a hairline section of rows that are doors, a part's count as a quiet
+   chip, red only for the late or the critical, always with its word (CLAUDE.md, visual management). */
+.tp { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--line-row, var(--line)); }
+.tp-h { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+.tp-h h2 { margin: 0; font-size: var(--t-h3); }
+.tp-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tp-row { display: flex; align-items: center; gap: var(--space-2); border-bottom: 1px solid var(--line-row, var(--line)); min-height: 44px; }
+.tp-row.is-closed .tp-what { color: var(--muted); }
+.tp-open { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; flex: 1 1 auto; min-width: 0; min-height: 44px; padding: var(--space-2) 0; background: none; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.tp-open:hover .tp-what { text-decoration: underline; }
+.tp-what { font-weight: 600; overflow-wrap: anywhere; }
+.tp-meta { font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; }
+.tp-state { flex: none; font-size: var(--t-detail); font-weight: 600; color: var(--st-n-ink); }
+.tp-state.is-r { color: var(--st-r); }
+.tp-state.is-g { color: var(--st-g); }
+.tp .tp-row .tp-unlink.linkish, .tp-links .tp-unlink.linkish { flex: none; min-height: 44px; display: inline-flex; align-items: center; }
+.tp-acts { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.tp-acts .btn { min-height: 44px; }
+.tp-chip { display: flex; align-items: center; width: 100%; min-height: 44px; margin-top: var(--space-1); padding: 0 var(--space-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; font-size: var(--t-detail); font-weight: 600; color: var(--ink); cursor: pointer; text-align: left; }
+.tp-chip.is-r { border-color: var(--st-r); color: var(--st-r); }
+.tp-chip-w { font-weight: 600; }
+.tp-sheet { display: flex; flex-direction: column; gap: var(--space-3); }
+.tp-parts { display: flex; flex-direction: column; gap: var(--space-1); }
+.tp-links-l { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.tp-links-l li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-height: 44px; }
+.tp-links .tp-door.linkish, .tp-links .tp-link-rec.linkish { min-height: 44px; text-align: left; overflow-wrap: anywhere; }
+.tp-link-form { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.tp-link-form .text-input { min-height: 44px; flex: 1 1 220px; min-width: 0; }
+.qs-from { margin: 0; }
