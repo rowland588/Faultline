@@ -65,6 +65,25 @@ spans their area.
 | **O4** | what each role sees first: Today by role (a team leader's area, a manager's lines, a leader's business), the management papers across lines | none |
 | **O5** | entitlement: seats counted, the AI cap per business at the gateway, the administrator's page | `entitlement` used |
 
+## 3a. Built — O1, O2, O3 (11 November; the SQL written, applied by the session that integrates)
+
+- **Records:** as §2, plus `id`, `updated_at`, `deleted_at`, `rev` on both tables so they sync like every row (`src/cloud/mappers`
+  `organisations`, `organisation_members`, last in SYNC_KINDS; IndexedDB v23). A member's id is `org_id:email`, so a re-invite is the
+  same row brought back. The business of somebody signed in has THEIR user id (the backfill does the same), so a second device never
+  makes a second business; a device not signed in has its own (`LOCAL_ORG`), made the person's on sign-in by the sync pass before
+  anything is sent (`org/orgData adoptLocalBusiness`). A new line takes the device's business (`db/workspaces createWorkspace`,
+  meta `org.mine`); on the cloud a trigger gives a line with none its owner's, and only its owner or the business's administrator may
+  move a line between businesses, into one where they may write (kept, never refused).
+- **Screens:** Set up's **Your business** (`ui/BusinessPanel`) and **People** at `#/business` (`screens/BusinessPeopleScreen`) —
+  `docs/PAGES.md` says what each shows. The roles' rules for the screens: `src/org/organisation` (`orgCan`, `covers`, `scopeSays`);
+  on a project a business viewer is a client (`lib/access accessOf`, the role remembered on the device by `org/orgRole`). In
+  development `faultline.access.force` also takes `viewer · team · manager · leader · admin`.
+- **Database:** `ORGANISATIONS.sql` → `ORG_PEOPLE.sql` → `ORG_VISIBILITY.sql`, then `supabase/tests/org_visibility_test.sql`.
+  `is_ws_member` was widened from its newest definition, `PROJECT_WALK.sql` — compare with the live body before applying.
+- **Not yet:** the consultant's case (a consultant's lines at a business not on Luna carrying no `org_id`) — the backfill and a new
+  line put all of an owner's lines in their own business, as O1 asked; a viewer's rows are refused, not held back by the sync (a
+  viewer is offered no write control, so none is made); Luna's context naming the role (O4).
+
 ## 4. What waits
 
 Payments and invoices (a business is set up by hand until there are enough to need it); single sign-on; per-department custom roles;

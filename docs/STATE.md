@@ -359,6 +359,17 @@ a session that ships something updates this page in the same commit.** The rules
   headings, tables, badges and closing line to an Office finish, the lean page kept; the fishbone's causes wrap to two lines and
   keep their tags off the bones; the plan's Today never on a month's name; the closing line's red mark is "!", not a cross.
 
+- **The business, its people and who sees which lines (11 November, docs/ORGANISATION.md O1–O3) — WRITTEN, the SQL NOT YET APPLIED.**
+  `organisations` and `organisation_members` synced kinds (IndexedDB v23, `src/org` — organisation, orgData, orgStore, orgRole;
+  `workspaces.org_id`); Set up opens with **Your business** (name, your role, People ›); **#/business** People — invite by email with
+  a role (admin · leader · manager · team · viewer) and sites/areas, change a role or scope where it sits, remove with Undo, only the
+  administrator; a viewer is a client on the project ladder (`lib/access`). Database in order: `ORGANISATIONS.sql` (tables, policies,
+  backfill: one business an owner, id = their user id, their lines in it), `ORG_PEOPLE.sql` (allowed_emails scope 'org', the invite
+  trigger, can_start_projects), `ORG_VISIBILITY.sql` (is_ws_member widened once to the business and its scope, from PROJECT_WALK.sql's
+  body; viewers' writes refused by restrictive policies on eleven line tables; late-joiner re-stamp) — proved by
+  `supabase/tests/org_visibility_test.sql` (rolled back). The app must not reach `main` before ORGANISATIONS.sql is applied (a line's
+  org_id would wait). `scripts/acceptance/organisation.mjs`.
+
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
 
 **LUNA — the direction from 11 November (read `CLAUDE.md`'s first section).** The product is Luna; the buyer is the manufacturing
