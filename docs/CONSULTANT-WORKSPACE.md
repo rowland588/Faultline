@@ -151,6 +151,34 @@ Saved copies. **The consultant's home:** `#/` when more than one customer is in 
 name>*, your customers as rows (engagement · last visit · open and late, a tap making it the client you are in and opening its Story at
 `#/story`), what is owed across them (open problems with a person or a day, late first, the client named), recent visits, Start a visit.
 With one customer `#/` stays the Story. Proof: `scripts/acceptance/visits.mjs`, `src/lib/__tests__/visits.test.ts`.
+**C4 — the library, built (11 November).** Rowland: *"Where is my overall library of work? … All reports I've created … Photographs
+and supporting evidence. Completed studies. Working documents and data capture sheets … browse my work across businesses, but also open
+an individual business and see everything associated with it … distinguish between my own internal working documents and finished
+client-facing reports."* **Saved copies in the cloud:** every PDF the app makes (the one door, `lib/savePdf deliverBlob`) is kept as a
+record in a new store and table, `kept_papers` (IndexedDB v22; `src/db/rows` KeptPaperRow; `cloud/mappers` kept_papers, last in
+SYNC_KINDS) — its name, the page it was made on and the ids in it, its line, project and record, the **customer** it was made for (the
+line's, else the project's lines', else an area's address, else the customer active when it was made — `lib/library` placePaper), its
+**kind** read from the page (story · visit-report · line-report · area-report · project-report · problems · actions · factory · tool ·
+talk · other — `paperKindOf`, a word, never a check in the cloud) and its **audience** (client-facing by default for the Story's papers,
+a visit's, a line's or an area's report and the project report — the full package is the line report's; internal for a tool's own
+paper, a working sheet, a calculation, the lists — changeable per copy). Its PDF goes to the existing `media` bucket under its
+`media_key` once the row is taken. **`supabase/KEPT_PAPERS.sql`** — the table (rev stamp, realtime), RLS exactly as a study's (its maker;
+the line's members; the project's members; restrictive *editors only* insert and update on a project, so a client reads and changes
+nothing; no policy `true`) and `faultline_can_see_media` as ATTACHMENTS.sql's with one clause (`kept_papers where media_key = $1`).
+**Written, not yet applied** — it must go through `apply_migration` under that name and be read back. Until it is, the cloud answers
+"relation does not exist" for that one kind, which waits (counted unsent, its PDF not sent) while every other kind syncs as before —
+proved by `sync-pass.test.ts`; the papers stay on the device exactly as they did. Copies kept on a device before C4 (the meta list of
+5–11 November) are listed as before, marked *on this device only*, and offered ONCE on the library — *Keep these 12 copies in your
+library?* — moved in on a yes (the same file and id), left where they are on a no, never silently. **The page, #/library**
+(`screens/LibraryScreen`; the Factory's scope, *Factory › Library*): reached from **Factory reports** at the rail's foot (the first
+door, above the papers that can be made — the one place a person goes looking for a paper; nothing added to the menu) and from every
+Saved copies sheet; the consultant home's door is the home's own slice. Calm: the header and one sentence (*4 papers · 2 client-facing
+· 2 internal — for Branston*), *Showing Branston's only · All customers*, three views — **Papers** (newest first; search by name,
+customer or kind; who it is for and what paper in a fold; a row opens the very file, ⋯ Download · Mark client-facing / internal ·
+Rename · Take off with Undo), **Photos** (the customer's tool attachments, problems' photos and walk photographs filed to its lines and
+departments, each opening where it came from — read, nothing copied) and **Working records** (the customer's studies and documents,
+newest first, each opening itself). Follows the active customer (C1): one customer's only once two are named, All customers naming
+whose each row is. Proof: `scripts/acceptance/library.mjs`, `src/lib/__tests__/library.test.ts`, `sync-pass.test.ts`.
 
 Then, each live on its own: **C2** a new business in one tap (client = its engagement, a holding place for capture before lines) ·
 **C3** the visit (read from the day's records; its brief and report kept) · **C4** the library (cloud saved copies — a migration) ·

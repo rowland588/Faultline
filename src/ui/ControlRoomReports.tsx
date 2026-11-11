@@ -55,6 +55,9 @@ export function ControlRoomReports({ projects: every, onClose }: {
   return (
     <Sheet open onClose={onClose} title="On paper — the control room">
       <div className="meet-reports">
+        {/* THE LIBRARY (11 November, docs/CONSULTANT-WORKSPACE.md C4): what was MADE, beside the list of what can be made — the one
+            place a person goes looking for a paper, so the door is here and nothing is added to the menu */}
+        <Door title="Library — every paper you have made" says="Every report kept, the very file you handed over — by customer, client-facing or internal — with the customer's photos and working records." onClick={() => go('/library')} />
         {/* THE CONTROL ROOM'S OWN — who each is for, said first, as a job's */}
         <Door title="Control room report — 1 page"
           says={busy ? 'Making it…' : pf ? 'For the business — every project and every line on one page: where each is, why, and who owes what.' : 'Reading every project…'}

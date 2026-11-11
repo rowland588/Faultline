@@ -28,6 +28,7 @@ function fakeCloud() {
   const c = {
     tables, objects,
     offline: false,
+    missing: new Set<string>(),
     refuse: null as null | ((t: string, r: Row) => boolean),
     afterPull: null as null | ((t: string) => void),
     limit: Infinity,
@@ -45,6 +46,8 @@ function fakeCloud() {
     const run = async () => {
       await Promise.resolve();
       if (c.offline) return { data: null, error: NET };
+      /* a table this build knows that the cloud has not had its SQL for yet — as PostgREST answers */
+      if (c.missing.has(table)) return { data: null, error: { code: '42P01', message: `relation "public.${table}" does not exist`, details: null, hint: null } };
       if (op.kind === 'upsert') {
         const bad = c.refuse && op.rows.some(r => c.refuse!(table, r));
         c.upserts.push({ table, ids: op.rows.map(r => r.id as string), ok: !bad });
@@ -138,6 +141,30 @@ describe('a sync pass', () => {
     await sync.syncNow();
     expect(cloud.rows('test_items')).toHaveLength(3);
     expect(sync.syncStatus()).toMatchObject({ state: 'idle', refused: [], unsent: 0 });
+  });
+
+  /* THE LIBRARY BEFORE ITS MIGRATION (supabase/KEPT_PAPERS.sql, C4): a paper kept on the phone while the cloud has no kept_papers
+     table yet. That one kind waits — counted unsent, its PDF not sent — and every other kind goes as before; once the table is
+     there the paper and its file go on the next pass with nothing else to do. */
+  it('a table the cloud has not got yet (the library before KEPT_PAPERS.sql) holds back only its own rows', async () => {
+    const { db, sync } = await boot();
+    cloud.missing.add('kept_papers');
+    await db.putTestItem(I('a', 'a finding'));
+    await db.putBlob('kept-p1', new Blob(['%PDF-1.4'], { type: 'application/pdf' }));
+    await (await db.getDB()).put('kept_papers', { id: 'p1', key: 'kept-p1', name: 'Line 7.pdf', at: 1, size: 8, page: '#/lines/x/report', ids: [], kind: 'line-report', audience: 'client', updatedAt: 1 });
+    await db.putTestItem(I('b', 'another finding'));
+    await sync.syncNow();
+    expect(cloud.rows('test_items').map(r => r.what).sort()).toEqual(['a finding', 'another finding']);
+    expect(cloud.rows('kept_papers')).toEqual([]);
+    expect(cloud.uploads).not.toContain('kept-p1');
+    expect(sync.syncStatus()).toMatchObject({ schemaOutdated: true, unsent: 1, refused: [expect.objectContaining({ kind: 'kept_papers', rows: 1 })] });
+    expect((await db.rawAll('kept_papers')).map(r => r.id)).toEqual(['p1']);     // kept on the device, as it was
+    /* the SQL applied: it goes, its file with it */
+    cloud.missing.delete('kept_papers');
+    await sync.syncNow();
+    expect(cloud.rows('kept_papers')).toEqual([expect.objectContaining({ id: 'p1', media_key: 'kept-p1', kind: 'line-report', audience: 'client' })]);
+    expect(cloud.uploads).toContain('kept-p1');
+    expect(sync.syncStatus()).toMatchObject({ unsent: 0, refused: [] });
   });
 
   it('with no signal says it is waiting, counts what is unsent, and never says "signed out"', async () => {

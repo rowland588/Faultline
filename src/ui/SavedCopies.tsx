@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Sheet } from './Sheet';
 import { dropKept, keptBlob, keptHere, listKept, onKeptChange, sizeWords, type KeptPdf } from '../lib/keptPdfs';
 import { deliverBlob } from '../lib/savePdf';
+import { nav } from '../state/useRoute';
 
 /** What was made on the page being looked at, newest first — live as copies are made and taken off, and as the page changes. */
 export function useKeptHere(): KeptPdf[] {
@@ -38,6 +39,8 @@ export function SavedCopiesSheet({ open, onClose, items }: { open: boolean; onCl
     <Sheet open={open} onClose={onClose} title="Saved copies">
       <div className="sc" data-saved-copies>
         <p className="sub">Every PDF made on this page is kept here — the same file that was handed over. The page goes on changing; the next paper is a new copy. {items.length > 0 && <>{items.length} kept · {sizeWords(total)}.</>}</p>
+        {/* every paper made anywhere, in one place (C4) */}
+        <p className="sub"><button type="button" className="linkish" data-saved-copies-library onClick={() => { onClose(); nav('/library'); }}>Every paper you have made is in your Library ›</button></p>
         {note && <p className="sub is-a" role="status">{note}</p>}
         {items.length === 0 ? <p className="sub">None yet.</p> : (
           <ul className="sc-l">

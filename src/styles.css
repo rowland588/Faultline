@@ -18090,3 +18090,27 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .qs-hold { margin: 0; }
 @media (max-width: 719px) { .pace-head-actions .btn.ch-start, .pace-head-actions .btn.vs-end, .pace-head-actions .btn.vs-report, .vs-place select { min-height: var(--tap); } }
 .vs-gap { flex: 1; }
+/* THE LIBRARY (11 November, docs/CONSULTANT-WORKSPACE.md C4; screens/LibraryScreen) — calm: one header, one row of views, rows with
+   hairlines, the less-used filters in a fold. A row opens its file; ⋯ beside it the rest. */
+.lib { display: grid; gap: var(--space-4); align-content: start; }
+.lib-who { margin: var(--space-2) 0 0; }
+.lib-offer { display: grid; gap: var(--space-2); padding: 0 0 var(--space-3); border-bottom: 1px solid var(--line); }
+.lib-offer p { margin: 0; }
+.lib-offer-a { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.lib-search { display: block; margin: 0 0 var(--space-3); }
+.lib-search .text-input { width: 100%; min-height: max(40px, var(--tap)); }
+.lib .chip-row + .chip-row { margin-top: var(--space-2); }
+.lib-rows { margin-top: var(--space-2); }
+.nv-main .lib .lt-li { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
+.nv-main .lib .lt-row { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.nv-main .lib .lt-row:hover, .nv-main .lib .lt-row:focus-visible { background: var(--tool-row-hover); }
+.lib-offer-a .linkish { min-height: max(40px, var(--tap)); }
+.lib-row { flex-wrap: wrap; }
+.lib-row .lt-says { flex: none; }
+.lib-more { flex: none; }
+.lib-more-b { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  min-width: max(40px, var(--tap)); min-height: max(40px, var(--tap)); border-radius: var(--radius-sm); color: var(--ink-2); font-size: var(--t-h); }
+.lib-more-b:hover, .lib-more-b:focus-visible { background: var(--tool-row-hover); color: var(--brand); }
+.lib-said { flex-basis: 100%; margin: 0 var(--space-3) var(--space-2); }
+.lib-photo { gap: var(--space-3); padding-left: var(--space-2); }
+.lib-photo > .lt-row { flex: 1; min-width: 0; }

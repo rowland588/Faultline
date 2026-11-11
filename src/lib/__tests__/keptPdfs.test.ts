@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { idsIn, keptHere, pageOf, sizeWords, type KeptPdf } from '../keptPdfs';
 
 const L = '11111111-2222-3333-4444-555555555555', S = '66666666-7777-8888-9999-aaaaaaaaaaaa', P = 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff';
-const k = (id: string, hash: string, at = 1): KeptPdf => ({ id, key: `kept-${id}`, name: `${id}.pdf`, at, size: 1000, page: pageOf(hash), ids: idsIn(hash) });
+const k = (id: string, hash: string, at = 1): KeptPdf => ({ id, key: `kept-${id}`, name: `${id}.pdf`, at, size: 1000, page: pageOf(hash), ids: idsIn(hash), kind: 'other', audience: 'internal', updatedAt: at });
 
 describe('the page a PDF was made on', () => {
   it('is its address without the query or a trailing slash; the ids in it are listed once', () => {

@@ -1216,14 +1216,42 @@ await run(12, 'one record of a machine: two devices each make one, one is kept e
   check(note, 'what the other knew is taken — the kept one carries its note on the phone too');
 });
 
+await run(13, 'a paper made on the phone is in the laptop’s library', async () => {
+  /* docs/CONSULTANT-WORKSPACE.md C4 (lib/keptPdfs, supabase/KEPT_PAPERS.sql): a PDF kept on the phone is a kept_papers row and a file
+     the media rule takes once the row names it; the laptop pulls the row, then the file, and its library lists it and opens the very
+     bytes. Taken off on the laptop, it is gone from the phone. */
+  const p = phone.page, l = laptop.page;
+  const made = await p.evaluate(async () => {
+    const { keepPdf } = await import('/src/lib/keptPdfs.ts');
+    const r = await keepPdf(new Blob(['%PDF-1.4 the library, made on the phone'], { type: 'application/pdf' }), 'Line 13 — line report.pdf', '#/story');
+    return r ? { id: r.id, key: r.key } : null;
+  });
+  check(!!made, 'the phone keeps the paper as a library row');
+  await settle(phone);
+  const row = cloud.rows('kept_papers').find(r => r.id === made?.id);
+  check(!!row && row.kind === 'story' && row.audience === 'client' && row.media_key === made?.key, 'its row in the cloud — its kind, audience and file', JSON.stringify(row ?? null));
+  check(await waitFor(() => cloud.objects.has(`media/${made?.key}`), 20_000, 250), 'its PDF in the bucket — the media rule took it');
+  await syncViaUI(laptop);
+  await settle(laptop);
+  const bytes = await waitFor(() => l.evaluate(async key => { const b = await (await import('/src/db.ts')).getBlob(key); return b ? b.text() : ''; }, made?.key), 30_000, 500);
+  check(bytes === '%PDF-1.4 the library, made on the phone', 'the laptop holds the very file', bytes?.slice(0, 40));
+  await go(l, '/library');
+  check(await seen(l, 'Line 13 — line report.pdf', 15_000), 'the laptop’s library lists it');
+  await l.evaluate(async id => (await import('/src/lib/keptPdfs.ts')).dropKept(id), made?.id);
+  await settle(laptop);
+  await syncViaUI(phone);
+  const gone = await waitFor(async () => !(await idbGet(p, 'kept_papers', made?.id)), 30_000, 500);
+  check(gone, 'taken off on the laptop, gone from the phone');
+});
+
 /* ======================================================================= */
 scn = 0;
 check(appErrors.length === 0, 'no error thrown by the app on either device', appErrors.slice(0, 5).join(' | '));
 
 const names = { 1: 'phone builds a job → laptop shows all', 2: 'laptop edits → phone', 3: 'offline phone, back online', 4: 'conflict while offline',
-  5: 'large film, uploads fail mid-way', 6: 'one refused row', 7: 'speed, untouched laptop', 8: 'file over 50 MB', 9: 'file lands after its record', 10: 'two devices, one study', 11: 'video footage, sent and deleted', 12: 'one record of a machine', 0: 'app health' };
+  5: 'large film, uploads fail mid-way', 6: 'one refused row', 7: 'speed, untouched laptop', 8: 'file over 50 MB', 9: 'file lands after its record', 10: 'two devices, one study', 11: 'video footage, sent and deleted', 12: 'one record of a machine', 13: 'a paper in the library', 0: 'app health' };
 console.log('\n================ SYNC — TWO DEVICES ================');
-for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0]) {
+for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0]) {
   const rs = results.filter(r => r.scn === n);
   if (!rs.length) continue;
   const bad = rs.filter(r => !r.ok);
