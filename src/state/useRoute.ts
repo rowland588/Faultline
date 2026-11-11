@@ -12,7 +12,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
-  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates' | 'business';
+  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates' | 'business' | 'dataConnections';
 
 export interface Route {
   name: RouteName;
@@ -99,6 +99,8 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'lines' && segs[1]) return { name: 'lineHome', wsId: decodeURIComponent(segs[1]), query };
   /* YOUR FACTORY — the production lines set up and edited in one place
      (Rowland, 13 October: "build your factory, edit your factory"). */
+  /* SET UP › DATA CONNECTIONS (11 November, docs/DATA-CONNECTIONS.md): the business's own systems, their tokens and health */
+  if (segs[0] === 'factory' && segs[1] === 'data') return { name: 'dataConnections', query };
   if (segs[0] === 'factory') return { name: 'factory', query };
   /* every machine in the factory, line by line (27 October: "Why don't I see machines?") */
   if (segs[0] === 'machines') return { name: 'factoryMachines', query };

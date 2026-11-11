@@ -27,7 +27,8 @@ physical measurement is always level 3: Luna opens the capture screen, the perso
 3. **Focused capture covers seven tools** (stops, line balance, value stream, SMED, work sampling, reliability, workstation stops).
    Others are filled through the conversation. → each tool whose physical capture matters gets its capture entry in the connector, in
    the order the floor uses them.
-4. **Outside systems.** Excel and CSV are read on the device; SharePoint and business databases are not connected. → the sources register
+4. **Outside systems.** *Production data: designed and built 11 November — `docs/DATA-CONNECTIONS.md` (push and pull from the business's
+   MES/ERP, kept as `system` evidence).* Excel and CSV are read on the device; SharePoint and business databases are not connected. → the sources register
    gains server-side connectors (Microsoft Graph for SharePoint and OneDrive files; a scheduled import for an MES/ERP export), each source
    kept as *imported* evidence with its date — after the organisation, and shaped by Rowland's decision on production data.
 5. **AI Mode has grown panels.** → a calm pass (`docs/DESIGN.md`): the conversation, the work beside it, and nothing else in the first view.

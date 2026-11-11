@@ -134,7 +134,7 @@ export function hereOf(route: Route): string {
     case 'projects': case 'methodPage': return 'projects';
     case 'quickSnags': return 'quicksnags';
     case 'lineHome': case 'lineReport': case 'lineMachine': return `line:${route.wsId}`;
-    case 'factory': return 'factory';
+    case 'factory': case 'dataConnections': return 'factory';
     case 'factoryMachines': return 'allmachines';
     case 'projectMachines': return 'machines';
     case 'linePrograms': return 'lineprograms';

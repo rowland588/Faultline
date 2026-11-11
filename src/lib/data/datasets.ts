@@ -10,6 +10,9 @@ import type { Program } from '../programs';
 import type { ToolStudy, StudyReading } from '../study';
 import { productRuns } from '../run';
 import type { Cell, Dataset, Field } from './table';
+import type { DataConnectionRow } from '../../db/rows';
+import type { ProductionRecord } from '../production/ingestCore';
+import { delivered } from '../production/production';
 
 const day = (ms?: number): string | null => (typeof ms === 'number' && Number.isFinite(ms) ? new Date(ms).toISOString().slice(0, 10) : null);
 const txt = (s?: string | null): string | null => (s && s.trim() ? s.trim() : null);
@@ -151,4 +154,49 @@ export function problemsDataset(scope: { id: string; name: string }, snags: read
     Math.max(0, Math.round(((s.closedAt ?? today) - s.raisedAt) / 86_400_000)),
   ]);
   return { id: `problems:${scope.id}`, name: `${scope.name} — problems`, kind: 'problems', fields: PROBLEM_FIELDS, rows, refs: live.map(s => `problem:${s.id}`), limits: ['A problem’s minutes and rejects a day are what was typed on it — an estimate by the person, not a measurement.'] };
+}
+
+/* ------------------------------------------------------------------ production records from a business's system */
+export const PRODUCTION_FIELDS_TABLE: Field[] = [
+  { name: 'line', type: 'text', means: 'the line' },
+  { name: 'day', type: 'date', means: 'the day, as the system sent it' },
+  { name: 'shift', type: 'text', means: 'the shift, as the system names it' },
+  { name: 'product', type: 'text', means: 'the product' },
+  { name: 'planned minutes', type: 'number', unit: 'min', means: 'the time planned to run' },
+  { name: 'run minutes', type: 'number', unit: 'min', means: 'the time it ran' },
+  { name: 'output', type: 'number', means: 'units made' },
+  { name: 'target', type: 'number', means: 'the units it should have made, as the system says' },
+  { name: 'good', type: 'number', means: 'good units, as sent' },
+  { name: 'rejects', type: 'number', means: 'units rejected' },
+  { name: 'downtime minutes', type: 'number', unit: 'min', means: 'stop time on the row' },
+  { name: 'downtime reason', type: 'text', means: 'the system’s reason for the downtime' },
+  { name: 'delivered', type: 'number', means: 'good units toward the target', calc: 'good as sent; else output − rejects when both were sent; else output' },
+  { name: 'short of target', type: 'number', means: 'how far the row fell short of its target, never below 0', calc: 'target − delivered, only where a target was sent' },
+  { name: 'connection', type: 'text', means: 'the data connection that brought it' },
+  { name: 'system id', type: 'text', means: 'the system’s own id for the row' },
+  { name: 'how known', type: 'text', means: 'system — read from the business’s production system, not measured in the app' },
+  { name: 'imported', type: 'date', means: 'when it came in' },
+];
+
+export function productionDataset(scope: { id: string; name: string }, rows: readonly ProductionRecord[], lines: readonly Pick<Workspace, 'id' | 'name'>[], connections: readonly Pick<DataConnectionRow, 'id' | 'name' | 'system' | 'lastSuccessAt'>[]): Dataset {
+  const name = new Map(lines.map(l => [l.id, l.name]));
+  const conn = new Map(connections.map(c => [c.id, c]));
+  const live = rows.filter(r => !r.deletedAt).sort((a, b) => a.day.localeCompare(b.day) || (a.shift ?? '').localeCompare(b.shift ?? ''));
+  const out: Cell[][] = live.map(r => {
+    const d = delivered(r);
+    return [
+      name.get(r.workspaceId) ?? null, r.day, txt(r.shift), txt(r.product), num(r.plannedMinutes), num(r.runMinutes), num(r.output), num(r.target),
+      num(r.good), num(r.rejects), num(r.downtimeMinutes), txt(r.downtimeReason), d ? d.units : null,
+      r.target !== undefined && d ? Math.max(0, r.target - d.units) : null,
+      conn.get(r.connectionId)?.name ?? null, r.sourceId, 'system', day(r.importedAt),
+    ];
+  });
+  const used = [...new Set(live.map(r => r.connectionId))].map(id => conn.get(id)).filter((c): c is NonNullable<typeof c> => !!c);
+  const limits = [
+    `System data — what the business’s production system recorded, sent through ${used.length ? used.map(c => `“${c.name}”${c.system ? ` (${c.system})` : ''}${c.lastSuccessAt ? `, last brought in ${new Date(c.lastSuccessAt).toISOString().slice(0, 10)}` : ''}`).join('; ') : 'a data connection'}; not measured in the app, and never to be added into reported or estimated figures.`,
+    'A target is what the system sent on the row; a row with none has no shortfall, not a shortfall of zero.',
+  ];
+  const noGood = live.filter(r => r.good === undefined && r.output !== undefined).length;
+  if (noGood) limits.push(`${noGood} of ${live.length} rows have no good units sent — delivered is worked out from output and rejects where both were sent, else it is output.`);
+  return { id: `production:${scope.id}`, name: `${scope.name} — production from the system`, kind: 'production', fields: PRODUCTION_FIELDS_TABLE, rows: out, refs: live.map(r => `production:${r.id}`), limits };
 }

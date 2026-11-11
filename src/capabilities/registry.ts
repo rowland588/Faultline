@@ -17,6 +17,7 @@ import { WORKBOOK } from './workbook';
 import { FILL } from './fill';
 import { WALK } from './walk';
 import { DATA } from './data';
+import { PRODUCTION } from './production';
 import { DIG } from './dig';
 import { workOut } from './workout';
 import { NOTEBOOK } from './notebook';
@@ -57,6 +58,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...TEMPLATES,
   /* the customer and the visit in hand (11 November, docs/CONSULTANT-WORKSPACE.md C6) */
   ...VISITS,
+  /* the business's own production data, from its systems through a data connection (11 November, docs/DATA-CONNECTIONS.md) */
+  ...PRODUCTION,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);

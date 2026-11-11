@@ -215,8 +215,8 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
     const row = await db.get('kept_papers', id);
     if (row?.key) await db.delete('media', row.key);
     await db.delete('kept_papers', id);
-  } else if (kind === 'organisations' || kind === 'organisation_members') {
-    /* a business or a person taken off on another device (src/org) — flat rows, no media */
+  } else if (kind === 'organisations' || kind === 'organisation_members' || kind === 'data_connections' || kind === 'production_records') {
+    /* a business or a person taken off on another device (src/org) — flat rows, no media; and production data (supabase/PRODUCTION_DATA.sql), flat rows too */
     await db.delete(kind, id);
   } else if (kind === 'pace_wins' || kind === 'tree_nodes' || kind === 'projects') {
     // Flat rows with no children and no media. They need naming explicitly:

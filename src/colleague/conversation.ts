@@ -135,7 +135,7 @@ export const MODE_WORD: Record<NonNullable<Thread['mode']>, string> = { talk: 'J
 
 /** How it is known, in words — on the note's pill. */
 export const HOW_WORD: Record<HowKnown, string> = {
-  observed: 'Observed', reported: 'Reported', measured: 'Measured', imported: 'Imported', calculated: 'Calculated', estimated: 'Estimated', hypothesised: 'Hypothesised', verified: 'Verified', unknown: 'Unknown',
+  observed: 'Observed', reported: 'Reported', measured: 'Measured', imported: 'Imported', system: 'From the system', calculated: 'Calculated', estimated: 'Estimated', hypothesised: 'Hypothesised', verified: 'Verified', unknown: 'Unknown',
 };
 
 /** A scope said in words — "line Line 3 · project Wrapper uptime". `names` turns an id into a name where one is known. */

@@ -154,7 +154,42 @@ export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects'
   | 'pace_ppm' | 'pace_todos' | 'pace_wins' | 'tree_nodes'
   | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies'
-  | 'kept_papers' | 'organisations' | 'organisation_members';
+  | 'kept_papers' | 'organisations' | 'organisation_members' | 'data_connections' | 'production_records';
+
+/* PRODUCTION DATA FROM THE BUSINESS'S OWN SYSTEMS (11 November, docs/DATA-CONNECTIONS.md; supabase/PRODUCTION_DATA.sql).
+   A connection: its kind, its line, its mapping, its schedule, its pull address and the header its key goes in — never a key or a
+   token (those live in the cloud's private table and Vault); `tokenHint` is the last four characters, to recognise it by. Its health
+   is written by the ingest function. A production record is the ingest core's own shape (lib/production/ingestCore). */
+export type { ProductionRecord as ProductionRecordRow } from '../lib/production/ingestCore';
+export interface DataConnectionRow {
+  id: string;
+  name: string;
+  /** push · pull · database · files · historian — a word (docs/DATA-CONNECTIONS.md §2). */
+  kind: string;
+  status: 'active' | 'paused';
+  /** The system, in the business's words ("SAP", "the MES"). */
+  system?: string;
+  workspaceId?: string;
+  mapping: { rows?: string; fields?: Record<string, string> };
+  lineMap: Record<string, string>;
+  scheduleMinutes: number;
+  pullUrl?: string;
+  pullAuthHeader?: string;
+  pullAuthPrefix?: string;
+  tokenHint?: string;
+  tokenSetAt?: number;
+  secretSetAt?: number;
+  lastRunAt?: number;
+  lastSuccessAt?: number;
+  lastError?: string;
+  lastRows?: number;
+  lastRefused?: number;
+  rowsTotal: number;
+  ownerId?: string;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+}
 
 /* A PAPER KEPT IN THE LIBRARY (11 November, docs/CONSULTANT-WORKSPACE.md C4; supabase/KEPT_PAPERS.sql; lib/keptPdfs, lib/library).
    One row a PDF the app made: the bytes in the media store under `key`, the record synced so a paper made on the phone is in the

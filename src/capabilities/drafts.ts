@@ -321,7 +321,7 @@ const plain = (d: ColleagueDraft): Record<string, DraftValue> => Object.fromEntr
 const numberAt = (d: ColleagueDraft, k: string): number | undefined => (typeof d.values[k]?.value === 'number' ? d.values[k].value as number : undefined);
 const textAt = (d: ColleagueDraft, k: string): string | undefined => (typeof d.values[k]?.value === 'string' ? d.values[k].value as string : typeof d.values[k]?.value === 'number' ? String(d.values[k].value) : undefined);
 const rowsAt = (d: ColleagueDraft, k: string): DraftRow[] => (Array.isArray(d.values[k]?.value) ? d.values[k].value as DraftRow[] : []);
-const HOW_SAID_WORD: Record<Exclude<HowKnown, 'verified'>, string> = { observed: 'observed', reported: 'reported', measured: 'measured', imported: 'imported from a file', calculated: 'calculated', estimated: 'an estimate, not measured', hypothesised: 'a hypothesis, not yet checked', unknown: 'how it is known not said' };
+const HOW_SAID_WORD: Record<Exclude<HowKnown, 'verified'>, string> = { observed: 'observed', reported: 'reported', measured: 'measured', imported: 'imported from a file', system: 'from the business’s production system', calculated: 'calculated', estimated: 'an estimate, not measured', hypothesised: 'a hypothesis, not yet checked', unknown: 'how it is known not said' };
 
 /** A document's boxes from a draft: a list's rows given stable ids (the draft's and the row's place), so a second make replaces them cleanly. */
 export function docValuesOf(d: ColleagueDraft, fields: DraftField[]): DocValues {

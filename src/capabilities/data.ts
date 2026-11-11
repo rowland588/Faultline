@@ -27,7 +27,8 @@ import type { Query, QueryResult } from '../lib/workbook/query';
 import type { ToolStudy } from '../lib/study';
 import { uid } from '../lib/ids';
 import { fieldCoverage, missingFields, runTable, TableError, type Dataset, type Field } from '../lib/data/table';
-import { problemsDataset, readingsDataset, stopsDataset, testsDataset } from '../lib/data/datasets';
+import { problemsDataset, productionDataset, readingsDataset, stopsDataset, testsDataset } from '../lib/data/datasets';
+import { listConnections, listProduction } from '../db/production';
 import { matchSources, resolveSource, sourceSaid, sourcesOf, suggestName, type Source, type SourceFacts, type SourceSheet } from '../lib/data/sources';
 import { applyReportOp, chartNow, checkSection, seriesOf, specChange, type Chart, type ChartSpec, type ConvReport, type DataResult, type ReportOp, type ReportSection } from '../lib/data/outputs';
 import { anyone, mayEdit } from './access';
@@ -92,6 +93,13 @@ async function datasetFor(id: string, ctx: CapCtx): Promise<Dataset | { why: str
       return testsDataset(w, tests, programs, assets, p => (p.workspaceId ?? p.lineId) === w.id);
     }
     return problemsDataset(w, (await listAllSnags()).filter(s => s.workspaceId === w.id), [w], ctx.now);
+  }
+  /* what a business's own system sent through a data connection (docs/DATA-CONNECTIONS.md): one line's, or every line's on this device */
+  if (kind === 'production') {
+    const lines = await listWorkspaces();
+    const w = ref === 'all' ? undefined : lines.find(l => l.id === ref);
+    if (ref !== 'all' && !w) return { why: 'There is no line with that id on this device — find it first.' };
+    return productionDataset(w ?? { id: 'all', name: 'Every line' }, await listProduction(w?.id), lines, await listConnections());
   }
   if (kind === 'problems') return problemsDataset({ id: 'all', name: 'Every line' }, await listAllSnags(), await listWorkspaces(), ctx.now);
   if (kind === 'readings') {
@@ -204,7 +212,7 @@ export const listSources: Capability = {
     const files = (await allSources()).filter(s => !client || !s.facts.client || s.facts.client.toLowerCase() === client.toLowerCase());
     const native: { id: string; name: string; rows: number; limits: string[] }[] = [];
     if (line) {
-      for (const k of ['stops', 'tests', 'problems'] as const) { const d = await datasetFor(`${k}:${line.id}`, ctx); if (!('why' in d)) native.push({ id: d.id, name: d.name, rows: d.rows.length, limits: d.limits }); }
+      for (const k of ['stops', 'tests', 'problems', 'production'] as const) { const d = await datasetFor(`${k}:${line.id}`, ctx); if (!('why' in d) && (k !== 'production' || d.rows.length)) native.push({ id: d.id, name: d.name, rows: d.rows.length, limits: d.limits }); }
       for (const s of (await listAllStudies()).filter(x => x.workspaceId === line.id && !x.deletedAt && Array.isArray(x.facts?.readings) && (x.facts.readings as unknown[]).length)) native.push({ id: `readings:${s.id}`, name: `${s.name} — readings`, rows: (s.facts.readings as { struck?: boolean }[]).filter(r => !r.struck).length, limits: [] });
     }
     const says = [

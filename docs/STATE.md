@@ -372,6 +372,14 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
 
+**Production data connections — built 11 November, waiting to go live (`docs/DATA-CONNECTIONS.md`).** Rowland: *"Production data
+connectivity is a core platform capability, not an optional reporting feature."* One connector contract; push (token, hash only) and pull
+(Vault key, pg_cron every 15 min, no SSRF) built, database / file transfer / historians designed. Set up › Data connections
+(`#/factory/data`), the app's own import path through the same core as the `ingest` function, `production_records` and `data_connections`
+synced (IndexedDB v23), Luna's `production:` source and `production_gap`, `system` provenance. **Not live until** `supabase/PRODUCTION_DATA.sql`
+is applied with `apply_migration` and read back and `supabase/functions/ingest` is deployed with `verify_jwt` off (no secret to set: it
+uses the service role and makes its own cron key). Proved by `src/lib/production/__tests__/` and `scripts/acceptance/production-data.mjs`.
+
 **LUNA — the direction from 11 November (read `CLAUDE.md`'s first section).** The product is Luna; the buyer is the manufacturing
 business, every role; consultants one route in. Rowland leads the business and product decisions; the technical execution is led here
 without asking. In order: **(1)** C3–C6 live (visits and the consultant's home, the library — `KEPT_PAPERS.sql` applied 11 November and
