@@ -15,6 +15,10 @@ on:
         description: 'How many runs of the exam'
         required: true
         default: '1'
+      suite:
+        description: 'Which exam: bagger (the 13 turns) or packing (the packing-line investigation, marked by the records)'
+        required: true
+        default: 'bagger'
 
 concurrency:
   group: luna-eval
@@ -68,7 +72,7 @@ jobs:
         env:
           SMOKE_BASE: http://127.0.0.1:5191
         run: |
-          node scripts/eval/luna-real.mjs "$RUNNER_TEMP/eval-out" --runs "${{ github.event.inputs.runs }}" | tee "$RUNNER_TEMP/exam.txt"
+          node scripts/eval/luna-real.mjs "$RUNNER_TEMP/eval-out" --runs "${{ github.event.inputs.runs }}" --suite "${{ github.event.inputs.suite }}" | tee "$RUNNER_TEMP/exam.txt"
           { echo '## Luna — real-model exam'; echo '```'; cat "$RUNNER_TEMP/exam.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Keep the results

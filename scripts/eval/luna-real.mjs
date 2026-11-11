@@ -28,6 +28,9 @@ const GATEWAY = process.env.LUNA_EVAL_URL ?? 'https://eqdigvzbljofxznqtfia.supab
 /* the project's public (anon) key — the same one the app is built with; it only lets the request reach the function */
 const ANON = process.env.LUNA_EVAL_ANON ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxZGlndnpibGpvZnh6bnF0ZmlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzE3NjksImV4cCI6MjEwMTYwNzc2OX0.Mz6po1Qo46-C2KsuSbsSDuyyG7yM5X22yrpshXE5bwU';
 const OUT = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'eval-out';
+/* --suite bagger (the default) | packing — which scenario of the exam page is run (docs/LUNA-EVAL.md §5) */
+const SUITE = process.argv.includes('--suite') ? process.argv[process.argv.indexOf('--suite') + 1] : 'bagger';
+const SEC = `[data-exam-suite="${SUITE}"]`;
 const RUNS = Number(process.argv[process.argv.indexOf('--runs') + 1]) > 0 && process.argv.includes('--runs') ? Number(process.argv[process.argv.indexOf('--runs') + 1]) : 1;
 fs.mkdirSync(OUT, { recursive: true });
 const CORS = { 'access-control-allow-origin': '*' };
@@ -82,20 +85,20 @@ for (let run = 1; run <= RUNS; run++) {
   asks = [];
   const t0 = Date.now();
   await t.go('#/ai/exam', 2500);
-  const before = await page.locator('[data-inv-history] li').count();
-  await page.locator('[data-inv-start]').click();
+  const before = await page.locator(`${SEC} [data-inv-history] li`).count();
+  await page.locator(`${SEC} [data-inv-start]`).click();
   /* a run is done when its score is kept in the history */
-  await page.waitForFunction(n => (document.querySelector('[data-inv-history]')?.querySelectorAll('li').length ?? 0) > n, before, { timeout: 40 * 60_000 }).catch(() => undefined);
-  const kept = await page.evaluate(async () => {
+  await page.waitForFunction(([sec, n]) => (document.querySelector(`${sec} [data-inv-history]`)?.querySelectorAll('li').length ?? 0) > n, [SEC, before], { timeout: 40 * 60_000 }).catch(() => undefined);
+  const kept = await page.evaluate(async suite => {
     const db = await import('/src/db.ts');
-    const convs = (await db.listAllStudies()).filter(s => s.facts?.investigationExam).sort((a, b) => (b.facts.investigationExam.at ?? 0) - (a.facts.investigationExam.at ?? 0));
+    const convs = (await db.listAllStudies()).filter(s => s.facts?.investigationExam && (s.facts.investigationExam.suite ?? 'bagger') === suite).sort((a, b) => (b.facts.investigationExam.at ?? 0) - (a.facts.investigationExam.at ?? 0));
     return convs[0]?.facts?.investigationExam ?? null;
-  });
+  }, SUITE);
   const ms = asks.map(a => a.ms).sort((a, b) => a - b);
   const first = asks.filter(a => a.firstMs !== null).map(a => a.firstMs).sort((a, b) => a - b);
   const res = {
-    suite: 'bagger', run, at: new Date().toISOString(), minutes: +((Date.now() - t0) / 60_000).toFixed(1),
-    score: kept?.score ?? 'no score kept', turns: kept?.turns ?? [],
+    suite: SUITE, run, at: new Date().toISOString(), minutes: +((Date.now() - t0) / 60_000).toFixed(1),
+    score: kept?.score ?? 'no score kept', turns: kept?.turns ?? [], audit: kept?.audit ?? [], auditScore: kept?.auditScore ?? null,
     asks: { count: asks.length, medianMs: ms[Math.floor(ms.length / 2)] ?? null, p90Ms: ms[Math.floor(ms.length * 0.9)] ?? null, maxMs: ms.at(-1) ?? null, failed: asks.filter(a => a.status >= 400).length, streamed: asks.filter(a => a.streamed).length, firstWordsMedianMs: first[Math.floor(first.length / 2)] ?? null },
   };
   results.push(res);
@@ -103,7 +106,12 @@ for (let run = 1; run <= RUNS; run++) {
   for (const tr of res.turns) {
     console.log(`${tr.pass ? 'RIGHT' : 'WRONG'}  ${tr.id}  (${tr.ms} ms)  — “${(tr.reply ?? '').replace(/\s+/g, ' ').slice(0, 220)}”`);
     console.log(`        steps: ${(tr.steps ?? []).map(s => `${s.name}:${s.status}`).join(', ') || 'none'}`);
-    for (const mk of tr.marks ?? []) if (!mk.pass) console.log(`        ✗ ${mk.what} — ${mk.said}`);
+    for (const s2 of (tr.steps ?? []).filter(x => x.status !== 'done' && x.says)) console.log(`        · ${s2.name} ${s2.status}${s2.card ? ` (card: ${s2.card})` : ''}: ${s2.says.replace(/\s+/g, ' ').slice(0, 200)}`);
+    for (const mk of tr.marks ?? []) if (!mk.pass) console.log(`        ✗ ${mk.on === 'records' ? '[records] ' : ''}${mk.what} — ${mk.said}`);
+  }
+  if (res.audit.length) {
+    console.log(`\nTHE RECORDS, READ BACK: ${res.auditScore}`);
+    for (const mk of res.audit) console.log(`  ${mk.pass ? 'RIGHT' : 'WRONG'}  ${mk.what} — ${mk.said}`);
   }
 }
 const file = path.join(OUT, `luna-real-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);

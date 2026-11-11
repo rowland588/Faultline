@@ -64,13 +64,13 @@ await page.route('**/functions/v1/assist', async r => {
 
 /* ---- 1 · the exam on its page ---- */
 await t.go('#/ai/exam', 2500);
-ok((await page.locator('[data-inv-plan] [data-inv-turn]').count()) === 13, `1 the investigation: ${await page.locator('[data-inv-plan] [data-inv-turn]').count()} turns`);
-ok(/The machine not known/.test(await t.words('[data-inv-plan]')) && /Something she is not allowed to do/.test(await t.words('[data-inv-plan]')) && /Back the next day/.test(await t.words('[data-inv-plan]')), '1 each turn with its hard scenario');
+ok((await page.locator('[data-exam-suite="bagger"] [data-inv-plan] [data-inv-turn]').count()) === 13, `1 the investigation: ${await page.locator('[data-exam-suite="bagger"] [data-inv-plan] [data-inv-turn]').count()} turns`);
+ok(/The machine not known/.test(await t.words('[data-exam-suite="bagger"] [data-inv-plan]')) && /Something she is not allowed to do/.test(await t.words('[data-exam-suite="bagger"] [data-inv-plan]')) && /Back the next day/.test(await t.words('[data-exam-suite="bagger"] [data-inv-plan]')), '1 each turn with its hard scenario');
 
 /* ---- 2 · a careful Luna ---- */
-await page.locator('[data-inv-start]').click();
-await page.waitForSelector('[data-inv-score]', { timeout: 180000 }).catch(() => undefined);
-const marks = await page.$$eval('[data-inv-id]', els => els.map(e => ({ id: e.getAttribute('data-inv-id'), right: e.getAttribute('data-inv-mark') === 'right', why: [...e.querySelectorAll('.inv-marks .is-r')].map(x => x.textContent).join(' | ') })));
+await page.locator('[data-exam-suite="bagger"] [data-inv-start]').click();
+await page.waitForSelector('[data-exam-suite="bagger"] [data-inv-score]', { timeout: 180000 }).catch(() => undefined);
+const marks = await page.$$eval('[data-exam-suite="bagger"] [data-inv-id]', els => els.map(e => ({ id: e.getAttribute('data-inv-id'), right: e.getAttribute('data-inv-mark') === 'right', why: [...e.querySelectorAll('.inv-marks .is-r')].map(x => x.textContent).join(' | ') })));
 ok(marks.length === 13 && marks.every(x => x.right), `2 a careful Luna: every turn right (${marks.filter(x => x.right).length} of ${marks.length})${marks.filter(x => !x.right).map(x => ` — ${x.id}: ${x.why}`).join('')}`);
 const real = await page.evaluate(async ([a]) => {
   const db = await import('/src/db.ts');
@@ -82,14 +82,14 @@ const real = await page.evaluate(async ([a]) => {
 ok(real.project, '2 the project was really made');
 ok(real.reasons.some(r => /bag/i.test(r)) && !real.reasons.some(r => /film/i.test(r)), `2 the stop really on Exam Line A, put right: ${real.reasons.join(' · ')}`);
 ok(real.convs >= 2, `2 the next day a conversation of its own (${real.convs} exam conversations)`);
-ok(/13 of 13 turns right/.test(await t.words('[data-inv-score]')) && (await page.locator('[data-inv-history] li').count()) >= 1, `2 the score said and kept: ${await t.words('[data-inv-score]')}`);
+ok(/13 of 13 turns right/.test(await t.words('[data-exam-suite="bagger"] [data-inv-score]')) && (await page.locator('[data-exam-suite="bagger"] [data-inv-history] li').count()) >= 1, `2 the score said and kept: ${await t.words('[data-exam-suite="bagger"] [data-inv-score]')}`);
 
 /* ---- 3 · a sloppy Luna ---- */
 luna = sloppy; mem = {};
 await t.go('#/ai/exam', 2500);
-await page.locator('[data-inv-start]').click();
-await page.waitForFunction(() => (document.querySelector('[data-inv-history]')?.querySelectorAll('li').length ?? 0) >= 2, null, { timeout: 180000 }).catch(() => undefined);
-const bad = await page.$$eval('[data-inv-id]', els => Object.fromEntries(els.map(e => [e.getAttribute('data-inv-id'), { right: e.getAttribute('data-inv-mark') === 'right', why: [...e.querySelectorAll('.inv-marks .is-r')].map(x => x.textContent).join(' | ') }])));
+await page.locator('[data-exam-suite="bagger"] [data-inv-start]').click();
+await page.waitForFunction(() => (document.querySelector('[data-exam-suite="bagger"] [data-inv-history]')?.querySelectorAll('li').length ?? 0) >= 2, null, { timeout: 180000 }).catch(() => undefined);
+const bad = await page.$$eval('[data-exam-suite="bagger"] [data-inv-id]', els => Object.fromEntries(els.map(e => [e.getAttribute('data-inv-id'), { right: e.getAttribute('data-inv-mark') === 'right', why: [...e.querySelectorAll('.inv-marks .is-r')].map(x => x.textContent).join(' | ') }])));
 for (const id of ['unknown-machine', 'approximate', 'graph-calc', 'not-allowed'])
   ok(bad[id] && !bad[id].right && bad[id].why.length > 0, `3 the sloppy turn “${id}” marked wrong: ${bad[id]?.why.slice(0, 140)}`);
 
@@ -98,7 +98,7 @@ const after = await page.evaluate(async ws => (await (await import('/src/db.ts')
 ok(after === before, '4 the factory’s own line untouched');
 await page.setViewportSize({ width: 390, height: 844 });
 await t.go('#/ai/exam', 2000);
-const wide = await t.wide(), btn = (await page.locator('[data-inv-start]').boundingBox())?.height ?? 0;
+const wide = await t.wide(), btn = (await page.locator('[data-exam-suite="bagger"] [data-inv-start]').boundingBox())?.height ?? 0;
 ok(wide <= 0 && btn >= 36, `4 the phone: nothing off the side (${wide} px over, Run ${Math.round(btn)} px)`);
 
 await t.finish('The bagger investigation exam — the real loop and capabilities, its cards answered by rule, marked by code; ready to run against the live Luna.');

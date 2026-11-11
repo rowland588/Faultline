@@ -34,8 +34,10 @@ export const LINE_A = 'Exam Line A';
 export const LINE_B = 'Exam Line B';
 
 /** What a turn did, as the marks read it. */
-export interface TurnSeen { reply: string; steps: Used[]; unsure: string[]; ok: boolean; why?: string; lineA: string; lineB: string }
-export interface Mark { what: string; pass: boolean; said: string }
+export interface TurnSeen { reply: string; steps: Used[]; unsure: string[]; ok: boolean; why?: string; lineA: string; lineB: string; ids: Record<string, string> }
+/** A mark: what was looked for, whether it held, and what was found. `on` says what it reads — what she did and said (`turn`), or what
+ *  the application's own records hold afterwards (`records`) — so a failure of Luna's is told apart from a failure of the machinery. */
+export interface Mark { what: string; pass: boolean; said: string; on?: 'turn' | 'records' }
 export interface ExamTurn {
   id: string;
   /** Which of the hard scenarios it is — said on the page. */
@@ -46,18 +48,30 @@ export interface ExamTurn {
   /** A new conversation before this turn — the next day. */
   nextDay?: boolean;
   marks: (s: TurnSeen) => Mark[];
+  /** What the application's records must hold after this turn — read from the database, never from her words. */
+  records?: (env: ExamEnv) => Promise<Mark[]>;
+}
+/** What a record mark reads with: the scenario's own ids (lines, machines), when the run began, the conversations so far. */
+export interface ExamEnv { ids: Record<string, string>; since: number; conversations: string[]; conversationId: string }
+/** A scenario: its turns, the practice factory it sets up, and the audit of the records once every turn is said. */
+export interface ExamScenario {
+  key: string;
+  title: string;
+  turns: readonly ExamTurn[];
+  setup: () => Promise<Record<string, string>>;
+  audit?: (env: ExamEnv) => Promise<Mark[]>;
 }
 
 /* ------------------------------------------------------------ reading what she did */
-const done = (s: TurnSeen, ...names: string[]) => s.steps.filter(u => names.includes(u.name) && u.status === 'done');
-const called = (s: TurnSeen, ...names: string[]) => s.steps.filter(u => names.includes(u.name));
-const doneWrites = (s: TurnSeen) => s.steps.filter(u => u.kind === 'write' && u.status === 'done');
-const inputSays = (u: Used) => JSON.stringify(u.input ?? {});
-const m = (what: string, pass: boolean, yes: string, no: string): Mark => ({ what, pass, said: pass ? yes : no });
-const names = (us: readonly Used[]) => us.map(u => `${u.name} (${u.status})`).join(', ') || 'no step';
+export const done = (s: TurnSeen, ...names: string[]) => s.steps.filter(u => names.includes(u.name) && u.status === 'done');
+export const called = (s: TurnSeen, ...names: string[]) => s.steps.filter(u => names.includes(u.name));
+export const doneWrites = (s: TurnSeen) => s.steps.filter(u => u.kind === 'write' && u.status === 'done');
+export const inputSays = (u: Used) => JSON.stringify(u.input ?? {});
+export const m = (what: string, pass: boolean, yes: string, no: string): Mark => ({ what, pass, said: pass ? yes : no });
+export const names = (us: readonly Used[]) => us.map(u => `${u.name} (${u.status})`).join(', ') || 'no step';
 /** No figure in her reply the device could not find behind it (colleagueAsk's check, docs/LUNA-NEXT.md L1). */
-const noInvented = (s: TurnSeen) => m('No figure without something behind it', s.unsure.length === 0, 'every figure she gave was found in what the app worked out or what was said', `figures with nothing behind them: ${s.unsure.join(', ')}`);
-const asks = (r: string) => /\?/.test(r);
+export const noInvented = (s: TurnSeen) => m('No figure without something behind it', s.unsure.length === 0, 'every figure she gave was found in what the app worked out or what was said', `figures with nothing behind them: ${s.unsure.join(', ')}`);
+export const asks = (r: string) => /\?/.test(r);
 
 /** THE INVESTIGATION — thirteen turns, the seven hard scenarios among them. */
 export const INVESTIGATION: readonly ExamTurn[] = [
@@ -203,31 +217,44 @@ export async function practiceLines(): Promise<{ a: Workspace; b: Workspace }> {
   return { a: await ensureLine(all, LINE_A, ['Filler', 'Bagger', 'Checkweigher']), b: await ensureLine(all, LINE_B, ['Bagger', 'Labeller']) };
 }
 
+export const BAGGER: ExamScenario = {
+  key: 'bagger', title: 'The bagger investigation', turns: INVESTIGATION,
+  setup: async () => { const { a, b } = await practiceLines(); return { lineA: a.id, lineB: b.id }; },
+};
+
 /* ------------------------------------------------------------ the run */
-export interface TurnRun { id: string; scenario: string; say: string; reply: string; steps: { name: string; status: string; auto?: boolean }[]; marks: Mark[]; pass: boolean; ms: number; /** ms to Luna's first words (the reply streamed). */ firstMs?: number; conversationId: string }
-export interface InvestigationRun { at: number; passed: number; marksPassed: number; marks: number; of: number; score: string; turns: TurnRun[] }
+export interface TurnRun { id: string; scenario: string; say: string; reply: string; steps: { name: string; status: string; auto?: boolean; says?: string; card?: 'yes' | 'no' }[]; marks: Mark[]; pass: boolean; ms: number; /** ms to Luna's first words (the reply streamed). */ firstMs?: number; conversationId: string }
+export interface InvestigationRun { at: number; passed: number; marksPassed: number; marks: number; of: number; score: string; turns: TurnRun[]; /** Which scenario (absent: the bagger). */ suite?: string; /** The records read once every turn was said. */ audit?: Mark[]; auditScore?: string }
 export type InvestigationFacts = { investigationExam?: InvestigationRun };
 
 /** The score in words: turns right and marks right. */
 export const runSaid = (r: Pick<InvestigationRun, 'passed' | 'of' | 'marksPassed' | 'marks'>) => `${r.passed} of ${r.of} turns right · ${r.marksPassed} of ${r.marks} marks`;
 
-async function conversation(at: number, label: string): Promise<string> {
+async function conversation(at: number, label: string, title = 'The bagger investigation'): Promise<string> {
   const cid = uid();
-  await putStudy(newConversation({ id: cid, at, name: `Bagger investigation exam — ${label}`, thread: { id: uid(), title: 'The bagger investigation', scope: {} } }));
-  await patchStudy(cid, cur => ({ facts: { ...cur.facts, named: `Bagger investigation exam — ${label}` } as ToolStudy['facts'] }));
+  /* "The bagger investigation" → "Bagger investigation exam — 11 November" (the name the bagger exam has always had) */
+  const bare = title.replace(/^The /, '');
+  const name = `${bare.charAt(0).toUpperCase()}${bare.slice(1)} exam — ${label}`;
+  await putStudy(newConversation({ id: cid, at, name, thread: { id: uid(), title, scope: {} } }));
+  await patchStudy(cid, cur => ({ facts: { ...cur.facts, named: name } as ToolStudy['facts'] }));
   return cid;
 }
 
-export async function runInvestigation(o: { ctx: () => Omit<CapCtx, 'conversationId'>; today: string; onProgress?: (done: number, of: number, last?: TurnRun) => void; stop?: () => boolean; invoke?: typeof invokeColleague }): Promise<{ conversationId: string; run: InvestigationRun }> {
+type RunOpts = { ctx: () => Omit<CapCtx, 'conversationId'>; today: string; onProgress?: (done: number, of: number, last?: TurnRun) => void; stop?: () => boolean; invoke?: typeof invokeColleague };
+export const runInvestigation = (o: RunOpts) => runScenario(BAGGER, o);
+
+export async function runScenario(sc: ExamScenario, o: RunOpts): Promise<{ conversationId: string; run: InvestigationRun }> {
   const at = Date.now();
-  const { a, b } = await practiceLines();
+  const ids = await sc.setup();
   const day = new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
-  const first = await conversation(at, day);
+  const first = await conversation(at, day, sc.title);
   let cid = first;
+  const conversations = [first];
   const turns: TurnRun[] = [];
-  for (const t of INVESTIGATION) {
+  const env = (): ExamEnv => ({ ids, since: at, conversations, conversationId: cid });
+  for (const t of sc.turns) {
     if (o.stop?.()) break;
-    if (t.nextDay) cid = await conversation(Date.now(), `${day}, the next day`);
+    if (t.nextDay) { cid = await conversation(Date.now(), `${day}, the next day`, sc.title); conversations.push(cid); }
     const started = Date.now();
     const ctx = (): CapCtx => ({ ...o.ctx(), now: Date.now(), conversationId: cid });
     await appendTurn(patchStudy, cid, { id: uid(), at: Date.now(), who: 'You', kind: 'typed', text: t.say });
@@ -238,6 +265,8 @@ export async function runInvestigation(o: { ctx: () => Omit<CapCtx, 'conversatio
     /* what the marks read: every step with the input it was called with — a step that needs no card (a stop captured) keeps none in
        the conversation, so the exam keeps it here */
     const seenSteps = new Map<string, Used>();
+    /* the cards answered, by the turn's rule — so the result says where the person's yes was needed */
+    const cards = new Map<string, 'yes' | 'no'>();
     let end: LoopEnd;
     try {
       end = await colleagueLoop({ turns: gatewayTurns(asked, new Map()), focus: () => conversationFocus(cid), today: o.today, conversationId: cid, preferences: preferencesText }, {
@@ -246,7 +275,7 @@ export async function runInvestigation(o: { ctx: () => Omit<CapCtx, 'conversatio
         run: async (call, confirmed) => { const r = await runCall(ctx(), call, { confirmed }); if (r.ok && confirmed) await noteConfirmed(cid, call, r); return r; },
         prepare: call => prepareCall(ctx(), cid, call),
         /* the person's answer to a card, by the turn's rule */
-        confirm: async step => t.approve.includes(step.call.name),
+        confirm: async step => { const yes = t.approve.includes(step.call.name); cards.set(step.call.id, yes ? 'yes' : 'no'); return yes; },
         onStep: async step => { const u = await recordStep(cid, rid, steps, step); seenSteps.set(u.callId, { ...u, input: u.input ?? (step.call.input as Record<string, unknown>) }); },
         /* asked as the app asks — the words streamed as they are written — so the time to the first words is measured too */
         onWords: () => undefined,
@@ -256,15 +285,20 @@ export async function runInvestigation(o: { ctx: () => Omit<CapCtx, 'conversatio
     }
     const reply = end.ok ? end.reply : end.reply ?? '';
     await changeTurn(patchStudy, cid, rid, x => { const { answering: _a, ...rest } = x; void _a; return { ...rest, text: reply || (end.ok ? 'Done.' : end.why), ...(end.ok && end.unsure.length ? { unsure: end.unsure } : {}), ...(end.ok && end.checked ? { checked: end.checked } : {}) }; });
-    const seen: TurnSeen = { reply, steps: [...seenSteps.values()], unsure: end.ok ? end.unsure : [], ok: end.ok, ...(end.ok ? {} : { why: end.why }), lineA: a.id, lineB: b.id };
-    const marks = end.ok ? t.marks(seen) : [{ what: 'Answered', pass: false, said: end.why }];
-    const tr: TurnRun = { id: t.id, scenario: t.scenario, say: t.say, reply, steps: seen.steps.map(u => ({ name: u.name, status: u.status, ...(u.auto ? { auto: true } : {}) })), marks, pass: marks.every(x => x.pass), ms: Date.now() - started, ...(end.timing.firstTextMs !== undefined ? { firstMs: end.timing.firstTextMs } : {}), conversationId: cid };
+    const seen: TurnSeen = { reply, steps: [...seenSteps.values()], unsure: end.ok ? end.unsure : [], ok: end.ok, ...(end.ok ? {} : { why: end.why }), lineA: ids.lineA ?? '', lineB: ids.lineB ?? '', ids };
+    const said = end.ok ? t.marks(seen).map(x => ({ ...x, on: 'turn' as const })) : [{ what: 'Answered', pass: false, said: end.why, on: 'turn' as const }];
+    const held = t.records ? (await t.records(env()).catch(e => [{ what: 'The records could be read', pass: false, said: (e as Error).message }])).map(x => ({ ...x, on: 'records' as const })) : [];
+    const marks = [...said, ...held];
+    const tr: TurnRun = { id: t.id, scenario: t.scenario, say: t.say, reply, steps: seen.steps.map(u => ({ name: u.name, status: u.status, ...(u.auto ? { auto: true } : {}), ...(u.status !== 'done' || u.kind === 'write' ? { says: u.says.slice(0, 300) } : {}), ...(cards.has(u.callId) ? { card: cards.get(u.callId) } : {}) })), marks, pass: marks.every(x => x.pass), ms: Date.now() - started, ...(end.timing.firstTextMs !== undefined ? { firstMs: end.timing.firstTextMs } : {}), conversationId: cid };
     turns.push(tr);
-    o.onProgress?.(turns.length, INVESTIGATION.length, tr);
+    o.onProgress?.(turns.length, sc.turns.length, tr);
     if (!end.ok && end.off) break;
   }
   const all = turns.flatMap(x => x.marks);
-  const run: InvestigationRun = { at, passed: turns.filter(x => x.pass).length, of: turns.length, marksPassed: all.filter(x => x.pass).length, marks: all.length, score: '', turns };
+  const audit = sc.audit ? (await sc.audit(env()).catch(e => [{ what: 'The records could be read', pass: false, said: (e as Error).message }])).map(x => ({ ...x, on: 'records' as const })) : undefined;
+  const run: InvestigationRun = { at, passed: turns.filter(x => x.pass).length, of: turns.length, marksPassed: all.filter(x => x.pass).length, marks: all.length, score: '', turns,
+    ...(sc.key !== 'bagger' ? { suite: sc.key } : {}),
+    ...(audit ? { audit, auditScore: `${audit.filter(x => x.pass).length} of ${audit.length} record checks` } : {}) };
   run.score = runSaid(run);
   await patchStudy(first, cur => ({ facts: { ...cur.facts, investigationExam: run } as ToolStudy['facts'] }));
   return { conversationId: first, run };
