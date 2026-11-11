@@ -3,7 +3,7 @@
  * engine iterates MAPS; nothing here touches the network. */
 import type { SyncKind } from '../db';
 import type { Workspace, Observation, Case, Project, Known, KnownFact } from '../types';
-import type { PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow } from '../db';
+import type { PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow, KeptPaperRow } from '../db';
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
 import type { Material } from '../lib/materials';
@@ -789,7 +789,43 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies Material),
   },
 
+  /* A PAPER KEPT IN THE LIBRARY (supabase/KEPT_PAPERS.sql, lib/keptPdfs; docs/CONSULTANT-WORKSPACE.md C4). Its PDF is the one file
+     it names (media_key), sent once the row is taken. Its maker is kept, as a study's is: renaming a teammate's copy never takes it
+     over. A line id that is not a uuid (an old seed's) goes as no line rather than refusing the row. */
+  kept_papers: {
+    clock: l => (l as KeptPaperRow).updatedAt,
+    mediaKeys: l => { const p = l as KeptPaperRow; return k(p.key, 'application/pdf', p.ownerId); },
+    toRow: (l, fallbackOwner) => {
+      const p = l as KeptPaperRow;
+      return {
+        id: p.id, owner_id: p.ownerId ?? fallbackOwner,
+        workspace_id: p.workspaceId && UUID.test(p.workspaceId) ? p.workspaceId : null,
+        project_id: p.projectId || null, study_id: p.studyId || null,
+        client: p.client || null, page: p.page ?? '', ids: p.ids ?? [], name: p.name ?? '',
+        kind: p.kind || 'other', audience: p.audience === 'client' ? 'client' : 'internal',
+        size: p.size || 0, media_key: p.key, made_at: p.at,
+        updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined,
+      key: (r.media_key as string) ?? '', name: (r.name as string) ?? '',
+      at: Number(r.made_at) || 0, size: Number(r.size) || 0, page: (r.page as string) ?? '',
+      ids: Array.isArray(r.ids) ? (r.ids as unknown[]).filter((x): x is string => typeof x === 'string') : [],
+      ...(r.workspace_id ? { workspaceId: r.workspace_id as string } : {}),
+      ...(r.project_id ? { projectId: r.project_id as string } : {}),
+      ...(r.study_id ? { studyId: r.study_id as string } : {}),
+      ...(r.client ? { client: r.client as string } : {}),
+      kind: (r.kind as string) || 'other',
+      /* a word this build does not know reads as a working paper — never shown to a client by mistake */
+      audience: r.audience === 'client' ? 'client' : 'internal',
+      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies KeptPaperRow),
+  },
+
 };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // cases push before snags so a snag's case_id never points at a case the cloud
 // hasn't met (no hard FK, but no reason to arrive out of order either).
@@ -829,5 +865,8 @@ export const SYNC_KINDS: SyncKind[] = [
   // last, because a study can name a machine, a program, a standard, a test,
   // a problem or a fix — everything it is evidence for is already up
   'studies',
+  // after everything a paper can be made of (its line, its project, its record); last, too, so a cloud that has not had
+  // KEPT_PAPERS.sql yet refuses this kind alone, after every other kind has gone (supabase/KEPT_PAPERS.sql)
+  'kept_papers',
 ];
 

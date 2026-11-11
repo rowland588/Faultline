@@ -207,6 +207,7 @@ const ROUTES = [
   /* every tool, the directory (src/catalogue) — and found by the problem */
   ['every tool — the directory', '#/tools'],
   ['the story — the client’s journey, its old address (an alias of #/)', '#/story'],
+  ['the library — every paper made, the customer’s photos and working records (C4)', '#/library'],
   /* a method's own page (docs/METHODS.md §15) */
   ['a method — its own page', '#/methods/dmaic'],
   ['your factory — adding lines', '#/factory?add=1'],

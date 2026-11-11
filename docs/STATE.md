@@ -19,6 +19,19 @@ a session that ships something updates this page in the same commit.** The rules
   top bar's ＋ A new customer…) and made the active client; a line or department made under it takes its name; **Archive** hides it and
   everything under it everywhere (Luna's lookups too) with nothing deleted or changed, **Continue** brings it back as it was. The anchor
   is the customer's Story record (`agreed.story.archivedAt`, `site`) — no migration. `scripts/acceptance/customers.mjs`.
+- **The library (11 November, C4).** Rowland: *"Where is my overall library of work? … I don't want reports disappearing into individual
+  projects … distinguish between my own internal working documents and finished client-facing reports"*. Every PDF made is now a
+  synced record (`kept_papers`, IndexedDB v22, `src/db/rows` KeptPaperRow, `cloud/mappers` kept_papers — its PDF in the `media` bucket)
+  carrying its line, project, record, **customer**, **kind** (read from the page — `lib/library` paperKindOf) and **audience**
+  (client-facing for the Story, visit, line, area and project reports; internal for everything else — changeable). **#/library**
+  (`screens/LibraryScreen`, reached from Factory reports at the rail's foot and every Saved copies sheet — nothing added to the menu):
+  Papers (newest first, the active customer's or every customer's naming whose; search, and in a fold who it is for and what paper;
+  ⋯ Download · Mark client-facing/internal · Rename · Take off with Undo), Photos (the customer's tool attachments, problem photos and
+  walk photographs, each opening its record) and Working records (the customer's studies and documents). Copies kept on a device
+  before it are offered once (*Keep these 12 copies in your library?*). **`supabase/KEPT_PAPERS.sql` is written, NOT yet applied**
+  (the table, its rev, RLS as a study's — maker, line members, project members, a client read-only — and the media rule widened by
+  one clause): until it is, the kind waits (`isMissingTable`) and every paper stays on its device as before.
+  `scripts/acceptance/library.mjs`.
 
 - **The model for each AI task (9 November).** Rowland: *"we want quality output but lowest cost"*. Each task of the `assist`
   gateway has its own model setting (`supabase/functions/assist/index.ts`, the top): Line Talk (`ASSIST_TALK_MODEL`), the Story

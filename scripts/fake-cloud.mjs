@@ -34,9 +34,9 @@ import { readFileSync } from 'node:fs';
 import crypto from 'node:crypto';
 
 /* THE MEDIA RULE IN FORCE — which table's which columns may name an uploaded
-   file (supabase/VIDEO_MEDIA.sql; a newer definition moves this, and the one in
+   file (supabase/KEPT_PAPERS.sql since 11 November; a newer definition moves this, and the one in
    src/cloud/__tests__/sync-schema.test.ts). */
-const MEDIA_RULE_FILE = new URL('../supabase/VIDEO_MEDIA.sql', import.meta.url);
+const MEDIA_RULE_FILE = new URL('../supabase/KEPT_PAPERS.sql', import.meta.url);
 const MEDIA_RULE_SQL = readFileSync(MEDIA_RULE_FILE, 'utf8');
 const MEDIA_RULE = [...MEDIA_RULE_SQL.matchAll(/from public\.(\w+) where ([^']*)'/g)]
   .map(m => [m[1], [...m[2].matchAll(/(\w+)\s*(?:=|@>)/g)].map(c => c[1])]);

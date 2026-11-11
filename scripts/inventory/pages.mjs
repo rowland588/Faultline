@@ -30,6 +30,15 @@ export const PAGES = (sd, cap) => [
   ] },
   /* TODAY (10 November, docs/LUNA-WORKSPACE.md W7 — the person's day; the menu's first line): the briefing worked out by code, Luna's
      box (AI Mode on), the lines in words, the projects by method */
+  /* THE LIBRARY (11 November, docs/CONSULTANT-WORKSPACE.md C4 — "Where is my overall library of work?"): every paper made, the active
+     customer's or every customer's; Papers · Photos · Working records; reached from Factory reports and a Saved copies sheet */
+  { name: 'Library', path: '#/library', must: [
+    { what: 'its title and its one sentence', sel: '[data-library] .part-head h1', text: /^Library$/ },
+    { what: 'the context bar — Factory › Library', sel: '.nv-crumb.nv-page', text: /^Library$/ },
+    { what: 'its three views — Papers · Photos · Working records', sel: '[data-library] .part-view', n: 3 },
+    { what: 'find a paper by its name', sel: '[data-lib-q]' },
+    { what: 'who it is for and what paper — a fold', sel: '[data-fold="library-filters"]' },
+  ] },
   { name: 'Today', path: '#/today', must: [
     { what: 'the menu — Today first and lit', sel: '.nv-rail .nv-ri.is-on', text: /^Today$/, desk: true },
     { what: 'the greeting', sel: '[data-today] .pace-title', text: /^Good (morning|afternoon|evening)$/ },

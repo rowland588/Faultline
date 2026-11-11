@@ -48,6 +48,7 @@ const NotesScreen = lazy(() => import('./screens/NotesScreen').then(m => ({ defa
 const ClientReportScreen = lazy(() => import('./screens/ClientReportScreen').then(m => ({ default: m.ClientReportScreen })));
 const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => ({ default: m.PaceExecReport })));
 const TodayScreen = lazy(() => import('./screens/TodayScreen').then(m => ({ default: m.TodayScreen })));
+const LibraryScreen = lazy(() => import('./screens/LibraryScreen').then(m => ({ default: m.LibraryScreen })));
 const QuickSnagsScreen = lazy(() => import('./snag/QuickSnagsScreen').then(m => ({ default: m.QuickSnagsScreen })));
 const FactoryMachinesScreen = lazy(() => import('./line/FactoryMachinesScreen').then(m => ({ default: m.FactoryMachinesScreen })));
 const ProjectMachinesScreen = lazy(() => import('./project/machines/ProjectMachinesScreen').then(m => ({ default: m.ProjectMachinesScreen })));
@@ -229,6 +230,8 @@ function app(route: Route) {
   if (route.name === 'allActions') return <EveryActionScreen />;
   /* HOME IS THE STORY (S5): #/ and its alias #/story; the board of lines is #/room, the Lines tab */
   if (route.name === 'today') return <TodayScreen />;
+  /* THE LIBRARY (11 November, docs/CONSULTANT-WORKSPACE.md C4): every paper made, the customer's photos and working records */
+  if (route.name === 'library') return <LibraryScreen />;
   if (route.name === 'home' || route.name === 'story') return <StoryScreen />;
   /* AI MODE (8 November, src/colleague) — the colleague's conversation; the door is in the top bar, not the menu */
   /* Luna is mounted once beside the router (colleague/LunaHost) and drawn here — her conversation, answers in flight, cards waiting and

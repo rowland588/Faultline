@@ -153,7 +153,40 @@ export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
    (docs/DIRECTION.md), with 0 rows of any of them in the cloud. */
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects'
   | 'pace_ppm' | 'pace_todos' | 'pace_wins' | 'tree_nodes'
-  | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies';
+  | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies'
+  | 'kept_papers';
+
+/* A PAPER KEPT IN THE LIBRARY (11 November, docs/CONSULTANT-WORKSPACE.md C4; supabase/KEPT_PAPERS.sql; lib/keptPdfs, lib/library).
+   One row a PDF the app made: the bytes in the media store under `key`, the record synced so a paper made on the phone is in the
+   library on the laptop. Kind and audience are read from the page it was made on and the audience is changeable; client is the
+   customer it was made for, as named at the time. */
+export type PaperAudience = 'client' | 'internal';
+export interface KeptPaperRow {
+  id: string;
+  /** The media store key of the bytes. */
+  key: string;
+  name: string;
+  /** When it was made. */
+  at: number;
+  size: number;
+  /** The page it was made on: its address without the query ("#/lines/ab12/report"). */
+  page: string;
+  /** Every id in that address (a line, a project, a record) — so a line's page can show what was made for it elsewhere. */
+  ids: string[];
+  /** The line, the project and the record it was made for, when the address names them. */
+  workspaceId?: string;
+  projectId?: string;
+  studyId?: string;
+  /** The customer it was made for, as named when it was made ('' none). */
+  client?: string;
+  /** What paper it is (lib/library PaperKind) — a word, never checked against a list in the cloud. */
+  kind: string;
+  audience: PaperAudience;
+  /** Who made it (the cloud's owner_id) — kept so editing a teammate's copy never takes it over. */
+  ownerId?: string;
+  updatedAt: number;
+  deletedAt?: number;
+}
 
 /* WHERE A BOX HAS GOT TO. Five states, not four colours.
  *

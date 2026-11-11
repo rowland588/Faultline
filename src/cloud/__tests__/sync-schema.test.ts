@@ -138,7 +138,7 @@ describe('every face the app writes, the cloud accepts', () => {
   }
 });
 
-const MEDIA_RULE_FILE = 'VIDEO_MEDIA.sql';   // the definition in force: a newer one moves this here and in scripts/fake-cloud.mjs
+const MEDIA_RULE_FILE = 'KEPT_PAPERS.sql';   // the definition in force (VIDEO_MEDIA → … → ATTACHMENTS → KEPT_PAPERS, 11 November): a newer one moves this here and in scripts/fake-cloud.mjs
 
 /* A FILE IS ONLY ALLOWED UP IF A ROW NAMES IT. Storage's write and read policies
  * ask faultline_can_see_media whether any table the user can see points at the
