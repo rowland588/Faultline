@@ -219,7 +219,7 @@ export function calcPaperParts(s: ToolStudy): CalcPaperParts | undefined {
     const given = v[f.id] !== undefined && v[f.id] !== '';
     const src = !given ? (f.optional ? 'not given' : 'needed')
       : agreed.src?.[f.id] ? `from ${agreed.src[f.id]}`
-        : f.default !== undefined && String(f.default) === String(v[f.id]) && f.chosen ? 'Faultline’s starting point — a choice' : 'typed';
+        : f.default !== undefined && String(f.default) === String(v[f.id]) && f.chosen ? 'the app’s starting point — a choice' : 'typed';
     return [f.label, inputSaid(f, v), src];
   });
   const before = beforeRun(def, agreed);

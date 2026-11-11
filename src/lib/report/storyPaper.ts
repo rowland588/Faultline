@@ -103,7 +103,7 @@ export function storyBlocks(i: StoryPaperInputs): Block[] {
 
   /* WHAT THE FIGURES REST ON */
   out.push(leanHead('What the figures rest on'));
-  out.push(text({ text: s.toolsUsed.length ? `Recorded on the client’s lines in Faultline: ${s.toolsUsed.map(t => `${t.label} (${t.n})`).join(' · ')}. Every figure above is a tool’s own, counted or timed on the line; money is the line’s own cost model (wage, speed, margin, materials a pack). A problem with no price says so.` : 'No tool record on the client’s lines yet — the figures are the register’s problems and the actions.', size: 8, colour: INK2, after: 8 }));
+  out.push(text({ text: s.toolsUsed.length ? `Recorded on the client’s lines in Luna: ${s.toolsUsed.map(t => `${t.label} (${t.n})`).join(' · ')}. Every figure above is a tool’s own, counted or timed on the line; money is the line’s own cost model (wage, speed, margin, materials a pack). A problem with no price says so.` : 'No tool record on the client’s lines yet — the figures are the register’s problems and the actions.', size: 8, colour: INK2, after: 8 }));
   out.push(leanClosing({ text: storySentence(s), tone: s.found.late || s.found.critical ? 'r' : s.found.open ? 'a' : 'g' }));
   return out;
 }

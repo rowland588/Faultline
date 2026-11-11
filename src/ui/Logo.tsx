@@ -10,12 +10,13 @@
  * page, and the mark is the same drawing at every size — the top bar, the
  * splash, the favicon (public/mark.svg) and the install icons
  * (scripts/brand-assets.mjs). */
+import { PRODUCT } from '../lib/product';
 export function LogoMark({ size = 28, id = 'fl' }: { size?: number; id?: string }) {
   // Unique per instance: two SVGs on one page sharing a gradient id means the
   // second one silently takes the first one's fill.
   const t = `${id}-tile`, p = `${id}-spike`;
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" role="img" aria-label="Faultline" className="logo-mark">
+    <svg width={size} height={size} viewBox="0 0 32 32" role="img" aria-label={PRODUCT.name} className="logo-mark">
       <defs>
         <radialGradient id={t} cx="0.28" cy="0.18" r="1">
           <stop offset="0%" stopColor="#ffffff" />
@@ -41,7 +42,7 @@ export function Wordmark({ size = 34 }: { size?: number }) {
   return (
     <div className="wordmark">
       <LogoMark size={size} />
-      <span className="wordmark-name">Faultline</span>
+      <span className="wordmark-name">{PRODUCT.mark}</span>
     </div>
   );
 }

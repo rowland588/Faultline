@@ -97,7 +97,7 @@ function pagesOf(pdf) {
 const textOf = pdf => execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
   .split('\f').map(page => {
     const lines = page.split('\n').filter(l => l.trim() && l.trim() !== '•');
-    if (lines.at(-1)?.trim() === 'Faultline') lines.pop();
+    if (['Faultline', 'LUNA'].includes(lines.at(-1)?.trim() ?? '')) lines.pop(); // the stamp's word (Luna since 11 November)
     if (/\b\d+ of \d+$/.test(lines.at(-1)?.trim() ?? '')) lines.pop();
     /* A numbered answer under Why is drawn before its number, so one broken
        over a page leaves its number at the page's end, after its first lines. */

@@ -47,8 +47,8 @@ const dir = mkdtempSync(join(tmpdir(), 'brand-'));
 const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 300000 }), paper(page, 'Line report — full package', page.locator('.pl'))]);
 const file = join(dir, 'package.pdf'); await dl.saveAs(file);
 const pkg = t.norm(execFileSync('pdftotext', ['-raw', '-l', '2', file, '-'], { encoding: 'utf8' }));
-ok(/For Northfield Foods/.test(pkg) && /Prepared by Rowland Glew, Streamline Synergy/.test(pkg) && /Operational improvement for food manufacturers · rowland@streamlinesynergy\.co\.uk/.test(pkg) && /Made with Faultline/.test(pkg),
-  '3 the package\'s cover: For Northfield Foods · Prepared by Rowland Glew, Streamline Synergy · the strapline and contact · Made with Faultline');
+ok(/For Northfield Foods/.test(pkg) && /Prepared by Rowland Glew, Streamline Synergy/.test(pkg) && /Operational improvement for food manufacturers · rowland@streamlinesynergy\.co\.uk/.test(pkg) && /Made with Luna/.test(pkg),
+  '3 the package\'s cover: For Northfield Foods · Prepared by Rowland Glew, Streamline Synergy · the strapline and contact · Made with Luna');
 
 /* ---- 4 · the phone ---- */
 await page.setViewportSize({ width: 390, height: 844 }); await t.go('#/', 2500);

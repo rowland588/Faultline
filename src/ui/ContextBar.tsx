@@ -7,6 +7,7 @@
  * scope's name opens its first page and Factory is the way up; the switcher — every line and every
  * project, found by typing — is its own button, Go to ▾ (27 October: the name was the switcher, and a
  * tap meant to go to the line opened a list instead). The mark is Home. */
+import { PRODUCT } from '../lib/product';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { goBack, nav } from '../state/useRoute';
 import { canGoBack, onTrail } from '../state/navHistory';
@@ -63,9 +64,9 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
   useEffect(() => { if (follow) setActiveClient(follow); }, [placeKey]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <header className="nv-top">
-      <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label="Faultline — the factory">
+      <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label={`${PRODUCT.name} — home`}>
         <LogoMark size={28} id="nv" />
-        <span className="nv-name">Faultline</span>
+        <span className="nv-name">{PRODUCT.mark}</span>
       </button>
       <ClientSwitch cs={cs} here={placeClients} onGoTo={() => setOpen(true)} />
       {/* THE VISIT IN HAND (lib/visits, C3) — Business B · Visit 11 Nov ▾, its page and End the visit */}

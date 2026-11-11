@@ -43,9 +43,10 @@ const open = async (w, h) => {
 const { ctx, page } = await open(1360, 900);
 
 /* 1 — the name and the sentence */
-ok(flat(await page.locator('.door-name').innerText()) === 'Faultline', '1 the name');
+ok(flat(await page.locator('.door-name').innerText()) === 'LUNA', '1 the name (Luna since 11 November, docs/LUNA-BRAND.md)');
+ok(/Your intelligent colleague for manufacturing/.test(flat(await page.locator('.door-line').innerText())) && /From the factory floor to the boardroom/.test(flat(await page.locator('.door-line').innerText())), '1 the line and the statement');
 const descriptor = flat(await page.locator('.door-descriptor').innerText());
-ok(descriptor === 'The Operational Improvement System', '1 the descriptor, as the brand says it', descriptor);
+ok(descriptor === 'Lean Unified Network Assistant', '1 the descriptor, as the brand says it', descriptor);
 const lede = flat(await page.locator('.door-lede').innerText());
 ok(/Find the opportunities/.test(lede) && /diagnose/.test(lede) && /apply the method/.test(lede) && /organise the delivery/.test(lede) && /verify the result/.test(lede), '1 the sentence says what it does — the whole lifecycle', lede);
 ok(flat(await page.locator('.door-parent').innerText()) === 'An Opex Elevate product', '1 the parent brand');
@@ -100,7 +101,7 @@ for (const w of [1360, 390]) {
   await hp.goto(`${BASE}/how-it-works.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await hp.evaluate(async () => { for (const i of document.images) i.loading = 'eager'; await Promise.all([...document.images].map(i => (i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; })))); });
   if (w === 1360) {
-    ok(flat(await hp.locator('h1').innerText()) === 'The Operational Improvement System', '6 how it works: the descriptor is its title');
+    ok(flat(await hp.locator('h1').innerText()) === 'Your intelligent colleague for manufacturing', '6 how it works: the line is its title');
     const parts = (await hp.locator('.part').allTextContents()).map(flat);
     ok(parts.slice(0, 5).join(' | ') === '1 · Identify the opportunity | 2 · Diagnose the problem | 3 · Apply a methodology | 4 · Organise the delivery | 5 · Verify the result', '6 the five lifecycle parts, in order', parts.join(' | '));
     const named = (await hp.locator('.methods .method b').allInnerTexts()).map(flat);
@@ -128,8 +129,8 @@ for (const path of ['/', '/how-it-works.html']) {
     const g = parsed[0]?.['@graph'] ?? [];
     const app = g.find(n => n['@type'] === 'SoftwareApplication');
     const org = g.find(n => n['@type'] === 'Organization');
-    ok(app?.name === 'Faultline' && org?.name === 'Opex Elevate', '7 the product is Faultline and its parent Opex Elevate', JSON.stringify([app?.name, org?.name]));
-    ok(/operational improvement system/i.test(app?.description ?? '') && !/control room for change|am I in control/i.test(app?.description ?? ''), '7 the description says the lifecycle, none of the old words', app?.description);
+    ok(app?.name === 'Luna' && org?.name === 'Opex Elevate', '7 the product is Luna and its parent Opex Elevate', JSON.stringify([app?.name, org?.name]));
+    ok(/intelligent colleague for manufacturing/i.test(app?.description ?? '') && !/control room for change|am I in control/i.test(app?.description ?? ''), '7 the description says the lifecycle, none of the old words', app?.description);
   }
 }
 

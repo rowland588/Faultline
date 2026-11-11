@@ -41,8 +41,8 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['mark.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'],
       manifest: {
-        name: 'Faultline — The Operational Improvement System',
-        short_name: 'Faultline',
+        name: 'LUNA — Your intelligent colleague for manufacturing',
+        short_name: 'Luna',
         description: 'The operational improvement system for production lines, by Opex Elevate: identify opportunities, diagnose problems, apply a method, organise the delivery and verify the result. Works offline on the floor.',
         start_url: '/',
         scope: '/',

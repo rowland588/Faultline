@@ -18134,3 +18134,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .tpl-row .lt-row { flex: 1 1 100%; }
   .tpl-row .tpl-acts { width: 100%; margin-left: 0; padding: 0 2px 8px; }
 }
+
+/* LUNA ON THE DOOR (11 November, docs/LUNA-BRAND.md R1): the name in capitals a little more open than the old mixed-case name; the line
+   and the statement under it, the statement quieter */
+.door-name { letter-spacing: -0.02em; }
+.door-line { margin: 16px 0 0; max-width: 560px; font-size: clamp(18px, 1.8vw, 22px); font-weight: 600; line-height: 1.35; color: var(--ink); }
+.door-line span { display: block; font-weight: 500; color: var(--ink-2); }

@@ -75,8 +75,8 @@ const og = `
       <path d="M0 80 H360 L374 72 L388 88 L400 80 H430 L458 14 L490 150 L514 50 L532 96 L546 80 H1000" fill="none" stroke="rgba(12,116,137,0.22)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
       <path d="M0 80 H360 L374 72 L388 88 L400 80 H430 L458 14 L490 150 L514 50 L532 96 L546 80 H1000" fill="none" stroke="url(#b)" stroke-width="3" vector-effect="non-scaling-stroke"/>
     </svg>
-    <h1>Faultline</h1>
-    <p>The Operational Improvement System</p><p class="o">An Opex Elevate product</p>
+    <h1>LUNA</h1>
+    <p>Your intelligent colleague for manufacturing</p><p class="o">From the factory floor to the boardroom · An Opex Elevate product</p>
   </div>
 </div>`;
 

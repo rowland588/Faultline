@@ -19,7 +19,7 @@ export async function makeStoryDeck(i: StoryDeckInputs): Promise<Blob> {
   const { default: PptxGenJS } = await import('pptxgenjs');
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_16x9';
-  pptx.author = (i.brand === undefined ? readBrand() : i.brand)?.name || 'Faultline';
+  pptx.author = (i.brand === undefined ? readBrand() : i.brand)?.name || 'Luna';
   pptx.company = (i.brand === undefined ? readBrand() : i.brand)?.business || '';
   const b = i.brand === undefined ? readBrand() : i.brand;
   const { story, chapter: c } = i;
@@ -40,7 +40,7 @@ export async function makeStoryDeck(i: StoryDeckInputs): Promise<Blob> {
       sl.addShape(pptx.ShapeType.line, { x: M, y: 0.92, w: W - 2 * M, h: 0, line: { color: LINE, width: 0.75 } });
     }
     /* the foot: who prepared it · the chapter · the slide */
-    sl.addText(foot || 'Made with Faultline', { x: M, y: H - 0.38, w: 5, h: 0.3, fontFace: 'Calibri', fontSize: 9, color: MUTED });
+    sl.addText(foot || 'Made with Luna', { x: M, y: H - 0.38, w: 5, h: 0.3, fontFace: 'Calibri', fontSize: 9, color: MUTED });
     sl.addText(`${client} · chapter ${n} · ${count}`, { x: W - M - 4, y: H - 0.38, w: 4, h: 0.3, fontFace: 'Calibri', fontSize: 9, color: MUTED, align: 'right' });
     return sl;
   };

@@ -36,6 +36,7 @@
  * line, a tremor, the fault. It, the sheen and the mist all hold still for
  * anybody who has asked for less motion.
  */
+import { PRODUCT } from '../lib/product';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
 import { signIn, signUp } from '../cloud/session';
@@ -67,7 +68,7 @@ export function Landing() {
       /* The browser's own words for no signal — "Failed to fetch", "Load
          failed" — mean nothing to somebody at a door; say what happened. */
       setErr(/failed to fetch|load failed|networkerror|network request failed/i.test(said)
-        ? 'Faultline could not be reached — check the signal and try again.'
+        ? `${PRODUCT.name} could not be reached — check the signal and try again.`
         : said || 'Something went wrong');
     } finally {
       setBusy(false);
@@ -78,14 +79,15 @@ export function Landing() {
     <div className="door">
       <header className="door-top">
         <LogoMark size={28} id="door" />
-        <span className="door-word" aria-hidden>Faultline</span>
+        <span className="door-word" aria-hidden>{PRODUCT.mark}</span>
         <a className="door-how" href="/how-it-works.html">How it works</a>
       </header>
 
       <main className="door-main">
         <section className="door-hero">
-          <p className="door-descriptor">The Operational Improvement System</p>
-          <h1 className="door-name">Faultline</h1>
+          <p className="door-descriptor">{PRODUCT.expansion}</p>
+          <h1 className="door-name">{PRODUCT.mark}</h1>
+          <p className="door-line">{PRODUCT.line}. <span>{PRODUCT.statement}.</span></p>
           <svg className="door-trace-svg" viewBox="0 0 420 28" preserveAspectRatio="xMinYMid meet" aria-hidden>
             <path className="door-trace" d={TRACE} pathLength={1000} />
           </svg>

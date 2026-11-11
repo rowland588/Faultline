@@ -304,7 +304,7 @@ export function stampBrand(d: Doc): void {
     const k = 1;
     const size = 11 * k, top = 7 * k;
     nameFont(d, 8 * k, INK);
-    const word = 'Faultline';
+    const word = 'LUNA';
     const tw = d.getTextWidth(word);
     const right = W - 14 * k;
     d.text(word, right, top + size * 0.72, { align: 'right' });

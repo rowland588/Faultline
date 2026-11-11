@@ -18,6 +18,7 @@
  *
  * Every URL is unchanged. The frame reads the route; it never owns one.
  */
+import { PRODUCT } from '../lib/product';
 import { isMethodAnswer } from '../lib/methodSheet';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Route } from '../state/useRoute';
@@ -452,11 +453,11 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage,
       <aside className="nv-rail" aria-label="Menu">
         {/* LOOK E (docs/LOOK.md): the mark, the name and the tagline at the head of the navy frame */}
         <div className="nv-rail-head">
-          <button type="button" className="nv-rail-brand" onClick={() => nav('/')} aria-label="Faultline — the factory">
+          <button type="button" className="nv-rail-brand" onClick={() => nav('/')} aria-label={`${PRODUCT.name} — home`}>
             <LogoMark size={34} id="rail" />
-            <span className="nv-rail-name">Faultline</span>
+            <span className="nv-rail-name">{PRODUCT.mark}</span>
           </button>
-          <p className="nv-rail-tag">The Operational Improvement System</p>
+          <p className="nv-rail-tag">{PRODUCT.line}</p>
         </div>
         <RailList groups={bar ? [] : menu} go={go} />
         <SyncChip onOpen={() => nav('/room')} />
