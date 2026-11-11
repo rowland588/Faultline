@@ -225,3 +225,44 @@ export function outcomeSaid(o: IngestOutcome): string {
   const kept = o.records.length;
   return `${kept.toLocaleString('en-GB')} of ${o.received.toLocaleString('en-GB')} row${o.received === 1 ? '' : 's'} kept${o.refused.length ? `, ${o.refused.length} refused (${o.refused.slice(0, 3).map(r => `row ${r.row}: ${r.why}`).join('; ')}${o.refused.length > 3 ? '; …' : ''})` : ', none refused'}.`;
 }
+
+/* ------------------------------------------------------------------ what a pull may fetch (no SSRF) */
+/** An address that must never be fetched from the cloud: private, loopback, link-local (the metadata range among them), carrier-grade
+ *  NAT, multicast and reserved; IPv6 loopback, unspecified, unique-local (fc00::/7), link-local (fe80::/10), multicast, and IPv4 written
+ *  inside IPv6. `ip` is a literal address (v4 or v6); anything that is not an address is refused. */
+export function privateAddress(ip: string): boolean {
+  const a = ip.trim().toLowerCase().replace(/^\[|\]$/g, '');
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(a);
+  if (v4) {
+    const o = [1, 2, 3, 4].map(i => Number(v4[i]));
+    if (o.some(x => x > 255)) return true;
+    const [o1, o2] = o;
+    return o1 === 0 || o1 === 10 || o1 === 127 || (o1 === 169 && o2 === 254) || (o1 === 172 && o2 >= 16 && o2 <= 31) || (o1 === 192 && o2 === 168)
+      || (o1 === 100 && o2 >= 64 && o2 <= 127) || o1 >= 224;
+  }
+  if (!a.includes(':')) return true;
+  if (a === '::' || a === '::1') return true;
+  const mapped = /^::(?:ffff:)?(\d{1,3}(?:\.\d{1,3}){3})$/.exec(a);
+  if (mapped) return privateAddress(mapped[1]);
+  if (a.startsWith('::ffff:') || a.startsWith('64:ff9b:')) return true;   // IPv4 inside IPv6 in hex: refused rather than decoded
+  const first = parseInt(a.split(':')[0] || '0', 16);
+  return (first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80 || (first & 0xff00) === 0xff00;
+}
+
+const BLOCKED_HOST = /(^|\.)(localhost|local|internal|localdomain|supabase\.co|supabase\.in|supabase\.net)$/i;
+
+/** Why an address the business typed may not be fetched, or undefined when it may — checked before the host is resolved; the function
+ *  then checks every address the host resolves to with privateAddress, and every redirect again from the start. */
+export function unfetchable(u: string): string | undefined {
+  let p: URL;
+  try { p = new URL(u); } catch { return 'the address is not a web address'; }
+  if (p.protocol !== 'https:') return 'only https addresses are fetched';
+  if (p.username || p.password) return 'a key goes in the key box, never in the address';
+  const h = p.hostname.toLowerCase().replace(/\.$/, '');
+  if (!h) return 'the address has no host';
+  if (BLOCKED_HOST.test(h)) return 'that host cannot be reached from Luna’s cloud';
+  const literal = /^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.startsWith('[') || h.includes(':');
+  if (literal && privateAddress(h)) return 'a private, loopback or link-local address cannot be reached from the cloud';
+  if (!literal && (/^[\d.]+$/.test(h) || /^0x/i.test(h))) return 'an address written as a number is not fetched';
+  return undefined;
+}

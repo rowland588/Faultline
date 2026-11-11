@@ -7,10 +7,11 @@
 import type { Access } from '../lib/access';
 import type { CustomDef } from '../tools/doc/types';
 
-/** How a thing is known. Only a person sets 'verified'. */
-export type HowKnown = 'observed' | 'reported' | 'measured' | 'imported' | 'calculated' | 'estimated' | 'hypothesised' | 'verified' | 'unknown';
+/** How a thing is known. Only a person sets 'verified'. `system` (11 November, docs/DATA-CONNECTIONS.md): read from the business's own
+ *  production system through a data connection — what the MES or ERP recorded, never measured in the app, never reported by a person. */
+export type HowKnown = 'observed' | 'reported' | 'measured' | 'imported' | 'system' | 'calculated' | 'estimated' | 'hypothesised' | 'verified' | 'unknown';
 /** What a capability may record: every way of knowing but 'verified'. */
-export const HOW_SAID: readonly Exclude<HowKnown, 'verified'>[] = ['observed', 'reported', 'measured', 'imported', 'calculated', 'estimated', 'hypothesised', 'unknown'];
+export const HOW_SAID: readonly Exclude<HowKnown, 'verified'>[] = ['observed', 'reported', 'measured', 'imported', 'system', 'calculated', 'estimated', 'hypothesised', 'unknown'];
 
 /** `chart` and `convreport`: a chart or a report made in the conversation (lib/data/outputs), its id `C…@version` / `D…@version` — drawn as a card
  *  in the conversation, never a chip that opens a page. */

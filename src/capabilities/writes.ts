@@ -31,6 +31,7 @@ export const HOW_WORDS: Record<Exclude<HowKnown, 'verified'>, string> = {
   reported: 'Reported by the operators — not yet measured.',
   measured: 'Measured on the line.',
   imported: 'Imported from a file — not measured here.',
+  system: 'From the business’s production system — what it recorded, not measured here.',
   estimated: 'An estimate — not measured.',
   calculated: 'Worked out by a calculator from figures given.',
   hypothesised: 'A suspicion — not yet checked.',

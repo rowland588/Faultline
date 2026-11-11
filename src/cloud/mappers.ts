@@ -3,7 +3,7 @@
  * engine iterates MAPS; nothing here touches the network. */
 import type { SyncKind } from '../db';
 import type { Workspace, Observation, Case, Project, Known, KnownFact } from '../types';
-import type { PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow, KeptPaperRow } from '../db';
+import type { PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow, KeptPaperRow, DataConnectionRow, ProductionRecordRow } from '../db';
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
 import type { Material } from '../lib/materials';
@@ -823,6 +823,76 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies KeptPaperRow),
   },
 
+  /* A CONNECTION TO ONE OF THE BUSINESS'S SYSTEMS (supabase/PRODUCTION_DATA.sql; docs/DATA-CONNECTIONS.md). Never a token or a key —
+     those are in the cloud's private table and Vault, set by functions. Its health (last_*) is written by the ingest function and read
+     here; sent back as this device last saw it, merged field by field like every row. A line id that is not a uuid goes as none. */
+  data_connections: {
+    clock: l => (l as DataConnectionRow).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const c = l as DataConnectionRow;
+      return {
+        id: c.id, owner_id: c.ownerId ?? fallbackOwner,
+        workspace_id: c.workspaceId && UUID.test(c.workspaceId) ? c.workspaceId : null,
+        name: c.name ?? '', kind: c.kind || 'push', status: c.status === 'paused' ? 'paused' : 'active', system: c.system || null,
+        mapping: c.mapping ?? {}, line_map: c.lineMap ?? {}, schedule_minutes: Math.max(15, Math.round(c.scheduleMinutes || 60)),
+        pull_url: c.pullUrl || null, pull_auth_header: c.pullAuthHeader || null, pull_auth_prefix: c.pullAuthPrefix || null,
+        token_hint: c.tokenHint || null, token_set_at: c.tokenSetAt ?? null, secret_set_at: c.secretSetAt ?? null,
+        last_run_at: c.lastRunAt ?? null, last_success_at: c.lastSuccessAt ?? null, last_error: c.lastError ?? null,
+        last_rows: c.lastRows ?? null, last_refused: c.lastRefused ?? null, rows_total: c.rowsTotal || 0,
+        created_at: c.createdAt, updated_at: c.updatedAt, deleted_at: c.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined,
+      ...(r.workspace_id ? { workspaceId: r.workspace_id as string } : {}),
+      name: (r.name as string) ?? '', kind: (r.kind as string) || 'push', status: r.status === 'paused' ? 'paused' : 'active',
+      ...(r.system ? { system: r.system as string } : {}),
+      mapping: (r.mapping && typeof r.mapping === 'object' ? r.mapping : {}) as DataConnectionRow['mapping'],
+      lineMap: (r.line_map && typeof r.line_map === 'object' ? r.line_map : {}) as Record<string, string>,
+      scheduleMinutes: Number(r.schedule_minutes) || 60,
+      ...(r.pull_url ? { pullUrl: r.pull_url as string } : {}),
+      ...(r.pull_auth_header ? { pullAuthHeader: r.pull_auth_header as string } : {}),
+      ...(r.pull_auth_prefix ? { pullAuthPrefix: r.pull_auth_prefix as string } : {}),
+      ...(r.token_hint ? { tokenHint: r.token_hint as string } : {}),
+      tokenSetAt: n(r.token_set_at), secretSetAt: n(r.secret_set_at),
+      lastRunAt: n(r.last_run_at), lastSuccessAt: n(r.last_success_at),
+      ...(r.last_error ? { lastError: r.last_error as string } : {}),
+      lastRows: n(r.last_rows), lastRefused: n(r.last_refused), rowsTotal: Number(r.rows_total) || 0,
+      createdAt: Number(r.created_at), updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies DataConnectionRow),
+  },
+
+  /* A ROW A BUSINESS'S SYSTEM SENT (supabase/PRODUCTION_DATA.sql; lib/production/ingestCore). Its id is connection : the system's id, so
+     the same row from the cloud's ingest and from this device's own import is one row. A blank stays not recorded (null), never 0. */
+  production_records: {
+    clock: l => (l as ProductionRecordRow).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const p = l as ProductionRecordRow;
+      return {
+        id: p.id, owner_id: p.ownerId ?? fallbackOwner,
+        workspace_id: p.workspaceId && UUID.test(p.workspaceId) ? p.workspaceId : null,
+        connection_id: p.connectionId, source_id: p.sourceId, day: p.day, shift: p.shift ?? null, product: p.product ?? null,
+        planned_minutes: p.plannedMinutes ?? null, run_minutes: p.runMinutes ?? null, output: p.output ?? null, target: p.target ?? null,
+        good: p.good ?? null, rejects: p.rejects ?? null, downtime_minutes: p.downtimeMinutes ?? null, downtime_reason: p.downtimeReason ?? null,
+        imported_at: p.importedAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined,
+      workspaceId: (r.workspace_id as string) ?? '', connectionId: r.connection_id as string, sourceId: r.source_id as string,
+      day: r.day as string,
+      ...(r.shift ? { shift: r.shift as string } : {}), ...(r.product ? { product: r.product as string } : {}),
+      plannedMinutes: n(r.planned_minutes), runMinutes: n(r.run_minutes), output: n(r.output), target: n(r.target),
+      good: n(r.good), rejects: n(r.rejects), downtimeMinutes: n(r.downtime_minutes),
+      ...(r.downtime_reason ? { downtimeReason: r.downtime_reason as string } : {}),
+      /* how_known is the column's default ('system') and never sent from a device: every row here came from a business's system */
+      howKnown: 'system',
+      importedAt: Number(r.imported_at) || 0, updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies ProductionRecordRow),
+  },
+
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -868,5 +938,8 @@ export const SYNC_KINDS: SyncKind[] = [
   // after everything a paper can be made of (its line, its project, its record); last, too, so a cloud that has not had
   // KEPT_PAPERS.sql yet refuses this kind alone, after every other kind has gone (supabase/KEPT_PAPERS.sql)
   'kept_papers',
+  // the business's systems and what they sent: a connection before its rows; last of all, so a cloud that has not had
+  // PRODUCTION_DATA.sql yet refuses these alone (supabase/PRODUCTION_DATA.sql)
+  'data_connections', 'production_records',
 ];
 

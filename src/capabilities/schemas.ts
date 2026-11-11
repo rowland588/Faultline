@@ -12,7 +12,7 @@ export interface CapabilitySchema {
   input_schema: Record<string, unknown>;
 }
 
-const HOW_KNOWN_SAID = ['observed', 'reported', 'measured', 'imported', 'calculated', 'estimated', 'hypothesised', 'unknown'];
+const HOW_KNOWN_SAID = ['observed', 'reported', 'measured', 'imported', 'system', 'calculated', 'estimated', 'hypothesised', 'unknown'];
 
 const str = (description: string, maxLength = 400) => ({ type: 'string', description, maxLength });
 const obj = (properties: Record<string, unknown>, required: string[] = []) => ({

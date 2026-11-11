@@ -82,7 +82,16 @@ success, so a well-behaved API sends only what is new; the upsert makes a full r
 - **Scheduled** by one pg_cron job every 15 minutes calling the function with a key only the database holds (`ingest_keys.cron_key`,
   made by the function on its first call — the pattern of `PUSH_REMINDERS.sql` and `remind`). The function runs each active pull
   connection whose `last_run_at + schedule_minutes` has passed.
-- Only `https` addresses are fetched; private and loopback addresses are refused; a response over 5 MB is refused; 20 s timeout.
+- **No server-side request forgery** (the address is the business's words): only `https`; no user or password in the address; refused
+  hosts — `localhost`, `*.local`, `*.internal`, `*.supabase.co`, `*.supabase.in` — and any literal or **resolved** address that is
+  private, loopback, link-local (the cloud metadata range 169.254/16 among them), carrier-grade NAT, multicast, `::1`, `fc00::/7`,
+  `fe80::/10` or IPv4 inside IPv6 (`ingestCore` unfetchable · privateAddress, unit-tested). Every address a host resolves to (A and
+  AAAA) is checked; redirects are never followed by `fetch` (`redirect: 'manual'`) — at most three, each re-checked from the start, and
+  the key is sent only to the host it was given for; one 20 s deadline; the body read to at most 5 MB and cut off beyond. What remains:
+  a host whose DNS answer changes between the check and the fetch (rebinding) — narrowed by the short window; closed fully only by
+  fetching through an egress proxy that pins the address, if a business's risk asks for it.
+- **The schedule is harmless when idle:** before the function is deployed the cron's post answers 404 into `net._http_response` and
+  nothing else happens; with no active pull connection the function reads one table and answers `{ due: 0 }`.
 
 ### 2.3 A direct read-only database connection (SQL Server, Postgres views) — designed
 

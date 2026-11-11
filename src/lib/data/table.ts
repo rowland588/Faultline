@@ -30,7 +30,7 @@ export interface Dataset {
   /** 'stops:<line>' · 'tests:<line>' · 'readings:<study>' · 'problems:<line|all>' */
   id: string;
   name: string;
-  kind: 'stops' | 'tests' | 'readings' | 'problems';
+  kind: 'stops' | 'tests' | 'readings' | 'problems' | 'production';
   fields: Field[];
   rows: Cell[][];
   /** One reference a row — what the row is ("stop:…"). */

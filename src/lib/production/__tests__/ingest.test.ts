@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { dayOf, getPath, ingestBody, INGEST_LIMITS, mapRows, outcomeSaid, parseCsv, recordId, rowsOfBody } from '../ingestCore';
+import { dayOf, getPath, ingestBody, INGEST_LIMITS, mapRows, outcomeSaid, parseCsv, privateAddress, recordId, rowsOfBody, unfetchable } from '../ingestCore';
 
 const NOW = Date.parse('2026-11-11T07:00:00Z');
 const conn = { id: 'c1', workspaceId: 'L7', lineMap: { 'PK-2': 'L2' } };
@@ -105,6 +105,46 @@ describe('limits', () => {
     expect(ingestBody(many, 'application/json', conn, NOW)).toMatchObject({ status: 413, why: expect.stringMatching(/at most 5,000/) });
     expect(ingestBody('x'.repeat(INGEST_LIMITS.bytes + 1), 'text/csv', conn, NOW)).toMatchObject({ status: 413 });
     expect(ingestBody('{"nope":1}', 'application/json', conn, NOW)).toMatchObject({ status: 400, why: expect.stringMatching(/No list of rows/) });
+  });
+});
+
+describe('what a pull may fetch (no SSRF)', () => {
+  it('refuses private, loopback, link-local, metadata, unique-local and mapped addresses', () => {
+    for (const ip of ['10.1.2.3', '172.16.0.1', '172.31.255.255', '192.168.1.1', '127.0.0.1', '169.254.169.254', '0.0.0.0', '100.64.0.1', '224.0.0.1',
+      '::1', '::', 'fc00::1', 'fd12:3456::1', 'fe80::1', 'ff02::1', '::ffff:127.0.0.1', '::ffff:7f00:1', 'not-an-ip']) expect(privateAddress(ip), ip).toBe(true);
+    for (const ip of ['8.8.8.8', '172.32.0.1', '2606:4700::1111', '::ffff:8.8.8.8']) expect(privateAddress(ip), ip).toBe(false);
+  });
+  it('refuses anything but https to a public host, whatever way the host is written', () => {
+    const refused: [string, RegExp][] = [
+      ['http://api.example.com/x', /only https/],
+      ['ftp://api.example.com/x', /only https/],
+      ['https://localhost/x', /cannot be reached/],
+      ['https://db.local/x', /cannot be reached/],
+      ['https://eqdig.supabase.co/rest/v1/x', /cannot be reached/],
+      ['https://x.supabase.in/', /cannot be reached/],
+      ['https://metadata.google.internal/computeMetadata', /cannot be reached/],
+      ['https://169.254.169.254/latest/meta-data', /private/],
+      ['https://127.0.0.1/', /private/],
+      ['https://2130706433/', /private/],          // 127.0.0.1 as one number — the URL reads it as the address
+      ['https://0x7f.1/', /private/],
+      ['https://[::1]/', /private/],
+      ['https://[fe80::1]/', /private/],
+      ['https://user:pw@api.example.com/', /key box/],
+      ['not a url', /not a web address/],
+    ];
+    for (const [u, why] of refused) expect(unfetchable(u), u).toMatch(why);
+    expect(unfetchable('https://mes.example.com/api/shifts?since={since}')).toBeUndefined();
+    expect(unfetchable('https://8.8.8.8/x')).toBeUndefined();
+  });
+  it('the function checks every resolved address and every redirect, with manual redirects, a timeout and a size cap', () => {
+    const fn = readFileSync(join(process.cwd(), 'supabase/functions/ingest/index.ts'), 'utf8');
+    expect(fn).toMatch(/redirect: "manual"/);
+    expect(fn).toMatch(/Deno\.resolveDns\(host, t\)/);
+    expect(fn).toMatch(/found\.some\(privateAddress\)/);
+    expect(fn).toMatch(/const bad = await safeToFetch\(at\)/);
+    expect(fn).toMatch(/AbortSignal\.timeout\(FETCH_TIMEOUT_MS\)/);
+    expect(fn).toMatch(/size > MAX_BYTES/);
+    expect(fn).not.toMatch(/redirect: "follow"/);
   });
 });
 

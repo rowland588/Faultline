@@ -215,6 +215,9 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
     const row = await db.get('kept_papers', id);
     if (row?.key) await db.delete('media', row.key);
     await db.delete('kept_papers', id);
+  } else if (kind === 'data_connections' || kind === 'production_records') {
+    /* flat rows with no media (supabase/PRODUCTION_DATA.sql) */
+    await db.delete(kind, id);
   } else if (kind === 'pace_wins' || kind === 'tree_nodes' || kind === 'projects') {
     // Flat rows with no children and no media. They need naming explicitly:
     // the fallthrough below assumes an observation, so a Next step deleted on

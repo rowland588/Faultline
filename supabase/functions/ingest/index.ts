@@ -14,7 +14,7 @@
  * Deployed with verify_jwt OFF: the token is the authentication, as a share link's token is the share's. */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { ingestBody, mapRows, rowsOfJson, type IngestConnection, type LineName, type ProductionRecord } from "./core.ts";
+import { ingestBody, mapRows, privateAddress, rowsOfJson, unfetchable, type IngestConnection, type LineName, type ProductionRecord } from "./core.ts";
 
 const url = Deno.env.get("SUPABASE_URL")!;
 const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -102,37 +102,69 @@ async function push(req: Request): Promise<Response> {
 }
 
 /* ------------------------------------------------------------------ pull */
-/** Only an https address on the public internet is fetched. */
-function fetchable(u: string): string | undefined {
-  let p: URL;
-  try { p = new URL(u); } catch { return "the address is not a web address"; }
-  if (p.protocol !== "https:") return "only https addresses are fetched";
-  const h = p.hostname.toLowerCase();
-  if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal") || /^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h) || h === "[::1]") return "a private address cannot be reached from the cloud";
+/** An address may be fetched only if it passes the core's check (https, no private host or literal) AND every address its host resolves
+ *  to is public — checked again for every redirect, which is never followed blindly. */
+async function safeToFetch(u: string): Promise<string | undefined> {
+  const bad = unfetchable(u);
+  if (bad) return bad;
+  const host = new URL(u).hostname.replace(/^\[|\]$/g, "");
+  if (/^[\d.]+$/.test(host) || host.includes(":")) return undefined;   // a literal, already checked
+  const found: string[] = [];
+  for (const t of ["A", "AAAA"] as const) { try { found.push(...await Deno.resolveDns(host, t)); } catch { /* none of this kind */ } }
+  if (!found.length) return "the host could not be found";
+  if (found.some(privateAddress)) return "the host resolves to a private address, which cannot be reached from the cloud";
   return undefined;
 }
 
+/** GET with no redirect followed unchecked (at most 3, each re-checked), a timeout, and the body read to at most MAX_BYTES. */
+async function guardedGet(start: string, headers: Record<string, string>): Promise<{ ok: true; status: number; text: string } | { ok: false; why: string }> {
+  let at = start;
+  const deadline = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+  for (let hop = 0; hop <= 3; hop++) {
+    const bad = await safeToFetch(at);
+    if (bad) return { ok: false, why: hop ? `it redirected to an address that is refused: ${bad}` : bad };
+    let res: Response;
+    /* the key goes only to the host it was given for */
+    try { res = await fetch(at, { headers: new URL(at).host === new URL(start).host ? headers : { Accept: "application/json" }, signal: deadline, redirect: "manual" }); }
+    catch (e) { return { ok: false, why: e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError") ? "the API did not answer within 20 seconds" : "the API could not be reached" }; }
+    if (res.status >= 300 && res.status < 400 && res.headers.get("location")) { await res.body?.cancel(); at = new URL(res.headers.get("location")!, at).toString(); continue; }
+    if (Number(res.headers.get("content-length") ?? 0) > MAX_BYTES) { await res.body?.cancel(); return { ok: false, why: "the answer is more than 5 MB" }; }
+    const reader = res.body?.getReader();
+    const parts: Uint8Array[] = [];
+    let size = 0;
+    while (reader) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.length;
+      if (size > MAX_BYTES) { await reader.cancel(); return { ok: false, why: "the answer is more than 5 MB" }; }
+      parts.push(value);
+    }
+    const all = new Uint8Array(size);
+    let o = 0;
+    for (const part of parts) { all.set(part, o); o += part.length; }
+    return { ok: true, status: res.status, text: new TextDecoder().decode(all) };
+  }
+  return { ok: false, why: "it redirected more than three times" };
+}
+
 async function pullOne(conn: Conn, now: number): Promise<{ id: string; stored?: number; refused?: number; error?: string }> {
-  const bad = conn.pull_url ? fetchable(conn.pull_url) : "no address is set";
-  if (bad) { await health(conn, now, { ok: false, error: `Not fetched: ${bad}.` }); return { id: conn.id, error: bad }; }
+  if (!conn.pull_url) { await health(conn, now, { ok: false, error: "Not fetched: no address is set." }); return { id: conn.id, error: "no address" }; }
   const since = conn.last_success_at ? new Date(conn.last_success_at).toISOString().slice(0, 10) : "2000-01-01";
-  const address = conn.pull_url!.replace(/\{since\}/g, encodeURIComponent(since));
+  const address = conn.pull_url.replace(/\{since\}/g, encodeURIComponent(since));
   const headers: Record<string, string> = { Accept: "application/json" };
   if (conn.pull_auth_header) {
     const { data: key } = await db.rpc("data_connection_pull_secret", { p_connection: conn.id });
     if (!key) { await health(conn, now, { ok: false, error: "Not fetched: no key has been saved for it." }); return { id: conn.id, error: "no key" }; }
     headers[conn.pull_auth_header] = conn.pull_auth_prefix ? `${conn.pull_auth_prefix} ${key}` : String(key);
   }
-  let res: Response;
-  try { res = await fetch(address, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), redirect: "error" }); }
-  catch (e) { const w = e instanceof Error && e.name === "TimeoutError" ? "the API did not answer within 20 seconds" : "the API could not be reached"; await health(conn, now, { ok: false, error: `Not fetched: ${w}.` }); return { id: conn.id, error: w }; }
-  if (!res.ok) {
-    const w = res.status === 401 || res.status === 403 ? `the API answered ${res.status}: the key was refused` : res.status === 404 ? "the API answered 404: no such address" : `the API answered ${res.status}`;
+  const got = await guardedGet(address, headers);
+  if (!got.ok) { await health(conn, now, { ok: false, error: `Not fetched: ${got.why}.` }); return { id: conn.id, error: got.why }; }
+  if (got.status < 200 || got.status >= 300) {
+    const w = got.status === 401 || got.status === 403 ? `the API answered ${got.status}: the key was refused` : got.status === 404 ? "the API answered 404: no such address" : `the API answered ${got.status}`;
     await health(conn, now, { ok: false, error: `Not fetched: ${w}.` });
     return { id: conn.id, error: w };
   }
-  const text = await res.text();
-  if (text.length > MAX_BYTES) { await health(conn, now, { ok: false, error: "Not read: the answer is more than 5 MB." }); return { id: conn.id, error: "too large" }; }
+  const text = got.text;
   let parsed: unknown;
   try { parsed = JSON.parse(text); } catch { await health(conn, now, { ok: false, error: "Not read: the answer was not JSON." }); return { id: conn.id, error: "not json" }; }
   const rows = rowsOfJson(parsed, conn.mapping ?? {});
