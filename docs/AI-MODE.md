@@ -137,6 +137,8 @@ export interface CapCall { id: string; name: string; input: unknown }
 | write | `remember_preference` | adds a line to the person's own How I work (§9) — a card saying exactly what will be added |
 | write | `make_record` | a draft made a record through the tool's own New — or, made already, updated with only what the conversation changed; a factory draft made as its lines (`addLineToFactory`, client · site · area) and machines (`machineOntoLine`, `setMachineIdentity`, how each is known), matched not doubled, held while a document's proposal waits or a difference is unpicked |
 | write | `replace_machine` | a machine on a line replaced: the new record in its place, the old kept with Replaced by and how that is known (F5) |
+| read | `list_templates` | the person's OWN templates — documents, check-log lists and custom sheets saved as theirs, each with what it is of, what it keeps and their note; theirs at any customer, never a customer's record (11 November, docs/CONSULTANT-WORKSPACE.md C5; `capabilities/templates`) |
+| write | `start_from_template` | a new document, check log or custom sheet started from one of them on the line (and project) given — an ordinary record of that line's customer, the template unchanged; a log needs a line; the card names the line and the customer (C5) |
 
 A new capability is added in `src/capabilities` with its schema in `schemas.ts`, its unit tests and its card's
 wording. It is built on the functions Manual Mode already uses — never a second data model.

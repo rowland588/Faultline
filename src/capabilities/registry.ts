@@ -21,6 +21,7 @@ import { DIG } from './dig';
 import { workOut } from './workout';
 import { NOTEBOOK } from './notebook';
 import { SCOPE } from './scope';
+import { TEMPLATES } from './templates';
 import type { CapCall, CapCtx, CapResult, Capability } from './types';
 
 export const CAPABILITIES: readonly Capability[] = [
@@ -51,6 +52,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...NOTEBOOK,
   /* working within an agreed investigation — capture without a card inside it (docs/LUNA-WORKSPACE.md W3) */
   ...SCOPE,
+  /* my templates — the consultant's own starting points, at any customer (docs/CONSULTANT-WORKSPACE.md C5) */
+  ...TEMPLATES,
 ];
 
 export const capabilityByName = (name: string): Capability | undefined => CAPABILITIES.find(c => c.name === name);

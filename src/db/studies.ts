@@ -7,6 +7,10 @@ import { getDB, signalWrite } from './core';
 import { recordTombstones, restoreRows, type Restore } from './sync';
 
 const live = (s: ToolStudy) => !s.deletedAt;
+/* MY TEMPLATES (lib/templates, docs/CONSULTANT-WORKSPACE.md C5) are the consultant's own, never a customer's record: on no line and in no
+   project, so a line's and a project's readers never find one, and the one reader of every study leaves them out — every list, count,
+   report, search, the Story and Luna read through it. listTemplates is the one door to them. */
+const notTemplate = (s: ToolStudy) => !s.facts?.template;
 const newestFirst = (a: ToolStudy, b: ToolStudy) => b.startedAt - a.startedAt;
 
 /** A job's studies — the evidence attached to it. */
@@ -22,7 +26,12 @@ export async function listStudiesForLine(workspaceId: string): Promise<ToolStudy
 /** Every study on this device — a tool's page lists them across lines and
  *  jobs, the maker's unfiled ones first. */
 export async function listAllStudies(): Promise<ToolStudy[]> {
-  return (await (await getDB()).getAll('studies')).filter(live).sort(newestFirst);
+  return (await (await getDB()).getAll('studies')).filter(s => live(s) && notTemplate(s)).sort(newestFirst);
+}
+
+/** MY TEMPLATES — the consultant's own starting points (lib/templates), newest first. */
+export async function listTemplates(): Promise<ToolStudy[]> {
+  return (await (await getDB()).getAll('studies')).filter(s => live(s) && !notTemplate(s)).sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 export async function getStudy(id: ID): Promise<ToolStudy | undefined> {

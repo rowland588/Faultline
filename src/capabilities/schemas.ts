@@ -1002,4 +1002,24 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       limit: { type: 'integer', minimum: 1, maximum: 20 },
     }, ['sheet']),
   },
+  // ── My templates (11 November, docs/CONSULTANT-WORKSPACE.md C5): the consultant's own starting points, at any customer ──
+  {
+    name: 'list_templates',
+    kind: 'read',
+    description: 'The person\'s OWN templates — documents, check-log lists and custom sheets they saved as theirs (More ▾ › Save as my template), each with its name, what it is of, what it keeps and their note. They belong to the person, at any customer, and are never a customer\'s record. Use it when they say "my site assessment", "my audit checklist", "my usual sheet", before starting one.',
+    input_schema: obj({
+      kind: { type: 'string', enum: ['doc', 'log', 'sheet'], description: 'Only one kind: a document, a check log, a custom sheet' },
+    }),
+  },
+  {
+    name: 'start_from_template',
+    kind: 'write',
+    description: 'Start a new record from one of the person\'s templates (its id from list_templates) on the line they are working on (and its project, when the work is in one): an ordinary document, check log or custom sheet of that line\'s customer, the template\'s words or checks carried and the template itself unchanged. A check log needs a line. Never invents a template, a method or a tool. The person sees a card and decides.',
+    input_schema: obj({
+      templateId: str('The template (its id from list_templates)', 80),
+      lineId: str('The line it is started on — resolve it first', 80),
+      projectId: str('The project, when the work is in one', 80),
+      name: str('The new record\'s name, when the person gave one', 120),
+    }, ['templateId']),
+  },
 ];

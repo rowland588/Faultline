@@ -68,6 +68,9 @@ export function AccountMenu() {
         {/* YOUR BRAND (8 November, docs/STORY.md S1): who prepares the papers — on the foot of every one and on every cover */}
         <SheetRow label="Your brand" hint={readBrand() ? `${readBrand()?.name}${readBrand()?.business ? ` · ${readBrand()?.business}` : ''}` : 'your name and business on every paper'}
           onClick={() => { setOpen(false); setBrand(true); }} />
+        {/* MY TEMPLATES (11 November, docs/CONSULTANT-WORKSPACE.md C5): the consultant's own, at any customer */}
+        <SheetRow label="My templates" hint="your own documents, check lists and sheets — ready at any customer"
+          onClick={() => { setOpen(false); nav('/templates'); }} />
         {/* HOW I WORK (8 November, docs/AI-MODE.md Memory): what AI Mode's colleague is always told about you */}
         <SheetRow label="How I work" hint={readPreferences() ? 'what AI Mode always knows about how you work — change it' : 'your words, methods and reports, for AI Mode'}
           onClick={() => { setOpen(false); setPrefs(true); }} />

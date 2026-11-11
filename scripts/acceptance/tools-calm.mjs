@@ -5,7 +5,7 @@
  *      the registry says a person can open (catalogue/counts GALLERY_TOOLS), in its order, each with its picture or drawn tile, its
  *      name and what it is for in the registry's words; nothing else above it
  *   2  every row opens its tool's own page (#/tools/:key); Open › its list
- *   3  everything else in the one fold, shut on arrival, each with its title and one line saying what is inside — Find one by the
+ *   3  everything else in the one fold, shut on arrival, each with its title and one line saying what is inside (My templates last, 11 November) — Find one by the
  *      problem · By kind · The worlds · The AI toolbox · What we have and what we need to build — and each opening to its contents
  *   4  a tool's own page: its name, what it is for and Start one first, the picture and its questions beside it; What you give it ·
  *      How it works · Inside it · Where it stands · Where it comes in each a fold, shut, with its one line, and each opening
@@ -26,11 +26,12 @@ let fail = 0;
 const ok = (c, m, d) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}${!c && d ? ` — ${String(d).slice(0, 400)}` : ''}`); if (!c) fail++; };
 const flat = s => String(s ?? '').replace(/\s+/g, ' ').trim();
 
-const LIB_FOLDS = ['tools-find', 'tools-kinds', 'tools-worlds', 'tools-ai', 'tools-holdings'];
+/* My templates (11 November, docs/CONSULTANT-WORKSPACE.md C5) — the consultant's own, the last fold */
+const LIB_FOLDS = ['tools-find', 'tools-kinds', 'tools-worlds', 'tools-ai', 'tools-holdings', 'tools-templates'];
 const PAGE_FOLDS = ['tool-io', 'tool-how', 'tool-inside', 'tool-stands', 'tool-routes'];
 /* what each fold holds once open — the drawn thing, never the box */
 const INSIDE = {
-  'tools-find': '.et-search input', 'tools-kinds': '[aria-label="Kind of tool"] .chip', 'tools-worlds': '.wd-card', 'tools-ai': '[data-ai-tool]', 'tools-holdings': '.hd-tool',
+  'tools-find': '.et-search input', 'tools-kinds': '[aria-label="Kind of tool"] .chip', 'tools-worlds': '.wd-card', 'tools-ai': '[data-ai-tool]', 'tools-holdings': '.hd-tool', 'tools-templates': '[data-templates-open]',
   'tool-io': '.tp-io h2', 'tool-how': '.sg-step', 'tool-inside': '.tp-modes li', 'tool-stands': '.tp-sec[aria-label="Where it stands"] p', 'tool-routes': '.tp-routes button',
 };
 

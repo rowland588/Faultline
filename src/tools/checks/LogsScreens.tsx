@@ -34,6 +34,9 @@ import { isLog, scopeCounts, statusOf, type LogStatus } from './owed';
 import { newLogStudy, starterLog } from './start';
 import { freqWords, logOf } from './checks';
 import { useLogStudies, useNow } from './useLogData';
+import { FromMyTemplates, useTemplates } from '../../ui/MyTemplates';
+import { startFromTemplate, templatesFor } from '../../lib/templates';
+import { useClientScope } from '../../lib/activeClient';
 
 const OWNER = canAt('owner');
 
@@ -199,17 +202,34 @@ export function NewLogSheet({ def, onClose, line, project }: { def: LogDef; onCl
   const [name, setName] = useState('');
   const [pick, setPick] = useState<Set<number>>(() => new Set(def.starterChecks.map((_, i) => i)));
   const [busy, setBusy] = useState(false);
+  const [why, setWhy] = useState('');
+  /* MY TEMPLATES (lib/templates, C5): your own list of checks of this kind, offered first; ?template= picks one (My templates' Start one
+     from it), and its line is then the active client's first by default — the log is that customer's */
+  const templates = templatesFor(useTemplates() ?? [], { log: def.key });
+  const [from, setFrom] = useState(() => asked('template') ?? '');
+  const picked = templates.find(t => t.id === from);
+  const cs = useClientScope();
+  const clientLine = cs.filtering ? factoryLines.find(l => cs.line(l.id))?.id : undefined;
+  useEffect(() => { if (from && !lineSel && !pLines && clientLine) setLineSel(clientLine); }, [from, lineSel, pLines, clientLine]);
   const machines = useMachinesOf(lineId || undefined);
   const lineName = lines.find(l => l.id === lineId)?.name ?? (lineSel === NEW_LINE ? newLine.name.trim() || undefined : undefined);
   const area = def.whereLabel.toLowerCase();
-  const suggested = `${def.title}${machine.trim() ? ` — ${machine.trim()}` : lineName ? ` — ${lineName}` : ''}`;
-  const ready = lineChosen(lineChoice) && pick.size > 0 && !busy;
+  const suggested = `${picked ? picked.name : def.title}${machine.trim() ? ` — ${machine.trim()}` : lineName ? ` — ${lineName}` : ''}`;
+  const ready = lineChosen(lineChoice) && (pick.size > 0 || !!picked) && !busy;
   const make = async () => {
     if (!ready) return;
-    setBusy(true);
+    setBusy(true); setWhy('');
     try {
       const t = clock();
       const madeOn = await settleLine(lineChoice);
+      if (picked) {
+        const r = await startFromTemplate(picked.id, { name: name.trim() || suggested, workspaceId: madeOn, ...(project ? { projectId: project.id } : {}), ...(machine.trim() ? { machine: machine.trim() } : {}) });
+        if (!r.ok) { setWhy(r.why); return; }
+        if (machine.trim()) await machineOntoLine(madeOn, machine);
+        onClose();
+        nav(project ? inProject(logHref(def.key, r.s.id), project.id) : logHref(def.key, r.s.id));
+        return;
+      }
       const s = newLogStudy(def, { since: t, now: t, name: name.trim() || suggested, workspaceId: madeOn, ...(project ? { projectId: project.id } : {}), ...(machine.trim() ? { machine: machine.trim(), where: machine.trim() } : {}), pick: [...pick].sort((a, b) => a - b) });
       await putStudy(s);
       if (machine.trim()) await machineOntoLine(madeOn, machine);
@@ -228,14 +248,16 @@ export function NewLogSheet({ def, onClose, line, project }: { def: LogDef; onCl
         </label>
         <label className="field"><span className="field-label">Name <i className="sub">optional</i></span>
           <input className="text-input" value={name} maxLength={120} aria-label="Name" placeholder={suggested} onChange={e => setName(e.target.value)} /></label>
-        <fieldset className="lg-fs"><legend className="field-label">The starter list <i className="sub">a starting point to edit — not the standard</i></legend>
+        <FromMyTemplates templates={templates} value={from} onChange={setFrom} builtIn="The starter list" />
+        {!picked && <fieldset className="lg-fs"><legend className="field-label">The starter list <i className="sub">a starting point to edit — not the standard</i></legend>
           <ul className="lg-pick">
             {def.starterChecks.map((c, i) => (
               <li key={c.name}><label><input type="checkbox" checked={pick.has(i)} aria-label={c.name} onChange={() => setPick(p => { const n = new Set(p); if (n.has(i)) n.delete(i); else n.add(i); return n; })} />
                 <span><b>{c.name}</b> <span className="sub">{freqWords(c.when)}{c.kind === 'scored' ? ` · ${(c.items ?? []).length} questions` : ''}</span></span></label></li>
             ))}
           </ul>
-        </fieldset>
+        </fieldset>}
+        {why && <p className="ie-tone is-a" role="alert">{why}</p>}
         <p className="sub">{def.standard.confirm.length} thing{def.standard.confirm.length === 1 ? '' : 's'} to confirm against your own plan are listed on the log.</p>
         <button type="submit" className="btn btn-primary" disabled={!ready}>Start it</button>
       </form>
