@@ -42,6 +42,8 @@ const go = async (h, ms = 1800) => { await page.goto(`${BASE}/${h}`); await page
 await go('#/room');
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const id = sd.videoStudyId;
+/* a fold opened as a person would (ui/Fold, 10 November, docs/DESIGN.md) — a tap on its line when it is shut */
+const openFold = async id => { const t = page.locator(`[data-fold="${id}"]:not(.is-open) .fold-toggle`); if (await t.count()) { await t.first().click(); await page.waitForTimeout(300); } };
 const findingsText = async () => (await page.locator('.vid-findings li').evaluateAll(es => es.map(e => e.lastElementChild.textContent))).map(flat);
 
 /* 1 — nothing rated */
@@ -51,7 +53,8 @@ let fs = await findingsText();
 ok(fs.some(t => t.includes('Pace is not rated: footage cannot show how hard someone is working, so these are observed times, not a standard.')), '1 nothing rated: the study says the times are observed, not a standard', fs.join(' | '));
 ok(!fs.some(t => t.includes('pace rated')), '1 and no standard is claimed');
 
-/* 2 — rate Workstation 1, type the allowance */
+/* 2 — rate Workstation 1, type the allowance (the standard is one line until opened) */
+await openFold('vid-pace');
 await page.getByLabel('Pace at Workstation 1', { exact: true }).fill('110');
 for (const [name, pct] of [['Personal needs', '5'], ['Basic fatigue', '4'], ['Standing', '2']]) {
   await page.getByRole('button', { name: 'Add an allowance part' }).click();
@@ -104,6 +107,7 @@ ok(pdf.includes('Not rated yet, so taken at 100: Workstation 2, Workstation 3.')
 /* 6 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });
 await go(`#/video/${id}`);
+await page.waitForSelector('.vid-findings li'); await openFold('vid-pace');
 await page.waitForSelector('.vid-pace');
 ok((await page.evaluate(() => document.scrollingElement.scrollWidth)) <= 390, '6 the phone: nothing off the side');
 ok(!errors.length, `no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);

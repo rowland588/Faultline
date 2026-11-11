@@ -104,6 +104,8 @@ await page.getByLabel('Its name', { exact: true }).fill('Packing — shaky camer
 await page.getByRole('button', { name: 'Start the study' }).click();
 await page.locator('.vid-study').waitFor({ timeout: 15000 }).catch(() => {});
 const sid = page.url().split('/video/')[1]?.split('?')[0];
+/* a fold opened as a person would (ui/Fold, 10 November, docs/DESIGN.md) — a tap on its line when it is shut */
+const openFold = async id => { const t = page.locator(`[data-fold="${id}"]:not(.is-open) .fold-toggle`); if (await t.count()) { await t.first().click(); await page.waitForTimeout(300); } };
 const fitPanel = async () => flat(await page.locator('section.vid-fit').innerText());
 ok(/cannot be timed for line balance: the camera — shook/.test(await fitPanel()) && await page.getByLabel('Where was the phone', { exact: true }).inputValue() === 'side-raised',
   '3 the study’s page says the same, and keeps where the phone was', (await fitPanel()).slice(0, 400));
@@ -112,6 +114,7 @@ ok(/cannot be timed for line balance: the camera — shook/.test(await fitPanel(
 await page.getByLabel('How many stations are in view', { exact: true }).selectOption('3'); await page.waitForTimeout(600);
 await page.getByRole('button', { name: 'Read the footage' }).click();
 await page.locator('.vid-study[data-state="review"]').waitFor({ timeout: 240000 }).catch(() => {});
+await openFold('vid-claims');
 const after = await fitPanel();
 ok(/This footage cannot be timed for line balance: the camera — shook for \d+% of the time\./.test(after) && /The camera Not fit — Shook for \d+% of the time over every frame read/.test(after) && !/Checked on a stretch/.test(after),
   '3a read: the camera checked on every frame — shook, unfit to time', after.slice(0, 500));
@@ -129,6 +132,7 @@ const wrong = rec.ev.filter(e => e.flags.includes('shaking') !== spans.some(([a,
 ok(rec.ev.length > 0 && !wrong.length && rec.ev.some(e => e.flags.includes('shaking')) && rec.ev.filter(e => !inShake(e)).every(e => !e.flags.includes('shaking')),
   '3c every event inside the shake flagged, none outside it', JSON.stringify(wrong.slice(0, 4)));
 ok(rec.ev.every(e => e.pm === 0.05), '3d each event’s ends known to ±0.05 s — half the reading’s tenth of a second', JSON.stringify(rec.ev.slice(0, 3)));
+await openFold('vid-events');
 const flaggedRow = page.locator('.vid-ev [data-flags~="shaking"]').first();
 ok(/the camera shook here — check it on the footage/.test(await flaggedRow.innerText().catch(() => '')) && /each end ±0\.05 s/.test(await page.locator('.vid-ev').first().innerText()),
   '3e on review: the flag beside the event, and each end’s ±');
