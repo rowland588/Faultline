@@ -52,6 +52,8 @@ page.on('pageerror', e => errs.push(e.message));
 const txt = async () => (await page.locator('.nv-main').innerText()).replace(/\s+/g, ' ');
 const settle = async () => { await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(300); };
 const dir = mkdtempSync(join(tmpdir(), 'video-study-'));
+/* a fold opened as a person would (ui/Fold, 10 November, docs/DESIGN.md) — a tap on its line when it is shut */
+const openFold = async id => { const t = page.locator(`[data-fold="${id}"]:not(.is-open) .fold-toggle`); if (await t.count()) { await t.first().click(); await page.waitForTimeout(300); } };
 
 await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 const lineId = await page.evaluate(async () => (await (await import('/src/db.ts')).createWorkspace('Line 4')).id);
@@ -59,7 +61,9 @@ const lineId = await page.evaluate(async () => (await (await import('/src/db.ts'
 /* THE FOOTAGE: three stations, a known schedule — 4 s of work every 8 s, 6 s every 8 s, 3 s every 8 s */
 const DUR = 32;
 console.log('making the footage (it takes as long as it runs)…');
-const made = await page.evaluate(async dur => {
+/* recorded in real time: a stall on a busy machine holds the picture still while the schedule says
+   somebody works, so footage made through a stall longer than a quarter second is made again (src/dev/videoSynth stallSec) */
+const makeIt = () => page.evaluate(async dur => {
   const { makeLineVideo } = await import('/src/dev/videoSynth.ts');
   const r = await makeLineVideo({ durationSec: dur, fps: 25, seed: 5, stations: [
     { label: 'Workstation 1', firstSec: 1.5, workSec: 4, cycleSec: 8, jitterSec: 0.3 },
@@ -68,13 +72,15 @@ const made = await page.evaluate(async dur => {
   ] });
   const buf = new Uint8Array(await r.blob.arrayBuffer());
   let s = ''; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-  return { b64: btoa(s), truth: r.truth };
+  return { b64: btoa(s), truth: r.truth, stallSec: r.stallSec };
 }, DUR);
+let made = await makeIt();
+for (let k = 0; k < 3 && made.stallSec > 0.25; k++) { console.log(`the page stalled ${made.stallSec} s while making it — made again`); made = await makeIt(); }
 const file = join(dir, 'line4.webm');
 writeFileSync(file, Buffer.from(made.b64, 'base64'));
 const notVideo = join(dir, 'line4.webm.pdf.mp4');
 writeFileSync(notVideo, Buffer.from('%PDF-1.4\n% not a video at all\n'));
-console.log(`footage: ${made.truth.length} pieces of work in ${DUR} s`);
+console.log(`footage: ${made.truth.length} pieces of work in ${DUR} s; the longest stall while it was made ${made.stallSec} s`);
 
 /* 1 — uploaded */
 await page.goto(`${BASE}/#/video`); await page.waitForTimeout(1200);
@@ -129,6 +135,7 @@ await page.getByRole('button', { name: 'Read the footage' }).click();
 await page.locator('.vid-study[data-state="review"]').waitFor({ timeout: 240000 }).catch(() => {});
 const readSec = (Date.now() - t0) / 1000;
 ok(/Ready for review/.test(await txt()) && /pieces? of work found at 3 of 3 stations/.test(await txt()), '2a read on the device, its state on the record: ready for review', (await txt()).slice(0, 600));
+await openFold('vid-claims');
 const fitRead = (await page.locator('section.vid-fit').innerText()).replace(/\s+/g, ' ');
 ok(/^Is this footage fit for the study\? .*This footage suits line balance, with 1 thing to watch\./.test(fitRead) && /Reviewed by a person Watch — 0 of \d+ confirmed/.test(fitRead)
   && /Steady over every frame read/.test(await page.locator('section.vid-fit [data-check="steady"]').textContent().catch(() => ''))
@@ -146,7 +153,9 @@ for (const st of ev.e.stations) console.log(`MEASURED  ${st.zone}: work ${st.wor
 ok(ev.e.precision >= 0.9 && ev.e.recall >= 0.9, '2b measured: at least 90% of what it found was real, and it found at least 90% of the real work', JSON.stringify(ev.e));
 ok(ev.e.startErr <= 0.35 && ev.e.endErr <= 0.35, '2c measured: each boundary within 0.35 s of the truth, on average', JSON.stringify(ev.e));
 
-/* 3 — reviewed */
+/* 3 — reviewed: the next step is Review the n still to review — it opens Every event (a line until opened) */
+await page.getByRole('button', { name: /^Review the \d+ still to review$/ }).click(); await page.waitForTimeout(500);
+ok(await page.locator('[data-fold="vid-events"].is-open .vid-ev').count() > 0, '3 the one next step, Review the n still to review, opens every event');
 ok(/\d+ to review · 0 accepted/.test(await txt()) && /To review/.test(await txt()), '3 every one a candidate until accepted — none counted yet');
 const before = await page.locator('.vid-table tbody').innerText().catch(() => '');
 ok(/—/.test(before), '3a the figures count nothing until something is accepted', before);
@@ -200,7 +209,7 @@ ok(/Reports made: /.test(await txt()), '5c the report made is kept on the study'
 await page.reload(); await page.waitForTimeout(2500);
 ok(/Line 4 — packing, morning/.test(await txt()) && await page.locator('.vid-ev[data-review="accepted"]').count() > 0 && await page.locator('.vid-ev[data-review="rejected"]').count() === 1 && await page.locator('.vid-player video').count() === 1, '6 come back to it: the footage, the decisions, the figures where they were');
 /* a second reading of new settings, stopped half-way by a reload, carries on */
-await page.locator('.vid-settings summary').click();
+await openFold('vid-reading');
 await page.getByLabel('Sensitivity', { exact: true }).fill('5'); await page.waitForTimeout(600);
 await page.getByRole('button', { name: 'Read it again' }).click();
 await page.waitForFunction(() => /Reading frame (\d+)/.test(document.body.innerText) && Number(/Reading frame (\d+)/.exec(document.body.innerText)?.[1]) > 40, null, { timeout: 60000 }).catch(() => {});

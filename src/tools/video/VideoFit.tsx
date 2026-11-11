@@ -8,12 +8,33 @@
  * worked out, only interpreted, or not from footage — and why. */
 import type { CapturePlan } from './capture';
 import type { Assessment, CheckStatus } from './assess';
+import { Fold } from '../../ui/Fold';
 
 const STATUS_WORD: Record<CheckStatus, string> = { ok: 'Fine', caution: 'Watch', fail: 'Not fit', unknown: 'Not known yet' };
 const STATUS_TONE: Record<CheckStatus, 'g' | 'a' | 'r' | 'n'> = { ok: 'g', caution: 'a', fail: 'r', unknown: 'n' };
 const VERDICT_TONE: Record<Assessment['verdict'], 'g' | 'a' | 'r' | 'n'> = { suitable: 'g', limits: 'a', unsuitable: 'r', 'not-yet': 'n' };
 
-export function FitView({ a }: { a: Assessment }) {
+/** How many of each kind of statement, in a line — "2 measured · 3 worked out · 2 interpreted". */
+const SHORT: Record<Assessment['verdicts'][number]['claim'], string> = { measured: 'measured', 'worked-out': 'worked out', interpreted: 'interpreted', 'not-measurable': 'not measurable', 'not-yet': 'not from footage yet' };
+export function claimsSaid(a: Assessment): string {
+  const n = new Map<string, number>();
+  for (const v of a.verdicts) n.set(SHORT[v.claim], (n.get(SHORT[v.claim]) ?? 0) + 1);
+  return [...n].map(([w, k]) => `${k} ${w}`).join(' · ');
+}
+
+/** `fold` (the study's page, 10 November, docs/DESIGN.md): what this footage can tell you is one line, opened for the
+ *  measures — the New sheet shows them open, as before. */
+export function FitView({ a, fold }: { a: Assessment; fold?: boolean }) {
+  const claims = (
+    <ul className="vfit-claims" aria-label="What this footage can tell you">
+      {a.verdicts.map(v => (
+        <li key={v.what} data-claim={v.claim}>
+          <span className={`vfit-claim is-${v.claim}`}>{v.word}</span>
+          <span>{v.what}. <span className="sub">{v.why}</span></span>
+        </li>
+      ))}
+    </ul>
+  );
   const open = a.checks.filter(c => c.status !== 'ok'), fine = a.checks.filter(c => c.status === 'ok');
   const row = (c: Assessment['checks'][number]) => (
     <li key={c.id} className={`vfit-check is-${STATUS_TONE[c.status]}`} data-check={c.id} data-status={c.status}>
@@ -32,15 +53,9 @@ export function FitView({ a }: { a: Assessment }) {
           <ul className="vfit-checks">{fine.map(row)}</ul>
         </details>
       )}
-      <h3>What this footage can tell you</h3>
-      <ul className="vfit-claims" aria-label="What this footage can tell you">
-        {a.verdicts.map(v => (
-          <li key={v.what} data-claim={v.claim}>
-            <span className={`vfit-claim is-${v.claim}`}>{v.word}</span>
-            <span>{v.what}. <span className="sub">{v.why}</span></span>
-          </li>
-        ))}
-      </ul>
+      {fold
+        ? <Fold id="vid-claims" title="What this footage can tell you" says={claimsSaid(a)} start={false}>{claims}</Fold>
+        : <><h3>What this footage can tell you</h3>{claims}</>}
     </div>
   );
 }

@@ -22,6 +22,7 @@
  * it is. The footage stays on the device it was taken on until the cloud
  * takes a study's footage (docs/VIDEO.md, blockers); everything else syncs. */
 import { Commentary } from '../../ui/Commentary';
+import { Fold, openFold } from '../../ui/Fold';
 import { PageHeader } from '../../ui/parts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteBlobs, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../../db';
@@ -372,6 +373,14 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   const [withVision, setWithVision] = useState(false);
   const abort = useRef<AbortController | null>(null);
   const [printing, setPrinting] = useState(false);
+  /* the next step "Review the n still to review" opens Every event (its stored choice, as a tap makes it) and goes there */
+  const reviewRef = useRef<HTMLElement>(null);
+  const [reviewKey, setReviewKey] = useState(0);
+  const reviewNow = () => {
+    openFold('vid-events');
+    setReviewKey(k => k + 1);
+    requestAnimationFrame(() => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
   const zones = v.job.config.zones;
   const job = v.job;
   const running = working(job.state);
@@ -459,8 +468,12 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
       </PageHeader>
       {said && <p className="vid-said" role="status">{said}</p>}
 
+      {/* CALM BY DESIGN (10 November, docs/DESIGN.md): the first screen is what the footage is, where the reading stands
+          and the one next step — read it, review what it found, or (with no footage here) where the footage is. The rest
+          is a section a heading and a hairline, and what is secondary a line in ui/Fold. The player is never inside a
+          fold and never moves between parents, so it is never mounted twice. */}
       {/* THE FOOTAGE — what it is, read from the file, and where it is */}
-      <section className="vid-panel" aria-label="The footage">
+      <section className="vid-panel vid-footage" aria-label="The footage">
         <div className="vid-player tool-sig-video">
           {url ? (
             <video ref={player} src={url} controls muted playsInline preload="auto" aria-label="The footage" onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
@@ -475,7 +488,142 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
         <p className="sub vid-facts" data-facts>{v.facts.fileName} — {clock(v.facts.durationSec)} · {v.facts.width}×{v.facts.height}{v.facts.fps ? ` · ${v.facts.fps} frames a second` : ''} · {mb(v.facts.bytes)}{v.facts.codec ? ` · ${v.facts.codec}` : ''}{where ? ` · ${where}` : ''}</p>
         {v.objective && <p className="vid-objective"><span className="field-label">Asked for</span> “{v.objective}” — {readObjective(v.objective).said}</p>}
         {questions.length > 0 && <ul className="vid-questions" aria-label="What the study needs">{questions.map(q => <li key={q}>{q}</li>)}</ul>}
+
+        {/* WHERE THE READING STANDS, and the one next step */}
+        <div className="vid-job" data-job={job.state}>
+          <b className={job.state === 'failed' ? 'ie-tone is-r' : ''}>{STATE_WORD[job.state]}</b>
+          {job.said && <span className="sub"> — {job.said}</span>}
+          {running && <progress max={1} value={job.progress} aria-label="How far through" />}
+          {job.state === 'failed' && job.error && <p className="ie-tone is-r" role="alert">{job.error}</p>}
+          <div className="vid-job-acts">
+            {can.edit && !running && url && !isRead && <button type="button" className="btn btn-primary" onClick={() => void read()}>{job.state === 'uploaded' ? 'Read the footage' : 'Try again'}</button>}
+            {can.edit && isRead && verified.candidates > 0 && <button type="button" className="btn btn-primary" onClick={reviewNow}>Review the {verified.candidates} still to review</button>}
+            {running && isRunning(s.id) && <button type="button" className="btn btn-ghost" onClick={() => abort.current?.abort()}>Stop</button>}
+          </div>
+        </div>
       </section>
+
+      {/* THE STATIONS IN VIEW and how the footage is read — open while it is still to be read, a line once it is */}
+      <Fold id="vid-reading" title="Stations and how it is read" need={job.state === 'uploaded'} start={false}
+        says={`${zones.length} station${zones.length === 1 ? '' : 's'} — ${zones.map(z => z.label).join(' · ')} · a frame every ${job.config.sampleSec} s · naming the work from the frames ${withVision ? 'on' : 'off'}`}>
+        <section className="vid-reading" aria-label="The reading">
+          <h3>Stations in view, left to right</h3>
+          <Stations zones={zones} disabled={!can.edit || running} onChange={z => void patchV({ job: { ...job, config: { ...job.config, zones: z } } })} />
+          <div className="vid-settings">
+            <h3>How the footage is read</h3>
+            <p className="sub">A frame every {job.config.sampleSec} s, read {job.config.readWidth} pixels wide; work is movement more than {job.config.sensitivity} times the station’s own quiet spread, gaps under {job.config.joinGapSec} s joined, anything under {job.config.minEventSec} s left out. Reading {job.config.version}.</p>
+            <label className="field"><span className="field-label">Sensitivity (lower finds more)</span>
+              <input type="number" className="text-input" min={1.5} max={12} step={0.5} value={job.config.sensitivity} disabled={!can.edit || running} aria-label="Sensitivity"
+                onChange={e => { const n = Number(e.target.value); if (n >= 1.5 && n <= 12) void patchV({ job: { ...job, config: { ...job.config, sensitivity: n } } }); }} /></label>
+          </div>
+          {/* naming the work from the frames — the camera's AI, kept (20 October, docs/DIRECTION.md) */}
+          <label className="vid-vision"><input type="checkbox" checked={withVision} disabled={running} onChange={e => setWithVision(e.target.checked)} /> Name the work from the frames — {assistLabeller.sends}</label>
+          {can.edit && !running && url && isRead && <div className="vid-job-acts"><button type="button" className="btn" onClick={() => void read()}>Read it again</button></div>}
+        </section>
+      </Fold>
+
+      {/* REVIEW — every event on the footage, accepted, corrected or rejected */}
+      {events.length > 0 && (
+        <section className="vid-panel" aria-label="Review" ref={reviewRef}>
+          <div className="vid-head">
+            <h2>What was found — review it on the footage</h2>
+            {can.edit && verified.candidates > 0 && <button type="button" className="btn btn-sm" onClick={() => setEvents(es => acceptAll(es, me))}>Accept every one still to review</button>}
+          </div>
+          <p className="sub">Each piece of work is a candidate until you accept it. Play to a moment and set a start or an end there, change what it is, merge, split or reject it. Only what is accepted is counted.</p>
+          <Timeline zones={zones} events={events} durationSec={v.facts.durationSec} t={t} onPick={go} />
+          <Fold key={reviewKey} id="vid-events" title="Every event" start={false}
+            says={`${events.length} — ${st.text.toLowerCase()} · each with its time, how it is known and what was decided`}>
+            <ul className="vid-events" aria-label="Events">
+              {events.map((e, i) => {
+                const z = zones.find(x => x.id === e.zone);
+                const next = events.slice(i + 1).find(x => x.zone === e.zone);
+                return (
+                  <li key={e.id} className={`vid-ev is-${e.review}`} data-event={e.id} data-review={e.review}>
+                    <button type="button" className="vid-ev-t linkish" onClick={() => go(e.start)} aria-label={`Play from ${clock(e.start)}`}>{clock(e.start)}–{clock(e.end)}</button>
+                    <span className="vid-ev-z">{z?.label ?? e.zone}{e.track ? ` · ${e.track}` : ''}</span>
+                    <span className="vid-ev-w">
+                      {can.edit ? (
+                        <select value={e.category} aria-label="What it is" onChange={x => one(e.id, y => reclassify(y, { category: x.target.value as EventCategory }, me))}>
+                          {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{EVENT_WORD[c]}</option>)}
+                        </select>
+                      ) : <b>{EVENT_WORD[e.category]}</b>}
+                      <span className="sub"> {sec1(e.end - e.start)} · seen: {e.observed}{e.inferred ? ` · believed: ${e.inferred}` : ''}</span>
+                    </span>
+                    <span className="vid-ev-how sub">{BASIS_WORD[e.basis]}{e.basis !== 'person' ? `, ${Math.round(e.confidence * 100)}% sure` : ''} · each end ±{(e.pm ?? job.config.sampleSec / 2).toFixed(2)} s{e.provenance.model ? ` · named by the assistant` : ''}{e.proposed ? ` · corrected from ${clock(e.proposed.start)}–${clock(e.proposed.end)}` : ''}{e.flags?.length ? <span className="vid-ev-flag" data-flags={e.flags.join(' ')}> · {e.flags.map(x => FLAG_WORD[x]).join(', ')} — check it on the footage</span> : null}</span>
+                    <span className="vid-ev-state"><b>{e.review === 'candidate' ? 'To review' : e.review === 'accepted' ? `Accepted${e.by ? ` by ${e.by}` : ''}` : 'Rejected'}</b></span>
+                    {can.edit && (
+                      <span className="vid-ev-acts">
+                        {e.review !== 'accepted' && <button type="button" className="btn btn-sm" onClick={() => one(e.id, y => decide(y, 'accepted', me))}>Accept</button>}
+                        {e.review !== 'rejected' && <button type="button" className="btn btn-sm btn-ghost" onClick={() => one(e.id, y => decide(y, 'rejected', me))}>Reject</button>}
+                        <button type="button" className="btn btn-sm btn-ghost" disabled={!url} onClick={() => one(e.id, y => setBoundary(y, 'start', t, me))}>Start here ({clock(t)})</button>
+                        <button type="button" className="btn btn-sm btn-ghost" disabled={!url} onClick={() => one(e.id, y => setBoundary(y, 'end', t, me))}>End here</button>
+                        <button type="button" className="btn btn-sm btn-ghost" disabled={!url || !(t > e.start && t < e.end)} onClick={() => setEvents(es => { const r = split(e, t, `${e.id}-${uid().slice(0, 4)}`, me); if ('error' in r) return r; return es.flatMap(x => (x.id === e.id ? r : [x])); })}>Split here</button>
+                        {next && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setEvents(es => { const m = merge(e, next, me); if ('error' in m) return m; return es.filter(x => x.id !== next.id).map(x => (x.id === e.id ? m : x)); })}>Merge with the next</button>}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            {can.edit && url && (
+              <div className="vid-add">
+                <span className="sub">Seen something it missed? At {clock(t)}:</span>
+                {zones.map(z => (
+                  <button key={z.id} type="button" className="btn btn-sm btn-ghost" onClick={() => setEvents(es => [...es, byHand({ id: `p-${uid()}`, start: t, end: Math.min(v.facts.durationSec, t + 2), zone: z.id, track: z.track, category: 'work' }, me)].sort((a, b) => a.start - b.start))}>Add work at {z.label}</button>
+                ))}
+              </div>
+            )}
+          </Fold>
+        </section>
+      )}
+
+      {/* THE LINE BALANCE, worked out from what was accepted — what it says first */}
+      {events.length > 0 && (
+        <section className="vid-panel" aria-label="The line balance">
+          <div className="vid-head">
+            <h2>{figuresTitle}</h2>
+            <div className="chip-row" role="group" aria-label="Counted from">
+              <button type="button" className={`chip${basis === 'verified' ? ' on' : ''}`} aria-pressed={basis === 'verified'} onClick={() => setBasis('verified')}>Accepted only</button>
+              <button type="button" className={`chip${basis === 'provisional' ? ' on' : ''}`} aria-pressed={basis === 'provisional'} onClick={() => setBasis('provisional')}>With those to review (provisional)</button>
+            </div>
+          </div>
+          <p className="sub">{basis === 'verified' ? `Worked out from the ${f.accepted} accepted event${f.accepted === 1 ? '' : 's'}.` : `Provisional — the ${f.candidates} still to review are counted as if accepted.`}{obj.readiness !== 'measured' ? ` Faultline ${obj.readiness === 'partly' ? 'measures only part of' : 'does not measure'} ${KIND_WORD[kind].toLowerCase()} from footage yet: below is the movement in each box, worked out as stations.` : ''}</p>
+          <div className="vid-says">
+            <h3>What it says</h3>
+            <ul className="vid-findings" aria-label="What it says">
+              {findings(f, rateOf).map((x, i) => <li key={i} className={`is-${x.kind}`} data-kind={x.kind}><span className="field-label">{FINDING_WORD[x.kind]}</span> <span className={x.tone !== 'n' ? `ie-tone is-${x.tone}` : ''}>{x.text}</span></li>)}
+            </ul>
+          </div>
+          <Workload f={f} />
+          <table className="vid-table" aria-label="Each station">
+            <thead><tr><th>Station</th><th>Work a cycle</th><th>Cycles</th><th>Range</th><th>A cycle every</th><th>No movement between</th><th>Working</th></tr></thead>
+            <tbody>
+              {f.stations.map(x => (
+                <tr key={x.zone.id} data-station={x.zone.id}>
+                  <td><b>{x.zone.label}</b><br /><span className="sub">{x.zone.track}</span></td>
+                  <td>{x.workTime ? sec1(x.workTime.mean) : '—'}{x.workTime ? <span className="sub" title="The larger of its 95% interval and the reading’s own ± on a length"> ±{Math.max(x.workTime.ci95 ?? 0, x.pm).toFixed(1)}</span> : null}{x.workTime ? <span className="sub"> · median {sec1(x.workTime.median)}</span> : null}</td>
+                  <td>{x.workTime?.n ?? 0}{x.workTime && x.needed && !x.enough ? <span className="ie-tone is-a"> of {x.needed} needed</span> : null}{x.partial.length ? <span className="sub"> + {x.partial.length} cut off</span> : null}</td>
+                  <td>{x.workTime ? `${x.workTime.min.toFixed(1)}–${x.workTime.max.toFixed(1)} s` : '—'}</td>
+                  <td>{x.cycleTime ? sec1(x.cycleTime.mean) : '—'}</td>
+                  <td>{x.waitTime ? sec1(x.waitTime.mean) : '—'}</td>
+                  <td>{x.utilisation !== undefined ? `${Math.round(x.utilisation * 100)}%` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {f.takt && f.balance.people.some(p => p.work > 0) && (
+            <div className="vid-stacks tool-sig-vid tool-sig-video ie-pic" aria-label="Each person's work stacked against takt"><Stacks f={f.balance} /><Legend f={f.balance} /></div>
+          )}
+          <Takt v={v} disabled={!can.edit} onSave={d => void patchV({ demand: d })} />
+          {f.stations.some(x => x.workTime) && (
+            <Fold id="vid-pace" title="The standard — pace and allowance" start={false}
+              says={v.pace && Object.keys(v.pace).length ? `${Object.keys(v.pace).length} station${Object.keys(v.pace).length === 1 ? '' : 's'} rated${v.allowance?.length ? ` · ${v.allowance.reduce((a, p) => a + p.pct, 0)}% allowance in ${v.allowance.length} part${v.allowance.length === 1 ? '' : 's'}` : ' · no allowance yet'}` : 'not rated — the times are observed, not a standard'}>
+              <Pace v={v} f={f} disabled={!can.edit} onSave={p => void patchV(p)} />
+            </Fold>
+          )}
+          <Ask f={f} />
+        </section>
+      )}
 
       {/* IS THIS FOOTAGE FIT FOR THE STUDY? — the study, where the phone was, each check and what can be claimed (docs/VIDEO-DESIGN.md, D6) */}
       <section className="vid-panel vid-fit" aria-label="Is this footage fit for the study">
@@ -495,130 +643,10 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
             </label>
           </div>
         )}
-        <FitView a={fit} />
+        <FitView a={fit} fold />
         {obj.meanwhile && obj.readiness !== 'measured' && <p className="sub vid-meanwhile">Meanwhile, by hand: <button type="button" className="linkish" onClick={() => nav(obj.meanwhile?.path ?? '/')}>{obj.meanwhile.tool}</button> — {obj.meanwhile.why}.</p>}
         <FilmPlan p={plan} />
       </section>
-
-      {/* THE STATIONS IN VIEW and the reading */}
-      <section className="vid-panel" aria-label="The reading">
-        <h2>Stations in view, left to right</h2>
-        <Stations zones={zones} disabled={!can.edit || running} onChange={z => void patchV({ job: { ...job, config: { ...job.config, zones: z } } })} />
-        <details className="vid-settings">
-          <summary>How the footage is read</summary>
-          <p className="sub">A frame every {job.config.sampleSec} s, read {job.config.readWidth} pixels wide; work is movement more than {job.config.sensitivity} times the station’s own quiet spread, gaps under {job.config.joinGapSec} s joined, anything under {job.config.minEventSec} s left out. Reading {job.config.version}.</p>
-          <label className="field"><span className="field-label">Sensitivity (lower finds more)</span>
-            <input type="number" className="text-input" min={1.5} max={12} step={0.5} value={job.config.sensitivity} disabled={!can.edit || running} aria-label="Sensitivity"
-              onChange={e => { const n = Number(e.target.value); if (n >= 1.5 && n <= 12) void patchV({ job: { ...job, config: { ...job.config, sensitivity: n } } }); }} /></label>
-        </details>
-        {/* naming the work from the frames — the camera's AI, kept (20 October, docs/DIRECTION.md) */}
-        <label className="vid-vision"><input type="checkbox" checked={withVision} disabled={running} onChange={e => setWithVision(e.target.checked)} /> Name the work from the frames — {assistLabeller.sends}</label>
-        <div className="vid-job" data-job={job.state}>
-          <b className={job.state === 'failed' ? 'ie-tone is-r' : ''}>{STATE_WORD[job.state]}</b>
-          {job.said && <span className="sub"> — {job.said}</span>}
-          {running && <progress max={1} value={job.progress} aria-label="How far through" />}
-          {job.state === 'failed' && job.error && <p className="ie-tone is-r" role="alert">{job.error}</p>}
-          <div className="vid-job-acts">
-            {can.edit && !running && url && <button type="button" className="btn btn-primary" onClick={() => void read()}>{job.state === 'uploaded' ? 'Read the footage' : job.state === 'failed' || job.state === 'cancelled' ? 'Try again' : 'Read it again'}</button>}
-            {running && isRunning(s.id) && <button type="button" className="btn btn-ghost" onClick={() => abort.current?.abort()}>Stop</button>}
-          </div>
-        </div>
-      </section>
-
-      {/* REVIEW — every event on the footage, accepted, corrected or rejected */}
-      {events.length > 0 && (
-        <section className="vid-panel" aria-label="Review">
-          <div className="vid-head">
-            <h2>What was found — review it on the footage</h2>
-            {can.edit && verified.candidates > 0 && <button type="button" className="btn btn-sm" onClick={() => setEvents(es => acceptAll(es, me))}>Accept every one still to review</button>}
-          </div>
-          <p className="sub">Each piece of work is a candidate until you accept it. Play to a moment and set a start or an end there, change what it is, merge, split or reject it. Only what is accepted is counted.</p>
-          <Timeline zones={zones} events={events} durationSec={v.facts.durationSec} t={t} onPick={go} />
-          <ul className="vid-events" aria-label="Events">
-            {events.map((e, i) => {
-              const z = zones.find(x => x.id === e.zone);
-              const next = events.slice(i + 1).find(x => x.zone === e.zone);
-              return (
-                <li key={e.id} className={`vid-ev is-${e.review}`} data-event={e.id} data-review={e.review}>
-                  <button type="button" className="vid-ev-t linkish" onClick={() => go(e.start)} aria-label={`Play from ${clock(e.start)}`}>{clock(e.start)}–{clock(e.end)}</button>
-                  <span className="vid-ev-z">{z?.label ?? e.zone}{e.track ? ` · ${e.track}` : ''}</span>
-                  <span className="vid-ev-w">
-                    {can.edit ? (
-                      <select value={e.category} aria-label="What it is" onChange={x => one(e.id, y => reclassify(y, { category: x.target.value as EventCategory }, me))}>
-                        {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{EVENT_WORD[c]}</option>)}
-                      </select>
-                    ) : <b>{EVENT_WORD[e.category]}</b>}
-                    <span className="sub"> {sec1(e.end - e.start)} · seen: {e.observed}{e.inferred ? ` · believed: ${e.inferred}` : ''}</span>
-                  </span>
-                  <span className="vid-ev-how sub">{BASIS_WORD[e.basis]}{e.basis !== 'person' ? `, ${Math.round(e.confidence * 100)}% sure` : ''} · each end ±{(e.pm ?? job.config.sampleSec / 2).toFixed(2)} s{e.provenance.model ? ` · named by the assistant` : ''}{e.proposed ? ` · corrected from ${clock(e.proposed.start)}–${clock(e.proposed.end)}` : ''}{e.flags?.length ? <span className="vid-ev-flag" data-flags={e.flags.join(' ')}> · {e.flags.map(x => FLAG_WORD[x]).join(', ')} — check it on the footage</span> : null}</span>
-                  <span className="vid-ev-state"><b>{e.review === 'candidate' ? 'To review' : e.review === 'accepted' ? `Accepted${e.by ? ` by ${e.by}` : ''}` : 'Rejected'}</b></span>
-                  {can.edit && (
-                    <span className="vid-ev-acts">
-                      {e.review !== 'accepted' && <button type="button" className="btn btn-sm" onClick={() => one(e.id, y => decide(y, 'accepted', me))}>Accept</button>}
-                      {e.review !== 'rejected' && <button type="button" className="btn btn-sm btn-ghost" onClick={() => one(e.id, y => decide(y, 'rejected', me))}>Reject</button>}
-                      <button type="button" className="btn btn-sm btn-ghost" disabled={!url} onClick={() => one(e.id, y => setBoundary(y, 'start', t, me))}>Start here ({clock(t)})</button>
-                      <button type="button" className="btn btn-sm btn-ghost" disabled={!url} onClick={() => one(e.id, y => setBoundary(y, 'end', t, me))}>End here</button>
-                      <button type="button" className="btn btn-sm btn-ghost" disabled={!url || !(t > e.start && t < e.end)} onClick={() => setEvents(es => { const r = split(e, t, `${e.id}-${uid().slice(0, 4)}`, me); if ('error' in r) return r; return es.flatMap(x => (x.id === e.id ? r : [x])); })}>Split here</button>
-                      {next && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setEvents(es => { const m = merge(e, next, me); if ('error' in m) return m; return es.filter(x => x.id !== next.id).map(x => (x.id === e.id ? m : x)); })}>Merge with the next</button>}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          {can.edit && url && (
-            <div className="vid-add">
-              <span className="sub">Seen something it missed? At {clock(t)}:</span>
-              {zones.map(z => (
-                <button key={z.id} type="button" className="btn btn-sm btn-ghost" onClick={() => setEvents(es => [...es, byHand({ id: `p-${uid()}`, start: t, end: Math.min(v.facts.durationSec, t + 2), zone: z.id, track: z.track, category: 'work' }, me)].sort((a, b) => a.start - b.start))}>Add work at {z.label}</button>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* THE LINE BALANCE, worked out from what was accepted */}
-      {events.length > 0 && (
-        <section className="vid-panel" aria-label="The line balance">
-          <div className="vid-head">
-            <h2>{figuresTitle}</h2>
-            <div className="chip-row" role="group" aria-label="Counted from">
-              <button type="button" className={`chip${basis === 'verified' ? ' on' : ''}`} aria-pressed={basis === 'verified'} onClick={() => setBasis('verified')}>Accepted only</button>
-              <button type="button" className={`chip${basis === 'provisional' ? ' on' : ''}`} aria-pressed={basis === 'provisional'} onClick={() => setBasis('provisional')}>With those to review (provisional)</button>
-            </div>
-          </div>
-          <p className="sub">{basis === 'verified' ? `Worked out from the ${f.accepted} accepted event${f.accepted === 1 ? '' : 's'}.` : `Provisional — the ${f.candidates} still to review are counted as if accepted.`}{obj.readiness !== 'measured' ? ` Faultline ${obj.readiness === 'partly' ? 'measures only part of' : 'does not measure'} ${KIND_WORD[kind].toLowerCase()} from footage yet: below is the movement in each box, worked out as stations.` : ''}</p>
-          <table className="vid-table" aria-label="Each station">
-            <thead><tr><th>Station</th><th>Work a cycle</th><th>Cycles</th><th>Range</th><th>A cycle every</th><th>No movement between</th><th>Working</th></tr></thead>
-            <tbody>
-              {f.stations.map(x => (
-                <tr key={x.zone.id} data-station={x.zone.id}>
-                  <td><b>{x.zone.label}</b><br /><span className="sub">{x.zone.track}</span></td>
-                  <td>{x.workTime ? sec1(x.workTime.mean) : '—'}{x.workTime ? <span className="sub" title="The larger of its 95% interval and the reading’s own ± on a length"> ±{Math.max(x.workTime.ci95 ?? 0, x.pm).toFixed(1)}</span> : null}{x.workTime ? <span className="sub"> · median {sec1(x.workTime.median)}</span> : null}</td>
-                  <td>{x.workTime?.n ?? 0}{x.workTime && x.needed && !x.enough ? <span className="ie-tone is-a"> of {x.needed} needed</span> : null}{x.partial.length ? <span className="sub"> + {x.partial.length} cut off</span> : null}</td>
-                  <td>{x.workTime ? `${x.workTime.min.toFixed(1)}–${x.workTime.max.toFixed(1)} s` : '—'}</td>
-                  <td>{x.cycleTime ? sec1(x.cycleTime.mean) : '—'}</td>
-                  <td>{x.waitTime ? sec1(x.waitTime.mean) : '—'}</td>
-                  <td>{x.utilisation !== undefined ? `${Math.round(x.utilisation * 100)}%` : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Workload f={f} />
-          {f.takt && f.balance.people.some(p => p.work > 0) && (
-            <div className="vid-stacks tool-sig-vid tool-sig-video ie-pic" aria-label="Each person's work stacked against takt"><Stacks f={f.balance} /><Legend f={f.balance} /></div>
-          )}
-          <Takt v={v} disabled={!can.edit} onSave={d => void patchV({ demand: d })} />
-          <Pace v={v} f={f} disabled={!can.edit} onSave={p => void patchV(p)} />
-          <div className="vid-says">
-            <h3>What it says</h3>
-            <ul className="vid-findings" aria-label="What it says">
-              {findings(f, rateOf).map((x, i) => <li key={i} className={`is-${x.kind}`} data-kind={x.kind}><span className="field-label">{FINDING_WORD[x.kind]}</span> <span className={x.tone !== 'n' ? `ie-tone is-${x.tone}` : ''}>{x.text}</span></li>)}
-            </ul>
-          </div>
-          <Ask f={f} />
-        </section>
-      )}
 
       {/* WHERE IT SITS, and taking it away */}
       <section className="vid-panel vid-where" aria-label="Where it sits">

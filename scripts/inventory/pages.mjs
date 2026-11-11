@@ -965,6 +965,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the checks — what is not fine, the rest folded', sel: 'section.vid-fit .vfit-fine summary', text: /^Fine: .*the camera/ },
     { what: 'what this footage can tell you — measured, worked out, interpreted', sel: 'section.vid-fit .vfit-claims li', n: 7 },
     { what: 'how to film it', sel: 'section.vid-fit .vfit-plan summary', text: /^How to film it/ },
+    /* calm (11 November, docs/DESIGN.md): where the reading stands and the one next step first; the secondary parts each a fold the inventory opens */
+    { what: 'where the reading stands and the one next step — Review the n still to review', sel: '.vid-job .btn-primary', text: /^Review the \d+ still to review$/ },
+    { what: 'the secondary parts each a fold — stations and reading, every event, the standard, what the footage can tell', sel: '.vid-study .fold[data-fold^="vid-"] .fold-t', n: 4 },
     { what: 'the stations in view', sel: '.vid-zone-rows li', n: 3 },
     { what: 'every event on its station’s lane', sel: '.vid-bar', n: 12 },
     { what: 'every event in the list, how it is known and what was decided — each end’s ±', sel: '.vid-ev .vid-ev-how', text: /each end ±0\.05 s/ },

@@ -84,8 +84,12 @@ export function lineScene(o: SynthOptions): { canvas: HTMLCanvasElement; truth: 
   return { canvas: cv, truth, draw };
 }
 
-/** Record the footage. Takes as long as the footage runs. */
-export async function makeLineVideo(o: SynthOptions): Promise<{ blob: Blob; truth: Timed[]; mime: string }> {
+/** Record the footage. Takes as long as the footage runs. It is recorded in real time, so a page
+ *  that stalls (a busy machine) holds the picture still while the schedule says somebody works —
+ *  the footage then is not what its truth says (11 November: a 0.4–0.8 s stall split a piece of work in
+ *  two and read as a duplicate). `stallSec` is the longest gap between two frames drawn, so a
+ *  harness can make the footage again rather than score the reading against footage that lies. */
+export async function makeLineVideo(o: SynthOptions): Promise<{ blob: Blob; truth: Timed[]; mime: string; stallSec: number }> {
   const fps = o.fps ?? 25;
   const { canvas: cv, truth, draw } = lineScene(o);
   const mime = ['video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)) ?? 'video/webm';
@@ -96,9 +100,12 @@ export async function makeLineVideo(o: SynthOptions): Promise<{ blob: Blob; trut
   draw(0);
   rec.start(250);
   const t0 = performance.now();
+  let last = t0, stall = 0;
   await new Promise<void>(resolve => {
     const tick = () => {
-      const t = (performance.now() - t0) / 1000;
+      const nowMs = performance.now();
+      stall = Math.max(stall, nowMs - last); last = nowMs;
+      const t = (nowMs - t0) / 1000;
       if (t >= o.durationSec) { resolve(); return; }
       draw(t);
       setTimeout(tick, 1000 / fps);
@@ -107,5 +114,5 @@ export async function makeLineVideo(o: SynthOptions): Promise<{ blob: Blob; trut
   });
   await new Promise<void>(resolve => { rec.onstop = () => resolve(); rec.stop(); });
   stream.getTracks().forEach(tr => tr.stop());
-  return { blob: new Blob(parts, { type: 'video/webm' }), truth, mime };
+  return { blob: new Blob(parts, { type: 'video/webm' }), truth, mime, stallSec: Math.round(stall) / 1000 };
 }

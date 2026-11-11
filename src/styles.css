@@ -16824,6 +16824,30 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 @media (min-width: 1100px) {
   .ws-video .vid-events { max-height: 70vh; overflow: auto; padding-right: 4px; }
 }
+/* CALM BY DESIGN (10 November, docs/DESIGN.md): the study's page a column of sections — a heading and a hairline, never a box —
+   the footage and where the reading stands first; the secondary parts each a line in ui/Fold. The tool's signature edge stays on
+   the player, the lanes and the charts, without the lift; an event, a check and How to film it are rows, not cards. */
+.ws-video .vid-panel { border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; background: none; padding: var(--space-4) 0 0; margin: var(--space-5) 0 0; }
+.ws-video .vid-panel.vid-footage { border-top: 0; padding-top: 0; margin-top: 0; }
+.ws-video .vid-panel h2 { margin: 0 0 var(--space-2); }
+.ws-video .vid-says { margin: var(--space-3) 0; padding: 0; border: 0; border-radius: 0; background: none; }
+.ws-video .tool-sig-video.vid-tl, .ws-video .tool-sig-vid.vid-load, .ws-video .tool-sig-video.vid-load,
+.ws-video .tool-sig-vid.vid-stacks, .ws-video .tool-sig-video.vid-stacks { box-shadow: none; background: none; border-radius: 0; }
+.ws-video .tool-sig-video.vid-player { box-shadow: none; }
+.ws-video .vid-job { margin-top: var(--space-3); }
+.ws-video .vid-reading h3 { font-size: var(--t-body); margin: var(--space-3) 0 var(--space-2); }
+.ws-video .vid-reading h3:first-child { margin-top: 0; }
+.ws-video .vid-events { gap: 0; }
+.ws-video .vid-ev { border: 0; border-bottom: 1px solid var(--line-row, var(--line)); border-left: 3px solid var(--st-n); border-radius: 0; background: none; padding: var(--space-2) var(--space-3); }
+.ws-video .vid-ev.is-accepted { border-left-color: var(--st-g); background: none; }
+.ws-video .vfit-checks { gap: 0; }
+.ws-video .vfit-check { border: 0; border-bottom: 1px solid var(--line-row, var(--line)); border-left: 3px solid var(--st-n); border-radius: 0; background: none; }
+.ws-video .vfit-check.is-g { border-left-color: color-mix(in srgb, var(--st-g) 45%, var(--line)); }
+.ws-video .vfit-check.is-a { border-left-color: var(--st-a); background: none; }
+.ws-video .vfit-check.is-r { border-left-color: var(--st-r); background: none; }
+.ws-video .vfit-plan { border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; padding: 0; margin: var(--space-3) 0 0; }
+.ws-video .vfit-plan summary, .ws-video .vfit-fine summary { min-height: 44px; padding: var(--space-3) 0; box-sizing: border-box; }
+.ws-video .vid-fit .fold { margin-top: var(--space-3); }
 
 /* ============================================================ THE AI TOOLBOX (catalogue/aiTools, docs/AI-TOOLBOX.md, 8 November)
    A shelf of its own on Tools and a small mark wherever an AI tool's name shows. The mark is the brand's own ink on a pale wash with
