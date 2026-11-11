@@ -63,9 +63,9 @@ jobs:
             # assist checks the caller's session itself AND keeps JWT verification on; ingest authenticates by its own token
             # and the database's key, so JWT verification is off for it (supabase/functions/ingest, docs/DATA-CONNECTIONS.md).
             case "$1" in
-              ingest) supabase functions deploy ingest --project-ref "$PROJECT_REF" --no-verify-jwt ;;
-              remind) supabase functions deploy remind --project-ref "$PROJECT_REF" --no-verify-jwt ;;
-              *)      supabase functions deploy "$1" --project-ref "$PROJECT_REF" ;;
+              ingest) supabase functions deploy ingest --project-ref "$PROJECT_REF" --no-verify-jwt --yes ;;
+              remind) supabase functions deploy remind --project-ref "$PROJECT_REF" --no-verify-jwt --yes ;;
+              *)      supabase functions deploy "$1" --project-ref "$PROJECT_REF" --yes ;;
             esac
           }
           if [ "$WHICH" = "all" ]; then
