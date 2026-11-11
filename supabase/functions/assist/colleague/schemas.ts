@@ -363,6 +363,12 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     }, ['source', 'title', 'measures']),
   },
   {
+    name: 'business_summary',
+    kind: 'read',
+    description: 'ACROSS THE BUSINESS — for a question that spans lines, areas or sites ("which lines lost most this week?", "where are the critical problems?", "who is behind on their actions?", "how did output compare with target last week?"). Worked out in the database as the person (their access decides which lines — a team leader gets their area, a director the business), or on the device when the cloud cannot be reached; the answer says which, the scope and each figure\'s period. about: losses (stops timed by line in the period, minutes and idle labour where priced), problems (open now by site, area and priority), late (owed past its day now, by person) or output (output against target as imported — only where production records exist); none = all four. Quote its figures as it says them, with their period and source; a figure it says cannot be said is never estimated. For one line, line_state and query_data stay the way.',
+    input_schema: obj({ about: { type: 'string', enum: ['losses', 'problems', 'late', 'output'] }, period: { type: 'string', enum: ['today', 'week', 'last_week', 'month', 'four_weeks'] } }, []),
+  },
+  {
     name: 'explain_change',
     kind: 'read',
     description: 'WHAT CHANGED, AND WHERE — the analyst\'s first move for "why is downtime up?", "what changed since last month?", "why are rejects worse this week?". A measure (sum of a number field, or a count) of any source over two periods: the total before and after, and for every field it can be broken by (named in by, else every field of words with a few values) each value\'s before, after and change, ranked by how much of the total change it carries; the field that concentrates the change most; then within its biggest mover, the next field down. Worked by the app\'s code, kept as a result (before · after · change) to chart or report. Say its findings with its figures; never explain a change you have not run this for. Two periods of different lengths are not alike — say so, or pick equal ones.',

@@ -18,6 +18,7 @@ import { FILL } from './fill';
 import { WALK } from './walk';
 import { DATA } from './data';
 import { PRODUCTION } from './production';
+import { businessSummary } from './business';
 import { DIG } from './dig';
 import { workOut } from './workout';
 import { NOTEBOOK } from './notebook';
@@ -48,6 +49,8 @@ export const CAPABILITIES: readonly Capability[] = [
   ...WALK,
   /* every source asked one way; results, charts and reports built in the conversation (10 November, docs/CONVERSATIONAL-DATA.md) */
   ...DATA,
+  /* business-wide figures worked out in the database as the person, the device's own offline (11 November, docs/ORGANISATION.md O4b) */
+  businessSummary,
   /* the analyst's moves: what changed and where, two results side by side, arithmetic through Faultline (docs/LUNA-NEXT.md) */
   ...DIG, workOut,
   /* what a client's words mean, confirmed by the person (docs/LUNA-NEXT.md L3) */
