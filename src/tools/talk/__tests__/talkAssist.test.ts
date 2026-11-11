@@ -65,7 +65,7 @@ describe('the conversation in the model’s terms', () => {
     expect(end.type === 'text' && end.text).toMatch(/^FAULTLINE'S RECORDS — verified data[\s\S]*<records>\nPRODUCTION LINE: Line 7[\s\S]*<\/records>\n\nToday is Wednesday 21 October 2026\.\nCarry on the conversation: reply to the person's latest turns above\.$/);
     const bare = talkMessages({ ...ASK, context: '' });
     const bareLast = bare[bare.length - 1].content;
-    expect(bareLast[bareLast.length - 1]).toMatchObject({ text: expect.stringMatching(/^No Faultline records go with this conversation/) });
+    expect(bareLast[bareLast.length - 1]).toMatchObject({ text: expect.stringMatching(/^No records go with this conversation/) });
   });
   it('is told to talk as a colleague does — its own words, a question back, building on the answer, no stock phrases (Rowland, 21 October: "we ask questions to each other in natural language, none scripted")', () => {
     expect(TALK_SYSTEM).toMatch(/HOW TO TALK — a conversation, never a form/);
@@ -75,11 +75,11 @@ describe('the conversation in the model’s terms', () => {
     expect(TALK_SYSTEM).not.toMatch(/acknowledge them in one or two sentences/);
   });
   it('is told the three kinds of knowledge, the figures rule and never to identify anyone', () => {
-    expect(TALK_SYSTEM).toMatch(/Observations[\s\S]*Faultline's records[\s\S]*Your interpretation/);
+    expect(TALK_SYSTEM).toMatch(/Observations[\s\S]*The app's records[\s\S]*Your interpretation/);
     expect(TALK_SYSTEM).toMatch(/Never invent a measurement/);
     expect(TALK_SYSTEM).toMatch(/Never calculate/);
     expect(TALK_SYSTEM).toMatch(/Never identify a person/);
-    expect(TALK_SYSTEM).toMatch(/You cannot create or change anything in Faultline/);
+    expect(TALK_SYSTEM).toMatch(/You cannot create or change anything in the app/);
   });
   it('the answer’s shape is small and closed — every object’s fields required, nothing extra', () => {
     const objects: unknown[] = [];

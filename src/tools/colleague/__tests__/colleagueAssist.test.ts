@@ -80,7 +80,7 @@ describe('the conversation in the model’s terms', () => {
     expect(results.map(r => r.tool_use_id)).toEqual(['b', 'c']);
     expect(results[0]).not.toHaveProperty('is_error');
     expect(results[0].content).toMatch(/declined/);
-    expect(results[1]).toMatchObject({ is_error: true, content: expect.stringMatching(/Refused by Faultline's gateway: not a capability/) });
+    expect(results[1]).toMatchObject({ is_error: true, content: expect.stringMatching(/Refused by the AI service: not a capability/) });
     expect(m[2].content).toEqual([expect.objectContaining({ tool_use_id: 'a', content: 'Line 3: 2 open problems.' })]);
     /* the newest round's results are where the cache ends */
     expect('cache_control' in results[1]).toBe(true);
@@ -121,7 +121,7 @@ describe('the gateway’s check of every call', () => {
     const r = checkCalls(bad, SCHEMAS);
     expect(r.calls).toEqual([]);
     expect(r.refused.map(x => x.id)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11']);
-    expect(r.refused[0].why).toMatch(/not one of Faultline's capabilities/);
+    expect(r.refused[0].why).toMatch(/not one of your capabilities/);
     expect(r.refused[1].why).toMatch(/input\.how is missing/);
     expect(r.refused[2].why).toMatch(/one of "observed", "reported"/);
     expect(r.refused[3].why).toMatch(/input\.extra is not one of its fields/);

@@ -72,7 +72,7 @@ describe('a workbook asked in the conversation', () => {
     expect(d.rowsScanned).toBe(exp.rows);
     expect(d.groups[0].key[0]).toBe(top[0]);
     expect(Math.abs(d.groups[0].values[0] - top[1])).toBeLessThan(1e-6);
-    expect(r.says).toMatch(/Downtime: 12,000 of 12,000 rows matched, in 8 groups of Reason\. Worked by Faultline over every row\./);
+    expect(r.says).toMatch(/Downtime: 12,000 of 12,000 rows matched, in 8 groups of Reason\. Worked by the app over every row\./);
     expect(r.says).toMatch(new RegExp(`sum of Minutes: ${exp.minutesText} cells not used — not a number \\(e\\.g\\. Downtime!F\\d+`));
     const f = await run('query_workbook', { sheet: 'Downtime', filters: [{ column: 'Reason', op: 'eq', value: 'Bag presentation' }, { column: 'Line', op: 'eq', value: 'line 3' }], measures: [{ op: 'sum', column: 'Minutes' }] });
     if (f.ok) { expect(Math.abs((f.data as { totals: number[] }).totals[0] - exp.bagLine3Minutes)).toBeLessThan(1e-6); expect(f.says).toMatch(/matched 2 spellings, taken together/); }

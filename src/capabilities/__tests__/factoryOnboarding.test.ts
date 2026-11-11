@@ -99,7 +99,7 @@ describe('the draft against what Faultline holds — this client only', () => {
     expect(md?.conflicts[0].recorded.said).toMatch(/Confirmed by Rowland/);
     expect(md?.flags[0]).toMatch(/dated 1 Mar 2026, but the Metal detector’s model was recorded on 1 Jun 2026/);
     expect(v.blockers.join(' ')).toMatch(/wait for your word/);
-    expect(v.blockers.join(' ')).toMatch(/Faultline holds model “Loma IQ4”, the document says “Loma IQ3” — pick which/);
+    expect(v.blockers.join(' ')).toMatch(/the app holds model “Loma IQ4”, the document says “Loma IQ3” — pick which/);
     /* kept and picked: nothing holds it */
     const kept = applyFactoryOps(b, [{ op: 'keep', level: 'machine', name: 'Metal detector', of: 'Packaging Line 1' }, { op: 'pick', level: 'machine', name: 'Metal detector', of: 'Packaging Line 1', field: 'model', take: 'recorded' }], said, NOW, id).body;
     expect(kept.nodes.every(x => x.review === 'kept')).toBe(true);
@@ -195,9 +195,9 @@ describe('the capabilities: note, make, replace, read a document', () => {
     const refusedAsClient = await run('make_record', { draftId }, true, { ...ctx, level: 'client' });
     expect(refusedAsClient.ok).toBe(false);
     const p = await reg.previewCall(ctx, { id: 'p', name: 'make_record', input: { draftId } });
-    expect(p.ok && p.says).toMatch(/Make Customer X Foods’s factory in Faultline.*1 new line — Packaging Line 1 \(Main factory › Packaging\) with Weighing scale, Metal detector/);
+    expect(p.ok && p.says).toMatch(/Make Customer X Foods’s factory in the app.*1 new line — Packaging Line 1 \(Main factory › Packaging\) with Weighing scale, Metal detector/);
     const m = await run('make_record', { draftId }, true);
-    expect(m.ok && m.says).toMatch(/Made in Faultline for Customer X Foods: 1 new line and 2 machines/);
+    expect(m.ok && m.says).toMatch(/Made in the app for Customer X Foods: 1 new line and 2 machines/);
     /* the area with no line is a department of its own (docs/FACTORY-WALK.md), nothing made under it */
     expect(m.ok && m.says).toMatch(/1 department with no line yet made as a department of its own \(Mixing\)/);
     const dl = await (await import('../../db/departments')).listDepartments();
