@@ -208,6 +208,7 @@ const ROUTES = [
   ['every tool — the directory', '#/tools'],
   ['the story — the client’s journey, its old address (an alias of #/)', '#/story'],
   ['the library — every paper made, the customer’s photos and working records (C4)', '#/library'],
+  ['the business’s people — roles and where each may look (O2)', '#/business'],
   /* a method's own page (docs/METHODS.md §15) */
   ['a method — its own page', '#/methods/dmaic'],
   ['your factory — adding lines', '#/factory?add=1'],

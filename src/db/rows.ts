@@ -154,7 +154,7 @@ export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects'
   | 'pace_ppm' | 'pace_todos' | 'pace_wins' | 'tree_nodes'
   | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies'
-  | 'kept_papers';
+  | 'kept_papers' | 'organisations' | 'organisation_members';
 
 /* A PAPER KEPT IN THE LIBRARY (11 November, docs/CONSULTANT-WORKSPACE.md C4; supabase/KEPT_PAPERS.sql; lib/keptPdfs, lib/library).
    One row a PDF the app made: the bytes in the media store under `key`, the record synced so a paper made on the phone is in the

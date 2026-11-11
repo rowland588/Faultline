@@ -66,6 +66,9 @@ export interface Workspace {
   activeTimer?: ActiveTimer;
 
   archived?: boolean;
+  /** THE BUSINESS IT BELONGS TO (11 November, supabase/ORGANISATIONS.sql; docs/ORGANISATION.md O1) — its people see it as far as
+   *  their scope reaches (ORG_VISIBILITY.sql). Absent: nobody's business but its owner's and those it was shared with. */
+  orgId?: string;
   /** YOUR FACTORY (supabase/FACTORY.sql) — what kind of line it is, in the
    *  factory's own words ("Packing", "Processing"), and where it sits on the
    *  floor: the order lines are listed in everywhere (lib/lines). */

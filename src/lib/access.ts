@@ -15,7 +15,12 @@
  *   client  reads it and takes the reports. Changes nothing.
  *
  * A device that is not signed in, or a project that has never synced, is the
- * owner's: nobody else is there to be limited. */
+ * owner's: nobody else is there to be limited.
+ *
+ * THE BUSINESS'S ROLES (11 November, docs/ORGANISATION.md; src/org/organisation) sit ON this ladder, never beside it: a business's
+ * viewer reads and takes the papers — a client, whatever a project says — and the other four keep what the project gives them. A
+ * role never gives more than the project's own list (the database's is_project_editor is unchanged by it). */
+import type { OrgRole } from '../org/organisation';
 
 export type Access = 'owner' | 'team' | 'client';
 
@@ -49,12 +54,19 @@ export interface AccessInput {
   ownerId?: string;
   /** This person's own row on the project's people list, if any. */
   mine?: { access?: string | null } | null;
+  /** This person's role in the business, when they have one. A viewer is a client everywhere but on what they own. */
+  orgRole?: OrgRole;
 }
 
 export function accessOf(x: AccessInput): Access {
-  if (!x.signedIn || !x.ownerId || x.isSuper || x.ownerId === x.myId) return 'owner';
+  if (x.isSuper || (x.signedIn && x.ownerId && x.ownerId === x.myId)) return 'owner';
+  if (x.orgRole === 'viewer') return 'client';
+  if (!x.signedIn || !x.ownerId) return 'owner';
   return x.mine?.access === 'client' ? 'client' : 'team';
 }
+
+/** The project ladder's level for a business role forced in development, or as the database would treat it. */
+export const accessOfRole = (r: OrgRole): Access => (r === 'viewer' ? 'client' : r === 'team' || r === 'manager' ? 'team' : 'owner');
 
 /** A "passes if" a team member may still write: only one nobody has written yet. */
 export const mayWriteAgreement = (c: Can, current: string | null | undefined): boolean =>

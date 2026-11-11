@@ -49,6 +49,10 @@ export async function createWorkspace(name: string, taxonomyId?: string): Promis
     shifts: [],
     schemaVersion: 1,
   };
+  /* A NEW LINE IS THE BUSINESS'S (11 November, docs/ORGANISATION.md O1; src/org/orgStore MINE_KEY): it takes this device's business,
+     so its people see it as far as their scope reaches */
+  const mine = await db.get('meta', 'org.mine').catch(() => undefined);
+  if (typeof mine === 'string' && mine) ws.orgId = mine;
   await db.put('workspaces', ws);
   signalWrite();
   return ws;

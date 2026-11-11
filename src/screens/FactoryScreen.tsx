@@ -31,6 +31,7 @@ import { lineKit } from '../lib/lineRecords';
 import { snagRow } from '../lib/snagsReport';
 import { PageHeader } from '../ui/parts';
 import { CustomersPanel } from '../ui/CustomersPanel';
+import { BusinessPanel } from '../ui/BusinessPanel';
 import { useClientScope } from '../lib/activeClient';
 import { customerKey } from '../lib/customers';
 import { EmptyState } from '../ui/EmptyState';
@@ -208,6 +209,8 @@ export function FactoryScreen() {
         {may ? ' Type over a name or a type to change it; move a line up or down; add as many as you have.' : ' Only someone invited to the app changes the factory.'}
       </p>
       {saved && <p className="fac-saved" role="status">Saved — {saved}</p>}
+      {/* YOUR BUSINESS (O1, docs/ORGANISATION.md): its name, who you are in it, its people one tap away */}
+      <BusinessPanel />
       {/* CUSTOMERS (C2a): added by name before any line, archived and continued */}
       <CustomersPanel may={may} />
 
