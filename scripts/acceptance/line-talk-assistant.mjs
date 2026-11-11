@@ -226,7 +226,7 @@ plan.push({ a: { reply: 'Here is the line-walk report, with P1 and P2 beside wha
 ] } }, extra: { unsure: ['15'] } });
 await send();
 ok(await waitFor(async () => /LINE-WALK REPORT[\s\S]*Line 7 — walk[\s\S]*1 section · 2 photos/.test(await page.locator('.tk-doc').last().innerText().catch(() => ''))), '7 the document’s card', await page.locator('.tk-doc').last().innerText().catch(() => ''));
-ok(/^Check before you use it: 15 is not in what was said or in Faultline’s records\.$/.test((await replies().last().locator('.tk-unsure').innerText().catch(() => '')).trim()), '7 a figure it was not given — said, to check');
+ok(/^Check before you use it: 15 is not in what was said or in Luna’s records\.$/.test((await replies().last().locator('.tk-unsure').innerText().catch(() => '')).trim()), '7 a figure it was not given — said, to check');
 ok((asks.at(-1)?.turns.at(-1)?.text ?? '') === asked7, '7 asked in the shortcut’s words');
 
 /* 8 — opened, edited where it stands, kept */

@@ -125,7 +125,7 @@ ok(/Nothing of Customer X Foods/.test(result(asks.at(-1))?.says ?? '') && !JSON.
 await page.locator(`${box} [data-make]`).click();
 await page.waitForSelector(`${box} [data-draft-card]`, { timeout: 5000 }).catch(() => undefined);
 const preview = await t.words(`${box} [data-draft-card]`);
-ok(/Make Customer X Foods’s factory in Faultline/.test(preview) && /3 new lines — Packaging Line 1 \(Main factory › Packaging\) with Weighing scale, Bagging machine/.test(preview) && /Held on the draft/.test(preview), `3 what it will make said first: "${preview.slice(0, 160)}"`);
+ok(/Make Customer X Foods’s factory in the app/.test(preview) && /3 new lines — Packaging Line 1 \(Main factory › Packaging\) with Weighing scale, Bagging machine/.test(preview) && /Held on the draft/.test(preview), `3 what it will make said first: "${preview.slice(0, 160)}"`);
 ok(!(await db()).lines.some(l => l.clientName === CLIENT), '3 nothing written while the card waits');
 await page.locator(`${box} [data-draft-card]`).getByRole('button', { name: 'Do it' }).click();
 await page.waitForSelector(`${box}[data-draft-status="made"]`, { timeout: 10000 }).catch(() => undefined);
@@ -178,7 +178,7 @@ ok((await page.locator(`${labeller}[data-fd-state="pending"]`).count()) === 1 &&
 ok(/From Equipment register\.csv/.test(await t.words(`${labeller} [data-fd-fact="model"]`)), '4 its model said to be from the register');
 const conflict = `${box} [data-fd-node="Packaging Line 1"] [data-fd-node="Bagging machine"] [data-fd-conflict="model"]`;
 const cw = await t.words(conflict);
-ok(/Faultline holds BX-200/.test(cw) && /The document says BX-100/.test(cw) && /dated 1 Mar 2026/.test(cw), `4 the bagging machine: recorded BX-200 against the register’s BX-100, with where each came from: "${cw.slice(0, 160)}"`);
+ok(/[Tt]he app holds BX-200/.test(cw) && /The document says BX-100/.test(cw) && /dated 1 Mar 2026/.test(cw), `4 the bagging machine: recorded BX-200 against the register’s BX-100, with where each came from: "${cw.slice(0, 160)}"`);
 ok(/dated 1 Mar 2026, but the Bagging machine’s model was recorded on/.test(await t.words(`${box} [data-fd-node="Packaging Line 1"] [data-fd-node="Bagging machine"] [data-fd-flag]`)), '4 the register flagged as older than what is recorded');
 ok((await page.locator(`${box} [data-make]`).count()) === 0 && /wait for your word/.test(await t.words(`${box} [data-fd-blockers]`)), '4 Make it held while proposals wait and the difference is not picked');
 /* one corrected in conversation */
