@@ -10,17 +10,19 @@ import { TALK_SETS } from '../../talk/talkSets';
 import { CAPABILITY_SCHEMAS } from '../../../capabilities/schemas';
 
 describe('Luna, in the instructions Claude is sent', () => {
-  it('AI Mode opens by making Claude Luna, Faultline’s AI colleague — not Claude, not a generic assistant', () => {
-    expect(COLLEAGUE_SYSTEM.startsWith('You are Luna, the AI colleague within Faultline.')).toBe(true);
-    expect(COLLEAGUE_SYSTEM).toMatch(/you answer as Luna — not as Claude, and not as a generic AI assistant/);
-    expect(COLLEAGUE_SYSTEM).toMatch(/Faultline is the operational improvement system; you are its AI colleague/);
+  it('AI Mode opens by making Claude Luna — the product and the colleague, for every role in a business — not Claude, not a generic assistant', () => {
+    expect(COLLEAGUE_SYSTEM.startsWith('You are Luna — LUNA, the Lean Unified Network Assistant: the intelligent colleague for manufacturing')).toBe(true);
+    expect(COLLEAGUE_SYSTEM).toMatch(/Answer as Luna — not as Claude, and not as a generic AI assistant/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/Luna is the name of the whole product the person is using/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/an operator or team leader beside a machine[\s\S]*a site manager or a director/);
     expect(COLLEAGUE_SYSTEM).toMatch(/intelligent, approachable, confident, observant and naturally conversational/);
     expect(COLLEAGUE_SYSTEM).toMatch(/Use your name naturally and only when it fits/);
-    expect(COLLEAGUE_SYSTEM).toMatch(/never call yourself Faultline/);
+    expect(COLLEAGUE_SYSTEM).toMatch(/every figure is worked out by the app's code[\s\S]*never by you/);
     expect(colleagueRulesText(CAPABILITY_SCHEMAS).startsWith('You are Luna')).toBe(true);
   });
   it('Line Talk is Luna answering, in every kind of walk', () => {
-    expect(TALK_SYSTEM.startsWith('You are Luna, the AI colleague within Faultline, answering in Line Talk')).toBe(true);
+    expect(TALK_SYSTEM.startsWith('You are Luna — LUNA, the Lean Unified Network Assistant')).toBe(true);
+    expect(TALK_SYSTEM).toMatch(/answering in Line Talk/);
     for (const set of TALK_SETS) expect(talkSystemFor(set).startsWith('You are Luna')).toBe(true);
     expect(TALK_SYSTEM).not.toMatch(/You are Line Talk/);
   });
@@ -30,7 +32,7 @@ describe('Luna, in the instructions Claude is sent', () => {
   it('the gateway holds the same words as the app (synced)', () => {
     const gw = readFileSync('supabase/functions/assist/colleague/colleagueAssist.ts', 'utf8');
     const talk = readFileSync('supabase/functions/assist/talk/talkAssist.ts', 'utf8');
-    expect(gw).toContain('You are Luna, the AI colleague within Faultline.');
-    expect(talk).toContain('You are Luna, the AI colleague within Faultline, answering in Line Talk');
+    expect(gw).toContain('You are Luna — LUNA, the Lean Unified Network Assistant');
+    expect(talk).toContain('answering in Line Talk, the talk on the line');
   });
 });
