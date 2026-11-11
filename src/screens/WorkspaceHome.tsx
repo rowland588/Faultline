@@ -60,6 +60,9 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { useFactoryQuestions } from '../lib/useFactoryQuestions';
 import { greeting } from '../lib/factoryQuestions';
 import { setActiveClient, useClientScope } from '../lib/activeClient';
+import { customerKey } from '../lib/customers';
+import { useAiMode } from '../colleague/aiMode';
+import { askLuna } from '../colleague/lunaPanel';
 import { firstName } from '../lib/brand';
 import { NeedsYou, QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
 
@@ -158,6 +161,7 @@ export function WorkspaceHome() {
   // Every job, on every method — the control room is not a stage-gate board.
   /* …of the active client only (lib/activeClient, C1): the board, its control room paper and the four answers never mix two businesses */
   const cs = useClientScope();
+  const aiOn = useAiMode();
   const jobs = useMemo(() => projects.filter(p => cs.project(p.id)), [projects, cs]);
 
   // Which line (and project) each workspace sits under, so the list below can
@@ -243,12 +247,15 @@ export function WorkspaceHome() {
      the same function as its capacity panel (lib/intelligence lineRates), so
      the card and the panel cannot disagree (docs/upgrade-plan.md, O) */
   const rateOf = useLineRates();
-  const prodLines = productionLines((list ?? []).filter(w => w.id !== pendingDel?.id && (liveIds === null || liveIds.has(w.id))));
+  /* an ARCHIVED CUSTOMER's lines are not on the board (lib/customers, C2a) — kept as they were, back when it is continued */
+  const goneCustomers = new Set(cs.archived.map(c => customerKey(c.name)));
+  const prodLines = productionLines((list ?? []).filter(w => w.id !== pendingDel?.id && (liveIds === null || liveIds.has(w.id)) && !goneCustomers.has(customerKey(w.clientName))));
   /* HOW FRESH THE LOOKING IS, a line at a time (FC-199, tools/gemba) — the silence made visible on the board */
   const looked = useLooking(prodLines.map(w => w.id));
   /* WHOSE LINES (8 November, docs/CONSULTANT.md K1): with more than one client named on the lines, the Lines are shown a client at a
      time (picked here, kept on this device); with one, the page is titled by it; the lines sit under their site and area. */
-  const clients = clientsOf(prodLines);
+  /* the customers in use — one added with no line among them (C2a) */
+  const clients = cs.ready ? cs.clients : clientsOf(prodLines);
   /* the one active client (lib/activeClient, C1, read above) — the top bar's choice and these chips are the same choice */
   const picked = cs.filtering ? cs.client : '';
   const pickClient = (c: string) => setActiveClient(c);
@@ -274,7 +281,7 @@ export function WorkspaceHome() {
   const [deptSite, setDeptSite] = useState('');
   const [deptWhy, setDeptWhy] = useState('');
   const makeDept = async () => {
-    const r = await addDepartment({ area: deptName ?? '', site: deptSite, ...(picked || oneClient ? { client: picked || oneClient } : {}) });
+    const r = await addDepartment({ area: deptName ?? '', site: deptSite, ...(picked || oneClient || cs.client ? { client: picked || oneClient || cs.client } : {}) });
     if (!r.ok) { setDeptWhy(r.why); return; }
     setDeptName(null); setDeptSite(''); setDeptWhy('');
   };
@@ -351,6 +358,17 @@ export function WorkspaceHome() {
         </EmptyState>
       ) : (
         <>
+          {/* A CUSTOMER WITH NO LINE YET (C2a): its world is empty, and the next step is said */}
+          {picked && shownLines.length === 0 && !emptyDepts.length && (
+            <EmptyState className="blank-list fac-new-customer" title={`Nothing at ${picked} yet`}
+              action={<>
+                <button className="btn btn-primary" onClick={() => nav('/factory?add=1')}>Add the first line or area</button>
+                <button className="btn" onClick={() => nav('/talks')}>Start a Line Talk</button>
+                {aiOn && <button className="btn" onClick={() => askLuna(`I'm at ${picked} — help me set up what I see.`)}>Ask Luna</button>}
+              </>}>
+              Add the first line or area — or start a Line Talk, or ask Luna. Everything made here is {picked}’s.
+            </EmptyState>
+          )}
           <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
           <div className="fac-floor-head" aria-hidden><span>Line</span><span>Where it stands</span><span>The worst thing open</span><span>Programs · projects · looked at</span></div>
           {areaGroups ? (

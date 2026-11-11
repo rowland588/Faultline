@@ -29,6 +29,7 @@ import { checkObject, ID } from './check';
 import { anyone, mayEdit } from './access';
 import { lineRef, notFound, plural, problemRef, projectRef } from './util';
 import type { CapCtx, CapRef, CapResult, Capability, ColleagueThread } from './types';
+import { activeClientNow } from '../lib/activeClient';
 
 async function conversation(ctx: CapCtx): Promise<{ ok: true; s: ToolStudy } | { ok: false; why: string }> {
   if (!ctx.conversationId) return { ok: false, why: 'This needs a conversation to keep it in, and there is none open.' };
@@ -229,7 +230,9 @@ export const addDepartmentCap: Capability = {
   async run(ctx, input: DeptIn): Promise<CapResult> {
     const at = ctx.now, by = byOf(ctx);
     const how = { how: 'reported' as const, at, ...(by ? { by } : {}), source: { kind: 'conversation' as const, ...(ctx.conversationId ? { id: ctx.conversationId } : {}) } };
-    const r = await addDepartment({ area: input.area, ...(input.site ? { site: input.site } : {}), ...(input.client ? { client: input.client } : {}) }, { area: how, ...(input.site ? { site: how } : {}), ...(input.client ? { client: how } : {}) });
+    /* no client said: the customer in hand (lib/activeClient, C2a) — the department is aligned to it */
+    const client = input.client?.trim() || (await activeClientNow()).client;
+    const r = await addDepartment({ area: input.area, ...(input.site ? { site: input.site } : {}), ...(client ? { client } : {}) }, { area: how, ...(input.site ? { site: how } : {}), ...(input.client ? { client: how } : {}) });
     if (!r.ok) return r;
     return { ok: true, says: r.made ? `“${r.facts.area}” is a department of the factory now — nothing made under it.` : `“${r.facts.area}” was already a department — nothing new made.`, data: { id: r.id, made: r.made }, refs: [deptRef(r.id, r.facts)] };
   },

@@ -105,6 +105,25 @@ Not filtered yet: Luna's read capabilities across the factory (overdue actions, 
 columns (C6 brings Luna's reads; the Excel names no client column). Proof: `scripts/acceptance/active-client.mjs`,
 `src/lib/__tests__/activeClient.test.ts`.
 
+**C2a — Customers, built (11 November).** Rowland: *"I should input a customer, everything under that customer is aligned to it. And I
+need to archive the customer .. but I need ability to continue it when required. Then add another customer etc."* `src/lib/customers.ts`,
+`ui/CustomersPanel` on the Factory's **Set up** tab (the calm place for what is set once) and *＋ A new customer…* in the top bar's
+client menu. **Storage, no new noun and no migration:** a customer's anchor is its **Story** (tool `story`, `agreed.story.client` —
+the engagement record that already exists one per client and syncs like every study). Weighed: a new study kind would need
+`studies_tool_check` widened (a migration); the profile's preferences are one person's, not the factory's. So *Add a customer* (name,
+site optional) starts its story with an empty brief (*No brief yet* on the Story) and `agreed.story.site`, and makes it the active
+client at once — the Lines tab then shows its empty world and the next step (*Add the first line or area — or start a Line Talk, or ask
+Luna*). **Aligned to it:** a line made while a customer is active takes its name and site (`lib/lines addLineToFactory` — Set up the
+lines, the problem form's new line, Luna's factory draft when it names no client), and so does a department (＋ A department, Luna's
+`add_department`); projects, studies, problems and stories already follow their lines (C1). **Archive** (owner of the factory only —
+the same `useCanStartProjects` Set up the lines uses; a confirm saying what it does; Undo for a few seconds) stamps
+`agreed.story.archivedAt` on every story of the client (one made, brief empty, for a client named only on its lines). Nothing else is
+written: its lines are not archived one by one, so **Continue** (under the *Archived* fold) brings back exactly what was there, made the
+active client, and a line archived on its own stays archived. An archived customer leaves the top bar, Set up's lines, the Lines tab,
+Today, Problems, Actions, Projects, Machines, the Tools counts and lists, the bell, search and Go to ▾ (lib/activeClient hides it
+whichever client is active), and Luna's `resolve`, `factory_map` and `recall` leave it out until it is continued. Proof:
+`scripts/acceptance/customers.mjs`, `src/lib/__tests__/activeClient.test.ts`.
+
 Then, each live on its own: **C2** a new business in one tap (client = its engagement, a holding place for capture before lines) ·
 **C3** the visit (read from the day's records; its brief and report kept) · **C4** the library (cloud saved copies — a migration) ·
 **C5** my templates · **C6** Luna's active client and visit.

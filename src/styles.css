@@ -10772,6 +10772,15 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .nv-client-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nv-client-b .icon { flex: none; color: var(--muted); }
 .nv-client-list .part-menu-i.is-on { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--brand); }
+/* CUSTOMERS on the Factory's Set up tab (ui/CustomersPanel, lib/customers — C2a) */
+.fac-customers { margin: var(--space-5) 0; }
+.fac-customers-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-3); }
+.fac-customers-h h2 { margin: 0; font-size: var(--t-h); }
+.fac-customer { display: flex; align-items: center; gap: var(--space-2); }
+.fac-customer .lt-row { flex: 1; min-width: 0; }
+.fac-customer .btn-sm { flex: none; min-height: var(--tap); }
+.fac-customer-form { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-3) 0; }
+.fac-customer-form .text-input { flex: 1 1 200px; min-height: var(--tap); }
 /* Go to a line or project, in the client's menu — on a phone only, where the client stands in Go to's place */
 .nv-client-list .nv-client-goto { display: none; }
 @media (max-width: 719px) {

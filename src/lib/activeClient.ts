@@ -21,6 +21,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Workspace } from '../types';
 import { clientsOf, productionLines } from './lines';
 import type { JobLine } from './lineRecords';
+import { archivedKeys, customerKey, customersOf, type Customer } from './customers';
 
 export const CLIENT_KEY = 'faultline.client';
 
@@ -87,11 +88,19 @@ export interface ClientScope {
   /** Of a named client, whichever is active — the Story is always one client's (lib/storyPick). */
   projectOf: (id: string | null | undefined, client: string) => boolean;
   recordOf: (r: Placed, client: string) => boolean;
+  /** The customers (lib/customers, C2a) — those in use, and the archived, each with its line count. */
+  customers: Customer[];
+  archived: Customer[];
 }
 
 /** The scope, from every line (archived and a project's walk among them — a record keeps its line's client) and the projects' lines. */
-export function clientScope(lines: readonly Workspace[], jobLines: readonly JobLine[], stored: string): ClientScope {
-  const clients = clientsOf(productionLines(lines));
+export function clientScope(lines: readonly Workspace[], jobLines: readonly JobLine[], stored: string, customers?: readonly Customer[]): ClientScope {
+  /* THE CUSTOMERS (lib/customers, C2a): a customer added with no line is a client too; an archived one is none — hidden everywhere,
+     its records untouched, until it is continued */
+  const gone = customers ? archivedKeys(customers) : new Set<string>();
+  const hidden = (c: string) => !!c && gone.has(customerKey(c));
+  const clients = [...new Set([...clientsOf(productionLines(lines)), ...(customers ?? []).map(c => c.name)])]
+    .filter((c, i, all) => !hidden(c) && all.findIndex(x => customerKey(x) === customerKey(c)) === i).sort((a, b) => a.localeCompare(b));
   const client = activeClientOf(clients, stored);
   const several = clients.length > 1;
   const filtering = several && !!client;
@@ -107,15 +116,19 @@ export function clientScope(lines: readonly Workspace[], jobLines: readonly JobL
   const lineClient = (id?: string | null) => (id ? byLine.get(id) ?? '' : '');
   const projectClients = (id?: string | null) => (id ? byProject.get(id) ?? [] : []);
   const whoseAll = (r: Placed): string[] => { const l = lineClient(r.workspaceId); return l ? [l] : projectClients(r.projectId); };
+  /* of an archived customer only — never shown, whichever client is active */
+  const away = (cs: string[]) => cs.length > 0 && cs.every(hidden);
   return {
     clients, client, several, filtering, all: several && !client,
     lineClient, projectClients,
     whose: r => whoseAll(r).join(', '),
-    line: id => !filtering || lineClient(id) === client,
-    project: id => !filtering || projectClients(id).includes(client),
-    record: r => !filtering || whoseAll(r).includes(client),
-    projectOf: (id, c) => !several || projectClients(id).includes(c),
-    recordOf: (r, c) => !several || whoseAll(r).includes(c),
+    line: id => !hidden(lineClient(id)) && (!filtering || lineClient(id) === client),
+    project: id => !away(projectClients(id)) && (!filtering || projectClients(id).includes(client)),
+    record: r => !away(whoseAll(r)) && (!filtering || whoseAll(r).includes(client)),
+    projectOf: (id, c) => !away(projectClients(id)) && (!several || projectClients(id).includes(c)),
+    recordOf: (r, c) => !away(whoseAll(r)) && (!several || whoseAll(r).includes(c)),
+    archived: (customers ?? []).filter(c => c.archived),
+    customers: (customers ?? []).filter(c => !c.archived),
   };
 }
 
@@ -138,10 +151,13 @@ export function placeInClient(s: ClientScope, to: string): boolean {
 export const clientBand = (s: ClientScope): string => (s.filtering ? s.client : s.all ? 'All clients' : '');
 
 /** The active client read once, no hook — what Luna is told (colleague/turnRules): '' and several false when one or none is named. */
-export async function activeClientNow(): Promise<{ client: string; several: boolean }> {
+export async function activeClientNow(): Promise<{ client: string; several: boolean; site?: string; archived: Set<string> }> {
   const db = await import('../db');
-  const clients = clientsOf(productionLines(await db.listWorkspaces()));
-  return { client: activeClientOf(clients, chosen()), several: clients.length > 1 };
+  const [lines, studies] = await Promise.all([db.listWorkspaces(), db.listAllStudies()]);
+  const customers = customersOf(lines, studies);
+  const s = clientScope(lines, [], chosen(), customers);
+  const site = s.client ? customers.find(c => customerKey(c.name) === customerKey(s.client))?.site : undefined;
+  return { client: s.client, several: s.several, ...(site ? { site } : {}), archived: archivedKeys(customers) };
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------------- */
@@ -158,18 +174,18 @@ export function useStoredClient(): string {
 /** The scope as the lists read it; `ready` once the lines are read (a list waits for it rather than flash another client's rows). */
 export function useClientScope(): ClientScope & { ready: boolean } {
   const stored = useStoredClient();
-  const [got, setGot] = useState<{ lines: Workspace[]; jobLines: JobLine[] } | null>(null);
+  const [got, setGot] = useState<{ lines: Workspace[]; jobLines: JobLine[]; customers: Customer[] } | null>(null);
   useEffect(() => {
     let live = true;
     const load = () => void (async () => {
       const db = await import('../db');
-      const [lines, jobLines] = await Promise.all([db.listWorkspaces(), db.allPaceLines()]);
-      if (live) setGot({ lines, jobLines });
+      const [lines, jobLines, studies] = await Promise.all([db.listWorkspaces(), db.allPaceLines(), db.listAllStudies()]);
+      if (live) setGot({ lines, jobLines, customers: customersOf(lines, studies) });
     })();
     load();
     let off = () => {};
     void import('../db').then(db => { if (live) off = db.onDataChange(load); });
     return () => { live = false; off(); };
   }, []);
-  return useMemo(() => ({ ...clientScope(got?.lines ?? [], got?.jobLines ?? [], stored), ready: !!got }), [got, stored]);
+  return useMemo(() => ({ ...clientScope(got?.lines ?? [], got?.jobLines ?? [], stored, got?.customers), ready: !!got }), [got, stored]);
 }

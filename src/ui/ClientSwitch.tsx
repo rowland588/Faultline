@@ -9,6 +9,7 @@ import { setActiveClient, type ClientScope } from '../lib/activeClient';
 import { useMenu } from './parts';
 import { Icon } from './Icon';
 import { nav } from '../state/useRoute';
+import { useCanStartProjects } from '../cloud/access';
 
 export function ClientSwitch({ cs, here = [], onGoTo }: {
   cs: ClientScope;
@@ -19,6 +20,7 @@ export function ClientSwitch({ cs, here = [], onGoTo }: {
   onGoTo?: () => void;
 }) {
   const m = useMenu();
+  const mayAdd = useCanStartProjects();
   const id = useId();
   if (!cs.several) return null;
   const pick = (c: string) => { m.setOpen(false); setActiveClient(c); if (c && here.length && !here.includes(c)) nav('/room'); };
@@ -40,6 +42,12 @@ export function ClientSwitch({ cs, here = [], onGoTo }: {
           <button type="button" role="menuitemradio" aria-checked={!cs.client} className={'part-menu-i' + (!cs.client ? ' is-on' : '')} onClick={() => pick('')}>
             <b>All clients</b><span>Every business at once — each row says whose it is</span>
           </button>
+          {/* C2a: a new customer, added by name before it has a line — on the Set up tab's Customers */}
+          {mayAdd && (
+            <button type="button" role="menuitem" className="part-menu-i nv-client-new" onClick={() => { m.setOpen(false); nav('/factory?customer=new'); }}>
+              <b>＋ A new customer…</b><span>Add a business by its name — its lines come later</span>
+            </button>
+          )}
           {onGoTo && (
             <button type="button" role="menuitem" className="part-menu-i nv-client-goto" onClick={() => { m.setOpen(false); onGoTo(); }}>
               <b>Go to a line or project…</b><span>Every line and project of {cs.client || 'every client'}, found by typing</span>

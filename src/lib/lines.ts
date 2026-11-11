@@ -111,7 +111,12 @@ export async function addLineToFactory(name: string, lineType?: string, taxonomy
   const order = await liveProductionLines(await listWorkspaces());
   for (const x of numbered(order)) await updateWorkspace(x);
   const w = await createWorkspace(name, taxonomyId);
-  const placed = { ...w, lineType: lineType?.trim() || undefined, floorOrder: order.length };
+  /* THE CUSTOMER IN HAND (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C2a): a line made while a customer is the active client is
+     that customer's — its name, and its site when the customer has one — so everything under it is aligned to it */
+  const { activeClientNow } = await import('./activeClient');
+  const ac = await activeClientNow();
+  const placed = { ...w, lineType: lineType?.trim() || undefined, floorOrder: order.length,
+    ...(ac.client ? { clientName: ac.client, ...(ac.site ? { siteName: ac.site } : {}) } : {}) };
   await updateWorkspace(placed);
   /* A PROJECT'S LINE OF THE SAME NAME, MADE BEFORE IT, JOINS IT (Rowland, 23 October: "i had programs in there
      today on line 2a now nothing" — his project's "Line 2A" was made before the factory's "Line 2a" and the two
@@ -196,7 +201,7 @@ export async function factoryLineFor(name: string, taxonomyId?: string): Promise
  *  (Your factory opened on its Add lines; a tool's list opened on its New —
  *  from a method's step done with that tool). Read once,
  *  when the screen opens; the router keys the screen on the line. */
-export function asked(key: 'line' | 'open' | 'add' | 'project'): string | undefined {
+export function asked(key: 'line' | 'open' | 'add' | 'project' | 'customer'): string | undefined {
   return new URLSearchParams(window.location.hash.split('?')[1] ?? '').get(key) ?? undefined;
 }
 

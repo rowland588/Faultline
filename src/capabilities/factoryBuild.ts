@@ -201,7 +201,8 @@ export async function makeFactory(ctx: CapCtx, s: ToolStudy, d: ColleagueDraft):
     const cur = (await getWorkspace(w.id)) ?? w;
     const site = siteFact(l, 'site'), area = siteFact(l, 'area');
     const known: Known = { ...(cur.known ?? {}), name: knownOf(l.node.name, ctx), clientName: knownOf(body.client, ctx), ...(site ? { siteName: knownOf(site, ctx) } : {}), ...(area ? { areaName: knownOf(area, ctx) } : {}) };
-    await updateWorkspace({ ...cur, clientName: v.client, ...(site ? { siteName: site.value } : {}), ...(area ? { areaName: area.value } : {}), known });
+    /* a draft that names no client keeps the customer in hand the line was made under (lib/lines addLineToFactory, C2a) */
+    await updateWorkspace({ ...cur, clientName: v.client || cur.clientName, ...(site ? { siteName: site.value } : {}), ...(area ? { areaName: area.value } : {}), known });
     made.set(l.node.id, w.id);
     refs.push(lineRef(w));
   }

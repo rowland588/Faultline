@@ -15,6 +15,10 @@ a session that ships something updates this page in the same commit.** The rules
   the Tools counts and every tool's list, the bell, search, Go to ▾, Machines, the Story and Luna's context follow it; All clients names
   whose each row is; a page of another client's line or project moves the bar to that client. With one client nothing changes but the
   greeting (*Good morning, Rowland* once Your brand names him). No database change. `scripts/acceptance/active-client.mjs`.
+- **Customers — added, archived, continued (11 November, C2a).** A customer is added by name before any line (Set up › Customers, or the
+  top bar's ＋ A new customer…) and made the active client; a line or department made under it takes its name; **Archive** hides it and
+  everything under it everywhere (Luna's lookups too) with nothing deleted or changed, **Continue** brings it back as it was. The anchor
+  is the customer's Story record (`agreed.story.archivedAt`, `site`) — no migration. `scripts/acceptance/customers.mjs`.
 
 - **The model for each AI task (9 November).** Rowland: *"we want quality output but lowest cost"*. Each task of the `assist`
   gateway has its own model setting (`supabase/functions/assist/index.ts`, the top): Line Talk (`ASSIST_TALK_MODEL`), the Story
