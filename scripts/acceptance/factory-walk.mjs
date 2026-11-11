@@ -126,7 +126,7 @@ plan = [
 await send('Walking into Dispatch now — keep Dispatch as a department.');
 await page.waitForSelector('[data-card="add_department"][data-card-status="waiting"]', { timeout: 10000 }).catch(() => undefined);
 const moved = result(asks.find(a => result(a)?.says?.includes('Dispatch') && /not a department/.test(result(a)?.says)) ?? {})?.says ?? '';
-ok(/You are at Hull › Dispatch/.test(moved) && /“Dispatch” is not a department in Faultline yet/.test(moved), `4 the move said, Dispatch not a department yet: "${moved.slice(0, 160)}"`);
+ok(/You are at Hull › Dispatch/.test(moved) && /“Dispatch” is not a department in the app yet/.test(moved), `4 the move said, Dispatch not a department yet: "${moved.slice(0, 160)}"`);
 const dcard = page.locator('[data-card="add_department"][data-card-status="waiting"]');
 ok(/Add “Dispatch” at Hull for Acme Foods as a department of the factory — a record of its own, with no lines or machines made under it/.test((await dcard.innerText().catch(() => '')).replace(/\s+/g, ' ')), '4 add_department a card saying nothing is made under it');
 ok((await depts()).length === 0, '4 no department while the card waits');
