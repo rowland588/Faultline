@@ -7,6 +7,14 @@ a session that ships something updates this page in the same commit.** The rules
 
 ## 1. What is live (main at the look's L0 commit, 6 November, Vercel production READY, faultline.opexelevate.co.uk)
 
+- **Luna the front door, and AI Mode calm (11 November, F1–F2 — Rowland: *"Luna becomes the primary way people interact … this does NOT
+  mean that everything becomes a chatbot … As Luna becomes more capable, the user experience should become simpler"*).** F1: Today
+  (`#/today`) with AI Mode on opens with Luna — the header's one line asks what the person wants to understand or get done, then her box
+  with voice beside it (`colleague/lunaPanel talkToLuna`: the voice bar at the foot of Today) and two or three suggestions worked out by
+  code from the real state (`lib/today suggestionsFor`); sending opens her beside Today; AI Mode off, Today is as before. F2: AI Mode at
+  a desk opens on the conversation and the work alone — Conversations and Show context each one press (kept per device), Parked, Sources
+  and What your words mean folds in the context. No menu item added, nothing removed. `luna-front-door.mjs`; scripts reading the context
+  open it first (`scripts/lib/lunaContext.mjs`); calm's Today entry lowered (desk 4 → 1 boxes).
 - **Problems raised from inside a tool, and held there (11 November, `docs/TOOL-PROBLEMS.md`).** Rowland, at Cellox: *"raise a problem from inside the tool … a specific station … held within the tool itself"*. A workstation's sheet on Stops across workstations and every tool record's More ▾ raise the one problem sheet with the line, project, machine and the part's pictures (the same files) filled in; the problem remembers the record and part (`raised:`/`study:` tags in `linked_obs_ids`, no column — `snag/toolLink`), the tile counts it, *Problems raised here* lists it, the tool's paper prints it; linked or unlinked from either end with Undo; the problem's editor, panel, row, report and card say *Raised from …*. `tool-problems.mjs`.
 - **One active client everywhere (11 November, `docs/CONSULTANT-WORKSPACE.md` C1).** Rowland: *"move between these businesses without
   losing context or mixing their information"*. `lib/activeClient` is the one source of the client the app shows (the device's

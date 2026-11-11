@@ -534,6 +534,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the door in the top bar', sel: '.ai-door' },
     /* Phase 4, on the floor: Speak replies, Conversation, Sounds and Before you walk the floor sit under it */
     { what: 'More ▾ — the voice and the floor check', sel: '.ai-head-acts .part-menu-b' },
+    /* 11 November, F2 — AI Mode calm: the conversation alone at first; the earlier conversations and the context each one tap away */
+    { what: 'Conversations — the earlier conversations one tap away', sel: '[data-ai-list-b]', desk: true },
+    { what: 'Show context — what it is on, being built, parked and the sources one tap away', sel: '[data-ai-ctx-b]', text: /Show context/, desk: true },
   ] },
   { name: 'How AI Mode is used', path: '#/ai/usage', must: [
     /* 8 November, docs/AI-MODE.md §9 (phase 5b): what it costs, what the colleague did, candidates for code — the seed has no
