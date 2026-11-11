@@ -17755,16 +17755,20 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .doc-form .doc-sec { display: block; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
 .doc-form .fold { margin: 0; overflow: visible; background: none; border-radius: 0; box-shadow: none; border-top: 1px solid var(--line); }
 .doc-form .doc-sec:last-child .fold { border-bottom: 1px solid var(--line); }
-.doc-form .fold-h, .doc-working .fold-h { align-items: center; padding: 0 var(--space-1); }
-.doc-form .fold-toggle, .doc-working .fold-toggle { align-items: center; min-height: 44px; }
+.doc-form .fold-h, .doc-later .fold-h { align-items: center; padding: 0 var(--space-1); }
+.doc-form .fold-toggle, .doc-later .fold-toggle { align-items: center; min-height: 44px; }
 .doc-form .fold-b { display: flex; flex-direction: column; gap: var(--space-3); padding: 0 var(--space-1) var(--space-5); }
 .doc-form .doc-row { border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; padding: var(--space-2) 0 0; }
 .doc-form .doc-list, .doc-form .doc-photos { border-top: 0; padding-top: var(--space-2); }
-.doc-working .fold { margin: 0; overflow: visible; background: none; border-radius: 0; box-shadow: none; border-top: 1px solid var(--line); }
-.doc-working .fold-b { padding: 0 0 var(--space-2); }
+.doc-later .fold { margin: 0; overflow: visible; background: none; border-radius: 0; box-shadow: none; border-top: 1px solid var(--line); }
+.doc-later .fold-b { padding: 0 0 var(--space-2); }
+/* the reading's own folds (a table, what it does not say) are quieter than a section's: the reading's label size, not a heading */
+.doc-later .fold-t { font-family: inherit; font-size: var(--t-detail); font-weight: 600; }
 @media (max-width: 719px) {
-  .doc-form .fold-h { flex-wrap: wrap; gap: 0 var(--space-3); padding: 0 0 var(--space-2); }
-  .doc-form .fold-s { white-space: normal; }
+  .doc-form .fold-h, .doc-later .fold-h { flex-wrap: wrap; gap: 0 var(--space-3); padding: 0 0 var(--space-2); }
+  .doc-form .fold-s, .doc-later .fold-s { white-space: normal; }
+  /* a long section name (8D's D0) wraps inside the phone, never past its edge */
+  .doc-form .fold-t, .doc-later .fold-t { white-space: normal; }
 }
 /* FACTORY, CALMER (10 November) — Rowland: "Too busy. Things need to be simplified". The projects' board is one fold (ui/Fold,
    "Every project — the control room") under the three answers: it spans the page as they do, the closing line under it */

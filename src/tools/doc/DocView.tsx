@@ -62,20 +62,22 @@ export function ReadingView({ run }: { run: DocRun }) {
         </div>
       )}
       {(r.tables ?? []).map(t => (
-        <section key={t.title} className="doc-table" data-doc-table={t.title} aria-label={t.title}>
-          <span className="ie-checks-h">{t.title}</span>
-          {t.note && <p className="sub">{t.note}</p>}
-          <div className="doc-table-scroll">
-            <table className="ie-tbl">
-              <thead><tr>{t.head.map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
-              <tbody>{t.rows.map((row, i) => <tr key={i}>{row.map((c, k) => (k === 0 ? <th key={k} scope="row">{c}</th> : <td key={k}>{c}</td>))}</tr>)}</tbody>
-            </table>
-          </div>
+        /* a table worked out from the boxes: open at a desk, one line on a phone until it is wanted (docs/DESIGN.md) */
+        <section key={t.title} className="doc-table doc-later" data-doc-table={t.title} aria-label={t.title}>
+          <Fold id={`doc.table.${run.def.key}.${t.title}`} title={t.title} says={`${t.rows.length} row${t.rows.length === 1 ? '' : 's'}`}>
+            {t.note && <p className="sub">{t.note}</p>}
+            <div className="doc-table-scroll">
+              <table className="ie-tbl">
+                <thead><tr>{t.head.map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
+                <tbody>{t.rows.map((row, i) => <tr key={i}>{row.map((c, k) => (k === 0 ? <th key={k} scope="row">{c}</th> : <td key={k}>{c}</td>))}</tr>)}</tbody>
+              </table>
+            </div>
+          </Fold>
         </section>
       ))}
       {(r.working ?? []).length > 0 && (
         /* the working is for whoever checks the sums — one line until it is wanted (docs/DESIGN.md, progressive disclosure) */
-        <div className="calc-working doc-working">
+        <div className="calc-working doc-working doc-later">
           <Fold id="doc.working" title="How it is worked out" says={`${(r.working ?? []).length} step${(r.working ?? []).length === 1 ? '' : 's'} of the sum`} start={false}>
             <table className="ie-tbl calc-working-t doc-working-t">
               <tbody>{(r.working ?? []).map(w => <tr key={w.label}><th scope="row">{w.label}</th><td>{w.value}{w.note ? <small>{w.note}</small> : null}</td></tr>)}</tbody>
@@ -89,9 +91,11 @@ export function ReadingView({ run }: { run: DocRun }) {
         {r.money.none && <p className="sub" data-doc="money-none">{r.money.none}</p>}
         {r.money.missing.map(m => <p key={m} className="sub calc-money-missing" data-doc="money-missing">{m}</p>)}
       </div>
-      <div className="calc-caveats doc-caveats">
-        <span className="ie-checks-h">What this does not say</span>
-        <ul>{r.caveats.map(c => <li key={c} className="sub">{c}</li>)}</ul>
+      {/* the limits of the reading — for whoever checks it, one line until it is wanted (docs/DESIGN.md, progressive disclosure) */}
+      <div className="calc-caveats doc-caveats doc-later">
+        <Fold id="doc.caveats" title="What this does not say" says={`${r.caveats.length} limit${r.caveats.length === 1 ? '' : 's'} of this reading`} start={false}>
+          <ul>{r.caveats.map(c => <li key={c} className="sub">{c}</li>)}</ul>
+        </Fold>
       </div>
     </div>
   );

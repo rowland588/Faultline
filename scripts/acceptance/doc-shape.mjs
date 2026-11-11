@@ -51,7 +51,7 @@ async function device(width, access) {
 const { page } = await device(1360);
 let asked = '', answer = true;
 page.on('dialog', d => { asked = d.message(); void (answer ? d.accept() : d.dismiss()); });
-const openFolds = async (pg = page) => { for (let n = 0; n < 60; n++) { const t = pg.locator('.doc-form .fold:not(.is-open) .fold-toggle').first(); if (!(await t.count())) break; await t.click(); } }; // a document's sections are folds (docs/DESIGN.md): open them all before typing
+const openFolds = async (pg = page) => { for (let n = 0; n < 60; n++) { const t = pg.locator('.doc-form .fold:not(.is-open) .fold-toggle, .doc-later .fold:not(.is-open) .fold-toggle').first(); if (!(await t.count())) break; await t.click(); } }; // a document's sections, and the reading's tables and limits, are folds (docs/DESIGN.md): open them all, as a person would, before typing or reading
 const go = async h => { await page.goto(`${BASE}/${h}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); await openFolds(); };
 const words = async sel => ((await page.locator(sel).count()) ? flat(await page.locator(sel).first().innerText()) : null);
 const pdf = async (pg, name, label) => {
@@ -102,7 +102,7 @@ async function fill(d, values) {
   await page.waitForTimeout(800);
 }
 const tilesOf = async () => Object.fromEntries(await page.locator('.doc-tiles .ln-tile').evaluateAll(els => els.map(e => [e.querySelector('.ln-k')?.textContent?.trim(), e.querySelector('.ln-v')?.textContent?.trim()])));
-const tableOf = title => page.locator(`[data-doc-table="${title}"] tbody tr`).evaluateAll(rs => rs.map(r => [...r.children].map(c => c.textContent?.replace(/\s+/g, ' ').trim())));
+const tableOf = async title => { await openFolds(); return page.locator(`[data-doc-table="${title}"] tbody tr`).evaluateAll(rs => rs.map(r => [...r.children].map(c => c.textContent?.replace(/\s+/g, ' ').trim()))); };
 
 /** A new record of this kind, from its own list. */
 async function started(d, name, qs = '') {
@@ -201,6 +201,7 @@ for (const d of defs) {
     const money = await words('[data-doc=money]');
     if (ex.expect.money) ok(money === ex.expect.money && t.money === money, `${tag} b${i + 1} the money: "${money?.slice(0, 120)}"`, money);
     else ok(money === null && (await page.locator('[data-doc=money-none], [data-doc=money-missing]').count()) > 0, `${tag} b${i + 1} no money figure: it says why — "${flat((await page.locator('[data-doc=money-none], [data-doc=money-missing]').first().innerText().catch(() => '')) ?? '').slice(0, 80)}"`);
+    await openFolds();
     ok((await page.locator('.doc-caveats li').count()) >= 1 && (await page.locator('.ln-close').count()) === 1, `${tag} b${i + 1} what it does not say, and the closing line`);
     if (!ex.expect.needs.length && !full) full = { id, ex, w };
   }

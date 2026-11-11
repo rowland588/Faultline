@@ -39,7 +39,7 @@ await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringi
 const page = await ctx.newPage();
 page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
 page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errors.push(`console: ${m.text().slice(0, 200)}`); });
-const openFolds = async (pg = page) => { for (let n = 0; n < 60; n++) { const t = pg.locator('.doc-form .fold:not(.is-open) .fold-toggle').first(); if (!(await t.count())) break; await t.click(); } }; // a document's sections are folds (docs/DESIGN.md): open them all before typing
+const openFolds = async (pg = page) => { for (let n = 0; n < 60; n++) { const t = pg.locator('.doc-form .fold:not(.is-open) .fold-toggle, .doc-later .fold:not(.is-open) .fold-toggle').first(); if (!(await t.count())) break; await t.click(); } }; // a document's sections, and the reading's tables and limits, are folds (docs/DESIGN.md): open them all, as a person would, before typing or reading
 const go = async h => { await page.goto(`${BASE}/${h}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); await openFolds(); };
 const words = async sel => ((await page.locator(sel).count()) ? flat(await page.locator(sel).first().innerText()) : null);
 const tilesOf = async () => Object.fromEntries(await page.locator('.doc-tiles .ln-tile').evaluateAll(els => els.map(e => [e.querySelector('.ln-k')?.textContent?.trim(), e.querySelector('.ln-v')?.textContent?.trim()])));
@@ -120,7 +120,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
 await made('one-point-lesson', 0, 'Acceptance film guide');
 t = await tilesOf();
 ok(t.Taught === '11 of 12' && t.Coverage === '92%' && t.Pictures === '0' && t['Offered to'] === '2', 'OPL a the lesson reads as cases-teach.py O1 says', JSON.stringify(t));
-const rows = await page.locator('[data-doc-table="Who has been taught"] tbody tr').evaluateAll(rs => rs.map(r => [...r.children].map(c => c.textContent?.replace(/\s+/g, ' ').trim())));
+const rows = (await openFolds(), await page.locator('[data-doc-table="Who has been taught"] tbody tr').evaluateAll(rs => rs.map(r => [...r.children].map(c => c.textContent?.replace(/\s+/g, ' ').trim()))));
 ok(JSON.stringify(rows) === JSON.stringify([['Days', '6', '6', '100%'], ['Nights', '5', '6', '83%']]), 'OPL a by shift: Days 6 of 6, Nights 5 of 6', JSON.stringify(rows));
 ok(/No picture yet/.test(await checks()), 'OPL a no picture is said', await checks());
 await page.locator('[data-photo-input="rightPhotos"]').setInputFiles([await file('r.png', '#15803d')]); await page.waitForTimeout(1000);
@@ -140,7 +140,7 @@ ok(wide <= 1, `OPL e the phone: nothing off the side (${wide}px over)`);
 await made('daily-meeting', 0, 'Acceptance tier 1');
 t = await tilesOf();
 ok(t['Letters read'] === '5 of 5' && t['Off target'] === '2' && t['Actions raised'] === '2' && t['Reds answered'] === '2 of 2' && t.Escalated === '1' && t['Closed since last'] === '2', 'M a the tier 1 meeting reads as the example says', JSON.stringify(t));
-const lrows = await page.locator('[data-doc-table="Yesterday, by letter"] tbody tr').evaluateAll(rs => rs.map(r => [...r.children].map(c => c.textContent?.replace(/\s+/g, ' ').trim())));
+const lrows = (await openFolds(), await page.locator('[data-doc-table="Yesterday, by letter"] tbody tr').evaluateAll(rs => rs.map(r => [...r.children].map(c => c.textContent?.replace(/\s+/g, ' ').trim()))));
 ok(JSON.stringify(lrows[2]) === JSON.stringify(['Delivery', 'Off target', 'Made 3,535 of 3,840; the sealer jaw hour lost 180', '3,535', '≥ 3,648', 'not met']), 'M a Delivery: 3,535 against at least 3,648 is not met', JSON.stringify(lrows[2]));
 ok(((await words('[data-doc=money]')) ?? '').includes('£250.00 over the £1,000.00 a day it may lose'), 'M a the cost letter in pounds: £250 over', await words('[data-doc=money]'));
 ok(/has waited \d+ days? for an answer/.test(await checks()), 'M a the escalation unanswered since 30 October is said', await checks());
