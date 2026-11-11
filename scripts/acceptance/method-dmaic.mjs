@@ -23,6 +23,7 @@ const mod = await page.evaluate(async () => { const M = await import('/src/lib/m
 await go(`#/project/${ID}`, 2000);
 await page.waitForSelector('.dm', { timeout: 20000 });
 await t.openSections();   // the section in hand is open, the rest one line each (docs/DESIGN.md) — opened to read them
+await t.openBoard();      // the board's phase in hand is open, the others one line each (docs/DESIGN.md) — opened to read them, kept on the device
 const asked = name => page.locator(`.pmethod-sec[aria-label="${name}"] .msheet-q`).allInnerTexts();
 ok(JSON.stringify(await asked('Define')) === JSON.stringify(mod.define), `1 Define asks the charter — ${mod.define.length} questions`);
 ok(['The problem statement', 'The business case — what it is worth', 'The team and its roles', 'The timeline — a date for each phase review', 'Risks, constraints and assumptions'].every(q => mod.define.includes(q)), '1 the charter has the problem statement, business case, team, timeline and risks');

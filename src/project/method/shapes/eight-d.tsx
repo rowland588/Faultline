@@ -9,6 +9,8 @@ import { listStudies, onDataChange } from '../../../db';
 import type { ToolStudy } from '../../../lib/study';
 import { toolByKey } from '../../../catalogue/registry';
 import { usesOfTool } from '../../../screens/ProductionLineScreen';
+import { openFold } from '../../../ui/Fold';
+import { BoardFold, boardFoldId } from './BoardFold';
 import './eight-d.css';
 
 function Box({ id, label, value, canEdit, save, rows = 2 }: { id: string; label: string; value: string; canEdit: boolean; save: (f: string, w: string) => void; rows?: number }) {
@@ -47,12 +49,24 @@ function Insertion({ toolKey, studies, canEdit, onTool }: { toolKey: string; stu
   );
 }
 
-function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
+function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
   const studies = useStudies(projectId);
   const st = allStates(answers);
   const acts = actionRows(answers);
   const [shown, setShown] = useState<string | null>(null);
-  const jump = (key: string) => { setShown(key); document.getElementById(`e8-${key}`)?.scrollIntoView({ block: 'nearest' }); };
+  const [jumps, setJumps] = useState(0);
+  /* THE FORM, CALM (11 November, docs/DESIGN.md): the discipline in hand — the first not all written — decides which part is open:
+     D2's is / is not while D2 is in hand, the corrective actions while D5 or D6 is; every other part one line, opening to all it
+     held. A discipline tapped on the strip opens its part, as a tap on its fold would. */
+  const inHand = st.findIndex(x => x.word !== 'All written');
+  const partOf = (key: string) => (key === 'D2' ? 'd2' : key === 'D5' || key === 'D6' ? 'actions' : ['D3', 'D4', 'D7'].includes(key) ? 'tools' : undefined);
+  const jump = (key: string) => {
+    const part = partOf(key);
+    if (part) openFold(boardFoldId('eight-d', part));
+    setShown(key); setJumps(j => j + 1);
+    window.setTimeout(() => document.getElementById(`e8-${part === 'tools' ? 'D3' : part === 'actions' ? 'D6' : key}`)?.scrollIntoView({ block: 'nearest' }), 0);
+  };
+  const remount = (part: string) => (shown && partOf(shown) === part ? `${part}-${jumps}` : part);
   const toolsAt = (keys: string[]) => keys.map(k => <Insertion key={k} toolKey={k} studies={studies} canEdit={canEdit} onTool={onTool} />);
   return (
     <section className="e8" aria-label="The 8D report form">
@@ -65,8 +79,10 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
       </div>
       <p className="e8-says" role="status">{closingLine(answers)}</p>
 
-      <div className="e8-card" id="e8-D2" aria-label="D2 is and is not" data-open={shown === 'D2' || undefined}>
-        <h3>D2 · Describe the problem — {st[2].says}</h3>
+      <div className="e8-steps mb-steps">
+      <div key={remount('d2')} className="e8-card mb-step" id="e8-D2" aria-label="D2 is and is not" data-open={shown === 'D2' || undefined}>
+        <BoardFold method="eight-d" part="d2" here={inHand === 2} ready={ready}
+          title="D2 · Describe the problem" says={`Is and is not · ${st[2].says}${inHand === 2 ? ' · the discipline in hand' : ''}`}>
         <div className="e8-isnot">
           <span className="e8-h" />
           <span className="e8-h">Is</span>
@@ -80,10 +96,12 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
           ))}
         </div>
         {toolsAt(DISCIPLINES[2].tools)}
+        </BoardFold>
       </div>
 
-      <div className="e8-card" id="e8-D6" aria-label="D5 and D6 the actions">
-        <h3>D5–D6 · The corrective actions — who, by when, done · {st[6].says}</h3>
+      <div key={remount('actions')} className="e8-card mb-step" id="e8-D6" aria-label="D5 and D6 the actions">
+        <BoardFold method="eight-d" part="actions" here={inHand === 5 || inHand === 6} ready={ready}
+          title="D5–D6 · The corrective actions" says={`Who, by when, done · ${st[6].says}${inHand === 5 || inHand === 6 ? ' · the discipline in hand' : ''}`}>
         {acts.length === 0 && <p className="sub">No action is listed yet.{canEdit ? ' Add each action the permanent fix needs.' : ''}</p>}
         {acts.map(r => (
           <div key={r.n} className="e8-act" data-action={r.n}>
@@ -97,13 +115,17 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
         ))}
         {canEdit && <p><button type="button" className="btn btn-ghost btn-sm" onClick={() => save(`act@${nextActionN(answers)}`, 'New action')}>Add an action</button></p>}
         {toolsAt(DISCIPLINES[6].tools)}
+        </BoardFold>
       </div>
 
-      <div className="e8-card" id="e8-D3" aria-label="Where the tools fall in">
-        <h3>Tools at the questions they answer</h3>
+      <div key={remount('tools')} className="e8-card mb-step" id="e8-D3" aria-label="Where the tools fall in">
+        <BoardFold method="eight-d" part="tools" here={false} ready={ready}
+          title="Tools at the questions they answer" says="D3 containment · D4 root cause · D7 prevent recurrence">
         <p className="sub">D3 containment — checks in this project:</p>{toolsAt(DISCIPLINES[3].tools)}
         <p className="sub">D4 root cause — evidence:</p>{toolsAt(DISCIPLINES[4].tools)}
         <p className="sub">D7 prevent recurrence — hold the gain:</p>{toolsAt(DISCIPLINES[7].tools)}
+        </BoardFold>
+      </div>
       </div>
     </section>
   );

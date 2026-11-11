@@ -10,9 +10,11 @@
  *
  *   node scripts/acceptance/method-eight-d.mjs      (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { goOpeningBoard } from '../lib/methodFolds.mjs';
 
 const t = await openApp();
-const { page, ok, go } = t;
+const { page, ok } = t;
+const go = goOpeningBoard(t);   // a method's board opens on the step in hand, the rest one line each (docs/DESIGN.md) — opened to read them
 const sd = await t.seed();
 const P = sd.methodProjectIds['eight-d'];
 const mod = await page.evaluate(async () => { const m = await import('/src/lib/eightD.ts'); return { closing: m.closingLine({}), n: m.DISCIPLINES.length }; });

@@ -14,9 +14,11 @@
  *
  *   node scripts/acceptance/method-sheet.mjs      (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { goOpeningBoard } from '../lib/methodFolds.mjs';
 
 const t = await openApp();
-const { page, ok, go, words } = t;
+const { page, ok, words } = t;
+const go = goOpeningBoard(t);   // a method's board opens on the step in hand, the rest one line each (docs/DESIGN.md) — opened to read them
 const sd = await t.seed();
 const ids = sd.methodProjectIds;
 const sheets = await page.evaluate(async () => { const M = await import('/src/lib/methodSheet.ts'); const L = await import('/src/lib/methods.ts'); return L.METHODS.map(m => ({ key: m.key, sections: m.sections.map(s => ({ name: s.name, fields: M.fieldsOf(m.key, s.name).map(f => f.label) })) })); });

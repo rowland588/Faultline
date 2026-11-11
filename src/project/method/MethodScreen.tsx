@@ -109,7 +109,7 @@ export function MethodScreen({ projectId }: { projectId: string }) {
         more={can.remove ? [{ label: 'Delete this project…', danger: true, run: () => nav(`/project/${projectId}/setup?delete=1`) }] : []}
       />
       <MethodDashboard dash={dash} projectId={projectId} />
-      {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} save={saveAnswer} onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} /> : null; })()}
+      {(() => { const sh = SHAPES[method.key]; return sh ? <sh.Board projectId={projectId} method={method.key} answers={answers} items={items} canEdit={can.edit} ready={ready} save={saveAnswer} onTool={id => { const t = openable(howTool(id)); if (t) start(t); }} /> : null; })()}
       {method.sections.map((s, i) => {
         const lit = usedIn(s);
         /* THE METHOD PAGE, CALM (10 November, docs/DESIGN.md): the section the project is in open, every other one line —

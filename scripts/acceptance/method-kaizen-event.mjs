@@ -16,9 +16,11 @@
  *
  *   node scripts/acceptance/method-kaizen-event.mjs      (SMOKE_BASE) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { goOpeningBoard } from '../lib/methodFolds.mjs';
 
 const t = await openApp();
-const { page, ok, go } = t;
+const { page, ok } = t;
+const go = goOpeningBoard(t);   // a method's board opens on the step in hand, the rest one line each (docs/DESIGN.md) — opened to read them
 const sd = await t.seed();
 const KE = sd.methodProjectIds['kaizen-event'];
 const board = () => page.locator('.kz');

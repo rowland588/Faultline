@@ -17,6 +17,7 @@ import { todayISO } from '../../../lib/weeks';
 import { useProjectLooking } from '../../../tools/gemba/useLooking';
 import { projectSays, stalestFirst } from '../../../tools/gemba/looking';
 import type { Shape, ShapeProps } from './index';
+import { BoardFold } from './BoardFold';
 import './kata.css';
 
 const label = (id: string) => fieldsOf('kata', 'Understand the direction').concat(fieldsOf('kata', 'Grasp the current condition'), fieldsOf('kata', 'Establish the next target condition'), fieldsOf('kata', 'Experiment toward it')).find(x => x.id === id);
@@ -52,6 +53,14 @@ function Fall({ tool, name, fc, studies, onTool, canEdit }: { tool: StudyTool; n
   );
 }
 
+/** The board's four cells and the boxes each holds, in the storyboard's order. */
+const CELLS = [
+  { name: 'Challenge', ids: ['challenge', 'coach'] },
+  { name: 'Current condition', ids: ['measure', 'current'] },
+  { name: 'Target condition', ids: ['target', 'target_by'] },
+  { name: 'Obstacles', ids: ['obstacles', 'obstacle_now'] },
+] as const;
+
 function Board(p: ShapeProps) {
   const [studies, setStudies] = useState<ToolStudy[] | null>(null);
   useEffect(() => {
@@ -67,45 +76,70 @@ function Board(p: ShapeProps) {
   const today = todayISO();
   const pl = pulse(p.answers, today);
   const worst = looking?.length ? stalestFirst(looking)[0] : undefined;
+  const firstWords = (v: string) => (v.length > 60 ? `${v.slice(0, 58)}…` : v);
+  const cellState = (ids: readonly string[]) => {
+    const vals = ids.map(id => (p.answers[id] ?? '').trim());
+    const w = vals.filter(Boolean).length;
+    return { written: w, word: w === 0 ? 'Not written' : w === ids.length ? 'Written' : 'Under way', first: firstWords(vals.find(Boolean) ?? '') };
+  };
+  const rowState = (r: number) => {
+    const vals = ROW_FIELDS.map(f => (p.answers[rowKey(r, f)] ?? '').trim());
+    const w = vals.filter(Boolean).length;
+    return { word: w === 0 ? 'Not written' : w === ROW_FIELDS.length ? 'Written' : 'Under way', first: firstWords((p.answers[rowKey(r, 'learning')] ?? '').trim() || (p.answers[rowKey(r, 'step')] ?? '').trim()) };
+  };
+  const cellHere = CELLS.find(c => cellState(c.ids).word !== 'Written')?.name;
+  const written = rowCount(p.answers);
+  const coached = coaching(p.answers).filter(c => c.said.length).length;
   return (
     <section className="kata" aria-label="The Kata storyboard">
       <h2 className="kata-h">The storyboard</h2>
       <p className="kata-says">{pl.says}</p>
-      <div className="kata-cells">
-        <div className="kata-cell" aria-label="Challenge">
-          <h3>1 · Challenge</h3>
-          <Box id="challenge" p={p} /><Box id="coach" p={p} />
-        </div>
-        <div className="kata-cell" aria-label="Current condition">
-          <h3>2 · Current condition</h3>
-          <Box id="measure" p={p} /><Box id="current" p={p} />
-          <Fall tool="capability" name="Capability study" fc="FC-094" studies={studies} onTool={p.onTool} canEdit={p.canEdit} />
-          <Fall tool="chart" name="Control chart" fc="FC-086" studies={studies} onTool={p.onTool} canEdit={p.canEdit} />
-        </div>
-        <div className="kata-cell" aria-label="Target condition">
-          <h3>3 · Target condition</h3>
-          <Box id="target" p={p} /><Box id="target_by" p={p} />
-        </div>
-        <div className="kata-cell" aria-label="Obstacles">
-          <h3>4 · Obstacles</h3>
-          <Box id="obstacles" p={p} /><Box id="obstacle_now" p={p} />
-        </div>
+      {/* THE STORYBOARD, CALM (11 November, docs/DESIGN.md): the cell in hand — the first with a box not written — open; once the four
+          are written the latest experiment is the step in hand. Every other cell and experiment one line, opening to all it held. */}
+      <div className="kata-cells mb-steps">
+        {CELLS.map((c, i) => {
+          const st = cellState(c.ids);
+          return (
+            <div key={c.name} className="kata-cell mb-step" aria-label={c.name}>
+              <BoardFold method="kata" part={c.name} here={c.name === cellHere} ready={p.ready}
+                title={`${i + 1} · ${c.name}`}
+                says={`${st.word} · ${st.written} of ${c.ids.length} written${c.name === cellHere ? ' · the cell in hand' : st.first ? ` · ${st.first}` : ''}`}>
+                {c.ids.map(id => <Box key={id} id={id} p={p} />)}
+                {c.name === 'Current condition' && <>
+                  <Fall tool="capability" name="Capability study" fc="FC-094" studies={studies} onTool={p.onTool} canEdit={p.canEdit} />
+                  <Fall tool="chart" name="Control chart" fc="FC-086" studies={studies} onTool={p.onTool} canEdit={p.canEdit} />
+                </>}
+              </BoardFold>
+            </div>
+          );
+        })}
       </div>
 
       <h3 className="kata-h3">5 · Experiments — one small step at a time</h3>
       <p className="kata-hint">Write what you expect before the step; write what happened after. The next step comes from what was learned.</p>
-      <ol className="kata-rows" aria-label="Experiments">
-        {Array.from({ length: n }, (_, i) => i + 1).map(r => (
-          <li key={r} className="kata-row" aria-label={`Experiment ${r}`}>
-            <b className="kata-n">Experiment {r}</b>
-            {ROW_FIELDS.map(f => <Box key={f} id={rowKey(r, f)} p={p} rows={2} q={`${ROW_LABELS[f]} — experiment ${r}`} hint={r === 1 ? label(f)?.hint : undefined} />)}
-          </li>
-        ))}
+      <ol className="kata-rows mb-steps" aria-label="Experiments">
+        {Array.from({ length: n }, (_, i) => i + 1).map(r => {
+          const st = rowState(r);
+          const here = r === n && (cellHere === undefined || r > written);
+          return (
+            <li key={r} className="kata-row mb-step" aria-label={`Experiment ${r}`}>
+              <BoardFold method="kata" part={`experiment-${r}`} here={here} ready={p.ready}
+                title={<b className="kata-n">Experiment {r}</b>}
+                says={`${st.word}${here ? ' · the step in hand' : st.first ? ` · ${st.first}` : ''}`}>
+                <div className="kata-row-f">
+                  {ROW_FIELDS.map(f => <Box key={f} id={rowKey(r, f)} p={p} rows={2} q={`${ROW_LABELS[f]} — experiment ${r}`} hint={r === 1 ? label(f)?.hint : undefined} />)}
+                </div>
+              </BoardFold>
+            </li>
+          );
+        })}
       </ol>
       {p.canEdit && <p><button type="button" className="btn btn-ghost btn-sm" onClick={() => setShown(n + 1)}>Add an experiment</button></p>}
       <Fall tool="analysis" name="Analysis (did it change?)" fc="FC-105" studies={studies} onTool={p.onTool} canEdit={p.canEdit} />
 
-      <h3 className="kata-h3">The five coaching questions</h3>
+      <div className="kata-coaching mb-step">
+        <BoardFold method="kata" part="coaching" here={false} ready={p.ready}
+          title="The five coaching questions" says={`${coached} of 5 answered from the board${p.answers['see_by'] ? ` · we go and see ${p.answers['see_by']}` : ''}`}>
       <ol className="kata-coach" aria-label="The five coaching questions">
         {coaching(p.answers).map(c => (
           <li key={c.n} className="kata-coach-q">
@@ -115,6 +149,8 @@ function Board(p: ShapeProps) {
         ))}
       </ol>
       <Box id="see_by" p={p} />
+        </BoardFold>
+      </div>
       {worst && looking ? (
         <div className="kata-fall" aria-label="The Gemba walk on this project’s lines">
           <p className="kata-fall-says"><b>The Gemba walk</b> — {projectSays(looking)}</p>

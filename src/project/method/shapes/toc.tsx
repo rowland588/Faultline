@@ -15,6 +15,7 @@ import { nav } from '../../../state/useRoute';
 import { inProject } from '../../../lib/inProject';
 import type { ShapeProps } from './index';
 import { nextPass, tocPasses, tocSteps, type TocRecords } from './tocModel';
+import { BoardFold } from './BoardFold';
 import './toc.css';
 
 /** The project's own records the board and the paper read (the same loader both use). */
@@ -38,11 +39,12 @@ export function useTocRecords(projectId: string): TocRecords | null {
   return rec;
 }
 
-function TocBoard({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
+function TocBoard({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
   const rec = useTocRecords(projectId);
   const steps = useMemo(() => (rec ? tocSteps(answers, rec) : []), [rec, answers]);
   const passes = tocPasses(answers), next = nextPass(answers);
   if (!rec) return null;
+  const inHand = steps.find(s => s.state.word !== 'All written')?.n;
   const record = (key: 'linebalance' | 'losses', has: boolean) => {
     const t = toolByKey(key);
     if (!t) return null;
@@ -58,19 +60,26 @@ function TocBoard({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
     <section className="toc" aria-label="The five focusing steps">
       <h2 className="toc-h">The five focusing steps</h2>
       <p className="toc-sub">The figures come from this project’s Line capacity and loss count. Your own judgement goes in the boxes under each step.</p>
-      <div className="toc-cards">
+      {/* THE FIVE STEPS, CALM (11 November, docs/DESIGN.md): the step in hand — the first whose questions are not all written — open
+          with what the line says of it; every other step one line, its reading of the line, opening to all it held. */}
+      <div className="toc-cards mb-steps">
         {steps.map(s => (
-          <article key={s.n} id={`toc-step-${s.n}`} className="toc-card" aria-label={`Step ${s.n} — ${s.section}`}>
+          <article key={s.n} id={`toc-step-${s.n}`} className="toc-card mb-step" aria-label={`Step ${s.n} — ${s.section}`}>
+            <BoardFold method="toc" part={`step-${s.n}`} here={s.n === inHand} ready={ready && !!rec}
+              title={<>Step {s.n} · {s.section}</>}
+              says={`${s.state.word}${s.state.fields ? ` · ${s.state.written} of ${s.state.fields} written` : ''}${s.n === inHand ? ' · the step in hand' : ''} · ${s.says}`}>
             <p className="toc-step">Step {s.n} · {s.title}</p>
             <p className="toc-says">{s.says}</p>
             {s.lines.length > 0 && <ul className="toc-lines">{s.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>}
             {s.missing.map((m, i) => <p key={i} className="toc-missing"><b>Missing</b> · {m}</p>)}
             {s.tool && record(s.tool.key, s.tool.has)}
+            </BoardFold>
           </article>
         ))}
-      </div>
-      <div className="toc-passes" aria-label="Going again">
-        <h3 className="toc-h3">Going again — the passes round the loop</h3>
+        <div className="toc-passes mb-step" aria-label="Going again">
+          <BoardFold method="toc" part="passes" here={inHand === undefined} ready={ready && !!rec}
+            title="Going again — the passes round the loop"
+            says={`${passes.length} pass${passes.length === 1 ? '' : 'es'} · now: the constraint ${passes[passes.length - 1]?.constraint || 'not written yet'}`}>
         <ol className="toc-pass-list">
           {passes.map(p => (
             <li key={p.n} className="toc-pass"><b>Pass {p.n}</b> · the constraint {p.constraint ? <i>{p.constraint}</i> : <i>not written yet</i>}
@@ -83,6 +92,8 @@ function TocBoard({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
         {canEdit && (next
           ? <button type="button" className="btn btn-sm" onClick={() => save(`constraint@${next.n}`, next.constraint)}>Go again — start pass {next.n} at {next.constraint}</button>
           : <p className="toc-sub">Write where the constraint is now (step 5) and the next pass starts from it.</p>)}
+          </BoardFold>
+        </div>
       </div>
     </section>
   );
