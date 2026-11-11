@@ -6,7 +6,7 @@ should be able to raise a problem from inside the tool, because it could be a sp
 within the tool. Yes, you'll see it on a problem page, of course, and you'll see it on main problems, but it also will be held inside the tool itself."*
 *"Yes build it."*
 
-**Status:** slice 1 (Stops across workstations, a workstation at a time) built 11 November; slice 2 (every tool record, the whole record) next.
+**Status:** slice 1 (Stops across workstations, a workstation at a time) and slice 2 (every tool record, the whole record) built 11 November.
 
 ## 1. What this is
 
@@ -47,7 +47,8 @@ same `blobKey`, never a copy (as the factory walk's `file_photo` does); one tapp
   problem in the panel, several scroll to the list. `ToolProblems` — *Problems raised here*, shown only once the record holds one: rows that are doors
   (words; the part; priority · whose · due · where it stands), closed ones kept and said Closed, Unlink with Undo, *Raise a problem here*, *Link a
   problem…* (the line's open problems not held here, never another line's; which part). `toolProblemMenu` — More ▾'s *Raise a problem here* and
-  *Link a problem…* on every tool record. `ToolLinksBlock` — on the problem (its editor on Problems and the panel): *Raised from …* / *Linked to …*,
+  *Link a problem…* on every tool record: `ui/StudyActs` StudyBand adds them for every tool on the study shell, and `ui/Commentary` (every tool's
+  notes) draws `ToolProblemsHere` — the list and the Link sheet — under the notes, so a tool needs no code of its own (slice 2). `ToolLinksBlock` — on the problem (its editor on Problems and the panel): *Raised from …* / *Linked to …*,
   each a door to the record (`?part=` scrolls to the part), Unlink with Undo, *Link to a tool record…* (the line's records, then the part).
 - **`ui/AttachSheet`** — a part's sheet (Take a photo · Film a clip · Photos or videos · A link) adds *Raise a problem here*.
 - **`lib/toolPart`** — `partName`, `partsOf`, `toolPartSaid` ("Stops across workstations — Cellox trial › Sealer"), `raisedFromSaid`, `toolReader`;
@@ -86,4 +87,4 @@ links, and takes the paper.
 
 `src/snag/__tests__/toolLink.test.ts` (the tags, the round trip, the list), `src/lib/report/__tests__/toolProblemsPaper.test.ts` (the tail), and
 `scripts/acceptance/tool-problems.mjs` (raised on the Sealer with its photo, held, linked both ways, unlinked with Undo, after a reload, on paper and on
-the Problems report, a client, the phone).
+the Problems report, a client, the phone; slice 2 on a capability study).

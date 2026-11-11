@@ -74,8 +74,14 @@ async function unlink(p: Snag, studyId: string, part?: string, said?: string): P
 }
 const short = (w: string) => (w.trim().length > 40 ? `${w.trim().slice(0, 39)}…` : w.trim() || 'the problem');
 
-/** The record's More ▾: Raise a problem here, Link a problem… — for somebody who may change the work. */
-export function toolProblemMenu(s: ToolStudy, canEdit: boolean, onLink: () => void): MoreItem[] {
+/* LINK A PROBLEM… is pressed in the header's More ▾ (ui/StudyActs) and its sheet belongs to the record's list (below, under the notes): the
+   list listens for its record's id. */
+const linkAsked = new Map<string, () => void>();
+export const askToLink = (studyId: string): void => linkAsked.get(studyId)?.();
+
+/** The record's More ▾: Raise a problem here, Link a problem… — for somebody who may change the work. Every tool on the study shell has them
+ *  (StudyBand), the list answering under its notes (Commentary). */
+export function toolProblemMenu(s: ToolStudy, canEdit: boolean, onLink: () => void = () => askToLink(s.id)): MoreItem[] {
   if (!canEdit) return [];
   return [
     { label: 'Raise a problem here', run: () => raiseProblemHere(s), hint: 'Held on this record and on Problems' },
@@ -102,6 +108,14 @@ export function PartProblems({ s, part, all }: { s: ToolStudy; part: string; all
       {said}{red && <span className="tp-chip-w"> · {open.some(p => problemStands(p).late) ? 'late' : 'critical'}</span>}
     </button>
   );
+}
+
+/** THE RECORD'S PROBLEMS, ON ITS OWN — what every tool's notes carry (ui/Commentary): the list read here, Link a problem… answered here. */
+export function ToolProblemsHere({ s, canEdit }: { s: ToolStudy; canEdit: boolean }) {
+  const all = useAllProblems();
+  const [linking, setLinking] = useState(false);
+  useEffect(() => { linkAsked.set(s.id, () => setLinking(true)); return () => { linkAsked.delete(s.id); }; }, [s.id]);
+  return <ToolProblems s={s} canEdit={canEdit} all={all} linking={linking} onLinking={setLinking} />;
 }
 
 /** PROBLEMS RAISED HERE — on the record, only once it holds one (or one is being linked); each row a door to the problem. */

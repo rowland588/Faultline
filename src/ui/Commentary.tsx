@@ -9,12 +9,20 @@ import type { Remark, ToolStudy } from '../lib/study';
 import { LeanPanel } from './Lean';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
+import { ToolProblemsHere } from './ToolProblems';
 
 const hm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 /** COMMENTARY — what the person at the machine saw and thinks, kept with when
  *  and who; edited where it sits, taken off with Undo, and on the paper. */
-export function Commentary({ s, canEdit, me, title = 'Commentary', hint, folded = false, open = false }: { s: ToolStudy; canEdit: boolean; me?: string; title?: string; hint?: string; folded?: boolean | 'menu'; open?: boolean }) {
+type CommentaryProps = { s: ToolStudy; canEdit: boolean; me?: string; title?: string; hint?: string; folded?: boolean | 'menu'; open?: boolean };
+
+/** The notes, then the problems the record holds (docs/TOOL-PROBLEMS.md, slice 2) — every tool that keeps notes holds its problems the same way. */
+export function Commentary(p: CommentaryProps) {
+  return <><Notes {...p} /><ToolProblemsHere s={p.s} canEdit={p.canEdit} /></>;
+}
+
+function Notes({ s, canEdit, me, title = 'Commentary', hint, folded = false, open = false }: CommentaryProps) {
   const { session } = useSession();
   const who = me ?? (displayName(session?.user.email) || undefined);
   const remarks = useMemo(() => [...(s.facts.remarks ?? [])].sort((x, y) => x.at - y.at), [s.facts.remarks]);

@@ -15,6 +15,8 @@
  *      says Raised from
  *   9  a client: the list and the links seen, nothing to raise, link or unlink
  *  10  the phone: the count, the rows and the sheet's Raise a problem here a thumb's height, nothing off the side
+ *  SLICE 2 (every tool record) — 11  a capability study: More ▾ › Raise a problem here, the sheet saying the study, held on it; its Problems raised here;
+ *      its paper carrying it
  *  and no console error. */
 import pkg from 'playwright';
 import { mkdtempSync } from 'node:fs';
@@ -221,6 +223,32 @@ ok(/Raised from Stops across workstations.{1,5}Cellox trial.{1,5}Sealer/.test(tx
   const wide = await ph.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   ok(wide <= 1, '10 nothing off the side', String(wide));
   await ph.ctx.close();
+}
+
+/* 11 — SLICE 2: any tool record — a capability study */
+{
+  const capId = await page.evaluate(async lid => {
+    const db = await import('/src/db.ts');
+    const t = Date.now(), cid = crypto.randomUUID();
+    const readings = Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, value: 500 + ((i * 7) % 11) - 5, at: t - (30 - i) * 60_000 }));
+    await db.putStudy({ id: cid, tool: 'capability', name: 'Fill weight 500 g', workspaceId: lid, machine: 'Filler', uses: [], startedAt: t, createdAt: t, updatedAt: t,
+      facts: { readings }, agreed: { readings: { unit: 'g', lsl: 480, usl: 520, target: 500 } } });
+    return cid;
+  }, lineId);
+  await page.goto(`${BASE}/#/capability/${capId}`); await settle(2000);
+  await more(page, 'Raise a problem here'); await settle(700);
+  const q2 = page.locator(`[data-raise-from="${capId}"]`);
+  ok(/Raised from Capability study — Fill weight 500 g · Filler/.test(flat(await q2.locator('[data-qs-from]').innerText().catch(() => ''))), '11 a capability study: More ▾ › Raise a problem here, the sheet saying the study', await q2.innerText().catch(() => ''));
+  await q2.locator('textarea').fill('Fill weight drifting high after the break');
+  await q2.getByRole('button', { name: 'Save', exact: true }).click(); await settle(900);
+  const capP = (await snags()).find(s => s.problem === 'Fill weight drifting high after the break');
+  ok(JSON.stringify(capP?.tools) === JSON.stringify([{ studyId: capId, raised: true }]) && capP?.targetAsset === 'Filler', '11 held by the study as a whole, its machine the study’s', JSON.stringify(capP?.tools));
+  const cs2 = flat(await page.locator(`[data-tool-problems="${capId}"]`).innerText().catch(() => ''));
+  ok(/Problems raised here/.test(cs2) && /Fill weight drifting high/.test(cs2) && /The whole record · Low/.test(cs2), '11 its Problems raised here lists it', cs2);
+  const [dl3] = await Promise.all([page.waitForEvent('download', { timeout: 90000 }), pressPaper(page, / — on paper$/)]);
+  const pdf3 = join(dir, 'cap.pdf'); await dl3.saveAs(pdf3);
+  const txt3 = flat(execFileSync('pdftotext', ['-raw', pdf3, '-'], { encoding: 'utf8' }));
+  ok(/Problems raised here/i.test(txt3) && /Fill weight drifting high after the break/.test(txt3), '11 its paper carries it', txt3.slice(-600));
 }
 
 ok(errs.length === 0, 'no console errors', errs.slice(0, 3).join(' | '));

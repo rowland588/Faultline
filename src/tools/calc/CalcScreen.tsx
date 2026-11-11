@@ -36,7 +36,7 @@ import { useLine } from '../linework/WorkBalance';
 import { calcByKey, calcGroups } from './registry';
 import { calcSays, dropped, newCalcStudy, runCalc, studyCalc, typedOver, valuesOf, type Run } from './calc';
 import { AttachButton } from '../../ui/AttachSheet';
-import { PartProblems, ToolProblems, toolProblemMenu, useAllProblems } from '../../ui/ToolProblems';
+import { PartProblems, useAllProblems } from '../../ui/ToolProblems';
 import { useRoute } from '../../state/useRoute';
 import { CalcForm, stillNeeded } from './CalcForm';
 import { BeforeBox, ResultView, WhatIf } from './CalcView';
@@ -384,9 +384,8 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
   const makeIt = (field: string, value: string) => { edit(field, value); flush(); };
 
   const page = bandPage(def.title, s, r?.verdict, r?.tone, [['Catalogue', def.fc]]);
-  /* THE PROBLEMS HELD HERE (docs/TOOL-PROBLEMS.md): a part's count on its tile, the record's list, More ▾'s Raise and Link */
+  /* THE PROBLEMS HELD HERE (docs/TOOL-PROBLEMS.md): a part's count on its tile — the record's list and More ▾'s Raise and Link are every tool's (Commentary, StudyBand) */
   const problems = useAllProblems();
-  const [linking, setLinking] = useState(false);
   const askedPart = useRoute().query.get('part');
   useEffect(() => {
     if (!askedPart) return;
@@ -398,7 +397,7 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
   const live = { ...agreed, inputs: draft, ...(src ? { src } : {}) };
   return (
     <div className="wrap ie ie-calc" data-calc-record={def.key}>
-      <StudyBand page={page} s={s} what={def.title} canEdit={canEdit} canRemove={can.remove} extra={toolProblemMenu(s, canEdit, () => setLinking(true))} />
+      <StudyBand page={page} s={s} what={def.title} canEdit={canEdit} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where">{def.question}</p>
         <WhereItSits s={s} can={can} />
@@ -459,7 +458,6 @@ function Record({ s, def, agreed, can, me }: { s: ToolStudy; def: CalcDef; agree
         </div>
       </div>
       <Commentary s={s} canEdit={can.edit} title="Notes" folded />
-      <ToolProblems s={s} canEdit={canEdit} all={problems} linking={linking} onLinking={setLinking} />
       <UsedFor s={s} can={can} me={me} />
       <LeanPlan className="ln-solo" actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from what it found." />
       {r && <LeanClosing closing={{ text: r.closing, tone: r.tone }} />}

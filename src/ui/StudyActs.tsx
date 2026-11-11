@@ -26,6 +26,7 @@ import { useStudyPaper } from './StudyPlace';
 import { useSaveOnArrival } from '../lib/useSaveOnArrival';
 import { ShareReadings } from './ShareReadings';
 import { shareOffer } from '../lib/sharedReadings';
+import { toolProblemMenu } from './ToolProblems';
 
 /** Asked, deleted, and offered back. True when it went. */
 export async function removeStudy(s: ToolStudy): Promise<boolean> {
@@ -87,7 +88,11 @@ export function StudyBand({ page, s, what, canEdit, canRemove, extra, primary }:
      another's readings — one mechanism here, so the three tools have it from one place; shown disabled, with its reason, when
      there is nothing to share, and never to a client */
   const offer = canEdit ? shareOffer(s) : undefined;
-  const items: MoreItem[] | undefined = offer ? [...(extra ?? []), { label: 'Use these readings in…', run: () => setSharing(true), disabled: !offer.targets.length, ...(offer.targets.length ? {} : { hint: offer.why }) }] : extra;
+  /* RAISE A PROBLEM HERE · LINK A PROBLEM… (docs/TOOL-PROBLEMS.md, slice 2) — on every tool record, for somebody who may change the work */
+  const held = toolProblemMenu(s, canEdit);
+  const shared: MoreItem[] = offer ? [{ label: 'Use these readings in…', run: () => setSharing(true), disabled: !offer.targets.length, ...(offer.targets.length ? {} : { hint: offer.why }) }] : [];
+  const all = [...(extra ?? []), ...shared, ...held];
+  const items: MoreItem[] | undefined = all.length ? all : undefined;
   return (
     <LeanBand className="ep-tool-band" page={page} title={<StudyName s={s} naming={naming} onDone={() => setNaming(false)} />}>
       <StudyMenus s={s} canEdit={canEdit} canRemove={canRemove} onRename={() => setNaming(true)} extra={items} primary={primary}
