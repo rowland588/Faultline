@@ -711,7 +711,9 @@ const cleanSuggestion = (s: string): string => s.replace(/^[\s*_"“‘'`]+|[\s*
 /** The colleague's words from its message — the text blocks, joined — split into the reply and its follow-ups: a last
  *  line "Suggestions: a | b | c" (or that heading with a few bullets under it) is taken off and read as up to three. */
 export function colleagueReply(content: readonly ColleagueBlock[]): { reply: string; suggestions: string[] } {
-  const text = content.filter(c => c.type === 'text').map(c => String(c.text ?? '')).join('\n\n').trim();
+  /* a stray HTML line break the model now and then writes (seen by the real-model exam, 11 November: a reply began "<br>") is a
+     line break, never words on the screen */
+  const text = content.filter(c => c.type === 'text').map(c => String(c.text ?? '')).join('\n\n').replace(/<br\s*\/?>/gi, '\n').trim();
   const lines = text.split('\n');
   let end = lines.length;
   while (end > 0 && !lines[end - 1].trim()) end--;

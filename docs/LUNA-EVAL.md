@@ -61,6 +61,17 @@ and how often a capability was searched for and which (the `server_tool_use` blo
 
 Each run is added here with its date, the deployed gateway version, the score and every turn marked wrong with why.
 
+### 11 November, 17:56 — with the "Line A" fix, two runs
+
+**12 of 13 in each run; 2.2–2.3 minutes a run; 27–32 asks, median 4.0–5.0 s; every reply streamed, first words a median 4.3–5.1 s.**
+The fix held: told about "the checkweigher on Line A", she found Exam Line A's Checkweigher in both runs (offered to raise it on its
+own, and read that nothing was on the register yet).
+
+- *back* (run 1): "one stop doesn't tell us …" — the exam's mark again; it now takes doesn't / won't / cannot tell.
+- *next-day* (run 2): her summary of yesterday named no next step. Marked wrong and left wrong: it may be a real lapse; watched next run.
+- A reply in run 1 began with a literal `<br>`, which a person would have seen. `colleagueReply` now turns `<br>` into a line break
+  (unit test), deployed with the AI service.
+
 ### 11 November, 17:34 — the new AI service (Luna wording, replies streamed), two runs, each on a fresh device
 
 **12 of 13 turns right in each run (34 of 35 marks); 2.2–2.4 minutes a run (3 before); 30–31 asks, median 4.2–4.4 s, p90 5.5–6.5 s;

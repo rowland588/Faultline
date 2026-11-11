@@ -163,6 +163,7 @@ describe('the reply and its follow-ups', () => {
   it('reads a bold heading with bullets under it, and leaves a reply with none whole', () => {
     expect(colleagueReply([{ type: 'text', text: 'Fair point.\n**Suggestions:**\n- Open the line\n- Park it\n' }])).toEqual({ reply: 'Fair point.', suggestions: ['Open the line', 'Park it'] });
     expect(colleagueReply([{ type: 'text', text: 'Three things:\n- one\n- two' }])).toEqual({ reply: 'Three things:\n- one\n- two', suggestions: [] });
+    expect(colleagueReply([{ type: 'text', text: '<br> The bagger is running again.<br/>Six seconds.' }]).reply).toBe('The bagger is running again.\nSix seconds.');
     expect(colleagueReply([{ type: 'text', text: 'My suggestions: look at the infeed.' }]).suggestions).toEqual([]);
     expect(colleagueReply([{ type: 'thinking', thinking: 'x' }, { type: 'text', text: 'One.' }, toolUse('a', 'find', {}), { type: 'text', text: 'Two.' }]).reply).toBe('One.\n\nTwo.');
   });
