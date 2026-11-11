@@ -19,6 +19,15 @@ a session that ships something updates this page in the same commit.** The rules
   top bar's ＋ A new customer…) and made the active client; a line or department made under it takes its name; **Archive** hides it and
   everything under it everywhere (Luna's lookups too) with nothing deleted or changed, **Continue** brings it back as it was. The anchor
   is the customer's Story record (`agreed.story.archivedAt`, `site`) — no migration. `scripts/acceptance/customers.mjs`.
+- **Visits and the consultant's home (11 November, C3).** *Start a visit* (the home's primary, the client menu, the Story's More ▾): a
+  customer — one of yours or ＋ a new one by name — a site if known and what you were asked at the door; the top bar says *Business B ·
+  Visit 11 Nov ▾* (open it, End the visit). A visit is an entry on the customer's Story record (`facts.visits`, merged by id) — no
+  migration; what was captured on it is READ from the customer's lines in its hours (`lib/visits visitRecords`), never copied. A
+  customer with no line yet gets a holding place on the first ＋ Problem (*Business B — not yet placed*, type *Not yet placed*), and the
+  problem is placed on its line later with a tap. `#/visit/:id` lists the day's problems with their money, photos, measurements and
+  talks; *Make the visit report* is the client-facing paper (`lib/report/visitPaper`), kept under Saved copies. With more than one
+  customer `#/` is **your home** — your customers as rows, what is owed across them, recent visits — and `#/story` the Story of the client
+  you are in. `scripts/acceptance/visits.mjs`, `src/lib/__tests__/visits.test.ts`.
 
 - **The model for each AI task (9 November).** Rowland: *"we want quality output but lowest cost"*. Each task of the `assist`
   gateway has its own model setting (`supabase/functions/assist/index.ts`, the top): Line Talk (`ASSIST_TALK_MODEL`), the Story

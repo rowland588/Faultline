@@ -23,6 +23,7 @@ import { Sheet } from './Sheet';
 import { lineHref } from './rail';
 import { AiDoor } from '../colleague/AiDoor';
 import { ClientSwitch } from './ClientSwitch';
+import { VisitBadge } from './VisitBadge';
 import { setActiveClient, useClientScope, type ClientScope } from '../lib/activeClient';
 
 export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines, projectId, onLines }: {
@@ -67,6 +68,8 @@ export function ContextBar({ scope, page, tool, toolTo, toolId, projects, lines,
         <span className="nv-name">Faultline</span>
       </button>
       <ClientSwitch cs={cs} here={placeClients} onGoTo={() => setOpen(true)} />
+      {/* THE VISIT IN HAND (lib/visits, C3) — Business B · Visit 11 Nov ▾, its page and End the visit */}
+      <VisitBadge cs={cs} />
       {/* BACK — to the page you were on (9 November, state/navHistory): shown whenever this session has one to go back to;
           ‹ Factory / ‹ Projects beside it still go UP to the scope's top */}
       {back && <button type="button" className="nv-back" onClick={() => goBack(home)} aria-label="Back — to the page you were on" title="Back to the page you were on"><Icon name="chevronLeft" size={16} /><span className="nv-back-l">Back</span></button>}

@@ -53,6 +53,7 @@ import { QuickSnagHost, openQuickSnag, useCanTakeProblem } from '../snag/QuickSn
 import { ContextBar } from './ContextBar';
 import { areaFromQuery, areaHref, areaTitle } from '../lib/areas';
 import { ProblemPanelHost } from '../snag/ProblemPanel';
+import { StartVisitHost } from './StartVisit';
 import { notePlace } from '../lib/recentPlaces';
 import { LineReports } from './ControlRoomReports';
 import { scopeOf, type Scope } from '../lib/scope';
@@ -171,6 +172,8 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
       )}
       <QuickSnagHost wsId={route.wsId ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={projectId} />
       <ProblemPanelHost />
+      {/* START A VISIT (docs/CONSULTANT-WORKSPACE.md C3) — one sheet, opened from the home, the client menu and the Story */}
+      <StartVisitHost />
     </div>
   );
 }

@@ -714,6 +714,24 @@ export interface StoryChapter {
   approvedAt?: number;
 }
 
+/* A VISIT (11 November, docs/CONSULTANT-WORKSPACE.md C3; lib/visits) — a day at a customer: who, the brief said at the door, when it
+ * started and ended. Kept on the customer's Story record (facts.visits — a list merged by id across devices, as the chapters are), never a
+ * record of its own; what was captured on it is READ from the records of that customer's lines in its hours, never copied. */
+export interface StoryVisit {
+  id: string;
+  /** Its day — YYYY-MM-DD, the device's own calendar day it started. */
+  day: string;
+  site?: string;
+  /** Who made the visit — the person's name as the app knows it. */
+  by?: string;
+  /** What they were asked to look at, as said at the door. */
+  brief?: string;
+  startedAt: number;
+  endedAt?: number;
+  /** What we recommend next — typed on the visit's page, printed on its report; optional. */
+  recommend?: string;
+}
+
 export interface StudyAgreed {
   /** THE STORY (docs/STORY.md). */
   story?: AgreedStory;
@@ -1162,6 +1180,8 @@ export interface Tap { id: string; at: number; who: string; activity: string; by
 export interface StudyFacts {
   /** THE STORY's chapters, oldest first (docs/STORY.md). */
   chapters?: StoryChapter[];
+  /** THE STORY's visits — a day at the customer each (lib/visits, docs/CONSULTANT-WORKSPACE.md C3). */
+  visits?: StoryVisit[];
   /** FC-135 — the holds on a line's register (tools/hold): each its own entry, so two phones raising holds both keep theirs. */
   holds?: Hold[];
   readings?: StudyReading[];

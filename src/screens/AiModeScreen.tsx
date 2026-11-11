@@ -532,7 +532,9 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
       const at = Date.now(), blobKey = `talk-${uid()}`;
       await putBlob(blobKey, f);
       const here = ((await getStudy(cid))?.facts as WalkFacts | undefined)?.position;
-      await appendTurn(patchStudy, cid, { id: uid(), at, ...(me ? { who: me } : {}), kind: 'photo', media: { blobKey, mime: f.type || 'image/jpeg', capturedAt: at }, ...(here ? { where: here } : {}) } as WalkTurn);
+      /* THE VISIT IN HAND (lib/visits, C3): the photo says it was taken on it — so the visit reads it even before any place is said */
+      const visitId = (await import('../lib/visits')).storedVisit()?.id;
+      await appendTurn(patchStudy, cid, { id: uid(), at, ...(me ? { who: me } : {}), kind: 'photo', media: { blobKey, mime: f.type || 'image/jpeg', capturedAt: at }, ...(here ? { where: here } : {}), ...(visitId ? { visitId } : {}) } as WalkTurn);
     }
   };
 

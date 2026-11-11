@@ -40,6 +40,8 @@ import { pinSnag, recall, remember } from './quick';
 import { addLineToFactory, liveProductionLines, machineOntoLine } from '../lib/lines';
 import { factoryLinesOf, type JobLine } from '../lib/lineRecords';
 import type { ToolLink } from './toolLink';
+import { ensureHoldingLine, holdingName, holdingOf, isHolding, placesFor, storedVisit, visitInHand, visitsOf, type Visit } from '../lib/visits';
+import { customerKey } from '../lib/customers';
 
 /* ---- one way in, from anywhere: the button, the FAB, a row on the page ---- */
 /** RAISED FROM INSIDE A TOOL (docs/TOOL-PROBLEMS.md — Rowland, 11 November: "raise a problem from inside the tool … a specific station or a
@@ -97,6 +99,8 @@ export function QuickSnagHost({ wsId, projectId }: { wsId?: string; projectId?: 
 const from = (f: RaiseFrom | undefined, wsId?: string): string | undefined => f?.workspaceId ?? wsId;
 
 const NEW_LINE = '__new__';
+/** THE HOLDING PLACE (lib/visits, C3): a visit at a customer with no line yet — the problem is held at the customer, placed on a line later. */
+const HOLD = '__hold__';
 /** The line not said yet — a job on several lines asks which (FLOW-AUDIT #5). */
 const ASK = '';
 
@@ -126,16 +130,23 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(0);
   const [linePrograms, setLinePrograms] = useState<{ id: string; what: string }[]>([]);
+  /* THE VISIT IN HAND (lib/visits, C3) — its customer's holding place offered, and chosen at a customer with no line yet */
+  const [visit, setVisit] = useState<Visit | undefined>();
 
   const ownLine = snag?.workspaceId;
   useEffect(() => {
     let live = true;
-    void Promise.all([listWorkspaces(), allPaceLines()]).then(async ([all, pl]) => {
-      /* the lines worked on now — an archived project's go with it (13 October audit); the problem's own line always kept */
+    void Promise.all([listWorkspaces(), allPaceLines(), import('../db').then(d => d.listAllStudies()), import('../lib/activeClient').then(m => m.activeClientNow())]).then(async ([all, pl, studies, ac]) => {
+      /* the lines worked on now — an archived project's go with it (13 October audit); the problem's own line always kept;
+         ONE CLIENT AT A TIME (lib/activeClient, C1/C3): with a client chosen out of several, only that client's lines are offered */
       const keep = new Set((await liveProductionLines(all)).map(w => w.id));
-      const ws = all.filter(w => keep.has(w.id) || w.id === ownLine);
+      const theClient = (w: Workspace) => !(ac.several && ac.client) || customerKey(w.clientName) === customerKey(ac.client);
+      const ws = all.filter(w => (keep.has(w.id) && theClient(w)) || w.id === ownLine);
+      const v = snag ? undefined : visitInHand(visitsOf(studies), storedVisit());
       if (!live) return;
-      setLines(ws); setJobLines(pl);
+      setLines(ws); setJobLines(pl); setVisit(v);
+      /* at a customer with no line of its floor yet, the problem is held at the customer — never a line invented for it */
+      if (v && !ownLine && !wsId && !raised && !placesFor(ws, v.client).length) { const h = holdingOf(ws, v.client); setLine(h?.id ?? HOLD); return; }
       const onFloor = (id?: string) => (id && ws.some(w => w.id === id) ? id : undefined);
       /* A remembered line that has gone is no line: the first one, or a new one. */
       const fallback = onFloor(recall('line')) ?? ws[0]?.id ?? NEW_LINE;
@@ -144,7 +155,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
       setLine(onFloor(wsId) ?? (theirs.length === 1 ? theirs[0] : theirs.length > 1 ? ASK : undefined) ?? fallback);
     });
     return () => { live = false; };
-  }, [ownLine, wsId, projectId]);
+  }, [ownLine, wsId, projectId]); // eslint-disable-line react-hooks/exhaustive-deps -- snag and raised are fixed for the sheet (mounted afresh, keyed)
   /* the lines of the job it is for, on the floor — offered first, and asked for when there are several */
   const linesOfJob = (pid: string) => factoryLinesOf(pid, jobLines).filter(id => lines?.some(w => w.id === id));
   const theirs = project ? linesOfJob(project) : [];
@@ -165,10 +176,10 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
      lineRecords machinesOf). Rowland, 12 October: "it doesn't show our
      current machines to pick from — they should"; flow audit #14: never
      another line's. */
-  const lineMachines = useMachinesOf(line === NEW_LINE ? undefined : line, project || undefined);
+  const lineMachines = useMachinesOf(line === NEW_LINE || line === HOLD ? undefined : line, project || undefined);
 
   useEffect(() => {
-    if (!line || line === ASK || line === NEW_LINE) { setLinePrograms([]); return; }
+    if (!line || line === ASK || line === NEW_LINE || line === HOLD) { setLinePrograms([]); return; }
     let live = true;
     void Promise.all([listAllPrograms(), allPaceLines(), listAllAssets()]).then(([progs, jl, assets]) => {
       if (!live) return;
@@ -196,6 +207,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
   /* a project this person may only read takes no problem from them: said, and Save held */
   const mayForProject = useCanTakeProblem(project || undefined);
   const ready = mayForProject && (words.trim() || media.length > 0) && line !== ASK && (line !== NEW_LINE || newLine.trim()) && !busy;
+  const holding = visit && (line === HOLD || isHolding(ws));
 
   const save = async (another: boolean) => {
     if (!ready) return;
@@ -206,6 +218,11 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
         const w = await addLineToFactory(newLine.trim());   /* a new line goes into Your factory, at the end of the floor */
         workspaceId = w.id;
         setLines(ls => [w, ...(ls ?? [])]); setLine(w.id); setNewLine('');
+      }
+      if (line === HOLD && visit) {
+        const w = await ensureHoldingLine(visit.client, visit.site);   /* the customer's holding place, made on the first capture */
+        workspaceId = w.id;
+        setLines(ls => [w, ...(ls ?? [])]); setLine(w.id);
       }
       const t = Date.now();
       const fields = {
@@ -228,7 +245,7 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
         await addSnag(kept);
       }
       /* a machine typed here joins its line's list — every machine is on a line (lib/lines) */
-      if (workspaceId && workspaceId !== NEW_LINE) await machineOntoLine(workspaceId, machine);
+      if (workspaceId && workspaceId !== NEW_LINE && workspaceId !== HOLD) await machineOntoLine(workspaceId, machine);
       remember('line', workspaceId); remember('project', project);
       if (another && !raised) { setWords(''); setMedia([]); setSaved(n => n + 1); } else onClose();
     } finally { setBusy(false); }
@@ -261,9 +278,11 @@ function QuickSnagSheet({ snag, from: raised, wsId, projectId, onClose }: {
             <select value={line} onChange={e => pickLine(e.target.value)} aria-label="Which line">
               {line === ASK && <option value={ASK} disabled>Which line?</option>}
               {(lines ?? []).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              {visit && !holdingOf(lines ?? [], visit.client) && <option value={HOLD}>{holdingName(visit.client)}</option>}
               <option value={NEW_LINE}>A new line…</option>
             </select></label>
         </div>
+        {holding && visit && <p className="sub qs-hold" data-qs-hold>Held at {visit.client} — not on a line yet. Once you know its line, place it there from the visit’s page or here.</p>}
         {/* A JOB ON SEVERAL LINES ASKS WHICH — as it asks for the machine — its lines first */}
         {line === ASK && theirs.length > 1 && (
           <div className="qs-mach qs-ask" role="group" aria-label="Which of the project's lines">

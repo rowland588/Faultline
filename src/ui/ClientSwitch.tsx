@@ -10,6 +10,7 @@ import { useMenu } from './parts';
 import { Icon } from './Icon';
 import { nav } from '../state/useRoute';
 import { useCanStartProjects } from '../cloud/access';
+import { openStartVisit } from './StartVisit';
 
 export function ClientSwitch({ cs, here = [], onGoTo }: {
   cs: ClientScope;
@@ -41,6 +42,10 @@ export function ClientSwitch({ cs, here = [], onGoTo }: {
           ))}
           <button type="button" role="menuitemradio" aria-checked={!cs.client} className={'part-menu-i' + (!cs.client ? ' is-on' : '')} onClick={() => pick('')}>
             <b>All clients</b><span>Every business at once — each row says whose it is</span>
+          </button>
+          {/* C3: START A VISIT — the consultant's one primary, at the client chosen or a new one */}
+          <button type="button" role="menuitem" className="part-menu-i nv-client-visit" data-client-start-visit onClick={() => { m.setOpen(false); openStartVisit(cs.client || undefined); }}>
+            <b>Start a visit…</b><span>A day at a customer — {cs.client || 'pick which'}, or a new one by its name</span>
           </button>
           {/* C2a: a new customer, added by name before it has a line — on the Set up tab's Customers */}
           {mayAdd && (

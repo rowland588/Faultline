@@ -80,6 +80,9 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
     return lanes ? { wsId: lanes.workspaceId, lanesId: lanes.id } : undefined;
   }).catch(() => undefined);
   for (const pg of PAGES(sd, cap)) {
+    /* a page whose records are made just before it is looked at (its `prep`, run in the page) — the last on the list, so what it makes
+       changes no page before it (a visit at a second customer turns #/ into the consultant's home, C3) */
+    if (pg.prep) await page.evaluate(pg.prep);
     await page.goto(`${BASE}/${pg.path}`); await page.waitForTimeout(2200);
     /* Line capacity on a phone opens on one card (capacityGlance, 4 November); its set-up, drawings and sums are under Show the workings */
     await page.getByRole('button', { name: 'Show the workings and set-up' }).click({ timeout: 600 }).catch(() => {});

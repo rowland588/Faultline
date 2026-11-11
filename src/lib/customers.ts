@@ -85,8 +85,8 @@ async function read(): Promise<{ lines: Workspace[]; studies: ToolStudy[] }> {
   return { lines, studies };
 }
 
-/** A new story for a client — its anchor, the brief empty. */
-async function anchorFor(name: string, site?: string, archivedAt?: number): Promise<string> {
+/** A new story for a client — its anchor, the brief empty (a visit at a client with no story starts one too, lib/visits). */
+export async function anchorFor(name: string, site?: string, archivedAt?: number): Promise<string> {
   const t = Date.now(), id = uid();
   await (await db()).putStudy({ id, tool: 'story', name: `${name} — the story`,
     agreed: { story: { client: name, brief: '', startedAt: t, ...(site ? { site } : {}), ...(archivedAt ? { archivedAt } : {}) } },

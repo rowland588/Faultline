@@ -51,6 +51,7 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
   }).catch(() => undefined);
   for (const pg of PAGES(sd, cap)) {
     if (ONLY && !ONLY.test(pg.name)) continue;
+    if (pg.prep) await page.evaluate(pg.prep);   /* a page whose records are made just before it (scripts/inventory/pages.mjs) */
     await page.goto(`${BASE}/${pg.path}`); await page.waitForTimeout(2200);
     await page.waitForFunction(sel => [...document.querySelectorAll(sel)].some(e => e.getBoundingClientRect().width > 0), pg.must[0].sel, { timeout: 6000 }).catch(() => {});
     const m = await page.evaluate(() => {

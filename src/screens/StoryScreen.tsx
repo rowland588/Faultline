@@ -33,6 +33,7 @@ import { CloudPanel } from '../cloud/CloudPanel';
 import { useAiMode } from '../colleague/aiMode';
 import { setLunaPanel } from '../colleague/lunaPanel';
 import { Icon } from '../ui/Icon';
+import { openStartVisit } from '../ui/StartVisit';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 /** HOME IS THE STORY (S5): `present` draws the same page full screen with no frame — the meeting itself — from #/?present=1. */
@@ -182,11 +183,13 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
         primary={ag && !ag.closedAt ? { label: 'Run an update', run, disabled: !snapshot || !!draft } : undefined}
         papers={last ? [{ label: 'Story report — the latest chapter', for: 'for the client: the story so far, this update, every finding in money, what is being done and what is proved', make: () => paperFor(last, chapters) }, { label: 'Story slides — the latest chapter', for: 'the same chapter as a 16:9 deck to open in PowerPoint and present: the cover, the four figures, this update, where the money is, what we have found, what is being done, what is proved, next', make: () => deckFor(last, chapters) }] : []}
         more={ag ? [
+          /* START A VISIT (C3, docs/CONSULTANT-WORKSPACE.md) — a day at this customer, kept on its story */
+          { label: 'Start a visit', hint: `a day at ${client || 'the customer'} — what you capture is read onto it`, run: () => openStartVisit(client || undefined) },
           ag.closedAt ? { label: 'Reopen the engagement', run: () => story && void save({ ...story, agreed: { story: { ...ag, closedAt: undefined } } }) } : { label: 'Close the engagement', run: () => story && void save({ ...story, agreed: { story: { ...ag, closedAt: Date.now() } } }) },
           /* PRESENT (S5): the same page full screen, no frame — the meeting itself */
           { label: 'Present', hint: 'full screen, the figures large — for the room', run: () => nav('/?present=1') },
           { label: 'Lines and set up', run: () => nav('/room') },
-        ] : []} />
+        ] : [{ label: 'Start a visit', hint: 'a day at a customer — no line needed to start', run: () => openStartVisit(client || undefined) }]} />
       {said && <p className="sub st-said" role="status">{said}</p>}
 
       {!ag ? (

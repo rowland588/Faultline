@@ -10781,6 +10781,12 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .fac-customer .btn-sm { flex: none; min-height: var(--tap); }
 .fac-customer-form { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-3) 0; }
 .fac-customer-form .text-input { flex: 1 1 200px; min-height: var(--tap); }
+/* THE VISIT IN HAND (ui/VisitBadge, lib/visits — C3): Business B · Visit 11 Nov ▾, a violet dot for under way beside its word */
+.nv-visit { flex: none; min-width: 0; }
+.nv-visit-b { max-width: 260px; }
+.nv-visit-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nv-visit-dot { flex: none; width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--st-w); }
+.nv-visit-s { display: none; }
 /* Go to a line or project, in the client's menu — on a phone only, where the client stands in Go to's place */
 .nv-client-list .nv-client-goto { display: none; }
 @media (max-width: 719px) {
@@ -10792,6 +10798,13 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
   .nv-top:has(.nv-client) .nv-mark, .nv-top:has(.nv-client) .nv-goto, .nv-top:has(.nv-client) .nv-here.is-factory { display: none; }
   .nv-top:has(.nv-client) .nv-here.is-factory + .nv-sep { display: none; }
   .nv-client-list .nv-client-goto { display: grid; }
+  /* a visit in hand takes Go to's place too, its words giving way first */
+  /* on a phone the visit is its dot and the word Visit (its customer is the client beside it; the menu says the rest) */
+  .nv-visit-b { min-height: 44px; padding: 0 var(--space-1); gap: 2px; }
+  .nv-visit-l { display: none; }
+  .nv-visit-s { display: inline; }
+  .nv-top:has(.nv-visit) .nv-client .nv-client-b { max-width: 21vw; }
+  .nv-top:has(.nv-visit) .nv-goto, .nv-top:has(.nv-visit) .nv-mark { display: none; }
 }
 /* Keeps the snag button and you at the right (Frame: the search box that
    held this place is gone until search exists). */
@@ -18057,3 +18070,23 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* the question that heads a group of the line's sections takes the hairline; its first section sits under it */
 .nv-main .wrap .pl-q { margin: var(--space-5) 0 0; padding-top: var(--space-4); border-top: 1px solid var(--line); }
 .nv-main .wrap .pl-q + .pl-sec { border-top: 0; padding-top: 0; margin-top: var(--space-2); }
+
+/* THE CONSULTANT'S HOME (screens/ConsultantHome, C3) — your customers, what is owed, recent visits: rows and hairlines, one primary */
+.ch-hi { margin: var(--space-4) 0 0; }
+.ch-sec { margin: var(--space-5) 0; }
+.ch-inhand { margin: var(--space-3) 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.ch-late { color: var(--st-r); font-weight: 700; font-size: var(--t-detail); }
+.ch .lt-row, .vs .lt-row { min-height: var(--tap); }
+/* A VISIT'S PAGE (screens/VisitScreen, lib/visits — C3) */
+.vs-sec { margin: var(--space-5) 0; }
+.vs-brief { font-size: var(--t-body); margin: 0; }
+.vs-problem { flex-wrap: wrap; }
+.vs-place select { min-height: var(--tap); font: inherit; font-size: var(--t-detail); border: 1px solid var(--line); border-radius: var(--radius-pill); padding: 0 var(--space-3); background: var(--surface); color: var(--ink); }
+.vs-photos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--space-3); }
+.vs-photo-b { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: var(--space-1); width: 100%; }
+.vs-photo-b img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface-2); }
+.vs-photo-c { font-size: var(--t-detail); color: var(--ink-2); }
+.vs-start .chip-row { flex-wrap: wrap; }
+.qs-hold { margin: 0; }
+@media (max-width: 719px) { .pace-head-actions .btn.ch-start, .pace-head-actions .btn.vs-end, .pace-head-actions .btn.vs-report, .vs-place select { min-height: var(--tap); } }
+.vs-gap { flex: 1; }

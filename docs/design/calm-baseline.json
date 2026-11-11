@@ -1822,5 +1822,21 @@
   "controls": 3,
   "sizes": 4,
   "first": 3
+ },
+ "phone · A visit": {
+  "height": 1043,
+  "boxes": 0,
+  "headings": 6,
+  "controls": 6,
+  "sizes": 4,
+  "first": 6
+ },
+ "desk · A visit": {
+  "height": 900,
+  "boxes": 0,
+  "headings": 6,
+  "controls": 6,
+  "sizes": 4,
+  "first": 6
  }
 }

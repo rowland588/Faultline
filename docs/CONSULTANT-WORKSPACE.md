@@ -124,6 +124,34 @@ Today, Problems, Actions, Projects, Machines, the Tools counts and lists, the be
 whichever client is active), and Luna's `resolve`, `factory_map` and `recall` leave it out until it is continued. Proof:
 `scripts/acceptance/customers.mjs`, `src/lib/__tests__/activeClient.test.ts`.
 
+**C3 — Visits and the consultant's home, built (11 November).** Rowland said *go*. **The decisions, taken as defaults (each Rowland's to
+change):** the engagement is the **Story** — one open per customer, a closed one kept, several over time; a visit **produces a report only
+when asked** (*Make the visit report*); the **visit report is client-facing**; **no paper ever mixes two customers** except one made under
+*All clients*, which says so on its band (the Actions paper already does). **What a visit is:** a customer + a day (+ a site) + who + the
+brief said at the door + when it ended. **Storage, no new noun and no migration:** an entry on the customer's Story record,
+`facts.visits: { id, day, site?, by?, brief?, startedAt, endedAt?, recommend? }[]` — in `facts`, not `agreed`, because the sync merges a
+study's facts one level down and an id-keyed list by id (as the chapters are), so a visit started on the phone and another ended on the
+laptop both stand (`visits.test.ts` proves it through `mergeRows`); `agreed` is one value, newest wins. A visit goes on the customer's
+open story, else its newest, else a story is started (brief empty). The visit in hand is also kept on the device (`faultline.visit`).
+**What was captured is READ, never copied** (`lib/visits visitRecords`): every problem, tool record, timed stop, Line Talk and photo whose
+line is the customer's and whose time falls in the visit's hours — from its start to its end, or to the end of its day while in hand. A
+walk photo with Luna is the visit's when taken in the hours with the visit in hand (its turn carries `visitId`) or at one of the
+customer's lines or departments — never by the time alone. **Capture with no line — the choice and why:** a problem must sit on a line
+(`Snag.workspaceId`), and a department is a study, not a line, so a problem cannot sit on one without changing the problem record and
+every reader of it. So a customer with no line yet gets a **holding place** on the first ＋ Problem: a line named *<customer> — not yet
+placed*, type *Not yet placed* (`HOLDING_TYPE`), made the way every line is made (`addLineToFactory`), its customer's words on it. The
+sheet chooses it by itself at a customer with no line of its floor (and offers only the active client's lines once several are named);
+**Place on a line** on the visit's page moves the problem to its line through `patchSnag` (the editor's own path — the editor's line box
+does the same). The holding place shows on the Lines tab as a line of its customer. **Where it shows:** *Start a visit* — the home's one
+primary, the client menu (*Start a visit…*), the Story's More ▾; the top bar's *Business B · Visit 11 Nov ▾* (its page, *End the visit*;
+on a phone the dot and *Visit*); `#/visit/:id` (`screens/VisitScreen`, lit under Story) — what we were asked, what was found with its money
+(`problemCost`), photos, measurements, studies and talks, each a door, What we recommend next, and *Make the visit report*
+(`lib/report/visitPaper` — band, cover with the brand, asked, saw, found, photos whole, recommend, what the figures rest on), kept under
+Saved copies. **The consultant's home:** `#/` when more than one customer is in use (`screens/ConsultantHome`) — *Good morning, <first
+name>*, your customers as rows (engagement · last visit · open and late, a tap making it the client you are in and opening its Story at
+`#/story`), what is owed across them (open problems with a person or a day, late first, the client named), recent visits, Start a visit.
+With one customer `#/` stays the Story. Proof: `scripts/acceptance/visits.mjs`, `src/lib/__tests__/visits.test.ts`.
+
 Then, each live on its own: **C2** a new business in one tap (client = its engagement, a holding place for capture before lines) ·
 **C3** the visit (read from the day's records; its brief and report kept) · **C4** the library (cloud saved copies — a migration) ·
 **C5** my templates · **C6** Luna's active client and visit.

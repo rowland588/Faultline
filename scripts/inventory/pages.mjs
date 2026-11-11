@@ -1022,4 +1022,31 @@ export const PAGES = (sd, cap) => [
     { what: 'the band', sel: '.ln-band' }, { what: 'the tiles', sel: '.ie-strip .ln-tile' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' },
     /* IN MONEY (knowledge/specs/FC-156-capability-money.md, 24 October): the give-away tile and the sentence with its because, from the packs a shift and £ a kg typed on the study */
     { what: 'the money — Give-away a pack, a shift and a week (FC-156)', sel: '.ie-strip .ln-tile', text: /^Give-away/ }, { what: 'the money sentence with its because', sel: '.ie-say.ie-money', text: /^Give-away .*because the mean/ }] },
+  /* A VISIT (11 November, docs/CONSULTANT-WORKSPACE.md C3; screens/VisitScreen) — a day at a customer: what we were asked, what was found
+     that day read from the customer's lines, the photos, the measurements, what we recommend; a problem held at the customer offering
+     Place on a line. Made by its `prep` just before it is looked at, LAST on this list: a second customer turns #/ into the consultant's
+     home, which no page before it expects. */
+  { name: 'A visit', path: '#/visit/inventory-visit', prep: async () => {
+    const db = await import('/src/db.ts');
+    const v = await import('/src/lib/visits.ts');
+    if ((v.visitsOf(await db.listAllStudies())).some(x => x.id === 'inventory-visit')) return;
+    const t0 = Date.now();
+    const sid = crypto.randomUUID();
+    await db.putStudy({ id: sid, tool: 'story', name: 'Hartley Foods — the story', agreed: { story: { client: 'Hartley Foods', brief: '', startedAt: t0 } }, facts: { chapters: [], visits: [{ id: 'inventory-visit', day: v.dayOf(t0), startedAt: t0 - 60000, site: 'Leeds', brief: 'Look at packing performance — nights are worst' }] }, uses: [], startedAt: t0, createdAt: t0, updatedAt: t0 });
+    const h = await db.createWorkspace(v.holdingName('Hartley Foods'));
+    await db.updateWorkspace({ ...h, lineType: v.HOLDING_TYPE, clientName: 'Hartley Foods', siteName: 'Leeds' });
+    const l = await db.createWorkspace('Hartley Packing 1');
+    await db.updateWorkspace({ ...l, clientName: 'Hartley Foods', siteName: 'Leeds' });
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: h.id, problem: 'Guard on the infeed is loose', status: 'open', priority: 'high', raisedAt: t0, updatedAt: t0, media: [] });
+  }, must: [
+    { what: 'what it is — a visit, in hand', sel: '.part-head .pace-eyebrow', text: /^VISIT · IN HAND$/ },
+    { what: 'the customer and the day', sel: '.part-head .pace-title', text: /^Hartley Foods — / },
+    { what: 'what it found, in a line', sel: '[data-visit-says]', text: /1 problem/ },
+    { what: 'End the visit — the one primary while it is in hand', sel: '.part-head .btn-primary', text: /^End the visit$/ },
+    { what: 'the visit report, in Report ▾', sel: '.part-head .part-menu-b', n: 2 },
+    { what: 'what we were asked', sel: '[data-visit-brief]', text: /packing performance/ },
+    { what: 'what was found — a row a problem, opening it', sel: '[data-visit-problem]' },
+    { what: 'a problem held at the customer — Place on a line', sel: '[data-place-on-line] select' },
+    { what: 'what we recommend next', sel: 'textarea[aria-label="What we recommend next"]' },
+  ] },
 ];

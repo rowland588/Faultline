@@ -69,6 +69,8 @@ const ChangeoverScreen = lazy(() => import('./tools/changeover/ChangeoverScreen'
 const AnalysisScreen = lazy(() => import('./tools/analysis/AnalysisScreen').then(m => ({ default: m.AnalysisScreen })));
 const CalcScreen = lazy(() => import('./tools/calc/CalcScreen').then(m => ({ default: m.CalcScreen })));
 const StoryScreen = lazy(() => import('./screens/StoryScreen').then(m => ({ default: m.StoryScreen })));
+const HomeScreen = lazy(() => import('./screens/ConsultantHome').then(m => ({ default: m.HomeScreen })));
+const VisitScreen = lazy(() => import('./screens/VisitScreen').then(m => ({ default: m.VisitScreen })));
 const AiModeScreen = lazy(() => import('./screens/AiModeScreen').then(m => ({ default: m.AiModeScreen })));
 import { LunaHost, LunaSlot } from './colleague/LunaHost';
 import { aiModeOn, useAiMode } from './colleague/aiMode';
@@ -229,7 +231,11 @@ function app(route: Route) {
   if (route.name === 'allActions') return <EveryActionScreen />;
   /* HOME IS THE STORY (S5): #/ and its alias #/story; the board of lines is #/room, the Lines tab */
   if (route.name === 'today') return <TodayScreen />;
-  if (route.name === 'home' || route.name === 'story') return <StoryScreen />;
+  /* THE CONSULTANT'S HOME (C3): #/ with more than one customer is yours — your customers, what is owed across them, recent visits, Start a
+     visit; with one customer it is the Story as before. #/story is always the Story of the client you are in. */
+  if (route.name === 'home') return <HomeScreen />;
+  if (route.name === 'story') return <StoryScreen />;
+  if (route.name === 'visit' && route.id) return <VisitScreen key={route.id} id={route.id} />;
   /* AI MODE (8 November, src/colleague) — the colleague's conversation; the door is in the top bar, not the menu */
   /* Luna is mounted once beside the router (colleague/LunaHost) and drawn here — her conversation, answers in flight, cards waiting and
      voice carry on while the person goes elsewhere (docs/LUNA-WORKSPACE.md W1); switched off, the screen alone says so */

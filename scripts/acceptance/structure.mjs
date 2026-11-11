@@ -120,6 +120,7 @@ for (const width of [1360, 390]) {
   const unnamed = [], over = [], bars = {}, offBar = [];
   for (const pg of PAGES(sd, undefined)) {
     if (/undefined/.test(pg.path)) continue;
+    if (pg.prep) await page.evaluate(pg.prep);   /* a page whose records are made just before it (scripts/inventory/pages.mjs) */
     await go(pg.path);
     const got = await page.evaluate(() => {
       const vis = e => e.getBoundingClientRect().width > 0 && getComputedStyle(e).display !== 'none';

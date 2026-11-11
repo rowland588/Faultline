@@ -42,7 +42,8 @@ export interface PhotoLink {
   how: 'confirmed';
   why?: string;
 }
-export type WalkTurn = TalkTurn & { where?: WalkStop; filed?: PhotoLink[] };
+/** visitId: the visit in hand when the photo was taken (lib/visits, C3) — so the visit reads it even with no place said. */
+export type WalkTurn = TalkTurn & { where?: WalkStop; filed?: PhotoLink[]; visitId?: string };
 export interface WalkFacts { position?: WalkStop; walk?: WalkStop[] }
 
 export const WALK_MAX = 60;
