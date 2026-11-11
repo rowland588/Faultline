@@ -231,8 +231,14 @@ export const PACKING: readonly ExamTurn[] = [
     approve: ['capture_event'],
     marks: s => [m('Captured the stop', done(s, 'capture_event').length > 0, 'captured', `not captured — ${names(s.steps)}`)],
     records: async env => {
+      /* a stop being timed is the line's running stopwatch (Workspace.activeTimer) until "running again" makes it an observation —
+         the product's design (capabilities/connectors/measure), so either is the stop captured (fixed 11 November: marked the timer as none) */
       const st = await stopsOn(env.ids.line1, env.since);
-      return [m('A stop on the Bagger on Packing Line 1', st.some(o => /bagger/i.test(o.asset)), `${st.length} stop(s): ${st.map(o => `${o.asset} · ${o.category}`).join(' | ')}`, `stops on Line 1: ${st.map(o => `${o.asset} · ${o.category}`).join(' | ') || 'none'}`)];
+      const timer = (await listWorkspaces()).find(w => w.id === env.ids.line1)?.activeTimer;
+      const timing = !!timer && /bagger/i.test(timer.asset) && timer.startedAt >= env.since;
+      return [m('A stop on the Bagger on Packing Line 1 (being timed, or timed)', timing || st.some(o => /bagger/i.test(o.asset)),
+        timing ? `being timed: ${timer?.asset} · ${timer?.category}` : `${st.length} stop(s): ${st.map(o => `${o.asset} · ${o.category}`).join(' | ')}`,
+        `stops on Line 1: ${st.map(o => `${o.asset} · ${o.category}`).join(' | ') || 'none'}, nothing being timed`)];
     },
   },
   {
@@ -306,7 +312,11 @@ async function audit(env: ExamEnv): Promise<Mark[]> {
   const recs = await charterRecords(env.since);
   const c = recs[0];
   const g = (id: string) => (c ? docValue(c, id) : undefined);
-  out.push(m('The charter is a record', recs.length === 1, `“${c?.name}”`, `${recs.length} charter records`));
+  /* where the charter's words went when no charter was made — the DMAIC Define sheet's answers, said beside the failure (11 November:
+     every run wrote the charter into the sheet; the content is shown so a reader can tell a wrong route from a lost fact) */
+  const sheet = ps[0] ? (await methodAnswers(ps[0].p.id)).filter(a => a.text.trim()) : [];
+  const sheetSaid = sheet.length ? ` — the Define sheet holds ${sheet.length}: ${sheet.map(a => `${a.key.split(':').pop()} “${a.text.replace(/\s+/g, ' ').slice(0, 90)}”`).join(' · ')}` : ' — and nothing in the Define sheet';
+  out.push(m('The charter is a record', recs.length === 1, `“${c?.name}”`, `${recs.length} charter records${recs.length ? '' : sheetSaid}`));
   out.push(m('The charter is in the investigation or on Packing Line 1', !!c && (c.projectId === ps[0]?.p.id || c.workspaceId === env.ids.line1), `project ${c?.projectId === ps[0]?.p.id ? 'yes' : 'no'}, line ${c?.workspaceId === env.ids.line1 ? 'Line 1' : c?.workspaceId ?? 'none'}`, `on project ${c?.projectId ?? 'none'}, line ${c?.workspaceId ?? 'none'}`));
   out.push(m('Problem: film jams and bags not opening', has(g('problem'), /film/) && has(g('problem'), /bag/), `“${lower(g('problem')).slice(0, 100)}”`, `“${lower(g('problem')).slice(0, 100) || 'empty'}”`));
   out.push(m('Target 30, in minutes a shift', Number(g('target')) === 30 && has(g('unit'), /min/), `30 ${String(g('unit'))}`, `target ${String(g('target') ?? 'empty')}, unit ${String(g('unit') ?? 'empty')}`));

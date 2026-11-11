@@ -103,4 +103,49 @@ None of the four turns marked wrong was a mistake by Luna; all were the exam's o
 
 So on this exam the live model was right on every turn the exam meant to test.
 
-*No real run yet.*
+## 5. The packing-line operational exam — results
+
+The packing-line investigation (`src/colleague/exam/packing.ts`, `--suite packing`): two packing lines each with a Bagger, a DMAIC
+investigation set up from ordinary words, its charter said and corrected, a labeller problem on the other line mid-way, the bagger's
+stops timed live and one corrected, the operators' "hour a shift" offered as a baseline, the next day in a new conversation, and the
+charter finished. Marked on what she did and on the application's records, then an audit of the records once every turn is said.
+
+### 11 November, 21:33 — three runs on GitHub Actions (main at 8a969342)
+
+**The same in all three runs: 10 of 15 turns right (41–42 of 52 marks); the records audit 5 of 13.** 3.2–3.7 minutes a run, 38–41
+asks, median 4.0–5.6 s, every reply streamed, first words a median 5.1–6.0 s.
+
+*What she did right, every run.*
+- Found that "the packing line" and "the bagger" named two of each, said so and asked which; once told, kept to Packing Line 1.
+- Read Line 1 before advising: nothing recorded yet, so everything known is what the person reported; recommended timing the stops.
+- Set up **one** DMAIC investigation on Line 1, showed it beside the conversation and agreed to work inside it.
+- Raised the labeller's date code as **one** critical problem on **Line 2's Labeller**, said as reported, outside the bagger project, and
+  went back to the bagger after it.
+- Started the stopwatch on Line 1, captured the stop, ended it, and corrected its reason in place (film jam → bags not opening): one
+  stop, one reason, its seconds kept.
+- Refused to write "about an hour a shift" as the measured baseline: one timed stop of seconds proves nothing about a shift.
+- The next day, in a new conversation, found the investigation by name and said where it stood. Nothing touched any other line.
+
+*Where she went wrong — the model's, not the machinery's (every run).*
+1. **The charter went into the DMAIC Define sheet, never into the charter document.** LUNAR's charter is a record of its own (FC-142,
+   the Project charter document, with boxes for the target, the unit, the date, the sponsor, the lead, the scope in and out, the team);
+   the Define sheet only offers its problem and scope into it. She used `answer_method` on the sheet throughout, so the target, the
+   date, the sponsor and the team were never stored as fields, the correction to Priya Shah had nowhere to land, and the final "make
+   it a record" made nothing. In one run she said plainly the sheet has no sponsor box; in another she said "I've corrected the
+   charter: Priya Shah is now the sponsor" — a claim the records do not bear out. **This is the one real failure, and it is serious:
+   an outcome claimed that the application did not record.**
+2. She twice called `answer_method` with question keys the DMAIC sheet does not have (the capability refused them, correctly).
+3. She once called `fishbone_state` without a line (refused, correctly; no harm).
+
+*Where the exam was wrong — fixed the same evening (11 November).*
+- The **stop** turn looked for a stop record straight after "the bagger's stopped". In LUNAR a stop being timed is the line's running
+  stopwatch until "running again" makes it a record; she had captured it correctly in every run. The mark now accepts the running
+  stopwatch on the Bagger, or the stop.
+- The audit said "no charter" without saying where the words went. It now prints the Define sheet's answers beside that failure, so a
+  wrong route can be told from a lost fact. No mark was loosened: the charter must still be the document, with its fields.
+
+*What genuinely needs fixing (not done — Rowland's call).* Luna needs to know that a charter, an 8D report and every LUNAR document are
+**records made through drafts** (`start_draft` → `fill_draft` → `make_record`), not answers on a method sheet, and to say so honestly
+when she cannot store something. Likely fix: tool guidance in the colleague's instructions and a pointer from `answer_method`'s refusal
+of a field the sheet lacks to the document that has it. Nothing in the capabilities was changed.
+
