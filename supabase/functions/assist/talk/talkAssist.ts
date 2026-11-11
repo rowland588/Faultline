@@ -68,7 +68,7 @@ export const DOC_KIND_WORD: Record<TalkDocKind, string> = {
 };
 /** Where a point comes from, in words — on the screen and on paper. */
 export const BASIS_WORD: Record<TalkBasis, string> = {
-  observed: 'Observed', record: 'Record', interpretation: 'Assessment',
+  observed: 'Observed', record: 'Luna record', interpretation: 'Assessment',
 };
 
 /** Where a point stands on the board — told in a word beside its colour, never by colour alone ('' = no marker). */
@@ -303,7 +303,7 @@ export function talkMessages(a: TalkAsk): TalkMessage[] {
   const end = last?.content[last.content.length - 1];
   if (end) end.cache_control = { type: 'ephemeral' };
   const records = a.context.trim()
-    ? `FAULTLINE'S RECORDS — verified data, worked out by the app's own formulas from what people measured. Quote them; never recompute them.\n<records>\n${a.context.trim()}\n</records>`
+    ? `THE APP'S RECORDS — verified data, worked out by the app's own formulas from what people measured. Quote them; never recompute them.\n<records>\n${a.context.trim()}\n</records>`
     : 'No records go with this conversation: it is not on a production line or a project.';
   const draft = a.draft ? `\n\nTHE DIAGRAM SO FAR — the person's own version, which they may have changed; build on this, not on your memory of it:\n<diagram>\n${a.draft}\n</diagram>` : '';
   put('user', [{ type: 'text', text: `${records}${draft}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turns above.` }]);

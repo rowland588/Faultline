@@ -62,7 +62,7 @@ describe('the conversation in the model’s terms', () => {
     const last = m[m.length - 1].content;
     expect(last[last.length - 2]).toMatchObject({ text: '[10:45 · typed] Write a line-walk report with the photo.', cache_control: { type: 'ephemeral' } });
     const end = last[last.length - 1];
-    expect(end.type === 'text' && end.text).toMatch(/^FAULTLINE'S RECORDS — verified data[\s\S]*<records>\nPRODUCTION LINE: Line 7[\s\S]*<\/records>\n\nToday is Wednesday 21 October 2026\.\nCarry on the conversation: reply to the person's latest turns above\.$/);
+    expect(end.type === 'text' && end.text).toMatch(/^THE APP'S RECORDS — verified data[\s\S]*<records>\nPRODUCTION LINE: Line 7[\s\S]*<\/records>\n\nToday is Wednesday 21 October 2026\.\nCarry on the conversation: reply to the person's latest turns above\.$/);
     const bare = talkMessages({ ...ASK, context: '' });
     const bareLast = bare[bare.length - 1].content;
     expect(bareLast[bareLast.length - 1]).toMatchObject({ text: expect.stringMatching(/^No records go with this conversation/) });

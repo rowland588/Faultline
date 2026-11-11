@@ -265,7 +265,7 @@ await dl.saveAs(file);
 const txt = pdfText(file);
 const bytes = readFileSync(file).toString('latin1');
 ok(/Line 7 — morning walk/.test(txt) && /LINE-WALK REPORT/i.test(txt), '9 the PDF: its title and what it is', txt.slice(0, 300));
-ok(/OBSERVED[\s\S]*The bagger film is wandering[\s\S]*FAULTLINE RECORD[\s\S]*Guard on the infeed bent[\s\S]*ASSESSMENT[\s\S]*15 mm[\s\S]*FAULTLINE RECORD[\s\S]*Dave to fit the new guard/.test(txt), '9 every point with where it comes from', txt);
+ok(/OBSERVED[\s\S]*The bagger film is wandering[\s\S]*LUNA RECORD[\s\S]*Guard on the infeed bent[\s\S]*ASSESSMENT[\s\S]*15 mm[\s\S]*LUNA RECORD[\s\S]*Dave to fit the new guard/.test(txt), '9 every point with where it comes from', txt);
 ok(/P1 ·[^\n]*— The infeed guard, bent where the bags catch/.test(txt) && (bytes.match(/\/Subtype\s*\/Image/g) ?? []).length === 1, '9 the photo printed, with its label and caption — the one taken out not', txt);
 ok(/Owner: Dave/.test(txt), '9 an owner where one was said');
 
