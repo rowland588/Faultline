@@ -528,6 +528,35 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       client: str('Its client', 120),
     }, ['area']),
   },
+  // ── The customer and the visit (11 November, docs/CONSULTANT-WORKSPACE.md C6) ──
+  {
+    name: 'start_visit',
+    kind: 'write',
+    description: 'Start a visit — a day at a customer — on ONE card: the customer by name (a new one is added by its name alone, no line needed; one archived is continued; one of theirs is used), its site if said, and what the person was asked to look at as its brief, in their words. The customer becomes the client they are in and the visit the one in hand; what they capture from then is read onto it. Use it for "I\'m at a new customer today, I\'ve been asked to look at …". The person sees a card and decides.',
+    input_schema: obj({
+      client: str('The customer\'s name, as said', 80),
+      site: str('Its site, if said', 80),
+      brief: str('What the person was asked to look at, in their words', 600),
+    }, ['client']),
+  },
+  {
+    name: 'end_visit',
+    kind: 'write',
+    description: 'End the visit in hand — when the person is leaving the customer. Its page then lists what was captured; the visit report is made only when they ask. The person sees a card and decides.',
+    input_schema: obj({}),
+  },
+  {
+    name: 'visit_state',
+    kind: 'read',
+    description: 'The visit in hand (or the latest at the client the person is in) and what has been captured on it: the problems with their money, the photos, the studies, the stops timed, the Line Talks — that customer\'s records only. Use it for "what have we found today".',
+    input_schema: obj({}),
+  },
+  {
+    name: 'switch_client',
+    kind: 'local',
+    description: 'Switch the client the person is in, as the app\'s top bar does — "I\'m back at Branston". Only one of their customers in use; no card; say in your reply which customer they are in now.',
+    input_schema: obj({ client: str('The customer\'s name, as said', 80) }, ['client']),
+  },
   // ── The factory knowledge (docs/FACTORY-KNOWLEDGE.md F2): reads, run at once ──
   {
     name: 'factory_map',

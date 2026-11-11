@@ -152,6 +152,19 @@ name>*, your customers as rows (engagement · last visit · open and late, a tap
 `#/story`), what is owed across them (open problems with a person or a day, late first, the client named), recent visits, Start a visit.
 With one customer `#/` stays the Story. Proof: `scripts/acceptance/visits.mjs`, `src/lib/__tests__/visits.test.ts`.
 
+**C6 — Luna knows the customer and the visit, built (11 November).** Each turn's focus (`colleague/turnRules` conversationFocus →
+`conversation` focusText) says *The client the person is working in* whenever one is in hand (no longer only when several are named) and
+*The visit in hand: Business B, Leeds, <day>, since 09:12 — asked: "…"* (or that none is) — the context text the app already sends, so
+nothing in the gateway's code changed. Four capabilities in `src/capabilities/visits.ts` (schemas in `schemas.ts`, unit tests in
+`__tests__/visits.test.ts`): **start_visit** (write, ONE card — the customer by name, added when new, continued when archived; its site; the
+brief in the person's words; the same `lib/visits startVisit` the sheet uses), **end_visit** (write, a card saying what was captured),
+**visit_state** (read — the visit in hand, else the latest at the client the person is in, and what was captured on it, read through
+`visitRecords` from that customer's lines only), **switch_client** (local, no card — *"I'm back at Branston"*, the top bar's own choice;
+an unknown or archived customer refused). Her instructions (`tools/colleague/colleagueAssist`, CUSTOMERS AND VISITS) say when to use each and
+never to read another customer's records; `recall`, `resolve` and `factory_map` already keep customers apart (C1, C2a). **The gateway copy
+is synced (`scripts/sync-assist.mjs` — `supabase/functions/assist/colleague/schemas.ts` and `colleagueAssist.ts`) but NOT deployed: until
+the `assist` function is deployed the live gateway refuses the four new calls.** Proof: `scripts/acceptance/luna-visits.mjs`.
+
 Then, each live on its own: **C2** a new business in one tap (client = its engagement, a holding place for capture before lines) ·
 **C3** the visit (read from the day's records; its brief and report kept) · **C4** the library (cloud saved copies — a migration) ·
 **C5** my templates · **C6** Luna's active client and visit.

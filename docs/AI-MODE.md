@@ -137,6 +137,10 @@ export interface CapCall { id: string; name: string; input: unknown }
 | write | `remember_preference` | adds a line to the person's own How I work (§9) — a card saying exactly what will be added |
 | write | `make_record` | a draft made a record through the tool's own New — or, made already, updated with only what the conversation changed; a factory draft made as its lines (`addLineToFactory`, client · site · area) and machines (`machineOntoLine`, `setMachineIdentity`, how each is known), matched not doubled, held while a document's proposal waits or a difference is unpicked |
 | write | `replace_machine` | a machine on a line replaced: the new record in its place, the old kept with Replaced by and how that is known (F5) |
+| read | `visit_state` | the visit in hand (or the latest at the client the person is in) and what has been captured on it — the problems with their money, photos, studies, stops timed, talks — read from that customer's lines only, never another's (C6, docs/CONSULTANT-WORKSPACE.md) |
+| local | `switch_client` | *"I'm back at Branston"*: the client the person is in, switched as the top bar switches it — no card, said in the reply; an unknown or archived customer refused (C6) |
+| write | `start_visit` | a visit at a customer, on ONE card — a new customer added by its name (or an archived one continued), its site, what the person was asked kept as its brief; the customer made the client they are in, the visit in hand (`lib/visits startVisit`, the function Start a visit uses) (C6) |
+| write | `end_visit` | the visit in hand ended, on a card saying what was captured; its page lists it for the report (C6) |
 
 A new capability is added in `src/capabilities` with its schema in `schemas.ts`, its unit tests and its card's
 wording. It is built on the functions Manual Mode already uses — never a second data model.

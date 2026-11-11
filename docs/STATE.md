@@ -28,6 +28,12 @@ a session that ships something updates this page in the same commit.** The rules
   talks; *Make the visit report* is the client-facing paper (`lib/report/visitPaper`), kept under Saved copies. With more than one
   customer `#/` is **your home** — your customers as rows, what is owed across them, recent visits — and `#/story` the Story of the client
   you are in. `scripts/acceptance/visits.mjs`, `src/lib/__tests__/visits.test.ts`.
+- **Luna knows the customer and the visit (11 November, C6).** Each turn tells her the client the person is in and the visit in hand
+  (customer, site, day, brief). Four capabilities (`src/capabilities/visits`): `start_visit` (one card — a new customer by name and its
+  visit, the brief in the person's words), `end_visit` (a card), `visit_state` (read — what was captured on the visit, that customer's
+  records only), `switch_client` (no card — *"I'm back at Branston"*). The gateway's copy of the schemas and instructions is synced
+  (`scripts/sync-assist.mjs`) — **the `assist` function needs deploying** for the gateway to accept the four.
+  `scripts/acceptance/luna-visits.mjs`, `src/capabilities/__tests__/visits.test.ts`.
 
 - **The model for each AI task (9 November).** Rowland: *"we want quality output but lowest cost"*. Each task of the `assist`
   gateway has its own model setting (`supabase/functions/assist/index.ts`, the top): Line Talk (`ASSIST_TALK_MODEL`), the Story
