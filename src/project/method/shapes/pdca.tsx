@@ -14,6 +14,7 @@ import type { ToolStudy } from '../../../lib/study';
 import type { Standard } from '../../../tools/linestandard/standard';
 import { howTool, openable } from '../methodTools';
 import type { ShapeProps } from './index';
+import { BoardFold } from './BoardFold';
 import './pdca.css';
 
 /** What a project's own record of a tool says, read-only, with a way to open or start the tool. */
@@ -57,7 +58,7 @@ import { useLunaAnswers } from '../../../colleague/lunaAnswers';
 import { fieldsOf } from '../../../lib/methodSheet';
 import { isLunaDraft, LunaMark } from '../../../colleague/LunaMark';
 
-export function PdcaBoard({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
+export function PdcaBoard({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
   /* what Luna wrote on the board, marked where it stands (W5) — cycle 1's boxes are the sheet's own questions */
   const luna = useLunaAnswers(projectId, QUARTERS.flatMap(name => fieldsOf('pdca', name).map(f => ({ id: f.id, label: f.label }))));
   const cycles = cyclesOf(answers);
@@ -92,15 +93,15 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool }: ShapePr
         ))}
       </div>
 
-      <div className="pdca-loop" aria-label={`Cycle ${n} — the loop`}>
+      <div className="pdca-loop mb-steps" aria-label={`Cycle ${n} — the loop`}>
         {QUARTERS.map((name, i) => {
           const q = c.quarters[i];
           return (
-            <div key={name} className={`pdca-q${c.inHand === name ? ' hand' : ''}`} data-q={name} aria-label={`${name} — cycle ${n}`}>
-              <div className="pdca-qh">
-                <h2 className="pdca-qt"><span className="pdca-step">{i + 1}</span> {name}{i < 3 ? <span className="pdca-arrow" aria-hidden="true"> →</span> : <span className="pdca-arrow" aria-hidden="true"> ↺</span>}</h2>
-                <p className="msheet-state" role="status"><b>{q.word}</b> · {q.written} of {q.fields.length} written{c.inHand === name ? ' · the cycle is here' : ''}</p>
-              </div>
+            <div key={name} className={`pdca-q mb-step${c.inHand === name ? ' hand' : ''}`} data-q={name} aria-label={`${name} — cycle ${n}`}>
+              {/* the quarter the cycle is in open, the others one line — how far each is (docs/DESIGN.md) */}
+              <BoardFold method="pdca" part={`c${n}-${name}`} here={c.inHand === name} ready={ready}
+                title={<span className="pdca-qt"><span className="pdca-step">{i + 1}</span> {name}{i < 3 ? <span className="pdca-arrow" aria-hidden="true"> →</span> : <span className="pdca-arrow" aria-hidden="true"> ↺</span>}</span>}
+                says={<span className="msheet-state" role="status"><b>{q.word}</b> · {q.written} of {q.fields.length} written{c.inHand === name ? ' · the cycle is here' : ''}</span>}>
               {q.fields.map(fl => {
                 const key = cycleKey(fl.id, n), value = c.answers[fl.id] ?? '';
                 const at = AT[fl.id];
@@ -126,6 +127,7 @@ export function PdcaBoard({ projectId, answers, canEdit, save, onTool }: ShapePr
                   </label>
                 );
               })}
+              </BoardFold>
             </div>
           );
         })}

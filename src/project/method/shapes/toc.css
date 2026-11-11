@@ -1,24 +1,25 @@
-/* THEORY OF CONSTRAINTS — the five focusing steps board (project/method/shapes/toc). Tokens only. */
-.toc { display: grid; gap: 12px; margin: 14px 0 18px; }
-.toc-h { margin: 0; font-size: var(--t-title, 1.2rem); color: var(--ink); }
-.toc-h3 { margin: 0 0 6px; font-size: var(--t-body); color: var(--ink); }
+/* THEORY OF CONSTRAINTS — the five focusing steps board (project/method/shapes/toc). Tokens only. Since 11 November a step is a
+   heading and a hairline in ui/Fold (shapes/BoardFold; the shared rules in styles.css, METHOD BOARDS, CALM) — the step in hand open,
+   never a card; the passes round the loop the last line. */
+.toc { display: grid; gap: var(--space-3); margin: var(--space-3) 0 var(--space-5); min-width: 0; }
+.toc-h { margin: 0; font-size: var(--t-h); color: var(--ink); }
+.toc-h3 { margin: 0 0 var(--space-2); font-size: var(--t-body); color: var(--ink); }
 .toc-sub { margin: 0; font-size: var(--t-detail); color: var(--ink-2); }
-.toc-strip { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-.toc-chip a { display: grid; gap: 2px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-top: 4px solid var(--brand); border-radius: var(--radius); background: var(--surface); color: var(--ink); text-decoration: none; font-size: var(--t-detail); min-width: 0; overflow-wrap: anywhere; }
+.toc-strip { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-2); }
+.toc-chip a { display: grid; gap: 2px; min-height: 44px; padding: var(--space-2) var(--space-3); border: 1px solid var(--line); border-top: 4px solid var(--brand); border-radius: var(--radius); background: var(--surface); color: var(--ink); text-decoration: none; font-size: var(--t-detail); min-width: 0; overflow-wrap: anywhere; }
 .toc-chip span { color: var(--ink-2); font-size: var(--t-label); }
-.toc-cards { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.toc-card { display: grid; gap: 6px; align-content: start; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); min-width: 0; scroll-margin-top: 70px; }
+.toc-cards { min-width: 0; }
+.toc-card { min-width: 0; scroll-margin-top: 70px; }
 .toc-step { margin: 0; font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
 .toc-says { margin: 0; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
-.toc-lines { margin: 0; padding-left: 18px; font-size: var(--t-detail); color: var(--ink); display: grid; gap: 3px; }
+.toc-lines { margin: 0; padding-left: 18px; font-size: var(--t-detail); color: var(--ink); display: grid; gap: var(--space-1); }
 .toc-missing { margin: 0; font-size: var(--t-detail); color: var(--st-a-ink, var(--ink-2)); }
-.toc-tool { margin: 4px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.toc-tool { margin: var(--space-1) 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .toc-tool-says { font-size: var(--t-detail); color: var(--ink-2); flex: 1 1 160px; }
 .toc .btn { min-height: 44px; }
-.toc-passes { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
-.toc-pass-list { margin: 0 0 8px; padding-left: 18px; display: grid; gap: 6px; }
+.toc-passes { min-width: 0; }
+.toc-pass-list { margin: 0 0 var(--space-2); padding-left: 18px; display: grid; gap: var(--space-2); }
 .toc-pass-in { display: grid; gap: 2px; font-size: var(--t-detail); color: var(--ink-2); }
 @media (max-width: 720px) {
   .toc-strip { grid-template-columns: minmax(0, 1fr); }
-  .toc-cards { grid-template-columns: minmax(0, 1fr); }
 }

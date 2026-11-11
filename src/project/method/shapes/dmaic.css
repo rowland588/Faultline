@@ -1,8 +1,9 @@
-/* DMAIC'S BOARD — the phase gate strip, the charter and the reviews (shapes/dmaic). Tokens only. */
-.dm { display: grid; gap: 14px; margin: 0 0 18px; }
+/* DMAIC'S BOARD — the phase gates, the charter and the reviews (shapes/dmaic). Tokens only. Since 11 November a phase is a heading
+   and a hairline in ui/Fold (shapes/BoardFold; the shared rules in styles.css, METHOD BOARDS, CALM) — the phase in hand open. */
+.dm { display: grid; gap: var(--space-3); margin: 0 0 var(--space-5); min-width: 0; }
 .dm-says { margin: 0; font-size: var(--t-body); color: var(--ink); }
-.dm-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
-.dm-gate { display: grid; gap: 2px; align-content: start; min-height: 44px; padding: 10px 12px; text-align: left; font: inherit; cursor: pointer; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--line); border-radius: var(--radius); }
+.dm-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.dm-gate { display: grid; gap: 2px; align-content: start; min-height: 44px; padding: var(--space-2) var(--space-3); text-align: left; font: inherit; cursor: pointer; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--line); border-radius: var(--radius); }
 .dm-gate b { font-size: var(--t-body); }
 .dm-gate span { font-size: var(--t-detail); color: var(--ink-2); }
 .dm-gate[data-tone="g"] { border-top-color: var(--st-g); }
@@ -10,7 +11,7 @@
 .dm-gate[data-tone="r"] { border-top-color: var(--st-r); }
 .dm-gate[data-tone="w"] { border-top-color: var(--st-w); }
 .dm-gate[aria-current="step"] { box-shadow: 0 0 0 2px var(--brand); }
-.dm-card { display: grid; gap: 10px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
+.dm-card { min-width: 0; scroll-margin-top: 70px; }
 .dm-card h3 { margin: 0; font-size: var(--t-body); }
 .dm-card-sub { margin: 0; font-size: var(--t-detail); color: var(--ink-2); }
 .dm-word { font-weight: 800; }
@@ -19,22 +20,23 @@
 .dm-word[data-tone="r"] { color: var(--st-r); }
 .dm-word[data-tone="w"] { color: var(--st-w); }
 .dm-word[data-tone="n"] { color: var(--st-n-ink); }
-.dm-charter { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin: 0; }
+.dm-charter { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; }
 .dm-charter > div { min-width: 0; }
 .dm-charter dt { font-size: var(--t-label); color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; }
 .dm-charter dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--t-body); }
 .dm-charter dd.is-empty { color: var(--ink-2); font-style: italic; }
-.dm-review { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.dm-review { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
 .dm-review label { display: grid; gap: 2px; font-size: var(--t-detail); color: var(--ink-2); min-width: 0; }
 .dm-review input, .dm-review textarea { min-height: 44px; width: 100%; }
 .dm-review .dm-wide { grid-column: 1 / -1; }
-.dm-results { display: flex; flex-wrap: wrap; gap: 6px; }
+.dm-results { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .dm-results .chip { min-height: 44px; }
-.dm-tools { display: grid; gap: 6px; }
-.dm-tool { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: var(--radius); }
+.dm-tools { display: grid; gap: 0; }
+.dm-tool { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-2) 0; border-top: 1px solid var(--line-row); }
+.dm-tool:last-child { border-bottom: 1px solid var(--line-row); }
 .dm-tool p { margin: 0; flex: 1 1 220px; min-width: 0; font-size: var(--t-detail); }
 .dm-tool .btn { min-height: 44px; }
-@media (max-width: 720px) {
+@media (max-width: 719px) {
   .dm-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dm-charter, .dm-review { grid-template-columns: minmax(0, 1fr); }
 }

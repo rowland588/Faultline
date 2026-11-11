@@ -23,6 +23,7 @@ const box = q => page.locator('.pmethod-sec[aria-label="Define"] .msheet-f', { h
 /* ---- 1 ---- */
 await go(`#/project/${ID}`, 2000);
 await page.waitForSelector('.dm', { timeout: 20000 });
+await t.openBoard();   // the board's phases open with the one in hand open (docs/DESIGN.md) — every one opened, kept on the device
 await box('The problem statement').fill(PROBLEM); await box('The problem statement').blur();
 await box('Scope — in and out').fill(SCOPE); await box('Scope — in and out').blur(); await page.waitForTimeout(700);
 const ins = page.locator('#dm-define [data-insert="charter"]');

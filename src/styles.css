@@ -17877,6 +17877,24 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .pmethod .mdash-f.is-a, .pmethod .mdash-a.is-a { border-left-color: var(--st-a); }
 .pmethod .mdash-f.is-g { border-left-color: var(--st-g); }
 .pmethod .mdash-f.is-w { border-left-color: var(--st-w); }
+/* METHOD BOARDS, CALM (11 November) — docs/DESIGN.md. Each method's board (project/method/shapes: DMAIC's phases, the A3's blocks,
+   PDCA's quarters, the Kaizen event's days, the Kata's cells and experiments, the five focusing steps, the 8D's parts) opens with the
+   step in hand open and every other step one line in ui/Fold (shapes/BoardFold): a step is a heading and a hairline, never a card,
+   and nothing inside it is a card either. */
+.pmethod .mb-step { min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.pmethod .mb-step > .fold { margin: 0; border-top: 1px solid var(--line); background: transparent; border-radius: 0; box-shadow: none; overflow: visible; }
+.pmethod .mb-step > .fold > .fold-h { padding: var(--space-2) 0; min-height: 44px; align-items: center; }
+.pmethod .mb-step > .fold > .fold-h .fold-toggle { align-items: center; min-height: 44px; }
+.pmethod .mb-step > .fold > .fold-h .fold-t { white-space: normal; }
+.pmethod .mb-step > .fold > .fold-b { display: grid; gap: var(--space-3); padding: 0 0 var(--space-4); min-width: 0; }
+.pmethod .mb-t { font-family: inherit; font-size: var(--t-body); font-weight: 700; color: var(--ink); }
+.pmethod .mb-steps { display: grid; gap: 0; min-width: 0; }
+.pmethod .mb-steps > .mb-step:last-child > .fold { border-bottom: 1px solid var(--line); }
+@media (max-width: 719px) {
+  .pmethod .mb-step > .fold > .fold-h { padding: var(--space-2) 0; }
+  .pmethod .mb-step > .fold > .fold-b { padding: 0 0 var(--space-4); }
+}
+
 @media (max-width: 719px) {
   .pmethod .pmethod-sec > .fold > .fold-h { padding: var(--space-2) 0; }
   .pmethod .pmethod-sec > .fold > .fold-h .fold-s { white-space: normal; }

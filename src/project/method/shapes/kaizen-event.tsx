@@ -16,6 +16,7 @@ import type { Standard } from '../../../tools/linestandard/standard';
 import { checkOf, dayFields, dayWords, daysOf, eventSays, MOST_DAYS, verdictTone, VERDICTS, type Verdict } from '../../../lib/kaizenEvent';
 import { howTool, openable } from '../methodTools';
 import type { ShapeProps } from './index';
+import { BoardFold } from './BoardFold';
 import './kaizen-event.css';
 
 /** A box that keeps its words when the person leaves it. */
@@ -58,7 +59,7 @@ function ToolSays({ projectId, ids, got, canEdit, onTool, lookingSays }: {
   );
 }
 
-function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
+function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
   const today = todayISO();
   const [added, setAdded] = useState(0);
   const [got, setGot] = useState<{ studies: ToolStudy[]; standards: Standard[] } | null>(null);
@@ -74,6 +75,13 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
   const days = useMemo(() => daysOf(answers, added), [answers, added]);
   const check = checkOf(answers, today);
   const toolIds = (ids: string[]) => ids;
+  /* THE WEEK, CALM (11 November, docs/DESIGN.md): the day in hand open — today's, else the first not written, else a day just added —
+     and every other day one line, its state in words; once every day is written the 30-day check is the step in hand. */
+  const dayHere = days.find(d => d.iso === today)?.n ?? days.find(d => d.word !== 'Written')?.n;
+  const checkHere = dayHere === undefined;
+  const firstWords = (v: string) => (v.length > 60 ? `${v.slice(0, 58)}…` : v);
+  const baseUsed = got ? ['FC-001', 'FC-019', 'FC-051'].filter(id => { const t = openable(howTool(id)); return t && usesOf(t, got.studies, got.standards).n; }).length : undefined;
+  const baselineSays = baseUsed === undefined ? 'Reading…' : baseUsed ? `${baseUsed} of 3 baseline tools used here` : 'Not timed yet — none of the 3 baseline tools used here';
 
   return (
     <section className="part-sec kz" aria-label="The week, day by day">
@@ -88,25 +96,28 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
             ? <input type="date" className="text-input kz-in" defaultValue={answers['start'] ?? ''} key={answers['start'] ?? ''} aria-label="First day of the event" onBlur={e => save('start', e.target.value)} />
             : <span className="kz-ro">{answers['start'] ? dayWords(answers['start'], true) : 'Not written yet.'}</span>}
         </label>
-        <div className="kz-startt">
-          <span className="kz-q">The baseline, from the tools used here</span>
+        <div className="kz-startt mb-step">
+          <BoardFold method="kaizen-event" part="baseline" here={false} ready={ready}
+            title="The baseline, from the tools used here" says={baselineSays}>
           <ToolSays projectId={projectId} ids={toolIds(['FC-001', 'FC-019', 'FC-051'])} got={got} canEdit={canEdit} onTool={onTool} />
+          </BoardFold>
         </div>
       </div>
 
-      <div className="kz-days" role="list">
+      <div className="kz-days mb-steps" role="list">
         {days.map(d => {
           const k = dayFields(d.n);
+          const here = d.n === dayHere || (added > 0 && d.n === days.length && d.word === 'Not written');
           return (
-            <article key={d.n} className="kz-day" role="listitem" aria-label={`Day ${d.n}`}>
-              <header className="kz-dayh">
-                <h3 className="kz-dayt">Day {d.n}{d.iso ? <span className="sub"> · {dayWords(d.iso, true)}</span> : null}</h3>
-                <span className={`kz-word kz-word-${d.word === 'Written' ? 'g' : d.word === 'Under way' ? 'w' : 'n'}`}>{d.word}</span>
-              </header>
+            <article key={d.n} className="kz-day mb-step" role="listitem" aria-label={`Day ${d.n}`}>
+              <BoardFold method="kaizen-event" part={`day-${d.n}`} here={here} ready={ready}
+                title={<span className="kz-dayt">Day {d.n}{d.iso ? <span className="sub"> · {dayWords(d.iso, true)}</span> : null}</span>}
+                says={<><span className={`kz-word kz-word-${d.word === 'Written' ? 'g' : d.word === 'Under way' ? 'w' : 'n'}`}>{d.word}</span>{' '}{here ? 'the day in hand' : firstWords(d.change || d.see || d.measure || `usually: ${d.hint}`)}</>}>
               <p className="kz-hint">Usually: {d.hint}</p>
               <Box id={k.see} label={`Day ${d.n} — what we saw`} value={d.see} canEdit={canEdit} save={save} />
               <Box id={k.change} label={`Day ${d.n} — what we changed`} value={d.change} canEdit={canEdit} save={save} />
               <Box id={k.measure} label={`Day ${d.n} — the measure at the close`} value={d.measure} canEdit={canEdit} save={save} line />
+              </BoardFold>
             </article>
           );
         })}
@@ -114,14 +125,18 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
       {canEdit && days.length < MOST_DAYS && (
         <p className="kz-add"><button type="button" className="btn btn-ghost btn-sm" onClick={() => setAdded(days.length + 1 - 5)}>Add a day</button></p>
       )}
+      <div className="kz-week-tools mb-step">
+        <BoardFold method="kaizen-event" part="week-tools" here={false} ready={ready}
+          title="The week’s tools" says={`The changes timed, did it change, eyes on the line${lookingSays ? ` · ${lookingSays}` : ''}`}>
       <ToolSays projectId={projectId} ids={toolIds(['FC-068', 'FC-105'])} got={got} canEdit={canEdit} onTool={onTool} />
       <div className="kz-tools-eyes"><ToolSays projectId={projectId} ids={toolIds(['FC-199'])} got={got} canEdit={canEdit} onTool={onTool} {...(lookingSays ? { lookingSays } : {})} /></div>
+        </BoardFold>
+      </div>
 
-      <div className="kz-check" role="group" aria-label="The 30-day check">
-        <div className="kz-checkh">
-          <h3 className="kz-dayt">The 30-day check</h3>
-          <span className={`kz-word kz-word-${check.verdict ? verdictTone(check.verdict) : check.tone}`}>{check.verdict ?? (check.tone === 'r' ? 'Overdue' : 'Not recorded')}</span>
-        </div>
+      <div className="kz-check mb-step" role="group" aria-label="The 30-day check">
+        <BoardFold method="kaizen-event" part="check" here={checkHere} ready={ready}
+          title={<span className="kz-dayt">The 30-day check</span>}
+          says={<><span className={`kz-word kz-word-${check.verdict ? verdictTone(check.verdict) : check.tone}`}>{check.verdict ?? (check.tone === 'r' ? 'Overdue' : 'Not recorded')}</span>{' '}{check.date ? dayWords(check.date, true) : 'not booked'}</>}>
         <p className="kz-says" role="status">{check.says}</p>
         <div className="kz-checkg">
           <label className="kz-f">
@@ -144,6 +159,7 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
         <p className="kz-open"><b>Open actions:</b> {check.open || 'not written yet — under Sustain below.'}</p>
         <p className="kz-open"><b>The measure at 30 days:</b> {check.holding || 'not written yet — under Sustain below.'}</p>
         <ToolSays projectId={projectId} ids={toolIds(['FC-194', 'FC-086'])} got={got} canEdit={canEdit} onTool={onTool} />
+        </BoardFold>
       </div>
     </section>
   );

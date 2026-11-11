@@ -15,6 +15,7 @@ import type { ShapeProps } from './index';
 import { loadCauses } from './a3Causes';
 import type { CauseRead } from './a3Model';
 import { CM_COLUMNS, a3Sheet, cmField, cmRows, evidencePair, joinCm, type A3Block, type A3Evidence, type A3Field, type Countermeasure } from './a3Model';
+import { BoardFold } from './BoardFold';
 import './a3.css';
 
 /** The studies of this project, kept current. */
@@ -73,7 +74,7 @@ function Countermeasures({ answers, canEdit, save, extra, addRow }: { answers: R
   );
 }
 
-export function A3Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
+export function A3Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
   const studies = useProjectStudies(projectId);
   const [extra, setExtra] = useState(0);
   const [causes, setCauses] = useState<CauseRead[]>([]);
@@ -112,9 +113,26 @@ export function A3Board({ projectId, answers, canEdit, save, onTool }: ShapeProp
   };
   const doorTo = (label: string, to: string) => <button type="button" className="btn btn-ghost btn-sm a3-door" onClick={() => nav(to)}>{label}</button>;
 
+  /* THE SHEET, CALM (11 November, docs/DESIGN.md): the block in hand — the first not fully written, in the sheet's order — open; every
+     other block one line saying how far it is and what it begins with, opening to all it held. */
+  const filled = (b: A3Block) => (b.list ? (sheet.cms.length ? total(b) : 0) : b.fields.filter(x => x.value !== '').length);
+  const total = (b: A3Block) => (b.list ? 1 : b.fields.length);
+  const stateOf = (b: A3Block) => { const w = filled(b), n = total(b); return w === 0 ? 'Not written' : w >= n ? 'Written' : 'Under way'; };
+  const inHand = sheet.blocks.find(b => stateOf(b) !== 'Written')?.n;
+  const firstWords = (b: A3Block) => {
+    const v = b.list ? (sheet.cms[0]?.cm.what ?? '') : (b.fields.find(x => x.value !== '')?.value ?? '');
+    return v.length > 60 ? `${v.slice(0, 58)}…` : v;
+  };
+  const foldSays = (b: A3Block) => [
+    stateOf(b),
+    b.list ? (sheet.cms.length ? `${sheet.cms.length} countermeasure${sheet.cms.length === 1 ? '' : 's'}` : '') : (b.fields.length > 1 ? `${filled(b)} of ${total(b)} written` : ''),
+    b.n === inHand ? 'the block in hand' : firstWords(b),
+  ].filter(Boolean).join(' · ');
+
   const block = (b: A3Block) => (
-    <section key={b.n} className="a3-blk" aria-label={`${b.n}. ${b.title}`}>
-      <h3 className="a3-h"><span className="a3-n">{b.n}</span> {b.title}</h3>
+    <section key={b.n} className="a3-blk mb-step" aria-label={`${b.n}. ${b.title}`}>
+      <BoardFold method="a3" part={`${b.n}-${b.title}`} here={b.n === inHand} ready={ready}
+        title={<><span className="a3-n">{b.n}</span> {b.title}</>} says={foldSays(b)}>
       <p className="a3-asks">{b.asks}</p>
       {b.list
         ? <Countermeasures answers={answers} canEdit={canEdit} save={save} extra={extra} addRow={() => setExtra(Math.max(extra, cmRows(answers).length) + 1)} />
@@ -123,6 +141,7 @@ export function A3Board({ projectId, answers, canEdit, save, onTool }: ShapeProp
       {b.n === 4 && b.evidence && <div className="a3-ev" aria-label="Analysis — what the project’s fishbone says"><p className="a3-ev-t">{b.evidence.title}</p><p className="a3-ev-s">{b.evidence.says}</p></div>}
       {b.n === 4 && doorTo('Open the fishbone and five whys', `/project/${projectId}/fishbone`)}
       {b.n === 5 && doorTo('Open this project’s Actions', `/project/${projectId}/actions`)}
+      </BoardFold>
       {b.n === 5 && sheet.noCause > 0 && <p className="a3-warn" role="status">{sheet.noCause} countermeasure{sheet.noCause === 1 ? ' names' : 's name'} no cause — without one it is a to-do, not a countermeasure.</p>}
     </section>
   );
@@ -135,11 +154,11 @@ export function A3Board({ projectId, answers, canEdit, save, onTool }: ShapeProp
       </div>
       <p className="a3-says" role="status">{sheet.says}</p>
       <div className="a3-cols">
-        <div className="a3-col" aria-label="How it is now">
+        <div className="a3-col mb-steps" aria-label="How it is now">
           <p className="a3-side">How it is now</p>
           {sheet.blocks.filter(b => b.side === 'left').map(block)}
         </div>
-        <div className="a3-col" aria-label="What is to be done">
+        <div className="a3-col mb-steps" aria-label="What is to be done">
           <p className="a3-side">What is to be done</p>
           {sheet.blocks.filter(b => b.side === 'right').map(block)}
         </div>

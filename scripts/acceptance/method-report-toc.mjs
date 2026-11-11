@@ -19,10 +19,12 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openApp } from '../lib/tocBrowser.mjs';
+import { goOpeningBoard } from '../lib/methodFolds.mjs';
 import { paper as pressPaper } from '../lib/pageHeader.mjs';
 
 const t = await openApp();
-const { page, ok, go, norm, words } = t;
+const { page, ok, norm, words } = t;
+const go = goOpeningBoard(t);   // a method's board opens on the step in hand, the rest one line each (docs/DESIGN.md) — opened to read them
 const sd = await t.seed();
 const P = sd.methodProjectIds.toc;
 const squash = s => s.replace(/\s*[→➡➔]\s*/g, ' to ').toLowerCase().replace(/[^a-z0-9£%]/g, '');

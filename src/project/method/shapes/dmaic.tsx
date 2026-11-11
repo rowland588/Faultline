@@ -10,6 +10,7 @@ import { toolByKey } from '../../../catalogue/registry';
 import type { ToolStudy } from '../../../lib/study';
 import type { Shape, ShapeProps } from './index';
 import { RESULTS, charterOf, currentGate, dayWords, gatesOf, gatesSay, insertionsOf, reviewId, waitingOn, type Gate, type Insertion } from './dmaicModel';
+import { BoardFold } from './BoardFold';
 import './dmaic.css';
 
 function Review({ g, answers, save, canEdit }: { g: Gate; answers: Record<string, string>; save: ShapeProps['save']; canEdit: boolean }) {
@@ -57,7 +58,7 @@ function Tools({ list, projectId, canEdit, onTool }: { list: Insertion[]; projec
   );
 }
 
-function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
+function Board({ projectId, answers, canEdit, save, onTool, ready }: ShapeProps) {
   const [studies, setStudies] = useState<ToolStudy[]>([]);
   useEffect(() => {
     let live = true;
@@ -70,11 +71,15 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
   return (
     <section className="dm" aria-label="DMAIC — phase gates">
       <p className="dm-says" role="status">{gatesSay(gates)}</p>
+      <div className="mb-steps">
       {gates.map(g => {
         const wait = waitingOn(gates, g.key);
         return (
-          <article key={g.key} id={`dm-${g.key}`} className="dm-card" data-phase={g.key} aria-current={cur?.key === g.key ? 'step' : undefined} aria-label={g.key === 'define' ? 'Charter and Define review' : `${g.name} review`}>
-            <h3>{g.key === 'define' ? 'Charter' : g.name} — <span className="dm-word" data-tone={g.tone}>{g.state}</span></h3>
+          <article key={g.key} id={`dm-${g.key}`} className="dm-card mb-step" data-phase={g.key} aria-current={cur?.key === g.key ? 'step' : undefined} aria-label={g.key === 'define' ? 'Charter and Define review' : `${g.name} review`}>
+            {/* the phase in hand open; a phase passed or still ahead one line — its state in words — opening to all it held (docs/DESIGN.md) */}
+            <BoardFold method="dmaic" part={g.key} here={cur?.key === g.key} ready={ready}
+              title={g.key === 'define' ? 'Define — the charter' : g.name}
+              says={<><span className="dm-word" data-tone={g.tone}>{g.state}</span> · {g.written} of {g.fields} written{g.review.when ? ` · reviewed ${dayWords(g.review.when)}` : ''}{cur?.key === g.key ? ' · the phase in hand' : ''}</>}>
             <p className="dm-card-sub">{g.asks}{wait ? ` ${wait}` : ''} <b>{g.written} of {g.fields} written{g.review.when ? ` · reviewed ${dayWords(g.review.when)}` : ''}</b></p>
             {g.key === 'define' && (
               <>
@@ -88,9 +93,11 @@ function Board({ projectId, answers, canEdit, save, onTool }: ShapeProps) {
             )}
             <Tools list={ins.filter(i => i.phase === g.key)} projectId={projectId} canEdit={canEdit} onTool={onTool} />
             <Review g={g} answers={answers} save={save} canEdit={canEdit} />
+            </BoardFold>
           </article>
         );
       })}
+      </div>
     </section>
   );
 }

@@ -16,9 +16,11 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openApp } from '../lib/tocBrowser.mjs';
+import { goOpeningBoard } from '../lib/methodFolds.mjs';
 
 const t = await openApp();
-const { page, ok, go, words, norm } = t;
+const { page, ok, words, norm } = t;
+const go = goOpeningBoard(t);   // a method's board opens on the step in hand, the rest one line each (docs/DESIGN.md) — opened to read them
 const sd = await t.seed();
 const DM = sd.methodProjectIds.dmaic;
 const squash = s => s.replace(/\s*[→➡➔]\s*/g, ' to ').toLowerCase().replace(/[^a-z0-9£%]/g, '');

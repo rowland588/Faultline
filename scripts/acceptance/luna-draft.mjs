@@ -30,6 +30,7 @@ const field = id => plan().locator(`.msheet-f:has(.msheet-in[aria-label="${field
 
 /* ---- 1 · marked where it stands ---- */
 await t.go(`#/project/${PD}`, 2500);
+await t.openBoard();   // the board opens on the quarter in hand (docs/DESIGN.md) — opened to read it, kept on the device
 const m1 = field(f1.id).locator('[data-luna-draft]');
 ok((await m1.count()) === 1 && /Luna wrote this · \d\d:\d\d · from “PDCA with Luna”/.test(await m1.innerText()), `1 her answer marked in place ("${(await m1.innerText().catch(() => '')).slice(0, 60)}")`);
 ok((await field(f1.id).locator('[data-luna-keep]').count()) === 1 && (await field(f1.id).locator('[data-luna-not]').count()) === 1, '1 Keep and Not this offered');

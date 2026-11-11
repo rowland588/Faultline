@@ -13,9 +13,11 @@
  *
  *   node scripts/acceptance/method-pdca.mjs      (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { goOpeningBoard } from '../lib/methodFolds.mjs';
 
 const t = await openApp();
-const { page, ok, go, words } = t;
+const { page, ok, words } = t;
+const go = goOpeningBoard(t);   // a method's board opens on the step in hand, the rest one line each (docs/DESIGN.md) — opened to read them
 const sd = await t.seed();
 const PD = sd.methodProjectIds.pdca;
 const qs = await page.evaluate(async () => { const M = await import('/src/lib/methodSheet.ts'); return ['Plan', 'Do', 'Check', 'Act'].map(q => ({ q, labels: M.fieldsOf('pdca', q).map(f => f.label) })); });
@@ -47,6 +49,7 @@ ok(/Complete/.test(await words('.pdca-cycle.on')), `2 the cycle is complete once
 
 /* ---- 3 the next cycle ---- */
 await page.getByRole('button', { name: 'Start the next cycle' }).click(); await page.waitForTimeout(1200);
+await t.openBoard();   // the new cycle opens on its quarter in hand, the rest one line each (docs/DESIGN.md) — opened to read them
 ok(await page.locator('.pdca-cycle.on', { hasText: 'Cycle 2' }).count() === 1, '3 cycle 2 is in hand');
 ok((await box('Plan', 'The number we are improving').inputValue()) === 'Packs a minute at the packer', '3 the number is carried');
 ok((await box('Plan', 'The change we will make').inputValue()) === 'Slow the unwind as well', '3 Act’s “again” is the new Plan’s change');

@@ -11,9 +11,11 @@
  *
  *   node scripts/acceptance/method-kata.mjs      (SMOKE_BASE) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { goOpeningBoard } from '../lib/methodFolds.mjs';
 
 const t = await openApp();
-const { page, ok, go, words } = t;
+const { page, ok, words } = t;
+const go = goOpeningBoard(t);   // a method's board opens on the step in hand, the rest one line each (docs/DESIGN.md) — opened to read them
 const sd = await t.seed();
 const K = sd.methodProjectIds.kata;
 const mod = await page.evaluate(async () => { const B = await import('/src/lib/kataBoard.ts'); return { keys: ['challenge', 'coach', 'measure', 'current', 'target', 'obstacles', 'obstacle_now'], qs: B.coaching({}).map(c => c.ask) }; });

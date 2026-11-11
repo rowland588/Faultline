@@ -25,6 +25,8 @@ export interface ShapeProps {
   save: (field: string, what: string, label?: string) => void;
   /** Open a catalogue tool in this project (a tool falling in where it is wanted — never required). */
   onTool: (fcId: string) => void;
+  /** The answers have been read — a board opens its step in hand only then (shapes/BoardFold). */
+  ready?: boolean;
 }
 export interface Shape {
   Board: ComponentType<ShapeProps>;

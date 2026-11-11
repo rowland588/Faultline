@@ -17,10 +17,12 @@
  *
  *   SMOKE_BASE=http://127.0.0.1:5217 node scripts/acceptance/method-toc.mjs */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { goOpeningBoard } from '../lib/methodFolds.mjs';
 import { paper } from '../lib/pageHeader.mjs';
 
 const t = await openApp();
-const { page, ok, go, norm } = t;
+const { page, ok, norm } = t;
+const go = goOpeningBoard(t);   // a method's board opens on the step in hand, the rest one line each (docs/DESIGN.md) — opened to read them
 const sd = await t.seed();
 const P = sd.methodProjectIds.toc;
 const card = n => page.locator(`.toc-card[aria-label^="Step ${n} "]`);
@@ -106,7 +108,7 @@ ok(/Missing: .*orders/.test(pdf), '6 the paper names what is missing, never inve
 /* ---- 7 a client ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await page.reload(); await page.waitForTimeout(2500);
-ok((await page.locator('.toc button:not([aria-label^="Open "])').count()) === 0, `7 a client has no Go again and no Start — only Open`);
+ok((await page.locator('.toc button:not([aria-label^="Open "]):not(.fold-toggle)').count()) === 0,   /* a step's fold toggle only shows or hides it (docs/DESIGN.md) — never a write */ `7 a client has no Go again and no Start — only Open`);
 ok((await page.locator('.pmethod textarea').count()) === 0 && (await page.locator('.toc-passes input').count()) === 0, '7 a client writes nothing');
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 
