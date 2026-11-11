@@ -69,7 +69,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the menu — Today first and lit', sel: '.nv-rail .nv-ri.is-on', text: /^Today$/, desk: true },
     { what: 'the greeting', sel: '[data-today] .pace-title', text: /^Good (morning|afternoon|evening)$/ },
     { what: 'the briefing — one to three things that want you, each a door', sel: '[data-brief]', n: 1 },
-    { what: 'Luna\'s box (AI Mode on)', sel: '[data-today-ask]' },
+    { what: 'Luna\'s box (AI Mode on) — first, before the briefing (11 November, F1)', sel: '[data-today-luna] [data-today-ask]' },
+    { what: 'voice beside the box', sel: '[data-today-luna] [data-today-voice]' },
+    { what: 'two or three suggestions from the real state (lib/today suggestionsFor)', sel: '[data-today-sugg]', n: 2 },
     { what: 'the lines, each in words', sel: '[data-today-line]', n: 1 },
     { what: 'the projects under way by method', sel: '[data-today-projects] .today-method-h', n: 1 },
   ] },
@@ -558,6 +560,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the door in the top bar', sel: '.ai-door' },
     /* Phase 4, on the floor: Speak replies, Conversation, Sounds and Before you walk the floor sit under it */
     { what: 'More ▾ — the voice and the floor check', sel: '.ai-head-acts .part-menu-b' },
+    /* 11 November, F2 — AI Mode calm: the conversation alone at first; the earlier conversations and the context each one tap away */
+    { what: 'Conversations — the earlier conversations one tap away', sel: '[data-ai-list-b]', desk: true },
+    { what: 'Show context — what it is on, being built, parked and the sources one tap away', sel: '[data-ai-ctx-b]', text: /Show context/, desk: true },
   ] },
   { name: 'How AI Mode is used', path: '#/ai/usage', must: [
     /* 8 November, docs/AI-MODE.md §9 (phase 5b): what it costs, what the colleague did, candidates for code — the seed has no

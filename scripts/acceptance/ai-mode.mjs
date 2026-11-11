@@ -19,6 +19,7 @@
  *   node scripts/acceptance/ai-mode.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
 import { installSse } from '../lib/sseGateway.mjs';
+import { openLunaContext, openLunaFolds, openLunaList } from '../lib/lunaContext.mjs';
 
 const SHOTS = process.env.AI_SHOTS;   // a folder: the screenshots at 1440 and 390 are kept there
 const t = await openApp({ width: 1440, height: 900 });
@@ -53,6 +54,9 @@ ok(page.url().includes(`#/lines/${encodeURIComponent(sd.wsId)}`) && (await page.
 ok((await t.words('[data-luna-panel] [data-ai-title]')) === lineName, '1 beside the line, a new conversation starts on it');
 await page.locator('[data-luna-full]').click(); await page.waitForTimeout(2000);
 ok(page.url().includes(`#/ai?line=${encodeURIComponent(sd.wsId)}`) && (await page.locator('[data-luna-panel]').count()) === 0, `1 Full screen opens AI Mode on the line (${page.url().split('#')[1]})`);
+/* since F2 (11 November) the page opens on the conversation alone: the context one tap away (Show context), its Parked and Sources folds */
+ok((await page.locator('.ai[data-ai-slot="page"] .ai-ctx').isVisible()) === false && (await page.locator('.ai[data-ai-slot="page"] .ai-list').isVisible()) === false, '1 calm: the conversation alone at first — the context and the conversations one tap away');
+await openLunaContext(page); await openLunaFolds(page);
 ok((await t.words('[data-ctx-current] .ai-ctx-t')) === lineName && (await t.words('[data-ai-title]')) === lineName, `1 a new conversation starts on ${lineName}`);
 ok((await page.locator('.ai-empty .ai-sug').count()) === 3, '1 the empty conversation offers three examples');
 
@@ -132,6 +136,7 @@ await page.locator(`[data-ctx-parked] [data-parked="${lineName}"]`).getByRole('b
 ok((await t.words('[data-ctx-current] .ai-ctx-t')) === lineName && (await page.locator('[data-ctx-parked] [data-parked="Accumulation conveyor"]').count()) === 1, '4 Back to this brings the line back and parks the conveyor');
 await page.reload(); await page.waitForTimeout(2500);
 ok((await t.words('[data-ctx-current] .ai-ctx-t')) === lineName && (await page.locator('[data-card-status="done"]').count()) === 1, '4 kept after a reload — the threads and the card');
+await openLunaList(page);
 ok((await page.locator('.ai-conv').count()) >= 1, '4 the conversation is listed on the left');
 /* each earlier conversation's options (10 November — Rowland: "earlier conversations can't delete them, need options") */
 {

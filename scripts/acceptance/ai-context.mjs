@@ -27,6 +27,7 @@
  *
  *   node scripts/acceptance/ai-context.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openLunaContext, openLunaFolds } from '../lib/lunaContext.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
@@ -80,6 +81,7 @@ ok(!!W.smoke && !!W.seven && !!W.project, '0 the packing hall: Line 7 — smoke 
 
 /* ---- 1 · an observation analysis with no context ---- */
 await t.go('#/ai', 2500);
+await openLunaContext(page); await openLunaFolds(page);   /* F2: the context one tap away at a desk, opened as a person would */
 let b = await say('I want to carry out an observation analysis', [{ name: 'plan_work', input: { words: 'I want to carry out an observation analysis' } }], x => dataOf(x).ask ?? 'nothing to ask');
 const p1 = dataOf(b);
 ok(p1.activity?.id === 'observe' && /Which line/.test(p1.ask ?? '') && (p1.missing ?? []).includes('line'), `1 plan_work reads an observation and asks one thing: "${p1.ask}"`);

@@ -13,13 +13,13 @@ import { liveProductionLines } from '../lib/lines';
 import { loadActionParts, useClientEveryAction } from '../lib/useProjectActions';
 import { placeInClient, useClientScope } from '../lib/activeClient';
 import { firstName } from '../lib/brand';
-import { briefing, greeting, lastSeenAndMark, lineState } from '../lib/today';
+import { briefing, greeting, lastSeenAndMark, lineState, suggestionsFor } from '../lib/today';
 import { recentPlaces, lastOpen } from '../lib/recentPlaces';
 import { methodByKey, methodOfProject } from '../lib/methods';
 import { niceDay, todayISO } from '../lib/weeks';
 import { onDataChange } from '../db';
 import { useAiMode } from '../colleague/aiMode';
-import { askLuna } from '../colleague/lunaPanel';
+import { askLuna, talkToLuna } from '../colleague/lunaPanel';
 import { PageHeader, StateTag } from '../ui/parts';
 import { Icon } from '../ui/Icon';
 import type { Project, Workspace } from '../types';
@@ -66,19 +66,30 @@ export function TodayScreen() {
     return [...m.entries()];
   }, [mineProjects]);
   const places = useMemo(() => recentPlaces().filter(p => placeInClient(cs, p.to)).slice(0, 4), [cs]);
-  const worst = lineRows.find(r => r.state === 'r' || r.state === 'a');
-  const suggestions = [
-    'What should I do first today?',
-    worst ? `Why is ${worst.l.name} losing time?` : 'Where is the factory losing the most time?',
-    'What has changed since yesterday?',
-    brief?.find(b => b.key === 'behind') ? 'What is holding up the project furthest behind?' : 'Which problem is costing us the most?',
-  ];
+  /* what to ask Luna first — from the real state (lib/today suggestionsFor): the oldest late action, the line in the worst state, the
+     project furthest behind; made up to three with the general ones */
+  const suggestions = useMemo(() => suggestionsFor(every?.rows ?? [], lineRows.map(r => ({ name: r.l.name, state: r.state }))), [every, lineRows]);
   const send = (w: string) => { if (w.trim()) { askLuna(w); setBox(''); } };
 
   return (
     <div className="wrap today" data-today>
       <PageHeader eyebrow={niceDay(todayISO(), { weekday: 'short' })} title={`${greeting(new Date().getHours())}${firstName() ? `, ${firstName()}` : ''}`}
-        says="What wants you today, worked out from the actions and problems as they stand — then the lines, where you were and the projects." />
+        says={ai ? 'What do you want to understand or get done? Ask Luna — or start from what wants you below.' : 'What wants you today, worked out from the actions and problems as they stand — then the lines, where you were and the projects.'} />
+
+      {/* LUNA IS THE FRONT DOOR (11 November, F1): her box first — the question, the box, voice beside it, suggestions from the real state */}
+      {ai && (
+        <section className="today-luna" aria-label="Ask Luna" data-today-luna>
+          <form className="today-luna-box" onSubmit={e => { e.preventDefault(); send(box); }}>
+            <span className="today-luna-orb" aria-hidden><Icon name="spark" size={14} /></span>
+            <input className="today-luna-in" value={box} onChange={e => setBox(e.target.value)} placeholder="Ask Luna — a line, a problem, a project, anything…" aria-label="Ask Luna" data-today-ask />
+            <button type="button" className="today-luna-voice" onClick={talkToLuna} aria-label="Talk to Luna" title="Talk to Luna — she listens, answers out loud and listens again" data-today-voice><Icon name="wave" size={18} /></button>
+            <button type="submit" className="btn btn-primary" disabled={!box.trim()} data-today-send>Ask</button>
+          </form>
+          <div className="today-luna-sugg" role="group" aria-label="Try one">
+            {suggestions.map(s => <button key={s} type="button" className="chip" onClick={() => send(s)} data-today-sugg>{s}</button>)}
+          </div>
+        </section>
+      )}
 
       <section className="today-brief" aria-label="What wants you" data-today-brief>
         {!brief ? <p className="sub">Reading the actions…</p> : (
@@ -96,18 +107,6 @@ export function TodayScreen() {
         )}
       </section>
 
-      {ai && (
-        <section className="today-luna" aria-label="Ask Luna" data-today-luna>
-          <form className="today-luna-box" onSubmit={e => { e.preventDefault(); send(box); }}>
-            <span className="today-luna-orb" aria-hidden><Icon name="spark" size={14} /></span>
-            <input className="today-luna-in" value={box} onChange={e => setBox(e.target.value)} placeholder="Ask Luna about the factory, a line or a project…" aria-label="Ask Luna" data-today-ask />
-            <button type="submit" className="btn btn-primary" disabled={!box.trim()} data-today-send>Ask</button>
-          </form>
-          <div className="today-luna-sugg">
-            {suggestions.map(s => <button key={s} type="button" className="chip" onClick={() => send(s)} data-today-sugg>{s}</button>)}
-          </div>
-        </section>
-      )}
 
       <div className="today-grid">
         <section className="today-card" aria-label="The lines" data-today-lines>

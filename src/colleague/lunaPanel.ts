@@ -57,3 +57,14 @@ export function askLuna(words: string): void {
   setLunaPanel('open');
   window.dispatchEvent(new Event(SAY_EVENT));
 }
+
+/** Talk to Luna from another page (Today's voice beside the box, 11 November): the panel opened and her voice conversation started in
+ *  the open conversation — the voice bar at the foot of the page, the page kept (docs/VOICE.md, LUNA-WORKSPACE W6). */
+export const VOICE_EVENT = 'faultline-luna-voice';
+let pendingVoice = false;
+export const takePendingVoice = (): boolean => { const p = pendingVoice; pendingVoice = false; return p; };
+export function talkToLuna(): void {
+  pendingVoice = true;
+  setLunaPanel('open');
+  window.dispatchEvent(new Event(VOICE_EVENT));
+}

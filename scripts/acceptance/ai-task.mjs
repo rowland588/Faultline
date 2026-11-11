@@ -16,6 +16,7 @@
  *
  *   node scripts/acceptance/ai-task.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openLunaContext, openLunaFolds } from '../lib/lunaContext.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
@@ -66,6 +67,7 @@ const moduleSteps = since => db(async ({ ws, since }) => {
 }, { ws: sd.wsId, since });
 
 await t.go(`#/ai?line=${encodeURIComponent(sd.wsId)}`, 3000);
+await openLunaContext(page); await openLunaFolds(page);   /* F2: the context one tap away at a desk, opened as a person would */
 
 /* ---- 1 · UNDERSTAND ---- */
 const SAID = 'I think we’re losing too much production time on this line. Can you help me understand why?';

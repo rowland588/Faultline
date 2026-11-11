@@ -86,9 +86,10 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
     await page.goto(`${BASE}/${pg.path}`); await page.waitForTimeout(2200);
     /* Line capacity on a phone opens on one card (capacityGlance, 4 November); its set-up, drawings and sums are under Show the workings */
     await page.getByRole('button', { name: 'Show the workings and set-up' }).click({ timeout: 600 }).catch(() => {});
-    /* Folded sections start shut on a phone (ui/Fold); open them so what a page must show is on the screen. */
+    /* Folded sections start shut on a phone (ui/Fold); open them so what a page must show is on the screen — only those a person can
+       see (AI Mode's context folds sit in a column put away until Show context, F2) */
     for (let i = 0; i < 16; i++) {
-      const shut = page.locator('.fold:not(.is-open) .fold-toggle');
+      const shut = page.locator('.fold:not(.is-open) .fold-toggle:visible');
       if (!(await shut.count())) break;
       await shut.first().click();
       await page.waitForTimeout(120);

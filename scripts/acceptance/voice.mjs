@@ -24,6 +24,7 @@
  *   node scripts/acceptance/voice.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
 import { installSse } from '../lib/sseGateway.mjs';
+import { openLunaContext, openLunaFolds } from '../lib/lunaContext.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
@@ -98,6 +99,7 @@ const convs = () => page.evaluate(async () => (await (await import('/src/db.ts')
 
 /* ---- A1 · dictation in the chat ---- */
 await t.go(`#/ai?line=${encodeURIComponent(sd.wsId)}`, 2500);
+await openLunaContext(page); await openLunaFolds(page);   /* F2: the context one tap away at a desk, opened as a person would */
 await page.locator('.ai-box').fill('On the wrapper,');
 await page.getByRole('button', { name: 'Talk into the box' }).click();
 await page.waitForFunction(() => window.__ear?.running, null, { timeout: 4000 }).catch(() => undefined);

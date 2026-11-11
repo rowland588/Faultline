@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { briefing, lineState, greeting } from '../today';
+import { briefing, lineState, greeting, suggestionsFor } from '../today';
 import type { ProjectAction, RegisterProblem } from '../projectActions';
 
 const act = (o: Partial<ProjectAction>): ProjectAction => ({ key: Math.random().toString(), kind: 'Action', what: 'x', who: '', late: false, soon: false, ...o });
@@ -31,5 +31,15 @@ describe('Today — the briefing', () => {
     expect(lineState(2, 0)).toEqual({ state: 'a', word: '2 problems open' });
     expect(lineState(0, 0).word).toBe('Nothing open');
     expect([greeting(8), greeting(13), greeting(20)]).toEqual(['Good morning', 'Good afternoon', 'Good evening']);
+  });
+  it('what to ask Luna first — from the real state, made up to three with the general ones', () => {
+    const rows = [
+      act({ what: 'Fit the guard', due: '2026-11-03', late: true, project: { id: 'a', name: 'Wrapper' } }),
+      act({ what: 'Order film', due: '2026-11-01', late: true, project: { id: 'a', name: 'Wrapper' } }),
+    ];
+    expect(suggestionsFor(rows, [{ name: 'Line 2', state: 'g' }, { name: 'Line 3', state: 'a' }])).toEqual([
+      'What is holding up “Order film”?', 'Why is Line 3 losing time?', 'What would get Wrapper back on track?']);
+    expect(suggestionsFor([], [{ name: 'Line 1', state: 'r' }])).toEqual(['Why is Line 1 losing time?', 'What should I do first today?', 'Where is the factory losing the most time?']);
+    expect(suggestionsFor([], [])).toEqual(['What should I do first today?', 'Where is the factory losing the most time?']);
   });
 });

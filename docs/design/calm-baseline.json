@@ -768,12 +768,12 @@
   "first": 7
  },
  "phone · Today": {
-  "height": 2064,
-  "boxes": 4,
+  "height": 1999,
+  "boxes": 1,
   "headings": 3,
   "controls": 25,
   "sizes": 4,
-  "first": 5
+  "first": 3
  },
  "desk · Line balance — Times": {
   "height": 2048,
@@ -1248,12 +1248,12 @@
   "first": 9
  },
  "desk · Today": {
-  "height": 1364,
-  "boxes": 4,
+  "height": 1356,
+  "boxes": 1,
   "headings": 3,
   "controls": 25,
   "sizes": 4,
-  "first": 7
+  "first": 4
  },
  "desk · A check log — a value route": {
   "height": 1353,

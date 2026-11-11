@@ -24,6 +24,7 @@
  *
  *   node scripts/acceptance/factory-onboarding.mjs   (SMOKE_BASE, as smoke) */
 import { openApp } from '../lib/tocBrowser.mjs';
+import { openLunaContext, openLunaFolds, openLunaList } from '../lib/lunaContext.mjs';
 
 const t = await openApp({ width: 1440, height: 900 });
 const { page, ok } = t;
@@ -68,6 +69,7 @@ await page.evaluate(async () => {
 
 /* ---- 1 · the onboarding said ---- */
 await t.go('#/ai', 2500);
+await openLunaContext(page); await openLunaFolds(page);   /* F2: the context one tap away at a desk, opened as a person would */
 let draftId = '';
 const said1 = 'We’re onboarding a new customer. The business is called Customer X Foods. They’ve got two factories. The main factory has five production areas — Preparation, Mixing, Cooking, Packaging and Despatch. Let’s start with packaging.';
 plan = [
@@ -153,6 +155,7 @@ ok(/scale/.test(kindRow) && /Reported in “AI Mode/.test(kindRow), `3 the weigh
 /* ---- 4 · a CSV register uploaded ---- */
 await page.goBack(); await page.waitForTimeout(500);
 await t.go('#/ai', 2000);
+await openLunaList(page);
 await page.locator('.ai-conv').first().click().catch(() => undefined);
 await page.waitForTimeout(1500);
 const csv = [
