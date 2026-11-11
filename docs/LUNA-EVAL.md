@@ -61,6 +61,13 @@ and how often a capability was searched for and which (the `server_tool_use` blo
 
 Each run is added here with its date, the deployed gateway version, the score and every turn marked wrong with why.
 
+### 11 November, 19:28 — after the `<br>` fix and the widened marks, two runs
+
+**13 of 13 turns right and 35 of 35 marks in both runs** — the first clean scores. 2.2–2.3 minutes a run, 28–32 asks, median
+4.0–4.6 s, every reply streamed, first words a median 4.0–5.0 s. The next-day turn named what is next in both runs, so the earlier
+miss is read as variation, not a lapse; it stays watched. In one run Luna also offered a stop timing on the "agree" turn before it was
+asked for, and the exam declined it as a person would (start_measurement: declined) — no harm, and the right one followed.
+
 ### 11 November, 17:56 — with the "Line A" fix, two runs
 
 **12 of 13 in each run; 2.2–2.3 minutes a run; 27–32 asks, median 4.0–5.0 s; every reply streamed, first words a median 4.3–5.1 s.**
