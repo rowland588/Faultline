@@ -17803,6 +17803,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .today-row b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .today-method + .today-method { margin-top: 10px; }
 .today-method-h { margin: 0 0 4px; font-size: var(--t-label); }
+/* O4 (11 November): a row whose words run to a second line — the area and what it says, a line and what it lost */
+.today-row-text { display: flex; flex-direction: column; min-width: 0; padding: 6px 0; }
+.today-row-text .sub { font-size: var(--t-detail); }
 @media (max-width: 719px) { .today-luna-box .btn { padding: 0 14px; } }
 
 /* THE LINES FIRST ON THE FACTORY (10 November): each area its own card with its name large, its lines under it */
