@@ -280,13 +280,66 @@ export function colleagueTools(schemas: readonly CapabilitySchema[]): { name: st
   return tools;
 }
 
+/* ------------------------------------------------------------------ fewer tools a turn: the API's tool search (11 November)
+
+   The gateway's switch ASSIST_COLLEAGUE_TOOLS (docs/AI-MODE.md, Sending less a turn; docs/LUNA-EVAL.md §3):
+     all          — every capability's schema loaded on every turn: today's behaviour, the default.
+     search       — the API's server-side tool search (tool_search_tool_regex_20251119, stable — no beta header): the CORE
+                    below loaded, every other capability sent with defer_loading: true and found by name when needed.
+     search-bm25  — the same with the natural-language search (tool_search_tool_bm25_20251119).
+   Whatever is loaded, every call is still held to ALL the schemas by checkCalls — a name not among them is refused. */
+export type ColleagueToolsMode = 'all' | 'search' | 'search-bm25';
+export const colleagueToolsMode = (v: string | null | undefined): ColleagueToolsMode =>
+  v === 'search' || v === 'search-bm25' ? v : 'all';
+
+/** Always loaded under search: what nearly every conversation needs before it knows what it is about (which record, which
+ *  task, which tool, the threads, a figure), and the live measurement — whose events must go in at once, with no search
+ *  between "the wrapper's stopped" and its capture. The rest are found when the rules or tool_guide name them. */
+export const COLLEAGUE_CORE = [
+  /* which one they mean */ 'find', 'resolve', 'resolve_record', 'line_state', 'list_problems',
+  /* what they want and how the app does it */ 'describe_faultline', 'plan_work', 'understand_task', 'keep_task', 'task_state', 'tool_guide', 'tool_intel', 'assess_evidence',
+  /* the threads */ 'set_focus', 'park_focus', 'update_context',
+  /* every figure */ 'work_out',
+  /* show it, raise it */ 'show_work', 'raise_problem',
+  /* a live measurement */ 'start_measurement', 'capture_event', 'undo_capture', 'correct_capture', 'end_measurement', 'measurement_state',
+] as const;
+
+export type ColleagueTool =
+  | { name: string; description: string; input_schema: object; cache_control?: { type: 'ephemeral' }; defer_loading?: true }
+  | { type: 'tool_search_tool_regex_20251119' | 'tool_search_tool_bm25_20251119'; name: string };
+
+/** The tools a request sends under the switch. `all` is colleagueTools exactly. Under search: the search tool, then the core
+ *  (the cache mark on the last of it — a deferred tool may not carry one), then every other capability deferred, in the
+ *  schemas' order. Deferred tools sit outside the cached prefix, and what a search loads is appended, never swapped. */
+export function colleagueToolsFor(schemas: readonly CapabilitySchema[], mode: ColleagueToolsMode): ColleagueTool[] {
+  if (mode === 'all') return colleagueTools(schemas);
+  const core = new Set<string>(COLLEAGUE_CORE);
+  const loaded = schemas.filter(s => core.has(s.name)).map(s => ({ name: s.name, description: s.description, input_schema: s.input_schema } as ColleagueTool & { cache_control?: { type: 'ephemeral' } }));
+  if (loaded.length) loaded[loaded.length - 1].cache_control = { type: 'ephemeral' };
+  const deferred = schemas.filter(s => !core.has(s.name)).map(s => ({ name: s.name, description: s.description, input_schema: s.input_schema, defer_loading: true as const }));
+  const search = mode === 'search-bm25'
+    ? { type: 'tool_search_tool_bm25_20251119' as const, name: 'tool_search_tool_bm25' }
+    : { type: 'tool_search_tool_regex_20251119' as const, name: 'tool_search_tool_regex' };
+  return [search, ...loaded, ...deferred];
+}
+
+/** Told only under search, after the rules: the rules name capabilities that are not loaded until searched for. */
+export const COLLEAGUE_SEARCH_NOTE = (mode: ColleagueToolsMode): string => mode === 'all' ? '' : `
+LOADING A CAPABILITY
+- Only some of your capabilities are loaded at the start. Every one these rules or tool_guide name exists: when you need one that is not loaded, ${mode === 'search-bm25' ? 'search for it with tool_search_tool_bm25 — its name and what it does' : 'search for it by name with tool_search_tool_regex (e.g. "query_workbook|workbook_profile" — several at once with |)'}, then call it. Never tell the person something cannot be done before you have searched; a capability a search does not find does not exist.`;
+
+/** The system text a request sends: the rules, then, under search, how a capability is loaded (all: COLLEAGUE_SYSTEM exactly). */
+export const colleagueSystemFor = (tools: ColleagueToolsMode): string => COLLEAGUE_SYSTEM + COLLEAGUE_SEARCH_NOTE(tools);
+
 /* ------------------------------------------------------------------ the request read off the wire */
 
 const LABEL = /^P\d{1,4}$/;
 const B64 = /^[A-Za-z0-9+/=]+$/;
 const str = (v: unknown, max: number): string => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const bytes = (v: unknown): number => { try { return new TextEncoder().encode(JSON.stringify(v) ?? '').length; } catch { return Infinity; } };
-const BLOCK_TYPES = ['text', 'thinking', 'redacted_thinking', 'tool_use', 'fallback'] as const;
+/* server_tool_use and tool_search_tool_result: a tool search inside the colleague's message (ASSIST_COLLEAGUE_TOOLS=search),
+   carried back as the API gave them so what it found stays loaded for the next round */
+const BLOCK_TYPES = ['text', 'thinking', 'redacted_thinking', 'tool_use', 'fallback', 'server_tool_use', 'tool_search_tool_result'] as const;
 
 /** The colleague's own content as it comes back from the device: an array of the block types the API gives, of a sane size — else null. */
 export function readContent(v: unknown): ColleagueBlock[] | null {
@@ -453,8 +506,13 @@ export function colleagueMessages(a: ColleagueAsk): ColleagueMessage[] {
     const rounds: ColleagueRound[] = [...a.pending.carry.rounds, { content: a.pending.carry.content, results: a.pending.results, refused: a.pending.carry.refused }];
     let lastResult: ResultBlock | undefined;
     for (const r of rounds) {
-      out.push({ role: 'assistant', content: r.content });
+      const prev = out[out.length - 1];
+      /* after a paused round the model carried on in the same message: one assistant message, never two in a row */
+      if (prev?.role === 'assistant') prev.content = [...prev.content, ...r.content];
+      else out.push({ role: 'assistant', content: r.content });
       const blocks = resultBlocks(r.content, r.results, r.refused);
+      /* a round with no call of ours (a search the API paused in, pause_turn) is sent back as it is, for the model to carry on */
+      if (!blocks.length) continue;
       out.push({ role: 'user', content: blocks });
       lastResult = blocks[blocks.length - 1];
     }

@@ -42,6 +42,19 @@ Next suites, in this order: **progressive fill** (a SMED or capability study fil
 missing, a correction, left unfinished and picked up); **factory onboarding** (a new customer's lines and machines said, resolved, made);
 **management questions** (cross-line: which line lost most this month — answered from the records with what is not known said).
 
+### The A/B to run next: every schema against tool search (11 November)
+
+`ASSIST_COLLEAGUE_TOOLS` (`docs/AI-MODE.md` §8, Sending less a turn) chooses what a turn sends: `all` (every schema, the default) or
+`search` (a core of 25 loaded, 80 deferred behind the API's tool search). Run the bagger suite against each with the same `--runs`:
+
+1. `all` (as deployed): `node scripts/eval/luna-real.mjs eval-all --runs 3`.
+2. Set the gateway's secret `ASSIST_COLLEAGUE_TOOLS=search`, deploy the function, run `node scripts/eval/luna-real.mjs eval-search --runs 3`.
+3. Set it back to `all` (or remove it) unless search wins.
+
+Compare, turn by turn: the exam's marks (a turn wrong under search that was right under all is a loss, whatever the saving); the input
+tokens a turn (`assist_usage` for `colleague-check` — it keeps input, cache reads and cache writes as one sum, and its cost); the time a turn takes (a search is a step);
+and how often a capability was searched for and which (the `server_tool_use` blocks). Search is kept only if no turn is lost.
+
 ## 4. Results
 
 Each run is added here with its date, the deployed gateway version, the score and every turn marked wrong with why.
