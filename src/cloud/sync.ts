@@ -22,6 +22,7 @@
  *    persistent retry queues drained on every sync. Before, one network blip
  *    left a clip as "not on this device yet" forever, because retry only
  *    happened if its ROW changed again — which it never did. */
+import { adoptLocalBusiness } from '../org/orgData';
 import { inPane } from '../lib/pane';
 import { supabase, cloudConfigured } from './client';
 import { MAPS, SYNC_KINDS, type MediaKey } from './mappers';
@@ -857,6 +858,9 @@ export async function syncNow(): Promise<void> {
     const uid = me.id;
     set({ state: 'syncing', error: undefined });
     tr('pass start');
+    /* THIS DEVICE'S OWN BUSINESS, made before anybody signed in, becomes this person's before anything is sent (src/org/orgStore) — a
+       business is never sent under the device's placeholder id. */
+    await adoptLocalBusiness(me).catch(e => tr(`business not adopted: ${String(e)}`));
     const cursor = await getSyncCursor();       // the LEGACY PULL cursor only — the push no longer reads it
     const sent = sentNow = await readSent();
     const overwritten = await readOverwritten();

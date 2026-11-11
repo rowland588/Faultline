@@ -19,6 +19,7 @@ import { docMediaKeys } from '../tools/doc/doc';
 import { attachMediaKeys } from '../lib/attachments';
 import { AFTER_TAG, afterOfTags, afterToTags } from '../line/actions/depends';
 import { isToolTag, toolLinksOfTags, toolLinksToTags } from '../snag/toolLink';
+import { isOrgRole, type Organisation, type OrgMember } from '../org/organisation';
 
 type Row = Record<string, unknown>;
 
@@ -102,6 +103,9 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         last_category: w.lastCategory ?? null, last_asset: w.lastAsset ?? null,
         line_type: w.lineType ?? null, floor_order: w.floorOrder ?? null, made_of: w.madeOf?.length ? w.madeOf : null,
         client_name: w.clientName ?? null, site_name: w.siteName ?? null, area_name: w.areaName ?? null,
+        /* the business it belongs to (ORGANISATIONS.sql) — sent only once the line carries one, and never this device's own unsent
+           business (org/organisation LOCAL_ORG, not a uuid): a line of nobody's business goes as it always went */
+        ...(w.orgId && UUID.test(w.orgId) ? { org_id: w.orgId } : {}),
         /* sent only once the line carries it (MACHINE_KNOWLEDGE.sql): a cloud without the column takes every other line as before */
         ...(w.known !== undefined ? { known: knownToRow(w.known) } : {}),
         archived: !!w.archived, created_at: w.createdAt, updated_at: w.updatedAt ?? w.createdAt, deleted_at: null,
@@ -120,6 +124,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       ...(r.client_name ? { clientName: String(r.client_name) } : {}), ...(r.site_name ? { siteName: String(r.site_name) } : {}), ...(r.area_name ? { areaName: String(r.area_name) } : {}),
       ...(Array.isArray(r.made_of) && r.made_of.length ? { madeOf: (r.made_of as unknown[]).map(String) } : {}),
       ...knownFromRow(r.known),
+      ...(r.org_id ? { orgId: String(r.org_id) } : {}),
       archived: !!r.archived, createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),
   },
@@ -823,6 +828,45 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies KeptPaperRow),
   },
 
+  /* THE BUSINESS (supabase/ORGANISATIONS.sql; src/org; docs/ORGANISATION.md O1). Its maker is kept as created_by — renaming it never
+     takes it over. The entitlement is the administrator's, set in the cloud (O5); this build neither reads nor sends it. */
+  organisations: {
+    clock: l => (l as Organisation).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const o = l as Organisation;
+      return { id: o.id, name: o.name, created_by: o.createdBy ?? fallbackOwner, created_at: o.createdAt, updated_at: o.updatedAt, deleted_at: o.deletedAt ?? null };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, name: (r.name as string) ?? '', ...(r.created_by ? { createdBy: r.created_by as string } : {}),
+      createdAt: Number(r.created_at) || 0, updatedAt: Number(r.updated_at) || 0, deletedAt: n(r.deleted_at),
+    } satisfies Organisation),
+  },
+
+  /* A PERSON IN A BUSINESS (ORGANISATIONS.sql, ORG_PEOPLE.sql — the invite is this row; a trigger puts the address on the front door
+     with scope 'org'). The id is `${org}:${email}`, so an invite after a removal is the same row brought back. A role word this build
+     does not know reads as a viewer — never more than the person was given. */
+  organisation_members: {
+    clock: l => (l as OrgMember).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const m = l as OrgMember;
+      return {
+        id: m.id, org_id: m.orgId, email: m.email, role: m.role, sites: m.sites ?? [], areas: m.areas ?? [],
+        invited_by: m.invitedBy ?? fallbackOwner, created_at: m.createdAt, updated_at: m.updatedAt, deleted_at: m.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => {
+      const words = (v: unknown) => (Array.isArray(v) ? (v as unknown[]).filter((x): x is string => typeof x === 'string') : []);
+      return {
+        id: r.id as string, orgId: r.org_id as string, email: String(r.email ?? '').toLowerCase(),
+        role: isOrgRole(r.role) ? r.role : 'viewer', sites: words(r.sites), areas: words(r.areas),
+        ...(r.invited_by ? { invitedBy: r.invited_by as string } : {}),
+        createdAt: Number(r.created_at) || 0, updatedAt: Number(r.updated_at) || 0, deletedAt: n(r.deleted_at),
+      } satisfies OrgMember;
+    },
+  },
+
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -868,5 +912,7 @@ export const SYNC_KINDS: SyncKind[] = [
   // after everything a paper can be made of (its line, its project, its record); last, too, so a cloud that has not had
   // KEPT_PAPERS.sql yet refuses this kind alone, after every other kind has gone (supabase/KEPT_PAPERS.sql)
   'kept_papers',
+  // the business and its people (supabase/ORGANISATIONS.sql): last, so a cloud without them refuses these kinds alone
+  'organisations', 'organisation_members',
 ];
 

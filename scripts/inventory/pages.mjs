@@ -32,6 +32,14 @@ export const PAGES = (sd, cap) => [
      box (AI Mode on), the lines in words, the projects by method */
   /* THE LIBRARY (11 November, docs/CONSULTANT-WORKSPACE.md C4 — "Where is my overall library of work?"): every paper made, the active
      customer's or every customer's; Papers · Photos · Working records; reached from Factory reports and a Saved copies sheet */
+  /* THE BUSINESS'S PEOPLE (11 November, docs/ORGANISATION.md O2 — "according to their role, responsibilities and permissions"): who is
+     here, as what, seeing which part of the business; the administrator invites, changes and removes */
+  { name: 'People — the business', path: '#/business', must: [
+    { what: 'its title and its one sentence', sel: '[data-people] .part-head h1', text: /^People$/ },
+    { what: 'the context bar — Factory › People', sel: '.nv-crumb.nv-page', text: /^People$/ },
+    { what: 'the sentence counting the people', sel: '[data-people-says]' },
+    { what: 'what each role can do — a fold', sel: '[data-fold="people-roles"]' },
+  ] },
   { name: 'Library', path: '#/library', must: [
     { what: 'its title and its one sentence', sel: '[data-library] .part-head h1', text: /^Library$/ },
     { what: 'the context bar — Factory › Library', sel: '.nv-crumb.nv-page', text: /^Library$/ },

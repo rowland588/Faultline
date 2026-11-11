@@ -12,7 +12,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'lineMachine' | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'journey' | 'now' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms' | 'factoryMachines' | 'projectMachines'
-  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates';
+  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'story' | 'room' | 'tools' | 'toolPage' | 'toolWorld' | 'methodPage' | 'parts' | 'projectTools' | 'methodReport' | 'lineReport' | 'area' | 'areaReport' | 'lineProgramsReport' | 'lineProgramReport' | 'ai' | 'aiUsage' | 'aiExam' | 'today' | 'visit' | 'library' | 'templates' | 'business';
 
 export interface Route {
   name: RouteName;
@@ -129,6 +129,8 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'today') return { name: 'today', query };
   /* the library — every paper you have made, across your customers or the active one's (C4) */
   if (segs[0] === 'library') return { name: 'library', query };
+  /* the business's people, their roles and where each may look (O2, docs/ORGANISATION.md) */
+  if (segs[0] === 'business') return { name: 'business', query };
   /* MY TEMPLATES (11 November, docs/CONSULTANT-WORKSPACE.md C5): the consultant's own starting points, no customer's */
   if (segs[0] === 'templates') return { name: 'templates', query };
   /* AI MODE (8 November, src/colleague): a conversation with the colleague, ?line= / ?project= where it was opened, ?c= one conversation */

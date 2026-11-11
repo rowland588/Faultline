@@ -127,6 +127,7 @@ export function hereOf(route: Route): string {
     case 'home': case 'story': case 'visit': return 'story';
     case 'today': return 'today';
     case 'library': return 'library';
+    case 'business': return 'business';
     /* an area of the factory and its report light the Lines tab they are opened from (9 November, lib/areas) */
     case 'room': case 'area': case 'areaReport': return 'home';
     case 'start': return 'start';
@@ -362,7 +363,7 @@ export const FACTORY_PAGES = new Set(['home', 'story', 'factory', 'allmachines',
 const OFF_THE_MENU = new Set(['allmachines', 'lineprograms', 'quicksnags', 'allactions']);
 /** What the context bar calls those pages — lit as the Overview in the menu, but never named "Overview" in the bar,
  *  a word that is not true there (Factory › Problems, Factory › Programs …). */
-export const OFF_THE_MENU_NAME: Record<string, string> = { allmachines: 'Machines', lineprograms: 'Programs', quicksnags: 'Problems', allactions: 'Actions', library: 'Library' };
+export const OFF_THE_MENU_NAME: Record<string, string> = { allmachines: 'Machines', lineprograms: 'Programs', quicksnags: 'Problems', allactions: 'Actions', library: 'Library', business: 'People' };
 export const factoryTabs = (here: string): RailLine[] => [
   /* THE STORY (8 November, docs/STORY.md): the client's continuous journey, the page opened in front of them — home */
   plain('story', 'Story', '/', here, 'board'),

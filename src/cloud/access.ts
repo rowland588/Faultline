@@ -11,7 +11,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from './client';
 import { useSession } from './session';
 import { useProfile } from './admin';
-import { accessOf, can, type Access, type Can } from '../lib/access';
+import { accessOf, accessOfRole, can, type Access, type Can } from '../lib/access';
+import { isOrgRole } from '../org/organisation';
+import { myOrgRole } from '../org/orgRole';
 import { useProject } from '../lib/useProjects';
 
 const KEY = 'faultline.access.';
@@ -46,13 +48,14 @@ export function useAccess(projectId: string): Can {
   }, [projectId, session, email]);
 
   /* For trying a screen as a team member or a client in development:
-     localStorage['faultline.access.force'] = 'team' | 'client'. */
+     localStorage['faultline.access.force'] = 'team' | 'client' | 'owner' — or a business role, 'viewer' | 'manager' | 'leader' |
+     'admin' (src/org/organisation), read through the ladder. */
   const forced = import.meta.env.DEV ? read('force') : null;
   const level: Access = accessOf({
     signedIn: !!supabase && !!session, myId: session?.user.id, myEmail: email,
-    isSuper: !!profile?.is_super, ownerId: project?.ownerId, mine,
+    isSuper: !!profile?.is_super, ownerId: project?.ownerId, mine, orgRole: myOrgRole(),
   });
-  return can(forced === 'team' || forced === 'client' || forced === 'owner' ? forced : level);
+  return can(forced === 'team' || forced === 'client' || forced === 'owner' ? forced : isOrgRole(forced) ? accessOfRole(forced) : level);
 }
 
 /** May I start projects of my own? No only for somebody let in by a project invite. */
