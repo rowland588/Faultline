@@ -25,6 +25,7 @@ import { Commentary } from '../../ui/Commentary';
 import { Fold, openFold } from '../../ui/Fold';
 import { PageHeader } from '../../ui/parts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useClientScope } from '../../lib/activeClient';
 import { deleteBlobs, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../../db';
 import { deleteStudy } from '../../db/studies';
 import { useAccess } from '../../cloud/access';
@@ -83,11 +84,13 @@ const mb = (n: number) => `${(n / (1024 * 1024)).toFixed(1)} MB`;
 
 function useStudies(): ToolStudy[] | null {
   const [list, setList] = useState<ToolStudy[] | null>(null);
+  /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
+  const cs = useClientScope();
   useEffect(() => {
-    const load = () => void listAllStudies().then(all => setList(all.filter(s => !s.deletedAt && !!s.facts.video).sort((a, b) => b.startedAt - a.startedAt)));
+    const load = () => void listAllStudies().then(all => setList(all.filter(s => !s.deletedAt && !!s.facts.video && cs.record(s)).sort((a, b) => b.startedAt - a.startedAt)));
     load();
     return onDataChange(load);
-  }, []);
+  }, [cs]);
   return list;
 }
 

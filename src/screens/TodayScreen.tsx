@@ -10,7 +10,9 @@ import { allProjects } from '../db/projects';
 import { listWorkspaces } from '../db/workspaces';
 import { listAllSnags } from '../db/walk';
 import { liveProductionLines } from '../lib/lines';
-import { loadActionParts, useEveryAction } from '../lib/useProjectActions';
+import { loadActionParts, useClientEveryAction } from '../lib/useProjectActions';
+import { placeInClient, useClientScope } from '../lib/activeClient';
+import { firstName } from '../lib/brand';
 import { briefing, greeting, lastSeenAndMark, lineState } from '../lib/today';
 import { recentPlaces, lastOpen } from '../lib/recentPlaces';
 import { methodByKey, methodOfProject } from '../lib/methods';
@@ -34,6 +36,9 @@ export function TodayScreen() {
   const [snags, setSnags] = useState<Snag[]>([]);
   const [register, setRegister] = useState<RegisterProblem[]>([]);
   const [box, setBox] = useState('');
+  /* THE ACTIVE CLIENT (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1): its lines, problems and projects only; under All clients each
+     line and project says whose */
+  const cs = useClientScope();
   useEffect(() => {
     let live = true;
     const load = async () => {
@@ -47,18 +52,20 @@ export function TodayScreen() {
     const off = onDataChange(() => void load());
     return () => { live = false; off(); };
   }, []);
-  const every = useEveryAction(projects);
-  const brief = useMemo(() => (every ? briefing(every.rows, register, since) : null), [every, register, since]);
-  const lineRows = useMemo(() => lines.map(l => {
+  const { read: every } = useClientEveryAction(projects);
+  const mineProjects = useMemo(() => projects.filter(p => cs.project(p.id)), [projects, cs]);
+  const mineRegister = useMemo(() => register.filter(r => cs.record(r)), [register, cs]);
+  const brief = useMemo(() => (every ? briefing(every.rows, mineRegister, since) : null), [every, mineRegister, since]);
+  const lineRows = useMemo(() => lines.filter(l => cs.line(l.id)).map(l => {
     const mine = snags.filter(s => s.workspaceId === l.id);
     return { l, ...lineState(mine.length, mine.filter(s => s.priority === 'critical').length) };
-  }).sort((a, b) => 'ragwn'.indexOf(a.state) - 'ragwn'.indexOf(b.state)), [lines, snags]);
+  }).sort((a, b) => 'ragwn'.indexOf(a.state) - 'ragwn'.indexOf(b.state)), [lines, snags, cs]);
   const byMethod = useMemo(() => {
     const m = new Map<string, Project[]>();
-    for (const p of projects) { const k = methodByKey(methodOfProject(p))?.name ?? 'Other'; m.set(k, [...(m.get(k) ?? []), p]); }
+    for (const p of mineProjects) { const k = methodByKey(methodOfProject(p))?.name ?? 'Other'; m.set(k, [...(m.get(k) ?? []), p]); }
     return [...m.entries()];
-  }, [projects]);
-  const places = useMemo(() => recentPlaces().slice(0, 4), []);
+  }, [mineProjects]);
+  const places = useMemo(() => recentPlaces().filter(p => placeInClient(cs, p.to)).slice(0, 4), [cs]);
   const worst = lineRows.find(r => r.state === 'r' || r.state === 'a');
   const suggestions = [
     'What should I do first today?',
@@ -70,7 +77,7 @@ export function TodayScreen() {
 
   return (
     <div className="wrap today" data-today>
-      <PageHeader eyebrow={niceDay(todayISO(), { weekday: 'short' })} title={greeting(new Date().getHours())}
+      <PageHeader eyebrow={niceDay(todayISO(), { weekday: 'short' })} title={`${greeting(new Date().getHours())}${firstName() ? `, ${firstName()}` : ''}`}
         says="What wants you today, worked out from the actions and problems as they stand — then the lines, where you were and the projects." />
 
       <section className="today-brief" aria-label="What wants you" data-today-brief>
@@ -109,7 +116,7 @@ export function TodayScreen() {
             <ul className="today-list">
               {lineRows.slice(0, 8).map(r => (
                 <li key={r.l.id}><a className="today-row" href={`#/lines/${encodeURIComponent(r.l.id)}`} data-today-line={r.l.id}>
-                  <b>{r.l.name}</b><StateTag tone={TONE[r.state]}>{r.word}</StateTag>
+                  <b>{r.l.name}</b>{cs.all && r.l.clientName && <span className="sub" data-client-of>{r.l.clientName}</span>}<StateTag tone={TONE[r.state]}>{r.word}</StateTag>
                 </a></li>
               ))}
               {lineRows.length > 8 && <li><a className="today-row is-more" href="#/room">All {lineRows.length} lines</a></li>}
@@ -138,7 +145,7 @@ export function TodayScreen() {
               <ul className="today-list">
                 {ps.slice(0, 5).map(p => {
                   const late = every?.rows.filter(a => a.late && a.project?.id === p.id).length ?? 0;
-                  return <li key={p.id}><a className="today-row" href={`#/project/${p.id}`} data-today-project={p.id}><b>{p.name}</b>{late ? <StateTag tone="r">{late} late</StateTag> : <span className="sub">nothing late</span>}</a></li>;
+                  return <li key={p.id}><a className="today-row" href={`#/project/${p.id}`} data-today-project={p.id}><b>{p.name}</b>{cs.all && cs.whose({ projectId: p.id }) && <span className="sub" data-client-of>{cs.whose({ projectId: p.id })}</span>}{late ? <StateTag tone="r">{late} late</StateTag> : <span className="sub">nothing late</span>}</a></li>;
                 })}
               </ul>
             </div>

@@ -2,7 +2,8 @@
  * the floor in order, every problem and every program on the device, read
  * again a moment after anything is written, so the control room counts a
  * line's own problems and programs the moment they change. `null` until read. */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useClientScope } from './activeClient';
 import { listAllPrograms, listAllSnags, listWorkspaces, onDataChange } from '../db';
 import { liveProductionLines } from './lines';
 import type { LineInput } from './lineWork';
@@ -21,5 +22,7 @@ export function useLineWork(): LineInput[] | null {
     const off = onDataChange(() => { window.clearTimeout(timer); timer = window.setTimeout(() => void load(), 250); });
     return () => { live = false; window.clearTimeout(timer); off(); };
   }, []);
-  return state;
+  /* the active client's lines only (lib/activeClient, C1) — the control room and its paper never mix two businesses */
+  const cs = useClientScope();
+  return useMemo(() => (state && cs.ready ? state.filter(x => cs.line(x.line.id)) : null), [state, cs]);
 }

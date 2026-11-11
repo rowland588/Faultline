@@ -20,6 +20,10 @@ export interface Brand {
   logo?: string;
 }
 
+/** The person's first name, from the brand once it is saved — never the default offered, never made up; '' when none is known (the
+ *  greeting on the home, docs/CONSULTANT-WORKSPACE.md C1). */
+export const firstName = (): string => readBrand()?.name.trim().split(/\s+/)[0] ?? '';
+
 /** Offered the first time, never assumed on a paper until saved: the sheet pre-fills these and he keeps or changes them. */
 export const DEFAULT_BRAND: Brand = { name: 'Rowland Glew', business: 'Streamline Synergy' };
 

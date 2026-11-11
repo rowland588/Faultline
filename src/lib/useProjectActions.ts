@@ -12,6 +12,7 @@ import { everyAction, projectActions, type DoneThing, type ProjectAction, type R
 import { owedAndDone, registerRow, useProjectRead } from '../project/projectRead';
 import { todayISO } from './weeks';
 import { liveProductionLines } from './lines';
+import { useClientScope, type ClientScope } from './activeClient';
 
 export interface ProjectActionsRead { rows: ProjectAction[]; done: DoneThing[]; today: string }
 
@@ -26,7 +27,7 @@ export function useProjectActions(project: Project | undefined): ProjectActionsR
  *  Actions (docs/PROJECTS.md, P4): each project read by the same rule as its
  *  own Actions page (lib/projectRead owedAndDone), then the register's
  *  problems on a line with no project. */
-export function useEveryAction(projects: Project[]): ProjectActionsRead | null {
+export function useEveryAction(projects: Project[], keep?: (r: RegisterProblem) => boolean): ProjectActionsRead | null {
   const inputs = useJobInputs(projects);
   const [register, setRegister] = useState<RegisterProblem[] | null>(null);
   /* each project's own actions — a stage-gate project's tool plans among them (docs/JOURNEY.md) */
@@ -46,9 +47,23 @@ export function useEveryAction(projects: Project[]): ProjectActionsRead | null {
   }, [ids]);
   return useMemo(() => {
     if (!inputs || !register || !steps) return null;
-    return everyActionOf(projects, inputs, register, steps, todayISO());
-  }, [projects, inputs, register, steps]);
+    return everyActionOf(projects, inputs, keep ? register.filter(keep) : register, steps, todayISO());
+  }, [projects, inputs, register, steps, keep]);
 }
+
+/** EVERY ACTION OF THE ACTIVE CLIENT (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) — its projects' actions and its lines' own
+ *  problems; everything when one client or none is named, or All clients is chosen. Null until the lines are read, so another client's
+ *  rows never flash. With the scope, so a page can say whose each row is under All clients. */
+export function useClientEveryAction(projects: Project[]): { read: ProjectActionsRead | null; cs: ClientScope } {
+  const cs = useClientScope();
+  const mine = useMemo(() => projects.filter(p => cs.project(p.id)), [projects, cs]);
+  const read = useEveryAction(mine, cs.record);
+  return { read: cs.ready ? read : null, cs };
+}
+
+/** Whose an action is, in words — its project's client, else its line's (lib/activeClient). */
+export const actionClient = (cs: ClientScope, a: ProjectAction): string =>
+  cs.whose({ projectId: a.project?.id ?? a.item?.jobId, workspaceId: a.workspaceId });
 
 /** What every project's actions are read from besides its method's records: each project's own actions, and the register's problems —
  *  a line's own problems the factory's lines' only, never a project's walk nor the demo line (lib/lines). */

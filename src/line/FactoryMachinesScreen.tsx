@@ -12,6 +12,7 @@ import type { Snag } from '../snag/types';
 import { listAllSnags, onDataChange } from '../db';
 import { useLineRecords } from '../lib/useLineRecords';
 import { useProjects } from '../lib/useProjects';
+import { useClientScope } from '../lib/activeClient';
 import { useJobInputs } from '../lib/useJobInputs';
 import { factoryMachines, factoryMachinesPaper, type InProject } from '../lib/factoryMachines';
 import { gateOwed, projectMachineRows } from '../project/machines/machines';
@@ -42,8 +43,11 @@ export function FactoryMachinesScreen() {
     for (const g of inputs.gate) for (const row of projectMachineRows(g, gateOwed(g, today), today)) m.set(row.id, { projectId: g.project.id, project: g.project.name, row });
     return m;
   }, [inputs]);
-  const r = useMemo(() => (snags && inputs ? factoryMachines({ lines: rec.lines, assets: rec.machines, jobLines: rec.jobLines, jobs: rec.jobs, programs: rec.programs, snags, inProjects }) : null),
-    [rec.lines, rec.machines, rec.jobLines, rec.jobs, rec.programs, snags, inputs, inProjects]);
+  /* THE ACTIVE CLIENT'S LINES (lib/activeClient, C1); under All clients each line says whose, on the page and on its paper */
+  const cs = useClientScope();
+  const lines = useMemo(() => rec.lines.filter(w => cs.line(w.id)).map(w => (cs.all && w.clientName?.trim() ? { ...w, name: `${w.name} — ${w.clientName.trim()}` } : w)), [rec.lines, cs]);
+  const r = useMemo(() => (snags && inputs && cs.ready ? factoryMachines({ lines, assets: rec.machines, jobLines: rec.jobLines, jobs: rec.jobs, programs: rec.programs, snags, inProjects }) : null),
+    [lines, rec.machines, rec.jobLines, rec.jobs, rec.programs, snags, inputs, inProjects, cs.ready]);
 
   if (rec.loading || !r) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
 
@@ -52,7 +56,7 @@ export function FactoryMachinesScreen() {
     setBusy(true); setSaid(null);
     try {
       const { saveMachinesPaper } = await import('../lib/machinePaperPdf');
-      const how = await saveMachinesPaper(factoryMachinesPaper(r), ['Factory', 'machines']);
+      const how = await saveMachinesPaper(factoryMachinesPaper(r), [cs.filtering ? cs.client : cs.all ? 'All clients' : 'Factory', 'machines']);
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('factory machines pdf failed', e);

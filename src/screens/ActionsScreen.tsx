@@ -14,7 +14,8 @@
 import { openProblem } from '../snag/ProblemPanel';
 import { useMemo, useState } from 'react';
 import { useProject, useProjects } from '../lib/useProjects';
-import { useEveryAction, useProjectActions, type ProjectActionsRead } from '../lib/useProjectActions';
+import { actionClient, useClientEveryAction, useProjectActions, type ProjectActionsRead } from '../lib/useProjectActions';
+import type { ClientScope } from '../lib/activeClient';
 import { actionTiles, actionsClosing, byDate, byPerson, byProject, byWhere, type ActionGroup, type ProjectAction } from '../lib/projectActions';
 import { PriorityPill, WhenPill } from '../ui/ActionPills';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
@@ -58,12 +59,13 @@ export function ActionsScreen({ projectId }: { projectId: string }) {
  *  by project too. */
 export function EveryActionScreen() {
   const { projects, loading } = useProjects();
-  const read = useEveryAction(projects);
+  /* THE ACTIVE CLIENT'S (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) — its projects and its lines; under All clients each row says whose */
+  const { read, cs } = useClientEveryAction(projects);
   if (loading || !read) return <p className="sub wrap">Reading every project’s actions…</p>;
-  return <ActionsPage read={read} />;
+  return <ActionsPage read={read} cs={cs} />;
 }
 
-function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name?: string; projectId?: string }) {
+function ActionsPage({ read, name, projectId, cs }: { read: ProjectActionsRead; name?: string; projectId?: string; cs?: ClientScope }) {
   const every = !name;
   const [view, setView] = useState<View>('person');
   const [only, setOnly] = useState<Only>('all');
@@ -73,14 +75,17 @@ function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name
     only === 'late' ? a.late : only === 'priority' ? a.priority === 'critical' || a.priority === 'high' : only === 'nobody' ? !a.who : true), [read, only]);
   const groups: ActionGroup[] = useMemo(() => (view === 'person' ? byPerson(shown) : view === 'date' || view === 'board' ? byDate(shown, read.today) : view === 'project' ? byProject(shown) : byWhere(shown)), [view, shown, read]);
   const closing = actionsClosing(read.rows);
-  const title = name ?? 'Every project and line';
+  /* whose: the client named under All clients, on the rows and the paper's band */
+  const whose = (a: ProjectAction) => (cs?.all ? actionClient(cs, a) : '');
+  const band = cs?.filtering ? cs.client : cs?.all ? 'All clients' : '';
+  const title = name ?? (band ? `Every project and line — ${band}` : 'Every project and line');
 
   const paper = async (person?: string) => {
     if (printing) return;
     setPrinting(person ?? 'all');
     try {
       const { saveActionsPdf } = await import('../lib/projectActionsPdf');
-      await saveActionsPdf({ project: title, printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), today: read.today, rows: read.rows, done: read.done, ...(person ? { person } : {}) });
+      await saveActionsPdf({ project: title, printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), today: read.today, rows: read.rows, done: read.done, ...(person ? { person } : {}), ...(cs?.all ? { client: (a: ProjectAction) => actionClient(cs, a) } : {}) });
     } catch (e) {
       console.error('actions pdf failed', e);
       window.alert('Sorry — the PDF could not be made. Please try again.');
@@ -93,7 +98,7 @@ function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name
           button saying PDF */}
       <PageHeader
         {...(projectId ? { back: { label: 'Now', to: `/project/${projectId}` } } : {})}
-        eyebrow={<span className="pl-eyebrow">{every ? 'CONTROL ROOM · EVERY PROJECT AND LINE' : 'ACTIONS · WHO IS DOING WHAT'}</span>}
+        eyebrow={<span className="pl-eyebrow">{every ? `CONTROL ROOM · EVERY PROJECT AND LINE${band ? ` · ${band.toUpperCase()}` : ''}` : 'ACTIONS · WHO IS DOING WHAT'}</span>}
         title="Actions"
         says={<span className="sub">{every ? 'Everything every project owes, and every problem on a line with no project — what, why, where, who and by when. Tap one to change it where it is kept.' : 'Everything the project owes, from wherever it was raised — what, why, where, who and by when. Tap one to change it where it is kept.'}</span>}
         papers={[{ label: 'The action list', for: 'every open action as seen here — for the meeting', disabled: !!printing, make: () => paper() },
@@ -121,7 +126,7 @@ function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name
                 {(g?.rows ?? []).map(a => (
                   <button key={a.key} type="button" className={'act-card' + (a.late ? ' is-late' : a.soon ? ' is-soon' : '')} data-action={a.key} onClick={() => openAction(a)}>
                     <b className="act-card-w">{a.what}</b>
-                    <span className="act-card-m">{a.priority && <PriorityPill priority={a.priority} />}{[every ? a.project?.name ?? 'On the line' : '', a.where].filter(Boolean).join(' · ')}</span>
+                    <span className="act-card-m">{a.priority && <PriorityPill priority={a.priority} />}{[whose(a), every ? a.project?.name ?? 'On the line' : '', a.where].filter(Boolean).join(' · ')}</span>
                     <span className="act-card-f"><span>{a.who || 'nobody yet'}</span><WhenPill a={a} /></span>
                   </button>
                 ))}
@@ -143,7 +148,7 @@ function ActionsPage({ read, name, projectId }: { read: ProjectActionsRead; name
                   <b className="lt-what">{a.what}</b>
                   <span className="lt-says act-meta">
                     {a.priority && <PriorityPill priority={a.priority} />}
-                    {[every && view !== 'project' ? a.project?.name ?? 'On the line' : '', a.kind, a.where, a.why].filter(Boolean).join(' · ')}
+                    {[whose(a), every && view !== 'project' ? a.project?.name ?? 'On the line' : '', a.kind, a.where, a.why].filter(Boolean).join(' · ')}
                   </span>
                   <span className="lt-where act-when">{view !== 'person' && <>{a.who || 'nobody yet'} · </>}<WhenPill a={a} /></span>
                 </button>

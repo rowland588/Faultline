@@ -13,6 +13,7 @@
 import { useMemo, useState } from 'react';
 import type { Project } from '../types';
 import { useFactoryLines } from '../lib/useFactoryLines';
+import { useClientScope } from '../lib/activeClient';
 import { Sheet } from './Sheet';
 import { Door, JobPapers } from './ReportsSheet';
 import { useJobInputs } from '../lib/useJobInputs';
@@ -21,14 +22,17 @@ import { portfolio } from '../lib/portfolio';
 import { todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 
-export function ControlRoomReports({ projects, onClose }: {
+export function ControlRoomReports({ projects: every, onClose }: {
   /** The jobs on the control room, in its order. */
   projects: Project[];
   onClose: () => void;
 }) {
   const go = (to: string) => { onClose(); nav(to); };
   /* Your factory's lines, in floor order (lib/useFactoryLines) */
-  const lines = useFactoryLines();
+  /* …the active client's only (lib/activeClient, C1) */
+  const cs = useClientScope();
+  const lines = useFactoryLines().filter(w => cs.line(w.id));
+  const projects = useMemo(() => every.filter(p => cs.project(p.id)), [every, cs]);
   /* the control room report is made from the board's own reading (lib/portfolio) */
   const inputs = useJobInputs(projects);
   const lineWork = useLineWork();

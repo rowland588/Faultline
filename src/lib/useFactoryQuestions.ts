@@ -5,8 +5,9 @@ import { useMemo } from 'react';
 import type { Project, Workspace } from '../types';
 import { useFactoryRead } from './useFactoryRead';
 import { fourQuestions, type FourQuestions } from './factoryQuestions';
+import type { RegisterProblem } from './projectActions';
 
-export function useFactoryQuestions(projects: Project[], lines: readonly Workspace[]): FourQuestions | null {
-  const read = useFactoryRead(projects, lines);
+export function useFactoryQuestions(projects: Project[], lines: readonly Workspace[], keep?: (r: RegisterProblem) => boolean): FourQuestions | null {
+  const read = useFactoryRead(projects, lines, keep);
   return useMemo(() => (read ? fourQuestions({ wrong: read.wrong, actions: read.actions, proved: read.proved, lines: lines.length, today: read.today }) : null), [read, lines.length]);
 }

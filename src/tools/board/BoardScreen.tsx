@@ -1,6 +1,7 @@
 /* BOARDS — hub, one board’s saved views, one record (FC-067 maintenance measures first). */
 import { Commentary } from '../../ui/Commentary';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useClientScope } from '../../lib/activeClient';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
 import { can as canAt } from '../../lib/access';
@@ -33,7 +34,9 @@ export function BoardScreen({ boardKey, id }: { boardKey?: string; id?: string }
 
 function useBoardList(): ToolStudy[] | null {
   const [list, setList] = useState<ToolStudy[] | null>(null);
-  const load = useCallback(async () => setList((await listAllStudies()).filter(s => s.tool === 'board')), []);
+  /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
+  const cs = useClientScope();
+  const load = useCallback(async () => setList((await listAllStudies()).filter(s => s.tool === 'board').filter(s => cs.record(s))), [cs]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   return list;
 }

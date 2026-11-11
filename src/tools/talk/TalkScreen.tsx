@@ -37,6 +37,7 @@
  * a job's. WHERE IT SHOWS: Line Talk in Tools (#/talk, ?line= on one line),
  * a line's page among its tools, the talk itself (#/talk/:id). */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useClientScope } from '../../lib/activeClient';
 /* AI Mode's conversations are talk studies too (docs/AI-MODE.md) — they live at #/ai, never on Line Talk's list */
 import { isConversation } from '../../colleague/conversation';
 import { deleteStudy, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../../db';
@@ -125,7 +126,9 @@ export function TalksScreen() {
   const [pick, setPick] = useState(lineId);
   useEffect(() => { if (!lineId && pLines.length) setPick(p => p || startLine(pLines)); }, [lineId, pLines]);
   const { session } = useSession();
-  const load = useCallback(async () => setTalks((await listAllStudies()).filter(s => s.tool === 'talk' && !isConversation(s) && (!lineId || s.workspaceId === lineId)).sort((a, b) => b.updatedAt - a.updatedAt)), [lineId]);
+  /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
+  const cs = useClientScope();
+  const load = useCallback(async () => setTalks((await listAllStudies()).filter(s => s.tool === 'talk' && !isConversation(s) && (!lineId || s.workspaceId === lineId) && cs.record(s)).sort((a, b) => b.updatedAt - a.updatedAt)), [lineId, cs]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   const shown = talks ? inScope(talks, scope, inP.id, inP.lineIds) : null;
 

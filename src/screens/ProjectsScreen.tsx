@@ -9,7 +9,8 @@
  * person's page, opening straight onto the A3 was right. Now that people are
  * invited into it, "which project?" is a real question and has to be asked
  * before the answer is shown. */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useClientScope } from '../lib/activeClient';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
 import { modelOfMethod, putProjectOnLines } from '../lib/newProject';
@@ -108,7 +109,11 @@ function LineSituation({ ws, sit }: { ws: Workspace; sit: Situation | null }) {
 }
 
 export function ProjectsScreen() {
-  const { loading, projects, archived, create, restore, purge, contents } = useProjects();
+  const { loading, projects: everyLive, archived: everyArchived, create, restore, purge, contents } = useProjects();
+  /* THE ACTIVE CLIENT'S PROJECTS (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1); under All clients each row says whose */
+  const cs = useClientScope();
+  const projects = useMemo(() => everyLive.filter(p => cs.project(p.id)), [everyLive, cs]);
+  const archived = useMemo(() => everyArchived.filter(p => cs.project(p.id)), [everyArchived, cs]);
   const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
   /* Somebody let in by a project invite works on the projects they were
      invited to and starts none of their own (supabase/ACCESS_LEVELS.sql). */
@@ -134,7 +139,9 @@ export function ProjectsScreen() {
      factory setup before the new projects ... assign everything to a
      production line"). Several, as manufacturing is; none is allowed and
      added later in Lines & people. */
-  const [factory, setFactory] = useState<Workspace[]>([]);
+  const [allFactory, setFactory] = useState<Workspace[]>([]);
+  /* the active client's lines — a new project is put on its own business's lines */
+  const factory = useMemo(() => allFactory.filter(w => cs.line(w.id)), [allFactory, cs]);
   /* opened from a line's own page (Start a job on this line), that line is picked */
   const fromLine = q.get('line') ?? '';
   const [onLines, setOnLines] = useState<string[]>(() => (fromLine ? [fromLine] : []));
@@ -386,7 +393,7 @@ export function ProjectsScreen() {
                   return (
                     <RecordRow key={p.id} what={p.name}
                       says={<>{kindLabel(p)}{p.lead ? <> · led by {p.lead}</> : null}</>}
-                      where={[lines.length ? lines.join(', ') : 'No line yet', due ? `${due < today ? 'handover was' : 'handover'} ${niceDay(due, { weekday: 'short' })}` : 'no handover date'].join(' · ')}
+                      where={[cs.all ? cs.whose({ projectId: p.id }) : '', lines.length ? lines.join(', ') : 'No line yet', due ? `${due < today ? 'handover was' : 'handover'} ${niceDay(due, { weekday: 'short' })}` : 'no handover date'].filter(Boolean).join(' · ')}
                       onOpen={() => nav(`/project/${p.id}`)} />
                   );
                 })}

@@ -17,6 +17,7 @@ import { PageHeader } from '../ui/parts';
 import { LineCapacityHero } from '../ui/LineCapacityHero';
 import { Fold } from '../ui/Fold';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useClientScope } from '../lib/activeClient';
 import { addLineToFactory, asked } from '../lib/lines';
 import { deleteStudy, listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStandard } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
@@ -107,10 +108,12 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
   const mayP = useAccess(inP.id ?? '');
   const mayAdd = !inP.id || mayP.edit;
 
+  /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
+  const cs = useClientScope();
   const load = useCallback(async () => {
     const [all, ws, ss] = await Promise.all([listAllStandards(), listWorkspaces(), listAllStudies()]);
-    setList(all); setLines(ws); setStudies(ss);
-  }, []);
+    setList(all.filter(x => cs.record(x))); setLines(ws); setStudies(ss);
+  }, [cs]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
   /* a new map or balance is put on a line of Your factory, in floor order (lib/useFactoryLines) */

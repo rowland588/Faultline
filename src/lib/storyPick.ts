@@ -4,14 +4,18 @@
 import type { Workspace } from '../types';
 import type { ToolStudy } from './study';
 import { clientsOf } from './lines';
+import { CLIENT_KEY, storedClient } from './activeClient';
 
-export const CLIENT_KEY = 'faultline.client';
+/* the one key the active client is kept under (lib/activeClient, C1) — kept exported here for its readers */
+export { CLIENT_KEY };
 
-/** The client the Story is of: the one picked on the Factory page when the lines name more than one, else the one they name. */
+/** The client the Story is of: the active client (lib/activeClient) when the lines name more than one — the first when All clients is
+ *  chosen, a story being one client's — else the one they name. */
 export function clientShown(lines: readonly Workspace[]): string {
   const clients = clientsOf(lines);
   if (clients.length <= 1) return clients[0] ?? '';
-  try { const c = localStorage.getItem(CLIENT_KEY) ?? ''; return clients.includes(c) ? c : clients[0]; } catch { return clients[0]; }
+  const c = storedClient();
+  return clients.includes(c) ? c : clients[0];
 }
 
 /** The client's story among the studies — the open one first, then the newest. */

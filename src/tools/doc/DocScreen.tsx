@@ -11,6 +11,7 @@
 import { Commentary } from '../../ui/Commentary';
 import './doc.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useClientScope } from '../../lib/activeClient';
 import { getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../../db';
 import { useAccess } from '../../cloud/access';
 import { useSession } from '../../cloud/session';
@@ -57,7 +58,9 @@ export function DocScreen({ docKey, id }: { docKey?: string; id?: string }) {
 /** Every saved document on this device, newest first, kept current. */
 function useDocs(): ToolStudy[] | null {
   const [list, setList] = useState<ToolStudy[] | null>(null);
-  const load = useCallback(async () => setList((await listAllStudies()).filter(s => s.tool === 'doc')), []);
+  /* the active client's only (lib/activeClient, docs/CONSULTANT-WORKSPACE.md C1) */
+  const cs = useClientScope();
+  const load = useCallback(async () => setList((await listAllStudies()).filter(s => s.tool === 'doc').filter(s => cs.record(s))), [cs]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   return list;
 }

@@ -21,6 +21,7 @@ import { allSources, outputsOfConversation, outputsText } from '../capabilities/
 import { sourceSaid } from '../lib/data/sources';
 import { notebookText, readNotebooks } from './notebook';
 import { getWorkspace } from '../db/workspaces';
+import { activeClientNow } from '../lib/activeClient';
 import type { ColleagueWorkbook } from '../capabilities/types';
 import type { WalkFacts } from '../lib/walk';
 
@@ -59,10 +60,11 @@ export const usedOf = (step: Step, said?: string): Used => ({
   ...(step.auto ? { auto: true } : {}), ...(step.preview ? { preview: step.preview } : {}), ...(step.input ? { input: step.input } : {}), ...(said ? { said } : {}), at: Date.now(),
 });
 
-/** The notebook Luna is told with each turn: the client of the subject's line, and the person's own (docs/LUNA-NEXT.md L3). */
+/** The notebook Luna is told with each turn: the client of the subject's line — with no line in hand, the client the person is in
+ *  (lib/activeClient, chosen in the top bar; docs/CONSULTANT-WORKSPACE.md C1) — and the person's own (docs/LUNA-NEXT.md L3). */
 export async function notebookFor(threads: readonly Thread[]): Promise<string> {
   const line = currentThread(threads)?.scope.lineId;
-  const client = line ? (await getWorkspace(line))?.clientName?.trim() ?? '' : '';
+  const client = line ? (await getWorkspace(line))?.clientName?.trim() ?? '' : (await activeClientNow()).client;
   const nb = await readNotebooks(client);
   return notebookText(nb.own, nb.client);
 }
@@ -75,7 +77,9 @@ export async function conversationFocus(cid: string, extra: Pick<FocusOpts, 'scr
   const wf = f as WalkFacts;
   const files = (await allSources()).slice(0, 12).map(x => sourceSaid(x));
   const nb = await notebookFor(f.threads ?? []);
-  return focusText(f.threads ?? [], { ...(nb ? { notebook: nb } : {}), ...extra, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
+  /* THE CLIENT THE PERSON IS IN (C1) — said when the lines name more than one, so a talk at a business's page is that business's */
+  const ac = await activeClientNow();
+  return focusText(f.threads ?? [], { ...(nb ? { notebook: nb } : {}), ...(ac.several ? { client: ac.client } : {}), ...extra, outputs: outputsText(outputsOfConversation({ facts: f } as ToolStudy)), files, ...(wf.position ? { position: wf.position } : {}), trail: wf.walk ?? [], drafts: f.drafts ?? [], imports: (f as { imports?: { id: string; name: string; rows: unknown[] }[] }).imports ?? [], workbooks: (f as { workbooks?: ColleagueWorkbook[] }).workbooks ?? [] });
 }
 
 /** A step kept under its turn, its records on the thread, and a write's outcome on the conversation's actions. */

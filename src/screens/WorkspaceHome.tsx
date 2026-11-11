@@ -18,7 +18,7 @@
  * a line are already one tap away on the project card and are not listed here a
  * second time; the ones attached to nothing still are, because they hold film
  * that exists nowhere else and must never become unreachable. */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import {
   listWorkspaces, listObservations, listSegments, snagsForWorkspace, listCases, deleteWorkspace,
@@ -59,6 +59,8 @@ import '../tools/gemba/looking.css';
 import { niceDay, todayISO } from '../lib/weeks';
 import { useFactoryQuestions } from '../lib/useFactoryQuestions';
 import { greeting } from '../lib/factoryQuestions';
+import { setActiveClient, useClientScope } from '../lib/activeClient';
+import { firstName } from '../lib/brand';
 import { NeedsYou, QuestionCards, QuestionPanels } from '../ui/FactoryQuestions';
 
 /* What a workspace card must answer: "what's in here?" — for ALL content, not
@@ -154,7 +156,9 @@ export function WorkspaceHome() {
      door to start one of their own (supabase/ACCESS_LEVELS.sql). */
   const mayStart = useCanStartProjects();
   // Every job, on every method — the control room is not a stage-gate board.
-  const jobs = projects;
+  /* …of the active client only (lib/activeClient, C1): the board, its control room paper and the four answers never mix two businesses */
+  const cs = useClientScope();
+  const jobs = useMemo(() => projects.filter(p => cs.project(p.id)), [projects, cs]);
 
   // Which line (and project) each workspace sits under, so the list below can
   // say so instead of showing a bare name that means nothing on its own.
@@ -245,9 +249,9 @@ export function WorkspaceHome() {
   /* WHOSE LINES (8 November, docs/CONSULTANT.md K1): with more than one client named on the lines, the Lines are shown a client at a
      time (picked here, kept on this device); with one, the page is titled by it; the lines sit under their site and area. */
   const clients = clientsOf(prodLines);
-  const [client, setClient] = useState<string>(() => { try { return localStorage.getItem('faultline.client') ?? ''; } catch { return ''; } });
-  const picked = clients.length > 1 && clients.includes(client) ? client : '';
-  const pickClient = (c: string) => { setClient(c); try { localStorage.setItem('faultline.client', c); } catch { /* private mode */ } };
+  /* the one active client (lib/activeClient, C1, read above) — the top bar's choice and these chips are the same choice */
+  const picked = cs.filtering ? cs.client : '';
+  const pickClient = (c: string) => setActiveClient(c);
   const oneClient = clients.length === 1 && prodLines.every(w => w.clientName?.trim() === clients[0]) ? clients[0] : '';
   const shownLines = picked ? prodLines.filter(w => w.clientName?.trim() === picked) : prodLines;
   const byPlace = linesByPlace(shownLines);
@@ -328,7 +332,7 @@ export function WorkspaceHome() {
         <h2 className="home-sec-title">Lines{picked ? ` — ${picked}` : ''}</h2>
         {clients.length > 1 && (
           <div className="chip-row fac-clients" role="radiogroup" aria-label="Whose lines">
-            <button type="button" role="radio" aria-checked={!picked} className={'chip' + (!picked ? ' on' : '')} onClick={() => pickClient('')}>Every client</button>
+            <button type="button" role="radio" aria-checked={!picked} className={'chip' + (!picked ? ' on' : '')} onClick={() => pickClient('')}>All clients</button>
             {clients.map(c => <button key={c} type="button" role="radio" aria-checked={picked === c} className={'chip' + (picked === c ? ' on' : '')} onClick={() => pickClient(c)}>{c}</button>)}
           </div>
         )}
@@ -395,7 +399,7 @@ export function WorkspaceHome() {
 
   /* THE FOUR QUESTIONS (docs/LOOK.md §1, look E — 6 November): what's going wrong, what needs doing, who's
      responsible, did it work — the hero's sentence, the four cards and the answers under them */
-  const questions = useFactoryQuestions(jobs, prodLines);
+  const questions = useFactoryQuestions(jobs, shownLines, cs.record);
   const factoryLede = questions?.sentence ?? (prodLines.length
     ? 'Open a line — programs, problems and tools live there. The board below is what needs you across projects.'
     : 'Add your production lines first; everything else hangs off them.');
@@ -436,7 +440,7 @@ export function WorkspaceHome() {
       {/* TEAM & INVITES, where the Factory's other settings are (Rowland, 4 November: "we used to have an invite system ... put that back"): it was only behind the
           account circle, top right; a super admin finds it here too. The database still lets in only the people invited (allowed_emails). */}
       <section className="fq-hero" aria-label="The factory today">
-      <PageHeader title={oneClient || 'Factory'} eyebrow={greeting(new Date().getHours())}
+      <PageHeader title={oneClient || picked || 'Factory'} eyebrow={`${greeting(new Date().getHours())}${firstName() ? `, ${firstName()}` : ''}`}
         says={factoryLede}
         more={profile?.is_super ? [{ label: 'Team & invites', run: () => setTeam(true) }] : undefined}
         primary={mayStart ? { label: 'New project', run: () => nav('/projects?new=1') } : undefined}
@@ -445,7 +449,7 @@ export function WorkspaceHome() {
           { label: 'Every report', for: 'The factory’s, each line’s and each project’s papers, in one list', make: () => setAllPapers(true) },
         ] : []} />
       {profile?.is_super && <AdminPanel open={team} onClose={() => setTeam(false)} />}
-      {allPapers && <ControlRoomReports projects={projects} onClose={() => setAllPapers(false)} />}
+      {allPapers && <ControlRoomReports projects={jobs} onClose={() => setAllPapers(false)} />}
       {facQuick}
       </section>
       {/* THE AREAS AND LINES FIRST (10 November — Rowland: "its very busy, that busy that i cant sometimes see the obvious like areas
