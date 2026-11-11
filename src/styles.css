@@ -18140,3 +18140,32 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .door-name { letter-spacing: -0.02em; }
 .door-line { margin: 16px 0 0; max-width: 560px; font-size: clamp(18px, 1.8vw, 22px); font-weight: 600; line-height: 1.35; color: var(--ink); }
 .door-line span { display: block; font-weight: 500; color: var(--ink-2); }
+
+/* ---------- SET UP › DATA CONNECTIONS (11 November, docs/DATA-CONNECTIONS.md) ---------- */
+.dc-door { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); margin: var(--space-3) 0; padding: var(--space-3) 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none; min-height: 44px; }
+.dc-door:hover b { color: var(--brand); }
+.dc-add, .dc-one, .dc-token { display: grid; gap: var(--space-3); margin: var(--space-3) 0; max-width: 760px; }
+.dc-add h2, .dc-one h2, .dc-token h2 { margin: 0; font-size: var(--t-body); }
+.dc-token { padding: var(--space-3); border: 1px solid var(--st-a); border-radius: var(--radius); background: var(--surface); }
+.dc-code { display: block; overflow-wrap: anywhere; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--t-detail); padding: var(--space-2); background: var(--canvas, #f4f6f8); border-radius: var(--radius-sm); }
+p .dc-code { display: inline; padding: 0 var(--space-1); }
+.dc-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.dc-acts .btn, .dc-kinds .chip, .dc-add .text-input, .dc-one .text-input { min-height: 44px; }
+.dc-kinds { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.dc-field { display: grid; gap: var(--space-1); font-size: var(--t-label); color: var(--muted); min-width: 0; }
+.dc-field .text-input { width: 100%; box-sizing: border-box; }
+.dc-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-2); align-items: end; }
+.dc-health { margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: baseline; }
+.dc-give { display: grid; gap: var(--space-2); }
+.dc-give p { margin: 0; overflow-wrap: anywhere; }
+.dc-h { margin: var(--space-2) 0 0; font-size: var(--t-label); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.dc-scroll { overflow-x: auto; max-width: 100%; }
+.dc-table { border-collapse: collapse; font-size: var(--t-detail); min-width: 100%; }
+.dc-table th, .dc-table td { text-align: left; padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.dc-table th { color: var(--muted); font-weight: 600; }
+.dc-refused { margin: var(--space-1) 0 0; padding-left: 1.2em; }
+.dc-map { display: grid; gap: var(--space-2); }
+.dc-foot { border-top: 1px solid var(--line); padding-top: var(--space-3); }
+.dc-bring { display: grid; gap: var(--space-2); }
+.dc-page .part-head .btn, .dc-foot .cw-link, .dc-one .btn { min-height: 44px; }
+.dc-foot .cw-link { display: inline-flex; align-items: center; }

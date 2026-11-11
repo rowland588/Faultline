@@ -49,6 +49,7 @@ const ClientReportScreen = lazy(() => import('./screens/ClientReportScreen').the
 const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => ({ default: m.PaceExecReport })));
 const TodayScreen = lazy(() => import('./screens/TodayScreen').then(m => ({ default: m.TodayScreen })));
 const LibraryScreen = lazy(() => import('./screens/LibraryScreen').then(m => ({ default: m.LibraryScreen })));
+const DataConnectionsScreen = lazy(() => import('./screens/DataConnectionsScreen').then(m => ({ default: m.DataConnectionsScreen })));
 const QuickSnagsScreen = lazy(() => import('./snag/QuickSnagsScreen').then(m => ({ default: m.QuickSnagsScreen })));
 const FactoryMachinesScreen = lazy(() => import('./line/FactoryMachinesScreen').then(m => ({ default: m.FactoryMachinesScreen })));
 const ProjectMachinesScreen = lazy(() => import('./project/machines/ProjectMachinesScreen').then(m => ({ default: m.ProjectMachinesScreen })));
@@ -229,6 +230,7 @@ function app(route: Route) {
     return <ProductionLineScreen key={route.wsId} wsId={route.wsId} view={v === 'machines' || v === 'actions' || v === 'tools' || v === 'projects' || v === 'setup' || v === 'logs' ? v : 'overview'} />;
   }
   if (route.name === 'factory') return <FactoryScreen />;
+  if (route.name === 'dataConnections') return <DataConnectionsScreen />;
   if (route.name === 'factoryMachines') return <FactoryMachinesScreen />;
   if (route.name === 'allActions') return <EveryActionScreen />;
   /* HOME IS THE STORY (S5): #/ and its alias #/story; the board of lines is #/room, the Lines tab */

@@ -1372,6 +1372,20 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     return id;
   })();
 
+  /* A DATA CONNECTION (11 November, docs/DATA-CONNECTIONS.md): the MES sending Line 7's shift totals — yesterday's two shifts, one short —
+     brought in through the same core the ingest function runs, so Set up › Data connections and Luna's production source have rows */
+  await (async () => {
+    const { putConnection, upsertProduction } = await import('../db/production');
+    const { mapRows } = await import('../lib/production/ingestCore');
+    const day = new Date(t - 86_400_000).toISOString().slice(0, 10);
+    const conn = { id: 'seed-conn-mes', name: 'MES shift totals', kind: 'push', status: 'active' as const, system: 'the MES', workspaceId: ws.id, mapping: {}, lineMap: {}, scheduleMinutes: 60, tokenHint: 'Ab3d', tokenSetAt: t - 2 * 86_400_000, lastRunAt: t - 3_600_000, lastSuccessAt: t - 3_600_000, lastRows: 2, lastRefused: 0, rowsTotal: 2, createdAt: t - 2 * 86_400_000, updatedAt: t };
+    await putConnection(conn);
+    await upsertProduction(mapRows([
+      { id: `${day}-D`, day, shift: 'Days', product: 'Crisps 6x25g', planned_minutes: 450, run_minutes: 400, output: 38000, target: 45000, rejects: 400, downtime_minutes: 50, downtime_reason: 'Film break' },
+      { id: `${day}-N`, day, shift: 'Nights', product: 'Crisps 6x25g', planned_minutes: 450, run_minutes: 440, output: 44500, target: 45000, rejects: 300, downtime_minutes: 10, downtime_reason: 'Jam' },
+    ], { id: conn.id, workspaceId: ws.id }, t - 3_600_000).records);
+  })();
+
   return {
     videoStudyId,
     talkId,

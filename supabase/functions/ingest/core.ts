@@ -96,7 +96,7 @@ const norm = (s: string): string => s.trim().toLowerCase().replace(/[\s_-]+/g, '
 /* ------------------------------------------------------------------ CSV */
 /** RFC 4180 CSV — quoted fields, doubled quotes, commas and newlines inside quotes; a ; or tab separator when the header uses one. */
 export function parseCsv(text: string): string[][] {
-  const t = text.replace(/^﻿/, '');
+  const t = text.replace(/^\uFEFF/, '');
   const first = t.split(/\r?\n/, 1)[0] ?? '';
   const sep = [',', ';', '\t'].map(c => [c, first.split(c).length] as const).sort((a, b) => b[1] - a[1])[0][0];
   const out: string[][] = [];

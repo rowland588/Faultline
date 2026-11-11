@@ -210,6 +210,8 @@ export function FactoryScreen() {
       {saved && <p className="fac-saved" role="status">Saved — {saved}</p>}
       {/* CUSTOMERS (C2a): added by name before any line, archived and continued */}
       <CustomersPanel may={may} />
+      {/* DATA CONNECTIONS (11 November, docs/DATA-CONNECTIONS.md): the business's own systems — one door, the page behind it */}
+      <DataConnectionsDoor />
 
       <datalist id="fac-types">{types.map(t => <option key={t} value={t} />)}</datalist>
       <datalist id="fac-clients">{placeWordsOffered(lines ?? [], 'clientName').map(t => <option key={t} value={t} />)}</datalist>
@@ -381,5 +383,25 @@ export function FactoryScreen() {
         </div>
       )}
     </div>
+  );
+}
+
+/** The door to Set up › Data connections — how many, and the worst health, in one line. */
+function DataConnectionsDoor() {
+  const [said, setSaid] = useState<string>('');
+  useEffect(() => {
+    const read = async () => {
+      const [{ listConnections }, { healthSaid }] = await Promise.all([import('../db/production'), import('../lib/production/production')]);
+      const c = await listConnections();
+      const failing = c.filter(x => healthSaid(x).word === 'Failing').length;
+      setSaid(c.length ? `${c.length} connection${c.length === 1 ? '' : 's'} to your own systems${failing ? ` — ${failing} failing` : ''}` : 'Connect your MES, ERP or monitoring system — its production figures land on your lines');
+    };
+    void read();
+    return onDataChange(() => void read());
+  }, []);
+  return (
+    <a className="fac-door dc-door" href="#/factory/data" data-dc-door>
+      <b>Data connections</b> <span className="sub">{said}</span> <span aria-hidden>›</span>
+    </a>
   );
 }

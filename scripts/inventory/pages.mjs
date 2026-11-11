@@ -39,6 +39,24 @@ export const PAGES = (sd, cap) => [
     { what: 'find a paper by its name', sel: '[data-lib-q]' },
     { what: 'who it is for and what paper — a fold', sel: '[data-fold="library-filters"]' },
   ] },
+  /* SET UP › DATA CONNECTIONS (11 November, docs/DATA-CONNECTIONS.md — "Production data connectivity is a core platform capability"):
+     the business's own systems, each with its health in words; one opened says where to send and its latest rows */
+  { name: 'Data connections', path: '#/factory/data', must: [
+    { what: 'its title and its one sentence', sel: '[data-page="data-connections"] .part-head h1', text: /^Data connections$/ },
+    { what: 'the Factory\'s Set up tab lit', sel: '.nv-tabs .nv-tab.is-on', text: /^Set up$/ },
+    { what: 'one primary — Add a connection', sel: '.part-head .btn-primary', text: /^Add a connection$/ },
+    { what: 'a connection a row, its health in words', sel: '[data-connection] [data-dc-health]', n: 1 },
+  ] },
+  { name: 'A data connection', path: '#/factory/data?c=seed-conn-mes', must: [
+    { what: 'its health, its word beside it', sel: '[data-dc-health-one]', text: /Healthy\s+2 rows/ },
+    { what: 'where the system sends, and the token by its last four only', sel: '[data-dc-give] [data-dc-hint]', text: /Ab3d/ },
+    { what: 'the latest rows from the system', sel: '[data-dc-row]', n: 2 },
+    { what: 'Bring in a file or sample — a fold', sel: '[data-fold^="dc-bring-"]' },
+    { what: 'how its fields are read — a fold', sel: '[data-fold^="dc-map-"]' },
+  ] },
+  { name: 'Set up — the door to data connections', path: '#/factory', must: [
+    { what: 'Data connections, one line saying how they stand', sel: '[data-dc-door]', text: /Data connections\s*1 connection to your own systems/ },
+  ] },
   { name: 'Today', path: '#/today', must: [
     { what: 'the menu — Today first and lit', sel: '.nv-rail .nv-ri.is-on', text: /^Today$/, desk: true },
     { what: 'the greeting', sel: '[data-today] .pace-title', text: /^Good (morning|afternoon|evening)$/ },

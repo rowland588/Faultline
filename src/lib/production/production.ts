@@ -90,7 +90,7 @@ export function readGap(records: readonly ProductionRecord[], lines: readonly Pi
       lineId, line: name, rows: rows.length, target: r0(target), delivered: r0(del), short: r0(short), net: r0(target - del), withTarget,
       downtime: r2(downtime), downtimeRows,
       reasons: [...reasons].map(([reason, v]) => ({ reason, minutes: r2(v.minutes), rows: v.rows })).sort((a, b) => b.minutes - a.minutes),
-      money: { ...(contribution !== undefined ? { contribution, perPack: c!.perPack } : {}), ...(idle !== undefined ? { idleLabour: idle, perHour } : {}), missing },
+      money: { ...(contribution !== undefined && c ? { contribution, perPack: c.perPack } : {}), ...(idle !== undefined ? { idleLabour: idle, perHour } : {}), missing },
     });
   }
   out.sort((a, b) => b.short - a.short || a.line.localeCompare(b.line));
@@ -117,7 +117,7 @@ export function gapSaid(g: GapReading): string {
   for (const l of g.lines) {
     const bits = [`${l.line}: ${n(l.delivered)} of ${n(l.target)}${l.short ? `, ${n(l.short)} short` : ', on target'}`];
     if (l.downtime) bits.push(`${n(l.downtime)} min down${l.reasons.length ? ` — ${l.reasons.slice(0, 3).map(r => `${r.reason} ${n(r.minutes)} min`).join(', ')}` : ''}`);
-    if (l.money.contribution !== undefined) bits.push(`the units short ${money(l.money.contribution)} of contribution at ${money(l.money.perPack!)} a pack`);
+    if (l.money.contribution !== undefined && l.money.perPack !== undefined) bits.push(`the units short ${money(l.money.contribution)} of contribution at ${money(l.money.perPack)} a pack`);
     if (l.money.idleLabour !== undefined) bits.push(`the downtime ${money(l.money.idleLabour)} of idle labour (kept apart, never added to it)`);
     if (l.money.missing.length) bits.push(`no money for ${l.money.missing.join(' or ')} — give it to have it`);
     parts.push(`${bits.join('; ')}.`);
