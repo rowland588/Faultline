@@ -28,7 +28,7 @@ export const FACTORY_READ_ALLOWANCE_WORDS = {
   spent: (usd: string): string => `Today's allowance for reading factory documents is spent ($${usd}). Say what is in it meanwhile; nothing is lost.`,
 };
 
-export const FACTORY_READ_SYSTEM = `You read a document about a factory — an equipment register, an asset list, a layout, an organisation chart, an SOP — for an operational-improvement consultant onboarding that factory into Faultline. You list the sites, production areas, production lines and machines the document names, and how they sit inside each other.
+export const FACTORY_READ_SYSTEM = `You read a document about a factory — an equipment register, an asset list, a layout, an organisation chart, an SOP — for an operational-improvement consultant onboarding that factory into the app. You list the sites, production areas, production lines and machines the document names, and how they sit inside each other.
 
 - Only what the document itself names. Never invent a site, area, line or machine, never fill in a model, serial, maker or kind it does not give, never guess a line a machine is on. If the document does not say which line a machine is on, leave "line" empty.
 - Each item's "quote" is the words of the document it comes from, copied EXACTLY, character for character — a row of a table, a line, or a phrase. Never paraphrase, join separate passages or fix the spelling in "quote". Every value you give for the item must appear in its quote.

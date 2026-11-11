@@ -13,7 +13,7 @@ describe('the one PDF file name', () => {
   });
 
   it('never leaves the job blank', () => {
-    expect(pdfFileName('  ', 'day', '2026-10-01')).toBe('Faultline-day-2026-10-01.pdf');
+    expect(pdfFileName('  ', 'day', '2026-10-01')).toBe('Luna-day-2026-10-01.pdf');
   });
 
   it('keeps one long product from running the name away', () => {
