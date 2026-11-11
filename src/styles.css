@@ -17929,3 +17929,56 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .projects-screen .part-row { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
 .projects-screen .part-row > .lt-row { border-top: 0; border-right: 0; border-radius: 0; background: transparent; }
 .bd6-filters > .fold { margin: var(--space-2) 0 0; }
+
+/* FEWER BOXES (11 November) — docs/DESIGN.md principle 4: "A card is used only where it groups a thing that is acted on as one (a
+   record in a list, a tile of a figure). Sections are a heading, whitespace and a hairline — not a box. Never a card inside a card."
+   Shared parts only, so every page follows: the page header (ui/parts PageHeader, a tool record's band) sits on the canvas with a
+   hairline under it; a page's sections (ui/parts Section, the line's .pl-sec, the panels of the Factory, Today, the Story, a method's
+   page, the registers) are a heading on the canvas with a hairline above; a row of tiles loses the card round it and each tile stays
+   a card. Kept as cards: a record in a list, a tile, a sheet or dialog, a form being filled (Add a line, Merge, the Story's draft),
+   a tool's own workspace (its picture, What it says, the entry pad). Visual only. */
+.nv-main .wrap > .part-head,
+.nv-main .wrap > .pace-head,
+.nv-main .pace-head.part-head,
+.nv-main .ep-tool-band.ln-band {
+  background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none;
+  padding: var(--space-2) 0 var(--space-4); margin-bottom: var(--space-5);
+}
+.nv-main .fq-hero .pace-head.part-head { border-bottom: 0; padding-bottom: var(--space-3); margin-bottom: 0; }
+
+/* a row of tiles: the tiles are the cards, the row is not */
+.nv-main .wrap > .sg-tiles,
+.nv-main .wrap > .ln-tiles.sg-tiles,
+.nv-main .wrap > .ln-tiles.pl-tiles {
+  background: transparent; border: 0; border-radius: 0; box-shadow: none; padding: 0; margin-bottom: var(--space-5);
+}
+
+/* a section: its heading on the canvas, a hairline above, whitespace — not a box */
+.nv-main .wrap .pl-sec,
+.nv-main .wrap .home-projects,
+.nv-main .wrap .proj-list,
+.nv-main .now .qsl-g,
+.nv-main .qsl-reg .qsl-g,
+.nv-main .wrap section.ep-panel:not(.st-draft):not(.st-start),
+.nv-main .wrap div.ep-panel.fac-plan,
+.nv-main .fq-panel,
+.nv-main .fq-lines .fac-home.ep-panel,
+.nv-main .today-card,
+.nv-main .tp-sec {
+  background: transparent; border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none;
+  padding: var(--space-4) 0 0; margin: var(--space-5) 0 0;
+}
+.nv-main .wrap > .part-head + .pl-sec, .nv-main .wrap > .pace-head + .pl-sec,
+.nv-main .wrap > .part-head + section.ep-panel, .nv-main .wrap > .pace-head + section.ep-panel { border-top: 0; padding-top: 0; }
+.nv-main .wrap .pl-sec.pl-doorbar { border-top: 0; padding: 0; margin: 0 0 var(--space-3); }
+.nv-main .part-sec { border-top: 1px solid var(--line); padding-top: var(--space-4); }
+.nv-main .wrap > .part-head + .part-sec, .nv-main .wrap > .pace-head + .part-sec { border-top: 0; padding-top: 0; }
+/* the Factory's answers and Today's cards sat in a grid of boxes: on the canvas they need the room between them */
+.nv-main .fq-answers .fq-panel { margin: 0; }
+.nv-main .today-grid { gap: var(--space-5); }
+.nv-main .today-card { margin: 0; }
+/* a record's card holds its words on the card itself, never a grey box inside it (the Factory's Needs you now) */
+.nv-main .fq-rec-what { min-height: 0; padding: 0; border-radius: 0; background: transparent; }
+/* the question that heads a group of the line's sections takes the hairline; its first section sits under it */
+.nv-main .wrap .pl-q { margin: var(--space-5) 0 0; padding-top: var(--space-4); border-top: 1px solid var(--line); }
+.nv-main .wrap .pl-q + .pl-sec { border-top: 0; padding-top: 0; margin-top: var(--space-2); }
