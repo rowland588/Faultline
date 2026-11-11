@@ -30,6 +30,9 @@ import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
 import { snagRow } from '../lib/snagsReport';
 import { PageHeader } from '../ui/parts';
+import { CustomersPanel } from '../ui/CustomersPanel';
+import { useClientScope } from '../lib/activeClient';
+import { customerKey } from '../lib/customers';
 import { EmptyState } from '../ui/EmptyState';
 import { useCanStartProjects } from '../cloud/access';
 import { useSession } from '../cloud/session';
@@ -74,7 +77,10 @@ export function FactoryScreen() {
   const { session } = useSession();
   const { profile } = useProfile();
   const owns = (w: Workspace) => !w.ownerId || (!!session && w.ownerId === session.user.id) || !!profile?.is_super;
-  const [lines, setLines] = useState<Workspace[] | null>(null);
+  const [allLines, setLines] = useState<Workspace[] | null>(null);
+  /* an ARCHIVED CUSTOMER's lines are not set up here (lib/customers, C2a) — kept exactly as they were, back when it is continued */
+  const cs = useClientScope();
+  const lines = useMemo(() => { const gone = new Set(cs.archived.map(c => customerKey(c.name))); return allLines && allLines.filter(w => !gone.has(customerKey(w.clientName))); }, [allLines, cs]);
   const [shelved, setShelved] = useState<Workspace[]>([]);
   const [open, setOpen] = useState<Map<string, { open: number; late: number }>>(new Map());
   const [on, setOn] = useState<Map<string, string[]>>(new Map());
@@ -202,6 +208,8 @@ export function FactoryScreen() {
         {may ? ' Type over a name or a type to change it; move a line up or down; add as many as you have.' : ' Only someone invited to the app changes the factory.'}
       </p>
       {saved && <p className="fac-saved" role="status">Saved — {saved}</p>}
+      {/* CUSTOMERS (C2a): added by name before any line, archived and continued */}
+      <CustomersPanel may={may} />
 
       <datalist id="fac-types">{types.map(t => <option key={t} value={t} />)}</datalist>
       <datalist id="fac-clients">{placeWordsOffered(lines ?? [], 'clientName').map(t => <option key={t} value={t} />)}</datalist>

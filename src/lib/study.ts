@@ -644,6 +644,11 @@ export interface AgreedStory {
   brief: string;
   startedAt: number;
   closedAt?: number;
+  /** THE CUSTOMER'S SITE, said when it was added (lib/customers, C2a) — optional. */
+  site?: string;
+  /** THE CUSTOMER ARCHIVED (lib/customers, C2a): stamped on every story of the client; the customer and everything under it hidden
+   *  until it is continued. Nothing else is changed. */
+  archivedAt?: number;
   /** THE BRIEF AS A FILE (S6, docs/STORY.md §7.1) — kept as media on this device (db putBlob under `mediaId`); `readBy` says how its
    *  words came to be the brief: read in code (pdf.js, mammoth, plain text), by the assistant (a photo or a scanned page), or not read. */
   briefFile?: StoryBriefFile;

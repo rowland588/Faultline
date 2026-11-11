@@ -47,7 +47,7 @@ export function StoryScreen({ present = false }: { present?: boolean } = {}) {
   const prodLines = useMemo(() => productionLines(all ?? []), [all]);
   /* THE ACTIVE CLIENT (lib/activeClient, C1) — followed live; the story is that client's, its projects and its lines' problems only */
   const cs = useClientScope();
-  const client = clientShown(prodLines);
+  const client = clientShown(prodLines, cs.ready ? cs.clients : undefined);
   const lines = useMemo(() => linesOfClient(prodLines, client), [prodLines, client]);
   const ofClient = useMemo(() => projects.filter(p => cs.projectOf(p.id, client)), [projects, cs, client]);
   const keep = useCallback((r: Placed) => cs.recordOf(r, client), [cs, client]);

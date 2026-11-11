@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Workspace } from '../../types';
 import { activeClientOf, CLIENT_KEY, clientBand, clientScope, inClient, placeInClient, projectInClient, setActiveClient, snagInClient, storedClient, studyInClient } from '../activeClient';
 import { CLIENT_KEY as STORY_KEY, clientShown } from '../storyPick';
+import { customerName, customersOf } from '../customers';
 
 const line = (id: string, clientName?: string): Workspace => ({ id, name: id, ...(clientName ? { clientName } : {}) } as Workspace);
 const jl = (projectId: string, workspaceId: string) => ({ id: `${projectId}:${workspaceId}`, projectId, workspaceId });
@@ -107,5 +108,46 @@ describe('one active client (lib/activeClient, C1)', () => {
     expect(storedClient()).toBe('');
     expect(clientShown(two)).toBe('Branston'); // All clients: a story is one client's — the first
     expect(clientScope(two, [], storedClient()).all).toBe(true);
+  });
+});
+
+describe('customers (lib/customers, C2a)', () => {
+  const story = (id: string, client: string, extra: Record<string, unknown> = {}) =>
+    ({ id, tool: 'story', name: client, agreed: { story: { client, brief: '', startedAt: 1, ...extra } }, facts: {}, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1 }) as never;
+  const lines = [line('B1', 'Branston'), line('X1', 'Business B')];
+
+  it('a customer added with no line is a client; one named only on lines is one too', () => {
+    const cs = customersOf(lines, [story('s1', 'Cobb Foods', { site: 'York' })]);
+    expect(cs.map(c => [c.name, c.lines, c.site ?? '', c.archived])).toEqual([['Branston', 1, '', false], ['Business B', 1, '', false], ['Cobb Foods', 0, 'York', false]]);
+    const s = clientScope(lines, [], 'Cobb Foods', cs);
+    expect(s.clients).toEqual(['Branston', 'Business B', 'Cobb Foods']);
+    expect(s.client).toBe('Cobb Foods');
+    expect(s.line('B1') || s.line('X1')).toBe(false); // its world is empty
+  });
+
+  it('archived when every story of it is stamped — hidden everywhere, whichever client is active, its records untouched', () => {
+    const studies = [story('s1', 'Business B', { archivedAt: 5 }), story('s2', 'business  b', { archivedAt: 9 })];
+    const cs = customersOf(lines, studies);
+    const b = cs.find(c => c.name === 'Business B');
+    expect(b?.archived).toBe(true);
+    expect(b?.archivedAt).toBe(9);
+    expect(b?.storyIds).toEqual(['s1', 's2']);
+    for (const stored of ['', 'Business B', 'Branston']) {
+      const s = clientScope(lines, [jl('PX', 'X1')], stored, cs);
+      expect(s.clients).toEqual(['Branston']);
+      expect(s.several).toBe(false);
+      expect(s.line('X1')).toBe(false);
+      expect(s.project('PX')).toBe(false);
+      expect(s.record({ workspaceId: 'X1' })).toBe(false);
+      expect(s.line('B1')).toBe(true);
+      expect(s.archived.map(c => c.name)).toEqual(['Business B']);
+    }
+    /* one story still open: not archived */
+    expect(customersOf(lines, [story('s1', 'Business B', { archivedAt: 5 }), story('s3', 'Business B')]).find(c => c.name === 'Business B')?.archived).toBe(false);
+  });
+
+  it('a name is needed', () => {
+    expect(customerName('  ')).toEqual({ ok: false, why: 'A customer needs a name.' });
+    expect(customerName('  Cobb   Foods ')).toEqual({ ok: true, name: 'Cobb Foods' });
   });
 });

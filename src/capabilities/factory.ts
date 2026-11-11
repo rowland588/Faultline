@@ -18,6 +18,14 @@ import { checkObject, ID, type FieldSpec } from './check';
 import { anyone } from './access';
 import type { CapRef, CapResult, Capability } from './types';
 import { lineRef, notFound, plural } from './util';
+import { activeClientNow } from '../lib/activeClient';
+import { customerKey } from '../lib/customers';
+
+/** The lines Luna may read — an ARCHIVED customer's left out until it is continued (lib/customers, docs/CONSULTANT-WORKSPACE.md C2a). */
+async function openCustomersLines(): Promise<Workspace[]> {
+  const [ws, { archived }] = await Promise.all([listWorkspaces(), activeClientNow()]);
+  return ws.filter(w => !archived.has(customerKey(w.clientName)));
+}
 
 type Scope = { ok: true; clients?: string[]; near: string[]; what: string } | { ok: false; why: string };
 
@@ -67,7 +75,7 @@ export const factoryMapCap: Capability = {
   validate: raw => checkObject(raw, SCOPE_FIELDS),
   allowed: anyone,
   async run(_ctx, input: { lineId?: string; projectId?: string; client?: string }): Promise<CapResult> {
-    const [all, assets, jobLines] = await Promise.all([listWorkspaces(), listAllAssets(), allPaceLines()]);
+    const [all, assets, jobLines] = await Promise.all([openCustomersLines(), listAllAssets(), allPaceLines()]);
     const scope = await scopeOf(input, all);
     if (!scope.ok) return scope;
     const map = mapFor(scope, all, assets, jobLines);
@@ -90,7 +98,7 @@ export const resolveCap: Capability = {
   validate: raw => checkObject(raw, { words: { kind: 'string', label: 'the words said', required: true, max: 200 }, ...SCOPE_FIELDS }),
   allowed: anyone,
   async run(_ctx, input: { words: string; lineId?: string; projectId?: string; client?: string }): Promise<CapResult> {
-    const [all, assets, jobLines] = await Promise.all([listWorkspaces(), listAllAssets(), allPaceLines()]);
+    const [all, assets, jobLines] = await Promise.all([openCustomersLines(), listAllAssets(), allPaceLines()]);
     const scope = await scopeOf(input, all);
     if (!scope.ok) return scope;
     const map = mapFor(scope, all, assets, jobLines);

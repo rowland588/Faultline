@@ -20,6 +20,8 @@ import { checkObject } from './check';
 import { anyone } from './access';
 import type { CapRef, CapResult, Capability, ColleagueThread, HowKnown, ThreadScope } from './types';
 import { plural } from './util';
+import { activeClientNow } from '../lib/activeClient';
+import { customerKey } from '../lib/customers';
 
 /* ── remember_preference ── */
 const ABOUT: readonly PreferenceKey[] = ['words', 'methods', 'reports', 'always'];
@@ -160,8 +162,12 @@ export const recall: Capability = {
   async run(ctx, input: { words: string; limit?: number }): Promise<CapResult> {
     const [studies, ws, jobLines, here] = await Promise.all([listAllStudies(), listWorkspaces(), allPaceLines(), ctx.conversationId ? getStudy(ctx.conversationId) : Promise.resolve(undefined)]);
     const client = new Map(ws.map(w => [w.id, w.clientName ?? '']));
+    /* an ARCHIVED customer's conversations are not brought back until it is continued (lib/customers, C2a) */
+    const { archived } = await activeClientNow();
+    const gone = (id?: string | null) => !!id && archived.has(customerKey(client.get(id)));
+    const projGone = (id?: string | null) => { const ls = id ? factoryLinesOf(id, jobLines) : []; return ls.length > 0 && ls.every(l => gone(l)); };
     const hits = recallFrom(input.words, {
-      studies, clientOf: id => client.get(id), projectLines: id => factoryLinesOf(id, jobLines), ...(here ? { here } : {}),
+      studies: archived.size ? studies.filter(s => !gone(s.workspaceId) && !projGone(s.projectId)) : studies, clientOf: id => client.get(id), projectLines: id => factoryLinesOf(id, jobLines), ...(here ? { here } : {}),
     });
     const kept = hits.slice(0, input.limit ?? 8);
     if (!kept.length) return { ok: true, says: `Nothing in the earlier conversations about “${input.words}”.`, data: [], refs: [] };

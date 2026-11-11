@@ -11,8 +11,9 @@ export { CLIENT_KEY };
 
 /** The client the Story is of: the active client (lib/activeClient) when the lines name more than one — the first when All clients is
  *  chosen, a story being one client's — else the one they name. */
-export function clientShown(lines: readonly Workspace[]): string {
-  const clients = clientsOf(lines);
+export function clientShown(lines: readonly Workspace[], named?: readonly string[]): string {
+  /* named: the clients in use (lib/activeClient — a customer added with no line among them, an archived one not) */
+  const clients = named ?? clientsOf(lines);
   if (clients.length <= 1) return clients[0] ?? '';
   const c = storedClient();
   return clients.includes(c) ? c : clients[0];
