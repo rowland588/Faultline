@@ -912,9 +912,12 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
   }, [typing]);
-  /* the context put away by default (F2, 11 November): the conversation and the work first; Show context one tap away, kept per device */
-  const [wide, setWide] = useState(() => { try { return localStorage.getItem('fl-ai-wide') !== '0'; } catch { return true; } });
-  const toggleWide = () => setWide(w => { try { localStorage.setItem('fl-ai-wide', w ? '0' : '1'); } catch { /* this visit only */ } return !w; });
+  /* THE WORK BESIDE THE CONVERSATION, WHEN THERE IS WORK (Luna identity, 11 November — Rowland: "Luna needs an environment in which
+     the conversation and the work being carried out can coexist … The interface should adapt to what the user is doing").
+     An empty or chatting conversation stays wide and calm (F2); once it holds real work — an investigation agreed, a draft being
+     filled, a line or project in hand, things noted — the work stands beside it. The person's own Show / Hide is kept per device
+     and wins from then on. (`wide` is worked out below, once the work is known.) */
+  const [chosen, setChosen] = useState<boolean | null>(() => { try { const v = localStorage.getItem('fl-ai-wide'); return v === null ? null : v !== '0'; } catch { return null; } });
   const hour = new Date().getHours();
   const hello = `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}${me ? `, ${me.split(' ')[0]}` : ''}`;
   const timers = useTimers();
@@ -961,6 +964,9 @@ function Conversation({ id, start, onMade, onList, listOn = false, onNew, screen
   /* the investigations agreed in this conversation (work_within, W3) — each with Stop */
   const agreedIds = (facts as { agreed?: string[] } | undefined)?.agreed ?? [];
   const agreed = projects.filter(p => agreedIds.includes(p.id)).map(p => ({ id: p.id, name: p.name }));
+  const hasWork = drafts.some(d => d.status === 'draft') || agreed.length > 0 || !!(cur && ((cur.points ?? []).length > 0 || (cur.notes ?? []).length > 0));
+  const wide = chosen ?? !hasWork;
+  const toggleWide = () => { const next = !wide; setChosen(next); try { localStorage.setItem('fl-ai-wide', next ? '1' : '0'); } catch { /* this visit only */ } };
   /* Stop: the agreement withdrawn — the project, and every record inside it said yes to through it, ask again */
   const stopAgreed = async (pid: string) => {
     if (!study) return;

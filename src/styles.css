@@ -2338,7 +2338,7 @@ button.st-pill { cursor: pointer; }
 .is-over  .pm-flag { background: #fbeae8; color: var(--st-r); }
 .is-soon  .pm-flag { background: #fdf0e0; color: var(--warn); }
 .is-track .pm-flag { background: color-mix(in srgb, var(--st-w) 11%, var(--surface)); color: var(--st-w); }
-.is-done  .pm-flag { background: #e6f4ec; color: #1f8a4c; }
+.is-done  .pm-flag { background: color-mix(in srgb, var(--st-g) 12%, var(--surface)); color: var(--st-g); }
 .pm-line, .pm-cat { font-size: var(--t-label); font-weight: 700; padding: 2px 7px; border-radius: var(--radius); background: var(--surface-2); color: var(--ink-2); }
 .pm-cat { background: var(--surface-2); color: var(--ink-2); }
 .pm-due { font-family: var(--mono); font-size: var(--t-label); color: var(--muted); }
@@ -2890,8 +2890,8 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ow-line.is-late .ow-when { color: var(--danger); font-weight: 800; }
 .ow-line.is-since .ow-when { color: var(--warn); }
 .ow-line.is-none .ow-when { color: var(--muted); }
-.ow-ask { margin: 10px 0 0; padding: 8px 10px; border-radius: var(--radius-sm); background: #eef4f1; font-size: var(--t-label); }
-.ow-card.is-late .ow-ask { background: #fbeeec; }
+.ow-ask { margin: 10px 0 0; padding: 8px 10px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); font-size: var(--t-label); }
+.ow-card.is-late .ow-ask { background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); }
 .ow-ask span { display: block; font-size: var(--t-mark); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); margin-bottom: 2px; }
 .ow-card.is-late .ow-ask span { color: var(--danger); }
 
@@ -3551,7 +3551,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 
 /* The convert notice. A warning tone, because something does need doing — but
    the footage is not at risk, so never the danger red. */
-.convert-card { margin-top: 12px; border-left: 3px solid var(--warn, #b4632a); }
+.convert-card { margin-top: 12px; border-left: 3px solid var(--warn); }
 .convert-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 
 /* ---------- converting, quietly, while you get on with something else ----------
@@ -4050,9 +4050,9 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   position: absolute; border-radius: var(--radius-round); filter: blur(58px); opacity: 0.5;
   will-change: transform;
 }
-.la-1 { width: 380px; height: 380px; left: 2%;  top: -8%;  background: #0b7d68; animation: la-drift-1 26s ease-in-out infinite; }
-.la-2 { width: 420px; height: 420px; left: 24%; top: 6%;   background: #10778b; animation: la-drift-2 31s ease-in-out infinite; }
-.la-3 { width: 300px; height: 300px; left: 46%; top: -14%; background: #13727f; animation: la-drift-3 23s ease-in-out infinite; }
+.la-1 { width: 380px; height: 380px; left: 2%;  top: -8%;  background: var(--brand); animation: la-drift-1 26s ease-in-out infinite; }
+.la-2 { width: 420px; height: 420px; left: 24%; top: 6%;   background: var(--brand-2); animation: la-drift-2 31s ease-in-out infinite; }
+.la-3 { width: 300px; height: 300px; left: 46%; top: -14%; background: var(--accent); animation: la-drift-3 23s ease-in-out infinite; }
 @keyframes la-drift-1 { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(70px,34px,0) scale(1.12); } }
 @keyframes la-drift-2 { 0%,100% { transform: translate3d(0,0,0) scale(1.06); } 50% { transform: translate3d(-58px,26px,0) scale(0.94); } }
 @keyframes la-drift-3 { 0%,100% { transform: translate3d(0,0,0) scale(0.96); } 50% { transform: translate3d(40px,-30px,0) scale(1.14); } }
@@ -5178,7 +5178,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .cmp-phase:last-child { border-bottom: 0; }
 .cmp-phase:hover { background: var(--surface-2); }
 .cmp-phase.is-current { background: #fdf6ec; padding-block: 15px; }
-.cmp-phase.is-current:hover { background: #fbeedd; }
+.cmp-phase.is-current:hover { background: color-mix(in srgb, var(--st-a) 10%, var(--surface)); }
 
 /* The rail: a bead per stage and a thread joining them, so the page reads as
    one sequence rather than six unrelated rows. */
@@ -7781,7 +7781,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .ex-jr-g.is-going { background: var(--accent-soft); border-color: var(--brand); color: var(--brand); }
 .ex-jr-g.is-late { background: #fdf2f0; border-color: var(--st-r); color: var(--st-r); }
 /* A stage that hit a problem and lost no time — amber; a test that did not pass — solid red. */
-.ex-jr-g.is-problem { background: #f7eedb; border-color: var(--st-a); color: var(--st-a); }
+.ex-jr-g.is-problem { background: color-mix(in srgb, var(--st-a) 10%, var(--surface)); border-color: var(--st-a); color: var(--st-a); }
 .ex-jr-g.is-failed { background: var(--st-r); border-color: var(--st-r); color: var(--on-dark); }
 .ex-jr-g.is-none { background: var(--canvas); border-color: transparent; color: var(--muted); }
 
@@ -18221,3 +18221,144 @@ p .dc-code { display: inline; padding: 0 var(--space-1); }
 .dc-bring { display: grid; gap: var(--space-2); }
 .dc-page .part-head .btn, .dc-foot .cw-link, .dc-one .btn { min-height: 44px; }
 .dc-foot .cw-link { display: inline-flex; align-items: center; }
+
+
+/* ============================================================================================================================
+ * LUNA — SPECTRUM (11 November). Rowland: "vibrant, luminous, intelligent, modern … Luna needs an aura … that changes according to
+ * what she is actually doing … The aura must reflect real application states … strongest expression reserved for Luna herself."
+ *
+ * Three directions were weighed: EMBER (reds and oranges on warm black — energetic, but on this app red and amber already mean late
+ * and at risk, so a whole screen of them reads as an alarm); AURORA (green on deep teal — calm, but green means done and one hue goes
+ * flat); SPECTRUM, chosen: a deep night canvas, the work in quiet luminous greys, and colour kept for Luna — her aura green when she
+ * listens, an amber-orange-red fire when she speaks, a moving violet-to-green light when she thinks — with one luminous amber for the
+ * one thing you press. The state colours keep their meanings and their words, lifted to read on the night.
+ *
+ * Where: AI Mode (html[data-luna], set from the address — main.tsx) and Luna's voice wherever it opens (.vm, .vm-bar). Everywhere
+ * else the app is as it was until this is agreed. It is a THEME: the house tokens are redefined here, so every part on these pages
+ * follows without being touched one by one.
+ * ============================================================================================================================ */
+:root {
+  --lu-night: #0a0b10;
+  --lu-deep: #13151d;
+  --lu-text: #eef0f6;
+  --lu-dim: #9aa0b4;
+  --lu-green: #34e39a;   /* listening */
+  --lu-amber: #ffb547;   /* the press; the heart of her speaking */
+  --lu-orange: #ff7a2f;
+  --lu-red: #ff3b5c;     /* the edge of her speaking fire — never a state here */
+  --lu-violet: #7c6cff;  /* thinking */
+}
+html[data-luna], .vm, .vm-bar {
+  --font: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --display: var(--font);
+  --bg: var(--lu-night); --canvas: var(--lu-night);
+  --surface: var(--lu-deep); --surface-2: color-mix(in srgb, var(--lu-deep) 92%, var(--lu-text));
+  --ink: var(--lu-text); --ink-2: color-mix(in srgb, var(--lu-text) 78%, var(--lu-dim)); --muted: var(--lu-dim);
+  --line: color-mix(in srgb, var(--lu-text) 9%, transparent); --line-row: color-mix(in srgb, var(--lu-text) 6%, transparent);
+  --line-2: color-mix(in srgb, var(--lu-text) 18%, transparent);
+  --brand: var(--lu-amber); --brand-2: var(--lu-orange); --on-brand: var(--lu-night);
+  --accent: var(--lu-amber); --accent-soft: color-mix(in srgb, var(--lu-amber) 13%, var(--lu-deep)); --accent-rgb: 255, 181, 71;
+  --st-g: color-mix(in srgb, var(--lu-green) 85%, var(--lu-text)); --st-a: var(--lu-amber); --st-r: color-mix(in srgb, var(--lu-red) 80%, var(--lu-text));
+  --st-w: color-mix(in srgb, var(--lu-violet) 75%, var(--lu-text)); --st-n-ink: var(--lu-dim);
+  --nav: var(--lu-night); --nav-ink: var(--lu-text); --nav-muted: var(--lu-dim);
+  --shell: var(--lu-night); --shell-ink: var(--lu-text); --shell-muted: var(--lu-dim); --shell-line: color-mix(in srgb, var(--lu-text) 9%, transparent);
+  --elev: 0 0 0 1px color-mix(in srgb, var(--lu-text) 7%, transparent);
+  --elev-hover: 0 0 0 1px color-mix(in srgb, var(--lu-text) 14%, transparent), 0 10px 30px color-mix(in srgb, var(--lu-night) 60%, transparent);
+  color-scheme: dark;
+}
+html[data-luna] body {
+  background:
+    radial-gradient(900px 420px at 50% -120px, color-mix(in srgb, var(--lu-amber) 9%, transparent), transparent 70%),
+    radial-gradient(700px 380px at 100% 0%, color-mix(in srgb, var(--lu-violet) 8%, transparent), transparent 70%),
+    var(--lu-night);
+  background-attachment: fixed;
+}
+html[data-luna] .ai, html[data-luna] .ai-main, html[data-luna] .ai-head { background: transparent; }
+html[data-luna] .ai-main::before { display: none; }
+html[data-luna] .ai-head, html[data-luna] .ai-sug.is-start { backdrop-filter: none; -webkit-backdrop-filter: none; }
+html[data-luna] .ai-head { border-bottom: 1px solid var(--line); }
+html[data-luna] .ai-eyebrow { color: var(--lu-dim); letter-spacing: .14em; }
+
+/* ---- THE AURA. One drawing at any size — the chat's avatar, the empty page's presence, the voice's stage. Its colours (--a1 core,
+   --a2 field, --a3 edge) and its energy come only from the state it is given; it moves only while that state is real. */
+.ai-orb, .vm-orb { --a1: var(--lu-amber); --a2: var(--lu-green); --a3: var(--lu-violet); --e: .35; }
+.ai-orb .ai-orb-r, .vm-orb .vm-ring { display: none; }
+.ai-orb-core, .vm-core {
+  overflow: visible; color: transparent; border-radius: var(--radius-round); animation: none; filter: none;
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--a1) 45%, var(--lu-text)) 0%, var(--a1) 22%, color-mix(in srgb, var(--a1) 55%, var(--a2)) 46%, color-mix(in srgb, var(--a2) 30%, transparent) 64%, transparent 76%);
+  filter: blur(.5px);
+  box-shadow: 0 0 calc(10px + 40px * var(--e)) color-mix(in srgb, var(--a1) calc(40% * var(--e) + 10%), transparent);
+  transition: box-shadow .5s ease, background .6s ease;
+}
+.ai-orb-core > svg { display: none; }
+.ai-orb-core::before, .vm-core::before {   /* the field: a slow turn of the state's colours, blurred into light */
+  content: ''; position: absolute; inset: -22%; border-radius: var(--radius-round); z-index: -1;
+  background: conic-gradient(from 0deg, var(--a1), var(--a2), var(--a3), var(--a1));
+  filter: blur(18px); opacity: calc(.18 + .45 * var(--e));
+  transition: opacity .6s ease;
+}
+.ai-orb-core::after, .vm-core::after {     /* the halo */
+  content: ''; position: absolute; inset: -55%; border-radius: var(--radius-round); z-index: -2;
+  background: radial-gradient(circle, color-mix(in srgb, var(--a1) 22%, transparent), transparent 62%);
+  opacity: calc(.2 + .6 * var(--e));
+}
+@keyframes lu-turn { to { transform: rotate(360deg); } }
+@keyframes lu-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+/* resting — understated: warm light, still. Nothing asked of her, so nothing moves. */
+/* thinking — a request is in flight (chat: .is-thinking; voice: processing / preparing / starting): violet into green, turning */
+.ai-orb.is-thinking, .vm-orb.is-processing, .vm-orb.is-preparing, .vm-orb.is-initialising, .vm-orb.is-recovering { --a1: var(--lu-violet); --a2: var(--lu-green); --a3: var(--lu-amber); --e: .7; }
+.ai-orb.is-thinking .ai-orb-core::before, .vm-orb.is-processing .vm-core::before, .vm-orb.is-preparing .vm-core::before, .vm-orb.is-initialising .vm-core::before, .vm-orb.is-recovering .vm-core::before { animation: lu-turn 2.6s linear infinite; }
+/* listening — green; it swells with each word recognised from the person (--lvl, raised by real recognition events) */
+.vm-orb.is-listening, .vm-orb.is-transcribing, .vm-orb.is-interrupted { --a1: var(--lu-green); --a2: color-mix(in srgb, var(--lu-green) 60%, var(--lu-text)); --a3: var(--lu-green); --e: calc(.45 + .55 * var(--lvl)); }
+.vm-orb.is-listening .vm-core, .vm-orb.is-transcribing .vm-core { transform: scale(calc(1 + .14 * var(--lvl))); transition: transform .08s linear; }
+/* speaking — amber at the heart, orange and red at the edge; it lifts with each word she says (the voice's own boundary events) */
+.vm-orb.is-speaking { --a1: var(--lu-amber); --a2: var(--lu-orange); --a3: var(--lu-red); --e: calc(.6 + .4 * var(--lvl)); }
+.vm-orb.is-speaking .vm-core { transform: scale(calc(1 + .1 * var(--lvl))); transition: transform .08s linear; }
+.vm-orb.is-speaking .vm-core::before { animation: lu-turn 7s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .ai-orb-core::before, .vm-core::before, .vm-orb .vm-core { animation: none !important; transform: none !important; } }
+
+/* ---- AI Mode, the conversation */
+html[data-luna] .ai-empty-av.ai-orb.is-big { width: 120px; height: 120px; margin: 40px 0 26px; }
+html[data-luna] .ai-empty-av.ai-orb.is-big .ai-orb-core { inset: 18%; }
+html[data-luna] .ai-empty-g { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--lu-text); font-size: var(--t-num); font-weight: 600; letter-spacing: -0.035em; }
+html[data-luna] .ai-empty-h { color: var(--lu-text); opacity: .82; font-size: var(--t-h); font-weight: 400; }
+html[data-luna] .ai-empty .sub { color: var(--lu-dim); }
+html[data-luna] .ai-empty .ai-sugs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+html[data-luna] .ai-sug.is-start { background: color-mix(in srgb, var(--lu-text) 4%, transparent); border: 1px solid var(--line); box-shadow: none; color: var(--lu-text); text-align: left; }
+html[data-luna] .ai-sug.is-start:hover { border-color: color-mix(in srgb, var(--lu-amber) 50%, transparent); background: color-mix(in srgb, var(--lu-amber) 7%, transparent); }
+html[data-luna] .ai-bubble { background: color-mix(in srgb, var(--lu-text) 7%, transparent); border: 1px solid var(--line); box-shadow: none; color: var(--lu-text); }
+html[data-luna] .ai-turn.is-colleague .ai-turn-b { line-height: 1.62; }
+html[data-luna] .ai-box { background: transparent; border: 0; box-shadow: none; color: var(--lu-text); }
+html[data-luna] .ai-compose { background: color-mix(in srgb, var(--lu-deep) 88%, transparent); border: 1px solid var(--line-2); box-shadow: 0 20px 60px color-mix(in srgb, var(--lu-night) 70%, transparent); }
+html[data-luna] .ai-compose:focus-within { border-color: color-mix(in srgb, var(--lu-amber) 55%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lu-amber) 10%, transparent), 0 20px 60px color-mix(in srgb, var(--lu-night) 70%, transparent); }
+html[data-luna] .ai-send:not(:disabled) { background: linear-gradient(135deg, var(--lu-amber), var(--lu-orange)); color: var(--lu-night); box-shadow: 0 0 24px color-mix(in srgb, var(--lu-orange) 35%, transparent); }
+html[data-luna] .btn-primary { background: linear-gradient(135deg, var(--lu-amber), var(--lu-orange)); border-color: transparent; color: var(--lu-night); }
+html[data-luna] .ai-ctx { background: color-mix(in srgb, var(--lu-deep) 70%, transparent); border-left: 1px solid var(--line); }
+html[data-luna] .ai-ctx-h { letter-spacing: .14em; text-transform: uppercase; color: var(--lu-dim); font-size: var(--t-label); }
+html[data-luna] .ai-ctx-t { color: var(--lu-text); font-size: var(--t-h); font-weight: 600; letter-spacing: -0.02em; }
+html[data-luna] .ai-points > li[data-point="question"] .ai-ctx-k { color: var(--lu-amber); }
+html[data-luna] .ai-thinking { color: var(--lu-dim); }
+
+/* ---- the voice: Luna on the night, her aura the stage */
+.vm { background: radial-gradient(70% 55% at 50% 38%, color-mix(in srgb, var(--lu-violet) 10%, transparent), transparent 70%), var(--lu-night); color: var(--lu-text); }
+.vm-orb { width: min(64vw, 280px); }
+.vm-core { inset: 26%; }
+.vm-state { color: var(--lu-text); font-weight: 500; letter-spacing: -0.01em; }
+.vm-words { color: var(--lu-text); }
+.vm-words.is-heard { color: color-mix(in srgb, var(--lu-green) 55%, var(--lu-text)); }
+.vm-wave span { background: currentColor; }
+.vm-wave.is-in { color: var(--lu-green); }
+.vm-wave.is-out { color: var(--lu-amber); }
+.vm-bar { background: color-mix(in srgb, var(--lu-night) 94%, transparent); color: var(--lu-text); border-top: 1px solid var(--line); }
+.vm-bar-b { color: var(--lu-text); border-color: var(--line-2); background: transparent; }
+.vm-bar-b.is-main { background: linear-gradient(135deg, var(--lu-amber), var(--lu-orange)); color: var(--lu-night); border-color: transparent; }
+.vm-act.is-main:not(:disabled) { background: linear-gradient(135deg, var(--lu-amber), var(--lu-orange)); color: var(--lu-night); border-color: transparent; }
+
+/* the frame's mark in Luna's theme: her light, not the old trace */
+html[data-luna] .nv-rail-brand { position: relative; }
+html[data-luna] .nv-rail-brand .logo-mark { visibility: hidden; }
+html[data-luna] .nv-rail-brand::before { content: ''; position: absolute; left: 3px; top: 50%; width: 22px; height: 22px; margin-top: -11px; border-radius: var(--radius-round);
+  background: radial-gradient(circle, color-mix(in srgb, var(--lu-amber) 45%, var(--lu-text)) 0%, var(--lu-amber) 28%, color-mix(in srgb, var(--lu-orange) 60%, var(--lu-green)) 55%, transparent 74%);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--lu-amber) 40%, transparent); }
+html[data-luna] .nv-rail-name { color: var(--lu-text); letter-spacing: .2em; font-weight: 600; }

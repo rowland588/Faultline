@@ -5,11 +5,20 @@ import { startTrail } from './state/navHistory';
 import { startSync } from './cloud/sync';
 /* The type is bundled, not fetched: this app has to look like itself on a
    factory floor with no signal. Variable weight axis only — one file a family. */
-/* Inter — the face of the app since look E (docs/LOOK.md, 6 November). */
+/* LUNA (11 November): Geist — the face of the app; Instrument Serif — the few moments Luna speaks to you (a greeting, a page's name).
+   Inter stays loaded for the papers' fallback and any page that names it. */
+import '@fontsource-variable/geist/wght.css';
+import '@fontsource/instrument-serif/400.css';
 import '@fontsource-variable/inter/wght.css';
 /* Outfit — the face of the NAME: the landing's wordmark, the install icon's, Home's and every PDF's. */
 import '@fontsource-variable/outfit/wght.css';
 import './styles.css';
+
+/* LUNA — SPECTRUM (11 November): AI Mode wears Luna's own theme (styles.css, html[data-luna]); the rest of the app is as it was until
+   the identity is agreed. Set from the address, so it follows every way into and out of #/ai (Luna's runtime persists across pages). */
+const lunaTheme = () => { const on = /^#\/ai(\/|\?|$)/.test(window.location.hash); if (on) document.documentElement.dataset.luna = 'on'; else delete document.documentElement.dataset.luna; };
+window.addEventListener('hashchange', lunaTheme);
+lunaTheme();
 
 // Boot the cloud sync loop. No-ops unless Supabase is configured AND a session
 // is restored — the app is fully usable offline with neither.

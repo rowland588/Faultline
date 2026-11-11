@@ -378,6 +378,10 @@ a session that ships something updates this page in the same commit.** The rules
   `supabase/tests/org_visibility_test.sql` (rolled back). The app must not reach `main` before ORGANISATIONS.sql is applied (a line's
   org_id would wait). `scripts/acceptance/organisation.mjs`.
 
+- **Luna's look, Spectrum (11 November, `docs/LUNA-LOOK.md`)** — AI Mode and the voice screen on a night canvas, amber press
+  colour, an aura that follows Luna's real states (listening green, thinking a turning field, speaking amber to red); the work panel
+  opens only once there is work. The rest of the app follows slice by slice.
+
 ## 2. In flight and next — in this order, each waiting on Rowland's go unless said
 
 **Production data connections — built 11 November, waiting to go live (`docs/DATA-CONNECTIONS.md`).** Rowland: *"Production data
