@@ -148,6 +148,9 @@ const wide = await page.evaluate(() => document.documentElement.scrollWidth);
 ok(wide <= 392, `7 nothing off the side at 390 (${wide})`);
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.waitForTimeout(400);
+/* the phone's context sheet closed first, as a person would — Luna's panel stays across pages, so its scrim would sit over the line's page (11 November) */
+for (let i = 0; i < 3 && await page.locator('.sheet-scrim:visible').count(); i++) { await page.keyboard.press('Escape'); await page.waitForTimeout(400); }
+await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 3000 }).catch(() => undefined);
 
 /* ---- 6 · MANUAL MODE ---- */
 const says = await page.evaluate(async ws => {
