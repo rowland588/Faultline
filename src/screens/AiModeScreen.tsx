@@ -17,7 +17,7 @@
  * WHICH RECORD: a study of tool `talk`, facts.colleague (no new table). WHERE IT SHOWS: here; the door is the top bar's
  * Ask Luna (src/colleague/AiDoor), never a line of the menu. */
 import { createContext, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, SAY_EVENT, takePendingSay } from '../colleague/lunaPanel';
+import { deskWide, OPEN_EVENT, peekPendingOpen, setLunaPanel, takePendingOpen, SAY_EVENT, takePendingSay, VOICE_EVENT, takePendingVoice } from '../colleague/lunaPanel';
 import { scopeOf } from '../lib/scope';
 import { conversationFocus, noteConfirmed, prepareCall, recordStep } from '../colleague/turnRules';
 import { createPortal } from 'react-dom';
@@ -816,6 +816,14 @@ function Conversation({ id, start, onMade, onList, onNew, screen, dock, shown = 
     vMove({ type: 'open' });
     startListening();
   };
+  /* VOICE FROM ANOTHER PAGE (Today's voice button, 11 November): the voice conversation started here, once */
+  const openVoiceRef = useRef(openVoice); openVoiceRef.current = openVoice;
+  useEffect(() => {
+    const take = () => { if (takePendingVoice()) openVoiceRef.current(); };
+    const t = window.setTimeout(take, 0);
+    window.addEventListener(VOICE_EVENT, take);
+    return () => { window.clearTimeout(t); window.removeEventListener(VOICE_EVENT, take); };
+  }, []);
   const closeVoice = async () => {
     cancelReopen();
     clearTurn();

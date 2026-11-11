@@ -17760,15 +17760,19 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .today-brief-row.is-a { border-left: 4px solid var(--st-a); }
 .today-brief-row.is-g { border-left: 4px solid var(--st-g); }
 .today-brief-says { flex: 1; min-width: 0; }
-.today-luna { margin: 18px 0; display: grid; gap: 10px; }
-.today-luna-box { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-xl); }
+.today-luna { margin: 4px 0 20px; display: grid; gap: 10px; }
+/* Luna first (11 November, F1): the box larger than anything below it, voice beside it as a quiet round press */
+.today-luna-voice { flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--surface); color: var(--brand); cursor: pointer; }
+.today-luna-voice:hover { background: var(--surface-2); }
+.today-luna-box { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px; min-height: 56px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-xl); }
 .today-luna-orb { display: inline-flex; color: var(--brand); }
 .today-luna-in { flex: 1; min-width: 0; min-height: 44px; border: 0; background: transparent; font: inherit; outline: none; }
 .today-luna-box .btn { min-height: 44px; border-radius: var(--radius-xl); }
 .today-luna-sugg { display: flex; flex-wrap: wrap; gap: 8px; }
 .today-luna-sugg .chip { min-height: 44px; }
 .today-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 18px; }
-.today-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; min-width: 0; }
+/* sections, not boxes (docs/DESIGN.md, 11 November): a heading and a hairline */
+.today-card { border-top: 1px solid var(--line); padding: 12px 0 0; min-width: 0; }
 .today-h { font-size: var(--t-label); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 10px; }
 .today-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); }
 .today-row b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

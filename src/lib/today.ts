@@ -47,6 +47,23 @@ export function briefing(rows: readonly ProjectAction[], problems: readonly Regi
   return out.slice(0, 3);
 }
 
+/** WHAT TO ASK LUNA FIRST (11 November, docs/LUNA-PLATFORM.md — Rowland: "Luna becomes the primary way people interact"): two or three
+ *  questions drawn from the person's real state, by code — the oldest late action, the line in the worst state, the project furthest
+ *  behind — then the general ones to make up three. Never the model's; never a question about something that is not there. */
+export function suggestionsFor(rows: readonly ProjectAction[], lines: readonly { name: string; state: BriefState }[]): string[] {
+  const out: string[] = [];
+  const late = rows.filter(a => a.late).sort((a, b) => (a.due ?? '9999').localeCompare(b.due ?? '9999'));
+  if (late.length) out.push(`What is holding up ${quote(late[0].what)}?`);
+  const worst = lines.find(l => l.state === 'r') ?? lines.find(l => l.state === 'a');
+  if (worst) out.push(`Why is ${worst.name} losing time?`);
+  const byProject = new Map<string, { name: string; n: number }>();
+  for (const a of late) if (a.project) { const e = byProject.get(a.project.id); if (e) e.n++; else byProject.set(a.project.id, { name: a.project.name, n: 1 }); }
+  const behind = [...byProject.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name))[0];
+  if (behind) out.push(`What would get ${behind.name} back on track?`);
+  for (const g of ['What should I do first today?', 'Where is the factory losing the most time?']) if (out.length < 3) out.push(g);
+  return out.slice(0, 3);
+}
+
 /** A line in a word: red with a critical problem open, amber with any open, green with none. */
 export function lineState(open: number, critical: number): { state: BriefState; word: string } {
   return critical ? { state: 'r', word: `${plural(critical, 'critical problem')}` } : open ? { state: 'a', word: `${plural(open, 'problem')} open` } : { state: 'g', word: 'Nothing open' };

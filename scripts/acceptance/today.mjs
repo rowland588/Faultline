@@ -82,8 +82,9 @@ ok((await page.evaluate(() => location.hash)) === '#/today' && (await page.locat
 ok(asks.some(b => (b.turns ?? []).some(x => /What is late today/.test(x.text ?? ''))), '5 the question sent into the conversation');
 ok(/Two actions are late/.test(await t.words('[data-luna-panel] .ai-turn.is-colleague')), '5 her answer beside the page');
 const n5 = asks.length;
+const sugg5 = (await page.locator('[data-today-sugg]').first().innerText()).trim();
 await page.locator('[data-today-sugg]').first().click(); await page.waitForTimeout(2500);
-ok(asks.length > n5 && asks.at(-1).turns.some(x => /What should I do first today/.test(x.text ?? '')), '5 a suggestion asked the same way');
+ok(!!sugg5 && asks.length > n5 && asks.at(-1).turns.some(x => (x.text ?? '') === sugg5), `5 a suggestion asked the same way ("${sugg5}")`);
 
 /* ---- 6 · AI Mode off ---- */
 await page.evaluate(async () => (await import('/src/colleague/aiMode.ts')).setAiMode(false)); await page.waitForTimeout(800);
