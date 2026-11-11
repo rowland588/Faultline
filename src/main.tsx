@@ -16,7 +16,8 @@ import './styles.css';
 
 /* LUNA — SPECTRUM (11 November): AI Mode wears Luna's own theme (styles.css, html[data-luna]); the rest of the app is as it was until
    the identity is agreed. Set from the address, so it follows every way into and out of #/ai (Luna's runtime persists across pages). */
-const lunaTheme = () => { const on = /^#\/ai(\/|\?|$)/.test(window.location.hash); if (on) document.documentElement.dataset.luna = 'on'; else delete document.documentElement.dataset.luna; };
+/* Spectrum everywhere since 11 November (docs/LUNA-LOOK.md) — the landing page, signed out, keeps its own look */
+const lunaTheme = () => { document.documentElement.dataset.luna = 'on'; };
 window.addEventListener('hashchange', lunaTheme);
 lunaTheme();
 
