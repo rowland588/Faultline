@@ -79,6 +79,10 @@ a refusal, a busy microphone or no signal are each said in words with the keyboa
   (with *Fetch the phone's model* when it can be downloaded), and where the sound goes — said, not picked.
 - **On the floor**: the screen kept on and the headset's button taken while the voice screen is open (as Conversation does); a
   headset paired or dropped said; out of sight — paused and said, carried on with a tap.
+- **Said as it is written (11 November)**: the reply is streamed from the gateway (docs/AI-MODE.md §4, As it is written), so the
+  first sentence is spoken while Claude is still writing the rest — `nextChunks` hands each finished sentence to the queue as the
+  words grow, and the rest once the answer is complete, nothing twice. `voice.mjs` B5b proves the first sentence said before the
+  final event goes.
 
 ### Luna does not hear herself (10 November)
 

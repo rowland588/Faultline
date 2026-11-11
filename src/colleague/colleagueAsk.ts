@@ -9,8 +9,15 @@
  *   everything it gave is sent back with `pending`, and the colleague answers again — at most SIX rounds, then it says
  *   so and stops.
  * Whatever goes wrong — no signal, no cloud, the allowance spent, the gateway off — comes back in words, and nothing the
- * person said is touched: the turn says why it is not answered and can be asked again. Manual Mode is not affected. */
+ * person said is touched: the turn says why it is not answered and can be asked again. Manual Mode is not affected.
+ *
+ * AS IT IS WRITTEN (11 November — the reply was waited for whole, and on the floor by voice it felt slow): asked with `onText`,
+ * the gateway streams each round (server-sent events: `{ delta }` the words as written, `{ restart }` when it asks a round again,
+ * then ONE event holding exactly the answer the plain ask gives). The words grow in the turn and the voice is handed each
+ * finished sentence as it comes; the answer itself is read from the final event as before, and every figure checked once the
+ * reply is complete. A stream that fails is asked once more the plain way. */
 import { supabase } from '../cloud/client';
+import { colleagueReply } from '../tools/colleague/colleagueAssist';
 import type { CapCall, CapRef, CapResult } from '../capabilities/types';
 import type { GatewayTurn } from './conversation';
 import { checkFigures, type FigureSource } from './figureCheck';
@@ -35,6 +42,8 @@ export interface ColleagueBody {
   pending?: { assistant: unknown; results: CallResult[] };
   /** The person is listening — the voice conversation: the colleague answers for the ear (docs/VOICE.md). */
   spoken?: boolean;
+  /** The words as they are written: answered as server-sent events (invokeColleague with onText). */
+  stream?: boolean;
 }
 export interface CallResult { id: string; ok: boolean; says: string; data?: unknown; declined?: boolean }
 
@@ -43,19 +52,98 @@ export type GatewayAnswer =
   | { ok: true; reply: string; calls?: CapCall[]; assistant?: unknown; suggestions?: string[]; unsure?: string[]; model?: string }
   | { ok: false; why: string; off?: boolean; offline?: boolean };
 
-/** THE GATEWAY ASKED — its answer read, every failure said in words. */
-export async function invokeColleague(body: ColleagueBody): Promise<GatewayAnswer> {
+/** The words of a round so far, as the screen shows them: the reply as colleagueReply reads it, a follow-ups line still
+ *  being written ("Sugg…") left off. */
+export function growingReply(soFar: string): string {
+  const { reply } = colleagueReply([{ type: 'text', text: soFar }]);
+  const lines = reply.split('\n');
+  const last = (lines[lines.length - 1] ?? '').replace(/^[\s*_]+/, '').toLowerCase();
+  if (lines.length && last.length >= 3 && ('suggestions'.startsWith(last.replace(/[\s*_:：]+$/, '')) || /^suggestions?\b/.test(last))) lines.pop();
+  return lines.join('\n').trim();
+}
+
+/** What a stream gave: the final event (or null when it ended without one), and whether any words came first. */
+export interface StreamRead { final: unknown; texted: boolean }
+
+/** A colleague's stream of server-sent events read to its end: `{ delta }` grows the round's words, `{ restart }` starts them
+ *  again, and the last other event is the answer. `onText` is handed the round's words so far after each. A stream cut off
+ *  part way throws or ends with final null — the caller asks again the plain way. */
+export async function readColleagueStream(body: ReadableStream<Uint8Array> | null, onText: (soFar: string) => void): Promise<StreamRead> {
+  if (!body) return { final: null, texted: false };
+  const reader = body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', soFar = '', final: unknown = null, texted = false;
+  const take = (block: string) => {
+    const data = block.split('\n').filter(l => l.startsWith('data:')).map(l => l.slice(5).trimStart()).join('\n');
+    if (!data) return;
+    let o: unknown;
+    try { o = JSON.parse(data); } catch { return; }
+    const e = o && typeof o === 'object' ? o as Record<string, unknown> : {};
+    if (typeof e.delta === 'string') { soFar += e.delta; texted = true; onText(soFar); }
+    else if (e.restart === true) { soFar = ''; onText(''); }
+    else final = o;
+  };
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (value) buf += dec.decode(value, { stream: true });
+    let at: number;
+    while ((at = buf.indexOf('\n\n')) >= 0) { take(buf.slice(0, at)); buf = buf.slice(at + 2); }
+    if (done) break;
+  }
+  buf += dec.decode();
+  if (buf.trim()) take(buf);
+  return { final, texted };
+}
+
+/** THE GATEWAY ASKED — its answer read, every failure said in words. With `onText`, asked as a stream and the round's words
+ *  handed on as they are written; a stream that fails (cut off, unreadable, no final answer) is asked once more whole. */
+export async function invokeColleague(body: ColleagueBody, onText?: (soFar: string) => void): Promise<GatewayAnswer> {
   if (!supabase) return { ok: false, off: true, why: NO_CLOUD };
   if (typeof navigator !== 'undefined' && !navigator.onLine) return { ok: false, offline: true, why: NO_SIGNAL };
+  const { stream: _s, ...plain } = body; void _s;
+  if (onText) {
+    const streamed = await askStreamed(plain, onText);
+    if (streamed) return streamed;
+    /* the stream failed: what it showed is taken back, and the same round asked whole, once */
+    onText('');
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return { ok: false, offline: true, why: NO_SIGNAL };
+  }
+  return askWhole(plain);
+}
+
+/** The round asked as a stream — its answer, or null when the stream failed and the plain ask should be tried. A refusal the
+ *  gateway gives before the model is asked (JSON, or a non-2xx answer) is an answer, not a failure. */
+async function askStreamed(body: ColleagueBody, onText: (soFar: string) => void): Promise<GatewayAnswer | null> {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase.functions.invoke('assist', { body: { ...body, stream: true } });
+    if (error) return error.name === 'FunctionsHttpError' ? readError(error) : null;
+    if (!(data instanceof Response)) return readAnswer(data);
+    const { final } = await readColleagueStream(data.body, soFar => onText(growingReply(soFar)));
+    return final === null ? null : readAnswer(final);
+  } catch {
+    return null;
+  }
+}
+
+/** A non-2xx answer: the gateway's own words when it gave them. */
+async function readError(error: Error): Promise<GatewayAnswer> {
+  const ctx = (error as { context?: unknown }).context;
+  if (ctx instanceof Response) {
+    const d = await ctx.clone().json().catch(() => null) as { why?: unknown; off?: unknown } | null;
+    const why = typeof d?.why === 'string' && d.why ? d.why : ctx.status === 401 ? 'Sign in to use AI Mode. What you said is kept.' : NOT_NOW;
+    return { ok: false, why, ...(d?.off ? { off: true } : {}) };
+  }
+  return { ok: false, why: NOT_NOW };
+}
+
+/** The round asked whole — the plain path, as it always was. */
+async function askWhole(body: ColleagueBody): Promise<GatewayAnswer> {
+  if (!supabase) return { ok: false, off: true, why: NO_CLOUD };
   try {
     const { data, error } = await supabase.functions.invoke('assist', { body });
     if (error) {
-      const ctx = (error as { context?: unknown }).context;
-      if (error.name === 'FunctionsHttpError' && ctx instanceof Response) {
-        const d = await ctx.clone().json().catch(() => null) as { why?: unknown; off?: unknown } | null;
-        const why = typeof d?.why === 'string' && d.why ? d.why : ctx.status === 401 ? 'Sign in to use AI Mode. What you said is kept.' : NOT_NOW;
-        return { ok: false, why, ...(d?.off ? { off: true } : {}) };
-      }
+      if (error.name === 'FunctionsHttpError') return readError(error);
       if (error.name === 'FunctionsFetchError') return { ok: false, offline: true, why: NO_SIGNAL };
       return { ok: false, why: NOT_NOW };
     }
@@ -104,7 +192,9 @@ export interface Step {
 }
 
 export interface LoopDeps {
-  invoke: (body: ColleagueBody) => Promise<GatewayAnswer>;
+  /** Asks the gateway; with `onText` (given when the screen shows words as they come) the round's words so far are handed on
+   *  as they are written — a fake gateway may ignore it. */
+  invoke: (body: ColleagueBody, onText?: (soFar: string) => void) => Promise<GatewayAnswer>;
   /** The capability's kind and title, or nothing when the app has no such capability. */
   describe: (name: string) => { kind: 'read' | 'write' | 'local'; title: string } | undefined;
   /** runCall — validate, allowed, run (a write only when confirmed). */
@@ -115,9 +205,14 @@ export interface LoopDeps {
   confirm: (step: Step) => Promise<boolean>;
   /** Told as each step starts and finishes, to draw it under the turn. */
   onStep: (step: Step) => void | Promise<void>;
-  /** The words the colleague has said so far this turn. */
+  /** The words the colleague has said so far this turn — growing as each round is written, when the gateway streams. */
   onWords?: (text: string) => void;
+  /** The clock, for the turn's timing (tests give their own). */
+  now?: () => number;
 }
+
+/** How long the answer took (kept on the turn, never shown): ms to the first words, ms to the complete answer, the rounds. */
+export interface Timing { firstTextMs?: number; completeMs: number; rounds: number }
 
 export interface LoopAsk {
   turns: GatewayTurn[];
@@ -133,8 +228,8 @@ export interface LoopAsk {
 }
 
 export type LoopEnd =
-  | { ok: true; reply: string; suggestions: string[]; unsure: string[]; checked: number; model?: string; rounds: number; capped?: boolean }
-  | { ok: false; why: string; off?: boolean; offline?: boolean; reply?: string; rounds: number };
+  | { ok: true; reply: string; suggestions: string[]; unsure: string[]; checked: number; model?: string; rounds: number; capped?: boolean; timing: Timing }
+  | { ok: false; why: string; off?: boolean; offline?: boolean; reply?: string; rounds: number; timing: Timing };
 
 const saidOf = (r: CapResult): string => (r.ok ? r.says : r.why);
 
@@ -154,27 +249,38 @@ export async function colleagueLoop(ask: LoopAsk, deps: LoopDeps): Promise<LoopE
     ...ask.turns.filter(t => t.role === 'colleague').flatMap(t => t.text.split('\n').filter(l => l.startsWith('['))),
   ];
   const checkedEnd = async (reply: string) => checkFigures(reply, held, [...said, await ask.focus(), prefs]);
+  const now = deps.now ?? (() => Date.now());
+  const t0 = now();
+  let firstAt: number | undefined;
+  const timing = (rounds: number): Timing => ({ ...(firstAt !== undefined ? { firstTextMs: firstAt - t0 } : {}), completeMs: now() - t0, rounds });
+  /* the round's words as they are written, after what earlier rounds said — not yet checked: the figures are checked once the
+     reply is complete */
+  const growing = deps.onWords ? (soFar: string) => {
+    if (soFar.trim() && firstAt === undefined) firstAt = now();
+    deps.onWords?.([...words, soFar.trim()].filter(Boolean).join('\n\n'));
+  } : undefined;
   for (let round = 1; round <= MAX_ROUNDS; round++) {
     const body: ColleagueBody = {
       task: 'colleague', turns: ask.turns, ...(ask.images?.length ? { images: ask.images } : {}),
       focus: await ask.focus(), ...(prefs ? { preferences: prefs } : {}), today: ask.today, ...(ask.conversationId ? { conversationId: ask.conversationId } : {}), ...(pending ? { pending } : {}),
       ...(ask.spoken ? { spoken: true } : {}),
     };
-    const a = await deps.invoke(body);
-    if (!a.ok) return { ...a, rounds: round, ...(words.length ? { reply: text() } : {}) };
-    if (a.reply.trim()) { words.push(a.reply.trim()); deps.onWords?.(text()); }
-    if (!a.calls?.length) { const c = await checkedEnd(text()); return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(a.model ? { model: a.model } : {}), rounds: round }; }
+    const a = await (growing ? deps.invoke(body, growing) : deps.invoke(body));
+    if (!a.ok) { if (growing) deps.onWords?.(text()); return { ...a, rounds: round, ...(words.length ? { reply: text() } : {}), timing: timing(round) }; }
+    if (a.reply.trim()) { if (firstAt === undefined) firstAt = now(); words.push(a.reply.trim()); deps.onWords?.(text()); }
+    else if (growing) deps.onWords?.(text());
+    if (!a.calls?.length) { const c = await checkedEnd(text()); return { ok: true, reply: text(), suggestions: a.suggestions ?? [], unsure: c.unsure, checked: c.checked, ...(a.model ? { model: a.model } : {}), rounds: round, timing: timing(round) }; }
     if (round === MAX_ROUNDS) {
       words.push(TOO_MANY);
       const c = await checkedEnd(text());
-      return { ok: true, reply: text(), suggestions: ['Carry on'], unsure: c.unsure, checked: c.checked, ...(a.model ? { model: a.model } : {}), rounds: round, capped: true };
+      return { ok: true, reply: text(), suggestions: ['Carry on'], unsure: c.unsure, checked: c.checked, ...(a.model ? { model: a.model } : {}), rounds: round, capped: true, timing: timing(round) };
     }
     const results: CallResult[] = [];
     for (const call of a.calls) { const r = await doCall(call, deps); results.push(r); if (r.ok) held.push({ says: r.says, data: r.data }); }
     pending = { assistant: a.assistant ?? null, results };
   }
   /* not reached — the last round returns above */
-  return { ok: false, why: NOT_NOW, rounds: MAX_ROUNDS };
+  return { ok: false, why: NOT_NOW, rounds: MAX_ROUNDS, timing: timing(MAX_ROUNDS) };
 }
 
 async function doCall(call: CapCall, deps: LoopDeps): Promise<CallResult> {

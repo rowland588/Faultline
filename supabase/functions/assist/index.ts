@@ -30,8 +30,10 @@
  *     → { ok: true, labels, model } | { ok: false, why } | { off: true, why }
  *   { task: 'talk', context, today, turns, images }   (lib/talkAssist TalkAsk)
  *     → { ok: true, answer, unsure, model } | { ok: false, why } | { off: true, why }
- *   { task: 'colleague', turns, images, focus, today, conversationId?, pending? }
+ *   { task: 'colleague', turns, images, focus, today, conversationId?, pending?, stream? }
  *     → { ok: true, reply, calls?, assistant?, suggestions?, unsure?, model } | { ok: false, why } | { off: true, why }
+ *     (stream: true, 11 November → text/event-stream: { delta } the words as written, { restart } when a round is asked
+ *     again here, then ONE event holding exactly the object above)
  *     (pending = { assistant: the `assistant` handed out last time, results: what running its calls gave })
  *   { task: 'brief-read', pages } → { ok: true, text, model };  { task: 'brief-asks', brief } → { ok: true, asks, model }
  *   { task: 'factory-read', text } | { task: 'factory-read', pages } → { ok: true, text, day?, dayQuote?, items, dropped, model }
@@ -264,7 +266,13 @@ const kindOf = (name: string): string | null => CAPABILITY_SCHEMAS.find(s => s.n
    capabilities as its tools. A call that passes the check goes to the device with the colleague's message as
    `assistant`, to come back with what it gave; a round where every call was refused is asked again here at once, the
    refusals answered to the model as errors, so a refused call never reaches the device. */
-async function answerColleague(client: Anthropic, admin: Admin, userId: string, first: ColleagueAsk, usageTask = "colleague"): Promise<Response> {
+type ColleagueOut = Record<string, unknown>;
+/* AS IT IS WRITTEN (11 November, docs/AI-MODE.md): with `say`, each round is asked as a stream and its words handed on as they
+   come — `{ delta }` the next words, `{ restart: true }` when a round where every call was refused is asked again here (the words
+   of the refused round are not the answer). The finished answer is the same object either way, checked the same. */
+type ColleagueSay = (e: { delta: string } | { restart: true }) => void;
+type ColleagueMsg = { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
+async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, first: ColleagueAsk, usageTask = "colleague", say?: ColleagueSay): Promise<ColleagueOut> {
   const keep = async (model: string, usage: Usage, ok: boolean) => {
     await admin.from("assist_usage").insert({ user_id: userId, task: usageTask, model, input_tokens: (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0), output_tokens: usage.output_tokens ?? 0, cost_micros: costMicros(model, usage), ok });
   };
@@ -281,19 +289,32 @@ async function answerColleague(client: Anthropic, admin: Admin, userId: string, 
   let ask = first;
   try {
     for (let tries = 0; tries < 3; tries++) {
-      const msg = await client.beta.messages.create({
+      const params = {
         model: COLLEAGUE_MODEL, max_tokens: 4000,
         ...fallbackFor(COLLEAGUE_MODEL),
         output_config: { effort: COLLEAGUE_EFFORT },
         system: [{ type: "text", text: COLLEAGUE_SYSTEM, cache_control: { type: "ephemeral" } }],
         tools, tool_choice: { type: "auto" },
         messages: colleagueMessages(ask),
-      } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
+      };
+      let msg: ColleagueMsg;
+      if (say) {
+        if (tries > 0) say({ restart: true });
+        const stream = client.beta.messages.stream(params as unknown as Parameters<typeof client.beta.messages.stream>[0]);
+        /* text blocks are joined with a blank line, as colleagueReply joins them */
+        let blocks = 0;
+        stream.on("streamEvent", (raw: unknown) => {
+          const ev = raw as { type?: string; content_block?: { type?: string } } | null;
+          if (ev?.type === "content_block_start" && ev.content_block?.type === "text" && blocks++ > 0) say({ delta: "\n\n" });
+        });
+        stream.on("text", (delta: string) => { if (delta) say({ delta }); });
+        msg = await stream.finalMessage() as unknown as ColleagueMsg;
+      } else msg = await client.beta.messages.create(params as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as ColleagueMsg;
       const model = msg.model ?? COLLEAGUE_MODEL;
       const content = (Array.isArray(msg.content) ? msg.content : []) as ColleagueBlock[];
       await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal");
-      if (msg.stop_reason === "refusal") return json({ ok: false, why: "AI Mode would not answer that one. What you said is kept." });
-      if (msg.stop_reason === "max_tokens") return json({ ok: false, why: "The answer ran longer than AI Mode gives at once — ask for one part at a time." });
+      if (msg.stop_reason === "refusal") return { ok: false, why: "AI Mode would not answer that one. What you said is kept." };
+      if (msg.stop_reason === "max_tokens") return { ok: false, why: "The answer ran longer than AI Mode gives at once — ask for one part at a time." };
       if (msg.stop_reason === "tool_use") {
         const { calls, refused } = checkCalls(content, CAPABILITY_SCHEMAS);
         await audit(admin, userId, ask.conversationId, [
@@ -302,27 +323,55 @@ async function answerColleague(client: Anthropic, admin: Admin, userId: string, 
         ]);
         const carry = nextCarry(ask, content, refused);
         if (carry.rounds.length >= COLLEAGUE_LIMITS.rounds - 1 || new TextEncoder().encode(JSON.stringify(carry)).length > COLLEAGUE_LIMITS.carryBytes)
-          return json({ ok: false, why: "AI Mode went round too many times on this one — ask it a narrower question. What you said is kept." });
+          return { ok: false, why: "AI Mode went round too many times on this one — ask it a narrower question. What you said is kept." };
         if (calls.length) {
           const { reply } = colleagueReply(content);
-          return json({ ok: true, reply, calls: calls.map(c => ({ id: c.id, name: c.name, input: c.input })), assistant: carry, model });
+          return { ok: true, reply, calls: calls.map(c => ({ id: c.id, name: c.name, input: c.input })), assistant: carry, model };
         }
         /* every call refused: told why, asked again, never sent to the device */
         ask = { ...ask, pending: { carry, results: [] } };
         continue;
       }
       const { reply, suggestions } = colleagueReply(content);
-      if (!reply) return json({ ok: false, why: "AI Mode's answer could not be read, so none is kept — ask again." });
-      return json({ ok: true, reply, ...(suggestions.length ? { suggestions } : {}), unsure: unsureColleague(reply, ask), model });
+      if (!reply) return { ok: false, why: "AI Mode's answer could not be read, so none is kept — ask again." };
+      return { ok: true, reply, ...(suggestions.length ? { suggestions } : {}), unsure: unsureColleague(reply, ask), model };
     }
-    return json({ ok: false, why: "AI Mode kept asking for things Faultline does not offer — ask again, in other words. What you said is kept." });
+    return { ok: false, why: "AI Mode kept asking for things Faultline does not offer — ask again, in other words. What you said is kept." };
   } catch (e) {
     const detail = e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300);
-    if (e instanceof Anthropic.RateLimitError) return json({ ok: false, why: "AI Mode is busy — ask again in a minute. What you said is kept." });
-    if (e instanceof Anthropic.AuthenticationError) return json({ off: true, why: "AI Mode's key is not accepted, so it cannot answer just now — Manual Mode does everything meanwhile." });
+    if (e instanceof Anthropic.RateLimitError) return { ok: false, why: "AI Mode is busy — ask again in a minute. What you said is kept." };
+    if (e instanceof Anthropic.AuthenticationError) return { off: true, why: "AI Mode's key is not accepted, so it cannot answer just now — Manual Mode does everything meanwhile." };
     console.error("colleague failed", detail);
-    return json({ ok: false, why: "AI Mode could not answer just now — ask again. What you said is kept." });
+    return { ok: false, why: "AI Mode could not answer just now — ask again. What you said is kept." };
   }
+}
+
+/* the colleague's answer whole, as JSON — the plain path, unchanged */
+async function answerColleague(client: Anthropic, admin: Admin, userId: string, first: ColleagueAsk, usageTask = "colleague"): Promise<Response> {
+  return json(await colleagueAnswer(client, admin, userId, first, usageTask));
+}
+
+/* THE COLLEAGUE'S ANSWER AS IT IS WRITTEN — server-sent events: `{ delta }` the words as they come (a few at a time, never more
+   often than every 60 ms), `{ restart: true }` when a round is asked again here, then ONE final event holding exactly the object
+   the plain path returns. The allowance, the audit, the schemas' refusal and the figures' check are the same code. */
+function streamColleague(client: Anthropic, admin: Admin, userId: string, first: ColleagueAsk, usageTask = "colleague"): Response {
+  const enc = new TextEncoder();
+  const body = new ReadableStream({
+    async start(ctrl) {
+      let open = true, held = "", lastAt = 0;
+      const put = (o: unknown) => { if (!open) return; try { ctrl.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`)); } catch { open = false; } };
+      const flush = () => { if (held) { put({ delta: held }); held = ""; lastAt = Date.now(); } };
+      const out = await colleagueAnswer(client, admin, userId, first, usageTask, e => {
+        if ("restart" in e) { held = ""; put({ restart: true }); return; }
+        held += e.delta;
+        if (Date.now() - lastAt >= 60) flush();
+      });
+      flush();
+      put(out);
+      if (open) { try { ctrl.close(); } catch { /* gone */ } }
+    },
+  });
+  return new Response(body, { headers: { ...CORS, "Content-Type": "text/event-stream", "Cache-Control": "no-store" } });
 }
 
 /* THE STORY'S BRIEF — read from its pages, or asked what it asks for; each answer held to its schema and read again */
@@ -421,6 +470,8 @@ Deno.serve(async (req) => {
       const { data: rows } = await admin.from("assist_usage").select("at, cost_micros").eq("user_id", who).eq("task", "colleague-check").gte("at", since);
       const left = allowance(rows ?? [], Date.now(), CHECK_LIMIT, COLLEAGUE_ALLOWANCE_WORDS);
       if (!left.ok) return json({ ok: false, why: left.why });
+      /* the check asks as the app does — streamed when the app's ask is */
+      if (body.stream === true) return streamColleague(new Anthropic({ apiKey: KEY }), admin, who, read.ask, "colleague-check");
       return answerColleague(new Anthropic({ apiKey: KEY }), admin, who, read.ask, "colleague-check");
     }
     if (body.task !== "talk") return json({ ok: false, why: "The check asks a talk or the colleague only.", rules: await rulesPrint(), colleague: await colleaguePrint() }, 400);
@@ -460,6 +511,7 @@ Deno.serve(async (req) => {
     if (!read.ok) return json({ ok: false, why: read.why }, 400);
     const left = allowance(rows ?? [], Date.now(), COLLEAGUE_LIMIT, COLLEAGUE_ALLOWANCE_WORDS);
     if (!left.ok) return json({ ok: false, why: left.why });
+    if (body.stream === true) return streamColleague(client, admin, user.id, read.ask);
     return answerColleague(client, admin, user.id, read.ask);
   }
 
