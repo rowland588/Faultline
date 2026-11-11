@@ -274,6 +274,41 @@ gateway's allowance caps a person's day, and every call is logged to `assist_usa
 the cost per turn and per task, how well the cached instructions are reused, and how fast the context grows over a
 long conversation.
 
+### Sending less a turn (11 November)
+
+Measured on the live database: each colleague turn sent about 50,000 input tokens (cached) — every capability's schema (105, about
+108,500 characters) and the rules (`COLLEAGUE_SYSTEM`, about 37,600) — and picking the right capability among 105 gets harder with every
+one added. The gateway's switch **`ASSIST_COLLEAGUE_TOOLS`** (a Supabase function secret; nothing in the app changes):
+
+- **`all`** — the default, and what is live: every schema loaded on every turn, exactly as before (`colleagueToolsFor(…, 'all')` is
+  `colleagueTools`, and the rules are `COLLEAGUE_SYSTEM` word for word — `toolSearch.test.ts` holds both).
+- **`search`** — the API's server-side tool search (`tool_search_tool_regex_20251119`; stable on claude-opus-5-5, no beta header). A
+  **core** of 25 capabilities is loaded (`COLLEAGUE_CORE` in `src/tools/colleague/colleagueAssist.ts`): which record they mean (find,
+  resolve, resolve_record, line_state, list_problems), what they want and how the app does it (describe_faultline, plan_work,
+  understand_task, keep_task, task_state, tool_guide, tool_intel, assess_evidence), the threads (set_focus, park_focus,
+  update_context), every figure (work_out), show_work and raise_problem, and the live measurement whole (start_measurement,
+  capture_event, undo_capture, correct_capture, end_measurement, measurement_state — an event must go in at once, with no search between
+  "the wrapper's stopped" and its capture). The other 80 are sent with `defer_loading: true` and loaded by name when the rules or
+  `tool_guide` name one; a short note after the rules says so. In context: about 22,600 characters of tools against 108,500.
+- **`search-bm25`** — the same with the natural-language search, for comparison.
+
+What does not change under search: every call is still checked against **all** the schemas by `checkCalls` — a name not among them is
+refused, a deferred one found by search is held to its own schema like any other; the cache still holds (tools before system, the cache
+mark on the last loaded tool, deferred tools outside the prefix and what a search loads appended, never swapped); a round with a search in
+it is carried to the device and back with its `server_tool_use` and `tool_search_tool_result` blocks as the API gave them (`readContent`
+takes both), and only our own calls are answered; a round the API pauses in (`pause_turn`) is sent back at once by the gateway, never to
+the device. Whether it is as accurate is not known until the real-model harness has run both (`docs/LUNA-EVAL.md` §3); until then the
+switch stays at `all`.
+
+The rules themselves have a second switch, **`ASSIST_COLLEAGUE_SYSTEM`**: **`full`** (the default — `COLLEAGUE_SYSTEM` word for word, as
+live) or **`lean`** (`COLLEAGUE_SYSTEM_LEAN`: 37 lines taken out or shortened where a capability's own description already says the same —
+37,610 characters ≈ 9,400 tokens down to 28,614 ≈ 7,150, 24% less). Each cut is listed in `COLLEAGUE_LEAN_CUTS` with the capabilities it
+still lives in, and `leanRules.test.ts` holds it: each cut names exactly one line, every capability the full rules name is still named or
+carries its line, and no safety rule is cut — no deletes, nothing verified, figures by code and never in the head, cards before writes and
+a yes to one thing never a yes to another, one client never another's, evidence kept by how it is known (frequency is not duration;
+reported, counted or imported never as measured). Under `search` the cut words come with the capability once it is loaded. Like
+`search`, `lean` is not live until the real-model harness says it loses nothing.
+
 ## 9. Memory and learning
 
 Three kinds of memory, each kept where it already lives — none of them a model's.

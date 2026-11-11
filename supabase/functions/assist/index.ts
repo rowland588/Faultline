@@ -79,7 +79,7 @@ import { allowance, costMicros } from "./video/gatewayUsage.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
 import { STORY_SCHEMA, STORY_SYSTEM, checkStoryAnswer, readStoryAsk, storyUser, unsureStory } from "./story/storyAssist.ts";
 import { BRIEF_ALLOWANCE_WORDS, BRIEF_ASKS_SCHEMA, BRIEF_ASKS_SYSTEM, BRIEF_OFF, BRIEF_READ_SCHEMA, BRIEF_READ_SYSTEM, briefAsksUser, briefReadUser, checkAsks, checkBriefText, readBrief, readBriefPages } from "./story/briefAssist.ts";
-import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, COLLEAGUE_SYSTEM, checkCalls, colleagueRulesText, colleagueMessages, colleagueReply, colleagueTools, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
+import { COLLEAGUE_ALLOWANCE_WORDS, COLLEAGUE_LIMITS, COLLEAGUE_OFF, checkCalls, colleagueRulesText, colleagueMessages, colleagueReply, colleagueSystemFor, colleagueSystemMode, colleagueToolsFor, colleagueToolsMode, nextCarry, readColleagueAsk, unsureColleague, type ColleagueAsk, type ColleagueBlock, type ColleagueRefusal } from "./colleague/colleagueAssist.ts";
 import { CAPABILITY_SCHEMAS } from "./colleague/schemas.ts";
 import { FACTORY_READ_ALLOWANCE_WORDS, FACTORY_READ_OFF, FACTORY_READ_SCHEMA, FACTORY_READ_SYSTEM, checkFactoryRead, factoryReadUser, readFactoryAsk } from "./colleague/factoryRead.ts";
 import { TALK_ALLOWANCE_WORDS, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, talkRulesText, talkSchemaFor, talkSystemFor, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
@@ -132,6 +132,13 @@ const TALK_LIMIT = {
 /* AI MODE's colleague (docs/AI-MODE.md): answered quickly, as a person answers; its own allowance; switched off by
    ASSIST_COLLEAGUE_ENABLED=false without touching anything else */
 const COLLEAGUE_EFFORT = Deno.env.get("ASSIST_COLLEAGUE_EFFORT") ?? "low";
+/* WHAT A TURN SENDS (11 November, docs/AI-MODE.md "Sending less a turn"): ASSIST_COLLEAGUE_TOOLS = all (the default — every
+   capability's schema every turn, as before) | search (the API's tool search, regex: a core loaded, the rest deferred) |
+   search-bm25 (the same, natural-language search). Every call is still checked against ALL the schemas. */
+const COLLEAGUE_TOOLS = colleagueToolsMode(Deno.env.get("ASSIST_COLLEAGUE_TOOLS"));
+/* ASSIST_COLLEAGUE_SYSTEM = full (the default — the rules word for word, as live) | lean (the same rules with what a capability's
+   own description already says taken out — COLLEAGUE_LEAN_CUTS lists each line and where it still lives) */
+const COLLEAGUE_RULES = colleagueSystemMode(Deno.env.get("ASSIST_COLLEAGUE_SYSTEM"));
 const COLLEAGUE_LIMIT = {
   calls: Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_CALLS") ?? 120) || 120,
   micros: Math.round((Number(Deno.env.get("ASSIST_COLLEAGUE_DAILY_USD") ?? 8) || 8) * 1_000_000),
@@ -285,7 +292,8 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
       return [{ call_id: r.id, capability: String(call.name), kind: kindOf(String(call.name)), input: call.input ?? null, status: r.declined ? "declined" as const : r.ok ? "done" as const : "failed" as const, says: r.says.slice(0, 2000) || null }];
     }));
   }
-  const tools = colleagueTools(CAPABILITY_SCHEMAS);
+  const tools = colleagueToolsFor(CAPABILITY_SCHEMAS, COLLEAGUE_TOOLS);
+  const system = colleagueSystemFor(COLLEAGUE_TOOLS, COLLEAGUE_RULES);
   let ask = first;
   try {
     for (let tries = 0; tries < 3; tries++) {
@@ -293,7 +301,7 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
         model: COLLEAGUE_MODEL, max_tokens: 4000,
         ...fallbackFor(COLLEAGUE_MODEL),
         output_config: { effort: COLLEAGUE_EFFORT },
-        system: [{ type: "text", text: COLLEAGUE_SYSTEM, cache_control: { type: "ephemeral" } }],
+        system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
         tools, tool_choice: { type: "auto" },
         messages: colleagueMessages(ask),
       };
@@ -315,6 +323,8 @@ async function colleagueAnswer(client: Anthropic, admin: Admin, userId: string, 
       await keep(model, msg.usage ?? {}, msg.stop_reason !== "refusal");
       if (msg.stop_reason === "refusal") return { ok: false, why: "AI Mode would not answer that one. What you said is kept." };
       if (msg.stop_reason === "max_tokens") return { ok: false, why: "The answer ran longer than AI Mode gives at once — ask for one part at a time." };
+      /* a tool search the API paused in (search only): its message sent back as it is, to carry on — never to the device */
+      if (msg.stop_reason === "pause_turn") { ask = { ...ask, pending: { carry: nextCarry(ask, content, []), results: [] } }; continue; }
       if (msg.stop_reason === "tool_use") {
         const { calls, refused } = checkCalls(content, CAPABILITY_SCHEMAS);
         await audit(admin, userId, ask.conversationId, [
