@@ -74,7 +74,7 @@ describe('the walk, through the capabilities', () => {
     expect(f.position.machine).toBe('Bagger');
     expect(f.threads.find(t => t.title === 'Film costs')?.status).toBe('current');
     const d = await reg.runCall(ctx(), call('set_position', { area: 'Dispatch' }), { confirmed: false });
-    expect(d.ok && d.says).toMatch(/not a department in Faultline yet/);
+    expect(d.ok && d.says).toMatch(/not a department in the app yet/);
     expect(((await db.getStudy(cid))?.facts as unknown as { walk: WalkStop[] }).walk).toHaveLength(2);
     expect((await reg.runCall(ctx(), call('set_position', { machine: 'Bagger' }), { confirmed: false })).ok).toBe(false);
   });

@@ -18,7 +18,7 @@ export const METHOD_HEADINGS = [
   'When not to use it — and instead',
   'In food and FMCG manufacturing',
   'References',
-  'In Luna',
+  'In Faultline',
 ] as const;
 
 /** established — a recognised method; adaptation — established parts put

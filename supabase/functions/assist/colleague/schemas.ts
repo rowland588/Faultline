@@ -123,7 +123,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'draft_state',
     kind: 'read',
-    description: 'What a draft being built in this conversation holds: each field captured with its value and how it is known (and what a correction replaced), what is still missing, and a custom sheet\'s metrics as Faultline works them. With no draftId, every draft in the conversation. Use it when the person asks what has been captured or what is missing.',
+    description: 'What a draft being built in this conversation holds: each field captured with its value and how it is known (and what a correction replaced), what is still missing, and a custom sheet\'s metrics as the app works them. With no draftId, every draft in the conversation. Use it when the person asks what has been captured or what is missing.',
     input_schema: obj({ draftId: str('The draft\'s id; every draft when left out', 80) }),
   },
   // ── Local: change only the conversation or the device, no confirmation ───────
@@ -226,7 +226,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'create_sheet',
     kind: 'local',
-    description: 'When no tool fits, build a custom sheet the person described: sections of fields, and metrics Faultline works out itself — a sum, average, ratio (first ÷ second; unit "%" for a percentage), difference (first − second) or count over named fields (a list field\'s number column as "list.column"). No formulas. A draft until make_record is confirmed.',
+    description: 'When no tool fits, build a custom sheet the person described: sections of fields, and metrics the app works out itself — a sum, average, ratio (first ÷ second; unit "%" for a percentage), difference (first − second) or count over named fields (a list field\'s number column as "list.column"). No formulas. A draft until make_record is confirmed.',
     input_schema: obj({
       title: str('The sheet\'s title', 120),
       purpose: str('What it is for, in a sentence', 400),
@@ -344,7 +344,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'query_data',
     kind: 'read',
-    description: 'Ask any source a question, worked by Faultline\'s code over every row — filters, up to three fields to group by, a date by day, week, month or year, and measures (sum, avg, min, max, count, distinct). Kept as a RESULT with its id. A field the source does not hold is answered "cannot be said", with what it holds — say that plainly and what would be needed; never put a figure in its place. A value not recorded is never zero; quote the result\'s figures exactly, with what they are of. A changed question ("now just Line 2", "the other workbook", "the previous week") is a new query_data, with from naming the result it changes.',
+    description: 'Ask any source a question, worked by the app\'s code over every row — filters, up to three fields to group by, a date by day, week, month or year, and measures (sum, avg, min, max, count, distinct). Kept as a RESULT with its id. A field the source does not hold is answered "cannot be said", with what it holds — say that plainly and what would be needed; never put a figure in its place. A value not recorded is never zero; quote the result\'s figures exactly, with what they are of. A changed question ("now just Line 2", "the other workbook", "the previous week") is a new query_data, with from naming the result it changes.',
     input_schema: obj({
       source: str('The source id', 120), sheet: str('A workbook\'s sheet', 120), title: str('What the result is, in a few words', 120),
       filters: { type: 'array', maxItems: 8, items: obj({ column: str('The field, by its name', 120), op: { type: 'string', enum: ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'] }, value: { type: ['string', 'number'] }, values: { type: 'array', maxItems: 50, items: { type: ['string', 'number'] } }, from: { type: ['string', 'number'], description: 'between: from (a date as YYYY-MM-DD)' }, to: { type: ['string', 'number'], description: 'between: to' } }, ['column', 'op']) },
@@ -359,7 +359,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'explain_change',
     kind: 'read',
-    description: 'WHAT CHANGED, AND WHERE — the analyst\'s first move for "why is downtime up?", "what changed since last month?", "why are rejects worse this week?". A measure (sum of a number field, or a count) of any source over two periods: the total before and after, and for every field it can be broken by (named in by, else every field of words with a few values) each value\'s before, after and change, ranked by how much of the total change it carries; the field that concentrates the change most; then within its biggest mover, the next field down. Worked by Faultline\'s code, kept as a result (before · after · change) to chart or report. Say its findings with its figures; never explain a change you have not run this for. Two periods of different lengths are not alike — say so, or pick equal ones.',
+    description: 'WHAT CHANGED, AND WHERE — the analyst\'s first move for "why is downtime up?", "what changed since last month?", "why are rejects worse this week?". A measure (sum of a number field, or a count) of any source over two periods: the total before and after, and for every field it can be broken by (named in by, else every field of words with a few values) each value\'s before, after and change, ranked by how much of the total change it carries; the field that concentrates the change most; then within its biggest mover, the next field down. Worked by the app\'s code, kept as a result (before · after · change) to chart or report. Say its findings with its figures; never explain a change you have not run this for. Two periods of different lengths are not alike — say so, or pick equal ones.',
     input_schema: obj({
       source: str('The source id', 120), sheet: str('A workbook\'s sheet', 120), title: str('What is measured ("Downtime minutes on Line 3")', 120),
       measure: obj({ op: { type: 'string', enum: ['sum', 'count'] }, column: str('The number field to add up (count may have none: rows)', 120) }, ['op']),
@@ -374,7 +374,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'join_results',
     kind: 'read',
-    description: 'Put two results side by side, matched by their labels — a budget sheet\'s minutes by reason against the stops the line timed, last month\'s file against this month\'s, a workbook against Faultline\'s own records. Each matched label with both values and the difference (second − first); the labels on one side only are named, never matched by a near spelling. When the person says two labels are the same thing ("Film change is our Reel change"), pass them as rules — never guess one. Kept as a result to chart (compare) or report.',
+    description: 'Put two results side by side, matched by their labels — a budget sheet\'s minutes by reason against the stops the line timed, last month\'s file against this month\'s, a workbook against the app\'s own records. Each matched label with both values and the difference (second − first); the labels on one side only are named, never matched by a near spelling. When the person says two labels are the same thing ("Film change is our Reel change"), pass them as rules — never guess one. Kept as a result to chart (compare) or report.',
     input_schema: obj({
       a: str('The first result id', 40), b: str('The second result id', 40), title: str('What the comparison is', 120),
       measureA: { type: 'integer', minimum: 0, maximum: 5 }, measureB: { type: 'integer', minimum: 0, maximum: 5 },
@@ -420,7 +420,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'work_out',
     kind: 'local',
-    description: 'Do arithmetic through Faultline, never in your head — a difference, a share, a percentage, a per-week or per-shift rate, a conversion (minutes to hours). An expression of numbers with + − × ÷ and brackets, every number taken from a result, a step or what the person said (a few constants are allowed: 60, 24, 7, 52, 100, 365 …). Its answer is Faultline\'s, so the figure checks; a number it rests on that nothing holds is named, and the figure is marked. Write the figure as it gives it.',
+    description: 'Do arithmetic through the app, never in your head — a difference, a share, a percentage, a per-week or per-shift rate, a conversion (minutes to hours). An expression of numbers with + − × ÷ and brackets, every number taken from a result, a step or what the person said (a few constants are allowed: 60, 24, 7, 52, 100, 365 …). Its answer is the app\'s, so the figure checks; a number it rests on that nothing holds is named, and the figure is marked. Write the figure as it gives it.',
     input_schema: obj({ what: str('What the figure is ("the Sealer\'s share of the loss")', 160), expression: str('The sum in numbers only ("264 / 429 * 100")', 400), unit: str('Its unit', 30), places: { type: 'integer', minimum: 0, maximum: 6 } }, ['what', 'expression']),
   },
   {
@@ -512,7 +512,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
       photoKey: str('The photo\'s key (from the photos listed)', 120),
       to: { type: 'string', enum: ['line', 'machine', 'department', 'problem', 'project'] },
       lineId: str('The line (for line or machine)', 80),
-      machine: str('The machine on that line, by its name in Faultline', 120),
+      machine: str('The machine on that line, by its name in the app', 120),
       departmentId: str('The department', 80),
       problemId: str('The problem', 80),
       projectId: str('The project', 80),
@@ -522,7 +522,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'add_department',
     kind: 'write',
-    description: 'Record a department of the factory (Dispatch, Goods in, Despatch, Stores…) as a record of its own, even with no lines, machines or equipment in it yet — nothing is made under it. Use it when the person names a department Faultline does not hold and wants it kept. Found, never doubled, when it is already there. The person sees a card and decides.',
+    description: 'Record a department of the factory (Dispatch, Goods in, Despatch, Stores…) as a record of its own, even with no lines, machines or equipment in it yet — nothing is made under it. Use it when the person names a department the app does not hold and wants it kept. Found, never doubled, when it is already there. The person sees a card and decides.',
     input_schema: obj({
       area: str('Its name, as the floor says it', 120),
       site: str('Its site', 120),
@@ -562,7 +562,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'factory_map',
     kind: 'read',
-    description: 'The client\'s factory as Faultline holds it: sites, areas, lines and each line\'s machines, each machine with its kind, model and serial and how each is known (confirmed, reported, from a document, inferred, recorded, unknown). Only the client of the line or project in hand; with none, every client whose lines the person can see, each its own group.',
+    description: 'The client\'s factory as the app holds it: sites, areas, lines and each line\'s machines, each machine with its kind, model and serial and how each is known (confirmed, reported, from a document, inferred, recorded, unknown). Only the client of the line or project in hand; with none, every client whose lines the person can see, each its own group.',
     input_schema: obj({
       lineId: str('The line the conversation is on', 80),
       projectId: str('The project the conversation is on', 80),
@@ -572,7 +572,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'resolve',
     kind: 'read',
-    description: 'Turn what the person called something ("the scales", "the mixer", "Line 2", "line two", "packaging") into the lines, machines, areas or sites it could mean, from the client\'s factory map: match one (use it), several (ask which, naming them) or none (it is not known in Faultline — offer to add it, never assume it exists). Use before acting on any machine, line, area or process the person names.',
+    description: 'Turn what the person called something ("the scales", "the mixer", "Line 2", "line two", "packaging") into the lines, machines, areas or sites it could mean, from the client\'s factory map: match one (use it), several (ask which, naming them) or none (it is not known in the app — offer to add it, never assume it exists). Use before acting on any machine, line, area or process the person names.',
     input_schema: obj({
       words: str('Exactly what the person called it', 200),
       lineId: str('The line the conversation is on — narrows first', 80),
@@ -584,7 +584,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'add_to_factory_draft',
     kind: 'local',
-    description: 'Note a client\'s factory as the person says it — its sites, areas, production lines and machines (each machine with its kind, model, serial and maker only when said) — into the conversation\'s factory draft, shown as Being built. The first call for a client starts the draft (give client). Ops: add (with its site, area and line names — a machine always on a line), set (a machine\'s kind, model, serial, maker), rename (to), move (to a new site, area or line), remove (from the draft only), keep or leave_out (a proposal read from a document), pick (where a value differs from what Faultline holds: field, take recorded or new). Only what was said, in their words, with said quoting them — never a site, line or machine they did not name. Run resolve first: a line or machine already in Faultline is matched, never doubled. Nothing is a record until make_record.',
+    description: 'Note a client\'s factory as the person says it — its sites, areas, production lines and machines (each machine with its kind, model, serial and maker only when said) — into the conversation\'s factory draft, shown as Being built. The first call for a client starts the draft (give client). Ops: add (with its site, area and line names — a machine always on a line), set (a machine\'s kind, model, serial, maker), rename (to), move (to a new site, area or line), remove (from the draft only), keep or leave_out (a proposal read from a document), pick (where a value differs from what the app holds: field, take recorded or new). Only what was said, in their words, with said quoting them — never a site, line or machine they did not name. Run resolve first: a line or machine already in the app is matched, never doubled. Nothing is a record until make_record.',
     input_schema: obj({
       draftId: str('The factory draft\'s id — left out, the conversation\'s draft for the client', 80),
       client: str('The client — the business, e.g. "Customer X Foods"; needed to start a draft', 120),
@@ -606,7 +606,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
           serial: str('A machine\'s serial, as said', 120),
           maker: str('Who made the machine, as said', 120),
           field: { type: 'string', enum: ['kind', 'model', 'serial', 'maker', 'site', 'area'], description: 'pick: the value picked' },
-          take: { type: 'string', enum: ['recorded', 'new'], description: 'pick: keep what Faultline holds, or take the new' },
+          take: { type: 'string', enum: ['recorded', 'new'], description: 'pick: keep what the app holds, or take the new' },
           said: str('The person\'s words, as said', 300),
         }, ['op', 'level', 'name']),
       },
@@ -618,7 +618,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
     description: 'Record that a machine on a line has been replaced by a new one — the person sees a card and confirms. The new machine gets its own record in the old one\'s place on the line, with what it is (only as said); the old record is kept with its history and says Replaced by the new. Resolve the old machine first; give the new one its own name (e.g. with its model). How it is known: reported by the person, today.',
     input_schema: obj({
       lineId: str('The line it is on (from resolve)', 80),
-      machine: str('The machine replaced, by its name in Faultline', 160),
+      machine: str('The machine replaced, by its name in the app', 160),
       name: str('The new machine\'s own name, e.g. "Bagger 2 — Ishida BX500"', 160),
       kind: str('What the new machine is, as said', 120),
       model: str('Its model, as said', 120),
@@ -630,14 +630,14 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'make_record',
     kind: 'write',
-    description: 'Make a draft into a real record through the app\'s own functions, once its essentials are captured — the person sees a card and confirms. On a draft already made, it updates that record with only what changed in the conversation since. On a factory draft it makes its lines (with their client, site and area) and puts its machines on them, matching what Faultline already holds — held while a document\'s proposal waits for the person\'s word or a difference is not picked. Never say it is saved until the result says so.',
+    description: 'Make a draft into a real record through the app\'s own functions, once its essentials are captured — the person sees a card and confirms. On a draft already made, it updates that record with only what changed in the conversation since. On a factory draft it makes its lines (with their client, site and area) and puts its machines on them, matching what the app already holds — held while a document\'s proposal waits for the person\'s word or a difference is not picked. Never say it is saved until the result says so.',
     input_schema: obj({ draftId: str('The draft\'s id', 80) }, ['draftId']),
   },
   // ── Understanding the app, the person's aim and where the work belongs (9 November, docs/AI-CONTEXT.md) ──────
   {
     name: 'describe_faultline',
     kind: 'read',
-    description: 'What Faultline is now, read from the app itself: its kinds of record and how they relate (a problem is on a line and maybe a machine and a project; a tool record may be on a line, in a project, on a machine, or standalone; an area is words on its lines …), the capabilities THIS person can use here (with why when one is not open to them), the tools with what each needs and gives, and the eight methods. Use it when unsure whether Faultline can do something or where a record belongs — never claim a capability that is not listed as available.',
+    description: 'What the app is now, read from the app itself: its kinds of record and how they relate (a problem is on a line and maybe a machine and a project; a tool record may be on a line, in a project, on a machine, or standalone; an area is words on its lines …), the capabilities THIS person can use here (with why when one is not open to them), the tools with what each needs and gives, and the eight methods. Use it when unsure whether the app can do something or where a record belongs — never claim a capability that is not listed as available.',
     input_schema: obj({ about: { type: 'string', enum: ['records', 'capabilities', 'tools', 'methods', 'all'], description: 'Which part; all by default' }, name: str('Only the ones whose name has these words', 80) }),
   },
   {
@@ -676,7 +676,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'tool_guide',
     kind: 'read',
-    description: 'Every tool Faultline has and what you can do with each through its connector: describe (what it is for, needs, gives), fill (a draft, a diagram said aloud, or readings), capture (a live measurement — the events it takes), read (its records’ own findings and data), report (its own paper). Also the six kinds of work, said apart: report · fill · measure · calculate · analyse · investigate. Filter by key, by the kind of work, or by the person’s words. Use it to pick HOW to do what the person wants before you act.',
+    description: 'Every tool the app has and what you can do with each through its connector: describe (what it is for, needs, gives), fill (a draft, a diagram said aloud, or readings), capture (a live measurement — the events it takes), read (its records’ own findings and data), report (its own paper). Also the six kinds of work, said apart: report · fill · measure · calculate · analyse · investigate. Filter by key, by the kind of work, or by the person’s words. Use it to pick HOW to do what the person wants before you act.',
     input_schema: obj({
       key: str('One tool’s key', 60),
       words: str('The person’s words for the work', 200),
@@ -729,7 +729,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'write_document',
     kind: 'write',
-    description: 'Keep a document written from the conversation (a line-walk report, a summary for a manager or client, an engineering report, a punch list) — Line Talk’s own document, kept as a Line Talk record with its page (to edit) and its PDF. The person sees a card and confirms. Built as every Faultline report: status first (ok · watch · problem with one line), then "What is not as it should be", "What we are doing about it" (who, by when — only as said), "Where we are"; each point with its basis (observed · record · interpretation) and state. Every figure only as said or as a capability gave it — never calculated. Photos only by their labels (P1, P2) from this conversation.',
+    description: 'Keep a document written from the conversation (a line-walk report, a summary for a manager or client, an engineering report, a punch list) — Line Talk’s own document, kept as a Line Talk record with its page (to edit) and its PDF. The person sees a card and confirms. Built as every report in the app: status first (ok · watch · problem with one line), then "What is not as it should be", "What we are doing about it" (who, by when — only as said), "Where we are"; each point with its basis (observed · record · interpretation) and state. Every figure only as said or as a capability gave it — never calculated. Photos only by their labels (P1, P2) from this conversation.',
     input_schema: obj({
       document: {
         ...obj({
@@ -747,7 +747,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'draw_diagram',
     kind: 'write',
-    description: 'Make (or update, with studyId) a diagram the person has said aloud as its tool’s own record — the person sees a card and confirms; then the tool works out every figure and its page is shown. set flow: a process flow chart — capture { title, steps: [{ what, kind: operation | transport | inspection | delay | storage, time, timeUnit: seconds | minutes | hours | "", dist, distUnit: metres | feet | yards | kilometres | "" }] } (only a transport has a distance). set spag: a spaghetti diagram — capture { title, walkers: [{ label (a role, never a name), steps: [{ place, dist, distUnit }] }] } (the first place has no distance). set vs: a value stream — capture { title, supplier, customer, demandPerDay, steps: [{ name, kind: operation | move | check | wait | store, who: [roles], where, cycle, cycleUnit, wait, waitUnit, value: adds | needed | waste | "" (only if the person classed it), batch }] }. Every time and distance only as said, with its unit as said (null when not said) — Faultline converts; never add, convert or estimate.',
+    description: 'Make (or update, with studyId) a diagram the person has said aloud as its tool’s own record — the person sees a card and confirms; then the tool works out every figure and its page is shown. set flow: a process flow chart — capture { title, steps: [{ what, kind: operation | transport | inspection | delay | storage, time, timeUnit: seconds | minutes | hours | "", dist, distUnit: metres | feet | yards | kilometres | "" }] } (only a transport has a distance). set spag: a spaghetti diagram — capture { title, walkers: [{ label (a role, never a name), steps: [{ place, dist, distUnit }] }] } (the first place has no distance). set vs: a value stream — capture { title, supplier, customer, demandPerDay, steps: [{ name, kind: operation | move | check | wait | store, who: [roles], where, cycle, cycleUnit, wait, waitUnit, value: adds | needed | waste | "" (only if the person classed it), batch }] }. Every time and distance only as said, with its unit as said (null when not said) — the app converts; never add, convert or estimate.',
     input_schema: obj({
       set: { type: 'string', enum: ['flow', 'spag', 'vs'] },
       capture: { type: 'object', description: 'The diagram as said — its shape is given above for each set' },
@@ -939,7 +939,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'understand_task',
     kind: 'read',
-    description: 'When the person says what they are doing, what they have seen, what they want to investigate or achieve — "I think we\u2019re losing too much production time on this line", "rejects are up on the sealer" — read the task on its line: what Faultline already holds that bears on it (each tool\u2019s own finding, the stops of the last four weeks, the open problems and what they cost, the 6M work), what is old and what is missing, and the ONE next step with why, in the order the method takes it. Recommend that step in a sentence; never offer a menu of tools. Run it before choosing any tool for a task.',
+    description: 'When the person says what they are doing, what they have seen, what they want to investigate or achieve — "I think we\u2019re losing too much production time on this line", "rejects are up on the sealer" — read the task on its line: what the app already holds that bears on it (each tool\u2019s own finding, the stops of the last four weeks, the open problems and what they cost, the 6M work), what is old and what is missing, and the ONE next step with why, in the order the method takes it. Recommend that step in a sentence; never offer a menu of tools. Run it before choosing any tool for a task.',
     input_schema: obj({ words: str('What they are doing or want, in their words', 400), lineId: str('The line, when known', 80), machine: str('The machine, when said', 120) }, ['words']),
   },
   {
@@ -964,7 +964,7 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'assess_evidence',
     kind: 'read',
-    description: 'For a tool on a line: what Faultline already holds (its records and their age, or the stops and how sure they are), what it still needs, whether that is enough, and the best way to get the rest. Run it before asking the person for any figure — never ask for figures to be typed where the records or a live measurement can give them.',
+    description: 'For a tool on a line: what the app already holds (its records and their age, or the stops and how sure they are), what it still needs, whether that is enough, and the best way to get the rest. Run it before asking the person for any figure — never ask for figures to be typed where the records or a live measurement can give them.',
     input_schema: obj({ tool: str('The tool’s key', 40), lineId: str('The line', 80) }, ['tool']),
   },
   {
@@ -1000,18 +1000,18 @@ export const CAPABILITY_SCHEMAS: CapabilitySchema[] = [
   {
     name: 'workbook_profile',
     kind: 'read',
-    description: 'What an Excel workbook attached in this conversation holds — read on the person’s device, never sent to you: its sheets (hidden ones said), the header row found on each and what is above it, every column with its type (number, text, date, yes/no, mixed), blanks, words in number columns, errors, formulas and those with no value saved by Excel (Faultline never recalculates Excel), repeated rows, the same name written more than one way, hidden columns, tables, defined names, and what is in the file but NOT read (pivot tables, external links, connections, a data model, macros, charts). With no sheet: THE MAP — every sheet in a line (its rows, header, columns, the columns listing each value once, its dates, a filter) and the CONNECTIONS between sheets found from their values, not from formulas (a log’s product column holding a master list’s product codes). Run it first, before any question of the workbook. With sheet, that one sheet in full.',
+    description: 'What an Excel workbook attached in this conversation holds — read on the person’s device, never sent to you: its sheets (hidden ones said), the header row found on each and what is above it, every column with its type (number, text, date, yes/no, mixed), blanks, words in number columns, errors, formulas and those with no value saved by Excel (the app never recalculates Excel), repeated rows, the same name written more than one way, hidden columns, tables, defined names, and what is in the file but NOT read (pivot tables, external links, connections, a data model, macros, charts). With no sheet: THE MAP — every sheet in a line (its rows, header, columns, the columns listing each value once, its dates, a filter) and the CONNECTIONS between sheets found from their values, not from formulas (a log’s product column holding a master list’s product codes). Run it first, before any question of the workbook. With sheet, that one sheet in full.',
     input_schema: obj({ workbookId: str('The workbook (its id, or its register id) — may be left out only when this conversation holds one workbook', 80), sheet: str('One sheet in full, by name', 120) }),
   },
   {
     name: 'query_workbook',
     kind: 'read',
-    description: 'Ask the workbook a question, worked by Faultline’s code over EVERY row of a sheet (never a sample, never by you): filters, up to three columns to group by, a date column grouped by day, week, month or year, and measures — sum, avg, min, max, count (of rows, or of a column’s filled cells) and distinct. Answers with each group’s figures, the totals, a source cell for each group, the cells it could not use (a word in a column being added up — counted and named), and notes (formulas, two spellings matched by a filter). Quote its figures exactly with what they are of; every figure about the workbook comes from here. Text filters ignore case and stray spaces, and say when that matched more than one spelling.',
+    description: 'Ask the workbook a question, worked by the app’s code over EVERY row of a sheet (never a sample, never by you): filters, up to three columns to group by, a date column grouped by day, week, month or year, and measures — sum, avg, min, max, count (of rows, or of a column’s filled cells) and distinct. Answers with each group’s figures, the totals, a source cell for each group, the cells it could not use (a word in a column being added up — counted and named), and notes (formulas, two spellings matched by a filter). Quote its figures exactly with what they are of; every figure about the workbook comes from here. Text filters ignore case and stray spaces, and say when that matched more than one spelling.',
     input_schema: obj({
       workbookId: str('The workbook (its id, or its register id) — may be left out only when this conversation holds one workbook', 80),
       sheet: str('The sheet, by name', 120),
       lookups: { type: 'array', maxItems: 4, description: 'Values brought from ANOTHER sheet by what each row holds — e.g. each archive row’s product found in PRODUCT MASTER to bring back its £ per pack. Use the CONNECTIONS the map gives. The looked-up value is then a column of this question by its `as` name (group by it, filter on it, add it up, use it in a calc). A row whose value is not found is left blank and counted, never guessed.', items: obj({ as: str('Its name in this question, e.g. "Std £ per pack"', 60), sheet: str('The sheet looked up', 120), match: str('This sheet’s column holding the key (e.g. the product)', 120), on: str('That sheet’s column it is found in', 120), take: str('That sheet’s column to bring back', 120) }, ['as', 'sheet', 'match', 'on', 'take']) },
-      calcs: { type: 'array', maxItems: 4, description: 'A sum worked by Faultline on each row — a column (or a looked-up value, or an earlier calc) times, divided by, plus or minus another column or a number, e.g. downtime minutes × £ a minute. Then a column of this question by its `as` name. Never work it out yourself.', items: obj({ as: str('Its name', 60), a: str('A column', 120), op: { type: 'string', enum: ['*', '/', '+', '-'] }, b: { type: ['string', 'number'], description: 'A column, or a number' } }, ['as', 'a', 'op', 'b']) },
+      calcs: { type: 'array', maxItems: 4, description: 'A sum worked by the app on each row — a column (or a looked-up value, or an earlier calc) times, divided by, plus or minus another column or a number, e.g. downtime minutes × £ a minute. Then a column of this question by its `as` name. Never work it out yourself.', items: obj({ as: str('Its name', 60), a: str('A column', 120), op: { type: 'string', enum: ['*', '/', '+', '-'] }, b: { type: ['string', 'number'], description: 'A column, or a number' } }, ['as', 'a', 'op', 'b']) },
       filters: { type: 'array', maxItems: 8, items: obj({ column: str('The column, by its header (or letter)', 120), op: { type: 'string', enum: ['eq', 'ne', 'in', 'gt', 'gte', 'lt', 'lte', 'between', 'contains', 'blank', 'notblank'] }, value: { type: ['string', 'number'] }, values: { type: 'array', maxItems: 50, items: { type: ['string', 'number'] } }, from: { type: ['string', 'number'], description: 'between: from (a date as YYYY-MM-DD)' }, to: { type: ['string', 'number'], description: 'between: to' } }, ['column', 'op']) },
       groupBy: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 120 } },
       time: obj({ column: str('A date column', 120), by: { type: 'string', enum: ['day', 'week', 'month', 'year'] } }, ['column', 'by']),
